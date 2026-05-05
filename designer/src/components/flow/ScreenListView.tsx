@@ -4,7 +4,10 @@ import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { ScreenNode } from "../../types/flow";
 import { SCREEN_KIND_LABELS, SCREEN_KIND_ICONS } from "../../types/flow";
 import type { ScreenId, ScreenKind, Timestamp } from "../../types/v3";
-import { loadProject, saveProject, addScreen, removeScreen, DEFAULT_NODE_SIZE } from "../../store/flowStore";
+import { loadProject, loadRawProject, saveProject, addScreen, removeScreen, DEFAULT_NODE_SIZE } from "../../store/flowStore";
+import { buildDefaultScreen, saveScreenEntity } from "../../store/screenStore";
+import { resolveEditorKind } from "../../utils/resolveEditorKind";
+import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
 import { generateUUID } from "../../utils/uuid";
@@ -49,10 +52,15 @@ export function ScreenListView() {
   const [screenModal, setScreenModal] = useState<{ open: boolean; editId?: string; initial?: Partial<ScreenFormData> }>({ open: false });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const { hasDraft } = useDraftRegistry();
+  // project.design の project default (画面作成ダイアログのデフォルト選択値)
+  const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
+  const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
 
   const loadScreens = useCallback(async (): Promise<ScreenNode[]> => {
     mcpBridge.startWithoutEditor();
-    const p = await loadProject();
+    const [p, raw] = await Promise.all([loadProject(), loadRawProject()]);
+    setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.design));
+    setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.design));
     return p.screens;
   }, []);
 
@@ -368,9 +376,15 @@ export function ScreenListView() {
         await saveProject(project);
       }
     } else {
-      const screen = await addScreen(project, data.name, data.type as ScreenKind, data.path);
+      const editorKind = data.editorKind ?? projectDefaultEditorKind;
+      const cssFramework = data.cssFramework ?? projectDefaultCssFramework;
+      const screen = await addScreen(project, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework });
       screen.description = data.description;
       await saveProject(project);
+      // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
+      const entity = await buildDefaultScreen(screen.id);
+      entity.design = { ...entity.design, editorKind, cssFramework };
+      await saveScreenEntity(entity);
     }
     setScreenModal({ open: false });
     await editor.reload();
@@ -606,6 +620,9 @@ export function ScreenListView() {
         open={screenModal.open}
         initial={screenModal.initial}
         title={screenModal.editId ? "画面の編集" : "画面の追加"}
+        isCreate={!screenModal.editId}
+        defaultEditorKind={projectDefaultEditorKind}
+        defaultCssFramework={projectDefaultCssFramework}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />

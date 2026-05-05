@@ -694,13 +694,22 @@ export async function persistProject(project: FlowProject): Promise<void> {
   clearDraft(FLOW_DRAFT_KIND, FLOW_DRAFT_ID);
 }
 
+/** 画面を追加するときの省略可能オプション。 */
+export interface AddScreenOptions {
+  path?: string;
+  position?: { x: number; y: number };
+  /** 画面作成時に固定するエディタ種別。省略時は呼び出し側で project.design から解決して screen entity に書く。 */
+  editorKind?: "grapesjs" | "puck";
+  /** 画面作成時に固定する CSS フレームワーク。省略時は呼び出し側で project.design から解決して screen entity に書く。 */
+  cssFramework?: "bootstrap" | "tailwind";
+}
+
 /** 画面を追加。 */
 export async function addScreen(
   project: FlowProject,
   name: string,
   kind: ScreenKind,
-  path?: string,
-  position?: { x: number; y: number },
+  opts?: AddScreenOptions,
 ): Promise<ScreenNode> {
   const id = generateUUID() as ScreenId;
   const screen: ScreenNode = {
@@ -709,8 +718,8 @@ export async function addScreen(
     name,
     kind,
     description: "",
-    path: path ?? "",
-    position: position ?? { x: 100 + project.screens.length * 250, y: 150 },
+    path: opts?.path ?? "",
+    position: opts?.position ?? { x: 100 + project.screens.length * 250, y: 150 },
     size: { ...DEFAULT_NODE_SIZE },
     hasDesign: false,
     createdAt: nowTs(),

@@ -151,7 +151,9 @@ export const tools = [
   {
     name: "designer__add_screen",
     description:
-      "フロー図に新しい画面ノードを追加します。追加後、ブラウザのフロー図に即時反映されます。",
+      "フロー図に新しい画面ノードを追加します。追加後、ブラウザのフロー図に即時反映されます。" +
+      " editorKind / cssFramework は省略時に project.design のデフォルトを参照します。値は画面作成時に固定され以降変更不可です。" +
+      " screen.design に editorKind / cssFramework を常時明示書き込みします。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -175,6 +177,16 @@ export const tools = [
             y: { type: "number" },
           },
           description: "フロー図上の配置座標。省略時は自動配置。",
+        },
+        editorKind: {
+          type: "string",
+          enum: ["grapesjs", "puck"],
+          description: "エディタ種別。省略時は project.design.editorKind → 'grapesjs' の順にフォールバック。画面作成時に固定、以降変更不可。",
+        },
+        cssFramework: {
+          type: "string",
+          enum: ["bootstrap", "tailwind"],
+          description: "CSS フレームワーク。省略時は project.design.cssFramework → 'bootstrap' の順にフォールバック。画面作成時に固定、以降変更不可。",
         },
       },
       required: ["name"],

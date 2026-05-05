@@ -30,6 +30,7 @@ import { TRIGGER_LABELS } from "../../types/flow";
 import type { ScreenGroupId, ScreenKind, Timestamp } from "../../types/v3";
 import {
   loadProject,
+  loadRawProject,
   saveProject,
   persistProject,
   addScreen,
@@ -46,6 +47,9 @@ import {
   generateMermaid,
   generateFlowMarkdown,
 } from "../../store/flowStore";
+import { buildDefaultScreen, loadScreenEntity, saveScreenEntity } from "../../store/screenStore";
+import { resolveEditorKind } from "../../utils/resolveEditorKind";
+import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { useUndoKeyboard } from "../../hooks/useUndoKeyboard";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { useFlowProjectSync } from "../../hooks/useFlowProjectSync";
@@ -202,11 +206,13 @@ function FlowEditorInner() {
 
   // プロジェクトを読み込んで UI に反映
   const reloadProject = useCallback(async () => {
-    const project = await loadProject();
+    const [project, raw] = await Promise.all([loadProject(), loadRawProject()]);
     projectRef.current = project;
     setNodes(toRFNodesWithGroups(project.screens, project.groups ?? []));
     setEdges(toRFEdges(project.edges));
     setProjectName(project.name);
+    setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.design));
+    setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.design));
     needsFitViewRef.current = project.screens.length > 0;
     setIsLoading(false);
     setIsDirty(false);
@@ -247,6 +253,10 @@ function FlowEditorInner() {
     })().catch(console.error);
     return () => { cancelled = true; };
   }, [sessionLoading, mode.kind]);
+
+  // project.design の project default (画面作成ダイアログのデフォルト選択値)
+  const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
+  const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
 
   // Modals
   const [screenModal, setScreenModal] = useState<{
@@ -385,9 +395,15 @@ function FlowEditorInner() {
         return { ...n, data: { ...screen } };
       }));
     } else {
-      const screen = await addScreen(projectRef.current, data.name, data.type as ScreenKind, data.path);
+      const editorKind = data.editorKind ?? projectDefaultEditorKind;
+      const cssFramework = data.cssFramework ?? projectDefaultCssFramework;
+      const screen = await addScreen(projectRef.current, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework });
       screen.description = data.description;
       await saveProject(projectRef.current);
+      // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
+      const entity = await buildDefaultScreen(screen.id);
+      entity.design = { ...entity.design, editorKind, cssFramework };
+      await saveScreenEntity(entity);
       setNodes((nds) => [...nds, {
         id: screen.id,
         type: "screenNode" as const,
@@ -396,7 +412,7 @@ function FlowEditorInner() {
       }]);
     }
     setScreenModal({ open: false });
-  }, [screenModal.editId, setNodes]);
+  }, [screenModal.editId, projectDefaultEditorKind, projectDefaultCssFramework, setNodes]);
 
   // ── Edge Modal Actions ──
 
@@ -448,15 +464,27 @@ function FlowEditorInner() {
     pushUndoSnapshot();
     const screen = projectRef.current.screens.find((s) => s.id === contextMenu.targetId);
     if (screen) {
+      // コピー元の editorKind/cssFramework を継承する (spec § 2.5.2: 作成時固定)
+      const srcEntity = await loadScreenEntity(screen.id);
+      const srcEditorKind = resolveEditorKind(srcEntity.design, undefined);
+      const srcCssFramework = resolveCssFramework(srcEntity.design, undefined);
       const dup = await addScreen(
         projectRef.current,
         `${screen.name} (コピー)`,
         screen.kind,
-        screen.path,
-        { x: screen.position.x + 30, y: screen.position.y + 30 },
+        {
+          path: screen.path,
+          position: { x: screen.position.x + 30, y: screen.position.y + 30 },
+          editorKind: srcEditorKind,
+          cssFramework: srcCssFramework,
+        },
       );
       dup.description = screen.description;
       await saveProject(projectRef.current);
+      // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
+      const dupEntity = await buildDefaultScreen(dup.id);
+      dupEntity.design = { ...dupEntity.design, editorKind: srcEditorKind, cssFramework: srcCssFramework };
+      await saveScreenEntity(dupEntity);
       setNodes((nds) => [...nds, {
         id: dup.id,
         type: "screenNode" as const,
@@ -1010,6 +1038,9 @@ function FlowEditorInner() {
         open={screenModal.open}
         initial={screenModal.initial}
         title={screenModal.editId ? "画面の編集" : "画面の追加"}
+        isCreate={!screenModal.editId}
+        defaultEditorKind={projectDefaultEditorKind}
+        defaultCssFramework={projectDefaultCssFramework}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />

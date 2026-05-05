@@ -6,6 +6,7 @@ import {
   loadProject,
   persistProject,
   saveProject,
+  addScreen,
   setFlowDraftMode,
   setFlowStorageBackend,
 } from "./flowStore";
@@ -246,6 +247,45 @@ describe("flowStore データ消失ガード (2026-04-22)", () => {
     await persistProject(mkEmptyProject());
 
     expect(saveMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("addScreen opts (#825)", () => {
+  beforeEach(() => {
+    setFlowStorageBackend(null);
+    setFlowDraftMode(false);
+    localStorage.clear();
+  });
+
+  it("opts 省略時は path='' position=自動配置で画面が追加される", async () => {
+    const project = mkEmptyProject();
+    const screen = await addScreen(project, "テスト画面", "list");
+    expect(screen.name).toBe("テスト画面");
+    expect(screen.kind).toBe("list");
+    expect(screen.path).toBe("");
+    expect(screen.position).toEqual({ x: 100, y: 150 });
+  });
+
+  it("opts.path / opts.position を指定するとその値が使われる", async () => {
+    const project = mkEmptyProject();
+    const screen = await addScreen(project, "パス付き画面", "form", {
+      path: "/test",
+      position: { x: 200, y: 300 },
+    });
+    expect(screen.path).toBe("/test");
+    expect(screen.position).toEqual({ x: 200, y: 300 });
+  });
+
+  it("opts.editorKind / opts.cssFramework は ScreenNode に含まれないが addScreen が正常完了する", async () => {
+    const project = mkEmptyProject();
+    const screen = await addScreen(project, "Puck 画面", "other", {
+      editorKind: "puck",
+      cssFramework: "tailwind",
+    });
+    // addScreen は FlowProject メタのみ管理。editorKind/cssFramework は addScreen 内では無視される
+    // (呼び出し側が saveScreenEntity で screen.design に書き込む)
+    expect(screen.id).toBeTruthy();
+    expect(project.screens).toHaveLength(1);
   });
 });
 

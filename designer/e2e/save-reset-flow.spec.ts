@@ -40,10 +40,20 @@ async function setupFlowEditor(page: Page, draft: object | null = null) {
   await expect(page.locator(".flow-root")).toBeVisible();
 }
 
-async function addScreenViaModal(page: Page, name: string) {
+async function addScreenViaModal(
+  page: Page,
+  name: string,
+  options?: { editorKind?: "grapesjs" | "puck"; cssFramework?: "bootstrap" | "tailwind" },
+) {
   // ツールバーの「画面を追加」（空状態 CTA "最初の画面を追加" とは別）
   await page.locator('.editor-header button.flow-btn-primary').filter({ hasText: "画面を追加" }).click();
   await page.locator("#screen-name").fill(name);
+  if (options?.editorKind) {
+    await page.locator(`input[name="screen-editor-kind"][value="${options.editorKind}"]`).click();
+  }
+  if (options?.cssFramework) {
+    await page.locator(`input[name="screen-css-framework"][value="${options.cssFramework}"]`).click();
+  }
   await page.locator('.flow-modal button[type="submit"]').click();
 }
 

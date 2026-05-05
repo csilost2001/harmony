@@ -212,4 +212,62 @@ describe("screenStore — load/save round-trip 契約", () => {
     const savedRaw = backend._store.get(SCREEN_ID) as Record<string, unknown>;
     expect(savedRaw.items).toEqual(items);
   });
+
+  it("saveScreenEntity で editorKind/cssFramework を指定すると design に保存される (#825)", async () => {
+    const backend = makeMockBackend();
+    setScreenStorageBackend(backend);
+
+    const screen: Screen = {
+      $schema: "../schemas/v3/screen.v3.schema.json",
+      id: SCREEN_ID,
+      name: "editor 選択テスト",
+      kind: "list",
+      path: "/test",
+      createdAt: TIMESTAMP,
+      updatedAt: TIMESTAMP,
+      items: [],
+      design: {
+        editorKind: "puck",
+        cssFramework: "tailwind",
+        puckDataRef: "puck-data.json",
+      },
+    };
+
+    await saveScreenEntity(screen);
+
+    const savedRaw = backend._store.get(SCREEN_ID) as { design?: Record<string, unknown> };
+    expect(savedRaw.design?.editorKind).toBe("puck");
+    expect(savedRaw.design?.cssFramework).toBe("tailwind");
+    expect(savedRaw.design?.puckDataRef).toBe("puck-data.json");
+    expect(savedRaw.design?.designFileRef).toBeUndefined();
+  });
+
+  it("saveScreenEntity で editorKind=grapesjs/cssFramework=bootstrap が保存される (#825)", async () => {
+    const backend = makeMockBackend();
+    setScreenStorageBackend(backend);
+
+    const screen: Screen = {
+      $schema: "../schemas/v3/screen.v3.schema.json",
+      id: SCREEN_ID,
+      name: "GrapesJS Bootstrap テスト",
+      kind: "form",
+      path: "/form",
+      createdAt: TIMESTAMP,
+      updatedAt: TIMESTAMP,
+      items: [],
+      design: {
+        editorKind: "grapesjs",
+        cssFramework: "bootstrap",
+        designFileRef: `${SCREEN_ID}.design.json`,
+      },
+    };
+
+    await saveScreenEntity(screen);
+
+    const savedRaw = backend._store.get(SCREEN_ID) as { design?: Record<string, unknown> };
+    expect(savedRaw.design?.editorKind).toBe("grapesjs");
+    expect(savedRaw.design?.cssFramework).toBe("bootstrap");
+    expect(savedRaw.design?.designFileRef).toBe(`${SCREEN_ID}.design.json`);
+    expect(savedRaw.design?.puckDataRef).toBeUndefined();
+  });
 });

@@ -4,7 +4,9 @@ import type {
   ScreenKind,
   Timestamp,
 } from "../types/v3";
-import { loadProject } from "./flowStore";
+import { loadProject, loadRawProject } from "./flowStore";
+import { resolveEditorKind } from "../utils/resolveEditorKind";
+import { resolveCssFramework } from "../utils/resolveCssFramework";
 import { validatePuckScreen } from "../utils/puckScreenValidation";
 import type { PuckScreenValidationError } from "../utils/puckScreenValidation";
 
@@ -32,12 +34,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export async function buildDefaultScreen(screenId: string): Promise<Screen> {
   const ts = nowTs();
-  const project = await loadProject();
+  const [project, raw] = await Promise.all([loadProject(), loadRawProject()]);
   const meta = project.screens.find((s) => s.id === screenId);
-  // editorKind を project level から解決 (Sh-4: Puck 画面に designFileRef を混入させない)
+  // editorKind / cssFramework を project.design から解決し、project default 値を内包した
+  // Screen entity を返す。呼び出し側 (handleScreenSave / mcpBridge) が画面固有値で上書きする前提。
+  // saveScreenEntity (本ファイル下方) で designFileRef / puckDataRef の排他性を最終保証する。
   // 仕様書 multi-editor-puck.md § 2.5: "designFileRef と puckDataRef はどちらか一方のみ"
-  const projectEditorKind = (project as unknown as { design?: { editorKind?: string } }).design?.editorKind;
-  const isPuck = projectEditorKind === "puck";
+  const editorKind = resolveEditorKind(undefined, raw.design);
+  const cssFramework = resolveCssFramework(undefined, raw.design);
+  const isPuck = editorKind === "puck";
   return {
     $schema: SCREEN_SCHEMA_REF,
     id: screenId as ScreenId,
@@ -49,8 +54,8 @@ export async function buildDefaultScreen(screenId: string): Promise<Screen> {
     groupId: meta?.groupId,
     items: [],
     design: isPuck
-      ? { puckDataRef: "puck-data.json" }
-      : { designFileRef: `${screenId}.design.json` },
+      ? { editorKind, cssFramework, puckDataRef: "puck-data.json" }
+      : { editorKind, cssFramework, designFileRef: `${screenId}.design.json` },
   };
 }
 

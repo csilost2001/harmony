@@ -1,18 +1,30 @@
 import { useState, useEffect } from "react";
 import type { ScreenType } from "../../types/flow";
 import { SCREEN_TYPE_LABELS } from "../../types/flow";
+import type { EditorKind } from "../../utils/resolveEditorKind";
+import type { CssFramework } from "../../types/v3/project";
 
 export interface ScreenFormData {
   name: string;
   type: ScreenType;
   path: string;
   description: string;
+  /** 画面作成時のみ有効。isCreate=false の場合は無視される。 */
+  editorKind?: EditorKind;
+  /** 画面作成時のみ有効。isCreate=false の場合は無視される。 */
+  cssFramework?: CssFramework;
 }
 
 interface Props {
   open: boolean;
   initial?: Partial<ScreenFormData>;
   title: string;
+  /** true のとき editorKind / cssFramework ラジオを表示する。false は編集モード (非表示)。 */
+  isCreate?: boolean;
+  /** 画面作成ダイアログのエディタ種別デフォルト選択値 (project.design から取得)。 */
+  defaultEditorKind?: EditorKind;
+  /** 画面作成ダイアログの CSS フレームワークデフォルト選択値 (project.design から取得)。 */
+  defaultCssFramework?: CssFramework;
   onSave: (data: ScreenFormData) => void;
   onClose: () => void;
 }
@@ -24,14 +36,34 @@ const defaultData: ScreenFormData = {
   description: "",
 };
 
-export function ScreenEditModal({ open, initial, title, onSave, onClose }: Props) {
-  const [form, setForm] = useState<ScreenFormData>({ ...defaultData, ...initial });
+export function ScreenEditModal({
+  open,
+  initial,
+  title,
+  isCreate = false,
+  defaultEditorKind = "grapesjs",
+  defaultCssFramework = "bootstrap",
+  onSave,
+  onClose,
+}: Props) {
+  const [form, setForm] = useState<ScreenFormData>({
+    ...defaultData,
+    editorKind: defaultEditorKind,
+    cssFramework: defaultCssFramework,
+    ...initial,
+  });
 
   useEffect(() => {
     if (open) {
-      setForm({ ...defaultData, ...initial });
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- modal open は外部イベント (open prop 変化) と同期する用途
+      setForm({
+        ...defaultData,
+        editorKind: defaultEditorKind,
+        cssFramework: defaultCssFramework,
+        ...initial,
+      });
     }
-  }, [open, initial]);
+  }, [open, initial, defaultEditorKind, defaultCssFramework]);
 
   if (!open) return null;
 
@@ -81,6 +113,66 @@ export function ScreenEditModal({ open, initial, title, onSave, onClose }: Props
               onChange={(e) => setForm((f) => ({ ...f, path: e.target.value }))}
               placeholder="例: /customers"
             />
+
+            {isCreate && (
+              <div className="screen-create-design-options">
+                <div className="screen-create-design-group">
+                  <span className="screen-create-design-label">エディタ</span>
+                  <div className="screen-create-radio-group">
+                    <label className="screen-create-radio-option">
+                      <input
+                        type="radio"
+                        name="screen-editor-kind"
+                        value="grapesjs"
+                        checked={form.editorKind === "grapesjs"}
+                        onChange={() => setForm((f) => ({ ...f, editorKind: "grapesjs" }))}
+                      />
+                      GrapesJS
+                    </label>
+                    <label className="screen-create-radio-option">
+                      <input
+                        type="radio"
+                        name="screen-editor-kind"
+                        value="puck"
+                        checked={form.editorKind === "puck"}
+                        onChange={() => setForm((f) => ({ ...f, editorKind: "puck" }))}
+                      />
+                      Puck
+                    </label>
+                  </div>
+                </div>
+
+                <div className="screen-create-design-group">
+                  <span className="screen-create-design-label">CSS フレームワーク</span>
+                  <div className="screen-create-radio-group">
+                    <label className="screen-create-radio-option">
+                      <input
+                        type="radio"
+                        name="screen-css-framework"
+                        value="bootstrap"
+                        checked={form.cssFramework === "bootstrap"}
+                        onChange={() => setForm((f) => ({ ...f, cssFramework: "bootstrap" }))}
+                      />
+                      Bootstrap
+                    </label>
+                    <label className="screen-create-radio-option">
+                      <input
+                        type="radio"
+                        name="screen-css-framework"
+                        value="tailwind"
+                        checked={form.cssFramework === "tailwind"}
+                        onChange={() => setForm((f) => ({ ...f, cssFramework: "tailwind" }))}
+                      />
+                      Tailwind
+                    </label>
+                  </div>
+                </div>
+
+                <p className="screen-create-design-note">
+                  <i className="bi bi-info-circle" /> 作成後は変更できません
+                </p>
+              </div>
+            )}
 
             <label htmlFor="screen-desc">説明</label>
             <textarea
