@@ -140,14 +140,13 @@ describe("GrapesJSBackend", () => {
     expect(draftWrite).toHaveBeenCalledWith(payload);
   });
 
-  it("renderEditor: PR-A 段階では placeholder (null) を返す", () => {
-    // PR-B で <GjsEditor> + Canvas + BlocksPanel + RightPanel を含む完全実装に置換予定。
+  it("renderEditor: <GrapesJSEditorPane> を含む React Element を返す", () => {
+    // PR-B で <GjsEditor> + Canvas + BlocksPanel + RightPanel を含む完全実装に格上げ。
     const backend = new GrapesJSBackend();
     const state: EditorState = { payload: null };
     const node = backend.renderEditor({ ...baseRenderProps, state });
-    expect(node).toBeNull();
-    // 戻り値が ReactNode であることのみ確認 (null も ReactNode)
-    expect(node === null || isValidElement(node)).toBe(true);
+    expect(node).not.toBeNull();
+    expect(isValidElement(node)).toBe(true);
   });
 });
 
