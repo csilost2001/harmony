@@ -7,7 +7,7 @@
  *
  * カバー範囲:
  *   1. 画面作成モーダルに editorKind / cssFramework ラジオが表示される
- *   2. デフォルト選択が project.design のデフォルト値になる (grapesjs / bootstrap)
+ *   2. デフォルト選択が project.techStack.designer のデフォルト値になる (grapesjs / bootstrap)
  *   3. ラジオ選択後に保存できる
  *   4. 「作成後は変更できません」の注意書きが表示される
  *   5. 編集モーダル (isCreate=false) ではラジオが非表示
@@ -31,9 +31,11 @@ function makeDummyProject() {
       maturity: "draft",
     },
     extensionsApplied: [],
-    design: {
-      cssFramework: "bootstrap",
-      editorKind: "grapesjs",
+    techStack: {
+      designer: {
+        cssFramework: "bootstrap",
+        editorKind: "grapesjs",
+      },
     },
     entities: {
       screens: [],

@@ -50,9 +50,11 @@ function makeDummyProject(screenOverrides: object[] = []) {
       maturity: "draft",
     },
     extensionsApplied: [],
-    design: {
-      cssFramework: "bootstrap",
-      editorKind: "puck",
+    techStack: {
+      designer: {
+        cssFramework: "bootstrap",
+        editorKind: "puck",
+      },
     },
     entities: {
       screens: [
