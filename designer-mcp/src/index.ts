@@ -311,6 +311,8 @@ function createMcpServer(sessionId: string): Server {
           type: typeof a.type === "string" ? a.type : undefined,
           path: typeof a.path === "string" ? a.path : undefined,
           position: a.position,
+          editorKind: typeof a.editorKind === "string" ? a.editorKind : undefined,
+          cssFramework: typeof a.cssFramework === "string" ? a.cssFramework : undefined,
         })) as { screenId: string };
         return {
           content: [

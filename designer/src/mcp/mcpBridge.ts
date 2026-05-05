@@ -63,6 +63,8 @@ import {
 } from "../store/screenItemsStore";
 import {
   setScreenStorageBackend,
+  buildDefaultScreen,
+  saveScreenEntity,
   type ScreenStorageBackend,
 } from "../store/screenStore";
 import { loadTable } from "../store/tableStore";
@@ -713,18 +715,31 @@ class McpBridgeImpl {
         }
 
         case "addScreen": {
-          const { name, type, path: screenPath, position } = (params ?? {}) as {
+          const { name, type, path: screenPath, position, editorKind: reqEditorKind, cssFramework: reqCssFramework } = (params ?? {}) as {
             name: string;
             type?: ScreenType;
             path?: string;
             position?: { x: number; y: number };
+            editorKind?: "grapesjs" | "puck";
+            cssFramework?: "bootstrap" | "tailwind";
           };
           if (!name) {
             respondError("name は必須です");
             break;
           }
           const project = await loadProject();
-          const screen = await addScreen(project, name, type ?? "other", screenPath, position);
+          const screen = await addScreen(project, name, type ?? "other", {
+            path: screenPath,
+            position,
+            editorKind: reqEditorKind,
+            cssFramework: reqCssFramework,
+          });
+          // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
+          // buildDefaultScreen は project.design を参照して解決するので project default も反映される
+          const entity = await buildDefaultScreen(screen.id);
+          if (reqEditorKind !== undefined) entity.design = { ...entity.design, editorKind: reqEditorKind };
+          if (reqCssFramework !== undefined) entity.design = { ...entity.design, cssFramework: reqCssFramework };
+          await saveScreenEntity(entity);
           this.flowChangeHandler?.();
           respond({ screenId: screen.id });
           break;
