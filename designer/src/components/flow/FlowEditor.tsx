@@ -48,6 +48,7 @@ import {
   generateFlowMarkdown,
 } from "../../store/flowStore";
 import { buildDefaultScreen, loadScreenEntity, saveScreenEntity } from "../../store/screenStore";
+import { duplicateScreenDesignData } from "../../store/duplicateScreen";
 import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { useUndoKeyboard } from "../../hooks/useUndoKeyboard";
@@ -485,6 +486,7 @@ function FlowEditorInner() {
       const dupEntity = await buildDefaultScreen(dup.id);
       dupEntity.design = { ...dupEntity.design, editorKind: srcEditorKind, cssFramework: srcCssFramework };
       await saveScreenEntity(dupEntity);
+      await duplicateScreenDesignData(screen.id, dup.id, srcEditorKind);
       setNodes((nds) => [...nds, {
         id: dup.id,
         type: "screenNode" as const,
