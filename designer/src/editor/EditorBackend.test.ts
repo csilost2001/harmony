@@ -12,7 +12,8 @@ import { isValidElement } from "react";
 import type {
   EditorBackend,
   EditorState,
-  RenderEditorProps,
+  GrapesJSRenderEditorProps,
+  RenderEditorBaseProps,
 } from "./EditorBackend";
 import { GrapesJSBackend, isEmptyGjsPayload } from "./GrapesJSBackend";
 
@@ -34,13 +35,13 @@ class MockBackend implements EditorBackend {
     await draftWrite(state.payload);
   }
 
-  renderEditor(props: RenderEditorProps): ReactNode {
+  renderEditor(props: RenderEditorBaseProps): ReactNode {
     void props;
     return null;
   }
 }
 
-const baseRenderProps: Omit<RenderEditorProps, "state"> = {
+const baseRenderProps: Omit<RenderEditorBaseProps, "state"> = {
   cssFramework: "bootstrap",
   themeVariant: "standard",
   isReadonly: false,
@@ -51,8 +52,14 @@ const baseRenderProps: Omit<RenderEditorProps, "state"> = {
   onClosePanel: () => { /* no-op */ },
   screenId: "screen-001",
   onStartEditing: () => { /* no-op */ },
-  // GrapesJS Backend が要求する reloadPayload を mock として提供
   reloadPayload: async () => null,
+};
+
+const grapesRenderProps: Omit<GrapesJSRenderEditorProps, "state"> = {
+  ...baseRenderProps,
+  onServerChanged: () => { /* no-op */ },
+  onMcpStatusChange: () => { /* no-op */ },
+  onExternalThemeChange: () => { /* no-op */ },
 };
 
 // -----------------------------------------------------------------------
@@ -145,7 +152,7 @@ describe("GrapesJSBackend", () => {
     // PR-B で <GjsEditor> + Canvas + BlocksPanel + RightPanel を含む完全実装に格上げ。
     const backend = new GrapesJSBackend();
     const state: EditorState = { payload: null };
-    const node = backend.renderEditor({ ...baseRenderProps, state });
+    const node = backend.renderEditor({ ...grapesRenderProps, state });
     expect(node).not.toBeNull();
     expect(isValidElement(node)).toBe(true);
   });

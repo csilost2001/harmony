@@ -1,16 +1,18 @@
 /**
- * EditorBackend — エディタ実装を抽象化する境界 interface。
+ * EditorBackend — エディタ実装を抽象化する境界 interface (Generics 化)。
  *
  * 実装: GrapesJSBackend / PuckBackend の 2 つ。
- * 後発エディタ追加時はこの interface を実装するだけ。
+ * 後発エディタ追加時は Backend 固有 props 型 (例: WebstudioRenderEditorProps) を
+ * 定義し、`EditorBackend<TProps>` を実装するだけ。
  *
  * 詳細仕様: docs/spec/multi-editor-puck.md § 3
  *
- * #806 子 3 / #815 (interface 真の等価性)
+ * #806 子 3 / #815 (interface 真の等価性、Generics 化で 3rd エディタ拡張可能性確保)
  */
 
 import type { ReactNode } from "react";
 import type { CssFramework } from "../types/v3/project";
+import type { McpStatus } from "../mcp/mcpBridge";
 
 export type ThemeId = "standard" | "card" | "compact" | "dark";
 export type PanelMode = "pinned" | "autohide" | "hidden";
@@ -52,17 +54,20 @@ export interface EditorApi {
 }
 
 /**
- * renderEditor() の引数。
+ * renderEditor() の base props (両 Backend 共通)。
  *
  * Designer.tsx が編集セッション state / 周辺 UI 要素を全て props で渡し、
  * Backend は受け取った props に従って自身の DOM ツリーを組み立てる。
  *
- * subToolbarSlot / dialogsSlot / panelLeftSlot は Designer.tsx で組み立てられた
- * ReactNode を slot として渡し、Backend はそれを自身の layout に注入する。
- * これにより GrapesJS Backend は <GjsEditor> の context 内側 (useEditor が効く位置)
- * に subToolbarSlot を配置できる。
+ * subToolbarSlot / dialogsSlot は Designer.tsx で組み立てられた ReactNode を slot として
+ * 渡し、Backend はそれを自身の layout に注入する。これにより GrapesJS Backend は
+ * <GjsEditor> の context 内側 (useEditor が effective な位置) に subToolbarSlot を配置できる。
+ *
+ * Backend 固有の追加 props は extension 型 (PuckRenderEditorProps / GrapesJSRenderEditorProps)
+ * を定義してそちらに置く (#815 Codex Should-fix #1: 共通 interface に Backend 固有 callback を
+ * 混入させない)。
  */
-export interface RenderEditorProps {
+export interface RenderEditorBaseProps {
   /** Backend.load() で取得した state */
   state: EditorState;
 
@@ -98,27 +103,39 @@ export interface RenderEditorProps {
   /** Backend init 完了通知 — editor 由来の API を上位に expose する */
   onReady?: (api: EditorApi) => void;
 
-  // ---------------------------------------------------------------------
-  // GrapesJS 固有 callback (Puck Backend は無視) — #815 PR-C
-  //   両 Backend で型安全に渡せるよう RenderEditorProps の optional プロパティとして
-  //   定義する。as キャストで型チェックをバイパスする実装は禁止。
-  // ---------------------------------------------------------------------
-
-  /** discard / serverChange reload 時に呼ばれる payload 再取得 (Backend.load を内包する関数を Designer.tsx が provide) */
-  reloadPayload?: () => Promise<unknown>;
-
-  /** 他タブ / 別クライアントから screenChanged broadcast を受信した通知 */
-  onServerChanged?: () => void;
-
-  /** mcpBridge 接続状態の変化通知 */
-  onMcpStatusChange?: (status: import("../mcp/mcpBridge").McpStatus) => void;
-
-  /** mcpBridge.setThemeHandler 経由で外部から theme 変更要求が来たときの通知 (AI rename 等) */
-  onExternalThemeChange?: (themeId: ThemeId) => void;
+  /** discard / serverChange reload 時に呼ばれる payload 再取得 (両 Backend で利用)。
+   * Designer.tsx が backend.load() を内包する関数を provide し、Backend は
+   * EditorApi.reload() の実装で本 callback を呼ぶ。 */
+  reloadPayload: () => Promise<unknown>;
 }
 
 /**
- * エディタ Backend の共通 interface。
+ * Puck Backend 固有 props。RenderEditorBaseProps と同じだが、Puck 固有の追加プロパティを
+ * 将来追加するための拡張点。
+ */
+export type PuckRenderEditorProps = RenderEditorBaseProps;
+
+/**
+ * GrapesJS Backend 固有 props。RenderEditorBaseProps に GrapesJS lifecycle 由来の callback を追加。
+ *   - onServerChanged: screenChanged broadcast 受信時の通知 (dirty なら banner、clean なら reload)
+ *   - onMcpStatusChange: mcpBridge 接続状態通知
+ *   - onExternalThemeChange: AI rename 等で mcpBridge.setThemeHandler 経由で外部から
+ *     theme 変更要求が来たときの通知
+ */
+export interface GrapesJSRenderEditorProps extends RenderEditorBaseProps {
+  onServerChanged: () => void;
+  onMcpStatusChange: (status: McpStatus) => void;
+  onExternalThemeChange: (themeId: ThemeId) => void;
+}
+
+/**
+ * 後方互換用エイリアス。新規コードは Backend 固有型を使用すること。
+ * @deprecated 新規コードは PuckRenderEditorProps / GrapesJSRenderEditorProps を直接使う
+ */
+export type RenderEditorProps = RenderEditorBaseProps;
+
+/**
+ * エディタ Backend の共通 interface (Generics 化)。
  *
  * 各 Backend は次の 3 操作を提供する:
  *   - load:         screen payload を読み込み EditorState を返す
@@ -126,12 +143,18 @@ export interface RenderEditorProps {
  *   - renderEditor: ReactNode を返す (Designer.tsx は editorKind に応じて
  *                   この戻り値を render するだけ)
  *
+ * `TProps extends RenderEditorBaseProps` で Backend 固有 props を型安全に表現する。
+ *
  * #815 (interface 真の等価性) で renderEditor() の return type を Disposable から
  * ReactNode に変更。両 Backend (GrapesJS / Puck) が React 製であるため、
  * createRoot を Backend 内部で扱う必要がなくなり、cleanup も React の useEffect
  * cleanup が自然に担う。
+ *
+ * #815 Codex Should-fix #1: TProps generic を導入し、共通 interface に Backend 固有 callback
+ * (onServerChanged 等) が混入する状態を解消。3rd エディタ追加時は WebstudioRenderEditorProps 等を
+ * 定義して `EditorBackend<WebstudioRenderEditorProps>` を実装する。
  */
-export interface EditorBackend {
+export interface EditorBackend<TProps extends RenderEditorBaseProps = RenderEditorBaseProps> {
   /**
    * screen の payload を読み込み editor state を返す。
    * draftRead は draft-state 経由の読込み (#683)。
@@ -154,7 +177,7 @@ export interface EditorBackend {
    * Designer.tsx は editorKind に応じて Backend を選び、`{backend.renderEditor(props)}`
    * を render するだけになる。
    */
-  renderEditor(props: RenderEditorProps): ReactNode;
+  renderEditor(props: TProps): ReactNode;
 }
 
 // -----------------------------------------------------------------------

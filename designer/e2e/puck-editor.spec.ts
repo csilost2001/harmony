@@ -152,6 +152,10 @@ const PUCK_DATA_WITH_HEADING = {
 
 // ─── セットアップヘルパー ──────────────────────────────────────────────────────
 
+// multi-workspace 移行 (#704) で routing が `/w/<wsId>/screen/design/<id>` に変わったため、
+// E2E test も同 URL pattern を使う (#815 follow-up: pre-existing failure 解消)。
+const FAKE_WS_ID = "e2e-fake-ws-aaaaaaaaaaaaaaaaa";
+
 async function setupPuckScreen(
   page: Page,
   {
@@ -200,7 +204,8 @@ async function setupPuckScreen(
     },
   );
 
-  await page.goto(`/screen/design/${screenId}`);
+  // multi-workspace URL pattern (#704): /w/<wsId>/screen/design/<id>
+  await page.goto(`/w/${FAKE_WS_ID}/screen/design/${screenId}`);
 }
 
 // ─── テスト ────────────────────────────────────────────────────────────────────
@@ -219,7 +224,7 @@ test.describe("Puck エディタ基本動作", () => {
     // パレット内の見出し "コンポーネント" または primitive ラベルが表示される
     await expect(
       page.locator("[class*='Puck-'], [class*='puck-'], .puck-left-panel, [data-rfd-droppable-id='puck-source']").first(),
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 20000 });
   });
 
   test("2. Puck パレットに primitive コンポーネントが表示される", async ({ page }) => {
@@ -230,8 +235,8 @@ test.describe("Puck エディタ基本動作", () => {
 
     // Puck のコンポーネントパレットが存在する
     // primitive の label (日本語 / 英語) がパレットに出ていることを確認
-    const puckRoot = page.locator(".Puck, [class*='Puck']").first();
-    await expect(puckRoot).toBeVisible({ timeout: 10000 });
+    const puckRoot = page.locator("[data-testid='puck-editor-container']");
+    await expect(puckRoot).toBeVisible({ timeout: 20000 });
 
     // パレット内にコンポーネントが存在することを確認 (Heading / 見出し 等)
     // Puck の ComponentList が描画されていれば OK
@@ -247,8 +252,10 @@ test.describe("Puck エディタ基本動作", () => {
     await page.waitForTimeout(2000);
 
     // Puck がマウントされ、コンテンツを描画していることを確認
-    const puckEl = page.locator(".Puck, [class*='Puck']").first();
-    await expect(puckEl).toBeVisible({ timeout: 10000 });
+    // PuckBackend.renderEditor が出力する puck-editor-container (data-testid 安定セレクタ)
+    // 内部の .Puck は version 依存で不安定なため container を観測する。
+    const puckEl = page.locator("[data-testid='puck-editor-container']");
+    await expect(puckEl).toBeVisible({ timeout: 20000 });
 
     // ページが正常に読み込まれていることを確認
     await expect(page).not.toHaveURL(/error/);
@@ -266,7 +273,7 @@ test.describe("Puck エディタ基本動作", () => {
     await setupPuckScreen(page, { puckData: PUCK_DATA_WITH_HEADING });
 
     // Puck が初期化されるまで待機
-    const puckEl = page.locator(".Puck, [class*='Puck']").first();
+    const puckEl = page.locator("[data-testid='puck-editor-container']");
     await expect(puckEl).toBeVisible({ timeout: 15000 });
 
     // リロード後も同じ画面が表示される
@@ -288,13 +295,25 @@ test.describe("GrapesJS と Puck の混在", () => {
       isPinned: false,
     };
 
+    // v3-screen entity (puck/grapesjs 別) を localStorage に投入 (Sh-2: design は entity に置く)。
+    // これが無いと screen が editorKind=grapesjs にフォールバックしてしまい test 5 が崩れる
+    // (#815 follow-up)。
+    const puckEntity = makeScreenEntity(
+      PUCK_SCREEN_ID, "Puck テスト", "other", "/puck-test", "puck", "bootstrap",
+    );
+    const gjsEntity = makeScreenEntity(
+      GJS_SCREEN_ID, "GrapesJS テスト", "other", "/gjs-test", "grapesjs", "bootstrap",
+    );
+
     await page.addInitScript(
-      ({ proj, tab, puckId, puckData, gjsId }) => {
+      ({ proj, tab, puckId, puckData, gjsId, puckEnt, gjsEnt }) => {
         localStorage.setItem("workspace-e2e-bypass", "true");
         localStorage.setItem("flow-project", JSON.stringify(proj));
         localStorage.setItem("designer-open-tabs", JSON.stringify([tab]));
         localStorage.setItem("designer-active-tab", tab.id);
         localStorage.setItem(`puck-data-${puckId}`, JSON.stringify(puckData));
+        localStorage.setItem(`v3-screen-${puckId}`, JSON.stringify(puckEnt));
+        localStorage.setItem(`v3-screen-${gjsId}`, JSON.stringify(gjsEnt));
         localStorage.setItem(`gjs-screen-${gjsId}`, JSON.stringify({}));
       },
       {
@@ -303,19 +322,23 @@ test.describe("GrapesJS と Puck の混在", () => {
         puckId: PUCK_SCREEN_ID,
         puckData: EMPTY_PUCK_DATA,
         gjsId: GJS_SCREEN_ID,
+        puckEnt: puckEntity,
+        gjsEnt: gjsEntity,
       },
     );
 
-    // Puck 画面を開く
-    await page.goto(`/screen/design/${PUCK_SCREEN_ID}`);
+    // Puck 画面を開く (multi-workspace URL pattern #704)
+    await page.goto(`/w/${FAKE_WS_ID}/screen/design/${PUCK_SCREEN_ID}`);
     await page.waitForTimeout(2000);
 
     // Puck デザイナが表示される
-    const puckEl = page.locator(".Puck, [class*='Puck']").first();
-    await expect(puckEl).toBeVisible({ timeout: 10000 });
+    // PuckBackend.renderEditor が出力する puck-editor-container (data-testid 安定セレクタ)
+    // 内部の .Puck は version 依存で不安定なため container を観測する。
+    const puckEl = page.locator("[data-testid='puck-editor-container']");
+    await expect(puckEl).toBeVisible({ timeout: 20000 });
 
-    // GrapesJS 画面を開く
-    await page.goto(`/screen/design/${GJS_SCREEN_ID}`);
+    // GrapesJS 画面を開く (multi-workspace URL pattern #704)
+    await page.goto(`/w/${FAKE_WS_ID}/screen/design/${GJS_SCREEN_ID}`);
     await page.waitForTimeout(2000);
 
     // GrapesJS または適切なデザイナコンテナが表示されている
@@ -329,7 +352,7 @@ test.describe("cssFramework 切替", () => {
   test("6a. cssFramework=bootstrap の Puck 画面が表示される", async ({ page }) => {
     await setupPuckScreen(page, { cssFramework: "bootstrap" });
 
-    const puckEl = page.locator(".Puck, [class*='Puck']").first();
+    const puckEl = page.locator("[data-testid='puck-editor-container']");
     await expect(puckEl).toBeVisible({ timeout: 15000 });
 
     // エラーなく表示されていることを確認
@@ -352,7 +375,7 @@ test.describe("cssFramework 切替", () => {
       cssFramework: "tailwind",
     });
 
-    const puckEl = page.locator(".Puck, [class*='Puck']").first();
+    const puckEl = page.locator("[data-testid='puck-editor-container']");
     await expect(puckEl).toBeVisible({ timeout: 15000 });
 
     const errors: string[] = [];
@@ -372,7 +395,7 @@ test.describe("動的コンポーネント登録", () => {
   test("7. 動的コンポーネント登録ダイアログが存在する", async ({ page }) => {
     await setupPuckScreen(page);
 
-    const puckEl = page.locator(".Puck, [class*='Puck']").first();
+    const puckEl = page.locator("[data-testid='puck-editor-container']");
     await expect(puckEl).toBeVisible({ timeout: 15000 });
 
     // RegisterComponentDialog のトリガーボタンが存在するか確認
@@ -402,7 +425,7 @@ test.describe("スクリーンショット撮影 (視覚回帰検証用)", () =>
     await setupPuckScreen(page, { puckData: PUCK_DATA_WITH_HEADING });
 
     await page.waitForTimeout(2000);
-    await page.locator(".Puck, [class*='Puck']").first().waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+    await page.locator("[data-testid='puck-editor-container']").waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
 
     await page.screenshot({
       path: path.join("test-results", "puck-bootstrap.png"),
@@ -418,7 +441,7 @@ test.describe("スクリーンショット撮影 (視覚回帰検証用)", () =>
     });
 
     await page.waitForTimeout(2000);
-    await page.locator(".Puck, [class*='Puck']").first().waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+    await page.locator("[data-testid='puck-editor-container']").waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
 
     await page.screenshot({
       path: path.join("test-results", "puck-tailwind.png"),

@@ -37,8 +37,8 @@ import type {
   EditorApi,
   EditorBackend,
   EditorState,
+  GrapesJSRenderEditorProps,
   PanelMode,
-  RenderEditorProps,
   ThemeId,
 } from "./EditorBackend";
 import type { CssFramework } from "../types/v3/project";
@@ -568,7 +568,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
  * #815: renderEditor() は <GrapesJSEditorPane> を返す。Designer.tsx の
  * editorKind === "grapesjs" 経路は backend.renderEditor(props) を render するだけになる。
  */
-export class GrapesJSBackend implements EditorBackend {
+export class GrapesJSBackend implements EditorBackend<GrapesJSRenderEditorProps> {
   /**
    * screen の payload を読み込み EditorState を返す。
    * draftRead は MCP bridge 経由の draft 読込み (edit-session-draft #683)。
@@ -604,18 +604,11 @@ export class GrapesJSBackend implements EditorBackend {
   /**
    * エディタペイン全体 (subToolbar / dialogs / Canvas / BlocksPanel / RightPanel) を ReactNode として返す。
    *
-   * RenderEditorProps の汎用 callback (onChange / onReady) に加え、
-   * GrapesJS 固有の callback (onServerChanged / onMcpStatusChange / onExternalThemeChange) も
-   * Pane が要求するため、props を拡張する形で受け取る。これらは Designer.tsx が provide する。
+   * GrapesJS 固有の callback (onServerChanged / onMcpStatusChange / onExternalThemeChange) は
+   * GrapesJSRenderEditorProps で型レベルで required として定義されているため、
+   * Designer.tsx が渡し忘れた場合は TypeScript コンパイルエラーで検出される (#815 Codex Should-fix #1)。
    */
-  renderEditor(props: RenderEditorProps): ReactNode {
-    // #815 PR-C: reloadPayload は GrapesJS Backend が必須とするが RenderEditorProps では
-    // optional のため、未指定時は明示エラーで早期失敗させる (Designer.tsx の渡し忘れ検出)。
-    if (!props.reloadPayload) {
-      throw new Error(
-        "GrapesJSBackend.renderEditor: props.reloadPayload is required (Designer.tsx must provide it via Backend.load wrapper)",
-      );
-    }
+  renderEditor(props: GrapesJSRenderEditorProps): ReactNode {
     return (
       // key={screenId} で screenId 変更時に Pane を remount し initialPayload を確実に新 payload にする
       // (#815 Codex Must-fix #1: タブ切替時の stale payload regression を防ぐ)

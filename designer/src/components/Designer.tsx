@@ -23,7 +23,7 @@ import {
 import { ResumeOrDiscardDialog } from "./editing/ResumeOrDiscardDialog";
 import { PuckBackend } from "../editor/PuckBackend";
 import { GrapesJSBackend } from "../editor/GrapesJSBackend";
-import type { EditorApi, EditorState, RenderEditorProps } from "../editor/EditorBackend";
+import type { EditorApi, EditorState, GrapesJSRenderEditorProps, PuckRenderEditorProps } from "../editor/EditorBackend";
 import "../styles/editMode.css";
 
 const PANEL_MODE_KEY = "designer-panel-left-mode";
@@ -653,7 +653,7 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
         isReadonly={isReadonly}
       />
     );
-    const puckProps: RenderEditorProps = {
+    const puckProps: PuckRenderEditorProps = {
       state: puckState,
       cssFramework,
       themeVariant: activeTheme,
@@ -702,9 +702,9 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
       isReadonly={isReadonly}
     />
   );
-  // RenderEditorProps の optional 拡張プロパティ (#815 PR-C で型に追加済) で
-  // GrapesJS 固有 callback を型安全に渡す。
-  const grapesProps: RenderEditorProps = {
+  // GrapesJSRenderEditorProps で GrapesJS 固有 callback を型レベル required として渡す
+  // (#815 Codex Should-fix #1: Generics 化で共通 interface への混入を解消)。
+  const grapesProps: GrapesJSRenderEditorProps = {
     state: grapesState,
     cssFramework,
     themeVariant: activeTheme,

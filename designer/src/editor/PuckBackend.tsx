@@ -26,7 +26,7 @@ import type {
   EditorApi,
   EditorBackend,
   EditorState,
-  RenderEditorProps,
+  PuckRenderEditorProps,
 } from "./EditorBackend";
 import { CssFrameworkProvider } from "../puck/CssFrameworkContext";
 import { buildPuckConfig } from "../puck/buildConfig";
@@ -322,7 +322,7 @@ function PuckEditorPane({
  *
  * #815: createRoot 経由のマウントを廃止し React コンポーネントを返す形に統一。
  */
-export class PuckBackend implements EditorBackend {
+export class PuckBackend implements EditorBackend<PuckRenderEditorProps> {
   /**
    * screen の payload を読み込み EditorState を返す。
    * payload が空なら EMPTY_PUCK_DATA を使用する。
@@ -361,7 +361,7 @@ export class PuckBackend implements EditorBackend {
    * 完結しているため、Backend が提供する panelLeft / panelRight 等は無く、
    * subToolbarSlot と dialogsSlot のみ container 上部に配置する。
    */
-  renderEditor(props: RenderEditorProps): React.ReactNode {
+  renderEditor(props: PuckRenderEditorProps): React.ReactNode {
     const puckData = toPuckData(props.state.payload);
     return (
       <div className={`designer-root${props.isReadonly ? " is-readonly" : ""}`}>

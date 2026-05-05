@@ -40,15 +40,19 @@ import { uiInfo, uiWarn } from "../utils/uiLog";
 // 最初の loadWorkspaces() (成功 or 失敗) で false になる。WS が永続的に未接続でも
 // loading=true のままなので /workspace/select への誤強制遷移を起こさない。
 //
-// テスト環境向け: "workspace-e2e-bypass" フラグが立っている場合 loading=false で起動。
-// これにより MCP 未接続の既存 e2e テストが workspace guard をバイパスして
-// dashboard, screen-design 等に直接アクセスできる (#703 R-5)。
+// テスト環境向け: "workspace-e2e-bypass" フラグが立っている場合 loading=false +
+// error="e2e bypass" で起動。これにより MCP 未接続の e2e test が workspace guard を
+// バイパスして dashboard, screen-design 等に直接アクセスできる (#703 R-5)。
+// AppShell の workspace guard は `error !== null` で redirect を停止するため、
+// bypass=true 時は error を立てておく必要がある (#704 multi-workspace 移行で URL pattern が
+// /w/:wsId/* に変わった後、e2e test が /workspace/select に強制 redirect されていた regression
+// を解消、#815 follow-up)。
 //
 // 設定方法 (playwright addInitScript 内):
 //   localStorage.setItem("workspace-e2e-bypass", "true");
-const _initialLoading = typeof localStorage !== "undefined"
-  ? localStorage.getItem("workspace-e2e-bypass") !== "true"
-  : true;
+const _isE2eBypass = typeof localStorage !== "undefined"
+  && localStorage.getItem("workspace-e2e-bypass") === "true";
+const _initialLoading = !_isE2eBypass;
 
 let _state: WorkspaceState = {
   workspaces: [],
@@ -56,7 +60,7 @@ let _state: WorkspaceState = {
   lockdown: false,
   lockdownPath: null,
   loading: _initialLoading,
-  error: null,
+  error: _isE2eBypass ? "e2e bypass" : null,
 };
 
 const _listeners = new Set<Listener>();

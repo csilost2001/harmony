@@ -1,5 +1,21 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useEditor } from "@grapesjs/react";
+import type { Editor as GEditor } from "grapesjs";
+import { useEditorMaybe } from "@grapesjs/react";
+
+/**
+ * `useEditorMaybe` は内部で `useEditorInstance` を呼び、Provider が無い場合は throw する
+ * (editor 自体は undefined を許容するが Provider 自体は必須)。Puck 経路では <GjsEditor>
+ * ancestor が無いため Provider missing で crash する。本 wrapper は try/catch で
+ * その throw を吸収し、Provider 不在時は undefined を返すことで Puck 経路でも安全に
+ * DesignSubToolbar を render できるようにする (#815 follow-up)。
+ */
+function useEditorOptional(): GEditor | undefined {
+  try {
+    return useEditorMaybe();
+  } catch {
+    return undefined;
+  }
+}
 import type { PanelMode, ThemeId } from "../Designer";
 import type { McpStatus } from "../../mcp/mcpBridge";
 import { mcpBridge } from "../../mcp/mcpBridge";
@@ -65,7 +81,10 @@ interface Props {
 
 export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeChange, mcpStatus, backLink, isDirty, isSaving, onSaveToFile, onReset, screenId, isReadonly }: Props) {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
-  const editor = useEditor();
+  // Puck 経路では <GjsEditor> context が存在しないため、Provider missing throw を吸収する
+  // wrapper を使用する。editor が undefined の場合、GrapesJS 由来の機能 (Undo/Redo/Devices/
+  // runCommand 等) は無効化される。
+  const editor = useEditorOptional();
 
   // ── AI 命名 (#337) ───────────────────────────────────────────────────────
   const [aiRenameAuthOk, setAiRenameAuthOk] = useState<boolean | null>(null);
