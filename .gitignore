@@ -14,6 +14,8 @@ screenshots/
 *.png
 # 仕様書に紐づく UI スクリーンショットは追跡する
 !docs/ui-screenshots/*.png
+# Playwright visual regression baselines は追跡する (#814)
+!designer/e2e/**/*-snapshots/**/*.png
 
 # Claude Code local settings (skills/commands はチーム共有のため追跡対象)
 .claude/settings.local.json

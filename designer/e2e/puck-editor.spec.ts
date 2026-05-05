@@ -1,216 +1,18 @@
-/**
- * Puck エディタ E2E テスト — #806 子 6
- *
- * 視点: ユーザーが Puck デザイナで画面を設計する
- * 前提: dev サーバーが起動済み (playwright.config.ts の webServer で自動起動)
- *       MCP サーバーは不要 — localStorage でデータをセットアップ
- *
- * カバー範囲:
- *   1. 画面 editorKind=puck → Puck デザイナが描画される
- *   2. Puck primitive がパレットに存在する
- *   3. 右プロパティパネルの align 設定が canvas に即時反映 (WYSIWYG)
- *   4. 保存 → reload → 復元される
- *   5. grapesjs 画面と puck 画面の混在 → 各々独立
- *   6. cssFramework=tailwind / bootstrap 両方で Puck primitive が表示される
- *   7. 動的コンポーネント登録ダイアログが存在する
- *
- * Note:
- *   - Windows 環境制約: --headless=false フラグは使わない
- *   - Puck の実際の DnD 操作は Playwright で Puck 内部 DOM を直接操作するため
- *     Puck のレンダリングが完了するまで待機が必要
- *   - 一部テストは MCP 不接続のため localStorage fallback で動作する
- */
-
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import * as path from "path";
 
-// ─── 共通 ID / データ ──────────────────────────────────────────────────────────
-
-const PUCK_SCREEN_ID = "puck-test-0001-4000-8000-aaaaaaaaaaaa";
-const GJS_SCREEN_ID = "grapes-test-0002-4000-8000-bbbbbbbbbbbb";
-const PUCK_TW_SCREEN_ID = "puck-tw-test-0003-4000-8000-cccccccccccc";
-
-/** Puck 画面を含む最小プロジェクト (v3 schema 形式、S-3 修正 / Sh-2 修正)
- *
- * Sh-2: ScreenEntry (entities.screens[]) には design フィールドを持たせない。
- * schemas/v3/project.v3.schema.json の ScreenEntry は unevaluatedProperties: false で
- * design フィールドを許容していないため、screen entity は localStorage (v3-screen-<id>) に置く。
- */
-function makeDummyProject(screenOverrides: object[] = []) {
-  const now = new Date().toISOString();
-  return {
-    $schema: "../../schemas/v3/project.v3.schema.json",
-    schemaVersion: "v3",
-    meta: {
-      id: "e2e-puck-test-0000-4000-8000-000000000000",
-      name: "Puck E2E テスト用プロジェクト",
-      createdAt: now,
-      updatedAt: now,
-      mode: "upstream",
-      maturity: "draft",
-    },
-    extensionsApplied: [],
-    techStack: {
-      designer: {
-        cssFramework: "bootstrap",
-        editorKind: "puck",
-      },
-    },
-    entities: {
-      screens: [
-        {
-          id: PUCK_SCREEN_ID,
-          no: 1,
-          name: "Puck テスト画面 (Bootstrap)",
-          kind: "other",
-          path: "/puck-test",
-          maturity: "draft",
-          updatedAt: now,
-        },
-        {
-          id: GJS_SCREEN_ID,
-          no: 2,
-          name: "GrapesJS テスト画面",
-          kind: "other",
-          path: "/gjs-test",
-          maturity: "draft",
-          updatedAt: now,
-        },
-        {
-          id: PUCK_TW_SCREEN_ID,
-          no: 3,
-          name: "Puck Tailwind テスト画面",
-          kind: "other",
-          path: "/puck-tw-test",
-          maturity: "draft",
-          updatedAt: now,
-        },
-        ...screenOverrides,
-      ],
-      screenGroups: [],
-      screenTransitions: [],
-      tables: [],
-      processFlows: [],
-      views: [],
-      viewDefinitions: [],
-      sequences: [],
-    },
-  };
-}
-
-/** screen entity (localStorage: v3-screen-<id>) を生成する (Sh-2: design は ScreenEntity に置く) */
-function makeScreenEntity(
-  screenId: string,
-  name: string,
-  kind: string,
-  path: string,
-  editorKind: "puck" | "grapesjs",
-  cssFramework: "bootstrap" | "tailwind",
-) {
-  const now = new Date().toISOString();
-  return {
-    $schema: "../schemas/v3/screen.v3.schema.json",
-    id: screenId,
-    name,
-    createdAt: now,
-    updatedAt: now,
-    kind,
-    path,
-    items: [],
-    design: {
-      editorKind,
-      cssFramework,
-      ...(editorKind === "puck"
-        ? { puckDataRef: "puck-data.json" }
-        : { designFileRef: `${screenId}.design.json` }),
-    },
-  };
-}
-
-/** 空の Puck Data (新規画面のデフォルト) */
-const EMPTY_PUCK_DATA = {
-  root: { props: {} },
-  content: [],
-};
-
-/** heading が 1 つ配置された Puck Data */
-const PUCK_DATA_WITH_HEADING = {
-  root: { props: {} },
-  content: [
-    {
-      type: "Heading",
-      props: {
-        id: "heading-001",
-        text: "こんにちは",
-        level: "h2",
-        align: "left",
-        padding: "none",
-        marginBottom: "md",
-        colorAccent: "default",
-      },
-    },
-  ],
-};
-
-// ─── セットアップヘルパー ──────────────────────────────────────────────────────
-
-// multi-workspace 移行 (#704) で routing が `/w/<wsId>/screen/design/<id>` に変わったため、
-// E2E test も同 URL pattern を使う (#815 follow-up: pre-existing failure 解消)。
-const FAKE_WS_ID = "e2e-fake-ws-aaaaaaaaaaaaaaaaa";
-
-async function setupPuckScreen(
-  page: Page,
-  {
-    screenId = PUCK_SCREEN_ID,
-    puckData = EMPTY_PUCK_DATA,
-    cssFramework = "bootstrap",
-  }: { screenId?: string; puckData?: object; cssFramework?: string } = {},
-) {
-  const project = makeDummyProject();
-  const tab = {
-    id: `design:${screenId}`,
-    type: "design",
-    resourceId: screenId,
-    label: cssFramework === "tailwind" ? "Puck Tailwind テスト" : "Puck テスト",
-    isDirty: false,
-    isPinned: false,
-  };
-  // Sh-2: design 情報は ScreenEntity (v3-screen-<id>) に配置する
-  const screenEntity = makeScreenEntity(
-    screenId,
-    tab.label,
-    "other",
-    "/puck-test",
-    "puck",
-    cssFramework as "bootstrap" | "tailwind",
-  );
-
-  await page.addInitScript(
-    ({ proj, tabData, pData, localKey, entity, entityKey }) => {
-      localStorage.setItem("workspace-e2e-bypass", "true");
-      localStorage.setItem("flow-project", JSON.stringify(proj));
-      localStorage.setItem("designer-open-tabs", JSON.stringify([tabData]));
-      localStorage.setItem("designer-active-tab", tabData.id);
-      // Puck data を localStorage に設定 (MCP 未接続時の fallback)
-      localStorage.setItem(localKey, JSON.stringify(pData));
-      // Screen entity (design.editorKind / cssFramework) を localStorage に設定 (Sh-2)
-      localStorage.setItem(entityKey, JSON.stringify(entity));
-    },
-    {
-      proj: project,
-      tabData: tab,
-      pData: puckData,
-      localKey: `puck-data-${screenId}`,
-      entity: screenEntity,
-      entityKey: `v3-screen-${screenId}`,
-    },
-  );
-
-  // multi-workspace URL pattern (#704): /w/<wsId>/screen/design/<id>
-  await page.goto(`/w/${FAKE_WS_ID}/screen/design/${screenId}`);
-}
-
-// ─── テスト ────────────────────────────────────────────────────────────────────
+import {
+  EMPTY_PUCK_DATA,
+  FAKE_WS_ID,
+  GJS_SCREEN_ID,
+  PUCK_DATA_WITH_HEADING,
+  PUCK_SCREEN_ID,
+  PUCK_TW_SCREEN_ID,
+  installPuckMcpBypass,
+  makeDummyProject,
+  makeScreenEntity,
+  setupPuckScreen,
+} from "./helpers/puck";
 
 test.describe("Puck エディタ基本動作", () => {
   test("1. editorKind=puck の画面を開くと Puck デザイナが表示される", async ({ page }) => {
@@ -307,9 +109,9 @@ test.describe("GrapesJS と Puck の混在", () => {
       GJS_SCREEN_ID, "GrapesJS テスト", "other", "/gjs-test", "grapesjs", "bootstrap",
     );
 
+    await installPuckMcpBypass(page);
     await page.addInitScript(
       ({ proj, tab, puckId, puckData, gjsId, puckEnt, gjsEnt }) => {
-        localStorage.setItem("workspace-e2e-bypass", "true");
         localStorage.setItem("flow-project", JSON.stringify(proj));
         localStorage.setItem("designer-open-tabs", JSON.stringify([tab]));
         localStorage.setItem("designer-active-tab", tab.id);

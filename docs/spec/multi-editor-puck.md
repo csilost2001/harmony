@@ -403,6 +403,7 @@ editor / cssFramework ともに **画面作成時に決定、以降変更不可*
 - [x] E2E (Playwright): Puck 画面新規作成 → 配置 → リアルタイム反映 → 保存 → reload で復元 (子 6)
 - [x] dogfood 2 sample (`workspaces/dogfood-puck-tailwind-2026-05-05/` + `workspaces/dogfood-puck-bootstrap-2026-05-05/`) で各々 1 画面作成。WYSIWYG 実機視覚検証は dev server 起動環境で別途実施 (fact-check + E2E 構造確認で代替、dogfood レポート参照) (子 6)
 - [x] dogfood report (`docs/spec/dogfood-2026-05-05-multi-editor-puck.md`) 作成 (子 6)
+- [~] E2E test 強化 (#814): helper + spec 一式と visual regression baseline (chrome) を実装 (designer/e2e/helpers/puck.ts + puck-dnd.spec.ts + puck-property-panel.spec.ts + puck-visual-regression.spec.ts)。DnD は @dnd-kit pointer event 制約 / 右プロパティパネルは MCP オフライン制約 (§ A-S-2) のため `test.skip` フォールバック付き。配置済 content の真の WYSIWYG 検証は MCP backend 起動環境での後続改善が必要
 
 ---
 
