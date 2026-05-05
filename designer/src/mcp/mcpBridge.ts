@@ -735,7 +735,7 @@ class McpBridgeImpl {
             cssFramework: reqCssFramework,
           });
           // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
-          // buildDefaultScreen は project.design を参照して解決するので project default も反映される
+          // buildDefaultScreen は project.techStack.designer を参照して解決するので project default も反映される
           const entity = await buildDefaultScreen(screen.id);
           if (reqEditorKind !== undefined) entity.design = { ...entity.design, editorKind: reqEditorKind };
           if (reqCssFramework !== undefined) entity.design = { ...entity.design, cssFramework: reqCssFramework };

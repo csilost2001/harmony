@@ -134,15 +134,67 @@ export interface ProjectMeta extends EntityMeta {
  */
 export type CssFramework = "bootstrap" | "tailwind";
 
-/** プロジェクト全体のデザイン関連設定 (#793 / #806)。 */
-export interface ProjectDesign {
-  /** CSS フレームワーク選択。画面側 (screen.design.cssFramework) で override 可能。省略時は `"bootstrap"` 相当。 */
-  cssFramework?: CssFramework;
-  /**
-   * プロジェクト全画面の default エディタ種別。画面側で override 可能。
-   * 省略時は 'grapesjs' 相当 (multi-editor-puck.md § 2.5)。
-   */
+/** デザイナー動作設定 (techStack.designer サブオブジェクト)。 */
+export interface TechStackDesigner {
+  /** プロジェクト全画面の default エディタ種別。画面側 (screen.design.editorKind) で override 可能。省略時は 'grapesjs' 相当。 */
   editorKind?: "grapesjs" | "puck";
+  /** プロジェクト全画面の default CSS フレームワーク。画面側 (screen.design.cssFramework) で override 可能。省略時は 'bootstrap' 相当。 */
+  cssFramework?: CssFramework;
+}
+
+/** バックエンド技術スタック (techStack.backend サブオブジェクト)。 */
+export interface TechStackBackend {
+  /** バックエンド実装言語。 */
+  language?: "java" | "typescript" | "python" | "go" | "kotlin";
+  /** バックエンドフレームワーク。language との組合せ制約あり (techStackConstraints.ts 参照)。 */
+  framework?: "spring-boot" | "nestjs" | "express" | "fastapi" | "gin";
+}
+
+/** データベース技術スタック (techStack.database サブオブジェクト)。 */
+export interface TechStackDatabase {
+  /** データベース種別。 */
+  type?: "postgresql" | "mysql" | "sqlite" | "oracle" | "sqlserver";
+  /** データベースバージョン文字列 (例: '16', '8.0')。省略可。 */
+  version?: string;
+}
+
+/** フロントエンド技術スタック (techStack.frontend サブオブジェクト)。 */
+export interface TechStackFrontend {
+  /** フロントエンドライブラリ / テンプレートエンジン。 */
+  library?: "react" | "vue" | "thymeleaf" | "blade" | "none";
+  /** フロントエンドフレームワーク。library との組合せ制約あり (techStackConstraints.ts 参照)。省略可。 */
+  framework?: "next" | "nuxt" | "vite" | "none";
+}
+
+/** 認証方式 (techStack.auth サブオブジェクト)。 */
+export interface TechStackAuth {
+  /** 認証方式。 */
+  method?: "jwt" | "session" | "oauth2" | "saml" | "none";
+}
+
+/** デプロイターゲット (techStack.deployment サブオブジェクト)。 */
+export interface TechStackDeployment {
+  /** デプロイターゲット環境。 */
+  target?: "docker" | "vm" | "lambda" | "cloud-run" | "kubernetes";
+}
+
+/**
+ * プロジェクトの技術スタック定義 (#826)。
+ * AI コード生成時のターゲット環境とデザイナー動作設定を統合する。
+ */
+export interface ProjectTechStack {
+  /** デザイナー動作設定。editorKind / cssFramework のプロジェクト default を保持。 */
+  designer?: TechStackDesigner;
+  /** バックエンド技術スタック。 */
+  backend?: TechStackBackend;
+  /** データベース技術スタック。 */
+  database?: TechStackDatabase;
+  /** フロントエンド技術スタック。 */
+  frontend?: TechStackFrontend;
+  /** 認証方式。 */
+  auth?: TechStackAuth;
+  /** デプロイターゲット。 */
+  deployment?: TechStackDeployment;
 }
 
 /** 業務システム 1 案件の root 定義。`data/project.json` に対応。 */
@@ -159,6 +211,6 @@ export interface Project {
   entities?: ProjectEntities;
   /** プロジェクト全体の authoring 情報 (entity 横断で共有される ADR や用語集)。 */
   authoring?: Authoring;
-  /** プロジェクト全体のデザイン関連設定 (CSS フレームワーク選択等)。 */
-  design?: ProjectDesign;
+  /** プロジェクトの技術スタック定義 (AI コード生成ターゲット + デザイナー動作設定)。 */
+  techStack?: ProjectTechStack;
 }

@@ -33,7 +33,7 @@
 
 ```
 1. screen.design.editorKind / cssFramework  ← 画面個別指定
-2. project.design.editorKind / cssFramework ← プロジェクトのデフォルト
+2. project.techStack.designer.editorKind / cssFramework ← プロジェクトのデフォルト (#826 で project.design から移行)
 3. "grapesjs" / "bootstrap"                 ← システム最終デフォルト
 ```
 

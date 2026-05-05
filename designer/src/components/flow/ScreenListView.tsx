@@ -52,15 +52,15 @@ export function ScreenListView() {
   const [screenModal, setScreenModal] = useState<{ open: boolean; editId?: string; initial?: Partial<ScreenFormData> }>({ open: false });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const { hasDraft } = useDraftRegistry();
-  // project.design の project default (画面作成ダイアログのデフォルト選択値)
+  // project.techStack.designer の project default (画面作成ダイアログのデフォルト選択値)
   const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
   const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
 
   const loadScreens = useCallback(async (): Promise<ScreenNode[]> => {
     mcpBridge.startWithoutEditor();
     const [p, raw] = await Promise.all([loadProject(), loadRawProject()]);
-    setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.design));
-    setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.design));
+    setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.techStack));
+    setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.techStack));
     return p.screens;
   }, []);
 

@@ -52,7 +52,7 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
   const [activeTheme, setActiveThemeState] = useState<ThemeId>(
     () => (localStorage.getItem(THEME_KEY) as ThemeId | null) ?? "standard"
   );
-  // project.design.cssFramework (#793 子 5): 省略時は "bootstrap" (schema default と一致)
+  // project.techStack.designer.cssFramework (#793 子 5 / #826): 省略時は "bootstrap" (schema default と一致)
   const [cssFramework, setCssFramework] = useState<CssFramework>("bootstrap");
   const cssFrameworkRef = useRef<CssFramework>("bootstrap");
   // editorKind (#806 子 3): 省略時は "grapesjs" (schema default と一致)
@@ -146,7 +146,7 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
   // cssFramework と editorKind を画面 + プロジェクトから読み込む (screenId が変わるたびに再解決)。
   // 解決順序 (multi-editor-puck.md § 2.3 / css-framework-switching.md § 1.3.1 / #806 子 2/3):
   //   1. screen.design.* (画面個別指定)
-  //   2. project.design.* (project default)
+  //   2. project.techStack.designer.* (project default)
   //   3. "bootstrap" / "grapesjs" (最終 default)
   useEffect(() => {
     let cancelled = false;
@@ -155,10 +155,10 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
       loadScreenEntity(screenId),
     ]).then(([raw, screen]) => {
       if (cancelled) return;
-      const fw = resolveCssFramework(screen.design, raw.design);
+      const fw = resolveCssFramework(screen.design, raw.techStack);
       setCssFramework(fw);
       cssFrameworkRef.current = fw;
-      const ek = resolveEditorKind(screen.design, raw.design);
+      const ek = resolveEditorKind(screen.design, raw.techStack);
       setEditorKind(ek);
     }).catch((e) => {
       console.warn("[Designer] cssFramework/editorKind resolve failed, using defaults", e);

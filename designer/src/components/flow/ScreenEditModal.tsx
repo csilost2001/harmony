@@ -21,9 +21,9 @@ interface Props {
   title: string;
   /** true のとき editorKind / cssFramework ラジオを表示する。false は編集モード (非表示)。 */
   isCreate?: boolean;
-  /** 画面作成ダイアログのエディタ種別デフォルト選択値 (project.design から取得)。 */
+  /** 画面作成ダイアログのエディタ種別デフォルト選択値 (project.techStack.designer から取得)。 */
   defaultEditorKind?: EditorKind;
-  /** 画面作成ダイアログの CSS フレームワークデフォルト選択値 (project.design から取得)。 */
+  /** 画面作成ダイアログの CSS フレームワークデフォルト選択値 (project.techStack.designer から取得)。 */
   defaultCssFramework?: CssFramework;
   onSave: (data: ScreenFormData) => void;
   onClose: () => void;

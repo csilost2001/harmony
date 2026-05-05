@@ -114,8 +114,8 @@ Agent(subagent_type="general-purpose", model="sonnet", prompt="...")
 PR diff に画面関連ファイル (`screens/` / `Designer.tsx` / `PuckBackend` 等) が含まれる場合:
 
 1. **editorKind / cssFramework 解決順序の確認**: screen → project → default の 3 段解決が一貫しているか
-   - `screen.design.editorKind` → `project.design.editorKind` → `"grapesjs"` のフォールバック
-   - `screen.design.cssFramework` → `project.design.cssFramework` → `"bootstrap"` のフォールバック
+   - `screen.design.editorKind` → `project.techStack.designer.editorKind` → `"grapesjs"` のフォールバック (#826 で `project.design` から移行)
+   - `screen.design.cssFramework` → `project.techStack.designer.cssFramework` → `"bootstrap"` のフォールバック (#826 で `project.design` から移行)
 2. **Thymeleaf 出力スクリプトが Puck 画面をスキップしているか**: `editorKind === "puck"` 画面を Thymeleaf 出力対象から除外し、スキップした画面名をレポートに記録しているか確認
 3. **動的コンポーネント primitive の確認**: 登録されるカスタムコンポーネントの `primitive` フィールドが `BUILTIN_PRIMITIVE_NAMES` に含まれる既知の名前かどうか
 

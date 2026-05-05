@@ -18,6 +18,7 @@ import { ViewDefinitionListView } from "./view-definition/ViewDefinitionListView
 import { ViewDefinitionEditor } from "./view-definition/ViewDefinitionEditor";
 import { WorkspaceListView } from "./workspace/WorkspaceListView";
 import { WorkspaceSelectView } from "./workspace/WorkspaceSelectView";
+import { TechStackView } from "./project/TechStackView";
 import { Designer } from "./Designer";
 import { DashboardView } from "./dashboard/DashboardView";
 import { TabBar } from "./TabBar";
@@ -315,6 +316,7 @@ export function AppShell() {
         <Route path="view/edit/:viewId" element={<ViewEditor />} />
         <Route path="view-definition/list" element={<ViewDefinitionListView />} />
         <Route path="view-definition/edit/:viewDefinitionId" element={<ViewDefinitionEditor />} />
+        <Route path="project/tech-stack" element={<TechStackView />} />
       </Route>
       <Route path="/workspace/list" element={<WorkspaceListView />} />
       <Route path="/workspace/select" element={<WorkspaceSelectView />} />
@@ -660,7 +662,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       { path: `${wsPrefix}/sequence/list`,      type: "sequence-list",      label: "シーケンス一覧" },
       { path: `${wsPrefix}/view/list`,          type: "view-list",           label: "ビュー一覧" },
       { path: `${wsPrefix}/view-definition/list`, type: "view-definition-list", label: "ビュー定義一覧" },
-      { path: "/workspace/list",     type: "workspace-list",     label: "ワークスペース" },
+      { path: "/workspace/list",                       type: "workspace-list", label: "ワークスペース" },
+      { path: `${wsPrefix}/project/tech-stack`,         type: "tech-stack",     label: "技術スタック" },
     ];
     for (const { path, type, label } of singletonRoutes) {
       if (location.pathname === path) {
@@ -715,6 +718,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       : activeTab.type === "view-list"              ? `${wp}/view/list`
       : activeTab.type === "view-definition-list"   ? `${wp}/view-definition/list`
       : activeTab.type === "workspace-list"         ? "/workspace/list"
+      : activeTab.type === "tech-stack"             ? `${wp}/project/tech-stack`
       : activeTab.type === "dashboard"              ? `${wp}/`
       : null;
     if (expectedPath && location.pathname !== expectedPath) {

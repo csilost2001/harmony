@@ -61,6 +61,10 @@ const MENU_ITEMS: MenuItem[] = [
     id: "workspace-list", label: "ワークスペース", icon: "bi-folder2-open", route: "/workspace/list",
     activePaths: ["/workspace/list", "/workspace/select"],
   },
+  {
+    id: "tech-stack", label: "技術スタック", icon: "bi-stack", route: "/project/tech-stack",
+    activePaths: ["/project/tech-stack"],
+  },
 ];
 
 const DASHBOARD_ITEM: MenuItem = {

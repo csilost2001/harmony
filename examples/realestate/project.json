@@ -17,8 +17,13 @@
       "version": ">=1.0.0"
     }
   ],
-  "design": {
-    "cssFramework": "bootstrap"
+  "techStack": {
+    "designer": { "editorKind": "grapesjs", "cssFramework": "bootstrap" },
+    "backend":  { "language": "java", "framework": "spring-boot" },
+    "database": { "type": "postgresql", "version": "17" },
+    "frontend": { "library": "thymeleaf" },
+    "auth":     { "method": "session" },
+    "deployment": { "target": "docker" }
   },
   "entities": {
     "screens": [

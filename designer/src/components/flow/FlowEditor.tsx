@@ -211,8 +211,8 @@ function FlowEditorInner() {
     setNodes(toRFNodesWithGroups(project.screens, project.groups ?? []));
     setEdges(toRFEdges(project.edges));
     setProjectName(project.name);
-    setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.design));
-    setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.design));
+    setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.techStack));
+    setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.techStack));
     needsFitViewRef.current = project.screens.length > 0;
     setIsLoading(false);
     setIsDirty(false);
@@ -254,7 +254,7 @@ function FlowEditorInner() {
     return () => { cancelled = true; };
   }, [sessionLoading, mode.kind]);
 
-  // project.design の project default (画面作成ダイアログのデフォルト選択値)
+  // project.techStack.designer の project default (画面作成ダイアログのデフォルト選択値)
   const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
   const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
 

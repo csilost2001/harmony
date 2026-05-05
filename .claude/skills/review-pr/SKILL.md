@@ -111,8 +111,8 @@ gh pr diff <PR番号> --name-only | grep -E "^schemas/"
 PR diff に画面関連ファイル (`screens/` / `Designer.tsx` / `PuckBackend` / `CssFrameworkContext` 等) が含まれる場合:
 
 1. **editorKind / cssFramework 解決順序の一貫性**: screen → project → default の 3 段解決が正しく実装されているか
-   - `screen.design.editorKind` → `project.design.editorKind` → `"grapesjs"` の 3 段フォールバック
-   - `screen.design.cssFramework` → `project.design.cssFramework` → `"bootstrap"` の 3 段フォールバック
+   - `screen.design.editorKind` → `project.techStack.designer.editorKind` → `"grapesjs"` の 3 段フォールバック (#826 で `project.design` から移行)
+   - `screen.design.cssFramework` → `project.techStack.designer.cssFramework` → `"bootstrap"` の 3 段フォールバック (#826 で `project.design` から移行)
    - 解決ロジックが 1 か所に集中しているか (複数箇所に分散して解決順序がズレていないか)
 2. **動的コンポーネント定義の primitive 妥当性**: 登録される `primitive` フィールドが `BUILTIN_PRIMITIVE_NAMES` に含まれる既知の名前であるか
    - `BUILTIN_PRIMITIVE_NAMES` は `designer/src/puck/buildConfig.ts` でエクスポートされている

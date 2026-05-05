@@ -634,7 +634,7 @@ npx vitest run src/schemas/validateDogfood.test.ts -t "<flowId の一部>"
 ### 画面ロード時の解決順序
 
 1. `screen.design.editorKind` / `screen.design.cssFramework` (画面個別指定)
-2. `project.design.editorKind` / `project.design.cssFramework` (project default)
+2. `project.techStack.designer.editorKind` / `project.techStack.designer.cssFramework` (project default、#826 で `project.design` から移行)
 3. 最終 default (`"grapesjs"` / `"bootstrap"`)
 
 ### editorKind 別のデザインファイル参照

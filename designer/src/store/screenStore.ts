@@ -36,12 +36,12 @@ export async function buildDefaultScreen(screenId: string): Promise<Screen> {
   const ts = nowTs();
   const [project, raw] = await Promise.all([loadProject(), loadRawProject()]);
   const meta = project.screens.find((s) => s.id === screenId);
-  // editorKind / cssFramework を project.design から解決し、project default 値を内包した
+  // editorKind / cssFramework を project.techStack.designer から解決し、project default 値を内包した
   // Screen entity を返す。呼び出し側 (handleScreenSave / mcpBridge) が画面固有値で上書きする前提。
   // saveScreenEntity (本ファイル下方) で designFileRef / puckDataRef の排他性を最終保証する。
   // 仕様書 multi-editor-puck.md § 2.5: "designFileRef と puckDataRef はどちらか一方のみ"
-  const editorKind = resolveEditorKind(undefined, raw.design);
-  const cssFramework = resolveCssFramework(undefined, raw.design);
+  const editorKind = resolveEditorKind(undefined, raw.techStack);
+  const cssFramework = resolveCssFramework(undefined, raw.techStack);
   const isPuck = editorKind === "puck";
   return {
     $schema: SCREEN_SCHEMA_REF,

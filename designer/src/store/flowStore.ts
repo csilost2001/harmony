@@ -603,9 +603,9 @@ export async function loadProject(): Promise<FlowProject> {
 }
 
 /**
- * プロジェクトの生 Project 定義を読み込む (design.cssFramework 等の参照用)。
+ * プロジェクトの生 Project 定義を読み込む (techStack.designer.cssFramework 等の参照用)。
  * FlowProject へ合成する loadProject() とは異なり、project.json の raw shape を返す。
- * design field は FlowProject には含まれないため、本関数で取得する (#793 子 5)。
+ * techStack field は FlowProject には含まれないため、本関数で取得する (#793 子 5 / #826)。
  */
 export async function loadRawProject(): Promise<Project> {
   if (_backend) {
@@ -617,6 +617,23 @@ export async function loadRawProject(): Promise<Project> {
   const local = loadPersistedFromLocalStorage();
   if (local) return local;
   return normalizePersisted({});
+}
+
+/**
+ * project.techStack を更新して永続化する (#826)。
+ * FlowProject には techStack フィールドがないため、raw Project を直接 patch する専用関数。
+ */
+export async function saveTechStack(techStack: Project["techStack"]): Promise<void> {
+  const raw = await loadRawProject();
+  const patched: Project = { ...raw, techStack };
+  if (_backend) {
+    await _backend.saveProject(patched);
+  } else {
+    const localRaw = localStorage.getItem(FLOW_PROJECT_KEY);
+    const current = localRaw ? (() => { try { return JSON.parse(localRaw); } catch { return null; } })() : null;
+    const merged = current ? { ...current, techStack } : patched;
+    localStorage.setItem(FLOW_PROJECT_KEY, JSON.stringify(merged));
+  }
 }
 
 async function persistFlowProject(project: FlowProject): Promise<void> {
@@ -698,9 +715,9 @@ export async function persistProject(project: FlowProject): Promise<void> {
 export interface AddScreenOptions {
   path?: string;
   position?: { x: number; y: number };
-  /** 画面作成時に固定するエディタ種別。省略時は呼び出し側で project.design から解決して screen entity に書く。 */
+  /** 画面作成時に固定するエディタ種別。省略時は呼び出し側で project.techStack.designer から解決して screen entity に書く。 */
   editorKind?: "grapesjs" | "puck";
-  /** 画面作成時に固定する CSS フレームワーク。省略時は呼び出し側で project.design から解決して screen entity に書く。 */
+  /** 画面作成時に固定する CSS フレームワーク。省略時は呼び出し側で project.techStack.designer から解決して screen entity に書く。 */
   cssFramework?: "bootstrap" | "tailwind";
 }
 
