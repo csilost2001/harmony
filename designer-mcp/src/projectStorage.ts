@@ -73,6 +73,7 @@ const SCHEMAS_DIR = path.resolve(import.meta.dirname, "../../schemas");
 
 /** screens/<id>.json から schemas/v3/screen.v3.schema.json への相対 path を計算する */
 function screenSchemaRef(root: string): string {
+  // workspace は repo 内 (examples/<id>/ or workspaces/<id>/) 配置前提; repo 外 (別ドライブ等) では path.relative が absolute path を返しうる
   const entityDir = screensDir(root);
   const schemaPath = path.join(SCHEMAS_DIR, "v3", "screen.v3.schema.json");
   return path.relative(entityDir, schemaPath).replace(/\\/g, "/");

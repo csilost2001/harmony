@@ -26,6 +26,15 @@ const { _resetForTest, connect, initWorkspaceState } = await import("./workspace
 
 const { writeScreen, writeScreenEntity, readScreenEntity } = await import("./projectStorage.js");
 
+const SCHEMAS_DIR = path.resolve(import.meta.dirname, "../../schemas");
+
+function expectedScreenSchemaRef(root: string): string {
+  return path.relative(
+    path.join(root, "screens"),
+    path.join(SCHEMAS_DIR, "v3", "screen.v3.schema.json"),
+  ).replace(/\\/g, "/");
+}
+
 async function ensureWorkspace(): Promise<void> {
   await fs.mkdir(TMP_ROOT, { recursive: true });
   try {
@@ -399,7 +408,7 @@ describe("draftStore", () => {
       const entity = JSON.parse(
         await fs.readFile(path.join(screensDir, `${screenId}.json`), "utf-8"),
       );
-      expect(entity.$schema).toMatch(/schemas\/v3\/screen\.v3\.schema\.json$/);
+      expect(entity.$schema).toBe(expectedScreenSchemaRef(TMP_ROOT));
       expect(entity.$schema).not.toBe("../schemas/v3/screen.v3.schema.json");
     });
 
