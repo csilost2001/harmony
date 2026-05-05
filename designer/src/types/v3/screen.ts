@@ -41,13 +41,13 @@ export type ScreenKind = BuiltinScreenKind | string;
 export interface ScreenDesign {
   /**
    * 本画面のエディタ種別。画面作成時に固定、以降変更不可。
-   * 省略時は project.design.editorKind を参照、それも省略なら 'grapesjs'
+   * 省略時は project.techStack.designer.editorKind を参照、それも省略なら 'grapesjs'
    * (multi-editor-puck.md § 2.5)。
    */
   editorKind?: "grapesjs" | "puck";
   /**
    * 本画面の CSS フレームワーク。画面作成時に固定、以降変更不可。
-   * 省略時は project.design.cssFramework を参照、それも省略なら 'bootstrap'
+   * 省略時は project.techStack.designer.cssFramework を参照、それも省略なら 'bootstrap'
    * (css-framework-switching.md § 1.3.1)。
    */
   cssFramework?: "bootstrap" | "tailwind";
