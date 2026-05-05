@@ -132,7 +132,7 @@ interface PersistedEdge {
   trigger: ScreenTransitionEntry["trigger"];
 }
 
-interface LegacyFlowProject {
+export interface LegacyFlowProject {
   version: 1;
   name: string;
   screens: PersistedScreen[];
@@ -426,12 +426,12 @@ function normalizeLegacyPersisted(raw: unknown): LegacyFlowProject {
   };
 }
 
-function legacyToProject(legacy: LegacyFlowProject): Project {
+export function legacyToProject(legacy: LegacyFlowProject): Project {
   return {
     $schema: PROJECT_SCHEMA_REF,
     schemaVersion: "v3",
     meta: {
-      id: "00000000-0000-4000-8000-000000000001" as ProjectId,
+      id: generateUUID() as ProjectId,
       name: legacy.name,
       createdAt: legacy.updatedAt,
       updatedAt: legacy.updatedAt,

@@ -5,10 +5,11 @@
  * saveProject 経路で失われないことを検証する。
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { FlowStorageBackend } from "./flowStore";
+import type { FlowStorageBackend, LegacyFlowProject } from "./flowStore";
 import {
   composeFlowProject,
   decomposeFlowProject,
+  legacyToProject,
   setFlowStorageBackend,
   setFlowDraftMode,
   saveProject,
@@ -193,5 +194,26 @@ describe("saveProject round-trip preservation (backend mock)", () => {
     await saveProject(flow);
 
     expect(savedProject!.meta.id).toBe(PROJ_ID);
+  });
+});
+
+describe("legacyToProject UUID 発番 (#835 Should-fix 1)", () => {
+  it("ハードコード UUID ではなく generateUUID() で新採番される", () => {
+    const legacy: LegacyFlowProject = {
+      version: 1,
+      name: "レガシープロジェクト",
+      screens: [],
+      groups: [],
+      edges: [],
+      updatedAt: "2026-01-01T00:00:00.000Z" as import("../types/v3").Timestamp,
+    };
+    const project = legacyToProject(legacy);
+
+    // UUID v4 形式であること
+    expect(project.meta.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    // ハードコード値ではないこと
+    expect(project.meta.id).not.toBe("00000000-0000-4000-8000-000000000001");
   });
 });
