@@ -198,7 +198,7 @@ async function captureThumbnail(editor: GEditor): Promise<string | null> {
 // -----------------------------------------------------------------------
 
 /**
- * GrapesJSEditorPane の追加 props。RenderEditorProps の汎用 props に加え、
+ * GrapesJSEditorPane の追加 props。GrapesJSRenderEditorProps の汎用 props に加え、
  * GrapesJS 固有のコールバック (onServerChanged / onMcpStatusChange / onExternalThemeChange)
  * を Designer.tsx から受け取る。
  */

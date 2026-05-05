@@ -215,9 +215,9 @@ test.describe("Puck エディタ基本動作", () => {
     await setupPuckScreen(page);
 
     // Puck デザイナの外側コンテナが表示されることを確認
-    // PuckBackend が renderEditor で作成する wrapper
-    await expect(page.locator(".puck-editor-root, [data-testid='puck-editor'], .Puck")).toBeVisible({
-      timeout: 15000,
+    // PuckBackend が renderEditor で作成する wrapper (#815 follow-up: data-testid で安定化)
+    await expect(page.locator("[data-testid='puck-editor-container']")).toBeVisible({
+      timeout: 20000,
     });
 
     // Puck のパレット (左カラム) が存在することを確認
