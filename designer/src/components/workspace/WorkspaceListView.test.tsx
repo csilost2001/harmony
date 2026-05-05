@@ -120,7 +120,7 @@ describe("WorkspaceListView navigation", () => {
 
     await waitFor(() => {
       expect(openWorkspaceMock).toHaveBeenCalledWith("ws-source", true);
-      expect(navigateMock).toHaveBeenCalledWith("/w/ws-target/", { replace: true });
+      expect(navigateMock).toHaveBeenCalledWith("/", { replace: true });
     });
   });
 
@@ -131,7 +131,7 @@ describe("WorkspaceListView navigation", () => {
 
     await waitFor(() => {
       expect(openWorkspaceMock).toHaveBeenCalledWith("ws-source", true);
-      expect(navigateMock).toHaveBeenCalledWith("/w/ws-target/", { replace: true });
+      expect(navigateMock).toHaveBeenCalledWith("/", { replace: true });
     });
   });
 });

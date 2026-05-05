@@ -427,8 +427,8 @@ export function WorkspaceListView() {
     if (sel.length !== 1) return;
     setActionError(null);
     try {
-      const wsId = await openWorkspace(sel[0].id, true);
-      navigate(`/w/${wsId}/`, { replace: true });
+      await openWorkspace(sel[0].id, true);
+      navigate("/", { replace: true });
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e));
     }
@@ -450,7 +450,7 @@ export function WorkspaceListView() {
     if (lockdown) return;
     setActionError(null);
     openWorkspace(w.id, true)
-      .then((wsId) => navigate(`/w/${wsId}/`, { replace: true }))
+      .then(() => navigate("/", { replace: true }))
       .catch((e) => {
         setActionError(e instanceof Error ? e.message : String(e));
       });

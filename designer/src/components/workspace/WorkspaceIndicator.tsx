@@ -49,6 +49,7 @@ export function WorkspaceIndicator() {
     setOpen(false);
     try {
       await openWorkspace(id, true);
+      navigate("/", { replace: true });
     } catch (e) {
       console.error("[WorkspaceIndicator] openWorkspace failed:", e);
     }
