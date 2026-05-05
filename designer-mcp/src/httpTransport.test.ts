@@ -148,6 +148,17 @@ describe("designer-mcp HTTP transport (#302)", () => {
     expect(j).toMatchObject({ status: "ok", service: "designer-mcp", port: TEST_PORT });
   });
 
+  it("GET /health で half-dead 検知フィールドを含む health JSON が返る (#795-A)", async () => {
+    const r = await fetch(`http://localhost:${TEST_PORT}/health`);
+    expect(r.ok).toBe(true);
+    const j = await r.json() as { status: string; lastWsMessageAt: number | null; wsConnections: number; uptimeMs: number };
+    expect(j.status).toBe("ok");
+    expect(Object.prototype.hasOwnProperty.call(j, "lastWsMessageAt")).toBe(true);
+    expect(typeof j.wsConnections).toBe("number");
+    expect(typeof j.uptimeMs).toBe("number");
+    expect(j.uptimeMs).toBeGreaterThan(0);
+  });
+
   it("POST /mcp initialize で protocolVersion が返る (stateless)", async () => {
     const res = await mcpCall("initialize", undefined, {
       id: 1,

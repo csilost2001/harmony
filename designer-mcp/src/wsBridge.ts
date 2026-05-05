@@ -152,6 +152,10 @@ class WsBridge extends EventEmitter {
     string,
     { resolve: (r: unknown) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }
   >();
+  /** 最後に WebSocket メッセージを受信した時刻 (ms)。half-dead 検知用 (#795-A) */
+  private lastMessageAt: number | null = null;
+  /** プロセス起動時刻 (ms) */
+  private readonly startedAt: number = Date.now();
 
   get isConnected(): boolean {
     return this.clients.size > 0;
@@ -161,6 +165,20 @@ class WsBridge extends EventEmitter {
   isActiveSession(sessionId: string): boolean {
     const ws = this.clients.get(sessionId);
     return ws !== undefined && ws.readyState === WebSocket.OPEN;
+  }
+
+  /**
+   * サーバ生存情報を返す (#795-A: half-dead 検知 + /health endpoint 用)。
+   * - lastWsMessageAt: 最後に WebSocket メッセージを受信したエポック ms (null = まだ受信なし)
+   * - wsConnections: 現在の接続ブラウザ数
+   * - uptimeMs: プロセス起動からの経過 ms
+   */
+  getHealth(): { lastWsMessageAt: number | null; wsConnections: number; uptimeMs: number } {
+    return {
+      lastWsMessageAt: this.lastMessageAt,
+      wsConnections: this.clients.size,
+      uptimeMs: Date.now() - this.startedAt,
+    };
   }
 
   /** MCP コマンドを送る先: 最後に接続した有効なクライアント */
@@ -244,10 +262,18 @@ class WsBridge extends EventEmitter {
         return;
       }
     }
-    // Simple health check endpoint
+    // Health check endpoint (#795-A): half-dead 検知情報を含む
     if (url === "/" || url === "/health") {
+      const health = this.getHealth();
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ status: "ok", service: "designer-mcp", port: WS_PORT }));
+      res.end(JSON.stringify({
+        status: "ok",
+        service: "designer-mcp",
+        port: WS_PORT,
+        lastWsMessageAt: health.lastWsMessageAt,
+        wsConnections: health.wsConnections,
+        uptimeMs: health.uptimeMs,
+      }));
       return;
     }
     res.writeHead(404, { "Content-Type": "text/plain" });
@@ -268,6 +294,7 @@ class WsBridge extends EventEmitter {
       if (this.clients.size === 1) this.emit("connected");
 
       ws.on("message", (data: Buffer) => {
+        this.lastMessageAt = Date.now();
         let msg: Record<string, unknown>;
         try {
           msg = JSON.parse(data.toString()) as Record<string, unknown>;

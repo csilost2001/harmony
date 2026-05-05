@@ -182,13 +182,14 @@ export function AppShell() {
     return subscribeRedirectGuardTrip((summary) => setGuardTripped(summary));
   }, []);
 
-  // 接続失敗 timer 起動 (mount 時 + retry 時)
+  // 接続失敗 timer 起動 (mount 時 + retry 時)。タイムアウト時は mcpBridge.markFailed() を呼んで
+  // status="failed" に遷移 → onStatusChange で connectionFailed=true を立てる (#795-C)
   const startConnectionTimeout = useCallback(() => {
     if (failTimerRef.current !== null) clearTimeout(failTimerRef.current);
     failTimerRef.current = setTimeout(() => {
       if (!everConnectedRef.current) {
         uiWarn("workspace", "connection-timeout", { ms: CONNECTION_TIMEOUT_MS });
-        setConnectionFailed(true);
+        (mcpBridge as { markFailed: () => void }).markFailed();
       }
     }, CONNECTION_TIMEOUT_MS);
   }, []);
@@ -198,9 +199,9 @@ export function AppShell() {
   // root component なので app の生存期間中マウントされ続ける):
   //  - mount 時に startWithoutEditor() を 1 度呼んで能動起動
   //  - "connected" 受信で loadWorkspaces して active state を最新化 (loading=true → false)
+  //  - "failed" 受信でエラー UI に切替 (タイムアウト経路) (#795-C)
   //  - "disconnected" は mcpBridge 自身が retry timer を回すので AppShell は何もしない
   //  - サーバ側物理ログへの定期 flush もここで設定 (#750 follow-up)
-  //  - 接続失敗 timeout (#795-C): N 秒以内に "connected" が来ない場合エラー UI に切替
   useEffect(() => {
     const unsubBroadcast = subscribeWorkspaceChanges();
     const bridge = mcpBridge as unknown as {
@@ -217,6 +218,8 @@ export function AppShell() {
           failTimerRef.current = null;
         }
         loadWorkspaces().catch(console.error);
+      } else if (s === "failed") {
+        setConnectionFailed(true);
       }
     });
     bridge.startWithoutEditor();
@@ -235,6 +238,7 @@ export function AppShell() {
   // 接続失敗時の手動 retry (#795-C エラー UI ボタン)
   const handleRetryConnection = useCallback(() => {
     uiInfo("workspace", "connection-retry-clicked");
+    everConnectedRef.current = false;
     setConnectionFailed(false);
     startConnectionTimeout();
     (mcpBridge as { startWithoutEditor: () => void }).startWithoutEditor();

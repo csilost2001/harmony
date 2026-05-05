@@ -80,7 +80,7 @@ import {
 } from "../store/viewDefinitionStore";
 import type { RawExtensionsBundle } from "../schemas/loadExtensions";
 
-export type McpStatus = "disconnected" | "connecting" | "connected";
+export type McpStatus = "disconnected" | "connecting" | "connected" | "failed";
 export type ThemeIdLike = "standard" | "card" | "compact" | "dark";
 
 type StatusCallback = (s: McpStatus) => void;
@@ -123,6 +123,8 @@ class McpBridgeImpl {
   private broadcastHandlers = new Map<string, Set<BroadcastHandler>>();
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
+  /** 接続試行カウンタ */
+  private connectAttempts = 0;
 
   /** ブラウザセッション固有の一意 ID（再接続でも不変） */
   private readonly clientId = generateUUID();
@@ -173,6 +175,10 @@ class McpBridgeImpl {
     return this.status;
   }
 
+  getConnectAttempts(): number {
+    return this.connectAttempts;
+  }
+
   /** ブロードキャストイベントのサブスクライブ */
   onBroadcast(event: string, handler: BroadcastHandler): () => void {
     if (!this.broadcastHandlers.has(event)) {
@@ -220,13 +226,31 @@ class McpBridgeImpl {
     this._connect();
   }
 
-  /** フロー画面用: エディターなしで WebSocket 接続のみ起動 */
+  /** フロー画面用: エディターなしで WebSocket 接続のみ起動。"failed" 状態からのリトライも可 */
   startWithoutEditor(): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
-    if (this.status === "connecting") return;
+    // "failed" 状態のリトライ: 残っている接続試行中の ws を破棄してから再接続
+    if (this.status === "failed") {
+      if (this.ws) {
+        try { this.ws.close(); } catch { /* ignore */ }
+        this.ws = null;
+      }
+    } else if (this.status === "connecting") {
+      return;
+    }
     this.stopped = false;
     console.log("[mcpBridge] starting without editor (flow mode)...");
     this._connect();
+  }
+
+  /**
+   * AppShell が接続タイムアウトを検出した際に呼び出す (#795-C)。
+   * "connecting" → "failed" に遷移し、UI にエラー画面切替を通知する。
+   * retry は startWithoutEditor() の再呼び出しで行う。
+   */
+  markFailed(): void {
+    console.log("[mcpBridge] marking as failed (connection timeout)");
+    this._setStatus("failed");
   }
 
   stop(): void {
@@ -276,8 +300,9 @@ class McpBridgeImpl {
 
   private _connect(): void {
     if (this.stopped) return;
+    this.connectAttempts++;
     this._setStatus("connecting");
-    console.log("[mcpBridge] connecting to", WS_URL);
+    console.log("[mcpBridge] connecting to", WS_URL, `(attempt ${this.connectAttempts})`);
 
     const ws = new WebSocket(WS_URL);
     this.ws = ws;
