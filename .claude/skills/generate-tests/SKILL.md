@@ -1,7 +1,7 @@
 ---
 name: generate-tests
-description: project.techStack に基づき ProcessFlow JSON → backend integration test (E2E spec)、または Screen JSON → frontend component test (vitest + @testing-library/react) を AI が生成する。P1/P2 は TypeScript NestJS + jest、P3 は React + Next.js + vitest をカバー。
-argument-hint: <flowId|screenId> [出力先ディレクトリ]
+description: project.techStack に基づき ProcessFlow JSON → backend integration test (E2E spec)、または Screen JSON → frontend component test (vitest + @testing-library/react)、または Playwright E2E シナリオテスト (multi-screen) を AI が生成する。P1/P2 は TypeScript NestJS + jest、P3 は React + Next.js + vitest、P4 は Playwright E2E (画面遷移シナリオ) をカバー。
+argument-hint: <flowId|screenId> [出力先] / --scenario <fromScreenId> <toScreenId> / --scenario-name "<name>" <screenId-1> ... <screenId-N>
 disable-model-invocation: true
 ---
 
@@ -59,9 +59,18 @@ disable-model-invocation: true
       - events[] 空配列の場合は skip テスト + 乖離検出ノートのみ生成
       - renderWithProviders (useRouter / auth context wrap)
 
-  P3 スコープ外 (別 ISSUE で逐次拡張):
+    P4 (E2E multi-screen — #873):
+      - Playwright headless (D-6 確定)
+      - SQLite --workers=1 必須 (D-7)
+      - screenTransitions[] / events.handlerFlowId / path-based の 3段 fallback 遷移導出
+      - 起動形式: /generate-tests --scenario <from> <to> または --scenario-name "<name>" <id1>...<idN>
+      - auth helper (loginAs API 経由 / loginViaUI UI 経由)
+      - DB seed/truncate helper (Prisma)
+      - playwright.config.ts 雛形 (webServer はコメントアウト — AI は dev server を spawn しない)
+
+  P4 スコープ外 (別 ISSUE で逐次拡張):
     - Spring Boot / Python FastAPI 等の他 backend techStack
-    - P4: Playwright E2E (画面遷移 / 認証フロー全体)
+    - P5: AI flow mock + 実 API 切替 (#874)
     - CI 自動化 (本スキルは AI 対話駆動のため CI に乗せない)
 -->
 
@@ -70,6 +79,26 @@ disable-model-invocation: true
 ## Step 0: 引数解析
 
 `$ARGUMENTS` を以下のように解析する。
+
+### 0-A. フラグ検出 (P4 E2E ルーティング)
+
+`$ARGUMENTS` 先頭に以下のフラグが含まれる場合、P4 E2E シナリオ生成ルートへ直接ルーティングする:
+
+```
+--scenario <screenId-from> <screenId-to>
+  → P4 E2E シナリオ生成 (2 画面間)
+  → シナリオ ID: "scenario-<screenId-from の8桁>-<screenId-to の8桁>"
+
+--scenario-name "<name>" <screenId-1> ... <screenId-N>
+  → P4 E2E シナリオ生成 (N 画面、名前付き)
+  → シナリオ ID: "<name>" を kebab-case 化 (例: "投稿ライフサイクル" → "post-lifecycle")
+
+上記フラグが含まれる → Step P4 へ直接ジャンプ (Step 1-2 の UUID ルーティングをスキップ)
+```
+
+### 0-B. 通常引数解析 (P1/P2/P3)
+
+フラグなしの場合:
 
 - 第1引数 `<id>` (必須): UUID v4 形式
   - UUID でない場合は「引数エラー: UUID v4 形式で指定してください」と報告して中止
@@ -81,6 +110,14 @@ disable-model-invocation: true
 - ProcessFlow ID にマッチ → backend E2E test 生成 (Step 1 → Step 3)
 - Screen ID にマッチ → frontend component test 生成 (Step 1 → Step P3)
 - どちらにもマッチしない → エラー報告して中止
+
+### 0-C. 出力先ディレクトリの決定
+
+| 起動形式 | デフォルト出力先 |
+|---|---|
+| `--scenario <from> <to>` | `.tmp/generated-tests/scenario-<8桁>-<8桁>/` |
+| `--scenario-name "<name>" ...` | `.tmp/generated-tests/<kebab-case-name>/` |
+| `<UUID>` (通常) | `.tmp/generated-tests/<UUID8桁>/` |
 
 ## Step 1: 入力読込
 
@@ -825,6 +862,16 @@ ProcessFlow:
     posts.create.e2e-spec.ts   — 投稿作成フロー (0671b051) のゴールデン (抽象化済)
     jest-e2e.json              — jest 設定テンプレート
     README.md                  — golden の使い方、人手 section 保護方針
+  screens-list-component/
+    posts-list.component.test.tsx — 投稿一覧 Screen のゴールデン
+    vitest.config.ts              — vitest 設定
+    README.md                     — PLACEHOLDER 解決表、mental invocation 結果
+  diary-post-lifecycle-e2e/       ← P4 (Playwright E2E) ゴールデン
+    post-lifecycle.e2e.spec.ts    — 投稿ライフサイクルシナリオ (9 steps, 6 tests)
+    playwright.config.ts          — SQLite workers=1 設定
+    helpers/auth.ts               — loginAs() / loginViaUI() helper
+    helpers/db.ts                 — seedTestData() / truncateTestData() helper
+    README.md                     — PLACEHOLDER 解決表、遷移導出フロー、再 invocation 例
 ```
 
 ## Step 5: spec トレースコメント規約 (D-1 / D-4)
@@ -1256,4 +1303,269 @@ cd apps/web && npx vitest --reporter=verbose --testPathPattern="<generated-filen
 ```
 smoke 検証: スキップ (vitest 未設定 / npm install 未実施)
 推奨コマンド: cd apps/web && npx vitest <filename>.component.test
+```
+
+---
+
+## Step P4: E2E シナリオテスト生成 (Playwright, multi-screen) — #873
+
+Step 0 で `--scenario` / `--scenario-name` フラグが検出された場合、または
+フラグなし UUID が ProcessFlow / Screen どちらにもマッチしない場合にこのパスに入る。
+
+**D-6 確定**: E2E は常に Playwright (vitest / jest ではない)
+**D-7 確定**: SQLite 環境では `--workers=1` 必須 (playwright.config.ts で設定)
+
+テンプレート規約: `.claude/skills/generate-tests/templates/e2e/playwright/SCENARIO.md` を Read して参照すること。
+
+ゴールデン出力も参照:
+```
+.claude/skills/generate-tests/golden-examples/diary-post-lifecycle-e2e/
+  post-lifecycle.e2e.spec.ts   — 投稿ライフサイクルシナリオ (全 6 テスト, 9 steps)
+  playwright.config.ts         — SQLite workers=1 設定
+  helpers/auth.ts              — loginAs() / loginViaUI() helper
+  helpers/db.ts                — seedTestData() / truncateTestData() helper
+  README.md                    — PLACEHOLDER 解決表 + 遷移導出フロー + 再 invocation 例
+```
+
+### P4-0. 引数解析 (--scenario フラグ)
+
+`$ARGUMENTS` に以下のフラグが含まれる場合、P4 E2E シナリオ生成へルーティングする:
+
+```
+フラグ形式:
+  --scenario <screenId-from> <screenId-to>
+  --scenario-name "<name>" <screenId-1> ... <screenId-N>
+
+ルーティング判定:
+  --scenario あり      → P4 へ (2 画面間シナリオ)
+  --scenario-name あり → P4 へ (N 画面シナリオ、名前付き)
+  フラグなし + UUID    → 既存の ProcessFlow / Screen 判定 (P1/P2/P3) へ
+```
+
+シナリオ ID の生成: `--scenario-name` の値を kebab-case 化 (例: "投稿ライフサイクル" → "post-lifecycle")。
+フラグなしの場合は `scenario-<8桁UUID>` 形式で自動生成。
+
+### P4-1. harmony.json 読込 + screen path index 構築
+
+Step 1-1 と同様に active workspace の `harmony.json` を Read する。
+
+以下の情報を取得:
+- `entities.screens[]` → screen path index を構築:
+  ```
+  screenPathIndex[screen.id] = { name, path, kind }
+  ```
+- `entities.screenTransitions[]` → 遷移チェーン index を構築 (1次ソース)
+- `techStack.auth.method` → auth helper の方式を決定 (jwt / session / none)
+
+### P4-2. 画面遷移導出 (3段 fallback)
+
+引数の screenId 群から遷移チェーンを導出する。
+
+```
+遷移導出アルゴリズム:
+
+★ 1次ソース: screenTransitions[]
+  if entities.screenTransitions.length > 0:
+    指定 screenId に関連する screenTransition を収集し、
+    from → trigger → to のチェーンを構築する。
+    anchor: // Spec: Screen <fromId> via screenTransition <transitionId>
+
+★ 2次ソース: screen.events[].handlerFlowId → ProcessFlow → next screen
+  elif 各 screen の events[] に handlerFlowId あり:
+    handlerFlowId → ProcessFlow JSON を Read
+    ProcessFlow 完了後の遷移先 (nextScreen / httpRoute.redirectTo) から導出。
+    anchor: // Spec: Scenario <id> step:<N> via events[].handlerFlowId
+
+★ 3次ソース: path-based 推測 (kind 慣習)
+  else (screenTransitions=[] かつ events 未補完):
+    screen.kind の慣習から遷移先を推測:
+      "login"  → "list"   (ログイン成功 → トップの一覧画面)
+      "list"   → "form"   (一覧の "新規作成" → フォーム)
+      "list"   → "detail" (一覧の item クリック → 詳細)
+      "detail" → "form"   (詳細の "編集" → フォーム)
+      "detail" → "list"   (詳細の "削除" → 一覧)
+      "form"   → "detail" (作成/更新 → 詳細)
+      "form"   → "list"   (キャンセル / 削除後 → 一覧)
+    anchor 必須:
+      // TODO: screenTransitions 補完待ち
+      // ⚠️ 推測で生成: screenTransitions[] または events[] を補完後に再生成すること
+```
+
+### P4-3. ProcessFlow → httpRoute index 構築
+
+各 screen に関連する ProcessFlow の httpRoute を収集する (API verify 用)。
+
+```
+ProcessFlow index 構築手順:
+1. 引数の screenId に関連する ProcessFlow を収集
+   - screenTransitions の trigger.processFlowId
+   - screen.events[].handlerFlowId
+   - meta.name から推測 (例: "投稿作成" → 投稿フォームの submit)
+2. 各 ProcessFlow JSON を Read して httpRoute を取得
+3. map 化: { "<processFlowId>": { method, path } }
+
+解決失敗 (ProcessFlow JSON が見つからない / httpRoute が空):
+  → PLACEHOLDER "<HTTP_METHOD> <PLACEHOLDER_PATH>" で生成
+  → README の PLACEHOLDER 解決表に記録
+```
+
+### P4-4. テストファイル構造
+
+```typescript
+/**
+ * E2E シナリオテスト: <シナリオ名>
+ *
+ * // ===HARMONY_GENERATED_SECTION_START scenario=<scenarioId>===
+ * // ===HARMONY_GENERATED_SECTION_END===
+ *
+ * (Section 2 の header テンプレートに従う)
+ */
+
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+import { loginAs } from './helpers/auth';
+import { seedTestData, truncateTestData } from './helpers/db';
+
+test.describe('<シナリオ名> E2E', () => {
+  let context: BrowserContext;
+  let page: Page;
+
+  // beforeAll: context 作成 + seedTestData()
+  // afterAll: truncateTestData() + context.close()
+  // beforeEach: loginAs() (auth=required の screen が含まれる場合)
+
+  // step 2〜N の test() ブロック
+  // 最後に「完全シナリオ (通しテスト)」を追加
+});
+```
+
+### P4-5. step anchor 付与規約 (D-1)
+
+各 `test()` 内の各操作に以下のコメントを付与する:
+
+```typescript
+/**
+ * Spec: Scenario <scenarioId> step:<N>
+ *   <操作内容の説明>
+ *
+ * (遷移が screenTransitions 由来の場合):
+ * Spec: Screen <screenId> via screenTransition <transitionId>
+ *
+ * (遷移が path-based fallback の場合):
+ * TODO: screenTransitions 補完待ち
+ * ⚠️ 推測で生成: <from.kind>→<to.kind> 慣習
+ */
+```
+
+### P4-6. auth-flow 生成ルール
+
+`techStack.auth.method` に応じて auth helper を選択する:
+
+```
+auth.method = "jwt":
+  → loginAs(page, { username, password }) — API 経由 (helpers/auth.ts)
+  → PLACEHOLDER: /api/auth/login エンドポイントを確認すること
+
+auth.method = "session":
+  → loginViaUI(page, { username, password }) — UI 経由 (helpers/auth.ts)
+
+auth.method = "none":
+  → auth step は生成しない
+```
+
+`screen.auth` が `"required"` の screen が含まれる場合、beforeEach で loginAs() を呼ぶ。
+
+### P4-7. DOM assertion 生成ルール
+
+screen の `items[]` から DOM assertion を生成する:
+
+```
+items[direction=output]:
+  → await expect(page.getByTestId('<itemId>')).toBeVisible()
+  → valueFrom.kind=flowVariable かつ API が判明している場合:
+     → page.waitForResponse() で API 呼び出しを確認
+
+items[direction=input]:
+  → await page.fill('[data-testid="<itemId>"]', '<testValue>')
+  → await page.selectOption('[data-testid="<itemId>"]', '<option>') (enum の場合)
+
+items[] が空 / items なし:
+  → // PLACEHOLDER: Screen の items が未定義。コンポーネント実装確認後に data-testid を設定すること
+```
+
+### P4-8. SQLite --workers=1 設定 (D-7)
+
+生成する `playwright.config.ts` には必ず以下を設定する:
+
+```typescript
+export default defineConfig({
+  // D-7: SQLite --workers=1 必須
+  fullyParallel: false,
+  workers: 1,
+  // ...
+});
+```
+
+`database.type = "sqlite"` 以外 (Postgres / MySQL) の場合は `fullyParallel: true` でよい。
+
+### P4-9. 出力ファイル
+
+```
+<出力先>/
+  <scenarioName>.e2e.spec.ts   — E2E スペックファイル (本体)
+  playwright.config.ts         — Playwright 設定 (SQLite workers=1)
+  helpers/
+    auth.ts                    — loginAs() / loginViaUI() helper
+    db.ts                      — seedTestData() / truncateTestData() helper
+  README.md                    — PLACEHOLDER 解決表 + 遷移導出フロー + 再 invocation 例
+```
+
+### P4-10. smoke 検証 (playwright headless)
+
+```bash
+# 前提: backend と frontend を手動起動しておくこと
+# (AI は dev server を spawn しない — feedback_no_ai_managed_dev_server.md)
+npx playwright test --config=<出力先>/playwright.config.ts --workers=1 2>&1 | tail -30
+```
+
+実行環境が整っていない場合はスキップし、最終レポートに以下を記載:
+```
+smoke 検証: スキップ (dev server 未起動 / playwright install 未実施)
+推奨コマンド: npx playwright test --config=<出力先>/playwright.config.ts --workers=1
+```
+
+### P4-11. 最終レポート (P4 モード)
+
+```markdown
+## /generate-tests 完了: <シナリオ名> (E2E シナリオ)
+
+### 入力
+- シナリオ: <シナリオ名>
+- 対象 screens: <id1> (<name1>, <path1>) → ... → <idN> (<nameN>, <pathN>)
+- 遷移導出: <1次/2次/3次> (<理由>)
+
+### screen path index
+| screenId | name | path | kind |
+|---|---|---|---|
+| <id1> | <name1> | <path1> | <kind1> |
+
+### 生成ファイル
+- `<出力先>/<scenarioName>.e2e.spec.ts` (N 行, M テスト)
+- `<出力先>/playwright.config.ts` (workers=1)
+- `<出力先>/helpers/auth.ts`
+- `<出力先>/helpers/db.ts`
+- `<出力先>/README.md`
+
+### シナリオステップ一覧
+| step | 画面 | 操作 | spec anchor | 遷移導出 |
+|---|---|---|---|---|
+| 1 | ログイン | loginAs() API 経由 | Scenario <id> step:1 | — |
+| 2 | <name1> | page.goto('<path1>') | Screen <id1> step:2 | 3次 |
+| ...
+
+### smoke 検証
+- playwright 実行: ✓ N/N pass / スキップ (<理由>)
+
+### 申し送り
+- SCENARIO-1: screenTransitions 空 → path-based fallback。#864 close 後に再生成推奨。
+- PLACEHOLDER: <未解決の PLACEHOLDER 一覧>
 ```
