@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/sequence.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/sequence.v3.schema.json",
   "title": "Sequence (v3 シーケンス定義)",
   "description": "DB シーケンス 1 件の定義。data/sequences/<id>.json に対応。@conv.numbering.<key> から参照される。",
   "type": "object",

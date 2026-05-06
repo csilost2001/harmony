@@ -37,7 +37,7 @@
 
 1. 画面ごとに「項目メタ配列」を定義し、`<input type="text">` / `<input type="password">` / `<input type="email">` 等に対応する `name`・`label`・`type`・`required`・`maxLength` 等を宣言。
 2. HTML 組み立て時にそのメタから `name="..." id="..." data-item-id="..."` を注入。`data-item-id` は `randomUUID()` (node の `crypto.randomUUID`) で発番し、メタ側と HTML 側で同じ値を共有 (後工程で画面項目定義 JSON と突き合わせるため)。
-3. 画面項目定義ファイル `docs/sample-project/screen-items/{screenId}.json` を生成するロジックを seed.mjs に追加。スキーマは [designer/src/types/screenItem.ts](designer/src/types/screenItem.ts) の `ScreenItemsFile`。`item.id` に (2) で発番した UUID をセットする。
+3. 画面項目定義ファイル `docs/sample-project/screen-items/{screenId}.json` を生成するロジックを seed.mjs に追加。スキーマは [frontend/src/types/screenItem.ts](frontend/src/types/screenItem.ts) の `ScreenItemsFile`。`item.id` に (2) で発番した UUID をセットする。
 4. `seed.mjs` の最後に `data/screen-items/` へ上記をコピーする処理を追加。
 
 ### サンプル画面の項目リスト (最低限)
@@ -92,7 +92,7 @@ dry-run をデフォルトにしてユーザーが内容確認してから `--ap
 
 ## Part 3 — GrapesJS 部品配置時の name / id 自動入力
 
-**対象ファイル**: [designer/src/grapes/dataItemId.ts](designer/src/grapes/dataItemId.ts) の拡張  
+**対象ファイル**: [frontend/src/grapes/dataItemId.ts](frontend/src/grapes/dataItemId.ts) の拡張  
 **可否**: 可能。既に `component:add` フックが入っているので、同じフック内で name / id も発番するだけ。
 
 ### 変更内容
@@ -132,7 +132,7 @@ export function ensureFormFieldIdentity(cmp: Component): boolean {
 
 ### 既存テスト
 
-[designer/src/utils/screenItemExtractor.test.ts](designer/src/utils/screenItemExtractor.test.ts) の既存テストは name を持たない要素でも label フォールバックを期待しているので、テストケース追加のみで既存を壊さない。
+[frontend/src/utils/screenItemExtractor.test.ts](frontend/src/utils/screenItemExtractor.test.ts) の既存テストは name を持たない要素でも label フォールバックを期待しているので、テストケース追加のみで既存を壊さない。
 
 ### 新規テスト
 
@@ -165,7 +165,7 @@ export function ensureFormFieldIdentity(cmp: Component): boolean {
 
 ### 手動検証
 
-1. `cd designer-mcp && npm run dev` 起動
+1. `cd backend && npm run dev` 起動
 2. `node docs/sample-project/seed.mjs` でサンプル再生成
 3. ブラウザで画面項目定義を開き、画面 0001 を選択 → 「画面デザインから追加」→ 候補に user_id / password が出ることを目視
 4. 処理フロー editor で inputs に `screenItemRef` 選択 → 画面 0001 の項目が選べることを目視
@@ -175,7 +175,7 @@ export function ensureFormFieldIdentity(cmp: Component): boolean {
 
 ## Issue / PR 構成
 
-1 PR に統合 (同じ機能領域、[feedback_pr_granularity.md](C:\Users\csilo\.claude\projects\c--projects-html-designer\memory\feedback_pr_granularity.md) 準拠):
+1 PR に統合 (同じ機能領域、[AGENTS.md「PR を過度に細かく分けない」](../../AGENTS.md#conventions) 準拠):
 
 - branch: `feat/screen-item-sample-and-autofill`
 - title: `feat(screen-items): サンプル整備 + 部品配置時 name/id 自動入力`
@@ -195,7 +195,7 @@ export function ensureFormFieldIdentity(cmp: Component): boolean {
 4. **Part 1** seed.mjs 改修 → `node docs/sample-project/seed.mjs` 実行 → `data/screens/*.json` と `data/screen-items/*.json` を AI が確認
 5. **Part 2** マイグレーションスクリプト作成 → dry-run 確認 → `--apply` 試走
 6. **Part 4** ドキュメント更新
-7. **Part 5** Playwright 追加 → `cd designer && npx playwright test screen-items data-item-id-auto` pass
+7. **Part 5** Playwright 追加 → `cd frontend && npx playwright test screen-items data-item-id-auto` pass
 8. **vite build + lint** pass 確認
 9. **PR 作成** `.github/pull_request_template.md` 全項目埋め、仕様逐条突合を `file:line` で列挙
 10. **AI による独立レビュー → Must-fix 解決 → AI がマージ実行** (UI 影響あり時は AI 自身で chrome-devtools MCP / Playwright smoke test 実施。PR 単位ユーザー確認は不要、`feedback_ai_verifies_during_batch_work.md` 準拠)

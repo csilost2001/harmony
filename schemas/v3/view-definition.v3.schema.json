@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/view-definition.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/view-definition.v3.schema.json",
   "title": "ViewDefinition (v3 画面 一覧 UI viewer)",
   "description": "画面側の一覧 UI viewer 設定 (list / detail / kanban / calendar 等)。DB の SELECT 文を保持する View (view.v3.schema.json) とは axis が異なる。1 viewer = 1 source table、列は画面表示型 (FieldType) で表現。Screen は items[] の `direction: \"viewer\"` screen-item から `viewDefinitionId` で参照される。",
   "type": "object",

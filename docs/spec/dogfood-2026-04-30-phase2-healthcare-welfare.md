@@ -60,7 +60,7 @@ healthcare 実装中、validate:dogfood が `UNKNOWN_TYPE_REF` 7 件 + `UNKNOWN_
 
 **症状**: `@requestId` / `@sessionUserId` を validation step の inlineBranch 等で参照すると `UNKNOWN_IDENTIFIER` 検出。
 
-**原因**: `designer/src/schemas/identifierScope.ts:80` が `group.ambientVariables` (top-level) のみ参照。v3 schema は `context.ambientVariables` 配下にのみ配置するため、validator が空 Set として処理し全参照を未宣言扱いに。
+**原因**: `frontend/src/schemas/identifierScope.ts:80` が `group.ambientVariables` (top-level) のみ参照。v3 schema は `context.ambientVariables` 配下にのみ配置するため、validator が空 Set として処理し全参照を未宣言扱いに。
 
 **Phase 1 まで気付かなかった理由**: v3 既存サンプル `public-service` flow も同じ構造だが、`@sessionUserId` 参照は WorkflowStep の `onApproved` / `onRejected` 配下にあった。**identifierScope の `walkSteps` は WorkflowStep の onApproved / onRejected 配下を recurse しない別のバグ** があり、その盲点で WorkflowStep 内の参照は検査をスキップ → silently pass。healthcare では同じ参照を `validation.inlineBranch.ngBodyExpression` 等の正規チェックパスに置いたため検出された。
 
@@ -72,7 +72,7 @@ healthcare 実装中、validate:dogfood が `UNKNOWN_TYPE_REF` 7 件 + `UNKNOWN_
 
 **症状**: typeRef `healthcare:AppointmentResponse` 等が `UNKNOWN_TYPE_REF` 検出。
 
-**原因**: `designer/scripts/validate-dogfood.ts` の `loadExtensions` が `docs/sample-project/extensions/` (v1 per-file 形式: `field-types.json` / `triggers.json` / `db-operations.json` / `steps.json` / `response-types.json`) のみスキャン。`docs/sample-project-v3/<industry>/extensions/<ns>.v3.json` (single-file 形式) を silent skip し v3 拡張定義の typeRef / stepKind が解決不能。
+**原因**: `frontend/scripts/validate-dogfood.ts` の `loadExtensions` が `docs/sample-project/extensions/` (v1 per-file 形式: `field-types.json` / `triggers.json` / `db-operations.json` / `steps.json` / `response-types.json`) のみスキャン。`docs/sample-project-v3/<industry>/extensions/<ns>.v3.json` (single-file 形式) を silent skip し v3 拡張定義の typeRef / stepKind が解決不能。
 
 **修正**: `samplesV3Dir` 配下を再帰スキャンして `*.v3.json` を読み、`fieldTypes` / `actionTriggers` (= triggers) / `stepKinds` (= steps) / `responseTypes` を namespace prefix 付きで bundle に追加。public-service v3 flow も以前同じ理由で 5 件の UNKNOWN_TYPE_REF を出していたが、本修正で 0 件に。
 

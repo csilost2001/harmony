@@ -144,7 +144,7 @@ Round 1〜4 で実機未検証だった並行 semantics を業務文脈で検証
 | 優先度 | ISSUE | 状態 |
 |---|---|---|
 | **完了** | dogfood Round 1〜5 + F-1〜F-4 + R3-1〜R3-3 fix + variant fixture | ✅ |
-| **次着手** | **TS 型同期** (`designer/src/types/`) | 7 ファイル + zod 検討 |
+| **次着手** | **TS 型同期** (`frontend/src/types/`) | 7 ファイル + zod 検討 |
 | **並行可** | sample 全件 v3 化 (残 retail 0003/0004) | TS と並行 |
 | **並行可** | spec 文書 v3 反映 (`docs/spec/process-flow-*.md` 14 件) | TS と並行 |
 | **TS 後** | validator 切替 | TS 型に依存 |

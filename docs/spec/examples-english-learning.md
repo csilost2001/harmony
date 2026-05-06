@@ -2,7 +2,7 @@
 
 `examples/english-learning/` の業務スコープ・データモデル・画面構成・進め方をまとめた spec。Sonnet サブエージェントへの briefing 兼用。
 
-関連: [#680](https://github.com/csilost2001/html-designer/issues/680) (親メタ) / [#787](https://github.com/csilost2001/html-designer/issues/787) (本サンプルメタ) / `examples/english-learning/README.md` (子 2 で作成予定)
+関連: [#680](https://github.com/csilost2001/harmony/issues/680) (親メタ) / [#787](https://github.com/csilost2001/harmony/issues/787) (本サンプルメタ) / `examples/english-learning/README.md` (子 2 で作成予定)
 
 ## 1. 目的
 
@@ -112,7 +112,7 @@ B2C 英会話学習アプリ (中規模、画面 ~11、テーブル ~10、処理
 
 ### 3.1 ID 規約 (retail と共通)
 
-- top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence) は **`Uuid` 形式 (RFC 4122 v4)**。`crypto.randomUUID()` 由来の値を埋め込む (非 secure context 環境で生成する場合は `designer/src/utils/uuid.ts` の `generateUUID()` を使用)。
+- top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence) は **`Uuid` 形式 (RFC 4122 v4)**。`crypto.randomUUID()` 由来の値を埋め込む (非 secure context 環境で生成する場合は `frontend/src/utils/uuid.ts` の `generateUUID()` を使用)。
 - ネスト LocalId は kebab-case (例: `step-llm-call`, `col-cefr-level`)。
 - 業務識別子 (画面項目 ID / 処理フロー変数名) は lowerCamelCase (例: `sessionId`, `pronunciationScore`)。
 - DB 物理名は snake_case (例: `learning_sessions`, `user_word_progress`)。

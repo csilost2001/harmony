@@ -6,7 +6,7 @@
 | 実施日 | 2026-04-28 |
 | 対象 | PR #534 (#533 R3-1〜R3-3 fix) マージ後の v3.0.2、Round 1〜3 で fixture のみで業務未検証だった WorkflowPattern 4 種 |
 | サンプル所在地 | `docs/sample-project-v3/public-service/` |
-| AJV 検証 | `designer/src/schemas/v3-samples.test.ts` (14) + `v3-variant-coverage.test.ts` (47) = **61 test 全 pass** |
+| AJV 検証 | `frontend/src/schemas/v3-samples.test.ts` (14) + `v3-variant-coverage.test.ts` (47) = **61 test 全 pass** |
 | 担当 | Opus (主、5 段 workflow フロー) + Sonnet (1 件: 申請ステータス通知) |
 
 ---
@@ -138,7 +138,7 @@ memory `project_schema_v3_2026_04_27.md` の品質評価ゲート規定 (2026-04
 | 優先度 | ISSUE | 状態 |
 |---|---|---|
 | **完了** | dogfood Round 1〜4 + F-1〜F-4 fix + R3-1〜R3-3 fix + variant fixture | ✅ |
-| **次着手** | **TS 型同期** (`designer/src/types/`) | 7 ファイル + zod 検討 |
+| **次着手** | **TS 型同期** (`frontend/src/types/`) | 7 ファイル + zod 検討 |
 | **並行可** | sample 全件 v3 化 (残 retail 0003/0004 = 2 件) | TS 同期と並行 |
 | **並行可** | spec 文書 v3 反映 (`docs/spec/process-flow-*.md` 14 件) | TS 同期と並行 |
 | **TS 後** | validator 切替 (referentialIntegrity / sqlColumnValidator / loadExtensions / conventionsValidator) | TS 型に依存 |

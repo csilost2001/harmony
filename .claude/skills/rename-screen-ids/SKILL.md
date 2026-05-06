@@ -18,7 +18,7 @@ disable-model-invocation: true
     5. 結果を報告
 
   前提:
-    - designer-mcp が起動していること (ws://localhost:5179)
+    - backend が起動していること (ws://localhost:5179)
     - 対象画面の screen-items ファイルが存在すること (data/screen-items/<screenId>.json)
     - 未命名項目がない場合は何もしない
 

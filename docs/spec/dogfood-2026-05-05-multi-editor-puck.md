@@ -126,7 +126,7 @@ Puck Data (`puck-data.json`) は `"align": "right"` という semantic 値を保
 
 ## E2E spec 構造確認
 
-`designer/e2e/puck-editor.spec.ts` の 7 テストシナリオの構造的整合性を確認した。
+`frontend/e2e/puck-editor.spec.ts` の 7 テストシナリオの構造的整合性を確認した。
 
 | シナリオ | 目的 | 検証方式 |
 |---------|------|---------|
@@ -170,7 +170,7 @@ Puck Data (`puck-data.json`) は `"align": "right"` という semantic 値を保
 ## 既知 issue / 改善候補
 
 1. ~~**Puck canvas のセレクタが確定していない**: puck-editor.spec.ts では `.Puck` / `[class*='Puck']` 等の柔軟なセレクタを使用しているが、Puck の実装によりクラス名が変わる可能性がある。`data-testid` 属性を追加すると E2E がより安定する~~ → **[x] 解消済み (本 PR)**: 全 20 Puck primitive の outermost 要素に `data-testid="puck-primitive-<name>"` を追加 (例: `puck-primitive-button`, `puck-primitive-card` など)
-2. **DnD のテストが欠落**: 仕様書には「左パレットからドロップ」が要件として記載されているが、Puck 内部の DnD ライブラリのセレクタが特殊なため E2E では省略した。手動 smoke test で補完が必要 → **[~] 部分対応 (#814)**: pointer event simulation による `dragPrimitiveTo` helper を `designer/e2e/helpers/puck.ts` に実装。`puck-dnd.spec.ts` で Heading / Button の DnD test を追加したが、@dnd-kit の pointer event activation が Playwright の simulated pointer events で安定して発火しないため `test.skip` フォールバック付き。本格的な DnD 自動化は別 ISSUE 候補
+2. **DnD のテストが欠落**: 仕様書には「左パレットからドロップ」が要件として記載されているが、Puck 内部の DnD ライブラリのセレクタが特殊なため E2E では省略した。手動 smoke test で補完が必要 → **[~] 部分対応 (#814)**: pointer event simulation による `dragPrimitiveTo` helper を `frontend/e2e/helpers/puck.ts` に実装。`puck-dnd.spec.ts` で Heading / Button の DnD test を追加したが、@dnd-kit の pointer event activation が Playwright の simulated pointer events で安定して発火しないため `test.skip` フォールバック付き。本格的な DnD 自動化は別 ISSUE 候補
 3. **右プロパティパネルの直接操作テスト欠落**: `align: "right"` を右プロパティパネルで選んだ際の即時反映は、Puck 内部の props 変更 → re-render フローを Playwright で追うのが難しい → **[~] helper のみ対応 (#814)**: `setPuckFieldText` / `setPuckFieldSelect` helper を実装し `puck-property-panel.spec.ts` を追加したが、MCP オフライン環境では `PuckBackend.load()` が `EMPTY_PUCK_DATA` を返す制約 (§ A-S-2) のため、配置済 primitive を選択するシナリオが成立せず `test.skip` フォールバックになる。MCP 起動環境での実機検証が必要
 4. **visual regression baseline (#814)**: `puck-visual-regression.spec.ts` で Bootstrap / Tailwind 両 framework の chrome (sub-toolbar / 左パレット / 右プロパティパネル + Page root field / theme CSS) を `toHaveScreenshot()` で比較。MCP オフライン制約により canvas は EMPTY だが chrome regression 検出には十分有効。Windows / Chromium / 1280x720 baseline を commit 済
 

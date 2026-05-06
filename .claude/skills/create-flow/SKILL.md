@@ -500,7 +500,7 @@ SELECT 'ORD-' || EXTRACT(YEAR FROM CURRENT_DATE)::text || '-' || LPAD(nextval('s
 ### 5.1 構造検証
 
 ```bash
-cd designer
+cd frontend
 npx vitest run src/schemas/v3-samples.test.ts src/schemas/loadExtensions.test.ts
 npm run build
 ```
@@ -512,7 +512,7 @@ npm run build
 - `examples/<projectId>/` 配置 → `npm run validate:samples -- ../examples/<projectId>` (`runtimeContractValidator` / `processFlowAntipatternValidator` も実行)
 
 ```bash
-cd designer
+cd frontend
 npm run validate:samples -- ../examples/<projectId>
 ```
 
@@ -547,7 +547,7 @@ npm run validate:samples -- ../examples/<projectId>
 `validate:samples` は対象プロジェクト全件対象のため、作成中フロー 1 件のみを検証したい場合:
 
 ```bash
-cd designer
+cd frontend
 npx vitest run src/schemas/validateDogfood.test.ts -t "<flowId の一部>"
 ```
 

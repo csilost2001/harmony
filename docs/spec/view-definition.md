@@ -20,8 +20,8 @@
 ### 一次成果物
 
 - JSON Schema: [`schemas/v3/view-definition.v3.schema.json`](../../schemas/v3/view-definition.v3.schema.json) ([README](../../schemas/README.md))
-- TypeScript 型: [`designer/src/types/v3/view-definition.ts`](../../designer/src/types/v3/view-definition.ts)
-- validator: [`designer/src/schemas/viewDefinitionValidator.ts`](../../designer/src/schemas/viewDefinitionValidator.ts)
+- TypeScript 型: [`frontend/src/types/v3/view-definition.ts`](../../frontend/src/types/v3/view-definition.ts)
+- validator: [`frontend/src/schemas/viewDefinitionValidator.ts`](../../frontend/src/schemas/viewDefinitionValidator.ts)
 
 ## データモデル
 
@@ -353,7 +353,7 @@ ProcessFlow の `dbAccess.sql` で SELECT した列が ViewDefinition の `colum
 | `FILTER_OPERATOR_TYPE_MISMATCH` | warning | `filterDefaults.operator` が列 type と不整合 (text に between、数値に contains 等) |
 | `UNKNOWN_GROUP_BY_COLUMN` | error | `groupBy` が `ViewDefinition.columns` に存在しない列を参照 |
 
-テスト 24 ケース ([`viewDefinitionValidator.test.ts`](../../designer/src/schemas/viewDefinitionValidator.test.ts))。
+テスト 24 ケース ([`viewDefinitionValidator.test.ts`](../../frontend/src/schemas/viewDefinitionValidator.test.ts))。
 
 ## maturity / draft-state policy との関係
 

@@ -1,0 +1,31 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "description": "Harnize Harmony backend — MCP server + WebSocket bridge + ファイル永続化",
+  "type": "module",
+  "bin": {
+    "harmony-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "adm-zip": "^0.5.17",
+    "ajv": "^8.20.0",
+    "htmlparser2": "^12.0.0",
+    "ws": "^8.20.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.12",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.4"
+  }
+}

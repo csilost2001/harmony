@@ -7,17 +7,17 @@
 ### ブラウザで処理フローが見えない (一覧が空)
 
 - active workspace の `project.json` に `processFlows[]` があるか確認 (workspace 配置は #753 で `data/` から `workspaces/<id>/` または任意フォルダに変更)
-- designer-mcp (ws://localhost:5179) が起動しているか: `netstat -ano | grep :5179`
+- backend (ws://localhost:5179) が起動しているか: `netstat -ano | grep :5179`
 - ブラウザ DevTools Console で `[mcpBridge] connected` ログがあるか
 - localStorage が古い可能性: Application タブから `flow-project` を削除して reload
 
 ### dev server が起動しない
 
 - ポート 5173 が占有されていないか (`netstat -ano | grep :5173`)
-- `cd designer && npm install` で依存解決済みか
+- `cd frontend && npm install` で依存解決済みか
 - `vite.config.ts` で `strictPort: true` にしているので、5173 が使えないと起動失敗
 
-### designer-mcp が多重起動
+### backend が多重起動
 
 `.mcp.json` に登録済みのため、Claude Code 起動ごとに新インスタンスが spawn される可能性あり。`wsBridge.start()` で古いプロセスの終了を待つロジックがあるが、うまくいかなければ手動 kill:
 
@@ -37,9 +37,9 @@ taskkill /F /PID <PID>     # Windows
 
 ### /designer-work 実行で「designer__list_markers is not a function」
 
-- designer-mcp が Claude Code のセッションから見えていない
+- backend が Claude Code のセッションから見えていない
 - `.mcp.json` が正しく読まれているか (プロジェクトルートで `claude` を起動したか)
-- designer-mcp のビルドエラーがないか: `cd designer-mcp && npm run build`
+- backend のビルドエラーがないか: `cd backend && npm run build`
 
 ### marker の編集対象 step を間違えて指定した
 
@@ -74,7 +74,7 @@ taskkill /F /PID <PID>     # Windows
 
 - 設計上 `data/` はデザイナー本体組み込み拡張定義 (`data/extensions/`) 専用、ユーザープロジェクトは `workspaces/<id>/` または任意フォルダに配置 (#753)。正本サンプルは `examples/<project-id>/` (git tracked)
 - 実データは wsBridge 経由で active workspace 配下に保存されるため、active workspace ディレクトリ全体をコピーすればバックアップ
-- designer-mcp を停止してから workspace ディレクトリをコピー推奨
+- backend を停止してから workspace ディレクトリをコピー推奨
 
 ### project.json と処理フローファイルが整合しない
 

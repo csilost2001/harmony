@@ -6,7 +6,7 @@
 | 実施日 | 2026-04-28 |
 | 対象 | PR #526 (#525) で F-1/F-2/F-4 fix 後の `schemas/v3/`、Round 1 (retail) + Round 2 (finance) で未使用要素の検証 |
 | サンプル所在地 | `docs/sample-project-v3/manufacturing/` |
-| AJV 検証 | `designer/src/schemas/v3-samples.test.ts` (14 tests, 全 pass) |
+| AJV 検証 | `frontend/src/schemas/v3-samples.test.ts` (14 tests, 全 pass) |
 | 担当 | Opus (主) + Sonnet (1 件: 月次棚卸締め) |
 | 前提 | Round 2 後「90-95% 完成度」と評価したが PR #528 レビューで「85-90% 妥当」に下方修正済 |
 
@@ -147,7 +147,7 @@ R3-1〜R3-3 fix で 90-95%、Round 4 (manufacturing 以外の異質業界) で 0
 | **完了** | dogfood Round 2 (finance) | #527 PR #528 |
 | **完了** | dogfood Round 3 (manufacturing) | **本 PR** |
 | **次 (新規 ISSUE 起票)** | **R3-1/R3-2/R3-3 fix** (schema 修正、governance §7 設計者承認) | TS 同期前の必須前提 |
-| **その後** | TS 型同期 (`designer/src/types/`) | R3 fix 後 |
+| **その後** | TS 型同期 (`frontend/src/types/`) | R3 fix 後 |
 | **オプション** | dogfood Round 4 (healthcare 等) | R3 fix 後 + TS 同期着手判断 |
 | **中** | sample 全件 v3 化 (残 retail 0003/0004) | TS 同期と並行可 |
 | **中** | validator 切替 (referentialIntegrity / sqlColumnValidator / loadExtensions / conventionsValidator) | TS 同期後 |

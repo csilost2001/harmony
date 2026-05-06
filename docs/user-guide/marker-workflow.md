@@ -96,14 +96,14 @@ Claude Code は内部で以下を順次実行:
 
 ### `.mcp.json` を確認
 
-本プロジェクトには `.mcp.json` に `designer-mcp` が登録済み。Claude Code を本ディレクトリで起動すると自動 spawn される。
+本プロジェクトには `.mcp.json` に `backend` が登録済み。Claude Code を本ディレクトリで起動すると自動 spawn される。
 
 ```json
 {
   "mcpServers": {
-    "designer-mcp": {
+    "backend": {
       "command": "npx",
-      "args": ["tsx", "designer-mcp/src/index.ts"]
+      "args": ["tsx", "backend/src/index.ts"]
     }
   }
 }
@@ -111,16 +111,16 @@ Claude Code は内部で以下を順次実行:
 
 ### ポート 5179 の扱い (#302 以降)
 
-designer-mcp は HTTP + WebSocket を port 5179 で listen する常駐サーバ。以下の方法で起動:
+backend は HTTP + WebSocket を port 5179 で listen する常駐サーバ。以下の方法で起動:
 
 ```bash
-cd designer-mcp
+cd backend
 npm run dev    # 端末を 1 つ占有して常駐、Ctrl+C で終了
 ```
 
 同 port に HTTP MCP endpoint (`/mcp`) とブラウザ向け WebSocket を同居。`.mcp.json` の URL エントリ経由で Claude Code が接続、複数 Claude Code セッション同時接続 OK。
 
-旧仕様 (#302 以前): `.mcp.json` の command エントリで `npx tsx designer-mcp/src/index.ts` を自動 spawn していた → port 競合・orphan 発生で廃止。
+旧仕様 (#302 以前): `.mcp.json` の command エントリで `npx tsx backend/src/index.ts` を自動 spawn していた → port 競合・orphan 発生で廃止。
 
 古い orphan プロセスが残っていた場合は kill:
 
@@ -132,18 +132,18 @@ taskkill //F //PID <PID>   # Windows (Git Bash は //F の escape 必要)
 
 ## トラブル例
 
-### 「designer-mcp に接続できない / MCP FAIL」
+### 「backend に接続できない / MCP FAIL」
 
-- `cd designer-mcp && npm run dev` で **常駐サーバを起動済みか** 確認 (#302 以降は自動 spawn しない)
+- `cd backend && npm run dev` で **常駐サーバを起動済みか** 確認 (#302 以降は自動 spawn しない)
 - `netstat -ano | grep :5179` で LISTENING プロセスが存在するか
 - `curl http://localhost:5179/` で `{"status":"ok",...}` が返るか
-- `.mcp.json` の designer-mcp エントリが URL 形式 (`"type": "http"`, `"url": "http://localhost:5179/mcp"`) か
-- `designer-mcp` の依存がインストール済みか (`cd designer-mcp && npm install`)
+- `.mcp.json` の backend エントリが URL 形式 (`"type": "http"`, `"url": "http://localhost:5179/mcp"`) か
+- `backend` の依存がインストール済みか (`cd backend && npm install`)
 
 ### 「marker 起票したのにブラウザに反映されない」
 
 - ブラウザが wsBridge に接続できているか (DevTools Console で `mcpBridge` のログ確認)
-- designer-mcp が古いプロセスのままで、新しい Claude Code 窓の tool 呼出を聞いていない可能性 → designer-mcp 再起動
+- backend が古いプロセスのままで、新しい Claude Code 窓の tool 呼出を聞いていない可能性 → backend 再起動
 
 ### 「/designer-work が committed ステップを一切触らない」
 

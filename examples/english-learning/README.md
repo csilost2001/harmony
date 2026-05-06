@@ -66,9 +66,9 @@ examples/english-learning/
 New-Item -ItemType Directory -Force -Path workspaces\english-learning
 Copy-Item -Recurse -Force examples\english-learning\* workspaces\english-learning\
 
-# designer-mcp / designer を起動
-cd designer-mcp && npm run dev   # 別ターミナル
-cd designer && npm run dev
+# backend / designer を起動
+cd backend && npm run dev   # 別ターミナル
+cd frontend && npm run dev
 ```
 
 `workspaces/` は gitignored なので自由に編集できます。
@@ -82,14 +82,14 @@ designer UI のヘッダー「ワークスペース」 → 「フォルダを追
 ## テスト fixture としての利用
 
 ```bash
-# 固定 workspace で designer-mcp 起動 (lockdown モード)
+# 固定 workspace で backend 起動 (lockdown モード)
 DESIGNER_DATA_DIR=examples/english-learning npm run dev:mcp
 ```
 
 ## 検証 (AJV)
 
 ```bash
-cd designer && npm run validate:samples -- ../examples/english-learning
+cd frontend && npm run validate:samples -- ../examples/english-learning
 ```
 
 `examples/**/*.json` は schema 検証 test に組み込まれる。schema 進化時に english-learning サンプルが breakage したら CI で検出。

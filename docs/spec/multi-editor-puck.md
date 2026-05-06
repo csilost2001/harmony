@@ -211,7 +211,7 @@ Puck 右プロパティパネルで GUI 操作可能な、リアルタイム WYS
 
 ## 3. EditorBackend インターフェース
 
-`designer/src/editor/EditorBackend.ts` (新設):
+`frontend/src/editor/EditorBackend.ts` (新設):
 
 ```ts
 export interface EditorBackend {
@@ -302,7 +302,7 @@ export interface EditorBackend {
 ### 5.1 配置
 
 ```
-designer/src/puck/layoutPropsMapping/
+frontend/src/puck/layoutPropsMapping/
   index.ts            # 共通型・解決関数 (cssFramework に応じて適切なマッパーを選ぶ)
   tailwind.ts         # Tailwind utility マップ
   bootstrap.ts        # Bootstrap 5 utility マップ
@@ -356,7 +356,7 @@ editor / cssFramework ともに **画面作成時に決定、以降変更不可*
 
 ## 8. Puck 用 validation (draft-state policy 準拠)
 
-`designer/src/utils/puckScreenValidation.ts` (新設):
+`frontend/src/utils/puckScreenValidation.ts` (新設):
 
 | severity | ルール |
 |---|---|
@@ -395,15 +395,15 @@ editor / cssFramework ともに **画面作成時に決定、以降変更不可*
 - [x] `docs/spec/css-framework-switching.md` を画面単位化に改訂 (本 PR 子 1)
 - [x] `Designer.tsx` が `screen.design.cssFramework` (fallback project default) を読み取り、対応 theme CSS を canvas iframe に注入 (子 2)
 - [x] `EditorBackend` interface 新設 + `GrapesJSBackend` / `PuckBackend` 2 実装 (子 3)
-- [x] `designer/package.json` に `@measured/puck` 依存追加 (子 3)
-- [x] `designer/src/puck/layoutPropsMapping/{tailwind,bootstrap}.ts` + `__tests__` (子 4)
+- [x] `frontend/package.json` に `@measured/puck` 依存追加 (子 3)
+- [x] `frontend/src/puck/layoutPropsMapping/{tailwind,bootstrap}.ts` + `__tests__` (子 4)
 - [x] Puck primitive 15-20 個実装、各々が共通レイアウト props を組み込み (子 4)
 - [x] 動的コンポーネント登録ダイアログ + `puckComponentsStore` (workspace スコープ) (子 5)
 - [x] AI Skill / `/create-flow` / `/review-flow` / `/issues` 等の docs 更新 (子 6)
 - [x] E2E (Playwright): Puck 画面新規作成 → 配置 → リアルタイム反映 → 保存 → reload で復元 (子 6)
 - [x] dogfood 2 sample (`workspaces/dogfood-puck-tailwind-2026-05-05/` + `workspaces/dogfood-puck-bootstrap-2026-05-05/`) で各々 1 画面作成。WYSIWYG 実機視覚検証は dev server 起動環境で別途実施 (fact-check + E2E 構造確認で代替、dogfood レポート参照) (子 6)
 - [x] dogfood report (`docs/spec/dogfood-2026-05-05-multi-editor-puck.md`) 作成 (子 6)
-- [~] E2E test 強化 (#814): helper + spec 一式と visual regression baseline (chrome) を実装 (designer/e2e/helpers/puck.ts + puck-dnd.spec.ts + puck-property-panel.spec.ts + puck-visual-regression.spec.ts)。DnD は @dnd-kit pointer event 制約 / 右プロパティパネルは MCP オフライン制約 (§ A-S-2) のため `test.skip` フォールバック付き。配置済 content の真の WYSIWYG 検証は MCP backend 起動環境での後続改善が必要
+- [~] E2E test 強化 (#814): helper + spec 一式と visual regression baseline (chrome) を実装 (frontend/e2e/helpers/puck.ts + puck-dnd.spec.ts + puck-property-panel.spec.ts + puck-visual-regression.spec.ts)。DnD は @dnd-kit pointer event 制約 / 右プロパティパネルは MCP オフライン制約 (§ A-S-2) のため `test.skip` フォールバック付き。配置済 content の真の WYSIWYG 検証は MCP backend 起動環境での後続改善が必要
 
 ---
 

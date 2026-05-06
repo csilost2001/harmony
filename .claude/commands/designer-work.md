@@ -18,7 +18,7 @@ argument-hint: <processFlowId> [--dry-run]
     - API 課金なし (Claude Code Max プラン内で完結)
 
   前提:
-    - designer-mcp サーバが起動していること (HTTP で Claude Code に接続済み、`curl http://localhost:5179/` で health 確認可能)
+    - backend サーバが起動していること (HTTP で Claude Code に接続済み、`curl http://localhost:5179/` で health 確認可能)
     - 対象 ProcessFlow の ID を把握していること (URL の /process-flow/edit/{id})
 -->
 
@@ -102,6 +102,6 @@ catalog エントリ追加や step 編集で以下を参照する場合、対象
 
 ## 想定外のケース
 
-- **MCP サーバ未接続** (designer-mcp が起動していない): 人間に designer-mcp 起動を促す
+- **MCP サーバ未接続** (backend が起動していない): 人間に backend 起動を促す
 - **processFlowId が見つからない**: list_process_flows で候補を提示
 - **marker 0 件**: "現在未解決のマーカーはありません" と報告して終了

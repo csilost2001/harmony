@@ -1,6 +1,6 @@
 # 一覧画面の共通仕様
 
-Issue: [#133](https://github.com/csilost2001/html-designer/issues/133)
+Issue: [#133](https://github.com/csilost2001/harmony/issues/133)
 策定日: 2026-04-19
 
 本ドキュメントは、一覧系画面の**操作・見た目・内部 API**の詳細仕様を定める。

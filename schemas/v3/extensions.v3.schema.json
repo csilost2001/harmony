@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/extensions.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/extensions.v3.schema.json",
   "title": "Extensions (v3 統合拡張定義)",
   "description": "業界・業態別 (retail / finance / manufacturing 等) の全種類の拡張を 1 namespace = 1 ファイルで定義する。data/extensions/<namespace>.v3.json に対応。core schema は本拡張を loader で動的にマージして合成 schema を作る。",
   "allOf": [

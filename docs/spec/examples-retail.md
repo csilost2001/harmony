@@ -2,7 +2,7 @@
 
 `examples/retail/` の業務スコープ・データモデル・画面構成・進め方をまとめた spec。Sonnet サブエージェントへの briefing 兼用。
 
-関連: [#680](https://github.com/csilost2001/html-designer/issues/680) (親メタ) / [#706](https://github.com/csilost2001/html-designer/issues/706) (本作業) / `examples/retail/README.md`
+関連: [#680](https://github.com/csilost2001/harmony/issues/680) (親メタ) / [#706](https://github.com/csilost2001/harmony/issues/706) (本作業) / `examples/retail/README.md`
 
 ## 1. 目的
 

@@ -65,9 +65,9 @@ C:\Workspaces\HTMLデザイン\data\
 └── custom-blocks.json      # カスタムブロック定義
 ```
 
-- ワークスペースルートに配置（designer/ と designer-mcp/ の両方からアクセス可能）
+- ワークスペースルートに配置（frontend/ と backend/ の両方からアクセス可能）
 - `.gitignore` 対象とするかはユーザーの判断
-- パスは環境変数 `DESIGNER_DATA_DIR` で上書き可能（デフォルト: `../data` from designer-mcp）
+- パスは環境変数 `DESIGNER_DATA_DIR` で上書き可能（デフォルト: `../data` from backend）
 
 ---
 
@@ -127,7 +127,7 @@ Browser → wsBridge → MCP Server:  { id, result?, error? }    (Response)
 
 ## ファイル変更一覧
 
-### designer-mcp/ (MCP サーバー側)
+### backend/ (MCP サーバー側)
 
 | ファイル | 変更内容 |
 |---------|---------|
@@ -136,7 +136,7 @@ Browser → wsBridge → MCP Server:  { id, result?, error? }    (Response)
 | `src/index.ts` | `getFlow`/`listScreens`/`listCustomBlocks` をファイル直読みに変更（ブラウザ不要に）。その他のMCPコマンドはブラウザ経由のまま |
 | `src/tools.ts` | 変更なし（ツール定義はそのまま） |
 
-### designer/ (ブラウザ側)
+### frontend/ (ブラウザ側)
 
 | ファイル | 変更内容 |
 |---------|---------|
@@ -157,7 +157,7 @@ Browser → wsBridge → MCP Server:  { id, result?, error? }    (Response)
 ## GrapesJS カスタムストレージ
 
 ```typescript
-// designer/src/grapes/remoteStorage.ts
+// frontend/src/grapes/remoteStorage.ts
 
 export function registerRemoteStorage(editor: GEditor, screenId: string) {
   editor.StorageManager.add('remote', {
