@@ -17,12 +17,16 @@ import {
   forceRelease as lockForceRelease,
   getLock,
   listLocks,
+  subscribeAsViewer as lockSubscribeAsViewer,
+  unsubscribeViewer as lockUnsubscribeViewer,
+  listViewers as lockListViewers,
   LockConflictError,
   LockNotHeldError,
 } from "./lockManager.js";
 import {
   registerEditor as presenceRegisterEditor,
   registerViewer as presenceRegisterViewer,
+  unregister as presenceUnregister,
   heartbeat as presenceHeartbeat,
   list as presenceList,
 } from "./presenceManager.js";
@@ -1050,7 +1054,8 @@ class WsBridge extends EventEmitter {
           try {
             const entry = lockAcquire(lrt, lrid, clientId);
             respond({ entry });
-            this.broadcast({ wsId: wsId(), event: "lock.changed", data: { resourceType: lrt, resourceId: lrid, op: "acquired", ownerSessionId: entry.ownerSessionId, by: clientId } });
+            const viewerCount = lockListViewers(lrt, lrid).length;
+            this.broadcast({ wsId: wsId(), event: "lock.changed", data: { resourceType: lrt, resourceId: lrid, op: "acquired", ownerSessionId: entry.ownerSessionId, by: clientId, viewerCount } });
           } catch (e) {
             if (e instanceof LockConflictError) {
               respondError(e.message);
@@ -1065,7 +1070,8 @@ class WsBridge extends EventEmitter {
           try {
             const result = lockRelease(lrt, lrid, clientId);
             respond(result);
-            this.broadcast({ wsId: wsId(), event: "lock.changed", data: { resourceType: lrt, resourceId: lrid, op: "released", ownerSessionId: clientId, by: clientId } });
+            const viewerCount = lockListViewers(lrt, lrid).length;
+            this.broadcast({ wsId: wsId(), event: "lock.changed", data: { resourceType: lrt, resourceId: lrid, op: "released", ownerSessionId: clientId, by: clientId, viewerCount } });
           } catch (e) {
             if (e instanceof LockNotHeldError) {
               respondError(e.message);
@@ -1079,7 +1085,8 @@ class WsBridge extends EventEmitter {
           const { resourceType: lrt, resourceId: lrid } = (params ?? {}) as { resourceType: DraftResourceType; resourceId: string };
           const fr = lockForceRelease(lrt, lrid, clientId);
           respond(fr);
-          this.broadcast({ wsId: wsId(), event: "lock.changed", data: { resourceType: lrt, resourceId: lrid, op: "force-released", ownerSessionId: fr.previousOwner, by: clientId, previousOwner: fr.previousOwner } });
+          const viewerCount = lockListViewers(lrt, lrid).length;
+          this.broadcast({ wsId: wsId(), event: "lock.changed", data: { resourceType: lrt, resourceId: lrid, op: "force-released", ownerSessionId: fr.previousOwner, by: clientId, previousOwner: fr.previousOwner, viewerCount } });
           break;
         }
         case "lock.get": {
@@ -1091,6 +1098,44 @@ class WsBridge extends EventEmitter {
         case "lock.list": {
           const locks = listLocks();
           respond({ locks });
+          break;
+        }
+        case "lock.subscribeAsViewer": {
+          const { resourceType: svrt, resourceId: svrid } = (params ?? {}) as { resourceType: DraftResourceType; resourceId: string };
+          const svWsId = wsId();
+          if (!svWsId) {
+            respondError("ワークスペースが選択されていません");
+            break;
+          }
+          const viewerEntry = lockSubscribeAsViewer(clientId, svrt, svrid);
+          presenceRegisterViewer(svWsId, clientId, svrt, svrid);
+          respond({ entry: viewerEntry });
+          const viewerCount = lockListViewers(svrt, svrid).length;
+          this.broadcast({ wsId: svWsId, event: "lock.changed", data: { resourceType: svrt, resourceId: svrid, op: "viewer-joined", by: clientId, viewerCount } });
+          const presenceEntries = presenceList(svWsId, svrt, svrid);
+          this.broadcast({ wsId: svWsId, event: "presence:update", data: { resourceType: svrt, resourceId: svrid, entries: presenceEntries } });
+          break;
+        }
+        case "lock.unsubscribeViewer": {
+          const { resourceType: uvrt, resourceId: uvrid } = (params ?? {}) as { resourceType: DraftResourceType; resourceId: string };
+          const uvWsId = wsId();
+          lockUnsubscribeViewer(clientId, uvrt, uvrid);
+          if (uvWsId) {
+            presenceUnregister(uvWsId, clientId, uvrt, uvrid);
+          }
+          respond({ unsubscribed: true });
+          const viewerCount = lockListViewers(uvrt, uvrid).length;
+          this.broadcast({ wsId: uvWsId, event: "lock.changed", data: { resourceType: uvrt, resourceId: uvrid, op: "viewer-left", by: clientId, viewerCount } });
+          if (uvWsId) {
+            const presenceEntries = presenceList(uvWsId, uvrt, uvrid);
+            this.broadcast({ wsId: uvWsId, event: "presence:update", data: { resourceType: uvrt, resourceId: uvrid, entries: presenceEntries } });
+          }
+          break;
+        }
+        case "lock.listViewers": {
+          const { resourceType: lvrt, resourceId: lvrid } = (params ?? {}) as { resourceType: DraftResourceType; resourceId: string };
+          const viewerList = lockListViewers(lvrt, lvrid);
+          respond({ viewers: viewerList });
           break;
         }
 

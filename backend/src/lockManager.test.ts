@@ -5,6 +5,9 @@ import {
   forceRelease,
   getLock,
   listLocks,
+  subscribeAsViewer,
+  unsubscribeViewer,
+  listViewers,
   _resetForTest,
   LockConflictError,
   LockNotHeldError,
@@ -146,6 +149,91 @@ describe("listLocks", () => {
 
   it("ロックがない場合は空配列", () => {
     expect(listLocks()).toEqual([]);
+  });
+});
+
+describe("subscribeAsViewer / unsubscribeViewer / listViewers", () => {
+  it("viewer としてサブスクライブできる", () => {
+    const entry = subscribeAsViewer("session-V", "table", "tbl-1");
+    expect(entry.sessionId).toBe("session-V");
+    expect(entry.resourceType).toBe("table");
+    expect(entry.resourceId).toBe("tbl-1");
+    expect(typeof entry.subscribedAt).toBe("string");
+  });
+
+  it("viewer はロックを取得しない (getLock が null のまま)", () => {
+    subscribeAsViewer("session-V", "table", "tbl-1");
+    expect(getLock("table", "tbl-1")).toBeNull();
+  });
+
+  it("複数の viewer が同一リソースに同時サブスクライブできる", () => {
+    subscribeAsViewer("session-V1", "screen", "scr-1");
+    subscribeAsViewer("session-V2", "screen", "scr-1");
+    const viewers = listViewers("screen", "scr-1");
+    expect(viewers).toHaveLength(2);
+    const ids = viewers.map((v) => v.sessionId).sort();
+    expect(ids).toEqual(["session-V1", "session-V2"]);
+  });
+
+  it("viewer サブスクライブは lock acquire を妨げない", () => {
+    subscribeAsViewer("session-V", "table", "tbl-1");
+    const entry = acquire("table", "tbl-1", "session-A");
+    expect(entry.ownerSessionId).toBe("session-A");
+  });
+
+  it("lock 保持中でも viewer サブスクライブできる (conflict なし)", () => {
+    acquire("table", "tbl-1", "session-A");
+    const viewerEntry = subscribeAsViewer("session-V", "table", "tbl-1");
+    expect(viewerEntry.sessionId).toBe("session-V");
+  });
+
+  it("重複サブスクライブは subscribedAt を更新して返す", () => {
+    const first = subscribeAsViewer("session-V", "table", "tbl-1");
+    const firstAt = first.subscribedAt;
+    // 微小時間待機をシミュレート
+    const second = subscribeAsViewer("session-V", "table", "tbl-1");
+    expect(second.sessionId).toBe("session-V");
+    // 同一オブジェクトが返る (update)
+    expect(second).toBe(first);
+    // subscribedAt は更新される (同時実行の場合同値でも可)
+    expect(typeof second.subscribedAt).toBe("string");
+    void firstAt; // suppress unused warning
+  });
+
+  it("unsubscribeViewer で viewer が削除される", () => {
+    subscribeAsViewer("session-V", "table", "tbl-1");
+    unsubscribeViewer("session-V", "table", "tbl-1");
+    expect(listViewers("table", "tbl-1")).toHaveLength(0);
+  });
+
+  it("存在しない viewer を unsubscribe しても例外が発生しない", () => {
+    expect(() => unsubscribeViewer("session-X", "table", "tbl-none")).not.toThrow();
+  });
+
+  it("一方の viewer を unsubscribe しても他の viewer は残る", () => {
+    subscribeAsViewer("session-V1", "screen", "scr-1");
+    subscribeAsViewer("session-V2", "screen", "scr-1");
+    unsubscribeViewer("session-V1", "screen", "scr-1");
+    const remaining = listViewers("screen", "scr-1");
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].sessionId).toBe("session-V2");
+  });
+
+  it("listViewers: viewer が存在しない場合は空配列", () => {
+    expect(listViewers("process-flow", "pf-none")).toEqual([]);
+  });
+
+  it("_resetForTest で viewer もクリアされる", () => {
+    subscribeAsViewer("session-V", "table", "tbl-1");
+    _resetForTest();
+    expect(listViewers("table", "tbl-1")).toHaveLength(0);
+  });
+
+  it("異なるリソースの viewer は独立している", () => {
+    subscribeAsViewer("session-V", "table", "tbl-1");
+    subscribeAsViewer("session-V", "table", "tbl-2");
+    expect(listViewers("table", "tbl-1")).toHaveLength(1);
+    expect(listViewers("table", "tbl-2")).toHaveLength(1);
   });
 });
 

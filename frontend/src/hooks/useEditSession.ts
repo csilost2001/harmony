@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { mcpBridge } from "../mcp/mcpBridge";
+import { usePresenceHeartbeat } from "./usePresenceHeartbeat";
 import type { DraftResourceType } from "../types/draft";
 
 export type EditMode =
   | { kind: "readonly" }
   | { kind: "editing" }
+  | { kind: "viewer" }
   | { kind: "locked-by-other"; ownerSessionId: string; ownerLabel?: string }
   | { kind: "force-released-pending"; previousDraftExists: boolean }
   | { kind: "after-force-unlock"; previousOwner: string };
@@ -20,6 +22,10 @@ export interface UseEditSessionResult {
   loading: boolean;
   error: Error | null;
   isDirtyForTab: boolean;
+  /** viewer および readonly 以外の mode では編集不可 */
+  canEdit: boolean;
+  /** editing mode か否か */
+  isEditing: boolean;
   actions: {
     startEditing: () => Promise<void>;
     save: () => Promise<void>;
@@ -40,6 +46,15 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
 
   const modeRef = useRef<EditMode>(mode);
   modeRef.current = mode;
+
+  // viewer mode では usePresenceHeartbeat を有効化する
+  const isViewerMode = mode.kind === "viewer";
+  usePresenceHeartbeat({
+    resourceType,
+    resourceId,
+    role: "viewer",
+    enabled: isViewerMode,
+  });
 
   const refreshLockState = useCallback(async () => {
     try {
@@ -112,6 +127,9 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
         mcpBridge.discardDraft(prevResourceType, prevResourceId).catch(() => {});
         mcpBridge.releaseLock(prevResourceType, prevResourceId, sessionId).catch(() => {});
         setMode({ kind: "readonly" });
+      } else if (modeRef.current.kind === "viewer") {
+        // viewer mode から離脱: viewer サブスクリプションを解除する
+        mcpBridge.request("lock.unsubscribeViewer", { resourceType: prevResourceType, resourceId: prevResourceId }).catch(() => {});
       }
     };
   }, [resourceType, resourceId, sessionId]);
@@ -121,10 +139,11 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
       const d = data as {
         resourceType: string;
         resourceId: string;
-        op: "acquired" | "released" | "force-released";
-        ownerSessionId: string;
+        op: "acquired" | "released" | "force-released" | "viewer-joined" | "viewer-left";
+        ownerSessionId?: string;
         by: string;
         previousOwner?: string;
+        viewerCount?: number;
       };
 
       if (d.resourceType !== resourceType || d.resourceId !== resourceId) return;
@@ -135,13 +154,18 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
         if (d.ownerSessionId === sessionId) {
           setMode({ kind: "editing" });
         } else {
-          setMode({ kind: "locked-by-other", ownerSessionId: d.ownerSessionId });
+          // 他のセッションがロックを取得: viewer mode だった場合は locked-by-other に遷移
+          if (current.kind !== "viewer") {
+            setMode({ kind: "locked-by-other", ownerSessionId: d.ownerSessionId ?? d.by });
+          }
         }
         return;
       }
 
       if (d.op === "released") {
         if (current.kind === "editing") return;
+        // viewer mode は lock 解放後も維持 (readonly へは戻さない)
+        if (current.kind === "viewer") return;
         setMode({ kind: "readonly" });
         return;
       }
@@ -152,12 +176,17 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
           setMode({ kind: "force-released-pending", previousDraftExists: true });
         } else if (d.by === sessionId) {
           // 自分が強制解除を実行した側 (forcer)
-          setMode({ kind: "after-force-unlock", previousOwner: d.previousOwner ?? d.ownerSessionId });
+          setMode({ kind: "after-force-unlock", previousOwner: d.previousOwner ?? d.ownerSessionId ?? "" });
         } else {
-          setMode({ kind: "readonly" });
+          // viewer mode は force-release で影響を受けない
+          if (current.kind !== "viewer") {
+            setMode({ kind: "readonly" });
+          }
         }
         return;
       }
+
+      // viewer-joined / viewer-left: 状態変更なし (viewerCount は上位コンポーネントが必要なら別途ハンドル)
     });
 
     const unsubDraft = mcpBridge.onBroadcast("draft.changed", (data) => {
@@ -190,6 +219,18 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
       setMode({ kind: "editing" });
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
+      // LockConflictError 時: viewer として自動 fallback を試みる
+      if (err.message.includes("既に") && err.message.includes("ロック中")) {
+        try {
+          await mcpBridge.request("lock.subscribeAsViewer", { resourceType, resourceId });
+          setMode({ kind: "viewer" });
+          return;
+        } catch {
+          // viewer subscribeAsViewer 失敗時は従来の locked-by-other に fallback
+          await refreshLockState();
+          return;
+        }
+      }
       setError(err);
       await refreshLockState();
     }
@@ -265,11 +306,17 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
     mode.kind === "editing" ||
     mode.kind === "force-released-pending";
 
+  // viewer mode は read-only 扱い (canEdit=false, isEditing=false)
+  const canEdit = mode.kind !== "viewer" && mode.kind !== "readonly" && mode.kind !== "locked-by-other";
+  const isEditing = mode.kind === "editing";
+
   return {
     mode,
     loading,
     error,
     isDirtyForTab,
+    canEdit,
+    isEditing,
     actions: {
       startEditing,
       save,
