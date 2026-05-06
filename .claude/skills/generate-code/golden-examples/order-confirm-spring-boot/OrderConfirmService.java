@@ -5,22 +5,13 @@ import com.example.retail.dto.OrderConfirmResponse;
 import com.example.retail.entity.Order;
 import com.example.retail.event.OrderConfirmedEvent;
 import com.example.retail.exception.CartEmptyException;
-import com.example.retail.exception.OrderConfirmFailedException;
-import com.example.retail.exception.StockShortageException;
 import com.example.retail.repository.CartItemRepository;
-import com.example.retail.repository.CartRepository;
-import com.example.retail.repository.InventoryRepository;
-import com.example.retail.repository.OrderItemRepository;
 import com.example.retail.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +25,13 @@ import java.util.Map;
  * TX 失敗時は 422 を返す。TX 後に persistedOrder を再取得してから注文確定イベントを発行する。
  * </p>
  *
+ * <p>
+ * <strong>設計上の注意 (Spring AOP self-invocation):</strong>
+ * TX メソッドは同一クラスからの self-invocation では AOP proxy を経由しないため {@code @Transactional} が
+ * 無効化される。そのため TX 処理は専用 bean {@link OrderConfirmTransactionService} に委譲し、
+ * proxy 経由で呼び出すことで TX 境界を正しく有効化している。
+ * </p>
+ *
  * ProcessFlow ID: f81dd9e0-794c-4539-a2a5-9cbcc0a75899
  */
 @Service
@@ -41,12 +39,12 @@ import java.util.Map;
 @Slf4j
 public class OrderConfirmService {
 
-    private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
-    private final InventoryRepository inventoryRepository;
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final ApplicationEventPublisher eventPublisher;
+
+    /** TX 処理委譲先 bean (Spring AOP proxy 経由で呼び出すことで @Transactional を有効化)。 */
+    private final OrderConfirmTransactionService orderConfirmTransactionService;
 
     /**
      * 注文確定実行。
@@ -92,7 +90,9 @@ public class OrderConfirmService {
 
         // step-06: 注文確定 TX (isolationLevel=READ_COMMITTED, propagation=REQUIRED, timeoutMs=10000)
         // rollbackOn: [STOCK_SHORTAGE, ORDER_NUMBER_CONFLICT]
-        Order persistedOrder = executeOrderConfirmTransaction(
+        // TX メソッドは OrderConfirmTransactionService (別 bean) に委譲することで、
+        // Spring AOP proxy 経由の呼び出しを保証し @Transactional 境界を有効化する。
+        Order persistedOrder = orderConfirmTransactionService.executeOrderConfirmTransaction(
                 request, sessionCustomerId, cartItems, totalAmount, newOrderNumber);
 
         // step-09: retail.order.confirmed イベントを発行 (TX コミット後 + persistedOrder 再取得後)
@@ -114,87 +114,4 @@ public class OrderConfirmService {
         );
     }
 
-    /**
-     * 注文確定 TX。
-     * step-06 (transactionScope) に相当。
-     *
-     * 在庫減算 → orders INSERT → order_items loop INSERT → カートクリアを原子的に実行し、
-     * TX コミット後に orders を再取得して返す (ADR-002 準拠)。
-     *
-     * @throws StockShortageException        在庫不足 (rollbackOn: STOCK_SHORTAGE)
-     * @throws DataIntegrityViolationException 注文番号 UNIQUE 制約違反 (rollbackOn: ORDER_NUMBER_CONFLICT)
-     * @throws OrderConfirmFailedException    TX 後の re-fetch 失敗
-     */
-    @Transactional(isolation = Isolation.READ_COMMITTED, timeout = 10)
-    protected Order executeOrderConfirmTransaction(
-            OrderConfirmRequest request,
-            Long sessionCustomerId,
-            List<Map<String, Object>> cartItems,
-            long totalAmount,
-            String newOrderNumber) {
-
-        // step-06-01: カート明細を 1 件ずつ在庫減算 (loop, kind=dbAccess, operation=retail:DECREMENT_STOCK)
-        // store_id は cart_items から引き継ぎ (step-02 で取得済)
-        for (Map<String, Object> cartItem : cartItems) {
-            long productId = ((Number) cartItem.get("productId")).longValue();
-            long storeId = ((Number) cartItem.get("storeId")).longValue();
-            int quantity = ((Number) cartItem.get("quantity")).intValue();
-
-            // step-06-01-a: 在庫減算 (affectedRowsCheck = 1 行、0 件なら STOCK_SHORTAGE)
-            int updated = inventoryRepository.decrementStock(productId, storeId, quantity);
-            if (updated != 1) {
-                log.warn("在庫不足: productId={}, storeId={}, requestedQty={}", productId, storeId, quantity);
-                throw new StockShortageException("在庫が不足しています。");
-            }
-        }
-
-        // step-06-02: orders テーブルに注文レコードを INSERT
-        // affectedRowsCheck = 1 行、order_number UNIQUE 制約違反は DataIntegrityViolationException として伝播
-        Order order = new Order();
-        order.setOrderNumber(newOrderNumber);
-        order.setCustomerId(sessionCustomerId);
-        order.setStatus("pending");
-        order.setTotalAmount(totalAmount);
-        order.setTaxAmount((long) Math.floor(totalAmount * 0.10));  // @conv.tax.standard.rate = 0.10
-        order.setShippingPostalCode(request.getShippingPostalCode());
-        order.setShippingAddress(request.getShippingAddress());
-        order.setNote(request.getNote());
-        order.setPaymentMethod(request.getPaymentMethod());
-        order.setOrderedAt(LocalDateTime.now());
-        orderRepository.save(order);
-
-        // step-06-03: order_items に 1 行ずつ INSERT (loop, kind=dbAccess, operation=INSERT)
-        // 単価・商品名はスナップショットとしてコピー (ADR-006 multi-store 整合: store_code_snapshot を含む)
-        for (Map<String, Object> cartItem : cartItems) {
-            orderItemRepository.insertOrderItem(
-                    order.getId(),
-                    ((Number) cartItem.get("productId")).longValue(),
-                    (String) cartItem.get("storeCode"),
-                    (String) cartItem.get("productCode"),
-                    (String) cartItem.get("productName"),
-                    ((Number) cartItem.get("unitPriceSnapshot")).longValue(),
-                    ((Number) cartItem.get("quantity")).intValue()
-            );
-        }
-
-        // step-06-04-a: cart_items を全削除 (CLEAR_CART step 1/2)
-        cartItemRepository.deleteByCustomerActiveCart(sessionCustomerId);
-
-        // step-06-04-b: carts.status を 'ordered' に更新 (CLEAR_CART step 2/2)
-        cartRepository.updateStatusToOrdered(sessionCustomerId);
-
-        // step-08: TX コミット後に orders を再取得 (ADR-002: TX 内変数ネスト参照回避)
-        // @Transactional メソッドがリターンした時点で TX がコミットされるため、
-        // 再取得は本メソッドの呼び出し元 (execute) で行う。ここでは insertedOrder の id を返す。
-        // 実際の再取得は execute() 内で別 @Transactional なし呼び出しとする場合もある。
-        Order persisted = orderRepository.findByOrderNumber(newOrderNumber)
-                .orElseThrow(() -> {
-                    // step-08b: persistedOrder == null ガード (ADR-005)
-                    log.error("注文確定後の再取得失敗: orderNumber={}, customerId={}", newOrderNumber, sessionCustomerId);
-                    return new OrderConfirmFailedException(
-                            "注文の登録は完了しましたが、注文情報の取得に失敗しました。しばらく経ってから注文履歴を確認してください。");
-                });
-
-        return persisted;
-    }
 }

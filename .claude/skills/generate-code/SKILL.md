@@ -161,14 +161,14 @@ ProcessFlow JSON を入力として、techStack に基づく backend code 雛形
 | `dbAccess` (拡張 op) | `// TODO: {{step.operation}} — 拡張操作。extensions/ 定義参照` | 同左 |
 | `transactionScope` | `@Transactional` メソッド + isolation / timeout / rollbackOn を適用 | `dataSource.transaction('READ COMMITTED', async manager => { ... })` |
 | `compute` | ローカル変数計算 (stream / reduce / mapToLong 等) | ローカル変数計算 (reduce / map 等) |
-| `branch` / `ifBranch` | `if (...) { ... } else { ... }` + 例外 throw | 同左 + `throw new HttpException(...)` |
+| `branch` | `if (...) { ... } else { ... }` + 例外 throw | 同左 + `throw new HttpException(...)` |
 | `loop` (collection) | `for (Type item : collection) { ... }` | `for (const item of collection) { ... }` |
 | `eventPublish` | `eventPublisher.publishEvent(new XxxEvent(...))` | `eventEmitter.emit('topic', payload)` |
 | `screenTransition` | `return "redirect:/path"` (MVC) / API では出力しない | `res.redirect('/path')` |
 | `return` | `return ResponseEntity.<T>status(N).body(body)` | `throw new HttpException(body, status)` または `return response` |
 | `validation` | Bean Validation DTO + `@Valid` Controller 引数 | `class-validator` DTO デコレータ |
 | `log` | `log.error(message, structuredData)` | `this.logger.error(message, structuredData)` |
-| `other` | `// TODO: {{step.description}}` + outputSchema で型推定 | 同左 |
+| `other` | `// TODO: {{step.description}}` + outputSchema で型推定 (注: schema の `kind` に `other` は存在しない。extension step では `type: "other"` を使う別階層の概念であるため混同注意) | 同左 |
 
 ### affectedRowsCheck → 実装パターン
 

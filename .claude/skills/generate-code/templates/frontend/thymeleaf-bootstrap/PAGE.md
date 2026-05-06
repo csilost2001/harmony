@@ -41,7 +41,7 @@ Screen JSON の `kind` と `items[]` から Thymeleaf HTML テンプレートを
     <h1 class="mb-4">{{screen.name}}</h1>
 
     <!-- 検索フォーム (items[].direction=input から展開) -->
-    <form th:action="@{{{screen.path}}}" method="get" class="mb-4">
+    <form th:action="@{<<screen.path>>}" method="get" class="mb-4">
       <div class="row g-3">
         <!-- 例: productCode (direction=input, type=string) -->
         <div class="col-md-4">
@@ -144,7 +144,7 @@ Screen JSON の `kind` と `items[]` から Thymeleaf HTML テンプレートを
 
 ```html
 <!-- POST フォーム。Screen.path = "/cart/confirm" などに対応 -->
-<form th:action="@{{{screen.path}}}" method="post" novalidate>
+<form th:action="@{<<screen.path>>}" method="post" novalidate>
   <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
   <!-- items[].direction=input を展開 -->
@@ -152,7 +152,7 @@ Screen JSON の `kind` と `items[]` から Thymeleaf HTML テンプレートを
 
   <div class="d-flex gap-2 mt-4">
     <button type="submit" class="btn btn-primary">確定</button>
-    <a th:href="@{{{backPath}}}" class="btn btn-outline-secondary">戻る</a>
+    <a th:href="@{<<backPath>>}" class="btn btn-outline-secondary">戻る</a>
   </div>
 </form>
 ```
@@ -209,3 +209,19 @@ Screen JSON の `kind` と `items[]` から Thymeleaf HTML テンプレートを
 </body>
 </html>
 ```
+
+## Placeholder 解釈ルール (AI コード生成時必読)
+
+本テンプレートでは **`<<...>>`** を AI が値で置換する placeholder として使用する。
+
+Thymeleaf URL 式 `@{...}` の内側に `<<...>>` が現れる場合、AI は必ず placeholder を実際のパス値に置換してから出力すること。`<<...>>` のまま Thymeleaf テンプレートに出力してはならない。
+
+| テンプレート記法 | 置換後の出力例 (`screen.path = "/products/search"`) |
+|---|---|
+| `th:action="@{<<screen.path>>}"` | `th:action="@{/products/search}"` |
+| `th:href="@{<<backPath>>}"` | `th:href="@{/cart}"` |
+| `th:action="@{<<screen.path>>}"` (form POST) | `th:action="@{/cart/confirm}"` |
+
+**なぜ `<<...>>` を使うか**: Thymeleaf の URL 式構文は `@{...}` であり、mustache 形式の `{{...}}` をそのままネストすると `@{{{screen.path}}}` のような三重括弧になり、AI が Thymeleaf 出力の一部として誤ってコピーするリスクがある。`<<...>>` はどの主要テンプレートエンジンとも構文衝突しない明示的 placeholder 記法である。
+
+ゴールデン例 (`product-search.html`) では既に実際のパス値に展開されており、`<<...>>` placeholder は登場しない。

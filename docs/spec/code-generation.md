@@ -232,14 +232,14 @@ ProcessFlow JSON の step kind ごとのコード生成方針。詳細は `.clau
 | `dbAccess` (DELETE) | `@Modifying @Query deleteBy...()` | `manager.delete()` |
 | `transactionScope` | `@Transactional(isolation, timeout)` + rollbackOn → 例外 throw | `dataSource.transaction('READ COMMITTED', async manager => { ... })` |
 | `screenTransition` | `return "redirect:/path"` (MVC Controller) / REST API では出力しない | `res.redirect('/path')` |
-| `ifBranch` / `branch` | `if (condition) { ... } else { ... }` + `throw XxxException` | `if (condition) { throw new HttpException(...) }` |
+| `branch` | `if (condition) { ... } else { ... }` + `throw XxxException` | `if (condition) { throw new HttpException(...) }` |
 | `loop` (collection) | `for (ItemType item : collection) { ... }` | `for (const item of collection) { ... }` |
 | `eventPublish` | `ApplicationEventPublisher.publishEvent(new XxxEvent(...))` | `EventEmitter2.emit('topic', payload)` |
 | `compute` | ローカル変数計算 (`stream().mapToLong().sum()` 等) | ローカル変数計算 (`reduce`, `map` 等) |
 | `validation` | Bean Validation DTO アノテーション + `@Valid` Controller 引数 | `class-validator` DTO デコレータ |
 | `return` | `ResponseEntity.<T>status(N).body(body)` | `return responseDto` または `throw new HttpException(body, status)` |
 | `log` | `log.error(message, structuredData)` | `this.logger.error(message, structuredData)` |
-| `other` | `// TODO: {{step.description}}` + outputSchema で型推定 | 同左 |
+| `other` | `// TODO: {{step.description}}` + outputSchema で型推定 (注: schema の `kind` に `other` は存在しない。extension step では `type: "other"` を使う別階層の概念であるため混同注意) | 同左 |
 
 ### ambientVariables → フレームワーク引数
 
