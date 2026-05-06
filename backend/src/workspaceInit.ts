@@ -167,13 +167,18 @@ export async function initializeWorkspace(
   await fs.mkdir(abs, { recursive: true });
 
   // harmony.json が既に存在すれば idempotent で返す
+  // ただし AJV 検証に通らない harmony.json は schema 違反 dataDir
+  // (../outside / 絶対パス等) で workspace 外にディレクトリ作成する事故を起こすため reject (Codex post-merge review P2-2)
   const harmonyResult = await readHarmonyAt(abs);
   if (harmonyResult !== null && "data" in harmonyResult) {
     const existing = harmonyResult.data;
-    const existingDataDir =
-      typeof (existing as Record<string, unknown>).dataDir === "string"
-        ? ((existing as Record<string, unknown>).dataDir as string)
-        : dataDirVal;
+    const validate = await getProjectValidator();
+    if (!validate(existing)) {
+      throw new Error(
+        `既存 harmony.json が schema 違反のため init を中止しました: ${path.join(abs, "harmony.json")}: ${JSON.stringify(validate.errors)}`,
+      );
+    }
+    const existingDataDir = (existing as Record<string, unknown>).dataDir as string;
     // dataDir 配下のサブディレクトリも念のため確認・作成 (idempotent)
     await ensureSubdirs(abs, existingDataDir);
     return {

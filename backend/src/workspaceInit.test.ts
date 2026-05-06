@@ -262,6 +262,49 @@ describe("initializeWorkspace", () => {
       expect(r.name).toBe("roundtrip");
     }
   });
+
+  // Codex post-merge review P2-2: 既存 harmony.json が schema 違反なら init を中止
+  it("既存 harmony.json の dataDir が path traversal だと throw (workspace 外への作成事故防止)", async () => {
+    const dir = path.join(TMP_ROOT, "invalid-existing-traversal");
+    await fs.mkdir(dir, { recursive: true });
+    const broken = {
+      $schema: "../schemas/v3/harmony.v3.schema.json",
+      schemaVersion: "v3" as const,
+      dataDir: "../outside", // 仕様違反
+      meta: { id: "x", name: "x", maturity: "draft", mode: "upstream", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      entities: { screens: [], tables: [], processFlows: [], conventions: [], sequences: [], views: [], viewDefinitions: [] },
+    };
+    await fs.writeFile(path.join(dir, "harmony.json"), JSON.stringify(broken), "utf-8");
+    await expect(initializeWorkspace(dir)).rejects.toThrow(/schema 違反/);
+    // workspace 外にディレクトリが作られていないことを確認
+    const outside = path.join(TMP_ROOT, "outside");
+    await expect(fs.access(outside)).rejects.toThrow();
+  });
+
+  it("既存 harmony.json の dataDir が絶対パスだと throw", async () => {
+    const dir = path.join(TMP_ROOT, "invalid-existing-abs");
+    await fs.mkdir(dir, { recursive: true });
+    const broken = {
+      $schema: "../schemas/v3/harmony.v3.schema.json",
+      schemaVersion: "v3" as const,
+      dataDir: "/etc/passwd",
+      meta: { id: "y", name: "y", maturity: "draft", mode: "upstream", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      entities: { screens: [], tables: [], processFlows: [], conventions: [], sequences: [], views: [], viewDefinitions: [] },
+    };
+    await fs.writeFile(path.join(dir, "harmony.json"), JSON.stringify(broken), "utf-8");
+    await expect(initializeWorkspace(dir)).rejects.toThrow(/schema 違反/);
+  });
+
+  // opts.dataDir が反映されることの positive テスト (P2-1 関連: MCP からの dataDir 引数も同経路)
+  it("opts.dataDir で dataDir をオーバーライドできる", async () => {
+    const dir = path.join(TMP_ROOT, "custom-datadir");
+    const result = await initializeWorkspace(dir, { dataDir: "docs/spec" });
+    expect(result.dataDir).toBe("docs/spec");
+    const harmony = JSON.parse(await fs.readFile(path.join(dir, "harmony.json"), "utf-8"));
+    expect(harmony.dataDir).toBe("docs/spec");
+    // dataDir 配下にサブディレクトリが作られていること
+    await expect(fs.access(path.join(dir, "docs", "spec", "screens"))).resolves.toBeUndefined();
+  });
 });
 
 // ── lockdown mode (harmony.json から dataDir 解決) ──────────────────────────
