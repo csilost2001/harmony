@@ -105,6 +105,7 @@ function killStaleProcessOnPort(port: number): boolean {
     : killStaleProcessOnPortPosix(port);
 }
 
+/** Windows 経路: netstat + taskkill */
 function killStaleProcessOnPortWin32(port: number): boolean {
   try {
     const output = execSync(`netstat -ano -p tcp`, { encoding: "utf8", windowsHide: true });
@@ -139,17 +140,23 @@ function killStaleProcessOnPortWin32(port: number): boolean {
   }
 }
 
+/** POSIX 経路 (Linux / macOS / WSL2): lsof + kill -9 */
 function killStaleProcessOnPortPosix(port: number): boolean {
   // -sTCP:LISTEN は重要: これが無いと当該 port に接続中のクライアント PID も返り、
   // 無関係なプロセス (例: HTTP MCP client) を巻き添えで kill してしまう。
-  // 該当無しで非ゼロ exit、未インストールで ENOENT。いずれも検出不能 = stale 無し扱いで return false。
   let output: string;
   try {
     output = execSync(`lsof -ti tcp:${port} -sTCP:LISTEN`, {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
-  } catch {
+  } catch (e) {
+    // execSync は shell 経由のため lsof 未導入は shell exit status 127、
+    // 該当プロセス無しは lsof 自身が exit 1。前者のみ warn で可視化する。
+    const status = (e as { status?: number }).status;
+    if (status === 127) {
+      console.warn(`[WsBridge] lsof not found; stale process kill on port ${port} skipped`);
+    }
     return false;
   }
 
