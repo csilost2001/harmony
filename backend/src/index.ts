@@ -1177,7 +1177,8 @@ function createMcpServer(sessionId: string): Server {
             throw new McpError(ErrorCode.InvalidParams, "lockdown モード中は新規ワークスペース初期化はできません");
           }
           try {
-            const initRes = await initializeWorkspace(target);
+            const dataDirArg = typeof a.dataDir === "string" ? a.dataDir : undefined;
+            const initRes = await initializeWorkspace(target, dataDirArg ? { dataDir: dataDirArg } : undefined);
             resolvedName = initRes.name;
             target = initRes.path;
           } catch (e) {
