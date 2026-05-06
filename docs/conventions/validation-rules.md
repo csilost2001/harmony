@@ -11,7 +11,7 @@
 - **ランタイム正本**: `data/conventions/catalog.json` (gitignored)
 - **サンプル (seed 元)**: [`docs/sample-project/conventions/conventions-catalog.json`](../sample-project/conventions/conventions-catalog.json) — `node docs/sample-project/seed.mjs` で `data/conventions/catalog.json` にコピーされる
 - **JSON Schema**: [`schemas/conventions.schema.json`](../../schemas/conventions.schema.json)
-- **参照整合性検証**: `designer/src/schemas/conventionsValidator.ts` が処理フロー内の `@conv.*` 参照を検査
+- **参照整合性検証**: `frontend/src/schemas/conventionsValidator.ts` が処理フロー内の `@conv.*` 参照を検査
 - **編集 UI**: 業務システムデザイナーの「規約カタログ」タブから閲覧・編集可 (#317)
 
 **本 md 本文 (§1-§3) は人間向け参考資料**。編集・追加は基本的に designer アプリ経由で JSON を更新する。md と JSON で drift した場合は JSON 側が優先。

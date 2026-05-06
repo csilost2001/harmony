@@ -1,15 +1,15 @@
 {
-  "name": "html-designer-workspace",
+  "name": "harmony-workspace",
   "private": true,
   "version": "1.0.0",
-  "description": "業務システム デザイナー ワークスペース（designer + designer-mcp）",
+  "description": "Harnize Harmony — AI 協業前提の業務システム設計ツール (frontend + backend)",
   "scripts": {
-    "install:all": "npm install --prefix designer && npm install --prefix designer-mcp",
-    "dev": "node scripts/check-ports.mjs && concurrently -n designer,mcp -c cyan,magenta --kill-others-on-fail \"npm --prefix designer run dev\" \"npm --prefix designer-mcp run dev\"",
-    "build": "concurrently -n designer,mcp -c cyan,magenta \"npm --prefix designer run build\" \"npm --prefix designer-mcp run build\"",
-    "test:unit": "npm --prefix designer run test:unit",
-    "test:e2e": "npm --prefix designer run test:e2e",
-    "lint": "npm --prefix designer run lint"
+    "install:all": "npm install --prefix frontend && npm install --prefix backend",
+    "dev": "node scripts/check-ports.mjs && concurrently -n frontend,backend -c cyan,magenta --kill-others-on-fail \"npm --prefix frontend run dev\" \"npm --prefix backend run dev\"",
+    "build": "concurrently -n frontend,backend -c cyan,magenta \"npm --prefix frontend run build\" \"npm --prefix backend run build\"",
+    "test:unit": "npm --prefix frontend run test:unit",
+    "test:e2e": "npm --prefix frontend run test:e2e",
+    "lint": "npm --prefix frontend run lint"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"

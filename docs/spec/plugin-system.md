@@ -252,7 +252,7 @@ data/extensions/
 
 | 実行環境 | 読み込み経路 |
 |---|---|
-| Node (vitest, designer-mcp) | `readdirSync('data/extensions/')` で直接読み込み |
+| Node (vitest, backend) | `readdirSync('data/extensions/')` で直接読み込み |
 | ブラウザ (designer UI / E2E) | `wsBridge` 経由で取得 (`getExtensions` メッセージ追加) |
 
 - ブラウザ側はキャッシュを持ち、wsBridge の broadcast (`extensionsChanged`) で invalidate する
@@ -339,15 +339,15 @@ ProcessFlow 内部にある `typeCatalog` を本仕様の `response-types.json` 
 | 区分 | ファイル | 変更内容 |
 |---|---|---|
 | Schema | `schemas/process-flow.schema.json` | `typeCatalog` プロパティ削除 |
-| TypeScript 型 | `designer/src/types/action.ts` | `ProcessFlow.typeCatalog` 削除 |
-| **クロスリファレンス検証** | `designer/src/schemas/referentialIntegrity.ts` | `typeRef` の解決先を `group.typeCatalog` から**グローバル extensions** に変更 |
-| 同テスト | `designer/src/schemas/referentialIntegrity.test.ts` | typeCatalog ベースのテスト 2 件を extensions ベースに書き換え |
-| Schema テスト | `designer/src/schemas/samples-v3.schema.test.ts` | typeCatalog 関連テストを v3 extensions ベースに更新 (v1 凍結テストは削除済み — 現行は `samples-v3.schema.test.ts` / `v3-variant-coverage.test.ts`) |
-| UI コンポーネント | `designer/src/components/process-flow/TypeCatalogPanel.tsx` | 削除 |
-| UI 統合 | `designer/src/components/process-flow/ActionMetaTabBar.tsx` | typeCatalog タブ削除 |
-| MCP ツール | `designer-mcp/src/tools.ts` | `CatalogName` enum から `typeCatalog` 削除 + 新 `add_response_type_extension` 追加 |
-| MCP edits | `designer-mcp/src/processFlowEdits.ts` | `CatalogName` 型と `typeCatalog?` フィールド処理を削除 |
-| E2E | `designer/e2e/catalog-panels.spec.ts` | typeCatalog 関連シナリオを extensions パネル (#447) ベースに書き換え |
+| TypeScript 型 | `frontend/src/types/action.ts` | `ProcessFlow.typeCatalog` 削除 |
+| **クロスリファレンス検証** | `frontend/src/schemas/referentialIntegrity.ts` | `typeRef` の解決先を `group.typeCatalog` から**グローバル extensions** に変更 |
+| 同テスト | `frontend/src/schemas/referentialIntegrity.test.ts` | typeCatalog ベースのテスト 2 件を extensions ベースに書き換え |
+| Schema テスト | `frontend/src/schemas/samples-v3.schema.test.ts` | typeCatalog 関連テストを v3 extensions ベースに更新 (v1 凍結テストは削除済み — 現行は `samples-v3.schema.test.ts` / `v3-variant-coverage.test.ts`) |
+| UI コンポーネント | `frontend/src/components/process-flow/TypeCatalogPanel.tsx` | 削除 |
+| UI 統合 | `frontend/src/components/process-flow/ActionMetaTabBar.tsx` | typeCatalog タブ削除 |
+| MCP ツール | `backend/src/tools.ts` | `CatalogName` enum から `typeCatalog` 削除 + 新 `add_response_type_extension` 追加 |
+| MCP edits | `backend/src/processFlowEdits.ts` | `CatalogName` 型と `typeCatalog?` フィールド処理を削除 |
+| E2E | `frontend/e2e/catalog-panels.spec.ts` | typeCatalog 関連シナリオを extensions パネル (#447) ベースに書き換え |
 | サンプル | `docs/sample-project/process-flows/cccccccc-{0005,0006,0007,0008}-*.json` | `typeCatalog` セクションを抽出し `docs/sample-project/extensions/response-types.json` に移行 |
 | サンプル仕様 | `docs/spec/process-flow-extensions.md`, `docs/user-guide/process-flow-workflow.md` | typeCatalog の記述をグローバル extensions に置換 |
 | 設計者向け | `.claude/commands/designer-work.md` | typeCatalog 言及を更新 |

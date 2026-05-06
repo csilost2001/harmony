@@ -4,7 +4,7 @@
 
 ## 関連
 
-- 親 ISSUE: [#793](https://github.com/csilost2001/html-designer/issues/793) (CSS フレームワーク切替対応)
+- 親 ISSUE: [#793](https://github.com/csilost2001/harmony/issues/793) (CSS フレームワーク切替対応)
 - 仕様書: [docs/spec/css-framework-switching.md](../../docs/spec/css-framework-switching.md)
 - Bootstrap 版: [examples/english-learning/](../english-learning/) (同じ業務、Bootstrap aesthetic)
 - 業務仕様: [docs/spec/examples-english-learning.md](../../docs/spec/examples-english-learning.md) (Bootstrap 版と共通)
@@ -68,7 +68,7 @@ examples/english-learning-tailwind/
 New-Item -ItemType Directory -Force -Path workspaces\english-learning-tailwind
 Copy-Item -Recurse -Force examples\english-learning-tailwind\* workspaces\english-learning-tailwind\
 
-# designer-mcp / designer 起動 (root から)
+# backend / designer 起動 (root から)
 npm run dev
 ```
 

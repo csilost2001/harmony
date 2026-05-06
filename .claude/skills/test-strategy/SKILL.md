@@ -1,9 +1,9 @@
 ---
 description: テスト実装・修正・Vitest・Playwright・E2E・スペック・spec・test
 paths:
-  - "designer/src/**/*.test.ts"
-  - "designer/e2e/**/*.spec.ts"
-  - "designer/e2e/**/*"
+  - "frontend/src/**/*.test.ts"
+  - "frontend/e2e/**/*.spec.ts"
+  - "frontend/e2e/**/*"
 ---
 
 # テスト戦略
@@ -20,20 +20,20 @@ paths:
 
 ## 各層のスコープ
 
-**Vitest（`designer/src/**/*.test.ts`）**
+**Vitest（`frontend/src/**/*.test.ts`）**
 - ストアのロジック（tabStore の状態遷移、dirty フラグ管理など）
 - ユーティリティ関数
 - データ変換・バリデーション
 - GrapesJS / ReactFlow / WebSocket は含めない
 
-**Playwright（`designer/e2e/**/*.spec.ts`）**
+**Playwright（`frontend/e2e/**/*.spec.ts`）**
 - TabBar の操作（開閉・右クリックメニュー・D&D）
 - ナビゲーション・ルーティング・URL 同期
 - 保存ボタンの表示/非表示（isDirty の UI 反映）
 - GrapesJS キャンバス内部はスコープ外（iframe 制約・費用対効果が低い）
 - テストコードは AI が生成し、実行は `npx playwright test` で自律実行する
 
-**MCP テスト（`designer/e2e/mcp/**/*.spec.ts`）**
+**MCP テスト（`frontend/e2e/mcp/**/*.spec.ts`）**
 - ブラウザ役として `{ type: "request" }` プロトコルで wsBridge に接続し、ファイル操作を検証する
 - テスト可能（主要リソース）:
   - project: `loadProject` / `saveProject`
@@ -43,7 +43,7 @@ paths:
   - mtime: `getFileMtime`
 - payload の id フィールド名は kind によって異なる: `screen` は `screenId`、`table` は `tableId`、`processFlow` は `id`
 - テスト不可（stdio 経由のみ）: `designer__open_tab` 等のタブ操作コマンド → Issue #67 参照
-- designer-mcp が ws://localhost:5179 で起動していない場合は自動スキップ
+- backend が ws://localhost:5179 で起動していない場合は自動スキップ
 
 ## バグの切り分け方針
 
@@ -63,15 +63,15 @@ MCP テスト失敗のみ        → WebSocket/ファイル永続化バグ
 ### addInitScript の挙動（重要）
 `page.addInitScript()` は `page.goto()` と `page.reload()` を含む**全ナビゲーションで再実行**される。
 
-- タブ状態の事前設定は addInitScript 内で行い、`designer-open-tabs` と `designer-active-tab` を両方セットする
+- タブ状態の事前設定は addInitScript 内で行い、`harmony-open-tabs` と `harmony-active-tab` を両方セットする
 - 「UIで操作した状態がリロード後も保持される」テストは書けない（addInitScript が毎回上書きするため）
   → 代わりにリロード後の期待状態を addInitScript で事前設定して検証する
 
 ```typescript
 await page.addInitScript(({ project, tabs, activeTabId }) => {
   localStorage.setItem("flow-project", JSON.stringify(project));
-  localStorage.setItem("designer-open-tabs", JSON.stringify(tabs));
-  localStorage.setItem("designer-active-tab", activeTabId);
+  localStorage.setItem("harmony-open-tabs", JSON.stringify(tabs));
+  localStorage.setItem("harmony-active-tab", activeTabId);
 }, { project, tabs, activeTabId });
 ```
 
@@ -131,7 +131,7 @@ await expect(page.locator(".tabbar-tab").filter({ hasText: "画面A" })).toBeVis
 
 ## React フック単体テスト
 
-`@testing-library/react` の `renderHook` + `act` を使う（`designer/` に導入済み）。
+`@testing-library/react` の `renderHook` + `act` を使う（`frontend/` に導入済み）。
 
 ```typescript
 import { renderHook, act, waitFor } from "@testing-library/react";

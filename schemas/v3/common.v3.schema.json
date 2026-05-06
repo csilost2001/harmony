@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/common.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/common.v3.schema.json",
   "title": "Common (v3 共通定義)",
   "description": "全 v3 schema が参照する共通 $defs。業務システムの最小構成要素 (識別子・参照・メタ・型・マーカー・テスト・拡張入口) を集約する。各領域 schema は本ファイルを $ref で参照する。",
   "$defs": {

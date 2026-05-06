@@ -170,7 +170,7 @@ Puck デザイナ上部の「コンポーネント登録」ボタンをクリッ
 ### Puck キャンバスが真っ白に表示される
 
 - `puck-data.json` が存在しないか壊れている可能性があります
-- designer-mcp が起動していない場合は localStorage にフォールバックします
+- backend が起動していない場合は localStorage にフォールバックします
 - `workspaces/<wsId>/screens/<screenId>/puck-data.json` の存在を確認してください
 
 ### 動的コンポーネントがパレットに表示されない

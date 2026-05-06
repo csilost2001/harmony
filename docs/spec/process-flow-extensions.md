@@ -582,7 +582,7 @@ type OutputBinding = string | OutputBindingObject;
 
 **initialValue (#253 v1.2)**: `accumulate` / `push` 時の初期値を式で明示。未指定時の既定は `accumulate` → `"0"`、`push` → `"[]"`。実装側は変数スコープ開始時 (アクション先頭、またはループ入口) で初期化する。
 
-ヘルパー: `designer/src/utils/outputBinding.ts` の `getBindingName` / `getBindingOperation`
+ヘルパー: `frontend/src/utils/outputBinding.ts` の `getBindingName` / `getBindingOperation`
 
 PR: #169 / #255 (#253 v1.2)
 
@@ -744,7 +744,7 @@ PR: #422
 // StructuredField に追加
 formula?: string;   // "= " で始まる式文字列 (例: "= @quantity * @unitPrice")
 
-// ScreenItem (designer/src/types/screenItem.ts) に追加
+// ScreenItem (frontend/src/types/screenItem.ts) に追加
 computed?: string;  // direction="output" フィールドの計算式 (D-1)
 ```
 
@@ -821,7 +821,7 @@ PR: #422
 
 ### 9.5 ScreenItem.computed (D-1)
 
-`designer/src/types/screenItem.ts` の `ScreenItem` に `computed?: string` を追加。`direction="output"` のフィールドが計算式で導出される場合に宣言する。
+`frontend/src/types/screenItem.ts` の `ScreenItem` に `computed?: string` を追加。`direction="output"` のフィールドが計算式で導出される場合に宣言する。
 
 ```ts
 interface ScreenItem {
@@ -855,7 +855,7 @@ PR: #422
 - `docs/spec/process-flow-maturity.md` — Phase 1 (成熟度・付箋・モード)
 - `docs/spec/process-flow-variables.md` — Phase 1 (入出力・変数基盤)
 - `docs/conventions/validation-rules.md` / `product-scope.md` — 横断規約 (placeholder)
-- `designer/src/types/action.ts` — 型定義の正 (実装とドキュメントの整合性はこちらが優先)
+- `frontend/src/types/action.ts` — 型定義の正 (実装とドキュメントの整合性はこちらが優先)
 
 ## 13. Tier-B 拡張 (#423)
 

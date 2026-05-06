@@ -44,9 +44,9 @@ examples/retail/
 New-Item -ItemType Directory -Force -Path workspaces\retail
 Copy-Item -Recurse -Force examples\retail\* workspaces\retail\
 
-# designer-mcp / designer を起動
-cd designer-mcp && npm run dev   # 別ターミナル
-cd designer && npm run dev
+# backend / designer を起動
+cd backend && npm run dev   # 別ターミナル
+cd frontend && npm run dev
 ```
 
 `workspaces/` は gitignored なので自由に編集できます。
@@ -60,7 +60,7 @@ designer UI のヘッダー「ワークスペース」 → 「フォルダを追
 ## テスト fixture としての利用
 
 ```bash
-# 固定 workspace で designer-mcp 起動 (lockdown モード = workspace 切替禁止)
+# 固定 workspace で backend 起動 (lockdown モード = workspace 切替禁止)
 DESIGNER_DATA_DIR=examples/retail npm run dev:mcp
 ```
 

@@ -7,7 +7,7 @@
 | 関連 ISSUE | #414 (P1-2 環境別 values 構造) / 親 #396 |
 | 由来 | Power Platform Environment Variables (ALM 対応) |
 | 対応スキーマ | `schemas/v3/process-flow.v3.schema.json` の `EnvVarEntry` / `context.catalogs.envVars` |
-| 対応型 | `designer/src/types/action.ts` の `EnvVarEntry` / `ProcessFlow.context.catalogs.envVars` |
+| 対応型 | `frontend/src/types/action.ts` の `EnvVarEntry` / `ProcessFlow.context.catalogs.envVars` |
 | 関連規約 | [`docs/conventions/expressions.md`](../conventions/expressions.md) (`@env.*` / `@secret.*` 参照規約) |
 
 ## 1. 何のためのカタログか

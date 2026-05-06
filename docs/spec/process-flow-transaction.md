@@ -162,7 +162,7 @@ TX が rollback された**後**に実行する step 列。任意・補償処理
 
 ## §6 UI
 
-`designer/src/components/process-flow/TransactionScopeStepPanel.tsx` で編集 (TS 同期完了後の v3 化を予定):
+`frontend/src/components/process-flow/TransactionScopeStepPanel.tsx` で編集 (TS 同期完了後の v3 化を予定):
 
 - `isolationLevel` / `propagation` / `timeoutMs`: dropdown / number input
 - `rollbackOn`: `context.catalogs.errors` のキーを multi-select (チェックボックス)

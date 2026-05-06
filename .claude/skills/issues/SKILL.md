@@ -14,7 +14,7 @@ disable-model-invocation: true
 
   前提:
     - gh CLI がパスに通っていること
-    - designer-mcp が起動していること (MCP ツールが必要な ISSUE の場合)
+    - backend が起動していること (MCP ツールが必要な ISSUE の場合)
     - `disable-model-invocation: true`: ユーザーが明示的に `/issues <N>` と打った時のみ起動
 
   運用原則 (feedback_orchestration_workflow.md より):

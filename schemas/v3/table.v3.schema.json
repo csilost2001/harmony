@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/table.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/table.v3.schema.json",
   "title": "Table (v3 テーブル定義)",
   "description": "テーブル entity 1 件分の正規定義。EntityMeta + 物理名 + カラム + 制約 + インデックス + DEFAULT + トリガー + コメント + authoring。FK は ConstraintDefinition に集約 (TableColumn に inline foreignKey は持たない)。",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/custom-block.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/custom-block.v3.schema.json",
   "title": "CustomBlock (v3 カスタムブロック集合)",
   "description": "Designer (画面デザイナー) で再利用するカスタムブロックの集合。data/custom-blocks.json に対応。",
   "type": "array",

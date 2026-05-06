@@ -61,17 +61,17 @@ validation severity は次の 4 軸で判定する。迷った場合は、ユー
 | 表示完成度 | warning | 表示名・説明・見た目・補助情報など、利用品質は下がるが同一性や動作は壊れない |
 | 業務妥当性 | warning | 業務上は未確認・不足・仮置きだが、構造としては保存・表示・編集できる |
 
-View の代表例 (`designer/src/utils/viewValidation.ts`):
+View の代表例 (`frontend/src/utils/viewValidation.ts`):
 
 - error: `selectStatement` 空、`physicalName` 空、`physicalName` が同一名前空間内で重複
 - warning: `outputColumns` 空、`name` (表示名) 空
 
-Table の代表例 (`designer/src/utils/tableValidation.ts`):
+Table の代表例 (`frontend/src/utils/tableValidation.ts`):
 
 - error: `physicalName` 空、`physicalName` が同一名前空間内で重複
 - warning: `columns` 空、主キー (`primaryKey: true`) のカラムが 1 件もない、`name` (表示名) 空
 
-ProcessFlow の代表例 (`designer/src/utils/actionValidation.ts` + `aggregatedValidation.ts`):
+ProcessFlow の代表例 (`frontend/src/utils/actionValidation.ts` + `aggregatedValidation.ts`):
 
 - error: `loopBreak` / `loopContinue` がループ外に置かれている、`branch.branches` が空 (分岐ゼロ)
 - warning: ループ条件式 (`conditionExpression`) 未入力、ループコレクション (`collectionSource`) 未入力、`jump` の jumpTo 未設定または該当 step ID なし、`transactionScope.steps` が空、参照整合性違反 (responseRef / errorCode / systemRef / typeRef / secretRef)、識別子スコープ違反 (@identifier 未定義)、SQL 列名がテーブル定義に無い、`@conv.*` 参照の規約カタログ未定義
@@ -168,10 +168,10 @@ AJV 導入方針は次の 3 案を比較した。
 - #587: validation map の N+1 fetch 回避
 - [`docs/spec/schema-governance.md`](schema-governance.md)
 - [`docs/spec/process-flow-maturity.md`](process-flow-maturity.md)
-- `designer/src/components/common/ValidationBadge.tsx`
-- `designer/src/components/process-flow/MaturityBadge.tsx`
-- `designer/src/styles/validation.css`
-- `designer/src/utils/viewValidation.ts`
-- `designer/src/utils/tableValidation.ts`
-- `designer/src/utils/actionValidation.ts` (構造ルール)
-- `designer/src/utils/aggregatedValidation.ts` (構造 + 参照整合性 + 識別子スコープ + SQL 列 + 規約参照)
+- `frontend/src/components/common/ValidationBadge.tsx`
+- `frontend/src/components/process-flow/MaturityBadge.tsx`
+- `frontend/src/styles/validation.css`
+- `frontend/src/utils/viewValidation.ts`
+- `frontend/src/utils/tableValidation.ts`
+- `frontend/src/utils/actionValidation.ts` (構造ルール)
+- `frontend/src/utils/aggregatedValidation.ts` (構造 + 参照整合性 + 識別子スコープ + SQL 列 + 規約参照)

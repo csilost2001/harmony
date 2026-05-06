@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/er-layout.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/er-layout.v3.schema.json",
   "title": "ErLayout (v3 ER 図 UI 座標)",
   "description": "ER 図の UI 座標および論理リレーション (FK 未定義の概念リレーション) を集約。Designer (ER 図エディタ) 専用。data/er-layout.json に対応。",
   "type": "object",

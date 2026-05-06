@@ -6,7 +6,7 @@
 | 実施日 | 2026-04-28 |
 | 対象 | PR #526 (#525) で F-1/F-2/F-4 fix 後の `schemas/v3/` |
 | サンプル所在地 | `docs/sample-project-v3/finance/` |
-| AJV 検証 | `designer/src/schemas/v3-samples.test.ts` (11 tests, 全 pass) |
+| AJV 検証 | `frontend/src/schemas/v3-samples.test.ts` (11 tests, 全 pass) |
 | 担当 | Opus (主, 振込実行 + Tables 4 件 + Screen + Extension) + Sonnet (1 件: 残高照会) |
 | 前提 | Round 1 (#523, retail) で 4 件のフレームワーク改善を検出、PR #526 (#525) で修正済 |
 
@@ -145,7 +145,7 @@ memory `project_schema_v3_2026_04_27.md` の後続 ISSUE 候補について、Ro
 | **完了** | dogfood Round 1 (retail) | #523 PR #524 |
 | **完了** | F-1/F-2/F-3/F-4 schema 修正 | #525 PR #526 |
 | **完了** | dogfood Round 2 (finance) | **本 PR** |
-| **次** | TS 型同期 (`designer/src/types/`) | 別 ISSUE 起票推奨。手動 type 定義 or zod 検討 |
+| **次** | TS 型同期 (`frontend/src/types/`) | 別 ISSUE 起票推奨。手動 type 定義 or zod 検討 |
 | **中** | sample 全件 v3 化 (残 retail 0003/0004 = 2 件) | 別 ISSUE |
 | **中** | validator 切替 (referentialIntegrity / sqlColumnValidator / loadExtensions / conventionsValidator を v3 に) | 別 ISSUE |
 | **中** | spec 文書 v3 反映 (`docs/spec/process-flow-*.md` 14 件) | 別 ISSUE |

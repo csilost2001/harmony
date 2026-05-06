@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/view.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/view.v3.schema.json",
   "title": "View (v3 ビュー定義)",
   "description": "DB ビュー 1 件の定義。data/views/<id>.json に対応。SELECT 文 + 出力カラム定義 + 依存テーブル/ビュー。",
   "type": "object",

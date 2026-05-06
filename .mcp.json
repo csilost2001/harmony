@@ -4,7 +4,7 @@
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest"]
     },
-    "designer-mcp": {
+    "harmony-mcp": {
       "type": "http",
       "url": "http://localhost:5179/mcp"
     },

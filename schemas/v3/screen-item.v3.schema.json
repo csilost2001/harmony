@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/screen-item.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/screen-item.v3.schema.json",
   "title": "ScreenItem (v3 画面項目定義)",
   "description": "画面項目 1 件の正規定義。screen.v3.schema.json#/$defs/Screen.items[] から参照される。フォーム入力項目 (direction='input') と表示項目 (direction='output') の双方を表現。",
   "type": "object",

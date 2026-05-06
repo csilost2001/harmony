@@ -126,7 +126,7 @@ ISSUE が画面デザイン / デザイナー / cssFramework / editorKind に関
 ### Step 5: テスト・動作確認の充足
 
 - ISSUE の完了条件にテストが含まれていれば、該当テストが存在するか確認
-- 可能なら `cd designer && npx vitest run` を実行して pass 確認
+- 可能なら `cd frontend && npx vitest run` を実行して pass 確認
 - UI 影響のある ISSUE は AI が chrome-devtools MCP / Playwright で smoke test 実施済みかを確認 (E2E 通過 + smoke test pass = 完了)
 
 ## 制約 (必守)
@@ -208,7 +208,7 @@ ISSUE が画面デザイン / デザイナー / cssFramework / editorKind に関
 - `gh issue view $ARGUMENTS --comments` で本文・コメント確認
 - 紐づく PR 一覧: <列挙>
 - 主要ファイル読み込み: <リスト>
-- `cd designer && npx vitest run` → <pass 数> 件 pass / 未実行
+- `cd frontend && npx vitest run` → <pass 数> 件 pass / 未実行
 - AI smoke test (UI 影響あり時): 実施済 / 不要
 
 ---

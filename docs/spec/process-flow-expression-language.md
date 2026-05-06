@@ -317,7 +317,7 @@ effective = branch.condition.evaluate() && step.runIf
 
 ## 10. 参照整合性
 
-- `@identifier` が既存の `inputs[].name` / `outputBinding.name` / ループ変数 (`LoopStep.collectionItemName`) / ambient / catalog のいずれかに存在するかは、**参照整合性バリデータ** (`designer/src/schemas/referentialIntegrity.ts`) の将来拡張で検査予定 (現状は未検査)
+- `@identifier` が既存の `inputs[].name` / `outputBinding.name` / ループ変数 (`LoopStep.collectionItemName`) / ambient / catalog のいずれかに存在するかは、**参照整合性バリデータ** (`frontend/src/schemas/referentialIntegrity.ts`) の将来拡張で検査予定 (現状は未検査)
 - catalog 階層 (`context.catalogs.errors[<key>]` 等) の存在チェックも同バリデータで実施予定
 - IdentifierPath (#533 R3-1) の field 部分 (`createdOrder.order_number` の `.order_number`) は型推論側で検査
 

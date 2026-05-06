@@ -209,7 +209,7 @@ Step 6: smoke 検証 (Java 構文目視 / Thymeleaf XML パース / tsc dry)
 
 コード生成前に `validateTechStackConstraints(project.techStack)` を呼び出し、
 違反がある場合はエラーメッセージを返す。詳細は
-`designer/src/utils/techStackConstraints.ts` を参照。
+`frontend/src/utils/techStackConstraints.ts` を参照。
 
 主要制約:
 1. `editorKind=puck` → `frontend.library="react"` 必須

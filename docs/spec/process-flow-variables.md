@@ -381,7 +381,7 @@ Phase 1 から段階投入可能。Phase 2〜4 は独立に進められる。`pr
 - `docs/spec/process-flow-expression-language.md` — `@` 記法・式言語仕様
 - `docs/spec/process-flow-maturity.md` — 成熟度・曖昧さ管理
 - `docs/spec/process-flow-extensions.md` — schema 拡張機構
-- `designer/src/types/action.ts` — TS 型同期 (本仕様完了後に着手予定)
+- `frontend/src/types/action.ts` — TS 型同期 (本仕様完了後に着手予定)
 
 ## 11. 変更履歴
 

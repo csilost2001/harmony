@@ -7,7 +7,7 @@
 | 関連 ISSUE | #261 (v1.6 初出) / #414 (環境別 values 拡張) / 親 #396 |
 | 由来 | Power Platform Environment Variables (Secret Type) / 12-factor App Config |
 | 対応スキーマ | `schemas/v3/process-flow.v3.schema.json` の `SecretRef` / `context.catalogs.secrets` |
-| 対応型 | `designer/src/types/action.ts` の `SecretRef` / `ProcessFlow.context.catalogs.secrets` |
+| 対応型 | `frontend/src/types/action.ts` の `SecretRef` / `ProcessFlow.context.catalogs.secrets` |
 | 関連規約 | [`docs/conventions/expressions.md`](../conventions/expressions.md) (`@secret.*` 参照規約) / [`process-flow-env-vars.md`](process-flow-env-vars.md) (非機密 env と対比) |
 
 ## 1. 何のためのカタログか

@@ -161,7 +161,7 @@ designer の実運用は **1 プロジェクト = 1 業務アプリ** 単位。
 `npm run validate:samples` コマンド一本でサンプル検証を行う:
 
 ```bash
-cd designer
+cd frontend
 npm run validate:samples -- ../examples/retail
 npm run validate:samples -- ../examples/realestate
 ```
@@ -176,4 +176,4 @@ npm run validate:samples -- ../examples/realestate
 
 - `docs/spec/schema-governance.md` — schema 変更ガバナンス (本仕様の前提)
 - `docs/spec/draft-state-policy.md` — 設計途中の保存許容ポリシー
-- `designer/scripts/validate-samples.ts` — サンプルプロジェクト検証 CLI
+- `frontend/scripts/validate-samples.ts` — サンプルプロジェクト検証 CLI

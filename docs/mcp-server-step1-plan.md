@@ -32,7 +32,7 @@
                │ stdio (JSON-RPC)
                ▼
 ┌────────────────────────────┐
-│  designer-mcp-server       │   ← Node.js (TypeScript)で新規作成
+│  backend-server       │   ← Node.js (TypeScript)で新規作成
 │  - MCP Server (stdio)      │
 │  - WebSocket Server        │
 └──────────────┬─────────────┘
@@ -61,14 +61,14 @@
 
 ```
 c:/Workspaces/HTMLデザイン/
-├── designer/                       ← 既存
+├── frontend/                       ← 既存
 │   └── src/
 │       ├── mcp/                    ← 新規
 │       │   └── mcpBridge.ts        ← WebSocketクライアント
 │       └── components/
 │           ├── Designer.tsx        ← 改修: mcpBridge起動
 │           └── Topbar.tsx          ← 改修: 接続状態表示
-└── designer-mcp/                   ← 新規パッケージ
+└── backend/                   ← 新規パッケージ
     ├── package.json
     ├── tsconfig.json
     ├── README.md
@@ -82,7 +82,7 @@ c:/Workspaces/HTMLデザイン/
 
 ## 4. 依存ライブラリ
 
-### 4.1 designer-mcp（新規パッケージ）
+### 4.1 backend（新規パッケージ）
 
 ```json
 {
@@ -113,11 +113,11 @@ npm i html2canvas
 
 ## 5. 実装タスク（順番通りに進めること）
 
-### Phase A: MCPサーバー（designer-mcp）
+### Phase A: MCPサーバー（backend）
 
 #### A1. パッケージ初期化
-- [ ] `c:/Workspaces/HTMLデザイン/designer-mcp/` ディレクトリを作成
-- [ ] `package.json` を作成（上記の依存を含む）。`"type": "module"`、`"bin": { "designer-mcp": "dist/index.js" }`
+- [ ] `c:/Workspaces/HTMLデザイン/backend/` ディレクトリを作成
+- [ ] `package.json` を作成（上記の依存を含む）。`"type": "module"`、`"bin": { "backend": "dist/index.js" }`
 - [ ] `tsconfig.json` を作成（target: ES2022, module: ESNext, moduleResolution: bundler, strict: true）
 - [ ] `npm install` を実行
 
@@ -186,7 +186,7 @@ export const tools = [
 ### Phase B: デザイナー側のWebSocketクライアント
 
 #### B1. mcpBridge.ts実装
-- [ ] `designer/src/mcp/mcpBridge.ts` を作成。責務:
+- [ ] `frontend/src/mcp/mcpBridge.ts` を作成。責務:
   - `ws://localhost:5179` に接続を試みる
   - 接続失敗時は5秒後にリトライ（無限）
   - 切断時も自動再接続
@@ -214,7 +214,7 @@ export const mcpBridge: McpBridge;
 - [ ] 例外時は `{error: string}` で返信
 
 #### B2. html2canvas導入
-- [ ] `cd designer && npm i html2canvas`
+- [ ] `cd frontend && npm i html2canvas`
 - [ ] `mcpBridge.ts` で `import html2canvas from 'html2canvas'`
 - [ ] スクリーンショット実装:
 
@@ -256,7 +256,7 @@ async function captureScreenshot(editor: GEditor): Promise<string> {
 ### Phase C: Claude Code MCP設定
 
 #### C1. ビルド
-- [ ] `cd designer-mcp && npm run build`
+- [ ] `cd backend && npm run build`
 - [ ] `dist/index.js` が生成されることを確認
 
 #### C2. 設定ファイルへの追記
@@ -268,7 +268,7 @@ async function captureScreenshot(editor: GEditor): Promise<string> {
   "mcpServers": {
     "designer": {
       "command": "node",
-      "args": ["c:/Workspaces/HTMLデザイン/designer-mcp/dist/index.js"]
+      "args": ["c:/Workspaces/HTMLデザイン/backend/dist/index.js"]
     }
   }
 }
@@ -355,8 +355,8 @@ async function captureScreenshot(editor: GEditor): Promise<string> {
 
 ## 8. ドキュメント更新
 
-- [ ] `designer-mcp/README.md` を作成。インストール手順・使い方・トラブルシューティングを記載
-- [ ] `designer/README.md` にMCP接続セクションを追加
+- [ ] `backend/README.md` を作成。インストール手順・使い方・トラブルシューティングを記載
+- [ ] `frontend/README.md` にMCP接続セクションを追加
 - [ ] ルートの `README.md` にMCPサーバーの存在を1行追記
 
 ---

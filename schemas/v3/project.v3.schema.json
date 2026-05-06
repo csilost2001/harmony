@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/project.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/project.v3.schema.json",
   "title": "Project (v3 プロジェクト root)",
   "description": "業務システム 1 案件の root 定義。data/project.json に対応。プロジェクト全体のメタ・参照する entity 一覧 (各 entity は別ファイル) を集約する。各 entity の中身は別 schema 参照。",
   "type": "object",

@@ -1,6 +1,6 @@
 # JSON Schema (一次成果物) — バージョン管理
 
-このディレクトリは、html-designer の JSON 資産の**正規スキーマ**をバージョン別に保持する。
+このディレクトリは、Harnize Harmony の JSON 資産の**正規スキーマ**をバージョン別に保持する。
 
 ## ディレクトリ構成
 
@@ -59,13 +59,13 @@ schemas/v4/
 }
 ```
 
-loader (designer / designer-mcp / vitest) は本プロパティを読んで `schemas/v<N>/` を選択する想定。**現状は v3 をハードコードで参照**。
+loader (designer / backend / vitest) は本プロパティを読んで `schemas/v<N>/` を選択する想定。**現状は v3 をハードコードで参照**。
 
 ### `$id` 規約
 
 各 schema の `$id` はバージョン込みで宣言する:
 
-- v3: `https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/<name>.v3.schema.json`
+- v3: `https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/<name>.v3.schema.json`
 
 外部 AI / CI は特定バージョンに固定して参照する。
 
@@ -76,8 +76,8 @@ loader (designer / designer-mcp / vitest) は本プロパティを読んで `sch
 | 順位 | 層 | 役割 |
 |---|---|---|
 | 1 (一次) | JSON Schema (`schemas/v<N>/*.schema.json`) | 機械可読な正規仕様 |
-| 2 (派生) | TypeScript 型 (`designer/src/types/*.ts`) | designer 内部のみ利用 |
-| 3 (表示層) | UI (`designer/src/components/*`) | エディタとしての視覚化 |
+| 2 (派生) | TypeScript 型 (`frontend/src/types/*.ts`) | designer 内部のみ利用 |
+| 3 (表示層) | UI (`frontend/src/components/*`) | エディタとしての視覚化 |
 
 矛盾が起きたら **schema を正、TS 型と UI を schema に合わせる**。
 

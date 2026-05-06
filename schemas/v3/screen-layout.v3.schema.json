@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/csilost2001/html-designer/main/schemas/v3/screen-layout.v3.schema.json",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/screen-layout.v3.schema.json",
   "title": "ScreenLayout (v3 画面フロー UI 座標)",
   "description": "画面フロー図 (ReactFlow キャンバス) 上の各画面・グループ・遷移の UI 座標を集約する。Designer (画面フローエディタ) 専用、業務実装には不要。data/screen-layout.json に対応。",
   "type": "object",
