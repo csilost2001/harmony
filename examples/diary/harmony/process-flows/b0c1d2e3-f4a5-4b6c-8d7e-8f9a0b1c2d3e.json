@@ -1,0 +1,278 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e",
+    "name": "AI画像alt生成",
+    "description": "写真の URL を Claude Vision API へ送信し、日本語の alt テキスト (40-100 字) を生成して photos.alt に書き戻す処理フロー。使用モデルは conventions/catalog.json の ai.altTextModel を参照。 / 注: AI モデル名 (claude-opus-4-7) は本 PR 時点でリテラル文字列としてハードコード — `@conv.ai.*` および `@env.*` 参照のフレームワークサポートは #859 で対応予定 (現状 dead config を避けるため envVars カタログは登録しない)。",
+    "kind": "common",
+    "maturity": "draft",
+    "createdAt": "2026-05-06T14:00:00.000Z",
+    "updatedAt": "2026-05-06T14:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "入力値が不正です。",
+          "responseId": "400-validation",
+          "description": "photoId / imageUrl がどちらも未指定の場合。"
+        },
+        "PHOTO_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "写真が見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定された photoId の写真が存在しない場合。"
+        },
+        "AI_API_ERROR": {
+          "httpStatus": 502,
+          "defaultMessage": "AI API の呼び出しに失敗しました。",
+          "responseId": "502-ai-error",
+          "description": "Claude Vision API へのリクエストが失敗した場合。"
+        }
+      },
+      "externalSystems": {
+        "claudeApi": {
+          "name": "Claude AI API (Vision)",
+          "baseUrl": "@env.CLAUDE_API_BASE_URL",
+          "auth": {
+            "kind": "bearer",
+            "tokenRef": "@secret.claudeApiKey"
+          },
+          "timeoutMs": 45000,
+          "retryPolicy": {
+            "maxAttempts": 2,
+            "backoff": "exponential",
+            "initialDelayMs": 1000
+          }
+        }
+      },
+      "secrets": {
+        "claudeApiKey": {
+          "source": "env",
+          "name": "CLAUDE_API_KEY",
+          "description": "Claude API の認証キー。"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": false,
+        "description": "ログインユーザー ID (JWT から抽出)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "AI画像alt生成",
+      "trigger": "submit",
+      "description": "photoId (または imageUrl 直接) を受け取り、Claude Vision API で alt テキストを生成して photos.alt を更新する。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/ai/alt-text",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "photoId",
+          "label": "写真ID",
+          "type": "integer",
+          "required": false,
+          "description": "alt 生成対象の写真 ID。imageUrl が未指定の場合は必須。"
+        },
+        {
+          "name": "imageUrl",
+          "label": "画像URL",
+          "type": "string",
+          "required": false,
+          "description": "alt 生成対象の画像 URL。photoId が未指定の場合は必須。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "altText",
+          "label": "altテキスト",
+          "type": "string",
+          "description": "生成された日本語 alt テキスト (40-100 字)。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "alt テキスト生成成功。",
+          "when": "Claude Vision API の呼び出しと DB 更新が正常完了した場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "バリデーションエラー。",
+          "when": "photoId / imageUrl がどちらも未指定の場合。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "写真が存在しない。",
+          "when": "photoId を指定したが写真が見つからない場合。"
+        },
+        {
+          "id": "502-ai-error",
+          "status": 502,
+          "description": "AI API エラー。",
+          "when": "Claude Vision API の呼び出しが失敗した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "photoId / imageUrl のどちらか必須チェック。",
+          "rules": [
+            {
+              "field": "photoId",
+              "type": "custom",
+              "condition": "@inputs.photoId == null && @inputs.imageUrl == null",
+              "severity": "error",
+              "message": "photoId または imageUrl のいずれかを指定してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "dbAccess",
+          "description": "photoId が指定された場合、photos テーブルから URL を取得する。",
+          "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"photoId\", url FROM photos WHERE id = @inputs.photoId",
+          "runIf": "@inputs.photoId != null",
+          "outputBinding": {
+            "name": "photoRow"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                "purpose": "lookup"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "photoId を指定したが写真が見つからない場合は 404 を返す。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "写真なし",
+              "condition": {
+                "kind": "expression",
+                "expression": "@inputs.photoId != null && @photoRow == null"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "404 写真なしを返す。",
+                  "responseId": "404-not-found",
+                  "bodyExpression": "{ code: 'PHOTO_NOT_FOUND', message: '指定された写真が見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "写真あり",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "compute",
+          "description": "使用する画像 URL を決定する: photoRow.url > inputs.imageUrl の優先順。",
+          "expression": "@photoRow.url ?? @inputs.imageUrl",
+          "outputBinding": {
+            "name": "targetImageUrl"
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "externalSystem",
+          "description": "Claude Vision API に画像を送信し、日本語 alt テキスト (40-100 字) を取得する。",
+          "systemRef": "claudeApi",
+          "httpCall": {
+            "method": "POST",
+            "path": "/v1/messages",
+            "body": "{ model: 'claude-opus-4-7', max_tokens: 256, messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'url', url: @targetImageUrl } }, { type: 'text', text: 'この画像の alt テキストを日本語で 40〜100 字で記述してください。視覚障害者がスクリーンリーダーで内容を理解できるよう、具体的かつ簡潔に描写してください。alt テキストのみを返してください。' }] }] }"
+          },
+          "outputBinding": {
+            "name": "aiResponse"
+          },
+          "outcomes": {
+            "failure": {
+              "action": "abort",
+              "description": "Claude Vision API 呼び出し失敗時は 502 を返す。"
+            }
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "compute",
+          "description": "AI レスポンスから alt テキストを抽出する。",
+          "expression": "@aiResponse.content[0].text",
+          "outputBinding": {
+            "name": "altText"
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "dbAccess",
+          "description": "photos.alt を更新する (photoId が指定された場合のみ)。 (0 行は対象が削除済のケースとして許容、複数行はあり得ない / pitfall #5 対応)",
+          "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+          "operation": "UPDATE",
+          "sql": "UPDATE photos SET alt = @altText WHERE id = @inputs.photoId",
+          "runIf": "@inputs.photoId != null",
+          "lineage": {
+            "writes": [
+              {
+                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                "purpose": "update"
+              }
+            ]
+          },
+          "affectedRowsCheck": {
+            "operator": "<=",
+            "expected": 1,
+            "onViolation": "log",
+            "description": "idempotent な AI フロー: 投稿/写真が削除済の場合 0 行は正常 (silent OK)。複数行は schema 違反なので log。"
+          }
+        },
+        {
+          "id": "step-08",
+          "kind": "return",
+          "description": "200 alt テキストを返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ altText: @altText }"
+        }
+      ]
+    }
+  ]
+}

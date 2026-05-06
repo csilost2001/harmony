@@ -1,0 +1,228 @@
+{
+  "$schema": "../../schemas/v3/harmony.v3.schema.json",
+  "schemaVersion": "v3",
+  "dataDir": "harmony",
+  "meta": {
+    "id": "2ad87c6d-1750-42c1-9796-16d15c559108",
+    "name": "日記アプリ",
+    "description": "Harmony フレームワーク dogfood — 個人向け日記/ブログアプリ。投稿 (タイトル / 本文 / 写真ギャラリー / タグ) + AI assist (要約 / タグ提案 / 文章校正 / 画像 alt 自動生成) + 全文検索。techStack: NestJS + Next.js + Prisma + SQLite + Tailwind。",
+    "createdAt": "2026-05-06T12:40:00.000Z",
+    "updatedAt": "2026-05-06T12:40:00.000Z",
+    "mode": "upstream",
+    "maturity": "draft"
+  },
+  "extensionsApplied": [],
+  "techStack": {
+    "designer": {
+      "editorKind": "puck",
+      "cssFramework": "tailwind"
+    },
+    "backend": {
+      "language": "typescript",
+      "framework": "nestjs"
+    },
+    "database": {
+      "type": "sqlite",
+      "version": "3"
+    },
+    "frontend": {
+      "library": "react",
+      "framework": "next"
+    },
+    "auth": {
+      "method": "jwt"
+    },
+    "deployment": {
+      "target": "docker"
+    }
+  },
+  "entities": {
+    "screens": [
+      {
+        "id": "31d56212-b654-46dc-b004-096c7382c404",
+        "no": 1,
+        "name": "投稿一覧",
+        "kind": "list",
+        "path": "/",
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:30:00.000Z"
+      },
+      {
+        "id": "ffec74d0-6c21-45f7-a387-167ac8819255",
+        "no": 2,
+        "name": "投稿詳細",
+        "kind": "detail",
+        "path": "/post/:id",
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:30:00.000Z"
+      },
+      {
+        "id": "531619ae-0f5f-4f55-8043-03e5a9ef6670",
+        "no": 3,
+        "name": "投稿編集",
+        "kind": "form",
+        "path": "/post/edit/:id?",
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:30:00.000Z"
+      },
+      {
+        "id": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2",
+        "no": 4,
+        "name": "タグ管理",
+        "kind": "list",
+        "path": "/tags",
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:30:00.000Z"
+      },
+      {
+        "id": "a5088d22-4ad8-4615-a4c5-447ff9cdd280",
+        "no": 5,
+        "name": "ログイン",
+        "kind": "login",
+        "path": "/login",
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:30:00.000Z"
+      }
+    ],
+    "tables": [
+      {
+        "id": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
+        "no": 1,
+        "name": "ユーザー",
+        "physicalName": "users",
+        "category": "マスタ",
+        "columnCount": 8,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T12:40:00.000Z"
+      },
+      {
+        "id": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+        "no": 2,
+        "name": "投稿",
+        "physicalName": "posts",
+        "category": "トランザクション",
+        "columnCount": 12,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T12:40:00.000Z"
+      },
+      {
+        "id": "07439e21-0743-48ca-af9e-763e4be2d094",
+        "no": 3,
+        "name": "タグ",
+        "physicalName": "tags",
+        "category": "マスタ",
+        "columnCount": 8,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T12:40:00.000Z"
+      },
+      {
+        "id": "1681eee2-39d9-4548-9044-5cedac68d41e",
+        "no": 4,
+        "name": "投稿タグ (中間)",
+        "physicalName": "post_tags",
+        "category": "中間テーブル",
+        "columnCount": 5,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T12:40:00.000Z"
+      },
+      {
+        "id": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+        "no": 5,
+        "name": "写真",
+        "physicalName": "photos",
+        "category": "トランザクション",
+        "columnCount": 13,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T12:40:00.000Z"
+      }
+    ],
+    "processFlows": [
+      {
+        "id": "0671b051-4acc-49cf-ba92-9fa29b47f671",
+        "no": 1,
+        "name": "投稿作成",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:00:00.000Z"
+      },
+      {
+        "id": "b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "no": 2,
+        "name": "投稿更新",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:00:00.000Z"
+      },
+      {
+        "id": "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f",
+        "no": 3,
+        "name": "投稿削除",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:00:00.000Z"
+      },
+      {
+        "id": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "no": 4,
+        "name": "投稿詳細取得",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:00:00.000Z"
+      },
+      {
+        "id": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+        "no": 5,
+        "name": "投稿検索",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:00:00.000Z"
+      },
+      {
+        "id": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
+        "no": 6,
+        "name": "AI要約生成",
+        "kind": "common",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:00:00.000Z"
+      },
+      {
+        "id": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
+        "no": 7,
+        "name": "AIタグ提案",
+        "kind": "common",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:00:00.000Z"
+      },
+      {
+        "id": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e",
+        "no": 8,
+        "name": "AI画像alt生成",
+        "kind": "common",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:00:00.000Z"
+      },
+      {
+        "id": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+        "no": 9,
+        "name": "AI文章校正",
+        "kind": "common",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-06T14:00:00.000Z"
+      }
+    ],
+    "sequences": [],
+    "views": [],
+    "viewDefinitions": [],
+    "screenGroups": [],
+    "screenTransitions": []
+  }
+}

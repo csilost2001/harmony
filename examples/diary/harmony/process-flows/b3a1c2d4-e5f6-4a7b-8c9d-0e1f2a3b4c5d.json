@@ -1,0 +1,382 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    "name": "投稿更新",
+    "description": "既存投稿を更新する処理フロー。所有者検証後、posts / photos / post_tags を 1 TX 内に更新する。status を 'published' に変更する場合は published_at を NOW に設定する。",
+    "kind": "screen",
+    "maturity": "draft",
+    "createdAt": "2026-05-06T14:00:00.000Z",
+    "updatedAt": "2026-05-06T14:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "入力値が不正です。",
+          "responseId": "400-validation",
+          "description": "title / body 長さチェック、status 値チェック等のバリデーションエラー。"
+        },
+        "UNAUTHORIZED": {
+          "httpStatus": 401,
+          "defaultMessage": "認証が必要です。",
+          "responseId": "401-unauthorized",
+          "description": "セッションユーザーが取得できない場合。"
+        },
+        "FORBIDDEN": {
+          "httpStatus": 403,
+          "defaultMessage": "この投稿を更新する権限がありません。",
+          "responseId": "403-forbidden",
+          "description": "投稿の所有者でない場合。"
+        },
+        "POST_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "投稿が見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定された postId の投稿が存在しない場合。"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": true,
+        "description": "ログインユーザー ID (JWT から抽出)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "投稿更新",
+      "trigger": "submit",
+      "description": "postId で既存投稿を特定し、所有者検証後に posts / photos / post_tags を更新する。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "PUT",
+        "path": "/api/posts/:id",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "postId",
+          "label": "投稿ID",
+          "type": "integer",
+          "required": true,
+          "description": "更新対象の投稿 ID (URL パスパラメータ)。"
+        },
+        {
+          "name": "title",
+          "label": "タイトル",
+          "type": "string",
+          "required": false,
+          "description": "更新後のタイトル (最大 200 文字)。"
+        },
+        {
+          "name": "body",
+          "label": "本文",
+          "type": "string",
+          "required": false,
+          "description": "更新後の本文。"
+        },
+        {
+          "name": "mood",
+          "label": "気分",
+          "type": "string",
+          "required": false,
+          "description": "更新後の気分。"
+        },
+        {
+          "name": "weather",
+          "label": "天気",
+          "type": "string",
+          "required": false,
+          "description": "更新後の天気。"
+        },
+        {
+          "name": "location",
+          "label": "場所",
+          "type": "string",
+          "required": false,
+          "description": "更新後の場所。"
+        },
+        {
+          "name": "status",
+          "label": "ステータス",
+          "type": "string",
+          "required": false,
+          "description": "'draft' または 'published'。published に変更すると published_at が設定される。"
+        },
+        {
+          "name": "photos",
+          "label": "写真リスト",
+          "type": "array",
+          "required": false,
+          "description": "差分更新用写真リスト。既存写真を全削除して再挿入する。"
+        },
+        {
+          "name": "tags",
+          "label": "タグリスト",
+          "type": "array",
+          "required": false,
+          "description": "差分更新用タグリスト。既存 post_tags を全削除して再挿入する。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "postId",
+          "label": "投稿ID",
+          "type": "integer",
+          "description": "更新した投稿の ID。"
+        },
+        {
+          "name": "updatedAt",
+          "label": "更新日時",
+          "type": "string",
+          "description": "更新後の updated_at タイムスタンプ。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "投稿更新成功。",
+          "when": "所有者検証と全 DB 更新が正常完了した場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "バリデーションエラー。",
+          "when": "title が 200 文字超、status が不正値の場合。"
+        },
+        {
+          "id": "401-unauthorized",
+          "status": 401,
+          "description": "認証エラー。",
+          "when": "JWT が無効の場合。"
+        },
+        {
+          "id": "403-forbidden",
+          "status": 403,
+          "description": "権限エラー。",
+          "when": "投稿の所有者でない場合。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "投稿が存在しない。",
+          "when": "指定 postId の投稿が見つからない場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "title 最大長チェック、status 値チェック。",
+          "rules": [
+            {
+              "field": "title",
+              "type": "maxLength",
+              "length": 200,
+              "severity": "error",
+              "message": "タイトルは 200 文字以内で入力してください。"
+            },
+            {
+              "field": "status",
+              "type": "enum",
+              "values": ["draft", "published"],
+              "severity": "error",
+              "message": "ステータスは 'draft' または 'published' で指定してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "dbAccess",
+          "description": "投稿の存在確認と所有者情報の取得。",
+          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"postId\", user_id AS \"userId\", status, published_at AS \"publishedAt\" FROM posts WHERE id = @inputs.postId",
+          "outputBinding": { "name": "existingPost" },
+          "lineage": {
+            "reads": [{ "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "lookup" }]
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "投稿が存在しない場合は 404 を返す。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "投稿なし",
+              "condition": {
+                "kind": "expression",
+                "expression": "@existingPost == null"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "404 投稿なしを返す。",
+                  "responseId": "404-not-found",
+                  "bodyExpression": "{ code: 'POST_NOT_FOUND', message: '指定された投稿が見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "投稿あり",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "branch",
+          "description": "所有者でない場合は 403 を返す。",
+          "branches": [
+            {
+              "id": "br-04-a",
+              "code": "A",
+              "label": "所有者でない",
+              "condition": {
+                "kind": "expression",
+                "expression": "@existingPost.userId != @sessionUserId"
+              },
+              "steps": [
+                {
+                  "id": "step-04-a-01",
+                  "kind": "return",
+                  "description": "403 権限エラーを返す。",
+                  "responseId": "403-forbidden",
+                  "bodyExpression": "{ code: 'FORBIDDEN', message: 'この投稿を更新する権限がありません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-04-else",
+            "code": "B",
+            "label": "所有者",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "compute",
+          "description": "published_at の計算: status が 'published' に変わる場合は NOW、既に 'published' の場合は既存値を保持、それ以外は null。",
+          "expression": "@inputs.status == 'published' && @existingPost.status != 'published' ? new Date().toISOString() : (@existingPost.publishedAt)",
+          "outputBinding": { "name": "newPublishedAt" }
+        },
+        {
+          "id": "step-06",
+          "kind": "dbAccess",
+          "description": "posts テーブルを更新する。",
+          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "operation": "UPDATE",
+          "sql": "UPDATE posts SET title = COALESCE(@inputs.title, title), body = COALESCE(@inputs.body, body), mood = COALESCE(@inputs.mood, mood), weather = COALESCE(@inputs.weather, weather), location = COALESCE(@inputs.location, location), status = COALESCE(@inputs.status, status), published_at = @newPublishedAt, updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.postId",
+          "txBoundary": { "role": "begin", "txId": "tx-post-update" },
+          "lineage": {
+            "writes": [{ "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "update" }]
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "dbAccess",
+          "description": "既存写真を全削除する (photos が指定された場合)。",
+          "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+          "operation": "DELETE",
+          "sql": "DELETE FROM photos WHERE post_id = @inputs.postId",
+          "runIf": "@inputs.photos != null",
+          "txBoundary": { "role": "member", "txId": "tx-post-update" },
+          "lineage": {
+            "writes": [{ "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "purpose": "soft-delete" }]
+          }
+        },
+        {
+          "id": "step-08",
+          "kind": "loop",
+          "description": "新しい写真を photos テーブルに INSERT する。",
+          "loopKind": "collection",
+          "collectionSource": "@inputs.photos",
+          "collectionItemName": "photo",
+          "runIf": "@inputs.photos != null",
+          "txBoundary": { "role": "member", "txId": "tx-post-update" },
+          "steps": [
+            {
+              "id": "step-08-01",
+              "kind": "dbAccess",
+              "description": "photos テーブルに写真を INSERT する。",
+              "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+              "operation": "INSERT",
+              "sql": "INSERT INTO photos (post_id, url, thumbnail_url, alt, caption, order_index, width, height, exif_json, created_at) VALUES (@inputs.postId, @photo.url, @photo.thumbnail_url, @photo.alt, @photo.caption, COALESCE(@photo.order_index, 0), @photo.width, @photo.height, @photo.exif_json, CURRENT_TIMESTAMP)",
+              "lineage": {
+                "writes": [{ "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "purpose": "insert" }]
+              }
+            }
+          ]
+        },
+        {
+          "id": "step-09",
+          "kind": "dbAccess",
+          "description": "既存の post_tags を全削除する (tags が指定された場合)。",
+          "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+          "operation": "DELETE",
+          "sql": "DELETE FROM post_tags WHERE post_id = @inputs.postId",
+          "runIf": "@inputs.tags != null",
+          "txBoundary": { "role": "member", "txId": "tx-post-update" },
+          "lineage": {
+            "writes": [{ "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e", "purpose": "soft-delete" }]
+          }
+        },
+        {
+          "id": "step-10",
+          "kind": "loop",
+          "description": "新しいタグを post_tags に INSERT する。",
+          "loopKind": "collection",
+          "collectionSource": "@inputs.tags",
+          "collectionItemName": "tag",
+          "runIf": "@inputs.tags != null",
+          "txBoundary": { "role": "end", "txId": "tx-post-update" },
+          "steps": [
+            {
+              "id": "step-10-01",
+              "kind": "dbAccess",
+              "description": "post_tags に投稿とタグの関連を INSERT する。",
+              "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+              "operation": "INSERT",
+              "sql": "INSERT INTO post_tags (post_id, tag_id, source, confidence, created_at) VALUES (@inputs.postId, @tag.id, COALESCE(@tag.source, 'manual'), COALESCE(@tag.confidence, 1.0), CURRENT_TIMESTAMP)",
+              "lineage": {
+                "writes": [{ "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e", "purpose": "insert" }]
+              }
+            }
+          ]
+        },
+        {
+          "id": "step-11",
+          "kind": "return",
+          "description": "200 更新成功を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ postId: @inputs.postId, updatedAt: new Date().toISOString() }"
+        }
+      ]
+    }
+  ]
+}

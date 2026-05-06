@@ -1,0 +1,170 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "ffec74d0-6c21-45f7-a387-167ac8819255",
+  "name": "投稿詳細",
+  "description": "Medium 風の投稿詳細表示画面。ヒーロー画像・タイトル・メタ情報 (公開日/著者/mood/天気/場所) + Markdownレンダリング本文 + フォトギャラリー + タグチップを表示。所有者には編集/削除ボタンを表示。",
+  "kind": "detail",
+  "path": "/post/:id",
+  "auth": "required",
+  "maturity": "draft",
+  "createdAt": "2026-05-06T14:30:00.000Z",
+  "updatedAt": "2026-05-06T14:30:00.000Z",
+  "items": [
+    {
+      "id": "postId",
+      "label": "投稿ID",
+      "type": "string",
+      "direction": "output",
+      "description": "URLパラメータから取得した投稿ID。投稿詳細取得フローに渡す。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "postId"
+      }
+    },
+    {
+      "id": "postTitle",
+      "label": "タイトル",
+      "type": "string",
+      "direction": "output",
+      "description": "投稿タイトル。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "title"
+      }
+    },
+    {
+      "id": "postBody",
+      "label": "本文",
+      "type": "string",
+      "direction": "output",
+      "description": "投稿本文 (Markdown形式)。prose-lg スタイルでレンダリングする。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "body"
+      }
+    },
+    {
+      "id": "heroImageUrl",
+      "label": "ヒーロー画像URL",
+      "type": "string",
+      "direction": "output",
+      "description": "投稿のヒーロー画像URL。null の場合はグラデーション背景で代替。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "heroImageUrl"
+      }
+    },
+    {
+      "id": "publishedAt",
+      "label": "公開日",
+      "type": "datetime",
+      "direction": "output",
+      "displayFormat": "YYYY年MM月DD日",
+      "description": "投稿公開日時。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "publishedAt"
+      }
+    },
+    {
+      "id": "authorName",
+      "label": "著者名",
+      "type": "string",
+      "direction": "output",
+      "description": "投稿者の表示名。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "authorName"
+      }
+    },
+    {
+      "id": "mood",
+      "label": "気分",
+      "type": "string",
+      "direction": "output",
+      "description": "投稿時の気分を表す絵文字または文字列。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "mood"
+      }
+    },
+    {
+      "id": "weather",
+      "label": "天気",
+      "type": "string",
+      "direction": "output",
+      "description": "投稿時の天気を表す絵文字または文字列。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "weather"
+      }
+    },
+    {
+      "id": "location",
+      "label": "場所",
+      "type": "string",
+      "direction": "output",
+      "description": "投稿に記録された場所名。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "location"
+      }
+    },
+    {
+      "id": "tags",
+      "label": "タグ",
+      "type": "array",
+      "direction": "output",
+      "description": "この投稿に付与されたタグ配列 (id / name / slug / color を含む)。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "tags"
+      }
+    },
+    {
+      "id": "photos",
+      "label": "フォトギャラリー",
+      "type": "array",
+      "direction": "output",
+      "description": "この投稿に添付された写真配列 (id / url / altText / order を含む)。lightbox 対応。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "photos"
+      }
+    },
+    {
+      "id": "isOwner",
+      "label": "所有者フラグ",
+      "type": "boolean",
+      "direction": "output",
+      "description": "ログインユーザーが投稿者本人かどうか。true の場合に編集/削除ボタンを表示。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "isOwner"
+      }
+    },
+    {
+      "id": "deleteConfirm",
+      "label": "削除実行",
+      "type": "boolean",
+      "direction": "input",
+      "description": "削除確認ダイアログでOKを押した際に投稿削除フローを呼び出すトリガー。",
+      "required": false
+    }
+  ],
+  "design": {
+    "designFileRef": "ffec74d0-6c21-45f7-a387-167ac8819255.design.json"
+  }
+}

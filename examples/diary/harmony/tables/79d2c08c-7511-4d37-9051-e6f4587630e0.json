@@ -1,0 +1,157 @@
+{
+  "$schema": "../../../../schemas/v3/table.v3.schema.json",
+  "id": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+  "name": "投稿",
+  "description": "日記/ブログの投稿1件。本文 (Markdown 想定) + AI 生成サマリ + 気分・天気メタ + 公開ステータス。写真は photos テーブル、タグは post_tags 中間テーブル経由 N:N。",
+  "maturity": "draft",
+  "createdAt": "2026-05-06T12:40:00.000Z",
+  "updatedAt": "2026-05-06T12:40:00.000Z",
+  "physicalName": "posts",
+  "category": "トランザクション",
+  "comment": "投稿テーブル。本文は Markdown、AI が summary / 推奨 tag を補完する",
+  "columns": [
+    {
+      "id": "col-id",
+      "no": 1,
+      "physicalName": "id",
+      "name": "投稿ID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "primaryKey": true,
+      "autoIncrement": true,
+      "comment": "サロゲートキー (自動採番)"
+    },
+    {
+      "id": "col-user-id",
+      "no": 2,
+      "physicalName": "user_id",
+      "name": "投稿者ID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "comment": "FK → users.id"
+    },
+    {
+      "id": "col-title",
+      "no": 3,
+      "physicalName": "title",
+      "name": "タイトル",
+      "dataType": "VARCHAR",
+      "length": 255,
+      "notNull": true,
+      "comment": "投稿タイトル (空不可)"
+    },
+    {
+      "id": "col-body",
+      "no": 4,
+      "physicalName": "body",
+      "name": "本文",
+      "dataType": "TEXT",
+      "notNull": true,
+      "comment": "本文 (Markdown)。画像は body 内には埋め込まず photos テーブルで管理"
+    },
+    {
+      "id": "col-summary",
+      "no": 5,
+      "physicalName": "summary",
+      "name": "要約",
+      "dataType": "TEXT",
+      "comment": "AI 生成の本文要約 (3-5 文)。一覧画面の preview に使う"
+    },
+    {
+      "id": "col-status",
+      "no": 6,
+      "physicalName": "status",
+      "name": "公開ステータス",
+      "dataType": "VARCHAR",
+      "length": 20,
+      "notNull": true,
+      "defaultValue": "'draft'",
+      "comment": "draft (下書き) / published (公開) / archived (アーカイブ)"
+    },
+    {
+      "id": "col-mood",
+      "no": 7,
+      "physicalName": "mood",
+      "name": "気分",
+      "dataType": "VARCHAR",
+      "length": 32,
+      "comment": "happy / calm / excited / tired / sad / anxious / grateful 等。投稿時にユーザー選択 or AI 推測"
+    },
+    {
+      "id": "col-weather",
+      "no": 8,
+      "physicalName": "weather",
+      "name": "天気",
+      "dataType": "VARCHAR",
+      "length": 32,
+      "comment": "sunny / cloudy / rainy / snowy 等。手入力 or 位置情報 + 天気 API 連携 (将来)"
+    },
+    {
+      "id": "col-location",
+      "no": 9,
+      "physicalName": "location",
+      "name": "場所",
+      "dataType": "VARCHAR",
+      "length": 255,
+      "comment": "場所のテキスト (例: 'カフェ', '自宅', '京都')。GPS は将来拡張"
+    },
+    {
+      "id": "col-published-at",
+      "no": 10,
+      "physicalName": "published_at",
+      "name": "公開日時",
+      "dataType": "TIMESTAMP",
+      "comment": "status='published' になった時刻。下書きは null"
+    },
+    {
+      "id": "col-created-at",
+      "no": 11,
+      "physicalName": "created_at",
+      "name": "作成日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    },
+    {
+      "id": "col-updated-at",
+      "no": 12,
+      "physicalName": "updated_at",
+      "name": "更新日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    }
+  ],
+  "indexes": [
+    {
+      "id": "idx-user-published",
+      "physicalName": "idx_posts_user_published",
+      "columns": [
+        { "columnId": "col-user-id", "order": "asc" },
+        { "columnId": "col-published-at", "order": "desc" }
+      ],
+      "description": "ユーザー別の公開順 (一覧画面のソート)"
+    },
+    {
+      "id": "idx-status",
+      "physicalName": "idx_posts_status",
+      "columns": [{ "columnId": "col-status" }],
+      "description": "下書き/公開フィルタ"
+    },
+    {
+      "id": "idx-created-at",
+      "physicalName": "idx_posts_created_at",
+      "columns": [{ "columnId": "col-created-at", "order": "desc" }],
+      "description": "新着投稿のスキャン用"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "chk-status",
+      "kind": "check",
+      "physicalName": "chk_posts_status",
+      "expression": "status IN ('draft', 'published', 'archived')",
+      "description": "status は許可値のみ"
+    }
+  ]
+}

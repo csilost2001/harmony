@@ -1,0 +1,240 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
+    "name": "AI要約生成",
+    "description": "投稿本文を Claude AI へ送信し、3-5 文の日本語要約を生成して posts.summary に書き戻す処理フロー。投稿作成/更新後に非同期で呼ぶ想定 (TX 外、idempotent)。使用モデルは conventions/catalog.json の ai.summarizeModel を参照。 / 注: AI モデル名 (claude-opus-4-7) は本 PR 時点でリテラル文字列としてハードコード — `@conv.ai.*` および `@env.*` 参照のフレームワークサポートは #859 で対応予定 (現状 dead config を避けるため envVars カタログは登録しない)。",
+    "kind": "common",
+    "maturity": "draft",
+    "createdAt": "2026-05-06T14:00:00.000Z",
+    "updatedAt": "2026-05-06T14:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "POST_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "投稿が見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定された postId の投稿が存在しない場合。"
+        },
+        "AI_API_ERROR": {
+          "httpStatus": 502,
+          "defaultMessage": "AI API の呼び出しに失敗しました。",
+          "responseId": "502-ai-error",
+          "description": "Claude API へのリクエストが失敗した場合。"
+        }
+      },
+      "externalSystems": {
+        "claudeApi": {
+          "name": "Claude AI API",
+          "baseUrl": "@env.CLAUDE_API_BASE_URL",
+          "auth": {
+            "kind": "bearer",
+            "tokenRef": "@secret.claudeApiKey"
+          },
+          "timeoutMs": 30000,
+          "retryPolicy": {
+            "maxAttempts": 2,
+            "backoff": "exponential",
+            "initialDelayMs": 1000
+          }
+        }
+      },
+      "secrets": {
+        "claudeApiKey": {
+          "source": "env",
+          "name": "CLAUDE_API_KEY",
+          "description": "Claude API の認証キー。"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": false,
+        "description": "ログインユーザー ID (JWT から抽出)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "AI要約生成",
+      "trigger": "submit",
+      "description": "postId (または body 直接) を受け取り、Claude API で要約を生成して posts.summary を更新する。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/ai/summarize",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "postId",
+          "label": "投稿ID",
+          "type": "integer",
+          "required": false,
+          "description": "要約対象の投稿 ID。body が未指定の場合は必須。"
+        },
+        {
+          "name": "body",
+          "label": "本文",
+          "type": "string",
+          "required": false,
+          "description": "要約対象の本文テキスト。postId が未指定の場合は必須。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "summary",
+          "label": "要約",
+          "type": "string",
+          "description": "生成された日本語要約 (3-5 文)。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "要約生成成功。",
+          "when": "Claude API の呼び出しと DB 更新が正常完了した場合。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "投稿が存在しない。",
+          "when": "postId を指定したが投稿が見つからない場合。"
+        },
+        {
+          "id": "502-ai-error",
+          "status": 502,
+          "description": "AI API エラー。",
+          "when": "Claude API の呼び出しが失敗した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "dbAccess",
+          "description": "postId が指定された場合、posts テーブルから本文を取得する。",
+          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"postId\", body FROM posts WHERE id = @inputs.postId",
+          "runIf": "@inputs.postId != null",
+          "outputBinding": {
+            "name": "postRow"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                "purpose": "lookup"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "branch",
+          "description": "postId を指定したが投稿が見つからない場合は 404 を返す。",
+          "branches": [
+            {
+              "id": "br-02-a",
+              "code": "A",
+              "label": "投稿なし",
+              "condition": {
+                "kind": "expression",
+                "expression": "@inputs.postId != null && @postRow == null"
+              },
+              "steps": [
+                {
+                  "id": "step-02-a-01",
+                  "kind": "return",
+                  "description": "404 投稿なしを返す。",
+                  "responseId": "404-not-found",
+                  "bodyExpression": "{ code: 'POST_NOT_FOUND', message: '指定された投稿が見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-02-else",
+            "code": "B",
+            "label": "本文取得済",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "compute",
+          "description": "要約対象の本文を決定する: inputs.body > postRow.body の優先順。",
+          "expression": "@inputs.body ?? @postRow.body",
+          "outputBinding": {
+            "name": "targetBody"
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "externalSystem",
+          "description": "Claude API に要約プロンプトを送信し、3-5 文の日本語要約を取得する。",
+          "systemRef": "claudeApi",
+          "httpCall": {
+            "method": "POST",
+            "path": "/v1/messages",
+            "body": "{ model: 'claude-opus-4-7', max_tokens: 512, messages: [{ role: 'user', content: '以下の日記の文章を 3〜5 文で日本語で要約してください。\\n\\n' + @targetBody }] }"
+          },
+          "outputBinding": {
+            "name": "aiResponse"
+          },
+          "outcomes": {
+            "failure": {
+              "action": "abort",
+              "description": "Claude API 呼び出し失敗時は 502 を返す。"
+            }
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "compute",
+          "description": "Claude API レスポンスから要約テキストを抽出する。",
+          "expression": "@aiResponse.content[0].text",
+          "outputBinding": {
+            "name": "summaryText"
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "dbAccess",
+          "description": "posts.summary を更新する (postId が指定された場合のみ)。 (0 行は対象が削除済のケースとして許容、複数行はあり得ない / pitfall #5 対応)",
+          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "operation": "UPDATE",
+          "sql": "UPDATE posts SET summary = @summaryText, updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.postId",
+          "runIf": "@inputs.postId != null",
+          "lineage": {
+            "writes": [
+              {
+                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                "purpose": "update"
+              }
+            ]
+          },
+          "affectedRowsCheck": {
+            "operator": "<=",
+            "expected": 1,
+            "onViolation": "log",
+            "description": "idempotent な AI フロー: 投稿/写真が削除済の場合 0 行は正常 (silent OK)。複数行は schema 違反なので log。"
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "return",
+          "description": "200 要約を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ summary: @summaryText }"
+        }
+      ]
+    }
+  ]
+}

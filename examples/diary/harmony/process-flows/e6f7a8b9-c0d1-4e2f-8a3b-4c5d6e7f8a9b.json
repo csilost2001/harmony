@@ -1,0 +1,226 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+    "name": "投稿検索",
+    "description": "投稿を動的条件で検索するフロー。全文検索 (title+body LIKE)、タグ絞り込み (slug AND 条件)、ステータス / 日付範囲 / ページネーションをサポートする。",
+    "kind": "screen",
+    "maturity": "draft",
+    "createdAt": "2026-05-06T14:00:00.000Z",
+    "updatedAt": "2026-05-06T14:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "検索パラメータが不正です。",
+          "responseId": "400-validation",
+          "description": "limit / offset が負の値等のバリデーションエラー。"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": false,
+        "description": "ログインユーザー ID (JWT から抽出)。未ログインの場合は null。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "投稿検索",
+      "trigger": "load",
+      "description": "クエリパラメータで動的検索を実行し、投稿サマリのページネーション結果を返す。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "GET",
+        "path": "/api/posts/search",
+        "auth": "optional"
+      },
+      "inputs": [
+        {
+          "name": "q",
+          "label": "検索キーワード",
+          "type": "string",
+          "required": false,
+          "description": "title + body に対する全文検索キーワード。"
+        },
+        {
+          "name": "tagSlug",
+          "label": "タグスラッグ",
+          "type": "string",
+          "required": false,
+          "description": "絞り込むタグのスラッグ (カンマ区切りで複数指定可、AND 条件)。"
+        },
+        {
+          "name": "status",
+          "label": "ステータス",
+          "type": "string",
+          "required": false,
+          "description": "絞り込むステータス。未指定時は 'published'。"
+        },
+        {
+          "name": "dateFrom",
+          "label": "開始日",
+          "type": "string",
+          "required": false,
+          "description": "published_at の検索開始日 (ISO 8601 日付)。"
+        },
+        {
+          "name": "dateTo",
+          "label": "終了日",
+          "type": "string",
+          "required": false,
+          "description": "published_at の検索終了日 (ISO 8601 日付)。"
+        },
+        {
+          "name": "limit",
+          "label": "取得件数",
+          "type": "integer",
+          "required": false,
+          "description": "1 ページあたりの取得件数。未指定時は 20。"
+        },
+        {
+          "name": "offset",
+          "label": "オフセット",
+          "type": "integer",
+          "required": false,
+          "description": "取得開始位置のオフセット。未指定時は 0。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "items",
+          "label": "投稿リスト",
+          "type": "array",
+          "description": "投稿サマリの配列 (post + thumbnail + tags サマリ)。"
+        },
+        {
+          "name": "total",
+          "label": "総件数",
+          "type": "integer",
+          "description": "条件に一致する総投稿件数。"
+        },
+        {
+          "name": "hasNext",
+          "label": "次ページあり",
+          "type": "boolean",
+          "description": "次のページが存在するかどうか。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "検索成功。",
+          "when": "検索が正常完了した場合 (ヒット 0 件でも 200)。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "バリデーションエラー。",
+          "when": "limit / offset が負の値等の場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "limit / offset の範囲チェック。",
+          "rules": [
+            {
+              "field": "limit",
+              "type": "range",
+              "min": 1,
+              "max": 100,
+              "severity": "error",
+              "message": "limit は 1〜100 の範囲で指定してください。"
+            },
+            {
+              "field": "offset",
+              "type": "range",
+              "min": 0,
+              "severity": "error",
+              "message": "offset は 0 以上で指定してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '検索パラメータが不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "compute",
+          "description": "検索パラメータのデフォルト値設定: status='published'、limit=20、offset=0。",
+          "expression": "{ status: @inputs.status ?? 'published', limit: @inputs.limit ?? 20, offset: @inputs.offset ?? 0 }",
+          "outputBinding": { "name": "params" }
+        },
+        {
+          "id": "step-03",
+          "kind": "compute",
+          "description": "全文検索用の LIKE パターンを事前に計算する。@inputs.q が null の場合は null を設定し、SQL 側で NULL チェックする。",
+          "expression": "@inputs.q != null ? '%' + @inputs.q + '%' : null",
+          "outputBinding": { "name": "likePattern" }
+        },
+        {
+          "id": "step-04",
+          "kind": "dbAccess",
+          "description": "条件に一致する投稿を検索し、サムネイルを取得する。全文検索 (LIKE)、ステータス / 日付範囲フィルタ、ORDER BY published_at DESC、LIMIT / OFFSET を適用する。",
+          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "operation": "SELECT",
+          "sql": "SELECT p.id AS \"postId\", p.title, p.summary, p.status, p.mood, p.published_at AS \"publishedAt\", p.updated_at AS \"updatedAt\", u.display_name AS \"authorDisplayName\", (SELECT url FROM photos WHERE post_id = p.id ORDER BY order_index ASC LIMIT 1) AS \"thumbnailUrl\" FROM posts p INNER JOIN users u ON u.id = p.user_id WHERE p.status = @params.status AND (@likePattern IS NULL OR p.title LIKE @likePattern OR p.body LIKE @likePattern) AND (@inputs.dateFrom IS NULL OR p.published_at >= @inputs.dateFrom) AND (@inputs.dateTo IS NULL OR p.published_at <= @inputs.dateTo) ORDER BY p.published_at DESC LIMIT @params.limit OFFSET @params.offset",
+          "outputBinding": { "name": "searchResults" },
+          "lineage": {
+            "reads": [
+              { "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "lookup" },
+              { "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa", "purpose": "lookup" },
+              { "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "purpose": "lookup" }
+            ]
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "dbAccess",
+          "description": "同条件での総件数を取得する。",
+          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "operation": "SELECT",
+          "sql": "SELECT COUNT(*) AS \"totalCount\" FROM posts p WHERE p.status = @params.status AND (@likePattern IS NULL OR p.title LIKE @likePattern OR p.body LIKE @likePattern) AND (@inputs.dateFrom IS NULL OR p.published_at >= @inputs.dateFrom) AND (@inputs.dateTo IS NULL OR p.published_at <= @inputs.dateTo)",
+          "outputBinding": {
+            "name": "countResult",
+            "transformations": [{ "field": "totalCount", "type": "integer" }]
+          },
+          "lineage": {
+            "reads": [{ "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "lookup" }]
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "compute",
+          "description": "hasNext を計算する: offset + limit < total ならば true。",
+          "expression": "@params.offset + @params.limit < @countResult.totalCount",
+          "outputBinding": { "name": "hasNext" }
+        },
+        {
+          "id": "step-07",
+          "kind": "return",
+          "description": "200 検索結果を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ items: @searchResults, total: @countResult.totalCount, hasNext: @hasNext }"
+        }
+      ]
+    }
+  ]
+}

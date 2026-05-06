@@ -1,0 +1,202 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+    "name": "投稿詳細取得",
+    "description": "投稿の詳細情報を取得する処理フロー。posts を取得し、users (author)、photos (order_index ASC)、tags (post_tags JOIN tags) の情報を結合して返す。公開状態チェック: status='published' は誰でもアクセス可、'draft'/'archived' は所有者のみ。",
+    "kind": "screen",
+    "maturity": "draft",
+    "createdAt": "2026-05-06T14:00:00.000Z",
+    "updatedAt": "2026-05-06T14:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "FORBIDDEN": {
+          "httpStatus": 403,
+          "defaultMessage": "この投稿へのアクセス権限がありません。",
+          "responseId": "403-forbidden",
+          "description": "非公開投稿に所有者以外がアクセスした場合。"
+        },
+        "POST_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "投稿が見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定された postId の投稿が存在しない場合。"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": false,
+        "description": "ログインユーザー ID (JWT から抽出)。未ログインの場合は null。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "投稿詳細取得",
+      "trigger": "load",
+      "description": "postId で投稿を取得し、author / photos / tags を結合して返す。アクセス権チェックを行う。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "GET",
+        "path": "/api/posts/:id",
+        "auth": "optional"
+      },
+      "inputs": [
+        {
+          "name": "postId",
+          "label": "投稿ID",
+          "type": "integer",
+          "required": true,
+          "description": "取得する投稿の ID (URL パスパラメータ)。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "post",
+          "label": "投稿",
+          "type": "object",
+          "description": "投稿の全項目 + author + photos[] + tags[]。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "投稿詳細取得成功。",
+          "when": "投稿が存在し、アクセス権がある場合。"
+        },
+        {
+          "id": "403-forbidden",
+          "status": 403,
+          "description": "権限エラー。",
+          "when": "非公開投稿に所有者以外がアクセスした場合。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "投稿が存在しない。",
+          "when": "指定 postId の投稿が見つからない場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "dbAccess",
+          "description": "posts テーブルから投稿を取得し、users テーブルを JOIN して author 情報を取得する。",
+          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "operation": "SELECT",
+          "sql": "SELECT p.id AS \"postId\", p.user_id AS \"userId\", p.title, p.body, p.summary, p.status, p.mood, p.weather, p.location, p.published_at AS \"publishedAt\", p.created_at AS \"createdAt\", p.updated_at AS \"updatedAt\", u.display_name AS \"authorDisplayName\", u.avatar_url AS \"authorAvatarUrl\" FROM posts p INNER JOIN users u ON u.id = p.user_id WHERE p.id = @inputs.postId",
+          "outputBinding": { "name": "postRow" },
+          "lineage": {
+            "reads": [
+              { "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "lookup" },
+              { "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa", "purpose": "lookup" }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "branch",
+          "description": "投稿が存在しない場合は 404 を返す。",
+          "branches": [
+            {
+              "id": "br-02-a",
+              "code": "A",
+              "label": "投稿なし",
+              "condition": {
+                "kind": "expression",
+                "expression": "@postRow == null"
+              },
+              "steps": [
+                {
+                  "id": "step-02-a-01",
+                  "kind": "return",
+                  "description": "404 投稿なしを返す。",
+                  "responseId": "404-not-found",
+                  "bodyExpression": "{ code: 'POST_NOT_FOUND', message: '指定された投稿が見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-02-else",
+            "code": "B",
+            "label": "投稿あり",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "非公開投稿 (draft/archived) の場合、所有者でなければ 403 を返す。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "非公開かつ非所有者",
+              "condition": {
+                "kind": "expression",
+                "expression": "@postRow.status != 'published' && @postRow.userId != @sessionUserId"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "403 権限エラーを返す。",
+                  "responseId": "403-forbidden",
+                  "bodyExpression": "{ code: 'FORBIDDEN', message: 'この投稿へのアクセス権限がありません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "アクセス許可",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "dbAccess",
+          "description": "photos テーブルから該当投稿の写真一覧を order_index ASC で取得する。",
+          "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"photoId\", url, thumbnail_url AS \"thumbnailUrl\", alt, caption, order_index AS \"orderIndex\", width, height FROM photos WHERE post_id = @inputs.postId ORDER BY order_index ASC",
+          "outputBinding": { "name": "photos" },
+          "lineage": {
+            "reads": [{ "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "purpose": "lookup" }]
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "dbAccess",
+          "description": "post_tags と tags を JOIN して該当投稿のタグ一覧を取得する。",
+          "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+          "operation": "SELECT",
+          "sql": "SELECT t.id AS \"tagId\", t.name AS \"tagName\", t.slug, t.color, t.icon, pt.source, pt.confidence FROM post_tags pt INNER JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = @inputs.postId",
+          "outputBinding": { "name": "tags" },
+          "lineage": {
+            "reads": [
+              { "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e", "purpose": "lookup" },
+              { "tableId": "07439e21-0743-48ca-af9e-763e4be2d094", "purpose": "lookup" }
+            ]
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "return",
+          "description": "200 投稿詳細を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ post: { ...@postRow, photos: @photos, tags: @tags } }"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,386 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "0671b051-4acc-49cf-ba92-9fa29b47f671",
+    "name": "投稿作成",
+    "description": "新規投稿を作成する処理フロー。タイトル + 本文 + 写真 + タグを受け取り、posts / photos / post_tags を 1 TX 内に登録する。status='published' の場合は published_at を NOW に設定する。AI 要約 (aiSummarize) は別フローで非同期実行を想定。",
+    "kind": "screen",
+    "maturity": "draft",
+    "createdAt": "2026-05-06T12:40:00.000Z",
+    "updatedAt": "2026-05-06T14:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "入力値が不正です。",
+          "responseId": "400-validation",
+          "description": "title / body 必須チェック、status 値チェック等のバリデーションエラー。"
+        },
+        "UNAUTHORIZED": {
+          "httpStatus": 401,
+          "defaultMessage": "認証が必要です。",
+          "responseId": "401-unauthorized",
+          "description": "セッションユーザーが取得できない場合。ゲートウェイ層で保証。"
+        },
+        "POST_CREATE_FAILED": {
+          "httpStatus": 500,
+          "defaultMessage": "投稿の作成に失敗しました。",
+          "responseId": "500-internal",
+          "description": "DB INSERT が 0 行を返す等の予期しない内部失敗。"
+        },
+        "UNIQUE_VIOLATION": {
+          "httpStatus": 409,
+          "defaultMessage": "既に同名のタグが存在します。",
+          "description": "tags.slug の UNIQUE 制約違反。事前 SELECT で同名タグが見つからなかったが、同時実行時に競合した場合。"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": true,
+        "description": "ログインユーザー ID (JWT から抽出)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "投稿作成",
+      "trigger": "submit",
+      "description": "title / body / 任意フィールド + photos[] + tags[] を受け取り、posts / photos / post_tags を 1 TX 内に登録して新規投稿 ID を返す。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/posts",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "title",
+          "label": "タイトル",
+          "type": "string",
+          "required": true,
+          "description": "投稿タイトル。最大 200 文字。"
+        },
+        {
+          "name": "body",
+          "label": "本文",
+          "type": "string",
+          "required": true,
+          "description": "投稿本文 (Markdown 可)。"
+        },
+        {
+          "name": "mood",
+          "label": "気分",
+          "type": "string",
+          "required": false,
+          "description": "その日の気分 (例: happy / sad / tired)。"
+        },
+        {
+          "name": "weather",
+          "label": "天気",
+          "type": "string",
+          "required": false,
+          "description": "その日の天気 (例: sunny / cloudy / rainy)。"
+        },
+        {
+          "name": "location",
+          "label": "場所",
+          "type": "string",
+          "required": false,
+          "description": "投稿時の場所 (任意)。"
+        },
+        {
+          "name": "status",
+          "label": "ステータス",
+          "type": "string",
+          "required": false,
+          "description": "'draft' または 'published'。未指定時は 'draft'。"
+        },
+        {
+          "name": "photos",
+          "label": "写真リスト",
+          "type": "array",
+          "required": false,
+          "description": "添付写真の配列。各要素: url (必須), alt?, caption?, order_index?, width?, height?, exif_json?。"
+        },
+        {
+          "name": "tags",
+          "label": "タグリスト",
+          "type": "array",
+          "required": false,
+          "description": "タグの配列。各要素: id (既存タグ) or name (新規タグ), source?, confidence?。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "postId",
+          "label": "投稿ID",
+          "type": "integer",
+          "description": "作成した投稿の ID。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "201-created",
+          "status": 201,
+          "description": "投稿作成成功。",
+          "when": "posts / photos / post_tags の登録が全て正常完了した場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "バリデーションエラー。",
+          "when": "title / body が未入力、status が不正値の場合。"
+        },
+        {
+          "id": "401-unauthorized",
+          "status": 401,
+          "description": "認証エラー。",
+          "when": "JWT が無効またはセッションが取得できない場合。"
+        },
+        {
+          "id": "500-internal",
+          "status": 500,
+          "description": "内部エラー。",
+          "when": "DB 操作が予期せず失敗した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "title / body 必須チェック、status 値チェック (draft or published)、title 最大長チェック。",
+          "rules": [
+            {
+              "field": "title",
+              "type": "required",
+              "severity": "error",
+              "message": "タイトルは必須です。"
+            },
+            {
+              "field": "title",
+              "type": "maxLength",
+              "length": 200,
+              "severity": "error",
+              "message": "タイトルは 200 文字以内で入力してください。"
+            },
+            {
+              "field": "body",
+              "type": "required",
+              "severity": "error",
+              "message": "本文は必須です。"
+            },
+            {
+              "field": "status",
+              "type": "enum",
+              "values": [
+                "draft",
+                "published"
+              ],
+              "severity": "error",
+              "message": "ステータスは 'draft' または 'published' で指定してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "compute",
+          "description": "published_at の計算: status='published' の場合は NOW()、それ以外は null。",
+          "expression": "@inputs.status == 'published' ? new Date().toISOString() : null",
+          "outputBinding": {
+            "name": "publishedAt"
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "dbAccess",
+          "description": "posts テーブルに新規投稿を INSERT する。",
+          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "operation": "INSERT",
+          "sql": "INSERT INTO posts (user_id, title, body, mood, weather, location, status, published_at, created_at, updated_at) VALUES (@sessionUserId, @inputs.title, @inputs.body, @inputs.mood, @inputs.weather, @inputs.location, COALESCE(@inputs.status, 'draft'), @publishedAt, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id AS \"postId\"",
+          "outputBinding": {
+            "name": "newPost"
+          },
+          "txBoundary": {
+            "role": "begin",
+            "txId": "tx-post-create"
+          },
+          "affectedRowsCheck": {
+            "operator": "=",
+            "expected": 1,
+            "onViolation": "throw",
+            "errorCode": "POST_CREATE_FAILED"
+          },
+          "lineage": {
+            "writes": [
+              {
+                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                "purpose": "insert"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "loop",
+          "description": "photos[] の各要素を photos テーブルに INSERT する。",
+          "loopKind": "collection",
+          "collectionSource": "@inputs.photos",
+          "collectionItemName": "photo",
+          "txBoundary": {
+            "role": "member",
+            "txId": "tx-post-create"
+          },
+          "steps": [
+            {
+              "id": "step-04-01",
+              "kind": "dbAccess",
+              "description": "photos テーブルに写真を INSERT する。",
+              "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+              "operation": "INSERT",
+              "sql": "INSERT INTO photos (post_id, url, thumbnail_url, alt, caption, order_index, width, height, exif_json, created_at) VALUES (@newPost.postId, @photo.url, @photo.thumbnail_url, @photo.alt, @photo.caption, COALESCE(@photo.order_index, 0), @photo.width, @photo.height, @photo.exif_json, CURRENT_TIMESTAMP)",
+              "lineage": {
+                "writes": [
+                  {
+                    "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                    "purpose": "insert"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "step-05",
+          "kind": "loop",
+          "description": "tags[] の各タグを post_tags に関連付ける。タグ ID が指定されていない場合は tags テーブルの slug で検索し、なければ新規 INSERT する。",
+          "loopKind": "collection",
+          "collectionSource": "@inputs.tags",
+          "collectionItemName": "tag",
+          "txBoundary": {
+            "role": "member",
+            "txId": "tx-post-create"
+          },
+          "steps": [
+            {
+              "id": "step-05-01",
+              "kind": "dbAccess",
+              "description": "タグ名から既存タグを検索する (id 未指定の場合)。",
+              "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+              "operation": "SELECT",
+              "sql": "SELECT id AS \"tagId\" FROM tags WHERE name = @tag.name LIMIT 1",
+              "runIf": "@tag.id == null",
+              "outputBinding": {
+                "name": "existingTag"
+              },
+              "lineage": {
+                "reads": [
+                  {
+                    "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                    "purpose": "lookup"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "step-05-02",
+              "kind": "dbAccess",
+              "description": "既存タグが見つからない場合は新規 INSERT する。slug は UNIQUE 制約がありロール競合の場合は affectedRowsCheck でハンドリングする。",
+              "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+              "operation": "INSERT",
+              "sql": "INSERT INTO tags (name, slug, usage_count, created_at) VALUES (@tag.name, LOWER(REPLACE(@tag.name, ' ', '-')), 0, CURRENT_TIMESTAMP) RETURNING id AS \"tagId\"",
+              "runIf": "@tag.id == null && @existingTag == null",
+              "outputBinding": {
+                "name": "newTag"
+              },
+              "affectedRowsCheck": {
+                "operator": "=",
+                "expected": 1,
+                "onViolation": "log",
+                "errorCode": "UNIQUE_VIOLATION",
+                "description": "UNIQUE 制約違反 (slug 重複) の場合 0 行になるため log して続行。step-05-01 で事前チェック済みだが競合が起きた場合の安全装置。"
+              },
+              "lineage": {
+                "writes": [
+                  {
+                    "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                    "purpose": "insert"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "step-05-03",
+              "kind": "compute",
+              "description": "使用するタグ ID を解決する: inputs.tag.id > existingTag.tagId > newTag.tagId の優先順で決定。",
+              "expression": "@tag.id ?? @existingTag.tagId ?? @newTag.tagId",
+              "outputBinding": {
+                "name": "resolvedTagId"
+              }
+            },
+            {
+              "id": "step-05-04",
+              "kind": "dbAccess",
+              "description": "post_tags に投稿とタグの関連を INSERT する。",
+              "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+              "operation": "INSERT",
+              "sql": "INSERT INTO post_tags (post_id, tag_id, source, confidence, created_at) VALUES (@newPost.postId, @resolvedTagId, COALESCE(@tag.source, 'manual'), COALESCE(@tag.confidence, 1.0), CURRENT_TIMESTAMP)",
+              "lineage": {
+                "writes": [
+                  {
+                    "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+                    "purpose": "insert"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "step-06",
+          "kind": "dbAccess",
+          "description": "posts 作成 TX の commit ステップとして tags.usage_count を更新する (txBoundary role=end)。",
+          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "operation": "UPDATE",
+          "sql": "UPDATE tags SET usage_count = usage_count + 1 WHERE id IN (SELECT tag_id AS \"tagId\" FROM post_tags WHERE post_id = @newPost.postId)",
+          "txBoundary": {
+            "role": "end",
+            "txId": "tx-post-create"
+          },
+          "lineage": {
+            "writes": [
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "update"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "return",
+          "description": "201 作成成功を返す。",
+          "responseId": "201-created",
+          "bodyExpression": "{ postId: @newPost.postId }"
+        }
+      ]
+    }
+  ]
+}

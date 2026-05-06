@@ -1,0 +1,214 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+    "name": "AI文章校正",
+    "description": "投稿本文のテキストを Claude AI へ送信し、指定スタイルで校正した結果 + 変更箇所 diff を返す処理フロー。DB 書き込みなし (UI が結果を表示するのみ)。ユーザーが採用した場合は投稿更新フロー経由で body を更新する。 / 注: AI モデル名 (claude-opus-4-7) は本 PR 時点でリテラル文字列としてハードコード — `@conv.ai.*` および `@env.*` 参照のフレームワークサポートは #859 で対応予定 (現状 dead config を避けるため envVars カタログは登録しない)。",
+    "kind": "common",
+    "maturity": "draft",
+    "createdAt": "2026-05-06T14:00:00.000Z",
+    "updatedAt": "2026-05-06T14:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "入力値が不正です。",
+          "responseId": "400-validation",
+          "description": "text が未入力、style が不正値の場合。"
+        },
+        "AI_API_ERROR": {
+          "httpStatus": 502,
+          "defaultMessage": "AI API の呼び出しに失敗しました。",
+          "responseId": "502-ai-error",
+          "description": "Claude API へのリクエストが失敗した場合。"
+        }
+      },
+      "externalSystems": {
+        "claudeApi": {
+          "name": "Claude AI API",
+          "baseUrl": "@env.CLAUDE_API_BASE_URL",
+          "auth": {
+            "kind": "bearer",
+            "tokenRef": "@secret.claudeApiKey"
+          },
+          "timeoutMs": 60000,
+          "retryPolicy": {
+            "maxAttempts": 2,
+            "backoff": "exponential",
+            "initialDelayMs": 1000
+          }
+        }
+      },
+      "secrets": {
+        "claudeApiKey": {
+          "source": "env",
+          "name": "CLAUDE_API_KEY",
+          "description": "Claude API の認証キー。"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": false,
+        "description": "ログインユーザー ID (JWT から抽出)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "AI文章校正",
+      "trigger": "submit",
+      "description": "text + style を受け取り、Claude API で校正した結果 + 変更箇所 diff を返す。DB 書き込みなし。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/ai/proofread",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "text",
+          "label": "校正対象テキスト",
+          "type": "string",
+          "required": true,
+          "description": "校正対象の文章テキスト。"
+        },
+        {
+          "name": "style",
+          "label": "スタイル",
+          "type": "string",
+          "required": true,
+          "description": "校正スタイル: 'casual-diary' (カジュアルな日記調) / 'polite-blog' (丁寧なブログ調) / 'professional' (ビジネス文章)。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "corrected",
+          "label": "校正後テキスト",
+          "type": "string",
+          "description": "校正後の全文テキスト。"
+        },
+        {
+          "name": "changes",
+          "label": "変更箇所",
+          "type": "array",
+          "description": "変更箇所の diff 配列 (type: 'added'|'removed'|'unchanged', text)。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "校正成功。",
+          "when": "Claude API の呼び出しが正常完了した場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "バリデーションエラー。",
+          "when": "text が未入力、style が不正値の場合。"
+        },
+        {
+          "id": "502-ai-error",
+          "status": 502,
+          "description": "AI API エラー。",
+          "when": "Claude API の呼び出しが失敗した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "text 必須チェック、style 値チェック。",
+          "rules": [
+            {
+              "field": "text",
+              "type": "required",
+              "severity": "error",
+              "message": "校正対象テキストは必須です。"
+            },
+            {
+              "field": "style",
+              "type": "required",
+              "severity": "error",
+              "message": "スタイルは必須です。"
+            },
+            {
+              "field": "style",
+              "type": "enum",
+              "values": [
+                "casual-diary",
+                "polite-blog",
+                "professional"
+              ],
+              "severity": "error",
+              "message": "スタイルは 'casual-diary', 'polite-blog', 'professional' のいずれかで指定してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "compute",
+          "description": "スタイルに対応する日本語説明を計算する。",
+          "expression": "@inputs.style === 'casual-diary' ? 'カジュアルな日記調' : (@inputs.style === 'polite-blog' ? '丁寧なブログ調' : 'ビジネス向けの正式な文章')",
+          "outputBinding": {
+            "name": "styleDescription"
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "externalSystem",
+          "description": "Claude API に校正プロンプトを送信する。校正後全文 + diff 配列を JSON で返すよう指示する。",
+          "systemRef": "claudeApi",
+          "httpCall": {
+            "method": "POST",
+            "path": "/v1/messages",
+            "body": "{ model: 'claude-opus-4-7', max_tokens: 4096, messages: [{ role: 'user', content: '以下の文章を' + @styleDescription + 'に校正してください。\\n\\n元の文章:\\n' + @inputs.text + '\\n\\n以下の JSON 形式で返答してください:\\n{\"corrected\": \"校正後の全文\", \"changes\": [{\"type\": \"unchanged|added|removed\", \"text\": \"テキスト\"}]}' }] }"
+          },
+          "outputBinding": {
+            "name": "aiResponse"
+          },
+          "outcomes": {
+            "failure": {
+              "action": "abort",
+              "description": "Claude API 呼び出し失敗時は 502 を返す。"
+            }
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "compute",
+          "description": "AI レスポンスから校正結果 JSON をパースする。",
+          "expression": "JSON.parse(@aiResponse.content[0].text)",
+          "outputBinding": {
+            "name": "proofreadResult"
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "return",
+          "description": "200 校正結果を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ corrected: @proofreadResult.corrected, changes: @proofreadResult.changes }"
+        }
+      ]
+    }
+  ]
+}

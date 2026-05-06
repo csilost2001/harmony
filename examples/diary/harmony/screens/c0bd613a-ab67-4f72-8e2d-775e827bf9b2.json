@@ -1,0 +1,87 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2",
+  "name": "タグ管理",
+  "description": "Notion 風のタグ管理画面。色付きchip + 使用回数付きタグ一覧を表示。新規追加modal・編集modal (name/slug/colorPicker/iconPicker)・削除確認dialogを提供。タグCRUDは本フェーズのprocessFlowに含まれないためvalueFromは省略。",
+  "kind": "list",
+  "path": "/tags",
+  "auth": "required",
+  "maturity": "draft",
+  "createdAt": "2026-05-06T14:30:00.000Z",
+  "updatedAt": "2026-05-06T14:30:00.000Z",
+  "items": [
+    {
+      "id": "tags",
+      "label": "タグ一覧",
+      "type": "array",
+      "direction": "output",
+      "description": "全タグの配列。id / name / slug / color / postCount を含む。"
+    },
+    {
+      "id": "newTagName",
+      "label": "新規タグ名",
+      "type": "string",
+      "direction": "input",
+      "description": "新規タグ作成モーダルのタグ名入力フィールド。",
+      "required": true,
+      "maxLength": 50,
+      "placeholder": "タグ名を入力"
+    },
+    {
+      "id": "newTagSlug",
+      "label": "スラッグ",
+      "type": "string",
+      "direction": "input",
+      "description": "新規タグのURLスラッグ。英数字・ハイフンのみ。タグ名から自動生成も可。",
+      "required": true,
+      "maxLength": 50,
+      "pattern": "^[a-z0-9-]+$",
+      "placeholder": "tag-slug"
+    },
+    {
+      "id": "newTagColor",
+      "label": "カラー",
+      "type": "string",
+      "direction": "input",
+      "description": "新規タグの表示色 (HEXカラーコード、例: #6366f1)。カラーピッカーで選択。",
+      "required": false,
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    {
+      "id": "newTagIcon",
+      "label": "アイコン",
+      "type": "string",
+      "direction": "input",
+      "description": "新規タグのアイコン名 (Lucide icon name)。",
+      "required": false
+    },
+    {
+      "id": "editTagId",
+      "label": "編集対象タグID",
+      "type": "string",
+      "direction": "input",
+      "description": "編集モーダルで編集中のタグID。",
+      "required": false
+    },
+    {
+      "id": "deleteTagId",
+      "label": "削除対象タグID",
+      "type": "string",
+      "direction": "input",
+      "description": "削除確認ダイアログで確認中のタグID。",
+      "required": false
+    },
+    {
+      "id": "searchQuery",
+      "label": "タグ検索",
+      "type": "string",
+      "direction": "input",
+      "description": "タグ名での絞り込み検索キーワード。",
+      "required": false,
+      "placeholder": "タグを検索…"
+    }
+  ],
+  "design": {
+    "designFileRef": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2.design.json"
+  }
+}

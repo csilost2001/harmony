@@ -1,0 +1,143 @@
+{
+  "$schema": "../../../../schemas/v3/table.v3.schema.json",
+  "id": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+  "name": "写真",
+  "description": "投稿に紐付く写真。1 投稿に複数枚 (ギャラリー)、order_index で並び順制御。AI 生成 alt text / EXIF メタ / 寸法を保持。lightbox / masonry レイアウト前提。",
+  "maturity": "draft",
+  "createdAt": "2026-05-06T12:40:00.000Z",
+  "updatedAt": "2026-05-06T12:40:00.000Z",
+  "physicalName": "photos",
+  "category": "トランザクション",
+  "comment": "投稿写真。alt は AI 自動生成、caption は手動",
+  "columns": [
+    {
+      "id": "col-id",
+      "no": 1,
+      "physicalName": "id",
+      "name": "写真ID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "primaryKey": true,
+      "autoIncrement": true,
+      "comment": "サロゲートキー"
+    },
+    {
+      "id": "col-post-id",
+      "no": 2,
+      "physicalName": "post_id",
+      "name": "投稿ID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "comment": "FK → posts.id"
+    },
+    {
+      "id": "col-url",
+      "no": 3,
+      "physicalName": "url",
+      "name": "画像 URL",
+      "dataType": "VARCHAR",
+      "length": 500,
+      "notNull": true,
+      "comment": "アップロード後のパブリックパス (uploads/photos/<uuid>.<ext> 等)"
+    },
+    {
+      "id": "col-thumbnail-url",
+      "no": 4,
+      "physicalName": "thumbnail_url",
+      "name": "サムネイル URL",
+      "dataType": "VARCHAR",
+      "length": 500,
+      "comment": "リサイズ済サムネイル (一覧表示用)。生成時に sharp 等で 400px 幅程度"
+    },
+    {
+      "id": "col-alt",
+      "no": 5,
+      "physicalName": "alt",
+      "name": "代替テキスト",
+      "dataType": "VARCHAR",
+      "length": 500,
+      "comment": "AI (Vision API) で自動生成された alt text。アクセシビリティ + SEO"
+    },
+    {
+      "id": "col-caption",
+      "no": 6,
+      "physicalName": "caption",
+      "name": "キャプション",
+      "dataType": "VARCHAR",
+      "length": 500,
+      "comment": "手入力のキャプション (ギャラリー lightbox に表示)"
+    },
+    {
+      "id": "col-order-index",
+      "no": 7,
+      "physicalName": "order_index",
+      "name": "表示順",
+      "dataType": "INTEGER",
+      "notNull": true,
+      "defaultValue": "0",
+      "comment": "ギャラリー内の並び順 (0 から)。D&D 並べ替え対応"
+    },
+    {
+      "id": "col-width",
+      "no": 8,
+      "physicalName": "width",
+      "name": "幅 (px)",
+      "dataType": "INTEGER",
+      "comment": "原本の幅 (px)。masonry レイアウトの aspect ratio 計算に使用"
+    },
+    {
+      "id": "col-height",
+      "no": 9,
+      "physicalName": "height",
+      "name": "高さ (px)",
+      "dataType": "INTEGER",
+      "comment": "原本の高さ (px)"
+    },
+    {
+      "id": "col-bytes",
+      "no": 10,
+      "physicalName": "bytes",
+      "name": "ファイルサイズ",
+      "dataType": "INTEGER",
+      "comment": "ファイルサイズ (bytes)。容量管理 + UI 表示用"
+    },
+    {
+      "id": "col-mime-type",
+      "no": 11,
+      "physicalName": "mime_type",
+      "name": "MIME タイプ",
+      "dataType": "VARCHAR",
+      "length": 64,
+      "comment": "image/jpeg / image/png / image/webp / image/heic 等"
+    },
+    {
+      "id": "col-exif-json",
+      "no": 12,
+      "physicalName": "exif_json",
+      "name": "EXIF メタ",
+      "dataType": "JSON",
+      "comment": "撮影日時 / カメラ / GPS 等の EXIF。lightbox の Info ペインに表示"
+    },
+    {
+      "id": "col-created-at",
+      "no": 13,
+      "physicalName": "created_at",
+      "name": "作成日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    }
+  ],
+  "indexes": [
+    {
+      "id": "idx-post-order",
+      "physicalName": "idx_photos_post_order",
+      "columns": [
+        { "columnId": "col-post-id" },
+        { "columnId": "col-order-index", "order": "asc" }
+      ],
+      "description": "投稿のギャラリー取得 (post_id 一致 + order_index 昇順)"
+    }
+  ],
+  "constraints": []
+}

@@ -1,0 +1,122 @@
+{
+  "$schema": "../../../../schemas/v3/table.v3.schema.json",
+  "id": "07439e21-0743-48ca-af9e-763e4be2d094",
+  "name": "タグ",
+  "description": "投稿に付与するタグ。AI 提案 (aiTagSuggest) で自動生成 + ユーザー手動編集の両方をサポート。色は UI で chip 表示時の背景色に使用。",
+  "maturity": "draft",
+  "createdAt": "2026-05-06T12:40:00.000Z",
+  "updatedAt": "2026-05-06T12:40:00.000Z",
+  "physicalName": "tags",
+  "category": "マスタ",
+  "comment": "タグマスタ。posts テーブルとは post_tags で N:N 接続",
+  "columns": [
+    {
+      "id": "col-id",
+      "no": 1,
+      "physicalName": "id",
+      "name": "タグID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "primaryKey": true,
+      "autoIncrement": true,
+      "comment": "サロゲートキー"
+    },
+    {
+      "id": "col-name",
+      "no": 2,
+      "physicalName": "name",
+      "name": "タグ名",
+      "dataType": "VARCHAR",
+      "length": 64,
+      "notNull": true,
+      "unique": true,
+      "comment": "タグ表示名 (例: '旅行', 'カフェ', '学び')。一意"
+    },
+    {
+      "id": "col-slug",
+      "no": 3,
+      "physicalName": "slug",
+      "name": "スラッグ",
+      "dataType": "VARCHAR",
+      "length": 64,
+      "notNull": true,
+      "unique": true,
+      "comment": "URL 用 slug (例: 'travel', 'cafe')。タグページのパスに使用"
+    },
+    {
+      "id": "col-color",
+      "no": 4,
+      "physicalName": "color",
+      "name": "カラー",
+      "dataType": "VARCHAR",
+      "length": 20,
+      "defaultValue": "'#6366f1'",
+      "comment": "UI chip 表示色 (hex)。default は indigo-500"
+    },
+    {
+      "id": "col-icon",
+      "no": 5,
+      "physicalName": "icon",
+      "name": "アイコン名",
+      "dataType": "VARCHAR",
+      "length": 32,
+      "comment": "Lucide / Heroicons のアイコン名 (例: 'plane', 'coffee', 'book')"
+    },
+    {
+      "id": "col-usage-count",
+      "no": 6,
+      "physicalName": "usage_count",
+      "name": "使用回数",
+      "dataType": "INTEGER",
+      "notNull": true,
+      "defaultValue": "0",
+      "comment": "そのタグが付与された投稿の数 (denormalized、aiTagSuggest のランキング/タグクラウド表示に使用)"
+    },
+    {
+      "id": "col-created-at",
+      "no": 7,
+      "physicalName": "created_at",
+      "name": "作成日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    },
+    {
+      "id": "col-updated-at",
+      "no": 8,
+      "physicalName": "updated_at",
+      "name": "更新日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    }
+  ],
+  "indexes": [
+    {
+      "id": "idx-slug",
+      "physicalName": "idx_tags_slug",
+      "columns": [{ "columnId": "col-slug" }],
+      "unique": true
+    },
+    {
+      "id": "idx-usage-count",
+      "physicalName": "idx_tags_usage_count",
+      "columns": [{ "columnId": "col-usage-count", "order": "desc" }],
+      "description": "タグクラウドや AI suggest のランキング"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "uq-name",
+      "kind": "unique",
+      "physicalName": "uq_tags_name",
+      "columnIds": ["col-name"]
+    },
+    {
+      "id": "uq-slug",
+      "kind": "unique",
+      "physicalName": "uq_tags_slug",
+      "columnIds": ["col-slug"]
+    }
+  ]
+}

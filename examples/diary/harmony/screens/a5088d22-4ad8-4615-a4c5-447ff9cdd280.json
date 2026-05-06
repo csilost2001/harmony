@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "a5088d22-4ad8-4615-a4c5-447ff9cdd280",
+  "name": "ログイン",
+  "description": "ミニマリスト風のログイン画面。中央配置カードにロゴ + username/passwordフィールド + ログインボタン + 管理者依頼ヒントテキストを配置。認証フロー本体は本フェーズのprocessFlowに含まれないUIモック。",
+  "kind": "login",
+  "path": "/login",
+  "auth": "none",
+  "maturity": "draft",
+  "createdAt": "2026-05-06T14:30:00.000Z",
+  "updatedAt": "2026-05-06T14:30:00.000Z",
+  "items": [
+    {
+      "id": "username",
+      "label": "ユーザー名",
+      "type": "string",
+      "direction": "input",
+      "description": "ログイン用のユーザー名またはメールアドレス。",
+      "required": true,
+      "maxLength": 100,
+      "placeholder": "ユーザー名またはメールアドレス"
+    },
+    {
+      "id": "password",
+      "label": "パスワード",
+      "type": "string",
+      "direction": "input",
+      "description": "ログイン用のパスワード。",
+      "required": true,
+      "minLength": 8,
+      "maxLength": 128,
+      "placeholder": "パスワードを入力"
+    },
+    {
+      "id": "rememberMe",
+      "label": "ログイン状態を保持",
+      "type": "boolean",
+      "direction": "input",
+      "description": "チェック時にJWT有効期限を延長してログイン状態を維持する。",
+      "defaultValue": false,
+      "required": false
+    }
+  ],
+  "design": {
+    "designFileRef": "a5088d22-4ad8-4615-a4c5-447ff9cdd280.design.json"
+  }
+}

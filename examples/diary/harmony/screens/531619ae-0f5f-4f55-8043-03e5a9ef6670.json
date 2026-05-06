@@ -1,0 +1,157 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "531619ae-0f5f-4f55-8043-03e5a9ef6670",
+  "name": "投稿編集",
+  "description": "Notion + Substack 風の投稿作成・編集フォーム画面。タイトル入力・Markdownエディタ・写真D&Dアップロード・AI assistサイドパネル (要約/タグ提案/校正/画像alt)・mood/weather/locationフィールド・下書き保存/公開ボタン (sticky bottom)。idパラメータなしで新規作成モード。",
+  "kind": "form",
+  "path": "/post/edit/:id?",
+  "auth": "required",
+  "maturity": "draft",
+  "createdAt": "2026-05-06T14:30:00.000Z",
+  "updatedAt": "2026-05-06T14:30:00.000Z",
+  "items": [
+    {
+      "id": "postTitle",
+      "label": "タイトル",
+      "type": "string",
+      "direction": "input",
+      "description": "投稿のタイトル。",
+      "required": true,
+      "maxLength": 200,
+      "placeholder": "タイトルを入力…"
+    },
+    {
+      "id": "postBody",
+      "label": "本文",
+      "type": "string",
+      "direction": "input",
+      "description": "投稿本文 (Markdown形式)。Markdownエディタ + プレビュー切り替え。",
+      "required": true,
+      "placeholder": "今日のことを書いてみましょう…"
+    },
+    {
+      "id": "mood",
+      "label": "気分",
+      "type": "enum",
+      "direction": "input",
+      "description": "投稿時の気分を表す絵文字。",
+      "options": [
+        { "value": "happy", "label": "😊 嬉しい" },
+        { "value": "excited", "label": "🤩 興奮" },
+        { "value": "calm", "label": "😌 穏やか" },
+        { "value": "sad", "label": "😢 悲しい" },
+        { "value": "tired", "label": "😴 疲れた" },
+        { "value": "angry", "label": "😤 怒り" },
+        { "value": "anxious", "label": "😰 不安" },
+        { "value": "grateful", "label": "🙏 感謝" }
+      ],
+      "required": false
+    },
+    {
+      "id": "weather",
+      "label": "天気",
+      "type": "enum",
+      "direction": "input",
+      "description": "投稿時の天気を表す絵文字。",
+      "options": [
+        { "value": "sunny", "label": "☀️ 晴れ" },
+        { "value": "cloudy", "label": "☁️ 曇り" },
+        { "value": "rainy", "label": "🌧️ 雨" },
+        { "value": "snowy", "label": "❄️ 雪" },
+        { "value": "partly_cloudy", "label": "⛅ 晴れのち曇り" },
+        { "value": "stormy", "label": "⛈️ 嵐" }
+      ],
+      "required": false
+    },
+    {
+      "id": "location",
+      "label": "場所",
+      "type": "string",
+      "direction": "input",
+      "description": "投稿に記録する場所名。フリーテキスト入力。",
+      "maxLength": 100,
+      "placeholder": "場所を入力 (例: 東京・渋谷)",
+      "required": false
+    },
+    {
+      "id": "tagIds",
+      "label": "タグ",
+      "type": "array",
+      "direction": "input",
+      "description": "投稿に付与するタグのID配列。タグ候補一覧からマルチセレクト。",
+      "required": false
+    },
+    {
+      "id": "photos",
+      "label": "写真",
+      "type": "array",
+      "direction": "inputOutput",
+      "description": "添付写真ファイル一覧。D&Dまたはクリックでアップロード。AI画像alt生成フローに渡すことができる。",
+      "required": false
+    },
+    {
+      "id": "status",
+      "label": "公開状態",
+      "type": "enum",
+      "direction": "input",
+      "description": "投稿の公開状態。published=公開 / draft=下書き。",
+      "options": [
+        { "value": "published", "label": "公開" },
+        { "value": "draft", "label": "下書き" }
+      ],
+      "defaultValue": "draft",
+      "required": true
+    },
+    {
+      "id": "aiSummary",
+      "label": "AI要約",
+      "type": "string",
+      "direction": "output",
+      "description": "AI要約生成フローから返却された要約テキスト。サイドパネルに表示。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
+        "variableName": "summary"
+      }
+    },
+    {
+      "id": "aiSuggestedTags",
+      "label": "AIタグ提案",
+      "type": "array",
+      "direction": "output",
+      "description": "AIタグ提案フローから返却されたタグ候補配列。サイドパネルに表示し、1クリックで適用可。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
+        "variableName": "suggestedTags"
+      }
+    },
+    {
+      "id": "aiProofreadResult",
+      "label": "AI校正結果",
+      "type": "string",
+      "direction": "output",
+      "description": "AI文章校正フローから返却された校正済みテキストまたは指摘コメント。サイドパネルに表示。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+        "variableName": "proofreadResult"
+      }
+    },
+    {
+      "id": "aiImageAlt",
+      "label": "AI画像alt",
+      "type": "string",
+      "direction": "output",
+      "description": "AI画像alt生成フローから返却されたalt文字列。写真カードに適用可。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e",
+        "variableName": "altText"
+      }
+    }
+  ],
+  "design": {
+    "designFileRef": "531619ae-0f5f-4f55-8043-03e5a9ef6670.design.json"
+  }
+}

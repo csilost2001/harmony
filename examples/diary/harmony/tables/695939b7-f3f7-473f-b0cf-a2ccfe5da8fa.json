@@ -1,0 +1,108 @@
+{
+  "$schema": "../../../../schemas/v3/table.v3.schema.json",
+  "id": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
+  "name": "ユーザー",
+  "description": "個人利用想定のシングルユーザー認証用テーブル。JWT 認証で1名運用、将来マルチユーザー対応時に email / role 列を追加する想定。",
+  "maturity": "draft",
+  "createdAt": "2026-05-06T12:40:00.000Z",
+  "updatedAt": "2026-05-06T12:40:00.000Z",
+  "physicalName": "users",
+  "category": "マスタ",
+  "comment": "ユーザーマスタ (個人運用、JWT 認証ベース)",
+  "columns": [
+    {
+      "id": "col-id",
+      "no": 1,
+      "physicalName": "id",
+      "name": "ユーザーID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "primaryKey": true,
+      "autoIncrement": true,
+      "comment": "サロゲートキー (自動採番)"
+    },
+    {
+      "id": "col-username",
+      "no": 2,
+      "physicalName": "username",
+      "name": "ユーザー名",
+      "dataType": "VARCHAR",
+      "length": 64,
+      "notNull": true,
+      "unique": true,
+      "comment": "ログイン用ユーザー名 (英数字)"
+    },
+    {
+      "id": "col-display-name",
+      "no": 3,
+      "physicalName": "display_name",
+      "name": "表示名",
+      "dataType": "VARCHAR",
+      "length": 128,
+      "comment": "投稿一覧などの UI 表示名 (空なら username を使う)"
+    },
+    {
+      "id": "col-password-hash",
+      "no": 4,
+      "physicalName": "password_hash",
+      "name": "パスワードハッシュ",
+      "dataType": "VARCHAR",
+      "length": 255,
+      "notNull": true,
+      "comment": "argon2 / bcrypt 等のハッシュ済値。生パスワードは保存しない"
+    },
+    {
+      "id": "col-avatar-url",
+      "no": 5,
+      "physicalName": "avatar_url",
+      "name": "アバター画像 URL",
+      "dataType": "VARCHAR",
+      "length": 500,
+      "comment": "アバター画像の保存先 URL (uploads/avatars/<user_id>.* 等)"
+    },
+    {
+      "id": "col-bio",
+      "no": 6,
+      "physicalName": "bio",
+      "name": "自己紹介",
+      "dataType": "TEXT",
+      "comment": "短い自己紹介文 (プロフィール表示用)"
+    },
+    {
+      "id": "col-created-at",
+      "no": 7,
+      "physicalName": "created_at",
+      "name": "作成日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    },
+    {
+      "id": "col-updated-at",
+      "no": 8,
+      "physicalName": "updated_at",
+      "name": "更新日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    }
+  ],
+  "indexes": [
+    {
+      "id": "idx-username",
+      "physicalName": "idx_users_username",
+      "columns": [{ "columnId": "col-username" }],
+      "unique": true,
+      "description": "ユーザー名検索用 (ログイン時に必ず使う)"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "uq-username",
+      "kind": "unique",
+      "physicalName": "uq_users_username",
+      "columnIds": ["col-username"],
+      "description": "ユーザー名は一意"
+    }
+  ]
+}

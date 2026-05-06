@@ -1,0 +1,84 @@
+{
+  "$schema": "../../../../schemas/v3/table.v3.schema.json",
+  "id": "1681eee2-39d9-4548-9044-5cedac68d41e",
+  "name": "投稿タグ (中間)",
+  "description": "Post と Tag の N:N 中間テーブル。複合主キー (post_id, tag_id)。タグの自動生成元 (AI suggest / 手動付与) と確定時刻を保持。",
+  "maturity": "draft",
+  "createdAt": "2026-05-06T12:40:00.000Z",
+  "updatedAt": "2026-05-06T12:40:00.000Z",
+  "physicalName": "post_tags",
+  "category": "中間テーブル",
+  "comment": "Post ↔ Tag 中間テーブル。AI 提案フローの結果も記録",
+  "columns": [
+    {
+      "id": "col-post-id",
+      "no": 1,
+      "physicalName": "post_id",
+      "name": "投稿ID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "primaryKey": true,
+      "comment": "FK → posts.id"
+    },
+    {
+      "id": "col-tag-id",
+      "no": 2,
+      "physicalName": "tag_id",
+      "name": "タグID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "primaryKey": true,
+      "comment": "FK → tags.id"
+    },
+    {
+      "id": "col-source",
+      "no": 3,
+      "physicalName": "source",
+      "name": "付与元",
+      "dataType": "VARCHAR",
+      "length": 20,
+      "notNull": true,
+      "defaultValue": "'manual'",
+      "comment": "manual (ユーザー手動) / ai_suggest (AI 提案、ユーザー承認済) / ai_auto (AI 自動付与)"
+    },
+    {
+      "id": "col-confidence",
+      "no": 4,
+      "physicalName": "confidence",
+      "name": "信頼度",
+      "dataType": "DECIMAL",
+      "length": 3,
+      "scale": 2,
+      "comment": "AI 提案時の信頼度 0.00-1.00。手動なら null"
+    },
+    {
+      "id": "col-created-at",
+      "no": 5,
+      "physicalName": "created_at",
+      "name": "作成日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    }
+  ],
+  "indexes": [
+    {
+      "id": "idx-tag-post",
+      "physicalName": "idx_post_tags_tag_post",
+      "columns": [
+        { "columnId": "col-tag-id" },
+        { "columnId": "col-post-id" }
+      ],
+      "description": "タグからの逆引き (タグページの投稿一覧)"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "chk-source",
+      "kind": "check",
+      "physicalName": "chk_post_tags_source",
+      "expression": "source IN ('manual', 'ai_suggest', 'ai_auto')",
+      "description": "付与元の値制約"
+    }
+  ]
+}

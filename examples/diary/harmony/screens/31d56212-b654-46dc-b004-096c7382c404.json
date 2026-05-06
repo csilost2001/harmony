@@ -1,0 +1,80 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "31d56212-b654-46dc-b004-096c7382c404",
+  "name": "投稿一覧",
+  "description": "Day One 風の投稿一覧画面。masonry グリッドで投稿カードを表示し、検索バー・タグチップフィルタ・公開状態トグルで絞り込み可能。各カードにヒーロー画像・AI生成要約・mood絵文字・天気アイコン・場所バッジ・タグチップを表示。新規投稿用フローティングFABを装備。",
+  "kind": "list",
+  "path": "/",
+  "auth": "required",
+  "maturity": "draft",
+  "createdAt": "2026-05-06T14:30:00.000Z",
+  "updatedAt": "2026-05-06T14:30:00.000Z",
+  "items": [
+    {
+      "id": "searchQuery",
+      "label": "検索キーワード",
+      "type": "string",
+      "direction": "input",
+      "description": "投稿タイトル・本文の全文検索キーワード。入力値を投稿検索フローに渡す。",
+      "placeholder": "投稿を検索…",
+      "required": false
+    },
+    {
+      "id": "selectedTagSlugs",
+      "label": "タグフィルタ",
+      "type": "array",
+      "direction": "input",
+      "description": "絞り込むタグのスラッグ一覧。複数選択可。投稿検索フローの tagSlugs パラメータに渡す。",
+      "required": false
+    },
+    {
+      "id": "statusFilter",
+      "label": "公開状態フィルタ",
+      "type": "enum",
+      "direction": "input",
+      "description": "表示する投稿の公開状態。all=全部 / published=公開 / draft=下書き。",
+      "options": [
+        { "value": "all", "label": "全部" },
+        { "value": "published", "label": "公開" },
+        { "value": "draft", "label": "下書き" }
+      ],
+      "defaultValue": "all",
+      "required": false
+    },
+    {
+      "id": "posts",
+      "label": "投稿一覧",
+      "type": "array",
+      "direction": "output",
+      "description": "投稿検索フローから返却された投稿オブジェクト配列。id / title / summary / heroImageUrl / mood / weather / location / tags / status / publishedAt を含む。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+        "variableName": "posts"
+      }
+    },
+    {
+      "id": "availableTags",
+      "label": "利用可能タグ",
+      "type": "array",
+      "direction": "output",
+      "description": "タグフィルタのチップ一覧として表示するタグ配列。id / name / slug / color を含む。",
+      "required": false
+    },
+    {
+      "id": "totalCount",
+      "label": "総件数",
+      "type": "integer",
+      "direction": "output",
+      "description": "フィルタ条件に合致する投稿の総件数。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+        "variableName": "totalCount"
+      }
+    }
+  ],
+  "design": {
+    "designFileRef": "31d56212-b654-46dc-b004-096c7382c404.design.json"
+  }
+}
