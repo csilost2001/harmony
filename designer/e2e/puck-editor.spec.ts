@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, errors as pwErrors } from "@playwright/test";
 import * as path from "path";
 
 import {
@@ -136,8 +136,15 @@ test.describe("GrapesJS と Puck の混在", () => {
     // GrapesJS 画面を開く (multi-workspace URL pattern #704)
     await page.goto(`/w/${FAKE_WS_ID}/screen/design/${GJS_SCREEN_ID}`);
     // GrapesJS canvas iframe (or fallback container) のレンダリングを待つ。
-    // MCP オフラインで GrapesJS が起動できないケースもあるため catch で許容
-    await page.locator("iframe, [class*='gjs-']").first().waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+    // MCP オフラインで GrapesJS が起動できないケースもあるため timeout のみ許容 (#841 N-1)。
+    // locator ambiguity 等の他種エラーは throw して test 失敗にする。
+    await page
+      .locator("iframe, [class*='gjs-']")
+      .first()
+      .waitFor({ state: "visible", timeout: 10000 })
+      .catch((e) => {
+        if (!(e instanceof pwErrors.TimeoutError)) throw e;
+      });
 
     // GrapesJS または適切なデザイナコンテナが表示されている
     const currentContent = await page.content();
@@ -158,6 +165,11 @@ test.describe("cssFramework 切替", () => {
 
     const puckEl = page.locator("[data-testid='puck-editor-container']");
     await expect(puckEl).toBeVisible({ timeout: 15000 });
+
+    // 非同期 console.error の flush を待つ (Playwright の page.on listener は非同期 dispatch のため
+    // toBeVisible 直後だと初期化フェーズ末尾の error event を取りこぼし得る、#841 S-1)。
+    // waitForTimeout(0) はマクロタスク 1 tick を yield する手法。
+    await page.waitForTimeout(0);
 
     // 致命的エラーがないことを確認 (Puck 初期化エラーを検出)
     const fatalErrors = errors.filter(
@@ -180,6 +192,9 @@ test.describe("cssFramework 切替", () => {
 
     const puckEl = page.locator("[data-testid='puck-editor-container']");
     await expect(puckEl).toBeVisible({ timeout: 15000 });
+
+    // 非同期 console.error の flush 待ち (#841 S-1、test 6a と同様)
+    await page.waitForTimeout(0);
 
     const fatalErrors = errors.filter(
       (e) => e.includes("Cannot read") || e.includes("is not a function"),
