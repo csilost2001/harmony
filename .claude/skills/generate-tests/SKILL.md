@@ -1,6 +1,6 @@
 ---
 name: generate-tests
-description: project.techStack に基づき ProcessFlow JSON → backend integration test (E2E spec)、または Screen JSON → frontend component test (vitest + @testing-library/react)、または Playwright E2E シナリオテスト (multi-screen) を AI が生成する。P1/P2 は TypeScript NestJS + jest、P3 は React + Next.js + vitest、P4 は Playwright E2E (画面遷移シナリオ) をカバー。
+description: project.techStack に基づき ProcessFlow JSON → backend integration test (E2E spec)、または Screen JSON → frontend component test (vitest + @testing-library/react)、または Playwright E2E シナリオテスト (multi-screen) を AI が生成する。P1/P2 は TypeScript NestJS + jest、P3 は React + Next.js + vitest、P4 は Playwright E2E (画面遷移シナリオ)、P5 は AI flow mock + 実 API 切替をカバー。
 argument-hint: <flowId|screenId> [出力先] / --scenario <fromScreenId> <toScreenId> / --scenario-name "<name>" <screenId-1> ... <screenId-N>
 disable-model-invocation: true
 ---
@@ -68,9 +68,20 @@ disable-model-invocation: true
       - DB seed/truncate helper (Prisma)
       - playwright.config.ts 雛形 (webServer はコメントアウト — AI は dev server を spawn しない)
 
-  P4 スコープ外 (別 ISSUE で逐次拡張):
+    P5 (AI flow mock + 実 API 切替 — #874):
+      - kind=externalSystem の step 検出 → externalSystems catalog 参照 → mock target 自動決定
+      - mock mode: jest.spyOn / vi.spyOn で provider HTTP を stub (token 消費なし)
+      - 実 API mode: RUN_AI_INTEGRATION=1 env で describe.runIf 切替、CI default skip
+      - 4 観点変換ルール:
+          AI-1: 信頼度フィルタ (step.kind=compute で threshold 適用) → mock AI response でフィルタ検証
+          AI-2: API key 未設定 → 503 fallback (CLAUDE_API_KEY="" 設定で期待)
+          AI-3: JSON parse 失敗 → 500 + retry/log (malformed JSON mock → 検証)
+          AI-4: 502 retry policy → maxAttempts 回目まで再試行 → 最終 502 (spy 呼出回数確認)
+      - @env.* / @secret.* 参照は #859 未解決のため literal fallback
+      - @conv.* 参照 (#859 解決後に transparent 対応)
+
+  P5 スコープ外 (別 ISSUE で逐次拡張):
     - Spring Boot / Python FastAPI 等の他 backend techStack
-    - P5: AI flow mock + 実 API 切替 (#874)
     - CI 自動化 (本スキルは AI 対話駆動のため CI に乗せない)
 -->
 
@@ -1568,4 +1579,273 @@ smoke 検証: スキップ (dev server 未起動 / playwright install 未実施)
 ### 申し送り
 - SCENARIO-1: screenTransitions 空 → path-based fallback。#864 close 後に再生成推奨。
 - PLACEHOLDER: <未解決の PLACEHOLDER 一覧>
+```
+
+---
+
+## Step P5: AI flow mock + 実 API 切替テスト生成 — #874
+
+ProcessFlow に `kind=externalSystem` の step が含まれる場合、P5 ルートが自動的に有効化される。
+P5 は P1/P2 と並列して生成する (P1/P2 の happy path / validation テストに加えて AI 固有テストを追加)。
+
+テンプレート規約: `.claude/skills/generate-tests/templates/backend/typescript-nestjs/E2E_SPEC.md` の Section 16 (AI flow セクション) を Read して参照すること。
+
+ゴールデン出力も参照:
+```
+.claude/skills/generate-tests/golden-examples/diary-ai-tag-suggest/
+  ai-tag-suggest.e2e-spec.ts   — AIタグ提案 mock + 実 API テスト (9+ tests)
+  mocks/claude-api.ts          — Claude API mock helper
+  README.md                    — PLACEHOLDER 解決表 + 再 invocation 例
+```
+
+### P5-1. AI flow 検出アルゴリズム
+
+ProcessFlow JSON を読み込み、以下の条件で AI flow かどうかを判定する:
+
+```
+AI flow 判定条件:
+  actions[].steps[] に step.kind = "externalSystem" が含まれ、かつ
+  step.systemRef が context.catalogs.externalSystems に定義されている場合 → AI flow
+
+externalSystems の AI 系判定 (現状はシステム名の慣習で判定):
+  - 名前に "ai", "claude", "openai", "gpt", "llm", "ml" を含む (case-insensitive) → AI system
+  - それ以外 (Stripe 決済 API 等) → 通常の externalSystem (P5 スコープ外)
+
+AI flow が 1 件以上含まれる ProcessFlow → P5 テスト生成をトリガー
+```
+
+### P5-2. externalSystems catalog 参照 → mock target 決定
+
+```
+catalog 参照フロー:
+  1. step.systemRef → context.catalogs.externalSystems[systemRef] を取得
+  2. 取得した catalog エントリから以下を抽出:
+     - baseUrl: "@env.CLAUDE_API_BASE_URL" → PLACEHOLDER として記録 (#859 解決前)
+     - auth.tokenRef: "@secret.claudeApiKey" → PLACEHOLDER として記録
+     - retryPolicy: { maxAttempts, backoff, initialDelayMs }
+     - timeoutMs
+  3. secrets catalog: context.catalogs.secrets[secretName] → env 変数名 を取得
+     例: secrets.claudeApiKey.name = "CLAUDE_API_KEY"
+
+@env.* / @secret.* 参照の扱い (P5 時点):
+  @env.CLAUDE_API_BASE_URL → PLACEHOLDER = "https://api.anthropic.com" (デフォルト)
+  @secret.claudeApiKey → env var CLAUDE_API_KEY を参照
+
+  注: #859 (フレームワーク @conv.ai.* / @env.* 参照サポート) 解決後は catalog から直接解決可能になる。
+  解決後の差替えポイントは README の「#859 解決後の差替え」セクションに記録する。
+
+mock target の決定 (P5 現在):
+  - NestJS service 層で HttpService.post() を呼ぶ実装が前提 (#865 AI provider 抽象化は OPEN)
+  - jest.spyOn(httpService, 'post') または axios の mock interceptor を使用
+  - #865 解決後: provider 抽象化 interface 単位の mock に置換 (README に差替えポイントを記録)
+```
+
+### P5-3. step.kind=externalSystem → テスト変換ルール
+
+AI flow 検出後、以下の 4 観点 (AI-1〜AI-4) でテストを自動生成する。
+各 `it()` には必ず D-1 anchor `// Spec: ProcessFlow <flowId> step:<step-id> [ai-mode:mock|live]` を付与する。
+
+#### AI-1: 信頼度フィルタ検証
+
+対象 step: `step.kind=compute` で AI レスポンスの `.filter(t => t.confidence >= <threshold>)` を処理する step。
+
+```
+変換ルール:
+  1. compute step の expression から threshold 値を抽出
+     例: expression = "JSON.parse(...).filter(t => t.confidence >= 0.6)"
+     → threshold = 0.6
+  2. mock AI response を用意:
+     - 信頼度 >= threshold のタグ (採用期待)
+     - 信頼度 < threshold のタグ (除外期待)
+     - 閾値ちょうど (= threshold) のタグ (採用期待、境界値)
+  3. 生成テスト:
+     - mock response に threshold 未満が含まれる → レスポンスに除外されていること
+     - mock response に threshold 以上が含まれる → レスポンスに含まれること
+     - 閾値ちょうど → 含まれること (境界値テスト)
+
+#859 注記: threshold は現状 compute step の expression にリテラルとして埋め込まれている。
+           #859 解決後は catalog conventions.ai.tagSuggestThreshold を参照する形に変わる予定。
+           差替えポイントを README に記録すること。
+```
+
+#### AI-2: API key 未設定 → 503 fallback
+
+```
+変換ルール:
+  1. secrets catalog から env var 名を取得 (例: CLAUDE_API_KEY)
+  2. mock で API key 未設定状態を再現:
+     const originalKey = process.env.CLAUDE_API_KEY;
+     process.env.CLAUDE_API_KEY = '';
+     // リクエスト実行
+     process.env.CLAUDE_API_KEY = originalKey; // afterEach で restore
+  3. 期待 HTTP status: 503 (Service Unavailable)
+     注: API key 未設定の場合は provider への呼び出し前に 503 を返す実装が前提
+     実装が 401 / 500 を返す場合はその status に合わせて修正する (コメントに明記)
+
+生成テスト:
+  #N API key 未設定 → 503 Service Unavailable
+```
+
+#### AI-3: JSON parse 失敗 → 500 + retry/log
+
+```
+変換ルール:
+  1. externalSystem step の後続 compute step で JSON.parse() が使われる場合を検出
+     例: step-04.expression = "JSON.parse(@aiResponse.content[0].text)"
+  2. mock で malformed JSON レスポンスを返す:
+     jest.spyOn(httpService, 'post').mockResolvedValueOnce({
+       data: { content: [{ text: 'NOT_VALID_JSON' }] }
+     });
+  3. 期待: HTTP 500 が返ること
+  4. retry policy は関係なし (parse 失敗は retry 対象外)
+
+生成テスト:
+  #N AI レスポンス JSON parse 失敗 → 500 (malformed JSON mock)
+```
+
+#### AI-4: 502 retry policy → maxAttempts 確認
+
+```
+変換ルール:
+  1. retryPolicy から maxAttempts / backoff / initialDelayMs を取得
+     例: { maxAttempts: 2, backoff: "exponential", initialDelayMs: 1000 }
+  2. mock で maxAttempts 回連続 502 エラーを返す:
+     jest.spyOn(httpService, 'post')
+       .mockRejectedValueOnce({ response: { status: 502 } })  // 1回目 → retry
+       .mockRejectedValueOnce({ response: { status: 502 } }); // 2回目 → abort
+  3. spy の呼出回数確認: expect(spy).toHaveBeenCalledTimes(maxAttempts)
+  4. 期待 HTTP status: 502 (AI_API_ERROR)
+  5. retry 時の delay は jest.useFakeTimers() で短縮 (実時間を待たない)
+
+生成テスト:
+  #N AI API 502 エラー → maxAttempts (=2) 回 retry → 最終 502 (AI_API_ERROR)
+    + spy.toHaveBeenCalledTimes(2) の呼出回数確認
+```
+
+### P5-4. mock mode vs 実 API mode の切替ロジック
+
+```typescript
+// mock mode (default): jest.spyOn で stub
+describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
+  let httpServiceSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    // HttpService.post を stub
+    // NOTE: NestJS の HttpService が Axios ラッパーの場合、axiosRef.post を spyOn する
+    httpServiceSpy = jest.spyOn(httpService, 'axiosRef').mockImplementation(...);
+  });
+
+  afterEach(() => {
+    httpServiceSpy.mockRestore();
+  });
+
+  // AI-1〜AI-4 の各テスト
+});
+
+// 実 API mode: RUN_AI_INTEGRATION=1 の場合のみ実行
+describe.skipIf(process.env.RUN_AI_INTEGRATION !== '1')(
+  'POST /api/ai/tag-suggest (AIタグ提案 E2E) [live API]',
+  () => {
+    // 実際の Claude API を叩くテスト (CI では skip)
+    // 必要: CLAUDE_API_KEY env var の設定
+
+    // AI-5: 実 API happy path (基本的なタグ候補取得)
+    // AI-6: 実 API 信頼度フィルタ (実際のモデル出力に依存するため assertion は緩め)
+  }
+);
+```
+
+### P5-5. @env.* / @secret.* / @conv.* 参照解決の skill 内 index
+
+P5 テスト生成時に参照する外部依存の解決方法を統一する:
+
+```
+参照解決テーブル (#859 解決前の現状対応):
+
+  @env.CLAUDE_API_BASE_URL
+    → 現状: PLACEHOLDER "https://api.anthropic.com" を使用
+    → #859 解決後: harmony.json の context.envCatalog から解決 (transparent)
+    → テスト内記録: process.env.CLAUDE_API_BASE_URL || 'https://api.anthropic.com'
+
+  @secret.claudeApiKey
+    → 現状: secrets.claudeApiKey.name = "CLAUDE_API_KEY" から env var 名を取得
+    → テスト内記録: process.env.CLAUDE_API_KEY (存在確認 → 未設定時 503 テスト)
+    → live mode では必須: process.env.CLAUDE_API_KEY が設定済み前提
+
+  @conv.ai.tagSuggestThreshold
+    → 現状: compute step の expression からリテラル値を抽出 (例: 0.6)
+    → #859 解決後: conventions catalog の ai.tagSuggestThreshold から解決
+    → テスト内記録: const AI_TAG_SUGGEST_THRESHOLD = 0.6; // TODO: #859 解決後に catalog 参照
+
+  @conv.ai.*model (モデル名)
+    → 現状: externalSystem step の httpCall.body にリテラル文字列 'claude-opus-4-7'
+    → #859 解決後: conventions catalog の ai.<featureModel> から解決
+    → テスト内記録: mock では model 名チェックをスキップ (spy の引数検証には含めない)
+```
+
+### P5-6. ai-specific PLACEHOLDER 解決表 (README 必須項目)
+
+P5 golden 生成時の README には以下の PLACEHOLDER 解決表を含めること:
+
+| PLACEHOLDER | 解決元 | 現状値 / 確認方法 | #解決後の差替えポイント |
+|---|---|---|---|
+| `AI_TAG_SUGGEST_THRESHOLD` | step-04.expression のリテラル | `0.6` | `#859` 解決後: conventions.ai.tagSuggestThreshold |
+| `CLAUDE_API_BASE_URL` | externalSystems.claudeApi.baseUrl | `https://api.anthropic.com` | `#859` 解決後: @env カタログ |
+| `CLAUDE_API_KEY` | secrets.claudeApiKey.name | `process.env.CLAUDE_API_KEY` | — (env var は解決不要) |
+| `AI_MODEL_NAME` | httpCall.body の model リテラル | `'claude-opus-4-7'` | `#859` 解決後: @conv.ai.* |
+| `HTTP_SERVICE_SPY_TARGET` | NestJS HttpService の実装 | `httpService.axiosRef` または `httpService.post` | `#865` 解決後: provider interface |
+
+### P5-7. 出力ファイル
+
+```
+<出力先>/
+  <flowName>.e2e-spec.ts   — AI flow テスト (mock mode + 実 API mode)
+  mocks/
+    <systemName>.ts        — mock helper (spy factory)
+  README.md                — PLACEHOLDER 解決表 + CI 設定例 + 再 invocation 例
+```
+
+### P5-8. 最終レポート (P5 モード)
+
+```markdown
+## /generate-tests 完了: <flowName> (AI flow mock + 実 API 切替)
+
+### 入力
+- ProcessFlow: <flowId> (<meta.name>)
+- 検出 AI steps: <step-id> (<systemRef>)
+- retryPolicy: maxAttempts=<N>, backoff=<type>, initialDelayMs=<ms>
+
+### AI flow 検出結果
+| step.id | kind | systemRef | AI 系? | 備考 |
+|---|---|---|---|---|
+| <step-id> | externalSystem | claudeApi | ✅ | Claude AI API |
+
+### 4 観点変換結果
+| 観点 | 生成テスト | assertion |
+|---|---|---|
+| AI-1: 信頼度フィルタ | #N threshold 未満 → 除外 / ≥ threshold → 含まれる | length 確認 |
+| AI-2: API key 未設定 | #N CLAUDE_API_KEY="" → 503 | status 確認 |
+| AI-3: JSON parse 失敗 | #N malformed JSON → 500 | status 確認 |
+| AI-4: 502 retry | #N 502×2 → spy.toHaveBeenCalledTimes(2) → 最終 502 | spy + status |
+
+### @env.* / @secret.* / @conv.* 解決状況
+| 参照 | 解決方法 | 残 PLACEHOLDER |
+|---|---|---|
+| @env.CLAUDE_API_BASE_URL | PLACEHOLDER (literal fallback) | #859 解決後に差替え |
+| @secret.claudeApiKey | env var CLAUDE_API_KEY | — |
+| @conv.ai.tagSuggestThreshold | compute step リテラル 0.6 | #859 解決後に差替え |
+
+### 生成ファイル
+- `<出力先>/<flowName>.e2e-spec.ts` (N 行, M テスト)
+- `<出力先>/mocks/<systemName>.ts`
+- `<出力先>/README.md`
+
+### smoke 検証
+- jest 実行: スキップ (dev server 未起動)
+- 推奨コマンド: cd apps/api && npx jest <flowName>.e2e-spec.ts --runInBand
+
+### 申し送り
+- PLACEHOLDER: AI_TAG_SUGGEST_THRESHOLD=0.6 → #859 解決後に catalog 参照へ
+- PLACEHOLDER: HTTP_SERVICE_SPY_TARGET → #865 解決後に provider interface mock へ
+- live API テスト: RUN_AI_INTEGRATION=1 CLAUDE_API_KEY=<key> npx jest --runInBand で実行
 ```
