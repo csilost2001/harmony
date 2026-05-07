@@ -1,4 +1,5 @@
 import * as net from "net";
+import WebSocketImpl from "ws";
 
 /**
  * backend サーバが port 5179 で起動しているかを確認する。
@@ -18,10 +19,12 @@ export async function isMcpRunning(): Promise<boolean> {
  * ブラウザ役として wsBridge (ws://localhost:5179) にリクエストを送るヘルパー。
  * `register` (clientId) → `request` (method/params) の順でメッセージを送り、
  * 同じ id の `response` が返るのを待つ。10 秒でタイムアウト。
+ *
+ * `WebSocket` は Node 22+ で global だが、Node 20 では未定義のため `ws` パッケージを使う。
  */
 export function sendBrowserRequest(method: string, params: unknown = {}): Promise<unknown> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket("ws://localhost:5179");
+    const ws = new WebSocketImpl("ws://localhost:5179");
     const clientId = `test-client-${Date.now()}`;
     const reqId = `req-${Date.now()}`;
 
@@ -30,14 +33,14 @@ export function sendBrowserRequest(method: string, params: unknown = {}): Promis
       reject(new Error(`Timeout waiting for response to ${method}`));
     }, 10000);
 
-    ws.onopen = () => {
+    ws.on("open", () => {
       ws.send(JSON.stringify({ type: "register", clientId }));
       ws.send(JSON.stringify({ type: "request", id: reqId, method, params }));
-    };
+    });
 
-    ws.onmessage = (event) => {
+    ws.on("message", (data) => {
       try {
-        const msg = JSON.parse(event.data as string);
+        const msg = JSON.parse(data.toString()) as { type?: string; id?: string; error?: string; result?: unknown };
         if (msg.type === "response" && msg.id === reqId) {
           clearTimeout(timeout);
           ws.close();
@@ -45,8 +48,8 @@ export function sendBrowserRequest(method: string, params: unknown = {}): Promis
           else resolve(msg.result);
         }
       } catch { /* 別メッセージは無視 */ }
-    };
+    });
 
-    ws.onerror = () => reject(new Error("WebSocket error"));
+    ws.on("error", (err) => reject(new Error(`WebSocket error: ${err.message}`)));
   });
 }
