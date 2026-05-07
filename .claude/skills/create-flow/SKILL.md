@@ -74,10 +74,11 @@ ProcessFlow JSON に含めるべき要素 (5/5 達成サンプル準拠):
 | `decisions` | ADR 形式 3 件以上 (id / title / status / context / decision / consequences / date) |
 | `ambientVariables` | requestId / sessionUserId 等の暗黙変数定義 |
 | `errorCatalog` | 5 件以上、key + httpStatus + defaultMessage + responseRef |
-| `externalSystemCatalog` | 連携する外部システム (auth / baseUrl / timeoutMs / openApiSpec 任意) |
-| `secretsCatalog` | 各 API トークン (source / name / rotationDays) |
-| `domainsCatalog` | ID 系・金額系等のドメイン型 (constraints 付き) |
-| `functionsCatalog` | 業務固有関数のシグネチャ (signature / returnType / examples) |
+| `externalSystemCatalog` (= `context.catalogs.externalSystems`) | 連携する外部システム (auth / baseUrl / timeoutMs / openApiSpec 任意) |
+| `modelEndpointCatalog` (= `context.catalogs.modelEndpoints`) | AI モデルエンドポイント (provider / model / auth / defaults / fallback) — `aiCall` / `aiAgent` step から `modelRef` で参照 (#935) |
+| `secretsCatalog` (= `context.catalogs.secrets`) | 各 API トークン (source / name / rotationDays) |
+| `domainsCatalog` (= `context.catalogs.domains`) | ID 系・金額系等のドメイン型 (constraints 付き) |
+| `functionsCatalog` (= `context.catalogs.functions`) | 業務固有関数のシグネチャ (signature / returnType / examples) — `aiCall.tools[].functionRef` から tool として再利用可 |
 | `actions[]` | 1-3 アクション。各 trigger / inputs / outputs / responses / steps |
 | `testScenarios` | 3 件以上 (happy path / validation error / 業務エッジケース)、各 SELECT 対象テーブルについて行ありパターン + 行なしパターン (新規ユーザー / 初回利用) を網羅 (#608) |
 

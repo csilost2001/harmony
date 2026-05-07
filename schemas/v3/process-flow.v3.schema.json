@@ -165,6 +165,12 @@
           "description": "イベント pub/sub catalog。キー: EventTopic (dot.lowercase)。EventPublishStep.topic / EventSubscribeStep.topic から参照。",
           "propertyNames": { "$ref": "common.v3.schema.json#/$defs/EventTopic" },
           "additionalProperties": { "$ref": "#/$defs/EventEntry" }
+        },
+        "modelEndpoints": {
+          "type": "object",
+          "description": "AI モデルエンドポイント catalog。キー: endpointKey (lowerCamelCase)。AiCallStep / AiAgentStep の modelRef から参照する。provider / model / endpoint URL / 認証方式を 1 か所に集約し、step 側は参照キーのみ持つことで provider 切替を catalog 編集だけで完結させる (LangChain / Camunda / Azure Foundry 等の業界共通パターン)。",
+          "propertyNames": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
+          "additionalProperties": { "$ref": "#/$defs/ModelEndpointEntry" }
         }
       }
     },
@@ -273,6 +279,52 @@
           "description": "ペイロードの JSON Schema (draft 2020-12)。",
           "additionalProperties": true
         }
+      }
+    },
+
+    "ModelEndpointEntry": {
+      "description": "AI モデルエンドポイント定義。1 エントリ = 1 provider+model+認証の組合せ。step 側は modelRef でキー参照することで provider 切替を catalog 編集に閉じ込める。",
+      "type": "object",
+      "required": ["provider", "model"],
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "oneOf": [
+            { "type": "string", "enum": ["anthropic", "openai", "google", "aws-bedrock", "ollama", "azure-openai"] },
+            { "type": "string", "pattern": "^[a-z][a-z0-9_-]*:[a-z][a-zA-Z0-9-]*$", "description": "拡張 provider (namespace:identifier)。組み込み 6 種で足りない場合の入口。" }
+          ],
+          "description": "AI provider 識別子。組み込み 6 種 (anthropic / openai / google / aws-bedrock / ollama / azure-openai) または拡張 (namespace:provider)。"
+        },
+        "model": {
+          "type": "string",
+          "description": "プロバイダー固有のモデル ID (例: 'claude-opus-4-7' / 'gpt-4o' / 'gemini-2.0-flash' / 'llama3.1:70b' / 'amazon.nova-pro-v1:0')。"
+        },
+        "endpoint": {
+          "type": "string",
+          "format": "uri",
+          "description": "API base URL。省略時は provider のデフォルト (anthropic=api.anthropic.com / openai=api.openai.com 等) を使用。Ollama / Azure OpenAI / 自前 BYO endpoint で必須。"
+        },
+        "auth": {
+          "$ref": "#/$defs/ExternalAuth",
+          "description": "認証方式。tokenRef は @secret.<key> 形式で参照。anthropic/openai は bearer/apiKey、azure-openai は azureAd、aws-bedrock は iamRole、ollama は none が典型。"
+        },
+        "defaults": {
+          "type": "object",
+          "description": "step 側で未指定時に適用するデフォルトパラメータ。step 側 parameters で override 可。",
+          "additionalProperties": false,
+          "properties": {
+            "temperature": { "type": "number", "minimum": 0, "maximum": 2 },
+            "maxTokens": { "type": "integer", "minimum": 1 },
+            "topP": { "type": "number", "minimum": 0, "maximum": 1 },
+            "topK": { "type": "integer", "minimum": 1 },
+            "stopSequences": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "fallback": {
+          "$ref": "common.v3.schema.json#/$defs/Identifier",
+          "description": "プライマリ呼び出し失敗時の fallback endpoint key (modelEndpoints 内の別キー参照、推奨: 別 provider)。"
+        },
+        "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
       }
     },
 
@@ -467,14 +519,14 @@
       "required": ["kind"],
       "additionalProperties": false,
       "properties": {
-        "kind": { "type": "string", "enum": ["bearer", "basic", "apiKey", "oauth2", "none"] },
+        "kind": { "type": "string", "enum": ["bearer", "basic", "apiKey", "oauth2", "iamRole", "azureAd", "none"] },
         "tokenRef": { "type": "string", "description": "@secret.<key> 推奨 (旧 ENV: / SECRET: 形式は v3 廃止)。" },
         "headerName": { "type": "string" }
       }
     },
 
     "Step": {
-      "description": "Step union。kind プロパティで variant を識別。組み込み 21 variant + ExtensionStep の計 22 variant。ExtensionStep は kind にパターン (namespace:StepName) を取るため AJV `discriminator: true` の strict const 要件を満たさず、本 oneOf には discriminator keyword を付けない (#525 F-4 limitation)。Step.kind ミスマッチ時のエラー読みやすさは AJV `allErrors: true` + 上位 UI 側でフィルタ推奨。",
+      "description": "Step union。kind プロパティで variant を識別。組み込み 23 variant + ExtensionStep の計 24 variant。ExtensionStep は kind にパターン (namespace:StepName) を取るため AJV `discriminator: true` の strict const 要件を満たさず、本 oneOf には discriminator keyword を付けない (#525 F-4 limitation)。Step.kind ミスマッチ時のエラー読みやすさは AJV `allErrors: true` + 上位 UI 側でフィルタ推奨。",
       "oneOf": [
         { "$ref": "#/$defs/ValidationStep" },
         { "$ref": "#/$defs/DbAccessStep" },
@@ -497,6 +549,8 @@
         { "$ref": "#/$defs/EventSubscribeStep" },
         { "$ref": "#/$defs/ClosingStep" },
         { "$ref": "#/$defs/CdcStep" },
+        { "$ref": "#/$defs/AiCallStep" },
+        { "$ref": "#/$defs/AiAgentStep" },
         { "$ref": "#/$defs/ExtensionStep" }
       ]
     },
@@ -524,6 +578,8 @@
         { "$ref": "#/$defs/EventSubscribeStep" },
         { "$ref": "#/$defs/ClosingStep" },
         { "$ref": "#/$defs/CdcStep" },
+        { "$ref": "#/$defs/AiCallStep" },
+        { "$ref": "#/$defs/AiAgentStep" },
         { "$ref": "#/$defs/ExtensionStep" }
       ]
     },
@@ -797,6 +853,276 @@
         "maxConcurrent": { "type": "number", "minimum": 0 },
         "maxWait": { "type": "number", "minimum": 0 }
       }
+    },
+
+    "AiCallStep": {
+      "description": "single-shot LLM 呼び出し step (text / vision multimodal / tool use / structured output 込み)。OpenAI Responses / Anthropic Messages / Camunda AI Agent Task に対応。multi-step ループ (tool 結果に応じた次の判断) が必要な場合は AiAgentStep を使う。",
+      "allOf": [
+        { "$ref": "#/$defs/StepBaseProps" },
+        {
+          "type": "object",
+          "required": ["id", "kind", "description", "modelRef", "messages"],
+          "properties": {
+            "kind": { "const": "aiCall" },
+            "modelRef": {
+              "$ref": "common.v3.schema.json#/$defs/Identifier",
+              "description": "context.catalogs.modelEndpoints のキー参照。"
+            },
+            "messages": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/AiMessage" },
+              "description": "LLM に送信する messages 配列。system / user / assistant の role 別に並べる。"
+            },
+            "tools": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/AiToolRef" },
+              "description": "LLM に提供する tool 群 (任意)。functionRef (catalogs.functions 参照) または inline 定義を並列許容。"
+            },
+            "toolChoice": { "$ref": "#/$defs/AiToolChoice" },
+            "responseFormat": { "$ref": "#/$defs/AiResponseFormat" },
+            "parameters": { "$ref": "#/$defs/AiInferenceParameters", "description": "modelEndpoint.defaults を override。同キーは本フィールド優先。" },
+            "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes", "description": "失敗 / timeout 時の挙動。既存 ExternalSystemStep と同じ pattern を流用。" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "AiAgentStep": {
+      "description": "multi-step agent loop step。tool call → 結果 → 次の tool 選択を maxIterations 回まで繰り返す。LangGraph / Camunda AI Agent Sub-process / OpenAI Conversations に対応。tool が無い single-shot 呼び出しは AiCallStep を使う。",
+      "allOf": [
+        { "$ref": "#/$defs/StepBaseProps" },
+        {
+          "type": "object",
+          "required": ["id", "kind", "description", "modelRef", "messages", "tools"],
+          "properties": {
+            "kind": { "const": "aiAgent" },
+            "modelRef": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
+            "messages": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/AiMessage" },
+              "description": "初期 messages。agent loop 開始時の context (system + user)。"
+            },
+            "tools": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/AiToolRef" },
+              "description": "agent が呼べる tool 群 (1 件以上必須、tool なしなら AiCallStep を使う)。"
+            },
+            "toolChoice": { "$ref": "#/$defs/AiToolChoice" },
+            "maxIterations": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10,
+              "description": "tool call ループの最大反復回数。LLM が連続 tool 呼び出しに陥った場合の安全装置。"
+            },
+            "responseFormat": { "$ref": "#/$defs/AiResponseFormat", "description": "最終 assistant message の構造化指定。" },
+            "parameters": { "$ref": "#/$defs/AiInferenceParameters" },
+            "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "AiMessage": {
+      "description": "LLM 入力メッセージ 1 件。Anthropic Messages / OpenAI Chat Completions の messages 構造に対応。content は string (シンプルテキスト) または array of content blocks (multimodal) を許容。",
+      "type": "object",
+      "required": ["role", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "role": { "type": "string", "enum": ["system", "user", "assistant"] },
+        "content": {
+          "oneOf": [
+            { "type": "string", "description": "シンプルなテキスト content (式補間 @<var> 含む)。" },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/AiContentBlock" },
+              "description": "multimodal content blocks (text / image)。"
+            }
+          ]
+        },
+        "name": { "type": "string", "description": "tool 結果メッセージ等で使う name (任意)。" }
+      }
+    },
+
+    "AiContentBlock": {
+      "description": "LLM message の content block。text / image を sum type で表現。",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "text"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "text" },
+            "text": { "type": "string", "description": "プレーンテキスト (式補間 @<var> 含む)。" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "source"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "image" },
+            "source": { "$ref": "#/$defs/AiImageSource" }
+          }
+        }
+      ]
+    },
+
+    "AiImageSource": {
+      "description": "vision input の画像ソース。fileRef (ScreenItem type=file / step output 等の式参照) / url / base64 の 3 形式。",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "ref"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "fileRef" },
+            "ref": {
+              "$ref": "common.v3.schema.json#/$defs/ExpressionString",
+              "description": "ScreenItem (type=file) または step output 等の式参照 (例: '@inputs.photo' / '@uploaded.file')。"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "url"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "url" },
+            "url": { "type": "string", "format": "uri" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "data", "mediaType"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "base64" },
+            "mediaType": { "type": "string", "enum": ["image/jpeg", "image/png", "image/webp", "image/gif"] },
+            "data": { "type": "string", "description": "base64-encoded 画像データ (literal)。実用は fileRef 推奨、本形式は test fixture / 小規模アイコン等に限定。" }
+          }
+        }
+      ]
+    },
+
+    "AiToolRef": {
+      "description": "LLM に提供する tool 1 件。functionRef (context.catalogs.functions 参照、推奨) または inline 定義 (アドホック使用)。業界共通の {name, description, parameters: JSON Schema} 構造に対応。",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "ref"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "functionRef" },
+            "ref": {
+              "$ref": "common.v3.schema.json#/$defs/Identifier",
+              "description": "context.catalogs.functions のキー参照。tool の name / description / parameters は functions catalog から取得。"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "name", "description", "parameters"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "inline" },
+            "name": { "$ref": "#/$defs/AiName" },
+            "description": { "$ref": "common.v3.schema.json#/$defs/Description" },
+            "parameters": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "JSON Schema (draft 2020-12) で tool 引数を定義。OpenAI / Anthropic / Bedrock / Camunda 共通の業界標準形式。"
+            }
+          }
+        }
+      ]
+    },
+
+    "AiToolChoice": {
+      "description": "tool 選択戦略。auto=LLM が自動選択 (デフォルト) / any=必ず何らかの tool を呼ぶ / none=tool 呼ばない / {name}=指定 tool を強制。",
+      "oneOf": [
+        { "type": "string", "enum": ["auto", "any", "none"] },
+        {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "properties": {
+            "name": { "$ref": "#/$defs/AiName", "description": "強制的に呼ぶ tool 名 (functionRef / inline.name と一致)。" }
+          }
+        }
+      ]
+    },
+
+    "AiResponseFormat": {
+      "description": "LLM 出力の format 指定。text (デフォルト、自由テキスト) / json (free-form JSON、parse のみ) / structuredObject (JSON Schema 準拠の構造化出力) / streaming (SSE / WebSocket、partial response 配信)。",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "text" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "json" },
+            "description": { "type": "string", "description": "free-form JSON 出力 (schema 制約なし、parse のみ)。" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "schema"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "structuredObject" },
+            "schema": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "JSON Schema (draft 2020-12)。LLM が schema 準拠で構造化出力する (Anthropic / OpenAI / Dify 共通の業界標準形式)。"
+            },
+            "name": { "$ref": "#/$defs/AiName", "description": "schema 名 (provider 仕様の名称ヒント、optional)。OpenAI structured output / Anthropic tool 名と同形式。" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "streaming" },
+            "description": { "type": "string", "description": "SSE / WebSocket 等で partial response を流す。実装側で client streaming を処理。" }
+          }
+        }
+      ]
+    },
+
+    "AiInferenceParameters": {
+      "description": "LLM 推論パラメータ。modelEndpoint.defaults と AiCallStep.parameters の両方で使用。",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "temperature": { "type": "number", "minimum": 0, "maximum": 2 },
+        "maxTokens": { "type": "integer", "minimum": 1 },
+        "topP": { "type": "number", "minimum": 0, "maximum": 1 },
+        "topK": { "type": "integer", "minimum": 1 },
+        "stopSequences": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "AiName": {
+      "description": "AI tool / response schema 名。PascalCase / camelCase / snake_case / kebab-case を許容 (provider の慣例に合わせる)。OpenAI / Anthropic / Bedrock 共通の許容パターン。Identifier (lowerCamelCase 強制) より緩く設計。",
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+      "minLength": 1,
+      "maxLength": 64
     },
 
     "CommonProcessStep": {

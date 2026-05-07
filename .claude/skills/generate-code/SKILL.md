@@ -169,6 +169,8 @@ ProcessFlow JSON を入力として、techStack に基づく backend code 雛形
 | `return` | `return ResponseEntity.<T>status(N).body(body)` | `throw new HttpException(body, status)` または `return response` |
 | `validation` | Bean Validation DTO + `@Valid` Controller 引数 | `class-validator` DTO デコレータ |
 | `log` | `log.error(message, structuredData)` | `this.logger.error(message, structuredData)` |
+| `aiCall` (#935) | `modelEndpoints.<modelRef>.provider` に従い SDK 切替 (anthropic-java-sdk / openai-java / langchain4j 等)。tools[] は `tool_use` block で渡す、responseFormat=structuredObject は JSON Schema 強制 | `modelEndpoints.<modelRef>.provider` に従い `@anthropic-ai/sdk` / `openai` / `langchain` 等切替。tools / structured output 同様 |
+| `aiAgent` (#935) | tool call loop を SDK / 自前実装で `maxIterations` 回まで実装 (anthropic agent SDK / openai assistants → responses 移行 / langchain Runnable / langgraph 等) | 同左、JS/TS SDK で実装 |
 | `other` | `// TODO: {{step.description}}` + outputSchema で型推定 (注: schema の `kind` に `other` は存在しない。extension step では `type: "other"` を使う別階層の概念であるため混同注意) | 同左 |
 
 ### affectedRowsCheck → 実装パターン
