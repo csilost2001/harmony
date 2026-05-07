@@ -3,11 +3,11 @@
   "meta": {
     "id": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
     "name": "AIタグ提案",
-    "description": "投稿のタイトル + 本文を Claude AI へ送信し、信頼度付きタグ候補を取得する処理フロー。信頼度が conventions/catalog.json の limit.tagSuggestThreshold 未満のものは除外する。UI 側でユーザー選択後、確定は投稿作成/更新フロー経由で post_tags に INSERT。",
+    "description": "投稿のタイトル + 本文を AI モデルへ送信し、信頼度付きタグ候補を構造化出力 (responseFormat=structuredObject) で取得する処理フロー。信頼度が conventions/catalog.json の limit.tagSuggestThreshold 未満のものは除外する。UI 側でユーザー選択後、確定は投稿作成/更新フロー経由で post_tags に INSERT。",
     "kind": "common",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
-    "updatedAt": "2026-05-06T14:00:00.000Z"
+    "updatedAt": "2026-05-08T00:00:00.000Z"
   },
   "context": {
     "catalogs": {
@@ -22,37 +22,29 @@
           "httpStatus": 502,
           "defaultMessage": "AI API の呼び出しに失敗しました。",
           "responseId": "502-ai-error",
-          "description": "Claude API へのリクエストが失敗した場合。"
+          "description": "AI モデルへのリクエストが失敗した場合。"
         }
       },
-      "externalSystems": {
-        "claudeApi": {
-          "name": "Claude AI API",
-          "baseUrl": "@env.CLAUDE_API_BASE_URL",
+      "modelEndpoints": {
+        "tagSuggestModel": {
+          "provider": "anthropic",
+          "model": "claude-opus-4-7",
           "auth": {
             "kind": "bearer",
-            "tokenRef": "@secret.claudeApiKey"
+            "tokenRef": "@secret.anthropicApiKey"
           },
-          "timeoutMs": 30000,
-          "retryPolicy": {
-            "maxAttempts": 2,
-            "backoff": "exponential",
-            "initialDelayMs": 1000
-          }
+          "defaults": {
+            "maxTokens": 512,
+            "temperature": 0.5
+          },
+          "description": "本文からタグ候補を提案するモデル (信頼度 score 付き、structuredObject 形式)。"
         }
       },
       "secrets": {
-        "claudeApiKey": {
+        "anthropicApiKey": {
           "source": "env",
-          "name": "CLAUDE_API_KEY",
-          "description": "Claude API の認証キー。"
-        }
-      },
-      "envVars": {
-        "CLAUDE_API_BASE_URL": {
-          "type": "string",
-          "description": "Claude API base URL",
-          "default": "https://api.anthropic.com"
+          "name": "ANTHROPIC_API_KEY",
+          "description": "Anthropic API の認証キー。"
         }
       }
     },
@@ -181,13 +173,42 @@
         },
         {
           "id": "step-03",
-          "kind": "externalSystem",
-          "description": "Claude API にタグ抽出プロンプトを送信し、JSON 形式のタグ候補を取得する。",
-          "systemRef": "claudeApi",
-          "httpCall": {
-            "method": "POST",
-            "path": "/v1/messages",
-            "body": "{ model: @conv.ai.tagSuggestModel.model, max_tokens: 512, messages: [{ role: 'user', content: '以下の記事から関連するタグを抽出してください。除外するタグ: ' + JSON.stringify(@inputs.existingTags) + '\\n\\n# タイトル\\n' + @inputs.title + '\\n\\n# 本文\\n' + @inputs.body + '\\n\\n各タグの slug (英小文字ハイフン区切り), name (日本語), confidence (0.0〜1.0) を JSON 配列で返してください。形式: [{\"slug\": \"...\", \"name\": \"...\", \"confidence\": 0.9}]' }] }"
+          "kind": "aiCall",
+          "description": "AI モデルにタグ抽出プロンプトを送信し、structuredObject 形式 (JSON Schema 準拠) でタグ候補を取得する。",
+          "modelRef": "tagSuggestModel",
+          "messages": [
+            {
+              "role": "system",
+              "content": "あなたは日本語ブログ記事のタグ付け専門家です。記事内容から関連性の高いタグ候補を抽出し、各タグに 0.0〜1.0 の信頼度スコアを付与してください。slug は英小文字ハイフン区切り、name は日本語表記。"
+            },
+            {
+              "role": "user",
+              "content": "以下の記事に関連するタグを抽出してください。除外するタグ: @inputs.existingTags\n\n# タイトル\n@inputs.title\n\n# 本文\n@inputs.body"
+            }
+          ],
+          "responseFormat": {
+            "kind": "structuredObject",
+            "name": "TagSuggestResult",
+            "schema": {
+              "type": "object",
+              "required": ["tags"],
+              "properties": {
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["slug", "name", "confidence"],
+                    "properties": {
+                      "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+                      "name": { "type": "string" },
+                      "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
           },
           "outputBinding": {
             "name": "aiResponse"
@@ -195,15 +216,15 @@
           "outcomes": {
             "failure": {
               "action": "abort",
-              "description": "Claude API 呼び出し失敗時は 502 を返す。"
+              "description": "AI モデル呼び出し失敗時は 502 を返す。"
             }
           }
         },
         {
           "id": "step-04",
           "kind": "compute",
-          "description": "AI レスポンスから候補配列を JSON パースし、信頼度フィルタ (0.6 以上) と isNew フラグを付与する。閾値は conventions/catalog.json の limit.tagSuggestThreshold に準拠。",
-          "expression": "JSON.parse(@aiResponse.content[0].text).filter(t => t.confidence >= 0.6).map(t => ({ ...t, isNew: !@allTagSlugs.some(s => s.slug === t.slug) }))",
+          "description": "structuredObject の出力 (aiResponse.object.tags) を信頼度フィルタと isNew フラグで加工する。閾値は @conv.limit.tagSuggestThreshold (現在 0.6) を参照し、conventions 編集だけで全フローに反映できるよう抽象化する。",
+          "expression": "@aiResponse.object.tags.filter(t => t.confidence >= @conv.limit.tagSuggestThreshold).map(t => ({ ...t, isNew: !@allTagSlugs.some(s => s.slug === t.slug) }))",
           "outputBinding": {
             "name": "candidates"
           }

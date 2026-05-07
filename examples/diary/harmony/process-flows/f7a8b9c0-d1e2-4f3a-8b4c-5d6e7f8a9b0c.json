@@ -3,11 +3,11 @@
   "meta": {
     "id": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
     "name": "AI要約生成",
-    "description": "投稿本文を Claude AI へ送信し、3-5 文の日本語要約を生成して posts.summary に書き戻す処理フロー。投稿作成/更新後に非同期で呼ぶ想定 (TX 外、idempotent)。使用モデルは conventions/catalog.json の extensionCategories.ai.summarizeModel を参照。",
+    "description": "投稿本文を AI モデルへ送信し、3-5 文の日本語要約を生成して posts.summary に書き戻す処理フロー。投稿作成/更新後に非同期で呼ぶ想定 (TX 外、idempotent)。AI 呼び出しは aiCall step + modelEndpoints.summarizeModel で表現。provider 切替は modelEndpoints の編集だけで完結する。",
     "kind": "common",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
-    "updatedAt": "2026-05-06T14:00:00.000Z"
+    "updatedAt": "2026-05-08T00:00:00.000Z"
   },
   "context": {
     "catalogs": {
@@ -22,37 +22,29 @@
           "httpStatus": 502,
           "defaultMessage": "AI API の呼び出しに失敗しました。",
           "responseId": "502-ai-error",
-          "description": "Claude API へのリクエストが失敗した場合。"
+          "description": "AI モデルへのリクエストが失敗した場合。"
         }
       },
-      "externalSystems": {
-        "claudeApi": {
-          "name": "Claude AI API",
-          "baseUrl": "@env.CLAUDE_API_BASE_URL",
+      "modelEndpoints": {
+        "summarizeModel": {
+          "provider": "anthropic",
+          "model": "claude-opus-4-7",
           "auth": {
             "kind": "bearer",
-            "tokenRef": "@secret.claudeApiKey"
+            "tokenRef": "@secret.anthropicApiKey"
           },
-          "timeoutMs": 30000,
-          "retryPolicy": {
-            "maxAttempts": 2,
-            "backoff": "exponential",
-            "initialDelayMs": 1000
-          }
+          "defaults": {
+            "maxTokens": 512,
+            "temperature": 0.7
+          },
+          "description": "本文の要約に使うモデル。長文から 3-5 文の要約を出す。"
         }
       },
       "secrets": {
-        "claudeApiKey": {
+        "anthropicApiKey": {
           "source": "env",
-          "name": "CLAUDE_API_KEY",
-          "description": "Claude API の認証キー。"
-        }
-      },
-      "envVars": {
-        "CLAUDE_API_BASE_URL": {
-          "type": "string",
-          "description": "Claude API base URL",
-          "default": "https://api.anthropic.com"
+          "name": "ANTHROPIC_API_KEY",
+          "description": "Anthropic API の認証キー。"
         }
       }
     },
@@ -184,29 +176,34 @@
         },
         {
           "id": "step-04",
-          "kind": "externalSystem",
-          "description": "Claude API に要約プロンプトを送信し、3-5 文の日本語要約を取得する。",
-          "systemRef": "claudeApi",
-          "httpCall": {
-            "method": "POST",
-            "path": "/v1/messages",
-            "body": "{ model: @conv.ai.summarizeModel.model, max_tokens: 512, messages: [{ role: 'user', content: '以下の日記の文章を 3〜5 文で日本語で要約してください。\\n\\n' + @targetBody }] }"
-          },
+          "kind": "aiCall",
+          "description": "AI モデルに要約プロンプトを送信し、3-5 文の日本語要約を取得する。",
+          "modelRef": "summarizeModel",
+          "messages": [
+            {
+              "role": "system",
+              "content": "あなたは日本語の文章要約の専門家です。与えられた日記本文を 3〜5 文で簡潔に日本語要約してください。要約のみを返し、前置きや補足は付けないでください。"
+            },
+            {
+              "role": "user",
+              "content": "@targetBody"
+            }
+          ],
           "outputBinding": {
             "name": "aiResponse"
           },
           "outcomes": {
             "failure": {
               "action": "abort",
-              "description": "Claude API 呼び出し失敗時は 502 を返す。"
+              "description": "AI モデル呼び出し失敗時は 502 を返す。"
             }
           }
         },
         {
           "id": "step-05",
           "kind": "compute",
-          "description": "Claude API レスポンスから要約テキストを抽出する。",
-          "expression": "@aiResponse.content[0].text",
+          "description": "AI レスポンスから要約テキストを抽出する。aiCall は provider 中立な assistant メッセージテキストを返すため、後続 step では .text フィールドから取得する。",
+          "expression": "@aiResponse.text",
           "outputBinding": {
             "name": "summaryText"
           }

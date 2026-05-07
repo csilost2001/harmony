@@ -82,6 +82,29 @@ N=2 で表現方法が分裂しており、放置すると後続 sample (CRM / E
 - `tools` が **必須** (`minItems=1`、tool なしなら `aiCall` を使う)
 - `maxIterations` (integer, default 10) で tool call ループ上限を指定
 
+### `outputBinding` の値構造 (provider 中立な正規化形式)
+
+`aiCall` / `aiAgent` の outputBinding は、provider 固有応答 (Anthropic `content[].text` / OpenAI `choices[].message.content` / Bedrock `output.message.content` 等) をランタイムが以下の正規化形式に変換した値を受け取る。後続 step (`compute` / `dbAccess` / `return`) はこの形式を前提に式参照する。
+
+| `responseFormat.kind` | outputBinding の値構造 | 後続 step での参照 |
+|---|---|---|
+| `text` (デフォルト、未指定) | `{ text: string, finishReason?: string, usage?: TokenUsage }` | `@<binding>.text` |
+| `json` | `{ object: any, raw: string, finishReason?: string, usage?: TokenUsage }` | `@<binding>.object` (parse 済み) / `@<binding>.raw` (生 JSON 文字列) |
+| `structuredObject` | `{ object: <responseFormat.schema 準拠オブジェクト>, raw: string, finishReason?: string, usage?: TokenUsage }` | `@<binding>.object.<field>` (型安全、JSON Schema 適合確認済み) |
+| `streaming` | `{ text: string, finishReason?: string, usage?: TokenUsage }` (完了後) | `@<binding>.text` (本フローでは partial を扱わない、SSE / WebSocket は実装層) |
+
+`tools` を伴う `aiCall` / `aiAgent` で tool call が発生した場合は、上記に加え:
+
+```ts
+{
+  toolCalls?: Array<{ id: string, name: string, arguments: any }>
+}
+```
+
+`aiAgent` は agent loop 完了後の最終 assistant メッセージを上記形式で受け取り、途中の tool 呼び出しはランタイムが自動処理する (個別 step として現れない)。
+
+`outcomes.failure.action = "abort"` で失敗時は HTTP 5xx 応答 (`responses[]` から responseId 一致を選択) を返し、outputBinding には何も入らない (`runIf` でガードされる後続 step は skip)。
+
 ### `AiMessage.content`
 
 `string` (シンプルテキスト) または content blocks 配列 (text / image)。Anthropic / OpenAI と整合。
@@ -254,15 +277,26 @@ env 切替の典型:
 
 英語学習 sample の domain 固有 fieldType (`cefrLevel` / `ipa` / `audioUrl` / `pronunciationScore` / `dialogTurn`) は業務ドメイン固有のため namespace 拡張に残す (core 化対象外)。
 
-## 既存表現からの移行 (Phase 2、別 PR)
+## 既存表現からの移行 (Phase 2)
 
-本 spec を含む PR (Phase 1) は schema 改変 + spec + test fixture のみ。既存 sample (diary AI 4 flow + english-learning AI 3 flow) の `aiCall` / `aiAgent` への書き換えは **別セッションで Phase 2 として実施** する。Phase 2 完了時に:
+本 spec を含む PR (Phase 1) は schema 改変 + spec + test fixture のみ。既存 sample の書き換えと skill 拡張は Phase 2 で段階的に実施する。
 
-- `examples/diary` の `externalSystem` step + `catalogs.externalSystems.claudeApi` を `aiCall` + `catalogs.modelEndpoints.<key>` に移行
-- `examples/english-learning` の `english-learning:LlmDialog` を `aiAgent` (multi-turn) に移行
+### Phase 2-A — 既存 sample 移行 (完了 2026-05-08、#865)
+
+- `examples/diary` の AI 4 flow (要約/タグ提案/画像 alt/校正) を `aiCall` + `catalogs.modelEndpoints.<key>` に移行 (claudeApi externalSystem 廃止)
+- `examples/english-learning` の `english-learning:LlmDialog` step を **`aiCall`** (spec 準拠、tools 無しの単発呼び出しは `aiCall` を使う原則) に移行 — 元指示は "aiAgent (multi-turn)" だったが、当該 step は tool 無しの multi-turn 会話のため schema 上 `aiAgent` (tools minItems=1 必須) 不可。"multi-turn" は会話履歴を messages に並べることで表現する
 - `examples/english-learning/harmony/extensions/english-learning.v3.json` から `LlmDialog` stepKind 定義を削除 (`TtsGenerate` / `SttEvaluate` は当面残す)
-- `/generate-tests` skill の AI flow 検出ロジックを **`kind=aiCall|aiAgent`** に対応させる (現状 `kind=externalSystem` + `systemRef=claudeApi` 等の旧パターン検出のままだと、Phase 2 移行後の sample で AI flow が検出されず、生成テストが旧 fixture 期待のままになる)
-- `/generate-code` skill のテンプレート (`templates/backend/typescript-nestjs/` / `templates/backend/java-spring-boot/`) に `aiCall` / `aiAgent` step の SDK 切替コード生成ロジックを追加 (現状 `SKILL.md` の step kind table に方針記述のみで、テンプレート本体は未対応)
+- `examples/english-learning-tailwind/` (Bootstrap 版と同一スコープの Tailwind 版) も同 PR で同期移行
+- `examples/diary/harmony/conventions/catalog.json` の `extensionCategories.ai` (provider/model 重複定義) を削除し modelEndpoints catalog に一本化
+- 制限: 現 schema では `messages` が静的配列のため、prior turns を動的 spread できない。english-learning の multi-turn 会話は user content に `@turnContext` (DialogTurn[] JSON 文字列) を埋め込む暫定形で対応 (将来の core schema 拡張候補)
+
+### Phase 2-B — `/generate-tests` skill 拡張 (Phase 2-A 後、別 PR)
+
+- AI flow 検出ロジックを **`kind=aiCall|aiAgent`** に対応させる (現状 `kind=externalSystem` + `systemRef=claudeApi` 等の旧パターン検出のままだと、Phase 2-A 移行後の sample で AI flow が検出されず、生成テストが旧 fixture 期待のままになる)
+
+### Phase 2-C — `/generate-code` skill テンプレート拡張 (Phase 2-B と独立、別 PR)
+
+- テンプレート本体 (`templates/backend/typescript-nestjs/` / `templates/backend/java-spring-boot/`) に `aiCall` / `aiAgent` step の SDK 切替コード生成ロジックを追加 (現状 `SKILL.md` の step kind table に方針記述のみで、テンプレート本体は未対応)
 
 ## 関連
 

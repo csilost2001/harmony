@@ -3,7 +3,7 @@
   "namespace": "english-learning",
   "version": "1.0.0",
   "requiresCoreSchema": ">=3.0.0",
-  "description": "英会話学習アプリ向け v3 canonical 拡張定義。fieldTypes / actionTriggers / dbOperations / stepKinds / responseTypes / screenKinds を統合。外部 AI (LLM/TTS/STT) 呼び出しを stepKind 拡張で表現し、CEFR レベル / IPA / 発音スコア等の英語学習固有型を fieldType として定義する。",
+  "description": "英会話学習アプリ向け v3 canonical 拡張定義。fieldTypes / actionTriggers / dbOperations / stepKinds / responseTypes / screenKinds を統合。LLM 呼び出しは core stepKind aiCall + modelEndpoints catalog で表現するため、本拡張からは LlmDialog を削除済み (#865 / 2026-05-08)。TTS / STT は業務ドメイン固有のため当面 stepKind 拡張で表現を維持する。CEFR レベル / IPA / 発音スコア等の英語学習固有型を fieldType として定義する。",
   "fieldTypes": [
     {
       "kind": "ipa",
@@ -47,7 +47,7 @@
       "kind": "dialogTurn",
       "label": "会話ターン",
       "baseType": "json",
-      "description": "LLM 会話ターンの構造型。{ role: 'user' | 'assistant' | 'system', content: string } の配列として実装する。LlmDialog step の outputType として使用し、turn_logs.llm_context に保存される。"
+      "description": "LLM 会話ターンの構造型。{ role: 'user' | 'assistant' | 'system', content: string } の配列として実装する。aiCall step の messages 構築用入力 (turnContext) と turn_logs.llm_context の保存形式として使用する。"
     }
   ],
   "actionTriggers": [
@@ -85,38 +85,6 @@
     }
   ],
   "stepKinds": {
-    "LlmDialog": {
-      "label": "LLM 会話呼び出し",
-      "icon": "bi-chat-dots",
-      "description": "外部 LLM API (OpenAI GPT-4 / Anthropic Claude 等) に会話リクエストを送信する拡張 Step。context (会話履歴) と userInput を入力とし、AI 応答テキストを outputBinding に返す。S-2 progress-turn フローで使用する。provider 選択・temperature 等の詳細は実装層が決定する。",
-      "schema": {
-        "type": "object",
-        "required": ["context", "userInput"],
-        "properties": {
-          "context": {
-            "type": "string",
-            "description": "会話コンテキスト (DialogTurn[] の変数参照、例: @var.turnContext)"
-          },
-          "userInput": {
-            "type": "string",
-            "description": "ユーザーの最新発話テキスト (変数参照、例: @var.userInput)"
-          },
-          "systemPrompt": {
-            "type": "string",
-            "description": "システムプロンプト (省略時はデフォルト英会話学習プロンプト)"
-          },
-          "maxTokens": {
-            "type": "integer",
-            "description": "最大出力トークン数 (省略時は 500)"
-          }
-        },
-        "additionalProperties": false
-      },
-      "outputType": {
-        "kind": "extension",
-        "extensionRef": "english-learning:dialogTurn"
-      }
-    },
     "TtsGenerate": {
       "label": "TTS 音声生成",
       "icon": "bi-volume-up",
@@ -176,7 +144,7 @@
   },
   "responseTypes": {
     "DialogTurn": {
-      "description": "LLM 会話ターンレスポンス。LlmDialog step の outputBinding に格納される会話ターン構造。turn_logs.llm_context (JSON 配列) の 1 要素に対応する。",
+      "description": "LLM 会話ターンレスポンス。会話ターン (role + content + 任意 audioUrl) の構造型。turn_logs.llm_context (JSON 配列) の 1 要素に対応する。aiCall step の入出力構築・履歴保存に共通使用する。",
       "schema": {
         "type": "object",
         "required": ["role", "content"],

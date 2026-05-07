@@ -50,11 +50,10 @@ examples/english-learning/
 
 | stepKind キー | 用途 | outputType |
 |---|---|---|
-| `LlmDialog` | LLM への会話リクエスト | `english-learning:dialogTurn` |
 | `TtsGenerate` | TTS 音声生成 | `english-learning:audioUrl` |
 | `SttEvaluate` | STT + 発音評価 | `english-learning:pronunciationScore` |
 
-外部 AI 呼び出しを `type: "other"` (汎用エスケープ) ではなく namespace 拡張で表現し、ProcessFlow viewer 上で他 step と同一抽象レベルで表示できることを実証する。
+外部 AI 呼び出しのうち、汎用 LLM 呼び出しは **core stepKind `aiCall` + `modelEndpoints` catalog** で表現する (#935 で 2026-05-08 に core 化、本サンプルも 2026-05-08 移行済み / #865)。TTS / STT は業務ドメイン固有のため、当面は namespace 拡張 stepKind で表現を維持する (将来 core 化する場合は `aiTts` / `aiStt` を追加候補とする / spec 12 節)。
 
 ## 開き方 (動作確認)
 

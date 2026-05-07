@@ -26,7 +26,7 @@ B2C 英会話学習アプリ (中規模、画面 ~11、テーブル ~10、処理
 | シナリオ ID | 概要 | 関連 entity |
 |---|---|---|
 | **S-1 学習セッション開始** | ストーリー一覧から選択 → セッション作成 → 会話プレイ画面遷移。ストーリー詳細表示時に必要なら `TtsGenerate` でセリフ音源を事前生成。 | 画面: ストーリー一覧 / 詳細 / 会話プレイ ・ flow: start-session ・ table: stories / scenes / learning_sessions / sequences: session-id ・ extension: (任意) `english-learning:TtsGenerate` |
-| **S-2 会話ターン進行** | ユーザー発話 (テキスト or 音声) → LLM 応答生成 → 応答 TTS 音声化 → 履歴保存。**外部 LLM/TTS 呼び出しを stepKind 拡張で表現**。 | 画面: 会話プレイ ・ flow: progress-turn ・ table: turn_logs ・ extension: `english-learning:LlmDialog` + `english-learning:TtsGenerate` stepKind |
+| **S-2 会話ターン進行** | ユーザー発話 (テキスト or 音声) → LLM 応答生成 → 応答 TTS 音声化 → 履歴保存。**LLM 呼び出しは core stepKind `aiCall` + `modelEndpoints` catalog**、**TTS 呼び出しは namespace 拡張 stepKind `english-learning:TtsGenerate`** で表現する (#865 で 2026-05-08 移行)。 | 画面: 会話プレイ ・ flow: progress-turn ・ table: turn_logs ・ catalog: `modelEndpoints.dialogModel` ・ extension: `english-learning:TtsGenerate` stepKind |
 | **S-3 発音採点** | ユーザーが目標セリフを録音送信 → STT + 評価 API → スコア保存 → 画面表示。**外部 STT 呼び出しを stepKind 拡張で表現**。 | 画面: 会話プレイ → セッション結果 ・ flow: evaluate-pronunciation ・ table: pronunciation_scores ・ extension: `english-learning:SttEvaluate` stepKind |
 | **S-4 学習履歴閲覧 + 単語復習** | 学習履歴一覧 / 詳細表示、単語帳で習熟度別に復習。タップで辞書詳細。 | 画面: 学習履歴 / 単語帳 / 単語詳細 ・ flow: update-word-progress (common) ・ table: user_word_progress / words |
 
@@ -76,17 +76,16 @@ B2C 英会話学習アプリ (中規模、画面 ~11、テーブル ~10、処理
 | `audioUrl` | string | `english-learning:audioUrl` | 音声ファイル URL (TTS 生成 or 既存音源) |
 | `pronunciationScore` | number | `english-learning:pronunciationScore` | 発音スコア 0-100 |
 
-**stepKinds** (`object`、**キーは PascalCase 必須** — `^[A-Z][A-Za-z0-9]*$`、ProcessFlow ステップ拡張、**本サンプルの肝**):
+**stepKinds** (`object`、**キーは PascalCase 必須** — `^[A-Z][A-Za-z0-9]*$`、ProcessFlow ステップ拡張):
 
 | キー (PascalCase) | ProcessFlow.kind 参照 | 用途 |
 |---|---|---|
-| `LlmDialog` | `english-learning:LlmDialog` | LLM への会話リクエスト |
 | `TtsGenerate` | `english-learning:TtsGenerate` | TTS 音声生成 (S-1 でストーリー音源プリロード、S-2 で AI 応答音声化に使用) |
 | `SttEvaluate` | `english-learning:SttEvaluate` | STT + 発音評価 |
 
-各 stepKind の構造は `CustomStepKind` (`label` / `icon` / `description` / `schema` / `outputType`) に準拠。**`schema`** は `ExtensionStep.config` の入力構造を縛る subset JSON Schema (動的フォーム生成用)、**`outputType`** は `outputBinding` 結果の `FieldType` (型推論用)。`outputSchema` というフィールドは存在しないため使わない。
+LLM 会話呼び出しは **core stepKind `aiCall` + `context.catalogs.modelEndpoints.<key>`** で表現する (#935 で core 化、本サンプルは #865 で 2026-05-08 移行済み)。TTS / STT は業務ドメイン固有のため当面 namespace 拡張に維持する (将来 core 化候補)。
 
-例: `LlmDialog` の `schema` で `context` / `userInput` 構造を定義し、`outputType` で AI 応答を表す `FieldType` (拡張 `english-learning:dialogTurn` 等の object 型 fieldType を作る or string として簡略化) を指定する。
+各 stepKind の構造は `CustomStepKind` (`label` / `icon` / `description` / `schema` / `outputType`) に準拠。**`schema`** は `ExtensionStep.config` の入力構造を縛る subset JSON Schema (動的フォーム生成用)、**`outputType`** は `outputBinding` 結果の `FieldType` (型推論用)。`outputSchema` というフィールドは存在しないため使わない。
 
 **screenKinds** (`array`、各 item の `kind` は **camelCase**):
 
@@ -94,7 +93,7 @@ B2C 英会話学習アプリ (中規模、画面 ~11、テーブル ~10、処理
 |---|---|---|
 | `conversationPlayer` | `english-learning:conversationPlayer` | 会話プレイ画面 (字幕表示 + 録音ボタン + 履歴ペイン) |
 
-これにより **LLM/TTS/STT 呼び出しが step として統一的に扱える** ことを実証する (汎用エスケープ `type: "other"` ではなく namespace 拡張で表現する方針 — 詳細 3.5 節)。
+これにより **TTS/STT 呼び出しが step として統一的に扱える** ことを実証する (汎用エスケープ `type: "other"` ではなく namespace 拡張で表現する方針 — 詳細 3.5 節)。LLM 呼び出しは core 標準 `aiCall` を直接使う。
 
 ### 2.6 conventions catalog
 
@@ -158,25 +157,47 @@ B2C 英会話学習アプリ (中規模、画面 ~11、テーブル ~10、処理
 
 特に「LLM 応答の構造」「カラオケ用 wordTimings」「PhoneDiff 構造」等は `CustomStepKind.outputType` (FieldType) または `extensions.fieldTypes` の object 型 fieldType として表現すれば、schema 本体を触らずに済むはず。
 
-### 3.5 外部 AI (LLM/TTS/STT) の ProcessFlow 表現方針
+### 3.5 外部 AI の ProcessFlow 表現方針
 
-外部 AI 呼び出しは **`stepKind` 拡張で表現** し、実際の API 呼び出し詳細は description で記述する。**`type: "other"` (汎用エスケープ) は使わない** — namespace 拡張で表現できるならそちらを優先することがフレームワーク思想に沿う。
+外部 AI 呼び出しは概念別に **2 系統で表現**:
+
+1. **LLM 会話呼び出し**: core stepKind `aiCall` + `context.catalogs.modelEndpoints.<key>` (#935 / #865 で 2026-05-08 移行済み)。provider 切替が catalog 編集で完結し、tool use / structured output / vision input が業界共通の messages + responseFormat 構造で表現できる
+2. **業務ドメイン固有 AI 呼び出し** (TTS / STT / 発音採点 等): 当面 namespace 拡張 stepKind (`english-learning:TtsGenerate` / `english-learning:SttEvaluate`)。汎用エスケープ `type: "other"` は使わない — namespace 拡張で表現できるならそちらを優先することがフレームワーク思想に沿う
 
 ```jsonc
-// 例: S-2 progress-turn flow の LLM 呼び出しステップ (ExtensionStep)
+// 例: S-2 progress-turn flow の LLM 呼び出しステップ (core stepKind aiCall)
 {
-  "kind": "english-learning:LlmDialog",
+  "kind": "aiCall",
   "id": "step-llm-call",
-  "config": { "context": "@var.turnContext", "userInput": "@var.userInput" },
+  "modelRef": "dialogModel",
+  "messages": [
+    { "role": "system", "content": "あなたは日本人英語学習者向けの会話パートナーです。CEFR レベルに合った語彙と文法で英語応答してください。" },
+    { "role": "user", "content": "[会話履歴]\n@turnContext\n\n[最新の発話]\n@userInput" }
+  ],
   "outputBinding": { "name": "aiResponse" },
-  "description": "OpenAI GPT-4 / Anthropic Claude 等の LLM API を呼び出す。実装側で provider 選択。temperature 0.7 推奨。"
+  "description": "core stepKind aiCall + modelEndpoints.dialogModel で LLM 呼び出し。provider 選択は modelEndpoints catalog で完結。"
+}
+
+// modelEndpoints catalog (context.catalogs.modelEndpoints.dialogModel)
+// provider/model/auth/defaults を 1 箇所に集約。step 側は modelRef のみ持つ
+```
+
+```jsonc
+// 例: TTS 呼び出しステップ (namespace 拡張、業務ドメイン固有)
+{
+  "kind": "english-learning:TtsGenerate",
+  "id": "step-tts",
+  "config": { "text": "@aiResponse.text" },
+  "outputBinding": { "name": "aiAudioUrl" },
+  "description": "AI 応答テキストを TTS で音声化する。"
 }
 ```
 
 これにより:
-- ProcessFlow viewer 上で LLM 呼び出しが他 step と同じ抽象レベルで表示される
-- `CustomStepKind.schema` で `config` の入力構造が型安全に縛られ、`CustomStepKind.outputType` で `outputBinding` 結果型が後続 step の型推論で使える
-- 実装詳細 (provider / endpoint / auth) は description で記述、LLM 後段生成時にコード化
+- ProcessFlow viewer 上で LLM 呼び出し / TTS / STT が他 step と同じ抽象レベルで表示される
+- aiCall は `messages` (system/user/assistant role 別) + `tools` + `responseFormat` (text / json / structuredObject / streaming) の業界共通構造で型安全に表現
+- TTS / STT は `CustomStepKind.schema` で `config` の入力構造を縛り、`outputType` で `outputBinding` 結果型を後続 step の型推論で使える
+- 実装詳細は modelEndpoints catalog (LLM) または stepKind description (TTS/STT) に集約され、コード生成時に展開
 
 ### 3.6 動作確認は data/ コピー (retail と同じ運用)
 

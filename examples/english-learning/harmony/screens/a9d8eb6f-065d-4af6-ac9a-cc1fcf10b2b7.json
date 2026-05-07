@@ -37,7 +37,7 @@
       "label": "AI 応答テキスト",
       "type": "string",
       "direction": "output",
-      "description": "progress-turn フローの LlmDialog ステップが返した AI 応答テキスト (turn_logs.ai_response に保存済み)。"
+      "description": "progress-turn フローの aiCall ステップが返した AI 応答テキスト (turn_logs.ai_response に保存済み)。"
     },
     {
       "id": "recordButton",

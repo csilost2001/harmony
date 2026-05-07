@@ -3,12 +3,12 @@
   "meta": {
     "id": "96118ae1-a0ab-401b-8584-dd645a45a81f",
     "name": "会話ターン進行",
-    "description": "ユーザーの発話 (テキストまたは音声) を受け取り、LLM に会話リクエストを送信して AI 応答を取得する (S-2)。必要に応じて TTS で応答を音声化し、turn_logs に 1 ターン分のログを INSERT する。LLM 呼び出しは拡張 stepKind english-learning:LlmDialog で表現し、TTS 呼び出しは english-learning:TtsGenerate で表現する。ターン単位 request/response 方式。実装側で SSE / WebSocket による partial response ストリーム表示を行う想定 (description 待避、3.3 節)。",
+    "description": "ユーザーの発話 (テキストまたは音声) を受け取り、LLM に会話リクエストを送信して AI 応答を取得する (S-2)。必要に応じて TTS で応答を音声化し、turn_logs に 1 ターン分のログを INSERT する。LLM 呼び出しは core stepKind aiCall + modelEndpoints.dialogModel で表現し、TTS 呼び出しは english-learning:TtsGenerate で表現する。ターン単位 request/response 方式。実装側で SSE / WebSocket による partial response ストリーム表示を行う想定 (description 待避、3.3 節)。",
     "kind": "screen",
     "screenId": "a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7",
     "maturity": "draft",
     "createdAt": "2026-05-04T00:00:00.000Z",
-    "updatedAt": "2026-05-04T00:00:00.000Z"
+    "updatedAt": "2026-05-08T00:00:00.000Z"
   },
   "context": {
     "catalogs": {
@@ -23,7 +23,29 @@
           "httpStatus": 502,
           "defaultMessage": "AI 応答の取得に失敗しました。しばらく待ってから再試行してください。",
           "responseId": "502-llm-failed",
-          "description": "english-learning:LlmDialog step が外部 LLM API から正常応答を得られなかった場合。"
+          "description": "aiCall step が外部 LLM API から正常応答を得られなかった場合。"
+        }
+      },
+      "modelEndpoints": {
+        "dialogModel": {
+          "provider": "anthropic",
+          "model": "claude-opus-4-7",
+          "auth": {
+            "kind": "bearer",
+            "tokenRef": "@secret.anthropicApiKey"
+          },
+          "defaults": {
+            "maxTokens": 500,
+            "temperature": 0.7
+          },
+          "description": "英会話学習用の対話モデル。日本語学習者向けに CEFR レベルに応じた英文応答を返す。provider 切替 (OpenAI / Google 等) は本 catalog 編集だけで完結。"
+        }
+      },
+      "secrets": {
+        "anthropicApiKey": {
+          "source": "env",
+          "name": "ANTHROPIC_API_KEY",
+          "description": "Anthropic API の認証キー。"
         }
       },
       "events": {
@@ -55,7 +77,7 @@
       "id": "act-001",
       "name": "会話ターン送信",
       "trigger": "submit",
-      "description": "会話プレイ画面で録音またはテキスト入力したユーザー発話を送信し、AI 応答を取得して画面に反映する。LLM 呼び出し (english-learning:LlmDialog) → 任意の TTS 音声化 (english-learning:TtsGenerate) → turn_logs INSERT の順で実行する。",
+      "description": "会話プレイ画面で録音またはテキスト入力したユーザー発話を送信し、AI 応答を取得して画面に反映する。LLM 呼び出し (aiCall + modelEndpoints.dialogModel) → 任意の TTS 音声化 (english-learning:TtsGenerate) → turn_logs INSERT の順で実行する。",
       "maturity": "draft",
       "httpRoute": {
         "method": "POST",
@@ -82,7 +104,7 @@
           "label": "会話コンテキスト",
           "type": "string",
           "required": false,
-          "description": "直近の会話履歴 (DialogTurn[] の JSON 文字列)。LlmDialog step の context 入力として使用する。"
+          "description": "直近の会話履歴 (DialogTurn[] の JSON 文字列)。aiCall step の user メッセージ content に埋め込んで LLM へ渡す。"
         },
         {
           "name": "generateAudio",
@@ -161,7 +183,7 @@
             }
           },
           "description": "LLM API 呼び出し失敗。",
-          "when": "english-learning:LlmDialog step が外部 API から正常応答を得られなかった場合。"
+          "when": "aiCall step が外部 API から正常応答を得られなかった場合。"
         }
       ],
       "steps": [
@@ -213,13 +235,26 @@
         },
         {
           "id": "step-03",
-          "kind": "english-learning:LlmDialog",
-          "description": "OpenAI GPT-4 / Anthropic Claude 等の LLM API を呼び出す。実装側で provider 選択。temperature 0.7 推奨。ストリーム応答は SSE / WebSocket で実装側が処理し、本フローでは完了後のテキストのみ受け取る。",
-          "config": {
-            "context": "@turnContext",
-            "userInput": "@userInput"
-          },
-          "outputBinding": { "name": "aiResponse" }
+          "kind": "aiCall",
+          "description": "core stepKind aiCall + modelEndpoints.dialogModel で LLM 呼び出しを行う。provider 選択は modelEndpoints catalog で完結。messages[] に system プロンプト + (会話履歴) + 最新 user 発話を並べる。messages[] は静的配列のため、prior turns は @turnContext (DialogTurn[] JSON 文字列) として user content に埋め込む暫定形 (動的 spread は core schema の今後の拡張候補)。ストリーム応答 (SSE / WebSocket) は実装側が処理し、本フローでは完了後の assistant テキストを受け取る。",
+          "modelRef": "dialogModel",
+          "messages": [
+            {
+              "role": "system",
+              "content": "あなたは日本人英語学習者向けの会話パートナーです。学習者の CEFR レベル (A1〜C2) に合った語彙と文法で英語応答してください。応答は 1〜3 文程度に抑え、次の発話を促す問いかけを含めると望ましい。"
+            },
+            {
+              "role": "user",
+              "content": "[会話履歴 (DialogTurn[])]\n@turnContext\n\n[最新の発話]\n@userInput"
+            }
+          ],
+          "outputBinding": { "name": "aiResponse" },
+          "outcomes": {
+            "failure": {
+              "action": "abort",
+              "description": "LLM 呼び出し失敗時は 502 を返す。"
+            }
+          }
         },
         {
           "id": "step-04",
@@ -240,7 +275,7 @@
                   "kind": "english-learning:TtsGenerate",
                   "description": "LLM の応答テキストを TTS で音声ファイルに変換する。生成した audioUrl を aiAudioUrl 変数に格納し、turn_logs.ai_audio_url として保存する。",
                   "config": {
-                    "text": "@aiResponse.content"
+                    "text": "@aiResponse.text"
                   },
                   "outputBinding": { "name": "aiAudioUrl" }
                 }
@@ -290,7 +325,7 @@
           "description": "turn_logs に 1 ターン分のログを INSERT する。user_input (ユーザー発話) と ai_response (AI 応答) + ai_audio_url を同時に記録する。llm_context には入力 turnContext と AI 応答を含む更新済み会話コンテキストを JSON として保存する。turn_number は step-04d で算出した次番号を使用する。",
           "tableId": "4e126323-4ab7-4747-961b-23cbaf651314",
           "operation": "INSERT",
-          "sql": "INSERT INTO turn_logs (session_id, turn_number, user_input, ai_response, ai_audio_url, llm_context, created_at) VALUES (@sessionId, @nextTurnNumber, @userInput, @aiResponse.content, @aiAudioUrl, @turnContext, CURRENT_TIMESTAMP) RETURNING id",
+          "sql": "INSERT INTO turn_logs (session_id, turn_number, user_input, ai_response, ai_audio_url, llm_context, created_at) VALUES (@sessionId, @nextTurnNumber, @userInput, @aiResponse.text, @aiAudioUrl, @turnContext, CURRENT_TIMESTAMP) RETURNING id",
           "outputBinding": { "name": "newTurnLog" },
           "lineage": {
             "writes": [
@@ -310,7 +345,7 @@
           "kind": "return",
           "description": "200 OK — AI 応答テキスト + ターンログ ID + 音声 URL (任意) を返す。",
           "responseId": "200-ok",
-          "bodyExpression": "{ aiResponseText: @aiResponse.content, aiAudioUrl: @aiAudioUrl, turnId: @newTurnLog.id }"
+          "bodyExpression": "{ aiResponseText: @aiResponse.text, aiAudioUrl: @aiAudioUrl, turnId: @newTurnLog.id }"
         }
       ]
     }

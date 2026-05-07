@@ -70,29 +70,5 @@
       "template": "casual-diary",
       "description": "校正の既定トーン。日記なら casual、公開ブログなら polite/professional"
     }
-  },
-  "extensionCategories": {
-    "ai": {
-      "summarizeModel": {
-        "provider": "anthropic",
-        "model": "claude-opus-4-7",
-        "description": "本文の要約に使うモデル。長文から 3-5 文の要約を出す"
-      },
-      "altTextModel": {
-        "provider": "anthropic",
-        "model": "claude-opus-4-7",
-        "description": "Vision API で画像 alt text を生成。日本語で簡潔に (40-100 字)"
-      },
-      "proofreadModel": {
-        "provider": "anthropic",
-        "model": "claude-opus-4-7",
-        "description": "本文校正に使うモデル (敬体/常体/誤字訂正)"
-      },
-      "tagSuggestModel": {
-        "provider": "anthropic",
-        "model": "claude-opus-4-7",
-        "description": "本文からタグ候補を提案するモデル (信頼度 score 付き)"
-      }
-    }
   }
 }
