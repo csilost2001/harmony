@@ -13,13 +13,13 @@
     {
       "id": "postId",
       "label": "投稿ID",
-      "type": "string",
+      "type": "integer",
       "direction": "output",
-      "description": "URLパラメータから取得した投稿ID。投稿詳細取得フローに渡す。",
+      "description": "URL :id パラメータから取得した投稿ID。投稿詳細取得フローの outputs.post.postId を IdentifierPath (post.postId) で参照、deleteConfirm.events で 投稿削除 (postId integer) に渡す。",
       "valueFrom": {
         "kind": "flowVariable",
         "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
-        "variableName": "postId"
+        "variableName": "post.postId"
       }
     },
     {

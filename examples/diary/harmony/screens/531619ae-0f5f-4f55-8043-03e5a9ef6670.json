@@ -185,11 +185,11 @@
       "label": "投稿ID",
       "type": "integer",
       "direction": "output",
-      "description": "URL :id? が指定されている場合の編集対象 postId。新規モードでは null。投稿詳細取得 ProcessFlow から既存 post を初期化する際の鍵。",
+      "description": "URL :id? が指定されている場合の編集対象 postId。新規モードでは null。投稿詳細取得 ProcessFlow の outputs.post.postId を IdentifierPath (post.postId) で参照する。",
       "valueFrom": {
         "kind": "flowVariable",
         "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
-        "variableName": "postId"
+        "variableName": "post.postId"
       }
     },
     {

@@ -49,11 +49,11 @@
       "label": "スラッグ",
       "type": "string",
       "direction": "input",
-      "description": "新規タグのURLスラッグ。英数字・ハイフンのみ。タグ名から自動生成も可。",
-      "required": true,
+      "description": "新規タグのURLスラッグ。英数字・ハイフンのみ。未入力時は タグ作成 ProcessFlow が name から自動生成する (slug は flow 側で optional)。",
+      "required": false,
       "maxLength": 50,
       "pattern": "^[a-z0-9-]+$",
-      "placeholder": "tag-slug"
+      "placeholder": "未入力でタグ名から自動生成"
     },
     {
       "id": "newTagColor",
@@ -75,17 +75,17 @@
     {
       "id": "editTagId",
       "label": "編集対象タグID",
-      "type": "string",
+      "type": "integer",
       "direction": "input",
-      "description": "編集モーダルで編集中のタグID。",
+      "description": "編集モーダルで編集中のタグID。タグ更新 ProcessFlow の id input (integer) と型を一致させる。",
       "required": false
     },
     {
       "id": "deleteTagId",
       "label": "削除対象タグID",
-      "type": "string",
+      "type": "integer",
       "direction": "input",
-      "description": "削除確認ダイアログで確認中のタグID。",
+      "description": "削除確認ダイアログで確認中のタグID。タグ削除 ProcessFlow の id input (integer) と型を一致させる。",
       "required": false
     },
     {
