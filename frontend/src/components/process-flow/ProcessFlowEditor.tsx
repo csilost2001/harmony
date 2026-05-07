@@ -52,6 +52,7 @@ import {
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSessionLegacy as useEditSession } from "../../hooks/useEditSession";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
+import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useSelectionKeyboard } from "../../hooks/useSelectionKeyboard";
 import { STEP_TYPE_COLORS } from "../../types/action";
@@ -251,6 +252,12 @@ export function ProcessFlowEditor() {
     resourceType: "process-flow",
     resourceId: processFlowId ?? "",
     sessionId,
+  });
+
+  // URL ?session= 同期 (spec §11.2)
+  const { syncSessionToUrl } = useSessionUrlSync({
+    resourceType: "process-flow",
+    resourceId: processFlowId ?? "",
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -767,6 +774,7 @@ export function ProcessFlowEditor() {
               currentMode={mode}
               currentSessionId={sessionId}
               onStartEditing={() => { void editActions.startEditing(); }}
+              onViewerAttached={syncSessionToUrl}
             />
             <button
               type="button"

@@ -39,8 +39,7 @@ import { usePersistentState } from "../../hooks/usePersistentState";
 import { renumber } from "../../utils/listOrder";
 import type { TableEntry } from "../../types/v3";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
-import { usePresenceAll } from "../../hooks/usePresenceRegistry";
-import { SessionBadge } from "../editing/SessionBadge";
+import { EditSessionBadge } from "../editing/EditSessionBadge";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 
@@ -70,7 +69,6 @@ function formatDate(iso: string): string {
 export function ViewDefinitionListView() {
   const navigate = useNavigate();
   const { hasDraft } = useDraftRegistry();
-  const presenceMap = usePresenceAll();
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [showAdd, setShowAdd] = useState(false);
@@ -400,7 +398,7 @@ export function ViewDefinitionListView() {
       },
       { key: "sep4", separator: true },
       {
-        key: "start-editing", label: "編集開始", icon: "bi-pencil",
+        key: "start-editing", label: "編集開始 (新規 EditSession)", icon: "bi-pencil",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -408,7 +406,7 @@ export function ViewDefinitionListView() {
         },
       },
       {
-        key: "draft-sessions", label: "既存 draft を開く", icon: "bi-layers",
+        key: "draft-sessions", label: "既存 EditSession 一覧", icon: "bi-layers",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -416,9 +414,12 @@ export function ViewDefinitionListView() {
         },
       },
       {
-        key: "history", label: "履歴", icon: "bi-clock-history",
-        disabled: true,
-        disabledReason: "Phase 6 で実装予定",
+        key: "history", label: "履歴 (過去の EditSession)", icon: "bi-clock-history",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) navigate(`/view-definition/edit/${encodeURIComponent(String(items[0].id))}?history=1`);
+        },
       },
     ];
   };
@@ -482,11 +483,7 @@ export function ViewDefinitionListView() {
       header: "",
       width: "48px",
       align: "center",
-      render: (v) => {
-        const key = `view-definition:${String(v.id)}` as const;
-        const entries = presenceMap.get(key) ?? [];
-        return entries.length > 0 ? <SessionBadge entries={entries} compact /> : null;
-      },
+      render: (v) => <EditSessionBadge resourceType="view-definition" resourceId={String(v.id)} />,
     },
     {
       key: "name",
@@ -571,7 +568,7 @@ export function ViewDefinitionListView() {
       sortAccessor: (v) => v.updatedAt,
       render: (v) => <span className="seq-list-date">{formatDate(v.updatedAt)}</span>,
     },
-  ], [getErrorPriority, validationMap, tableNameMap, hasDraft, presenceMap]);
+  ], [getErrorPriority, validationMap, tableNameMap, hasDraft]);
 
   const renderCard = (v: ViewDefinitionEntry) => {
     const validation = validationMap.get(String(v.id));
@@ -586,11 +583,7 @@ export function ViewDefinitionListView() {
           {hasDraft("view-definition", String(v.id)) && (
             <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
           )}
-          {(() => {
-            const key = `view-definition:${String(v.id)}` as const;
-            const entries = presenceMap.get(key) ?? [];
-            return entries.length > 0 ? <SessionBadge entries={entries} compact /> : null;
-          })()}
+          <EditSessionBadge resourceType="view-definition" resourceId={String(v.id)} />
           {v.kind && (
             <span className="vd-kind-badge vd-kind-badge--card">
               {KIND_LABELS[v.kind] ?? v.kind}

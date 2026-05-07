@@ -18,6 +18,7 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSessionLegacy as useEditSession } from "../../hooks/useEditSession";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
+import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { useListKeyboard } from "../../hooks/useListKeyboard";
@@ -81,6 +82,12 @@ export function TableEditor() {
     resourceType: "table",
     resourceId: tableId ?? "",
     sessionId,
+  });
+
+  // URL ?session= 同期 (spec §11.2)
+  const { syncSessionToUrl } = useSessionUrlSync({
+    resourceType: "table",
+    resourceId: tableId ?? "",
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -260,6 +267,7 @@ export function TableEditor() {
               currentMode={mode}
               currentSessionId={sessionId}
               onStartEditing={() => { void actions.startEditing(); }}
+              onViewerAttached={syncSessionToUrl}
             />
             <button
               className="editor-header-undo-btn"

@@ -36,6 +36,7 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSessionLegacy as useEditSession } from "../../hooks/useEditSession";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
+import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { EditorHeader, type EditorHeaderSaveReset, type EditorHeaderBackLink, type EditorHeaderUndoRedo } from "../common/EditorHeader";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
@@ -235,6 +236,12 @@ export function ViewDefinitionEditor() {
     resourceType: "view-definition",
     resourceId: viewDefinitionId ?? "",
     sessionId,
+  });
+
+  // URL ?session= 同期 (spec §11.2)
+  const { syncSessionToUrl } = useSessionUrlSync({
+    resourceType: "view-definition",
+    resourceId: viewDefinitionId ?? "",
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -631,6 +638,7 @@ export function ViewDefinitionEditor() {
             currentMode={mode}
             currentSessionId={sessionId}
             onStartEditing={() => { void actions.startEditing(); }}
+            onViewerAttached={syncSessionToUrl}
           />
         }
         saveReset={isReadonly ? undefined : {

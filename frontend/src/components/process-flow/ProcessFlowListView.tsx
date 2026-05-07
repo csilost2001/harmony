@@ -36,8 +36,7 @@ import { usePersistentState } from "../../hooks/usePersistentState";
 import { generateUUID } from "../../utils/uuid";
 import { renumber } from "../../utils/listOrder";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
-import { usePresenceAll } from "../../hooks/usePresenceRegistry";
-import { SessionBadge } from "../editing/SessionBadge";
+import { EditSessionBadge } from "../editing/EditSessionBadge";
 import "../../styles/processFlow.css";
 import "../../styles/editMode.css";
 
@@ -68,7 +67,6 @@ const MARKER_BADGE_META: Array<{ kind: "todo" | "question" | "attention" | "chat
 export function ProcessFlowListView() {
   const navigate = useNavigate();
   const { hasDraft } = useDraftRegistry();
-  const presenceMap = usePresenceAll();
   const [filterType, setFilterType] = useState<ProcessFlowType | "all">("all");
   const [filterErrorsOnly, setFilterErrorsOnly] = useState(false);
   const [filterMarkersOnly, setFilterMarkersOnly] = useState(false);
@@ -449,7 +447,7 @@ export function ProcessFlowListView() {
       },
       { key: "sep4", separator: true },
       {
-        key: "start-editing", label: "編集開始", icon: "bi-pencil",
+        key: "start-editing", label: "編集開始 (新規 EditSession)", icon: "bi-pencil",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -457,7 +455,7 @@ export function ProcessFlowListView() {
         },
       },
       {
-        key: "draft-sessions", label: "既存 draft を開く", icon: "bi-layers",
+        key: "draft-sessions", label: "既存 EditSession 一覧", icon: "bi-layers",
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
@@ -465,9 +463,12 @@ export function ProcessFlowListView() {
         },
       },
       {
-        key: "history", label: "履歴", icon: "bi-clock-history",
-        disabled: true,
-        disabledReason: "Phase 6 で実装予定",
+        key: "history", label: "履歴 (過去の EditSession)", icon: "bi-clock-history",
+        disabled: items.length !== 1,
+        disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
+        onClick: () => {
+          if (items.length === 1) navigate(`/process-flow/edit/${encodeURIComponent(items[0].id)}?history=1`);
+        },
       },
     ];
   };
@@ -554,11 +555,7 @@ export function ProcessFlowListView() {
       header: "",
       width: "48px",
       align: "center",
-      render: (g) => {
-        const key = `process-flow:${g.id}` as const;
-        const entries = presenceMap.get(key) ?? [];
-        return entries.length > 0 ? <SessionBadge entries={entries} compact /> : null;
-      },
+      render: (g) => <EditSessionBadge resourceType="process-flow" resourceId={g.id} />,
     },
     {
       key: "name",
@@ -643,7 +640,7 @@ export function ProcessFlowListView() {
         return <i className="bi bi-check-lg process-flow-validation-ok" title="問題なし" />;
       },
     },
-  ], [validationMap, getErrorPriority, markerMap, hasDraft, presenceMap]);
+  ], [validationMap, getErrorPriority, markerMap, hasDraft]);
 
   const renderCard = (g: ProcessFlowMeta) => {
     const v = validationMap.get(g.id);
@@ -661,11 +658,7 @@ export function ProcessFlowListView() {
           {hasDraft("process-flow", g.id) && (
             <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
           )}
-          {(() => {
-            const key = `process-flow:${g.id}` as const;
-            const entries = presenceMap.get(key) ?? [];
-            return entries.length > 0 ? <SessionBadge entries={entries} compact /> : null;
-          })()}
+          <EditSessionBadge resourceType="process-flow" resourceId={g.id} />
           {v && (hasError || hasWarning) && (
             <span className="process-flow-validation-badges">
               <ValidationBadge severity="error" count={v.errors} />

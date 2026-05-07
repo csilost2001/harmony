@@ -17,6 +17,7 @@ import { EditorHeader } from "../common/EditorHeader";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSessionLegacy as useEditSession } from "../../hooks/useEditSession";
+import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import {
@@ -453,6 +454,12 @@ export function ScreenItemsView() {
     resourceType: "screen-item",
     resourceId: screenId ?? "",
     sessionId,
+  });
+
+  // URL ?session= 同期 (spec §11.2)
+  const { syncSessionToUrl } = useSessionUrlSync({
+    resourceType: "screen-item",
+    resourceId: screenId ?? "",
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -973,6 +980,7 @@ export function ScreenItemsView() {
             currentMode={mode}
             currentSessionId={sessionId}
             onStartEditing={() => { void actions.startEditing(); }}
+            onViewerAttached={syncSessionToUrl}
           />
         }
         saveReset={isReadonly ? undefined : { isDirty, isSaving, onSave: handleSave, onReset: () => setShowDiscardDialog(true) }}

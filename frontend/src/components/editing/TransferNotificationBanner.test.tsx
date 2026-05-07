@@ -1,8 +1,9 @@
 /**
- * TransferNotificationBanner.test.tsx (#886 Phase 8)
+ * TransferNotificationBanner.test.tsx (#902 Phase 5)
  *
  * TransferNotificationBanner の RTL テスト。
- * docs/spec/collab-presence.md § 8 Take-over フロー に準拠。
+ * spec docs/spec/edit-session-protocol.md §14.1 に準拠。
+ * editSession.roleChanged (新 API) + lock.changed (後方互換) の両方を検証する。
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
@@ -43,7 +44,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("TransferNotificationBanner", () => {
+describe("TransferNotificationBanner — 新 API (editSession.roleChanged)", () => {
   it("初期状態では何も表示しない", () => {
     const { container } = render(
       <TransferNotificationBanner clientId={CLIENT_ID} />,
@@ -51,6 +52,112 @@ describe("TransferNotificationBanner", () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it("editSession.roleChanged op=transferred: fromSessionId = self → 「@xxx が編集を引き継ぎました」", () => {
+    render(<TransferNotificationBanner clientId={CLIENT_ID} />);
+
+    act(() => {
+      fireBroadcast("editSession.roleChanged", {
+        editSessionId: "es-001",
+        sessionId: "bob-session-0000000",
+        oldRole: "Edit",
+        newRole: "View",
+        op: "transferred",
+        fromSessionId: CLIENT_ID,
+        toSessionId: "bob-session-0000000",
+        toLabel: "bob",
+      });
+    });
+
+    const banner = screen.getByTestId("transfer-notification-banner");
+    expect(banner).toBeTruthy();
+    expect(banner.textContent).toContain("が編集を引き継ぎました");
+    expect(banner.textContent).toContain("bob");
+  });
+
+  it("editSession.roleChanged op=transferred: toSessionId = self → 「@xxx から編集を引き継ぎました」", () => {
+    render(<TransferNotificationBanner clientId={CLIENT_ID} />);
+
+    act(() => {
+      fireBroadcast("editSession.roleChanged", {
+        editSessionId: "es-001",
+        sessionId: CLIENT_ID,
+        oldRole: "View",
+        newRole: "Edit",
+        op: "transferred",
+        fromSessionId: "alice-prev-session",
+        toSessionId: CLIENT_ID,
+        fromLabel: "alice",
+      });
+    });
+
+    const banner = screen.getByTestId("transfer-notification-banner");
+    expect(banner).toBeTruthy();
+    expect(banner.textContent).toContain("から編集を引き継ぎました");
+    expect(banner.textContent).toContain("alice");
+  });
+
+  it("editSession.roleChanged: op が transferred でない場合は無視", () => {
+    render(<TransferNotificationBanner clientId={CLIENT_ID} />);
+
+    act(() => {
+      fireBroadcast("editSession.roleChanged", {
+        editSessionId: "es-001",
+        sessionId: CLIENT_ID,
+        oldRole: "Edit",
+        newRole: "View",
+        op: "manual",
+        fromSessionId: "other-session",
+        toSessionId: CLIENT_ID,
+      });
+    });
+
+    expect(screen.queryByTestId("transfer-notification-banner")).toBeNull();
+  });
+
+  it("editSession.roleChanged: 自分と無関係な transferred は表示しない", () => {
+    render(<TransferNotificationBanner clientId={CLIENT_ID} />);
+
+    act(() => {
+      fireBroadcast("editSession.roleChanged", {
+        editSessionId: "es-001",
+        sessionId: "charlie-session",
+        oldRole: "Edit",
+        newRole: "View",
+        op: "transferred",
+        fromSessionId: "bob-session",
+        toSessionId: "charlie-session",
+      });
+    });
+
+    expect(screen.queryByTestId("transfer-notification-banner")).toBeNull();
+  });
+
+  it("5 秒後に autoclose される (editSession.roleChanged)", () => {
+    render(<TransferNotificationBanner clientId={CLIENT_ID} />);
+
+    act(() => {
+      fireBroadcast("editSession.roleChanged", {
+        editSessionId: "es-001",
+        sessionId: "bob-session",
+        oldRole: "Edit",
+        newRole: "View",
+        op: "transferred",
+        fromSessionId: CLIENT_ID,
+        toSessionId: "bob-session",
+      });
+    });
+
+    expect(screen.getByTestId("transfer-notification-banner")).toBeTruthy();
+
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(screen.queryByTestId("transfer-notification-banner")).toBeNull();
+  });
+});
+
+describe("TransferNotificationBanner — 後方互換 (lock.changed)", () => {
   it("previousOwner = self の broadcast → 「引き継がれました」バナーが表示される", () => {
     render(<TransferNotificationBanner clientId={CLIENT_ID} />);
 
@@ -67,9 +174,7 @@ describe("TransferNotificationBanner", () => {
 
     const banner = screen.getByTestId("transfer-notification-banner");
     expect(banner).toBeTruthy();
-    // "に引き継がれました" を含む
     expect(banner.textContent).toContain("に引き継がれました");
-    // newOwner の sessionId 先頭 8 文字が含まれる
     expect(banner.textContent).toContain("bob-sess");
   });
 
@@ -89,9 +194,7 @@ describe("TransferNotificationBanner", () => {
 
     const banner = screen.getByTestId("transfer-notification-banner");
     expect(banner).toBeTruthy();
-    // "draft を引継ぎました" を含む
     expect(banner.textContent).toContain("draft を引継ぎました");
-    // previousOwner の sessionId 先頭 8 文字が含まれる
     expect(banner.textContent).toContain("alice-pr");
   });
 
@@ -111,7 +214,6 @@ describe("TransferNotificationBanner", () => {
 
     expect(screen.getByTestId("transfer-notification-banner")).toBeTruthy();
 
-    // 5 秒 (5000ms) 経過
     act(() => {
       vi.advanceTimersByTime(5000);
     });
@@ -146,7 +248,7 @@ describe("TransferNotificationBanner", () => {
         op: "transferred",
         ownerSessionId: "charlie-session",
         by: "charlie-session",
-        previousOwner: "bob-session", // CLIENT_ID とは無関係
+        previousOwner: "bob-session",
       });
     });
 
@@ -164,7 +266,7 @@ describe("TransferNotificationBanner", () => {
 
     act(() => {
       fireBroadcast("lock.changed", {
-        resourceType: "table", // 一致しない
+        resourceType: "table",
         resourceId: "pf-001",
         op: "transferred",
         ownerSessionId: "bob-session",
@@ -188,7 +290,7 @@ describe("TransferNotificationBanner", () => {
     act(() => {
       fireBroadcast("lock.changed", {
         resourceType: "process-flow",
-        resourceId: "pf-OTHER", // 一致しない
+        resourceId: "pf-OTHER",
         op: "transferred",
         ownerSessionId: "bob-session",
         by: "bob-session",

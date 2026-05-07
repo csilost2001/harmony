@@ -13,6 +13,7 @@ import { resolveCssFramework } from "../utils/resolveCssFramework";
 import { resolveEditorKind } from "../utils/resolveEditorKind";
 import type { EditorKind } from "../utils/resolveEditorKind";
 import { useEditSessionLegacy as useEditSession } from "../hooks/useEditSession";
+import { useSessionUrlSync } from "../hooks/useSessionUrlSync";
 import { EditModeToolbar } from "./editing/EditModeToolbar";
 import {
   DiscardConfirmDialog,
@@ -114,6 +115,12 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
     resourceType: "screen",
     resourceId: screenId,
     sessionId,
+  });
+
+  // URL ?session= 同期 (spec §11.2)
+  const { syncSessionToUrl } = useSessionUrlSync({
+    resourceType: "screen",
+    resourceId: screenId,
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -657,6 +664,7 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
         sessionMode={mode}
         sessionId={sessionId}
         onStartEditing={editActions.startEditing}
+        onViewerAttached={syncSessionToUrl}
       />
     );
     const puckProps: PuckRenderEditorProps = {
@@ -711,6 +719,7 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
       sessionMode={mode}
       sessionId={sessionId}
       onStartEditing={editActions.startEditing}
+      onViewerAttached={syncSessionToUrl}
     />
   );
   // GrapesJSRenderEditorProps で GrapesJS 固有 callback を型レベル required として渡す

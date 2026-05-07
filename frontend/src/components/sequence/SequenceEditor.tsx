@@ -9,6 +9,7 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSessionLegacy as useEditSession } from "../../hooks/useEditSession";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
+import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { EditorHeader, type EditorHeaderSaveReset, type EditorHeaderBackLink } from "../common/EditorHeader";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
@@ -73,6 +74,12 @@ export function SequenceEditor() {
     resourceType: "sequence",
     resourceId: sequenceId ?? "",
     sessionId,
+  });
+
+  // URL ?session= 同期 (spec §11.2)
+  const { syncSessionToUrl } = useSessionUrlSync({
+    resourceType: "sequence",
+    resourceId: sequenceId ?? "",
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -272,6 +279,7 @@ export function SequenceEditor() {
             currentMode={mode}
             currentSessionId={sessionId}
             onStartEditing={() => { void actions.startEditing(); }}
+            onViewerAttached={syncSessionToUrl}
           />
         }
         saveReset={isReadonly ? undefined : {

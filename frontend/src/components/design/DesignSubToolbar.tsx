@@ -77,9 +77,11 @@ interface Props {
   sessionId?: string;
   /** (#882 Phase 4) 新規 draft 作成 callback */
   onStartEditing?: () => void;
+  /** (#902 Phase 5) viewer として EditSession に attach した後の callback (URL 同期用) */
+  onViewerAttached?: (editSessionId: string) => void;
 }
 
-export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeChange, mcpStatus, backLink, isDirty, isSaving, onSaveToFile, onReset, screenId, isReadonly, editor, sessionMode, sessionId, onStartEditing }: Props) {
+export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeChange, mcpStatus, backLink, isDirty, isSaving, onSaveToFile, onReset, screenId, isReadonly, editor, sessionMode, sessionId, onStartEditing, onViewerAttached }: Props) {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
 
   // ── AI 命名 (#337) ───────────────────────────────────────────────────────
@@ -495,6 +497,7 @@ ${html}
                 currentMode={sessionMode}
                 currentSessionId={sessionId}
                 onStartEditing={onStartEditing}
+                onViewerAttached={onViewerAttached}
               />
             )}
             <div className="theme-selector">

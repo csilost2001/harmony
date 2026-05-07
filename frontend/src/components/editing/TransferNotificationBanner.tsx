@@ -1,11 +1,14 @@
 /**
- * TransferNotificationBanner.tsx (#884 Phase 6)
+ * TransferNotificationBanner.tsx (#902 Phase 5)
  *
- * lock.changed (op: "transferred") を受信して、元 owner / 新 owner に通知バナーを表示する。
- * docs/spec/collab-presence.md § 8 Take-over フロー に準拠。
+ * editSession.roleChanged (op: "transferred") を受信して、
+ * 元 owner / 新 owner に通知バナーを表示する。
+ * docs/spec/edit-session-protocol.md §14.1 に準拠。
  *
- * - 元 owner (previousOwner === clientId): 「あなたの draft は @<newOwner> に引き継がれました」
- * - 新 owner (toSessionId === clientId): 「@<previousOwner> さんの draft を引継ぎました」
+ * - 自分が from (= 元 owner、Edit → View): 「@bob が編集を引き継ぎました」
+ * - 自分が to (= 新 owner、View → Edit): 「@alice から編集を引き継ぎました」
+ *
+ * 後方互換: lock.changed op:"transferred" も引き続き受け取る (Phase 6 で削除予定)
  * autoclose: 5s
  */
 import { useEffect, useState, useCallback } from "react";
@@ -36,6 +39,50 @@ export function TransferNotificationBanner({
 
   const dismiss = useCallback(() => setBanner(null), []);
 
+  // 新 API: editSession.roleChanged (spec §14.1)
+  useEffect(() => {
+    const unsub = mcpBridge.onBroadcast("editSession.roleChanged", (data) => {
+      const d = data as {
+        editSessionId: string;
+        sessionId: string;
+        oldRole: string;
+        newRole: "Edit" | "View";
+        op?: string;
+        // transferEdit 時は fromSessionId / toSessionId が含まれる
+        fromSessionId?: string;
+        toSessionId?: string;
+        // displayLabel 系 (optional)
+        fromLabel?: string;
+        toLabel?: string;
+      };
+
+      // op が transferred でない場合は無視
+      if (d.op !== "transferred") return;
+
+      const from = d.fromSessionId ?? "";
+      const to = d.toSessionId ?? d.sessionId ?? "";
+      const fromLabel = d.fromLabel ?? from.slice(0, 8);
+      const toLabel = d.toLabel ?? to.slice(0, 8);
+
+      if (from === clientId) {
+        // 自分が引き継がれた側 (元 owner)
+        setBanner({
+          message: `@${toLabel} が編集を引き継ぎました`,
+          kind: "taken-from-me",
+        });
+      } else if (to === clientId) {
+        // 自分が引き継いだ側 (新 owner)
+        setBanner({
+          message: `@${fromLabel} から編集を引き継ぎました`,
+          kind: "taken-by-me",
+        });
+      }
+    });
+
+    return unsub;
+  }, [resourceType, resourceId, clientId]);
+
+  // 後方互換: lock.changed op:"transferred" (Phase 6 で削除予定)
   useEffect(() => {
     const unsub = mcpBridge.onBroadcast("lock.changed", (data) => {
       const d = data as {
@@ -57,13 +104,11 @@ export function TransferNotificationBanner({
       const newOwner = d.ownerSessionId ?? d.by ?? "";
 
       if (previousOwner === clientId) {
-        // 自分が引き継がれた側 (元 owner)
         setBanner({
           message: `あなたの draft は @${newOwner.slice(0, 8)} に引き継がれました`,
           kind: "taken-from-me",
         });
       } else if (newOwner === clientId) {
-        // 自分が引き継いだ側 (新 owner)
         setBanner({
           message: `@${previousOwner.slice(0, 8)} さんの draft を引継ぎました`,
           kind: "taken-by-me",
