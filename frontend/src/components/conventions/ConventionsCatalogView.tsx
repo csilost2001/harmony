@@ -21,6 +21,7 @@ import {
   AfterForceUnlockChoiceDialog,
 } from "../editing/ConfirmDialogs";
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
+import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import {
   loadConventions,
@@ -135,7 +136,7 @@ export function ConventionsCatalogView() {
     broadcastName: "conventionsChanged",
   });
 
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "convention",
     resourceId: "singleton",
     sessionId,
@@ -378,6 +379,26 @@ export function ConventionsCatalogView() {
           ownerSessionId={lockedByOther.ownerSessionId}
           onConfirm={handleForceRelease}
           onCancel={() => setShowForceReleaseDialog(false)}
+        />
+      )}
+
+      {saveConflict && (
+        <SaveConflictDialog
+          conflict={saveConflict}
+          onOverwrite={async () => {
+            // P1 派生 fix (#911): backend force save 後に本体ファイル書き込み + cleanup を実行する。
+            // convention は backend editSession.save で write skip されるため、ここで saveCatalog を呼ぶ。
+            try {
+              await onSaveConflictOverwrite();
+              if (catalogRef.current) {
+                await saveCatalog(catalogRef.current);
+              }
+              await postSave();
+            } catch (e) {
+              console.error("[ConventionsCatalogView] save overwrite failed:", e);
+            }
+          }}
+          onCancel={onSaveConflictCancel}
         />
       )}
 

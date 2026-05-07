@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadExtensionsFromBundle, type RawExtensionsBundle } from "../../schemas/loadExtensions";
@@ -16,6 +16,7 @@ import {
   AfterForceUnlockChoiceDialog,
 } from "../editing/ConfirmDialogs";
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
+import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import "../../styles/editMode.css";
 
@@ -56,13 +57,20 @@ export function ExtensionsPanel() {
 
   const sessionId = mcpBridge.getSessionId();
 
-  const { mode, loading: sessionLoading, isDirtyForTab, actions } = useEditSession({
+  const { mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "extension",
     resourceId: active,
     sessionId,
   });
 
   const isReadonly = mode.kind !== "editing";
+
+  /**
+   * P1 派生 fix (#911): handleSave は kind / content を引数で受けるため、
+   * SaveConflictDialog の onOverwrite が body 書き込みを再実行できるよう、最後の save 試行時の引数を保持する。
+   * conflict ダイアログ表示中は新たな save が起きないため ref で 1 件だけ保持すれば十分。
+   */
+  const lastSaveArgsRef = useRef<{ kind: ExtensionKind; content: unknown } | null>(null);
 
   const load = useCallback(async (forceReload = false) => {
     setLoading(true);
@@ -118,6 +126,8 @@ export function ExtensionsPanel() {
 
   const handleSave = useCallback(async (kind: ExtensionKind, content: unknown) => {
     if (isReadonly) return;
+    // P1 派生 fix (#911): SaveConflictDialog の onOverwrite が再現できるよう引数を ref に保持。
+    lastSaveArgsRef.current = { kind, content };
     setSaving(true);
     setMessage(null);
     try {
@@ -209,6 +219,32 @@ export function ExtensionsPanel() {
           onResume={() => { void handleResumeContinue(); }}
           onDiscard={() => { void handleResumeDiscard(); }}
           onCancel={() => setShowResumeDialog(false)}
+        />
+      )}
+
+      {saveConflict && (
+        <SaveConflictDialog
+          conflict={saveConflict}
+          onOverwrite={async () => {
+            // P1 派生 fix (#911): backend force save 後に extension package 本体を書き込み + cleanup を実行する。
+            // extension は backend editSession.save で write skip されるため、ここで saveExtensionPackage を呼ぶ。
+            const args = lastSaveArgsRef.current;
+            setSaving(true);
+            try {
+              await onSaveConflictOverwrite();
+              if (args) {
+                await mcpBridge.request("saveExtensionPackage", { type: args.kind, content: args.content });
+                setMessage("保存しました。");
+                await load(true);
+              }
+            } catch (e) {
+              console.error("[ExtensionsPanel] save overwrite failed:", e);
+              setMessage(e instanceof Error ? e.message : String(e));
+            } finally {
+              setSaving(false);
+            }
+          }}
+          onCancel={onSaveConflictCancel}
         />
       )}
 
