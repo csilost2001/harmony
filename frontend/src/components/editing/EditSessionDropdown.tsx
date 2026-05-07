@@ -89,7 +89,7 @@ interface EditSessionRowProps {
   session: EditSessionData;
   currentSessionId: string;
   onViewerAttach: (editSessionId: string) => void;
-  onTakeOver: (editSessionId: string) => void;
+  onTakeOver: (editSessionId: string) => Promise<void>;
   onDiscard: (editSessionId: string) => void;
 }
 
