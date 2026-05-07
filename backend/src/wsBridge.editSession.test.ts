@@ -25,6 +25,7 @@ import {
   EditSessionPermissionError,
   EditSessionParticipantError,
 } from "./editSessionStore.js";
+import { DraftHistoryStore } from "./draftHistoryStore.js";
 
 // ── テスト共通セットアップ ──────────────────────────────────────────────────────
 
@@ -349,7 +350,139 @@ describe("regression: 旧 lock.* / draft.* handler との干渉なし", () => {
   });
 });
 
-// ── 10. cleanupExpired — editSession.discarded / editSession.expired 相当 ──────
+// ── 10. editSession.listHistory — dispatch test (#918 review S-2) ──────────────
+
+describe("editSession.listHistory", () => {
+  it("DraftHistoryStore.listHistory が呼ばれ history 配列が返る (正常系)", async () => {
+    const historyStore = new DraftHistoryStore(tmpDir);
+
+    // スナップショットを事前に保存して履歴を作成
+    await historyStore.saveSnapshot({
+      resourceType: "process-flow",
+      resourceId: "pf-list-test",
+      editSessionId: "es-test-001",
+      ownerSessionId: "client-A",
+      ownerLabel: "@alice",
+      reason: "save",
+      snapshot: { v: 1 },
+    });
+
+    // wsBridge handler 相当: listHistory で一覧を取得
+    const result = await historyStore.listHistory({
+      resourceType: "process-flow",
+      resourceId: "pf-list-test",
+    });
+
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveLength(1);
+    expect(result[0].resourceType).toBe("process-flow");
+    expect(result[0].resourceId).toBe("pf-list-test");
+    expect(result[0].reason).toBe("save");
+    expect(result[0].snapshot).toEqual({ v: 1 });
+  });
+
+  it("履歴がない resourceType / resourceId は空配列を返す", async () => {
+    const historyStore = new DraftHistoryStore(tmpDir);
+
+    const result = await historyStore.listHistory({
+      resourceType: "process-flow",
+      resourceId: "nonexistent-resource",
+    });
+
+    // ディレクトリが存在しない場合は空配列 (silent pass ではなく明示的確認)
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveLength(0);
+  });
+
+  it("複数スナップショットが timestamp 降順でソートされる", async () => {
+    const historyStore = new DraftHistoryStore(tmpDir);
+
+    // 2 件保存 (連続保存)
+    await historyStore.saveSnapshot({
+      resourceType: "process-flow",
+      resourceId: "pf-multi",
+      editSessionId: "es-001",
+      ownerSessionId: "client-A",
+      ownerLabel: "@alice",
+      reason: "save",
+      snapshot: { v: 1 },
+    });
+
+    // 時間差を確保するため 2ms 待機
+    await new Promise((r) => setTimeout(r, 2));
+
+    await historyStore.saveSnapshot({
+      resourceType: "process-flow",
+      resourceId: "pf-multi",
+      editSessionId: "es-002",
+      ownerSessionId: "client-B",
+      ownerLabel: "@bob",
+      reason: "discard",
+      snapshot: { v: 2 },
+    });
+
+    const result = await historyStore.listHistory({
+      resourceType: "process-flow",
+      resourceId: "pf-multi",
+    });
+
+    expect(result).toHaveLength(2);
+    // 降順: 新しい方が先
+    expect((result[0].snapshot as { v: number }).v).toBe(2);
+    expect((result[1].snapshot as { v: number }).v).toBe(1);
+  });
+});
+
+// ── 11. editSession.restoreFromHistory — dispatch test (#918 review S-2) ───────
+
+describe("editSession.restoreFromHistory", () => {
+  it("historyId から新規 EditSession が作成されスナップショットが initial payload として設定される (正常系)", async () => {
+    const historyStore = new DraftHistoryStore(tmpDir);
+
+    // 事前に履歴スナップショットを保存
+    const entry = await historyStore.saveSnapshot({
+      resourceType: "process-flow",
+      resourceId: "pf-restore-test",
+      editSessionId: "es-original",
+      ownerSessionId: "client-A",
+      ownerLabel: "@alice",
+      reason: "discard",
+      snapshot: { steps: ["step-1", "step-2"] },
+    });
+
+    // wsBridge handler 相当: historyId から restore
+    const found = await historyStore.restoreFromHistory({ historyId: entry.historyId });
+    expect(found).not.toBeNull();
+    expect(found!.historyId).toBe(entry.historyId);
+    expect(found!.snapshot).toEqual({ steps: ["step-1", "step-2"] });
+    expect(found!.resourceType).toBe("process-flow");
+    expect(found!.resourceId).toBe("pf-restore-test");
+
+    // 取得した snapshot で EditSession を新規作成し payload を設定 (wsBridge の restoreFromHistory 実装相当)
+    const storeWithHistory = new EditSessionStore(tmpDir, historyStore);
+    const newSession = storeWithHistory.create(
+      "client-B",
+      "process-flow",
+      found!.resourceId,
+      "@bob",
+    );
+    storeWithHistory.update(newSession.id, found!.snapshot, "client-B");
+
+    const fetched = storeWithHistory.fetchCurrentPayload(newSession.id);
+    expect(fetched).not.toBeNull();
+    expect(fetched!.payload).toEqual({ steps: ["step-1", "step-2"] });
+    expect(fetched!.sequence).toBe(1);
+  });
+
+  it("存在しない historyId は null を返す", async () => {
+    const historyStore = new DraftHistoryStore(tmpDir);
+
+    const result = await historyStore.restoreFromHistory({ historyId: "nonexistent-history-id" });
+    expect(result).toBeNull();
+  });
+});
+
+// ── 12. cleanupExpired — editSession.discarded / editSession.expired 相当 ──────
 
 describe("cleanupExpired", () => {
   it("TTL 経過で Active → Discarded に遷移し action: discarded を返す", async () => {

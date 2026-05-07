@@ -698,7 +698,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1055; /* dropdown (1040) / edit-mode-modal-backdrop (1050) より上 */
+  /* z-index: 1056 — Bootstrap modal (1055) より 1 つ上で stacking context を非依存化 (#918 review S-1) */
+  z-index: 1056;
 }
 .screen-item-picker {
   background: #fff;
@@ -809,7 +810,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1055; /* dropdown (1040) / edit-mode-modal-backdrop (1050) より上 */
+  /* z-index: 1056 — Bootstrap modal (1055) より 1 つ上で stacking context を非依存化 (#918 review S-1) */
+  z-index: 1056;
 }
 
 .process-flow-modal {
