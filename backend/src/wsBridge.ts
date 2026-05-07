@@ -62,6 +62,14 @@ import {
 } from "./workspaceInit.js";
 import { reassignOnBehalfOf } from "./onBehalfOfSession.js";
 import {
+  EditSessionStore,
+  EditSessionNotFoundError,
+  EditSessionStateError,
+  EditSessionPermissionError,
+  EditSessionParticipantError,
+  type DraftResourceType as EditSessionResourceType,
+} from "./editSessionStore.js";
+import {
   readProject,
   writeProject,
   readScreen,
@@ -223,6 +231,11 @@ class WsBridge extends EventEmitter {
   private lastMessageAt: number | null = null;
   /** プロセス起動時刻 (ms) */
   private readonly startedAt: number = Date.now();
+  /**
+   * EditSessionStore を workspace 単位で管理 (spec §15.1, Phase 2)。
+   * key = wsId (workspace root path)。既存 lockManager / draftStore と同じ lazy 生成パターン。
+   */
+  private editSessionStores = new Map<string, EditSessionStore>();
 
   get isConnected(): boolean {
     return this.clients.size > 0;
@@ -246,6 +259,19 @@ class WsBridge extends EventEmitter {
       wsConnections: this.clients.size,
       uptimeMs: Date.now() - this.startedAt,
     };
+  }
+
+  /**
+   * wsId (workspace root path) に対応する EditSessionStore を lazy 生成して返す (Phase 2, spec §15.1)。
+   * 既存 lockManager / draftStore の workspace 単位インスタンス化パターンと同様。
+   */
+  private getOrCreateEditSessionStore(wsId: string): EditSessionStore {
+    let store = this.editSessionStores.get(wsId);
+    if (!store) {
+      store = new EditSessionStore(wsId);
+      this.editSessionStores.set(wsId, store);
+    }
+    return store;
   }
 
   /** MCP コマンドを送る先: 最後に接続した有効なクライアント */
@@ -997,6 +1023,10 @@ class WsBridge extends EventEmitter {
             throw e;
           }
           await setLastActiveWorkspace(null);
+          // workspace close 時に EditSessionStore も cleanup (#899 Phase 2)
+          if (closingPath && this.editSessionStores.has(closingPath)) {
+            this.editSessionStores.delete(closingPath);
+          }
           respond({ success: true });
           // workspace.close broadcast: close 前のパスを持つ session のみ受信 (#703 R-5 A-2)
           this.broadcast({ wsId: closingPath, event: "workspace.changed", data: {
@@ -1272,6 +1302,235 @@ class WsBridge extends EventEmitter {
           break;
         }
 
+        // ── EditSession 管理 (#899 / meta #897 Phase 2) ──────────────────
+        // spec docs/spec/edit-session-protocol.md §14 / §15.1 に準拠。
+        // 旧 lock.* / draft.* handler は変更しない (Phase 4 で adapter 化、Phase 6 で削除)。
+
+        case "editSession.create": {
+          const esWsId = wsId();
+          if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
+          const {
+            resourceType: esRt,
+            resourceId: esRid,
+            displayLabel: esLabel,
+          } = (params ?? {}) as {
+            resourceType: EditSessionResourceType;
+            resourceId: string;
+            displayLabel?: string;
+          };
+          const esStore = this.getOrCreateEditSessionStore(esWsId);
+          const esSession = esStore.create(
+            clientId,
+            esRt,
+            esRid,
+            esLabel ?? clientId,
+          );
+          respond({ editSession: _serializeEditSession(esSession) });
+          this.broadcast({
+            wsId: esWsId,
+            event: "editSession.created",
+            data: { editSession: _serializeEditSession(esSession) },
+          });
+          break;
+        }
+
+        case "editSession.attachAsView": {
+          const esWsId = wsId();
+          if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
+          const {
+            editSessionId: esAvId,
+            displayLabel: esAvLabel,
+            parentHumanSessionId: esAvParent,
+          } = (params ?? {}) as {
+            editSessionId: string;
+            displayLabel?: string;
+            parentHumanSessionId?: string;
+          };
+          const esStore = this.getOrCreateEditSessionStore(esWsId);
+          const participant = esStore.attachAsView(
+            esAvId,
+            clientId,
+            esAvLabel ?? clientId,
+            esAvParent,
+          );
+          const fetchResult = esStore.fetchCurrentPayload(esAvId);
+          respond({
+            participant,
+            payload: fetchResult?.payload ?? null,
+            sequence: fetchResult?.sequence ?? 0,
+          });
+          this.broadcast({
+            wsId: esWsId,
+            event: "editSession.attached",
+            data: { editSessionId: esAvId, participant },
+          });
+          break;
+        }
+
+        case "editSession.detach": {
+          const esWsId = wsId();
+          if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
+          const { editSessionId: esDtId } = (params ?? {}) as { editSessionId: string };
+          const esStore = this.getOrCreateEditSessionStore(esWsId);
+          esStore.detach(esDtId, clientId);
+          respond({ detached: true });
+          this.broadcast({
+            wsId: esWsId,
+            event: "editSession.detached",
+            data: { editSessionId: esDtId, sessionId: clientId },
+          });
+          break;
+        }
+
+        case "editSession.setRole": {
+          const esWsId = wsId();
+          if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
+          const {
+            editSessionId: esRoleId,
+            role: esNewRole,
+          } = (params ?? {}) as { editSessionId: string; role: "Edit" | "View" };
+          const esStore = this.getOrCreateEditSessionStore(esWsId);
+          const esRoleSession = esStore.get(esRoleId);
+          const oldRole = esRoleSession?.participants.get(clientId)?.role ?? null;
+          const updatedParticipant = esStore.setRole(esRoleId, clientId, esNewRole);
+          respond({ participant: updatedParticipant });
+          this.broadcast({
+            wsId: esWsId,
+            event: "editSession.roleChanged",
+            data: {
+              editSessionId: esRoleId,
+              sessionId: clientId,
+              oldRole,
+              newRole: esNewRole,
+            },
+          });
+          break;
+        }
+
+        case "editSession.transferEdit": {
+          const esWsId = wsId();
+          if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
+          const {
+            editSessionId: esTrId,
+            toSessionId: esTrTo,
+          } = (params ?? {}) as { editSessionId: string; toSessionId: string };
+          const esStore = this.getOrCreateEditSessionStore(esWsId);
+          const { from: esTrFrom, to: esTrNew } = esStore.transferEdit(
+            clientId,
+            esTrTo,
+            esTrId,
+          );
+          respond({ from: esTrFrom, to: esTrNew });
+          this.broadcast({
+            wsId: esWsId,
+            event: "editSession.roleChanged",
+            data: {
+              editSessionId: esTrId,
+              sessionId: esTrTo,
+              oldRole: "View" as const,
+              newRole: "Edit" as const,
+              op: "transferred",
+              transferTo: esTrTo,
+            },
+          });
+          break;
+        }
+
+        case "editSession.update": {
+          // opaque envelope: payload は server で解釈しない (Forward-Compat 原則 ①)
+          const esWsId = wsId();
+          if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
+          const {
+            editSessionId: esUpId,
+            payload: esUpPayload,
+          } = (params ?? {}) as { editSessionId: string; payload: unknown };
+          const esStore = this.getOrCreateEditSessionStore(esWsId);
+          const { sequence: esSeq } = esStore.update(esUpId, esUpPayload, clientId);
+          respond({ sequence: esSeq });
+          // senderSessionId 付きで全員に broadcast (excludeClientId 不要 = 全員受信)
+          this.broadcast({
+            wsId: esWsId,
+            event: "editSession.update",
+            data: {
+              editSessionId: esUpId,
+              sequence: esSeq,
+              payload: esUpPayload, // opaque: そのまま透過
+              senderSessionId: clientId,
+            },
+          });
+          break;
+        }
+
+        case "editSession.save": {
+          const esWsId = wsId();
+          if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
+          const { editSessionId: esSvId } = (params ?? {}) as { editSessionId: string };
+          const esStore = this.getOrCreateEditSessionStore(esWsId);
+          const saveEvent = await esStore.save(esSvId, clientId);
+          respond({ saveEvent });
+          this.broadcast({
+            wsId: esWsId,
+            event: "editSession.saved",
+            data: {
+              editSessionId: esSvId,
+              savedBy: saveEvent.savedBy,
+              savedAt: saveEvent.savedAt,
+              sequence: saveEvent.sequence,
+            },
+          });
+          break;
+        }
+
+        case "editSession.discard": {
+          const esWsId = wsId();
+          if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
+          const { editSessionId: esDiscId } = (params ?? {}) as { editSessionId: string };
+          const esStore = this.getOrCreateEditSessionStore(esWsId);
+          await esStore.discard(esDiscId, "manual");
+          respond({ discarded: true });
+          this.broadcast({
+            wsId: esWsId,
+            event: "editSession.discarded",
+            data: { editSessionId: esDiscId, reason: "manual" as const },
+          });
+          break;
+        }
+
+        case "editSession.list": {
+          const esWsId = wsId();
+          if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
+          const {
+            resourceType: esLstRt,
+            resourceId: esLstRid,
+          } = (params ?? {}) as { resourceType?: EditSessionResourceType; resourceId?: string };
+          const esStore = this.getOrCreateEditSessionStore(esWsId);
+          let sessions;
+          if (esLstRt && esLstRid) {
+            sessions = esStore.listByResource(esLstRt, esLstRid);
+          } else {
+            // filter なし: 全 EditSession を返す (store の private map を公開するため list all)
+            sessions = esStore.listAll();
+          }
+          respond({ sessions: sessions.map(_serializeEditSession) });
+          // broadcast なし (response only)
+          break;
+        }
+
+        case "editSession.fetchPayload": {
+          const esWsId = wsId();
+          if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
+          const { editSessionId: esFpId } = (params ?? {}) as { editSessionId: string };
+          const esStore = this.getOrCreateEditSessionStore(esWsId);
+          const fetchPayloadResult = esStore.fetchCurrentPayload(esFpId);
+          if (!fetchPayloadResult) {
+            respondError(`EditSession ${esFpId} が見つかりません`);
+            break;
+          }
+          respond({ payload: fetchPayloadResult.payload, sequence: fetchPayloadResult.sequence });
+          // broadcast なし (response only)
+          break;
+        }
+
         default: {
           // 動的に登録されたハンドラ (#750 follow-up: client.log.flush 等)
           const dynHandler = this._browserHandlers.get(method);
@@ -1365,3 +1624,18 @@ async function _flushAndExit(signal: string): Promise<void> {
 
 process.on("SIGTERM", () => { _flushAndExit("SIGTERM").catch(() => {}); });
 process.on("SIGINT", () => { _flushAndExit("SIGINT").catch(() => {}); });
+
+// ── EditSession シリアライズヘルパー (Phase 2) ────────────────────────────────
+
+/**
+ * EditSession の Map<string, ParticipantInfo> を JSON シリアライズ可能な
+ * Record<string, ParticipantInfo> に変換して返す。
+ * spec §14.3 broadcast の wsId scoping と同様の理由で、
+ * participants の Map は Object.fromEntries で変換する (editSessionStore.ts の FS write と同じ手法)。
+ */
+function _serializeEditSession(session: import("./editSessionStore.js").EditSession): unknown {
+  return {
+    ...session,
+    participants: Object.fromEntries(session.participants.entries()),
+  };
+}

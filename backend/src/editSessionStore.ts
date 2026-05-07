@@ -577,6 +577,14 @@ export class EditSessionStore {
   }
 
   /**
+   * 全 EditSession を返す (active + discarded)。filter なし。
+   * editSession.list request handler の filter なし呼び出し用 (Phase 2)。
+   */
+  listAll(): EditSession[] {
+    return Array.from(this.store.values());
+  }
+
+  /**
    * テスト用: store を初期化する。
    */
   _resetForTest(): void {
