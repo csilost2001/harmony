@@ -98,9 +98,9 @@ async function setupEditor(page: Page) {
 const dummyGroupBody: Record<string, unknown> = {
   id: groupId,
   $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: groupId, name: dummyGroup.name, kind: dummyGroup.type ?? dummyGroup.kind ?? "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: dummyGroup.createdAt ?? "2026-05-08T00:00:00.000Z", updatedAt: dummyGroup.updatedAt ?? "2026-05-08T00:00:00.000Z" },
-  actions: dummyGroup.actions,
-  ...((dummyGroup as Record<string, unknown>).markers !== undefined ? { markers: (dummyGroup as Record<string, unknown>).markers } : {}),
+  meta: { id: groupId, name: group.name, kind: group.type ?? group.kind ?? "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: group.createdAt ?? "2026-05-08T00:00:00.000Z", updatedAt: group.updatedAt ?? "2026-05-08T00:00:00.000Z" },
+  actions: group.actions,
+  ...((group as Record<string, unknown>).markers !== undefined ? { markers: (group as Record<string, unknown>).markers } : {}),
 };
 
 const WS_KEY = "issue-926-validation-sql-conv-panel.spec";
