@@ -40,6 +40,7 @@ import { renumber } from "../../utils/listOrder";
 import type { TableEntry } from "../../types/v3";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import { EditSessionBadge } from "../editing/EditSessionBadge";
+import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 
@@ -82,6 +83,8 @@ export function ViewDefinitionListView() {
   const [tableNameMap, setTableNameMap] = useState<Map<string, string>>(new Map());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
+  // #893: draft history modal
+  const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
 
   // テーブル一覧を初期ロード
   useEffect(() => {
@@ -418,7 +421,7 @@ export function ViewDefinitionListView() {
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
-          if (items.length === 1) navigate(`/view-definition/edit/${encodeURIComponent(String(items[0].id))}?history=1`);
+          if (items.length === 1) setHistoryModal({ resourceId: String(items[0].id) });
         },
       },
     ];
@@ -793,6 +796,20 @@ export function ViewDefinitionListView() {
             y={contextMenu.y}
             items={contextMenu.items}
             onClose={() => setContextMenu(null)}
+          />
+        )}
+
+        {/* #893: draft history modal */}
+        {historyModal && (
+          <DraftHistoryModal
+            resourceType="view-definition"
+            resourceId={historyModal.resourceId}
+            isOpen={true}
+            onClose={() => setHistoryModal(null)}
+            onRestore={(editSessionId) => {
+              setHistoryModal(null);
+              navigate(`/view-definition/edit/${encodeURIComponent(historyModal.resourceId)}?session=${encodeURIComponent(editSessionId)}`);
+            }}
           />
         )}
       </div>

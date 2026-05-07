@@ -17,6 +17,7 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import type { DraftResourceType } from "../../types/draft";
 import type { EditMode } from "../../hooks/useEditSession";
 import type { EditSessionData, ParticipantInfo } from "../../hooks/useEditSession";
+import { DraftHistoryModal } from "./DraftHistoryModal";
 import "../../styles/editSessionDropdown.css";
 
 // ── 型 ──────────────────────────────────────────────────────────────────────
@@ -37,6 +38,11 @@ export interface EditSessionDropdownProps {
    * myRole の即時反映には onTakeOver の指定が必須。
    */
   onTakeOver?: (editSessionId: string) => Promise<void>;
+  /**
+   * #893: draft history から復元後の callback。
+   * 新規作成された editSessionId を受け取り、エディタ側で URL 切替 + attach を行う。
+   */
+  onHistoryRestore?: (editSessionId: string) => void;
 }
 
 // ── 相対時間 ─────────────────────────────────────────────────────────────────
@@ -198,10 +204,12 @@ export function EditSessionDropdown({
   onViewerAttached,
   onStartEditing,
   onTakeOver,
+  onHistoryRestore,
 }: EditSessionDropdownProps) {
   const [open, setOpen] = useState(false);
   const [sessions, setSessions] = useState<EditSessionData[]>([]);
   const [listLoading, setListLoading] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // ── editSession.list を取得 ──────────────────────────────────────────────────
@@ -389,8 +397,34 @@ export function EditSessionDropdown({
             <i className="bi bi-plus-circle me-1" />
             新規 draft を作成
           </button>
+
+          {/* 履歴 (#893) */}
+          <button
+            type="button"
+            className="esd-new-draft-btn btn btn-sm btn-link w-100 text-start"
+            onClick={() => {
+              setOpen(false);
+              setHistoryModalOpen(true);
+            }}
+            data-testid="esd-history-btn"
+          >
+            <i className="bi bi-clock-history me-1" />
+            履歴 (過去の draft)
+          </button>
         </div>
       )}
+
+      {/* DraftHistoryModal (#893) */}
+      <DraftHistoryModal
+        resourceType={resourceType}
+        resourceId={resourceId}
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        onRestore={(editSessionId) => {
+          setHistoryModalOpen(false);
+          onHistoryRestore?.(editSessionId);
+        }}
+      />
     </div>
   );
 }

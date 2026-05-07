@@ -14,6 +14,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { randomBytes } from "node:crypto";
+import type { DraftHistoryStore } from "./draftHistoryStore.js";
 // ── 公開型定義 (spec §3.2 / §10.2) ──────────────────────────────────────────
 
 /**
@@ -182,7 +183,10 @@ export class EditSessionStore {
   /** key = editSessionId */
   private store = new Map<string, EditSession>();
 
-  constructor(private readonly workspaceRoot: string) {}
+  constructor(
+    private readonly workspaceRoot: string,
+    private readonly draftHistoryStore?: DraftHistoryStore,
+  ) {}
 
   // ── lifecycle ───────────────────────────────────────────────────────────────
 
@@ -421,6 +425,23 @@ export class EditSessionStore {
       );
     }
 
+    // draft history snapshot を保存 (#893: save 時点のスナップショット記録)
+    if (this.draftHistoryStore && session.payload !== null && session.payload !== undefined) {
+      const editor = Array.from(session.participants.values()).find((p) => p.role === "Edit");
+      const ownerLabel = editor?.displayLabel ?? bySessionId;
+      this.draftHistoryStore.saveSnapshot({
+        resourceType: session.resourceType,
+        resourceId: session.resourceId,
+        editSessionId: session.id,
+        ownerSessionId: bySessionId,
+        ownerLabel,
+        reason: "save",
+        snapshot: session.payload,
+      }).catch((e: unknown) => {
+        console.error("[editSessionStore.save] draftHistoryStore.saveSnapshot error:", e);
+      });
+    }
+
     const now = new Date().toISOString();
     const event: SaveEvent = {
       savedBy: bySessionId,
@@ -483,6 +504,21 @@ export class EditSessionStore {
       );
     }
 
+    // draft history snapshot を保存 (#893: transferEdit 前の元 owner の状態を記録)
+    if (this.draftHistoryStore && session.payload !== null && session.payload !== undefined) {
+      this.draftHistoryStore.saveSnapshot({
+        resourceType: session.resourceType,
+        resourceId: session.resourceId,
+        editSessionId: session.id,
+        ownerSessionId: fromSessionId,
+        ownerLabel: fromParticipant.displayLabel,
+        reason: "transferEdit",
+        snapshot: session.payload,
+      }).catch((e: unknown) => {
+        console.error("[editSessionStore.transferEdit] draftHistoryStore.saveSnapshot error:", e);
+      });
+    }
+
     // atomic: JS シングルスレッドで同一 call stack 内に収まるため race なし (spec §7.3)
     const now = new Date().toISOString();
     fromParticipant.role = "View";    // 1. Edit → View (降格)
@@ -509,6 +545,24 @@ export class EditSessionStore {
       throw new EditSessionStateError(
         `EditSession ${editSessionId} は Active 状態ではありません (current: ${session.state})`,
       );
+    }
+
+    // draft history snapshot を保存 (#893: discard 前の payload を記録)
+    if (this.draftHistoryStore && session.payload !== null && session.payload !== undefined) {
+      const editor = Array.from(session.participants.values()).find((p) => p.role === "Edit");
+      const ownerLabel = editor?.displayLabel ?? editSessionId;
+      const ownerSessionId = editor?.sessionId ?? editSessionId;
+      this.draftHistoryStore.saveSnapshot({
+        resourceType: session.resourceType,
+        resourceId: session.resourceId,
+        editSessionId: session.id,
+        ownerSessionId,
+        ownerLabel,
+        reason: "discard",
+        snapshot: session.payload,
+      }).catch((e: unknown) => {
+        console.error("[editSessionStore.discard] draftHistoryStore.saveSnapshot error:", e);
+      });
     }
 
     const now = new Date().toISOString();

@@ -26,6 +26,7 @@ import { generateUUID } from "../../utils/uuid";
 import { renumber } from "../../utils/listOrder";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import { EditSessionBadge } from "../editing/EditSessionBadge";
+import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 
@@ -59,6 +60,8 @@ export function TableListView() {
   const [showExport, setShowExport] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
+  // #893: draft history modal
+  const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
 
   const loadTables = useCallback(async () => {
     mcpBridge.startWithoutEditor();
@@ -388,7 +391,7 @@ export function TableListView() {
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
-          if (items.length === 1) navigate(`/table/edit/${encodeURIComponent(items[0].id)}?history=1`);
+          if (items.length === 1) setHistoryModal({ resourceId: items[0].id });
         },
       },
     ];
@@ -776,6 +779,20 @@ export function TableListView() {
             y={contextMenu.y}
             items={contextMenu.items}
             onClose={() => setContextMenu(null)}
+          />
+        )}
+
+        {/* #893: draft history modal */}
+        {historyModal && (
+          <DraftHistoryModal
+            resourceType="table"
+            resourceId={historyModal.resourceId}
+            isOpen={true}
+            onClose={() => setHistoryModal(null)}
+            onRestore={(editSessionId) => {
+              setHistoryModal(null);
+              navigate(`/table/edit/${encodeURIComponent(historyModal.resourceId)}?session=${encodeURIComponent(editSessionId)}`);
+            }}
           />
         )}
       </div>

@@ -10,8 +10,9 @@
  * - cleanupExpired TTL 2 段階 (§12.2)
  * - discard (manual)
  * - ULID-like id の時刻順序
+ * - DraftHistoryStore hook (#893): discard / transferEdit / save 時の saveSnapshot 呼び出し
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -22,6 +23,7 @@ import {
   EditSessionPermissionError,
   EditSessionParticipantError,
 } from "./editSessionStore.js";
+import type { DraftHistoryStore } from "./draftHistoryStore.js";
 
 // ── テスト共通セットアップ ──────────────────────────────────────────────────────
 
@@ -528,5 +530,78 @@ describe("ULID-like id の時刻順序", () => {
     const session = store.create("session-A", "process-flow", "pf-1", "@alice");
     // es-<time-10>-<random-16> 形式
     expect(session.id).toMatch(/^es-[0-9a-z]{10}-[0-9a-f]{16}$/);
+  });
+});
+
+// ── 15. DraftHistoryStore hook (#893) ────────────────────────────────────────
+
+describe("DraftHistoryStore hook (#893)", () => {
+  let storeWithHistory: EditSessionStore;
+  let mockHistoryStore: DraftHistoryStore;
+
+  beforeEach(() => {
+    const saveSnapshotMock = vi.fn().mockResolvedValue({});
+    mockHistoryStore = {
+      saveSnapshot: saveSnapshotMock,
+      listHistory: vi.fn().mockResolvedValue([]),
+      restoreFromHistory: vi.fn().mockResolvedValue(null),
+      cleanupExpired: vi.fn().mockResolvedValue([]),
+    } as unknown as DraftHistoryStore;
+    storeWithHistory = new EditSessionStore(tmpDir, mockHistoryStore);
+  });
+
+  it("discard 時に saveSnapshot が payload を持つセッションで呼ばれる", async () => {
+    const session = storeWithHistory.create("session-A", "process-flow", "pf-hook-1", "@alice");
+    // payload を設定
+    storeWithHistory.update(session.id, { id: "pf-hook-1", actions: [] }, "session-A");
+    // discard を実行
+    await storeWithHistory.discard(session.id, "manual");
+
+    // saveSnapshot が呼ばれた (fire-and-forget なので resolved を待つ)
+    await vi.waitFor(() => {
+      expect(mockHistoryStore.saveSnapshot).toHaveBeenCalledTimes(1);
+    });
+    const call = vi.mocked(mockHistoryStore.saveSnapshot).mock.calls[0][0];
+    expect(call.reason).toBe("discard");
+    expect(call.resourceType).toBe("process-flow");
+    expect(call.resourceId).toBe("pf-hook-1");
+    expect(call.ownerLabel).toBe("@alice");
+  });
+
+  it("payload が null の場合は discard 時に saveSnapshot は呼ばれない", async () => {
+    const session = storeWithHistory.create("session-A", "process-flow", "pf-hook-2", "@alice");
+    // payload を設定しない (null のまま)
+    await storeWithHistory.discard(session.id, "manual");
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(mockHistoryStore.saveSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("transferEdit 時に saveSnapshot が元 owner のラベルで呼ばれる", async () => {
+    const session = storeWithHistory.create("session-A", "process-flow", "pf-hook-3", "@alice");
+    storeWithHistory.update(session.id, { id: "pf-hook-3" }, "session-A");
+    storeWithHistory.attachAsView(session.id, "session-B", "@bob");
+    storeWithHistory.transferEdit("session-A", "session-B", session.id);
+
+    await vi.waitFor(() => {
+      expect(mockHistoryStore.saveSnapshot).toHaveBeenCalledTimes(1);
+    });
+    const call = vi.mocked(mockHistoryStore.saveSnapshot).mock.calls[0][0];
+    expect(call.reason).toBe("transferEdit");
+    expect(call.ownerLabel).toBe("@alice"); // 元 owner のラベル
+    expect(call.ownerSessionId).toBe("session-A");
+  });
+
+  it("save 時に saveSnapshot が呼ばれる", async () => {
+    const session = storeWithHistory.create("session-A", "process-flow", "pf-hook-4", "@alice");
+    storeWithHistory.update(session.id, { id: "pf-hook-4" }, "session-A");
+    await storeWithHistory.save(session.id, "session-A");
+
+    await vi.waitFor(() => {
+      expect(mockHistoryStore.saveSnapshot).toHaveBeenCalledTimes(1);
+    });
+    const call = vi.mocked(mockHistoryStore.saveSnapshot).mock.calls[0][0];
+    expect(call.reason).toBe("save");
+    expect(call.ownerLabel).toBe("@alice");
   });
 });

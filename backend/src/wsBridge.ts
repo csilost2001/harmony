@@ -43,6 +43,7 @@ import {
   type ParticipantInfo as EditSessionParticipantInfo,
   type SaveEvent as EditSessionSaveEvent,
 } from "./editSessionStore.js";
+import { DraftHistoryStore } from "./draftHistoryStore.js";
 import {
   readProject,
   writeProject,
@@ -210,6 +211,11 @@ class WsBridge extends EventEmitter {
    * key = wsId (workspace root path)。既存 lockManager / draftStore と同じ lazy 生成パターン。
    */
   private editSessionStores = new Map<string, EditSessionStore>();
+  /**
+   * DraftHistoryStore を workspace 単位で管理 (#893)。
+   * key = wsId (workspace root path)。EditSessionStore と同じ lazy 生成パターン。
+   */
+  private draftHistoryStores = new Map<string, DraftHistoryStore>();
   /** spec §12.4 / §18.3: 1h 周期の EditSession cleanupExpired タイマー */
   private editSessionCleanupTimer: NodeJS.Timeout | null = null;
 
@@ -238,13 +244,27 @@ class WsBridge extends EventEmitter {
   }
 
   /**
+   * wsId に対応する DraftHistoryStore を lazy 生成して返す (#893)。
+   */
+  private getOrCreateDraftHistoryStore(wsId: string): DraftHistoryStore {
+    let store = this.draftHistoryStores.get(wsId);
+    if (!store) {
+      store = new DraftHistoryStore(wsId);
+      this.draftHistoryStores.set(wsId, store);
+    }
+    return store;
+  }
+
+  /**
    * wsId (workspace root path) に対応する EditSessionStore を lazy 生成して返す (Phase 2, spec §15.1)。
    * 既存 lockManager / draftStore の workspace 単位インスタンス化パターンと同様。
+   * #893: DraftHistoryStore を DI して discard / transferEdit / save 時の snapshot 記録を有効化。
    */
   private getOrCreateEditSessionStore(wsId: string): EditSessionStore {
     let store = this.editSessionStores.get(wsId);
     if (!store) {
-      store = new EditSessionStore(wsId);
+      const historyStore = this.getOrCreateDraftHistoryStore(wsId);
+      store = new EditSessionStore(wsId, historyStore);
       this.editSessionStores.set(wsId, store);
     }
     return store;
@@ -558,6 +578,58 @@ class WsBridge extends EventEmitter {
     return result;
   }
 
+  /** #893: DraftHistory 一覧を返す */
+  async editSessionListHistory(
+    sessionId: string,
+    resourceType: string,
+    resourceId: string,
+  ): Promise<{ history: unknown[] }> {
+    const wsId = this._resolveActiveWsId(sessionId);
+    const historyStore = this.getOrCreateDraftHistoryStore(wsId);
+    const history = await historyStore.listHistory({ resourceType, resourceId });
+    return { history };
+  }
+
+  /**
+   * #893: 履歴から新規 EditSession を作成して返す。
+   * DraftHistoryStore からスナップショットを読み込み、新規 EditSession を作成して
+   * スナップショットを初期 payload として設定する。
+   */
+  async editSessionRestoreFromHistory(
+    sessionId: string,
+    historyId: string,
+    displayLabel?: string,
+  ): Promise<{ editSession: unknown }> {
+    const wsId = this._resolveActiveWsId(sessionId);
+    const historyStore = this.getOrCreateDraftHistoryStore(wsId);
+    const entry = await historyStore.restoreFromHistory({ historyId });
+    if (!entry) {
+      throw new Error(`historyId ${historyId} が見つかりません`);
+    }
+
+    // 新規 EditSession を作成して snapshot を初期 payload として設定
+    const store = this.getOrCreateEditSessionStore(wsId);
+    const session = store.create(
+      sessionId,
+      entry.resourceType as EditSessionResourceType,
+      entry.resourceId,
+      displayLabel ?? sessionId,
+    );
+
+    // snapshot を初期 payload として update (sequence = 1)
+    if (entry.snapshot !== null && entry.snapshot !== undefined) {
+      store.update(session.id, entry.snapshot, sessionId);
+    }
+
+    const serialized = _serializeEditSession(store.get(session.id)!);
+    this.broadcast({
+      wsId,
+      event: "editSession.created",
+      data: { editSession: serialized, restoredFromHistoryId: historyId },
+    });
+    return { editSession: serialized };
+  }
+
   /** MCP コマンドを送る先: 最後に接続した有効なクライアント */
   private get activeClient(): WebSocket | null {
     for (let i = this.clientOrder.length - 1; i >= 0; i--) {
@@ -619,6 +691,18 @@ class WsBridge extends EventEmitter {
           }
         } catch (e) {
           console.error(`[WsBridge] EditSession cleanupExpired error (wsId=${wsId}):`, e);
+        }
+      }
+
+      // #893: DraftHistory の 7 日 TTL cleanup を EditSession cleanup と同周期で実行
+      for (const [wsId, historyStore] of this.draftHistoryStores.entries()) {
+        try {
+          const deleted = await historyStore.cleanupExpired({ olderThanDays: 7 });
+          if (deleted.length > 0) {
+            console.info(`[WsBridge] DraftHistory cleanup (wsId=${wsId}): ${deleted.length} entries deleted`);
+          }
+        } catch (e) {
+          console.error(`[WsBridge] DraftHistory cleanupExpired error (wsId=${wsId}):`, e);
         }
       }
     }, intervalMs);
@@ -1605,6 +1689,36 @@ class WsBridge extends EventEmitter {
           const { editSessionId: esFpId } = (params ?? {}) as { editSessionId: string };
           try {
             const result = this.editSessionFetchPayload(clientId, esFpId);
+            respond(result);
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "editSession.listHistory": {
+          // #893: DraftHistory 一覧を返す
+          const {
+            resourceType: esLhRt,
+            resourceId: esLhRid,
+          } = (params ?? {}) as { resourceType: string; resourceId: string };
+          try {
+            const result = await this.editSessionListHistory(clientId, esLhRt, esLhRid);
+            respond(result);
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "editSession.restoreFromHistory": {
+          // #893: 履歴から新規 EditSession を作成して返す
+          const {
+            historyId: esRhId,
+            displayLabel: esRhLabel,
+          } = (params ?? {}) as { historyId: string; displayLabel?: string };
+          try {
+            const result = await this.editSessionRestoreFromHistory(clientId, esRhId, esRhLabel);
             respond(result);
           } catch (e) {
             respondError(e instanceof Error ? e.message : String(e));

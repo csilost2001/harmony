@@ -37,6 +37,7 @@ import { generateUUID } from "../../utils/uuid";
 import { renumber } from "../../utils/listOrder";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import { EditSessionBadge } from "../editing/EditSessionBadge";
+import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import "../../styles/processFlow.css";
 import "../../styles/editMode.css";
 
@@ -83,6 +84,8 @@ export function ProcessFlowListView() {
   const [conventions, setConventions] = useState<ConventionsCatalog | null>(null);
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+  // #893: draft history modal
+  const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
 
   const loadGroups = useCallback(async () => {
     mcpBridge.startWithoutEditor();
@@ -467,7 +470,7 @@ export function ProcessFlowListView() {
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
-          if (items.length === 1) navigate(`/process-flow/edit/${encodeURIComponent(items[0].id)}?history=1`);
+          if (items.length === 1) setHistoryModal({ resourceId: items[0].id });
         },
       },
     ];
@@ -957,6 +960,20 @@ export function ProcessFlowListView() {
           y={contextMenu.y}
           items={contextMenu.items}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {/* #893: draft history modal */}
+      {historyModal && (
+        <DraftHistoryModal
+          resourceType="process-flow"
+          resourceId={historyModal.resourceId}
+          isOpen={true}
+          onClose={() => setHistoryModal(null)}
+          onRestore={(editSessionId) => {
+            setHistoryModal(null);
+            navigate(`/process-flow/edit/${encodeURIComponent(historyModal.resourceId)}?session=${encodeURIComponent(editSessionId)}`);
+          }}
         />
       )}
     </div>
