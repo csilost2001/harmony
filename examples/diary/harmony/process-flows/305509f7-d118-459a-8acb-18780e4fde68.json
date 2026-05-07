@@ -1,0 +1,192 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "305509f7-d118-459a-8acb-18780e4fde68",
+    "name": "タグ削除",
+    "description": "タグを削除する処理フロー。post_tags に参照が残っている場合は 409 で削除拒否し、UI から「N 件で使用中、削除不可」を表示できるようにする。cascade 削除はしない (既存投稿のタグが意図せず外れる事故を防ぐ、ユーザーが明示的に投稿側でタグを外してから再削除する想定)。",
+    "kind": "screen",
+    "maturity": "draft",
+    "createdAt": "2026-05-07T00:00:00.000Z",
+    "updatedAt": "2026-05-07T00:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "タグ ID を指定してください。",
+          "responseId": "400-validation",
+          "description": "id 未指定。"
+        },
+        "TAG_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "タグが見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定 id のタグが既に存在しない (DELETE が 0 行を返した場合)。"
+        },
+        "TAG_IN_USE": {
+          "httpStatus": 409,
+          "defaultMessage": "このタグは投稿で使用中のため削除できません。",
+          "responseId": "409-conflict",
+          "description": "post_tags に参照が残っている。usageCount を返してクライアントに表示させる。"
+        }
+      }
+    }
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "タグ削除",
+      "trigger": "submit",
+      "description": "id を受け取り、post_tags への参照を確認した上で tags から DELETE する。参照ありなら 409 で拒否。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "DELETE",
+        "path": "/api/tags/:id",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "id",
+          "label": "タグID",
+          "type": "integer",
+          "required": true,
+          "description": "削除対象タグの id (URL path から)。"
+        }
+      ],
+      "outputs": [],
+      "responses": [
+        {
+          "id": "204-no-content",
+          "status": 204,
+          "description": "削除成功 (本文なし)。",
+          "when": "post_tags に参照がなく、DELETE が 1 行を返した場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "id 未指定。",
+          "when": "id が指定されていない。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "タグが見つからない。",
+          "when": "DELETE 実行時に 0 行が返った場合 (既に削除済)。"
+        },
+        {
+          "id": "409-conflict",
+          "status": 409,
+          "description": "使用中で削除拒否。",
+          "when": "post_tags にタグへの参照が残っている場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "id 必須チェック。",
+          "rules": [
+            {
+              "field": "id",
+              "type": "required",
+              "severity": "error",
+              "message": "タグ ID を指定してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: 'タグ ID を指定してください。' }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "dbAccess",
+          "description": "post_tags 経由でタグの使用件数を集計する (使用中なら 409 で削除拒否)。",
+          "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+          "operation": "SELECT",
+          "sql": "SELECT COUNT(*) AS \"usageCount\" FROM post_tags WHERE tag_id = @inputs.id",
+          "outputBinding": {
+            "name": "usage"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+                "purpose": "in-use-check"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "使用中なら 409 を返す (cascade 削除はしない)。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "使用中",
+              "condition": {
+                "kind": "expression",
+                "expression": "@usage.usageCount > 0"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "409 削除拒否を返す。usageCount を payload に含めて UI で件数表示できるようにする。",
+                  "responseId": "409-conflict",
+                  "bodyExpression": "{ code: 'TAG_IN_USE', message: 'このタグは投稿で使用中のため削除できません。', usageCount: @usage.usageCount }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "未使用",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "dbAccess",
+          "description": "tags から id を DELETE する。0 行 (既に削除済) なら 404 を返す。",
+          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "operation": "DELETE",
+          "sql": "DELETE FROM tags WHERE id = @inputs.id",
+          "affectedRowsCheck": {
+            "operator": "=",
+            "expected": 1,
+            "onViolation": "throw",
+            "errorCode": "TAG_NOT_FOUND",
+            "description": "0 行は既に削除済 (= 404)、複数行は schema 違反 (id PK のため発生しない想定)。"
+          },
+          "lineage": {
+            "writes": [
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "delete"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "return",
+          "description": "204 No Content を返す。",
+          "responseId": "204-no-content"
+        }
+      ]
+    }
+  ]
+}
