@@ -112,14 +112,40 @@
         {
           "name": "photos",
           "label": "写真リスト",
-          "type": "array",
+          "type": {
+            "kind": "array",
+            "itemType": {
+              "kind": "object",
+              "fields": [
+                { "name": "id", "type": "integer" },
+                { "name": "url", "type": "string", "required": true },
+                { "name": "alt", "type": "string" },
+                { "name": "caption", "type": "string" },
+                { "name": "orderIndex", "type": "integer" },
+                { "name": "width", "type": "integer" },
+                { "name": "height", "type": "integer" },
+                { "name": "exifJson", "type": "json" }
+              ]
+            }
+          },
           "required": false,
           "description": "差分更新用写真リスト。既存写真を全削除して再挿入する。"
         },
         {
           "name": "tags",
           "label": "タグリスト",
-          "type": "array",
+          "type": {
+            "kind": "array",
+            "itemType": {
+              "kind": "object",
+              "fields": [
+                { "name": "id", "type": "integer" },
+                { "name": "name", "type": "string" },
+                { "name": "source", "type": "string" },
+                { "name": "confidence", "type": "number" }
+              ]
+            }
+          },
           "required": false,
           "description": "差分更新用タグリスト。既存 post_tags を全削除して再挿入する。"
         }

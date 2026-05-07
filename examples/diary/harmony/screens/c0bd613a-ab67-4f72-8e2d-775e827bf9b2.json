@@ -13,7 +13,19 @@
     {
       "id": "tags",
       "label": "タグ一覧",
-      "type": "array",
+      "type": {
+        "kind": "array",
+        "itemType": {
+          "kind": "object",
+          "fields": [
+            { "name": "id", "type": "integer", "required": true },
+            { "name": "name", "type": "string", "required": true },
+            { "name": "slug", "type": "string", "required": true },
+            { "name": "color", "type": "string" },
+            { "name": "postCount", "type": "integer" }
+          ]
+        }
+      },
       "direction": "output",
       "description": "全タグの配列。id / name / slug / color / postCount を含む。"
     },

@@ -32,7 +32,7 @@
     {
       "id": "mood",
       "label": "気分",
-      "type": "enum",
+      "type": "string",
       "direction": "input",
       "description": "投稿時の気分を表す絵文字。",
       "options": [
@@ -50,7 +50,7 @@
     {
       "id": "weather",
       "label": "天気",
-      "type": "enum",
+      "type": "string",
       "direction": "input",
       "description": "投稿時の天気を表す絵文字。",
       "options": [
@@ -76,7 +76,7 @@
     {
       "id": "tagIds",
       "label": "タグ",
-      "type": "array",
+      "type": { "kind": "array", "itemType": "integer" },
       "direction": "input",
       "description": "投稿に付与するタグのID配列。タグ候補一覧からマルチセレクト。",
       "required": false
@@ -84,15 +84,34 @@
     {
       "id": "photos",
       "label": "写真",
-      "type": "array",
-      "direction": "inputOutput",
+      "type": {
+        "kind": "array",
+        "itemType": {
+          "kind": "object",
+          "fields": [
+            { "name": "id", "type": "integer" },
+            { "name": "postId", "type": "integer" },
+            { "name": "url", "type": "string", "required": true },
+            { "name": "thumbnailUrl", "type": "string" },
+            { "name": "alt", "type": "string" },
+            { "name": "caption", "type": "string" },
+            { "name": "orderIndex", "type": "integer" },
+            { "name": "width", "type": "integer" },
+            { "name": "height", "type": "integer" },
+            { "name": "bytes", "type": "integer" },
+            { "name": "mimeType", "type": "string" },
+            { "name": "exifJson", "type": "json" }
+          ]
+        }
+      },
+      "direction": "input",
       "description": "添付写真ファイル一覧。D&Dまたはクリックでアップロード。AI画像alt生成フローに渡すことができる。",
       "required": false
     },
     {
       "id": "status",
       "label": "公開状態",
-      "type": "enum",
+      "type": "string",
       "direction": "input",
       "description": "投稿の公開状態。published=公開 / draft=下書き。",
       "options": [
@@ -117,7 +136,18 @@
     {
       "id": "aiSuggestedTags",
       "label": "AIタグ提案",
-      "type": "array",
+      "type": {
+        "kind": "array",
+        "itemType": {
+          "kind": "object",
+          "fields": [
+            { "name": "slug", "type": "string", "required": true },
+            { "name": "name", "type": "string", "required": true },
+            { "name": "confidence", "type": "number", "required": true },
+            { "name": "isNew", "type": "boolean", "required": true }
+          ]
+        }
+      },
       "direction": "output",
       "description": "AIタグ提案フローから返却されたタグ候補配列。サイドパネルに表示し、1クリックで適用可。",
       "valueFrom": {

@@ -22,7 +22,7 @@
     {
       "id": "selectedTagSlugs",
       "label": "タグフィルタ",
-      "type": "array",
+      "type": { "kind": "array", "itemType": "string" },
       "direction": "input",
       "description": "絞り込むタグのスラッグ一覧。複数選択可。投稿検索フローの tagSlugs パラメータに渡す。",
       "required": false
@@ -30,7 +30,7 @@
     {
       "id": "statusFilter",
       "label": "公開状態フィルタ",
-      "type": "enum",
+      "type": "string",
       "direction": "input",
       "description": "表示する投稿の公開状態。all=全部 / published=公開 / draft=下書き。",
       "options": [
@@ -44,7 +44,38 @@
     {
       "id": "posts",
       "label": "投稿一覧",
-      "type": "array",
+      "type": {
+        "kind": "array",
+        "itemType": {
+          "kind": "object",
+          "fields": [
+            { "name": "id", "type": "integer", "required": true },
+            { "name": "title", "type": "string", "required": true },
+            { "name": "summary", "type": "string" },
+            { "name": "heroImageUrl", "type": "string" },
+            { "name": "mood", "type": "string" },
+            { "name": "weather", "type": "string" },
+            { "name": "location", "type": "string" },
+            {
+              "name": "tags",
+              "type": {
+                "kind": "array",
+                "itemType": {
+                  "kind": "object",
+                  "fields": [
+                    { "name": "id", "type": "integer", "required": true },
+                    { "name": "name", "type": "string", "required": true },
+                    { "name": "slug", "type": "string", "required": true },
+                    { "name": "color", "type": "string" }
+                  ]
+                }
+              }
+            },
+            { "name": "status", "type": "string", "required": true },
+            { "name": "publishedAt", "type": "datetime" }
+          ]
+        }
+      },
       "direction": "output",
       "description": "投稿検索フローから返却された投稿オブジェクト配列。id / title / summary / heroImageUrl / mood / weather / location / tags / status / publishedAt を含む。",
       "valueFrom": {
@@ -56,7 +87,18 @@
     {
       "id": "availableTags",
       "label": "利用可能タグ",
-      "type": "array",
+      "type": {
+        "kind": "array",
+        "itemType": {
+          "kind": "object",
+          "fields": [
+            { "name": "id", "type": "integer", "required": true },
+            { "name": "name", "type": "string", "required": true },
+            { "name": "slug", "type": "string", "required": true },
+            { "name": "color", "type": "string" }
+          ]
+        }
+      },
       "direction": "output",
       "description": "タグフィルタのチップ一覧として表示するタグ配列。id / name / slug / color を含む。",
       "required": false

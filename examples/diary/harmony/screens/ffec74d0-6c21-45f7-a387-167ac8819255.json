@@ -122,7 +122,18 @@
     {
       "id": "tags",
       "label": "タグ",
-      "type": "array",
+      "type": {
+        "kind": "array",
+        "itemType": {
+          "kind": "object",
+          "fields": [
+            { "name": "id", "type": "integer", "required": true },
+            { "name": "name", "type": "string", "required": true },
+            { "name": "slug", "type": "string", "required": true },
+            { "name": "color", "type": "string" }
+          ]
+        }
+      },
       "direction": "output",
       "description": "この投稿に付与されたタグ配列 (id / name / slug / color を含む)。",
       "valueFrom": {
@@ -134,7 +145,18 @@
     {
       "id": "photos",
       "label": "フォトギャラリー",
-      "type": "array",
+      "type": {
+        "kind": "array",
+        "itemType": {
+          "kind": "object",
+          "fields": [
+            { "name": "id", "type": "integer", "required": true },
+            { "name": "url", "type": "string", "required": true },
+            { "name": "altText", "type": "string" },
+            { "name": "order", "type": "integer" }
+          ]
+        }
+      },
       "direction": "output",
       "description": "この投稿に添付された写真配列 (id / url / altText / order を含む)。lightbox 対応。",
       "valueFrom": {

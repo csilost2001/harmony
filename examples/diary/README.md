@@ -105,7 +105,7 @@ examples/diary/
 | 認証フロー (login/refresh/logout) ProcessFlow として未明示 | #863 |
 | screen items の `events[]` 補完 — `/generate-code` 精度向上 | #864 |
 | AI provider 抽象化 (Ollama / OpenAI 切替対応) | #865 |
-| `@conv.ai.*` / `@env.*` 参照 (現状リテラル文字列で迂回) | #859 (framework 改善) |
+| AI モデル / 環境値参照 (現状リテラル文字列で迂回) | #859 (framework 改善) |
 
 ## 検証
 

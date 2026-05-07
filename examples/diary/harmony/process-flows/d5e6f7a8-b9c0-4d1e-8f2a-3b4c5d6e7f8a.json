@@ -60,7 +60,62 @@
         {
           "name": "post",
           "label": "投稿",
-          "type": "object",
+          "type": {
+            "kind": "object",
+            "fields": [
+              { "name": "postId", "type": "integer", "required": true },
+              { "name": "userId", "type": "integer", "required": true },
+              { "name": "title", "type": "string", "required": true },
+              { "name": "body", "type": "string", "required": true },
+              { "name": "summary", "type": "string" },
+              { "name": "status", "type": "string", "required": true },
+              { "name": "mood", "type": "string" },
+              { "name": "weather", "type": "string" },
+              { "name": "location", "type": "string" },
+              { "name": "publishedAt", "type": "datetime" },
+              { "name": "createdAt", "type": "datetime", "required": true },
+              { "name": "updatedAt", "type": "datetime", "required": true },
+              { "name": "authorDisplayName", "type": "string" },
+              { "name": "authorAvatarUrl", "type": "string" },
+              {
+                "name": "photos",
+                "type": {
+                  "kind": "array",
+                  "itemType": {
+                    "kind": "object",
+                    "fields": [
+                      { "name": "id", "type": "integer", "required": true },
+                      { "name": "url", "type": "string", "required": true },
+                      { "name": "thumbnailUrl", "type": "string" },
+                      { "name": "alt", "type": "string" },
+                      { "name": "caption", "type": "string" },
+                      { "name": "orderIndex", "type": "integer" },
+                      { "name": "width", "type": "integer" },
+                      { "name": "height", "type": "integer" },
+                      { "name": "bytes", "type": "integer" },
+                      { "name": "mimeType", "type": "string" },
+                      { "name": "exifJson", "type": "json" }
+                    ]
+                  }
+                }
+              },
+              {
+                "name": "tags",
+                "type": {
+                  "kind": "array",
+                  "itemType": {
+                    "kind": "object",
+                    "fields": [
+                      { "name": "id", "type": "integer", "required": true },
+                      { "name": "name", "type": "string", "required": true },
+                      { "name": "slug", "type": "string", "required": true },
+                      { "name": "color", "type": "string" }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
           "description": "投稿の全項目 + author + photos[] + tags[]。"
         }
       ],

@@ -3,7 +3,7 @@
   "meta": {
     "id": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e",
     "name": "AI画像alt生成",
-    "description": "写真の URL を Claude Vision API へ送信し、日本語の alt テキスト (40-100 字) を生成して photos.alt に書き戻す処理フロー。使用モデルは conventions/catalog.json の ai.altTextModel を参照。 / 注: AI モデル名 (claude-opus-4-7) は本 PR 時点でリテラル文字列としてハードコード — `@conv.ai.*` および `@env.*` 参照のフレームワークサポートは #859 で対応予定 (現状 dead config を避けるため envVars カタログは登録しない)。",
+    "description": "写真の URL を Claude Vision API へ送信し、日本語の alt テキスト (40-100 字) を生成して photos.alt に書き戻す処理フロー。AI モデル名 (claude-opus-4-7) は本 PR 時点でリテラル文字列としてハードコード。",
     "kind": "common",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",

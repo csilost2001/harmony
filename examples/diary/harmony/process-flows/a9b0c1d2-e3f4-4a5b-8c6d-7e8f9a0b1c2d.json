@@ -3,7 +3,7 @@
   "meta": {
     "id": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
     "name": "AIタグ提案",
-    "description": "投稿のタイトル + 本文を Claude AI へ送信し、信頼度付きタグ候補を取得する処理フロー。信頼度が conventions/catalog.json の ai.tagSuggestThreshold 未満のものは除外する。UI 側でユーザー選択後、確定は投稿作成/更新フロー経由で post_tags に INSERT。 / 注: AI モデル名 (claude-opus-4-7) は本 PR 時点でリテラル文字列としてハードコード — `@conv.ai.*` および `@env.*` 参照のフレームワークサポートは #859 で対応予定 (現状 dead config を避けるため envVars カタログは登録しない)。",
+    "description": "投稿のタイトル + 本文を Claude AI へ送信し、信頼度付きタグ候補を取得する処理フロー。信頼度 0.6 未満のものは除外する。UI 側でユーザー選択後、確定は投稿作成/更新フロー経由で post_tags に INSERT。 / 注: AI モデル名 (claude-opus-4-7) は本 PR 時点でリテラル文字列としてハードコード。",
     "kind": "common",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
@@ -88,7 +88,7 @@
         {
           "name": "existingTags",
           "label": "既存タグ",
-          "type": "array",
+          "type": { "kind": "array", "itemType": "string" },
           "required": false,
           "description": "既に付いているタグのスラッグ一覧 (除外用)。"
         }
@@ -97,7 +97,18 @@
         {
           "name": "candidates",
           "label": "タグ候補",
-          "type": "array",
+          "type": {
+            "kind": "array",
+            "itemType": {
+              "kind": "object",
+              "fields": [
+                { "name": "slug", "type": "string", "required": true },
+                { "name": "name", "type": "string", "required": true },
+                { "name": "confidence", "type": "number", "required": true },
+                { "name": "isNew", "type": "boolean", "required": true }
+              ]
+            }
+          },
           "description": "信頼度付きタグ候補の配列 (slug, name, confidence, isNew)。"
         }
       ],
@@ -195,7 +206,7 @@
         {
           "id": "step-04",
           "kind": "compute",
-          "description": "AI レスポンスから候補配列を JSON パースし、信頼度フィルタ (0.6 以上) と isNew フラグを付与する。閾値は conventions/catalog.json の ai.tagSuggestThreshold に準拠。",
+          "description": "AI レスポンスから候補配列を JSON パースし、信頼度フィルタ (0.6 以上) と isNew フラグを付与する。",
           "expression": "JSON.parse(@aiResponse.content[0].text).filter(t => t.confidence >= 0.6).map(t => ({ ...t, isNew: !@allTagSlugs.some(s => s.slug === t.slug) }))",
           "outputBinding": {
             "name": "candidates"

@@ -96,7 +96,33 @@
         {
           "name": "items",
           "label": "投稿リスト",
-          "type": "array",
+          "type": {
+            "kind": "array",
+            "itemType": {
+              "kind": "object",
+              "fields": [
+                { "name": "id", "type": "integer", "required": true },
+                { "name": "title", "type": "string", "required": true },
+                { "name": "summary", "type": "string" },
+                { "name": "thumbnailUrl", "type": "string" },
+                {
+                  "name": "tags",
+                  "type": {
+                    "kind": "array",
+                    "itemType": {
+                      "kind": "object",
+                      "fields": [
+                        { "name": "id", "type": "integer", "required": true },
+                        { "name": "name", "type": "string", "required": true },
+                        { "name": "slug", "type": "string", "required": true },
+                        { "name": "color", "type": "string" }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          },
           "description": "投稿サマリの配列 (post + thumbnail + tags サマリ)。"
         },
         {

@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/conventions.v3.schema.json",
   "version": "0.1.0",
-  "description": "日記アプリの横断規約カタログ。i18n / フォーマット / 正規表現 / メッセージ / 境界値 を集約。AI 機能の信頼度閾値もここに集約。",
+  "description": "日記アプリの横断規約カタログ。i18n / フォーマット / 正規表現 / メッセージ / 境界値 を集約。",
   "updatedAt": "2026-05-06T12:40:00.000Z",
   "i18n": {
     "supportedLocales": ["ja-JP"],
@@ -31,40 +31,39 @@
       "exampleInvalid": ["#abc", "indigo", "rgb(0,0,0)"]
     }
   },
-  "limits": {
-    "title": { "min": 1, "max": 255, "description": "投稿タイトルの長さ" },
-    "body": { "min": 1, "max": 50000, "description": "本文の長さ。Markdown 文字数で 5 万まで" },
-    "summaryAi": { "min": 0, "max": 500, "description": "AI 生成 summary の最大文字数" },
-    "tagPerPost": { "min": 0, "max": 10, "description": "投稿 1 件に付与するタグの上限" },
-    "photoPerPost": { "min": 0, "max": 30, "description": "投稿 1 件の写真上限" },
-    "photoFileSize": { "max": 10485760, "description": "写真 1 枚のファイルサイズ上限 (10MB)" }
+  "limit": {
+    "title": { "value": 255, "unit": "char", "description": "投稿タイトルの最大長。最小 1 文字。" },
+    "body": { "value": 50000, "unit": "char", "description": "本文の最大長。Markdown 文字数で 5 万まで、最小 1 文字。" },
+    "summaryAi": { "value": 500, "unit": "char", "description": "AI 生成 summary の最大文字数。" },
+    "tagPerPost": { "value": 10, "unit": "integer", "description": "投稿 1 件に付与するタグの上限。" },
+    "photoPerPost": { "value": 30, "unit": "integer", "description": "投稿 1 件の写真上限。" },
+    "photoFileSize": { "value": 10485760, "unit": "bytes", "description": "写真 1 枚のファイルサイズ上限 (10MB)。" }
   },
-  "ai": {
-    "summarizeModel": {
-      "provider": "anthropic",
-      "model": "claude-opus-4-7",
-      "description": "本文の要約に使うモデル。長文 → 3-5 文の要約を出す"
+  "msg": {
+    "validation.title.required": {
+      "template": "タイトルを入力してください",
+      "params": [],
+      "description": "投稿タイトル未入力時のバリデーションメッセージ。"
     },
-    "tagSuggestThreshold": {
-      "value": 0.6,
-      "description": "AI 提案タグの最低信頼度。0.6 未満は UI に表示しない"
+    "validation.body.required": {
+      "template": "本文を入力してください",
+      "params": [],
+      "description": "投稿本文未入力時のバリデーションメッセージ。"
     },
-    "altTextModel": {
-      "provider": "anthropic",
-      "model": "claude-opus-4-7",
-      "description": "Vision API で画像 alt text を生成。日本語で簡潔に (40-100 字)"
+    "validation.tag.tooMany": {
+      "template": "タグは最大 10 個までです",
+      "params": [],
+      "description": "投稿に付与するタグ数が上限を超えた時のバリデーションメッセージ。"
     },
-    "proofreadStyle": {
-      "default": "casual-diary",
-      "options": ["casual-diary", "polite-blog", "professional"],
-      "description": "校正のトーン指定。日記なら casual、公開ブログなら polite/professional"
+    "validation.photo.tooLarge": {
+      "template": "画像サイズは 10MB までです",
+      "params": [],
+      "description": "写真ファイルサイズが上限を超えた時のバリデーションメッセージ。"
+    },
+    "validation.username.format": {
+      "template": "ユーザー名は英数字 (3-32 文字) で入力してください",
+      "params": [],
+      "description": "ユーザー名形式が不正な時のバリデーションメッセージ。"
     }
-  },
-  "messages": {
-    "validation.title.required": "タイトルを入力してください",
-    "validation.body.required": "本文を入力してください",
-    "validation.tag.tooMany": "タグは最大 10 個までです",
-    "validation.photo.tooLarge": "画像サイズは 10MB までです",
-    "validation.username.format": "ユーザー名は英数字 (3-32 文字) で入力してください"
   }
 }

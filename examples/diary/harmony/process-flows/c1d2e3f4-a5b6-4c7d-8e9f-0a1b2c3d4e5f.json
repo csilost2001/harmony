@@ -3,7 +3,7 @@
   "meta": {
     "id": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
     "name": "AI文章校正",
-    "description": "投稿本文のテキストを Claude AI へ送信し、指定スタイルで校正した結果 + 変更箇所 diff を返す処理フロー。DB 書き込みなし (UI が結果を表示するのみ)。ユーザーが採用した場合は投稿更新フロー経由で body を更新する。 / 注: AI モデル名 (claude-opus-4-7) は本 PR 時点でリテラル文字列としてハードコード — `@conv.ai.*` および `@env.*` 参照のフレームワークサポートは #859 で対応予定 (現状 dead config を避けるため envVars カタログは登録しない)。",
+    "description": "投稿本文のテキストを Claude AI へ送信し、指定スタイルで校正した結果 + 変更箇所 diff を返す処理フロー。DB 書き込みなし (UI が結果を表示するのみ)。ユーザーが採用した場合は投稿更新フロー経由で body を更新する。 / 注: AI モデル名 (claude-opus-4-7) は本 PR 時点でリテラル文字列としてハードコード。",
     "kind": "common",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
@@ -96,7 +96,16 @@
         {
           "name": "changes",
           "label": "変更箇所",
-          "type": "array",
+          "type": {
+            "kind": "array",
+            "itemType": {
+              "kind": "object",
+              "fields": [
+                { "name": "type", "type": "string", "required": true },
+                { "name": "text", "type": "string", "required": true }
+              ]
+            }
+          },
           "description": "変更箇所の diff 配列 (type: 'added'|'removed'|'unchanged', text)。"
         }
       ],

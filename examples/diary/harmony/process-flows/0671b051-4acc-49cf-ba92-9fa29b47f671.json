@@ -104,14 +104,39 @@
         {
           "name": "photos",
           "label": "写真リスト",
-          "type": "array",
+          "type": {
+            "kind": "array",
+            "itemType": {
+              "kind": "object",
+              "fields": [
+                { "name": "url", "type": "string", "required": true },
+                { "name": "alt", "type": "string" },
+                { "name": "caption", "type": "string" },
+                { "name": "orderIndex", "type": "integer" },
+                { "name": "width", "type": "integer" },
+                { "name": "height", "type": "integer" },
+                { "name": "exifJson", "type": "json" }
+              ]
+            }
+          },
           "required": false,
           "description": "添付写真の配列。各要素: url (必須), alt?, caption?, order_index?, width?, height?, exif_json?。"
         },
         {
           "name": "tags",
           "label": "タグリスト",
-          "type": "array",
+          "type": {
+            "kind": "array",
+            "itemType": {
+              "kind": "object",
+              "fields": [
+                { "name": "id", "type": "integer" },
+                { "name": "name", "type": "string" },
+                { "name": "source", "type": "string" },
+                { "name": "confidence", "type": "number" }
+              ]
+            }
+          },
           "required": false,
           "description": "タグの配列。各要素: id (既存タグ) or name (新規タグ), source?, confidence?。"
         }
