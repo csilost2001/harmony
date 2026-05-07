@@ -177,21 +177,50 @@ describe("flowStore データ消失ガード (2026-04-22)", () => {
     expect(saveMock.mock.calls[0][0]).toMatchObject({ schemaVersion: "v3" });
   });
 
-  it("loadProject: 旧 localStorage key flow-project を v3-project に rename する", async () => {
+  it("loadProject: backend 空 + 旧 localStorage key flow-project を v3-project に rename + backend に migrate", async () => {
+    // backend 接続経由の 1 度きり救済 path (#923 シリーズで本体 fallback は廃止)。
+    // localStorage の旧 flow-project を v3-project に rename しつつ backend に書き戻す。
     localStorage.setItem("flow-project", JSON.stringify({
       version: 1,
       name: "legacy",
-      screens: [],
+      screens: [
+        {
+          id: SCREEN_ID,
+          no: 1,
+          name: "旧画面",
+          kind: "list",
+          path: "/legacy",
+          hasDesign: false,
+          createdAt: TS,
+          updatedAt: TS,
+        },
+      ],
       groups: [],
       edges: [],
       updatedAt: TS,
     }));
 
+    const saveMock = vi.fn().mockResolvedValue(undefined);
+    const backend: FlowStorageBackend = {
+      loadProject: vi.fn().mockResolvedValue(null),
+      saveProject: saveMock,
+      deleteScreenData: vi.fn().mockResolvedValue(undefined),
+    };
+    setFlowStorageBackend(backend);
+
     const result = await loadProject();
 
     expect(result.name).toBe("legacy");
+    expect(result.screens).toHaveLength(1);
     expect(localStorage.getItem("flow-project")).toBeNull();
     expect(JSON.parse(localStorage.getItem("v3-project") ?? "{}")).toMatchObject({ schemaVersion: "v3" });
+    expect(saveMock).toHaveBeenCalledTimes(1);
+    expect(saveMock.mock.calls[0][0]).toMatchObject({ schemaVersion: "v3" });
+  });
+
+  it("loadProject: backend 未設定なら明示エラー (#924 fallback 廃止)", async () => {
+    setFlowStorageBackend(null);
+    await expect(loadProject()).rejects.toThrow(/backend が初期化されていません/);
   });
 
   it("saveProject: 空 project で非空 backend を上書きしない (data-loss guard)", async () => {
@@ -252,8 +281,16 @@ describe("flowStore データ消失ガード (2026-04-22)", () => {
 });
 
 describe("addScreen opts (#825)", () => {
+  function makePassiveBackend(): FlowStorageBackend {
+    return {
+      loadProject: vi.fn().mockResolvedValue(null),
+      saveProject: vi.fn().mockResolvedValue(undefined),
+      deleteScreenData: vi.fn().mockResolvedValue(undefined),
+    };
+  }
+
   beforeEach(() => {
-    setFlowStorageBackend(null);
+    setFlowStorageBackend(makePassiveBackend());
     setFlowDraftMode(false);
     localStorage.clear();
   });

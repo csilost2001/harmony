@@ -4,7 +4,6 @@
  *
  * - data/tables/<UUID>.json (per-entity ファイル)
  * - $schema 属性で v3 schema 参照を保存
- * - localStorage キー prefix: v3-table-
  * - harmony.json の entities.tables (互換的に project.tables[]) で v3 TableEntry を管理
  */
 import type {
@@ -42,11 +41,14 @@ export function setTableStorageBackend(b: TableStorageBackend | null): void {
   _backend = b;
 }
 
-// ─── localStorage キー (v3 名前空間、#556) ───────────────────────────────
-
-const TABLE_PREFIX = "v3-table-";
-
 const TABLE_SCHEMA_REF = "../../schemas/v3/table.v3.schema.json";
+
+function requireBackend(): TableStorageBackend {
+  if (!_backend) {
+    throw new Error("tableStore: backend が初期化されていません (wsBridge 未接続)");
+  }
+  return _backend;
+}
 
 function nowTs(): Timestamp {
   return new Date().toISOString() as Timestamp;
@@ -62,12 +64,7 @@ export async function listTables(): Promise<TableEntry[]> {
 
 /** テーブル定義を読み込み (columns の no を配列順で補完) */
 export async function loadTable(tableId: string): Promise<Table | null> {
-  const raw = await (async () => {
-    if (_backend) return (await _backend.loadTable(tableId)) as Table | null;
-    const s = localStorage.getItem(`${TABLE_PREFIX}${tableId}`);
-    if (!s) return null;
-    try { return JSON.parse(s) as Table; } catch { return null; }
-  })();
+  const raw = (await requireBackend().loadTable(tableId)) as Table | null;
   if (!raw) return null;
   // docs/spec/list-common.md §3.10: 読み込み時に no を配列順で補完
   raw.columns = renumber(raw.columns ?? []);
@@ -77,9 +74,10 @@ export async function loadTable(tableId: string): Promise<Table | null> {
 export async function loadAllTables(): Promise<Table[]> {
   const entries = await listTables();
   const entryIds = new Set(entries.map((entry) => entry.id));
+  const backend = requireBackend();
 
-  if (_backend?.listAllTables) {
-    const all = (await _backend.listAllTables()) as Table[];
+  if (backend.listAllTables) {
+    const all = (await backend.listAllTables()) as Table[];
     return all.filter((table) => entryIds.has(table.id));
   }
 
@@ -103,11 +101,7 @@ export async function saveTable(table: Table): Promise<void> {
   // $schema は spread 後に明示的に上書きして、旧 v1/v2 由来の $schema を必ず v3 ref に書き換える。
   const toSave: Table = { ...table, $schema: TABLE_SCHEMA_REF, updatedAt: nowTs() };
 
-  if (_backend) {
-    await _backend.saveTable(toSave.id, toSave);
-  } else {
-    localStorage.setItem(`${TABLE_PREFIX}${toSave.id}`, JSON.stringify(toSave));
-  }
+  await requireBackend().saveTable(toSave.id, toSave);
 
   await syncTableMeta(toSave);
 }
@@ -138,11 +132,7 @@ export async function createTable(
 
 /** テーブルを削除 (per-file 削除 + harmony.json メタ削除) */
 export async function deleteTable(tableId: string): Promise<void> {
-  if (_backend) {
-    await _backend.deleteTable(tableId);
-  } else {
-    localStorage.removeItem(`${TABLE_PREFIX}${tableId}`);
-  }
+  await requireBackend().deleteTable(tableId);
 }
 
 interface CommitTablesDeps {

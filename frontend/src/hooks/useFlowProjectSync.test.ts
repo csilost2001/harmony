@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useFlowProjectSync } from "./useFlowProjectSync";
 import {
   removeScreen,
   removeEdge as storeRemoveEdge,
   removeGroup as storeRemoveGroup,
+  setFlowStorageBackend,
+  type FlowStorageBackend,
 } from "../store/flowStore";
 import type { FlowProject } from "../types/flow";
 
@@ -125,6 +127,18 @@ function createProject(): FlowProject {
 beforeEach(() => {
   localStorage.clear();
   vi.clearAllMocks();
+  // 業務 store は backend 必須 (#924)。removeScreen 等が deleteScreenData を呼ぶため
+  // noop backend mock を渡しておく。
+  const passiveBackend: FlowStorageBackend = {
+    loadProject: vi.fn().mockResolvedValue(null),
+    saveProject: vi.fn().mockResolvedValue(undefined),
+    deleteScreenData: vi.fn().mockResolvedValue(undefined),
+  };
+  setFlowStorageBackend(passiveBackend);
+});
+
+afterEach(() => {
+  setFlowStorageBackend(null);
 });
 
 describe("broadcast received while dirty - shows banner, does not reload", () => {

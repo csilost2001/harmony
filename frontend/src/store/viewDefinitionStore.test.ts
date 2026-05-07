@@ -90,7 +90,13 @@ describe("viewDefinitionStore", () => {
       saveProject: vi.fn().mockResolvedValue(undefined),
       deleteScreenData: vi.fn().mockResolvedValue(undefined),
     };
+    const viewBackend: StoreViewDefinitionStorageBackend = {
+      loadViewDefinition: vi.fn().mockResolvedValue(null),
+      saveViewDefinition: vi.fn().mockResolvedValue(undefined),
+      deleteViewDefinition: vi.fn().mockResolvedValue(undefined),
+    };
     setFlowStorageBackend(flowBackend);
+    setViewDefinitionStorageBackend(viewBackend);
 
     const vd = await createViewDefinition(
       "受注一覧" as DisplayName,

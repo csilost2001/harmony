@@ -2,8 +2,9 @@
  * customBlockStore.ts
  * カスタムブロックの永続化ストア
  *
- * - wsBridge 接続時: サーバー側ファイルに保存（mcpBridge 経由）
- * - 未接続時: localStorage にフォールバック
+ * wsBridge 経由でサーバー側ファイル (`workspaces/<wsId>/custom-blocks.json`) に保存する。
+ * backend がファイル空を返した場合に限り、旧 localStorage データを 1 度きり救済して
+ * backend に書き戻す migration を維持する (#923 シリーズで本体 fallback は廃止済み)。
  */
 import type { Editor as GEditor } from "grapesjs";
 
@@ -28,57 +29,52 @@ export interface CustomBlocksStorageBackend {
 
 let _backend: CustomBlocksStorageBackend | null = null;
 
-/** mcpBridge が接続時にセット、切断時に null をセット */
+/** mcpBridge が接続時にセット */
 export function setCustomBlocksBackend(b: CustomBlocksStorageBackend | null): void {
   _backend = b;
 }
 
-// ─── localStorage キー ────────────────────────────────────────────────────
+function requireBackend(): CustomBlocksStorageBackend {
+  if (!_backend) {
+    throw new Error("customBlockStore: backend が初期化されていません (wsBridge 未接続)");
+  }
+  return _backend;
+}
 
-const STORAGE_KEY = "designer-custom-blocks";
+// ─── localStorage 1 度きり migration キー (#923 シリーズで本体 fallback は廃止) ─
 
-// ─── localStorage ユーティリティ ─────────────────────────────────────────
+const LEGACY_LS_KEY = "designer-custom-blocks";
 
-function loadFromLocalStorage(): CustomBlock[] {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return [];
+function readLegacyLocalStorage(): CustomBlock[] {
   try {
+    const raw = localStorage.getItem(LEGACY_LS_KEY);
+    if (!raw) return [];
     return JSON.parse(raw) as CustomBlock[];
   } catch {
     return [];
   }
 }
 
-function saveToLocalStorage(blocks: CustomBlock[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(blocks));
-}
-
 // ─── 公開 API（非同期）────────────────────────────────────────────────────
 
 /** すべてのカスタムブロックを読み込む */
 export async function loadCustomBlocks(): Promise<CustomBlock[]> {
-  if (_backend) {
-    const data = (await _backend.loadCustomBlocks()) as CustomBlock[];
-    if (data.length > 0) return data;
-    // ファイルが空 → localStorage から移行
-    const local = loadFromLocalStorage();
-    if (local.length > 0) {
-      await _backend.saveCustomBlocks(local);
-      console.log("[customBlockStore] Migrated custom blocks from localStorage to file");
-      return local;
-    }
-    return [];
+  const backend = requireBackend();
+  const data = (await backend.loadCustomBlocks()) as CustomBlock[];
+  if (data.length > 0) return data;
+  // ファイルが空 → 旧 localStorage から 1 度きり migration
+  const legacy = readLegacyLocalStorage();
+  if (legacy.length > 0) {
+    await backend.saveCustomBlocks(legacy);
+    console.log("[customBlockStore] Migrated custom blocks from localStorage to file");
+    return legacy;
   }
-  return loadFromLocalStorage();
+  return [];
 }
 
 /** すべてのカスタムブロックを保存（全量書き込み） */
 export async function saveCustomBlocks(blocks: CustomBlock[]): Promise<void> {
-  if (_backend) {
-    await _backend.saveCustomBlocks(blocks);
-    return;
-  }
-  saveToLocalStorage(blocks);
+  await requireBackend().saveCustomBlocks(blocks);
 }
 
 /** 追加 or 更新（id で upsert） */

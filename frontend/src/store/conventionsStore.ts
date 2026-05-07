@@ -3,7 +3,8 @@
  * 横断規約カタログの永続化ストア (v3)。
  *
  * 正本は `data/conventions/catalog.json` (単一ファイル、v3 schema は単一 root)。
- * wsBridge 経由で読み書きし、ws 未接続時は localStorage にフォールバック。
+ * wsBridge 経由で読み書きする。backend が空応答を返した場合のみ public/ 配下の
+ * 静的ファイルを最終フォールバックとして利用する (#317 互換、初回起動 / catalog.json 未生成時用)。
  * shape は `schemas/v3/conventions.v3.schema.json` に従う。
  */
 import type { Conventions, SemVer, Timestamp } from "../types/v3";
@@ -19,9 +20,12 @@ export function setConventionsStorageBackend(b: ConventionsStorageBackend | null
   _backend = b;
 }
 
-// ─── localStorage キー (v3 名前空間、#553) ───────────────────────────────
-
-const LS_KEY = "v3-conventions-catalog";
+function requireBackend(): ConventionsStorageBackend {
+  if (!_backend) {
+    throw new Error("conventionsStore: backend が初期化されていません (wsBridge 未接続)");
+  }
+  return _backend;
+}
 
 const CONVENTIONS_SCHEMA_REF = "../../schemas/v3/conventions.v3.schema.json";
 
@@ -54,19 +58,10 @@ export function createEmptyCatalog(): Conventions {
 
 export async function loadConventions(): Promise<Conventions | null> {
   // 1. wsBridge backend (data/conventions/catalog.json) が優先
-  if (_backend) {
-    const data = await _backend.loadConventions();
-    if (data) return data as Conventions;
-  } else {
-    // 2. ws 未接続なら localStorage フォールバック (テスト時の seed にも使う)
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) {
-      try {
-        return JSON.parse(raw) as Conventions;
-      } catch { /* ignore */ }
-    }
-  }
-  // 3. 最終フォールバック: public/ 配下の静的ファイル (#317 以前の経路、互換用)
+  const data = await requireBackend().loadConventions();
+  if (data) return data as Conventions;
+
+  // 2. 最終フォールバック: public/ 配下の静的ファイル (#317 以前の経路、互換用)
   //    初回起動で data/conventions/catalog.json 未生成の場合にもデフォルト規約を返す
   try {
     const r = await fetch("/conventions-catalog.json");
@@ -82,9 +77,5 @@ export async function saveConventions(catalog: Conventions): Promise<void> {
     $schema: CONVENTIONS_SCHEMA_REF,
     updatedAt: nowTs(),
   };
-  if (_backend) {
-    await _backend.saveConventions(toSave);
-    return;
-  }
-  localStorage.setItem(LS_KEY, JSON.stringify(toSave));
+  await requireBackend().saveConventions(toSave);
 }

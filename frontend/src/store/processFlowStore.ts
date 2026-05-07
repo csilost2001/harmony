@@ -27,8 +27,12 @@ export function setProcessFlowStorageBackend(b: ProcessFlowStorageBackend | null
   _backend = b;
 }
 
-const ACTION_PREFIX = "v3-process-flow-";
-const LEGACY_ACTION_PREFIX = "process-flow-";
+function requireBackend(): ProcessFlowStorageBackend {
+  if (!_backend) {
+    throw new Error("processFlowStore: backend が初期化されていません (wsBridge 未接続)");
+  }
+  return _backend;
+}
 
 function now(): Timestamp {
   return new Date().toISOString() as Timestamp;
@@ -40,27 +44,8 @@ export async function listProcessFlows(): Promise<FlowProcessFlowMeta[]> {
 }
 
 export async function loadProcessFlow(id: string): Promise<ProcessFlow | null> {
-  if (_backend) {
-    const data = await _backend.loadProcessFlow(id);
-    return data ? migrateProcessFlow(data) : null;
-  }
-
-  let raw = localStorage.getItem(`${ACTION_PREFIX}${id}`);
-  if (!raw) {
-    const legacyRaw = localStorage.getItem(`${LEGACY_ACTION_PREFIX}${id}`);
-    if (legacyRaw) {
-      raw = legacyRaw;
-      localStorage.setItem(`${ACTION_PREFIX}${id}`, legacyRaw);
-      localStorage.removeItem(`${LEGACY_ACTION_PREFIX}${id}`);
-    }
-  }
-  if (!raw) return null;
-
-  try {
-    return migrateProcessFlow(JSON.parse(raw));
-  } catch {
-    return null;
-  }
+  const data = await requireBackend().loadProcessFlow(id);
+  return data ? migrateProcessFlow(data) : null;
 }
 
 export async function saveProcessFlow(group: ProcessFlow): Promise<void> {
@@ -68,11 +53,7 @@ export async function saveProcessFlow(group: ProcessFlow): Promise<void> {
   v3.$schema = PROCESS_FLOW_V3_SCHEMA_REF;
   v3.meta.updatedAt = now();
 
-  if (_backend) {
-    await _backend.saveProcessFlow(v3.meta.id, v3);
-  } else {
-    localStorage.setItem(`${ACTION_PREFIX}${v3.meta.id}`, JSON.stringify(v3));
-  }
+  await requireBackend().saveProcessFlow(v3.meta.id, v3);
 
   await syncProcessFlowMeta(v3);
 }
@@ -106,12 +87,7 @@ export async function createProcessFlow(
 }
 
 export async function deleteProcessFlow(id: string): Promise<void> {
-  if (_backend) {
-    await _backend.deleteProcessFlow(id);
-  } else {
-    localStorage.removeItem(`${ACTION_PREFIX}${id}`);
-    localStorage.removeItem(`${LEGACY_ACTION_PREFIX}${id}`);
-  }
+  await requireBackend().deleteProcessFlow(id);
 
   const project = await loadProject();
   if (project.processFlows) {

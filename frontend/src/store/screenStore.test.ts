@@ -5,13 +5,14 @@
  * 消失する) regression を疑った経緯から、frontend 側 round-trip で entity の全 field が保持
  * されることを保証する regression test を追加。
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   loadScreenEntity,
   saveScreenEntity,
   setScreenStorageBackend,
   type ScreenStorageBackend,
 } from "./screenStore";
+import { setFlowStorageBackend, type FlowStorageBackend } from "./flowStore";
 import type { Screen, ScreenId, Timestamp } from "../types/v3";
 
 /**
@@ -36,6 +37,19 @@ const TIMESTAMP = "2026-05-05T00:00:00.000Z" as Timestamp;
 describe("screenStore — load/save round-trip 契約", () => {
   beforeEach(() => {
     setScreenStorageBackend(null);
+    // buildDefaultScreen が flowStore.loadProject / loadRawProject を呼ぶため
+    // backend 必須化 (#924) に伴い passive mock を渡す。
+    const flowBackend: FlowStorageBackend = {
+      loadProject: vi.fn().mockResolvedValue(null),
+      saveProject: vi.fn().mockResolvedValue(undefined),
+      deleteScreenData: vi.fn().mockResolvedValue(undefined),
+    };
+    setFlowStorageBackend(flowBackend);
+  });
+
+  afterEach(() => {
+    setScreenStorageBackend(null);
+    setFlowStorageBackend(null);
   });
 
   it("description / auth / groupId / maturity を含む entity が round-trip で保持される (#815)", async () => {

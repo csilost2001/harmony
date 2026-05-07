@@ -326,8 +326,8 @@ class McpBridgeImpl {
       if (this.ws !== ws) return;
       this.ws = null;
       console.log("[mcpBridge] disconnected, retrying in", RETRY_DELAY_MS, "ms");
-      // バックエンドを localStorage フォールバックに戻す
-      this._clearStorageBackends();
+      // 切断中も store の backend 参照は残し、再接続まで request 失敗 → 上位 UI で loading
+      // 表示を維持する。localStorage fallback は #923 シリーズで廃止 (spec D-8)。
       this._setStatus("disconnected");
       // 未解決リクエストを全てリジェクト
       for (const [id, handler] of this.pendingRequests.entries()) {
@@ -432,22 +432,6 @@ class McpBridgeImpl {
       deleteViewDefinition: (viewDefinitionId) => this.request("deleteViewDefinition", { viewDefinitionId }).then(() => undefined),
     };
     setViewDefinitionStorageBackend(viewDefinitionBackend);
-  }
-
-  /** 切断時: localStorage フォールバックに戻す */
-  private _clearStorageBackends(): void {
-    setFlowStorageBackend(null);
-    setCustomBlocksBackend(null);
-    setPuckComponentsBackend(null);
-    setTableStorageBackend(null);
-    setErLayoutStorageBackend(null);
-    setScreenLayoutStorageBackend(null);
-    setProcessFlowStorageBackend(null);
-    setConventionsStorageBackend(null);
-    setScreenStorageBackend(null);
-    setSequenceStorageBackend(null);
-    setViewStorageBackend(null);
-    setViewDefinitionStorageBackend(null);
   }
 
   // ── メッセージ受信 ─────────────────────────────────────────────────────

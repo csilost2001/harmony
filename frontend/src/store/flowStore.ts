@@ -9,8 +9,9 @@
  * UI 側は ScreenNode / ScreenEdge / ScreenGroup (types/flow) で合成型を扱う。
  * load 時に両方を merge、save 時に書き分ける。
  *
- * - wsBridge が接続済み: サーバー側ファイルに保存 (mcpBridge 経由)
- * - 未接続: localStorage にフォールバック
+ * 永続化は wsBridge backend 経由のサーバー側ファイル書き込みに一本化されている (#923 シリーズで
+ * localStorage fallback は廃止)。`_backend` 未設定で load/save を呼ぶと throw する。ただし
+ * 既存ユーザーの旧 localStorage データを backend 接続時に 1 度きり救済する migration は維持。
  */
 import type {
   FlowProject,
@@ -58,6 +59,13 @@ export function setFlowStorageBackend(b: FlowStorageBackend | null): void {
   _backend = b;
 }
 
+function requireBackend(): FlowStorageBackend {
+  if (!_backend) {
+    throw new Error("flowStore: backend が初期化されていません (wsBridge 未接続)");
+  }
+  return _backend;
+}
+
 // ─── ドラフトモード ──────────────────────────────────────────────────────
 
 const FLOW_DRAFT_KIND = "flow";
@@ -82,7 +90,7 @@ export function subscribeToFlowDraftSaves(cb: () => void): () => void {
   return () => _draftSaveListeners.delete(cb);
 }
 
-// ─── localStorage キー ───────────────────────────────────────────────────
+// ─── localStorage 1 度きり migration キー (#923 シリーズで本体 fallback は廃止) ──
 
 const FLOW_PROJECT_KEY = "v3-project";
 const LEGACY_FLOW_PROJECT_KEY = "flow-project";
@@ -548,26 +556,6 @@ function loadPersistedFromLocalStorage(): PersistedFlowProject | null {
   return migrateLegacyLocalStorage();
 }
 
-/** localStorage からプロジェクトを読み込む (UI 合成型)。 */
-export function loadProjectFromLocalStorage(): FlowProject | null {
-  const persisted = loadPersistedFromLocalStorage();
-  if (!persisted) return null;
-
-  // localStorage の screen-layout も同様に読む。
-  let layout: ScreenLayout = {
-    positions: {},
-    transitions: {},
-    updatedAt: nowTs(),
-  };
-  const layoutRaw = localStorage.getItem("v3-screen-layout");
-  if (layoutRaw) {
-    try {
-      layout = JSON.parse(layoutRaw) as ScreenLayout;
-    } catch { /* ignore */ }
-  }
-  return composeFlowProject(persisted, layout);
-}
-
 // ─── 公開 API ────────────────────────────────────────────────────────────
 
 function ensureProjectDefaults(project: FlowProject): FlowProject {
@@ -598,49 +586,39 @@ function hasPersistedData(project: Project | null | undefined): boolean {
  * 今後は null を受け取っても backend への書き戻しは行わない。
  */
 export async function loadProject(): Promise<FlowProject> {
-  if (_backend) {
-    const data = await _backend.loadProject();
-    if (data) {
-      const persisted = normalizePersisted(data);
-      if (!((data as Record<string, unknown>).schemaVersion === "v3")) {
-        // AJV validation: schema 違反があれば migration 書き戻しを中断し例外を投げる (#836)
-        assertValidProject(persisted);
-        await _backend.saveProject(persisted);
-      }
-      const layout = await loadScreenLayout();
-      return ensureProjectDefaults(composeFlowProject(persisted, layout));
+  const backend = requireBackend();
+  const data = await backend.loadProject();
+  if (data) {
+    const persisted = normalizePersisted(data);
+    if (!((data as Record<string, unknown>).schemaVersion === "v3")) {
+      // AJV validation: schema 違反があれば migration 書き戻しを中断し例外を投げる (#836)
+      assertValidProject(persisted);
+      await backend.saveProject(persisted);
     }
-    const local = loadPersistedFromLocalStorage();
-    if (
-      local &&
-      hasPersistedData(local)
-    ) {
-      // localStorage 側に保存されている screen-layout も合わせて backend に migrate する。
-      // 業務情報のみを backend に書き写し、座標を localStorage に置いたままにすると
-      // 次回ロード時に backend layout (空) で localStorage layout を上書きしてしまうため。
-      const layout = await loadScreenLayout();
-      try {
-        // AJV validation: schema 違反があれば localStorage→backend migration 書き戻しを中断し例外を投げる (#836)
-        assertValidProject(local);
-        await _backend.saveProject(local);
-        if (Object.keys(layout.positions).length > 0 || Object.keys(layout.transitions ?? {}).length > 0) {
-          await saveScreenLayout(layout);
-        }
-        console.log("[flowStore] Migrated project (and screen-layout) from localStorage to file");
-      } catch (e) {
-        console.warn("[flowStore] migration save failed, returning local without persist", e);
-      }
-      return ensureProjectDefaults(composeFlowProject(local, layout));
-    }
-    return createEmptyProject();
+    const layout = await loadScreenLayout();
+    return ensureProjectDefaults(composeFlowProject(persisted, layout));
   }
-  // localStorage フォールバック
-  return loadProjectFromLocalStorage() ?? (() => {
-    const empty = createEmptyProject();
-    const persisted = normalizePersisted(empty);
-    localStorage.setItem(FLOW_PROJECT_KEY, JSON.stringify(persisted));
-    return empty;
-  })();
+  // backend が空応答の場合のみ、旧 localStorage データを 1 度きり救済して backend に書き戻す
+  const local = loadPersistedFromLocalStorage();
+  if (local && hasPersistedData(local)) {
+    // localStorage 側に保存されている screen-layout も合わせて backend に migrate する。
+    // 業務情報のみを backend に書き写し、座標を localStorage に置いたままにすると
+    // 次回ロード時に backend layout (空) で localStorage layout を上書きしてしまうため。
+    const layout = await loadScreenLayout();
+    try {
+      // AJV validation: schema 違反があれば localStorage→backend migration 書き戻しを中断し例外を投げる (#836)
+      assertValidProject(local);
+      await backend.saveProject(local);
+      if (Object.keys(layout.positions).length > 0 || Object.keys(layout.transitions ?? {}).length > 0) {
+        await saveScreenLayout(layout);
+      }
+      console.log("[flowStore] Migrated project (and screen-layout) from localStorage to file");
+    } catch (e) {
+      console.warn("[flowStore] migration save failed, returning local without persist", e);
+    }
+    return ensureProjectDefaults(composeFlowProject(local, layout));
+  }
+  return createEmptyProject();
 }
 
 /**
@@ -649,12 +627,9 @@ export async function loadProject(): Promise<FlowProject> {
  * techStack field は FlowProject には含まれないため、本関数で取得する (#793 子 5 / #826)。
  */
 export async function loadRawProject(): Promise<Project> {
-  if (_backend) {
-    const data = await _backend.loadProject();
-    if (data) {
-      return normalizePersisted(data);
-    }
-  }
+  const data = await requireBackend().loadProject();
+  if (data) return normalizePersisted(data);
+  // backend が空応答の場合のみ、旧 localStorage データを 1 度きり救済として読み出す
   const local = loadPersistedFromLocalStorage();
   if (local) return local;
   return normalizePersisted({});
@@ -669,14 +644,7 @@ export async function saveTechStack(techStack: Project["techStack"]): Promise<vo
   const patched: Project = { ...raw, techStack };
   // AJV validation: schema 違反があれば保存を中断し例外を投げる (#835)
   assertValidProject(patched);
-  if (_backend) {
-    await _backend.saveProject(patched);
-  } else {
-    const localRaw = localStorage.getItem(FLOW_PROJECT_KEY);
-    const current = localRaw ? (() => { try { return JSON.parse(localRaw); } catch { return null; } })() : null;
-    const merged = current ? { ...current, techStack } : patched;
-    localStorage.setItem(FLOW_PROJECT_KEY, JSON.stringify(merged));
-  }
+  await requireBackend().saveProject(patched);
 }
 
 async function persistFlowProject(project: FlowProject): Promise<void> {
@@ -686,11 +654,7 @@ async function persistFlowProject(project: FlowProject): Promise<void> {
   const { project: persisted, layout } = decomposeFlowProject(project, baseLayout, existingRaw);
   // AJV validation: schema 違反があれば保存を中断し例外を投げる (#835)
   assertValidProject(persisted);
-  if (_backend) {
-    await _backend.saveProject(persisted);
-  } else {
-    localStorage.setItem(FLOW_PROJECT_KEY, JSON.stringify(persisted));
-  }
+  await requireBackend().saveProject(persisted);
   await saveScreenLayout(layout);
 }
 
@@ -706,25 +670,24 @@ export async function saveProject(project: FlowProject): Promise<void> {
     _draftSaveListeners.forEach((cb) => cb());
     return;
   }
-  if (_backend) {
-    const isProjectEmpty =
-      (project.screens?.length ?? 0) === 0 &&
-      (project.tables?.length ?? 0) === 0 &&
-      (project.processFlows?.length ?? 0) === 0;
-    if (isProjectEmpty) {
-      try {
-        const currentRaw = await _backend.loadProject();
-        const current = currentRaw ? normalizePersisted(currentRaw) : null;
-        const hasExistingData = hasPersistedData(current);
-        if (hasExistingData) {
-          console.warn(
-            "[flowStore] saveProject canceled: refusing to overwrite non-empty file with empty project (data-loss guard)",
-          );
-          return;
-        }
-      } catch {
-        /* read 失敗は書き込みを続行 */
+  const backend = requireBackend();
+  const isProjectEmpty =
+    (project.screens?.length ?? 0) === 0 &&
+    (project.tables?.length ?? 0) === 0 &&
+    (project.processFlows?.length ?? 0) === 0;
+  if (isProjectEmpty) {
+    try {
+      const currentRaw = await backend.loadProject();
+      const current = currentRaw ? normalizePersisted(currentRaw) : null;
+      const hasExistingData = hasPersistedData(current);
+      if (hasExistingData) {
+        console.warn(
+          "[flowStore] saveProject canceled: refusing to overwrite non-empty file with empty project (data-loss guard)",
+        );
+        return;
       }
+    } catch {
+      /* read 失敗は書き込みを続行 */
     }
   }
   await persistFlowProject(project);
@@ -733,25 +696,24 @@ export async function saveProject(project: FlowProject): Promise<void> {
 /** ドラフトを介さず必ず永続化する (明示的保存ボタン用)。 */
 export async function persistProject(project: FlowProject): Promise<void> {
   project.updatedAt = nowTs();
-  if (_backend) {
-    const isProjectEmpty =
-      (project.screens?.length ?? 0) === 0 &&
-      (project.tables?.length ?? 0) === 0 &&
-      (project.processFlows?.length ?? 0) === 0;
-    if (isProjectEmpty) {
-      try {
-        const currentRaw = await _backend.loadProject();
-        const current = currentRaw ? normalizePersisted(currentRaw) : null;
-        const hasExistingData = hasPersistedData(current);
-        if (hasExistingData) {
-          console.warn(
-            "[flowStore] persistProject canceled: refusing to overwrite non-empty file with empty project (data-loss guard)",
-          );
-          return;
-        }
-      } catch {
-        /* read 失敗は書き込みを続行 */
+  const backend = requireBackend();
+  const isProjectEmpty =
+    (project.screens?.length ?? 0) === 0 &&
+    (project.tables?.length ?? 0) === 0 &&
+    (project.processFlows?.length ?? 0) === 0;
+  if (isProjectEmpty) {
+    try {
+      const currentRaw = await backend.loadProject();
+      const current = currentRaw ? normalizePersisted(currentRaw) : null;
+      const hasExistingData = hasPersistedData(current);
+      if (hasExistingData) {
+        console.warn(
+          "[flowStore] persistProject canceled: refusing to overwrite non-empty file with empty project (data-loss guard)",
+        );
+        return;
       }
+    } catch {
+      /* read 失敗は書き込みを続行 */
     }
   }
   await persistFlowProject(project);
@@ -815,11 +777,7 @@ export async function removeScreen(project: FlowProject, screenId: string): Prom
   project.screens.splice(idx, 1);
   project.screens = renumber(project.screens);
   project.edges = project.edges.filter((e) => e.source !== screenId && e.target !== screenId);
-  if (_backend) {
-    await _backend.deleteScreenData(screenId);
-  } else {
-    localStorage.removeItem(`${SCREEN_DATA_PREFIX}${screenId}`);
-  }
+  await requireBackend().deleteScreenData(screenId);
   await saveProject(project);
   // 念のため screen-layout 側からも明示削除 (project.screens にもう存在しないので
   // decomposeFlowProject で positions[id] は再構築されないが、過去 layout の残骸を確実に消す)
@@ -908,7 +866,11 @@ export async function markScreenHasDesign(
   }
 }
 
-/** 画面のストレージキー (localStorage フォールバック用)。 */
+/**
+ * 画面のストレージキー。
+ * 本体 fallback は #923 シリーズで廃止済み。本関数は legacyLocalStorageRescue
+ * (旧 GrapesJS autosave データの 1 度きり救済) からのみ参照される。
+ */
 export function screenStorageKey(screenId: string): string {
   return `${SCREEN_DATA_PREFIX}${screenId}`;
 }
@@ -996,12 +958,9 @@ export async function importProjectJSON(json: string): Promise<FlowProject> {
     throw new Error("不正なプロジェクトファイルです");
   }
   const current = await loadProject();
+  const backend = requireBackend();
   for (const s of current.screens) {
-    if (_backend) {
-      await _backend.deleteScreenData(s.id);
-    } else {
-      localStorage.removeItem(`${SCREEN_DATA_PREFIX}${s.id}`);
-    }
+    await backend.deleteScreenData(s.id);
   }
   await saveProject(parsed);
   return parsed;

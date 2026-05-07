@@ -17,11 +17,14 @@ export function setSequenceStorageBackend(b: SequenceStorageBackend | null): voi
   _backend = b;
 }
 
-// ─── localStorage キー (v3 名前空間、#549) ───────────────────────────────
-
-const SEQUENCE_PREFIX = "v3-sequence-";
-
 const SEQUENCE_SCHEMA_REF = "../../schemas/v3/sequence.v3.schema.json";
+
+function requireBackend(): SequenceStorageBackend {
+  if (!_backend) {
+    throw new Error("sequenceStore: backend が初期化されていません (wsBridge 未接続)");
+  }
+  return _backend;
+}
 
 function nowTs(): Timestamp {
   return new Date().toISOString() as Timestamp;
@@ -37,10 +40,7 @@ export async function listSequences(): Promise<SequenceEntry[]> {
 
 /** シーケンス定義を読み込み */
 export async function loadSequence(sequenceId: string): Promise<Sequence | null> {
-  if (_backend) return (await _backend.loadSequence(sequenceId)) as Sequence | null;
-  const s = localStorage.getItem(`${SEQUENCE_PREFIX}${sequenceId}`);
-  if (!s) return null;
-  try { return JSON.parse(s) as Sequence; } catch { return null; }
+  return (await requireBackend().loadSequence(sequenceId)) as Sequence | null;
 }
 
 /** シーケンス定義を保存（harmony.json のメタも同期） */
@@ -48,11 +48,7 @@ export async function saveSequence(sequence: Sequence): Promise<void> {
   // $schema は spread 後に明示的に上書きして、旧 v1/v2 由来の $schema を必ず v3 ref に書き換える。
   const toSave: Sequence = { ...sequence, $schema: SEQUENCE_SCHEMA_REF, updatedAt: nowTs() };
 
-  if (_backend) {
-    await _backend.saveSequence(toSave.id, toSave);
-  } else {
-    localStorage.setItem(`${SEQUENCE_PREFIX}${toSave.id}`, JSON.stringify(toSave));
-  }
+  await requireBackend().saveSequence(toSave.id, toSave);
 
   await syncSequenceMeta(toSave);
 }
@@ -84,12 +80,7 @@ export async function createSequence(
 
 /** シーケンスを削除 */
 export async function deleteSequence(sequenceId: string): Promise<void> {
-  if (_backend) {
-    await _backend.deleteSequence(sequenceId);
-  } else {
-    localStorage.removeItem(`${SEQUENCE_PREFIX}${sequenceId}`);
-  }
-
+  await requireBackend().deleteSequence(sequenceId);
 }
 
 interface CommitSequencesDeps {
