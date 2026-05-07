@@ -36,7 +36,7 @@ describe("getHostInfo", () => {
 
     it.runIf(isLinux)("WSL2 文字列を含む /proc/version → isWSL=true", async () => {
       vi.spyOn(fs, "readFile").mockResolvedValue(
-        "Linux version 5.15.90.1-microsoft-standard-WSL2 (oe-user@oe-host) ..." as unknown as Buffer,
+        "Linux version 5.15.90.1-microsoft-standard-WSL2 (oe-user@oe-host) ...",
       );
       const info = await getHostInfo();
       expect(info.isWSL).toBe(true);
@@ -44,7 +44,7 @@ describe("getHostInfo", () => {
 
     it.runIf(isLinux)("Microsoft 文字列 (WSL1 想定) → isWSL=true", async () => {
       vi.spyOn(fs, "readFile").mockResolvedValue(
-        "Linux version 4.4.0-19041-Microsoft (Microsoft@Microsoft.com) ..." as unknown as Buffer,
+        "Linux version 4.4.0-19041-Microsoft (Microsoft@Microsoft.com) ...",
       );
       const info = await getHostInfo();
       expect(info.isWSL).toBe(true);
@@ -52,7 +52,7 @@ describe("getHostInfo", () => {
 
     it.runIf(isLinux)("native Linux (Microsoft/WSL を含まない) → isWSL=false", async () => {
       vi.spyOn(fs, "readFile").mockResolvedValue(
-        "Linux version 5.15.0-91-generic (buildd@lcy02-amd64-009) ..." as unknown as Buffer,
+        "Linux version 5.15.0-91-generic (buildd@lcy02-amd64-009) ...",
       );
       const info = await getHostInfo();
       expect(info.isWSL).toBe(false);

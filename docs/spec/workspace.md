@@ -145,7 +145,26 @@ workspace.inspect(path) → { status, path, name? }
 
 **実装**: `backend/src/workspaceInit.ts:87-101`
 
-### 3.6 init=true 時の初期化内容
+### 3.6 workspace.hostInfo
+
+```
+workspace.hostInfo() → { platform, isWSL, homeDir }
+```
+
+backend が動作しているホスト OS 情報を返す。`AddWorkspaceDialog` が path 入力欄の placeholder / WSL 検出ヒント表示に使う (#858)。
+
+| field | 型 | 内容 |
+|-------|----|------|
+| `platform` | `"linux" \| "win32" \| "darwin" \| "other"` | `process.platform` を 4 値に正規化 |
+| `isWSL` | `boolean` | `process.platform === "linux"` かつ `/proc/version` に `Microsoft` または `WSL` 文字列を含む場合 `true` (大文字小文字無視) |
+| `homeDir` | `string` | `os.homedir()` (placeholder の "/home/<user>/projects/my-app" 等を組み立てるのに使用) |
+
+- backend session 内でキャッシュされる (`/proc/version` を毎回読まない)
+- `inspectWorkspacePath` のような厳密判定ではなく**情報提供 API**。frontend は描画切替の hint として使うのみで、認可判断には使わない
+
+**実装**: `backend/src/hostInfo.ts:32-49` / `backend/src/wsBridge.ts:1373-1376`
+
+### 3.7 init=true 時の初期化内容
 
 `initializeWorkspace(path)` が実行する処理:
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, useId } from "react";
 import { useNavigate } from "react-router-dom";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import {
@@ -88,8 +88,10 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
   const debounceRef = useRef<number | null>(null);
   const inflightSeqRef = useRef(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // 同一画面に複数 dialog が同時表示される将来拡張に備え、global ID 衝突を避けて useId で一意化
+  const dropdownId = useId();
 
-  // recent workspace 一覧 (store から取得、prefix-match で suggest)
+  // recent workspace 一覧 (store から取得、substring-match で suggest)
   const recentWorkspaces = getState().workspaces;
 
   // host info を取得 (失敗は黙って null のまま、placeholder はフォールバックを使う)
@@ -134,10 +136,11 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
     if (debounceRef.current !== null) {
       window.clearTimeout(debounceRef.current);
     }
+    // path が変わった瞬間、進行中 inspect (旧 path 用) の遅延 response が
+    // 新 path の UI を上書きしないよう seq を bump して旧結果を破棄する。
+    // 空入力 / 非空入力切替 / 非空 → 非空切替 すべての race window をカバー。
+    inflightSeqRef.current++;
     if (!path.trim()) {
-      // 空入力に戻した瞬間、進行中 inspect の遅延 response が
-      // idle 状態を ready/notFound 等に上書きしないよう seq を bump して破棄する
-      inflightSeqRef.current++;
       setStatus("idle");
       setInspectName(null);
       setErrorMsg(null);
@@ -202,7 +205,11 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
     }
   };
 
-  const hasPickerSupport = typeof window !== "undefined" && "showDirectoryPicker" in window;
+  // WSL2 + Windows ブラウザ環境では showDirectoryPicker が Linux パスに到達できず実質使えないので、
+  // ヒント文と整合させてフォルダ参照ボタンを非表示にする (#858 / #919 Opus review nit)
+  const hasPickerSupport = typeof window !== "undefined"
+    && "showDirectoryPicker" in window
+    && !host?.isWSL;
   const placeholder = buildPlaceholder(host);
   const exampleAbs = buildOsAwareExamplePath(host);
 
@@ -222,7 +229,7 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
       const target = e.target as Node;
       if (inputRef.current && !inputRef.current.contains(target)) {
         // dropdown 内クリックは別途閉じる (handleSelectRecent)
-        const dropdown = document.getElementById("workspace-recent-dropdown");
+        const dropdown = document.getElementById(dropdownId);
         if (!dropdown || !dropdown.contains(target)) {
           setShowRecent(false);
         }
@@ -230,7 +237,7 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [showRecent]);
+  }, [showRecent, dropdownId]);
 
   const handleSelectRecent = (entry: WorkspaceEntry) => {
     setPath(entry.path);
@@ -285,7 +292,7 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
             )}
             {showRecent && filteredRecents.length > 0 && (
               <ul
-                id="workspace-recent-dropdown"
+                id={dropdownId}
                 role="listbox"
                 aria-label="最近使ったワークスペース"
                 style={{
