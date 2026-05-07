@@ -121,6 +121,43 @@ PR diff に画面関連ファイル (`screens/` / `Designer.tsx` / `PuckBackend`
 
 詳細仕様: `docs/spec/multi-editor-puck.md` § 2.3 / § 4.1 / § 4.2
 
+### Step 5.6: 協調編集 e2e 手動 smoke (#894 で導入)
+
+PR diff に **協調編集関連ファイル** が含まれる場合、`frontend/e2e/collab/*.spec.ts` の手動 smoke 実行を強く推奨 (CI 未設定のため、本 step が唯一の実機検証経路):
+
+#### 対象判定 (以下のいずれかが diff に含まれる)
+
+```bash
+gh pr diff <PR番号> --name-only | grep -E "(useEditSession|EditSessionDropdown|editSessionStore|presenceStore|presenceManager|draftStore|draftHistoryStore|wsBridge|EditorHeader|DesignSubToolbar|frontend/e2e/collab/)"
+```
+
+#### 実行手順
+
+1. **既存 backend / frontend が稼働中か確認** (memory `feedback_no_ai_managed_dev_server.md` 遵守、AI が dev server を立てない):
+   ```bash
+   curl -s http://localhost:5179/healthz > /dev/null && echo "backend OK" || echo "backend MISSING"
+   curl -s http://localhost:5173/ > /dev/null && echo "frontend OK" || echo "frontend MISSING"
+   ```
+2. **稼働中ならそのまま smoke 実行**:
+   ```bash
+   cd frontend && npx playwright test e2e/collab/ --reporter=list 2>&1 | tail -30
+   ```
+3. **未稼働ならユーザーへ依頼** (AI で立てない、手動依頼のみ):
+   - レビュー報告に「e2e smoke 未実行 — backend/frontend 未稼働」と明記
+   - ユーザーに `cd backend && npm run dev` / `cd frontend && npm run dev` の起動を依頼してから再実行
+
+#### 結果の取り扱い
+
+- 全 spec pass → レビュー報告の「検証方法」節に「e2e collab/ X 件 pass」と記載
+- 1 件以上 fail → **Must-fix 候補**として spec 名 + 失敗理由を引用 (flaky 疑いなら 2 回目実行で確認)
+- TS compile pass のみ → 「spec 構文 OK、実機未実行」と明記、最終マージ前に再実行を要請
+
+#### 設計判断 (#894 採用方針)
+
+- **Option B 採用**: GitHub Actions CI は新設せず、本 step で人間/AI が `/review-pr` 実行時に手動 smoke する運用
+- 本リポ規模 (1 開発者 + AI 主体運用) で CI 維持コスト > 価値、PR ごとの手動 smoke で十分
+- 将来 contributor が増えて自動 CI が必要になったタイミングで Option A に切替
+
 ## 制約 (必守)
 
 - **マージしない**
