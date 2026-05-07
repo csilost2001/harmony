@@ -1,0 +1,300 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "1ce956c5-7aa9-47b5-bb38-ca392ad73518",
+    "name": "ログイン",
+    "description": "username + password を受け取り、users テーブルで認証して JWT (access token + refresh token) を発行する処理フロー。1 ユーザー個人運用前提 + JWT stateless 認証。失敗ケース (ユーザー不在 / パスワード不一致) は同一の 401 INVALID_CREDENTIALS を返してユーザー列挙攻撃を防ぐ。",
+    "kind": "screen",
+    "maturity": "draft",
+    "createdAt": "2026-05-07T00:00:00.000Z",
+    "updatedAt": "2026-05-07T00:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "入力値が不正です。",
+          "responseId": "400-validation",
+          "description": "username regex / password minLength 違反。"
+        },
+        "INVALID_CREDENTIALS": {
+          "httpStatus": 401,
+          "defaultMessage": "ユーザー名またはパスワードが正しくありません。",
+          "responseId": "401-unauthorized",
+          "description": "ユーザー不在 / パスワード不一致のどちらも同じ 401 を返す (ユーザー列挙攻撃対策)。"
+        }
+      },
+      "secrets": {
+        "jwtAccessSecret": {
+          "source": "env",
+          "name": "JWT_ACCESS_SECRET",
+          "description": "アクセストークン署名用キー (HS256)。"
+        },
+        "jwtRefreshSecret": {
+          "source": "env",
+          "name": "JWT_REFRESH_SECRET",
+          "description": "リフレッシュトークン署名用キー (HS256、access とは別キー)。"
+        }
+      },
+      "envVars": {
+        "JWT_ACCESS_TTL": {
+          "type": "string",
+          "default": "1h",
+          "description": "アクセストークンの有効期限 (zeit/ms 形式)。"
+        },
+        "JWT_REFRESH_TTL": {
+          "type": "string",
+          "default": "30d",
+          "description": "リフレッシュトークンの有効期限 (rememberMe=true 時)。false 時はアクセストークンと同等。"
+        }
+      }
+    }
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "ログイン",
+      "trigger": "submit",
+      "description": "username + password を受け取り、users から passwordHash を取得 → bcrypt で照合 → 成功時に JWT (access + refresh) を発行して返す。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/auth/login",
+        "auth": "none"
+      },
+      "inputs": [
+        {
+          "name": "username",
+          "label": "ユーザー名",
+          "type": "string",
+          "required": true,
+          "description": "3-32 文字の英数字 + ハイフン/アンダースコア。"
+        },
+        {
+          "name": "password",
+          "label": "パスワード",
+          "type": "string",
+          "required": true,
+          "description": "8-128 文字。実装側で平文を受け取り bcrypt.compare で検証する。ログ出力 / 永続化は禁止。"
+        },
+        {
+          "name": "rememberMe",
+          "label": "ログイン状態を保持",
+          "type": "boolean",
+          "required": false,
+          "description": "true で refresh token TTL を JWT_REFRESH_TTL に拡張。false ならアクセストークンと同じ短期 TTL。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "accessToken",
+          "label": "アクセストークン",
+          "type": "string",
+          "description": "短期 JWT。Authorization: Bearer ヘッダで使用。"
+        },
+        {
+          "name": "refreshToken",
+          "label": "リフレッシュトークン",
+          "type": "string",
+          "description": "長期 JWT。/api/auth/refresh で新 access token を取得する用途。"
+        },
+        {
+          "name": "user",
+          "label": "ログインユーザー",
+          "type": {
+            "kind": "object",
+            "fields": [
+              { "name": "id", "type": "integer", "required": true },
+              { "name": "username", "type": "string", "required": true },
+              { "name": "displayName", "type": "string" }
+            ]
+          },
+          "description": "ログインユーザーの ID + 表示用情報 (UI ヘッダ等に使用)。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "認証成功。",
+          "when": "username 一致 + password 検証成功した場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "バリデーションエラー。",
+          "when": "username regex / password minLength 違反。"
+        },
+        {
+          "id": "401-unauthorized",
+          "status": 401,
+          "description": "認証失敗。",
+          "when": "ユーザー不在 / パスワード不一致。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "username 形式チェック (regex)、password 必須 + minLength 8。",
+          "rules": [
+            {
+              "field": "username",
+              "type": "required",
+              "severity": "error",
+              "message": "ユーザー名を入力してください。"
+            },
+            {
+              "field": "username",
+              "type": "regex",
+              "patternRef": "@conv.regex.username",
+              "severity": "error",
+              "message": "@conv.msg.validation.username.format"
+            },
+            {
+              "field": "password",
+              "type": "required",
+              "severity": "error",
+              "message": "パスワードを入力してください。"
+            },
+            {
+              "field": "password",
+              "type": "minLength",
+              "length": 8,
+              "severity": "error",
+              "message": "パスワードは 8 文字以上で入力してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "dbAccess",
+          "description": "username で users を検索し、認証に必要な id / passwordHash + UI 表示用 displayName を取得する。",
+          "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"userId\", username AS \"username\", display_name AS \"displayName\", password_hash AS \"passwordHash\" FROM users WHERE username = @inputs.username LIMIT 1",
+          "outputBinding": {
+            "name": "userRow"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
+                "purpose": "auth-lookup"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "ユーザーが見つからない場合は 401 を返す (404 ではなく 401 で列挙攻撃対策)。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "ユーザー不在",
+              "condition": {
+                "kind": "expression",
+                "expression": "@userRow == null"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "401 認証失敗を返す。",
+                  "responseId": "401-unauthorized",
+                  "bodyExpression": "{ code: 'INVALID_CREDENTIALS', message: 'ユーザー名またはパスワードが正しくありません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "ユーザー存在",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "compute",
+          "description": "bcrypt で入力パスワードと password_hash を比較する。実装は bcrypt.compare(plain, hash) を呼び、true/false を返す。",
+          "expression": "bcryptCompare(@inputs.password, @userRow.passwordHash)",
+          "outputBinding": {
+            "name": "passwordValid"
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "branch",
+          "description": "password 検証が失敗した場合は 401 を返す。",
+          "branches": [
+            {
+              "id": "br-05-a",
+              "code": "A",
+              "label": "password 不一致",
+              "condition": {
+                "kind": "expression",
+                "expression": "@passwordValid != true"
+              },
+              "steps": [
+                {
+                  "id": "step-05-a-01",
+                  "kind": "return",
+                  "description": "401 認証失敗を返す。",
+                  "responseId": "401-unauthorized",
+                  "bodyExpression": "{ code: 'INVALID_CREDENTIALS', message: 'ユーザー名またはパスワードが正しくありません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-05-else",
+            "code": "B",
+            "label": "password 一致",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "compute",
+          "description": "アクセストークンを発行する。HS256, payload: { sub: userId, type: 'access' }, ttl: @env.JWT_ACCESS_TTL。",
+          "expression": "jwtSign({ sub: @userRow.userId, type: 'access' }, @secret.jwtAccessSecret, { expiresIn: @env.JWT_ACCESS_TTL })",
+          "outputBinding": {
+            "name": "accessToken"
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "compute",
+          "description": "リフレッシュトークンを発行する。rememberMe=true なら長期 TTL (@env.JWT_REFRESH_TTL)、false なら短期 (@env.JWT_ACCESS_TTL)。",
+          "expression": "jwtSign({ sub: @userRow.userId, type: 'refresh' }, @secret.jwtRefreshSecret, { expiresIn: @inputs.rememberMe == true ? @env.JWT_REFRESH_TTL : @env.JWT_ACCESS_TTL })",
+          "outputBinding": {
+            "name": "refreshToken"
+          }
+        },
+        {
+          "id": "step-08",
+          "kind": "return",
+          "description": "200 認証成功 + access/refresh トークン + ユーザー基本情報を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ accessToken: @accessToken, refreshToken: @refreshToken, user: { id: @userRow.userId, username: @userRow.username, displayName: @userRow.displayName } }"
+        }
+      ]
+    }
+  ]
+}

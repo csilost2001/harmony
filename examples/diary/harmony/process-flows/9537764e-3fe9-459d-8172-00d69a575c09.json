@@ -1,0 +1,233 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "9537764e-3fe9-459d-8172-00d69a575c09",
+    "name": "トークン更新",
+    "description": "リフレッシュトークンを受け取り、検証成功時に新しいアクセストークンを発行して返す処理フロー。リフレッシュトークン自体は再発行しない (rotation 戦略は v1 では non-rotating で簡素化、必要なら別 ISSUE で導入)。",
+    "kind": "screen",
+    "maturity": "draft",
+    "createdAt": "2026-05-07T00:00:00.000Z",
+    "updatedAt": "2026-05-07T00:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "リフレッシュトークンが必要です。",
+          "responseId": "400-validation",
+          "description": "refreshToken 未指定。"
+        },
+        "INVALID_REFRESH_TOKEN": {
+          "httpStatus": 401,
+          "defaultMessage": "リフレッシュトークンが無効または期限切れです。再ログインしてください。",
+          "responseId": "401-unauthorized",
+          "description": "JWT 検証失敗 / 期限切れ / 対応ユーザー不在のいずれも同じ 401 を返す (列挙攻撃対策)。"
+        }
+      },
+      "secrets": {
+        "jwtAccessSecret": {
+          "source": "env",
+          "name": "JWT_ACCESS_SECRET",
+          "description": "アクセストークン署名用キー (HS256)。"
+        },
+        "jwtRefreshSecret": {
+          "source": "env",
+          "name": "JWT_REFRESH_SECRET",
+          "description": "リフレッシュトークン検証用キー (HS256)。"
+        }
+      },
+      "envVars": {
+        "JWT_ACCESS_TTL": {
+          "type": "string",
+          "default": "1h",
+          "description": "新規発行するアクセストークンの有効期限。"
+        }
+      }
+    }
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "トークン更新",
+      "trigger": "submit",
+      "description": "リフレッシュトークンを検証し、ユーザー存在を確認した上で新しいアクセストークンを発行する。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/auth/refresh",
+        "auth": "none"
+      },
+      "inputs": [
+        {
+          "name": "refreshToken",
+          "label": "リフレッシュトークン",
+          "type": "string",
+          "required": true,
+          "description": "ログインフローで発行されたリフレッシュトークン。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "accessToken",
+          "label": "アクセストークン",
+          "type": "string",
+          "description": "新規発行されたアクセストークン。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "更新成功。",
+          "when": "リフレッシュトークン検証成功 + 対応ユーザー存在。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "リフレッシュトークンが指定されていない。",
+          "when": "refreshToken が未指定または空文字。"
+        },
+        {
+          "id": "401-unauthorized",
+          "status": 401,
+          "description": "リフレッシュトークン無効 / 期限切れ / ユーザー不在。",
+          "when": "jwtVerify が失敗、または対応するユーザーが users テーブルに存在しない。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "refreshToken 必須チェック。",
+          "rules": [
+            {
+              "field": "refreshToken",
+              "type": "required",
+              "severity": "error",
+              "message": "リフレッシュトークンを指定してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: 'リフレッシュトークンが必要です。' }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "compute",
+          "description": "リフレッシュトークンを HS256 で検証する。期限切れ / 改竄 / 署名不一致の場合は null を返す実装。type='refresh' でない場合も null。",
+          "expression": "jwtVerify(@inputs.refreshToken, @secret.jwtRefreshSecret, { requireType: 'refresh' })",
+          "outputBinding": {
+            "name": "decoded"
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "JWT 検証に失敗した場合は 401 を返す。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "JWT 検証失敗",
+              "condition": {
+                "kind": "expression",
+                "expression": "@decoded == null"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "401 リフレッシュトークン無効を返す。",
+                  "responseId": "401-unauthorized",
+                  "bodyExpression": "{ code: 'INVALID_REFRESH_TOKEN', message: 'リフレッシュトークンが無効または期限切れです。再ログインしてください。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "JWT 検証成功",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "dbAccess",
+          "description": "decoded.sub (userId) で users を引き、ユーザーがまだ存在することを確認する。",
+          "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"userId\" FROM users WHERE id = @decoded.sub LIMIT 1",
+          "outputBinding": {
+            "name": "userRow"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
+                "purpose": "auth-lookup"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "branch",
+          "description": "ユーザーが users から削除済の場合は 401 を返す (refresh token は有効でも実体が無いため)。",
+          "branches": [
+            {
+              "id": "br-05-a",
+              "code": "A",
+              "label": "ユーザー不在",
+              "condition": {
+                "kind": "expression",
+                "expression": "@userRow == null"
+              },
+              "steps": [
+                {
+                  "id": "step-05-a-01",
+                  "kind": "return",
+                  "description": "401 リフレッシュトークン無効を返す。",
+                  "responseId": "401-unauthorized",
+                  "bodyExpression": "{ code: 'INVALID_REFRESH_TOKEN', message: 'リフレッシュトークンが無効または期限切れです。再ログインしてください。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-05-else",
+            "code": "B",
+            "label": "ユーザー存在",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "compute",
+          "description": "新しいアクセストークンを発行する。HS256, payload: { sub: userId, type: 'access' }, ttl: @env.JWT_ACCESS_TTL。",
+          "expression": "jwtSign({ sub: @userRow.userId, type: 'access' }, @secret.jwtAccessSecret, { expiresIn: @env.JWT_ACCESS_TTL })",
+          "outputBinding": {
+            "name": "accessToken"
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "return",
+          "description": "200 新しいアクセストークンを返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ accessToken: @accessToken }"
+        }
+      ]
+    }
+  ]
+}

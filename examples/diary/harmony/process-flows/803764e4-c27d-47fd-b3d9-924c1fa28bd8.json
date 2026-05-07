@@ -1,0 +1,79 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "803764e4-c27d-47fd-b3d9-924c1fa28bd8",
+    "name": "タグ一覧取得",
+    "description": "タグマスタ全件を usage_count DESC で取得する処理フロー。タグの総件数は現実的に少ない (数十〜数百) ため、サーバ側では 1 種類の並び順 (タグクラウド表示用) のみ返し、別ソート (五十音 / 新着) は UI 側でクライアントサイド並び替えする方針 (#862 の v1 設計判断)。動的 ORDER BY は SQL injection 経路を増やすため避ける。",
+    "kind": "screen",
+    "maturity": "draft",
+    "createdAt": "2026-05-07T00:00:00.000Z",
+    "updatedAt": "2026-05-07T00:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {}
+    }
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "タグ一覧取得",
+      "trigger": "submit",
+      "description": "tags テーブル全件を usage_count DESC, name ASC で取得して返す。別ソートは UI 側でクライアントサイド並び替えする想定。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "GET",
+        "path": "/api/tags",
+        "auth": "required"
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "tags",
+          "label": "タグ一覧",
+          "type": {
+            "kind": "tableList",
+            "tableId": "07439e21-0743-48ca-af9e-763e4be2d094"
+          },
+          "description": "tags 全行の配列。usage_count 降順 + name 昇順で並び替え済 (タグクラウド表示順)。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "取得成功。",
+          "when": "SELECT が正常完了した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "dbAccess",
+          "description": "tags 全件を usage_count DESC, name ASC で SELECT する。タグ件数は現実的に少ない (数十〜数百) ため pagination 不要。",
+          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"tagId\", name AS \"name\", slug AS \"slug\", color AS \"color\", icon AS \"icon\", usage_count AS \"usageCount\", created_at AS \"createdAt\", updated_at AS \"updatedAt\" FROM tags ORDER BY usage_count DESC, name ASC",
+          "outputBinding": {
+            "name": "tagRows"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "list"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "return",
+          "description": "200 タグ一覧を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ tags: @tagRows }"
+        }
+      ]
+    }
+  ]
+}

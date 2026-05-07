@@ -7,7 +7,7 @@
     "name": "日記アプリ",
     "description": "Harmony フレームワーク dogfood — 個人向け日記/ブログアプリ。投稿 (タイトル / 本文 / 写真ギャラリー / タグ) + AI assist (要約 / タグ提案 / 文章校正 / 画像 alt 自動生成) + 全文検索。techStack: NestJS + Next.js + Prisma + SQLite + Tailwind。",
     "createdAt": "2026-05-06T12:40:00.000Z",
-    "updatedAt": "2026-05-06T12:40:00.000Z",
+    "updatedAt": "2026-05-07T00:00:00.000Z",
     "mode": "upstream",
     "maturity": "draft"
   },
@@ -217,6 +217,78 @@
         "actionCount": 1,
         "maturity": "draft",
         "updatedAt": "2026-05-06T14:00:00.000Z"
+      },
+      {
+        "id": "1ce956c5-7aa9-47b5-bb38-ca392ad73518",
+        "no": 10,
+        "name": "ログイン",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-07T00:00:00.000Z"
+      },
+      {
+        "id": "9537764e-3fe9-459d-8172-00d69a575c09",
+        "no": 11,
+        "name": "トークン更新",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-07T00:00:00.000Z"
+      },
+      {
+        "id": "46436b69-99f2-48b3-a5fa-07bf9fcd1478",
+        "no": 12,
+        "name": "ログアウト",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-07T00:00:00.000Z"
+      },
+      {
+        "id": "2fecbf99-6a4e-4c62-840c-59d96e48ecb6",
+        "no": 13,
+        "name": "写真アップロード",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-07T00:00:00.000Z"
+      },
+      {
+        "id": "803764e4-c27d-47fd-b3d9-924c1fa28bd8",
+        "no": 14,
+        "name": "タグ一覧取得",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-07T00:00:00.000Z"
+      },
+      {
+        "id": "46b99455-a011-4419-937f-a5ef8368e694",
+        "no": 15,
+        "name": "タグ作成",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-07T00:00:00.000Z"
+      },
+      {
+        "id": "8cc24fea-f497-432b-8496-5d86dea1c98b",
+        "no": 16,
+        "name": "タグ更新",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-07T00:00:00.000Z"
+      },
+      {
+        "id": "305509f7-d118-459a-8acb-18780e4fde68",
+        "no": 17,
+        "name": "タグ削除",
+        "kind": "screen",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-07T00:00:00.000Z"
       }
     ],
     "sequences": [],

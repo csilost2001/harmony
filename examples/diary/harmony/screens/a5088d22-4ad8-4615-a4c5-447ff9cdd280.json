@@ -2,13 +2,13 @@
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
   "id": "a5088d22-4ad8-4615-a4c5-447ff9cdd280",
   "name": "ログイン",
-  "description": "ミニマリスト風のログイン画面。中央配置カードにロゴ + username/passwordフィールド + ログインボタン + 管理者依頼ヒントテキストを配置。認証フロー本体は本フェーズのprocessFlowに含まれないUIモック。",
+  "description": "ミニマリスト風のログイン画面。中央配置カードにロゴ + username/passwordフィールド + ログインボタン + 管理者依頼ヒントテキストを配置。loginButton.events で `ログイン` ProcessFlow と結線。",
   "kind": "login",
   "path": "/login",
   "auth": "none",
   "maturity": "draft",
   "createdAt": "2026-05-06T14:30:00.000Z",
-  "updatedAt": "2026-05-06T14:30:00.000Z",
+  "updatedAt": "2026-05-07T00:00:00.000Z",
   "items": [
     {
       "id": "username",
@@ -39,6 +39,26 @@
       "description": "チェック時にJWT有効期限を延長してログイン状態を維持する。",
       "defaultValue": false,
       "required": false
+    },
+    {
+      "id": "loginButton",
+      "label": "ログイン",
+      "type": "string",
+      "direction": "input",
+      "description": "ログインボタン。クリック (submit) で ログイン ProcessFlow を起動し、成功時に accessToken/refreshToken を localStorage に保存して投稿一覧に遷移する想定。",
+      "required": false,
+      "events": [
+        {
+          "id": "submit",
+          "label": "ログイン実行",
+          "handlerFlowId": "1ce956c5-7aa9-47b5-bb38-ca392ad73518",
+          "argumentMapping": {
+            "username": "@screen.username",
+            "password": "@screen.password",
+            "rememberMe": "@screen.rememberMe"
+          }
+        }
+      ]
     }
   ],
   "design": {

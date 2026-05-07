@@ -1,0 +1,325 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "2fecbf99-6a4e-4c62-840c-59d96e48ecb6",
+    "name": "写真アップロード",
+    "description": "投稿に紐付く写真をアップロードする処理フロー。multipart/form-data で受け取り、ローカルファイルシステム (uploads/photos/) に保存 → サムネイル生成 → 寸法 + EXIF 抽出 → photos テーブル INSERT を 1 アップロード単位で実行する。photos.post_id は NOT NULL のため postId は必須 (post 作成後の upload を前提)。S3 / R2 互換ストレージへの切替は v2 で context.catalogs.externalSystems に photoStorage を登録して step-04 を externalSystem に置き換える。",
+    "kind": "screen",
+    "maturity": "draft",
+    "createdAt": "2026-05-07T00:00:00.000Z",
+    "updatedAt": "2026-05-07T00:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "アップロード内容が不正です。",
+          "responseId": "400-validation",
+          "description": "postId / file 未指定、mimeType 非対応、ファイルサイズ超過のいずれか。"
+        },
+        "POST_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "投稿が見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定 postId の投稿が存在しないか、ログインユーザーの投稿ではない。"
+        },
+        "STORAGE_ERROR": {
+          "httpStatus": 500,
+          "defaultMessage": "ファイル保存に失敗しました。",
+          "responseId": "500-internal",
+          "description": "ファイルシステム書き込み / サムネイル生成のいずれかが失敗した場合。"
+        },
+        "PHOTO_UPLOAD_FAILED": {
+          "httpStatus": 500,
+          "defaultMessage": "写真の登録に失敗しました。",
+          "responseId": "500-internal",
+          "description": "photos テーブルへの INSERT が想定外に 0 行を返した場合。"
+        }
+      },
+      "envVars": {
+        "PHOTO_UPLOAD_DIR": {
+          "type": "string",
+          "default": "uploads/photos",
+          "description": "ローカルストレージ時のアップロード先ディレクトリ (relative or absolute)。"
+        },
+        "PHOTO_THUMBNAIL_WIDTH": {
+          "type": "number",
+          "default": 400,
+          "description": "サムネイル生成時の幅 (px)。masonry レイアウトのカード幅に合わせる。"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": true,
+        "description": "アップロード実行ユーザー ID (JWT から抽出)。post 所有者確認に使用。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "写真アップロード",
+      "trigger": "submit",
+      "description": "multipart/form-data で file + postId を受け取り、ファイル保存 → サムネイル生成 → 寸法 / EXIF 抽出 → photos へ INSERT する。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/upload",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "postId",
+          "label": "投稿ID",
+          "type": "integer",
+          "required": true,
+          "description": "アップロード写真の関連先 post.id。photos.post_id は NOT NULL のため必須。"
+        },
+        {
+          "name": "file",
+          "label": "アップロードファイル",
+          "type": { "kind": "file", "format": "image/*" },
+          "required": true,
+          "description": "アップロード対象の画像ファイル。jpeg / png / webp / heic を許容。最大 @conv.limit.photoFileSize bytes。"
+        },
+        {
+          "name": "alt",
+          "label": "代替テキスト",
+          "type": "string",
+          "required": false,
+          "description": "手動指定の alt text (任意)。未指定時は AI 画像 alt 生成フローで後付け補完する。"
+        },
+        {
+          "name": "caption",
+          "label": "キャプション",
+          "type": "string",
+          "required": false,
+          "description": "写真キャプション (lightbox に表示)。"
+        },
+        {
+          "name": "orderIndex",
+          "label": "表示順",
+          "type": "integer",
+          "required": false,
+          "description": "ギャラリー内の並び順。未指定時は 0。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "photo",
+          "label": "登録された写真",
+          "type": {
+            "kind": "object",
+            "fields": [
+              { "name": "id", "type": "integer", "required": true },
+              { "name": "postId", "type": "integer", "required": true },
+              { "name": "url", "type": "string", "required": true },
+              { "name": "thumbnailUrl", "type": "string" },
+              { "name": "width", "type": "integer" },
+              { "name": "height", "type": "integer" },
+              { "name": "bytes", "type": "integer" },
+              { "name": "mimeType", "type": "string" },
+              { "name": "orderIndex", "type": "integer" }
+            ]
+          },
+          "description": "INSERT された photos 行 (UI 側でギャラリーに追加するための情報)。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "201-created",
+          "status": 201,
+          "description": "アップロード + photos 登録成功。",
+          "when": "ファイル保存・サムネイル生成・DB 登録が全て成功した場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "バリデーションエラー。",
+          "when": "postId 未指定 / file 未指定 / mimeType 非対応 / ファイルサイズ超過。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "対象投稿が存在しない、または所有者でない。",
+          "when": "posts に postId が存在しないか、posts.user_id != sessionUserId。"
+        },
+        {
+          "id": "500-internal",
+          "status": 500,
+          "description": "ストレージ / DB エラー。",
+          "when": "ファイル保存失敗 or photos INSERT が 0 行を返した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "postId / file 必須、mimeType allowed (image/jpeg|png|webp|heic)、bytes <= conv.limit.photoFileSize。",
+          "rules": [
+            {
+              "field": "postId",
+              "type": "required",
+              "severity": "error",
+              "message": "postId を指定してください。"
+            },
+            {
+              "field": "file",
+              "type": "required",
+              "severity": "error",
+              "message": "アップロードファイルを指定してください。"
+            },
+            {
+              "field": "file.mimeType",
+              "type": "enum",
+              "values": ["image/jpeg", "image/png", "image/webp", "image/heic"],
+              "severity": "error",
+              "message": "対応していない画像形式です。jpeg / png / webp / heic を指定してください。"
+            },
+            {
+              "field": "file.bytes",
+              "type": "range",
+              "maxRef": "@conv.limit.photoFileSize",
+              "severity": "error",
+              "message": "@conv.msg.validation.photo.tooLarge"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: 'アップロード内容が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "dbAccess",
+          "description": "postId の投稿がログインユーザーのものか確認する (所有者チェック)。",
+          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"postId\", user_id AS \"userId\" FROM posts WHERE id = @inputs.postId AND user_id = @sessionUserId LIMIT 1",
+          "outputBinding": {
+            "name": "postRow"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                "purpose": "ownership-check"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "投稿が見つからない / 所有者でない場合は 404 を返す。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "投稿不在/非所有",
+              "condition": {
+                "kind": "expression",
+                "expression": "@postRow == null"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "404 投稿が見つかりませんを返す。",
+                  "responseId": "404-not-found",
+                  "bodyExpression": "{ code: 'POST_NOT_FOUND', message: '投稿が見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "投稿存在",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "compute",
+          "description": "ファイルをローカルストレージに保存する。実装は uuid v4 + 元拡張子のファイル名で @env.PHOTO_UPLOAD_DIR 配下に書き込み、公開 URL を返す。失敗時は STORAGE_ERROR を投げて 500 にする。",
+          "expression": "saveLocalFile(@inputs.file, { dir: @env.PHOTO_UPLOAD_DIR, filenameStrategy: 'uuid' })",
+          "outputBinding": {
+            "name": "saved"
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "compute",
+          "description": "サムネイルを生成する。sharp 等で @env.PHOTO_THUMBNAIL_WIDTH 幅にリサイズし、saved.dir 配下に <basename>_thumb.<ext> として保存。",
+          "expression": "generateThumbnail(@saved.absolutePath, { width: @env.PHOTO_THUMBNAIL_WIDTH, suffix: '_thumb' })",
+          "outputBinding": {
+            "name": "thumbnail"
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "compute",
+          "description": "画像の寸法 (width / height) を取得する。sharp 等で metadata から抽出。",
+          "expression": "extractImageDimensions(@saved.absolutePath)",
+          "outputBinding": {
+            "name": "dimensions"
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "compute",
+          "description": "EXIF メタデータを抽出する (撮影日時 / GPS / カメラ等)。exifr 等を使用。失敗時は null を返す実装で許容 (写真によっては EXIF が無いため)。",
+          "expression": "extractExif(@saved.absolutePath)",
+          "outputBinding": {
+            "name": "exifJson"
+          }
+        },
+        {
+          "id": "step-08",
+          "kind": "dbAccess",
+          "description": "photos テーブルに新規写真を INSERT する。order_index 未指定時は 0 (default)。",
+          "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+          "operation": "INSERT",
+          "sql": "INSERT INTO photos (post_id, url, thumbnail_url, alt, caption, order_index, width, height, bytes, mime_type, exif_json, created_at) VALUES (@inputs.postId, @saved.url, @thumbnail.url, @inputs.alt, @inputs.caption, COALESCE(@inputs.orderIndex, 0), @dimensions.width, @dimensions.height, @inputs.file.bytes, @inputs.file.mimeType, @exifJson, CURRENT_TIMESTAMP) RETURNING id AS \"photoId\"",
+          "outputBinding": {
+            "name": "newPhoto"
+          },
+          "affectedRowsCheck": {
+            "operator": "=",
+            "expected": 1,
+            "onViolation": "throw",
+            "errorCode": "PHOTO_UPLOAD_FAILED"
+          },
+          "lineage": {
+            "writes": [
+              {
+                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                "purpose": "insert"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-09",
+          "kind": "return",
+          "description": "201 作成成功 + 登録された写真情報を返す。",
+          "responseId": "201-created",
+          "bodyExpression": "{ photo: { id: @newPhoto.photoId, postId: @inputs.postId, url: @saved.url, thumbnailUrl: @thumbnail.url, width: @dimensions.width, height: @dimensions.height, bytes: @inputs.file.bytes, mimeType: @inputs.file.mimeType, orderIndex: COALESCE(@inputs.orderIndex, 0) } }"
+        }
+      ]
+    }
+  ]
+}

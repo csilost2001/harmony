@@ -1,0 +1,64 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "46436b69-99f2-48b3-a5fa-07bf9fcd1478",
+    "name": "ログアウト",
+    "description": "ログアウトを受け付ける処理フロー。JWT stateless 認証 + 1 ユーザー個人運用前提のため、サーバ側のトークン失効処理 (blacklist) は行わず、監査ログだけ残して 204 を返す。クライアントは access/refresh トークンを localStorage から破棄するだけで完了する。",
+    "kind": "screen",
+    "maturity": "draft",
+    "createdAt": "2026-05-07T00:00:00.000Z",
+    "updatedAt": "2026-05-07T00:00:00.000Z"
+  },
+  "context": {
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": true,
+        "description": "ログアウトを実行するユーザー ID (JWT から抽出)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "ログアウト",
+      "trigger": "submit",
+      "description": "監査ログを書き出して 204 を返す。クライアント側で localStorage の token を破棄する想定。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/auth/logout",
+        "auth": "required"
+      },
+      "inputs": [],
+      "outputs": [],
+      "responses": [
+        {
+          "id": "204-no-content",
+          "status": 204,
+          "description": "ログアウト処理完了 (本文なし)。",
+          "when": "認証済リクエストが届いた場合 (常に成功)。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "audit",
+          "description": "ログアウトイベントを監査ログに記録する。",
+          "action": "auth.logout",
+          "resource": {
+            "type": "user",
+            "id": "@sessionUserId"
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "return",
+          "description": "204 No Content を返す。",
+          "responseId": "204-no-content"
+        }
+      ]
+    }
+  ]
+}

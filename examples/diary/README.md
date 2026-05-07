@@ -30,7 +30,7 @@ examples/diary/
 ├── README.md                    # 本ファイル
 └── harmony/
     ├── tables/                  # 5 テーブル (User / Post / Tag / PostTag / Photo)
-    ├── process-flows/           # 9 ProcessFlow (CRUD 5 + AI 4)
+    ├── process-flows/           # 17 ProcessFlow (CRUD 5 + AI 4 + 認証 3 + 写真 1 + タグ CRUD 4)
     ├── screens/                 # 5 screens (.json + .design.json)
     ├── conventions/
     │   └── catalog.json         # i18n / regex / limit / msg (メッセージ / 境界値 等)
@@ -40,9 +40,9 @@ examples/diary/
     └── extensions/
 ```
 
-## ProcessFlow 一覧 (9 件)
+## ProcessFlow 一覧 (17 件)
 
-### CRUD + 検索 (5 件、kind: screen)
+### 投稿 CRUD + 検索 (5 件)
 
 | ID | name | HTTP |
 |---|---|---|
@@ -60,6 +60,29 @@ examples/diary/
 | `a9b0c1d2-...` | AIタグ提案 | POST /api/ai/tag-suggest | title+body → tag 候補 |
 | `b0c1d2e3-...` | AI画像alt生成 | POST /api/ai/alt-text | photo URL → alt text |
 | `c1d2e3f4-...` | AI文章校正 | POST /api/ai/proofread | text + style → 校正結果 |
+
+### 認証 (3 件、#863)
+
+| ID | name | HTTP |
+|---|---|---|
+| `1ce956c5-...` | ログイン | POST /api/auth/login |
+| `9537764e-...` | トークン更新 | POST /api/auth/refresh |
+| `46436b69-...` | ログアウト | POST /api/auth/logout |
+
+### 写真 (1 件、#861)
+
+| ID | name | HTTP |
+|---|---|---|
+| `2fecbf99-...` | 写真アップロード | POST /api/upload (multipart/form-data) |
+
+### タグ CRUD (4 件、#862)
+
+| ID | name | HTTP |
+|---|---|---|
+| `803764e4-...` | タグ一覧取得 | GET /api/tags |
+| `46b99455-...` | タグ作成 | POST /api/tags |
+| `8cc24fea-...` | タグ更新 | PUT /api/tags/:id |
+| `305509f7-...` | タグ削除 | DELETE /api/tags/:id |
 
 ## screens 一覧 (5 件)
 
@@ -98,18 +121,18 @@ examples/diary/
 
 ## Known limitations (follow-up ISSUE)
 
-| 項目 | ISSUE |
-|---|---|
-| 写真アップロード ProcessFlow 未定義 (現状 URL 直入力モック) | #861 |
-| タグ CRUD 完全化 (update/delete ProcessFlow 不在) | #862 |
-| 認証フロー (login/refresh/logout) ProcessFlow として未明示 | #863 |
-| screen items の `events[]` 補完 — `/generate-code` 精度向上 | #864 |
-| AI provider 抽象化 (Ollama / OpenAI 切替対応) | #865 |
-| AI モデル / 環境値参照 (現状リテラル文字列で迂回) | #859 (framework 改善) |
+| 項目 | ISSUE | 状態 |
+|---|---|---|
+| 写真アップロード ProcessFlow 未定義 (現状 URL 直入力モック) | #861 | ✅ 解消 |
+| タグ CRUD 完全化 (update/delete ProcessFlow 不在) | #862 | ✅ 解消 |
+| 認証フロー (login/refresh/logout) ProcessFlow として未明示 | #863 | ✅ 解消 |
+| screen items の `events[]` 補完 — `/generate-code` 精度向上 | #864 | ✅ 解消 |
+| AI provider 抽象化 (Ollama / OpenAI 切替対応) | #865 | open |
+| AI モデル / 環境値参照 (現状リテラル文字列で迂回) | #859 | ✅ 解消 (PR #921) |
 
 ## 検証
 
 ```bash
 cd frontend && npx tsx scripts/validate-samples.ts ../examples/diary
-# → 1 / 9 flows / 5 tables / 5 screens / 1 conventions catalogs (All validations passed)
+# → 17 / 17 flows / 5 tables / 5 screens / 1 conventions catalogs (All validations passed)
 ```

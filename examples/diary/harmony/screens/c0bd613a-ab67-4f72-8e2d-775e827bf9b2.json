@@ -2,13 +2,13 @@
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
   "id": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2",
   "name": "タグ管理",
-  "description": "Notion 風のタグ管理画面。色付きchip + 使用回数付きタグ一覧を表示。新規追加modal・編集modal (name/slug/colorPicker/iconPicker)・削除確認dialogを提供。タグCRUDは本フェーズのprocessFlowに含まれないためvalueFromは省略。",
+  "description": "Notion 風のタグ管理画面。色付きchip + 使用回数付きタグ一覧を表示。新規追加modal・編集modal (name/slug/colorPicker/iconPicker)・削除確認dialogを提供。tags 一覧の取得は タグ一覧取得 ProcessFlow を valueFrom で結線、CRUD button は events で各タグ ProcessFlow と結線。",
   "kind": "list",
   "path": "/tags",
   "auth": "required",
   "maturity": "draft",
   "createdAt": "2026-05-06T14:30:00.000Z",
-  "updatedAt": "2026-05-06T14:30:00.000Z",
+  "updatedAt": "2026-05-07T00:00:00.000Z",
   "items": [
     {
       "id": "tags",
@@ -27,7 +27,12 @@
         }
       },
       "direction": "output",
-      "description": "全タグの配列。id / name / slug / color / postCount を含む。"
+      "description": "全タグの配列。usage_count DESC + name ASC で並び替え済 (postCount は usageCount と同義)。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "803764e4-c27d-47fd-b3d9-924c1fa28bd8",
+        "variableName": "tags"
+      }
     },
     {
       "id": "newTagName",
@@ -44,11 +49,11 @@
       "label": "スラッグ",
       "type": "string",
       "direction": "input",
-      "description": "新規タグのURLスラッグ。英数字・ハイフンのみ。タグ名から自動生成も可。",
-      "required": true,
+      "description": "新規タグのURLスラッグ。英数字・ハイフンのみ。未入力時は タグ作成 ProcessFlow が name から自動生成する (slug は flow 側で optional)。",
+      "required": false,
       "maxLength": 50,
       "pattern": "^[a-z0-9-]+$",
-      "placeholder": "tag-slug"
+      "placeholder": "未入力でタグ名から自動生成"
     },
     {
       "id": "newTagColor",
@@ -70,17 +75,17 @@
     {
       "id": "editTagId",
       "label": "編集対象タグID",
-      "type": "string",
+      "type": "integer",
       "direction": "input",
-      "description": "編集モーダルで編集中のタグID。",
+      "description": "編集モーダルで編集中のタグID。タグ更新 ProcessFlow の id input (integer) と型を一致させる。",
       "required": false
     },
     {
       "id": "deleteTagId",
       "label": "削除対象タグID",
-      "type": "string",
+      "type": "integer",
       "direction": "input",
-      "description": "削除確認ダイアログで確認中のタグID。",
+      "description": "削除確認ダイアログで確認中のタグID。タグ削除 ProcessFlow の id input (integer) と型を一致させる。",
       "required": false
     },
     {
@@ -88,9 +93,70 @@
       "label": "タグ検索",
       "type": "string",
       "direction": "input",
-      "description": "タグ名での絞り込み検索キーワード。",
+      "description": "タグ名での絞り込み検索キーワード (クライアントサイド絞り込み、ProcessFlow は呼ばない)。",
       "required": false,
       "placeholder": "タグを検索…"
+    },
+    {
+      "id": "createTagButton",
+      "label": "タグを作成",
+      "type": "string",
+      "direction": "input",
+      "description": "新規追加 modal の確定ボタン。クリックで タグ作成 ProcessFlow を起動する。",
+      "required": false,
+      "events": [
+        {
+          "id": "submit",
+          "label": "タグ作成実行",
+          "handlerFlowId": "46b99455-a011-4419-937f-a5ef8368e694",
+          "argumentMapping": {
+            "name": "@screen.newTagName",
+            "slug": "@screen.newTagSlug",
+            "color": "@screen.newTagColor",
+            "icon": "@screen.newTagIcon"
+          }
+        }
+      ]
+    },
+    {
+      "id": "updateTagButton",
+      "label": "タグを更新",
+      "type": "string",
+      "direction": "input",
+      "description": "編集 modal の保存ボタン。クリックで タグ更新 ProcessFlow を起動する。editTagId が入力済の前提。",
+      "required": false,
+      "events": [
+        {
+          "id": "submit",
+          "label": "タグ更新実行",
+          "handlerFlowId": "8cc24fea-f497-432b-8496-5d86dea1c98b",
+          "argumentMapping": {
+            "id": "@screen.editTagId",
+            "name": "@screen.newTagName",
+            "slug": "@screen.newTagSlug",
+            "color": "@screen.newTagColor",
+            "icon": "@screen.newTagIcon"
+          }
+        }
+      ]
+    },
+    {
+      "id": "deleteTagButton",
+      "label": "タグを削除",
+      "type": "string",
+      "direction": "input",
+      "description": "削除確認 dialog の OK ボタン。クリックで タグ削除 ProcessFlow を起動する。deleteTagId が入力済の前提。",
+      "required": false,
+      "events": [
+        {
+          "id": "submit",
+          "label": "タグ削除実行",
+          "handlerFlowId": "305509f7-d118-459a-8acb-18780e4fde68",
+          "argumentMapping": {
+            "id": "@screen.deleteTagId"
+          }
+        }
+      ]
     }
   ],
   "design": {

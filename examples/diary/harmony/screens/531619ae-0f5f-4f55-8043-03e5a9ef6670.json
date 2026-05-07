@@ -2,13 +2,13 @@
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
   "id": "531619ae-0f5f-4f55-8043-03e5a9ef6670",
   "name": "投稿編集",
-  "description": "Notion + Substack 風の投稿作成・編集フォーム画面。タイトル入力・Markdownエディタ・写真D&Dアップロード・AI assistサイドパネル (要約/タグ提案/校正/画像alt)・mood/weather/locationフィールド・下書き保存/公開ボタン (sticky bottom)。idパラメータなしで新規作成モード。",
+  "description": "Notion + Substack 風の投稿作成・編集フォーム画面。タイトル入力・Markdownエディタ・写真D&Dアップロード・AI assistサイドパネル (要約/タグ提案/校正/画像alt)・mood/weather/locationフィールド・保存ボタン (sticky bottom)。path :id? の有無で新規作成 / 更新モードを切り替え。saveButton.events に create/update 双方を結線し、UI 側で URL parameter から実行 event を選ぶ実装を想定。",
   "kind": "form",
   "path": "/post/edit/:id?",
   "auth": "required",
   "maturity": "draft",
   "createdAt": "2026-05-06T14:30:00.000Z",
-  "updatedAt": "2026-05-06T14:30:00.000Z",
+  "updatedAt": "2026-05-07T00:00:00.000Z",
   "items": [
     {
       "id": "postTitle",
@@ -179,6 +179,161 @@
         "processFlowId": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e",
         "variableName": "altText"
       }
+    },
+    {
+      "id": "postId",
+      "label": "投稿ID",
+      "type": "integer",
+      "direction": "output",
+      "description": "URL :id? が指定されている場合の編集対象 postId。新規モードでは null。投稿詳細取得 ProcessFlow の outputs.post.postId を IdentifierPath (post.postId) で参照する。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "variableName": "post.postId"
+      }
+    },
+    {
+      "id": "selectedPhotoId",
+      "label": "AI alt 対象写真ID",
+      "type": "integer",
+      "direction": "input",
+      "description": "AI画像alt生成 button 押下時に対象となる photos[] の id を保持する画面 state。photo クリック時に実装側で update する。",
+      "required": false
+    },
+    {
+      "id": "uploadPhotoFile",
+      "label": "写真アップロード",
+      "type": { "kind": "file", "format": "image/*" },
+      "direction": "input",
+      "description": "写真 D&D ゾーン / file picker。ファイル選択 (submit event) で 写真アップロード ProcessFlow を起動し、photos[] に追加する。",
+      "required": false,
+      "events": [
+        {
+          "id": "submit",
+          "label": "写真アップロード実行",
+          "handlerFlowId": "2fecbf99-6a4e-4c62-840c-59d96e48ecb6",
+          "argumentMapping": {
+            "postId": "@screen.postId",
+            "file": "@self"
+          }
+        }
+      ]
+    },
+    {
+      "id": "saveButton",
+      "label": "保存",
+      "type": "string",
+      "direction": "input",
+      "description": "保存ボタン (公開 / 下書きは status item の値で決まる)。新規モード (postId=null) では 投稿作成 を、更新モード (postId 有) では 投稿更新 を起動する。UI 側で URL :id? の有無により click-create / click-update を選択する。",
+      "required": false,
+      "events": [
+        {
+          "id": "click-create",
+          "label": "新規投稿作成",
+          "handlerFlowId": "0671b051-4acc-49cf-ba92-9fa29b47f671",
+          "argumentMapping": {
+            "title": "@screen.postTitle",
+            "body": "@screen.postBody",
+            "mood": "@screen.mood",
+            "weather": "@screen.weather",
+            "location": "@screen.location",
+            "status": "@screen.status",
+            "photos": "@screen.photos",
+            "tags": "@screen.tagIds"
+          }
+        },
+        {
+          "id": "click-update",
+          "label": "既存投稿更新",
+          "handlerFlowId": "b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+          "argumentMapping": {
+            "postId": "@screen.postId",
+            "title": "@screen.postTitle",
+            "body": "@screen.postBody",
+            "mood": "@screen.mood",
+            "weather": "@screen.weather",
+            "location": "@screen.location",
+            "status": "@screen.status",
+            "photos": "@screen.photos",
+            "tags": "@screen.tagIds"
+          }
+        }
+      ]
+    },
+    {
+      "id": "aiSummarizeButton",
+      "label": "AI 要約",
+      "type": "string",
+      "direction": "input",
+      "description": "AI assist サイドパネルの「要約」ボタン。クリックで AI要約生成 ProcessFlow を起動し、結果を aiSummary に表示する。",
+      "required": false,
+      "events": [
+        {
+          "id": "click",
+          "label": "AI 要約実行",
+          "handlerFlowId": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
+          "argumentMapping": {
+            "postId": "@screen.postId",
+            "body": "@screen.postBody"
+          }
+        }
+      ]
+    },
+    {
+      "id": "aiTagSuggestButton",
+      "label": "AI タグ提案",
+      "type": "string",
+      "direction": "input",
+      "description": "AI assist サイドパネルの「タグ提案」ボタン。クリックで AIタグ提案 ProcessFlow を起動し、結果を aiSuggestedTags に表示する。",
+      "required": false,
+      "events": [
+        {
+          "id": "click",
+          "label": "AI タグ提案実行",
+          "handlerFlowId": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
+          "argumentMapping": {
+            "title": "@screen.postTitle",
+            "body": "@screen.postBody"
+          }
+        }
+      ]
+    },
+    {
+      "id": "aiProofreadButton",
+      "label": "AI 校正",
+      "type": "string",
+      "direction": "input",
+      "description": "AI assist サイドパネルの「校正」ボタン。クリックで AI文章校正 ProcessFlow を起動し、結果を aiProofreadResult に表示する。style は conventions.msg.proofreadStyle (default: 'casual-diary') を採用。",
+      "required": false,
+      "events": [
+        {
+          "id": "click",
+          "label": "AI 校正実行",
+          "handlerFlowId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+          "argumentMapping": {
+            "text": "@screen.postBody",
+            "style": "@conv.msg.proofreadStyle"
+          }
+        }
+      ]
+    },
+    {
+      "id": "aiImageAltButton",
+      "label": "AI 画像 alt",
+      "type": "string",
+      "direction": "input",
+      "description": "写真カードのインライン「AI alt」ボタン。クリック時に対象 photo の id を selectedPhotoId にセットしてから AI画像alt生成 ProcessFlow を起動し、結果を aiImageAlt に表示する。",
+      "required": false,
+      "events": [
+        {
+          "id": "click",
+          "label": "AI 画像 alt 実行",
+          "handlerFlowId": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e",
+          "argumentMapping": {
+            "photoId": "@screen.selectedPhotoId"
+          }
+        }
+      ]
     }
   ],
   "design": {

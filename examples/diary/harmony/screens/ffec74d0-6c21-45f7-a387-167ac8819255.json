@@ -2,24 +2,24 @@
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
   "id": "ffec74d0-6c21-45f7-a387-167ac8819255",
   "name": "投稿詳細",
-  "description": "Medium 風の投稿詳細表示画面。ヒーロー画像・タイトル・メタ情報 (公開日/著者/mood/天気/場所) + Markdownレンダリング本文 + フォトギャラリー + タグチップを表示。所有者には編集/削除ボタンを表示。",
+  "description": "Medium 風の投稿詳細表示画面。ヒーロー画像・タイトル・メタ情報 (公開日/著者/mood/天気/場所) + Markdownレンダリング本文 + フォトギャラリー + タグチップを表示。所有者には編集/削除ボタンを表示。編集ボタンは /post/edit/:id への画面遷移 (リンク扱いのため events 結線なし)、削除ボタンは deleteConfirm.events で 投稿削除 ProcessFlow と結線。",
   "kind": "detail",
   "path": "/post/:id",
   "auth": "required",
   "maturity": "draft",
   "createdAt": "2026-05-06T14:30:00.000Z",
-  "updatedAt": "2026-05-06T14:30:00.000Z",
+  "updatedAt": "2026-05-07T00:00:00.000Z",
   "items": [
     {
       "id": "postId",
       "label": "投稿ID",
-      "type": "string",
+      "type": "integer",
       "direction": "output",
-      "description": "URLパラメータから取得した投稿ID。投稿詳細取得フローに渡す。",
+      "description": "URL :id パラメータから取得した投稿ID。投稿詳細取得フローの outputs.post.postId を IdentifierPath (post.postId) で参照、deleteConfirm.events で 投稿削除 (postId integer) に渡す。",
       "valueFrom": {
         "kind": "flowVariable",
         "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
-        "variableName": "postId"
+        "variableName": "post.postId"
       }
     },
     {
@@ -183,7 +183,17 @@
       "type": "boolean",
       "direction": "input",
       "description": "削除確認ダイアログでOKを押した際に投稿削除フローを呼び出すトリガー。",
-      "required": false
+      "required": false,
+      "events": [
+        {
+          "id": "confirm",
+          "label": "削除実行",
+          "handlerFlowId": "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f",
+          "argumentMapping": {
+            "postId": "@screen.postId"
+          }
+        }
+      ]
     }
   ],
   "design": {

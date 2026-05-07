@@ -2,13 +2,13 @@
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
   "id": "31d56212-b654-46dc-b004-096c7382c404",
   "name": "投稿一覧",
-  "description": "Day One 風の投稿一覧画面。masonry グリッドで投稿カードを表示し、検索バー・タグチップフィルタ・公開状態トグルで絞り込み可能。各カードにヒーロー画像・AI生成要約・mood絵文字・天気アイコン・場所バッジ・タグチップを表示。新規投稿用フローティングFABを装備。",
+  "description": "Day One 風の投稿一覧画面。masonry グリッドで投稿カードを表示し、検索バー・タグチップフィルタ・公開状態トグルで絞り込み可能。各カードにヒーロー画像・AI生成要約・mood絵文字・天気アイコン・場所バッジ・タグチップを表示。新規投稿用フローティングFABを装備。検索フォーム / フィルタ変更時は events で 投稿検索 ProcessFlow を再起動、新規投稿 FAB は /post/edit への画面遷移 (リンク扱い、events 結線なし)。",
   "kind": "list",
   "path": "/",
   "auth": "required",
   "maturity": "draft",
   "createdAt": "2026-05-06T14:30:00.000Z",
-  "updatedAt": "2026-05-06T14:30:00.000Z",
+  "updatedAt": "2026-05-07T00:00:00.000Z",
   "items": [
     {
       "id": "searchQuery",
@@ -17,15 +17,39 @@
       "direction": "input",
       "description": "投稿タイトル・本文の全文検索キーワード。入力値を投稿検索フローに渡す。",
       "placeholder": "投稿を検索…",
-      "required": false
+      "required": false,
+      "events": [
+        {
+          "id": "submit",
+          "label": "検索実行",
+          "handlerFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+          "argumentMapping": {
+            "q": "@screen.searchQuery",
+            "tagSlug": "@screen.selectedTagSlugs",
+            "status": "@screen.statusFilter"
+          }
+        }
+      ]
     },
     {
       "id": "selectedTagSlugs",
       "label": "タグフィルタ",
       "type": { "kind": "array", "itemType": "string" },
       "direction": "input",
-      "description": "絞り込むタグのスラッグ一覧。複数選択可。投稿検索フローの tagSlugs パラメータに渡す。",
-      "required": false
+      "description": "絞り込むタグのスラッグ一覧。複数選択可。投稿検索フローの tagSlug パラメータにカンマ区切り文字列として渡す (実装側で配列→string 変換)。",
+      "required": false,
+      "events": [
+        {
+          "id": "change",
+          "label": "タグフィルタ変更",
+          "handlerFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+          "argumentMapping": {
+            "q": "@screen.searchQuery",
+            "tagSlug": "@screen.selectedTagSlugs",
+            "status": "@screen.statusFilter"
+          }
+        }
+      ]
     },
     {
       "id": "statusFilter",
@@ -39,7 +63,19 @@
         { "value": "draft", "label": "下書き" }
       ],
       "defaultValue": "all",
-      "required": false
+      "required": false,
+      "events": [
+        {
+          "id": "change",
+          "label": "公開状態フィルタ変更",
+          "handlerFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+          "argumentMapping": {
+            "q": "@screen.searchQuery",
+            "tagSlug": "@screen.selectedTagSlugs",
+            "status": "@screen.statusFilter"
+          }
+        }
+      ]
     },
     {
       "id": "posts",
@@ -100,8 +136,13 @@
         }
       },
       "direction": "output",
-      "description": "タグフィルタのチップ一覧として表示するタグ配列。id / name / slug / color を含む。",
-      "required": false
+      "description": "タグフィルタのチップ一覧として表示するタグ配列。id / name / slug / color を含む。タグ一覧取得 ProcessFlow の tags 出力から。",
+      "required": false,
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "803764e4-c27d-47fd-b3d9-924c1fa28bd8",
+        "variableName": "tags"
+      }
     },
     {
       "id": "totalCount",
@@ -114,6 +155,21 @@
         "processFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
         "variableName": "total"
       }
+    },
+    {
+      "id": "logoutButton",
+      "label": "ログアウト",
+      "type": "string",
+      "direction": "input",
+      "description": "ヘッダー右上のログアウトボタン。クリックで ログアウト ProcessFlow を起動し、成功時に localStorage の access/refresh トークンを破棄して /login に画面遷移する想定。",
+      "required": false,
+      "events": [
+        {
+          "id": "click",
+          "label": "ログアウト実行",
+          "handlerFlowId": "46436b69-99f2-48b3-a5fa-07bf9fcd1478"
+        }
+      ]
     }
   ],
   "design": {
