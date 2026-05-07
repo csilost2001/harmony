@@ -183,10 +183,14 @@ export function ConventionsCatalogView() {
       await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: catalogRef.current });
     }
     // P1-B fix (#908): conflict check (actions.save) を本体書き込みより先に実行する。
-    // editSession.save が conflict なしと判断してから backend が本体ファイルを書き込む。
     // P1 fix (#908): conflict 時は postSave をスキップして clean 化を防ぐ。
     const { conflicted } = await actions.save();
     if (conflicted) return;
+    // P1 fix (#908 round-5): convention は backend editSession.save で write skip されるため、
+    // ここで catalog 本体ファイル書き込みを実行する (Extensions と同パターン)。
+    if (catalogRef.current) {
+      await saveCatalog(catalogRef.current);
+    }
     await postSave();
   }, [isReadonly, isSaving, postSave, actions, editSession]);
 

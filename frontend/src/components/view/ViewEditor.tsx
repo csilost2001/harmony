@@ -104,11 +104,19 @@ export function ViewEditor() {
 
   const handleSave = useCallback(async () => {
     if (isReadonly || isSaving) return;
+    // P1 fix (#908 round-5): debounce 中の draft を flush して即送信、その後 conflict check
+    if (draftUpdateTimer.current) {
+      clearTimeout(draftUpdateTimer.current);
+      draftUpdateTimer.current = null;
+    }
+    if (viewRef.current && editSession?.id) {
+      await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: viewRef.current });
+    }
     // P1 fix (#908): conflict 時は postSave をスキップして clean 化を防ぐ。
     const { conflicted } = await actions.save();
     if (conflicted) return;
     await postSave();
-  }, [isReadonly, isSaving, actions, postSave]);
+  }, [isReadonly, isSaving, actions, postSave, editSession]);
 
   const handleDiscard = useCallback(async () => {
     setShowDiscardDialog(false);

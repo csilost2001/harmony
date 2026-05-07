@@ -129,11 +129,14 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
   });
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
+  // P2 fix (#908 round-5): editorKind 未解決中は session attach をスキップ (race 回避)。
+  // 初回 render で resourceType: "screen" のまま attach すると、後で "puck-data" に変わっても
+  // hook 内部 state は不整合のまま残る。resolved 後に正しい resourceType で attach する。
   const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions: editActions, takeOver: editTakeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: resolvedEditSessionResourceType,
     resourceId: screenId,
     sessionId,
-    editSessionId: initialDesignSessionId,
+    editSessionId: editorKindResolved ? initialDesignSessionId : undefined,
   });
 
   const isReadonly = mode.kind !== "editing";

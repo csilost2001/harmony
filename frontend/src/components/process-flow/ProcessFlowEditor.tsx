@@ -333,11 +333,19 @@ export function ProcessFlowEditor() {
   // 保存時にバリデーションをチェック（blocking なエラーがあれば中断）
   const handleSave = useCallback(async () => {
     if (!group || isReadonly || hasBlockingErrors(aggregateValidation(group, { tables: tableDefs, conventions, extensions }))) return;
+    // P1 fix (#908 round-5): debounce 中の draft を flush して即送信、その後 conflict check
+    if (draftUpdateTimer.current) {
+      clearTimeout(draftUpdateTimer.current);
+      draftUpdateTimer.current = null;
+    }
+    if (groupRef.current && editSession?.id) {
+      await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: groupRef.current });
+    }
     // P1 fix (#908): conflict 時は hookPostSave をスキップして clean 化を防ぐ。
     const { conflicted } = await editActions.save();
     if (conflicted) return;
     await hookPostSave();
-  }, [group, isReadonly, hookPostSave, tableDefs, conventions, extensions, editActions]);
+  }, [group, isReadonly, hookPostSave, tableDefs, conventions, extensions, editActions, editSession]);
 
   // D&D: PointerSensor に移動距離閾値を設定（クリックとドラッグを区別）
   const sensors = useSensors(
