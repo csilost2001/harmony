@@ -1081,16 +1081,19 @@ function FlowEditorInner() {
             // P2 fix (#912): flow は backend editSession.save で write skip されるため、
             // 上書き確認後に frontend で persistProject() を先に実行し、saveCommit() で saveHistory を記録する。
             // (persist 失敗時に saveHistory が先行記録される問題を解消)
+            // Should-fix (#916 review): projectRef.current が null なら persist 不能 — dialog を閉じて状態リセット。
+            if (!projectRef.current) {
+              onSaveConflictCancel();
+              return;
+            }
             try {
-              if (projectRef.current) {
-                await persistProject(projectRef.current);
-                const commitResult = await saveCommit();
-                if (commitResult.failed) return;
-                setIsDirty(false);
-                isDirtyRef.current = false;
-                dismissServerBanner();
-                await acknowledgeServerMtime("project");
-              }
+              await persistProject(projectRef.current);
+              const commitResult = await saveCommit();
+              if (commitResult.failed) return;
+              setIsDirty(false);
+              isDirtyRef.current = false;
+              dismissServerBanner();
+              await acknowledgeServerMtime("project");
             } catch (e) {
               console.error("[FlowEditor] save overwrite failed:", e);
             }

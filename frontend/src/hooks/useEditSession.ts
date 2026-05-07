@@ -517,6 +517,11 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
   /**
    * P2 fix (#912): 2 段階保存の前段 — conflict check のみ。
    * 衝突検出時は saveConflict state にセットして { conflicted: true } を返す。
+   *
+   * 注意: hook の `loading` 状態はトグルしない (#916 review Should-fix)。
+   * 本メソッドは saveCheckConflict → persistProject → saveCommit の 3 段で必ずペア使用される
+   * 設計のため、独立してローディング状態を上書きすると persistProject 中に sessionLoading=false に
+   * 落ちる「チカチカ」が発生する。caller (FlowEditor) が独自の `isSaving` で 3 段全体をラップする。
    */
   const saveCheckConflict = useCallback(async (): Promise<{ conflicted: boolean; failed?: boolean }> => {
     setError(null);
@@ -525,7 +530,6 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
       setError(new Error("EditSession がアクティブでありません"));
       return { conflicted: false };
     }
-    setLoading(true);
     try {
       const res = await mcpBridge.request("editSession.save", {
         editSessionId: es.id,
@@ -539,14 +543,14 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
       return { conflicted: false, failed: true };
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   /**
    * P2 fix (#912): 2 段階保存の後段 — saveHistory 記録 + broadcast。conflict check skip。
    * checkOnly 後の本体書き込み成功後に呼ぶ。
+   *
+   * 注意: hook の `loading` 状態はトグルしない (saveCheckConflict と同理由、#916 review Should-fix)。
    */
   const saveCommit = useCallback(async (): Promise<{ failed?: boolean }> => {
     setError(null);
@@ -555,7 +559,6 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
       setError(new Error("EditSession がアクティブでありません"));
       return { failed: true };
     }
-    setLoading(true);
     try {
       await mcpBridge.request("editSession.save", {
         editSessionId: es.id,
@@ -567,8 +570,6 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
     } catch (e) {
       setError(e instanceof Error ? e : new Error(String(e)));
       return { failed: true };
-    } finally {
-      setLoading(false);
     }
   }, []);
 
