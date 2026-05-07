@@ -236,4 +236,83 @@ describe("EditSessionDropdown", () => {
     await waitFor(() => screen.getByTestId("esd-session-es-discarded"));
     expect(screen.queryByTestId("esd-viewer-btn-es-discarded")).toBeNull();
   });
+
+  // ── Phase 7 (#904) 追加ケース: AI 表示 / take-over / discard ────────────────
+
+  it("Phase7: AI participant を含む EditSession では 'AI' ラベルが表示される (spec §10.3)", async () => {
+    mockRequest.mockResolvedValue({
+      sessions: [makeAIEditSession()],
+    });
+
+    render(<EditSessionDropdown {...defaultProps} />);
+    fireEvent.click(screen.getByTestId("esd-toggle-btn"));
+
+    await waitFor(() => {
+      // "Alice@AI" という displayLabel が表示されること (spec §10.3 Alice@AI 形式)
+      expect(screen.getByText("Alice@AI")).toBeTruthy();
+    });
+  });
+
+  it("Phase7: 自分が View の場合 [↪ 引継] ボタンが表示される (spec §7.2 View 経由必須)", async () => {
+    // session-self が View participant として参加している
+    mockRequest.mockResolvedValue({
+      sessions: [
+        makeEditSession({
+          id: "es-takeover-test",
+          participants: {
+            "session-alice": {
+              sessionId: "session-alice",
+              role: "Edit",
+              joinedAt: new Date().toISOString(),
+              lastActivityAt: new Date().toISOString(),
+              displayLabel: "@alice",
+            },
+            "session-self": {
+              sessionId: "session-self",
+              role: "View",
+              joinedAt: new Date().toISOString(),
+              lastActivityAt: new Date().toISOString(),
+              displayLabel: "@self",
+            },
+          },
+        }),
+      ],
+    });
+
+    render(<EditSessionDropdown {...defaultProps} />);
+    fireEvent.click(screen.getByTestId("esd-toggle-btn"));
+
+    await waitFor(() => {
+      // View として参加中 → take-over ボタンが表示される
+      expect(screen.getByTestId("esd-takeover-btn-es-takeover-test")).toBeTruthy();
+    });
+  });
+
+  it("Phase7: 自分が Edit の場合 [× 破棄] ボタンが表示される", async () => {
+    // session-self が Edit participant として参加している
+    mockRequest.mockResolvedValue({
+      sessions: [
+        makeEditSession({
+          id: "es-discard-test",
+          participants: {
+            "session-self": {
+              sessionId: "session-self",
+              role: "Edit",
+              joinedAt: new Date().toISOString(),
+              lastActivityAt: new Date().toISOString(),
+              displayLabel: "@self",
+            },
+          },
+        }),
+      ],
+    });
+
+    render(<EditSessionDropdown {...defaultProps} currentMode={{ kind: "editing" }} />);
+    fireEvent.click(screen.getByTestId("esd-toggle-btn"));
+
+    await waitFor(() => {
+      // Edit として参加中 → discard ボタンが表示される
+      expect(screen.getByTestId("esd-discard-btn-es-discard-test")).toBeTruthy();
+    });
+  });
 });

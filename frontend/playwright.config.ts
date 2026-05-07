@@ -20,10 +20,24 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   // テスト前に dev サーバーを自動起動
-  webServer: {
-    command: `npm run dev -- --port ${VITE_PORT}`,
-    url: BASE_URL,
-    reuseExistingServer: true, // 既存サーバーが起動中ならそれを再利用 (worktree 環境でも安全)
-    timeout: 30000,
-  },
+  // edit-session e2e (#904) では backend も必要。
+  // reuseExistingServer: true なので既存サーバーがあれば再利用され、多重起動しない。
+  // backend を手動で別ターミナルで起動している場合は自動 spawn は行われない。
+  webServer: [
+    {
+      command: `npm run dev -- --port ${VITE_PORT}`,
+      url: BASE_URL,
+      reuseExistingServer: true, // 既存サーバーが起動中ならそれを再利用 (worktree 環境でも安全)
+      timeout: 30000,
+    },
+    {
+      command: "cd ../backend && npm run dev",
+      url: "http://localhost:5179",
+      reuseExistingServer: true, // 既存 backend があれば再利用 (常駐 backend に接続)
+      timeout: 30000,
+      // backend 起動失敗は e2e test の skip (MCP 接続チェック) で吸収するため ignoreHTTPSErrors は不要
+      // edit-session specs は backend 起動確認を edit-mode-start の表示でチェックし、
+      // 未接続の場合は test.skip() で graceful skip される
+    },
+  ],
 });

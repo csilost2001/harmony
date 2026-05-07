@@ -465,3 +465,139 @@ describe("useEditSession (新 API, spec §15.2)", () => {
   });
 });
 // Phase 6 (#903): useEditSessionLegacy テスト削除済み。
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Phase 7 (#904) 追加ケース — broadcast 受信時の myRole 反映 / payload 反映の網羅
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe("useEditSession Phase 7 追加: broadcast 反映の網羅 (spec §14 / §18.1)", () => {
+  // ── ケース P7-1: editSession.roleChanged で myRole が View に変わる ──
+
+  it("P7-1. broadcast editSession.roleChanged (newRole=View): myRole が View に反映される", async () => {
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      editSession: MOCK_EDIT_SESSION,
+    });
+
+    const { result } = renderHook(() => useEditSession(NEW_OPTS));
+
+    await act(async () => {
+      await result.current.startEditing();
+    });
+
+    // Edit 状態
+    expect(result.current.myRole).toBe("Edit");
+
+    // roleChanged broadcast で View に降格 (take-over された側)
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      sessions: [
+        {
+          ...MOCK_EDIT_SESSION,
+          participants: {
+            [SESSION_ID]: {
+              sessionId: SESSION_ID,
+              role: "View",
+              joinedAt: new Date().toISOString(),
+              lastActivityAt: new Date().toISOString(),
+              displayLabel: "@alice",
+            },
+            "session-editor": {
+              sessionId: "session-editor",
+              role: "Edit",
+              joinedAt: new Date().toISOString(),
+              lastActivityAt: new Date().toISOString(),
+              displayLabel: "@bob",
+            },
+          },
+        },
+      ],
+    });
+
+    await act(async () => {
+      fireBroadcast("editSession.roleChanged", {
+        editSessionId: "es-test-001",
+        sessionId: SESSION_ID,
+        oldRole: "Edit",
+        newRole: "View",
+        op: "transferred",
+        transferTo: "session-editor",
+      });
+    });
+
+    // refreshEditSessionState が呼ばれたことを確認
+    expect(mcpBridge.request).toHaveBeenCalledWith("editSession.list", {
+      resourceType: "table",
+      resourceId: "tbl-001",
+    });
+  });
+
+  // ── ケース P7-2: payload の broadcast 反映と editSession フィルタ ──
+
+  it("P7-2. broadcast editSession.update: payload が正しく反映される (sequence フィルタ)", async () => {
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      editSession: MOCK_EDIT_SESSION,
+    });
+
+    const { result } = renderHook(() => useEditSession(NEW_OPTS));
+
+    await act(async () => {
+      await result.current.startEditing();
+    });
+
+    // 自分の editSession の更新は反映される
+    await act(async () => {
+      fireBroadcast("editSession.update", {
+        editSessionId: "es-test-001",
+        sequence: 5,
+        payload: { data: "p7-payload" },
+        senderSessionId: "other-session",
+      });
+    });
+
+    expect(result.current.payload).toEqual({ data: "p7-payload" });
+
+    // sequence が古い場合は無視
+    await act(async () => {
+      fireBroadcast("editSession.update", {
+        editSessionId: "es-test-001",
+        sequence: 3, // 古い sequence
+        payload: { data: "stale-payload" },
+        senderSessionId: "other-session",
+      });
+    });
+
+    // stale payload は反映されない
+    expect(result.current.payload).toEqual({ data: "p7-payload" });
+  });
+
+  // ── ケース P7-3: editSession.saved broadcast 後の state 確認 ──
+
+  it("P7-3. broadcast editSession.saved: save 後も state は Active のまま (§4.1 Active 継続)", async () => {
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      editSession: MOCK_EDIT_SESSION,
+    });
+
+    const { result } = renderHook(() => useEditSession(NEW_OPTS));
+
+    await act(async () => {
+      await result.current.startEditing();
+    });
+
+    // editSession.saved broadcast を受信しても Discarded にはならない
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      sessions: [MOCK_EDIT_SESSION],
+    });
+
+    await act(async () => {
+      fireBroadcast("editSession.saved", {
+        editSessionId: "es-test-001",
+        savedBy: SESSION_ID,
+        savedAt: new Date().toISOString(),
+        sequence: 1,
+      });
+    });
+
+    // state は Active のまま
+    expect(result.current.editSession?.state).toBe("Active");
+    expect(result.current.myRole).toBe("Edit");
+  });
+});
