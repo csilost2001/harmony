@@ -1,5 +1,11 @@
 # collab-presence — 協調編集 (Direction B) 仕様
 
+> **2026-05-07 改訂**: PR #888 の dogfood で「後から接続した viewer が編集中の最新 state を取得できない」根本欠陥が発覚 (= Direction B のメインユースケース破綻)。本 spec の lock + draft + presence の 3 層モデルから、**EditSession 一級概念を中核とする正規プロトコル**に再定義された。正規プロトコルは [`edit-session-protocol.md`](./edit-session-protocol.md) を参照。
+>
+> 本 spec は **overture (序章)** として継続有効: Direction B 採用根拠 (§ 2) / Forward-Compat 4 原則 (§ 3) / Activity taxonomy (§ 9) / Direction A への移行可能性 (本 spec の方針継続)。
+>
+> § 4-8 / § 11 のアーキテクチャ・状態遷移・broadcast プロトコル・既存 spec との関係は `edit-session-protocol.md` で置き換えられている。
+
 > **シリーズ**: メタ #876 / RFC 派生 #855 (Option B 採用)
 >
 > 本ドキュメントは #855 で確定した Direction B (編集者 1 名 + 閲覧者複数 + presence + take-over UX) の正規仕様。
