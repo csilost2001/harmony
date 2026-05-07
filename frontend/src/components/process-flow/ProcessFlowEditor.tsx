@@ -249,16 +249,19 @@ export function ProcessFlowEditor() {
   });
 
   const sessionId = mcpBridge.getSessionId();
+
+  // URL ?session= 同期 (spec §11.2) — initialEditSessionId を useEditSession に渡すため先に呼ぶ
+  const { syncSessionToUrl, initialEditSessionId: initialProcessFlowSessionId } = useSessionUrlSync({
+    resourceType: "process-flow",
+    resourceId: processFlowId ?? "",
+  });
+
+  // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions: editActions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "process-flow",
     resourceId: processFlowId ?? "",
     sessionId,
-  });
-
-  // URL ?session= 同期 (spec §11.2)
-  const { syncSessionToUrl } = useSessionUrlSync({
-    resourceType: "process-flow",
-    resourceId: processFlowId ?? "",
+    editSessionId: initialProcessFlowSessionId,
   });
 
   const isReadonly = mode.kind !== "editing";

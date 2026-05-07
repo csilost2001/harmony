@@ -1248,12 +1248,19 @@ class WsBridge extends EventEmitter {
           if (!esWsId) { respondError("ワークスペースが選択されていません"); break; }
           const {
             editSessionId: esTrId,
-            toSessionId: esTrTo,
-          } = (params ?? {}) as { editSessionId: string; toSessionId: string };
+          } = (params ?? {}) as { editSessionId: string; toSessionId?: string };
           const esStore = this.getOrCreateEditSessionStore(esWsId);
+
+          // P2-1: caller (clientId) は take-over を実行する viewer (= toSessionId)。
+          // fromSessionId (現 Edit holder) は EditSession の participants から自動検索する (#907 regression 解消)。
+          const esTrSession = esStore.getById(esTrId);
+          const esTrFromSessionId = esTrSession
+            ? (Array.from(esTrSession.participants.values()).find((p) => p.role === "Edit")?.sessionId ?? clientId)
+            : clientId;
+
           const { from: esTrFrom, to: esTrNew } = esStore.transferEdit(
-            clientId,
-            esTrTo,
+            esTrFromSessionId,
+            clientId,  // caller = take-over 実行者 = new Edit holder
             esTrId,
           );
           respond({ from: esTrFrom, to: esTrNew });
@@ -1262,11 +1269,11 @@ class WsBridge extends EventEmitter {
             event: "editSession.roleChanged",
             data: {
               editSessionId: esTrId,
-              sessionId: esTrTo,
+              sessionId: clientId,  // clientId = take-over 実行者 = new Edit holder
               oldRole: "View" as const,
               newRole: "Edit" as const,
               op: "transferred",
-              transferTo: esTrTo,
+              transferTo: clientId,
             },
           });
           break;
@@ -1333,6 +1340,67 @@ class WsBridge extends EventEmitter {
           }
 
           const saveEvent = await esStore.save(esSvId, clientId);
+
+          // P1-1: 本体 resource file へ atomic write (#907 regression 解消)
+          // editSession.save は saveHistory 記録に加え、in-memory payload を本体ファイルに書き込む。
+          // payload が null (まだ editSession.update が 1 度も呼ばれていない) の場合はスキップ。
+          const esSvSession = esStore.getById(esSvId);
+          if (esSvSession && esSvSession.payload !== null && esSvSession.payload !== undefined) {
+            const esSvRoot = resolveRoot(clientId);
+            const esSvType = esSvSession.resourceType;
+            const esSvResId = esSvSession.resourceId;
+            const esSvPayload = esSvSession.payload;
+            try {
+              switch (esSvType) {
+                case "screen":
+                  await writeScreen(esSvResId, esSvPayload, esSvRoot);
+                  break;
+                case "puck-data":
+                  await writePuckData(esSvResId, esSvPayload, esSvRoot);
+                  break;
+                case "table":
+                  await writeTable(esSvResId, esSvPayload, esSvRoot);
+                  break;
+                case "process-flow":
+                  await writeProcessFlow(esSvResId, esSvPayload, esSvRoot);
+                  break;
+                case "view":
+                  await writeView(esSvResId, esSvPayload, esSvRoot);
+                  break;
+                case "view-definition":
+                  await writeViewDefinition(esSvResId, esSvPayload, esSvRoot);
+                  break;
+                case "screen-item": {
+                  // screen-item payload は { screenId, items, ... } 形式
+                  const siPayload = esSvPayload as { screenId?: string } | null;
+                  const siScreenId = siPayload && typeof siPayload.screenId === "string" && siPayload.screenId
+                    ? siPayload.screenId
+                    : esSvResId;
+                  await writeScreenItems(siScreenId, esSvPayload, esSvRoot);
+                  break;
+                }
+                case "sequence":
+                  await writeSequence(esSvResId, esSvPayload, esSvRoot);
+                  break;
+                case "flow":
+                  // flow (画面フロー) は FlowEditor が persistProject() で harmony.json + screen-layout.json を
+                  // 既に書き込んでいるため、ここでは二重書き込みを避けスキップ。
+                  // editSession.save はサーバ側 saveHistory 記録のみ担う。
+                  break;
+                case "extension":
+                case "convention":
+                  // extension / convention は専用 MCP tool handler が書き込むため、ここではスキップ。
+                  break;
+                default:
+                  // 未対応 type は無視 (schema 拡張時に追加)
+                  break;
+              }
+            } catch (esSvWriteErr) {
+              console.error(`[editSession.save] resource file 書き込み失敗 (type=${esSvType}, id=${esSvResId}):`, esSvWriteErr);
+              // 書き込み失敗でも saveHistory / broadcast は続行 (可用性優先)
+            }
+          }
+
           respond({ ok: true, saveEvent });
           this.broadcast({
             wsId: esWsId,

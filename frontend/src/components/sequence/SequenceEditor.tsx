@@ -71,16 +71,18 @@ export function SequenceEditor() {
     onNotFound: handleNotFound,
   });
 
+  // URL ?session= 同期 (spec §11.2) — initialEditSessionId を useEditSession に渡すため先に呼ぶ
+  const { syncSessionToUrl, initialEditSessionId: initialSequenceSessionId } = useSessionUrlSync({
+    resourceType: "sequence",
+    resourceId: sequenceId ?? "",
+  });
+
+  // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "sequence",
     resourceId: sequenceId ?? "",
     sessionId,
-  });
-
-  // URL ?session= 同期 (spec §11.2)
-  const { syncSessionToUrl } = useSessionUrlSync({
-    resourceType: "sequence",
-    resourceId: sequenceId ?? "",
+    editSessionId: initialSequenceSessionId,
   });
 
   const isReadonly = mode.kind !== "editing";

@@ -112,16 +112,18 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
 
   // useEditSession — TableEditor:77 と同型
   const sessionId = mcpBridge.getSessionId();
+  // URL ?session= 同期 (spec §11.2) — initialEditSessionId を useEditSession に渡すため先に呼ぶ
+  const { syncSessionToUrl, initialEditSessionId: initialDesignSessionId } = useSessionUrlSync({
+    resourceType: "screen",
+    resourceId: screenId,
+  });
+
+  // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions: editActions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "screen",
     resourceId: screenId,
     sessionId,
-  });
-
-  // URL ?session= 同期 (spec §11.2)
-  const { syncSessionToUrl } = useSessionUrlSync({
-    resourceType: "screen",
-    resourceId: screenId,
+    editSessionId: initialDesignSessionId,
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -309,6 +311,12 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
     try {
       if (editorKind === "puck") {
         // Puck 画面: pending payload を flush してから EditSession.save で確定保存 (#806 M-1, autosave廃止 D-1)
+        // P1-2 fix (#907): puckPendingPayloadRef を読み出してから editSession.update 送信し、
+        // その後 puckFlushRef でタイマーキャンセル + null クリア (送信前に clear すると null payload で save される)。
+        const puckPending = puckPendingPayloadRef.current;
+        if (puckPending !== null && puckPending !== undefined && editSession?.id) {
+          await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: puckPending });
+        }
         if (puckFlushRef.current) {
           puckFlushRef.current();
           puckFlushRef.current = null;

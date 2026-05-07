@@ -7,6 +7,7 @@ import { listTables } from "../../store/tableStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
+import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { EditorHeader, type EditorHeaderSaveReset, type EditorHeaderBackLink } from "../common/EditorHeader";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
@@ -68,10 +69,18 @@ export function ViewEditor() {
     onNotFound: handleNotFound,
   });
 
+  // URL ?session= 同期 (spec §11.2) — initialEditSessionId を useEditSession に渡すため先に呼ぶ
+  const { initialEditSessionId: initialViewSessionId } = useSessionUrlSync({
+    resourceType: "view",
+    resourceId: viewId ?? "",
+  });
+
+  // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "view",
     resourceId: viewId ?? "",
     sessionId,
+    editSessionId: initialViewSessionId,
   });
 
   const isReadonly = mode.kind !== "editing";

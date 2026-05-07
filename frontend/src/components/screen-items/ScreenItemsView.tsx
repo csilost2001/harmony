@@ -451,16 +451,18 @@ export function ScreenItemsView() {
     onNotFound: () => navigate(wsPath("/screen/list"), { replace: true }),
   });
 
+  // URL ?session= 同期 (spec §11.2) — initialEditSessionId を useEditSession に渡すため先に呼ぶ
+  const { syncSessionToUrl, initialEditSessionId: initialScreenItemsSessionId } = useSessionUrlSync({
+    resourceType: "screen-item",
+    resourceId: screenId ?? "",
+  });
+
+  // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "screen-item",
     resourceId: screenId ?? "",
     sessionId,
-  });
-
-  // URL ?session= 同期 (spec §11.2)
-  const { syncSessionToUrl } = useSessionUrlSync({
-    resourceType: "screen-item",
-    resourceId: screenId ?? "",
+    editSessionId: initialScreenItemsSessionId,
   });
 
   const isReadonly = mode.kind !== "editing";

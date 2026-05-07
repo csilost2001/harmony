@@ -55,6 +55,7 @@ import { useUndoKeyboard } from "../../hooks/useUndoKeyboard";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { useFlowProjectSync } from "../../hooks/useFlowProjectSync";
 import { useEditSession } from "../../hooks/useEditSession";
+import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import {
   DiscardConfirmDialog,
@@ -154,10 +155,18 @@ function FlowEditorInner() {
 
   const sessionId = mcpBridge.getSessionId();
 
+  // URL ?session= 同期 (spec §11.2) — initialEditSessionId を useEditSession に渡すため先に呼ぶ
+  const { initialEditSessionId: initialFlowSessionId } = useSessionUrlSync({
+    resourceType: "flow",
+    resourceId: "singleton",
+  });
+
+  // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "flow",
     resourceId: "singleton",
     sessionId,
+    editSessionId: initialFlowSessionId,
   });
 
   const isReadonly = mode.kind !== "editing";
