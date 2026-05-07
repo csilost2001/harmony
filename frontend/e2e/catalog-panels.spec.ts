@@ -1,40 +1,58 @@
 /**
  * ProcessFlow レベルカタログ編集 UI の統合 E2E (#278)
- * ambientVariables / secretsCatalog / externalSystemCatalog の
- * 3 パネルが正しく展開・追加・編集・削除できることを検証。
+ *
+ * #926: realWorkspace + 実 backend 経由に移植。
  */
 import { test, expect, type Page } from "@playwright/test";
+import {
+  setupTestWorkspace,
+  cleanupRealWorkspaces,
+  isMcpRunning,
+  normalizeId,
+  type OpenedWorkspace,
+} from "./helpers/realWorkspace";
 
 const groupId = "ag-catalog-all";
-
-const dummyGroup = {
-  id: groupId, name: "all catalog UI", type: "screen", description: "",
-  mode: "upstream", maturity: "draft",
-  actions: [{
-    id: "act-1", name: "ボタン", trigger: "click", maturity: "draft",
-    responses: [], steps: [],
-  }],
-  createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+const baseTs = "2026-05-08T00:00:00.000Z";
+const dummyGroupBody = {
+  id: groupId,
+  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
+  meta: { id: groupId, name: "all catalog UI", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
+  actions: [{ id: "act-1", name: "ボタン", trigger: "click", maturity: "draft", responses: [], steps: [] }],
 };
 const dummyProject = {
-  version: 1, name: "catalog-ui", screens: [], groups: [], edges: [], tables: [],
-  processFlows: [{ id: groupId, no: 1, name: dummyGroup.name, type: dummyGroup.type, actionCount: 1, updatedAt: dummyGroup.updatedAt, maturity: "draft" }],
-  updatedAt: new Date().toISOString(),
+  version: 1, name: "catalog-ui",
+  screens: [], groups: [], edges: [], tables: [],
+  processFlows: [{ id: groupId, no: 1, name: "all catalog UI", kind: "screen", actionCount: 1, maturity: "draft" }],
 };
 
+const WS_KEY = "issue-926-catalog-panels";
+let mcpAvailable = false;
+let ws: OpenedWorkspace;
+
 async function setup(page: Page) {
-  await page.addInitScript(({ project, group }) => {
-    localStorage.setItem("workspace-e2e-bypass", "true");
-      localStorage.setItem("flow-project", JSON.stringify(project));
-    localStorage.setItem(`process-flow-${group.id}`, JSON.stringify(group));
-    localStorage.removeItem("harmony-open-tabs");
-    localStorage.removeItem("harmony-active-tab");
-  }, { project: dummyProject, group: dummyGroup });
-  await page.goto(`/process-flow/edit/${groupId}`);
+  await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
   await expect(page.locator(".step-editor, .process-flow-content").first()).toBeVisible({ timeout: 10000 });
 }
 
 test.describe("ProcessFlow カタログ編集パネル (#278)", () => {
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+  });
+
+  test.afterAll(async () => {
+    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+  });
+
+  test.beforeEach(async () => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      processFlows: [dummyGroupBody],
+    });
+  });
+
   test("4 つのカタログパネルが全て表示される", async ({ page }) => {
     await setup(page);
     await expect(page.locator(".ambient-variables-panel")).toBeVisible();
@@ -47,7 +65,6 @@ test.describe("ProcessFlow カタログ編集パネル (#278)", () => {
     await page.locator(".ambient-variables-panel .catalog-panel-toggle").click();
     await page.locator(".ambient-variables-panel button:has-text('追加')").click();
     await page.locator(".ambient-variables-panel input[value='']").first().fill("requestId");
-    // type は既定 string
     await page.locator(".ambient-variables-panel input[type='checkbox']").check();
     await expect(page.locator(".ambient-variables-panel .catalog-key-badge")).toContainText("requestId");
   });
@@ -67,16 +84,13 @@ test.describe("ProcessFlow カタログ編集パネル (#278)", () => {
     await page.locator(".external-system-catalog-panel .catalog-panel-toggle").click();
     await page.fill(".external-system-catalog-panel .catalog-new-key", "stripe");
     await page.locator(".external-system-catalog-panel button:has-text('追加')").click();
-    // name は key 名で初期化されているので baseUrl のみ確認
     await page.locator(".external-system-catalog-panel input[placeholder*='stripe.com']").fill("https://api.stripe.com");
-    // auth.kind を bearer に
     await page.locator(".external-system-catalog-panel select").first().selectOption("bearer");
     await expect(page.locator(".external-system-catalog-panel .catalog-key-badge")).toContainText("stripe");
   });
 
   test("各パネルの削除ボタン", async ({ page }) => {
     await setup(page);
-    // ambient 追加 → 削除
     await page.locator(".ambient-variables-panel .catalog-panel-toggle").click();
     await page.locator(".ambient-variables-panel button:has-text('追加')").click();
     await expect(page.locator(".ambient-variables-panel .catalog-key-badge")).toHaveCount(1);

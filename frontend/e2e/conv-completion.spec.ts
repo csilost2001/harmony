@@ -1,16 +1,21 @@
 /**
  * @conv.* 補完ポップアップ E2E (#349)
  *
- * ProcessFlowEditor の ComputeStep expression 欄で @conv. 入力時に補完候補が
- * 表示され、2 段選択 (category → key) でテキストが挿入されることを検証。
+ * #926: realWorkspace + 実 backend 経由に移植。
  */
 import { test, expect, type Page } from "@playwright/test";
+import {
+  setupTestWorkspace,
+  cleanupRealWorkspaces,
+  isMcpRunning,
+  normalizeId,
+  type OpenedWorkspace,
+} from "./helpers/realWorkspace";
 
 const sampleCatalog = {
   version: "1.0.0",
   msg: { required: { template: "{label}は必須入力です" } },
-  regex: {},
-  limit: {},
+  regex: {}, limit: {},
   scope: { customerRegion: { value: "domestic" } },
   currency: { jpy: { code: "JPY", subunit: 0 }, usd: { code: "USD" } },
   tax: { standard: { kind: "exclusive", rate: 0.1 } },
@@ -21,61 +26,59 @@ const sampleCatalog = {
   externalOutcomeDefaults: { failure: { outcome: "failure", action: "abort" } },
 };
 
-const sampleGroup = {
-  id: "ag-test-completion",
-  name: "補完テスト",
-  type: "screen",
-  description: "",
+const groupId = "ag-test-completion";
+const baseTs = "2026-05-08T00:00:00.000Z";
+const sampleGroupBody = {
+  id: groupId,
+  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
+  meta: { id: groupId, name: "補完テスト", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
   actions: [{
-    id: "act-001",
-    name: "テストアクション",
-    trigger: "click",
-    steps: [{
-      id: "step-001",
-      type: "compute",
-      description: "",
-      expression: "",
-      outputBinding: null,
-    }],
+    id: "act-001", name: "テストアクション", trigger: "click",
+    steps: [{ id: "step-001", type: "compute", description: "", expression: "", outputBinding: null }],
   }],
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
 };
 
 const dummyProject = {
-  version: 1,
-  name: "補完 E2E テスト",
-  screens: [],
-  groups: [],
-  edges: [],
-  tables: [],
-  processFlows: [{ id: sampleGroup.id, name: sampleGroup.name, type: sampleGroup.type, actionCount: 1, createdAt: sampleGroup.createdAt, updatedAt: sampleGroup.updatedAt }],
-  updatedAt: new Date().toISOString(),
+  version: 1, name: "補完 E2E テスト",
+  screens: [], groups: [], edges: [], tables: [],
+  processFlows: [{ id: groupId, no: 1, name: "補完テスト", kind: "screen", actionCount: 1, maturity: "draft" }],
 };
 
+const WS_KEY = "issue-926-conv-completion";
+let mcpAvailable = false;
+let ws: OpenedWorkspace;
+
 async function setup(page: Page) {
-  await page.addInitScript(({ project, group, catalog }) => {
-    localStorage.setItem("workspace-e2e-bypass", "true");
-      localStorage.setItem("flow-project", JSON.stringify(project));
-    localStorage.setItem(`process-flow-${group.id}`, JSON.stringify(group));
-    localStorage.setItem("conventions-catalog", JSON.stringify(catalog));
-    localStorage.removeItem("harmony-open-tabs");
-    localStorage.removeItem("harmony-active-tab");
-  }, { project: dummyProject, group: sampleGroup, catalog: sampleCatalog });
-  await page.goto(`/process-flow/edit/${sampleGroup.id}`);
-  // ProcessFlowEditor が表示されるまで待機
+  await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
   await expect(page.locator(".process-flow-editor, [class*='process-flow-editor']")).toBeVisible({ timeout: 10000 });
 }
 
 async function openComputeStep(page: Page) {
-  // ComputeStep のヘッダーをクリックして展開
   const stepHeader = page.locator(".step-card-header, [class*='step-header']").first();
   await stepHeader.click();
-  // expression 入力欄が出るのを待つ
   await expect(page.locator('[data-field-path="expression"]')).toBeVisible({ timeout: 5000 });
 }
 
 test.describe("@conv.* 補完ポップアップ (#349)", () => {
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+    if (!mcpAvailable) return;
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      processFlows: [sampleGroupBody],
+      conventions: sampleCatalog,
+    });
+  });
+
+  test.afterAll(async () => {
+    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+  });
+
+  test.beforeEach(async () => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+  });
+
   test("@conv. 入力でカテゴリ候補ポップアップが表示される", async ({ page }) => {
     await setup(page);
     await openComputeStep(page);
@@ -83,7 +86,6 @@ test.describe("@conv.* 補完ポップアップ (#349)", () => {
     await exprInput.click();
     await exprInput.fill("@conv.");
     await expect(page.locator('[role="listbox"]')).toBeVisible({ timeout: 3000 });
-    // 11 候補が表示されること
     const items = page.locator('[role="listbox"] [role="option"]');
     await expect(items).toHaveCount(11);
   });
@@ -117,12 +119,9 @@ test.describe("@conv.* 補完ポップアップ (#349)", () => {
     await exprInput.click();
     await exprInput.fill("@conv.curre");
     await expect(page.locator('[role="listbox"]')).toBeVisible();
-    // category を確定
     await exprInput.press("Enter");
     await expect(exprInput).toHaveValue("@conv.currency.");
-    // key phase popup が出るのを待つ
     await expect(page.locator('[role="listbox"]')).toBeVisible({ timeout: 3000 });
-    // 先頭候補 (activeIndex=0) を Enter で確定
     await exprInput.press("Enter");
     const val = await exprInput.inputValue();
     expect(val).toMatch(/^@conv\.currency\.\w+$/);
@@ -146,11 +145,9 @@ test.describe("@conv.* 補完ポップアップ (#349)", () => {
     await exprInput.click();
     await exprInput.fill("@conv.");
     await expect(page.locator('[role="listbox"]')).toBeVisible();
-    // 最初は先頭がハイライト
     const first = page.locator('[role="option"][aria-selected="true"]');
     await expect(first).toBeVisible();
     await exprInput.press("ArrowDown");
-    // ハイライトが 2 番目に移動
     const allOptions = page.locator('[role="option"]');
     await expect(allOptions.nth(1)).toHaveAttribute("aria-selected", "true");
   });
