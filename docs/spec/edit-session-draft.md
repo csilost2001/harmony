@@ -755,7 +755,9 @@ type LockChangedEvent =
 
 ## 10. 未解決事項 / 将来 ISSUE
 
-> **関連 spec**: 本 spec の lock + draft + onBehalfOfSession 機構を**拡張**して同一 workspace 内の複数人協調編集 (編集者 1 + 閲覧者複数 + presence + take-over UX) を実現する仕様は [`collab-presence.md`](./collab-presence.md) (#876 / RFC #855) 参照。本 spec の D-1 〜 D-12 は変更されない。
+> **関連 spec (2026-05-07 改訂)**: 本 spec の lock + draft + onBehalfOfSession の 3 層モデルは [`edit-session-protocol.md`](./edit-session-protocol.md) で **EditSession 一級概念に統一する正規プロトコル**として再定義された。本 spec の D-3〜D-7 (lock 関連) は edit-session-protocol § 3-7 に置き換わる。D-1 (autosave 廃止) / D-8〜D-12 は維持。
+>
+> 採用根拠と Activity taxonomy は overture として [`collab-presence.md`](./collab-presence.md) (#876 / RFC #855) を継続参照。
 
 ### 10.1 draft 一覧画面
 
