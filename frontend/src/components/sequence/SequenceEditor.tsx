@@ -20,6 +20,7 @@ import {
   ForcedOutChoiceDialog,
   AfterForceUnlockChoiceDialog,
 } from "../editing/ConfirmDialogs";
+import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { generateSequenceDdl } from "./generateSequenceDdl";
@@ -70,7 +71,7 @@ export function SequenceEditor() {
     onNotFound: handleNotFound,
   });
 
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "sequence",
     resourceId: sequenceId ?? "",
     sessionId,
@@ -265,6 +266,14 @@ export function SequenceEditor() {
           ownerSessionId={lockedByOther.ownerSessionId}
           onConfirm={handleForceRelease}
           onCancel={() => setShowForceReleaseDialog(false)}
+        />
+      )}
+
+      {saveConflict && (
+        <SaveConflictDialog
+          conflict={saveConflict}
+          onOverwrite={() => { void onSaveConflictOverwrite(); }}
+          onCancel={onSaveConflictCancel}
         />
       )}
 

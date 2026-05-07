@@ -35,6 +35,7 @@ import { TriggersDefaultsTab } from "./TriggersDefaultsTab";
 import { renumber } from "../../utils/listOrder";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { DiscardConfirmDialog, ForceReleaseConfirmDialog, ForcedOutChoiceDialog, AfterForceUnlockChoiceDialog } from "../editing/ConfirmDialogs";
+import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
@@ -78,7 +79,7 @@ export function TableEditor() {
     onNotFound: handleNotFound,
   });
 
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "table",
     resourceId: tableId ?? "",
     sessionId,
@@ -231,6 +232,14 @@ export function TableEditor() {
           ownerSessionId={lockedByOther.ownerSessionId}
           onConfirm={handleForceRelease}
           onCancel={() => setShowForceReleaseDialog(false)}
+        />
+      )}
+
+      {saveConflict && (
+        <SaveConflictDialog
+          conflict={saveConflict}
+          onOverwrite={() => { void onSaveConflictOverwrite(); }}
+          onCancel={onSaveConflictCancel}
         />
       )}
 

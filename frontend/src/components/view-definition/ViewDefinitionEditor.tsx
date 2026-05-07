@@ -47,6 +47,7 @@ import {
   ForcedOutChoiceDialog,
   AfterForceUnlockChoiceDialog,
 } from "../editing/ConfirmDialogs";
+import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { MaturityBadge } from "../process-flow/MaturityBadge";
@@ -232,7 +233,7 @@ export function ViewDefinitionEditor() {
     onLoaded: handleLoaded,
   });
 
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "view-definition",
     resourceId: viewDefinitionId ?? "",
     sessionId,
@@ -615,6 +616,14 @@ export function ViewDefinitionEditor() {
           ownerSessionId={lockedByOther.ownerSessionId}
           onConfirm={handleForceRelease}
           onCancel={() => setShowForceReleaseDialog(false)}
+        />
+      )}
+
+      {saveConflict && (
+        <SaveConflictDialog
+          conflict={saveConflict}
+          onOverwrite={() => { void onSaveConflictOverwrite(); }}
+          onCancel={onSaveConflictCancel}
         />
       )}
 

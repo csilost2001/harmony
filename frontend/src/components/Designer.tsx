@@ -21,6 +21,7 @@ import {
   ForcedOutChoiceDialog,
   AfterForceUnlockChoiceDialog,
 } from "./editing/ConfirmDialogs";
+import { SaveConflictDialog } from "./editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "./editing/ResumeOrDiscardDialog";
 import { PuckBackend } from "../editor/PuckBackend";
 import { GrapesJSBackend } from "../editor/GrapesJSBackend";
@@ -111,7 +112,7 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
 
   // useEditSession — TableEditor:77 と同型
   const sessionId = mcpBridge.getSessionId();
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions: editActions } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions: editActions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "screen",
     resourceId: screenId,
     sessionId,
@@ -599,6 +600,14 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
         <LegacyRescueDialog
           onAdopt={handleLegacyRescueAdopt}
           onDiscard={handleLegacyRescueDiscard}
+        />
+      )}
+
+      {saveConflict && (
+        <SaveConflictDialog
+          conflict={saveConflict}
+          onOverwrite={() => { void onSaveConflictOverwrite(); }}
+          onCancel={onSaveConflictCancel}
         />
       )}
 

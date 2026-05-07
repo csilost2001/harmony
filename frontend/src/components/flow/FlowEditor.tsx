@@ -62,6 +62,7 @@ import {
   ForcedOutChoiceDialog,
   AfterForceUnlockChoiceDialog,
 } from "../editing/ConfirmDialogs";
+import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { openTab, makeTabId, setDirty as setTabDirty } from "../../store/tabStore";
@@ -153,7 +154,7 @@ function FlowEditorInner() {
 
   const sessionId = mcpBridge.getSessionId();
 
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "flow",
     resourceId: "singleton",
     sessionId,
@@ -1057,6 +1058,14 @@ function FlowEditorInner() {
         onDelete={edgeModal.editId ? () => { handleEdgeDeleteFromModal().catch(console.error); } : undefined}
         onClose={() => setEdgeModal({ open: false })}
       />
+
+      {saveConflict && (
+        <SaveConflictDialog
+          conflict={saveConflict}
+          onOverwrite={() => { void onSaveConflictOverwrite(); }}
+          onCancel={onSaveConflictCancel}
+        />
+      )}
     </div>
   );
 }
