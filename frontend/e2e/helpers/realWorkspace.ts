@@ -454,13 +454,23 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
 
   // 個別 entity ファイル — id は UUID v4 に正規化済の値で書く
   const idOf = (raw: string) => normalizeId(raw);
+  // 入力の id field を解決: top-level id → meta.id の順
+  const resolveItemId = (item: Record<string, unknown>): string => {
+    if (typeof item.id === "string") return item.id;
+    const meta = item.meta as Record<string, unknown> | undefined;
+    if (meta && typeof meta.id === "string") return meta.id;
+    throw new Error("setupTestWorkspace entity must have id (top-level) or meta.id");
+  };
   for (const t of opts.tables ?? []) {
-    const id = idOf(t.id);
+    const id = idOf(resolveItemId(t as unknown as Record<string, unknown>));
     await writeJson(path.join(dataDir, "tables", `${id}.json`), { ...t, id });
   }
   for (const f of opts.processFlows ?? []) {
-    const id = idOf(f.id);
-    await writeJson(path.join(dataDir, "process-flows", `${id}.json`), { ...f, id });
+    const id = idOf(resolveItemId(f as unknown as Record<string, unknown>));
+    const meta = (f as unknown as { meta?: Record<string, unknown> }).meta;
+    const body: Record<string, unknown> = { ...f, id };
+    if (meta) body.meta = { ...meta, id };
+    await writeJson(path.join(dataDir, "process-flows", `${id}.json`), body);
   }
   for (const s of opts.sequences ?? []) {
     const id = idOf(s.id);
