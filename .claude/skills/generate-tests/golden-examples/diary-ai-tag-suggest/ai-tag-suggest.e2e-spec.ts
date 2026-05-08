@@ -45,11 +45,11 @@
  * AI model name → "claude-opus-4-7" (modelEndpoint.model)
  *
  * === 申し送り事項 ===
- * AI-MOCK-1: AiRuntimeService / 'invoke' は Phase 2-C で確定する PLACEHOLDER。
- *            Phase 2-C 実装到達後に mocks/ai-runtime.ts の `as any` キャストを実 type に置換すること。
+ * AI-MOCK-1: AiRuntimeService / 'invoke' は Phase 2-C 確定の固定契約。
+ *            実装側は `/generate-code` 出力の <出力先>/src/ai/ai-runtime.service.ts。
  * AI-THRESH-1: threshold = 0.6 は step-04 expression のリテラル値。
  *              #859 解決後: @conv.limit.tagSuggestThreshold catalog 参照に置換すること。
- * AI-RETRY-1: SDK 内部の retry policy は modelEndpoint に未定義 (Phase 2-C で確定)。
+ * AI-RETRY-1: SDK 内部の retry policy は modelEndpoint に未定義 (将来拡張候補)。
  *             Phase 2-B では AI-4 は単発失敗のみ assertion (retry 回数 assertion は AI-4-b で追加予定)。
  */
 
@@ -66,6 +66,7 @@ import {
   type MockTagCandidate,
   type MockTagSuggestResult,
 } from './mocks/ai-runtime';
+import { AiRuntimeService } from '../src/ai/ai-runtime.service';
 
 // ──────────────────────────────────────────────────────────────
 // 定数 (PLACEHOLDER 解決済み or 手動置換が必要なもの)
@@ -79,10 +80,9 @@ const ADMIN_PASSWORD = 'password'; // PLACEHOLDER: 同上
 // TODO: #859 解決後は @conv.limit.tagSuggestThreshold catalog 参照に変更すること
 const AI_TAG_SUGGEST_THRESHOLD = 0.6;
 
-// PLACEHOLDER: Phase 2-C で AiRuntimeService 実装到達後に DI コンテナから取得する
-//   const aiRuntime = moduleFixture.get<AiRuntimeService>(AiRuntimeService);
-// 現状は型 unknown のまま `as any` で spy するため、テスト実行は Phase 2-C 完了後に行う。
-let aiRuntime: unknown;
+// Phase 2-C 確定: AiRuntimeService は `/generate-code` で <出力先>/src/ai/ai-runtime.service.ts に
+// 生成される。本テストは moduleFixture.get で DI コンテナから取得する。
+let aiRuntime: AiRuntimeService;
 
 // ──────────────────────────────────────────────────────────────
 // ヘルパー関数
@@ -131,9 +131,8 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
       `file:${require('path').resolve(__dirname, '../prisma/dev.db')}`;
     prisma = new PrismaClient({ datasources: { db: { url: dbPath } } });
 
-    // PLACEHOLDER: Phase 2-C で実 AiRuntimeService を DI から取得
-    // aiRuntime = moduleFixture.get<AiRuntimeService>(AiRuntimeService);
-    aiRuntime = {} as unknown;
+    // Phase 2-C 確定: 実 AiRuntimeService を DI コンテナから取得
+    aiRuntime = moduleFixture.get<AiRuntimeService>(AiRuntimeService);
 
     // JWT 取得
     accessToken = await loginAsTestUser(app);

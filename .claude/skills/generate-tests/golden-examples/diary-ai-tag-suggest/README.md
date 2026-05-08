@@ -85,15 +85,16 @@ diary-ai-tag-suggest/
 
 ---
 
-## PLACEHOLDER 解決表 (Phase 2-B)
+## PLACEHOLDER 解決表 (Phase 2-C 確定後)
 
 各 PLACEHOLDER は diary アプリの実装に合わせて置換すること。
+`AI_RUNTIME_*` は Phase 2-C で確定済の固定契約なので置換不要 (本 golden は確定値を直接埋め込み)。
 
-| PLACEHOLDER | 解決元 | 現状値 | Phase 2-C 解決後の差替えポイント |
+| 項目 | 解決元 | 現状値 | 備考 |
 |---|---|---|---|
-| `AI_RUNTIME_SERVICE_TYPE` | Phase 2-C 確定 (NestJS の AI runtime service クラス名) | `AiRuntimeService` (placeholder) | Phase 2-C 実装到達後に実 type へ |
-| `AI_RUNTIME_SERVICE_METHOD` | Phase 2-C 確定 (invoke / execute 等) | `'invoke'` (placeholder) | 同上 |
-| `AI_RUNTIME_IMPORT_PATH` | Phase 2-C 確定 (実 import パス) | `<placeholder>` | 同上 |
+| AI runtime クラス名 | **Phase 2-C 確定 (固定契約)** | `AiRuntimeService` | `/generate-code` 出力 `<出力先>/src/ai/ai-runtime.service.ts` |
+| AI runtime method | **Phase 2-C 確定 (固定契約)** | `invoke` | spec `outputBinding 値構造` の正規化形式を返す |
+| import path (e2e-spec から) | **Phase 2-C 確定 (固定契約)** | `../src/ai/ai-runtime.service` | apps/api 標準配置 |
 | `AI_TAG_SUGGEST_THRESHOLD` | `step-04.expression` リテラル | `0.6` | `#859` 解決後: `@conv.limit.tagSuggestThreshold` catalog 参照 |
 | `ANTHROPIC_API_KEY` | `secrets.anthropicApiKey.name` | `process.env.ANTHROPIC_API_KEY` | — (env var は解決不要) |
 | `AI_PROVIDER` | `modelEndpoints.tagSuggestModel.provider` | `anthropic` | provider 切替時は catalog 編集で完結 |
@@ -129,9 +130,12 @@ npx jest --testPathPattern=ai-tag-suggest --runInBand
 
 **注意**:
 - `--runInBand` は SQLite を使用しているため必須 (D-7)。
-- Phase 2-B 時点では `aiRuntime` が PLACEHOLDER (`{} as unknown`) のため、本テストは
-  Phase 2-C で実 AiRuntimeService が実装されるまで実行不可。Phase 2-C 完了後に
-  `moduleFixture.get<AiRuntimeService>(AiRuntimeService)` に書き換える。
+- Phase 2-C 確定後、`aiRuntime = moduleFixture.get<AiRuntimeService>(AiRuntimeService)` で DI 取得済。
+  `/generate-code` で `<出力先>/src/ai/ai-runtime.service.ts` が生成されていれば本 golden はそのまま動作する。
+- 本 golden の TypeScript ファイル (`mocks/ai-runtime.ts` / `ai-tag-suggest.e2e-spec.ts`) は
+  **harmony 本 repo の tsc 対象外** (`frontend/tsconfig.app.json` の `include` は `src` のみ)。
+  `import { AiRuntimeService } from '../src/ai/ai-runtime.service'` は **生成後の apps/api プロジェクト
+  内で解決される想定** であり、harmony repo 内には実装ファイル本体は存在しない (テンプレート参照前提)。
 
 ### 実 API mode
 
@@ -203,11 +207,11 @@ jobs:
 8. `step.outcomes.failure` から responseId="502-ai-error" を解決 → AI-4 期待 status=502
 9. 4 観点 (AI-1〜AI-4) のテストを生成 (text/streaming なら AI-3 を skip)
 10. ternary パターン `(process.env.RUN_AI_INTEGRATION === '1' ? describe : describe.skip)(...)` で live mode を保護
-11. README に PLACEHOLDER 解決表と Phase 2-C 差替えポイントを記録
+11. README に PLACEHOLDER 解決表 (AI_RUNTIME_* は Phase 2-C 確定済として固定契約セクションに記載) を記録
 
 ### golden との一致確認
 
-- step-03 の `kind: "aiCall"` + `modelRef: "tagSuggestModel"` → mock target: `aiRuntime` (PLACEHOLDER) ✅
+- step-03 の `kind: "aiCall"` + `modelRef: "tagSuggestModel"` → mock target: `aiRuntime` (`AiRuntimeService` 実 type) ✅
 - step-03 の `responseFormat.kind: "structuredObject"` → `mockAiStructured(...)` ヘルパー使用 ✅
 - step-04 expression リテラル `0.6` → `AI_TAG_SUGGEST_THRESHOLD = 0.6` const 化 ✅
 - step.outcomes.failure (action="abort") → 間接解決: catalog.errors.AI_API_ERROR.responseId="502-ai-error" → responses["502-ai-error"].status=502 (catalog に entry が無い場合は AI の慣例として 502 default) ✅
@@ -283,39 +287,23 @@ english-learning project の `96118ae1-a0ab-401b-8584-dd645a45a81f.json` (会話
 
 ---
 
-## Phase 2-C 解決後の差替えポイント
+## 将来拡張の差替えポイント
 
-### Phase 2-C 解決後 (AI runtime / SDK 実装)
+### Phase 2-C 完了状況 (2026-05-08)
 
-1. `mocks/ai-runtime.ts` の type を実 type に置換:
-   ```typescript
-   // Before (Phase 2-B 時点):
-   type AiRuntimeService = unknown;
+Phase 2-C で AI runtime 契約は確定済 (`AiRuntimeService.invoke` + import `../src/ai/ai-runtime.service`)。
+本 golden は確定値を直接埋め込み、PLACEHOLDER 注記は撤去した:
 
-   // After (Phase 2-C 解決後):
-   import type { AiRuntimeService } from '@your-app/ai/ai-runtime.service';
-   ```
+- `mocks/ai-runtime.ts`: `import type { AiRuntimeService } from '../src/ai/ai-runtime.service';` (実 type)
+- `mocks/ai-runtime.ts`: `jest.spyOn(svc, 'invoke')` (`as any` 撤去)
+- `ai-tag-suggest.e2e-spec.ts`: `aiRuntime = moduleFixture.get<AiRuntimeService>(AiRuntimeService);`
 
-2. `as any` キャストを削除:
-   ```typescript
-   // Before:
-   return jest.spyOn(svc as any, 'invoke').mockResolvedValue(result);
+### 今後の追加観点候補
 
-   // After:
-   return jest.spyOn(svc, 'invoke').mockResolvedValue(result);
-   ```
-
-3. テストファイル内の `aiRuntime` PLACEHOLDER を DI 取得に置換:
-   ```typescript
-   // Before:
-   aiRuntime = {} as unknown;
-
-   // After:
-   aiRuntime = moduleFixture.get<AiRuntimeService>(AiRuntimeService);
-   ```
-
-4. AI-4-b (retry 回数 assertion) を追加。
-   - modelEndpoint に retryPolicy が定義されたら、SDK 内部の retry を `spy.toHaveBeenCalledTimes(N)` で検証
+1. AI-4-b (retry 回数 assertion):
+   - `modelEndpoint.retryPolicy` が将来 spec 拡張されたら、SDK 内部 retry を `spy.toHaveBeenCalledTimes(N)` で検証
+2. aiAgent: maxIterations 超過パスの assertion (現状 Phase 2-B では未対応、別 ISSUE 候補)
+3. structuredObject: AJV strict mode での schema validation 検証
 
 ### #859 解決後 (@conv.* / @env.* 参照サポート)
 

@@ -169,8 +169,8 @@ ProcessFlow JSON を入力として、techStack に基づく backend code 雛形
 | `return` | `return ResponseEntity.<T>status(N).body(body)` | `throw new HttpException(body, status)` または `return response` |
 | `validation` | Bean Validation DTO + `@Valid` Controller 引数 | `class-validator` DTO デコレータ |
 | `log` | `log.error(message, structuredData)` | `this.logger.error(message, structuredData)` |
-| `aiCall` (#935) | `modelEndpoints.<modelRef>.provider` に従い SDK 切替 (anthropic-java-sdk / openai-java / langchain4j 等)。tools[] は `tool_use` block で渡す、responseFormat=structuredObject は JSON Schema 強制 | `modelEndpoints.<modelRef>.provider` に従い `@anthropic-ai/sdk` / `openai` / `langchain` 等切替。tools / structured output 同様 |
-| `aiAgent` (#935) | tool call loop を SDK / 自前実装で `maxIterations` 回まで実装 (anthropic agent SDK / openai assistants → responses 移行 / langchain Runnable / langgraph 等) | 同左、JS/TS SDK で実装 |
+| `aiCall` (#935 / Phase 2-C) | `aiRuntime.invoke(new AiInvocationRequest(modelRef, messages, responseFormat?, tools?, ...))` (詳細は `templates/backend/java-spring-boot/AI_SERVICE.md`)。Spring AI starter で provider 切替、業務 Service は provider 中立 | `await this.aiRuntime.invoke({ modelRef, messages, responseFormat?, tools?, ... })` (詳細は `templates/backend/typescript-nestjs/AI_SERVICE.md`)。`AiRuntimeService` 内部で `@anthropic-ai/sdk` / `openai` / `@aws-sdk/client-bedrock-runtime` 等を dispatch、業務 Service は provider 中立 |
+| `aiAgent` (#935 / Phase 2-C) | aiCall と同形 + `AiInvocationRequest.AgentSpec(maxIterations, toolRunner)` を渡す。tool 実行ループは `AiRuntimeService` 内部で完結 (業務 Service は toolRunner だけ書く) | 同左、`agent: { maxIterations, toolRunner: async (call) => ... }` を渡す |
 | `other` | `// TODO: {{step.description}}` + outputSchema で型推定 (注: schema の `kind` に `other` は存在しない。extension step では `type: "other"` を使う別階層の概念であるため混同注意) | 同左 |
 
 ### affectedRowsCheck → 実装パターン
@@ -228,6 +228,14 @@ ProcessFlow inputs[]:
   V1__create_<tableName>.sql            (lineage.writes テーブル → Flyway DDL)
   dto/<ActionName>Request.java          (inputs[] → DTO)
   dto/<ActionName>Response.java         (outputs[] → DTO)
+
+  # AI flow 含有時のみ (Phase 2-C、最初の AI flow 検出時に 1 セット生成):
+  src/main/java/com/example/<projectName>/ai/AiRuntimeService.java
+  src/main/java/com/example/<projectName>/ai/AiInvocationRequest.java
+  src/main/java/com/example/<projectName>/ai/AiInvocationResult.java
+  src/main/java/com/example/<projectName>/ai/AiMessage.java / AiContentBlock.java / ... (型群)
+  src/main/java/com/example/<projectName>/ai/AiCatalogProvider.java / AiCatalogService.java
+  src/main/java/com/example/<projectName>/ai/provider/<Provider>AiProvider.java   (利用 provider のみ)
 ```
 
 ### 生成ファイル一覧 (TypeScript NestJS)
@@ -240,7 +248,91 @@ ProcessFlow inputs[]:
   dto/<actionName>-request.dto.ts        (inputs[] → DTO)
   dto/<actionName>-response.dto.ts       (outputs[] → DTO)
   entity/<tableName>.entity.ts           (lineage.writes → TypeORM Entity)
+
+  # AI flow 含有時のみ (Phase 2-C、最初の AI flow 検出時に 1 セット生成):
+  src/ai/ai-runtime.service.ts
+  src/ai/ai.module.ts
+  src/ai/ai-catalog.service.ts
+  src/ai/types.ts                        (任意分割)
+  src/ai/providers/<provider>.ts         (利用 provider のみ)
 ```
+
+### AI step kind 検出時の追加処理 (Phase 2-C)
+
+ProcessFlow の `actions[].steps[]` (および `inlineBranch.{ok,ng}` / `branches[].steps` / `elseBranch.steps`
+を再帰探索) に `kind ∈ {aiCall, aiAgent}` の step が **1 件以上** 含まれる場合、業務 Service だけでは
+不十分で、以下を追加生成する:
+
+#### 1. AI runtime layer (1 プロジェクトに 1 セット、最初の AI flow 検出時のみ生成)
+
+| 出力先 (NestJS) | 出力先 (Java Spring Boot) | 内容 |
+|---|---|---|
+| `<出力先>/src/ai/ai-runtime.service.ts` | `<出力先>/src/main/java/com/example/<projectName>/ai/AiRuntimeService.java` | provider 中立 service (固定契約) |
+| `<出力先>/src/ai/ai.module.ts` | (Java は不要、`@Service` で自動 scan) | NestJS Module 定義 |
+| `<出力先>/src/ai/types.ts` (任意分割) | `<出力先>/src/main/java/com/example/<projectName>/ai/Ai*.java` (record 群) | 型定義 |
+| `<出力先>/src/ai/ai-catalog.service.ts` | `<出力先>/src/main/java/com/example/<projectName>/ai/AiCatalogService.java` | `harmony.json` + ProcessFlow から catalog merge |
+| `<出力先>/src/ai/providers/<provider>.ts` | `<出力先>/src/main/java/com/example/<projectName>/ai/provider/<Provider>AiProvider.java` | 利用 provider のみ |
+
+詳細仕様: `templates/backend/typescript-nestjs/AI_SERVICE.md` / `templates/backend/java-spring-boot/AI_SERVICE.md`
+
+#### 2. catalog 解決 (生成時)
+
+ProcessFlow.context.catalogs.modelEndpoints と project level catalog (`<workspace>/harmony/catalogs/external.json`)
+を merge し、各 `step.modelRef` に対して `provider` を抽出する。
+
+```
+利用 provider 一覧 (生成時に決定):
+  flow A の step.modelRef="tagSuggestModel" → provider="anthropic"
+  flow B の step.modelRef="dialogModel"     → provider="openai"
+  → AiRuntimeService に AnthropicAiProvider + OpenAiAiProvider の 2 種を生成、他は省略
+```
+
+利用しない provider の `*Provider.java` / `providers/<key>.ts` は **生成しない** (依存ライブラリも追加しない)。
+
+#### 3. 業務 Service の constructor 拡張
+
+AI flow を持つ業務 Service だけが `AiRuntimeService` を inject:
+
+- NestJS: `private readonly aiRuntime: AiRuntimeService,` を constructor に追加 + `imports: [AiModule]` をモジュールに追加
+- Java: `@RequiredArgsConstructor` の field に `private final AiRuntimeService aiRuntime;` を追加
+
+#### 4. 依存追加 (package.json / build.gradle)
+
+利用 provider に応じて以下を追加 (生成時に判定):
+
+Spring AI artifact ID は **1.0.0 GA (2025-05) で命名規則変更** あり (`spring-ai-<provider>-spring-boot-starter` →
+`spring-ai-starter-model-<provider>`)。本表は GA 以降の新 naming を採用:
+
+| provider | NestJS 依存 | Java Spring Boot 依存 |
+|---|---|---|
+| `anthropic` | `@anthropic-ai/sdk` | `org.springframework.ai:spring-ai-starter-model-anthropic` |
+| `openai` | `openai` | `org.springframework.ai:spring-ai-starter-model-openai` |
+| `google` | `@google/generative-ai` | `org.springframework.ai:spring-ai-starter-model-vertexai-gemini` |
+| `aws-bedrock` | `@aws-sdk/client-bedrock-runtime` | `org.springframework.ai:spring-ai-starter-model-bedrock-converse` |
+| `azure-openai` | `openai` (Azure config) + (azureAd 時) `@azure/identity` | `org.springframework.ai:spring-ai-starter-model-azure-openai` |
+| `ollama` | (fetch のみ、追加不要) | `org.springframework.ai:spring-ai-starter-model-ollama` |
+| `namespace:custom` | (extension hook) | (extension hook) |
+
+加えて、生成 backend に `aiCall` / `aiAgent` で `responseFormat=structuredObject` を 1 つでも含む場合は
+**JSON Schema validator が必須** (AI-3 の runtime 検証経路で使用):
+
+- NestJS: `ajv` (`AiRuntimeService.normalizeAndValidate` で `ajv.compile(schema)` キャッシュ)
+- Java Spring Boot: `com.networknt:json-schema-validator` (`JsonSchemaFactory` でコンパイルキャッシュ)
+
+#### 5. 環境変数注記
+
+生成 README (もしくは `.env.example`) に以下を記載:
+
+```
+# AI provider credentials (catalog で auth.kind=bearer/apiKey の provider 利用時)
+ANTHROPIC_API_KEY=sk-ant-xxx     # provider="anthropic" 利用時
+OPENAI_API_KEY=sk-xxx            # provider="openai" / "azure-openai" 利用時
+GOOGLE_API_KEY=xxx               # provider="google" 利用時
+AWS_REGION=us-east-1             # provider="aws-bedrock" 利用時 (IAM role は別途設定)
+# AZURE_AD_*                     # provider="azure-openai" + auth.kind="azureAd" 利用時
+```
+
+env var 名は **catalog の `secrets[<key>].name`** で確定する (生成時に解決して README に書き込む)。
 
 ### ゴールデン出力参照
 
@@ -252,6 +344,10 @@ ProcessFlow inputs[]:
   - `Order.java` — Entity ゴールデン
   - `OrderRepository.java` — Repository ゴールデン
   - `V1__create_orders.sql` — Flyway DDL ゴールデン
+
+`aiCall` / `aiAgent` を含む sample は本 PR (Phase 2-C) では **golden 化を見送り**、
+仕様は `AI_SERVICE.md` の inline 例で示す。後続でユーザーが特定 sample (例: `examples/diary` の
+4 AI flow) を golden 化することを推奨。
 
 ## Step 3-B: Screen → frontend code 生成
 
@@ -354,10 +450,12 @@ public class ProductSearchController {
     CONTROLLER.md — Controller クラス生成ルール
     ENTITY.md     — JPA Entity クラス生成ルール
     MIGRATION.md  — Flyway SQL DDL 生成ルール
+    AI_SERVICE.md — AI runtime service 生成ルール (Phase 2-C、aiCall/aiAgent 含有時)
   backend/typescript-nestjs/
     SERVICE.md    — Service クラス生成ルール
     CONTROLLER.md — Controller + DTO 生成ルール
     ENTITY.md     — TypeORM Entity + Module 生成ルール
+    AI_SERVICE.md — AI runtime service 生成ルール (Phase 2-C、aiCall/aiAgent 含有時)
   frontend/thymeleaf-bootstrap/
     PAGE.md       — Thymeleaf HTML テンプレート生成ルール (kind 別パターン)
   frontend/react-tailwind-next/

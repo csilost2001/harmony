@@ -1,11 +1,13 @@
 /**
  * AI runtime service mock helper (provider 中立形式)
  *
- * Phase 2-B: ProcessFlow.aiCall / aiAgent step に対応する runtime invocation を mock する。
+ * Phase 2-C 確定: ProcessFlow.aiCall / aiAgent step に対応する runtime invocation を mock する。
  * 戻り値は spec §「outputBinding の値構造」に従う正規化形式 (provider 別の content[] / choices[] は隠蔽)。
  *
- * PLACEHOLDER (Phase 2-C で確定):
- *   AiRuntimeService クラス / 'invoke' method / '<placeholder>' import パス
+ * 固定契約 (Phase 2-C):
+ *   class:  AiRuntimeService
+ *   method: invoke
+ *   import: ../src/ai/ai-runtime.service (e2e-spec から見た相対パス、`/generate-code` 出力前提)
  *
  * 旧 mocks/claude-api.ts (Anthropic 形式 HTTP レスポンス mock) は Phase 2-A / 2-B 移行で廃止。
  *
@@ -14,9 +16,7 @@
  *   // テスト実行
  *   spy.mockRestore(); // afterEach で必ず呼ぶ
  */
-// PLACEHOLDER: Phase 2-C で実 import パスへ差替え
-// import type { AiRuntimeService } from '<placeholder>';
-type AiRuntimeService = unknown;
+import type { AiRuntimeService } from '../src/ai/ai-runtime.service';
 
 // ──────────────────────────────────────────────────────────────
 // 型定義
@@ -70,8 +70,7 @@ export function mockAiText(
     finishReason: 'end_turn',
     usage: { inputTokens: 50, outputTokens: 100 },
   };
-  // PLACEHOLDER: 'invoke' は Phase 2-C で確定する method 名
-  return jest.spyOn(svc as any, 'invoke').mockResolvedValue(result);
+  return jest.spyOn(svc, 'invoke').mockResolvedValue(result);
 }
 
 /**
@@ -93,7 +92,7 @@ export function mockAiStructured(
     finishReason: 'end_turn',
     usage: { inputTokens: 50, outputTokens: 100 },
   };
-  return jest.spyOn(svc as any, 'invoke').mockResolvedValue(result);
+  return jest.spyOn(svc, 'invoke').mockResolvedValue(result);
 }
 
 /**
@@ -126,19 +125,25 @@ export function mockAiFailure(
   error?: Error,
 ): jest.SpyInstance {
   return jest
-    .spyOn(svc as any, 'invoke')
+    .spyOn(svc, 'invoke')
     .mockRejectedValue(error ?? new Error('Mock provider error'));
 }
 
 /**
  * (f) format violation (AI-3、json / structuredObject のみ)。
  *     runtime が parse / schema 検証で失敗するケース。runtime 側で catch → 502 を返す前提。
+ *
+ * NOTE: 本 helper は AiRuntimeService.invoke を **直接 reject** させるため、AiRuntimeService 内部の
+ *   `normalizeAndValidate` (JSON.parse / AJV 検証) は **バイパス** される。よって 502 status の発火経路は
+ *   AI-4 (provider failure) と同一の catch path となる。AI-3 の本来の runtime path
+ *   (provider 応答 OK だが parse / schema 検証で 502 throw) を E2E で再現したい場合は、
+ *   `mockAiStructured(aiRuntime, { invalidObject })` で schema 違反 object を返す mock に切替えること。
  */
 export function mockAiFormatViolation(
   svc: AiRuntimeService,
 ): jest.SpyInstance {
   return jest
-    .spyOn(svc as any, 'invoke')
+    .spyOn(svc, 'invoke')
     .mockRejectedValue(
       new Error('Mock provider returned response that violates declared responseFormat'),
     );
@@ -160,5 +165,5 @@ export function mockAiWithToolCalls(
     finishReason: 'tool_use',
     usage: { inputTokens: 50, outputTokens: 100 },
   };
-  return jest.spyOn(svc as any, 'invoke').mockResolvedValue(result);
+  return jest.spyOn(svc, 'invoke').mockResolvedValue(result);
 }
