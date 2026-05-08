@@ -134,8 +134,8 @@ export function ScreenListView() {
 
   const handleActivate = useCallback((s: ScreenNode) => {
     if (editor.isDeleted(s.id)) return;
-    navigate(`/screen/design/${s.id}`);
-  }, [navigate, editor]);
+    navigate(wsPath(`/screen/design/${s.id}`));
+  }, [navigate, editor, wsPath]);
 
   const handleDelete = (items: ScreenNode[]) => {
     editor.markDeleted(items.map((s) => s.id));
