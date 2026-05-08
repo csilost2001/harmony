@@ -286,7 +286,6 @@ export async function withBrowserSession<T>(
  * page が渡された場合は harmony-prefixed localStorage も clear する。
  */
 export async function resetWorkspaceRuntimeState(
-  workspaceId: string,
   page?: PageLike,
 ): Promise<void> {
   await withBrowserSession(async (call) => {
@@ -619,7 +618,7 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
       }
     },
     async resetRuntimeState(page?: PageLike) {
-      await resetWorkspaceRuntimeState(wsId, page).catch(() => undefined);
+      await resetWorkspaceRuntimeState(page).catch(() => undefined);
     },
   };
 }
