@@ -17,8 +17,18 @@ export interface BuildConventionsOpts {
   version?: string;
   msg?: Conventions["msg"];
   regex?: Conventions["regex"];
+  limit?: Conventions["limit"];
+  scope?: Conventions["scope"];
+  currency?: Conventions["currency"];
+  tax?: Conventions["tax"];
+  auth?: Conventions["auth"];
+  role?: Conventions["role"];
+  permission?: Conventions["permission"];
+  db?: Conventions["db"];
   numbering?: Conventions["numbering"];
-  [key: string]: unknown;
+  tx?: Conventions["tx"];
+  externalOutcomeDefaults?: Conventions["externalOutcomeDefaults"];
+  i18n?: Conventions["i18n"];
 }
 
 export function buildConventions(opts: BuildConventionsOpts = {}): Conventions {
@@ -28,6 +38,17 @@ export function buildConventions(opts: BuildConventionsOpts = {}): Conventions {
     updatedAt: FIXED_TS,
     msg: opts.msg,
     regex: opts.regex,
+    limit: opts.limit,
+    scope: opts.scope,
+    currency: opts.currency,
+    tax: opts.tax,
+    auth: opts.auth,
+    role: opts.role,
+    permission: opts.permission,
+    db: opts.db,
     numbering: opts.numbering,
+    tx: opts.tx,
+    externalOutcomeDefaults: opts.externalOutcomeDefaults,
+    i18n: opts.i18n,
   };
 }

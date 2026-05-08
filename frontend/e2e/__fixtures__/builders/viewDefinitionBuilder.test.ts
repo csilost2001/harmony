@@ -38,4 +38,24 @@ describe("buildViewDefinition", () => {
     expect(vd.name).toBe("受注カンバン");
     expect(vd.kind).toBe("kanban");
   });
+
+  it("Level 2 (query) — AJV pass and sourceTableId absent", () => {
+    const tableId = "cccccccc-0001-4000-8000-000000000001";
+    const vd = buildViewDefinition({
+      query: {
+        from: {
+          tableId: tableId as unknown as import("../../../src/types/v3").TableId,
+          alias: "t",
+        },
+      },
+    });
+    const ok = validateViewDefinition(vd);
+    if (!ok) {
+      console.error(validateViewDefinition.errors);
+    }
+    expect(ok).toBe(true);
+    // query 形式では sourceTableId が存在しないこと
+    expect((vd as { sourceTableId?: unknown }).sourceTableId).toBeUndefined();
+    expect((vd as { query?: unknown }).query).toBeDefined();
+  });
 });

@@ -16,15 +16,15 @@ import type {
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 export interface BuildScreenLayoutOpts {
-  nodes?: Record<string, Position>;
-  edges?: Record<string, TransitionLayout>;
+  positions?: Record<string, Position>;
+  transitions?: Record<string, TransitionLayout>;
 }
 
 export function buildScreenLayout(opts: BuildScreenLayoutOpts = {}): ScreenLayout {
   return {
     $schema: "../../schemas/v3/screen-layout.v3.schema.json",
-    positions: opts.nodes ?? {},
-    transitions: opts.edges,
+    positions: opts.positions ?? {},
+    transitions: opts.transitions,
     updatedAt: FIXED_TS,
   };
 }

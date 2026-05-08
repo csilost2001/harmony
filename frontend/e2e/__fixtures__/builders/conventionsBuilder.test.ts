@@ -42,4 +42,19 @@ describe("buildConventions", () => {
     expect(c.version).toBe("2.0.0");
     expect(c.msg?.required?.template).toBe("{label}は必須です。");
   });
+
+  it("individual field override is reflected in output (limit)", () => {
+    const c = buildConventions({
+      limit: {
+        maxNameLength: { value: 100, unit: "char", description: "名称最大文字数" },
+      },
+    });
+    const ok = validateConventions(c);
+    if (!ok) {
+      console.error(validateConventions.errors);
+    }
+    expect(ok).toBe(true);
+    expect(c.limit?.maxNameLength?.value).toBe(100);
+    expect(c.limit?.maxNameLength?.unit).toBe("char");
+  });
 });

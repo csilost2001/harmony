@@ -36,7 +36,7 @@ describe("buildScreenLayout", () => {
   it("respects overrides", () => {
     const nodeId = "cccccccc-0000-4000-8000-000000000001";
     const sl = buildScreenLayout({
-      nodes: { [nodeId]: { x: 100, y: 200 } },
+      positions: { [nodeId]: { x: 100, y: 200 } },
     });
     expect(sl.positions[nodeId]).toEqual({ x: 100, y: 200 });
   });

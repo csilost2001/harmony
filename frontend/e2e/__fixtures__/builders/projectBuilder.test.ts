@@ -18,7 +18,6 @@ beforeAll(() => {
   const ajv = new Ajv2020({ allErrors: true, strict: false, discriminator: true });
   addFormats(ajv);
   ajv.addSchema(loadJson(join(v3Dir, "common.v3.schema.json")) as object);
-  ajv.addSchema(loadJson(join(v3Dir, "screen-item.v3.schema.json")) as object);
   validateProject = ajv.compile(loadJson(join(v3Dir, "harmony.v3.schema.json")) as object);
 });
 

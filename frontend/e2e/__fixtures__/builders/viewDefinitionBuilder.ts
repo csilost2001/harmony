@@ -9,11 +9,13 @@
 
 import type {
   Identifier,
+  TableId,
   Timestamp,
   ViewColumn,
   ViewDefinition,
   ViewDefinitionId,
   ViewDefinitionKind,
+  ViewQuery,
 } from "../../../src/types/v3";
 import { normalizeId } from "../../helpers/realWorkspace";
 
@@ -24,6 +26,8 @@ export interface BuildViewDefinitionOpts {
   name?: string;
   kind?: ViewDefinitionKind;
   sourceTableId?: string;
+  /** Level 2 (Structured) / Level 3 (Raw SQL) 形式。指定すると sourceTableId と排他になる。 */
+  query?: ViewQuery;
   columns?: ViewColumn[];
 }
 
@@ -39,14 +43,22 @@ export function buildViewDefinition(opts: BuildViewDefinitionOpts = {}): ViewDef
     ? (normalizeId(opts.id) as unknown as ViewDefinitionId)
     : (crypto.randomUUID() as unknown as ViewDefinitionId);
 
+  // schema の oneOf: sourceTableId か query のどちらか一方が必須 (排他)
+  // opts.query が指定された場合は Level 2/3 形式として query を使い sourceTableId は省略する
+  // opts.query が未指定の場合は Level 1 形式として sourceTableId を設定する (dummy UUID)
+  const hasQuery = opts.query !== undefined;
+  const sourceTableId = hasQuery
+    ? undefined
+    : opts.sourceTableId
+      ? (normalizeId(opts.sourceTableId) as unknown as ViewDefinition["sourceTableId"])
+      : (crypto.randomUUID() as unknown as TableId);
+
   return {
     $schema: "../../schemas/v3/view-definition.v3.schema.json",
     id,
     name: opts.name ?? "テスト一覧 viewer",
     kind: opts.kind ?? "list",
-    sourceTableId: opts.sourceTableId
-      ? (normalizeId(opts.sourceTableId) as unknown as ViewDefinition["sourceTableId"])
-      : undefined,
+    ...(hasQuery ? { query: opts.query } : { sourceTableId }),
     columns: opts.columns ?? [defaultViewColumn()],
     createdAt: FIXED_TS,
     updatedAt: FIXED_TS,
