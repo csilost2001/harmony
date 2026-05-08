@@ -109,6 +109,24 @@ Agent(subagent_type="general-purpose", model="sonnet", prompt="...")
 
 **⚠️ 確認なしで最初から Sonnet を使うのは禁止 (Rule 6 違反)**
 
+### Sonnet 委譲時の必須フッター (進捗ログ + 60 分 bailout + STOP signal)
+
+`subagent_type="general-purpose"` + `model="sonnet"` または `subagent_type="review-pr-sonnet"` で Agent を呼ぶ場合、**briefing prompt の末尾に `.tmp/sonnet-briefing-template.md` の中身をそのまま貼り付ける** (memory `feedback_sonnet_briefing_progress_log_template.md`)。
+
+手順:
+
+1. 委譲する直前に **`Read(.tmp/sonnet-briefing-template.md)`** で実体を取得 (memory に頼らず実ファイルを読む)
+2. ISSUE 専用 sessionId を決める (例: `964-beta`, `945-C-1`, `2026-05-08-1430`)
+3. テンプレ内の `<sessionId>` 全箇所を実 sessionId に置換した上で briefing 末尾に貼る
+4. **委譲前に `mkdir -p .tmp/agent-progress .tmp/agent-control && touch .tmp/agent-progress/<sessionId>.log`** で監視先を pre-create する
+
+**省略禁止**: テンプレが無いと進捗が見えず、無限走行 / 詰まり検知不可 / 緊急中断手段なしになる。Codex 委譲時 (`codex:codex-rescue`) も同フッター推奨 (`/codex:status` だけでは fine-grained 進捗が見えない)。
+
+self-check (委譲直前):
+- [ ] briefing 末尾に "進捗ログ義務" / "時間予算" / "STOP signal" の 3 セクションが含まれている
+- [ ] `<sessionId>` placeholder が実値に置換されている (テンプレ生のままは NG)
+- [ ] `.tmp/agent-progress/<sessionId>.log` が pre-create されている
+
 ## Step 4.5: マルチエディタ対応確認 (#806)
 
 PR diff に画面関連ファイル (`screens/` / `Designer.tsx` / `PuckBackend` 等) が含まれる場合:
@@ -209,13 +227,89 @@ gh pr merge <PR番号> --squash --auto
 
 PR タイトルに ISSUE 番号が含まれていることを確認してからマージ。
 
-## Step 9: 完了報告
+## Step 9: 完了報告 + セッション継続判断
 
-マージ完了後にユーザーへ短く報告:
+マージ完了後 (またはシリーズの 1 phase 完遂時) にユーザーへ短く報告 + **「セッションクリアすべきか」「次プロンプトのおすすめ」を必ず明示**。
 
-- マージした PR 番号・URL
-- クローズした ISSUE 番号
-- 次に着手できる候補があれば提示
+### 報告に必ず含める項目
+
+1. **何が完了したか**: マージした PR 番号・URL / クローズした ISSUE 番号 / シリーズなら完了 phase 名 (`α/β/γ/δ` 等)
+2. **次の作業の有無**: 次に着手できる候補
+3. **🆕 セッション継続判断**: 下記マトリクスに従い `/clear` 推奨かどうか判定 + 次プロンプト提示
+
+### セッション継続判断マトリクス (必須)
+
+| 状況 | /clear 推奨 | 次プロンプト |
+|---|---|---|
+| ISSUE 完全完了 (PR merged + ISSUE closed)、続けて別 ISSUE | **推奨** | `/issues <次ISSUE番号>` |
+| シリーズの 1 phase 完了、同 ISSUE で次 phase 続く | **強く推奨** (1 セッション = 1 phase 原則) | `/issues <ISSUE番号> （<次phase> phase のみ、<制約>）` |
+| 統合 PR の子 ISSUE 1 件完了、他子が残っている | 推奨 | `/issues <次の子ISSUE番号>` |
+| Must-fix 修正待ちでブロック | **非推奨** (context 維持) | そのまま継続 |
+| ユーザー判断待ち (設計判断 / スコープ確認) | **非推奨** (context 維持) | そのまま継続 |
+| ISSUE 一連処理を継続 (連続実行モード) | 任意 (累積トークン次第) | `/issues <次ISSUE番号>` |
+
+### 判定の根拠 (memory 参照)
+
+- **`feedback_token_budget_discipline.md`**: タスク切替で /clear (累積トークン削減)
+- **`feedback_issue_split_hidden_costs.md`**: /clear 運用での累積コスト
+- **memory recall コスト**: /clear 後は memory 自動 load が初期化される。次プロンプトに必要な context は ISSUE 本文 / 直近 commit / `## 🔗 統合 PR 情報` セクションから復元できる前提
+
+### 報告フォーマット例 (シリーズ 1 phase 完了時)
+
+```
+## #<ISSUE> <phase> phase 完遂
+
+**branch**: feat/<topic-slug> (N commits)
+**完了 commit**: <要点>
+**検証**: <grep / tsc / test 結果>
+
+完了報告を ISSUE #<N> にコメント投稿済 (<URL>)。
+
+---
+
+## 次セッション推奨
+
+**/clear すべき**。理由:
+- ISSUE 本文「セッション分割実行ルール」で 1 セッション = 1 phase
+- memory `feedback_token_budget_discipline.md`: タスク切替で /clear
+- 次 phase は本 phase の context 不要 (commit log + ISSUE コメントから復元)
+
+### 次プロンプト
+
+```
+/issues <ISSUE番号>
+（<次phase> phase のみ、<制約>）
+```
+```
+
+### 報告フォーマット例 (ISSUE 完全完了時)
+
+```
+## #<ISSUE> 完遂
+
+**マージ済 PR**: #<PR番号> (<URL>)
+**closed ISSUE**: #<N>
+
+---
+
+## 次セッション推奨
+
+**/clear すべき** (タスク切替)。
+
+### 次プロンプト候補
+
+- 別 ISSUE 着手: `/issues <次の優先 ISSUE番号>`
+- シリーズ親 ISSUE 監査: `/review-issue <親ISSUE番号>`
+- 次に何をするか確認: `gh issue list --state open --label "priority: high"`
+```
+
+### 「そのまま継続」を選ぶ判定例
+
+- レビューで Must-fix 検出 → 修正後再レビューが必要 (context 必要)
+- スコープ判断・統合 PR 化判断・schema governance 判断でユーザー回答待ち
+- 1 phase 内の chunk 進行中 (γ-1 完了で γ-2 へ等)
+
+これらは /clear すると context 復元コストが大きい。**「そのまま続けてください」と明示**すること。
 
 ---
 
