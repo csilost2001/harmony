@@ -34,12 +34,13 @@ test.describe("拡張管理 UI (#447)", () => {
     }
   });
 
-  // TODO(#955): backend `projectStorage.ts:140` が存在しない
-  // `schemas/extensions-response-types.schema.json` (v3 で `schemas/v3/extensions.v3.schema.json`
-  // 単一ファイルに統合) を読みに行き ENOENT で extensions panel が
-  // schema 検証 fail。backend 側コードを v3 schema 参照に修正必要 (#955 で対応)。
-  test.skip("レスポンス型を追加して保存できる (#955 follow-up)", async ({ page }) => {
-    await ws.gotoActive(page, "/extensions?tab=responseTypes");
+  // #955: backend `projectStorage.ts` の `getExtensionValidator()` を v3 統合 schema
+  // (`schemas/v3/extensions.v3.schema.json`) 参照に修正済み。
+  test("レスポンス型を追加して保存できる", async ({ page }) => {
+    // gotoActive の waitForURL は pathname のみ比較するため query 付き URL は使えない。
+    // `/extensions` で navigate してから tab を click で切り替える。
+    await ws.gotoActive(page, "/extensions");
+    await page.getByRole("tab", { name: /レスポンス型/ }).click();
     // ResumeOrDiscardDialog dismiss
     await page.waitForTimeout(500);
     for (let _i = 0; _i < 3; _i++) {
@@ -60,6 +61,7 @@ test.describe("拡張管理 UI (#447)", () => {
     // ResponseTypesTab 内の primary 保存 button (edit-mode-save と区別)
     await page.locator(".extensions-panel button.btn-primary", { hasText: "保存" }).click();
     await expect(page.getByText("保存しました。")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByDisplayValue("E2EResponse")).toBeVisible();
+    // 入力値が保持されていることを確認 (input[value=E2EResponse])
+    await expect(page.locator('input[value="E2EResponse"]')).toBeVisible();
   });
 });
