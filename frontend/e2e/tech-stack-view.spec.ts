@@ -48,6 +48,10 @@ test.describe("技術スタック選定画面 (#826)", () => {
     test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
   });
 
+  test.afterEach(async ({ page }) => {
+    if (mcpAvailable) await ws.resetRuntimeState(page);
+  });
+
   test("ページが表示される — カテゴリペイン + デザイナーパネルが存在する", async ({ page }) => {
     await setup(page);
     await expect(page.getByRole("heading", { name: /デザイナー/ })).toBeVisible();

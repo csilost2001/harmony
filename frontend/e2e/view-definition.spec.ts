@@ -71,6 +71,10 @@ test.describe("ビュー定義 E2E", () => {
     await expect(page.getByText("ビュー定義一覧").first()).toBeVisible({ timeout: 10000 });
   });
 
+  test.afterEach(async ({ page }) => {
+    if (mcpAvailable) await ws.resetRuntimeState(page);
+  });
+
   test("一覧画面が表示される", async ({ page }) => {
     await expect(page).toHaveURL(/\/w\/[^/]+\/view-definition\/list$/);
   });

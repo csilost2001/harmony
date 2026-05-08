@@ -48,6 +48,10 @@ test.describe("画面一覧", () => {
     await expect(page.locator(".screen-list-page")).toBeVisible();
   });
 
+  test.afterEach(async ({ page }) => {
+    if (mcpAvailable) await ws.resetRuntimeState(page);
+  });
+
   test("カード既定で 3 件、表切替可、検索絞り込み", async ({ page }) => {
     // backend からの projects + screens 取得を待つ
     await expect(page.locator(".data-list-card").first()).toBeVisible({ timeout: 10000 });

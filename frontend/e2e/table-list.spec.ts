@@ -58,6 +58,10 @@ test.describe("テーブル一覧", () => {
     await expect(page.locator(".table-list-page")).toBeVisible();
   });
 
+  test.afterEach(async ({ page }) => {
+    if (mcpAvailable) await ws.resetRuntimeState(page);
+  });
+
   test.describe("表示切替・検索", () => {
     test("既定はカードレイアウト、ViewModeToggle で表に切替可能", async ({ page }) => {
       await expect(page.locator(".tables-data-list.data-list-layout-grid")).toBeVisible();

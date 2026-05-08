@@ -45,6 +45,10 @@ test.describe("規約カタログ編集ビュー (#317)", () => {
     await expect(page.getByTestId("edit-mode-save")).toBeVisible();
   });
 
+  test.afterEach(async ({ page }) => {
+    if (mcpAvailable) await ws.resetRuntimeState(page);
+  });
+
   test("13 カテゴリタブが 3 グループで見える (#555)", async ({ page }) => {
     const tabs = page.locator(".conventions-category-tab");
     await expect(tabs).toHaveCount(13);
