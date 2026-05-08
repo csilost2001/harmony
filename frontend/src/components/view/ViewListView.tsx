@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { View, ViewEntry, ViewId, PhysicalName, DisplayName, Timestamp } from "../../types/v3";
 import { listViews, createView, loadView, saveView, loadViewValidationMap, commitViews } from "../../store/viewStore";
 import { loadProject } from "../../store/flowStore";
@@ -43,6 +44,7 @@ function formatDate(iso: string): string {
 
 export function ViewListView() {
   const navigate = useNavigate();
+  const { wsPath } = useWorkspacePath();
   const { hasDraft } = useDraftRegistry();
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
@@ -143,8 +145,8 @@ export function ViewListView() {
 
   const handleActivate = useCallback((v: ViewEntry) => {
     if (editor.isDeleted(v.id)) return;
-    navigate(`/view/edit/${encodeURIComponent(v.id)}`);
-  }, [navigate, editor]);
+    navigate(wsPath(`/view/edit/${encodeURIComponent(v.id)}`));
+  }, [navigate, editor, wsPath]);
 
   const handleDelete = (items: ViewEntry[]) => {
     editor.markDeleted(items.map((v) => v.id));
@@ -271,7 +273,7 @@ export function ViewListView() {
     setAddPhysicalName("");
     setAddName("");
     setAddPhysicalNameError("");
-    navigate(`/view/edit/${encodeURIComponent(v.id)}`);
+    navigate(wsPath(`/view/edit/${encodeURIComponent(v.id)}`));
   };
 
   const buildMenuItems = (target: ViewEntry | null): ContextMenuItem[] => {
