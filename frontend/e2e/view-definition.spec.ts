@@ -92,10 +92,18 @@ test.describe("ビュー定義 E2E", () => {
     await expect(page).toHaveURL(/\/w\/[^/]+\/view-definition\/edit\//);
     await expect(page.getByText("ビュー定義編集").first()).toBeVisible();
 
+    // edit-session-draft (#683): エディタは readonly で開くため明示的に編集開始する。
+    // 「作成して編集」ボタンの命名に反する UX gap (#945 follow-up: navigate 時に
+    // 自動編集モード化する query param を渡す等の改善が望ましい)
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
+
     await page.getByLabel(/表示名/).fill(UPDATED_NAME);
-    await expect(page.getByRole("button", { name: /保存/ })).toBeEnabled();
-    await page.getByRole("button", { name: /保存/ }).click();
-    await expect(page.getByRole("button", { name: /保存/ })).toBeDisabled();
+    // SaveResetButtons の保存ボタン (edit-mode-save と区別)
+    const saveBtn = page.locator(".srb-btn-save");
+    await expect(saveBtn).toBeEnabled();
+    await saveBtn.click();
+    await expect(saveBtn).toBeDisabled();
 
     await page.getByTestId("editor-header-back").click();
     await expect(page).toHaveURL(/\/w\/[^/]+\/view-definition\/list$/);
