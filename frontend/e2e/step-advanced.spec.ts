@@ -86,28 +86,27 @@ const dummyGroupBody: Record<string, unknown> = {
   ...((dummyGroup as Record<string, unknown>).markers !== undefined ? { markers: (dummyGroup as Record<string, unknown>).markers } : {}),
 };
 
-const WS_KEY = "issue-926-step-advanced.spec";
+const WS_KEY = "issue-926-step-advanced";
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
 
+test.beforeAll(async () => {
+  mcpAvailable = await isMcpRunning();
+});
+
+test.afterAll(async () => {
+  if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+});
+
+test.beforeEach(async () => {
+  test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+  ws = await setupTestWorkspace({
+    key: WS_KEY,
+    project: dummyProject,
+    processFlows: [dummyGroupBody as unknown as { id: string }],
+  });
+});
 test.describe("ステップ追加 (条件分岐 / ループ) (#248)", () => {
-  test.beforeAll(async () => {
-    mcpAvailable = await isMcpRunning();
-  });
-
-  test.afterAll(async () => {
-    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
-  });
-
-  test.beforeEach(async () => {
-    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
-    ws = await setupTestWorkspace({
-      key: WS_KEY,
-      project: dummyProject,
-      processFlows: [dummyGroupBody as unknown as { id: string }],
-    });
-  });
-
   test("ツールバーから 条件分岐 を追加", async ({ page }) => {
     await setupEditor(page);
     await expect(page.locator(".step-card")).toHaveCount(1);

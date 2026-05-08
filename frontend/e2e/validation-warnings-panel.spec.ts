@@ -99,28 +99,27 @@ const dummyGroupBody: Record<string, unknown> = {
   ...((dummyGroup as Record<string, unknown>).markers !== undefined ? { markers: (dummyGroup as Record<string, unknown>).markers } : {}),
 };
 
-const WS_KEY = "issue-926-validation-warnings-panel.spec";
+const WS_KEY = "issue-926-validation-warnings-panel";
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
 
+test.beforeAll(async () => {
+  mcpAvailable = await isMcpRunning();
+});
+
+test.afterAll(async () => {
+  if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+});
+
+test.beforeEach(async () => {
+  test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+  ws = await setupTestWorkspace({
+    key: WS_KEY,
+    project: dummyProject,
+    processFlows: [dummyGroupBody as unknown as { id: string }],
+  });
+});
 test.describe("警告パネル UI 配線 (#261 UI 統合)", () => {
-  test.beforeAll(async () => {
-    mcpAvailable = await isMcpRunning();
-  });
-
-  test.afterAll(async () => {
-    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
-  });
-
-  test.beforeEach(async () => {
-    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
-    ws = await setupTestWorkspace({
-      key: WS_KEY,
-      project: dummyProject,
-      processFlows: [dummyGroupBody as unknown as { id: string }],
-    });
-  });
-
   test("警告バッジが表示される (UNKNOWN_IDENTIFIER + UNKNOWN_RESPONSE_REF)", async ({ page }) => {
     await setupEditor(page);
     const badge = page.locator(".validation-badge.warning");

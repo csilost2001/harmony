@@ -67,28 +67,27 @@ const dummyGroupBody: Record<string, unknown> = {
   ...((dummyGroup as Record<string, unknown>).markers !== undefined ? { markers: (dummyGroup as Record<string, unknown>).markers } : {}),
 };
 
-const WS_KEY = "issue-926-drawing-marker.spec";
+const WS_KEY = "issue-926-drawing-marker";
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
 
+test.beforeAll(async () => {
+  mcpAvailable = await isMcpRunning();
+});
+
+test.afterAll(async () => {
+  if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+});
+
+test.beforeEach(async () => {
+  test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+  ws = await setupTestWorkspace({
+    key: WS_KEY,
+    project: dummyProject,
+    processFlows: [dummyGroupBody as unknown as { id: string }],
+  });
+});
 test.describe("描画マーカー (#261)", () => {
-  test.beforeAll(async () => {
-    mcpAvailable = await isMcpRunning();
-  });
-
-  test.afterAll(async () => {
-    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
-  });
-
-  test.beforeEach(async () => {
-    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
-    ws = await setupTestWorkspace({
-      key: WS_KEY,
-      project: dummyProject,
-      processFlows: [dummyGroupBody as unknown as { id: string }],
-    });
-  });
-
   test("既存 shape marker が SVG overlay に描画される (path 要素)", async ({ page }) => {
     await setup(page);
     const overlay = page.locator(".drawing-overlay");

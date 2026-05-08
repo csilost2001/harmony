@@ -98,42 +98,39 @@ const dummyGroupBody: Record<string, unknown> = {
   ...((dummyGroup as Record<string, unknown>).markers !== undefined ? { markers: (dummyGroup as Record<string, unknown>).markers } : {}),
 };
 
-const WS_KEY = "issue-926-step-ops.spec";
+const WS_KEY = "issue-926-step-ops";
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
 
+test.beforeAll(async () => {
+  mcpAvailable = await isMcpRunning();
+});
+
+test.afterAll(async () => {
+  if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+});
+
+test.beforeEach(async () => {
+  test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+  ws = await setupTestWorkspace({
+    key: WS_KEY,
+    project: dummyProject,
+    processFlows: [dummyGroupBody as unknown as { id: string }],
+  });
+});
 test.describe("ステップツールバーから追加 (#246)", () => {
-  test.beforeAll(async () => {
-    mcpAvailable = await isMcpRunning();
-  });
-
-  test.afterAll(async () => {
-    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
-  });
-
-  test.beforeEach(async () => {
-    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
-    ws = await setupTestWorkspace({
-      key: WS_KEY,
-      project: dummyProject,
-      processFlows: [dummyGroupBody as unknown as { id: string }],
-    });
-  });
-
-  test("ツールバーの DB 操作をクリックで末尾に追加される", async ({ page }) => {
+  test("ツールバーの DBアクセス をクリックで末尾に追加される", async ({ page }) => {
     await setupEditor(page);
-    // 初期 3 ステップ
     await expect(page.locator(".step-card")).toHaveCount(3);
-    // ツールバーの「DB操作」ボタンをクリック
-    await page.getByRole("button", { name: /DB操作/ }).first().click();
-    // 4 ステップに増える
+    // step-toolbar 内の DBアクセス ボタン (#STEP_TYPE_LABELS で "dbAccess" → "DBアクセス" に rename)
+    await page.locator(".step-toolbar .step-toolbar-btn").filter({ hasText: "DBアクセス" }).first().click();
     await expect(page.locator(".step-card")).toHaveCount(4);
   });
 
   test("ツールバーの ジャンプ をクリックで追加", async ({ page }) => {
     await setupEditor(page);
     await expect(page.locator(".step-card")).toHaveCount(3);
-    await page.getByRole("button", { name: /ジャンプ/ }).first().click();
+    await page.locator(".step-toolbar .step-toolbar-btn").filter({ hasText: "ジャンプ" }).first().click();
     await expect(page.locator(".step-card")).toHaveCount(4);
   });
 });
@@ -174,32 +171,35 @@ test.describe("ステップヘッダクリックで展開・閉じる (#246)", (
 
 test.describe("メタバッジクリックで展開 (#236)", () => {
   test("runIf を設定したステップのアイコンクリックで展開される", async ({ page }) => {
-    // 事前に runIf 入りのステップを用意
-    const withRunIfGroup = {
-      ...dummyGroup,
+    // 事前に runIf 入りステップを seed (realWorkspace 経路で再 setup)
+    const withRunIfBody = {
+      ...dummyGroupBody,
       actions: [
         {
-          ...dummyGroup.actions[0],
+          ...(dummyGroup.actions[0]),
           steps: [
-            { ...dummyGroup.actions[0].steps[0], runIf: "@x > 0" },
-            ...dummyGroup.actions[0].steps.slice(1),
+            { ...(dummyGroup.actions[0].steps[0]), runIf: "@x > 0" },
+            ...(dummyGroup.actions[0].steps.slice(1)),
           ],
         },
       ],
     };
-    await page.addInitScript(({ project, group }) => {
-      localStorage.setItem("workspace-e2e-bypass", "true");
-      localStorage.setItem("flow-project", JSON.stringify(project));
-      localStorage.setItem(`process-flow-${group.id}`, JSON.stringify(group));
-      localStorage.removeItem("harmony-open-tabs");
-      localStorage.removeItem("harmony-active-tab");
-    }, { project: dummyProject, group: withRunIfGroup });
-    await page.goto(`/process-flow/edit/${groupId}`);
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      processFlows: [withRunIfBody as unknown as { id: string }],
+    });
+    await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
+    await expect(page.locator(".step-editor, .process-flow-content").first()).toBeVisible({ timeout: 10000 });
+    if (await page.locator(".edit-mode-modal-backdrop").isVisible({ timeout: 1000 }).catch(() => false)) {
+      await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+      await expect(page.locator(".edit-mode-modal-backdrop")).toBeHidden({ timeout: 5000 });
+    }
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible();
     const firstCard = page.locator(".step-card").first();
-    // runIf アイコン (funnel) のクリック可能 button を探す
     const runIfBtn = firstCard.locator('button[title*="runIf"]').first();
     await runIfBtn.click();
-    // body が表示される
     await expect(firstCard.locator(".step-card-body")).toBeVisible();
   });
 });

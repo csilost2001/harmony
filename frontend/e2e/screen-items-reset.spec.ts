@@ -55,6 +55,19 @@ async function setup(page: Page, items: Array<{ id: string; label: string; type:
 
   await ws.gotoActive(page, `/screen/items/${screenIdNorm}`);
   await expect(page.locator(".screen-items-view")).toBeVisible({ timeout: 10000 });
+  // edit-session-draft (#683) で初期 readonly。「IDをリセット」等のボタンは editing 必須。
+  // ResumeOrDiscardDialog が遅延表示する場合があるので 2 秒待機 + dismiss → edit-mode-start
+  await page.waitForTimeout(500);
+  for (let i = 0; i < 3; i++) {
+    if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+      await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+      await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+    } else {
+      break;
+    }
+  }
+  await page.getByTestId("edit-mode-start").click();
+  await expect(page.getByTestId("edit-mode-save")).toBeVisible();
 }
 
 test.describe("画面項目 ID リセット (#334)", () => {

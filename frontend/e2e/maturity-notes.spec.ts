@@ -99,28 +99,27 @@ const dummyGroupBody: Record<string, unknown> = {
   ...((dummyGroup as Record<string, unknown>).markers !== undefined ? { markers: (dummyGroup as Record<string, unknown>).markers } : {}),
 };
 
-const WS_KEY = "issue-926-maturity-notes.spec";
+const WS_KEY = "issue-926-maturity-notes";
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
 
+test.beforeAll(async () => {
+  mcpAvailable = await isMcpRunning();
+});
+
+test.afterAll(async () => {
+  if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+});
+
+test.beforeEach(async () => {
+  test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+  ws = await setupTestWorkspace({
+    key: WS_KEY,
+    project: dummyProject,
+    processFlows: [dummyGroupBody as unknown as { id: string }],
+  });
+});
 test.describe("成熟度バッジ (#185/#189)", () => {
-  test.beforeAll(async () => {
-    mcpAvailable = await isMcpRunning();
-  });
-
-  test.afterAll(async () => {
-    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
-  });
-
-  test.beforeEach(async () => {
-    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
-    ws = await setupTestWorkspace({
-      key: WS_KEY,
-      project: dummyProject,
-      processFlows: [dummyGroupBody as unknown as { id: string }],
-    });
-  });
-
   test("ステップカードに maturity バッジが表示される", async ({ page }) => {
     await setupEditor(page);
     // アクションタブが開いており、ステップが表示されている

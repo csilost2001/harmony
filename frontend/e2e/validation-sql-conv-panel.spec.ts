@@ -103,28 +103,27 @@ const dummyGroupBody: Record<string, unknown> = {
   ...((group as Record<string, unknown>).markers !== undefined ? { markers: (group as Record<string, unknown>).markers } : {}),
 };
 
-const WS_KEY = "issue-926-validation-sql-conv-panel.spec";
+const WS_KEY = "issue-926-validation-sql-conv-panel";
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
 
+test.beforeAll(async () => {
+  mcpAvailable = await isMcpRunning();
+});
+
+test.afterAll(async () => {
+  if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+});
+
+test.beforeEach(async () => {
+  test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+  ws = await setupTestWorkspace({
+    key: WS_KEY,
+    project: dummyProject,
+    processFlows: [dummyGroupBody as unknown as { id: string }],
+  });
+});
 test.describe("SQL 列検査 + 規約参照 の UI 統合 (#261)", () => {
-  test.beforeAll(async () => {
-    mcpAvailable = await isMcpRunning();
-  });
-
-  test.afterAll(async () => {
-    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
-  });
-
-  test.beforeEach(async () => {
-    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
-    ws = await setupTestWorkspace({
-      key: WS_KEY,
-      project: dummyProject,
-      processFlows: [dummyGroupBody as unknown as { id: string }],
-    });
-  });
-
   test("UNKNOWN_COLUMN 警告がパネルに表示される", async ({ page }) => {
     await setupEditor(page);
     // テーブル定義と規約カタログが load されるまで待つ
