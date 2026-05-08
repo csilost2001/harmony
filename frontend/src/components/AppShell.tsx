@@ -706,7 +706,11 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   useEffect(() => {
     if (!activeTab) return;
     if (location.pathname === "/workspace/select") return;
-    if (workspaceState.active === null && !workspaceState.lockdown && activeTab.type !== "workspace-list") {
+    // workspace 未確立でも URL に wsId がある場合は navigate 許可 (#957)。
+    // tab → URL は activeTab.resourceId だけで決まるため、 workspace state の race は影響しない。
+    // recovery 中 (active=null + wsId 有) でもタブクリックで URL を切替えて、
+    // recovery 完了後に Designer mount のフローを保つ。
+    if (workspaceState.active === null && !workspaceState.lockdown && !wsId && activeTab.type !== "workspace-list") {
       return;
     }
     // activeTabId が前回 sync 済の値と同じなら何もしない

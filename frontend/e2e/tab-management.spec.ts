@@ -99,10 +99,9 @@ test.describe("タブ管理", () => {
       await setupWithScreens(page, [SCREEN_A_NORM, SCREEN_B_NORM]);
     });
 
-    // TODO(#957): tab click 後に AppShell の activeTab → URL sync useEffect が
-    // navigate しない race。lastSyncedActiveTabIdRef の初期化タイミング or
-    // tabStore localStorage seed のタイミング不整合の可能性 (#957 で実機調査)。
-    test.skip("タブをクリックすると切り替わる (#957 follow-up: tab→URL sync race)", async ({ page }) => {
+    // #957: tab click 後に AppShell の activeTab → URL sync useEffect が、 workspace state
+    // 未確立 + wsId URL 有り の状態で early return していた。 guard を緩めて navigate 許可。
+    test("タブをクリックすると切り替わる", async ({ page }) => {
       await page.locator(".tabbar-tab").filter({ hasText: "画面A" }).click();
       await expect(page.locator(".tabbar-tab.active")).toContainText("画面A");
       await expect(page).toHaveURL(new RegExp(`/w/[^/]+/screen/design/${SCREEN_A_NORM}`));
