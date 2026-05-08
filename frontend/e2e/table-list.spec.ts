@@ -11,6 +11,8 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 const dummyTables = [
   { id: "tbl-0001", physicalName: "users", name: "ユーザーマスタ", category: "マスタ", columns: [], indexes: [], constraints: [] },
@@ -18,14 +20,18 @@ const dummyTables = [
   { id: "tbl-0003", physicalName: "products", name: "商品マスタ", category: "マスタ", columns: [], indexes: [], constraints: [] },
 ];
 
-const dummyProject = {
-  version: 1,
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
+
+const dummyProject = buildProject({
   name: "E2Eテスト用プロジェクト",
-  screens: [],
-  groups: [],
-  edges: [],
-  tables: dummyTables,
-};
+  entities: {
+    tables: [
+      { id: "tbl-0001", no: 1, physicalName: "users", name: "ユーザーマスタ", category: "マスタ", updatedAt: FIXED_TS },
+      { id: "tbl-0002", no: 2, physicalName: "orders", name: "注文", category: "トランザクション", updatedAt: FIXED_TS },
+      { id: "tbl-0003", no: 3, physicalName: "products", name: "商品マスタ", category: "マスタ", updatedAt: FIXED_TS },
+    ],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-table-list";
 let mcpAvailable = false;

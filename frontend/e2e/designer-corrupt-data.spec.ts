@@ -13,18 +13,19 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 const SCREEN_ID = "bbbbbbbb-0001-4000-8000-bbbbbbbbbbbb";
 const SCREEN_NORM = normalizeId(SCREEN_ID);
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
-const project = {
-  version: 1,
+const project = buildProject({
   name: "corrupt-data test",
-  screens: [
-    { id: SCREEN_ID, no: 1, name: "破損テスト画面", path: "/corrupt", kind: "form", hasDesign: true },
-  ],
-  groups: [], edges: [], tables: [],
-};
+  entities: {
+    screens: [{ id: SCREEN_ID, no: 1, name: "破損テスト画面", path: "/corrupt", kind: "form", hasDesign: true, updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const dummyTab = {
   id: `design:${SCREEN_NORM}`,

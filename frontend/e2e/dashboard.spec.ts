@@ -13,33 +13,22 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 const SCREEN_ID = "aaaaaaaa-0001-4000-8000-000000000001";
 const TABLE_ID = "bbbbbbbb-0001-4000-8000-000000000001";
 const ACTION_ID = "cccccccc-0001-4000-8000-000000000001";
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
-const dummyProject = {
-  version: 1,
+const dummyProject = buildProject({
   name: "E2Eダッシュボードテスト",
-  screens: [
-    {
-      id: SCREEN_ID,
-      no: 1,
-      name: "ログイン画面",
-      kind: "input",
-      path: "/login",
-      hasDesign: true,
-    },
-  ],
-  groups: [],
-  edges: [],
-  tables: [
-    { id: TABLE_ID, no: 1, physicalName: "users", name: "ユーザー", category: "マスタ", columnCount: 0 },
-  ],
-  processFlows: [
-    { id: ACTION_ID, no: 1, name: "ログイン処理", kind: "screen", actionCount: 0 },
-  ],
-};
+  entities: {
+    screens: [{ id: SCREEN_ID, no: 1, name: "ログイン画面", kind: "input", path: "/login", hasDesign: true, updatedAt: FIXED_TS }],
+    tables: [{ id: TABLE_ID, no: 1, physicalName: "users", name: "ユーザー", category: "マスタ", columnCount: 0, updatedAt: FIXED_TS }],
+    processFlows: [{ id: ACTION_ID, no: 1, name: "ログイン処理", kind: "screen", actionCount: 0, updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-dashboard";
 let mcpAvailable = false;

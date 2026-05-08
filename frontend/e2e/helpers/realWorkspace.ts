@@ -5,6 +5,9 @@
  * そのため e2e テストは「`addInitScript` で localStorage に seed」方式から「ファイルシステム + WS open」
  * 方式に移行する必要がある (#926)。
  *
+ * #964 α: helper を v3 typed only に改修。LegacyProjectInput / legacyToHarmony 削除済み。
+ * 各フィールドは v3 schema 由来の TypeScript 型 (Project / Table / ProcessFlow 等) を受け取る。
+ *
  * 主な API:
  *   - copyExampleWorkspace(exampleName, key): examples/<name>/ をコピー
  *   - setupTestWorkspace({ key, project, tables, processFlows, ... }): 任意 seed データから
@@ -18,6 +21,18 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as net from "net";
 import WebSocketImpl from "ws";
+import type {
+  Conventions,
+  CustomBlock,
+  ProcessFlow,
+  Project,
+  Screen,
+  ScreenLayout,
+  Sequence,
+  Table,
+  View,
+  ViewDefinition,
+} from "../../src/types/v3/index.ts";
 
 export interface RealWorkspaceFixture {
   key: string;
@@ -54,146 +69,46 @@ export interface PageLike {
 /**
  * setupTestWorkspace の引数。各フィールドは省略可。
  * 渡したフィールドは harmony.json + 個別ファイルとして書き出される。
+ *
+ * #964 α: 全フィールドを v3 schema 由来 TypeScript 型 (Project / Table / ProcessFlow 等) に統一。
+ * 旧 LegacyProjectInput は削除済み。v1 形式のデータは β/γ で builder 経由で v3 に変換する。
  */
 export interface SetupTestWorkspaceOptions {
   /** 一意キー (.tmp/e2e-workspaces/<key>/ になる) */
   key: string;
-  /** v1 LegacyFlowProject 形式 (旧 localStorage seed と同じ shape)。harmony.json に変換される */
-  project?: LegacyProjectInput;
-  /** TableData[] — 各 entry は loadTable で返る body。harmony/tables/<id>.json に書き出し */
-  tables?: TableInput[];
-  /** ProcessFlow JSON — harmony/process-flows/<id>.json */
-  processFlows?: ProcessFlowInput[];
-  /** Sequence — harmony/sequences/<id>.json */
-  sequences?: SequenceInput[];
-  /** View — harmony/views/<id>.json */
-  views?: ViewInput[];
-  /** ViewDefinition — harmony/view-definitions/<id>.json */
-  viewDefinitions?: ViewDefinitionInput[];
-  /** 規約カタログ (catalog.json) */
-  conventions?: unknown;
-  /** Screen 個別 entity ファイル (`harmony/screens/<id>.json`)。
-   *  通常は project.screens に入った header から自動生成されるので明示は不要。 */
-  screenEntities?: ScreenEntityInput[];
+  /** v3 Project — harmony.json として書き出される */
+  project?: Project;
+  /** v3 Table[] — 各 entry は harmony/tables/<meta.id>.json に書き出し */
+  tables?: Table[];
+  /** v3 ProcessFlow[] — harmony/process-flows/<meta.id>.json */
+  processFlows?: ProcessFlow[];
+  /** v3 Sequence[] — harmony/sequences/<meta.id>.json */
+  sequences?: Sequence[];
+  /** v3 View[] — harmony/views/<meta.id>.json */
+  views?: View[];
+  /** v3 ViewDefinition[] — harmony/view-definitions/<meta.id>.json */
+  viewDefinitions?: ViewDefinition[];
+  /** v3 Conventions — harmony/conventions/catalog.json */
+  conventions?: Conventions;
+  /** v3 Screen[] — harmony/screens/<meta.id>.json */
+  screenEntities?: Screen[];
   /** Screen design (puck data 等) — `harmony/screens/<id>.design.json` */
   screenDesigns?: ScreenDesignInput[];
-  /** カスタムブロック (`harmony/custom-blocks.json`) */
-  customBlocks?: unknown[];
+  /** v3 CustomBlock[] — harmony/custom-blocks.json */
+  customBlocks?: CustomBlock[];
   /** Puck コンポーネント (`harmony/puck-components.json`) */
   puckComponents?: unknown[];
   /** ER レイアウト (`harmony/er-layout.json`) */
   erLayout?: unknown;
-  /** screen-layout.json (画面フロー用座標) */
-  screenLayout?: ScreenLayoutInput;
+  /** v3 ScreenLayout — screen-layout.json (画面フロー用座標) */
+  screenLayout?: ScreenLayout;
   /** 既存 examples/<name> をベースにコピーしてから追加 seed する場合 */
   fromExample?: string;
 }
 
-export interface LegacyProjectInput {
-  version?: number;
-  name?: string;
-  screens?: Array<{
-    id: string;
-    no?: number;
-    name: string;
-    /** v1 互換: type / kind どちらでも可 (kind 優先) */
-    type?: string;
-    kind?: string;
-    description?: string;
-    path?: string;
-    hasDesign?: boolean;
-    groupId?: string;
-    position?: { x: number; y: number };
-    size?: { width: number; height: number };
-    createdAt?: string;
-    updatedAt?: string;
-  }>;
-  groups?: Array<{
-    id: string;
-    name: string;
-    color?: string;
-    position?: { x: number; y: number };
-    size?: { width: number; height: number };
-    createdAt?: string;
-    updatedAt?: string;
-  }>;
-  edges?: Array<{
-    id: string;
-    source: string;
-    target: string;
-    label?: string;
-    trigger?: string;
-  }>;
-  tables?: Array<{
-    id: string;
-    no?: number;
-    name?: string;
-    physicalName?: string;
-    category?: string;
-    columnCount?: number;
-    maturity?: string;
-    updatedAt?: string;
-  }>;
-  processFlows?: Array<{
-    id: string;
-    no?: number;
-    name: string;
-    type?: string;
-    kind?: string;
-    actionCount?: number;
-    maturity?: string;
-    updatedAt?: string;
-    screenId?: string;
-  }>;
-  sequences?: Array<{
-    id: string;
-    name?: string;
-    maturity?: string;
-    updatedAt?: string;
-    [key: string]: unknown;
-  }>;
-  views?: Array<{
-    id: string;
-    name?: string;
-    maturity?: string;
-    updatedAt?: string;
-    [key: string]: unknown;
-  }>;
-  viewDefinitions?: Array<{
-    id: string;
-    name?: string;
-    maturity?: string;
-    updatedAt?: string;
-    [key: string]: unknown;
-  }>;
-  meta?: { id?: string; name?: string; description?: string };
-  techStack?: unknown;
-  conventionsApplied?: unknown[];
-  conventions?: unknown;
-  updatedAt?: string;
-}
-
-export interface TableInput {
-  id: string;
-  [key: string]: unknown;
-}
-
-export interface ProcessFlowInput {
-  id: string;
-  [key: string]: unknown;
-}
-
-export type SequenceInput = TableInput;
-export type ViewInput = TableInput;
-export type ViewDefinitionInput = TableInput;
-export type ScreenEntityInput = TableInput;
 export interface ScreenDesignInput {
   id: string;
   data: unknown;
-}
-export interface ScreenLayoutInput {
-  positions?: Record<string, { x: number; y: number; width?: number; height?: number; thumbnail?: string; color?: string }>;
-  transitions?: Record<string, { sourceHandle?: string; targetHandle?: string }>;
 }
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -326,9 +241,7 @@ export async function withBrowserSession<T>(
   });
 }
 
-// ── 内部: harmony.json 構築 ─────────────────────────────────────────────────
-
-const SCHEMA_REF = "../schemas/v3/harmony.v3.schema.json";
+// ── 内部: UUID ヘルパー ─────────────────────────────────────────────────────
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -375,98 +288,27 @@ export function normalizeId(input: string): string {
   return `${part1}-${part2}-${part3}-${part4}-${part5}`;
 }
 
-/** legacy v1 入力 → v3 harmony.json shape に変換。id は UUID v4 へ正規化される */
-function legacyToHarmony(input: LegacyProjectInput): unknown {
-  const ts = input.updatedAt ?? nowIso();
-  const screens = (input.screens ?? []).map((s, i) => ({
-    id: normalizeId(s.id),
-    no: typeof s.no === "number" ? s.no : i + 1,
-    name: s.name,
-    kind: s.kind ?? s.type ?? "other",
-    path: s.path ?? "",
-    ...(s.groupId ? { groupId: normalizeId(s.groupId) } : {}),
-    ...(s.hasDesign !== undefined ? { hasDesign: s.hasDesign } : {}),
-    maturity: "draft",
-    updatedAt: s.updatedAt ?? ts,
-  }));
-  const screenGroups = (input.groups ?? []).map((g) => ({
-    id: normalizeId(g.id),
-    name: g.name,
-    ...(g.color ? { color: g.color } : {}),
-  }));
-  const screenTransitions = (input.edges ?? []).map((e) => ({
-    id: normalizeId(e.id),
-    sourceScreenId: normalizeId(e.source),
-    targetScreenId: normalizeId(e.target),
-    ...(e.label ? { label: e.label } : {}),
-    trigger: e.trigger ?? "click",
-  }));
-  const tables = (input.tables ?? []).map((t, i) => ({
-    id: normalizeId(t.id),
-    no: typeof t.no === "number" ? t.no : i + 1,
-    name: t.name ?? t.physicalName ?? t.id,
-    physicalName: t.physicalName ?? t.id,
-    category: t.category ?? "マスタ",
-    columnCount: t.columnCount ?? 0,
-    maturity: t.maturity ?? "draft",
-    updatedAt: t.updatedAt ?? ts,
-  }));
-  const processFlows = (input.processFlows ?? []).map((f, i) => ({
-    id: normalizeId(f.id),
-    no: typeof f.no === "number" ? f.no : i + 1,
-    name: f.name,
-    kind: f.kind ?? f.type ?? "common",
-    actionCount: f.actionCount ?? 0,
-    maturity: f.maturity ?? "draft",
-    updatedAt: f.updatedAt ?? ts,
-    ...(f.screenId ? { screenId: normalizeId(f.screenId) } : {}),
-  }));
-  const sequences = (input.sequences ?? []).map((s, i) => ({
-    id: normalizeId(s.id),
-    no: typeof s.no === "number" ? (s.no as number) : i + 1,
-    name: typeof s.name === "string" ? s.name : s.id,
-    maturity: typeof s.maturity === "string" ? s.maturity : "draft",
-    updatedAt: typeof s.updatedAt === "string" ? s.updatedAt : ts,
-  }));
-  const views = (input.views ?? []).map((v, i) => ({
-    id: normalizeId(v.id),
-    no: typeof v.no === "number" ? (v.no as number) : i + 1,
-    name: typeof v.name === "string" ? v.name : v.id,
-    maturity: typeof v.maturity === "string" ? v.maturity : "draft",
-    updatedAt: typeof v.updatedAt === "string" ? v.updatedAt : ts,
-  }));
-  const viewDefinitions = (input.viewDefinitions ?? []).map((v, i) => ({
-    id: normalizeId(v.id),
-    no: typeof v.no === "number" ? (v.no as number) : i + 1,
-    name: typeof v.name === "string" ? v.name : v.id,
-    maturity: typeof v.maturity === "string" ? v.maturity : "draft",
-    updatedAt: typeof v.updatedAt === "string" ? v.updatedAt : ts,
-  }));
+/**
+ * project が省略されたとき用の最小 v3 Project を生成する。
+ * #964 α: legacyToHarmony を削除し、v3 typed input をそのまま書き出す方針に変更。
+ * branded type (Uuid / Timestamp 等) は実行時は plain string なので `as unknown as T` でキャスト。
+ */
+function buildMinimalProject(): Project {
+  const ts = nowIso() as unknown as Project["meta"]["createdAt"];
   return {
-    $schema: SCHEMA_REF,
+    $schema: "../schemas/v3/harmony.v3.schema.json",
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      id: input.meta?.id ? normalizeId(input.meta.id) : uuid(),
-      name: input.meta?.name ?? input.name ?? "E2E テストプロジェクト",
-      ...(input.meta?.description ? { description: input.meta.description } : {}),
+      id: uuid() as unknown as Project["meta"]["id"],
+      name: "E2E テストプロジェクト",
+      maturity: "draft",
       createdAt: ts,
       updatedAt: ts,
       mode: "upstream",
-      maturity: "draft",
     },
     extensionsApplied: [],
-    ...(input.techStack ? { techStack: input.techStack } : {}),
-    entities: {
-      screens,
-      tables,
-      processFlows,
-      views,
-      viewDefinitions,
-      sequences,
-      screenGroups,
-      screenTransitions,
-    },
+    entities: {},
   };
 }
 
@@ -503,49 +345,39 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
   }
 
   // harmony.json: project が無くても最小 shape を書く
+  // #964 α: v3 typed input をそのまま JSON として書き出す (v1→v3 変換なし)
   if (opts.project || !opts.fromExample) {
-    const harmony = legacyToHarmony(opts.project ?? {});
-    await writeJson(path.join(workspacePath, "harmony.json"), harmony);
+    await writeJson(path.join(workspacePath, "harmony.json"), opts.project ?? buildMinimalProject());
   }
 
-  // 個別 entity ファイル — id は UUID v4 に正規化済の値で書く
-  const idOf = (raw: string) => normalizeId(raw);
-  // 入力の id field を解決: top-level id → meta.id の順
-  const resolveItemId = (item: Record<string, unknown>): string => {
-    if (typeof item.id === "string") return item.id;
-    const meta = item.meta as Record<string, unknown> | undefined;
-    if (meta && typeof meta.id === "string") return meta.id;
-    throw new Error("setupTestWorkspace entity must have id (top-level) or meta.id");
-  };
+  // 個別 entity ファイル — v3 typed input をそのまま書き出す
+  // meta.id が entity の識別子 (v3 schema 準拠の UUID)
   for (const t of opts.tables ?? []) {
-    const id = idOf(resolveItemId(t as unknown as Record<string, unknown>));
-    await writeJson(path.join(dataDir, "tables", `${id}.json`), { ...t, id });
+    const id = t.id;
+    await writeJson(path.join(dataDir, "tables", `${id}.json`), t);
   }
   for (const f of opts.processFlows ?? []) {
-    const id = idOf(resolveItemId(f as unknown as Record<string, unknown>));
-    const meta = (f as unknown as { meta?: Record<string, unknown> }).meta;
-    const body: Record<string, unknown> = { ...f, id };
-    if (meta) body.meta = { ...meta, id };
-    await writeJson(path.join(dataDir, "process-flows", `${id}.json`), body);
+    const id = f.meta.id;
+    await writeJson(path.join(dataDir, "process-flows", `${id}.json`), f);
   }
   for (const s of opts.sequences ?? []) {
-    const id = idOf(s.id);
-    await writeJson(path.join(dataDir, "sequences", `${id}.json`), { ...s, id });
+    const id = s.id;
+    await writeJson(path.join(dataDir, "sequences", `${id}.json`), s);
   }
   for (const v of opts.views ?? []) {
-    const id = idOf(v.id);
-    await writeJson(path.join(dataDir, "views", `${id}.json`), { ...v, id });
+    const id = v.id;
+    await writeJson(path.join(dataDir, "views", `${id}.json`), v);
   }
   for (const v of opts.viewDefinitions ?? []) {
-    const id = idOf(v.id);
-    await writeJson(path.join(dataDir, "view-definitions", `${id}.json`), { ...v, id });
+    const id = v.id;
+    await writeJson(path.join(dataDir, "view-definitions", `${id}.json`), v);
   }
   for (const s of opts.screenEntities ?? []) {
-    const id = idOf(s.id);
-    await writeJson(path.join(dataDir, "screens", `${id}.json`), { ...s, id });
+    const id = s.id;
+    await writeJson(path.join(dataDir, "screens", `${id}.json`), s);
   }
   for (const d of opts.screenDesigns ?? []) {
-    const id = idOf(d.id);
+    const id = d.id;
     await writeJson(path.join(dataDir, "screens", `${id}.design.json`), d.data);
   }
   if (opts.conventions !== undefined) {

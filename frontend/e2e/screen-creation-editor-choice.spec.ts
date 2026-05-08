@@ -11,14 +11,14 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
 
-const dummyProject = {
-  version: 1, name: "画面作成 E2E テスト用プロジェクト",
-  screens: [], groups: [], edges: [], tables: [], processFlows: [],
+const dummyProject = buildProject({
+  name: "画面作成 E2E テスト用プロジェクト",
   techStack: {
     designer: { cssFramework: "bootstrap", editorKind: "grapesjs" },
   },
-};
+});
 
 const WS_KEY = "issue-926-screen-creation-editor-choice";
 let mcpAvailable = false;

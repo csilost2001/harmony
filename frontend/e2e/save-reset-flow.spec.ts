@@ -11,11 +11,11 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
 
-const dummyProject = {
-  version: 1, name: "E2Eテスト用プロジェクト",
-  screens: [], groups: [], edges: [],
-};
+const dummyProject = buildProject({
+  name: "E2Eテスト用プロジェクト",
+});
 
 const toolbarSave = ".save-reset-buttons button.srb-btn-save";
 const toolbarReset = ".save-reset-buttons button.srb-btn-reset";

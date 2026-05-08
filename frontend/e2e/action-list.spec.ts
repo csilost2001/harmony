@@ -11,36 +11,30 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
+
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 // header (project.processFlows[]) 用 — actionCount / kind 等の表示用 meta を持つ
 // schema v3 EntryBase: id (Uuid), no, name, updatedAt 必須
-const __ts = "2026-05-08T00:00:00.000Z";
 const dummyGroups = [
-  { id: "11111111-1111-4111-8111-111111111111", no: 1, name: "ログイン処理", kind: "screen", actionCount: 3, screenId: "screen-1", updatedAt: __ts },
-  { id: "22222222-2222-4222-8222-222222222222", no: 2, name: "月次集計バッチ", kind: "batch", actionCount: 5, updatedAt: __ts },
-  { id: "33333333-3333-4333-8333-333333333333", no: 3, name: "共通バリデーション", kind: "common", actionCount: 2, updatedAt: __ts },
+  { id: "11111111-1111-4111-8111-111111111111", no: 1, name: "ログイン処理", kind: "screen", actionCount: 3, screenId: "screen-1", updatedAt: FIXED_TS },
+  { id: "22222222-2222-4222-8222-222222222222", no: 2, name: "月次集計バッチ", kind: "batch", actionCount: 5, updatedAt: FIXED_TS },
+  { id: "33333333-3333-4333-8333-333333333333", no: 3, name: "共通バリデーション", kind: "common", actionCount: 2, updatedAt: FIXED_TS },
 ];
 
 // body (process-flows/<id>.json) 用 — v3 ProcessFlow shape
-function makeProcessFlowBody(id: string, name: string, kind: string): Record<string, unknown> {
-  const ts = "2026-05-06T00:00:00.000Z";
-  return {
-    $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-    meta: { id, name, kind, version: "1.0.0", maturity: "draft", mode: "upstream", createdAt: ts, updatedAt: ts },
-    actions: [],
-  };
-}
-const dummyGroupBodies = dummyGroups.map((g) => ({ ...makeProcessFlowBody(g.id, g.name, g.kind), id: g.id }));
+const dummyGroupBodies = dummyGroups.map((g) =>
+  buildProcessFlow({ id: g.id, name: g.name, kind: g.kind as Parameters<typeof buildProcessFlow>[0]["kind"], mode: "upstream" })
+);
 
-const dummyProject = {
-  version: 1,
+const dummyProject = buildProject({
   name: "E2Eテスト用プロジェクト",
-  screens: [],
-  groups: [],
-  edges: [],
-  tables: [],
-  processFlows: dummyGroups,
-};
+  entities: {
+    processFlows: dummyGroups,
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-action-list";
 let mcpAvailable = false;

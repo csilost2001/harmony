@@ -14,8 +14,17 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import {
+  buildProject,
+  buildProcessFlow,
+  buildTable,
+  buildView,
+  buildViewDefinition,
+  buildSequence,
+} from "./__fixtures__/builders";
+import type { Column, ProjectEntities, Timestamp } from "../src/types/v3";
 
-const baseTs = "2026-05-08T00:00:00.000Z";
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const TABLE_ID = `tbl-e2e-edit-mode-${Date.now()}`;
 const PF_ID = `pf-e2e-edit-mode-${Date.now()}`;
 const VIEW_ID = `v-e2e-edit-${Date.now()}`;
@@ -30,34 +39,47 @@ const VIEW_DEF_NORM = normalizeId(VIEW_DEF_ID);
 const SEQ_NORM = normalizeId(SEQUENCE_ID);
 const SCREEN_NORM = normalizeId(SCREEN_ID);
 
-const dummyTable = {
-  id: TABLE_ID, physicalName: "edit_mode_test", name: "編集モードテスト", category: "マスタ",
-  maturity: "draft",
-  columns: [{ id: "col-001", physicalName: "id", name: "ID", dataType: "INTEGER", notNull: true, primaryKey: true, unique: false, autoIncrement: true }],
-  indexes: [], constraints: [],
-};
+const dummyTable = buildTable({
+  id: TABLE_ID,
+  physicalName: "edit_mode_test",
+  name: "編集モードテスト",
+  category: "マスタ",
+  columns: [
+    {
+      id: "col-001",
+      physicalName: "id",
+      name: "ID",
+      dataType: "INTEGER",
+      notNull: true,
+      primaryKey: true,
+      autoIncrement: true,
+    } as unknown as Column,
+  ],
+});
 
-const dummyProcessFlowBody = {
+const dummyProcessFlowBody = buildProcessFlow({
   id: PF_ID,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: PF_ID, name: "編集モードテストフロー", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
-  actions: [{ id: "act-001", name: "テストアクション", trigger: "click", maturity: "draft", steps: [] }],
-};
+  name: "編集モードテストフロー",
+  kind: "screen",
+  mode: "upstream",
+  actions: [{ id: "act-001", name: "テストアクション", trigger: "click", maturity: "draft", steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
+});
 
-const dummyView = { id: VIEW_ID, name: "E2E ビュー", maturity: "draft", tableId: "", columns: [] };
-const dummyViewDefinition = { id: VIEW_DEF_ID, name: "E2E ビュー定義", maturity: "draft", layout: { type: "form", fields: [] } };
-const dummySequence = { id: SEQUENCE_ID, name: "E2E シーケンス", maturity: "draft", steps: [] };
+const dummyView = buildView({ id: VIEW_ID, name: "E2E ビュー" });
+const dummyViewDefinition = buildViewDefinition({ id: VIEW_DEF_ID, name: "E2E ビュー定義" });
+const dummySequence = buildSequence({ id: SEQUENCE_ID, name: "E2E シーケンス" });
 
-const dummyProject = {
-  version: 1, name: "edit-mode-test",
-  screens: [{ id: SCREEN_ID, no: 1, name: "編集モードテスト画面", kind: "form" }],
-  groups: [], edges: [],
-  tables: [{ id: TABLE_ID, no: 1, name: dummyTable.name, physicalName: dummyTable.physicalName, category: "マスタ", columnCount: 1, maturity: "draft" }],
-  processFlows: [{ id: PF_ID, no: 1, name: "編集モードテストフロー", kind: "screen", actionCount: 1, maturity: "draft" }],
-  views: [{ id: VIEW_ID, no: 1, name: "E2E ビュー", maturity: "draft" }],
-  viewDefinitions: [{ id: VIEW_DEF_ID, no: 1, name: "E2E ビュー定義", maturity: "draft" }],
-  sequences: [{ id: SEQUENCE_ID, no: 1, name: "E2E シーケンス", maturity: "draft" }],
-};
+const dummyProject = buildProject({
+  name: "edit-mode-test",
+  entities: {
+    screens: [{ id: SCREEN_ID, no: 1, name: "編集モードテスト画面", kind: "form", updatedAt: FIXED_TS }],
+    tables: [{ id: TABLE_ID, no: 1, name: dummyTable.name, physicalName: dummyTable.physicalName, category: "マスタ", columnCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: PF_ID, no: 1, name: "編集モードテストフロー", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+    views: [{ id: VIEW_ID, no: 1, name: "E2E ビュー", maturity: "draft", updatedAt: FIXED_TS }],
+    viewDefinitions: [{ id: VIEW_DEF_ID, no: 1, name: "E2E ビュー定義", maturity: "draft", updatedAt: FIXED_TS }],
+    sequences: [{ id: SEQUENCE_ID, no: 1, name: "E2E シーケンス", maturity: "draft", updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-edit-mode";
 let mcpAvailable = false;

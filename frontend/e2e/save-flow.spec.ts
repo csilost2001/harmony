@@ -13,21 +13,24 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 const SCREEN_A = "test-0001-4000-8000-000000000001";
 const SCREEN_B = "test-0002-4000-8000-000000000002";
 const SCREEN_A_ID = normalizeId(SCREEN_A);
 const SCREEN_B_ID = normalizeId(SCREEN_B);
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
-const dummyProject = {
-  version: 1,
+const dummyProject = buildProject({
   name: "E2Eテスト用プロジェクト",
-  screens: [
-    { id: SCREEN_A, no: 1, name: "画面A", kind: "list", path: "/a", hasDesign: true },
-    { id: SCREEN_B, no: 2, name: "画面B", kind: "list", path: "/b", hasDesign: true },
-  ],
-  groups: [], edges: [],
-};
+  entities: {
+    screens: [
+      { id: SCREEN_A, no: 1, name: "画面A", kind: "list", path: "/a", hasDesign: true, updatedAt: FIXED_TS },
+      { id: SCREEN_B, no: 2, name: "画面B", kind: "list", path: "/b", hasDesign: true, updatedAt: FIXED_TS },
+    ],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-save-flow";
 let mcpAvailable = false;

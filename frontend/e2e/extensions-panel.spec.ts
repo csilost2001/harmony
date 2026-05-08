@@ -5,9 +5,10 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
 
 const WS_KEY = "issue-926-extensions-panel";
-const dummyProject = { version: 1, name: "ext-panel", screens: [], groups: [], edges: [], tables: [], processFlows: [] };
+const dummyProject = buildProject({ name: "ext-panel" });
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
 

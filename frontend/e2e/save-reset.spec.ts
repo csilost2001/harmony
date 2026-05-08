@@ -12,8 +12,11 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 const TABLE_ID = "test-table-0001-4000-8000-000000000001";
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 const dummyTable = {
   id: TABLE_ID,
@@ -37,14 +40,14 @@ const dummyTable = {
   constraints: [],
 };
 
-const dummyProject = {
-  version: 1,
+const dummyProject = buildProject({
   name: "E2Eテスト用プロジェクト",
-  screens: [], groups: [], edges: [],
-  tables: [
-    { id: TABLE_ID, no: 1, physicalName: "users", name: "ユーザーマスタ", category: "マスタ", columnCount: 1 },
-  ],
-};
+  entities: {
+    tables: [
+      { id: TABLE_ID, no: 1, physicalName: "users", name: "ユーザーマスタ", category: "マスタ", columnCount: 1, updatedAt: FIXED_TS },
+    ],
+  } as ProjectEntities,
+});
 
 const TABLE_NORM = normalizeId(TABLE_ID);
 const dummyTab = {

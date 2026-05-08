@@ -11,17 +11,21 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
-const dummyProject = {
-  version: 1,
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
+
+const dummyProject = buildProject({
   name: "Delete UI Test",
-  screens: [
-    { id: "s-1", no: 1, name: "画面A", kind: "other", path: "/a" },
-    { id: "s-2", no: 2, name: "画面B", kind: "other", path: "/b" },
-    { id: "s-3", no: 3, name: "画面C", kind: "other", path: "/c" },
-  ],
-  groups: [], edges: [], tables: [],
-};
+  entities: {
+    screens: [
+      { id: "s-1", no: 1, name: "画面A", kind: "other", path: "/a", updatedAt: FIXED_TS },
+      { id: "s-2", no: 2, name: "画面B", kind: "other", path: "/b", updatedAt: FIXED_TS },
+      { id: "s-3", no: 3, name: "画面C", kind: "other", path: "/c", updatedAt: FIXED_TS },
+    ],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-list-delete-ui";
 const WS_KEY_EMPTY = "issue-926-list-delete-ui-empty";
@@ -168,7 +172,7 @@ test.describe("#147 空状態の右クリック", () => {
     test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
     emptyWs = await setupTestWorkspace({
       key: WS_KEY_EMPTY,
-      project: { ...dummyProject, screens: [] },
+      project: buildProject({ name: "Delete UI Test" }),
     });
     await page.addInitScript(() => {
       localStorage.setItem("list-view-mode:screen-list", JSON.stringify("table"));

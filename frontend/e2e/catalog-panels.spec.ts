@@ -11,20 +11,25 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const groupId = "ag-catalog-all";
-const baseTs = "2026-05-08T00:00:00.000Z";
-const dummyGroupBody = {
+
+const dummyGroupBody = buildProcessFlow({
   id: groupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: groupId, name: "all catalog UI", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
-  actions: [{ id: "act-1", name: "ボタン", trigger: "click", maturity: "draft", responses: [], steps: [] }],
-};
-const dummyProject = {
-  version: 1, name: "catalog-ui",
-  screens: [], groups: [], edges: [], tables: [],
-  processFlows: [{ id: groupId, no: 1, name: "all catalog UI", kind: "screen", actionCount: 1, maturity: "draft" }],
-};
+  name: "all catalog UI",
+  kind: "screen",
+  mode: "upstream",
+  actions: [{ id: "act-1", name: "ボタン", trigger: "click", maturity: "draft", responses: [], steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
+});
+const dummyProject = buildProject({
+  name: "catalog-ui",
+  entities: {
+    processFlows: [{ id: groupId, no: 1, name: "all catalog UI", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-catalog-panels";
 let mcpAvailable = false;

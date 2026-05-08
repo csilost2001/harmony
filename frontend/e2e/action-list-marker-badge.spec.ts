@@ -10,18 +10,25 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
-const baseTs = "2026-05-08T00:00:00.000Z";
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
+
 const dummyGroups = [
-  { id: "ag-with-markers", name: "マーカー入り", kind: "screen", actionCount: 1, maturity: "draft" },
-  { id: "ag-clean", name: "マーカーなし", kind: "batch", actionCount: 1, maturity: "draft" },
+  { id: "ag-with-markers", no: 1, name: "マーカー入り", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS },
+  { id: "ag-clean", no: 2, name: "マーカーなし", kind: "batch", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS },
 ];
 
-const fullGroupWithMarkers = {
+const baseFlowWithMarkers = buildProcessFlow({
   id: "ag-with-markers",
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: "ag-with-markers", name: "マーカー入り", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
-  actions: [{ id: "act-1", name: "", trigger: "click", maturity: "draft", responses: [{id:"201-ok",status:201}], steps: [] }],
+  name: "マーカー入り",
+  kind: "screen",
+  mode: "upstream",
+  actions: [{ id: "act-1", name: "", trigger: "click", maturity: "draft", responses: [{ id: "201-ok", status: 201 }], steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
+});
+const fullGroupWithMarkers = {
+  ...baseFlowWithMarkers,
   authoring: {
     markers: [
       { id: "m1", kind: "todo", body: "ここ直して", author: "human", createdAt: "2026-04-21T00:00:00.000Z" },
@@ -33,19 +40,20 @@ const fullGroupWithMarkers = {
   },
 };
 
-const fullGroupClean = {
+const fullGroupClean = buildProcessFlow({
   id: "ag-clean",
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: "ag-clean", name: "マーカーなし", kind: "batch", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
-  actions: [{ id: "act-2", name: "", trigger: "click", maturity: "draft", responses: [{id:"201-ok",status:201}], steps: [] }],
-  authoring: { markers: [] },
-};
+  name: "マーカーなし",
+  kind: "batch",
+  mode: "upstream",
+  actions: [{ id: "act-2", name: "", trigger: "click", maturity: "draft", responses: [{ id: "201-ok", status: 201 }], steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
+});
 
-const dummyProject = {
-  version: 1, name: "marker badge test",
-  screens: [], groups: [], edges: [], tables: [],
-  processFlows: dummyGroups,
-};
+const dummyProject = buildProject({
+  name: "marker badge test",
+  entities: {
+    processFlows: dummyGroups,
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-action-list-marker-badge";
 let mcpAvailable = false;

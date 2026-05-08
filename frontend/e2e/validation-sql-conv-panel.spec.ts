@@ -12,6 +12,8 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 
 const groupId = "ag-sql-conv-test";
@@ -69,18 +71,15 @@ const group = {
   updatedAt: new Date().toISOString(),
 };
 
-const project = {
-  version: 1,
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
+
+const project = buildProject({
   name: "sql-conv",
-  screens: [],
-  groups: [],
-  edges: [],
-  tables: [{ id: tableId, no: 1, physicalName: "customers", name: "顧客", columnCount: 2, updatedAt: tableDef.updatedAt }],
-  processFlows: [{
-    id: groupId, no: 1, name: group.name, type: group.type, actionCount: 1, updatedAt: group.updatedAt, maturity: "draft",
-  }],
-  updatedAt: new Date().toISOString(),
-};
+  entities: {
+    tables: [{ id: tableId, no: 1, physicalName: "customers", name: "顧客", columnCount: 2, updatedAt: FIXED_TS }],
+    processFlows: [{ id: groupId, no: 1, name: group.name, kind: group.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" }],
+  } as ProjectEntities,
+});
 
 async function setupEditor(page: Page) {
   await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
@@ -100,14 +99,17 @@ async function setupEditor(page: Page) {
 }
 
 // realWorkspace 移植 (#926): 実 backend 経由の dummy fixture
-// ProcessFlow body は dummyGroup を v3 shape (top-level id + meta) で再利用する。
-const dummyGroupBody: Record<string, unknown> = {
+// ProcessFlow body は group を v3 shape (top-level id + meta) で再利用する。
+const baseGroupBody = buildProcessFlow({
   id: groupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: groupId, name: group.name, kind: group.type ?? group.kind ?? "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: group.createdAt ?? "2026-05-08T00:00:00.000Z", updatedAt: group.updatedAt ?? "2026-05-08T00:00:00.000Z" },
-  actions: group.actions,
-  ...((group as Record<string, unknown>).markers !== undefined ? { markers: (group as Record<string, unknown>).markers } : {}),
-};
+  name: group.name,
+  kind: (group.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["kind"],
+  mode: "upstream",
+  actions: group.actions as ReturnType<typeof buildProcessFlow>["actions"],
+});
+const dummyGroupBody = (group as { markers?: unknown }).markers !== undefined
+  ? { ...baseGroupBody, authoring: { markers: (group as { markers: unknown }).markers } }
+  : baseGroupBody;
 
 const WS_KEY = "issue-926-validation-sql-conv-panel";
 let mcpAvailable = false;
@@ -127,7 +129,7 @@ test.beforeEach(async () => {
     key: WS_KEY,
     project,
     tables: [tableDef],
-    processFlows: [dummyGroupBody as unknown as { id: string }],
+    processFlows: [dummyGroupBody],
   });
 });
 test.describe("SQL 列検査 + 規約参照 の UI 統合 (#261)", () => {

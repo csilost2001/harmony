@@ -17,6 +17,10 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
+
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 
 const groupId = "ag-maturity-test";
@@ -60,34 +64,16 @@ const dummyGroup = {
 const committedGroupId = "ag-maturity-committed";
 const provisionalGroupId = "ag-maturity-provisional";
 
-const dummyProject = {
-  version: 1,
+const dummyProject = buildProject({
   name: "maturity-test",
-  screens: [],
-  groups: [],
-  edges: [],
-  tables: [],
-  processFlows: [
-    {
-      id: groupId,
-      no: 1,
-      name: dummyGroup.name,
-      type: dummyGroup.type,
-      actionCount: 1,
-      updatedAt: dummyGroup.updatedAt,
-      maturity: dummyGroup.maturity,
-    },
-    {
-      id: committedGroupId, no: 2, name: "確定フロー", type: "screen",
-      actionCount: 0, maturity: "committed", updatedAt: new Date().toISOString(),
-    },
-    {
-      id: provisionalGroupId, no: 3, name: "暫定フロー", type: "screen",
-      actionCount: 0, maturity: "provisional", updatedAt: new Date().toISOString(),
-    },
-  ],
-  updatedAt: new Date().toISOString(),
-};
+  entities: {
+    processFlows: [
+      { id: groupId, no: 1, name: dummyGroup.name, kind: dummyGroup.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" },
+      { id: committedGroupId, no: 2, name: "確定フロー", kind: "screen", actionCount: 0, maturity: "committed", updatedAt: FIXED_TS },
+      { id: provisionalGroupId, no: 3, name: "暫定フロー", kind: "screen", actionCount: 0, maturity: "provisional", updatedAt: FIXED_TS },
+    ],
+  } as ProjectEntities,
+});
 
 async function setupEditor(page: Page) {
   await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
@@ -107,14 +93,17 @@ async function setupEditor(page: Page) {
 }
 
 // realWorkspace 移植 (#926): 実 backend 経由の dummy fixture
-// ProcessFlow body は dummyGroup を v3 shape (top-level id + meta) で再利用する。
-const dummyGroupBody: Record<string, unknown> = {
+// ProcessFlow body は dummyGroup を v3 shape で再利用する。
+const baseGroupBody = buildProcessFlow({
   id: groupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: groupId, name: dummyGroup.name, kind: dummyGroup.type ?? dummyGroup.kind ?? "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: dummyGroup.createdAt ?? "2026-05-08T00:00:00.000Z", updatedAt: dummyGroup.updatedAt ?? "2026-05-08T00:00:00.000Z" },
-  actions: dummyGroup.actions,
-  ...((dummyGroup as Record<string, unknown>).markers !== undefined ? { markers: (dummyGroup as Record<string, unknown>).markers } : {}),
-};
+  name: dummyGroup.name,
+  kind: (dummyGroup.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["kind"],
+  mode: "upstream",
+  actions: dummyGroup.actions as ReturnType<typeof buildProcessFlow>["actions"],
+});
+const dummyGroupBody = dummyGroup.markers !== undefined
+  ? { ...baseGroupBody, markers: dummyGroup.markers }
+  : baseGroupBody;
 
 const WS_KEY = "issue-926-maturity-notes";
 let mcpAvailable = false;
@@ -128,19 +117,20 @@ test.afterAll(async () => {
   if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
 });
 
-const baseTs = "2026-05-08T00:00:00.000Z";
-const committedGroupBody = {
+const committedGroupBody = buildProcessFlow({
   id: committedGroupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: committedGroupId, name: "確定フロー", kind: "screen", mode: "upstream", maturity: "committed", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
-  actions: [],
-};
-const provisionalGroupBody = {
+  name: "確定フロー",
+  kind: "screen",
+  mode: "upstream",
+  maturity: "committed",
+});
+const provisionalGroupBody = buildProcessFlow({
   id: provisionalGroupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: provisionalGroupId, name: "暫定フロー", kind: "screen", mode: "upstream", maturity: "provisional", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
-  actions: [],
-};
+  name: "暫定フロー",
+  kind: "screen",
+  mode: "upstream",
+  maturity: "provisional",
+});
 
 test.beforeEach(async () => {
   test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
@@ -148,7 +138,7 @@ test.beforeEach(async () => {
     key: WS_KEY,
     project: dummyProject,
     processFlows: [
-      dummyGroupBody as unknown as { id: string },
+      dummyGroupBody,
       committedGroupBody,
       provisionalGroupBody,
     ],

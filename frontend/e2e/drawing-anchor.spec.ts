@@ -13,6 +13,8 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 
 const groupId = "ag-anchor";
@@ -82,11 +84,14 @@ const dummyGroup = {
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
 };
 
-const dummyProject = {
-  version: 1, name: "anchor", screens: [], groups: [], edges: [], tables: [],
-  processFlows: [{ id: groupId, no: 1, name: dummyGroup.name, type: dummyGroup.type, actionCount: 1, updatedAt: dummyGroup.updatedAt, maturity: "draft" }],
-  updatedAt: new Date().toISOString(),
-};
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
+
+const dummyProject = buildProject({
+  name: "anchor",
+  entities: {
+    processFlows: [{ id: groupId, no: 1, name: dummyGroup.name, kind: dummyGroup.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" }],
+  } as ProjectEntities,
+});
 
 async function setup(page: Page) {
   await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
@@ -107,13 +112,16 @@ async function setup(page: Page) {
 
 // realWorkspace 移植 (#926): 実 backend 経由の dummy fixture
 // ProcessFlow body は dummyGroup を v3 shape (top-level id + meta) で再利用する。
-const dummyGroupBody: Record<string, unknown> = {
+const baseGroupBody = buildProcessFlow({
   id: groupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: groupId, name: dummyGroup.name, kind: dummyGroup.type ?? dummyGroup.kind ?? "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: dummyGroup.createdAt ?? "2026-05-08T00:00:00.000Z", updatedAt: dummyGroup.updatedAt ?? "2026-05-08T00:00:00.000Z" },
-  actions: dummyGroup.actions,
-  ...((dummyGroup as Record<string, unknown>).markers !== undefined ? { authoring: { markers: (dummyGroup as Record<string, unknown>).markers } } : {}),
-};
+  name: dummyGroup.name,
+  kind: (dummyGroup.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["kind"],
+  mode: "upstream",
+  actions: dummyGroup.actions as ReturnType<typeof buildProcessFlow>["actions"],
+});
+const dummyGroupBody = dummyGroup.markers !== undefined
+  ? { ...baseGroupBody, authoring: { markers: dummyGroup.markers } }
+  : baseGroupBody;
 
 const WS_KEY = "issue-926-drawing-anchor";
 let mcpAvailable = false;
@@ -132,7 +140,7 @@ test.beforeEach(async () => {
   ws = await setupTestWorkspace({
     key: WS_KEY,
     project: dummyProject,
-    processFlows: [dummyGroupBody as unknown as { id: string }],
+    processFlows: [dummyGroupBody],
   });
 });
 test.describe("描画マーカー DOM anchor (#261)", () => {

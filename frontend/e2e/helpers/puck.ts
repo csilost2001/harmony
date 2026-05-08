@@ -6,6 +6,8 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./realWorkspace";
+import { buildProject, buildScreen } from "../__fixtures__/builders";
+import type { Project, ProjectEntities, Screen, ScreenEntry, Timestamp } from "../../src/types/v3";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -46,20 +48,22 @@ export const HEADING_PARAGRAPH_DATA = {
   ],
 };
 
-/** Puck 画面を含む最小プロジェクト (legacy v1 形式 — realWorkspace の legacyToHarmony が v3 に変換) */
-export function makeDummyProject(screenOverrides: Array<Record<string, unknown>> = []): Record<string, unknown> {
-  return {
-    version: 1,
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
+
+/** Puck 画面を含む最小プロジェクト (v3 形式) */
+export function makeDummyProject(extraScreens: ScreenEntry[] = []): Project {
+  return buildProject({
     name: "Puck E2E テスト用プロジェクト",
-    screens: [
-      { id: PUCK_SCREEN_ID, no: 1, name: "Puck テスト画面 (Bootstrap)", kind: "other", path: "/puck-test", hasDesign: true },
-      { id: GJS_SCREEN_ID, no: 2, name: "GrapesJS テスト画面", kind: "other", path: "/gjs-test", hasDesign: true },
-      { id: PUCK_TW_SCREEN_ID, no: 3, name: "Puck Tailwind テスト画面", kind: "other", path: "/puck-tw-test", hasDesign: true },
-      ...screenOverrides,
-    ],
-    groups: [], edges: [], tables: [], processFlows: [],
     techStack: { designer: { cssFramework: "bootstrap", editorKind: "puck" } },
-  };
+    entities: {
+      screens: [
+        { id: PUCK_SCREEN_ID, no: 1, name: "Puck テスト画面 (Bootstrap)", kind: "other", path: "/puck-test", hasDesign: true, updatedAt: FIXED_TS },
+        { id: GJS_SCREEN_ID, no: 2, name: "GrapesJS テスト画面", kind: "other", path: "/gjs-test", hasDesign: true, updatedAt: FIXED_TS },
+        { id: PUCK_TW_SCREEN_ID, no: 3, name: "Puck Tailwind テスト画面", kind: "other", path: "/puck-tw-test", hasDesign: true, updatedAt: FIXED_TS },
+        ...extraScreens,
+      ],
+    } as ProjectEntities,
+  });
 }
 
 /** screen entity (harmony/screens/<id>.json) を生成する */
@@ -70,19 +74,14 @@ export function makeScreenEntity(
   path: string,
   editorKind: "puck" | "grapesjs",
   cssFramework: "bootstrap" | "tailwind",
-): Record<string, unknown> {
-  const now = "2026-05-08T00:00:00.000Z";
+): Screen {
+  const base = buildScreen({ id: screenId, name, kind: kind as Parameters<typeof buildScreen>[0]["kind"], path });
   return {
-    $schema: "../schemas/v3/screen.v3.schema.json",
-    id: screenId,
-    name,
-    createdAt: now,
-    updatedAt: now,
-    kind,
-    path,
+    ...base,
     items: [],
     design: {
-      editorKind, cssFramework,
+      editorKind,
+      cssFramework,
       ...(editorKind === "puck" ? { puckDataRef: "puck-data.json" } : { designFileRef: `${screenId}.design.json` }),
     },
   };

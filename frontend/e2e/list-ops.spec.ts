@@ -14,28 +14,28 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp, ProcessFlowKind, Maturity } from "../src/types/v3";
 
-const baseNow = "2026-05-08T00:00:00.000Z";
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 const listGroups = [
-  { id: "g-a", no: 1, name: "Alpha ログイン", kind: "screen", actionCount: 2, updatedAt: baseNow, maturity: "committed" },
-  { id: "g-b", no: 2, name: "Beta バッチ", kind: "batch", actionCount: 1, updatedAt: baseNow, maturity: "provisional" },
-  { id: "g-c", no: 3, name: "Charlie 共通", kind: "common", actionCount: 1, updatedAt: baseNow, maturity: "draft" },
-  { id: "g-d", no: 4, name: "Delta 登録", kind: "screen", actionCount: 3, updatedAt: baseNow, maturity: "draft" },
+  { id: "g-a", no: 1, name: "Alpha ログイン", kind: "screen" as ProcessFlowKind, actionCount: 2, updatedAt: FIXED_TS, maturity: "committed" as Maturity },
+  { id: "g-b", no: 2, name: "Beta バッチ", kind: "batch" as ProcessFlowKind, actionCount: 1, updatedAt: FIXED_TS, maturity: "provisional" as Maturity },
+  { id: "g-c", no: 3, name: "Charlie 共通", kind: "common" as ProcessFlowKind, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" as Maturity },
+  { id: "g-d", no: 4, name: "Delta 登録", kind: "screen" as ProcessFlowKind, actionCount: 3, updatedAt: FIXED_TS, maturity: "draft" as Maturity },
 ];
 
-const listGroupBodies = listGroups.map((g) => ({
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  id: g.id,
-  meta: { id: g.id, name: g.name, kind: g.kind, maturity: g.maturity, mode: "upstream", version: "1.0.0", createdAt: baseNow, updatedAt: baseNow },
-  actions: [],
-}));
+const listGroupBodies = listGroups.map((g) =>
+  buildProcessFlow({ id: g.id, name: g.name, kind: g.kind, maturity: g.maturity, mode: "upstream" }),
+);
 
-const project = {
-  version: 1, name: "list-ops",
-  screens: [], groups: [], edges: [], tables: [],
-  processFlows: listGroups,
-};
+const project = buildProject({
+  name: "list-ops",
+  entities: {
+    processFlows: listGroups,
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-list-ops";
 let mcpAvailable = false;

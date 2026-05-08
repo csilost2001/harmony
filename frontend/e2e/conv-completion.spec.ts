@@ -11,6 +11,10 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
+
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 const sampleCatalog = {
   version: "1.0.0",
@@ -27,22 +31,24 @@ const sampleCatalog = {
 };
 
 const groupId = "ag-test-completion";
-const baseTs = "2026-05-08T00:00:00.000Z";
-const sampleGroupBody = {
+
+const sampleGroupBody = buildProcessFlow({
   id: groupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: groupId, name: "補完テスト", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
+  name: "補完テスト",
+  kind: "screen",
+  mode: "upstream",
   actions: [{
     id: "act-001", name: "テストアクション", trigger: "click",
     steps: [{ id: "step-001", type: "compute", description: "", expression: "", outputBinding: null }],
-  }],
-};
+  }] as ReturnType<typeof buildProcessFlow>["actions"],
+});
 
-const dummyProject = {
-  version: 1, name: "補完 E2E テスト",
-  screens: [], groups: [], edges: [], tables: [],
-  processFlows: [{ id: groupId, no: 1, name: "補完テスト", kind: "screen", actionCount: 1, maturity: "draft" }],
-};
+const dummyProject = buildProject({
+  name: "補完 E2E テスト",
+  entities: {
+    processFlows: [{ id: groupId, no: 1, name: "補完テスト", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-conv-completion";
 let mcpAvailable = false;

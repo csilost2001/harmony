@@ -10,11 +10,9 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
 
-const dummyProject = {
-  version: 1, name: "conventions-product",
-  screens: [], groups: [], edges: [], tables: [], processFlows: [],
-};
+const dummyProject = buildProject({ name: "conventions-product" });
 
 const WS_KEY = "issue-926-conventions-catalog-product";
 let mcpAvailable = false;

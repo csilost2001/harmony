@@ -10,11 +10,9 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
 
-const dummyProject = {
-  version: 1, name: "E2E",
-  screens: [], groups: [], edges: [], tables: [],
-};
+const dummyProject = buildProject({ name: "E2E" });
 
 const WS_KEY = "issue-926-error-dialog";
 let mcpAvailable = false;

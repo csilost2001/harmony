@@ -11,19 +11,24 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const groupId = "ag-marker";
-const baseTs = "2026-05-08T00:00:00.000Z";
-const dummyGroupBody = {
+const dummyGroupBody = buildProcessFlow({
   id: groupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: groupId, name: "marker test", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
-  actions: [{ id: "act-1", name: "ボタン", trigger: "click", maturity: "draft", steps: [] }],
-};
-const dummyProject = {
-  version: 1, name: "marker", screens: [], groups: [], edges: [], tables: [],
-  processFlows: [{ id: groupId, no: 1, name: "marker test", kind: "screen", actionCount: 1, maturity: "draft" }],
-};
+  name: "marker test",
+  kind: "screen",
+  mode: "upstream",
+  actions: [{ id: "act-1", name: "ボタン", trigger: "click", maturity: "draft", steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
+});
+const dummyProject = buildProject({
+  name: "marker",
+  entities: {
+    processFlows: [{ id: groupId, no: 1, name: "marker test", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-marker-panel";
 let mcpAvailable = false;

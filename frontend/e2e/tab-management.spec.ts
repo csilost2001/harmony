@@ -11,6 +11,8 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 // schema v3: id は UUID v4 必須 (common.v3.schema.json#/$defs/Uuid)
 const SCREEN_A = "aaaaaaaa-0001-4001-8001-000000000001";
@@ -27,15 +29,18 @@ const SCREENS: Record<string, string> = {
   [SCREEN_C_NORM]: "画面C",
 };
 
-const dummyProject = {
-  version: 1, name: "E2Eテスト用プロジェクト",
-  screens: [
-    { id: SCREEN_A, no: 1, name: "画面A", kind: "list", path: "/a", hasDesign: true },
-    { id: SCREEN_B, no: 2, name: "画面B", kind: "list", path: "/b", hasDesign: true },
-    { id: SCREEN_C, no: 3, name: "画面C", kind: "list", path: "/c", hasDesign: true },
-  ],
-  groups: [], edges: [],
-};
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
+
+const dummyProject = buildProject({
+  name: "E2Eテスト用プロジェクト",
+  entities: {
+    screens: [
+      { id: SCREEN_A, no: 1, name: "画面A", kind: "list", path: "/a", hasDesign: true, updatedAt: FIXED_TS },
+      { id: SCREEN_B, no: 2, name: "画面B", kind: "list", path: "/b", hasDesign: true, updatedAt: FIXED_TS },
+      { id: SCREEN_C, no: 3, name: "画面C", kind: "list", path: "/c", hasDesign: true, updatedAt: FIXED_TS },
+    ],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-tab-management";
 let mcpAvailable = false;

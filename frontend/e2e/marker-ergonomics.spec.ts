@@ -11,21 +11,28 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const groupId = "ag-erg";
-const baseTs = "2026-05-08T00:00:00.000Z";
-const dummyGroupBody = {
+const baseActions = [{
+  id: "act-1", name: "ボタン", trigger: "click", maturity: "draft",
+  responses: [{ id: "201-ok", status: 201 }],
+  steps: [
+    { id: "s1", type: "validation", description: "チェック", conditions: "", maturity: "draft" },
+    { id: "s2", type: "dbAccess", description: "検索", tableName: "x", operation: "SELECT", maturity: "draft" },
+  ],
+}] as ReturnType<typeof buildProcessFlow>["actions"];
+const baseGroupBody = buildProcessFlow({
   id: groupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: groupId, name: "erg test", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
-  actions: [{
-    id: "act-1", name: "ボタン", trigger: "click", maturity: "draft",
-    responses: [{ id: "201-ok", status: 201 }],
-    steps: [
-      { id: "s1", type: "validation", description: "チェック", conditions: "", maturity: "draft" },
-      { id: "s2", type: "dbAccess", description: "検索", tableName: "x", operation: "SELECT", maturity: "draft" },
-    ],
-  }],
+  name: "erg test",
+  kind: "screen",
+  mode: "upstream",
+  actions: baseActions,
+});
+const dummyGroupBody = {
+  ...baseGroupBody,
   authoring: {
     markers: [
       { id: "m1", kind: "todo", body: "A", author: "human", createdAt: "2026-04-20T00:00:00Z" },
@@ -34,17 +41,18 @@ const dummyGroupBody = {
   },
 };
 const dummyGroupResolvedBody = {
-  ...dummyGroupBody,
+  ...baseGroupBody,
   authoring: {
     markers: dummyGroupBody.authoring.markers.map((m) => ({ ...m, resolvedAt: "2026-04-20T01:00:00Z" })),
   },
 };
 
-const dummyProject = {
-  version: 1, name: "erg",
-  screens: [], groups: [], edges: [], tables: [],
-  processFlows: [{ id: groupId, no: 1, name: "erg test", kind: "screen", actionCount: 1, maturity: "draft" }],
-};
+const dummyProject = buildProject({
+  name: "erg",
+  entities: {
+    processFlows: [{ id: groupId, no: 1, name: "erg test", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-marker-ergonomics";
 const WS_KEY_RESOLVED = "issue-926-marker-ergonomics-resolved";

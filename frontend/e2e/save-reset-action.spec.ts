@@ -12,22 +12,26 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 const PROCESS_FLOW_ID = "test-ag-0001-4000-8000-000000000001";
-const baseTs = "2026-05-08T00:00:00.000Z";
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
-const dummyProcessFlowBody = {
+const dummyProcessFlowBody = buildProcessFlow({
   id: PROCESS_FLOW_ID,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: PROCESS_FLOW_ID, name: "テスト処理フロー", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
+  name: "テスト処理フロー",
+  kind: "screen",
+  mode: "upstream",
   actions: [],
-};
+});
 
-const dummyProject = {
-  version: 1, name: "E2Eテスト用プロジェクト",
-  screens: [], groups: [], edges: [],
-  processFlows: [{ id: PROCESS_FLOW_ID, no: 1, name: "テスト処理フロー", kind: "screen", actionCount: 0, maturity: "draft" }],
-};
+const dummyProject = buildProject({
+  name: "E2Eテスト用プロジェクト",
+  entities: {
+    processFlows: [{ id: PROCESS_FLOW_ID, no: 1, name: "テスト処理フロー", kind: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const PF_NORM = normalizeId(PROCESS_FLOW_ID);
 const dummyTab = { id: `process-flow:${PF_NORM}`, type: "process-flow", resourceId: PF_NORM, label: "テスト処理フロー", isDirty: false, isPinned: false };

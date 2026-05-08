@@ -13,6 +13,8 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 const TABLE_ID = "eb574288-88f2-419f-ac5e-56a9948e8f46";
 const CREATED_NAME = "E2E 商品ビュー";
@@ -32,11 +34,14 @@ const sampleTable = {
   constraints: [],
 };
 
-const dummyProject = {
-  version: 1, name: "view-definition-e2e",
-  screens: [], groups: [], edges: [], processFlows: [],
-  tables: [{ id: TABLE_ID, no: 1, name: sampleTable.name, physicalName: sampleTable.physicalName, category: sampleTable.category, columnCount: sampleTable.columns.length, maturity: "draft" }],
-};
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
+
+const dummyProject = buildProject({
+  name: "view-definition-e2e",
+  entities: {
+    tables: [{ id: TABLE_ID, no: 1, name: sampleTable.name, physicalName: sampleTable.physicalName, category: sampleTable.category, columnCount: sampleTable.columns.length, maturity: "draft", updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const TABLE_NORM = normalizeId(TABLE_ID);
 const WS_KEY = "issue-926-view-definition";

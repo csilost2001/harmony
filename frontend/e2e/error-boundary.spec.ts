@@ -12,11 +12,9 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
 
-const dummyProject = {
-  version: 1, name: "error-boundary-test",
-  screens: [], groups: [], edges: [], tables: [],
-};
+const dummyProject = buildProject({ name: "error-boundary-test" });
 
 const WS_KEY = "issue-926-error-boundary";
 let mcpAvailable = false;

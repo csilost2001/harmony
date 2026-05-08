@@ -11,21 +11,17 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const groupId = "ag-more-test";
-const dummyGroupBody = {
+const dummyGroupBody = buildProcessFlow({
   id: groupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: {
-    id: groupId,
-    name: "追加 UI テスト",
-    kind: "screen",
-    mode: "upstream",
-    maturity: "provisional",
-    version: "1.0.0",
-    createdAt: "2026-05-08T00:00:00.000Z",
-    updatedAt: "2026-05-08T00:00:00.000Z",
-  },
+  name: "追加 UI テスト",
+  kind: "screen",
+  mode: "upstream",
+  maturity: "provisional",
   actions: [
     {
       id: "act-1",
@@ -39,18 +35,18 @@ const dummyGroupBody = {
         { id: "step-external", type: "externalSystem", description: "外部呼出", systemName: "Stripe", outcomes: { success: { action: "continue" }, failure: { action: "abort", description: "エラー" } }, maturity: "draft" },
       ],
     },
-  ],
-};
+  ] as ReturnType<typeof buildProcessFlow>["actions"],
+});
 
-const dummyProject = {
-  version: 1,
+const dummyProject = buildProject({
   name: "more-e2e",
-  screens: [], groups: [], edges: [], tables: [],
-  processFlows: [
-    { id: groupId, no: 1, name: "追加 UI テスト", kind: "screen", actionCount: 1, maturity: "provisional", notesCount: 0 },
-    { id: "ag-extra-committed", no: 2, name: "確定フロー", kind: "screen", actionCount: 1, maturity: "committed", notesCount: 3 },
-  ],
-};
+  entities: {
+    processFlows: [
+      { id: groupId, no: 1, name: "追加 UI テスト", kind: "screen", actionCount: 1, maturity: "provisional", updatedAt: FIXED_TS },
+      { id: "ag-extra-committed", no: 2, name: "確定フロー", kind: "screen", actionCount: 1, maturity: "committed", updatedAt: FIXED_TS },
+    ],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-more-ui";
 let mcpAvailable = false;

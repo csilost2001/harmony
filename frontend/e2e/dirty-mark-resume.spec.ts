@@ -15,37 +15,36 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow, buildTable } from "./__fixtures__/builders";
+import type { Column, LocalId, PhysicalName, ProjectEntities, Timestamp } from "../src/types/v3";
 
 const TABLE_ID = `tbl-e2e-dirty-mark-${Date.now()}`;
 const PF_ID = `pf-e2e-dirty-mark-${Date.now()}`;
-const baseTs = "2026-05-08T00:00:00.000Z";
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
-const dummyTable = {
+const dummyTable = buildTable({
   id: TABLE_ID,
   physicalName: "dirty_mark_test",
   name: "dirty マークテスト",
-  description: "",
-  maturity: "draft",
   category: "マスタ",
-  columns: [{ id: "col-001", physicalName: "id", name: "ID", dataType: "INTEGER", notNull: true, primaryKey: true, unique: false, autoIncrement: true }],
-  indexes: [],
-  constraints: [],
-  version: "1.0.0",
-};
+  columns: [{ id: "col-001" as unknown as LocalId, physicalName: "id" as unknown as PhysicalName, name: "ID", dataType: "INTEGER", notNull: true, primaryKey: true, unique: false, autoIncrement: true }] as Column[],
+});
 
-const dummyProcessFlowBody = {
+const dummyProcessFlowBody = buildProcessFlow({
   id: PF_ID,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: PF_ID, name: "dirty マークテストフロー", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
-  actions: [{ id: "act-001", name: "テストアクション", trigger: "click", maturity: "draft", steps: [] }],
-};
+  name: "dirty マークテストフロー",
+  kind: "screen",
+  mode: "upstream",
+  actions: [{ id: "act-001", name: "テストアクション", trigger: "click", maturity: "draft", steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
+});
 
-const dummyProject = {
-  version: 1, name: "dirty-mark-test",
-  screens: [], groups: [], edges: [],
-  tables: [{ id: TABLE_ID, no: 1, name: dummyTable.name, physicalName: dummyTable.physicalName, category: dummyTable.category, columnCount: 1, maturity: "draft" }],
-  processFlows: [{ id: PF_ID, no: 1, name: "dirty マークテストフロー", kind: "screen", actionCount: 1, maturity: "draft" }],
-};
+const dummyProject = buildProject({
+  name: "dirty-mark-test",
+  entities: {
+    tables: [{ id: TABLE_ID, no: 1, name: dummyTable.name, physicalName: dummyTable.physicalName, category: dummyTable.category, columnCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: PF_ID, no: 1, name: "dirty マークテストフロー", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const TABLE_NORM = normalizeId(TABLE_ID);
 const PF_NORM = normalizeId(PF_ID);

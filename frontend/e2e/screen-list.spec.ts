@@ -11,40 +11,21 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
-const dummyProject = {
-  version: 1,
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
+
+const dummyProject = buildProject({
   name: "E2Eテスト用プロジェクト",
-  screens: [
-    {
-      id: "screen-0001",
-      no: 1,
-      name: "ログイン画面",
-      kind: "login",
-      path: "/login",
-      hasDesign: false,
-    },
-    {
-      id: "screen-0002",
-      no: 2,
-      name: "ダッシュボード",
-      kind: "dashboard",
-      path: "/dashboard",
-      hasDesign: true,
-    },
-    {
-      id: "screen-0003",
-      no: 3,
-      name: "ユーザー一覧",
-      kind: "list",
-      path: "/users",
-      hasDesign: false,
-    },
-  ],
-  groups: [],
-  edges: [],
-  tables: [],
-};
+  entities: {
+    screens: [
+      { id: "screen-0001", no: 1, name: "ログイン画面", kind: "login", path: "/login", hasDesign: false, updatedAt: FIXED_TS },
+      { id: "screen-0002", no: 2, name: "ダッシュボード", kind: "dashboard", path: "/dashboard", hasDesign: true, updatedAt: FIXED_TS },
+      { id: "screen-0003", no: 3, name: "ユーザー一覧", kind: "list", path: "/users", hasDesign: false, updatedAt: FIXED_TS },
+    ],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-screen-list";
 let mcpAvailable = false;

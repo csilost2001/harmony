@@ -11,11 +11,10 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
 
-const dummyProject = {
-  version: 1,
+const dummyProject = buildProject({
   name: "技術スタック E2E テスト用プロジェクト",
-  screens: [], groups: [], edges: [], tables: [], processFlows: [],
   techStack: {
     designer:   { editorKind: "grapesjs", cssFramework: "bootstrap" },
     backend:    { language: "java", framework: "spring-boot" },
@@ -24,7 +23,7 @@ const dummyProject = {
     auth:       { method: "session" },
     deployment: { target: "docker" },
   },
-};
+});
 
 const WS_KEY = "issue-926-tech-stack-view";
 let mcpAvailable = false;
