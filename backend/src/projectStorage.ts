@@ -16,7 +16,8 @@
  */
 import fs from "fs/promises";
 import path from "path";
-import Ajv, { type ValidateFunction } from "ajv";
+import type { ValidateFunction } from "ajv";
+import Ajv2020 from "ajv/dist/2020.js";
 import { workspaceContextManager } from "./workspaceState.js";
 
 // ── path 解決ヘルパー (#671 + #700 R-2) ─────────────────────────────────────
@@ -120,29 +121,126 @@ function screenSchemaRef(dataRoot: string): string {
   return path.relative(entityDir, schemaPath).replace(/\\/g, "/");
 }
 
-/** ExtensionFileKind → extensions-*.schema.json ファイル名スラグの変換 */
-function kindToSchemaSlug(kind: ExtensionFileKind): string {
+/**
+ * ExtensionFileKind → v3 統合 schema (extensions.v3.schema.json) の対応 sub-property 名。
+ *
+ * 旧 split schema (`extensions-<slug>.schema.json`) は v3 で `extensions.v3.schema.json` 単一に
+ * 統合され (#955)、 5 種別のフィールド名は schema 上で改名された:
+ *   - steps         → stepKinds       (object: { <StepName>: CustomStepKind })
+ *   - fieldTypes    → fieldTypes      (array of CustomFieldType)
+ *   - triggers      → actionTriggers  (array of CustomActionTrigger)
+ *   - dbOperations  → dbOperations    (array of CustomDbOperation)
+ *   - responseTypes → responseTypes   (object: { <TypeName>: CustomResponseType })
+ *
+ * data/extensions/<file>.json は旧 file 単位 + 旧キー名 (`triggers` 等) を保持する。
+ * 個別 file の AJV 検証時は v3 schema の対応 sub-schema を抜き出し、 旧キー名で wrap した
+ * fileSchema を動的構築して compile する。
+ */
+function kindToV3Key(kind: ExtensionFileKind): string {
   switch (kind) {
-    case "steps": return "steps";
-    case "fieldTypes": return "field-types";
-    case "triggers": return "triggers";
-    case "dbOperations": return "db-operations";
-    case "responseTypes": return "response-types";
+    case "steps":         return "stepKinds";
+    case "fieldTypes":    return "fieldTypes";
+    case "triggers":      return "actionTriggers";
+    case "dbOperations":  return "dbOperations";
+    case "responseTypes": return "responseTypes";
   }
 }
 
-/** Ajv インスタンスとバリデーター関数のモジュールレベルキャッシュ (#455) */
-const _ajv = new Ajv({ allErrors: true });
+/** ExtensionFileKind → 旧 file 形式の root key 名 (data/extensions/<file>.json の中身の key) */
+function kindToFileKey(kind: ExtensionFileKind): string {
+  switch (kind) {
+    case "steps":         return "steps";
+    case "fieldTypes":    return "fieldTypes";
+    case "triggers":      return "triggers";
+    case "dbOperations":  return "dbOperations";
+    case "responseTypes": return "responseTypes";
+  }
+}
+
+/** Ajv インスタンスとバリデーター関数のモジュールレベルキャッシュ (#455 / #955)。
+ * v3 統合 schema (#955) は draft 2020-12 のため Ajv2020 を使用。
+ * strict: false は schema 内 description 等の警告を抑制 (workspaceInit.ts:51 と同方針) */
+const _ajv = new Ajv2020({ allErrors: true, strict: false });
+let _v3SchemasRegistered = false;
 const _validatorCache = new Map<ExtensionFileKind, ValidateFunction>();
 
-async function getExtensionValidator(kind: ExtensionFileKind): Promise<ValidateFunction> {
-  if (!_validatorCache.has(kind)) {
-    const schemaPath = path.join(SCHEMAS_DIR, `extensions-${kindToSchemaSlug(kind)}.schema.json`);
-    const schemaText = await fs.readFile(schemaPath, "utf-8");
-    const schema = JSON.parse(schemaText) as object;
-    _validatorCache.set(kind, _ajv.compile(schema));
+/**
+ * v3 統合 schema (extensions.v3 / common.v3) を ajv に登録する (#955)。
+ * extensions.v3 → common.v3 への外部 $ref を解決可能にするため、 両方を addSchema する。
+ *
+ * 同 $id の重複登録を回避するため、 ajv.getSchema で既存確認してから追加する。
+ * (他 validator や別呼び出し経路で既に登録済みの場合がある)
+ */
+async function ensureV3SchemasRegistered(): Promise<void> {
+  if (_v3SchemasRegistered) return;
+  const commonSchemaText = await fs.readFile(
+    path.join(SCHEMAS_DIR, "v3", "common.v3.schema.json"),
+    "utf-8",
+  );
+  const extensionsSchemaText = await fs.readFile(
+    path.join(SCHEMAS_DIR, "v3", "extensions.v3.schema.json"),
+    "utf-8",
+  );
+  const commonSchema = JSON.parse(commonSchemaText) as { $id?: string };
+  const extensionsSchema = JSON.parse(extensionsSchemaText) as { $id?: string };
+  if (commonSchema.$id && !_ajv.getSchema(commonSchema.$id)) {
+    _ajv.addSchema(commonSchema);
   }
-  return _validatorCache.get(kind)!;
+  if (extensionsSchema.$id && !_ajv.getSchema(extensionsSchema.$id)) {
+    _ajv.addSchema(extensionsSchema);
+  }
+  _v3SchemasRegistered = true;
+}
+
+/**
+ * 個別 file 用 AJV validator を取得する (#955)。
+ *
+ * extensions.v3.schema.json の `allOf[*].properties[<v3Key>]` を抜き出して、
+ * 旧 file root 形式 `{ namespace: string, <fileKey>: <subSchema> }` で wrap した
+ * fileSchema を動的構築 → compile する。
+ */
+async function getExtensionValidator(kind: ExtensionFileKind): Promise<ValidateFunction> {
+  if (_validatorCache.has(kind)) return _validatorCache.get(kind)!;
+  await ensureV3SchemasRegistered();
+
+  const v3SchemaText = await fs.readFile(
+    path.join(SCHEMAS_DIR, "v3", "extensions.v3.schema.json"),
+    "utf-8",
+  );
+  const v3Schema = JSON.parse(v3SchemaText) as {
+    allOf?: Array<{ properties?: Record<string, unknown> }>;
+    $defs?: Record<string, unknown>;
+  };
+  const v3Key = kindToV3Key(kind);
+  const fileKey = kindToFileKey(kind);
+  const propsHolder = v3Schema.allOf?.find((s) => s.properties);
+  const subSchema = propsHolder?.properties?.[v3Key];
+  if (!subSchema) {
+    throw new Error(
+      `extensions.v3.schema.json に ${v3Key} (kind=${kind}) が定義されていません`,
+    );
+  }
+
+  // 個別 file 用 schema: root は { namespace, <fileKey>: <subSchema> }。
+  // $defs は v3 schema からコピーして相対 $ref (#/$defs/CustomXxx) を解決可能にする。
+  // $id は extensions.v3.schema.json と同 directory に配置される URL を仮設定し、
+  // common.v3.schema.json への relative $ref を ajv が同 directory から解決可能にする。
+  // (common.v3 自体は ensureV3SchemasRegistered で addSchema 登録済み)
+  const fileSchema = {
+    $id: `https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/extensions-${kind}-file.v3.schema.json`,
+    type: "object" as const,
+    additionalProperties: false,
+    required: ["namespace", fileKey],
+    properties: {
+      namespace: { type: "string", pattern: "^([a-z][a-z0-9-]{0,29})?$" },
+      [fileKey]: subSchema,
+    },
+    $defs: v3Schema.$defs ?? {},
+  };
+
+  const validator = _ajv.compile(fileSchema);
+  _validatorCache.set(kind, validator);
+  return validator;
 }
 
 /** extensions/*.json の JSON Schema 検証 (#455) */
