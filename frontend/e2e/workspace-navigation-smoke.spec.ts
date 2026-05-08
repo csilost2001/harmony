@@ -23,9 +23,11 @@ async function addWorkspaceFromSelect(page: Page, workspacePath: string): Promis
   await page.goto("/workspace/select");
   await openAddWorkspaceDialog(page);
   await page.locator(".tbl-modal input[type='text']").fill(workspacePath);
-  await page.locator(".tbl-modal .tbl-btn-primary").click();
-  await expect(page.locator(".tbl-modal .tbl-btn-primary")).toBeEnabled();
-  await page.locator(".tbl-modal .tbl-btn-primary").click();
+  // 400ms debounce + inspectWorkspace RPC を待つ → status: ready → primary 「開く」 が出る
+  const primaryBtn = page.locator(".tbl-modal .tbl-btn-primary");
+  await expect(primaryBtn).toBeVisible({ timeout: 10000 });
+  await expect(primaryBtn).toBeEnabled();
+  await primaryBtn.click();
   await expect(page).toHaveURL(/\/w\/[^/]+\/$/);
   await expect(page.locator(".dashboard-view")).toBeVisible();
 }
