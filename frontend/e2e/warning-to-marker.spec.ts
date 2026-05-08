@@ -22,7 +22,7 @@ const dummyGroup = {
     steps: [
       // 意図的に警告を出す step (未定義 @ 参照)
       { id: "s1", type: "compute", description: "", expression: "@undefVar * 2", outputBinding: "r", maturity: "draft" },
-      { id: "s2", type: "return", description: "", responseRef: "404-missing", maturity: "draft" },
+      { id: "s2", type: "return", description: "", responseId: "404-missing", maturity: "draft" },
     ],
   }],
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),

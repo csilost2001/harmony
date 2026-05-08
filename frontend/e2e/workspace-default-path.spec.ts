@@ -55,8 +55,9 @@ test.describe("AddWorkspaceDialog — デフォルトパスのヒント (#755)",
     await addBtn.click();
     await expect(page.locator(".tbl-modal")).toBeVisible();
 
-    // キャンセルボタンで閉じること
-    const cancelBtn = page.locator(".tbl-modal button", { hasText: "キャンセル" }).first();
+    // キャンセルボタンで閉じること (recent workspace label が重なる場合があるため tbl-modal-btns 配下に限定)
+    const cancelBtn = page.locator(".tbl-modal-btns button", { hasText: "キャンセル" }).first();
+    await cancelBtn.scrollIntoViewIfNeeded();
     await cancelBtn.click();
     await expect(page.locator(".tbl-modal")).not.toBeVisible();
   });

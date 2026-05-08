@@ -49,7 +49,7 @@ const dummyGroup = {
           id: "step-return",
           type: "return",
           description: "未定義 response 参照",
-          responseRef: "404-missing",
+          responseId: "404-missing",
           maturity: "draft",
         },
       ],
