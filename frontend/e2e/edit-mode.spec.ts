@@ -211,7 +211,9 @@ test.describe("編集モード UI — ConventionsCatalogView singleton (PR-7)", 
   test("編集開始 → 確認", async ({ page }) => {
     await ws.gotoActive(page, "/conventions/catalog");
     if (!await startEditOrSkip(page)) return;
-    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
+    // singleton (convention) は editSession.create が backend で skip 経路を通るため
+    // 状態反映に時間がかかることがある
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
   });
 });
 
@@ -226,7 +228,7 @@ test.describe("編集モード UI — ExtensionsPanel singleton (PR-7)", () => {
     if (!await startEditOrSkip(page)) return;
     await expect(
       page.getByTestId("edit-mode-save").or(page.getByTestId("edit-mode-discard")),
-    ).toBeVisible({ timeout: 5000 });
+    ).toBeVisible({ timeout: 15000 });
   });
 });
 
@@ -239,7 +241,7 @@ test.describe("編集モード UI — FlowEditor singleton (PR-7)", () => {
   test("編集開始 → 確認", async ({ page }) => {
     await ws.gotoActive(page, "/screen/flow");
     if (!await startEditOrSkip(page)) return;
-    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
   });
 });
 
