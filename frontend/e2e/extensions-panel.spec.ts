@@ -59,7 +59,6 @@ test.describe("拡張管理 UI (#447)", () => {
     await page.getByPlaceholder("ApiError").last().fill("E2EResponse");
     await page.locator(".response-type-schema").last().fill('{"type":"object","properties":{"code":{"type":"string"}}}');
     // ResponseTypesTab 内の primary 保存 button (edit-mode-save と区別)
-    // ResponseTypesTab 内の primary 保存 button (edit-mode-save と区別)
     await page.locator(".extensions-panel button.btn-primary", { hasText: "保存" }).click();
     await expect(page.getByText("保存しました。")).toBeVisible({ timeout: 10000 });
     // 入力値が保持されていることを確認 (input[value=E2EResponse])
