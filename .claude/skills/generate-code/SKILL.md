@@ -313,8 +313,11 @@ Spring AI artifact ID は **1.0.0 GA (2025-05) で命名規則変更** あり (`
 | `ollama` | (fetch のみ、追加不要) | `org.springframework.ai:spring-ai-starter-model-ollama` |
 | `namespace:custom` | (extension hook) | (extension hook) |
 
-加えて NestJS 側は AJV (`ajv`) を `responseFormat=structuredObject` 検証用に推奨追加。
-Java Spring Boot 側は `com.networknt:json-schema-validator` を同目的で推奨追加。
+加えて、生成 backend に `aiCall` / `aiAgent` で `responseFormat=structuredObject` を 1 つでも含む場合は
+**JSON Schema validator が必須** (AI-3 の runtime 検証経路で使用):
+
+- NestJS: `ajv` (`AiRuntimeService.normalizeAndValidate` で `ajv.compile(schema)` キャッシュ)
+- Java Spring Boot: `com.networknt:json-schema-validator` (`JsonSchemaFactory` でコンパイルキャッシュ)
 
 #### 5. 環境変数注記
 

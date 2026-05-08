@@ -757,6 +757,11 @@ export function mockAiFailure(
 /**
  * (f) format violation (AI-3、json / structuredObject のみ)。
  *     runtime が parse / schema 検証で失敗するケース。runtime 側で catch → 502 を返す前提。
+ *
+ * NOTE: 本 helper は invoke を直接 reject させるため AiRuntimeService 内部の normalizeAndValidate
+ *   (JSON.parse / AJV 検証) は **バイパス** される。AI-3 の本来 runtime path
+ *   (provider OK だが parse/schema 検証で 502) を E2E で再現したい場合は
+ *   `mockAiStructured(aiRuntime, { /* schema 違反 object */ })` に切替えること。
  */
 export function mockAiFormatViolation(
   svc: AiRuntimeService,

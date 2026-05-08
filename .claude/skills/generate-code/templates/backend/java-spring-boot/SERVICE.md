@@ -136,7 +136,7 @@ public class {{processFlow.meta.name | toPascalCase}}Service {
         //   AiInvocationResult {{step.outputBinding.name}} = aiRuntime.invoke(new AiInvocationRequest(
         //       "{{step.modelRef}}", messages, null, tools, new AiToolChoice("auto", null), null,
         //       new AiInvocationRequest.AgentSpec({{step.maxIterations}},
-        //           (name, args) -> switch (name) { case "searchWeb" -> ...; })));
+        //           (callId, name, args) -> switch (name) { case "searchWeb" -> ...; })));
 
         throw new UnsupportedOperationException("実装してください");
     }

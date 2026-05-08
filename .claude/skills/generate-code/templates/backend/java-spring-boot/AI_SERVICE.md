@@ -53,7 +53,12 @@ AWS SDK の credential chain で自動解決される。`anthropic` 直接 (Anth
 ```java
 package com.example.{{project.meta.name | camelCase}}.ai;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion.VersionFlag;
+import com.networknt.schema.ValidationMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -61,6 +66,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -70,6 +77,11 @@ public class AiRuntimeService {
     private final AiCatalogProvider catalogs;
     private final Map<String, AiProvider> providers; // bean name = provider key (anthropic, openai, ...)
     private final ObjectMapper objectMapper;
+
+    // schema map (System.identityHashCode キー) → コンパイル済 JsonSchema をキャッシュ
+    private final Map<Integer, JsonSchema> validatorCache = new ConcurrentHashMap<>();
+    private final JsonSchemaFactory schemaFactory =
+            JsonSchemaFactory.getInstance(VersionFlag.V202012);
 
     /**
      * provider 中立の AI 呼び出し。
@@ -161,10 +173,17 @@ public class AiRuntimeService {
         }
 
         if (kind.equals("structuredObject") && responseFormat.schema() != null) {
-            // JSON Schema 検証 (networknt/json-schema-validator など、依存追加で対応)
-            // var validator = JsonSchemaFactory.getInstance(...).getSchema(...);
-            // var errs = validator.validate(objectMapper.valueToTree(obj));
-            // if (!errs.isEmpty()) throw new ResponseStatusException(BAD_GATEWAY, ...);
+            JsonSchema validator = validatorCache.computeIfAbsent(
+                    System.identityHashCode(responseFormat.schema()),
+                    k -> schemaFactory.getSchema(objectMapper.valueToTree(responseFormat.schema())));
+            JsonNode node = objectMapper.valueToTree(obj);
+            Set<ValidationMessage> errors = validator.validate(node);
+            if (!errors.isEmpty()) {
+                log.warn("AI_RESPONSE_FORMAT_VIOLATION: {}", errors);
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_GATEWAY,
+                        "AI_RESPONSE_FORMAT_VIOLATION: AI response does not satisfy declared responseFormat.schema");
+            }
         }
         return raw;
     }
@@ -319,7 +338,9 @@ public record AiInvocationRequest(
     public record AgentSpec(int maxIterations, AgentToolRunner toolRunner) {}
     @FunctionalInterface
     public interface AgentToolRunner {
-        Object run(String name, Object arguments) throws Exception;
+        // callId は provider の tool_use ブロック ID。同一 turn で同名 tool が複数回呼ばれた際に
+        // 各呼び出しを区別するために必要。NestJS 版 `(call: { id, name, arguments })` と一致。
+        Object run(String callId, String name, Object arguments) throws Exception;
     }
 }
 
@@ -341,6 +362,12 @@ public record AiInvocationResult(
     // builder は Lombok @Builder か手書きで
 }
 
+/**
+ * runtime 用の正規化 message。ProcessFlow JSON 上の schema (`AiMessage.role`) は
+ * `system | user | assistant` の 3 値のみ。`"tool"` は SDK 呼び出し後の会話ターン
+ * (tool_use への返り値) を表す runtime 拡張で、aiAgent ループ内で AiRuntimeService が組み立てる。
+ * 生成 ProcessFlow JSON で `role: "tool"` を書くことは無い。
+ */
 public record AiMessage(String role, Object content, String toolCallId, String name) {
     // content は String or List<AiContentBlock>
 }
@@ -449,7 +476,7 @@ AiInvocationResult agentResult = aiRuntime.invoke(new AiInvocationRequest(
                 new AiToolRef("fetchUrl", "URL 取得", fetchSchema)),
         new AiToolChoice("auto", null),
         null,
-        new AiInvocationRequest.AgentSpec(8, (name, args) -> switch (name) {
+        new AiInvocationRequest.AgentSpec(8, (callId, name, args) -> switch (name) {
             case "searchWeb" -> searchWebTool.run(args);
             case "fetchUrl" -> fetchUrlTool.run(args);
             default -> throw new IllegalArgumentException("Unknown tool: " + name);
