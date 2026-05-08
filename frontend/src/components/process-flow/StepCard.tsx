@@ -405,14 +405,14 @@ export function StepCard({
   const addBranch = () => {
     if (step.kind !== "branch") return;
     const code = String.fromCharCode(65 + step.branches.length);
-    const newBranch: Branch = { id: generateUUID(), code, condition: "", steps: [] };
+    const newBranch: Branch = { id: generateUUID(), code, condition: { kind: "expression", expression: "" }, steps: [] };
     onChange({ branches: [...step.branches, newBranch] } as Partial<Step>);
     onCommit?.();
   };
 
   const addElseBranch = () => {
     if (step.kind !== "branch") return;
-    const elseBranch: Branch = { id: generateUUID(), code: "ELSE", condition: "", steps: [] };
+    const elseBranch: Branch = { id: generateUUID(), code: "ELSE", condition: { kind: "expression", expression: "" }, steps: [] };
     onChange({ elseBranch } as Partial<Step>);
     onCommit?.();
   };
@@ -1390,16 +1390,16 @@ export function StepCard({
                         onClick={() => toggleBranchCollapse(br.id)}
                       >
                         <span className="branch-code-badge">{br.code}</span>
-                        {typeof br.condition === "object" ? (
+                        {br.condition?.kind === "tryCatch" ? (
                           <div className="d-flex align-items-center gap-1 flex-grow-1" onClick={(e) => e.stopPropagation()}>
                             <span className="badge bg-info text-dark" style={{ fontSize: "0.7rem" }}>tryCatch</span>
                             <input
                               className="form-control form-control-sm"
-                              value={(br.condition as { kind: "tryCatch"; errorCode: string }).errorCode}
+                              value={br.condition.errorCode}
                               placeholder="errorCode (例: STOCK_SHORTAGE)"
                               onChange={(e) => setBranchAt(bi, {
                                 ...br,
-                                condition: { ...br.condition as { kind: "tryCatch"; errorCode: string; description?: string }, errorCode: e.target.value },
+                                condition: { ...br.condition, errorCode: e.target.value },
                               })}
                               onBlur={onCommit}
                             />
@@ -1407,19 +1407,19 @@ export function StepCard({
                               type="button"
                               className="btn btn-sm btn-link text-muted p-0"
                               title="自由記述に戻す"
-                              onClick={() => setBranchAt(bi, { ...br, condition: "" })}
+                              onClick={() => setBranchAt(bi, { ...br, condition: { kind: "expression", expression: "" } })}
                             >
                               <i className="bi bi-arrow-counterclockwise" />
                             </button>
                           </div>
-                        ) : (
+                        ) : br.condition?.kind === "expression" ? (
                           <>
                             <input
                               className="form-control form-control-sm branch-condition-input"
-                              value={br.condition}
+                              value={br.condition.expression}
                               placeholder="分岐条件 (自由記述)"
                               onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => setBranchAt(bi, { ...br, condition: e.target.value })}
+                              onChange={(e) => setBranchAt(bi, { ...br, condition: { kind: "expression", expression: e.target.value } })}
                               onBlur={onCommit}
                             />
                             <button
@@ -1438,6 +1438,21 @@ export function StepCard({
                               <i className="bi bi-shield-exclamation" />
                             </button>
                           </>
+                        ) : (
+                          // affectedRowsZero / externalOutcome 等の専用 UI 未対応 kind
+                          // 現状は kind 名 + 「expression に戻す」ボタンのみ提供 (#954)
+                          <div className="d-flex align-items-center gap-1 flex-grow-1" onClick={(e) => e.stopPropagation()}>
+                            <span className="badge bg-secondary text-white" style={{ fontSize: "0.7rem" }}>{br.condition?.kind ?? "(unknown)"}</span>
+                            <span className="text-muted small">専用 UI 未対応 — JSON で編集してください</span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link text-muted p-0"
+                              title="expression に戻す"
+                              onClick={() => setBranchAt(bi, { ...br, condition: { kind: "expression", expression: "" } })}
+                            >
+                              <i className="bi bi-arrow-counterclockwise" />
+                            </button>
+                          </div>
                         )}
                         {bi > 0 && (
                           <button

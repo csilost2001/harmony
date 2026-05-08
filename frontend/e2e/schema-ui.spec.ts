@@ -233,12 +233,9 @@ test.describe("ValidationRule[] 編集 (#212)", () => {
 });
 
 test.describe("Branch.condition tryCatch variant (#224)", () => {
-  // TODO(#954): StepCard.tsx の branch.condition 表示が
-  // `typeof condition === "object"` で tryCatch UI を出す古い実装になっている。
-  // schema v3 では condition は常に object (kind discriminated union) のため、
-  // expression を含む全 object が tryCatch UI に倒れて盾アイコン (切替ボタン) が
-  // 出ない。`condition.kind === "tryCatch"` で判定する実装修正が必要 (#954 で対応)。
-  test.skip("盾アイコンで tryCatch 変換、元に戻せる (#954 follow-up: StepCard 判定修正待ち)", async ({ page }) => {
+  // #954: StepCard.tsx の branch.condition 判定を kind discriminator base に修正。
+  // `br.condition?.kind === "tryCatch"` で判定し、expression / tryCatch / 他 kind を分岐。
+  test("盾アイコンで tryCatch 変換、元に戻せる", async ({ page }) => {
     await setupEditor(page);
     const card = await expandStep(page, 3); // step-branch
     // branch-sections の存在を確認 (step.kind === "branch" 経路で出る)
