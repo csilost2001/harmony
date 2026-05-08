@@ -89,6 +89,8 @@ test.describe("ProcessFlowListView 操作 (#248)", () => {
   });
 
   test("成熟度サマリバーが total を表示する", async ({ page }) => {
+    // groups load を待つ (groups.length > 0 で初めて 全体: が render される)
+    await expect(page.locator(".data-list-card").first()).toBeVisible({ timeout: 10000 });
     const header = page.locator(".process-flow-list-header");
     await expect(header.getByText("全体:")).toBeVisible();
   });

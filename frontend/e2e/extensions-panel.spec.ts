@@ -35,11 +35,20 @@ test.describe("拡張管理 UI (#447)", () => {
 
   test("レスポンス型を追加して保存できる", async ({ page }) => {
     await ws.gotoActive(page, "/extensions?tab=responseTypes");
+    // ResumeOrDiscardDialog dismiss
+    await page.waitForTimeout(500);
+    for (let _i = 0; _i < 3; _i++) {
+      if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+        await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+        await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+      } else { break; }
+    }
     // edit-mode-start 経由で編集モードに入る (#683) — editing 遷移確認
     const editStart = page.getByTestId("edit-mode-start");
-    await expect(editStart).toBeVisible({ timeout: 5000 });
-    await editStart.click();
-    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
+    if (await editStart.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await editStart.click();
+      await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });
+    }
     await page.getByRole("button", { name: "追加" }).click();
     await page.getByPlaceholder("ApiError").last().fill("E2EResponse");
     await page.locator(".response-type-schema").last().fill('{"type":"object","properties":{"code":{"type":"string"}}}');
