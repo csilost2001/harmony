@@ -1,11 +1,21 @@
 import type { Locator, Page } from "@playwright/test";
+import {
+  setupTestWorkspace,
+  cleanupRealWorkspaces,
+  isMcpRunning,
+  normalizeId,
+  type OpenedWorkspace,
+} from "./realWorkspace";
+import fs from "node:fs/promises";
+import path from "node:path";
 
-// UUID v4 規格 (36 文字 8-4-4-4-12) で固定。将来 router/store 側で wsId 形式検証が
-// 追加されても test が壊れないよう preemptive に正しい形式を使う (#814 N-2)。
-export const FAKE_WS_ID = "00000000-e2e1-4000-8000-000000000814";
+// 元 spec で使用していた人間可読 id を維持。realWorkspace 経由では normalizeId で
+// UUID v4 に正規化される (harmony.v3 schema 準拠)。
 export const PUCK_SCREEN_ID = "puck-test-0001-4000-8000-aaaaaaaaaaaa";
 export const GJS_SCREEN_ID = "grapes-test-0002-4000-8000-bbbbbbbbbbbb";
 export const PUCK_TW_SCREEN_ID = "puck-tw-test-0003-4000-8000-cccccccccccc";
+// 旧 spec が参照する FAKE_WS_ID は backend 経由ではダミー。互換のため export 維持。
+export const FAKE_WS_ID = "00000000-e2e1-4000-8000-000000000814";
 
 export const EMPTY_PUCK_DATA = {
   root: { props: {} },
@@ -17,15 +27,7 @@ export const PUCK_DATA_WITH_HEADING = {
   content: [
     {
       type: "Heading",
-      props: {
-        id: "heading-001",
-        text: "こんにちは",
-        level: "h2",
-        align: "left",
-        padding: "none",
-        marginBottom: "md",
-        colorAccent: "default",
-      },
+      props: { id: "heading-001", text: "こんにちは", level: "h2", align: "left", padding: "none", marginBottom: "md", colorAccent: "default" },
     },
   ],
 };
@@ -35,94 +37,32 @@ export const HEADING_PARAGRAPH_DATA = {
   content: [
     {
       type: "Heading",
-      props: {
-        id: "heading-visual-001",
-        text: "受注一覧",
-        level: "h2",
-        align: "left",
-        padding: "none",
-        marginBottom: "sm",
-        colorAccent: "default",
-      },
+      props: { id: "heading-visual-001", text: "受注一覧", level: "h2", align: "left", padding: "none", marginBottom: "sm", colorAccent: "default" },
     },
     {
       type: "Paragraph",
-      props: {
-        id: "paragraph-visual-001",
-        text: "本日の受注状況を確認し、必要な処理を実行します。",
-        align: "left",
-        padding: "none",
-        marginBottom: "md",
-        colorAccent: "default",
-      },
+      props: { id: "paragraph-visual-001", text: "本日の受注状況を確認し、必要な処理を実行します。", align: "left", padding: "none", marginBottom: "md", colorAccent: "default" },
     },
   ],
 };
 
-/** Puck 画面を含む最小プロジェクト (v3 schema 形式) */
-export function makeDummyProject(screenOverrides: object[] = []) {
-  const now = new Date().toISOString();
+/** Puck 画面を含む最小プロジェクト (legacy v1 形式 — realWorkspace の legacyToHarmony が v3 に変換) */
+export function makeDummyProject(screenOverrides: Array<Record<string, unknown>> = []): Record<string, unknown> {
   return {
-    $schema: "../../schemas/v3/project.v3.schema.json",
-    schemaVersion: "v3",
-    meta: {
-      id: "e2e-puck-test-0000-4000-8000-000000000000",
-      name: "Puck E2E テスト用プロジェクト",
-      createdAt: now,
-      updatedAt: now,
-      mode: "upstream",
-      maturity: "draft",
-    },
-    extensionsApplied: [],
-    techStack: {
-      designer: {
-        cssFramework: "bootstrap",
-        editorKind: "puck",
-      },
-    },
-    entities: {
-      screens: [
-        {
-          id: PUCK_SCREEN_ID,
-          no: 1,
-          name: "Puck テスト画面 (Bootstrap)",
-          kind: "other",
-          path: "/puck-test",
-          maturity: "draft",
-          updatedAt: now,
-        },
-        {
-          id: GJS_SCREEN_ID,
-          no: 2,
-          name: "GrapesJS テスト画面",
-          kind: "other",
-          path: "/gjs-test",
-          maturity: "draft",
-          updatedAt: now,
-        },
-        {
-          id: PUCK_TW_SCREEN_ID,
-          no: 3,
-          name: "Puck Tailwind テスト画面",
-          kind: "other",
-          path: "/puck-tw-test",
-          maturity: "draft",
-          updatedAt: now,
-        },
-        ...screenOverrides,
-      ],
-      screenGroups: [],
-      screenTransitions: [],
-      tables: [],
-      processFlows: [],
-      views: [],
-      viewDefinitions: [],
-      sequences: [],
-    },
+    version: 1,
+    name: "Puck E2E テスト用プロジェクト",
+    screens: [
+      { id: PUCK_SCREEN_ID, no: 1, name: "Puck テスト画面 (Bootstrap)", kind: "other", path: "/puck-test", hasDesign: true },
+      { id: GJS_SCREEN_ID, no: 2, name: "GrapesJS テスト画面", kind: "other", path: "/gjs-test", hasDesign: true },
+      { id: PUCK_TW_SCREEN_ID, no: 3, name: "Puck Tailwind テスト画面", kind: "other", path: "/puck-tw-test", hasDesign: true },
+      ...screenOverrides,
+    ],
+    groups: [], edges: [], tables: [], processFlows: [],
+    techStack: { designer: { cssFramework: "bootstrap", editorKind: "puck" } },
   };
 }
 
-/** screen entity (localStorage: v3-screen-<id>) を生成する */
+/** screen entity (harmony/screens/<id>.json) を生成する */
 export function makeScreenEntity(
   screenId: string,
   name: string,
@@ -130,8 +70,8 @@ export function makeScreenEntity(
   path: string,
   editorKind: "puck" | "grapesjs",
   cssFramework: "bootstrap" | "tailwind",
-) {
-  const now = new Date().toISOString();
+): Record<string, unknown> {
+  const now = "2026-05-08T00:00:00.000Z";
   return {
     $schema: "../schemas/v3/screen.v3.schema.json",
     id: screenId,
@@ -142,70 +82,28 @@ export function makeScreenEntity(
     path,
     items: [],
     design: {
-      editorKind,
-      cssFramework,
-      ...(editorKind === "puck"
-        ? { puckDataRef: "puck-data.json" }
-        : { designFileRef: `${screenId}.design.json` }),
+      editorKind, cssFramework,
+      ...(editorKind === "puck" ? { puckDataRef: "puck-data.json" } : { designFileRef: `${screenId}.design.json` }),
     },
   };
 }
 
-/**
- * MCP WebSocket 接続を確実に CLOSED にする init script を仕掛ける。
- *
- * `workspace-e2e-bypass=true` の localStorage flag だけでは、AppShell が
- * MCP 接続待ちで spinner のまま止まり Designer が mount されないケースがある
- * (test 5 混在シナリオで pre-existing failure を確認、#814 で吸収)。
- * ClosedWebSocket 偽実装で同期的に CLOSED 状態に落とすことで workspaceState を
- * error に進め、localStorage fallback を必ず発火させる。
- */
+/** legacy: 旧 spec が参照していた MCP bypass。realWorkspace 移植後は no-op (互換維持) */
 export async function installPuckMcpBypass(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    class ClosedWebSocket extends EventTarget {
-      static readonly CONNECTING = 0;
-      static readonly OPEN = 1;
-      static readonly CLOSING = 2;
-      static readonly CLOSED = 3;
-      readonly CONNECTING = 0;
-      readonly OPEN = 1;
-      readonly CLOSING = 2;
-      readonly CLOSED = 3;
-      readyState = ClosedWebSocket.CONNECTING;
-      onopen: ((event: Event) => void) | null = null;
-      onmessage: ((event: MessageEvent) => void) | null = null;
-      onerror: ((event: Event) => void) | null = null;
-      onclose: ((event: CloseEvent) => void) | null = null;
-
-      constructor() {
-        super();
-        window.setTimeout(() => {
-          this.readyState = ClosedWebSocket.CLOSED;
-          const event = new CloseEvent("close");
-          this.dispatchEvent(event);
-          this.onclose?.(event);
-        }, 0);
-      }
-
-      send(): void {
-        throw new Error("E2E Puck tests use localStorage fallback");
-      }
-
-      close(): void {
-        this.readyState = ClosedWebSocket.CLOSED;
-      }
-    }
-
-    window.WebSocket = ClosedWebSocket as unknown as typeof WebSocket;
-    localStorage.setItem("workspace-e2e-bypass", "true");
-  });
+  // realWorkspace 経由では backend 接続が前提なので bypass しない。互換のため no-op で残す。
+  void page;
 }
 
 export interface SetupPuckOptions {
   screenId?: string;
   puckData?: object;
   cssFramework?: "bootstrap" | "tailwind";
+  /** 内部使用: backend 起動済かどうか (test.skip 用) */
+  _wsKey?: string;
 }
+
+let _wsCache: OpenedWorkspace | null = null;
+const _wsKeysToCleanup = new Set<string>();
 
 export async function setupPuckScreen(
   page: Page,
@@ -213,46 +111,56 @@ export async function setupPuckScreen(
     screenId = PUCK_SCREEN_ID,
     puckData = EMPTY_PUCK_DATA,
     cssFramework = "bootstrap",
+    _wsKey = "issue-926-puck",
   }: SetupPuckOptions = {},
 ): Promise<void> {
-  const project = makeDummyProject();
-  const tab = {
-    id: `design:${screenId}`,
-    type: "design",
-    resourceId: screenId,
-    label: cssFramework === "tailwind" ? "Puck Tailwind テスト" : "Puck テスト",
-    isDirty: false,
-    isPinned: false,
-  };
+  const screenIdNorm = normalizeId(screenId);
   const screenEntity = makeScreenEntity(
-    screenId,
-    tab.label,
+    screenIdNorm,
+    cssFramework === "tailwind" ? "Puck Tailwind テスト" : "Puck テスト",
     "other",
     "/puck-test",
     "puck",
     cssFramework,
   );
+  const ws = await setupTestWorkspace({
+    key: _wsKey,
+    project: makeDummyProject(),
+    screenEntities: [screenEntity],
+  });
+  _wsCache = ws;
+  _wsKeysToCleanup.add(_wsKey);
+  // Puck data は harmony/screens/<id>.design.json に書き出す
+  const file = path.join(ws.workspacePath, "harmony", "screens", `${screenIdNorm}.design.json`);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, JSON.stringify(puckData, null, 2), "utf-8");
 
-  await installPuckMcpBypass(page);
-  await page.addInitScript(
-    ({ proj, tabData, pData, localKey, entity, entityKey }) => {
-      localStorage.setItem("flow-project", JSON.stringify(proj));
-      localStorage.setItem("harmony-open-tabs", JSON.stringify([tabData]));
-      localStorage.setItem("harmony-active-tab", tabData.id);
-      localStorage.setItem(localKey, JSON.stringify(pData));
-      localStorage.setItem(entityKey, JSON.stringify(entity));
-    },
-    {
-      proj: project,
-      tabData: tab,
-      pData: puckData,
-      localKey: `puck-data-${screenId}`,
-      entity: screenEntity,
-      entityKey: `v3-screen-${screenId}`,
-    },
-  );
+  await page.addInitScript((tabData) => {
+    localStorage.setItem("harmony-open-tabs", JSON.stringify([tabData]));
+    localStorage.setItem("harmony-active-tab", tabData.id);
+  }, {
+    id: `design:${screenIdNorm}`,
+    type: "design",
+    resourceId: screenIdNorm,
+    label: cssFramework === "tailwind" ? "Puck Tailwind テスト" : "Puck テスト",
+    isDirty: false,
+    isPinned: false,
+  });
 
-  await page.goto(`/w/${FAKE_WS_ID}/screen/design/${screenId}`);
+  await ws.gotoActive(page, `/screen/design/${screenIdNorm}`);
+}
+
+/** test.afterAll() から呼んで puck テストの workspace を全件 cleanup */
+export async function cleanupPuckWorkspaces(): Promise<void> {
+  if (_wsKeysToCleanup.size > 0) {
+    await cleanupRealWorkspaces([..._wsKeysToCleanup]);
+    _wsKeysToCleanup.clear();
+    _wsCache = null;
+  }
+}
+
+export function isPuckMcpRunning(): Promise<boolean> {
+  return isMcpRunning();
 }
 
 export function getPuckContainer(page: Page): Locator {
@@ -263,14 +171,6 @@ export function getPlacedPrimitive(page: Page, name: string): Locator {
   return page.locator(`[data-testid='puck-primitive-${name}']`);
 }
 
-/**
- * Puck 左パレットの component item locator。
- *
- * Puck の DOM 実装メモ (v0.x):
- *  - `draggable="true"` 属性は使わない (dnd-kit は pointer events)
- *  - 各 item は CSS module hash class `_DrawerItem_xxxx_yy` を持つ
- *  - role="button" + accessible name (label) で安定アクセス可能
- */
 export function getPaletteItem(page: Page, label: string): Locator {
   return page.getByRole("button", { name: label, exact: true }).first();
 }
@@ -296,12 +196,6 @@ export async function dragPrimitiveTo(
   const targetX = targetBox.x + targetBox.width / 2;
   const targetY = targetBox.y + Math.min(targetBox.height / 2, 260);
 
-  // dnd-kit の PointerSensor 活性化を発火させる pointer event sequence:
-  //   - 各 step 間 20ms 待機: dnd-kit の pointermove throttling / activation distance 計算に
-  //     最低 frame 経過時間を与える (即時連続 move だと sensor が 1 イベント扱いになる場合あり)
-  //   - mouseup 直前 100ms: drop 判定の collision detection に必要な settle 時間
-  //   - mouseup 後 300ms: Puck の再 render と Puck data state 反映を待つ
-  // (#814 N-3)
   await page.mouse.move(sourceX, sourceY);
   await page.mouse.down();
   for (let i = 1; i <= 10; i += 1) {
@@ -337,3 +231,6 @@ export async function setPuckFieldSelect(page: Page, fieldLabel: string, value: 
   await select.waitFor({ state: "visible", timeout: 5000 });
   await select.selectOption(value);
 }
+
+// Suppress unused-warning by re-exporting cache (used by some specs)
+export { _wsCache };

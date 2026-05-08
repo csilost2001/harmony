@@ -15,6 +15,7 @@ import {
   setFlowDraftMode,
   saveProject,
 } from "./flowStore";
+import { setScreenLayoutStorageBackend } from "./screenLayoutStore";
 import type { FlowProject } from "../types/flow";
 import type {
   Project,
@@ -161,6 +162,10 @@ describe("saveProject round-trip preservation (backend mock)", () => {
     savedProject = null;
     backendProject = mkRichProject();
     setFlowDraftMode(false);
+    setScreenLayoutStorageBackend({
+      loadScreenLayout: vi.fn().mockResolvedValue(mkLayout()),
+      saveScreenLayout: vi.fn().mockResolvedValue(undefined),
+    });
 
     const backend: FlowStorageBackend = {
       loadProject: vi.fn().mockImplementation(() => Promise.resolve(backendProject)),

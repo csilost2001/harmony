@@ -32,7 +32,8 @@ export type DraftResourceType =
   | "sequence"
   | "extension"
   | "convention"
-  | "flow";
+  | "flow"
+  | "er-layout";
 
 export interface ParticipantInfo {
   sessionId: string;

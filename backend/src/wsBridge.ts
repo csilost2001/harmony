@@ -513,9 +513,11 @@ class WsBridge extends EventEmitter {
             await writeSequence(resId, payload, root);
             break;
           case "flow":
+          case "er-layout":
           case "extension":
           case "convention":
-            // flow は frontend persistProject() が書き込む / extension/convention は専用 MCP tool 経由のため skip
+            // flow / er-layout は frontend 側が canonical 書き込みを担う。
+            // extension/convention は専用 MCP tool 経由のため skip。
             break;
           default:
             break;

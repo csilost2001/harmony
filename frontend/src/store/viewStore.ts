@@ -20,11 +20,14 @@ export function setViewStorageBackend(b: ViewStorageBackend | null): void {
   _backend = b;
 }
 
-// ─── localStorage キー (v3 名前空間、#549) ───────────────────────────────
-
-const VIEW_PREFIX = "v3-view-";
-
 const VIEW_SCHEMA_REF = "../../schemas/v3/view.v3.schema.json";
+
+function requireBackend(): ViewStorageBackend {
+  if (!_backend) {
+    throw new Error("viewStore: backend が初期化されていません (wsBridge 未接続)");
+  }
+  return _backend;
+}
 
 function nowTs(): Timestamp {
   return new Date().toISOString() as Timestamp;
@@ -40,19 +43,17 @@ export async function listViews(): Promise<ViewEntry[]> {
 
 /** ビュー定義を読み込み (per-entity ファイル) */
 export async function loadView(viewId: string): Promise<View | null> {
-  if (_backend) return (await _backend.loadView(viewId)) as View | null;
-  const s = localStorage.getItem(`${VIEW_PREFIX}${viewId}`);
-  if (!s) return null;
-  try { return JSON.parse(s) as View; } catch { return null; }
+  return (await requireBackend().loadView(viewId)) as View | null;
 }
 
 export async function loadViewValidationMap(): Promise<Map<ViewId, ValidationError[]>> {
   const entries = await listViews();
   const entryIds = new Set(entries.map((entry) => entry.id));
+  const backend = requireBackend();
 
   let views: View[];
-  if (_backend?.listAllViews) {
-    const all = (await _backend.listAllViews()) as View[];
+  if (backend.listAllViews) {
+    const all = (await backend.listAllViews()) as View[];
     views = all.filter((view) => entryIds.has(view.id));
   } else {
     views = (await Promise.all(entries.map((entry) => loadView(entry.id))))
@@ -73,11 +74,7 @@ export async function saveView(view: View): Promise<void> {
   // $schema は spread 後に明示的に上書きして、旧 v1/v2 由来の $schema を必ず v3 ref に書き換える。
   const toSave: View = { ...view, $schema: VIEW_SCHEMA_REF, updatedAt: nowTs() };
 
-  if (_backend) {
-    await _backend.saveView(toSave.id, toSave);
-  } else {
-    localStorage.setItem(`${VIEW_PREFIX}${toSave.id}`, JSON.stringify(toSave));
-  }
+  await requireBackend().saveView(toSave.id, toSave);
 
   await syncViewMeta(toSave);
 }
@@ -107,12 +104,7 @@ export async function createView(
 
 /** ビューを削除 (per-entity ファイル + harmony.json メタ削除) */
 export async function deleteView(viewId: string): Promise<void> {
-  if (_backend) {
-    await _backend.deleteView(viewId);
-  } else {
-    localStorage.removeItem(`${VIEW_PREFIX}${viewId}`);
-  }
-
+  await requireBackend().deleteView(viewId);
 }
 
 interface CommitViewsDeps {

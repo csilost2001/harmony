@@ -4,85 +4,94 @@
  * - type ヘッダクリックソート (表モード)
  * - 複数選択 (Shift+Click)
  * - Ctrl+A 全選択
+ *
+ * #926: realWorkspace + 実 backend 経由に移植。
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import {
+  setupTestWorkspace,
+  cleanupRealWorkspaces,
+  isMcpRunning,
+  type OpenedWorkspace,
+} from "./helpers/realWorkspace";
 
-const baseNow = new Date().toISOString();
+const baseNow = "2026-05-08T00:00:00.000Z";
 
 const listGroups = [
-  { id: "g-a", no: 1, name: "Alpha ログイン", type: "screen", actionCount: 2, updatedAt: baseNow, maturity: "committed" },
-  { id: "g-b", no: 2, name: "Beta バッチ", type: "batch", actionCount: 1, updatedAt: baseNow, maturity: "provisional" },
-  { id: "g-c", no: 3, name: "Charlie 共通", type: "common", actionCount: 1, updatedAt: baseNow, maturity: "draft" },
-  { id: "g-d", no: 4, name: "Delta 登録", type: "screen", actionCount: 3, updatedAt: baseNow, maturity: "draft" },
+  { id: "g-a", no: 1, name: "Alpha ログイン", kind: "screen", actionCount: 2, updatedAt: baseNow, maturity: "committed" },
+  { id: "g-b", no: 2, name: "Beta バッチ", kind: "batch", actionCount: 1, updatedAt: baseNow, maturity: "provisional" },
+  { id: "g-c", no: 3, name: "Charlie 共通", kind: "common", actionCount: 1, updatedAt: baseNow, maturity: "draft" },
+  { id: "g-d", no: 4, name: "Delta 登録", kind: "screen", actionCount: 3, updatedAt: baseNow, maturity: "draft" },
 ];
 
-async function setupList(page: Page) {
-  const project = {
-    version: 1, name: "list-ops", screens: [], groups: [], edges: [], tables: [],
-    processFlows: listGroups, updatedAt: baseNow,
-  };
-  await page.addInitScript(({ project, groups }) => {
-    localStorage.setItem("workspace-e2e-bypass", "true");
-      localStorage.setItem("flow-project", JSON.stringify(project));
-    for (const g of groups) {
-      localStorage.setItem(`process-flow-${g.id}`, JSON.stringify({
-        id: g.id, name: g.name, type: g.type, description: "",
-        maturity: g.maturity, mode: "upstream",
-        actions: [], createdAt: baseNow, updatedAt: baseNow,
-      }));
-    }
-    localStorage.removeItem("harmony-open-tabs");
-    localStorage.removeItem("harmony-active-tab");
-    localStorage.removeItem("list-view-mode:process-flow-list");
-  }, { project, groups: listGroups });
-  await page.goto("/process-flow/list");
-  await expect(page.locator(".process-flow-page")).toBeVisible();
-}
+const listGroupBodies = listGroups.map((g) => ({
+  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
+  id: g.id,
+  meta: { id: g.id, name: g.name, kind: g.kind, maturity: g.maturity, mode: "upstream", version: "1.0.0", createdAt: baseNow, updatedAt: baseNow },
+  actions: [],
+}));
+
+const project = {
+  version: 1, name: "list-ops",
+  screens: [], groups: [], edges: [], tables: [],
+  processFlows: listGroups,
+};
+
+const WS_KEY = "issue-926-list-ops";
+let mcpAvailable = false;
+let ws: OpenedWorkspace;
 
 test.describe("ProcessFlowListView 操作 (#248)", () => {
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+  });
+
+  test.afterAll(async () => {
+    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+  });
+
+  test.beforeEach(async ({ page }) => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project,
+      processFlows: listGroupBodies,
+    });
+    await ws.gotoActive(page, "/process-flow/list");
+    await expect(page.locator(".process-flow-page")).toBeVisible();
+  });
+
   test("view mode toggle でカード ⇔ 表切替", async ({ page }) => {
-    await setupList(page);
-    // 既定はカード
     await expect(page.locator(".data-list-layout-grid")).toHaveCount(1);
-    // 表に切替
     await page.getByRole("button", { name: "表表示" }).click();
     await expect(page.locator(".data-list-row")).toHaveCount(4);
-    // 元に戻す
     await page.getByRole("button", { name: "カード表示" }).click();
     await expect(page.locator(".data-list-card")).toHaveCount(4);
   });
 
   test("表モードで 名前列 ヘッダクリックでソート", async ({ page }) => {
-    await setupList(page);
     await page.getByRole("button", { name: "表表示" }).click();
-    // 既定は no 順 (Alpha/Beta/Charlie/Delta)
     const rowsBefore = await page.locator(".data-list-row").allTextContents();
     expect(rowsBefore[0]).toContain("Alpha");
-    // 名前ヘッダクリック → 既に昇順なので降順に
     await page.getByRole("columnheader", { name: /名前/ }).click();
-    const rowsAfter = await page.locator(".data-list-row").allTextContents();
-    // 最初のクリックで昇順ソート (Alpha のまま)、2 回目で降順
-    // 最初のクリック結果確認後、2 回目クリックで Delta が先頭へ
     await page.getByRole("columnheader", { name: /名前/ }).click();
     const rowsDesc = await page.locator(".data-list-row").allTextContents();
     expect(rowsDesc[0]).toContain("Delta");
   });
 
   test("Ctrl+A で全件選択、Delete で ghost 表示", async ({ page }) => {
-    await setupList(page);
-    // 一度カードをクリックしてフォーカス確定
+    // backend からの projects 取得を待つ
+    await expect(page.locator(".data-list-card").first()).toBeVisible({ timeout: 10000 });
     await page.locator(".data-list-card").first().click();
     await page.keyboard.press("Control+a");
-    // 削除
     await page.keyboard.press("Delete");
     await expect(page.locator(".data-list-card.ghost")).toHaveCount(4);
   });
 
   test("成熟度サマリバーが total を表示する", async ({ page }) => {
-    await setupList(page);
-    // 全体: 1 committed / 1 provisional / 2 draft
+    // groups load を待つ (groups.length > 0 で初めて 全体: が render される)
+    await expect(page.locator(".data-list-card").first()).toBeVisible({ timeout: 10000 });
     const header = page.locator(".process-flow-list-header");
-    // committed 1 / provisional 1 / draft 2
     await expect(header.getByText("全体:")).toBeVisible();
   });
 });

@@ -10,6 +10,14 @@
  * - tryCatch variant 切替
  */
 import { test, expect, type Page } from "@playwright/test";
+import {
+  setupTestWorkspace,
+  cleanupRealWorkspaces,
+  isMcpRunning,
+  normalizeId,
+  type OpenedWorkspace,
+} from "./helpers/realWorkspace";
+
 
 const groupId = "ag-schema-ui-test";
 
@@ -86,15 +94,20 @@ const dummyProject = {
 };
 
 async function setupEditor(page: Page) {
-  await page.addInitScript(({ project, group }) => {
-    localStorage.setItem("workspace-e2e-bypass", "true");
-      localStorage.setItem("flow-project", JSON.stringify(project));
-    localStorage.setItem(`process-flow-${group.id}`, JSON.stringify(group));
-    localStorage.removeItem("harmony-open-tabs");
-    localStorage.removeItem("harmony-active-tab");
-  }, { project: dummyProject, group: dummyGroup });
-  await page.goto(`/process-flow/edit/${groupId}`);
+  await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
   await expect(page.locator(".step-editor, .process-flow-content").first()).toBeVisible({ timeout: 10000 });
+  // ResumeOrDiscardDialog 遅延表示への retry-loop (#683 edit-session-draft 残骸対応)
+  await page.waitForTimeout(500);
+  for (let _i = 0; _i < 3; _i++) {
+    if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+      await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+      await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+    } else {
+      break;
+    }
+  }
+  await page.getByTestId("edit-mode-start").click();
+  await expect(page.getByTestId("edit-mode-save")).toBeVisible();
 }
 
 async function expandStep(page: Page, index: number) {
@@ -103,6 +116,36 @@ async function expandStep(page: Page, index: number) {
   return card;
 }
 
+// realWorkspace 移植 (#926): 実 backend 経由の dummy fixture
+// ProcessFlow body は dummyGroup を v3 shape (top-level id + meta) で再利用する。
+const dummyGroupBody: Record<string, unknown> = {
+  id: groupId,
+  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
+  meta: { id: groupId, name: dummyGroup.name, kind: dummyGroup.type ?? dummyGroup.kind ?? "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: dummyGroup.createdAt ?? "2026-05-08T00:00:00.000Z", updatedAt: dummyGroup.updatedAt ?? "2026-05-08T00:00:00.000Z" },
+  actions: dummyGroup.actions,
+  ...((dummyGroup as Record<string, unknown>).markers !== undefined ? { markers: (dummyGroup as Record<string, unknown>).markers } : {}),
+};
+
+const WS_KEY = "issue-926-schema-ui";
+let mcpAvailable = false;
+let ws: OpenedWorkspace;
+
+test.beforeAll(async () => {
+  mcpAvailable = await isMcpRunning();
+});
+
+test.afterAll(async () => {
+  if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+});
+
+test.beforeEach(async () => {
+  test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+  ws = await setupTestWorkspace({
+    key: WS_KEY,
+    project: dummyProject,
+    processFlows: [dummyGroupBody as unknown as { id: string }],
+  });
+});
 test.describe("step runIf 入力 (#202)", () => {
   test("runIf 欄に入力すると反映される", async ({ page }) => {
     await setupEditor(page);
@@ -138,7 +181,7 @@ test.describe("アクション HTTP 契約編集 (#206)", () => {
     await setupEditor(page);
     // HTTP 契約パネルを開く
     await page.getByRole("button", { name: /HTTP 契約/ }).click();
-    const panel = page.locator(".process-flow-http-contract-panel");
+    const panel = page.locator(".action-http-contract-panel");
     await expect(panel).toBeVisible();
     // Method
     await panel.locator("select").first().selectOption("POST");

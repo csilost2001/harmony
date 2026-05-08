@@ -422,12 +422,15 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   }, [workspaceState.active?.id]);
 
   // ルーティングガード: wsId が active と異なる、または active===null の場合の処理
-  // backend オフライン時は error が立つ → ガードを停止して localStorage fallback 経路を温存する。
-  // (AGENTS.md "If WS disconnected → localStorage" の互換性確保)
+  // backend offline 時の localStorage fallback は #923 シリーズで廃止 (spec D-8)。
+  // 接続失敗は AppShell 上位の `connectionFailed` (`markFailed()` 経由) が
+  // `ConnectionFailedView` で UI を切り替える。本ガードは正常接続時の URL 同期に専念する。
   useEffect(() => {
     if (workspaceState.loading) return; // ロード中は判定しない
     if (workspaceState.lockdown) return; // lockdown 時はガード不要 (常にアクティブ扱い)
-    if (workspaceState.error !== null) return; // load 失敗 (offline 等) は redirect しない
+    // e2e テスト用 bypass (workspace-e2e-bypass=true) のみ guard スキップ。
+    // それ以外の error 状態は明示的に redirect / エラー画面へ誘導する。
+    if (workspaceState.error === "e2e bypass") return;
 
     if (workspaceState.active === null) {
       // active なし → /workspace/select

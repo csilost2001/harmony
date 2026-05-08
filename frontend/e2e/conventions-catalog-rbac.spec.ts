@@ -1,39 +1,56 @@
 /**
  * 役割・権限タブ (role / permission) E2E (#555)
  *
- * - role タブで permissions / inherits の入力ができ、循環参照・存在しないキー参照が
- *   validator 経由で警告として可視化されること
- * - permission タブで resource / action / scope を入力・編集できること
+ * #926: realWorkspace + 実 backend 経由に移植。
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import {
+  setupTestWorkspace,
+  cleanupRealWorkspaces,
+  isMcpRunning,
+  type OpenedWorkspace,
+} from "./helpers/realWorkspace";
 
 const dummyProject = {
-  version: 1, name: "conventions-rbac", screens: [], groups: [], edges: [],
-  tables: [], processFlows: [],
-  updatedAt: new Date().toISOString(),
+  version: 1, name: "conventions-rbac",
+  screens: [], groups: [], edges: [], tables: [], processFlows: [],
 };
 
-async function setup(page: Page) {
-  await page.addInitScript(({ project }) => {
-    localStorage.setItem("workspace-e2e-bypass", "true");
-      localStorage.setItem("flow-project", JSON.stringify(project));
-    localStorage.removeItem("harmony-open-tabs");
-    localStorage.removeItem("harmony-active-tab");
-    localStorage.removeItem("conventions-catalog");
-    localStorage.removeItem("draft-conventions-catalog-main");
-  }, { project: dummyProject });
-  await page.goto("/conventions/catalog");
-  await expect(page.locator(".conventions-catalog-view")).toBeVisible({ timeout: 10000 });
-}
+const WS_KEY = "issue-926-conventions-catalog-rbac";
+let mcpAvailable = false;
+let ws: OpenedWorkspace;
 
 test.describe("役割・権限タブ (#555)", () => {
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+  });
+
+  test.afterAll(async () => {
+    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+  });
+
+  test.beforeEach(async ({ page }) => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({ key: WS_KEY, project: dummyProject });
+    await ws.gotoActive(page, "/conventions/catalog");
+    // ResumeOrDiscardDialog 遅延表示への retry-loop (前 test の edit-session 残骸対応)
+    await page.waitForTimeout(500);
+    for (let _i = 0; _i < 3; _i++) {
+      if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+        await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+        await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+      } else { break; }
+    }
+    await expect(page.locator(".conventions-catalog-view")).toBeVisible({ timeout: 10000 });
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible();
+  });
+
   test("役割・権限 section header が見える", async ({ page }) => {
-    await setup(page);
     await expect(page.locator(".conventions-tab-group-label", { hasText: "役割・権限" })).toBeVisible();
   });
 
   test("permission タブで新規エントリ追加 + resource/action/scope 入力", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "権限" }).click();
     await page.locator(".conventions-new-key-input").fill("order.create");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -46,7 +63,6 @@ test.describe("役割・権限タブ (#555)", () => {
   });
 
   test("role タブで新規エントリ追加 + name/permissions 入力", async ({ page }) => {
-    await setup(page);
     // permission を先に追加 (参照される側)
     await page.locator(".conventions-category-tab", { hasText: "権限" }).click();
     await page.locator(".conventions-new-key-input").fill("order.read");
@@ -68,7 +84,6 @@ test.describe("役割・権限タブ (#555)", () => {
   });
 
   test("role.permissions に存在しない permission を入れると警告が出る", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "役割" }).click();
     await page.locator(".conventions-new-key-input").fill("admin");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -79,7 +94,6 @@ test.describe("役割・権限タブ (#555)", () => {
   });
 
   test("role.inherits の循環参照は ROLE_INHERITS_CYCLE 警告として表示される", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "役割" }).click();
 
     // role A
@@ -100,7 +114,6 @@ test.describe("役割・権限タブ (#555)", () => {
   });
 
   test("重複キーの追加はボタン disabled (role)", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "役割" }).click();
     await page.locator(".conventions-new-key-input").fill("dup");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -109,7 +122,6 @@ test.describe("役割・権限タブ (#555)", () => {
   });
 
   test("削除ボタンでエントリが消える (permission)", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "権限" }).click();
     await page.locator(".conventions-new-key-input").fill("willDelete");
     await page.locator(".conventions-entries button:has-text('追加')").click();

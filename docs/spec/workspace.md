@@ -248,11 +248,15 @@ backend が動作しているホスト OS 情報を返す。`AddWorkspaceDialog`
 
 - `workspaceState.active === null`
 - `workspaceState.loading === false`
-- `workspaceState.error === null` (backend offline 時は redirect しない — localStorage fallback を温存)
+- `workspaceState.error !== "e2e bypass"` (e2e テスト用 bypass 中は guard スキップ)
 - `workspaceState.lockdown === false` (lockdown 時は常にアクティブ扱いのためガード不要)
 - 現在パスが `/workspace/list` でも `/workspace/select` でもない
 
-**実装**: `frontend/src/components/AppShell.tsx:154-164`
+backend offline 時 (port 5179 未接続) は `connectionFailed` が立ち、AppShell 上位で
+`ConnectionFailedView` (再試行ボタン + backend 起動コマンド案内) が表示される
+(#923 シリーズで localStorage fallback を廃止、`docs/spec/edit-session-draft.md` D-8 と整合)。
+
+**実装**: `frontend/src/components/AppShell.tsx`
 
 ### 5.4 ワークスペース切替時の cleanup
 
@@ -260,12 +264,12 @@ backend が動作しているホスト OS 情報を返す。`AddWorkspaceDialog`
 
 1. dirty なタブがあれば `console.warn` で名前を出力 (確認ダイアログは未実装、follow-up)
 2. `clearPersistedTabs()` で `localStorage` の `harmony-open-tabs` / `harmony-active-tab` を削除
-3. `gjs-` プレフィックスの `localStorage` キーを全削除 (GrapesJS のスクリーンキャッシュ)
+3. `gjs-` プレフィックスの `localStorage` キーを全削除 (旧 GrapesJS autosave 残骸の除去、`legacyLocalStorageRescue` 救済対象)
 4. `window.location.reload()` で完全リロード
 
 初回 hydration (null → non-null) はリロードしない (無限ループ防止)。
 
-**実装**: `frontend/src/components/AppShell.tsx:114-149`
+**実装**: `frontend/src/components/AppShell.tsx`
 
 ---
 

@@ -2,9 +2,9 @@
  * puckComponentsStore.ts
  * Puck カスタムコンポーネント定義の永続化ストア
  *
- * - wsBridge 接続時: サーバー側ファイルに保存（mcpBridge 経由）
- *   ファイルパス: workspaces/<wsId>/puck-components.json
- * - 未接続時: localStorage にフォールバック
+ * wsBridge 経由でサーバー側ファイル (`workspaces/<wsId>/puck-components.json`) に保存する。
+ * backend がファイル空を返した場合に限り、旧 localStorage データを 1 度きり救済して
+ * backend に書き戻す migration を維持する (#923 シリーズで本体 fallback は廃止済み)。
  *
  * customBlockStore と同パターン (#806 子 5)
  */
@@ -36,57 +36,52 @@ export interface PuckComponentsStorageBackend {
 
 let _backend: PuckComponentsStorageBackend | null = null;
 
-/** mcpBridge が接続時にセット、切断時に null をセット */
+/** mcpBridge が接続時にセット */
 export function setPuckComponentsBackend(b: PuckComponentsStorageBackend | null): void {
   _backend = b;
 }
 
-// ─── localStorage キー ────────────────────────────────────────────────────────
+function requireBackend(): PuckComponentsStorageBackend {
+  if (!_backend) {
+    throw new Error("puckComponentsStore: backend が初期化されていません (wsBridge 未接続)");
+  }
+  return _backend;
+}
 
-const STORAGE_KEY = "designer-puck-components";
+// ─── localStorage 1 度きり migration キー (#923 シリーズで本体 fallback は廃止) ─
 
-// ─── localStorage ユーティリティ ─────────────────────────────────────────────
+const LEGACY_LS_KEY = "designer-puck-components";
 
-function loadFromLocalStorage(): CustomPuckComponentDef[] {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return [];
+function readLegacyLocalStorage(): CustomPuckComponentDef[] {
   try {
+    const raw = localStorage.getItem(LEGACY_LS_KEY);
+    if (!raw) return [];
     return JSON.parse(raw) as CustomPuckComponentDef[];
   } catch {
     return [];
   }
 }
 
-function saveToLocalStorage(components: CustomPuckComponentDef[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(components));
-}
-
 // ─── 公開 API ─────────────────────────────────────────────────────────────────
 
 /** すべてのカスタム Puck コンポーネント定義を読み込む */
 export async function loadCustomPuckComponents(): Promise<CustomPuckComponentDef[]> {
-  if (_backend) {
-    const data = (await _backend.loadPuckComponents()) as CustomPuckComponentDef[];
-    if (data.length > 0) return data;
-    // ファイルが空 → localStorage から移行
-    const local = loadFromLocalStorage();
-    if (local.length > 0) {
-      await _backend.savePuckComponents(local);
-      console.log("[puckComponentsStore] Migrated puck components from localStorage to file");
-      return local;
-    }
-    return [];
+  const backend = requireBackend();
+  const data = (await backend.loadPuckComponents()) as CustomPuckComponentDef[];
+  if (data.length > 0) return data;
+  // ファイルが空 → 旧 localStorage から 1 度きり migration
+  const legacy = readLegacyLocalStorage();
+  if (legacy.length > 0) {
+    await backend.savePuckComponents(legacy);
+    console.log("[puckComponentsStore] Migrated puck components from localStorage to file");
+    return legacy;
   }
-  return loadFromLocalStorage();
+  return [];
 }
 
 /** 全量書き込み */
 export async function saveCustomPuckComponents(components: CustomPuckComponentDef[]): Promise<void> {
-  if (_backend) {
-    await _backend.savePuckComponents(components);
-    return;
-  }
-  saveToLocalStorage(components);
+  await requireBackend().savePuckComponents(components);
 }
 
 /** 追加 (id 重複時はエラー) */

@@ -27,7 +27,7 @@ import { ScreenEditModal, type ScreenFormData } from "./ScreenEditModal";
 import { EdgeEditModal, type EdgeFormData, type HandlePosition } from "./EdgeEditModal";
 import type { FlowProject, ScreenNode, ScreenEdge, ScreenGroup } from "../../types/flow";
 import { TRIGGER_LABELS } from "../../types/flow";
-import type { ScreenGroupId, ScreenKind, Timestamp } from "../../types/v3";
+import type { ScreenGroupId, ScreenKind, ScreenLayout, Timestamp } from "../../types/v3";
 import {
   loadProject,
   loadRawProject,
@@ -48,6 +48,7 @@ import {
   generateFlowMarkdown,
 } from "../../store/flowStore";
 import { buildDefaultScreen, loadScreenEntity, saveScreenEntity } from "../../store/screenStore";
+import { clearScreenLayoutPreview, saveScreenLayoutPreview } from "../../store/screenLayoutStore";
 import { duplicateScreenDesignData } from "../../store/duplicateScreen";
 import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { resolveCssFramework } from "../../utils/resolveCssFramework";
@@ -124,6 +125,17 @@ function toRFEdges(edges: ScreenEdge[]): RFEdge[] {
     labelBgPadding: [6, 4] as [number, number],
     labelBgBorderRadius: 4,
   }));
+}
+
+function toScreenLayoutPreview(project: FlowProject): Pick<ScreenLayout, "positions"> {
+  const positions: ScreenLayout["positions"] = {};
+  for (const screen of project.screens) {
+    positions[screen.id] = screen.position;
+  }
+  for (const group of project.groups ?? []) {
+    positions[group.id] = group.position;
+  }
+  return { positions };
 }
 
 interface ContextMenu {
@@ -295,13 +307,16 @@ function FlowEditorInner() {
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncAndSave = useCallback(() => {
     if (!projectRef.current) return;
+    saveScreenLayoutPreview(toScreenLayoutPreview(projectRef.current));
     if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
       if (projectRef.current) {
-        saveProject(projectRef.current).catch(console.error);
-        // ドラフト更新 (edit-session-draft)
-        if (!isReadonly && editSession?.id) {
-          mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: projectRef.current }).catch(console.error);
+        if (!isReadonly) {
+          saveProject(projectRef.current).catch(console.error);
+          // ドラフト更新 (edit-session-draft)
+          if (editSession?.id) {
+            mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: projectRef.current }).catch(console.error);
+          }
         }
       }
     }, 300);
@@ -812,6 +827,7 @@ function FlowEditorInner() {
     redoStackRef.current = [];
     setCanUndo(false);
     setCanRedo(false);
+    clearScreenLayoutPreview();
     await reloadProject();
     dismissServerBanner();
     await acknowledgeServerMtime("project");
@@ -830,6 +846,7 @@ function FlowEditorInner() {
   const handleResumeDiscard = useCallback(async () => {
     setShowResumeDialog(false);
     await actions.discard();
+    clearScreenLayoutPreview();
     await reloadProject();
   }, [actions, reloadProject]);
 
@@ -935,10 +952,10 @@ function FlowEditorInner() {
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={isReadonly ? undefined : onNodesChange}
+            onNodesChange={onNodesChange}
             onEdgesChange={isReadonly ? undefined : onEdgesChange}
             onConnect={isReadonly ? undefined : onConnect}
-            onNodeDragStop={isReadonly ? undefined : onNodeDragStop}
+            onNodeDragStop={onNodeDragStop}
             onNodeDoubleClick={onNodeDoubleClick}
             onNodeContextMenu={isReadonly ? undefined : onNodeContextMenu}
             onEdgeDoubleClick={isReadonly ? undefined : onEdgeDoubleClick}
@@ -949,7 +966,7 @@ function FlowEditorInner() {
             onViewportChange={(vp) => setZoomLevel(vp.zoom)}
             nodeTypes={nodeTypes}
             connectionMode={ConnectionMode.Loose}
-            nodesDraggable={!isReadonly}
+            nodesDraggable
             nodesConnectable={!isReadonly}
             edgesReconnectable={!isReadonly}
             deleteKeyCode={isReadonly ? null : ["Backspace", "Delete"]}

@@ -48,82 +48,20 @@ function makeComponent(overrides?: Partial<CustomPuckComponentDef>): CustomPuckC
   };
 }
 
-// ── localStorage フォールバックテスト ──────────────────────────────────────────
+// ── backend 必須テスト (#923 シリーズで本体 fallback は廃止) ─────────────────
 
-describe("puckComponentsStore — localStorage fallback", () => {
+describe("puckComponentsStore — backend 未設定時はエラー (#924)", () => {
   beforeEach(() => {
     localStorageMock.clear();
-    setPuckComponentsBackend(null); // localStorage モードに設定
+    setPuckComponentsBackend(null);
   });
 
-  it("初期状態は空リスト", async () => {
-    const result = await loadCustomPuckComponents();
-    expect(result).toEqual([]);
+  it("loadCustomPuckComponents は backend 未設定なら明示エラー", async () => {
+    await expect(loadCustomPuckComponents()).rejects.toThrow(/backend が初期化されていません/);
   });
 
-  it("add → load で 1 件取得できる", async () => {
-    const def = makeComponent();
-    await addCustomPuckComponent(def);
-    const result = await loadCustomPuckComponents();
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("test-comp-1");
-    expect(result[0].label).toBe("テストコンポーネント");
-  });
-
-  it("同じ id で add するとエラー", async () => {
-    const def = makeComponent();
-    await addCustomPuckComponent(def);
-    await expect(addCustomPuckComponent(def)).rejects.toThrow(/already exists/);
-  });
-
-  it("remove で削除できる", async () => {
-    await addCustomPuckComponent(makeComponent({ id: "c1" }));
-    await addCustomPuckComponent(makeComponent({ id: "c2" }));
-    await removeCustomPuckComponent("c1");
-    const result = await loadCustomPuckComponents();
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("c2");
-  });
-
-  it("remove で存在しない id を指定しても空リストになるだけでエラーは出ない", async () => {
-    await addCustomPuckComponent(makeComponent({ id: "c1" }));
-    await removeCustomPuckComponent("non-existent");
-    const result = await loadCustomPuckComponents();
-    expect(result).toHaveLength(1);
-  });
-
-  it("update で部分更新できる", async () => {
-    await addCustomPuckComponent(makeComponent());
-    await updateCustomPuckComponent("test-comp-1", { label: "更新後ラベル" });
-    const result = await loadCustomPuckComponents();
-    expect(result[0].label).toBe("更新後ラベル");
-    expect(result[0].id).toBe("test-comp-1"); // id は変わらない
-  });
-
-  it("update で存在しない id はエラー", async () => {
-    await expect(
-      updateCustomPuckComponent("non-existent", { label: "x" })
-    ).rejects.toThrow(/not found/);
-  });
-
-  it("enum 型プロパティを持つコンポーネントを保存・復元できる", async () => {
-    const def = makeComponent({
-      id: "enum-comp",
-      propsSchema: {
-        color: {
-          type: "enum",
-          enum: [
-            { label: "赤", value: "red" },
-            { label: "青", value: "blue" },
-          ],
-          default: "red",
-        },
-      },
-    });
-    await addCustomPuckComponent(def);
-    const result = await loadCustomPuckComponents();
-    expect(result[0].propsSchema.color.type).toBe("enum");
-    expect(result[0].propsSchema.color.enum).toHaveLength(2);
+  it("saveCustomPuckComponents は backend 未設定なら明示エラー", async () => {
+    await expect(saveCustomPuckComponents([])).rejects.toThrow(/backend が初期化されていません/);
   });
 });
 
@@ -194,5 +132,52 @@ describe("puckComponentsStore — with storage backend", () => {
     await saveCustomPuckComponents(defs);
     const result = await loadCustomPuckComponents();
     expect(result).toHaveLength(2);
+  });
+
+  it("同じ id で add するとエラー", async () => {
+    const def = makeComponent();
+    await addCustomPuckComponent(def);
+    await expect(addCustomPuckComponent(def)).rejects.toThrow(/already exists/);
+  });
+
+  it("remove で存在しない id を指定しても残件数は変わらない", async () => {
+    await addCustomPuckComponent(makeComponent({ id: "c1" }));
+    await removeCustomPuckComponent("non-existent");
+    const result = await loadCustomPuckComponents();
+    expect(result).toHaveLength(1);
+  });
+
+  it("update で部分更新できる (id は変更不可)", async () => {
+    await addCustomPuckComponent(makeComponent());
+    await updateCustomPuckComponent("test-comp-1", { label: "更新後ラベル" });
+    const result = await loadCustomPuckComponents();
+    expect(result[0].label).toBe("更新後ラベル");
+    expect(result[0].id).toBe("test-comp-1");
+  });
+
+  it("update で存在しない id はエラー", async () => {
+    await expect(
+      updateCustomPuckComponent("non-existent", { label: "x" }),
+    ).rejects.toThrow(/not found/);
+  });
+
+  it("enum 型プロパティを持つコンポーネントを保存・復元できる", async () => {
+    const def = makeComponent({
+      id: "enum-comp",
+      propsSchema: {
+        color: {
+          type: "enum",
+          enum: [
+            { label: "赤", value: "red" },
+            { label: "青", value: "blue" },
+          ],
+          default: "red",
+        },
+      },
+    });
+    await addCustomPuckComponent(def);
+    const result = await loadCustomPuckComponents();
+    expect(result[0].propsSchema.color.type).toBe("enum");
+    expect(result[0].propsSchema.color.enum).toHaveLength(2);
   });
 });

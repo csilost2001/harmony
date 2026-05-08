@@ -1,19 +1,24 @@
 /**
  * dirty マーク + 再オープン時 draft 復元 E2E テスト (#688 PR-5)
  *
- * 前提: dev サーバーおよび backend が起動済み
- *
- * シナリオ:
- *   1. TableEditor: 編集開始 → 保存せずタブ閉じる → 一覧で ● 表示確認
- *   2. 上記から再 open → ResumeOrDiscardDialog → 「続ける」→ 編集モード復帰
- *   3. ProcessFlowEditor: 編集 → 保存せずタブ閉じる → 一覧で ● → 再 open → 「破棄」→ 本体読み込み確認
- *   4. broadcast 経由の即時反映 (同一タブでの draft 作成後、一覧への遷移で ● 表示)
+ * #926: realWorkspace + 実 backend 経由に移植。
+ *   旧 spec の `gjs-table-<id>` / `gjs-process-flow-<id>` localStorage seed は
+ *   #924 で fallback 経路が削除されたため動作しない。本 spec は backend 経由で
+ *   draft が backend (.edit-sessions/) に作成されるかを確認する smoke 形式に変更。
  */
 
 import { test, expect } from "@playwright/test";
+import {
+  setupTestWorkspace,
+  cleanupRealWorkspaces,
+  isMcpRunning,
+  normalizeId,
+  type OpenedWorkspace,
+} from "./helpers/realWorkspace";
 
 const TABLE_ID = `tbl-e2e-dirty-mark-${Date.now()}`;
 const PF_ID = `pf-e2e-dirty-mark-${Date.now()}`;
+const baseTs = "2026-05-08T00:00:00.000Z";
 
 const dummyTable = {
   id: TABLE_ID,
@@ -21,189 +26,157 @@ const dummyTable = {
   name: "dirty マークテスト",
   description: "",
   maturity: "draft",
-  columns: [
-    {
-      id: "col-001",
-      no: 1,
-      physicalName: "id",
-      name: "ID",
-      dataType: "INTEGER",
-      notNull: true,
-      primaryKey: true,
-      unique: false,
-      autoIncrement: true,
-    },
-  ],
+  category: "マスタ",
+  columns: [{ id: "col-001", physicalName: "id", name: "ID", dataType: "INTEGER", notNull: true, primaryKey: true, unique: false, autoIncrement: true }],
   indexes: [],
   constraints: [],
   version: "1.0.0",
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
 };
 
-const dummyProcessFlow = {
+const dummyProcessFlowBody = {
   id: PF_ID,
-  name: "dirty マークテストフロー",
-  description: "",
-  maturity: "draft",
-  actions: [
-    {
-      id: "act-001",
-      name: "テストアクション",
-      trigger: "click",
-      steps: [],
-    },
-  ],
-  version: "1.0.0",
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
+  meta: { id: PF_ID, name: "dirty マークテストフロー", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
+  actions: [{ id: "act-001", name: "テストアクション", trigger: "click", maturity: "draft", steps: [] }],
 };
 
-async function setupTable(page: import("@playwright/test").Page) {
-  await page.evaluate(
-    ({ id, data }) => {
-      localStorage.setItem(`gjs-table-${id}`, JSON.stringify(data));
-    },
-    { id: TABLE_ID, data: dummyTable },
-  );
-}
+const dummyProject = {
+  version: 1, name: "dirty-mark-test",
+  screens: [], groups: [], edges: [],
+  tables: [{ id: TABLE_ID, no: 1, name: dummyTable.name, physicalName: dummyTable.physicalName, category: dummyTable.category, columnCount: 1, maturity: "draft" }],
+  processFlows: [{ id: PF_ID, no: 1, name: "dirty マークテストフロー", kind: "screen", actionCount: 1, maturity: "draft" }],
+};
 
-async function setupProcessFlow(page: import("@playwright/test").Page) {
-  await page.evaluate(
-    ({ id, data }) => {
-      localStorage.setItem(`gjs-process-flow-${id}`, JSON.stringify(data));
-    },
-    { id: PF_ID, data: dummyProcessFlow },
-  );
-}
+const TABLE_NORM = normalizeId(TABLE_ID);
+const PF_NORM = normalizeId(PF_ID);
+const WS_KEY = "issue-926-dirty-mark-resume";
+let mcpAvailable = false;
+let ws: OpenedWorkspace;
 
 test.describe("dirty マーク + 再オープン — TableEditor", () => {
-  test("シナリオ 1: 編集開始 → タブ閉じる → 一覧で ● 表示", async ({ page }) => {
-    await page.goto("/table/list");
-    await setupTable(page);
-    await page.goto(`/table/edit/${TABLE_ID}`);
-    await page.waitForLoadState("networkidle");
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+  });
 
+  test.afterAll(async () => {
+    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+  });
+
+  test.beforeEach(async () => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      tables: [dummyTable],
+      processFlows: [dummyProcessFlowBody],
+    });
+  });
+
+  test("シナリオ 1: 編集開始 → 編集 → タブ閉じる → 一覧で ● 表示", async ({ page }) => {
+    await ws.gotoActive(page, `/table/edit/${TABLE_NORM}`);
     const editBtn = page.getByTestId("edit-mode-start");
-    if (!await editBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
+    await expect(editBtn).toBeVisible({ timeout: 5000 });
     await editBtn.click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
-
-    // 保存せずに一覧へ戻る
-    await page.goto("/table/list");
-    await page.waitForLoadState("networkidle");
-
-    // draft が存在する場合は ● マークが表示される
+    // 編集して draft (editSession.update payload) が backend に書かれるよう変更を加える
+    await page.getByRole("button", { name: /カラム追加/ }).click();
+    await page.waitForTimeout(500); // editSession.update debounce
+    // 保存せずに一覧へ戻る (SPA navigation で active workspace 維持)
+    await ws.gotoActive(page, "/table/list");
     const draftMark = page.locator(".list-item-draft-mark").first();
-    await expect(draftMark).toBeVisible({ timeout: 5000 });
+    await expect(draftMark).toBeVisible({ timeout: 8000 });
     await expect(draftMark).toHaveAttribute("title", "未保存の編集中 draft があります");
   });
 
   test("シナリオ 2: 一覧 ● → 再 open → ResumeOrDiscardDialog → 「続ける」", async ({ page }) => {
-    await page.goto("/table/list");
-    await setupTable(page);
-    await page.goto(`/table/edit/${TABLE_ID}`);
-    await page.waitForLoadState("networkidle");
-
+    await ws.gotoActive(page, `/table/edit/${TABLE_NORM}`);
     const editBtn = page.getByTestId("edit-mode-start");
-    if (!await editBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
+    await expect(editBtn).toBeVisible({ timeout: 5000 });
     await editBtn.click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
-
-    // 保存せずに一覧へ戻る
-    await page.goto("/table/list");
-    await page.waitForLoadState("networkidle");
-
-    // 再度エディタを開く
-    await page.goto(`/table/edit/${TABLE_ID}`);
-    await page.waitForLoadState("networkidle");
-
-    // ResumeOrDiscardDialog が表示される (draft が MCP 経由で存在する場合)
-    const resumeDialog = page.getByRole("dialog", { name: "未保存の編集中 draft があります" });
+    // 編集して draft を作る
+    await page.getByRole("button", { name: /カラム追加/ }).click();
+    await page.waitForTimeout(500);
+    await ws.gotoActive(page, "/table/list");
+    await ws.gotoActive(page, `/table/edit/${TABLE_NORM}`);
     const continueBtn = page.getByTestId("resume-continue");
-
-    if (await continueBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await continueBtn.click();
-      // 編集モードに入ることを確認
-      await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
-    } else {
-      // MCP 未接続時はダイアログが表示されないためスキップ
-      test.skip();
-    }
-
-    void resumeDialog;
+    await expect(continueBtn).toBeVisible({ timeout: 8000 });
+    await continueBtn.click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
   });
 });
 
 test.describe("dirty マーク + 再オープン — ProcessFlowEditor", () => {
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+  });
+
+  test.beforeEach(async () => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      tables: [dummyTable],
+      processFlows: [dummyProcessFlowBody],
+    });
+  });
+
   test("シナリオ 3: 編集 → タブ閉じる → 一覧で ● → 再 open → 「破棄」→ 本体読み込み確認", async ({ page }) => {
-    await page.goto("/process-flow/list");
-    await setupProcessFlow(page);
-    await page.goto(`/process-flow/edit/${PF_ID}`);
-    await page.waitForLoadState("networkidle");
-
+    await ws.gotoActive(page, `/process-flow/edit/${PF_NORM}`);
     const editBtn = page.getByTestId("edit-mode-start");
-    if (!await editBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
+    await expect(editBtn).toBeVisible({ timeout: 5000 });
     await editBtn.click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
-
-    // 保存せずに一覧へ戻る
-    await page.goto("/process-flow/list");
-    await page.waitForLoadState("networkidle");
-
-    // ● マーク確認
+    // 編集して draft を作る (アクション追加)
+    await page.locator(".process-flow-tab-add").click();
+    await page.locator(".process-flow-modal input.form-control").first().fill("ドラフトアクション");
+    await page.locator(".process-flow-modal button.btn-primary").click();
+    await expect(page.locator(".process-flow-modal")).not.toBeVisible();
+    await page.waitForTimeout(500);
+    await ws.gotoActive(page, "/process-flow/list");
     const draftMark = page.locator(".list-item-draft-mark").first();
-    await expect(draftMark).toBeVisible({ timeout: 5000 });
-
-    // 再度エディタを開く
-    await page.goto(`/process-flow/edit/${PF_ID}`);
-    await page.waitForLoadState("networkidle");
-
+    await expect(draftMark).toBeVisible({ timeout: 8000 });
+    await ws.gotoActive(page, `/process-flow/edit/${PF_NORM}`);
     const discardBtn = page.getByTestId("resume-discard");
-    if (await discardBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await discardBtn.click();
-      // readonly モードに戻ることを確認
-      await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 5000 });
-    } else {
-      test.skip();
-    }
+    await expect(discardBtn).toBeVisible({ timeout: 8000 });
+    await discardBtn.click();
+    await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 5000 });
   });
 });
 
 test.describe("broadcast 経由の即時反映", () => {
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+  });
+
+  test.beforeEach(async () => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      tables: [dummyTable],
+      processFlows: [dummyProcessFlowBody],
+    });
+  });
+
   test("シナリオ 4: draft 作成後に一覧へ遷移すると ● が表示される", async ({ page }) => {
-    await page.goto("/table/list");
-    await setupTable(page);
-    await page.goto(`/table/edit/${TABLE_ID}`);
-    await page.waitForLoadState("networkidle");
-
+    await ws.gotoActive(page, `/table/edit/${TABLE_NORM}`);
     const editBtn = page.getByTestId("edit-mode-start");
-    if (!await editBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
+    await expect(editBtn).toBeVisible({ timeout: 5000 });
     await editBtn.click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
-
-    // 一覧へ遷移 (タブ切替)
-    await page.goto("/table/list");
-    await page.waitForLoadState("networkidle");
-
-    // draft.changed broadcast が届いた後に ● マークが表示されることを確認
-    // (同一タブ内なので broadcast ではなく draft.list の初期取得で確認)
+    // 編集して draft を作る
+    await page.getByRole("button", { name: /カラム追加/ }).click();
+    await page.waitForTimeout(500);
+    // SPA 遷移 (page.goto は backend 接続を切るため使わない)
+    await ws.gotoActive(page, "/table/list");
+    await page.waitForTimeout(500);
+    for (let _i = 0; _i < 3; _i++) {
+      if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+        await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+        await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+      } else { break; }
+    }
     await expect(page.locator(".list-item-draft-mark").first()).toBeVisible({ timeout: 8000 });
   });
 });

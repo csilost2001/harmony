@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
+import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -24,13 +25,17 @@ import { TableSubToolbar } from "./TableSubToolbar";
 import type { Table, ErLayout, LogicalRelation, PhysicalName, DisplayName, LocalId, TableId } from "../../types/v3";
 import { CARDINALITY_LABELS, type ErCardinality } from "../../utils/erUtils";
 import { listTables, loadTable, createTable } from "../../store/tableStore";
-import { loadErLayout, saveErLayout } from "../../store/erLayoutStore";
+import { clearErLayoutPreview, loadErLayout, loadErLayoutCanonical, saveErLayoutCanonical, saveErLayoutPreview } from "../../store/erLayoutStore";
 import { loadProject } from "../../store/flowStore";
 import { getAllRelations, autoLayout, generateErMermaid } from "../../utils/erUtils";
 import { generateSpecJson } from "../../utils/specExporter";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { generateUUID } from "../../utils/uuid";
 import { useUndoKeyboard } from "../../hooks/useUndoKeyboard";
+import { useSaveShortcut } from "../../hooks/useSaveShortcut";
+import { useEditSession } from "../../hooks/useEditSession";
+import { EditSessionDropdown } from "../editing/EditSessionDropdown";
+import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import html2canvas from "html2canvas";
 import "../../styles/er.css";
 
@@ -53,6 +58,30 @@ function ErDiagramInner() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const layoutRef = useRef<ErLayout | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const sessionId = mcpBridge.getSessionId();
+
+  const { syncSessionToUrl, initialEditSessionId } = useSessionUrlSync({
+    resourceType: "er-layout",
+    resourceId: "singleton",
+  });
+
+  const {
+    editSession,
+    mode,
+    actions,
+    takeOver,
+    saveCheckConflict,
+    saveCommit,
+    saveConflict,
+    onSaveConflictCancel,
+  } = useEditSession({
+    resourceType: "er-layout",
+    resourceId: "singleton",
+    sessionId,
+    editSessionId: initialEditSessionId,
+  });
+
+  const isReadonly = mode.kind !== "editing";
 
   // Undo/Redo スタック（レイアウト変更のみ対象）
   const undoStackRef = useRef<ErLayout[]>([]);
@@ -68,6 +97,16 @@ function ErDiagramInner() {
     setCanRedo(false);
   }, []);
 
+  const persistLayoutChange = useCallback((ly: ErLayout) => {
+    saveErLayoutPreview(ly);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      if (!isReadonly && editSession?.id) {
+        mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: ly }).catch(console.error);
+      }
+    }, 300);
+  }, [editSession, isReadonly]);
+
   const handleUndo = useCallback(() => {
     if (undoStackRef.current.length === 0) return;
     if (layoutRef.current) {
@@ -77,7 +116,7 @@ function ErDiagramInner() {
     undoStackRef.current = undoStackRef.current.slice(0, -1);
     layoutRef.current = prev;
     setLayout({ ...prev });
-    saveErLayout(prev);
+    persistLayoutChange(prev);
     setCanUndo(undoStackRef.current.length > 0);
     setCanRedo(true);
   }, []);
@@ -91,7 +130,7 @@ function ErDiagramInner() {
     redoStackRef.current = redoStackRef.current.slice(0, -1);
     layoutRef.current = next;
     setLayout({ ...next });
-    saveErLayout(next);
+    persistLayoutChange(next);
     setCanUndo(true);
     setCanRedo(redoStackRef.current.length > 0);
   }, []);
@@ -172,11 +211,18 @@ function ErDiagramInner() {
     setTimeout(() => fitView({ padding: 0.3, maxZoom: 1, duration: 200 }), 100);
   }, [isLoading, tables, layout, setNodes, setEdges, fitView]);
 
-  // Save positions on node drag
-  const debouncedSave = useCallback((ly: ErLayout) => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => saveErLayout(ly), 300);
-  }, []);
+  useEffect(() => {
+    if (mode.kind === "editing" && editSession?.id && layoutRef.current) {
+      mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: layoutRef.current }).catch(console.error);
+    }
+  }, [mode.kind, editSession?.id]);
+
+  useEffect(() => {
+    if (mode.kind !== "viewer" || !editSession?.payload) return;
+    const next = editSession.payload as ErLayout;
+    layoutRef.current = next;
+    setLayout({ ...next });
+  }, [mode.kind, editSession?.payload]);
 
   const dragStartedRef = useRef(false);
   const onNodeDragStart = useCallback(() => {
@@ -192,8 +238,8 @@ function ErDiagramInner() {
     ly.positions[node.id] = { x: Math.round(node.position.x), y: Math.round(node.position.y) };
     layoutRef.current = ly;
     setLayout({ ...ly });
-    debouncedSave(ly);
-  }, [debouncedSave]);
+    persistLayoutChange(ly);
+  }, [persistLayoutChange]);
 
   // Double click to navigate to table editor
   const onNodeDoubleClick: NodeMouseHandler = useCallback((_event, node) => {
@@ -202,6 +248,7 @@ function ErDiagramInner() {
 
   // Handle drag-to-connect: open logical relation modal pre-filled
   const onConnect = useCallback((connection: Connection) => {
+    if (isReadonly) return;
     if (!connection.source || !connection.target) return;
     if (connection.source === connection.target) return;
     setPendingConnection({
@@ -209,7 +256,7 @@ function ErDiagramInner() {
       targetTableId: connection.target,
     });
     setShowAddRelation(true);
-  }, []);
+  }, [isReadonly]);
 
   // Auto layout
   const handleAutoLayout = useCallback(() => {
@@ -220,17 +267,18 @@ function ErDiagramInner() {
     ly.positions = autoPos;
     layoutRef.current = ly;
     setLayout({ ...ly });
-    debouncedSave(ly);
+    persistLayoutChange(ly);
 
     setNodes((nds) => nds.map((n) => ({
       ...n,
       position: autoPos[n.id] ?? n.position,
     })));
     setTimeout(() => fitView({ padding: 0.3, maxZoom: 1, duration: 300 }), 50);
-  }, [tables, layout, setNodes, fitView, debouncedSave]);
+  }, [tables, layout, setNodes, fitView, persistLayoutChange]);
 
   // Add logical relation
   const handleAddLogicalRelation = useCallback((rel: Omit<LogicalRelation, "id">) => {
+    if (isReadonly) return;
     pushLayoutUndo();
     const ly = layoutRef.current ?? { positions: {}, logicalRelations: [], updatedAt: new Date().toISOString() as never };
     if (!ly.logicalRelations) ly.logicalRelations = [];
@@ -239,30 +287,64 @@ function ErDiagramInner() {
     ly.logicalRelations.push({ ...rel, id: `lr-${short}` as LocalId });
     layoutRef.current = ly;
     setLayout({ ...ly });
-    debouncedSave(ly);
+    persistLayoutChange(ly);
     setShowAddRelation(false);
-  }, [debouncedSave]);
+  }, [isReadonly, persistLayoutChange, pushLayoutUndo]);
 
   // Remove logical relation
   const handleRemoveEdge = useCallback((edgeId: string) => {
+    if (isReadonly) return;
     pushLayoutUndo();
     const ly = layoutRef.current;
     if (!ly?.logicalRelations) return;
     ly.logicalRelations = ly.logicalRelations.filter((r) => r.id !== edgeId);
     layoutRef.current = ly;
     setLayout({ ...ly });
-    debouncedSave(ly);
-  }, [debouncedSave]);
+    persistLayoutChange(ly);
+  }, [isReadonly, persistLayoutChange, pushLayoutUndo]);
 
   // Add table from ER diagram
   const handleAddTable = useCallback(async (physicalName: string, displayName: string, category?: string) => {
+    if (isReadonly) return;
     const table = await createTable(physicalName as PhysicalName, displayName as DisplayName, "", category);
     const newTable = await loadTable(table.id);
     if (newTable) {
       setTables((prev) => [...prev, newTable]);
     }
     setShowAddTable(false);
-  }, []);
+  }, [isReadonly]);
+
+  const handleSave = useCallback(async () => {
+    if (isReadonly || !layoutRef.current) return;
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    if (editSession?.id) {
+      await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: layoutRef.current });
+    }
+    const checkResult = await saveCheckConflict();
+    if (checkResult.conflicted || checkResult.failed) return;
+    await saveErLayoutCanonical(layoutRef.current);
+    const commitResult = await saveCommit();
+    if (commitResult.failed) return;
+  }, [editSession, isReadonly, saveCheckConflict, saveCommit]);
+
+  const handleDiscard = useCallback(async () => {
+    await actions.discard();
+    clearErLayoutPreview();
+    const ly = await loadErLayoutCanonical();
+    layoutRef.current = ly;
+    setLayout(ly);
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    setCanUndo(false);
+    setCanRedo(false);
+  }, [actions]);
+
+  useSaveShortcut(() => {
+    if (!isReadonly) handleSave().catch(console.error);
+  });
 
   // Export Mermaid
   const handleExportMermaid = useCallback(() => {
@@ -314,6 +396,27 @@ function ErDiagramInner() {
   return (
     <div className="er-diagram-page">
       <TableSubToolbar />
+      <div className="edit-mode-toolbar edit-mode-toolbar--readonly" style={{ justifyContent: "flex-end" }}>
+        {mode.kind === "editing" && (
+          <>
+            <button type="button" className="btn btn-success btn-sm" onClick={() => { handleSave().catch(console.error); }}>
+              <i className="bi bi-check-lg me-1" /> 保存
+            </button>
+            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => { handleDiscard().catch(console.error); }}>
+              <i className="bi bi-x-lg me-1" /> 破棄
+            </button>
+          </>
+        )}
+        <EditSessionDropdown
+          resourceType="er-layout"
+          resourceId="singleton"
+          currentMode={mode}
+          currentSessionId={sessionId}
+          onStartEditing={() => { void actions.startEditing(); }}
+          onViewerAttached={syncSessionToUrl}
+          onTakeOver={takeOver}
+        />
+      </div>
 
       <div className="er-diagram-canvas" ref={canvasRef}>
         {tables.length === 0 ? (
@@ -337,6 +440,7 @@ function ErDiagramInner() {
             onConnect={onConnect}
             connectionMode={ConnectionMode.Loose}
             onEdgeDoubleClick={(_e, edge) => {
+              if (isReadonly) return;
               if (!(edge.data as { physical?: boolean })?.physical) {
                 if (confirm("この論理リレーションを削除しますか？")) {
                   handleRemoveEdge(edge.id);
@@ -344,6 +448,7 @@ function ErDiagramInner() {
               }
             }}
             deleteKeyCode={[]}
+            nodesConnectable={!isReadonly}
             fitView
             fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
             defaultEdgeOptions={{
@@ -381,6 +486,7 @@ function ErDiagramInner() {
         <button
           className="tbl-btn tbl-btn-primary tbl-btn-sm"
           onClick={() => setShowAddTable(true)}
+          disabled={isReadonly}
           title="テーブル追加"
         >
           <i className="bi bi-plus-lg" /> テーブル追加
@@ -388,6 +494,7 @@ function ErDiagramInner() {
         <button
           className="tbl-btn tbl-btn-ghost tbl-btn-sm"
           onClick={() => setShowAddRelation(true)}
+          disabled={isReadonly}
           title="リレーション追加"
         >
           <i className="bi bi-link-45deg" /> リレーション追加
@@ -422,6 +529,21 @@ function ErDiagramInner() {
         <AddTableFromErModal
           onAdd={handleAddTable}
           onClose={() => setShowAddTable(false)}
+        />
+      )}
+
+      {saveConflict && (
+        <SaveConflictDialog
+          conflict={saveConflict}
+          onOverwrite={async () => {
+            if (!layoutRef.current) {
+              onSaveConflictCancel();
+              return;
+            }
+            await saveErLayoutCanonical(layoutRef.current);
+            await saveCommit();
+          }}
+          onCancel={onSaveConflictCancel}
         />
       )}
 

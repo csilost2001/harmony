@@ -1,35 +1,34 @@
-import { test, expect, type Page } from "@playwright/test";
+/**
+ * カスタムステップカードパレット (#447)
+ *
+ * #926: realWorkspace + 実 backend 経由に移植。
+ *   extensions/steps.json は test workspace 配下の harmony/extensions/ に直接書き出す。
+ */
+import { test, expect } from "@playwright/test";
 import fs from "node:fs/promises";
 import path from "node:path";
+import {
+  setupTestWorkspace,
+  cleanupRealWorkspaces,
+  isMcpRunning,
+  normalizeId,
+  type OpenedWorkspace,
+} from "./helpers/realWorkspace";
 
 const groupId = "ag-extension-palette";
-
-const dummyGroup = {
+const baseTs = "2026-05-08T00:00:00.000Z";
+const dummyGroupBody = {
   id: groupId,
-  name: "extension palette",
-  type: "screen",
-  description: "",
-  mode: "upstream",
-  maturity: "draft",
+  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
+  meta: { id: groupId, name: "extension palette", kind: "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: baseTs, updatedAt: baseTs },
   actions: [{ id: "act-1", name: "ボタン", trigger: "click", maturity: "draft", responses: [], steps: [] }],
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
 };
-
 const dummyProject = {
-  version: 1,
-  name: "extension-palette",
-  screens: [],
-  groups: [],
-  edges: [],
-  tables: [],
-  processFlows: [{ id: groupId, no: 1, name: dummyGroup.name, type: dummyGroup.type, actionCount: 1, updatedAt: dummyGroup.updatedAt, maturity: "draft" }],
-  updatedAt: new Date().toISOString(),
+  version: 1, name: "extension-palette",
+  screens: [], groups: [], edges: [], tables: [],
+  processFlows: [{ id: groupId, no: 1, name: "extension palette", kind: "screen", actionCount: 1, maturity: "draft" }],
 };
 
-// E2E テスト用ステップ拡張 fixture (#455)
-// __dirname は e2e/ ディレクトリ。../../data が worktree ルート直下の data/
-const STEPS_FILE = path.resolve(__dirname, "../../data/extensions/steps.json");
 const E2E_FIXTURE = {
   namespace: "e2e",
   steps: {
@@ -42,50 +41,48 @@ const E2E_FIXTURE = {
   },
 };
 
-async function setup(page: Page) {
-  await page.addInitScript(({ project, group }) => {
-    localStorage.setItem("workspace-e2e-bypass", "true");
-      localStorage.setItem("flow-project", JSON.stringify(project));
-    localStorage.setItem(`process-flow-${group.id}`, JSON.stringify(group));
-    localStorage.removeItem("harmony-open-tabs");
-    localStorage.removeItem("harmony-active-tab");
-  }, { project: dummyProject, group: dummyGroup });
-}
+const WS_KEY = "issue-926-extensions-palette";
+let mcpAvailable = false;
+let ws: OpenedWorkspace;
 
 test.describe("カスタムステップカードパレット (#447)", () => {
-  // describe スコープの局所変数 — モジュールスコープに漏らさない
-  let originalStepsContent: string | null = null;
-
-  test.beforeEach(async () => {
-    // 既存ファイルを退避し、テスト用 fixture を注入
-    try {
-      originalStepsContent = await fs.readFile(STEPS_FILE, "utf-8");
-    } catch {
-      originalStepsContent = null;
-    }
-    await fs.mkdir(path.dirname(STEPS_FILE), { recursive: true });
-    await fs.writeFile(STEPS_FILE, JSON.stringify(E2E_FIXTURE, null, 2), "utf-8");
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+    if (!mcpAvailable) return;
   });
 
-  test.afterEach(async () => {
-    // テスト後にファイルを元に戻す
-    if (originalStepsContent !== null) {
-      await fs.writeFile(STEPS_FILE, originalStepsContent, "utf-8");
-    } else {
-      await fs.writeFile(
-        STEPS_FILE,
-        JSON.stringify({ namespace: "", steps: {} }, null, 2),
-        "utf-8"
-      );
-    }
+  test.afterAll(async () => {
+    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+  });
+
+  test.beforeEach(async () => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      processFlows: [dummyGroupBody],
+    });
+    // workspace の extensions/steps.json に fixture を書き込み
+    const stepsFile = path.join(ws.workspacePath, "harmony", "extensions", "steps.json");
+    await fs.mkdir(path.dirname(stepsFile), { recursive: true });
+    await fs.writeFile(stepsFile, JSON.stringify(E2E_FIXTURE, null, 2), "utf-8");
   });
 
   test("カスタムセクションに表示され、配置ボタンは disabled", async ({ page }) => {
-    await setup(page);
-    await page.goto(`/process-flow/edit/${groupId}`);
+    await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
     await expect(page.locator(".step-editor")).toBeVisible({ timeout: 10000 });
 
-    await expect(page.getByText("カスタム")).toBeVisible();
+    // edit-mode-start で editing に入ると step-toolbar が出る
+    await page.waitForTimeout(500);
+    if (await page.locator(".edit-mode-modal-backdrop").isVisible({ timeout: 500 }).catch(() => false)) {
+      await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+      await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+    }
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible();
+
+    // カスタムセクションのラベル (.step-toolbar 内の小見出しを限定; div.small.text-muted)
+    await expect(page.locator(".step-toolbar div.small.text-muted").filter({ hasText: /^カスタム$/ })).toBeVisible();
     const card = page.getByRole("button", { name: /テストカスタム/ }).first();
     await expect(card).toBeDisabled();
   });

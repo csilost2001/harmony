@@ -4,7 +4,7 @@
  *
  * - `data/screen-layout.json` (単一ファイル、v3 schema 準拠)
  * - $schema 属性で v3 schema 参照を保存
- * - localStorage キー prefix: `v3-screen-layout`
+ * - view-mode preview cache: `v3-screen-layout-preview` (positions のみ)
  *
  * 業務情報 (Screen entity / ScreenTransitionEntry / ScreenGroupEntry) は
  * harmony.json + <dataDir>/screens/<id>.json で管理する。本 store は UI 座標のみ。
@@ -22,7 +22,14 @@ export function setScreenLayoutStorageBackend(b: ScreenLayoutStorageBackend | nu
   _backend = b;
 }
 
-const SCREEN_LAYOUT_KEY = "v3-screen-layout";
+function requireBackend(): ScreenLayoutStorageBackend {
+  if (!_backend) {
+    throw new Error("画面フローレイアウトの保存には backend 接続が必要です。backend (port 5179) を起動してください。");
+  }
+  return _backend;
+}
+
+const SCREEN_LAYOUT_PREVIEW_KEY = "v3-screen-layout-preview";
 const SCREEN_LAYOUT_SCHEMA_REF = "../schemas/v3/screen-layout.v3.schema.json";
 
 function nowTs(): Timestamp {
@@ -39,31 +46,57 @@ function createEmptyLayout(): ScreenLayout {
 }
 
 export async function loadScreenLayout(): Promise<ScreenLayout> {
-  if (_backend) {
-    const data = await _backend.loadScreenLayout();
-    if (data) return data as ScreenLayout;
-    return createEmptyLayout();
+  const data = await requireBackend().loadScreenLayout();
+  const canonical = data ? data as ScreenLayout : createEmptyLayout();
+  const preview = loadScreenLayoutPreview();
+  if (!preview) return canonical;
+  return {
+    ...canonical,
+    positions: { ...canonical.positions, ...preview.positions },
+  };
+}
+
+export function loadScreenLayoutPreview(): Pick<ScreenLayout, "positions"> | null {
+  const raw = localStorage.getItem(SCREEN_LAYOUT_PREVIEW_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<ScreenLayout>;
+    return { positions: parsed.positions ?? {} };
+  } catch {
+    return null;
   }
-  const raw = localStorage.getItem(SCREEN_LAYOUT_KEY);
-  if (raw) {
-    try {
-      return JSON.parse(raw) as ScreenLayout;
-    } catch { /* ignore */ }
-  }
+}
+
+export function saveScreenLayoutPreview(layout: Pick<ScreenLayout, "positions">): void {
+  try {
+    localStorage.setItem(SCREEN_LAYOUT_PREVIEW_KEY, JSON.stringify({ positions: layout.positions ?? {} }));
+  } catch { /* ignore */ }
+}
+
+export function clearScreenLayoutPreview(): void {
+  try {
+    localStorage.removeItem(SCREEN_LAYOUT_PREVIEW_KEY);
+  } catch { /* ignore */ }
+}
+
+export async function loadScreenLayoutCanonical(): Promise<ScreenLayout> {
+  const data = await requireBackend().loadScreenLayout();
+  if (data) return data as ScreenLayout;
   return createEmptyLayout();
 }
 
-export async function saveScreenLayout(layout: ScreenLayout): Promise<void> {
+export async function saveScreenLayoutCanonical(layout: ScreenLayout): Promise<void> {
   const toSave: ScreenLayout = {
     ...layout,
     $schema: SCREEN_LAYOUT_SCHEMA_REF,
     updatedAt: nowTs(),
   };
-  if (_backend) {
-    await _backend.saveScreenLayout(toSave);
-    return;
-  }
-  localStorage.setItem(SCREEN_LAYOUT_KEY, JSON.stringify(toSave));
+  await requireBackend().saveScreenLayout(toSave);
+  clearScreenLayoutPreview();
+}
+
+export async function saveScreenLayout(layout: ScreenLayout): Promise<void> {
+  await saveScreenLayoutCanonical(layout);
 }
 
 /** entity ID (screen/group) の Position を取得 (未登録なら undefined)。 */

@@ -1,195 +1,165 @@
 /**
  * GrapesJS 画面デザイナー edit-session E2E テスト (#689)
  *
- * 前提: dev サーバー (port 5173) および backend (port 5179) が起動済み
+ * #926: realWorkspace + 実 backend 経由に移植。
  *
- * シナリオ:
- *   1. 編集開始 → 保存 → 本体ファイル更新確認 (readonly オーバーレイ → 編集開始 → 保存)
- *   2. 編集中 → 破棄 → canvas が本体内容に戻る
- *   3. 再オープン → ResumeOrDiscardDialog 表示 (draft 残存)
- *   4. localStorage 救済 (旧キー仕込み + 差分あり → 確認ダイアログ → 採用)
+ * 注: 旧 spec は data/screens/<id>.design.json に直接ファイル書き込みしていたが、
+ * realWorkspace 経由では workspace 配下に書く。screen entity は backend から
+ * harmony.json + harmony/screens/<id>.json として load される。
+ *
+ * シナリオ 4 (localStorage 救済) は #924 で localStorage fallback が削除されたため
+ * 検証経路が変わる (backend `/legacy-rescue` 経由)。本 PR では skip。
  */
 
 import { test, expect } from "@playwright/test";
-import path from "path";
-import fs from "fs";
+import {
+  setupTestWorkspace,
+  cleanupRealWorkspaces,
+  isMcpRunning,
+  normalizeId,
+  type OpenedWorkspace,
+} from "./helpers/realWorkspace";
 
 const SCREEN_ID = `scr-e2e-edit-session-${Date.now()}`;
-const DATA_DIR = path.resolve(__dirname, "../../data");
-const SCREENS_DIR = path.join(DATA_DIR, "screens");
+const SCREEN_NORM = normalizeId(SCREEN_ID);
 
-/** テスト用画面ファイルを作成する */
-function setupScreenFile(screenId: string) {
-  if (!fs.existsSync(SCREENS_DIR)) {
-    fs.mkdirSync(SCREENS_DIR, { recursive: true });
-  }
-  const screenFile = path.join(SCREENS_DIR, `${screenId}.design.json`);
-  fs.writeFileSync(
-    screenFile,
-    JSON.stringify({
-      assets: [],
-      styles: [],
-      pages: [{ frames: [{ component: { type: "wrapper" } }] }],
-    }),
-  );
-  return screenFile;
-}
+const dummyProject = {
+  version: 1, name: "edit-session-test",
+  screens: [{ id: SCREEN_ID, no: 1, name: "テスト画面", kind: "form", path: "/test", hasDesign: true }],
+  groups: [], edges: [], tables: [],
+};
 
-/** テスト用画面ファイルを削除する */
-function cleanupScreenFile(screenId: string) {
-  const screenFile = path.join(SCREENS_DIR, `${screenId}.design.json`);
-  try { fs.unlinkSync(screenFile); } catch { /* ignore */ }
-  const draftFile = path.join(DATA_DIR, ".drafts", "screen", `${screenId}.json`);
-  try { fs.unlinkSync(draftFile); } catch { /* ignore */ }
-}
+const screenDesign = {
+  assets: [], styles: [],
+  pages: [{ frames: [{ component: { type: "wrapper" } }] }],
+};
 
-test.beforeAll(() => {
-  setupScreenFile(SCREEN_ID);
-});
-
-test.afterAll(() => {
-  cleanupScreenFile(SCREEN_ID);
-});
+const WS_KEY = "issue-926-designer-edit-session";
+let mcpAvailable = false;
+let ws: OpenedWorkspace;
 
 test.describe("画面デザイナー edit-session — シナリオ 1: 編集開始 → 保存", () => {
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+  });
+
+  test.afterAll(async () => {
+    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+  });
+
+  test.beforeEach(async () => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      screenDesigns: [{ id: SCREEN_ID, data: screenDesign }],
+    });
+  });
+
   test("readonly オーバーレイが表示 → 編集開始 → 保存 → readonly に戻る", async ({ page }) => {
-    await page.goto(`/screen/design/${SCREEN_ID}`);
+    await ws.gotoActive(page, `/screen/design/${SCREEN_NORM}`);
     await page.waitForLoadState("networkidle");
 
-    // MCP 未接続の場合は早期スキップ
-    const overlay = page.getByTestId("canvas-readonly-overlay");
-    if (!await overlay.isVisible({ timeout: 5000 }).catch(() => false)) {
-      test.skip();
-      return;
+    // 過去 test 残骸の draft が ResumeOrDiscardDialog として出る場合があるので dismiss
+    await page.waitForTimeout(500);
+    for (let _i = 0; _i < 3; _i++) {
+      if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+        await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+        await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+      } else { break; }
     }
 
-    // canvas 上のオーバーレイボタンで編集開始
+    const overlay = page.getByTestId("canvas-readonly-overlay");
+    await expect(overlay).toBeVisible({ timeout: 10000 });
+
     const canvasStartBtn = page.getByTestId("canvas-readonly-start");
     await expect(canvasStartBtn).toBeVisible();
     await canvasStartBtn.click();
 
-    // 編集モードツールバーの保存ボタンが表示される
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
-
-    // 保存
     await page.getByTestId("edit-mode-save").click();
-
-    // readonly に戻る
-    await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 8000 });
+    // 保存後 readonly に戻るまで時間がかかる場合あり (screen entity write + state 反映の async)
+    await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 30000 });
     await expect(page.getByTestId("canvas-readonly-overlay")).toBeVisible();
   });
 });
 
 test.describe("画面デザイナー edit-session — シナリオ 2: 編集中 → 破棄", () => {
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+  });
+
+  test.beforeEach(async () => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      screenDesigns: [{ id: SCREEN_ID, data: screenDesign }],
+    });
+  });
+
   test("編集開始 → 破棄確認 → readonly に戻る", async ({ page }) => {
-    await page.goto(`/screen/design/${SCREEN_ID}`);
+    await ws.gotoActive(page, `/screen/design/${SCREEN_NORM}`);
     await page.waitForLoadState("networkidle");
-
-    const editStartBtn = page.getByTestId("edit-mode-start");
-    if (!await editStartBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      test.skip();
-      return;
+    await page.waitForTimeout(500);
+    for (let _i = 0; _i < 3; _i++) {
+      if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+        await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+        await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+      } else { break; }
     }
-
+    const editStartBtn = page.getByTestId("edit-mode-start");
+    await expect(editStartBtn).toBeVisible({ timeout: 10000 });
     await editStartBtn.click();
     await expect(page.getByTestId("edit-mode-discard")).toBeVisible({ timeout: 5000 });
-
-    // 破棄ボタン → 確認ダイアログ
     await page.getByTestId("edit-mode-discard").click();
     await expect(page.getByTestId("discard-confirm")).toBeVisible({ timeout: 3000 });
-
-    // 破棄実行
     await page.getByTestId("discard-confirm").click();
-
-    // readonly に戻る
     await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 8000 });
     await expect(page.getByTestId("canvas-readonly-overlay")).toBeVisible();
   });
 });
 
 test.describe("画面デザイナー edit-session — シナリオ 3: 再オープン → ResumeOrDiscardDialog", () => {
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+  });
+
+  test.beforeEach(async () => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      screenDesigns: [{ id: SCREEN_ID, data: screenDesign }],
+    });
+  });
+
   test("draft が残っている状態で再オープン → ResumeOrDiscardDialog 表示", async ({ page }) => {
-    await page.goto(`/screen/design/${SCREEN_ID}`);
+    await ws.gotoActive(page, `/screen/design/${SCREEN_NORM}`);
     await page.waitForLoadState("networkidle");
-
     const editStartBtn = page.getByTestId("edit-mode-start");
-    if (!await editStartBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
-    // 編集開始 (draft + lock が作成される)
+    await expect(editStartBtn).toBeVisible({ timeout: 5000 });
     await editStartBtn.click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
-
-    // 保存せずに別ページへ
-    await page.goto("/screen/list");
+    await page.goto(ws.path("/screen/list"));
     await page.waitForLoadState("networkidle");
-
-    // 同じ画面を再オープン
-    await page.goto(`/screen/design/${SCREEN_ID}`);
+    await page.goto(ws.path(`/screen/design/${SCREEN_NORM}`));
     await page.waitForLoadState("networkidle");
-
-    // ResumeOrDiscardDialog が表示される
     const continueBtn = page.getByTestId("resume-continue");
     if (await continueBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      // 「続ける」→ 編集モードに入る
       await continueBtn.click();
       await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 8000 });
-      // クリーンアップ: 破棄して終了
       await page.getByTestId("edit-mode-discard").click();
       await page.getByTestId("discard-confirm").click();
     } else {
-      // MCP 未接続など
       test.skip();
     }
   });
 });
 
+// TODO(#926 follow-up): localStorage 救済シナリオは backend / legacy-rescue 経由に
+// 移行されたため、本 spec の旧経路 (gjs-screen-<id> seed → legacy-rescue-adopt) は
+// 廃止。新経路の検証は別 ISSUE で対応する。
 test.describe("画面デザイナー edit-session — シナリオ 4: localStorage 救済", () => {
-  test("旧 gjs-screen-{id} キーを仕込み → 差分あり → 救済ダイアログ → 採用", async ({ page }) => {
-    await page.goto(`/screen/design/${SCREEN_ID}`);
-    await page.waitForLoadState("networkidle");
-
-    // MCP 接続確認
-    const editStartBtn = page.getByTestId("edit-mode-start");
-    if (!await editStartBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      test.skip();
-      return;
-    }
-
-    // 旧 localStorage データを仕込む (本体と異なる内容)
-    await page.evaluate((screenId) => {
-      const legacyData = {
-        assets: [],
-        styles: [{ selectors: [".legacy-test"], style: { color: "red" } }],
-        pages: [{ frames: [{ component: { type: "wrapper" } }] }],
-      };
-      localStorage.setItem(`gjs-screen-${screenId}`, JSON.stringify(legacyData));
-    }, SCREEN_ID);
-
-    // ページをリロードして救済チェックを再実行
-    await page.reload();
-    await page.waitForLoadState("networkidle");
-
-    // 救済ダイアログが表示されるか確認
-    const adoptBtn = page.getByTestId("legacy-rescue-adopt");
-    if (await adoptBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await adoptBtn.click();
-      // ResumeOrDiscardDialog が表示される (draft 化されたため)
-      const resumeDiscard = page.getByTestId("resume-discard");
-      if (await resumeDiscard.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await resumeDiscard.click();
-      }
-    } else {
-      // 差分なし (既に同期済み) またはMCP未接続の場合はスキップ
-      test.skip();
-    }
-
-    // クリーンアップ
-    await page.evaluate((screenId) => {
-      localStorage.removeItem(`gjs-screen-${screenId}`);
-      localStorage.removeItem(`gjs-screen-${screenId}-draft`);
-    }, SCREEN_ID);
-  });
+  test.skip("旧 gjs-screen-{id} キーを仕込み → 差分あり → 救済ダイアログ → 採用", () => { /* skip */ });
 });

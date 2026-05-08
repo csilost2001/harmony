@@ -9,4 +9,5 @@ export type DraftResourceType =
   | "sequence"
   | "extension"
   | "convention"
-  | "flow";  // #690 PR-7: 画面遷移図用
+  | "flow"  // #690 PR-7: 画面遷移図用
+  | "er-layout";

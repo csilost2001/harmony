@@ -9,6 +9,7 @@ import type {
 } from "../types/v3";
 import type { FlowStorageBackend } from "./flowStore";
 import { setFlowDraftMode, setFlowStorageBackend } from "./flowStore";
+import { setScreenLayoutStorageBackend } from "./screenLayoutStore";
 import type { ViewDefinitionStorageBackend as StoreViewDefinitionStorageBackend } from "./viewDefinitionStore";
 import {
   commitViewDefinitions,
@@ -58,6 +59,10 @@ describe("viewDefinitionStore", () => {
   beforeEach(() => {
     setViewDefinitionStorageBackend(null);
     setFlowStorageBackend(null);
+    setScreenLayoutStorageBackend({
+      loadScreenLayout: vi.fn().mockResolvedValue(null),
+      saveScreenLayout: vi.fn().mockResolvedValue(undefined),
+    });
     setFlowDraftMode(false);
     localStorage.clear();
   });
@@ -90,7 +95,13 @@ describe("viewDefinitionStore", () => {
       saveProject: vi.fn().mockResolvedValue(undefined),
       deleteScreenData: vi.fn().mockResolvedValue(undefined),
     };
+    const viewBackend: StoreViewDefinitionStorageBackend = {
+      loadViewDefinition: vi.fn().mockResolvedValue(null),
+      saveViewDefinition: vi.fn().mockResolvedValue(undefined),
+      deleteViewDefinition: vi.fn().mockResolvedValue(undefined),
+    };
     setFlowStorageBackend(flowBackend);
+    setViewDefinitionStorageBackend(viewBackend);
 
     const vd = await createViewDefinition(
       "受注一覧" as DisplayName,

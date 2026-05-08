@@ -29,9 +29,14 @@ export function setViewDefinitionStorageBackend(b: ViewDefinitionStorageBackend 
   _backend = b;
 }
 
-const VIEW_DEFINITION_PREFIX = "v3-view-definition-";
-
 const VIEW_DEFINITION_SCHEMA_REF = "../../schemas/v3/view-definition.v3.schema.json";
+
+function requireBackend(): ViewDefinitionStorageBackend {
+  if (!_backend) {
+    throw new Error("viewDefinitionStore: backend が初期化されていません (wsBridge 未接続)");
+  }
+  return _backend;
+}
 
 function nowTs(): Timestamp {
   return new Date().toISOString() as Timestamp;
@@ -55,12 +60,7 @@ export async function listViewDefinitions(): Promise<ViewDefinitionEntry[]> {
 export async function loadViewDefinition(
   viewDefinitionId: string,
 ): Promise<ViewDefinition | null> {
-  if (_backend) {
-    return (await _backend.loadViewDefinition(viewDefinitionId)) as ViewDefinition | null;
-  }
-  const s = localStorage.getItem(`${VIEW_DEFINITION_PREFIX}${viewDefinitionId}`);
-  if (!s) return null;
-  try { return JSON.parse(s) as ViewDefinition; } catch { return null; }
+  return (await requireBackend().loadViewDefinition(viewDefinitionId)) as ViewDefinition | null;
 }
 
 export async function loadViewDefinitionValidationMap(): Promise<
@@ -68,10 +68,11 @@ export async function loadViewDefinitionValidationMap(): Promise<
 > {
   const entries = await listViewDefinitions();
   const entryIds = new Set(entries.map((entry) => String(entry.id)));
+  const backend = requireBackend();
 
   let viewDefinitions: ViewDefinition[];
-  if (_backend?.listAllViewDefinitions) {
-    const all = (await _backend.listAllViewDefinitions()) as ViewDefinition[];
+  if (backend.listAllViewDefinitions) {
+    const all = (await backend.listAllViewDefinitions()) as ViewDefinition[];
     viewDefinitions = all.filter((vd) => entryIds.has(String(vd.id)));
   } else {
     viewDefinitions = (await Promise.all(entries.map((entry) => loadViewDefinition(String(entry.id)))))
@@ -101,11 +102,7 @@ export async function saveViewDefinition(vd: ViewDefinition): Promise<void> {
     updatedAt: nowTs(),
   };
 
-  if (_backend) {
-    await _backend.saveViewDefinition(toSave.id, toSave);
-  } else {
-    localStorage.setItem(`${VIEW_DEFINITION_PREFIX}${toSave.id}`, JSON.stringify(toSave));
-  }
+  await requireBackend().saveViewDefinition(toSave.id, toSave);
 
   await syncViewDefinitionMeta(toSave);
 }
@@ -133,11 +130,7 @@ export async function createViewDefinition(
 }
 
 export async function deleteViewDefinition(viewDefinitionId: string): Promise<void> {
-  if (_backend) {
-    await _backend.deleteViewDefinition(viewDefinitionId);
-  } else {
-    localStorage.removeItem(`${VIEW_DEFINITION_PREFIX}${viewDefinitionId}`);
-  }
+  await requireBackend().deleteViewDefinition(viewDefinitionId);
 }
 
 interface CommitViewDefinitionsDeps {

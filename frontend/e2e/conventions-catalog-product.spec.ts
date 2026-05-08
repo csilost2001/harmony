@@ -1,38 +1,52 @@
 /**
  * プロダクト規約カテゴリの E2E (#347)
  *
- * scope / currency / tax / auth / db / numbering / tx / externalOutcomeDefaults
- * の各タブで add / edit / delete が動作することを検証。
+ * #926: realWorkspace + 実 backend 経由に移植。
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import {
+  setupTestWorkspace,
+  cleanupRealWorkspaces,
+  isMcpRunning,
+  type OpenedWorkspace,
+} from "./helpers/realWorkspace";
 
 const dummyProject = {
-  version: 1, name: "conventions-product", screens: [], groups: [], edges: [],
-  tables: [], processFlows: [],
-  updatedAt: new Date().toISOString(),
+  version: 1, name: "conventions-product",
+  screens: [], groups: [], edges: [], tables: [], processFlows: [],
 };
 
-async function setup(page: Page) {
-  await page.addInitScript(({ project }) => {
-    localStorage.setItem("workspace-e2e-bypass", "true");
-      localStorage.setItem("flow-project", JSON.stringify(project));
-    localStorage.removeItem("harmony-open-tabs");
-    localStorage.removeItem("harmony-active-tab");
-    localStorage.removeItem("conventions-catalog");
-    localStorage.removeItem("draft-conventions-catalog-main");
-  }, { project: dummyProject });
-  await page.goto("/conventions/catalog");
-  await expect(page.locator(".conventions-catalog-view")).toBeVisible({ timeout: 10000 });
-}
+const WS_KEY = "issue-926-conventions-catalog-product";
+let mcpAvailable = false;
+let ws: OpenedWorkspace;
 
 test.describe("プロダクト規約タブ (#347)", () => {
+  test.beforeAll(async () => {
+    mcpAvailable = await isMcpRunning();
+  });
+
+  test.afterAll(async () => {
+    if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
+  });
+
+  test.beforeEach(async ({ page }) => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await setupTestWorkspace({ key: WS_KEY, project: dummyProject });
+    await ws.gotoActive(page, "/conventions/catalog");
+    await expect(page.locator(".conventions-catalog-view")).toBeVisible({ timeout: 10000 });
+    if (await page.locator(".edit-mode-modal-backdrop").isVisible({ timeout: 1000 }).catch(() => false)) {
+      await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+      await expect(page.locator(".edit-mode-modal-backdrop")).toBeHidden({ timeout: 5000 });
+    }
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible();
+  });
+
   test("プロダクト規約 section header が見える", async ({ page }) => {
-    await setup(page);
     await expect(page.locator(".conventions-tab-group-label", { hasText: "プロダクト規約" })).toBeVisible();
   });
 
   test("scope タブで新規エントリ追加 + value 入力", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "スコープ" }).click();
     await page.locator(".conventions-new-key-input").fill("customerRegion");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -43,7 +57,6 @@ test.describe("プロダクト規約タブ (#347)", () => {
   });
 
   test("currency タブで新規エントリ追加 + code 入力", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "通貨" }).click();
     await page.locator(".conventions-new-key-input").fill("jpy");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -54,7 +67,6 @@ test.describe("プロダクト規約タブ (#347)", () => {
   });
 
   test("currency タブで roundingMode select が動作する", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "通貨" }).click();
     await page.locator(".conventions-new-key-input").fill("jpy");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -64,7 +76,6 @@ test.describe("プロダクト規約タブ (#347)", () => {
   });
 
   test("tax タブで新規エントリ追加 + kind/rate 入力", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "税" }).click();
     await page.locator(".conventions-new-key-input").fill("standard");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -77,7 +88,6 @@ test.describe("プロダクト規約タブ (#347)", () => {
   });
 
   test("auth タブで新規エントリ追加 + scheme 入力", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "認証" }).click();
     await page.locator(".conventions-new-key-input").fill("default");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -88,7 +98,6 @@ test.describe("プロダクト規約タブ (#347)", () => {
   });
 
   test("db タブで新規エントリ追加 + engine 入力", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "DB" }).click();
     await page.locator(".conventions-new-key-input").fill("default");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -99,7 +108,6 @@ test.describe("プロダクト規約タブ (#347)", () => {
   });
 
   test("numbering タブで新規エントリ追加 + format 入力", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "採番" }).click();
     await page.locator(".conventions-new-key-input").fill("customerCode");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -110,7 +118,6 @@ test.describe("プロダクト規約タブ (#347)", () => {
   });
 
   test("tx タブで新規エントリ追加 + policy textarea 入力", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "TX" }).click();
     await page.locator(".conventions-new-key-input").fill("singleOperation");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -121,7 +128,6 @@ test.describe("プロダクト規約タブ (#347)", () => {
   });
 
   test("外部連携既定タブで新規エントリ追加 + outcome/action select", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "外部連携既定" }).click();
     await page.locator(".conventions-new-key-input").fill("failure");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -132,7 +138,6 @@ test.describe("プロダクト規約タブ (#347)", () => {
   });
 
   test("プロダクト規約タブで重複キーの追加はボタン disabled", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "通貨" }).click();
     await page.locator(".conventions-new-key-input").fill("jpy");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -141,7 +146,6 @@ test.describe("プロダクト規約タブ (#347)", () => {
   });
 
   test("プロダクト規約タブで削除ボタンでエントリが消える", async ({ page }) => {
-    await setup(page);
     await page.locator(".conventions-category-tab", { hasText: "スコープ" }).click();
     await page.locator(".conventions-new-key-input").fill("willDelete");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -153,19 +157,8 @@ test.describe("プロダクト規約タブ (#347)", () => {
     await expect(page.locator(".conventions-key-badge", { hasText: "willDelete" })).toHaveCount(0);
   });
 
-  test("scope エントリを保存してリロード後も値が残る", async ({ page }) => {
-    // conventions-catalog を消さずに setup — リロード後に localStorage から復元できることを検証
-    await page.addInitScript(({ project }) => {
-      localStorage.setItem("workspace-e2e-bypass", "true");
-      localStorage.setItem("flow-project", JSON.stringify(project));
-      localStorage.removeItem("harmony-open-tabs");
-      localStorage.removeItem("harmony-active-tab");
-      localStorage.removeItem("conventions-catalog");
-      localStorage.removeItem("draft-conventions-catalog-main");
-    }, { project: dummyProject });
-    await page.goto("/conventions/catalog");
-    await expect(page.locator(".conventions-catalog-view")).toBeVisible({ timeout: 10000 });
-
+  test("scope エントリを保存してリロード後も値が残る (backend persist)", async ({ page }) => {
+    // beforeEach で setup 済 (workspace 開いて edit-mode に入っている状態)
     await page.locator(".conventions-category-tab", { hasText: "スコープ" }).click();
     await page.locator(".conventions-new-key-input").fill("persistTest");
     await page.locator(".conventions-entries button:has-text('追加')").click();
@@ -178,11 +171,19 @@ test.describe("プロダクト規約タブ (#347)", () => {
     await page.locator(".srb-btn-save").click();
     await expect(page.locator(".srb-btn-save")).not.toHaveClass(/dirty/, { timeout: 5000 });
 
-    // リロード
-    await page.reload();
+    // SPA リロード ではなく workspace 経由で再 navigate (page.reload は backend 接続を切るため)
+    await ws.gotoActive(page, "/conventions/catalog");
+    // ResumeOrDiscardDialog が出たら破棄
+    await page.waitForTimeout(500);
+    for (let _i = 0; _i < 3; _i++) {
+      if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+        await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+        await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+      } else { break; }
+    }
     await expect(page.locator(".conventions-catalog-view")).toBeVisible({ timeout: 10000 });
 
-    // スコープタブを開いてエントリが残っていることを確認
+    // スコープタブを開いてエントリが残っていることを確認 (backend persist)
     await page.locator(".conventions-category-tab", { hasText: "スコープ" }).click();
     await expect(page.locator(".conventions-key-badge", { hasText: "persistTest" })).toBeVisible();
     await expect(page.locator('.conventions-table input[placeholder="domestic"]').first()).toHaveValue("overseas");

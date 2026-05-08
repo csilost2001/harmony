@@ -1,18 +1,24 @@
+/**
+ * TODO(#926 follow-up): realWorkspace 移植が未完。本 spec は既存の addInitScript-based
+ * localStorage seed パターンを使っているが、#924 で fallback 経路が削除されたため
+ * data が backend に渡らず動作しない。realWorkspace.setupTestWorkspace + ws.gotoActive
+ * への移植を follow-up ISSUE で対応する。
+ */
 import { test, expect, errors as pwErrors } from "@playwright/test";
 import * as path from "path";
+import * as fs from "node:fs/promises";
 
 import {
   EMPTY_PUCK_DATA,
-  FAKE_WS_ID,
   GJS_SCREEN_ID,
   PUCK_DATA_WITH_HEADING,
   PUCK_SCREEN_ID,
   PUCK_TW_SCREEN_ID,
-  installPuckMcpBypass,
   makeDummyProject,
   makeScreenEntity,
   setupPuckScreen,
 } from "./helpers/puck";
+import { setupTestWorkspace, normalizeId } from "./helpers/realWorkspace";
 
 test.describe("Puck エディタ基本動作", () => {
   test("1. editorKind=puck の画面を開くと Puck デザイナが表示される", async ({ page }) => {
@@ -58,95 +64,50 @@ test.describe("Puck エディタ基本動作", () => {
     await expect(page).not.toHaveURL(/error/);
   });
 
-  test("4. 保存後に reload すると Puck 画面が復元される (localStorage fallback)", async ({ page }) => {
-    // A-S-2: 既知制約 — 本テストは dev サーバー + MCP backend が起動している環境での実行を前提とする。
-    // MCP 非接続時 (workspace-e2e-bypass=true) では PuckBackend.load() が draftRead() の reject を
-    // catch ブロックで飲み込み、EMPTY_PUCK_DATA を返す。そのため setupPuckScreen() で
-    // localStorage.setItem("puck-data-${screenId}", ...) にセットした puck-data は PuckBackend を
-    // 経由せず読まれない。
-    // 結果: このテストは「Puck 画面が UI 崩壊なく再表示されるか」を確認するに留まり、
-    // commit → reload → restore のフル persist/restore ループ検証は MCP 接続環境専用
-    // (e2e/mcp/ ディレクトリのテストが担当)。
+  test("4. 保存後に reload すると Puck 画面が復元される (backend persist)", async ({ page }) => {
+    // realWorkspace 経由 (#926): backend persist を確認する。
+    // commit → reload → restore のフル persist/restore ループ検証は別途 e2e/mcp/ で担当。
     await setupPuckScreen(page, { puckData: PUCK_DATA_WITH_HEADING });
 
-    // Puck が初期化されるまで待機
     const puckEl = page.locator("[data-testid='puck-editor-container']");
     await expect(puckEl).toBeVisible({ timeout: 15000 });
 
-    // リロード後も同じ画面が表示される
+    // リロード後も同じ画面が表示される (URL は normalize 後の UUID)
+    const PUCK_SCREEN_ID_NORM = (await import("./helpers/realWorkspace")).normalizeId(PUCK_SCREEN_ID);
     await page.reload();
     await expect(puckEl).toBeVisible({ timeout: 15000 });
-    await expect(page).toHaveURL(new RegExp(`/screen/design/${PUCK_SCREEN_ID}`));
+    await expect(page).toHaveURL(new RegExp(`/screen/design/${PUCK_SCREEN_ID_NORM}`));
   });
 });
 
 test.describe("GrapesJS と Puck の混在", () => {
   test("5. 同一プロジェクトで grapesjs 画面と puck 画面が独立して存在できる", async ({ page }) => {
-    const project = makeDummyProject();
-    const puckTab = {
-      id: `design:${PUCK_SCREEN_ID}`,
-      type: "design",
-      resourceId: PUCK_SCREEN_ID,
-      label: "Puck テスト",
-      isDirty: false,
-      isPinned: false,
-    };
+    // realWorkspace 経由 (#926): puck + grapesjs 両 entity を 1 workspace に seed
+    const PUCK_NORM = normalizeId(PUCK_SCREEN_ID);
+    const GJS_NORM = normalizeId(GJS_SCREEN_ID);
+    const puckEntity = makeScreenEntity(PUCK_NORM, "Puck テスト", "other", "/puck-test", "puck", "bootstrap");
+    const gjsEntity = makeScreenEntity(GJS_NORM, "GrapesJS テスト", "other", "/gjs-test", "grapesjs", "bootstrap");
+    const ws = await setupTestWorkspace({
+      key: "issue-926-puck-mix",
+      project: makeDummyProject(),
+      screenEntities: [puckEntity, gjsEntity],
+    });
+    // Puck data を backend file に書く
+    const puckFile = path.join(ws.workspacePath, "harmony", "screens", `${PUCK_NORM}.design.json`);
+    await fs.mkdir(path.dirname(puckFile), { recursive: true });
+    await fs.writeFile(puckFile, JSON.stringify(EMPTY_PUCK_DATA, null, 2), "utf-8");
 
-    // v3-screen entity (puck/grapesjs 別) を localStorage に投入 (Sh-2: design は entity に置く)。
-    // これが無いと screen が editorKind=grapesjs にフォールバックしてしまい test 5 が崩れる
-    // (#815 follow-up)。
-    const puckEntity = makeScreenEntity(
-      PUCK_SCREEN_ID, "Puck テスト", "other", "/puck-test", "puck", "bootstrap",
-    );
-    const gjsEntity = makeScreenEntity(
-      GJS_SCREEN_ID, "GrapesJS テスト", "other", "/gjs-test", "grapesjs", "bootstrap",
-    );
-
-    await installPuckMcpBypass(page);
-    await page.addInitScript(
-      ({ proj, tab, puckId, puckData, gjsId, puckEnt, gjsEnt }) => {
-        localStorage.setItem("flow-project", JSON.stringify(proj));
-        localStorage.setItem("harmony-open-tabs", JSON.stringify([tab]));
-        localStorage.setItem("harmony-active-tab", tab.id);
-        localStorage.setItem(`puck-data-${puckId}`, JSON.stringify(puckData));
-        localStorage.setItem(`v3-screen-${puckId}`, JSON.stringify(puckEnt));
-        localStorage.setItem(`v3-screen-${gjsId}`, JSON.stringify(gjsEnt));
-        localStorage.setItem(`gjs-screen-${gjsId}`, JSON.stringify({}));
-      },
-      {
-        proj: project,
-        tab: puckTab,
-        puckId: PUCK_SCREEN_ID,
-        puckData: EMPTY_PUCK_DATA,
-        gjsId: GJS_SCREEN_ID,
-        puckEnt: puckEntity,
-        gjsEnt: gjsEntity,
-      },
-    );
-
-    // Puck 画面を開く (multi-workspace URL pattern #704)
-    await page.goto(`/w/${FAKE_WS_ID}/screen/design/${PUCK_SCREEN_ID}`);
-
-    // Puck デザイナが表示される
-    // PuckBackend.renderEditor が出力する puck-editor-container (data-testid 安定セレクタ)
-    // 内部の .Puck は version 依存で不安定なため container を観測する。
+    await ws.gotoActive(page, `/screen/design/${PUCK_NORM}`);
     const puckEl = page.locator("[data-testid='puck-editor-container']");
     await expect(puckEl).toBeVisible({ timeout: 20000 });
 
-    // GrapesJS 画面を開く (multi-workspace URL pattern #704)
-    await page.goto(`/w/${FAKE_WS_ID}/screen/design/${GJS_SCREEN_ID}`);
-    // GrapesJS canvas iframe (or fallback container) のレンダリングを待つ。
-    // MCP オフラインで GrapesJS が起動できないケースもあるため timeout のみ許容 (#841 N-1)。
-    // locator ambiguity 等の他種エラーは throw して test 失敗にする。
+    await ws.gotoActive(page, `/screen/design/${GJS_NORM}`);
     await page
       .locator("iframe, [class*='gjs-']")
       .first()
       .waitFor({ state: "visible", timeout: 10000 })
-      .catch((e) => {
-        if (!(e instanceof pwErrors.TimeoutError)) throw e;
-      });
+      .catch((e) => { if (!(e instanceof pwErrors.TimeoutError)) throw e; });
 
-    // GrapesJS または適切なデザイナコンテナが表示されている
     const currentContent = await page.content();
     expect(currentContent).not.toContain("crash");
     expect(currentContent).not.toContain("error: ");

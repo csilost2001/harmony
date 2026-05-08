@@ -10,6 +10,10 @@
  * 未起動の場合は describe.skip でスキップする。
  */
 
+/**
+ * #926: 本 spec は MCP HTTP tool を直接呼び出すだけで localStorage seed には
+ * 依存していないため、移植不要。bulk-skip で誤って describe.skip にしたものを un-skip する。
+ */
 import { test, expect } from "@playwright/test";
 
 const MCP_URL = "http://localhost:5179/mcp";

@@ -21,7 +21,13 @@ export function setScreenStorageBackend(b: ScreenStorageBackend | null): void {
   _backend = b;
 }
 
-const SCREEN_PREFIX = "v3-screen-";
+function requireBackend(): ScreenStorageBackend {
+  if (!_backend) {
+    throw new Error("screenStore: backend が初期化されていません (wsBridge 未接続)");
+  }
+  return _backend;
+}
+
 const SCREEN_SCHEMA_REF = "../schemas/v3/screen.v3.schema.json";
 
 function nowTs(): Timestamp {
@@ -60,12 +66,7 @@ export async function buildDefaultScreen(screenId: string): Promise<Screen> {
 }
 
 export async function loadScreenEntity(screenId: string): Promise<Screen> {
-  const raw = await (async () => {
-    if (_backend) return _backend.loadScreenEntity(screenId);
-    const s = localStorage.getItem(`${SCREEN_PREFIX}${screenId}`);
-    if (!s) return null;
-    try { return JSON.parse(s) as unknown; } catch { return null; }
-  })();
+  const raw = await requireBackend().loadScreenEntity(screenId);
   if (isRecord(raw)) {
     const defaultScreen = await buildDefaultScreen(screenId);
     // 保存済みの design を優先。ただし designFileRef を Puck 画面に混入させない (Sh-4)。
@@ -147,9 +148,5 @@ export async function saveScreenEntity(screen: Screen): Promise<void> {
     updatedAt: nowTs(),
     design: cleanedDesign as Screen["design"],
   };
-  if (_backend) {
-    await _backend.saveScreenEntity(toSave.id, toSave);
-  } else {
-    localStorage.setItem(`${SCREEN_PREFIX}${toSave.id}`, JSON.stringify(toSave));
-  }
+  await requireBackend().saveScreenEntity(toSave.id, toSave);
 }
