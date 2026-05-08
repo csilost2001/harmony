@@ -86,16 +86,14 @@ async function setupEditor(page: Page) {
 
 // realWorkspace 移植 (#926): 実 backend 経由の dummy fixture
 // ProcessFlow body は dummyGroup を v3 shape (top-level id + meta) で再利用する。
-const baseGroupBody = buildProcessFlow({
+const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: dummyGroup.name,
   kind: (dummyGroup.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["kind"],
   mode: "upstream",
   actions: dummyGroup.actions as ReturnType<typeof buildProcessFlow>["actions"],
+  authoring: dummyGroup.markers !== undefined ? { markers: dummyGroup.markers } : undefined,
 });
-const dummyGroupBody = dummyGroup.markers !== undefined
-  ? { ...baseGroupBody, authoring: { markers: dummyGroup.markers } }
-  : baseGroupBody;
 
 const WS_KEY = "issue-926-step-ops";
 let mcpAvailable = false;

@@ -100,16 +100,16 @@ async function setupEditor(page: Page) {
 
 // realWorkspace 移植 (#926): 実 backend 経由の dummy fixture
 // ProcessFlow body は group を v3 shape (top-level id + meta) で再利用する。
-const baseGroupBody = buildProcessFlow({
+const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: group.name,
   kind: (group.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["kind"],
   mode: "upstream",
   actions: group.actions as ReturnType<typeof buildProcessFlow>["actions"],
+  authoring: (group as { markers?: unknown }).markers !== undefined
+    ? { markers: (group as { markers: unknown }).markers }
+    : undefined,
 });
-const dummyGroupBody = (group as { markers?: unknown }).markers !== undefined
-  ? { ...baseGroupBody, authoring: { markers: (group as { markers: unknown }).markers } }
-  : baseGroupBody;
 
 const WS_KEY = "issue-926-validation-sql-conv-panel";
 let mcpAvailable = false;
