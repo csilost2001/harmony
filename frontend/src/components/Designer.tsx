@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { checkLegacyLocalStorage, executeRescue, clearLegacyLocalStorage } from "../grapes/legacyLocalStorageRescue";
 import { acknowledgeServerMtime } from "../utils/serverMtime";
+import { recordError } from "../utils/errorLog";
 import { DesignSubToolbar, DesignSubToolbarGrapesJSBridge } from "./design/DesignSubToolbar";
 import { ServerChangeBanner } from "./common/ServerChangeBanner";
 import { useErrorDialog } from "./common/ErrorDialogProvider";
@@ -243,7 +244,11 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
     isReadonlyRef.current = isReadonly;
   }, [isReadonly]);
 
-  // GrapesJS の draftRead — draft 優先 → 本体ファイル fallback (#815 PR-C: 明示 load)
+  // GrapesJS の draftRead — draft 優先 → 本体ファイル fallback (#815 PR-C: 明示 load)。
+  // 破損データ (空 object / pages 欠落) を検知したら errorLog に痕跡を残す (#953):
+  // GrapesJSEditorPane の ensureValidProject() でも recordError は呼ばれるが、
+  // そちらは onGjsReady (= GrapesJS init 完了後) のため timing 上 setGrapesState
+  // 後の UI 表示 (edit-mode-start visible) より遅い。本関数で早期検知する。
   const grapesDraftRead = useCallback(async (): Promise<unknown> => {
     try {
       const sessionsResult = await mcpBridge.request("editSession.list", { resourceType: "screen", resourceId: screenId }) as { sessions: Array<{ id: string }> } | null;
@@ -259,7 +264,26 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
     }
     try {
       const data = await mcpBridge.request("loadScreen", { screenId }) as Record<string, unknown> | null;
-      if (data && typeof data === "object" && Object.keys(data).length > 0) {
+      if (data && typeof data === "object") {
+        const keys = Object.keys(data);
+        if (keys.length === 0) {
+          // 空 object {} は破損データ扱い (#953)
+          recordError({
+            source: "manual",
+            message: `画面データが空のため、空のプロジェクトで起動します (screenId=${screenId})`,
+            context: { screenId, source: "designer/grapesDraftRead", keys: [] },
+          });
+          return null;
+        }
+        if (!Array.isArray(data.pages) || data.pages.length === 0) {
+          // pages 欠落データは破損扱いで起動継続するが痕跡を残す (#953)
+          recordError({
+            source: "manual",
+            message: `画面データの pages が欠落しています。デフォルト構造で補正しました (screenId=${screenId})`,
+            context: { screenId, source: "designer/grapesDraftRead", keys },
+          });
+          // 補正は ensureValidProject に任せて raw を返す (補正の単一責任化)
+        }
         return data;
       }
     } catch {

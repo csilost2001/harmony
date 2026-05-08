@@ -88,15 +88,31 @@ test.describe("Designer 破損データ耐性 (#131)", () => {
     await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 15000 });
   });
 
-  // TODO(#953): Designer の破損データ検知 → errorLog 記録 経路は
-  // edit-session-draft (#683) の refactor 過程で失われた。実装側で `recordError`
-  // 呼び出しを復活させる必要あり (#953 で対応)。
-  // 現状は edit-mode-start が出ること (= Designer 起動成功) のみで担保。
-  test.skip("破損データ起動時に errorLog に痕跡が残る (#953 follow-up)", async ({ page }) => {
+  // #953: Designer の破損データ検知 → errorLog 記録 を復活。
+  // 復活ポイントは Designer.tsx の grapesDraftRead (= backend.load の入口) で、
+  // 空 / pages 欠落データを検知した時点で recordError() を呼ぶ。
+  // edit-mode-start visible 時点 (= setGrapesState 後) には localStorage に書き込み済み。
+  test("破損データ起動時に errorLog に痕跡が残る (#953 follow-up)", async ({ page }) => {
     const key = `${WS_KEY_PREFIX}-errorlog`;
     wsKeys.push(key);
     await setupDesignerWithRawData(page, {}, key);
     await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 15000 });
+
+    // recordError が呼ばれるまで polling 待機 (race-safe)
+    await page.waitForFunction(
+      () => {
+        const raw = localStorage.getItem("designer-error-log");
+        if (!raw) return false;
+        try {
+          const log = JSON.parse(raw) as Array<{ message: string }>;
+          return Array.isArray(log) && log.length > 0;
+        } catch {
+          return false;
+        }
+      },
+      undefined,
+      { timeout: 10000 },
+    );
 
     const log = await page.evaluate(() => {
       const raw = localStorage.getItem("designer-error-log");
