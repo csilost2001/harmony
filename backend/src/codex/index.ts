@@ -1,4 +1,5 @@
 export { CodexClient, type CodexClientOptions } from "./client.js";
+export { CodexConnection, type CodexConnectionOptions } from "./connection.js";
 export {
   JsonRpcClient,
   JsonRpcError,
