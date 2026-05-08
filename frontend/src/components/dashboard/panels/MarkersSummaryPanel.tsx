@@ -7,6 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useWorkspacePath } from "../../../hooks/useWorkspacePath";
 import type { ProcessFlow, MarkerKind } from "../../../types/action";
 import { listProcessFlows, loadProcessFlow } from "../../../store/processFlowStore";
 import { mcpBridge } from "../../../mcp/mcpBridge";
@@ -78,6 +79,7 @@ const KIND_COLOR: Record<MarkerKind, string> = {
 
 export function MarkersSummaryPanel() {
   const navigate = useNavigate();
+  const { wsPath } = useWorkspacePath();
   const [summary, setSummary] = useState<Summary>(INITIAL);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export function MarkersSummaryPanel() {
               <button
                 type="button"
                 className="btn btn-sm btn-link p-0"
-                onClick={() => navigate(`/process-flow/edit/${g.id}`)}
+                onClick={() => navigate(wsPath(`/process-flow/edit/${g.id}`))}
                 style={{ textAlign: "left", flex: 1, textDecoration: "none", color: "#334155" }}
                 title="エディタを開く"
               >
@@ -158,7 +160,7 @@ export function MarkersSummaryPanel() {
                 <button
                   type="button"
                   className="btn btn-sm btn-link p-0 markers-recent-btn"
-                  onClick={() => navigate(`/process-flow/edit/${m.processFlowId}`)}
+                  onClick={() => navigate(wsPath(`/process-flow/edit/${m.processFlowId}`))}
                   style={{ textAlign: "left", width: "100%", textDecoration: "none" }}
                   title={`${m.processFlowName} — ${new Date(m.createdAt).toLocaleString("ja-JP")}`}
                 >

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { ProcessFlowMeta, ProcessFlowType, ProcessFlow } from "../../types/action";
 import { PROCESS_FLOW_TYPE_LABELS, PROCESS_FLOW_TYPE_ICONS } from "../../types/action";
 import {
@@ -67,6 +68,7 @@ const MARKER_BADGE_META: Array<{ kind: "todo" | "question" | "attention" | "chat
 
 export function ProcessFlowListView() {
   const navigate = useNavigate();
+  const { wsPath } = useWorkspacePath();
   const { hasDraft } = useDraftRegistry();
   const [filterType, setFilterType] = useState<ProcessFlowType | "all">("all");
   const [filterErrorsOnly, setFilterErrorsOnly] = useState(false);
@@ -246,8 +248,8 @@ export function ProcessFlowListView() {
 
   const handleActivate = useCallback((g: ProcessFlowMeta) => {
     if (editor.isDeleted(g.id)) return;
-    navigate(`/process-flow/edit/${g.id}`);
-  }, [navigate, editor]);
+    navigate(wsPath(`/process-flow/edit/${g.id}`));
+  }, [navigate, editor, wsPath]);
 
   const handleDelete = (items: ProcessFlowMeta[]) => {
     editor.markDeleted(items.map((g) => g.id));
@@ -382,7 +384,7 @@ export function ProcessFlowListView() {
     setAddType("screen");
     setAddScreenId("");
     setAddDescription("");
-    navigate(`/process-flow/edit/${group.meta?.id ?? group.id}`);
+    navigate(wsPath(`/process-flow/edit/${group.meta?.id ?? group.id}`));
   };
 
   // docs/spec/list-common.md §3.11: 右クリックメニュー項目を構築
@@ -454,7 +456,7 @@ export function ProcessFlowListView() {
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
-          if (items.length === 1) navigate(`/process-flow/edit/${encodeURIComponent(items[0].id)}`);
+          if (items.length === 1) navigate(wsPath(`/process-flow/edit/${encodeURIComponent(items[0].id)}`));
         },
       },
       {
@@ -462,7 +464,7 @@ export function ProcessFlowListView() {
         disabled: items.length !== 1,
         disabledReason: items.length !== 1 ? "1 件選択時のみ有効" : undefined,
         onClick: () => {
-          if (items.length === 1) navigate(`/process-flow/edit/${encodeURIComponent(items[0].id)}`);
+          if (items.length === 1) navigate(wsPath(`/process-flow/edit/${encodeURIComponent(items[0].id)}`));
         },
       },
       {
@@ -972,7 +974,7 @@ export function ProcessFlowListView() {
           onClose={() => setHistoryModal(null)}
           onRestore={(editSessionId) => {
             setHistoryModal(null);
-            navigate(`/process-flow/edit/${encodeURIComponent(historyModal.resourceId)}?session=${encodeURIComponent(editSessionId)}`);
+            navigate(wsPath(`/process-flow/edit/${encodeURIComponent(historyModal.resourceId)}?session=${encodeURIComponent(editSessionId)}`));
           }}
         />
       )}

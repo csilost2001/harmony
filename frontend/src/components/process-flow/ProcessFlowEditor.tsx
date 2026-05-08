@@ -1165,7 +1165,7 @@ export function ProcessFlowEditor() {
                             e.preventDefault();
                             setContextMenu({ x: e.clientX, y: e.clientY, stepId: step.id });
                           }}
-                          onNavigateCommon={(refId) => navigate(`/process-flow/edit/${refId}`)}
+                          onNavigateCommon={(refId) => navigate(wsPath(`/process-flow/edit/${refId}`))}
                           defaultExpanded={newStepIds.has(step.id)}
                           selected={selectedIds.has(step.id)}
                           onHeaderClick={(e) => handleStepClick(step.id, e)}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { Sequence, SequenceEntry, SequenceId, PhysicalName, DisplayName, Timestamp } from "../../types/v3";
 import { listSequences, createSequence, loadSequence, saveSequence, commitSequences } from "../../store/sequenceStore";
 import { generateUUID } from "../../utils/uuid";
@@ -35,6 +36,7 @@ function formatDate(iso: string): string {
 
 export function SequenceListView() {
   const navigate = useNavigate();
+  const { wsPath } = useWorkspacePath();
   const { hasDraft } = useDraftRegistry();
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
@@ -106,8 +108,8 @@ export function SequenceListView() {
 
   const handleActivate = useCallback((s: SequenceEntry) => {
     if (editor.isDeleted(s.id)) return;
-    navigate(`/sequence/edit/${encodeURIComponent(s.id)}`);
-  }, [navigate, editor]);
+    navigate(wsPath(`/sequence/edit/${encodeURIComponent(s.id)}`));
+  }, [navigate, editor, wsPath]);
 
   const handleDelete = (items: SequenceEntry[]) => {
     editor.markDeleted(items.map((s) => s.id));
@@ -235,7 +237,7 @@ export function SequenceListView() {
     setAddPhysicalName("");
     setAddName("");
     setAddPhysicalNameError("");
-    navigate(`/sequence/edit/${encodeURIComponent(seq.id)}`);
+    navigate(wsPath(`/sequence/edit/${encodeURIComponent(seq.id)}`));
   };
 
   const buildMenuItems = (target: SequenceEntry | null): ContextMenuItem[] => {
