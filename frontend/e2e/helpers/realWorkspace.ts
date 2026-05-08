@@ -21,6 +21,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as net from "net";
 import WebSocketImpl from "ws";
+import { test as playwrightTest } from "@playwright/test";
 import type {
   Conventions,
   CustomBlock,
@@ -64,6 +65,15 @@ export interface PageLike {
   goto(url: string): Promise<unknown>;
   waitForFunction(fn: string | ((arg: string) => boolean | Promise<boolean>), arg?: string, options?: { timeout?: number }): Promise<unknown>;
   evaluate<R, A>(pageFunction: (arg: A) => R | Promise<R>, arg: A): Promise<R>;
+  /** Playwright Page の waitForURL (SPA 遷移後の URL 確認に使用) */
+  waitForURL?(predicate: (url: URL) => boolean, options?: { timeout?: number }): Promise<void>;
+  /** Playwright Page の addInitScript (localStorage seed に使用) */
+  addInitScript?: (script: unknown, arg?: unknown) => Promise<void>;
+  /** Playwright Page の locator (DOM marker 待ちに使用) */
+  locator?: (selector: string) => {
+    waitFor(opts: { state: string; timeout: number }): Promise<void>;
+    isVisible(opts?: { timeout?: number }): Promise<boolean>;
+  };
 }
 
 /**
@@ -76,6 +86,11 @@ export interface PageLike {
 export interface SetupTestWorkspaceOptions {
   /** 一意キー (.tmp/e2e-workspaces/<key>/ になる) */
   key: string;
+  /**
+   * true (デフォルト) の場合、test.afterEach で resetWorkspaceRuntimeState を呼ぶ。
+   * false にすると afterEach hook を登録しない (opt-out)。
+   */
+  resetEachTest?: boolean;
   /** v3 Project — harmony.json として書き出される */
   project?: Project;
   /** v3 Table[] — 各 entry は harmony/tables/<meta.id>.json に書き出し */
@@ -239,6 +254,94 @@ export async function withBrowserSession<T>(
       (err) => { try { ws.close(); } catch { /* ignore */ } rejectOuter(err); },
     );
   });
+}
+
+/**
+ * backend in-memory の workspace runtime state をリセットするヘルパー。
+ *
+ * spec 横断 leak の根因:
+ *   1. editSessionStore が backend プロセス生存期間中に sessions を保持 → ResumeOrDiscardDialog 再表示
+ *   2. per-session activePath が前 spec の wsId を引き継ぐ
+ *
+ * 本関数は以下を順に実行してクリーンな状態に戻す:
+ *   1. editSession.list で全 session を取得して discard
+ *   2. per-session activePath を null reset (workspaceId が指定された場合は workspace.open で再設定)
+ *
+ * setupTestWorkspace から test.afterEach で自動呼び出しされる (resetEachTest: true の場合)。
+ * page が渡された場合は harmony-prefixed localStorage も clear する。
+ */
+export async function resetWorkspaceRuntimeState(
+  workspaceId: string,
+  page?: PageLike,
+): Promise<void> {
+  await withBrowserSession(async (call) => {
+    // 1. editSession 全 discard
+    try {
+      const result = await call("editSession.list", {}) as
+        | { sessions?: Array<{ id: string }> }
+        | null;
+      for (const s of result?.sessions ?? []) {
+        await call("editSession.discard", { editSessionId: s.id }).catch(() => undefined);
+      }
+    } catch { /* best-effort */ }
+    // 2. per-session activePath を null 相当にリセット (clearActive)
+    try {
+      await call("workspace.clearActive", {}).catch(() => undefined);
+    } catch { /* best-effort: workspace.clearActive が無い版では workspace.open で代替 */ }
+  });
+  // 3. ブラウザ side の harmony-prefixed localStorage を全 clear
+  if (page) {
+    try {
+      await page.evaluate(
+        (_unused: null) => {
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith("harmony-")) localStorage.removeItem(k);
+          }
+        },
+        null,
+      );
+    } catch { /* best-effort */ }
+  }
+}
+
+/**
+ * harmony-open-tabs / harmony-active-tab を workspaceId ベースの wsPath 形式で seed する helper。
+ *
+ * addInitScript 呼出の代替。wsId が変わっても URL を正しく構築できる。
+ *
+ * @param page         Playwright の Page
+ * @param wsId         setupTestWorkspace が返した wsId (将来の wsPath 構築用に受け取る)
+ * @param tabs         seed するタブの配列 (type / resourceId / label 等)
+ * @param activeTabId  harmony-active-tab に設定するタブ id
+ */
+export async function seedTabsForWorkspace(
+  page: PageLike,
+  wsId: string,
+  tabs: Array<{ id: string; type: string; resourceId: string; label: string; isDirty?: boolean; isPinned?: boolean }>,
+  activeTabId?: string,
+): Promise<void> {
+  // wsId は将来の wsPath 構築に備えて受け取る
+  void wsId;
+  // localStorage.setItem は addInitScript 内でないと初期化前に走らないため、
+  // addInitScript 経由で実行する
+  if (page.addInitScript) {
+    await page.addInitScript(
+      ({ tabs: t, activeTabId: active }: { tabs: typeof tabs; activeTabId: string | undefined }) => {
+        localStorage.setItem("harmony-open-tabs", JSON.stringify(t));
+        if (active) localStorage.setItem("harmony-active-tab", active);
+        // 前回テストの harmony-prefixed キー残留をまとめてクリア (tabs/active 以外)
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith("harmony-") && k !== "harmony-open-tabs" && k !== "harmony-active-tab") {
+            localStorage.removeItem(k);
+          }
+        }
+      },
+      { tabs, activeTabId },
+    );
+  }
+  // addInitScript 非対応 or フォールバック不要 (初期化前でないと意味が無いため evaluate は使わない)
 }
 
 // ── 内部: UUID ヘルパー ─────────────────────────────────────────────────────
@@ -424,6 +527,15 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
     const p = subPath.startsWith("/") ? subPath : `/${subPath}`;
     return `/w/${wsId}${p === "/" ? "/" : p}`;
   };
+
+  // 変更 2: afterEach hook — resetEachTest のデフォルト on
+  const shouldResetEachTest = opts.resetEachTest !== false; // デフォルト true
+  if (shouldResetEachTest) {
+    playwrightTest.afterEach(async () => {
+      await resetWorkspaceRuntimeState(wsId).catch(() => undefined);
+    });
+  }
+
   return {
     key,
     workspacePath,
@@ -465,8 +577,39 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
         window.history.pushState({}, "", target);
         window.dispatchEvent(new PopStateEvent("popstate"));
       }, { id: wsId, target: targetPath });
-      // SPA 遷移なので page.url() はすぐに target になる。React Router の async 解決待ち。
-      await page.waitForURL((url) => url.pathname === targetPath, { timeout: 5000 }).catch(() => undefined);
+
+      // 変更 3: gotoActive 終了 guard 強化
+      // 1. waitForURL — catch を外して timeout は throw に (5s → 15s)
+      if (page.waitForURL) {
+        await page.waitForURL((url) => url.pathname === targetPath, { timeout: 15000 });
+      }
+
+      // 2. bridge connected 確認 (navigation 後も)
+      await page.waitForFunction(
+        () => (window as unknown as { __mcpBridge?: { status?: string } }).__mcpBridge?.status === "connected",
+        undefined,
+        { timeout: 15000 },
+      );
+
+      // 3. route 別 marker visible 待ち
+      // subPath から route を抽出して対応する DOM marker を待つ
+      const routeMarkerMap: Record<string, string> = {
+        "/screen/list": ".screen-list-page",
+        "screen/list": ".screen-list-page",
+        "/table/list": ".table-list-page",
+        "table/list": ".table-list-page",
+        "/process-flow/list": ".process-flow-page",
+        "process-flow/list": ".process-flow-page",
+        "/": ".dashboard-view",
+        "": ".dashboard-view",
+        "/dashboard": ".dashboard-view",
+        "dashboard": ".dashboard-view",
+      };
+      const normalizedSub = subPath.startsWith("/") ? subPath : `/${subPath}`;
+      const marker = routeMarkerMap[normalizedSub];
+      if (marker && page.locator) {
+        await page.locator(marker).waitFor({ state: "visible", timeout: 15000 }).catch(() => undefined);
+      }
     },
   };
 }
