@@ -16,14 +16,18 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 const SCREEN_ID = "aaaaaaaa-0001-4000-8000-aaaaaaaaaaaa";
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
-const dummyProject = {
-  version: 1, name: "E2Eテスト用プロジェクト",
-  screens: [{ id: SCREEN_ID, no: 1, name: "ログイン", path: "/login", kind: "form", hasDesign: true }],
-  groups: [], edges: [], tables: [],
-};
+const dummyProject = buildProject({
+  name: "E2Eテスト用プロジェクト",
+  entities: {
+    screens: [{ id: SCREEN_ID, no: 1, name: "ログイン", path: "/login", kind: "form", hasDesign: true, updatedAt: FIXED_TS }],
+  } as ProjectEntities,
+});
 
 const SCREEN_NORM = normalizeId(SCREEN_ID);
 const dummyTab = { id: `design:${SCREEN_NORM}`, type: "design", resourceId: SCREEN_NORM, label: "ログイン", isDirty: false, isPinned: false };

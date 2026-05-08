@@ -17,11 +17,14 @@ import {
 } from "./helpers/realWorkspace";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 const screenId1 = "scr-1";
 const screenId2 = "scr-2";
 const SCREEN1_NORM = normalizeId(screenId1);
 const SCREEN2_NORM = normalizeId(screenId2);
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 const sampleCatalog = {
   version: "1.0.0",
@@ -31,14 +34,15 @@ const sampleCatalog = {
   externalOutcomeDefaults: {},
 };
 
-const dummyProject = {
-  version: 1, name: "screen-items-ui",
-  screens: [
-    { id: screenId1, no: 1, name: "ログイン画面", kind: "form" },
-    { id: screenId2, no: 2, name: "顧客登録画面", kind: "form" },
-  ],
-  groups: [], edges: [], tables: [], processFlows: [],
-};
+const dummyProject = buildProject({
+  name: "screen-items-ui",
+  entities: {
+    screens: [
+      { id: screenId1, no: 1, name: "ログイン画面", kind: "form", updatedAt: FIXED_TS },
+      { id: screenId2, no: 2, name: "顧客登録画面", kind: "form", updatedAt: FIXED_TS },
+    ],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-screen-items";
 let mcpAvailable = false;

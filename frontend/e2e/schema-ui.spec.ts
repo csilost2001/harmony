@@ -17,6 +17,8 @@ import {
   normalizeId,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
 
 const groupId = "ag-schema-ui-test";
@@ -73,26 +75,24 @@ const dummyGroup = {
   updatedAt: new Date().toISOString(),
 };
 
-const dummyProject = {
-  version: 1,
+const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
+
+const dummyProject = buildProject({
   name: "schema-ui-test",
-  screens: [],
-  groups: [],
-  edges: [],
-  tables: [],
-  processFlows: [
-    {
-      id: groupId,
-      no: 1,
-      name: dummyGroup.name,
-      type: dummyGroup.type,
-      actionCount: 1,
-      updatedAt: dummyGroup.updatedAt,
-      maturity: dummyGroup.maturity,
-    },
-  ],
-  updatedAt: new Date().toISOString(),
-};
+  entities: {
+    processFlows: [
+      {
+        id: groupId,
+        no: 1,
+        name: dummyGroup.name,
+        kind: dummyGroup.type as string,
+        actionCount: 1,
+        maturity: dummyGroup.maturity,
+        updatedAt: FIXED_TS,
+      },
+    ],
+  } as ProjectEntities,
+});
 
 async function setupEditor(page: Page) {
   await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
@@ -123,14 +123,14 @@ async function expandStep(page: Page, index: number) {
 }
 
 // realWorkspace 移植 (#926): 実 backend 経由の dummy fixture
-// ProcessFlow body は dummyGroup を v3 shape (top-level id + meta) で再利用する。
-const dummyGroupBody: Record<string, unknown> = {
+// ProcessFlow body は dummyGroup を v3 shape (buildProcessFlow) で生成する。
+const dummyGroupBody = buildProcessFlow({
   id: groupId,
-  $schema: "../../../schemas/v3/process-flow.v3.schema.json",
-  meta: { id: groupId, name: dummyGroup.name, kind: dummyGroup.type ?? dummyGroup.kind ?? "screen", mode: "upstream", maturity: "draft", version: "1.0.0", createdAt: dummyGroup.createdAt ?? "2026-05-08T00:00:00.000Z", updatedAt: dummyGroup.updatedAt ?? "2026-05-08T00:00:00.000Z" },
-  actions: dummyGroup.actions,
-  ...((dummyGroup as Record<string, unknown>).markers !== undefined ? { markers: (dummyGroup as Record<string, unknown>).markers } : {}),
-};
+  name: dummyGroup.name,
+  kind: (dummyGroup.type ?? "screen") as ReturnType<typeof buildProcessFlow>["meta"]["kind"],
+  mode: "upstream",
+  actions: dummyGroup.actions as ReturnType<typeof buildProcessFlow>["actions"],
+});
 
 const WS_KEY = "issue-926-schema-ui";
 let mcpAvailable = false;
@@ -149,7 +149,7 @@ test.beforeEach(async () => {
   ws = await setupTestWorkspace({
     key: WS_KEY,
     project: dummyProject,
-    processFlows: [dummyGroupBody as unknown as { id: string }],
+    processFlows: [dummyGroupBody],
   });
 });
 test.describe("step runIf 入力 (#202)", () => {

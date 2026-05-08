@@ -11,19 +11,21 @@ import {
   isMcpRunning,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { buildProject } from "./__fixtures__/builders";
+import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
-const dummyProject = {
-  version: 1,
+const dummyProject = buildProject({
   name: "Sort Readonly Test",
-  screens: [
-    { id: "s-1", no: 1, name: "Charlie", kind: "other", path: "/c", updatedAt: "2024-03-03T00:00:00Z" },
-    { id: "s-2", no: 2, name: "Alpha", kind: "other", path: "/a", updatedAt: "2024-01-01T00:00:00Z" },
-    { id: "s-3", no: 3, name: "Echo", kind: "other", path: "/e", updatedAt: "2024-05-05T00:00:00Z" },
-    { id: "s-4", no: 4, name: "Bravo", kind: "other", path: "/b", updatedAt: "2024-02-02T00:00:00Z" },
-    { id: "s-5", no: 5, name: "Delta", kind: "other", path: "/d", updatedAt: "2024-04-04T00:00:00Z" },
-  ],
-  groups: [], edges: [], tables: [],
-};
+  entities: {
+    screens: [
+      { id: "s-1", no: 1, name: "Charlie", kind: "other", path: "/c", updatedAt: "2024-03-03T00:00:00Z" as unknown as Timestamp },
+      { id: "s-2", no: 2, name: "Alpha", kind: "other", path: "/a", updatedAt: "2024-01-01T00:00:00Z" as unknown as Timestamp },
+      { id: "s-3", no: 3, name: "Echo", kind: "other", path: "/e", updatedAt: "2024-05-05T00:00:00Z" as unknown as Timestamp },
+      { id: "s-4", no: 4, name: "Bravo", kind: "other", path: "/b", updatedAt: "2024-02-02T00:00:00Z" as unknown as Timestamp },
+      { id: "s-5", no: 5, name: "Delta", kind: "other", path: "/d", updatedAt: "2024-04-04T00:00:00Z" as unknown as Timestamp },
+    ],
+  } as ProjectEntities,
+});
 
 const WS_KEY = "issue-926-sort-readonly";
 let mcpAvailable = false;
