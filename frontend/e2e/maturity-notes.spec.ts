@@ -93,7 +93,9 @@ async function setupEditor(page: Page) {
 }
 
 // realWorkspace 移植 (#926): 実 backend 経由の dummy fixture
-// ProcessFlow body は dummyGroup を v3 shape で再利用する。
+// NOTE(#966): top-level `markers` spread は v3 schema 違反だが、product 側の MarkersSummaryPanel.tsx
+// が `g.markers` (top-level) を読むため互換目的で維持。MarkersSummaryPanel 修正後 (#966) に
+// `authoring.markers` への集約を予定。
 const baseGroupBody = buildProcessFlow({
   id: groupId,
   name: dummyGroup.name,
