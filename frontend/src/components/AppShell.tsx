@@ -694,10 +694,14 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   }, [location.pathname]);
 
   // アクティブタブ → URL 同期
-  // workspace 未選択中 (active=null) や /workspace/select 表示中は同期を停止する。
+  // workspace が完全未選択 (active=null + wsId 無し) や /workspace/select 表示中は同期を停止する。
   // localStorage に残った activeTabId が design:xxx 等を指していると、guard が
   // /workspace/select に redirect → 直後に本 effect が /screen/design/xxx へ navigate
   // を上書き → guard が再度 redirect、というループ / flicker を起こすため。
+  //
+  // ただし URL に wsId がある場合 (= /w/:wsId/* 経由) は recovery 中でも navigate 許可 (#957)。
+  // tab → URL は activeTab.resourceId だけで決まり workspace state race の影響は無く、
+  // recovery 完了後に Designer mount のフローを保てる。
   // workspace-list タブだけは select 画面からの誘導でも進入可能なので例外扱い。
   const activeTab = tabs.find((t) => t.id === activeTabId);
   // 前回 sync 済 activeTabId を ref で保持。本当に activeTabId が変化した時だけ navigate する
