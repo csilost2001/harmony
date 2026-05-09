@@ -317,3 +317,44 @@ test.describe("編集モード UI — 強制解除シナリオ", () => {
     }
   });
 });
+
+// #980-A: ResumeOrDiscardDialog filter (participants[mySessionId] のみ) が
+// ProcessFlow 以外のエディタでも正しく動作することを multi-tab で検証する。
+// alice が編集中に bob が同 resource を開いても ResumeOrDiscardDialog は表示されない
+// (= 「他人の Active session を自分の draft と誤認しない」)。
+test.describe("編集モード UI — ResumeOrDiscardDialog filter (multi-tab) #980-A", () => {
+  test.beforeAll(async () => { mcpAvailable = await isMcpRunning(); });
+  test.beforeEach(async () => {
+    test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    ws = await makeWs();
+  });
+
+  test("TableEditor: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
+    test.setTimeout(120000);
+    const ctxA = await browser.newContext();
+    const ctxB = await browser.newContext();
+    const pageA = await ctxA.newPage();
+    const pageB = await ctxB.newPage();
+    const dummyTabT = { id: `table:${TABLE_NORM}`, type: "table", resourceId: TABLE_NORM, label: "編集モードテスト", isDirty: false, isPinned: false };
+
+    try {
+      // alice: TableEditor 編集開始
+      await seedTabsForWorkspace(pageA, ws.wsId, [dummyTabT], dummyTabT.id);
+      await ws.gotoActive(pageA, `/table/edit/${TABLE_NORM}`);
+      if (!await startEditOrSkip(pageA)) return;
+      await expect(pageA.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });
+
+      // bob: 同 resource を開く → ResumeOrDiscardDialog が出ないことを確認
+      await seedTabsForWorkspace(pageB, ws.wsId, [dummyTabT], dummyTabT.id);
+      await ws.gotoActive(pageB, `/table/edit/${TABLE_NORM}`);
+      // 5s 待機して dialog が出ないことを確認 (出る場合は 1-3s で出る)
+      await pageB.waitForTimeout(5000);
+      await expect(pageB.locator('.edit-mode-modal-backdrop')).not.toBeVisible();
+      // bob は EditSessionDropdown 経由で Viewer attach できる状態
+      await expect(pageB.getByTestId("esd-toggle-btn")).toBeVisible({ timeout: 5000 });
+    } finally {
+      await ctxA.close();
+      await ctxB.close();
+    }
+  });
+});

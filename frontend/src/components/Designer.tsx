@@ -161,18 +161,23 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
       for (let attempt = 0; attempt < 25 && !cancelled; attempt++) {
         try {
           const [screenSessions, puckSessions] = await Promise.all([
-            mcpBridge.request("editSession.list", { resourceType: "screen", resourceId: screenId }) as Promise<{ sessions: unknown[] } | null>,
-            mcpBridge.request("editSession.list", { resourceType: "puck-data", resourceId: screenId }) as Promise<{ sessions: unknown[] } | null>,
+            mcpBridge.request("editSession.list", { resourceType: "screen", resourceId: screenId }) as Promise<{ sessions: Array<{ state?: string; participants?: Record<string, unknown> }> } | null>,
+            mcpBridge.request("editSession.list", { resourceType: "puck-data", resourceId: screenId }) as Promise<{ sessions: Array<{ state?: string; participants?: Record<string, unknown> }> } | null>,
           ]);
           if (cancelled) return;
-          // state === "Active" のみを対象とする (discarded session は表示しない)
-          // NOTE (#980-A): 他エディタは participants[mySessionId] filter で「自分の session のみ」に絞っているが
-          // Designer (GrapesJS) は HARD navigation (page.goto("/workspace/select")) で clientId が変わるため
-          // navigation 後 「自分の draft」 を resume できなくなる。Designer は単一 user 単一 page UX が
-          // メインの編集経路のため、ここでは any active session で dialog を出す旧来動作を維持する。
-          // 多重 tab で他人の active session が混入するシナリオでは spec 側の dismiss loop で対処する。
-          const screenHasDraft = (screenSessions?.sessions ?? []).some((s: unknown) => (s as { state?: string }).state === "Active");
-          const puckHasDraft = (puckSessions?.sessions ?? []).some((s: unknown) => (s as { state?: string }).state === "Active");
+          // #980-A: 自分が participant として参加していた Active session のみ対象。
+          // 他人の Active session で自分が unparticipated の場合は ResumeOrDiscardDialog を出さない。
+          // GrapesJS / Puck 両経路 (resourceType: "screen" / "puck-data") で同 filter を適用。
+          // 注: clientId 変化を伴う navigation flow で「自分の draft」 が resume できない問題は
+          //   別途検出 (legacy localStorage rescue 経路や session restore で別途対処)、本 dialog の
+          //   主旨「自分の未保存編集を復元」は participant filter で正しい意味を保つ。
+          const mySessionId = mcpBridge.getSessionId();
+          const screenHasDraft = (screenSessions?.sessions ?? []).some((s) =>
+            s.state === "Active" && !!s.participants?.[mySessionId],
+          );
+          const puckHasDraft = (puckSessions?.sessions ?? []).some((s) =>
+            s.state === "Active" && !!s.participants?.[mySessionId],
+          );
           if (screenHasDraft || puckHasDraft) setShowResumeDialog(true);
           return;
         } catch (err) {
