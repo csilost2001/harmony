@@ -15,6 +15,7 @@ import {
   seedTabsForWorkspace,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { attachAsViewer, takeOver } from "./helpers/editSessionDropdown";
 import {
   buildProject,
   buildProcessFlow,
@@ -301,24 +302,11 @@ test.describe("編集モード UI — 強制解除シナリオ", () => {
       if (!await startEditOrSkip(pageA)) return;
       await expect(pageA.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
 
-      // tab B: 同 resource を開く → Viewer 化 → take-over (強制解除相当)
-      // EditSessionDropdown のクリックは Playwright actionability が `.esd-root` を
-      // 拾うため (#980-A) dispatchEvent で bypass する
+      // tab B: 同 resource を開く → Viewer attach → take-over (helpers/editSessionDropdown 経由)
       await seedTabsForWorkspace(pageB, ws.wsId, [dummyTabPF], dummyTabPF.id);
       await ws.gotoActive(pageB, `/process-flow/edit/${PF_NORM}`);
-      await expect(pageB.getByTestId("esd-toggle-btn")).toBeVisible({ timeout: 15000 });
-      await pageB.evaluate(() => (document.querySelector('[data-testid="esd-toggle-btn"]') as HTMLButtonElement | null)?.click());
-
-      // Viewer attach → take-over button が表示される
-      await expect(pageB.locator('[data-testid^="esd-viewer-btn-"]').first()).toBeVisible({ timeout: 5000 });
-      await pageB.evaluate(() => (document.querySelector('[data-testid^="esd-viewer-btn-"]') as HTMLButtonElement | null)?.click());
-      await pageB.waitForTimeout(1500);
-      await pageB.evaluate(() => (document.querySelector('[data-testid="esd-toggle-btn"]') as HTMLButtonElement | null)?.click());
-      await expect(pageB.locator('[data-testid^="esd-takeover-btn-"]').first()).toBeVisible({ timeout: 15000 });
-      await pageB.evaluate(() => {
-        window.confirm = () => true;
-        (document.querySelector('[data-testid^="esd-takeover-btn-"]') as HTMLButtonElement | null)?.click();
-      });
+      await attachAsViewer(pageB);
+      await takeOver(pageB);
 
       // tab B が Edit role になり、tab A は Viewer 化される
       await expect(pageB.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });

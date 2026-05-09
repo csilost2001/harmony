@@ -103,9 +103,15 @@ export function ExtensionsPanel() {
     if (mode.kind !== "readonly") return;
     let cancelled = false;
     (async () => {
-      const res = await mcpBridge.request("editSession.list", { resourceType: "extension", resourceId: active }) as { sessions: unknown[] } | null;
+      const res = await mcpBridge.request("editSession.list", { resourceType: "extension", resourceId: active }) as { sessions: Array<{ state?: string; participants?: Record<string, unknown> }> } | null;
       if (cancelled) return;
-      if (res && res.sessions.length > 0) setShowResumeDialog(true);
+      // #980-A: 自分が participant として参加していた Active session のみ対象。
+      // 他人の session の場合は ResumeOrDiscardDialog を出さない。
+      const mySessionId = mcpBridge.getSessionId();
+      const hasMyActiveSession = (res?.sessions ?? []).some((s) =>
+        s.state === "Active" && !!s.participants?.[mySessionId],
+      );
+      if (hasMyActiveSession) setShowResumeDialog(true);
     })().catch(console.error);
     return () => { cancelled = true; };
   }, [active, sessionLoading, mode.kind]);

@@ -554,9 +554,14 @@ export function ScreenItemsView() {
     if (!screenId) return;
     let cancelled = false;
     (async () => {
-      const res = await mcpBridge.request("editSession.list", { resourceType: "screen-item", resourceId: screenId }) as { sessions: unknown[] } | null;
+      const res = await mcpBridge.request("editSession.list", { resourceType: "screen-item", resourceId: screenId }) as { sessions: Array<{ state?: string; participants?: Record<string, unknown> }> } | null;
       if (cancelled) return;
-      if (res && res.sessions.length > 0) setShowResumeDialog(true);
+      // #980-A: 自分が participant として参加していた Active session のみ対象。
+      const mySessionId = mcpBridge.getSessionId();
+      const hasMyActiveSession = (res?.sessions ?? []).some((s) =>
+        s.state === "Active" && !!s.participants?.[mySessionId],
+      );
+      if (hasMyActiveSession) setShowResumeDialog(true);
     })().catch(console.error);
     return () => { cancelled = true; };
   }, [sessionLoading, mode.kind, screenId]);

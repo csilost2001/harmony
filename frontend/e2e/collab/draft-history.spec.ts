@@ -22,6 +22,11 @@ import {
   seedTabsForWorkspace,
   type OpenedWorkspace,
 } from "../helpers/realWorkspace";
+import {
+  attachAsViewer,
+  takeOver,
+  openHistoryModal,
+} from "../helpers/editSessionDropdown";
 import { buildProject, buildProcessFlow } from "../__fixtures__/builders";
 import type { ProjectEntities, Timestamp } from "../../src/types/v3";
 
@@ -140,13 +145,8 @@ test.describe("draft history 7 日保持 UI (#893)", () => {
     await ensureReadOnly(page);
     await page.getByTestId("edit-mode-start").click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });
-    // EditSessionDropdown を開く
-    const dropdownToggle = page.getByTestId("esd-toggle-btn");
-    await expect(dropdownToggle).toBeVisible({ timeout: 5000 });
-    await dropdownToggle.click();
-    const historyBtn = page.getByTestId("esd-history-btn");
-    await expect(historyBtn).toBeVisible({ timeout: 5000 });
-    await historyBtn.click();
+    // EditSessionDropdown を開いて履歴 modal を表示 (helpers/editSessionDropdown 経由)
+    await openHistoryModal(page);
     const modal = page.getByTestId("draft-history-modal");
     await expect(modal).toBeVisible({ timeout: 5000 });
     await expect(page.getByText("履歴がありません")).toBeVisible({ timeout: 5000 });
@@ -180,33 +180,17 @@ test.describe("draft history 7 日保持 UI (#893)", () => {
       await pageA.locator(".process-flow-modal button.btn-primary").click();
       await expect(pageA.locator(".process-flow-modal")).not.toBeVisible({ timeout: 5000 });
 
-      // pageB: bob を Viewer として attach (takeover 表示条件を満たすため)
-      // EditSessionDropdown のクリックは Playwright actionability が `.esd-root` を
-      // 拾うため (#980-A) dispatchEvent で bypass する
+      // pageB: bob を Viewer として attach → take-over (helpers/editSessionDropdown 経由)
       await seedTabsForWorkspace(pageB, ws.wsId, [dummyTab], dummyTab.id);
       await gotoEditorAndDismiss(pageB);
-      await expect(pageB.getByTestId("esd-toggle-btn")).toBeVisible({ timeout: 15000 });
-      await pageB.evaluate(() => (document.querySelector('[data-testid="esd-toggle-btn"]') as HTMLButtonElement | null)?.click());
-      await expect(pageB.locator('[data-testid^="esd-viewer-btn-"]').first()).toBeVisible({ timeout: 5000 });
-      await pageB.evaluate(() => (document.querySelector('[data-testid^="esd-viewer-btn-"]') as HTMLButtonElement | null)?.click());
-      await pageB.waitForTimeout(1500);
-      await pageB.evaluate(() => (document.querySelector('[data-testid="esd-toggle-btn"]') as HTMLButtonElement | null)?.click());
-
-      // pageB が take-over → pageA の snapshot が history 記録
-      await expect(pageB.locator('[data-testid^="esd-takeover-btn-"]').first()).toBeVisible({ timeout: 15000 });
-      await pageB.evaluate(() => {
-        window.confirm = () => true;
-        (document.querySelector('[data-testid^="esd-takeover-btn-"]') as HTMLButtonElement | null)?.click();
-      });
+      await attachAsViewer(pageB);
+      await takeOver(pageB);
       // take-over 後 pageB が editor になる
       await expect(pageB.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });
 
       // pageA: take-over により View 化 → 履歴 modal を開いて「引継」バッジ表示確認
       await pageA.waitForTimeout(1000);
-      await expect(pageA.getByTestId("esd-toggle-btn")).toBeVisible({ timeout: 10000 });
-      await pageA.evaluate(() => (document.querySelector('[data-testid="esd-toggle-btn"]') as HTMLButtonElement | null)?.click());
-      await expect(pageA.getByTestId("esd-history-btn")).toBeVisible({ timeout: 5000 });
-      await pageA.evaluate(() => (document.querySelector('[data-testid="esd-history-btn"]') as HTMLButtonElement | null)?.click());
+      await openHistoryModal(pageA);
       const modal = pageA.getByTestId("draft-history-modal");
       await expect(modal).toBeVisible({ timeout: 5000 });
       // 「引継」バッジが modal 内に表示される (transferEdit の reason)

@@ -1,0 +1,17 @@
+{
+  "_comment": "プロジェクト共有 Claude Code 設定 (git tracked)。settings.local.json は per-machine 個人設定 (gitignored)。",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "_comment": "#980-A 再発防止: e2e spec で esd-* ボタンを Playwright locator.click() で叩くと 180s timeout する。helpers/editSessionDropdown の helper 使用を強制。",
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PROJECT_DIR}/.claude/hooks/check-esd-click.mjs"
+          }
+        ]
+      }
+    ]
+  }
+}

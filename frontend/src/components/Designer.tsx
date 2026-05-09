@@ -166,6 +166,11 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
           ]);
           if (cancelled) return;
           // state === "Active" のみを対象とする (discarded session は表示しない)
+          // NOTE (#980-A): 他エディタは participants[mySessionId] filter で「自分の session のみ」に絞っているが
+          // Designer (GrapesJS) は HARD navigation (page.goto("/workspace/select")) で clientId が変わるため
+          // navigation 後 「自分の draft」 を resume できなくなる。Designer は単一 user 単一 page UX が
+          // メインの編集経路のため、ここでは any active session で dialog を出す旧来動作を維持する。
+          // 多重 tab で他人の active session が混入するシナリオでは spec 側の dismiss loop で対処する。
           const screenHasDraft = (screenSessions?.sessions ?? []).some((s: unknown) => (s as { state?: string }).state === "Active");
           const puckHasDraft = (puckSessions?.sessions ?? []).some((s: unknown) => (s as { state?: string }).state === "Active");
           if (screenHasDraft || puckHasDraft) setShowResumeDialog(true);

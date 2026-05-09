@@ -172,3 +172,55 @@ vi.mock("../mcp/mcpBridge", () => {
 | WS↔ファイル永続化 | MCP E2E | `mcp-tools.spec.ts`（14 ケース）|
 
 エディタ側のテストは最小限で OK: 「保存ボタンが有効化される」「タブに ● が出る」「Ctrl+S で保存される」を確認すればフック配線は通る。
+
+## EditSessionDropdown / 多重 context 系テストの注意 (#980-A 教訓)
+
+`[data-testid^="esd-"]` のボタン (`esd-toggle-btn` / `esd-viewer-btn-*` /
+`esd-takeover-btn-*` / `esd-discard-btn-*` / `esd-new-draft-btn` / `esd-history-btn`) の
+クリックは **絶対に Playwright の `locator.click()` を使わない**。**必ず**
+[`frontend/e2e/helpers/editSessionDropdown.ts`](../../frontend/e2e/helpers/editSessionDropdown.ts)
+の helper を使う。
+
+```ts
+// ✗ NG: これは 180s timeout する。Playwright actionability check が `.esd-root` 親 div を拾うため。
+await page.getByTestId("esd-toggle-btn").click();
+await page.locator('[data-testid^="esd-takeover-btn-"]').first().click();
+
+// ✓ OK: helper 経由 (`page.evaluate(() => btn.click())` で actionability bypass)
+import { openEsdDropdown, attachAsViewer, takeOver, startNewDraft, openHistoryModal } from "../helpers/editSessionDropdown";
+await openEsdDropdown(page);
+await attachAsViewer(page);
+await takeOver(page);
+```
+
+### なぜ Playwright click() がダメか
+
+EditSessionDropdown の DOM は `<div class="esd-root"><button class="esd-toggle">...</button></div>`。
+Chromium の `document.elementFromPoint(centerX, centerY)` が `.esd-root` の方を返すため
+Playwright actionability check が「intercepts pointer events」を出して click を待ち続ける。
+`force: true` でも Playwright は座標経由で click するため React onClick が `.esd-root` で発火し
+button の onClick に届かない。`page.evaluate(() => btn.click())` で **DOM 上の button 要素に
+直接 click イベントを dispatch** する必要がある。
+
+### 多重 browser context テストのお作法 (collab/* / edit-session/*)
+
+- **両 page で `seedTabsForWorkspace` + `gotoEditorAndDismiss`**: 片方だけだと
+  ResumeOrDiscardDialog の backdrop が click を遮蔽する
+- **alice の payload を非 null にしてから take-over**: backend `editSessionStore.transferEdit`
+  は `session.payload === null` の場合 history snapshot を skip する。alice 側で
+  「アクション追加」等の編集を 1 つ加えてから bob が take-over する
+- **`window.confirm` override は click と同期 evaluate 内で**: `page.on("dialog", ...)` は
+  async race で取りこぼす場合がある。helper の `takeOver(page)` は内部で同期 evaluate を
+  使っているのでこの問題を回避済
+- **`finally` で context.close() に任せる**: 明示 discard を入れると state race で hang
+  しがち。context が閉じれば WS 切断 → backend の `presenceUnregisterAllForSession` で
+  cleanup される (#980-A の追加 fix)
+
+### よくある誤った期待値 (旧仕様の名残)
+
+- 「リセット後 dirty マーク消える」は **削除済**: edit-session-protocol §4 で reset 後も
+  EditSession Active 継続 (Edit role 維持) のため `isDirtyForTab = myRole === "Edit"` で
+  tab dirty は維持される設計
+- 「他人の Active session があれば ResumeOrDiscardDialog が出る」は **誤動作**:
+  `participants[mcpBridge.getSessionId()]` がいる Active session のみが「自分の draft」。
+  全エディタで filter 適用済 (#980-A)。新エディタを追加する際は同じ filter を踏襲すること

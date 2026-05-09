@@ -983,6 +983,91 @@ smoke 検証: スキップ (<理由>)
 - diary `apps/api/` は test ファイル追加 OK、本体実装変更不可
 - CI に組み込まない (本スキルは AI 対話駆動、CI 自動化は別 ISSUE)
 
+## Playwright E2E トラブルシューティング (#980-A 由来の汎用知見)
+
+各プロダクトでも Playwright E2E を書く際に類似の問題が起きうる。発生時のパターン化された解法:
+
+### 症状 1: `locator.click()` が timeout (intercepts pointer events)
+
+```text
+TimeoutError: locator.click: Timeout 30000ms exceeded.
+  - <div class="parent-class">…</div> intercepts pointer events
+```
+
+**真因**: 親要素 (badge container, label wrapper 等) が `document.elementFromPoint` で先に
+返されるため Playwright は「button が前面でない」と判定して click を待ち続ける。
+button 内の `<span>` (icon + text) が hit test を捕捉している場合や、親 div が
+button と同サイズで stacking 上 button を覆ってしまう場合に発生する。
+
+**対処順**:
+
+1. **production CSS fix (推奨)**: button 内の icon / label `<span>` に
+   `pointer-events: none` を CSS で当てる。button 自身は capture できるよう残す。
+2. **`force: true` を試す**: `locator.click({ force: true })` で actionability check を
+   bypass。ただし Playwright は依然座標経由で click するため、親 div が前面の場合は
+   親の onClick が呼ばれて button onClick に届かない (Designer の `.esd-root` がこれ)。
+3. **`page.evaluate` で直接 dispatch (最終手段)**: actionability check を完全 bypass。
+   ```ts
+   await page.evaluate((sel) => (document.querySelector(sel) as HTMLButtonElement | null)?.click(), `[data-testid="${id}"]`);
+   ```
+   React の onClick は確実に発火する。helper 関数化して spec 全体で共有するのが望ましい
+   (Harmony の `frontend/e2e/helpers/editSessionDropdown.ts` 参照)。
+
+### 症状 2: Modal backdrop が click を遮蔽する
+
+```text
+TimeoutError: locator.click: Timeout 30000ms exceeded.
+  - <div class="modal-backdrop"> intercepts pointer events
+```
+
+**真因**: ResumeOrDiscardDialog 等の modal が前面に出て backdrop が click を遮る。
+test setup 時に modal を dismiss し忘れた / 別タブから出た modal が想定外に閲覧 tab
+にも出ている。
+
+**対処**:
+
+1. **明示 dismiss loop を spec setup に入れる**:
+   ```ts
+   for (let i = 0; i < 3; i++) {
+     if (await page.locator('.modal-backdrop').isVisible().catch(() => false)) {
+       await page.evaluate(() => (document.querySelector('[data-testid="modal-cancel"]') as HTMLButtonElement | null)?.click());
+       await page.locator('.modal-backdrop').waitFor({ state: 'hidden', timeout: 5000 }).catch(() => undefined);
+     } else { break; }
+   }
+   ```
+2. **production fix**: modal を出すべきでないシーンで出ているなら filter ロジック修正
+   (例: 「自分の draft」だけ出すべき modal が「全 active session」で出ていた → 自分が
+   participant の session のみ filter する)。Harmony の ResumeOrDiscardDialog は
+   `participants[mySessionId]` filter で多重 tab 検証時に modal が出ない設計。
+
+### 症状 3: 多重 browser context テストが timeout
+
+**真因**: 2 ブラウザ context を使う test (collab / take-over 系) は 1 つのページでは
+出ない問題が複合する。よくある落とし穴:
+
+- 両 context で同じ data seed を実行する必要がある (片方だけだと UI 状態が異なる)
+- broadcast 反映に時間がかかるため `await waitForTimeout(1500)` 程度入れる
+- `window.confirm` override は **同期 evaluate 内で click と一緒に行う**
+  (`page.on("dialog", ...)` は async race で取りこぼす)
+- `finally` で context.close() に任せる (明示 discard は state race で hang する)
+
+```ts
+// ✓ 同期 evaluate で confirm + click
+await page.evaluate(() => {
+  window.confirm = () => true;
+  (document.querySelector('[data-testid="action-btn"]') as HTMLButtonElement | null)?.click();
+});
+```
+
+### 症状 4: WS 切断時に presence / heartbeat / SessionBadge が残る
+
+**真因**: backend の `ws.on("close")` で session 関連の cleanup を呼んでいない。
+
+**対処**: WS 切断ハンドラで該当 session の presence / lock / draft 等を即時 cleanup +
+broadcast する。Harmony 側は `presenceUnregisterAllForSession(clientId)` を
+`wsBridge.ts:close` で実行している (#980-A の追加 fix)。各プロダクトが独自 WS を
+持つ場合は同パターンを参照。
+
 ## 最終レポート
 
 ### ProcessFlow モード (P1/P2)
