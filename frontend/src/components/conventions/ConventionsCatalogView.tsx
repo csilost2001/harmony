@@ -14,6 +14,7 @@ import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
+import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import {
   DiscardConfirmDialog,
   ForceReleaseConfirmDialog,
@@ -119,7 +120,7 @@ export function ConventionsCatalogView() {
   const sessionId = mcpBridge.getSessionId();
 
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "convention",
     resourceId: "singleton",
     sessionId,
@@ -355,6 +356,19 @@ export function ConventionsCatalogView() {
         saving={isSaving}
         ownerLabel={lockedByOther?.ownerSessionId}
       />
+
+      {/* #994: collab UX 整合 — Viewer attach / take-over / 新規 draft / 履歴 */}
+      <div className="d-flex justify-content-end" style={{ padding: "4px 8px" }}>
+        <EditSessionDropdown
+          resourceType="convention"
+          resourceId="singleton"
+          currentMode={mode}
+          currentSessionId={sessionId}
+          onStartEditing={() => { void actions.startEditing(); }}
+          onAttachAsView={attach}
+          onTakeOver={takeOver}
+        />
+      </div>
 
       {mode.kind === "force-released-pending" && (
         <ForcedOutChoiceDialog

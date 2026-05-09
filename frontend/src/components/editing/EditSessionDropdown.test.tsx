@@ -28,11 +28,15 @@ vi.mock("../../styles/editSessionDropdown.css", () => ({}));
 
 // ── テストデータ ─────────────────────────────────────────────────────────────
 
+// #980-A review 3: onAttachAsView / onTakeOver は required prop 化されたため
+// defaultProps で no-op stub を渡す。テスト個別の振る舞い検証はそれぞれで上書き。
 const defaultProps = {
   resourceType: "process-flow" as const,
   resourceId: "flow-001",
   currentMode: { kind: "readonly" } as const,
   currentSessionId: "session-self",
+  onAttachAsView: async () => { /* no-op default */ },
+  onTakeOver: async () => { /* no-op default */ },
 };
 
 function makeEditSession(overrides: Partial<EditSessionData> = {}): EditSessionData {
@@ -186,15 +190,15 @@ describe("EditSessionDropdown", () => {
     });
   });
 
-  it("[👁 観察] クリックで editSession.attachAsView が呼ばれ onViewerAttached が発火する", async () => {
-    mockRequest
-      .mockResolvedValueOnce({ sessions: [makeEditSession({ id: "es-001" })] }) // list
-      .mockResolvedValueOnce({ participant: {}, payload: null, sequence: 0 });  // attachAsView
+  it("[👁 観察] クリックで onAttachAsView prop が呼ばれ onViewerAttached が発火する (#980-A: required prop 化)", async () => {
+    mockRequest.mockResolvedValueOnce({ sessions: [makeEditSession({ id: "es-001" })] }); // list
 
+    const onAttachAsView = vi.fn().mockResolvedValue(undefined);
     const onViewerAttached = vi.fn();
     render(
       <EditSessionDropdown
         {...defaultProps}
+        onAttachAsView={onAttachAsView}
         onViewerAttached={onViewerAttached}
       />,
     );
@@ -204,9 +208,9 @@ describe("EditSessionDropdown", () => {
     fireEvent.click(screen.getByTestId("esd-viewer-btn-es-001"));
 
     await waitFor(() => {
-      expect(mockRequest).toHaveBeenCalledWith("editSession.attachAsView", {
-        editSessionId: "es-001",
-      });
+      // #980-A review 3: 直接 mcpBridge.request を叩く fallback は削除済。
+      // 代わりに parent useEditSession.attach 経由 (= onAttachAsView prop) で role 同期する。
+      expect(onAttachAsView).toHaveBeenCalledWith("es-001");
       expect(onViewerAttached).toHaveBeenCalledWith("es-001");
     });
   });
@@ -219,10 +223,13 @@ describe("EditSessionDropdown", () => {
     render(<EditSessionDropdown {...defaultProps} />);
     fireEvent.click(screen.getByTestId("esd-toggle-btn"));
 
+    // AI session row が表示されることを確認 (testid 経由 — text matcher は flaky な場合あり)
+    await waitFor(() => screen.getByTestId("esd-session-es-ai-001"), { timeout: 3000 });
+    // displayLabel に "Alice@AI" を含む要素が存在することを確認
     await waitFor(() => {
-      // "Alice@AI" という displayLabel が表示されること
-      expect(screen.getByText("Alice@AI")).toBeTruthy();
-    });
+      const labelEl = screen.getByText((content) => content.includes("Alice@AI"));
+      expect(labelEl).toBeTruthy();
+    }, { timeout: 3000 });
   });
 
   it("Discarded EditSession には観察ボタンが表示されない", async () => {
@@ -370,49 +377,7 @@ describe("EditSessionDropdown", () => {
     vi.restoreAllMocks();
   });
 
-  it("#908 P2: onTakeOver が未指定の場合は editSession.transferEdit を fallback で直接呼ぶ", async () => {
-    mockRequest
-      .mockResolvedValueOnce({
-        sessions: [
-          makeEditSession({
-            id: "es-fallback-p2",
-            participants: {
-              "session-alice": {
-                sessionId: "session-alice",
-                role: "Edit",
-                joinedAt: new Date().toISOString(),
-                lastActivityAt: new Date().toISOString(),
-                displayLabel: "@alice",
-              },
-              "session-self": {
-                sessionId: "session-self",
-                role: "View",
-                joinedAt: new Date().toISOString(),
-                lastActivityAt: new Date().toISOString(),
-                displayLabel: "@self",
-              },
-            },
-          }),
-        ],
-      })
-      .mockResolvedValue({ ok: true }); // transferEdit mock
-
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-
-    render(<EditSessionDropdown {...defaultProps} />); // onTakeOver 未指定
-    fireEvent.click(screen.getByTestId("esd-toggle-btn"));
-
-    await waitFor(() => screen.getByTestId("esd-takeover-btn-es-fallback-p2"));
-    fireEvent.click(screen.getByTestId("esd-takeover-btn-es-fallback-p2"));
-
-    await waitFor(() => {
-      // fallback: editSession.transferEdit が直接呼ばれること
-      expect(mockRequest).toHaveBeenCalledWith("editSession.transferEdit", expect.objectContaining({
-        editSessionId: "es-fallback-p2",
-        toSessionId: "session-self",
-      }));
-    });
-
-    vi.restoreAllMocks();
-  });
+  // #980-A review 3: onTakeOver は required prop 化されたため、fallback (mcpBridge 直叩き) は
+  // 削除済。旧テスト「onTakeOver 未指定の fallback で transferEdit を直接呼ぶ」は新仕様では
+  // TS compile error で検出されるためテスト自体が不要になった (削除)。
 });

@@ -12,6 +12,7 @@ import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { EditorHeader, type EditorHeaderSaveReset, type EditorHeaderBackLink } from "../common/EditorHeader";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
+import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import {
   DiscardConfirmDialog,
   ForceReleaseConfirmDialog,
@@ -53,14 +54,14 @@ export function ViewEditor() {
   const sessionId = mcpBridge.getSessionId();
 
   // URL ?session= 同期 (spec §11.2) — initialEditSessionId を useEditSession に渡すため先に呼ぶ
-  const { initialEditSessionId: initialViewSessionId } = useSessionUrlSync({
+  const { initialEditSessionId: initialViewSessionId, syncSessionToUrl } = useSessionUrlSync({
     resourceType: "view",
     resourceId: viewId ?? "",
   });
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
   // #891 fix: useResourceEditor より前に呼び出し、viewerMode / viewerEditSessionId を渡せるようにする
-  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "view",
     resourceId: viewId ?? "",
     sessionId,
@@ -272,6 +273,20 @@ export function ViewEditor() {
         saving={isSaving}
         ownerLabel={lockedByOther?.ownerSessionId}
       />
+
+      {/* #994: collab UX 整合 — Viewer attach / take-over / 新規 draft / 履歴 */}
+      <div className="d-flex justify-content-end" style={{ padding: "4px 8px" }}>
+        <EditSessionDropdown
+          resourceType="view"
+          resourceId={viewId ?? ""}
+          currentMode={mode}
+          currentSessionId={sessionId}
+          onStartEditing={() => { void actions.startEditing(); }}
+          onViewerAttached={syncSessionToUrl}
+          onAttachAsView={attach}
+          onTakeOver={takeOver}
+        />
+      </div>
 
       {mode.kind === "force-released-pending" && (
         <ForcedOutChoiceDialog

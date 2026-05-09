@@ -9,6 +9,7 @@ import { DbOperationsTab } from "./DbOperationsTab";
 import { ResponseTypesTab } from "./ResponseTypesTab";
 import { useEditSession } from "../../hooks/useEditSession";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
+import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import {
   DiscardConfirmDialog,
   ForceReleaseConfirmDialog,
@@ -57,7 +58,7 @@ export function ExtensionsPanel() {
 
   const sessionId = mcpBridge.getSessionId();
 
-  const { mode, loading: sessionLoading, isDirtyForTab, actions, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
+  const { mode, loading: sessionLoading, isDirtyForTab, actions, attach, takeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: "extension",
     resourceId: active,
     sessionId,
@@ -263,6 +264,19 @@ export function ExtensionsPanel() {
         saving={saving}
         ownerLabel={lockedByOther?.ownerSessionId}
       />
+
+      {/* #994: collab UX 整合 — Viewer attach / take-over / 新規 draft / 履歴 */}
+      <div className="d-flex justify-content-end" style={{ padding: "4px 8px" }}>
+        <EditSessionDropdown
+          resourceType="extension"
+          resourceId={active}
+          currentMode={mode}
+          currentSessionId={sessionId}
+          onStartEditing={() => { void actions.startEditing(); }}
+          onAttachAsView={attach}
+          onTakeOver={takeOver}
+        />
+      </div>
 
       <div className="d-flex align-items-center justify-content-between mb-3">
         <div>

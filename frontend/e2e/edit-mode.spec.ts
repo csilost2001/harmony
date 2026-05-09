@@ -119,6 +119,25 @@ async function startEditOrSkip(page: import("@playwright/test").Page) {
   return true;
 }
 
+/**
+ * #980-A review 5: multi-tab filter テスト用に precondition 失敗を **fail-fast** に変える
+ * fail-fast 版。alice 側の `edit-mode-start` 失敗を silent skip ではなく明示 throw で検出する
+ * (spec が抑制系修正のフィクスチャ選定章で求める「ガード効果か前提失敗か区別可能」要件)。
+ */
+async function startEditFailFast(page: import("@playwright/test").Page) {
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(500);
+  for (let _i = 0; _i < 3; _i++) {
+    if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+      await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+      await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+    } else { break; }
+  }
+  // 失敗時は test.skip ではなく expect で fail (false-positive を排除)
+  await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 10000 });
+  await page.getByTestId("edit-mode-start").click();
+}
+
 test.describe("編集モード UI — TableEditor", () => {
   test.beforeAll(async () => {
     mcpAvailable = await isMcpRunning();
@@ -330,9 +349,8 @@ test.describe("編集モード UI — ResumeOrDiscardDialog filter (multi-tab) #
   });
 
   // 共通ヘルパー: alice 編集開始 → bob open → Resume dialog 非表示。
-  // hasDropdown=true の編集系は esd-toggle-btn 表示も検証 (Process / Table / VD / Sequence / ScreenItems / Designer)。
-  // 注: View / Flow / Conventions / Extensions は EditSessionDropdown を render しない設計のため
-  //   esd-toggle 検証は省略する (#994 で Dropdown 搭載追加予定。搭載完了時は対応エディタの hasDropdown=true に切替)。
+  // hasDropdown=true の編集系は esd-toggle-btn 表示も検証。
+  // #994 で全 10 編集系に EditSessionDropdown 搭載済 — 全テストが hasDropdown: true で検証可能。
   async function verifyFilter(browser: import("@playwright/test").Browser, route: string, tabType: string, resId: string, label: string, opts: { hasDropdown: boolean }) {
     const ctxA = await browser.newContext();
     const ctxB = await browser.newContext();
@@ -342,7 +360,9 @@ test.describe("編集モード UI — ResumeOrDiscardDialog filter (multi-tab) #
     try {
       await seedTabsForWorkspace(pageA, ws.wsId, [tab], tab.id);
       await ws.gotoActive(pageA, route);
-      if (!await startEditOrSkip(pageA)) return;
+      // #980-A review 5: fail-fast (silent skip 撲滅) — multi-tab filter test の precondition
+      // が崩れた場合は明示 throw して検出する
+      await startEditFailFast(pageA);
       await expect(pageA.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
 
       await seedTabsForWorkspace(pageB, ws.wsId, [tab], tab.id);
@@ -366,7 +386,7 @@ test.describe("編集モード UI — ResumeOrDiscardDialog filter (multi-tab) #
 
   test("ViewEditor: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
     test.setTimeout(120000);
-    await verifyFilter(browser, `/view/edit/${VIEW_NORM}`, "view", VIEW_NORM, "E2E ビュー", { hasDropdown: false });
+    await verifyFilter(browser, `/view/edit/${VIEW_NORM}`, "view", VIEW_NORM, "E2E ビュー", { hasDropdown: true });
   });
 
   test("ViewDefinitionEditor: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
@@ -386,16 +406,16 @@ test.describe("編集モード UI — ResumeOrDiscardDialog filter (multi-tab) #
 
   test("ConventionsCatalogView (singleton): alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
     test.setTimeout(120000);
-    await verifyFilter(browser, "/conventions/catalog", "convention", "singleton", "規約カタログ", { hasDropdown: false });
+    await verifyFilter(browser, "/conventions/catalog", "convention", "singleton", "規約カタログ", { hasDropdown: true });
   });
 
   test("ExtensionsPanel (singleton): alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
     test.setTimeout(120000);
-    await verifyFilter(browser, "/extensions", "extension", "singleton", "拡張", { hasDropdown: false });
+    await verifyFilter(browser, "/extensions", "extension", "singleton", "拡張", { hasDropdown: true });
   });
 
   test("FlowEditor (singleton): alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
     test.setTimeout(120000);
-    await verifyFilter(browser, "/screen/flow", "flow", "singleton", "画面フロー", { hasDropdown: false });
+    await verifyFilter(browser, "/screen/flow", "flow", "singleton", "画面フロー", { hasDropdown: true });
   });
 });

@@ -1553,16 +1553,11 @@
   gap: 8px;
   align-items: center;
 }
-/* Bootstrap `.btn` (display: inline-block) は内部 inline content の center 座標で
-   document.elementFromPoint() が parent block を返すケースがある (Playwright の click 内部
-   hit test と非互換)。inline-flex + child center 揃えで center 座標が確実に button child
-   (icon / text) に当たるよう調整する。 */
+/* Global `.btn` を inline-flex 化済 (frontend/src/index.css)。ここでは button group の
+   icon / text 間隔のみ指定する (display/align/justify は global で適用済、redundant 削除)。 */
 .catalog-row-add > button,
 .marker-row button,
 .marker-resolve-form button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   gap: 4px;
 }
 .catalog-new-key {

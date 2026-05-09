@@ -31,20 +31,18 @@ export interface EditSessionDropdownProps {
   onViewerAttached?: (editSessionId: string) => void;
   /**
    * #980-A fix: viewer attach の本体 action — useEditSession.attach(editSessionId) を呼ぶ。
-   * 省略時は内部で mcpBridge.request("editSession.attachAsView") を直接呼ぶ (非推奨 fallback、
-   * myRole が parent useEditSession に反映されないため take-over 経路で role 同期が崩れる)。
-   * myRole の即時反映には onAttachAsView の指定が必須。
+   * required: parent useEditSession に myRole を即時反映するため必須。
+   * (旧 fallback `mcpBridge.request("editSession.attachAsView")` 直叩きは role 同期が崩れる
+   * ため #980-A review 5 で削除済)
    */
-  onAttachAsView?: (editSessionId: string) => Promise<void>;
+  onAttachAsView: (editSessionId: string) => Promise<void>;
   /** 新規 draft 作成 (startEditing 相当) */
   onStartEditing?: () => void;
   /**
-   * P2 fix (#908): take-over callback — useEditSession.takeOver(editSessionId) を呼ぶ。
-   * editSessionId には選択した EditSession の ID が渡される。
-   * 省略時は内部で mcpBridge.request("editSession.transferEdit") を直接呼ぶ (非推奨 fallback)。
-   * myRole の即時反映には onTakeOver の指定が必須。
+   * P2 fix (#908) → #980-A review 3: take-over callback — useEditSession.takeOver(editSessionId)
+   * を呼ぶ。required: myRole 即時反映に必須 (fallback は #980-A で削除済)。
    */
-  onTakeOver?: (editSessionId: string) => Promise<void>;
+  onTakeOver: (editSessionId: string) => Promise<void>;
   /**
    * #893: draft history から復元後の callback。
    * 新規作成された editSessionId を受け取り、エディタ側で URL 切替 + attach を行う。
@@ -272,18 +270,14 @@ export function EditSessionDropdown({
   }, [open]);
 
   // ── [👁 観察] — viewer として attach ─────────────────────────────────────
+  // #980-A: useEditSession.attach 経由で myRole / editSession state を即時反映する。
+  // onAttachAsView は required prop (#980-A review 5)。fallback path は削除済 — 直接
+  // mcpBridge を叩く経路は parent broadcast handler が editSession?.id null のため起動せず
+  // myRole 同期が崩れるバグを引き起こすため、TS compile error で検出する。
   const handleViewerAttach = useCallback(
     async (editSessionId: string) => {
       try {
-        if (onAttachAsView) {
-          // #980-A: useEditSession.attach 経由で myRole / editSession state を即時反映する
-          // (これがないと parent の broadcast handler が editSession?.id null のため起動せず、
-          //  以降の roleChanged / detached 等を取り損なう)
-          await onAttachAsView(editSessionId);
-        } else {
-          // fallback: 直接 mcpBridge を叩く (parent の useEditSession に反映されない、非推奨)
-          await mcpBridge.request("editSession.attachAsView", { editSessionId });
-        }
+        await onAttachAsView(editSessionId);
         onViewerAttached?.(editSessionId);
         setOpen(false);
       } catch (e) {
@@ -304,24 +298,17 @@ export function EditSessionDropdown({
       );
       if (!confirmed) return;
       try {
-        if (onTakeOver) {
-          // P2 fix (#908): useEditSession.takeOver(editSessionId) 経由で実行し、
-          // 選択した session に対して take-over を実行する。myRole も即時更新される。
-          await onTakeOver(editSessionId);
-        } else {
-          // fallback: onTakeOver が指定されていない場合は直接 transferEdit を呼ぶ
-          // (myRole は broadcast 経由でのみ更新されるため遅延する可能性あり)
-          await mcpBridge.request("editSession.transferEdit", {
-            editSessionId,
-            toSessionId: currentSessionId,
-          });
-        }
+        // P2 fix (#908) → #980-A review 3: onTakeOver は required prop。useEditSession.takeOver
+        // 経由で実行し、選択した session に対して take-over を実行する。myRole も即時更新される。
+        // fallback path (mcpBridge 直叩き) は削除済 — myRole が broadcast 経由でしか更新されず
+        // 遅延するため。
+        await onTakeOver(editSessionId);
         setOpen(false);
       } catch (e) {
         console.error("[EditSessionDropdown] transferEdit/takeOver failed:", e);
       }
     },
-    [sessions, currentSessionId, onTakeOver],
+    [sessions, onTakeOver],
   );
 
   // ── [× 破棄] — discard ────────────────────────────────────────────────────

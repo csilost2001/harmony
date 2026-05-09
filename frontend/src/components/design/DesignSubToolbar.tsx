@@ -80,17 +80,18 @@ interface Props {
   /** (#902 Phase 5) viewer として EditSession に attach した後の callback (URL 同期用) */
   onViewerAttached?: (editSessionId: string) => void;
   /**
-   * #980-A fix: viewer attach の本体 action — useEditSession.attach 経由で実行することで
-   * 自身の myRole を即時反映する。EditSessionDropdown.onAttachAsView へ転送される。
+   * #980-A fix → review 3 (required): viewer attach の本体 action — useEditSession.attach
+   * 経由で実行することで自身の myRole を即時反映する。EditSessionDropdown.onAttachAsView
+   * へ転送される。
    */
-  onAttachAsView?: (editSessionId: string) => Promise<void>;
+  onAttachAsView: (editSessionId: string) => Promise<void>;
   /**
    * P2 fix (#908): take-over callback — useEditSession.takeOver(editSessionId) を呼ぶ。
    * editSessionId には選択した EditSession の ID が渡される。
    * 省略時は EditSessionDropdown が内部 fallback を使う (myRole 即時更新なし)。
-   * myRole の即時反映には onTakeOver の指定が必須。
+   * #980-A review 3: required prop。fallback 削除済。
    */
-  onTakeOver?: (editSessionId: string) => Promise<void>;
+  onTakeOver: (editSessionId: string) => Promise<void>;
 }
 
 export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeChange, mcpStatus, backLink, isDirty, isSaving, onSaveToFile, onReset, screenId, isReadonly, editor, sessionMode, sessionId, onStartEditing, onViewerAttached, onAttachAsView, onTakeOver }: Props) {

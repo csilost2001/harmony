@@ -461,6 +461,28 @@ env 変数で override 可:
 仕様 § 9.5 と矛盾せず: 即時 cleanup は強化経路であり、定期 cleanup は依然として
 不慮の切断 (network 切れ等で `close` が発火しない) のための fallback として機能する。
 
+##### 9.5.1.1 設計上の非対称性: presence のみ即時 cleanup、EditSession participants は維持
+
+**意図的な非対称**: `ws.on("close")` で cleanup されるのは `presenceManager` (= SessionBadge
+表示源、heartbeat-driven の "誰が見ているか" channel) **のみ**。`editSessionStore.participants`
+(= "誰が編集中か / View role" の正規 state) は **触らない**。
+
+理由:
+
+1. **EditSession の semantic は "意図的な編集セッション"** — 切断は「ネットワーク不安定」「タブ
+   一瞬切替」等の transient イベントに過ぎず、明示的な discard / detach 操作とは異なる。
+   切断ごとに participant を消すと「タブ偶然閉じた → 5 分後に再開したい」シナリオで draft が
+   破棄されるか take-over 経由でしか戻れない不便な UX となる。
+2. **`editSessionStore.cleanupExpired` (1h 間隔)** が edit role 持ち participant の TTL 管理を
+   既に担当している (spec §12.2)。再接続が短期で起きた場合 stale 表示は許容される。
+3. **alice tab close 直後の bob 視点**: alice は EditSessionDropdown では「Edit role active」のまま
+   (participant 残存)、SessionBadge は即時消滅 (presence cleanup)。多少の不一致はあるが
+   bob は「take-over してでも作業を引き継ぐ」明示操作で対応可能。`force-detach` 系の動線は
+   spec §7 (take-over) でカバー済。
+
+将来 participant の即時 cleanup が必要と判明した場合は別 ISSUE で
+`editSessionStore.detachAllForSession(clientId)` 追加を検討する (本 spec のスコープ外)。
+
 ---
 
 ## 10. AI `onBehalfOfSession` との関係

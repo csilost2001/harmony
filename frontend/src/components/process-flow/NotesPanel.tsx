@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import type { StepNote, StepNoteType } from "../../types/action";
 import { STEP_NOTE_TYPE_VALUES } from "../../types/action";
@@ -9,13 +8,26 @@ interface Props {
   onChange: (notes: StepNote[]) => void;
 }
 
+// `StepNoteType` の全 7 値を網羅する。新エディション (assumption / decision / todo / risk /
+// question) と旧エディションの互換 (prerequisite / deferred) を両方サポート。
+// schema (schemas/v3/common.v3.schema.json) と migration (actionMigration.ts:noteKind) は
+// 旧 enum 寄せのため、ここで両方カバーすることで old data load 時の crash を回避する。
 const TYPE_META: Record<StepNoteType, { icon: string; label: string; color: string }> = {
   assumption: { icon: "bi-lightbulb", label: "想定", color: "#64748b" },
   decision: { icon: "bi-paperclip", label: "決定", color: "#0ea5e9" },
   todo: { icon: "bi-check2-square", label: "TODO", color: "#a855f7" },
   risk: { icon: "bi-exclamation-triangle", label: "リスク", color: "#f97316" },
   question: { icon: "bi-question-circle", label: "質問", color: "#ef4444" },
+  prerequisite: { icon: "bi-list-check", label: "前提", color: "#475569" },
+  deferred: { icon: "bi-pause-circle", label: "保留", color: "#94a3b8" },
 };
+
+// defensive lookup — `type` が未定義 / 不明値の場合は `kind` (旧フィールド) も試し、
+// それも不明なら assumption fallback (UI crash を防ぐ最終手段、#980-A review feedback)。
+function noteMeta(n: StepNote) {
+  const key = (n.type ?? n.kind) as StepNoteType | undefined;
+  return (key && TYPE_META[key]) ?? TYPE_META.assumption;
+}
 
 /**
  * 付箋 (notes[]) パネル (#194、docs/spec/process-flow-maturity.md §4)。
@@ -77,7 +89,7 @@ export function NotesPanel({ notes, onChange }: Props) {
       {expanded && (
         <div className="notes-panel-body" style={{ marginLeft: 8, marginTop: 4 }}>
           {list.map((n) => {
-            const meta = TYPE_META[n.type];
+            const meta = noteMeta(n);
             return (
               <div
                 key={n.id}

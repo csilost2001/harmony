@@ -128,8 +128,24 @@ class McpBridgeImpl {
   /** 接続試行カウンタ */
   private connectAttempts = 0;
 
-  /** ブラウザセッション固有の一意 ID（再接続でも不変） */
-  private readonly clientId = generateUUID();
+  /**
+   * ブラウザセッション固有の一意 ID。
+   * - 再接続 (WS reconnect) でも不変
+   * - 同一 tab 内の page reload / SPA hard navigation でも不変 (sessionStorage 永続化、#991)
+   * - 別 tab を開いた場合は別 ID (sessionStorage は per-tab scope)
+   * - tab close で消失 (presence cleanup の semantic と整合)
+   *
+   * sessionStorage 利用不可な環境 (Safari Private mode 等) では fallback で in-memory 生成。
+   */
+  private readonly clientId = (() => {
+    try {
+      const cached = sessionStorage.getItem("harmony-client-id");
+      if (cached && cached.length > 0) return cached;
+    } catch { /* sessionStorage 利用不可 (Private / SSR 等) → in-memory に fallback */ }
+    const id = generateUUID();
+    try { sessionStorage.setItem("harmony-client-id", id); } catch { /* fallback (上記と同じ) */ }
+    return id;
+  })();
 
   /** ブラウザ→サーバーリクエストの応答待ちハンドラ */
   private pendingRequests = new Map<
