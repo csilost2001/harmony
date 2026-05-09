@@ -329,32 +329,73 @@ test.describe("編集モード UI — ResumeOrDiscardDialog filter (multi-tab) #
     ws = await makeWs();
   });
 
-  test("TableEditor: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
-    test.setTimeout(120000);
+  // 共通ヘルパー: alice 編集開始 → bob open → Resume dialog 非表示。
+  // hasDropdown=true の編集系は esd-toggle-btn 表示も検証 (Process / Table / VD / Sequence / ScreenItems / Designer)。
+  // 注: View / Flow / Conventions / Extensions は EditSessionDropdown を render しない設計のため
+  //   esd-toggle 検証は省略する (別 UX 課題: dropdown 非搭載は #980-A scope 外、follow-up TODO)。
+  async function verifyFilter(browser: import("@playwright/test").Browser, route: string, tabType: string, resId: string, label: string, opts: { hasDropdown: boolean }) {
     const ctxA = await browser.newContext();
     const ctxB = await browser.newContext();
     const pageA = await ctxA.newPage();
     const pageB = await ctxB.newPage();
-    const dummyTabT = { id: `table:${TABLE_NORM}`, type: "table", resourceId: TABLE_NORM, label: "編集モードテスト", isDirty: false, isPinned: false };
-
+    const tab = { id: `${tabType}:${resId}`, type: tabType, resourceId: resId, label, isDirty: false, isPinned: false };
     try {
-      // alice: TableEditor 編集開始
-      await seedTabsForWorkspace(pageA, ws.wsId, [dummyTabT], dummyTabT.id);
-      await ws.gotoActive(pageA, `/table/edit/${TABLE_NORM}`);
+      await seedTabsForWorkspace(pageA, ws.wsId, [tab], tab.id);
+      await ws.gotoActive(pageA, route);
       if (!await startEditOrSkip(pageA)) return;
-      await expect(pageA.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });
+      await expect(pageA.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
 
-      // bob: 同 resource を開く → ResumeOrDiscardDialog が出ないことを確認
-      await seedTabsForWorkspace(pageB, ws.wsId, [dummyTabT], dummyTabT.id);
-      await ws.gotoActive(pageB, `/table/edit/${TABLE_NORM}`);
+      await seedTabsForWorkspace(pageB, ws.wsId, [tab], tab.id);
+      await ws.gotoActive(pageB, route);
       // 5s 待機して dialog が出ないことを確認 (出る場合は 1-3s で出る)
       await pageB.waitForTimeout(5000);
       await expect(pageB.locator('.edit-mode-modal-backdrop')).not.toBeVisible();
-      // bob は EditSessionDropdown 経由で Viewer attach できる状態
-      await expect(pageB.getByTestId("esd-toggle-btn")).toBeVisible({ timeout: 5000 });
+      if (opts.hasDropdown) {
+        await expect(pageB.getByTestId("esd-toggle-btn")).toBeVisible({ timeout: 5000 });
+      }
     } finally {
       await ctxA.close();
       await ctxB.close();
     }
+  }
+
+  test("TableEditor: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
+    test.setTimeout(120000);
+    await verifyFilter(browser, `/table/edit/${TABLE_NORM}`, "table", TABLE_NORM, "編集モードテスト", { hasDropdown: true });
+  });
+
+  test("ViewEditor: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
+    test.setTimeout(120000);
+    await verifyFilter(browser, `/view/edit/${VIEW_NORM}`, "view", VIEW_NORM, "E2E ビュー", { hasDropdown: false });
+  });
+
+  test("ViewDefinitionEditor: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
+    test.setTimeout(120000);
+    await verifyFilter(browser, `/view-definition/edit/${VIEW_DEF_NORM}`, "view-definition", VIEW_DEF_NORM, "E2E ビュー定義", { hasDropdown: true });
+  });
+
+  test("SequenceEditor: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
+    test.setTimeout(120000);
+    await verifyFilter(browser, `/sequence/edit/${SEQ_NORM}`, "sequence", SEQ_NORM, "E2E シーケンス", { hasDropdown: true });
+  });
+
+  test("ScreenItemsView: alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
+    test.setTimeout(120000);
+    await verifyFilter(browser, `/screen/items/${SCREEN_NORM}`, "screen-item", SCREEN_NORM, "編集モードテスト画面", { hasDropdown: true });
+  });
+
+  test("ConventionsCatalogView (singleton): alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
+    test.setTimeout(120000);
+    await verifyFilter(browser, "/conventions/catalog", "convention", "singleton", "規約カタログ", { hasDropdown: false });
+  });
+
+  test("ExtensionsPanel (singleton): alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
+    test.setTimeout(120000);
+    await verifyFilter(browser, "/extensions", "extension", "singleton", "拡張", { hasDropdown: false });
+  });
+
+  test("FlowEditor (singleton): alice 編集中、bob open → ResumeOrDiscardDialog が出ない", async ({ browser }) => {
+    test.setTimeout(120000);
+    await verifyFilter(browser, "/screen/flow", "flow", "singleton", "画面フロー", { hasDropdown: false });
   });
 });

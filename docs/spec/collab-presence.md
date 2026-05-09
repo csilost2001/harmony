@@ -450,6 +450,17 @@ env 変数で override 可:
 - abandoned (`actAge > idleThresholdSec` && WS 切断) を internal Map から削除
 - 削除した entry を `presence:update` で broadcast (空配列または filter 後)
 
+#### 9.5.1 即時 cleanup on WS disconnect (#980-A 追加)
+
+`wsBridge.ts` の `ws.on("close")` で `presenceManager.unregisterAllForSession(clientId)` を呼び、
+切断 session の全 presence エントリを **即時削除 + presence:update broadcast** する。
+
+`cleanupAbandoned` (1h 間隔) の補完経路として、tab close → 接続中 client の SessionBadge
+即時消滅を実現する (これがないと 1h 間 stale バッジが残り、UX を損ねる)。
+
+仕様 § 9.5 と矛盾せず: 即時 cleanup は強化経路であり、定期 cleanup は依然として
+不慮の切断 (network 切れ等で `close` が発火しない) のための fallback として機能する。
+
 ---
 
 ## 10. AI `onBehalfOfSession` との関係
