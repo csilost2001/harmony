@@ -143,10 +143,7 @@ test.describe("テーブルエディタ：保存/リセットボタン", () => {
     await expect(page.locator(".srb-btn-reset")).toHaveCount(0);
   });
 
-  // TODO(#926 follow-up): edit-session-draft モデルでは isDirtyForTab が discard 後も
-  // 一定時間 true で残るため、tab.dirty が即座に消えない。assertion 緩和または product 側
-  // の修正が必要。本 PR では「reset → readonly 復帰」までを既に上のテストで担保している。
-  test.skip("リセット後に dirty インジケーターが消える", async ({ page }) => {
+  test("リセット後に dirty インジケーターが消える", async ({ page }) => {
     await setupTableEditor(page);
     page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: /カラム追加/ }).click();

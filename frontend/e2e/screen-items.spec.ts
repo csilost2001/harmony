@@ -330,7 +330,7 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", () 
     expect(stored.items[0].errorMessages?.required).toBe("@conv.msg.required");
   });
 
-  test.skip("保存済み errorMessages を持つ画面項目は展開後に値が表示される", async ({ page }) => {
+  test("保存済み errorMessages を持つ画面項目は展開後に値が表示される", async ({ page }) => {
     // リロード相当: 初期 localStorage に errorMessages 込みのデータを seed して表示を検証
     const preSeeded = {
       screenId: screenId1,
@@ -453,7 +453,7 @@ test.describe("詳細フィールド展開行 (#353)", () => {
     expect(stored?.items[0].visibleWhen).toBe("@inputs.role === 'admin'");
   });
 
-  test.skip("pre-seed した readonly/min/max が展開後に表示される", async ({ page }) => {
+  test("pre-seed した readonly/min/max が展開後に表示される", async ({ page }) => {
     const preSeeded = {
       screenId: screenId1,
       version: "0.1.0",

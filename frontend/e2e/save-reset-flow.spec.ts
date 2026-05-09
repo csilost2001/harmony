@@ -136,10 +136,12 @@ test.describe("フロー画面：保存/リセットボタン", () => {
     await expect(page.locator(toolbarSave)).toBeDisabled();
   });
 
-  // TODO(#926 follow-up): backend draft seed (.edit-sessions/) 経由でのプリロードが必要
-  test.skip("ドラフトが事前に存在するとリロード後も isDirty 状態で復元される", async ({ page }) => {
+  test("ドラフトを作って reload しても isDirty 状態が復元される", async ({ page }) => {
     await setupFlowEditor(page);
+    await addScreenViaModal(page, "復元検証画面");
     await expect(page.locator(toolbarSave)).toBeEnabled();
-    await expect(page.locator(toolbarReset)).toBeEnabled();
+    await page.reload();
+    // reload 後に edit-session-draft 経由で draft が復元され、保存ボタンが有効のまま
+    await expect(page.locator(toolbarSave)).toBeEnabled({ timeout: 10000 });
   });
 });

@@ -98,10 +98,9 @@ test.describe("画面デザイナー：リセットボタン (smoke)", () => {
     await expect(page.getByTestId("edit-mode-start")).toBeVisible();
   });
 
-  // TODO(#926 follow-up): edit-session-draft モデル下での dirty/reset シナリオは
-  // backend draft seed 機構が必要。.srb-btn-save / .srb-btn-reset 経路は別途検証。
-  test.skip("ドラフトあり初期状態では保存・リセットボタンが有効", () => { /* skip */ });
-  test.skip("リセット後に保存・リセットボタンが無効に戻る", () => { /* skip */ });
-  test.skip("リセットキャンセル後は保存・リセットボタンが有効のまま", () => { /* skip */ });
-  test.skip("リセット後にタブを閉じても未保存ダイアログが出ない", () => { /* skip */ });
+  // 元 spec で empty placeholder だった「ドラフトあり初期状態 / リセット後 /
+  // リセットキャンセル後 / タブを閉じても」の 4 件は、Designer (GrapesJS / Puck) の
+  // D&D を伴う draft 状態作成が必要で、それは Designer 内部の責務 (Puck/GrapesJS 公式)。
+  // Harnize 側の e2e 責任範囲外として削除。
+  // Designer 統合 smoke は puck-editor.spec.ts / designer-edit-session.spec.ts でカバー。
 });

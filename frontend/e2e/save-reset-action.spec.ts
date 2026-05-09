@@ -149,8 +149,7 @@ test.describe("処理フローエディタ：保存/リセットボタン", () =
     await expect(page.locator(toolbarReset)).toHaveCount(0);
   });
 
-  // TODO(#926 follow-up): isDirtyForTab が discard 後も一定時間 true で残る
-  test.skip("リセット後にタブの dirty インジケーターが消える", async ({ page }) => {
+  test("リセット後にタブの dirty インジケーターが消える", async ({ page }) => {
     await setupProcessFlowEditor(page);
     page.on("dialog", (d) => d.accept());
     await addAction(page, "登録ボタン");
@@ -169,12 +168,12 @@ test.describe("処理フローエディタ：保存/リセットボタン", () =
     await expect(page.locator(toolbarSave)).toBeDisabled();
   });
 
-  // TODO(#926 follow-up): localStorage の draft-action-<id> を pre-seed する仕組みが
-  // edit-session-draft モデルでは backend (.edit-sessions/) に置き換わっており、
-  // 直接 seed する経路の再現が必要。
-  test.skip("ドラフトが事前に存在するとリロード後も isDirty 状態で復元される", async ({ page }) => {
+  test("ドラフトを作って reload しても isDirty 状態が復元される", async ({ page }) => {
     await setupProcessFlowEditor(page);
+    await addAction(page, "登録ボタン");
     await expect(page.locator(toolbarSave)).toBeEnabled();
-    await expect(page.locator(toolbarReset)).toBeEnabled();
+    await page.reload();
+    // reload 後に edit-session-draft 経由で draft が復元され、保存ボタンが有効のまま
+    await expect(page.locator(toolbarSave)).toBeEnabled({ timeout: 10000 });
   });
 });
