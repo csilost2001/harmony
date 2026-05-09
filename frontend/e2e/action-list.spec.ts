@@ -86,12 +86,9 @@ test.describe("処理フロー一覧", () => {
     await expect(page.locator(".data-list-card")).toHaveCount(2);
   });
 
-  // TODO(#926 follow-up): real backend 経由だと Ctrl+D 複製が観測できない。
-  // 原因要調査 (loadProcessFlow → saveProcessFlow のどこかで失敗している可能性)。
-  // 暫定 skip し、follow-up ISSUE で対応する。
-  test.skip("Ctrl+D で複製", async ({ page }) => {
+  test("Ctrl+D で複製", async ({ page }) => {
     await page.locator(".data-list-card").first().click();
     await page.keyboard.press("Control+d");
-    await expect(page.locator(".data-list-card")).toHaveCount(4, { timeout: 10000 });
+    await expect(page.locator(".data-list-card")).toHaveCount(4, { timeout: 15000 });
   });
 });

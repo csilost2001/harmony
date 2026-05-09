@@ -297,20 +297,27 @@ export function ProcessFlowListView() {
   const duplicateGroup = async (src: ProcessFlowMeta): Promise<string | null> => {
     const full = await loadProcessFlow(src.id);
     if (!full) return null;
+    // v3 ProcessFlow では id は meta.id にネスト、name も meta.name。
+    // 旧仕様 (top-level id/name) のまま spread すると元 id のまま file 上書きされる bug 発生。
+    const newId = generateUUID();
+    const nowTs = new Date().toISOString();
     const dup: ProcessFlow = {
       ...full,
-      id: generateUUID(),
-      name: full.name + " (コピー)",
+      meta: {
+        ...full.meta,
+        id: newId as ProcessFlow["meta"]["id"],
+        name: full.meta.name + " (コピー)",
+        createdAt: nowTs as ProcessFlow["meta"]["createdAt"],
+        updatedAt: nowTs as ProcessFlow["meta"]["updatedAt"],
+      },
       actions: full.actions.map((a) => ({
         ...a,
         id: generateUUID(),
         steps: a.steps.map((s) => ({ ...s, id: generateUUID() })),
       })),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
     await saveProcessFlow(dup);
-    return dup.id;
+    return newId;
   };
 
   const handleDuplicate = async (items: ProcessFlowMeta[]) => {
