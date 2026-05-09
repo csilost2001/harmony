@@ -88,7 +88,7 @@ describe("workspaceStore subscribeWorkspaceChanges per-session フィルタ (#70
     (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       workspaces: [{ id: "ws-001", path: "/workspace/A", name: "WS-A", lastOpenedAt: null }],
       lastActiveId: "ws-001",
-      active: { path: "/workspace/A", name: "WS-A" },
+      active: { id: "ws-001", path: "/workspace/A", name: "WS-A" },
       lockdown: false,
       lockdownPath: null,
     });
@@ -108,7 +108,7 @@ describe("workspaceStore subscribeWorkspaceChanges per-session フィルタ (#70
     (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       workspaces: [{ id: "ws-A", path: "/workspace/A", name: "WS-A", lastOpenedAt: null }],
       lastActiveId: "ws-A",
-      active: { path: "/workspace/A", name: "WS-A" },
+      active: { id: "ws-A", path: "/workspace/A", name: "WS-A" },
       lockdown: false,
       lockdownPath: null,
     });
@@ -130,7 +130,7 @@ describe("workspaceStore subscribeWorkspaceChanges per-session フィルタ (#70
     (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       workspaces: [{ id: "ws-A", path: "/workspace/A", name: "WS-A", lastOpenedAt: null }],
       lastActiveId: "ws-A",
-      active: { path: "/workspace/A", name: "WS-A" },
+      active: { id: "ws-A", path: "/workspace/A", name: "WS-A" },
       lockdown: false,
       lockdownPath: null,
     });

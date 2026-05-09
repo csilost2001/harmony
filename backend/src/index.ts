@@ -1113,12 +1113,15 @@ function createMcpServer(sessionId: string): Server {
       case "designer__workspace_list": {
         const { workspaces, lastActiveId } = await listWorkspaces();
         const activePath = getActivePath(sessionId);
+        const activeEntry = activePath ? await findByPath(activePath) : null;
         const lockdown = isLockdown();
         const lockdownPath = getLockdownPath();
         const payload = {
           workspaces,
           lastActiveId,
-          active: activePath ? { path: activePath } : null,
+          active: activePath
+            ? { id: activeEntry?.id ?? null, path: activePath, name: activeEntry?.name ?? null }
+            : null,
           lockdown,
           lockdownPath,
         };

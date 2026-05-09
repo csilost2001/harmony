@@ -1336,11 +1336,12 @@ class WsBridge extends EventEmitter {
         case "workspace.list": {
           const { workspaces, lastActiveId } = await listWorkspacesEntries();
           const activePath = workspaceContextManager.getActivePath(clientId);
+          const activeEntry = activePath ? await findWorkspaceByPath(activePath) : null;
           respond({
             workspaces,
             lastActiveId,
             active: activePath
-              ? { path: activePath, name: (workspaces.find((w) => w.path === activePath)?.name ?? null) }
+              ? { id: activeEntry?.id ?? null, path: activePath, name: activeEntry?.name ?? null }
               : null,
             lockdown: isWorkspaceLockdown(),
             lockdownPath: getWorkspaceLockdownPath(),
@@ -1826,3 +1827,4 @@ function _serializeEditSession(session: import("./editSessionStore.js").EditSess
     participants: Object.fromEntries(session.participants.entries()),
   };
 }
+

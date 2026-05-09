@@ -127,7 +127,7 @@ async function _doLoadWorkspaces(): Promise<void> {
     const result = (await mcpBridge.request("workspace.list")) as {
       workspaces: WorkspaceEntry[];
       lastActiveId: string | null;
-      active: { path: string; name: string | null } | null;
+      active: { id: string | null; path: string; name: string | null } | null;
       lockdown: boolean;
       lockdownPath: string | null;
     };
@@ -140,7 +140,7 @@ async function _doLoadWorkspaces(): Promise<void> {
       workspaces: result.workspaces ?? [],
       active: result.active
         ? {
-            id: result.workspaces?.find((w) => w.path === result.active!.path)?.id,
+            id: result.active.id ?? undefined,
             path: result.active.path,
             name: result.active.name,
           }
