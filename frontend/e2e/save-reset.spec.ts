@@ -16,7 +16,10 @@ import {
 import { buildProject } from "./__fixtures__/builders";
 import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
-const TABLE_ID = "test-table-0001-4000-8000-000000000001";
+// "test-table" は hex でないため UUID_V4_RE に match せず normalizeId が deterministic
+// UUID を生成する。fixture file 名 / project meta の id / URL を全て同じ正規化済 UUID で
+// 揃えないと、loadTable が null を返して TableEditor が render されない (#945)。
+const TABLE_ID = normalizeId("test-table-0001-4000-8000-000000000001");
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 const dummyTable = {
@@ -72,7 +75,9 @@ async function setupTableEditor(page: Page): Promise<void> {
   });
   await seedTabsForWorkspace(page, ws.wsId, [dummyTab], dummyTab.id);
   await ws.gotoActive(page, `/table/edit/${TABLE_NORM}`);
-  await expect(page.locator(".table-editor-page")).toBeVisible();
+  // gotoActive の routeMarkerMap には個別 editor (/table/edit/:id) が含まれず render 完了を
+  // 待たない。フル run で前 spec の workspace switch race と重なるため timeout を拡張。
+  await expect(page.locator(".table-editor-page")).toBeVisible({ timeout: 15000 });
   // 過去 test 残骸の discarded EditSession が listAll に残るため (active + discarded
   // の両方を返す仕様) ResumeOrDiscardDialog が出る場合がある。
   // 出ていれば JS 経由で「破棄して本体を読み込む」を発火 (Playwright click は

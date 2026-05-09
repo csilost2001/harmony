@@ -617,8 +617,28 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
         "/dashboard": ".dashboard-view",
         "dashboard": ".dashboard-view",
       };
+      // 個別エディタ route (/<resource>/edit/<id>) の marker prefix 対応 (#945)
+      // pushState 後に editor の初期 render が始まるが、フル run で前 spec の workspace
+      // switch race と重なると個別 editor の DOM 確定前に gotoActive が return してしまい、
+      // setup helper 側 .table-editor-page 5s timeout で fail する flake を引き起こす。
+      // 各 editor の root class:
+      // - TableEditor / ViewEditor / ViewDefinitionEditor / SequenceEditor: .table-editor-page (legacy class 共有)
+      // - ProcessFlowEditor: .process-flow-page (line 743 of ProcessFlowEditor.tsx)
+      // - Designer: backend (grapesjs / puck) 切替で root が動的、marker は spec 側で扱う
+      const editorPrefixMarkerMap: Array<[string, string]> = [
+        ["/table/edit/", ".table-editor-page"],
+        ["/view/edit/", ".table-editor-page"],
+        ["/view-definition/edit/", ".table-editor-page"],
+        ["/sequence/edit/", ".table-editor-page"],
+        ["/process-flow/edit/", ".process-flow-page"],
+      ];
       const normalizedSub = subPath.startsWith("/") ? subPath : `/${subPath}`;
-      const marker = routeMarkerMap[normalizedSub];
+      let marker = routeMarkerMap[normalizedSub];
+      if (!marker) {
+        for (const [prefix, m] of editorPrefixMarkerMap) {
+          if (normalizedSub.startsWith(prefix)) { marker = m; break; }
+        }
+      }
       if (marker && page.locator) {
         await page.locator(marker).waitFor({ state: "visible", timeout: 15000 }).catch(() => undefined);
       }

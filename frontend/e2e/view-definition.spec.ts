@@ -101,6 +101,16 @@ test.describe("ビュー定義 E2E", () => {
     await expect(page).toHaveURL(/\/w\/[^/]+\/view-definition\/edit\//);
     await expect(page.getByText("ビュー定義編集").first()).toBeVisible();
 
+    // 「作成して編集」遷移直後の編集画面: ViewDefinitionEditor の auto-edit が
+    // editSession を start した直後に editSession.list で同 resourceId の sessions > 0 を
+    // 検知して ResumeOrDiscardDialog が出る race がある。
+    // discard を選ぶと autoEditFiredRef が落ちて auto-edit が再発火しないため、
+    // continue を選んで自分が作った session を継続する (#945)。
+    if (await page.locator(".edit-mode-modal-backdrop").isVisible({ timeout: 1000 }).catch(() => false)) {
+      await page.evaluate(() => (document.querySelector('[data-testid="resume-continue"]') as HTMLButtonElement | null)?.click());
+      await expect(page.locator(".edit-mode-modal-backdrop")).toBeHidden({ timeout: 5000 });
+    }
+
     // #960: 「作成して編集」経由は auto-edit モードで開く (sessionStorage 経由で
     // ViewDefinitionEditor が自動的に actions.startEditing() を発火)。
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });
