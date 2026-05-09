@@ -23,3 +23,13 @@ body {
   background-color: #f8f9fa;
   overflow: hidden;
 }
+
+/* Bootstrap `.btn` (display: inline-block) は内部 inline content の center 座標で
+   document.elementFromPoint() が parent block を返すケースがあり、Playwright の click
+   hit test と非互換になる (「intercepts pointer events」エラー)。inline-flex で
+   center に確実に child element が来るよう全 button に適用。 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
