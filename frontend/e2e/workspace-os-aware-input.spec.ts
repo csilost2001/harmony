@@ -30,8 +30,24 @@ async function openAddDialog(page: Page) {
   await expect(page.locator(".tbl-modal")).toBeVisible();
 }
 
+// /proc/version に Microsoft / WSL 文字列が含まれる場合のみ WSL2 とみなす
+// (backend/src/hostInfo.ts の detectWSL と同じ判定ロジック)。
+// 非 WSL2 host (ネイティブ Linux / docker / macOS / Windows) では本 describe の
+// 「WSL2 環境では…」test は前提が崩れるため skip する。
+async function isWslHost(): Promise<boolean> {
+  if (process.platform !== "linux") return false;
+  try {
+    const fs = await import("node:fs/promises");
+    const content = await fs.readFile("/proc/version", "utf-8");
+    return /Microsoft|WSL/i.test(content);
+  } catch {
+    return false;
+  }
+}
+
 test.describe("AddWorkspaceDialog — WSL2 / OS-aware UX (#858)", () => {
   test("WSL2 環境では Linux 形式の絶対パスと専用ヒントが表示される", async ({ page }) => {
+    test.skip(!(await isWslHost()), "WSL2 ホスト前提の test (host /proc/version に Microsoft/WSL を含むときのみ実行)");
     await setupClean(page);
     await openAddDialog(page);
 
