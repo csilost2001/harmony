@@ -317,9 +317,17 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
       const found = result.sessions?.find((s) => s.id === esId) ?? null;
       if (found) {
         setEditSession(found);
-        // payload は別途 fetchPayload で取るか、update broadcast で維持する
-        // myRole は参加時のメモリから取るのが本来だが、list には含まれていない
-        // (sessionId は mcpBridge 経由で取れないため、参加/切替時に myRole を別途記録する)
+        // myRole を participants から再導出 (#980-A): take-over や transferEdit など
+        // 他 session 起点で自分の role が変わった場合に broadcast 経由で myRole を反映する。
+        // 自分の sessionId は mcpBridge.getSessionId() (= clientId) で取得可能。
+        const mySessionId = mcpBridge.getSessionId();
+        const myParticipant = found.participants[mySessionId];
+        if (myParticipant) {
+          setMyRole(myParticipant.role);
+        } else {
+          // 自分が participants から外された (例: detach 完了の broadcast) → null にリセット
+          setMyRole(null);
+        }
       }
     } catch (e) {
       console.warn("[useEditSession] refreshEditSessionState failed:", e);
