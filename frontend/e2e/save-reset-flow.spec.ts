@@ -136,12 +136,7 @@ test.describe("フロー画面：保存/リセットボタン", () => {
     await expect(page.locator(toolbarSave)).toBeDisabled();
   });
 
-  test("ドラフトを作って reload しても isDirty 状態が復元される", async ({ page }) => {
-    await setupFlowEditor(page);
-    await addScreenViaModal(page, "復元検証画面");
-    await expect(page.locator(toolbarSave)).toBeEnabled();
-    await page.reload();
-    // reload 後に edit-session-draft 経由で draft が復元され、保存ボタンが有効のまま
-    await expect(page.locator(toolbarSave)).toBeEnabled({ timeout: 10000 });
-  });
+  // 元 spec の「reload しても isDirty が復元される」は旧 localStorage seed 仕様前提。
+  // edit-session-draft (#683) は明示保存式で reload 前に明示 save しなければ消える設計。
+  // 同意図 (attach で payload 取得) は edit-session/url-invitation で別途検証。
 });

@@ -11,9 +11,9 @@ interface Props {
 
 const TYPE_META: Record<StepNoteType, { icon: string; label: string; color: string }> = {
   assumption: { icon: "bi-lightbulb", label: "想定", color: "#64748b" },
-  prerequisite: { icon: "bi-paperclip", label: "前提", color: "#0ea5e9" },
+  decision: { icon: "bi-paperclip", label: "決定", color: "#0ea5e9" },
   todo: { icon: "bi-check2-square", label: "TODO", color: "#a855f7" },
-  deferred: { icon: "bi-clock", label: "将来検討", color: "#f97316" },
+  risk: { icon: "bi-exclamation-triangle", label: "リスク", color: "#f97316" },
   question: { icon: "bi-question-circle", label: "質問", color: "#ef4444" },
 };
 

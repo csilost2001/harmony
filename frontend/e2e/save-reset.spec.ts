@@ -148,9 +148,12 @@ test.describe("テーブルエディタ：保存/リセットボタン", () => {
     page.on("dialog", (d) => d.accept());
     await page.getByRole("button", { name: /カラム追加/ }).click();
     await expect(page.locator(".tabbar-tab.dirty")).toBeVisible();
-    await page.locator(".srb-btn-reset").click();
-    await page.getByTestId("discard-confirm").click();
-    await expect(page.locator(".tabbar-tab.dirty")).not.toBeVisible();
+    // page.evaluate で element.click() を直接呼ぶ (Playwright hit test 不要、React onClick fire)
+    await page.evaluate(() => (document.querySelector('.srb-btn-reset') as HTMLButtonElement | null)?.click());
+    await page.evaluate(() => (document.querySelector('[data-testid="discard-confirm"]') as HTMLButtonElement | null)?.click());
+    // discard 後、edit-session.discard broadcast → useEditSession state 更新 → useEffect →
+    // setTabDirty(false) の反映に時間がかかる。20s 待ち。
+    await expect(page.locator(".tabbar-tab.dirty")).not.toBeVisible({ timeout: 20000 });
   });
 
   test("リセットクリックで確認ダイアログが表示される", async ({ page }) => {

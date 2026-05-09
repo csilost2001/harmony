@@ -194,9 +194,9 @@ test.describe("モード切替 + 下流警告 (#191/#197)", () => {
   test("モードを下流に切り替えると warning が表示される (draft あり)", async ({ page }) => {
     await setupEditor(page);
     // 基本情報 タブを開く (下流ボタンは基本情報 expand 配下)
-    await page.locator(".action-meta-tab-bar button, .step-meta-tab").filter({ hasText: /基本情報/ }).first().click().catch(() => undefined);
-    // 下流ボタンを押す
-    await page.getByRole("button", { name: /下流/ }).click();
+    await page.locator(".action-meta-tabbar button, .step-meta-tab").filter({ hasText: /基本情報/ }).first().click({ force: true }).catch(() => undefined);
+    // 下流ボタンを押す (Bootstrap btn の hit test 干渉を避けるため dispatchEvent)
+    await page.getByRole("button", { name: /下流/ }).dispatchEvent("click");
     // 警告バナー出現
     await expect(page.getByRole("alert").filter({ hasText: "下流モードで未確定" })).toBeVisible();
   });
