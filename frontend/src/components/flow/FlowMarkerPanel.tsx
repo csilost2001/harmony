@@ -123,7 +123,7 @@ export function FlowMarkerPanel({
     const body = newBody.trim();
     if (!body || !newScreenId) return;
     const newMarker: Marker = {
-      id: generateUUID(),
+      id: generateUUID() as Marker["id"],
       kind: newKind,
       body,
       author: "human",
