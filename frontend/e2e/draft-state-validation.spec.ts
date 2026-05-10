@@ -301,9 +301,11 @@ test.describe("draft-state validation 表示 — 領域 11 網羅", { tag: ["@re
     void page;
   });
 
-  // (Conventions / Extensions) ValidationBadge 未適用のためスキップ
-  // → #1004 提案 C で仕様確認 (適用するか、by design として policy.md に明記するか)。決定後 skip 解除 or 恒久 skip 化。
-  test.skip("(P2-Conventions) Conventions ListView ValidationBadge — #1004: 仕様確認待ち (適用要否未決)", async ({ page }) => {
+  // (Conventions / Extensions) draft-state policy 対象外のため恒久 skip
+  // #1004 Phase 3 で by design 確定: Conventions / Extensions はフレームワーク基盤側であり
+  // 業務リソースではないため draft-state policy の適用対象外。
+  // 詳細: docs/spec/draft-state-policy.md § 7.4
+  test.skip("(P2-Conventions) Conventions ListView ValidationBadge", async ({ page }) => {
     void page;
   });
 
