@@ -41,6 +41,7 @@
 | [collab-presence.md](collab-presence.md) | 協調編集 (Direction B) overture — 採用根拠 / Forward-Compat 4 原則 / Activity taxonomy (正規プロトコルは `edit-session-protocol.md` 参照) | #876 / #855 |
 | [schema-audit-2026-04-27.md](schema-audit-2026-04-27.md) | Schema 変更履歴監査レポート — 過去 102 コミット精査、(A) 正当 88% / (B) 不規則 2-3% / (C) 不適切 0% | #511 (Phase B-1) |
 | [schema-redesign-proposal-codex-2026-04-27.md](schema-redesign-proposal-codex-2026-04-27.md) | Codex (GPT-5.5) による schema 再設計セカンドオピニオン提案 (#517 の判断材料) | #517 |
+| [e2e-vite-stability.md](e2e-vite-stability.md) | Vite dev server multi-context e2e crash 調査 + 既知回避策 + 再現 scaffold spec | #992 |
 
 **一次成果物**: JSON スキーマ [`schemas/process-flow.schema.json`](../../schemas/process-flow.schema.json) ([README](../../schemas/README.md))。仕様書と突合する機械可読版。
 

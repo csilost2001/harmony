@@ -36,6 +36,10 @@ npm run lint       # ESLint
 
 Claude Code 利用時は `/test-strategy` スキルが自動起動 (詳細は `CLAUDE.md` 参照)。
 
+### e2e batch 中の Vite crash (#992)
+
+multi browser context の e2e で **Vite dev server (port 5173) が間欠 crash** する問題が観測された。現在は #980-A の click 経路改善で症状抑止中。再発時の調査・回避策・再現 scaffold spec は [`../docs/spec/e2e-vite-stability.md`](../docs/spec/e2e-vite-stability.md) を参照。
+
 ## UI Conventions
 
 詳細仕様は [../docs/spec/](../docs/spec/README.md) に集約。一覧系 UI を触る前に必ず読む:
