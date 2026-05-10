@@ -50,6 +50,13 @@ store は一覧読み込みと同じ責務範囲で `load<Resource>ValidationMap
 
 一覧画面の `MaturityBadge` は view-only とし、編集画面の `MaturityBadge` は `onChange` を受け取って成熟度を変更できる。`committed` は「下流工程へ渡せる確定状態」を示すため、validation の可視化と併用する。
 
+**commit 阻止 UI の責務分担 (#1004 Phase 4 で確定)**:
+- error 件数 > 0 の場合に `committed` への遷移を阻止する確認ダイアログ等の UI は **Editor 側のみで実装**する。
+- ListView の `MaturityBadge` は view-only (クリック・変更操作なし) のため、ListView 側に commit 阻止ロジックは実装しない。
+- 現時点では Editor 側の commit 阻止も未実装 (将来の拡張候補)。実装が必要な場合は別 ISSUE で起票して対応する。
+
+> **e2e spec との対応**: `frontend/e2e/draft-state-validation.spec.ts` の P3-block test (ListView での commit 阻止 UI) は上記判定により by design 恒久 skip とする (#1004 Phase 4 で確定)。
+
 ## 3. severity 判定基準
 
 validation severity は次の 4 軸で判定する。迷った場合は、ユーザーが直ちに作業を継続できるかではなく、下流処理や識別子の整合性を壊すかで error / warning を分ける。

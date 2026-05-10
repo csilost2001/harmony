@@ -346,14 +346,11 @@ test.describe("draft-state validation 表示 — 領域 11 網羅", { tag: ["@re
     await expect(badge).not.toHaveClass(/editable/);
   });
 
-  // (P3-block) maturity commit 阻止: UI 実装が確認できないためスキップ
-  // docs/spec/draft-state-policy.md 原則 3 の「committed への遷移を条件付きで阻止する」機能は
-  // 現時点で ListView の MaturityBadge クリックでは実装されていない。
-  // 仕様上 ListView は view-only の可能性もあり、policy 確定 + 必要なら Editor 側で実装する方針。
-  // → #1004 提案 D で仕様確定 + 実装後、本 skip を解除する。
-  test.skip("(P3-block) Table committed 遷移時に error があれば阻止される — #1004: ListView での commit 阻止 UI 未実装、仕様確定待ち", async ({ page }) => {
-    // Table の maturity を committed に変えようとしたときにエラーがあれば
-    // 確認ダイアログか toastify で警告する UI が必要だが未実装。
+  // (P3-block) ListView commit 阻止は by design 未実装のため恒久 skip
+  // #1004 Phase 4 で by design 確定: ListView の MaturityBadge は view-only であり、
+  // commit 阻止 UI は Editor 側のみで実装する方針。ListView 側では実装しない。
+  // 詳細: docs/spec/draft-state-policy.md § 2.5
+  test.skip("(P3-block) Table committed 遷移時に error があれば阻止される", async ({ page }) => {
     void page;
   });
 
