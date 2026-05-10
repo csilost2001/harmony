@@ -12,6 +12,14 @@
  *     最低 1 検証
  *
  * タグ: @endurance — デフォルト除外、E2E_INCLUDE_ENDURANCE=1 で実行。
+ *
+ * 実行コマンド (canonical):
+ *   npm run test:e2e:endurance       # E2E_INCLUDE_ENDURANCE=1 を内包
+ *
+ * `npm run test:e2e -- --grep @endurance` のみだと playwright.config の
+ * `grepInvert: /@endurance/` (E2E_INCLUDE_ENDURANCE 未設定時にデフォルト適用) が
+ * 後勝ちで効くため 0 tests になる。AC 文言の `--grep @endurance` を素のまま
+ * 受け取らないこと (#930 で導入された env-gated 除外仕様)。
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -178,8 +186,12 @@ async function roundTripTableEditor(page: Page): Promise<void> {
 
   // 5. カラム追加前のカラム行数を計測
   // DataList で columns-data-list の中の [data-row-id] が各カラム行に対応する
-  // columns タブが既にアクティブ (デフォルト) であること前提
+  // columns タブが既にアクティブ (デフォルト) であること前提。
+  // edit-mode 切替直後は DataList が一瞬空の可能性があるため、最低 1 行が出現するまで待つ
+  // (carrousel 元で 0 行だった場合は、テーブルが空のため round-trip 検証は意味が薄いが、
+  //  まずは最低 1 行 visible を待って、count() がゼロでない安定値になるのを保証する)
   const columnRowSelector = ".columns-data-list [data-row-id]";
+  await page.locator(columnRowSelector).first().waitFor({ state: "visible", timeout: 10000 });
   const beforeCount = await page.locator(columnRowSelector).count();
 
   // 6. カラム追加ボタンをクリック
@@ -203,6 +215,10 @@ async function roundTripTableEditor(page: Page): Promise<void> {
   } else {
     await page.locator(".table-list-page [data-row-id]").first().dblclick();
   }
+  // 再オープン後に edit URL であることを明示的に確認
+  // (.table-editor-page は editor 専用 root class のため list と取り違えは起きないが、
+  //  ProcessFlowEditor 側で発生しうる class 共有問題と整合させるため URL 確認を追加)
+  await expect(page).toHaveURL(new RegExp(`${wsPrefix}/table/edit/[^/]+$`));
   await expect(page.locator(".table-editor-page")).toBeVisible({ timeout: 15000 });
   await dismissResumeDialogIfAny(page);
   // readonly モードのまま表示されているため edit-mode-start があるはず
@@ -211,6 +227,8 @@ async function roundTripTableEditor(page: Page): Promise<void> {
   await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
 
   // 10. カラム行数が +1 されていることを確認
+  // 再オープン後の DataList render を待ってから count() (5. と同じガード)
+  await page.locator(columnRowSelector).first().waitFor({ state: "visible", timeout: 10000 });
   const afterCount = await page.locator(columnRowSelector).count();
   expect(afterCount).toBe(beforeCount + 1);
 
@@ -280,6 +298,10 @@ async function roundTripProcessFlowEditor(page: Page): Promise<void> {
   } else {
     await page.locator(".process-flow-page [data-row-id]").first().dblclick();
   }
+  // 再オープン後に edit URL であることを明示的に確認。
+  // ProcessFlowListView と ProcessFlowEditor は同じ `.process-flow-page` class を root
+  // に持つため、URL を見ないと list が表示されたまま検証が通る誤動作を起こしうる。
+  await expect(page).toHaveURL(new RegExp(`${wsPrefix}/process-flow/edit/[^/]+$`));
   await expect(page.locator(".process-flow-page")).toBeVisible({ timeout: 15000 });
   await dismissResumeDialogIfAny(page);
 
