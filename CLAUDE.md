@@ -75,6 +75,44 @@ Copy-Item -Recurse -Force examples\retail\* workspaces\retail\
 - 自動メモリは Claude Code が `~/.claude/projects/<encoded-project-path>/memory/` に自動保存 (per-user / per-machine、git 管理外)
 - `MEMORY.md` が index、個別ファイルは `feedback_*.md` / `project_*.md` / `reference_*.md` 等の命名規約
 - Codex 経由のタスクでは memory は自動共有されないため、必要な文脈は Opus が briefing に転記する
+- **Claude Code クラウド版** はセッション毎に ephemeral コンテナで起動するため、`~/.claude/projects/...` の memory は **当該セッション限り** で別セッションに引き継がれない。クロスセッションで共有したい知見は本 `CLAUDE.md` / `AGENTS.md` / `docs/` に commit すること
+
+### Claude Code クラウド版固有の制約
+
+クラウド版 Claude Code (claude.ai/code) は git proxy 経由で push する。proxy は **destination branch の allowlist** を enforce しており、各セッションは以下にのみ push 可:
+
+- 自身の **designated branch** (system prompt で指定される `claude/<...>`)
+- **`feat/test-push-*`** パターン (任意 suffix、staging 用)
+
+他セッションの designated branch (例: 別セッションが担当する `feat/e2e-coverage-series`) への直接 push は **HTTP 403 (RPC failed)** で拒否される。エラーメッセージは reason header を含まないため、原因究明に時間を浪費しがち。
+
+#### 標準回避策
+
+統合ブランチ (例: シリーズ PR の `feat/<topic>-series`) に commit を積みたい場合:
+
+```bash
+# ローカルで本来の branch に commit を積む
+git checkout feat/<topic>-series
+git commit ...
+
+# feat/test-push-<discriminator> に staging push (proxy 通過)
+git push origin feat/<topic>-series:feat/test-push-<issue>-<topic>
+
+# 後続セッション (designated = feat/... 系) または ユーザーが本来のブランチに promote
+# (= fast-forward push or merge)
+```
+
+**discriminator** には ISSUE 番号や日付など、他セッションと衝突しない一意な suffix を付ける (例: `feat/test-push-934-coverage`)。
+
+#### NG パターン (避けること)
+
+- ❌ designated branch (`claude/...`) への cherry-pick で妥協 — 別セッションが pull/merge する際に commit hash 不一致で履歴混乱
+- ❌ 同 destination 名で source ref を変えてリトライ — proxy は destination で拒否、source 変更は無効
+- ❌ proxy port 変化を待ってリトライ — port が変わっても allowlist は同じ
+
+詳細・切り分け手順・実例は memory `feedback_cloud_proxy_push_restriction.md` (クラウド版では git に無いため、未経験セッションは本節のみで対応)。
+
+ローカル CLI 版 (PC で起動した Claude Code) には **この制限は無い**。クラウド版固有。
 
 ### 命名運用中の重要事項
 
