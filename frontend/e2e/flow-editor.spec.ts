@@ -342,18 +342,54 @@ test.describe("画面フロー — node D&D / edge / marker / 削除動線", { t
     await expect(page.locator(".react-flow__node-screenNode")).toHaveCount(0, { timeout: 5000 });
   });
 
-  // ── (C) 画面間 anchor マーカー追加 ─────────────────────────────────────
+  // ── (C) 画面間 anchor マーカー追加 → 解決 (#1003 で実装) ────────────────
 
-  test.skip("(C) 画面間 anchor マーカー追加 → 解決 [未実装 → skip]", async ({ page: _page }) => {
-    void _page;
-    /**
-     * FlowEditor には画面 node に対する anchor 付きマーカー機能が存在しない。
-     * MarkerPanel (frontend/src/components/process-flow/MarkerPanel.tsx) は
-     * ProcessFlowEditor 専用であり、FlowEditor では参照されていない。
-     * DrawingOverlay の anchor も process-flow 側の実装。
-     *
-     * 機能追加は #1003 で計画中。本 test は #1003 完了時に skip 解除し strict assert に戻す。
-     */
+  test("(C) 画面間 anchor マーカー追加 → 解決", async ({ page }) => {
+    await setupFlowEditor(page);
+
+    // 1. 画面を 1 つ作成
+    await addScreenViaModal(page, "marker test");
+
+    // 2. FlowSubToolbar の「マーカー」ボタンをクリック → FlowMarkerPanel が開く
+    await page.getByTestId("marker-panel-toggle-btn").click();
+    await expect(page.getByTestId("flow-marker-panel")).toBeVisible({ timeout: 5000 });
+
+    // 3. 対象画面を select で選び、kind=todo / body 入力 → 「追加」ボタン
+    const screenSelect = page.getByTestId("marker-screen-select");
+    await expect(screenSelect).toBeVisible({ timeout: 5000 });
+    // select には「marker test」が option として入っているはず
+    await screenSelect.selectOption({ label: "marker test" });
+    await page.getByTestId("marker-kind-select").selectOption("todo");
+    await page.getByTestId("marker-body-input").fill("ヘッダー統一して");
+    await page.getByTestId("marker-add-btn").click();
+
+    // 4. パネルに未解決 marker (1 件) が表示されることを assert
+    await expect(page.getByText("ヘッダー統一して")).toBeVisible({ timeout: 5000 });
+
+    // 4b. screen node に未解決 marker バッジ (数字 1) が表示されることを assert (#1003 Should-fix)
+    const screenNode = page.locator(".react-flow__node-screenNode").filter({ hasText: "marker test" });
+    const markerBadge = screenNode.getByTestId("screen-node-marker-badge");
+    await expect(markerBadge).toBeVisible({ timeout: 5000 });
+    await expect(markerBadge).toContainText("1");
+
+    // 5. 「解決」ボタン → 解決メモ入力 → confirm → resolved 状態
+    const markerRows = page.locator(".marker-row");
+    const firstRow = markerRows.first();
+    await expect(firstRow).toBeVisible({ timeout: 5000 });
+    const resolveBtn = firstRow.locator(".marker-resolve-btn");
+    await resolveBtn.click();
+    await page.getByTestId("resolve-note-textarea").fill("対応完了");
+    await page.getByTestId("resolve-confirm-btn").click();
+
+    // resolved になると行が非表示になる (showResolved=false のため)
+    await expect(page.locator(".marker-row:not(.resolved)")).toHaveCount(0, { timeout: 5000 });
+
+    // 5b. resolve 後はバッジが非表示になる (unresolvedCount=0) (#1003 Should-fix)
+    await expect(markerBadge).not.toBeVisible({ timeout: 5000 });
+
+    // 6. 「解決済みも表示」を on にして resolved 件数 1 件を assert
+    await page.getByTestId("show-resolved-checkbox").click();
+    await expect(page.locator(".marker-row.resolved")).toHaveCount(1, { timeout: 5000 });
   });
 
   // ── (F) 画面名変更 → screen entity 反映 ─────────────────────────────────

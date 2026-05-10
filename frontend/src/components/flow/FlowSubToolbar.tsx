@@ -23,6 +23,10 @@ interface Props {
   isSaving?: boolean;
   onSave?: () => void;
   onReset?: () => void;
+  /** マーカーパネルを開く */
+  onToggleMarkerPanel?: () => void;
+  /** マーカーパネルが開いているか */
+  markerPanelOpen?: boolean;
 }
 
 export function FlowSubToolbar({
@@ -32,6 +36,7 @@ export function FlowSubToolbar({
   onZoomChange, onFitView,
   onUndo, onRedo, canUndo, canRedo,
   isDirty, isSaving, onSave, onReset,
+  onToggleMarkerPanel, markerPanelOpen,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(projectName);
@@ -184,6 +189,16 @@ export function FlowSubToolbar({
             />
           </div>
 
+          {onToggleMarkerPanel && (
+            <button
+              className={`flow-btn ${markerPanelOpen ? "flow-btn-primary" : "flow-btn-secondary"}`}
+              onClick={onToggleMarkerPanel}
+              title="マーカーパネルを開く"
+              data-testid="marker-panel-toggle-btn"
+            >
+              <i className="bi bi-megaphone" /> マーカー
+            </button>
+          )}
           <button className="flow-btn flow-btn-secondary" onClick={onAddGroup} title="グループを追加">
             <i className="bi bi-collection" /> グループ
           </button>

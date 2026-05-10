@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import {
@@ -24,9 +24,12 @@ import "@xyflow/react/dist/style.css";
 import ScreenNodeComponent from "./ScreenNode";
 import GroupNodeComponent from "./GroupNodeComponent";
 import { FlowSubToolbar } from "./FlowSubToolbar";
+import { FlowMarkerPanel } from "./FlowMarkerPanel";
 import { ScreenEditModal, type ScreenFormData } from "./ScreenEditModal";
 import { EdgeEditModal, type EdgeFormData, type HandlePosition } from "./EdgeEditModal";
 import type { FlowProject, ScreenNode, ScreenEdge, ScreenGroup } from "../../types/flow";
+import type { Screen } from "../../types/v3/screen";
+import type { Marker } from "../../types/v3/common";
 import { TRIGGER_LABELS } from "../../types/flow";
 import type { ScreenGroupId, ScreenKind, ScreenLayout, Timestamp } from "../../types/v3";
 import {
@@ -81,7 +84,11 @@ const nodeTypes = {
   groupNode: GroupNodeComponent,
 };
 
-function toRFNodesWithGroups(screens: ScreenNode[], groups: ScreenGroup[]): RFNode[] {
+function toRFNodesWithGroups(
+  screens: ScreenNode[],
+  groups: ScreenGroup[],
+  screenEntities?: Map<string, Screen>,
+): RFNode[] {
   // Group nodes must come first so ReactFlow knows about parents before children
   const groupNodes: RFNode[] = (groups ?? []).map((g) => ({
     id: g.id,
@@ -95,11 +102,15 @@ function toRFNodesWithGroups(screens: ScreenNode[], groups: ScreenGroup[]): RFNo
   }));
 
   const screenNodes: RFNode[] = screens.map((s) => {
+    const entity = screenEntities?.get(s.id);
+    const unresolvedCount = entity
+      ? (entity.authoring?.markers ?? []).filter((m) => !m.resolvedAt).length
+      : 0;
     const node: RFNode = {
       id: s.id,
       type: "screenNode",
       position: s.position,
-      data: { ...s },
+      data: { ...s, unresolvedCount },
     };
     if (s.groupId) {
       node.parentId = s.groupId;
@@ -168,6 +179,13 @@ function FlowEditorInner() {
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
 
+  // ── マーカーパネル ──
+  const [markerPanelOpen, setMarkerPanelOpen] = useState(false);
+  const [screenEntities, setScreenEntities] = useState<Map<string, Screen>>(new Map());
+  // useCallback 内から最新 screenEntities を参照するための ref
+  const screenEntitiesRef = useRef<Map<string, Screen>>(new Map());
+  useEffect(() => { screenEntitiesRef.current = screenEntities; }, [screenEntities]);
+
   const sessionId = mcpBridge.getSessionId();
 
   // URL ?session= 同期 (spec §11.2) — initialEditSessionId を useEditSession に渡すため先に呼ぶ
@@ -206,7 +224,7 @@ function FlowEditorInner() {
     const prev = undoStackRef.current[undoStackRef.current.length - 1];
     undoStackRef.current = undoStackRef.current.slice(0, -1);
     projectRef.current = prev;
-    setNodes(toRFNodesWithGroups(prev.screens, prev.groups ?? []));
+    setNodes(toRFNodesWithGroups(prev.screens, prev.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(prev.edges));
     setProjectName(prev.name);
     saveProject(prev).catch(console.error);
@@ -220,7 +238,7 @@ function FlowEditorInner() {
     const next = redoStackRef.current[redoStackRef.current.length - 1];
     redoStackRef.current = redoStackRef.current.slice(0, -1);
     projectRef.current = next;
-    setNodes(toRFNodesWithGroups(next.screens, next.groups ?? []));
+    setNodes(toRFNodesWithGroups(next.screens, next.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(next.edges));
     setProjectName(next.name);
     saveProject(next).catch(console.error);
@@ -234,7 +252,7 @@ function FlowEditorInner() {
   const reloadProject = useCallback(async () => {
     const [project, raw] = await Promise.all([loadProject(), loadRawProject()]);
     projectRef.current = project;
-    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? []));
+    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(project.edges));
     setProjectName(project.name);
     setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.techStack));
@@ -558,6 +576,64 @@ function FlowEditorInner() {
     setContextMenu(null);
   }, [contextMenu, navigate, nodes]);
 
+  // ── Marker Panel Actions ──
+
+  /** panel を開く時だけ全 screen entity を lazy load */
+  const handleToggleMarkerPanel = useCallback(async () => {
+    const opening = !markerPanelOpen;
+    setMarkerPanelOpen(opening);
+    if (opening && projectRef.current) {
+      const map = new Map<string, Screen>();
+      await Promise.all(
+        projectRef.current.screens.map(async (s) => {
+          try {
+            const entity = await loadScreenEntity(s.id);
+            map.set(s.id, entity);
+          } catch {
+            // 読み込み失敗時はスキップ (ghost screen)
+          }
+        }),
+      );
+      setScreenEntities(map);
+    }
+  }, [markerPanelOpen]);
+
+  /** marker 追加/解決/削除時に screen entity を更新して保存 */
+  const handleMarkerChange = useCallback(
+    async (screenId: string, updatedMarkers: Marker[]) => {
+      // Should-fix #1003: panel open 後に追加された画面は screenEntities に未登録の場合があるため
+      // entity が無ければ on-demand で load して Map に追加する (silent fail 防止)
+      let entity = screenEntities.get(screenId);
+      if (!entity) {
+        try {
+          entity = await loadScreenEntity(screenId);
+          setScreenEntities((prev) => {
+            const next = new Map(prev);
+            next.set(screenId, entity!);
+            return next;
+          });
+        } catch {
+          // ghost screen (entity ファイルが存在しない) の場合はスキップ
+          return;
+        }
+      }
+      const updated: Screen = {
+        ...entity,
+        authoring: {
+          ...(entity.authoring ?? {}),
+          markers: updatedMarkers.length > 0 ? updatedMarkers : undefined,
+        },
+      };
+      await saveScreenEntity(updated);
+      setScreenEntities((prev) => {
+        const next = new Map(prev);
+        next.set(screenId, updated);
+        return next;
+      });
+    },
+    [screenEntities],
+  );
+
   // ── Group Actions ──
 
   const handleAddGroup = useCallback(async () => {
@@ -599,7 +675,7 @@ function FlowEditorInner() {
       return;
     }
     await storeRemoveGroup(projectRef.current, contextMenu.targetId);
-    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? []));
+    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
   }, [contextMenu, setNodes]);
 
@@ -624,7 +700,7 @@ function FlowEditorInner() {
     screen.groupId = groupId;
     screen.updatedAt = new Date().toISOString() as Timestamp;
     await saveProject(projectRef.current);
-    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? []));
+    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
   }, [contextMenu, setNodes]);
 
@@ -642,7 +718,7 @@ function FlowEditorInner() {
     screen.groupId = undefined;
     screen.updatedAt = new Date().toISOString() as Timestamp;
     await saveProject(projectRef.current);
-    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? []));
+    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
   }, [contextMenu, setNodes]);
 
@@ -701,7 +777,7 @@ function FlowEditorInner() {
         return storeRemoveGroup(project, n.id).then(() => {
           // Rebuild nodes to reflect ungrouped screens
           if (projectRef.current) {
-            setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? []));
+            setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
           }
           return true;
         });
@@ -749,7 +825,7 @@ function FlowEditorInner() {
     try {
       const imported = await importProjectJSON(json);
       projectRef.current = imported;
-      setNodes(toRFNodesWithGroups(imported.screens, imported.groups ?? []));
+      setNodes(toRFNodesWithGroups(imported.screens, imported.groups ?? [], screenEntitiesRef.current));
       setEdges(toRFEdges(imported.edges));
       setProjectName(imported.name);
       needsFitViewRef.current = imported.screens.length > 0;
@@ -875,8 +951,29 @@ function FlowEditorInner() {
     if (isDirty && !isSaving && !isReadonly) handleSave();
   });
 
+  // Should-fix #1003: screenEntities が更新されたとき (marker 追加/解決/panel open 時) に
+  // 各 ScreenNode の data.unresolvedCount を同期して badge 表示を最新に保つ
+  useEffect(() => {
+    if (screenEntities.size === 0) return;
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.type !== "screenNode") return n;
+        const entity = screenEntities.get(n.id);
+        if (!entity) return n;
+        const unresolvedCount = (entity.authoring?.markers ?? []).filter((m) => !m.resolvedAt).length;
+        if ((n.data as { unresolvedCount?: number }).unresolvedCount === unresolvedCount) return n;
+        return { ...n, data: { ...n.data, unresolvedCount } };
+      })
+    );
+  }, [screenEntities, setNodes]);
+
   const isEmpty = !isLoading && nodes.filter((n) => n.type === "screenNode").length === 0;
   const screenCount = nodes.filter((n) => n.type === "screenNode").length;
+  const flowScreenNodes = useMemo(
+    () => (projectRef.current?.screens ?? []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nodes],
+  );
   const lockedByOther = mode.kind === "locked-by-other" ? mode : null;
 
   return (
@@ -964,7 +1061,23 @@ function FlowEditorInner() {
         isSaving={isSaving}
         onSave={() => { handleSave().catch(console.error); }}
         onReset={() => { handleReset().catch(console.error); }}
+        onToggleMarkerPanel={() => { handleToggleMarkerPanel().catch(console.error); }}
+        markerPanelOpen={markerPanelOpen}
       />
+
+      {/* マーカーパネル (flow-canvas の右側にオーバーレイ表示) */}
+      {markerPanelOpen && (
+        <div className="flow-marker-panel-overlay">
+          <FlowMarkerPanel
+            screens={flowScreenNodes}
+            screenEntities={screenEntities}
+            onMarkerChange={(screenId, markers) =>
+              handleMarkerChange(screenId, markers)
+            }
+            onClose={() => setMarkerPanelOpen(false)}
+          />
+        </div>
+      )}
 
       <div className="flow-canvas">
         {isLoading ? (

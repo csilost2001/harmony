@@ -5,6 +5,8 @@
   height: calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px));
   background: #f1f5f9;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Must-fix #1003: .flow-marker-panel-overlay の absolute 配置の基準 ancestor にする */
+  position: relative;
 }
 
 /* ── Flow Topbar (EditorHeader の title/center/extraRight slot 内で使用) ─── */
@@ -183,6 +185,7 @@
 
 /* ── Screen Node ───────────────────────────── */
 .screen-node {
+  position: relative;
   background: #fff;
   border: 2px solid #e2e8f0;
   border-radius: 10px;
@@ -957,3 +960,88 @@
   font-size: 11px;
   color: #6c757d;
 }
+
+/* ── Screen Node Marker Badge (#1003 Should-fix) ─────────────── */
+
+.screen-node-marker-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: inline-flex;
+  align-items: center;
+  background: #f59e0b;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── Flow Marker Panel (#1003) ───────────────────────────────── */
+
+.flow-marker-panel-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 380px;
+  max-width: 100%;
+  height: 100%;
+  z-index: 20;
+  overflow-y: auto;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.12);
+  background: #fff;
+}
+
+.flow-marker-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+  border-left: 1px solid #e2e8f0;
+}
+
+.flow-marker-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.flow-marker-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.flow-marker-panel-close {
+  color: #64748b;
+  padding: 2px 6px;
+}
+
+.flow-marker-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.flow-marker-panel .marker-screen-ref {
+  font-size: 11px;
+  color: #6c757d;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* .flow-canvas は flex:1 で伸長し、ReactFlow キャンバスを内包する */
+/* (position: relative は既に .flow-canvas に定義済み — line 175付近) */
