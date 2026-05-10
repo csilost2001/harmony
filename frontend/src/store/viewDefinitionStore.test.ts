@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { FlowProject } from "../types/flow";
 import type {
   DisplayName,
+  Project,
   TableId,
   Timestamp,
   ViewDefinitionEntry,
@@ -37,22 +38,30 @@ function viewDefinitionEntry(id: string, no: number): ViewDefinitionEntry {
     no,
     name: `vd ${id}`,
     kind: "list",
-    sourceTableId: "tbl-1" as any,
+    sourceTableId: "tbl-1" as unknown as TableId,
     columnCount: 0,
     updatedAt: TS,
   };
 }
 
-function projectWithViewDefinitions(viewDefinitions: ViewDefinitionEntry[]): FlowProject {
+// commitViewDefinitions が entities.viewDefinitions を使うため rawProject 形式のヘルパーを追加
+function rawProjectWithViewDefinitions(viewDefinitions: ViewDefinitionEntry[]): Project {
+  const ts = TS as unknown as Project["meta"]["createdAt"];
   return {
-    version: 1,
-    name: "test",
-    screens: [],
-    groups: [],
-    edges: [],
-    viewDefinitions,
-    updatedAt: TS,
-  } as unknown as FlowProject;
+    $schema: "../../schemas/v3/harmony.v3.schema.json",
+    schemaVersion: "v3",
+    dataDir: "harmony",
+    meta: {
+      id: "11111111-2222-4333-8444-555555555555" as unknown as Project["meta"]["id"],
+      name: "test",
+      maturity: "draft",
+      createdAt: ts,
+      updatedAt: ts,
+      mode: "upstream",
+    },
+    extensionsApplied: [],
+    entities: { viewDefinitions },
+  };
 }
 
 describe("viewDefinitionStore", () => {
@@ -116,24 +125,34 @@ describe("viewDefinitionStore", () => {
   });
 
   it("commitViewDefinitions saves harmony.json once regardless of deletedIds count", async () => {
-    const project = projectWithViewDefinitions([
+    // commitViewDefinitions が entities.viewDefinitions を使うため
+    // loadRawProject / saveRawProject を deps 経由で渡す
+    const rawProject = rawProjectWithViewDefinitions([
       viewDefinitionEntry("a", 1),
       viewDefinitionEntry("b", 2),
       viewDefinitionEntry("c", 3),
     ]);
-    const loadProject = vi.fn().mockResolvedValue(project);
+    const loadProject = vi.fn().mockResolvedValue({
+      version: 1, name: "test", screens: [], groups: [], edges: [], updatedAt: TS,
+    });
     const saveProject = vi.fn().mockResolvedValue(undefined);
     const deleteViewDefinition = vi.fn().mockResolvedValue(undefined);
+    const loadRawProject = vi.fn().mockResolvedValue(rawProject);
+    const saveRawProject = vi.fn().mockResolvedValue(undefined);
 
     await commitViewDefinitions({
       itemsInOrder: [viewDefinitionEntry("c", 1), viewDefinitionEntry("a", 2)],
       deletedIds: ["b", "missing"],
-    }, { loadProject, saveProject, deleteViewDefinition });
+    }, { loadProject, saveProject, deleteViewDefinition, loadRawProject, saveRawProject });
 
-    expect(saveProject).toHaveBeenCalledTimes(1);
-    expect(saveProject).toHaveBeenCalledWith(project);
-    expect(project.viewDefinitions?.map((vd) => vd.id)).toEqual(["c", "a"]);
-    expect(project.viewDefinitions?.map((vd) => vd.no)).toEqual([1, 2]);
+    // saveRawProject が 1 回だけ呼ばれる
+    expect(saveRawProject).toHaveBeenCalledTimes(1);
+    // saveProject は呼ばれない (entities.viewDefinitions 直書きに変更)
+    expect(saveProject).not.toHaveBeenCalled();
+    // 保存された rawProject の entities.viewDefinitions が正しく更新されている
+    const saved = rawProject.entities?.viewDefinitions;
+    expect(saved?.map((vd) => vd.id)).toEqual(["c", "a"]);
+    expect(saved?.map((vd) => vd.no)).toEqual([1, 2]);
     expect(deleteViewDefinition).toHaveBeenCalledTimes(2);
     expect(deleteViewDefinition).toHaveBeenNthCalledWith(1, "b");
     expect(deleteViewDefinition).toHaveBeenNthCalledWith(2, "missing");

@@ -5,7 +5,7 @@ import type { ScreenNode } from "../../types/flow";
 import { SCREEN_KIND_LABELS, SCREEN_KIND_ICONS } from "../../types/flow";
 import type { ScreenId, ScreenKind, Timestamp } from "../../types/v3";
 import { loadProject, loadRawProject, saveProject, addScreen, removeScreen, DEFAULT_NODE_SIZE } from "../../store/flowStore";
-import { buildDefaultScreen, saveScreenEntity } from "../../store/screenStore";
+import { buildDefaultScreen, loadPuckScreenValidationMap, saveScreenEntity } from "../../store/screenStore";
 import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { mcpBridge } from "../../mcp/mcpBridge";
@@ -17,6 +17,7 @@ import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
+import { ValidationBadge } from "../common/ValidationBadge";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { useListKeyboard } from "../../hooks/useListKeyboard";
@@ -32,6 +33,11 @@ import "../../styles/editMode.css";
 
 const STORAGE_KEY = "list-view-mode:screen-list";
 const TAB_ID = makeTabId("screen-list", "main");
+
+interface ValidationSummary {
+  errors: number;
+  warnings: number;
+}
 
 function formatDate(iso: string): string {
   try {
@@ -55,6 +61,7 @@ export function ScreenListView() {
   // project.techStack.designer の project default (画面作成ダイアログのデフォルト選択値)
   const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
   const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
+  const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
 
   const loadScreens = useCallback(async (): Promise<ScreenNode[]> => {
     mcpBridge.startWithoutEditor();
@@ -100,6 +107,29 @@ export function ScreenListView() {
   }, []);
 
   const screens = editor.items;
+
+  // puck validation map のロード (TableListView.tsx と同パターン)
+  useEffect(() => {
+    if (screens.length === 0) {
+      setValidationMap(new Map());
+      return;
+    }
+    let cancelled = false;
+    loadPuckScreenValidationMap()
+      .then((map) => {
+        if (cancelled) return;
+        const next = new Map<string, ValidationSummary>();
+        for (const [id, errors] of map) {
+          next.set(String(id), {
+            errors: errors.filter((e) => e.severity === "error").length,
+            warnings: errors.filter((e) => e.severity === "warning").length,
+          });
+        }
+        setValidationMap(next);
+      })
+      .catch(console.error);
+    return () => { cancelled = true; };
+  }, [screens]);
 
   const filter = useListFilter(screens);
 
@@ -424,6 +454,19 @@ export function ScreenListView() {
       ),
     },
     {
+      key: "validation",
+      header: "検証",
+      width: "80px",
+      align: "center",
+      render: (s) => {
+        const validation = validationMap.get(s.id);
+        if (!validation) return null;
+        if (validation.errors > 0) return <ValidationBadge severity="error" count={validation.errors} />;
+        if (validation.warnings > 0) return <ValidationBadge severity="warning" count={validation.warnings} />;
+        return null;
+      },
+    },
+    {
       key: "type",
       header: "種別",
       width: "120px",
@@ -479,10 +522,14 @@ export function ScreenListView() {
         </button>
       ),
     },
-  ], [hasDraft, navigate, wsPath]);
+  ], [hasDraft, navigate, wsPath, validationMap]);
 
-  const renderCard = (s: ScreenNode) => (
-    <div className="screen-card-content">
+  const renderCard = (s: ScreenNode) => {
+    const validation = validationMap.get(s.id);
+    const hasError = (validation?.errors ?? 0) > 0;
+    const hasWarning = (validation?.warnings ?? 0) > 0;
+    return (
+    <div className={`screen-card-content${hasError ? " has-error" : hasWarning ? " has-warning" : ""}`}>
       <div className="screen-card-head">
         <i className={`bi ${SCREEN_KIND_ICONS[s.kind] ?? "bi-circle"} screen-card-icon`} />
         <span className="screen-card-name">{s.name}</span>
@@ -490,6 +537,8 @@ export function ScreenListView() {
         {hasDraft("screen", s.id) && (
           <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
         )}
+        {validation && validation.errors > 0 && <ValidationBadge severity="error" count={validation.errors} />}
+        {validation && validation.errors === 0 && validation.warnings > 0 && <ValidationBadge severity="warning" count={validation.warnings} />}
       </div>
       {s.path && <div className="screen-card-path">{s.path}</div>}
       <div className="screen-card-meta">
@@ -514,7 +563,8 @@ export function ScreenListView() {
         </button>
       </div>
     </div>
-  );
+    );
+  };
 
   const deletedCount = editor.deletedIds.size;
 

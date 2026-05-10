@@ -108,13 +108,25 @@ export async function loadScreenEntity(screenId: string): Promise<Screen> {
 export async function loadPuckScreenValidationMap(): Promise<Map<ScreenId, PuckScreenValidationError[]>> {
   const project = await loadProject();
   const validationMap = new Map<ScreenId, PuckScreenValidationError[]>();
+  const backend = requireBackend();
 
-  // 全画面エンティティを bulk fetch してから editorKind=puck を filter
-  const allEntities = await Promise.all(
-    project.screens.map((entry) => loadScreenEntity(entry.id)),
+  // raw entity データを直接読み、loadScreenEntity の自動補完を回避する。
+  // loadScreenEntity は editorKind=puck 画面に puckDataRef を自動補完するため、
+  // 「puckDataRef 欠落」エラーが validatePuckScreen で検出されなくなる。
+  // raw data を Screen 型として扱い、補完なしで validatePuckScreen に渡す。
+  const rawEntities = await Promise.all(
+    project.screens.map(async (entry) => {
+      const raw = await backend.loadScreenEntity(entry.id);
+      if (!isRecord(raw)) return null;
+      return {
+        ...raw,
+        id: (typeof raw.id === "string" ? raw.id : entry.id) as ScreenId,
+        design: isRecord(raw.design) ? raw.design : {},
+      } as unknown as Screen;
+    }),
   );
-  const puckEntities = allEntities.filter(
-    (entity) => entity.design?.editorKind === "puck",
+  const puckEntities = rawEntities.filter(
+    (entity): entity is Screen => entity !== null && entity.design?.editorKind === "puck",
   );
 
   for (const entity of puckEntities) {

@@ -50,6 +50,13 @@ store は一覧読み込みと同じ責務範囲で `load<Resource>ValidationMap
 
 一覧画面の `MaturityBadge` は view-only とし、編集画面の `MaturityBadge` は `onChange` を受け取って成熟度を変更できる。`committed` は「下流工程へ渡せる確定状態」を示すため、validation の可視化と併用する。
 
+**commit 阻止 UI の責務分担 (#1004 Phase 4 で確定)**:
+- error 件数 > 0 の場合に `committed` への遷移を阻止する確認ダイアログ等の UI は **Editor 側のみで実装**する。
+- ListView の `MaturityBadge` は view-only (クリック・変更操作なし) のため、ListView 側に commit 阻止ロジックは実装しない。
+- 現時点では Editor 側の commit 阻止も未実装 (将来の拡張候補)。実装が必要な場合は別 ISSUE で起票して対応する。
+
+> **e2e spec との対応**: `frontend/e2e/draft-state-validation.spec.ts` の P3-block test (ListView での commit 阻止 UI) は上記判定により by design 恒久 skip とする (#1004 Phase 4 で確定)。
+
 ## 3. severity 判定基準
 
 validation severity は次の 4 軸で判定する。迷った場合は、ユーザーが直ちに作業を継続できるかではなく、下流処理や識別子の整合性を壊すかで error / warning を分ける。
@@ -159,6 +166,21 @@ AJV 導入方針は次の 3 案を比較した。
 - validation 対象のリソース種別が 5 種以上になり、手書き validator の重複が保守負荷になった
 - schema と手書き validator の実際の divergence が発生し、ユーザー影響のある誤判定が確認された
 - 業務要件として、UI 実行時に schema 準拠性そのものを表示・証跡化する必要が出た
+
+### 7.4 適用範囲の明確化 (Conventions / Extensions は対象外)
+
+本ポリシーの適用対象は **業務リソース** (View / Table / ProcessFlow / ViewDefinition / Screen 等、設計者が業務を記述するリソース) に限定する。
+
+以下のフレームワーク基盤側は対象外とする:
+
+| 対象外リソース | 理由 |
+|---|---|
+| Conventions (規約カタログ `catalog.json`) | フレームワーク定義リソース。業務設計者が設計途中に draft-state で保存するユースケースがなく、validator 経路も未整備のため |
+| Extensions (拡張定義 `extensions/*/`) | フレームワーク拡張パッケージ。schema governance (#511) の対象であり、AI が勝手に validator を追加することは禁止されている |
+
+これらを draft-state policy の対象にするには、フレームワーク製作者 (設計者) が新規 ISSUE を起票して承認フローを経る必要がある。
+
+> **e2e spec との対応**: `frontend/e2e/draft-state-validation.spec.ts` の P2-Conventions test は上記判定により by design 恒久 skip とする (#1004 Phase 3 で確定)。
 
 ## 8. Related
 

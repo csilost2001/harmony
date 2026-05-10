@@ -237,6 +237,7 @@ export function composeFlowProject(
     })),
     sequences: entities.sequences,
     views: entities.views,
+    viewDefinitions: entities.viewDefinitions,
     updatedAt: persisted.meta.updatedAt,
   };
 }
@@ -330,6 +331,9 @@ export function decomposeFlowProject(
       }),
       sequences: project.sequences,
       views: project.views,
+      // viewDefinitions は saveProject パスでは書き戻さず、saveRawProject パス (commitViewDefinitions 等) で
+      // 行う。decomposeFlowProject では existingRaw から保持して上書きを防ぐ。
+      viewDefinitions: existingRaw?.entities?.viewDefinitions,
     },
   };
 
@@ -501,6 +505,7 @@ function normalizePersisted(raw: unknown): PersistedFlowProject {
         processFlows: project.entities?.processFlows,
         sequences: project.entities?.sequences,
         views: project.entities?.views,
+        viewDefinitions: project.entities?.viewDefinitions,
       },
     };
   }
@@ -633,6 +638,15 @@ export async function loadRawProject(): Promise<Project> {
   const local = loadPersistedFromLocalStorage();
   if (local) return local;
   return normalizePersisted({});
+}
+
+/**
+ * raw Project を直接永続化する。
+ * FlowProject には含まれないフィールド (entities.viewDefinitions 等) を保存する専用関数。
+ * AJV validation は行わない (draft-state policy により schema 違反でも保存可能)。
+ */
+export async function saveRawProject(raw: Project): Promise<void> {
+  await requireBackend().saveProject(raw);
 }
 
 /**

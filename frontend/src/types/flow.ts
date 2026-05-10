@@ -119,6 +119,7 @@ export interface FlowProject {
   processFlows?: ProcessFlowMeta[];
   sequences?: import("./v3").SequenceEntry[];
   views?: import("./v3").ViewEntry[];
+  viewDefinitions?: import("./v3").ViewDefinitionEntry[];
   updatedAt: Timestamp;
 }
 
