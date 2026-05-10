@@ -16,10 +16,8 @@
  * 実行コマンド (canonical):
  *   npm run test:e2e:endurance       # E2E_INCLUDE_ENDURANCE=1 を内包
  *
- * `npm run test:e2e -- --grep @endurance` のみだと playwright.config の
- * `grepInvert: /@endurance/` (E2E_INCLUDE_ENDURANCE 未設定時にデフォルト適用) が
- * 後勝ちで効くため 0 tests になる。AC 文言の `--grep @endurance` を素のまま
- * 受け取らないこと (#930 で導入された env-gated 除外仕様)。
+ * `npm run test:e2e -- --grep @endurance` でも playwright.config が
+ * 明示 grep を検出して endurance 除外を解除する。
  */
 import fs from "node:fs/promises";
 import path from "node:path";

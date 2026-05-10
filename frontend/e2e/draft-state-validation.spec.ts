@@ -11,7 +11,7 @@
  *   原則 4 (severity 境界) : error (物理同一性違反) vs warning (表示完成度) の判定
  *
  * 適用外・skip 対象:
- *   - SQL alias #775   : UI runtime validator 未実装 → test.skip
+ *   - SQL alias #1004  : UI runtime validator 未実装 → test.skip
  *   - maturity commit 阻止 (P3-block) : UI 未実装確認 → test.skip
  *   - Screen ListView   : puck validation の ListView 表示は未実装 → spec 内コメントで明示
  *   - Conventions / Extensions : ValidationBadge 未適用 → spec 内コメントで明示
@@ -412,13 +412,13 @@ test.describe("draft-state validation 表示 — 領域 11 網羅", { tag: ["@re
   });
 
   // ──────────────────────────────────────────────
-  // SQL alias #775 — UI runtime validator 未実装
+  // SQL alias #1004 — UI runtime validator 未実装
   // ──────────────────────────────────────────────
 
-  // SQL alias 未定義を error として検出する UI runtime validator は #775 で trace 済み。
+  // SQL alias 未定義を error として検出する UI runtime validator は #1004 で trace する。
   // sqlColumnValidator.ts は列存在検査 (UNKNOWN_COLUMN) のみ実装。
-  // → #775 完了後、本 skip を解除する。
-  test.skip("(SQL) SQL alias missing で error 表示 — #775: SQL alias UI runtime validator 未実装", async ({ page }) => {
+  // → #1004 完了後、本 skip を解除する。
+  test.skip("(SQL) SQL alias missing で error 表示 — #1004: SQL alias UI runtime validator 未実装", async ({ page }) => {
     void page;
     // 期待動作:
     // ViewDefinition の Level 2 query で alias が重複または未定義の場合、

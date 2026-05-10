@@ -3,6 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 // worktree 環境では VITE_PORT で別 port を指定可能 (#703 R-5 D-2 port 競合解決)
 const VITE_PORT = parseInt(process.env.VITE_PORT ?? "5173", 10);
 const BASE_URL = `http://localhost:${VITE_PORT}`;
+const cliIncludesEndurance = process.argv.some((arg) => arg.includes("@endurance"));
+const includeEndurance = process.env.E2E_INCLUDE_ENDURANCE === "1" || cliIncludesEndurance;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -10,8 +12,8 @@ export default defineConfig({
   testMatch: /.*\.spec\.ts$/,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  // #930: @endurance はデフォルトで除外、E2E_INCLUDE_ENDURANCE=1 で実行
-  grepInvert: process.env.E2E_INCLUDE_ENDURANCE ? undefined : /@endurance/,
+  // #930: @endurance はデフォルトで除外、明示 grep または E2E_INCLUDE_ENDURANCE=1 で実行
+  grepInvert: includeEndurance ? undefined : /@endurance/,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   reporter: "list",

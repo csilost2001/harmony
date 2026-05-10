@@ -73,7 +73,7 @@ async function pingVite(): Promise<{ ok: boolean; status?: number; error?: strin
 
 test.describe("Vite dev server multi-context stress (#992)", { tag: ["@regression"] }, () => {
   test.skip(!STRESS_ENABLED, "HARMONY_E2E_VITE_STRESS=1 で明示有効化したときのみ実行");
-  test.skip((_, testInfo) => testInfo.project.name !== "chromium", "chromium のみ");
+  test.skip(({ browserName }) => browserName !== "chromium", "chromium のみ");
   test.beforeAll(async () => {
     const mcp = await isMcpRunning();
     test.skip(!mcp, "backend (port 5179) が起動していません");

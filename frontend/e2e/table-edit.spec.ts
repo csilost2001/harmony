@@ -626,19 +626,11 @@ test.describe("テーブル編集 — column CRUD / 型変更 / PK / FK / index"
     const colSelect = lastRow.locator(".vd-col-select").nth(1);
     await expect(colSelect).toBeVisible({ timeout: 5000 });
 
-    // view-definition と orders の連携を smoke レベルで検証:
-    // refColumn select には orders の列リスト (= placeholder + 12 cols 以上) が表示される。
-    //
-    // 注意: ViewDefinitionEditor の `useTableOptions` (line 126-152) は mount 時に 1 回だけ
-    // `loadTable` を呼ぶため、本テスト内で table-editor 側で新規追加した列が即座に
-    // view-definition 側の colOptions に反映されない可能性がある (タイミング依存)。
-    // 「列追加 → view-def 自動伝搬」の完全な動作確認は ViewDefinitionEditor 側の
-    // tableStore subscription / cache 設計を見直してから再導入する (#932 follow-up)。
-    // 本テストは最低限「view-def が orders を参照可能で 列リストを取得できる」ことを
-    // 確認し、saveAndWait 後に audit_marker が orders に persistent していることは
-    // 上記 verify ステップで担保している。
-    const optionCount = await colSelect.locator("option").count();
-    expect(optionCount).toBeGreaterThanOrEqual(13);
+    // #1002 の tableStore subscription 修正により、同一 tab 内で追加した列が
+    // ViewDefinitionEditor の参照カラム候補へ即時反映されることを strict に検証する。
+    await expect(colSelect.locator('option[value="audit_marker"]')).toHaveCount(1, {
+      timeout: 10000,
+    });
   });
 });
 
