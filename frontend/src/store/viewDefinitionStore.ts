@@ -12,7 +12,7 @@ import {
   checkViewDefinitions,
   type ViewDefinitionIssue,
 } from "../schemas/viewDefinitionValidator";
-import { loadProject, saveProject } from "./flowStore";
+import { loadProject, loadRawProject, saveProject, saveRawProject } from "./flowStore";
 import { loadAllTables } from "./tableStore";
 import { renumber, nextNo } from "../utils/listOrder";
 
@@ -47,14 +47,17 @@ function toViewDefinitionId(id: string): ViewDefinitionId {
   return id as unknown as ViewDefinitionId;
 }
 
-// TODO(#666): Replace this local extension after FlowProject exposes viewDefinitions.
+// TODO(#666): Remove ProjectWithViewDefinitions after all callers migrate to entities.viewDefinitions.
+// #1004: listViewDefinitions/syncViewDefinitionMeta now use loadRawProject() + entities.viewDefinitions.
 type ProjectWithViewDefinitions = Awaited<ReturnType<typeof loadProject>> & {
   viewDefinitions?: ViewDefinitionEntry[];
 };
 
 export async function listViewDefinitions(): Promise<ViewDefinitionEntry[]> {
-  const project: ProjectWithViewDefinitions = await loadProject();
-  return project.viewDefinitions ?? [];
+  // #1004: entities.viewDefinitions は normalizePersisted で保持される (#1004 Phase 1 修正)。
+  // loadRawProject() → entities.viewDefinitions を参照。後方互換として旧 project.viewDefinitions も参照。
+  const raw = await loadRawProject();
+  return (raw.entities?.viewDefinitions ?? (raw as unknown as { viewDefinitions?: ViewDefinitionEntry[] }).viewDefinitions ?? []);
 }
 
 export async function loadViewDefinition(
@@ -137,16 +140,22 @@ interface CommitViewDefinitionsDeps {
   loadProject: typeof loadProject;
   saveProject: typeof saveProject;
   deleteViewDefinition: typeof deleteViewDefinition;
+  loadRawProject?: typeof loadRawProject;
+  saveRawProject?: typeof saveRawProject;
 }
 
 export async function commitViewDefinitions(
   { itemsInOrder, deletedIds }: { itemsInOrder: ViewDefinitionEntry[]; deletedIds: string[] },
-  deps: CommitViewDefinitionsDeps = { loadProject, saveProject, deleteViewDefinition },
+  deps: CommitViewDefinitionsDeps = { loadProject, saveProject, deleteViewDefinition, loadRawProject, saveRawProject },
 ): Promise<void> {
-  const project: ProjectWithViewDefinitions = await deps.loadProject();
+  // #1004 Phase 1: entities.viewDefinitions を直接管理。
+  const loadRaw = deps.loadRawProject ?? loadRawProject;
+  const saveRaw = deps.saveRawProject ?? saveRawProject;
+  const raw = await loadRaw();
+  if (!raw.entities) raw.entities = {};
   const deletedSet = new Set(deletedIds);
   const orderMap = new Map(itemsInOrder.map((v, i) => [v.id, i]));
-  project.viewDefinitions = (project.viewDefinitions ?? [])
+  raw.entities.viewDefinitions = (raw.entities.viewDefinitions ?? [])
     .filter((v) => !deletedSet.has(String(v.id)))
     .sort(
       (a, b) =>
@@ -154,20 +163,23 @@ export async function commitViewDefinitions(
         (orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER),
     )
     .map((v, i) => ({ ...v, no: i + 1 }));
-  await deps.saveProject(project);
+  await saveRaw(raw);
   for (const id of deletedIds) {
     await deps.deleteViewDefinition(id);
   }
 }
 
 async function syncViewDefinitionMeta(vd: ViewDefinition): Promise<void> {
-  const project: ProjectWithViewDefinitions = await loadProject();
-  if (!project.viewDefinitions) project.viewDefinitions = [];
+  // #1004 Phase 1: loadRawProject() + entities.viewDefinitions で直接管理。
+  // flowStore.saveRawProject() で entities.viewDefinitions を harmony.json に確実に永続化する。
+  const raw = await loadRawProject();
+  if (!raw.entities) raw.entities = {};
+  const entries = raw.entities.viewDefinitions ?? [];
 
-  const idx = project.viewDefinitions.findIndex((entry) => String(entry.id) === String(vd.id));
+  const idx = entries.findIndex((entry) => String(entry.id) === String(vd.id));
   const meta: ViewDefinitionEntry = {
     id: toViewDefinitionId(String(vd.id)),
-    no: idx >= 0 ? project.viewDefinitions[idx].no : nextNo(project.viewDefinitions),
+    no: idx >= 0 ? entries[idx].no : nextNo(entries),
     name: vd.name,
     kind: vd.kind,
     sourceTableId: vd.sourceTableId,
@@ -177,10 +189,10 @@ async function syncViewDefinitionMeta(vd: ViewDefinition): Promise<void> {
   };
 
   if (idx >= 0) {
-    project.viewDefinitions[idx] = meta;
+    entries[idx] = meta;
   } else {
-    project.viewDefinitions.push(meta);
+    entries.push(meta);
   }
-  project.viewDefinitions = renumber(project.viewDefinitions);
-  await saveProject(project);
+  raw.entities.viewDefinitions = renumber(entries);
+  await saveRawProject(raw);
 }

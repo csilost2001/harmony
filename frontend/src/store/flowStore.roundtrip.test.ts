@@ -23,6 +23,8 @@ import type {
   ScreenId,
   ScreenLayout,
   Timestamp,
+  ViewDefinitionEntry,
+  ViewDefinitionId,
 } from "../types/v3";
 
 const TS = "2026-05-05T00:00:00.000Z" as Timestamp;
@@ -151,6 +153,33 @@ describe("decomposeFlowProject round-trip preservation (#835)", () => {
     const { project: decomposed } = decomposeFlowProject(flow, mkLayout());
 
     expect(decomposed.techStack).toBeUndefined();
+  });
+
+  it("existingRaw に entities.viewDefinitions があれば保持される (#1004)", () => {
+    const existing = mkRichProject();
+    const vdEntry: ViewDefinitionEntry = {
+      id: "aaaaaaaa-1111-4111-8111-111111111111" as unknown as ViewDefinitionId,
+      no: 1,
+      name: "受注一覧定義",
+      kind: "list",
+      sourceTableId: "bbbbbbbb-2222-4222-8222-222222222222" as unknown as import("../types/v3").TableId,
+      columnCount: 3,
+      updatedAt: TS,
+    };
+    const existingWithVd: Project = {
+      ...existing,
+      entities: {
+        ...existing.entities,
+        viewDefinitions: [vdEntry],
+      },
+    };
+    const flow = composeFlowProject(existingWithVd, mkLayout());
+    const { project: decomposed } = decomposeFlowProject(flow, mkLayout(), existingWithVd);
+
+    // entities.viewDefinitions が existingRaw から保持される
+    expect(decomposed.entities?.viewDefinitions).toHaveLength(1);
+    expect(decomposed.entities?.viewDefinitions?.[0].id).toBe(vdEntry.id);
+    expect(decomposed.entities?.viewDefinitions?.[0].name).toBe("受注一覧定義");
   });
 });
 
