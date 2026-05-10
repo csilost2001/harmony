@@ -84,7 +84,11 @@ const nodeTypes = {
   groupNode: GroupNodeComponent,
 };
 
-function toRFNodesWithGroups(screens: ScreenNode[], groups: ScreenGroup[]): RFNode[] {
+function toRFNodesWithGroups(
+  screens: ScreenNode[],
+  groups: ScreenGroup[],
+  screenEntities?: Map<string, Screen>,
+): RFNode[] {
   // Group nodes must come first so ReactFlow knows about parents before children
   const groupNodes: RFNode[] = (groups ?? []).map((g) => ({
     id: g.id,
@@ -98,11 +102,15 @@ function toRFNodesWithGroups(screens: ScreenNode[], groups: ScreenGroup[]): RFNo
   }));
 
   const screenNodes: RFNode[] = screens.map((s) => {
+    const entity = screenEntities?.get(s.id);
+    const unresolvedCount = entity
+      ? (entity.authoring?.markers ?? []).filter((m) => !m.resolvedAt).length
+      : 0;
     const node: RFNode = {
       id: s.id,
       type: "screenNode",
       position: s.position,
-      data: { ...s },
+      data: { ...s, unresolvedCount },
     };
     if (s.groupId) {
       node.parentId = s.groupId;
@@ -174,6 +182,9 @@ function FlowEditorInner() {
   // ── マーカーパネル ──
   const [markerPanelOpen, setMarkerPanelOpen] = useState(false);
   const [screenEntities, setScreenEntities] = useState<Map<string, Screen>>(new Map());
+  // useCallback 内から最新 screenEntities を参照するための ref
+  const screenEntitiesRef = useRef<Map<string, Screen>>(new Map());
+  useEffect(() => { screenEntitiesRef.current = screenEntities; }, [screenEntities]);
 
   const sessionId = mcpBridge.getSessionId();
 
@@ -213,7 +224,7 @@ function FlowEditorInner() {
     const prev = undoStackRef.current[undoStackRef.current.length - 1];
     undoStackRef.current = undoStackRef.current.slice(0, -1);
     projectRef.current = prev;
-    setNodes(toRFNodesWithGroups(prev.screens, prev.groups ?? []));
+    setNodes(toRFNodesWithGroups(prev.screens, prev.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(prev.edges));
     setProjectName(prev.name);
     saveProject(prev).catch(console.error);
@@ -227,7 +238,7 @@ function FlowEditorInner() {
     const next = redoStackRef.current[redoStackRef.current.length - 1];
     redoStackRef.current = redoStackRef.current.slice(0, -1);
     projectRef.current = next;
-    setNodes(toRFNodesWithGroups(next.screens, next.groups ?? []));
+    setNodes(toRFNodesWithGroups(next.screens, next.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(next.edges));
     setProjectName(next.name);
     saveProject(next).catch(console.error);
@@ -241,7 +252,7 @@ function FlowEditorInner() {
   const reloadProject = useCallback(async () => {
     const [project, raw] = await Promise.all([loadProject(), loadRawProject()]);
     projectRef.current = project;
-    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? []));
+    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(project.edges));
     setProjectName(project.name);
     setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.techStack));
@@ -664,7 +675,7 @@ function FlowEditorInner() {
       return;
     }
     await storeRemoveGroup(projectRef.current, contextMenu.targetId);
-    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? []));
+    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
   }, [contextMenu, setNodes]);
 
@@ -689,7 +700,7 @@ function FlowEditorInner() {
     screen.groupId = groupId;
     screen.updatedAt = new Date().toISOString() as Timestamp;
     await saveProject(projectRef.current);
-    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? []));
+    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
   }, [contextMenu, setNodes]);
 
@@ -707,7 +718,7 @@ function FlowEditorInner() {
     screen.groupId = undefined;
     screen.updatedAt = new Date().toISOString() as Timestamp;
     await saveProject(projectRef.current);
-    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? []));
+    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
   }, [contextMenu, setNodes]);
 
@@ -766,7 +777,7 @@ function FlowEditorInner() {
         return storeRemoveGroup(project, n.id).then(() => {
           // Rebuild nodes to reflect ungrouped screens
           if (projectRef.current) {
-            setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? []));
+            setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
           }
           return true;
         });
@@ -814,7 +825,7 @@ function FlowEditorInner() {
     try {
       const imported = await importProjectJSON(json);
       projectRef.current = imported;
-      setNodes(toRFNodesWithGroups(imported.screens, imported.groups ?? []));
+      setNodes(toRFNodesWithGroups(imported.screens, imported.groups ?? [], screenEntitiesRef.current));
       setEdges(toRFEdges(imported.edges));
       setProjectName(imported.name);
       needsFitViewRef.current = imported.screens.length > 0;

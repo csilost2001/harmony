@@ -22,7 +22,7 @@ function ScreenNodeComponent({ data, selected }: ScreenNodeProps) {
     <>
       <Handle type="target" position={Position.Top} id="top" />
       <Handle type="target" position={Position.Left} id="left" />
-      <div className={`screen-node${selected ? " selected" : ""}`} data-screen-id={data.id} style={{ position: "relative" }}>
+      <div className={`screen-node${selected ? " selected" : ""}`} data-screen-id={data.id}>
         {/* Should-fix #1003: 未解決 marker バッジ — ReactFlow ノードと一体で position / zoom 追従 */}
         {unresolvedCount > 0 && (
           <span
