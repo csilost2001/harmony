@@ -11,6 +11,10 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test --grep @smoke",
+    "test:e2e:regression": "playwright test --grep @regression",
+    "test:e2e:endurance": "E2E_INCLUDE_ENDURANCE=1 playwright test --grep @endurance",
+    "test:e2e:all": "E2E_INCLUDE_ENDURANCE=1 playwright test",
     "validate:samples": "tsx scripts/validate-samples.ts"
   },
   "dependencies": {
