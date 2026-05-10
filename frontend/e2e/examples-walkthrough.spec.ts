@@ -13,6 +13,8 @@
  *
  * タグ: @endurance — デフォルト除外、E2E_INCLUDE_ENDURANCE=1 で実行。
  */
+import fs from "node:fs/promises";
+import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 import { isMcpRunning, sendBrowserRequest } from "./mcp/_helpers";
 import {
@@ -27,10 +29,23 @@ import {
 interface ExampleSpec {
   name: string;       // examples/<name>
   fixtureKey: string; // unique key for copyExampleWorkspace
-  domainAssertion: (page: Page) => Promise<void>;
+  domainAssertion: (page: Page, workspacePath: string) => Promise<void>;
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────
+
+/**
+ * harmony.json をファイルシステムから直接読み込む。
+ * sendBrowserRequest 経由だと RPC 名不一致 / レスポンス shape 不一致 /
+ * per-session activePath 未設定の問題があるため fs 直読みで代替する。
+ */
+async function readHarmonyJson(workspacePath: string): Promise<{
+  techStack?: { designer?: { cssFramework?: string; editorKind?: string } };
+}> {
+  const file = path.join(workspacePath, "harmony.json");
+  const content = await fs.readFile(file, "utf-8");
+  return JSON.parse(content);
+}
 
 /**
  * SPA navigation (history.pushState) でワークスペース接続を維持しながら遷移する。
@@ -309,7 +324,8 @@ const EXAMPLES: ExampleSpec[] = [
   {
     name: "retail",
     fixtureKey: "issue-931-retail",
-    domainAssertion: async (page: Page) => {
+    domainAssertion: async (page: Page, workspacePath: string) => {
+      void workspacePath;
       // retail: テーブル 8 件 (multi-store / EC / POS / 在庫 mix) — 最低 5 件を確認
       const wsRoot = await currentWorkspaceRoot(page);
       await spaNavigate(page, `${wsRoot}/table/list`);
@@ -321,7 +337,7 @@ const EXAMPLES: ExampleSpec[] = [
   {
     name: "english-learning",
     fixtureKey: "issue-931-english-learning",
-    domainAssertion: async (page: Page) => {
+    domainAssertion: async (page: Page, workspacePath: string) => {
       // english-learning: editorKind=grapesjs / cssFramework=bootstrap
       // 画面一覧の最初の画面を開いて GrapesJS エディタが起動することを確認
       const wsRoot = await currentWorkspaceRoot(page);
@@ -334,21 +350,16 @@ const EXAMPLES: ExampleSpec[] = [
       await expect(
         page.locator(".designer-root, [data-testid='puck-editor-container']"),
       ).toBeVisible({ timeout: 20000 });
-      // techStack を wsBridge 経由で確認 (loadRawProject の結果)
-      const techStackResult = await sendBrowserRequest("project.load", {}) as {
-        project?: { techStack?: { designer?: { cssFramework?: string; editorKind?: string } } };
-      } | null;
-      const framework = techStackResult?.project?.techStack?.designer?.cssFramework;
-      // bootstrap 系として check (undefined も許容 — デフォルトが bootstrap)
-      if (framework !== undefined) {
-        expect(framework).toBe("bootstrap");
-      }
+      // techStack を harmony.json から直接読む
+      const project = await readHarmonyJson(workspacePath);
+      expect(project.techStack?.designer?.editorKind).toBe("grapesjs");
+      expect(project.techStack?.designer?.cssFramework).toBe("bootstrap");
     },
   },
   {
     name: "english-learning-tailwind",
     fixtureKey: "issue-931-english-tailwind",
-    domainAssertion: async (page: Page) => {
+    domainAssertion: async (page: Page, workspacePath: string) => {
       // english-learning-tailwind: editorKind=puck / cssFramework=tailwind
       const wsRoot = await currentWorkspaceRoot(page);
       await spaNavigate(page, `${wsRoot}/screen/list`);
@@ -360,24 +371,17 @@ const EXAMPLES: ExampleSpec[] = [
       await expect(
         page.locator("[data-testid='puck-editor-container']"),
       ).toBeVisible({ timeout: 20000 });
-      // techStack を wsBridge 経由で確認
-      const techStackResult = await sendBrowserRequest("project.load", {}) as {
-        project?: { techStack?: { designer?: { cssFramework?: string; editorKind?: string } } };
-      } | null;
-      const framework = techStackResult?.project?.techStack?.designer?.cssFramework;
-      if (framework !== undefined) {
-        expect(framework).toBe("tailwind");
-      }
-      const editorKind = techStackResult?.project?.techStack?.designer?.editorKind;
-      if (editorKind !== undefined) {
-        expect(editorKind).toBe("puck");
-      }
+      // techStack を harmony.json から直接読む
+      const project = await readHarmonyJson(workspacePath);
+      expect(project.techStack?.designer?.editorKind).toBe("puck");
+      expect(project.techStack?.designer?.cssFramework).toBe("tailwind");
     },
   },
   {
     name: "realestate",
     fixtureKey: "issue-931-realestate",
-    domainAssertion: async (page: Page) => {
+    domainAssertion: async (page: Page, workspacePath: string) => {
+      void workspacePath;
       // realestate: テーブル 1 件のみ (minimal sample)
       const wsRoot = await currentWorkspaceRoot(page);
       await spaNavigate(page, `${wsRoot}/table/list`);
@@ -389,7 +393,8 @@ const EXAMPLES: ExampleSpec[] = [
   {
     name: "diary",
     fixtureKey: "issue-931-diary",
-    domainAssertion: async (page: Page) => {
+    domainAssertion: async (page: Page, workspacePath: string) => {
+      void workspacePath;
       // diary: 処理フロー 17 件 (AI flows + photo upload) — 最低 10 件を確認
       const wsRoot = await currentWorkspaceRoot(page);
       await spaNavigate(page, `${wsRoot}/process-flow/list`);
@@ -458,7 +463,7 @@ test.describe(
           await maybeRoundTripViewDefinition(page);
 
           // ドメイン固有アサーション
-          await ex.domainAssertion(page);
+          await ex.domainAssertion(page, wsPath);
         },
       );
     }
