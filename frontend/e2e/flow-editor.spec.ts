@@ -366,6 +366,12 @@ test.describe("画面フロー — node D&D / edge / marker / 削除動線", { t
     // 4. パネルに未解決 marker (1 件) が表示されることを assert
     await expect(page.getByText("ヘッダー統一して")).toBeVisible({ timeout: 5000 });
 
+    // 4b. screen node に未解決 marker バッジ (数字 1) が表示されることを assert (#1003 Should-fix)
+    const screenNode = page.locator(".react-flow__node-screenNode").filter({ hasText: "marker test" });
+    const markerBadge = screenNode.getByTestId("screen-node-marker-badge");
+    await expect(markerBadge).toBeVisible({ timeout: 5000 });
+    await expect(markerBadge).toContainText("1");
+
     // 5. 「解決」ボタン → 解決メモ入力 → confirm → resolved 状態
     const markerRows = page.locator(".marker-row");
     const firstRow = markerRows.first();
@@ -377,6 +383,9 @@ test.describe("画面フロー — node D&D / edge / marker / 削除動線", { t
 
     // resolved になると行が非表示になる (showResolved=false のため)
     await expect(page.locator(".marker-row:not(.resolved)")).toHaveCount(0, { timeout: 5000 });
+
+    // 5b. resolve 後はバッジが非表示になる (unresolvedCount=0) (#1003 Should-fix)
+    await expect(markerBadge).not.toBeVisible({ timeout: 5000 });
 
     // 6. 「解決済みも表示」を on にして resolved 件数 1 件を assert
     await page.getByTestId("show-resolved-checkbox").click();

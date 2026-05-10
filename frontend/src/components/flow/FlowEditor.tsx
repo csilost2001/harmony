@@ -590,8 +590,22 @@ function FlowEditorInner() {
   /** marker 追加/解決/削除時に screen entity を更新して保存 */
   const handleMarkerChange = useCallback(
     async (screenId: string, updatedMarkers: Marker[]) => {
-      const entity = screenEntities.get(screenId);
-      if (!entity) return;
+      // Should-fix #1003: panel open 後に追加された画面は screenEntities に未登録の場合があるため
+      // entity が無ければ on-demand で load して Map に追加する (silent fail 防止)
+      let entity = screenEntities.get(screenId);
+      if (!entity) {
+        try {
+          entity = await loadScreenEntity(screenId);
+          setScreenEntities((prev) => {
+            const next = new Map(prev);
+            next.set(screenId, entity!);
+            return next;
+          });
+        } catch {
+          // ghost screen (entity ファイルが存在しない) の場合はスキップ
+          return;
+        }
+      }
       const updated: Screen = {
         ...entity,
         authoring: {
@@ -925,6 +939,22 @@ function FlowEditorInner() {
   useSaveShortcut(() => {
     if (isDirty && !isSaving && !isReadonly) handleSave();
   });
+
+  // Should-fix #1003: screenEntities が更新されたとき (marker 追加/解決/panel open 時) に
+  // 各 ScreenNode の data.unresolvedCount を同期して badge 表示を最新に保つ
+  useEffect(() => {
+    if (screenEntities.size === 0) return;
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.type !== "screenNode") return n;
+        const entity = screenEntities.get(n.id);
+        if (!entity) return n;
+        const unresolvedCount = (entity.authoring?.markers ?? []).filter((m) => !m.resolvedAt).length;
+        if ((n.data as { unresolvedCount?: number }).unresolvedCount === unresolvedCount) return n;
+        return { ...n, data: { ...n.data, unresolvedCount } };
+      })
+    );
+  }, [screenEntities, setNodes]);
 
   const isEmpty = !isLoading && nodes.filter((n) => n.type === "screenNode").length === 0;
   const screenCount = nodes.filter((n) => n.type === "screenNode").length;

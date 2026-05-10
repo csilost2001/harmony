@@ -3,20 +3,37 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { ScreenNode as ScreenNodeData } from "../../types/flow";
 import { SCREEN_KIND_LABELS, SCREEN_KIND_ICONS } from "../../types/flow";
 
+/** ScreenNode data に注入される marker 集計 (FlowEditor が screenEntities から計算)。 */
+type ScreenNodeDataWithMarker = ScreenNodeData & {
+  unresolvedCount?: number;
+};
+
 type ScreenNodeProps = NodeProps & {
-  data: ScreenNodeData;
+  data: ScreenNodeDataWithMarker;
   selected?: boolean;
 };
 
 function ScreenNodeComponent({ data, selected }: ScreenNodeProps) {
   const icon = SCREEN_KIND_ICONS[data.kind] ?? "bi-circle";
   const kindLabel = SCREEN_KIND_LABELS[data.kind] ?? data.kind;
+  const unresolvedCount = data.unresolvedCount ?? 0;
 
   return (
     <>
       <Handle type="target" position={Position.Top} id="top" />
       <Handle type="target" position={Position.Left} id="left" />
-      <div className={`screen-node${selected ? " selected" : ""}`} data-screen-id={data.id}>
+      <div className={`screen-node${selected ? " selected" : ""}`} data-screen-id={data.id} style={{ position: "relative" }}>
+        {/* Should-fix #1003: 未解決 marker バッジ — ReactFlow ノードと一体で position / zoom 追従 */}
+        {unresolvedCount > 0 && (
+          <span
+            className="screen-node-marker-badge"
+            data-testid="screen-node-marker-badge"
+            title={`未解決マーカー ${unresolvedCount} 件`}
+          >
+            <i className="bi bi-megaphone-fill" style={{ fontSize: 9, marginRight: 2 }} />
+            {unresolvedCount}
+          </span>
+        )}
         <div className="screen-node-header">
           <i className={`bi ${icon} screen-node-icon`} />
           <span className="screen-node-name">{data.name}</span>

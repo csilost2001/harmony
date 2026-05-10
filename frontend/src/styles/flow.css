@@ -5,6 +5,8 @@
   height: calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px));
   background: #f1f5f9;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Must-fix #1003: .flow-marker-panel-overlay の absolute 配置の基準 ancestor にする */
+  position: relative;
 }
 
 /* ── Flow Topbar (EditorHeader の title/center/extraRight slot 内で使用) ─── */
@@ -958,6 +960,27 @@
   color: #6c757d;
 }
 
+/* ── Screen Node Marker Badge (#1003 Should-fix) ─────────────── */
+
+.screen-node-marker-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: inline-flex;
+  align-items: center;
+  background: #f59e0b;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  pointer-events: none;
+}
+
 /* ── Flow Marker Panel (#1003) ───────────────────────────────── */
 
 .flow-marker-panel-overlay {
@@ -1019,7 +1042,5 @@
   white-space: nowrap;
 }
 
-/* flow-canvas が marker panel を隠さないよう relative 配置 */
-.flow-root .flow-canvas {
-  position: relative;
-}
+/* .flow-canvas は flex:1 で伸長し、ReactFlow キャンバスを内包する */
+/* (position: relative は既に .flow-canvas に定義済み — line 175付近) */
