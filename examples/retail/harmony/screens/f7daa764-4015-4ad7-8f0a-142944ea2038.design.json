@@ -1,0 +1,17 @@
+{
+  "dataSources": [],
+  "assets": [],
+  "styles": [],
+  "pages": [
+    {
+      "frames": [
+        {
+          "component": {
+            "type": "wrapper",
+            "components": "\n<footer class=\"d-flex align-items-center justify-content-between px-3 py-2 bg-light border-top text-muted small\" style=\"min-height: 36px;\">\n  <span id=\"copyright\" data-item-id=\"copyright\">© 2026 Harmony Retail Inc.</span>\n  <span id=\"version\" data-item-id=\"version\">v1.0.0</span>\n</footer>\n"
+          }
+        }
+      ]
+    }
+  ]
+}

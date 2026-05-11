@@ -6,6 +6,7 @@
   "purpose": "gadget",
   "kind": "other",
   "maturity": "committed",
+  "processFlowId": "60e08c25-3daa-41b4-a7bd-b8f5fb571349",
   "createdAt": "2026-05-12T00:00:00.000Z",
   "updatedAt": "2026-05-12T00:00:00.000Z",
   "items": [
@@ -28,7 +29,16 @@
       "label": "ログアウト",
       "type": "boolean",
       "direction": "input",
-      "description": "ログアウトボタン。クリックでセッションを破棄してログイン画面へ遷移。"
+      "description": "ログアウトボタン。クリックでセッションを破棄してログイン画面へ遷移。",
+      "events": [
+        {
+          "id": "click",
+          "label": "クリック",
+          "handlerFlowId": "60e08c25-3daa-41b4-a7bd-b8f5fb571349",
+          "handlerActionId": "act-logout",
+          "argumentMapping": {}
+        }
+      ]
     }
   ],
   "design": {

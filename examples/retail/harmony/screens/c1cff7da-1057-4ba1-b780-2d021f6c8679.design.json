@@ -1,0 +1,17 @@
+{
+  "dataSources": [],
+  "assets": [],
+  "styles": [],
+  "pages": [
+    {
+      "frames": [
+        {
+          "component": {
+            "type": "wrapper",
+            "components": "\n<aside class=\"bg-light border-end p-3\" style=\"min-width: 220px; min-height: 100%;\">\n  <nav class=\"nav flex-column gap-1\">\n    <a href=\"/products/search\" class=\"nav-link text-dark px-2 py-2 rounded\" id=\"navProductSearch\" data-item-id=\"navProductSearch\">\n      <i class=\"bi bi-search me-2\"></i>商品検索\n    </a>\n    <a href=\"/orders\" class=\"nav-link text-dark px-2 py-2 rounded\" id=\"navOrderList\" data-item-id=\"navOrderList\">\n      <i class=\"bi bi-receipt me-2\"></i>注文一覧\n    </a>\n    <a href=\"/master/customers\" class=\"nav-link text-dark px-2 py-2 rounded\" id=\"navCustomerList\" data-item-id=\"navCustomerList\">\n      <i class=\"bi bi-people me-2\"></i>顧客一覧\n    </a>\n    <a href=\"/master/products\" class=\"nav-link text-dark px-2 py-2 rounded\" id=\"navMasterManagement\" data-item-id=\"navMasterManagement\">\n      <i class=\"bi bi-gear me-2\"></i>マスタ管理\n    </a>\n  </nav>\n</aside>\n"
+          }
+        }
+      ]
+    }
+  ]
+}
