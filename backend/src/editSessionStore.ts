@@ -28,6 +28,7 @@ export type DraftResourceType =
   | "process-flow"
   | "view"
   | "view-definition"
+  | "page-layout"
   | "screen-item"
   | "sequence"
   | "extension"
