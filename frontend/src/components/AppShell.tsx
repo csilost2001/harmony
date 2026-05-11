@@ -548,6 +548,9 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     //   (b) wsId が URL と active で異なる (workspace 切替直後) → 旧 active workspace に対して load が走る
     // 上記いずれの場合も effect を待機させる。workspace state が「URL と一致」するまで no-op。
     if (workspaceState.loading) return;
+    // RFC #1021 pl-6 (Codex 2nd review): e2e bypass 以外の error 状態 (offline / error 表示中) でも
+    // workspace が active になっていない可能性があるため待機する
+    if (workspaceState.error && workspaceState.error !== "e2e bypass") return;
     if (workspaceState.error === "e2e bypass") return;
     if (!workspaceState.lockdown) {
       if (workspaceState.active === null) return;

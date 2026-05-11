@@ -71,13 +71,17 @@ export function PageLayoutDesigner() {
           _injectWithEditor(grapesEditorRef.current, data);
         }
         // Puck composition preview: assignments が変わったら gadget data を再ロード
+        // RFC #1021 pl-6 (Codex 2nd review Should-fix): setRegionContextValue で
+        // assignments/gadgetData を入れ替える際、puckConfig も保持する (旧実装は puckConfig を omit して
+        // 上書きしていたため H-2 nested Render が assignments load 後に壊れていた)
         if (data?.assignments) {
           _loadGadgetData(data.assignments).then((gadgetData) => {
             if (!mounted) return;
-            setRegionContextValue({
+            setRegionContextValue((prev) => ({
+              ...prev,
               assignments: data.assignments ?? {},
               gadgetData,
-            });
+            }));
           }).catch(console.warn);
         }
       }).catch(() => { if (mounted) setPl(null); });

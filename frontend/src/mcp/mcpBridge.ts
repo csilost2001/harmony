@@ -728,13 +728,16 @@ class McpBridgeImpl {
         }
 
         case "addScreen": {
-          const { name, type, path: screenPath, position, editorKind: reqEditorKind, cssFramework: reqCssFramework } = (params ?? {}) as {
+          // RFC #1021 pl-6 (Codex 2nd review Must-fix): purpose を destructure + addScreen に渡す
+          // (旧実装は purpose を捨てて undefined のまま追加していたので AI 経由で gadget が作れない bug)
+          const { name, type, path: screenPath, position, editorKind: reqEditorKind, cssFramework: reqCssFramework, purpose: reqPurpose } = (params ?? {}) as {
             name: string;
             type?: ScreenType;
             path?: string;
             position?: { x: number; y: number };
             editorKind?: "grapesjs" | "puck";
             cssFramework?: "bootstrap" | "tailwind";
+            purpose?: "page" | "gadget";
           };
           if (!name) {
             respondError("name は必須です");
@@ -746,6 +749,7 @@ class McpBridgeImpl {
             position,
             editorKind: reqEditorKind,
             cssFramework: reqCssFramework,
+            purpose: reqPurpose,
           });
           // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
           // buildDefaultScreen は project.techStack.designer を参照して解決するので project default も反映される
@@ -779,10 +783,14 @@ class McpBridgeImpl {
             await updateScreenThumbnail(project, screenId, thumbnail);
           }
           if (Object.keys(patch).length > 0) {
-            // RFC #1021 pl-6 (Codex B-2): pageLayoutId が null/空文字なら削除扱い
-            const cleanedPatch = patch.pageLayoutId === null || patch.pageLayoutId === ""
-              ? { ...patch, pageLayoutId: undefined }
-              : (patch as Parameters<typeof updateScreen>[2]);
+            // RFC #1021 pl-6 (Codex 2nd review Should-fix): pageLayoutId='' or null は **解除** 意図のため
+            // `null` marker のまま flowStore.updateScreen に伝える (旧実装は undefined に変換 → undefined-stripping で
+            // 解除自体が消失していた)
+            const cleanedPatch: Parameters<typeof updateScreen>[2] = { ...patch } as Parameters<typeof updateScreen>[2];
+            if (patch.pageLayoutId === "" || patch.pageLayoutId === null) {
+              // null を解除 marker として明示
+              (cleanedPatch as Record<string, unknown>).pageLayoutId = null;
+            }
             const updated = await updateScreen(project, screenId, cleanedPatch);
             if (!updated) {
               respondError(`画面が見つかりません: ${screenId}`);

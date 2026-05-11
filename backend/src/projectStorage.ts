@@ -964,6 +964,11 @@ export async function deletePageLayoutFile(pageLayoutId: string, root: string): 
   try {
     await fs.unlink(path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.json`));
   } catch { /* file not found is OK */ }
+  // RFC #1021 pl-6 (Codex 2nd review Should-fix): A-2 で分離した design.json も同時に削除
+  // (orphan design ファイル防止)
+  try {
+    await fs.unlink(path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`));
+  } catch { /* not found is OK */ }
 }
 
 /** actions/ と process-flows/ ディレクトリ内の全処理フローを読み込み */

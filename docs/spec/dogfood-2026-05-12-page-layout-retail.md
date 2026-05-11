@@ -63,7 +63,7 @@ Codex で PR #1031 全体を fresh context で adversarial レビュー。Must-f
 | A-2 Must-fix | PageLayout design が `screens/page-layout:<id>.design.json` に保存 (Windows 不正名 + 永続化境界違反) | 6e19051: `page-layouts/<id>.design.json` 専用 storage に分離 + wsBridge ルーティング |
 | B-1 Must-fix | URL → タブ同期で wsId !== active.id race | 6e19051: workspace mismatch guard 追加 |
 | B-2 Must-fix | designer__update_screen MCP に purpose / pageLayoutId なし | 6e19051: input schema + handler 拡張 |
-| C-1 Must-fix | Page Screen Designer で PageLayout 外枠+gadget が描画されない (banner のみ) | 6e19051: banner load retry 強化 (フル composition は follow-up issue) |
+| C-1 Must-fix | Page Screen Designer で PageLayout 外枠+gadget が描画されない (banner のみ) | 6e19051: banner load retry 強化 → a16ddaa: **DesignerTabHost で完全解消** (§4-A 参照) |
 | B-3 Should-fix | assignments key が未宣言 region に存在しても通る | 6e19051: PAGE_LAYOUT_ASSIGNMENT_UNKNOWN_REGION エラー追加 |
 | B-4 Should-fix | pageLayouts 0 件で Screen.pageLayoutId 参照崩れを検出しない | 6e19051: silent skip 廃止 |
 | B-5 Should-fix | GrapesJS component:add listener cleanup なし | 6e19051: componentAddCleanupRef + unmount effect |
