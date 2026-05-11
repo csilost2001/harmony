@@ -219,7 +219,7 @@ export function PageLayoutEditor() {
     mcpBridge.startWithoutEditor();
     loadProject().then((project) => {
       const gadgets = (project.screens ?? [])
-        .filter((s) => (s as { purpose?: string }).purpose === "gadget")
+        .filter((s) => s.purpose === "gadget")
         .map((s) => ({ id: s.id, name: s.name }));
       setGadgetScreens(gadgets);
     }).catch(console.error);

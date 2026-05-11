@@ -3,6 +3,7 @@ import type { ScreenType } from "../../types/flow";
 import { SCREEN_TYPE_LABELS } from "../../types/flow";
 import type { EditorKind } from "../../utils/resolveEditorKind";
 import type { CssFramework } from "../../types/v3/project";
+import type { PageLayoutEntry } from "../../types/v3/project";
 
 export interface ScreenFormData {
   name: string;
@@ -13,6 +14,8 @@ export interface ScreenFormData {
   editorKind?: EditorKind;
   /** 画面作成時のみ有効。isCreate=false の場合は無視される。 */
   cssFramework?: CssFramework;
+  /** purpose='page' のときに設定する PageLayout ID (編集時のみ)。 */
+  pageLayoutId?: string;
 }
 
 interface Props {
@@ -25,6 +28,11 @@ interface Props {
   defaultEditorKind?: EditorKind;
   /** 画面作成ダイアログの CSS フレームワークデフォルト選択値 (project.techStack.designer から取得)。 */
   defaultCssFramework?: CssFramework;
+  /**
+   * purpose='page' の画面を編集するとき、pageLayoutId 選択 dropdown に表示する一覧。
+   * undefined のとき (= gadget 画面 / 一覧未取得) は dropdown を非表示にする。
+   */
+  pageLayouts?: PageLayoutEntry[];
   onSave: (data: ScreenFormData) => void;
   onClose: () => void;
 }
@@ -43,6 +51,7 @@ export function ScreenEditModal({
   isCreate = false,
   defaultEditorKind = "grapesjs",
   defaultCssFramework = "bootstrap",
+  pageLayouts,
   onSave,
   onClose,
 }: Props) {
@@ -113,6 +122,23 @@ export function ScreenEditModal({
               onChange={(e) => setForm((f) => ({ ...f, path: e.target.value }))}
               placeholder="例: /customers"
             />
+
+            {/* pageLayoutId 選択 — purpose='page' の画面かつ pageLayouts prop が渡された時のみ表示 (pl-4, #1025) */}
+            {!isCreate && pageLayouts !== undefined && (
+              <>
+                <label htmlFor="screen-page-layout">ページレイアウト</label>
+                <select
+                  id="screen-page-layout"
+                  value={form.pageLayoutId ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, pageLayoutId: e.target.value || undefined }))}
+                >
+                  <option value="">— 未指定 —</option>
+                  {pageLayouts.map((pl) => (
+                    <option key={String(pl.id)} value={String(pl.id)}>{pl.name}</option>
+                  ))}
+                </select>
+              </>
+            )}
 
             {isCreate && (
               <div className="screen-create-design-options">
