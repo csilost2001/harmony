@@ -3,6 +3,7 @@
  *
  * ScreenDesigner.tsx を base に editorKind で GrapesJS / Puck を分岐。
  * pl-5 (#1026): GrapesJS 経路に region gadget injection (composition プレビュー) を追加。
+ * pl-5 follow-up (#1026): Puck 経路に composition preview (RegionContext + Puck Editor) を追加。
  */
 
 import { useParams, useNavigate } from "react-router-dom";
@@ -15,6 +16,8 @@ import { loadProject } from "../../store/flowStore";
 import { Designer } from "../Designer";
 import type { Editor as GEditor } from "grapesjs";
 import { injectGadgetPreviews, clearGadgetPreviews } from "../../utils/pageLayoutCompositionPreview";
+import { RegionProvider } from "../../puck/primitives/RegionContext";
+import type { RegionContextValue } from "../../puck/primitives/RegionContext";
 
 export function PageLayoutDesigner() {
   const { pageLayoutId } = useParams<{ pageLayoutId: string }>();
@@ -26,6 +29,12 @@ export function PageLayoutDesigner() {
   // GrapesJS editor ref (region injection 用、pl-5)
   const grapesEditorRef = useRef<GEditor | null>(null);
   const plRef = useRef<PageLayout | null>(null);
+
+  // Puck composition preview 用: RegionContext の value (pl-5 follow-up)
+  const [regionContextValue, setRegionContextValue] = useState<RegionContextValue>({
+    assignments: {},
+    gadgetData: {},
+  });
 
   useEffect(() => {
     if (!pageLayoutId) {
@@ -41,9 +50,19 @@ export function PageLayoutDesigner() {
         if (!mounted) return;
         setPl(data ?? null);
         plRef.current = data ?? null;
-        // assignments が変わったら再 inject
+        // assignments が変わったら再 inject (GrapesJS)
         if (grapesEditorRef.current && data) {
           _injectWithEditor(grapesEditorRef.current, data);
+        }
+        // Puck composition preview: assignments が変わったら gadget data を再ロード
+        if (data?.assignments) {
+          _loadGadgetData(data.assignments).then((gadgetData) => {
+            if (!mounted) return;
+            setRegionContextValue({
+              assignments: data.assignments ?? {},
+              gadgetData,
+            });
+          }).catch(console.warn);
         }
       }).catch(() => { if (mounted) setPl(null); });
     };
@@ -141,55 +160,16 @@ export function PageLayoutDesigner() {
     );
   }
 
-  // editorKind='puck': Puck Editor (pl-5 #1026: region 一覧 + assignments 表示)
+  // editorKind='puck': Puck Editor + composition preview (pl-5 follow-up: feature parity)
+  // RegionProvider で Designer を wrap し、Region primitives が assignments + gadget data を参照できるようにする。
   return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "center",
-      height: "100vh", flexDirection: "column", gap: 16,
-      fontFamily: "system-ui, sans-serif", color: "#64748b",
-    }}>
-      <i className="bi bi-layout-wtf" style={{ fontSize: 48, color: "#6366f1" }} />
-      <h2 style={{ margin: 0, color: "#334155" }}>{pl.name} — Puck レイアウトデザイン</h2>
-      <p style={{ fontSize: 13, color: "#94a3b8" }}>composition プレビュー (pl-5 #1026)</p>
-      <div style={{
-        border: "2px dashed #e2e8f0", borderRadius: 8, padding: "24px 40px",
-        textAlign: "center", maxWidth: 560,
-      }}>
-        <p style={{ margin: "0 0 12px 0", fontWeight: 600, fontSize: 14 }}>Region 割り当て一覧</p>
-        {(pl.regions ?? []).map((r) => {
-          const assignedId = pl.assignments?.[r.name];
-          return (
-            <div key={r.name} style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "8px 12px", border: "1px dashed #cbd5e1",
-              borderRadius: 4, marginBottom: 4, background: "#f8fafc",
-            }}>
-              <code style={{ fontSize: 12, fontWeight: 600, color: "#6366f1", minWidth: 80 }}>{r.name}</code>
-              {r.name === "main" ? (
-                <span style={{ fontSize: 12, color: "#f59e0b" }}>
-                  content slot (page Screen 本文がここに嵌まる)
-                </span>
-              ) : assignedId ? (
-                <span style={{ fontSize: 12, color: "#10b981" }}>
-                  gadget: <code style={{ fontSize: 11 }}>{assignedId}</code>
-                </span>
-              ) : (
-                <span style={{ fontSize: 12, color: "#94a3b8" }}>未割り当て</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <button
-        onClick={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
-        style={{
-          padding: "8px 20px", border: "none", borderRadius: 6,
-          background: "#6366f1", color: "#fff", cursor: "pointer", fontSize: 14,
-        }}
-      >
-        <i className="bi bi-arrow-left" /> 構造編集に戻る
-      </button>
-    </div>
+    <RegionProvider value={regionContextValue}>
+      <Designer
+        screenId={`page-layout:${pageLayoutId}`}
+        screenName={pl.name}
+        onBack={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
+      />
+    </RegionProvider>
   );
 }
 
@@ -205,4 +185,36 @@ async function _injectWithEditor(editor: GEditor, pl: PageLayout): Promise<void>
   } catch (e) {
     console.warn("[PageLayoutDesigner] gadget inject failed:", e);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Internal: Puck 経路 — 割り当て済み gadget の Puck data を全件ロードする
+// ---------------------------------------------------------------------------
+
+/**
+ * assignments に含まれる gadget screenId ごとに Puck data をロードして返す。
+ * ロード失敗した gadget は gadgetData から省略する (silent skip)。
+ */
+async function _loadGadgetData(
+  assignments: Record<string, string>,
+): Promise<Record<string, unknown>> {
+  const gadgetScreenIds = Object.values(assignments).filter(Boolean);
+  if (gadgetScreenIds.length === 0) return {};
+
+  // 重複を排除して並列ロード
+  const uniqueIds = [...new Set(gadgetScreenIds)];
+  const results = await Promise.allSettled(
+    uniqueIds.map(async (screenId) => {
+      const data = await mcpBridge.loadPuckData(screenId);
+      return { screenId, data };
+    }),
+  );
+
+  const gadgetData: Record<string, unknown> = {};
+  for (const result of results) {
+    if (result.status === "fulfilled" && result.value.data !== null) {
+      gadgetData[result.value.screenId] = result.value.data;
+    }
+  }
+  return gadgetData;
 }
