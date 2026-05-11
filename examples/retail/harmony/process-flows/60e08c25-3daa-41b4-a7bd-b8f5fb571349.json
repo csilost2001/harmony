@@ -62,27 +62,16 @@
         {
           "id": "step-01",
           "kind": "compute",
-          "description": "セッションを invalidate する。具体的な実装は framework 側 (Spring Security / NestJS Passport 等) に委ね、本フローは『セッション破棄をリクエストする』という意図のみ宣言する。",
-          "outputBinding": {
-            "name": "sessionDestroyed",
-            "transformations": []
-          },
-          "expression": {
-            "kind": "literal",
-            "value": true
-          }
+          "description": "セッション破棄後のリダイレクト先 URL を導出する。具体的なセッション invalidate は framework 側 (Spring Security / NestJS Passport 等) に委ね、本フローはレスポンスの redirectTo を明示する。",
+          "expression": "'/login'",
+          "outputBinding": { "name": "redirectTo" }
         },
         {
           "id": "step-02",
           "kind": "return",
           "description": "redirectTo='/login' を含むレスポンスを返す。",
           "responseId": "200-ok",
-          "bodyBinding": {
-            "redirectTo": {
-              "kind": "literal",
-              "value": "/login"
-            }
-          }
+          "bodyExpression": "{ redirectTo: @redirectTo }"
         }
       ]
     }

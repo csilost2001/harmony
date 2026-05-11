@@ -515,6 +515,7 @@ function normalizePersisted(raw: unknown): PersistedFlowProject {
         sequences: project.entities?.sequences,
         views: project.entities?.views,
         viewDefinitions: project.entities?.viewDefinitions,
+        pageLayouts: project.entities?.pageLayouts,
       },
     };
   }

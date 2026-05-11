@@ -543,6 +543,15 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   // URL → タブ同期（ブラウザの直接ナビゲーション / mcpBridge.navigateScreen）
   // /w/:wsId/* 配下で使用するため、全 matchPath を /w/:wsId/... 規約に更新
   useEffect(() => {
+    // RFC #1021 pl-5 follow-up: workspace.open がまだ完了していない時点で URL → タブ同期が
+    // 走ると、loadXxx() がすべて「ワークスペースが選択されていません」で reject し、
+    // 各リソース URL が fallbackToDashboard でダッシュボードに飛ばされてしまう
+    // (deep-link / page reload の race)。
+    // workspace state が確定 (active が解決済 or lockdown) するまでこの effect を待機させる。
+    if (workspaceState.loading) return;
+    if (workspaceState.error === "e2e bypass") return;
+    if (!workspaceState.lockdown && workspaceState.active === null) return;
+
     uiInfo("urlsync", "pathname change", { pathname: location.pathname });
     const designMatch = matchPath("/w/:wsId/screen/design/:screenId", location.pathname);
     if (designMatch?.params.screenId) {
@@ -756,7 +765,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
         return;
       }
     }
-  }, [location.pathname, fallbackToDashboard, wsId]);
+  }, [location.pathname, fallbackToDashboard, wsId, workspaceState.loading, workspaceState.active, workspaceState.lockdown, workspaceState.error]);
 
   // アクティブタブ → URL 同期
   // workspace が完全未選択 (active=null + wsId 無し) や /workspace/select 表示中は同期を停止する。

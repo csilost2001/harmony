@@ -161,6 +161,7 @@
         "kind": "other",
         "purpose": "gadget",
         "maturity": "committed",
+        "hasDesign": true,
         "updatedAt": "2026-05-12T00:00:00.000Z"
       },
       {
@@ -170,6 +171,7 @@
         "kind": "other",
         "purpose": "gadget",
         "maturity": "committed",
+        "hasDesign": true,
         "updatedAt": "2026-05-12T00:00:00.000Z"
       },
       {
@@ -179,6 +181,7 @@
         "kind": "other",
         "purpose": "gadget",
         "maturity": "committed",
+        "hasDesign": true,
         "updatedAt": "2026-05-12T00:00:00.000Z"
       }
     ],
@@ -424,6 +427,15 @@
         "actionCount": 1,
         "maturity": "committed",
         "updatedAt": "2026-05-03T00:00:00.000Z"
+      },
+      {
+        "id": "60e08c25-3daa-41b4-a7bd-b8f5fb571349",
+        "no": 6,
+        "name": "ヘッダーガジェット処理",
+        "kind": "common",
+        "actionCount": 1,
+        "maturity": "committed",
+        "updatedAt": "2026-05-12T00:00:00.000Z"
       }
     ],
     "views": [
