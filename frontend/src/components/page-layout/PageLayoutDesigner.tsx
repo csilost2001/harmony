@@ -2,21 +2,19 @@
  * PageLayoutDesigner — ページレイアウト ビジュアルデザイン画面 (pl-3, #1024)
  *
  * ScreenDesigner.tsx を base に editorKind で GrapesJS / Puck を分岐。
- * 本 ISSUE では region drop slot の足場のみ実装。
- * 実際の gadget composition は pl-5 (#1026) で実装。
+ * pl-5 (#1026): GrapesJS 経路に region gadget injection (composition プレビュー) を追加。
  */
 
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadPageLayout } from "../../store/pageLayoutStore";
 import type { PageLayout } from "../../store/pageLayoutStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
+import { loadProject } from "../../store/flowStore";
 import { Designer } from "../Designer";
-
-// Puck エディタ用 — editorKind='puck' かつ Puck が有効な場合のみ利用
-// 足場のみなので実 Puck Editor は import せず placeholder を使う
-// (pl-5 で実装)
+import type { Editor as GEditor } from "grapesjs";
+import { injectGadgetPreviews, clearGadgetPreviews } from "../../utils/pageLayoutCompositionPreview";
 
 export function PageLayoutDesigner() {
   const { pageLayoutId } = useParams<{ pageLayoutId: string }>();
@@ -24,6 +22,10 @@ export function PageLayoutDesigner() {
   const { wsPath } = useWorkspacePath();
 
   const [pl, setPl] = useState<PageLayout | null | undefined>(undefined); // undefined = loading
+
+  // GrapesJS editor ref (region injection 用、pl-5)
+  const grapesEditorRef = useRef<GEditor | null>(null);
+  const plRef = useRef<PageLayout | null>(null);
 
   useEffect(() => {
     if (!pageLayoutId) {
@@ -38,6 +40,11 @@ export function PageLayoutDesigner() {
       loadPageLayout(pageLayoutId).then((data) => {
         if (!mounted) return;
         setPl(data ?? null);
+        plRef.current = data ?? null;
+        // assignments が変わったら再 inject
+        if (grapesEditorRef.current && data) {
+          _injectWithEditor(grapesEditorRef.current, data);
+        }
       }).catch(() => { if (mounted) setPl(null); });
     };
 
@@ -53,6 +60,34 @@ export function PageLayoutDesigner() {
       unsubStatus();
     };
   }, [pageLayoutId]);
+
+  /**
+   * GrapesJS editor ready 後に region injection を実行する。
+   * component:add イベントで region が後から追加された場合にも再 inject する。
+   */
+  const handleGrapesEditorReady = useCallback((editor: GEditor) => {
+    grapesEditorRef.current = editor;
+    if (plRef.current) {
+      // canvas 初期 load 完了を待ってから inject (component 描画が settleするまで少し待つ)
+      setTimeout(() => {
+        if (plRef.current && grapesEditorRef.current) {
+          _injectWithEditor(grapesEditorRef.current, plRef.current);
+        }
+      }, 300);
+    }
+
+    // region ブロックが canvas に追加されたとき再 inject
+    const onComponentAdd = () => {
+      setTimeout(() => {
+        if (plRef.current && grapesEditorRef.current) {
+          clearGadgetPreviews(grapesEditorRef.current);
+          _injectWithEditor(grapesEditorRef.current, plRef.current);
+        }
+      }, 50);
+    };
+    editor.on("component:add", onComponentAdd);
+    // cleanup は Designer の unmount 時に editor も unmount されるので editor.off は不要だが念のため
+  }, []);
 
   if (pl === undefined) {
     return (
@@ -94,17 +129,19 @@ export function PageLayoutDesigner() {
 
   // editorKind='grapesjs': GrapesJS Designer に region drop slot ブロックを追加済み
   // (frontend/src/grapes/blocks.ts の CAT_REGIONS カテゴリ)
+  // pl-5: onGrapesEditorReady で gadget injection を実行
   if (editorKind === "grapesjs") {
     return (
       <Designer
         screenId={`page-layout:${pageLayoutId}`}
         screenName={pl.name}
         onBack={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
+        onGrapesEditorReady={handleGrapesEditorReady}
       />
     );
   }
 
-  // editorKind='puck': Puck Editor 足場 (pl-5 で実装)
+  // editorKind='puck': Puck Editor (pl-5 #1026: region 一覧 + assignments 表示)
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "center",
@@ -113,22 +150,35 @@ export function PageLayoutDesigner() {
     }}>
       <i className="bi bi-layout-wtf" style={{ fontSize: 48, color: "#6366f1" }} />
       <h2 style={{ margin: 0, color: "#334155" }}>{pl.name} — Puck レイアウトデザイン</h2>
-      <p>Puck 版の region 配置デザイン機能は pl-5 (#1026) で実装予定です。</p>
+      <p style={{ fontSize: 13, color: "#94a3b8" }}>composition プレビュー (pl-5 #1026)</p>
       <div style={{
         border: "2px dashed #e2e8f0", borderRadius: 8, padding: "24px 40px",
-        textAlign: "center", maxWidth: 480,
+        textAlign: "center", maxWidth: 560,
       }}>
-        <p style={{ margin: "0 0 8px 0", fontWeight: 600 }}>Region 一覧 (足場)</p>
-        {(pl.regions ?? []).map((r) => (
-          <div key={r.name} style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "8px 12px", border: "1px dashed #cbd5e1",
-            borderRadius: 4, marginBottom: 4, background: "#f8fafc",
-          }}>
-            <code style={{ fontSize: 12 }}>{r.name}</code>
-            {r.description && <span style={{ fontSize: 12, color: "#94a3b8" }}>{r.description}</span>}
-          </div>
-        ))}
+        <p style={{ margin: "0 0 12px 0", fontWeight: 600, fontSize: 14 }}>Region 割り当て一覧</p>
+        {(pl.regions ?? []).map((r) => {
+          const assignedId = pl.assignments?.[r.name];
+          return (
+            <div key={r.name} style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "8px 12px", border: "1px dashed #cbd5e1",
+              borderRadius: 4, marginBottom: 4, background: "#f8fafc",
+            }}>
+              <code style={{ fontSize: 12, fontWeight: 600, color: "#6366f1", minWidth: 80 }}>{r.name}</code>
+              {r.name === "main" ? (
+                <span style={{ fontSize: 12, color: "#f59e0b" }}>
+                  content slot (page Screen 本文がここに嵌まる)
+                </span>
+              ) : assignedId ? (
+                <span style={{ fontSize: 12, color: "#10b981" }}>
+                  gadget: <code style={{ fontSize: 11 }}>{assignedId}</code>
+                </span>
+              ) : (
+                <span style={{ fontSize: 12, color: "#94a3b8" }}>未割り当て</span>
+              )}
+            </div>
+          );
+        })}
       </div>
       <button
         onClick={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
@@ -141,4 +191,18 @@ export function PageLayoutDesigner() {
       </button>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Internal: GrapesJS editor に gadget preview を inject する
+// ---------------------------------------------------------------------------
+
+async function _injectWithEditor(editor: GEditor, pl: PageLayout): Promise<void> {
+  try {
+    const project = await loadProject();
+    const screens = project.screens.map((s) => ({ id: s.id, name: s.name }));
+    injectGadgetPreviews(editor, pl.assignments ?? {}, screens);
+  } catch (e) {
+    console.warn("[PageLayoutDesigner] gadget inject failed:", e);
+  }
 }

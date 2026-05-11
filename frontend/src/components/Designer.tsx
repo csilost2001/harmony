@@ -45,9 +45,36 @@ export interface DesignerProps {
   screenName?: string;
   onBack?: () => void;
   isActive?: boolean;
+  /**
+   * GrapesJS エディタ初期化完了時に raw editor instance を受け取るコールバック (pl-5, #1026)。
+   * PageLayoutDesigner が region への gadget injection に利用する。
+   * GrapesJS 経路のみ呼ばれる (Puck 経路では undefined のまま)。
+   */
+  onGrapesEditorReady?: (editor: import("grapesjs").Editor) => void;
+  /**
+   * Screen に割り当てられた PageLayout ID (pl-5, #1026)。
+   * purpose='page' の Screen Designer で「外枠プレビュー」バナーを表示するために使う。
+   */
+  pageLayoutId?: string;
+  /** PageLayout の editorKind (ミスマッチ警告用、pl-5, #1026) */
+  pageLayoutEditorKind?: "grapesjs" | "puck";
+  /** PageLayout の cssFramework (ミスマッチ警告用、pl-5, #1026) */
+  pageLayoutCssFramework?: string;
+  /** PageLayout の name (バナー表示用、pl-5, #1026) */
+  pageLayoutName?: string;
 }
 
-export function Designer({ screenId, screenName, onBack, isActive }: DesignerProps) {
+export function Designer({
+  screenId,
+  screenName,
+  onBack,
+  isActive,
+  onGrapesEditorReady,
+  pageLayoutId,
+  pageLayoutEditorKind,
+  pageLayoutCssFramework,
+  pageLayoutName,
+}: DesignerProps) {
   const [isDirty, setIsDirtyState] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [serverChanged, setServerChanged] = useState(false);
@@ -60,6 +87,22 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
   const cssFrameworkRef = useRef<CssFramework>("bootstrap");
   // editorKind (#806 子 3): 省略時は "grapesjs" (schema default と一致)
   const [editorKind, setEditorKind] = useState<EditorKind>("grapesjs");
+  // pl-5 #1026: PageLayout editorKind / cssFramework ミスマッチ警告メッセージ
+  const mismatchWarnings: string[] = [];
+  if (pageLayoutEditorKind && pageLayoutEditorKind !== editorKind) {
+    mismatchWarnings.push(
+      `editorKind がミスマッチ (PageLayout=${pageLayoutEditorKind}, Screen=${editorKind})`,
+    );
+  }
+  if (
+    pageLayoutCssFramework &&
+    pageLayoutCssFramework !== cssFramework &&
+    editorKind === "grapesjs" // GrapesJS のみ cssFramework が描画に影響する
+  ) {
+    mismatchWarnings.push(
+      `cssFramework がミスマッチ (PageLayout=${pageLayoutCssFramework}, Screen=${cssFramework})`,
+    );
+  }
   // Puck Backend (#815 PR-A: container 直マウントを廃止、React コンポーネントとして render)
   const puckBackendRef = useRef<PuckBackend | null>(null);
   const [puckState, setPuckState] = useState<EditorState | null>(null);
@@ -845,8 +888,22 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
     onMcpStatusChange: setMcpStatus,
     onExternalThemeChange: handleThemeChange,
     reloadPayload: grapesReloadPayload,
+    // pl-5 #1026: raw GrapesJS editor を PageLayoutDesigner に expose
+    onGrapesEditorInstance: onGrapesEditorReady,
   };
-  return <>{grapesBackendRef.current.renderEditor(grapesProps)}</>;
+  return (
+    <>
+      {/* pl-5 #1026: editorKind / cssFramework ミスマッチ警告バナー */}
+      {mismatchWarnings.length > 0 && (
+        <EditorKindMismatchBanner warnings={mismatchWarnings} />
+      )}
+      {/* pl-5 #1026: page Screen の pageLayout 外枠表示バナー */}
+      {pageLayoutId && pageLayoutName && (
+        <PageLayoutWireframeBanner pageLayoutName={pageLayoutName} pageLayoutId={pageLayoutId} />
+      )}
+      {grapesBackendRef.current.renderEditor(grapesProps)}
+    </>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -856,6 +913,79 @@ export function Designer({ screenId, screenName, onBack, isActive }: DesignerPro
 interface LegacyRescueDialogProps {
   onAdopt: () => void;
   onDiscard: () => void;
+}
+
+// ---------------------------------------------------------------------------
+// pl-5 #1026: editorKind / cssFramework ミスマッチ警告バナー (C)
+// ---------------------------------------------------------------------------
+
+interface EditorKindMismatchBannerProps {
+  warnings: string[];
+}
+
+function EditorKindMismatchBanner({ warnings }: EditorKindMismatchBannerProps) {
+  return (
+    <div
+      data-testid="editor-kind-mismatch-banner"
+      style={{
+        background: "#fef3c7",
+        borderBottom: "1px solid #fbbf24",
+        padding: "6px 16px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 13,
+        color: "#92400e",
+        zIndex: 10,
+        position: "relative",
+      }}
+    >
+      <i className="bi bi-exclamation-triangle-fill" style={{ color: "#f59e0b" }} />
+      <span>
+        runtime composition が動作しない可能性があります: {warnings.join(" / ")}
+      </span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// pl-5 #1026: page Screen の PageLayout 外枠表示バナー (B-簡易)
+// ---------------------------------------------------------------------------
+
+interface PageLayoutWireframeBannerProps {
+  pageLayoutName: string;
+  pageLayoutId: string;
+}
+
+function PageLayoutWireframeBanner({ pageLayoutName, pageLayoutId }: PageLayoutWireframeBannerProps) {
+  return (
+    <div
+      data-testid="page-layout-wireframe-banner"
+      style={{
+        background: "#ede9fe",
+        borderBottom: "1px solid #a78bfa",
+        padding: "6px 16px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 13,
+        color: "#5b21b6",
+        zIndex: 10,
+        position: "relative",
+      }}
+    >
+      <i className="bi bi-layout-wtf" style={{ color: "#7c3aed" }} />
+      <span>
+        PageLayout を使用中: <strong>{pageLayoutName}</strong>
+        <span style={{ color: "#7c3aed", fontFamily: "monospace", fontSize: 11, marginLeft: 6 }}>
+          ({pageLayoutId})
+        </span>
+      </span>
+      <span style={{ color: "#8b5cf6", fontSize: 11, marginLeft: 4 }}>
+        — 外枠はページレイアウト側で編集してください
+      </span>
+    </div>
+  );
 }
 
 function LegacyRescueDialog({ onAdopt, onDiscard }: LegacyRescueDialogProps) {
