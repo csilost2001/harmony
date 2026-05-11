@@ -15,6 +15,7 @@
  * - ensureDataDir(root, dataDirVal) で呼び出し側が dataDir 値を渡す設計
  */
 import fs from "fs/promises";
+import fsSync from "fs";
 import path from "path";
 import type { ValidateFunction } from "ajv";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -97,7 +98,9 @@ export const extensionsDir      = (dataRoot: string) => path.join(dataRoot, "ext
 export const customBlocksFile   = (dataRoot: string) => path.join(dataRoot, "custom-blocks.json");
 export const puckComponentsFile = (dataRoot: string) => path.join(dataRoot, "puck-components.json");
 export const erLayoutFile       = (dataRoot: string) => path.join(dataRoot, "er-layout.json");
-export const screenLayoutFile   = (dataRoot: string) => path.join(dataRoot, "screen-layout.json");
+export const screenFlowPositionsFile = (dataRoot: string) => path.join(dataRoot, "screen-flow-positions.json");
+/** @deprecated Use screenFlowPositionsFile instead. */
+export const screenLayoutFile   = screenFlowPositionsFile;
 export const conventionsFile    = (dataRoot: string) => path.join(conventionsDir(dataRoot), "catalog.json");
 
 const EXTENSION_FILE_NAMES = {
@@ -643,19 +646,34 @@ export async function writeErLayout(data: unknown, root: string): Promise<void> 
   await writeJSON(erLayoutFile(dataRoot), data);
 }
 
-/** screen-layout.json を読み込み (Phase 3-β、#561) */
-export async function readScreenLayout(root: string): Promise<unknown | null> {
+/**
+ * screen-flow-positions.json を読み込み (Phase 3-β、#561)
+ * 旧 screen-layout.json からの自動 rename migration も実施する (#1029)
+ */
+export async function readScreenFlowPositions(root: string): Promise<unknown | null> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
-  return readJSON<unknown>(screenLayoutFile(dataRoot));
+  // startup migration: screen-layout.json → screen-flow-positions.json (#1029)
+  const oldPath = path.join(dataRoot, "screen-layout.json");
+  const newPath = screenFlowPositionsFile(dataRoot);
+  if (fsSync.existsSync(oldPath) && !fsSync.existsSync(newPath)) {
+    fsSync.renameSync(oldPath, newPath);
+    console.log(`[migration] screen-layout.json → screen-flow-positions.json (${dataRoot})`);
+  }
+  return readJSON<unknown>(newPath);
 }
 
-/** screen-layout.json を書き込み (Phase 3-β、#561) */
-export async function writeScreenLayout(data: unknown, root: string): Promise<void> {
+/** screen-flow-positions.json を書き込み (Phase 3-β、#561) */
+export async function writeScreenFlowPositions(data: unknown, root: string): Promise<void> {
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
-  await writeJSON(screenLayoutFile(dataRoot), data);
+  await writeJSON(screenFlowPositionsFile(dataRoot), data);
 }
+
+/** @deprecated Use readScreenFlowPositions instead. */
+export const readScreenLayout = readScreenFlowPositions;
+/** @deprecated Use writeScreenFlowPositions instead. */
+export const writeScreenLayout = writeScreenFlowPositions;
 
 /** tables/{tableId}.json を読み込み */
 export async function readTable(tableId: string, root: string): Promise<unknown | null> {

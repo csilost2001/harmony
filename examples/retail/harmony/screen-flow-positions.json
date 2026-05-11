@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../schemas/v3/screen-layout.v3.schema.json",
+  "$schema": "../../../schemas/v3/screen-flow-positions.v3.schema.json",
   "positions": {
     "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0": { "x": 600, "y": 80, "width": 200, "height": 80 },
     "e6147dc0-94b7-436d-ba87-d0080ac34f44": { "x": 100, "y": 280, "width": 200, "height": 80 },

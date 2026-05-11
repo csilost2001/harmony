@@ -27,7 +27,7 @@ import type {
   ProcessFlow,
   Project,
   Screen,
-  ScreenLayout,
+  ScreenFlowPositions,
   Sequence,
   Table,
   View,
@@ -130,8 +130,8 @@ export interface SetupTestWorkspaceOptions {
   puckComponents?: unknown[];
   /** ER レイアウト (`harmony/er-layout.json`) */
   erLayout?: unknown;
-  /** v3 ScreenLayout — screen-layout.json (画面フロー用座標) */
-  screenLayout?: ScreenLayout;
+  /** v3 ScreenFlowPositions — screen-flow-positions.json (画面フロー用座標) */
+  screenLayout?: ScreenFlowPositions;
   /** 既存 examples/<name> をベースにコピーしてから追加 seed する場合 */
   fromExample?: string;
 }
@@ -510,7 +510,7 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
     await writeJson(path.join(dataDir, "er-layout.json"), opts.erLayout);
   }
   if (opts.screenLayout !== undefined) {
-    await writeJson(path.join(dataDir, "screen-layout.json"), opts.screenLayout);
+    await writeJson(path.join(dataDir, "screen-flow-positions.json"), opts.screenLayout);
   }
 
   // backend に open + 過去 test 由来の in-memory editSession を全件 discard を SAME WS で実行する。

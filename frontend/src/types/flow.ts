@@ -1,11 +1,11 @@
 /**
  * 画面フロー UI で使う合成型 (Phase 3-β、#561)
  *
- * v3 では Screen (業務情報) と ScreenLayout.positions[id] (UI 座標) を分離保存する。
+ * v3 では Screen (業務情報) と ScreenFlowPositions.positions[id] (UI 座標) を分離保存する。
  * UI 側 (FlowEditor / ScreenListView 等) では両者を合成した shape を扱うほうが扱いやすいため、
  * 永続化は別系統だが React state として `ScreenNode` / `ScreenEdge` / `ScreenGroup` を保持する。
  *
- * 永続化境界 (flowStore / screenLayoutStore) で合成・分解する。
+ * 永続化境界 (flowStore / screenFlowPositionsStore) で合成・分解する。
  */
 import type {
   LocalId,
@@ -17,7 +17,7 @@ import type {
   Timestamp,
 } from "./v3";
 
-/** UI 用 ScreenNode: v3 Screen 業務情報 + UI 座標 (ScreenLayout.positions[id])。 */
+/** UI 用 ScreenNode: v3 Screen 業務情報 + UI 座標 (ScreenFlowPositions.positions[id])。 */
 export interface ScreenNode {
   id: ScreenId;
   /** 物理順 (1..N 連番)。詳細は docs/spec/list-common.md §3.10 */
@@ -37,7 +37,7 @@ export interface ScreenNode {
   updatedAt: Timestamp;
 }
 
-/** UI 用 ScreenGroup: ScreenGroupEntry + UI 座標 (ScreenLayout.positions[id])。 */
+/** UI 用 ScreenGroup: ScreenGroupEntry + UI 座標 (ScreenFlowPositions.positions[id])。 */
 export interface ScreenGroup {
   id: ScreenGroupId;
   name: string;
@@ -48,7 +48,7 @@ export interface ScreenGroup {
   updatedAt: Timestamp;
 }
 
-/** UI 用 ScreenEdge: ScreenTransitionEntry + UI handle (ScreenLayout.transitions[id])。 */
+/** UI 用 ScreenEdge: ScreenTransitionEntry + UI handle (ScreenFlowPositions.transitions[id])。 */
 export interface ScreenEdge {
   id: LocalId;
   source: ScreenId;
@@ -105,7 +105,7 @@ export const TRIGGER_LABELS: Record<ScreenTransitionEntry["trigger"], string> = 
 /**
  * UI で扱う集約型 (FlowEditor などで使う)。
  *
- * 永続化は harmony.json + <dataDir>/screen-layout.json + <dataDir>/screens/<id>.json に分離するが、
+ * 永続化は harmony.json + <dataDir>/screen-flow-positions.json + <dataDir>/screens/<id>.json に分離するが、
  * UI 上は 1 つの React state として保持する。flowStore.loadProject() / saveProject() が境界で合成・分解する。
  */
 export interface FlowProject {

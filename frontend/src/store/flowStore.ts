@@ -4,7 +4,7 @@
  *
  * 永続化境界 (v3):
  * - 業務情報: data/harmony.json (FlowProject の v1 inline shape は維持、Phase 4 で entities ネスト化)
- * - UI 座標: data/screen-layout.json (Phase 3-β で新設、screenLayoutStore 経由)
+ * - UI 座標: data/screen-flow-positions.json (Phase 3-β で新設、screenFlowPositionsStore 経由)
  *
  * UI 側は ScreenNode / ScreenEdge / ScreenGroup (types/flow) で合成型を扱う。
  * load 時に両方を merge、save 時に書き分ける。
@@ -24,7 +24,7 @@ import type {
   ScreenId,
   ScreenGroupId,
   ScreenKind,
-  ScreenLayout,
+  ScreenFlowPositions,
   Position,
   Timestamp,
   ScreenTransitionEntry,
@@ -38,11 +38,11 @@ import { generateUUID } from "../utils/uuid";
 import { saveDraft, clearDraft, loadDraft } from "../utils/draftStorage";
 import { renumber, nextNo } from "../utils/listOrder";
 import {
-  loadScreenLayout,
-  saveScreenLayout,
+  loadScreenFlowPositions,
+  saveScreenFlowPositions,
   removePosition as layoutRemovePosition,
   removeTransitionLayout as layoutRemoveTransition,
-} from "./screenLayoutStore";
+} from "./screenFlowPositionsStore";
 import { assertValidProject } from "../utils/validateProject";
 
 // ─── ストレージバックエンド ──────────────────────────────────────────────
@@ -107,7 +107,7 @@ function nowTs(): Timestamp {
 // ─── 業務情報のみの永続化 shape (harmony.json 用) ──────────────────────
 //
 // Phase 3-β: 業務情報のみで永続化する。座標 (position/size/thumbnail) は
-// screen-layout.json に分離する。Phase 4 で v3 Project (entities ネスト) に
+// screen-flow-positions.json に分離する。Phase 4 で v3 Project (entities ネスト) に
 // 完全移行する際に、本 shape は ScreenEntry / ScreenGroupEntry / ScreenTransitionEntry の
 // project.entities ネスト構造へ再編する。
 
@@ -170,10 +170,10 @@ function defaultGroupPosition(): Position {
   return { x: 0, y: 0, width: 360, height: 280 };
 }
 
-/** Persisted harmony.json + screen-layout.json を UI 合成型 FlowProject に。 */
+/** Persisted harmony.json + screen-flow-positions.json を UI 合成型 FlowProject に。 */
 export function composeFlowProject(
   persisted: Project,
-  layout: ScreenLayout,
+  layout: ScreenFlowPositions,
 ): FlowProject {
   const entities = persisted.entities ?? {};
   const screens: ScreenNode[] = (entities.screens ?? []).map((s, i) => {
@@ -243,7 +243,7 @@ export function composeFlowProject(
 }
 
 /**
- * UI 合成型 FlowProject を Persisted (harmony.json) と ScreenLayout に分解。
+ * UI 合成型 FlowProject を Persisted (harmony.json) と ScreenFlowPositions に分解。
  *
  * existingRaw を渡すことで、FlowProject に含まれないフィールド
  * (techStack / extensionsApplied / meta.id / meta.description 等) を保持する。
@@ -251,9 +251,9 @@ export function composeFlowProject(
  */
 export function decomposeFlowProject(
   project: FlowProject,
-  baseLayout: ScreenLayout,
+  baseLayout: ScreenFlowPositions,
   existingRaw?: Project,
-): { project: Project; layout: ScreenLayout } {
+): { project: Project; layout: ScreenFlowPositions } {
   const ts = project.updatedAt || nowTs();
   const persisted: Project = {
     $schema: PROJECT_SCHEMA_REF,
@@ -337,7 +337,7 @@ export function decomposeFlowProject(
     },
   };
 
-  const positions: ScreenLayout["positions"] = {};
+  const positions: ScreenFlowPositions["positions"] = {};
   for (const s of project.screens) {
     positions[s.id] = {
       x: s.position.x,
@@ -357,7 +357,7 @@ export function decomposeFlowProject(
     };
   }
 
-  const transitions: ScreenLayout["transitions"] = {};
+  const transitions: ScreenFlowPositions["transitions"] = {};
   for (const e of project.edges) {
     if (e.sourceHandle || e.targetHandle) {
       transitions[e.id] = {
@@ -583,7 +583,7 @@ function hasPersistedData(project: Project | null | undefined): boolean {
 }
 
 /**
- * プロジェクトを読み込み (harmony.json + screen-layout.json 合成)。
+ * プロジェクトを読み込み (harmony.json + screen-flow-positions.json 合成)。
  *
  * !!! データ消失バグ修正 (2026-04-22) !!!
  * 以前は backend.loadProject() が null を返した場合、createEmptyProject() を
@@ -600,24 +600,24 @@ export async function loadProject(): Promise<FlowProject> {
       assertValidProject(persisted);
       await backend.saveProject(persisted);
     }
-    const layout = await loadScreenLayout();
+    const layout = await loadScreenFlowPositions();
     return ensureProjectDefaults(composeFlowProject(persisted, layout));
   }
   // backend が空応答の場合のみ、旧 localStorage データを 1 度きり救済して backend に書き戻す
   const local = loadPersistedFromLocalStorage();
   if (local && hasPersistedData(local)) {
-    // localStorage 側に保存されている screen-layout も合わせて backend に migrate する。
+    // localStorage 側に保存されている screen-flow-positions も合わせて backend に migrate する。
     // 業務情報のみを backend に書き写し、座標を localStorage に置いたままにすると
     // 次回ロード時に backend layout (空) で localStorage layout を上書きしてしまうため。
-    const layout = await loadScreenLayout();
+    const layout = await loadScreenFlowPositions();
     try {
       // AJV validation: schema 違反があれば localStorage→backend migration 書き戻しを中断し例外を投げる (#836)
       assertValidProject(local);
       await backend.saveProject(local);
       if (Object.keys(layout.positions).length > 0 || Object.keys(layout.transitions ?? {}).length > 0) {
-        await saveScreenLayout(layout);
+        await saveScreenFlowPositions(layout);
       }
-      console.log("[flowStore] Migrated project (and screen-layout) from localStorage to file");
+      console.log("[flowStore] Migrated project (and screen-flow-positions) from localStorage to file");
     } catch (e) {
       console.warn("[flowStore] migration save failed, returning local without persist", e);
     }
@@ -662,14 +662,14 @@ export async function saveTechStack(techStack: Project["techStack"]): Promise<vo
 }
 
 async function persistFlowProject(project: FlowProject): Promise<void> {
-  const baseLayout = await loadScreenLayout();
+  const baseLayout = await loadScreenFlowPositions();
   // 既存 raw を読み込んで round-trip preservation に使う (#835)
   const existingRaw = await loadRawProject().catch(() => undefined);
   const { project: persisted, layout } = decomposeFlowProject(project, baseLayout, existingRaw);
   // AJV validation: schema 違反があれば保存を中断し例外を投げる (#835)
   assertValidProject(persisted);
   await requireBackend().saveProject(persisted);
-  await saveScreenLayout(layout);
+  await saveScreenFlowPositions(layout);
 }
 
 /**
@@ -784,7 +784,7 @@ export async function updateScreen(
   return screen;
 }
 
-/** 画面を削除 (関連エッジ + デザインデータ + screen-layout.positions も削除)。 */
+/** 画面を削除 (関連エッジ + デザインデータ + screen-flow-positions.positions も削除)。 */
 export async function removeScreen(project: FlowProject, screenId: string): Promise<boolean> {
   const idx = project.screens.findIndex((s) => s.id === screenId);
   if (idx === -1) return false;
@@ -793,12 +793,12 @@ export async function removeScreen(project: FlowProject, screenId: string): Prom
   project.edges = project.edges.filter((e) => e.source !== screenId && e.target !== screenId);
   await requireBackend().deleteScreenData(screenId);
   await saveProject(project);
-  // 念のため screen-layout 側からも明示削除 (project.screens にもう存在しないので
+  // 念のため screen-flow-positions 側からも明示削除 (project.screens にもう存在しないので
   // decomposeFlowProject で positions[id] は再構築されないが、過去 layout の残骸を確実に消す)
-  const baseLayout = await loadScreenLayout();
+  const baseLayout = await loadScreenFlowPositions();
   const cleared = layoutRemovePosition(baseLayout, screenId);
   if (cleared !== baseLayout) {
-    await saveScreenLayout(cleared);
+    await saveScreenFlowPositions(cleared);
   }
   return true;
 }
@@ -846,15 +846,15 @@ export async function removeEdge(project: FlowProject, edgeId: string): Promise<
   if (idx === -1) return false;
   project.edges.splice(idx, 1);
   await saveProject(project);
-  const baseLayout = await loadScreenLayout();
+  const baseLayout = await loadScreenFlowPositions();
   const cleared = layoutRemoveTransition(baseLayout, edgeId);
   if (cleared !== baseLayout) {
-    await saveScreenLayout(cleared);
+    await saveScreenFlowPositions(cleared);
   }
   return true;
 }
 
-/** 画面のサムネイルを更新 (ScreenLayout.positions[id].thumbnail に格納)。 */
+/** 画面のサムネイルを更新 (ScreenFlowPositions.positions[id].thumbnail に格納)。 */
 export async function updateScreenThumbnail(
   project: FlowProject,
   screenId: string,
@@ -939,10 +939,10 @@ export async function removeGroup(project: FlowProject, groupId: string): Promis
     }
   }
   await saveProject(project);
-  const baseLayout = await loadScreenLayout();
+  const baseLayout = await loadScreenFlowPositions();
   const cleared = layoutRemovePosition(baseLayout, groupId);
   if (cleared !== baseLayout) {
-    await saveScreenLayout(cleared);
+    await saveScreenFlowPositions(cleared);
   }
   return true;
 }

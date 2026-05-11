@@ -90,7 +90,7 @@ export interface ScreenGroupEntry {
   color?: string;
 }
 
-/** 画面間の遷移定義。UI 座標は screen-layout に分離。 */
+/** 画面間の遷移定義。UI 座標は screen-flow-positions に分離。 */
 export interface ScreenTransitionEntry {
   id: LocalId;
   sourceScreenId: ScreenId;

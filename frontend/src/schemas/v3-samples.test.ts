@@ -31,7 +31,7 @@ beforeAll(() => {
   validateProcessFlow = ajv.compile(loadJson(join(v3Dir, "process-flow.v3.schema.json")) as object);
   validateExtension = ajv.compile(loadJson(join(v3Dir, "extensions.v3.schema.json")) as object);
   ajv.compile(loadJson(join(v3Dir, "sequence.v3.schema.json")) as object);
-  ajv.compile(loadJson(join(v3Dir, "screen-layout.v3.schema.json")) as object);
+  ajv.compile(loadJson(join(v3Dir, "screen-flow-positions.v3.schema.json")) as object);
   ajv.compile(loadJson(join(v3Dir, "er-layout.v3.schema.json")) as object);
   validateViewDefinition = ajv.compile(loadJson(join(v3Dir, "view-definition.v3.schema.json")) as object);
 });

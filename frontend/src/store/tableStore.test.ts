@@ -3,7 +3,7 @@ import type { FlowProject } from "../types/flow";
 import type { Table, TableEntry, TableId, Timestamp } from "../types/v3";
 import type { FlowStorageBackend } from "./flowStore";
 import { setFlowDraftMode, setFlowStorageBackend } from "./flowStore";
-import { setScreenLayoutStorageBackend } from "./screenLayoutStore";
+import { setScreenFlowPositionsStorageBackend } from "./screenFlowPositionsStore";
 import type { TableStorageBackend } from "./tableStore";
 import { commitTables, deleteTable, onTableChange, saveTable, setTableStorageBackend } from "./tableStore";
 
@@ -86,13 +86,13 @@ describe("tableStore onTableChange subscription (#1001)", () => {
   beforeEach(() => {
     setTableStorageBackend(null);
     setFlowStorageBackend(null);
-    setScreenLayoutStorageBackend(null);
+    setScreenFlowPositionsStorageBackend(null);
     setFlowDraftMode(false);
     localStorage.clear();
   });
 
   function setupBackends() {
-    // saveTable は syncTableMeta → flowStore.loadProject → screenLayoutStore.loadScreenLayout
+    // saveTable は syncTableMeta → flowStore.loadProject → screenFlowPositionsStore.loadScreenFlowPositions
     // までチェーンするので、3 backend すべて mock する必要がある
     const flowBackend: FlowStorageBackend = {
       loadProject: vi.fn().mockResolvedValue(projectWithTables([])),
@@ -104,14 +104,14 @@ describe("tableStore onTableChange subscription (#1001)", () => {
       saveTable: vi.fn().mockResolvedValue(undefined),
       deleteTable: vi.fn().mockResolvedValue(undefined),
     };
-    const screenLayoutBackend = {
-      loadScreenLayout: vi.fn().mockResolvedValue(null),
-      saveScreenLayout: vi.fn().mockResolvedValue(undefined),
+    const screenFlowPositionsBackend = {
+      loadScreenFlowPositions: vi.fn().mockResolvedValue(null),
+      saveScreenFlowPositions: vi.fn().mockResolvedValue(undefined),
     };
     setFlowStorageBackend(flowBackend);
     setTableStorageBackend(tableBackend);
-    setScreenLayoutStorageBackend(screenLayoutBackend);
-    return { flowBackend, tableBackend, screenLayoutBackend };
+    setScreenFlowPositionsStorageBackend(screenFlowPositionsBackend);
+    return { flowBackend, tableBackend, screenFlowPositionsBackend };
   }
 
   // schema 上 id は UUID v4 必須 (^[0-9a-f]{8}-[0-9a-f]{4}-4...)

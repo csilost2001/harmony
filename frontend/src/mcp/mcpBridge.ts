@@ -45,9 +45,9 @@ import {
   type ErLayoutStorageBackend,
 } from "../store/erLayoutStore";
 import {
-  setScreenLayoutStorageBackend,
-  type ScreenLayoutStorageBackend,
-} from "../store/screenLayoutStore";
+  setScreenFlowPositionsStorageBackend,
+  type ScreenFlowPositionsStorageBackend,
+} from "../store/screenFlowPositionsStore";
 import {
   setProcessFlowStorageBackend,
   type ProcessFlowStorageBackend,
@@ -401,11 +401,11 @@ class McpBridgeImpl {
     };
     setErLayoutStorageBackend(erLayoutBackend);
 
-    const screenLayoutBackend: ScreenLayoutStorageBackend = {
-      loadScreenLayout: () => this.request("loadScreenLayout"),
-      saveScreenLayout: (data) => this.request("saveScreenLayout", { data }).then(() => undefined),
+    const screenFlowPositionsBackend: ScreenFlowPositionsStorageBackend = {
+      loadScreenFlowPositions: () => this.request("loadScreenFlowPositions"),
+      saveScreenFlowPositions: (data) => this.request("saveScreenFlowPositions", { data }).then(() => undefined),
     };
-    setScreenLayoutStorageBackend(screenLayoutBackend);
+    setScreenFlowPositionsStorageBackend(screenFlowPositionsBackend);
 
     const actionBackend: ProcessFlowStorageBackend = {
       loadProcessFlow: (id) => this.request("loadProcessFlow", { id }),

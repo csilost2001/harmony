@@ -15,6 +15,6 @@ export { buildView, type BuildViewOpts } from "./viewBuilder";
 export { buildViewDefinition, type BuildViewDefinitionOpts } from "./viewDefinitionBuilder";
 export { buildSequence, type BuildSequenceOpts } from "./sequenceBuilder";
 export { buildScreen, type BuildScreenOpts } from "./screenBuilder";
-export { buildScreenLayout, type BuildScreenLayoutOpts } from "./screenLayoutBuilder";
+export { buildScreenFlowPositions, type BuildScreenFlowPositionsOpts } from "./screenFlowPositionsBuilder";
 export { buildCustomBlock, type BuildCustomBlockOpts } from "./customBlockBuilder";
 export { buildConventions, type BuildConventionsOpts } from "./conventionsBuilder";

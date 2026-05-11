@@ -261,7 +261,7 @@
     },
 
     "ScreenTransitionEntry": {
-      "description": "画面間の遷移定義。source / target は ScreenEntry.id を指す。UI 座標は screen-layout に分離。",
+      "description": "画面間の遷移定義。source / target は ScreenEntry.id を指す。UI 座標は screen-flow-positions に分離。",
       "type": "object",
       "required": ["id", "sourceScreenId", "targetScreenId", "trigger"],
       "additionalProperties": false,

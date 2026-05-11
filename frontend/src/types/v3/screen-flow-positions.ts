@@ -1,8 +1,8 @@
 /**
- * v3 ScreenLayout 型定義 (`schemas/v3/screen-layout.v3.schema.json` と 1:1 対応)
+ * v3 ScreenFlowPositions 型定義 (`schemas/v3/screen-flow-positions.v3.schema.json` と 1:1 対応)
  *
  * Designer (画面フローエディタ) 専用、業務実装には不要。
- * `data/screen-layout.json` に対応。
+ * `<dataDir>/screen-flow-positions.json` に対応。
  */
 
 import type { Timestamp } from "./common";
@@ -26,7 +26,7 @@ export interface TransitionLayout {
 }
 
 /** 画面フロー UI 座標を集約。 */
-export interface ScreenLayout {
+export interface ScreenFlowPositions {
   $schema?: string;
   /** Screen / ScreenGroup の UUID をキーとし、UI 座標を値とする。 */
   positions: Record<string, Position>;

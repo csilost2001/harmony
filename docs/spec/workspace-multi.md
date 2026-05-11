@@ -170,7 +170,7 @@ broadcast({
 | `sequenceChanged` | sequences 書込み時 | actor activePath |
 | `extensionsChanged` | `extensions/*.json` 書込み時 (steps / fieldTypes / triggers / dbOperations / responseTypes) | actor activePath |
 | `customBlocksChanged` | custom-blocks.json 書込み時 | actor activePath |
-| `erLayoutChanged` / `screenLayoutChanged` | レイアウト保存時 | actor activePath |
+| `erLayoutChanged` / `screenFlowPositionsChanged` | レイアウト保存時 | actor activePath |
 | `conventionsChanged` | conventions/catalog.json 書込み時 | actor activePath |
 | `editSession.created` / `attached` / `detached` / `roleChanged` / `update` / `saved` / `discarded` / `expired` | EditSession ライフサイクル全般 (#897 で旧 `draft.changed` / `lock.changed` を統合) | actor activePath |
 

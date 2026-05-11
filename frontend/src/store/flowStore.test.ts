@@ -10,7 +10,7 @@ import {
   setFlowDraftMode,
   setFlowStorageBackend,
 } from "./flowStore";
-import { setScreenLayoutStorageBackend } from "./screenLayoutStore";
+import { setScreenFlowPositionsStorageBackend } from "./screenFlowPositionsStore";
 import type { FlowProject } from "../types/flow";
 import type {
   LocalId,
@@ -20,7 +20,7 @@ import type {
   ProjectId,
   ScreenGroupId,
   ScreenId,
-  ScreenLayout,
+  ScreenFlowPositions,
   Timestamp,
 } from "../types/v3";
 
@@ -105,9 +105,9 @@ function mkPersistedProject(): Project {
   };
 }
 
-function mkLayout(): ScreenLayout {
+function mkLayout(): ScreenFlowPositions {
   return {
-    $schema: "../schemas/v3/screen-layout.v3.schema.json",
+    $schema: "../schemas/v3/screen-flow-positions.v3.schema.json",
     positions: {
       [SCREEN_ID]: { x: 10, y: 20, width: 200, height: 100 } satisfies Position,
       [SCREEN_ID_2]: { x: 260, y: 20, width: 200, height: 100 } satisfies Position,
@@ -127,9 +127,9 @@ function mkNonEmptyProject(): FlowProject {
 describe("flowStore データ消失ガード (2026-04-22)", () => {
   beforeEach(() => {
     setFlowStorageBackend(null);
-    setScreenLayoutStorageBackend({
-      loadScreenLayout: vi.fn().mockResolvedValue(null),
-      saveScreenLayout: vi.fn().mockResolvedValue(undefined),
+    setScreenFlowPositionsStorageBackend({
+      loadScreenFlowPositions: vi.fn().mockResolvedValue(null),
+      saveScreenFlowPositions: vi.fn().mockResolvedValue(undefined),
     });
     setFlowDraftMode(false);
     localStorage.clear();
@@ -225,7 +225,7 @@ describe("flowStore データ消失ガード (2026-04-22)", () => {
 
   it("loadProject: backend 未設定なら明示エラー (#924 fallback 廃止)", async () => {
     setFlowStorageBackend(null);
-    setScreenLayoutStorageBackend(null);
+    setScreenFlowPositionsStorageBackend(null);
     await expect(loadProject()).rejects.toThrow(/backend が初期化されていません/);
   });
 
@@ -297,9 +297,9 @@ describe("addScreen opts (#825)", () => {
 
   beforeEach(() => {
     setFlowStorageBackend(makePassiveBackend());
-    setScreenLayoutStorageBackend({
-      loadScreenLayout: vi.fn().mockResolvedValue(null),
-      saveScreenLayout: vi.fn().mockResolvedValue(undefined),
+    setScreenFlowPositionsStorageBackend({
+      loadScreenFlowPositions: vi.fn().mockResolvedValue(null),
+      saveScreenFlowPositions: vi.fn().mockResolvedValue(undefined),
     });
     setFlowDraftMode(false);
     localStorage.clear();
@@ -338,7 +338,7 @@ describe("addScreen opts (#825)", () => {
 });
 
 describe("flowStore v3 compose/decompose", () => {
-  it("Project entities と ScreenLayout を FlowProject に合成し、保存 shape に戻せる", () => {
+  it("Project entities と ScreenFlowPositions を FlowProject に合成し、保存 shape に戻せる", () => {
     const project = mkPersistedProject();
     const layout = mkLayout();
 

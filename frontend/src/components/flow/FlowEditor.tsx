@@ -31,7 +31,7 @@ import type { FlowProject, ScreenNode, ScreenEdge, ScreenGroup } from "../../typ
 import type { Screen } from "../../types/v3/screen";
 import type { Marker } from "../../types/v3/common";
 import { TRIGGER_LABELS } from "../../types/flow";
-import type { ScreenGroupId, ScreenKind, ScreenLayout, Timestamp } from "../../types/v3";
+import type { ScreenGroupId, ScreenKind, ScreenFlowPositions, Timestamp } from "../../types/v3";
 import {
   loadProject,
   loadRawProject,
@@ -52,7 +52,7 @@ import {
   generateFlowMarkdown,
 } from "../../store/flowStore";
 import { buildDefaultScreen, loadScreenEntity, saveScreenEntity } from "../../store/screenStore";
-import { clearScreenLayoutPreview, saveScreenLayoutPreview } from "../../store/screenLayoutStore";
+import { clearScreenFlowPositionsPreview, saveScreenFlowPositionsPreview } from "../../store/screenFlowPositionsStore";
 import { duplicateScreenDesignData } from "../../store/duplicateScreen";
 import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { resolveCssFramework } from "../../utils/resolveCssFramework";
@@ -140,8 +140,8 @@ function toRFEdges(edges: ScreenEdge[]): RFEdge[] {
   }));
 }
 
-function toScreenLayoutPreview(project: FlowProject): Pick<ScreenLayout, "positions"> {
-  const positions: ScreenLayout["positions"] = {};
+function toScreenFlowPositionsPreview(project: FlowProject): Pick<ScreenFlowPositions, "positions"> {
+  const positions: ScreenFlowPositions["positions"] = {};
   for (const screen of project.screens) {
     positions[screen.id] = screen.position;
   }
@@ -334,7 +334,7 @@ function FlowEditorInner() {
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncAndSave = useCallback(() => {
     if (!projectRef.current) return;
-    saveScreenLayoutPreview(toScreenLayoutPreview(projectRef.current));
+    saveScreenFlowPositionsPreview(toScreenFlowPositionsPreview(projectRef.current));
     if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
       if (projectRef.current) {
@@ -885,7 +885,7 @@ function FlowEditorInner() {
     setIsSaving(true);
     try {
       // P2 fix (#912): 2 段階保存。flow は backend editSession.save で本体書き込みを skip し、
-      // 代わりに frontend persistProject() が harmony.json + screen-layout.json を書く設計のため、
+      // 代わりに frontend persistProject() が harmony.json + screen-flow-positions.json を書く設計のため、
       // saveHistory 記録が persist 失敗時に先行記録される問題を解消するため checkOnly → persist → commit の順で実行する。
       const checkResult = await saveCheckConflict();
       if (checkResult.conflicted || checkResult.failed) return;
@@ -914,7 +914,7 @@ function FlowEditorInner() {
     redoStackRef.current = [];
     setCanUndo(false);
     setCanRedo(false);
-    clearScreenLayoutPreview();
+    clearScreenFlowPositionsPreview();
     await reloadProject();
     dismissServerBanner();
     await acknowledgeServerMtime("project");
@@ -933,7 +933,7 @@ function FlowEditorInner() {
   const handleResumeDiscard = useCallback(async () => {
     setShowResumeDialog(false);
     await actions.discard();
-    clearScreenLayoutPreview();
+    clearScreenFlowPositionsPreview();
     await reloadProject();
   }, [actions, reloadProject]);
 

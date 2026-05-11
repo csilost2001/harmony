@@ -15,7 +15,7 @@
  *  - examples/<project>/harmony/sequences/<uuid>.json
  *  - examples/<project>/harmony/extensions/<namespace>.v3.json (canonical combined format)
  *  - examples/<project>/harmony/conventions/*.json
- *  - examples/<project>/harmony/screen-layout.json (任意)
+ *  - examples/<project>/harmony/screen-flow-positions.json (任意)
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import Ajv2020, { type ValidateFunction } from "ajv/dist/2020";
@@ -44,12 +44,12 @@ const ENTITY_TO_SCHEMA: Record<string, string> = {
 const SINGLETON_FILES: Record<string, string> = {
   // R-4 #853: project.json → harmony.json (workspace root 直下) にリネーム完了
   "harmony.json": "harmony.v3.schema.json",
-  // screen-layout.json は harmony/ 配下 (SINGLETON_IN_DATA_DIR で管理)
+  // screen-flow-positions.json は harmony/ 配下 (SINGLETON_IN_DATA_DIR で管理)
 };
 
 // harmony/<dataDir>/ 配下にあるシングルトン系ファイル
 const SINGLETON_FILES_IN_DATA_DIR: Record<string, string> = {
-  "screen-layout.json": "screen-layout.v3.schema.json",
+  "screen-flow-positions.json": "screen-flow-positions.v3.schema.json",
 };
 
 const validators = new Map<string, ValidateFunction>();
@@ -109,7 +109,7 @@ function collectFiles(projectDir: string): FileEntry[] {
     }
   }
 
-  // harmony/ (dataDir) 配下のシングルトン系 (screen-layout.json 等)
+  // harmony/ (dataDir) 配下のシングルトン系 (screen-flow-positions.json 等)
   const dataDir = join(projectDir, "harmony");
   for (const [fname, schema] of Object.entries(SINGLETON_FILES_IN_DATA_DIR)) {
     const fp = join(dataDir, fname);

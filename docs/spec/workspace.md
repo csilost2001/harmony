@@ -68,7 +68,7 @@ PR #676 で導入した「複数ワークスペース管理機能」の正規仕
     extensions/             # 拡張定義 (steps.json 等)
     er-layout.json          # 任意 — ER 図レイアウト
     custom-blocks.json      # 任意 — カスタムブロック
-    screen-layout.json      # 任意 — 画面フローレイアウト
+    screen-flow-positions.json      # 任意 — 画面フロー UI 座標
 ```
 
 `harmony.json` はワークスペースフォルダの **root に固定**で配置する。設計データは `<dataDir>/` 配下に格納され、他ツール (Git / IDE 等) の管理対象ファイルと混在しない。

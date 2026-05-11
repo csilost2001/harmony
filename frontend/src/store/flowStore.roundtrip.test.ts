@@ -15,13 +15,13 @@ import {
   setFlowDraftMode,
   saveProject,
 } from "./flowStore";
-import { setScreenLayoutStorageBackend } from "./screenLayoutStore";
+import { setScreenFlowPositionsStorageBackend } from "./screenFlowPositionsStore";
 import type { FlowProject } from "../types/flow";
 import type {
   Project,
   ProjectId,
   ScreenId,
-  ScreenLayout,
+  ScreenFlowPositions,
   Timestamp,
   ViewDefinitionEntry,
   ViewDefinitionId,
@@ -71,7 +71,7 @@ function mkRichProject(): Project {
   };
 }
 
-function mkLayout(): ScreenLayout {
+function mkLayout(): ScreenFlowPositions {
   return {
     positions: {
       [SCREEN_ID]: { x: 100, y: 150, width: 200, height: 100 },
@@ -191,9 +191,9 @@ describe("saveProject round-trip preservation (backend mock)", () => {
     savedProject = null;
     backendProject = mkRichProject();
     setFlowDraftMode(false);
-    setScreenLayoutStorageBackend({
-      loadScreenLayout: vi.fn().mockResolvedValue(mkLayout()),
-      saveScreenLayout: vi.fn().mockResolvedValue(undefined),
+    setScreenFlowPositionsStorageBackend({
+      loadScreenFlowPositions: vi.fn().mockResolvedValue(mkLayout()),
+      saveScreenFlowPositions: vi.fn().mockResolvedValue(undefined),
     });
 
     const backend: FlowStorageBackend = {

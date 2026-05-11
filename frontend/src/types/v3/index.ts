@@ -5,7 +5,7 @@
  *
  * - `common`: 共通 $defs (Uuid / Identifier / FieldType / StructuredField / Authoring / 等)
  * - `project`: Project root
- * - `screen` / `screen-item` / `screen-layout`: 画面定義 + UI 座標 (分離)
+ * - `screen` / `screen-item` / `screen-flow-positions`: 画面定義 + UI 座標 (分離)
  * - `table` / `sequence` / `view` / `er-layout`: DB / ER 関連
  * - `process-flow`: ProcessFlow + 22 step variants
  * - `extensions` / `conventions` / `custom-block`: 拡張機構 / 横断規約 / GrapesJS ブロック
@@ -27,7 +27,7 @@ export * from "./project";
 // 画面系
 export * from "./screen";
 export * from "./screen-item";
-export * from "./screen-layout";
+export * from "./screen-flow-positions";
 
 // DB / ER 系
 export * from "./table";

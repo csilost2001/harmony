@@ -469,7 +469,7 @@ UI 座標は新規 `schemas/v2/screen-layout.v2.schema.json` に分離:
 }
 ```
 
-データファイル: `data/screen-layout.json` (er-layout.json と並列)。
+データファイル: `data/screen-flow-positions.json` (er-layout.json と並列)。旧名: `data/screen-layout.json` (#1029 でリネーム)。
 
 ### 2.8 拡張機構を 1 ファイル統合
 
@@ -676,10 +676,10 @@ ScreenNode.path (URL パス: "/customers") ← physicalName 相当
 - ConstraintDefinition.referencedTable → referencedTableId (Uuid)
 - EntityMeta を allOf でマージ
 
-### Step 5-4: screen.v3 + screen-layout.v3 分離
+### Step 5-4: screen.v3 + screen-flow-positions.v3 分離 (旧称: screen-layout.v3、#1029 でリネーム)
 
 - screen.v3: 業務情報のみ (EntityMeta + path / kind / hasDesign / groupId)
-- screen-layout.v3: UI 座標 (positions / groupPositions / thumbnails)
+- screen-flow-positions.v3: UI 座標 (positions / groupPositions / thumbnails)
 
 ### Step 5-5: screen-item.v3 / project.v3 / er-layout.v3 / custom-block.v3 / sequence.v3 / view.v3 を再起草
 
@@ -724,7 +724,7 @@ ScreenNode.path (URL パス: "/customers") ← physicalName 相当
 
 10 ファイル → 1 ファイル (`extensions.v2.schema.json`)、namespace 単位運用。
 
-### Q5: ScreenNode から UI 座標を分離 (screen-layout.v3 新設)
+### Q5: ScreenNode から UI 座標を分離 (screen-flow-positions.v3 新設、旧称: screen-layout.v3)
 
 ---
 

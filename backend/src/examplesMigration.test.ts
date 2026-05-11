@@ -8,12 +8,12 @@
  * - inspectWorkspacePath → ready (harmony.json が AJV で valid)
  * - resolveDataRoot → examples/<id>/harmony を返す
  * - readProject → harmony.json を読めること
- * - readScreenLayout (retail のみ) → screen-layout.json が harmony/ 配下で読めること
+ * - readScreenFlowPositions (retail のみ) → screen-flow-positions.json が harmony/ 配下で読めること
  */
 import { describe, it, expect } from "vitest";
 import path from "node:path";
 import { inspectWorkspacePath } from "./workspaceInit.js";
-import { resolveDataRoot, readProject, readScreenLayout } from "./projectStorage.js";
+import { resolveDataRoot, readProject, readScreenFlowPositions } from "./projectStorage.js";
 
 const repoRoot = path.resolve(__dirname, "../..");
 
@@ -51,10 +51,10 @@ describe("R-4 #853 examples 物理 migration — harmony.json + dataDir 形式",
     });
   }
 
-  // retail 固有: screen-layout.json が harmony/ 配下にある
-  it("retail: readScreenLayout → harmony/screen-layout.json が読めること (null にならない)", async () => {
+  // retail 固有: screen-flow-positions.json が harmony/ 配下にある
+  it("retail: readScreenFlowPositions → harmony/screen-flow-positions.json が読めること (null にならない)", async () => {
     const retailDir = path.join(repoRoot, "examples", "retail");
-    const layout = await readScreenLayout(retailDir);
+    const layout = await readScreenFlowPositions(retailDir);
     expect(layout).not.toBeNull();
   });
 });

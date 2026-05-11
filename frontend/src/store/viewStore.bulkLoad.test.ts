@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Project, ProjectId, Timestamp, View, ViewId } from "../types/v3";
 import { setFlowStorageBackend } from "./flowStore";
-import { setScreenLayoutStorageBackend } from "./screenLayoutStore";
+import { setScreenFlowPositionsStorageBackend } from "./screenFlowPositionsStore";
 import type { ViewStorageBackend } from "./viewStore";
 import { loadViewValidationMap, setViewStorageBackend } from "./viewStore";
 
@@ -58,9 +58,9 @@ describe("loadViewValidationMap bulk load (#587)", () => {
   beforeEach(() => {
     localStorage.clear();
     setFlowStorageBackend(null);
-    setScreenLayoutStorageBackend({
-      loadScreenLayout: vi.fn().mockResolvedValue(null),
-      saveScreenLayout: vi.fn().mockResolvedValue(undefined),
+    setScreenFlowPositionsStorageBackend({
+      loadScreenFlowPositions: vi.fn().mockResolvedValue(null),
+      saveScreenFlowPositions: vi.fn().mockResolvedValue(undefined),
     });
     setViewStorageBackend(null);
   });

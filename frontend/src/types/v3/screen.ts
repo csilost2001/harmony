@@ -1,7 +1,7 @@
 /**
  * v3 Screen 型定義 (`schemas/v3/screen.v3.schema.json` と 1:1 対応)
  *
- * - 業務情報のみを保持、UI 座標は `screen-layout.ts` に分離
+ * - 業務情報のみを保持、UI 座標は `screen-flow-positions.ts` に分離
  * - GrapesJS の生 HTML データは本型の対象外
  *
  * 参考: schemas/v3/screen.v3.schema.json

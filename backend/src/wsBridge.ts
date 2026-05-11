@@ -67,8 +67,8 @@ import {
   listAllTables,
   readErLayout,
   writeErLayout,
-  readScreenLayout,
-  writeScreenLayout,
+  readScreenFlowPositions,
+  writeScreenFlowPositions,
   readProcessFlow,
   writeProcessFlow,
   deleteProcessFlow as deleteProcessFlowFile,
@@ -1147,16 +1147,18 @@ class WsBridge extends EventEmitter {
           this.broadcast({ wsId: wsId(), event: "erLayoutChanged", data: {}, excludeClientId: clientId });
           break;
         }
+        case "loadScreenFlowPositions":
         case "loadScreenLayout": {
-          const layoutData = await readScreenLayout(root());
+          const layoutData = await readScreenFlowPositions(root());
           respond(layoutData);
           break;
         }
+        case "saveScreenFlowPositions":
         case "saveScreenLayout": {
           const { data } = (params ?? {}) as { data: unknown };
-          await writeScreenLayout(data, root());
+          await writeScreenFlowPositions(data, root());
           respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "screenLayoutChanged", data: {}, excludeClientId: clientId });
+          this.broadcast({ wsId: wsId(), event: "screenFlowPositionsChanged", data: {}, excludeClientId: clientId });
           break;
         }
         case "loadProcessFlow": {
