@@ -74,23 +74,27 @@ Codex で PR #1031 全体を fresh context で adversarial レビュー。Must-f
 | F-3 Nit | UI 文言「PageLayout」→「ページレイアウト」 | 6e19051: PageLayoutWireframeBanner 文言修正 |
 | C-5 Nit | pageLayoutChanged broadcast 購読なし | このコミット: GadgetListView で broadcast subscribe |
 
-## 4. 既知の制限 (follow-up — Codex review 後の残課題)
+## 4. Codex C-1 / A-3 / H-2 完全解消 (commits a16ddaa / 16879b4 / 615a909)
 
-### A. Page Screen Designer での PageLayout 外枠+gadget の完全描画
-- 現状: PageLayout 適用 page Screen を Designer で開くと banner + 通常 Screen editor (外枠 read-only render なし)
-- C-1 Must-fix で banner 表示の retry / warn ログは入れたが、フル composition (外枠の HTML を canvas に inject + main slot に Screen 本文) は別 follow-up
-- **影響**: 視覚的に「どの外枠で動くか」が不完全だが Designer 編集自体は支障なし
+### A. Page Screen Designer での PageLayout 外枠+gadget の完全描画 ✅ 解消
+- 解消方法: `DesignerTabHost.tsx` を新規作成し AppShell.tsx の `designTabs.map()` で wrap
+- PageLayout + gadget の design HTML を pre-load、Designer 上の banner から「composition プレビューを開く」ボタンで modal 起動
+- Modal の iframe (Bootstrap CDN 込み) に composePreviewHtml の合成結果 (PageLayout 外枠 + 各 region の gadget + main slot に Screen 本文) を完全描画
+- Playwright 確認済 (`.tmp/screenshots/v6-composition-preview-modal.png`)
 
-### B. GrapesJS region 内 gadget の **本物の design HTML** 描画 (Codex A-3)
-- 現状: gadget name の placeholder badge を inject (識別は可能)
-- 本物の design HTML inject は GrapesJS データツリーから HTML 抽出 + iframe 内 DOM 操作が必要
-- **follow-up**: `pageLayoutCompositionPreview.ts` の inject 対象を `loadScreen(gadgetId)` 経由の HTML 本体に変更
+### B. GrapesJS region 内 gadget の **本物の design HTML** 描画 ✅ 解消 (Codex A-3)
+- 解消方法: `injectGadgetPreviews` に `gadgetHtmlMap` パラメータ追加、`_appendPreviewHtml` ヘルパで gadget HTML を read-only inject
+- PageLayoutDesigner が `mcpBridge.request("loadScreen", id)` で gadget design を取得、`extractGrapesHtml` で本体抽出して inject map に格納
 
-### C. Puck composition preview の nested render (Codex H-2)
-- Region primitive (RegionHeader/Sidebar/Footer/Main) は実装済、Puck Config に登録済
-- ただし完全な nested render は `@measured/puck` の Render と buildConfig の循環依存で実装困難
-- **scope 確定** (本 PR では概要表示で完了): Puck Editor 内で region 構造 + 割り当て gadget 名 + load 状況が視覚確認できる、まで
-- **follow-up**: Render を別モジュールに分離して循環解消、または React Context で Config を注入する設計
+### C. Puck composition preview の nested render ✅ 解消 (Codex H-2)
+- 解消方法: `RegionContext` に `puckConfig?: Config | null` を追加、`usePuckConfig()` hook 経由で Region primitive から Render を呼べるように
+- PageLayoutDesigner で `buildPuckConfig()` を useMemo 計算し RegionProvider に注入 → ES module 循環なし
+- RegionHeader / RegionSidebar / RegionFooter で `<Render config={puckConfig} data={gadgetData} />` を実行 (puckConfig + gadgetData 揃った場合のみ)
+
+## 5. 残 follow-up (本 PR 以降)
+
+- **G-1 / G-2 パフォーマンス**: loadProject キャッシュ + Puck gadget data の concurrency limit (MVP scale で実用上問題なし、Phase 2 で最適化)
+- **ScreenDesigner.tsx の dead code 整理**: 旧 ScreenDesigner.tsx は route element でなく、本 PR で確認した通り使われていない (DesignerTabHost.tsx が design tab の表示元になった)。別 PR で削除候補
 
 ## 4. 修正された bugs (dogfood で発見)
 
