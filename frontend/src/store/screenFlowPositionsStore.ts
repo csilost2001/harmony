@@ -139,34 +139,3 @@ export function removeTransitionLayout(layout: ScreenFlowPositions, id: string):
   delete next[id];
   return { ...layout, transitions: next };
 }
-
-// ---------------------------------------------------------------------------
-// Backward-compatible aliases (legacy names, kept for gradual migration)
-// ---------------------------------------------------------------------------
-
-/** @deprecated Use ScreenFlowPositionsStorageBackend instead. */
-export type ScreenLayoutStorageBackend = ScreenFlowPositionsStorageBackend;
-
-/** @deprecated Use setScreenFlowPositionsStorageBackend instead. */
-export const setScreenLayoutStorageBackend = setScreenFlowPositionsStorageBackend;
-
-/** @deprecated Use loadScreenFlowPositions instead. */
-export const loadScreenLayout = loadScreenFlowPositions;
-
-/** @deprecated Use saveScreenFlowPositions instead. */
-export const saveScreenLayout = saveScreenFlowPositions;
-
-/** @deprecated Use loadScreenFlowPositionsPreview instead. */
-export const loadScreenLayoutPreview = loadScreenFlowPositionsPreview;
-
-/** @deprecated Use saveScreenFlowPositionsPreview instead. */
-export const saveScreenLayoutPreview = saveScreenFlowPositionsPreview;
-
-/** @deprecated Use clearScreenFlowPositionsPreview instead. */
-export const clearScreenLayoutPreview = clearScreenFlowPositionsPreview;
-
-/** @deprecated Use loadScreenFlowPositionsCanonical instead. */
-export const loadScreenLayoutCanonical = loadScreenFlowPositionsCanonical;
-
-/** @deprecated Use saveScreenFlowPositionsCanonical instead. */
-export const saveScreenLayoutCanonical = saveScreenFlowPositionsCanonical;

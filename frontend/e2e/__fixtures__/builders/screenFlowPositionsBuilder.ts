@@ -29,12 +29,3 @@ export function buildScreenFlowPositions(opts: BuildScreenFlowPositionsOpts = {}
   };
 }
 
-// ---------------------------------------------------------------------------
-// Backward-compatible aliases (legacy names)
-// ---------------------------------------------------------------------------
-
-/** @deprecated Use BuildScreenFlowPositionsOpts instead. */
-export type BuildScreenLayoutOpts = BuildScreenFlowPositionsOpts;
-
-/** @deprecated Use buildScreenFlowPositions instead. */
-export const buildScreenLayout = buildScreenFlowPositions;

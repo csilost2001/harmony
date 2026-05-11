@@ -99,8 +99,6 @@ export const customBlocksFile   = (dataRoot: string) => path.join(dataRoot, "cus
 export const puckComponentsFile = (dataRoot: string) => path.join(dataRoot, "puck-components.json");
 export const erLayoutFile       = (dataRoot: string) => path.join(dataRoot, "er-layout.json");
 export const screenFlowPositionsFile = (dataRoot: string) => path.join(dataRoot, "screen-flow-positions.json");
-/** @deprecated Use screenFlowPositionsFile instead. */
-export const screenLayoutFile   = screenFlowPositionsFile;
 export const conventionsFile    = (dataRoot: string) => path.join(conventionsDir(dataRoot), "catalog.json");
 
 const EXTENSION_FILE_NAMES = {
@@ -669,11 +667,6 @@ export async function writeScreenFlowPositions(data: unknown, root: string): Pro
   const dataRoot = await ensureDataDirFromRoot(r);
   await writeJSON(screenFlowPositionsFile(dataRoot), data);
 }
-
-/** @deprecated Use readScreenFlowPositions instead. */
-export const readScreenLayout = readScreenFlowPositions;
-/** @deprecated Use writeScreenFlowPositions instead. */
-export const writeScreenLayout = writeScreenFlowPositions;
 
 /** tables/{tableId}.json を読み込み */
 export async function readTable(tableId: string, root: string): Promise<unknown | null> {

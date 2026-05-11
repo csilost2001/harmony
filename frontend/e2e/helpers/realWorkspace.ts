@@ -131,7 +131,7 @@ export interface SetupTestWorkspaceOptions {
   /** ER レイアウト (`harmony/er-layout.json`) */
   erLayout?: unknown;
   /** v3 ScreenFlowPositions — screen-flow-positions.json (画面フロー用座標) */
-  screenLayout?: ScreenFlowPositions;
+  screenFlowPositions?: ScreenFlowPositions;
   /** 既存 examples/<name> をベースにコピーしてから追加 seed する場合 */
   fromExample?: string;
 }
@@ -509,8 +509,8 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
   if (opts.erLayout !== undefined) {
     await writeJson(path.join(dataDir, "er-layout.json"), opts.erLayout);
   }
-  if (opts.screenLayout !== undefined) {
-    await writeJson(path.join(dataDir, "screen-flow-positions.json"), opts.screenLayout);
+  if (opts.screenFlowPositions !== undefined) {
+    await writeJson(path.join(dataDir, "screen-flow-positions.json"), opts.screenFlowPositions);
   }
 
   // backend に open + 過去 test 由来の in-memory editSession を全件 discard を SAME WS で実行する。

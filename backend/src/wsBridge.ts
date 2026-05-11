@@ -1147,14 +1147,12 @@ class WsBridge extends EventEmitter {
           this.broadcast({ wsId: wsId(), event: "erLayoutChanged", data: {}, excludeClientId: clientId });
           break;
         }
-        case "loadScreenFlowPositions":
-        case "loadScreenLayout": {
+        case "loadScreenFlowPositions": {
           const layoutData = await readScreenFlowPositions(root());
           respond(layoutData);
           break;
         }
-        case "saveScreenFlowPositions":
-        case "saveScreenLayout": {
+        case "saveScreenFlowPositions": {
           const { data } = (params ?? {}) as { data: unknown };
           await writeScreenFlowPositions(data, root());
           respond({ success: true });
