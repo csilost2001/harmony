@@ -79,15 +79,18 @@ export interface ProcessFlowMeta {
 }
 
 /**
- * 処理フローの主たる呼び出し元 (#624)。任意メタ情報、実行時には参照されない。
+ * 処理フローの主たる呼び出し元 (#624 / #1019)。任意メタ情報、実行時には参照されない。
  * 副次的呼び出し (他画面 / batch / 他フロー) は宣言不要 — 画面項目側 events[].handlerFlowId
- * のみで成立する。現状は kind='screen-item-event' のみ対応 (将来拡張余地あり)。
+ * のみで成立する。actionId は省略時 actions[0] 解釈 (1-action 処理フロー前提、validator 担保)。
+ * 現状は kind='screen-item-event' のみ対応 (将来拡張余地あり)。
  */
 export type PrimaryInvoker = {
   kind: "screen-item-event";
   screenId: ScreenId;
   itemId: string;
   eventId: string;
+  /** 主たる呼び出し対象の action id (#1019、actions[].id)。省略時 actions[0]。 */
+  actionId?: LocalId;
 };
 
 // ─── Context (catalogs / ambientVariables / health / readiness / resources) ──

@@ -15,6 +15,7 @@ import type {
   FieldType,
   Identifier,
   IdentifierPath,
+  LocalId,
   ProcessFlowId,
   TableColumnRef,
   ViewColumnRef,
@@ -24,9 +25,10 @@ import type { ViewDefinitionId } from "./view-definition";
 export type { ViewDefinitionId };
 
 /**
- * 画面項目イベント (#624) — 発火時に handlerFlowId 指定の処理フローを呼び出し、
- * argumentMapping で画面コンテキストを処理フロー inputs[] に変換する。
- * 1 処理フロー × N イベント (再利用) を自然に表現する backward reference。
+ * 画面項目イベント (#624 / #1019) — 発火時に handlerFlowId + handlerActionId 指定の
+ * 処理フロー内 action を呼び出し、argumentMapping で画面コンテキストを当該 action の
+ * inputs[] に変換する。1 画面 = 1 処理フロー + 複数アクション モデルを成立させるため、
+ * handlerActionId で sub-action を指定する (省略時は actions[0]、validator が単一 action 制約担保)。
  */
 export interface ScreenItemEvent {
   /** イベント ID (例: `click` / `submit` / `change` / `blur`)。画面項目内ユニーク (validator 担保)。 */
@@ -35,9 +37,15 @@ export interface ScreenItemEvent {
   /** 発火時に実行する処理フローの ID (backward reference)。 */
   handlerFlowId: ProcessFlowId;
   /**
-   * 画面コンテキストを処理フロー引数 (inputs[]) に変換するマッピング。
-   * キーは処理フロー側 inputs[].name (Identifier 形式)、値は画面コンテキスト式
-   * (`@screen.* / @self.* / @session.*` 等)。
+   * 発火時に実行する処理フロー内 action の ID (#1019、ProcessFlow.actions[].id を参照)。
+   * 省略時は処理フローが actions 配列を 1 件のみ持つ前提で actions[0] を実行する
+   * (validator が単一 action 制約を担保)。複数 action を持つ処理フローでは必須。
+   */
+  handlerActionId?: LocalId;
+  /**
+   * 画面コンテキストを処理フロー引数 (handlerActionId が指す action の inputs[]) に
+   * 変換するマッピング。キーは action 側 inputs[].name (Identifier 形式)、
+   * 値は画面コンテキスト式 (`@screen.* / @self.* / @session.*` 等)。
    */
   argumentMapping?: Record<Identifier, ExpressionString>;
 }

@@ -75,14 +75,15 @@ examples/diary/
 |---|---|---|
 | `2fecbf99-...` | 写真アップロード | POST /api/upload (multipart/form-data) |
 
-### タグ CRUD (4 件、#862)
+### タグ CRUD (#862 / #1019)
 
-| ID | name | HTTP |
-|---|---|---|
-| `803764e4-...` | タグ一覧取得 | GET /api/tags |
-| `46b99455-...` | タグ作成 | POST /api/tags |
-| `8cc24fea-...` | タグ更新 | PUT /api/tags/:id |
-| `305509f7-...` | タグ削除 | DELETE /api/tags/:id |
+タグ管理画面 (`c0bd613a-...`) に紐付く CRUD は **1 処理フロー + 複数アクション** モデル (#1019) で集約されている。
+画面項目側 `events[].handlerActionId` で sub-action を指定する。
+
+| ID | name | actions | HTTP (action 単位) |
+|---|---|---|---|
+| `803764e4-...` | タグ一覧取得 | act-001 | GET /api/tags |
+| `c7ca8f6d-...` | タグ管理 | act-create / act-update / act-delete | POST/PUT/DELETE /api/tags[:id] |
 
 ## screens 一覧 (5 件)
 

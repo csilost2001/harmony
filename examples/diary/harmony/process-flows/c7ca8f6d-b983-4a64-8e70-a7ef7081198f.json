@@ -1,0 +1,742 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
+    "name": "タグ管理",
+    "description": "タグ管理画面 (c0bd613a) の CRUD ハンドラを集約した処理フロー (#1019)。1 画面 = 1 処理フロー + 複数アクション モデルの典型例として、create / update / delete の 3 actions を保持する。各 action は画面項目イベント側 events[].handlerActionId から個別に呼び出される。",
+    "kind": "screen",
+    "screenId": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2",
+    "maturity": "draft",
+    "createdAt": "2026-05-11T00:00:00.000Z",
+    "updatedAt": "2026-05-11T00:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "入力値が不正です。",
+          "responseId": "400-validation",
+          "description": "name 未入力 / id 未指定 / 長さ超過 / slug regex 違反 / color hex 違反。"
+        },
+        "TAG_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "タグが見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定 id のタグが存在しない (update / delete の対象不在)。"
+        },
+        "TAG_DUPLICATE": {
+          "httpStatus": 409,
+          "defaultMessage": "同名のタグが既に存在します。",
+          "responseId": "409-conflict",
+          "description": "name または slug が既存タグと重複した場合 (create / update)。"
+        },
+        "TAG_IN_USE": {
+          "httpStatus": 409,
+          "defaultMessage": "このタグは投稿で使用中のため削除できません。",
+          "responseId": "409-conflict",
+          "description": "delete で post_tags に参照が残っている。usageCount を返してクライアントに表示させる。"
+        },
+        "TAG_CREATE_FAILED": {
+          "httpStatus": 500,
+          "defaultMessage": "タグの作成に失敗しました。",
+          "responseId": "500-internal",
+          "description": "create で DB INSERT が想定外に 0 行を返した場合。"
+        },
+        "TAG_UPDATE_FAILED": {
+          "httpStatus": 500,
+          "defaultMessage": "タグの更新に失敗しました。",
+          "responseId": "500-internal",
+          "description": "update で DB UPDATE が想定外に 0 行を返した場合 (= 存在確認後に削除された競合)。"
+        }
+      }
+    }
+  },
+  "actions": [
+    {
+      "id": "act-create",
+      "name": "タグ作成",
+      "trigger": "submit",
+      "description": "name + 任意の slug / color / icon を受け取り、tags に新規 INSERT する。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/tags",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "name",
+          "label": "タグ名",
+          "type": "string",
+          "required": true,
+          "description": "タグ表示名 (例: '旅行', 'カフェ')。最大 64 文字。"
+        },
+        {
+          "name": "slug",
+          "label": "スラッグ",
+          "type": "string",
+          "required": false,
+          "description": "URL 用 slug。未指定時は name を lowercase + space→hyphen で自動生成する。"
+        },
+        {
+          "name": "color",
+          "label": "カラー",
+          "type": "string",
+          "required": false,
+          "description": "UI chip 色 (#RRGGBB)。未指定時は default '#6366f1'。"
+        },
+        {
+          "name": "icon",
+          "label": "アイコン名",
+          "type": "string",
+          "required": false,
+          "description": "Lucide / Heroicons のアイコン名 (任意)。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "tag",
+          "label": "登録されたタグ",
+          "type": {
+            "kind": "object",
+            "fields": [
+              { "name": "id", "type": "integer", "required": true },
+              { "name": "name", "type": "string", "required": true },
+              { "name": "slug", "type": "string", "required": true },
+              { "name": "color", "type": "string" },
+              { "name": "icon", "type": "string" }
+            ]
+          }
+        }
+      ],
+      "responses": [
+        {
+          "id": "201-created",
+          "status": 201,
+          "description": "タグ作成成功。",
+          "when": "name + slug が一意で、INSERT が正常完了した場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "バリデーションエラー。",
+          "when": "name 未入力 / 長さ超過 / slug regex 違反 / color hex 違反。"
+        },
+        {
+          "id": "409-conflict",
+          "status": 409,
+          "description": "同名タグ重複。",
+          "when": "tags.name または tags.slug の UNIQUE 制約違反。"
+        },
+        {
+          "id": "500-internal",
+          "status": 500,
+          "description": "内部エラー。",
+          "when": "DB INSERT が想定外に 0 行を返した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "name 必須 + 最大長、slug regex (指定時のみ)、color hex regex (指定時のみ)。",
+          "rules": [
+            {
+              "field": "name",
+              "type": "required",
+              "severity": "error",
+              "message": "タグ名を入力してください。"
+            },
+            {
+              "field": "name",
+              "type": "maxLength",
+              "length": 64,
+              "severity": "error",
+              "message": "タグ名は 64 文字以内で入力してください。"
+            },
+            {
+              "field": "slug",
+              "type": "regex",
+              "patternRef": "@conv.regex.tagSlug",
+              "condition": "@inputs.slug != null && @inputs.slug != ''",
+              "severity": "error",
+              "message": "スラッグは英小文字 + 数字 + ハイフンで指定してください (例: travel, ai-art)。"
+            },
+            {
+              "field": "color",
+              "type": "regex",
+              "patternRef": "@conv.regex.hexColor",
+              "condition": "@inputs.color != null && @inputs.color != ''",
+              "severity": "error",
+              "message": "カラーは #RRGGBB 形式 (CSS hex 6 桁) で指定してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "compute",
+          "description": "slug が未指定の場合は name から自動生成する (lowercase + space→hyphen)。指定時はそのまま採用。",
+          "expression": "@inputs.slug != null && @inputs.slug != '' ? @inputs.slug : LOWER(REPLACE(@inputs.name, ' ', '-'))",
+          "outputBinding": {
+            "name": "resolvedSlug"
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "dbAccess",
+          "description": "name または slug が既存タグと重複していないか SELECT で事前チェックする。",
+          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"tagId\" FROM tags WHERE name = @inputs.name OR slug = @resolvedSlug LIMIT 1",
+          "outputBinding": {
+            "name": "duplicateTag"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "uniqueness-check"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "branch",
+          "description": "重複があれば 409 Conflict を返す。",
+          "branches": [
+            {
+              "id": "br-04-a",
+              "code": "A",
+              "label": "重複あり",
+              "condition": {
+                "kind": "expression",
+                "expression": "@duplicateTag != null"
+              },
+              "steps": [
+                {
+                  "id": "step-04-a-01",
+                  "kind": "return",
+                  "description": "409 同名タグ重複を返す。",
+                  "responseId": "409-conflict",
+                  "bodyExpression": "{ code: 'TAG_DUPLICATE', message: '同名のタグが既に存在します。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-04-else",
+            "code": "B",
+            "label": "重複なし",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "dbAccess",
+          "description": "tags に新規タグを INSERT する。color 未指定時は default '#6366f1'。",
+          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "operation": "INSERT",
+          "sql": "INSERT INTO tags (name, slug, color, icon, usage_count, created_at, updated_at) VALUES (@inputs.name, @resolvedSlug, COALESCE(@inputs.color, '#6366f1'), @inputs.icon, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id AS \"tagId\"",
+          "outputBinding": {
+            "name": "newTag"
+          },
+          "affectedRowsCheck": {
+            "operator": "=",
+            "expected": 1,
+            "onViolation": "throw",
+            "errorCode": "TAG_CREATE_FAILED"
+          },
+          "lineage": {
+            "writes": [
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "insert"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "return",
+          "description": "201 作成成功 + 登録されたタグを返す。",
+          "responseId": "201-created",
+          "bodyExpression": "{ tag: { id: @newTag.tagId, name: @inputs.name, slug: @resolvedSlug, color: COALESCE(@inputs.color, '#6366f1'), icon: @inputs.icon } }"
+        }
+      ]
+    },
+    {
+      "id": "act-update",
+      "name": "タグ更新",
+      "trigger": "submit",
+      "description": "id を必須、name / slug / color / icon を任意で受け取り、指定された field のみを UPDATE する。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "PUT",
+        "path": "/api/tags/:id",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "id",
+          "label": "タグID",
+          "type": "integer",
+          "required": true,
+          "description": "更新対象タグの id (URL path から)。"
+        },
+        {
+          "name": "name",
+          "label": "タグ名",
+          "type": "string",
+          "required": false,
+          "description": "新しいタグ名 (任意)。最大 64 文字。"
+        },
+        {
+          "name": "slug",
+          "label": "スラッグ",
+          "type": "string",
+          "required": false,
+          "description": "新しい slug (任意)。"
+        },
+        {
+          "name": "color",
+          "label": "カラー",
+          "type": "string",
+          "required": false,
+          "description": "新しい UI chip 色 (#RRGGBB)。"
+        },
+        {
+          "name": "icon",
+          "label": "アイコン名",
+          "type": "string",
+          "required": false,
+          "description": "新しいアイコン名。空文字を渡すと NULL に更新される。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "tag",
+          "label": "更新されたタグ",
+          "type": {
+            "kind": "object",
+            "fields": [
+              { "name": "id", "type": "integer", "required": true },
+              { "name": "name", "type": "string", "required": true },
+              { "name": "slug", "type": "string", "required": true },
+              { "name": "color", "type": "string" },
+              { "name": "icon", "type": "string" }
+            ]
+          }
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "更新成功。",
+          "when": "対象タグが存在し、name/slug 重複がなく UPDATE が完了した場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "バリデーションエラー。",
+          "when": "id 未指定 / name 長さ超過 / slug regex 違反 / color hex 違反。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "タグが見つからない。",
+          "when": "指定 id のタグが存在しない。"
+        },
+        {
+          "id": "409-conflict",
+          "status": 409,
+          "description": "同名タグ重複。",
+          "when": "name / slug が他のタグと重複した場合。"
+        },
+        {
+          "id": "500-internal",
+          "status": 500,
+          "description": "内部エラー。",
+          "when": "DB UPDATE が想定外に 0 行を返した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "id 必須、name 最大長 (指定時)、slug regex (指定時)、color hex regex (指定時)。",
+          "rules": [
+            {
+              "field": "id",
+              "type": "required",
+              "severity": "error",
+              "message": "タグ ID を指定してください。"
+            },
+            {
+              "field": "name",
+              "type": "maxLength",
+              "length": 64,
+              "condition": "@inputs.name != null",
+              "severity": "error",
+              "message": "タグ名は 64 文字以内で入力してください。"
+            },
+            {
+              "field": "slug",
+              "type": "regex",
+              "patternRef": "@conv.regex.tagSlug",
+              "condition": "@inputs.slug != null && @inputs.slug != ''",
+              "severity": "error",
+              "message": "スラッグは英小文字 + 数字 + ハイフンで指定してください。"
+            },
+            {
+              "field": "color",
+              "type": "regex",
+              "patternRef": "@conv.regex.hexColor",
+              "condition": "@inputs.color != null && @inputs.color != ''",
+              "severity": "error",
+              "message": "カラーは #RRGGBB 形式で指定してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "dbAccess",
+          "description": "対象タグの存在を SELECT で確認する。",
+          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"tagId\", name AS \"name\", slug AS \"slug\" FROM tags WHERE id = @inputs.id LIMIT 1",
+          "outputBinding": {
+            "name": "existingTag"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "lookup"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "対象タグが存在しない場合は 404 を返す。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "タグ不在",
+              "condition": {
+                "kind": "expression",
+                "expression": "@existingTag == null"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "404 タグが見つかりませんを返す。",
+                  "responseId": "404-not-found",
+                  "bodyExpression": "{ code: 'TAG_NOT_FOUND', message: 'タグが見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "タグ存在",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "compute",
+          "description": "更新後の name / slug を解決する (未指定なら既存値を維持)。重複チェック / UPDATE 双方で再利用する。",
+          "expression": "{ name: COALESCE(@inputs.name, @existingTag.name), slug: COALESCE(@inputs.slug, @existingTag.slug) }",
+          "outputBinding": {
+            "name": "resolved"
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "dbAccess",
+          "description": "他タグとの name / slug 重複を SELECT で確認する (自身は除外)。",
+          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"tagId\" FROM tags WHERE id != @inputs.id AND (name = @resolved.name OR slug = @resolved.slug) LIMIT 1",
+          "outputBinding": {
+            "name": "duplicateTag"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "uniqueness-check"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "branch",
+          "description": "他タグと重複していたら 409 を返す。",
+          "branches": [
+            {
+              "id": "br-06-a",
+              "code": "A",
+              "label": "重複あり",
+              "condition": {
+                "kind": "expression",
+                "expression": "@duplicateTag != null"
+              },
+              "steps": [
+                {
+                  "id": "step-06-a-01",
+                  "kind": "return",
+                  "description": "409 重複を返す。",
+                  "responseId": "409-conflict",
+                  "bodyExpression": "{ code: 'TAG_DUPLICATE', message: '同名のタグが既に存在します。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-06-else",
+            "code": "B",
+            "label": "重複なし",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "dbAccess",
+          "description": "tags を UPDATE する。指定されない field は既存値を維持。",
+          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "operation": "UPDATE",
+          "sql": "UPDATE tags SET name = @resolved.name, slug = @resolved.slug, color = COALESCE(@inputs.color, color), icon = COALESCE(@inputs.icon, icon), updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.id",
+          "affectedRowsCheck": {
+            "operator": "=",
+            "expected": 1,
+            "onViolation": "throw",
+            "errorCode": "TAG_UPDATE_FAILED",
+            "description": "step-03 の存在確認後に削除された競合の場合 0 行になるため throw。"
+          },
+          "lineage": {
+            "writes": [
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "update"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-08",
+          "kind": "dbAccess",
+          "description": "更新後の行を読み戻して返す。",
+          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"tagId\", name AS \"name\", slug AS \"slug\", color AS \"color\", icon AS \"icon\" FROM tags WHERE id = @inputs.id LIMIT 1",
+          "outputBinding": {
+            "name": "updatedTag"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "lookup"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-09",
+          "kind": "return",
+          "description": "200 更新後のタグを返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ tag: { id: @updatedTag.tagId, name: @updatedTag.name, slug: @updatedTag.slug, color: @updatedTag.color, icon: @updatedTag.icon } }"
+        }
+      ]
+    },
+    {
+      "id": "act-delete",
+      "name": "タグ削除",
+      "trigger": "submit",
+      "description": "id を受け取り、post_tags への参照を確認した上で tags から DELETE する。参照ありなら 409 で拒否。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "DELETE",
+        "path": "/api/tags/:id",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "id",
+          "label": "タグID",
+          "type": "integer",
+          "required": true,
+          "description": "削除対象タグの id (URL path から)。"
+        }
+      ],
+      "outputs": [],
+      "responses": [
+        {
+          "id": "204-no-content",
+          "status": 204,
+          "description": "削除成功 (本文なし)。",
+          "when": "post_tags に参照がなく、DELETE が 1 行を返した場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "id 未指定。",
+          "when": "id が指定されていない。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "タグが見つからない。",
+          "when": "DELETE 実行時に 0 行が返った場合 (既に削除済)。"
+        },
+        {
+          "id": "409-conflict",
+          "status": 409,
+          "description": "使用中で削除拒否。",
+          "when": "post_tags にタグへの参照が残っている場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "id 必須チェック。",
+          "rules": [
+            {
+              "field": "id",
+              "type": "required",
+              "severity": "error",
+              "message": "タグ ID を指定してください。"
+            }
+          ],
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: 'タグ ID を指定してください。' }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "dbAccess",
+          "description": "post_tags 経由でタグの使用件数を集計する (使用中なら 409 で削除拒否)。",
+          "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+          "operation": "SELECT",
+          "sql": "SELECT COUNT(*) AS \"usageCount\" FROM post_tags WHERE tag_id = @inputs.id",
+          "outputBinding": {
+            "name": "usage"
+          },
+          "lineage": {
+            "reads": [
+              {
+                "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+                "purpose": "in-use-check"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "使用中なら 409 を返す (cascade 削除はしない)。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "使用中",
+              "condition": {
+                "kind": "expression",
+                "expression": "@usage.usageCount > 0"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "409 削除拒否を返す。usageCount を payload に含めて UI で件数表示できるようにする。",
+                  "responseId": "409-conflict",
+                  "bodyExpression": "{ code: 'TAG_IN_USE', message: 'このタグは投稿で使用中のため削除できません。', usageCount: @usage.usageCount }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "未使用",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "dbAccess",
+          "description": "tags から id を DELETE する。0 行 (既に削除済) なら 404 を返す。",
+          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "operation": "DELETE",
+          "sql": "DELETE FROM tags WHERE id = @inputs.id",
+          "affectedRowsCheck": {
+            "operator": "=",
+            "expected": 1,
+            "onViolation": "throw",
+            "errorCode": "TAG_NOT_FOUND",
+            "description": "0 行は既に削除済 (= 404)、複数行は schema 違反 (id PK のため発生しない想定)。"
+          },
+          "lineage": {
+            "writes": [
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "delete"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "return",
+          "description": "204 No Content を返す。",
+          "responseId": "204-no-content"
+        }
+      ]
+    }
+  ]
+}

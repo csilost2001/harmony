@@ -80,6 +80,15 @@ export function checkReferentialIntegrity(
     });
   }
 
+  // 全 action の responseId を統合 (flow-level catalog 検査用、#1019 multi-action 対応)
+  const allResponseIds = new Set<string>();
+  group.actions.forEach((action) => {
+    (action.responses ?? []).forEach((r) => {
+      const id = r.id as string | undefined;
+      if (id) allResponseIds.add(id);
+    });
+  });
+
   group.actions.forEach((action, ai) => {
     // r.id は v3 で LocalId brand 型のため、Set<string> として比較するため cast
     const responseIds = new Set<string>(
@@ -107,19 +116,19 @@ export function checkReferentialIntegrity(
       checkStep(step, path, responseIds, errorCodes, hasErrorCatalog, systemIds, hasSystemCatalog, issues, secretKeys, hasSecretsCatalog);
       checkAiModelRef(step, path, modelEndpointKeys, issues);
     });
+  });
 
-    // context.catalogs.errors -> responses 参照
-    Object.entries(group.context?.catalogs?.errors ?? {}).forEach(([key, entry]) => {
-      const ref = entry.responseId;
-      if (ref && !responseIds.has(ref)) {
-        issues.push({
-          path: `context.catalogs.errors.${key}.responseId (actions[${ai}])`,
-          code: "UNKNOWN_RESPONSE_REF",
-          value: ref,
-          message: `context.catalogs.errors.${key}.responseId "${ref}" が action "${action.name}" の responses[].id に存在しません`,
-        });
-      }
-    });
+  // context.catalogs.errors -> responses 参照 (#1019: flow-level なのでいずれかの action に存在すれば OK)
+  Object.entries(group.context?.catalogs?.errors ?? {}).forEach(([key, entry]) => {
+    const ref = entry.responseId;
+    if (ref && !allResponseIds.has(ref)) {
+      issues.push({
+        path: `context.catalogs.errors.${key}.responseId`,
+        code: "UNKNOWN_RESPONSE_REF",
+        value: ref,
+        message: `context.catalogs.errors.${key}.responseId "${ref}" がいずれの action.responses[].id にも存在しません`,
+      });
+    }
   });
 
   return issues;

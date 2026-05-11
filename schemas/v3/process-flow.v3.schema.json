@@ -55,7 +55,7 @@
     },
 
     "PrimaryInvoker": {
-      "description": "本処理フローの主たる呼び出し元 (任意、#624)。designer 編集時の補完精度向上のためのメタ情報で、実行時には参照されない。副次的呼び出し (他画面 / batch / 他フロー) は宣言不要 — 画面項目側 events[].handlerFlowId のみで成立する。現状は kind='screen-item-event' のみ対応 (1 要素 oneOf)。将来 'batch-trigger' / 'external-trigger' 等の variant を追加する際は AJV の discriminator キーワード採用を検討する。",
+      "description": "本処理フローの主たる呼び出し元 (任意、#624 / #1019)。designer 編集時の補完精度向上のためのメタ情報で、実行時には参照されない。副次的呼び出し (他画面 / batch / 他フロー) は宣言不要 — 画面項目側 events[].handlerFlowId のみで成立する。actionId は省略時 actions[0] 解釈 (1-action 処理フロー前提)。現状は kind='screen-item-event' のみ対応 (1 要素 oneOf)。将来 'batch-trigger' / 'external-trigger' 等の variant を追加する際は AJV の discriminator キーワード採用を検討する。",
       "oneOf": [
         {
           "type": "object",
@@ -65,7 +65,8 @@
             "kind": { "const": "screen-item-event", "description": "画面項目イベントから呼ばれる処理フロー。" },
             "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "主たる呼び出し元の画面 Uuid。" },
             "itemId": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "主たる呼び出し元の画面項目 id (Screen.items[].id)。" },
-            "eventId": { "type": "string", "description": "主たる呼び出し元のイベント id (ScreenItem.events[].id)。" }
+            "eventId": { "type": "string", "description": "主たる呼び出し元のイベント id (ScreenItem.events[].id)。" },
+            "actionId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "主たる呼び出し対象の action id (#1019、actions[].id)。省略時は actions[0] (1-action 処理フロー前提)。" }
           }
         }
       ]

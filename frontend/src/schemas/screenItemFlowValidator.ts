@@ -1,27 +1,32 @@
 /**
- * 画面項目イベント ↔ 処理フロー連携の整合検査 (#619、#624 schema 拡張前提)。
+ * 画面項目イベント ↔ 処理フロー連携の整合検査 (#619 / #624 / #1019)。
  *
  * 検査観点:
  * 1. UNKNOWN_HANDLER_FLOW         — ScreenItem.events[].handlerFlowId が指す
  *                                   ProcessFlow が同プロジェクト内に実在するか
- * 2. MISSING_REQUIRED_ARGUMENT    — ProcessFlow の required input が
+ * 2. UNKNOWN_HANDLER_ACTION       — events[].handlerActionId が指す action が
+ *                                   target ProcessFlow.actions[] に実在するか (#1019)
+ * 3. AMBIGUOUS_HANDLER_ACTION     — handlerActionId 省略時、target ProcessFlow が
+ *                                   複数 action を持つ (どれを実行するか不定) (#1019)
+ * 4. MISSING_REQUIRED_ARGUMENT    — handlerActionId が指す action の required input が
  *                                   argumentMapping で渡されているか
- * 3. EXTRA_ARGUMENT               — argumentMapping のキーが ProcessFlow inputs[]
+ * 5. EXTRA_ARGUMENT               — argumentMapping のキーが action.inputs[]
  *                                   に存在しないものを参照していないか
- * 4. PRIMARY_INVOKER_MISMATCH     — ProcessFlow.meta.primaryInvoker (宣言時)
+ * 6. PRIMARY_INVOKER_MISMATCH     — ProcessFlow.meta.primaryInvoker (宣言時)
  *                                   が指す ScreenItem イベントが、画面項目側でも
- *                                   handlerFlowId: <本フロー> で逆参照されているか
- * 5. INCONSISTENT_ARGUMENT_CONTRACT — 1 ProcessFlow が複数イベントから呼ばれる
+ *                                   handlerFlowId+handlerActionId: <本フロー>+<本 action>
+ *                                   で逆参照されているか
+ * 7. INCONSISTENT_ARGUMENT_CONTRACT — 1 (ProcessFlow, action) が複数イベントから呼ばれる
  *                                     場合の argumentMapping キー集合の整合 (warning)
- *
- * 「ProcessFlow の inputs[]」は現状 actions[0].inputs[] を primary とする
- * (全 v3 sample で actions 数 = 1 のため)。複数 actions のケースは将来課題。
+ * 8. DUPLICATE_EVENT_ID            — 画面項目内 events[].id 重複検出
  */
 
 import type { ProcessFlow, StructuredField, Screen, ScreenItem, ScreenItemEvent } from "../types/v3";
 
 export type ScreenItemFlowIssueCode =
   | "UNKNOWN_HANDLER_FLOW"
+  | "UNKNOWN_HANDLER_ACTION"
+  | "AMBIGUOUS_HANDLER_ACTION"
   | "MISSING_REQUIRED_ARGUMENT"
   | "EXTRA_ARGUMENT"
   | "PRIMARY_INVOKER_MISMATCH"
@@ -55,9 +60,25 @@ function getScreenId(screen: Screen): string | null {
   return (screen.id as string | undefined) ?? null;
 }
 
-function getPrimaryInputs(flow: ProcessFlow): StructuredField[] {
-  // 全 v3 sample で actions 数 = 1。actions[0].inputs[] を primary inputs とする。
-  return flow.actions?.[0]?.inputs ?? [];
+/**
+ * #1019: handlerActionId が指す action の inputs[] を取得する。
+ * - actionId 指定時: 該当 action の inputs[] (action 不在時 null)
+ * - actionId 省略時: actions が 1 件のみなら actions[0].inputs[] (それ以外は null = AMBIGUOUS)
+ */
+function resolveActionInputs(
+  flow: ProcessFlow,
+  actionId: string | undefined,
+): { inputs: StructuredField[]; resolution: "found" | "ambiguous" | "unknown-action" } {
+  const actions = flow.actions ?? [];
+  if (actionId) {
+    const action = actions.find((a) => a.id === actionId);
+    if (!action) return { inputs: [], resolution: "unknown-action" };
+    return { inputs: action.inputs ?? [], resolution: "found" };
+  }
+  if (actions.length === 1) {
+    return { inputs: actions[0].inputs ?? [], resolution: "found" };
+  }
+  return { inputs: [], resolution: "ambiguous" };
 }
 
 /**
@@ -118,8 +139,29 @@ export function checkScreenItemFlowConsistency(
           return;
         }
 
-        // 1.2 引数 contract 整合
-        const inputs = getPrimaryInputs(targetFlow);
+        // 1.2 handlerActionId 解決 (#1019)
+        const { inputs, resolution } = resolveActionInputs(targetFlow, event.handlerActionId);
+        if (resolution === "unknown-action") {
+          issues.push({
+            path,
+            code: "UNKNOWN_HANDLER_ACTION",
+            severity: "error",
+            message: `handlerActionId '${event.handlerActionId}' が処理フロー '${event.handlerFlowId}' の actions[] に存在しません。`,
+          });
+          return;
+        }
+        if (resolution === "ambiguous") {
+          const actionIds = (targetFlow.actions ?? []).map((a) => a.id).join(", ");
+          issues.push({
+            path,
+            code: "AMBIGUOUS_HANDLER_ACTION",
+            severity: "error",
+            message: `handlerActionId が省略されていますが処理フロー '${event.handlerFlowId}' は複数 action を持ちます (${actionIds})。handlerActionId で指定してください。`,
+          });
+          return;
+        }
+
+        // 1.3 引数 contract 整合 (action 単位)
         const argMapping = event.argumentMapping ?? {};
         // StructuredField.name は v3 で Identifier brand 型のため、Set<string> として比較するため cast
         const inputNames = new Set<string>(inputs.map((i) => i.name as string));
@@ -131,7 +173,7 @@ export function checkScreenItemFlowConsistency(
               path,
               code: "MISSING_REQUIRED_ARGUMENT",
               severity: "error",
-              message: `argumentMapping に処理フローの必須引数 '${input.name}' が欠落しています。`,
+              message: `argumentMapping に action '${event.handlerActionId ?? targetFlow.actions?.[0]?.id ?? ""}' の必須引数 '${input.name}' が欠落しています。`,
             });
           }
         }
@@ -143,15 +185,17 @@ export function checkScreenItemFlowConsistency(
               path: `${path}.argumentMapping.${argKey}`,
               code: "EXTRA_ARGUMENT",
               severity: "error",
-              message: `argumentMapping のキー '${argKey}' が処理フロー inputs[] に存在しません。`,
+              message: `argumentMapping のキー '${argKey}' が action '${event.handlerActionId ?? targetFlow.actions?.[0]?.id ?? ""}' の inputs[] に存在しません。`,
             });
           }
         }
 
-        // 多重定義検出のために collect
-        const sites = flowToCallSites.get(event.handlerFlowId) ?? [];
+        // 多重定義検出のために collect ((flow, action) 単位 #1019)
+        const resolvedActionId = event.handlerActionId ?? targetFlow.actions?.[0]?.id ?? "";
+        const callSiteKey = `${event.handlerFlowId}#${resolvedActionId}`;
+        const sites = flowToCallSites.get(callSiteKey) ?? [];
         sites.push({ path, argKeys: new Set(Object.keys(argMapping)) });
-        flowToCallSites.set(event.handlerFlowId, sites);
+        flowToCallSites.set(callSiteKey, sites);
       });
     });
   });
@@ -205,16 +249,30 @@ export function checkScreenItemFlowConsistency(
         severity: "error",
         message: `primaryInvoker が指す画面項目イベントの handlerFlowId は '${event.handlerFlowId}' で、本フロー ID '${flowId}' と一致しません (双方向整合)。`,
       });
+      return;
+    }
+
+    // #1019: actionId が宣言されている場合、画面項目側 event の handlerActionId と一致するか
+    // (両者省略時 = actions[0] 黙示一致は OK、片側のみ宣言は不整合)
+    const invokerActionId = (primaryInvoker as { actionId?: string }).actionId;
+    const eventActionId = event.handlerActionId;
+    if ((invokerActionId ?? null) !== (eventActionId ?? null)) {
+      issues.push({
+        path,
+        code: "PRIMARY_INVOKER_MISMATCH",
+        severity: "error",
+        message: `primaryInvoker.actionId '${invokerActionId ?? "(省略)"}' と画面項目イベント側 handlerActionId '${eventActionId ?? "(省略)"}' が一致しません。`,
+      });
     }
   });
 
-  // 3. 多重定義検出 (warning)
+  // 3. 多重定義検出 (warning) — (flow, action) 単位 (#1019)
   // 比較は sites[0] を基点とする単純実装。3+ サイトある場合 sites[0] と sites[2] が同一でも
-  // sites[1] が異なれば sites[1] のみ検出される (全ペア比較ではない)。実用上 1 flow を呼ぶ
+  // sites[1] が異なれば sites[1] のみ検出される (全ペア比較ではない)。実用上 1 (flow, action) を呼ぶ
   // 全 site は同一引数集合であるべきなので sites[0] 基点で十分。将来全ペア比較が必要なら拡張。
-  // また UNKNOWN_HANDLER_FLOW で early return した event は collect されないため、エラー event
-  // は多重定義の比較基点にならない (多重定義検出はエラー event を含まないクリーン collect で実施)。
-  for (const [flowId, sites] of flowToCallSites) {
+  // また UNKNOWN_HANDLER_FLOW / UNKNOWN_HANDLER_ACTION / AMBIGUOUS_HANDLER_ACTION で early return
+  // した event は collect されないため、エラー event は多重定義の比較基点にならない。
+  for (const [callSiteKey, sites] of flowToCallSites) {
     if (sites.length <= 1) continue;
     const baseKeys = sites[0].argKeys;
     for (let i = 1; i < sites.length; i++) {
@@ -226,7 +284,7 @@ export function checkScreenItemFlowConsistency(
           path: sites[i].path,
           code: "INCONSISTENT_ARGUMENT_CONTRACT",
           severity: "warning",
-          message: `処理フロー '${flowId}' を呼ぶ複数イベント間で argumentMapping のキー集合が異なります。最初の site '${sites[0].path}' と整合確認を推奨。`,
+          message: `処理フロー action '${callSiteKey}' を呼ぶ複数イベント間で argumentMapping のキー集合が異なります。最初の site '${sites[0].path}' と整合確認を推奨。`,
         });
       }
     }

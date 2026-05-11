@@ -264,31 +264,13 @@
         "updatedAt": "2026-05-07T00:00:00.000Z"
       },
       {
-        "id": "46b99455-a011-4419-937f-a5ef8368e694",
+        "id": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
         "no": 15,
-        "name": "タグ作成",
+        "name": "タグ管理",
         "kind": "screen",
-        "actionCount": 1,
+        "actionCount": 3,
         "maturity": "draft",
-        "updatedAt": "2026-05-07T00:00:00.000Z"
-      },
-      {
-        "id": "8cc24fea-f497-432b-8496-5d86dea1c98b",
-        "no": 16,
-        "name": "タグ更新",
-        "kind": "screen",
-        "actionCount": 1,
-        "maturity": "draft",
-        "updatedAt": "2026-05-07T00:00:00.000Z"
-      },
-      {
-        "id": "305509f7-d118-459a-8acb-18780e4fde68",
-        "no": 17,
-        "name": "タグ削除",
-        "kind": "screen",
-        "actionCount": 1,
-        "maturity": "draft",
-        "updatedAt": "2026-05-07T00:00:00.000Z"
+        "updatedAt": "2026-05-11T00:00:00.000Z"
       }
     ],
     "sequences": [],

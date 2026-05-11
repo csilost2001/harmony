@@ -152,6 +152,39 @@ describe("ScreenItem.events[] (#624)", () => {
     };
     expect(validateScreenItem(item)).toBe(false);
   });
+
+  it("handlerActionId 付きで pass (#1019)", () => {
+    const item = {
+      id: "saveBtn",
+      label: "保存",
+      type: "string",
+      events: [
+        {
+          id: "click",
+          handlerFlowId: FLOW_UUID,
+          handlerActionId: "act-create",
+          argumentMapping: { userId: "@session.userId" },
+        },
+      ],
+    };
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("handlerActionId が LocalId 形式 (記号始まり等) を満たさないと fail (#1019)", () => {
+    const item = {
+      id: "saveBtn",
+      label: "保存",
+      type: "string",
+      events: [
+        {
+          id: "click",
+          handlerFlowId: FLOW_UUID,
+          handlerActionId: "-invalid-leading-hyphen",
+        },
+      ],
+    };
+    expect(validateScreenItem(item)).toBe(false);
+  });
 });
 
 describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
@@ -228,6 +261,40 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
           screenId: SCREEN_UUID,
           itemId: "Submit-Btn",
           eventId: "click",
+        },
+      }),
+      actions: [],
+    };
+    expect(validateProcessFlow(flow)).toBe(false);
+  });
+
+  it("primaryInvoker.actionId 付きで pass (#1019)", () => {
+    const flow = {
+      meta: makeMeta({
+        kind: "screen",
+        primaryInvoker: {
+          kind: "screen-item-event",
+          screenId: SCREEN_UUID,
+          itemId: "saveBtn",
+          eventId: "click",
+          actionId: "act-create",
+        },
+      }),
+      actions: [],
+    };
+    expect(validateProcessFlow(flow)).toBe(true);
+  });
+
+  it("primaryInvoker.actionId が LocalId 形式を満たさないと fail (#1019)", () => {
+    const flow = {
+      meta: makeMeta({
+        kind: "screen",
+        primaryInvoker: {
+          kind: "screen-item-event",
+          screenId: SCREEN_UUID,
+          itemId: "saveBtn",
+          eventId: "click",
+          actionId: "-invalid",
         },
       }),
       actions: [],

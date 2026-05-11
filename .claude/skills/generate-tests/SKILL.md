@@ -1182,13 +1182,17 @@ processFlowId 解決手順:
   → README.md の PLACEHOLDER 解決表に未解決として記録
 ```
 
-### P3-3. events[].handlerFlowId → httpRoute 解決
+### P3-3. events[].handlerFlowId (+ handlerActionId) → httpRoute 解決
 
-events 配列が空でない場合、各 event の handlerFlowId についても httpRoute を解決する。
+events 配列が空でない場合、各 event の handlerFlowId + handlerActionId (#1019) で対象 action を特定し、その action の httpRoute を解決する。
 
 ```
-handlerFlowId 解決手順:
-  processFlowId 解決と同様 (Step P3-2 の map を再利用)
+handlerFlowId + handlerActionId 解決手順:
+  1. processFlowId 解決 (Step P3-2 の map を再利用) で flow JSON を取得
+  2. flow.actions[] から id == handlerActionId の action を見つける
+     - handlerActionId 未指定時: actions が 1 件のみ前提で actions[0] を使う
+       (multi-action フローで未指定なら AMBIGUOUS、Section 4 skip + 乖離ノート)
+  3. 該当 action の httpRoute (method + path) を取得
 ```
 
 events 配列が空の場合:

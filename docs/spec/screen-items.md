@@ -527,6 +527,10 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
         {
           "id": "click",
           "handlerFlowId": "<物件検索フロー UUID>",
+          // 1 画面 = 1 処理フロー + 複数アクション モデル (#1019) の場合、
+          // どの action を実行するか handlerActionId で指定する。
+          // 単一 action の処理フローでは省略可 (validator が actions[0] にフォールバック)。
+          "handlerActionId": "act-search",
           "argumentMapping": {
             "propertyType": "@screen.propertyType",
             "maxPrice": "@screen.maxPrice"

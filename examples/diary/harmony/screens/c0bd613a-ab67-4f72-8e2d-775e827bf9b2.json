@@ -108,7 +108,8 @@
         {
           "id": "submit",
           "label": "タグ作成実行",
-          "handlerFlowId": "46b99455-a011-4419-937f-a5ef8368e694",
+          "handlerFlowId": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
+          "handlerActionId": "act-create",
           "argumentMapping": {
             "name": "@screen.newTagName",
             "slug": "@screen.newTagSlug",
@@ -129,7 +130,8 @@
         {
           "id": "submit",
           "label": "タグ更新実行",
-          "handlerFlowId": "8cc24fea-f497-432b-8496-5d86dea1c98b",
+          "handlerFlowId": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
+          "handlerActionId": "act-update",
           "argumentMapping": {
             "id": "@screen.editTagId",
             "name": "@screen.newTagName",
@@ -151,7 +153,8 @@
         {
           "id": "submit",
           "label": "タグ削除実行",
-          "handlerFlowId": "305509f7-d118-459a-8acb-18780e4fde68",
+          "handlerFlowId": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
+          "handlerActionId": "act-delete",
           "argumentMapping": {
             "id": "@screen.deleteTagId"
           }
