@@ -188,6 +188,11 @@ export const tools = [
           enum: ["bootstrap", "tailwind"],
           description: "CSS フレームワーク。省略時は project.techStack.designer.cssFramework → 'bootstrap' の順にフォールバック。画面作成時に固定、以降変更不可。",
         },
+        purpose: {
+          type: "string",
+          enum: ["page", "gadget"],
+          description: "Screen 用途種別 (RFC #1021)。'page'（デフォルト）= 通常画面、'gadget' = PageLayout の region に割り当てる自律部品。",
+        },
       },
       required: ["name"],
     },
@@ -567,6 +572,75 @@ export const tools = [
         },
       },
       required: ["tableId"],
+    },
+  },
+  {
+    name: "designer__list_page_layouts",
+    description: "プロジェクトに定義された PageLayout の一覧を取得します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "designer__add_page_layout",
+    description: "新しい PageLayout を追加します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        name: {
+          type: "string",
+          description: "PageLayout の表示名（例: Main Layout）",
+        },
+        description: {
+          type: "string",
+          description: "用途説明（省略可）",
+        },
+        editorKind: {
+          type: "string",
+          enum: ["grapesjs", "puck"],
+          description: "エディタ種別",
+        },
+        cssFramework: {
+          type: "string",
+          enum: ["bootstrap", "tailwind"],
+          description: "CSS フレームワーク",
+        },
+      },
+      required: ["name", "editorKind", "cssFramework"],
+    },
+  },
+  {
+    name: "designer__update_page_layout",
+    description: "PageLayout を更新します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        pageLayoutId: {
+          type: "string",
+          description: "更新対象の PageLayout ID",
+        },
+        definition: {
+          type: "object",
+          description: "PageLayout の完全な定義",
+        },
+      },
+      required: ["pageLayoutId", "definition"],
+    },
+  },
+  {
+    name: "designer__remove_page_layout",
+    description: "PageLayout を削除します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        pageLayoutId: {
+          type: "string",
+          description: "削除する PageLayout ID",
+        },
+      },
+      required: ["pageLayoutId"],
     },
   },
   {

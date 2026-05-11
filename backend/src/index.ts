@@ -16,7 +16,7 @@ import { wsBridge } from "./wsBridge.js";
 import { tools } from "./tools.js";
 import { handleAuthCheck, handlePropose } from "./aiRename.js";
 import { htmlToReact, toPascalCase } from "./reactExporter.js";
-import { readProject, readCustomBlocks, readTable, writeTable, deleteTable as deleteTableFile, writeProject, readErLayout, readProcessFlow, writeProcessFlow, deleteProcessFlow as deleteProcessFlowFile, listProcessFlows as listProcessFlowFiles, readPuckComponents, writePuckComponents } from "./projectStorage.js";
+import { readProject, readCustomBlocks, readTable, writeTable, deleteTable as deleteTableFile, writeProject, readErLayout, readProcessFlow, writeProcessFlow, deleteProcessFlow as deleteProcessFlowFile, listProcessFlows as listProcessFlowFiles, readPuckComponents, writePuckComponents, writePageLayout, readPageLayout, deletePageLayoutFile, listAllPageLayouts } from "./projectStorage.js";
 import { mcpTableToSpecEntry } from "./specExport.js";
 import { initWorkspaceState, getActivePath, setActivePath, clearActive, connect as wsConnect, disconnect as wsDisconnect, isLockdown, getLockdownPath, LockdownError, WorkspaceUnsetError, workspaceContextManager, LOCKDOWN_WORKSPACE_ID } from "./workspaceState.js";
 import { listWorkspaces, upsertWorkspace, removeWorkspace, findById, findByPath, setLastActive } from "./recentStore.js";
@@ -302,6 +302,7 @@ function createMcpServer(sessionId: string): Server {
           position: a.position,
           editorKind: typeof a.editorKind === "string" ? a.editorKind : undefined,
           cssFramework: typeof a.cssFramework === "string" ? a.cssFramework : undefined,
+          purpose: typeof a.purpose === "string" ? a.purpose : "page",
         })) as { screenId: string };
         return {
           content: [
@@ -733,6 +734,107 @@ function createMcpServer(sessionId: string): Server {
         project.updatedAt = new Date().toISOString();
         await writeProject(project, mcpRoot());
         return { content: [{ type: "text", text: `テーブル ${a.tableId} を削除しました。` }] };
+      }
+
+      case "designer__list_page_layouts": {
+        const allPageLayouts = await listAllPageLayouts(mcpRoot());
+        if (allPageLayouts.length === 0) {
+          return { content: [{ type: "text", text: "PageLayout はまだ定義されていません。" }] };
+        }
+        const lines = allPageLayouts.map((pl) => {
+          const p = pl as Record<string, unknown>;
+          return `- ${p.id}  ${p.name}${p.description ? ` — ${p.description}` : ""}`;
+        });
+        return { content: [{ type: "text", text: `PageLayout 一覧 (${allPageLayouts.length}件):\n${lines.join("\n")}` }] };
+      }
+
+      case "designer__add_page_layout": {
+        const a = (args ?? {}) as Record<string, unknown>;
+        if (typeof a.name !== "string" || typeof a.editorKind !== "string" || typeof a.cssFramework !== "string") {
+          throw new McpError(ErrorCode.InvalidParams, "name, editorKind, cssFramework は必須です");
+        }
+        const id = randomUUID();
+        const now = new Date().toISOString();
+        const def = {
+          id,
+          name: a.name,
+          description: typeof a.description === "string" ? a.description : undefined,
+          maturity: "draft",
+          createdAt: now,
+          updatedAt: now,
+          regions: [
+            { name: "header" },
+            { name: "sidebar" },
+            { name: "footer" },
+            { name: "main" },
+          ],
+          assignments: {},
+          design: { editorKind: a.editorKind, cssFramework: a.cssFramework },
+        };
+        await writePageLayout(id, def, mcpRoot());
+        // harmony.json の entities.pageLayouts[] 更新
+        const project = (await readProject(mcpRoot()) ?? {}) as Record<string, unknown>;
+        const entities = ((project.entities ?? {}) as Record<string, unknown>);
+        const pageLayouts = ((entities.pageLayouts ?? []) as Array<Record<string, unknown>>);
+        pageLayouts.push({ id, name: a.name, maturity: "draft", createdAt: now, updatedAt: now, regionCount: 4, assignmentCount: 0, hasProcessFlow: false, hasDesign: false });
+        entities.pageLayouts = pageLayouts;
+        project.entities = entities;
+        project.updatedAt = now;
+        await writeProject(project, mcpRoot());
+        return { content: [{ type: "text", text: `PageLayout 「${a.name}」を追加しました（ID: ${id}）` }] };
+      }
+
+      case "designer__update_page_layout": {
+        const a = (args ?? {}) as Record<string, unknown>;
+        if (typeof a.pageLayoutId !== "string" || !a.definition) {
+          throw new McpError(ErrorCode.InvalidParams, "pageLayoutId, definition は必須です");
+        }
+        const existing = await readPageLayout(a.pageLayoutId, mcpRoot());
+        if (!existing) {
+          throw new McpError(ErrorCode.InvalidParams, `PageLayout ${a.pageLayoutId} が見つかりません`);
+        }
+        const def = a.definition as Record<string, unknown>;
+        def.updatedAt = new Date().toISOString();
+        await writePageLayout(a.pageLayoutId, def, mcpRoot());
+        // harmony.json メタ更新
+        const project = (await readProject(mcpRoot()) ?? {}) as Record<string, unknown>;
+        const entities = ((project.entities ?? {}) as Record<string, unknown>);
+        const pageLayouts = ((entities.pageLayouts ?? []) as Array<Record<string, unknown>>);
+        const idx = pageLayouts.findIndex((p) => p.id === a.pageLayoutId);
+        const regions = (def.regions ?? []) as unknown[];
+        const assignments = (def.assignments ?? {}) as Record<string, unknown>;
+        const meta = {
+          id: a.pageLayoutId,
+          name: def.name,
+          maturity: def.maturity ?? "draft",
+          updatedAt: def.updatedAt as string,
+          regionCount: regions.length,
+          assignmentCount: Object.keys(assignments).length,
+          hasProcessFlow: Boolean(def.processFlowId),
+          hasDesign: Boolean(def.design),
+        };
+        if (idx >= 0) pageLayouts[idx] = meta; else pageLayouts.push(meta);
+        entities.pageLayouts = pageLayouts;
+        project.entities = entities;
+        project.updatedAt = def.updatedAt as string;
+        await writeProject(project, mcpRoot());
+        return { content: [{ type: "text", text: `PageLayout ${a.pageLayoutId} を更新しました。` }] };
+      }
+
+      case "designer__remove_page_layout": {
+        const a = (args ?? {}) as Record<string, unknown>;
+        if (typeof a.pageLayoutId !== "string") {
+          throw new McpError(ErrorCode.InvalidParams, "pageLayoutId は必須です");
+        }
+        await deletePageLayoutFile(a.pageLayoutId, mcpRoot());
+        const project = (await readProject(mcpRoot()) ?? {}) as Record<string, unknown>;
+        const entities = ((project.entities ?? {}) as Record<string, unknown>);
+        const pageLayouts = ((entities.pageLayouts ?? []) as Array<Record<string, unknown>>).filter((p) => p.id !== a.pageLayoutId);
+        entities.pageLayouts = pageLayouts;
+        project.entities = entities;
+        project.updatedAt = new Date().toISOString();
+        await writeProject(project, mcpRoot());
+        return { content: [{ type: "text", text: `PageLayout ${a.pageLayoutId} を削除しました。` }] };
       }
 
       case "designer__generate_ddl": {
