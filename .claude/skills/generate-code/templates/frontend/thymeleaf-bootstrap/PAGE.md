@@ -386,3 +386,16 @@ Layout 側の model attribute (storeName, userName, copyright など) は Layout
 | `<<screen.kind>>` | `Screen.kind` |
 
 `th:replace="~{layouts/<<pageLayoutId>> :: ...}"` の `<<...>>` は必ず実際の PageLayout ID に置換してから出力する。
+
+---
+
+## 注記: Spring Boot 設定ファイルの日本語値
+
+Page 生成と一緒に Spring Boot の `application.properties` や Controller を生成する際、画面タイトル / メッセージ / 店舗名 などの**日本語値を `application.properties` に直接書くと文字化け**する (Spring Boot の `PropertiesPropertySourceLoader` は ISO-8859-1 default。PR #1034 dogfood 検出)。
+
+- **推奨**: Java source の `@Value("${key:日本語デフォルト}")` で hardcode (UTF-8 source)
+- **代替**: `application.yml` (UTF-8 default) を採用
+- **必須**: `server.servlet.encoding.charset=UTF-8` / `force=true` / `spring.thymeleaf.encoding=UTF-8` の 3 行 (これらが無いと response body も化ける)
+- **i18n**: `messages_ja.properties` は UTF-8 保存 + `spring.messages.encoding=UTF-8` 明示
+
+詳細: `.claude/skills/generate-code/SKILL.md` の「Spring Boot 設定ファイル — 日本語値の取り扱い」セクションを参照。
