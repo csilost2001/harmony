@@ -118,7 +118,7 @@
     },
 
     "Namespace": {
-      "description": "拡張機構 / 業界別定義の namespace 識別子。空文字はグローバル拡張 (組み込み拡張、project.json で extensionsApplied を指定しなくても loader が読み込む)。それ以外は業界・業態別 (例: 'retail', 'finance', 'manufacturing')。loader 運用は schemas/v3/README.md を参照。",
+      "description": "拡張機構 / 業界別定義の namespace 識別子。空文字はグローバル拡張 (組み込み拡張、harmony.json で extensionsApplied を指定しなくても loader が読み込む)。それ以外は業界・業態別 (例: 'retail', 'finance', 'manufacturing')。loader 運用は schemas/v3/README.md を参照。",
       "type": "string",
       "pattern": "^[a-z0-9_-]*$"
     },
