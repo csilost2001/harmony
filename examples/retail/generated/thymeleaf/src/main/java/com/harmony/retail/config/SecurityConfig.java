@@ -3,6 +3,7 @@ package com.harmony.retail.config;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.User;
@@ -64,8 +65,16 @@ public class SecurityConfig {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
+    /**
+     * デモ用 InMemoryUserDetailsManager — **dev profile 限定** (#1035 S-6 解消)。
+     *
+     * 本番では `@Profile("prod")` 用に JdbcUserDetailsManager / OAuth2 / LDAP 等の
+     * 別 UserDetailsService Bean を提供すること。dev 以外で起動すると Spring Security 6 は
+     * NoSuchBeanDefinitionException で起動失敗するため、本番 profile 用の Bean 提供が必須。
+     */
     @Bean
-    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
+    @Profile("dev")
+    public UserDetailsService demoUserDetailsService(PasswordEncoder passwordEncoder) {
         UserDetails demoUser = User.builder()
             .username("demo")
             .password(passwordEncoder.encode("demo"))

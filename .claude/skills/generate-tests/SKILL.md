@@ -1697,21 +1697,38 @@ class <GadgetName>GadgetFragmentTest {
             .andExpect(content().string(org.hamcrest.Matchers.containsString("<itemLabel>")));
     }
 
-    // processFlowId あり (例: act-logout) の場合のみ生成
+    // processFlowId あり、action.id != "act-logout" の場合のみ生成
     /**
      * Spec: Screen <gadgetId> event:<eventId> → ProcessFlow <processFlowId> act-<actionId>
      *   httpRoute: <action.httpRoute.method> <action.httpRoute.path>
      *   auth: <action.httpRoute.auth>
      */
     @Test
+    @WithMockUser(username = "demo", roles = {"USER"})  // auth=required の場合
     void Gadgetアクションが正常に処理される() throws Exception {
-        // ※ httpRoute.auth="required" の場合はセッション認証済みの状態で実行すること
-        mockMvc.perform(post("<action.httpRoute.path>")
-                .param("_csrf", "test-csrf-token")
+        mockMvc.perform(post("<action.httpRoute.path>").with(csrf())
                 // inputs[] → form params
                 .param("<inputName>", "<testValue>"))
             .andExpect(status().is3xxRedirection())  // screenTransition / redirectTo
             .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("<redirectPath>")));
+    }
+
+    // action.id == "act-logout" かつ techStack.auth.method == "session" の場合のみ生成 (#1035 S-3)
+    /**
+     * Spec: Screen <gadgetId> event:<eventId> → act-logout (LogoutFilter 経由)
+     *   httpRoute: POST <logoutPath>
+     *
+     * 注: techStack.auth.method=session の場合、本 path は SecurityConfig の
+     * .logoutRequestMatcher(...) で LogoutFilter が処理する。GadgetController / AuthController
+     * は生成されないため、LogoutFilter chain 挙動を直接検証する。
+     */
+    @Test
+    @WithMockUser(username = "demo", roles = {"USER"})
+    void ログアウトすると302で_loginlogoutに_redirect() throws Exception {
+        mockMvc.perform(post("<logoutPath>").with(csrf()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/login?logout"));
+        // LogoutFilter が SecurityContext クリア + HttpSession invalidate + JSESSIONID 削除を実行済み
     }
 
     // httpRoute.auth="required" の場合のみ生成
@@ -1722,8 +1739,7 @@ class <GadgetName>GadgetFragmentTest {
     @Test
     void 未認証でのGadgetアクションは認証エラーになる() throws Exception {
         // セッションなしで POST → Spring Security: 401 または 302 (ログインページへリダイレクト)
-        mockMvc.perform(post("<action.httpRoute.path>")
-                .param("_csrf", "test-csrf-token"))
+        mockMvc.perform(post("<action.httpRoute.path>").with(csrf()))
             .andExpect(status().is(org.hamcrest.Matchers.oneOf(401, 302, 403)));
     }
 }

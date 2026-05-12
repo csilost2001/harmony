@@ -4,7 +4,65 @@
 **対象**: `.claude/skills/generate-tests/SKILL.md` Step 3-X / 3-Y / Step 3 (ProcessFlow)
 **入力**: examples/retail から 3 entity (Page+Layout / Gadget / ProcessFlow)
 **実施者**: Sonnet sub-agent (ISSUE #1035 sub-section A)
-**ブランチ**: `feat/issue-1035-codegen-followups`
+**ブランチ**: `feat/issue-1035-codegen-followups` (PR #1039、merge 済) / 後続 `fix/issue-1035-codex-review-followup` (#1035 S-5)
+
+## 0. 再現手順 (#1035 S-5 解消、第三者検証用)
+
+本 dogfood で生成された 3 つの test ファイルは git tracked な fixture として以下に配置済 (follow-up PR で追加):
+
+```
+examples/retail/generated/thymeleaf/src/test/java/com/harmony/retail/
+  DashboardPageLayoutTest.java          (Step 3-X、認証込み rendering)
+  GlobalHeaderGadgetFragmentTest.java   (Step 3-Y、#1035 S-3 整合済 LogoutFilter 経由)
+  InventorySearchE2ETest.java           (Step 3、auth=optional + dev profile)
+```
+
+注: §2 のテーブルに記載の元行数 (106 / 113 / 264) は dogfood 当時の `.tmp/` 配下の値。fixture 化に伴い `package com.harmony.retail;` 宣言追加 + #1035 S-3/S-6 整合修正 (LogoutFilter 経由 302 redirect 期待 / `@ActiveProfiles("dev")` / `@WithMockUser` / `.with(csrf())` ヘルパ) で行数が変動している。
+
+### 再生成コマンド (Skill 実行)
+
+```bash
+# 1 entity ずつ (本 dogfood と同等):
+/generate-tests 765c3c23-8a0e-46b0-ae8b-ce84d10be0b0 .tmp/dogfood-rerun/page-layout/
+/generate-tests 68709449-c9e1-47db-a351-ac9c12a19046 .tmp/dogfood-rerun/gadget/
+/generate-tests efa7ac6e-e295-416e-b68d-17c4739b5097 .tmp/dogfood-rerun/process-flow/
+```
+
+### structure 検証コマンド (各 entity の checklist 6 項目を機械検証)
+
+```bash
+TEST_DIR=examples/retail/generated/thymeleaf/src/test/java/com/harmony/retail
+# 1. placeholder 残存なし (0 件期待)
+grep -rE "<<[^>]*>>" "$TEST_DIR" | wc -l   # → 0
+
+# 2. Spec anchor コメントあり (3 ファイル分期待)
+grep -l "Spec anchor:" "$TEST_DIR"/*.java | wc -l   # → 3
+
+# 3. Spring Boot test 必須 import あり
+grep -l "@SpringBootTest" "$TEST_DIR"/*.java | wc -l   # → 3
+grep -l "@AutoConfigureMockMvc" "$TEST_DIR"/*.java | wc -l   # → 3
+
+# 4. Bootstrap region xpath (Page test のみ)
+grep "//nav\[contains" "$TEST_DIR/DashboardPageLayoutTest.java" | wc -l   # → >=1
+
+# 5. Gadget 代表要素マッチ
+grep "ログアウト" "$TEST_DIR/GlobalHeaderGadgetFragmentTest.java" | wc -l   # → >=1
+
+# 6. test 名が日本語 (各ファイル >=2 件期待)
+grep -cE "void [^(]*[ぁ-んァ-ヴー一-龯][^(]*\(" "$TEST_DIR/DashboardPageLayoutTest.java"     # → >=2
+grep -cE "void [^(]*[ぁ-んァ-ヴー一-龯][^(]*\(" "$TEST_DIR/GlobalHeaderGadgetFragmentTest.java" # → >=2
+grep -cE "void [^(]*[ぁ-んァ-ヴー一-龯][^(]*\(" "$TEST_DIR/InventorySearchE2ETest.java"        # → >=2
+```
+
+### 実機 test 実行 (Java 21 + Maven 環境必須)
+
+```bash
+docker run --rm -v "$(pwd)/examples/retail/generated/thymeleaf":/app -w /app maven:3.9-eclipse-temurin-21 mvn -B test
+```
+
+実機 build/test 結果は §4 (ISSUE #1037 で完遂、PR #1041) 参照。
+
+---
 
 ## 1. dogfood 環境
 
@@ -270,4 +328,6 @@ curl -sS -i -b /tmp/cookies.txt \
 | NestJS 系 session 認証テンプレ | **#1036** | 🟢 open | SKILL.md に passport + express-session ベースの NestJS 認証テンプレ追加 |
 | NestJS/Next.js 系での `/generate-tests` 実機 dogfood | **#1038** | 🟢 open | examples/english-learning-tailwind 等で vitest/Playwright 実機 run + skill 修正 |
 
-「将来対応」「future enhancement」「follow-up」表現は本 PR で全消去済。trace されない放置項目は無い。
+「将来対応」「future enhancement」「follow-up」「保留」のような **trace されない放置項目は無い** (#1035 N-1 整合)。
+
+注: 生成コード内の `// TODO: <step.description>` 等は **AI が補完する placeholder マーカー** (例: SKILL.md L280 / L1034 等の extension step や region フォールバック注釈) であり、本表現規制の対象外。dogfood report / 仕様 docs / skill 制限事項のレベルで未着手項目があれば必ず ISSUE で trace される (#1035 シリーズ実績: #1036/#1037/#1038 で trace 済)。

@@ -30,8 +30,11 @@
       </div>
       <button type="submit" class="btn btn-primary w-100">ログイン</button>
     </form>
-    <p class="text-muted small mt-3 text-center">
-      <!-- デモ用固定ユーザー (SecurityConfig.userDetailsService) -->
+    <!-- #1035 S-6: デモアカウント表示は dev profile 限定。本番 (spring.profiles.active=prod)
+         起動時はこの段落が非表示になり、login 画面に demo credential が露出しない。 -->
+    <p class="text-muted small mt-3 text-center"
+       th:if="${@environment.acceptsProfiles('dev')}">
+      <!-- デモ用固定ユーザー (SecurityConfig.demoUserDetailsService、dev profile 限定) -->
       デモアカウント: <code>demo</code> / <code>demo</code>
     </p>
   </div>
