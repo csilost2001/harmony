@@ -5,8 +5,7 @@
  * Screen entity を解決し、purpose='page' + pageLayoutId のときに PageLayout + gadget の
  * design HTML を pre-load して Designer に渡す。
  *
- * 旧 ScreenDesigner.tsx は route element でなく、本コンポーネントが design tab の表示元
- * (AppShell.tsx designTabs.map 内で render)。
+ * 本コンポーネントが design tab の表示元 (AppShell.tsx designTabs.map 内で render)。
  *
  * RFC #1021 pl-6 (Codex C-1): composition preview 用の prop wiring。
  */

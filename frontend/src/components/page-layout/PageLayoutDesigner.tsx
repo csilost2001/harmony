@@ -1,7 +1,7 @@
 /**
  * PageLayoutDesigner — ページレイアウト ビジュアルデザイン画面 (pl-3, #1024)
  *
- * ScreenDesigner.tsx を base に editorKind で GrapesJS / Puck を分岐。
+ * DesignerTabHost.tsx と同等の wrap で editorKind ごとに GrapesJS / Puck を分岐。
  * pl-5 (#1026): GrapesJS 経路に region gadget injection (composition プレビュー) を追加。
  * pl-5 follow-up (#1026): Puck 経路に composition preview (RegionContext + Puck Editor) を追加。
  */
