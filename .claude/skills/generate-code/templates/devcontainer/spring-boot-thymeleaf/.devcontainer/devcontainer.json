@@ -3,6 +3,7 @@
   "image": "mcr.microsoft.com/devcontainers/java:1-17-bookworm",
 
   "features": {
+    "ghcr.io/devcontainers/features/java:1": { "installMaven": "true" },
     "ghcr.io/devcontainers/features/node:1": { "version": "20" },
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
@@ -13,7 +14,7 @@
     "5432": { "label": "Postgres", "onAutoForward": "silent" }
   },
 
-  "postCreateCommand": "./mvnw -B dependency:resolve || true",
+  "postCreateCommand": "./mvnw -B dependency:resolve 2>/dev/null || mvn -B dependency:resolve || true",
 
   "customizations": {
     "vscode": {
