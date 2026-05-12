@@ -183,16 +183,54 @@ NestJS/Next.js 系の Step 3-Y テンプレートで `<gadgetActionName>` が pr
 
 ## 4. 実機 maven test 実行 (smoke 検証)
 
-**結果**: 本 dogfood では未実行 (WSL 環境に Java 21 / Maven 未インストール、docker setup 別工程)
+**実行日時**: 2026-05-12 (ISSUE #1037)
+**docker image**: `maven:3.9-eclipse-temurin-21` (Maven 3.9.9 + Java 21.0.11)
 
-**trace**: **ISSUE #1037 (docker maven image で smoke build + Spring Security 実機検証)** で完遂予定
+### Step A: mvn clean compile
 
-**推奨コマンド** (#1037 内で実行):
-```bash
-cd examples/retail/generated/thymeleaf
-docker run --rm -v "$(pwd)":/app -w /app maven:3.9-eclipse-temurin-21 mvn -B clean compile
-docker run --rm -v "$(pwd)":/app -w /app maven:3.9-eclipse-temurin-21 mvn -B test
-```
+**結果**: BUILD SUCCESS (所要時間: 初回 download 込み約 10s)
+
+修正点: `GET /login` を処理する `LoginController.java` を追加
+(Spring Security 6 は `loginPage("/login")` を自動 serve しない仕様)
+
+### Step B: mvn test
+
+**結果**: BUILD SUCCESS (所要時間: 5s)
+出力: `No tests to run.` — `src/test/` が空のため正常
+
+### Step C: spring-boot:run + curl smoke (6 観点)
+
+アプリ起動: `Started RetailApplication` まで **2s** (Maven 依存 cache 済み状態)
+
+**修正点**: Spring Security 6 で `/css/**` / `/js/**` の `requestMatchers()` が DispatcherServlet
+経由リクエストのみマッチする問題 → `PathRequest.toStaticResources().atCommonLocations()` を追加 (SecurityConfig.java)。
+静的リソース placeholder (`static/css/main.css`, `static/js/main.js`) も追加。
+
+| 観点 | 期待 | 結果 | HTTP Status |
+|---|---|---|---|
+| (a) GET / 未認証 → 302 /login | redirect | ✓ | 302 Location: /login |
+| (b) POST /login demo/demo+CSRF → 302 / | 認証成功 | ✓ | 302 Location: / |
+| (c) POST /api/retail/auth/logout → 302 /login?logout | ログアウト | ✓ | 302 Location: /login?logout, JSESSIONID 削除 |
+| (d) GET /css/main.css anonymous → 200 | 認証不要 | ✓ | 200 (PathRequest fix 適用後) |
+| (e) login.html UTF-8 (ユーザー名/パスワード/ログイン) | 文字化け無し | ✓ | 正常表示 |
+| (f) userName=demo (CommonModelAdvice) | SecurityContext連携 | ✓ | `demo さん` がヘッダに表示 |
+
+**全 6 観点 ✓** 達成。
+
+### 検出した不具合 & 修正一覧
+
+1. **`LoginController.java` 追加** (GET /login handler 不在)
+   - Spring Security 6 は `.loginPage("/login")` の GET を自動 serve しない
+   - `src/main/java/com/harmony/retail/web/LoginController.java` を新規作成
+   - 将来 #1036 系列で `/generate-code` skill template にも反映候補
+
+2. **`SecurityConfig.java` 修正** (Spring Security 6 静的リソース許可の不備)
+   - `PathRequest.toStaticResources().atCommonLocations()` を `permitAll()` の先頭に追加
+   - 将来 #1036 系列で `/generate-code` skill template にも反映候補
+
+3. **静的リソース placeholder 追加**
+   - `src/main/resources/static/css/main.css`
+   - `src/main/resources/static/js/main.js`
 
 ## 5. 関連 ISSUE で trace される分
 
