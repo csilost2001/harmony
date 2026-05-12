@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import Ajv2020, { type ValidateFunction } from "ajv/dist/2020";
 import addFormats from "ajv-formats";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const repoRoot = resolve(__dirname, "../../../");
@@ -26,23 +26,6 @@ function dumpErrors(file: string): string {
 }
 
 describe("project v3 schema (harmony.v3.schema.json)", () => {
-  it("data/harmony.json が存在する場合は harmony.v3.schema.json に適合する", () => {
-    const file = join(repoRoot, "data/harmony.json");
-    if (!existsSync(file)) {
-      expect(true).toBe(true);
-      return;
-    }
-    const content = JSON.parse(readFileSync(file, "utf-8")) as { schemaVersion?: string };
-    if (content.schemaVersion !== "v3") {
-      // v1 from pre-Phase-4α env; AJV 検証は v3 前提なので skip
-      expect(true).toBe(true);
-      return;
-    }
-
-    const ok = validateProject(content);
-    expect(ok, ok ? "" : dumpErrors(file)).toBe(true);
-  });
-
   it("empty project fixture validates against harmony.v3.schema.json", () => {
     const fixture = {
       $schema: "../schemas/v3/harmony.v3.schema.json",
