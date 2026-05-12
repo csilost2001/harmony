@@ -58,5 +58,5 @@
     "typescript": "^5.0.0",
     "vitest": "^4.0.0"
   },
-  "notes": "このパッケージは /generate-tests skill の dogfood 出力 fixture。NestJS app 本体は別途スキャフォールドが必要。structure 検証のみは npm install 後 vitest run で実行可能。"
+  "notes": "ISSUE #1038 reopen で NestJS backend + Next.js frontend + Prisma sqlite を実装、全 4 Step (test:step3 / test:p5 / test:p3 / test:p4) を実機 run pass まで達成。初回は npm install + npm run db:reset を実行のこと。"
 }

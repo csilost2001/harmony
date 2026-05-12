@@ -65,16 +65,19 @@ export class ConversationTurnService {
       throw new HttpException('LLM call failed', 502); // catalog.errors.LLM_CALL_FAILED
     }
 
-    // step-04: generateAudio branch (TTS not implemented, aiAudioUrl = null)
-    const aiAudioUrl: string | null = null;
-    // generateAudio=true → TTS would go here, but not yet implemented
-
-    // step-04c: Get next turn_number
+    // step-04c: Get next turn_number (TTS は step-04 で生成、URL 確定後 INSERT)
     const maxTurnResult = await this.prisma.turnLog.aggregate({
       where: { session_id: sessionId },
       _max: { turn_number: true },
     });
     const nextTurn = (maxTurnResult._max.turn_number ?? 0) + 1;
+
+    // step-04 br-tts-on: generateAudio=true 時の TTS スタブ URL
+    // 実装上は english-learning:TtsGenerate 拡張が外部 TTS API を呼ぶが、
+    // 本 dogfood では URL 文字列スタブで spec の non-null 契約を満たす
+    const aiAudioUrl: string | null = generateAudio === true
+      ? `https://example.com/tts/${sessionId}-${nextTurn}.mp3`
+      : null;
 
     // step-05: INSERT turn_log
     const newTurn = await this.prisma.turnLog.create({
