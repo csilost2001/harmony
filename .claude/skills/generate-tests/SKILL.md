@@ -1529,8 +1529,63 @@ class <ScreenName>PageLayoutTest {
   例: items[direction=output] の label が "ログアウト" であれば `containsString("ログアウト")` に置き換える。
   セッション依存の動的テキスト (storeName / userName 等) は label 文字列で代替してください。
 - `<screen.path>` は Screen JSON の `path` フィールド値で置き換えてください (例: `"/"`, `"/dashboard"`)。
-- screen.auth="required" の場合は `@WithMockUser` またはセッション設定が必要です。テスト失敗時は
-  Spring Security の認証フィルタが 302/401 を返している可能性を確認してください。
+
+#### Spring Security 認証済みセッションでの MockMvc テストヘルパ
+
+`screen.auth="required"` または PageLayout で参照される Gadget の `httpRoute.auth="required"` がある場合、認証済みセッションで MockMvc を呼び出さないと 302 (login へリダイレクト) になる。以下の 3 パターンから選択する:
+
+##### パターン 1: `@WithMockUser` (最も簡潔、ユーザー名/権限を annotation で指定)
+
+```java
+import org.springframework.security.test.context.support.WithMockUser;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class <ScreenName>PageLayoutTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    @WithMockUser(username = "demo", roles = {"USER"})
+    void ページリクエストでPageLayoutの外枠が描画される() throws Exception {
+        mockMvc.perform(get("<screen.path>"))
+            .andExpect(status().isOk());
+        // ...
+    }
+}
+```
+
+##### パターン 2: `SecurityMockMvcRequestPostProcessors.user(...)` (test ごとにユーザー切替)
+
+```java
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+
+@Test
+void ページリクエストでPageLayoutの外枠が描画される() throws Exception {
+    mockMvc.perform(get("<screen.path>").with(user("demo").roles("USER")))
+        .andExpect(status().isOk());
+}
+```
+
+##### パターン 3: `@WithMockUser` をクラスレベル (全 test を認証済み扱い)
+
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+@WithMockUser(username = "demo", roles = {"USER"})  // 全 test に適用
+class <ScreenName>PageLayoutTest { /* ... */ }
+```
+
+**pom.xml 依存**: 上記ヘルパは `spring-boot-starter-test` 経由で標準提供される `spring-security-test` で利用可能 (`@WithMockUser` / `SecurityMockMvcRequestPostProcessors`):
+
+```xml
+<dependency>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-test</artifactId>
+    <scope>test</scope>
+</dependency>
+```
 
 ### NestJS/Next.js 系: Playwright layout mount test
 

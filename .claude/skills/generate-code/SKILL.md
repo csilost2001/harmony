@@ -474,9 +474,9 @@ public class AuthController {
 #### `techStack.auth.method = "session"` (TypeScript NestJS)
 
 NestJS 系は `passport` + `passport-local` + `express-session` でほぼ同等の構成。詳細テンプレートは
-**本 skill では Java 系のみ実装** (NestJS 系 session 認証は別 ISSUE で対応)。
+**ISSUE #1036 で本 skill に追加予定** (Spring 連携 #1035 D の対、Java/TS フレームワーク別実装のため分離)。
 
-`httpRoute.auth="required"` の action には `@UseGuards(AuthenticatedGuard)` を付与する旨をコメントで明示する。
+暫定: `httpRoute.auth="required"` の action には `@UseGuards(AuthenticatedGuard)` を付与する旨をコメントで明示する (具体的な AuthenticatedGuard 実装は #1036 で生成テンプレ追加)。
 
 #### `techStack.auth.method` が `"none"` / 未設定
 
@@ -734,16 +734,45 @@ public class ProductSearchController {
 
 ### Next.js バージョン指針 (security 自動追従)
 
-生成 `package.json` の `dependencies` は **caret prefix (`^`) を必須** とする。固定 version で hardcode すると security patch が自動追従されず `npm audit` で警告が残り続ける (PR #1034 の Phase D dogfood で発覚)。
+生成 `package.json` の `dependencies` は **caret prefix (`^`) を必須** とする。固定 version で hardcode すると security patch が自動追従されず `npm audit` で警告が残り続ける (PR #1034 の Phase D dogfood で発覚、#1035 E で解消)。
 
 | dependency | 推奨レンジ | 備考 |
 |---|---|---|
-| `next` | `^14.2.x` (LTS 系最新 patch) | Next.js 14.x は LTS。 14 系列の最新 patch を caret prefix で記載 (例: `^14.2.35`) |
-| `react` / `react-dom` | `^18.3.x` | React 18 stable 系最新 (React 19 は Next.js 15 移行時に検討) |
+| `next` | `^15.5.x` 系最新 patch | Next.js 15 系最新。14 LTS では `<15.x` range の advisories が複数残存するため 15 を default 推奨 |
+| `react` / `react-dom` | `^19.x` | React 19 stable (Next.js 15 default) |
+| `@types/react` / `@types/react-dom` | `^19.x` | React 19 に合わせて型定義も 19 系へ |
 | `typescript` | `^5.x` | TypeScript 5 系最新 patch |
 | `tailwindcss` | `^3.4.x` | Tailwind 3 系最新 patch |
+| `postcss` (overrides) | `^8.5.x` | next の transient で `<8.5.10` の advisories が出るため `overrides` で強制最新化 |
 
-**注**: Next.js 14 LTS の patch を最新まで上げても、`npm audit` で moderate / high severity の警告が複数残存する (e.g. `<15.0.8` / `<15.5.10` range の advisories)。完全解消には **Next.js 15.x への migration** が必要だが App Router の async APIs (cookies/headers/params/searchParams が Promise 化) 等の breaking change を伴うため、本 skill では 14 LTS 系最新 patch までを default 推奨とし、15 系 migration は future enhancement とする。
+**重要**: `package.json` に `"overrides": { "postcss": "^8.5.x" }` を**必ず**含めること (transient postcss の advisories を解消する唯一の方法)。これが無いと next 内部の古い postcss が pickup されて `npm audit` で moderate 警告が残る。
+
+**App Router async API 注記**: Next.js 15 では `cookies()` / `headers()` / `params` / `searchParams` が **Promise 返却** に変更。Page / Layout / Route Handler で:
+
+```typescript
+// Next.js 15 形式 (Page Component)
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { slug } = await params;
+  const { q } = await searchParams;
+  // ...
+}
+
+// Route Handler
+import { cookies, headers } from 'next/headers';
+export async function GET() {
+  const cookieStore = await cookies();
+  const headersList = await headers();
+  // ...
+}
+```
+
+generate-code は **Next.js 15 形式で生成** する。生成時に Page Component の `params` / `searchParams` 型を `Promise<...>` で記述し、本体で `await` する。
 
 ### Layout Decorate モード (pageLayoutId あり)
 
