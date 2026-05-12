@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { checkLegacyLocalStorage, executeRescue, clearLegacyLocalStorage } from "../grapes/legacyLocalStorageRescue";
 import { acknowledgeServerMtime } from "../utils/serverMtime";
 import { recordError } from "../utils/errorLog";
@@ -1071,19 +1071,16 @@ function CompositionPreviewModal({
   getScreenContent,
   onClose,
 }: CompositionPreviewModalProps) {
-  const [composedSrcDoc, setComposedSrcDoc] = useState<string>("");
-
-  useEffect(() => {
+  const composedSrcDoc = useMemo(() => {
     const screenContent = getScreenContent();
     const composed = composePreviewHtml(pageLayoutHtml, assignments, gadgetHtmlMap, screenContent);
     // Bootstrap CDN を埋め込んで preview が retail サンプル相当に見えるようにする
-    const srcDoc = `<!DOCTYPE html><html><head>
-<meta charset="utf-8" />
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.min.css" rel="stylesheet">
-<style>body{margin:0;font-family:system-ui,sans-serif}</style>
-</head><body>${composed}</body></html>`;
-    setComposedSrcDoc(srcDoc);
+    return `<!DOCTYPE html><html><head>
+	<meta charset="utf-8" />
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.min.css" rel="stylesheet">
+	<style>body{margin:0;font-family:system-ui,sans-serif}</style>
+	</head><body>${composed}</body></html>`;
   }, [pageLayoutHtml, assignments, gadgetHtmlMap, getScreenContent]);
 
   return (

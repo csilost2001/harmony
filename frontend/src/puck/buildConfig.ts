@@ -10,6 +10,7 @@
  */
 
 import type { Config, Fields } from "@measured/puck";
+import { createElement } from "react";
 
 import { ContainerConfig } from "./primitives/Container";
 import { RowConfig } from "./primitives/Row";
@@ -35,6 +36,7 @@ import { RegionHeaderConfig } from "./primitives/RegionHeader";
 import { RegionSidebarConfig } from "./primitives/RegionSidebar";
 import { RegionFooterConfig } from "./primitives/RegionFooter";
 import { RegionMainConfig } from "./primitives/RegionMain";
+import type { CustomPuckComponentDef } from "../store/puckComponentsStore";
 
 // ---------------------------------------------------------------------------
 // 共通レイアウト props の Fields 定義
@@ -239,6 +241,91 @@ export function buildPuckConfig(): Config {
         ...RegionMainConfig,
         fields: { ...RegionMainConfig.fields, ...LAYOUT_FIELDS },
       },
+    },
+  };
+}
+
+/**
+ * カスタムコンポーネント定義を Puck Config に動的追加する。
+ * ビルトイン primitive の config をベースに、個別 propsSchema + 共通 LAYOUT_FIELDS をマージ。
+ */
+export function buildConfigWithCustomComponents(customComponents: CustomPuckComponentDef[]): Config {
+  const base = buildPuckConfig();
+
+  if (customComponents.length === 0) return base;
+
+  const extraComponents: Config["components"] = {};
+
+  for (const def of customComponents) {
+    const primitiveKey = Object.keys(base.components).find(
+      (k) => k.toLowerCase() === def.primitive.toLowerCase().replace(/-/g, ""),
+    );
+    const baseComponentConfig = primitiveKey ? base.components[primitiveKey] : undefined;
+
+    const customFields: Config["components"][string]["fields"] = {};
+    for (const [fieldName, fieldDef] of Object.entries(def.propsSchema)) {
+      if (fieldDef.type === "enum" && fieldDef.enum && fieldDef.enum.length > 0) {
+        customFields[fieldName] = {
+          type: "select" as const,
+          label: fieldDef.label ?? fieldName,
+          options: fieldDef.enum.map((opt) => ({ label: opt.label, value: opt.value })),
+        };
+      } else if (fieldDef.type === "boolean") {
+        customFields[fieldName] = {
+          type: "radio" as const,
+          label: fieldDef.label ?? fieldName,
+          options: [
+            { label: "はい", value: "true" },
+            { label: "いいえ", value: "false" },
+          ],
+        };
+      } else {
+        customFields[fieldName] = {
+          type: "text" as const,
+          label: fieldDef.label ?? fieldName,
+        };
+      }
+    }
+
+    const defaultProps: Record<string, unknown> = {};
+    for (const [fieldName, fieldDef] of Object.entries(def.propsSchema)) {
+      if (fieldDef.default !== undefined) {
+        defaultProps[fieldName] = fieldDef.default;
+      }
+    }
+
+    if (baseComponentConfig) {
+      extraComponents[def.id] = {
+        ...baseComponentConfig,
+        label: `(カスタム) ${def.label}`,
+        fields: {
+          ...customFields,
+          ...(baseComponentConfig.fields ?? {}),
+        },
+        defaultProps: {
+          ...(baseComponentConfig.defaultProps ?? {}),
+          ...defaultProps,
+        },
+      };
+    } else {
+      extraComponents[def.id] = {
+        label: `(カスタム) ${def.label}`,
+        fields: customFields,
+        defaultProps,
+        render: (props: Record<string, unknown>) => createElement(
+          "div",
+          { "data-custom-component": def.id, "data-primitive": def.primitive },
+          JSON.stringify(props),
+        ),
+      };
+    }
+  }
+
+  return {
+    ...base,
+    components: {
+      ...base.components,
+      ...extraComponents,
     },
   };
 }

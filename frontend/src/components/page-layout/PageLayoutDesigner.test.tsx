@@ -12,6 +12,9 @@ const mockState = vi.hoisted(() => {
   const componentAddHandlers = new Set<() => void>();
   const broadcastHandlers = new Map<string, Set<(data: unknown) => void>>();
   const editor = {
+    Canvas: {
+      getDocument: () => document,
+    },
     on: vi.fn((event: string, handler: () => void) => {
       if (event === "component:add") componentAddHandlers.add(handler);
     }),
@@ -61,6 +64,10 @@ vi.mock("../../store/flowStore", () => ({
   }),
 }));
 
+vi.mock("../../store/puckComponentsStore", () => ({
+  loadCustomPuckComponents: vi.fn().mockResolvedValue([]),
+}));
+
 // Designer is a complex component — mock it for unit test
 vi.mock("../Designer", () => ({
   Designer: ({ screenId, onGrapesEditorReady }: { screenId: string; onGrapesEditorReady?: (editor: unknown) => void }) => {
@@ -71,6 +78,7 @@ vi.mock("../Designer", () => ({
 
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadProject } from "../../store/flowStore";
+import { loadCustomPuckComponents } from "../../store/puckComponentsStore";
 import { PageLayoutDesigner } from "./PageLayoutDesigner";
 
 const defaultPageLayout: PageLayout = {
@@ -106,6 +114,7 @@ describe("PageLayoutDesigner", () => {
     mockState.pageLayout = defaultPageLayout;
     vi.mocked(mcpBridge.request).mockResolvedValue({ sessions: [] });
     vi.mocked(mcpBridge.loadPuckData).mockResolvedValue(null);
+    vi.mocked(loadCustomPuckComponents).mockResolvedValue([]);
     localStorage.clear();
   });
 
@@ -129,6 +138,19 @@ describe("PageLayoutDesigner", () => {
         expect(body).toContain("Main Layout");
       }
     }, { timeout: 3000 });
+  });
+
+  it("loads custom Puck components for composition preview config", async () => {
+    renderDesigner();
+
+    await waitFor(() => {
+      expect(loadCustomPuckComponents).toHaveBeenCalledTimes(1);
+    });
+
+    mockState.broadcastHandlers.get("puckComponentsChanged")?.forEach((handler) => handler({}));
+    await waitFor(() => {
+      expect(loadCustomPuckComponents).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("caches screen name index across repeated GrapesJS region injections", async () => {

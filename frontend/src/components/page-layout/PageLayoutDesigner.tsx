@@ -17,7 +17,8 @@ import { Designer } from "../Designer";
 import type { Editor as GEditor } from "grapesjs";
 import { injectGadgetPreviews, clearGadgetPreviews, extractGrapesHtml } from "../../utils/pageLayoutCompositionPreview";
 import { RegionProvider } from "../../puck/primitives/RegionContext";
-import { buildPuckConfig } from "../../puck/buildConfig";
+import { buildConfigWithCustomComponents } from "../../puck/buildConfig";
+import { loadCustomPuckComponents } from "../../store/puckComponentsStore";
 import type { RegionContextValue } from "../../puck/primitives/RegionContext";
 
 const GADGET_DATA_LOAD_CONCURRENCY = 4;
@@ -57,7 +58,7 @@ export function PageLayoutDesigner() {
   // から import するが、Region primitive は Context 経由でしか参照しない)
   const puckConfig = useMemo(() => {
     try {
-      return buildPuckConfig();
+      return buildConfigWithCustomComponents([]);
     } catch { return null; }
   }, []);
   const [regionContextValue, setRegionContextValue] = useState<RegionContextValue>({
@@ -65,6 +66,25 @@ export function PageLayoutDesigner() {
     gadgetData: {},
     puckConfig,
   });
+
+  const reloadPuckConfig = useCallback(async () => {
+    try {
+      const customComponents = await loadCustomPuckComponents();
+      const nextPuckConfig = buildConfigWithCustomComponents(customComponents);
+      setRegionContextValue((prev) => ({ ...prev, puckConfig: nextPuckConfig }));
+    } catch (e) {
+      console.warn("[PageLayoutDesigner] custom puck components load failed:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- server-side custom Puck components are external state.
+    void reloadPuckConfig();
+    const unsubPuckComponentsChanged = mcpBridge.onBroadcast("puckComponentsChanged", () => {
+      void reloadPuckConfig();
+    });
+    return () => unsubPuckComponentsChanged();
+  }, [reloadPuckConfig]);
 
   useEffect(() => {
     if (!pageLayoutId) {

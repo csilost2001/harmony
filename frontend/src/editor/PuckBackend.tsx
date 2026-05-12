@@ -19,7 +19,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Puck } from "@measured/puck";
-import type { Data, Config } from "@measured/puck";
+import type { Data } from "@measured/puck";
 import "@measured/puck/puck.css";
 
 // Puck canvas はメイン app DOM 内に描画されるため、GrapesJS の canvas iframe と異なり
@@ -36,7 +36,7 @@ import type {
   PuckRenderEditorProps,
 } from "./EditorBackend";
 import { CssFrameworkProvider } from "../puck/CssFrameworkContext";
-import { buildPuckConfig } from "../puck/buildConfig";
+import { buildConfigWithCustomComponents } from "../puck/buildConfig";
 import {
   loadCustomPuckComponents,
   type CustomPuckComponentDef,
@@ -65,95 +65,6 @@ function toPuckData(payload: unknown): Data {
     return payload as Data;
   }
   return EMPTY_PUCK_DATA;
-}
-
-// -----------------------------------------------------------------------
-// buildPuckConfig with custom components (§ 4.2)
-// -----------------------------------------------------------------------
-
-/**
- * カスタムコンポーネント定義を Puck Config に動的追加する。
- * ビルトイン primitive の config をベースに、個別 propsSchema + 共通 LAYOUT_FIELDS をマージ。
- */
-function buildConfigWithCustomComponents(customComponents: CustomPuckComponentDef[]): Config {
-  const base = buildPuckConfig();
-
-  if (customComponents.length === 0) return base;
-
-  const extraComponents: Config["components"] = {};
-
-  for (const def of customComponents) {
-    const primitiveKey = Object.keys(base.components).find(
-      (k) => k.toLowerCase() === def.primitive.toLowerCase().replace(/-/g, ""),
-    );
-    const baseComponentConfig = primitiveKey ? base.components[primitiveKey] : undefined;
-
-    const customFields: Config["components"][string]["fields"] = {};
-    for (const [fieldName, fieldDef] of Object.entries(def.propsSchema)) {
-      if (fieldDef.type === "enum" && fieldDef.enum && fieldDef.enum.length > 0) {
-        customFields[fieldName] = {
-          type: "select" as const,
-          label: fieldDef.label ?? fieldName,
-          options: fieldDef.enum.map((opt) => ({ label: opt.label, value: opt.value })),
-        };
-      } else if (fieldDef.type === "boolean") {
-        customFields[fieldName] = {
-          type: "radio" as const,
-          label: fieldDef.label ?? fieldName,
-          options: [
-            { label: "はい", value: "true" },
-            { label: "いいえ", value: "false" },
-          ],
-        };
-      } else {
-        customFields[fieldName] = {
-          type: "text" as const,
-          label: fieldDef.label ?? fieldName,
-        };
-      }
-    }
-
-    const defaultProps: Record<string, unknown> = {};
-    for (const [fieldName, fieldDef] of Object.entries(def.propsSchema)) {
-      if (fieldDef.default !== undefined) {
-        defaultProps[fieldName] = fieldDef.default;
-      }
-    }
-
-    if (baseComponentConfig) {
-      extraComponents[def.id] = {
-        ...baseComponentConfig,
-        label: `(カスタム) ${def.label}`,
-        fields: {
-          ...customFields,
-          ...(baseComponentConfig.fields ?? {}),
-        },
-        defaultProps: {
-          ...(baseComponentConfig.defaultProps ?? {}),
-          ...defaultProps,
-        },
-      };
-    } else {
-      extraComponents[def.id] = {
-        label: `(カスタム) ${def.label}`,
-        fields: customFields,
-        defaultProps,
-        render: (props: Record<string, unknown>) => (
-          <div data-custom-component={def.id} data-primitive={def.primitive}>
-            {JSON.stringify(props)}
-          </div>
-        ),
-      };
-    }
-  }
-
-  return {
-    ...base,
-    components: {
-      ...base.components,
-      ...extraComponents,
-    },
-  };
 }
 
 // -----------------------------------------------------------------------
