@@ -270,6 +270,7 @@ host 側の `claude` / `codex` とは独立して更新可能。
 | Vite HMR がブラウザに反映されない | bind mount + inotify の問題。`frontend/vite.config.ts` の watch options に `{ usePolling: true, interval: 100 }` を追加。または container 内で `export CHOKIDAR_USEPOLLING=1` |
 | port 5173 / 5179 が forward されない | VSCode 下部の `PORTS` パネルで forward 状態を確認。`portsAttributes` で auto-forward 設定済 |
 | `~/.gitconfig` / `~/.ssh/` が container 内で使えない | Dev Containers は通常ホストの `~/.gitconfig` / `~/.ssh/` を mount するが、必要なら `mounts` 設定追加。`gh auth login` を container 内で再実行する手もあり |
+| `codex login` / `claude` 起動で `Permission denied (os error 13)` | Named volume mount target (`/home/node/.claude` / `.codex`) の所有権が root になっている。`devcontainer.json` の `onCreateCommand` で `sudo chown -R node:node` を実行する仕組みあり (container 新規作成時 1 回だけ走る)。手動で直す場合: `sudo chown -R node:node ~/.claude ~/.codex` |
 | backend 起動時に `port 5179 already in use` | WSL2 native 側で backend が動いている。`pkill -f tsx` で WSL2 native プロセスを停止してから container 内で起動 |
 | Claude Code が container 内で MCP に繋がらない | `.mcp.json` の `http://localhost:5179/mcp` は container 内では localhost = container 自身。backend が container 内で `npm run dev` 起動中であることを確認 |
 | container が起動するが永続化が消える | bind mount が正しく動いていない。VSCode `Dev Containers: Show Container Log` で mount エラーを確認 |

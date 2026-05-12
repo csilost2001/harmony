@@ -17,6 +17,8 @@
     "source=harmony-codex,target=/home/node/.codex,type=volume"
   ],
 
+  "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex",
+
   "postCreateCommand": "npm install --prefix frontend && npm install --prefix backend && (cd frontend && npx playwright install --with-deps chromium) && npm install -g @anthropic-ai/claude-code @openai/codex",
 
   "customizations": {
