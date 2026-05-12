@@ -694,9 +694,9 @@ export function Designer({
       throw new Error("編集セッションが開始されていないため、AI 生成結果を反映できません");
     }
 
-    api.setProjectData(payload);
-    const nextPayload = api.getProjectData() ?? payload;
+    const nextPayload = payload;
     await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: nextPayload });
+    api.setProjectData(nextPayload);
 
     if (editorKind === "puck") {
       setPuckState((cur) => ({ ...(cur ?? {}), payload: nextPayload }));

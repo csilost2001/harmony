@@ -47,6 +47,46 @@ function clientWithReview(text: string) {
   return { client: new CodexBrowserClient(bridge), request };
 }
 
+function clientWithTurnStartFailure() {
+  const unsubscribe = vi.fn();
+  const request = vi.fn(async (method: string) => {
+    if (method === "codex.thread.start") return { thread: { id: "thread-1" } };
+    if (method === "codex.turn.start") throw new Error("turn failed before start");
+    throw new Error(`unexpected method: ${method}`);
+  });
+  const bridge: McpBridgeLike = {
+    request,
+    onBroadcast: vi.fn(() => unsubscribe),
+  };
+  return { client: new CodexBrowserClient(bridge), unsubscribe };
+}
+
+function clientWithFailedTurn() {
+  let notificationHandler: ((data: unknown) => void) | null = null;
+  const unsubscribe = vi.fn(() => { notificationHandler = null; });
+  const request = vi.fn(async (method: string) => {
+    if (method === "codex.thread.start") return { thread: { id: "thread-1" } };
+    if (method === "codex.turn.start") {
+      queueMicrotask(() => {
+        notificationHandler?.({
+          method: "turn/completed",
+          params: { threadId: "thread-1", turn: { id: "turn-1", status: "failed", error: { message: "review failed" } } },
+        });
+      });
+      return { turn: { id: "turn-1", status: "inProgress" } };
+    }
+    throw new Error(`unexpected method: ${method}`);
+  });
+  const bridge: McpBridgeLike = {
+    request,
+    onBroadcast: vi.fn((event, handler) => {
+      if (event === "codex.notification") notificationHandler = handler;
+      return unsubscribe;
+    }),
+  };
+  return { client: new CodexBrowserClient(bridge), unsubscribe };
+}
+
 describe("reviewProcessFlowWithCodex", () => {
   it("starts a Codex text review turn", async () => {
     const { client, request } = clientWithReview("## Must-fix\nなし");
@@ -67,5 +107,27 @@ describe("reviewProcessFlowWithCodex", () => {
         text: expect.stringContaining("重点観点: 例外系"),
       })]),
     }));
+  });
+
+  it("unsubscribes when turn.start rejects", async () => {
+    const { client, unsubscribe } = clientWithTurnStartFailure();
+
+    await expect(reviewProcessFlowWithCodex({
+      client,
+      current: baseFlow(),
+    })).rejects.toThrow(/turn failed before start/);
+
+    expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it("rejects and unsubscribes when Codex reports a failed turn", async () => {
+    const { client, unsubscribe } = clientWithFailedTurn();
+
+    await expect(reviewProcessFlowWithCodex({
+      client,
+      current: baseFlow(),
+    })).rejects.toThrow(/review failed/);
+
+    expect(unsubscribe).toHaveBeenCalledOnce();
   });
 });

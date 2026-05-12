@@ -61,6 +61,46 @@ function clientWithGeneratedText(text: string) {
   return { client: new CodexBrowserClient(bridge), request };
 }
 
+function clientWithTurnStartFailure() {
+  const unsubscribe = vi.fn();
+  const request = vi.fn(async (method: string) => {
+    if (method === "codex.thread.start") return { thread: { id: "thread-1" } };
+    if (method === "codex.turn.start") throw new Error("turn failed before start");
+    throw new Error(`unexpected method: ${method}`);
+  });
+  const bridge: McpBridgeLike = {
+    request,
+    onBroadcast: vi.fn(() => unsubscribe),
+  };
+  return { client: new CodexBrowserClient(bridge), unsubscribe };
+}
+
+function clientWithFailedTurn() {
+  let notificationHandler: ((data: unknown) => void) | null = null;
+  const unsubscribe = vi.fn(() => { notificationHandler = null; });
+  const request = vi.fn(async (method: string) => {
+    if (method === "codex.thread.start") return { thread: { id: "thread-1" } };
+    if (method === "codex.turn.start") {
+      queueMicrotask(() => {
+        notificationHandler?.({
+          method: "turn/completed",
+          params: { threadId: "thread-1", turn: { id: "turn-1", status: "failed", error: { message: "model failed" } } },
+        });
+      });
+      return { turn: { id: "turn-1", status: "inProgress" } };
+    }
+    throw new Error(`unexpected method: ${method}`);
+  });
+  const bridge: McpBridgeLike = {
+    request,
+    onBroadcast: vi.fn((event, handler) => {
+      if (event === "codex.notification") notificationHandler = handler;
+      return unsubscribe;
+    }),
+  };
+  return { client: new CodexBrowserClient(bridge), unsubscribe };
+}
+
 describe("generateProcessFlowWithCodex", () => {
   it("starts a Codex thread/turn and parses the generated ProcessFlow JSON", async () => {
     const generated = {
@@ -116,5 +156,29 @@ describe("generateProcessFlowWithCodex", () => {
     expect(merged.meta.screenId).toBe(current.meta.screenId);
     expect(merged.meta.name).toBe("生成後");
     expect(merged.authoring).toBe(current.authoring);
+  });
+
+  it("unsubscribes when turn.start rejects", async () => {
+    const { client, unsubscribe } = clientWithTurnStartFailure();
+
+    await expect(generateProcessFlowWithCodex({
+      client,
+      current: baseFlow(),
+      requirement: "生成",
+    })).rejects.toThrow(/turn failed before start/);
+
+    expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it("rejects and unsubscribes when Codex reports a failed turn", async () => {
+    const { client, unsubscribe } = clientWithFailedTurn();
+
+    await expect(generateProcessFlowWithCodex({
+      client,
+      current: baseFlow(),
+      requirement: "生成",
+    })).rejects.toThrow(/model failed/);
+
+    expect(unsubscribe).toHaveBeenCalledOnce();
   });
 });

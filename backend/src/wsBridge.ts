@@ -1952,6 +1952,9 @@ class WsBridge extends EventEmitter {
         case "codex.account.login.start": {
           try {
             const pending = await this._getCodexConnection().account.startChatgptLogin();
+            pending.completion.catch(() => {
+              // Browser observes login completion via Codex notifications; avoid unhandled rejections here.
+            });
             respond({ loginId: pending.loginId, authUrl: pending.authUrl });
           } catch (e) {
             respondError(e instanceof Error ? e.message : String(e));
@@ -1962,8 +1965,7 @@ class WsBridge extends EventEmitter {
         case "codex.account.login.cancel": {
           const { loginId: cxLoginId } = (params ?? {}) as { loginId: string };
           try {
-            // Cancel is handled by re-requesting cancel directly (AccountManager tracks pending).
-            await this._getCodexConnection().request("account/login/cancel", { loginId: cxLoginId });
+            await this._getCodexConnection().account.cancelChatgptLogin(cxLoginId);
             respond({ cancelled: true });
           } catch (e) {
             respondError(e instanceof Error ? e.message : String(e));

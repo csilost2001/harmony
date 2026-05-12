@@ -76,15 +76,17 @@ export class AccountManager {
       loginId,
       authUrl: response.authUrl,
       completion,
-      cancel: async () => {
-        const pending = this.pendingLogins.get(loginId);
-        if (pending) {
-          this.pendingLogins.delete(loginId);
-          pending.reject(new Error("ChatGPT login cancelled"));
-        }
-        await this.client.request("account/login/cancel", { loginId });
-      },
+      cancel: () => this.cancelChatgptLogin(loginId),
     };
+  }
+
+  async cancelChatgptLogin(loginId: string): Promise<void> {
+    const pending = this.pendingLogins.get(loginId);
+    if (pending) {
+      this.pendingLogins.delete(loginId);
+      pending.reject(new Error("ChatGPT login cancelled"));
+    }
+    await this.client.request("account/login/cancel", { loginId });
   }
 
   async logout(): Promise<void> {

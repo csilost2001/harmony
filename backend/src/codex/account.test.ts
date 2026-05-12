@@ -94,6 +94,24 @@ describe("AccountManager", () => {
     expect(cancelled).toHaveBeenCalledWith({ loginId: "L4" });
   });
 
+  it("cancelChatgptLogin removes pending login and ignores later failure notification", async () => {
+    const cancelled = vi.fn();
+    const client = makeClient({
+      "account/login/start": async () => ({ type: "chatgpt", loginId: "L4b", authUrl: "x" }),
+      "account/login/cancel": async (params) => {
+        cancelled(params);
+        return null;
+      },
+    });
+    const mgr = new AccountManager(client);
+    const pending = await mgr.startChatgptLogin();
+    await mgr.cancelChatgptLogin("L4b");
+    mgr.handleLoginCompletedNotification({ loginId: "L4b", success: false, error: "late failure" });
+
+    await expect(pending.completion).rejects.toThrow(/cancelled/);
+    expect(cancelled).toHaveBeenCalledWith({ loginId: "L4b" });
+  });
+
   it("readRateLimits proxies to account/rateLimits/read", async () => {
     const snapshot = { used_percent: 12.3, resets_in_seconds: 60 };
     const client = makeClient({

@@ -1,4 +1,5 @@
 import type { EditorKind } from "../utils/resolveEditorKind";
+import { BUILTIN_PRIMITIVE_NAMES } from "../puck/buildConfig";
 import type { CodexBrowserClient } from "./codexClient";
 import { codexClient as defaultClient } from "./codexClient";
 import type { CodexNotification } from "./types";
@@ -99,7 +100,7 @@ function buildPrompt({
   const formatHint = editorKind === "puck"
     ? [
         "Puck Data 形式で返してください: { root: { props: {} }, content: [...] }。",
-        "利用できる主な component type: Container, Row, Col, Section, Heading, Paragraph, Input, Select, Textarea, Checkbox, Radio, Button, Table, Card, DataList, Pagination, RegionHeader, RegionSidebar, RegionFooter, RegionMain。",
+        `利用できる component type: ${BUILTIN_PRIMITIVE_NAMES.map(toComponentTypeName).join(", ")}。`,
         "各 content item には type と props を入れ、props.id は安定した英数字 ID にしてください。",
       ]
     : [
@@ -126,6 +127,13 @@ function buildPrompt({
     "- 日本語 UI テキストを使ってください。",
     "- 見出し、主要入力、主要アクション、一覧/カードなど、業務画面として評価できる要素を含めてください。",
   ].join("\n");
+}
+
+function toComponentTypeName(name: string): string {
+  return name
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
 }
 
 function validatePayload(editorKind: EditorKind, payload: unknown): void {
