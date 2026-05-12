@@ -66,6 +66,7 @@ import { DrawingOverlay } from "./DrawingOverlay";
 import { StructuredFieldsEditor, type ScreenItemPickResult } from "./StructuredFieldsEditor";
 import { ScreenItemPickerModal } from "./ScreenItemPickerModal";
 import { ProcessFlowAiGenerateDialog } from "./ProcessFlowAiGenerateDialog";
+import { ProcessFlowAiReviewDialog } from "./ProcessFlowAiReviewDialog";
 import { EditorHeader } from "../common/EditorHeader";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { DiscardConfirmDialog, ForceReleaseConfirmDialog, ForcedOutChoiceDialog, AfterForceUnlockChoiceDialog } from "../editing/ConfirmDialogs";
@@ -190,6 +191,7 @@ export function ProcessFlowEditor() {
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [showAiGenerateDialog, setShowAiGenerateDialog] = useState(false);
+  const [showAiReviewDialog, setShowAiReviewDialog] = useState(false);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/process-flow/list"), { replace: true }), [navigate, wsPath]);
 
@@ -829,6 +831,13 @@ export function ProcessFlowEditor() {
         />
       )}
 
+      {showAiReviewDialog && (
+        <ProcessFlowAiReviewDialog
+          current={group}
+          onClose={() => setShowAiReviewDialog(false)}
+        />
+      )}
+
       <EditorHeader
         title={
           <div className="process-flow-editor-breadcrumb">
@@ -850,6 +859,14 @@ export function ProcessFlowEditor() {
                 <i className="bi bi-stars" /> AI 生成
               </button>
             )}
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => setShowAiReviewDialog(true)}
+              title="現在の処理フロー JSON を AI でレビュー"
+            >
+              <i className="bi bi-clipboard-check" /> AI レビュー
+            </button>
             <EditSessionDropdown
               resourceType="process-flow"
               resourceId={processFlowId ?? ""}
