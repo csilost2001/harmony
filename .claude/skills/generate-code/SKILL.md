@@ -26,7 +26,7 @@ disable-model-invocation: true
   制限事項 (本 skill カバー外、各 ISSUE で trace):
     - 全 techStack 組合せ網羅 (Python FastAPI / Go Gin 等は未対応、リリース必須なら別 ISSUE 起票)
     - 認証 (techStack.auth) テンプレート: Java Spring Boot 系 session 認証は実装済 (#1035 D)、
-      NestJS 系 session 認証は #1036 で対応予定
+      NestJS 系 session 認証も実装済 (#1036)
     - デプロイ (techStack.deployment) テンプレート (未着手、リリース必須なら別 ISSUE 起票)
     - CI 自動化 (Skill 実行は AI 対話駆動のため CI に乗せない方針、#889 で deferred 確定)
 
@@ -510,10 +510,244 @@ public class AuthController {
 
 #### `techStack.auth.method = "session"` (TypeScript NestJS)
 
-NestJS 系は `passport` + `passport-local` + `express-session` でほぼ同等の構成。詳細テンプレートは
-**ISSUE #1036 で本 skill に追加予定** (Spring 連携 #1035 D の対、Java/TS フレームワーク別実装のため分離)。
+NestJS 系は `@nestjs/passport` + `passport-local` + `express-session` で session 認証を実装する (#1036 対応)。
 
-暫定: `httpRoute.auth="required"` の action には `@UseGuards(AuthenticatedGuard)` を付与する旨をコメントで明示する (具体的な AuthenticatedGuard 実装は #1036 で生成テンプレ追加)。
+##### 1. package.json 依存追加
+
+```json
+{
+  "dependencies": {
+    "@nestjs/passport": "^10.0.3",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "express-session": "^1.18.0"
+  },
+  "devDependencies": {
+    "@types/passport-local": "^1.0.38",
+    "@types/express-session": "^1.18.0"
+  }
+}
+```
+
+##### 2. main.ts での express-session middleware 設定
+
+```typescript
+import * as session from 'express-session';
+import * as passport from 'passport';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET ?? 'dev-secret-change-in-production',
+      resave: false,
+      saveUninitialized: false,
+      cookie: { httpOnly: true, sameSite: 'lax', maxAge: 1000 * 60 * 60 * 8 },
+    }),
+  );
+  app.use(passport.initialize());
+  app.use(passport.session());
+  await app.listen(3000);
+}
+```
+
+`SESSION_SECRET` を env で受ける。dev fallback は development 限定のシンプル値で警告付き。
+
+##### 3. AuthModule + LocalStrategy + SessionSerializer + AuthService
+
+```typescript
+// src/auth/auth.module.ts
+import { Module } from '@nestjs/common';
+import { PassportModule } from '@nestjs/passport';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { LocalStrategy } from './local.strategy';
+import { SessionSerializer } from './session.serializer';
+
+@Module({
+  imports: [PassportModule.register({ session: true })],
+  controllers: [AuthController],
+  providers: [AuthService, LocalStrategy, SessionSerializer],
+})
+export class AuthModule {}
+```
+
+```typescript
+// src/auth/auth.service.ts  — PoC: in-memory demo user (Java 系の InMemoryUserDetailsManager 相当)
+import { Injectable } from '@nestjs/common';
+
+export type AuthenticatedUser = { id: string; username: string };
+
+@Injectable()
+export class AuthService {
+  async validateUser(username: string, password: string): Promise<AuthenticatedUser | null> {
+    // PoC / dev 用の固定ユーザー。本番は DB 連携 (例: Prisma + bcrypt) に置換すること。
+    if (username === 'demo' && password === 'demo') {
+      return { id: 'demo-user-id', username: 'demo' };
+    }
+    return null;
+  }
+}
+```
+
+```typescript
+// src/auth/local.strategy.ts
+import { Strategy } from 'passport-local';
+import { PassportStrategy } from '@nestjs/passport';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { AuthService, AuthenticatedUser } from './auth.service';
+
+@Injectable()
+export class LocalStrategy extends PassportStrategy(Strategy) {
+  constructor(private readonly authService: AuthService) { super(); }
+  async validate(username: string, password: string): Promise<AuthenticatedUser> {
+    const user = await this.authService.validateUser(username, password);
+    if (!user) throw new UnauthorizedException();
+    return user;
+  }
+}
+```
+
+```typescript
+// src/auth/session.serializer.ts
+import { PassportSerializer } from '@nestjs/passport';
+import { Injectable } from '@nestjs/common';
+import { AuthenticatedUser } from './auth.service';
+
+@Injectable()
+export class SessionSerializer extends PassportSerializer {
+  serializeUser(user: AuthenticatedUser, done: (err: Error | null, payload: AuthenticatedUser) => void) {
+    done(null, user);
+  }
+  deserializeUser(payload: AuthenticatedUser, done: (err: Error | null, user: AuthenticatedUser) => void) {
+    done(null, payload);
+  }
+}
+```
+
+##### 4. AuthenticatedGuard (httpRoute.auth=required の Guard)
+
+```typescript
+// src/auth/authenticated.guard.ts  — httpRoute.auth=required の Guard
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+
+@Injectable()
+export class AuthenticatedGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const req = context.switchToHttp().getRequest();
+    return req.isAuthenticated();
+  }
+}
+```
+
+**`@UseGuards(AuthenticatedGuard)` 自動付与ルール**: Java 系は `SecurityFilterChain` で一括 (`.anyRequest().authenticated()`)、**NestJS 系は Controller method 単位で `@UseGuards(AuthenticatedGuard)` を自動付与する**。`httpRoute.auth="required"` の action から生成する Controller method すべてに付与すること。
+
+##### 5. AuthController (login + logout endpoint)
+
+```typescript
+// src/auth/auth.controller.ts
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Request, Response } from 'express';
+
+@Controller()
+export class AuthController {
+  @UseGuards(AuthGuard('local'))
+  @Post('/login')
+  login(@Res() res: Response) { res.redirect('/'); }
+
+  /** act-logout: ProcessFlow `act-logout` action から派生。LogoutFilter 相当の処理。 */
+  @Post('<logoutPath>')
+  logout(@Req() req: Request, @Res() res: Response) {
+    req.logout(() => {
+      req.session.destroy(() => {
+        res.clearCookie('connect.sid');
+        res.redirect('/login?logout');
+      });
+    });
+  }
+}
+```
+
+`<logoutPath>` は ProcessFlow の `act-logout` action の `httpRoute.path` (例: `/api/retail/auth/logout`)。
+
+##### 6. /login ページ (Next.js Server Component)
+
+`techStack.cssFramework` に応じて Bootstrap か Tailwind で class を出し分ける。`error` / `logout` query string で flash 表示。
+
+```tsx
+// app/login/page.tsx
+type Search = { error?: string; logout?: string };
+
+// cssFramework=bootstrap の場合
+export default function LoginPage({ searchParams }: { searchParams: Search }) {
+  return (
+    <div className="container py-5" style={{ maxWidth: '400px' }}>
+      <h1 className="h4 mb-3">ログイン</h1>
+      {searchParams.error && (
+        <div className="alert alert-danger" role="alert">
+          ユーザー名またはパスワードが正しくありません。
+        </div>
+      )}
+      {searchParams.logout && (
+        <div className="alert alert-info" role="status">
+          ログアウトしました。
+        </div>
+      )}
+      <form action="/login" method="post">
+        <div className="mb-3">
+          <label className="form-label">ユーザー名
+            <input name="username" className="form-control" required autoFocus />
+          </label>
+        </div>
+        <div className="mb-3">
+          <label className="form-label">パスワード
+            <input type="password" name="password" className="form-control" required />
+          </label>
+        </div>
+        <button type="submit" className="btn btn-primary w-100">ログイン</button>
+      </form>
+    </div>
+  );
+}
+
+// cssFramework=tailwind の場合 (上記と同構造、class のみ差し替え)
+// container → mx-auto max-w-sm py-10
+// alert alert-danger → rounded bg-red-50 border border-red-300 p-3 text-red-800 text-sm
+// alert alert-info → rounded bg-blue-50 border border-blue-300 p-3 text-blue-800 text-sm
+// form-control → block w-full rounded border border-gray-300 px-3 py-2 text-sm
+// btn btn-primary w-100 → w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700
+```
+
+##### 7. AppModule import 追加
+
+生成済み `src/app.module.ts` の `imports: []` に `AuthModule` を追記する:
+
+```typescript
+import { AuthModule } from './auth/auth.module';
+
+@Module({
+  imports: [AuthModule, /* 既存 modules */],
+})
+export class AppModule {}
+```
+
+##### 8. 生成ファイル一覧 (NestJS auth=session 追加分)
+
+```
+<出力先>/
+  src/auth/
+    auth.module.ts
+    auth.service.ts
+    auth.controller.ts
+    local.strategy.ts
+    session.serializer.ts
+    authenticated.guard.ts
+  app/login/page.tsx                    # Next.js 側 (frontend 部分)
+  src/main.ts                           # session middleware を追加 (既存生成物に inject)
+  src/app.module.ts                     # AuthModule import を追加 (既存生成物に inject)
+  package.json                          # 依存追加 (既存生成物に inject)
+```
 
 #### `techStack.auth.method` が `"none"` / 未設定
 
@@ -939,26 +1173,35 @@ public class <GadgetName>GadgetController {
 
 ProcessFlow が存在しない場合 (design-only Gadget): Controller は生成しない。
 
-#### auth.method=session 時の logout action 重複回避ルール (#1039 M-1 解消)
+#### auth.method=session 時の logout action 重複回避ルール (#1039 M-1 解消、#1036 NestJS 分岐追加)
 
-ProcessFlow の `act-logout` action (httpRoute `POST <logoutPath>`) は、**`techStack.auth.method = "session"` の場合は GadgetController 側で生成しない**。理由:
+ProcessFlow の `act-logout` action (httpRoute `POST <logoutPath>`) は、**`techStack.auth.method = "session"` の場合は GadgetController / Route Handler 側で生成しない**。理由:
 
-- Step 3-A の「認証 (techStack.auth) 生成ルール」が `AuthController.java` を別途生成し、同 path を `SecurityContextLogoutHandler` で正しく扱う
-- GadgetController と AuthController の両方が同 path を `@PostMapping` すると Spring の `RequestMappingHandlerMapping` が「Ambiguous handler methods mapped」例外で起動失敗する
+- Step 3-A の「認証 (techStack.auth) 生成ルール」が各 stack 専用の AuthController を別途生成し、同 path を処理する
+  - Java: `AuthController.java` が `SecurityContextLogoutHandler` で処理
+  - NestJS: `src/auth/auth.controller.ts` が `req.logout()` + `req.session.destroy()` で処理
+- GadgetController / Route Handler と AuthController の両方が同 path を処理すると、起動時エラーまたは二重処理が発生する
+  - Java: `RequestMappingHandlerMapping` が「Ambiguous handler methods mapped」例外で起動失敗
+  - NestJS: 同 path への Route Handler と AuthController の両登録でリクエスト競合
 
-分岐ロジック:
+分岐ロジック (Java + NestJS 共通):
 
 ```
 For each action in processFlow.actions where action.id == "act-logout":
   if techStack.auth.method == "session":
-    SKIP: GadgetController に当該 action の handler メソッドを生成しない
-          (注: form 側 (Fragment HTML) の <form action="<logoutPath>"> は維持。
-                 Spring Security の LogoutFilter が path 一致で先回りして処理する)
+    SKIP: GadgetController (Java) / Route Handler (NestJS) に当該 action の handler を生成しない
+          - Java: AuthController.java が path を SecurityContextLogoutHandler で処理
+          - NestJS: AuthController (src/auth/auth.controller.ts) が path を req.logout で処理
+          - 両 stack とも form 側 (Fragment HTML / page.tsx) の <form action="<logoutPath>"> は維持
+          - Java は Spring Security の LogoutFilter が path 一致で先回りして処理する
+          - NestJS は Next.js の app/api/gadgets/<gadget-id>/logout/route.ts は生成しない
   elif techStack.auth.method in ("none", undefined):
-    GENERATE: GadgetController に @PostMapping("<logoutPath>") + HttpSession.invalidate() 形式で生成
+    GENERATE: 従来通り GadgetController (Java) / Route Handler (NestJS) に生成
+              - Java: @PostMapping("<logoutPath>") + HttpSession.invalidate() 形式
+              - NestJS: app/api/gadgets/<gadget-id>/logout/route.ts として生成
 ```
 
-他の通常 action (act-* で logout 以外) は両 auth.method で従来通り GadgetController に生成する。
+他の通常 action (act-* で logout 以外) は両 auth.method・両 stack で従来通り GadgetController / Route Handler に生成する。
 
 ### NestJS/Next.js 系 Gadget 生成
 
