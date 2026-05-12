@@ -23,7 +23,6 @@ interface LoginOptions {
 export async function loginAs(page: Page, options: LoginOptions): Promise<void> {
   const { username, password } = options;
 
-  // PLACEHOLDER: /api/auth/login エンドポイントを確認すること
   const response = await page.request.post('/api/auth/login', {
     data: { email: username, password },
   });
@@ -39,7 +38,11 @@ export async function loginAs(page: Page, options: LoginOptions): Promise<void> 
     throw new Error(`Access token not found in response: ${JSON.stringify(body)}`);
   }
 
-  // PLACEHOLDER: トークン保存先を確認すること (localStorage / sessionStorage / cookie)
+  // Navigate to root first so localStorage is accessible (avoids about:blank SecurityError)
+  if (page.url() === 'about:blank' || !page.url().startsWith('http')) {
+    await page.goto('/');
+  }
+
   await page.evaluate((token) => {
     localStorage.setItem('accessToken', token);
   }, accessToken);

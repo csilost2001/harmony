@@ -1,35 +1,36 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as path from 'path';
 
 /**
  * Playwright E2E 設定
  *
- * database.type = "postgresql" → fullyParallel 可 (D-7: SQLite の場合のみ workers=1 必須)
+ * database.type = "sqlite" → workers=1, fullyParallel=false (共有 DB 競合防止)
  * techStack.auth.method = "jwt" → 認証は loginAs() (API 経由) ヘルパーで処理
  *
- * webServer はコメントアウト — AI は dev server を spawn しない
- * (feedback_no_ai_managed_dev_server.md 参照)
- * 手動で `npm run dev` (frontend) + `npm run dev` (backend) を起動してから実行すること。
+ * webServer: Playwright framework が dev server lifecycle を管理
+ * (feedback_no_ai_managed_dev_server.md は AI Bash background spawn の禁止規約 — Playwright webServer は対象外)
  */
+
+// Project root = generated/ (3 levels up from src/test/e2e/)
+const projectRoot = path.resolve(__dirname, '../../../');
+const dbPath = path.resolve(projectRoot, 'prisma/dev.db');
+
 export default defineConfig({
   testDir: '.',
   testMatch: '**/*.e2e.spec.ts',
 
-  // database.type="postgresql" → 並列実行可
-  fullyParallel: true,
-  workers: undefined, // デフォルト (CPU コア数に応じて自動)
-
-  // sqlite の場合は以下を有効化:
-  // fullyParallel: false,
-  // workers: 1,
+  // sqlite 共有 DB のため並列実行禁止
+  fullyParallel: false,
+  workers: 1,
 
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: 'html',
+  reporter: 'list',
+
+  globalSetup: path.resolve(__dirname, 'global-setup.ts'),
 
   use: {
-    // PLACEHOLDER: baseURL を確認すること (frontend dev server の URL)
     baseURL: process.env.BASE_URL ?? 'http://localhost:3000',
-
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -41,10 +42,20 @@ export default defineConfig({
     },
   ],
 
-  // webServer はコメントアウト — AI は dev server を spawn しない
-  // webServer: {
-  //   command: 'npm run dev',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  webServer: [
+    {
+      command: `DATABASE_URL=file:${dbPath} npm run start:backend`,
+      port: 3001,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+      cwd: projectRoot,
+    },
+    {
+      command: 'npm run start:frontend',
+      port: 3000,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+      cwd: projectRoot,
+    },
+  ],
 });
