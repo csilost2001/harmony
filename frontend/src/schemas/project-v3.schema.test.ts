@@ -26,8 +26,8 @@ function dumpErrors(file: string): string {
 }
 
 describe("project v3 schema (harmony.v3.schema.json)", () => {
-  it("data/project.json が存在する場合は harmony.v3.schema.json に適合する", () => {
-    const file = join(repoRoot, "data/project.json");
+  it("data/harmony.json が存在する場合は harmony.v3.schema.json に適合する", () => {
+    const file = join(repoRoot, "data/harmony.json");
     if (!existsSync(file)) {
       expect(true).toBe(true);
       return;

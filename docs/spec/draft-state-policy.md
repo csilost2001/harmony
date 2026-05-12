@@ -113,7 +113,7 @@ load<Resource>ValidationMap(): Promise<Map<Id, ValidationError[]>>
 
 validation map は、リソース ID を key、`ValidationError[]` を value とする。UI はリソース一覧と validation map を突き合わせ、バッジ・CSS クラス・編集画面ヘッダーの状態を描画する。
 
-> **注**: `loadTableValidationMap()` / `loadViewValidationMap()` は backend が `listAllTables()` / `listAllViews()` を提供する場合 1 RPC で全件取得し、未提供時 (localStorage 等) は per-id にフォールバックする (#587 / PR #589 で実装)。bulk fetch 結果は project.json entries の ID で filter して orphan 互換性を維持する。
+> **注**: `loadTableValidationMap()` / `loadViewValidationMap()` は backend が `listAllTables()` / `listAllViews()` を提供する場合 1 RPC で全件取得し、未提供時 (localStorage 等) は per-id にフォールバックする (#587 / PR #589 で実装)。bulk fetch 結果は harmony.json entries の ID で filter して orphan 互換性を維持する。
 
 ProcessFlow は既存の `aggregateValidation` を直接利用する。ProcessFlow 専用の validation 集約が既に存在するため、同じ判定を重複実装しない。
 
