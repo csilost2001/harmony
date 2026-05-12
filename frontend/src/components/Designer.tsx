@@ -17,6 +17,7 @@ import type { EditorKind } from "../utils/resolveEditorKind";
 import { useEditSession } from "../hooks/useEditSession";
 import { useSessionUrlSync } from "../hooks/useSessionUrlSync";
 import { EditModeToolbar } from "./editing/EditModeToolbar";
+import { ScreenDesignAiGenerateDialog } from "./design/ScreenDesignAiGenerateDialog";
 import {
   DiscardConfirmDialog,
   ForceReleaseConfirmDialog,
@@ -142,6 +143,7 @@ export function Designer({
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [showAiGenerateDialog, setShowAiGenerateDialog] = useState(false);
   // localStorage 救済確認ダイアログ
   const [showLegacyRescueDialog, setShowLegacyRescueDialog] = useState(false);
   const legacyDataRef = useRef<unknown>(null);
@@ -686,6 +688,28 @@ export function Designer({
     [],
   );
 
+  const applyGeneratedDesignPayload = useCallback(async (payload: unknown) => {
+    const api = editorApiRef.current;
+    if (!api || !editSession?.id) {
+      throw new Error("編集セッションが開始されていないため、AI 生成結果を反映できません");
+    }
+
+    const nextPayload = payload;
+    await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: nextPayload });
+    api.setProjectData(nextPayload);
+
+    if (editorKind === "puck") {
+      setPuckState((cur) => ({ ...(cur ?? {}), payload: nextPayload }));
+      puckPendingPayloadRef.current = nextPayload;
+    } else {
+      setGrapesState((cur) => cur ? { ...cur, payload: nextPayload } : cur);
+    }
+
+    setIsDirtyState(true);
+    isDirtyRef.current = true;
+    setDirty(tabId, true);
+  }, [editSession?.id, editorKind, tabId]);
+
   // Puck 画面の cross-tab 上書き保護 (Sh-1: puckDataChanged broadcast 購読)。
   // GrapesJS は screenChanged broadcast を購読して ServerChangeBanner を表示するのと同等。
   // Puck 画面でも他タブが puck-data.json を commit した際に ServerChangeBanner を表示する。
@@ -785,6 +809,17 @@ export function Designer({
           onDismiss={() => setServerChanged(false)}
         />
       )}
+
+      {showAiGenerateDialog && (
+        <ScreenDesignAiGenerateDialog
+          current={editorApiRef.current?.getProjectData() ?? (editorKind === "puck" ? puckState?.payload : grapesState?.payload)}
+          editorKind={editorKind}
+          cssFramework={cssFramework}
+          screenName={screenName}
+          onApply={applyGeneratedDesignPayload}
+          onClose={() => setShowAiGenerateDialog(false)}
+        />
+      )}
     </>
   );
 
@@ -815,6 +850,7 @@ export function Designer({
         isSaving={isSaving}
         onSaveToFile={handleSave}
         onReset={async () => setShowDiscardDialog(true)}
+        onAiGenerate={() => setShowAiGenerateDialog(true)}
         backLink={onBack ? { label: screenName ?? "画面デザイン", onClick: onBack } : undefined}
         screenId={screenId}
         isReadonly={isReadonly}
@@ -873,6 +909,7 @@ export function Designer({
       isSaving={isSaving}
       onSaveToFile={handleSave}
       onReset={async () => setShowDiscardDialog(true)}
+      onAiGenerate={() => setShowAiGenerateDialog(true)}
       backLink={onBack ? { label: screenName ?? "画面デザイン", onClick: onBack } : undefined}
       screenId={screenId}
       isReadonly={isReadonly}

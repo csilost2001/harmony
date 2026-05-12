@@ -455,6 +455,22 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
         isCanvasEmpty: () => safeComponentsLength(editor) === 0,
         captureThumbnail: () => captureThumbnail(editor),
         getProjectData: () => editor.getProjectData(),
+        setProjectData: (payload: unknown) => {
+          isInternalLoadRef.current = true;
+          try {
+            const safePayload = ensureValidProject(
+              (payload ?? null) as Record<string, unknown> | null,
+              screenId,
+              "external-set",
+            );
+            editor.loadProjectData(safePayload);
+          } finally {
+            setTimeout(() => {
+              isInternalLoadRef.current = false;
+              if (editorRef.current) reconcileScreenItems(editorRef.current, screenId);
+            }, 0);
+          }
+        },
         clearUndo: () => editor.UndoManager.clear(),
       };
       if (onReadyRef.current) onReadyRef.current(api);

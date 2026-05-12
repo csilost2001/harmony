@@ -174,6 +174,12 @@ function PuckEditorPane({
       },
       captureThumbnail: async () => null,
       getProjectData: () => currentDataRef.current,
+      setProjectData: (payload: unknown) => {
+        const newData = toPuckData(payload);
+        setCurrentData(newData);
+        currentDataRef.current = newData;
+        setRemountKey((k) => k + 1);
+      },
       clearUndo: () => { /* Puck has its own history; no-op */ },
     };
     onReady(api);

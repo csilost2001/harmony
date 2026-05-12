@@ -1,0 +1,255 @@
+/* AI 設定画面 + ヘッダーインジケーター */
+
+/* ── Settings View ───────────────────────────────────────────────── */
+
+.codex-settings {
+  max-width: 760px;
+  margin: 24px auto;
+  padding: 0 16px;
+  font-size: 14px;
+}
+
+.codex-settings-header h2 {
+  font-size: 20px;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.codex-settings-subtitle {
+  color: var(--text-muted, #666);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.codex-settings-panel {
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  background: var(--panel-bg, #fff);
+}
+
+.codex-settings-panel h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.codex-settings-panel-info { border-left: 4px solid #4a90e2; }
+.codex-settings-panel-warn { border-left: 4px solid #f4a623; background: #fff8eb; }
+.codex-settings-panel-error { border-left: 4px solid #d9534f; background: #fdf3f3; }
+.codex-settings-panel-success { border-left: 4px solid #5cb85c; background: #f2faf2; }
+
+.codex-settings-panel p {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.codex-settings-code {
+  background: #2d2d2d;
+  color: #e6e6e6;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+
+.codex-settings-env-list {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+.codex-settings-env-list code {
+  background: var(--code-bg, #f0f0f0);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.codex-settings-error-details {
+  margin-top: 12px;
+  font-size: 12px;
+}
+.codex-settings-error-details summary {
+  cursor: pointer;
+  color: var(--text-muted, #666);
+}
+.codex-settings-error-details pre {
+  background: #f5f5f5;
+  padding: 8px;
+  border-radius: 4px;
+  margin: 8px 0 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.codex-settings-error-message {
+  color: #d9534f;
+  background: #fdf3f3;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 12px 0 0;
+}
+
+.codex-settings-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.codex-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 4px;
+  background: var(--button-bg, #fff);
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.codex-btn:hover:not(:disabled) {
+  background: var(--button-hover-bg, #f0f0f0);
+}
+.codex-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.codex-btn-primary {
+  background: #4a90e2;
+  color: #fff;
+  border-color: #4a90e2;
+}
+.codex-btn-primary:hover:not(:disabled) {
+  background: #3a7bc8;
+}
+
+.codex-settings-spinner {
+  text-align: center;
+  font-size: 24px;
+  color: var(--text-muted, #999);
+}
+.codex-settings-spinner .bi {
+  display: inline-block;
+  animation: codex-spin 1s linear infinite;
+}
+@keyframes codex-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.codex-settings-pending {
+  margin-top: 12px;
+  padding: 12px;
+  background: #fff8eb;
+  border-radius: 4px;
+}
+.codex-settings-auth-url {
+  font-size: 12px;
+  word-break: break-all;
+}
+.codex-settings-auth-url a {
+  color: #4a90e2;
+}
+
+.codex-settings-account {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 6px 12px;
+  margin: 0 0 16px;
+}
+.codex-settings-account dt {
+  color: var(--text-muted, #666);
+  font-weight: normal;
+}
+.codex-settings-account dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+.codex-settings-rate-limits {
+  margin-top: 12px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 4px;
+}
+.codex-settings-rate-limits h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.codex-settings-rate-limits dl {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.codex-settings-rate-limits dt {
+  color: var(--text-muted, #666);
+}
+.codex-settings-rate-limits dd {
+  margin: 0;
+}
+.codex-settings-rate-limits details summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted, #666);
+}
+.codex-settings-rate-limits pre {
+  background: #f0f0f0;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 8px 0 0;
+}
+.codex-settings-rate-limits-error {
+  background: #fdf3f3;
+}
+.codex-settings-rate-limits-loading {
+  color: var(--text-muted, #666);
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+
+/* ── Header indicator ────────────────────────────────────────────── */
+
+.codex-indicator {
+  position: relative;
+  background: transparent;
+  border: 0;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+}
+.codex-indicator:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.codex-indicator-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--header-bg, #fff);
+}
+
+.codex-indicator-green .codex-indicator-dot { background: #5cb85c; }
+.codex-indicator-yellow .codex-indicator-dot { background: #f4a623; }
+.codex-indicator-red .codex-indicator-dot { background: #d9534f; }
+.codex-indicator-gray .codex-indicator-dot { background: #999; }

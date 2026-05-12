@@ -49,6 +49,8 @@ export interface EditorApi {
   captureThumbnail(): Promise<string | null>;
   /** 現在の payload を返す (save 時に使う) */
   getProjectData(): unknown;
+  /** AI 生成や import など、外部で作った payload を現在の editor state に反映する */
+  setProjectData(payload: unknown): void;
   /** UndoManager.clear() 等の post-discard cleanup */
   clearUndo(): void;
 }

@@ -73,6 +73,10 @@ const MENU_ITEMS: MenuItem[] = [
     id: "tech-stack", label: "技術スタック", icon: "bi-stack", route: "/project/tech-stack",
     activePaths: ["/project/tech-stack"],
   },
+  {
+    id: "ai-settings", label: "AI 設定", icon: "bi-robot", route: "/ai-settings",
+    activePaths: ["/ai-settings"],
+  },
 ];
 
 const DASHBOARD_ITEM: MenuItem = {
@@ -120,8 +124,10 @@ export function HeaderMenu() {
     if (isDesignTabActive()) {
       clearActiveTab();
     }
-    // /workspace/list は wsId なし、その他は /w/:wsId/ プレフィックス付き
-    const targetRoute = route.startsWith("/workspace/") ? route : wsPath(route);
+    // /workspace/* および /ai-settings は wsId なし (workspace 横断)、
+    // その他は /w/:wsId/ プレフィックス付き
+    const isWorkspaceScoped = !route.startsWith("/workspace/") && route !== "/ai-settings";
+    const targetRoute = isWorkspaceScoped ? wsPath(route) : route;
     navigate(targetRoute);
     setOpen(false);
   };

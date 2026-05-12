@@ -62,6 +62,7 @@ interface Props {
   isSaving?: boolean;
   onSaveToFile?: () => Promise<void>;
   onReset?: () => Promise<void>;
+  onAiGenerate?: () => void;
   screenId?: string;
   /** 読み取り専用モードの場合 true — 保存/リセットボタンを非表示にする */
   isReadonly?: boolean;
@@ -95,7 +96,7 @@ interface Props {
   onTakeOver: (editSessionId: string) => Promise<void>;
 }
 
-export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeChange, mcpStatus, backLink, isDirty, isSaving, onSaveToFile, onReset, screenId, isReadonly, editor, sessionMode, sessionId, onStartEditing, onViewerAttached, onAttachAsView, onTakeOver }: Props) {
+export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeChange, mcpStatus, backLink, isDirty, isSaving, onSaveToFile, onReset, onAiGenerate, screenId, isReadonly, editor, sessionMode, sessionId, onStartEditing, onViewerAttached, onAttachAsView, onTakeOver }: Props) {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
 
   // ── AI 命名 (#337) ───────────────────────────────────────────────────────
@@ -424,6 +425,15 @@ ${html}
           <>
             {screenId && (
               <>
+                {!isReadonly && onAiGenerate && (
+                  <button
+                    className="icon-btn"
+                    onClick={onAiGenerate}
+                    title="画面デザインを AI 生成"
+                  >
+                    <i className="bi bi-magic" />
+                  </button>
+                )}
                 <button
                   className="icon-btn"
                   onClick={() => { void handleAiRename(); }}

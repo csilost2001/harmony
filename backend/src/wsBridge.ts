@@ -1,6 +1,14 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { EventEmitter } from "events";
 import { randomUUID } from "crypto";
+import { CodexConnection } from "./codex/connection.js";
+import type { ServerNotification } from "./codex/types/ServerNotification.js";
+import type { ServerRequest } from "./codex/types/ServerRequest.js";
+import type { TurnStartParams } from "./codex/types/v2/TurnStartParams.js";
+import type { TurnSteerParams } from "./codex/types/v2/TurnSteerParams.js";
+import type { TurnInterruptParams } from "./codex/types/v2/TurnInterruptParams.js";
+import type { ThreadStartParams } from "./codex/types/v2/ThreadStartParams.js";
+import type { ThreadResumeParams } from "./codex/types/v2/ThreadResumeParams.js";
 import {
   registerEditor as presenceRegisterEditor,
   registerViewer as presenceRegisterViewer,
@@ -227,6 +235,114 @@ class WsBridge extends EventEmitter {
   private draftHistoryStores = new Map<string, DraftHistoryStore>();
   /** spec §12.4 / §18.3: 1h 周期の EditSession cleanupExpired タイマー */
   private editSessionCleanupTimer: NodeJS.Timeout | null = null;
+
+  // ── Codex App Server integration (#867) ──────────────────────────────────
+  /** Singleton CodexConnection — lazy (on-demand connect). Module-local to wsBridge. */
+  private _codexConn: CodexConnection | null = null;
+
+  /**
+   * Pending Codex server-initiated requests waiting for a browser client to respond.
+   * key = requestId (from ServerRequest.id, coerced to string).
+   * 5 min default timeout via HARMONY_CODEX_APPROVAL_TIMEOUT_MS.
+   */
+  private _codexPendingServerRequests = new Map<
+    string,
+    { resolve: (result: unknown) => void; reject: (err: Error) => void; timer: NodeJS.Timeout }
+  >();
+
+  /** Lazy getter for CodexConnection singleton. */
+  private _getCodexConnection(): CodexConnection {
+    if (!this._codexConn) {
+      this._codexConn = new CodexConnection();
+
+      // Subscribe to notifications and forward to all WS clients.
+      this._codexConn.subscribe((n: ServerNotification) => {
+        this._broadcastCodexNotification(n.method, n.params);
+      });
+
+      // Subscribe to server-initiated requests: broadcast to all clients, manage pending map.
+      this._codexConn.subscribeServerRequest((r: ServerRequest) => {
+        return this._handleCodexServerRequest(r);
+      });
+    }
+    return this._codexConn;
+  }
+
+  /** Broadcast a codex notification to all WS clients (cross-workspace). */
+  private _broadcastCodexNotification(method: string, params: unknown): void {
+    this.broadcast({
+      wsId: null,
+      event: "codex.notification",
+      data: { method, params },
+    });
+  }
+
+  /** Broadcast a codex server request to all WS clients; manage pending response map. */
+  private _handleCodexServerRequest(r: ServerRequest): Promise<unknown> {
+    const timeoutMs = parseInt(
+      process.env.HARMONY_CODEX_APPROVAL_TIMEOUT_MS ?? "300000",
+      10,
+    );
+    const requestId = String(r.id);
+
+    // Reject if the same id is already pending (shouldn't happen but be safe).
+    const existing = this._codexPendingServerRequests.get(requestId);
+    if (existing) {
+      clearTimeout(existing.timer);
+      existing.reject(new Error(`duplicate server request id: ${requestId}`));
+      this._codexPendingServerRequests.delete(requestId);
+    }
+
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this._codexPendingServerRequests.delete(requestId);
+        reject(new Error(`approval timeout for server request id=${requestId}`));
+      }, timeoutMs);
+
+      this._codexPendingServerRequests.set(requestId, { resolve, reject, timer });
+
+      this.broadcast({
+        wsId: null,
+        event: "codex.serverRequest",
+        data: { id: requestId, method: r.method, params: r.params },
+      });
+    });
+  }
+
+  /** Handle `codex.serverRequest.respond` from browser. */
+  private _resolveCodexServerRequest(requestId: string, result: unknown, isError: false): void;
+  private _resolveCodexServerRequest(
+    requestId: string,
+    result: { code: number; message: string },
+    isError: true,
+  ): void;
+  private _resolveCodexServerRequest(
+    requestId: string,
+    result: unknown,
+    isError: boolean,
+  ): void {
+    const pending = this._codexPendingServerRequests.get(requestId);
+    if (!pending) return; // already resolved or timed out — silently drop
+    clearTimeout(pending.timer);
+    this._codexPendingServerRequests.delete(requestId);
+    if (isError) {
+      const e = result as { code: number; message: string };
+      const err = new Error(e.message);
+      (err as Error & { code?: number }).code = e.code;
+      pending.reject(err);
+    } else {
+      pending.resolve(result);
+    }
+  }
+
+  /** Close CodexConnection on shutdown. */
+  private async _closeCodexConnection(): Promise<void> {
+    if (this._codexConn) {
+      const conn = this._codexConn;
+      this._codexConn = null;
+      await conn.close();
+    }
+  }
 
   get isConnected(): boolean {
     return this.clients.size > 0;
@@ -739,6 +855,8 @@ class WsBridge extends EventEmitter {
   stop(): void {
     presenceStopCleanupInterval();
     this.stopEditSessionCleanup();
+    // Close Codex connection if it was opened (#867)
+    void this._closeCodexConnection();
     if (this.wss) {
       for (const client of this.wss.clients) {
         client.terminate();
@@ -1814,6 +1932,154 @@ class WsBridge extends EventEmitter {
           } catch (e) {
             respondError(e instanceof Error ? e.message : String(e));
           }
+          break;
+        }
+
+        // ── Codex App Server (#867) ──────────────────────────────────────────
+        // All codex.* methods delegate to the CodexConnection singleton.
+        // The connection is established on first use (on-demand).
+
+        case "codex.account.read": {
+          try {
+            const state = await this._getCodexConnection().account.readState();
+            respond(state);
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.account.login.start": {
+          try {
+            const pending = await this._getCodexConnection().account.startChatgptLogin();
+            pending.completion.catch(() => {
+              // Browser observes login completion via Codex notifications; avoid unhandled rejections here.
+            });
+            respond({ loginId: pending.loginId, authUrl: pending.authUrl });
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.account.login.cancel": {
+          const { loginId: cxLoginId } = (params ?? {}) as { loginId: string };
+          try {
+            await this._getCodexConnection().account.cancelChatgptLogin(cxLoginId);
+            respond({ cancelled: true });
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.account.logout": {
+          try {
+            await this._getCodexConnection().account.logout();
+            respond({ ok: true });
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.account.rateLimits.read": {
+          try {
+            const result = await this._getCodexConnection().account.readRateLimits();
+            respond(result);
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.turn.start": {
+          try {
+            const result = await this._getCodexConnection().request<unknown>(
+              "turn/start",
+              params as TurnStartParams,
+            );
+            respond(result);
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.turn.steer": {
+          try {
+            const result = await this._getCodexConnection().request<unknown>(
+              "turn/steer",
+              params as TurnSteerParams,
+            );
+            respond(result);
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.turn.interrupt": {
+          try {
+            const result = await this._getCodexConnection().request<unknown>(
+              "turn/interrupt",
+              params as TurnInterruptParams,
+            );
+            respond(result);
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.thread.start": {
+          try {
+            const result = await this._getCodexConnection().request<unknown>(
+              "thread/start",
+              params as ThreadStartParams,
+            );
+            respond(result);
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.thread.resume": {
+          try {
+            const result = await this._getCodexConnection().request<unknown>(
+              "thread/resume",
+              params as ThreadResumeParams,
+            );
+            respond(result);
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.model.list": {
+          try {
+            const result = await this._getCodexConnection().request<unknown>("model/list", {});
+            respond(result);
+          } catch (e) {
+            respondError(e instanceof Error ? e.message : String(e));
+          }
+          break;
+        }
+
+        case "codex.serverRequest.respond": {
+          const { requestId: srId, result: srResult, error: srError } = (params ?? {}) as {
+            requestId: string;
+            result?: unknown;
+            error?: { code: number; message: string };
+          };
+          if (srError) {
+            this._resolveCodexServerRequest(srId, srError, true);
+          } else {
+            this._resolveCodexServerRequest(srId, srResult, false);
+          }
+          respond({ ok: true });
           break;
         }
 

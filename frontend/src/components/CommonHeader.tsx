@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { HeaderMenu } from "./HeaderMenu";
 import { WorkspaceIndicator } from "./workspace/WorkspaceIndicator";
+import { CodexIndicator } from "./codex/CodexIndicator";
 import "../styles/commonHeader.css";
 
 interface Props {
@@ -21,6 +22,7 @@ export function CommonHeader({ notification, userName }: Props) {
         {notification}
       </div>
       <div className="common-header-right">
+        <CodexIndicator />
         <span className="common-header-user">
           <i className="bi bi-person-circle" />
           <span className="common-header-user-label">{userName ?? "ゲスト"}</span>
