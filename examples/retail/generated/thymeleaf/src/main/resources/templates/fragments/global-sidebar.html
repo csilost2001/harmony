@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<body>
+
+<!--
+  Gadget: c1cff7da-1057-4ba1-b780-2d021f6c8679
+  name: ナビゲーションサイドバー
+  cssFramework: bootstrap
+  processFlowId: なし (静的ナビゲーションのみ)
+-->
+<nav th:fragment="gadget" class="nav flex-column">
+  <h6 class="text-uppercase text-muted small mb-3 mt-2">メニュー</h6>
+  <a th:href="@{/products/search}" class="nav-link link-dark py-2 px-2 rounded">商品検索</a>
+  <a th:href="@{/orders}" class="nav-link link-dark py-2 px-2 rounded">注文一覧</a>
+  <a th:href="@{/master/customers}" class="nav-link link-dark py-2 px-2 rounded">顧客一覧</a>
+  <a th:href="@{/master/products}" class="nav-link link-dark py-2 px-2 rounded">マスタ管理</a>
+</nav>
+
+</body>
+</html>

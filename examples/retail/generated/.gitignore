@@ -1,0 +1,6 @@
+# Build artifacts (Docker container がホスト権限で書き出す物を除外)
+target/
+node_modules/
+.next/
+*.jar
+*.log

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<body>
+
+<!--
+  Gadget: f7daa764-4015-4ad7-8f0a-142944ea2038
+  name: グローバルフッタ
+  cssFramework: bootstrap
+  processFlowId: なし
+-->
+<div th:fragment="gadget" class="d-flex w-100 justify-content-between small text-muted">
+  <span th:text="${copyright != null} ? ${copyright} : '© 2026 Harmony Retail Inc.'">© 2026 Harmony Retail Inc.</span>
+  <span th:text="${version != null} ? ${version} : 'v1.0.0'">v1.0.0</span>
+</div>
+
+</body>
+</html>

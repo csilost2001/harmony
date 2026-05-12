@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<body>
+
+<!--
+  Gadget: 68709449-c9e1-47db-a351-ac9c12a19046
+  name: グローバルヘッダ
+  cssFramework: bootstrap
+  processFlowId: 60e08c25-3daa-41b4-a7bd-b8f5fb571349 (ヘッダーガジェット処理)
+-->
+<div th:fragment="gadget" class="d-flex w-100 align-items-center justify-content-between">
+  <div class="d-flex align-items-center gap-3">
+    <span class="navbar-brand mb-0">Harmony Retail</span>
+    <span class="badge bg-light text-dark"
+          th:text="${storeName != null} ? ${storeName} : '店舗未選択'">店舗</span>
+  </div>
+  <div class="d-flex align-items-center gap-3">
+    <span class="text-white"
+          th:text="${userName != null} ? (${userName} + ' さん') : 'ゲスト さん'">ゲスト さん</span>
+    <form th:action="@{/fragments/global-header/act-logout}" method="post" class="m-0">
+      <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>
