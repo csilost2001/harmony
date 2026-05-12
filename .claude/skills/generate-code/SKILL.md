@@ -1,7 +1,7 @@
 ---
 name: generate-code
 description: project.techStack に基づき ProcessFlow JSON → backend code / Screen JSON → frontend code を AI が生成する。Spring Boot/Thymeleaf 系と NestJS/Next.js 系の 2 種類の techStack 組合せをカバー。
-argument-hint: <flowId|screenId> [出力先ディレクトリ]
+argument-hint: <flowId|screenId|pageLayoutId> | --all | --workspace <wsId> [出力先]
 disable-model-invocation: true
 ---
 
@@ -10,6 +10,9 @@ disable-model-invocation: true
     /generate-code f81dd9e0-794c-4539-a2a5-9cbcc0a75899
     /generate-code e6147dc0-94b7-436d-ba87-d0080ac34f44
     /generate-code f81dd9e0-794c-4539-a2a5-9cbcc0a75899 .tmp/generated-code/order-confirm
+    /generate-code --all                                  (active workspace 全 entity)
+    /generate-code --workspace examples/retail            (指定 wsId を active 扱いで bulk)
+    /generate-code --workspace examples/retail .tmp/out/  (出力先指定)
 
   目的:
     project.techStack を読み取り、ProcessFlow JSON または Screen JSON から
@@ -47,11 +50,34 @@ RFC #1021 で追加された以下の 3 種類の入力に対して、code gener
 
 ## Step 0: 引数解析
 
-`$ARGUMENTS` を以下のように解析する。
+`$ARGUMENTS` を以下のいずれかの形式で解析する。
 
-- 第1引数 `<flowId|screenId>` (必須): UUID v4 形式
+### 単発モード (従来)
+
+```
+/generate-code <flowId|screenId|pageLayoutId> [出力先]
+```
+
+- 第1引数 `<flowId|screenId|pageLayoutId>` (必須): UUID v4 形式
   - UUID でない場合は「引数エラー: UUID v4 形式で指定してください」と報告して中止
 - 第2引数 `<出力先>` (任意): ディレクトリパス (default: `.tmp/generated-code/<入力UUID8桁>/`)
+
+### bulk モード (`--all` / `--workspace`)
+
+```
+/generate-code --all [出力先]                  # active workspace の全 entity を順次生成
+/generate-code --workspace <wsId> [出力先]      # 指定 wsId を active 扱いで bulk 実行
+```
+
+- `--all`: active workspace の `project.json` / `harmony.json` から `entities.processFlows[]`, `entities.screens[]`, `entities.pageLayouts[]` を全て読み、各 UUID に対して Step 1 以降を順次実行する
+- `--workspace <wsId>`: 第 2 引数として workspace ID を受け取り、`workspaces/<wsId>/` (または `examples/<wsId>/`) を active 扱いで Step 1 以降を順次実行 (既存 active を変更しない)
+- 出力先 (default: `.tmp/generated-code/bulk-<UTC-yyyymmdd-hhmmss>/`) は entity 種別ごとにサブディレクトリで分離する:
+  ```
+  <出力先>/process-flows/<flowId8桁>/   各 ProcessFlow の生成物
+  <出力先>/screens/<screenId8桁>/        各 Screen の生成物
+  <出力先>/page-layouts/<layoutId8桁>/   各 PageLayout の生成物
+  ```
+- bulk モード時の実行詳細は Step 5 「bulk モード時のループ動作」を参照
 
 出力先ディレクトリが存在しない場合はコード生成前に作成する (PowerShell: `New-Item -ItemType Directory -Force`)。
 
@@ -1025,6 +1051,46 @@ frontend (React + Next.js):
   # Route Handler (Step 3-C、processFlowId 連携あり時のみ、action ごと 1 ファイル):
   <出力先>/app/api/gadgets/<gadgetId>/<actionId>/route.ts
 ```
+
+### bulk モード時のループ動作
+
+Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 を各 entity に対して順次繰り返す。
+
+**実行ポリシー**:
+
+1. `project.json` (または `harmony.json`) の `entities.processFlows[]`, `entities.screens[]`, `entities.pageLayouts[]` から全 ID を抽出
+2. **推奨順序**: PageLayout → Screen (purpose=gadget → page の順) → ProcessFlow
+   - 理由: Screen が ProcessFlow を参照 (handlerFlowId)、Page が PageLayout を参照 (pageLayoutId) するため、参照される側から先に生成すると AI のコンテキスト整合がとりやすい
+3. 各 ID で Step 1〜6 を実行、出力は entity 種別サブディレクトリへ振り分け
+4. **順次実行**: 1 entity ごとに Step 1〜6 を完走してから次へ。並列実行はしない (出力ディレクトリ競合とログ混線を避ける、AI の対話駆動という性質上 1 シーケンスで進める方が品質安定)
+5. **エラー継続**: 1 entity の生成に失敗してもループは継続。失敗 entity は ID + エラー要約を `<出力先>/bulk-report.md` に記録
+6. **進捗報告**: 各 entity 種別の境界 (PageLayout 完了 / Screen 完了 / ProcessFlow 完了) で「N / M 完了、失敗 K 件」を AI 出力として明示。10 件超のループでは 10 件ごとにも中間報告
+
+**完了レポート** (`<出力先>/bulk-report.md`):
+
+```markdown
+# /generate-code bulk report
+
+**実行日時**: 2026-05-12 14:30:00 〜 2026-05-12 14:45:23 (15 分 23 秒)
+**入力**: --workspace examples/retail
+**出力先**: .tmp/generated-code/bulk-20260512-143000/
+**合計**: 18 entity (PageLayout 1 / Screen 11 / ProcessFlow 6)
+**成功**: 17 / 失敗: 1
+
+## 失敗 entity
+
+| 種別 | ID | name | エラー要約 |
+|---|---|---|---|
+| Screen | abc12345-... | 商品検索 | 必須フィールド `kind` 欠落 (Step 2 validation) |
+
+## 成功 entity (種別別カウント)
+
+- PageLayout: 1/1
+- Screen: 10/11
+- ProcessFlow: 6/6
+```
+
+**bulk モード時の smoke 検証 (Step 6)**: 各 entity の smoke は同様に実行するが、結果は bulk-report.md に集計のみ記載。個別 entity 単位の詳細レポートは生成しない。
 
 ## Step 6: smoke 検証 (§11)
 
