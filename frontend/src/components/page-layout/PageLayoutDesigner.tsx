@@ -242,13 +242,13 @@ async function _injectWithEditor(
     const assignments = pl.assignments ?? {};
     const gadgetIds = [...new Set(Object.values(assignments).filter(Boolean))];
     const htmlMap = new Map<string, string>();
-    await Promise.all(gadgetIds.map(async (id) => {
+    await mapWithConcurrency(gadgetIds, GADGET_DATA_LOAD_CONCURRENCY, async (id) => {
       try {
         const design = await mcpBridge.request("loadScreen", { screenId: id });
         const html = extractGrapesHtml(design);
         if (html) htmlMap.set(id, html);
       } catch { /* gadget design 不在は無視、placeholder fallback */ }
-    }));
+    });
     injectGadgetPreviews(editor, assignments, screens, htmlMap);
   } catch (e) {
     console.warn("[PageLayoutDesigner] gadget inject failed:", e);

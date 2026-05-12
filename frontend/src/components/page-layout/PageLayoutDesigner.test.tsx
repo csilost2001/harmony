@@ -104,6 +104,8 @@ describe("PageLayoutDesigner", () => {
     mockState.componentAddHandlers.clear();
     mockState.broadcastHandlers.clear();
     mockState.pageLayout = defaultPageLayout;
+    vi.mocked(mcpBridge.request).mockResolvedValue({ sessions: [] });
+    vi.mocked(mcpBridge.loadPuckData).mockResolvedValue(null);
     localStorage.clear();
   });
 
@@ -155,6 +157,48 @@ describe("PageLayoutDesigner", () => {
     await waitFor(() => {
       expect(loadProject).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it("loads GrapesJS gadget HTML with concurrency limit", async () => {
+    mockState.pageLayout = {
+      ...defaultPageLayout,
+      assignments: Object.fromEntries(
+        Array.from({ length: 20 }, (_, i) => [`region-${i}`, `gadget-${i}`]),
+      ),
+      design: { editorKind: "grapesjs", cssFramework: "bootstrap" },
+    };
+    let active = 0;
+    let maxActive = 0;
+    const resolvers: Array<() => void> = [];
+    vi.mocked(mcpBridge.request).mockImplementation(() => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      return new Promise((resolve) => {
+        resolvers.push(() => {
+          active -= 1;
+          resolve({ html: "<div>gadget</div>" });
+        });
+      });
+    });
+
+    renderDesigner();
+
+    await waitFor(() => {
+      expect(resolvers).toHaveLength(4);
+    });
+
+    for (let resolved = 0; resolved < 20;) {
+      const batch = resolvers.splice(0);
+      resolved += batch.length;
+      batch.forEach((resolve) => resolve());
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+
+    await waitFor(() => {
+      expect(mcpBridge.request).toHaveBeenCalledTimes(20);
+    });
+    expect(maxActive).toBeLessThanOrEqual(4);
   });
 
   it("loads Puck gadget data with concurrency limit", async () => {

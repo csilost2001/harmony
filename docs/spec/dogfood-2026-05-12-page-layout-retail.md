@@ -94,7 +94,7 @@ Codex で PR #1031 全体を fresh context で adversarial レビュー。Must-f
 ## 5. 残 follow-up (本 PR 以降)
 
 - **G-1 / G-2 パフォーマンス**: loadProject キャッシュ + Puck gadget data の concurrency limit (MVP scale で実用上問題なし、Phase 2 で最適化)
-- **ScreenDesigner.tsx の dead code 整理**: 旧 ScreenDesigner.tsx は route element でなく、本 PR で確認した通り使われていない (DesignerTabHost.tsx が design tab の表示元になった)。別 PR で削除候補
+- **画面デザイナー wrapper の dead code 整理**: 旧 wrapper は route element でなく、DesignerTabHost.tsx が design tab の表示元になったため PR #1045 で削除済み
 
 ## 4. 修正された bugs (dogfood で発見)
 
