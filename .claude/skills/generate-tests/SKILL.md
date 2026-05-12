@@ -1309,6 +1309,20 @@ Screen:
   });
 ```
 
+**SC-D の msw handler 方針** (pl-7 dogfood #1038 で確認):
+
+valueFrom がない output items が多い画面 (例: ダッシュボード) では、実際にはコンポーネント内部で
+API を呼ぶケースが多い。この場合の msw handler は以下のように生成する:
+
+- items 全体が valueFrom なしで、かつ Screen.kind が "dashboard" / "detail" / "list" 等 API 依存が明らかな場合:
+  → PLACEHOLDER msw handler を生成し、実際の API エンドポイントが判明したら差し替えを案内する
+  → handlers 配列に `// PLACEHOLDER: GET /api/<resource>/<id> → データ取得 API エンドポイントを確認すること` を挿入
+
+- items 全体が valueFrom なしで、かつ Screen.kind が "form" / "confirm" 等 UI 起動時の API 不要が明らかな場合:
+  → msw handler なし (SC-D のテストのみ生成)
+
+判断不明確な場合は PLACEHOLDER 形式で msw handler を生成し、README の PLACEHOLDER 解決表に記録する。
+
 #### SC-E. events[].handlerFlowId → click → fetch 発火テスト
 
 events 配列が空でない場合のみ生成する。
@@ -2360,11 +2374,18 @@ mock 戻り値への影響:
   → action.inputs[] に turnContext (string) があるが、spec 上は "DialogTurn[] の JSON 文字列 (暫定)"
      と書かれている (#939 提案 A 移行で type を AiMessage[] に変えるのが理想だが、現状は string)。
      テスト fixture では JSON.parse 後に AiMessage[] になる文字列を渡す。
-     例: turnContext = JSON.stringify([
-           { role: 'user', content: 'Hello!' },
-           { role: 'assistant', content: 'Hi, how are you?' }
-         ])
-     を request body に含めて送る。
+
+     **fixture 変数の定義 (ファイル先頭で const として定義すること)**:
+     ```typescript
+     // AiMessageSpread fixture: @turnContext (DialogTurn[] の JSON 文字列)
+     // Spec: step-<N> messages[<M>] kind="spread", ref="@turnContext"
+     const turnContextFixture = JSON.stringify([
+       { role: 'user', content: 'Hello!' },
+       { role: 'assistant', content: 'Hi, how are you?' }
+     ]);
+     ```
+     request body には `turnContext: turnContextFixture` として渡す。
+     2〜3 ターン分を含めると会話コンテキストの spread 動作が検証できる。
 ```
 
 ### P5-5. AiImageSource variant の生成例
