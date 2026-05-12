@@ -3,6 +3,7 @@
   "id": "cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3",
   "name": "カート確認",
   "description": "カート明細 (読み取り専用) と配送先住所を確認・入力する (S-3)。注文確定ボタンで注文確定フローを実行する。",
+  "purpose": "page",
   "kind": "confirm",
   "path": "/cart/confirm",
   "auth": "required",
@@ -14,7 +15,10 @@
     {
       "id": "cartSummary",
       "label": "カート明細",
-      "type": { "kind": "array", "itemType": "json" },
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
       "direction": "viewer",
       "viewDefinitionId": "f8b286e4-77c0-41b9-9c34-9291d00cabc3",
       "valueFrom": {
@@ -69,9 +73,18 @@
       "direction": "input",
       "required": true,
       "options": [
-        { "value": "credit_card", "label": "クレジットカード" },
-        { "value": "bank_transfer", "label": "銀行振込" },
-        { "value": "cod", "label": "代金引換" }
+        {
+          "value": "credit_card",
+          "label": "クレジットカード"
+        },
+        {
+          "value": "bank_transfer",
+          "label": "銀行振込"
+        },
+        {
+          "value": "cod",
+          "label": "代金引換"
+        }
       ],
       "errorMessages": {
         "required": "支払方法を選択してください。"
@@ -95,7 +108,10 @@
     {
       "id": "confirmOrderButton",
       "label": "注文確定",
-      "type": { "kind": "extension", "extensionRef": "retail:button" },
+      "type": {
+        "kind": "extension",
+        "extensionRef": "retail:button"
+      },
       "direction": "output",
       "readonly": true,
       "events": [

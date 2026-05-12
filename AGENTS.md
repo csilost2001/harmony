@@ -216,6 +216,10 @@ URL 規約: **`/category/feature[/:id]`** 形式（Java 風階層）。ルート
 | `/process-flow/list` | ProcessFlowListView | 処理フロー一覧 | ✅ singleton |
 | `/extensions` | ExtensionsPanel | 拡張管理 | ✅ singleton |
 | `/process-flow/edit/:processFlowId` | ProcessFlowEditor | 処理フロー編集 | ✅ per-resource |
+| `/page-layout/list` | PageLayoutListView | ページレイアウト一覧 (RFC #1021) | ✅ singleton |
+| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 | ✅ per-resource |
+| `/page-layout/design/:pageLayoutId` | PageLayoutDesigner | ページレイアウト Designer | ✅ per-resource |
+| `/gadget/list` | GadgetListView | ガジェット一覧 (Screen.purpose=gadget filter) | ✅ singleton |
 
 ワークスペース概念 (active workspace / lockdown / recent / 切替プロトコル) は [docs/spec/workspace.md](docs/spec/workspace.md) を参照。複数ワークスペースの**同時並行編集** (v2) は [docs/spec/workspace-multi.md](docs/spec/workspace-multi.md) を参照 (#679 シリーズ)。
 

@@ -5,6 +5,7 @@ export type DraftResourceType =
   | "process-flow"
   | "view"
   | "view-definition"
+  | "page-layout"  // #1023: PageLayout (pl-2)
   | "screen-item"
   | "sequence"
   | "extension"

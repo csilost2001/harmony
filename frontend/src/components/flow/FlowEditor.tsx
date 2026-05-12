@@ -30,8 +30,9 @@ import { EdgeEditModal, type EdgeFormData, type HandlePosition } from "./EdgeEdi
 import type { FlowProject, ScreenNode, ScreenEdge, ScreenGroup } from "../../types/flow";
 import type { Screen } from "../../types/v3/screen";
 import type { Marker } from "../../types/v3/common";
+import type { PageLayoutEntry } from "../../types/v3/project";
 import { TRIGGER_LABELS } from "../../types/flow";
-import type { ScreenGroupId, ScreenKind, ScreenFlowPositions, Timestamp } from "../../types/v3";
+import type { ScreenGroupId, ScreenKind, ScreenFlowPositions, Timestamp, Uuid } from "../../types/v3";
 import {
   loadProject,
   loadRawProject,
@@ -52,6 +53,7 @@ import {
   generateFlowMarkdown,
 } from "../../store/flowStore";
 import { buildDefaultScreen, loadScreenEntity, saveScreenEntity } from "../../store/screenStore";
+import { listPageLayouts } from "../../store/pageLayoutStore";
 import { clearScreenFlowPositionsPreview, saveScreenFlowPositionsPreview } from "../../store/screenFlowPositionsStore";
 import { duplicateScreenDesignData } from "../../store/duplicateScreen";
 import { resolveEditorKind } from "../../utils/resolveEditorKind";
@@ -224,7 +226,8 @@ function FlowEditorInner() {
     const prev = undoStackRef.current[undoStackRef.current.length - 1];
     undoStackRef.current = undoStackRef.current.slice(0, -1);
     projectRef.current = prev;
-    setNodes(toRFNodesWithGroups(prev.screens, prev.groups ?? [], screenEntitiesRef.current));
+    // purpose='gadget' は画面遷移図に表示しない (pl-4, #1025)
+    setNodes(toRFNodesWithGroups(prev.screens.filter((s) => s.purpose !== "gadget"), prev.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(prev.edges));
     setProjectName(prev.name);
     saveProject(prev).catch(console.error);
@@ -238,7 +241,8 @@ function FlowEditorInner() {
     const next = redoStackRef.current[redoStackRef.current.length - 1];
     redoStackRef.current = redoStackRef.current.slice(0, -1);
     projectRef.current = next;
-    setNodes(toRFNodesWithGroups(next.screens, next.groups ?? [], screenEntitiesRef.current));
+    // purpose='gadget' は画面遷移図に表示しない (pl-4, #1025)
+    setNodes(toRFNodesWithGroups(next.screens.filter((s) => s.purpose !== "gadget"), next.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(next.edges));
     setProjectName(next.name);
     saveProject(next).catch(console.error);
@@ -252,12 +256,14 @@ function FlowEditorInner() {
   const reloadProject = useCallback(async () => {
     const [project, raw] = await Promise.all([loadProject(), loadRawProject()]);
     projectRef.current = project;
-    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
+    // purpose='gadget' は画面遷移図に表示しない (pl-4, #1025)
+    const pageScreens = project.screens.filter((s) => s.purpose !== "gadget");
+    setNodes(toRFNodesWithGroups(pageScreens, project.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(project.edges));
     setProjectName(project.name);
     setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.techStack));
     setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.techStack));
-    needsFitViewRef.current = project.screens.length > 0;
+    needsFitViewRef.current = pageScreens.length > 0;
     setIsLoading(false);
     setIsDirty(false);
     isDirtyRef.current = false;
@@ -307,6 +313,8 @@ function FlowEditorInner() {
   // project.techStack.designer の project default (画面作成ダイアログのデフォルト選択値)
   const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
   const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
+  // pageLayoutId 選択 dropdown 用 (pl-4, #1025)
+  const [pageLayouts, setPageLayouts] = useState<PageLayoutEntry[]>([]);
 
   // Modals
   const [screenModal, setScreenModal] = useState<{
@@ -329,6 +337,11 @@ function FlowEditorInner() {
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
   }, [contextMenu]);
+
+  // PageLayout 一覧をロード (pageLayoutId 選択 dropdown 用, pl-4, #1025)
+  useEffect(() => {
+    listPageLayouts().then(setPageLayouts).catch(console.error);
+  }, []);
 
   // ノード位置変更時の保存デバウンス
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -443,6 +456,8 @@ function FlowEditorInner() {
         kind: data.type as ScreenKind,
         path: data.path,
         description: data.description,
+        // pageLayoutId 更新 (purpose='page' のみ意味を持つ, pl-4, #1025)
+        pageLayoutId: (data.pageLayoutId || undefined) as (Uuid | undefined),
       });
       setNodes((nds) => nds.map((n) => {
         if (n.id !== screenModal.editId || !projectRef.current) return n;
@@ -508,7 +523,13 @@ function FlowEditorInner() {
       setScreenModal({
         open: true,
         editId: screen.id,
-        initial: { name: screen.name, type: screen.kind, path: screen.path, description: screen.description },
+        initial: {
+          name: screen.name,
+          type: screen.kind,
+          path: screen.path,
+          description: screen.description,
+          pageLayoutId: screen.pageLayoutId ? String(screen.pageLayoutId) : undefined,
+        },
       });
     }
     setContextMenu(null);
@@ -1215,6 +1236,7 @@ function FlowEditorInner() {
         isCreate={!screenModal.editId}
         defaultEditorKind={projectDefaultEditorKind}
         defaultCssFramework={projectDefaultCssFramework}
+        pageLayouts={screenModal.editId ? pageLayouts : undefined}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />

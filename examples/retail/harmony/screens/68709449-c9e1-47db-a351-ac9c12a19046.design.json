@@ -1,0 +1,17 @@
+{
+  "dataSources": [],
+  "assets": [],
+  "styles": [],
+  "pages": [
+    {
+      "frames": [
+        {
+          "component": {
+            "type": "wrapper",
+            "components": "\n<header class=\"d-flex align-items-center justify-content-between px-3 py-2 bg-primary text-white\" style=\"min-height: 56px;\">\n  <div class=\"d-flex align-items-center gap-2\">\n    <i class=\"bi bi-shop fs-4\"></i>\n    <span class=\"fw-bold fs-5\" id=\"storeName\" data-item-id=\"storeName\">店舗 A</span>\n  </div>\n  <div class=\"d-flex align-items-center gap-3\">\n    <span class=\"small\">\n      <i class=\"bi bi-person-circle me-1\"></i>\n      <span id=\"userName\" data-item-id=\"userName\">山田 太郎</span>\n    </span>\n    <button type=\"button\" class=\"btn btn-sm btn-outline-light\" id=\"logoutButton\" data-item-id=\"logoutButton\">\n      <i class=\"bi bi-box-arrow-right me-1\"></i>ログアウト\n    </button>\n  </div>\n</header>\n"
+          }
+        }
+      ]
+    }
+  ]
+}

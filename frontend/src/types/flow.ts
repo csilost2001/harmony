@@ -15,6 +15,7 @@ import type {
   ScreenKind,
   ScreenTransitionEntry,
   Timestamp,
+  Uuid,
 } from "./v3";
 
 /** UI 用 ScreenNode: v3 Screen 業務情報 + UI 座標 (ScreenFlowPositions.positions[id])。 */
@@ -24,8 +25,19 @@ export interface ScreenNode {
   no: number;
   name: string;
   kind: ScreenKind;
+  /**
+   * Screen 用途種別 (RFC #1021)。
+   * 'page' (デフォルト) = 画面遷移図の対象 / URL ルートを持つ。
+   * 'gadget' = PageLayout の region に割り当てられる自律部品。
+   * undefined は 'page' 相当として扱う。
+   */
+  purpose?: "page" | "gadget";
   description: string;
   path: string;
+  /**
+   * 本 Screen が使用する PageLayout の ID (purpose='page' のみ意味を持つ)。
+   */
+  pageLayoutId?: Uuid;
   position: { x: number; y: number };
   size: { width: number; height: number };
   hasDesign: boolean;

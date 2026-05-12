@@ -3,6 +3,7 @@
   "id": "f05fd315-2c78-48e5-9968-2633255b286e",
   "name": "顧客マスター",
   "description": "顧客マスタの一覧・検索画面。email / name / isActive を表示し、詳細リンクから顧客詳細へ遷移できる。",
+  "purpose": "page",
   "kind": "list",
   "path": "/master/customers",
   "auth": "required",

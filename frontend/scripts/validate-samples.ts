@@ -33,6 +33,13 @@ import type { Conventions } from "../src/types/v3/conventions.js";
 import type { ViewDefinition } from "../src/types/v3/view-definition.js";
 import type { ScreenTransitionEntry } from "../src/types/v3/project.js";
 
+/** PageLayout entity の最小型 (cross-entity validator 用) */
+interface PageLayoutForValidator {
+  id?: string;
+  assignments?: Record<string, string>;
+  regions?: Array<{ name: string }>;
+}
+
 const designerDir = resolve(__dirname, "..");
 const repoRoot = resolve(designerDir, "..");
 
@@ -49,6 +56,8 @@ interface ProjectResources {
   flowsDir: string;
   /** project レベル外部 catalog (#939 提案 C、harmony/catalogs/external.json)。読み込み失敗 / ファイル無しの場合は null */
   externalCatalogs: ProjectCatalogs | null;
+  /** PageLayout entity 一覧 (page-layouts/ ディレクトリから読み込む、#1022) */
+  pageLayouts: PageLayoutForValidator[];
 }
 
 interface ValidationIssue {
@@ -129,6 +138,16 @@ function loadScreensFromDir(dir: string): Screen[] {
     // `.design.json` は GrapesJS 状態ファイルのため除外 (Screen 定義ではない)
     const files = readdirSync(dir).filter((f) => f.endsWith(".json") && !f.endsWith(".design.json"));
     return files.map((f) => JSON.parse(readFileSync(join(dir, f), "utf-8")) as Screen);
+  } catch {
+    return [];
+  }
+}
+
+function loadPageLayoutsFromDir(dir: string): PageLayoutForValidator[] {
+  if (!existsSync(dir)) return [];
+  try {
+    const files = readdirSync(dir).filter((f) => f.endsWith(".json") && !f.endsWith(".design.json"));
+    return files.map((f) => JSON.parse(readFileSync(join(dir, f), "utf-8")) as PageLayoutForValidator);
   } catch {
     return [];
   }
@@ -215,6 +234,7 @@ function discoverProject(projectDirArg: string): ProjectResources {
     screenTransitions: loadScreenTransitionsFromProjectJson(projectDir),
     flowsDir: join(dataDir, "process-flows"),
     externalCatalogs,
+    pageLayouts: loadPageLayoutsFromDir(join(dataDir, "page-layouts")),
   };
 }
 
@@ -464,6 +484,124 @@ export function checkDesignFilePresence(project: ProjectResources): ValidationIs
   return issues;
 }
 
+/**
+ * Check 3: PageLayout assignments 整合性チェック (#1022)
+ *
+ * 各 PageLayout の assignments の各 region について:
+ * - 指定された Screen ID が screens/ に実在するか
+ * - 指定された Screen が purpose='gadget' であるか (page Screen を gadget として使えない)
+ */
+export function checkPageLayoutAssignments(project: ProjectResources): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (project.pageLayouts.length === 0) return issues;
+
+  // Screen を ID で引くマップ構築
+  const screenById = new Map<string, Screen>();
+  for (const screen of project.screens) {
+    const id = screen.id ?? "";
+    if (id) screenById.set(id, screen);
+  }
+
+  for (const layout of project.pageLayouts) {
+    const layoutId = layout.id ?? "unknown";
+    const assignments = layout.assignments ?? {};
+    // RFC #1021 pl-6 (Codex B-3): assignments key が宣言された region に存在することも検証
+    const declaredRegions = new Set<string>();
+    const regions = (layout as Record<string, unknown>).regions;
+    if (Array.isArray(regions)) {
+      for (const r of regions) {
+        if (r && typeof r === "object" && typeof (r as Record<string, unknown>).name === "string") {
+          declaredRegions.add((r as Record<string, unknown>).name as string);
+        }
+      }
+    }
+
+    for (const [regionName, screenId] of Object.entries(assignments)) {
+      if (!screenId) continue;
+
+      if (declaredRegions.size > 0 && !declaredRegions.has(regionName)) {
+        issues.push({
+          validator: "pageLayoutValidator",
+          severity: "error",
+          code: "PAGE_LAYOUT_ASSIGNMENT_UNKNOWN_REGION",
+          path: `page-layouts/${layoutId}.json`,
+          message: `assignments のキー "${regionName}" が regions[] で宣言されていません (typo の可能性)。宣言済 region: ${[...declaredRegions].join(", ")}`,
+        });
+        continue;
+      }
+
+      const screen = screenById.get(screenId);
+      if (!screen) {
+        issues.push({
+          validator: "pageLayoutValidator",
+          severity: "error",
+          code: "PAGE_LAYOUT_ASSIGNMENT_SCREEN_NOT_FOUND",
+          path: `page-layouts/${layoutId}.json`,
+          message: `assignments.${regionName} で指定された Screen ID "${screenId}" が screens/ に存在しません`,
+        });
+        continue;
+      }
+
+      // purpose フィールドは Screen 型に未追加のため raw アクセス
+      const purpose = (screen as Record<string, unknown>).purpose;
+      if (purpose !== "gadget") {
+        issues.push({
+          validator: "pageLayoutValidator",
+          severity: "error",
+          code: "PAGE_LAYOUT_ASSIGNMENT_NOT_GADGET",
+          path: `page-layouts/${layoutId}.json`,
+          message: `assignments.${regionName} で指定された Screen "${screenId}" は purpose='gadget' ではありません (実際: purpose='${purpose ?? "page (default)"}')。PageLayout の region には purpose='gadget' の Screen のみ割り当て可能です`,
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Check 4: Screen.pageLayoutId 参照整合性チェック (#1022)
+ *
+ * purpose='page' の Screen が pageLayoutId を指定している場合:
+ * - 指定された PageLayout ID が page-layouts/ に実在するか
+ */
+export function checkPageLayoutIds(project: ProjectResources): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  // RFC #1021 pl-6 (Codex B-4): pageLayouts が 0 件でも Screen.pageLayoutId が指定されていれば error
+  // (project に PageLayout 不在のままなのに Screen が参照している → 参照崩れ)
+
+  // PageLayout を ID で引くセット
+  const pageLayoutIds = new Set<string>();
+  for (const layout of project.pageLayouts) {
+    if (layout.id) pageLayoutIds.add(layout.id);
+  }
+
+  for (const screen of project.screens) {
+    const id = screen.id ?? "unknown";
+    const purpose = (screen as Record<string, unknown>).purpose;
+    const pageLayoutId = (screen as Record<string, unknown>).pageLayoutId;
+
+    // purpose='gadget' の Screen は pageLayoutId を持たないはず → skip
+    if (purpose === "gadget") continue;
+
+    if (typeof pageLayoutId === "string" && pageLayoutId.length > 0) {
+      if (!pageLayoutIds.has(pageLayoutId)) {
+        issues.push({
+          validator: "pageLayoutValidator",
+          severity: "error",
+          code: "SCREEN_PAGE_LAYOUT_ID_NOT_FOUND",
+          path: `screens/${id}.json`,
+          message: `pageLayoutId "${pageLayoutId}" が page-layouts/ に存在しません`,
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
 export async function runValidation(projectDirArg: string): Promise<ValidationSummary> {
   const project = discoverProject(projectDirArg);
   const { extensions, fileCount: extensionFileCount } = loadExtensions(project.projectDir);
@@ -633,6 +771,14 @@ export async function runValidation(projectDirArg: string): Promise<ValidationSu
     projectIssues.push(i);
   }
 
+  for (const i of checkPageLayoutAssignments(project)) {
+    projectIssues.push(i);
+  }
+
+  for (const i of checkPageLayoutIds(project)) {
+    projectIssues.push(i);
+  }
+
   if (projectIssues.length > 0) {
     projectResults.push({
       projectId: project.projectId,
@@ -674,6 +820,7 @@ const validatorDisplayOrder = [
   "runtimeContractValidator",
   "processFlowAntipatternValidator",
   "outputBindingTransformationsValidator",
+  "pageLayoutValidator",
 ];
 
 export function printSummary(summary: ValidationSummary): void {

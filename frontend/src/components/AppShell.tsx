@@ -16,10 +16,14 @@ import { ViewListView } from "./view/ViewListView";
 import { ViewEditor } from "./view/ViewEditor";
 import { ViewDefinitionListView } from "./view-definition/ViewDefinitionListView";
 import { ViewDefinitionEditor } from "./view-definition/ViewDefinitionEditor";
+import { PageLayoutListView } from "./page-layout/PageLayoutListView";
+import { PageLayoutEditor } from "./page-layout/PageLayoutEditor";
+import { PageLayoutDesigner } from "./page-layout/PageLayoutDesigner";
+import { GadgetListView } from "./gadget/GadgetListView";
 import { WorkspaceListView } from "./workspace/WorkspaceListView";
 import { WorkspaceSelectView } from "./workspace/WorkspaceSelectView";
 import { TechStackView } from "./project/TechStackView";
-import { Designer } from "./Designer";
+import { DesignerTabHost } from "./DesignerTabHost";
 import { DashboardView } from "./dashboard/DashboardView";
 import { TabBar } from "./TabBar";
 import { CommonHeader } from "./CommonHeader";
@@ -30,6 +34,7 @@ import { loadProcessFlow } from "../store/processFlowStore";
 import { loadSequence } from "../store/sequenceStore";
 import { loadView } from "../store/viewStore";
 import { loadViewDefinition } from "../store/viewDefinitionStore";
+import { loadPageLayout } from "../store/pageLayoutStore";
 import {
   getTabs,
   getActiveTabId,
@@ -316,6 +321,10 @@ export function AppShell() {
         <Route path="view/edit/:viewId" element={<ViewEditor />} />
         <Route path="view-definition/list" element={<ViewDefinitionListView />} />
         <Route path="view-definition/edit/:viewDefinitionId" element={<ViewDefinitionEditor />} />
+        <Route path="page-layout/list" element={<PageLayoutListView />} />
+        <Route path="page-layout/edit/:pageLayoutId" element={<PageLayoutEditor />} />
+        <Route path="page-layout/design/:pageLayoutId" element={<PageLayoutDesigner />} />
+        <Route path="gadget/list" element={<GadgetListView />} />
         <Route path="project/tech-stack" element={<TechStackView />} />
       </Route>
       <Route path="/workspace/list" element={<WorkspaceListView />} />
@@ -390,7 +399,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     }
     // non-null → 別の non-null / null: ユーザー操作による workspace 切替 / 閉じる
     prevActiveWorkspaceIdRef.current = currentId;
-    const perResourceTypes: TabType[] = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items"];
+    const perResourceTypes: TabType[] = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout"];
     const dirtyLabels = getTabs()
       .filter((t) => t.isDirty && perResourceTypes.includes(t.type))
       .map((t) => t.label);
@@ -534,6 +543,21 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   // URL → タブ同期（ブラウザの直接ナビゲーション / mcpBridge.navigateScreen）
   // /w/:wsId/* 配下で使用するため、全 matchPath を /w/:wsId/... 規約に更新
   useEffect(() => {
+    // RFC #1021 pl-6 (Codex B-1): URL → タブ同期で発生する 2 段階の race condition を防ぐ:
+    //   (a) workspace.open 未完了で active=null → loadXxx() 全 reject (resource not found ループ)
+    //   (b) wsId が URL と active で異なる (workspace 切替直後) → 旧 active workspace に対して load が走る
+    // 上記いずれの場合も effect を待機させる。workspace state が「URL と一致」するまで no-op。
+    if (workspaceState.loading) return;
+    // RFC #1021 pl-6 (Codex 2nd review): e2e bypass 以外の error 状態 (offline / error 表示中) でも
+    // workspace が active になっていない可能性があるため待機する
+    if (workspaceState.error && workspaceState.error !== "e2e bypass") return;
+    if (workspaceState.error === "e2e bypass") return;
+    if (!workspaceState.lockdown) {
+      if (workspaceState.active === null) return;
+      // wsId が解決された URL を期待: /w/:wsId/... のとき active.id と一致するまで待つ
+      if (wsId && workspaceState.active.id !== wsId) return;
+    }
+
     uiInfo("urlsync", "pathname change", { pathname: location.pathname });
     const designMatch = matchPath("/w/:wsId/screen/design/:screenId", location.pathname);
     if (designMatch?.params.screenId) {
@@ -668,6 +692,30 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       return;
     }
 
+    const pageLayoutEditMatch = matchPath("/w/:wsId/page-layout/edit/:pageLayoutId", location.pathname);
+    const pageLayoutDesignMatch = matchPath("/w/:wsId/page-layout/design/:pageLayoutId", location.pathname);
+    const pageLayoutMatch = pageLayoutEditMatch ?? pageLayoutDesignMatch;
+    if (pageLayoutMatch?.params.pageLayoutId) {
+      const pageLayoutId = decodeURIComponent(pageLayoutMatch.params.pageLayoutId);
+      const tabId = makeTabId("page-layout", pageLayoutId);
+      const existing = getTabs().find((t) => t.id === tabId);
+      if (existing) {
+        setActiveTab(tabId);
+      } else {
+        loadPageLayout(pageLayoutId).then((pl) => {
+          if (pl) {
+            openTab({ id: tabId, type: "page-layout", resourceId: pageLayoutId, label: pl.name });
+          } else {
+            fallbackToDashboard("ページレイアウト", pageLayoutId);
+          }
+        }).catch((e) => {
+          recordError({ source: "manual", message: "loadPageLayout 失敗", stack: e instanceof Error ? e.stack : undefined });
+          fallbackToDashboard("ページレイアウト", pageLayoutId);
+        });
+      }
+      return;
+    }
+
     const screenItemsMatch = matchPath("/w/:wsId/screen/items/:screenId", location.pathname);
     if (screenItemsMatch?.params.screenId) {
       const screenId = screenItemsMatch.params.screenId;
@@ -709,6 +757,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       { path: `${wsPrefix}/sequence/list`,      type: "sequence-list",      label: "シーケンス一覧" },
       { path: `${wsPrefix}/view/list`,          type: "view-list",           label: "ビュー一覧" },
       { path: `${wsPrefix}/view-definition/list`, type: "view-definition-list", label: "ビュー定義一覧" },
+      { path: `${wsPrefix}/page-layout/list`,    type: "page-layout-list",    label: "ページレイアウト一覧" },
+      { path: `${wsPrefix}/gadget/list`,          type: "gadget-list",          label: "ガジェット一覧" },
       { path: "/workspace/list",                       type: "workspace-list", label: "ワークスペース" },
       { path: `${wsPrefix}/project/tech-stack`,         type: "tech-stack",     label: "技術スタック" },
     ];
@@ -721,7 +771,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
         return;
       }
     }
-  }, [location.pathname, fallbackToDashboard, wsId]);
+  }, [location.pathname, fallbackToDashboard, wsId, workspaceState.loading, workspaceState.active, workspaceState.lockdown, workspaceState.error]);
 
   // アクティブタブ → URL 同期
   // workspace が完全未選択 (active=null + wsId 無し) や /workspace/select 表示中は同期を停止する。
@@ -761,6 +811,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       : activeTab.type === "sequence"         ? `${wp}/sequence/edit/${activeTab.resourceId}`
       : activeTab.type === "view"             ? `${wp}/view/edit/${activeTab.resourceId}`
       : activeTab.type === "view-definition"  ? `${wp}/view-definition/edit/${activeTab.resourceId}`
+      : activeTab.type === "page-layout"      ? `${wp}/page-layout/edit/${activeTab.resourceId}`
       : activeTab.type === "screen-flow"      ? `${wp}/screen/flow`
       : activeTab.type === "screen-list"      ? `${wp}/screen/list`
       : activeTab.type === "table-list"       ? `${wp}/table/list`
@@ -772,6 +823,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       : activeTab.type === "sequence-list"    ? `${wp}/sequence/list`
       : activeTab.type === "view-list"              ? `${wp}/view/list`
       : activeTab.type === "view-definition-list"   ? `${wp}/view-definition/list`
+      : activeTab.type === "page-layout-list"       ? `${wp}/page-layout/list`
+      : activeTab.type === "gadget-list"            ? `${wp}/gadget/list`
       : activeTab.type === "workspace-list"         ? "/workspace/list"
       : activeTab.type === "tech-stack"             ? `${wp}/project/tech-stack`
       : activeTab.type === "dashboard"              ? `${wp}/`
@@ -838,7 +891,9 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
               />
             )}
           >
-            <Designer
+            {/* RFC #1021 pl-6 (Codex C-1): DesignerTabHost で pageLayout + gadget の design HTML を
+                pre-load して composition preview modal を有効化 */}
+            <DesignerTabHost
               screenId={tab.resourceId}
               screenName={tab.label}
               isActive={activeTabId === tab.id}

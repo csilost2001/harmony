@@ -3,6 +3,7 @@
   "id": "4a9df651-e0cc-4523-a9bf-f3fb9d45c53f",
   "name": "在庫一覧",
   "description": "店舗別在庫を一覧表示する (S-1)。店舗フィルタ・低在庫フィルタを提供し、補充ボタンから補充フローへ遷移できる。",
+  "purpose": "page",
   "kind": "list",
   "path": "/inventory",
   "auth": "required",
@@ -18,9 +19,18 @@
       "direction": "input",
       "required": true,
       "options": [
-        { "value": "S-001", "label": "東京本店" },
-        { "value": "S-002", "label": "大阪支店" },
-        { "value": "S-003", "label": "名古屋支店" }
+        {
+          "value": "S-001",
+          "label": "東京本店"
+        },
+        {
+          "value": "S-002",
+          "label": "大阪支店"
+        },
+        {
+          "value": "S-003",
+          "label": "名古屋支店"
+        }
       ],
       "events": [
         {

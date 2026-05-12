@@ -47,10 +47,12 @@
         "no": 1,
         "name": "ダッシュボード",
         "kind": "dashboard",
+        "purpose": "page",
         "path": "/",
+        "pageLayoutId": "17595b62-fef1-4b22-9c25-16736c772567",
         "groupId": "a7285b88-9e12-4d2c-94c6-ef6bd788685d",
         "maturity": "committed",
-        "updatedAt": "2026-05-02T00:00:00.000Z"
+        "updatedAt": "2026-05-12T00:00:00.000Z"
       },
       {
         "id": "e6147dc0-94b7-436d-ba87-d0080ac34f44",
@@ -151,6 +153,36 @@
         "groupId": "8c592e1b-dfa4-4fc6-8a0c-e584996b0075",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
+      },
+      {
+        "id": "68709449-c9e1-47db-a351-ac9c12a19046",
+        "no": 12,
+        "name": "グローバルヘッダ",
+        "kind": "other",
+        "purpose": "gadget",
+        "maturity": "committed",
+        "hasDesign": true,
+        "updatedAt": "2026-05-12T00:00:00.000Z"
+      },
+      {
+        "id": "c1cff7da-1057-4ba1-b780-2d021f6c8679",
+        "no": 13,
+        "name": "ナビゲーションサイドバー",
+        "kind": "other",
+        "purpose": "gadget",
+        "maturity": "committed",
+        "hasDesign": true,
+        "updatedAt": "2026-05-12T00:00:00.000Z"
+      },
+      {
+        "id": "f7daa764-4015-4ad7-8f0a-142944ea2038",
+        "no": 14,
+        "name": "グローバルフッタ",
+        "kind": "other",
+        "purpose": "gadget",
+        "maturity": "committed",
+        "hasDesign": true,
+        "updatedAt": "2026-05-12T00:00:00.000Z"
       }
     ],
     "screenGroups": [
@@ -395,6 +427,15 @@
         "actionCount": 1,
         "maturity": "committed",
         "updatedAt": "2026-05-03T00:00:00.000Z"
+      },
+      {
+        "id": "60e08c25-3daa-41b4-a7bd-b8f5fb571349",
+        "no": 6,
+        "name": "ヘッダーガジェット処理",
+        "kind": "common",
+        "actionCount": 1,
+        "maturity": "committed",
+        "updatedAt": "2026-05-12T00:00:00.000Z"
       }
     ],
     "views": [
@@ -517,6 +558,19 @@
         "physicalName": "seq_shipment_id",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
+      }
+    ],
+    "pageLayouts": [
+      {
+        "id": "17595b62-fef1-4b22-9c25-16736c772567",
+        "no": 1,
+        "name": "Main Layout",
+        "maturity": "committed",
+        "updatedAt": "2026-05-12T00:00:00.000Z",
+        "regionCount": 4,
+        "assignmentCount": 3,
+        "hasProcessFlow": false,
+        "hasDesign": true
       }
     ]
   }

@@ -121,11 +121,15 @@ export type PuckRenderEditorProps = RenderEditorBaseProps;
  *   - onMcpStatusChange: mcpBridge 接続状態通知
  *   - onExternalThemeChange: AI rename 等で mcpBridge.setThemeHandler 経由で外部から
  *     theme 変更要求が来たときの通知
+ *   - onGrapesEditorInstance: raw GrapesJS Editor インスタンスを受け取るコールバック (pl-5 #1026)
+ *     PageLayoutDesigner が region への gadget injection に利用する (optional)
  */
 export interface GrapesJSRenderEditorProps extends RenderEditorBaseProps {
   onServerChanged: () => void;
   onMcpStatusChange: (status: McpStatus) => void;
   onExternalThemeChange: (themeId: ThemeId) => void;
+  /** raw GrapesJS Editor インスタンスを受け取る (pl-5 #1026、optional) */
+  onGrapesEditorInstance?: (editor: import("grapesjs").Editor) => void;
 }
 
 /**

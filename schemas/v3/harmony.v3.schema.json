@@ -52,7 +52,8 @@
         "viewDefinitions": { "type": "array", "items": { "$ref": "#/$defs/ViewDefinitionEntry" } },
         "sequences": { "type": "array", "items": { "$ref": "#/$defs/SequenceEntry" } },
         "screenGroups": { "type": "array", "items": { "$ref": "#/$defs/ScreenGroupEntry" } },
-        "screenTransitions": { "type": "array", "items": { "$ref": "#/$defs/ScreenTransitionEntry" } }
+        "screenTransitions": { "type": "array", "items": { "$ref": "#/$defs/ScreenTransitionEntry" } },
+        "pageLayouts": { "type": "array", "items": { "$ref": "#/$defs/PageLayoutEntry" } }
       }
     },
 
@@ -188,7 +189,17 @@
       "type": "object",
       "properties": {
         "kind": { "type": "string", "description": "ScreenKind 文字列 (login/dashboard/list/detail/form 等、または 'retail:storefront' 等の拡張参照)。" },
-        "path": { "type": "string", "description": "URL ルーティングパス。" },
+        "purpose": {
+          "type": "string",
+          "enum": ["page", "gadget"],
+          "default": "page",
+          "description": "Screen 用途種別 (RFC #1021)。'page' = 画面遷移図対象、'gadget' = PageLayout の region に割り当てられる自律部品。一覧 UI のフィルタ用に entry にもキャッシュ。"
+        },
+        "path": { "type": "string", "description": "URL ルーティングパス (purpose='page' のみ意味を持つ)。" },
+        "pageLayoutId": {
+          "$ref": "common.v3.schema.json#/$defs/Uuid",
+          "description": "本 Screen が使用する PageLayout の ID (purpose='page' のみ)。逆参照表示用にキャッシュ。"
+        },
         "groupId": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
         "hasDesign": { "type": "boolean" }
       },
@@ -245,6 +256,19 @@
       "properties": {
         "physicalName": { "$ref": "common.v3.schema.json#/$defs/PhysicalName" },
         "conventionRef": { "type": "string", "description": "@conv.numbering.<key> 形式の参照。" }
+      },
+      "unevaluatedProperties": false
+    },
+
+    "PageLayoutEntry": {
+      "description": "PageLayout entry (RFC #1021)。schemas/v3/page-layout.v3.schema.json と対応。",
+      "allOf": [{ "$ref": "#/$defs/EntryBase" }],
+      "type": "object",
+      "properties": {
+        "regionCount": { "type": "integer", "minimum": 0, "description": "region 数 (一覧 UI 表示用キャッシュ)。" },
+        "assignmentCount": { "type": "integer", "minimum": 0, "description": "assignments 件数 (一覧 UI 表示用キャッシュ)。" },
+        "hasProcessFlow": { "type": "boolean", "description": "ガジェット間連携 ProcessFlow を持つか (optional)。" },
+        "hasDesign": { "type": "boolean", "description": "design payload (GrapesJS or Puck data ファイル) を持つか。" }
       },
       "unevaluatedProperties": false
     },

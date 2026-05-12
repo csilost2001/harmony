@@ -3,6 +3,7 @@
   "id": "2e23d129-1d53-4e30-b54c-97f90b910578",
   "name": "商品マスター",
   "description": "商品マスタの一覧・検索・新規登録・編集・削除を行う補助画面。productCode / name / unitPrice / isActive を管理する。",
+  "purpose": "page",
   "kind": "list",
   "path": "/master/products",
   "auth": "required",

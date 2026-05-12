@@ -58,6 +58,14 @@ const MENU_ITEMS: MenuItem[] = [
     activePaths: ["/view-definition/list"], activePrefixes: ["/view-definition/edit/"],
   },
   {
+    id: "page-layout-list", label: "ページレイアウト一覧", icon: "bi-layout-wtf", route: "/page-layout/list",
+    activePaths: ["/page-layout/list"], activePrefixes: ["/page-layout/edit/", "/page-layout/design/"],
+  },
+  {
+    id: "gadget-list", label: "ガジェット一覧", icon: "bi-puzzle-fill", route: "/gadget/list",
+    activePaths: ["/gadget/list"], activePrefixes: [],
+  },
+  {
     id: "workspace-list", label: "ワークスペース", icon: "bi-folder2-open", route: "/workspace/list",
     activePaths: ["/workspace/list", "/workspace/select"],
   },

@@ -1,0 +1,79 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "60e08c25-3daa-41b4-a7bd-b8f5fb571349",
+    "name": "ヘッダーガジェット処理",
+    "description": "PageLayout の header region に配置される グローバルヘッダ gadget の専用 ProcessFlow。logout ボタン押下時のセッション破棄 + ログイン画面リダイレクト処理を提供する。Thymeleaf 大規模パターンの『各ガジェットが専用 controller を持つ』方針を踏襲 (RFC #1021 決定 2)。",
+    "kind": "common",
+    "maturity": "committed",
+    "createdAt": "2026-05-12T00:00:00.000Z",
+    "updatedAt": "2026-05-12T00:00:00.000Z"
+  },
+  "context": {
+    "ambientVariables": [
+      {
+        "name": "sessionCustomerId",
+        "type": "integer",
+        "required": true,
+        "description": "セッションから取得したログイン顧客 ID (@conv.auth.sessionCookie 経由)。ログアウト対象セッションの識別に使用。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-logout",
+      "name": "ログアウト処理",
+      "trigger": "submit",
+      "description": "ヘッダの logoutButton 押下時に発火する。サーバ側でセッションを破棄し、ログイン画面 (/login) へリダイレクトする。",
+      "maturity": "committed",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/retail/auth/logout",
+        "auth": "required"
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "redirectTo",
+          "label": "リダイレクト先",
+          "type": "string",
+          "description": "ログアウト完了後のリダイレクト URL (固定: '/login')。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "bodySchema": {
+            "schema": {
+              "type": "object",
+              "required": ["redirectTo"],
+              "properties": {
+                "redirectTo": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "description": "ログアウト成功。redirectTo にログイン画面のパスを返す。",
+          "when": "セッション破棄が成功した場合 (失敗ケースは 401 セッション切れ等を含み、いずれも redirectTo='/login' を返してログイン画面に誘導)。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "compute",
+          "description": "セッション破棄後のリダイレクト先 URL を導出する。具体的なセッション invalidate は framework 側 (Spring Security / NestJS Passport 等) に委ね、本フローはレスポンスの redirectTo を明示する。",
+          "expression": "'/login'",
+          "outputBinding": { "name": "redirectTo" }
+        },
+        {
+          "id": "step-02",
+          "kind": "return",
+          "description": "redirectTo='/login' を含むレスポンスを返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ redirectTo: @redirectTo }"
+        }
+      ]
+    }
+  ]
+}

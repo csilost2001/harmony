@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "f7daa764-4015-4ad7-8f0a-142944ea2038",
+  "name": "グローバルフッタ",
+  "description": "全画面共通のグローバルフッタ。コピーライト表記とアプリバージョンを表示する。PageLayout の footer region に割り当てられる gadget。",
+  "purpose": "gadget",
+  "kind": "other",
+  "maturity": "committed",
+  "createdAt": "2026-05-12T00:00:00.000Z",
+  "updatedAt": "2026-05-12T00:00:00.000Z",
+  "items": [
+    {
+      "id": "copyright",
+      "label": "コピーライト",
+      "type": "string",
+      "direction": "output",
+      "description": "著作権表記。例: © 2026 Harmony Retail Inc."
+    },
+    {
+      "id": "version",
+      "label": "バージョン",
+      "type": "string",
+      "direction": "output",
+      "description": "アプリケーションバージョン文字列。例: v1.0.0"
+    }
+  ],
+  "design": {
+    "editorKind": "grapesjs",
+    "cssFramework": "bootstrap"
+  }
+}

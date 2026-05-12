@@ -233,6 +233,8 @@ interface GrapesJSEditorPaneProps {
   onMcpStatusChange?: (status: McpStatus) => void;
   /** mcpBridge.setThemeHandler 経由で外部から theme 変更要求が来たときの通知 (AI rename 等) */
   onExternalThemeChange?: (themeId: ThemeId) => void;
+  /** raw GrapesJS Editor インスタンスを受け取る (pl-5 #1026、optional) */
+  onGrapesEditorInstance?: (editor: GEditor) => void;
 }
 
 function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
@@ -254,6 +256,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
     onServerChanged,
     onMcpStatusChange,
     onExternalThemeChange,
+    onGrapesEditorInstance,
   } = props;
 
   const editorRef = useRef<GEditor | null>(null);
@@ -286,6 +289,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
   const onMcpStatusChangeRef = useRef(onMcpStatusChange);
   const onExternalThemeChangeRef = useRef(onExternalThemeChange);
   const reloadPayloadRef = useRef(reloadPayload);
+  const onGrapesEditorInstanceRef = useRef(onGrapesEditorInstance);
   useEffect(() => {
     onChangeRef.current = onChange;
     onReadyRef.current = onReady;
@@ -293,7 +297,8 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
     onMcpStatusChangeRef.current = onMcpStatusChange;
     onExternalThemeChangeRef.current = onExternalThemeChange;
     reloadPayloadRef.current = reloadPayload;
-  }, [onChange, onReady, onServerChanged, onMcpStatusChange, onExternalThemeChange, reloadPayload]);
+    onGrapesEditorInstanceRef.current = onGrapesEditorInstance;
+  }, [onChange, onReady, onServerChanged, onMcpStatusChange, onExternalThemeChange, reloadPayload, onGrapesEditorInstance]);
 
   /**
    * GrapesJS editor 取得時の初期化 — registerRemoteStorage / registerBlocks / カスタムブロック /
@@ -418,7 +423,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
     }
 
     // EditorApi を親に expose
-    if (onReadyRef.current && editorRef.current) {
+    if (editorRef.current) {
       const editor = editorRef.current;
       const api: EditorApi = {
         applyTheme: (variant: ThemeId, framework: CssFramework) => {
@@ -452,7 +457,9 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
         getProjectData: () => editor.getProjectData(),
         clearUndo: () => editor.UndoManager.clear(),
       };
-      onReadyRef.current(api);
+      if (onReadyRef.current) onReadyRef.current(api);
+      // raw editor instance を expose (pl-5 #1026: PageLayoutDesigner の gadget injection 用)
+      if (onGrapesEditorInstanceRef.current) onGrapesEditorInstanceRef.current(editor);
     }
   // initialPayload は mount 時点の値を使う (再 mount しないため依存に含めない)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -637,6 +644,7 @@ export class GrapesJSBackend implements EditorBackend<GrapesJSRenderEditorProps>
         onServerChanged={props.onServerChanged}
         onMcpStatusChange={props.onMcpStatusChange}
         onExternalThemeChange={props.onExternalThemeChange}
+        onGrapesEditorInstance={props.onGrapesEditorInstance}
       />
     );
   }

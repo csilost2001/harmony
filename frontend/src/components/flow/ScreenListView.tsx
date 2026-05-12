@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { ScreenNode } from "../../types/flow";
 import { SCREEN_KIND_LABELS, SCREEN_KIND_ICONS } from "../../types/flow";
-import type { ScreenId, ScreenKind, Timestamp } from "../../types/v3";
+import type { ScreenId, ScreenKind, Timestamp, Uuid } from "../../types/v3";
+import type { PageLayoutEntry } from "../../types/v3/project";
 import { loadProject, loadRawProject, saveProject, addScreen, removeScreen, DEFAULT_NODE_SIZE } from "../../store/flowStore";
 import { buildDefaultScreen, loadPuckScreenValidationMap, saveScreenEntity } from "../../store/screenStore";
+import { listPageLayouts } from "../../store/pageLayoutStore";
 import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { mcpBridge } from "../../mcp/mcpBridge";
@@ -62,13 +64,16 @@ export function ScreenListView() {
   const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
   const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
+  // pageLayoutId 選択 dropdown 用 (pl-4, #1025)
+  const [pageLayouts, setPageLayouts] = useState<PageLayoutEntry[]>([]);
 
   const loadScreens = useCallback(async (): Promise<ScreenNode[]> => {
     mcpBridge.startWithoutEditor();
     const [p, raw] = await Promise.all([loadProject(), loadRawProject()]);
     setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.techStack));
     setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.techStack));
-    return p.screens;
+    // purpose='gadget' はガジェット一覧 (/gadget/list) で管理するため除外 (pl-4, #1025)
+    return p.screens.filter((s) => s.purpose !== "gadget");
   }, []);
 
   const commitScreens = useCallback(async ({ itemsInOrder, deletedIds }: { itemsInOrder: ScreenNode[]; deletedIds: string[] }) => {
@@ -77,12 +82,14 @@ export function ScreenListView() {
     for (const id of deletedIds) {
       await removeScreen(project, id);
     }
-    // 並び順反映
+    // 並び順反映 (purpose='gadget' はこのビューでは管理しないため分離して末尾に保持)
     const deletedSet = new Set(deletedIds);
     const orderMap = new Map(itemsInOrder.map((s, i) => [s.id, i]));
-    project.screens = project.screens
-      .filter((s) => !deletedSet.has(s.id))
+    const gadgetScreens = project.screens.filter((s) => s.purpose === "gadget" && !deletedSet.has(s.id));
+    const pageScreens = project.screens
+      .filter((s) => s.purpose !== "gadget" && !deletedSet.has(s.id))
       .sort((a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0));
+    project.screens = renumber([...pageScreens, ...gadgetScreens]);
     await saveProject(project);
   }, []);
 
@@ -107,6 +114,11 @@ export function ScreenListView() {
   }, []);
 
   const screens = editor.items;
+
+  // PageLayout 一覧をロード (pageLayoutId 選択 dropdown 用, pl-4, #1025)
+  useEffect(() => {
+    listPageLayouts().then(setPageLayouts).catch(console.error);
+  }, []);
 
   // puck validation map のロード (TableListView.tsx と同パターン)
   useEffect(() => {
@@ -402,6 +414,8 @@ export function ScreenListView() {
         s.kind = data.type as ScreenKind;
         s.path = data.path;
         s.description = data.description;
+        // pageLayoutId 更新 (purpose='page' のみ意味を持つ, pl-4, #1025)
+        s.pageLayoutId = (data.pageLayoutId || undefined) as (Uuid | undefined);
         s.updatedAt = new Date().toISOString() as Timestamp;
         await saveProject(project);
       }
@@ -673,6 +687,7 @@ export function ScreenListView() {
         isCreate={!screenModal.editId}
         defaultEditorKind={projectDefaultEditorKind}
         defaultCssFramework={projectDefaultCssFramework}
+        pageLayouts={screenModal.editId ? pageLayouts : undefined}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />

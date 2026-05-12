@@ -3,6 +3,7 @@
   "id": "c2254dd6-ab5d-4428-931f-d27c71e89951",
   "name": "配送指示",
   "description": "注文の配送指示を登録する (S-4)。注文詳細 (読み取り専用) にキャリア・配送希望日・時間帯を入力し指示を確定する。",
+  "purpose": "page",
   "kind": "form",
   "path": "/orders/:id/dispatch",
   "auth": "required",
@@ -29,9 +30,18 @@
       "direction": "input",
       "required": true,
       "options": [
-        { "value": "yamato", "label": "ヤマト運輸" },
-        { "value": "sagawa", "label": "佐川急便" },
-        { "value": "japanpost", "label": "日本郵便" }
+        {
+          "value": "yamato",
+          "label": "ヤマト運輸"
+        },
+        {
+          "value": "sagawa",
+          "label": "佐川急便"
+        },
+        {
+          "value": "japanpost",
+          "label": "日本郵便"
+        }
       ],
       "errorMessages": {
         "required": "配送会社を選択してください。"
@@ -53,10 +63,22 @@
       "direction": "input",
       "required": false,
       "options": [
-        { "value": "morning", "label": "午前中" },
-        { "value": "afternoon", "label": "14:00〜18:00" },
-        { "value": "evening", "label": "18:00〜21:00" },
-        { "value": "any", "label": "指定なし" }
+        {
+          "value": "morning",
+          "label": "午前中"
+        },
+        {
+          "value": "afternoon",
+          "label": "14:00〜18:00"
+        },
+        {
+          "value": "evening",
+          "label": "18:00〜21:00"
+        },
+        {
+          "value": "any",
+          "label": "指定なし"
+        }
       ],
       "description": "S-4 配送指示の希望時間帯選択 (任意)。"
     },
@@ -75,7 +97,10 @@
     {
       "id": "dispatchOrderButton",
       "label": "配送指示登録",
-      "type": { "kind": "extension", "extensionRef": "retail:button" },
+      "type": {
+        "kind": "extension",
+        "extensionRef": "retail:button"
+      },
       "direction": "output",
       "readonly": true,
       "events": [

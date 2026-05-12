@@ -1,0 +1,48 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "68709449-c9e1-47db-a351-ac9c12a19046",
+  "name": "グローバルヘッダ",
+  "description": "全画面共通のグローバルヘッダ。店舗名・ログインユーザー名を表示し、ログアウトボタンを提供する。PageLayout の header region に割り当てられる gadget。",
+  "purpose": "gadget",
+  "kind": "other",
+  "maturity": "committed",
+  "processFlowId": "60e08c25-3daa-41b4-a7bd-b8f5fb571349",
+  "createdAt": "2026-05-12T00:00:00.000Z",
+  "updatedAt": "2026-05-12T00:00:00.000Z",
+  "items": [
+    {
+      "id": "storeName",
+      "label": "店舗名",
+      "type": "string",
+      "direction": "output",
+      "description": "ログイン中の店舗名。セッションから取得。"
+    },
+    {
+      "id": "userName",
+      "label": "ユーザー名",
+      "type": "string",
+      "direction": "output",
+      "description": "ログイン中のユーザー氏名。セッションから取得。"
+    },
+    {
+      "id": "logoutButton",
+      "label": "ログアウト",
+      "type": "boolean",
+      "direction": "input",
+      "description": "ログアウトボタン。クリックでセッションを破棄してログイン画面へ遷移。",
+      "events": [
+        {
+          "id": "click",
+          "label": "クリック",
+          "handlerFlowId": "60e08c25-3daa-41b4-a7bd-b8f5fb571349",
+          "handlerActionId": "act-logout",
+          "argumentMapping": {}
+        }
+      ]
+    }
+  ],
+  "design": {
+    "editorKind": "grapesjs",
+    "cssFramework": "bootstrap"
+  }
+}

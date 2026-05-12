@@ -24,6 +24,7 @@ v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念か
 | `harmony.v3.schema.json` | ワークスペース marker ファイル (`harmony.json`)。schemaVersion / meta / **dataDir** (必須、設計データ格納先の相対パス) / extensionsApplied (ExtensionApplied[]) / entities / authoring |
 | `screen.v3.schema.json` | Screen entity。EntityMeta + 業務情報のみ (kind / path / items / auth / permissions / design 参照)、UI 座標は分離。hasDesign は harmony.v3 の ScreenEntry 側で一覧表示用に保持 (Screen 本体には不在) |
 | `screen-flow-positions.v3.schema.json` | 画面フロー UI 座標 (Designer 専用、業務実装には不要)。data/screen-flow-positions.json |
+| `page-layout.v3.schema.json` | PageLayout (共通レイアウト entity、RFC #1021)。regions + assignments + design + optional processFlowId。data/page-layouts/<id>.json |
 | `screen-item.v3.schema.json` | ScreenItem (画面項目)。id は Identifier (camelCase 強制)、ValueSource discriminated union (組み込み 4 種 + 拡張) |
 | `table.v3.schema.json` | Table (DB テーブル)。EntityMeta + physicalName + columns + indexes + constraints (discriminated union: unique/check/foreignKey、FK は ConstraintDefinition に集約) + defaults + triggers |
 | `er-layout.v3.schema.json` | ER 図 UI 座標 + 論理リレーション。data/er-layout.json |

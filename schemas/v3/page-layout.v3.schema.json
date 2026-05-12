@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/page-layout.v3.schema.json",
+  "title": "PageLayout (v3 共通レイアウト entity)",
+  "description": "共通レイアウト entity 1 件分の正規定義 (#1021)。ヘッダ・サイドバー・フッタ等の region 構造を宣言し、各 region に gadget (Screen{purpose: 'gadget'}) を割り当てる。Screen{purpose: 'page'} が pageLayoutId で本 entity を参照すると、runtime 時に main slot (= content slot) に Screen 本文が嵌まる。PageLayout 自体は passive (横断 context や個別 handler を持たず、ガジェット間連携が必要な場合のみ processFlowId? で orchestrator を指定)。",
+  "type": "object",
+  "$ref": "#/$defs/PageLayout",
+  "$defs": {
+    "PageLayout": {
+      "description": "PageLayout entity 本体。EntityMeta + region 構造 + assignments + design 参照 + 任意の ProcessFlow 紐付け。",
+      "allOf": [
+        { "$ref": "common.v3.schema.json#/$defs/EntityMeta" }
+      ],
+      "type": "object",
+      "required": ["regions", "assignments", "design"],
+      "properties": {
+        "$schema": { "type": "string", "description": "instance JSON が参照する schema 文書への URL/相対パス。IDE の schema 関連付け用 (内容は loader が無視)。" },
+        "regions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Region" },
+          "minItems": 1,
+          "description": "PageLayout が宣言する region 一覧。予約名 (header / sidebar / footer / main) を含むことを推奨。main は content slot として page Screen 本文が嵌まる位置。"
+        },
+        "assignments": {
+          "type": "object",
+          "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+          "description": "region 名 → gadget Screen ID マップ。各 region に割り当てる Screen は purpose='gadget' でなければならない (cross-entity validator で検証)。main region は content slot として page Screen が嵌まるため assignments には通常含めない (含めても loader が無視)。"
+        },
+        "processFlowId": {
+          "$ref": "common.v3.schema.json#/$defs/Uuid",
+          "description": "ガジェット間連携 orchestrator として紐付ける ProcessFlow ID (optional)。MVP では schema 上は枠のみ用意、実装は Phase 2 (RFC #1021 Q2=a)。"
+        },
+        "design": {
+          "$ref": "#/$defs/PageLayoutDesign",
+          "description": "PageLayout のビジュアル定義参照 (region 配置の Designer 編集対象)。生 HTML / Puck data は別ファイル参照。"
+        },
+        "authoring": { "$ref": "common.v3.schema.json#/$defs/Authoring" }
+      },
+      "unevaluatedProperties": false
+    },
+
+    "Region": {
+      "description": "PageLayout 内の region (slot) 宣言。予約名: 'header' (最上部) / 'sidebar' (横) / 'footer' (最下部) / 'main' (= content slot、page Screen 本文が嵌まる位置)。任意追加名も許容 (例: 'breadcrumb' / 'notification' / 'subHeader')。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_-]*$",
+          "description": "Region 識別子。予約名 'header' / 'sidebar' / 'footer' / 'main' は位置・役割の意味論を持つ (RFC #1021 Q1=b)。"
+        },
+        "description": {
+          "type": "string",
+          "description": "Region の用途説明 (例: 'グローバルナビゲーション' / '左サイドバー')。"
+        }
+      }
+    },
+
+    "PageLayoutDesign": {
+      "description": "PageLayout デザインの参照情報。生 HTML/CSS (GrapesJS) または Puck Data tree (Puck) は別ファイル (workspace 配下) で管理し、本 schema は参照のみ持つ。editorKind / cssFramework は PageLayout 作成時に固定、以降変更不可 (multi-editor-puck.md 仕様準拠)。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["editorKind", "cssFramework"],
+      "properties": {
+        "editorKind": {
+          "type": "string",
+          "enum": ["grapesjs", "puck"],
+          "description": "本 PageLayout のエディタ種別。作成時に固定、以降変更不可。"
+        },
+        "cssFramework": {
+          "type": "string",
+          "enum": ["bootstrap", "tailwind"],
+          "description": "本 PageLayout の CSS フレームワーク。作成時に固定、以降変更不可。"
+        },
+        "designFileRef": {
+          "type": "string",
+          "description": "GrapesJS デザインファイルへの相対パス (editorKind='grapesjs' のとき、例: 'design.json')。editorKind='puck' のときは指定しない。"
+        },
+        "puckDataRef": {
+          "type": "string",
+          "description": "Puck Data JSON への相対パス (editorKind='puck' のとき、例: 'puck-data.json')。editorKind='grapesjs' のときは指定しない。"
+        },
+        "thumbnailRef": {
+          "type": "string",
+          "description": "サムネイル画像への相対パス または data URL。"
+        }
+      }
+    }
+  }
+}

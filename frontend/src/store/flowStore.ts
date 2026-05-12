@@ -32,6 +32,7 @@ import type {
   ProjectId,
   LocalId,
   ProcessFlowId,
+  Uuid,
 } from "../types/v3";
 import { SCREEN_KIND_LABELS, TRIGGER_LABELS } from "../types/flow";
 import { generateUUID } from "../utils/uuid";
@@ -183,8 +184,10 @@ export function composeFlowProject(
       no: s.no,
       name: s.name,
       kind: (s.kind ?? "other") as ScreenKind,
+      purpose: (s as { purpose?: "page" | "gadget" }).purpose,
       description: "",
       path: s.path ?? "",
+      pageLayoutId: (s as { pageLayoutId?: string }).pageLayoutId as (Uuid | undefined),
       position: { x: pos.x, y: pos.y },
       size: {
         width: pos.width ?? DEFAULT_NODE_SIZE.width,
@@ -282,6 +285,8 @@ export function decomposeFlowProject(
       screens: project.screens.map((s) => {
         // existing 同 id 画面があれば、既存の不明フィールド (html 等) を保持してマージ
         const existingScreen = existingRaw?.entities?.screens?.find((es) => es.id === s.id);
+        const purposeField = s.purpose !== undefined ? { purpose: s.purpose } : {};
+        const pageLayoutIdField = s.pageLayoutId !== undefined ? { pageLayoutId: s.pageLayoutId } : {};
         if (existingScreen) {
           return {
             ...existingScreen,
@@ -289,7 +294,9 @@ export function decomposeFlowProject(
             no: s.no,
             name: s.name,
             kind: s.kind,
+            ...purposeField,
             path: s.path,
+            ...pageLayoutIdField,
             hasDesign: s.hasDesign,
             groupId: s.groupId,
             updatedAt: s.updatedAt,
@@ -300,7 +307,9 @@ export function decomposeFlowProject(
           no: s.no,
           name: s.name,
           kind: s.kind,
+          ...purposeField,
           path: s.path,
+          ...pageLayoutIdField,
           hasDesign: s.hasDesign,
           groupId: s.groupId,
           updatedAt: s.updatedAt,
@@ -506,6 +515,7 @@ function normalizePersisted(raw: unknown): PersistedFlowProject {
         sequences: project.entities?.sequences,
         views: project.entities?.views,
         viewDefinitions: project.entities?.viewDefinitions,
+        pageLayouts: project.entities?.pageLayouts,
       },
     };
   }
@@ -742,6 +752,8 @@ export interface AddScreenOptions {
   editorKind?: "grapesjs" | "puck";
   /** 画面作成時に固定する CSS フレームワーク。省略時は呼び出し側で project.techStack.designer から解決して screen entity に書く。 */
   cssFramework?: "bootstrap" | "tailwind";
+  /** Screen 用途種別 (RFC #1021)。省略時は 'page' 相当。 */
+  purpose?: "page" | "gadget";
 }
 
 /** 画面を追加。 */
@@ -757,6 +769,7 @@ export async function addScreen(
     no: nextNo(project.screens),
     name,
     kind,
+    purpose: opts?.purpose,
     description: "",
     path: opts?.path ?? "",
     position: opts?.position ?? { x: 100 + project.screens.length * 250, y: 150 },
@@ -775,11 +788,29 @@ export async function addScreen(
 export async function updateScreen(
   project: FlowProject,
   screenId: string,
-  patch: Partial<Pick<ScreenNode, "name" | "kind" | "description" | "path" | "position" | "size">>,
+  patch: Partial<Pick<ScreenNode, "name" | "kind" | "description" | "path" | "position" | "size" | "pageLayoutId" | "purpose">>,
 ): Promise<ScreenNode | null> {
   const screen = project.screens.find((s) => s.id === screenId);
   if (!screen) return null;
-  Object.assign(screen, patch, { updatedAt: nowTs() });
+  // RFC #1021 pl-6:
+  //   - Sonnet review Should-fix: undefined を patch に持つ keys は Object.assign で
+  //     「明示的に undefined を書く」動作になり、既存値 (例: purpose='gadget') を消す。undefined は除外する。
+  //   - Codex 2nd review Should-fix: null は **明示的な解除 marker** として扱い、
+  //     対象 field を screen から delete する (pageLayoutId 解除等)。
+  const cleanedPatch: Record<string, unknown> = {};
+  const fieldsToDelete: string[] = [];
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) continue;
+    if (v === null) {
+      fieldsToDelete.push(k);
+      continue;
+    }
+    cleanedPatch[k] = v;
+  }
+  Object.assign(screen, cleanedPatch, { updatedAt: nowTs() });
+  for (const k of fieldsToDelete) {
+    delete (screen as unknown as Record<string, unknown>)[k];
+  }
   await saveProject(project);
   return screen;
 }

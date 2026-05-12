@@ -141,10 +141,17 @@ export const tools = [
   {
     name: "designer__list_screens",
     description:
-      "フロー図に登録されている全画面の一覧を取得します。各画面のID・名前・種別・想定URL・デザイン有無を返します。",
+      "プロジェクトに登録されている画面 (Screen) の一覧を取得します。purpose で page (画面遷移図対象) / gadget (PageLayout 部品) を絞り込めます (RFC #1021)。",
     inputSchema: {
       type: "object" as const,
-      properties: {},
+      properties: {
+        // RFC #1021 pl-6 (Codex D-6): purpose filter 追加
+        purpose: {
+          type: "string",
+          enum: ["page", "gadget"],
+          description: "省略時は全件返却。'page' = 通常画面のみ、'gadget' = PageLayout 部品のみ",
+        },
+      },
       required: [],
     },
   },
@@ -188,6 +195,11 @@ export const tools = [
           enum: ["bootstrap", "tailwind"],
           description: "CSS フレームワーク。省略時は project.techStack.designer.cssFramework → 'bootstrap' の順にフォールバック。画面作成時に固定、以降変更不可。",
         },
+        purpose: {
+          type: "string",
+          enum: ["page", "gadget"],
+          description: "Screen 用途種別 (RFC #1021)。'page'（デフォルト）= 通常画面、'gadget' = PageLayout の region に割り当てる自律部品。",
+        },
       },
       required: ["name"],
     },
@@ -195,7 +207,7 @@ export const tools = [
   {
     name: "designer__update_screen",
     description:
-      "既存画面のメタ情報（名前・種別・説明・想定URL）を更新します。",
+      "既存画面のメタ情報 (名前・種別・説明・想定URL・purpose・pageLayoutId) を更新します。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -210,7 +222,16 @@ export const tools = [
           description: "新しい画面種別",
         },
         description: { type: "string", description: "新しい説明" },
-        path: { type: "string", description: "新しい想定URL" },
+        path: { type: "string", description: "新しい想定URL (purpose=gadget の場合は省略可)" },
+        purpose: {
+          type: "string",
+          enum: ["page", "gadget"],
+          description: "Screen 用途種別 (RFC #1021)。'page'=通常画面 / 'gadget'=PageLayout の region に配置する自律部品",
+        },
+        pageLayoutId: {
+          type: "string",
+          description: "本 Screen が使用する PageLayout の ID (purpose=page のみ意味、空文字または null で解除)",
+        },
       },
       required: ["screenId"],
     },
@@ -567,6 +588,99 @@ export const tools = [
         },
       },
       required: ["tableId"],
+    },
+  },
+  {
+    name: "designer__list_page_layouts",
+    description: "プロジェクトに定義された PageLayout の一覧を取得します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "designer__add_page_layout",
+    description: "新しい PageLayout を追加します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        name: {
+          type: "string",
+          description: "PageLayout の表示名（例: Main Layout）",
+        },
+        description: {
+          type: "string",
+          description: "用途説明（省略可）",
+        },
+        editorKind: {
+          type: "string",
+          enum: ["grapesjs", "puck"],
+          description: "エディタ種別",
+        },
+        cssFramework: {
+          type: "string",
+          enum: ["bootstrap", "tailwind"],
+          description: "CSS フレームワーク",
+        },
+      },
+      required: ["name", "editorKind", "cssFramework"],
+    },
+  },
+  {
+    name: "designer__update_page_layout",
+    description: "PageLayout を更新します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        pageLayoutId: {
+          type: "string",
+          description: "更新対象の PageLayout ID",
+        },
+        definition: {
+          type: "object",
+          description: "PageLayout の完全な定義",
+        },
+      },
+      required: ["pageLayoutId", "definition"],
+    },
+  },
+  {
+    name: "designer__remove_page_layout",
+    description: "PageLayout を削除します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        pageLayoutId: {
+          type: "string",
+          description: "削除する PageLayout ID",
+        },
+      },
+      required: ["pageLayoutId"],
+    },
+  },
+  {
+    // RFC #1021 pl-6 (Codex D-2): get / save MCP tools 追加 (ISSUE #1023 受け入れ基準 6 種完備)
+    name: "designer__get_page_layout",
+    description: "PageLayout の完全な定義を ID で取得します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        pageLayoutId: { type: "string", description: "取得対象の PageLayout ID" },
+      },
+      required: ["pageLayoutId"],
+    },
+  },
+  {
+    name: "designer__save_page_layout",
+    description: "PageLayout の完全な定義を保存します (update_page_layout より柔軟、AI 連携用)。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        pageLayoutId: { type: "string", description: "保存対象の PageLayout ID" },
+        data: { type: "object", description: "PageLayout の完全な JSON 定義" },
+      },
+      required: ["pageLayoutId", "data"],
     },
   },
   {

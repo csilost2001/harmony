@@ -14,6 +14,7 @@ export type TabType =
   | "view"            // ビュー編集 (#376)
   | "view-definition" // ビュー定義編集 (#666)
   | "screen-items"    // 画面項目定義 (#318 / #696 per-screen タブ化)
+  | "page-layout"     // ページレイアウト編集 (#1024)
   // シングルトン（1 インスタンス固定。resourceId は "main" で統一）
   | "screen-flow"        // 画面フロー図
   | "screen-list"        // 画面一覧 (#133 Phase C)
@@ -27,13 +28,15 @@ export type TabType =
   | "view-definition-list" // ビュー定義一覧 (#666)
   | "workspace-list"     // ワークスペース一覧 (#673)
   | "tech-stack"         // 技術スタック選定 (#826)
-  | "dashboard";         // ダッシュボード（#86 PR-3 で有効化）
+  | "dashboard"          // ダッシュボード（#86 PR-3 で有効化）
+  | "page-layout-list"  // ページレイアウト一覧 (#1024)
+  | "gadget-list";      // ガジェット一覧 (#1025)
 
 const KNOWN_TAB_TYPES: ReadonlySet<TabType> = new Set([
-  "design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items",
+  "design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout",
   "screen-flow", "screen-list", "table-list", "er", "process-flow-list",
   "extensions", "conventions-catalog", "sequence-list", "view-list", "view-definition-list",
-  "workspace-list", "tech-stack", "dashboard",
+  "workspace-list", "tech-stack", "dashboard", "page-layout-list", "gadget-list",
 ]);
 
 export interface TabItem {

@@ -21,10 +21,10 @@ describe("buildPuckConfig", () => {
     expect(typeof config.components).toBe("object");
   });
 
-  it("19-20 個のコンポーネントを含む", () => {
+  it("23-26 個のコンポーネントを含む (Region primitives 4 つを含む)", () => {
     const count = Object.keys(config.components).length;
-    expect(count).toBeGreaterThanOrEqual(19);
-    expect(count).toBeLessThanOrEqual(22);
+    expect(count).toBeGreaterThanOrEqual(23);
+    expect(count).toBeLessThanOrEqual(26);
   });
 
   it.each([
@@ -33,6 +33,8 @@ describe("buildPuckConfig", () => {
     "Input", "Select", "Textarea", "Checkbox", "Radio", "Button",
     "Table", "Image", "Icon",
     "InputGroup", "Card", "DataList", "Pagination",
+    // pl-5 follow-up: Region primitives
+    "RegionHeader", "RegionSidebar", "RegionFooter", "RegionMain",
   ])("%s コンポーネントが存在する", (name) => {
     expect(config.components).toHaveProperty(name);
   });
@@ -43,6 +45,8 @@ describe("buildPuckConfig", () => {
     "Input", "Select", "Textarea", "Checkbox", "Radio", "Button",
     "Table", "Image", "Icon",
     "InputGroup", "Card", "DataList", "Pagination",
+    // pl-5 follow-up: Region primitives
+    "RegionHeader", "RegionSidebar", "RegionFooter", "RegionMain",
   ])("%s が共通レイアウト fields をすべて持つ", (name) => {
     const comp = config.components[name as keyof typeof config.components];
     expect(comp).toBeDefined();
@@ -59,6 +63,8 @@ describe("buildPuckConfig", () => {
     "Input", "Select", "Textarea", "Checkbox", "Radio", "Button",
     "Table", "Image", "Icon",
     "InputGroup", "Card", "DataList", "Pagination",
+    // pl-5 follow-up: Region primitives
+    "RegionHeader", "RegionSidebar", "RegionFooter", "RegionMain",
   ])("%s が render 関数を持つ", (name) => {
     const comp = config.components[name as keyof typeof config.components];
     expect(comp).toBeDefined();
@@ -72,12 +78,25 @@ describe("buildPuckConfig", () => {
     "Input", "Select", "Textarea", "Checkbox", "Radio", "Button",
     "Table", "Image", "Icon",
     "InputGroup", "Card", "DataList", "Pagination",
+    // pl-5 follow-up: Region primitives
+    "RegionHeader", "RegionSidebar", "RegionFooter", "RegionMain",
   ])("%s が defaultProps を持つ", (name) => {
     const comp = config.components[name as keyof typeof config.components];
     expect(comp).toBeDefined();
     if (!comp) return;
     expect(comp.defaultProps).toBeDefined();
   });
+
+  it.each(["RegionHeader", "RegionSidebar", "RegionFooter", "RegionMain"])(
+    "%s が Layout Regions カテゴリ相当の label を持つ",
+    (name) => {
+      const comp = config.components[name as keyof typeof config.components];
+      expect(comp).toBeDefined();
+      if (!comp) return;
+      expect(comp.label).toBeDefined();
+      expect(typeof comp.label).toBe("string");
+    },
+  );
 });
 
 describe("LAYOUT_FIELDS", () => {
@@ -103,9 +122,9 @@ describe("LAYOUT_FIELDS", () => {
 });
 
 describe("BUILTIN_PRIMITIVE_NAMES", () => {
-  it("19-20 個のプリミティブ名を含む", () => {
-    expect(BUILTIN_PRIMITIVE_NAMES.length).toBeGreaterThanOrEqual(19);
-    expect(BUILTIN_PRIMITIVE_NAMES.length).toBeLessThanOrEqual(22);
+  it("23-26 個のプリミティブ名を含む (Region primitives 4 つを含む)", () => {
+    expect(BUILTIN_PRIMITIVE_NAMES.length).toBeGreaterThanOrEqual(23);
+    expect(BUILTIN_PRIMITIVE_NAMES.length).toBeLessThanOrEqual(26);
   });
 
   it("input-group を含む", () => {
@@ -114,5 +133,21 @@ describe("BUILTIN_PRIMITIVE_NAMES", () => {
 
   it("data-list を含む", () => {
     expect(BUILTIN_PRIMITIVE_NAMES).toContain("data-list");
+  });
+
+  it("region-header を含む", () => {
+    expect(BUILTIN_PRIMITIVE_NAMES).toContain("region-header");
+  });
+
+  it("region-sidebar を含む", () => {
+    expect(BUILTIN_PRIMITIVE_NAMES).toContain("region-sidebar");
+  });
+
+  it("region-footer を含む", () => {
+    expect(BUILTIN_PRIMITIVE_NAMES).toContain("region-footer");
+  });
+
+  it("region-main を含む", () => {
+    expect(BUILTIN_PRIMITIVE_NAMES).toContain("region-main");
   });
 });

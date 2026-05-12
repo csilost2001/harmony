@@ -13,6 +13,7 @@ const CAT_LAYOUT = "レイアウト";
 const CAT_FIELD  = "フィールド";
 const CAT_LIST   = "検索・一覧";
 const CAT_COMMON = "共通パーツ";
+const CAT_REGIONS = "Layout Regions";
 
 // ---- HTML テンプレートヘルパ ----
 // form-field / field-label / field-value は common.css 独自 semantic class
@@ -355,6 +356,52 @@ export const appBlocks: (BlockProperties & { id: string })[] = [
     category: CAT_COMMON,
     media: icon("square-fill"),
     content: `<button type="button" class="btn btn-primary btn-sm">ボタン</button>`,
+  },
+
+  // ==========================================================================
+  // Layout Regions — PageLayout の region drop slot 足場 (pl-3, #1024)
+  // region ブロックを canvas に配置すると region を視覚的に識別できる。
+  // 実際の gadget compose は pl-5 (#1026) で実装。
+  // ==========================================================================
+  {
+    id: "region-header",
+    label: "region: header",
+    category: CAT_REGIONS,
+    media: icon("layout-text-window"),
+    content: `<div data-region-name="header" style="min-height:60px;border:2px dashed #6366f1;padding:12px;background:rgba(99,102,241,0.05);position:relative;">
+  <span style="position:absolute;top:4px;left:8px;font-size:11px;color:#6366f1;font-weight:600;font-family:monospace;">region: header</span>
+  <div style="padding-top:20px;color:#94a3b8;font-size:12px;text-align:center;">ヘッダ (gadget Screen がここに表示されます)</div>
+</div>`,
+  },
+  {
+    id: "region-sidebar",
+    label: "region: sidebar",
+    category: CAT_REGIONS,
+    media: icon("layout-sidebar"),
+    content: `<div data-region-name="sidebar" style="min-height:200px;min-width:200px;border:2px dashed #8b5cf6;padding:12px;background:rgba(139,92,246,0.05);position:relative;">
+  <span style="position:absolute;top:4px;left:8px;font-size:11px;color:#8b5cf6;font-weight:600;font-family:monospace;">region: sidebar</span>
+  <div style="padding-top:20px;color:#94a3b8;font-size:12px;text-align:center;">サイドバー (gadget Screen がここに表示されます)</div>
+</div>`,
+  },
+  {
+    id: "region-footer",
+    label: "region: footer",
+    category: CAT_REGIONS,
+    media: icon("layout-text-window-reverse"),
+    content: `<div data-region-name="footer" style="min-height:40px;border:2px dashed #10b981;padding:12px;background:rgba(16,185,129,0.05);position:relative;">
+  <span style="position:absolute;top:4px;left:8px;font-size:11px;color:#10b981;font-weight:600;font-family:monospace;">region: footer</span>
+  <div style="padding-top:20px;color:#94a3b8;font-size:12px;text-align:center;">フッタ (gadget Screen がここに表示されます)</div>
+</div>`,
+  },
+  {
+    id: "region-main",
+    label: "region: main (content slot)",
+    category: CAT_REGIONS,
+    media: icon("layout-text-window-reverse"),
+    content: `<div data-region-name="main" style="min-height:300px;border:2px dashed #f59e0b;padding:12px;background:rgba(245,158,11,0.05);position:relative;">
+  <span style="position:absolute;top:4px;left:8px;font-size:11px;color:#f59e0b;font-weight:600;font-family:monospace;">region: main (content slot)</span>
+  <div style="padding-top:20px;color:#94a3b8;font-size:12px;text-align:center;">メインコンテンツ (page Screen 本文がここに嵌まります)</div>
+</div>`,
   },
 ];
 

@@ -3,6 +3,7 @@
   "id": "f9faa724-e080-4308-bc14-bb93631c9e78",
   "name": "注文一覧",
   "description": "バックオフィス向け注文一覧画面 (S-4)。注文番号・顧客・日付範囲で絞り込み、注文テーブルのステータスと配送指示ボタンを表示する。",
+  "purpose": "page",
   "kind": "list",
   "path": "/orders",
   "auth": "required",
@@ -28,10 +29,22 @@
       "direction": "input",
       "required": false,
       "options": [
-        { "value": "pending", "label": "保留中" },
-        { "value": "confirmed", "label": "確定" },
-        { "value": "shipped", "label": "発送済" },
-        { "value": "cancelled", "label": "キャンセル" }
+        {
+          "value": "pending",
+          "label": "保留中"
+        },
+        {
+          "value": "confirmed",
+          "label": "確定"
+        },
+        {
+          "value": "shipped",
+          "label": "発送済"
+        },
+        {
+          "value": "cancelled",
+          "label": "キャンセル"
+        }
       ],
       "description": "S-4 注文一覧の注文ステータス絞り込みフィルタ。"
     },

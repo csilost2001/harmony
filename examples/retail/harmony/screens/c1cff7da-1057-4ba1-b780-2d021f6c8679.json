@@ -1,0 +1,45 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "c1cff7da-1057-4ba1-b780-2d021f6c8679",
+  "name": "ナビゲーションサイドバー",
+  "description": "全画面共通のナビゲーションサイドバー。商品一覧・注文一覧・顧客一覧・マスタ管理へのリンクメニューを提供する。PageLayout の sidebar region に割り当てられる gadget。",
+  "purpose": "gadget",
+  "kind": "other",
+  "maturity": "committed",
+  "createdAt": "2026-05-12T00:00:00.000Z",
+  "updatedAt": "2026-05-12T00:00:00.000Z",
+  "items": [
+    {
+      "id": "navProductSearch",
+      "label": "商品検索",
+      "type": "boolean",
+      "direction": "input",
+      "description": "商品検索画面 (/products/search) へのナビゲーションリンク。"
+    },
+    {
+      "id": "navOrderList",
+      "label": "注文一覧",
+      "type": "boolean",
+      "direction": "input",
+      "description": "注文一覧画面 (/orders) へのナビゲーションリンク。"
+    },
+    {
+      "id": "navCustomerList",
+      "label": "顧客一覧",
+      "type": "boolean",
+      "direction": "input",
+      "description": "顧客マスター画面 (/master/customers) へのナビゲーションリンク。"
+    },
+    {
+      "id": "navMasterManagement",
+      "label": "マスタ管理",
+      "type": "boolean",
+      "direction": "input",
+      "description": "マスタ管理トップ (商品マスター /master/products) へのナビゲーションリンク。"
+    }
+  ],
+  "design": {
+    "editorKind": "grapesjs",
+    "cssFramework": "bootstrap"
+  }
+}

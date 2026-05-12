@@ -3,6 +3,7 @@
   "id": "e6147dc0-94b7-436d-ba87-d0080ac34f44",
   "name": "商品検索",
   "description": "商品コード・店舗を条件に在庫を照会する (S-1)。検索結果一覧に在庫数と低在庫バッジを表示し、カート画面への導線を提供する。",
+  "purpose": "page",
   "kind": "search",
   "path": "/products/search",
   "auth": "required",
@@ -33,9 +34,18 @@
       "direction": "input",
       "required": true,
       "options": [
-        { "value": "S-001", "label": "東京本店" },
-        { "value": "S-002", "label": "大阪支店" },
-        { "value": "S-003", "label": "名古屋支店" }
+        {
+          "value": "S-001",
+          "label": "東京本店"
+        },
+        {
+          "value": "S-002",
+          "label": "大阪支店"
+        },
+        {
+          "value": "S-003",
+          "label": "名古屋支店"
+        }
       ],
       "errorMessages": {
         "required": "店舗を選択してください。"
@@ -57,7 +67,10 @@
     {
       "id": "searchInventoryButton",
       "label": "在庫照会",
-      "type": { "kind": "extension", "extensionRef": "retail:button" },
+      "type": {
+        "kind": "extension",
+        "extensionRef": "retail:button"
+      },
       "direction": "output",
       "readonly": true,
       "events": [
@@ -76,7 +89,10 @@
     {
       "id": "inventoryRows",
       "label": "在庫一覧",
-      "type": { "kind": "array", "itemType": "json" },
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
       "direction": "viewer",
       "viewDefinitionId": "be4bece3-aa23-44fb-bed0-0699717e8738",
       "valueFrom": {

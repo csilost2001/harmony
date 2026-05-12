@@ -1,0 +1,17 @@
+{
+  "dataSources": [],
+  "assets": [],
+  "styles": [],
+  "pages": [
+    {
+      "frames": [
+        {
+          "component": {
+            "type": "wrapper",
+            "components": "\n<div class=\"app-shell d-flex flex-column\" style=\"min-height: 100vh;\">\n  <div data-region-name=\"header\" data-pl-region=\"header\" class=\"pl-region pl-region-header\">\n    <!-- assignments.header に割り当てられた gadget Screen の design がここに inject される (pl-5) -->\n    <span class=\"text-muted small\">region: header (PageLayout assignments で割り当て)</span>\n  </div>\n  <div class=\"app-body d-flex flex-grow-1\">\n    <aside data-region-name=\"sidebar\" data-pl-region=\"sidebar\" class=\"pl-region pl-region-sidebar\" style=\"min-width: 220px;\">\n      <span class=\"text-muted small\">region: sidebar</span>\n    </aside>\n    <main data-region-name=\"main\" data-pl-region=\"main\" class=\"pl-region pl-region-main flex-grow-1\" style=\"padding: 16px;\">\n      <span class=\"text-muted small\">region: main (content slot — page Screen 本文がここに嵌まる)</span>\n    </main>\n  </div>\n  <footer data-region-name=\"footer\" data-pl-region=\"footer\" class=\"pl-region pl-region-footer\">\n    <span class=\"text-muted small\">region: footer</span>\n  </footer>\n</div>\n"
+          }
+        }
+      ]
+    }
+  ]
+}

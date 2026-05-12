@@ -31,6 +31,10 @@ import { InputGroupConfig } from "./primitives/InputGroup";
 import { CardConfig } from "./primitives/Card";
 import { DataListConfig } from "./primitives/DataList";
 import { PaginationConfig } from "./primitives/Pagination";
+import { RegionHeaderConfig } from "./primitives/RegionHeader";
+import { RegionSidebarConfig } from "./primitives/RegionSidebar";
+import { RegionFooterConfig } from "./primitives/RegionFooter";
+import { RegionMainConfig } from "./primitives/RegionMain";
 
 // ---------------------------------------------------------------------------
 // 共通レイアウト props の Fields 定義
@@ -218,6 +222,23 @@ export function buildPuckConfig(): Config {
         ...PaginationConfig,
         fields: { ...PaginationConfig.fields, ...LAYOUT_FIELDS },
       },
+      // --- Layout Regions (pl-5 follow-up: composition preview) ---
+      RegionHeader: {
+        ...RegionHeaderConfig,
+        fields: { ...RegionHeaderConfig.fields, ...LAYOUT_FIELDS },
+      },
+      RegionSidebar: {
+        ...RegionSidebarConfig,
+        fields: { ...RegionSidebarConfig.fields, ...LAYOUT_FIELDS },
+      },
+      RegionFooter: {
+        ...RegionFooterConfig,
+        fields: { ...RegionFooterConfig.fields, ...LAYOUT_FIELDS },
+      },
+      RegionMain: {
+        ...RegionMainConfig,
+        fields: { ...RegionMainConfig.fields, ...LAYOUT_FIELDS },
+      },
     },
   };
 }
@@ -244,6 +265,10 @@ export const BUILTIN_PRIMITIVE_NAMES = [
   "card",
   "data-list",
   "pagination",
+  "region-header",
+  "region-sidebar",
+  "region-footer",
+  "region-main",
 ] as const;
 
 export type BuiltinPrimitiveName = (typeof BUILTIN_PRIMITIVE_NAMES)[number];

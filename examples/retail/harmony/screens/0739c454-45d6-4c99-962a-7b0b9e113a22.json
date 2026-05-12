@@ -3,6 +3,7 @@
   "id": "0739c454-45d6-4c99-962a-7b0b9e113a22",
   "name": "注文完了",
   "description": "注文確定後の完了画面 (S-3)。注文番号・注文サマリを表示し、ダッシュボードまたは注文履歴への導線を提供する。",
+  "purpose": "page",
   "kind": "complete",
   "path": "/order/complete",
   "auth": "required",

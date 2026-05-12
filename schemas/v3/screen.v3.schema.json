@@ -7,16 +7,33 @@
   "$ref": "#/$defs/Screen",
   "$defs": {
     "Screen": {
-      "description": "画面 entity 本体。EntityMeta + 業務情報 + 画面項目集合 (本ファイル内に embed) + authoring。",
+      "description": "画面 entity 本体。EntityMeta + 業務情報 + 画面項目集合 (本ファイル内に embed) + authoring。purpose で page (画面遷移図の対象、URL を持つ) と gadget (PageLayout の region に割り当てられる自律部品) を区別する (RFC #1021、#1022)。",
       "allOf": [
         { "$ref": "common.v3.schema.json#/$defs/EntityMeta" }
       ],
       "type": "object",
-      "required": ["kind", "path"],
+      "required": ["kind"],
       "properties": {
         "$schema": { "type": "string", "description": "instance JSON が参照する schema 文書への URL/相対パス。IDE の schema 関連付け用 (内容は loader が無視)。" },
         "kind": { "$ref": "#/$defs/ScreenKind" },
-        "path": { "type": "string", "description": "URL ルーティングパス。例: '/customers', '/customers/:id', '/orders/new'" },
+        "purpose": {
+          "type": "string",
+          "enum": ["page", "gadget"],
+          "default": "page",
+          "description": "Screen の用途種別 (RFC #1021)。'page' (デフォルト) = 画面遷移図の対象 / URL ルートを持つ / pageLayoutId で PageLayout を選択。'gadget' = 画面遷移図対象外 / URL なし / PageLayout の region に割り当てられる自律部品 (ヘッダ・フッタ・検索フィルタ等)。"
+        },
+        "path": {
+          "type": "string",
+          "description": "URL ルーティングパス (purpose='page' のとき required、purpose='gadget' のとき省略可)。例: '/customers', '/customers/:id', '/orders/new'"
+        },
+        "pageLayoutId": {
+          "$ref": "common.v3.schema.json#/$defs/Uuid",
+          "description": "本 Screen が使用する PageLayout の ID (RFC #1021)。purpose='page' のときのみ意味を持ち、未指定の場合は project default layout (or layout なし) で表示される。purpose='gadget' のときは無視。"
+        },
+        "processFlowId": {
+          "$ref": "common.v3.schema.json#/$defs/Uuid",
+          "description": "本 Screen に紐付く ProcessFlow の ID (#1019/#1020 の「1 画面 = 1 処理フロー + 複数アクション」モデル)。gadget Screen の場合は自律 controller として機能 (例: logout / file-upload handler を内包)。"
+        },
         "auth": {
           "type": "string",
           "enum": ["required", "optional", "none"],
@@ -41,6 +58,18 @@
           "description": "画面デザイン (GrapesJS 生 HTML への参照)。本フレームワークの schema 範囲外、外部参照のみ。"
         },
         "authoring": { "$ref": "common.v3.schema.json#/$defs/Authoring" }
+      },
+      "if": {
+        "not": {
+          "allOf": [
+            { "required": ["purpose"] },
+            { "properties": { "purpose": { "const": "gadget" } } }
+          ]
+        }
+      },
+      "then": {
+        "required": ["path"],
+        "description": "purpose が 'page' または未指定の場合、path は必須 (URL ルートを持つ画面)。purpose='gadget' の場合のみ path を省略可能。"
       },
       "unevaluatedProperties": false
     },
