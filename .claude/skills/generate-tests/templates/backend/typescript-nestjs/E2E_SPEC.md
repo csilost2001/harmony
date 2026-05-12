@@ -996,6 +996,23 @@ const res = await request(app.getHttpServer())
 expect(res.status).toBe(200);
 ```
 
+**generateAudio=true のテスト assertion**: TTS 分岐 (例: ProcessFlow `96118ae1` step-04 br-tts-on)
+を持つ flow で `generateAudio=true` ケースを生成する場合、**条件付き `if (... !== null)` でラップせず直接 assertion** すること。条件付き assertion は実装が常に `null` を返しても素通りするため、実装挙動の回帰検出ができず楽観バイアスの罠になる (#1038 dogfood で実例)。
+
+```typescript
+// ❌ 悪いパターン (条件付き — 実装が null でも素通り)
+if (res.body.aiAudioUrl !== null) {
+  expect(typeof res.body.aiAudioUrl).toBe('string');
+}
+
+// ✅ 良いパターン (直接 assertion、形式まで含めて check)
+expect(res.body.aiAudioUrl).not.toBeNull();
+expect(typeof res.body.aiAudioUrl).toBe('string');
+expect(res.body.aiAudioUrl).toMatch(/^https?:\/\/.+\.(mp3|wav|ogg)$/);
+```
+
+TTS 拡張 (例: `english-learning:TtsGenerate`) が未実装の場合でも、本 dogfood では stub URL を返すサンプル実装を提供するので、生成テストは直接 assertion で書く。
+
 **AiImageSource (vision input) の fixture**: `step.messages[].content[]` に `{ type: "image", source }`
 が含まれる場合、source.kind 別に fixture を準備する。
 

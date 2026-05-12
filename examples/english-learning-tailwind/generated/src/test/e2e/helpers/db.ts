@@ -1,12 +1,8 @@
 /**
  * DB seed/truncate helper
  *
- * database.type = "postgresql" → Prisma (PrismaClient) を使用
- *
- * PLACEHOLDER: Prisma スキーマのモデル名を確認すること。
- *   - stories → Story model
- *   - learning_sessions → LearningSession model
- *   - turn_logs → TurnLog model
+ * Phase D: backend seed.ts で既に user + story id=1 + learning_session id=1 が入っている
+ * globalSetup で db:reset を実行済みのため、test 毎の cleanup なし
  */
 
 import type { Page } from '@playwright/test';
@@ -20,28 +16,17 @@ interface SeededData {
 
 /**
  * テストデータのシード
- * シナリオ固有のテストデータを DB に作成し、参照 ID を返す。
- *
- * PLACEHOLDER: テスト用ユーザーのシードも行うこと (users テーブル)
+ * globalSetup (db:reset) で user + story id=1 + learning_session id=1 は設定済み
  */
-export async function seedTestData(page: Page, scenarioId: string): Promise<SeededData> {
-  // PLACEHOLDER: Prisma またはテスト専用 API エンドポイントでシードを行うこと
-  // 以下は Prisma 直接呼び出しの例 (API server 側で実行)
-
-  // 暫定: テスト用ストーリー ID を固定値で返す (実際は DB から取得)
-  // PLACEHOLDER: db.ts は実際の Prisma クライアント呼び出しを実装すること
-  return {
-    storyId: 1, // PLACEHOLDER: 既存ストーリーの ID を使用するか新規作成すること
-    sessionId: undefined,
-  };
+export async function seedTestData(_page: Page, _scenarioId: string): Promise<SeededData> {
+  // backend seed.ts で既に user + story id=1 + learning_session id=1 が入っている
+  return { storyId: 1, sessionId: 1 };
 }
 
 /**
  * テストデータのクリーンアップ
- * seedTestData で作成したデータを削除する。
+ * 本 E2E では cleanup なし (sqlite を test 毎に reset せず複数 test 走らせる)
  */
-export async function truncateTestData(page: Page, scenarioId: string): Promise<void> {
-  // PLACEHOLDER: 作成したテストデータを削除すること
-  // 例: await prisma.learningSession.deleteMany({ where: { story_id: seededData.storyId } });
-  // 例: await prisma.story.deleteMany({ where: { title: { startsWith: 'E2E_TEST_' } } });
+export async function truncateTestData(_page: Page, _scenarioId: string): Promise<void> {
+  // 本 E2E では cleanup なし
 }

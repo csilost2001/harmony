@@ -387,11 +387,11 @@ describe('POST /api/el/sessions/:sessionId/turns (会話ターン進行 E2E)', (
         });
 
       expect(res.status).toBe(200);
-      // generateAudio=true → aiAudioUrl は string (TTS 実行済み)
-      // PLACEHOLDER: TTS 実装後に aiAudioUrl の形式 (URL 文字列) を確認すること
-      if (res.body.aiAudioUrl !== null) {
-        expect(typeof res.body.aiAudioUrl).toBe('string');
-      }
+      // generateAudio=true → aiAudioUrl は非 null かつ TTS URL 形式 (step-04 br-tts-on)
+      // 本 dogfood は english-learning:TtsGenerate スタブで example.com TTS URL を返す
+      expect(res.body.aiAudioUrl).not.toBeNull();
+      expect(typeof res.body.aiAudioUrl).toBe('string');
+      expect(res.body.aiAudioUrl).toMatch(/^https?:\/\/.+\.mp3$/);
 
       if (res.body.turnId) {
         createdIds['turn_logs'] = [...(createdIds['turn_logs'] ?? []), res.body.turnId];
