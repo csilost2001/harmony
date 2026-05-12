@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   // Upsert test user
   const passwordHash = await bcrypt.hash('TestPassword123', 10);
-  await prisma.user.upsert({
+  const user = await prisma.user.upsert({
     where: { email: 'test@example.com' },
     update: {},
     create: {
@@ -19,7 +19,7 @@ async function main() {
   });
 
   // Upsert test story
-  await prisma.story.upsert({
+  const story = await prisma.story.upsert({
     where: { id: 1 },
     update: {},
     create: {
@@ -27,6 +27,18 @@ async function main() {
       title: 'Test Story',
       cefr_level: 'B1',
       is_active: true,
+    },
+  });
+
+  // Upsert learning_session id=1 for Step P5 tests (validSessionId=1)
+  await prisma.learningSession.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      user_id: user.id,
+      story_id: story.id,
+      status: 'in_progress',
     },
   });
 
