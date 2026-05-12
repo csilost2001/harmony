@@ -1493,6 +1493,8 @@ class <ScreenName>PageLayoutTest {
     @Test
     void ページリクエストでPageLayoutの外枠が描画される() throws Exception {
         // Screen <screenId> (<screen.name>)
+        // ※ screen.auth="required" の場合は認証設定が必要:
+        //   @WithMockUser アノテーション、または mockMvc.perform(...with(user("testUser"))) を追加すること
         mockMvc.perform(get("<screen.path>"))
             .andExpect(status().isOk())
             // PageLayout 外枠の region が含まれることを確認
@@ -1522,7 +1524,13 @@ class <ScreenName>PageLayoutTest {
 }
 ```
 
-**PLACEHOLDER 解決ガイド**: `<headerGadgetMarker>` は Gadget の items[] の label や output テキストから選択してください。
+**PLACEHOLDER 解決ガイド**:
+- `<headerGadgetMarker>` は Gadget の items[] の label や output テキストから選択してください。
+  例: items[direction=output] の label が "ログアウト" であれば `containsString("ログアウト")` に置き換える。
+  セッション依存の動的テキスト (storeName / userName 等) は label 文字列で代替してください。
+- `<screen.path>` は Screen JSON の `path` フィールド値で置き換えてください (例: `"/"`, `"/dashboard"`)。
+- screen.auth="required" の場合は `@WithMockUser` またはセッション設定が必要です。テスト失敗時は
+  Spring Security の認証フィルタが 302/401 を返している可能性を確認してください。
 
 ### NestJS/Next.js 系: Playwright layout mount test
 
@@ -1637,15 +1645,31 @@ class <GadgetName>GadgetFragmentTest {
     // processFlowId あり (例: act-logout) の場合のみ生成
     /**
      * Spec: Screen <gadgetId> event:<eventId> → ProcessFlow <processFlowId> act-<actionId>
+     *   httpRoute: <action.httpRoute.method> <action.httpRoute.path>
+     *   auth: <action.httpRoute.auth>
      */
     @Test
     void Gadgetアクションが正常に処理される() throws Exception {
+        // ※ httpRoute.auth="required" の場合はセッション認証済みの状態で実行すること
         mockMvc.perform(post("<action.httpRoute.path>")
                 .param("_csrf", "test-csrf-token")
                 // inputs[] → form params
                 .param("<inputName>", "<testValue>"))
             .andExpect(status().is3xxRedirection())  // screenTransition / redirectTo
             .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("<redirectPath>")));
+    }
+
+    // httpRoute.auth="required" の場合のみ生成
+    /**
+     * Spec: Screen <gadgetId> event:<eventId> httpRoute.auth="required"
+     *   未認証でアクセスした場合の認証エラー確認
+     */
+    @Test
+    void 未認証でのGadgetアクションは認証エラーになる() throws Exception {
+        // セッションなしで POST → Spring Security: 401 または 302 (ログインページへリダイレクト)
+        mockMvc.perform(post("<action.httpRoute.path>")
+                .param("_csrf", "test-csrf-token"))
+            .andExpect(status().is(org.hamcrest.Matchers.oneOf(401, 302, 403)));
     }
 }
 ```
