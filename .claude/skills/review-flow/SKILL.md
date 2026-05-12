@@ -86,7 +86,7 @@ npm run validate:samples -- ../examples/<project-id>
 | 7 | sqlOrderValidator | DB 制約 × 操作順序 (NOT NULL × INSERT / FK × INSERT 順序) | テーブル定義 (v3 形式) を自動ロード (#632) |
 | 8 | viewDefinitionValidator | ViewDefinition 整合 (sourceTableId 実在 / columnRef 実在 / 重複列名 / sort/filter/groupBy 列参照 / FieldType 互換) | 各プロジェクトの `view-definitions/` を per-project でロード (project-level 検査、#649) |
 | 9 | screenItemRefKeyValidator | 画面項目の refKey が conventions catalog の domainKey と整合 | `screens/` + `conventions/catalog.json` |
-| 10 | screenNavigationValidator | 処理フローの画面遷移 step が project.json の screenTransitions 定義と整合 | `project.json` の entities.screenTransitions |
+| 10 | screenNavigationValidator | 処理フローの画面遷移 step が harmony.json の screenTransitions 定義と整合 | `harmony.json` の entities.screenTransitions |
 | 11 | runtimeContractValidator | Screen.items embed 検証 (legacy screen-items/ 残存 / kind 別 items 空) | `screens/` ディレクトリ |
 | 12 | processFlowAntipatternValidator | 既知アンチパターン検出 (18 ルール) | 処理フロー JSON 直接解析 |
 

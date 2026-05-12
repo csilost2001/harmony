@@ -120,9 +120,9 @@ project.techStack:
   deployment.target
 ```
 
-### 1-2. 入力 UUID の種別を project.json から判定
+### 1-2. 入力 UUID の種別を harmony.json から判定
 
-`project.json` の `entities.processFlows[].id` と `entities.screens[].id` を照合する。
+`harmony.json` の `entities.processFlows[].id` と `entities.screens[].id` を照合する。
 
 - `processFlows[].id` にマッチ → ProcessFlow → backend code 生成へ (Step 3-A)
 - `screens[].id` にマッチ → Screen → frontend code 生成へ (Step 3-B)
@@ -136,7 +136,7 @@ project.techStack:
 
 ### 1-4. PageLayout entity の検出
 
-`project.json`(または `harmony.json`) に `entities.pageLayouts[].id` が存在する場合、入力 UUID をそこに照合する。
+`harmony.json`(または旧 `project.json` の legacy 環境) に `entities.pageLayouts[].id` が存在する場合、入力 UUID をそこに照合する。
 
 ```
 if entities.pageLayouts[].id にマッチ:
@@ -1676,7 +1676,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 
 **実行ポリシー**:
 
-1. `project.json` (または `harmony.json`) の `entities.processFlows[]`, `entities.screens[]`, `entities.pageLayouts[]` から全 ID を抽出
+1. `harmony.json` (または旧 `project.json` の legacy 環境) の `entities.processFlows[]`, `entities.screens[]`, `entities.pageLayouts[]` から全 ID を抽出
 2. **推奨順序**: PageLayout → Screen (purpose=gadget → page の順) → ProcessFlow
    - 理由: Screen が ProcessFlow を参照 (handlerFlowId)、Page が PageLayout を参照 (pageLayoutId) するため、参照される側から先に生成すると AI のコンテキスト整合がとりやすい
 3. 各 ID で Step 1〜6 を実行、出力は entity 種別サブディレクトリへ振り分け
@@ -1847,7 +1847,7 @@ docker compose up --build
 
 ### 実行手順
 
-1. **techStack 判定**: `project.json` (または `harmony.json`) の `techStack.backend.framework` と `techStack.frontend.library` を Read で取得
+1. **techStack 判定**: `harmony.json` (または旧 `project.json` の legacy 環境) の `techStack.backend.framework` と `techStack.frontend.library` を Read で取得
 2. **テンプレ選択**:
 
    | backend.framework | frontend.library | 選択テンプレ |

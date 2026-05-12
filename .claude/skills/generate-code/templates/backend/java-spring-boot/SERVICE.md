@@ -148,7 +148,7 @@ public class {{processFlow.meta.name | toPascalCase}}Service {
 | ProcessFlow 値 | Java 変換規則 | 例 |
 |---|---|---|
 | `meta.name` (日本語) | PascalCase (ローマ字変換 or 意味翻訳) | `注文確定` → `OrderConfirm` |
-| `tableId` UUID | `project.json entities.tables` で物理名を引く | `10d555e2-...` → `orders` → `Orders` |
+| `tableId` UUID | `harmony.json entities.tables` で物理名を引く | `10d555e2-...` → `orders` → `Orders` |
 | `inputs[].name` (camelCase) | そのまま Java 引数名 | `shippingPostalCode` |
 | `outputs[].name` (camelCase) | そのまま DTO フィールド名 | `orderId` |
 

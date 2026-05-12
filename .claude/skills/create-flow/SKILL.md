@@ -389,7 +389,7 @@ UI 起点フロー (`type: "screen"` / `mode: "upstream"`) を作成するとき
 - 正しい形:
   - API フローには `screenTransition` を入れない
   - 画面遷移は呼び出し側 (画面項目の event ハンドラ) で行う
-  - `tr-*` は project.json に残し `kind: "navigation"` で純 UI 遷移として宣言する (#744、warning 出さず)
+  - `tr-*` は harmony.json に残し `kind: "navigation"` で純 UI 遷移として宣言する (#744、warning 出さず)
 - 検出: action.httpRoute が存在 + step に kind: screenTransition がある組合せ (機械検出可能だが意味論判断を含むため AI 目視も併用)
 
 ### Rule 27: `@conv.numbering.X.nextSeq()` 構文禁止 → DB sequence 利用 (#740 / retail 落とし穴 19)

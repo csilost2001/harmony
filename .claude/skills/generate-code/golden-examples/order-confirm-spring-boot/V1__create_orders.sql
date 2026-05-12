@@ -4,7 +4,7 @@
 -- 生成: /generate-code スキルにより自動生成
 
 -- ----------------------------------------------------------
--- シーケンス (project.json entities.sequences[].physicalName)
+-- シーケンス (harmony.json entities.sequences[].physicalName)
 -- @conv.numbering.orderNumber 規約: ORD-YYYY-NNNNNN
 -- ----------------------------------------------------------
 CREATE SEQUENCE IF NOT EXISTS seq_order_number

@@ -6,7 +6,7 @@ ProcessFlow の `dbAccess` ステップの `tableId` と `operation` から JPA 
 
 | ProcessFlow JSON フィールド | Repository 生成物 |
 |---|---|
-| `tableId` → `project.json entities.tables[].physicalName` | エンティティクラス名 / テーブル物理名 |
+| `tableId` → `harmony.json entities.tables[].physicalName` | エンティティクラス名 / テーブル物理名 |
 | `operation: "SELECT"` | `findBy...()` / `@Query` native query |
 | `operation: "INSERT"` | `save()` |
 | `operation: "UPDATE"` | `@Modifying @Query` / `save()` |

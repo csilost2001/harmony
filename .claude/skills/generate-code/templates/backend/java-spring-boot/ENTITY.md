@@ -1,7 +1,7 @@
 # Java Spring Boot — Entity テンプレート
 
 ProcessFlow の `lineage.reads / lineage.writes` で参照されるテーブルから JPA Entity を生成する。
-テーブル定義 (`project.json entities.tables[].physicalName` と対応テーブル JSON) を読んで列定義を取得する。
+テーブル定義 (`harmony.json entities.tables[].physicalName` と対応テーブル JSON) を読んで列定義を取得する。
 
 ## フィールドマッピング
 

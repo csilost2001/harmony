@@ -79,7 +79,7 @@ CREATE TABLE {{table.physicalName}} (
 ## シーケンス (sequences[] がある場合)
 
 ```sql
--- PostgreSQL シーケンス (project.json entities.sequences[] から展開)
+-- PostgreSQL シーケンス (harmony.json entities.sequences[] から展開)
 CREATE SEQUENCE seq_order_number START 1 INCREMENT 1;
 ```
 
