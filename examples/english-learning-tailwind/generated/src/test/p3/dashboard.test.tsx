@@ -18,14 +18,6 @@
  * auth: required
  * purpose: (未設定 → "page" 扱い)
  * pageLayoutId: なし → Step 3-X は skip
- *
- * PLACEHOLDER: コンポーネントパスは未確定。以下の候補から確認すること:
- *   - app/(dashboard)/page.tsx
- *   - app/dashboard/page.tsx
- *   - components/Dashboard.tsx
- *   PLACEHOLDER 解決後に import を有効化してください。
- *
- * PLACEHOLDER: renderWithProviders は '@/test/renderWithProviders' のパスを確認すること
  */
 
 // Spec anchor: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d
@@ -34,8 +26,8 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vites
 import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-// import { renderWithProviders } from '@/test/renderWithProviders';
-// import DashboardPage from '<COMPONENT_PATH>'; // PLACEHOLDER: 実際のコンポーネントパス
+import { renderWithProviders } from '@/test/renderWithProviders';
+import DashboardPage from '@/app/page';
 
 // ===HARMONY_GENERATED_SECTION_START screenId=496e43f8-d243-48a1-b680-32d34d98cc2d===
 
@@ -78,57 +70,55 @@ describe('ダッシュボード コンポーネント', () => {
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:streakDays
      *   direction=output, type=integer, label=連続学習日数
      */
-    it('#1 連続学習日数 (data-testid="streakDays") が表示される', () => {
-      // PLACEHOLDER: renderWithProviders(<DashboardPage />) を有効化すること
-      // renderWithProviders(<DashboardPage />);
-      // expect(screen.getByTestId('streakDays')).toBeInTheDocument();
-
-      // PLACEHOLDER: コンポーネント未実装のため structure 検証のみ (モック assertion)
-      expect(true).toBe(true); // scaffold placeholder
+    it('#1 連続学習日数 (data-testid="streakDays") が表示される', async () => {
+      renderWithProviders(<DashboardPage />);
+      await waitFor(() => {
+        expect(screen.getByTestId('streakDays')).toBeInTheDocument();
+      });
     });
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:cefrLevel
      *   direction=output, type=string, label=現在の CEFR レベル
      */
-    it('#2 現在の CEFR レベル (data-testid="cefrLevel") が表示される', () => {
-      // PLACEHOLDER: renderWithProviders(<DashboardPage />) を有効化すること
-      // renderWithProviders(<DashboardPage />);
-      // expect(screen.getByTestId('cefrLevel')).toBeInTheDocument();
-      expect(true).toBe(true); // scaffold placeholder
+    it('#2 現在の CEFR レベル (data-testid="cefrLevel") が表示される', async () => {
+      renderWithProviders(<DashboardPage />);
+      await waitFor(() => {
+        expect(screen.getByTestId('cefrLevel')).toBeInTheDocument();
+      });
     });
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:todayGoal
      *   direction=output, type=integer, label=本日の学習目標 (セッション数)
      */
-    it('#3 本日の学習目標セッション数 (data-testid="todayGoal") が表示される', () => {
-      // PLACEHOLDER: renderWithProviders(<DashboardPage />) を有効化すること
-      // renderWithProviders(<DashboardPage />);
-      // expect(screen.getByTestId('todayGoal')).toBeInTheDocument();
-      expect(true).toBe(true); // scaffold placeholder
+    it('#3 本日の学習目標セッション数 (data-testid="todayGoal") が表示される', async () => {
+      renderWithProviders(<DashboardPage />);
+      await waitFor(() => {
+        expect(screen.getByTestId('todayGoal')).toBeInTheDocument();
+      });
     });
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:todayDone
      *   direction=output, type=integer, label=本日完了セッション数
      */
-    it('#4 本日完了セッション数 (data-testid="todayDone") が表示される', () => {
-      // PLACEHOLDER: renderWithProviders(<DashboardPage />) を有効化すること
-      // renderWithProviders(<DashboardPage />);
-      // expect(screen.getByTestId('todayDone')).toBeInTheDocument();
-      expect(true).toBe(true); // scaffold placeholder
+    it('#4 本日完了セッション数 (data-testid="todayDone") が表示される', async () => {
+      renderWithProviders(<DashboardPage />);
+      await waitFor(() => {
+        expect(screen.getByTestId('todayDone')).toBeInTheDocument();
+      });
     });
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:recentStoryList
      *   direction=output, type=json, label=最近のストーリー
      */
-    it('#5 最近のストーリー (data-testid="recentStoryList") が DOM に存在する', () => {
-      // PLACEHOLDER: renderWithProviders(<DashboardPage />) を有効化すること
-      // renderWithProviders(<DashboardPage />);
-      // expect(screen.getByTestId('recentStoryList')).toBeInTheDocument();
-      expect(true).toBe(true); // scaffold placeholder
+    it('#5 最近のストーリー (data-testid="recentStoryList") が DOM に存在する', async () => {
+      renderWithProviders(<DashboardPage />);
+      await waitFor(() => {
+        expect(screen.getByTestId('recentStoryList')).toBeInTheDocument();
+      });
     });
 
   });
@@ -151,15 +141,12 @@ describe('ダッシュボード コンポーネント', () => {
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:streakDays
      *   direction=output, type=integer
      *   valueFrom: コンポーネント内部 state (users.streak_days)
-     *   PLACEHOLDER: 実際の API エンドポイントが判明したら msw handler を更新すること
      */
     it('#7 連続学習日数が API レスポンスから表示される', async () => {
-      // PLACEHOLDER: renderWithProviders(<DashboardPage />) を有効化すること
-      // renderWithProviders(<DashboardPage />);
-      // await waitFor(() => {
-      //   expect(screen.getByText('7')).toBeInTheDocument(); // mock: streakDays=7
-      // });
-      expect(true).toBe(true); // scaffold placeholder
+      renderWithProviders(<DashboardPage />);
+      await waitFor(() => {
+        expect(screen.getByText('7')).toBeInTheDocument(); // mock: streakDays=7
+      });
     });
 
     /**
@@ -168,12 +155,10 @@ describe('ダッシュボード コンポーネント', () => {
      *   valueFrom: コンポーネント内部 state (users.cefr_level)
      */
     it('#8 CEFR レベルが API レスポンスから表示される', async () => {
-      // PLACEHOLDER: renderWithProviders(<DashboardPage />) を有効化すること
-      // renderWithProviders(<DashboardPage />);
-      // await waitFor(() => {
-      //   expect(screen.getByText('B1')).toBeInTheDocument(); // mock: cefrLevel='B1'
-      // });
-      expect(true).toBe(true); // scaffold placeholder
+      renderWithProviders(<DashboardPage />);
+      await waitFor(() => {
+        expect(screen.getByText('B1')).toBeInTheDocument(); // mock: cefrLevel='B1'
+      });
     });
 
     /**
@@ -182,12 +167,10 @@ describe('ダッシュボード コンポーネント', () => {
      *   直近 3 件のストーリーがリスト表示されること
      */
     it('#9 最近のストーリーリストが表示される (直近 3 件まで)', async () => {
-      // PLACEHOLDER: renderWithProviders(<DashboardPage />) を有効化すること
-      // renderWithProviders(<DashboardPage />);
-      // await waitFor(() => {
-      //   expect(screen.getByText('サンプルストーリー 1')).toBeInTheDocument();
-      // });
-      expect(true).toBe(true); // scaffold placeholder
+      renderWithProviders(<DashboardPage />);
+      await waitFor(() => {
+        expect(screen.getByText('サンプルストーリー 1')).toBeInTheDocument();
+      });
     });
 
   });
