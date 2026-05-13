@@ -661,6 +661,345 @@ console.log("\n## kind-specific schema AJV strict gate (data-contract / domain-t
 }
 
 // =============================================================================
+// 3d. screen-item.v3.schema.json binding / effects strict gate (#1065)
+//     ScreenItem.binding (5 field) + ScreenItemEvent.effects[] (7 kind) の
+//     positive / negative / bidirectional sabotage cases。
+// =============================================================================
+console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
+{
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const ajv = new Ajv2020({ strict: false, allErrors: true });
+  addFormats(ajv);
+  const commonSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/common.v3.schema.json"), "utf8"));
+  const siSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/screen-item.v3.schema.json"), "utf8"));
+  ajv.addSchema(commonSchema);
+  const validateItem = ajv.compile(siSchema);
+
+  function assertItem(name, data, expectValid) {
+    const ok = validateItem(data);
+    if (expectValid) {
+      const detail = ok
+        ? ""
+        : (validateItem.errors || []).slice(0, 3).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+      assert(`✓ binding/effects valid: ${name}`, ok, detail);
+    } else {
+      assert(`✗ binding/effects invalid rejected: ${name}`, !ok);
+    }
+  }
+
+  // ── ScreenItem.binding cases (5 件) ──────────────────────────────────
+  // positive minimum: binding.kind のみ
+  assertItem("binding minimum (kind only)", {
+    id: "productCode",
+    label: "商品コード",
+    type: "string",
+    binding: { kind: "formField" },
+  }, true);
+
+  // positive full: 5 field すべて有り
+  assertItem("binding full (5 fields)", {
+    id: "productCode",
+    label: "商品コード",
+    type: "string",
+    binding: {
+      kind: "viewModel",
+      path: "viewModel.productCode",
+      role: "display",
+      formatHint: "0.00%",
+      sourceNote: "spec_SC000001.md#mapping",
+    },
+  }, true);
+
+  // negative: kind unknown enum
+  assertItem("binding kind=unknown rejected", {
+    id: "x",
+    label: "X",
+    type: "string",
+    binding: { kind: "unknown" },
+  }, false);
+
+  // negative: role unknown enum
+  assertItem("binding role=weird rejected", {
+    id: "x",
+    label: "X",
+    type: "string",
+    binding: { kind: "formField", role: "weird" },
+  }, false);
+
+  // negative: additionalProperty on binding
+  assertItem("binding bogus additionalProperty rejected", {
+    id: "x",
+    label: "X",
+    type: "string",
+    binding: { kind: "formField", bogus: "x" },
+  }, false);
+
+  // ── ScreenItemEvent.effects[] cases ──────────────────────────────────
+  // positive: all 7 kinds in one item
+  assertItem("effects all 7 kinds positive", {
+    id: "regionCode",
+    label: "地域コード",
+    type: "string",
+    events: [
+      {
+        id: "change",
+        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        effects: [
+          { kind: "clear", target: "cityCode" },
+          { kind: "setReadonly", target: "cityCode", value: true },
+          { kind: "setEnabled", target: "submitBtn", value: "form.regionCode !== ''" },
+          { kind: "setVisible", target: "helpText", value: false },
+          { kind: "setOptions", target: "citySelect", value: "catalog.cities" },
+          { kind: "showDialog", target: "confirmDialog" },
+          { kind: "setMessage", target: "msgArea" },
+          { kind: "refreshList", target: "cityList" },
+          {
+            kind: "applyAjaxResult",
+            mapping: { "data.cities": "cityCode" },
+          },
+        ],
+      },
+    ],
+  }, true);
+
+  // negative: clear with extra value field
+  assertItem("effects clear with extra value rejected (additionalProperties)", {
+    id: "x",
+    label: "X",
+    type: "string",
+    events: [
+      {
+        id: "click",
+        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        effects: [{ kind: "clear", target: "someField", value: "extra" }],
+      },
+    ],
+  }, false);
+
+  // negative: setReadonly missing value
+  assertItem("effects setReadonly missing value rejected", {
+    id: "x",
+    label: "X",
+    type: "string",
+    events: [
+      {
+        id: "click",
+        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        effects: [{ kind: "setReadonly", target: "someField" }],
+      },
+    ],
+  }, false);
+
+  // negative: setReadonly value=42 (not boolean or ExpressionString)
+  // Note: ExpressionString is just a string, so 42 (number) should be rejected
+  assertItem("effects setReadonly value=42 (number) rejected", {
+    id: "x",
+    label: "X",
+    type: "string",
+    events: [
+      {
+        id: "click",
+        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        effects: [{ kind: "setReadonly", target: "someField", value: 42 }],
+      },
+    ],
+  }, false);
+
+  // negative: setOptions missing value
+  assertItem("effects setOptions missing value rejected", {
+    id: "x",
+    label: "X",
+    type: "string",
+    events: [
+      {
+        id: "click",
+        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        effects: [{ kind: "setOptions", target: "someField" }],
+      },
+    ],
+  }, false);
+
+  // negative: applyAjaxResult missing mapping
+  assertItem("effects applyAjaxResult missing mapping rejected", {
+    id: "x",
+    label: "X",
+    type: "string",
+    events: [
+      {
+        id: "click",
+        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        effects: [{ kind: "applyAjaxResult" }],
+      },
+    ],
+  }, false);
+
+  // negative: unknown kind "weird"
+  assertItem("effects kind=weird rejected (oneOf all fail)", {
+    id: "x",
+    label: "X",
+    type: "string",
+    events: [
+      {
+        id: "click",
+        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        effects: [{ kind: "weird", target: "someField" }],
+      },
+    ],
+  }, false);
+
+  // negative: applyAjaxResult.mapping value = "with-hyphen" (Identifier violation)
+  assertItem("effects applyAjaxResult mapping value Identifier violation rejected", {
+    id: "x",
+    label: "X",
+    type: "string",
+    events: [
+      {
+        id: "click",
+        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        effects: [{ kind: "applyAjaxResult", mapping: { "data.field": "with-hyphen" } }],
+      },
+    ],
+  }, false);
+}
+
+// =============================================================================
+// 3e. migration script の fixture test (#1065)
+//     .tmp/spec-check-fixtures/migration-binding-v1/ 配下に synthetic project を作成し
+//     migrate-binding-v1-to-structured.mjs を spawn して fixture 検証。
+// =============================================================================
+console.log("\n## migrate-binding-v1-to-structured.mjs fixture test (#1065)");
+{
+  const MIGRATION_FIXTURE_ROOT = join(ROOT, ".tmp/spec-check-fixtures/migration-binding-v1");
+  const scriptPath = join(ROOT, "scripts/migrate-binding-v1-to-structured.mjs");
+
+  // fixture project 初期化
+  try {
+    rmSync(MIGRATION_FIXTURE_ROOT, { recursive: true, force: true });
+  } catch { /* ignore */ }
+  mkdirSync(join(MIGRATION_FIXTURE_ROOT, "harmony/screens"), { recursive: true });
+
+  writeFileSync(
+    join(MIGRATION_FIXTURE_ROOT, "harmony.json"),
+    JSON.stringify({
+      schemaVersion: "v3",
+      dataDir: "harmony",
+      meta: {
+        id: "ffffffff-0001-4000-8000-000000000001",
+        name: "migration-fixture",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    }, null, 2) + "\n"
+  );
+
+  // fixture screen JSON
+  const screenData = {
+    id: "screen-fixture-001",
+    name: "テスト画面",
+    kind: "form",
+    path: "/fixture",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    items: [
+      // fixture 1: sentinel あり → migration される
+      {
+        id: "productCode",
+        label: "商品コード",
+        type: "string",
+        direction: "input",
+        description: "[binding.v1] binding.attr=th:field; binding.path=form.productCode; source=spec.md#sec",
+      },
+      // fixture 2: viewModel kind
+      {
+        id: "totalPrice",
+        label: "合計金額",
+        type: "number",
+        direction: "output",
+        description: "[binding.v1] binding.attr=th:text; binding.path=viewModel.total",
+      },
+      // fixture 3: 既に binding あり → idempotent skip
+      {
+        id: "existingBound",
+        label: "既存バインド",
+        type: "string",
+        binding: { kind: "viewModel" },
+        description: "[binding.v1] binding.attr=th:text; binding.path=viewModel.foo",
+      },
+      // fixture 4: sentinel なし → 無変更
+      {
+        id: "normalField",
+        label: "通常フィールド",
+        type: "string",
+        description: "sentinel なしの通常 description",
+      },
+    ],
+  };
+
+  const screenFilePath = join(MIGRATION_FIXTURE_ROOT, "harmony/screens/screen-fixture-001.json");
+  writeFileSync(screenFilePath, JSON.stringify(screenData, null, 2) + "\n");
+
+  // ── dry-run テスト ────────────────────────────────────────────────────
+  const dryRunResult = spawnSync("node", [scriptPath, "--project", MIGRATION_FIXTURE_ROOT], {
+    cwd: ROOT,
+    encoding: "utf8",
+    timeout: 15_000,
+  });
+  assert("dry-run exits 0", dryRunResult.status === 0, dryRunResult.stderr?.slice(0, 200));
+  assert("dry-run does not modify file", (() => {
+    const after = JSON.parse(readFileSync(screenFilePath, "utf8"));
+    return JSON.stringify(after) === JSON.stringify(screenData);
+  })(), "file was modified during dry-run");
+
+  // ── apply テスト ──────────────────────────────────────────────────────
+  const applyResult = spawnSync("node", [scriptPath, "--project", MIGRATION_FIXTURE_ROOT, "--apply"], {
+    cwd: ROOT,
+    encoding: "utf8",
+    timeout: 15_000,
+  });
+  assert("apply exits 0", applyResult.status === 0, applyResult.stderr?.slice(0, 200));
+
+  const afterApply = JSON.parse(readFileSync(screenFilePath, "utf8"));
+
+  // fixture 1: productCode → formField
+  const item1 = afterApply.items.find((i) => i.id === "productCode");
+  assert("fixture 1: binding.kind=formField", item1?.binding?.kind === "formField", JSON.stringify(item1?.binding));
+  assert("fixture 1: binding.path=form.productCode", item1?.binding?.path === "form.productCode");
+  assert("fixture 1: binding.sourceNote contains spec.md#sec", item1?.binding?.sourceNote?.includes("spec.md#sec"));
+  assert("fixture 1: description removed (free text empty)", item1?.description === undefined);
+
+  // fixture 2: totalPrice → viewModel
+  const item2 = afterApply.items.find((i) => i.id === "totalPrice");
+  assert("fixture 2: binding.kind=viewModel", item2?.binding?.kind === "viewModel", JSON.stringify(item2?.binding));
+  assert("fixture 2: binding.path=viewModel.total", item2?.binding?.path === "viewModel.total");
+
+  // fixture 3: existingBound → idempotent (no change)
+  const item3 = afterApply.items.find((i) => i.id === "existingBound");
+  assert("fixture 3: idempotent (binding unchanged)", item3?.binding?.kind === "viewModel");
+  assert("fixture 3: description still present (not migrated)", typeof item3?.description === "string");
+
+  // fixture 4: normalField → unchanged
+  const item4 = afterApply.items.find((i) => i.id === "normalField");
+  assert("fixture 4: no binding added (no sentinel)", item4?.binding === undefined);
+  assert("fixture 4: description unchanged", item4?.description === "sentinel なしの通常 description");
+
+  // ── 2 回目 apply (冪等性) ───────────────────────────────────────────
+  const apply2Result = spawnSync("node", [scriptPath, "--project", MIGRATION_FIXTURE_ROOT, "--apply"], {
+    cwd: ROOT,
+    encoding: "utf8",
+    timeout: 15_000,
+  });
+  assert("2nd apply exits 0", apply2Result.status === 0, apply2Result.stderr?.slice(0, 200));
+  const afterApply2 = JSON.parse(readFileSync(screenFilePath, "utf8"));
+  assert("2nd apply idempotent (no change)", JSON.stringify(afterApply2) === JSON.stringify(afterApply));
+
+  // cleanup
+  try {
+    rmSync(MIGRATION_FIXTURE_ROOT, { recursive: true, force: true });
+  } catch { /* ignore */ }
+}
+
+// =============================================================================
 // 4. spec doc 本体を input にした gate (Round 11 review M-1/M-2/M-3 対応)
 //    Round 11 で指摘された「test.mjs が spec doc を一切読まない → cheatsheet /
 //    jsonc fence / ✅ JSON 例の drift が CI gate を素通り」を解消する。

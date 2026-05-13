@@ -77,6 +77,9 @@
           "$ref": "common.v3.schema.json#/$defs/ExpressionString",
           "description": "派生計算式 (= で始まる)。output 項目用。"
         },
+        "binding": {
+          "$ref": "#/$defs/ScreenItemBinding"
+        },
         "events": {
           "type": "array",
           "description": "本画面項目で発火するイベントと処理フロー連携 (#624)。backward reference により 1 処理フロー × N イベント (再利用) を自然に表現する。",
@@ -121,8 +124,128 @@
           "description": "画面コンテキストを処理フロー引数 (handlerActionId が指す action の inputs[]) に変換するマッピング。キーは action 側 inputs[].name (Identifier 形式: lowerCamelCase)、値は画面コンテキスト式 (@screen.* / @self.* / @session.* 等)。",
           "propertyNames": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
           "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+        },
+        "effects": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ScreenItemEventEffect" },
+          "description": "UI ローカル効果列 (#1065 / spec generic-definition-layer.md §3.2)。handlerFlowId は処理起動、effects[] は純粋な UI ローカル効果。両者は概念分離し並存する。"
         }
       }
+    },
+
+    "ScreenItemBinding": {
+      "description": "画面項目の binding metadata (#1065 / spec generic-definition-layer.md §3.1)。description 自由記述で埋め込んでいた binding 情報を formal に構造化する。kind は入出力種別の正式分類で、path は bind 対象、role は表示専用/入力/両用の区別、formatHint は表示整形 hint、sourceNote は元 MD 文書上の出典メモ。spec §3.1 の `optionSource` / `parseHint` は本 ISSUE では追加せず将来 ISSUE で対応 (ISSUE 受け入れ条件は 5 field のみ列挙)。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["formField", "viewModel", "catalog", "expression", "fragmentParam", "session", "routeParam", "queryParam"],
+          "description": "入出力種別の正式分類。formField=フォーム入力 / viewModel=表示専用 / catalog=列挙体参照 / expression=計算式 / fragmentParam=fragment パラメータ / session=セッション値 / routeParam=URL path param / queryParam=URL query param。"
+        },
+        "path": {
+          "type": "string",
+          "description": "bind 対象 (式または plain path)。例: 'form.productCode' / 'viewModel.totalPrice' / 'catalog.categories'。kind 別の具体的書式解釈は AI コード生成側に委ねる。"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["display", "input", "both"],
+          "description": "ScreenItem.direction とは独立した、binding 視点での表示専用/入力/両用の区別 (#1065)。"
+        },
+        "formatHint": {
+          "type": "string",
+          "description": "表示整形 hint (例: 'YYYY/MM/DD' / '¥#,##0' / '0.00%')。"
+        },
+        "sourceNote": {
+          "type": "string",
+          "description": "元文書上の出典メモ (例: 'spec_SC000001_Controller.md#コントロールマッピング')。MD import 経由の trace 用。"
+        }
+      }
+    },
+
+    "ScreenItemEventEffect": {
+      "description": "ScreenItemEvent の UI ローカル効果 (#1065 / spec §3.2)。kind 別の discriminated union。",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "target"],
+          "properties": {
+            "kind": { "const": "clear" },
+            "target": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "対象 ScreenItem.id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "target", "value"],
+          "properties": {
+            "kind": { "enum": ["setReadonly", "setEnabled", "setVisible"] },
+            "target": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
+            "value": {
+              "oneOf": [
+                { "type": "boolean" },
+                { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+              ],
+              "description": "boolean リテラルまたは式文字列"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "target", "value"],
+          "properties": {
+            "kind": { "const": "setOptions" },
+            "target": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
+            "value": { "type": "string", "description": "catalogRef または ExpressionString" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "target"],
+          "properties": {
+            "kind": { "const": "showDialog" },
+            "target": { "type": "string", "description": "dialogRef (extensions namespace 想定)" },
+            "value": { "type": "string", "description": "messageRef または ExpressionString" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "target"],
+          "properties": {
+            "kind": { "const": "setMessage" },
+            "target": { "type": "string", "description": "messageAreaRef" },
+            "value": { "type": "string", "description": "messageRef または ExpressionString" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "target"],
+          "properties": {
+            "kind": { "const": "refreshList" },
+            "target": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "対象 list ScreenItem.id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "mapping"],
+          "properties": {
+            "kind": { "const": "applyAjaxResult" },
+            "mapping": {
+              "type": "object",
+              "description": "response path (キー、例: 'data.cities') → ScreenItem.id (値) の対応",
+              "propertyNames": { "type": "string" },
+              "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/Identifier" }
+            }
+          }
+        }
+      ]
     },
 
     "ValueSource": {

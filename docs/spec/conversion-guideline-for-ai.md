@@ -36,12 +36,12 @@
 | 印 | 種別 | 実体 | AJV 検証 |
 |---|---|---|---|
 | ✅ | **現行 schema 適合形** | `schemas/v3/*.json` に既存 (`generic-definition.v3.schema.json` 含む、#1063)。今すぐ使える | **必須通過** (§10 完了判定の対象) |
-| ✨ | **RFC 将来 schema 案** | ISSUE #1060 系の **kind 別固有 schema** (data-contract / domain-type は #1064 で AJV gate 対象化、残 6 kind は #1066 以降の子 ISSUE 予定)、および既存 entity 拡張 (binding / events.effects / componentCall 等)。残 kind は **まだ schema が無い** | **検証対象外** (生成すると親 schema `unevaluatedProperties: false` で AJV 失敗、`description` 退避 + audit warning) |
+| ✨ | **RFC 将来 schema 案** | ISSUE #1060 系の **kind 別固有 schema** (data-contract / domain-type は #1064 で AJV gate 対象化、残 6 kind は #1066 以降の子 ISSUE 予定)、および既存 entity 拡張で残るもの (componentCall / exceptionTypeRef 等、#1066 以降想定)。**binding / events.effects** は #1065 で AJV gate 対象化済 (✅ 側)。残 kind / 既存 entity 拡張は **まだ schema が無い** | **検証対象外** (生成すると親 schema `unevaluatedProperties: false` で AJV 失敗、`description` 退避 + audit warning) |
 
 ### 何が ✨ RFC 将来案か
 
-- `screenItem.binding.{kind,path,role,formatHint,sourceNote}` — 現行 ScreenItem は `additionalProperties: false` で `binding` を許可しない
-- `screenItemEvent.{trigger,target,effects[]}` — 現行 ScreenItemEvent は `id` / `handlerFlowId` / `argumentMapping` のみ
+- `screenItem.binding.{kind,path,role,formatHint,sourceNote}` — **#1065 で導入済 (AJV gate 対象)**。spec §3.1 の `optionSource` / `parseHint` は本 #1065 では追加せず将来 ISSUE 想定
+- `screenItemEvent.effects[]` — **#1065 で導入済 (AJV gate 対象)**。`event.trigger` / `event.target` (top-level) は #1065 範囲外、将来 ISSUE 想定。`event.id` 自体が trigger 名 (click/submit/change/blur) を兼ねる現行設計を本 PR 後も維持
 - ProcessFlow step `kind: "componentCall"`, `kind: "dbQuery"|"dbInsert"|"dbUpdate"` — 現行は `commonProcess` / `dbAccess` (operation: SELECT/INSERT/UPDATE/DELETE)
 - `validation[].throw.exceptionTypeRef` (step 内 inline) — 現行は `errorCode` catalog 参照
 - `generic-definitions/<kind>/*.json` の **kind 固有 field** — 親 schema (`schemas/v3/generic-definition.v3.schema.json`、#1063 で導入済) は確定し、共通メタモデル (kind / name / purpose / responsibilities / targets / fields / operations / relations / constraints / mappingHints) は AJV 検証対象。**kind 別の固有 schema** (data-contract / domain-type は #1064 で導入、残 6 kind は #1066-#1068 で順次切り出し中)
@@ -235,14 +235,14 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
   - 標準 key は `binding.attr` (HTML 属性、コロン許容) / `binding.path` (bind 先) / `binding.role` (input/output/display) / `binding.formatHint` / `source` (出典)
   - `value` 内に `=` / `;` を含めない (含む場合は別フィールドに分割)
   - 例: `[binding.v1] binding.attr=th:field; binding.path=form.productCode; source=spec.md#section`
-  - 将来 RFC で `binding` サブ field 確定後、migration script は **`[binding.v1] ` sentinel (末尾半角スペース込み) を持つ description のみ** parse → `binding` field 化 → sentinel と key/value 削除、自由文 description だけ残す
+  - **`[binding.v1] ` sentinel 形式から structured `binding` への migration**: `scripts/migrate-binding-v1-to-structured.mjs --apply` で既存 description sentinel を `binding` field に自動移行 (冪等)
 
-#### ✨ Alternative — RFC 将来 schema 案 (#1060 確定後)
+#### ✅ Alternative — structured binding (#1065 で AJV gate 対象化済)
 
-`binding` サブオブジェクトが ScreenItem に追加されたら以下に migrate (現在 AJV 落ちるため **生成しない**):
+`binding` サブオブジェクトは **#1065 で ScreenItem に追加済** (AJV gate 対象)。今すぐ生成できる:
 
 ```jsonc
-// 【RFC 将来案・現状不可】
+// screens/<uuid>.json (items[] 内)
 {
   "id": "productCode",
   "label": "商品コード",
@@ -258,10 +258,10 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
 }
 ```
 
-このパターンは [`generic-definition-layer.md` §3.1](generic-definition-layer.md) で提案中、子 ISSUE で schema 拡張予定。
+このパターンは [`generic-definition-layer.md` §3.1](generic-definition-layer.md) で確定、**#1065 (本子 ISSUE) で AJV gate 対象化済**。AI は本形式で直接生成可能。`optionSource` / `parseHint` は本 #1065 では追加せず将来 ISSUE 想定。
 
 **落とし方 hints**:
-- `th:field` / `th:value` / `th:text` / `th:each` 等の属性 → ✅ 現行は `description` に **binding grammar v1** (`[binding.v1] binding.attr=<attr>; binding.path=<path>`) 形式で記録 / ✨ 将来は `binding.kind`
+- `th:field` / `th:value` / `th:text` / `th:each` 等の属性 → ✅ 現行は **structured `binding.kind`** (formField / viewModel / catalog / expression / fragmentParam / session / routeParam / queryParam、#1065 で導入済) で記録。legacy `[binding.v1]` description sentinel 形式は `scripts/migrate-binding-v1-to-structured.mjs --apply` で structured `binding` へ自動移行
 - 「必須」「N 以上」等の備考 → `required` (boolean) / `min` / `max`
 - 整形指示 (「円」「%」「日付」等) → `displayFormat` ('¥#,##0' / '0.00%' / 'YYYY/MM/DD')
 - 出典 (表内に書かれた要件) → `description` に `source=...` で記録
@@ -390,27 +390,36 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 - 多項目更新が必要な場合は `displayUpdate` step を複数並べる
 - 戻るボタン / dirty check / 二重送信防止等の UI ロジックは、対応する extension 型 button をデザインし、その events[].handlerFlowId に専用 ProcessFlow を割り当てる
 
-#### ✨ Alternative — RFC 将来 schema 案 (#1060 確定後)
+#### ✅ Alternative — effects[] 形式 (#1065 で AJV gate 対象化済)
 
-ScreenItemEvent に `trigger` / `target` / `effects[]` が追加されたら以下に migrate (現在 AJV 落ちるため **生成しない**):
+`ScreenItemEvent.effects[]` は **#1065 で追加済** (AJV gate 対象)。UI ローカル効果 (clear / setOptions / showDialog / setReadonly 等) を処理フロー起動 (handlerFlowId) と並存させて直接記述できる:
 
 ```jsonc
-// 【RFC 将来案・現状不可】
+// screens/<uuid>.json (items[].events[] 内)
 {
+  "id": "prefecture",
+  "label": "都道府県",
+  "type": "string",
+  "direction": "input",
   "events": [
     {
-      "trigger": "change",
-      "target": "prefecture",
+      "id": "change",
+      "handlerFlowId": "00000000-1060-4000-8000-000000000010",
+      "argumentMapping": { "prefectureCode": "@screen.prefecture" },
       "effects": [
-        { "kind": "fetch", "endpoint": "/api/cities", "params": { "pref": "prefecture" } },
-        { "kind": "setOptions", "target": "city" }
+        { "kind": "clear", "target": "city" },
+        { "kind": "setOptions", "target": "city", "value": "catalog.cities" }
       ]
     }
   ]
 }
 ```
 
-このパターンは [`generic-definition-layer.md` §3.2](generic-definition-layer.md) で提案中、子 ISSUE で schema 拡張予定。
+`effects[]` 部分は **#1065 で AJV gate 対象化済**。
+
+**注意**: `event.trigger` / `event.target` の top-level field (ScreenItemEvent に `trigger` / `target` を直接追加する設計) は **#1065 範囲外、将来 ISSUE 想定**。現行は `event.id` 自体が trigger 名 (click/submit/change/blur) を兼ねる設計を維持。
+
+このパターンは [`generic-definition-layer.md` §3.2](generic-definition-layer.md) で確定、**#1065 (本子 ISSUE) で AJV gate 対象化済**。
 
 **落とし方 hints (✅ 現行)**:
 - 「change / click / submit イベントで X」→ ScreenItem.events[].handlerFlowId に ProcessFlow を切り出し
@@ -981,7 +990,7 @@ enum / コード値は `conventions/codeMaster` または `extensions/<namespace
 | `exception_semantic_kind_undecided` | §3.4 で semanticKind 推測不能 | warning |
 | `data_contract_kind_undecided` | §3.5 で data-contract vs domain-type 判定不能 | warning |
 | `commonprocess_ref_unresolved` | §3.3 ✅ 現行形の `commonProcess` step の `refId` (呼び先 ProcessFlow Uuid) が未定義 | error |
-| `rfc_future_field_skipped` | RFC 将来 schema 案 (binding / events.effects / componentCall / exceptionTypeRef / generic-definitions kind) を生成しようとした際、現行 schema に未対応のため `description` 退避 or 別ディレクトリ書き出しに切り替えた | warning |
+| `rfc_future_field_skipped` | RFC 将来 schema 案 (componentCall / exceptionTypeRef / generic-definitions の残 6 kind 等、#1066 以降想定) を生成しようとした際、現行 schema に未対応のため `description` 退避 or 別ディレクトリ書き出しに切り替えた。**binding / events.effects は #1065 で導入済のため本 warning 対象外** | warning |
 
 ### 5.3 audit summary
 
@@ -1351,7 +1360,22 @@ export async function applyAIFeedback(profile: any, aiDecisions: AIDecision[]) {
 
 ### 8.2 ScreenItem 系
 
-- ✅ 現行 schema では binding 情報を `description` 内に **binding grammar v1** で退避する (§3.1 / §0.5 参照)。grammar 仕様 (parser 実装 + 18 ケース pass 確認済、edge case 含む):
+- ✅ **#1065 で `binding` サブ field 導入済 (§3.1)** — **新規生成は structured `binding` を使う**。binding 情報を持つ screen-item は以下の形式で直接生成する:
+  ```jsonc
+  {
+    // kind: formField / viewModel / catalog / expression /
+    //       fragmentParam / session / routeParam / queryParam
+    // role: input / output / display (optional)
+    "binding": {
+      "kind": "formField",
+      "path": "form.productCode",
+      "role": "input",
+      "formatHint": "YYYY/MM/DD"
+    }
+  }
+  ```
+  `optionSource` / `parseHint` は本 #1065 では追加せず将来 ISSUE 想定。
+- ⚠️ **legacy 形式 `[binding.v1]` description sentinel** (旧 MD import 互換のため保持) — 既存 JSON ファイルまたは抽出曖昧な MD import 時のみ使用。grammar 仕様 (parser 実装 + 18 ケース pass 確認済、edge case 含む):
   - **sentinel** `[binding.v1] ` (末尾 1 半角スペース込) を **必ず先頭に持つ**
   - 続けて `<key>=<value>; <key>=<value>; ...` の **セミコロン + 半角スペース区切り** (`/;\s+/`)
   - **標準 key** (全 optional): `binding.attr` (HTML 属性名、`:` 許容) / `binding.path` (bind 先パス) / `binding.role` (input / output / display) / `binding.formatHint` / `source` (出典) / `note` (補足)
@@ -1386,9 +1410,9 @@ export async function applyAIFeedback(profile: any, aiDecisions: AIDecision[]) {
       return out;
     }
     ```
-- ❌ **自由文章だけに埋もれさせるのは禁止** — migration script で機械抽出できないため、将来 RFC `binding` field 確定後の自動移行が壊れる
+  - legacy → structured 移行: `scripts/migrate-binding-v1-to-structured.mjs --apply` で自動変換 (冪等)。migration script は **sentinel (末尾半角スペース込み、先頭 13 文字) を持つ description のみ** 対象、自由文 description はそのまま保持
+- ❌ **自由文章だけに埋もれさせるのは禁止** — migration script で機械抽出できないため、structured `binding` への自動移行が壊れる
 - ❌ **sentinel なしの旧形式 `binding: <attr>=<path>` も禁止** — `:` が key-value 区切りと衝突して migration parser が confused になる
-- ✨ RFC 将来 schema 確定後は `binding` サブ field (§3.1 ✨) に migrate する。migration script は **`[binding.v1] ` sentinel (末尾半角スペース込み) を持つ description のみ** 対象、自由文 description はそのまま保持
 - `purpose: "gadget"` (#1021 PageLayout 系) の screen は別扱い
 
 ### 8.3 CSS / リネーム系 (memory `feedback_css_rename_verification.md`)
@@ -1492,7 +1516,7 @@ MD が ~30 ファイル以下 ?
      -d <output.json> --spec=draft2020 --strict=false
    ```
 - [ ] coverage (project ごとの基準、未指定なら screen-controller / service-flow-spec / reference-catalog の 95% 以上)
-- [ ] ScreenItem binding metadata は ✅ 現行形 (`description` 埋め込み) で記録、`missing_binding_source` 0 件
+- [ ] ScreenItem binding metadata は **structured `binding` 優先 (#1065)**、`missing_binding_source` 0 件。legacy `[binding.v1]` description sentinel は migration script (`scripts/migrate-binding-v1-to-structured.mjs --apply`) で変換推奨
 - [ ] ProcessFlow step kind が `schemas/v3/process-flow.v3.schema.json#/$defs/Step` oneOf の 24 variant (`validation` / `dbAccess` / `externalSystem` / `commonProcess` / `screenTransition` / `displayUpdate` / `branch` / `loop` / `loopBreak` / `loopContinue` / `jump` / `compute` / `return` / `log` / `audit` / `workflow` / `transactionScope` / `eventPublish` / `eventSubscribe` / `closing` / `cdc` / `aiCall` / `aiAgent` / `extension`) のみ。`expression` / `tryCatch` (BranchCondition kind) / `auditLog` (CDC 出力先 kind) を Step として使っていないこと
 - [ ] ProcessFlow `commonProcess` step の `refId` が全件解決済 (生成した ProcessFlow と一致)
 - [ ] ProcessFlow `validation` step の `inlineBranch.ng[]` 内 `return` の `responseId` が Action.responses[].id と一致、対応する error code が `context.catalogs.errors.<CODE>` に登録済
