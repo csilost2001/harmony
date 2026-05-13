@@ -11,6 +11,7 @@
     "build": "concurrently -n frontend,backend -c cyan,magenta \"npm --prefix frontend run build\" \"npm --prefix backend run build\"",
     "test:unit": "npm --prefix frontend run test:unit",
     "test:e2e": "npm --prefix frontend run test:e2e",
+    "test:spec-check": "node scripts/spec-check/test.mjs && node scripts/spec-check/test-binding-grammar.mjs",
     "lint": "npm --prefix frontend run lint"
   },
   "devDependencies": {

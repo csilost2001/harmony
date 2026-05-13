@@ -81,6 +81,12 @@ const files = walkDir(gdRoot);
 console.log(`Linting ${files.length} generic-definition JSON files under ${gdRoot}`);
 console.log();
 
+// 空 dir は silent pass せず明示 (status=2 = nothing to lint で diff)
+if (files.length === 0) {
+  console.log(`No JSON files under ${gdRoot} — nothing to lint`);
+  process.exit(2);
+}
+
 let errors = 0;
 let warnings = 0;
 

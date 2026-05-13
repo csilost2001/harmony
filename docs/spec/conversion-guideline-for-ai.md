@@ -233,7 +233,7 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
   - 標準 key は `binding.attr` (HTML 属性、コロン許容) / `binding.path` (bind 先) / `binding.role` (input/output/display) / `binding.formatHint` / `source` (出典)
   - `value` 内に `=` / `;` を含めない (含む場合は別フィールドに分割)
   - 例: `[binding.v1] binding.attr=th:field; binding.path=form.productCode; source=spec.md#section`
-  - 将来 RFC で `binding` サブ field 確定後、migration script は **`[binding.v1]` sentinel を持つ description のみ** parse → `binding` field 化 → sentinel と key/value 削除、自由文 description だけ残す
+  - 将来 RFC で `binding` サブ field 確定後、migration script は **`[binding.v1] ` sentinel (末尾半角スペース込み) を持つ description のみ** parse → `binding` field 化 → sentinel と key/value 削除、自由文 description だけ残す
 
 #### ✨ Alternative — RFC 将来 schema 案 (#1060 確定後)
 
@@ -1301,7 +1301,7 @@ export async function applyAIFeedback(profile: any, aiDecisions: AIDecision[]) {
 
 ### 8.2 ScreenItem 系
 
-- ✅ 現行 schema では binding 情報を `description` 内に **binding grammar v1** で退避する (§3.1 / §0.5 参照)。grammar 仕様 (parser 実装 + 9 ケース pass 確認済):
+- ✅ 現行 schema では binding 情報を `description` 内に **binding grammar v1** で退避する (§3.1 / §0.5 参照)。grammar 仕様 (parser 実装 + 14 ケース pass 確認済、edge case 含む):
   - **sentinel** `[binding.v1] ` (末尾 1 半角スペース込) を **必ず先頭に持つ**
   - 続けて `<key>=<value>; <key>=<value>; ...` の **セミコロン + 半角スペース区切り** (`/;\s+/`)
   - **標準 key** (全 optional): `binding.attr` (HTML 属性名、`:` 許容) / `binding.path` (bind 先パス) / `binding.role` (input / output / display) / `binding.formatHint` / `source` (出典) / `note` (補足)
@@ -1333,7 +1333,7 @@ export async function applyAIFeedback(profile: any, aiDecisions: AIDecision[]) {
     ```
 - ❌ **自由文章だけに埋もれさせるのは禁止** — migration script で機械抽出できないため、将来 RFC `binding` field 確定後の自動移行が壊れる
 - ❌ **sentinel なしの旧形式 `binding: <attr>=<path>` も禁止** — `:` が key-value 区切りと衝突して migration parser が confused になる
-- ✨ RFC 将来 schema 確定後は `binding` サブ field (§3.1 ✨) に migrate する。migration script は **`[binding.v1]` sentinel を持つ description のみ** 対象、自由文 description はそのまま保持
+- ✨ RFC 将来 schema 確定後は `binding` サブ field (§3.1 ✨) に migrate する。migration script は **`[binding.v1] ` sentinel (末尾半角スペース込み) を持つ description のみ** 対象、自由文 description はそのまま保持
 - `purpose: "gadget"` (#1021 PageLayout 系) の screen は別扱い
 
 ### 8.3 CSS / リネーム系 (memory `feedback_css_rename_verification.md`)

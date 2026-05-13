@@ -30,60 +30,96 @@ function runScript(scriptName, args = [], opts = {}) {
   const result = spawnSync("node", [join(__dirname, scriptName), ...args], {
     cwd: ROOT,
     encoding: "utf8",
+    timeout: 30_000, // 30s timeout — extract / lint は秒未満で終わる前提、hang は immediate fail
     ...opts,
   });
-  return { stdout: result.stdout, stderr: result.stderr, status: result.status };
+  return {
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+    status: result.status,
+    signal: result.signal, // SIGTERM 等 (timeout 時)
+    error: result.error, // spawn 失敗時の Error
+  };
 }
 
 // =============================================================================
-// 1. extract-step-required.mjs snapshot test
+// Schema 読み込み (full snapshot test 用)
 // =============================================================================
-console.log("\n## extract-step-required.mjs");
+const schemaJson = JSON.parse(readFileSync(join(ROOT, "schemas/v3/process-flow.v3.schema.json"), "utf8"));
+const $defs = schemaJson.$defs;
+
+// =============================================================================
+// 1. extract-step-required.mjs FULL snapshot test (24 row 全件 exact compare)
+// =============================================================================
+console.log("\n## extract-step-required.mjs (full snapshot)");
 {
-  const { stdout, status } = runScript("extract-step-required.mjs");
+  const { stdout, status, signal, error } = runScript("extract-step-required.mjs");
+  if (error) console.log(`  (spawn error: ${error.message})`);
+  if (signal) console.log(`  (signal: ${signal})`);
   assert("exits 0", status === 0);
-  // 24 step kinds が列挙されているか
-  assert("24 step kinds output", /Total: 24 step kinds/.test(stdout));
-  // 主要 step kind がすべて出力されるか
-  for (const k of [
-    "validation", "dbAccess", "externalSystem", "commonProcess",
-    "screenTransition", "displayUpdate", "branch", "loop",
-    "loopBreak", "loopContinue", "jump", "compute", "return",
-    "log", "audit", "workflow", "transactionScope",
-    "eventPublish", "eventSubscribe", "closing", "cdc",
-    "aiCall", "aiAgent", "extension",
-  ]) {
-    assert(`output contains \`${k}\``, new RegExp(`\\\`${k}\\\``).test(stdout));
+  assert("Total: 24 step kinds output", /Total: 24 step kinds/.test(stdout));
+  assert("no `?` placeholder", !/^- `\?`/m.test(stdout), "kind 未解決の variant が残存");
+
+  // schema から動的に 24 step variant の (kind, required - [id,kind,description]) を抽出
+  const stepUnion = $defs.Step.oneOf.map((r) => r.$ref.replace("#/$defs/", ""));
+  for (const stepName of stepUnion) {
+    const def = $defs[stepName];
+    if (!def?.allOf || def.allOf.length < 2) continue;
+    const variant = def.allOf[1];
+    const required = variant.required || [];
+    const kindConst = variant.properties?.kind?.const
+      ?? (stepName === "ExtensionStep" ? "extension" : "?");
+    const extra = required.filter((r) => !["id", "kind", "description"].includes(r));
+    const expected = extra.length > 0 ? extra.join(", ") : "(なし)";
+    // 行末まで含めた逐字一致
+    const lineRegex = new RegExp(`^- \`${kindConst}\` → ${expected.replace(/[()]/g, "\\$&")}$`, "m");
+    assert(`row exact match: \`${kindConst}\` → ${expected}`, lineRegex.test(stdout));
   }
-  // ? が出ていないこと (regression: ExtensionStep が `?` で出る bug)
-  assert("no `?` placeholder in output", !/^- `\?`/m.test(stdout), "kind 未解決の variant が残存");
-  // 特定 required の機械検証
-  assert("compute → expression", /`compute` → expression/.test(stdout));
-  assert("dbAccess → tableId, operation", /`dbAccess` → tableId, operation/.test(stdout));
-  assert("loop → loopKind, steps", /`loop` → loopKind, steps/.test(stdout));
-  assert("workflow → pattern, approvers", /`workflow` → pattern, approvers/.test(stdout));
-  assert("aiAgent → modelRef, messages, tools", /`aiAgent` → modelRef, messages, tools/.test(stdout));
 }
 
 // =============================================================================
-// 2. extract-nested-required.mjs snapshot test
+// 2. extract-nested-required.mjs FULL snapshot test (全 nested $defs 動的検証)
 // =============================================================================
-console.log("\n## extract-nested-required.mjs");
+console.log("\n## extract-nested-required.mjs (full snapshot)");
 {
-  const { stdout, status } = runScript("extract-nested-required.mjs");
+  const { stdout, status, signal, error } = runScript("extract-nested-required.mjs");
+  if (error) console.log(`  (spawn error: ${error.message})`);
+  if (signal) console.log(`  (signal: ${signal})`);
   assert("exits 0", status === 0);
-  assert("Branch required = id/code/condition/steps",
-    /Branch: required = \[id, code, condition, steps\]/.test(stdout));
-  assert("ElseBranch required = id/code/steps",
-    /ElseBranch: required = \[id, code, steps\]/.test(stdout));
-  assert("WorkflowApprover required = role",
-    /WorkflowApprover: required = \[role\]/.test(stdout));
-  assert("AiMessage required = role/content",
-    /AiMessage: required = \[role, content\]/.test(stdout));
-  assert("OutputBinding required = name",
-    /OutputBinding: required = \[name\]/.test(stdout));
-  assert("TxBoundary required = role/txId",
-    /TxBoundary: required = \[role, txId\]/.test(stdout));
+
+  // script が列挙している全 nested def を実 schema から検証
+  const nestedDefs = [
+    "Branch", "ElseBranch", "BranchCondition",
+    "ValidationRule", "ValidationInlineBranch",
+    "WorkflowApprover", "WorkflowQuorum",
+    "AiMessage", "AiMessageItem", "AiTool", "AiToolRef", "AiToolChoice", "AiResponseFormat",
+    "AffectedRowsCheck", "DataLineage",
+    "CdcDestination",
+    "OutputBinding", "TxBoundary",
+  ];
+  for (const name of nestedDefs) {
+    const def = $defs[name];
+    if (!def) {
+      // script が「not found in $defs」と出力するはず
+      assert(`${name}: marked as "not found"`, new RegExp(`${name}: \\(not found`).test(stdout));
+      continue;
+    }
+    if (def.oneOf) {
+      // oneOf variant ごとに required を確認
+      def.oneOf.forEach((variant, i) => {
+        const req = (variant.required || []).join(", ");
+        const expected = `    variant ${i}: required = [${req}]`;
+        assert(
+          `${name} variant ${i}: required = [${req}]`,
+          stdout.includes(expected)
+        );
+      });
+    } else {
+      const req = (def.required || []).join(", ");
+      const expected = `- ${name}: required = [${req}]`;
+      assert(`${name}: required = [${req}]`, stdout.includes(expected));
+    }
+  }
 }
 
 // =============================================================================
@@ -166,6 +202,19 @@ try {
     const { status, stdout } = runScript("lint-generic-definitions.mjs", [missingRoot]);
     assert("missing-field exits 1", status === 1);
     assert("error mentions missing required", /missing required field/.test(stdout));
+  }
+
+  // (D2) 空 generic-definitions/ → nothing to lint (exit 2、S-1/round5 fix)
+  const emptyRoot = join(FIXTURE_ROOT, "empty-gd");
+  mkdirSync(join(emptyRoot, "harmony/generic-definitions"), { recursive: true });
+  writeFileSync(
+    join(emptyRoot, "harmony.json"),
+    JSON.stringify({ schemaVersion: "v3", dataDir: "harmony", meta: { id: "00000000-0000-4000-8000-000000000005", name: "test", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" } })
+  );
+  {
+    const { status, stdout } = runScript("lint-generic-definitions.mjs", [emptyRoot]);
+    assert("空 generic-definitions/ は exit 2 (silent pass 禁止)", status === 2, `status=${status}`);
+    assert("error message: nothing to lint", /nothing to lint/.test(stdout));
   }
 
   // (E) harmony.json 不在 → error (S-4 fix)
