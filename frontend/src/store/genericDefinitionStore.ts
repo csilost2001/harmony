@@ -5,7 +5,9 @@ import type {
   GenericDefinitionTarget,
 } from "../types/v3";
 
-const GENERIC_DEFINITION_SCHEMA_REF = "../../schemas/v3/generic-definition.v3.schema.json";
+function kindSchemaRef(kind: GenericDefinitionKind): string {
+  return `../../schemas/v3/generic-definitions/${kind}.v3.schema.json`;
+}
 
 export interface GenericDefinitionStorageBackend {
   listAll(kind: GenericDefinitionKind): Promise<unknown[]>;
@@ -57,7 +59,7 @@ export async function loadGenericDefinition(
 export async function saveGenericDefinition(definition: GenericDefinition): Promise<void> {
   const toSave: GenericDefinition = {
     ...definition,
-    $schema: GENERIC_DEFINITION_SCHEMA_REF,
+    $schema: kindSchemaRef(definition.kind),
   };
   await requireBackend().save(definition.kind, definition.name, toSave);
 }
@@ -74,7 +76,7 @@ export function createGenericDefinitionTemplate(params: {
   targets: GenericDefinitionTarget[];
 }): GenericDefinition {
   return {
-    $schema: GENERIC_DEFINITION_SCHEMA_REF,
+    $schema: kindSchemaRef(params.kind),
     kind: params.kind,
     name: params.name,
     purpose: params.purpose,

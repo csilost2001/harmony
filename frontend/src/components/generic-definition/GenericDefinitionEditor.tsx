@@ -51,6 +51,7 @@ export function GenericDefinitionEditor() {
   const [error, setError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
@@ -107,7 +108,8 @@ export function GenericDefinitionEditor() {
     setSaving(true);
     try {
       await saveGenericDefinition(def);
-      alert("保存しました");
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -173,6 +175,12 @@ export function GenericDefinitionEditor() {
       {saveError && (
         <div style={{ padding: "8px 24px", background: "#fff3f3", color: "#c00", fontSize: "0.88rem" }}>
           {saveError}
+        </div>
+      )}
+
+      {saveSuccess && (
+        <div style={{ padding: "8px 24px", background: "#f0fff4", color: "#186429", fontSize: "0.88rem" }}>
+          保存しました
         </div>
       )}
 

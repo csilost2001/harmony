@@ -36,6 +36,10 @@ function isValidKind(k: string): k is GenericDefinitionKind {
   return (GENERIC_DEFINITION_KINDS as string[]).includes(k);
 }
 
+function storageKey(kind: string): string {
+  return `list-view-mode:generic-definition-list-${kind}`;
+}
+
 function getId(item: GenericDefinitionSummary): string {
   return item.name;
 }
@@ -51,7 +55,7 @@ export function GenericDefinitionListView() {
 
   const [items, setItems] = useState<GenericDefinitionSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = usePersistentState<ViewMode>(`list-view-mode:generic-definition-list-${kind}`, "table");
+  const [viewMode, setViewMode] = usePersistentState<ViewMode>(storageKey(kindParam), "table");
   const [showAdd, setShowAdd] = useState(false);
   const [addName, setAddName] = useState("");
   const [addPurpose, setAddPurpose] = useState("");
@@ -129,12 +133,19 @@ export function GenericDefinitionListView() {
   const handleDuplicate = useCallback(async (items: GenericDefinitionSummary[]) => {
     if (!kind || items.length === 0) return;
     const src = items[0];
-    const newName = `${src.name}_copy`;
     const full = await loadGenericDefinition(kind, src.name);
-    if (full) {
-      await saveGenericDefinition({ ...full, name: newName });
-      loadItems();
+    if (!full) return;
+    // 衝突しない name を生成 (_copy → _copy2 → _copy3 ...)
+    const currentItems = await listGenericDefinitions(kind);
+    const existingNames = new Set(currentItems.map((i) => i.name));
+    let newName = `${src.name}_copy`;
+    if (existingNames.has(newName)) {
+      let suffix = 2;
+      while (existingNames.has(`${src.name}_copy${suffix}`)) suffix++;
+      newName = `${src.name}_copy${suffix}`;
     }
+    await saveGenericDefinition({ ...full, name: newName });
+    loadItems();
   }, [kind, loadItems]);
 
   useListKeyboard({
@@ -171,6 +182,12 @@ export function GenericDefinitionListView() {
     const resps = addResponsibilities.split("\n").map((s) => s.trim()).filter((s) => s.length > 0);
     if (resps.length === 0) {
       setAddError("責務を 1 件以上入力してください");
+      return;
+    }
+    // 最新リストで name 衝突チェック
+    const latestItems = await listGenericDefinitions(kind);
+    if (latestItems.some((i) => i.name === addName.trim())) {
+      setAddError("同名の定義が既に存在します。別の名前を入力してください");
       return;
     }
     const def = createGenericDefinitionTemplate({
@@ -269,7 +286,7 @@ export function GenericDefinitionListView() {
         <h2 style={{ margin: 0, fontSize: "1.1rem" }}>{label}一覧</h2>
         <span style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "#888" }}>{kind}</span>
         <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
-          <ViewModeToggle mode={viewMode} onChange={setViewMode} storageKey={`list-view-mode:gd-${kind}`} />
+          <ViewModeToggle mode={viewMode} onChange={setViewMode} storageKey={storageKey(kindParam)} />
           <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>新規作成</button>
         </div>
       </div>
