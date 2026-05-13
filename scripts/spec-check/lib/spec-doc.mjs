@@ -20,9 +20,13 @@ export function readSpecDoc() {
  * 指定言語の fence を全件抽出する。
  * @param {string} doc spec doc full text
  * @param {string} lang fence 言語 (例: "jsonc", "ts")
+ * @param {object} [opts]
+ * @param {boolean} [opts.topLevelOnly] true なら 列 0 で始まる top-level fence のみ
+ *        (リスト項目内の indented fence は除外)。デフォルト false。
  * @returns {{ line: number, body: string }[]} 1-origin の開始行 + fence 本文
  */
-export function extractFences(doc, lang) {
+export function extractFences(doc, lang, opts = {}) {
+  const { topLevelOnly = false } = opts;
   const lines = doc.split("\n");
   const out = [];
   const openTag = "```" + lang;
@@ -32,13 +36,16 @@ export function extractFences(doc, lang) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!inFence) {
-      if (line.trim() === openTag) {
+      const matches = topLevelOnly ? line === openTag : line.trim() === openTag;
+      if (matches) {
         inFence = true;
         startLine = i + 2; // body 開始行 (1-origin)
         buf = [];
       }
     } else {
-      if (line.trim() === "```") {
+      // close tag: top-level なら "```"、許容モードなら trim で OK
+      const closeMatches = topLevelOnly ? line === "```" : line.trim() === "```";
+      if (closeMatches) {
         out.push({ line: startLine, body: buf.join("\n") });
         inFence = false;
         buf = [];

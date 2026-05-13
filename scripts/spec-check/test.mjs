@@ -357,13 +357,25 @@ console.log("\n## §3.3 cheatsheet rows vs schema required (drift gate)");
       // 表現の揺れを許容するため、`(なし` を含むか確認
       assert(`\`${kindConst}\` row has "(なし" marker`, /\(なし/.test(cell), `cell=${cell.slice(0, 100)}`);
     } else {
-      for (const f of required) {
-        assert(
-          `\`${kindConst}\` row contains \`${f}\``,
-          cell.includes(`\`${f}\``),
-          `cell=${cell.slice(0, 120)}`
-        );
-      }
+      // P2-A (Round 13): cell の step-level backtick field 集合と schema required の
+      // 集合一致を assert。旧実装は「required field が cell に含まれる」subset check
+      // のみで、cell に stale field が混入しても catch できなかった (Codex 厳格レビュー)。
+      //
+      // cheatsheet 表現の convention: step-level required は cell の先頭から最初の "("
+      // までに backtick 列挙、ネストレベル required は "(各 X: `subfield`...)" の括弧内
+      // 説明として記載される。step-level だけを集合一致対象とする。
+      const headPart = cell.split("(")[0];
+      const cellFields = new Set(
+        [...headPart.matchAll(/`([^`]+)`/g)].map((m) => m[1])
+      );
+      const requiredSet = new Set(required);
+      const missing = required.filter((f) => !cellFields.has(f));
+      const extra = [...cellFields].filter((f) => !requiredSet.has(f));
+      assert(
+        `\`${kindConst}\` row step-level backtick fields exactly match schema required`,
+        missing.length === 0 && extra.length === 0,
+        `missing=${JSON.stringify(missing)}, extra=${JSON.stringify(extra)}, headPart=${headPart.slice(0, 120)}`
+      );
     }
   }
 }
@@ -374,6 +386,37 @@ console.log("\n## §3.3 cheatsheet rows vs schema required (drift gate)");
 //      schema の top-level property を spec §7.3 enumeration と突合し、抜けが
 //      無いか確認。schema 側に section が増えても spec が追従していなければ fail。
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// 4-E. §7.2 TS scaffold fence syntax gate (Round 13 P2-B)
+//      Round 11 S-1 で「軽量版」と説明して TS scaffold は型チェックも syntax check
+//      も無かった。typescript は devDeps 済なので、最小 syntax-only gate を入れる。
+//      semantic な型解決はしない (parser-only)、import 未解決等は許容。
+// -----------------------------------------------------------------------------
+console.log("\n## §7.2 ts fence syntax gate (typescript parser-only)");
+{
+  const ts = (await import("typescript")).default;
+  // topLevelOnly: 列 0 で始まる primary scaffold fence のみを対象。リスト項目内に
+  // ある indented fence (参考スニペット) は対象外。
+  const tsFences = extractFences(specDoc, "ts", { topLevelOnly: true });
+  assert("§7.2 top-level ts fence count >= 5", tsFences.length >= 5, `actual=${tsFences.length}`);
+  for (const f of tsFences) {
+    const r = ts.transpileModule(f.body, {
+      reportDiagnostics: true,
+      compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext },
+    });
+    // category 1 = Error。code < 2000 はおおむね syntactic、>= 2000 は semantic 寄り。
+    // import / type 解決系 (2300-2999 等) は許容、syntactic だけを gate する。
+    const syntaxErrors = (r.diagnostics || []).filter(
+      (d) => d.category === 1 && d.code < 2000,
+    );
+    const summary = syntaxErrors
+      .slice(0, 3)
+      .map((d) => (typeof d.messageText === "string" ? d.messageText : d.messageText.messageText))
+      .join("; ");
+    assert(`L${f.line}: ts fence parses (syntax-only)`, syntaxErrors.length === 0, summary);
+  }
+}
+
 console.log("\n## profile schema sections vs spec §7.3 enumeration (bidirectional)");
 {
   const profileSchema = JSON.parse(readFileSync(join(ROOT, "schemas/import-project-profile.v1.schema.json"), "utf8"));

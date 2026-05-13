@@ -695,7 +695,7 @@ spec 編集者の記憶に頼って書き換えない。不確実な場合は必
 以下 §3.4 (exception-model) / §3.5 (class-definition) / §3.6 (frontend-script) / §3.7 (configuration-class) はすべて **`generic-definitions/<kind>/*.json` 配下への出力** で、現行 `schemas/v3/` に対応 schema が存在しない。AJV 検証対象外。
 
 **現状の扱い**:
-- `examples/<project>/<dataDir>/generic-definitions/<kind>/<name>.json` ファイルに書き出す (実例: `examples/retail/harmony/generic-definitions/data-contract/OrderForm.json`)
+- `examples/<project>/<dataDir>/generic-definitions/<kind>/<name>.json` ファイルに書き出す (想定パス例: `examples/retail/harmony/generic-definitions/data-contract/OrderForm.json` — 現時点では子 ISSUE #1060-2 以降で schema 確定後にサンプル追加予定、本 PR 時点で実体は未配置)
 - 現行 loader は読まない (将来 schema 確定時に取り込まれる)
 - AJV 検証ゲートからは除外
 - audit に **warning `rfc_future_field_skipped`** を kind 別件数で残す
