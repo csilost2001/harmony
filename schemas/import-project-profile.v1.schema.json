@@ -1,0 +1,401 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/import-project-profile.v1.schema.json",
+  "title": "Import Project Profile (v1, RFC)",
+  "description": "Markdown → Harmony JSON 共通 importer に渡す project 固有の正規化ルール。1 project に 1 ファイル (`examples/<project-id>/import-project-profile.json` または `workspaces/<wsId>/import-project-profile.json`)。仕様: docs/spec/import-procedure.md / docs/spec/generic-definition-layer.md。本 schema は RFC v0.1 (ISSUE #1060)、確定後に正式版に昇格する。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profileVersion", "name"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "本 schema へのポインタ (任意)"
+    },
+    "profileVersion": {
+      "type": "string",
+      "enum": ["v1"],
+      "description": "Profile 互換バージョン。schema 後方互換は profileVersion で管理。"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Profile 名 (project-id と一致が推奨)"
+    },
+    "description": {
+      "type": "string",
+      "description": "本 profile の用途・対象設計書の説明 (free text)"
+    },
+    "sourceInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 1 (inventory) で使う入力規約",
+      "properties": {
+        "rootDirs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "対象 root ディレクトリ (相対パス、project ルートから)"
+        },
+        "includeGlobs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "対象ファイルの glob (例: '**/*.md')"
+        },
+        "excludeGlobs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "除外 glob (例: '**/README.md')"
+        },
+        "priorityDocuments": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "優先処理する文書 glob (catalog 系を先に解決するなど)"
+        }
+      }
+    },
+    "fileNaming": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 1/2 (inventory / archetype 1 次分類) のファイル名ベース判定",
+      "properties": {
+        "codeExtractionPatterns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "ファイル名から code (画面コード / 処理コード等) を抽出する正規表現。名前付きキャプチャ 'code' を使う (例: '(?<code>[A-Z]{2,3}\\\\d{6})')"
+        },
+        "archetypeHints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["whenFileNameMatches", "archetype"],
+            "properties": {
+              "whenFileNameMatches": {
+                "type": "string",
+                "description": "ファイル名一致正規表現"
+              },
+              "archetype": {
+                "$ref": "#/$defs/Archetype"
+              }
+            }
+          }
+        }
+      }
+    },
+    "headingAliases": {
+      "type": "object",
+      "description": "Step 3 (見出し正規化)。canonical 名 → 別名 list。例: { 'controlMapping': ['コントロールマッピング', '画面項目マッピング'] }",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "tableHeaderAliases": {
+      "type": "object",
+      "description": "Step 3 (表ヘッダ正規化)。canonical 名 → 別ヘッダパターン list。例: { 'controlMapping': [ ['項目名','属性','マッピング','備考'], ['項目名','属性','マッピング','固定値/備考'] ] }",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "archetypeRules": {
+      "type": "array",
+      "description": "Step 2 (heading ベース archetype 2 次分類)",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "archetype"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "ルール名 (audit log で表示)"
+          },
+          "whenHeadingsContain": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "見出しに含まれるべき canonical 名のセット (AND 条件)"
+          },
+          "archetype": {
+            "$ref": "#/$defs/Archetype"
+          }
+        }
+      }
+    },
+    "businessVocabulary": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 4 (用語正規化)",
+      "properties": {
+        "terms": {
+          "type": "object",
+          "description": "project 固有用語 → Harmony 共通概念キー (例: { '受付': 'submit-or-register' })",
+          "additionalProperties": { "type": "string" }
+        },
+        "synonyms": {
+          "type": "object",
+          "description": "同義語 (例: { '申込理由': ['理由', '受付理由'] })",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "catalogRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 4 (catalog 解決)",
+      "properties": {
+        "prioritySources": {
+          "type": "object",
+          "description": "catalog 種別 → 優先参照元 archetype 順序",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/Archetype" }
+          }
+        },
+        "optionResolution": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preferCatalogOverInlineOptions": { "type": "boolean" },
+            "allowProjectSpecificSpecialization": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "bindingRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 4 (ScreenItem binding 分類)。generic-definition-layer.md §3.1 の binding.kind に対応",
+      "properties": {
+        "attributeKinds": {
+          "type": "object",
+          "description": "属性記法 → binding kind (例: { 'th:field': 'formField', 'th:each': 'catalogLoop' })",
+          "additionalProperties": { "type": "string" }
+        },
+        "hiddenMarkers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "loopBindingMarkers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "outputBindingMarkers": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "uiBehaviorPatterns": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 5 (ui-behavior 退避)",
+      "properties": {
+        "knownPatterns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "trigger": { "type": "string" },
+              "effects": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "sharedScriptFiles": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "processFlowRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 4 (ProcessFlow step kind 判定)",
+      "properties": {
+        "sharedCallMarkers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "componentCall (内部共通処理) と判定する markers"
+        },
+        "dbMarkers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "DB step と判定する markers"
+        },
+        "throwMarkers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "throw step と判定する markers"
+        },
+        "messageSettingMarkers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "メッセージ設定行と判定する markers"
+        }
+      }
+    },
+    "reusableContracts": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 5 (data-contract / domain-type への昇格判定)",
+      "properties": {
+        "promoteKinds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Generic Definition Catalog の対応 kind に昇格させる class 種別 (例: ['Form', 'Dto', 'Model', 'Entity', 'Result'])"
+        },
+        "dataContractKinds": {
+          "type": "object",
+          "description": "class 種別 → Catalog kind マッピング (例: { 'Form': 'data-contract', 'Entity': 'domain-type' })",
+          "additionalProperties": {
+            "$ref": "#/$defs/GenericDefinitionKind"
+          }
+        }
+      }
+    },
+    "exceptionSemantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 5 (exception-type 分類)",
+      "properties": {
+        "classificationRules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["semanticKind"],
+            "properties": {
+              "whenNameContains": { "type": "string" },
+              "semanticKind": {
+                "type": "string",
+                "enum": [
+                  "business-abort",
+                  "validation-error",
+                  "authentication-error",
+                  "authorization-error",
+                  "not-found",
+                  "conflict",
+                  "system-error"
+                ]
+              },
+              "recoverable": { "type": "boolean" }
+            }
+          }
+        },
+        "defaultHandling": {
+          "type": "object",
+          "description": "semantic kind → 既定ハンドリング方針",
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "return-user-message",
+              "attach-field-errors",
+              "redirect-login",
+              "redirect-forbidden",
+              "show-not-found",
+              "show-conflict-dialog",
+              "log-and-fail"
+            ]
+          }
+        }
+      }
+    },
+    "outputPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 6/8 (出力ポリシー)",
+      "properties": {
+        "generateEntities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "screen",
+              "processFlow",
+              "screenTransition",
+              "table",
+              "viewDefinition",
+              "conventions",
+              "genericDefinition"
+            ]
+          }
+        },
+        "warningThresholds": {
+          "type": "object",
+          "description": "warning kind → 許容上限件数 (0 = 1 件でも error)",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "allowDraftWithWarnings": {
+          "type": "boolean",
+          "description": "draft-state policy に従い warning 残存でも保存を許可するか"
+        }
+      }
+    },
+    "reviewPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Step 9 (human review gate)",
+      "properties": {
+        "mustReviewWarnings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "1 件以上残ったら gate を通さない warning kind"
+        },
+        "minimumCoverage": {
+          "type": "object",
+          "description": "archetype カバレッジ最低基準 (0.0-1.0)",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "Archetype": {
+      "type": "string",
+      "description": "Markdown 文書の archetype 分類 (import-procedure.md Step 2)",
+      "enum": [
+        "screen-controller",
+        "service-flow-spec",
+        "architecture-spec",
+        "frontend-script",
+        "configuration-class",
+        "exception-model",
+        "class-definition",
+        "reference-catalog",
+        "pulldown-catalog",
+        "unknown"
+      ]
+    },
+    "GenericDefinitionKind": {
+      "type": "string",
+      "description": "Generic Definition Catalog の kind (generic-definition-layer.md §4.2)",
+      "enum": [
+        "data-contract",
+        "domain-type",
+        "exception-type",
+        "application-rule",
+        "ui-behavior",
+        "runtime-policy",
+        "component-definition",
+        "ui-fragment"
+      ]
+    }
+  }
+}

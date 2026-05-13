@@ -1,0 +1,202 @@
+{
+  "$schema": "../../schemas/import-project-profile.v1.schema.json",
+  "profileVersion": "v1",
+  "name": "retail",
+  "description": "Retail (小売業) サンプル用の Markdown インポート profile RFC サンプル。本 profile は ISSUE #1060 (generic-definition-layer.md / import-procedure.md) のドラフト検証用。reference/ 配下に MD を置いて運用する想定の最小例。",
+  "sourceInventory": {
+    "rootDirs": ["reference/"],
+    "includeGlobs": ["**/*.md"],
+    "excludeGlobs": ["**/README.md", "**/tmp/**"],
+    "priorityDocuments": [
+      "spec_Pulldown_*.md",
+      "spec_enum_*.md",
+      "ref_*_メッセージ*.md",
+      "ref_*_システム設定*.md"
+    ]
+  },
+  "fileNaming": {
+    "codeExtractionPatterns": [
+      "(?<code>[A-Z]{2,3}\\d{6})",
+      "(?<code>SC\\d{6})"
+    ],
+    "archetypeHints": [
+      { "whenFileNameMatches": "^spec_.*_Controller_.*\\.md$", "archetype": "screen-controller" },
+      { "whenFileNameMatches": "^spec_.*_Service_.*\\.md$", "archetype": "service-flow-spec" },
+      { "whenFileNameMatches": "^arch_.*\\.md$", "archetype": "architecture-spec" },
+      { "whenFileNameMatches": "^spec_.*JS.*\\.md$", "archetype": "frontend-script" },
+      { "whenFileNameMatches": "^spec_exception_.*\\.md$", "archetype": "exception-model" },
+      { "whenFileNameMatches": "^spec_(Form|Dto|Result|Entity|Model)_.*\\.md$", "archetype": "class-definition" },
+      { "whenFileNameMatches": "^spec_(SecurityConfig|LoggingConfig|.*Config)\\.md$", "archetype": "configuration-class" },
+      { "whenFileNameMatches": "^spec_Pulldown_.*\\.md$", "archetype": "pulldown-catalog" },
+      { "whenFileNameMatches": "^spec_enum_.*\\.md$", "archetype": "pulldown-catalog" },
+      { "whenFileNameMatches": "^ref_.*\\.md$", "archetype": "reference-catalog" }
+    ]
+  },
+  "headingAliases": {
+    "controlMapping": [
+      "コントロールマッピング",
+      "画面項目マッピング",
+      "画面項目定義",
+      "画面項目定義（index.html）"
+    ],
+    "formProperties": [
+      "プロパティ一覧",
+      "プロパティ定義",
+      "フィールド定義",
+      "Form定義"
+    ],
+    "processOverview": [
+      "処理概要",
+      "処理フロー",
+      "メソッド詳細"
+    ],
+    "transitionTargets": [
+      "遷移先",
+      "遷移先定義"
+    ]
+  },
+  "tableHeaderAliases": {
+    "controlMapping": [
+      ["項目名", "属性", "マッピング", "備考"],
+      ["項目名", "属性", "マッピング", "固定値/備考"],
+      ["項目名", "ID", "型", "設定値"],
+      ["項目名", "フィールドID", "型", "設定する値"]
+    ],
+    "methodTable": [
+      ["メソッド", "イベント", "HTTPメソッド", "パス", "説明"],
+      ["メソッド名", "アノテーション", "引数", "戻り値", "概要"],
+      ["No", "メソッド名", "アノテーション", "引数", "戻り値型", "概要"]
+    ],
+    "basicInfo": [
+      ["項目", "値"],
+      ["項目", "内容"]
+    ]
+  },
+  "archetypeRules": [
+    {
+      "name": "screen-controller-by-headings",
+      "whenHeadingsContain": ["controlMapping"],
+      "archetype": "screen-controller"
+    },
+    {
+      "name": "service-by-method-flow",
+      "whenHeadingsContain": ["processOverview"],
+      "archetype": "service-flow-spec"
+    }
+  ],
+  "businessVocabulary": {
+    "terms": {
+      "受付": "submit-or-register",
+      "照会": "query-or-view",
+      "取消": "cancel",
+      "承認": "approve",
+      "共通処理": "shared-component-call",
+      "発注": "place-order",
+      "在庫": "inventory",
+      "棚卸": "stocktaking"
+    },
+    "synonyms": {
+      "申込理由": ["理由", "受付理由"],
+      "使用用途": ["用途"],
+      "店舗": ["店舗ID", "店舗コード", "ストア"]
+    }
+  },
+  "catalogRules": {
+    "prioritySources": {
+      "pulldown": ["pulldown-catalog", "reference-catalog", "screen-controller"],
+      "message": ["reference-catalog", "service-flow-spec"],
+      "constant": ["reference-catalog", "configuration-class"]
+    },
+    "optionResolution": {
+      "preferCatalogOverInlineOptions": true,
+      "allowProjectSpecificSpecialization": true
+    }
+  },
+  "bindingRules": {
+    "attributeKinds": {
+      "th:field": "formField",
+      "th:value": "viewModel",
+      "th:text": "viewModel",
+      "th:each": "catalogLoop",
+      "th:fragment": "fragmentRef",
+      "gm:date": "formattedInput",
+      "gm:price": "formattedInput",
+      "gm:storeId": "formattedInput"
+    },
+    "hiddenMarkers": ["[hidden]", "hidden"],
+    "loopBindingMarkers": ["th:each"],
+    "outputBindingMarkers": ["th:value", "th:text"]
+  },
+  "uiBehaviorPatterns": {
+    "knownPatterns": [
+      { "name": "ajax-change-update-fields", "trigger": "change", "effects": ["disable", "clear", "fetch", "populate", "enable"] },
+      { "name": "dirty-check-before-back", "trigger": "click", "effects": ["confirm", "branch"] },
+      { "name": "double-submit-guard", "trigger": "submit", "effects": ["disable-all-actions"] },
+      { "name": "message-dialog", "trigger": "function-call", "effects": ["show-dialog", "render-message-list"] }
+    ],
+    "sharedScriptFiles": ["default.js", "edge.js"]
+  },
+  "processFlowRules": {
+    "sharedCallMarkers": ["共通処理", "Component", "共通ロジック"],
+    "dbMarkers": ["Mapper", "テーブル", "DB"],
+    "throwMarkers": ["例外をスロー", "throw", "中断"],
+    "messageSettingMarkers": ["メッセージID", "内容"]
+  },
+  "reusableContracts": {
+    "promoteKinds": ["Form", "Dto", "Model", "Entity", "Result"],
+    "dataContractKinds": {
+      "Form": "data-contract",
+      "Dto": "data-contract",
+      "Model": "domain-type",
+      "Entity": "domain-type",
+      "Result": "data-contract"
+    }
+  },
+  "exceptionSemantics": {
+    "classificationRules": [
+      { "whenNameContains": "Abort", "semanticKind": "business-abort", "recoverable": false },
+      { "whenNameContains": "Validation", "semanticKind": "validation-error", "recoverable": true },
+      { "whenNameContains": "Authentication", "semanticKind": "authentication-error", "recoverable": false },
+      { "whenNameContains": "Authorization", "semanticKind": "authorization-error", "recoverable": false },
+      { "whenNameContains": "NotFound", "semanticKind": "not-found", "recoverable": true },
+      { "whenNameContains": "Conflict", "semanticKind": "conflict", "recoverable": true }
+    ],
+    "defaultHandling": {
+      "business-abort": "return-user-message",
+      "validation-error": "attach-field-errors",
+      "authentication-error": "redirect-login",
+      "authorization-error": "redirect-forbidden",
+      "not-found": "show-not-found",
+      "conflict": "show-conflict-dialog",
+      "system-error": "log-and-fail"
+    }
+  },
+  "outputPolicy": {
+    "generateEntities": [
+      "screen",
+      "processFlow",
+      "screenTransition",
+      "table",
+      "genericDefinition"
+    ],
+    "warningThresholds": {
+      "unknown_archetype": 0,
+      "generated_screen_items_zero": 0,
+      "missing_binding_source": 0
+    },
+    "allowDraftWithWarnings": true
+  },
+  "reviewPolicy": {
+    "mustReviewWarnings": [
+      "unknown_archetype",
+      "generated_screen_items_zero",
+      "missing_binding_source",
+      "unsupported_harmony_entity"
+    ],
+    "minimumCoverage": {
+      "screenControllers": 0.95,
+      "serviceFlowSpecs": 0.95,
+      "referenceCatalogs": 1.0
+    }
+  }
+}
