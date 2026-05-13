@@ -67,7 +67,7 @@
 
 ## 3. Layer 1 — 既存 entity の構造化拡張
 
-「既存 entity で済むものは無理に新 entity 化しない」原則 (本 ISSUE 設計指針 §4) に従い、まず既存側で吸収する。
+「既存 entity で済むものは無理に新 entity 化しない」原則 (本 spec §6 設計指針 4 = ISSUE #1060 本文「設計指針 §4」) に従い、まず既存側で吸収する。
 
 ### 3.1 ScreenItem の binding metadata 構造化
 
@@ -257,7 +257,7 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 2. **§2 入力 MD の archetype 10 種類** — 判定アルゴリズム (file name → 見出し → 表ヘッダ)
 3. **§3 archetype 別 落とし方ガイド** — before/after pair を 7 archetype 分掲載
 4. **§4 Generic Definition Catalog の共通メタモデル**
-5. **§5 audit / warning 規範** — 11 種の warning kind + audit summary 形式
+5. **§5 audit / warning 規範** — 12 種の warning kind + audit summary 形式
 6. **§6 パターン (A) 1 回限り変換 の進め方** — 10 step フロー
 7. **§7 パターン (B) Importer 生成 の進め方** — TS scaffold + Step 別 純TS/AI 補完区分
 8. **§8 既知落とし穴 (memory 集約)** — ProcessFlow / ScreenItem / SQL / silent pass 等

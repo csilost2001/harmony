@@ -72,7 +72,7 @@
 | Conventions | `conventions/*.json` | `schemas/v3/conventions.v3.schema.json` | message / constant / codeMaster / domain |
 | Screen | `screens/{screenId}.json` | `schemas/v3/screen.v3.schema.json` | 画面定義 (route / purpose / 認証要件) |
 | ScreenItem | `screens/{screenId}/items/*.json` (or inline) | `schemas/v3/screen-item.v3.schema.json` | 画面項目 (入力 / 出力 / イベント) |
-| ScreenTransition | `screen-transitions/*.json` | (screen 内) | 画面遷移グラフ |
+| ScreenTransition | screen.json 内に inline (独立ファイルなし) | (screen 内) | 画面遷移グラフ |
 | ProcessFlow | `process-flows/{flowId}.json` | `schemas/v3/process-flow.v3.schema.json` | 処理フロー (action / step) |
 | Table | `tables/{tableId}.json` | `schemas/v3/table.v3.schema.json` | DB テーブル定義 |
 | ViewDefinition | `view-definitions/*.json` | `schemas/v3/view-definition.v3.schema.json` | 一覧 UI viewer |
@@ -95,7 +95,7 @@
 | `component-definition` | service / mapper / repository / validator / formatter の責務 | OrderService / OrderMapper |
 | `ui-fragment` | 再利用 UI 断片 (ヘッダー / フッター / メッセージ領域) | commonHeader / messageArea |
 
-詳細スキーマと共通メタモデルは [`generic-definition-layer.md` §4](generic-definition-layer.md) 参照。
+詳細スキーマと共通メタモデルは [`generic-definition-layer.md` §4.1](generic-definition-layer.md) 参照。
 
 **配置上の注意**:
 - `ui-fragment` と PageLayout の境界: PageLayout = ページ全体の骨格 (header / sidebar / content slot / footer)、`ui-fragment` = ページ内 or 複数画面で使い回す部品。詳細は [`generic-definition-layer.md` §3.6](generic-definition-layer.md)。
@@ -227,7 +227,7 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
 {
   "id": "productCode",
   "label": "商品コード",
-  "type": "text",
+  "type": "string",
   "direction": "input",
   "required": true,
   "binding": {
@@ -952,26 +952,28 @@ MD が継続更新される / ファイルが多い場合は、project 固有 `s
 
 ### 7.2 TS scaffold テンプレート
 
-**ディレクトリ構造**:
+**ディレクトリ構造** (10 ステップ全部に対応するファイルを 1 対 1 で持つ):
 ```
 scripts/import/
-  README.md          # 使い方
-  index.ts           # entry point: 全 step オーケストレーション
+  README.md                   # 使い方
+  index.ts                    # entry point: 全 step オーケストレーション
   step1-inventory.ts
   step2-archetype.ts
   step3-normalize.ts
   step4-entity-mapping.ts
   step5-generic-definition.ts
   step6-audit.ts
+  step7-deterministic.ts      # 同 MD + 同 profile = 同 JSON を保証する出力 sort / 順序固定
   step8-validate.ts
+  step9-review-gate.ts        # warning しきい値判定、coverage チェック
   step10-profile-feedback.ts
   lib/
-    md-parser.ts     # markdown-it ラッパー
+    md-parser.ts              # markdown-it ラッパー
     profile-loader.ts
-    ai-fallback.ts   # AI 補完が必要な場合のフォールバック
+    ai-fallback.ts            # AI 補完が必要な場合のフォールバック
 ```
 
-**index.ts 雛形**:
+**index.ts 雛形** (step 1〜10 を全て呼び出す):
 ```ts
 import { loadProfile } from "./lib/profile-loader";
 import { runInventory } from "./step1-inventory";
@@ -980,7 +982,10 @@ import { runNormalize } from "./step3-normalize";
 import { runEntityMapping } from "./step4-entity-mapping";
 import { runGenericDefinition } from "./step5-generic-definition";
 import { runAudit } from "./step6-audit";
+import { ensureDeterministicOutput } from "./step7-deterministic";
 import { runValidate } from "./step8-validate";
+import { runReviewGate } from "./step9-review-gate";
+import { runProfileFeedback } from "./step10-profile-feedback";
 
 async function main() {
   const profile = await loadProfile("./import-project-profile.json");
@@ -990,8 +995,15 @@ async function main() {
   const mapped = await runEntityMapping(normalized, profile);
   const generic = await runGenericDefinition(mapped, profile);
   const audit = await runAudit(mapped, generic, profile);
+  await ensureDeterministicOutput(mapped, generic); // sort + 順序固定
   await runValidate(mapped, generic);
+  const gateResult = await runReviewGate(audit, profile);
+  await runProfileFeedback(profile, audit); // AI 解釈を profile に還元 (option)
   console.log(JSON.stringify(audit.summary, null, 2));
+  if (!gateResult.passed) {
+    console.error("Review gate failed:", gateResult.reason);
+    process.exit(2);
+  }
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
@@ -1018,10 +1030,16 @@ export async function runInventory(profile: any) {
     const absolutePath = join(rootDir, relativePath);
     const content = readFileSync(absolutePath, "utf8");
     const tokens = md.parse(content, {});
-    const headings = tokens
-      .filter((t) => t.type === "heading_open")
-      .map((t, i) => tokens[i + 1]?.content)
-      .filter(Boolean);
+    // 注意: tokens.filter(...).map((t, i) => tokens[i+1]) は誤り — フィルタ後の i は
+    // 元配列のインデックスではないため 2 つ目以降の heading を取りこぼす。
+    // reduce で元配列の i を保持しながら inline content (heading_open の次 token) を拾う。
+    const headings = tokens.reduce<string[]>((acc, t, i) => {
+      if (t.type === "heading_open") {
+        const inline = tokens[i + 1]?.content;
+        if (inline) acc.push(inline);
+      }
+      return acc;
+    }, []);
     return {
       path: relativePath,
       absolutePath,
@@ -1162,7 +1180,18 @@ MD が ~30 ファイル以下 ?
 
 - [ ] §5 audit.json を出力した
 - [ ] `severity: "error"` の warning が 0 件
-- [ ] **AJV validation passed** — `schemas/v3/*.json` 配下の schema を使って生成した全 JSON (screens / process-flows / tables / view-definitions / screen-transitions / conventions / extensions) が validate を通過する
+- [ ] **AJV validation passed** — `schemas/v3/*.json` 配下の schema を使って生成した全 JSON (screens / process-flows / tables / view-definitions / conventions / extensions、画面遷移は screen.json 内に inline) が validate を通過する。実行コマンド例:
+   ```bash
+   # project ディレクトリ単位の一括検証 (推奨)
+   cd frontend && npm run validate:samples -- ../examples/<project-id>
+
+   # 個別 file 検証 (debug 用)
+   cd backend && npx ajv-cli@5 validate \
+     -s ../schemas/v3/screen.v3.schema.json \
+     -r "../schemas/v3/common.v3.schema.json" \
+     -r "../schemas/v3/screen-item.v3.schema.json" \
+     -d <output.json> --spec=draft2020 --strict=false
+   ```
 - [ ] coverage (project ごとの基準、未指定なら screen-controller / service-flow-spec / reference-catalog の 95% 以上)
 - [ ] ScreenItem binding metadata は ✅ 現行形 (`description` 埋め込み) で記録、`missing_binding_source` 0 件
 - [ ] ProcessFlow step kind が `schemas/v3/process-flow.v3.schema.json#/$defs/Step` oneOf の 24 variant (`validation` / `dbAccess` / `externalSystem` / `commonProcess` / `screenTransition` / `displayUpdate` / `branch` / `loop` / `loopBreak` / `loopContinue` / `jump` / `compute` / `return` / `log` / `audit` / `workflow` / `transactionScope` / `eventPublish` / `eventSubscribe` / `closing` / `cdc` / `aiCall` / `aiAgent` / `extension`) のみ。`expression` / `tryCatch` (BranchCondition kind) / `auditLog` (CDC 出力先 kind) を Step として使っていないこと
