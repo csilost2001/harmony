@@ -1,5 +1,5 @@
 {
-  "$schema": "../../schemas/v3/project.v3.schema.json",
+  "$schema": "../../schemas/v3/harmony.v3.schema.json",
   "schemaVersion": "v3",
   "meta": {
     "id": "d06f00d0-0002-4000-8000-000000000002",
@@ -10,10 +10,13 @@
     "mode": "upstream",
     "maturity": "draft"
   },
+  "dataDir": "harmony",
   "extensionsApplied": [],
-  "design": {
-    "cssFramework": "bootstrap",
-    "editorKind": "puck"
+  "techStack": {
+    "designer": {
+      "cssFramework": "bootstrap",
+      "editorKind": "puck"
+    }
   },
   "entities": {
     "screens": [
