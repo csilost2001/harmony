@@ -98,6 +98,10 @@ import {
   writeViewDefinition,
   deleteViewDefinition as deleteViewDefinitionFile,
   listAllViewDefinitions,
+  listAllGenericDefinitions,
+  readGenericDefinition,
+  writeGenericDefinition,
+  deleteGenericDefinition,
   readPageLayout,
   writePageLayout,
   deletePageLayoutFile,
@@ -1451,6 +1455,32 @@ class WsBridge extends EventEmitter {
           await deleteViewDefinitionFile(viewDefinitionId, root());
           respond({ success: true });
           this.broadcast({ wsId: wsId(), event: "viewDefinitionChanged", data: { viewDefinitionId, deleted: true }, excludeClientId: clientId });
+          break;
+        }
+        case "listAllGenericDefinitions": {
+          const { kind } = (params ?? {}) as { kind: string };
+          const data = await listAllGenericDefinitions(root(), kind);
+          respond(data);
+          break;
+        }
+        case "loadGenericDefinition": {
+          const { kind, name } = (params ?? {}) as { kind: string; name: string };
+          const data = await readGenericDefinition(name, kind, root());
+          respond(data);
+          break;
+        }
+        case "saveGenericDefinition": {
+          const { kind, name, data } = (params ?? {}) as { kind: string; name: string; data: unknown };
+          await writeGenericDefinition(name, kind, data, root());
+          respond({ success: true });
+          this.broadcast({ wsId: wsId(), event: "genericDefinitionChanged", data: { kind, name }, excludeClientId: clientId });
+          break;
+        }
+        case "deleteGenericDefinition": {
+          const { kind, name } = (params ?? {}) as { kind: string; name: string };
+          await deleteGenericDefinition(name, kind, root());
+          respond({ success: true });
+          this.broadcast({ wsId: wsId(), event: "genericDefinitionChanged", data: { kind, name, deleted: true }, excludeClientId: clientId });
           break;
         }
         case "loadPageLayout": {

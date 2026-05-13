@@ -66,6 +66,10 @@ const MENU_ITEMS: MenuItem[] = [
     activePaths: ["/gadget/list"], activePrefixes: [],
   },
   {
+    id: "generic-definition-catalog", label: "汎用定義", icon: "bi-collection", route: "/generic-definition",
+    activePaths: ["/generic-definition"], activePrefixes: ["/generic-definition/"],
+  },
+  {
     id: "workspace-list", label: "ワークスペース", icon: "bi-folder2-open", route: "/workspace/list",
     activePaths: ["/workspace/list", "/workspace/select"],
   },

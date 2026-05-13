@@ -95,6 +95,7 @@ const sequencesDir     = (dataRoot: string) => path.join(dataRoot, "sequences");
 const viewsDir         = (dataRoot: string) => path.join(dataRoot, "views");
 const viewDefsDir      = (dataRoot: string) => path.join(dataRoot, "view-definitions");
 const pageLayoutsDir   = (dataRoot: string) => path.join(dataRoot, "page-layouts");
+const genericDefinitionsDir = (dataRoot: string, kind: string) => path.join(dataRoot, "generic-definitions", kind);
 export const extensionsDir      = (dataRoot: string) => path.join(dataRoot, "extensions");
 export const customBlocksFile   = (dataRoot: string) => path.join(dataRoot, "custom-blocks.json");
 export const puckComponentsFile = (dataRoot: string) => path.join(dataRoot, "puck-components.json");
@@ -906,6 +907,45 @@ export async function deleteViewDefinition(viewDefinitionId: string, root: strin
   const dataRoot = await resolveDataRoot(r);
   try {
     await fs.unlink(path.join(viewDefsDir(dataRoot), `${viewDefinitionId}.json`));
+  } catch { /* file not found is OK */ }
+}
+
+// ── GenericDefinition CRUD ───────────────────────────────────────────────────
+
+export async function listAllGenericDefinitions(root: string, kind: string): Promise<unknown[]> {
+  try {
+    const r = root;
+    const dataRoot = await ensureDataDirFromRoot(r);
+    const dir = genericDefinitionsDir(dataRoot, kind);
+    const files = await fs.readdir(dir);
+    const results: unknown[] = [];
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+      const data = await readJSON<unknown>(path.join(dir, file));
+      if (data) results.push(data);
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
+export async function readGenericDefinition(name: string, kind: string, root: string): Promise<unknown | null> {
+  const dataRoot = await resolveDataRoot(root);
+  return readJSON<unknown>(path.join(genericDefinitionsDir(dataRoot, kind), `${name}.json`));
+}
+
+export async function writeGenericDefinition(name: string, kind: string, data: unknown, root: string): Promise<void> {
+  const dataRoot = await ensureDataDirFromRoot(root);
+  const dir = genericDefinitionsDir(dataRoot, kind);
+  await fs.mkdir(dir, { recursive: true });
+  await writeJSON(path.join(dir, `${name}.json`), data);
+}
+
+export async function deleteGenericDefinition(name: string, kind: string, root: string): Promise<void> {
+  const dataRoot = await resolveDataRoot(root);
+  try {
+    await fs.unlink(path.join(genericDefinitionsDir(dataRoot, kind), `${name}.json`));
   } catch { /* file not found is OK */ }
 }
 

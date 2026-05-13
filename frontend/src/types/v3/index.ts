@@ -43,3 +43,6 @@ export * from "./process-flow";
 export * from "./extensions";
 export * from "./conventions";
 export * from "./custom-block";
+
+// Generic Definition Catalog (#1069)
+export * from "./generic-definition";

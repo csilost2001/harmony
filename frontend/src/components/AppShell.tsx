@@ -20,6 +20,9 @@ import { PageLayoutListView } from "./page-layout/PageLayoutListView";
 import { PageLayoutEditor } from "./page-layout/PageLayoutEditor";
 import { PageLayoutDesigner } from "./page-layout/PageLayoutDesigner";
 import { GadgetListView } from "./gadget/GadgetListView";
+import { GenericDefinitionCatalogView } from "./generic-definition/GenericDefinitionCatalogView";
+import { GenericDefinitionListView } from "./generic-definition/GenericDefinitionListView";
+import { GenericDefinitionEditor } from "./generic-definition/GenericDefinitionEditor";
 import { WorkspaceListView } from "./workspace/WorkspaceListView";
 import { WorkspaceSelectView } from "./workspace/WorkspaceSelectView";
 import { TechStackView } from "./project/TechStackView";
@@ -36,6 +39,8 @@ import { loadSequence } from "../store/sequenceStore";
 import { loadView } from "../store/viewStore";
 import { loadViewDefinition } from "../store/viewDefinitionStore";
 import { loadPageLayout } from "../store/pageLayoutStore";
+import { loadGenericDefinition } from "../store/genericDefinitionStore";
+import { GENERIC_DEFINITION_KINDS, GENERIC_DEFINITION_KIND_LABELS, type GenericDefinitionKind } from "../types/v3";
 import {
   getTabs,
   getActiveTabId,
@@ -326,6 +331,9 @@ export function AppShell() {
         <Route path="page-layout/edit/:pageLayoutId" element={<PageLayoutEditor />} />
         <Route path="page-layout/design/:pageLayoutId" element={<PageLayoutDesigner />} />
         <Route path="gadget/list" element={<GadgetListView />} />
+        <Route path="generic-definition" element={<GenericDefinitionCatalogView />} />
+        <Route path="generic-definition/:kind" element={<GenericDefinitionListView />} />
+        <Route path="generic-definition/:kind/:name" element={<GenericDefinitionEditor />} />
         <Route path="project/tech-stack" element={<TechStackView />} />
       </Route>
       <Route path="/workspace/list" element={<WorkspaceListView />} />
@@ -401,7 +409,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     }
     // non-null → 別の non-null / null: ユーザー操作による workspace 切替 / 閉じる
     prevActiveWorkspaceIdRef.current = currentId;
-    const perResourceTypes: TabType[] = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout"];
+    const perResourceTypes: TabType[] = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "generic-definition"];
     const dirtyLabels = getTabs()
       .filter((t) => t.isDirty && perResourceTypes.includes(t.type))
       .map((t) => t.label);
@@ -718,6 +726,48 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       return;
     }
 
+    const genericDefEditorMatch = matchPath("/w/:wsId/generic-definition/:kind/:name", location.pathname);
+    if (genericDefEditorMatch?.params.kind && genericDefEditorMatch?.params.name) {
+      const kind = decodeURIComponent(genericDefEditorMatch.params.kind);
+      const name = decodeURIComponent(genericDefEditorMatch.params.name);
+      if ((GENERIC_DEFINITION_KINDS as string[]).includes(kind)) {
+        const resourceId = `${kind}:${name}`;
+        const tabId = makeTabId("generic-definition", resourceId);
+        const existing = getTabs().find((t) => t.id === tabId);
+        if (existing) {
+          setActiveTab(tabId);
+        } else {
+          loadGenericDefinition(kind as GenericDefinitionKind, name).then((gd) => {
+            if (gd) {
+              openTab({ id: tabId, type: "generic-definition", resourceId, label: gd.name });
+            } else {
+              fallbackToDashboard("汎用定義", name);
+            }
+          }).catch((e) => {
+            recordError({ source: "manual", message: "loadGenericDefinition 失敗", stack: e instanceof Error ? e.stack : undefined });
+            fallbackToDashboard("汎用定義", name);
+          });
+        }
+        return;
+      }
+    }
+
+    const genericDefListMatch = matchPath("/w/:wsId/generic-definition/:kind", location.pathname);
+    if (genericDefListMatch?.params.kind) {
+      const kind = decodeURIComponent(genericDefListMatch.params.kind);
+      if ((GENERIC_DEFINITION_KINDS as string[]).includes(kind)) {
+        const tabId = makeTabId("generic-definition-list", kind);
+        const existing = getTabs().find((t) => t.id === tabId);
+        const kindLabel = kind as GenericDefinitionKind;
+        if (existing) {
+          setActiveTab(tabId);
+        } else {
+          openTab({ id: tabId, type: "generic-definition-list", resourceId: kind, label: `${GENERIC_DEFINITION_KIND_LABELS[kindLabel]}一覧` });
+        }
+        return;
+      }
+    }
+
     const screenItemsMatch = matchPath("/w/:wsId/screen/items/:screenId", location.pathname);
     if (screenItemsMatch?.params.screenId) {
       const screenId = screenItemsMatch.params.screenId;
@@ -761,6 +811,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       { path: `${wsPrefix}/view-definition/list`, type: "view-definition-list", label: "ビュー定義一覧" },
       { path: `${wsPrefix}/page-layout/list`,    type: "page-layout-list",    label: "ページレイアウト一覧" },
       { path: `${wsPrefix}/gadget/list`,          type: "gadget-list",          label: "ガジェット一覧" },
+      { path: `${wsPrefix}/generic-definition`,    type: "generic-definition-catalog", label: "汎用定義カタログ" },
       { path: "/workspace/list",                       type: "workspace-list", label: "ワークスペース" },
       { path: `${wsPrefix}/project/tech-stack`,         type: "tech-stack",     label: "技術スタック" },
     ];
@@ -827,6 +878,9 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       : activeTab.type === "view-definition-list"   ? `${wp}/view-definition/list`
       : activeTab.type === "page-layout-list"       ? `${wp}/page-layout/list`
       : activeTab.type === "gadget-list"            ? `${wp}/gadget/list`
+      : activeTab.type === "generic-definition-catalog" ? `${wp}/generic-definition`
+      : activeTab.type === "generic-definition-list" ? `${wp}/generic-definition/${activeTab.resourceId}`
+      : activeTab.type === "generic-definition"     ? `${wp}/generic-definition/${activeTab.resourceId.replace(":", "/")}`
       : activeTab.type === "workspace-list"         ? "/workspace/list"
       : activeTab.type === "tech-stack"             ? `${wp}/project/tech-stack`
       : activeTab.type === "dashboard"              ? `${wp}/`

@@ -30,13 +30,17 @@ export type TabType =
   | "tech-stack"         // 技術スタック選定 (#826)
   | "dashboard"          // ダッシュボード（#86 PR-3 で有効化）
   | "page-layout-list"  // ページレイアウト一覧 (#1024)
-  | "gadget-list";      // ガジェット一覧 (#1025)
+  | "gadget-list"       // ガジェット一覧 (#1025)
+  | "generic-definition"        // 汎用定義編集 (#1069)
+  | "generic-definition-list"   // 汎用定義一覧 (#1069)
+  | "generic-definition-catalog"; // 汎用定義カタログ (#1069)
 
 const KNOWN_TAB_TYPES: ReadonlySet<TabType> = new Set([
   "design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout",
   "screen-flow", "screen-list", "table-list", "er", "process-flow-list",
   "extensions", "conventions-catalog", "sequence-list", "view-list", "view-definition-list",
   "workspace-list", "tech-stack", "dashboard", "page-layout-list", "gadget-list",
+  "generic-definition", "generic-definition-list", "generic-definition-catalog",
 ]);
 
 export interface TabItem {

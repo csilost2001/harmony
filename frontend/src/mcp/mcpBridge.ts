@@ -84,6 +84,11 @@ import {
   setPageLayoutStorageBackend,
   type PageLayoutStorageBackend,
 } from "../store/pageLayoutStore";
+import {
+  setGenericDefinitionStorageBackend,
+  type GenericDefinitionStorageBackend,
+} from "../store/genericDefinitionStore";
+import type { GenericDefinitionKind } from "../types/v3";
 import type { RawExtensionsBundle } from "../schemas/loadExtensions";
 
 export type McpStatus = "disconnected" | "connecting" | "connected" | "failed";
@@ -461,6 +466,14 @@ class McpBridgeImpl {
       deletePageLayout: (pageLayoutId) => this.request("deletePageLayout", { pageLayoutId }).then(() => undefined),
     };
     setPageLayoutStorageBackend(pageLayoutBackend);
+
+    const genericDefinitionBackend: GenericDefinitionStorageBackend = {
+      listAll: (kind: GenericDefinitionKind) => this.request("listAllGenericDefinitions", { kind }) as Promise<unknown[]>,
+      load: (kind: GenericDefinitionKind, name: string) => this.request("loadGenericDefinition", { kind, name }),
+      save: (kind: GenericDefinitionKind, name: string, data: unknown) => this.request("saveGenericDefinition", { kind, name, data }).then(() => undefined),
+      delete: (kind: GenericDefinitionKind, name: string) => this.request("deleteGenericDefinition", { kind, name }).then(() => undefined),
+    };
+    setGenericDefinitionStorageBackend(genericDefinitionBackend);
   }
 
   // ── メッセージ受信 ─────────────────────────────────────────────────────
