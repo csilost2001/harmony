@@ -460,12 +460,13 @@ console.log("\n## generic-definition.v3.schema.json (AJV strict)");
 }
 
 // =============================================================================
-// 3c. kind 別固有 schema AJV strict gate (#1064)
-//     data-contract.v3.schema.json / domain-type.v3.schema.json の strict 検証。
+// 3c. kind 別固有 schema AJV strict gate (#1064 / #1066 / #1067 / #1068)
+//     data-contract / domain-type / exception-type / ui-fragment / application-rule /
+//     runtime-policy / ui-behavior の各 kind-specific schema の strict 検証。
 //     各 kind-specific schema は親 schema を allOf 継承し kind を const に固定。
 //     retail walk を kind 別 dispatch に改修して silent pass を防ぐ。
 // =============================================================================
-console.log("\n## kind-specific schema AJV strict gate (data-contract / domain-type / exception-type, #1064 / #1066)");
+console.log("\n## kind-specific schema AJV strict gate (data-contract / domain-type / exception-type / ui-fragment / application-rule / runtime-policy / ui-behavior, #1064 / #1066 / #1067 / #1068)");
 {
   const { default: Ajv2020 } = await import("ajv/dist/2020.js");
   const { default: addFormats } = await import("ajv-formats");
@@ -482,10 +483,18 @@ console.log("\n## kind-specific schema AJV strict gate (data-contract / domain-t
   const dcSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/generic-definitions/data-contract.v3.schema.json"), "utf8"));
   const dtSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/generic-definitions/domain-type.v3.schema.json"), "utf8"));
   const etSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/generic-definitions/exception-type.v3.schema.json"), "utf8"));
+  const ufSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/generic-definitions/ui-fragment.v3.schema.json"), "utf8"));
+  const arSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/generic-definitions/application-rule.v3.schema.json"), "utf8"));
+  const rpSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/generic-definitions/runtime-policy.v3.schema.json"), "utf8"));
+  const ubSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/generic-definitions/ui-behavior.v3.schema.json"), "utf8"));
 
   const validateDataContract = ajv.compile(dcSchema);
   const validateDomainType = ajv.compile(dtSchema);
   const validateExceptionType = ajv.compile(etSchema);
+  const validateUiFragment = ajv.compile(ufSchema);
+  const validateApplicationRule = ajv.compile(arSchema);
+  const validateRuntimePolicy = ajv.compile(rpSchema);
+  const validateUiBehavior = ajv.compile(ubSchema);
 
   // --- data-contract cases ---
   const dcCases = [
@@ -664,31 +673,316 @@ console.log("\n## kind-specific schema AJV strict gate (data-contract / domain-t
     }
   }
 
-  // --- bidirectional sabotage: parent schema から exception-type を削除した copy で validate → fail ---
-  // [[feedback_drift_gate_bidirectional_sabotage]]: parent schema から exception-type を消した
+  // --- ui-fragment cases (#1067) ---
+  const ufCases = [
+    {
+      name: "ui-fragment: minimum valid",
+      valid: true,
+      data: {
+        kind: "ui-fragment",
+        name: "messageArea",
+        purpose: "画面上部の共通メッセージ表示領域",
+        responsibilities: ["validation エラー表示", "system メッセージ表示"],
+        targets: ["frontend"],
+      },
+    },
+    {
+      name: "ui-fragment: kind 不一致 (ui-behavior) rejected",
+      valid: false,
+      data: {
+        kind: "ui-behavior",
+        name: "messageArea",
+        purpose: "メッセージ表示",
+        responsibilities: ["表示"],
+        targets: ["frontend"],
+      },
+    },
+    {
+      name: "ui-fragment: purpose 欠落 rejected",
+      valid: false,
+      data: {
+        kind: "ui-fragment",
+        name: "NoPurpose",
+        responsibilities: ["y"],
+        targets: ["frontend"],
+      },
+    },
+    {
+      name: "ui-fragment: name pattern violation (starts with digit) rejected",
+      valid: false,
+      data: {
+        kind: "ui-fragment",
+        name: "1Bad",
+        purpose: "x",
+        responsibilities: ["y"],
+        targets: ["frontend"],
+      },
+    },
+  ];
+
+  for (const c of ufCases) {
+    const ok = validateUiFragment(c.data);
+    if (c.valid) {
+      const detail = ok
+        ? ""
+        : (validateUiFragment.errors || []).slice(0, 3).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+      assert(`✓ uf valid: ${c.name}`, ok, detail);
+    } else {
+      assert(`✗ uf invalid rejected: ${c.name}`, !ok);
+    }
+  }
+
+  // --- application-rule cases (#1068) ---
+  const arCases = [
+    {
+      name: "application-rule: minimum valid",
+      valid: true,
+      data: {
+        kind: "application-rule",
+        name: "SecurityPolicy",
+        purpose: "URL pattern 別の認証認可ポリシー",
+        responsibilities: ["URL pattern 別に認証要件を規定する"],
+        targets: ["backend"],
+      },
+    },
+    {
+      name: "application-rule: kind 不一致 (runtime-policy) rejected",
+      valid: false,
+      data: {
+        kind: "runtime-policy",
+        name: "SomePolicy",
+        purpose: "x",
+        responsibilities: ["y"],
+        targets: ["runtime"],
+      },
+    },
+    {
+      name: "application-rule: purpose 欠落 rejected",
+      valid: false,
+      data: {
+        kind: "application-rule",
+        name: "NoPurpose",
+        responsibilities: ["y"],
+        targets: ["backend"],
+      },
+    },
+    {
+      name: "application-rule: name pattern violation (hyphen) rejected",
+      valid: false,
+      data: {
+        kind: "application-rule",
+        name: "Bad-Name",
+        purpose: "x",
+        responsibilities: ["y"],
+        targets: ["backend"],
+      },
+    },
+  ];
+
+  for (const c of arCases) {
+    const ok = validateApplicationRule(c.data);
+    if (c.valid) {
+      const detail = ok
+        ? ""
+        : (validateApplicationRule.errors || []).slice(0, 3).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+      assert(`✓ ar valid: ${c.name}`, ok, detail);
+    } else {
+      assert(`✗ ar invalid rejected: ${c.name}`, !ok);
+    }
+  }
+
+  // --- runtime-policy cases (#1068) ---
+  const rpCases = [
+    {
+      name: "runtime-policy: minimum valid",
+      valid: true,
+      data: {
+        kind: "runtime-policy",
+        name: "ExternalRetryPolicy",
+        purpose: "外部システム呼び出しの retry / timeout / circuit breaker ポリシー",
+        responsibilities: ["retry / timeout / circuit breaker の横断適用ポリシーを保持する"],
+        targets: ["runtime"],
+      },
+    },
+    {
+      name: "runtime-policy: kind 不一致 (application-rule) rejected",
+      valid: false,
+      data: {
+        kind: "application-rule",
+        name: "SomePolicy",
+        purpose: "x",
+        responsibilities: ["y"],
+        targets: ["backend"],
+      },
+    },
+    {
+      name: "runtime-policy: purpose 欠落 rejected",
+      valid: false,
+      data: {
+        kind: "runtime-policy",
+        name: "NoPurpose",
+        responsibilities: ["y"],
+        targets: ["runtime"],
+      },
+    },
+    {
+      name: "runtime-policy: name pattern violation (starts with digit) rejected",
+      valid: false,
+      data: {
+        kind: "runtime-policy",
+        name: "1Bad",
+        purpose: "x",
+        responsibilities: ["y"],
+        targets: ["runtime"],
+      },
+    },
+  ];
+
+  for (const c of rpCases) {
+    const ok = validateRuntimePolicy(c.data);
+    if (c.valid) {
+      const detail = ok
+        ? ""
+        : (validateRuntimePolicy.errors || []).slice(0, 3).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+      assert(`✓ rp valid: ${c.name}`, ok, detail);
+    } else {
+      assert(`✗ rp invalid rejected: ${c.name}`, !ok);
+    }
+  }
+
+  // --- ui-behavior cases (#1068) ---
+  const ubCases = [
+    {
+      name: "ui-behavior: minimum valid",
+      valid: true,
+      data: {
+        kind: "ui-behavior",
+        name: "dirtyCheck",
+        purpose: "画面入力に変更がある場合、遷移前に確認ダイアログを表示する",
+        responsibilities: ["未保存変更検出", "遷移前確認"],
+        targets: ["frontend"],
+      },
+    },
+    {
+      name: "ui-behavior: kind 不一致 (ui-fragment) rejected",
+      valid: false,
+      data: {
+        kind: "ui-fragment",
+        name: "dirtyCheck",
+        purpose: "x",
+        responsibilities: ["y"],
+        targets: ["frontend"],
+      },
+    },
+    {
+      name: "ui-behavior: purpose 欠落 rejected",
+      valid: false,
+      data: {
+        kind: "ui-behavior",
+        name: "NoPurpose",
+        responsibilities: ["y"],
+        targets: ["frontend"],
+      },
+    },
+    {
+      name: "ui-behavior: name pattern violation (special char) rejected",
+      valid: false,
+      data: {
+        kind: "ui-behavior",
+        name: "Bad@Name",
+        purpose: "x",
+        responsibilities: ["y"],
+        targets: ["frontend"],
+      },
+    },
+  ];
+
+  for (const c of ubCases) {
+    const ok = validateUiBehavior(c.data);
+    if (c.valid) {
+      const detail = ok
+        ? ""
+        : (validateUiBehavior.errors || []).slice(0, 3).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+      assert(`✓ ub valid: ${c.name}`, ok, detail);
+    } else {
+      assert(`✗ ub invalid rejected: ${c.name}`, !ok);
+    }
+  }
+
+  // --- bidirectional sabotage: parent schema から kind を削除した copy で validate → fail ---
+  // [[feedback_drift_gate_bidirectional_sabotage]]: parent schema から該当 kind を消した
   // copy で kind-specific schema 側だけ validate → fail を確認 (片方向 only では sabotage 検出不可)
-  {
+  const sabotageCases = [
+    {
+      kind: "exception-type",
+      schema: etSchema,
+      validData: {
+        kind: "exception-type",
+        name: "StockInsufficientError",
+        purpose: "在庫不足エラー",
+        responsibilities: ["在庫不足を呼び出し側に伝える"],
+        targets: ["backend"],
+      },
+    },
+    {
+      kind: "ui-fragment",
+      schema: ufSchema,
+      validData: {
+        kind: "ui-fragment",
+        name: "messageArea",
+        purpose: "メッセージ表示領域",
+        responsibilities: ["表示"],
+        targets: ["frontend"],
+      },
+    },
+    {
+      kind: "application-rule",
+      schema: arSchema,
+      validData: {
+        kind: "application-rule",
+        name: "SecurityPolicy",
+        purpose: "認証認可ポリシー",
+        responsibilities: ["認証要件規定"],
+        targets: ["backend"],
+      },
+    },
+    {
+      kind: "runtime-policy",
+      schema: rpSchema,
+      validData: {
+        kind: "runtime-policy",
+        name: "ExternalRetryPolicy",
+        purpose: "外部呼び出し retry",
+        responsibilities: ["retry/timeout 規定"],
+        targets: ["runtime"],
+      },
+    },
+    {
+      kind: "ui-behavior",
+      schema: ubSchema,
+      validData: {
+        kind: "ui-behavior",
+        name: "dirtyCheck",
+        purpose: "未保存変更検出",
+        responsibilities: ["dirty 検出"],
+        targets: ["frontend"],
+      },
+    },
+  ];
+  for (const s of sabotageCases) {
     const gdSchemaCopy = JSON.parse(JSON.stringify(gdSchema));
-    // GenericDefinitionKind.enum から exception-type を除去
     const kindEnum = gdSchemaCopy.$defs?.GenericDefinitionKind?.enum;
     if (kindEnum && Array.isArray(kindEnum)) {
-      gdSchemaCopy.$defs.GenericDefinitionKind.enum = kindEnum.filter((k) => k !== "exception-type");
+      gdSchemaCopy.$defs.GenericDefinitionKind.enum = kindEnum.filter((k) => k !== s.kind);
     }
     const ajv2 = new Ajv2020({ strict: false, allErrors: true });
     addFormats(ajv2);
     ajv2.addSchema(commonSchema);
     ajv2.addSchema(gdSchemaCopy, "../generic-definition.v3.schema.json");
-    const etSchemaCopy = JSON.parse(JSON.stringify(etSchema));
-    const validateEt2 = ajv2.compile(etSchemaCopy);
-    const validData = {
-      kind: "exception-type",
-      name: "StockInsufficientError",
-      purpose: "在庫不足エラー",
-      responsibilities: ["在庫不足を呼び出し側に伝える"],
-      targets: ["backend"],
-    };
-    const sabotageOk = validateEt2(validData);
-    assert("bidirectional sabotage: exception-type removed from parent → kind-specific schema rejects", !sabotageOk);
+    const childCopy = JSON.parse(JSON.stringify(s.schema));
+    const validateChild2 = ajv2.compile(childCopy);
+    const sabotageOk = validateChild2(s.validData);
+    assert(`bidirectional sabotage: ${s.kind} removed from parent → kind-specific schema rejects`, !sabotageOk);
   }
 
   // --- retail walk: kind 別 dispatch ---
@@ -707,11 +1001,16 @@ console.log("\n## kind-specific schema AJV strict gate (data-contract / domain-t
       return out;
     }
 
-    // kind → validator map (data-contract / domain-type #1064、exception-type #1066)
+    // kind → validator map (data-contract / domain-type #1064、exception-type #1066、
+    // ui-fragment #1067、application-rule / runtime-policy / ui-behavior #1068)
     const kindValidators = {
       "data-contract": validateDataContract,
       "domain-type": validateDomainType,
       "exception-type": validateExceptionType,
+      "ui-fragment": validateUiFragment,
+      "application-rule": validateApplicationRule,
+      "runtime-policy": validateRuntimePolicy,
+      "ui-behavior": validateUiBehavior,
     };
 
     const sampleFiles2 = walk2(retailGdRoot2);
@@ -950,6 +1249,109 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
       },
     ],
   }, false);
+}
+
+// =============================================================================
+// 3f. screen.v3.schema.json fragments[] strict gate (#1067)
+//     Screen.fragments[] (ui-fragment 参照) の AJV 検証。fragmentRef pattern 違反 /
+//     必須欠落 / additional property を reject することを確認。
+// =============================================================================
+console.log("\n## screen.v3.schema.json fragments[] strict (#1067)");
+{
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const ajv = new Ajv2020({ strict: false, allErrors: true });
+  addFormats(ajv);
+  const commonSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/common.v3.schema.json"), "utf8"));
+  const siSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/screen-item.v3.schema.json"), "utf8"));
+  const screenSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/screen.v3.schema.json"), "utf8"));
+  ajv.addSchema(commonSchema);
+  ajv.addSchema(siSchema);
+  const validateScreen = ajv.compile(screenSchema);
+
+  function makeScreen(extra) {
+    return {
+      id: "aaaaaaaa-0001-4000-8000-000000000001",
+      name: "注文新規",
+      createdAt: "2026-05-13T00:00:00.000Z",
+      updatedAt: "2026-05-13T00:00:00.000Z",
+      kind: "form",
+      path: "/orders/new",
+      ...extra,
+    };
+  }
+
+  function assertScreen(name, screenData, expectValid) {
+    const ok = validateScreen(screenData);
+    if (expectValid) {
+      const detail = ok
+        ? ""
+        : (validateScreen.errors || []).slice(0, 3).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+      assert(`✓ fragments valid: ${name}`, ok, detail);
+    } else {
+      assert(`✗ fragments invalid rejected: ${name}`, !ok);
+    }
+  }
+
+  // positive: minimum (fragmentRef only)
+  assertScreen("fragments minimum (fragmentRef only)", makeScreen({
+    fragments: [{ fragmentRef: "generic-definitions/ui-fragment/messageArea" }],
+  }), true);
+
+  // positive: with instanceId
+  assertScreen("fragments with instanceId", makeScreen({
+    fragments: [
+      { fragmentRef: "generic-definitions/ui-fragment/messageArea", instanceId: "errorArea" },
+      { fragmentRef: "generic-definitions/ui-fragment/messageArea", instanceId: "infoArea" },
+    ],
+  }), true);
+
+  // negative: fragmentRef 必須欠落
+  assertScreen("fragments missing fragmentRef rejected", makeScreen({
+    fragments: [{ instanceId: "someInstance" }],
+  }), false);
+
+  // negative: fragmentRef pattern 違反 (kind 不一致 — ui-behavior は ui-fragment ではない)
+  assertScreen("fragments wrong kind (ui-behavior) rejected", makeScreen({
+    fragments: [{ fragmentRef: "generic-definitions/ui-behavior/dirtyCheck" }],
+  }), false);
+
+  // negative: fragmentRef pattern 違反 (root prefix なし)
+  assertScreen("fragments missing prefix rejected", makeScreen({
+    fragments: [{ fragmentRef: "messageArea" }],
+  }), false);
+
+  // negative: fragmentRef pattern 違反 (name pattern violation — starts with digit)
+  assertScreen("fragments name starts with digit rejected", makeScreen({
+    fragments: [{ fragmentRef: "generic-definitions/ui-fragment/1Bad" }],
+  }), false);
+
+  // negative: instanceId pattern 違反 (hyphen)
+  assertScreen("fragments instanceId with hyphen rejected", makeScreen({
+    fragments: [{ fragmentRef: "generic-definitions/ui-fragment/messageArea", instanceId: "error-area" }],
+  }), false);
+
+  // negative: additionalProperty (additionalProperties: false on ScreenFragmentInstance)
+  assertScreen("fragments additional property rejected", makeScreen({
+    fragments: [{ fragmentRef: "generic-definitions/ui-fragment/messageArea", extra: "x" }],
+  }), false);
+
+  // bidirectional drift: schema からプロパティ削除した copy で fragments[] が機能停止することを確認
+  {
+    const screenSchemaCopy = JSON.parse(JSON.stringify(screenSchema));
+    delete screenSchemaCopy.$defs.Screen.properties.fragments;
+    const ajv2 = new Ajv2020({ strict: false, allErrors: true });
+    addFormats(ajv2);
+    ajv2.addSchema(commonSchema);
+    ajv2.addSchema(siSchema);
+    const validateScreen2 = ajv2.compile(screenSchemaCopy);
+    // unevaluatedProperties: false のため、fragments[] が schema から消えると payload に
+    // fragments を含む Screen は reject されるはず (silent pass 防止)
+    const sabotageOk = validateScreen2(makeScreen({
+      fragments: [{ fragmentRef: "generic-definitions/ui-fragment/messageArea" }],
+    }));
+    assert("bidirectional sabotage: fragments removed from screen schema → instance rejected", !sabotageOk);
+  }
 }
 
 // =============================================================================

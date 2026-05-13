@@ -703,19 +703,19 @@ spec 編集者の記憶に頼って書き換えない。不確実な場合は必
 
 ### ✨ §3.4 〜 §3.7 についての注記 (必読)
 
-以下 §3.4 (exception-model) / §3.5 (class-definition) / §3.6 (frontend-script) / §3.7 (configuration-class) はすべて **`generic-definitions/<kind>/*.json` 配下への出力**。親 schema (#1063) で AJV 検証対象。data-contract / domain-type の kind 別 schema は #1064 で導入済、exception-type の kind 別 schema は #1066 で導入済、残 5 kind (application-rule / ui-behavior / runtime-policy / component-definition / ui-fragment) は #1067-#1068 で順次。
+以下 §3.4 (exception-model) / §3.5 (class-definition) / §3.6 (frontend-script) / §3.7 (configuration-class) はすべて **`generic-definitions/<kind>/*.json` 配下への出力**。親 schema (#1063) で AJV 検証対象。data-contract / domain-type の kind 別 schema は #1064、exception-type は #1066、ui-fragment は #1067、application-rule / runtime-policy / ui-behavior は #1068 で導入済 (7 kind すべて AJV gate 対象化済)。残 1 kind (component-definition) は将来 RFC。各 kind-specific schema は親 schema 継承 + `kind` const に限定する最小構造で、kind 固有 field (trigger / effects / rules / semanticKind 等) は将来 RFC で追加予定。
 
 **例の読み方 — 2 fence split 契約**:
 
 各 §3.4-§3.7 は **2 種類の fence** を提示する:
 
 1. **✅ 現状 (#1063 適合形)** — 親 schema (`kind` / `name` / `purpose` / `responsibilities` / `targets` + 任意の `relations` / `fields` / `operations` / `constraints` / `mappingHints`) のみで構成。親 schema は `unevaluatedProperties: false` のため **kind 固有 field を含めると AJV reject される**。AI は本形式で **そのまま `generic-definitions/<kind>/<Name>.json` に保存** する。
-2. **✨ 残 kind (#1067-#1068 以降の追加 field)** — `semanticKind` / `recoverable` / `trigger` / `effects` / `rules` 等の kind 固有 field のシグナル (application-rule / ui-behavior / runtime-policy / component-definition / ui-fragment 等)。AI は元 MD から抽出した情報を **`description` 内に構造化文字列として退避** (§0.5 (a))、audit に warning `rfc_future_field_skipped` を kind 別件数で記録する。#1067-#1068 で対応する kind 別 schema が確定したら、これら field が AJV validation 対象に追加される。(data-contract / domain-type は #1064、exception-type は #1066 で kind 別 schema 導入済)
+2. **✨ kind 固有 field の signal (将来 RFC)** — `semanticKind` / `recoverable` / `trigger` / `effects` / `rules` 等の kind 固有 field のシグナル (application-rule / ui-behavior / runtime-policy / exception-type / component-definition / ui-fragment 等)。**現状はどの kind-specific schema も親 schema 継承 + `kind` const のみで、これら field は AJV reject 対象**。AI は元 MD から抽出した情報を **`description` 内に構造化文字列として退避** (§0.5 (a))、audit に warning `rfc_future_field_skipped` を kind 別件数で記録する。kind-specific schema が拡張されたら、これら field が AJV validation 対象に追加される。(7 kind の親+const schema は #1064 / #1066 / #1067 / #1068 で導入済)
 
 **現状の扱い**:
 - `examples/<project>/<dataDir>/generic-definitions/<kind>/<name>.json` ファイルに書き出す (実例: `examples/retail/harmony/generic-definitions/data-contract/OrderForm.json` 等、#1063 で 3 件配置済)
 - 現行 loader はまだ読まない (UI 統合は #1069 で順次対応、それまでは設計資産として保存のみ)
-- **AJV 検証**: 親 schema の共通メタモデルは検証対象 (`scripts/spec-check/test.mjs` § 3b)。data-contract / domain-type kind 別 schema は #1064、exception-type kind 別 schema は #1066 で AJV gate 対象化済 (test.mjs § 3c で kind 別 dispatch)、残 5 kind は #1067-#1068 で追加
+- **AJV 検証**: 親 schema の共通メタモデルは検証対象 (`scripts/spec-check/test.mjs` § 3b)。data-contract / domain-type は #1064、exception-type は #1066、ui-fragment は #1067、application-rule / runtime-policy / ui-behavior は #1068 で AJV gate 対象化済 (test.mjs § 3c で kind 別 dispatch)。残 1 kind (component-definition) は将来 RFC
 - 物理配置 (path ↔ kind 一致) は `scripts/spec-check/lint-generic-definitions.mjs` で soft lint
 - 親 schema にマッチしない kind 固有 field を生成しようとした場合は audit に **warning `rfc_future_field_skipped`** を kind 別件数で残す
 
@@ -822,7 +822,7 @@ JSON 構造は [`generic-definition-layer.md` §4.1 共通メタモデル](gener
 - 命名末尾が `Entity` / `Model` / `Aggregate` / table と 1:1 対応 → `domain-type`
 - 迷ったら project profile (§7.3) の `reusableContracts.dataContractKinds` で確定
 
-### 3.6 `frontend-script` → generic-definitions/ui-behavior (✨ RFC 将来案)
+### 3.6 `frontend-script` → generic-definitions/ui-behavior (#1068 で kind 別 schema AJV gate 対象化済)
 
 **Before**:
 ```markdown
@@ -845,14 +845,14 @@ JSON 構造は [`generic-definition-layer.md` §4.1 共通メタモデル](gener
 }
 ```
 
-**✨ #1067 以降の追加 field (ui-behavior)** (現状は AJV reject、`description` 退避 + audit warning):
+**✨ 将来 RFC 追加予定の kind 固有 field (ui-behavior)** (現状は kind 別 schema に未追加、`description` 退避 + audit warning `rfc_future_field_skipped`):
 
-| MD 記述 | 退避先 field (#1067 で AJV 対象化予定) | 値の例 |
+| MD 記述 | 将来追加候補 field | 値の例 |
 |---|---|---|
 | 「変更を検知して」「入力変更が発生した時」 | `trigger` | `"navigate"` / `"submit"` / `"change"` |
 | 「ダイアログを表示」「画面を切替」 | `effects[]` | `["confirm", "branch"]` |
 
-### 3.7 `configuration-class` → generic-definitions/application-rule (✨ RFC 将来案)
+### 3.7 `configuration-class` → generic-definitions/application-rule (#1068 で kind 別 schema AJV gate 対象化済)
 
 **Before**:
 ```markdown
@@ -881,11 +881,11 @@ JSON 構造は [`generic-definition-layer.md` §4.1 共通メタモデル](gener
 }
 ```
 
-**✨ #1068 以降の追加 field (application-rule)** (現状は AJV reject、`description` 退避 + audit warning):
+**✨ 将来 RFC 追加予定の kind 固有 field (application-rule)** (現状は kind 別 schema に未追加、`description` 退避 + audit warning `rfc_future_field_skipped`):
 
-| MD 記述 | 退避先 field (#1068 で AJV 対象化予定) | 値の例 |
+| MD 記述 | 将来追加候補 field | 値の例 |
 |---|---|---|
-| 認証認可 / ログ / 監査の個別ルール列挙 | `rules[]` (kind 別 schema で固有形式定義) | `[{category, pathPattern, require}, ...]` 等 |
+| 認証認可 / ログ / 監査の個別ルール列挙 | `rules[]` (将来 RFC で固有形式定義) | `[{category, pathPattern, require}, ...]` 等 |
 
 ### 3.8 `reference-catalog` → conventions
 
