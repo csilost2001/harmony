@@ -33,7 +33,7 @@ designer の実運用は **1 プロジェクト = 1 業務アプリ** 単位。
 |---|---|---|
 | `harmony.json` | `schemas/v3/harmony.v3.schema.json` | プロジェクトメタデータ (ID / 名称 / 説明 / 成熟度 / 作成日 / 更新日 + dataDir 指定)。旧 `project.json` (#849 で rename) |
 | `<dataDir>/tables/*.json` | `schemas/v3/table.v3.schema.json` | テーブル定義群 |
-| `<dataDir>/actions/*.json` | `schemas/v3/process-flow.v3.schema.json` | 処理フロー群 |
+| `<dataDir>/process-flows/*.json` | `schemas/v3/process-flow.v3.schema.json` | 処理フロー群 (旧 `actions/` から rename、L54 参照) |
 | `extensions/<namespace>.v3.json` | `schemas/v3/extensions.v3.schema.json` | 拡張定義 (namespace 単位、v3 canonical combined format) |
 | `conventions/catalog.json` | `schemas/v3/conventions.v3.schema.json` | 規約カタログ (v3 canonical パス) |
 

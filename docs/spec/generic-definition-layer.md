@@ -394,7 +394,7 @@ P0 内部の切り出し順序は **下層が上層に依存しない依存順**
 | 2 | data-contract / domain-type catalog | `schemas/v3/generic-definitions/data-contract.v3.schema.json` 等 |
 | 3 | ScreenItem `binding` 構造化拡張 | `schemas/v3/screen-item.v3.schema.json` 変更 |
 | 4 | ScreenItemEvent `effects[]` 拡張 | `schemas/v3/screen-item.v3.schema.json` 変更 |
-| 5 | ProcessFlow `componentCall` step kind + component-definition | `schemas/v3/process-flow.v3.schema.json` 変更 |
+| 5 | ProcessFlow `componentCall` step kind + component-definition (RFC 将来案、現行は `commonProcess`) + 検討: DB step を `dbQuery` / `dbInsert` / `dbUpdate` に細分化するか (現行は `dbAccess` + `operation` 統一) | `schemas/v3/process-flow.v3.schema.json` 変更 |
 | 6 | exception-type catalog + ProcessFlow error semantics 拡張 | 同上 + catalog 新設 |
 | 7 | ui-fragment catalog + `screen.fragments[]` | `schemas/v3/screen.v3.schema.json` 変更 + catalog 新設 |
 | 8 | application-rule / runtime-policy / ui-behavior catalog 完全実装 | catalog 各 schema 新設 |
