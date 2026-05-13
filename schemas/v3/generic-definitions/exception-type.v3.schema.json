@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/exception-type.v3.schema.json",
   "title": "Exception Type (v3 generic-definition kind: exception-type)",
-  "description": "Generic Definition Catalog の exception-type kind 固有 schema。親 schema (../generic-definition.v3.schema.json、#1063) を `allOf` 継承し、`kind` を const \"exception-type\" に固定。exception-type は例外種別・階層・semantic kind を表す。ProcessFlow の errorCode catalog から `exceptionTypeRef` で参照される (#1066)。kind 固有 field は親 schema の `fields[]` / `relations[]` / `constraints[]` で表現する。将来的に semanticKind / recoverable / defaultHandling 等の kind 固有 field を追加する余地は残す (#1066 以降)。仕様: docs/spec/generic-definition-layer.md §4.2。",
+  "description": "Generic Definition Catalog の exception-type kind 固有 schema。親 schema (../generic-definition.v3.schema.json、#1063) を `allOf` 継承し、`kind` を const \"exception-type\" に固定。exception-type は例外種別・階層・semantic kind を表す。ProcessFlow の errorCode catalog から `exceptionTypeRef` で参照される (#1066)。kind 固有 field は親 schema の `fields[]` / `relations[]` / `constraints[]` で表現する。将来的に semanticKind / recoverable / defaultHandling 等の kind 固有 field を追加する余地は残す (#1067 以降)。仕様: docs/spec/generic-definition-layer.md §4.2。",
   "type": "object",
   "allOf": [
     { "$ref": "../generic-definition.v3.schema.json" }
