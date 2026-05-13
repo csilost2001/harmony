@@ -36,14 +36,14 @@
 | 印 | 種別 | 実体 | AJV 検証 |
 |---|---|---|---|
 | ✅ | **現行 schema 適合形** | `schemas/v3/*.json` に既存 (`generic-definition.v3.schema.json` 含む、#1063)。今すぐ使える | **必須通過** (§10 完了判定の対象) |
-| ✨ | **RFC 将来 schema 案** | ISSUE #1060 系の **kind 別固有 schema** (data-contract / domain-type は #1064 で AJV gate 対象化、exception-type は #1066 で AJV gate 対象化、残 5 kind は #1067-#1068 で予定)。**binding / events.effects** は #1065 で AJV gate 対象化済 (✅ 側)。**componentCall / exceptionTypeRef** は **#1066 で AJV gate 対象化済 (✅ 側)**。残 kind 固有 field は **まだ schema が無い** | **検証対象外** (生成すると親 schema `unevaluatedProperties: false` で AJV 失敗、`description` 退避 + audit warning) |
+| ✨ | **RFC 将来 schema 案** | ISSUE #1060 系の **kind 別固有 schema** (data-contract / domain-type は #1064、exception-type は #1066、ui-fragment は #1067、application-rule / runtime-policy / ui-behavior は #1068 で AJV gate 対象化済、残 1 kind = component-definition のみ将来 RFC)。**binding / events.effects** は #1065 で AJV gate 対象化済 (✅ 側)。**componentCall / exceptionTypeRef** は **#1066 で AJV gate 対象化済 (✅ 側)**。**screen.fragments[]** は **#1067 で AJV gate 対象化済 (✅ 側)**。kind 固有 field (trigger / effects / rules / semanticKind 等) は **まだ schema が無い** | **検証対象外** (生成すると親 schema `unevaluatedProperties: false` で AJV 失敗、`description` 退避 + audit warning) |
 
 ### 何が ✨ RFC 将来案か
 
 - `screenItem.binding.{kind,path,role,formatHint,sourceNote}` — **#1065 で導入済 (AJV gate 対象)**。spec §3.1 の `optionSource` / `parseHint` は本 #1065 では追加せず将来 ISSUE 想定
 - `screenItemEvent.effects[]` — **#1065 で導入済 (AJV gate 対象)**。`event.trigger` / `event.target` (top-level) は #1065 範囲外、将来 ISSUE 想定。`event.id` 自体が trigger 名 (click/submit/change/blur) を兼ねる現行設計を本 PR 後も維持
 - `dbQuery` / `dbInsert` / `dbUpdate` — DB 操作はすべて `dbAccess` + `operation` で表現する (細分化は #1066 で採用しないと決定)
-- `generic-definitions/<kind>/*.json` の **kind 固有 field** — 親 schema (`schemas/v3/generic-definition.v3.schema.json`、#1063 で導入済) は確定し、共通メタモデル (kind / name / purpose / responsibilities / targets / fields / operations / relations / constraints / mappingHints) は AJV 検証対象。**kind 別の固有 schema** (data-contract / domain-type は #1064 で導入、exception-type は #1066 で導入、残 5 kind は #1067-#1068 で順次切り出し中)
+- `generic-definitions/<kind>/*.json` の **kind 固有 field** — 親 schema (`schemas/v3/generic-definition.v3.schema.json`、#1063 で導入済) は確定し、共通メタモデル (kind / name / purpose / responsibilities / targets / fields / operations / relations / constraints / mappingHints) は AJV 検証対象。**kind 別の固有 schema** は 7 kind 完了 (data-contract / domain-type は #1064、exception-type は #1066、ui-fragment は #1067、application-rule / runtime-policy / ui-behavior は #1068)。残 1 kind (component-definition) のみ将来 RFC
 - `step.outputBinding: "stock"` の string 短縮形 — v3 で廃止、`{ name: "stock" }` のみ
 
 ### AI が今すべきこと
@@ -990,7 +990,7 @@ enum / コード値は `conventions/codeMaster` または `extensions/<namespace
 | `exception_semantic_kind_undecided` | §3.4 で semanticKind 推測不能 | warning |
 | `data_contract_kind_undecided` | §3.5 で data-contract vs domain-type 判定不能 | warning |
 | `commonprocess_ref_unresolved` | §3.3 ✅ 現行形の `commonProcess` step の `refId` (呼び先 ProcessFlow Uuid) が未定義 | error |
-| `rfc_future_field_skipped` | RFC 将来 schema 案 (generic-definitions の残 5 kind 固有 field 等、#1067-#1068 以降想定) を生成しようとした際、現行 schema に未対応のため `description` 退避 or 別ディレクトリ書き出しに切り替えた。**binding / events.effects は #1065 で導入済、componentCall / exceptionTypeRef / exception-type は #1066 で導入済のため本 warning 対象外** | warning |
+| `rfc_future_field_skipped` | RFC 将来 schema 案 (各 kind の固有 field — trigger / effects / rules / semanticKind 等、将来 RFC で kind 別 schema に追加予定) を生成しようとした際、現行 schema に未対応のため `description` 退避 or 別ディレクトリ書き出しに切り替えた。**binding / events.effects は #1065 で、componentCall / exceptionTypeRef / exception-type は #1066 で、ui-fragment / screen.fragments[] は #1067 で、application-rule / runtime-policy / ui-behavior は #1068 で導入済のため、これら kind 自体の生成は本 warning 対象外 (kind 内の固有 field 追加のみ対象)** | warning |
 
 ### 5.3 audit summary
 
@@ -1025,9 +1025,9 @@ MD が少数 (~数十ファイル) で更新もまれな場合の手順。
 3. **archetype 分類** — §2 アルゴリズムで各ファイルを分類、`unknown` は warning ログ
 4. **catalog 系から処理** — `pulldown-catalog` / `reference-catalog` を先に変換し、conventions を確立 (他 archetype の binding 解決に必要)
 5. **screen / processFlow / table** — §3.1-§3.3 の **✅ 現行 schema 適合形** で変換 (§0.5 参照)
-6. **generic-definitions** — §3.4-§3.7 の **✅ 現状適合形** で `examples/<project>/<dataDir>/generic-definitions/<kind>/*.json` に書き出し、AJV 検証必須 (親 schema + data-contract / domain-type は kind 別 schema #1064 で対象化済、exception-type は #1066 で対象化済)。残 5 kind の kind 固有 field (✨ #1067-#1068 で対応予定) は `description` 退避 + audit warning `rfc_future_field_skipped` で kind 別件数記録
+6. **generic-definitions** — §3.4-§3.7 の **✅ 現状適合形** で `examples/<project>/<dataDir>/generic-definitions/<kind>/*.json` に書き出し、AJV 検証必須 (親 schema + 7 kind 別 schema: data-contract / domain-type #1064、exception-type #1066、ui-fragment #1067、application-rule / runtime-policy / ui-behavior #1068 で対象化済)。各 kind の固有 field (✨ 将来 RFC で kind 別 schema に追加予定) は `description` 退避 + audit warning `rfc_future_field_skipped` で kind 別件数記録
 7. **ProcessFlow `commonProcess` / `componentCall` の link** — `commonProcess.refId` (呼び先 ProcessFlow Uuid) を解決、未解決は **error** `commonprocess_ref_unresolved` を audit に出す (§10 (A) hard gate 対象)。`componentCall.componentRef` は `generic-definitions/component-definition/<Name>` 形式で schema gate 対象化済 (#1066)
-8. **AJV 検証 (現行 schema 範囲)** — `schemas/v3/*.json` 配下で生成した JSON を AJV で検証。`generic-definitions/<kind>/*.json` は親 schema (`generic-definition.v3.schema.json`) で共通メタモデル検証 + data-contract / domain-type は kind 別 schema (#1064) で、exception-type は kind 別 schema (#1066) で strict 検証。残 5 kind の kind 別 schema は #1067-#1068 の子 ISSUE 完了後に追加 (§10 (A)/(B) 参照)
+8. **AJV 検証 (現行 schema 範囲)** — `schemas/v3/*.json` 配下で生成した JSON を AJV で検証。`generic-definitions/<kind>/*.json` は親 schema (`generic-definition.v3.schema.json`) で共通メタモデル検証 + 7 kind 別 schema (data-contract / domain-type #1064、exception-type #1066、ui-fragment #1067、application-rule / runtime-policy / ui-behavior #1068) で strict 検証。残 1 kind (component-definition) の kind 別 schema は将来 RFC (§10 (A)/(B) 参照)
 9. **audit summary** — §5.3 形式で出力、PR description に貼る (`rfc_future_field_skipped` の kind 別件数を含む)
 10. **完了判定** — §10 (A) hard gate を全件パス、§10 (B) soft gate は warning として残す
 
@@ -1527,9 +1527,9 @@ MD が ~30 ファイル以下 ?
 
 以下は **AJV gate 部分通過 + 残部分は warning として記録**、draft-state policy ([`draft-state-policy.md`](draft-state-policy.md)) に従って保存:
 
-- `examples/<project>/<dataDir>/generic-definitions/<kind>/*.json` 配下の出力 — **親 schema + data-contract / domain-type / exception-type kind 別 schema は AJV gate 対象** (#1063 + #1064 + #1066)、残 5 kind の kind 別 schema は #1067-#1068 で追加。loader 取り込み (UI) は #1069 で対応
+- `examples/<project>/<dataDir>/generic-definitions/<kind>/*.json` 配下の出力 — **親 schema + 7 kind 別 schema は AJV gate 対象** (#1063 + #1064 + #1066 + #1067 + #1068)、残 1 kind (component-definition) の kind 別 schema は将来 RFC。loader 取り込み (UI) は #1069 で対応
 - `description` 内に埋め込んだ ✨ RFC binding metadata / UI effects (binding / effects は #1065 で AJV gate 対象化済、componentCall / exceptionTypeRef は #1066 で AJV gate 対象化済)
-- audit warning `rfc_future_field_skipped` で残 5 kind 固有 field の件数を記録 (親 schema 部分は通過想定)
+- audit warning `rfc_future_field_skipped` で各 kind 固有 field (trigger / effects / rules / semanticKind 等、将来 RFC) の件数を記録 (親 schema + 7 kind 別 schema 部分は通過想定、残 1 kind = component-definition は親 schema のみ)
 
 **AJV gate (親 schema) + soft lint の併用** ([`scripts/spec-check/lint-generic-definitions.mjs`](../../scripts/spec-check/lint-generic-definitions.mjs) + `scripts/spec-check/test.mjs` § 3b):
 
