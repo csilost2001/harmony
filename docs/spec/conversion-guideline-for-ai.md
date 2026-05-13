@@ -36,7 +36,7 @@
 | 印 | 種別 | 実体 | AJV 検証 |
 |---|---|---|---|
 | ✅ | **現行 schema 適合形** | `schemas/v3/*.json` に既存 (`generic-definition.v3.schema.json` 含む、#1063)。今すぐ使える | **必須通過** (§10 完了判定の対象) |
-| ✨ | **RFC 将来 schema 案** | ISSUE #1060 系の **kind 別固有 schema** (data-contract / domain-type は #1064 で AJV gate 対象化、残 6 kind は #1066 以降の子 ISSUE 予定)、および既存 entity 拡張 (binding / events.effects / componentCall 等)。残 kind は **まだ schema が無い** | **検証対象外** (生成すると親 schema `unevaluatedProperties: false` で AJV 失敗、`description` 退避 + audit warning) |
+| ✨ | **RFC 将来 schema 案** | ISSUE #1060 系の **kind 別固有 schema** (data-contract / domain-type は #1064 で AJV gate 対象化、残 6 kind は #1066 以降の子 ISSUE 予定)、および既存 entity 拡張で残るもの (componentCall / exceptionTypeRef 等、#1066 以降想定)。**binding / events.effects** は #1065 で AJV gate 対象化済 (✅ 側)。残 kind / 既存 entity 拡張は **まだ schema が無い** | **検証対象外** (生成すると親 schema `unevaluatedProperties: false` で AJV 失敗、`description` 退避 + audit warning) |
 
 ### 何が ✨ RFC 将来案か
 
@@ -261,7 +261,7 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
 このパターンは [`generic-definition-layer.md` §3.1](generic-definition-layer.md) で確定、**#1065 (本子 ISSUE) で AJV gate 対象化済**。AI は本形式で直接生成可能。`optionSource` / `parseHint` は本 #1065 では追加せず将来 ISSUE 想定。
 
 **落とし方 hints**:
-- `th:field` / `th:value` / `th:text` / `th:each` 等の属性 → ✅ 現行は `description` に **binding grammar v1** (`[binding.v1] binding.attr=<attr>; binding.path=<path>`) 形式で記録 / ✨ 将来は `binding.kind`
+- `th:field` / `th:value` / `th:text` / `th:each` 等の属性 → ✅ 現行は **structured `binding.kind`** (formField / viewModel / catalog / expression / fragmentParam / session / routeParam / queryParam、#1065 で導入済) で記録。legacy `[binding.v1]` description sentinel 形式は `scripts/migrate-binding-v1-to-structured.mjs --apply` で structured `binding` へ自動移行
 - 「必須」「N 以上」等の備考 → `required` (boolean) / `min` / `max`
 - 整形指示 (「円」「%」「日付」等) → `displayFormat` ('¥#,##0' / '0.00%' / 'YYYY/MM/DD')
 - 出典 (表内に書かれた要件) → `description` に `source=...` で記録
@@ -990,7 +990,7 @@ enum / コード値は `conventions/codeMaster` または `extensions/<namespace
 | `exception_semantic_kind_undecided` | §3.4 で semanticKind 推測不能 | warning |
 | `data_contract_kind_undecided` | §3.5 で data-contract vs domain-type 判定不能 | warning |
 | `commonprocess_ref_unresolved` | §3.3 ✅ 現行形の `commonProcess` step の `refId` (呼び先 ProcessFlow Uuid) が未定義 | error |
-| `rfc_future_field_skipped` | RFC 将来 schema 案 (binding / events.effects / componentCall / exceptionTypeRef / generic-definitions kind) を生成しようとした際、現行 schema に未対応のため `description` 退避 or 別ディレクトリ書き出しに切り替えた | warning |
+| `rfc_future_field_skipped` | RFC 将来 schema 案 (componentCall / exceptionTypeRef / generic-definitions の残 6 kind 等、#1066 以降想定) を生成しようとした際、現行 schema に未対応のため `description` 退避 or 別ディレクトリ書き出しに切り替えた。**binding / events.effects は #1065 で導入済のため本 warning 対象外** | warning |
 
 ### 5.3 audit summary
 
@@ -1360,7 +1360,22 @@ export async function applyAIFeedback(profile: any, aiDecisions: AIDecision[]) {
 
 ### 8.2 ScreenItem 系
 
-- ✅ 現行 schema では binding 情報を `description` 内に **binding grammar v1** で退避する (§3.1 / §0.5 参照)。grammar 仕様 (parser 実装 + 18 ケース pass 確認済、edge case 含む):
+- ✅ **#1065 で `binding` サブ field 導入済 (§3.1)** — **新規生成は structured `binding` を使う**。binding 情報を持つ screen-item は以下の形式で直接生成する:
+  ```jsonc
+  {
+    // kind: formField / viewModel / catalog / expression /
+    //       fragmentParam / session / routeParam / queryParam
+    // role: input / output / display (optional)
+    "binding": {
+      "kind": "formField",
+      "path": "form.productCode",
+      "role": "input",
+      "formatHint": "YYYY/MM/DD"
+    }
+  }
+  ```
+  `optionSource` / `parseHint` は本 #1065 では追加せず将来 ISSUE 想定。
+- ⚠️ **legacy 形式 `[binding.v1]` description sentinel** (旧 MD import 互換のため保持) — 既存 JSON ファイルまたは抽出曖昧な MD import 時のみ使用。grammar 仕様 (parser 実装 + 18 ケース pass 確認済、edge case 含む):
   - **sentinel** `[binding.v1] ` (末尾 1 半角スペース込) を **必ず先頭に持つ**
   - 続けて `<key>=<value>; <key>=<value>; ...` の **セミコロン + 半角スペース区切り** (`/;\s+/`)
   - **標準 key** (全 optional): `binding.attr` (HTML 属性名、`:` 許容) / `binding.path` (bind 先パス) / `binding.role` (input / output / display) / `binding.formatHint` / `source` (出典) / `note` (補足)
@@ -1395,9 +1410,9 @@ export async function applyAIFeedback(profile: any, aiDecisions: AIDecision[]) {
       return out;
     }
     ```
-- ❌ **自由文章だけに埋もれさせるのは禁止** — migration script で機械抽出できないため、将来 RFC `binding` field 確定後の自動移行が壊れる
+  - legacy → structured 移行: `scripts/migrate-binding-v1-to-structured.mjs --apply` で自動変換 (冪等)。migration script は **sentinel (末尾半角スペース込み、先頭 13 文字) を持つ description のみ** 対象、自由文 description はそのまま保持
+- ❌ **自由文章だけに埋もれさせるのは禁止** — migration script で機械抽出できないため、structured `binding` への自動移行が壊れる
 - ❌ **sentinel なしの旧形式 `binding: <attr>=<path>` も禁止** — `:` が key-value 区切りと衝突して migration parser が confused になる
-- ✅ **#1065 で `binding` サブ field 導入済** (§3.1 ✅)。既存 `[binding.v1]` sentinel は `scripts/migrate-binding-v1-to-structured.mjs --apply` で structured `binding` に自動移行 (冪等)。migration script は **sentinel (末尾半角スペース込み、先頭 13 文字) を持つ description のみ** 対象、自由文 description はそのまま保持
 - `purpose: "gadget"` (#1021 PageLayout 系) の screen は別扱い
 
 ### 8.3 CSS / リネーム系 (memory `feedback_css_rename_verification.md`)
