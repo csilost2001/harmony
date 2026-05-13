@@ -1083,15 +1083,38 @@ const DEFAULT_PROFILE = {
   // ... 他全 section も {} or [] で埋める
 };
 
+// deepMerge セマンティクス (重要):
+// - plain object 同士: 再帰 merge (user の key で base を上書き、未指定 key は維持)
+// - **array は user 指定で完全置換** (concat / index merge しない)
+//   → rootDirs / includeGlobs / archetypeRules 等で user 指定があれば DEFAULT を捨てる
+//   → user 未指定なら DEFAULT 配列がそのまま使われる
+// - primitive (string/number/boolean): user 指定で置換
+// - user の値が undefined のときは base 維持
+function deepMerge<T extends object>(base: T, user: Partial<T>): T {
+  const out: any = { ...base };
+  for (const [k, v] of Object.entries(user ?? {})) {
+    if (v === undefined) continue;
+    const baseVal = (base as any)[k];
+    if (
+      v !== null && typeof v === "object" && !Array.isArray(v) &&
+      baseVal !== null && typeof baseVal === "object" && !Array.isArray(baseVal)
+    ) {
+      out[k] = deepMerge(baseVal, v as any); // object 再帰
+    } else {
+      out[k] = v; // array / primitive は置換
+    }
+  }
+  return out;
+}
+
 export async function loadProfile(path: string) {
   let user: any = {};
   try { user = JSON.parse(readFileSync(path, "utf8")); } catch { user = {}; }
-  // deep merge: ユーザー指定が default を上書き、未指定 section は default を維持
   return deepMerge(DEFAULT_PROFILE, user);
 }
 ```
 
-これにより profile 不在 / 部分指定 / valid-but-minimal の 3 ケースすべてで scaffold が動く。
+これにより profile 不在 / 部分指定 / valid-but-minimal の 3 ケースすべてで scaffold が動く。array が concat されないので user が `rootDirs: ["src/"]` を指定すれば DEFAULT の `["reference/"]` は捨てられる (置換セマンティクス)。
 
 **index.ts 雛形** (step 1〜10 を全て呼び出す、profile は load 後に常に full shape):
 ```ts
@@ -1129,12 +1152,13 @@ async function main() {
 main().catch((e) => { console.error(e); process.exit(1); });
 ```
 
-**step1-inventory.ts 雛形** (大規模 MD に耐える設計):
+**step1-inventory.ts 雛形** (**多数 MD ファイル** (1000+) に耐える設計、巨大単一 MD の OOM 対策は別途):
 
 - **複数 rootDirs flatten** — `rootDirs[0]` だけでなく全 root を順次処理
-- **本文は inventory に保持しない** — path / size / heading metadata のみ保持、本文は Step 4 entity mapping 時に必要なものだけ読む (1000+ MD で OOM 回避)
+- **本文は inventory に保持しない** — path / size / heading metadata のみ保持、本文は Step 4 entity mapping 時に必要なものだけ読む (1000+ MD ファイルで OOM 回避)
 - **path 絶対化** — `glob({cwd})` 返却は cwd 相対 → `join(rootDir, relativePath)` で絶対化必須
 - **heading parser bug 回避** — `filter().map((t, i) => tokens[i+1])` は filter 後の i を元配列に適用していて 2 つ目以降の heading を取りこぼす → reduce で元配列の i を保持
+- **巨大単一 MD (10MB+) の場合の追加対策** — `md.parse(content)` 自体が文書全体を token 配列化するため、極端に大きい単一 MD は OOM する。`statSync(absolutePath).size > 10 * 1024 * 1024` で warning を出し、`heading-only scanner` (`^#+ ` 行だけ正規表現で抽出) にフォールバックするのが安全
 
 ```ts
 import { glob } from "glob";
@@ -1164,7 +1188,7 @@ export async function runInventory(profile: any): Promise<InventoryEntry[]> {
     for (const relativePath of relativePaths) {
       const absolutePath = join(rootDir, relativePath);
       const stat = statSync(absolutePath);
-      // 本文は読まず、heading だけ抽出して捨てる (大規模 MD のメモリ対策)
+      // 本文は entry に保持せず、heading だけ抽出して残す (多数 MD ファイル時のメモリ対策)
       const content = readFileSync(absolutePath, "utf8");
       const tokens = md.parse(content, {});
       const headings = tokens.reduce<string[]>((acc, t, i) => {
@@ -1193,6 +1217,17 @@ export async function runInventory(profile: any): Promise<InventoryEntry[]> {
 **さらにメモリが厳しい場合** (10000+ MD): `runInventory` を async generator にして chunk 単位で yield、Step 2-5 も chunk 単位で進める設計に。
 
 各 step の実装テンプレは省略 (本ガイドラインの長さ抑制のため、AI は本指針に沿って書く)。
+
+**重要**: index.ts は step1-step10 全てを import するため、**全 step file (step1-inventory.ts 〜 step10-profile-feedback.ts) を最低限 export stub 付きで作る必要がある**。1 ファイルでも欠けると Node 実行時に `Cannot find module` で即落ち (tsc は通っても runtime で MODULE_NOT_FOUND)。最低限の stub 例:
+
+```ts
+// step7-deterministic.ts (最低 stub、実装は後で埋める)
+export async function ensureDeterministicOutput(_mapped: unknown, _generic: unknown): Promise<void> {
+  // TODO: sort + 順序固定で deterministic output を保証
+}
+```
+
+step7 / step9 / step10 のような後回しにしがちな step も、index.ts が import している以上は **placeholder ファイルを最初に作る**。
 
 ### 7.3 Project Profile を使う場合
 
@@ -1270,8 +1305,11 @@ export async function applyAIFeedback(profile: any, aiDecisions: AIDecision[]) {
   - 参考 parser 実装 (`.tmp/test-binding-grammar.mjs` で 9/9 pass 確認済):
     ```ts
     const SENTINEL = "[binding.v1] ";
-    function parseBindingDescription(d: string): Record<string, string> | null {
-      if (!d?.startsWith(SENTINEL)) return null;
+    function parseBindingDescription(d: unknown): Record<string, string> | null {
+      // 型 guard: 非文字列 (null/undefined/number/object/array) はすべて null 返却
+      // (.startsWith は文字列専用、type unsafe な入力でも throw しないこと)
+      if (typeof d !== "string") return null;
+      if (!d.startsWith(SENTINEL)) return null;
       const body = d.slice(SENTINEL.length).trim();
       if (body === "") return {};
       const out: Record<string, string> = {};
@@ -1335,6 +1373,24 @@ MD が ~30 ファイル以下 ?
 - project が今後も MD を追加・更新するか (= importer のメンテコストを取り戻せるか)
 - 自動 CI で MD 同期したいか (importer 必須)
 - 1 回切りで設計者承認後はもう触らないか ((A) で十分)
+
+---
+
+## 9.5. AI 向け Pre-submit Self-audit Checklist (必読)
+
+変換成果物を commit / 提出する **直前** に、AI は以下 7 項目を全件実行すること。skip すると review gate で複数 round の追加修正が発生する (#1060 で実証済の失敗パターン):
+
+| # | 観点 | 具体 action | 違反時に起きること |
+|---|---|---|---|
+| 1 | **schema 引用前の Read** | `schemas/v3/<entity>.v3.schema.json` を Read で開いて root / required / `additionalProperties: false` / `unevaluatedProperties: false` を確認してから JSON 生成 | 想像で書いた JSON が AJV 落ち |
+| 2 | **実例を Read で学ぶ** | `examples/<project-id>/harmony/<entity>/*.json` の実ファイルを 1 つ Read。schema より実例の方が「正解形」を学びやすい | 構造ズレた JSON を生成 |
+| 3 | **列挙系 content は機械抽出スクリプトを先に書く** | step kind / archetype / enum / required を表で列挙する前に `.tmp/extract-<topic>.mjs` を書いて schema から machine extract。記憶ベースで書かない | cheatsheet と schema が乖離、AI 後続が引っ張られて AJV 落ち連鎖 |
+| 4 | **生成 JSON は AJV で実 validate** | `cd backend && npx ajv-cli@5 validate -s ../schemas/v3/<schema>.json -r "../schemas/v3/common.v3.schema.json" -r "<必要な追加 ref>" -d <output.json> --spec=draft2020 --strict=false` で全件 valid 確認 | 「正しいはず」commit が AJV gate で止まる |
+| 5 | **全文 read-through + 矛盾検出** | 主要キーワード (binding / description / required 等) で `grep -n <kw> <file>` 打って、複数箇所の記述が矛盾していないか確認。編集 round 後は該当 file 全体を 1 度通読 | §A で「Xせよ」§B で「X禁止」の自己矛盾を残す |
+| 6 | **構造変更後の cross-ref grep** | `grep -nE "§[0-9]+(\.[0-9]+)?" <file>` で全 § 参照を列挙、実セクション番号と一致確認。file path link / cross-doc reference も同様 | stale 参照で読者を誤誘導 |
+| 7 | **review gate の前段で audit を貼る** | audit summary を §5.3 形式で出力し、PR description / コメントに貼ってから review 依頼 | reviewer が独立検証コストを支払うことになる |
+
+各ステップは数分で済む。skip すると review に複数 round 依頼することになり、結果的に総時間が増える (#1060 で 7 round 連続発生)。本 checklist は memory `feedback_pre_submit_self_audit.md` を spec 側にも mirror したもの。AI ごとに memory アクセス可否が違うため、spec 内に redundant に持つ。
 
 ---
 
