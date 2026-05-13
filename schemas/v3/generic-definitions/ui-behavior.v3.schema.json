@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/ui-behavior.v3.schema.json",
+  "title": "UI Behavior (v3 generic-definition kind: ui-behavior)",
+  "description": "Generic Definition Catalog の ui-behavior kind 固有 schema。親 schema (../generic-definition.v3.schema.json、#1063) を `allOf` 継承し、`kind` を const \"ui-behavior\" に固定。ui-behavior は画面横断振る舞い (dirty check / dialog 表示 / datepicker / 二重送信防止 / メッセージ描画 / Ajax 連動更新 等) を表す。設計書の共通 JS / 横断ルール (例: spec_commonJS.md) の言語非依存表現。Screen の `commonBehaviors[]` / ScreenItem の `event.effects[]` (#1065) と参照関係で繋がる。kind 固有 field (trigger / effects / scope / DOM targets 等) は本 #1068 では追加せず、親 schema の `responsibilities` / `operations` / `description` 退避で表現する。trigger / effects 等 structured field は将来 RFC で kind 別 schema に追加予定。仕様: docs/spec/generic-definition-layer.md §4.2。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "ui-behavior" }
+  }
+}

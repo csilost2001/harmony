@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/application-rule.v3.schema.json",
+  "title": "Application Rule (v3 generic-definition kind: application-rule)",
+  "description": "Generic Definition Catalog の application-rule kind 固有 schema。親 schema (../generic-definition.v3.schema.json、#1063) を `allOf` 継承し、`kind` を const \"application-rule\" に固定。application-rule は認証認可ポリシー / ログ・監査ポリシー / 例外変換ポリシー / リクエスト前後処理 等の横断ルールを表す (Java 系の Configuration class / Filter / Interceptor / Advice、Nest の Guard / Interceptor 等の言語非依存表現)。kind 固有 field (rules[] の structure / category / pathPattern / require 等) は本 #1068 では追加せず、親 schema の `responsibilities` / `constraints` / `mappingHints` / `description` 退避で表現する。rules[] 等の structured field は将来 RFC で kind 別 schema に追加予定。仕様: docs/spec/generic-definition-layer.md §4.2。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "application-rule" }
+  }
+}

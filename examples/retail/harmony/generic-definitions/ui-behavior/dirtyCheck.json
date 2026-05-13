@@ -1,0 +1,52 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/ui-behavior.v3.schema.json",
+  "kind": "ui-behavior",
+  "name": "dirtyCheck",
+  "purpose": "未保存の入力変更がある状態での画面遷移前に確認ダイアログを表示する横断振る舞い",
+  "responsibilities": [
+    "form 入力に対する変更を検出して内部 dirty flag を立てる",
+    "画面遷移 (戻る / 別画面リンク / ブラウザ閉じる) 前に dirty flag をチェックする",
+    "dirty 時は確認ダイアログを表示し、ユーザー判断で遷移続行 or キャンセルする"
+  ],
+  "targets": ["frontend"],
+  "operations": [
+    {
+      "name": "markDirty",
+      "inputs": [
+        { "name": "field", "type": "string", "description": "変更を検出した field id" }
+      ],
+      "description": "form input の change event 時に呼ばれ、dirty flag を立てる。"
+    },
+    {
+      "name": "checkBeforeNavigate",
+      "inputs": [
+        { "name": "destination", "type": "string", "description": "遷移先 URL" }
+      ],
+      "outputs": [
+        { "name": "shouldProceed", "type": "boolean", "description": "true = 遷移続行 / false = キャンセル" }
+      ],
+      "description": "遷移 trigger 時に呼ばれ、dirty 時はダイアログ確認を経て shouldProceed を返す。"
+    }
+  ],
+  "relations": [
+    {
+      "kind": "uses",
+      "ref": "generic-definitions/ui-fragment/messageArea",
+      "description": "確認結果のメッセージ表示に messageArea fragment を利用する。"
+    }
+  ],
+  "constraints": [
+    "form submit 時は dirty flag を強制 false に reset する (submit 経路は確認不要)",
+    "ダイアログ表示中は遷移を block する (非同期処理を維持)"
+  ],
+  "mappingHints": {
+    "frontend.next": {
+      "hookName": "useDirtyCheck",
+      "package": "hooks/common"
+    },
+    "frontend.vite": {
+      "moduleName": "dirtyCheck.ts",
+      "package": "src/composables/common"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/runtime-policy.v3.schema.json",
+  "title": "Runtime Policy (v3 generic-definition kind: runtime-policy)",
+  "description": "Generic Definition Catalog の runtime-policy kind 固有 schema。親 schema (../generic-definition.v3.schema.json、#1063) を `allOf` 継承し、`kind` を const \"runtime-policy\" に固定。runtime-policy は retry / timeout / circuit breaker / bulkhead / cache 等の横断適用ポリシーを表す (実行時挙動を規定する、Resilience4j / Hystrix 等の言語非依存表現)。既存の `process-flow-sla.md` / `process-flow-tier-c.md` の SLA / Timeout / circuitBreaker 宣言形式は本 PR では変更しない (現行 ProcessFlow step inline 宣言を維持)。kind 固有 field (maxRetries / backoffStrategy / timeoutMillis / failureRateThreshold 等) は本 #1068 では追加せず、親 schema の `constraints` / `mappingHints` / `description` 退避で表現する。具体的な policy parameters は将来 RFC で kind 別 schema に追加予定、または `runtime-policy` catalog 化に伴って既存 inline 宣言の移管を別 ISSUE で検討。仕様: docs/spec/generic-definition-layer.md §4.2 / §6 重複領域マッピング。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "runtime-policy" }
+  }
+}

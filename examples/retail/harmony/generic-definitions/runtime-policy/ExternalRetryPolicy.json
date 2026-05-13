@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/runtime-policy.v3.schema.json",
+  "kind": "runtime-policy",
+  "name": "ExternalRetryPolicy",
+  "purpose": "外部システム呼び出しの retry / timeout / circuit breaker の横断ポリシー",
+  "responsibilities": [
+    "外部 API 呼び出し失敗時の retry 戦略 (最大 3 回 / exponential backoff) を規定する",
+    "外部呼び出しの timeout (5 秒) を規定する",
+    "連続失敗時の circuit breaker open 条件 (10 件中 5 件 fail で open) を規定する"
+  ],
+  "targets": ["runtime", "backend"],
+  "relations": [
+    {
+      "kind": "appliesTo",
+      "ref": "generic-definitions/component-definition/OrderValidator",
+      "description": "OrderValidator から呼ばれる外部与信 API に本ポリシーを適用する。"
+    }
+  ],
+  "constraints": [
+    "retry の対象は idempotent な GET / 与信照会のみ",
+    "POST 系 (注文確定 / 引当) は retry 対象外 (重複防止)",
+    "circuit open 中は fallback として cached response を返却"
+  ],
+  "mappingHints": {
+    "backend.spring": {
+      "library": "Resilience4j",
+      "annotations": ["@Retry", "@TimeLimiter", "@CircuitBreaker"],
+      "configKey": "external.creditCheck"
+    },
+    "backend.nestjs": {
+      "library": "@nestjs/circuit-breaker",
+      "decorator": "@CircuitBreaker"
+    }
+  }
+}

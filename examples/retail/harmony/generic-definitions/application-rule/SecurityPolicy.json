@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/application-rule.v3.schema.json",
+  "kind": "application-rule",
+  "name": "SecurityPolicy",
+  "purpose": "URL pattern 別の認証認可ポリシーとログ・監査・例外変換の横断ルール",
+  "responsibilities": [
+    "URL pattern 別に require auth / role / public を規定する",
+    "全 POST/PUT/DELETE をログ出力する (request body の機密項目はマスク)",
+    "業務例外を HTTP response code + ユーザーメッセージへ変換する既定方針を保持する"
+  ],
+  "targets": ["backend"],
+  "constraints": [
+    "認証必須 path で未認証時はログイン画面へリダイレクト",
+    "ログ機密項目: password / token / sessionId / creditCardNumber (例外なくマスク)",
+    "業務例外 (BusinessAbortException 系) は 200 + body の messages[] で返却 (REST のみ 4xx に変換)"
+  ],
+  "mappingHints": {
+    "backend.spring": {
+      "configurationClass": "SecurityConfig",
+      "filterChain": "SpringSecurityFilterChain",
+      "exceptionHandler": "@ControllerAdvice"
+    },
+    "backend.nestjs": {
+      "guard": "AuthGuard",
+      "interceptor": "LoggingInterceptor",
+      "exceptionFilter": "BusinessExceptionFilter"
+    }
+  }
+}
