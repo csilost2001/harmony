@@ -54,7 +54,7 @@
    - (a) 現行 schema の `description` field 内に構造化文字列で埋め込み (旧来パターン継続)
    - (b) `extensions/<namespace>/*.json` に opt-in 拡張として書き出し
    - (c) project 内の `generic-definitions/<kind>/*.json` に書き出し、**audit warning `rfc_future_field_skipped` を残す** (current loader は読まないが、将来 schema 確定時に取り込まれる)
-3. **AJV gate は (a)(b) のみ通過確認、(c) は warning 扱いで保存許容** (draft-state policy)
+3. **AJV gate の範囲**: (a)(b) は現行 schema 範囲を全件通過確認。(c) `generic-definitions/` は **親 schema (`generic-definition.v3.schema.json`、#1063) の共通メタモデル部分 (kind / name / purpose / responsibilities / targets 等) が AJV gate 対象**、kind 固有 field のみ warning 扱いで保存許容 (draft-state policy、§10 (B))
 
 各 §3 の archetype 例では ✅ 現行適合形 と ✨ RFC 将来案 を併記。AI は ✅ 側を必ず生成し、✨ は将来用に温存する。
 
@@ -921,7 +921,7 @@ enum / コード値は `conventions/codeMaster` または `extensions/<namespace
 実 JSON 例は §3.4〜§3.7 の各 archetype 落とし方ガイドを参照。
 
 **field optionality**:
-- `kind` / `name` / `purpose` / `targets` は必須
+- `kind` / `name` / `purpose` / `responsibilities` / `targets` は必須 (親 schema `required` 配列、#1063)
 - `fields` / `operations` / `relations` / `constraints` は kind 次第
 - `mappingHints` は **free-form object** (Q6 決定)、techStack 別キーで自由構造
 
