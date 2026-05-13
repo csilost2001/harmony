@@ -2,7 +2,7 @@
   "$schema": "../../schemas/import-project-profile.v1.schema.json",
   "profileVersion": "v1",
   "name": "retail",
-  "description": "Retail (小売業) サンプル用の Markdown インポート profile RFC サンプル。本 profile は ISSUE #1060 (generic-definition-layer.md / import-procedure.md) のドラフト検証用。reference/ 配下に MD を置いて運用する想定の最小例。",
+  "description": "Retail (小売業) サンプル用の Markdown インポート profile RFC サンプル。本 profile は ISSUE #1060 (generic-definition-layer.md + conversion-guideline-for-ai.md) のドラフト検証用。reference/ 配下に MD を置いて運用する想定の最小例。",
   "sourceInventory": {
     "rootDirs": ["reference/"],
     "includeGlobs": ["**/*.md"],

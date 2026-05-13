@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/import-project-profile.v1.schema.json",
   "title": "Import Project Profile (v1, RFC)",
-  "description": "Markdown → Harmony JSON 共通 importer に渡す project 固有の正規化ルール。1 project に 1 ファイル (`examples/<project-id>/import-project-profile.json` または `workspaces/<wsId>/import-project-profile.json`)。仕様: docs/spec/import-procedure.md / docs/spec/generic-definition-layer.md。本 schema は RFC v0.1 (ISSUE #1060)、確定後に正式版に昇格する。",
+  "description": "Markdown → Harmony JSON 変換時に AI / 生成 importer に渡す project 固有の正規化ルール (optional)。1 project に 1 ファイル (`examples/<project-id>/import-project-profile.json` または `workspaces/<wsId>/import-project-profile.json`)。仕様: docs/spec/conversion-guideline-for-ai.md (§7.3 / §7.4) + docs/spec/generic-definition-layer.md (Layer 3)。本 schema は RFC v0.1 (ISSUE #1060)、確定後に正式版に昇格する。",
   "type": "object",
   "additionalProperties": false,
   "required": ["profileVersion", "name"],
@@ -369,7 +369,7 @@
   "$defs": {
     "Archetype": {
       "type": "string",
-      "description": "Markdown 文書の archetype 分類 (import-procedure.md Step 2)",
+      "description": "Markdown 文書の archetype 分類 (conversion-guideline-for-ai.md §2)",
       "enum": [
         "screen-controller",
         "service-flow-spec",

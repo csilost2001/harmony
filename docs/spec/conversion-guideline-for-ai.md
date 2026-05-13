@@ -29,6 +29,37 @@
 
 ---
 
+## 0.5. ⚠️ 本ガイドラインの schema 状態 (必読)
+
+本ガイドラインは **2 種類の schema** を扱う:
+
+| 印 | 種別 | 実体 | AJV 検証 |
+|---|---|---|---|
+| ✅ | **現行 schema 適合形** | `schemas/v3/*.json` に既存。今すぐ使える | **必須通過** (§10 完了判定の対象) |
+| ✨ | **RFC 将来 schema 案** | ISSUE #1060 で提案中。**まだ `schemas/v3/` に存在しない** | **検証対象外** (生成すると AJV 失敗) |
+
+### 何が ✨ RFC 将来案か
+
+- `screenItem.binding.{kind,path,role,formatHint,sourceNote}` — 現行 ScreenItem は `additionalProperties: false` で `binding` を許可しない
+- `screenItemEvent.{trigger,target,effects[]}` — 現行 ScreenItemEvent は `id` / `handlerFlowId` / `argumentMapping` のみ
+- ProcessFlow step `kind: "componentCall"`, `kind: "dbQuery"|"dbInsert"|"dbUpdate"` — 現行は `commonProcess` / `dbAccess` (operation: SELECT/INSERT/UPDATE/DELETE)
+- `validation[].throw.exceptionTypeRef` (step 内 inline) — 現行は `errorCode` catalog 参照
+- `generic-definitions/<kind>/*.json` 全般 — 現行 `schemas/v3/` に該当 schema なし
+- `step.outputBinding: "stock"` の string 短縮形 — v3 で廃止、`{ name: "stock" }` のみ
+
+### AI が今すべきこと
+
+1. **現行 schema 範囲のみで Harmony JSON を生成** — AJV で validate して保存
+2. **RFC 将来 schema 案で表現したい情報** は次のいずれかで退避:
+   - (a) 現行 schema の `description` field 内に構造化文字列で埋め込み (旧来パターン継続)
+   - (b) `extensions/<namespace>/*.json` に opt-in 拡張として書き出し
+   - (c) project 内の `generic-definitions/<kind>/*.json` に書き出し、**audit warning `rfc_future_field_skipped` を残す** (current loader は読まないが、将来 schema 確定時に取り込まれる)
+3. **AJV gate は (a)(b) のみ通過確認、(c) は warning 扱いで保存許容** (draft-state policy)
+
+各 §3 の archetype 例では ✅ 現行適合形 と ✨ RFC 将来案 を併記。AI は ✅ 側を必ず生成し、✨ は将来用に温存する。
+
+---
+
 ## 1. 出力先 Harmony JSON の全体構造
 
 変換先の entity 一覧。**まず project の `harmony.json` を読み**、active workspace の `dataDir` (= 出力ルート) を特定する。
@@ -121,50 +152,90 @@ MD ファイルがどの archetype に属するかを最初に判定する。判
 | カテゴリ | th:each | catalog.categories | 選択肢 |
 ```
 
-**After (Harmony JSON 抜粋)**:
+#### ✅ After — 現行 schema 適合形 (今すぐ生成すべき)
+
+`screens/SC000001.json` の `items[]` には ScreenItem v3 schema (`schemas/v3/screen-item.v3.schema.json`) で許可された property のみを使う。binding metadata は **`description` 内に構造化文字列** で埋め込み、後続 §3.2 の handlerFlowId / argumentMapping は別途接続:
+
 ```json
 // screens/SC000001.json
 {
-  "id": "SC000001",
+  "id": "<uuid>",
+  "code": "SC000001",
   "name": "注文画面",
   "route": "/order/new",
-  "auth": { "required": true },
   "items": [
     {
       "id": "productCode",
       "label": "商品コード",
-      "binding": { "kind": "formField", "path": "form.productCode", "role": "input" },
-      "validation": { "required": true }
+      "type": "text",
+      "direction": "input",
+      "required": true,
+      "description": "binding: th:field=form.productCode; source=spec_SC000001_Controller.md#コントロールマッピング"
     },
     {
       "id": "quantity",
       "label": "数量",
-      "binding": { "kind": "formField", "path": "form.quantity", "role": "input" },
-      "validation": { "required": true, "min": 1 }
+      "type": "number",
+      "direction": "input",
+      "required": true,
+      "min": 1,
+      "description": "binding: th:field=form.quantity; source=spec_SC000001_Controller.md#コントロールマッピング"
     },
     {
       "id": "totalPrice",
       "label": "合計金額",
-      "binding": { "kind": "viewModel", "path": "viewModel.totalPrice", "role": "display", "formatHint": "currency:JPY" }
+      "type": "number",
+      "direction": "output",
+      "displayFormat": "¥#,##0",
+      "description": "binding: th:text=viewModel.totalPrice"
     },
     {
       "id": "category",
       "label": "カテゴリ",
-      "binding": { "kind": "catalog", "optionSource": "catalog/categories" }
+      "type": "select",
+      "direction": "input",
+      "description": "binding: th:each=catalog.categories"
     }
   ]
 }
 ```
 
+- 必須は `required: true` (boolean)、数値範囲は `min` / `max`、表示書式は `displayFormat`
+- 認証要件は screen 上に専用 field なし → 仕様未対応として **warning `unsupported_harmony_entity`** を audit 出力、当面 `description` 末尾に「auth: ログイン必須」を記載
+- binding metadata は `description` に `key=value; key=value;` のセミコロン区切りで埋め込む (将来 RFC 採用時に migration script が parse 可能な形式)
+
+#### ✨ Alternative — RFC 将来 schema 案 (#1060 確定後)
+
+`binding` サブオブジェクトが ScreenItem に追加されたら以下に migrate (現在 AJV 落ちるため **生成しない**):
+
+```json
+// 【RFC 将来案・現状不可】
+{
+  "id": "productCode",
+  "label": "商品コード",
+  "type": "text",
+  "direction": "input",
+  "required": true,
+  "binding": {
+    "kind": "formField",
+    "path": "form.productCode",
+    "role": "input",
+    "sourceNote": "spec_SC000001_Controller.md#コントロールマッピング"
+  }
+}
+```
+
+このパターンは [`generic-definition-layer.md` §3.1](generic-definition-layer.md) で提案中、子 ISSUE で schema 拡張予定。
+
 **落とし方 hints**:
-- `th:field` / `th:value` / `th:text` / `th:each` 等の属性 → `binding.kind`
-- 「必須」「N 以上」等の備考 → `validation.required` / `validation.min`
-- 整形指示 (「円」「%」「日付」等) → `binding.formatHint`
-- 出典 (表内に書かれた要件) → `binding.sourceNote` (任意)
+- `th:field` / `th:value` / `th:text` / `th:each` 等の属性 → ✅ 現行は `description` に `binding: <attr>=<path>` 形式で記録 / ✨ 将来は `binding.kind`
+- 「必須」「N 以上」等の備考 → `required` (boolean) / `min` / `max`
+- 整形指示 (「円」「%」「日付」等) → `displayFormat` ('¥#,##0' / '0.00%' / 'YYYY/MM/DD')
+- 出典 (表内に書かれた要件) → `description` に `source=...` で記録
 
 **よく落とす情報**:
-- 表外の説明文に書かれた「change イベントで X を fetch」→ `event.effects[]` (§3.2 参照)
-- 「`[hidden]`」マーカー → `binding.role = "internal"` または `visible: false`
+- 表外の説明文に書かれた「change イベントで X を fetch」→ §3.2 参照 (現行は別 ProcessFlow に切り出し handlerFlowId で接続)
+- 「`[hidden]`」マーカー → `visibleWhen: "false"` または `direction` 調整 / `description` に hidden を記載
 
 ### 3.2 `screen-controller` の画面イベント (UI effects)
 
@@ -178,9 +249,93 @@ MD ファイルがどの archetype に属するかを最初に判定する。判
 | submit | 確定ボタン | 全ボタン無効化 → POST |
 ```
 
-**After**:
+#### ✅ After — 現行 schema 適合形 (今すぐ生成すべき)
+
+現行 ScreenItemEvent (`schemas/v3/screen-item.v3.schema.json:97`) は `id` / `handlerFlowId` / `handlerActionId` / `argumentMapping` のみ許可。UI 効果は **別 ProcessFlow に切り出し**、event は handlerFlowId で接続:
+
 ```json
-// screens/SC000001.json (event 部分)
+// screens/SC000001.json (該当画面項目の events 抜粋)
+{
+  "items": [
+    {
+      "id": "prefecture",
+      "label": "都道府県",
+      "type": "select",
+      "direction": "input",
+      "events": [
+        {
+          "id": "change",
+          "label": "都道府県変更",
+          "handlerFlowId": "<uuid: pf-load-cities>",
+          "argumentMapping": {
+            "prefectureValue": "$item.prefecture.value"
+          }
+        }
+      ],
+      "description": "binding: gm:pref=form.prefecture"
+    },
+    {
+      "id": "backButton",
+      "label": "戻る",
+      "type": "button",
+      "direction": "input",
+      "events": [
+        { "id": "click", "label": "戻る", "handlerFlowId": "<uuid: pf-back-with-dirty-check>" }
+      ]
+    },
+    {
+      "id": "submitButton",
+      "label": "確定",
+      "type": "submit",
+      "direction": "input",
+      "events": [
+        { "id": "submit", "label": "注文確定", "handlerFlowId": "<uuid: pf-place-order>" }
+      ]
+    }
+  ]
+}
+```
+
+ProcessFlow 側 (例 `pf-load-cities`) で API 呼び出し + 結果 binding を記述する。UI ローカル効果 (clear / readonly / setOptions / showDialog 等) は **`compute` step + `displayUpdate` step** で表現するか、当面 `description` に効果を記録:
+
+```json
+// process-flows/load-cities.json (抜粋)
+{
+  "kind": "common",
+  "id": "<uuid: pf-load-cities>",
+  "code": "loadCities",
+  "name": "市区町村プルダウン更新",
+  "actions": [
+    {
+      "id": "act-001",
+      "trigger": { "kind": "screen-item-event" },
+      "inputs": [{ "name": "prefectureValue", "type": "string", "required": true }],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "externalSystem",
+          "description": "市区町村 API 呼び出し",
+          "operationRef": "<openApiOpRef>",
+          "outputBinding": { "name": "cities" }
+        },
+        {
+          "id": "step-02",
+          "kind": "displayUpdate",
+          "description": "city 項目の options を更新",
+          "updates": [{ "itemId": "city", "field": "options", "value": "@cities" }]
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### ✨ Alternative — RFC 将来 schema 案 (#1060 確定後)
+
+ScreenItemEvent に `trigger` / `target` / `effects[]` が追加されたら以下に migrate (現在 AJV 落ちるため **生成しない**):
+
+```json
+// 【RFC 将来案・現状不可】
 {
   "events": [
     {
@@ -190,29 +345,17 @@ MD ファイルがどの archetype に属するかを最初に判定する。判
         { "kind": "fetch", "endpoint": "/api/cities", "params": { "pref": "prefecture" } },
         { "kind": "setOptions", "target": "city" }
       ]
-    },
-    {
-      "trigger": "click",
-      "target": "backButton",
-      "effects": [
-        { "kind": "dirtyCheck" },
-        { "kind": "showDialog", "messageRef": "msg/confirm-discard" },
-        { "kind": "navigate", "to": "previous" }
-      ]
-    },
-    {
-      "trigger": "submit",
-      "target": "submitButton",
-      "effects": [
-        { "kind": "setEnabled", "target": "$allActions", "value": false }
-      ],
-      "handlerFlowId": "place-order"
     }
   ]
 }
 ```
 
-`handlerFlowId` (=処理起動) は effects と並列。UI ローカル効果と処理起動は概念分離。
+このパターンは [`generic-definition-layer.md` §3.2](generic-definition-layer.md) で提案中、子 ISSUE で schema 拡張予定。
+
+**落とし方 hints (✅ 現行)**:
+- 「change / click / submit イベントで X」→ ScreenItem.events[].handlerFlowId に ProcessFlow を切り出し
+- UI ローカル効果 (clear / setOptions / showDialog) → ProcessFlow 内 `displayUpdate` step (`schemas/v3/process-flow.v3.schema.json` `kind: "displayUpdate"`)
+- 「全ボタン無効化 → POST」のような multi-effect → 1 ProcessFlow 内に複数 step で順次記述
 
 ### 3.3 `service-flow-spec` → process-flow
 
@@ -233,72 +376,150 @@ MD ファイルがどの archetype に属するかを最初に判定する。判
 1〜3 は 1 TX。4 は別 TX (失敗しても 1〜3 は維持)。
 ```
 
-**After**:
+#### ✅ After — 現行 schema 適合形 (今すぐ生成すべき)
+
+現行 ProcessFlow v3 schema (`schemas/v3/process-flow.v3.schema.json`) で許可された step kind: `validation` / `dbAccess` / `externalSystem` / `aiCall` / `aiAgent` / `commonProcess` / `screenTransition` / `displayUpdate` / `branch` / `expression` / `tryCatch` / `loop` / `loopBreak` / `loopContinue` / `jump` / `compute` / `return` / `log` / `audit` / `workflow` / `transactionScope` / `eventPublish` / `eventSubscribe` / `closing` / `cdc` / `auditLog`。
+
+**重要マッピング**:
+- DB 操作は **すべて `kind: "dbAccess"`** + `operation: "SELECT|INSERT|UPDATE|DELETE|MERGE|LOCK"` (`dbQuery`/`dbInsert`/`dbUpdate` は存在しない)
+- 共有内部処理呼び出しは **`kind: "commonProcess"` + `refId` (他 ProcessFlow の Uuid)** (`componentCall` は存在しない)
+- 例外スローは **`kind: "validation"` の step + `errorCode` (catalog 参照)** (`throw.exceptionTypeRef` は存在しない)
+- `outputBinding` は **構造化 `{ name: "..." }` のみ** (string 短縮形は v3 廃止)
+- `txBoundary` は別途構造化型 (`#/$defs/TxBoundary` 参照)
+
 ```json
 // process-flows/place-order.json
 {
-  "id": "place-order",
+  "$schema": "../../schemas/v3/process-flow.v3.schema.json",
+  "kind": "common",
+  "id": "<uuid: pf-place-order>",
+  "code": "placeOrder",
   "name": "注文受付",
-  "inputs": [{ "name": "productCode", "type": "string" }, { "name": "quantity", "type": "integer" }],
-  "outputs": [{ "name": "result", "$ref": "generic-definitions/data-contract/OrderResult" }],
-  "steps": [
+  "actions": [
     {
-      "id": "step-01",
-      "kind": "dbQuery",
-      "txBoundary": "tx-main",
-      "sql": "SELECT quantity FROM inventory WHERE product_code = :productCode",
-      "outputBinding": "stock",
-      "validation": [
-        { "when": "stock.quantity < quantity", "throw": { "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" } }
+      "id": "act-001",
+      "trigger": { "kind": "screen-item-event" },
+      "inputs": [
+        { "name": "productCode", "type": "string", "required": true },
+        { "name": "quantity", "type": "integer", "required": true }
+      ],
+      "outputs": [
+        { "name": "orderId", "type": "string" },
+        { "name": "totalPrice", "type": "number" }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "dbAccess",
+          "description": "在庫チェック (在庫不足なら ValidationException)",
+          "tableId": "<uuid: tbl-inventory>",
+          "operation": "SELECT",
+          "sql": "SELECT quantity AS qty, price AS price FROM inventory inv WHERE inv.product_code = @productCode",
+          "outputBinding": { "name": "stock" },
+          "txBoundary": { "txId": "tx-main", "role": "begin" }
+        },
+        {
+          "id": "step-02",
+          "kind": "validation",
+          "description": "在庫不足チェック",
+          "errorCode": "INVENTORY_SHORTAGE",
+          "runIf": "@stock.qty < @quantity"
+        },
+        {
+          "id": "step-03",
+          "kind": "dbAccess",
+          "description": "注文登録",
+          "tableId": "<uuid: tbl-orders>",
+          "operation": "INSERT",
+          "sql": "INSERT INTO orders (id, product_code, quantity) VALUES (NEXTVAL('SEQ_ORDER'), @productCode, @quantity) RETURNING id",
+          "outputBinding": { "name": "orderId" },
+          "txBoundary": { "txId": "tx-main", "role": "member" }
+        },
+        {
+          "id": "step-04",
+          "kind": "dbAccess",
+          "description": "在庫減算",
+          "tableId": "<uuid: tbl-inventory>",
+          "operation": "UPDATE",
+          "sql": "UPDATE inventory inv SET quantity = quantity - @quantity WHERE inv.product_code = @productCode",
+          "txBoundary": { "txId": "tx-main", "role": "end" }
+        },
+        {
+          "id": "step-05",
+          "kind": "commonProcess",
+          "description": "確認メール送信 (別 TX、失敗しても tx-main は維持)",
+          "refId": "<uuid: pf-send-mail>",
+          "argumentMapping": { "orderId": "@orderId" },
+          "txBoundary": { "txId": "tx-mail", "role": "begin" }
+        },
+        {
+          "id": "step-06",
+          "kind": "return",
+          "description": "OrderResult を返却",
+          "outputBinding": { "name": "totalPrice" }
+        }
       ]
-    },
+    }
+  ],
+  "errorCodes": [
     {
-      "id": "step-02",
-      "kind": "dbInsert",
-      "txBoundary": "tx-main",
-      "table": "orders",
-      "values": { "id": { "kind": "sequence", "ref": "SEQ_ORDER" }, "productCode": "productCode", "quantity": "quantity" },
-      "outputBinding": "orderId"
-    },
-    {
-      "id": "step-03",
-      "kind": "dbUpdate",
-      "txBoundary": "tx-main",
-      "table": "inventory",
-      "set": { "quantity": "quantity - {{quantity}}" },
-      "where": "product_code = :productCode"
-    },
-    {
-      "id": "step-04",
-      "kind": "componentCall",
-      "txBoundary": "tx-mail",
-      "componentRef": "generic-definitions/component-definition/MailComponent",
-      "operation": "send",
-      "inputs": { "orderId": "orderId" }
-    },
-    {
-      "id": "step-05",
-      "kind": "return",
-      "value": { "orderId": "orderId", "totalPrice": "{{stock.price * quantity}}" }
+      "code": "INVENTORY_SHORTAGE",
+      "message": "在庫が不足しています",
+      "description": "在庫数 < 注文数 のとき発生。RFC 将来 schema では generic-definitions/exception-type/ValidationException に紐付ける"
     }
   ]
 }
 ```
 
-**落とし方 hints**:
-- 「共通処理: X.Y(...)」→ `kind: "componentCall"` + `componentRef`
-- 「X テーブル参照 / INSERT / UPDATE」→ `kind: "dbQuery|dbInsert|dbUpdate"`
-- 「不足なら / 失敗なら〜例外」→ `validation[].when` + `throw.exceptionTypeRef`
-- 「採番」→ `sequence.ref`
-- 「1〜N は 1 TX」「N+1 は別 TX」→ `txBoundary` を共有名で表現
-- 「返却値: ClassName { ... }」→ `kind: "return"` + `value` + `outputs.$ref`
+#### ✨ Alternative — RFC 将来 schema 案 (#1060 確定後)
+
+`kind: "componentCall"` + `exceptionTypeRef` + 簡易 inline 構文が schema に追加されたら以下に migrate (現在 AJV 落ちるため **生成しない**):
+
+```json
+// 【RFC 将来案・現状不可】
+{
+  "id": "step-04",
+  "kind": "componentCall",
+  "componentRef": "generic-definitions/component-definition/MailComponent",
+  "operation": "send"
+}
+```
+
+このパターンは [`generic-definition-layer.md` §3.3](generic-definition-layer.md) で提案中、子 ISSUE で schema 拡張予定。
+
+**落とし方 hints (✅ 現行)**:
+- 「共通処理: X.Y(...)」→ `kind: "commonProcess"` + `refId` (呼び先 ProcessFlow Uuid) + `argumentMapping`
+- 「X テーブル参照 / INSERT / UPDATE」→ **すべて `kind: "dbAccess"`** + `operation: "SELECT|INSERT|UPDATE|DELETE"` + `tableId` + 完全 `sql`
+- 「不足なら / 失敗なら〜例外」→ `kind: "validation"` step + `errorCode` (catalog 参照) + `runIf` 条件式
+- 「採番」→ `sql` に `NEXTVAL('SEQ_NAME')` 等を直書き (DB 方言依存) or 別 step で取得
+- 「1〜N は 1 TX」「N+1 は別 TX」→ `txBoundary: { txId: "...", role: "begin|member|end" }` で構造化
+- 「返却値」→ `kind: "return"` + action 側 `outputs[]` で形を宣言、`outputBinding.name` で結果バインド
+- SQL は必ず **alias を付ける** (`FROM orders o`、#775 規約)
+- `description` field は必須
 
 **よく落とす情報**:
-- 並列実行: `parallel: true` を明示しない限り順次
-- 再試行: `retry: { maxAttempts, backoff }` (runtime-policy 参照可)
-- 例外伝播: `errorPropagation` フィールドで上位への返し方を指定
+- `runIf` 条件式は v3 で `compute` step や `branch` step でも書ける
+- TX 境界の `role` は begin/member/end を必ず正しく付ける (`feedback_processflow_known_pitfalls_retail_2026_05_02.md` の rollbackOn 欠落と関連)
+- conv 参照リテラルは `@conv.msg.XXX` 形式 (波括弧 `{{...}}` は禁止)
 
-### 3.4 `exception-model` → generic-definitions/exception-type
+---
+
+### ✨ §3.4 〜 §3.7 についての注記 (必読)
+
+以下 §3.4 (exception-model) / §3.5 (class-definition) / §3.6 (frontend-script) / §3.7 (configuration-class) はすべて **`generic-definitions/<kind>/*.json` 配下への出力** で、現行 `schemas/v3/` に対応 schema が存在しない。AJV 検証対象外。
+
+**現状の扱い**:
+- `examples/<project>/generic-definitions/<kind>/<name>.json` ファイルに書き出す
+- 現行 loader は読まない (将来 schema 確定時に取り込まれる)
+- AJV 検証ゲートからは除外
+- audit に **warning `rfc_future_field_skipped`** を kind 別件数で残す
+- 設計者が将来 schema 確定後に migration 可能な形式で構造化保存
+
+JSON 構造は [`generic-definition-layer.md` §4.1 共通メタモデル](generic-definition-layer.md) に準拠する。
+
+---
+
+### 3.4 `exception-model` → generic-definitions/exception-type (✨ RFC 将来案)
 
 **Before**:
 ```markdown
@@ -350,7 +571,7 @@ MD ファイルがどの archetype に属するかを最初に判定する。判
 - 「回復可能」→ `recoverable: true|false`
 - 「既定処理: X」→ `defaultHandling`
 
-### 3.5 `class-definition` → data-contract or domain-type
+### 3.5 `class-definition` → data-contract or domain-type (✨ RFC 将来案)
 
 **Before**:
 ```markdown
@@ -384,7 +605,7 @@ MD ファイルがどの archetype に属するかを最初に判定する。判
 - 命名末尾が `Entity` / `Model` / `Aggregate` / table と 1:1 対応 → `domain-type`
 - 迷ったら project profile (§9) の `reusableContracts.dataContractKinds` で確定
 
-### 3.6 `frontend-script` → generic-definitions/ui-behavior
+### 3.6 `frontend-script` → generic-definitions/ui-behavior (✨ RFC 将来案)
 
 **Before**:
 ```markdown
@@ -407,7 +628,7 @@ MD ファイルがどの archetype に属するかを最初に判定する。判
 }
 ```
 
-### 3.7 `configuration-class` → generic-definitions/application-rule
+### 3.7 `configuration-class` → generic-definitions/application-rule (✨ RFC 将来案)
 
 **Before**:
 ```markdown
@@ -521,6 +742,7 @@ enum / コード値は `conventions/codeMaster` または `extensions/<namespace
 | `exception_semantic_kind_undecided` | §3.4 で semanticKind 推測不能 | warning |
 | `data_contract_kind_undecided` | §3.5 で data-contract vs domain-type 判定不能 | warning |
 | `componentcall_ref_unresolved` | §3.3 componentCall の componentRef が未定義 | error |
+| `rfc_future_field_skipped` | RFC 将来 schema 案 (binding / events.effects / componentCall / exceptionTypeRef / generic-definitions kind) を生成しようとした際、現行 schema に未対応のため `description` 退避 or 別ディレクトリ書き出しに切り替えた | warning |
 
 ### 5.3 audit summary
 
@@ -554,12 +776,12 @@ MD が少数 (~数十ファイル) で更新もまれな場合の手順。
 2. **MD inventory** — 全 MD ファイルを `ls`/`find` で列挙、サイズ・典型 heading 一覧を頭に入れる
 3. **archetype 分類** — §2 アルゴリズムで各ファイルを分類、`unknown` は warning ログ
 4. **catalog 系から処理** — `pulldown-catalog` / `reference-catalog` を先に変換し、conventions を確立 (他 archetype の binding 解決に必要)
-5. **screen / processFlow / table** — §3 のガイドで変換、§4 generic-definitions への参照は後述
-6. **generic-definitions** — §3.4-§3.7 で exception / data-contract / domain-type / ui-behavior / application-rule / component-definition を作成
-7. **screen → component-definition の link** — `componentCall.componentRef` を解決、未解決は `componentcall_ref_unresolved` warning
-8. **AJV 検証** — 生成した JSON を AJV で各 schema 検証
-9. **audit summary** — §5.3 形式で出力、PR description に貼る
-10. **draft-state 確認** — error が無いか確認、warning は許容
+5. **screen / processFlow / table** — §3.1-§3.3 の **✅ 現行 schema 適合形** で変換 (§0.5 参照)
+6. **generic-definitions** — §3.4-§3.7 (✨ RFC 将来案) で `examples/<project>/generic-definitions/<kind>/*.json` に書き出し、各件数を `rfc_future_field_skipped` warning として記録
+7. **ProcessFlow `commonProcess` の link** — `refId` (呼び先 ProcessFlow Uuid) を解決、未解決は `componentcall_ref_unresolved` warning。RFC 将来案の `componentCall` ref は generic-definitions/ 側のみで保持
+8. **AJV 検証 (現行 schema 範囲)** — `schemas/v3/*.json` 配下で生成した JSON のみ AJV で検証。generic-definitions/ 配下は検証対象外 (§10 (A)/(B) 参照)
+9. **audit summary** — §5.3 形式で出力、PR description に貼る (`rfc_future_field_skipped` の kind 別件数を含む)
+10. **完了判定** — §10 (A) hard gate を全件パス、§10 (B) soft gate は warning として残す
 
 **並列処理の指針**: 同一 archetype ファイル群は **1 ファイルずつ順次** 変換するのが安全 (memory `feedback_one_test_at_a_time_strict.md` 同様の原則 — batch 化すると同根エラーの connection が見えにくい)。
 
@@ -661,24 +883,35 @@ main().catch((e) => { console.error(e); process.exit(1); });
 **step1-inventory.ts 雛形**:
 ```ts
 import { glob } from "glob";
-import { readFileSync } from "fs";
+import { readFileSync, statSync } from "fs";
+import { join } from "path";
 import MarkdownIt from "markdown-it";
 
 const md = new MarkdownIt();
 
 export async function runInventory(profile: any) {
-  const files = await glob(profile.sourceInventory.includeGlobs, {
-    cwd: profile.sourceInventory.rootDirs[0],
+  // 注意: glob の cwd 指定時、返却 path は cwd 相対。
+  // readFileSync は process.cwd() ベースなので、必ず join で絶対化する。
+  const rootDir = profile.sourceInventory.rootDirs[0];
+  const relativePaths = await glob(profile.sourceInventory.includeGlobs, {
+    cwd: rootDir,
     ignore: profile.sourceInventory.excludeGlobs,
   });
-  return files.map((path) => {
-    const content = readFileSync(path, "utf8");
+  return relativePaths.map((relativePath) => {
+    const absolutePath = join(rootDir, relativePath);
+    const content = readFileSync(absolutePath, "utf8");
     const tokens = md.parse(content, {});
     const headings = tokens
       .filter((t) => t.type === "heading_open")
       .map((t, i) => tokens[i + 1]?.content)
       .filter(Boolean);
-    return { path, content, headings, mtime: /* fs.statSync(path).mtime */ null };
+    return {
+      path: relativePath,
+      absolutePath,
+      content,
+      headings,
+      mtime: statSync(absolutePath).mtime,
+    };
   });
 }
 ```
@@ -802,19 +1035,36 @@ MD が ~30 ファイル以下 ?
 
 ## 10. 変換完了の判定基準
 
-以下すべて満たしたら「変換完了」とする:
+完了判定は **(A) 現行 schema 範囲のゲート** と **(B) RFC 将来 schema 範囲の確認** に分離する。
+
+### (A) 現行 schema 範囲 — Hard gate (1 件でも failing なら完了不可)
+
+以下すべて満たすこと:
 
 - [ ] §5 audit.json を出力した
 - [ ] `severity: "error"` の warning が 0 件
-- [ ] AJV validation passed (失敗があれば error として扱う)
+- [ ] **AJV validation passed** — `schemas/v3/*.json` 配下の schema を使って生成した全 JSON (screens / process-flows / tables / view-definitions / screen-transitions / conventions / extensions) が validate を通過する
 - [ ] coverage (project ごとの基準、未指定なら screen-controller / service-flow-spec / reference-catalog の 95% 以上)
-- [ ] `kind: "componentCall"` の `componentRef` が全件解決済 (生成した component-definition と一致)
-- [ ] `exceptionTypeRef` が全件解決済
-- [ ] `binding.kind` が全 screen-item で確定済 (`missing_binding_source` 0 件)
+- [ ] ScreenItem binding metadata は ✅ 現行形 (`description` 埋め込み) で記録、`missing_binding_source` 0 件
+- [ ] ProcessFlow step kind が `schemas/v3/process-flow.v3.schema.json` の許可 enum (`dbAccess` / `commonProcess` / `validation` / `compute` / `return` / `displayUpdate` / `branch` / `tryCatch` / `loop` / `expression` / `jump` / `log` / `audit` / `workflow` / `transactionScope` / `eventPublish` / `eventSubscribe` / `closing` / `cdc` / `auditLog` / `externalSystem` / `aiCall` / `aiAgent` 等) のみ
+- [ ] ProcessFlow `commonProcess` step の `refId` が全件解決済 (生成した ProcessFlow と一致)
+- [ ] ProcessFlow `validation` step の `errorCode` が `errorCodes` catalog に登録済
 - [ ] `unknown` archetype 0 件 (もしくは設計者承認済)
 - [ ] PR description に audit summary を貼った
 
-満たさない場合は draft-state で残置可だが、その旨を明示する。
+### (B) RFC 将来 schema 範囲 — Soft gate (warning として記録、保存許容)
+
+以下は **AJV ゲートから除外** し、draft-state policy ([`draft-state-policy.md`](draft-state-policy.md)) に従って保存:
+
+- `examples/<project>/generic-definitions/<kind>/*.json` 配下の出力 (data-contract / domain-type / exception-type / application-rule / ui-behavior / runtime-policy / component-definition / ui-fragment) — 現行 loader は読まないが、将来 schema 確定時の取り込み用に保存
+- `description` 内に埋め込んだ ✨ RFC binding metadata / UI effects / componentCall ref / exceptionTypeRef
+- audit warning `rfc_future_field_skipped` で kind 別件数を記録
+
+(B) の件数が増えすぎる場合、設計者が将来 schema 確定タイミングを判断するためのシグナルになる。
+
+### 補足
+
+満たさない場合は draft-state で残置可だが、その旨を明示する。AJV failed は (A) 違反として **必ず修正してから保存**。
 
 ---
 
