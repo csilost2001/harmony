@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/domain-type.v3.schema.json",
+  "title": "Domain Type (v3 generic-definition kind: domain-type)",
+  "description": "Generic Definition Catalog の domain-type kind 固有 schema。親 schema (../generic-definition.v3.schema.json、#1063) を `allOf` 継承し、`kind` を const \"domain-type\" に固定。domain-type は Entity / Model 等のドメイン型 (永続化を含むことが多く、`table` と 1:1 対応するケース有)。kind 固有 field は本 #1064 では追加せず、親 schema の `fields[]` / `relations[]` / `mappingHints` で表現する。ScreenItem / ProcessFlow からの `$ref` 参照を可能にする土台 (子 3 #1065 / 子 4 #1066 で活用)。仕様: docs/spec/generic-definition-layer.md §4.2。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "domain-type" }
+  }
+}

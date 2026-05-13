@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definition.v3.schema.json",
   "title": "Generic Definition (v3 汎用設計定義 親 schema)",
-  "description": "Layer 2 Generic Definition Catalog の 8 kind 共通メタモデル。<project>/<dataDir>/generic-definitions/<kind>/<Name>.json に対応。仕様: docs/spec/generic-definition-layer.md §4.1。本 schema は kind / name / purpose / responsibilities / targets を必須とする共通親で、kind 別の固有 schema (#1064 以降) は allOf で本定義を継承する想定。catalog 記録のため EntityMeta (uuid id / timestamps) は採用せず、`name` field が catalog identifier を兼ねる (ファイル名と一致させる運用)。",
+  "description": "Layer 2 Generic Definition Catalog の 8 kind 共通メタモデル。<project>/<dataDir>/generic-definitions/<kind>/<Name>.json に対応。仕様: docs/spec/generic-definition-layer.md §4.1。本 schema は kind / name / purpose / responsibilities / targets を必須とする共通親で、kind 別の固有 schema (data-contract / domain-type は #1064 で導入、残 6 kind は #1066-#1068) は allOf で本定義を継承する。catalog 記録のため EntityMeta (uuid id / timestamps) は採用せず、`name` field が catalog identifier を兼ねる (ファイル名と一致させる運用)。",
   "type": "object",
   "$ref": "#/$defs/GenericDefinition",
   "$defs": {
@@ -110,7 +110,7 @@
         "type": {
           "type": "string",
           "minLength": 1,
-          "description": "field の型。Harmony FieldType (string / integer / decimal / boolean / date / dateTime / 等) または catalog 内他 record への参照 (例: 'OrderItem[]')。kind 別 schema (#1064 以降) で更に厳格化される予定。"
+          "description": "field の型。Harmony FieldType (string / integer / decimal / boolean / date / dateTime / 等) または catalog 内他 record への参照 (例: 'OrderItem[]')。kind 別 schema (data-contract / domain-type は #1064、残は #1066-#1068) で更に厳格化される想定。"
         },
         "constraints": {
           "type": "array",

@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/domain-type.v3.schema.json",
+  "kind": "domain-type",
+  "name": "Order",
+  "purpose": "EC 注文ドメインの永続化対象エンティティ (受注ヘッダ + 明細をまとめた集約ルート)",
+  "responsibilities": [
+    "注文の最終状態を永続化する",
+    "受注 ID / 顧客 ID / 注文日時 / ステータス / 明細を保持する",
+    "ProcessFlow と table (`orders`) の双方から参照されるドメイン共通型として機能する"
+  ],
+  "targets": ["backend", "shared"],
+  "fields": [
+    { "name": "orderId", "type": "string", "constraints": ["必須", "UUID 形式"], "description": "注文 ID。table `orders` の主キーと一致。" },
+    { "name": "customerId", "type": "string", "constraints": ["必須"], "description": "発注した顧客 ID。" },
+    { "name": "placedAt", "type": "dateTime", "constraints": ["必須"], "description": "注文確定日時 (UTC)。" },
+    { "name": "status", "type": "string", "constraints": ["enum: pending / confirmed / shipped / cancelled"], "description": "注文ステータス。" },
+    { "name": "items", "type": "OrderLineItem[]", "constraints": ["最低 1 件"], "description": "注文明細。" }
+  ],
+  "relations": [
+    { "kind": "transformsFrom", "ref": "generic-definitions/data-contract/OrderForm", "description": "注文確定 ProcessFlow が OrderForm から Order へ変換する。" }
+  ],
+  "constraints": [
+    "status の状態遷移は ProcessFlow 注文確定 / 出荷 / キャンセル の各 flow を経由すること",
+    "永続化先 table は `orders` (集約ルート) + `order_items` (明細)"
+  ]
+}

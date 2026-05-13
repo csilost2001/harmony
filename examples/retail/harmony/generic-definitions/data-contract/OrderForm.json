@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../schemas/v3/generic-definition.v3.schema.json",
+  "$schema": "../../../../../schemas/v3/generic-definitions/data-contract.v3.schema.json",
   "kind": "data-contract",
   "name": "OrderForm",
   "purpose": "EC 注文入力フォームの層間契約 (画面入力 → ProcessFlow 注文確定への受け渡し DTO)",

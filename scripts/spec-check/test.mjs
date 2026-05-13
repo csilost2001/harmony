@@ -460,6 +460,207 @@ console.log("\n## generic-definition.v3.schema.json (AJV strict)");
 }
 
 // =============================================================================
+// 3c. kind 別固有 schema AJV strict gate (#1064)
+//     data-contract.v3.schema.json / domain-type.v3.schema.json の strict 検証。
+//     各 kind-specific schema は親 schema を allOf 継承し kind を const に固定。
+//     retail walk を kind 別 dispatch に改修して silent pass を防ぐ。
+// =============================================================================
+console.log("\n## kind-specific schema AJV strict gate (data-contract / domain-type, #1064)");
+{
+  const { default: Ajv2020 } = await import("ajv/dist/2020.js");
+  const { default: addFormats } = await import("ajv-formats");
+  const ajv = new Ajv2020({ strict: false, allErrors: true });
+  addFormats(ajv);
+
+  const commonSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/common.v3.schema.json"), "utf8"));
+  const gdSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/generic-definition.v3.schema.json"), "utf8"));
+
+  ajv.addSchema(commonSchema);
+  // 子 schema 内の $ref: "../generic-definition.v3.schema.json" と一致する key で登録
+  ajv.addSchema(gdSchema, "../generic-definition.v3.schema.json");
+
+  const dcSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/generic-definitions/data-contract.v3.schema.json"), "utf8"));
+  const dtSchema = JSON.parse(readFileSync(join(ROOT, "schemas/v3/generic-definitions/domain-type.v3.schema.json"), "utf8"));
+
+  const validateDataContract = ajv.compile(dcSchema);
+  const validateDomainType = ajv.compile(dtSchema);
+
+  // --- data-contract cases ---
+  const dcCases = [
+    {
+      name: "data-contract: minimum valid",
+      valid: true,
+      data: {
+        kind: "data-contract",
+        name: "OrderForm",
+        purpose: "注文入力フォームの層間契約",
+        responsibilities: ["注文入力値保持"],
+        targets: ["backend", "frontend"],
+      },
+    },
+    {
+      name: "data-contract: kind 不一致 (domain-type) rejected",
+      valid: false,
+      data: {
+        kind: "domain-type",
+        name: "Order",
+        purpose: "注文エンティティ",
+        responsibilities: ["注文永続化"],
+        targets: ["backend"],
+      },
+    },
+    {
+      name: "data-contract: purpose 欠落 rejected",
+      valid: false,
+      data: {
+        kind: "data-contract",
+        name: "NoPurpose",
+        responsibilities: ["y"],
+        targets: ["backend"],
+      },
+    },
+    {
+      name: "data-contract: name pattern violation (starts with digit) rejected",
+      valid: false,
+      data: {
+        kind: "data-contract",
+        name: "1Bad",
+        purpose: "x",
+        responsibilities: ["y"],
+        targets: ["backend"],
+      },
+    },
+  ];
+
+  for (const c of dcCases) {
+    const ok = validateDataContract(c.data);
+    if (c.valid) {
+      const detail = ok
+        ? ""
+        : (validateDataContract.errors || []).slice(0, 3).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+      assert(`✓ dc valid: ${c.name}`, ok, detail);
+    } else {
+      assert(`✗ dc invalid rejected: ${c.name}`, !ok);
+    }
+  }
+
+  // --- domain-type cases ---
+  const dtCases = [
+    {
+      name: "domain-type: minimum valid",
+      valid: true,
+      data: {
+        kind: "domain-type",
+        name: "Order",
+        purpose: "注文ドメインの永続化エンティティ",
+        responsibilities: ["注文の最終状態を永続化する"],
+        targets: ["backend", "shared"],
+      },
+    },
+    {
+      name: "domain-type: kind 不一致 (data-contract) rejected",
+      valid: false,
+      data: {
+        kind: "data-contract",
+        name: "OrderForm",
+        purpose: "注文フォーム DTO",
+        responsibilities: ["入力保持"],
+        targets: ["backend"],
+      },
+    },
+    {
+      name: "domain-type: purpose 欠落 rejected",
+      valid: false,
+      data: {
+        kind: "domain-type",
+        name: "NoPurpose",
+        responsibilities: ["y"],
+        targets: ["backend"],
+      },
+    },
+    {
+      name: "domain-type: name pattern violation (hyphen) rejected",
+      valid: false,
+      data: {
+        kind: "domain-type",
+        name: "Bad-Name",
+        purpose: "x",
+        responsibilities: ["y"],
+        targets: ["backend"],
+      },
+    },
+  ];
+
+  for (const c of dtCases) {
+    const ok = validateDomainType(c.data);
+    if (c.valid) {
+      const detail = ok
+        ? ""
+        : (validateDomainType.errors || []).slice(0, 3).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+      assert(`✓ dt valid: ${c.name}`, ok, detail);
+    } else {
+      assert(`✗ dt invalid rejected: ${c.name}`, !ok);
+    }
+  }
+
+  // --- retail walk: kind 別 dispatch ---
+  // ファイル path から kind を抽出して kind 別 schema で validate する。
+  // 未知の kind は silent pass を防ぐため fail させる。
+  const retailGdRoot2 = join(ROOT, "examples/retail/harmony/generic-definitions");
+  if (existsSync(retailGdRoot2)) {
+    const { readdirSync } = await import("node:fs");
+    function walk2(dir) {
+      const out = [];
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) out.push(...walk2(full));
+        else if (entry.isFile() && full.endsWith(".json")) out.push(full);
+      }
+      return out;
+    }
+
+    // kind → validator map (本 PR 対象の 2 kind)
+    const kindValidators = {
+      "data-contract": validateDataContract,
+      "domain-type": validateDomainType,
+    };
+
+    const sampleFiles2 = walk2(retailGdRoot2);
+    assert("examples/retail に generic-definition sample 1 件以上 (kind dispatch用)", sampleFiles2.length >= 1, `actual=${sampleFiles2.length}`);
+
+    for (const f of sampleFiles2) {
+      // path から kind を抽出: generic-definitions/<kind>/<Name>.json
+      const rel = f.split("generic-definitions/")[1]; // e.g. "data-contract/OrderForm.json"
+      const kindFromPath = rel ? rel.split("/")[0] : null;
+
+      const kindValidator = kindFromPath ? kindValidators[kindFromPath] : null;
+
+      if (kindValidator) {
+        // kind 別 schema で validate
+        const data = JSON.parse(readFileSync(f, "utf8"));
+        const ok = kindValidator(data);
+        const detail = ok
+          ? ""
+          : (kindValidator.errors || []).slice(0, 3).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+        assert(`examples kind-dispatch AJV pass: ${rel}`, ok, detail);
+      } else {
+        // 未知の kind (他の kind は親 schema のみで validate — silent pass 防止のため親 schema で最低限検証)
+        const gdAjv = new Ajv2020({ strict: false, allErrors: true });
+        addFormats(gdAjv);
+        gdAjv.addSchema(commonSchema);
+        const gdValidate = gdAjv.compile(gdSchema);
+        const data = JSON.parse(readFileSync(f, "utf8"));
+        const ok = gdValidate(data);
+        const detail = ok
+          ? ""
+          : (gdValidate.errors || []).slice(0, 3).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+        assert(`examples kind-dispatch (parent schema fallback): ${rel}`, ok, detail);
+      }
+    }
+  }
+}
+
+// =============================================================================
 // 4. spec doc 本体を input にした gate (Round 11 review M-1/M-2/M-3 対応)
 //    Round 11 で指摘された「test.mjs が spec doc を一切読まない → cheatsheet /
 //    jsonc fence / ✅ JSON 例の drift が CI gate を素通り」を解消する。
