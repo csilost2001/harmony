@@ -2436,3 +2436,401 @@
   font-size: 0.78rem;
   white-space: pre-wrap;
 }
+
+/* ─── 編集レベルトグル (#1076) ─────────────────────────────────────── */
+
+.process-flow-edit-level-toggle {
+  display: inline-flex;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f9fafb;
+  flex-shrink: 0;
+}
+
+.process-flow-edit-level-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #d1d5db;
+  font-size: 0.78rem;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.process-flow-edit-level-btn:last-child {
+  border-right: none;
+}
+
+.process-flow-edit-level-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.process-flow-edit-level-btn.active {
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 600;
+}
+
+.process-flow-edit-level-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.process-flow-edit-level-label {
+  font-size: 0.75rem;
+}
+
+/* ─── AI 依頼パネル (#1076) ─────────────────────────────────────── */
+
+.process-flow-ai-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.process-flow-ai-panel--highlight {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
+}
+
+.process-flow-ai-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.process-flow-ai-panel-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.process-flow-ai-panel-status {
+  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.process-flow-ai-panel-status.connected {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.process-flow-ai-panel-status.disconnected {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+/* Context Chips */
+
+.process-flow-ai-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.process-flow-ai-chips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}
+
+.process-flow-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  max-width: 180px;
+}
+
+.process-flow-ai-chip--action {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.process-flow-ai-chip--flow {
+  background: #fdf4ff;
+  color: #7e22ce;
+  border-color: #e9d5ff;
+}
+
+.process-flow-ai-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.process-flow-ai-chip-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.process-flow-ai-chip-remove:hover {
+  opacity: 1;
+}
+
+.process-flow-ai-chips-clear {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+/* Templates / Textarea / Footer */
+
+.process-flow-ai-templates select {
+  font-size: 0.78rem;
+}
+
+.process-flow-ai-textarea {
+  font-size: 0.8rem;
+  resize: vertical;
+  min-height: 72px;
+}
+
+.process-flow-ai-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.process-flow-ai-panel-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.process-flow-ai-no-context-hint {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+
+.process-flow-ai-submit {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 0.78rem;
+  padding: 3px 10px;
+}
+
+/* AI Request section in inspector */
+
+.process-flow-inspector-section {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 12px;
+}
+
+/* ─── AI 差分プレビューダイアログ (#1076) ───────────────────────── */
+
+.process-flow-ai-diff-dialog {
+  max-width: 800px;
+  width: 90vw;
+}
+
+.process-flow-ai-diff-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #4b5563;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+}
+
+.process-flow-ai-diff-body {
+  overflow-y: auto;
+  max-height: 50vh;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.process-flow-ai-diff-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  font-size: 0.9rem;
+  color: #6b7280;
+  justify-content: center;
+}
+
+.process-flow-ai-diff-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.process-flow-ai-diff-entry {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 12px;
+}
+
+.process-flow-ai-diff-entry:last-child {
+  border-bottom: none;
+}
+
+.process-flow-ai-diff-path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.diff-kind-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.diff-kind-badge--added {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.diff-kind-badge--removed {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.diff-kind-badge--changed {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.process-flow-ai-diff-before,
+.process-flow-ai-diff-after {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.diff-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.diff-code {
+  font-size: 0.72rem;
+  padding: 6px 10px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  max-height: 200px;
+  overflow: auto;
+}
+
+.diff-code--before {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.diff-code--after {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.process-flow-ai-diff-marker-form {
+  padding: 8px 0 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ─── StepCard の編集レベル制御 (#1076) ─────────────────────────── */
+
+/* rough では detail 以上のセクションを非表示 */
+.step-card[data-edit-level="rough"] .step-card-section[data-level-min="detail"],
+.step-card[data-edit-level="rough"] .step-card-section[data-level-min="implementation"] {
+  display: none;
+}
+
+/* detail では implementation のみのセクションを非表示 */
+.step-card[data-edit-level="detail"] .step-card-section[data-level-min="implementation"] {
+  display: none;
+}
+
+/* step-card-ai-btn */
+
+.step-card-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 1px 4px;
+  border-radius: 4px;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 0.78rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.step-card-ai-btn:hover {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.step-card-ai-btn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+}
