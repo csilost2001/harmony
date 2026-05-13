@@ -70,6 +70,7 @@ import { ProcessFlowAiReviewDialog } from "./ProcessFlowAiReviewDialog";
 import { EditLevelToggle } from "./EditLevelToggle";
 import { AiRequestPanel } from "./AiRequestPanel";
 import { AiDiffPreviewDialog } from "./AiDiffPreviewDialog";
+import { applyProcessFlowDiffSelection, replaceProcessFlowContents } from "./AiDiffPreviewDialogUtils";
 import { useEditLevel } from "../../hooks/useEditLevel";
 import { useAiContextChips } from "../../hooks/useAiContextChips";
 import { useCodexStatus } from "../../codex/useCodexStatus";
@@ -231,6 +232,7 @@ export function ProcessFlowEditor() {
   // #1076 AI 依頼 UX
   const { editLevel, setEditLevel } = useEditLevel(processFlowId);
   const aiChips = useAiContextChips();
+  const { buildContextString } = aiChips;
   const { status: codexStatus } = useCodexStatus();
   const isCodexConnected = codexStatus.kind === "authenticated";
   const [aiRequestBusy, setAiRequestBusy] = useState(false);
@@ -392,7 +394,7 @@ export function ProcessFlowEditor() {
     setAiRequestError(null);
     setAiPromptSummary(prompt.slice(0, 80));
     try {
-      const contextString = aiChips.buildContextString();
+      const contextString = buildContextString();
       const result = await requestProcessFlowPartial({
         current: group,
         contextString,
@@ -408,7 +410,7 @@ export function ProcessFlowEditor() {
     } finally {
       setAiRequestBusy(false);
     }
-  }, [group, isReadonly, aiChips]);
+  }, [group, isReadonly, buildContextString]);
 
   // 保存時にバリデーションをチェック（blocking なエラーがあれば中断）
   const handleSave = useCallback(async () => {
@@ -1696,7 +1698,15 @@ export function ProcessFlowEditor() {
             if (!aiDiffProposed) return;
             const proposed = aiDiffProposed;
             updateGroupWithDraft((g) => {
-              Object.assign(g, proposed);
+              replaceProcessFlowContents(g, proposed);
+            });
+            setAiDiffProposed(null);
+          }}
+          onApplySelected={(paths) => {
+            if (!aiDiffProposed) return;
+            const proposed = aiDiffProposed;
+            updateGroupWithDraft((g) => {
+              applyProcessFlowDiffSelection(g, proposed, paths);
             });
             setAiDiffProposed(null);
           }}

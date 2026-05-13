@@ -2821,6 +2821,17 @@
   display: none;
 }
 
+/* rough では TX / branch などのネスト step を畳み、親 step の流れを優先して見せる */
+.step-card-wrapper[data-edit-level="rough"] > .sub-steps {
+  display: none;
+}
+
+.process-flow-ai-diff-select {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+}
+
 /* step-card-ai-btn */
 
 .step-card-ai-btn {

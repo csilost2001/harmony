@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import type { AiContextChip } from "../../hooks/useAiContextChips";
 
 interface AiRequestPanelProps {
@@ -9,7 +9,7 @@ interface AiRequestPanelProps {
   busy?: boolean;
   error?: string | null;
   isConnected?: boolean;
-  /** ref を通じて外部からフォーカス/ハイライトできるようにする */
+  /** ref を通じて外部から AI パネルへスクロールできるようにする */
   panelRef?: React.RefObject<HTMLDivElement | null>;
   /** アクション単位のコンテキスト追加 (#1076 受け入れ条件) */
   onAddActionContext?: () => void;
@@ -42,17 +42,7 @@ export function AiRequestPanel({
   actionLabel,
 }: AiRequestPanelProps) {
   const [prompt, setPrompt] = useState("");
-  const [highlighted, setHighlighted] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // 外部からのハイライト (右クリックメニューやステップカードの AI ボタン経由)
-  useEffect(() => {
-    if (highlighted) {
-      textareaRef.current?.focus();
-      const timer = setTimeout(() => setHighlighted(false), 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [highlighted]);
 
   const handleTemplateSelect = (templateText: string) => {
     setPrompt(templateText);
@@ -74,7 +64,7 @@ export function AiRequestPanel({
   return (
     <div
       ref={panelRef}
-      className={`process-flow-ai-panel${highlighted ? " process-flow-ai-panel--highlight" : ""}`}
+      className="process-flow-ai-panel"
     >
       <div className="process-flow-ai-panel-header">
         <span className="process-flow-ai-panel-title">

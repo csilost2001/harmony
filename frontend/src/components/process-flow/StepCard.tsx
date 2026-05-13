@@ -433,7 +433,7 @@ export function StepCard({
   ].filter(Boolean).join(" ");
 
   return (
-    <div>
+    <div className="step-card-wrapper" data-edit-level={editLevel}>
       <div
         className={cardClass}
         data-step-id={step.id}

@@ -1,90 +1,12 @@
 import { useState, useMemo } from "react";
 import type { ProcessFlow } from "../../types/action";
-
-interface DiffEntry {
-  path: string;
-  kind: "added" | "removed" | "changed";
-  before?: string;
-  after?: string;
-}
-
-function computeDiff(current: ProcessFlow, proposed: ProcessFlow): DiffEntry[] {
-  const entries: DiffEntry[] = [];
-
-  // meta 比較
-  const currentMeta = (current.meta ?? {}) as Record<string, unknown>;
-  const proposedMeta = (proposed.meta ?? {}) as Record<string, unknown>;
-  const metaKeys = new Set([...Object.keys(currentMeta), ...Object.keys(proposedMeta)]);
-  for (const key of metaKeys) {
-    if (key === "updatedAt") continue; // 常に変わるので無視
-    const before = JSON.stringify(currentMeta[key]);
-    const after = JSON.stringify(proposedMeta[key]);
-    if (before !== after) {
-      entries.push({
-        path: `meta.${key}`,
-        kind: before === undefined ? "added" : after === undefined ? "removed" : "changed",
-        before,
-        after,
-      });
-    }
-  }
-
-  // actions 比較 (action ID 単位)
-  const currentActions = ((current.actions ?? []) as Array<Record<string, unknown>>);
-  const proposedActions = ((proposed.actions ?? []) as Array<Record<string, unknown>>);
-  const currentActionMap = new Map(currentActions.map((a) => [String(a.id), a]));
-  const proposedActionMap = new Map(proposedActions.map((a) => [String(a.id), a]));
-
-  for (const [id, action] of proposedActionMap) {
-    const cur = currentActionMap.get(id);
-    if (!cur) {
-      entries.push({
-        path: `actions[${id}]`,
-        kind: "added",
-        after: JSON.stringify(action, null, 2),
-      });
-    } else {
-      const beforeStr = JSON.stringify(cur, null, 2);
-      const afterStr = JSON.stringify(action, null, 2);
-      if (beforeStr !== afterStr) {
-        entries.push({
-          path: `actions[${id}]`,
-          kind: "changed",
-          before: beforeStr,
-          after: afterStr,
-        });
-      }
-    }
-  }
-  for (const [id, action] of currentActionMap) {
-    if (!proposedActionMap.has(id)) {
-      entries.push({
-        path: `actions[${id}]`,
-        kind: "removed",
-        before: JSON.stringify(action, null, 2),
-      });
-    }
-  }
-
-  // context 比較
-  const currentCtx = JSON.stringify(current.context ?? {});
-  const proposedCtx = JSON.stringify(proposed.context ?? {});
-  if (currentCtx !== proposedCtx) {
-    entries.push({
-      path: "context",
-      kind: "changed",
-      before: JSON.stringify(current.context, null, 2),
-      after: JSON.stringify(proposed.context, null, 2),
-    });
-  }
-
-  return entries;
-}
+import { computeDiff } from "./AiDiffPreviewDialogUtils";
 
 interface AiDiffPreviewDialogProps {
   current: ProcessFlow;
   proposed: ProcessFlow;
   onApply: () => void;
+  onApplySelected: (paths: string[]) => void;
   onDiscard: () => void;
   onAddMarker: (body: string) => void;
   promptSummary?: string;
@@ -94,6 +16,7 @@ export function AiDiffPreviewDialog({
   current,
   proposed,
   onApply,
+  onApplySelected,
   onDiscard,
   onAddMarker,
   promptSummary,
@@ -104,9 +27,22 @@ export function AiDiffPreviewDialog({
   );
 
   const diff = useMemo(() => computeDiff(current, proposed), [current, proposed]);
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(() => new Set(diff.map((entry) => entry.path)));
 
   const handleAddMarker = () => {
     onAddMarker(markerBody.trim() || "AI 提案の変更を確認してください");
+  };
+
+  const toggleSelectedPath = (path: string) => {
+    setSelectedPaths((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
   };
 
   return (
@@ -140,6 +76,14 @@ export function AiDiffPreviewDialog({
               {diff.map((entry, i) => (
                 <div key={i} className={`process-flow-ai-diff-entry diff-${entry.kind}`}>
                   <div className="process-flow-ai-diff-path">
+                    <label className="process-flow-ai-diff-select" title="この差分を選択して採用対象に含める">
+                      <input
+                        type="checkbox"
+                        checked={selectedPaths.has(entry.path)}
+                        onChange={() => toggleSelectedPath(entry.path)}
+                        aria-label={`${entry.path} を採用対象にする`}
+                      />
+                    </label>
                     <span className={`diff-kind-badge diff-kind-badge--${entry.kind}`}>
                       {entry.kind === "added" ? "追加" : entry.kind === "removed" ? "削除" : "変更"}
                     </span>
@@ -194,10 +138,22 @@ export function AiDiffPreviewDialog({
                   却下
                 </button>
                 {diff.length > 0 && (
-                  <button type="button" className="btn btn-sm btn-primary" onClick={onApply}>
-                    <i className="bi bi-check2" />
-                    採用
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-primary"
+                      onClick={() => onApplySelected([...selectedPaths])}
+                      disabled={selectedPaths.size === 0}
+                      title="チェックした差分だけを採用"
+                    >
+                      <i className="bi bi-check2-square" />
+                      選択して採用
+                    </button>
+                    <button type="button" className="btn btn-sm btn-primary" onClick={onApply}>
+                      <i className="bi bi-check2-all" />
+                      すべて採用
+                    </button>
+                  </>
                 )}
               </div>
             </>
