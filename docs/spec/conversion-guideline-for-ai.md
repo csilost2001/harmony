@@ -23,7 +23,7 @@
 | **(A) 1 回限り変換** | MD が 1 度きり / 更新が少ない / 数十ファイル程度 | Harmony JSON ファイル群 |
 | **(B) Importer 生成** | MD が継続更新される / ファイル多数 / 同パターンを繰り返し変換する | `scripts/import/*.ts` + 上記 JSON |
 
-判断フローは §11 (Decision flowchart) 参照。
+判断フローは §9 (Decision flowchart) 参照。
 
 **変換が完了 ≠ 設計が完成**。本ガイドラインの目的は「MD の情報をなるべく漏らさず構造化された Harmony JSON に落とす」までで、その後の設計レビューは別。draft-state policy ([`draft-state-policy.md`](draft-state-policy.md)) で warning 残存保存を許容する。
 
@@ -720,7 +720,7 @@ JSON 構造は [`generic-definition-layer.md` §4.1 共通メタモデル](gener
 **data-contract vs domain-type の判定**:
 - 命名末尾が `Form` / `Dto` / `Result` / `Request` / `Response` / `ViewModel` → `data-contract`
 - 命名末尾が `Entity` / `Model` / `Aggregate` / table と 1:1 対応 → `domain-type`
-- 迷ったら project profile (§9) の `reusableContracts.dataContractKinds` で確定
+- 迷ったら project profile (§7.3) の `reusableContracts.dataContractKinds` で確定
 
 ### 3.6 `frontend-script` → generic-definitions/ui-behavior (✨ RFC 将来案)
 
@@ -1100,7 +1100,9 @@ export async function applyAIFeedback(profile: any, aiDecisions: AIDecision[]) {
 
 ### 8.2 ScreenItem 系
 
-- `description` 自由記述に binding 情報を埋め込まない (§3.1 構造化 field を使う)
+- ✅ 現行 schema では binding 情報を `description` 内に **機械的に parse 可能な `key=value; key=value;` 形式で構造化退避** する (§3.1 / §0.5 参照)。例: `"description": "binding: th:field=form.productCode; source=spec_SC000001.md"`
+- ❌ **自由文章だけに埋もれさせるのは禁止** — migration script で機械抽出できないため、将来 RFC `binding` field 確定後の自動移行が壊れる
+- ✨ RFC 将来 schema 確定後は `binding` サブ field (§3.1 ✨) に migrate する。それまでは §3.1 / §0.5 / §10 (A)(B) の規約に従う
 - `purpose: "gadget"` (#1021 PageLayout 系) の screen は別扱い
 
 ### 8.3 CSS / リネーム系 (memory `feedback_css_rename_verification.md`)
