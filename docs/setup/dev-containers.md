@@ -166,150 +166,112 @@ WSL2 native 開発に即戻る。`.devcontainer/` は repo に残っているが
 
 ## AI CLI (Claude Code / Codex) の扱い
 
-VSCode 拡張 (`anthropic.claude-code`) は `customizations.vscode.extensions` で自動 install されるが、**CLI 本体** (`claude` / `codex` コマンド) は別途必要。
+Anthropic / VS Code 公式手順のみで構成 (#1097)。自前ハック (symlink / version pin / postAttachCommand) は撤去済み。
 
-### 自動インストール (postCreateCommand、バージョン pin)
+### Claude Code
 
-`postCreateCommand` で global npm install (バージョン明示):
+#### 1. CLI install: 公式 Dev Container Feature
 
+`devcontainer.json` の `features` に Anthropic 提供の公式 feature を追加:
+
+```jsonc
+"features": {
+  "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+}
 ```
-npm install -g @anthropic-ai/claude-code@2.1.141 @openai/codex@0.130.0
+
+container build 時に最新の Claude Code が自動 install される。
+
+#### 2. 認証: 1 年有効の long-lived OAuth token (env var 渡し)
+
+[公式 Authentication docs](https://code.claude.com/docs/en/authentication) の `claude setup-token` で **1 年有効** の long-lived token を発行し、`CLAUDE_CODE_OAUTH_TOKEN` env var で container に渡す。これにより rebuild 毎の re-login / onboarding wizard が完全に消える。
+
+**user 側 1 回限りの setup** (期限切れ後の再発行も同じスクリプトで OK):
+
+```bash
+# 1) dotfiles repo を持つ場合 (csilost2001/dotfiles に同梱の refresh-claude-token):
+~/dotfiles/scripts/refresh-claude-token.sh
+#   または ~/bin が PATH にあれば: refresh-claude-token
+# → browser OAuth → token 抽出 → ~/.bashrc 自動更新
+
+# 2) dotfiles を使わない場合は手作業:
+claude setup-token              # browser OAuth → terminal に token 印字
+echo 'export CLAUDE_CODE_OAUTH_TOKEN="sk-ant-oat01-..."' >> ~/.bashrc
+source ~/.bashrc
 ```
 
-container build 完了時点で `claude` / `codex` コマンドが使える状態になる。
+`devcontainer.json` 側で `containerEnv` 経由で container に流す:
 
-#### なぜバージョン pin が必要か (#1097)
+```jsonc
+"containerEnv": {
+  "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}",
+  "DISABLE_AUTOUPDATER": "1"
+}
+```
 
-`@latest` で install すると **rebuild 毎に claude が最新版に上がる**。Claude Code は `.claude.json` の `lastOnboardingVersion.VERSION` を現在の binary バージョンと突き合わせ、不一致なら onboarding wizard (「Select login method」画面など) を表示する。
+- `${localEnv:CLAUDE_CODE_OAUTH_TOKEN}` で host の env var を container に転送
+- `DISABLE_AUTOUPDATER: "1"` は公式推奨 (container 内で claude が自動更新で勝手にバージョン変わるのを防止)
+- WSL2 native の `claude` も同じ env var を読むので、host と container は **同一 token で auth 共有**
 
-→ pin しない場合、ほぼ毎日上がるマイナーリリースで毎回 onboarding を要求される (OAuth トークン自体は valid、再ログインは不要だが UI 上は再ログイン風で紛らわしい)。
+トークン期限 (1 年) 前の再発行は `~/dotfiles/scripts/refresh-claude-token.sh` (個人 dotfiles 側に同梱、後述) で半自動化可能。
 
-意図的にアップグレードしたい時は `devcontainer.json` のバージョン指定を更新する。container 内 terminal で `npm install -g @anthropic-ai/claude-code@<new-version>` を打って一時的に上げることも可 (rebuild すれば pin に戻る)。
+#### 3. データ永続化: named volume
 
-### auth の永続化 (Named volume)
-
-`~/.claude/` / `~/.codex/` を **Docker named volume** に保存する:
+`~/.claude/` (sessions / settings / projects 配下の memory) を `${devcontainerId}` 付き named volume に保存。公式 [reference configuration](https://github.com/anthropics/claude-code/blob/main/.devcontainer/devcontainer.json) と同じ命名:
 
 ```jsonc
 "mounts": [
-  "source=harmony-claude,target=/home/node/.claude,type=volume",
-  "source=harmony-codex,target=/home/node/.codex,type=volume"
+  "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume"
 ]
 ```
 
-これにより:
+- rebuild しても sessions / settings が残る (volume は container 破棄で消えない)
+- 他プロジェクトと自動的に分離 (`${devcontainerId}` は project 単位で一意)
+- WSL2 host の `~/.claude/` とは独立 (memory / sessions は host と container で別々に育つ。公式が明確に「machine-local、cross-machine 共有非対応」と宣言: [Memory docs](https://code.claude.com/docs/en/memory))
 
-- **rebuild しても auth トークン / 設定 / memory が残る** (Docker が volume を別管理、container 破棄しても残存)
-- **host の `~/.claude/` は参照しない** — host に CLI を install していない人 / 他のディレクトリレイアウトの人にも影響なし
-- **他プロジェクトの container と完全 isolation** — `harmony-claude` / `harmony-codex` は Harmony 専用、他プロジェクト containers は別の volume 名で完全分離
-- 各 volume は Docker が `/var/lib/docker/volumes/harmony-claude/_data/` のような専用領域に保存
+### Codex CLI
 
-### `~/.claude.json` の symlink トリック (#1097)
+公式 Dev Container Feature が存在しないため、引き続き `postCreateCommand` で `npm install -g @openai/codex` を実施。auth は `~/.codex/auth.json` (`harmony-codex` volume 内) に格納されるため、container 内で 1 度 `codex login` するだけで rebuild 跨ぎで保持される。
 
-Claude Code は dotfile 慣例 (`.gitconfig` + `.git/` 型) に従って状態を 2 箇所に分けている:
-
-| パス | 役割 |
-|---|---|
-| `~/.claude.json` (ファイル) | userID / oauthAccount / migrationVersion / firstStartTime |
-| `~/.claude/.credentials.json` | OAuth トークン本体 |
-| `~/.claude/settings.json` | UI / plugin 設定 |
-
-named volume の mount target は `~/.claude/` (ディレクトリ) なので、$HOME 直下にある `~/.claude.json` (ファイル) は volume 外 = container 書込み層に置かれる。**そのまま rebuild すると `~/.claude.json` が消え、トークンが volume に残っていても claude は「初回起動」と判定して onboarding を要求する** (#1097)。
-
-これを回避するため `postStartCommand` で `~/.claude.json` を **volume 内に移動 + symlink で見せる**:
-
-```jsonc
-"postStartCommand": "if [ -f ~/.claude/.claude.json ] && [ ! -L ~/.claude.json ]; then rm -f ~/.claude.json; ln -s ~/.claude/.claude.json ~/.claude.json; elif [ -f ~/.claude.json ] && [ ! -L ~/.claude.json ]; then mv ~/.claude.json ~/.claude/.claude.json && ln -s ~/.claude/.claude.json ~/.claude.json; fi"
-```
-
-挙動:
-
-- **初回** (volume 内に未存在): claude が `~/.claude.json` を新規生成 → 次の rebuild 時にこの処理が `mv` で volume へ移動 + symlink 化
-- **2 回目以降**: volume 内に既存 → symlink を再作成するだけ (idempotent)
-
-Codex 側は `~/.codex.json` (ファイル) が存在しない設計のため、`~/.codex/` volume mount だけで完結 (symlink 不要)。
-
-### 初回 setup (rebuild 後 1 回だけ必要)
-
-Named volume は初回 build 時は **空** なので、container 内で:
-
-```bash
-# Claude Code 認証
-claude --help   # 初回は auth login への誘導が出る、指示に従う
-# または明示的に:
-# claude auth login
-
-# Codex 認証
-codex login
-```
-
-ブラウザが立ち上がって OAuth フロー (Anthropic / OpenAI のサブスクアカウントでログイン)。所要 2-3 分。
-
-完了後、`harmony-claude` / `harmony-codex` volume にトークンが書き込まれ、**以降は rebuild しても再 auth 不要**。
-
-### 初回 setup (任意): host の memory を container に取り込む
-
-Named volume なので container 内の memory は host とは独立 (空からスタート)。host で本会話の文脈や過去 memory を蓄積している場合、初回のみ移植したい場合:
-
-#### WSL2 host 側で 1 行
-
-```bash
-# host (WSL2) で実行、container が起動中であること
-docker cp ~/.claude/projects/-home-${USER}-projects-harmony/memory \
-  $(docker ps --filter "label=devcontainer.local_folder=$HOME/projects/harmony" --format '{{.ID}}'):/home/node/.claude/projects/-workspaces-harmony/
-```
-
-実行後、container 内で:
-
-```bash
-ls ~/.claude/projects/-workspaces-harmony/memory/   # host の memory ファイル群が見える
-```
-
-これで host で蓄積した本会話 / 過去 memory が container 内 Claude Code でも recall される状態になる。
-
-**注意**: 以降は host と container で memory が**別々に育つ** (volume も path encoding も別)。両方で同じ memory を保ちたいなら、定期的に同期する手間が要る。普段は片方 (container 内) だけで動かすのが楽。
-
-### 個人 dotfiles の自動展開 (#1097)
-
-VS Code Dev Containers は user 設定 `dotfiles.repository` が指定されていれば rebuild 時に dotfiles repo を `~/dotfiles/` に clone する。ただし `install.sh` の自動実行は user 個別の `dotfiles.installCommand` 設定依存で取りこぼしやすいため、本リポジトリでは **`postAttachCommand` で必ず実行** する形にしている:
-
-```jsonc
-"postAttachCommand": "[ -x ~/dotfiles/install.sh ] && bash ~/dotfiles/install.sh || true"
-```
-
-#### なぜ postAttachCommand なのか (lifecycle)
-
-VS Code Dev Containers の lifecycle 順序:
+### 認証フロー全体図
 
 ```
-postCreateCommand   ← dotfiles clone 前 (ここで install すると skip される)
-↓
-VS Code が dotfiles を clone
-↓
-postStartCommand    ← 通常は dotfiles 存在後だがタイミング微妙
-↓
-postAttachCommand   ← 確実に dotfiles 存在後 (本リポジトリで採用)
+host (WSL2)                     container (Dev Container)
+─────────────────────────       ──────────────────────────
+~/.bashrc:                      containerEnv (devcontainer.json):
+  export CLAUDE_CODE_     ───→    CLAUDE_CODE_OAUTH_TOKEN:
+  OAUTH_TOKEN=sk-ant-              ${localEnv:CLAUDE_CODE_
+  oat01-...                         OAUTH_TOKEN}
+  ↓                                ↓
+WSL2 native claude が読む     container 内 claude が読む
+  ↓                                ↓
+共通の 1 年 token で API 認証 (auth は共有、memory / sessions は別保管)
 ```
 
-`postCreateCommand` に置くと dotfiles 未 clone のため `[ -x ]` ガードで silent skip され、毎 rebuild で alias 復元失敗する (実際 #1097 PR #1098 で発生し、PR #1099 で修正)。`postAttachCommand` は VS Code セッション attach の度に走るが、`install.sh` は idempotent symlink installer なので副作用なし。
+### 個人 alias (ccd / cdx 等): VS Code 公式 dotfiles 機能
 
-- dotfiles repo を持つ開発者: attach 毎に `install.sh` が走り、symlink (`~/.bash_aliases` 等) が再作成される
-- dotfiles repo を持たない開発者: `~/dotfiles/` 自体が無いので no-op (副作用なし)
+[VS Code Dev Containers Personalizing 公式](https://code.visualstudio.com/docs/devcontainers/containers) の dotfiles 機能を使う。**user 側 1 回限りの setup** として、VS Code user settings.json (Ctrl+, → 右上アイコン → "Open Settings (JSON)") に 3 行追加:
 
-参考実装の dotfiles repo は [`csilost2001/dotfiles`](https://github.com/csilost2001/dotfiles)。`install.sh` は idempotent symlink installer。
+```json
+{
+  "dotfiles.repository": "<your-github-id>/dotfiles",
+  "dotfiles.targetPath": "~/dotfiles",
+  "dotfiles.installCommand": "install.sh"
+}
+```
 
-ベース image の `~/.bashrc` には標準で `[ -f ~/.bash_aliases ] && . ~/.bash_aliases` が含まれているので、symlink さえ作れば alias は次のシェル起動時から効く。**既に開いている terminal は bashrc 評価済みなので、新規 terminal を開く必要あり**。
+これで VS Code が **rebuild 毎に自動で**:
+1. dotfiles repo を `~/dotfiles/` に clone
+2. `~/dotfiles/install.sh` を実行 (各自の dotfiles repo に置く)
+
+`install.sh` は `ln -sfn ~/dotfiles/.bash_aliases ~/.bash_aliases` 等の idempotent symlink installer を想定。base image の `~/.bashrc` には標準で `[ -f ~/.bash_aliases ] && . ~/.bash_aliases` が含まれているため、symlink さえ作れば alias は次のシェル起動時から効く (**既に開いている terminal は新規開き直す必要あり**)。
+
+参考実装: [`csilost2001/dotfiles`](https://github.com/csilost2001/dotfiles) (`ccd` / `cdx` 例)。
 
 ### バージョン更新
 
-container 内の CLI を最新化したい時:
-
-```bash
-# container 内ターミナルで
-npm install -g @anthropic-ai/claude-code @openai/codex
-```
-
-host 側の `claude` / `codex` とは独立して更新可能。
+- **Claude Code**: 公式 feature の version tag (`:1.0`) は install script の version であり Claude Code 自体ではない。Claude Code 自体は feature が **常に最新** を install する。`DISABLE_AUTOUPDATER: "1"` を入れているので **container 起動後の自動更新は止まる** が、**rebuild 時の初回 install は最新版** になる。安定運用したい場合は公式 docs の [Pin a specific version](https://code.claude.com/docs/en/devcontainer#enforce-organization-policy) に従い、feature の代わりに Dockerfile で `npm install -g @anthropic-ai/claude-code@X.Y.Z` で pin する手もあり (Harmony は現状 feature 採用)。
+- **Codex**: container 内で `npm install -g @openai/codex@<version>` で個別更新。
 
 ## 仕組み解説: devcontainer.json の三層構造
 
@@ -337,9 +299,9 @@ host 側の `claude` / `codex` とは独立して更新可能。
 | `codex login` / `claude` 起動で `Permission denied (os error 13)` | Named volume mount target (`/home/node/.claude` / `.codex`) の所有権が root になっている。`devcontainer.json` の `onCreateCommand` で `sudo chown -R node:node` を実行する仕組みあり (container 新規作成時 1 回だけ走る)。手動で直す場合: `sudo chown -R node:node ~/.claude ~/.codex` |
 | backend 起動時に `port 5179 already in use` | WSL2 native 側で backend が動いている。`pkill -f tsx` で WSL2 native プロセスを停止してから container 内で起動 |
 | Claude Code が container 内で MCP に繋がらない | `.mcp.json` の `http://localhost:5179/mcp` は container 内では localhost = container 自身。backend が container 内で `npm run dev` 起動中であることを確認 |
-| container が起動するが永続化が消える | named volume が正しく mount されていない。VSCode `Dev Containers: Show Container Log` で mount エラーを確認。`docker volume ls` で `harmony-claude` / `harmony-codex` / `harmony-state` の存在も確認 |
-| rebuild の度に Claude が再ログインを要求する | `~/.claude.json` (ファイル、`.claude/` ディレクトリの外) が volume 外で消えるのが原因。最新の `devcontainer.json` には `postStartCommand` で symlink 化する処理が入っている (#1097)。古い devcontainer.json を使っている場合は本 doc「`~/.claude.json` の symlink トリック」節を参照 |
-| rebuild の度に `ccd` / `cdx` 等の個人 alias が消える | `~/dotfiles/install.sh` が再実行されていない。最新の `devcontainer.json` には `postCreateCommand` 末尾で自動実行する処理が入っている (#1097)。user 設定 `dotfiles.repository` を VS Code に登録済みであることも前提 |
+| container が起動するが永続化が消える | named volume が正しく mount されていない。VSCode `Dev Containers: Show Container Log` で mount エラーを確認。`docker volume ls` で `claude-code-config-*` / `codex-config-*` / `harmony-state-*` の存在も確認 |
+| rebuild の度に Claude が再ログインを要求する | host 側 `~/.bashrc` に `export CLAUDE_CODE_OAUTH_TOKEN=...` が無い (または expire) ことが原因。本 doc「Claude Code > 認証」節に従って `claude setup-token` で再発行 |
+| rebuild の度に `ccd` / `cdx` 等の個人 alias が消える | VS Code user settings.json に `dotfiles.repository` / `dotfiles.installCommand` の 3 行が未設定。本 doc「個人 alias: VS Code 公式 dotfiles 機能」節を参照 |
 | Docker Desktop ライセンスを使いたくない | rootless Docker (`apt install docker.io` を WSL2 内) でも動作。ただし Windows ホストからの port forward に追加設定要 |
 
 ## CI 連携 (将来)

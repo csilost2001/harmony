@@ -3,7 +3,8 @@
   "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
 
   "features": {
-    "ghcr.io/devcontainers/features/github-cli:1": {}
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
   },
 
   "forwardPorts": [5173, 5179],
@@ -13,18 +14,14 @@
   },
 
   "mounts": [
-    "source=harmony-claude,target=/home/node/.claude,type=volume",
-    "source=harmony-codex,target=/home/node/.codex,type=volume",
-    "source=harmony-state,target=/home/node/.harmony,type=volume"
+    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    "source=codex-config-${devcontainerId},target=/home/node/.codex,type=volume",
+    "source=harmony-state-${devcontainerId},target=/home/node/.harmony,type=volume"
   ],
 
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.harmony",
 
-  "postCreateCommand": "npm install --prefix frontend && npm install --prefix backend && (cd frontend && npx playwright install --with-deps chromium) && npm install -g @anthropic-ai/claude-code@2.1.141 @openai/codex@0.130.0",
-
-  "postStartCommand": "if [ -f ~/.claude/.claude.json ] && [ ! -L ~/.claude.json ]; then rm -f ~/.claude.json; ln -s ~/.claude/.claude.json ~/.claude.json; elif [ -f ~/.claude.json ] && [ ! -L ~/.claude.json ]; then mv ~/.claude.json ~/.claude/.claude.json && ln -s ~/.claude/.claude.json ~/.claude.json; fi",
-
-  "postAttachCommand": "[ -x ~/dotfiles/install.sh ] && bash ~/dotfiles/install.sh || true",
+  "postCreateCommand": "npm install --prefix frontend && npm install --prefix backend && (cd frontend && npx playwright install --with-deps chromium) && npm install -g @openai/codex",
 
   "customizations": {
     "vscode": {
@@ -45,6 +42,8 @@
   "remoteUser": "node",
 
   "containerEnv": {
+    "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}",
+    "DISABLE_AUTOUPDATER": "1",
     "PLAYWRIGHT_BROWSERS_PATH": "/home/node/.cache/ms-playwright"
   }
 }
