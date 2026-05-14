@@ -10,7 +10,7 @@
  */
 import type { ProcessFlow, Step } from "../types/v3";
 import { validateProcessFlow, type ValidationError } from "./actionValidation";
-import { checkReferentialIntegrity } from "../schemas/referentialIntegrity";
+import { checkReferentialIntegrity, type GenericDefinitionNames } from "../schemas/referentialIntegrity";
 import { checkIdentifierScopes } from "../schemas/identifierScope";
 import { checkSqlColumns, type TableDefinition } from "../schemas/sqlColumnValidator";
 import { checkConventionReferences, type ConventionsCatalog } from "../schemas/conventionsValidator";
@@ -23,6 +23,12 @@ export interface AggregatedValidationOptions {
   /** 規約カタログ。渡された場合は @conv.* 参照を検査 */
   conventions?: ConventionsCatalog | null;
   extensions?: LoadedExtensions;
+  /**
+   * Generic Definition Catalog の name set (kind 別、#1090)。
+   * 渡された場合は componentRef / exceptionTypeRef の参照先存在検証を実行。
+   * undefined の場合は silent pass (catalog ロード失敗時の互換性維持)。
+   */
+  genericDefinitionNames?: GenericDefinitionNames;
 }
 
 /**
@@ -39,8 +45,9 @@ export function aggregateValidation(
   // 1. 既存の構造バリデータ (loopBreak スコープ、branch 空 等)
   errors.push(...validateProcessFlow(group));
 
-  // 2. 参照整合性 (responseId / errorCode / systemRef / typeRef / secretRef)
-  for (const issue of checkReferentialIntegrity(group, options.extensions)) {
+  // 2. 参照整合性 (responseId / errorCode / systemRef / typeRef / secretRef
+  //    + componentRef / exceptionTypeRef #1090)
+  for (const issue of checkReferentialIntegrity(group, options.extensions, undefined, options.genericDefinitionNames)) {
     errors.push({
       stepId: stepIdFromPath(issue.path, group) ?? "",
       severity: "warning",

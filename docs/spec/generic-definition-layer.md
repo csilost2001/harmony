@@ -128,7 +128,7 @@
 }
 ```
 
-**判断確定**: schema に追加済 (#1066)。既存の `compute` step + 説明文への退避をやめ、共有ロジックの責務分割を formal にした。`componentRef` pattern は `^generic-definitions/component-definition/[A-Za-z][A-Za-z0-9_]*$` で AJV gate 対象化済。
+**判断確定**: schema に追加済 (#1066)。既存の `compute` step + 説明文への退避をやめ、共有ロジックの責務分割を formal にした。`componentRef` pattern は `^generic-definitions/component-definition/[A-Za-z][A-Za-z0-9_]*$` で AJV gate 対象化済 (= **形式 pattern のみ**)。`<Name>` 部の **実在検証** (catalog に該当 component-definition が存在するか) は AJV では行えないため、`frontend/src/schemas/referentialIntegrity.ts` の `checkReferentialIntegrity` で `UNKNOWN_COMPONENT_REF` として検出する (#1090、severity=warning)。
 
 ### 3.4 ProcessFlow の error semantics 拡張 (#1066 で AJV gate 対象化済)
 
@@ -137,7 +137,7 @@
 - `ErrorCatalogEntry.exceptionTypeRef` — errorCode が業務例外として上位レイヤへ伝達される際の意味論を catalog 側に保持
 - `ValidationRule.exceptionTypeRef` — severity='error' 時に違反を業務例外として throw する際の意味論を catalog から引く
 
-`exceptionTypeRef` pattern は `^generic-definitions/exception-type/[A-Za-z][A-Za-z0-9_]*$` で AJV gate 対象化済。
+`exceptionTypeRef` pattern は `^generic-definitions/exception-type/[A-Za-z][A-Za-z0-9_]*$` で AJV gate 対象化済 (= **形式 pattern のみ**)。`<Name>` 部の **実在検証** (catalog に該当 exception-type が存在するか) は `referentialIntegrity.ts` で `UNKNOWN_EXCEPTION_TYPE_REF` として検出する (#1090、severity=warning)。`ErrorCatalogEntry.exceptionTypeRef` と `ValidationRule.exceptionTypeRef` の両経路を validator が辿る。
 
 **判断確定**: 階層 (parent / children) と semantic kind は Catalog 側 (`exception-type`) に置き、ProcessFlow からは ref のみ。失敗種別 (business-abort / validation-error 等) / recoverable / defaultHandling 等の kind 固有 field は将来 ISSUE で kind 別 schema に追加予定。
 
@@ -183,6 +183,8 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 ```
 
 `exceptionTypeRef` pattern (#1066) と同様、kind-specific schema (`schemas/v3/generic-definitions/ui-fragment.v3.schema.json`) は親 schema (`generic-definition.v3.schema.json`) を `allOf` 継承し `kind` を const に固定する最小構造。slot binding / region 等の fragment 固有 field は将来 RFC で追加予定。
+
+`fragmentRef` pattern は `^generic-definitions/ui-fragment/[A-Za-z][A-Za-z0-9_]*$` で AJV gate 対象化済 (= **形式 pattern のみ**)。`<Name>` 部の **実在検証** は #1090 Phase 2 で Screen 側 validator integration (`puckScreenValidation.ts` 拡張または新 validator) によって追加予定。現状は形式 OK なら silent pass (= 無検出)。Phase 2 完了時には `UNKNOWN_FRAGMENT_REF` として ScreenListView / Editor のバッジに表示される設計。
 
 ---
 

@@ -15,8 +15,10 @@ import { loadProject, saveProject } from "../../store/flowStore";
 import { aggregateValidation } from "../../utils/aggregatedValidation";
 import type { TableDefinition as ValidatorTableDef } from "../../schemas/sqlColumnValidator";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
+import type { GenericDefinitionNames } from "../../schemas/referentialIntegrity";
 import { loadConventions } from "../../store/conventionsStore";
 import { listTables, loadTable } from "../../store/tableStore";
+import { listGenericDefinitions } from "../../store/genericDefinitionStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
 import { TableSubToolbar } from "../table/TableSubToolbar";
@@ -84,6 +86,8 @@ export function ProcessFlowListView() {
   const [screens, setScreens] = useState<{ id: string; name: string }[]>([]);
   const [tableDefs, setTableDefs] = useState<ValidatorTableDef[]>([]);
   const [conventions, setConventions] = useState<ConventionsCatalog | null>(null);
+  // #1090: Generic Definition Catalog の name set (componentRef / exceptionTypeRef 検証用)
+  const [genericDefNames, setGenericDefNames] = useState<GenericDefinitionNames>({});
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   // #893: draft history modal
@@ -153,6 +157,17 @@ export function ProcessFlowListView() {
     loadConventions()
       .then((c) => { if (!cancelled) setConventions(c as ConventionsCatalog | null); })
       .catch(() => setConventions(null));
+    // #1090: Generic Definition Catalog の name set を取得 (componentRef / exceptionTypeRef 検証用)
+    Promise.all([
+      listGenericDefinitions("component-definition").catch(() => []),
+      listGenericDefinitions("exception-type").catch(() => []),
+    ]).then(([components, exceptions]) => {
+      if (cancelled) return;
+      setGenericDefNames({
+        "component-definition": new Set(components.map((c) => c.name)),
+        "exception-type": new Set(exceptions.map((e) => e.name)),
+      });
+    });
     return () => { cancelled = true; };
   }, []);
 
@@ -167,7 +182,11 @@ export function ProcessFlowListView() {
         if (cancelled) break;
         const group = await loadProcessFlow(meta.id);
         if (!group || cancelled) continue;
-        const errs = aggregateValidation(group, { tables: tableDefs, conventions });
+        const errs = aggregateValidation(group, {
+          tables: tableDefs,
+          conventions,
+          genericDefinitionNames: genericDefNames,
+        });
         setValidationMap((prev) => {
           const next = new Map(prev);
           next.set(meta.id, {
@@ -192,7 +211,7 @@ export function ProcessFlowListView() {
       }
     })();
     return () => { cancelled = true; };
-  }, [groups, tableDefs, conventions]);
+  }, [groups, tableDefs, conventions, genericDefNames]);
 
   const getErrorPriority = useCallback((id: string): number => {
     const v = validationMap.get(id);

@@ -31,8 +31,10 @@ import { hasBlockingErrors } from "../../utils/actionValidation";
 import { aggregateValidation } from "../../utils/aggregatedValidation";
 import type { TableDefinition as ValidatorTableDef } from "../../schemas/sqlColumnValidator";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
+import type { GenericDefinitionNames } from "../../schemas/referentialIntegrity";
 import { loadExtensionsFromBundle, type LoadedExtensions } from "../../schemas/loadExtensions";
 import { loadConventions } from "../../store/conventionsStore";
+import { listGenericDefinitions } from "../../store/genericDefinitionStore";
 import { generateUUID } from "../../utils/uuid";
 import {
   DndContext,
@@ -213,6 +215,8 @@ export function ProcessFlowEditor() {
   const [tableDefs, setTableDefs] = useState<ValidatorTableDef[]>([]);
   const [conventions, setConventions] = useState<ConventionsCatalog | null>(null);
   const [extensions, setExtensions] = useState<LoadedExtensions | undefined>(undefined);
+  // #1090: Generic Definition Catalog の name set (componentRef / exceptionTypeRef 検証用)
+  const [genericDefNames, setGenericDefNames] = useState<GenericDefinitionNames>({});
   const [newStepIds, setNewStepIds] = useState<Set<string>>(new Set());
 
   // 選択・クリップボード state
@@ -276,6 +280,16 @@ export function ProcessFlowEditor() {
     mcpBridge.getExtensions()
       .then((bundle) => setExtensions(loadExtensionsFromBundle(bundle).extensions))
       .catch(() => setExtensions(undefined));
+    // #1090: Generic Definition Catalog の name set を取得
+    Promise.all([
+      listGenericDefinitions("component-definition").catch(() => []),
+      listGenericDefinitions("exception-type").catch(() => []),
+    ]).then(([components, exceptions]) => {
+      setGenericDefNames({
+        "component-definition": new Set(components.map((c) => c.name)),
+        "exception-type": new Set(exceptions.map((e) => e.name)),
+      });
+    });
   }, []);
 
   const sessionId = mcpBridge.getSessionId();
@@ -414,7 +428,7 @@ export function ProcessFlowEditor() {
 
   // 保存時にバリデーションをチェック（blocking なエラーがあれば中断）
   const handleSave = useCallback(async () => {
-    if (!group || isReadonly || hasBlockingErrors(aggregateValidation(group, { tables: tableDefs, conventions, extensions }))) return;
+    if (!group || isReadonly || hasBlockingErrors(aggregateValidation(group, { tables: tableDefs, conventions, extensions, genericDefinitionNames: genericDefNames }))) return;
     // P1 fix (#908 round-5): debounce 中の draft を flush して即送信、その後 conflict check
     if (draftUpdateTimer.current) {
       clearTimeout(draftUpdateTimer.current);
@@ -427,7 +441,7 @@ export function ProcessFlowEditor() {
     const { conflicted, failed } = await editActions.save();
     if (conflicted || failed) return;
     await hookPostSave();
-  }, [group, isReadonly, hookPostSave, tableDefs, conventions, extensions, editActions, editSession]);
+  }, [group, isReadonly, hookPostSave, tableDefs, conventions, extensions, genericDefNames, editActions, editSession]);
 
   // D&D: PointerSensor に移動距離閾値を設定（クリックとドラッグを区別）
   const sensors = useSensors(
@@ -491,8 +505,8 @@ export function ProcessFlowEditor() {
   }, [processFlowId, sessionLoading, mode.kind]);
 
   const validationErrors = useMemo(
-    () => group ? aggregateValidation(group, { tables: tableDefs, conventions, extensions }) : [],
-    [group, tableDefs, conventions, extensions],
+    () => group ? aggregateValidation(group, { tables: tableDefs, conventions, extensions, genericDefinitionNames: genericDefNames }) : [],
+    [group, tableDefs, conventions, extensions, genericDefNames],
   );
 
   useEffect(() => {

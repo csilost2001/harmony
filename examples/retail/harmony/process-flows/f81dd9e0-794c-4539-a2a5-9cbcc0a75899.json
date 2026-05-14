@@ -29,7 +29,8 @@
           "httpStatus": 422,
           "defaultMessage": "在庫が不足しています。",
           "responseId": "422-stock-shortage",
-          "description": "在庫減算時に quantity_available が不足していた場合。TX 全体がロールバックされる。"
+          "description": "在庫減算時に quantity_available が不足していた場合。TX 全体がロールバックされる。",
+          "exceptionTypeRef": "generic-definitions/exception-type/StockInsufficientError"
         },
         "ORDER_CONFIRM_FAILED": {
           "httpStatus": 422,
@@ -227,6 +228,19 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
               }
             ]
+          }
+        },
+        {
+          "id": "step-01a",
+          "kind": "componentCall",
+          "description": "OrderValidator で在庫・与信・配送可否のビジネスバリデーションを実施する (#1090 dogfood)。違反時は exception-type 別の業務例外を throw する (StockInsufficientError 等)。",
+          "componentRef": "generic-definitions/component-definition/OrderValidator",
+          "operation": "validate",
+          "argumentMapping": {
+            "order": "@inputs"
+          },
+          "returnMapping": {
+            "result": "validationResult"
           }
         },
         {
