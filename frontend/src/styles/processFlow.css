@@ -291,6 +291,123 @@
   background: #eaf1ff;
 }
 
+.process-flow-action-help {
+  position: fixed;
+  z-index: 2200;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(430px, calc(100vh - 24px));
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e293b;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+}
+
+.process-flow-action-help-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.process-flow-action-help-icon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 1rem;
+}
+
+.process-flow-action-help-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.process-flow-action-help-subtitle {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.process-flow-action-help-grid {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.process-flow-action-help section {
+  min-width: 0;
+}
+
+.process-flow-action-help h6 {
+  margin: 0 0 4px;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.process-flow-action-help p,
+.process-flow-action-help li,
+.process-flow-action-help dd {
+  color: #334155;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.process-flow-action-help p {
+  margin: 0;
+}
+
+.process-flow-action-help ul,
+.process-flow-action-help ol {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.process-flow-action-help dl {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.process-flow-action-help dl div {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.process-flow-action-help dt {
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.process-flow-action-help dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .process-flow-action-help {
+    left: 12px !important;
+    width: calc(100vw - 24px);
+    max-height: min(420px, calc(100vh - 24px));
+  }
+
+  .process-flow-action-help dl div {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+}
+
 /* ─── ProcessFlow editor workbench (#1071) ───────────────────────── */
 
 .process-flow-workbench {
