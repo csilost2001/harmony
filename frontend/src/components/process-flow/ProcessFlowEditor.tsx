@@ -965,8 +965,7 @@ export function ProcessFlowEditor() {
           onClose={() => setShowAiGenerateDialog(false)}
           onApply={(next) => {
             updateGroupWithDraft((g) => {
-              for (const key of Object.keys(g)) delete (g as Record<string, unknown>)[key];
-              Object.assign(g, next);
+              replaceProcessFlowContents(g, next);
             });
           }}
         />
