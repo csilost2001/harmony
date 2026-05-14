@@ -36,7 +36,7 @@ schema 変更は schema ガバナンス (#511) の対象であり、AI エージ
 
 各リソースは読み込み時に `validate<Resource>(item, allItems)` で検証する。単体項目だけで判定できない重複・参照整合性・リソース間関係は、必要な一覧を `allItems` として渡して判定する。
 
-store は一覧読み込みと同じ責務範囲で `load<Resource>ValidationMap()` を提供する。戻り値は `Map<Id, ValidationError[]>` とし、UI はこれを参照してバッジ・枠線・ヘッダー警告を描画する。
+各 store / UI は §5 のパターン A (`load<Resource>ValidationMap()` を提供) または パターン B (UI 側 inline 構築) のいずれかで validation 結果を UI に届ける。戻り値は `Map<Id, ValidationError[]>` 形式で統一し、UI はこれを参照してバッジ・枠線・ヘッダー警告を描画する。
 
 ### 2.4 違反は一覧と編集画面で示す
 
@@ -141,7 +141,7 @@ ListView / Editor 内で `validate<Resource>(item, allItems)` を直接呼び、
 - [ ] `<Resource>Validation.ts` を追加し、`validate<Resource>(item, allItems)` を提供する
 - [ ] 4 軸 severity 判定基準に照らして error / warning を分類する
 - [ ] validation の単体テストを追加し、error / warning の代表例を含める
-- [ ] store に `load<Resource>ValidationMap()` を追加する
+- [ ] §5 パターン A (store 関数化) を選んだ場合、store に `load<Resource>ValidationMap()` を追加する。パターン B (UI 側 inline 構築) を選んだ場合は省略する
 - [ ] ListView に `ValidationBadge` を表示する
 - [ ] カード表示または行表示に `has-error` / `has-warning` CSS クラスを付与する
 - [ ] Editor ヘッダーに `MaturityBadge` を表示し、`onChange` を接続する
