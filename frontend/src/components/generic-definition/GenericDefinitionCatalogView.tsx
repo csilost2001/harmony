@@ -11,8 +11,6 @@ import { makeTabId } from "../../store/tabStore";
 
 const TAB_ID = makeTabId("generic-definition-catalog", "main");
 
-const MVP_KINDS: ReadonlySet<GenericDefinitionKind> = new Set(["data-contract", "exception-type"]);
-
 const KIND_ICONS: Record<GenericDefinitionKind, string> = {
   "data-contract": "bi-file-earmark-code",
   "domain-type": "bi-diagram-2",
@@ -74,57 +72,41 @@ export function GenericDefinitionCatalogView() {
         gap: "16px",
       }}>
         {GENERIC_DEFINITION_KINDS.map((kind) => {
-          const isMvp = MVP_KINDS.has(kind);
           const count = counts[kind] ?? 0;
           return (
             <div
               key={kind}
-              onClick={() => isMvp ? navigate(wsPath(`/generic-definition/${kind}`)) : undefined}
+              onClick={() => navigate(wsPath(`/generic-definition/${kind}`))}
               style={{
                 border: "1px solid #ddd",
                 borderRadius: "8px",
                 padding: "16px",
-                cursor: isMvp ? "pointer" : "default",
-                opacity: isMvp ? 1 : 0.6,
-                backgroundColor: isMvp ? "#fff" : "#f8f9fa",
+                cursor: "pointer",
+                backgroundColor: "#fff",
                 transition: "box-shadow 0.15s",
               }}
               onMouseEnter={(e) => {
-                if (isMvp) (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.12)";
+                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.12)";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                <i className={`bi ${KIND_ICONS[kind]}`} style={{ fontSize: "1.3rem", color: isMvp ? "#0d6efd" : "#999" }} />
+                <i className={`bi ${KIND_ICONS[kind]}`} style={{ fontSize: "1.3rem", color: "#0d6efd" }} />
                 <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
                   {GENERIC_DEFINITION_KIND_LABELS[kind]}
                 </span>
-                {!isMvp && (
-                  <span style={{
-                    fontSize: "0.75rem",
-                    background: "#e9ecef",
-                    color: "#6c757d",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                    marginLeft: "auto",
-                  }}>
-                    準備中
-                  </span>
-                )}
-                {isMvp && (
-                  <span style={{
-                    fontSize: "0.75rem",
-                    background: "#e8f4fd",
-                    color: "#0d6efd",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                    marginLeft: "auto",
-                  }}>
-                    {count} 件
-                  </span>
-                )}
+                <span style={{
+                  fontSize: "0.75rem",
+                  background: "#e8f4fd",
+                  color: "#0d6efd",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  marginLeft: "auto",
+                }}>
+                  {count} 件
+                </span>
               </div>
               <p style={{ fontSize: "0.82rem", color: "#555", margin: 0 }}>
                 {KIND_DESCRIPTIONS[kind]}
