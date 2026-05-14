@@ -14,9 +14,9 @@
   },
 
   "mounts": [
-    "source=harmony-claude,target=/home/node/.claude,type=volume",
-    "source=harmony-codex,target=/home/node/.codex,type=volume",
-    "source=harmony-state,target=/home/node/.harmony,type=volume"
+    "source=${localEnv:HOME}/.claude-containers/${localWorkspaceFolderBasename}/.claude,target=/home/node/.claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.claude-containers/${localWorkspaceFolderBasename}/.codex,target=/home/node/.codex,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.claude-containers/${localWorkspaceFolderBasename}/.harmony,target=/home/node/.harmony,type=bind,consistency=cached"
   ],
 
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.harmony",
