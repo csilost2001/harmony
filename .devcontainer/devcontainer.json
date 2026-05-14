@@ -42,7 +42,6 @@
   "remoteUser": "node",
 
   "containerEnv": {
-    "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}",
     "DISABLE_AUTOUPDATER": "1",
     "PLAYWRIGHT_BROWSERS_PATH": "/home/node/.cache/ms-playwright"
   }

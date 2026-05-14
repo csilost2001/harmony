@@ -182,38 +182,34 @@ Anthropic / VS Code 公式手順のみで構成 (#1097)。自前ハック (symli
 
 container build 時に最新の Claude Code が自動 install される。
 
-#### 2. 認証: 1 年有効の long-lived OAuth token (env var 渡し)
+#### 2. 認証: `.credentials.json` を bind mount で永続化
 
-[公式 Authentication docs](https://code.claude.com/docs/en/authentication) の `claude setup-token` で **1 年有効** の long-lived token を発行し、`CLAUDE_CODE_OAUTH_TOKEN` env var で container に渡す。これにより rebuild 毎の re-login / onboarding wizard が完全に消える。
+container 内で 1 度 `claude` (もしくは `claude /login`) を起動して **ブラウザ OAuth を完遂**すると、`.credentials.json` が host の bind mount target (`~/.claude-containers/<project>/.claude/.credentials.json`) に書き込まれる。以降の rebuild では:
+- container 内 claude が起動時に `.credentials.json` から OAuth token を読む
+- token は `refreshToken` を含む完全な OAuth credential で、`user:sessions:claude_code` scope も含むため **Remote Control も動作する**
+- token 期限が近づくと claude が自動 refresh する (refreshToken が valid な間は手作業不要)
 
-**user 側 1 回限りの setup** (期限切れ後の再発行も同じスクリプトで OK):
-
-```bash
-# 1) dotfiles repo を持つ場合 (csilost2001/dotfiles に同梱の refresh-claude-token):
-~/dotfiles/scripts/refresh-claude-token.sh
-#   または ~/bin が PATH にあれば: refresh-claude-token
-# → browser OAuth → token 抽出 → ~/.bashrc 自動更新
-
-# 2) dotfiles を使わない場合は手作業:
-claude setup-token              # browser OAuth → terminal に token 印字
-echo 'export CLAUDE_CODE_OAUTH_TOKEN="sk-ant-oat01-..."' >> ~/.bashrc
-source ~/.bashrc
-```
-
-`devcontainer.json` 側で `containerEnv` 経由で container に流す:
+`devcontainer.json`:
 
 ```jsonc
 "containerEnv": {
-  "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}",
   "DISABLE_AUTOUPDATER": "1"
 }
 ```
 
-- `${localEnv:CLAUDE_CODE_OAUTH_TOKEN}` で host の env var を container に転送
-- `DISABLE_AUTOUPDATER: "1"` は公式推奨 (container 内で claude が自動更新で勝手にバージョン変わるのを防止)
-- WSL2 native の `claude` も同じ env var を読むので、host と container は **同一 token で auth 共有**
+`DISABLE_AUTOUPDATER: "1"` は公式推奨 (container 内で claude が自動更新で勝手にバージョン変わるのを防止)。
 
-トークン期限 (1 年) 前の再発行は `~/dotfiles/scripts/refresh-claude-token.sh` (個人 dotfiles 側に同梱、後述) で半自動化可能。
+##### `CLAUDE_CODE_OAUTH_TOKEN` env var は **使わない**
+
+`claude setup-token` で発行する 1 年トークンを env var で渡す方式 (公式 docs の「CI pipelines and scripts」向け) を以前試したが、**inference scope のみで Remote Control 不可** という制限がある (公式 docs に明記):
+
+> This token authenticates with your Claude subscription and requires a Pro, Max, Team, or Enterprise plan. **It is scoped to inference only and cannot establish Remote Control sessions.**
+
+env var (precedence 5) は `.credentials.json` (precedence 6) より優先されるため、env var を設定していると **Remote Control 用の full-scope token が無視される**。Remote Control を使う構成ではこの env var 方式を採用しない。
+
+##### 完全 re-login の頻度
+
+`refreshToken` の有効期限が切れた時のみ (典型的に 60〜90 日)、container 内で `claude /login` を再実行してブラウザ OAuth を通す必要あり。env var (1 年) と比べると頻度が高めだが、Remote Control 含む全機能が動く対価。
 
 #### 3. データ永続化: host subdir bind mount + `.config.json` workaround
 
@@ -292,17 +288,19 @@ docker run --rm -v harmony-state:/src:ro  -v ~/.claude-containers/harmony/.harmo
 ### 認証フロー全体図
 
 ```
-host (WSL2)                     container (Dev Container)
-─────────────────────────       ──────────────────────────
-~/.bashrc:                      containerEnv (devcontainer.json):
-  export CLAUDE_CODE_     ───→    CLAUDE_CODE_OAUTH_TOKEN:
-  OAUTH_TOKEN=sk-ant-              ${localEnv:CLAUDE_CODE_
-  oat01-...                         OAUTH_TOKEN}
-  ↓                                ↓
-WSL2 native claude が読む     container 内 claude が読む
-  ↓                                ↓
-共通の 1 年 token で API 認証 (auth は共有、memory / sessions は別保管)
+host (WSL2)                              container (Dev Container)
+─────────────────────────                ──────────────────────────
+~/.claude/                               /home/node/.claude/
+  .credentials.json (host claude)        (bind mount from host
+                                          ~/.claude-containers/<project>/.claude/)
+                                          ↓
+                                         .credentials.json (container claude)
+WSL2 native claude が読む                 container 内 claude が読む
+  ↓                                       ↓
+独立した OAuth credential (各環境別、memory / sessions も別保管)
 ```
+
+host と container は **別 OAuth credential で独立**動作。それぞれの環境で初回 `/login` が必要だが、`.credentials.json` の `refreshToken` で 60〜90 日は自動更新される。WSL2 native claude と container claude を **同時稼働させても干渉しない** (別ディレクトリのため)。
 
 ### 個人 alias (ccd / cdx 等): VS Code 公式 dotfiles 機能
 
@@ -356,7 +354,9 @@ WSL2 native claude が読む     container 内 claude が読む
 | backend 起動時に `port 5179 already in use` | WSL2 native 側で backend が動いている。`pkill -f tsx` で WSL2 native プロセスを停止してから container 内で起動 |
 | Claude Code が container 内で MCP に繋がらない | `.mcp.json` の `http://localhost:5179/mcp` は container 内では localhost = container 自身。backend が container 内で `npm run dev` 起動中であることを確認 |
 | container が起動するが永続化が消える | host subdir bind mount が正しく動いていない。`ls ~/.claude-containers/<project>/.claude/` で host 側にファイルがあるか確認。空なら旧 Named Volume からの migration 未完了の可能性 — 本 doc「Named Volume からの migration」節参照。VSCode `Dev Containers: Show Container Log` で mount エラーも確認 |
-| rebuild の度に Claude が wizard / 再ログインを要求する | (1) `~/.claude/.config.json` が volume に無い (postCreateCommand 未実行/失敗) → 本 doc「3. データ永続化」節を参照。(2) host 側 `~/.bashrc` の `CLAUDE_CODE_OAUTH_TOKEN` が expire → `refresh-claude-token` で再発行 |
+| rebuild の度に Claude が wizard を要求する | `~/.claude-containers/<project>/.claude/.config.json` が host に無い (postCreateCommand 未実行/失敗) → 本 doc「3. データ永続化」節を参照 |
+| Claude が `/login` を要求する (`.credentials.json` あるのに) | refreshToken が expire (典型 60〜90 日) → container 内で `claude /login` を再実行してブラウザ OAuth |
+| Remote Control failed to connect: Session creation failed | 過去の構成で `CLAUDE_CODE_OAUTH_TOKEN` env var が残っているか確認: `echo $CLAUDE_CODE_OAUTH_TOKEN` (container 内)。本構成では `devcontainer.json` の `containerEnv` から削除済みだが、user 個人の `.bashrc` 等で設定していると container にも漏れる可能性。env var はクリアして rebuild |
 | rebuild の度に `ccd` / `cdx` 等の個人 alias が消える | VS Code user settings.json に `dotfiles.repository` / `dotfiles.installCommand` の 3 行が未設定。本 doc「個人 alias: VS Code 公式 dotfiles 機能」節を参照 |
 | Docker Desktop ライセンスを使いたくない | rootless Docker (`apt install docker.io` を WSL2 内) でも動作。ただし Windows ホストからの port forward に追加設定要 |
 
