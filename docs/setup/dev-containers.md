@@ -215,18 +215,31 @@ source ~/.bashrc
 
 トークン期限 (1 年) 前の再発行は `~/dotfiles/scripts/refresh-claude-token.sh` (個人 dotfiles 側に同梱、後述) で半自動化可能。
 
-#### 3. データ永続化: named volume
+#### 3. データ永続化: named volume + `.config.json` workaround
 
-`~/.claude/` (sessions / settings / projects 配下の memory) を `${devcontainerId}` 付き named volume に保存。公式 [reference configuration](https://github.com/anthropics/claude-code/blob/main/.devcontainer/devcontainer.json) と同じ命名:
+`~/.claude/` (sessions / settings / projects 配下の memory) を named volume に保存:
 
 ```jsonc
 "mounts": [
-  "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume"
+  "source=harmony-claude,target=/home/node/.claude,type=volume"
 ]
 ```
 
+これだけだと **`~/.claude.json` ファイル (= `$HOME` 直下、`.claude/` の外) が volume の対象外** で、rebuild 毎に消える → `hasCompletedOnboarding` flag が消えて wizard が毎回発火する問題が残る。
+
+**解決策 (undocumented だが claude binary に実装済の機能)**: `~/.claude/.config.json` (volume 内) を存在させると、claude は **`~/.claude.json` の代わりに `~/.claude/.config.json` を state file として使う**。`postCreateCommand` で空ファイルを初期化:
+
+```jsonc
+"postCreateCommand": "... && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)"
+```
+
+挙動:
+- 初回 rebuild: 空 `.config.json` が作られる → claude 起動 → wizard 発火 (`hasCompletedOnboarding` 未設定) → user が wizard 完了 → flag が `.config.json` に書かれる (volume 内、永続)
+- **2 回目以降の rebuild**: `.config.json` が volume に残っている → flag を読んで wizard skip
+
+出典: [Zenn — Dev Container で Claude Code を使う](https://zenn.dev/nstock/articles/2c1ea72861f87c)。公式 docs には未記載なので Anthropic アップデートで仕様変更の可能性ありだが、現状 (Claude Code 2.x) で動作確認済。
+
 - rebuild しても sessions / settings が残る (volume は container 破棄で消えない)
-- 他プロジェクトと自動的に分離 (`${devcontainerId}` は project 単位で一意)
 - WSL2 host の `~/.claude/` とは独立 (memory / sessions は host と container で別々に育つ。公式が明確に「machine-local、cross-machine 共有非対応」と宣言: [Memory docs](https://code.claude.com/docs/en/memory))
 
 ### Codex CLI
@@ -300,7 +313,7 @@ WSL2 native claude が読む     container 内 claude が読む
 | backend 起動時に `port 5179 already in use` | WSL2 native 側で backend が動いている。`pkill -f tsx` で WSL2 native プロセスを停止してから container 内で起動 |
 | Claude Code が container 内で MCP に繋がらない | `.mcp.json` の `http://localhost:5179/mcp` は container 内では localhost = container 自身。backend が container 内で `npm run dev` 起動中であることを確認 |
 | container が起動するが永続化が消える | named volume が正しく mount されていない。VSCode `Dev Containers: Show Container Log` で mount エラーを確認。`docker volume ls` で `claude-code-config-*` / `codex-config-*` / `harmony-state-*` の存在も確認 |
-| rebuild の度に Claude が再ログインを要求する | host 側 `~/.bashrc` に `export CLAUDE_CODE_OAUTH_TOKEN=...` が無い (または expire) ことが原因。本 doc「Claude Code > 認証」節に従って `claude setup-token` で再発行 |
+| rebuild の度に Claude が wizard / 再ログインを要求する | (1) `~/.claude/.config.json` が volume に無い (postCreateCommand 未実行/失敗) → 本 doc「3. データ永続化」節を参照。(2) host 側 `~/.bashrc` の `CLAUDE_CODE_OAUTH_TOKEN` が expire → `refresh-claude-token` で再発行 |
 | rebuild の度に `ccd` / `cdx` 等の個人 alias が消える | VS Code user settings.json に `dotfiles.repository` / `dotfiles.installCommand` の 3 行が未設定。本 doc「個人 alias: VS Code 公式 dotfiles 機能」節を参照 |
 | Docker Desktop ライセンスを使いたくない | rootless Docker (`apt install docker.io` を WSL2 内) でも動作。ただし Windows ホストからの port forward に追加設定要 |
 
