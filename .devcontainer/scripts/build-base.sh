@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 # .devcontainer/scripts/build-base.sh — Phase 1 (#1118)
 #
-# Harmony Dev Container 用 base image を host 側で local build する。
-# devcontainer.json の initializeCommand から自動呼出され、container 起動前に
-# `harmony-devcontainer-base:local` タグの image を用意する。
+# Harmony Dev Container 用 base image を host 側で local build する manual ツール。
+# Phase 2 以降は overlay (.devcontainer/Dockerfile) が ghcr.io URL を FROM 指定
+# しており Dev Containers が pull で取得するため、本 script は通常不要。
+#
+# 用途 (maintainer のみ):
+#   - base/Dockerfile を編集して、push 前にローカルで build 通過確認したい時
+#   - ghcr.io にアクセスできないオフライン環境で動作確認したい時
+#
+# publish (= ghcr.io への push) する時は publish-dev-image.sh を使うこと。
 #
 # Docker layer cache が効くので 2 回目以降は秒で完了 (no-op に近い)。
 # 強制 rebuild したい場合は事前に: docker rmi harmony-devcontainer-base:local
-#
-# Phase 2 で本 script を publish-dev-image.sh に発展、ghcr.io への push を追加予定。
 
 set -euo pipefail
 

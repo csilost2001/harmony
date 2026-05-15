@@ -23,8 +23,6 @@
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,consistency=cached"
   ],
 
-  "initializeCommand": "bash .devcontainer/scripts/build-base.sh",
-
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.harmony /home/node/.config/gh /home/node/.gitconfig",
 
   "postCreateCommand": "npm install --prefix frontend && npm install --prefix backend && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",

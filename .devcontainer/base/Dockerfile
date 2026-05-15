@@ -10,11 +10,14 @@
 #   - Debian release 切替 (FROM の suffix 変更時)
 #
 # overlay は .devcontainer/Dockerfile を参照 (codex 等の頻繁更新ツール)。
-# Phase 2 で ghcr.io に push、利用者は pull のみで使えるようになる予定。
 #
-# build 手順 (host 側):
-#   bash .devcontainer/scripts/build-base.sh
-# (devcontainer.json の initializeCommand から自動実行される)
+# 公開先 (Phase 2 で確立):
+#   ghcr.io/csilost2001/harmony-devcontainer-base:<version>
+# 利用者は overlay の FROM で自動 pull、Playwright DL を回避。
+#
+# 更新 (maintainer のみ):
+#   bash .devcontainer/scripts/publish-dev-image.sh <new-version>
+# 詳細手順: docs/setup/dev-containers.md「Maintainer: base image の更新と publish」
 
 FROM mcr.microsoft.com/devcontainers/typescript-node:20-trixie
 
