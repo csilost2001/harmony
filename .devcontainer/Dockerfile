@@ -20,9 +20,11 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
 USER root
 
 # Playwright system libs (apt-get で ~87 MB DL, ~328 MB disk, 66+ packages)
-# + Chromium binary (~285 MiB) を 1 layer に焼く。chown で node user 所有に統一。
+# + Chromium binary (~285 MiB) を 1 layer に焼く。chown は親 ~/.cache 全体に
+# 効かせる (root 実行で作られた親 dir を node 所有に戻す。
+# 他 tool — 例: Copilot CLI の ~/.cache/copilot — も書けるようにするため)。
 RUN npx -y playwright@1.59.1 install --with-deps chromium \
-  && chown -R node:node /home/node/.cache/ms-playwright
+  && chown -R node:node /home/node/.cache
 
 # global npm tool (Phase 1 で overlay 層に分離予定、codex は頻繁更新前提)
 RUN npm install -g @openai/codex@0.130.0
