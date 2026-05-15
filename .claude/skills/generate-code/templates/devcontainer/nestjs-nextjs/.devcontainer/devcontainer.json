@@ -17,10 +17,11 @@
   "mounts": [
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.claude,target=/home/node/.claude,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.codex,target=/home/node/.codex,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.copilot,target=/home/node/.copilot,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,consistency=cached"
   ],
 
-  "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.config/gh",
+  "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.config/gh",
 
   "postCreateCommand": "npm install && (npx prisma generate 2>/dev/null || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
 

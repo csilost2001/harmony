@@ -20,10 +20,11 @@
   "mounts": [
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.copilot,target=/home/vscode/.copilot,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,consistency=cached"
   ],
 
-  "onCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude /home/vscode/.codex /home/vscode/.config/gh",
+  "onCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude /home/vscode/.codex /home/vscode/.copilot /home/vscode/.config/gh",
 
   "postCreateCommand": "(./mvnw -B dependency:resolve 2>/dev/null || mvn -B dependency:resolve || true) && (cd frontend && npm install || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
 

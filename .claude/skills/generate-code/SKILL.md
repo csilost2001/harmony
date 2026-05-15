@@ -1751,7 +1751,7 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 
 > nestjs × thymeleaf 組合せは SKILL.md § 2 constraint 3 (thymeleaf は editorKind=grapesjs 必須) と合わせて稀。当面は最小テンプレ提供で、需要が顕在化したら拡充。
 
-### AI CLI 3 種同梱方針 (#1111)
+### AI CLI 3 種同梱 + 永続化 4 種方針 (#1111 / #1114)
 
 業務アプリ開発者は持っているサブスクが異なるため、**claude-code / codex / copilot-cli の 3 種を全 template にデフォルト install** する。利用者は手持ちのサブスクの CLI だけ login して使う。Harmony 本体 `.devcontainer/devcontainer.json` (#1097 / #1107 で確立) と統一したパターン:
 
@@ -1759,11 +1759,12 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 - **codex**: feature 未提供のため `postCreateCommand` で `npm install -g @openai/codex`
 - **copilot-cli**: `ghcr.io/devcontainers/features/copilot-cli:1.1.2` feature (gh auth に依存)
 
-認証永続化用 bind mount 3 種 (Harmony 本体と統一):
+認証 + session/memory 永続化用 bind mount 4 種 (Harmony 本体と統一):
 
-- `${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.claude` → `/home/<user>/.claude` (Anthropic OAuth)
-- `${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.codex` → `/home/<user>/.codex` (OpenAI OAuth)
-- `${localEnv:HOME}/.config/gh` → `/home/<user>/.config/gh` (GitHub CLI auth、Copilot CLI が依存、`gh` 単体でも有用)
+- `${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.claude` → `/home/<user>/.claude` (Anthropic OAuth + sessions + memory)
+- `${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.codex` → `/home/<user>/.codex` (OpenAI OAuth + sessions + history)
+- `${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.copilot` → `/home/<user>/.copilot` (Copilot CLI session-state + command-history-state.json + memory、#1114 で追加) ← **Copilot CLI 公式 default、`COPILOT_HOME` で上書き可**
+- `${localEnv:HOME}/.config/gh` → `/home/<user>/.config/gh` (GitHub CLI auth、Copilot CLI の認証元、`gh` 単体でも有用)
 
 `onCreateCommand` で chown (mount 先の所有権を user に揃える)、`postCreateCommand` で `~/.claude/.config.json` 空ファイル作成 (Claude wizard 抑制 workaround #1097)、`containerEnv` で `DISABLE_AUTOUPDATER=1` (rebuild ごとの自動更新を抑制)。
 

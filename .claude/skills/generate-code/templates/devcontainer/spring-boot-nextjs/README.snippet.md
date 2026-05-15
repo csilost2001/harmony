@@ -34,7 +34,12 @@ container 内に 3 つの AI CLI が install されています。**開発者が
 | Codex | OpenAI ChatGPT Plus | `codex login` |
 | Copilot CLI | GitHub Copilot | `gh auth login` (or host の `~/.config/gh` を bind mount で継承済の場合は不要) |
 
-認証情報は host の `~/.agent-containers/<project>/.{claude,codex}/` と `~/.config/gh/` に bind mount で永続化されるため、**rebuild しても再 login 不要** (`refreshToken` で 60〜90 日は自動更新)。
+認証情報と AI エージェントの session / memory / history は host の `~/.agent-containers/<project>/.{claude,codex,copilot}/` と `~/.config/gh/` に bind mount で永続化されるため、**rebuild しても再 login 不要、session 履歴も保持** (`refreshToken` で 60〜90 日は自動更新)。
+
+- `.claude/` — Claude Code OAuth + sessions + memory
+- `.codex/` — Codex CLI OAuth + sessions + history
+- `.copilot/` — Copilot CLI session-state + command-history-state.json + memory ([公式 docs](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference))
+- `~/.config/gh/` — gh CLI auth (Copilot CLI の認証に必要)
 
 WSL2 host 側 `~/.claude/` (WSL2 native claude 用) には触りません — `~/.agent-containers/` という別名前空間を使うことで host claude と container claude を同時稼働させても干渉しません。
 
