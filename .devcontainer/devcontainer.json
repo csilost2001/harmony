@@ -1,6 +1,6 @@
 {
   "name": "Harmony Dev",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:20-bullseye",
+  "build": { "dockerfile": "Dockerfile" },
 
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
@@ -25,7 +25,7 @@
 
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.harmony /home/node/.config/gh",
 
-  "postCreateCommand": "npm install --prefix frontend && npm install --prefix backend && (cd frontend && npx playwright install --with-deps chromium) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
+  "postCreateCommand": "npm install --prefix frontend && npm install --prefix backend && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
 
   "customizations": {
     "vscode": {
