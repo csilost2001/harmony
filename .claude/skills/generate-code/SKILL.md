@@ -1742,14 +1742,32 @@ Step 0 で `--all` / `--workspace <wsId>` が指定された場合、Step 1〜6 
 
 判定キー: `techStack.backend.framework` ∈ {`spring-boot`, `nestjs`} × `techStack.frontend.library` ∈ {`thymeleaf`, `react`}
 
-| backend × frontend | base image | features 追加 | docker-compose default |
-|---|---|---|---|
-| spring-boot × thymeleaf | `mcr.microsoft.com/devcontainers/java:1-21-bookworm` | `java:1` (version 21, installMaven true)、`node:1`、`github-cli:1` | postgres:15 |
-| spring-boot × nextjs | 同上 | 同上 (Next.js dev server に Node 必須) | 同上 |
-| nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:20` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | SQLite (Prisma file:./prisma/dev.db、Postgres section はコメントアウトで保持) |
-| nestjs × nextjs | `mcr.microsoft.com/devcontainers/typescript-node:20` | `github-cli:1` | 同上 |
+| backend × frontend | base image | features 追加 (基本) | features 追加 (AI CLI、#1111) | docker-compose default |
+|---|---|---|---|---|
+| spring-boot × thymeleaf | `mcr.microsoft.com/devcontainers/java:1-21-bookworm` | `java:1` (version 21, installMaven true)、`node:1`、`github-cli:1` | `claude-code:1.0`、`copilot-cli:1.1.2` + postCreateCommand で `codex` npm 同梱 | postgres:15 |
+| spring-boot × nextjs | 同上 | 同上 (Next.js dev server に Node 必須) | 同上 | 同上 |
+| nestjs × thymeleaf | `mcr.microsoft.com/devcontainers/typescript-node:20` | `github-cli:1` のみ (NestJS が SSR するため Maven 不要、最小構成) | 同上 | SQLite (Prisma file:./prisma/dev.db、Postgres section はコメントアウトで保持) |
+| nestjs × nextjs | `mcr.microsoft.com/devcontainers/typescript-node:20` | `github-cli:1` | 同上 | 同上 |
 
 > nestjs × thymeleaf 組合せは SKILL.md § 2 constraint 3 (thymeleaf は editorKind=grapesjs 必須) と合わせて稀。当面は最小テンプレ提供で、需要が顕在化したら拡充。
+
+### AI CLI 3 種同梱方針 (#1111)
+
+業務アプリ開発者は持っているサブスクが異なるため、**claude-code / codex / copilot-cli の 3 種を全 template にデフォルト install** する。利用者は手持ちのサブスクの CLI だけ login して使う。Harmony 本体 `.devcontainer/devcontainer.json` (#1097 / #1107 で確立) と統一したパターン:
+
+- **claude-code**: `ghcr.io/anthropics/devcontainer-features/claude-code:1.0` feature
+- **codex**: feature 未提供のため `postCreateCommand` で `npm install -g @openai/codex`
+- **copilot-cli**: `ghcr.io/devcontainers/features/copilot-cli:1.1.2` feature (gh auth に依存)
+
+認証永続化用 bind mount 3 種 (Harmony 本体と統一):
+
+- `${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.claude` → `/home/<user>/.claude` (Anthropic OAuth)
+- `${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.codex` → `/home/<user>/.codex` (OpenAI OAuth)
+- `${localEnv:HOME}/.config/gh` → `/home/<user>/.config/gh` (GitHub CLI auth、Copilot CLI が依存、`gh` 単体でも有用)
+
+`onCreateCommand` で chown (mount 先の所有権を user に揃える)、`postCreateCommand` で `~/.claude/.config.json` 空ファイル作成 (Claude wizard 抑制 workaround #1097)、`containerEnv` で `DISABLE_AUTOUPDATER=1` (rebuild ごとの自動更新を抑制)。
+
+`<user>` は template ごとに違う (`spring-boot-*` は `vscode`、`nestjs-*` は `node`)。chown / mount target の path はそれぞれ調整。
 
 ### postCreateCommand
 

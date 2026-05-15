@@ -5,7 +5,9 @@
   "features": {
     "ghcr.io/devcontainers/features/java:1": { "version": "21", "installMaven": true },
     "ghcr.io/devcontainers/features/node:1": { "version": "20" },
-    "ghcr.io/devcontainers/features/github-cli:1": {}
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+    "ghcr.io/devcontainers/features/copilot-cli:1.1.2": {}
   },
 
   "forwardPorts": [8080, 5432],
@@ -14,7 +16,15 @@
     "5432": { "label": "Postgres", "onAutoForward": "silent" }
   },
 
-  "postCreateCommand": "./mvnw -B dependency:resolve 2>/dev/null || mvn -B dependency:resolve || true",
+  "mounts": [
+    "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.codex,target=/home/vscode/.codex,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,consistency=cached"
+  ],
+
+  "onCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude /home/vscode/.codex /home/vscode/.config/gh",
+
+  "postCreateCommand": "(./mvnw -B dependency:resolve 2>/dev/null || mvn -B dependency:resolve || true) && npm install -g @openai/codex && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
 
   "customizations": {
     "vscode": {
@@ -22,7 +32,8 @@
         "vscjava.vscode-java-pack",
         "vmware.vscode-boot-dev-pack",
         "redhat.vscode-xml",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "anthropic.claude-code"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash",
@@ -31,5 +42,9 @@
     }
   },
 
-  "remoteUser": "vscode"
+  "remoteUser": "vscode",
+
+  "containerEnv": {
+    "DISABLE_AUTOUPDATER": "1"
+  }
 }

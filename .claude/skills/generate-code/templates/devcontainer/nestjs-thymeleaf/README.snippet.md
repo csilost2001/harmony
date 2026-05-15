@@ -19,6 +19,20 @@ VSCode + Dev Containers 拡張があれば、`git clone` 後に `Reopen in Conta
 
 詳細: [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json)
 
+## AI CLI 利用 (任意)
+
+container 内に 3 つの AI CLI が install されています。**開発者が持っているサブスクの CLI だけ login** してください (全部入れる必要はなし)。
+
+| AI CLI | 必要なサブスク | 初回 login コマンド |
+|---|---|---|
+| Claude Code | Anthropic Claude Pro/Max | `claude /login` (ブラウザ OAuth) |
+| Codex | OpenAI ChatGPT Plus | `codex login` |
+| Copilot CLI | GitHub Copilot | `gh auth login` (or host の `~/.config/gh` を bind mount で継承済の場合は不要) |
+
+認証情報は host の `~/.agent-containers/<project>/.{claude,codex}/` と `~/.config/gh/` に bind mount で永続化されるため、**rebuild しても再 login 不要** (`refreshToken` で 60〜90 日は自動更新)。
+
+WSL2 host 側 `~/.claude/` (WSL2 native claude 用) には触りません — `~/.agent-containers/` という別名前空間を使うことで host claude と container claude を同時稼働させても干渉しません。
+
 ## 本番デプロイ (Docker)
 
 ```bash
