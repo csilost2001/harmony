@@ -139,11 +139,11 @@ Both servers must run simultaneously for file-based persistence. Without backend
 
 `backend` は常駐サーバ (#302): `cd backend && npm run dev` で 1 回起動すれば、ブラウザ・複数の AI エージェントセッション双方が接続できる。エージェント終了でも停止しないので、次回以降も使い回し可能。
 
-### Dev Containers モード (任意 / #847)
+### 開発環境 (推奨: Dev Containers / 代替: WSL2 native)
 
-`.devcontainer/devcontainer.json` 同梱により、VSCode の **Dev Containers 拡張**で開発できる。WSL2 native (上記 Commands) と**並行運用可**で、移行は段階的に進められる。
+本プロジェクトの推奨開発環境は **Dev Containers** (`.devcontainer/devcontainer.json` 同梱、git tracked、#847)。WSL2 native セットアップも引き続きサポート対象 — 利用者の選好で選んでよい。Quick Start は [`README.md`](README.md) を参照。
 
-主な利点:
+Dev Containers の利点:
 
 - 複数プロジェクトの環境差を完全に isolation (Node / JDK / Python が混在しても OK)
 - 新規開発者は `git clone && Reopen in Container` だけで dev 環境完成 (5-10 分の初回 build のみ)
@@ -154,7 +154,13 @@ Both servers must run simultaneously for file-based persistence. Without backend
 - Windows + WSL2 + Docker Desktop (or WSL2 内 Docker Engine)
 - VSCode + Dev Containers 拡張 (`ms-vscode-remote.remote-containers`)
 
-詳細手順 / 移行マニュアル / トラブルシューティングは [`docs/setup/dev-containers.md`](docs/setup/dev-containers.md) を参照。WSL2 native ユーザーの移行は同 doc Step M-1〜M-8 にまとめてある。
+詳細・トラブルシューティング:
+
+- [`docs/setup/dev-containers.md`](docs/setup/dev-containers.md) — 推奨セットアップ (Dev Containers)
+- [`docs/setup/wsl2-native.md`](docs/setup/wsl2-native.md) — 代替セットアップ (WSL2 native)
+- [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) — Harmony 本体の Docker image 配布構想 (#1055 L2/L3、未実装)
+
+過去 WSL2 native で開発していた利用者の Dev Containers 移行手順は `dev-containers.md` §「過去 WSL2 native だった人向け移行手順」を参照。
 
 ### ドッグフード deploy 先
 

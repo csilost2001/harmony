@@ -16,14 +16,14 @@ Claude Code 向けの補足ガイダンス。
 - 起動前提: `cd backend && npm run dev` で常駐済みであること
 - 接続先: `http://localhost:5179/mcp`
 
-### Dev Containers (任意)
+### 開発環境 (推奨: Dev Containers / 代替: WSL2 native)
 
-WSL2 native と並行で **Dev Containers モード**も使える (`.devcontainer/devcontainer.json` 同梱、#847)。
+本プロジェクトの推奨開発環境は **Dev Containers** (`.devcontainer/devcontainer.json` 同梱、git tracked、#847)。WSL2 native セットアップも引き続きサポート対象。Quick Start は [`README.md`](README.md) を参照。
 
 - Claude Code (CLI 版) は **container 内でも** `.mcp.json` の `http://localhost:5179/mcp` で backend に繋がる (`localhost` = container 自身)
-- 起動前提は同じ: container 内ターミナルで `cd backend && npm run dev` 常駐
-- WSL2 native 開発に戻りたい場合は `Dev Containers: Reopen Folder Locally` で即戻れる
-- 詳細: [`docs/setup/dev-containers.md`](docs/setup/dev-containers.md)
+- 起動前提は両環境とも同じ: ターミナルで `cd backend && npm run dev` 常駐
+- Dev Containers ↔ WSL2 native の切替は `Dev Containers: Reopen Folder Locally` / `Reopen in Container` で随時可
+- 詳細: [`docs/setup/dev-containers.md`](docs/setup/dev-containers.md) (推奨) / [`docs/setup/wsl2-native.md`](docs/setup/wsl2-native.md) (代替) / [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) (将来の image 配布構想)
 
 ### Slash Commands / Skills
 
