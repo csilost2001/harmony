@@ -1,0 +1,569 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>css framework switching</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link active"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="css-フレームワーク切替対応-793--仕様書">CSS フレームワーク切替対応 (#793) — 仕様書</h1>
+<p>画面ごとに CSS フレームワーク (Bootstrap / Tailwind) を選択可能にする framework 中規模再設計の仕様書。</p>
+<blockquote>
+<p><strong>改訂履歴 (2026-05-05)</strong>: 当初は project 単位固定 / 途中切替非サポートで設計したが、マルチエディタ対応 (<code>multi-editor-puck.md</code>) と同時に <strong>画面単位固定 + project default + 画面間混在可</strong> に再設計。これにより「旧システムの部分更新 (一部画面のみ Tailwind 化)」シナリオに対応可能となった。実装影響は最小 (Designer.tsx の theme 解決順序変更のみ)、既存サンプルは regression なし。</p>
+</blockquote>
+<h2 id="関連">関連</h2>
+<ul>
+<li>メタ ISSUE: <a href="https://github.com/csilost2001/harmony/issues/793">#793</a> (project 単位設計の元起票) + 2026-05-05 マルチエディタ対応メタ ISSUE (画面単位化を含む統合 PR)</li>
+<li>関連仕様: <a href="/spec/multi-editor-puck/"><code>multi-editor-puck.md</code></a> — Puck 併設 + editorKind / cssFramework 画面単位化を含む正規仕様</li>
+<li>動機: 設計書 = 画面仕様書という核心思想に対し、現状は Bootstrap class が blocks.ts にハードコードされ Bootstrap 固定の見た目しか出せない実装負債がある。さらに「旧システム部分更新」シナリオでは画面ごとに framework を選べる必要がある</li>
+<li>議論履歴: 設計者と Opus のセッション (2026-05-04 = project 単位案 / 2026-05-05 = 画面単位再設計)</li>
+</ul>
+<hr>
+<h2 id="1-背景">1. 背景</h2>
+<h3 id="11-現状の構造的乖離">1.1 現状の構造的乖離</h3>
+<p><strong>設計意図 (CSS 変数 + テーマ層を持つ抽象化)</strong>:</p>
+<p><code>frontend/src/styles/common.css:1-23</code> (抜粋):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="css"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">@charset</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "UTF-8"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">/* common.css — 業務システム向け共通スタイル（Flexboxベース）</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   - Bootstrap 5 と共存可能（独自セマンティッククラスのみ）  ← 設計意図</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   - PC業務画面専用（スマホ/IE対応なし）</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   - React対応: class→className 変換のみで動作</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">*/</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">:root</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  --app-label-width</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">130</span><span style="color:#D73A49;--shiki-dark:#F47067">px</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  --app-label-bg</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">#f1f3f5</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  --app-label-color</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">#212529</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  --app-border</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">#dee2e6</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /* ...他多数の CSS 変数 + .app-shell / .form-section / .form-row / .form-field 等の独自クラス定義 */</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>frontend/src/components/Designer.tsx:88-93</code> で <code>THEME_URLS</code> 経由で iframe にテーマ CSS を注入する仕組み実装済 (standard / card / compact / dark)。</p>
+<p><strong>実装の負債 (Bootstrap class ハードコード)</strong>:</p>
+<p><code>frontend/src/grapes/blocks.ts:35-47</code> (抜粋):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">const</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> textInput</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">ph</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ""</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">  `&#x3C;input type="text" class="form-control form-control-sm" placeholder="${</span><span style="color:#24292E;--shiki-dark:#ADBAC7">ph</span><span style="color:#032F62;--shiki-dark:#96D0FF">}">`</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">const</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> numberInput</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">  `&#x3C;input type="number" class="form-control form-control-sm">`</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// ... 他に form-select / form-check / form-row / fcol-* 等</span></span></code></pre>
+<p>1034 行のうち 50 箇所以上が Bootstrap class を直接埋め込み。さらに <code>form-row</code> / <code>fcol-*</code> のような <strong>common.css 独自クラスも 10 箇所</strong> 混在。テーマで CSS を上書きしても <code>form-control</code> 等の Bootstrap class は HTML 内に残り続けるため、Tailwind に切り替えても効かない。</p>
+<h3 id="12-目的の確認--α-見た目-であって-β-dx-ではない">1.2 目的の確認 — α (見た目) であって β (DX) ではない</h3>
+<p>設計者との議論で確認:</p>
+<ul>
+<li><strong>α</strong>: 見た目だけ Tailwind 風 (近年の SaaS 風モダンな見た目) — <strong>本仕様の目的</strong></li>
+<li><strong>β</strong>: Tailwind の utility-first 開発体験 (responsive prefix / arbitrary value / utility class 直書き) — <strong>本仕様の目的外</strong></li>
+</ul>
+<p>β を真に得るには GrapesJS 自体を別ツール (Webstudio / Pinegrow Tailwind) に置き換える話になり、本フレームワークの根本見直しが必要。本仕様は GrapesJS WYSIWYG 思想を維持したまま α を達成する。</p>
+<h3 id="13-切替タイミング-2026-05-05-改訂">1.3 切替タイミング (2026-05-05 改訂)</h3>
+<p>設計者との議論で確認:</p>
+<ul>
+<li><strong>画面作成時に CSS フレームワークを固定</strong> (画面ごと、以降変更不可)</li>
+<li><strong>project レベルに default を持つ</strong> — 画面側未指定時のフォールバック。typical case (全画面同じ) は project default 1 行で済む</li>
+<li><strong>画面間で混在可能</strong> — 旧システム部分更新シナリオ (大半 Bootstrap、一部 Tailwind) を素直に表現</li>
+<li>切替可能性を担保するための抽象化コストは高い (margin/padding/shadow/border の defaults が theme 間で微妙に異なる) ため、画面ごと固定で割り切る</li>
+<li>案件単位で CSS フレームワークが決まる典型ケースは project default 1 行で対応、移行案件は画面ごとに override</li>
+</ul>
+<h4 id="131-解決順序-画面ロード時">1.3.1 解決順序 (画面ロード時)</h4>
+<ol>
+<li><code>screen.design.cssFramework</code> (画面個別指定があればそれ)</li>
+<li><code>project.techStack.designer.cssFramework</code> (なければ project default、#826 で <code>project.design</code> から移行)</li>
+<li>最終 default (<code>"bootstrap"</code>)</li>
+</ol>
+<h4 id="132-画面作成後の変更不可ポリシー">1.3.2 「画面作成後の変更不可」ポリシー</h4>
+<p>editor / cssFramework ともに画面作成時に決定、以降変更不可。理由:</p>
+<ul>
+<li>HTML 内 <code>form-control</code> (Bootstrap) → Tailwind utility の自動変換は不可能 (特に Open Code / customBlock 貼り付けの自由 HTML)</li>
+<li>migration コードを書かなくていい (切替操作 / 確認ダイアログ / undo 機構 / draft の dirty 判定が複雑化しない)</li>
+<li>AI 連携で source of truth が動かない (編集中に framework が変わると AI 入力ファイル形式も変わるため、長時間タスク中の整合性破壊リスクがある)</li>
+<li>edit-session-draft (#683) との整合 (ロック保有中に framework 変更が起きたら draft の意味が変わる → 排除)</li>
+</ul>
+<p>ユーザールート: 「画面複製 → 別 cssFramework の新画面で作り直し」が公式ルート。旧画面は参照用に残し、片方ずつ移行する形が「旧システム部分更新」シナリオの自然な形。</p>
+<h2 id="2-設計概要">2. 設計概要</h2>
+<h3 id="21-アーキテクチャ">2.1 アーキテクチャ</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>┌─────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ blocks.ts (60+ → 15-20 個に絞り込み、AI 自動追加排除)   │</span></span>
+<span class="line"><span>│   ↓ 出力 HTML                                           │</span></span>
+<span class="line"><span>│ class="btn btn-primary"  ← semantic class のみ          │</span></span>
+<span class="line"><span>│ class="card"  / class="form-control"  / etc.            │</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>                          ↓</span></span>
+<span class="line"><span>┌─────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ 解決順序 (画面ロード時):                                │</span></span>
+<span class="line"><span>│   1. screens/&#x3C;id>.json  design.cssFramework             │</span></span>
+<span class="line"><span>│   2. harmony.json       design.cssFramework (default)   │</span></span>
+<span class="line"><span>│   3. 最終 default       "bootstrap"                     │</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>                          ↓</span></span>
+<span class="line"><span>┌─────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ Designer.tsx — canvas iframe に画面の framework CSS を  │</span></span>
+<span class="line"><span>│ 読み込む (画面ごとに iframe が独立、衝突なし)           │</span></span>
+<span class="line"><span>│                                                          │</span></span>
+<span class="line"><span>│  bootstrap → theme-bootstrap.css                         │</span></span>
+<span class="line"><span>│  tailwind  → theme-tailwind.css                          │</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>                          ↓</span></span>
+<span class="line"><span>                 [WYSIWYG 描画]</span></span></code></pre>
+<h3 id="22-semantic-class-一覧-案">2.2 semantic class 一覧 (案)</h3>
+<p><code>blocks.ts</code> 出力に使う semantic class を定義する。具体的な class 名は実装フェーズ (子 3) で確定するが、原則は <strong>Bootstrap class 名を踏襲 + common.css 独自セマンティッククラス継承</strong>:</p>
+<p><strong>Bootstrap 由来 (Bootstrap CSS で直接定義済)</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>カテゴリ</th><th>semantic class 例</th></tr></thead><tbody><tr><td>レイアウト</td><td><code>container</code>, <code>row</code>, <code>col</code> (<code>col-1</code> … <code>col-12</code>)</td></tr><tr><td>見出し</td><td><code>h1</code> <code>h2</code> <code>h3</code> <code>h4</code></td></tr><tr><td>テキスト</td><td><code>text-muted</code>, <code>text-center</code>, <code>text-end</code>, <code>small</code></td></tr><tr><td>ボタン</td><td><code>btn</code>, <code>btn-primary</code>, <code>btn-secondary</code>, <code>btn-danger</code>, <code>btn-sm</code>, <code>btn-lg</code></td></tr><tr><td>フォーム入力</td><td><code>form-control</code>, <code>form-control-sm</code>, <code>form-select</code>, <code>form-label</code>, <code>form-check</code>, <code>form-check-input</code></td></tr><tr><td>カード</td><td><code>card</code>, <code>card-body</code>, <code>card-header</code>, <code>card-footer</code>, <code>card-title</code></td></tr><tr><td>ナビ</td><td><code>navbar</code>, <code>navbar-brand</code>, <code>nav</code>, <code>nav-item</code></td></tr><tr><td>バッジ/アラート</td><td><code>badge</code>, <code>alert</code>, <code>alert-info</code>, <code>alert-warning</code></td></tr><tr><td>テーブル</td><td><code>table</code>, <code>table-striped</code>, <code>table-hover</code></td></tr><tr><td>ユーティリティ最低限</td><td><code>mb-*</code> <code>mt-*</code> <code>gap-*</code> <code>d-flex</code> <code>justify-content-*</code> (rem ベース、Bootstrap 互換)</td></tr></tbody></table>
+<p><strong>common.css 独自 (本フレームワークの業務系 layout 補助、Bootstrap には存在しない)</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>カテゴリ</th><th>semantic class 例</th><th>用途</th></tr></thead><tbody><tr><td>アプリ shell</td><td><code>app-shell</code>, <code>app-header</code>, <code>app-sidebar</code>, <code>app-main</code></td><td>サイドバー + ヘッダー + メインの 3 ペイン構造</td></tr><tr><td>フォームセクション</td><td><code>form-section</code>, <code>form-section-title</code></td><td>グループ化されたフォーム枠</td></tr><tr><td>フォーム行/フィールド</td><td><code>form-row</code>, <code>fcol-1</code>, <code>fcol-2</code>, <code>fcol-3</code>, <code>fcol-4</code>, <code>form-field</code>, <code>field-label</code>, <code>field-value</code></td><td>多列フォームレイアウト (Bootstrap の <code>row</code>/<code>col</code> とは別軸の業務系 grid)</td></tr><tr><td>ページヘッダー</td><td><code>page-header</code>, <code>page-title</code>, <code>breadcrumb-area</code></td><td>一覧画面の見出し帯</td></tr></tbody></table>
+<p>→ Bootstrap class 名 + common.css 独自クラスを semantic class layer として両方扱う。これにより:</p>
+<ul>
+<li><code>theme-bootstrap.css</code> は <strong>Bootstrap CSS + common.css を import</strong> するだけで済む (両方の class が含まれる)</li>
+<li><code>theme-tailwind.css</code> は <strong>Bootstrap class + common.css 独自クラスを <code>@apply</code> で Tailwind utility にマップ</strong> する必要あり (子 4 で定義)</li>
+</ul>
+<p>実際の network 内 class 定義の出所マッピングは子 4 で確定。</p>
+<h3 id="23-theme-css-構造">2.3 theme CSS 構造</h3>
+<p><code>frontend/src/styles/themes/</code> (新規ディレクトリ) に:</p>
+<ul>
+<li><code>theme-bootstrap.css</code> — Bootstrap 5 の CSS をそのまま import + project 固有上書き</li>
+<li><code>theme-tailwind.css</code> — Tailwind の <code>@apply</code> で semantic class を utility class にマップ</li>
+</ul>
+<p><strong>theme-bootstrap.css 雛形</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="css"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">@import</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "bootstrap/dist/css/bootstrap.min.css"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">@import</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "../common.css"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;  </span><span style="color:#6A737D;--shiki-dark:#768390">/* common.css 独自 semantic class (.app-shell / .form-row / .fcol-* 等) を継承 */</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">/* 注: variant CSS (theme-card.css / theme-compact.css / theme-dark.css) は</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   Designer.tsx の applyThemeToCanvas() で別途上書き読み込みするため、ここでは import しない。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   2 軸構造 (framework × variant) の詳細は 7.3 節参照 */</span></span></code></pre>
+<p><strong>theme-tailwind.css 雛形</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="css"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">@tailwind</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> base;</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">@tailwind</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> components;</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">@tailwind</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> utilities;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">@layer</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> components {</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /* Bootstrap 由来 semantic class */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .btn</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> inline-flex</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> items-center</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> justify-center</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> px-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">4 </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">py-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">2 </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">rounded</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> font-medium</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> transition-colors</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .btn-primary</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> bg-blue-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">600 </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">text-white</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> hover</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:bg-blue-700;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .btn-secondary</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> bg-gray-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">200 </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">text-gray-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">900 </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">hover</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:bg-gray-300;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .card</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> bg-white</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> rounded-lg</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> shadow-md</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> border-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">0;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .card-body</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> p-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">4;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .form-control</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> block</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> w-full</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> px-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">3 </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">py-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">2 </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">border</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> border-gray-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">300 </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">rounded</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> text-sm</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> focus</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:outline-none focus:ring-2 focus:ring-blue-500;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /* common.css 独自 semantic class (Bootstrap 不在のため必須) */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .app-shell</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> flex</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> flex-col</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> min-h-screen</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .form-section</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> rounded-lg</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> border</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> border-gray-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">200 </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">mb-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">4 </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">overflow-hidden</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .form-row</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> grid</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> gap-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">3;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .fcol-1</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> grid-cols-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">1; }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .fcol-2</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> grid-cols-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">2; }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .fcol-3</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> grid-cols-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">3; }</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">  .fcol-4</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { @</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">apply</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> grid-cols-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">4; }</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /* ... */</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong>ビルドツール要件 (子 4 スコープ)</strong>:</p>
+<p><code>@apply</code> は PostCSS + <code>tailwindcss</code> プラグインが Vite pipeline に組み込まれている前提。子 4 で:</p>
+<ol>
+<li><code>frontend/package.json</code> に <code>tailwindcss</code> / <code>postcss</code> / <code>autoprefixer</code> を依存追加</li>
+<li><code>frontend/postcss.config.js</code> 作成</li>
+<li><code>frontend/tailwind.config.ts</code> 作成 (content scan path に <code>themes/theme-tailwind.css</code> を含める)</li>
+<li><code>theme-tailwind.css</code> を build 時に正しく PostCSS 経由でコンパイル</li>
+</ol>
+<p>詳細マッピングと依存追加は子 4 で確定。</p>
+<h3 id="24-schema-拡張-画面単位化">2.4 schema 拡張 (画面単位化)</h3>
+<h4 id="241-schemasv3harmonyv3schemajson-project-default">2.4.1 <code>schemas/v3/harmony.v3.schema.json</code> (project default)</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "design"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "additionalProperties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">false</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"プロジェクト全画面の default 設定。画面側で override 可能。"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "cssFramework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "enum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"bootstrap"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tailwind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "default"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"bootstrap"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"プロジェクト全画面の default CSS フレームワーク。画面側 (screen.design.cssFramework) で override 可能。省略時は 'bootstrap' 相当。"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h4 id="242-schemasv3screenv3schemajson-画面単位screendesign">2.4.2 <code>schemas/v3/screen.v3.schema.json</code> (画面単位、ScreenDesign)</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "ScreenDesign"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "additionalProperties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">false</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "cssFramework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "enum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"bootstrap"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tailwind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"本画面の CSS フレームワーク。画面作成時に固定、以降変更不可。省略時は project.techStack.designer.cssFramework を参照、それも省略なら 'bootstrap'"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>両方とも optional。<strong>既存 3 サンプル (retail / realestate / english-learning) は project レベル <code>cssFramework: "bootstrap"</code> 設定済 (#793 子 6 でマージ済)</strong> — 仕様改訂後も「画面側 default」として全画面 bootstrap が継続適用、regression なし。</p>
+<p><code>editorKind</code> (本仕様改訂と同時にマルチエディタ対応で追加される field) も同じく <strong>画面側 + project default</strong> 構造。詳細は <a href="/spec/multi-editor-puck/"><code>multi-editor-puck.md</code></a> § 2.5 を参照。</p>
+<h3 id="25-designertsx-の-theme-ロード機構-画面単位化">2.5 Designer.tsx の theme ロード機構 (画面単位化)</h3>
+<p>現状 (<code>frontend/src/components/Designer.tsx</code>):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">const</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> FRAMEWORK_URLS</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Record</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">CssFramework</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">> </span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  bootstrap: </span><span style="color:#D73A49;--shiki-dark:#F47067">new</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> URL</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#032F62;--shiki-dark:#96D0FF">"../styles/themes/theme-bootstrap.css"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#D73A49;--shiki-dark:#F47067">import</span><span style="color:#24292E;--shiki-dark:#ADBAC7">.</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">meta</span><span style="color:#24292E;--shiki-dark:#ADBAC7">.url).href,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  tailwind: </span><span style="color:#D73A49;--shiki-dark:#F47067">new</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> URL</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#032F62;--shiki-dark:#96D0FF">"../styles/themes/theme-tailwind.css"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#D73A49;--shiki-dark:#F47067">import</span><span style="color:#24292E;--shiki-dark:#ADBAC7">.</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">meta</span><span style="color:#24292E;--shiki-dark:#ADBAC7">.url).href,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">};</span></span></code></pre>
+<h4 id="251-解決ロジック-画面単位化">2.5.1 解決ロジック (画面単位化)</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>const cssFramework =</span></span>
+<span class="line"><span>  screen.design.cssFramework</span></span>
+<span class="line"><span>  ?? project.techStack?.designer?.cssFramework  // #826: project.design から移行</span></span>
+<span class="line"><span>  ?? "bootstrap";</span></span>
+<span class="line"><span>const themeUrl = FRAMEWORK_URLS[cssFramework];</span></span>
+<span class="line"><span>// canvas iframe に themeUrl を注入</span></span></code></pre>
+<p>canvas iframe は画面ごと独立 (<code>/screen/design/:screenId</code> の per-resource タブ) なので、<strong>画面ごとに別 framework theme をロードしても CSS 衝突なし</strong>。variant CSS (card / compact / dark) は引き続き framework theme の上に重ねる 2 層構造。</p>
+<h4 id="252-最終実装-生成された-thymeleaf--react-アプリ-の-css-隔離">2.5.2 最終実装 (生成された Thymeleaf / React アプリ) の CSS 隔離</h4>
+<p>本仕様の射程外。最終実装側は画面単位で必要な theme CSS のみロードする前提 (Thymeleaf 案件は画面 = ページ単位で自然解決、SPA React 案件は CSS chunk 分割 / scoped CSS / shadow DOM 等で隔離)。詳細は別文書化候補 (本シリーズ後の future ISSUE)。</p>
+<h2 id="3-実装ロードマップ">3. 実装ロードマップ</h2>
+<h3 id="31-793-元仕様-project-単位実装完了済-2026-05-04">3.1 #793 元仕様 (project 単位、実装完了済 2026-05-04)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>子</th><th>内容</th><th>PR / commit</th></tr></thead><tbody><tr><td>子 1</td><td>仕様書 (<code>docs/spec/css-framework-switching.md</code>) 初版</td><td>マージ済</td></tr><tr><td>子 2</td><td>schema 変更 (<code>project.v3.schema.json</code> に <code>design.cssFramework</code>)</td><td>マージ済</td></tr><tr><td>子 3</td><td><code>blocks.ts</code> を semantic class 出力に全面書き換え + ブロック数 60+ → 15-20 削減</td><td>マージ済</td></tr><tr><td>子 4</td><td><code>theme-bootstrap.css</code> + <code>theme-tailwind.css</code> 新規作成 + Tailwind ビルド環境</td><td>マージ済 (#800)</td></tr><tr><td>子 5</td><td><code>Designer.tsx</code> theme ロード機構を framework × variant 2 軸対応</td><td>マージ済 (#801)</td></tr><tr><td>子 6</td><td>既存 3 サンプルに <code>design.cssFramework: "bootstrap"</code> 明示追加</td><td>マージ済 (#802)</td></tr><tr><td>子 7</td><td>英会話学習アプリ Tailwind 版 サンプル追加 (視覚実証)</td><td>マージ済 (#803) + ナビゲーション破綻修正 (#805)</td></tr></tbody></table>
+<h3 id="32-画面単位化-本改訂マルチエディタ対応シリーズで対応">3.2 画面単位化 (本改訂、マルチエディタ対応シリーズで対応)</h3>
+<p>画面単位化は別仕様書 <a href="/spec/multi-editor-puck/"><code>multi-editor-puck.md</code></a> のシリーズの一部として実装される。本書は画面単位化部分の正規仕様 (schema 設計・解決ロジック・既存サンプル regression 確認) を提供する。</p>
+<p>実装対象 commit:</p>
+<ul>
+<li><code>screen.v3.schema.json</code> の <code>ScreenDesign</code> に <code>cssFramework</code> field 追加</li>
+<li><code>Designer.tsx</code> の cssFramework 解決ロジック画面単位化</li>
+<li>画面単位混在 dogfood</li>
+</ul>
+<p>詳細子分解は <a href="/spec/multi-editor-puck/"><code>multi-editor-puck.md</code></a> § 12 参照。</p>
+<h2 id="4-ブロック絞り込み方針-子-3">4. ブロック絞り込み方針 (子 3)</h2>
+<h3 id="41-削減原則">4.1 削減原則</h3>
+<p>現状 60+ ブロックは AI が次々追加した蓄積で、業務特化複合ブロックを含む。<strong>設計者意図ではなく AI の自動追加</strong> が大半。</p>
+<p>絞り込み方針:</p>
+<ul>
+<li><strong>必要最低限の汎用部品</strong> に絞る (15-20 個目安)</li>
+<li>業務特化複合 (検索バー / データリスト等) は 4 個程度残す</li>
+<li>それ以外は <strong>Custom Block (<code>customBlockStore</code>)</strong> で運用に任せる</li>
+</ul>
+<h3 id="42-残すブロック-案">4.2 残すブロック (案)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>カテゴリ</th><th>ブロック</th><th>必要性</th></tr></thead><tbody><tr><td>レイアウト</td><td>container / row / col / heading / paragraph / link</td><td>必須</td></tr><tr><td>フォーム</td><td>input / select / textarea / checkbox / radio / button</td><td>必須</td></tr><tr><td>データ表示</td><td>table / image / icon</td><td>必須</td></tr><tr><td>業務複合</td><td>form-field-set / search-bar / data-list / pagination</td><td>高頻度</td></tr></tbody></table>
+<p>合計 15-19 個程度。</p>
+<h3 id="43-削除候補">4.3 削除候補</h3>
+<p><code>blocks.ts</code> の以下カテゴリ群は基本削除 (Custom Block で代替可能):</p>
+<ul>
+<li><code>CAT_PAGE</code> (ページテンプレート) — Custom Block で各案件に最適化</li>
+<li><code>CAT_NAVI</code> (ナビゲーション) — 案件依存性が高い</li>
+<li><code>CAT_DETAIL</code> (詳細表示) — レイアウト + フィールドの組合せで作る</li>
+<li><code>CAT_COMPOUND</code> (複合フィールド) — 多様すぎ、Custom Block で</li>
+</ul>
+<p>実際の取捨選択は子 3 で確定。</p>
+<h2 id="5-自由デザイン経路の維持">5. 自由デザイン経路の維持</h2>
+<p>Open Code (生 HTML 貼り付け) / Custom Block / Style Manager / 顧客提供デザイン HTML / AI 生成 HTML 貼り付け は <strong>すべて維持</strong>。これらは GrapesJS 本体の機能で、本仕様変更は影響しない。</p>
+<p>「自由デザインで <code>class="flex p-4 bg-blue-500..."</code> のような Tailwind utility class が直接埋め込まれる」場合の運用方針:</p>
+<ul>
+<li><strong>再利用するものは semantic class 化</strong> (theme CSS で定義)</li>
+<li><strong>1 回限りのユニークセクションは utility class 直書きで OK</strong> (画面ごと framework 固定なので theme 切替で崩れる懸念なし)</li>
+</ul>
+<h2 id="6-受け入れ基準">6. 受け入れ基準</h2>
+<h3 id="61-793-元仕様-project-単位実装完了済">6.1 #793 元仕様 (project 単位、実装完了済)</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>schemas/v3/harmony.v3.schema.json</code> に <code>design.cssFramework</code> field 追加</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>frontend/src/types/</code> に <code>CssFramework</code> 型定義追加</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>frontend/src/grapes/blocks.ts</code> から Bootstrap / common.css ハードコード排除 (semantic class のみ出力)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> ブロック数 60+ → 15-20 個程度に絞り込み</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>frontend/src/styles/themes/theme-bootstrap.css</code> + <code>theme-tailwind.css</code> 新規作成</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>frontend/package.json</code> に Tailwind 関連依存追加、<code>postcss.config.js</code> / <code>tailwind.config.ts</code> 作成</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>Designer.tsx</code> が <code>project.techStack.designer.cssFramework</code> を読み取り、対応 theme CSS を canvas iframe に注入 (#826 で <code>project.design</code> から移行)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> 既存 3 サンプル (retail / realestate / english-learning) で <code>cssFramework: "bootstrap"</code> 設定後、regression なし</li>
+</ul>
+<h3 id="62-画面単位化-本改訂マルチエディタ対応シリーズで対応">6.2 画面単位化 (本改訂、マルチエディタ対応シリーズで対応)</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>schemas/v3/screen.v3.schema.json</code> の <code>ScreenDesign</code> に <code>cssFramework</code> field 追加 (画面側 override、optional)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>Designer.tsx</code> の cssFramework 解決ロジックを画面単位化 (<code>screen.design.cssFramework</code> ?? <code>project.techStack.designer.cssFramework</code> ?? <code>"bootstrap"</code>) (#826)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> 既存 3 サンプルが project default で全画面 bootstrap を継続適用すること (regression なし)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> 画面単位混在 dogfood: 1 プロジェクトで bootstrap 画面と tailwind 画面が共存、各々が canvas iframe で正しい theme をロードすることを E2E で検証</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> dogfood report 作成 (マルチエディタ対応シリーズの dogfood に統合)</li>
+</ul>
+<h2 id="7-リスク--懸念">7. リスク / 懸念</h2>
+<h3 id="71-既存-3-サンプルへの影響-画面単位化後も-regression-なし">7.1 既存 3 サンプルへの影響 (画面単位化後も regression なし)</h3>
+<ul>
+<li>既存 3 サンプルは project レベル <code>cssFramework: "bootstrap"</code> 設定済 (#793 子 6 でマージ済)</li>
+<li>画面単位化後も「画面側未指定 → project default = bootstrap」として全画面 bootstrap が継続適用</li>
+<li>リリース前のため migration 不要 (<code>feedback_no_backward_compat_pre_release.md</code>)</li>
+</ul>
+<h3 id="72-tailwind-theme-で-apply-の限界">7.2 Tailwind theme で <code>@apply</code> の限界</h3>
+<p>Tailwind の <code>@apply</code> は静的 CSS 化なので、responsive prefix (<code>md:</code> <code>lg:</code>) や hover state は CSS 側で全部書く必要があり、HTML class に utility prefix を埋め込む β 体験は得られない (本仕様の目的外)。</p>
+<p>ただし Puck 併設 (<code>multi-editor-puck.md</code>) では <strong>Puck props 経由で限定的レイアウト指定 (右寄せ・余白等)</strong> が可能になる。これは β の一部を「Puck props で表現可能な有限集合」に絞って取り入れるアプローチ。</p>
+<h3 id="73-既存-4-テーマ-standard--card--compact--dark-との関係">7.3 既存 4 テーマ (standard / card / compact / dark) との関係</h3>
+<p>現状の <code>theme-card.css</code> / <code>theme-compact.css</code> / <code>theme-dark.css</code> は Bootstrap 上書き variant。本仕様の cssFramework 選択は別軸 (画面単位):</p>
+<ul>
+<li>bootstrap framework × standard / card / compact / dark variant</li>
+<li>tailwind framework × standard / card / compact / dark variant (各々で再実装が必要)</li>
+</ul>
+<p>MVP では tailwind framework は standard variant のみ実装、card / compact / dark は future work。</p>
+<h3 id="74-画面単位化による-css-スコープ問題-designer-内は安全">7.4 画面単位化による CSS スコープ問題 (Designer 内は安全)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>場面</th><th>干渉リスク</th><th>対応</th></tr></thead><tbody><tr><td>Designer 画面編集 (<code>/screen/design/:screenId</code>)</td><td>なし — 画面ごとに canvas iframe が独立、各々で必要な theme CSS のみロード</td><td>既存設計のまま OK</td></tr><tr><td>ScreenListView サムネイル</td><td>なし — サムネイルは画像 (PNG / SVG snapshot)</td><td>既存のまま</td></tr><tr><td>Dashboard 等で複数画面のリアルタイム iframe を並べる場合</td><td>あり</td><td>per-iframe で個別 cssFramework theme をロード</td></tr><tr><td>最終実装 (生成された Thymeleaf / React アプリ)</td><td>あり (SPA で画面遷移時の CSS 衝突)</td><td><strong>本仕様の射程外</strong>: Thymeleaf 案件 (画面 = ページ単位) なら自然解決、SPA React 案件は CSS chunk 分割 / scoped CSS / shadow DOM 等で隔離する責務を出力側に委ねる</td></tr></tbody></table>
+<h2 id="8-pagelayout-region-規約-code-generation-時pl-7-1028">8. PageLayout region 規約 (code generation 時、pl-7 #1028)</h2>
+<p>PageLayout の region (<code>header</code> / <code>sidebar</code> / <code>footer</code> / <code>main</code>) を code generation で出力する際の CSS class 規約を cssFramework 別に定める。詳細テンプレは <code>ai-skills/generate-code/templates/frontend/&#x3C;framework>/LAYOUT.md</code> 参照。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>region</th><th>Bootstrap (Thymeleaf 系)</th><th>Tailwind (Next.js 系)</th></tr></thead><tbody><tr><td>root</td><td><code>d-flex flex-column min-vh-100</code></td><td><code>flex flex-col min-h-screen</code></td></tr><tr><td>header</td><td><code>navbar navbar-expand bg-primary navbar-dark px-3</code></td><td><code>flex items-center justify-between bg-blue-900 text-white px-4 py-3 shadow</code></td></tr><tr><td>sidebar</td><td><code>col-md-3 col-lg-2 bg-light p-3 border-end</code></td><td><code>w-64 bg-gray-100 p-4 border-r</code></td></tr><tr><td>main</td><td><code>col p-4</code></td><td><code>flex-1 p-6</code></td></tr><tr><td>footer</td><td><code>text-center bg-light py-3 border-top mt-auto</code></td><td><code>text-center bg-gray-50 py-4 border-t mt-auto</code></td></tr></tbody></table>
+<p>未割り当て region は対応 HTML タグをプレースホルダコメントに置換 (slot 構造は維持しない)。main region は assignments に関わらず常に slot として出力 (page content の inject 先)。</p>
+<p>PageLayout / 各 gadget / 各 page の cssFramework が混在している場合は <code>/generate-code</code> が警告を出す (生成は続行)。</p>
+<h2 id="9-関連-memory--仕様書">9. 関連 memory / 仕様書</h2>
+<ul>
+<li><code>feedback_schema_governance_strict.md</code> (#511) — schema 変更は設計者承認必須、本仕様で承認済</li>
+<li><code>feedback_consolidate_related_proposals_into_one_issue.md</code> — 子間の派生提案は同 ISSUE 統合</li>
+<li><code>feedback_no_backward_compat_pre_release.md</code> — リリース前の後方互換性方針</li>
+<li><a href="/spec/multi-editor-puck/"><code>multi-editor-puck.md</code></a> — マルチエディタ対応 (Puck 併設) 正規仕様。本仕様の画面単位化 (#793 改訂) はこのシリーズの一部として実装される</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

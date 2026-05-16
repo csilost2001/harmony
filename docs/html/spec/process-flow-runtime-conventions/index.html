@@ -1,0 +1,459 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>process flow runtime conventions</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link active"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="処理フロー-実行時規約-ランタイム挙動">処理フロー 実行時規約 (ランタイム挙動)</h1>
+<p><strong>改訂日: 2026-04-28 (v3 反映)</strong></p>
+<p>Issue: #261 v1.5
+策定日: 2026-04-20
+ステータス: <strong>初版</strong></p>
+<p>本ドキュメントは、処理フロー JSON Schema 上に現れるが「<strong>スキーマ制約としては表現しない / できないが、実装者が従うべき規約</strong>」を集約する。再ドッグフード 4.85/5 で「schema だけでは決定できない」と指摘された項目が対象。</p>
+<p>本ドキュメントは v3 スキーマ (<code>schemas/v3/process-flow.v3.schema.json</code>) に準拠する。v3 では step の <code>type</code> フィールドは <code>kind</code> に改称、カタログ類は <code>context.catalogs.*</code> 配下に統合、<code>ambientVariables</code> は <code>context.ambientVariables</code> に移動した。</p>
+<p>関連仕様:</p>
+<ul>
+<li><a href="/spec/process-flow-extensions/">process-flow-extensions.md</a> — 構造化フィールド定義</li>
+<li><a href="/spec/process-flow-expression-language/">process-flow-expression-language.md</a> — 式言語 BNF</li>
+<li><a href="/spec/process-flow-variables/">process-flow-variables.md</a> — 変数・outputBinding</li>
+<li><a href="/spec/process-flow-maturity/">process-flow-maturity.md</a> — 成熟度・モード</li>
+</ul>
+<h2 id="1-sql-内の式補間-dbaccessstepsql">1. SQL 内の式補間 (<code>DbAccessStep.sql</code>)</h2>
+<h3 id="11-原則-prepared-statement-ベース">1.1 原則: prepared statement ベース</h3>
+<p><code>sql</code> 内に現れる <code>@expression</code> は<strong>静的文字列置換ではなく、prepared statement のパラメータバインディング</strong>に変換する。</p>
+<h3 id="12-変換規則">1.2 変換規則</h3>
+<ol>
+<li><code>@identifier</code> および <code>@identifier.path</code> (プロパティアクセス) は順に <code>$1, $2, ...</code> (PostgreSQL) / <code>?, ?, ...</code> (MySQL) に置換</li>
+<li>展開時の値は <strong>js-subset 式評価結果</strong> (§process-flow-expression-language.md)</li>
+<li><code>?.</code> オプショナルチェイン結果が undefined の場合は <code>NULL</code> バインド</li>
+<li>関数呼出・算術演算子を含む式 (<code>@a + @b</code>, <code>Math.floor(@x)</code> 等) は <strong>SQL 側で実行せず、JS で事前評価してから</strong>バインド</li>
+</ol>
+<p>例:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">-- ソース</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">INSERT INTO</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> orders (customer_id, total, payment_id)</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">VALUES</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (@customerId, @subtotal </span><span style="color:#D73A49;--shiki-dark:#F47067">+</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> @taxAmount, @paymentAuth?.id)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">-- PostgreSQL prepared statement</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">INSERT INTO</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> orders (customer_id, total, payment_id) </span><span style="color:#D73A49;--shiki-dark:#F47067">VALUES</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> ($</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, $</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">2</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, $</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">3</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">-- パラメータ: [customerId, (subtotal + taxAmount), paymentAuth?.id ?? null]</span></span></code></pre>
+<h3 id="13-sql-キーワード-vs-式">1.3 SQL キーワード vs 式</h3>
+<p><code>CURRENT_TIMESTAMP</code> / <code>COALESCE(...)</code> / <code>NULL</code> / 列名 (<code>orders.status</code>) は <strong>SQL 字句としてそのまま使用</strong>。<code>@</code> プレフィックスがないものは全て SQL 字句。</p>
+<h3 id="14-select-句の列-alias-規約-775">1.4 SELECT 句の列 alias 規約 (#775)</h3>
+<p>SELECT 結果が ViewDefinition <code>columns[].name</code> (camelCase) へ直接バインドされる場合は、<strong>SQL 内で <code>AS "&#x3C;camelCase>"</code> alias を明示する</strong>。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">-- NG: snake_case 物理名のまま返す (VD column 'unitPrice' と不一致)</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">SELECT</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> p</span><span style="color:#24292E;--shiki-dark:#ADBAC7">.</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">unit_price</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">p</span><span style="color:#24292E;--shiki-dark:#ADBAC7">.</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">product_code</span><span style="color:#D73A49;--shiki-dark:#F47067"> FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> products p</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">-- OK: AS alias で VD column 名と一致させる</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">SELECT</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> p</span><span style="color:#24292E;--shiki-dark:#ADBAC7">.</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">unit_price</span><span style="color:#D73A49;--shiki-dark:#F47067"> AS</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "unitPrice"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">p</span><span style="color:#24292E;--shiki-dark:#ADBAC7">.</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">product_code</span><span style="color:#D73A49;--shiki-dark:#F47067"> AS</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "productCode"</span><span style="color:#D73A49;--shiki-dark:#F47067"> FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> products p</span></span></code></pre>
+<p><strong>理由</strong>: runtime での暗黙変換 (snake_case → camelCase) は validator 検出不能。alias で構文上の binding を確定させる (#775)。</p>
+<p>詳細: <a href="/spec/view-definition/"><code>docs/spec/view-definition.md</code> § (D-5)</a></p>
+<h3 id="15-in-clause-の展開">1.5 in-clause の展開</h3>
+<p><code>WHERE id IN (@ids)</code> のような配列展開は、<code>@ids</code> の要素数に応じて <code>$N, $N+1, ...</code> を展開:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">-- ソース</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">WHERE</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> id </span><span style="color:#D73A49;--shiki-dark:#F47067">IN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (@ids)  </span><span style="color:#6A737D;--shiki-dark:#768390">-- @ids = [10, 20, 30]</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">-- 展開後</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">WHERE</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> id </span><span style="color:#D73A49;--shiki-dark:#F47067">IN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> ($</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, $</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">2</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, $</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">3</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">-- パラメータ: [10, 20, 30]</span></span></code></pre>
+<h2 id="2-http-body-の直列化-externalsystemstephttpcallbody">2. HTTP body の直列化 (<code>ExternalSystemStep.httpCall.body</code>)</h2>
+<h3 id="21-既定-applicationjson">2.1 既定: <code>application/json</code></h3>
+<p><code>httpCall.body</code> は js-subset の object literal 式。既定で <strong>JSON 直列化</strong>される。Content-Type ヘッダは <code>context.catalogs.externalSystems[systemRef].headers</code> / step.headers で上書き可。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 既定</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"httpCall"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"method"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"POST"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"path"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"/v1/foo"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"body"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"{ name: @user.name, age: @user.age }"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// → application/json として送信: {"name": "...", "age": 25}</span></span></code></pre>
+<h3 id="22-applicationx-www-form-urlencoded-stripe-等">2.2 <code>application/x-www-form-urlencoded</code> (Stripe 等)</h3>
+<p>外部 API が form-urlencoded を要求する場合 (Stripe、レガシー OAuth 等)、<strong><code>context.catalogs.externalSystems</code> または step.headers で明示</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "context"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "catalogs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "externalSystems"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "stripe"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"Stripe Japan"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "headers"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "Stripe-Version"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"2024-06-20"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "Content-Type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"application/x-www-form-urlencoded"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">          }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>このとき body object literal は form-encoded 規則で serialize (ネスト object は <code>parent[child]</code> 記法、配列は <code>parent[]</code>):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>body: { amount: 100, metadata: { customer_id: 42 }, items: [1, 2] }</span></span>
+<span class="line"><span>→ amount=100&#x26;metadata[customer_id]=42&#x26;items[]=1&#x26;items[]=2</span></span></code></pre>
+<h3 id="23-undefined--null-の扱い">2.3 undefined / null の扱い</h3>
+<p>値が undefined (例: <code>@optionalField</code> が未設定) のフィールドは <strong>body から除外</strong>。null は <strong>明示的に null/空文字として送信</strong> (API 仕様に従う)。</p>
+<h3 id="24-query-の-serialize">2.4 query の serialize</h3>
+<p><code>httpCall.query</code> は常に URL クエリ文字列。値は js-subset 式として評価、<code>URLSearchParams</code> 相当で encode。</p>
+<h2 id="3-トランザクション--例外--saga-補償の連鎖">3. トランザクション × 例外 × Saga 補償の連鎖</h2>
+<h3 id="31-txboundaryrole-begin--end-の範囲">3.1 <code>txBoundary.role: "begin"</code> → <code>"end"</code> の範囲</h3>
+<p><code>role: "begin"</code> ステップから <code>role: "end"</code> ステップまで (同一 <code>txId</code>) が <strong>1 つの DB トランザクション</strong>。<code>"member"</code> は中間、個別に <code>txBoundary</code> を書かなくても begin〜end 間にある全 step は TX に属する。</p>
+<h3 id="32-throw--rollback-の自動発火">3.2 throw → ROLLBACK の自動発火</h3>
+<p>TX 範囲内 (begin〜end の間) で以下が起きた場合、<strong>TX は自動 ROLLBACK</strong>:</p>
+<ul>
+<li><code>DbAccessStep.affectedRowsCheck.onViolation: "throw"</code> が発火</li>
+<li><code>ExternalSystemStep.outcomes.failure.action: "abort"</code> (compensate は個別補償なので ROLLBACK とは独立)</li>
+<li>いずれかの step で JavaScript エラー (ValidationError 等) が throw される</li>
+</ul>
+<h3 id="33-rollback-後の-trycatch-捕捉">3.3 ROLLBACK 後の <code>tryCatch</code> 捕捉</h3>
+<p>自動 ROLLBACK された throw は、<code>txBoundary.role: "end"</code> より <strong>後ろにある</strong> <code>BranchStep</code> の <code>branches[].condition: { kind: "tryCatch", errorCode: "..." }</code> で捕捉される。</p>
+<p><code>errorCode</code> のマッチング:</p>
+<ul>
+<li><code>affectedRowsCheck.errorCode</code> の値と <code>BranchConditionVariant.errorCode</code> が等しければマッチ</li>
+<li>通常 Error の場合は <code>context.catalogs.errors</code> のキーにマッチさせる規約 (implicit)</li>
+</ul>
+<h3 id="34-捕捉後の補償-saga-compensate">3.4 捕捉後の補償 (Saga compensate)</h3>
+<p>tryCatch ブランチ内に置いた <code>compensatesFor: "step-xxx"</code> 付きの ExternalSystemStep が、<strong>既に成功していた外部呼出の取消</strong>を実行する。</p>
+<h2 id="4-fireandforget-true-の意味論">4. <code>fireAndForget: true</code> の意味論</h2>
+<h3 id="41-同期レスポンス待たない">4.1 同期レスポンス待たない</h3>
+<p><code>fireAndForget: true</code> の ExternalSystemStep は、<strong>HTTP レスポンスを待たずに次の step へ進む</strong>。typical 実装:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="js"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 擬似コード</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">const</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> promise</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> httpClient.</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB">post</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(path, body);</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// await しない</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">promise.</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB">catch</span><span style="color:#24292E;--shiki-dark:#ADBAC7">((</span><span style="color:#E36209;--shiki-dark:#F69D50">err</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#6A737D;--shiki-dark:#768390">/* outcomes.failure の sideEffects を実行 */</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> });</span></span></code></pre>
+<h3 id="42-outcomes-の評価">4.2 outcomes の評価</h3>
+<p><code>outcomes.success</code> は評価しない (そもそも成功を待たないため)。<code>outcomes.failure</code> / <code>outcomes.timeout</code> は <strong>バックグラウンドで発生した場合のみ</strong> sideEffects を実行 (例: Sentry に記録)。</p>
+<h3 id="43-タイムアウト">4.3 タイムアウト</h3>
+<p><code>timeoutMs</code> は fireAndForget でも有効。<strong>バックグラウンドの Promise がこの時間を超えたら reject 扱い</strong>して failure sideEffects を走らせる。</p>
+<h2 id="5-externalchainphase-の順序規約">5. <code>externalChain.phase</code> の順序規約</h2>
+<p><code>phase: "authorize" → "capture" → "cancel"</code> の順序は <strong>スキーマでは強制しない</strong>。以下は <strong>規約として守る</strong>:</p>
+<ol>
+<li>同一 <code>chainId</code> の step のうち、<code>authorize</code> が時系列上最初</li>
+<li><code>capture</code> は <code>authorize</code> の成功後のみ実行可能 (runIf で <code>@paymentAuth != null</code> 等で守る)</li>
+<li><code>cancel</code> は <code>authorize</code> の実施後 (capture 前でも後でも可)</li>
+<li><code>authorize</code> 未実施の状態で <code>capture</code> / <code>cancel</code> を実行してはならない</li>
+</ol>
+<p>実装側は <code>externalChain</code> を<strong>ログ相関 (observability)</strong> + <strong>Saga 補償のリソース突合</strong>に使う。動作保証は step の配置と runIf で書き手が担保する。</p>
+<h2 id="6-sideeffects-内-db-アクセスの-tx-境界">6. <code>sideEffects</code> 内 DB アクセスの TX 境界</h2>
+<p><code>ExternalCallOutcomeSpec.sideEffects</code> 内に置かれた <code>DbAccessStep</code> は、<strong>sideEffects 発火時点で外側の TX は既に commit / rollback 済</strong>という前提。</p>
+<ul>
+<li><strong>autocommit モード</strong>で個別に実行 (新しい TX を開かない)</li>
+<li>失敗しても外側のメインフローには影響しない (sideEffects は best-effort)</li>
+<li>retry は想定しない (retry したい場合は普通の step として配置)</li>
+</ul>
+<p>例 (0005 の capture 失敗時):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>step-or2-011 (capture) が失敗</span></span>
+<span class="line"><span>→ outcomes.failure.sideEffects で</span></span>
+<span class="line"><span>  - "UPDATE orders SET status='payment_failed'" (autocommit)</span></span>
+<span class="line"><span>  - Sentry 記録</span></span>
+<span class="line"><span>  - Slack 通知</span></span></code></pre>
+<p>この UPDATE は外側 TX (tx-order-main) とは別に実行される。</p>
+<h2 id="7-httpresponsespecwhen-の意味">7. <code>HttpResponseSpec.when</code> の意味</h2>
+<p><code>when: "@paymentAuth.status == 'failed'"</code> は <strong>documentation 兼評価式</strong>:</p>
+<ul>
+<li><strong>primary</strong>: 人間と AI 向けの「どういう条件でこのレスポンスが返るか」の説明</li>
+<li><strong>secondary</strong>: 参照整合性バリデータが <code>when</code> 内の <code>@identifier</code> が定義済みかを検査可能 (将来拡張)</li>
+<li><strong>実行時は使わない</strong>: 実際の分岐は step-level の ReturnStep / inlineBranch で行う</li>
+</ul>
+<h2 id="8-actionhttprouteauth-の認証スキーム">8. <code>action.httpRoute.auth</code> の認証スキーム</h2>
+<p><code>auth: "required" | "optional" | "none"</code> は <strong>認証の有無</strong>を示すフラグ。具体的な認証スキーム (Bearer / Session cookie / Basic / API key 等) は:</p>
+<h3 id="81-推奨-processflowcontextambientvariables-で明示-v3">8.1 推奨: ProcessFlow.context.ambientVariables で明示 (v3)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "context"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "ambientVariables"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"userId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"number"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"Bearer token から middleware が解決して注入"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="82-contextcatalogsexternalsystems-とは別扱い">8.2 context.catalogs.externalSystems とは別扱い</h3>
+<p><code>context.catalogs.externalSystems</code> は <strong>outbound</strong> (自アプリ → 外部 API) の認証。<code>httpRoute.auth</code> は <strong>inbound</strong> (クライアント → 自アプリ)。混同しないこと。</p>
+<h3 id="83-スキーム固有の仕様は-product-scope-へ">8.3 スキーム固有の仕様は product-scope へ</h3>
+<p>プロジェクト全体で採用している認証方式 (Bearer JWT / Session / OAuth2 等) は <code>docs/conventions/product-scope.md</code> に宣言。処理フロー個別のスキーマではなく<strong>プロダクト横断規約</strong>として管理。</p>
+<h3 id="85-contextcatalogssecrets-と-tokenref-の連携-261-v16">8.5 context.catalogs.secrets と tokenRef の連携 (#261 v1.6)</h3>
+<p>ExternalAuth.tokenRef は以下 3 形式を受け付ける:</p>
+<ol>
+<li><strong><code>@secret.&#x3C;key></code></strong> (推奨): ProcessFlow.context.catalogs.secrets 参照。参照整合性バリデータが未登録エラーを検出</li>
+<li><strong><code>ENV:&#x3C;envName></code></strong> (後方互換): 環境変数名直書き</li>
+<li><strong><code>SECRET:&#x3C;path></code></strong> (後方互換): 外部 secret store パス直書き</li>
+</ol>
+<p>新規データは <code>@secret.*</code> を使い、catalog 側で source (env/vault/file) と name を管理する。catalog は値そのものを持たず、<strong>メタデータのみ</strong>。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "context"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "catalogs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "secrets"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "stripeApiKey"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "source"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"env"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"STRIPE_SECRET_KEY"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"Stripe API 認証"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "rotationDays"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">90</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>実装時は source 毎に:</p>
+<ul>
+<li><code>env</code> → <code>process.env[secretRef.name]</code></li>
+<li><code>vault</code> → HashiCorp Vault / AWS Secrets Manager / GCP Secret Manager の API</li>
+<li><code>file</code> → ファイルから読込 (開発時のみ)</li>
+</ul>
+<h3 id="84-inbound-auth-具体スキーム決定フロー">8.4 inbound auth 具体スキーム決定フロー</h3>
+<p>実装者が <code>httpRoute.auth: "required"</code> を見たとき、以下の順で具体スキームを決定する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>httpRoute.auth == "required" ?</span></span>
+<span class="line"><span>  ├─ yes → context.ambientVariables に "userId" / "accountId" 等の identity 変数があるか?</span></span>
+<span class="line"><span>  │   ├─ yes → scheme は Bearer JWT (token から middleware が userId を解決して @userId に注入)</span></span>
+<span class="line"><span>  │   └─ no → docs/conventions/product-scope.md §6 の既定 scheme (例: Session cookie) を採用</span></span>
+<span class="line"><span>  └─ no → スキーム解決不要 (auth: "none" / "optional")</span></span></code></pre>
+<p>0005 の例: <code>httpRoute.auth: "required"</code> + <code>context.ambientVariables</code> に <code>sessionId</code> があるが <code>userId</code> なし → product-scope §6 の規定 (Session cookie + httpOnly) を採用。</p>
+<h2 id="9-ambient-context--規約カタログ-defaults-と-ambientoverrides-369">9. Ambient Context — 規約カタログ defaults と ambientOverrides (#369)</h2>
+<h3 id="91-ambient-context-の定義">9.1 Ambient Context の定義</h3>
+<p><strong>Ambient Context</strong> とは、ProcessFlow が明示的に inputs で受け取るのではなく、「プロジェクト全体に共通する前提」として暗黙に利用する環境情報のこと。v3 では <code>context.ambientVariables</code> に宣言する。代表例:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Ambient 項目</th><th>参照パス</th><th>既定値 (プロジェクト既定)</th></tr></thead><tbody><tr><td>タイムゾーン</td><td><code>@conv.scope.timezone</code></td><td><code>Asia/Tokyo</code> (JST)</td></tr><tr><td>通貨</td><td><code>@conv.currency.jpy</code></td><td>JPY (subunit=0, roundingMode=floor)</td></tr><tr><td>消費税方式</td><td><code>@conv.tax.standard</code></td><td>外税 10%, 切り捨て</td></tr><tr><td>認証スキーム</td><td><code>@conv.auth.default</code></td><td>session-cookie + httpOnly</td></tr><tr><td>DB 規約</td><td><code>@conv.db.default</code></td><td>PostgreSQL 14+, snake_case</td></tr></tbody></table>
+<h3 id="92-規約カタログが-project-wide-defaults-を担う">9.2 規約カタログが project-wide defaults を担う</h3>
+<p><code>data/conventions/catalog.json</code> の各エントリに <code>"default": true</code> を付与したものが、<strong>全 ProcessFlow の共通 ambient default</strong> となる。</p>
+<ul>
+<li><code>"default": true</code> が付いていないエントリは「オプション定義」(比較対象・将来用) として存在可</li>
+<li>1 カテゴリ内に複数 <code>"default": true</code> がある場合の動作は未定義 (バリデータが将来検出予定)</li>
+<li>AI 実装者は <code>data/conventions/catalog.json</code> を「実装の前提条件」として最初に読む</li>
+<li><strong>対象カテゴリ</strong>: <code>scope</code> / <code>currency</code> / <code>tax</code> / <code>auth</code> / <code>db</code> の 5 カテゴリのみ。<code>msg</code> / <code>regex</code> / <code>limit</code> / <code>numbering</code> / <code>tx</code> / <code>externalOutcomeDefaults</code> はルックアップテーブルまたは複数方針の共存で「単一 default」の概念が適用されないため対象外</li>
+<li><strong>注意 — キー名と <code>default</code> プロパティ名の重複</strong>: <code>auth.default</code>・<code>db.default</code> 等、エントリのキー名が <code>"default"</code> の場合、新プロパティ <code>"default": true</code> を追加すると同名が 2 か所現れる。これは <strong>JSON 構造上は問題ない</strong> (キー名 <code>"default"</code> は object のキー、<code>"default": true</code> は そのオブジェクト内のプロパティ) が、視覚的に分かりにくい。既存キー名は互換性のため変更せず、コメントが必要な場合は <code>description</code> フィールドで補足する</li>
+</ul>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// data/conventions/catalog.json の例</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "currency"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "jpy"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"code"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"JPY"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"subunit"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">0</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"roundingMode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"floor"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"default"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "usd"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"code"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"USD"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"subunit"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">2</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"roundingMode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"round"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="93-processflowcontextambientoverrides--フロー単位の例外指定-v3">9.3 ProcessFlow.context.ambientOverrides — フロー単位の例外指定 (v3)</h3>
+<p>大多数のフローは規約カタログの defaults をそのまま使う。<strong>特定フローだけ例外</strong> (外貨精算・UTC バッチ等) の場合にのみ、<code>context.ambientOverrides</code> フィールドで上書きする。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// data/process-flows/xxx.json (override が必要な場合のみ記述)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "meta"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"11111111-1111-4111-8111-111111111111"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"外貨精算"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "context"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "ambientOverrides"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "currency"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.currency.usd"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "scope.timezone"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"UTC"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "catalogs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {}</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "actions"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: []</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong>ルール:</strong></p>
+<ol>
+<li><code>ambientOverrides</code> が無い ProcessFlow は、規約カタログの <code>default: true</code> エントリを全項目で継承</li>
+<li><code>ambientOverrides</code> で指定したキー (例: <code>"currency"</code>) だけ override、残りは defaults 継続</li>
+<li>値は <code>@conv.*</code> 形式の参照文字列 (カタログ内のキーパスを指す) または直接値 (例: <code>"UTC"</code>)</li>
+<li><code>@conv.*</code> 参照の場合、AI 実装者は参照先カタログエントリの全フィールドを引いて利用する</li>
+<li>稀用途: 通常は <code>ambientOverrides</code> なしで設計し、必要が生じた時点で追加する</li>
+</ol>
+<h3 id="94-ai-実装者が設計書を読む順序">9.4 AI 実装者が設計書を読む順序</h3>
+<p>処理フロー実装時は以下の順で読む:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>1. data/conventions/catalog.json          — project-wide defaults (通貨・TZ・税率・認証・DB 規約等)</span></span>
+<span class="line"><span>2. 対象 ProcessFlow の ambientOverrides    — 当該フローの特例 (無い場合は 1. の defaults をそのまま適用)</span></span>
+<span class="line"><span>3. 処理フロー本体 (actions / steps)        — 具体ロジック</span></span>
+<span class="line"><span>4. テーブル定義 (DDL)                       — 採番ロジック等のインフラ層</span></span>
+<span class="line"><span>5. 画面項目定義                             — 入出力の UI 制約</span></span></code></pre>
+<h3 id="95-contextambientoverrides-と-contextambientvariables-の違い-v3">9.5 context.ambientOverrides と context.ambientVariables の違い (v3)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>フィールド</th><th>目的</th><th>例 (v3 パス)</th></tr></thead><tbody><tr><td><code>context.ambientVariables</code></td><td>ミドルウェア由来の <strong>変数宣言</strong> (<code>@requestId</code> 等が存在することを明示)</td><td><code>[{ "name": "userId", "type": "number" }]</code></td></tr><tr><td><code>context.ambientOverrides</code></td><td>規約カタログ defaults への <strong>例外指定</strong> (フロー単位で通貨・TZ 等を変える)</td><td><code>{ "currency": "@conv.currency.usd" }</code></td></tr></tbody></table>
+<p>両者は別物。<code>context.ambientVariables</code> はリクエストスコープの変数、<code>context.ambientOverrides</code> はプロジェクト規約に対するフロー固有の例外。</p>
+<h2 id="10-compensatesfor-の配置規約">10. <code>compensatesFor</code> の配置規約</h2>
+<h3 id="101-通常は-trycatch-ブランチ配下">10.1 通常は tryCatch ブランチ配下</h3>
+<p><code>StepBase.compensatesFor: string</code> (補償対象の step ID) を持つ step は、<strong>通常 <code>BranchStep.branches[].condition: { kind: "tryCatch" }</code> の steps 配下</strong>に置く。メインフロー側 (成功経路) に置かない理由: 成功経路では補償する必要がない。</p>
+<h3 id="102-runif-で補償対象の成功を確認">10.2 runIf で補償対象の成功を確認</h3>
+<p>補償が意味を持つのは「対象 step が成功した後にエラーが起きた」場合のみ。対象 step の outputBinding を <code>runIf</code> で確認する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-stripe-cancel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"externalSystem"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "runIf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@paymentAuth != null"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "compensatesFor"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-stripe-authorize"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">  ...</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>@paymentAuth</code> は authorize 成功時のみ set される → <code>null</code> 判定で「既に authorize 済なら cancel」を守る。</p>
+<h3 id="103-参照整合性-現状の検査範囲">10.3 参照整合性 (現状の検査範囲)</h3>
+<ul>
+<li><code>compensatesFor</code> の値は action 内の既存 step ID であるべき (将来の参照整合性バリデータで検査予定、#261 残)</li>
+<li>現状は書き手規約</li>
+</ul>
+<h2 id="11-ログ--監査ステップの規約">11. ログ / 監査ステップの規約</h2>
+<h3 id="111-logstep-は運用観測用">11.1 <code>LogStep</code> は運用観測用</h3>
+<p><code>type: "log"</code> はデバッグ・運用観測のためのアプリケーションログを表す。<code>message</code> と <code>structuredData</code> の値は式として評価してよい。実装は <code>level</code> をロガーの重要度に対応させ、<code>category</code> が指定されている場合はログルーティング・logger 名・タグ等に利用する。</p>
+<p><code>LogStep</code> は業務監査の証跡ではない。誰が何を実行したかをコンプライアンス目的で残す場合は <code>AuditStep</code> を使う。</p>
+<h3 id="112-auditstep-は-actor--timestamp-を自動付与">11.2 <code>AuditStep</code> は actor / timestamp を自動付与</h3>
+<p><code>type: "audit"</code> は「誰が・いつ・何に対して・何をして・結果どうなったか」の監査証跡を表す。フロー定義には <code>actor</code> と <code>timestamp</code> を書かない。実装はセッションコンテキストまたは認証ミドルウェアから現在ユーザーを取得し、<code>@conv.auth.currentUser</code> 相当の ambient context として自動注入する。時刻は監査ログを書き込むサーバ側で生成し、クライアント入力値を信用しない。</p>
+<p><code>result</code> が未指定の場合、実装はステップ実行結果から自動判定する。例外が発生した場合は <code>failure</code>、正常完了した場合は <code>success</code> として記録する。明示指定がある場合はその値を優先する。</p>
+<h3 id="113-sensitive-マスキング">11.3 sensitive マスキング</h3>
+<p><code>AuditStep.sensitive: true</code> の場合、実装は対象値の本体を監査ログに保存しない。<code>resource.type</code> / <code>resource.id</code> / <code>action</code> / <code>reason</code> の参照キーやフィールド名は残してよいが、パスワード・トークン・個人番号・秘密値などの値本体は <code>***</code> などの固定マスクに置換する。</p>
+<p>マスキングは監査ログ出力直前の最後の防御線として行う。上流の <code>LogStep.structuredData</code> や例外メッセージにも機微値が混入しないよう、実装は同じマスキングルールを共有することが望ましい。</p>
+<h2 id="rbac-役割権限">RBAC (役割・権限)</h2>
+<p><code>role</code> と <code>permission</code> は横断規約カタログの第一級カテゴリとして扱う。参照は <code>@conv.role.&#x3C;key></code> / <code>@conv.permission.&#x3C;key></code> の形式で書く。権限キーは <code>order.approve</code> のようにドメインと操作を dot でつないだ名前を推奨する。</p>
+<p>Runtime は Action 起動前に actor が持つ role から permission を展開し、<code>ActionDefinition.requiredPermissions</code> の全要素を actor の permission 集合が包含するか検証する。欠けている permission があれば処理本体へ入らず、403 相当の outcome を返す。</p>
+<p>role の <code>inherits</code> は depth-first で展開する。親 role の <code>inherits</code> を先にたどり、得られた permission は重複を除去して集合として扱う。循環参照は conventions validator のエラーであり、runtime は循環した catalog を前提にしない。</p>
+<p>Step-level の <code>requiredPermissions</code> は Action-level と AND 条件で評価する。つまり Action 起動時に Action-level 権限を満たしたうえで、該当 step の実行直前に Step-level 権限もすべて満たしている必要がある。Step-level 権限が欠ける場合も 403 相当の outcome とし、当該 step 以降の副作用を実行しない。</p>
+<h2 id="国際化-i18n">国際化 (i18n)</h2>
+<p><code>i18n</code> は規約カタログの第一級カテゴリとして扱い、処理フロー実行時の locale と表示フォーマットを宣言する。利用可能な locale は <code>i18n.supportedLocales</code> に列挙し、ランタイムはこの集合に含まれる locale だけをメッセージ解決とフォーマット適用の対象にする。</p>
+<p><code>@conv.i18n.locale</code> は現在のセッション locale を表す runtime 値である。カタログに保存される固定値ではなく、ログインユーザー設定、リクエストヘッダー、テナント設定などから実行環境が決定する。</p>
+<p><code>@conv.i18n.defaultLocale</code> は <code>i18n.defaultLocale</code> を参照する fallback locale である。<code>defaultLocale</code> は必ず <code>supportedLocales</code> に含める。含まれない catalog は conventions validator のエラーとする。</p>
+<p><code>@conv.msg.&#x3C;key></code> で <code>MessageTemplate</code> を参照する場合、ランタイムは次の順序でテンプレート文字列を解決する。</p>
+<ol>
+<li><code>MessageTemplate.locales[currentLocale]</code></li>
+<li><code>MessageTemplate.locales[defaultLocale]</code></li>
+<li><code>MessageTemplate.text</code></li>
+</ol>
+<p>現行 schema では互換性のため <code>MessageTemplate.template</code> を正本の本文フィールドとして扱う。実装時に <code>text</code> という名前で内部表現へ写像する場合も、解決順の最後は catalog 上の <code>template</code> と同じ値を指す。</p>
+<p>フォーマットヘルパーは runtime が提供する関数参照として扱う。代表例は <code>@conv.i18n.format.date(value, locale?)</code>、<code>@conv.i18n.format.time(value, locale?)</code>、<code>@conv.i18n.format.currency(value, currency, locale?)</code>、<code>@conv.i18n.format.number(value, locale?)</code> である。</p>
+<p>カタログの <code>dateFormat</code> / <code>timeFormat</code> / <code>currencyDisplay</code> / <code>numberGrouping</code> は locale ごとの表示規約を宣言する。実際のフォーマット処理、Intl API への変換、未定義 locale の fallback は runtime の責務であり、処理フロー JSON はこれらのヘルパーを参照するだけに留める。</p>
+<p><code>MessageTemplate.locales</code> は任意である。未指定の場合、既存 catalog と同じく <code>template</code> を default locale の文言として扱うため、既存の <code>msg</code> 定義は変更なしで有効である。</p>
+<h2 id="12-適用チェックリスト-実装者向け">12. 適用チェックリスト (実装者向け)</h2>
+<p>処理フロー JSON から Node.js/Express 実装を起こすとき、以下を本仕様に沿って決定する:</p>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>sql</code> 内 <code>@x</code> → prepared statement <code>$N</code> 変換 (§1)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>httpCall.body</code> → JSON or form-urlencoded を Content-Type で判定 (§2)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>txBoundary.begin</code> 〜 <code>end</code> を Knex/pg の <code>tx.run()</code> / <code>BEGIN</code>/<code>COMMIT</code> に対応 (§3)</li>
+<li class="task-list-item"><input type="checkbox" disabled> throw された errorCode を BranchConditionVariant.tryCatch で捕捉、Saga 補償の compensatesFor を走らせる (§3.4)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>fireAndForget: true</code> なら await せず、エラーは background で outcomes.failure.sideEffects (§4)</li>
+<li class="task-list-item"><input type="checkbox" disabled> externalChain.phase は observability のみ (§5)</li>
+<li class="task-list-item"><input type="checkbox" disabled> sideEffects 内の dbAccess は autocommit (§6)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>responses[].when</code> は documentation (§7)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>httpRoute.auth</code> のスキーム具体化は ambient 変数 + product-scope (§8)</li>
+<li class="task-list-item"><input type="checkbox" disabled> ambient 前提 (TZ / 通貨 / 税率) は <code>data/conventions/catalog.json</code> の <code>default: true</code> エントリから取得 (§9.2)</li>
+<li class="task-list-item"><input type="checkbox" disabled> フロー固有の ambient 例外は <code>context.ambientOverrides</code> を確認し、未記載なら catalog defaults をそのまま適用 (§9.3)</li>
+</ul>
+<h2 id="13-実装ガイドライン-ドッグフード由来">13. 実装ガイドライン (ドッグフード由来)</h2>
+<p>シナリオ #2-#6 (PR #468-#472) のレビューで繰り返し検出された実装ミスを以下にまとめる。チェックリスト §12 の補足として読むこと。</p>
+<h3 id="131-内部スケジューラ起動の-auth-表現">§13.1 内部スケジューラ起動の auth 表現</h3>
+<p>グローバル定義スキーマで <code>action.httpRoute.auth</code> の enum は <code>["required", "optional", "none"]</code> の 3 値のみ。</p>
+<p><strong>内部スケジューラから呼ぶ API</strong> (例: <code>marketOpen</code> トリガー、夜間バッチ) の auth は次のいずれかで表現する:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>方法</th><th>状況</th><th>例</th></tr></thead><tbody><tr><td><code>auth: "required"</code> + <code>requiredPermissions: ["system"]</code></td><td>現行 workaround。内部スケジューラが system パーミッションを持つとして扱う</td><td><code>"auth": "required", "requiredPermissions": ["system"]</code></td></tr><tr><td><code>auth: "none"</code></td><td>完全に内部のみ・外部からアクセス不可と明示できる場合</td><td><code>"auth": "none"</code></td></tr></tbody></table>
+<p>将来的に schema に <code>auth: "system"</code> 値を追加することを検討しているが (#474 とは別 ISSUE で起票)、現状は上記 workaround を使う。シナリオ #5 (#465) での実例を参照。</p>
+<h3 id="132-on-conflict-do-nothing-時の-outputbinding-振る舞い">§13.2 ON CONFLICT DO NOTHING 時の outputBinding 振る舞い</h3>
+<p><code>INSERT ... ON CONFLICT DO NOTHING RETURNING ...</code> で衝突時 (no-op) の <code>outputBinding</code> 変数は <strong>null か空オブジェクト</strong> になる。</p>
+<p><strong>後続参照は null 安全表現を必須とする</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 危険: ON CONFLICT DO NOTHING で衝突した場合 null deref</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"compute"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"expression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@submissionRecord.submittedCount"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 安全: null 安全アクセスまたは null 合体演算子を使う</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"compute"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"expression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@submissionRecord?.submittedCount ?? @reportableTrades.length"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span></code></pre>
+<p>シナリオ #5 での対策例: <code>@submissionRecord?.submittedCount ?? @reportableTrades.length</code> の形で null 安全表現を適用して解決。</p>
+<h3 id="133-loop-0-件時の-accumulate-初期化">§13.3 loop 0 件時の accumulate 初期化</h3>
+<p><code>outputBinding: { name: "total", operation: "accumulate", initialValue: 0 }</code> で loop が 0 件の場合、<code>@total</code> の値は<strong>実装依存</strong>になる。</p>
+<p><strong>安全な書き方</strong>: loop の前に明示的初期化 step を置く。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"init-total"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"compute"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"expression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"0"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"total"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"the-loop"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"loop"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"items"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@list"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"accumulate"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"compute"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "expression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@total + @item.amount"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"total"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">]}</span></span></code></pre>
+<ul>
+<li><code>initialValue</code> を指定していても「loop 入口での初期化タイミング」は実装依存</li>
+<li>loop 前の明示的 <code>compute</code> step で初期化することで、0 件パスでも <code>@total</code> が確実に定義済みになる</li>
+<li><strong>検出パターン</strong>: <code>/review-flow</code> 観点 1 (変数ライフサイクル) で「loop accumulate の 0 件パス」を確認 (シナリオ #4 で実例)</li>
+</ul>
+<h2 id="関連">関連</h2>
+<ul>
+<li>スキーマ: <code>schemas/v3/process-flow.v3.schema.json</code> — v3 全体定義</li>
+<li><code>docs/spec/process-flow-extensions.md</code> — 構造化フィールド定義</li>
+<li><code>docs/spec/process-flow-expression-language.md</code> — 式言語 BNF</li>
+<li><code>docs/spec/process-flow-variables.md</code> — 変数・outputBinding</li>
+<li><code>docs/spec/process-flow-maturity.md</code> — 成熟度・モード</li>
+<li><code>examples/&#x3C;project-id>/actions/</code> または <code>examples/&#x3C;project-id>/process-flows/</code> — v3 形式の実サンプル (canonical 置き場: <code>examples/retail/</code>, <code>examples/realestate/</code>)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

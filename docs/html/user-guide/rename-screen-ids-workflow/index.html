@@ -1,0 +1,181 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>rename screen ids workflow</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="/user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="/user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="/user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="/user-guide/rename-screen-ids-workflow/" class="sidebar-link active"> 画面 ID リネーム </a> </li><li> <a href="/user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="/user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="画面項目-id-の-ai-自動命名-rename-screen-ids">画面項目 ID の AI 自動命名 (<code>/rename-screen-ids</code>)</h1>
+<h2 id="概要">概要</h2>
+<p>フォーム要素を画面に配置すると、初期 ID は <code>textInput1</code>・<code>select3</code> などの自動採番になります。これをコードで使える業務名 (<code>userName</code>・<code>postalCode</code>) に変換するのが <code>/rename-screen-ids</code> コマンドです。</p>
+<p>Claude Code が画面の label / placeholder / 見出しを読んで命名を推論し、ユーザー確認後に一括適用します。</p>
+<h2 id="使い方">使い方</h2>
+<h3 id="基本-現在開いている画面を対象">基本 (現在開いている画面を対象)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>/rename-screen-ids</span></span></code></pre>
+<p>ブラウザで画面デザイナーを開いた状態で実行します。アクティブなタブの画面が自動検出されます。</p>
+<h3 id="画面-id-を指定">画面 ID を指定</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>/rename-screen-ids aaaaaaaa-0001-4000-8000-aaaaaaaaaaaa</span></span></code></pre>
+<p>画面 ID は画面一覧または URL (<code>/screen/design/&#x3C;id></code>) から確認できます。</p>
+<h2 id="処理の流れ">処理の流れ</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>/rename-screen-ids</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  ├─ 1. 未命名項目を取得 (get_rename_context)</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  ├─ 2. Claude が業務名を推論</span></span>
+<span class="line"><span>  │       label: 氏名     → fullName</span></span>
+<span class="line"><span>  │       label: 郵便番号 → postalCode</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  ├─ 3. マッピング表を提示 → ユーザー確認</span></span>
+<span class="line"><span>  │       | textInput1 → fullName  |</span></span>
+<span class="line"><span>  │       | textInput2 → postalCode |</span></span>
+<span class="line"><span>  │       このマッピングで適用してよいですか？</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  ├─ 4. yes → apply_rename_mapping を実行</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  └─ 5. 結果報告 (成功 / 失敗 / スキップ)</span></span></code></pre>
+<h2 id="命名ルール">命名ルール</h2>
+<p>Claude が推論に使うルール (変更不可):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ルール</th><th>内容</th></tr></thead><tbody><tr><td>形式</td><td>camelCase (<code>userName</code>, <code>postalCode</code>)</td></tr><tr><td>文字</td><td>英数字のみ。ハイフン・アンダースコア不可</td></tr><tr><td>長さ</td><td>30 字以内</td></tr><tr><td>禁止</td><td>JS 予約語 (<code>let</code>, <code>const</code>, <code>class</code> 等)</td></tr><tr><td>推論不能</td><td>スキップ (現在の自動採番 ID を維持)</td></tr></tbody></table>
+<h2 id="対象対象外">対象・対象外</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>扱い</th></tr></thead><tbody><tr><td><code>textInput1</code>, <code>select3</code>, <code>field_69f9561e</code> 等の自動生成 ID</td><td><strong>対象</strong> (リネーム候補)</td></tr><tr><td><code>userName</code>, <code>postalCode</code> 等の業務命名済み ID</td><td><strong>対象外</strong> (保護)</td></tr></tbody></table>
+<h2 id="確認フローの重要性">確認フローの重要性</h2>
+<p>このコマンドは処理フローの <code>screenItemRef</code> も追従してリネームします。意図しないリネームは処理フロー定義に影響するため、<strong>必ず提示されたマッピングを確認してから yes を応答してください。</strong></p>
+<p>修正したい場合は「<code>textInput1</code> は <code>loginName</code> にしてください」と返答すると、Claude がマッピングを修正して再提示します。</p>
+<h2 id="よくある-qa">よくある Q&#x26;A</h2>
+<p><strong>Q: 一部だけリネームしたい</strong>
+A: yes の前に「<code>textInput3</code> はスキップして」と伝えると対応します。</p>
+<p><strong>Q: 推論が間違っていた</strong>
+A: 確認ステップで修正を伝えてください。適用前に変更できます。</p>
+<p><strong>Q: 画面デザイナーが開いていないと言われた</strong>
+A: ブラウザで <code>/screen/design/&#x3C;id></code> を開いてから再実行してください。</p>
+<p><strong>Q: screen-items ファイルがないと言われた</strong>
+A: 画面デザイナーで一度フォーム要素をドロップして保存すると、active workspace の <code>&#x3C;dataDir>/screen-items/&#x3C;id>.json</code> が生成されます (例: <code>workspaces/&#x3C;wsId>/&#x3C;dataDir>/screen-items/&#x3C;id>.json</code>)。</p>
+<hr>
+<h2 id="ブラウザボタン版-337">ブラウザボタン版 (#337)</h2>
+<p>Claude Code セッションを開かずにブラウザだけで AI 命名を実行できます。</p>
+<h3 id="前提">前提</h3>
+<ul>
+<li><code>backend</code> が稼働していること (<code>cd backend &#x26;&#x26; npm run dev</code>)</li>
+<li><code>backend</code> が稼働するマシンで <code>claude login</code> 済みであること</li>
+</ul>
+<p>認証確認コマンド:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>claude auth status</span></span></code></pre>
+<h3 id="使い方-1">使い方</h3>
+<ol>
+<li>ブラウザで画面デザイナーを開く (<code>/screen/design/&#x3C;id></code>)</li>
+<li>ツールバー左端の <strong>✦ ボタン</strong> (IDを AI で再命名) をクリック</li>
+<li>AI が未命名項目を分析 → マッピングを提示</li>
+<li>内容を確認して <strong>「適用する」</strong> をクリック</li>
+<li>完了トーストで成功 / 失敗件数を確認</li>
+</ol>
+<blockquote>
+<p><strong>ボタンが無効の場合</strong>: <code>claude login</code> 未実行または <code>backend</code> 未起動です。</p>
+</blockquote>
+<h3 id="トラブルシューティング">トラブルシューティング</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>症状</th><th>対処</th></tr></thead><tbody><tr><td>ボタンが灰色でクリックできない</td><td><code>claude auth status</code> で認証確認 / <code>claude login</code> を実行</td></tr><tr><td>「通信エラー」が出る</td><td><code>backend</code> が起動しているか確認</td></tr><tr><td>タイムアウト (60秒)</td><td>画面項目数が多すぎる場合は <code>/rename-screen-ids</code> コマンド版を使用</td></tr></tbody></table>
+<h2 id="関連">関連</h2>
+<ul>
+<li>MCP ツール仕様: <a href="/spec/screen-items/"><code>docs/spec/screen-items.md</code> — AI 推論セクション</a></li>
+<li>ID の手動リネーム: <code>designer__rename_screen_item</code> ツール</li>
+<li>画面項目 ID の仕組み: <a href="/spec/screen-items/"><code>docs/spec/screen-items.md</code></a></li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

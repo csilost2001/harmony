@@ -1,0 +1,206 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>process flow sla</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link active"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="processflow-sla--timeout-仕様">ProcessFlow SLA / Timeout 仕様</h1>
+<p><strong>改訂日: 2026-04-28 (v3 反映)</strong></p>
+<h2 id="目的">目的</h2>
+<p>処理フロー定義に、性能・待ち時間・タイムアウト時の扱いを宣言するための <code>sla</code> を追加する。AI 実装者はこの情報を使い、タイムアウト設定、監視、ログ、補償処理、エラー応答を生成する。</p>
+<h2 id="対象レベル">対象レベル</h2>
+<p><code>sla</code> は次の 3 レベルで指定できる。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>レベル</th><th>対象</th><th>用途</th></tr></thead><tbody><tr><td>ProcessFlow</td><td>フロー全体</td><td>画面操作やバッチ全体の上限時間、全体監視</td></tr><tr><td>ActionDefinition</td><td>アクション単位</td><td>submit / click / timer など 1 アクション内の上限時間</td></tr><tr><td>StepBase</td><td>任意ステップ</td><td>外部 API、DB、計算、ログなど個別処理の上限時間</td></tr></tbody></table>
+<p>より内側のレベルが指定されている場合は、実装時に内側の宣言を優先する。例: <code>StepBase.sla.timeoutMs</code> は <code>ActionDefinition.sla.timeoutMs</code> より具体的な制約として扱う。</p>
+<h2 id="sla">Sla</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Sla</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  timeoutMs</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  onTimeout</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "throw"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "continue"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "compensate"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "log"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  errorCode</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  warningThresholdMs</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  p95LatencyMs</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="timeoutms">timeoutMs</h3>
+<p>タイムアウトまでのミリ秒。ProcessFlow / ActionDefinition / StepBase のいずれでも同じ意味で、対象スコープの最大実行時間を示す。</p>
+<p>各レベルでの解釈:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>レベル</th><th>意味</th></tr></thead><tbody><tr><td>ProcessFlow</td><td>フロー全体 (全アクション + 全ステップ合計) の最大実行時間</td></tr><tr><td>ActionDefinition</td><td>アクション 1 回 (HTTP リクエスト 1 回など) の最大実行時間</td></tr><tr><td>StepBase</td><td>個別ステップ (DB 1 クエリ、外部 API 1 呼出 など) の最大実行時間</td></tr></tbody></table>
+<h3 id="ontimeout">onTimeout</h3>
+<p>タイムアウト時の挙動。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>値</th><th>意味</th></tr></thead><tbody><tr><td><code>throw</code></td><td>エラーとして扱い、通常のエラー処理へ進める</td></tr><tr><td><code>continue</code></td><td>タイムアウトを記録し、次の処理へ継続する</td></tr><tr><td><code>compensate</code></td><td>補償処理や Saga の戻し処理へ進める</td></tr><tr><td><code>log</code></td><td>タイムアウトをログ・監視に残すが、業務フローは止めない</td></tr></tbody></table>
+<h3 id="errorcode">errorCode</h3>
+<p><code>context.catalogs.errors</code> のキーと連携するエラーコード。<code>onTimeout: "throw"</code> または <code>compensate</code> の場合、HTTP レスポンスや業務エラーへの変換に利用する。</p>
+<p><strong>スキーマ制約 (#412)</strong>: <code>onTimeout</code> が <code>throw</code> または <code>compensate</code> の場合、<code>errorCode</code> は必須 (JSON Schema の <code>if/then</code> で強制)。<code>continue</code> / <code>log</code> では <code>errorCode</code> は不要。</p>
+<h3 id="warningthresholdms">warningThresholdMs</h3>
+<p>タイムアウトより手前で警告を出す閾値。例: <code>timeoutMs: 2000</code>, <code>warningThresholdMs: 1500</code> の場合、1.5 秒を超えた処理を遅延警告として監視できる。</p>
+<h3 id="p95latencyms">p95LatencyMs</h3>
+<p>P95 レイテンシ目標 (ms)。SRE 監視・SLO 評価で「95% のリクエストが満たすべき応答時間」として使用する。<code>timeoutMs</code> (絶対上限) と異なり、超過しても処理は継続するが、観測値が継続的に超えた場合は監視 alert 対象。</p>
+<p>例: <code>timeoutMs: 5000</code>, <code>p95LatencyMs: 500</code> — 上限 5 秒 / SLO 目標 P95 &#x3C; 500ms。</p>
+<h2 id="v3-での利用例">v3 での利用例</h2>
+<p>ProcessFlow レベルの sla 指定 (v3 形式):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "meta"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"11111111-1111-4111-8111-111111111111"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"注文処理"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "sla"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "timeoutMs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">30000</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "warningThresholdMs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">20000</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "p95LatencyMs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">5000</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "context"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "catalogs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "errors"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "TIMEOUT"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "httpStatus"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">504</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "defaultMessage"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"処理がタイムアウトしました"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "responseId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"504-timeout"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>ステップレベルの sla 指定 (v3 形式):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"externalSystem"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-payment"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"決済 API を呼び出す"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "systemRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"paymentGateway"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "sla"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "timeoutMs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">5000</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "onTimeout"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"throw"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "errorCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"TIMEOUT"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h2 id="設計判断">設計判断</h2>
+<h3 id="timeoutms-の-3-レベル統合-採用">timeoutMs の 3 レベル統合 (採用)</h3>
+<p>ISSUE #412 の当初案では、Flow / Action では <code>totalTimeoutMs</code>、Step では <code>timeoutMs</code> という別名を採用していたが、3 レベルすべてで <code>timeoutMs</code> に統一した。</p>
+<p>理由:</p>
+<ul>
+<li><strong>シンプルな API</strong>: フィールド名がレベルで変わらないため、AI 実装者が記憶しやすい</li>
+<li><strong>JSON 型再利用</strong>: 同一の <code>Sla</code> 型を 3 レベルで使い回せる (型定義 / バリデーション / UI / テストが一段集約)</li>
+<li><strong>意味は文脈から自明</strong>: 上述の通り、レベルに応じて「対象スコープの最大実行時間」と読み替えれば意味が一意に決まる</li>
+<li>「フロー全体の上限」「アクション 1 回の上限」「ステップ 1 つの上限」はネスト関係 (内側 ⊆ 外側) なので、別名にする実用的メリットが薄い</li>
+</ul>
+<p>トレードオフ: <code>totalTimeoutMs</code> という命名が持つ「全体合計」のニュアンスは失われるが、上の表で意味を明示することで補う。</p>
+<h2 id="将来追加候補">将来追加候補</h2>
+<h3 id="errorbudget-sre-error-budget">errorBudget (SRE error budget)</h3>
+<p>SRE プラクティスの「許容エラー率」(例: 99.9% SLO なら error budget = 0.1%) を Sla に追加することを検討中。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 将来案</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"sla"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "errorBudget"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">0.001</span><span style="color:#6A737D;--shiki-dark:#768390">  // 許容エラー率 0.1%</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>別 ISSUE で扱う予定。実装時には <code>monitoring.errorBudgetBurnRate</code> のような関連フィールドとセットで設計する。</p>
+<h2 id="後方互換">後方互換</h2>
+<p>既存の <code>ExternalSystemStep.timeoutMs</code> は deprecated として残す。新規定義では <code>StepBase.sla.timeoutMs</code> を使用する。</p>
+<p>外部システムステップで両方が指定された場合、<code>sla.timeoutMs</code> を優先する。旧データの読み込み・検証互換を維持するため、スキーマ上は <code>ExternalSystemStep.timeoutMs</code> も引き続き受け付ける。</p>
+<h2 id="関連">関連</h2>
+<ul>
+<li>スキーマ: <code>schemas/v3/process-flow.v3.schema.json</code> — <code>Sla</code> 型定義</li>
+<li><code>docs/spec/process-flow-external-system.md</code> — ExternalSystemStep 詳細</li>
+<li><code>docs/spec/process-flow-runtime-conventions.md</code> §3 — タイムアウトと TX / Saga の連鎖</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

@@ -1,0 +1,378 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>dogfood 2026 04 30 phase2 healthcare welfare</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link active"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="phase-2-子-2-ドッグフード--医療--社会保険行政業務-2026-04-30">Phase 2 子 2 ドッグフード — 医療 + 社会保険行政業務 (2026-04-30)</h1>
+<h2 id="概要">概要</h2>
+<p>Phase 2 メタ #493 子 2 (#600) として、Phase 1 で未検証の業界 — 医療 (healthcare) と社会保険行政 (welfare-benefit) — を対象に v3 ProcessFlow を 2 シナリオずつ計 4 フロー実装し、子 3 (<code>/create-flow</code> validator 統合 PR #601) と 子 4 (<code>/review-flow</code> Step 0.5 機械的バリデータ実行 PR #602) の効果を実測した。</p>
+<p>実装は <strong>Opus 単独</strong> (Codex / Sonnet 不使用) + <strong>Opus サブエージェントによる独立レビュー</strong> という構成。Stage 1 (healthcare) は Codex 委譲で着手したが long-running stale 問題で中断、Opus が引き継ぎ完成。Stage 2 (welfare-benefit) は最初から Opus 単独で実装。</p>
+<h2 id="検証目的">検証目的</h2>
+<ol>
+<li><code>/create-flow</code> Step 5 + <code>/review-flow</code> Step 0.5 の機械的検証パスが <strong>未経験業界</strong> で機能するか実測</li>
+<li>既存 v1 型バリデータ (referentialIntegrity / identifierScope / sqlColumnValidator / conventionsValidator) が v3 サンプルでどこまで動くか測定</li>
+<li>v3 wm-readiness の積み残し ISSUE 起票根拠を収集</li>
+<li>Phase 1 #486 物流ドッグフード (Must-fix 50-75% 削減) との比較で改善維持を確認</li>
+</ol>
+<h2 id="実装サマリ">実装サマリ</h2>
+<h3 id="stage-1-healthcare-医療業界">Stage 1: healthcare (医療業界)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>内容</th></tr></thead><tbody><tr><td>シナリオ 1</td><td>診察予約 (PHI 同意確認 → 患者照会 → 医師資格確認 → 空き枠検証 → 予約作成 → EMR 同期)</td></tr><tr><td>シナリオ 2</td><td>処方箋発行 (患者記録参照 → PHI アクセス → 薬剤安全性チェック → WorkflowStep 3 段 [医師署名 / 薬剤師鑑査 / 最終承認] → 薬局送信)</td></tr><tr><td>Step 数</td><td>フロー 1: 18 step / フロー 2: 20 step + WorkflowStep 3 段</td></tr><tr><td>Tables</td><td>patients / appointments / medical_records / prescriptions / providers (5 件)</td></tr><tr><td>Extensions</td><td>healthcare.v3.json — fieldTypes 4 / actionTriggers 2 / stepKinds 2 (PhiAccessCheckStep, ClinicalSafetyCheckStep) / responseTypes 3 / conventionCategories 3</td></tr><tr><td>testScenarios</td><td>フロー毎 3 件以上 (happy / validation error / 業務エッジ)</td></tr><tr><td>業務的特徴</td><td>HIPAA 風最小必要原則、医師資格の外部レジストリ確認、電子カルテ非同期同期</td></tr></tbody></table>
+<h3 id="stage-2-welfare-benefit-社会保険行政業務">Stage 2: welfare-benefit (社会保険行政業務)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>内容</th></tr></thead><tbody><tr><td>シナリオ 1</td><td>給付申請受付 (本人確認 → 受給資格 → 重複申請 30 日窓 → 限度額 → applications 作成 → 一次審査キュー投入 → 受付通知メール)</td></tr><tr><td>シナリオ 2</td><td>支払通知 (出納長最終決裁 [WorkflowStep review パターン] → 銀行送金 [冪等キー必須] → payments / applications / beneficiaries 整合更新 → 受給者通知メール)</td></tr><tr><td>Step 数</td><td>フロー 1: 17 step / フロー 2: 19 step + WorkflowStep 1 段</td></tr><tr><td>Tables</td><td>applicants / applications / reviews / payments / beneficiaries (5 件、合計 61 columns + 14 indexes + 18 constraints)</td></tr><tr><td>Extensions</td><td>welfare-benefit.v3.json — fieldTypes 4 / actionTriggers 2 / stepKinds 1 (DuplicateApplicationCheckStep) / responseTypes 3 / conventionCategories 3</td></tr><tr><td>testScenarios</td><td>フロー毎 3-4 件 (happy / validation / business edge)</td></tr><tr><td>業務的特徴</td><td>本人確認の信頼源化、冪等送金 (二重支払防止)、累計支払額の会計年度管理、出納長承認による責任分界</td></tr></tbody></table>
+<h3 id="検証指標-実装側本レポート確定時点">検証指標 (実装側、本レポート確定時点)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>healthcare</th><th>welfare-benefit</th></tr></thead><tbody><tr><td>AJV (v3-samples.test.ts)</td><td>pass</td><td>pass (実装中に 4 件のスキーマ違反を AJV で発見・修正、後述)</td></tr><tr><td>validate:dogfood —flow each</td><td>4/4 validators pass</td><td>4/4 validators pass</td></tr><tr><td>Opus 初回作成での Must-fix (機械検出)</td><td>13 件 (詳細後述)</td><td>4 件 (実装中に AJV で検出・即修正)</td></tr><tr><td>既知パターン再発 (#458/#478/#486)</td><td>なし</td><td>なし</td></tr><tr><td>schema 改変</td><td>ゼロ (#511 ガバナンス遵守)</td><td>ゼロ</td></tr><tr><td>独立 Opus レビュー Must-fix</td><td>0 件 (Stage 1 / 2 通算)</td><td>1 件 (M1: payments.beneficiary_id NOT NULL 違反、本 PR で解消)</td></tr><tr><td>独立 Opus レビュー Should-fix</td><td>2 件 (Stage 3 No-op / errorCode 誤誘導、本 PR で解消)</td><td>1 件 (testScenarios の初回受給者ケース漏れ、本 PR で解消)</td></tr><tr><td>独立 Opus レビュー Nit</td><td>1 件 (timeout sideEffects 漏れ、本 PR で解消)</td><td>2 件 (event 二重発行 / 拡張 stepKind 重複、本 PR で解消)</td></tr></tbody></table>
+<h2 id="stage-1-で発見した-validator-実装バグ-2-件-重要">Stage 1 で発見した validator 実装バグ 2 件 (重要)</h2>
+<p>healthcare 実装中、validate:dogfood が <code>UNKNOWN_TYPE_REF</code> 7 件 + <code>UNKNOWN_IDENTIFIER</code> 6 件を返した。詳細調査の結果 <strong>2 つの validator 実装バグが判明</strong> したため、Stage 1 commit <code>c1e22a9</code> 内で修正した。</p>
+<h3 id="バグ-1-identifierscopets-は-v3-contextambientvariables-を読まない">バグ 1: identifierScope.ts は v3 <code>context.ambientVariables</code> を読まない</h3>
+<p><strong>症状</strong>: <code>@requestId</code> / <code>@sessionUserId</code> を validation step の inlineBranch 等で参照すると <code>UNKNOWN_IDENTIFIER</code> 検出。</p>
+<p><strong>原因</strong>: <code>frontend/src/schemas/identifierScope.ts:80</code> が <code>group.ambientVariables</code> (top-level) のみ参照。v3 schema は <code>context.ambientVariables</code> 配下にのみ配置するため、validator が空 Set として処理し全参照を未宣言扱いに。</p>
+<p><strong>Phase 1 まで気付かなかった理由</strong>: v3 既存サンプル <code>public-service</code> flow も同じ構造だが、<code>@sessionUserId</code> 参照は WorkflowStep の <code>onApproved</code> / <code>onRejected</code> 配下にあった。<strong>identifierScope の <code>walkSteps</code> は WorkflowStep の onApproved / onRejected 配下を recurse しない別のバグ</strong> があり、その盲点で WorkflowStep 内の参照は検査をスキップ → silently pass。healthcare では同じ参照を <code>validation.inlineBranch.ngBodyExpression</code> 等の正規チェックパスに置いたため検出された。</p>
+<p><strong>修正</strong>: <code>context.ambientVariables</code> を fallback で読むように変更 (1 行) — v1 既存サンプルとの後方互換維持。</p>
+<p><strong>残存リスク</strong>: WorkflowStep の onApproved / onRejected 配下を walkSteps が recurse しないバグはそのまま残っている (修正すると public-service / healthcare flow 2 / welfare-benefit flow 2 の WorkflowStep で大量の検出が発生し scope 外)。<strong>別 ISSUE 起票候補</strong>。</p>
+<h3 id="バグ-2-validate-dogfoodts-は-v3-extensions-を読まない">バグ 2: validate-dogfood.ts は v3 extensions を読まない</h3>
+<p><strong>症状</strong>: typeRef <code>healthcare:AppointmentResponse</code> 等が <code>UNKNOWN_TYPE_REF</code> 検出。</p>
+<p><strong>原因</strong>: <code>frontend/scripts/validate-dogfood.ts</code> の <code>loadExtensions</code> が <code>docs/sample-project/extensions/</code> (v1 per-file 形式: <code>field-types.json</code> / <code>triggers.json</code> / <code>db-operations.json</code> / <code>steps.json</code> / <code>response-types.json</code>) のみスキャン。<code>docs/sample-project-v3/&#x3C;industry>/extensions/&#x3C;ns>.v3.json</code> (single-file 形式) を silent skip し v3 拡張定義の typeRef / stepKind が解決不能。</p>
+<p><strong>修正</strong>: <code>samplesV3Dir</code> 配下を再帰スキャンして <code>*.v3.json</code> を読み、<code>fieldTypes</code> / <code>actionTriggers</code> (= triggers) / <code>stepKinds</code> (= steps) / <code>responseTypes</code> を namespace prefix 付きで bundle に追加。public-service v3 flow も以前同じ理由で 5 件の UNKNOWN_TYPE_REF を出していたが、本修正で 0 件に。</p>
+<p><strong>残存リスク</strong>: v3 extensions の <code>actionTriggers</code> を v1 bundle の <code>triggers</code> 配列にマップしているが、両者の field 構造はほぼ互換 (value / label / description)。完全互換でない場合、誤検出が発生し得る。<strong>観察対象</strong>。</p>
+<h3 id="この発見の意義">この発見の意義</h3>
+<ul>
+<li>監査報告書 <code>docs/spec/dogfood-2026-04-29-phase2-validator-audit.md</code> §2 で「v3 readiness は TS 型同期後の課題」と記録されていたが、本ドッグフードで <strong>TS 同期前でも実装側が v3 形式を解釈していない箇所</strong> を 2 件特定できた</li>
+<li>既存 v3 サンプル (public-service) が validator pass していたのは構造的に正しいからではなく <strong>validator のもう 1 つの盲点 (WorkflowStep recurse) で隠蔽されていた</strong> だけ — 今後の dogfood で同じ罠に注意が必要</li>
+</ul>
+<h2 id="phase-1-比較-486-物流との対比">Phase 1 比較 (#486 物流との対比)</h2>
+<p><code>/create-flow</code> 効果検証 (#486) の指標と本 dogfood の比較:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>#486 物流 (Sonnet, /create-flow 経由)</th><th>#486 物流 (Opus, /create-flow 経由)</th><th>本 #600 healthcare (Opus 単独)</th><th>本 #600 welfare-benefit (Opus 単独)</th></tr></thead><tbody><tr><td>初回 Must-fix 件数 (機械検出)</td><td>2 件</td><td>1 件</td><td>13 件 (validator バグ起因)</td><td>4 件 (AJV)</td></tr><tr><td>既知パターン再発</td><td>なし</td><td>なし</td><td>なし</td><td>なし</td></tr><tr><td>新規盲点発見</td><td>SQL SELECT 漏れ / TX 内 branch fallthrough</td><td>catalog 未登録</td><td><strong>validator 実装バグ 2 件</strong></td><td>スキーマ非対応の testScenario 種別など</td></tr><tr><td>validator 自動検出効果</td><td>catalog レベル (Rule 9/10 はテキスト確認のみ)</td><td>同上</td><td><strong>CLI 機械検出</strong> (#599 PR #602 経由で実装済み)</td><td>同上</td></tr></tbody></table>
+<p><strong>主要な変化</strong>: Phase 1 では <code>/create-flow</code> Step 3 (15 ルール self-check) で既知パターンを抑制したが、本 Phase 2 では <code>/review-flow</code> Step 0.5 (#599 / PR #602) と <code>/create-flow</code> Step 5 (#598 / PR #601) で <strong>bash one-liner による検出</strong> に進化。AI 目視に頼らない構造的検出が機能することを実証した。</p>
+<p><strong>Must-fix 件数の見方</strong>:</p>
+<ul>
+<li>healthcare 13 件のうち、<strong>実質的なフロー設計バグ 0 件</strong> (全 13 件が validator バグ由来の偽陽性)</li>
+<li>welfare-benefit 4 件は <strong>AJV が実装中に検出した schema 違反</strong> (envVars 種別ミス / circuitBreaker 場所違い / audit.result enum / testScenario kind / dbRow match 必須) — AI が schema 文面を完全には記憶しておらず微小なミスを犯したが、<strong>全て AJV が拾えるレベル</strong> で AI 目視の漏れではない。Phase 1 でも同種ミスは発生していたが、当時は AJV を作成中に呼ばずレビューで初めて検出していた。本 Phase 2 で <code>/create-flow</code> Step 5 統合により実装中に拾えるようになった</li>
+</ul>
+<h2 id="独立レビューで発見したvalidator-では届かない領域">独立レビューで発見した「validator では届かない領域」</h2>
+<p>本ドッグフードの実装後、別 context の Opus サブエージェントによる独立レビュー (read-only) を実施した。発見された 7 件 (Must-fix 1 / Should-fix 3 / Nit 3) は本 PR 内で全件解消したが、Phase 2 全体の知見として <strong>validator が静的に検出できない種類のバグ</strong> を 1 件記録しておく価値がある。</p>
+<h3 id="must-fix-m1-paymentsbeneficiary_id-not-null-違反-welfare-benefit-支払通知-旧-step-09">Must-fix M1: payments.beneficiary_id NOT NULL 違反 (welfare-benefit 支払通知 旧 step-09)</h3>
+<p><strong>症状</strong>: <code>payments.beneficiary_id</code> カラムは <code>notNull: true</code>。修正前の旧 step-09 では <code>INSERT INTO payments (... beneficiary_id ...) VALUES (..., COALESCE(@existingBeneficiary.id, NULL), ...)</code> となっていた。受給者台帳 (beneficiaries) が存在しない初回受給者の場合 <code>@existingBeneficiary</code> は NULL になり、NOT NULL 制約違反で <strong>初回支払で必ず失敗</strong> する。</p>
+<p><strong>validator が拾えなかった理由</strong>:</p>
+<ul>
+<li>referentialIntegrity / identifierScope: 識別子・参照スコープのみ検査、NOT NULL 制約は守備範囲外</li>
+<li>sqlColumnValidator: SQL 内のカラム名がテーブル定義に存在するかは検査するが、INSERT 値の NULL 許容性チェックはしない</li>
+<li>conventionsValidator: <code>@conv.*</code> 参照のみ検査、対象外</li>
+<li>AJV / process-flow.schema: SQL を文字列として扱うため、SQL 内部の値解析は不可</li>
+</ul>
+<p><strong>testScenarios でも見落とした理由</strong>: happy-path-payment / edge-bank-transfer-failed / edge-treasurer-rejected の 3 シナリオ全てで <code>dbState</code> に beneficiaries 行を pre-seed していた (実テスト実装時には fixture に 1 行入れがちな自然なパターン)。<strong>「初回受給者 = beneficiaries 行なし」エッジケースのテストが欠落</strong> していた結果、機械検証も人間レビューも happy-path で静的にも見抜けなかった。</p>
+<p><strong>修正</strong>: step-08b で初回受給者なら <code>INSERT INTO beneficiaries ... total_paid_amount=0</code> を先行実行し、step-15 を全件 UPDATE 化に統合。新 testScenario <code>happy-path-first-time-beneficiary</code> で初回パスを覆う。</p>
+<h3 id="phase-2-評価レポート-子-5-への含意">Phase 2 評価レポート (子 5) への含意</h3>
+<p>本ケースは Phase 1 (#458/#478/#486) でも観測されなかった種類のバグ:</p>
+<ul>
+<li>「<strong>fixture 設計が無意識に testScenario カバレッジに穴を空ける</strong>」というパターン</li>
+<li>validator はあくまでフロー定義の静的整合だけを見るため、<strong>「DB 制約とフロー操作順序の組み合わせから生じる実行時失敗」は静的に検出不可能</strong></li>
+</ul>
+<p>子 5 評価レポート / Phase 3 設計時には:</p>
+<ul>
+<li>testScenarios の <strong>fixture バリエーション網羅</strong> を <code>/create-flow</code> SKILL に追加</li>
+<li>DB 制約 (NOT NULL / UNIQUE / FK) と SQL 操作順序の交差検査を行う <strong>新 validator</strong> (sqlOrderValidator 等) の起票検討</li>
+</ul>
+<p>を含めることを推奨する。</p>
+<h2 id="v3-readiness-評価">v3 readiness 評価</h2>
+<h3 id="機能した-validator-本-dogfood-経由">機能した validator (本 dogfood 経由)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>validator</th><th>v3 対応度</th><th>注記</th></tr></thead><tbody><tr><td>referentialIntegrity</td><td>✓ (本 PR で v3 extensions ロード対応)</td><td>typeRef / responseRef / errorCode / systemRef / compensatesFor を全件チェック可</td></tr><tr><td>identifierScope</td><td>✓ (本 PR で context.ambientVariables fallback 追加)</td><td>ただし WorkflowStep recurse 漏れの別バグは残存 (Phase 3 ISSUE 候補)</td></tr><tr><td>sqlColumnValidator</td><td>△</td><td>tables 自動ロードは v1 path のみ。v3 tables は未対応 (本 PR で未着手、Phase 3 候補)</td></tr><tr><td>conventionsValidator</td><td>△</td><td>conventions catalog 自動ロードは v1 path のみ。v3 conventions catalog 仕様自体が未確定 (Phase 3 候補)</td></tr></tbody></table>
+<h3 id="未対応領域-起票候補">未対応領域 (起票候補)</h3>
+<ol>
+<li><code>validate-dogfood.ts</code> の <code>loadTables</code> を v3 per-industry tables 対応化 — sqlColumnValidator 完全動作のため必須</li>
+<li>v3 conventions catalog の構造確定 + <code>loadConventions</code> 拡張 — conventionsValidator 完全動作のため</li>
+<li>identifierScope.ts の <code>walkSteps</code> を WorkflowStep の onApproved / onRejected / onAcknowledged / onCancelled / onTimeout に recurse させる修正 — 本 PR で発見した盲点の解消</li>
+<li>v1 型バリデータの v3 TS 型同期 — <code>dogfood-2026-04-29-phase2-validator-audit.md</code> §2 で挙げた中長期課題、本 PR スコープ外</li>
+</ol>
+<h2 id="業務シナリオの新規性-phase-1-未検証要素の網羅">業務シナリオの新規性 (Phase 1 未検証要素の網羅)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Phase 1 未検証要素</th><th>本 dogfood で実装</th></tr></thead><tbody><tr><td>WorkflowStep 多段 (sign-off / review / approval-sequential)</td><td>healthcare 処方箋発行 (3 段) / welfare-benefit 支払通知 (review 1 段)</td></tr><tr><td>外部 registry の資格確認</td><td>healthcare 医師資格 (credentialRegistry)</td></tr><tr><td>センシティブデータ (PHI / PII) 最小必要原則</td><td>healthcare 全フロー / welfare-benefit address_hash 化</td></tr><tr><td>冪等送金 / idempotency_key UNIQUE</td><td>welfare-benefit 支払通知 (bankSystem 冪等キー必須)</td></tr><tr><td>累計値の年度管理</td><td>welfare-benefit beneficiaries.fiscal_year + total_paid_amount</td></tr><tr><td>監査履歴の上書き禁止</td><td>welfare-benefit reviews テーブル (履歴行)</td></tr></tbody></table>
+<h2 id="結論と-phase-3-移行判断">結論と Phase 3 移行判断</h2>
+<h3 id="結論">結論</h3>
+<ol>
+<li><strong>Skill 統合の機械的検出効果を実証</strong>: PR #601 / #602 マージ後、AI 目視に頼らず CLI で AJV + 4 validators が pass しなければ実装完了とみなさないワークフローが整備された。Phase 1 比較で「初回作成時の盲点」が validator バグ起因 / 真のフロー設計問題に分離可能になった</li>
+<li><strong>v3 wm-readiness の具体的な穴を特定</strong>: identifierScope の context.ambientVariables 未対応 / validate-dogfood の v3 extensions 未対応 / sqlColumnValidator・conventionsValidator の v3 tables / catalog 未対応 — 本 PR で 2 件は修正、残り 2 件は Phase 3 起票候補</li>
+<li><strong>既知パターン再発ゼロ</strong>: TX outputBinding ネスト / branch fallthrough / 死コード rollbackOn / <code>@conv.*</code> 未登録 等 Phase 1 で頻発したパターンは healthcare / welfare-benefit の計 4 フローで一切再発せず。<code>/create-flow</code> 15 ルール self-check と <code>/review-flow</code> 8 観点が Phase 2 でも有効</li>
+<li><strong>業務文脈の網羅性向上</strong>: Phase 1 では金融 / 製造 / 物流 / 小売 / 行政の 5 業界で WorkflowStep / 多段承認 / PII 制約のいずれかが部分的に欠けていたが、本 Phase 2 で <strong>PHI + 冪等送金 + 累計年度管理 + 多段ワークフロー</strong> を網羅。v3 schema が広範な業務に対応できることを実証</li>
+</ol>
+<h3 id="phase-3-への移行判断-進行可-条件付き">Phase 3 への移行判断: <strong>進行可</strong> (条件付き)</h3>
+<p><strong>進行可とする根拠</strong>:</p>
+<ul>
+<li>v3 schema は本 dogfood で発見した 2 件の validator バグ修正後、healthcare + welfare-benefit + 既存 5 業界 (金融 / 製造 / 物流 / 小売 / 行政) の計 7 業界全てで AJV pass + 4 validators pass を達成</li>
+<li>Skill 経由の機械的検出ワークフローが安定動作</li>
+</ul>
+<p><strong>条件</strong>:</p>
+<ol>
+<li><strong>必須起票候補 (Phase 3 開始前)</strong>: <code>loadTables</code> v3 対応 / <code>loadConventions</code> v3 対応 / WorkflowStep recurse 修正 — Phase 3 (画面項目連携) の検証時にこれらが先行課題化する可能性が高い</li>
+<li><strong>観察事項</strong>: validator のもう 1 つの盲点 (WorkflowStep recurse) は public-service / healthcare 処方箋 / welfare-benefit 支払通知の 3 フローで silent skip 状態。すぐに検出されないが、リファクタリング時に変数移動で突然検出されるリスクあり</li>
+</ol>
+<h3 id="phase-2-子-5-評価レポート-との関係">Phase 2 子 5 (評価レポート) との関係</h3>
+<p>本レポートは Phase 2 子 5 評価レポートの <strong>シナリオ実装結果セクション</strong> に相当する。子 5 は本レポート + 子 1 監査報告書 (<code>docs/spec/dogfood-2026-04-29-phase2-validator-audit.md</code>) を統合し、Phase 2 全体の総括 + Phase 3 詳細スコープを定義する。</p>
+<h2 id="関連-pr--issue">関連 PR / ISSUE</h2>
+<ul>
+<li>親: #493 (Phase 2 メタ) / #600 (子 2、本作業)</li>
+<li>子 1: #596 / PR #597 (バリデータ活用度監査) — 本作業の起点</li>
+<li>子 3: #598 / PR #601 (<code>/create-flow</code> Step 5 validate:dogfood 統合)</li>
+<li>子 4: #599 / PR #602 (<code>/review-flow</code> Step 0.5 機械的バリデータ実行)</li>
+<li>本 PR: ブランチ <code>feat/issue-600-phase2-healthcare-welfare-dogfood</code> (Stage 1 commit <code>c1e22a9</code> + Stage 2 commit <code>2a6c02f</code>)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

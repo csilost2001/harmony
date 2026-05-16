@@ -1,0 +1,303 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>page layout</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link active"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="pagelayout--gadget-仕様">PageLayout + Gadget 仕様</h1>
+<p>RFC #1021 で導入された <strong>共通レイアウト機能</strong> の仕様書。schemas/v3/page-layout.v3.schema.json と本ドキュメントを並行参照すること。</p>
+<h2 id="1-目的">1. 目的</h2>
+<p>採用プロジェクトからの要望で、Harmony を使う業務アプリで「共通ヘッダ / フッタ / サイドバー」「ナビ」「メッセージ表示」等の <strong>layout 横断部品</strong> を first-class artifact として扱う仕組みを提供する。</p>
+<h2 id="2-モデル-e-採用設計">2. モデル E (採用設計)</h2>
+<h3 id="21-中核概念">2.1 中核概念</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>PageLayout (新 entity 1 種)</span></span>
+<span class="line"><span>├ regions: header / sidebar / footer / main (=content slot) など</span></span>
+<span class="line"><span>├ assignments: regionName → gadget Screen ID</span></span>
+<span class="line"><span>├ processFlowId?: ガジェット間連携 orchestrator (optional)</span></span>
+<span class="line"><span>└ design: editorKind / cssFramework / designFileRef? / puckDataRef?</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Screen (既存拡張)</span></span>
+<span class="line"><span>├ purpose: "page" | "gadget"</span></span>
+<span class="line"><span>├ pageLayoutId?: PageLayout 参照 (purpose=page のみ意味)</span></span>
+<span class="line"><span>├ processFlowId?: Screen 専用 ProcessFlow (#1019/#1020 整合)</span></span>
+<span class="line"><span>└ path: purpose=page で required (conditional via if-then)</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>ProcessFlow (既存、無変更)</span></span>
+<span class="line"><span>└ page / gadget / PageLayout のいずれにも紐付け可</span></span></code></pre>
+<h3 id="22-ガジェット--自律ユニット">2.2 ガジェット = 自律ユニット</h3>
+<ul>
+<li>ガジェット (<code>Screen{purpose: "gadget"}</code>) は <strong>自身の design + items + ProcessFlow + handler</strong> を持つ</li>
+<li>Thymeleaf 大規模パターン (各 fragment が専用 controller を持つ) を踏襲</li>
+<li>例: ヘッダガジェットの logoutButton は header gadget の専用 ProcessFlow.act-logout を呼ぶ</li>
+</ul>
+<h3 id="23-pagelayout-は本質-passive">2.3 PageLayout は本質 passive</h3>
+<ul>
+<li>横断的 context (<code>@session.*</code> / <code>@project.*</code> / i18n / CSRF) は <strong>HTTP request / session に紐づく</strong> ため PageLayout は context を宣言しない</li>
+<li>PageLayout.processFlowId は <strong>ガジェット間連携</strong> (例: 検索フィルタガジェット change → リストガジェット refresh) のみに使用、optional</li>
+<li>MVP では schema 上に optional 枠を用意するだけ、実装は Phase 2</li>
+</ul>
+<h2 id="3-データ配置">3. データ配置</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル</th><th>役割</th></tr></thead><tbody><tr><td><code>&#x3C;dataDir>/page-layouts/&#x3C;id>.json</code></td><td>PageLayout entity 本体 (regions / assignments / design 参照)</td></tr><tr><td><code>&#x3C;dataDir>/page-layouts/&#x3C;id>.design.json</code></td><td>PageLayout 自身の GrapesJS / Puck design payload (任意)</td></tr><tr><td><code>&#x3C;dataDir>/screens/&#x3C;id>.json</code></td><td>Screen entity (purpose / pageLayoutId / processFlowId / items 等)</td></tr><tr><td><code>&#x3C;dataDir>/screens/&#x3C;id>.design.json</code></td><td>Screen の GrapesJS / Puck design payload</td></tr><tr><td><code>harmony.json</code></td><td><code>entities.pageLayouts[]</code> + <code>entities.screens[]</code> (ScreenEntry に purpose / pageLayoutId / hasDesign を含む)</td></tr></tbody></table>
+<h2 id="4-region-命名規約">4. region 命名規約</h2>
+<p>予約名 (推奨):</p>
+<ul>
+<li><code>header</code> — 最上部、グローバルヘッダ</li>
+<li><code>sidebar</code> — 左右いずれかのナビゲーション</li>
+<li><code>footer</code> — 最下部、コピーライト等</li>
+<li><code>main</code> — content slot、page Screen 本文が嵌まる位置</li>
+</ul>
+<p>任意追加名も許容 (例: <code>breadcrumb</code> / <code>notification</code> / <code>subHeader</code>)。pattern: <code>^[a-z][a-zA-Z0-9_-]*$</code></p>
+<h2 id="5-routing-frontend">5. Routing (frontend)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>URL</th><th>コンポーネント</th><th>tab</th></tr></thead><tbody><tr><td><code>/page-layout/list</code></td><td><code>PageLayoutListView</code></td><td>singleton</td></tr><tr><td><code>/page-layout/edit/:pageLayoutId</code></td><td><code>PageLayoutEditor</code></td><td>per-resource</td></tr><tr><td><code>/page-layout/design/:pageLayoutId</code></td><td><code>PageLayoutDesigner</code></td><td>per-resource</td></tr><tr><td><code>/gadget/list</code></td><td><code>GadgetListView</code> (Screen filter for purpose=gadget)</td><td>singleton</td></tr><tr><td><code>/screen/list</code></td><td>改修: purpose=page のみ表示</td><td>singleton</td></tr><tr><td><code>/screen/flow</code></td><td>改修: purpose=page のみ ReactFlow に描画</td><td>singleton</td></tr><tr><td><code>/screen/edit/:screenId</code></td><td>改修: purpose=page の場合に pageLayoutId 選択フィールド表示</td><td>per-resource</td></tr><tr><td><code>/screen/design/:screenId</code></td><td>改修: pageLayoutId 設定時に composition preview modal</td><td>per-resource</td></tr></tbody></table>
+<h2 id="6-backend-mcp-tools-6-種完備">6. Backend MCP tools (6 種完備)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>MCP tool</th><th>用途</th></tr></thead><tbody><tr><td><code>designer__list_page_layouts</code></td><td>一覧取得</td></tr><tr><td><code>designer__add_page_layout</code></td><td>新規追加 (PageLayoutEntry meta も更新)</td></tr><tr><td><code>designer__get_page_layout</code></td><td>id 指定で完全定義取得</td></tr><tr><td><code>designer__update_page_layout</code></td><td>完全定義で更新 (meta も同期)</td></tr><tr><td><code>designer__save_page_layout</code></td><td>AI 連携用、柔軟保存</td></tr><tr><td><code>designer__remove_page_layout</code></td><td>削除 + meta 削除</td></tr></tbody></table>
+<p>加えて、Screen MCP tools を拡張:</p>
+<ul>
+<li><code>designer__add_screen</code> に <code>purpose</code> 引数</li>
+<li><code>designer__update_screen</code> に <code>purpose</code> / <code>pageLayoutId</code> 引数 (pageLayoutId=” or null で解除)</li>
+<li><code>designer__list_screens</code> に <code>purpose</code> フィルタ引数</li>
+</ul>
+<h2 id="7-websocket-bridge">7. WebSocket Bridge</h2>
+<ul>
+<li><code>loadPageLayout</code> / <code>savePageLayout</code> / <code>deletePageLayout</code> / <code>listAllPageLayouts</code></li>
+<li>broadcast: <code>pageLayoutChanged</code> (data: { pageLayoutId } or { pageLayoutId, deleted: true })</li>
+</ul>
+<p><strong>design payload routing</strong> (Codex A-2 対応):</p>
+<ul>
+<li><code>loadScreen</code> / <code>saveScreen</code> で <code>screenId.startsWith("page-layout:")</code> を検出した場合、<code>&#x3C;dataDir>/page-layouts/&#x3C;id>.design.json</code> に routing する。これは PageLayoutDesigner が Designer の synthetic id を流用するための bridge。</li>
+</ul>
+<h2 id="8-designer-連携">8. Designer 連携</h2>
+<h3 id="81-pagelayout-designer-page-layoutdesignid">8.1 PageLayout Designer (<code>/page-layout/design/:id</code>)</h3>
+<ul>
+<li>GrapesJS の場合: <code>frontend/src/grapes/blocks.ts</code> の “Layout Regions” カテゴリで <code>region-header</code> / <code>region-sidebar</code> / <code>region-footer</code> / <code>region-main</code> の 4 ブロック (各 <code>data-region-name</code> 属性付き) を canvas に drag</li>
+<li>Puck の場合: Region primitive (<code>frontend/src/puck/primitives/Region{Header,Sidebar,Footer,Main}.tsx</code>) を Puck Config に register</li>
+<li>runtime composition preview: 各 region に assignments で指定された gadget の design HTML / Puck data を read-only inject</li>
+</ul>
+<h3 id="82-page-screen-designer-screendesignidpurposepage">8.2 Page Screen Designer (<code>/screen/design/:id</code>、purpose=page)</h3>
+<ul>
+<li><code>pageLayoutId</code> 設定時に上部にバナー「ページレイアウトを使用中: <name>」</name></li>
+<li>バナーの「composition プレビューを開く」ボタンで modal 起動 → PageLayout 外枠 + 各 region の gadget + main slot に Screen 本文 を iframe (Bootstrap CDN 込み) で完全描画</li>
+</ul>
+<h3 id="83-editorkind--cssframework-ミスマッチ警告">8.3 editorKind / cssFramework ミスマッチ警告</h3>
+<p>PageLayout と Screen の editorKind / cssFramework が異なる場合、Designer 上部に warning banner を表示 (runtime composition が動作しない可能性を通知)。</p>
+<h2 id="9-ajv-cross-entity-validator-validate-samplests">9. AJV cross-entity validator (<code>validate-samples.ts</code>)</h2>
+<ul>
+<li><code>assignments[region]</code> で参照される Screen が <code>purpose: "gadget"</code> であることをチェック</li>
+<li><code>assignments</code> のキーが PageLayout の <code>regions[].name</code> に存在することをチェック (typo 検出)</li>
+<li>Screen の <code>pageLayoutId</code> が PageLayout に実在することをチェック (PageLayout 0 件でも検出)</li>
+</ul>
+<h2 id="10-migration-旧サンプル対応">10. Migration (旧サンプル対応)</h2>
+<p><code>scripts/migrate/page-layout-purpose.ts</code>:</p>
+<ul>
+<li>既存 Screen 全件に <code>purpose: "page"</code> を一括付与</li>
+<li><code>--dry-run</code> オプションで変更内容を事前確認</li>
+<li>同一 path を持つ複数 Screen の重複を事前検出 → 重複時 abort</li>
+<li>rollback 手順は script header コメント参照</li>
+</ul>
+<h2 id="11-既存仕様との整合">11. 既存仕様との整合</h2>
+<ul>
+<li><a href="/spec/multi-editor-puck/"><code>docs/spec/multi-editor-puck.md</code></a>: editorKind / cssFramework は作成時固定、PageLayout でも同方針</li>
+<li><a href="/spec/edit-session-draft/"><code>docs/spec/edit-session-draft.md</code></a>: <code>DraftResourceType</code> に <code>"page-layout"</code> 追加、lock / draft 管理は他 entity と同様</li>
+<li><a href="/spec/draft-state-policy/"><code>docs/spec/draft-state-policy.md</code></a>: PageLayout も maturity (draft / reviewing / committed) を持ち、5 原則 (保存可能 + UI 警告) を継承</li>
+<li><a href="/spec/list-common/"><code>docs/spec/list-common.md</code></a>: PageLayoutListView / GadgetListView は DataList + ViewModeToggle + FilterBar の共通基盤を使用</li>
+<li>#1019 / #1020: 「1 画面 = 1 処理フロー + 複数アクション」モデル — gadget Screen + ProcessFlow + ScreenItemEvent.handlerActionId の 1:1 紐付け</li>
+</ul>
+<h2 id="12-既知の制限-本-pr-でも残る">12. 既知の制限 (本 PR でも残る)</h2>
+<ul>
+<li><code>screen-layout.v3</code> (画面フロー UI 座標) と <code>page-layout.v3</code> の命名類似 — 後者は本ドキュメント、前者は <code>docs/spec/schema-v3-design.md</code> を参照</li>
+<li>Puck composition の nested render は React Context 経由で <code>&#x3C;Render></code> を呼ぶ実装 (循環依存回避)。@measured/puck の Render に制約がある場合 fallback で概要表示</li>
+<li>GrapesJS composition preview は gadget design HTML を read-only inject するが、CSS scope は wrapper 内に閉じるため Bootstrap class が必要なケースで visual が崩れる可能性あり (preview modal は iframe 内で CDN を読み込んで補正)</li>
+</ul>
+<h2 id="13-code-generation-phase-2pl-7-1028-完了">13. Code Generation (Phase 2、pl-7 #1028 完了)</h2>
+<p>PageLayout + Gadget の code generation 対応を pl-7 (#1028) で実装。<code>/generate-code</code> skill が以下を生成する。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>入力 entity</th><th>Thymeleaf 系 出力</th><th>Next.js 系 出力</th></tr></thead><tbody><tr><td>PageLayout (passive layout)</td><td><code>templates/layouts/&#x3C;id>.html</code> (<code>layout:fragment="layout-content"</code> + region slot)</td><td><code>app/components/layouts/&#x3C;id>.tsx</code> (Custom AppLayout、Server Component、4 region slot)</td></tr><tr><td>Gadget (<code>Screen.purpose=gadget</code>)</td><td><code>templates/fragments/&#x3C;id>.html</code> (<code>th:fragment="gadget"</code>) + <code>&#x3C;id>GadgetController.java</code> (events ありなら <code>@PostMapping</code> action 配線)</td><td><code>app/components/gadgets/&#x3C;id>.tsx</code> (events ありなら <code>'use client'</code>、なしは Server Component) + <code>app/api/gadgets/&#x3C;id>/&#x3C;actionId>/route.ts</code> (Route Handler)</td></tr><tr><td>Page Screen (<code>Screen.purpose=page</code> + <code>pageLayoutId</code>)</td><td><code>templates/pages/&#x3C;path>.html</code> (Layout Decorate モード = <code>layout:decorate</code> + <code>&#x3C;th:block layout:fragment="layout-content"></code>)</td><td><code>app/&#x3C;path>/page.tsx</code> (Layout Wrap モード = <code>&#x3C;AppLayout>{children}&#x3C;/AppLayout></code>)</td></tr></tbody></table>
+<p>検証 (examples/retail を題材に Docker 経由で実機):</p>
+<ul>
+<li>Thymeleaf 系: maven build pass + Spring Boot 起動 1.4 秒 + curl / HTTP 200 + 4 region + 日本語表示 + Layout Decorate slot 注入 全 OK</li>
+<li>Next.js 系: npm install + next build pass (4 routes) + npm start + curl /dashboard HTTP 200 + 4 region + 日本語表示 + 307 redirect from / 全 OK</li>
+</ul>
+<p>詳細テンプレ規約: <code>ai-skills/generate-code/templates/frontend/&#x3C;framework>/{LAYOUT,FRAGMENT,COMPONENT,PAGE}.md</code>。
+region → CSS class マッピング: <a href="/spec/css-framework-switching/"><code>css-framework-switching.md § 8</code></a>。
+生成物例: <code>examples/retail/generated/{thymeleaf,nextjs}/</code>。</p>
+<p>未実装 (将来):</p>
+<ul>
+<li>inter-gadget event (検索フィルタガジェット ↔ リストガジェット pub/sub) — pl-Y 候補、dogfood で需要が明確化してから着手</li>
+<li>全画面の code generation 自動回し (現在は 1 entity ずつ skill 起動) — 別 ISSUE 候補</li>
+</ul>
+<h2 id="14-agentsmd-routing-表への反映">14. AGENTS.md Routing 表への反映</h2>
+<p><code>AGENTS.md</code> § Routing の URL 規約表に追加 (<code>feat/page-layout-series</code> で更新):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>| `/page-layout/list` | PageLayoutListView | ページレイアウト一覧 | ✅ singleton |</span></span>
+<span class="line"><span>| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 | ✅ per-resource |</span></span>
+<span class="line"><span>| `/page-layout/design/:pageLayoutId` | PageLayoutDesigner | ページレイアウト Designer | ✅ per-resource |</span></span>
+<span class="line"><span>| `/gadget/list` | GadgetListView | ガジェット一覧 (purpose=gadget filter) | ✅ singleton |</span></span></code></pre>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

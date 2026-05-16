@@ -1,0 +1,182 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>product scope</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> 規約カタログ </div> <ul class="space-y-0.5"> <li> <a href="/conventions/expressions/" class="sidebar-link"> 式言語規約 (@conv/@env/@secret) </a> </li><li> <a href="/conventions/product-scope/" class="sidebar-link active"> プロダクトスコープ </a> </li><li> <a href="/conventions/validation-rules/" class="sidebar-link"> バリデーション規約 </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="プロダクトスコープ規約-人間向け参考資料">プロダクトスコープ規約 (人間向け参考資料)</h1>
+<blockquote>
+<p><strong>正本は <code>data/conventions/catalog.json</code></strong> (scope / currency / tax / auth / db / numbering / tx / externalOutcomeDefaults カテゴリ)。
+本 md はその人間向け参考資料であり、AI・ツールは JSON を参照すること (#346)。
+<code>docs/sample-project/conventions/conventions-catalog.json</code> が seed データ。
+<code>docs/conventions/validation-rules.md</code> と同じ扱い。</p>
+</blockquote>
+<p><strong>策定日</strong>: 2026-04-20
+<strong>関連 issue</strong>: #151 (A: 設計書種別の追加), #346</p>
+<p>本書は処理フロー仕様書が暗黙の前提とするプロダクトの<strong>業務スコープ</strong>を定める。個別の仕様書で「国内のみか? 多言語対応要否?」等を毎回書かなくて済むよう、ここで一括宣言する。</p>
+<hr>
+<h2 id="1-顧客スコープ">1. 顧客スコープ</h2>
+<ul>
+<li><strong>国内顧客のみ</strong> (個人 + 法人、在住/在所は日本国内を前提)</li>
+<li>海外顧客はスコープ外 (将来の拡張候補)</li>
+</ul>
+<p><strong>含意</strong>:</p>
+<ul>
+<li>住所は日本の住所体系 (都道府県〜市区町村〜番地、郵便番号 NNN-NNNN)</li>
+<li>電話番号は国内フォーマット (<code>regex.phone-jp</code>) で良い。国際番号形式 (<code>+81-...</code>) は非対応</li>
+<li>タイムゾーンは JST (Asia/Tokyo) 固定</li>
+</ul>
+<h2 id="2-言語">2. 言語</h2>
+<ul>
+<li><strong>日本語のみ</strong> (UI / メール文面 / 帳票 / エラーメッセージ)</li>
+<li>多言語化 (i18n) はスコープ外</li>
+</ul>
+<p><strong>含意</strong>:</p>
+<ul>
+<li>全角/半角の文字種別は日本語前提で扱う</li>
+<li>テンプレート言語: 基本は日本語のみ、名称の英語併記は個別に画面設計で</li>
+</ul>
+<h2 id="3-通貨金額">3. 通貨・金額</h2>
+<ul>
+<li><strong>日本円 (JPY) のみ</strong></li>
+<li>税計算: <strong>外税 10%</strong> (消費税率 2026 年時点)</li>
+<li>端数処理: <strong>切り捨て</strong> (1 円未満は切り捨て)</li>
+<li>型: <code>DECIMAL(12, 0)</code> で保存 (銭の単位なし)</li>
+</ul>
+<p><strong>含意</strong>:</p>
+<ul>
+<li>外貨対応はスコープ外</li>
+<li>税率変更時は本書を更新</li>
+</ul>
+<h2 id="4-決済手段">4. 決済手段</h2>
+<ul>
+<li><strong>クレジットカード / 銀行振込 / 代金引換</strong> の 3 種</li>
+<li>外部決済ゲートウェイ: <strong>Stripe Japan</strong> を想定 (実装時差し替え可)</li>
+</ul>
+<h2 id="5-個人情報本人確認">5. 個人情報・本人確認</h2>
+<ul>
+<li>本人確認 (KYC) は<strong>不要</strong> (現行業務では住所 + 電話 + メールで同定)</li>
+<li>個人情報保護法の範囲内で運用</li>
+<li>論理削除 (<code>is_deleted = true</code>) は物理削除せず保持する (監査要件)</li>
+</ul>
+<h2 id="6-認証セッション">6. 認証・セッション</h2>
+<ul>
+<li><strong>画面ごとに認証要否を個別に指定</strong>する (公開経路 = 認証不要、管理経路 = 認証必須)</li>
+<li>セッション管理: httpOnly Cookie + server session</li>
+<li>パスワード: bcrypt (cost 12) でハッシュ化</li>
+</ul>
+<h2 id="7-api-規約">7. API 規約</h2>
+<ul>
+<li><strong>REST</strong> / JSON (Content-Type: <code>application/json</code>)</li>
+<li><strong>認証不要画面</strong>: 顧客登録画面 (<code>/customers/new</code> からの POST) 等、公開サービスで使うもの</li>
+<li><strong>認証必須画面</strong>: 注文登録・管理系・バッチトリガ 等</li>
+<li>エラーレスポンス形式: <code>{ code: string, message: string, fieldErrors?: Record&#x3C;string,string> }</code></li>
+<li>HTTP ステータスマッピング: <code>VALIDATION=400 / UNAUTHENTICATED=401 / FORBIDDEN=403 / NOT_FOUND=404 / DUPLICATE=409 / INTERNAL=500</code></li>
+</ul>
+<h2 id="8-db-規約">8. DB 規約</h2>
+<ul>
+<li>PostgreSQL 14+</li>
+<li>物理名: <code>snake_case</code></li>
+<li>論理削除: <code>is_deleted BOOLEAN NOT NULL DEFAULT false</code></li>
+<li>タイムスタンプ: <code>created_at</code> / <code>updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP</code></li>
+<li>ID: <code>INTEGER auto-increment</code> が基本、ビジネスコードは別途 <code>{ENTITY}_code VARCHAR UNIQUE</code> として DB DEFAULT で採番</li>
+</ul>
+<h2 id="9-採番規約-placeholder">9. 採番規約 (placeholder)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>エンティティ</th><th>採番形式</th><th>実装</th></tr></thead><tbody><tr><td>顧客コード (<code>customer_code</code>)</td><td><code>C-NNNN</code> (4 桁ゼロパディング)</td><td>PG シーケンス + DEFAULT</td></tr><tr><td>注文番号 (<code>order_number</code>)</td><td><code>ORD-YYYY-NNNN</code> (年 + 4 桁ゼロパディング)</td><td>PG シーケンス + トリガ</td></tr></tbody></table>
+<h2 id="10-トランザクション競合制御-placeholder">10. トランザクション・競合制御 (placeholder)</h2>
+<ul>
+<li><strong>単一操作は 1 TX</strong>。複数操作が原子的である必要があれば明示的に TX 境界を指定</li>
+<li><strong>外部 API 呼出は TX 外</strong> を原則とする (DB ロック時間短縮、冪等性の外部管理)</li>
+<li>並行登録の重複防止: <strong>部分 UNIQUE INDEX</strong> (例: <code>UNIQUE (email) WHERE is_deleted = false</code>) + 23505 エラーハンドリング</li>
+<li>在庫引当 等の並行減算: <strong>条件付き UPDATE</strong> (<code>SET stock = stock - ? WHERE ... AND stock >= ?</code>) + 影響行数チェック</li>
+</ul>
+<h2 id="11-外部連携の-outcome-規約">11. 外部連携の outcome 規約</h2>
+<p>外部 API 呼出 (メール送信・決済・住所補完 等) の結果処理は以下のパターンで統一:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>outcome</th><th>同期レスポンス</th><th>ログ</th><th>リトライ</th></tr></thead><tbody><tr><td><code>success</code></td><td>続行</td><td>info ログ</td><td>なし</td></tr><tr><td><code>failure</code> (4xx/5xx 明示エラー)</td><td>呼出がクリティカルなら中断、fire-and-forget なら続行</td><td>error (Sentry)</td><td><strong>なし (v1)</strong>、必要時は運用対応</td></tr><tr><td><code>timeout</code></td><td><code>failure</code> と同じ扱い、既定タイムアウト 10 秒</td><td>error (Sentry)</td><td><strong>なし (v1)</strong></td></tr></tbody></table>
+<h2 id="12-変更履歴">12. 変更履歴</h2>
+<ul>
+<li>2026-04-20: 初版プレースホルダー。issue #151-A で正式機能化予定。</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

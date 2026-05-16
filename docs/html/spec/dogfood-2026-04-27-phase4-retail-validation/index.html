@@ -1,0 +1,300 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>dogfood 2026 04 27 phase4 retail validation</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link active"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="phase-4-全仕様書統合検証-評価レポート--retail-2026-04-27">Phase 4 (全仕様書統合検証) 評価レポート — retail (2026-04-27)</h1>
+<h2 id="概要">概要</h2>
+<p>Phase 4 (全仕様書統合検証) のラウンド 1 として、<strong>既存サンプル退避 → AI 投入スクリプトで retail 業務の全仕様書を一括生成 → /review-flow による独立検証 → 失敗改善ループ → Must-fix ゼロ達成</strong> を実証した。</p>
+<p>ユーザー指示の核心 (「設計データ投入スクリプトでドッグフードして失敗→改善の繰り返し」) を達成。</p>
+<h2 id="検証目的">検証目的</h2>
+<p>メタ #500 の核心命題:</p>
+<blockquote>
+<p>業務概要を入力するだけで、AI が<strong>整合性の取れた全仕様書 (処理フロー / テーブル定義 / 業務規約 / 拡張定義)</strong> を生成し、その整合性が <code>validate:dogfood</code> + <code>/review-flow</code> で検証可能か</p>
+</blockquote>
+<h2 id="実施フロー">実施フロー</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Step 1: 既存サンプル退避</span></span>
+<span class="line"><span>  docs/sample-project/ → docs/legacy-sample-project/</span></span>
+<span class="line"><span>  docs/sample-project/ に空構造 + 空 conventions catalog</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Step 2: 投入スクリプト (AI モード)</span></span>
+<span class="line"><span>  npm run generate:dogfood --industry retail --scenarios ... --mode ai</span></span>
+<span class="line"><span>  → docs/sample-project/_briefing.md 生成</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Step 3: AI 仕様書生成 (Sonnet サブエージェント)</span></span>
+<span class="line"><span>  briefing 読み取り → 全 4 種仕様書を生成</span></span>
+<span class="line"><span>  - 拡張定義 (retail namespace)</span></span>
+<span class="line"><span>  - テーブル定義 8 件</span></span>
+<span class="line"><span>  - conventions 拡張</span></span>
+<span class="line"><span>  - 処理フロー × 4 シナリオ (gggggggg-0001..0004)</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Step 4: validate:dogfood 検証</span></span>
+<span class="line"><span>  → 4/4 全 pass (整合性 OK)</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Step 5: /review-flow 検出 (4 並列)</span></span>
+<span class="line"><span>  → Must-fix 13 / Should-fix 16 / Nit 11 = 40 件 (実行セマンティクス問題)</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Step 6: 改善 (Sonnet 1 セッション 40 件一括修正)</span></span>
+<span class="line"><span>  PR #508 マージ</span></span>
+<span class="line"><span>  → validate:dogfood 4/4 全 pass</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Step 7: 再 /review-flow 検出 (4 並列)</span></span>
+<span class="line"><span>  → 3/4 Must-fix ゼロ、1 件残 (オフバイワン)</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Step 8: 微修正</span></span>
+<span class="line"><span>  PR #509 マージ</span></span>
+<span class="line"><span>  → 全 4 flow Must-fix ゼロ達成 ✅</span></span></code></pre>
+<h2 id="結果サマリ">結果サマリ</h2>
+<h3 id="改善ラウンド集計">改善ラウンド集計</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ラウンド</th><th>Must-fix</th><th>Should-fix</th><th>Nit</th><th>状態</th></tr></thead><tbody><tr><td>ラウンド 2 (初回 /review-flow)</td><td><strong>13</strong></td><td>16</td><td>11</td><td>改善必要</td></tr><tr><td>ラウンド 4 (修正後再 /review-flow)</td><td><strong>1</strong></td><td>4</td><td>7</td><td>微修正</td></tr><tr><td>ラウンド 5 (最終)</td><td><strong>0</strong></td><td>4</td><td>7</td><td>✅ Must-fix ゼロ</td></tr></tbody></table>
+<h3 id="4-retail-flow-の最終状態">4 retail flow の最終状態</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Flow</th><th>Must-fix</th><th>主要修正</th><th>判定</th></tr></thead><tbody><tr><td>gggggggg-0001 (店舗在庫照会)</td><td>0</td><td>conventions catalog <code>lowStockThreshold</code> / <code>product-code</code> 追加</td><td>✅</td></tr><tr><td>gggggggg-0002 (カート追加)</td><td>0</td><td>step-10 二重 UPSERT 削除 / 既存商品除外条件 / null 区別</td><td>✅</td></tr><tr><td>gggggggg-0003 (注文確定 TX)</td><td>0</td><td>TX 後 SELECT (<code>@persistedOrder</code>) 再取得パターン (#460 踏襲) / branch で TX 失敗時 422 return / TX 内 <code>@newOrder.id</code> → <code>@newOrderId</code> 統一</td><td>✅</td></tr><tr><td>gggggggg-0004 (配送指示)</td><td>0</td><td><code>generateUUID()</code> → <code>@fn.generateShipmentId()</code> / 試行上限 <code>>=</code> (オフバイワン解消) / carrierResult null guard</td><td>✅</td></tr></tbody></table>
+<h2 id="3-分類別件数-改善ループ全体集計">3 分類別件数 (改善ループ全体集計)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>領域</th><th>ラウンド 2 検出</th><th>修正後残存</th></tr></thead><tbody><tr><td><strong>フレームワーク</strong></td><td>5</td><td>0</td></tr><tr><td><strong>拡張定義</strong></td><td>3</td><td>0 (Should-fix 1 残)</td></tr><tr><td><strong>サンプル設計</strong></td><td>32</td><td>0 (Should-fix 3 / Nit 7 残)</td></tr></tbody></table>
+<h2 id="重要な発見">重要な発見</h2>
+<h3 id="a-一発出しで-100-整合は困難-期待通り">A. 一発出しで 100% 整合は困難 (期待通り)</h3>
+<ul>
+<li>AI が<code>/create-flow</code> 14 ルール self-check 遵守を申告しても、独立 review で 13 Must-fix が検出された</li>
+<li><strong>修正ループは必須</strong>: ユーザー指示「失敗→改善の繰り返し」は構造的に正当</li>
+</ul>
+<h3 id="b-既知パターン再発-phase-1-と同じ">B. 既知パターン再発 (Phase 1 と同じ)</h3>
+<ul>
+<li>TX outputBinding ネスト参照 (#458/#478 で何度も発覚) が retail-0003 でも再発</li>
+<li><code>@conv.*</code> catalog 整合 / 関数カタログ整合の盲点が再発</li>
+<li><strong>spec / SKILL の充実だけでは AI のミスを完全には防げない</strong>ことを再実証</li>
+<li><code>/review-flow</code> の最終防衛線が必須</li>
+</ul>
+<h3 id="c-ai-自己申告の精度限界">C. AI 自己申告の精度限界</h3>
+<ul>
+<li>ラウンド 1 で Sonnet 自己申告 8/8 ✓ → 独立 review で Must-fix 13 件検出</li>
+<li>自己申告精度は実用に耐えない、独立検証が必須</li>
+</ul>
+<h3 id="d-改善ループの収束性">D. 改善ループの収束性</h3>
+<ul>
+<li>ラウンド 2 → ラウンド 4 で <strong>Must-fix 13 → 1 (92% 削減)</strong></li>
+<li>ラウンド 5 で完全ゼロ達成</li>
+<li><strong>2-3 ラウンドで収束する</strong> ことを確認</li>
+</ul>
+<h3 id="e-schema-拡張の必要性">E. schema 拡張の必要性</h3>
+<ul>
+<li>ラウンド 3 で実装中に schema 拡張 6 フィールド追加 (<code>patternRef</code> / <code>ngEventPublish</code> / <code>object[]</code> 等)</li>
+<li>AI が業務記述を正確に表現するには schema の柔軟性も必要</li>
+</ul>
+<h2 id="副産物-pr-508-由来">副産物 (PR #508 由来)</h2>
+<h3 id="schema-拡張-6-フィールド">schema 拡張 6 フィールド</h3>
+<ul>
+<li><code>patternRef</code>: validation rule で conventions regex 参照</li>
+<li><code>ngEventPublish</code>: validation 失敗時のイベント発行</li>
+<li><code>object[]</code> 型: outputs フィールドで配列型表現</li>
+<li><code>responseSchema</code>: externalSystem step の応答スキーマ</li>
+<li><code>CacheHint.note</code>: キャッシュ意図注記</li>
+<li><code>ElseBranch.description</code>: elseBranch 動作記述</li>
+</ul>
+<p>→ これらは spec の表現力強化で、後続 ドッグフードでも有用。</p>
+<h2 id="残課題-フォローアップ-issue-候補">残課題 (フォローアップ ISSUE 候補)</h2>
+<h3 id="should-fix-残-4-件">Should-fix 残 4 件</h3>
+<ul>
+<li>gggggggg-0001: <code>retail.search_validation_failed</code> イベント名のセマンティクス問題</li>
+<li>gggggggg-0002: no-op パス (step-12b/13b) が UPSERT RETURNING で常に値を返すため到達不能</li>
+<li>gggggggg-0003: <code>@inventoryUpdate</code> を TX 外で参照 (TX rollback 時に未定義リスク)</li>
+<li>gggggggg-0004: ADR-003 で宣言した <code>retail:ShipmentDispatchStep</code> が steps に存在しない</li>
+</ul>
+<h3 id="nit-残-7-件">Nit 残 7 件</h3>
+<ul>
+<li>step ID 欠番、glossary aliases 不足、testScenario 拡充等</li>
+</ul>
+<h3 id="create-flow-skill-強化候補-rule-15-17-候補"><code>/create-flow</code> SKILL 強化候補 (Rule 15-17 候補)</h3>
+<ul>
+<li>拡張 step の outputBinding 必須化 (二重実行防止)</li>
+<li>関数カタログとの整合性 (<code>@fn.*</code> 参照は functionsCatalog 登録済みのみ)</li>
+<li>testScenario と condition の論理整合 (オフバイワン検出)</li>
+</ul>
+<h2 id="結論">結論</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>評価項目</th><th>結果</th></tr></thead><tbody><tr><td>投入スクリプトでの全仕様書生成</td><td>✅ 達成 (briefing 経由)</td></tr><tr><td>validate:dogfood 全 pass</td><td>✅ 達成 (4/4)</td></tr><tr><td>/review-flow Must-fix ゼロ</td><td>✅ 達成 (改善 2 ラウンドで完全達成)</td></tr><tr><td>失敗→改善ループの実用性</td><td>✅ 実証</td></tr><tr><td>3 分類別件数集計</td><td>✅ 機能</td></tr><tr><td>Codex 不使用での完遂</td><td>✅ Sonnet/Opus サブエージェントで完結</td></tr></tbody></table>
+<h3 id="一般化された知見">一般化された知見</h3>
+<p>本フレームワークは「<strong>業務概要から AI が全仕様書を生成 → 整合性検証 → 改善 → Must-fix ゼロ達成</strong>」という<strong>完結したワークフロー</strong>を持つに至った。これにより:</p>
+<ol>
+<li><strong>業務アプリ開発者は業務概要だけ書けば、AI が整合性ある仕様書一式を生成できる</strong></li>
+<li><strong>/review-flow による独立検証が品質保証の最終防衛線</strong></li>
+<li><strong>改善ループは 2-3 ラウンドで収束する</strong> (実用的な所要時間)</li>
+</ol>
+<p>次フェーズ:</p>
+<ul>
+<li><strong>Phase 5 (将来)</strong>: 実装コード自動生成 (仕様書 → コード)</li>
+<li><strong>Phase 4-3 (継続)</strong>: 他業界での再検証、SKILL 改善 (Rule 15-17 追加候補)</li>
+</ul>
+<h2 id="関連">関連</h2>
+<ul>
+<li>親メタ: #500 (Phase 4) — 本 PR でクローズ判定</li>
+<li>子 ISSUE: #506 (Phase 4-2 ラウンド実行)</li>
+<li>関連 PR: #503 (基盤) / #505 (AI モード) / #507 (ラウンド 1) / #508 (ラウンド 3) / #509 (ラウンド 5)</li>
+<li>既存ドッグフードレポート:
+<ul>
+<li><code>dogfood-2026-04-26-finance.md</code> (Phase 1 金融)</li>
+<li><code>dogfood-2026-04-26-manufacturing.md</code> (Phase 1 製造)</li>
+<li><code>dogfood-2026-04-27-logistics-create-flow-validation.md</code> (Phase 1 物流 + /create-flow 検証)</li>
+</ul>
+</li>
+<li>退避済サンプル: <code>docs/legacy-sample-project/</code> (参照用)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

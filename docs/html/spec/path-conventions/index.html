@@ -1,0 +1,216 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>path conventions</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link active"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="path-conventionsmd">path-conventions.md</h1>
+<p>Harmony の永続化対象データの配置規約と、container 配布時の mount 設計指針。</p>
+<p>関連: #1055 (本仕様の根拠 ISSUE) / <a href="/spec/edit-session-draft/">edit-session-draft.md</a> / <a href="/spec/workspace/">workspace.md</a></p>
+<h2 id="1-永続化データのカテゴリ">1. 永続化データのカテゴリ</h2>
+<p>Harmony が扱うデータは性質によって 3 つに分類される。配置先と mount 戦略はカテゴリごとに異なる。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>カテゴリ</th><th>例</th><th>性質</th><th>配置</th></tr></thead><tbody><tr><td><strong>(a) Harmony state</strong></td><td><code>recent-workspaces.json</code> (recent index) / 将来の AI cache / preferences</td><td>machine-specific なユーザー履歴</td><td><code>HARMONY_HOME</code> 配下</td></tr><tr><td><strong>(b) workspace 成果物</strong></td><td><code>&#x3C;workspace>/harmony.json</code> / <code>screens/</code> / <code>tables/</code> / <code>process-flows/</code> / <code>extensions/</code> / <code>.drafts/</code></td><td>業務設計の成果物、Git 管理対象</td><td>ユーザーが任意配置 (絶対パス)</td></tr><tr><td><strong>(c) built-in リソース</strong></td><td><code>data/extensions/</code> (組み込み拡張定義 — field-types / response-types 等)</td><td>配布物の一部、read-only</td><td>image 内に焼き込み</td></tr></tbody></table>
+<h2 id="2-harmony_home-環境変数">2. <code>HARMONY_HOME</code> 環境変数</h2>
+<p>カテゴリ (a) の置き場を指定する。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>default: ~/.harmony</span></span>
+<span class="line"><span>内容例:</span></span>
+<span class="line"><span>  ~/.harmony/recent-workspaces.json</span></span>
+<span class="line"><span>  ~/.harmony/ai-cache/  (将来)</span></span></code></pre>
+<p>優先順位 (<code>recentStore.ts</code> 実装):</p>
+<ol>
+<li><strong><code>DESIGNER_RECENT_FILE</code></strong> — full file path、テスト / 拡張 sandbox 用</li>
+<li><strong><code>HARMONY_HOME</code></strong> — ディレクトリ path。recent-workspaces.json は <code>&#x3C;HARMONY_HOME>/recent-workspaces.json</code></li>
+<li><strong>default</strong> — <code>~/.harmony/recent-workspaces.json</code></li>
+</ol>
+<p>container 内では <code>HARMONY_HOME=/home/node/.harmony</code> を ENV で指定し、<code>VOLUME ["/home/node/.harmony"]</code> を Dockerfile で宣言する (本リポの <code>Dockerfile</code> 参照)。</p>
+<h2 id="3-workspaces-親ディレクトリ規約">3. workspaces 親ディレクトリ規約</h2>
+<p>カテゴリ (b) は<strong>規約上の親ディレクトリを強制しない</strong>。<code>recent-workspaces.json</code> 内に各 workspace の<strong>絶対パス</strong>が記録される設計のため、workspace 実体はファイルシステム上のどこにあってもよい。</p>
+<p>ただし container 配布時の<strong>推奨</strong>として <code>/data/workspaces/</code> を親ディレクトリにし、<code>VOLUME ["/data/workspaces"]</code> を Dockerfile で宣言する。利用者はこの親パスを host bind mount するか named volume にする。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>/data/workspaces/         ← 親 (mount point、本ファイル自体は空)</span></span>
+<span class="line"><span>├── my-app/               ← workspace 1</span></span>
+<span class="line"><span>│   ├── harmony.json</span></span>
+<span class="line"><span>│   ├── screens/</span></span>
+<span class="line"><span>│   ├── tables/</span></span>
+<span class="line"><span>│   ├── process-flows/</span></span>
+<span class="line"><span>│   └── .drafts/          ← edit session drafts (active workspace 配下、#683)</span></span>
+<span class="line"><span>├── another-app/          ← workspace 2</span></span>
+<span class="line"><span>│   └── harmony.json</span></span>
+<span class="line"><span>└── ...</span></span></code></pre>
+<p>利用者は UI の「追加」ボタンで <code>/data/workspaces/my-app</code> のような絶対パスを入力 → <code>recent-workspaces.json</code> に登録される (現行 flow と同じ)。</p>
+<h2 id="4-mount-戦略マトリクス">4. mount 戦略マトリクス</h2>
+<p>container 配布時、カテゴリ別に named volume / host bind を選ぶ:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>カテゴリ</th><th>推奨</th><th>理由</th></tr></thead><tbody><tr><td>(a) <code>HARMONY_HOME</code></td><td><strong>named volume</strong></td><td>machine-specific、host 直接アクセス不要、container 廃止で痕跡残らないのが望ましい</td></tr><tr><td>(b) workspaces 親</td><td><strong>host bind mount</strong></td><td>Git 管理対象、host 上の他ツール (IDE / GUI) で編集する可能性、バックアップを host 側で取りたい</td></tr><tr><td>(c) built-in リソース</td><td>mount 不要</td><td>image 同梱</td></tr></tbody></table>
+<h3 id="named-volume-vs-host-bind-の差-再掲">named volume vs host bind の差 (再掲)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>方式</th><th>書き方</th><th>host から見える</th><th>移植性</th></tr></thead><tbody><tr><td><strong>named volume</strong></td><td><code>source=&#x3C;名前>,target=&#x3C;container path>,type=volume</code></td><td>docker volume inspect 経由のみ</td><td>volume 名で再生成可、別マシン移行は <code>docker volume export/import</code></td></tr><tr><td><strong>host bind mount</strong></td><td><code>source=&#x3C;host path>,target=&#x3C;container path>,type=bind</code></td><td>host で普通にアクセス可</td><td>host fs が永続する限り永続</td></tr></tbody></table>
+<h2 id="5-devcontainerjson-本リポの開発環境">5. devcontainer.json (本リポの開発環境)</h2>
+<p>開発用 Dev Container は本リポの <code>.devcontainer/devcontainer.json</code> で named volume 3 種類を mount している:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"mounts"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">  "source=harmony-claude,target=/home/node/.claude,type=volume"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">  "source=harmony-codex,target=/home/node/.codex,type=volume"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">  "source=harmony-state,target=/home/node/.harmony,type=volume"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span></code></pre>
+<ul>
+<li><code>harmony-claude</code> / <code>harmony-codex</code>: AI tool 設定 (auth 等)</li>
+<li><code>harmony-state</code>: Harmony state (recent-workspaces.json 等、本仕様の (a))</li>
+</ul>
+<p>workspaces 成果物 (b) は project bind mount (<code>/workspaces/harmony/workspaces/</code>) に内包される (現行 dev container の host bind mount を流用)。</p>
+<h2 id="6-配布シナリオ別-docker-compose-例">6. 配布シナリオ別 docker-compose 例</h2>
+<p>将来 <code>harnize/harmony:1.0</code> を公開した時の利用者側 docker-compose 例。</p>
+<h3 id="61-個人-pc-で-1-user-が使う想定-典型">6.1 個人 PC で 1 user が使う想定 (典型)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># docker-compose.yml</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">services</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">harnize/harmony:1.0</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5179:5179"</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony-state:/home/node/.harmony</span><span style="color:#6A737D;--shiki-dark:#768390">   # (a) state は named volume</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">~/projects:/data/workspaces</span><span style="color:#6A737D;--shiki-dark:#768390">          # (b) 成果物は host の ~/projects に bind</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    environment</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      HARMONY_HOME</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">/home/node/.harmony</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony-state</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span></code></pre>
+<p>利用者は <code>~/projects/&#x3C;任意名>/</code> 配下に harmony.json を含むワークスペースを置く。Harmony UI から <code>/data/workspaces/&#x3C;任意名></code> を絶対パスで「追加」する。</p>
+<h3 id="62-host-を一切汚さない想定-ci--一時起動">6.2 host を一切汚さない想定 (CI / 一時起動)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">services</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">harnize/harmony:1.0</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5179:5179"</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony-state:/home/node/.harmony</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony-workspaces:/data/workspaces</span><span style="color:#6A737D;--shiki-dark:#768390">   # (b) も named volume にする</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony-state</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony-workspaces</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span></code></pre>
+<p>利用者はワークスペースを host から直接編集できないが、container 完全 isolation が取れる。</p>
+<h3 id="63-saas-配布の場合-multi-tenant">6.3 SaaS 配布の場合 (multi-tenant)</h3>
+<p>file system による state 管理は行わず、DB の users / workspaces テーブルに格納する。本ファイル外。</p>
+<h2 id="7-l1--l2--l3-スコープ">7. L1 / L2 / L3 スコープ</h2>
+<p>L1 (本 ISSUE #1055): path 規約 + 最小 Dockerfile (backend のみ) + devcontainer 永続化。<strong>配布の約束はしない</strong>。</p>
+<p>L2 (将来): frontend 同梱、backend が静的配信、healthcheck 追加、self-host できる image。利用者が「1 container で全部動く」状態。</p>
+<p>L3 (将来): 公開配布。multi-arch (amd64/arm64) build、image tag 戦略、SBOM、脆弱性スキャン、リリースノート連携。</p>
+<h3 id="l1-image-の同梱範囲-現状">L1 image の同梱範囲 (現状)</h3>
+<p>§1 の表で (c) built-in リソース (<code>data/extensions/</code>) を「image 内に焼き込み」と分類しているが、<strong>L1 Dockerfile では <code>backend/</code> のみ COPY</strong> しており、<code>data/extensions/</code> は同梱されていない。理由:</p>
+<ul>
+<li>L1 は path 規約確定が目的で、配布前提ではない</li>
+<li><code>backend/</code> 起動時は <code>data/extensions/</code> が無くても起動可能 (拡張定義が空の状態で動作)</li>
+<li>L2 で frontend + extensions を同梱するタイミングで一括対応する</li>
+</ul>
+<p><strong>L1 image を実機で動かす場合の workaround</strong>: ホストの <code>data/extensions/</code> を bind mount するか、<code>backend/</code> 内に default extensions を埋め込む shim を別途用意する。L2 完了までは Dev Container での開発用途に留めるのが妥当。</p>
+<h2 id="8-既知の課題--設計判断">8. 既知の課題 / 設計判断</h2>
+<h3 id="workspacebrowsefs-のセキュリティ-1056"><code>workspace.browseFs</code> のセキュリティ (#1056)</h3>
+<p>L1 段階では backend folder browser API は<strong>ホスト fs 全体をブラウズ可能</strong>で、allowlist を強制しない (<code>path.resolve</code> で <code>../</code> 経由の relative escape のみ正規化)。</p>
+<p>理由: container 配布前提の path 規約フェーズであり、本格的な permission system は L2/L3 の認証・認可設計と一体で組む方が筋がよい。L1 では「container 内で動く前提なので fs 全体に意味のあるアクセス制御をかける必要が薄い」「dev 環境では開発者本人が UI を操作する前提」と整理する。</p>
+<p>将来 SaaS / multi-tenant 化時には <code>HARMONY_ALLOWED_BROWSE_ROOTS</code> 等で制限する仕様を別 ISSUE で追加する。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

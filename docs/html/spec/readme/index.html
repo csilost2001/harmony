@@ -1,0 +1,257 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>readme</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link active"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="docsspec">docs/spec/</h1>
+<p>本プロジェクトの UI・操作・内部 API の詳細仕様を集約する場所。</p>
+<h2 id="現在の仕様書">現在の仕様書</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル</th><th>対象</th><th>関連 issue</th></tr></thead><tbody><tr><td><a href="/spec/list-common/">list-common.md</a></td><td>一覧系画面の操作・見た目・内部 API (選択・キーボード・D&#x26;D・コピペ・ソート・フィルタ・Read-only モード・No 列永続フィールド)</td><td>#133 / #148</td></tr><tr><td><a href="/spec/process-flow-maturity/">process-flow-maturity.md</a></td><td>成熟度・付箋・上流/下流モード (Phase 1 基盤)</td><td>#151 / #152</td></tr><tr><td><a href="/spec/process-flow-variables/">process-flow-variables.md</a></td><td>変数・入出力・outputBinding (Phase 1 基盤)</td><td>#151 / #152</td></tr><tr><td><a href="/spec/process-flow-extensions/">process-flow-extensions.md</a></td><td>HTTP 契約 / TX / Saga / 外部 outcomes / ValidationRule / compute / return (Phase B)</td><td>#151 / #182</td></tr><tr><td><a href="/spec/process-flow-sla/">process-flow-sla.md</a></td><td>SLA / Timeout 宣言 (ProcessFlow / ActionDefinition / StepBase)</td><td>#412</td></tr><tr><td><a href="/spec/process-flow-criterion/">process-flow-criterion.md</a></td><td>Criterion (ExternalSystemStep の <code>successCriteria</code>、Arazzo 1.0 互換、<code>$</code> Runtime Expression 推奨)</td><td>#427</td></tr><tr><td><a href="/spec/process-flow-tier-c/">process-flow-tier-c.md</a></td><td>Tier C 拡張 — circuitBreaker / bulkhead / ClosingStep / CdcStep / health / readiness / resources</td><td>#426</td></tr><tr><td><a href="/spec/process-flow-expression-language/">process-flow-expression-language.md</a></td><td>runIf / expression / bodyExpression の式言語 BNF (js-subset)</td><td>#253</td></tr><tr><td><a href="/spec/process-flow-runtime-conventions/">process-flow-runtime-conventions.md</a></td><td>SQL 式補間 / HTTP body シリアライズ / TX×throw×tryCatch / fireAndForget / sideEffects TX 境界等の実行時規約</td><td>#261</td></tr><tr><td><a href="/spec/process-flow-external-system/">process-flow-external-system.md</a></td><td>ExternalSystemStep の OpenAPI operation 参照 (<code>openApiSpec</code> / <code>operationRef</code>)</td><td>#413</td></tr><tr><td><a href="/spec/process-flow-testing/">process-flow-testing.md</a></td><td>処理フローの Given-When-Then テストシナリオ (<code>testScenarios</code>)</td><td>#400</td></tr><tr><td><a href="/spec/process-flow-workflow/">process-flow-workflow.md</a></td><td>WorkflowStep / WorkflowPattern (承認ワークフロー標準 11 パターン)</td><td>#411</td></tr><tr><td><a href="/spec/process-flow-env-vars/">process-flow-env-vars.md</a></td><td>環境変数カタログ (<code>envVarsCatalog</code>) — 環境別 (dev/staging/prod) の型付き設定値</td><td>#414</td></tr><tr><td><a href="/spec/process-flow-secrets/">process-flow-secrets.md</a></td><td>Secrets カタログ (<code>secretsCatalog</code>) — 秘匿値メタデータ + 環境別参照式</td><td>#261 / #414</td></tr><tr><td><a href="/spec/process-flow-transaction/">process-flow-transaction.md</a></td><td><code>TransactionScopeStep</code> (複数 DB 操作を 1 TX でまとめる meta-step) と既存 <code>txBoundary</code> の関係</td><td>#415</td></tr><tr><td><a href="/spec/process-flow-ai-step-kind/">process-flow-ai-step-kind.md</a></td><td>AI step kind (<code>aiCall</code> / <code>aiAgent</code>) と <code>modelEndpoints</code> catalog — provider 抽象 / tool use / structured output / vision input (業界標準形式準拠)</td><td>#935</td></tr><tr><td><a href="/spec/screen-items/">screen-items.md</a></td><td>画面項目定義 (フォーム系バリデーション 3 層のうち「画面」層) — <strong>ドラフト v0.1</strong></td><td>#318</td></tr><tr><td><a href="/spec/view-definition/">view-definition.md</a></td><td>ViewDefinition (画面 一覧 UI viewer) — 3 レベル DSL (Simple / Structured / Raw SQL) / items[] の direction:viewer 連携 / kind 別レイアウト / validator 11 観点</td><td>#649 / #666 / #745 / #761</td></tr><tr><td><a href="/spec/plugin-system/">plugin-system.md</a></td><td>プラグインシステム — ソース変更なしにスキーマ・ステップ型・enum を拡張する仕組み</td><td>#390</td></tr><tr><td><strong><a href="/spec/multi-editor-puck/">multi-editor-puck.md</a></strong></td><td><strong>マルチエディタ対応 (Puck 併設)</strong> — 画面ごとに editorKind / cssFramework を選択可能 + 二層モデル (semantic props 永続化 + utility class 出力) + リアルタイム WYSIWYG + 動的コンポーネント登録。<code>css-framework-switching.md</code> の画面単位化改訂を含む</td><td>2026-05-05 メタ ISSUE</td></tr><tr><td><a href="/spec/dogfood-2026-04-26-finance/">dogfood-2026-04-26-finance.md</a></td><td>金融複合業務ドッグフード評価レポート (2026-04-26、6 シナリオで 5/5 達成)</td><td>#458</td></tr><tr><td><a href="/spec/dogfood-2026-04-26-manufacturing/">dogfood-2026-04-26-manufacturing.md</a></td><td>再ドッグフード (製造業) 評価レポート — Codex 抜き / Sonnet vs Opus 比較 / 3 分類別件数集計</td><td>#478</td></tr><tr><td><a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/">dogfood-2026-04-27-logistics-create-flow-validation.md</a></td><td><code>/create-flow</code> 効果検証レポート (物流業務、Must-fix 50-75% 削減)</td><td>#486</td></tr><tr><td><a href="/spec/dogfood-2026-04-27-phase4-retail-validation/">dogfood-2026-04-27-phase4-retail-validation.md</a></td><td>Phase 4 全仕様書統合検証レポート — retail (既存退避→AI 生成→改善ループで Must-fix ゼロ達成)</td><td>#500 / #506</td></tr><tr><td><strong><a href="/spec/draft-state-policy/">draft-state-policy.md</a></strong></td><td><strong>draft-state policy</strong> (設計途中許容 + UI 警告可視化の 5 原則 / severity 判定 / 新規リソース追加 checklist / AJV 導入要否)</td><td>#584 (Phase 1: #548 / Phase 2: #583)</td></tr><tr><td><strong><a href="/spec/schema-governance/">schema-governance.md</a></strong></td><td><strong>最重要</strong>: グローバル定義スキーマ変更ガバナンス (AI による勝手拡張を構造的に禁止)</td><td>#511</td></tr><tr><td><strong><a href="/spec/sample-project-structure/">sample-project-structure.md</a></strong></td><td>サンプルプロジェクト構造 (v3) — 各サブディレクトリは独立した業務アプリで、規約カタログを含む成果物を個別に持つ。プロジェクト横断の単一ファイル配置は禁止</td><td>#607</td></tr><tr><td><strong><a href="/spec/schema-design-principles/">schema-design-principles.md</a></strong></td><td><strong>schema を どう書くか の規範</strong> — 命名 / 構造 / フォーマット / コード補完 / 拡張判断 / 後方互換 / テスト規約 / 既知課題</td><td>#517</td></tr><tr><td><strong><a href="/spec/workspace/">workspace.md</a></strong></td><td>ワークスペース (project) のライフサイクル / lockdown / プロトコル / 並行制御 — 複数ワークスペース管理機能 v1 の正規仕様</td><td>#27 / #671-#676 / #678</td></tr><tr><td><strong><a href="/spec/workspace-multi/">workspace-multi.md</a></strong></td><td>マルチワークスペース対応 (v2) — per-session active state / URL <code>/w/:wsId/</code> / VSCode モデル</td><td>#679</td></tr><tr><td><strong><a href="/spec/path-conventions/">path-conventions.md</a></strong></td><td>永続化データの配置規約 (Harmony state / 成果物 / built-in リソース 3 カテゴリ) + container 配布時の mount 戦略 + <code>HARMONY_HOME</code> 環境変数</td><td>#1055</td></tr><tr><td><strong><a href="/spec/edit-session-draft/">edit-session-draft.md</a></strong></td><td><strong>サーバ側 draft 管理モデル</strong> — 全エディタ明示保存 + ロック排他 + AI 連携 (D-1〜D-12 / 状態遷移図 / owner-actor 分離 / リスクマトリクス)</td><td>#683 / #684</td></tr><tr><td><strong><a href="/spec/edit-session-protocol/">edit-session-protocol.md</a></strong></td><td><strong>協調編集の正規プロトコル</strong> — EditSession 一級概念 / 1-6 step ライフサイクル / role と take-over atomic / 複数 EditSession 並存 / TTL / AI 識別 (<code>Alice@AI</code>) — <code>collab-presence.md</code> の発展的後継</td><td>#876 派生 / #855</td></tr><tr><td><a href="/spec/collab-presence/">collab-presence.md</a></td><td>協調編集 (Direction B) overture — 採用根拠 / Forward-Compat 4 原則 / Activity taxonomy (正規プロトコルは <code>edit-session-protocol.md</code> 参照)</td><td>#876 / #855</td></tr><tr><td><a href="/spec/schema-audit-2026-04-27/">schema-audit-2026-04-27.md</a></td><td>Schema 変更履歴監査レポート — 過去 102 コミット精査、(A) 正当 88% / (B) 不規則 2-3% / (C) 不適切 0%</td><td>#511 (Phase B-1)</td></tr><tr><td><a href="/spec/schema-redesign-proposal-codex-2026-04-27/">schema-redesign-proposal-codex-2026-04-27.md</a></td><td>Codex (GPT-5.5) による schema 再設計セカンドオピニオン提案 (#517 の判断材料)</td><td>#517</td></tr><tr><td><a href="/spec/e2e-vite-stability/">e2e-vite-stability.md</a></td><td>Vite dev server multi-context e2e crash 調査 + 既知回避策 + 再現 scaffold spec</td><td>#992</td></tr><tr><td><strong><a href="/spec/generic-definition-layer/">generic-definition-layer.md</a></strong></td><td><strong>汎用設計定義レイヤー (RFC v0.2)</strong> — 既存 entity 構造化拡張 + Generic Definition Catalog (8 kind: data-contract / domain-type / exception-type / application-rule / ui-behavior / runtime-policy / component-definition / ui-fragment) + AI 向け変換マニュアル方式。配置 <code>examples/&#x3C;project>/&#x3C;dataDir>/generic-definitions/&#x3C;kind>/*.json</code> (実例: examples/retail/harmony/…)</td><td>#1060</td></tr><tr><td><strong><a href="/spec/conversion-guideline-for-ai/">conversion-guideline-for-ai.md</a></strong></td><td><strong>Markdown → Harmony JSON 変換ガイドライン (AI 向け、RFC v0.1)</strong> — entity 構造 / archetype 10 種類別の落とし方 (§3.1〜§3.7 に JSON before/after pair 付き、§3.8/§3.9 は概要のみ) / Generic Definition catalog の共通メタモデル / audit warning 12 種 / 1 回限り変換 vs Importer 生成の判断 / TS scaffold テンプレ / 既知落とし穴 / decision flowchart。<code>/import-md</code> skill 起動点</td><td>#1060</td></tr></tbody></table>
+<p><strong>一次成果物</strong>: JSON スキーマ <a href="../../schemas/process-flow.schema.json"><code>schemas/process-flow.schema.json</code></a> (<a href="/schemas/README/">README</a>)。仕様書と突合する機械可読版。</p>
+<h2 id="位置づけ">位置づけ</h2>
+<ul>
+<li><code>CLAUDE.md</code> (リポジトリ直下) — プロジェクト全体のアーキテクチャ・規約・コマンド</li>
+<li><code>docs/spec/*.md</code> — 個別機能の詳細仕様（長い・詳細・一次情報）</li>
+<li><code>docs/design-server-storage.md</code> / <code>docs/porting/</code> 等 — 設計/調査ドキュメント</li>
+</ul>
+<p>仕様が分かりにくい・矛盾する・古くなっている場合は、<strong>仕様書側を更新</strong>してから実装。コード側のコメントやイシューに詳細を書くと必ず drift する。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

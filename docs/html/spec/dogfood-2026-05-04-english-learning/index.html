@@ -1,0 +1,773 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>dogfood 2026 05 04 english learning</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link active"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="dogfood-レポート--english-learning-サンプル-2026-05-04">dogfood レポート — english-learning サンプル (2026-05-04)</h1>
+<h2 id="概要">概要</h2>
+<ul>
+<li><strong>対象サンプル</strong>: <code>examples/english-learning/</code> (英会話学習アプリ、B2C + 外部 AI 連携)</li>
+<li><strong>規模</strong>: 画面 11、テーブル 10、ProcessFlow 5、View 3、ViewDefinition 5、Sequence 2、拡張 1 namespace</li>
+<li><strong>機械バリデータ結果 (事前)</strong>: <code>npm run validate:samples</code> — 5 / 5 flows passed、vitest 93/93、半角カナ 0 件、schemas 無変更</li>
+<li><strong>dogfood 日付</strong>: 2026-05-04</li>
+</ul>
+<p>本レポートは子 5 (AI 実機 dogfood) の成果物。機械検証では拾えない <strong>業務 semantic 整合 + 設計書としての完成度</strong> を 4 軸で評価した。</p>
+<hr>
+<h2 id="シナリオ-end-to-end-トレース結果">シナリオ end-to-end トレース結果</h2>
+<h3 id="s-1-ストーリー一覧--セッション作成--会話プレイ">S-1: ストーリー一覧 → セッション作成 → 会話プレイ</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ステップ</th><th>評価</th><th>備考</th></tr></thead><tbody><tr><td>ストーリー一覧 (No.2) → ストーリー詳細 (No.3)</td><td>OK</td><td>tr-stories-to-detail で接続確認</td></tr><tr><td>ストーリー詳細の「学習開始」ボタン → cc173367 flow 呼び出し</td><td>OK</td><td>screenId=046e1f83 と一致</td></tr><tr><td>step-01: stories SELECT (WHERE id=@storyId AND is_active=TRUE)</td><td>OK</td><td>stories テーブル (b5aa3e1b) FK 確認</td></tr><tr><td>step-02: learning_sessions INSERT</td><td>OK</td><td>d524cba6 テーブルの user_id / story_id / status / started_at / updated_at 列は存在する</td></tr><tr><td>step-03: sessionId を 201 で返す</td><td>OK</td><td>bodyExpression で @newSession.id を返す</td></tr><tr><td>会話プレイ画面遷移 (/learn/:sessionId)</td><td>OK</td><td>tr-detail-to-play 確認</td></tr></tbody></table>
+<p>S-1 トレース: <strong>OK</strong></p>
+<hr>
+<h3 id="s-2-会話プレイ--ユーザー発話--llmdialog--ttsgenerate--turn_logs-insert--ai-応答表示">S-2: 会話プレイ → ユーザー発話 → LlmDialog + TtsGenerate → turn_logs INSERT → AI 応答表示</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ステップ</th><th>評価</th><th>備考</th></tr></thead><tbody><tr><td>step-01: learning_sessions SELECT (WHERE id=@sessionId AND user_id=@sessionUserId AND status=‘in_progress’)</td><td>OK</td><td></td></tr><tr><td>step-02: セッション存在チェック (branch)</td><td>OK</td><td></td></tr><tr><td>step-03: english-learning:LlmDialog — config で @turnContext / @userInput 参照</td><td><strong>問題あり</strong></td><td>LlmDialog の outputType が <code>english-learning:dialogTurn</code> (object 型) なのに、step-04a で <code>@aiResponse</code> を TtsGenerate の <code>text</code> (string) に直接渡している。型不整合。step-07 も <code>aiResponseText: @aiResponse</code> で string として返しているが dialogTurn は role/content/audioUrl の object 型</td></tr><tr><td>step-04: generateAudio フラグ分岐</td><td>OK</td><td></td></tr><tr><td>step-04a: english-learning:TtsGenerate — config.text = “@aiResponse”</td><td><strong>問題あり</strong></td><td>上記の型不整合に起因</td></tr><tr><td>step-04c: turn_logs からターン番号取得</td><td>OK</td><td></td></tr><tr><td>step-05: turn_logs INSERT — @nextTurnNumber / @userInput / @aiResponse / @aiAudioUrl</td><td><strong>注意</strong></td><td>turn_logs の列に user_input / ai_response / ai_audio_url / llm_context / turn_number / session_id / created_at を確認。存在する列と一致</td></tr><tr><td>step-06: el.turn.completed イベント発行 — payload に <code>turnNumber: @newTurnLog.id</code></td><td><strong>Should-fix</strong></td><td>turn_number (int) と newTurnLog.id (PK) は意味が異なる。turnNumber は @nextTurnNumber を使うべき</td></tr><tr><td>step-07: 200 OK で aiResponseText / aiAudioUrl / turnId を返す</td><td><strong>問題あり</strong></td><td>aiResponseText: @aiResponse が dialogTurn object を string として扱う</td></tr></tbody></table>
+<p>S-2 トレース: <strong>型不整合あり (Must-fix)</strong></p>
+<hr>
+<h3 id="s-3-会話プレイ--録音送信--sttevaluate--pronunciation_scores-insert--スコア表示">S-3: 会話プレイ → 録音送信 → SttEvaluate → pronunciation_scores INSERT → スコア表示</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ステップ</th><th>評価</th><th>備考</th></tr></thead><tbody><tr><td>step-01: learning_sessions SELECT</td><td>OK</td><td></td></tr><tr><td>step-02: セッション存在チェック</td><td>OK</td><td></td></tr><tr><td>step-03: dialogue_lines SELECT (WHERE id=@dialogueLineId)</td><td>OK</td><td>dialogue_lines テーブル (246a3f13) 確認</td></tr><tr><td>step-04: セリフ存在チェック</td><td>OK</td><td></td></tr><tr><td>step-05: english-learning:SttEvaluate — config で audioUrl / referenceText / referenceIpa</td><td>OK</td><td>referenceText: @dialogueLine[0].text (text 列) / referenceIpa: @dialogueLine[0].ipa (ipa 列) 確認</td></tr><tr><td>step-05b: evalResult.score を pronunciationScore に展開</td><td>OK</td><td></td></tr><tr><td>step-06: transactionScope (pronunciation_scores INSERT + learning_sessions UPDATE)</td><td>OK</td><td></td></tr><tr><td>step-06a: pronunciation_scores INSERT — diff として @evalResult.diff を渡す</td><td><strong>Should-fix</strong></td><td>pronunciation_scores テーブルの description には <code>ORDER BY scored_at DESC LIMIT 1</code> と記述があるが、実際のカラム physicalName は <code>created_at</code> であり <code>scored_at</code> は存在しない。テーブル description の表記が誤っている</td></tr><tr><td>step-07: el.pronunciation.scored イベント発行</td><td>OK</td><td></td></tr><tr><td>step-08: 201 Created で scoreId / score / diff を返す</td><td>OK</td><td></td></tr><tr><td>セッション結果画面遷移 (tr-play-to-result)</td><td>OK</td><td></td></tr></tbody></table>
+<p>S-3 トレース: <strong>ほぼ OK (Should-fix 1 件)</strong></p>
+<hr>
+<h3 id="s-4-学習履歴一覧--詳細--単語帳--単語詳細--単語習熟度更新">S-4: 学習履歴一覧 → 詳細 / 単語帳 → 単語詳細 / 単語習熟度更新</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ステップ</th><th>評価</th><th>備考</th></tr></thead><tbody><tr><td>学習履歴一覧 (No.6) → 詳細 (No.7)</td><td>OK</td><td>tr-history-to-detail 確認</td></tr><tr><td>学習履歴 viewDef — v_learning_history_with_story (af699800) 参照</td><td><strong>Must-fix</strong></td><td>SQL に <code>s.estimated_minutes</code> が含まれるが、stories テーブル (b5aa3e1b) に <code>estimated_minutes</code> カラムが存在しない。9 列定義のうち該当列なし</td></tr><tr><td>単語帳 (No.8) → 単語詳細 (No.9)</td><td>OK</td><td>tr-vocabulary-to-word-detail 確認</td></tr><tr><td>単語帳 viewDef — v_words_with_progress (c0474fbf) 参照</td><td><strong>Must-fix</strong></td><td>SQL に <code>w.reading</code> が含まれるが、words テーブル (8db75844) に <code>reading</code> カラムが存在しない。10 列定義のうち該当列なし</td></tr><tr><td>21c25fb2 (単語習熟度更新) — words SELECT + user_word_progress UPSERT</td><td>OK</td><td>words (8db75844) / user_word_progress (7ab2cf24) FK 一致</td></tr><tr><td>words テーブルの単語詳細 screen items — <code>translation_ja</code> 参照</td><td><strong>Must-fix</strong></td><td>単語詳細画面 (6bfa682c) / 会話プレイ画面 (a9d8eb6f) の description に <code>translation_ja</code> が記述されているが、words テーブルの列 physicalName は <code>translation</code>、dialogue_lines も <code>translation</code>。<code>translation_ja</code> は存在しない</td></tr></tbody></table>
+<p>S-4 トレース: <strong>Must-fix 3 件あり</strong></p>
+<hr>
+<h3 id="scheduled-3c4d9bfd-連続学習日数リセット">scheduled: 3c4d9bfd 連続学習日数リセット</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ステップ</th><th>評価</th><th>備考</th></tr></thead><tbody><tr><td>step-01: users UPDATE (streak_days=0 WHERE streak_days > 0 AND id NOT IN …)</td><td>OK</td><td>users テーブル (c7e50462) に streak_days 列あり。サブクエリで learning_sessions (completed / completed_at) を参照</td></tr><tr><td>step-02: log</td><td>OK</td><td></td></tr><tr><td>step-03: el.streak.reset イベント発行</td><td>OK</td><td></td></tr></tbody></table>
+<p>scheduled トレース: <strong>OK</strong></p>
+<hr>
+<h2 id="cross-entity-整合チェック">cross-entity 整合チェック</h2>
+<h3 id="テーブル-fk-整合">テーブル FK 整合</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>FK</th><th>参照先 UUID</th><th>実テーブル</th><th>評価</th></tr></thead><tbody><tr><td>learning_sessions.user_id → users</td><td>c7e50462</td><td>users</td><td>OK</td></tr><tr><td>learning_sessions.story_id → stories</td><td>b5aa3e1b</td><td>stories</td><td>OK</td></tr><tr><td>turn_logs.session_id → learning_sessions</td><td>d524cba6</td><td>learning_sessions</td><td>OK</td></tr><tr><td>pronunciation_scores.session_id → learning_sessions</td><td>d524cba6</td><td>learning_sessions</td><td>OK</td></tr><tr><td>pronunciation_scores.dialogue_line_id → dialogue_lines</td><td>246a3f13</td><td>dialogue_lines</td><td>OK</td></tr><tr><td>user_word_progress.user_id → users</td><td>c7e50462</td><td>users</td><td>OK</td></tr><tr><td>user_word_progress.word_id → words</td><td>8db75844</td><td>words</td><td>OK</td></tr><tr><td>dialogue_lines.scene_id → scenes</td><td>992ac5db</td><td>scenes</td><td>OK</td></tr><tr><td>scenes.story_id → stories</td><td>b5aa3e1b</td><td>stories</td><td>OK</td></tr><tr><td>stories.pack_id → content_packs</td><td>517d50a3</td><td>content_packs</td><td>OK</td></tr></tbody></table>
+<p>FK 整合: 全件 OK</p>
+<h3 id="view-の依存テーブル整合">View の依存テーブル整合</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>View</th><th>依存 UUID</th><th>実テーブル</th><th>評価</th></tr></thead><tbody><tr><td>v_learning_history_with_story</td><td>d524cba6 / b5aa3e1b / 517d50a3</td><td>learning_sessions / stories / content_packs</td><td>OK</td></tr><tr><td>v_words_with_progress</td><td>8db75844 / 7ab2cf24</td><td>words / user_word_progress</td><td>OK</td></tr><tr><td>v_session_pronunciation_avg</td><td>fefa79cf / d524cba6</td><td>pronunciation_scores / learning_sessions</td><td>OK</td></tr></tbody></table>
+<h3 id="view-sql-カラム整合-must-fix-2-件">View SQL カラム整合 (Must-fix 2 件)</h3>
+<ol>
+<li><strong>v_learning_history_with_story</strong> — <code>s.estimated_minutes</code> を SELECT しているが、stories テーブルに <code>estimated_minutes</code> カラムなし。outputColumns にも <code>estimated_minutes</code> が定義されている。</li>
+<li><strong>v_words_with_progress</strong> — <code>w.reading</code> を SELECT しているが、words テーブルに <code>reading</code> カラムなし。outputColumns に <code>reading</code> が定義されている。</li>
+</ol>
+<h3 id="screen-items-の参照整合">screen items の参照整合</h3>
+<ul>
+<li>会話プレイ画面 (a9d8eb6f) の <code>currentDialogueTranslation</code> description に <code>dialogue_lines.translation_ja</code> — 実列名は <code>translation</code> (Must-fix)</li>
+<li>単語詳細画面 (6bfa682c) の description に <code>words.translation_ja</code> — 実列名は <code>translation</code> (Must-fix)</li>
+<li>発音スコアテーブルの description に <code>ORDER BY scored_at DESC LIMIT 1</code> — 実列名は <code>created_at</code> (Should-fix)</li>
+</ul>
+<h3 id="viewdefinition-のソーステーブル整合">ViewDefinition のソーステーブル整合</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ViewDefinition</th><th>sourceTableId / query 参照</th><th>評価</th></tr></thead><tbody><tr><td>cfdbf081 (ストーリー一覧)</td><td>b5aa3e1b (stories)</td><td>OK</td></tr><tr><td>ba1c7d9d (コンテンツパック一覧)</td><td>517d50a3 (content_packs)</td><td>OK</td></tr><tr><td>f06e103d (発音スコア履歴)</td><td>fefa79cf + 246a3f13</td><td>OK</td></tr><tr><td>4c9cdc85 (学習履歴一覧)</td><td>v_learning_history_with_story SQL</td><td>OK (view が Must-fix だが viewDef 自体の参照は正しい)</td></tr><tr><td>090e9db0 (単語帳)</td><td>v_words_with_progress SQL</td><td>OK (同上)</td></tr></tbody></table>
+<h3 id="extension-stepkind-参照整合">extension stepKind 参照整合</h3>
+<ul>
+<li><code>english-learning:LlmDialog</code> → extensions.stepKinds.LlmDialog OK</li>
+<li><code>english-learning:TtsGenerate</code> → extensions.stepKinds.TtsGenerate OK</li>
+<li><code>english-learning:SttEvaluate</code> → extensions.stepKinds.SttEvaluate OK</li>
+<li>screenKind <code>english-learning:conversationPlayer</code> → extensions.screenKinds[0].kind = “conversationPlayer” OK</li>
+</ul>
+<h3 id="conventions-参照整合">conventions 参照整合</h3>
+<ul>
+<li><code>@conv.msg.sessionNotFound</code> → catalog.json msg.sessionNotFound OK</li>
+<li><code>@conv.extensionCategories.cefr.passingThreshold</code> → catalog.json extensionCategories.cefr.passingThreshold OK</li>
+<li><code>@conv.extensionCategories.wordProgress.masteryThreshold</code> → catalog.json extensionCategories.wordProgress.masteryThreshold OK</li>
+<li><code>@conv.numbering.sessionId</code> → catalog.json numbering.sessionId OK</li>
+<li><code>@conv.numbering.scoreId</code> → catalog.json numbering.scoreId OK</li>
+<li><code>@conv.regex.ipa</code> → catalog.json regex.ipa OK</li>
+</ul>
+<hr>
+<h2 id="description-待避粒度監査">description 待避粒度監査</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>待避項目</th><th>待避先</th><th>記述あり</th><th>再現可能粒度</th><th>評価</th></tr></thead><tbody><tr><td>TTS 同期カラオケ字幕</td><td>dialogue_lines.text.description + 会話プレイ screen items.description</td><td>あり</td><td>「将来 TtsGenerate の wordTimings 出力を使い word-level highlight する。MVP は通常字幕のみ」と明記</td><td>OK</td></tr><tr><td>Web Audio 録音</td><td>recordButton 項目 description</td><td>あり</td><td>「ブラウザ MediaRecorder API で録音し、終了後 audioUrl を SttEvaluate step に POST。録音中は Web Audio API AudioContext で波形描画 (canvas)」と明記</td><td>OK</td></tr><tr><td>LLM ストリーム会話</td><td>turn_logs テーブル description + S-2 flow meta.description</td><td>あり</td><td>「ターン単位 request/response。実装側で SSE / WebSocket による partial response ストリーム表示を行う想定」と明記</td><td>OK</td></tr><tr><td>単語タップ辞書ポップアップ</td><td>dialogue_lines.text.comment + 会話プレイ screen description</td><td>あり</td><td>「セリフ内の単語をタップすると /vocabulary/:wordId を modal 表示。実装側 router で intercept」と明記</td><td>OK</td></tr><tr><td>録音波形 visualizer</td><td>recordButton 項目 description</td><td>あり</td><td>「録音中は Web Audio API AudioContext で波形描画 (canvas)」と明記</td><td>OK (Web Audio 録音と同一個所に含む)</td></tr><tr><td>発音採点フィードバック UI</td><td>pronunciation_scores テーブル description + S-3 flow output description</td><td>あり</td><td>「diff フィールド (PhoneDiff[]) は音素単位の正誤判定リスト。実装側で IPA テーブル + 色分け表示」と明記</td><td>OK</td></tr></tbody></table>
+<p>全 6 項目 OK。粒度は実装者が再現できる水準。重複・抜けなし。</p>
+<hr>
+<h2 id="spec-dogfood-4-目的の達成度評価">spec dogfood 4 目的の達成度評価</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>目的</th><th>評価 (5 段階)</th><th>所見</th></tr></thead><tbody><tr><td>(a) 外部 AI を ProcessFlow に組み込む (stepKind 拡張パターン実用例)</td><td>4 / 5</td><td>LlmDialog / TtsGenerate / SttEvaluate の 3 stepKind が実際の flow で使用され、config / outputBinding / outputType のパターンが蓄積された。LlmDialog の outputType (dialogTurn) と後続 step の型不整合が Must-fix として検出された点は知見として有効</td></tr><tr><td>(b) UX を description 待避でどこまで表現できるか</td><td>5 / 5</td><td>6 項目全て実装者再現可能粒度で記述。Web Audio / SSE / modal router intercept 等の実装詳細が設計書として保持されており、本フレームワークの description 待避パターンが B2C + 外部 AI 領域でも機能することを実証</td></tr><tr><td>(c) 拡張パック (動的追加コンテンツ) を extensions/<namespace>/ でどう表現するか</namespace></td><td>4 / 5</td><td>content_packs.namespace_ref で拡張 namespace を参照するアプローチが明確に設計された。extensions/english-learning.v3.json でパック固有の stepKind / fieldType / screenKind を統合定義するパターンが確立。動的ロードの実装方針は description で待避</td></tr><tr><td>(d) 進捗ベース UI (連続日数 / CEFR / 習熟度) を ViewDefinition でどう表現するか</td><td>4 / 5</td><td>v_words_with_progress + 単語帳 viewer で習熟ステータス別フィルタ、v_session_pronunciation_avg でセッション別集計が実現。CEFR 昇格判定は conventions.extensionCategories.cefr.passingThreshold で横断参照。ただし view SQL に存在しない列参照 (Must-fix) があり、フレームワーク外の bug を検出</td></tr></tbody></table>
+<hr>
+<h2 id="b2c-トーン評価">B2C トーン評価</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>評価</th><th>所見</th></tr></thead><tbody><tr><td>スマホ縦長最適化</td><td>(design.json 未確認、screen items の構造から判断) 要確認</td><td>各画面に Bootstrap 5 ベースの responsive 設計が指定されている</td></tr><tr><td>aria-label 充実</td><td>OK</td><td>recordButton 項目 description に「aria-label は必須」と明記</td></tr><tr><td>4 テーマ破綻なし</td><td>design.json ベース、screen items 定義レベルでは判断不可</td><td></td></tr><tr><td>Bootstrap 5 統一</td><td>各 screen の description / items 構造から Bootstrap 5 前提が読み取れる</td><td></td></tr></tbody></table>
+<p>screen.design.json は設計書レベルの評価対象外。screen items の定義粒度では B2C トーン (録音ボタン / テキスト代替 / 会話履歴ペイン / スコア表示の構成) が業務見本品質を保っていることを確認。</p>
+<hr>
+<h2 id="検出された-must-fix-一覧">検出された Must-fix 一覧</h2>
+<h3 id="must-fix-1-v_learning_history_with_story-で-storiesestimated_minutes-が存在しない列を参照">Must-fix 1: v_learning_history_with_story で stories.estimated_minutes が存在しない列を参照</h3>
+<p><strong>ファイル</strong>: <code>examples/english-learning/views/af699800-b15f-4588-9d0d-6a76a3eb2e48.json</code></p>
+<ul>
+<li>selectStatement 内 <code>s.estimated_minutes</code> — stories テーブル (b5aa3e1b) に <code>estimated_minutes</code> カラムなし</li>
+<li>outputColumns に <code>estimated_minutes</code> が定義されている</li>
+</ul>
+<p><strong>修正案</strong>: stories テーブルに <code>estimated_minutes</code> 列 (INTEGER, nullable) を追加するか、view SQL / outputColumns から <code>estimated_minutes</code> を削除する。仕様書 (spec 2.3) には estimated_minutes の記述はないので、<strong>削除が妥当</strong>。</p>
+<p>対象ファイル:</p>
+<ul>
+<li><code>examples/english-learning/views/af699800-b15f-4588-9d0d-6a76a3eb2e48.json</code> (selectStatement + outputColumns から estimated_minutes を削除)</li>
+</ul>
+<hr>
+<h3 id="must-fix-2-v_words_with_progress-で-wordsreading-が存在しない列を参照">Must-fix 2: v_words_with_progress で words.reading が存在しない列を参照</h3>
+<p><strong>ファイル</strong>: <code>examples/english-learning/views/c0474fbf-d0f4-4cfc-bbcd-0154431df9a2.json</code></p>
+<ul>
+<li>selectStatement 内 <code>w.reading</code> — words テーブル (8db75844) に <code>reading</code> カラムなし</li>
+<li>outputColumns に <code>reading</code> が定義されている</li>
+</ul>
+<p><strong>修正案</strong>: view SQL / outputColumns から <code>reading</code> を削除する。words テーブルの定義 (10 列) に reading 列を追加することも可能だが、spec に定義がないため削除を推奨。</p>
+<p>対象ファイル:</p>
+<ul>
+<li><code>examples/english-learning/views/c0474fbf-d0f4-4cfc-bbcd-0154431df9a2.json</code> (selectStatement + outputColumns から reading を削除)</li>
+</ul>
+<hr>
+<h3 id="must-fix-3-llmdialog-outputtype-型不整合--dialogturn-object-を-string-として扱っている">Must-fix 3: LlmDialog outputType 型不整合 — dialogTurn (object) を string として扱っている</h3>
+<p><strong>ファイル</strong>: <code>examples/english-learning/process-flows/96118ae1-a0ab-401b-8584-dd645a45a81f.json</code></p>
+<ul>
+<li>extensions の LlmDialog.outputType = <code>{ kind: "extension", extensionRef: "english-learning:dialogTurn" }</code></li>
+<li>dialogTurn は <code>{ role, content, audioUrl }</code> の object 型</li>
+<li>step-03 の outputBinding <code>aiResponse</code> が object になるため、step-04a (TtsGenerate) の config.text に <code>@aiResponse</code> を渡すと object が text に入り型エラー</li>
+<li>step-07 の bodyExpression でも <code>aiResponseText: @aiResponse</code> で string として返している</li>
+</ul>
+<p><strong>修正案 A</strong>: LlmDialog の outputType を string (AI 応答テキストのみ) に変更する。dialogTurn responseType は参照可能だが、この flow での outputBinding は plain string で十分。extensions.stepKinds.LlmDialog.outputType を <code>{ kind: "base", baseType: "string" }</code> 等に修正する。</p>
+<p><strong>修正案 B</strong>: <code>@aiResponse.content</code> と参照するように flow の step-04a / step-05 / step-07 を修正する。</p>
+<p>修正案 A の方が extensions の定義整合が簡潔なため推奨。</p>
+<p>対象ファイル:</p>
+<ul>
+<li><code>examples/english-learning/extensions/english-learning.v3.json</code> (LlmDialog.outputType を string に変更)</li>
+<li>または <code>examples/english-learning/process-flows/96118ae1-a0ab-401b-8584-dd645a45a81f.json</code> (参照を @aiResponse.content に変更)</li>
+</ul>
+<hr>
+<h3 id="must-fix-4-画面-description-に存在しない列名-translation_ja-を参照">Must-fix 4: 画面 description に存在しない列名 <code>translation_ja</code> を参照</h3>
+<p><strong>ファイル</strong>:</p>
+<ul>
+<li>
+<p><code>examples/english-learning/screens/a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7.json</code> (会話プレイ screen)</p>
+</li>
+<li>
+<p><code>examples/english-learning/screens/6bfa682c-b18e-45bd-8daa-eb20cc1834bf.json</code> (単語詳細 screen)</p>
+</li>
+<li>
+<p>会話プレイ screen の items.currentDialogueTranslation.description: <code>dialogue_lines.translation_ja の表示</code> — 実列名は <code>translation</code></p>
+</li>
+<li>
+<p>単語詳細 screen の items description に <code>words.translation_ja</code> — 実列名は <code>translation</code></p>
+</li>
+</ul>
+<p><strong>修正案</strong>: description 内の <code>translation_ja</code> を <code>translation</code> に修正する。</p>
+<hr>
+<h2 id="検出された-should-fix-一覧">検出された Should-fix 一覧</h2>
+<h3 id="should-fix-1-s-2-flow-step-06-のイベントペイロード--turnnumber-が-newturnlogid-pk-を参照している">Should-fix 1: S-2 flow step-06 のイベントペイロード — turnNumber が @newTurnLog.id (PK) を参照している</h3>
+<p><strong>ファイル</strong>: <code>examples/english-learning/process-flows/96118ae1-a0ab-401b-8584-dd645a45a81f.json</code></p>
+<ul>
+<li><code>payload: "{ sessionId: @sessionId, turnNumber: @newTurnLog.id, role: 'assistant' }"</code></li>
+<li><code>@newTurnLog.id</code> は turn_logs.id (サロゲートキー)。ターン番号は <code>@nextTurnNumber</code> が正しい</li>
+</ul>
+<p><strong>修正案</strong>: <code>turnNumber: @nextTurnNumber</code> に変更する。</p>
+<hr>
+<h3 id="should-fix-2-pronunciation_scores-テーブル-description-に存在しない列名-scored_at-を参照">Should-fix 2: pronunciation_scores テーブル description に存在しない列名 <code>scored_at</code> を参照</h3>
+<p><strong>ファイル</strong>: <code>examples/english-learning/tables/fefa79cf-4721-4956-86bb-595427bf6f81.json</code></p>
+<ul>
+<li>description: <code>最新スコアの取得は ORDER BY scored_at DESC LIMIT 1 で行う</code></li>
+<li>実際のカラムは <code>created_at</code></li>
+</ul>
+<p><strong>修正案</strong>: description を <code>ORDER BY created_at DESC LIMIT 1</code> に修正する。</p>
+<hr>
+<h2 id="nit">Nit</h2>
+<ol>
+<li>S-2 flow の step-06 の id が <code>step-06</code> で正常だが、その後の step が <code>step-04c</code> / <code>step-04d</code> と非連番になっており、番号体系が不統一。機能上の問題はないが可読性が低い。</li>
+<li>scheduled flow (3c4d9bfd) の actions[0].steps に httpRoute が定義されておらず scheduled trigger として適切だが、trigger=“timer” に対応する cron 式は description でのみ記述されている。これは description 待避として妥当。</li>
+</ol>
+<hr>
+<h2 id="フォローアップ提案-起票判断は設計者">フォローアップ提案 (起票判断は設計者)</h2>
+<h3 id="フレームワーク改善候補-framework-領域">フレームワーク改善候補 (framework 領域)</h3>
+<ul>
+<li><strong>型安全な stepKind outputType の参照パターンの文書化</strong>: LlmDialog outputType が dialogTurn (object) か string かの設計判断は他サンプルでも繰り返し発生する可能性。<code>CustomStepKind.outputType</code> が <code>kind: "extension"</code> の場合、後続 step での参照方法 (<code>.content</code> 等のアクセス) をフレームワーク規約で明示するガイドがあると良い。記録は memory / spec に限定し、ISSUE 化は不要 (PR description に記録する程度で十分)。</li>
+</ul>
+<h3 id="サンプル設計改善候補-examples-領域">サンプル設計改善候補 (examples 領域)</h3>
+<ul>
+<li>Must-fix 1-4 を修正し validate:samples / vitest で再確認する</li>
+<li>Should-fix 1-2 を合わせて修正する</li>
+</ul>
+<hr>
+<h2 id="まとめ">まとめ</h2>
+<p><code>examples/english-learning/</code> は <strong>B2C + 外部 AI 連携の初サンプル</strong> として、spec dogfood 4 目的のうち (b) description 待避と (c) 拡張パックを完全実証した。(a) stepKind 拡張と (d) ViewDefinition も概ね実証済みだが、LlmDialog の型不整合 (Must-fix 3) と view SQL のカラム存在確認漏れ (Must-fix 1/2) が検出された。</p>
+<p>Must-fix 4 件を解消すれば設計書品質は retail サンプルと同等水準に達する。Should-fix 2 件は軽微。</p>
+<hr>
+<h2 id="修正対応結果-2026-05-04-同日">修正対応結果 (2026-05-04 同日)</h2>
+<p>dogfood 検出された全 Must-fix 4 件 + Should-fix 2 件を本子 5 PR で解消済。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>#</th><th>内容</th><th>修正</th></tr></thead><tbody><tr><td>Must-fix 1</td><td>views/af699800 の <code>estimated_minutes</code> 参照 (stories に該当列なし)</td><td>selectStatement と outputColumns から削除</td></tr><tr><td>Must-fix 2</td><td>views/c0474fbf の <code>reading</code> 参照 (words に該当列なし)</td><td>selectStatement と outputColumns から削除し、代わりに existing <code>example_translation</code> を含めるよう修正</td></tr><tr><td>Must-fix 3</td><td>LlmDialog outputType 型不整合 (<code>english-learning:dialogTurn</code> object 型を string として参照)</td><td><code>@aiResponse</code> → <code>@aiResponse.content</code> に修正 (3 箇所: step-04a TtsGenerate.text、step-07 INSERT SQL ai_response、step-09 bodyExpression aiResponseText)</td></tr><tr><td>Must-fix 4</td><td>screen description の <code>translation_ja</code> (実列名 <code>translation</code>)</td><td>a9d8eb6f / 6bfa682c の 2 画面で description 修正</td></tr><tr><td>Should-fix 1</td><td>turnNumber: @newTurnLog.id → @nextTurnNumber</td><td>step-06 eventPublish payload 修正</td></tr><tr><td>Should-fix 2</td><td>pronunciation_scores テーブル description の <code>scored_at</code> (実列名 <code>created_at</code>)</td><td>description 修正</td></tr></tbody></table>
+<h3 id="再検証結果">再検証結果</h3>
+<ul>
+<li><code>npm --prefix designer run validate:samples -- ../examples/english-learning</code> → <strong>5 / 5 flows passed</strong></li>
+<li><code>npm --prefix designer run test:unit -- --run samples-v3.schema.test.ts</code> → 93/93 passed</li>
+<li><code>Grep "[ｦ-ﾟ]" examples/english-learning/</code> → 0 件</li>
+<li><code>git diff main..HEAD -- schemas/</code> → 0 件 (schema governance 遵守)</li>
+</ul>
+<h3 id="達成度評価-修正後">達成度評価 (修正後)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>目的</th><th>修正前</th><th>修正後</th></tr></thead><tbody><tr><td>(a) 外部 AI stepKind 拡張パターン実用例</td><td>4 / 5</td><td><strong>5 / 5</strong></td></tr><tr><td>(b) UX を description 待避で表現</td><td>5 / 5</td><td>5 / 5</td></tr><tr><td>(c) 拡張パック (動的コンテンツ) を extensions で表現</td><td>4 / 5</td><td>4 / 5 (拡張余地は残るが MVP 範囲では完結)</td></tr><tr><td>(d) 進捗ベース UI を ViewDefinition で表現</td><td>4 / 5</td><td><strong>5 / 5</strong></td></tr></tbody></table>
+<p><strong>英会話学習サンプルは retail と同等水準で完成。リリース時の examples として提供可能。</strong></p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

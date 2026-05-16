@@ -1,0 +1,719 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>collab presence</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link active"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="collab-presence--協調編集-direction-b-仕様">collab-presence — 協調編集 (Direction B) 仕様</h1>
+<blockquote>
+<p><strong>2026-05-07 改訂</strong>: PR #888 の dogfood で「後から接続した viewer が編集中の最新 state を取得できない」根本欠陥が発覚 (= Direction B のメインユースケース破綻)。本 spec の lock + draft + presence の 3 層モデルから、<strong>EditSession 一級概念を中核とする正規プロトコル</strong>に再定義された。正規プロトコルは <a href="/spec/edit-session-protocol/"><code>edit-session-protocol.md</code></a> を参照。</p>
+<p>本 spec は <strong>overture (序章)</strong> として継続有効: Direction B 採用根拠 (§ 2) / Forward-Compat 4 原則 (§ 3) / Activity taxonomy (§ 9) / Direction A への移行可能性 (本 spec の方針継続)。</p>
+<p>§ 4-8 / § 11 のアーキテクチャ・状態遷移・broadcast プロトコル・既存 spec との関係は <code>edit-session-protocol.md</code> で置き換えられている。</p>
+<p><strong>Phase 6 (#903) 完了 (2026-05-07)</strong>: lockManager / draftStore / onBehalfOfSession / SessionBadge を削除。lock.* / draft.* MCP tools 全削除。useEditSessionLegacy 削除。§ 4 アーキテクチャ図の lockManager/draftStore/presenceManager は obsolete。</p>
+</blockquote>
+<blockquote>
+<p><strong>シリーズ</strong>: メタ #876 / RFC 派生 #855 (Option B 採用)</p>
+<p>本ドキュメントは #855 で確定した Direction B (編集者 1 名 + 閲覧者複数 + presence + take-over UX) の正規仕様。
+実装は子 ISSUE Phase 1 (#878) 以降で行う。Phase 0 (本 ISSUE #877) では本 spec を確定させ、後続 Phase 全体の設計契約とする。</p>
+</blockquote>
+<hr>
+<h2 id="目次">目次</h2>
+<ol>
+<li><a href="#1-%E6%A6%82%E8%A6%81--%E5%8B%95%E6%A9%9F">概要 / 動機</a></li>
+<li><a href="#2-direction-b-%E6%8E%A1%E7%94%A8%E6%A0%B9%E6%8B%A0">Direction B 採用根拠</a></li>
+<li><a href="#3-forward-compat-4-%E5%8E%9F%E5%89%87">Forward-Compat 4 原則</a></li>
+<li><a href="#4-%E3%82%A2%E3%83%BC%E3%82%AD%E3%83%86%E3%82%AF%E3%83%81%E3%83%A3">アーキテクチャ</a></li>
+<li><a href="#5-lock-%E7%8A%B6%E6%85%8B%E9%81%B7%E7%A7%BB-viewer-%E6%8B%A1%E5%BC%B5">lock 状態遷移 (viewer 拡張)</a></li>
+<li><a href="#6-heartbeat-%E4%BB%95%E6%A7%98">Heartbeat 仕様</a></li>
+<li><a href="#7-opaque-envelope-%E4%BB%95%E6%A7%98">Opaque envelope 仕様</a></li>
+<li><a href="#8-take-over-%E3%83%95%E3%83%AD%E3%83%BC">Take-over フロー</a></li>
+<li><a href="#9-activity-taxonomy-5-%E6%AE%B5%E9%9A%8E">Activity taxonomy 5 段階</a></li>
+<li><a href="#10-ai-onbehalfofsession-%E3%81%A8%E3%81%AE%E9%96%A2%E4%BF%82">AI <code>onBehalfOfSession</code> との関係</a></li>
+<li><a href="#11-%E6%97%A2%E5%AD%98-spec-%E3%81%A8%E3%81%AE%E9%96%A2%E4%BF%82">既存 spec との関係</a></li>
+<li><a href="#12-%E5%8F%97%E3%81%91%E5%85%A5%E3%82%8C%E5%9F%BA%E6%BA%96--%E3%82%BB%E3%82%AD%E3%83%A5%E3%83%AA%E3%83%86%E3%82%A3%E8%80%83%E6%85%AE%E4%BA%8B%E9%A0%85">受け入れ基準 / セキュリティ考慮事項</a></li>
+</ol>
+<hr>
+<h2 id="1-概要--動機">1. 概要 / 動機</h2>
+<h3 id="11-動機">1.1 動機</h3>
+<p>本リポジトリの編集モデルは現状 <code>edit-session-draft</code> (#683 マージ済) によって「編集者 1 名・lock 排他」で運用されている。同一ワークスペース内の <strong>複数人協調</strong> (会議・教育・AI ペアプロデモ等) のユースケースで以下の不足がある:</p>
+<ul>
+<li>別ユーザーが「今誰が・何を・どこを編集中か」を観察する手段がない</li>
+<li>AI が <code>onBehalfOfSession</code> で編集している状況を別ユーザーが見る手段がない</li>
+<li>編集権の譲渡 (take-over) が「強制解除」しかなく、誤って譲渡してもロールバックの猶予がない</li>
+<li>ユーザーが事前に他者の進行中 draft の存在に気付けず、衝突起票後に判明する</li>
+</ul>
+<h3 id="12-解決方針">1.2 解決方針</h3>
+<p><strong>Direction B</strong>: 編集者は引き続き 1 名 (lock holder)、他のセッションは <strong>read-only follower (viewer)</strong> として同じ workspace に attach し、editor の draft 中間状態をリアルタイム閲覧できる。</p>
+<ul>
+<li>真の同時編集 (CRDT) は採用しない (#855 で Option A 不採用を確定)</li>
+<li>既存 <code>edit-session-draft</code> の lock + draft 機構を温存しつつ、receive-only 経路を追加</li>
+<li>同じ仕組みで AI の編集も別ユーザーに観察可能になる (副次効果)</li>
+<li>編集者の交代は <strong>take-over</strong> (lock 譲渡 + 通知) で UX 的に明示</li>
+</ul>
+<h3 id="13-用語定義">1.3 用語定義</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>用語</th><th>意味</th></tr></thead><tbody><tr><td><strong>editor</strong></td><td>lock holder。当該リソースに対する書込み権を持つ session 1 名</td></tr><tr><td><strong>viewer</strong></td><td>lock を取らずに draft 中間状態を read-only で受信する session。複数可</td></tr><tr><td><strong>take-over</strong></td><td>viewer が editor から lock を譲り受ける操作 (引継ぎ)</td></tr><tr><td><strong>presence</strong></td><td>「今誰が・何を・どの role で見ているか」のメタ情報。CRDT に依存しない独立 channel で配信</td></tr><tr><td><strong>awareness</strong></td><td>presence と同義 (Yjs 用語との互換)。本 spec 内では presence で統一</td></tr><tr><td><strong>opaque envelope</strong></td><td>mid-edit broadcast の payload を非構造化 bytes-like として扱う規約。将来 CRDT バイナリへの swap を可能にする</td></tr><tr><td><strong>shadow store</strong></td><td>draft の in-memory キャッシュ。FS write を絞り、in-memory を真実点とする</td></tr><tr><td><strong>activity taxonomy</strong></td><td>session の「最終アクティビティ」を 5 段階に分類した状態モデル (live / active / idle / stale / abandoned)</td></tr></tbody></table>
+<hr>
+<h2 id="2-direction-b-採用根拠">2. Direction B 採用根拠</h2>
+<h3 id="21-855-で比較した-3-案">2.1 #855 で比較した 3 案</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Option</th><th>仕組み</th><th>規模</th><th>採否</th></tr></thead><tbody><tr><td>A</td><td>フル CRDT (Loro / Dify v1.14 同等)</td><td>8-12 週</td><td><strong>不採用</strong> (schema-first / AI 連携と衝突)</td></tr><tr><td><strong>B</strong></td><td><strong>編集者 1 + 閲覧者複数 (lock + viewer + broadcast)</strong></td><td><strong>1.5-2 週</strong></td><td><strong>採用</strong></td></tr><tr><td>C</td><td>presence のみ最小実装</td><td>2-3 日</td><td>B のサブセット (B 内で段階的 release point として可)</td></tr></tbody></table>
+<h3 id="22-direction-b-採用理由">2.2 Direction B 採用理由</h3>
+<ul>
+<li><strong>schema-first 思想と整合</strong>: CRDT の LWW (Last-Writer-Wins) は schema 強制 (validator) と本質的に衝突する。Direction B は単一 editor が <code>validator</code> を pass させる責任を持つため、schema 整合性が崩れない。</li>
+<li><strong>既存 <code>edit-session-draft</code> の自然な延長</strong>: lock + draft + <code>onBehalfOfSession</code> の機構を温存し、receive-only 経路を追加するだけ。再設計コストが小さい。</li>
+<li><strong>副次効果が大きい</strong>: 同じ仕組みで AI の編集も別ユーザーに観察可能 (デモ / 教育 / 複数人レビュー)。</li>
+<li><strong>CRDT 互換層を維持</strong>: Forward-Compat 4 原則 (§ 3) に従えば、将来 Option A 移行コストを 8-12 週 → 5-8 週 に低減できる。</li>
+</ul>
+<h3 id="23-direction-a-を将来再評価する条件">2.3 Direction A を将来再評価する条件</h3>
+<p>Direction B 運用で以下のいずれかが顕在化した場合、Option A 移行を再評価する:</p>
+<ul>
+<li>lock 取得待ちの UX 摩擦が顕著に増加 (例: 1 リソースに同時編集要求が常時 3 件以上)</li>
+<li>AI がリアルタイム pair-programming で「人間と同時にキャレットを動かす」要求が立つ</li>
+<li>リアルタイム collab を期待する顧客要件が立つ (現在は内製ツールのため要件外)</li>
+</ul>
+<hr>
+<h2 id="3-forward-compat-4-原則">3. Forward-Compat 4 原則</h2>
+<p>将来 Option A への移行を可能にするため、Direction B 実装時に以下を<strong>必須遵守</strong>する。違反は子 ISSUE PR レビューで Must-fix とする。</p>
+<h3 id="31-原則--mid-edit-broadcast-を-opaque-envelope-で抽象化">3.1 原則 ①: mid-edit broadcast を opaque envelope で抽象化</h3>
+<p><strong>Bad</strong>: ProcessFlow / Table 固有の JSON 構造を WebSocket message に直接流す
+<strong>Good</strong>: <code>{ type: "draft-update", resourceType, resourceId, sequence, payload: &#x3C;opaque> }</code> のような汎用 envelope に包む</p>
+<p>将来 Loro update バイナリ (Uint8Array) への差替えで message protocol を変えずに payload だけ swap できる。</p>
+<h3 id="32-原則--lock-をui-hintとサーバ強制の-2-層に分離">3.2 原則 ②: lock を「UI hint」と「サーバ強制」の 2 層に分離</h3>
+<p><strong>Bad</strong>: BE の lock を全 mutation の前で必須 check として実装、UI が結果を後追い表示
+<strong>Good</strong>: BE は lock を「ヒント情報」として保持・配信、UI が hint に応じて edit を disable</p>
+<p>CRDT 化時に「サーバ強制 lock」だけを撤去すれば済む。UI 層の「○○ さんが編集中」表示はそのまま残せる。</p>
+<p>本実装 (Direction B) では BE 強制 lock も併用するが、UI 側のロジックを「lock 状態を hint として消費して disable する」形で書くことで、A 移行時に hint 部分のみ温存できる。</p>
+<h3 id="33-原則--presence--awareness-を-crdt-非依存の独立-channel-に">3.3 原則 ③: presence / awareness を CRDT 非依存の独立 channel に</h3>
+<p><strong>Bad</strong>: presence (cursor / 選択ノード / 編集中バッジ) を draft state と同じ message に混入
+<strong>Good</strong>: <code>presence:*</code> 専用 channel で完全分離 broadcast</p>
+<p>Dify v1.14 も同じ設計 (<code>collaboration_event</code> 経路で CRDT と分離)。本実装でも最初から分離すれば、A 移行時に awareness 層は丸ごと無改修で流用可能。</p>
+<h3 id="34-原則--draft-永続化をsnapshot-のみ設計に寄せる">3.4 原則 ④: draft 永続化を「snapshot のみ」設計に寄せる</h3>
+<p><strong>Bad</strong>: server-side FS が authoritative source、全 mutation を即時反映保存
+<strong>Good</strong>: server-side FS は <strong>snapshot 用永続化</strong> に役割限定、in-memory state を真実点とし、定期 / 明示 save 時にのみ FS flush</p>
+<p>A 移行時に BE を relay-only に転換するのが容易。Direction B 段階でも mid-edit を毎回 FS write しない方が性能上も有利 (副次効果)。</p>
+<hr>
+<h2 id="4-アーキテクチャ">4. アーキテクチャ</h2>
+<blockquote>
+<p><strong>⚠ 部分 Obsolete (Phase 6 / #903 完了 2026-05-07):</strong> §4 のメッセージシーケンス・状態管理 (§4.2 以降) は edit-session-protocol.md に統合済。<strong>§4.1 (責務境界)</strong> は frontend (<code>usePresenceRegistry.ts</code>) から現役参照中、有効。</p>
+</blockquote>
+<h3 id="41-責務境界">4.1 責務境界</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>┌──────────────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ Frontend                                                         │</span></span>
+<span class="line"><span>│   ┌─────────────────────┐    ┌─────────────────────┐             │</span></span>
+<span class="line"><span>│   │ EditorHeader        │    │ ListView            │             │</span></span>
+<span class="line"><span>│   │  - EditSessionDropdown    - SessionBadge       │             │</span></span>
+<span class="line"><span>│   │  - PresenceBadge    │    │  - PresenceBadge    │             │</span></span>
+<span class="line"><span>│   └──────────┬──────────┘    └──────────┬──────────┘             │</span></span>
+<span class="line"><span>│              │                          │                        │</span></span>
+<span class="line"><span>│   ┌──────────▼──────────────────────────▼──────────┐             │</span></span>
+<span class="line"><span>│   │ hooks                                           │             │</span></span>
+<span class="line"><span>│   │  - useEditSession (mode: editor/viewer/...)    │             │</span></span>
+<span class="line"><span>│   │  - useResourceEditor (update + draft-update push)             │</span></span>
+<span class="line"><span>│   │  - usePresenceHeartbeat (30s + visibility 連動)               │</span></span>
+<span class="line"><span>│   │  - usePresenceRegistry (broadcast subscribe)   │             │</span></span>
+<span class="line"><span>│   └──────────┬──────────────────────────────────────┘             │</span></span>
+<span class="line"><span>│              │                                                    │</span></span>
+<span class="line"><span>│              ▼ wsBridge / mcpBridge                               │</span></span>
+<span class="line"><span>└──────────────┼───────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>               │ WebSocket</span></span>
+<span class="line"><span>┌──────────────▼───────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ Backend                                                          │</span></span>
+<span class="line"><span>│   ┌─────────────────────────────────────────────────────────┐    │</span></span>
+<span class="line"><span>│   │ wsBridge — opaque envelope dispatch                     │    │</span></span>
+<span class="line"><span>│   │  events: draft-update / presence:update / lock.changed  │    │</span></span>
+<span class="line"><span>│   └────┬───────────────┬──────────────┬────────────────────┘    │</span></span>
+<span class="line"><span>│        │               │              │                         │</span></span>
+<span class="line"><span>│   ┌────▼────────┐ ┌────▼─────────┐ ┌──▼────────────┐             │</span></span>
+<span class="line"><span>│   │ lockManager │ │ draftStore   │ │ presenceManager│             │</span></span>
+<span class="line"><span>│   │  - acquire  │ │  - shadow    │ │  - heartbeat   │             │</span></span>
+<span class="line"><span>│   │  - subscribeAsViewer (新)    │ │  - classify    │             │</span></span>
+<span class="line"><span>│   │  - transferLock (新)         │ │  - cleanup    │             │</span></span>
+<span class="line"><span>│   └─────────────┘ └──────────────┘ └───────────────┘             │</span></span>
+<span class="line"><span>│        │               │                                         │</span></span>
+<span class="line"><span>│        ▼               ▼ flush                                   │</span></span>
+<span class="line"><span>│   ┌──────────────────────┐                                       │</span></span>
+<span class="line"><span>│   │ FS: data/.drafts/    │                                       │</span></span>
+<span class="line"><span>│   └──────────────────────┘                                       │</span></span>
+<span class="line"><span>└──────────────────────────────────────────────────────────────────┘</span></span></code></pre>
+<h3 id="42-各コンポーネント責務">4.2 各コンポーネント責務</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>コンポーネント</th><th>責務</th><th>既存/新規</th></tr></thead><tbody><tr><td><code>lockManager</code></td><td>lock 取得 / 解放 / 譲渡、viewer 受信権登録</td><td>既存拡張 (#683 PR-3)</td></tr><tr><td><code>draftStore</code></td><td>draft FS 永続化 + in-memory shadow + flush</td><td>既存拡張 (#683 PR-2)</td></tr><tr><td><code>presenceManager</code></td><td>heartbeat 受信 / activity 分類 / cleanup</td><td><strong>新規</strong> (Phase 1)</td></tr><tr><td><code>wsBridge</code></td><td>opaque envelope dispatch / broadcast scoping</td><td>既存拡張 (event 追加のみ)</td></tr><tr><td><code>useEditSession</code></td><td>mode 管理 (editor/viewer/locked-by-other/…)</td><td>既存拡張 (mode 追加)</td></tr><tr><td><code>useResourceEditor</code></td><td>state + update + draft-update push</td><td>既存拡張 (push 統合)</td></tr><tr><td><code>usePresenceHeartbeat</code></td><td>30s 間隔 + visibility 連動</td><td><strong>新規</strong> (Phase 1)</td></tr><tr><td><code>usePresenceRegistry</code></td><td>broadcast subscribe + Map</td><td><strong>新規</strong> (Phase 1)</td></tr><tr><td><code>EditSessionDropdown</code></td><td>session 切替 UI</td><td><strong>新規</strong> (Phase 4)</td></tr><tr><td><code>PresenceBadge</code></td><td>level → 色 + テキスト</td><td><strong>新規</strong> (Phase 7)</td></tr></tbody></table>
+<hr>
+<h2 id="5-lock-状態遷移-viewer-拡張">5. lock 状態遷移 (viewer 拡張)</h2>
+<blockquote>
+<p><strong>⚠ Obsolete (Phase 6 / #903 完了 2026-05-07):</strong> 本節は edit-session-protocol.md で置き換え済。frontend コード参照は §9 (Activity taxonomy) / §6 (Heartbeat 仕様) のみ有効。</p>
+</blockquote>
+<h3 id="51-既存-mode-683-pr-7-で確立">5.1 既存 mode (#683 PR-7 で確立)</h3>
+<p><code>frontend/src/hooks/useEditSession.ts</code> の mode:</p>
+<ul>
+<li><code>readonly</code> — 初期状態、lock 未取得</li>
+<li><code>editing</code> — lock 保有、自由に編集</li>
+<li><code>locked-by-other</code> — 他者が lock 保有、自分は edit 不可</li>
+<li><code>force-released-pending</code> — 強制解除要求中</li>
+<li><code>after-force-unlock</code> — 強制解除直後</li>
+</ul>
+<h3 id="52-本-spec-で追加する-mode">5.2 本 spec で追加する mode</h3>
+<ul>
+<li><strong><code>viewer</code></strong> — lock を取らずに draft 中間状態を受信する read-only follower</li>
+</ul>
+<h3 id="53-mode-遷移図">5.3 mode 遷移図</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>                ┌─────────────┐</span></span>
+<span class="line"><span>                │  readonly   │</span></span>
+<span class="line"><span>                └──────┬──────┘</span></span>
+<span class="line"><span>                       │ ① lock.acquire 成功</span></span>
+<span class="line"><span>                       │</span></span>
+<span class="line"><span>                       ▼</span></span>
+<span class="line"><span>                ┌─────────────┐</span></span>
+<span class="line"><span>            ┌───┤   editing   │</span></span>
+<span class="line"><span>            │   └──────┬──────┘</span></span>
+<span class="line"><span>            │          │ ⑦ release / ⑧ transferLock</span></span>
+<span class="line"><span>            │          │</span></span>
+<span class="line"><span>            │          ▼</span></span>
+<span class="line"><span>            │   ┌─────────────┐</span></span>
+<span class="line"><span>            │   │  readonly   │</span></span>
+<span class="line"><span>            │   └─────────────┘</span></span>
+<span class="line"><span>            │</span></span>
+<span class="line"><span>            │ ② lock.acquire 失敗 (LockConflictError)</span></span>
+<span class="line"><span>            │   → 自動 fallback</span></span>
+<span class="line"><span>            │</span></span>
+<span class="line"><span>            ▼</span></span>
+<span class="line"><span>       ┌─────────────┐                        ┌──────────────────┐</span></span>
+<span class="line"><span>       │   viewer    │  ──── ⑨ take-over ───▶ │      editing     │</span></span>
+<span class="line"><span>       │ (本 spec で追加)                     │ (新 owner)       │</span></span>
+<span class="line"><span>       └─────────────┘                        └──────────────────┘</span></span>
+<span class="line"><span>            ▲ ③ subscribeAsViewer 成功</span></span>
+<span class="line"><span>            │</span></span>
+<span class="line"><span>            │ ④ unsubscribeViewer / 切断</span></span>
+<span class="line"><span>            │</span></span>
+<span class="line"><span>            ▼</span></span>
+<span class="line"><span>       ┌─────────────┐</span></span>
+<span class="line"><span>       │ disconnected│</span></span>
+<span class="line"><span>       └─────────────┘</span></span></code></pre>
+<p>凡例:</p>
+<ul>
+<li>①: 「編集開始」ボタン押下成功</li>
+<li>②: 「編集開始」ボタン押下したが他者が lock 保有 → viewer fallback</li>
+<li>③: 「観察」アクション (EditSessionDropdown / 一覧バッジから)</li>
+<li>④: タブクローズ / unsubscribe</li>
+<li>⑦: 「保存して閉じる」 / 「破棄して閉じる」</li>
+<li>⑧: 自分から lock を譲渡 (transferLock)</li>
+<li>⑨: viewer から「引継」アクション → 新 owner</li>
+</ul>
+<h3 id="54-viewer-mode-の制約">5.4 viewer mode の制約</h3>
+<ul>
+<li>全 edit 操作 disable (キーボード入力 / マウスドラッグ / コピペ等)</li>
+<li><code>draft-update</code> broadcast を受信して state を上書き表示</li>
+<li>presence heartbeat は kind=“activity” のみ送信 (kind=“edit” は送らない)</li>
+<li>URL に <code>?session=&#x3C;owner-sid></code> が反映される</li>
+</ul>
+<hr>
+<h2 id="6-heartbeat-仕様">6. Heartbeat 仕様</h2>
+<h3 id="61-目的">6.1 目的</h3>
+<ul>
+<li>presence 状態 (誰がどのリソースを見ているか) を維持</li>
+<li>activity taxonomy (§ 9) の判定に必要な lastActivityAt / lastEditAt を更新</li>
+<li>WS 切断検出 (<code>abandoned</code> 判定)</li>
+</ul>
+<h3 id="62-仕様">6.2 仕様</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>値</th></tr></thead><tbody><tr><td>間隔</td><td><strong>30 秒</strong></td></tr><tr><td>条件</td><td><code>document.visibilityState === "visible"</code> (タブが前面の時のみ)</td></tr><tr><td>送信 method</td><td>WS message <code>presence.heartbeat</code></td></tr><tr><td>payload</td><td><code>{ resourceType, resourceId, kind: "activity" | "edit" }</code></td></tr><tr><td>editor mode</td><td>kind=“activity” 30s 毎 + 編集 push 直後に kind=“edit”</td></tr><tr><td>viewer mode</td><td>kind=“activity” 30s 毎のみ</td></tr></tbody></table>
+<h3 id="63-server-side-反映">6.3 server-side 反映</h3>
+<p><code>presenceManager.heartbeat(wsId, sessionId, type, id, kind)</code>:</p>
+<ul>
+<li>kind=“activity”: lastActivityAt = now</li>
+<li>kind=“edit”: lastActivityAt = now + lastEditAt = now</li>
+<li>focusAt = now (visibility 連動)</li>
+<li>状態 (level) が遷移した場合のみ <code>presence:update</code> broadcast</li>
+</ul>
+<h3 id="64-タイマー精度">6.4 タイマー精度</h3>
+<p>heartbeat は precise timing を要求しない。30s ± 5s の jitter は許容。<code>setInterval</code> で十分。
+<code>requestAnimationFrame</code> や precision timer は使わない。</p>
+<hr>
+<h2 id="7-opaque-envelope-仕様">7. Opaque envelope 仕様</h2>
+<blockquote>
+<p><strong>⚠ Obsolete (Phase 6 / #903 完了 2026-05-07):</strong> 本節は edit-session-protocol.md で置き換え済。frontend コード参照は §9 (Activity taxonomy) / §6 (Heartbeat 仕様) のみ有効。</p>
+</blockquote>
+<h3 id="71-envelope-形">7.1 envelope 形</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DraftUpdateEnvelope</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  type</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "draft-update"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  resourceType</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DraftResourceType</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  resourceId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sequence</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;          </span><span style="color:#6A737D;--shiki-dark:#768390">// monotonic per (resourceType, resourceId)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  payload</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> unknown</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;           </span><span style="color:#6A737D;--shiki-dark:#768390">// ★ opaque — 内部構造を spec で固定しない</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  senderSessionId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> PresenceUpdateEnvelope</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  type</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "presence:update"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  resourceType</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DraftResourceType</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  resourceId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  entries</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> PresenceEntry</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="72-opaque-規約">7.2 opaque 規約</h3>
+<p><code>payload</code> は <code>unknown</code> 型。本 spec は以下のみを規定する:</p>
+<ul>
+<li><strong>server は payload の中身を解釈してはならない</strong> (透過 relay)</li>
+<li>payload は JSON シリアライズ可能なものか、将来的には bytes-like (<code>Uint8Array</code> のような buffer)</li>
+<li>viewer 側は <code>sequence</code> で reorder を検出 (sequence が前回より小さければ破棄)</li>
+<li>editor 側は payload の生成責任 + viewer 側は consumer 責任を持つ</li>
+</ul>
+<h3 id="73-swap-互換性">7.3 swap 互換性</h3>
+<p>将来 Option A 移行時、payload を Loro update binary (Uint8Array) に切り替える際:</p>
+<ul>
+<li>envelope 構造は変えない</li>
+<li>viewer 側 reducer のみ「JSON → setState」から「Loro doc.import」に書き換え</li>
+<li>server は引き続き透過 relay</li>
+</ul>
+<p>→ Direction B 実装時は payload を <strong>JSON のまま</strong> で良いが、<strong>server コードが payload 内部を読み取らない</strong> ことを徹底する。</p>
+<h3 id="74-sequence-管理">7.4 sequence 管理</h3>
+<ul>
+<li>editor 側で resourceKey 単位の monotonic counter を持つ</li>
+<li>各 update 毎に increment、push 時に envelope に含める</li>
+<li>viewer 側で <code>if (envelope.sequence &#x3C;= lastReceived) return</code> で out-of-order 破棄</li>
+</ul>
+<hr>
+<h2 id="8-take-over-フロー">8. Take-over フロー</h2>
+<blockquote>
+<p><strong>⚠ Obsolete (Phase 6 / #903 完了 2026-05-07):</strong> 本節は edit-session-protocol.md で置き換え済。frontend コード参照は §9 (Activity taxonomy) / §6 (Heartbeat 仕様) のみ有効。</p>
+</blockquote>
+<h3 id="81-シーケンス">8.1 シーケンス</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>viewer (bob)         server (lockManager)         editor (alice)</span></span>
+<span class="line"><span>   │                       │                          │</span></span>
+<span class="line"><span>   │── "[↪引継]" click ────▶│                          │</span></span>
+<span class="line"><span>   │                       │                          │</span></span>
+<span class="line"><span>   │                       │── lock.changed ─────────▶│</span></span>
+<span class="line"><span>   │                       │   { op: transferred,     │</span></span>
+<span class="line"><span>   │                       │     from: alice,         │</span></span>
+<span class="line"><span>   │                       │     to: bob }            │</span></span>
+<span class="line"><span>   │                       │                          │</span></span>
+<span class="line"><span>   │── transferLock ─────▶ │                          │</span></span>
+<span class="line"><span>   │   confirm dialog →    │                          │</span></span>
+<span class="line"><span>   │   yes                 │                          │</span></span>
+<span class="line"><span>   │                       │                          │</span></span>
+<span class="line"><span>   │                       │── transferDraft ─────────│</span></span>
+<span class="line"><span>   │                       │   (FS path move +        │</span></span>
+<span class="line"><span>   │                       │    shadow rename)        │</span></span>
+<span class="line"><span>   │                       │                          │</span></span>
+<span class="line"><span>   │                       │── onBehalfOfSession ────▶│ ← AI が alice を借受していた場合</span></span>
+<span class="line"><span>   │                       │   reassign actor         │   bob を新 owner に</span></span>
+<span class="line"><span>   │                       │                          │</span></span>
+<span class="line"><span>   │◀── lock.changed ──────│                          │</span></span>
+<span class="line"><span>   │   { op: transferred,  │                          │</span></span>
+<span class="line"><span>   │     to: bob }         │                          │</span></span>
+<span class="line"><span>   │                       │                          │</span></span>
+<span class="line"><span>   │ mode: editing         │                          │ mode: viewer (auto-fallback)</span></span>
+<span class="line"><span>   │                       │                          │ banner: "@bob に引き継がれました"</span></span></code></pre>
+<h3 id="82-元-owner-通知">8.2 元 owner 通知</h3>
+<p>元 owner (alice) が:</p>
+<ul>
+<li><strong>接続中</strong>: 即座に banner 表示「@bob に引き継がれました」+ mode 変更 (editing → viewer)</li>
+<li><strong>切断中</strong>: 次回再接続時に通知履歴を表示 (<code>history</code> API、Phase 6 では list 表示まで)</li>
+</ul>
+<h3 id="83-不可逆性とリカバリ">8.3 不可逆性とリカバリ</h3>
+<ul>
+<li>transferLock は不可逆 (元 owner は自動的には戻れない)</li>
+<li>リカバリ: 元 draft を <strong>7 日 history 保持</strong> することで復元可能 (実装は Phase 6 では list 表示まで、復元 UI は別 ISSUE)</li>
+</ul>
+<h3 id="84-確認ダイアログ">8.4 確認ダイアログ</h3>
+<p>引継時、新 owner 側で confirm 必須:</p>
+<blockquote>
+<p>@<fromowner> さんの編集権を引き継ぎます。<br>
+現在の編集状態 (draft) はそのまま引き継がれます。<br>
+@<fromowner> さんには通知が届きます。よろしいですか?</fromowner></fromowner></p>
+</blockquote>
+<hr>
+<h2 id="9-activity-taxonomy-5-段階">9. Activity taxonomy 5 段階</h2>
+<h3 id="91-状態定義">9.1 状態定義</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>内部状態</th><th>条件</th><th>表示</th><th>推奨アクション</th></tr></thead><tbody><tr><td><strong>live</strong></td><td>WS 接続中 + lastEditAt &#x3C; 60s</td><td>🟢 操作中</td><td>attach 観察 (会議中の可能性)</td></tr><tr><td><strong>active</strong></td><td>WS 接続中 + lastActivityAt &#x3C; 5 min</td><td>🟢 操作中</td><td>attach 観察 OK</td></tr><tr><td><strong>idle</strong></td><td>lastActivityAt 5 min 〜 24h</td><td>🟡 操作なし</td><td>引継候補</td></tr><tr><td><strong>stale</strong></td><td>lastActivityAt 24h 以上 (WS 接続中)</td><td>⚫ 放置</td><td>破棄 or 引継</td></tr><tr><td><strong>abandoned</strong></td><td>lastActivityAt 24h 以上 (WS 切断中)</td><td>(cleanup 候補)</td><td>自動 cleanup 確認 prompt</td></tr></tbody></table>
+<h3 id="92-二重表現-色覚配慮">9.2 二重表現 (色覚配慮)</h3>
+<ul>
+<li>色 (🟢/🟡/⚫) + 補足テキスト (<code>"操作中"</code> / <code>"操作なし"</code> / <code>"放置"</code>) を必ず両方表示</li>
+<li>aria-label で screen reader 対応 (例: <code>aria-label="操作中、3 分前"</code>)</li>
+</ul>
+<h3 id="93-threshold-の-config-化">9.3 threshold の config 化</h3>
+<p><code>backend/src/presenceConfig.ts</code>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">export</span><span style="color:#D73A49;--shiki-dark:#F47067"> const</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> presenceConfig</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  liveThresholdSec: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">60</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  activeThresholdSec: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">300</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  idleThresholdSec: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">86400</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  cleanupIntervalMs: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">60</span><span style="color:#D73A49;--shiki-dark:#F47067"> *</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> 60</span><span style="color:#D73A49;--shiki-dark:#F47067"> *</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> 1000</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#6A737D;--shiki-dark:#768390">// 1h</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">};</span></span></code></pre>
+<p>env 変数で override 可:</p>
+<ul>
+<li><code>HARMONY_PRESENCE_LIVE_SEC=60</code></li>
+<li><code>HARMONY_PRESENCE_ACTIVE_SEC=300</code></li>
+<li><code>HARMONY_PRESENCE_IDLE_SEC=86400</code></li>
+<li><code>HARMONY_PRESENCE_CLEANUP_INTERVAL_MS=3600000</code> — cleanupAbandoned の定期実行間隔 ms (デフォルト 1h)</li>
+</ul>
+<h3 id="94-broadcast-効率化">9.4 broadcast 効率化</h3>
+<ul>
+<li>状態遷移時 (level が変わった時) のみ <code>presence:update</code> 発火</li>
+<li>毎秒の更新通知は不要 (frontend 側で時刻差分から表示計算)</li>
+</ul>
+<h3 id="95-cleanup">9.5 cleanup</h3>
+<p><code>presenceManager.cleanupAbandoned()</code>:</p>
+<ul>
+<li>1 時間ごとに <code>setInterval</code> で実行</li>
+<li>abandoned (<code>actAge > idleThresholdSec</code> &#x26;&#x26; WS 切断) を internal Map から削除</li>
+<li>削除した entry を <code>presence:update</code> で broadcast (空配列または filter 後)</li>
+</ul>
+<h4 id="951-即時-cleanup-on-ws-disconnect-980-a-追加">9.5.1 即時 cleanup on WS disconnect (#980-A 追加)</h4>
+<p><code>wsBridge.ts</code> の <code>ws.on("close")</code> で <code>presenceManager.unregisterAllForSession(clientId)</code> を呼び、
+切断 session の全 presence エントリを <strong>即時削除 + presence:update broadcast</strong> する。</p>
+<p><code>cleanupAbandoned</code> (1h 間隔) の補完経路として、tab close → 接続中 client の SessionBadge
+即時消滅を実現する (これがないと 1h 間 stale バッジが残り、UX を損ねる)。</p>
+<p>仕様 § 9.5 と矛盾せず: 即時 cleanup は強化経路であり、定期 cleanup は依然として
+不慮の切断 (network 切れ等で <code>close</code> が発火しない) のための fallback として機能する。</p>
+<h5 id="9511-設計上の非対称性-presence-のみ即時-cleanupeditsession-participants-は維持">9.5.1.1 設計上の非対称性: presence のみ即時 cleanup、EditSession participants は維持</h5>
+<p><strong>意図的な非対称</strong>: <code>ws.on("close")</code> で cleanup されるのは <code>presenceManager</code> (= SessionBadge
+表示源、heartbeat-driven の “誰が見ているか” channel) <strong>のみ</strong>。<code>editSessionStore.participants</code>
+(= “誰が編集中か / View role” の正規 state) は <strong>触らない</strong>。</p>
+<p>理由:</p>
+<ol>
+<li><strong>EditSession の semantic は “意図的な編集セッション”</strong> — 切断は「ネットワーク不安定」「タブ
+一瞬切替」等の transient イベントに過ぎず、明示的な discard / detach 操作とは異なる。
+切断ごとに participant を消すと「タブ偶然閉じた → 5 分後に再開したい」シナリオで draft が
+破棄されるか take-over 経由でしか戻れない不便な UX となる。</li>
+<li><strong><code>editSessionStore.cleanupExpired</code> (1h 間隔)</strong> が edit role 持ち participant の TTL 管理を
+既に担当している (spec §12.2)。再接続が短期で起きた場合 stale 表示は許容される。</li>
+<li><strong>alice tab close 直後の bob 視点</strong>: alice は EditSessionDropdown では「Edit role active」のまま
+(participant 残存)、SessionBadge は即時消滅 (presence cleanup)。多少の不一致はあるが
+bob は「take-over してでも作業を引き継ぐ」明示操作で対応可能。<code>force-detach</code> 系の動線は
+spec §7 (take-over) でカバー済。</li>
+</ol>
+<p>将来 participant の即時 cleanup が必要と判明した場合は別 ISSUE で
+<code>editSessionStore.detachAllForSession(clientId)</code> 追加を検討する (本 spec のスコープ外)。</p>
+<hr>
+<h2 id="10-ai-onbehalfofsession-との関係">10. AI <code>onBehalfOfSession</code> との関係</h2>
+<h3 id="101-現状-683-pr-7-マージ済">10.1 現状 (#683 PR-7 マージ済)</h3>
+<p><code>backend/src/onBehalfOfSession.ts</code>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">resolveOnBehalfOfSession</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  callerSessionId,         </span><span style="color:#6A737D;--shiki-dark:#768390">// AI 自身の sessionId</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  onBehalfOfSession</span><span style="color:#D73A49;--shiki-dark:#F47067">?</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,       </span><span style="color:#6A737D;--shiki-dark:#768390">// 借受対象 (人間の sessionId)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  isActiveSession,          </span><span style="color:#6A737D;--shiki-dark:#768390">// 借受対象がアクティブか</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { owner, actor, isDelegated }</span></span></code></pre>
+<ul>
+<li><code>onBehalfOfSession</code> 指定あり: owner=人間 / actor=AI / isDelegated=true</li>
+<li>指定なし: owner=actor=AI 自身</li>
+</ul>
+<h3 id="102-本-spec-での拡張">10.2 本 spec での拡張</h3>
+<h4 id="1021-viewer-による-ai-観察">10.2.1 viewer による AI 観察</h4>
+<p>AI が <code>onBehalfOfSession</code> で alice の draft を編集中、別ユーザー bob が viewer attach した場合:</p>
+<ul>
+<li>bob は AI の編集を <code>draft-update</code> 経由でリアルタイム閲覧</li>
+<li>presence list に AI が <code>🤖 @ai (alice 代行)</code> として表示される</li>
+<li>AI 操作は kind=“edit” heartbeat で alice の lastEditAt 更新 (= alice が live 表示)</li>
+</ul>
+<h4 id="1022-take-over-時の-actor-再割当">10.2.2 take-over 時の actor 再割当</h4>
+<p>bob が alice から take-over した時、AI が借受中なら:</p>
+<ul>
+<li><strong>採用方針 (option A)</strong>: AI の actor を bob に引き継ぎ (透過)。AI は同じ仕事を続ける。</li>
+<li>不採用 (option B): AI セッション切断 (新 owner の確認待ち)</li>
+</ul>
+<p>理由: 「引き継いだ後も AI が同じ仕事を続けてくれる」が UX として自然。bob が AI を切断したい場合は EditSessionDropdown から明示的に「🤖 切断」可能 (別 ISSUE)。</p>
+<h3 id="103-presence-表示の特例">10.3 presence 表示の特例</h3>
+<p><code>PresenceEntry.ownerLabel</code> フィールドで表示名を制御:</p>
+<ul>
+<li>通常: <code>@alice</code></li>
+<li>AI 借受: <code>@ai (alice 代行)</code> (ownerLabel = <code>"@ai (alice 代行)"</code>、role はそのまま editor)</li>
+</ul>
+<hr>
+<h2 id="11-既存-spec-との関係">11. 既存 spec との関係</h2>
+<blockquote>
+<p><strong>⚠ Obsolete (Phase 6 / #903 完了 2026-05-07):</strong> 本節は edit-session-protocol.md で置き換え済。frontend コード参照は §9 (Activity taxonomy) / §6 (Heartbeat 仕様) のみ有効。</p>
+</blockquote>
+<h3 id="111-edit-session-draftmd-683">11.1 <code>edit-session-draft.md</code> (#683)</h3>
+<p>本 spec は <code>edit-session-draft.md</code> の <strong>拡張</strong>。基底機構 (lock + draft + onBehalfOfSession) はそのまま流用し、以下を加える:</p>
+<ul>
+<li>viewer mode (新 mode、§ 5)</li>
+<li>presence channel (新 channel、§ 6 / § 9)</li>
+<li>mid-edit broadcast (新 event、§ 7)</li>
+<li>shadow store (既存 draftStore の挙動変更、§ 4)</li>
+<li>transferLock (新 API、§ 8)</li>
+</ul>
+<p><code>edit-session-draft.md</code> の D-1 〜 D-12 設計判断は変更しない。本 spec は D-13 以降の追加判断として位置付ける (本 spec 内で D-13 〜 D-20 として明記してもよい)。</p>
+<h3 id="112-workspace-multimd-679">11.2 <code>workspace-multi.md</code> (#679)</h3>
+<p>別軸:</p>
+<ul>
+<li><code>workspace-multi.md</code> = 複数 workspace の <strong>同時並行編集</strong> (1 ブラウザタブ = 1 active workspace)</li>
+<li>本 spec = <strong>同一 workspace 内の複数人 collab</strong></li>
+</ul>
+<p>衝突なし。並行進行可能。</p>
+<h3 id="113-multi-editor-puckmd-806">11.3 <code>multi-editor-puck.md</code> (#806)</h3>
+<p>editorKind / cssFramework の解決順序 (screen → project → default) は影響なし。Puck も GrapesJS も同じ presence 機構で動く。</p>
+<h3 id="114-draft-state-policymd">11.4 <code>draft-state-policy.md</code></h3>
+<p>業務リソースの maturity (draft / committed) policy は別軸。本 spec の draft は「編集セッション状態」の draft。<code>draft-state-policy.md</code> の draft は「リソースの成熟度」の draft。同名語が衝突するため、本 spec では <strong>edit-session-draft</strong> と書く。</p>
+<hr>
+<h2 id="12-受け入れ基準--セキュリティ考慮事項">12. 受け入れ基準 / セキュリティ考慮事項</h2>
+<h3 id="121-受け入れ基準">12.1 受け入れ基準</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" checked disabled> 12 セクション全て記述</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> 既存 5 段階 mode の遷移図に viewer mode が追加されている (§ 5.3)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> Forward-Compat 4 原則の各原則に「Bad/Good」例が含まれている (§ 3)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> threshold が env 変数で override 可能 (§ 9.3)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>edit-session-draft.md</code> から本 spec への参照リンクが追加されている</li>
+</ul>
+<h3 id="122-セキュリティ考慮事項">12.2 セキュリティ考慮事項</h3>
+<ul>
+<li><strong>viewer 権限</strong>: 現状の認証層 (workspace に attach できれば全リソース閲覧可) を超える分離は行わない (内製ツール前提)</li>
+<li><strong>payload opaque</strong>: server が payload を解釈しないため、payload に validator を通さない設計。validator は editor 側 + commit 時に server で実行されるため、viewer 表示時に schema 違反 payload が表示される可能性がある (要件: viewer は warning 表示のみ、edit 不可なので安全)</li>
+<li><strong>take-over</strong>: 元 owner の同意なしに viewer 側から強制的に lock を奪える (= 既存 forceRelease と同等の権限モデル)。誤操作リカバリは history 7 日保持で対処</li>
+<li><strong>AI actor 再割当</strong>: take-over 時に AI セッションが新 owner に継承される。新 owner が AI 動作を望まない場合は明示切断が必要 (§ 10.2.2)</li>
+</ul>
+<h3 id="123-性能考慮事項">12.3 性能考慮事項</h3>
+<ul>
+<li>mid-edit broadcast は 300ms throttle、shadow store により FS write は減少 (現状の autosave 並み or 軽い)</li>
+<li>presence broadcast は state 遷移時のみで毎秒は発火しない (§ 9.4)</li>
+<li>cleanup は 1h 間隔の <code>setInterval</code> (§ 9.5)、CPU 負荷無視できる</li>
+</ul>
+<hr>
+<h2 id="改訂履歴">改訂履歴</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>日付</th><th>内容</th></tr></thead><tbody><tr><td>2026-05-07</td><td>新設 (#876 Phase 0 / #855 RFC 派生 Direction B 実装の基底 spec)</td></tr></tbody></table>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

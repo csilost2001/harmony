@@ -1,0 +1,751 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>generic definition layer</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link active"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="汎用設計定義レイヤー-generic-definition-layer">汎用設計定義レイヤー (Generic Definition Layer)</h1>
+<p><strong>Status</strong>: 🟡 <strong>draft v0.2 (RFC)</strong> — schema 即時固定化を伴わない整理段階 / Q1-Q11 決定反映 (2026-05-13)
+<strong>起票 ISSUE</strong>: #1060
+<strong>関連 memory</strong>: <code>project_framework_research_2026_04_25.md</code> (拡張仕様 19 項目との突合)
+<strong>起票日</strong>: 2026-05-13
+<strong>変換ガイドライン</strong>: <a href="/spec/conversion-guideline-for-ai/"><code>conversion-guideline-for-ai.md</code></a> — Markdown → Harmony JSON 変換の AI 向けマニュアル
+<strong>スキル起点</strong>: <a href="/spec/SKILL/"><code>ai-skills/import-md/SKILL.md</code></a></p>
+<hr>
+<h2 id="1-背景と目的">1. 背景と目的</h2>
+<p>既存 Markdown 設計書を Harmony JSON に取り込むドッグフードで、現行 schema (<code>screen</code> / <code>processFlow</code> / <code>screenTransition</code> / <code>table</code> / <code>viewDefinition</code>) では受けきれない設計情報があることが判明した。</p>
+<p><strong>取り込めなかったもの (実例)</strong>:</p>
+<ul>
+<li>例外体系、親子関係、例外ごとの責務</li>
+<li>DTO / Result / Utility / Validator / Formatter / Advice などの汎用クラス定義</li>
+<li>セキュリティ設定、ログ設定、AOP、共通ミドルウェア相当のアプリケーション設定</li>
+<li>共通 UI 振る舞い、画面横断 JavaScript、入力連動ルール</li>
+<li>画面 / Service / Mapper / Model / DTO / JS / CSS / Template の責務分割を示す構成情報</li>
+</ul>
+<p>これらを「Markdown 原文に残しておく」「説明文に埋め込む」「AI コード生成時に毎回推論させる」のいずれかで凌いでいたが、設計書としての追跡可能性と再現性が弱い。</p>
+<p>本仕様は、これらを <strong>言語非依存</strong> で受ける「汎用設計定義レイヤー」を導入するための整理。</p>
+<h3 id="非ゴール-本ドラフトで決めないこと">非ゴール (本ドラフトで決めないこと)</h3>
+<ul>
+<li>各言語 (Java / TypeScript / Python) の具体クラス形・継承構文・アノテーションの再現</li>
+<li>schema の即時固定化 (まずメタモデルと境界を整理する)</li>
+<li>既存 entity の破壊的変更 (拡張は加えるが旧 field の意味は維持)</li>
+</ul>
+<hr>
+<h2 id="2-全体構成">2. 全体構成</h2>
+<p>提案は 3 層に分かれる。レイヤー間で責務を分けることで、新規 schema 量を最小化する。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>┌─────────────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ Layer 1: 既存 entity の構造化拡張                                │</span></span>
+<span class="line"><span>│   screen / screenItem / processFlow / table / screenTransition  │</span></span>
+<span class="line"><span>│   → 自然に属するものは既存 entity 側に「構造化フィールド」を追加 │</span></span>
+<span class="line"><span>├─────────────────────────────────────────────────────────────────┤</span></span>
+<span class="line"><span>│ Layer 2: Generic Definition Catalog (新規)                       │</span></span>
+<span class="line"><span>│   既存 entity に自然に属さないものを汎用メタモデルで受ける       │</span></span>
+<span class="line"><span>│   8 kind: data-contract / domain-type / exception-type / ...    │</span></span>
+<span class="line"><span>│   配置: examples/&#x3C;project>/&#x3C;dataDir>/generic-definitions/&#x3C;kind>/*.json    │</span></span>
+<span class="line"><span>├─────────────────────────────────────────────────────────────────┤</span></span>
+<span class="line"><span>│ Layer 3: AI 向け変換マニュアル + 生成 importer (新規)             │</span></span>
+<span class="line"><span>│   Harmony 側 = AI 向けマニュアル (entity 構造 / 落とし方 / audit /│</span></span>
+<span class="line"><span>│                 TS scaffold / 既知落とし穴) → conversion-        │</span></span>
+<span class="line"><span>│                 guideline-for-ai.md                              │</span></span>
+<span class="line"><span>│   Project 側  = MD (構造は project 自由) + (option) profile     │</span></span>
+<span class="line"><span>│   AI         = マニュアル参照しつつ 1 回限り変換 or importer 生成│</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────────────────┘</span></span></code></pre>
+<h3 id="配置決定-q1-q3-確定">配置決定 (Q1-Q3 確定)</h3>
+<ul>
+<li><strong>Generic Definition Catalog</strong>: 独立ディレクトリ <code>examples/&#x3C;project>/&#x3C;dataDir>/generic-definitions/&#x3C;kind>/*.json</code> を切る (Q1)。<code>extensions/</code> 機構には載せない (extensions = opt-in 拡張 / generic-definitions = project 全体の再利用資産、性格が異なる)</li>
+<li><strong><code>ui-fragment</code> と PageLayout (#1021)</strong>: page-level vs component-level で切る (Q2)。PageLayout = ページ全体の骨格 (header / sidebar / content slot / footer)、<code>ui-fragment</code> = ページ内 or 複数画面で使い回す部品 (メッセージ領域 / アップロード行 / ダイアログ本体)</li>
+<li><strong><code>process-flow-extensions.md</code> と Generic Definition Catalog</strong>: 両者独立、ProcessFlow から <code>$ref</code> で generic-definitions を参照 (Q3)。process-flow-extensions = ProcessFlow 内側の step 拡張型、generic-definitions = project 全体の再利用資産</li>
+</ul>
+<hr>
+<h2 id="3-layer-1--既存-entity-の構造化拡張">3. Layer 1 — 既存 entity の構造化拡張</h2>
+<p>「既存 entity で済むものは無理に新 entity 化しない」原則 (本 spec §6 設計指針 4 = ISSUE #1060 本文「設計指針 §4」) に従い、まず既存側で吸収する。</p>
+<h3 id="31-screenitem-の-binding-metadata-構造化">3.1 ScreenItem の binding metadata 構造化</h3>
+<p><strong>現状の不足</strong>: binding 情報を <code>description</code> に <code>attribute=... / mapping=... / source=...</code> の自由記述で埋め込みやすい。codegen の正式入力として弱い。</p>
+<p><strong>追加候補フィールド (構造化案)</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>フィールド</th><th>値域 (案)</th><th>役割</th></tr></thead><tbody><tr><td><code>binding.kind</code></td><td><code>formField</code> / <code>viewModel</code> / <code>catalog</code> / <code>expression</code> / <code>fragmentParam</code> / <code>session</code> / <code>routeParam</code> / <code>queryParam</code></td><td>入出力種別の正式分類</td></tr><tr><td><code>binding.path</code></td><td>string (式または plain path)</td><td>bind 対象</td></tr><tr><td><code>binding.optionSource</code></td><td>catalog ref</td><td>options 出所</td></tr><tr><td><code>binding.formatHint</code></td><td>string</td><td>表示整形 hint</td></tr><tr><td><code>binding.parseHint</code></td><td>string</td><td>入力 parse hint</td></tr><tr><td><code>binding.role</code></td><td><code>display</code> / <code>input</code> / <code>both</code></td><td>表示専用か入力か</td></tr><tr><td><code>binding.sourceNote</code></td><td>string</td><td>元文書上の出典メモ</td></tr></tbody></table>
+<p><strong>判断</strong>: ScreenItem 側に <code>binding</code> サブオブジェクトを追加。<code>description</code> 埋め込みからの移行は draft-state policy (<code>docs/spec/draft-state-policy.md</code>) の warning で誘導。</p>
+<h3 id="32-screenitemevent-の-ui-効果-ui-effects-formal-化">3.2 ScreenItemEvent の UI 効果 (UI effects) formal 化</h3>
+<p><strong>現状の不足</strong>: event は <code>handlerFlowId</code> (=処理起動) に偏っていて、画面側の純粋な UI 効果が弱い。設計書に頻出するのは:</p>
+<ul>
+<li>値クリア / readonly 切替 / enabled 切替 / visible 切替</li>
+<li>options 差し替え</li>
+<li>dialog 表示 / message area 更新</li>
+<li>リスト再描画</li>
+<li>Ajax 結果に応じた複数項目更新</li>
+</ul>
+<p><strong>追加候補</strong>: <code>event.effects[]</code> を導入。各 effect は <code>{ kind, target, value? }</code> 形式。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>effect kind (案)</th><th>target</th><th>value</th></tr></thead><tbody><tr><td><code>clear</code></td><td>itemId</td><td>—</td></tr><tr><td><code>setReadonly</code> / <code>setEnabled</code> / <code>setVisible</code></td><td>itemId</td><td>boolean / expression</td></tr><tr><td><code>setOptions</code></td><td>itemId</td><td>catalogRef / expression</td></tr><tr><td><code>showDialog</code></td><td>dialogRef</td><td>messageRef / expression</td></tr><tr><td><code>setMessage</code></td><td>messageAreaRef</td><td>messageRef / expression</td></tr><tr><td><code>refreshList</code></td><td>listItemId</td><td>—</td></tr><tr><td><code>applyAjaxResult</code></td><td>mapping[]</td><td>response path → itemId</td></tr></tbody></table>
+<p><strong>判断</strong>: <code>event</code> 配下に <code>effects[]</code> を追加。既存 <code>handlerFlowId</code> は維持し、effect の一種扱いにはしない (UI ローカル効果と処理起動は概念分離)。</p>
+<h3 id="33-processflow-の-internal-reusable-call-抽象-1066-で-ajv-gate-対象化済">3.3 ProcessFlow の internal reusable call 抽象 (#1066 で AJV gate 対象化済)</h3>
+<p><strong>追加済</strong>: <code>#1066</code> で ProcessFlow に <code>componentCall</code> step kind を追加。Generic Definition Catalog の <code>component-definition</code> を参照する。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// generic-definitions/component-definition/&#x3C;Name>.json を componentRef で参照</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-01"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"componentCall"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"OrderValidator コンポーネントで入力検証"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "componentRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"generic-definitions/component-definition/OrderValidator"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "operation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"validate"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "argumentMapping"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@inputs.order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "returnMapping"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"errors"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"validationErrors"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong>判断確定</strong>: schema に追加済 (#1066)。既存の <code>compute</code> step + 説明文への退避をやめ、共有ロジックの責務分割を formal にした。<code>componentRef</code> pattern は <code>^generic-definitions/component-definition/[A-Za-z][A-Za-z0-9_]*$</code> で AJV gate 対象化済 (= <strong>形式 pattern のみ</strong>)。<code>&#x3C;Name></code> 部の <strong>実在検証</strong> (catalog に該当 component-definition が存在するか) は AJV では行えないため、<code>frontend/src/schemas/referentialIntegrity.ts</code> の <code>checkReferentialIntegrity</code> で <code>UNKNOWN_COMPONENT_REF</code> として検出する (#1090、severity=warning)。</p>
+<h3 id="34-processflow-の-error-semantics-拡張-1066-で-ajv-gate-対象化済">3.4 ProcessFlow の error semantics 拡張 (#1066 で AJV gate 対象化済)</h3>
+<p><strong>追加済</strong>: <code>#1066</code> で <code>exception-type</code> kind 別 schema を新設し、ProcessFlow の <code>ErrorCatalogEntry</code> / <code>ValidationRule</code> に <code>exceptionTypeRef</code> フィールドを追加。</p>
+<ul>
+<li><code>ErrorCatalogEntry.exceptionTypeRef</code> — errorCode が業務例外として上位レイヤへ伝達される際の意味論を catalog 側に保持</li>
+<li><code>ValidationRule.exceptionTypeRef</code> — severity=‘error’ 時に違反を業務例外として throw する際の意味論を catalog から引く</li>
+</ul>
+<p><code>exceptionTypeRef</code> pattern は <code>^generic-definitions/exception-type/[A-Za-z][A-Za-z0-9_]*$</code> で AJV gate 対象化済 (= <strong>形式 pattern のみ</strong>)。<code>&#x3C;Name></code> 部の <strong>実在検証</strong> (catalog に該当 exception-type が存在するか) は <code>referentialIntegrity.ts</code> で <code>UNKNOWN_EXCEPTION_TYPE_REF</code> として検出する (#1090、severity=warning)。<code>ErrorCatalogEntry.exceptionTypeRef</code> と <code>ValidationRule.exceptionTypeRef</code> の両経路を validator が辿る。</p>
+<p><strong>判断確定</strong>: 階層 (parent / children) と semantic kind は Catalog 側 (<code>exception-type</code>) に置き、ProcessFlow からは ref のみ。失敗種別 (business-abort / validation-error 等) / recoverable / defaultHandling 等の kind 固有 field は将来 ISSUE で kind 別 schema に追加予定。</p>
+<h3 id="35-再利用-named-contract-の参照導線">3.5 再利用 named contract の参照導線</h3>
+<p><strong>現状の不足</strong>: Action の <code>inputs</code> / <code>outputs</code> / <code>responses.bodySchema</code> は inline 構造で書く前提で、複数 step や複数 ProcessFlow で同じ DTO を共有する仕組みが弱い。</p>
+<p><strong>追加候補</strong>: Generic Definition Catalog の <code>data-contract</code> を導入し、<code>inputs.$ref</code> / <code>outputs.$ref</code> / <code>responses.bodySchemaRef</code> で参照する。</p>
+<p><strong>判断</strong>: 既存 inline 形式は維持 (移行を強制しない)。<code>$ref</code> を opt-in で許容するのが最小変更。</p>
+<h3 id="36-再利用-ui-fragment--common-component-の参照">3.6 再利用 UI fragment / common component の参照</h3>
+<p><strong>現状の不足</strong>: 共通ヘッダー、共通メッセージ領域、アップロード行など、再利用 UI 断片を formal に保持しにくい。</p>
+<p><strong>追加候補</strong>: Generic Definition Catalog の <code>ui-fragment</code> を導入し、<code>screen.fragments[].fragmentRef</code> で参照する。</p>
+<p><strong>判断 (Q2 確定 + #1067 で実装完了)</strong>: PageLayout (#1021) と <code>ui-fragment</code> は <strong>page-level vs component-level で切る</strong>:</p>
+<ul>
+<li><strong>PageLayout</strong>: ページ全体の骨格 (header slot / sidebar slot / content slot / footer slot)。1 page = 1 PageLayout 適用</li>
+<li><strong><code>ui-fragment</code></strong>: ページ内 or 複数画面で使い回す部品 (メッセージ領域 / アップロード行 / ダイアログ本体 / 共通ヘッダー部品)。PageLayout の slot を埋める要素にもなり得る</li>
+</ul>
+<p>具体例:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>PageLayout "admin-layout"  ←  ページ全体の枠</span></span>
+<span class="line"><span>  ├─ header slot   ←  ui-fragment "common-header" を埋める</span></span>
+<span class="line"><span>  ├─ sidebar slot  ←  ui-fragment "admin-nav" を埋める</span></span>
+<span class="line"><span>  ├─ content slot  ←  screen が入る</span></span>
+<span class="line"><span>  │                   screen は内部に ui-fragment "message-area" / "upload-row" 等を持つ</span></span>
+<span class="line"><span>  └─ footer slot   ←  ui-fragment "common-footer" を埋める</span></span></code></pre>
+<p><strong>Screen での参照形式 (#1067)</strong>: <code>screen.fragments[]</code> は <code>{ fragmentRef, instanceId? }</code> の配列。fragmentRef は <code>generic-definitions/ui-fragment/&#x3C;Name></code> pattern で AJV gate 対象。同一画面で同一 fragment を複数 instance 使う場合は instanceId で区別する。例:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"注文新規"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"form"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"path"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"/orders/new"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "fragments"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"fragmentRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"generic-definitions/ui-fragment/messageArea"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"instanceId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"errorArea"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"fragmentRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"generic-definitions/ui-fragment/messageArea"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"instanceId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"infoArea"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"fragmentRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"generic-definitions/ui-fragment/uploadRow"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>exceptionTypeRef</code> pattern (#1066) と同様、kind-specific schema (<code>schemas/v3/generic-definitions/ui-fragment.v3.schema.json</code>) は親 schema (<code>generic-definition.v3.schema.json</code>) を <code>allOf</code> 継承し <code>kind</code> を const に固定する最小構造。slot binding / region 等の fragment 固有 field は将来 RFC で追加予定。</p>
+<p><code>fragmentRef</code> pattern は <code>^generic-definitions/ui-fragment/[A-Za-z][A-Za-z0-9_]*$</code> で AJV gate 対象化済 (= <strong>形式 pattern のみ</strong>)。<code>&#x3C;Name></code> 部の <strong>実在検証</strong> は <code>frontend/src/utils/screenRefValidation.ts</code> の <code>validateScreenRefs</code> で <code>UNKNOWN_FRAGMENT_REF</code> として検出する (#1090 Phase 2、severity=warning)。<code>screenStore.loadPuckScreenValidationMap</code> がオーケストレータとなり、Puck data 検証 (<code>validatePuckScreen</code>) と cross-resource ref 検証 (<code>validateScreenRefs</code>) を統合して ScreenListView のバッジに表示する。検証は editor-agnostic (Puck / GrapesJS の双方の screen で動作)。</p>
+<hr>
+<h2 id="4-layer-2--generic-definition-catalog">4. Layer 2 — Generic Definition Catalog</h2>
+<p>既存 entity に自然に属さない設計情報を受ける、新規メタモデル。</p>
+<h3 id="41-共通メタモデル">4.1 共通メタモデル</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "$id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"generic-definitions/&#x3C;kind>/&#x3C;name>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"data-contract"</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "domain-type"</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "exception-type"</span></span>
+<span class="line"><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">        |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "application-rule"</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "ui-behavior"</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "runtime-policy"</span></span>
+<span class="line"><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">        |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "component-definition"</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "ui-fragment"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "purpose"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string (1-2 行)"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "responsibilities"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "fields"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [ { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"constraints"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7">] } ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "operations"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [ { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"inputs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7">], </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"outputs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7">] } ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "relations"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [ { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"extends|implements|uses|transformsFrom|transformsTo|appliesTo"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "constraints"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"不変条件・事前/事後条件"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "mappingHints"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "backend.spring"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "backend.nestjs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "frontend.next"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "targets"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"backend"</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "frontend"</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "shared"</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "runtime"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong>設計指針: 言語非依存の本体 vs <code>mappingHints</code> の位置付け</strong>:</p>
+<ul>
+<li><strong>言語非依存の本体</strong> (必須): <code>kind</code> / <code>name</code> / <code>purpose</code> / <code>responsibilities</code> / <code>fields</code> / <code>relations</code> / <code>constraints</code> / <code>targets</code>。設計書として保持すべき意味・責務・契約・制約を表現する</li>
+<li><strong><code>mappingHints</code> は完全 optional / advisory</strong> (任意): 特定 techStack (Spring / Nest / Next 等) への codegen 時のヒント。設計書の本質ではなく <strong>AI 生成側のチューニング材料</strong>。本 spec の Spring/Nest/Next 例はあくまでサンプルで、Django / Rails / Vue 等への展開も自由</li>
+<li><code>mappingHints</code> が無くても <strong>言語非依存の本体だけで設計意図は完結する</strong> こと。逆に <code>mappingHints</code> だけで設計意図を表現するのは禁止 (本体に migrate する)</li>
+</ul>
+<h3 id="42-8-種類の-kind">4.2 8 種類の kind</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>kind</th><th>用途</th><th>主な参照元</th></tr></thead><tbody><tr><td><code>data-contract</code></td><td>DTO / Form / Result / ViewModel など、層間契約</td><td>ScreenItem / ProcessFlow.inputs/outputs</td></tr><tr><td><code>domain-type</code></td><td>Entity / Model などドメイン型 (永続化を含む)</td><td>table 補完 / ProcessFlow</td></tr><tr><td><code>exception-type</code></td><td>例外種別・階層・semantic kind</td><td>errorCode catalog</td></tr><tr><td><code>application-rule</code></td><td>認証認可ポリシー / ログ / 監査 / 例外変換 / 横断ルール</td><td>project-level config</td></tr><tr><td><code>ui-behavior</code></td><td>画面横断振る舞い (dirty check / dialog / datepicker / 二重送信防止)</td><td>ScreenItem.event.effects[] / screen.commonBehaviors[]</td></tr><tr><td><code>runtime-policy</code></td><td>retry / timeout / circuit breaker / cache (横断適用ポリシー)</td><td>ProcessFlow step / external system</td></tr><tr><td><code>component-definition</code></td><td>service / mapper / repository / validator / formatter / facade / adapter / helper 等の責務</td><td>ProcessFlow.componentCall</td></tr><tr><td><code>ui-fragment</code></td><td>再利用 UI 断片 (ヘッダー / フッター / メッセージ領域等)</td><td>screen.fragments[]</td></tr></tbody></table>
+<h3 id="43-既存仕様との関係">4.3 既存仕様との関係</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>既存 spec</th><th>関係</th></tr></thead><tbody><tr><td><code>docs/spec/process-flow-extensions.md</code></td><td>extensions namespace を catalog 種別の格納先として使う検討余地あり</td></tr><tr><td><code>docs/spec/page-layout.md</code></td><td><code>ui-fragment</code> と PageLayout は分離 (§3.6 参照)</td></tr><tr><td><code>docs/spec/process-flow-sla.md</code></td><td>SLA / Timeout 宣言は <code>runtime-policy</code> の subset として位置付け可能</td></tr><tr><td><code>docs/spec/process-flow-tier-c.md</code></td><td>circuitBreaker / bulkhead / health / readiness も <code>runtime-policy</code> 系</td></tr><tr><td><code>docs/spec/process-flow-workflow.md</code></td><td>WorkflowPattern は <code>component-definition</code> ではなく既存 first-class 維持</td></tr></tbody></table>
+<h3 id="44-schema-governance-との関係">4.4 schema governance との関係</h3>
+<p>本 layer の schema 追加は <strong><code>docs/spec/schema-governance.md</code></strong> の対象 (= 設計者承認必須)。本ドラフトは整理段階であり、schema 切り出しは別 ISSUE で段階的に実施する。</p>
+<h3 id="45-genericdefinition-と-entitymeta-の関係--maturity-不採用の理由">4.5 GenericDefinition と EntityMeta の関係 / maturity 不採用の理由</h3>
+<p>GenericDefinition は他リソース (ProcessFlow / Screen / Table) と性質が根本的に異なるため、
+EntityMeta (<code>id: uuid</code>, <code>created_at</code>, <code>updated_at</code>, <code>maturity</code>) を採用しない。
+<code>kind</code> + <code>name</code> を identifier とし、設計者が手で命名・参照する「定義語彙」として扱う。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>業務リソース実体 (ProcessFlow / Screen / Table)</th><th>GenericDefinition</th></tr></thead><tbody><tr><td>役割</td><td>業務システムの実体</td><td>定義語彙 / 参照カタログ</td></tr><tr><td>identifier</td><td>uuid (machine-generated)</td><td><code>kind + name</code> (human-readable)</td></tr><tr><td>EntityMeta</td><td>採用</td><td>不採用</td></tr><tr><td>自然な進化モデル</td><td>draft → provisional → committed (制作進行)</td><td>stable ↔ experimental ↔ deprecated (lifecycle)</td></tr></tbody></table>
+<p>このため <code>draft-state-policy.md</code> §2.5 「成熟度表示は必須」は GenericDefinition には適用しない
+(§2.5 自体で例外化済)。</p>
+<p>将来 lifecycle 管理 (例: <code>status: stable / experimental / deprecated</code>) が業務上必要になった時点で、
+別 ISSUE を起票し設計者承認の上で C 案として field を追加する。本 RFC 段階では YAGNI に従い導入しない。</p>
+<hr>
+<h2 id="5-layer-3--ai-向け変換マニュアル--生成-importer">5. Layer 3 — AI 向け変換マニュアル + 生成 importer</h2>
+<p><strong>方針 (Q7-Q11 決定)</strong>: Harmony 側に固定 importer ツールは持たない。MD は project 構造がバラバラなので、<strong>AI 向けマニュアル</strong> を一次成果物として整備し、AI がそれを読みつつ (a) 1 回限り変換 or (b) project 専用 importer 生成 のいずれかで対応する。</p>
+<h3 id="51-責務分担">5.1 責務分担</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>担当</th><th>持ち物</th></tr></thead><tbody><tr><td><strong>Harmony 側</strong></td><td>AI 向け変換マニュアル (<a href="/spec/conversion-guideline-for-ai/"><code>conversion-guideline-for-ai.md</code></a>) / catalog 8 kind の共通メタモデル / audit / warning 規範 / TS scaffold テンプレ / 既知落とし穴集約 / (option) project profile JSON 推奨フォーマット</td></tr><tr><td><strong>Project 側</strong></td><td>自由形式の Markdown 設計書 + (optional) <code>import-project-profile.json</code></td></tr><tr><td><strong>AI</strong></td><td>マニュアル参照しつつ 1 回限り変換 or <code>scripts/import/*.ts</code> 生成</td></tr></tbody></table>
+<h3 id="52-提供形態-q10-決定">5.2 提供形態 (Q10 決定)</h3>
+<p><code>docs/spec/</code> + <code>ai-skills/</code> の両方:</p>
+<ul>
+<li><strong><a href="/spec/conversion-guideline-for-ai/"><code>docs/spec/conversion-guideline-for-ai.md</code></a></strong> — 一次ソース。人間と AI 両方が読む詳細マニュアル</li>
+<li><strong><a href="/spec/SKILL/"><code>ai-skills/import-md/SKILL.md</code></a></strong> — 起動点 (<code>/import-md &#x3C;project></code> で発火 or auto-trigger キーワード “Markdown 設計書” “Harmony JSON 変換”)。中身は spec への誘導</li>
+</ul>
+<h3 id="53-マニュアルに含める要素-q9--全部入り">5.3 マニュアルに含める要素 (Q9 = 全部入り)</h3>
+<p><a href="/spec/conversion-guideline-for-ai/"><code>conversion-guideline-for-ai.md</code></a> に集約:</p>
+<ol>
+<li><strong>§1 出力先 Harmony JSON の全体構造</strong> — 既存 entity 一覧 + Generic Definition Catalog 8 kind の配置</li>
+<li><strong>§2 入力 MD の archetype 10 種類</strong> — 判定アルゴリズム (file name → 見出し → 表ヘッダ)</li>
+<li><strong>§3 archetype 別 落とし方ガイド</strong> — before/after pair を 7 archetype 分掲載</li>
+<li><strong>§4 Generic Definition Catalog の共通メタモデル</strong></li>
+<li><strong>§5 audit / warning 規範</strong> — 12 種の warning kind + audit summary 形式</li>
+<li><strong>§6 パターン (A) 1 回限り変換 の進め方</strong> — 10 step フロー</li>
+<li><strong>§7 パターン (B) Importer 生成 の進め方</strong> — TS scaffold + Step 別 純TS/AI 補完区分</li>
+<li><strong>§8 既知落とし穴 (memory 集約)</strong> — ProcessFlow / ScreenItem / SQL / silent pass 等</li>
+<li><strong>§9 Decision flowchart</strong> — (A) vs (B) 判定</li>
+<li><strong>§10 変換完了判定基準</strong></li>
+<li><strong>§11 関連 spec / memory リンク</strong></li>
+</ol>
+<h3 id="54-project-profile-schema-optional">5.4 Project Profile schema (optional)</h3>
+<p>profile は <strong>optional</strong> (project が継続変換するなら使う、1 回限りなら不要)。</p>
+<ul>
+<li>推奨 schema: <a href="../../schemas/import-project-profile.v1.schema.json"><code>schemas/import-project-profile.v1.schema.json</code></a></li>
+<li>サンプル: <a href="../../examples/retail/import-project-profile.json"><code>examples/retail/import-project-profile.json</code></a></li>
+<li>14 セクション構造の詳細は <a href="/spec/conversion-guideline-for-ai/"><code>conversion-guideline-for-ai.md</code> §7.3</a></li>
+</ul>
+<p>profile を使うと §7.1 の各 step に project 固有ルールを注入できる。profile を使わない場合、AI が毎回マニュアルを参照しつつ判断する。</p>
+<h3 id="55-importer-生成の物理配置">5.5 importer 生成の物理配置</h3>
+<p>AI が生成する project 専用 importer は <code>&#x3C;project>/scripts/import/*.ts</code> に配置。詳細スキャフォールドは <a href="/spec/conversion-guideline-for-ai/"><code>conversion-guideline-for-ai.md</code> §7.2</a>。</p>
+<hr>
+<h2 id="6-設計指針-本-issue-設計指針-を統合">6. 設計指針 (本 ISSUE §設計指針 を統合)</h2>
+<ol>
+<li><strong>具体クラス定義の再現を目的にしない</strong> — 言語非依存の設計意味を保持する</li>
+<li><strong>例外は「クラス本体」より「意味と契約」を優先する</strong> — semantic kind / recoverable / handling 方針が中核</li>
+<li><strong>DTO / Result / Utility も「責務」が本体</strong> — 名前そのものではなく purpose / responsibilities が一次情報</li>
+<li><strong>既存 entity で済むものは無理に新 entity 化しない</strong> — Layer 1 で吸収、Layer 2 は最後手段</li>
+<li><strong>AI 補完を前提にしてよいが、境界は明示する</strong> — 設計書で保持: 意味/責務/契約/制約/UI 振る舞い、AI に委ねる: 具体クラス形/フレームワーク記法</li>
+<li><strong>専用 schema 追加の前に generic definition を親概念にする</strong> — <code>exceptionCatalog</code> / <code>classCatalog</code> を細かく切るより、上位の generic definition + profile / view で対応</li>
+</ol>
+<hr>
+<h2 id="7-既存-framework-research-との突合">7. 既存 framework research との突合</h2>
+<p><code>project_framework_research_2026_04_25.md</code> (memory) の追加仕様 19 項目との overlap を整理:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>#1060 提案</th><th>framework-research 19 項目</th><th>統合方針</th></tr></thead><tbody><tr><td><code>application-rule</code> (認証認可 / ログ / 監査 / 例外変換)</td><td>#1 ログ/監査ステップ, #2 RBAC</td><td>一部重複 — <code>application-rule</code> は横断ポリシー、ProcessFlow <code>LogStep</code>/<code>AuditStep</code> は flow 内の個別行為。両立可</td></tr><tr><td><code>exception-type</code> Catalog</td><td>(なし)</td><td><strong>新規</strong>。framework-research に欠けていた領域</td></tr><tr><td><code>runtime-policy</code> (retry / timeout / circuit breaker / cache)</td><td>#5 SLA/Timeout, #13 Circuit Breaker/Bulkhead</td><td><strong>既に spec 化済</strong> (<code>process-flow-sla.md</code> / <code>process-flow-tier-c.md</code>) — 横断適用ポリシーの kind を catalog に追加する形で吸収。#1068 で kind 別 schema 追加済 (parent + kind const のみ)、SLA / Tier-C の現行 inline 宣言形式は本 PR では変更せず、catalog 化への移管は別 ISSUE で検討予定</td></tr><tr><td><code>data-contract</code> (DTO / Form / Result / ViewModel)</td><td>(なし、Domain は近い)</td><td><strong>新規</strong>。GeneXus の Domain は型+制約だが、本提案の data-contract は契約 (層間 IO) を含む</td></tr><tr><td><code>domain-type</code></td><td>Priority 2-#4 Domain 概念 (GeneXus)</td><td><strong>重複</strong> — 統合して 1 つの Catalog kind とする</td></tr><tr><td><code>ui-behavior</code> Catalog</td><td>(なし)</td><td><strong>新規</strong>。設計書に頻出する dirty check / dialog / datepicker 等の formal 化</td></tr><tr><td><code>ui-fragment</code></td><td>(なし、PageLayout は別)</td><td><strong>新規</strong>。PageLayout (#1021) と切り分け</td></tr><tr><td><code>component-definition</code></td><td>(なし)</td><td><strong>新規</strong>。共有 service / mapper / validator の責務分離</td></tr><tr><td>ScreenItem binding 構造化</td><td>Tier D-#18 ScreenItem 派生値 (Formula)</td><td>別観点 — binding 構造化と Formula は併存可</td></tr><tr><td>ScreenItemEvent UI effects</td><td>(なし)</td><td><strong>新規</strong></td></tr><tr><td>Importer 手順書 + Project Profile</td><td>(なし)</td><td><strong>新規</strong>。framework-research は schema 拡張側、本提案は取り込み runtime 側</td></tr></tbody></table>
+<p><strong>統合判断</strong>: framework-research 19 項目と #1060 提案は <strong>大半が直交</strong>。重複は <code>domain-type</code> ↔ Priority 2-#4 Domain の 1 件のみで、これは 1 つの catalog kind に統合する。</p>
+<hr>
+<h2 id="8-実装優先度-q4-確定-親-schema-優先--依存順">8. 実装優先度 (Q4 確定: 親 schema 優先 / 依存順)</h2>
+<p>P0 内部の切り出し順序は <strong>下層が上層に依存しない依存順</strong> (Q4 決定):</p>
+<h3 id="p0-最優先依存順">P0 (最優先、依存順)</h3>
+<ol>
+<li><strong>Generic Definition 親 schema</strong> (Layer 2 §4.1) — kind / name / fields / relations / mappingHints の共通メタモデル</li>
+<li><strong><code>data-contract</code> / <code>domain-type</code> catalog</strong> (Layer 2) — 親 schema を継承</li>
+<li><strong>ScreenItem binding 拡張</strong> (Layer 1 §3.1) — <code>data-contract</code> への <code>$ref</code> を使う</li>
+<li><strong>ScreenItemEvent UI effects</strong> (Layer 1 §3.2) — UI ローカル効果の formal 化</li>
+</ol>
+<p>各ステップは下位の schema が確定してから上位を切り出すことで、後戻りを防ぐ。</p>
+<h3 id="p1">P1</h3>
+<ol start="5">
+<li>✅ ProcessFlow <code>componentCall</code> step + <code>component-definition</code> (Layer 1 §3.3 + Layer 2) — <strong>#1066 で AJV gate 対象化済</strong></li>
+<li>✅ <code>exception-type</code> catalog + ProcessFlow error semantics 拡張 (Layer 1 §3.4 + Layer 2) — <strong>#1066 で AJV gate 対象化済</strong></li>
+<li><code>ui-fragment</code> catalog + <code>screen.fragments</code> 参照 (Layer 1 §3.6 + Layer 2)</li>
+</ol>
+<h3 id="p2">P2</h3>
+<ol start="8">
+<li><code>application-rule</code> / <code>runtime-policy</code> / <code>ui-behavior</code> catalog 完全実装 (Layer 2)</li>
+<li><code>mappingHints</code> (free-form object, Q6 確定) と各 techStack codegen 連携 (<code>/generate-code</code> skill 拡張)</li>
+<li>AI 向け変換マニュアル (<a href="/spec/conversion-guideline-for-ai/"><code>conversion-guideline-for-ai.md</code></a>) の継続更新 (新 archetype / 新 warning / 新落とし穴の追加)</li>
+</ol>
+<hr>
+<h2 id="9-期待する成果">9. 期待する成果</h2>
+<ul>
+<li>設計書として保持すべき情報と、AI に委ねる実装詳細を <strong>設計レベルで分離</strong> できる</li>
+<li>実装言語が Java / TypeScript / Python でも共通の設計資産として再利用可能</li>
+<li>AI コード生成時に、Markdown 原文依存を減らし Harmony JSON から一貫生成しやすくなる</li>
+<li>既存 JSON の説明文埋め込みを減らし、機械利用性を上げる</li>
+<li>将来的に専用 schema (exception-only / class-only など) を増やす場合も、本 layer を親概念として据えられる</li>
+</ul>
+<hr>
+<h2 id="10-受け入れ条件-本-issue-受け入れ条件">10. 受け入れ条件 (本 ISSUE §受け入れ条件)</h2>
+<ul>
+<li>☑ 既存の <code>screen</code> / <code>processFlow</code> / <code>table</code> / <code>viewDefinition</code> で表現しづらい設計情報を分類できること</li>
+<li>☑ 画面 binding / UI behavior / reusable contract / exception semantics の少なくとも 4 領域で、現行の欠落点と拡張方針を定義できること (§3 / §4)</li>
+<li>☑ 例外定義 / 汎用クラス定義 / アプリケーション設定 / UI 振る舞いの少なくとも 4 類型を Generic Definition Catalog 上で表現できること (§4.2)</li>
+<li>☑ 実装言語固有の構文に閉じないこと (§6 設計指針 §1, §6)</li>
+<li>☑ 「必須設計情報」と「AI 補完可の実装詳細」の境界をガイドとして定義すること (§6 設計指針 §5)</li>
+</ul>
+<hr>
+<h2 id="11-解消済-open-questions-q1-q11-issue-1060-discussion-2026-05-13">11. 解消済 Open Questions (Q1-Q11 ISSUE #1060 discussion 2026-05-13)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>#</th><th>論点</th><th>決定</th></tr></thead><tbody><tr><td>Q1</td><td>catalog 配置</td><td>独立ディレクトリ <code>examples/&#x3C;project>/&#x3C;dataDir>/generic-definitions/&#x3C;kind>/*.json</code> を切る</td></tr><tr><td>Q2</td><td>PageLayout vs ui-fragment 境界</td><td>Page-level vs Component-level で切る (PageLayout = 骨格、ui-fragment = 部品)</td></tr><tr><td>Q3</td><td>process-flow-extensions との統合</td><td>両者独立、ProcessFlow から <code>$ref</code> で generic-definitions を参照</td></tr><tr><td>Q4</td><td>P0 schema 切り出し順序</td><td>親 schema → data-contract/domain-type → ScreenItem binding → Event UI effects</td></tr><tr><td>Q5</td><td>import-procedure.md 独立性</td><td>conversion-guideline-for-ai.md (AI 向けマニュアル) に統合、独立 spec 廃止</td></tr><tr><td>Q6</td><td>mappingHints 標準形</td><td>free-form object (techStack 別キー、中身は AI 解釈)</td></tr><tr><td>Q7-Q8</td><td>Importer 必要性 / Layer 3 形態</td><td>AI 向けマニュアル型に転換。Harmony 側に固定 importer 持たず、AI がマニュアル参照しつつ 1 回限り変換 or project 専用 importer 生成</td></tr><tr><td>Q9</td><td>マニュアルに含める要素</td><td>全部入り (entity 構造 / archetype ガイド / audit / TS scaffold / profile テンプレ / 既知落とし穴 / decision flowchart)</td></tr><tr><td>Q10</td><td>マニュアル配置</td><td><code>docs/spec/conversion-guideline-for-ai.md</code> + <code>ai-skills/import-md/SKILL.md</code> 両方</td></tr><tr><td>Q11</td><td>既生成物 (import-procedure / RFC schema / sample profile)</td><td>マニュアルの中に再利用、profile schema と sample は optional フォーマットとして保持</td></tr></tbody></table>
+<hr>
+<h2 id="12-後続作業-子-issue-起票計画">12. 後続作業 (子 ISSUE 起票計画)</h2>
+<p>本ドラフト確定後、<code>#1060</code> を親メタ ISSUE として扱い、以下を <strong>本 PR merge と同タイミングで一括起票</strong> する。AGENTS.md 鉄則 0 (放置禁止) + 鉄則 1 (本 PR 吸収優先) を遵守するため、本 PR 内では「将来化」を許容しない:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>順</th><th>作業</th><th>対応箇所</th><th>起票方針</th><th>起票済 ISSUE</th></tr></thead><tbody><tr><td>1</td><td>Generic Definition 親 schema 切り出し</td><td><code>schemas/v3/generic-definition.v3.schema.json</code> (新設)</td><td>単独 ISSUE (子 1)、本 PR merge と同時起票</td><td>子 1 → #1063</td></tr><tr><td>2</td><td>data-contract / domain-type catalog schema</td><td><code>schemas/v3/generic-definitions/data-contract.v3.schema.json</code> 等</td><td>単独 ISSUE (子 2)、子 1 完了後着手</td><td>子 2 → #1064</td></tr><tr><td>3</td><td>ScreenItem <code>binding</code> 構造化拡張</td><td><code>schemas/v3/screen-item.v3.schema.json</code> 変更</td><td>単独 ISSUE (子 3)、子 2 完了後着手</td><td>子 3 → #1065</td></tr><tr><td>4</td><td>ScreenItemEvent <code>effects[]</code> 拡張</td><td>同 schema 変更</td><td>子 3 と統合 (同 schema / 同画面項目領域、鉄則 3 同根統合)</td><td>(子 3 に統合)</td></tr><tr><td>5</td><td>ProcessFlow <code>componentCall</code> step kind + component-definition + DB step <code>dbQuery/Insert/Update</code> 細分化検討 (→ 細分化は採用しないと決定)</td><td><code>schemas/v3/process-flow.v3.schema.json</code> 変更</td><td>単独 ISSUE (子 4)、子 2 完了後着手</td><td>子 4 → #1066 <strong>完了済 (本 PR でマージ)</strong></td></tr><tr><td>6</td><td>exception-type catalog + ProcessFlow error semantics 拡張</td><td>同上 + catalog 新設</td><td>子 4 と統合 (同 schema / error 領域、鉄則 3)</td><td>(子 4 に統合) <strong>完了済 (#1066)</strong></td></tr><tr><td>7</td><td>ui-fragment catalog + <code>screen.fragments[]</code></td><td><code>schemas/v3/screen.v3.schema.json</code> 変更 + catalog 新設</td><td>単独 ISSUE (子 5)、子 2 完了後着手</td><td>子 5 → #1067 <strong>完了済 (本 PR でマージ)</strong></td></tr><tr><td>8</td><td>application-rule / runtime-policy / ui-behavior catalog</td><td>catalog 各 schema 新設</td><td>単独 ISSUE (子 6)、子 2 完了後着手</td><td>子 6 → #1068 <strong>完了済 (本 PR でマージ)</strong></td></tr><tr><td>9</td><td>UI 側の表示・編集対応 (新規 catalog 種別ごとの ListView / Editor)</td><td>frontend</td><td>単独 ISSUE (子 7)、子 2-6 完了後着手</td><td>子 7 → #1069</td></tr><tr><td>10</td><td>conversion-guideline-for-ai.md 継続更新 (新 archetype / 新 warning / 新落とし穴)</td><td>docs</td><td>本 PR では起票せず、運用継続タスクとして親 ISSUE #1060 にチェックリスト化</td><td>(親 #1060 で管理)</td></tr></tbody></table>
+<p><strong>統合後の子 ISSUE 数</strong>: 7 件 (子 1-7) + 親メタ #1060 で運用継続項目 (#10) を管理。</p>
+<p><strong>起票運用</strong> (AGENTS 鉄則 0 を放置不能にする gate):</p>
+<ul>
+<li>本 PR の <strong>PR description に「Pre-merge checklist」を明記</strong> し、その checklist には以下が含まれる:
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> 子 ISSUE 1-7 の draft body を本 PR description 末尾に貼った</li>
+<li class="task-list-item"><input type="checkbox" disabled> merge 実施者は merge 直前 (同一作業セッション内) に <code>gh issue create</code> で全 7 件を起票</li>
+<li class="task-list-item"><input type="checkbox" disabled> 各起票 ISSUE 番号を本 spec §12 表に追記 (<code>子 N → #YYYY</code> 形式)</li>
+<li class="task-list-item"><input type="checkbox" disabled> 子 1-7 のいずれかが起票不能なら <strong>merge しない</strong> (放置を物理的に発生させない)</li>
+</ul>
+</li>
+<li>後追い起票 (merge 後に「後でやる」) は鉄則 0 違反として禁止</li>
+<li>個別 ISSUE 番号確定後、本 spec §12 を編集して <code>子 1 → #YYYY</code> のように back-fill する</li>
+</ul>
+<p>各作業の schema 変更は schema governance に従い、起票時点で設計者承認を取る。</p>
+<h3 id="子-issue-1-7-の-draft-body">子 ISSUE 1-7 の draft body</h3>
+<p>本 PR description 末尾に同内容を貼り、merge 時にそのまま <code>gh issue create --body-file</code> できる状態にする。</p>
+<p>(本 spec ではテンプレ参照: 各子は <code>## 背景</code> / <code>## 受け入れ条件</code> / <code>## 親メタ #1060 とのリンク</code> を最低含む。具体 body は merge 時に PR description から起票するもので、spec 内には冗長に複製しない。)</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

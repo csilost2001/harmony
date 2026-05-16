@@ -1,0 +1,577 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>plugin system</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link active"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="プラグインシステム仕様">プラグインシステム仕様</h1>
+<p>処理フロースキーマをソース変更なしに拡張するための仕組み。業務アプリ開発者がプロジェクト固有の型・ステップ・操作を追加できる。</p>
+<p><strong>関連 ISSUE</strong>: #390 (GM50 バッチ対応、本仕様の最初のユーザー)</p>
+<hr>
+<h2 id="設計原則">設計原則</h2>
+<h3 id="グローバルスキーマ-vs-プラグイン-の判断基準">グローバルスキーマ vs プラグイン の判断基準</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>区分</th><th>基準</th><th>例</th></tr></thead><tbody><tr><td><strong>グローバル</strong></td><td>どの業務プロジェクトでも合理的に必要になる</td><td><code>"file"</code> FieldType、<code>"auto"</code> トリガー、<code>MERGE</code> DB 操作</td></tr><tr><td><strong>プラグイン</strong></td><td>特定プロジェクト・業界・業態に固有</td><td>GM50 の <code>"csv"</code> / <code>"ZIP"</code> / <code>"TBL"</code> 型</td></tr></tbody></table>
+<p><strong>原則</strong>: グローバルに入れるべきものはグローバルに。プラグインはソースを触らずに拡張できる手段であり、グローバル定義の代替ではない。</p>
+<h3 id="アーキテクチャ">アーキテクチャ</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>グローバルスキーマ (schemas/process-flow.schema.json)</span></span>
+<span class="line"><span>  └─ 全プロジェクト共通の型・enum・ステップ定義</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>プラグイン (data/extensions/*.json)</span></span>
+<span class="line"><span>  └─ プロジェクト固有の追加定義</span></span>
+<span class="line"><span>  └─ バリデーターは検証のたびに動的読み込み → グローバルとマージして検証</span></span></code></pre>
+<h3 id="グローバル--プラグインの併存ルール-種別別">グローバル ↔ プラグインの併存ルール (種別別)</h3>
+<p>「上書き」の意味は種別ごとに異なる。種別別に明示する:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>種別</th><th>競合時の挙動</th><th>理由</th></tr></thead><tbody><tr><td><strong>enum 拡張</strong> (field-types / triggers / db-operations)</td><td><strong>追加のみ</strong>。グローバル値の削除・置換は不可</td><td>既存 ProcessFlow JSON が壊れる</td></tr><tr><td><strong>カスタムステップ型</strong> (steps)</td><td>同名なら<strong>プラグイン側が上書き</strong>。ただし namespace で衝突回避を推奨</td><td>プロジェクト固有のステップ定義で標準を上書きする要求は妥当</td></tr><tr><td><strong>レスポンス型</strong> (response-types)</td><td>キー単位で<strong>プラグイン側が上書き</strong></td><td>同上</td></tr></tbody></table>
+<p><strong>禁止</strong>: グローバル enum 値 (<code>{kind: "string"}</code> 等) と同じ値をプラグインで再定義すること。バリデーターはこれを検出してエラーを返す。</p>
+<hr>
+<h2 id="ファイル配置">ファイル配置</h2>
+<h3 id="二層構造-sample--runtime">二層構造 (sample / runtime)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>examples/&#x3C;project-id>/extensions/  ← 各 project 内の拡張定義サンプル (namespace.v3.json 形式)</span></span>
+<span class="line"><span>  steps.json</span></span>
+<span class="line"><span>  field-types.json</span></span>
+<span class="line"><span>  ...</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>data/extensions/                  ← 業務プロジェクト固有 (本リポジトリでは追跡対象)</span></span>
+<span class="line"><span>  steps.json</span></span>
+<span class="line"><span>  field-types.json</span></span>
+<span class="line"><span>  triggers.json</span></span>
+<span class="line"><span>  db-operations.json</span></span>
+<span class="line"><span>  response-types.json</span></span></code></pre>
+<ul>
+<li><strong><code>examples/&#x3C;project-id>/extensions/</code></strong>: 各 project 内の拡張定義サンプル (namespace.v3.json 形式)。GM50 を含む業界別テンプレートをここに置く</li>
+<li><strong><code>data/extensions/</code></strong>: 実行時にバリデーターが読む場所。本リポジトリでは追跡対象 (CLAUDE.md の <code>data/ is gitignored</code> 記述は古く実態と異なる。<code>data/process-flows/</code> 等と同様に追跡する)</li>
+<li>両者の関係は将来 <code>harmony.json</code> の <code>extensionsPath</code> 設定で切り替え可能にする (将来拡張)</li>
+</ul>
+<h3 id="拡張種別ごとのファイル">拡張種別ごとのファイル</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>data/extensions/</span></span>
+<span class="line"><span>  steps.json          カスタムステップ型 (処理フローエディターのカード)</span></span>
+<span class="line"><span>  field-types.json    FieldType 拡張 (入出力フィールドの型)</span></span>
+<span class="line"><span>  triggers.json       ActionTrigger 拡張 (アクションの起動条件)</span></span>
+<span class="line"><span>  db-operations.json  DbOperation 拡張 (DB 操作の種別)</span></span>
+<span class="line"><span>  response-types.json レスポンス型定義 (typeCatalog の後継)</span></span></code></pre>
+<ul>
+<li>拡張種別ごとに<strong>1 ファイル</strong>。同種別を複数ファイルに分割しない (運用シンプル化)</li>
+<li>ファイルが存在しない場合はその種別の拡張なしとして扱う (エラーにしない)</li>
+</ul>
+<h3 id="各ファイルの-json-schema">各ファイルの JSON Schema</h3>
+<p><code>schemas/extensions-{steps,field-types,triggers,db-operations,response-types}.schema.json</code> を用意し、拡張ファイル自体を schema validation する。</p>
+<p><strong>必須フィールド</strong>: <code>namespace</code> (空文字列でも明示)、種別ごとの本体 (<code>steps</code> / <code>fieldTypes</code> / <code>triggers</code> / <code>dbOperations</code> / <code>responseTypes</code>)。</p>
+<h3 id="将来の拡張">将来の拡張</h3>
+<ul>
+<li>外部パス設定: <code>harmony.json</code> に <code>extensionsPath</code> を追加し、<code>data/extensions/</code> 以外の場所を指定できるようにする</li>
+<li>複数プロジェクト対応: 外部パス指定により、各業務プロジェクトのリポジトリ内に拡張定義を置ける</li>
+</ul>
+<hr>
+<h2 id="名前空間">名前空間</h2>
+<p>プラグイン定義の各エントリには名前空間プレフィックスを付けられる。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// steps.json</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "namespace"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"gm50"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "BatchStep"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// → "gm50:BatchStep" として登録される</span></span></code></pre>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// namespace が空の場合</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "namespace"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">""</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "BatchStep"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// → "BatchStep" としてそのまま登録</span></span></code></pre>
+<ul>
+<li><code>namespace</code> フィールドは<strong>必須</strong> (空文字列でも明示)。各ファイルの JSON Schema で required 強制</li>
+<li>enum 拡張 (field-types/triggers/db-operations) は値そのものが識別子のため、namespace は付与しない (メタ情報としてのみ記録)</li>
+</ul>
+<hr>
+<h2 id="各ファイルの仕様">各ファイルの仕様</h2>
+<h3 id="stepsjson--カスタムステップ型">steps.json — カスタムステップ型</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "namespace"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"gm50"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "BatchProcessStep"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"バッチ処理"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "icon"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"bi-gear"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"大量データの一括処理ステップ"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"batchId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "additionalProperties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">false</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "batchId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"バッチ定義 ID"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">          },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "chunkSize"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"number"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"1 回の処理件数"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">          }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<ul>
+<li><code>label</code>: 処理フローエディターのカードパレットに表示される名称</li>
+<li><code>icon</code>: Bootstrap Icons のクラス名</li>
+<li><code>schema</code>: JSON Schema draft 2020-12 で記述。UI フォームはこの schema から動的生成される (対応サブセットは「動的フォーム生成スコープ」節参照)</li>
+</ul>
+<p><strong>UI への反映</strong>: 定義されたカスタムステップはカードパレットの「カスタム」セクションに表示され、D&#x26;D でフローに追加できる。</p>
+<h3 id="field-typesjson--fieldtype-拡張">field-types.json — FieldType 拡張</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "namespace"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"gm50"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "fieldTypes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"view"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"ビュー"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tbl"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"テーブル参照 (旧TBL形式)"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<blockquote>
+<p><strong>注意</strong>: <code>{kind: "file"}</code> はグローバルスキーマ (#443) で追加済みのため、プラグインで定義する必要はない。
+グローバルに既存の <code>kind</code> (<code>"string"</code> 等) と同じ値をプラグインに書くと<strong>バリデーションエラー</strong>になる。</p>
+</blockquote>
+<ul>
+<li><code>kind</code>: FieldType の <code>kind</code> 値として登録される</li>
+<li><code>label</code>: UI 表示ラベル</li>
+</ul>
+<h3 id="triggersjson--actiontrigger-拡張">triggers.json — ActionTrigger 拡張</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "namespace"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"gm50"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "triggers"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "value"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"webhook"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"Webhook"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "value"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"mq"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"メッセージキュー"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<blockquote>
+<p><strong>注意</strong>: <code>"auto"</code> はグローバルスキーマ (#443) で追加済みのため、プラグインで定義する必要はない。</p>
+</blockquote>
+<h3 id="db-operationsjson--dboperation-拡張">db-operations.json — DbOperation 拡張</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "namespace"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"gm50"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "dbOperations"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"value"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"TRUNCATE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"TRUNCATE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="response-typesjson--レスポンス型定義-typecatalog-後継">response-types.json — レスポンス型定義 (typeCatalog 後継)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "namespace"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">""</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "responseTypes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "ApiError"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"API エラーレスポンス"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "code"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "message"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>HttpResponseSpec.bodySchema = { "typeRef": "ApiError" }</code> の解決先。<code>typeCatalog</code> (ProcessFlow 内部) を廃止しこちらに移行する。</p>
+<hr>
+<h2 id="バリデーター設計">バリデーター設計</h2>
+<h3 id="動的読み込み">動的読み込み</h3>
+<ul>
+<li>処理フロー JSON の検証のたびに <code>data/extensions/</code> を読み込む (再起動不要)</li>
+<li>マージ戦略: enum 拡張は追加のみ、step / response-type は同名キーでプラグインが上書き</li>
+<li>グローバルスキーマの enum にプラグインの値を追加した合成スキーマで検証する</li>
+<li>extensions/ が存在しない・空の場合はグローバルスキーマのみで検証</li>
+</ul>
+<h3 id="サーバ側-node-とブラウザ側の経路">サーバ側 (Node) とブラウザ側の経路</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>実行環境</th><th>読み込み経路</th></tr></thead><tbody><tr><td>Node (vitest, backend)</td><td><code>readdirSync('data/extensions/')</code> で直接読み込み</td></tr><tr><td>ブラウザ (designer UI / E2E)</td><td><code>wsBridge</code> 経由で取得 (<code>getExtensions</code> メッセージ追加)</td></tr></tbody></table>
+<ul>
+<li>ブラウザ側はキャッシュを持ち、wsBridge の broadcast (<code>extensionsChanged</code>) で invalidate する</li>
+<li>拡張管理 UI (#447) からの編集後、broadcast → 全ブラウザタブが即時再取得 → カードパレット・バリデーター反映</li>
+</ul>
+<hr>
+<h2 id="動的フォーム生成スコープ">動的フォーム生成スコープ</h2>
+<p><code>steps.json</code> の <code>schema</code> から自動生成される編集フォーム (#446) で対応する JSON Schema 機能の範囲を<strong>明示的に限定</strong>する:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>キーワード</th><th>対応</th><th>UI</th></tr></thead><tbody><tr><td><code>type: "string"</code></td><td>✅</td><td>テキスト入力</td></tr><tr><td><code>type: "number"</code> / <code>"integer"</code></td><td>✅</td><td>数値入力</td></tr><tr><td><code>type: "boolean"</code></td><td>✅</td><td>チェックボックス</td></tr><tr><td><code>enum</code></td><td>✅</td><td>セレクトボックス</td></tr><tr><td><code>type: "object"</code> + <code>properties</code></td><td>✅</td><td>ネストしたフォーム (再帰)</td></tr><tr><td><code>type: "array"</code> + <code>items</code></td><td>✅</td><td>追加/削除可能なリスト (再帰)</td></tr><tr><td><code>required</code></td><td>✅</td><td>必須マーク + バリデーション</td></tr><tr><td><code>description</code></td><td>✅</td><td>フィールド説明文</td></tr><tr><td><code>default</code></td><td>✅</td><td>初期値</td></tr><tr><td><strong>その他</strong> (<code>oneOf</code> / <code>anyOf</code> / <code>allOf</code> / <code>$ref</code> / <code>if-then-else</code> / <code>dependencies</code> / <code>patternProperties</code> / <code>format</code> 等)</td><td>❌</td><td><strong>非対応</strong>。schema validation 時にエラー</td></tr></tbody></table>
+<ul>
+<li>カスタムステップの schema 定義者は、上記サブセット内で書く必要がある</li>
+<li>非対応キーワードを含む schema は <code>extensions-steps.schema.json</code> の段階で reject する (UI 側は対応キーワードのみを前提に実装可能)</li>
+</ul>
+<hr>
+<h2 id="mcp-ツール設計">MCP ツール設計</h2>
+<p>AI がプラグインを操作するための専用ツール。拡張種別ごとに分ける (誤操作防止)。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ツール名</th><th>操作</th></tr></thead><tbody><tr><td><code>add_step_extension</code></td><td>カスタムステップを追加・更新</td></tr><tr><td><code>add_field_type_extension</code></td><td>FieldType を追加</td></tr><tr><td><code>add_trigger_extension</code></td><td>ActionTrigger を追加</td></tr><tr><td><code>add_db_operation_extension</code></td><td>DbOperation を追加</td></tr><tr><td><code>add_response_type_extension</code></td><td>レスポンス型を追加 (旧 add_catalog_entry の typeCatalog 機能の後継)</td></tr><tr><td><code>remove_extension</code></td><td>任意の拡張エントリを削除</td></tr><tr><td><code>list_extensions</code></td><td>現在の全拡張一覧を取得</td></tr></tbody></table>
+<h3 id="既存-add_catalog_entry--remove_catalog_entry-の扱い">既存 <code>add_catalog_entry</code> / <code>remove_catalog_entry</code> の扱い</h3>
+<p>これらの MCP ツールは現状 <code>errorCatalog</code> / <code>secretsCatalog</code> / <code>typeCatalog</code> / <code>externalSystemCatalog</code> の 4 種を扱う (<code>CatalogName</code> enum)。</p>
+<ul>
+<li><strong>typeCatalog</strong> → 廃止し <code>add_response_type_extension</code> に置換</li>
+<li><strong>errorCatalog / secretsCatalog / externalSystemCatalog</strong> → 引き続き ProcessFlow 内部のカタログとして残す (これらはグローバル化の必然性が低く、ProcessFlow 単位で完結する)</li>
+<li><code>CatalogName</code> enum から <code>"typeCatalog"</code> を削除</li>
+</ul>
+<hr>
+<h2 id="ui-設計">UI 設計</h2>
+<h3 id="拡張管理パネル-447">拡張管理パネル (#447)</h3>
+<p>ヘッダーメニューから「拡張管理」へ遷移できるシングルトンタブ (新ルート <code>/extensions</code>)。</p>
+<ul>
+<li>拡張種別ごとにタブ表示 (ステップ / フィールド型 / トリガー / DB 操作 / レスポンス型)</li>
+<li>各エントリの追加・編集・削除が可能</li>
+<li>編集後は wsBridge broadcast で全ブラウザタブに即時反映 (再起動不要)</li>
+</ul>
+<h3 id="カスタムステップの編集フォーム-446">カスタムステップの編集フォーム (#446)</h3>
+<p>カスタムステップをフロー上に配置した後の編集 UI:</p>
+<ul>
+<li><code>steps.json</code> に定義された <code>schema</code> から「動的フォーム生成スコープ」節のサブセットでフォームを自動生成</li>
+<li><strong>汎用 JSON テキストエリアは不可</strong> (業務設計者が使えないため)</li>
+<li>標準ステップの専用パネル (DbAccessPanel 等) と同じ位置に表示</li>
+</ul>
+<h3 id="カードパレット">カードパレット</h3>
+<p>標準ステップのカードに加え、「カスタム」セクションを設けてプラグイン定義のカードを表示。<code>label</code> と <code>icon</code> を使って表示。</p>
+<hr>
+<h2 id="typecatalog-移行-445-詳細スコープ">typeCatalog 移行 (#445 詳細スコープ)</h2>
+<p>ProcessFlow 内部にある <code>typeCatalog</code> を本仕様の <code>response-types.json</code> に移行する。<strong>影響範囲が広いため #445 は以下の全項目をスコープに含む</strong>。</p>
+<h3 id="影響範囲-全-14-ファイル">影響範囲 (全 14 ファイル)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>区分</th><th>ファイル</th><th>変更内容</th></tr></thead><tbody><tr><td>Schema</td><td><code>schemas/process-flow.schema.json</code></td><td><code>typeCatalog</code> プロパティ削除</td></tr><tr><td>TypeScript 型</td><td><code>frontend/src/types/action.ts</code></td><td><code>ProcessFlow.typeCatalog</code> 削除</td></tr><tr><td><strong>クロスリファレンス検証</strong></td><td><code>frontend/src/schemas/referentialIntegrity.ts</code></td><td><code>typeRef</code> の解決先を <code>group.typeCatalog</code> から<strong>グローバル extensions</strong> に変更</td></tr><tr><td>同テスト</td><td><code>frontend/src/schemas/referentialIntegrity.test.ts</code></td><td>typeCatalog ベースのテスト 2 件を extensions ベースに書き換え</td></tr><tr><td>Schema テスト</td><td><code>frontend/src/schemas/samples-v3.schema.test.ts</code></td><td>typeCatalog 関連テストを v3 extensions ベースに更新 (v1 凍結テストは削除済み — 現行は <code>samples-v3.schema.test.ts</code> / <code>v3-variant-coverage.test.ts</code>)</td></tr><tr><td>UI コンポーネント</td><td><code>frontend/src/components/process-flow/TypeCatalogPanel.tsx</code></td><td>削除</td></tr><tr><td>UI 統合</td><td><code>frontend/src/components/process-flow/ActionMetaTabBar.tsx</code></td><td>typeCatalog タブ削除</td></tr><tr><td>MCP ツール</td><td><code>backend/src/tools.ts</code></td><td><code>CatalogName</code> enum から <code>typeCatalog</code> 削除 + 新 <code>add_response_type_extension</code> 追加</td></tr><tr><td>MCP edits</td><td><code>backend/src/processFlowEdits.ts</code></td><td><code>CatalogName</code> 型と <code>typeCatalog?</code> フィールド処理を削除</td></tr><tr><td>E2E</td><td><code>frontend/e2e/catalog-panels.spec.ts</code></td><td>typeCatalog 関連シナリオを extensions パネル (#447) ベースに書き換え</td></tr><tr><td>サンプル</td><td><code>docs/sample-project/process-flows/cccccccc-{0005,0006,0007,0008}-*.json</code></td><td><code>typeCatalog</code> セクションを抽出し <code>docs/sample-project/extensions/response-types.json</code> に移行 (#445/#447 で実施済み、現在は examples/<project-id>/ を使用)</project-id></td></tr><tr><td>サンプル仕様</td><td><code>docs/spec/process-flow-extensions.md</code>, <code>docs/user-guide/process-flow-workflow.md</code></td><td>typeCatalog の記述をグローバル extensions に置換</td></tr><tr><td>設計者向け</td><td><code>.claude/commands/designer-work.md</code></td><td>typeCatalog 言及を更新</td></tr></tbody></table>
+<h3 id="referentialintegrity-の再設計">referentialIntegrity の再設計</h3>
+<p>現状 <code>typeRef</code> 解決は <code>ProcessFlow.typeCatalog</code> 内部のキーをチェックしている。グローバル extensions に外出しすると、<strong>バリデーター実行時に extensions を読む経路が必要</strong>:</p>
+<ul>
+<li>Node 環境: <code>loadExtensions()</code> の戻り値を <code>checkReferentialIntegrity</code> に注入する API 変更 (引数追加)</li>
+<li>既存呼び出し元 (テスト含む) の更新が必要</li>
+<li>ブラウザ環境: wsBridge から取得済みのキャッシュを引数で渡す</li>
+</ul>
+<h3 id="ui-デグレ防止-順序制約">UI デグレ防止 (順序制約)</h3>
+<p><code>TypeCatalogPanel</code> を削除すると typeCatalog の編集 UI が一時的に消える。<strong>回避策</strong>:</p>
+<ul>
+<li><strong>#447 (拡張管理 UI) を #445 と同時マージする</strong> (推奨)、または</li>
+<li><strong>#445 で <code>TypeCatalogPanel</code> を残し、内部実装だけを extensions ファイル書き込みに切り替える</strong> (中間段階の暫定)</li>
+</ul>
+<h3 id="mcp-ツール後方互換">MCP ツール後方互換</h3>
+<p><code>add_catalog_entry catalogName=typeCatalog</code> の旧呼び出しは <strong>deprecation warning + 自動的に <code>add_response_type_extension</code> に転送</strong>するシムを 1 リリース置く。</p>
+<hr>
+<h2 id="ai-向けガイド-操作規約">AI 向けガイド (操作規約)</h2>
+<p>AI が処理フロー設計中にプラグインを操作する際の判断規約。</p>
+<h3 id="拡張を追加する前に確認すること">拡張を追加する前に確認すること</h3>
+<ol>
+<li><strong>グローバルスキーマに既に存在しないか</strong> — まず <code>list_extensions</code> とスキーマ定義を確認する</li>
+<li><strong>グローバルに入れるべきものではないか</strong> — 「どの業務プロジェクトでも必要か」を問う。そうなら実装者に報告してグローバル追加を提案する</li>
+<li><strong>既存の拡張と名前が衝突しないか</strong> — <code>list_extensions</code> で確認する。衝突する場合は名前空間を使う</li>
+</ol>
+<h3 id="カスタムステップを追加する際の-schema-の書き方">カスタムステップを追加する際の schema の書き方</h3>
+<ul>
+<li>「動的フォーム生成スコープ」節の対応キーワードのみを使う</li>
+<li>フィールドには必ず <code>description</code> を付ける (AI 実装者が読む)</li>
+<li><code>required</code> を明示する</li>
+<li><code>additionalProperties: false</code> を推奨 (意図しないフィールドの混入防止)</li>
+</ul>
+<h3 id="やってはいけないこと">やってはいけないこと</h3>
+<ul>
+<li>グローバルスキーマで既にカバーされている enum 値をプラグインに重複定義する</li>
+<li><code>namespace</code> を省略する (空文字列でも明示する)</li>
+<li>schema のない step を定義する</li>
+<li>動的フォーム生成スコープ外のキーワード (<code>oneOf</code> / <code>$ref</code> 等) を使う</li>
+</ul>
+<hr>
+<h2 id="390-との関係">#390 との関係</h2>
+<p>#390 (GM50 バッチ処理フロー対応) は本プラグインシステムの最初のユーザー。</p>
+<p><strong>グローバルスキーマに追加 (#443 で実装済み・PR #448 マージ済)</strong>:</p>
+<ul>
+<li><code>FieldType</code>: <code>{kind: "file"}</code> を追加</li>
+<li><code>ActionTrigger</code>: <code>"auto"</code> を追加</li>
+<li><code>DbOperation</code>: <code>"MERGE"</code>, <code>"LOCK"</code> を追加</li>
+<li><code>ValidationInlineBranch.ok/ng</code>: <code>string | Step[]</code> に拡張</li>
+<li><code>CommonProcessStep.returnMapping</code>: プロパティ追加</li>
+</ul>
+<p><strong>GM50 プラグインとして定義 (#390 本体で実装、子 ISSUE 完了後)</strong>:</p>
+<ul>
+<li><code>field-types.json</code>: <code>"csv"</code>, <code>"tsv"</code>, <code>"zip"</code>, <code>"view"</code> 等の GM50 固有型</li>
+<li><code>"TBL"</code> → グローバルの <code>{kind: "tableRow"}</code> に正規化</li>
+</ul>
+<p>プラグインシステムインフラ完成後、#390 は「GM50 用拡張定義ファイルを作成する」チケットとして実行する。</p>
+<hr>
+<h2 id="推奨実装順序-改訂">推奨実装順序 (改訂)</h2>
+<ol>
+<li><strong>#443</strong> (グローバルスキーマ) ✅ マージ済み</li>
+<li><strong>#444</strong> (インフラ) — extensions/*.schema.json + ローダー + namespace 強制 + ブラウザ側経路 (wsBridge)</li>
+<li><strong>#445 + #447 を同時 PR</strong> — typeCatalog 移行と拡張管理 UI を一括マージ (UI デグレ回避)
+<ul>
+<li>または #445 で TypeCatalogPanel を残したまま内部だけ移行 → #447 で UI を差し替え</li>
+</ul>
+</li>
+<li><strong>#446</strong> (動的フォーム) — #444 完了後</li>
+<li><strong>#390</strong> (GM50 プラグイン) — 全て完了後</li>
+<li><strong>#449</strong> (#443 negative テスト) — 並行実施可能</li>
+</ol>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

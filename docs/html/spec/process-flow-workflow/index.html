@@ -1,0 +1,403 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>process flow workflow</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link active"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="process-flow-workflow-step">Process Flow Workflow Step</h1>
+<p><code>WorkflowStep</code> は承認、レビュー、確認、協議など、人の判断を含む業務ワークフローを表す。
+一次成果物は <code>schemas/v3/process-flow.v3.schema.json</code> であり、本仕様と TypeScript 型は同じ構造を保つ。</p>
+<h2 id="フィールド">フィールド</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>field</th><th align="right">required</th><th>type</th><th>description</th></tr></thead><tbody><tr><td><code>id</code></td><td align="right">yes</td><td><code>LocalId</code></td><td>Step ID</td></tr><tr><td><code>kind</code></td><td align="right">yes</td><td><code>"workflow"</code></td><td>Step kind 識別子 (#525 R3 fix で <code>type</code> から rename)</td></tr><tr><td><code>description</code></td><td align="right">yes</td><td>string</td><td>人間向け説明</td></tr><tr><td><code>pattern</code></td><td align="right">yes</td><td><code>WorkflowPattern</code></td><td>標準 11 パターンのいずれか</td></tr><tr><td><code>approvers</code></td><td align="right">yes</td><td><code>WorkflowApprover[]</code></td><td>RBAC role key と表示名、順序</td></tr><tr><td><code>quorum</code></td><td align="right">conditional</td><td><code>{ type, n? }</code></td><td>承認成立条件。<code>type</code> の値で必須プロパティが変わる (詳細は <a href="#quorum">quorum 節</a>)</td></tr><tr><td><code>onApproved</code></td><td align="right">no</td><td><code>Step[]</code></td><td>承認成立時に実行するサブステップ</td></tr><tr><td><code>onRejected</code></td><td align="right">no</td><td><code>Step[]</code></td><td>却下、拒否、差戻し時に実行するサブステップ</td></tr><tr><td><code>onTimeout</code></td><td align="right">no</td><td><code>Step[]</code></td><td>期限切れ時に実行するサブステップ</td></tr><tr><td><code>deadlineExpression</code></td><td align="right">no</td><td><code>ExpressionString</code></td><td>期限式 (詳細は <a href="/spec/process-flow-expression-language/">process-flow-expression-language.md</a> §datetime 算術)</td></tr><tr><td><code>escalateAfter</code></td><td align="right">conditional</td><td>string</td><td>エスカレーションまでの ISO 8601 期間。<code>approval-escalation</code> では必須</td></tr><tr><td><code>escalateTo</code></td><td align="right">conditional</td><td><code>{ role?, userExpression? }</code></td><td>エスカレーション先。<code>approval-escalation</code> では必須</td></tr></tbody></table>
+<p><code>escalateTo.role</code> は RBAC catalog の role key (<code>@conv.role.&#x3C;key></code>) を参照する。<code>escalateTo.userExpression</code> は実行時の担当者を解決する式を保持する。</p>
+<h2 id="workflowpattern">WorkflowPattern</h2>
+<p>標準パターンは次の 11 種とする。値は JSON / TypeScript とも kebab-case で固定する。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>value</th><th>name</th><th>required fields</th><th>optional fields</th></tr></thead><tbody><tr><td><code>approval-sequential</code></td><td>順次承認</td><td><code>pattern</code>, <code>approvers</code></td><td><code>quorum</code>, <code>onApproved</code>, <code>onRejected</code>, <code>onTimeout</code>, <code>deadlineExpression</code>, <code>escalateAfter</code>, <code>escalateTo</code></td></tr><tr><td><code>approval-parallel</code></td><td>並列承認</td><td><code>pattern</code>, <code>approvers</code></td><td><code>quorum</code>, <code>onApproved</code>, <code>onRejected</code>, <code>onTimeout</code>, <code>deadlineExpression</code></td></tr><tr><td><code>approval-veto</code></td><td>拒否権付き承認</td><td><code>pattern</code>, <code>approvers</code></td><td><code>quorum</code>, <code>onApproved</code>, <code>onRejected</code>, <code>onTimeout</code>, <code>deadlineExpression</code></td></tr><tr><td><code>approval-quorum</code></td><td>定足数承認</td><td><code>pattern</code>, <code>approvers</code>, <code>quorum</code></td><td><code>onApproved</code>, <code>onRejected</code>, <code>onTimeout</code>, <code>deadlineExpression</code></td></tr><tr><td><code>approval-escalation</code></td><td>エスカレーション承認</td><td><code>pattern</code>, <code>approvers</code>, <code>escalateAfter</code>, <code>escalateTo</code></td><td><code>quorum</code>, <code>onApproved</code>, <code>onRejected</code>, <code>onTimeout</code>, <code>deadlineExpression</code></td></tr><tr><td><code>review</code></td><td>レビュー</td><td><code>pattern</code>, <code>approvers</code></td><td><code>quorum</code>, <code>onApproved</code>, <code>onRejected</code>, <code>deadlineExpression</code></td></tr><tr><td><code>sign-off</code></td><td>サインオフ</td><td><code>pattern</code>, <code>approvers</code></td><td><code>onApproved</code>, <code>onRejected</code>, <code>deadlineExpression</code></td></tr><tr><td><code>acknowledge</code></td><td>確認</td><td><code>pattern</code>, <code>approvers</code></td><td><code>onApproved</code>, <code>onTimeout</code>, <code>deadlineExpression</code></td></tr><tr><td><code>branch-merge</code></td><td>分岐マージ</td><td><code>pattern</code>, <code>approvers</code></td><td><code>quorum</code>, <code>onApproved</code>, <code>onRejected</code>, <code>deadlineExpression</code></td></tr><tr><td><code>discussion</code></td><td>協議</td><td><code>pattern</code>, <code>approvers</code></td><td><code>quorum</code>, <code>onApproved</code>, <code>onRejected</code>, <code>onTimeout</code>, <code>deadlineExpression</code></td></tr><tr><td><code>ad-hoc</code></td><td>アドホック</td><td><code>pattern</code>, <code>approvers</code>, <code>description</code></td><td><code>quorum</code>, <code>onApproved</code>, <code>onRejected</code>, <code>onTimeout</code>, <code>deadlineExpression</code>, <code>escalateAfter</code>, <code>escalateTo</code></td></tr></tbody></table>
+<h2 id="workflowapprover">WorkflowApprover</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> WorkflowApprover</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  role</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;       </span><span style="color:#6A737D;--shiki-dark:#768390">// 必須、@conv.role.&#x3C;key> 推奨</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  label</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;     </span><span style="color:#6A737D;--shiki-dark:#768390">// 表示名</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  order</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;     </span><span style="color:#6A737D;--shiki-dark:#768390">// pattern により semantics が異なる (下記参照)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="approver-の-order-semantics-pattern-ごと--539-r5-2-で明文化">approver の <code>order</code> semantics (pattern ごと)  <em>#539 R5-2 で明文化</em></h3>
+<p><code>order</code> の解釈は pattern によって異なる:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>pattern</th><th><code>order</code> の解釈</th><th>推奨記述</th></tr></thead><tbody><tr><td><code>approval-sequential</code></td><td><strong>承認の実行順序</strong> (1, 2, 3 = 担当→課長→部長 のように昇順実行)</td><td>1 から連番、欠番不可</td></tr><tr><td><code>approval-parallel</code></td><td><strong>無視</strong> (実装は全員に同時通知し並行受付)</td><td>規約として全員 <code>order: 1</code> で揃える (意味なし、可読性のため)</td></tr><tr><td><code>branch-merge</code></td><td><strong>無視</strong> (3 タスク並行実行 → 完了時 merge)</td><td>同上、全員 <code>order: 1</code> 推奨</td></tr><tr><td><code>approval-quorum</code></td><td><strong>無視</strong> (quorum.type で成立判定)</td><td>同上、全員 <code>order: 1</code> 推奨</td></tr><tr><td><code>approval-veto</code></td><td>通常無視 (順序関係なく拒否権発動)。実装が「先着 1 reject で打ち切り」を採用するなら順序が意味を持つが、本 spec では順序非依存とする</td><td>全員 <code>order: 1</code> 推奨</td></tr><tr><td><code>review</code> / <code>sign-off</code> / <code>acknowledge</code></td><td>通常 1 名で構成、order は意味なし</td><td><code>order: 1</code> 固定</td></tr><tr><td><code>approval-escalation</code></td><td>エスカレーション<strong>段階の順序</strong> (1 = 通常承認者、2 以降は escalateTo 経由)</td><td>通常 1 で escalateTo 側で次層を表現</td></tr><tr><td><code>discussion</code></td><td>無視 (議論順序を spec で固定しない)</td><td>全員 <code>order: 1</code></td></tr><tr><td><code>ad-hoc</code></td><td>自由解釈 (運用が決める)</td><td>任意</td></tr></tbody></table>
+<p><strong>実装層への影響</strong>: TS 型 / zod refinement では、上記 semantics を JSDoc / refine() で明示する。AJV schema レベルでは <code>order</code> は <code>integer minimum: 1</code> のみで、pattern 別の意味は実装側で解釈する。</p>
+<h2 id="quorum">quorum</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"all | any | majority | nOfM"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "n"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">2</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>type</code> の意味:</p>
+<ul>
+<li><code>all</code>: 全員の承認で成立</li>
+<li><code>any</code>: いずれか 1 名の承認で成立</li>
+<li><code>majority</code>: 過半数で成立</li>
+<li><code>nOfM</code>: <code>approvers</code> のうち <code>n</code> 名の承認で成立 <em>(#525 R3 fix で <code>n-of-m</code> から rename、lowerCamelCase 統一)</em></li>
+</ul>
+<p><code>n</code> は <code>type === "nOfM"</code> の場合のみ必須。</p>
+<p><code>quorum</code> フィールド自体は <code>pattern: "approval-quorum"</code> でのみ必須、他 pattern では optional。</p>
+<h2 id="escalateto">escalateTo</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.role.financeManager"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "userExpression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@managerOf(@employeeId)"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>role</code> と <code>userExpression</code> はどちらか一方だけでもよい。静的な RBAC role へ送る場合は <code>role</code>、申請内容から実行時に担当者を決める場合は <code>userExpression</code> を使う。</p>
+<h2 id="examples">Examples</h2>
+<h3 id="approval-sequential">approval-sequential</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-manager-approval"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"workflow"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"直属上長と部門長による順次承認"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "pattern"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"approval-sequential"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "approvers"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.role.manager"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"直属上長"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.role.departmentHead"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"部門長"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">2</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "quorum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"all"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "deadlineExpression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@submittedAt + duration('P2D')"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "onApproved"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-approved"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dbAccess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"承認済みに更新"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "tableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"11111111-1111-4111-8111-111111111111"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "operation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"UPDATE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "sql"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"UPDATE expense_requests SET status = 'approved' WHERE id = @requestId"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "onRejected"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-rejected"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dbAccess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"却下に更新"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "tableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"11111111-1111-4111-8111-111111111111"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "operation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"UPDATE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "sql"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"UPDATE expense_requests SET status = 'rejected' WHERE id = @requestId"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="approval-parallel-3-名並行承認order-は無視">approval-parallel (3 名並行承認、order は無視)</h3>
+<p>3 倉庫マネージャー (転送元 / 転送先 / コーディネーター) を全員 <code>order: 1</code> で並行宣言、deadline は workflow 全体に 1 つ。旧サンプルは削除済み — 現行 canonical サンプルは <code>examples/</code> 配下を参照。</p>
+<h3 id="approval-quorum-nofm">approval-quorum (nOfM)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-committee-approval"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"workflow"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5 名の委員会、過半数 3 名で成立"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "pattern"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"approval-quorum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "approvers"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.role.committeeMember1"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.role.committeeMember2"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.role.committeeMember3"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.role.committeeMember4"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.role.committeeMember5"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "quorum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"nOfM"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"n"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">3</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "deadlineExpression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@submittedAt + duration('P5D')"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="approval-escalation">approval-escalation</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-escalated-approval"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"workflow"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"期限切れ時に上位ロールへエスカレーションする承認"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "pattern"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"approval-escalation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "approvers"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.role.financeManager"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"経理責任者"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "quorum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"any"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "deadlineExpression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@submittedAt + duration('P3D')"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "escalateAfter"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"duration('P1D')"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "escalateTo"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@conv.role.cfo"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "onTimeout"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-timeout-log"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"log"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"期限切れを記録"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "level"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"warn"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "message"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"approval timeout"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h2 id="v3-移行ノート">v3 移行ノート</h2>
+<p>v2 / v1 から v3 への命名・構造変更:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>v1/v2</th><th>v3</th></tr></thead><tbody><tr><td><code>type: "workflow"</code></td><td><code>kind: "workflow"</code></td></tr><tr><td>step の <code>type: "dbAccess"</code></td><td>step の <code>kind: "dbAccess"</code></td></tr><tr><td><code>tableName: "users"</code></td><td><code>tableId: "&#x3C;Uuid>"</code> (UUID 化)</td></tr><tr><td>quorum の <code>type: "n-of-m"</code></td><td>quorum の <code>type: "nOfM"</code> (lowerCamelCase)</td></tr></tbody></table>
+<h2 id="関連">関連</h2>
+<ul>
+<li>スキーマ: <a href="../../schemas/v3/process-flow.v3.schema.json"><code>schemas/v3/process-flow.v3.schema.json</code></a> <code>#/$defs/WorkflowStep</code></li>
+<li>式言語: <a href="/spec/process-flow-expression-language/"><code>process-flow-expression-language.md</code></a></li>
+<li>現行 canonical サンプル: <code>examples/</code> 配下の各プロジェクトを参照。旧サンプルは削除済み — <code>git log</code> でのみ参照可。</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

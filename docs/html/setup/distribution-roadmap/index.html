@@ -1,0 +1,519 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>distribution roadmap</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> セットアップ </div> <ul class="space-y-0.5"> <li> <a href="/setup/dev-containers/" class="sidebar-link"> Dev Containers (推奨) </a> </li><li> <a href="/setup/wsl2-native/" class="sidebar-link"> WSL2 native (代替) </a> </li><li> <a href="/setup/distribution-roadmap/" class="sidebar-link active"> 配布構想 (将来) </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="harmony-配布形態ロードマップ--docker-image-化構想">Harmony 配布形態ロードマップ — Docker image 化構想</h1>
+<p>Harmony 本体 (frontend + backend) を Docker image として配布し、利用者が <code>git clone</code> せずに <code>docker compose up</code> だけで起動できるようにする構想。</p>
+<blockquote>
+<p>⚠️ <strong>本書は構想 / ロードマップであり、現状未実装です</strong> (2026-05-15 時点)。</p>
+<ul>
+<li>着手は #1055 の L2 / L3 で本格化予定 (近日着手予定、本書を起点に書き直す前提)</li>
+<li>関連: <a href="https://github.com/csilost2001/harmony/issues/1055">#1055 L1 production Dockerfile 雛形</a> (closed、本書記載の前段 path 規約と L2/L3 方針あり)</li>
+</ul>
+<p>⚠️ <strong>本書記載の 2-container 案は #1055 L2 方針 (backend-static-serve で 1 container 統合) と矛盾しています</strong>。L2 着手時には <strong>1-container 案</strong> (backend が <code>express.static()</code> で <code>frontend/dist/</code> を配信、5179 ポートで HTTP MCP / WebSocket / SPA 全部) で書き直す前提で、本書の compose 構成 (frontend + backend 2 サービス) は<strong>そのまま採用しないでください</strong>。</p>
+<p>✅ ただし <strong>本書の構造 (Step 2-1 〜 2-8) と方針は historical reference として保持しています</strong>。ghcr.io への push 手順 / GitHub Actions / volume mount 設計 / トラブルシューティング等は 1-container 案でもそのまま使えるため、L2/L3 着手者の出発点として読む価値があります。</p>
+</blockquote>
+<p>開発環境セットアップ手順は本書の対象外です。Harmony 本体を開発したい場合は <a href="/setup/dev-containers/"><code>dev-containers.md</code></a> (推奨) または <a href="/setup/wsl2-native/"><code>wsl2-native.md</code></a> (代替) を参照してください。</p>
+<hr>
+<h2 id="l2-着手前の必須設計判断-バトン情報">L2 着手前の必須設計判断 (バトン情報)</h2>
+<p>#1055 L2 着手者はまず本節を読んでから書き直しに入ること。Step 2-1〜2-8 (後述) はこの設計判断に従って再構成する必要がある。</p>
+<h3 id="1-ai-mount-は-optional--codex-は-optional">1. AI mount は optional + Codex は optional</h3>
+<p>Harmony backend は <strong>Codex App Server を lazy 接続</strong> (<code>wsBridge.ts:247</code> <code>_codexConn: CodexConnection | null = null</code>)。backend 起動時に codex は spawn されず、利用者が「処理フローの <code>kind: "ai"</code> step 実行」または「UI の Codex 統合タブ操作」をして初めて接続を試みる。</p>
+<p>つまり <strong>Codex 未インストール / 未認証でも Harmony 設計ツールは動作する</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>機能</th><th>Codex 依存</th></tr></thead><tbody><tr><td>画面 / テーブル / 処理フロー / ER 図 / Page Layout 設計 (GUI)</td><td>❌ 依存しない</td></tr><tr><td><code>/generate-code</code> / <code>/generate-tests</code> (Claude Code 等別 MCP クライアント経由)</td><td>❌ 依存しない</td></tr><tr><td>処理フロー <code>kind: "ai"</code> step の実行</td><td>✅ 必要</td></tr><tr><td>UI 内 Codex タブ (login / chat / rate limit 表示)</td><td>✅ 必要</td></tr></tbody></table>
+<p><strong>結論</strong>: 配布利用者向け <code>docker-compose.yml</code> では:</p>
+<ul>
+<li><strong><code>.codex</code> mount は default で comment-out</strong>、「Codex 機能を使う場合は uncomment」と注釈</li>
+<li>backend image に codex CLI を install するかは選択 (推奨: install しておく + mount で auth 渡す。L2 着手時に image サイズ実測して判断)</li>
+<li>Codex 機能を使わない利用者層は <code>.codex</code> mount 無しで完全に Harmony を使える</li>
+</ul>
+<h3 id="2-利用者層を-3-区分で想定する">2. 利用者層を 3 区分で想定する</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>利用者層</th><th>サブスク状況</th><th>必要な構成</th></tr></thead><tbody><tr><td><strong>(2a) 設計のみ利用</strong></td><td>Codex / Claude サブスクなし</td><td><code>.codex</code> mount 不要、AI 機能未利用、GUI で JSON 出力まで完結</td></tr><tr><td><strong>(2b) Codex 利用</strong></td><td>ChatGPT Plus 契約あり</td><td><code>.codex</code> mount + container 内 codex CLI で AI step / Codex タブ動作</td></tr><tr><td><strong>(2c) Claude 利用</strong></td><td>Anthropic Pro/Max 契約あり</td><td>Harmony image 内では使わない。Harmony 外 (Desktop の Claude Code 等) から MCP 経由で port 5179 に接続</td></tr></tbody></table>
+<p>(2a) を排除しない compose 設計が重要 (= mount は default で <strong>無し</strong>、欲しい人だけ追加)。</p>
+<h3 id="3-codex-通信は-stdio-一択-websocket-は公式-unsupported">3. Codex 通信は stdio 一択 (WebSocket は公式 unsupported)</h3>
+<p>Codex App Server の公式 transport (<a href="https://developers.openai.com/codex/app-server">OpenAI Developers</a> / <a href="https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md">GitHub openai/codex codex-rs/app-server/README.md</a>):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Transport</th><th>フラグ</th><th>状態</th><th>配布利用</th></tr></thead><tbody><tr><td><strong>stdio</strong> (default)</td><td><code>--listen stdio://</code></td><td>✅ supported</td><td><strong>採用</strong></td></tr><tr><td><strong>WebSocket</strong></td><td><code>--listen ws://IP:PORT</code></td><td>⚠️ experimental and unsupported</td><td><strong>採用しない</strong></td></tr><tr><td><strong>unix socket</strong></td><td><code>--listen unix://</code></td><td>local control-plane only</td><td>非該当</td></tr><tr><td><strong>off</strong></td><td><code>--listen off</code></td><td>(disable)</td><td>非該当</td></tr></tbody></table>
+<p>公式 README 明記: <em>“Websocket transport is currently experimental and unsupported. Do not rely on it for production workloads.”</em></p>
+<p>Harmony backend は両方を実装済 (<code>backend/src/codex/config.ts</code> の <code>HARMONY_CODEX_TRANSPORT</code> env)。L2 では <strong>default = stdio (container 内 spawn)</strong> で進める。<code>HARMONY_CODEX_TRANSPORT=websocket</code> 経路は上級ユーザ向け escape hatch として残すが、配布 compose のサンプルでは推奨しない。</p>
+<h3 id="4-codex-統合の-compose-スニペット-推奨形l2-着手者が起点に使う">4. Codex 統合の compose スニペット (推奨形、L2 着手者が起点に使う)</h3>
+<p>1-container 統合案 + Codex optional mount のサンプル:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">services</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">ghcr.io/csilost2001/harmony:1.0.0</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5179:5179"</span><span style="color:#6A737D;--shiki-dark:#768390">               # HTTP MCP + WebSocket + SPA (express.static で statically serve)</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./workspaces:/data/workspaces</span><span style="color:#6A737D;--shiki-dark:#768390">                      # 利用者の作業データ (必須)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony-state:/home/node/.harmony</span><span style="color:#6A737D;--shiki-dark:#768390">                  # recent-workspaces.json (必須、named volume)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # ↓ Codex 機能を使う場合のみ uncomment (= 利用者層 (2b))</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # - ${HOME}/.codex:/home/node/.codex:ro              # ChatGPT Plus OAuth credential (host で `codex login` 必要)</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    environment</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      NODE_ENV</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">production</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # HARMONY_CODEX_TRANSPORT: spawn                     # default</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    restart</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">unless-stopped</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony-state</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span></code></pre>
+<ul>
+<li><code>.codex</code> は <strong>read-only mount</strong> (container 内で書き換えない、host の credential を読むだけ)</li>
+<li><code>:ro</code> を付けることで container 内の AI step が誤って credential を上書きするリスクを排除</li>
+<li>利用者層 (2a) はこの mount をコメントアウトのままで OK</li>
+<li>利用者層 (2b) は uncomment + host で 1 度 <code>codex login</code> 完了させる</li>
+<li>利用者層 (2c) は Harmony image を使わず、自分の手元の Claude Code Desktop 等から MCP 接続のみ</li>
+</ul>
+<h3 id="5-step-2-1--2-8-の書き直し方針-要約">5. Step 2-1 〜 2-8 の書き直し方針 (要約)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Step</th><th>旧案 (本書)</th><th>L2 で書き直す方向</th></tr></thead><tbody><tr><td>2-1</td><td>frontend/Dockerfile</td><td><strong>削除</strong> (1-container 案では不要、backend Dockerfile に統合)</td></tr><tr><td>2-2</td><td>backend/Dockerfile</td><td><strong>frontend を multi-stage で同梱</strong>、backend が <code>express.static()</code> で <code>frontend/dist/</code> を配信</td></tr><tr><td>2-3</td><td>docker-compose.yml (2 services)</td><td><strong>1 service</strong> (上記スニペット参照)、Codex mount は optional</td></tr><tr><td>2-4</td><td>docker-compose.dev.yml</td><td>L2 では不要 (開発は <code>.devcontainer/</code> で完結)。最低限必要なら別ファイルで</td></tr><tr><td>2-5</td><td>ローカルビルド + 統合テスト</td><td>1 image / 1 container のテストフローに置き換え</td></tr><tr><td>2-6</td><td>ghcr.io push</td><td>そのまま使える (tag 付け / login / push 手順は変わらず)</td></tr><tr><td>2-7</td><td>README に手順追加</td><td>top-level README.md (#1109 で新設済) に「<code>docker compose up</code> で起動」セクションを追記する形に修正</td></tr><tr><td>2-8</td><td>GitHub Actions release</td><td>そのまま使える (1 image build に簡略化される分むしろ簡単)</td></tr></tbody></table>
+<hr>
+<h2 id="目的">目的</h2>
+<p>Harmony 本体の利用者 (= 業務アプリ設計者、AGENTS.md の (2)) のうち、コードを触らず GUI と <code>/generate-code</code> だけ使いたい層向けに「<strong><code>docker compose up</code> だけで起動</strong>」の経路を用意する。</p>
+<p>現状は (1) 開発者と (2) 利用者の経路が同じで、利用者にも <code>git clone</code> + Dev Containers セットアップを要求している。image 化により (2) は image pull だけで完了する。</p>
+<p>(3) エンドユーザ (生成された業務アプリの利用者) は本書のスコープ外。生成アプリ側の <code>.devcontainer/</code> / <code>Dockerfile</code> で扱う (<code>ai-skills/generate-code/templates/</code> 担当)。</p>
+<hr>
+<h2 id="想定実施タイミング">想定実施タイミング</h2>
+<ul>
+<li>Harmony 本体の動作が安定し、頻繁な breaking change が落ち着いてから</li>
+<li>社内他メンバーへのツール配布が必要になった時</li>
+<li>客先 demo 用途が出てきた時</li>
+<li>OSS 公開を検討する時</li>
+</ul>
+<p>#1055 ISSUE body によれば、L2 = frontend 同梱 / 自己ホスト image、L3 = 公開配布 (ghcr.io)。本書は L2/L3 の起点として残す。</p>
+<hr>
+<h2 id="appendix-旧-2-container-案-historical-reference--採用しない">Appendix: 旧 2-container 案 (historical reference / 採用しない)</h2>
+<blockquote>
+<p>🛑 <strong>以下 Step 2-1 〜 Step 2-8 は 2026-05-06 初版の 2-container 案</strong> (frontend Dockerfile + backend Dockerfile + 2-service compose) <strong>で、本書では採用しません</strong>。</p>
+<p>正案は冒頭の「<a href="#l2-%E7%9D%80%E6%89%8B%E5%89%8D%E3%81%AE%E5%BF%85%E9%A0%88%E8%A8%AD%E8%A8%88%E5%88%A4%E6%96%AD-%E3%83%90%E3%83%88%E3%83%B3%E6%83%85%E5%A0%B1">L2 着手前の必須設計判断</a>」§ 4 にある <strong>1-container 統合案</strong> (backend が <code>express.static()</code> で SPA も配信、1 service compose + optional Codex mount) です。</p>
+<p>旧案は historical reference として削除せず保持しますが、<strong>新規実装ではコピペしないでください</strong>。各 Step に inline ⚠️ 再検討対象バナーがあり、L2/L3 着手者向けの「書き直し方針要約」表 (冒頭の § 5) も併せて参照してください。</p>
+</blockquote>
+<hr>
+<h2 id="step-2-1-frontenddockerfile-作成">Step 2-1: frontend/Dockerfile 作成</h2>
+<blockquote>
+<p>⚠️ <strong>再検討対象</strong>: 1-container 案では本 Dockerfile は不要 (backend が SPA を serve するため frontend 単独の image は作らない)。</p>
+</blockquote>
+<p><code>frontend/Dockerfile</code> を新規作成。multi-stage ビルドで配布用 image をスリムに:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="dockerfile"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># Stage 1: ビルド</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> node:20-alpine </span><span style="color:#D73A49;--shiki-dark:#F47067">AS</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> builder</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">WORKDIR</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> /app</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">COPY</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> package*.json ./</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">RUN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> npm ci</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">COPY</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> . .</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">RUN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> npm run build</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># Stage 2: 配布</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> node:20-alpine</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">WORKDIR</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> /app</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">RUN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> npm install -g serve</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">COPY</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> --from=builder /app/dist ./dist</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">EXPOSE</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> 5173</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">CMD</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"serve"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"-s"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dist"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"-l"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5173"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span></code></pre>
+<p><strong>注意</strong>: <code>frontend</code> の Vite ビルドが SPA 静的成果物を出す前提。ルーティング・環境変数まわりは要確認 (実コード参照)。</p>
+<h4 id="成功確認">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>docker build -t harmony:local ./frontend</code> が成功</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>docker run --rm -p 5173:5173 harmony:local</code> で起動</li>
+<li class="task-list-item"><input type="checkbox" disabled> ブラウザで <code>http://localhost:5173</code> でデザイナー UI 表示</li>
+</ul>
+<hr>
+<h2 id="step-2-2-backenddockerfile-作成">Step 2-2: backend/Dockerfile 作成</h2>
+<blockquote>
+<p>⚠️ <strong>再検討対象</strong>: 1-container 案では本 Dockerfile を <strong>backend + frontend 統合 Dockerfile</strong> に書き直す。stage 1 で frontend を build、stage 2 で backend に dist/ をコピーして <code>express.static()</code> で配信する構成。</p>
+</blockquote>
+<p><code>backend/Dockerfile</code>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="dockerfile"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> node:20-alpine</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">WORKDIR</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> /app</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">COPY</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> package*.json ./</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">RUN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> npm ci --omit=dev</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">COPY</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> . .</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">RUN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> npm run build</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">EXPOSE</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> 5179</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">CMD</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"node"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dist/index.js"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span></code></pre>
+<p><strong>注意</strong>:</p>
+<ul>
+<li>ビルドコマンド (<code>npm run build</code>) と起動エントリ (<code>dist/index.js</code>) は実 package.json に合わせる</li>
+<li>WebSocket と HTTP MCP が同 port 5179 に同居している前提</li>
+</ul>
+<h4 id="成功確認-1">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>docker build -t harmony-backend:local ./backend</code> が成功</li>
+<li class="task-list-item"><input type="checkbox" disabled> image サイズが妥当 (~200-400MB)</li>
+</ul>
+<hr>
+<h2 id="step-2-3-docker-composeyml-配布用">Step 2-3: docker-compose.yml (配布用)</h2>
+<blockquote>
+<p>🛑 <strong>新規実装ではこの YAML をコピペしないでください</strong>。本 Step の compose は 2 services (frontend + backend) 構成ですが、これは旧案であり、<strong>正案は冒頭の「L2 着手前の必須設計判断」§ 4 にある 1 service + optional Codex mount snippet</strong> (backend image に SPA build 成果物を同梱、5179 単一ポートで HTTP MCP / WebSocket / SPA を捌く) です。</p>
+<p>本 YAML を新規 compose の出発点として使うと、上記正案と矛盾する 2-container 構成が量産されます。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>再検討対象</strong>: 1-container 案では <code>services:</code> は <strong>1 つだけ</strong> (<code>harmony</code>) になる。frontend + backend を分けない。</p>
+</blockquote>
+<p>リポジトリルートに <code>docker-compose.yml</code>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">services</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  frontend</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">ghcr.io/&#x3C;org>/harmony:latest</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5173:5173"</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    depends_on</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">backend</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    restart</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">unless-stopped</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  backend</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">ghcr.io/&#x3C;org>/harmony-backend:latest</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5179:5179"</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./workspaces:/app/workspaces</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./data:/app/data</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./examples:/app/examples:ro</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    environment</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      NODE_ENV</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">production</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    restart</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">unless-stopped</span></span></code></pre>
+<p><code>&#x3C;org></code> は実際の GitHub org 名に置換する。</p>
+<h4 id="成功確認-2">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>docker compose config</code> で構文エラーなし</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>docker compose up</code> で両サービス起動 (image を local に書き換えて事前テスト)</li>
+<li class="task-list-item"><input type="checkbox" disabled> ブラウザでデザイナー動作 OK</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>./workspaces/</code> にホスト側ファイルが書き込まれる</li>
+</ul>
+<hr>
+<h2 id="step-2-4-docker-composedevyml-任意メンテナ-docker-dev-用">Step 2-4: docker-compose.dev.yml (任意、メンテナ Docker dev 用)</h2>
+<p>通常メンテナは Dev Containers で開発するが、Docker compose でも開発できる状態を用意したい場合のみ:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">services</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  frontend</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">node:20-alpine</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    working_dir</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">/app</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    command</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">sh -c "npm install &#x26;&#x26; npm run dev -- --host 0.0.0.0"</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"5173:5173"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./frontend:/app</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">/app/node_modules</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    environment</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      VITE_HOST</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">0.0.0.0</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  backend</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">node:20-alpine</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    working_dir</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">/app</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    command</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">sh -c "npm install &#x26;&#x26; npm run dev"</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"5179:5179"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./backend:/app</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">/app/node_modules</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./workspaces:/workspaces</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./data:/data</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./examples:/examples</span></span></code></pre>
+<p>使い方: <code>docker compose -f docker-compose.dev.yml up</code></p>
+<h4 id="成功確認-3">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> (任意) Docker dev でも HMR が動作する</li>
+<li class="task-list-item"><input type="checkbox" disabled> (任意) ホスト側ソース変更がブラウザに反映される</li>
+</ul>
+<hr>
+<h2 id="step-2-5-ローカルビルド--統合テスト">Step 2-5: ローカルビルド + 統合テスト</h2>
+<p>local image で compose 動作確認:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># build</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> build</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -t</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony:local</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ./frontend</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> build</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -t</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony-backend:local</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ./backend</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># compose の image 名を一時的に local に書き換えてテスト</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># (sed でも手動でも)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="color:#032F62;--shiki-dark:#96D0FF"> up</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 動作確認後 Ctrl+C で停止</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="color:#032F62;--shiki-dark:#96D0FF"> down</span></span></code></pre>
+<h4 id="成功確認-4">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> 両 image build 成功 (warning のみ許容、error はゼロ)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>docker compose up</code> で両コンテナ起動</li>
+<li class="task-list-item"><input type="checkbox" disabled> ブラウザでデザイナー操作可</li>
+<li class="task-list-item"><input type="checkbox" disabled> AI エージェントから MCP 接続可 (Claude Code 等)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>workspaces/</code> 永続化動作</li>
+</ul>
+<hr>
+<h2 id="step-2-6-github-container-registry-に-push">Step 2-6: GitHub Container Registry に push</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># GitHub Token (write:packages 権限) で認証</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">echo</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> $GITHUB_TOKEN </span><span style="color:#D73A49;--shiki-dark:#F47067">|</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> login</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ghcr.io</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -u</span><span style="color:#D73A49;--shiki-dark:#F47067"> &#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">usernam</span><span style="color:#24292E;--shiki-dark:#ADBAC7">e</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --password-stdin</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># tag 付け</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> tag</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony:local</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ghcr.io/</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">or</span><span style="color:#24292E;--shiki-dark:#ADBAC7">g</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#032F62;--shiki-dark:#96D0FF">/harmony:0.1.0</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> tag</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony:local</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ghcr.io/</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">or</span><span style="color:#24292E;--shiki-dark:#ADBAC7">g</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#032F62;--shiki-dark:#96D0FF">/harmony:latest</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> tag</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony-backend:local</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ghcr.io/</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">or</span><span style="color:#24292E;--shiki-dark:#ADBAC7">g</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#032F62;--shiki-dark:#96D0FF">/harmony-backend:0.1.0</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> tag</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony-backend:local</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ghcr.io/</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">or</span><span style="color:#24292E;--shiki-dark:#ADBAC7">g</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#032F62;--shiki-dark:#96D0FF">/harmony-backend:latest</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># push</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> push</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ghcr.io/</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">or</span><span style="color:#24292E;--shiki-dark:#ADBAC7">g</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#032F62;--shiki-dark:#96D0FF">/harmony:0.1.0</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> push</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ghcr.io/</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">or</span><span style="color:#24292E;--shiki-dark:#ADBAC7">g</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#032F62;--shiki-dark:#96D0FF">/harmony:latest</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> push</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ghcr.io/</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">or</span><span style="color:#24292E;--shiki-dark:#ADBAC7">g</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#032F62;--shiki-dark:#96D0FF">/harmony-backend:0.1.0</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> push</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ghcr.io/</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">or</span><span style="color:#24292E;--shiki-dark:#ADBAC7">g</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#032F62;--shiki-dark:#96D0FF">/harmony-backend:latest</span></span></code></pre>
+<p>GitHub の Packages タブで image が公開されたか確認。private/public 設定も適切に。</p>
+<h4 id="成功確認-5">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>docker pull ghcr.io/&#x3C;org>/harmony:0.1.0</code> が別環境で成功</li>
+<li class="task-list-item"><input type="checkbox" disabled> GitHub の Package ページで image が見える</li>
+</ul>
+<hr>
+<h2 id="step-2-7-readme-に利用手順を追加">Step 2-7: README に利用手順を追加</h2>
+<p><code>README.md</code> または <code>docs/installation.md</code> に Docker 利用手順を追加:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="markdown"><code><span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#6CB6FF;--shiki-dark-font-weight:bold">## Docker での起動</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">任意のディレクトリで:</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#F47067">\`\`\`</span><span style="color:#24292E;--shiki-dark:#ADBAC7">bash</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">mkdir my-design-project &#x26;&#x26; cd my-design-project</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">curl -O https://raw.githubusercontent.com/&#x3C;org>/harmony/main/docker-compose.yml</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">docker compose up</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#F47067">\`\`\`</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">ブラウザで http://localhost:5173 を開く。</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">JSON 仕様は ./workspaces/ 配下に保存される。</span></span></code></pre>
+<h4 id="成功確認-6">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> README から Docker 利用方法に到達できる</li>
+<li class="task-list-item"><input type="checkbox" disabled> 別マシン (or 別 WSL2 distro) で手順通りに起動成功</li>
+</ul>
+<hr>
+<h2 id="step-2-8-ci-でリリース時-image-build-を自動化-任意">Step 2-8: CI でリリース時 image build を自動化 (任意)</h2>
+<p>GitHub Actions で git tag push 時に image build → ghcr.io push を自動化。<code>.github/workflows/release.yml</code> 等に追加。詳細は別途 CI 設計を行う。</p>
+<h4 id="成功確認-7">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> tag push で workflow が走る</li>
+<li class="task-list-item"><input type="checkbox" disabled> ghcr.io に新バージョン image が push される</li>
+</ul>
+<hr>
+<h2 id="完了条件-将来-l2l3-着手時">完了条件 (将来 L2/L3 着手時)</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>Dockerfile</code> (1-container 統合版) commit 済み</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>docker-compose.yml</code> (1 サービス版) commit 済み</li>
+<li class="task-list-item"><input type="checkbox" disabled> ghcr.io に image 公開済み</li>
+<li class="task-list-item"><input type="checkbox" disabled> README に利用手順記載済み</li>
+<li class="task-list-item"><input type="checkbox" disabled> 別環境で <code>docker compose up</code> のみで起動できることを確認済み</li>
+</ul>
+<hr>
+<h2 id="トラブルシューティング-実装時に再検証">トラブルシューティング (実装時に再検証)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>症状</th><th>原因 / 対処</th></tr></thead><tbody><tr><td>Docker build で permission denied</td><td><code>node_modules</code> が bind mount に巻き込まれている → named volume で隔離 (compose の <code>- /app/node_modules</code>)</td></tr><tr><td>compose up しても画面が出ない</td><td>Dev Containers 開発環境が同時起動していてポート競合。両方は同時起動できない</td></tr><tr><td>volume mount したファイルの権限おかしい</td><td>コンテナの user UID とホスト UID 不一致。Dockerfile に <code>USER node</code> 等を追加 or 起動時に <code>--user</code> 指定</td></tr><tr><td>ghcr.io への push が 401</td><td>GitHub token に <code>write:packages</code> スコープが必要</td></tr></tbody></table>
+<hr>
+<h2 id="関連ドキュメント">関連ドキュメント</h2>
+<ul>
+<li><a href="/setup/AGENTS/"><code>AGENTS.md</code></a> — プロジェクト全般のガイダンス</li>
+<li><a href="/setup/CLAUDE/"><code>CLAUDE.md</code></a> — Claude Code 固有の設定</li>
+<li><a href="/setup/dev-containers/"><code>dev-containers.md</code></a> — 開発環境 (推奨)</li>
+<li><a href="/setup/wsl2-native/"><code>wsl2-native.md</code></a> — 開発環境 (代替)</li>
+<li>ISSUE <a href="https://github.com/csilost2001/harmony/issues/1055">#1055</a> — L1 Dockerfile + L2/L3 方針記載</li>
+<li>ISSUE <a href="https://github.com/csilost2001/harmony/issues/847">#847</a> — Dev Containers 移行 roadmap (closed)</li>
+</ul>
+<hr>
+<h2 id="改訂履歴">改訂履歴</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>日付</th><th>改訂内容</th></tr></thead><tbody><tr><td>2026-05-06</td><td>旧 <code>wsl2-docker-migration.md</code> Phase 2 として初版</td></tr><tr><td>2026-05-15</td><td><code>distribution-roadmap.md</code> に分離 (#1109)。Phase 用語廃止、1-container 案 (#1055 L2 方針) との矛盾 banner 追加、L2/L3 着手時の書き直し前提に明示</td></tr></tbody></table>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

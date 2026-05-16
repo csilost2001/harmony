@@ -1,0 +1,706 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>dogfood 2026 04 26 manufacturing</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link active"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="再ドッグフード-製造業-評価レポート-2026-04-26">再ドッグフード (製造業) 評価レポート (2026-04-26)</h1>
+<h2 id="概要">概要</h2>
+<p>メタ #458 (金融複合業務) の成果が<strong>別の AI / 別の業界で再現可能か</strong>を検証する再ドッグフード。Codex 不使用、Sonnet と Opus サブエージェントのみで 2 シナリオを実装し、3 分類別の問題件数と AI 別品質差を集計した。</p>
+<h2 id="検証目的">検証目的</h2>
+<ol>
+<li>メタ #458 の成果再現性 (金融以外で 5/5 維持できるか)</li>
+<li>spec 改訂 #474 の実効性検証 (#477 で TX 制御フロー / 拡張定義実利用 / runtime conventions ガイドライン拡充済)</li>
+<li>3 分類ルール (<code>feedback_dogfood_issue_classification.md</code>) の初運用</li>
+<li>Codex 抜きでのワークフロー完遂可能性</li>
+<li>AI 別 (Sonnet vs Opus) の実装品質比較</li>
+</ol>
+<h2 id="検証対象">検証対象</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>#</th><th>シナリオ</th><th>ISSUE / PR</th><th>担当 AI</th></tr></thead><tbody><tr><td>1</td><td>受注 → 生産計画 → 部材引当 → 製造指示</td><td>#479 / #481</td><td><strong>Sonnet</strong> (general-purpose, sonnet model)</td></tr><tr><td>2</td><td>製造実績 → 品質検査 → 出荷可否 → トレーサビリティ</td><td>#480 / #482</td><td><strong>Opus</strong> (general-purpose, opus model)</td></tr></tbody></table>
+<p>namespace: <code>manufacturing</code> (新規)</p>
+<h3 id="フローファイル一覧">フローファイル一覧</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル</th><th>シナリオ</th><th>アクション数</th><th>testScenarios</th></tr></thead><tbody><tr><td><code>docs/sample-project/process-flows/eeeeeeee-0001-4000-8000-eeeeeeeeeeee.json</code></td><td>受注/生産計画/部材引当/製造指示</td><td>1 (act-001、在庫充足/不足の 2 パス)</td><td>3</td></tr><tr><td><code>docs/sample-project/process-flows/eeeeeeee-0002-4000-8000-eeeeeeeeeeee.json</code></td><td>製造実績受信/品質検査/出荷可否/トレーサビリティ</td><td>3 (act-001 製造実績受信/act-002 品質検査/act-003 出荷可否判定)</td><td>4</td></tr></tbody></table>
+<h2 id="拡張定義-manufacturing-namespace">拡張定義 (manufacturing namespace)</h2>
+<h3 id="確定した拡張カタログ">確定した拡張カタログ</h3>
+<p><code>docs/sample-project/extensions/manufacturing/</code> に以下 4 ファイルを配置:</p>
+<h4 id="fieldtype-4-種">FieldType (4 種)</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>kind</th><th>label</th><th>追加 PR</th><th>実利用シナリオ</th></tr></thead><tbody><tr><td><code>lotId</code></td><td>ロット ID</td><td>#481</td><td>シナリオ #1/#2 (InventoryReserveStep / TraceabilityStep 入力)</td></tr><tr><td><code>workOrderId</code></td><td>製造指示書 ID</td><td>#481</td><td>シナリオ #1/#2 (WorkOrder 状態更新)</td></tr><tr><td><code>partNumber</code></td><td>部品番号</td><td>#481</td><td>シナリオ #1 (BOM 展開 / 在庫引当 入力)</td></tr><tr><td><code>serialNumber</code></td><td>シリアル番号</td><td>#482</td><td>シナリオ #2 (製造実績受信、個品識別)</td></tr></tbody></table>
+<h4 id="actiontrigger-1-種">ActionTrigger (1 種)</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>value</th><th>label</th><th>追加 PR</th><th>実利用シナリオ</th></tr></thead><tbody><tr><td><code>qualityIncident</code></td><td>品質異常検知時</td><td>#482</td><td>将来用 (シナリオ #2 の act-002 は <code>submit</code> 起動のため未使用、README に明記)</td></tr></tbody></table>
+<h4 id="dboperation-2-種">DbOperation (2 種)</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>value</th><th>label</th><th>追加 PR</th><th>実利用シナリオ</th></tr></thead><tbody><tr><td><code>BOM_EXPLODE</code></td><td>BOM 階層展開</td><td>#481</td><td>シナリオ #1 (act-001 BOM 展開)</td></tr><tr><td><code>RESERVE_INVENTORY</code></td><td>在庫引当 (排他ロック付き UPDATE)</td><td>#481</td><td>シナリオ #1 (act-001 部材引当)</td></tr></tbody></table>
+<h4 id="step-4-種">Step (4 種)</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>name</th><th>label</th><th>追加 PR</th><th>実利用シナリオ</th></tr></thead><tbody><tr><td><code>BomExplodeStep</code></td><td>BOM 展開</td><td>#481</td><td>シナリオ #1 (act-001 step-005-b-02)</td></tr><tr><td><code>InventoryReserveStep</code></td><td>在庫引当</td><td>#481</td><td>シナリオ #1 (act-001 step-005-b-07-02)</td></tr><tr><td><code>TraceabilityStep</code></td><td>トレーサビリティ記録</td><td>#482</td><td>シナリオ #2 (act-001 <code>:447</code> / act-003 <code>:868</code>)</td></tr><tr><td><code>QualityCheckStep</code></td><td>品質検査</td><td>#482</td><td>シナリオ #2 (act-002 <code>:589</code>)</td></tr></tbody></table>
+<h2 id="実装結果サマリ">実装結果サマリ</h2>
+<h3 id="初回実装時の問題件数-pr-自己申告">初回実装時の問題件数 (PR 自己申告)</h3>
+<p>シナリオ #1 (Sonnet、PR #481) と シナリオ #2 (Opus、PR #482) は <code>/review-flow</code> の独立レビューを別セッションで実施せず、実装者による自己申告値を記録する。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>領域</th><th>シナリオ #1 (Sonnet)</th><th>シナリオ #2 (Opus)</th><th>合算</th></tr></thead><tbody><tr><td>フレームワーク / spec 問題</td><td>1</td><td>3</td><td>4</td></tr><tr><td>拡張定義問題</td><td>0</td><td>4</td><td>4</td></tr><tr><td>サンプル設計問題</td><td>1</td><td>3</td><td>4</td></tr><tr><td><strong>合計</strong></td><td><strong>2</strong></td><td><strong>10</strong></td><td><strong>12</strong></td></tr></tbody></table>
+<p>両 PR ともマージ前に <code>extensions-samples.test.ts</code> / <code>process-flow.schema.test.ts</code> (203 件) 全 pass および <code>npm run build</code> 成功を確認してマージ済み。</p>
+<h2 id="3-分類別詳細-両シナリオ合算">3 分類別詳細 (両シナリオ合算)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>領域</th><th>件数</th><th>主な内容</th></tr></thead><tbody><tr><td><strong>フレームワーク (本アプリ)</strong></td><td>4</td><td>spec §15.2 ↔ schema 乖離 (Sonnet/Opus 共通)、<code>txResult</code> メタオブジェクト未定義、fireAndForget sideEffects 境界曖昧、拡張 step 副作用契約の表現手段なし</td></tr><tr><td><strong>拡張定義</strong></td><td>4</td><td><code>UPSERT_IDEMPOTENT</code> namespace 所属問題、<code>QualityCheckStep.inspectionItems</code> 型 workaround、<code>qualityIncident</code> 未利用の扱い、<code>TraceabilityStep.metadata</code> schema 緩さ</td></tr><tr><td><strong>サンプル設計</strong></td><td>4</td><td>BOM 配列アクセスパスの明示度 (Sonnet)、act-002 TX 範囲の選択、act-003 連鎖起動のパターン、<code>disposition</code> 値の拡張余地</td></tr></tbody></table>
+<h3 id="フレームワーク-本アプリ-領域の問題詳細">フレームワーク (本アプリ) 領域の問題詳細</h3>
+<ol>
+<li>
+<p><strong>spec ↔ schema 乖離 (Sonnet / Opus 両方で直面)</strong>: spec §15.2 が拡張 step の正式形式を <code>namespace:StepName</code> と規定したが、<code>process-flow.schema.json</code> の <code>OtherStep.type</code> は <code>{"const": "other"}</code> のみ受容する。</p>
+<ul>
+<li><strong>Sonnet (シナリオ #1)</strong>: 経験で乖離を察知し <code>type: "other"</code> + description 注記の旧形式で回避 → schema valid</li>
+<li><strong>Opus (シナリオ #2)</strong>: spec を遵守して <code>manufacturing:TraceabilityStep</code> 等の namespace 修飾形式を使用。ただし PR #482 の仕様逐条突合節 §15.2 で「schema 未対応の状態で spec 指定形式を採用」と自己申告しており、schema validation の扱いを PR description で整合性説明済み (203 tests pass 確認)</li>
+<li><strong>別 ISSUE 起票候補</strong>: spec §15.2 を schema が受容するよう改修するか、spec を「過渡期は <code>type: "other"</code> workaround」に書き換えるか</li>
+</ul>
+</li>
+<li>
+<p><strong><code>txResult</code> メタオブジェクト形式の未定義 (Opus が自己申告)</strong>: spec は <code>@txResult.committed</code> を例示するが、<code>rollbackAt</code> / <code>errorCode</code> 等の他フィールドの契約が仕様書に存在しない。Opus は <code>committedAt</code> を使わず <code>committed</code> のみで統一することで回避。</p>
+</li>
+<li>
+<p><strong>fireAndForget + sideEffects 境界の曖昧さ (Opus が自己申告)</strong>: spec §4.3 は fireAndForget を「バックグラウンド reject 扱い」と明記するが、<code>outcomes.timeout.action: "continue"</code> 時に sideEffects が実行されるかどうかが曖昧。Opus は fireAndForget 通知に sideEffects を付けない形で回避。</p>
+</li>
+<li>
+<p><strong>拡張 step の affectedRows 契約宣言手段なし (Opus が自己申告)</strong>: 拡張 step が何行 INSERT するかを schema で表現できない。冪等性 / 副作用契約が description に依存する構造的限界。</p>
+</li>
+</ol>
+<h3 id="拡張定義領域の問題詳細">拡張定義領域の問題詳細</h3>
+<ol>
+<li>
+<p><strong><code>UPSERT_IDEMPOTENT</code> の namespace 所属</strong>: securities namespace で既定義のため manufacturing での再定義を避けたが、グローバル昇格か各 namespace 独自定義かの設計指針が未決定 (Opus が自己申告)。</p>
+</li>
+<li>
+<p><strong><code>QualityCheckStep.inspectionItems</code> の型 workaround</strong>: 配列を受け取る入力項目だが、フロー JSON 側で <code>@inputs.inspectionItems</code> (式文字列) として渡すため <code>{ "type": "array" }</code> では schema 違反になる。<code>{ "type": "string" }</code> で定義して runtime で評価する想定にした (Opus が自己申告)。</p>
+</li>
+<li>
+<p><strong><code>qualityIncident</code> trigger の未利用</strong>: 定義したが シナリオ #2 の act-002 が <code>submit</code> 起動のため実利用しなかった。spec §15.3 の「実利用必須」原則の例外として README に明記済み (Opus が自己申告)。</p>
+</li>
+<li>
+<p><strong><code>TraceabilityStep.metadata</code> の schema 緩さ</strong>: <code>{ "type": "object" }</code> のみで内部構造未定義。<code>metadata</code> に渡す鍵 (<code>workOrderId</code> 等) が Tribal knowledge になる (Opus が自己申告)。</p>
+</li>
+</ol>
+<h3 id="サンプル設計領域の問題詳細">サンプル設計領域の問題詳細</h3>
+<ol>
+<li>
+<p><strong>BOM 展開結果の配列アクセスパス明示度 (Sonnet)</strong>: <code>compute</code> step の <code>@bomParts.partNumbers</code> は JSON として valid だが、配列アクセスの description が薄い。</p>
+</li>
+<li>
+<p><strong>act-002 PASS 経路の TX 範囲選択 (Opus)</strong>: <code>quality_inspections INSERT</code> を TX 内に含めるか TX 外にするかの設計選択。最終的に TX inner に含める形を選択、理由を決定事項 ADR-002 に記録。</p>
+</li>
+<li>
+<p><strong>act-003 連鎖起動のパターン (Opus)</strong>: quality.inspected イベント駆動が理想だが、EventSubscribeStep を使わず HTTP POST 同期起動として表現。spec §13.1 の Pattern を採用、将来的な非同期化の余地あり。</p>
+</li>
+<li>
+<p><strong><code>disposition</code> の値拡張余地 (Opus)</strong>: SCRAP/REWORK/SPECIAL_APPROVAL の 3 値で固定。製造業実態では「ランクダウン採用」等の処置もあり、将来の業務要件で拡張が必要。</p>
+</li>
+</ol>
+<h2 id="sonnet-vs-opus-詳細比較">Sonnet vs Opus 詳細比較</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>比較項目</th><th>Sonnet (シナリオ #1)</th><th>Opus (シナリオ #2)</th></tr></thead><tbody><tr><td>自己申告問題件数 (合計)</td><td>2 件</td><td>10 件</td></tr><tr><td>schema 適合性</td><td>✅ schema valid (<code>type: "other"</code> workaround 採用)</td><td>✅ schema valid (203 tests pass、仕様逐条突合で形式説明済み)</td></tr><tr><td>拡張 step 参照形式</td><td><code>type: "other"</code> + description 注記 (旧形式)</td><td><code>manufacturing:StepName</code> namespace 修飾形式 (spec §15.2 準拠)</td></tr><tr><td>spec §15.2 の扱い</td><td>spec ↔ schema 乖離を察知して workaround</td><td>spec を遵守、乖離を PR で自己申告</td></tr><tr><td>rollbackOn 設計</td><td>spec §8.4 準拠 (<code>INVALID_STATE_TRANSITION</code> のみ)</td><td>spec §8.4 準拠 (<code>DB_CONSTRAINT_VIOLATION</code> のみ)</td></tr><tr><td>TX runIf ガード</td><td>spec §8.3 準拠 (<code>@productionTxResult.committed == false/true</code>)</td><td>spec §8.3 準拠 (<code>@txResult.committed == false/true</code>)</td></tr><tr><td>TX 外部呼出位置</td><td>spec §8.2 準拠 (mesSystem は TX 外)</td><td>spec §8.2 準拠 (WMS / customerNotification は TX 外)</td></tr><tr><td>ADR / decisions 記述</td><td>3 件 (ADR-001/002/003)</td><td>3 件 (ADR-001/002/003)</td></tr><tr><td>testScenarios 件数</td><td>3 件</td><td>4 件</td></tr><tr><td>eventsCatalog 件数</td><td>5 件</td><td>5 件</td></tr><tr><td>glossary 用語数</td><td>10 件</td><td>9 件</td></tr><tr><td>errorCatalog 件数</td><td>5 件</td><td>8 件</td></tr><tr><td>問題の自己申告粒度</td><td>低 (2 件のみ記録)</td><td>高 (10 件を詳細分類)</td></tr><tr><td>Codex 経由</td><td>不使用</td><td>不使用</td></tr></tbody></table>
+<h3 id="観察される傾向">観察される傾向</h3>
+<p><strong>Opus の特性</strong>:</p>
+<ul>
+<li>問題発見・記録の粒度が高い (実装中に気づいた設計判断 10 件を詳細分類して PR description に自己申告)</li>
+<li>spec 遵守度が高い (rollbackOn / runIf / TX 外部呼出を最初から正しく設計、ADR 記述が充実)</li>
+<li>spec §15.2 の namespace 修飾形式を spec 通りに採用 (schema 側の乖離を認識しつつも spec 遵守を優先)</li>
+<li>実装の自己批評能力が高く、仕様の曖昧さを PR 記述として残す</li>
+</ul>
+<p><strong>Sonnet の特性</strong>:</p>
+<ul>
+<li>schema レベルで安全な実装を優先 (spec ↔ schema 乖離を経験から察知して workaround)</li>
+<li>問題記録の粒度は低い (自己申告件数が少ない)</li>
+<li>基本設計 (TX, runIf, rollbackOn) は spec に準拠</li>
+</ul>
+<h2 id="spec-改訂-474-pr-477-の実効性評価">spec 改訂 #474 (PR #477) の実効性評価</h2>
+<h3 id="効果が見えた項目">効果が見えた項目</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>spec 条項</th><th>両 AI の対応</th></tr></thead><tbody><tr><td>§8.2 外部呼出を TX 外に</td><td>両 AI とも anti-pattern なし。Sonnet: mesSystem を TX 外。Opus: WMS/customerNotification を TX 外</td></tr><tr><td>§8.3 TX rollback ガード</td><td>両 AI とも <code>@txResult.committed == false/true</code> で正確にガード</td></tr><tr><td>§8.4 rollbackOn は TX inner 由来のみ</td><td>両 AI とも発火可能なエラーコードのみ列挙</td></tr><tr><td>§13.1 内部スケジューラ auth</td><td>Opus の act-001/act-003 で <code>auth: "required" + requiredPermissions: ["system"]</code></td></tr><tr><td>§15.3 拡張定義の実利用必須</td><td>両 AI とも定義した拡張を実体使用 (未使用拡張はゼロ、ただし <code>qualityIncident</code> は将来用として例外扱い)</td></tr><tr><td>ADR 形式の decisions 記述</td><td>両 AI とも 3 件の decisions を MADR 形式で記録</td></tr></tbody></table>
+<h3 id="効果が限定的だった項目">効果が限定的だった項目</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>問題パターン</th><th>状況</th></tr></thead><tbody><tr><td>spec §15.2 ↔ schema 乖離</td><td>両 AI が実装中に遭遇。spec §15.2 自体は改訂済だが schema 側が追従していない構造的問題</td></tr><tr><td>拡張 step の型・副作用契約</td><td>spec で表現手段が提供されておらず、実装者が description に頼らざるを得ない</td></tr></tbody></table>
+<h2 id="メタ-458-結果との比較-金融-vs-製造">メタ #458 結果との比較 (金融 vs 製造)</h2>
+<h3 id="458-金融codex-主体6-シナリオ">#458 (金融、Codex 主体、6 シナリオ)</h3>
+<ul>
+<li>全 6 シナリオで <code>/review-flow</code> + 独立レビューを実施</li>
+<li>Must-fix は PR 本体に解消し全シナリオでゼロ達成</li>
+<li>Should-fix/Nit は #473 で集約修正</li>
+<li>Codex 並列実装 + extensions merge conflict 解消が主な工数</li>
+</ul>
+<h3 id="478-製造codex-不使用2-シナリオ">#478 (製造、Codex 不使用、2 シナリオ)</h3>
+<ul>
+<li>2 シナリオで実装後、<strong>別セッション Sonnet による独立 <code>/review-flow</code> を初回 + 修正後の 2 ラウンド実施</strong></li>
+<li>初回独立 <code>/review-flow</code> 検出 (合算): <strong>Must-fix 8 / Should-fix 6 / Nit 5 = 19 件</strong>
+<ul>
+<li>シナリオ #1 (Sonnet): Must-fix 4 / Should-fix 3 / Nit 2</li>
+<li>シナリオ #2 (Opus): Must-fix 4 / Should-fix 3 / Nit 3</li>
+</ul>
+</li>
+<li>修正委譲後の再 <code>/review-flow</code>: <strong>両シナリオで Must-fix ゼロ達成</strong> (Should-fix 3 / Nit 4 が修正副作用として残)</li>
+<li>Codex 不使用でも実装 → 独立レビュー → 修正 → 再レビュー → マージの完遂を確認</li>
+</ul>
+<h3 id="既知パターン再発の検証-458-と-478-で対比">既知パターン再発の検証 (#458 と #478 で対比)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>既知パターン</th><th>#458 (Codex 主)</th><th>#478 Sonnet</th><th>#478 Opus</th></tr></thead><tbody><tr><td>TX outputBinding ネスト参照</td><td>あり (PR #460)</td><td><strong>再発</strong></td><td><strong>再発</strong></td></tr><tr><td>branch return 後 fallthrough</td><td>あり (#2/#5/#6)</td><td><strong>再発</strong></td><td><strong>再発</strong></td></tr><tr><td>死コード rollbackOn</td><td>あり</td><td><strong>あり</strong></td><td>なし (改善)</td></tr><tr><td>responseRef 意味的矛盾</td><td>—</td><td>あり</td><td>なし</td></tr><tr><td>inlineBranch.ng 欠落</td><td>あり (#3/#6)</td><td>なし</td><td>なし</td></tr><tr><td>spec ↔ schema 乖離検出</td><td>—</td><td>workaround で回避</td><td><strong>schema invalid 発生</strong></td></tr></tbody></table>
+<p>→ <strong>spec 改訂 #474 が明文化したガイドラインのうち、TX outputBinding ネスト参照と branch return fallthrough の 2 パターンは両 AI で再発</strong>。spec 文書化だけでは AI のミスを完全に防げないことを実証。<code>/review-flow</code> の検出ワークフローが必須。</p>
+<h3 id="比較まとめ">比較まとめ</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>指標</th><th>#458 (金融)</th><th>#478 (製造)</th></tr></thead><tbody><tr><td>シナリオ数</td><td>6</td><td>2</td></tr><tr><td>担当 AI</td><td>Codex (主) / Sonnet (フォールバック)</td><td>Sonnet / Opus</td></tr><tr><td>spec 改訂</td><td>改訂前</td><td>改訂後 (#474)</td></tr><tr><td>独立 <code>/review-flow</code></td><td>実施</td><td><strong>実施 (初回 + 修正後の 2 ラウンド)</strong></td></tr><tr><td>schema test pass</td><td>全件</td><td>全件 (203-215 件、シナリオごとに変動)</td></tr><tr><td>build pass</td><td>全件</td><td>全件</td></tr><tr><td>独立レビュー検出問題 (修正前合算)</td><td>—</td><td>19 件 (Must-fix 8 / Should-fix 6 / Nit 5)</td></tr><tr><td>修正後 Must-fix</td><td>0</td><td><strong>0 (両シナリオ)</strong></td></tr><tr><td>Codex 不使用完遂</td><td>非対象</td><td>✅ 確認</td></tr></tbody></table>
+<h2 id="副産物--派生課題">副産物 / 派生課題</h2>
+<ol>
+<li>
+<p><strong>spec §15.2 ↔ schema 乖離の解消</strong> (別 ISSUE 候補):</p>
+<ul>
+<li>spec §15.2 で謳った <code>namespace:StepName</code> 形式を schema が受容するよう <code>OtherStep.type</code> を改修するか、spec を「過渡期は <code>type: "other"</code> workaround」に書き直すかの判断が必要</li>
+<li>優先度: 高 (両 AI が実装中に遭遇するため)</li>
+</ul>
+</li>
+<li>
+<p><strong><code>UPSERT_IDEMPOTENT</code> のグローバル昇格</strong>:</p>
+<ul>
+<li>securities/manufacturing 双方の業務で必要な操作。グローバル DbOperation として定義して両 namespace から参照できるようにする設計が望ましい</li>
+</ul>
+</li>
+<li>
+<p><strong><code>qualityIncident</code> trigger の活用シナリオ</strong>:</p>
+<ul>
+<li>シナリオ #2 では未使用。将来の自動連動シナリオ (品質異常検知 → 自動 BLOCKED 処理等) で実利用可能</li>
+</ul>
+</li>
+<li>
+<p><strong><code>TraceabilityStep.metadata</code> 形状の正規化</strong>:</p>
+<ul>
+<li>PRODUCTION / INSPECTION / SHIPMENT ごとに期待される鍵が異なる。拡張 step の metadata 形状を kind 別に正規化する schema bag 設計が候補</li>
+</ul>
+</li>
+</ol>
+<h2 id="結論">結論</h2>
+<h3 id="検証結果サマリ">検証結果サマリ</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>評価項目</th><th>結果</th></tr></thead><tbody><tr><td>メタ #458 成果の他業界再現性</td><td>✅ 達成 (両シナリオで schema/build 全 pass、業務フロー完成)</td></tr><tr><td>spec 改訂 #474 の実効性</td><td>✅ 基本効果確認 (TX 設計 / rollbackOn / ADR 記述 / 拡張実利用の各観点で遵守)</td></tr><tr><td>3 分類ルールの初運用</td><td>✅ 機能 (フレームワーク 4 / 拡張定義 4 / サンプル設計 4 の分類を適用)</td></tr><tr><td>Codex 抜きでの完遂</td><td>✅ 達成 (Sonnet/Opus ともにテスト全 pass + マージ完遂)</td></tr><tr><td>AI 別品質比較</td><td>✅ データ取得 (Sonnet: schema 安全重視 / Opus: spec 遵守 + 高い自己批評)</td></tr></tbody></table>
+<h3 id="一般化された知見">一般化された知見</h3>
+<ul>
+<li><strong>spec 改訂 (#474) の効果は部分的</strong>: TX 外部呼出位置・rollbackOn 列挙原則・ADR 記述・拡張定義実利用の 4 観点は両 AI で改善傾向。一方で <strong>TX outputBinding ネスト参照・branch return 後 fallthrough の 2 既知パターンは両 AI で再発</strong>。spec 文書化だけでは AI のミスを完全には防げない。</li>
+<li><strong><code>/review-flow</code> ワークフローが品質保証の最終防衛線</strong>: 初回検出 19 件 → 修正委譲 → 再レビューで Must-fix ゼロ達成。spec 改訂と並行して検出・修正サイクルが必須。</li>
+<li><strong>AI 別の特性差は明確</strong>:
+<ul>
+<li><strong>Opus</strong>: spec 遵守度が高く rollbackOn / runIf / ADR 記述が初回から精確。ただし spec ↔ schema 乖離があると spec を信じすぎて schema 違反になる (シナリオ #2 で schema invalid 3 step)</li>
+<li><strong>Sonnet</strong>: schema レベルで安全な実装を経験から担保。spec の細かいガイドラインの遵守度は Opus より低い (修正前は死コード rollbackOn 残留等)</li>
+<li>補完関係: Opus を実装、Sonnet を独立レビュアーに使う等の使い分けが有効</li>
+</ul>
+</li>
+<li><strong>spec ↔ schema 乖離は構造的リスク</strong>: spec 改訂時に schema 側の追従を必須化する CI 等の仕組みがないと、実装者 (AI 含む) が実装中に遭遇し続ける。</li>
+<li><strong>Codex 抜きでも完遂可能</strong>: Sonnet/Opus + 独立 review-flow の組合せで実装 → 修正 → マージの自律ワークフローを確認。Codex プラン上限到達時のフォールバックパスとしても有効。</li>
+</ul>
+<h2 id="関連">関連</h2>
+<ul>
+<li>親メタ: #478</li>
+<li>子 ISSUE / PR: #479/#481 (Sonnet)、#480/#482 (Opus)</li>
+<li>前回ドッグフード (金融): #458 / <code>docs/spec/dogfood-2026-04-26-finance.md</code></li>
+<li>spec 改訂: #474 / PR #477</li>
+<li>3 分類ルール: memory <code>feedback_dogfood_issue_classification.md</code></li>
+</ul>
+<h2 id="次フェーズへの推奨">次フェーズへの推奨</h2>
+<ul>
+<li><strong>spec §15.2 ↔ schema 乖離 ISSUE を別途起票</strong> (フレームワーク問題の根本解消)</li>
+<li><strong><code>/review-flow</code> SKILL.md に既知パターンを明示列挙</strong> — TX outputBinding ネスト参照 / branch return 後 fallthrough を AI が事前自己チェックできるよう SKILL を強化候補</li>
+<li><strong>Phase 2</strong> (テーブル定義 + 処理フロー連携) の準備を進めて良いタイミング</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

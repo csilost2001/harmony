@@ -1,0 +1,654 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>dev containers</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> セットアップ </div> <ul class="space-y-0.5"> <li> <a href="/setup/dev-containers/" class="sidebar-link active"> Dev Containers (推奨) </a> </li><li> <a href="/setup/wsl2-native/" class="sidebar-link"> WSL2 native (代替) </a> </li><li> <a href="/setup/distribution-roadmap/" class="sidebar-link"> 配布構想 (将来) </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="dev-containers-セットアップ-推奨">Dev Containers セットアップ (推奨)</h1>
+<p>VSCode Dev Containers 拡張で Harmony を開発する手順書。<strong>本プロジェクトの推奨開発環境</strong>。</p>
+<p>WSL2 native のみのセットアップも引き続きサポート対象です (<a href="/setup/wsl2-native/"><code>wsl2-native.md</code></a>)。Harmony 本体を Docker image として配布する将来構想は <a href="/setup/distribution-roadmap/"><code>distribution-roadmap.md</code></a> を参照。</p>
+<h2 id="なぜ-dev-containers-が推奨か">なぜ Dev Containers が推奨か</h2>
+<ul>
+<li><strong>複数プロジェクト共存</strong>: 1 つの WSL2 に Node / Java / Python が混在しても、プロジェクト間で完全 isolation</li>
+<li><strong>JDK / Node バージョンのプロジェクト別固定</strong>: <code>devcontainer.json</code> の宣言で再現可</li>
+<li><strong>onboarding コスト</strong>: 新規開発者 / 他チーム / OSS contributor は <code>git clone &#x26;&#x26; Reopen in Container</code> だけで dev 環境完成</li>
+<li><strong>WSL2 distro を汚さない</strong>: Node / npm / playwright browsers / 各種 CLI はすべて container 内、ホスト WSL2 は git + docker クライアントだけで足りる</li>
+</ul>
+<p>すでに WSL2 native で安定運用していて移行する必要がない場合は、そのまま使い続けて問題ありません (<a href="/setup/wsl2-native/"><code>wsl2-native.md</code></a> 経路もサポート対象)。</p>
+<h2 id="前提条件">前提条件</h2>
+<ul>
+<li><strong>Windows 11 + WSL2</strong> (Ubuntu 推奨)</li>
+<li><strong>Docker Desktop</strong> (Settings → Resources → WSL Integration → Ubuntu ON)
+<ul>
+<li>または WSL2 内 Docker Engine (Docker Desktop ライセンスを避けたい場合)</li>
+</ul>
+</li>
+<li><strong>VSCode</strong> + <strong>Dev Containers 拡張</strong> (<code>ms-vscode-remote.remote-containers</code>)</li>
+</ul>
+<p>WSL2 + Ubuntu + Node 等の基本セットアップが未完了の場合は <a href="/setup/wsl2-native/"><code>wsl2-native.md</code></a> Step 1-0〜1-1 を共通の前提セットアップとして参照してください (本書の手順は Docker Desktop と VSCode Dev Containers 拡張が入っていることのみを前提とします)。</p>
+<h2 id="quick-start-新規--fresh-clone">Quick Start (新規 / fresh clone)</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># WSL2 シェルで</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> clone</span><span style="color:#032F62;--shiki-dark:#96D0FF"> git@github.com:csilost2001/harmony.git</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># VSCode 起動 (Remote-WSL で開く)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">code</span><span style="color:#032F62;--shiki-dark:#96D0FF"> .</span></span></code></pre>
+<p><code>csilost2001/harmony</code> は本リポジトリの canonical 出典。fork して作業する場合は自分の fork URL に置き換えてください。</p>
+<p>VSCode 起動後:</p>
+<ol>
+<li>右下 (or <code>Ctrl+Shift+P</code> → <code>Dev Containers: Reopen in Container</code>) のポップアップで <strong>「Reopen in Container」</strong> をクリック</li>
+<li>初回は image pull + <code>postCreateCommand</code> 実行で <strong>数分〜10 分</strong> かかる (Phase 5 #1120 以降は features install 廃止、cold start 短縮)</li>
+<li>完了すると VSCode 内蔵ターミナルが container 内 bash で開く</li>
+<li>ターミナルで以下を実行:</li>
+</ol>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># backend を起動 (タブ 1)</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># frontend を起動 (タブ 2 — ターミナル分割 or 新規)</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> frontend</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span></span></code></pre>
+<ol start="5">
+<li>Windows ブラウザで <code>http://localhost:5173</code> を開く (ポート 5173 / 5179 は Dev Containers が自動 forward)</li>
+</ol>
+<h2 id="初回起動で-wsl2-host-側に何が作られるか">初回起動で WSL2 host 側に何が作られるか</h2>
+<p>Reopen in Container を実行すると、以下が自動で WSL2 host 側に作られます。<strong>利用者の事前準備は不要</strong>です (Docker bind mount が missing path を自動 mkdir する仕様):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>~/.agent-containers/                       ← AI agent 用データ root</span></span>
+<span class="line"><span>└── harmony/                               ← project 名で自動分離 (${localWorkspaceFolderBasename})</span></span>
+<span class="line"><span>    ├── .claude/                           ← Claude Code: sessions / settings / memory / .credentials.json / .config.json</span></span>
+<span class="line"><span>    ├── .codex/                            ← Codex CLI: auth.json / config.toml / sessions</span></span>
+<span class="line"><span>    ├── .copilot/                          ← Copilot CLI: session-state / command-history-state.json / memory (#1114)</span></span>
+<span class="line"><span>    └── .harmony/                          ← Harmony 本体: recent-workspaces.json</span></span></code></pre>
+<p>これらは bind mount で container 内 <code>/home/node/.{claude,codex,copilot,harmony}/</code> と双方向同期され、<strong>rebuild しても永続化されます</strong>。backup したい場合は通常の <code>cp -r</code> / <code>rsync</code> / <code>git</code> で WSL2 host から直接触れます。</p>
+<blockquote>
+<p>⚠️ <strong>WSL2 host の <code>~/.claude/</code> (= WSL2 native claude 用) は本構成では一切触りません</strong>。<code>~/.agent-containers/&#x3C;project>/</code> という別名前空間にすることで、WSL2 native claude と container claude を<strong>同時稼働させても干渉しません</strong>。詳細は本書「AI CLI の扱い」節を参照。</p>
+</blockquote>
+<p>別の project (例: <code>other-app</code>) を Dev Container で開けば自動で <code>~/.agent-containers/other-app/</code> 配下が作られます。</p>
+<h2 id="初回起動時に必要な手作業-一度だけ">初回起動時に必要な手作業 (一度だけ)</h2>
+<p>container 起動後、以下の認証作業を 1 度だけ行います (rebuild 跨ぎで永続化されるため 2 度目以降は不要):</p>
+<ol>
+<li><strong>Claude Code OAuth</strong>: container 内ターミナルで
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">claude</span><span style="color:#032F62;--shiki-dark:#96D0FF"> /login</span></span></code></pre>
+ブラウザで OAuth を完遂すると <code>.credentials.json</code> が <code>~/.agent-containers/&#x3C;project>/.claude/</code> に書き込まれる (<code>refreshToken</code> で 60〜90 日は自動更新)。</li>
+<li><strong>Codex CLI OAuth</strong>:
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">codex</span><span style="color:#032F62;--shiki-dark:#96D0FF"> login</span></span></code></pre>
+同様に <code>~/.agent-containers/&#x3C;project>/.codex/auth.json</code> に保存される。</li>
+<li><strong>GitHub Copilot CLI</strong>: 認証は <code>gh auth</code> (= <code>~/.config/gh/</code>) を共有するため、host で <code>gh auth login</code> 済みなら追加 OAuth 不要。Copilot CLI が初回起動時に必要な権限を付与するよう促す場合あり。session / memory / history は <code>~/.agent-containers/&#x3C;project>/.copilot/</code> に永続化される (#1114)。</li>
+<li><strong>(任意) 個人 alias (<code>ccd</code> / <code>cdx</code> 等)</strong>: VS Code user settings.json に dotfiles 3 行を追加。詳細は本書「個人 alias」節を参照。</li>
+</ol>
+<p>OAuth が必要なのは初回 + refreshToken expire 後 (60〜90 日) のみ。日々の rebuild では認証は維持されます。</p>
+<h2 id="過去-wsl2-native-だった人向け移行手順">過去 WSL2 native だった人向け移行手順</h2>
+<p>すでに <a href="/setup/wsl2-native/"><code>wsl2-native.md</code></a> の手順で WSL2 native 開発をしている場合の移行ステップ。<strong>WSL2 native のままでも問題ない</strong>ため、以下の利点を求める場合のみ移行を検討してください:</p>
+<ul>
+<li>複数プロジェクトを WSL2 上で開発し、Node / JDK / Python のバージョン衝突が発生</li>
+<li>B チーム / OSS contributor に dev 環境を配布する必要が出てきた</li>
+<li>新規開発者の onboarding を短縮したい</li>
+<li>WSL2 distro の汚れ (~/.npm / ~/.cache / 各種 SDK) を整理したい</li>
+</ul>
+<h3 id="step-m-1-現状を保全-退却ポイント">Step M-1: 現状を保全 (退却ポイント)</h3>
+<p>移行が合わなければ即元に戻せるよう保全する。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 作業中の変更を一旦 stash or commit</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> status</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> stash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> push</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -m</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "before-devcontainer-migration"</span><span style="color:#6A737D;--shiki-dark:#768390">   # 必要に応じて</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 念のため main を最新化</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> fetch</span><span style="color:#032F62;--shiki-dark:#96D0FF"> origin</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> log</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --oneline</span><span style="color:#032F62;--shiki-dark:#96D0FF"> origin/main..HEAD</span><span style="color:#6A737D;--shiki-dark:#768390">                  # 未 push commit を確認</span></span></code></pre>
+<p>WSL2 native の <code>node_modules</code> / <code>~/.npm</code> / <code>~/.nvm</code> は <strong>そのまま残す</strong>。移行後も WSL2 native で動かしたければ即戻れる。</p>
+<h3 id="step-m-2-docker-desktop-の動作確認">Step M-2: Docker Desktop の動作確認</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> version</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --rm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> hello-world</span></span></code></pre>
+<p><code>hello-world</code> が出ない場合、Docker Desktop の Settings → Resources → WSL Integration で Ubuntu 統合を有効化。</p>
+<h3 id="step-m-3-vscode-dev-containers-拡張をインストール">Step M-3: VSCode Dev Containers 拡張をインストール</h3>
+<p>VSCode で:</p>
+<ol>
+<li>拡張機能パネル (<code>Ctrl+Shift+X</code>)</li>
+<li><code>Dev Containers</code> で検索 → Microsoft 公式 (<code>ms-vscode-remote.remote-containers</code>) を install</li>
+<li>すでに Remote-WSL 拡張を使っていれば、両方併用で問題なし</li>
+</ol>
+<h3 id="step-m-4-reopen-in-container">Step M-4: Reopen in Container</h3>
+<ol>
+<li>VSCode で <code>~/projects/harmony</code> を開く (Remote-WSL 接続状態)</li>
+<li>右下に「Folder contains a Dev Container configuration file. Reopen folder to develop in a container.」のポップアップ</li>
+<li><strong>「Reopen in Container」</strong> をクリック
+<ul>
+<li>ポップアップを見逃したら <code>Ctrl+Shift+P</code> → <code>Dev Containers: Reopen in Container</code></li>
+</ul>
+</li>
+<li>初回は image pull (~1.3 GB、Phase 5 #1120 以降は AI CLI 3 個を base image 同梱、#1122 で docker CLI は host 実行運用に切替て除外) + npm install で <strong>数分〜10 分</strong> (playwright は base image 同梱、features install は Phase 5 で廃止)</li>
+<li>完了後、VSCode の左下が <code>Dev Container: Harmony Dev</code> 表示になる</li>
+</ol>
+<h3 id="step-m-5-動作確認">Step M-5: 動作確認</h3>
+<p>container 内ターミナルで:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># Node / npm / git / gh が container 内に存在することを確認</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">node</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --version</span><span style="color:#6A737D;--shiki-dark:#768390">    # v20.x.x</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --version</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">gh</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --version</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 起動</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> &#x26;&#x26; </span><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span><span style="color:#6A737D;--shiki-dark:#768390">    # タブ 1</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> frontend</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> &#x26;&#x26; </span><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span><span style="color:#6A737D;--shiki-dark:#768390">   # タブ 2</span></span></code></pre>
+<p>Windows ブラウザで <code>http://localhost:5173</code> がデザイナー UI を表示すれば OK。</p>
+<h3 id="step-m-6-既存-node_modules-の扱い">Step M-6: 既存 <code>node_modules</code> の扱い</h3>
+<ul>
+<li><strong>基本: 残す</strong>。WSL2 native へ戻る選択肢を保持</li>
+<li>container 内では <code>/workspaces/harmony/frontend/node_modules</code> (bind mount された WSL2 native のもの) を上書きしないよう、container 内で <code>npm install</code> 済 (postCreateCommand)</li>
+<li>容量が気になるなら、安定運用 1 週間後に WSL2 native 側の <code>node_modules</code> を削除:</li>
+</ul>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 移行を確定する時のみ</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">rm</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -rf</span><span style="color:#032F62;--shiki-dark:#96D0FF"> frontend/node_modules</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend/node_modules</span></span></code></pre>
+<h3 id="step-m-7-wsl2-distro-のクリーンアップ-任意--移行確定後">Step M-7: WSL2 distro のクリーンアップ (任意 / 移行確定後)</h3>
+<p>完全に Dev Containers に切り替えるなら、WSL2 native の Node 関連を削除可能:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 慎重に: 他の WSL2 プロジェクトで Node を使っているなら残す</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">rm</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -rf</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.cache/playwright</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># nvm / Node 本体は他プロジェクトで使うなら残す</span></span></code></pre>
+<p>これは<strong>やらなくても良い</strong>。複数プロジェクトを WSL2 native と DevContainer で使い分けるなら nvm + Node は残しておくのが普通。</p>
+<h3 id="step-m-8-wsl2-native-に戻りたい場合">Step M-8: WSL2 native に戻りたい場合</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># VSCode で</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">Ctrl+Shift+P</span><span style="color:#032F62;--shiki-dark:#96D0FF"> →</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "Dev Containers: Reopen Folder Locally"</span></span></code></pre>
+<p>WSL2 native 開発に即戻る。<code>.devcontainer/</code> は repo に残っているが、Reopen in Container しない限り影響なし。</p>
+<h2 id="両モード併用-任意">両モード併用 (任意)</h2>
+<p><code>.devcontainer/</code> が repo にあっても、WSL2 native セットアップは引き続き動作します。以下のように使い分けることも可能:</p>
+<ul>
+<li>WSL2 native の <code>cd backend &#x26;&#x26; npm run dev</code> は引き続き動く</li>
+<li><code>~/.claude/</code>, <code>~/.gitconfig</code>, <code>~/.ssh/</code> は WSL2 native のものをそのまま使う (Remote-WSL モード時)</li>
+<li>VSCode で開く時に <strong>WSL モードか Container モードを選択</strong> できる</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>モード</th><th>起動方法</th><th>source の場所</th><th>tools の場所</th></tr></thead><tbody><tr><td>WSL2 native</td><td><code>code .</code> → Remote-WSL</td><td>WSL2 ext4</td><td>WSL2 distro 内 (nvm / Node)</td></tr><tr><td>Dev Container</td><td><code>code .</code> → Reopen in Container</td><td>WSL2 ext4 (bind mount)</td><td>container 内 (image に同梱、Phase 5 #1120 以降 features 不使用)</td></tr></tbody></table>
+<p><code>/workspaces/harmony</code> (container 内 path) と <code>~/projects/harmony</code> (WSL2 path) は <strong>同じ実体</strong> (bind mount) なので、片方で編集したファイルはもう片方からも見える。同時起動はポート競合するので避ける。</p>
+<h2 id="ai-cli-claude-code--codex-の扱い">AI CLI (Claude Code / Codex) の扱い</h2>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>DevContainers + Claude Code は世界的にハマりやすい組合せ</strong>。Anthropic 公式 docs だけでは「rebuild の度に wizard / re-login が要求される」「Remote Control が動かない」等の罠を踏む。本 repo は <strong>#1097 でこれらを完全解消した構成</strong> を採用しているため、<strong>本節の内容を変更しないでください</strong>。変更が必要な場合は #1097 と本 doc 末尾の改訂履歴を読んでから検討する。</p>
+</blockquote>
+<h3 id="tldr--本環境の構成-要点">TL;DR — 本環境の構成 (要点)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>採用構成</th><th>落とし穴</th></tr></thead><tbody><tr><td>Claude Code install</td><td>base image inline (<code>.devcontainer/base/Dockerfile</code> の <code>npm install -g @anthropic-ai/claude-code</code>、#1120 Phase 5)</td><td>元は公式 feature <code>ghcr.io/anthropics/devcontainer-features/claude-code:1.0</code> だったが Phase 5 で cold start 短縮のため base image に焼き込み。版上げは base image bump 経由 (publish-dev-image)。Auto-update は <code>DISABLE_AUTOUPDATER=1</code> で container 起動後の上書き禁止</td></tr><tr><td><code>~/.claude/</code> 永続化</td><td>host bind mount: <code>~/.agent-containers/&#x3C;project>/.claude/</code> ↔ container <code>/home/node/.claude/</code></td><td>host の <code>~/.claude/</code> を直接 mount すると WSL2 native claude と statsig 等で write 競合 → <strong>必ず別名前空間</strong> (<code>~/.agent-containers/</code>) を使う</td></tr><tr><td><code>~/.claude.json</code> (state file)</td><td>volume 外 → wizard 毎回発火する問題</td><td><strong><code>~/.claude/.config.json</code> を空 <code>{}</code> で先に作成しておくと claude が state file の保存先を <code>.config.json</code> に切替える</strong> (undocumented、Claude 2.x で動作確認)</td></tr><tr><td>認証 token</td><td>container 内で 1 度 <code>claude /login</code> (ブラウザ OAuth) → <code>~/.agent-containers/&#x3C;project>/.claude/.credentials.json</code> に永続化、<code>refreshToken</code> で 60〜90 日は自動更新</td><td><code>CLAUDE_CODE_OAUTH_TOKEN</code> env var は <strong>inference scope only / Remote Control 不可</strong> で罠。本構成では使わない</td></tr><tr><td><code>~/.codex/</code> 永続化</td><td>同じく host bind mount: <code>~/.agent-containers/&#x3C;project>/.codex/</code> ↔ container <code>/home/node/.codex/</code></td><td>codex は <code>~/.codex.json</code> のような <code>$HOME</code> 直下ファイルを持たないので <code>.config.json</code> workaround 不要</td></tr><tr><td><code>~/.copilot/</code> 永続化</td><td>同じく host bind mount: <code>~/.agent-containers/&#x3C;project>/.copilot/</code> ↔ container <code>/home/node/.copilot/</code></td><td>Copilot CLI 公式 default location (<a href="https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference">cli-config-dir-reference</a>)、session-state + command-history-state.json + memory を保持。<code>COPILOT_HOME</code> env で上書き可だが本構成では default を使用</td></tr><tr><td><code>~/.harmony/</code> 永続化</td><td>同じく host bind mount: <code>~/.agent-containers/&#x3C;project>/.harmony/</code> ↔ container <code>/home/node/.harmony/</code></td><td>Harmony 本体の state file 用</td></tr><tr><td>個人 alias (ccd / cdx)</td><td>VS Code user 設定の <code>dotfiles.installCommand</code> (公式 dotfiles 機能)</td><td><code>postAttachCommand</code> で install.sh を呼ぶハックは禁止 (lifecycle 違反)</td></tr></tbody></table>
+<h4 id="host-側ディレクトリ構造-人間が触る場所">host 側ディレクトリ構造 (人間が触る場所)</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>~/.agent-containers/                    ← AI agent (claude / codex / copilot 等) container 用データ root</span></span>
+<span class="line"><span>└── harmony/                            ← Harmony project の container 専用</span></span>
+<span class="line"><span>    ├── .claude/                        ← Claude Code: sessions / settings / memory / .credentials.json / .config.json</span></span>
+<span class="line"><span>    ├── .codex/                         ← Codex CLI: auth.json / config.toml / history / sessions</span></span>
+<span class="line"><span>    ├── .copilot/                       ← Copilot CLI: session-state / command-history-state.json / memory (#1114)</span></span>
+<span class="line"><span>    └── .harmony/                       ← Harmony 本体: recent-workspaces.json</span></span></code></pre>
+<p>別 project (例: <code>other-app</code>) を Dev Container で開くと自動で <code>~/.agent-containers/other-app/.claude/</code> 等が作られる (<code>${localWorkspaceFolderBasename}</code> 変数で project 名解決)。</p>
+<p><strong>WSL2 host の <code>~/.claude/</code> (WSL2 native claude 用) は本構成では一切触らない</strong> — 別名前空間にすることで WSL2 native claude と container claude を同時稼働しても data 破損しない。</p>
+<h3 id="claude-code">Claude Code</h3>
+<h4 id="1-cli-install-base-image-inline-1120-phase-5">1. CLI install: base image inline (#1120 Phase 5)</h4>
+<p><code>.devcontainer/base/Dockerfile</code> で base image に焼き込み済:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="dockerfile"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">RUN</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> npm install -g @anthropic-ai/claude-code</span></span></code></pre>
+<p>base image (<code>ghcr.io/csilost2001/harmony-devcontainer-base:&#x3C;version></code>) の pull 完了時点で Claude Code は使用可能。版上げは base image bump (publish-dev-image) 経由で行う。</p>
+<blockquote>
+<p>[!NOTE]
+Phase 4 以前は公式 feature <code>ghcr.io/anthropics/devcontainer-features/claude-code:1.0</code> を <code>devcontainer.json</code> の <code>features</code> に書いていたが、Dev Containers の features は image build 後に install されるため ghcr publish に含まれず、cold start 毎に install が走っていた (Note PC で ~50-60 秒の固定オーバーヘッド)。Phase 5 でこれを解消。</p>
+<p>他プロジェクトに本構成を参考にする場合、cold start 重視なら base image inline 化、構成柔軟性重視なら従来の features 経由でも OK。</p>
+</blockquote>
+<h4 id="2-認証-credentialsjson-を-bind-mount-で永続化">2. 認証: <code>.credentials.json</code> を bind mount で永続化</h4>
+<p>container 内で 1 度 <code>claude</code> (もしくは <code>claude /login</code>) を起動して <strong>ブラウザ OAuth を完遂</strong>すると、<code>.credentials.json</code> が host の bind mount target (<code>~/.agent-containers/&#x3C;project>/.claude/.credentials.json</code>) に書き込まれる。以降の rebuild では:</p>
+<ul>
+<li>container 内 claude が起動時に <code>.credentials.json</code> から OAuth token を読む</li>
+<li>token は <code>refreshToken</code> を含む完全な OAuth credential で、<code>user:sessions:claude_code</code> scope も含むため <strong>Remote Control も動作する</strong></li>
+<li>token 期限が近づくと claude が自動 refresh する (refreshToken が valid な間は手作業不要)</li>
+</ul>
+<p><code>devcontainer.json</code>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"containerEnv"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "DISABLE_AUTOUPDATER"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"1"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>DISABLE_AUTOUPDATER: "1"</code> は公式推奨 (container 内で claude が自動更新で勝手にバージョン変わるのを防止)。</p>
+<h5 id="claude_code_oauth_token-env-var-は-使わない"><code>CLAUDE_CODE_OAUTH_TOKEN</code> env var は <strong>使わない</strong></h5>
+<p><code>claude setup-token</code> で発行する 1 年トークンを env var で渡す方式 (公式 docs の「CI pipelines and scripts」向け) を以前試したが、<strong>inference scope のみで Remote Control 不可</strong> という制限がある (公式 docs に明記):</p>
+<blockquote>
+<p>This token authenticates with your Claude subscription and requires a Pro, Max, Team, or Enterprise plan. <strong>It is scoped to inference only and cannot establish Remote Control sessions.</strong></p>
+</blockquote>
+<p>env var (precedence 5) は <code>.credentials.json</code> (precedence 6) より優先されるため、env var を設定していると <strong>Remote Control 用の full-scope token が無視される</strong>。Remote Control を使う構成ではこの env var 方式を採用しない。</p>
+<h5 id="完全-re-login-の頻度">完全 re-login の頻度</h5>
+<p><code>refreshToken</code> の有効期限が切れた時のみ (典型的に 60〜90 日)、container 内で <code>claude /login</code> を再実行してブラウザ OAuth を通す必要あり。env var (1 年) と比べると頻度が高めだが、Remote Control 含む全機能が動く対価。</p>
+<h4 id="3-データ永続化-host-subdir-bind-mount--configjson-workaround">3. データ永続化: host subdir bind mount + <code>.config.json</code> workaround</h4>
+<p><code>~/.claude/</code> (sessions / settings / projects 配下の memory) を <strong>WSL2 host の project 別 subdir に bind mount</strong> する。Named Volume ではなく bind mount を選んだ理由は後述の比較表参照:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"mounts"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">  "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.claude,target=/home/node/.claude,type=bind,consistency=cached"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">  "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.codex,target=/home/node/.codex,type=bind,consistency=cached"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">  "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.copilot,target=/home/node/.copilot,type=bind,consistency=cached"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">  "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.harmony,target=/home/node/.harmony,type=bind,consistency=cached"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span></code></pre>
+<ul>
+<li><code>${localEnv:HOME}</code> = WSL2 host の <code>~/</code> (例: <code>/home/hidekatsu</code>)</li>
+<li><code>${localWorkspaceFolderBasename}</code> = project フォルダ名 (例: <code>harmony</code>) → 複数 project の自動分離</li>
+<li>結果: host 側に <code>~/.agent-containers/harmony/.claude/</code>、<code>~/.agent-containers/harmony/.codex/</code>、<code>~/.agent-containers/harmony/.copilot/</code>、<code>~/.agent-containers/harmony/.harmony/</code> のディレクトリ群が作られ、container 内 <code>/home/node/.{claude,codex,copilot,harmony}/</code> と双方向同期される</li>
+</ul>
+<p><strong>重要</strong>: WSL2 host の <code>~/.claude/</code> (= WSL2 native claude の保管場所) は <strong>触らない</strong>。<code>~/.agent-containers/&#x3C;project>/.claude/</code> という別の名前空間を使うことで、WSL2 native claude と container 内 claude を <strong>同時稼働させても干渉しない</strong> (host <code>~/.claude/</code> 直接 bind は同時稼働で statsig 等の write 競合が起きる、bcaccd7 → 235caeb で確認済)。</p>
+<h5 id="claudejson-問題と-configjson-workaround-継続"><code>~/.claude.json</code> 問題と <code>.config.json</code> workaround (継続)</h5>
+<p>bind mount でも <strong><code>~/.claude.json</code> ファイル (= <code>$HOME</code> 直下、<code>.claude/</code> の外) は mount 対象外</strong> で、rebuild 毎に消える → <code>hasCompletedOnboarding</code> flag が消えて wizard が毎回発火する問題は残る。</p>
+<p><strong>解決策 (undocumented だが claude binary に実装済の機能)</strong>: <code>~/.claude/.config.json</code> (mount target 内) を存在させると、claude は <strong><code>~/.claude.json</code> の代わりに <code>~/.claude/.config.json</code> を state file として使う</strong>。<code>postCreateCommand</code> で空ファイルを初期化:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"postCreateCommand"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"... &#x26;&#x26; ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)"</span></span></code></pre>
+<p>挙動:</p>
+<ul>
+<li>初回 rebuild: 空 <code>.config.json</code> が作られる → claude 起動 → wizard 発火 (<code>hasCompletedOnboarding</code> 未設定) → user が wizard 完了 → flag が <code>.config.json</code> に書かれる (host bind mount 内、永続)</li>
+<li><strong>2 回目以降の rebuild</strong>: <code>.config.json</code> が host 側に残っている → flag を読んで wizard skip</li>
+</ul>
+<p>出典: <a href="https://zenn.dev/nstock/articles/2c1ea72861f87c">Zenn — Dev Container で Claude Code を使う</a>。公式 docs には未記載なので Anthropic アップデートで仕様変更の可能性ありだが、現状 (Claude Code 2.x) で動作確認済。</p>
+<h5 id="named-volume-vs-host-subdir-bind-mount-の比較">Named Volume vs host subdir bind mount の比較</h5>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>Named Volume (旧構成)</th><th>host subdir bind mount (現構成)</th></tr></thead><tbody><tr><td>データの所在</td><td>Docker-managed (<code>/var/lib/docker/volumes/...</code>)</td><td>WSL2 host <code>~/.agent-containers/&#x3C;project>/</code></td></tr><tr><td>host から閲覧</td><td><code>docker run</code> 経由で見るしかない</td><td>普通の <code>ls</code>/<code>cat</code>/<code>vi</code> 可能</td></tr><tr><td>WSL2 native claude との競合</td><td>なし (完全分離)</td><td>なし (host <code>~/.claude/</code> は触らない、別名前空間)</td></tr><tr><td>backup</td><td><code>docker volume export</code> 等</td><td>rsync / git / 通常手段</td></tr><tr><td><code>docker volume prune</code> で消える</td><td>はい (誤操作リスク)</td><td>いいえ (host filesystem)</td></tr><tr><td>project 自動分離</td><td><code>${devcontainerId}</code> (hash)</td><td><code>${localWorkspaceFolderBasename}</code> (人間可読、<code>~/.agent-containers/&#x3C;name>/</code>)</td></tr><tr><td>公式 docs 推奨度</td><td>◎ named volume を例示</td><td>△ 明示言及なし (host <code>~/.claude/</code> 直接 bind は warning ありだが本構成は別名前空間なので該当せず)</td></tr></tbody></table>
+<p>bind mount に切り替えた狙い: <strong>host から見えて backup / 障害復旧が楽</strong>、<code>docker volume prune</code> で誤消失しない、<code>~/.agent-containers/&#x3C;project>/</code> で人間可読な project 分離。</p>
+<h5 id="named-volume-からの-migration-旧構成からの初回切替">Named Volume からの migration (旧構成からの初回切替)</h5>
+<p>旧 <code>harmony-claude</code> / <code>harmony-codex</code> / <code>harmony-state</code> named volume を使っていた人は、bind mount 切替前に host へデータ移管する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># host 側で受け入れ先作成 (UID は user で問題なし、node も UID 1000 想定)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">mkdir</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -p</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.agent-containers/harmony/.claude</span><span style="color:#005CC5;--shiki-dark:#F47067"> \</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">         ~/.agent-containers/harmony/.codex</span><span style="color:#005CC5;--shiki-dark:#F47067"> \</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">         ~/.agent-containers/harmony/.harmony</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># Named Volume → host にコピー</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --rm</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -v</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony-claude:/src:ro</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -v</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.agent-containers/harmony/.claude:/dst</span><span style="color:#032F62;--shiki-dark:#96D0FF"> alpine</span><span style="color:#032F62;--shiki-dark:#96D0FF"> sh</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -c</span><span style="color:#032F62;--shiki-dark:#96D0FF"> 'cp -aT /src /dst'</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --rm</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -v</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony-codex:/src:ro</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">  -v</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.agent-containers/harmony/.codex:/dst</span><span style="color:#032F62;--shiki-dark:#96D0FF">  alpine</span><span style="color:#032F62;--shiki-dark:#96D0FF"> sh</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -c</span><span style="color:#032F62;--shiki-dark:#96D0FF"> 'cp -aT /src /dst'</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --rm</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -v</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony-state:/src:ro</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">  -v</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.agent-containers/harmony/.harmony:/dst</span><span style="color:#032F62;--shiki-dark:#96D0FF"> alpine</span><span style="color:#032F62;--shiki-dark:#96D0FF"> sh</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -c</span><span style="color:#032F62;--shiki-dark:#96D0FF"> 'cp -aT /src /dst'</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 後で旧 volume が不要になったら (動作確認後)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># docker volume rm harmony-claude harmony-codex harmony-state</span></span></code></pre>
+<ul>
+<li>rebuild しても host 側のデータは container 破棄に影響されない</li>
+<li>WSL2 host の <code>~/.claude/</code> とは独立 (memory / sessions は WSL2 native claude と container claude で別々に育つ。公式が明確に「machine-local、cross-machine 共有非対応」と宣言: <a href="https://code.claude.com/docs/en/memory">Memory docs</a>)</li>
+</ul>
+<h3 id="codex-cli">Codex CLI</h3>
+<p>公式 Dev Container Feature が存在しないため、引き続き <code>postCreateCommand</code> で <code>npm install -g @openai/codex</code> を実施。auth は <code>~/.codex/auth.json</code> (= host bind mount target <code>~/.agent-containers/&#x3C;project>/.codex/auth.json</code>) に格納されるため、container 内で 1 度 <code>codex login</code> するだけで rebuild 跨ぎで保持される。codex は <code>~/.codex.json</code> のような <code>$HOME</code> 直下のファイルを持たないので claude のような <code>.config.json</code> workaround は不要。</p>
+<h3 id="認証フロー全体図">認証フロー全体図</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>host (WSL2)                              container (Dev Container)</span></span>
+<span class="line"><span>─────────────────────────                ──────────────────────────</span></span>
+<span class="line"><span>~/.claude/                               /home/node/.claude/</span></span>
+<span class="line"><span>  .credentials.json (host claude)        (bind mount from host</span></span>
+<span class="line"><span>                                          ~/.agent-containers/&#x3C;project>/.claude/)</span></span>
+<span class="line"><span>                                          ↓</span></span>
+<span class="line"><span>                                         .credentials.json (container claude)</span></span>
+<span class="line"><span>WSL2 native claude が読む                 container 内 claude が読む</span></span>
+<span class="line"><span>  ↓                                       ↓</span></span>
+<span class="line"><span>独立した OAuth credential (各環境別、memory / sessions も別保管)</span></span></code></pre>
+<p>host と container は <strong>別 OAuth credential で独立</strong>動作。それぞれの環境で初回 <code>/login</code> が必要だが、<code>.credentials.json</code> の <code>refreshToken</code> で 60〜90 日は自動更新される。WSL2 native claude と container claude を <strong>同時稼働させても干渉しない</strong> (別ディレクトリのため)。</p>
+<h3 id="個人-alias-ccd--cdx-等-vs-code-公式-dotfiles-機能">個人 alias (ccd / cdx 等): VS Code 公式 dotfiles 機能</h3>
+<p><a href="https://code.visualstudio.com/docs/devcontainers/containers">VS Code Dev Containers Personalizing 公式</a> の dotfiles 機能を使う。<strong>user 側 1 回限りの setup</strong> として、VS Code user settings.json (Ctrl+, → 右上アイコン → “Open Settings (JSON)”) に 3 行追加:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "dotfiles.repository"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;your-github-id>/dotfiles"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "dotfiles.targetPath"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"~/dotfiles"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "dotfiles.installCommand"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"install.sh"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>これで VS Code が <strong>rebuild 毎に自動で</strong>:</p>
+<ol>
+<li>dotfiles repo を <code>~/dotfiles/</code> に clone</li>
+<li><code>~/dotfiles/install.sh</code> を実行 (各自の dotfiles repo に置く)</li>
+</ol>
+<p><code>install.sh</code> は <code>ln -sfn ~/dotfiles/.bash_aliases ~/.bash_aliases</code> 等の idempotent symlink installer を想定。base image の <code>~/.bashrc</code> には標準で <code>[ -f ~/.bash_aliases ] &#x26;&#x26; . ~/.bash_aliases</code> が含まれているため、symlink さえ作れば alias は次のシェル起動時から効く (<strong>既に開いている terminal は新規開き直す必要あり</strong>)。</p>
+<p>参考実装: <a href="https://github.com/csilost2001/dotfiles"><code>csilost2001/dotfiles</code></a> (<code>ccd</code> / <code>cdx</code> 例)。</p>
+<h3 id="バージョン更新">バージョン更新</h3>
+<ul>
+<li><strong>Claude Code</strong>: Phase 5 (#1120) 以降は base image inline (<code>.devcontainer/base/Dockerfile</code> の <code>npm install -g @anthropic-ai/claude-code</code>) で install。base image bump 時に最新版が pull される。<code>DISABLE_AUTOUPDATER: "1"</code> を入れているので <strong>container 起動後の自動更新は止まる</strong>。特定版に pin したい場合は base/Dockerfile の RUN 行を <code>npm install -g @anthropic-ai/claude-code@X.Y.Z</code> に変えて publish-dev-image で新版を push。</li>
+<li><strong>Codex</strong>: container 内で <code>npm install -g @openai/codex@&#x3C;version></code> で個別更新。</li>
+</ul>
+<h2 id="仕組み解説-devcontainerjson-の構造-1118-phase-12-以降">仕組み解説: devcontainer.json の構造 (#1118 Phase 1+2 以降)</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>ghcr.io/csilost2001/harmony-devcontainer-base:&#x3C;version>  ← Phase 2 で確立した base</span></span>
+<span class="line"><span>  ├── mcr.microsoft.com/devcontainers/typescript-node:20-trixie</span></span>
+<span class="line"><span>  ├── Playwright + Chromium + apt deps (稀更新、~285 MiB)</span></span>
+<span class="line"><span>  └── #1120 Phase 5: github-cli / claude-code / copilot-cli を inline</span></span>
+<span class="line"><span>      (元 features、~80-110 MiB 増)</span></span>
+<span class="line"><span>      #1122 で docker-outside-of-docker は host 実行運用に切替て除外</span></span>
+<span class="line"><span>                  ↓ FROM</span></span>
+<span class="line"><span>.devcontainer/Dockerfile (overlay)</span></span>
+<span class="line"><span>  └── @openai/codex@&#x3C;version> (頻繁更新、月単位)</span></span>
+<span class="line"><span>                  ↓</span></span>
+<span class="line"><span>container 起動 → onCreate → postCreate (npm install + .config.json)</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>要素</th><th>役割</th><th>Harmony での設定</th></tr></thead><tbody><tr><td><code>build</code></td><td>overlay Dockerfile を build</td><td><code>.devcontainer/Dockerfile</code> (FROM = ghcr.io の base image)</td></tr><tr><td>base image</td><td>稀更新の重い install を内包</td><td><code>ghcr.io/csilost2001/harmony-devcontainer-base:&#x3C;version></code> (#1118 Phase 2、#1120 Phase 5 で features inline 追加)</td></tr><tr><td><code>features</code></td><td>(Phase 5 で廃止) ツール後付け (宣言的)。Dev Containers の features は image build 後に apply されるため ghcr に含まれず cold start オーバーヘッド (~50-60 秒 on Note PC) を発生させていたため base image inline に移行。さらに features は user RUN の下流に置かれる仕様のため overlay 変更 (codex 月 bump 等) で全 feature が再 install される構造的不利あり (#1122 で計測確認、rebuild +35-40 秒)</td><td>(使用しない)</td></tr><tr><td><code>postCreateCommand</code></td><td>プロジェクト固有 setup</td><td><code>npm install</code> (frontend + backend) + <code>.claude/.config.json</code> 初期化のみ (軽量)</td></tr></tbody></table>
+<p>「重い + 共通」→ base image (ghcr、Phase 5 以降は CLI 系も含む) / 「source 依存」→ postCreateCommand、という指針。Phase 4 まで使用していた features 機構は ghcr publish に含まれない制約で廃止 (Phase 5)。docker CLI は #1122 で構成比較した結果、Maintainer 専用機能 (publish-dev-image、年数回) のためだけに常時コストを払う設計を見直し、host 実行運用に切替て base image から除外 (P5b 採用)。</p>
+<p>Phase 0 (postCreate やめて Dockerfile 化) で warm rebuild 56→15 秒 (Ryzen) / 94→21 秒 (Note PC)、Phase 1 (base + overlay 階層化) で codex 更新時の base 再 build 回避、Phase 2 (ghcr 配布) で新規開発者の cold start を大幅短縮 (Playwright DL 不要)。</p>
+<p>詳細: ISSUE <a href="https://github.com/csilost2001/harmony/issues/1118">#1118</a> / <a href="/setup/distribution-roadmap/"><code>distribution-roadmap.md</code></a>。</p>
+<h2 id="maintainer-base-image-の更新と-publish-1118-phase-2">Maintainer: base image の更新と publish (#1118 Phase 2)</h2>
+<p>base image (<code>ghcr.io/csilost2001/harmony-devcontainer-base:&#x3C;version></code>) を更新するのは maintainer のみ。<strong>頻度は数ヶ月に 1 回程度</strong> (Playwright メジャー / マイナー更新、Node メジャー更新、Debian release 切替時)。</p>
+<blockquote>
+<p><strong>本セクションは maintainer 限定</strong>。通常の Harmony 開発者・利用者は読まなくて良い。<code>/publish-dev-image &#x3C;version></code> AI skill は <strong>host bash で実行</strong> すること (#1122 で container 内 docker CLI 廃止のため、Dev Container 内からは実行不可。Claude Code が container 内から呼ばれた場合は利用者に host 実行を依頼する)。</p>
+</blockquote>
+<h3 id="初回セットアップ-1-回だけ">初回セットアップ (1 回だけ)</h3>
+<ol>
+<li>
+<p><strong>GitHub PAT 発行</strong> — <a href="https://github.com/settings/tokens/new">https://github.com/settings/tokens/new</a></p>
+<ul>
+<li>Note: <code>harmony-devcontainer-ghcr</code> (任意)</li>
+<li>Expiration: 90 days 推奨</li>
+<li>Scope: <strong><code>write:packages</code></strong> にチェック (<code>read:packages</code> も自動付与)</li>
+<li><strong>Generate token</strong> 押下 → <code>ghp_xxxxxxxx...</code> 文字列をコピー (このページを離れると二度と見られない)</li>
+</ul>
+</li>
+<li>
+<p><strong>WSL2 ターミナルで Docker login</strong> (Dev Container 内ではなく <strong>host 側</strong>で実行):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> login</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ghcr.io</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -u</span><span style="color:#D73A49;--shiki-dark:#F47067"> &#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">github-usernam</span><span style="color:#24292E;--shiki-dark:#ADBAC7">e</span><span style="color:#D73A49;--shiki-dark:#F47067">></span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># Password に上記 PAT を貼り付け → "Login Succeeded"</span></span></code></pre>
+<p>→ <code>~/.docker/config.json</code> に credential が保存され、以降の <code>docker push</code> で再認証不要。</p>
+</li>
+</ol>
+<h3 id="更新手順-毎回">更新手順 (毎回)</h3>
+<ol>
+<li><code>.devcontainer/base/Dockerfile</code> を編集 (Playwright version 更新等)</li>
+<li>WSL2 ターミナルで publish:
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> .devcontainer/scripts/publish-dev-image.sh</span><span style="color:#D73A49;--shiki-dark:#F47067"> &#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">new-versio</span><span style="color:#24292E;--shiki-dark:#ADBAC7">n</span><span style="color:#D73A49;--shiki-dark:#F47067">></span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 例: bash .devcontainer/scripts/publish-dev-image.sh 0.2</span></span></code></pre>
+→ <code>ghcr.io/csilost2001/harmony-devcontainer-base:&#x3C;new-version></code> が push される (数分)</li>
+<li><strong>初回 push 後 1 回だけ</strong>、image を public 設定にする:
+<ul>
+<li>URL: <a href="https://github.com/users/csilost2001/packages/container/harmony-devcontainer-base/settings">https://github.com/users/csilost2001/packages/container/harmony-devcontainer-base/settings</a></li>
+<li><strong>Danger Zone</strong> → <strong>Change package visibility</strong> → <strong>Public</strong></li>
+<li>これをやらないと、他の利用者が pull する時に認証が必要になる</li>
+</ul>
+</li>
+<li><code>.devcontainer/Dockerfile</code> の FROM 行を新 version に更新:
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="dockerfile"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">FROM</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> ghcr.io/csilost2001/harmony-devcontainer-base:&#x3C;new-version></span></span></code></pre>
+</li>
+<li>commit + push</li>
+<li>(任意) Rebuild Container で動作確認 — 初回は ghcr.io から pull (~30 秒)</li>
+</ol>
+<h3 id="fork-ユーザ向け">Fork ユーザ向け</h3>
+<p><code>HARMONY_GHCR_USER</code> 環境変数で自 GitHub username に上書き可能:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">HARMONY_GHCR_USER</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">myusername</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> .devcontainer/scripts/publish-dev-image.sh</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> 0.2</span></span></code></pre>
+<p>(Fork した場合は <code>.devcontainer/Dockerfile</code> の FROM も自 ghcr URL に置換が必要)</p>
+<h3 id="local-動作確認用-ghcr-に-push-しない">Local 動作確認用 (ghcr に push しない)</h3>
+<p><code>.devcontainer/scripts/build-base.sh</code> で local build のみ:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> .devcontainer/scripts/build-base.sh</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># → harmony-devcontainer-base:local タグの image が local に作られる</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># overlay FROM を一時的に :local に書き換えて Rebuild すればテスト可</span></span></code></pre>
+<p>通常は publish-dev-image.sh が build + push まで一気にやるので不要。push 前の dry-run 用。</p>
+<h2 id="トラブルシューティング">トラブルシューティング</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>症状</th><th>原因 / 対処</th></tr></thead><tbody><tr><td><code>Reopen in Container</code> ポップアップが出ない</td><td><code>.devcontainer/devcontainer.json</code> がリポジトリ root にあるか確認。<code>Ctrl+Shift+P</code> → <code>Dev Containers: Reopen in Container</code> を手動実行</td></tr><tr><td>初回 build が完了しない / network エラー</td><td>Docker Desktop が起動しているか / インターネット接続 / 社内 proxy 設定。<code>docker pull mcr.microsoft.com/devcontainers/typescript-node:20</code> を WSL2 シェルで先に試す</td></tr><tr><td><code>postCreateCommand</code> で <code>npm install</code> が失敗</td><td>bind mount された <code>node_modules</code> (WSL2 native で install したもの) が container と互換性なく失敗するケースあり。一度 WSL2 側で <code>rm -rf frontend/node_modules backend/node_modules</code> してから rebuild container</td></tr><tr><td>Playwright browsers の install が遅い / 失敗</td><td>postCreateCommand の <code>playwright install --with-deps chromium</code> で 3-5 分。完全 offline 環境では失敗。スキップしたい時は <code>.devcontainer/devcontainer.json</code> の postCreateCommand から該当行を削除</td></tr><tr><td>Vite HMR がブラウザに反映されない</td><td>bind mount + inotify の問題。<code>frontend/vite.config.ts</code> の watch options に <code>{ usePolling: true, interval: 100 }</code> を追加。または container 内で <code>export CHOKIDAR_USEPOLLING=1</code></td></tr><tr><td>port 5173 / 5179 が forward されない</td><td>VSCode 下部の <code>PORTS</code> パネルで forward 状態を確認。<code>portsAttributes</code> で auto-forward 設定済</td></tr><tr><td><code>~/.gitconfig</code> / <code>~/.ssh/</code> が container 内で使えない</td><td>Dev Containers は通常ホストの <code>~/.gitconfig</code> / <code>~/.ssh/</code> を mount するが、必要なら <code>mounts</code> 設定追加。<code>gh auth login</code> を container 内で再実行する手もあり</td></tr><tr><td><code>codex login</code> / <code>claude</code> 起動で <code>Permission denied (os error 13)</code></td><td>Named volume mount target (<code>/home/node/.claude</code> / <code>.codex</code>) の所有権が root になっている。<code>devcontainer.json</code> の <code>onCreateCommand</code> で <code>sudo chown -R node:node</code> を実行する仕組みあり (container 新規作成時 1 回だけ走る)。手動で直す場合: <code>sudo chown -R node:node ~/.claude ~/.codex</code></td></tr><tr><td>backend 起動時に <code>port 5179 already in use</code></td><td>WSL2 native 側で backend が動いている。<code>pkill -f tsx</code> で WSL2 native プロセスを停止してから container 内で起動</td></tr><tr><td>Claude Code が container 内で MCP に繋がらない</td><td><code>.mcp.json</code> の <code>http://localhost:5179/mcp</code> は container 内では localhost = container 自身。backend が container 内で <code>npm run dev</code> 起動中であることを確認</td></tr><tr><td>container が起動するが永続化が消える</td><td>host subdir bind mount が正しく動いていない。<code>ls ~/.agent-containers/&#x3C;project>/.claude/</code> で host 側にファイルがあるか確認。空なら旧 Named Volume からの migration 未完了の可能性 — 本 doc「Named Volume からの migration」節参照。VSCode <code>Dev Containers: Show Container Log</code> で mount エラーも確認</td></tr><tr><td>rebuild の度に Claude が wizard を要求する</td><td><code>~/.agent-containers/&#x3C;project>/.claude/.config.json</code> が host に無い (postCreateCommand 未実行/失敗) → 本 doc「3. データ永続化」節を参照</td></tr><tr><td>Claude が <code>/login</code> を要求する (<code>.credentials.json</code> あるのに)</td><td>refreshToken が expire (典型 60〜90 日) → container 内で <code>claude /login</code> を再実行してブラウザ OAuth</td></tr><tr><td>Remote Control failed to connect: Session creation failed</td><td>過去の構成で <code>CLAUDE_CODE_OAUTH_TOKEN</code> env var が残っているか確認: <code>echo $CLAUDE_CODE_OAUTH_TOKEN</code> (container 内)。本構成では <code>devcontainer.json</code> の <code>containerEnv</code> から削除済みだが、user 個人の <code>.bashrc</code> 等で設定していると container にも漏れる可能性。env var はクリアして rebuild</td></tr><tr><td>rebuild の度に <code>ccd</code> / <code>cdx</code> 等の個人 alias が消える</td><td>VS Code user settings.json に <code>dotfiles.repository</code> / <code>dotfiles.installCommand</code> の 3 行が未設定。本 doc「個人 alias: VS Code 公式 dotfiles 機能」節を参照</td></tr><tr><td>Docker Desktop ライセンスを使いたくない</td><td>rootless Docker (<code>apt install docker.io</code> を WSL2 内) でも動作。ただし Windows ホストからの port forward に追加設定要</td></tr></tbody></table>
+<h2 id="ci-連携-将来">CI 連携 (将来)</h2>
+<p>Dev Containers の image を CI でも使うと、ローカル / CI 完全一致が達成できる。本リポジトリは現状 CI 未導入だが、将来的に検討する場合は <a href="https://github.com/devcontainers/cli"><code>@devcontainers/cli</code></a> を CI で使い、image build + 内部コマンド実行をスクリプト化できる。</p>
+<h2 id="generate-code-出力アプリへの同梱-1048"><code>/generate-code</code> 出力アプリへの同梱 (#1048)</h2>
+<p>本 doc は <strong>Harmony 本体</strong> (Harnize Harmony 自身の開発環境) の Dev Containers 設定について解説する。</p>
+<p><code>/generate-code</code> skill が出力する<strong>業務アプリ</strong>には、同じ思想 (pre-build しない、MS 公式 base image + features 構成) で <code>.devcontainer/devcontainer.json</code> + <code>Dockerfile</code> + <code>docker-compose.yml</code> を同梱する (#1048)。techStack 4 組合せ (spring-boot × thymeleaf / nextjs、nestjs × thymeleaf / nextjs) のテンプレが <code>ai-skills/generate-code/templates/devcontainer/</code> 配下に配置されており、<code>/generate-code</code> 実行時に techStack を判定して該当テンプレをコピー出力する。詳細は <a href="/setup/SKILL/"><code>SKILL.md</code> Step 5.5</a> を参照。</p>
+<p><strong><code>&#x3C;出力先></code> の運用想定</strong>: <code>/generate-code &#x3C;id> &#x3C;出力先></code> の <code>&#x3C;出力先></code> は <strong>業務アプリ project root</strong> を指す (project-root model)。Harmony 利用者は意味のある folder 名 (例: <code>~/projects/retail-app/</code>) を独立した project root として作り、それを <code>&#x3C;出力先></code> に指定して VS Code / Dev Container で開く。<code>examples/&#x3C;id>/generated/&#x3C;techStack>/</code> は Harmony 同梱サンプル / dogfood 参照物であり、常用の project root として開く運用は想定しない (<code>${localWorkspaceFolderBasename}</code> が <code>generated</code> で衝突するため)。詳細は <a href="/setup/SKILL/"><code>SKILL.md</code> Step 5.5</a> の「出力先の運用想定 (project-root model)」を参照。設定駆動 (<code>harmony.json</code> の <code>outputDir</code> 等) は <a href="https://github.com/csilost2001/harmony/issues/1116">#1116</a> で検討中。</p>
+<h2 id="関連ドキュメント">関連ドキュメント</h2>
+<ul>
+<li><a href="/setup/AGENTS/"><code>AGENTS.md</code></a> — プロジェクト全般のガイダンス</li>
+<li><a href="/setup/CLAUDE/"><code>CLAUDE.md</code></a> — Claude Code 固有</li>
+<li><a href="/setup/wsl2-native/"><code>wsl2-native.md</code></a> — WSL2 native セットアップ手順 (代替パターン)</li>
+<li><a href="/setup/distribution-roadmap/"><code>distribution-roadmap.md</code></a> — Harmony 本体の Docker image 配布構想 (#1055 L2/L3)</li>
+<li>ISSUE <a href="https://github.com/csilost2001/harmony/issues/847">#847</a> — Dev Containers 移行 roadmap</li>
+<li>ISSUE <a href="https://github.com/csilost2001/harmony/issues/1048">#1048</a> — <code>/generate-code</code> 出力アプリへの Dev Containers 同梱 (#847 B セクション)</li>
+</ul>
+<h2 id="改訂履歴">改訂履歴</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>日付</th><th>改訂内容</th></tr></thead><tbody><tr><td>2026-05-12</td><td>初版 (#847 A セクション着手)</td></tr><tr><td>2026-05-12</td><td><code>/generate-code</code> 出力アプリへの同梱方針セクション追記 (#1048)</td></tr><tr><td>2026-05-14</td><td>#1097 で AI CLI 永続化を完全再設計: host bind mount (<code>~/.agent-containers/&#x3C;project>/</code>) + <code>.config.json</code> workaround + <code>.credentials.json</code> 経由 auth。<code>CLAUDE_CODE_OAUTH_TOKEN</code> env var / symlink トリック / <code>${devcontainerId}</code> named volume 等の中間試行は全撤去。詳細は本節「TL;DR — 本環境の構成」参照</td></tr><tr><td>2026-05-15</td><td>Dev Containers を「推奨」に明示昇格 (#1109)。Quick Start 直後に「ホスト側に何が作られるか」+「初回 OAuth 1 回」セクション追加。「Phase 1」「並行運用可」「両モード併用が標準」等の WSL2 native と並列のトーンを「推奨は Dev Containers、WSL2 native も代替として valid」に再整理。<code>wsl2-docker-migration.md</code> → <code>wsl2-native.md</code> / <code>distribution-roadmap.md</code> リンク更新</td></tr></tbody></table>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

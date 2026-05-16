@@ -1,0 +1,459 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>dogfood 2026 05 05 multi editor puck</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link active"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="dogfood-レポート--マルチエディタ--puck--cssframework-検証-2026-05-05">dogfood レポート — マルチエディタ / Puck × cssFramework 検証 (2026-05-05)</h1>
+<h2 id="概要">概要</h2>
+<ul>
+<li><strong>対象</strong>: #806 マルチエディタ対応 (Puck 併設) シリーズ — 子 6 dogfood</li>
+<li><strong>目的</strong>: Puck × Tailwind / Puck × Bootstrap の 2 軸を小規模サンプルで実証
+<ul>
+<li>共通レイアウト props の semantic → utility class マッピングが正しく動作するか</li>
+<li>cssFramework 切替で同じ Puck Data から異なる class が生成されるか</li>
+<li>動的コンポーネント (<code>puck-components.json</code>) の定義が読み込まれるか</li>
+<li>E2E spec (puck-editor.spec.ts) の構造的整合性確認</li>
+</ul>
+</li>
+<li><strong>日付</strong>: 2026-05-05</li>
+<li><strong>対象サンプル</strong>:
+<ul>
+<li><code>workspaces/dogfood-puck-tailwind-2026-05-05/</code> (Puck × Tailwind)</li>
+<li><code>workspaces/dogfood-puck-bootstrap-2026-05-05/</code> (Puck × Bootstrap)</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="シナリオ-お問い合わせフォーム画面">シナリオ: お問い合わせフォーム画面</h2>
+<p>両サンプルで同一の Puck Data 構造を持つ「お問い合わせフォーム」画面を検証した。<br>
+画面構成: Section → Heading (center/primary) → Paragraph (center/muted) → Container (card形式) → Input × 2 → Select → Textarea → Button (right)</p>
+<h3 id="検証ポイント">検証ポイント</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>内容</th></tr></thead><tbody><tr><td>A</td><td>同一 Puck Data (semantic props) から cssFramework 別の class が生成されるか</td></tr><tr><td>B</td><td><code>align: "right"</code> の Button が右側に配置されるか</td></tr><tr><td>C</td><td><code>bgAccent: "primary-soft"</code> が Tailwind / Bootstrap で異なる class になるか</td></tr><tr><td>D</td><td><code>puck-components.json</code> のカスタムコンポーネント定義が読み込まれるか</td></tr><tr><td>E</td><td>AJV schema 検証 (vitest) を pass するか</td></tr></tbody></table>
+<hr>
+<h2 id="puck--tailwind-検証結果">Puck × Tailwind 検証結果</h2>
+<h3 id="期待-utility-class-出力-仕様-docsspecmulti-editor-puckmd--26">期待 utility class 出力 (仕様: docs/spec/multi-editor-puck.md § 2.6)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>prop</th><th>値</th><th>期待出力 class</th></tr></thead><tbody><tr><td>heading / align</td><td>center</td><td><code>text-center</code></td></tr><tr><td>heading / colorAccent</td><td>primary</td><td><code>text-blue-600</code></td></tr><tr><td>paragraph / colorAccent</td><td>muted</td><td><code>text-gray-500</code></td></tr><tr><td>container / bgAccent</td><td>white</td><td><code>bg-white</code></td></tr><tr><td>container / border</td><td>default</td><td><code>border</code></td></tr><tr><td>container / shadow</td><td>md</td><td><code>shadow-md</code></td></tr><tr><td>container / rounded</td><td>lg</td><td><code>rounded-lg</code></td></tr><tr><td>container / padding</td><td>xl</td><td><code>p-8</code></td></tr><tr><td>section / bgAccent</td><td>primary-soft</td><td><code>bg-blue-50</code></td></tr><tr><td>button / align</td><td>right</td><td><code>text-right</code></td></tr></tbody></table>
+<h3 id="検証結果サマリ">検証結果サマリ</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>結果</th><th>備考</th></tr></thead><tbody><tr><td>A. cssFramework 分岐</td><td>OK</td><td>CssFrameworkContext 経由で tailwind マッピングが適用される実装を確認</td></tr><tr><td>B. align=right 右寄せ</td><td>OK</td><td><code>text-right</code> が期待通り出力される mapping 実装 (tailwind.ts:align)</td></tr><tr><td>C. primary-soft → <code>bg-blue-50</code></td><td>OK</td><td>bootstrap.ts と tailwind.ts で分岐 (<code>bg-primary-subtle</code> vs <code>bg-blue-50</code>)</td></tr><tr><td>D. puck-components.json 読込</td><td>OK</td><td><code>primitive: "card"</code> が BUILTIN_PRIMITIVE_NAMES に含まれる</td></tr><tr><td>E. AJV schema pass</td><td>OK</td><td>vitest 1488/1488 pass</td></tr></tbody></table>
+<hr>
+<h2 id="puck--bootstrap-検証結果">Puck × Bootstrap 検証結果</h2>
+<h3 id="期待-utility-class-出力-bootstrap-5">期待 utility class 出力 (Bootstrap 5)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>prop</th><th>値</th><th>期待出力 class</th></tr></thead><tbody><tr><td>heading / align</td><td>center</td><td><code>text-center</code></td></tr><tr><td>heading / colorAccent</td><td>primary</td><td><code>text-primary</code></td></tr><tr><td>paragraph / colorAccent</td><td>muted</td><td><code>text-muted</code></td></tr><tr><td>container / bgAccent</td><td>white</td><td><code>bg-white</code></td></tr><tr><td>container / border</td><td>default</td><td><code>border</code></td></tr><tr><td>container / shadow</td><td>md</td><td><code>shadow</code></td></tr><tr><td>container / rounded</td><td>lg</td><td><code>rounded-3</code></td></tr><tr><td>container / padding</td><td>xl</td><td><code>p-5</code></td></tr><tr><td>section / bgAccent</td><td>primary-soft</td><td><code>bg-primary-subtle</code></td></tr><tr><td>button / align</td><td>right</td><td><code>text-end</code></td></tr></tbody></table>
+<h3 id="検証結果サマリ-1">検証結果サマリ</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>結果</th><th>備考</th></tr></thead><tbody><tr><td>A. cssFramework 分岐</td><td>OK</td><td>bootstrap マッピングが適用される実装を確認</td></tr><tr><td>B. align=right 右寄せ</td><td>OK</td><td>Bootstrap では <code>text-right</code> ではなく <code>text-end</code> (Bootstrap 5 規約)</td></tr><tr><td>C. primary-soft → <code>bg-primary-subtle</code></td><td>OK</td><td>Bootstrap 5 の subtle カラー utility</td></tr><tr><td>D. puck-components.json 読込</td><td>OK</td><td>同一定義が両サンプルで共通利用可能</td></tr><tr><td>E. AJV schema pass</td><td>OK</td><td>vitest 1488/1488 pass</td></tr></tbody></table>
+<h3 id="tailwind-vs-bootstrap-出力比較">Tailwind vs Bootstrap 出力比較</h3>
+<p>同じ <code>align: "right"</code> に対して:</p>
+<ul>
+<li>Tailwind: <code>text-right</code></li>
+<li>Bootstrap 5: <code>text-end</code></li>
+</ul>
+<p>これは仕様 (docs/spec/multi-editor-puck.md § 2.6) に記載された期待通りの差異。<br>
+Puck Data (<code>puck-data.json</code>) は <code>"align": "right"</code> という semantic 値を保持し、cssFramework に依存しない。</p>
+<hr>
+<h2 id="動的コンポーネント登録検証">動的コンポーネント登録検証</h2>
+<h3 id="テスト定義">テスト定義</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"contact-form-group"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"お問い合わせフォームグループ"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "primitive"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"card"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "propsSchema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "title"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"default"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"お問い合わせ"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "submitLabel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"default"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"送信する"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "showCategory"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"boolean"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"default"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="結果">結果</h3>
+<ul>
+<li><code>primitive: "card"</code> は <code>BUILTIN_PRIMITIVE_NAMES</code> に含まれる → OK</li>
+<li><code>type: "string"</code> / <code>type: "boolean"</code> の propsSchema は <code>buildConfigWithCustomComponents()</code> で Puck fields に変換される → OK</li>
+<li><code>type: "enum"</code> フィールドが無くても <code>type: "boolean"</code> で radio フィールドが生成される → OK</li>
+</ul>
+<hr>
+<h2 id="e2e-spec-構造確認">E2E spec 構造確認</h2>
+<p><code>frontend/e2e/puck-editor.spec.ts</code> の 7 テストシナリオの構造的整合性を確認した。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>シナリオ</th><th>目的</th><th>検証方式</th></tr></thead><tbody><tr><td>1. Puck デザイナ描画</td><td>editorKind=puck で Puck UI が表示されるか</td><td><code>.Puck</code> セレクタの visibility</td></tr><tr><td>2. パレット表示</td><td>コンポーネントパレットが存在するか</td><td>HTML content に Puck 関連マークアップが含まれるか</td></tr><tr><td>3. 既存データ表示</td><td>puck-data.json が読み込まれるか</td><td>localStorage fallback + Puck マウント確認</td></tr><tr><td>4. 保存と復元</td><td>reload 後も状態が維持されるか</td><td>reload 後の URL 確認</td></tr><tr><td>5. GrapesJS/Puck 混在</td><td>同一プロジェクトで両エディタが使えるか</td><td>各 screenId へのナビゲーション</td></tr><tr><td>6a/6b. cssFramework 両方</td><td>致命的エラーなく表示されるか</td><td>console.error の検出</td></tr><tr><td>7. 動的コンポーネントダイアログ</td><td>ダイアログが存在するか</td><td>ボタン + dialog の visibility</td></tr></tbody></table>
+<p>注意: Puck の実際の DnD 操作は Playwright でセレクタが確定しにくいため、基本的な rendering の確認に留めている。より詳細な DnD 操作は playwright のドラッグ API で追加可能。</p>
+<hr>
+<h2 id="screen-entity-ファイル-sh-3--m-4-修正">Screen Entity ファイル (Sh-3 / M-4 修正)</h2>
+<p>各 dogfood サンプルの <code>screens/&#x3C;id>/screen.json</code> (Screen Entity) を追加した (PR #813 Opus レビュー Sh-3/M-4 対応)。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル</th><th>内容</th></tr></thead><tbody><tr><td><code>workspaces/dogfood-puck-tailwind-2026-05-05/screens/d06f00d0-0001-4000-8000-000000000011/screen.json</code></td><td><code>editorKind: "puck"</code>, <code>cssFramework: "tailwind"</code>, <code>puckDataRef: "puck-data.json"</code></td></tr><tr><td><code>workspaces/dogfood-puck-bootstrap-2026-05-05/screens/d06f00d0-0002-4000-8000-000000000022/screen.json</code></td><td><code>editorKind: "puck"</code>, <code>cssFramework: "bootstrap"</code>, <code>puckDataRef: "puck-data.json"</code></td></tr></tbody></table>
+<p>これにより <code>validatePuckScreen()</code> が <code>puckDataRef</code> 不在エラーを発火しなくなる。</p>
+<hr>
+<h2 id="視覚検証-wysiwyg-リアルタイム反映-について">視覚検証 (WYSIWYG リアルタイム反映) について</h2>
+<p>仕様書 §10 受け入れ基準:「dogfood 2 sample で各々 1 画面作成、<strong>両方とも WYSIWYG リアルタイム反映を視覚検証</strong>」</p>
+<p><strong>現状</strong>: 本 dogfood レポートは実装コードの fact-check (マッピング実装・AJV検証) に基づく確認であり、実機 dev server (npm run dev) を起動してブラウザで Puck UI を操作した視覚検証は実施していない。</p>
+<p><strong>理由</strong>: CI / Windows 環境での Playwright ヘッドレスブラウザによる Puck DnD 操作の自動化は、Puck 内部セレクタの不確定性により技術的困難がある。</p>
+<p><strong>代替確認</strong>: vitest 1488/1488 pass + E2E 構造確認 (puck-editor.spec.ts 7 シナリオ) + コード level の実装 fact-check で代替している。実機視覚検証は dev server 起動可能な環境で別途実施することを推奨する。</p>
+<hr>
+<h2 id="既知-issue--改善候補">既知 issue / 改善候補</h2>
+<ol>
+<li><del><strong>Puck canvas のセレクタが確定していない</strong>: puck-editor.spec.ts では <code>.Puck</code> / <code>[class*='Puck']</code> 等の柔軟なセレクタを使用しているが、Puck の実装によりクラス名が変わる可能性がある。<code>data-testid</code> 属性を追加すると E2E がより安定する</del> → <strong>[x] 解消済み (本 PR)</strong>: 全 20 Puck primitive の outermost 要素に <code>data-testid="puck-primitive-&#x3C;name>"</code> を追加 (例: <code>puck-primitive-button</code>, <code>puck-primitive-card</code> など)</li>
+<li><strong>DnD のテストが欠落</strong>: 仕様書には「左パレットからドロップ」が要件として記載されているが、Puck 内部の DnD ライブラリのセレクタが特殊なため E2E では省略した。手動 smoke test で補完が必要 → <strong>[~] 部分対応 (#814)</strong>: pointer event simulation による <code>dragPrimitiveTo</code> helper を <code>frontend/e2e/helpers/puck.ts</code> に実装。<code>puck-dnd.spec.ts</code> で Heading / Button の DnD test を追加したが、@dnd-kit の pointer event activation が Playwright の simulated pointer events で安定して発火しないため <code>test.skip</code> フォールバック付き。本格的な DnD 自動化は別 ISSUE 候補</li>
+<li><strong>右プロパティパネルの直接操作テスト欠落</strong>: <code>align: "right"</code> を右プロパティパネルで選んだ際の即時反映は、Puck 内部の props 変更 → re-render フローを Playwright で追うのが難しい → <strong>[~] helper のみ対応 (#814)</strong>: <code>setPuckFieldText</code> / <code>setPuckFieldSelect</code> helper を実装し <code>puck-property-panel.spec.ts</code> を追加したが、MCP オフライン環境では <code>PuckBackend.load()</code> が <code>EMPTY_PUCK_DATA</code> を返す制約 (§ A-S-2) のため、配置済 primitive を選択するシナリオが成立せず <code>test.skip</code> フォールバックになる。MCP 起動環境での実機検証が必要</li>
+<li><strong>visual regression baseline (#814)</strong>: <code>puck-visual-regression.spec.ts</code> で Bootstrap / Tailwind 両 framework の chrome (sub-toolbar / 左パレット / 右プロパティパネル + Page root field / theme CSS) を <code>toHaveScreenshot()</code> で比較。MCP オフライン制約により canvas は EMPTY だが chrome regression 検出には十分有効。Windows / Chromium / 1280x720 baseline を commit 済</li>
+</ol>
+<hr>
+<h2 id="評価サマリ">評価サマリ</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>評価観点</th><th>5段階</th><th>コメント</th></tr></thead><tbody><tr><td>Puck UI 描画の安定性</td><td>4/5</td><td>MCP 不接続でも localStorage fallback で動作する</td></tr><tr><td>cssFramework 分岐の正確性</td><td>5/5</td><td>Tailwind/Bootstrap で期待通りの class が生成される</td></tr><tr><td>動的コンポーネント登録の完成度</td><td>4/5</td><td>primitive 名の検証あり、型変換も動作</td></tr><tr><td>E2E カバレッジ</td><td>3/5</td><td>基本描画は検証。DnD/プロパティ変更は手動補完が必要</td></tr><tr><td>仕様書との整合性</td><td>5/5</td><td>docs/spec/multi-editor-puck.md § 2.3/2.6/4.1 に準拠</td></tr><tr><td>AJV schema 検証</td><td>5/5</td><td>vitest 1488/1488 pass</td></tr><tr><td>Screen Entity ファイル完備</td><td>5/5</td><td>screen.json + puck-data.json が両サンプルで揃った (Opus レビュー Sh-3/M-4 対応)</td></tr></tbody></table>
+<p><strong>総合評価: 受け入れ基準の主要項目を満たす。DnD/WYSIWYG リアルタイム反映の実機視覚検証は dev server 起動環境で別途実施を推奨。</strong></p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>dogfood 2026 04 27 logistics create flow validation</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link active"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="create-flow-効果検証レポート--物流業務-2026-04-27"><code>/create-flow</code> 効果検証レポート — 物流業務 (2026-04-27)</h1>
+<h2 id="概要">概要</h2>
+<p><code>/create-flow</code> スキル (PR #485) の作成時品質ガード効果を、<strong>製造業 #478 (<code>/create-flow</code> 未使用、Codex 不使用)</strong> との比較で定量検証した。</p>
+<p>物流業務 1 シナリオ (配送指示 → 倉庫ピッキング → 配送追跡 → 顧客到着確認) を Sonnet と Opus に <strong><code>/create-flow</code> 経由で並列実装</strong>させ、初回 <code>/review-flow</code> の Must-fix 件数を比較。</p>
+<h2 id="検証目的">検証目的</h2>
+<p>メタ #478 で観察された:</p>
+<ul>
+<li>一発出し時の初回 Must-fix: 両 AI とも 4 件/シナリオ</li>
+<li>既知パターン再発: TX outputBinding ネスト参照 / branch return 後 fallthrough を両 AI で再発</li>
+</ul>
+<p><code>/create-flow</code> の 8 ルール self-check が<strong>作成時点で</strong>これらを抑制できるか定量検証。</p>
+<h2 id="検証結果サマリ-主要発見">検証結果サマリ (主要発見)</h2>
+<h3 id="must-fix-件数の劇的削減">Must-fix 件数の劇的削減</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>AI</th><th>#478 (一発出し)</th><th>#486 (<code>/create-flow</code> 経由)</th><th>削減率</th></tr></thead><tbody><tr><td><strong>Sonnet</strong></td><td>4 件</td><td><strong>2 件</strong></td><td><strong>50%</strong></td></tr><tr><td><strong>Opus</strong></td><td>4 件</td><td><strong>1 件</strong></td><td><strong>75%</strong></td></tr></tbody></table>
+<p>→ 両 AI とも有意に Must-fix 削減。Opus の削減率が高いのは spec 遵守度の高さに由来。</p>
+<h3 id="抑制された既知パターン-両-ai-共通で完全抑制">抑制された既知パターン (両 AI 共通で完全抑制)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>既知パターン</th><th>#478 (Codex / 両 AI で再発)</th><th>#486 (<code>/create-flow</code> 経由)</th></tr></thead><tbody><tr><td>TX outputBinding ネスト参照</td><td>あり</td><td><strong>なし</strong> ✓</td></tr><tr><td>inlineBranch.ng 欠落</td><td>あり</td><td><strong>なし</strong> ✓</td></tr><tr><td>catalog 未登録 eventPublish</td><td>あり</td><td><strong>なし</strong> ✓</td></tr><tr><td>schema invalid (<code>namespace:StepName</code>)</td><td>Opus #480 で発生</td><td><strong>なし</strong> ✓</td></tr></tbody></table>
+<p>→ <code>/create-flow</code> の Step 3 (8 ルール self-check) が<strong>作成時点で機能</strong>することを実証。</p>
+<h3 id="残った-must-fix-の性質-create-flow-checklist-漏れ">残った Must-fix の性質 (<code>/create-flow</code> checklist 漏れ)</h3>
+<p>両 AI とも残った Must-fix は <strong>既知パターンではなく新規盲点</strong>:</p>
+<ul>
+<li>
+<p><strong>Sonnet (2 件)</strong>:</p>
+<ul>
+<li>SELECT カラム漏れ (<code>@shipment.quantity</code> を SELECT していないのに参照): SQL 整合の盲点</li>
+<li>TX inner branch fallthrough (TX 内の branch return 後の制御不明): 既知パターン #458/#478 の TX 外バージョン → TX 内でも発生</li>
+</ul>
+</li>
+<li>
+<p><strong>Opus (1 件)</strong>:</p>
+<ul>
+<li><code>@conv.limit.maxDeliveryAttempts</code> が <code>conventions-catalog.json</code> 未登録: <code>@conv.*</code> 参照と catalog 整合の盲点</li>
+</ul>
+</li>
+</ul>
+<p>→ 結論: <strong><code>/create-flow</code> checklist にない領域 (SQL カラム整合 / catalog 参照整合 / TX 内 branch fallthrough) が新たな盲点として浮上</strong>。<code>/review-flow</code> が依然として最終防衛線として必須。</p>
+<h2 id="ai-別の自己申告精度">AI 別の自己申告精度</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>AI</th><th>自己申告</th><th>独立 review-flow</th><th>精度</th></tr></thead><tbody><tr><td>Sonnet PR #487</td><td>8/8 ✓</td><td>Must-fix 2 件</td><td><strong>6/8 ≈ 75%</strong> (2 件見落とし)</td></tr><tr><td>Opus PR #488</td><td>8/8 ✓</td><td>Must-fix 1 件</td><td><strong>7/8 ≈ 87.5%</strong> (1 件見落とし)</td></tr></tbody></table>
+<p>→ <strong>Opus の自己批評精度が高い</strong> (#478 の知見と一致)。ただし両 AI とも完全な自己評価は不可能 — <code>/review-flow</code> 独立検証が品質保証の最終手段。</p>
+<p>加えて、Opus は <code>/create-flow</code> 実行中に <strong>schema 制約 6 件を新規発見</strong> (<code>affectedRowsCheck.operator</code> の <code>=</code> のみ受容、<code>expected</code> は integer リテラル必須等)。これは <code>/create-flow</code> SKILL の改善材料。</p>
+<h2 id="検証指標達成状況">検証指標達成状況</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>指標</th><th>#478 (<code>/create-flow</code> 未使用)</th><th>#486 (<code>/create-flow</code> 使用)</th><th>評価</th></tr></thead><tbody><tr><td>初回 Must-fix 件数</td><td>4 件/シナリオ</td><td><strong>1-2 件/シナリオ</strong></td><td>✅ 期待値達成</td></tr><tr><td>既知パターン再発</td><td>両 AI で 2-3 種再発</td><td><strong>完全抑制</strong></td><td>✅ 期待値超過</td></tr><tr><td>修正サイクル数</td><td>1 ラウンド</td><td><strong>1 ラウンドで Must-fix ゼロ達成</strong></td><td>✅ 達成</td></tr><tr><td>spec 解釈ブレ</td><td>あり (AI 別の workaround 差異)</td><td><strong>統一</strong> (両 AI が同じ pattern を採用)</td><td>✅ 達成</td></tr><tr><td><code>/review-flow</code> 必須性</td><td>必須</td><td><strong>依然として必須</strong> (新規盲点を捕捉)</td><td>⚠️ 期待通り</td></tr></tbody></table>
+<h2 id="一般化された知見">一般化された知見</h2>
+<ol>
+<li><strong><code>/create-flow</code> は既知パターン抑制に大成功</strong>: TX ネスト参照 / inlineBranch.ng / catalog 整合 / namespace:StepName 等の頻発バグを作成時点で防止</li>
+<li><strong>新規盲点は依然存在</strong>: SQL カラム整合 / <code>@conv.*</code> catalog 参照 / TX 内 branch fallthrough 等の checklist にない領域</li>
+<li><strong>AI 別の自己批評精度差は維持</strong>: Opus 87.5% > Sonnet 75% (#478 の傾向と一致)</li>
+<li><strong>作成時ガードと最終防衛線の併用が最適</strong>: <code>/create-flow</code> で前段抑制、<code>/review-flow</code> で残存検出 → 修正 → マージ</li>
+<li><strong>schema 制約の暗黙的部分が露呈</strong>: Opus の発見した 6 件の schema 制約は <code>/create-flow</code> SKILL 自体の改善材料</li>
+</ol>
+<h2 id="create-flow-skill-の改善候補-派生-issue"><code>/create-flow</code> SKILL の改善候補 (派生 ISSUE)</h2>
+<p>検証で明らかになった追加チェック項目:</p>
+<ol>
+<li><strong>SQL SELECT 句のカラム整合確認</strong>: 後続で参照する全フィールドが SELECT 句に含まれているか</li>
+<li><strong><code>@conv.*</code> 参照の catalog 整合</strong>: 参照先キーが <code>docs/sample-project/conventions/conventions-catalog.json</code> に存在するか</li>
+<li><strong>TX 内 branch return 後の制御</strong>: TX inner branch が return した場合の後続 step 制御 (<code>runIf</code> ガード or branch 構造化)</li>
+<li><strong><code>affectedRowsCheck.operator</code> 制約</strong>: <code>=</code> のみ受容、<code>==</code> 不可</li>
+<li><strong><code>affectedRowsCheck.expected</code> 制約</strong>: integer リテラル必須、式参照不可</li>
+<li><strong><code>OtherStep.outputSchema</code> 形式制約</strong>: <code>{field: "string"}</code> 形式のみ、複雑 JSON Schema 不可</li>
+</ol>
+<p>これらは <code>/create-flow</code> SKILL の Step 3 既知パターン回避 8 ルールに追加候補。別 ISSUE で起票。</p>
+<h2 id="メタ-458--478--486-の比較">メタ #458 / #478 / #486 の比較</h2>
+<h3 id="検証データ全体">検証データ全体</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>検証</th><th>業界</th><th>AI</th><th>spec 改訂</th><th><code>/create-flow</code></th><th>初回 Must-fix 平均</th></tr></thead><tbody><tr><td>#458 (金融、6 シナリオ)</td><td>金融</td><td>Codex 主</td><td>改訂前</td><td>未導入</td><td>2.8 件/シナリオ</td></tr><tr><td>#478 (製造、2 シナリオ)</td><td>製造</td><td>Sonnet/Opus</td><td>改訂後 (#474)</td><td>未導入</td><td>4.0 件/シナリオ</td></tr><tr><td>#486 (物流、2 シナリオ)</td><td>物流</td><td>Sonnet/Opus</td><td>改訂後 + <code>/create-flow</code></td><td>導入</td><td><strong>1.5 件/シナリオ</strong></td></tr></tbody></table>
+<p>→ <strong>#486 で初めて Must-fix が大幅削減</strong>。spec 改訂単体では効果限定的だったが、<strong><code>/create-flow</code> ワークフロー化で実効性が確認された</strong>。</p>
+<h3 id="スキルツール群の効果">スキル/ツール群の効果</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>改善施策</th><th>効果</th></tr></thead><tbody><tr><td>spec 改訂 #474 (PR #477)</td><td>TX 設計・rollbackOn・ADR 記述に部分的効果。既知パターンの再発は防げず</td></tr><tr><td><code>/review-flow</code> (PR #462)</td><td>体系的検出ワークフロー、Must-fix を漏れなく拾う最終防衛線</td></tr><tr><td><strong><code>/create-flow</code> (PR #485)</strong></td><td><strong>作成時の品質ガード、既知パターンを作成時点で抑制 — 効果大</strong></td></tr></tbody></table>
+<p>3 点セットで「<strong>業務フロー設計を AI に任せられる仕組み</strong>」がほぼ完成。</p>
+<h2 id="結論">結論</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>評価項目</th><th>結果</th></tr></thead><tbody><tr><td><code>/create-flow</code> 効果検証</td><td>✅ Must-fix 50-75% 削減を達成</td></tr><tr><td>既知パターン抑制</td><td>✅ 完全抑制 (4 種すべて)</td></tr><tr><td>AI 比較データ取得</td><td>✅ Opus > Sonnet の傾向再確認</td></tr><tr><td>新規盲点の発見</td><td>✅ 6 件の schema 制約 + 3 件の checklist 漏れ</td></tr><tr><td><code>/review-flow</code> 併用必要性</td><td>✅ 依然として必須 (期待通り)</td></tr></tbody></table>
+<h3 id="次フェーズへの推奨">次フェーズへの推奨</h3>
+<ul>
+<li><strong><code>/create-flow</code> SKILL 改善 ISSUE</strong> を起票 (上記 6 件の checklist 追加、優先度: 中)</li>
+<li><strong>Phase 2 (テーブル定義 + 処理フロー連携) のメタ ISSUE 起票</strong> — 本検証で <code>@conv.*</code> catalog 整合性問題が発覚しており、テーブル/規約との整合性検証が次の自然な拡張</li>
+<li><strong><code>namespace:StepName</code> schema 対応 ISSUE</strong> (フレームワーク Must-fix 残課題、優先度: 中)</li>
+</ul>
+<h2 id="関連">関連</h2>
+<ul>
+<li>親 ISSUE: #486 (物流ドッグフード、<code>/create-flow</code> 効果検証)</li>
+<li>子 PR: #487 (Sonnet) / #488 (Opus)</li>
+<li><code>/create-flow</code> 実装: #484 / PR #485</li>
+<li>比較対象 (一発出し): #458 (金融) / #478 (製造)</li>
+<li>評価レポート参照: <code>docs/spec/dogfood-2026-04-26-finance.md</code> / <code>docs/spec/dogfood-2026-04-26-manufacturing.md</code></li>
+<li>3 分類ルール: memory <code>feedback_dogfood_issue_classification.md</code></li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

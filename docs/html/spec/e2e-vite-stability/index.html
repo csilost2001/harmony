@@ -1,0 +1,118 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>e2e vite stability</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link active"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="e2e-vite-stabilitymd">e2e-vite-stability.md</h1>
+<p>Vite dev server (port 5173) が e2e batch 実行中に間欠 crash する問題の調査記録 + 既知回避策 (#992)。</p>
+<h2 id="観測症状">観測症状</h2>
+<p><code>collab/* + edit-session/* + edit-mode + ...</code> のような multi browser context 系 spec を batch 実行した際に、<strong>Vite (port 5173) のみが crash</strong> することが #980-A 作業中に観測された。</p>
+<ul>
+<li>crash 後は以降の test 全てが <code>net::ERR_CONNECTION_REFUSED</code> 連鎖 fail</li>
+<li>backend (port 5179) は同時に死なない (= Vite と独立 process)</li>
+<li>ulimit -n: 4096 (FD 不足ではない)</li>
+</ul>
+<h2 id="推定真因">推定真因</h2>
+<p><strong>Playwright の actionability check 失敗 → click retry loop が WS 接続を蓄積 → close handshake 不完了で <code>ws</code> lib が unhandled error を emit → Vite Node プロセス crash</strong> という連鎖。</p>
+<p>実証には至っていないが、以下の上流 issue と症状が一致する:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>上流</th><th>内容</th><th>状態</th></tr></thead><tbody><tr><td><a href="https://github.com/vitejs/vite/issues/11991">vitejs/vite#11991</a></td><td><code>RangeError: Invalid WebSocket frame: invalid status code WS_ERR_INVALID_CLOSE_CODE</code> で Vite が unhandled error 経由で crash</td><td><a href="https://github.com/vitejs/vite/pull/12007">PR #12007</a> で v4 で fix (socket-level error listener 追加)</td></tr><tr><td><a href="https://github.com/vitejs/vite/issues/14177">vitejs/vite#14177</a></td><td>カスタム WebSocketServer 同居時に同じ症状</td><td>open</td></tr><tr><td><a href="https://github.com/vitejs/vite/issues/15688">vitejs/vite#15688</a></td><td>カスタム host/port での <code>RSV1 must be clear</code></td><td>open</td></tr></tbody></table>
+<p>v8 (本プロジェクトが利用中) でも socket-level handler は維持されているはずだが、Playwright multi-context での ungraceful close は別 path を踏む可能性がある。</p>
+<h2 id="980-a-で投入済の-回避策-現在-crash-症状を抑止しているもの">#980-A で投入済の <strong>回避策</strong> (現在 crash 症状を抑止しているもの)</h2>
+<p>以下の改善が <strong>症状消失</strong> をもたらしている。これらを巻き戻すと再発しうるので、変更時は注意:</p>
+<ol>
+<li><strong><code>.esd-toggle > * { pointer-events: none }</code></strong> (<code>frontend/src/styles/editSessionDropdown.css</code>)
+— <code>.esd-root</code> 親 div の pointer hit-test を解消。click が中継ボタンに届くようにし、Playwright の actionability check failure → click retry を防ぐ</li>
+<li><strong><code>frontend/e2e/helpers/editSessionDropdown.ts</code> 経由の DOM <code>dispatchEvent</code> click</strong> (#980-A 層 A)
+— <code>page.evaluate(() => button.click())</code> で actionability check を完全 bypass</li>
+<li><strong>PostToolUse hook <code>.claude/hooks/check-esd-click.mjs</code></strong> + skill <code>test-strategy</code> の同パターン強制
+— AI が新 spec を書くとき helper を使わずに <code>locator.click()</code> を書くと exit 2 でブロック</li>
+<li><strong><code>EditSessionDropdown.handleViewerAttach</code> の useEditSession 経由化</strong>
+— myRole 伝播が壊れて take-over UX が timeout に陥らないようにし、retry loop を生む元の click 失敗を解消</li>
+</ol>
+<p>要するに <strong>「retry loop で WS が大量蓄積」する状況を最初から作らない</strong> という方向で対症療法しており、Vite v8 の WS error handling 自体は調査段階。</p>
+<h2 id="再現-spec-scaffold">再現 spec (scaffold)</h2>
+<p><code>frontend/e2e/vite-stress.spec.ts</code> に意図的に多重 context で WS を急速 open/close する stress 試験を scaffold 済 (#992)。</p>
+<ul>
+<li>既定では実行されない (<code>HARMONY_E2E_VITE_STRESS=1</code> env で gate)</li>
+<li>手動実行: <code>HARMONY_E2E_VITE_STRESS=1 npx playwright test vite-stress.spec.ts</code></li>
+<li>各 cycle 後に <code>GET /__vite_ping</code> で Vite 生存確認、最後に backend (5179) の <code>/health</code> を probe</li>
+<li>再現できれば <code>crashedAtCycle</code> がログに残るので真因切り分けの足掛かりになる</li>
+</ul>
+<p>#930 の test 分類タグ整備が完了したら <code>@endurance</code> に分類する。</p>
+<h2 id="再発時のチェックリスト">再発時のチェックリスト</h2>
+<p>別の e2e で類似症状 (Vite が batch 中に crash) が出たら以下を確認:</p>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> backend は生存しているか (生存していれば原因は Vite 側、両方落ちていれば別の真因)</li>
+<li class="task-list-item"><input type="checkbox" disabled> 直前の test が EditSessionDropdown / 多重 BrowserContext / fetch retry loop を含むか</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>frontend/e2e/helpers/editSessionDropdown.ts</code> 経由でない <code>[data-testid^="esd-"]</code> への直接 click が混入していないか (<code>.claude/hooks/check-esd-click.mjs</code> で本来検出されるはず)</li>
+<li class="task-list-item"><input type="checkbox" disabled> Vite を v8.0.x → 最新 patch に上げる (HMR socket 関連の fix が後続 patch に入っている可能性)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>vite-stress.spec.ts</code> を <code>HARMONY_E2E_VITE_STRESS=1</code> で走らせて crash を観察できるか確認</li>
+<li class="task-list-item"><input type="checkbox" disabled> crash 観察時は Vite stdout / stderr を確認 (<code>logs/</code> 直下、もしくは <code>npm run dev</code> の terminal)</li>
+</ul>
+<h2 id="関連">関連</h2>
+<ul>
+<li>親 ISSUE: #992</li>
+<li>#980-A 関連 commit: 9707002 / 8ae5305</li>
+<li>#980 (#945 残 e2e skip 解消シリーズ)</li>
+<li>上流: <a href="https://github.com/vitejs/vite/issues/11991">vitejs/vite#11991</a> / <a href="https://github.com/vitejs/vite/pull/12007">PR #12007</a></li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

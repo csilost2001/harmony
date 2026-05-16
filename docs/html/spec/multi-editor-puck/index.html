@@ -1,0 +1,723 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>multi editor puck</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link active"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="マルチエディタ対応-puck-併設--仕様書">マルチエディタ対応 (Puck 併設) — 仕様書</h1>
+<p>GrapesJS ベースの既存デザイナに加え、React 向けコンポーネントエディタ「Puck (by Measured)」を併設し、画面ごとに <code>editorKind</code> / <code>cssFramework</code> を選択可能にする framework 中規模拡張の仕様書。</p>
+<h2 id="関連">関連</h2>
+<ul>
+<li>メタ ISSUE: 本仕様化と同時に起票 (本書冒頭にリンクを後追記)</li>
+<li>動機: 設計者が「リアルタイム WYSIWYG でデザインできる Puck × Tailwind 体験」を求めているが、既存 GrapesJS は autosave + Bootstrap 固定で別系統の良さを取り込めない。同時に旧システムの <strong>部分更新</strong> (一部画面のみ Tailwind / Puck 化) ニーズに応える</li>
+<li>議論履歴: 設計者と Opus のセッション (2026-05-05、ドラフト v1〜v5)</li>
+<li>前提: #793 (cssFramework 切替対応) 実装完了済 — 本仕様で <strong>#793 の「project 単位固定」を「画面単位固定 + project default」に再設計</strong></li>
+</ul>
+<hr>
+<h2 id="1-背景">1. 背景</h2>
+<h3 id="11-現状と要件">1.1 現状と要件</h3>
+<p>現状:</p>
+<ul>
+<li>GrapesJS は autosave 廃止が #683 で進行 (明示保存式)、cssFramework は #793 で project 単位 <code>bootstrap</code> / <code>tailwind</code> 切替対応済 (project 作成時固定、途中切替不可)</li>
+<li>画面項目は HTML + Bootstrap class ハードコードから semantic class への置換中</li>
+<li>AI 連携は design.json (HTML) を読んで Thymeleaf / React に展開する経路で確立</li>
+</ul>
+<p>設計者要件 (本仕様):</p>
+<ol>
+<li><strong>マルチエディタ切替</strong>: 画面の新規作成時に <code>editorKind: "grapesjs" | "puck"</code> を選ばせる。GrapesJS は据え置き</li>
+<li><strong>Puck デザイナ画面</strong> (左パレット / 中央キャンバス / 右プロパティ)</li>
+<li><strong>カスタムコンポーネント動的登録</strong>: ダイアログで「コンポーネント名 / 種類 / プロパティ」を定義 → 即座に Puck パレットに反映 → キャンバスに配置可能に</li>
+<li><strong>リアルタイム WYSIWYG</strong>: デザイナで操作した瞬間に canvas で見た目が変わる (右寄せ・余白等のレイアウト指定)</li>
+<li><strong>部分更新シナリオ対応</strong>: 同一プロジェクト内で画面ごとに <code>editorKind</code> / <code>cssFramework</code> を独立に選べる</li>
+</ol>
+<h3 id="12-793-仕様改訂の必要性">1.2 #793 仕様改訂の必要性</h3>
+<p>#793 は「project 単位で cssFramework 固定」が前提だった。本仕様は要件 5 を満たすため画面単位に再設計する。<strong><code>docs/spec/css-framework-switching.md</code> も併せて改訂</strong> (project 単位 → 画面単位 + project default、画面間混在可)。</p>
+<hr>
+<h2 id="2-設計概要">2. 設計概要</h2>
+<h3 id="21-二層モデル-本仕様の核心">2.1 二層モデル (本仕様の核心)</h3>
+<p><strong>永続化層 (Puck Data) と出力層 (DOM class) を分離</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>層</th><th>何を持つ</th><th>cssFramework 依存</th></tr></thead><tbody><tr><td><strong>永続化層</strong> (<code>puck-data.json</code>)</td><td>semantic な props 構造 (<code>{align: "right", padding: "md"}</code>)</td><td><strong>非依存</strong></td></tr><tr><td><strong>出力層</strong> (canvas + 最終 React コード)</td><td>utility class 文字列 (<code>"text-right p-4"</code>)</td><td><strong>依存</strong> (cssFramework に応じて framework 既製 utility にマップ)</td></tr></tbody></table>
+<p>利点:</p>
+<ul>
+<li>AI が読み書きする層 (Puck Data) は cssFramework に依らず統一構造</li>
+<li>画面ごとに cssFramework が違っても Puck Data の構造・意味が一致 (移行性 / 比較容易性)</li>
+<li>出力層は cssFramework 別マッピング関数 1 つで対応、framework 増設も 1 ファイル追加で済む</li>
+</ul>
+<h3 id="22-アーキテクチャ図">2.2 アーキテクチャ図</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>┌─────────────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ 画面 JSON (screens/&#x3C;id>.json)                                   │</span></span>
+<span class="line"><span>│   design:                                                       │</span></span>
+<span class="line"><span>│     editorKind:    "grapesjs" | "puck"      ← 画面作成時固定    │</span></span>
+<span class="line"><span>│     cssFramework:  "bootstrap" | "tailwind" ← 画面作成時固定    │</span></span>
+<span class="line"><span>│     designFileRef: "design.json"   (grapesjs のとき)           │</span></span>
+<span class="line"><span>│     puckDataRef:   "puck-data.json" (puck のとき)              │</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>                          ↓ どちらか一方</span></span>
+<span class="line"><span>┌─────────────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ payload (どちらか一方を持つ、両方持たない)                      │</span></span>
+<span class="line"><span>│   design.json                puck-data.json                     │</span></span>
+<span class="line"><span>│   (HTML + CSS + components)  (Puck Data tree、semantic props)   │</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>                          ↓</span></span>
+<span class="line"><span>┌─────────────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ EditorBackend (薄い境界 interface)                              │</span></span>
+<span class="line"><span>│   load / save / renderEditor を提供                             │</span></span>
+<span class="line"><span>│   実装: GrapesJSBackend / PuckBackend                          │</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>                          ↓</span></span>
+<span class="line"><span>┌─────────────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ Designer.tsx — canvas iframe                                    │</span></span>
+<span class="line"><span>│   theme CSS を画面の cssFramework に応じてロード:               │</span></span>
+<span class="line"><span>│     bootstrap → theme-bootstrap.css (Bootstrap 5 + utility 込)  │</span></span>
+<span class="line"><span>│     tailwind  → theme-tailwind.css  (Tailwind utility 全網羅)   │</span></span>
+<span class="line"><span>│   editorKind に応じて GrapesJS or Puck をマウント               │</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>                          ↓</span></span>
+<span class="line"><span>                 [WYSIWYG 描画]</span></span>
+<span class="line"><span>                  Puck props 変更 → React re-render</span></span>
+<span class="line"><span>                  → class 名差替 → 既存 CSS 即適用 (リアルタイム反映)</span></span></code></pre>
+<h3 id="23-解決順序-画面ロード時">2.3 解決順序 (画面ロード時)</h3>
+<p><code>screen.design.editorKind</code> / <code>cssFramework</code> の値が未指定の場合、以下の順序で解決する:</p>
+<ol>
+<li><code>screen.design.editorKind</code> / <code>screen.design.cssFramework</code> (画面個別指定があればそれ)</li>
+<li><code>project.techStack.designer.editorKind</code> / <code>project.techStack.designer.cssFramework</code> (project default、#826 で <code>project.design</code> から移行)</li>
+<li>最終 default (<code>"grapesjs"</code> / <code>"bootstrap"</code>)</li>
+</ol>
+<p>これにより:</p>
+<ul>
+<li>typical case (全画面同じ): project default 1 行で済み、画面 JSON に書く必要なし。ただし <strong>screen.design には常に editorKind / cssFramework を明示書き込みする</strong> (#825 実装方針)</li>
+<li>hybrid case (旧システム部分更新): 該当画面だけ override で記述コスト最小</li>
+</ul>
+<h3 id="24-cssframework--editorkind-マトリックス-画面単位">2.4 cssFramework × editorKind マトリックス (画面単位)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th>grapesjs</th><th>puck</th></tr></thead><tbody><tr><td><strong>bootstrap</strong></td><td>既存システム継続・移行元</td><td>utility WYSIWYG モデル (Bootstrap 5 utility 主体)</td></tr><tr><td><strong>tailwind</strong></td><td>モダン UI 移行先 (#793 で構築済)</td><td>utility WYSIWYG モデル (Tailwind utility 主体) <strong>推奨組合せ</strong></td></tr></tbody></table>
+<p><strong>画面単位なので、1 プロジェクト内で全 4 セルが混在可能</strong>。ロック / draft 単位は引き続き screen ID 1 つ。</p>
+<h3 id="25-schema-拡張">2.5 schema 拡張</h3>
+<h4 id="251-schemasv3harmonyv3schemajson">2.5.1 <code>schemas/v3/harmony.v3.schema.json</code></h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "design"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "additionalProperties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">false</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "cssFramework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "enum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"bootstrap"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tailwind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "default"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"bootstrap"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"プロジェクト全画面の default CSS フレームワーク。画面側 (screen.design.cssFramework) で override 可能。省略時は 'bootstrap' 相当。"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "editorKind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "enum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"grapesjs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"puck"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "default"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"grapesjs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"プロジェクト全画面の default エディタ種別。画面側 (screen.design.editorKind) で override 可能。省略時は 'grapesjs' 相当。"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h4 id="252-schemasv3screenv3schemajson-screendesign">2.5.2 <code>schemas/v3/screen.v3.schema.json</code> (<code>ScreenDesign</code>)</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "ScreenDesign"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "additionalProperties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">false</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "editorKind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "enum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"grapesjs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"puck"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"本画面のエディタ種別。画面作成時に固定、以降変更不可。省略時は project.techStack.designer.editorKind を参照、それも省略なら 'grapesjs'"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "cssFramework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "enum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"bootstrap"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tailwind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"本画面の CSS フレームワーク。画面作成時に固定、以降変更不可。省略時は project.techStack.designer.cssFramework を参照、それも省略なら 'bootstrap'"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "designFileRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"GrapesJS デザインファイルへの相対パス (editorKind=grapesjs のとき)"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "puckDataRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"Puck Data JSON への相対パス (editorKind=puck のとき)"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "thumbnailRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>designFileRef</code> と <code>puckDataRef</code> は <strong>どちらか一方のみ</strong> を持つ。どちらを持つかは <code>editorKind</code> が宣言する。</p>
+<h3 id="26-共通レイアウト-props-puck-primitive-全-component-が組み込みで持つ">2.6 共通レイアウト props (Puck primitive 全 component が組み込みで持つ)</h3>
+<p>Puck 右プロパティパネルで GUI 操作可能な、リアルタイム WYSIWYG レイアウト指定の有限値域:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Puck prop</th><th>値</th><th>tailwind 出力</th><th>bootstrap 出力 (Bootstrap 5 utility)</th></tr></thead><tbody><tr><td><code>align</code></td><td>left / center / right</td><td><code>text-left</code> / <code>text-center</code> / <code>text-right</code></td><td><code>text-start</code> / <code>text-center</code> / <code>text-end</code></td></tr><tr><td><code>padding</code></td><td>none / sm / md / lg / xl</td><td><code>p-0</code> / <code>p-2</code> / <code>p-4</code> / <code>p-6</code> / <code>p-8</code></td><td><code>p-0</code> / <code>p-2</code> / <code>p-3</code> / <code>p-4</code> / <code>p-5</code></td></tr><tr><td><code>paddingX</code></td><td>(同上)</td><td><code>px-*</code></td><td><code>px-*</code></td></tr><tr><td><code>paddingY</code></td><td>(同上)</td><td><code>py-*</code></td><td><code>py-*</code></td></tr><tr><td><code>margin</code></td><td>none / sm / md / lg / xl</td><td><code>m-*</code></td><td><code>m-*</code></td></tr><tr><td><code>marginBottom</code></td><td>(同上)</td><td><code>mb-*</code></td><td><code>mb-*</code></td></tr><tr><td><code>marginTop</code></td><td>(同上)</td><td><code>mt-*</code></td><td><code>mt-*</code></td></tr><tr><td><code>gap</code></td><td>none / sm / md / lg</td><td><code>gap-0</code> / <code>gap-2</code> / <code>gap-4</code> / <code>gap-6</code></td><td><code>gap-0</code> / <code>gap-2</code> / <code>gap-3</code> / <code>gap-4</code></td></tr><tr><td><code>colorAccent</code></td><td>default / primary / secondary / muted / success / warning / danger</td><td><code>text-gray-900</code> / <code>text-blue-600</code> / 等</td><td>(なし) / <code>text-primary</code> / <code>text-secondary</code> / <code>text-muted</code> / <code>text-success</code> / <code>text-warning</code> / <code>text-danger</code></td></tr><tr><td><code>bgAccent</code></td><td>none / white / muted / primary-soft / success-soft / warning-soft / danger-soft</td><td>(なし) / <code>bg-white</code> / <code>bg-gray-50</code> / <code>bg-blue-50</code> / 等</td><td>(なし) / <code>bg-white</code> / <code>bg-light</code> / <code>bg-primary-subtle</code> / <code>bg-success-subtle</code> / 等</td></tr><tr><td><code>border</code></td><td>none / default / strong</td><td>(なし) / <code>border</code> / <code>border-2</code></td><td>(なし) / <code>border</code> / <code>border-2</code></td></tr><tr><td><code>rounded</code></td><td>none / sm / md / lg / full</td><td><code>rounded-none</code> / <code>rounded-sm</code> / <code>rounded-md</code> / <code>rounded-lg</code> / <code>rounded-full</code></td><td><code>rounded-0</code> / <code>rounded-1</code> / <code>rounded-2</code> / <code>rounded-3</code> / <code>rounded-pill</code></td></tr><tr><td><code>shadow</code></td><td>none / sm / md / lg</td><td>(なし) / <code>shadow-sm</code> / <code>shadow-md</code> / <code>shadow-lg</code></td><td>(なし) / <code>shadow-sm</code> / <code>shadow</code> / <code>shadow-lg</code></td></tr></tbody></table>
+<p>これらは <strong>全 Puck primitive component が共通で持つベース props</strong>。個別 component の固有 props (placeholder, buttonLabel 等) と分離する。</p>
+<h3 id="27-utility-射程の制約">2.7 utility 射程の制約</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>サポート</th><th>理由</th></tr></thead><tbody><tr><td>共通レイアウト props のプリセット値</td><td>✅</td><td>WYSIWYG GUI で操作可能、有限値域</td></tr><tr><td>arbitrary value (<code>p-[17px]</code>)</td><td>❌ 不許可</td><td>再現性 / デザインシステム破壊</td></tr><tr><td>responsive prefix (<code>md:</code> / <code>lg:</code>)</td><td>❌ MVP 外、将来 ISSUE</td><td>Puck props で 2 軸 UI が複雑、PC 画面前提で MVP</td></tr><tr><td>hover / focus state</td><td>△ theme CSS で吸収する範囲のみ</td><td>例: <code>btn-primary:hover</code> は theme で定義、props で hover 指定する UI は MVP 不要</td></tr><tr><td>dark mode</td><td>❌ 本シリーズ射程外</td><td>dark variant は別軸、別 ISSUE</td></tr><tr><td>escape hatch (<code>rawClass</code> prop)</td><td>△ 各 primitive に 1 つ</td><td>最後の手段、原則使わせない。dogfood で利用ゼロを目指す</td></tr></tbody></table>
+<p><code>#793</code> の判断「α (見た目) が目的、β (フル utility-first DX) は目的外」と整合: 本仕様は <strong>「α + Puck props 経由の限定的レイアウト指定」</strong> の追加スコープ。</p>
+<hr>
+<h2 id="3-editorbackend-インターフェース">3. EditorBackend インターフェース</h2>
+<p><code>frontend/src/editor/EditorBackend.ts</code> (新設):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">export</span><span style="color:#D73A49;--shiki-dark:#F47067"> interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> EditorBackend</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** screen の payload を読み込み editor state を返す */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  load</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">screenId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#6F42C1;--shiki-dark:#DCBDFB">draftRead</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">unknown</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">EditorState</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** editor state を save (本体ファイル昇格は呼び出し側 = lock/draft 経路) */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  save</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">screenId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">state</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> EditorState</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#6F42C1;--shiki-dark:#DCBDFB">draftWrite</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">payload</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> unknown</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** container DOM に editor をマウント、Disposable を返す (cleanup 用) */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  renderEditor</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">container</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> HTMLElement</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">state</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> EditorState</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">opts</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> RenderOpts</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Disposable</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>実装: <code>GrapesJSBackend</code> / <code>PuckBackend</code> の 2 つ。後発エディタ追加時はこの interface を実装するだけ。</p>
+<p><strong>Puck サ終 / メンテ停止時の後方移行用</strong> に、Puck data → 中間 JSON への export 関数を 1 本だけ用意 (定常運用には使わない)。</p>
+<hr>
+<h2 id="4-動的コンポーネント登録">4. 動的コンポーネント登録</h2>
+<h3 id="41-メタモデル方式">4.1 メタモデル方式</h3>
+<p>「コンポーネント名 / 種類 / 個別 props」を JSON 定義し、ビルトイン primitive set に props を流し込んで Puck <code>Config</code> に反映する。<strong>共通レイアウト props (§ 2.6) は全 primitive で組み込み</strong>、メタモデルでは個別 props のみ定義する。</p>
+<p><code>workspaces/&#x3C;wsId>/puck-components.json</code> (workspace スコープ、customBlockStore と同パターン):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">[</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"search-bar"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"検索バー"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "primitive"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"input-group"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "propsSchema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "placeholder"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"default"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"キーワードを入力"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "buttonLabel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"default"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"検索"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"stat-card"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"サマリカード"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "primitive"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"card"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "propsSchema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "title"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "value"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "iconName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"enum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"chart"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"user"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"money"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"alert"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">] }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span></code></pre>
+<h3 id="42-仕組み">4.2 仕組み</h3>
+<ol>
+<li>アプリ起動時に <code>puck-components.json</code> を読む</li>
+<li>ビルトイン primitive set (15-20 個、§ 5 で一覧) のレンダラ + 個別 propsSchema + 共通レイアウト propsSchema をマージして Puck <code>Config</code> を動的構築</li>
+<li>メタモデル変更時は config 再構築 + Puck 再マウントで反映</li>
+<li>broadcast event <code>puckComponentsChanged</code> を発火 (workspace 内の他タブに伝搬、wsId scoping 必須)</li>
+</ol>
+<h3 id="43-ビルトイン-primitive-set-15-20-個">4.3 ビルトイン primitive set (15-20 個)</h3>
+<p><code>#793</code> 子 3 で確定した 15-20 個ブロックと <strong>意味整合</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>カテゴリ</th><th>primitive</th><th>用途</th></tr></thead><tbody><tr><td>レイアウト</td><td><code>container</code> / <code>row</code> / <code>col</code> / <code>section</code></td><td>階層構造</td></tr><tr><td>テキスト</td><td><code>heading</code> / <code>paragraph</code> / <code>link</code></td><td>文字</td></tr><tr><td>フォーム</td><td><code>input</code> / <code>select</code> / <code>textarea</code> / <code>checkbox</code> / <code>radio</code> / <code>button</code></td><td>入力要素</td></tr><tr><td>データ</td><td><code>table</code> / <code>image</code> / <code>icon</code></td><td>表示要素</td></tr><tr><td>業務複合</td><td><code>input-group</code> / <code>card</code> / <code>data-list</code> / <code>pagination</code></td><td>高頻度複合</td></tr></tbody></table>
+<p>各 primitive は共通レイアウト props (§ 2.6) と固有 props を持つ。</p>
+<h3 id="44-動的コンポーネント定義-ui">4.4 動的コンポーネント定義 UI</h3>
+<p>ダイアログで以下を定義可能:</p>
+<ul>
+<li><strong>コンポーネント名</strong> (label): UI 表示用</li>
+<li><strong>種類</strong> (primitive): 既存ビルトイン primitive から選ぶ (input-group / card / 等)</li>
+<li><strong>プロパティ</strong> (propsSchema): 名前 / 型 (string / number / boolean / enum) / default 値 / オプション (enum の場合)</li>
+</ul>
+<p>定義後、即座に Puck パレットに反映される (再起動不要)。</p>
+<hr>
+<h2 id="5-css-マッピング層">5. CSS マッピング層</h2>
+<h3 id="51-配置">5.1 配置</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>frontend/src/puck/layoutPropsMapping/</span></span>
+<span class="line"><span>  index.ts            # 共通型・解決関数 (cssFramework に応じて適切なマッパーを選ぶ)</span></span>
+<span class="line"><span>  tailwind.ts         # Tailwind utility マップ</span></span>
+<span class="line"><span>  bootstrap.ts        # Bootstrap 5 utility マップ</span></span>
+<span class="line"><span>  __tests__/</span></span>
+<span class="line"><span>    tailwind.test.ts  # 全プリセット値の出力検証</span></span>
+<span class="line"><span>    bootstrap.test.ts</span></span></code></pre>
+<h3 id="52-マッピング関数の性質">5.2 マッピング関数の性質</h3>
+<ul>
+<li><strong>同期 / 純粋関数</strong> (props → class 文字列、副作用なし)</li>
+<li>未定義値域 (例: <code>padding: "xxl"</code> がマッピングにない) の場合、warning ログ + フォールバック class なし、validation で警告表示</li>
+</ul>
+<h3 id="53-値域変更ガバナンス">5.3 値域変更ガバナンス</h3>
+<p>共通レイアウト props の値域変更 (例: <code>padding</code> に <code>xxl</code> 追加) は <strong>設計者承認 ISSUE 必須</strong> (実質的にデザインシステム拡張、global schema 変更に準ずる扱い)。マッピングを直接いじる PR は AI 単独実装禁止 (<code>feedback_schema_governance_strict.md</code> に準ずる)。</p>
+<hr>
+<h2 id="6-途中変更不可ポリシー">6. 「途中変更不可」ポリシー</h2>
+<p>editor / cssFramework ともに <strong>画面作成時に決定、以降変更不可</strong>。</p>
+<h3 id="61-プログラム的メリット">6.1 プログラム的メリット</h3>
+<ol>
+<li><strong>データロスト・regression リスクゼロ</strong>: HTML 内 <code>form-control</code> (Bootstrap) → Tailwind utility の自動変換は不可能 (特に Open Code / customBlock 貼り付けの自由 HTML)</li>
+<li><strong>migration コードを書かなくていい</strong>: 切替操作 / 確認ダイアログ / undo 機構 / draft の dirty 判定が複雑化しない</li>
+<li><strong>AI 連携で source of truth が動かない</strong>: 編集中に framework が変わると AI 入力ファイル形式 (design.json vs puck-data.json) も変わるため、長時間タスク中の整合性破壊リスクがある</li>
+<li><strong>edit-session-draft (#683) との整合</strong>: ロック保有中に框組替が起きたら draft の意味が変わる → 排除</li>
+</ol>
+<h3 id="62-ユーザールート">6.2 ユーザールート</h3>
+<ul>
+<li>「画面複製 → 別 cssFramework / editorKind の新画面で作り直し」が公式ルート</li>
+<li>旧画面は参照用に残し、片方ずつ移行 → これが「旧システム部分更新」シナリオの自然な形</li>
+<li>必要なら GrapesJS Open Code (HTML 貼付) / Puck Import で部分的に流用</li>
+</ul>
+<hr>
+<h2 id="7-既存仕様との整合">7. 既存仕様との整合</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>既存仕様</th><th>整合内容</th></tr></thead><tbody><tr><td><code>edit-session-draft</code> (#683)</td><td>resourceType=screen で 1 ロック / 1 draft path。<strong>payload 内に editorKind / cssFramework を含める</strong> ことで draft の中身を判別</td></tr><tr><td><code>multi-workspace</code> (#679)</td><td>workspace 配下に puck-data.json / puck-components.json を置くだけで isolation 自動成立</td></tr><tr><td><code>broadcast wsId scoping</code> (#679)</td><td><code>puckComponentsChanged</code> 新設、wsId scoping 必須</td></tr><tr><td><code>draft-state-policy</code> (#584)</td><td>Puck Data 用 <code>validatePuckScreen(item, allItems)</code> 新設、4 軸 severity 適用 (§ 8 参照)</td></tr><tr><td><code>schema-governance</code> (#511)</td><td><code>editorKind</code> / <code>cssFramework</code> の screen 単位追加 + project 単位 <code>editorKind</code> 追加 = 設計者承認必須 (本仕様化 ISSUE で承認取得済前提)</td></tr><tr><td><code>css-framework-switching</code> (#793)</td><td>「project 単位固定 / 途中切替非サポート」を「画面単位固定 + project default + 画面間混在可」に改訂</td></tr></tbody></table>
+<hr>
+<h2 id="8-puck-用-validation-draft-state-policy-準拠">8. Puck 用 validation (draft-state policy 準拠)</h2>
+<p><code>frontend/src/utils/puckScreenValidation.ts</code> (新設):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>severity</th><th>ルール</th></tr></thead><tbody><tr><td><strong>error</strong></td><td><code>editorKind</code> / <code>cssFramework</code> 不正値、<code>puckDataRef</code> 不存在 (editorKind=puck のとき必須)、Puck Data の root が空</td></tr><tr><td><strong>error</strong></td><td>共通レイアウト props 値域違反 (例: <code>padding: "xxx"</code> のような不正値)</td></tr><tr><td><strong>error</strong></td><td>動的コンポーネント定義の primitive がビルトインに不存在</td></tr><tr><td><strong>warning</strong></td><td>個別 props 未入力 (default なし)、<code>label</code> 空、画面に primitive 配置がない</td></tr></tbody></table>
+<p><code>Map&#x3C;screenId, ValidationError[]></code> を返す <code>loadPuckScreenValidationMap()</code> を screenStore に追加。</p>
+<hr>
+<h2 id="9-ai-連携">9. AI 連携</h2>
+<h3 id="91-source-of-truth-の分離">9.1 source of truth の分離</h3>
+<ul>
+<li><strong>GrapesJS 画面</strong>: <code>design.json</code> を AI が読む → Thymeleaf / React 両展開</li>
+<li><strong>Puck 画面</strong>: <code>puck-data.json</code> を AI が読む → React 展開のみ (Thymeleaf 不可)</li>
+</ul>
+<p>1 画面は <strong>どちらか一方の payload しか持たない</strong> (editorKind が宣言)。</p>
+<h3 id="92-ai-skill--docs-更新">9.2 AI Skill / docs 更新</h3>
+<p><code>/create-flow</code> / <code>/review-flow</code> / <code>/issues</code> 等の Skill に以下を追記:</p>
+<ul>
+<li>画面ロード時に最初に <code>screen.design.editorKind</code> (画面側未指定時は project default) を確認</li>
+<li>grapesjs なら design.json、puck なら puck-data.json を読む</li>
+<li>Thymeleaf 出力対象スクリプトは Puck 画面を <strong>明示スキップ + レポート記録</strong></li>
+</ul>
+<hr>
+<h2 id="10-受け入れ基準">10. 受け入れ基準</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>schemas/v3/harmony.v3.schema.json</code> に <code>design.editorKind</code> 追加 (本 PR 子 1)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>schemas/v3/screen.v3.schema.json</code> の <code>ScreenDesign</code> に <code>editorKind</code> / <code>cssFramework</code> / <code>puckDataRef</code> 追加 (本 PR 子 1)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>docs/spec/css-framework-switching.md</code> を画面単位化に改訂 (本 PR 子 1)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>Designer.tsx</code> が <code>screen.design.cssFramework</code> (fallback project default) を読み取り、対応 theme CSS を canvas iframe に注入 (子 2)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>EditorBackend</code> interface 新設 + <code>GrapesJSBackend</code> / <code>PuckBackend</code> 2 実装 (子 3)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>frontend/package.json</code> に <code>@measured/puck</code> 依存追加 (子 3)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> <code>frontend/src/puck/layoutPropsMapping/{tailwind,bootstrap}.ts</code> + <code>__tests__</code> (子 4)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> Puck primitive 15-20 個実装、各々が共通レイアウト props を組み込み (子 4)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> 動的コンポーネント登録ダイアログ + <code>puckComponentsStore</code> (workspace スコープ) (子 5)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> AI Skill / <code>/create-flow</code> / <code>/review-flow</code> / <code>/issues</code> 等の docs 更新 (子 6)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> E2E (Playwright): Puck 画面新規作成 → 配置 → リアルタイム反映 → 保存 → reload で復元 (子 6)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> dogfood 2 sample (<code>workspaces/dogfood-puck-tailwind-2026-05-05/</code> + <code>workspaces/dogfood-puck-bootstrap-2026-05-05/</code>) で各々 1 画面作成。WYSIWYG 実機視覚検証は dev server 起動環境で別途実施 (fact-check + E2E 構造確認で代替、dogfood レポート参照) (子 6)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> dogfood report (<code>docs/spec/dogfood-2026-05-05-multi-editor-puck.md</code>) 作成 (子 6)</li>
+<li>[~] E2E test 強化 (#814): helper + spec 一式と visual regression baseline (chrome) を実装 (frontend/e2e/helpers/puck.ts + puck-dnd.spec.ts + puck-property-panel.spec.ts + puck-visual-regression.spec.ts)。DnD は @dnd-kit pointer event 制約 / 右プロパティパネルは MCP オフライン制約 (§ A-S-2) のため <code>test.skip</code> フォールバック付き。配置済 content の真の WYSIWYG 検証は MCP backend 起動環境での後続改善が必要</li>
+</ul>
+<hr>
+<h2 id="11-リスク--懸念">11. リスク / 懸念</h2>
+<h3 id="111-tailwind-jit-による-class-名検出">11.1 Tailwind JIT による class 名検出</h3>
+<p>Tailwind JIT は静的解析で必要 class を抽出する。動的式 (<code>text-${align}</code>) は検出されないため、Puck primitive の render 関数では <strong>完全 class 名を switch で出す</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 概念のみ。実装は子 4 で確定</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">const</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> alignClass</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> align </span><span style="color:#D73A49;--shiki-dark:#F47067">===</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "left"</span><span style="color:#D73A49;--shiki-dark:#F47067"> ?</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "text-left"</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">                 :</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> align </span><span style="color:#D73A49;--shiki-dark:#F47067">===</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "center"</span><span style="color:#D73A49;--shiki-dark:#F47067"> ?</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "text-center"</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">                 :</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> align </span><span style="color:#D73A49;--shiki-dark:#F47067">===</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "right"</span><span style="color:#D73A49;--shiki-dark:#F47067"> ?</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "text-right"</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">                 :</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "text-left"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span></code></pre>
+<p>または Tailwind config の <code>safelist</code> に全プリセット class を列挙する。実装は子 4 で確定。</p>
+<h3 id="112-既存-793-サンプルへの影響">11.2 既存 #793 サンプルへの影響</h3>
+<p><code>examples/retail/harmony.json</code> / <code>examples/realestate/harmony.json</code> / <code>examples/english-learning/harmony.json</code> は <code>project.techStack.designer.cssFramework: "bootstrap"</code> 設定済 (#826 で <code>project.design.cssFramework</code> から移行)。<strong>仕様改訂後も「画面側 default」として全画面 bootstrap が継続適用</strong> → regression なし。リリース前のため migration 不要 (<code>feedback_no_backward_compat_pre_release.md</code>)。</p>
+<h3 id="113-puck--bootstrap-セルの位置付け">11.3 Puck × Bootstrap セルの位置付け</h3>
+<p><code>bootstrap × puck</code> は Bootstrap 5 utility が十分豊富 (mb-* / gap-* / p-* / text-end / bg-primary / border / rounded-* / shadow-*) のため、Bootstrap でも utility 主体で問題なし。<code>tailwind × puck</code> と機能的にほぼ同等 (一部色 token / spacing scale で Tailwind の方が表現力が高い程度)。</p>
+<h3 id="114-css-スコープ問題">11.4 CSS スコープ問題</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>場面</th><th>干渉リスク</th><th>対応</th></tr></thead><tbody><tr><td>Designer 画面編集</td><td>なし (画面ごとに canvas iframe が独立)</td><td>既存設計のまま</td></tr><tr><td>ScreenListView サムネイル</td><td>なし (画像ベース)</td><td>既存のまま</td></tr><tr><td>最終実装 (生成された Thymeleaf / React アプリ)</td><td>あり (SPA で画面遷移時に CSS 衝突可能性)</td><td><strong>本仕様の射程外</strong>。出力側が画面単位 CSS chunk 分割 / scoped CSS / shadow DOM 等で隔離する責務を持つ。仕様書に「最終実装側は画面単位で必要な theme CSS のみロードする前提」と明記</td></tr></tbody></table>
+<h3 id="115-puck-ライブラリロックイン">11.5 Puck ライブラリロックイン</h3>
+<ul>
+<li><code>EditorBackend</code> 薄インターフェースで GrapesJS / Puck を分離 (§ 3)</li>
+<li>Puck data → 中間 JSON への export 関数 1 本を用意 (Puck サ終時の後方移行用、定常運用には使わない)</li>
+<li>完全な汎化は <strong>3 個目のエディタを入れるとき</strong> に行う原則 (現時点では 2 実装のみ)</li>
+</ul>
+<h3 id="116-escape-hatch-rawclass-prop-の濫用">11.6 escape hatch (<code>rawClass</code> prop) の濫用</h3>
+<p>各 primitive に <code>rawClass</code> (任意 utility class 直書き) を 1 つ用意するが、原則使わせない。dogfood で利用ゼロを目指し、利用が増えたら原因分析 + 共通レイアウト props 拡張で対応 (§ 5.3 ガバナンス経由)。</p>
+<hr>
+<h2 id="12-実装ロードマップ-子-1-6">12. 実装ロードマップ (子 1-6)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>子</th><th>内容</th><th>担当想定</th><th>想定 commit</th></tr></thead><tbody><tr><td>子 1 (本 PR 起点)</td><td>仕様書 2 本 (本仕様 + #793 改訂) + schema 変更 (project / screen)</td><td>Opus</td><td>1 commit</td></tr><tr><td>子 2</td><td><code>Designer.tsx</code> の theme 解決ロジック画面単位化 (project default fallback)</td><td>Sonnet</td><td>1 commit</td></tr><tr><td>子 3</td><td><code>EditorBackend</code> interface + Puck 雛形 + GrapesJS 実装の interface 適合 + <code>@measured/puck</code> 依存追加</td><td>Sonnet</td><td>1 commit</td></tr><tr><td>子 4</td><td>共通レイアウト props システム + <code>layoutPropsMapping/{tailwind,bootstrap}.ts</code> + テスト + Puck primitive 15-20 個実装</td><td>Sonnet</td><td>1 commit</td></tr><tr><td>子 5</td><td>動的コンポーネント (メタモデル + customBlockStore 同パターン永続化) + 登録ダイアログ + <code>puckComponentsStore</code></td><td>Sonnet</td><td>1 commit</td></tr><tr><td>子 6</td><td>AI Skill / docs 更新 + E2E + dogfood (Puck × Tailwind と Puck × Bootstrap で各 1 sample 作成)</td><td>Opus</td><td>1 commit</td></tr></tbody></table>
+<p>各子は <strong>同 feature branch (<code>feat/multi-editor-puck-series</code>) に commit</strong> され、<strong>子を main へ逐次マージしない</strong> (<code>feedback_meta_issue_one_feature_branch_one_pr.md</code> 準拠)。子 6 完了時点で統合 PR 作成、独立レビューを統合 PR 単位で 1 回実施。</p>
+<hr>
+<h2 id="13-画面作成時-ui-825">13. 画面作成時 UI (#825)</h2>
+<h3 id="131-ダイアログ仕様">13.1 ダイアログ仕様</h3>
+<p>画面作成ダイアログ (<code>ScreenEditModal</code>) に <code>isCreate=true</code> が渡されたとき (新規作成時のみ)、以下の選択 UI を表示する:</p>
+<ul>
+<li><strong>エディタ</strong>: <code>GrapesJS</code> / <code>Puck</code> のラジオボタン</li>
+<li><strong>CSS フレームワーク</strong>: <code>Bootstrap</code> / <code>Tailwind</code> のラジオボタン</li>
+<li><strong>注意書き</strong>: 「作成後は変更できません」 (§ 6 の「途中変更不可」ポリシーを説明)</li>
+</ul>
+<p>編集モーダル (画面名・種別変更等) では <code>isCreate=false</code> が渡され、上記ラジオは非表示になる。</p>
+<h3 id="132-project-default-fallback">13.2 project default fallback</h3>
+<p>ダイアログ開口時のデフォルト選択値は <code>project.techStack.designer</code> から解決する (#826 で <code>project.design</code> から移行):</p>
+<ol>
+<li><code>project.techStack.designer.editorKind</code> → 未指定なら <code>"grapesjs"</code></li>
+<li><code>project.techStack.designer.cssFramework</code> → 未指定なら <code>"bootstrap"</code></li>
+</ol>
+<p>実装: 各ビュー (FlowEditor, ScreenListView) が起動時に <code>loadRawProject()</code> を呼び、解決値を state に保持して <code>ScreenEditModal</code> に <code>defaultEditorKind</code> / <code>defaultCssFramework</code> として渡す。</p>
+<h3 id="133-screendesign-常時明示書き込み">13.3 screen.design 常時明示書き込み</h3>
+<p>画面作成時、ユーザーが選択した (またはデフォルト値の) editorKind / cssFramework を必ず <code>screen.design</code> に明示書き込みする (<code>saveScreenEntity</code> 呼び出し)。</p>
+<p>理由: 解決順序 (§ 2.3) では <code>screen.design</code> が空の場合 project default → 最終 default と fallback するが、将来の project default 変更が既存画面に意図せず影響する可能性を排除するため、作成時点での解決済み値を明示的に永続化する。</p>
+<p>呼び出し経路ごとの実装:</p>
+<ul>
+<li><strong>FlowEditor.tsx</strong> <code>handleScreenSave</code>: addScreen 後に <code>buildDefaultScreen</code> + <code>saveScreenEntity</code> を呼び出し</li>
+<li><strong>ScreenListView.tsx</strong> <code>handleScreenSave</code>: 同上</li>
+<li><strong>mcpBridge.ts</strong> <code>addScreen</code> handler: 同上 (MCP 経由での画面作成時も同一保証)</li>
+</ul>
+<h3 id="134-duplicate-時の継承">13.4 duplicate 時の継承</h3>
+<p>画面複製 (FlowEditor の「複製」メニュー) では UI は出さず、コピー元の <code>screen.design.editorKind</code> / <code>cssFramework</code> を強制継承する。実装では <code>loadScreenEntity</code> でコピー元 entity を読み、解決した値を新画面の <code>saveScreenEntity</code> で書き込む。</p>
+<hr>
+<h2 id="14-関連-memory--仕様書">14. 関連 memory / 仕様書</h2>
+<ul>
+<li><code>feedback_meta_issue_one_feature_branch_one_pr.md</code> — 統合 PR 運用</li>
+<li><code>feedback_worktree_placement_outside_project.md</code> — worktree 配置ルール</li>
+<li><code>feedback_schema_governance_strict.md</code> (#511) — schema 変更ガバナンス</li>
+<li><code>feedback_consolidate_related_proposals_into_one_issue.md</code> — 同根の framework 提案は 1 ISSUE に統合</li>
+<li><code>feedback_no_backward_compat_pre_release.md</code> — リリース前の後方互換性方針</li>
+<li><code>docs/spec/css-framework-switching.md</code> (本仕様で改訂) — #793</li>
+<li><code>docs/spec/edit-session-draft.md</code> (#683)</li>
+<li><code>docs/spec/workspace-multi.md</code> (#679)</li>
+<li><code>docs/spec/draft-state-policy.md</code> (#584)</li>
+<li><code>docs/spec/schema-governance.md</code> (#511)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

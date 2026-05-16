@@ -1,0 +1,321 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>draft state policy</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link active"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="draft-state-policy-設計途中許容--警告可視化">draft-state policy (設計途中許容 + 警告可視化)</h1>
+<p><strong>改訂日: 2026-04-29</strong></p>
+<p>Issue: #584
+ステータス: <strong>v1.0</strong></p>
+<p>本仕様は、業務リソースを設計途中の状態で保存できるようにしつつ、未完成・不整合・schema 違反を UI 上で明示するための共通方針を定める。対象は View / Table / ProcessFlow を含む業務リソース全般であり、新しいリソース種別を追加する場合も本仕様に従う。</p>
+<h2 id="1-目的">1. 目的</h2>
+<p>JSON Schema は <strong>最終形の品質ゲート</strong> として維持する。一方、UI は設計途中の draft-state を許容し、未完成箇所や違反箇所を保存ブロッカーではなく可視化対象として扱う。</p>
+<p>この分離により、以下を実現する:</p>
+<ul>
+<li>View / Table / ProcessFlow で draft-state の扱いを統一する</li>
+<li>error / warning の判定基準をリソース間で揃える</li>
+<li>AJV が担う領域と手書きバリデータが担う領域を明確にする</li>
+<li>schema を緩めずに、設計途中の反復作業を止めない</li>
+</ul>
+<h2 id="2-5-原則">2. 5 原則</h2>
+<h3 id="21-schema-は最終ゲート">2.1 schema は最終ゲート</h3>
+<p><code>schemas/process-flow.schema.json</code> / <code>schemas/v3/table.v3.schema.json</code> / <code>schemas/v3/view.v3.schema.json</code> / <code>schemas/extensions-*.schema.json</code> / <code>schemas/conventions.schema.json</code> 等のグローバル定義 schema は、最終形の品質ゲートとして扱う。draft-state を保存したいという理由で schema を緩めてはならない。</p>
+<p>schema 変更は schema ガバナンス (#511) の対象であり、AI エージェントが勝手に変更することは禁止する。表現不能な場合は <code>docs/spec/schema-governance.md</code> の手順に従い、拡張機構・既存フィールドで代替できないかを確認し、それでも無理なら ISSUE 起票して作業停止する。</p>
+<h3 id="22-保存は常に許可">2.2 保存は常に許可</h3>
+<p>業務リソースの保存処理は、schema 違反や未完成項目があってもブロックしない。保存はユーザーの作業途中状態を失わないための操作であり、完成判定とは分離する。</p>
+<p>保存時に検出した違反は、保存失敗ではなく validation 結果として保持し、一覧・カード・編集画面で可視化する。</p>
+<h3 id="23-読み込み時に検証">2.3 読み込み時に検証</h3>
+<p>各リソースは読み込み時に <code>validate&#x3C;Resource>(item, allItems)</code> で検証する。単体項目だけで判定できない重複・参照整合性・リソース間関係は、必要な一覧を <code>allItems</code> として渡して判定する。</p>
+<p>各 store / UI は §5 のパターン A (<code>load&#x3C;Resource>ValidationMap()</code> を提供) または パターン B (UI 側 inline 構築) のいずれかで validation 結果を UI に届ける。戻り値は <code>Map&#x3C;Id, ValidationError[]></code> 形式で統一し、UI はこれを参照してバッジ・枠線・ヘッダー警告を描画する。</p>
+<h3 id="24-違反は一覧と編集画面で示す">2.4 違反は一覧と編集画面で示す</h3>
+<p>一覧画面では <code>ValidationBadge</code> を表示し、error / warning の件数をユーザーが俯瞰できるようにする。カード表示では <code>has-error</code> / <code>has-warning</code> CSS クラスを付与し、カード全体の状態として視認できるようにする。</p>
+<p>編集画面では、画面ヘッダー・リソースヘッダー・該当セクションに validation 状態を表示する。ユーザーが「どのリソースが悪いか」だけでなく「どの領域を直せばよいか」を追えることを必須とする。</p>
+<h3 id="25-成熟度表示は必須">2.5 成熟度表示は必須</h3>
+<p>すべての業務リソース<strong>実体</strong> (instance) UI は <code>MaturityBadge</code> を表示する。GenericDefinition のような <strong>kind-discriminated 定義カタログ</strong> (≒ 参照語彙、永続化を伴わない設計定義) は本項の対象外とする (詳細は <code>generic-definition-layer.md</code> §4.5 参照)。成熟度未指定の既存データは <code>draft</code> として扱う。</p>
+<p>一覧画面の <code>MaturityBadge</code> は view-only とし、編集画面の <code>MaturityBadge</code> は <code>onChange</code> を受け取って成熟度を変更できる。<code>committed</code> は「下流工程へ渡せる確定状態」を示すため、validation の可視化と併用する。</p>
+<p><strong>commit 阻止 UI の責務分担 (#1004 Phase 4 で確定)</strong>:</p>
+<ul>
+<li>error 件数 > 0 の場合に <code>committed</code> への遷移を阻止する確認ダイアログ等の UI は <strong>Editor 側のみで実装</strong>する。</li>
+<li>ListView の <code>MaturityBadge</code> は view-only (クリック・変更操作なし) のため、ListView 側に commit 阻止ロジックは実装しない。</li>
+<li>現時点では Editor 側の commit 阻止も未実装 (将来の拡張候補)。実装が必要な場合は別 ISSUE で起票して対応する。</li>
+</ul>
+<blockquote>
+<p><strong>e2e spec との対応</strong>: <code>frontend/e2e/draft-state-validation.spec.ts</code> の P3-block test (ListView での commit 阻止 UI) は上記判定により by design 恒久 skip とする (#1004 Phase 4 で確定)。</p>
+</blockquote>
+<h2 id="3-severity-判定基準">3. severity 判定基準</h2>
+<p>validation severity は次の 4 軸で判定する。迷った場合は、ユーザーが直ちに作業を継続できるかではなく、下流処理や識別子の整合性を壊すかで error / warning を分ける。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>判定軸</th><th>severity</th><th>基準</th></tr></thead><tbody><tr><td>動作可能性</td><td>error</td><td>実行・描画・解決に必要な最低限の情報が欠け、対象リソースを正しく扱えない</td></tr><tr><td>物理同一性</td><td>error</td><td>ID・name・重複・参照先など、同一性や参照整合性が壊れている</td></tr><tr><td>表示完成度</td><td>warning</td><td>表示名・説明・見た目・補助情報など、利用品質は下がるが同一性や動作は壊れない</td></tr><tr><td>業務妥当性</td><td>warning</td><td>業務上は未確認・不足・仮置きだが、構造としては保存・表示・編集できる</td></tr></tbody></table>
+<p>View の代表例 (<code>frontend/src/utils/viewValidation.ts</code>):</p>
+<ul>
+<li>error: <code>selectStatement</code> 空、<code>physicalName</code> 空、<code>physicalName</code> が同一名前空間内で重複</li>
+<li>warning: <code>outputColumns</code> 空、<code>name</code> (表示名) 空</li>
+</ul>
+<p>Table の代表例 (<code>frontend/src/utils/tableValidation.ts</code>):</p>
+<ul>
+<li>error: <code>physicalName</code> 空、<code>physicalName</code> が同一名前空間内で重複</li>
+<li>warning: <code>columns</code> 空、主キー (<code>primaryKey: true</code>) のカラムが 1 件もない、<code>name</code> (表示名) 空</li>
+</ul>
+<p>ProcessFlow の代表例 (<code>frontend/src/utils/actionValidation.ts</code> + <code>aggregatedValidation.ts</code>):</p>
+<ul>
+<li>error: <code>loopBreak</code> / <code>loopContinue</code> がループ外に置かれている、<code>branch.branches</code> が空 (分岐ゼロ)</li>
+<li>warning: ループ条件式 (<code>conditionExpression</code>) 未入力、ループコレクション (<code>collectionSource</code>) 未入力、<code>jump</code> の jumpTo 未設定または該当 step ID なし、<code>transactionScope.steps</code> が空、参照整合性違反 (responseRef / errorCode / systemRef / typeRef / secretRef)、識別子スコープ違反 (@identifier 未定義)、SQL 列名がテーブル定義に無い、<code>@conv.*</code> 参照の規約カタログ未定義</li>
+</ul>
+<h2 id="4-ui-component-rules">4. UI component rules</h2>
+<h3 id="41-validationbadge">4.1 ValidationBadge</h3>
+<p><code>ValidationBadge</code> は <code>severity: "error" | "warning"</code> と <code>count: number</code> を受け取る。<code>count &#x3C;= 0</code> の場合は何も描画しない。</p>
+<p>error はユーザーが優先的に修正すべき構造違反、warning は設計途中・表示未完成・業務未確認を示す。両方がある場合は error を先に表示する。</p>
+<h3 id="42-maturitybadge">4.2 MaturityBadge</h3>
+<p><code>MaturityBadge</code> は <code>draft</code> / <code>provisional</code> / <code>committed</code> を表示する。成熟度未指定は <code>draft</code> として描画する。</p>
+<p>ListView では view-only とし、クリックや変更操作を持たせない。Editor では <code>onChange</code> を渡し、ユーザーが成熟度を変更できるようにする。</p>
+<h3 id="43-shared-css">4.3 shared CSS</h3>
+<p>validation 表示の共通スタイルは <code>validation.css</code> に集約する。カード・行・セクションには <code>has-error</code> / <code>has-warning</code> クラスを付与し、リソース種別ごとの独自 CSS で意味を変えない。</p>
+<p><code>has-error</code> は構造上の修正必須、<code>has-warning</code> は設計途中または確認待ちを示す。色・枠線・背景の差は視認性のための表現であり、severity の意味は本仕様に従う。</p>
+<h2 id="5-store-responsibilities">5. Store responsibilities</h2>
+<p>各 store は、validation 表示に必要な情報を UI に提供する。表示パターンは 2 つあり、リソース構造に応じて
+<strong>いずれを採用してもよい</strong>:</p>
+<h3 id="パターン-a-store-関数化-loadresourcevalidationmap">パターン A: store 関数化 (<code>load&#x3C;Resource>ValidationMap()</code>)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">load</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#24292E;--shiki-dark:#ADBAC7">Resource</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#6F42C1;--shiki-dark:#DCBDFB">ValidationMap</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(): </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">Promise</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#24292E;--shiki-dark:#ADBAC7">Map</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#24292E;--shiki-dark:#ADBAC7">Id, ValidationError[]</span><span style="color:#D73A49;--shiki-dark:#F47067">>></span></span></code></pre>
+<ul>
+<li>適する: validation 結果を複数画面で再利用したい / 計算コストが高くキャッシュしたい / 1 RPC で bulk 取得できる場合</li>
+<li>例: <code>loadTableValidationMap()</code> / <code>loadViewValidationMap()</code> (#587 / PR #589)</li>
+</ul>
+<blockquote>
+<p><strong>注</strong>: <code>loadTableValidationMap()</code> / <code>loadViewValidationMap()</code> は backend が <code>listAllTables()</code> / <code>listAllViews()</code> を提供する場合 1 RPC で全件取得し、未提供時 (localStorage 等) は per-id にフォールバックする (#587 / PR #589 で実装)。bulk fetch 結果は harmony.json entries の ID で filter して orphan 互換性を維持する。</p>
+</blockquote>
+<h3 id="パターン-b-ui-側-inline-構築">パターン B: UI 側 inline 構築</h3>
+<p>ListView / Editor 内で <code>validate&#x3C;Resource>(item, allItems)</code> を直接呼び、Map を局所的に構築する。</p>
+<ul>
+<li>適する: ProcessFlow のような nested 構造で <code>aggregateValidation</code> を再利用する場合 / GenericDefinition のように
+kind 別 instantiate されて store cache 効率が薄い場合 / validator が singleton 軽量で per-render 計算可能な場合</li>
+<li>例: <code>ProcessFlowListView.tsx</code> (<code>aggregateValidation</code> 直接呼び出し) / <code>GenericDefinitionListView.tsx</code> (kind 別 inline 構築)</li>
+</ul>
+<h3 id="選択指針">選択指針</h3>
+<ul>
+<li><strong>デフォルトは inline (パターン B)</strong> — シンプル、新規 UI が即座に動く</li>
+<li><strong>キャッシュ要件が顕在化したら store 関数化 (パターン A) へ移行</strong> — 計算コスト or N+1 RPC が体感問題化したタイミングで切替</li>
+</ul>
+<p>両パターンとも <code>&#x3C;ValidationBadge></code> / <code>has-error</code> / <code>has-warning</code> の描画契約は同じ。</p>
+<h2 id="6-new-resource-addition-checklist">6. New resource addition checklist</h2>
+<p>新しい業務リソース種別を追加する場合は、以下を完了してから PR を作成する。</p>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>&#x3C;Resource>Validation.ts</code> を追加し、<code>validate&#x3C;Resource>(item, allItems)</code> を提供する</li>
+<li class="task-list-item"><input type="checkbox" disabled> 4 軸 severity 判定基準に照らして error / warning を分類する</li>
+<li class="task-list-item"><input type="checkbox" disabled> validation の単体テストを追加し、error / warning の代表例を含める</li>
+<li class="task-list-item"><input type="checkbox" disabled> §5 パターン A (store 関数化) を選んだ場合、store に <code>load&#x3C;Resource>ValidationMap()</code> を追加する。パターン B (UI 側 inline 構築) を選んだ場合は省略する</li>
+<li class="task-list-item"><input type="checkbox" disabled> ListView に <code>ValidationBadge</code> を表示する</li>
+<li class="task-list-item"><input type="checkbox" disabled> カード表示または行表示に <code>has-error</code> / <code>has-warning</code> CSS クラスを付与する</li>
+<li class="task-list-item"><input type="checkbox" disabled> Editor ヘッダーに <code>MaturityBadge</code> を表示し、<code>onChange</code> を接続する</li>
+<li class="task-list-item"><input type="checkbox" disabled> Editor の該当セクションに <code>ValidationBadge</code> または同等の警告表示を配置する</li>
+<li class="task-list-item"><input type="checkbox" disabled> schema は AI の変更対象外であることを確認する (#511)</li>
+<li class="task-list-item"><input type="checkbox" disabled> schema と手書き validation の severity 不一致がある場合は、意図的な差分として PR に説明する</li>
+<li class="task-list-item"><input type="checkbox" disabled> AJV を runtime UI に組み込むか、test layer のみに留めるかを §7.2 hybrid 方針に基づき判断する (schema で判定できる項目 → runtime AJV / UI 固有 severity → 手書き validator)</li>
+</ul>
+<blockquote>
+<p><strong>kind-discriminated 定義カタログ</strong> (GenericDefinition 系) を追加する場合は本 checklist の <code>MaturityBadge</code> 項目を skip し、別途 <code>generic-definition-layer.md</code> の checklist に従う。</p>
+</blockquote>
+<h3 id="61-適用状況">6.1 適用状況</h3>
+<p>新しいリソース種別が本ポリシーをどこまで実装済みかを示す。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>リソース</th><th>validator</th><th>ListView Badge</th><th>Editor 警告</th><th>MaturityBadge</th><th>完了 PR</th></tr></thead><tbody><tr><td>View</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>#585</td></tr><tr><td>Table</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>#586</td></tr><tr><td>ProcessFlow</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>(#1073 含む各 PR)</td></tr><tr><td>Generic Definition (8 kind)</td><td>✓</td><td>✓</td><td>✓</td><td>N/A*</td><td>#1079</td></tr></tbody></table>
+<p>* Generic Definition の親 schema (<code>schemas/v3/generic-definition.v3.schema.json</code>) に <code>maturity</code> field が存在しないため、MaturityBadge は適用不可。schema governance (#511) の対象であり、追加が必要な場合は別 ISSUE を起票して設計者承認を得ること。</p>
+<h2 id="7-ajv-adoption-decision">7. AJV adoption decision</h2>
+<h3 id="71-選択肢">7.1 選択肢</h3>
+<p>AJV 導入方針は次の 3 案を比較した。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>案</th><th>内容</th></tr></thead><tbody><tr><td>A</td><td>UI 実行時 validation を AJV に全面移行する</td></tr><tr><td>B</td><td>現状維持。UI は手書き validator、schema 検証は test layer の AJV に限定する</td></tr><tr><td>C</td><td>hybrid。schema で判定できる項目だけ AJV、UI 固有の severity は手書き validator に残す</td></tr></tbody></table>
+<h3 id="72-採用方針">7.2 採用方針</h3>
+<p>本仕様では <strong>C: hybrid</strong> を採用する (#1079 PR #1082 / #1084 で改訂)。</p>
+<ul>
+<li>schema で判定できる項目 (必須欠落 / 型違反 / pattern 違反 / enum 違反 等) は AJV を runtime で使う</li>
+<li>設計途中の draft-state を許容するための severity 分け (4 軸 severity) や UI 固有 warning は手書き validator が担う</li>
+</ul>
+<p>precedent (実装):</p>
+<ul>
+<li><code>frontend/src/utils/validateProject.ts</code> — Project schema を runtime AJV で検証</li>
+<li><code>frontend/src/schemas/genericDefinitionValidator.ts</code> — GenericDefinition 8 kind を runtime AJV で検証 + kind 別 semantic warning</li>
+</ul>
+<p>理由:</p>
+<ol>
+<li>schema 違反は本質的に「型として不正」のシグナルであり、UI で正確かつ統一的に表示すべき → AJV が適任</li>
+<li>一方、severity 4 軸判定 (動作可能性 / 物理同一性 / 表示完成度 / 業務妥当性) や draft-state 寛容性は schema では表現しづらい → 手書き validator</li>
+<li>AJV bundle size (本体 ~30KB gzip) は許容範囲。validateProject / genericDefinition の precedent で動作確認済</li>
+<li>test layer の AJV (samples-v3.schema.test.ts 等) はそのまま継続。runtime と test の two-layer 体制</li>
+</ol>
+<h3 id="73-hybrid-採用-72-の根拠となった事象">7.3 hybrid 採用 (§7.2) の根拠となった事象</h3>
+<p>旧 §7.3 の「将来再検討条件」のうち以下が #1079 (Generic Definition Catalog) で satisfy され、
+hybrid 採用に至った:</p>
+<ul>
+<li><strong>validation 対象が 5 種以上</strong>: GenericDefinition は 8 kind を持ち、kind 別の重複手書き validator を避けるため
+AJV dispatch (<code>KIND_SCHEMAS</code> lookup + 親 schema fallback) が保守上有意になった</li>
+</ul>
+<p>その他の旧条件 (実際の divergence / 業務要件証跡化) は本判断時点では発生していないが、hybrid 体制下で継続監視する。</p>
+<h3 id="74-適用範囲の明確化-conventions--extensions-は対象外">7.4 適用範囲の明確化 (Conventions / Extensions は対象外)</h3>
+<p>本ポリシーの適用対象は <strong>業務リソース</strong> (View / Table / ProcessFlow / ViewDefinition / Screen 等、設計者が業務を記述するリソース) に限定する。</p>
+<p>以下のフレームワーク基盤側は対象外とする:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>対象外リソース</th><th>理由</th></tr></thead><tbody><tr><td>Conventions (規約カタログ <code>catalog.json</code>)</td><td>フレームワーク定義リソース。業務設計者が設計途中に draft-state で保存するユースケースがなく、validator 経路も未整備のため</td></tr><tr><td>Extensions (拡張定義 <code>extensions/*/</code>)</td><td>フレームワーク拡張パッケージ。schema governance (#511) の対象であり、AI が勝手に validator を追加することは禁止されている</td></tr></tbody></table>
+<p>これらを draft-state policy の対象にするには、フレームワーク製作者 (設計者) が新規 ISSUE を起票して承認フローを経る必要がある。</p>
+<blockquote>
+<p><strong>e2e spec との対応</strong>: <code>frontend/e2e/draft-state-validation.spec.ts</code> の P2-Conventions test は上記判定により by design 恒久 skip とする (#1004 Phase 3 で確定)。</p>
+</blockquote>
+<h2 id="8-related">8. Related</h2>
+<ul>
+<li>#548: View draft-state validation / warning visualization</li>
+<li>#583: Table draft-state validation / warning visualization</li>
+<li>#511: Schema ガバナンス</li>
+<li>#587: validation map の N+1 fetch 回避</li>
+<li><a href="/spec/schema-governance/"><code>docs/spec/schema-governance.md</code></a></li>
+<li><a href="/spec/process-flow-maturity/"><code>docs/spec/process-flow-maturity.md</code></a></li>
+<li><code>frontend/src/components/common/ValidationBadge.tsx</code></li>
+<li><code>frontend/src/components/process-flow/MaturityBadge.tsx</code></li>
+<li><code>frontend/src/styles/validation.css</code></li>
+<li><code>frontend/src/utils/viewValidation.ts</code></li>
+<li><code>frontend/src/utils/tableValidation.ts</code></li>
+<li><code>frontend/src/utils/actionValidation.ts</code> (構造ルール)</li>
+<li><code>frontend/src/utils/aggregatedValidation.ts</code> (構造 + 参照整合性 + 識別子スコープ + SQL 列 + 規約参照)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

@@ -1,0 +1,1034 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>list common</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link active"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="一覧画面の共通仕様">一覧画面の共通仕様</h1>
+<p>Issue: <a href="https://github.com/csilost2001/harmony/issues/133">#133</a>
+策定日: 2026-04-19</p>
+<p>本ドキュメントは、一覧系画面の<strong>操作・見た目・内部 API</strong>の詳細仕様を定める。
+イシュー #133 本文の「詳細仕様」としてリンクされる。</p>
+<h2 id="1-目的">1. 目的</h2>
+<p>エディタ間で「クリック / 並び替え / 複数選択 / コピペ」等の挙動がバラバラになっている現状を、<strong>Windows Explorer / Excel 準拠</strong>の単一のパターンに統一し、内部実装も共通コンポーネントに集約する。</p>
+<p>見た目 (カード / 表) は画面ごとに既定を維持しつつ、<strong>切替可能</strong>にする。エクスプローラの「詳細表示」と「アイコン表示」の関係と同じ。</p>
+<h2 id="2-対象画面">2. 対象画面</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>機能名</th><th>ルート</th><th>既定表示</th><th>切替 UI</th></tr></thead><tbody><tr><td>画面一覧</td><td><code>/screen/list</code></td><td>カード</td><td>カード ⇔ 表</td></tr><tr><td>テーブル一覧</td><td><code>/table/list</code></td><td>カード</td><td>カード ⇔ 表</td></tr><tr><td>処理フロー一覧</td><td><code>/process-flow/list</code></td><td>カード</td><td>カード ⇔ 表</td></tr><tr><td>テーブル定義 > カラム一覧</td><td><code>/table/edit/:id</code> 内のカラムタブ</td><td>表</td><td>不要</td></tr></tbody></table>
+<h3 id="画面フローの再定義">画面フローの再定義</h3>
+<p>現在 <code>/screen/flow</code> 内で「フロー図 / 一覧」タブ切替となっているが、<strong>2 機能に分離</strong>する:</p>
+<ul>
+<li><strong><code>/screen/flow</code></strong> = 画面フロー (画面遷移図)。キャンバス固定</li>
+<li><strong><code>/screen/list</code></strong> (新設) = 画面一覧。他の一覧と同じ共通部品で実装</li>
+</ul>
+<p>既存の <code>ScreenTableView</code> コンポーネントのロジックは新・画面一覧に移植。<code>FlowSubToolbar</code> の view mode 切替は削除。HeaderMenu に「画面一覧」を追加。CLAUDE.md の routing 表を更新。</p>
+<h2 id="3-統一する操作">3. 統一する操作</h2>
+<p>すべて <strong>Windows Explorer / Excel 準拠</strong>。迷ったら Excel の挙動を基準に実装する。</p>
+<h3 id="31-選択">3.1 選択</h3>
+<p>表・カード共通。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>挙動</th></tr></thead><tbody><tr><td>クリック (単独)</td><td>単一選択にリセット</td></tr><tr><td>Ctrl+ クリック</td><td>選択のトグル (複数選択)</td></tr><tr><td>Shift+ クリック</td><td>アンカー (最後にクリックされた行) からクリック位置までの範囲選択</td></tr><tr><td>Ctrl+A</td><td>全選択</td></tr><tr><td>Esc</td><td>選択解除</td></tr><tr><td>ダブルクリック</td><td>activate (編集画面へ遷移 等)。<strong>クリックされた 1 行のみ</strong>が対象。複数選択中でも、ダブルクリックされた行の <code>onActivate</code> が呼ばれる</td></tr><tr><td>何もない領域のクリック</td><td>選択解除 (ただし行クリックの誤認を避けるため、一覧コンテナの背景領域に限定)</td></tr></tbody></table>
+<h3 id="32-キーボード--表レイアウト-list">3.2 キーボード — 表レイアウト (list)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>キー</th><th>挙動</th></tr></thead><tbody><tr><td>↑ / ↓</td><td>選択を前 / 次の行に移動 (単一選択)</td></tr><tr><td>Shift+↑ / Shift+↓</td><td>アンカーからの範囲を拡張 / 縮小</td></tr><tr><td>Home / End</td><td>先頭 / 末尾へ移動</td></tr><tr><td>Ctrl+Home / Ctrl+End</td><td>先頭 / 末尾へ移動し選択</td></tr><tr><td>Enter / F2</td><td>activate (単一選択時のみ)</td></tr><tr><td>Delete</td><td>選択行を削除 (複数可、確認ダイアログあり)</td></tr><tr><td>Ctrl+C / Ctrl+X / Ctrl+V</td><td>コピー / 切り取り / 貼り付け (詳細 §3.4)</td></tr><tr><td>Ctrl+D</td><td>選択行の複製 (直後に挿入)</td></tr><tr><td>Ctrl+A</td><td>全選択</td></tr><tr><td>Alt+↑ / Alt+↓</td><td>選択行を 1 つ上 / 下に移動 (D&#x26;D と同等、物理順変更)</td></tr><tr><td>Esc</td><td>選択解除、コピー / カット状態の解除</td></tr></tbody></table>
+<h3 id="33-キーボード--カードレイアウト-grid">3.3 キーボード — カードレイアウト (grid)</h3>
+<p>表レイアウトの上下キー以外は同じ。追加で <strong>2D ナビゲーション</strong>。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>キー</th><th>挙動</th></tr></thead><tbody><tr><td>↑ / ↓</td><td>上 / 下の行の近い列位置へ移動</td></tr><tr><td>← / →</td><td>左 / 右のカードへ移動</td></tr><tr><td>Shift+↑↓←→</td><td>範囲拡張</td></tr></tbody></table>
+<p>列数はウィンドウ幅によって動的に変わる。実装は <code>getBoundingClientRect()</code> で各カードの位置を取得し、現在カードの X 座標に最も近い上下行のカードを次の選択対象とする。行またぎの計算は:</p>
+<ol>
+<li>現在カードの <code>top</code> を取得</li>
+<li>現在カードより <strong>top が大きい</strong> (下の行にある) カードのうち <code>top</code> が最小のグループが「次の行」</li>
+<li>その行で、現在カードの <code>left</code> に最も近いカードが移動先</li>
+<li>↑ は逆方向</li>
+</ol>
+<p>画面リサイズで行列数が変わっても、この計算で自然に追従する。</p>
+<h3 id="34-クリップボード--コピペによる移動--複製">3.4 クリップボード — コピペによる移動 / 複製</h3>
+<p><strong>ブラウザ内クリップボード</strong> (内部 state) を使用。外部 (Excel 等) とは連携しない。</p>
+<h4 id="挙動">挙動</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>挙動</th></tr></thead><tbody><tr><td>Ctrl+C</td><td>選択項目を<strong>コピー</strong>としてクリップボードへ。元の表示は変化なし</td></tr><tr><td>Ctrl+X</td><td>選択項目を<strong>切り取り</strong>としてクリップボードへ。元の項目は<strong>半透明表示</strong> (opacity 0.5) になるが、貼り付けるまで物理的には削除されない</td></tr><tr><td>Ctrl+V</td><td>クリップボードの内容を<strong>挿入位置</strong>に挿入。切り取りなら移動 (元は削除)、コピーなら複製</td></tr><tr><td>Esc</td><td>クリップボード破棄。ghosted 表示解除</td></tr><tr><td>新しい Ctrl+C / Ctrl+X</td><td>前の内容は破棄 (上書き)</td></tr></tbody></table>
+<h4 id="挿入位置ルール">挿入位置ルール</h4>
+<p>貼り付け時の挿入位置は以下のルール:</p>
+<ol>
+<li><strong>選択なし</strong>: 末尾に挿入</li>
+<li><strong>単一選択</strong>: 選択行の<strong>直後</strong>に挿入</li>
+<li><strong>複数選択 (連続)</strong>: 最後の選択行の直後に挿入</li>
+<li><strong>複数選択 (非連続)</strong>: 物理順で最も後ろの選択行の直後に挿入</li>
+<li><strong>貼り付け対象自身が選択中の場合</strong> (Ctrl+X → 同じ選択のまま Ctrl+V): 何もしない (no-op)</li>
+</ol>
+<p>切り取り→貼り付けが移動になる場合、<strong>元の位置からは削除され、新しい位置に挿入</strong>される。移動後は貼り付けた項目が選択状態になる。</p>
+<h4 id="クリップボード寿命">クリップボード寿命</h4>
+<ul>
+<li><strong>セッション (= タブ) 内のみ</strong>: ページ再読み込みで消える</li>
+<li><strong>タブ間共有はしない</strong></li>
+<li>localStorage 等への永続化はしない</li>
+</ul>
+<h4 id="フィルタ--ソートとの相互作用">フィルタ / ソートとの相互作用</h4>
+<p>§3.6 / §3.7 を参照。</p>
+<h3 id="35-物理順の変更-dd">3.5 物理順の変更 (D&#x26;D)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>挙動</th></tr></thead><tbody><tr><td>行 / カードをドラッグ</td><td>ドラッグ中は半透明表示、ドロップ先候補の位置にマーカー (線) 表示</td></tr><tr><td>ドロップ</td><td>物理順を書き換える</td></tr></tbody></table>
+<ul>
+<li>表レイアウト: 行間に水平線のマーカー</li>
+<li>カードレイアウト: カード間に垂直線のマーカー (複数行に跨る場合、行内で判定)</li>
+</ul>
+<p>D&#x26;D ハンドル:</p>
+<ul>
+<li>表レイアウト: 行の左端にハンドル (<code>bi-grip-vertical</code>) を表示</li>
+<li>カードレイアウト: カード全体を掴めるようにする (ハンドル不要)</li>
+</ul>
+<h3 id="36-ソート-見た目だけ">3.6 ソート (見た目だけ)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>挙動</th></tr></thead><tbody><tr><td>列ヘッダクリック</td><td>その列で昇順ソート。再クリックで降順。3 回目クリックで解除</td></tr><tr><td><strong>Shift+</strong> 列ヘッダクリック</td><td>第 2 / 第 3 ソートキーを追加 (多段ソート)</td></tr><tr><td>既にソート中の列を通常クリック</td><td>多段ソートを解除して、その列のみの単一ソートに</td></tr></tbody></table>
+<h4 id="視覚表示">視覚表示</h4>
+<ul>
+<li>ソート対象の列ヘッダに <strong>▲ (昇順) / ▼ (降順)</strong> アイコン</li>
+<li>多段ソート時、アイコンの前に順位数字 <strong>① ② ③</strong> を表示</li>
+<li>ソートの状態が分かるよう、ヘッダの背景を薄く強調</li>
+</ul>
+<h4 id="重要な制約">重要な制約</h4>
+<ul>
+<li><strong>物理順は変更しない</strong> (ソートは見た目のみ)</li>
+<li><strong>状態の永続化はしない</strong> (画面を開き直すとリセット)</li>
+<li><strong>No 列は行に紐付いた永続フィールドとして描画される</strong> (§3.10 参照)。ソート時、No は行と一緒に動くため、ソート順次第で <code>2, 5, 3, 1, 4</code> のように飛んで見える (これが正しい挙動)</li>
+<li><strong>ソート中は「並び替え Read-only モード」</strong> に入り、物理順を変更する操作 (D&#x26;D / Alt+↑↓ / Ctrl+X→V / Ctrl+D / 新規作成 / 挿入) は無効化される (§3.9 参照)</li>
+</ul>
+<h3 id="37-フィルタ">3.7 フィルタ</h3>
+<p>共通処理を提供。各画面は<strong>自分のフィルタ UI</strong> (チェックボックス・検索ボックス等) を自由に実装し、共通フックに<strong>述語関数 <code>(item) => boolean</code></strong> を渡す。</p>
+<h4 id="共通コンポーネント">共通コンポーネント</h4>
+<ul>
+<li><code>useListFilter&#x3C;T>(items)</code> フック: フィルタ state + filtered 計算</li>
+<li><code>&#x3C;FilterBar></code> コンポーネント: 「N 件 / 全 M 件 [フィルタクリア]」表示</li>
+</ul>
+<h4 id="重要な制約-1">重要な制約</h4>
+<ul>
+<li><strong>状態の永続化はしない</strong> (今は)</li>
+<li><strong>フィルタ中も選択・D&#x26;D・コピペは動作する</strong>
+<ul>
+<li>D&#x26;D / コピペは<strong>絞り込まれた見える範囲内で操作</strong>するが、物理順の変更は<strong>隠れた項目の順序を壊さない</strong>ように計算</li>
+<li>具体: 「filtered[i] を filtered[j] に移動」は「physical[ids[i].index] を physical[ids[j].index] の位置に移動」と解釈。隠れた項目は前後関係を維持</li>
+</ul>
+</li>
+<li><strong>選択状態はフィルタ変更で失われない</strong>が、フィルタで消えた項目が選択リストから除かれる</li>
+<li><strong>フィルタ中の Ctrl+A は「見えている項目の全選択」</strong></li>
+</ul>
+<h3 id="38-選択状態とソート--フィルタの相互作用">3.8 選択状態とソート / フィルタの相互作用</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>事象</th><th>挙動</th></tr></thead><tbody><tr><td>ソート適用</td><td>選択状態維持</td></tr><tr><td>ソート解除</td><td>選択状態維持</td></tr><tr><td>フィルタ適用</td><td>見えなくなった項目は選択から外れる</td></tr><tr><td>フィルタクリア</td><td>選択状態維持 (再表示された項目は選択状態が復活<strong>しない</strong>)</td></tr><tr><td>ページ再読み込み</td><td>選択状態リセット</td></tr></tbody></table>
+<h3 id="39-ソート中の-read-only-モード">3.9 ソート中の Read-only モード</h3>
+<p>ソートがアクティブな間 (<code>sort.sortKeys.length > 0</code>) は、<strong>並び替え Read-only モード</strong>に入る。これは「一覧構造の編集」のみを対象とした制限であり、<strong>行単位の内容編集 (ダブルクリック → 編集画面) は引き続き可能</strong>。</p>
+<h4 id="基本ルール">基本ルール</h4>
+<blockquote>
+<p><strong>参照操作とクリップボード状態操作は可 / リストデータ変更は不可（Delete のみ例外）</strong></p>
+</blockquote>
+<p>ソート中の画面では「行 3 を行 1 と行 2 の間にドロップ」しても、<strong>物理順のどの位置にドロップしたのか</strong>が定義できない。同様に貼り付け・複製・新規作成の「挿入位置」もソート中は不定義。一方、クリップボード状態の更新（Ctrl+C / Ctrl+X）は<strong>実データを変更しない</strong>ため許可。削除は<strong>挿入位置の問題がなく</strong> No の再採番が機械的に決定できるため例外的に許可。これにより「ソート = 表示モード / 手動並び = 編集モード」を排他的に明示する。Windows エクスプローラで「ソート中フォルダは D&#x26;D 並び替え不可」なのと同じ思想。</p>
+<h4 id="操作ごとの挙動">操作ごとの挙動</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>ソート中</th><th>分類</th></tr></thead><tbody><tr><td>行選択・フォーカス移動・スクロール</td><td>✅</td><td>参照</td></tr><tr><td>ダブルクリック / Enter → activate (編集画面へ)</td><td>✅</td><td>参照（行内容編集は別世界）</td></tr><tr><td>Ctrl+C (コピー → クリップボード)</td><td>✅</td><td>クリップボード状態のみ</td></tr><tr><td>Ctrl+X (切り取り → クリップボード状態 + ghosted 表示)</td><td>✅</td><td>クリップボード状態のみ、実データ未変更</td></tr><tr><td>Delete / 削除ボタン / 行ゴミ箱</td><td>✅</td><td>リストデータ変更だが<strong>例外</strong>（挿入位置が不要、削除行以降を -1 で機械的に再採番）</td></tr><tr><td>Ctrl+V 貼り付け</td><td>❌</td><td>リストデータ変更（挿入位置不定義）</td></tr><tr><td>D&#x26;D 並び替え</td><td>❌ (ハンドルをグレーアウト)</td><td>リストデータ変更（ドロップ先不定義）</td></tr><tr><td>Alt+↑↓</td><td>❌</td><td>リストデータ変更（「上/下」不定義）</td></tr><tr><td>Ctrl+D 複製</td><td>❌</td><td>リストデータ変更（挿入位置不定義）</td></tr><tr><td>新規作成 (+ ボタン) / 挿入</td><td>❌ (ボタンをグレーアウト)</td><td>リストデータ変更（挿入位置不定義）</td></tr></tbody></table>
+<h4 id="ctrlx-を許可する理由">Ctrl+X を許可する理由</h4>
+<p>Ctrl+X はクリップボード state に cut マーカーを入れるだけで、一覧データ本体は変化しない（ghosted 表示は純粋な表示効果）。実際のリスト変更は Ctrl+V で初めて起きる。この時点で paste は無効なので、データ破壊の可能性はない。むしろ「ソートで絞って該当行を探し、切り取ってからソート解除して貼り付ける」というワークフローが自然に成立するメリットがある（クリップボード状態はソート解除後も保持される、§3.4）。</p>
+<h4 id="視覚表現">視覚表現</h4>
+<ul>
+<li>ソート中は一覧上部に <strong>SortBar</strong> を表示 (§4.5, §5.9)</li>
+<li>無効化された D&#x26;D ハンドル・ボタン類には <code>title="ソート中は無効 (ソート解除で利用可能)"</code> を付与</li>
+</ul>
+<h4 id="ソートの解除">ソートの解除</h4>
+<ul>
+<li>列ヘッダクリック 3 回目で当該列のソートを解除 (§3.6)</li>
+<li><strong>SortBar の「ソート解除」ボタン</strong>で全ソートキーを一括解除 (多段ソート時の主要動線)</li>
+</ul>
+<h4 id="なぜ自動ソート解除ではなく操作無効化か">なぜ「自動ソート解除」ではなく「操作無効化」か</h4>
+<p>以前の案では「物理順を変更する操作が走ったら自動でソートを解除して新しい物理順を見せる」方針だったが、却下。理由:</p>
+<ul>
+<li>「行 3 を行 1 と行 2 の間にドロップ」のドロップ先物理位置が、ソート中は定義できない (解除前の画面と解除後の画面で対応が取れない)</li>
+<li>ユーザーの操作意図（「名前順で見てる途中でちょっと並べ替え」）と、「ソートが突然消える」というシステム挙動が一致しない</li>
+<li>「ソート = 表示モード / 手動並び = 編集モード」を排他的に明示する方が、学習コストが低い</li>
+</ul>
+<h3 id="310-no-列-永続フィールド">3.10 No 列 (永続フィールド)</h3>
+<p>表レイアウトの No 列は、<strong>各行固有の <code>no: number</code> フィールド</strong>として永続化される。</p>
+<h4 id="データモデル">データモデル</h4>
+<p>各一覧系アイテム (<code>TableMeta</code> / <code>ScreenNode</code> / <code>ProcessFlowMeta</code> / カラム定義) は <code>no: number</code> を持つ。連番 1..N を厳密に維持し、隙間は作らない。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> TableMeta</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  id</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  no</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;  </span><span style="color:#6A737D;--shiki-dark:#768390">// 1..N, 隙間なし</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  name</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // ...</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h4 id="再採番タイミング">再採番タイミング</h4>
+<p>以下の物理順を変更する操作のたびに、全体を再採番 (1..N):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>再採番の内容</th></tr></thead><tbody><tr><td>D&#x26;D 並び替え</td><td>移動元〜移動先の範囲を +1 / -1 シフト、移動対象を移動先の no に</td></tr><tr><td>Alt+↑↓</td><td>隣接行との no 交換</td></tr><tr><td>Ctrl+X → V (移動)</td><td>切り取り元削除相当 + 挿入位置に no 確保</td></tr><tr><td>Ctrl+C → V (複製)</td><td>挿入位置以降を +1、複製アイテムに挿入位置の no</td></tr><tr><td>Ctrl+D 複製</td><td>同上</td></tr><tr><td>新規作成</td><td>末尾に追加 (no = N+1)</td></tr><tr><td>削除</td><td>削除行以降を -1</td></tr></tbody></table>
+<p>実装方針: どの操作も最終的に「物理順配列を書き換えた後、先頭から 1..N を振り直す」で十分。数十〜数百件規模では再採番コストは無視できる。</p>
+<h4 id="表示">表示</h4>
+<ul>
+<li>表レイアウト: <code>item.no</code> を直接描画 (レンダラの <code>index + 1</code> ではない)</li>
+<li>カードレイアウト: 表示しない (§4.2 既定)</li>
+<li>ソート時: <code>no</code> も他のフィールドと同様に行と一緒に動く。視覚的には <code>2, 5, 3, 1, 4</code> のように飛ぶ</li>
+</ul>
+<h4 id="マイグレーション">マイグレーション</h4>
+<p>既存データ (各 JSON ファイル) に <code>no</code> フィールドがない場合、<strong>読み込み時に配列の現在順で初期採番</strong> (index 0 → no=1, index 1 → no=2, …)。次回保存時に <code>no</code> フィールドが含まれるようになる。マイグレーションスクリプトは不要（読み込み時補完）。</p>
+<h4 id="なぜ永続フィールドにするのか">なぜ永続フィールドにするのか</h4>
+<p>案 B（配列順 = 物理順、<code>no</code> はレンダラが <code>index + 1</code> で生成）は一見シンプルだが、「保存時には必ず物理配列を書き込み、ソート後配列は書き込まない」という暗黙の不変条件に依存する。将来いずれかの保存経路でソート後配列が書き込まれると、次のような破壊が静かに発生する:</p>
+<ol>
+<li><strong>Git 差分が壊滅的になる</strong> (全行の並びが毎回変わる)</li>
+<li><strong>仕様書・帳票の出力順が毎回変わる</strong> (ユーザーが設計した順序が失われる)</li>
+<li><strong>他ブラウザタブとの同期順が揺れる</strong></li>
+</ol>
+<p><code>no</code> を明示フィールドにすれば、JSON 内の配列順は意味を持たなくなり、「保存しても並びが揺れない」が<strong>設計時点で保証される</strong>。実装の慎重さに依存しない。</p>
+<h3 id="311-削除操作の統一-147">3.11 削除操作の統一 (#147)</h3>
+<p>すべての一覧画面で <strong>3 つの削除動線</strong>を提供し、挙動を一致させる:</p>
+<h4 id="3-つの削除動線">3 つの削除動線</h4>
+<ol>
+<li><strong>行ごとのゴミ箱アイコン</strong> (<code>bi-trash</code>) — 各行にホバー時表示、1 クリックでその行を削除マーク</li>
+<li><strong>上部の削除アイコン</strong> — 選択行をまとめて削除。選択ゼロ時は <strong>disabled で常駐表示</strong></li>
+<li><strong>右クリックメニューの「削除」項目</strong> — 行を右クリック→コンテキストメニューから削除</li>
+</ol>
+<p>いずれも §3.8 で規定された <strong>ghost 方式</strong> (<code>editor.markDeleted</code>) で処理。保存ボタンで確定するまでは削除候補が半透明表示されるのみ。直接 DB 削除は行わない。</p>
+<h4 id="右クリックメニュー">右クリックメニュー</h4>
+<p><strong>各行右クリック時の項目</strong> (画面ごとにカスタマイズ):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>画面</th><th>項目</th></tr></thead><tbody><tr><td>画面一覧 / テーブル一覧 / 処理フロー一覧</td><td>新規作成 / コピー / 切り取り / 貼り付け / 複製 / 削除</td></tr><tr><td>カラム一覧 (テーブル定義内)</td><td>カラム追加 / テンプレートから追加 / コピー / 切り取り / 貼り付け / 上へ / 下へ / 複製 / 削除</td></tr></tbody></table>
+<p><strong>項目はグルーピングして separator で分ける</strong>: <code>[新規作成系] | [クリップボード系] | [移動系] | [削除]</code>。Windows / macOS のコンテキストメニュー標準に従う。</p>
+<p><strong>空領域 (行が無い場所) の右クリック</strong>: 「新規作成」のみの絞り込みメニューを出す (Windows エクスプローラ準拠)。選択行がある状態でも空領域を右クリックすると、そのメニューに切り替わる。</p>
+<p><strong>キーボード代替</strong>:</p>
+<ul>
+<li><strong>Menu キー</strong> (Windows) または <strong>Shift+F10</strong> — 選択中の行 (または先頭行) の位置にコンテキストメニューを開く</li>
+<li>メニュー内: <code>↑ / ↓</code> で項目移動、<code>Enter</code> で実行、<code>Esc</code> で閉じる</li>
+</ul>
+<h4 id="39-との整合-ソート中-read-only-モード">§3.9 との整合 (ソート中 Read-only モード)</h4>
+<p>削除操作は §3.9 の例外として<strong>ソート中も動作</strong>する (位置不要、機械的に再採番可能)。右クリックメニュー内の項目は §3.9 に従って個別に有効・無効が切り替わる:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>メニュー項目</th><th>ソート中</th></tr></thead><tbody><tr><td>削除</td><td>✅</td></tr><tr><td>コピー / 切り取り</td><td>✅ (クリップボード状態のみ)</td></tr><tr><td>新規作成 / 貼り付け / 複製 / 挿入 / 上へ / 下へ</td><td>❌ (disabled, ツールチップで理由表示)</td></tr></tbody></table>
+<p>SortBar と合わせて、ユーザーが「なぜ項目が無効なのか」を視覚的に把握できる。</p>
+<h2 id="4-見た目">4. 見た目</h2>
+<h3 id="41-表レイアウト-エクスプローラの詳細表示">4.1 表レイアウト (エクスプローラの詳細表示)</h3>
+<ul>
+<li>列ヘッダ: 固定高、背景色で視覚的に区別、ソート対象列はハイライト</li>
+<li>行: 1 行 1 項目、ホバー / 選択時のハイライト色を変える</li>
+<li>No 列 (最左): 右寄せ、等幅フォント</li>
+<li>D&#x26;D ハンドル: 行の先頭 (No 列の前)</li>
+<li>ダーク / ライト両対応 (<code>variant="light" | "dark"</code>)</li>
+</ul>
+<h3 id="42-カードレイアウト-エクスプローラのアイコン表示">4.2 カードレイアウト (エクスプローラのアイコン表示)</h3>
+<ul>
+<li>グリッド配置 (CSS Grid <code>repeat(auto-fill, minmax(…))</code>)</li>
+<li>カード幅: 画面によって調整可能 (既定 280px)</li>
+<li>各カード内のレイアウトは画面ごとにカスタム (カスタムレンダラ)</li>
+<li>No 列は<strong>表示しない</strong> (カードレイアウトでは非表示が自然)。ただし物理順はデータ側で保持</li>
+<li>選択・ホバーの視覚表現は表と一貫したハイライト色</li>
+<li>カード全体が D&#x26;D ハンドル</li>
+</ul>
+<h3 id="43-切替-ui">4.3 切替 UI</h3>
+<ul>
+<li>一覧ヘッダ (ページタイトルの右) に、カード/表の<strong>アイコントグル</strong>を配置
+<ul>
+<li>アイコン例: <code>bi-grid-3x3-gap</code> (カード) / <code>bi-list-task</code> (表)</li>
+</ul>
+</li>
+<li>切替状態は <strong>localStorage に永続化</strong> (画面ごとに個別。キー: <code>list-view-mode:{feature-name}</code>)
+<ul>
+<li>例: <code>list-view-mode:table-list</code>、<code>list-view-mode:action-list</code></li>
+</ul>
+</li>
+<li>切替対象外の画面 (テーブル定義 > カラム一覧) にはトグル非表示</li>
+</ul>
+<h3 id="44-フィルタバー">4.4 フィルタバー</h3>
+<ul>
+<li>一覧コンテナの上部 (<code>&#x3C;FilterBar></code>) に横長で配置</li>
+<li>フィルタが効いていれば表示、なければ非表示</li>
+<li>テキスト例: 「カテゴリ: 画面のみ — 3 件 / 全 10 件」+ 「フィルタクリア」ボタン</li>
+</ul>
+<h3 id="45-ソートバー-39">4.5 ソートバー (§3.9)</h3>
+<ul>
+<li>一覧コンテナの上部 (<code>&#x3C;SortBar></code>) に、FilterBar と同じ帯に配置</li>
+<li>ソート中 (<code>sort.sortKeys.length > 0</code>) のみ表示、解除時は非表示</li>
+<li>多段ソート時は全キーを順序付きで表示 (昇順/降順アイコン付き)</li>
+<li>「ソート解除」ボタンで全ソートキーを一括解除</li>
+<li>注意書きで「ソート中は並び替え・新規作成・貼り付けが無効」を明示</li>
+</ul>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>┌──────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│ 🔽 ソート中: 名前 ▲ → 更新日 ▼   [ソート解除]   │</span></span>
+<span class="line"><span>│    並び替え・新規作成・貼り付けは解除後に可能    │</span></span>
+<span class="line"><span>└──────────────────────────────────────────────────┘</span></span></code></pre>
+<ul>
+<li>FilterBar と SortBar が両方出る場合は縦に並べて配置 (FilterBar が上、SortBar が下)</li>
+</ul>
+<h3 id="46-削除-ui-311">4.6 削除 UI (§3.11)</h3>
+<h4 id="行ゴミ箱アイコン">行ゴミ箱アイコン</h4>
+<ul>
+<li>位置: 行の右端 (最後のカラムの後 or カード内右上)</li>
+<li><strong>ホバー時のみ表示</strong> (opacity: 0 → 1 transition)。ノイズ最小、VS Code のタブ閉じるボタン等と一貫</li>
+<li>アイコン: <code>bi-trash</code>、色はセマンティック danger 系 (赤系)</li>
+<li>クリック時はその行を削除マーク (<code>editor.markDeleted([item.id])</code>)、他の行の選択状態は変更しない</li>
+<li>ソート中も有効 (§3.11 / §3.9)</li>
+</ul>
+<h4 id="上部の削除アイコン">上部の削除アイコン</h4>
+<ul>
+<li>位置: ヘッダツールバーの固定位置 (各画面で統一)</li>
+<li><strong>disabled 常駐表示</strong> (選択ゼロ時は視覚的に無効、予測可能な位置)</li>
+<li>アイコン + テキスト: <code>&#x3C;i class="bi bi-trash" /> 削除</code> (選択時は件数併記: <code>削除 (N 件)</code>)</li>
+<li>クリック時は <code>editor.markDeleted(selection.selectedItems.map(id))</code></li>
+<li>選択ゼロ時の <code>disabled</code> は HTML の disabled 属性 + <code>tbl-btn-disabled</code> 等の共通クラス</li>
+</ul>
+<h4 id="右クリックメニュー-1">右クリックメニュー</h4>
+<ul>
+<li>発火: 行の右クリック、または空領域の右クリック</li>
+<li>表示位置: カーソル位置。画面端をはみ出す場合は <code>flip</code> (上/左へ反転)</li>
+<li>項目グルーピング: <code>[新規作成] | [クリップボード (コピー/切り取り/貼り付け)] | [移動 (カラム一覧のみ 上へ/下へ)] | [複製] | [削除]</code></li>
+<li>separator: 水平線 1px (CSS <code>border-top</code>)</li>
+<li>各項目: アイコン (16px) + ラベル (13px) + キーボードショートカット併記 (右寄せ、例: <code>Ctrl+C</code>)</li>
+<li>ソート中で無効な項目: <code>disabled</code> 属性 + <code>opacity: 0.4</code> + <code>title="ソート中は無効 (ソート解除で利用可能)"</code></li>
+<li>キーボード: ↑↓ で移動、Enter で実行、Esc で閉じる</li>
+<li>フォーカス管理: メニューを開いた時に最初の有効項目にフォーカス。閉じた時は元の要素にフォーカスを戻す</li>
+<li>外クリック / Esc / 項目クリック後は閉じる</li>
+</ul>
+<h2 id="5-api-スケッチ">5. API スケッチ</h2>
+<h3 id="51-uselistselectiont-既存pr-138">5.1 <code>useListSelection&#x3C;T></code> (既存・PR #138)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListSelection</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  selectedIds</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Set</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  selectedItems</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  isSelected</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">id</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  setSelectedIds</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">ids</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Set</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  clearSelection</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  selectAll</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  handleRowClick</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">id</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">e</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">ctrlKey</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#E36209;--shiki-dark:#F69D50">metaKey</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#E36209;--shiki-dark:#F69D50">shiftKey</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  getAnchorId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> useListSelection</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>(</span><span style="color:#E36209;--shiki-dark:#F69D50">items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[], </span><span style="color:#6F42C1;--shiki-dark:#DCBDFB">getId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListSelection</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span></code></pre>
+<h3 id="52-uselistkeyboardt-既存--拡張">5.2 <code>useListKeyboard&#x3C;T></code> (既存 + 拡張)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListKeyboardOpts</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  getId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  selection</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListSelection</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  clipboard</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListClipboard</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** "list" = 表レイアウト (↑↓のみ) / "grid" = カードレイアウト (↑↓←→) */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  layout</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "list"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "grid"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** grid レイアウト時の列数取得関数 (getBoundingClientRect ベース想定) */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  getColumnCount</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onActivate</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onDelete</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[]) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onDuplicate</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[]) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onMoveUp</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[]) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onMoveDown</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[]) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  enabled</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> useListKeyboard</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>(</span><span style="color:#E36209;--shiki-dark:#F69D50">opts</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListKeyboardOpts</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span></code></pre>
+<h3 id="53-uselistclipboardt-新設">5.3 <code>useListClipboard&#x3C;T></code> (新設)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">type</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ClipboardMode</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "copy"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "cut"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListClipboardState</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  mode</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ClipboardMode</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListClipboard</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  clipboard</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListClipboardState</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  hasContent</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  copy</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[]) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  cut</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[]) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  clear</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 貼り付け実行時に呼ぶ。cut なら items を返して clear。copy なら items のディープコピーを返す */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  consume</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 指定 ID が「切り取り対象 (ghosted 表示)」か判定 */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  isItemCut</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">id</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> useListClipboard</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>(</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB">getId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListClipboard</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span></code></pre>
+<h3 id="54-uselistfiltert-新設">5.4 <code>useListFilter&#x3C;T></code> (新設)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListFilter</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  filtered</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  isActive</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  totalCount</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  visibleCount</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  applyFilter</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">predicate</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> ((</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">|</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  clearFilter</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> useListFilter</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>(</span><span style="color:#E36209;--shiki-dark:#F69D50">items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[])</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListFilter</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span></code></pre>
+<h3 id="55-uselistsortt-新設">5.5 <code>useListSort&#x3C;T></code> (新設)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> SortKey</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  columnKey</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  direction</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "asc"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "desc"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListSort</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sortKeys</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> SortKey</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sorted</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  toggleSort</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">columnKey</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">opts</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">addKey</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  clearSort</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  getSortRank</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">columnKey</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;  </span><span style="color:#6A737D;--shiki-dark:#768390">// 多段ソート時の順位 (1-indexed)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  getSortDirection</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">columnKey</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#032F62;--shiki-dark:#96D0FF"> "asc"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "desc"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> useListSort</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>(</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[],</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  getSortAccessor</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">columnKey</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListSort</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span></code></pre>
+<h3 id="56-datalistt-差し替え">5.6 <code>DataList&#x3C;T></code> (差し替え)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DataListColumn</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  key</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  header</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ReactNode</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  render</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">index</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ReactNode</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  width</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  align</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "left"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "center"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "right"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  className</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sortable</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  sortAccessor</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DataListProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  columns</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DataListColumn</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>[];</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  getId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** No 列表示用 (§3.10)。省略時は index + 1 にフォールバック */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  getNo</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  selection</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListSelection</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  clipboard</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListClipboard</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sort</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListSort</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onActivate</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">index</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onReorder</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">fromIndex</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">toIndex</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 行の削除ボタン (行ゴミ箱, §3.11 / §4.6)。指定時のみ各行右端にホバー表示 */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onRowDelete</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /**</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   * 右クリックメニュー (§3.11 / §4.6)。行または空領域の右クリック時に呼ばれる。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   * item=null は空領域 (背景) の右クリック。実装側が項目配列を返し、DataList が</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   * ListContextMenu を開く</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onContextMenu</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">e</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ReactMouseEvent</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** レイアウト。"list" = 表、"grid" = カード */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  layout</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "list"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "grid"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** grid レイアウト時のカードレンダラ (columns は使われない) */</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  renderCard</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">index</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ReactNode</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  showNumColumn</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  emptyMessage</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ReactNode</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  className</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  variant</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "light"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "dark"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> DataList</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>(</span><span style="color:#E36209;--shiki-dark:#F69D50">props</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DataListProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ReactElement</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span></code></pre>
+<h3 id="57-filterbar-新設">5.7 <code>&#x3C;FilterBar></code> (新設)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="tsx"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> FilterBarProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  isActive</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  totalCount</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  visibleCount</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** "カテゴリ: 画面のみ" のような現在のフィルタ条件説明 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  label</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onClear</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> FilterBar</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">props</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> FilterBarProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ReactElement</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span></code></pre>
+<h3 id="58-viewmodetoggle-新設">5.8 <code>&#x3C;ViewModeToggle></code> (新設)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="tsx"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ViewModeToggleProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  mode</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "card"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "table"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onChange</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span><span style="color:#E36209;--shiki-dark:#F69D50">mode</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "card"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "table"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** localStorage への永続化キー */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  storageKey</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> ViewModeToggle</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">props</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ViewModeToggleProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ReactElement</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span></code></pre>
+<h3 id="59-sortbar-新設-39--45">5.9 <code>&#x3C;SortBar></code> (新設, §3.9 / §4.5)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="tsx"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> SortBarProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sort</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListSort</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** columnKey → ヘッダ文字列への辞書 (表示用ラベル解決) */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  columnLabels</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Record</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> SortBar</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>(</span><span style="color:#E36209;--shiki-dark:#F69D50">props</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> SortBarProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">T</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ReactElement</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span></code></pre>
+<p><code>sort.sortKeys.length === 0</code> の時は <code>null</code> を返す (非表示)。<code>DataList</code> の <code>sort</code> prop / <code>useListKeyboard</code> は <code>sort.sortKeys.length > 0</code> を Read-only モード判定に使用する。</p>
+<h3 id="510-listcontextmenu-新設-311--46">5.10 <code>&#x3C;ListContextMenu></code> (新設, §3.11 / §4.6)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="tsx"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ContextMenuItem</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 一意キー (React key) */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  key</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 表示ラベル。省略 + separator=true でセパレータとして動作 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  label</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** Bootstrap Icons クラス名 (例: "bi-trash") */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  icon</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** キーボードショートカット表示 (右寄せ、例: "Ctrl+C")。動作は結び付けない (既存 useListKeyboard に任せる) */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  shortcut</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  disabled</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** disabled 時の説明 (tooltip 用) */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  disabledReason</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** true ならセパレータ (水平線)。label / icon / onClick は無視される */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  separator</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 破壊的操作 (削除系) の視覚強調。true で danger スタイル (赤系ハイライト) */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  danger</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onClick</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListContextMenuProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  items</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ContextMenuItem</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 表示座標 (CSS px)。clientX / clientY 相当 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  x</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  y</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  onClose</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> () </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> ListContextMenu</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">props</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ListContextMenuProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ReactElement</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span></code></pre>
+<ul>
+<li>items 配列に separator を含めて渡すと、そのまま順序通り描画される</li>
+<li>キーボード: 上下で移動 (disabled 項目はスキップ)、Enter で実行、Esc で閉じる</li>
+<li>外クリックで閉じる。画面端をはみ出す場合は反対側にフリップ</li>
+<li>開いた時は最初の非 disabled 項目にフォーカス、閉じた時は元の要素にフォーカスを戻す</li>
+</ul>
+<h3 id="511-画面側の使用イメージ">5.11 画面側の使用イメージ</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="tsx"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">function</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> TableListView</span><span style="color:#24292E;--shiki-dark:#ADBAC7">() {</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  const</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> [</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">tables</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">setTables</span><span style="color:#24292E;--shiki-dark:#ADBAC7">] </span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> useState</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">TableMeta</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[]>([]);</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  const</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> [</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">viewMode</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">setViewMode</span><span style="color:#24292E;--shiki-dark:#ADBAC7">] </span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> usePersistentState</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">"card"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "table"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>(</span><span style="color:#032F62;--shiki-dark:#96D0FF">"list-view-mode:table-list"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"card"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">);</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  </span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  const</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> filter</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> useListFilter</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(tables);</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  const</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> sort</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> useListSort</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(filter.filtered, (</span><span style="color:#E36209;--shiki-dark:#F69D50">item</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">key</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> getSortAccessor</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(item, key));</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  const</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> selection</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> useListSelection</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(sort.sorted, (</span><span style="color:#E36209;--shiki-dark:#F69D50">t</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#24292E;--shiki-dark:#ADBAC7"> t.id);</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  const</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> clipboard</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> useListClipboard</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">TableMeta</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>((</span><span style="color:#E36209;--shiki-dark:#F69D50">t</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#24292E;--shiki-dark:#ADBAC7"> t.id);</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  </span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  useListKeyboard</span><span style="color:#24292E;--shiki-dark:#ADBAC7">({</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    items: sort.sorted,</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">    getId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: (</span><span style="color:#E36209;--shiki-dark:#F69D50">t</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#24292E;--shiki-dark:#ADBAC7"> t.id,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    selection,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    clipboard,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    layout: viewMode </span><span style="color:#D73A49;--shiki-dark:#F47067">===</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "card"</span><span style="color:#D73A49;--shiki-dark:#F47067"> ?</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "grid"</span><span style="color:#D73A49;--shiki-dark:#F47067"> :</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "list"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">    onActivate</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: (</span><span style="color:#E36209;--shiki-dark:#F69D50">t</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> navigate</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#032F62;--shiki-dark:#96D0FF">`/table/edit/${</span><span style="color:#24292E;--shiki-dark:#ADBAC7">t</span><span style="color:#032F62;--shiki-dark:#96D0FF">.</span><span style="color:#24292E;--shiki-dark:#ADBAC7">id</span><span style="color:#032F62;--shiki-dark:#96D0FF">}`</span><span style="color:#24292E;--shiki-dark:#ADBAC7">),</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    onDelete: handleDelete,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    onDuplicate: handleDuplicate,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  });</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  </span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  return</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> (</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    &#x3C;</span><span style="color:#22863A;--shiki-dark:#8DDB8C">div</span><span style="color:#24292E;--shiki-dark:#ADBAC7">></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      &#x3C;</span><span style="color:#005CC5;--shiki-dark:#8DDB8C">Header</span><span style="color:#24292E;--shiki-dark:#ADBAC7">></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        &#x3C;</span><span style="color:#22863A;--shiki-dark:#8DDB8C">h2</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>テーブル設計書&#x3C;/</span><span style="color:#22863A;--shiki-dark:#8DDB8C">h2</span><span style="color:#24292E;--shiki-dark:#ADBAC7">></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        &#x3C;</span><span style="color:#005CC5;--shiki-dark:#8DDB8C">ViewModeToggle</span><span style="color:#6F42C1;--shiki-dark:#6CB6FF"> mode</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">viewMode</span><span style="color:#24292E;--shiki-dark:#F47067">}</span><span style="color:#6F42C1;--shiki-dark:#6CB6FF"> onChange</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">setViewMode</span><span style="color:#24292E;--shiki-dark:#F47067">}</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      &#x3C;/</span><span style="color:#005CC5;--shiki-dark:#8DDB8C">Header</span><span style="color:#24292E;--shiki-dark:#ADBAC7">></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      </span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      &#x3C;</span><span style="color:#005CC5;--shiki-dark:#8DDB8C">MyFilterUI</span><span style="color:#6F42C1;--shiki-dark:#6CB6FF"> onChange</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">pred</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#24292E;--shiki-dark:#ADBAC7"> filter.</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB">applyFilter</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(pred)</span><span style="color:#24292E;--shiki-dark:#F47067">}</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      &#x3C;</span><span style="color:#005CC5;--shiki-dark:#8DDB8C">FilterBar</span><span style="color:#24292E;--shiki-dark:#F47067"> {</span><span style="color:#D73A49;--shiki-dark:#F47067">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7">filter</span><span style="color:#24292E;--shiki-dark:#F47067">}</span><span style="color:#6F42C1;--shiki-dark:#6CB6FF"> onClear</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">filter.clearFilter</span><span style="color:#24292E;--shiki-dark:#F47067">}</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      &#x3C;</span><span style="color:#005CC5;--shiki-dark:#8DDB8C">SortBar</span><span style="color:#6F42C1;--shiki-dark:#6CB6FF"> sort</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">sort</span><span style="color:#24292E;--shiki-dark:#F47067">}</span><span style="color:#6F42C1;--shiki-dark:#6CB6FF"> columnLabels</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">columnLabels</span><span style="color:#24292E;--shiki-dark:#F47067">}</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> /></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      </span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      &#x3C;</span><span style="color:#005CC5;--shiki-dark:#8DDB8C">DataList</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">        items</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">sort.sorted</span><span style="color:#24292E;--shiki-dark:#F47067">}</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">        columns</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">columns</span><span style="color:#24292E;--shiki-dark:#F47067">}</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">        getId</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">t</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#24292E;--shiki-dark:#ADBAC7"> t.id</span><span style="color:#24292E;--shiki-dark:#F47067">}</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">        selection</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">selection</span><span style="color:#24292E;--shiki-dark:#F47067">}</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">        clipboard</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">clipboard</span><span style="color:#24292E;--shiki-dark:#F47067">}</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">        sort</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">sort</span><span style="color:#24292E;--shiki-dark:#F47067">}</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">        layout</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">viewMode </span><span style="color:#D73A49;--shiki-dark:#F47067">===</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "card"</span><span style="color:#D73A49;--shiki-dark:#F47067"> ?</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "grid"</span><span style="color:#D73A49;--shiki-dark:#F47067"> :</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "list"</span><span style="color:#24292E;--shiki-dark:#F47067">}</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">        renderCard</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">renderTableCard</span><span style="color:#24292E;--shiki-dark:#F47067">}</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">        onActivate</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">t</span><span style="color:#24292E;--shiki-dark:#ADBAC7">) </span><span style="color:#D73A49;--shiki-dark:#F47067">=></span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> navigate</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#032F62;--shiki-dark:#96D0FF">`/table/edit/${</span><span style="color:#24292E;--shiki-dark:#ADBAC7">t</span><span style="color:#032F62;--shiki-dark:#96D0FF">.</span><span style="color:#24292E;--shiki-dark:#ADBAC7">id</span><span style="color:#032F62;--shiki-dark:#96D0FF">}`</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#24292E;--shiki-dark:#F47067">}</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#6CB6FF">        onReorder</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#24292E;--shiki-dark:#F47067">{</span><span style="color:#24292E;--shiki-dark:#ADBAC7">handleReorder</span><span style="color:#24292E;--shiki-dark:#F47067">}</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      /></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    &#x3C;/</span><span style="color:#22863A;--shiki-dark:#8DDB8C">div</span><span style="color:#24292E;--shiki-dark:#ADBAC7">></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  );</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h2 id="6-技術方針">6. 技術方針</h2>
+<h3 id="61-ライブラリ選定">6.1 ライブラリ選定</h3>
+<ul>
+<li><strong>TanStack Table (MIT)</strong> — headless table。row model / 列管理 / ソート / フィルタのエンジンとして活用。レンダリングはしないので、カード表示にも同じデータモデルを流用できる</li>
+<li><strong><code>@dnd-kit</code></strong> — 既にプロジェクトで使用中。そのまま継続</li>
+<li><strong>選択 / キーボード / コピペ / フィルタ / ソート は自作フック</strong> — 細かい UX をコントロールするため</li>
+</ul>
+<h3 id="62-tanstack-table-の使い所">6.2 TanStack Table の使い所</h3>
+<ul>
+<li>sort state 管理 (PR #138 の useListSort は TanStack の sorted row model に差し替え可能)</li>
+<li>列定義の型 (<code>ColumnDef&#x3C;T></code>)</li>
+<li>カラム visibility / ordering (将来用)</li>
+<li>row model をカードレイアウトにも流用</li>
+</ul>
+<h3 id="63-移行方針">6.3 移行方針</h3>
+<p>PR #138 で作った自作 <code>DataList</code> / <code>useListSelection</code> / <code>useListKeyboard</code> は Phase A で TanStack ベースに差し替えるが、<strong>対外 API は互換を保つ</strong>ことを目標にする (既存使用箇所を壊さないため)。</p>
+<h2 id="7-phase-分け-各-phase--1-pr">7. Phase 分け (各 Phase = 1 PR)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Phase</th><th>内容</th><th>視覚影響</th><th>規模</th></tr></thead><tbody><tr><td>A</td><td>TanStack Table 導入 + 共通フック完全版 (選択・キー・コピペ・フィルタ・ソート) + <code>DataList</code> 差し替え + <code>&#x3C;FilterBar></code> + <code>&#x3C;ViewModeToggle></code> + カード版レンダラ対応</td><td>ゼロ (基盤のみ)</td><td>大</td></tr><tr><td>B</td><td>テーブル定義 > カラム一覧を共通部品に移行</td><td>小 (既に表、微調整)</td><td>中</td></tr><tr><td>C</td><td>画面一覧の新設 (画面フローから分離、HeaderMenu・CLAUDE.md 更新)</td><td>中 (新機能・新タブ)</td><td>中</td></tr><tr><td>D</td><td>処理フロー一覧を共通部品化 + カード/表切替追加</td><td>中 (切替 UI 追加)</td><td>中</td></tr><tr><td>E</td><td>テーブル一覧を共通部品化 + カード/表切替追加</td><td>中 (切替 UI 追加)</td><td>中</td></tr></tbody></table>
+<p>各 Phase は独立した PR として作成・レビュー・マージ。視覚影響のある B〜E は AI が chrome-devtools MCP / Playwright で smoke test を実施した上でマージ。</p>
+<h2 id="8-受け入れ条件">8. 受け入れ条件</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> 共通フック (<code>useListSelection</code> / <code>useListKeyboard</code> / <code>useListClipboard</code> / <code>useListFilter</code> / <code>useListSort</code>) が提供され、Vitest で主要ケースが検証されている</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>DataList</code> が TanStack ベースで table / grid 両レイアウトを表示できる</li>
+<li class="task-list-item"><input type="checkbox" disabled> 対象 4 画面すべて (画面一覧 / テーブル一覧 / 処理フロー一覧 / テーブル定義 > カラム) が共通部品を使っている</li>
+<li class="task-list-item"><input type="checkbox" disabled> カード ⇔ 表切替が機能し、状態が localStorage に画面ごと永続化される</li>
+<li class="task-list-item"><input type="checkbox" disabled> Excel/Explorer 準拠の操作が全画面で統一動作:
+<ul>
+<li>クリック / Ctrl+ / Shift+ / Ctrl+A / Esc / ダブルクリック</li>
+<li>↑↓ (表) / ↑↓←→ (カード) / Shift+ 拡張</li>
+<li>Enter / F2 / Delete / Ctrl+C/X/V/D / Alt+↑↓</li>
+</ul>
+</li>
+<li class="task-list-item"><input type="checkbox" disabled> No 列が <code>item.no</code> 永続フィールドとして表レイアウトに描画される (レンダラの <code>index + 1</code> ではない)</li>
+<li class="task-list-item"><input type="checkbox" disabled> 各一覧系アイテムに <code>no: number</code> が追加され、D&#x26;D / Alt+↑↓ / Ctrl+X→V / Ctrl+C→V / Ctrl+D / 新規作成 / 削除 で連番 1..N が厳密に維持される</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>no</code> フィールドが存在しない既存データは、読み込み時に配列現在順で初期採番される</li>
+<li class="task-list-item"><input type="checkbox" disabled> ソート中 (<code>sort.sortKeys.length > 0</code>) は「並び替え Read-only モード」に入り、D&#x26;D ハンドル / Alt+↑↓ / Ctrl+V / Ctrl+D / 新規作成 / 挿入 が無効化される (§3.9)</li>
+<li class="task-list-item"><input type="checkbox" disabled> ソート中も Delete / Ctrl+C / Ctrl+X / 選択 / activate は動作する (Ctrl+X はクリップボード状態のみ更新、実データ未変更)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>&#x3C;SortBar></code> がソート中に表示され、多段ソートキーの可視化と「ソート解除」ボタンを提供する</li>
+<li class="task-list-item"><input type="checkbox" disabled> 列ヘッダクリックソート (単一・多段 Shift+ クリック) が動作。▲▼ と順位 ① ② ③ が表示される</li>
+<li class="task-list-item"><input type="checkbox" disabled> フィルタ API が動作し、<code>&#x3C;FilterBar></code> が共通で利用できる</li>
+<li class="task-list-item"><input type="checkbox" disabled> 画面フローと画面一覧が分離され、HeaderMenu・ルーティング・CLAUDE.md が更新されている</li>
+<li class="task-list-item"><input type="checkbox" disabled> Playwright テストが主要一覧 (特に画面一覧・テーブル一覧) に追加または更新されている</li>
+<li class="task-list-item"><input type="checkbox" disabled> 行ごとのゴミ箱アイコンが各一覧の各行に<strong>ホバー時表示</strong>され、クリックで削除マーク (§3.11 / §4.6)</li>
+<li class="task-list-item"><input type="checkbox" disabled> 上部の削除アイコンが各一覧の共通位置に <strong>disabled 常駐</strong>、選択時は有効化 (複数選択対応、件数表示)</li>
+<li class="task-list-item"><input type="checkbox" disabled> 右クリックメニュー (<code>&#x3C;ListContextMenu></code>) が各一覧で動作。画面別項目・グルーピング・キーボード代替 (Menu / Shift+F10 / ↑↓ / Enter / Esc)</li>
+<li class="task-list-item"><input type="checkbox" disabled> 空領域の右クリックで「新規作成」のみの絞り込みメニューが出る</li>
+<li class="task-list-item"><input type="checkbox" disabled> ソート中は右クリックメニューの「新規作成 / 貼り付け / 複製 / 挿入 / 上へ / 下へ」が個別 disabled、「削除 / コピー / 切り取り」は引き続き有効</li>
+</ul>
+<h2 id="9-スコープ外-将来対応">9. スコープ外 (将来対応)</h2>
+<ul>
+<li>ブラウザ外 (Excel 等) クリップボードとの連携 (ペースト機能)</li>
+<li>ソート / フィルタ状態の永続化</li>
+<li>仮想スクロール (現状の件数規模では不要)</li>
+<li>列幅のユーザーカスタマイズ・永続化</li>
+<li>列の表示/非表示カスタマイズ</li>
+<li>グループ化表示</li>
+<li>カラム順序のユーザーカスタマイズ</li>
+</ul>
+<p>将来これらが必要になったとき、TanStack Table ベースの採用により拡張しやすい。</p>
+<h2 id="10-excel--explorer-参照動作-迷った時の拠り所">10. Excel / Explorer 参照動作 (迷った時の拠り所)</h2>
+<p>実装中に仕様が曖昧な箇所に遭遇したら、以下の順で判断する:</p>
+<ol>
+<li>Excel で同じ操作をしたらどうなるか</li>
+<li>Windows エクスプローラの「詳細表示」または「大アイコン表示」で同じ操作をしたらどうなるか</li>
+<li>それでも決まらない場合は、<strong>ユーザーに確認する</strong> (勝手にスコープを縮退させない)</li>
+</ol>
+<h2 id="11-変更履歴">11. 変更履歴</h2>
+<ul>
+<li>2026-04-19: 初版。#133 の当初方針 (「カード → 表に一律変更」) をスコープ再定義 (「表/カード併存、切替提供、共通実装」) して本仕様を策定。PR #139 (誤った方向の実装) クローズ、PR #138 (共通基盤) を本仕様の Phase A で TanStack ベースに差し替え</li>
+<li>2026-04-19: #148 対応により §3.6 の「物理順変更操作はソート中も許可 / 自動解除推奨」方針を撤回。代わりに §3.9「ソート中 Read-only モード」と §3.10「No 列 (永続フィールド)」を新設。<code>&#x3C;SortBar></code> を §4.5 / §5.9 に追加。受け入れ条件を更新</li>
+<li>2026-04-19: #147 対応により §3.11「削除操作の統一」と §4.6「削除 UI」を新設。<code>&#x3C;ListContextMenu></code> を §5.10 に追加 (既存 §5.10 は §5.11 に繰り下げ)。<code>DataList</code> に <code>onRowDelete</code> / <code>onContextMenu</code> / <code>getNo</code> プロップを追加。受け入れ条件に 5 項目追加</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

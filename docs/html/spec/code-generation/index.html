@@ -1,0 +1,531 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>code generation</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link active"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="ai-コード生成プロトコル">AI コード生成プロトコル</h1>
+<p><code>project.techStack</code> に基づく AI コード生成の指針を定義する。</p>
+<p>実装状況: <code>project.techStack</code> スキーマは #826 で導入済み。
+<code>/generate-code &#x3C;flowId|screenId></code> スキル本体は #832 で実装済 (<code>ai-skills/generate-code/</code>)。</p>
+<p>PageLayout + Gadget の code generation 対応 (RFC #1021 pl-7、Phase 2) は #1028 で完了。
+両 techStack (Spring Boot/Thymeleaf + NestJS/Next.js) で examples/retail 実機ビルド + 起動 pass 達成
+(<code>examples/retail/generated/</code> 参照)。</p>
+<hr>
+<h2 id="1-概要">1. 概要</h2>
+<p>業務システムデザイナーの <code>project.techStack</code> フィールドは、AI がプロジェクトの実装コードを生成する際のターゲット技術環境を明示する。AI はこのフィールドを読み取ることで:</p>
+<ul>
+<li>バックエンドコードを適切な言語/フレームワークで生成する</li>
+<li>フロントエンドコードをターゲットテンプレートエンジンで生成する</li>
+<li>認証/デプロイ関連の設定ファイルを対応する形式で生成する</li>
+</ul>
+<hr>
+<h2 id="2-techstack-フィールド構造">2. techStack フィールド構造</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "techStack"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "designer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "editorKind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   </span><span style="color:#032F62;--shiki-dark:#96D0FF">"grapesjs | puck"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "cssFramework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"bootstrap | tailwind"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "backend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "language"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:  </span><span style="color:#032F62;--shiki-dark:#96D0FF">"java | typescript | python | go | kotlin"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "framework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"spring-boot | nestjs | express | fastapi | gin"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "database"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:    </span><span style="color:#032F62;--shiki-dark:#96D0FF">"postgresql | mysql | sqlite | oracle | sqlserver"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "version"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"バージョン文字列 (省略可)"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "frontend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "library"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   </span><span style="color:#032F62;--shiki-dark:#96D0FF">"react | vue | thymeleaf | blade | none"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "framework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"next | nuxt | vite | none (省略可)"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "auth"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "method"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"jwt | session | oauth2 | saml | none"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "deployment"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "target"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"docker | vm | lambda | cloud-run | kubernetes"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<hr>
+<h2 id="3-カテゴリ別-ai-実装ガイドライン">3. カテゴリ別 AI 実装ガイドライン</h2>
+<h3 id="31-デザイナー-techstackdesigner">3.1 デザイナー (techStack.designer)</h3>
+<ul>
+<li><code>editorKind: "puck"</code> → フロントエンドは必ず React コンポーネントを生成する</li>
+<li><code>editorKind: "grapesjs"</code> → Thymeleaf / Blade テンプレートまたは React JSX を生成する</li>
+<li><code>cssFramework: "tailwind"</code> → ユーティリティクラスを直接使用する、CDN 版不可</li>
+<li><code>cssFramework: "bootstrap"</code> → Bootstrap 5 クラスを使用する</li>
+</ul>
+<h3 id="32-バックエンド-techstackbackend">3.2 バックエンド (techStack.backend)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>言語</th><th>フレームワーク</th><th>生成ファイル例</th></tr></thead><tbody><tr><td>java</td><td>spring-boot</td><td><code>@RestController</code>, <code>@Service</code>, <code>@Repository</code>, <code>application.yml</code></td></tr><tr><td>kotlin</td><td>spring-boot</td><td>上記の Kotlin 版</td></tr><tr><td>typescript</td><td>nestjs</td><td><code>@Controller</code>, <code>@Injectable</code>, <code>@Module</code>, <code>.module.ts</code></td></tr><tr><td>typescript</td><td>express</td><td><code>router.ts</code>, <code>middleware.ts</code></td></tr><tr><td>python</td><td>fastapi</td><td><code>@app.get</code>, <code>Pydantic model</code>, <code>requirements.txt</code></td></tr><tr><td>go</td><td>gin</td><td><code>gin.Context</code>, <code>main.go</code>, <code>go.mod</code></td></tr></tbody></table>
+<h3 id="33-データベース-techstackdatabase">3.3 データベース (techStack.database)</h3>
+<ul>
+<li><code>type: "postgresql"</code> → <code>SERIAL</code> / <code>BIGSERIAL</code> 採番、<code>VARCHAR</code> / <code>TEXT</code> 型</li>
+<li><code>type: "mysql"</code> → <code>AUTO_INCREMENT</code> 採番、<code>VARCHAR</code> / <code>LONGTEXT</code> 型</li>
+<li><code>type: "oracle"</code> → <code>SEQUENCE</code> 採番、<code>VARCHAR2</code> / <code>CLOB</code> 型</li>
+<li><code>version</code> フィールドが指定されている場合、バージョン固有の構文を優先する</li>
+</ul>
+<h3 id="34-フロントエンド-techstackfrontend">3.4 フロントエンド (techStack.frontend)</h3>
+<ul>
+<li><code>library: "thymeleaf"</code> → <code>th:text</code>, <code>th:each</code>, <code>th:if</code> を使用</li>
+<li><code>library: "blade"</code> → <code>{{ }}</code>, <code>@foreach</code>, <code>@if</code> を使用</li>
+<li><code>library: "react"</code> → TSX コンポーネント、<code>useState</code>/<code>useEffect</code> hooks</li>
+<li><code>library: "vue"</code> → SFC (<code>.vue</code>), <code>&#x3C;template>/&#x3C;script setup>/&#x3C;style></code></li>
+<li><code>framework: "next"</code> → <code>app/</code> ディレクトリルーター、Server Components 優先</li>
+<li><code>framework: "nuxt"</code> → <code>pages/</code> ディレクトリルーター、<code>&#x3C;NuxtLink></code></li>
+</ul>
+<h3 id="35-認証-techstackauth">3.5 認証 (techStack.auth)</h3>
+<ul>
+<li><code>method: "jwt"</code> → <code>Authorization: Bearer &#x3C;token></code> ヘッダー、リフレッシュトークンパターン</li>
+<li><code>method: "session"</code> → Cookie セッション、CSRF トークン</li>
+<li><code>method: "oauth2"</code> → Authorization Code フロー、<code>/oauth2/authorization/{provider}</code></li>
+<li><code>method: "saml"</code> → SP-initiated SSO、metadata XML</li>
+</ul>
+<h3 id="36-デプロイ-techstackdeployment">3.6 デプロイ (techStack.deployment)</h3>
+<ul>
+<li><code>target: "docker"</code> → <code>Dockerfile</code>, <code>docker-compose.yml</code></li>
+<li><code>target: "kubernetes"</code> → <code>Deployment.yaml</code>, <code>Service.yaml</code>, <code>ConfigMap.yaml</code></li>
+<li><code>target: "cloud-run"</code> → Cloud Run <code>service.yaml</code>, <code>cloudbuild.yaml</code></li>
+<li><code>target: "lambda"</code> → Lambda function handler, <code>serverless.yml</code> / SAM テンプレート</li>
+</ul>
+<hr>
+<h2 id="4-典型組合せパターン">4. 典型組合せパターン</h2>
+<h3 id="41-java-spring-boot--thymeleaf-エンタープライズ標準">4.1 Java Spring Boot + Thymeleaf (エンタープライズ標準)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "designer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"editorKind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"grapesjs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"cssFramework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"bootstrap"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "backend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"language"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"java"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"framework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"spring-boot"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "database"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"postgresql"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "frontend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"library"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"thymeleaf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "auth"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:       { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"method"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"session"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "deployment"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"target"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"docker"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>生成物: Spring MVC コントローラ + Thymeleaf テンプレート + Spring Security セッション認証</p>
+<h3 id="42-typescript-nestjs--react-nextjs-spassr">4.2 TypeScript NestJS + React Next.js (SPA/SSR)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "designer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"editorKind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"puck"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"cssFramework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tailwind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "backend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"language"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"typescript"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"framework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"nestjs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "database"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"postgresql"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "frontend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"library"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"react"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"framework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"next"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "auth"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:       { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"method"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"jwt"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "deployment"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"target"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"docker"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>生成物: NestJS REST API + Next.js App Router + JWT 認証</p>
+<h3 id="43-python-fastapi--react-vite-軽量-api">4.3 Python FastAPI + React Vite (軽量 API)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "designer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"editorKind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"puck"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"cssFramework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tailwind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "backend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"language"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"python"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"framework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"fastapi"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "database"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"postgresql"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "frontend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"library"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"react"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"framework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"vite"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "auth"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:       { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"method"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"jwt"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "deployment"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"target"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"cloud-run"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="44-go-gin--なし-純-api-バックエンド">4.4 Go Gin + なし (純 API バックエンド)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "designer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"editorKind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"grapesjs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"cssFramework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"bootstrap"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "backend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"language"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"go"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"framework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"gin"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "database"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"postgresql"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "frontend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"library"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"none"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "auth"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:       { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"method"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"jwt"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "deployment"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"target"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"kubernetes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="45-kotlin-spring-boot--serverless-lambda">4.5 Kotlin Spring Boot + Serverless (Lambda)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "designer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"editorKind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"grapesjs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"cssFramework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"bootstrap"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "backend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"language"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"kotlin"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"framework"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"spring-boot"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "database"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"mysql"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "frontend"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:   { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"library"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"thymeleaf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "auth"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:       { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"method"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"oauth2"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "deployment"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"target"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"lambda"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<hr>
+<h2 id="5-generate-code-スキルのフロー">5. <code>/generate-code</code> スキルのフロー</h2>
+<p><code>/generate-code &#x3C;flowId|screenId> [出力先]</code> スキル (<code>SKILL.md</code> 参照) が実行する手順:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Step 0: 引数解析 — UUID 判定、出力先デフォルト (.tmp/generated-code/&#x3C;UUID8桁>/)</span></span>
+<span class="line"><span>Step 1: 入力読込</span></span>
+<span class="line"><span>  1-1. active workspace の harmony.json から techStack 取得</span></span>
+<span class="line"><span>  1-2. UUID を processFlows / screens / pageLayouts で照合して入力種別判定</span></span>
+<span class="line"><span>  1-3. 入力 JSON を Read で取得</span></span>
+<span class="line"><span>  1-4. PageLayout 入力なら Step 3-D へ (#1028 pl-7)</span></span>
+<span class="line"><span>  1-5. Screen 入力なら purpose を判定:</span></span>
+<span class="line"><span>       - purpose=gadget → Step 3-C へ</span></span>
+<span class="line"><span>       - purpose=page (default) → Step 3-B へ</span></span>
+<span class="line"><span>Step 2: techStack 制約検証 (validateTechStackConstraints 相当)</span></span>
+<span class="line"><span>  - editorKind=puck → react 必須</span></span>
+<span class="line"><span>  - backend lang × framework matrix</span></span>
+<span class="line"><span>  - thymeleaf/blade → grapesjs 必須</span></span>
+<span class="line"><span>  - vue → {nuxt, vite, none}</span></span>
+<span class="line"><span>  - react → {next, vite, none}</span></span>
+<span class="line"><span>  - 違反あれば中止</span></span>
+<span class="line"><span>  2-4. PageLayout 解決 (pl-7): Screen.pageLayoutId 指定時は page-layouts/&#x3C;id>.json を load + assignments の gadget を解決</span></span>
+<span class="line"><span>  2-5. cssFramework ミスマッチ検出 (pl-7): PageLayout / 各 gadget / 各 page の cssFramework 混在を警告</span></span>
+<span class="line"><span>Step 3: 入力種別別 dispatch</span></span>
+<span class="line"><span>  3-A ProcessFlow → backend code 生成 (step kind ごとのマッピング)</span></span>
+<span class="line"><span>  3-B Screen (purpose=page) → frontend code 生成 (screen.kind ごとのテンプレート分岐)</span></span>
+<span class="line"><span>       pageLayoutId 指定時は Layout Decorate / Wrap モードで生成</span></span>
+<span class="line"><span>  3-C Screen (purpose=gadget) → fragment + Controller / client component + Route Handler 生成 (pl-7)</span></span>
+<span class="line"><span>  3-D PageLayout → Thymeleaf passive layout / Next.js AppLayout component 生成 (pl-7)</span></span>
+<span class="line"><span>Step 4: テンプレート参照 (ai-skills/generate-code/templates/)</span></span>
+<span class="line"><span>  - thymeleaf-bootstrap/: PAGE.md + LAYOUT.md (pl-7) + FRAGMENT.md (pl-7)</span></span>
+<span class="line"><span>  - react-tailwind-next/: PAGE.md + LAYOUT.md (pl-7) + COMPONENT.md (pl-7)</span></span>
+<span class="line"><span>Step 5: コード生成 + 出力先への書き出し</span></span>
+<span class="line"><span>Step 6: smoke 検証 (Java 構文目視 / Thymeleaf XML パース / tsc dry)</span></span>
+<span class="line"><span>最終レポート出力</span></span></code></pre>
+<p>詳細は <code>ai-skills/generate-code/SKILL.md</code> を参照すること。</p>
+<hr>
+<h2 id="6-組合せ制約-techstackconstraintsts">6. 組合せ制約 (techStackConstraints.ts)</h2>
+<p>コード生成前に <code>validateTechStackConstraints(project.techStack)</code> を呼び出し、
+違反がある場合はエラーメッセージを返す。詳細は
+<code>frontend/src/utils/techStackConstraints.ts</code> を参照。</p>
+<p>主要制約:</p>
+<ol>
+<li><code>editorKind=puck</code> → <code>frontend.library="react"</code> 必須</li>
+<li>バックエンド言語 × フレームワーク matrix (java→spring-boot のみ、等)</li>
+<li><code>thymeleaf | blade</code> → <code>editorKind=grapesjs</code> 必須</li>
+<li><code>vue</code> → <code>framework ∈ {nuxt, vite, none}</code></li>
+<li><code>react</code> → <code>framework ∈ {next, vite, none}</code></li>
+</ol>
+<hr>
+<h2 id="7-processflow--backend-mapping-ルール">7. ProcessFlow → backend mapping ルール</h2>
+<p>ProcessFlow JSON の step kind ごとのコード生成方針。詳細は <code>ai-skills/generate-code/SKILL.md</code> Step 3-A を参照。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>step.kind</th><th>Java Spring Boot</th><th>TypeScript NestJS</th></tr></thead><tbody><tr><td><code>dbAccess</code> (SELECT)</td><td>JPA Repository <code>findBy...()</code> または <code>@Query(nativeQuery=true)</code></td><td>TypeORM <code>repository.findOne()</code> または <code>dataSource.query()</code></td></tr><tr><td><code>dbAccess</code> (INSERT)</td><td><code>repository.save(entity)</code></td><td><code>manager.save(entity)</code></td></tr><tr><td><code>dbAccess</code> (UPDATE)</td><td><code>@Modifying @Query</code> + affectedRowsCheck</td><td><code>manager.query(sql)</code> + 行数チェック</td></tr><tr><td><code>dbAccess</code> (DELETE)</td><td><code>@Modifying @Query deleteBy...()</code></td><td><code>manager.delete()</code></td></tr><tr><td><code>transactionScope</code></td><td><code>@Transactional(isolation, timeout)</code> + rollbackOn → 例外 throw</td><td><code>dataSource.transaction('READ COMMITTED', async manager => { ... })</code></td></tr><tr><td><code>screenTransition</code></td><td><code>return "redirect:/path"</code> (MVC Controller) / REST API では出力しない</td><td><code>res.redirect('/path')</code></td></tr><tr><td><code>branch</code></td><td><code>if (condition) { ... } else { ... }</code> + <code>throw XxxException</code></td><td><code>if (condition) { throw new HttpException(...) }</code></td></tr><tr><td><code>loop</code> (collection)</td><td><code>for (ItemType item : collection) { ... }</code></td><td><code>for (const item of collection) { ... }</code></td></tr><tr><td><code>eventPublish</code></td><td><code>ApplicationEventPublisher.publishEvent(new XxxEvent(...))</code></td><td><code>EventEmitter2.emit('topic', payload)</code></td></tr><tr><td><code>compute</code></td><td>ローカル変数計算 (<code>stream().mapToLong().sum()</code> 等)</td><td>ローカル変数計算 (<code>reduce</code>, <code>map</code> 等)</td></tr><tr><td><code>validation</code></td><td>Bean Validation DTO アノテーション + <code>@Valid</code> Controller 引数</td><td><code>class-validator</code> DTO デコレータ</td></tr><tr><td><code>return</code></td><td><code>ResponseEntity.&#x3C;T>status(N).body(body)</code></td><td><code>return responseDto</code> または <code>throw new HttpException(body, status)</code></td></tr><tr><td><code>log</code></td><td><code>log.error(message, structuredData)</code></td><td><code>this.logger.error(message, structuredData)</code></td></tr><tr><td><code>other</code></td><td><code>// TODO: {{step.description}}</code> + outputSchema で型推定 (注: schema の <code>kind</code> に <code>other</code> は存在しない。extension step では <code>type: "other"</code> を使う別階層の概念であるため混同注意)</td><td>同左</td></tr></tbody></table>
+<h3 id="ambientvariables--フレームワーク引数">ambientVariables → フレームワーク引数</h3>
+<p><code>context.ambientVariables</code> で宣言された変数は、Controller / Router 層でリクエスト文脈から取得する:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ambientVariable</th><th>Java Spring Boot</th><th>TypeScript NestJS</th></tr></thead><tbody><tr><td><code>sessionCustomerId</code></td><td><code>HttpSession.getAttribute("customerId")</code></td><td><code>(req.session as any).customerId</code></td></tr><tr><td><code>requestId</code></td><td><code>HttpServletRequest.getHeader("X-Request-ID")</code></td><td><code>req.headers['x-request-id']</code></td></tr></tbody></table>
+<h3 id="httproute--controller-メソッドシグネチャ">httpRoute → Controller メソッドシグネチャ</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>action.httpRoute.method: "POST"  → @PostMapping / @Post()</span></span>
+<span class="line"><span>action.httpRoute.path: "/api/retail/orders"</span></span>
+<span class="line"><span>  → @RequestMapping("/api/retail") + @PostMapping("/orders")</span></span>
+<span class="line"><span>action.httpRoute.auth: "required" → Spring Security 設定 / @UseGuards(SessionGuard)</span></span></code></pre>
+<hr>
+<h2 id="8-screen--frontend-mapping-ルール">8. Screen → frontend mapping ルール</h2>
+<p>Screen JSON の <code>kind</code> フィールドとテンプレート分岐。詳細は <code>ai-skills/generate-code/SKILL.md</code> Step 3-B を参照。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>screen.kind</th><th>Thymeleaf テンプレートパターン</th><th>React/Next.js テンプレートパターン</th></tr></thead><tbody><tr><td><code>search</code></td><td>検索フォーム (<code>&#x3C;form method="get"></code>) + <code>&#x3C;table th:each></code> 結果表示</td><td>Client Component フォーム + Server Component テーブル</td></tr><tr><td><code>list</code></td><td><code>&#x3C;table th:each="row : ${rows}"></code> 一覧</td><td>Server Component テーブル + pagination</td></tr><tr><td><code>form</code></td><td><code>&#x3C;form method="post"></code> + 入力コントロール群</td><td><code>&#x3C;form action={serverAction}></code> + 入力コントロール群</td></tr><tr><td><code>confirm</code></td><td>フォーム内容確認表示 (読み取り専用) + submit</td><td>confirm ページ + Server Action</td></tr><tr><td><code>complete</code></td><td>完了メッセージ + 遷移リンク (<code>&#x3C;a th:href></code>)</td><td>完了ページ + <code>&#x3C;Link href></code></td></tr><tr><td><code>dashboard</code></td><td>ダッシュボード (固定セクション配置)</td><td>ダッシュボードページ (Server Component)</td></tr><tr><td>業界拡張 kind (例: <code>retail:cart</code>)</td><td>extensions/ 配下の定義を参照。未定義なら <code>list</code> 扱い</td><td>同左</td></tr></tbody></table>
+<h3 id="screenitems--ui-要素マッピング">screen.items[] → UI 要素マッピング</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>direction</th><th>type</th><th>Thymeleaf</th><th>React</th></tr></thead><tbody><tr><td><code>input</code></td><td><code>string</code> (no options)</td><td><code>&#x3C;input type="text" th:value="${param.X}"></code></td><td><code>&#x3C;input type="text" value={X} onChange={...}></code></td></tr><tr><td><code>input</code></td><td><code>string</code> + options[]</td><td><code>&#x3C;select>&#x3C;option th:each="opt : ${options}"></code></td><td><code>&#x3C;select></code> + options map</td></tr><tr><td><code>input</code></td><td><code>datetime</code></td><td><code>&#x3C;input type="datetime-local"></code></td><td><code>&#x3C;input type="datetime-local"></code></td></tr><tr><td><code>output</code></td><td>any</td><td><code>&#x3C;span th:text="${X}"></code></td><td><code>&#x3C;span>{x}&#x3C;/span></code></td></tr><tr><td><code>viewer</code></td><td>array + viewDefinitionId</td><td><code>&#x3C;table th:each="row : ${rows}">&#x3C;tr>&#x3C;td th:text></code></td><td>データテーブルコンポーネント</td></tr></tbody></table>
+<h3 id="editorkind-解決順序-multi-editor-puckmd--23">editorKind 解決順序 (multi-editor-puck.md § 2.3)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>1. screen.design.editorKind (画面個別指定)</span></span>
+<span class="line"><span>2. project.techStack.designer.editorKind (project default)</span></span>
+<span class="line"><span>3. デフォルト: "grapesjs"</span></span></code></pre>
+<p>解決後の editorKind が <code>"puck"</code> で Thymeleaf 出力をリクエストした場合はスキップして報告する
+(Puck 画面は React コンポーネント生成が前提であり、Thymeleaf 非対応)。</p>
+<hr>
+<h2 id="9-出力ディレクトリ規約">9. 出力ディレクトリ規約</h2>
+<p>生成コードは <code>.tmp/generated-code/</code> (または <code>/generate-code</code> 第2引数) に書き出す。
+プロジェクトルート直置き禁止 (AGENTS.md 一時ファイル配置ルール準拠)。</p>
+<h3 id="java-spring-boot">Java Spring Boot</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>&#x3C;出力先>/src/main/java/com/example/&#x3C;projectName>/</span></span>
+<span class="line"><span>  service/     — &#x3C;Name>Service.java</span></span>
+<span class="line"><span>  controller/  — &#x3C;Name>Controller.java</span></span>
+<span class="line"><span>  entity/      — &#x3C;TableName>.java</span></span>
+<span class="line"><span>  repository/  — &#x3C;TableName>Repository.java</span></span>
+<span class="line"><span>  dto/         — &#x3C;ActionName>Request.java, &#x3C;ActionName>Response.java</span></span>
+<span class="line"><span>&#x3C;出力先>/src/main/resources/</span></span>
+<span class="line"><span>  db/migration/  — V1__create_&#x3C;tableName>.sql (Flyway)</span></span>
+<span class="line"><span>  templates/     — &#x3C;path>/&#x3C;screenName>.html (Thymeleaf)</span></span></code></pre>
+<h3 id="typescript-nestjs--nextjs">TypeScript NestJS + Next.js</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>&#x3C;出力先>/</span></span>
+<span class="line"><span>  &#x3C;name>.service.ts        — NestJS Service</span></span>
+<span class="line"><span>  &#x3C;name>.controller.ts     — NestJS Controller</span></span>
+<span class="line"><span>  &#x3C;name>.module.ts         — NestJS Module</span></span>
+<span class="line"><span>  dto/                     — &#x3C;action>-request.dto.ts, &#x3C;action>-response.dto.ts</span></span>
+<span class="line"><span>  entity/                  — &#x3C;table>.entity.ts</span></span>
+<span class="line"><span>  app/&#x3C;path>/page.tsx      — Next.js App Router ページ</span></span>
+<span class="line"><span>  components/&#x3C;domain>/     — React コンポーネント</span></span></code></pre>
+<hr>
+<h2 id="10-検証方法">10. 検証方法</h2>
+<h3 id="generate-code-スキルの-smoke-検証-step-6"><code>/generate-code</code> スキルの smoke 検証 (Step 6)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>検証対象</th><th>方法</th><th>合否基準</th></tr></thead><tbody><tr><td>Java ファイル</td><td>構文チェックポイント目視 + (javac 利用可能なら) <code>javac *.java</code></td><td>構文エラー 0 件</td></tr><tr><td>Thymeleaf HTML</td><td><code>[xml](Get-Content *.html)</code> (PowerShell XML パース)</td><td>パース成功 = well-formed</td></tr><tr><td>TypeScript ファイル</td><td><code>npx tsc --noEmit</code> (tsc 利用可能なら)</td><td>型エラー 0 件</td></tr></tbody></table>
+<h3 id="ci-自動化について">CI 自動化について</h3>
+<p>本スキルは AI 対話駆動のため <strong>CI (GitHub Actions / Vitest) の自動化対象外</strong>とする。</p>
+<p>理由:</p>
+<ol>
+<li>生成コードはプロジェクト固有のパッケージ名・依存関係を必要とし、汎用 CI では build 不可</li>
+<li>スキル実行は <code>/generate-code &#x3C;id></code> の明示的な呼び出しで行われ、コミット対象でない</li>
+<li>golden-examples の回帰テストは <code>ai-skills/generate-code/golden-examples/</code> を手動 diff で確認する</li>
+</ol>
+<p>ゴールデン出力改善時は同ディレクトリのファイルを更新し、PR diff レビューで品質を担保する。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

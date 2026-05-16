@@ -1,0 +1,500 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>view definition</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link active"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="viewdefinition-画面-一覧-ui-viewer">ViewDefinition (画面 一覧 UI viewer)</h1>
+<p><strong>ステータス</strong>: v3 整合 (schema v3、3 レベル DSL #745 反映済)
+<strong>初版日</strong>: 2026-05-03
+<strong>関連 issue</strong>: #649 (Phase 4 子 1 — schema / type / validator 新設) / #666 (UI 編集機能 — ListView / Editor / store) / #745 (Level 2 Structured / Level 3 Raw SQL の 3 レベル DSL 化) / #761 (本 spec docs 整備)</p>
+<p>本書は <code>ViewDefinition</code> (画面側の一覧 UI viewer 設定) の仕様を定める。<code>schemas/v3/view-definition.v3.schema.json</code> の機械可読仕様を補完し、設計者および AI 実装者が「どのレベルで書くか」「Screen とどう連携するか」「どの validator が何を検出するか」を判断できるよう情報を集約する。</p>
+<h2 id="位置づけ">位置づけ</h2>
+<p><code>ViewDefinition</code> は画面 UI 上で配列データを「表 / カード / カンバン / カレンダー」として表現する <strong>viewer 設定</strong> である。同じ「View」という単語が DB にも存在するため軸を明確にする:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>概念</th><th>場所</th><th>axis</th><th>役割</th></tr></thead><tbody><tr><td><strong>ViewDefinition</strong> (本書)</td><td><code>view-definitions/&#x3C;id>.json</code></td><td>画面 (UI viewer)</td><td>1 viewer = 1 source、列を画面表示型 (FieldType) で表現。Screen は items[] の <code>direction: "viewer"</code> screen-item から <code>viewDefinitionId</code> で 1:N 参照される</td></tr><tr><td>DB View</td><td><code>views/&#x3C;id>.json</code> (<code>schemas/v3/view.v3.schema.json</code>)</td><td>DB (永続化層 SELECT)</td><td>SQL VIEW / Materialized View の物理定義。複数アクションから共通の SELECT として参照される</td></tr></tbody></table>
+<p>両者は名前が似ているが axis が異なるため独立 schema として分離されている (#649 設計判断)。ViewDefinition は ViewColumn の値を「画面で見せる時の型 (FieldType)」で記述し、DB View は永続化された SELECT 結果のスキーマ (DataType) を持つ。ViewDefinition の Level 2 / Level 3 は DB View を介さず query を直接記述する (DB View の薄い置換ではなく、画面ごとに固有の集計が必要な場合の primary な手段)。</p>
+<h3 id="一次成果物">一次成果物</h3>
+<ul>
+<li>JSON Schema: <a href="../../schemas/v3/view-definition.v3.schema.json"><code>schemas/v3/view-definition.v3.schema.json</code></a> (<a href="/schemas/README/">README</a>)</li>
+<li>TypeScript 型: <a href="../../frontend/src/types/v3/view-definition.ts"><code>frontend/src/types/v3/view-definition.ts</code></a></li>
+<li>validator: <a href="../../frontend/src/schemas/viewDefinitionValidator.ts"><code>frontend/src/schemas/viewDefinitionValidator.ts</code></a></li>
+</ul>
+<h2 id="データモデル">データモデル</h2>
+<h3 id="viewdefinition">ViewDefinition</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="typescript"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ViewDefinition</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** UUID。同プロジェクト内で一意。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  id</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Uuid</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 表示名 (DisplayName)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  name</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DisplayName</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 説明。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  description</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Description</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 成熟度 (draft / review / committed)。draft-state policy に従う。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  maturity</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Maturity</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  createdAt</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;  </span><span style="color:#6A737D;--shiki-dark:#768390">// ISO 8601</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  updatedAt</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;  </span><span style="color:#6A737D;--shiki-dark:#768390">// ISO 8601</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** viewer 種別。組み込み 4 種 + 拡張参照。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "list"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "detail"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "kanban"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "calendar"</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">      |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> `${</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#032F62;--shiki-dark:#96D0FF">}:${</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#032F62;--shiki-dark:#96D0FF">}`</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;  </span><span style="color:#6A737D;--shiki-dark:#768390">// namespace:kindName</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** Level 1 (Simple): 主要ソーステーブル ID。query と排他。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sourceTableId</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Uuid</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** Level 2 / Level 3 の query 定義。sourceTableId と排他。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  query</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ViewQuery</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 必須: viewer に表示する列定義 (1 件以上、表示順は配列順)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  columns</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ViewColumn</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 既定ソート (複数列対応、columnName は columns[].name 参照)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sortDefaults</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> SortSpec</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 初期フィルタ (静的)。動的 filter binding は spec 範囲外 (#762)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  filterDefaults</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> FilterSpec</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** ページング初期件数 (1〜1000)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  pageSize</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** kanban / グルーピング表示時の集約キー (columns[].name 参照)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  groupBy</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Identifier</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** authoring 情報 (decisions / glossary 等)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  authoring</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Authoring</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="viewcolumn">ViewColumn</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="typescript"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ViewColumn</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 列識別子 (camelCase、ViewDefinition 内で一意)。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   *  sortDefaults / filterDefaults / groupBy が参照する。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  name</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Identifier</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 参照する table カラム (Pattern B 複合参照)。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   *  Level 1: sourceTableId と一致するべき。違うと JOIN_NOT_DECLARED warning。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   *  Level 2: query.from / query.joins[] のいずれかに含まれる tableId であること。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   *  Level 3: 省略可 (SQL 結果として name + type のみで宣言)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  tableColumnRef</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> TableColumnRef</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 列ヘッダー表示名。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  displayName</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DisplayName</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 必須: 画面表示型 (FieldType)。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   *  Level 1/2 では参照先 Column.dataType と互換であること (validator 検査)、</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">   *  Level 3 では SQL 結果と一致することを設計者が保証する。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  type</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> FieldType</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 表示書式 (例: '#,##0' / 'YYYY-MM-DD' / '¥#,##0')。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  displayFormat</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 列幅 (CSS 表記、例: '120px' / '1fr' / 'auto')。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  width</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  align</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "left"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "center"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "right"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sortable</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  filterable</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 列表示条件式 (式言語)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  visibleWhen</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ExpressionString</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** セル click で navigate する path (例: '/orders/:id'、:colon で同行値を埋め込み)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  linkTo</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="sortspec--filterspec">SortSpec / FilterSpec</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="typescript"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> SortSpec</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** ViewColumn.name 参照。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  columnName</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Identifier</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  order</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "asc"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "desc"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> FilterSpec</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** ViewColumn.name 参照。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  columnName</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Identifier</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  operator</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "eq"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "neq"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "gt"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "gte"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "lt"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "lte"</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">          |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "contains"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "startsWith"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "in"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "between"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** リテラル値 (operator 依存: in は array、between は [min, max] 等)。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  value</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> unknown</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  /** 比較値を式で渡す場合 (例: '@conv.numbering.lowStockThreshold')。 */</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  valueExpression</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ExpressionString</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h2 id="3-レベル-dsl-の使い分け-745">3 レベル DSL の使い分け (#745)</h2>
+<p><code>sourceTableId</code> と <code>query</code> は排他関係。次の判断フローでレベルを選ぶ:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>1 テーブルだけで完結?</span></span>
+<span class="line"><span>├─ Yes → Level 1 (Simple、sourceTableId)</span></span>
+<span class="line"><span>└─ No  → 複数テーブル JOIN が必要</span></span>
+<span class="line"><span>         │</span></span>
+<span class="line"><span>         window / CTE / 再帰 / UNION 等が必要?</span></span>
+<span class="line"><span>         ├─ No  → Level 2 (Structured、query.from + joins + where/groupBy/...)</span></span>
+<span class="line"><span>         └─ Yes → Level 3 (Raw SQL、query.sql + parameterRefs)</span></span></code></pre>
+<h3 id="level-1-simple">Level 1 (Simple)</h3>
+<p>1 ベース table をそのまま列挙する最小構成。マスタ画面・単純な明細一覧で多用される。</p>
+<p>実例: <a href="../../examples/retail/view-definitions/db10b1f4-459c-4bd3-bb27-76394209671d.json"><code>examples/retail/view-definitions/db10b1f4-...json</code></a> (商品マスター一覧 5 列)</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"list"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "sourceTableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"652cbbfe-..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,  </span><span style="color:#6A737D;--shiki-dark:#768390">// products テーブル</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "columns"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"productCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "tableColumnRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"tableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"652cbbfe-..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"columnId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"col-product-code"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "displayName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"商品コード"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "width"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"120px"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "sortable"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "filterable"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "linkTo"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"/master/products/:id"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">    // ...</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "sortDefaults"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"columnName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"productCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"order"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"asc"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "filterDefaults"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"columnName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"isActive"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"operator"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"eq"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"value"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "pageSize"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">50</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong>Level 1 で済むケース</strong>: 1 テーブル単独。ただし FK 参照のために <code>tableColumnRef.tableId</code> が <code>sourceTableId</code> と異なる列を混ぜると暗黙 join となり <code>JOIN_NOT_DECLARED</code> warning。多い場合は Level 2 にアップグレード。</p>
+<h3 id="level-2-structured">Level 2 (Structured)</h3>
+<p><code>query.from</code> (起点テーブル + alias) + <code>query.joins[]</code> (INNER/LEFT/RIGHT/FULL) + <code>where</code> / <code>groupBy</code> / <code>having</code> / <code>orderBy</code> を SQL fragment 配列で記述する。alias を SQL 内で参照できる。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"list"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "query"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "from"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"tableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;orders-uuid>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"alias"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"o"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "joins"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"INNER"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "tableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;customers-uuid>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "alias"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"c"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "on"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"o.customer_id = c.id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "where"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"o.status != 'cancelled'"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "orderBy"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"o.ordered_at DESC"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "columns"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"orderNumber"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "tableColumnRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"tableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;orders-uuid>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"columnId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"col-order-number"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "displayName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"注文番号"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"customerName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "tableColumnRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"tableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;customers-uuid>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"columnId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"col-name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "displayName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"顧客名"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">    // ...</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong>Level 2 を選ぶ判断基準</strong>:</p>
+<ul>
+<li>2 テーブル以上の JOIN が必要</li>
+<li>WHERE で同テーブル内の列で絞り込みたい (e.g. <code>o.status != 'cancelled'</code>)</li>
+<li>GROUP BY / HAVING で集計が必要 (ただし window 関数や CTE は Level 3)</li>
+</ul>
+<p><code>alias</code> の pattern は <code>^[a-z][a-z0-9_]*$</code> (先頭小文字 + 小文字英数 / アンダースコア)、<code>from.alias</code> と <code>joins[].alias</code> の組合せ重複は不可 (validator <code>DUPLICATE_QUERY_ALIAS</code> が検査)。</p>
+<h3 id="level-3-raw-sql">Level 3 (Raw SQL)</h3>
+<p><code>query.sql</code> に完全 SQL 文を直接書く escape hatch。window 関数 / CTE / 再帰 / UNION / 複雑な ROW_NUMBER 等、Level 2 では表現できない場合に使う。validator は SQL 構文を解析せず <code>columns[]</code> の宣言を信頼する (実行時保証)。</p>
+<p>実例: <a href="../../examples/retail/view-definitions/37a3af9a-f240-4fbb-b33d-6937305b430b.json"><code>examples/retail/view-definitions/37a3af9a-...json</code></a> (カテゴリ別売れ筋商品 上位 N、ROW_NUMBER + CTE)</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"list"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "query"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "sql"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"WITH ranked AS (SELECT id, name, category, unit_price, ROW_NUMBER() OVER (PARTITION BY category ORDER BY unit_price DESC) AS rn FROM products WHERE is_active = true) SELECT id, name, category, unit_price, rn FROM ranked WHERE rn &#x3C;= @param.topN ORDER BY category ASC, rn ASC"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "parameterRefs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"topN"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "fieldType"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"integer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"各カテゴリで取得する上位件数。"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "columns"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"rn"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"integer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"displayName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"順位"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">    // ... tableColumnRef は省略可</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong>SQL 内の補間記法</strong>:</p>
+<ul>
+<li><code>@&#x3C;var></code> — フロー変数 (呼び出し側 context)</li>
+<li><code>@conv.*</code> — 規約カタログ参照</li>
+<li><code>@env.*</code> — 環境変数</li>
+<li><code>@param.&#x3C;name></code> — <code>parameterRefs[]</code> で宣言した外部パラメータ (画面 filter / Screen binding 等から)</li>
+</ul>
+<p><strong>注意</strong>: parameterRefs は静的な型宣言のみ。画面の input 項目から動的に filter パラメータを渡す場合は、
+D 案 (D-案: viewer screen-item、#762 確定) に従い <strong>Screen.items[] に <code>direction='viewer'</code> の screen-item を追加</strong>し、
+<code>valueFrom.flowVariable</code> でフロー変数を binding する方式を採用する。
+<code>@param.*</code> への直接 binding は廃止予定。詳細は <a href="/spec/screen-items/">screen-items.md#F-viewer-項目</a> を参照。</p>
+<h2 id="kind-別の典型レイアウト">kind 別の典型レイアウト</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>kind</th><th>レイアウト想定</th><th>必須/推奨フィールド</th></tr></thead><tbody><tr><td><strong>list</strong></td><td>テーブル (行 = レコード、列 = ViewColumn)</td><td>columns / sortDefaults / pageSize</td></tr><tr><td><strong>detail</strong></td><td>1 レコードのフォーム表示</td><td>columns (フィールド表示順)、sortDefaults / pageSize は無効</td></tr><tr><td><strong>kanban</strong></td><td>カラム = groupBy 値、カード = レコード</td><td>groupBy 必須、columns はカード本文に表示</td></tr><tr><td><strong>calendar</strong></td><td>カレンダー上に時系列でレコードを配置</td><td>日時列を columns に含める (validator 上の必須化はないが慣習)</td></tr><tr><td><code>namespace:kindName</code></td><td>業界拡張 (例: <code>retail:storefront</code>)</td><td>extensions の <code>viewDefinitionKinds</code> で別途定義</td></tr></tbody></table>
+<p>組み込み 4 種以外の kind を使う場合、<code>extensions/&#x3C;namespace>/view-definition-kinds.json</code> で <code>kind / requiredFields / layoutHint</code> を宣言する。</p>
+<h2 id="screen-との連携">Screen との連携</h2>
+<p>Screen は <code>items[]</code> の <code>direction: "viewer"</code> screen-item から <code>viewDefinitionId</code> で 1:N 参照する。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// screens/&#x3C;id>.json</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;screen-uuid>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"list"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "items"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"myList"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"一覧"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"array"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"itemType"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "direction"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"viewer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "viewDefinitionId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;view-definition-uuid>"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong>1:N で複数 viewer を使う典型</strong>: <code>kind="list"</code> の画面で、タブ切替や絞込パネル切替で複数 viewer を提示する場合 (例: 「全件 / アクティブのみ / 廃番含む」をそれぞれ別 ViewDefinition に分け、画面が切替制御を持つ) は、<code>direction: "viewer"</code> の screen-item を複数定義する。</p>
+<p><strong>画面項目 (items[]) との関係</strong>: items[] の input / output / viewer 項目がすべて同一配列に共存する。同じ画面内で input × N + viewer × M を同居させる構成が一般的 (検索画面 / 一覧画面の組合せ)。</p>
+<p><code>kind="list"</code> の Screen で <code>items[]</code> 内に <code>direction: "viewer"</code> の screen-item が 0 件の場合、<code>runtimeContractValidator [EMPTY_SCREEN_ITEMS]</code> が warning を発報する (画面が空白なため、空白意図ならコメントを残すか、設計途中なら maturity=draft で許容)。</p>
+<h2 id="設計上の決定事項">設計上の決定事項</h2>
+<h3 id="d-1-screen-と-viewdefinition-は-1n-649-設計判断">(D-1) Screen と ViewDefinition は 1:N (#649 設計判断)</h3>
+<ul>
+<li>1:1 にすると「タブ切替 / 表示モード切替」を Screen 側に詰め込む必要が出る。</li>
+<li>1:N で別 entity に分離することで viewer ごとの独立した authoring (decisions / glossary) を持てる。</li>
+</ul>
+<h3 id="d-2-db-view-viewv3schemajson-と-axis-分離-649">(D-2) DB View (<code>view.v3.schema.json</code>) と axis 分離 (#649)</h3>
+<ul>
+<li>DB View は永続化層 SELECT (1 つの SQL VIEW を複数フローから参照)。</li>
+<li>ViewDefinition は画面 viewer (1 つの table またはカスタム query を画面で見せる時の列定義)。</li>
+<li>同じ “View” 名でも責務が異なるため独立 schema 化。共通点があれば将来 mixin で抽出する余地は残す。</li>
+</ul>
+<h3 id="d-3-3-レベル-dsl-の段階的拡張-745">(D-3) 3 レベル DSL の段階的拡張 (#745)</h3>
+<ul>
+<li>Level 1 → Level 2 → Level 3 と段階的に表現力を上げる。</li>
+<li>Level 1 の暗黙 join は <code>JOIN_NOT_DECLARED</code> warning として検出し、Level 2 アップグレードを促す (旧 <code>COLUMN_REF_NOT_IN_SOURCE_TABLE</code> を再定義)。</li>
+</ul>
+<h3 id="d-4-tablecolumnref-は-level-3-で省略可-745">(D-4) <code>tableColumnRef</code> は Level 3 で省略可 (#745)</h3>
+<ul>
+<li>Level 3 では SQL 結果に対応する table 列が必ずしも 1:1 で対応しないため (例: ROW_NUMBER の rn 列は table 由来ではない)。</li>
+<li>省略時は <code>name + type</code> のみで列を宣言する。型整合は設計者が保証 (validator は走らせない)。</li>
+</ul>
+<h3 id="d-5-sql-select-句の列は-as-camelcase-alias-必須-775">(D-5) SQL SELECT 句の列は <code>AS "&#x3C;camelCase>"</code> alias 必須 (#775)</h3>
+<p>ProcessFlow の <code>dbAccess.sql</code> で SELECT した列が ViewDefinition の <code>columns[].name</code> (camelCase Identifier) へ直接バインドされる場合 (viewer screen-item の <code>valueFrom.flowVariable</code> 経由) は、<strong>SQL 内で明示 alias により名前を一致させる</strong>。</p>
+<blockquote>
+<p><strong>規約</strong>: SQL SELECT 句で DB 物理名 (snake_case) と <code>columns[].name</code> (camelCase) が異なる列は <code>AS "&#x3C;camelCase>"</code> で alias 必須。</p>
+<p>例: <code>SELECT p.unit_price AS "unitPrice", p.product_code AS "productCode" FROM products p</code></p>
+</blockquote>
+<p><strong>理由</strong>: snake_case 物理名 (<code>unit_price</code>) と camelCase Identifier (<code>unitPrice</code>) を runtime で暗黙変換すると validator で検出不能なバインドミスが発生する。明示 alias で SQL ↔ ViewDefinition binding を構文上確定させ、sqlColumnValidator の整合チェック対象に含める。</p>
+<p><strong>適用範囲</strong>:</p>
+<ul>
+<li><code>dbAccess</code> の SQL 出力が ViewDefinition <code>columns[].name</code> と直接バインドされる SELECT 句のみ</li>
+<li>中間 compute step を挟む場合は compute 式の key で変換してもよいが、SQL alias で統一する方が明示的</li>
+<li>既存フローへの適用例: <code>examples/retail/process-flows/267e94bf-...json</code> / <code>examples/realestate/process-flows/d4b5c6e7-...json</code></li>
+</ul>
+<h2 id="validator-観点-11-件745-反映">validator 観点 (11 件、#745 反映)</h2>
+<p><code>viewDefinitionValidator.ts</code> が次の観点を検出する。Phase 4 PR #656 で 9 件登録され、PR #745 で Level 2 / Level 3 対応に伴い 2 件追加 (合計 11 観点)。<code>validate:samples</code> の登録 9 番目 (<code>npm run validate:samples -- &#x3C;projectDir></code>)。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>issue code</th><th>severity</th><th>検出内容</th></tr></thead><tbody><tr><td><code>UNKNOWN_SOURCE_TABLE</code></td><td>error</td><td><code>sourceTableId</code> / <code>query.from.tableId</code> / <code>query.joins[].tableId</code> が同プロジェクト内に存在しない</td></tr><tr><td><code>UNKNOWN_TABLE_COLUMN_REF</code></td><td>error</td><td><code>ViewColumn.tableColumnRef</code> が存在しないテーブル列を参照</td></tr><tr><td><code>UNKNOWN_TABLE_REF_IN_VIEW</code></td><td>error</td><td>Level 2: <code>ViewColumn.tableColumnRef.tableId</code> が <code>query.from</code> / <code>query.joins[]</code> のいずれにも含まれない (#745)</td></tr><tr><td><code>JOIN_NOT_DECLARED</code></td><td>warning</td><td>Level 1: <code>tableColumnRef.tableId</code> が <code>sourceTableId</code> と異なる (暗黙 join、Level 2 アップグレード推奨。#745、旧 <code>COLUMN_REF_NOT_IN_SOURCE_TABLE</code> を再定義)</td></tr><tr><td><code>DUPLICATE_QUERY_ALIAS</code></td><td>error</td><td>Level 2: <code>query.from.alias</code> と <code>query.joins[].alias</code> の組合せに重複 (#745)</td></tr><tr><td><code>DUPLICATE_VIEW_COLUMN_NAME</code></td><td>error</td><td>ViewDefinition 内で <code>ViewColumn.name</code> が重複</td></tr><tr><td><code>FIELD_TYPE_INCOMPATIBLE</code></td><td>warning</td><td><code>ViewColumn.type</code> が参照先テーブル列の DataType と互換なし</td></tr><tr><td><code>UNKNOWN_SORT_COLUMN</code></td><td>error</td><td><code>sortDefaults</code> が <code>ViewDefinition.columns</code> に存在しない列を参照</td></tr><tr><td><code>UNKNOWN_FILTER_COLUMN</code></td><td>error</td><td><code>filterDefaults</code> が <code>ViewDefinition.columns</code> に存在しない列を参照</td></tr><tr><td><code>FILTER_OPERATOR_TYPE_MISMATCH</code></td><td>warning</td><td><code>filterDefaults.operator</code> が列 type と不整合 (text に between、数値に contains 等)</td></tr><tr><td><code>UNKNOWN_GROUP_BY_COLUMN</code></td><td>error</td><td><code>groupBy</code> が <code>ViewDefinition.columns</code> に存在しない列を参照</td></tr></tbody></table>
+<p>テスト 24 ケース (<a href="../../frontend/src/schemas/viewDefinitionValidator.test.ts"><code>viewDefinitionValidator.test.ts</code></a>)。</p>
+<h2 id="maturity--draft-state-policy-との関係">maturity / draft-state policy との関係</h2>
+<p>ViewDefinition は通常リソース同様に maturity を持ち、<code>schema 違反でも保存可能、UI で警告可視化、committed への昇格時に解消する</code> という <a href="/spec/draft-state-policy/"><code>draft-state-policy.md</code></a> の 5 原則に従う。</p>
+<ul>
+<li><code>draft</code>: 列定義不完全 / 想定列数未達 でも保存可</li>
+<li><code>review</code>: validator error 0 件、warning は許容</li>
+<li><code>committed</code>: validator error 0 件 + warning も解消が望ましい (cf. retail 6 件の committed view-definition)</li>
+</ul>
+<h2 id="関連仕様">関連仕様</h2>
+<ul>
+<li><a href="/spec/screen-items/"><code>screen-items.md</code></a> — 画面項目定義 (<code>Screen.items[]</code> の input / output / viewer 項目)</li>
+<li><a href="/spec/schema-governance/"><code>schema-governance.md</code></a> — <code>schemas/v3/view-definition.v3.schema.json</code> 等のグローバル schema 変更ガバナンス</li>
+<li><a href="/spec/schema-design-principles/"><code>schema-design-principles.md</code></a> — schema をどう書くかの規範 (本 schema は Pattern B 複合参照を採用)</li>
+<li><a href="/spec/draft-state-policy/"><code>draft-state-policy.md</code></a> — maturity による設計途中許容</li>
+<li><a href="/spec/sample-project-structure/"><code>sample-project-structure.md</code></a> — <code>view-definitions/&#x3C;id>.json</code> のディレクトリ配置</li>
+</ul>
+<h2 id="screen-との連携--viewer-screen-item-パターン-762">Screen との連携 — viewer screen-item パターン (#762)</h2>
+<p><code>Screen.items[]</code> に <code>direction: "viewer"</code> の screen-item を追加することで、
+ViewDefinition の列定義を使い ProcessFlow 出力を画面に表示する。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// screens/&#x3C;id>.json</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;screen-uuid>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "items"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"keyword"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"キーワード"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"direction"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"input"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"searchButton"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"検索"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"extension"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"extensionRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"realestate:button"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "direction"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"output"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "events"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"click"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "handlerFlowId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;検索フロー UUID>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "argumentMapping"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"keyword"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@screen.keyword"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"resultRows"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"検索結果"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"array"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"itemType"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "direction"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"viewer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "viewDefinitionId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;viewer VD UUID>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,     </span><span style="color:#6A737D;--shiki-dark:#768390">// 列定義を提供</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "valueFrom"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"flowVariable"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "processFlowId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;検索フロー UUID>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "variableName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"rows"</span><span style="color:#6A737D;--shiki-dark:#768390">                    // フロー outputs[] で宣言した変数</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong>設計方針</strong>: ViewDefinition は「列定義・ソート・kind」専任、データ取得は ProcessFlow が担い、
+viewer screen-item が両者を仲介する。ViewDefinition 側に filter/parameter binding ロジックは持たせない。</p>
+<p>詳細は <a href="/spec/screen-items/"><code>screen-items.md#F-viewer-項目</code></a> を参照。</p>
+<h2 id="範囲外-別-issue-で進行中">範囲外 (別 ISSUE で進行中)</h2>
+<ul>
+<li><strong>#763</strong>: design.json の preview-only ダミーデータ vs 実バインディングのマーキング規約 — viewer screen-item で一覧バインディングしている場合に design.json 内のサンプル行をどう扱うか、関連話題</li>
+</ul>
+<h2 id="今後の拡張候補">今後の拡張候補</h2>
+<ul>
+<li>業界拡張 <code>kind</code> の登録機構 (<code>extensions/&#x3C;namespace>/view-definition-kinds.json</code>、現状 schema は受け入れるが extensions 側の宣言フォーマットは未確定)</li>
+<li>detail / kanban / calendar 各 kind 固有の必須フィールド早見表 (現状は list 中心の検証、他 kind は実例不足)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

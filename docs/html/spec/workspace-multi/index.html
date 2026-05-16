@@ -1,0 +1,574 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>workspace multi</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link active"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="マルチワークスペース対応仕様-workspace-multi">マルチワークスペース対応仕様 (workspace-multi)</h1>
+<p>PR #679 シリーズで導入する「同時複数ワークスペース対応」の正規仕様。
+本書は v1 仕様 <a href="/spec/workspace/">workspace.md</a> の拡張 (v2) として位置付ける。</p>
+<hr>
+<h2 id="1-背景">1. 背景</h2>
+<p>PR #676 (workspace v1) では「1 サーバ = 1 active workspace」を原則とし、<code>docs/spec/workspace.md</code> 8.1 で同時複数 workspace 対応を「将来対応」と明記した。</p>
+<p>#683 シリーズ (サーバ側 draft 管理 + 全エディタ明示保存) の完了により、localStorage がほぼ廃止されサーバ側の <code>data/.drafts/</code> に作業コピーを保持するモデルへ移行した。これにより #679 の設計が大幅に簡素化され、本書で再構成した v2 設計を確定する。</p>
+<p>具体的な変化点:</p>
+<ul>
+<li>v1 では「1 サーバ = 1 active」が原則</li>
+<li>#683 で localStorage 依存がほぼ消え、サーバ側 draft 管理導入</li>
+<li>本仕様 (v2) で per-session active state + URL への wsId 埋め込みを導入し、ブラウザタブ単位で独立した active workspace を持てるようにする</li>
+</ul>
+<hr>
+<h2 id="2-用語定義-v1-からの追加変更">2. 用語定義 (v1 からの追加・変更)</h2>
+<p>v1 用語定義は <a href="/spec/workspace/">workspace.md § 1</a> を参照。本書は差分のみ定義する。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>用語</th><th>説明</th></tr></thead><tbody><tr><td>connection / clientId</td><td>WS 接続 1 本 (= ブラウザタブ 1 つ) または MCP セッション 1 つ。<code>wsBridge</code> が払い出す文字列 ID</td></tr><tr><td>per-session active workspace</td><td>connection ごとに独立して持つ active workspace。v1 の global active に代わる</td></tr><tr><td>wsId</td><td>recent エントリの <code>workspace.id</code> (UUID)。URL に埋め込まれ、broadcast の宛先絞り込みキーになる</td></tr><tr><td>ConnectionContext</td><td><code>{ clientId, activePath, lockdown }</code> の 3 フィールドを持つ per-session state オブジェクト</td></tr><tr><td>WorkspaceContextManager</td><td><code>Map&#x3C;clientId, ConnectionContext></code> を管理する backend クラス</td></tr><tr><td>VSCode モデル</td><td>1 ブラウザタブ = 1 active workspace。切替時はアプリタブ全 close → 新 wsId URL navigate。並行編集は新ブラウザタブで行う</td></tr></tbody></table>
+<hr>
+<h2 id="3-url-設計-d-1">3. URL 設計 (D-1)</h2>
+<h3 id="31-新-url-規約">3.1 新 URL 規約</h3>
+<p>全ページ URL に wsId を埋め込む: <code>/w/:wsId/&#x3C;元ページパス></code></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>旧 URL</th><th>新 URL (例)</th></tr></thead><tbody><tr><td><code>/screen/list</code></td><td><code>/w/abc-123-uuid/screen/list</code></td></tr><tr><td><code>/table/edit/customer</code></td><td><code>/w/abc-123-uuid/table/edit/customer</code></td></tr><tr><td><code>/process-flow/edit/order-flow</code></td><td><code>/w/abc-123-uuid/process-flow/edit/order-flow</code></td></tr></tbody></table>
+<h3 id="32-横断ページ-wsid-なし">3.2 横断ページ (wsId なし)</h3>
+<p>workspace 一覧・選択画面は workspace-agnostic のため wsId を持たない:</p>
+<ul>
+<li><code>/workspace/list</code> — ワークスペース一覧</li>
+<li><code>/workspace/select</code> — ワークスペース選択 (フルスクリーン welcome)</li>
+</ul>
+<h3 id="33-backward-compat">3.3 Backward compat</h3>
+<p><strong>旧 URL の backward compat は実装しない。</strong> リリース前のためブックマーク互換は考慮しない (<code>feedback_no_backward_compat_pre_release.md</code> と整合)。</p>
+<h3 id="34-リロード時の復元">3.4 リロード時の復元</h3>
+<ol>
+<li>URL の <code>:wsId</code> を <code>workspace.open(id=...)</code> で active 化</li>
+<li>recent miss (該当 wsId がない) の場合は <code>/workspace/select</code> へ redirect</li>
+</ol>
+<p>実装対象 PR: R-4 (#702)</p>
+<hr>
+<h2 id="4-タブと-workspace-の関係-d-2vscode-モデル">4. タブと workspace の関係 (D-2、VSCode モデル)</h2>
+<h3 id="41-1-ブラウザタブ--1-active-workspace">4.1 1 ブラウザタブ = 1 active workspace</h3>
+<ul>
+<li>1 つのブラウザタブは常に 1 つの workspace のみを active として持つ</li>
+<li>ブラウザタブ内で並行に複数 workspace を表示することはできない</li>
+<li>別 workspace を並行で見たい場合は <strong>新ブラウザタブで開く</strong></li>
+</ul>
+<h3 id="42-ブラウザタブ内の-workspace-切替フロー">4.2 ブラウザタブ内の workspace 切替フロー</h3>
+<ol>
+<li>WorkspaceIndicator のドロップダウンまたは <code>/workspace/list</code> から別 workspace を選択</li>
+<li>アプリ側が現在のアプリタブを全 close (<code>clearPersistedTabs()</code> + <code>gjs-*</code> 削除)</li>
+<li>新 wsId の URL <code>/w/&#x3C;新wsId>/&#x3C;同じページ or デフォルト></code> へ navigate</li>
+<li>backend に <code>workspace.open(id=新wsId)</code> を request、broadcast 受信で active 復元</li>
+</ol>
+<h3 id="43-関連既存実装">4.3 関連既存実装</h3>
+<p>現行 <code>frontend/src/components/AppShell.tsx:106-148</code> で「workspace 切替時に <code>clearPersistedTabs()</code> + <code>gjs-*</code> 削除 + <code>window.location.reload()</code>」を実装している。本仕様 (R-4) でこれを <code>reload()</code> → <code>navigate(新wsId URL)</code> に書き換える。</p>
+<hr>
+<h2 id="5-backend-per-session-active-state-d-3">5. Backend per-session active state (D-3)</h2>
+<h3 id="51-connectioncontext">5.1 ConnectionContext</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">type</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ConnectionContext</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  clientId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;       </span><span style="color:#6A737D;--shiki-dark:#768390">// WS connection ID または MCP sessionId</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  activePath</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  lockdown</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;      </span><span style="color:#6A737D;--shiki-dark:#768390">// global flag のコピー (env DESIGNER_DATA_DIR 由来)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">};</span></span></code></pre>
+<p><code>WorkspaceContextManager</code> が <code>Map&#x3C;clientId, ConnectionContext></code> を管理する。</p>
+<h3 id="52-ライフサイクル">5.2 ライフサイクル</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>イベント</th><th>処理</th></tr></thead><tbody><tr><td>WS 接続時</td><td>clientId 払い出し + context 作成。初期 <code>activePath</code> は <code>recent.lastActiveId</code> 由来 or null</td></tr><tr><td>WS 切断時</td><td><code>Map</code> から remove</td></tr><tr><td>MCP session</td><td>StreamableHttp の sessionId を clientId として同様に管理</td></tr><tr><td>lockdown</td><td>env <code>DESIGNER_DATA_DIR</code> 設定時、全 context の <code>activePath</code> が env 値固定</td></tr></tbody></table>
+<h3 id="53-公開-api-の-per-session-化">5.3 公開 API の per-session 化</h3>
+<p>旧グローバル API から per-session API へ移行する:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>旧 API</th><th>新 API</th></tr></thead><tbody><tr><td><code>getActivePath()</code></td><td><code>getActivePath(clientId)</code></td></tr><tr><td><code>setActivePath(path)</code></td><td><code>setActivePath(clientId, path)</code></td></tr><tr><td><code>clearActive()</code></td><td><code>clearActive(clientId)</code></td></tr><tr><td><code>requireActivePath()</code></td><td><code>requireActivePath(clientId)</code></td></tr></tbody></table>
+<p><code>recentStore</code> は global のまま (read/write は引き続き <code>withWriteLock</code> で直列化)。</p>
+<h3 id="54-projectstorage-の-per-session-化">5.4 projectStorage の per-session 化</h3>
+<p><code>backend/src/projectStorage.ts</code> の全公開関数 entry で <code>requireActivePath(clientId)</code> を呼ぶ形に書き換える。</p>
+<p>手順:</p>
+<ol>
+<li>関数開始時に <code>const root = requireActivePath(clientId)</code> で root スナップショット取得</li>
+<li>以降の全 I/O は <code>root</code> 変数に対して実施</li>
+<li>これにより、操作中に workspace 切替が起きても書き込み先が分散しない (v1 の root スナップショット規約を per-session に拡張)</li>
+</ol>
+<p>実装対象 PR: R-2 (#700)</p>
+<hr>
+<h2 id="6-broadcast-wsid-scoping-d-4">6. Broadcast wsId scoping (D-4)</h2>
+<h3 id="61-シグネチャ変更">6.1 シグネチャ変更</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">broadcast</span><span style="color:#24292E;--shiki-dark:#ADBAC7">({</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  wsId: string </span><span style="color:#D73A49;--shiki-dark:#F47067">|</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  event: string,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  data: unknown,</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  excludeClientId?: string</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}) → </span><span style="color:#D73A49;--shiki-dark:#F47067">void</span></span></code></pre>
+<p><code>wsId</code> には actor session の <code>activePath</code> (絶対パス) を渡す。実装は以下:</p>
+<ul>
+<li><code>wsId</code> が path 文字列 → <code>WorkspaceContextManager.getClientIdsByPath(wsId)</code> で同 path を active にしている session のみに配信 (= 同 workspace を見ているブラウザタブ)</li>
+<li><code>wsId === null</code> → 全 active session に配信 (用途は § 6.3 で限定列挙)</li>
+</ul>
+<p>通常の resource 系 broadcast (<code>screenChanged</code> / <code>tableChanged</code> 等) では <code>wsId: &#x3C;actorActivePath></code> を渡す。</p>
+<h3 id="62-対象-broadcast-全-workspace-scoped">6.2 対象 broadcast (全 workspace scoped)</h3>
+<p>すべての resource 系 broadcast は <strong>wsId scoping 必須</strong> (= 同 workspace を見ているセッションのみに配信)。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>event</th><th>配信元</th><th>配信先</th></tr></thead><tbody><tr><td><code>workspace.changed</code></td><td><code>wsBridge.workspace.open</code> / <code>workspace.close</code></td><td>actor の新 / 旧 activePath を持つ session</td></tr><tr><td><code>projectChanged</code></td><td><code>harmony.json</code> 書換時</td><td>actor activePath</td></tr><tr><td><code>screenChanged</code></td><td>screens 書込み / 削除 / リネーム時</td><td>actor activePath</td></tr><tr><td><code>screenItemsChanged</code> / <code>screenEntityChanged</code></td><td><code>screens/&#x3C;id>.json#items[]</code> 書込み時 (Phase 4-β migration 後は screen entity に embed、#712)</td><td>actor activePath</td></tr><tr><td><code>tableChanged</code></td><td>tables 書込み / 削除時</td><td>actor activePath</td></tr><tr><td><code>processFlowChanged</code></td><td>actions 書込み / 削除時</td><td>actor activePath</td></tr><tr><td><code>viewChanged</code> / <code>viewDefinitionChanged</code></td><td>views / view-definitions 書込み時</td><td>actor activePath</td></tr><tr><td><code>sequenceChanged</code></td><td>sequences 書込み時</td><td>actor activePath</td></tr><tr><td><code>extensionsChanged</code></td><td><code>extensions/*.json</code> 書込み時 (steps / fieldTypes / triggers / dbOperations / responseTypes)</td><td>actor activePath</td></tr><tr><td><code>customBlocksChanged</code></td><td>custom-blocks.json 書込み時</td><td>actor activePath</td></tr><tr><td><code>erLayoutChanged</code> / <code>screenFlowPositionsChanged</code></td><td>レイアウト保存時</td><td>actor activePath</td></tr><tr><td><code>conventionsChanged</code></td><td>conventions/catalog.json 書込み時</td><td>actor activePath</td></tr><tr><td><code>editSession.created</code> / <code>attached</code> / <code>detached</code> / <code>roleChanged</code> / <code>update</code> / <code>saved</code> / <code>discarded</code> / <code>expired</code></td><td>EditSession ライフサイクル全般 (#897 で旧 <code>draft.changed</code> / <code>lock.changed</code> を統合)</td><td>actor activePath</td></tr></tbody></table>
+<h3 id="63-wsid--null-全配信-の用途">6.3 <code>wsId === null</code> (全配信) の用途</h3>
+<p><code>wsId === null</code> は <strong>設計上のフォールバック</strong> であり、resource 系 broadcast で使ってはならない。現状の正当な用途:</p>
+<ul>
+<li><strong>全 session 通知系</strong> が将来必要になった場合の予約 (例: server 再起動予告、global error)</li>
+<li>現時点で実装側に該当ケースなし</li>
+</ul>
+<p>resource 系で <code>wsId: null</code> を渡してしまうと、他 workspace を見ているブラウザタブに誤配信されてストア状態が汚染される。grep audit で <code>wsId: null</code> の混入を検知すること:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">grep</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -rn</span><span style="color:#032F62;--shiki-dark:#96D0FF"> 'wsId: null'</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend/src/</span><span style="color:#6A737D;--shiki-dark:#768390">  # resource broadcast では 0 件であること</span></span></code></pre>
+<p>実装対象 PR: R-2 (#700) で導入、R-5 (#703) と post-merge 修正で全 broadcast を scoping 化完了 (2026-05-02)。</p>
+<hr>
+<h2 id="7-draft-の隔離-d-5">7. Draft の隔離 (D-5)</h2>
+<p>draft は <strong>ワークスペース毎にファイルシステム上で物理隔離</strong> される設計を採用する。実装上の path:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>&#x3C;workspace_root>/.drafts/&#x3C;resourceType>/&#x3C;id>.json</span></span></code></pre>
+<h3 id="71-wsid-path-prefix-を採用しない理由">7.1 wsId path prefix を採用しない理由</h3>
+<p>メタ #679 / #683 D-12 では「global <code>data/.drafts/&#x3C;wsId>/&#x3C;resourceType>/&#x3C;id>.json</code>」を想定していたが、以下の理由で <strong>採用しない</strong>:</p>
+<ul>
+<li>workspace folder が物理的な isolation 境界として既に機能している (path collision 不可能)</li>
+<li>workspace 削除時に draft も自然に消える (lifecycle の整合)</li>
+<li>enumeration の必要が生じれば path から workspace を辿れる (= 性能要件は workspace の中で完結)</li>
+<li>per-workspace 設計の方が単純で理解しやすい</li>
+</ul>
+<h3 id="72-migration">7.2 migration</h3>
+<p>採用 path が <strong>既存 (#683 PR-2 から)</strong> と同一のため、<strong>migration は発生しない</strong>。</p>
+<h3 id="73-gitignore">7.3 gitignore</h3>
+<ul>
+<li>リポジトリ直下の <code>.gitignore</code> で <code>data/.drafts/</code> を ignore (legacy workspace = <code>&#x3C;repo>/data/</code> 用)</li>
+<li>各 workspace owner は <strong>自身の workspace folder 内に <code>.drafts/</code> ignore ルール</strong> を必要に応じて設定する責任がある (フレームワーク側では強制しない)</li>
+</ul>
+<h3 id="74-lockdown-互換">7.4 lockdown 互換</h3>
+<p>env <code>DESIGNER_DATA_DIR</code> 設定時、active workspace は env 値固定 (<code>&#x3C;env_path>/.drafts/</code>)。他 workspace は存在しないので draft 隔離は自動的に成立。</p>
+<h3 id="75-onbehalfofsession-683-d-7-との関係">7.5 onBehalfOfSession (#683 D-7) との関係</h3>
+<p>owner clientId と actor clientId が異なる場合でも、active workspace は actor (= MCP session) の context で解決される。draft path の隔離も actor の active workspace 単位。</p>
+<p>実装対象 PR: R-3 (#701) — spec 修正のみ (実装は #683 PR-2 で導入済み)</p>
+<hr>
+<h2 id="8-dirty-確認--store-設計-d-6">8. Dirty 確認 / store 設計 (D-6)</h2>
+<h3 id="81-dirty-確認ダイアログ">8.1 Dirty 確認ダイアログ</h3>
+<p>#683 で <strong>dirty マーク + draft 永続化</strong> として達成済み。本シリーズでは追加対応なし。</p>
+<ul>
+<li>タブヘッダーの dirty マーク (●) は #683 で実装済み</li>
+<li>強制ロック解除時の引継ぎ UI は #683 D-5 で実装済み</li>
+</ul>
+<h3 id="82-frontend-store-の-ws-keyed-化">8.2 frontend store の ws-keyed 化</h3>
+<p><strong>不要。</strong> AppShell が workspace 切替時に <code>clearPersistedTabs()</code> + navigate (R-4 で書き換え) するため、各 store は新 wsId で fresh に起動する。<code>Map&#x3C;wsId, Store></code> 構造の導入は本シリーズに含めない。</p>
+<hr>
+<h2 id="9-lockdown-互換">9. lockdown 互換</h2>
+<p>env <code>DESIGNER_DATA_DIR</code> 設定時の挙動:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>挙動</th></tr></thead><tbody><tr><td>全 connection の <code>activePath</code></td><td>env 値固定 (変更不可)</td></tr><tr><td>workspace 切替操作</td><td>全 session で <code>LockdownError</code></td></tr><tr><td>broadcast</td><td>wsId scoping するが、lockdown 時は実質 1 つの wsId (<code>lockdown</code> 固定) のみ存在</td></tr><tr><td>recent read/write</td><td>完全 skip (v1 と同じ)</td></tr><tr><td>draft path</td><td><code>data/.drafts/lockdown/&#x3C;resourceType>/&#x3C;id>.json</code></td></tr></tbody></table>
+<p>v1 の lockdown 仕様 (<a href="/spec/workspace/">workspace.md § 4</a>) と後方互換を保つ。</p>
+<hr>
+<h2 id="10-リスクマトリクス">10. リスクマトリクス</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>リスク</th><th>影響度</th><th>対応 PR</th><th>mitigation</th></tr></thead><tbody><tr><td><code>requireActivePath</code> snapshot 規約の per-session 化漏れ → A workspace の操作が B に書込む</td><td><strong>致命</strong></td><td>R-2</td><td><code>projectStorage.ts</code> 全公開関数を audit、entry 時 <code>requireActivePath(clientId)</code> に置換、unit test で per-session 隔離検証</td></tr><tr><td>broadcast 誤配信で別 workspace タブが reload</td><td>高</td><td>R-2</td><td>wsId 必須化 + unit test で wsId フィルタ検証、grep で旧 broadcast 全件改修確認</td></tr><tr><td>MCP agent session で workspace 切替が他 agent 巻き込み</td><td>高</td><td>R-2</td><td>session 単位完全隔離 + test、<code>httpTransport.test.ts</code> 拡張 (2 MCP session で別 workspace open)</td></tr><tr><td>URL <code>/w/:wsId/</code> 切替時に AppShell guard が無限ループ</td><td>中</td><td>R-4</td><td>initial hydration はリロードしない既存ガード (<code>AppShell.tsx:114-149</code>) を per-session 化、e2e で navigate チェック</td></tr><tr><td>draft path isolation</td><td>低</td><td>R-3</td><td>per-workspace folder が物理 isolation 境界。migration 不要。workspace 隔離を unit test で確認 (#701)</td></tr><tr><td>lockdown 時の per-session 動作</td><td>中</td><td>R-2/R-4</td><td>env <code>DESIGNER_DATA_DIR</code> 設定時 test ケース追加、全 session の activePath が env 値固定であることを assertion</td></tr><tr><td>broadcast subscriber 多重登録</td><td>低</td><td>R-5</td><td>wsId 切替時に unsubscribe → subscribe しなおす</td></tr><tr><td><code>recentStore</code> write の per-session 競合</td><td>低</td><td>R-2</td><td>global <code>withWriteLock</code> で従来通り直列化、active 切替の write は session 識別子と一緒に upsert</td></tr></tbody></table>
+<hr>
+<h2 id="11-テスト戦略">11. テスト戦略</h2>
+<h3 id="111-unit-vitest">11.1 unit (vitest)</h3>
+<ul>
+<li>per-session active 隔離: 2 clientId で別 workspace active → 各 <code>getActivePath(clientId)</code> が独立した値を返す</li>
+<li>broadcast wsId フィルタ: wsId が異なる session には配信されないことを unit test で検証</li>
+<li><code>projectStorage</code> per-session スナップショット: in-flight 操作中の workspace 切替で書込み先が混在しないことを確認</li>
+<li>draft path 隔離: 2 clientId (別 workspace) で同一 id の draft を作成 → 互いに独立、削除も独立 (<code>draftStore.test.ts</code> — workspace 隔離 describe)</li>
+<li>URL <code>/w/:wsId/</code> parse: wsId 抽出と workspace.open への連携</li>
+</ul>
+<h3 id="112-integration-backendsrchttptransporttestts-拡張">11.2 integration (backend/src/httpTransport.test.ts 拡張)</h3>
+<ul>
+<li>2 MCP session で別 workspace open → 各 session が独立した active workspace を持ち、相互干渉しないことを検証</li>
+</ul>
+<h3 id="113-e2e-playwright">11.3 e2e (Playwright)</h3>
+<p><strong>R-4 向け:</strong></p>
+<ul>
+<li>新 URL (<code>/w/:wsId/screen/list</code>) でリロード → workspace が正しく復元される</li>
+<li>ブラウザタブ内 workspace 切替 → アプリタブ全 close + 新 wsId URL navigate が起きる</li>
+<li>recent miss の wsId でアクセス → <code>/workspace/select</code> へ redirect</li>
+</ul>
+<p><strong>R-5 向け:</strong></p>
+<ul>
+<li>2 ブラウザタブで別 workspace を並行編集 → broadcast 隔離 (片方の保存でもう一方が reload しない)</li>
+<li>WorkspaceIndicator がブラウザタブごとに独立した active workspace 名を表示</li>
+</ul>
+<hr>
+<h2 id="12-マイグレーション">12. マイグレーション</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>対応 PR</th><th>migration 内容</th></tr></thead><tbody><tr><td>旧 URL → 新 URL</td><td>R-4</td><td><strong>migration なし</strong> (リリース前のためブックマーク互換不要)</td></tr><tr><td>旧 draft path → 新 draft path</td><td>R-3</td><td><strong>migration なし</strong> (採用 path が #683 PR-2 導入時と同一。per-workspace folder が isolation 境界)</td></tr><tr><td>WS broadcast 引数追加</td><td>R-2</td><td>既存呼び出し全件 grep + wsId 引数追加</td></tr><tr><td><code>getActivePath()</code> API 変更</td><td>R-2</td><td>全呼び出し点を <code>getActivePath(clientId)</code> に書換</td></tr></tbody></table>
+<hr>
+<h2 id="13-関連-issue--仕様書">13. 関連 ISSUE / 仕様書</h2>
+<ul>
+<li>親仕様: <a href="/spec/workspace/">workspace.md</a> (v1)</li>
+<li>前提シリーズ: #683 (サーバ側 draft 管理) / #690 (全エディタ migration)</li>
+<li>サーバ側 draft 管理詳細: <a href="/spec/edit-session-draft/">edit-session-draft.md</a></li>
+<li>メタ ISSUE: #679</li>
+<li>子 ISSUE: #699 (R-1 spec) / #700 (R-2 backend) / #701 (R-3 draft path) / #702 (R-4 URL) / #703 (R-5 UI)</li>
+</ul>
+<hr>
+<h2 id="付録-ソースファイル対照表-r-2r-5-実装時の参照">付録: ソースファイル対照表 (R-2〜R-5 実装時の参照)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>仕様節</th><th>実装ファイル (現状)</th><th>改修 PR</th></tr></thead><tbody><tr><td>5.1 ConnectionContext</td><td><code>backend/src/workspaceState.ts:1-97</code></td><td>R-2</td></tr><tr><td>5.4 projectStorage per-session</td><td><code>backend/src/projectStorage.ts:1-104</code></td><td>R-2</td></tr><tr><td>6 broadcast scoping</td><td><code>backend/src/wsBridge.ts:671-801</code></td><td>R-2</td></tr><tr><td>7 draft path 隔離</td><td><code>backend/src/draftStore.ts:35-47</code> (#683 PR-2 で導入済)</td><td>R-3 (spec 修正のみ)</td></tr><tr><td>3 URL routing</td><td><code>frontend/src/App.tsx</code> (Route 定義)</td><td>R-4</td></tr><tr><td>4.2 切替フロー</td><td><code>frontend/src/components/AppShell.tsx:106-148</code></td><td>R-4</td></tr><tr><td>4 WorkspaceIndicator</td><td><code>frontend/src/components/workspace/WorkspaceIndicator.tsx</code></td><td>R-5</td></tr><tr><td>6 broadcast subscriber</td><td><code>frontend/src/store/workspaceStore.ts:163-190</code></td><td>R-5</td></tr></tbody></table>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

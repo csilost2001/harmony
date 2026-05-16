@@ -1,0 +1,223 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>expressions</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> 規約カタログ </div> <ul class="space-y-0.5"> <li> <a href="/conventions/expressions/" class="sidebar-link active"> 式言語規約 (@conv/@env/@secret) </a> </li><li> <a href="/conventions/product-scope/" class="sidebar-link"> プロダクトスコープ </a> </li><li> <a href="/conventions/validation-rules/" class="sidebar-link"> バリデーション規約 </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="式言語--横断参照規約">式言語 — 横断参照規約 (<code>@*</code>)</h1>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>値</th></tr></thead><tbody><tr><td>関連 ISSUE</td><td>#414 (envVarsCatalog 追加に伴う <code>@env.*</code> / <code>@secret.*</code> 規約整理)</td></tr><tr><td>親仕様</td><td><a href="/spec/process-flow-expression-language/"><code>docs/spec/process-flow-expression-language.md</code></a> (式 BNF / js-subset)</td></tr><tr><td>スコープ</td><td>横断規約 (ProcessFlow / 画面項目 / バリデーション・規約カタログで共通)</td></tr></tbody></table>
+<h2 id="1-位置づけ">1. 位置づけ</h2>
+<p>ProcessFlow / 画面項目 / 規約カタログ等で共通に使う <code>@&#x3C;prefix>.&#x3C;key></code> 形式の参照記法を<strong>一箇所で正規化</strong>する。各 spec はここを引用する。</p>
+<p>式の構文 (演算子 / 関数呼出 / オブジェクトリテラル等) は親仕様 <a href="/spec/process-flow-expression-language/"><code>process-flow-expression-language.md</code></a> を参照。本文書は <code>@*</code> の名前解決規約のみを扱う。</p>
+<h2 id="2-プレフィックス一覧">2. プレフィックス一覧</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>プレフィックス</th><th>解決先</th><th>例</th><th>関連仕様</th></tr></thead><tbody><tr><td><code>@&#x3C;varName></code></td><td>ローカル変数 (action.inputs / outputBinding / ambientVariables)</td><td><code>@orderId</code>, <code>@requestId</code>, <code>@items</code></td><td><a href="/spec/process-flow-variables/"><code>process-flow-variables.md</code></a></td></tr><tr><td><code>@conv.&#x3C;category>.&#x3C;key></code></td><td>規約カタログ (<code>data/conventions/catalog.json</code>)</td><td><code>@conv.currency.jpy</code>, <code>@conv.numbering.orderNumber</code>, <code>@conv.msg.outOfRange</code></td><td><code>schemas/conventions.schema.json</code></td></tr><tr><td><code>@env.&#x3C;KEY></code></td><td>環境変数カタログ (<code>ProcessFlow.envVarsCatalog</code>)</td><td><code>@env.STRIPE_API_BASE</code>, <code>@env.MAX_RETRY_ATTEMPTS</code>, <code>@env.FEATURE_FLAG_NEW_PRICING</code></td><td><a href="/spec/process-flow-env-vars/"><code>process-flow-env-vars.md</code></a></td></tr><tr><td><code>@secret.&#x3C;KEY></code></td><td>Secrets カタログ (<code>ProcessFlow.secretsCatalog</code>)</td><td><code>@secret.stripeApiKey</code>, <code>@secret.sendgridApiKey</code></td><td><a href="/spec/process-flow-secrets/"><code>process-flow-secrets.md</code></a></td></tr></tbody></table>
+<p>未定義のプレフィックスは識別子スコープ・参照整合性バリデータが警告を発する。</p>
+<h2 id="3-名前解決優先順位">3. 名前解決優先順位</h2>
+<p>同一識別子が複数プレフィックスで解釈可能な場合の優先順位:</p>
+<ol>
+<li><strong>ローカル変数</strong> (<code>@varName</code>) — action.inputs / outputBinding / ambientVariables</li>
+<li><strong>規約カタログ</strong> (<code>@conv.*</code>) — <code>category.key</code> 階層構造</li>
+<li><strong>環境変数</strong> (<code>@env.&#x3C;KEY></code>) — <code>envVarsCatalog</code></li>
+<li><strong>Secrets</strong> (<code>@secret.&#x3C;KEY></code>) — <code>secretsCatalog</code></li>
+</ol>
+<p>プレフィックス (<code>conv</code>, <code>env</code>, <code>secret</code>) が明示されていれば曖昧性は無い。プレフィックス無しの <code>@&#x3C;name></code> は常にローカル変数として解決される。</p>
+<h2 id="4-envkey-の規約">4. <code>@env.&#x3C;KEY></code> の規約</h2>
+<h3 id="41-解決元">4.1 解決元</h3>
+<p><code>ProcessFlow.envVarsCatalog[KEY]</code> に登録されたエントリ。詳細は <a href="/spec/process-flow-env-vars/"><code>process-flow-env-vars.md</code></a>。</p>
+<h3 id="42-解決順序">4.2 解決順序</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>1. envVarsCatalog[KEY].values[現在環境] (dev/staging/prod 等)</span></span>
+<span class="line"><span>2. envVarsCatalog[KEY].default</span></span>
+<span class="line"><span>3. 未定義 → エラー (実装は起動時 fast-fail 推奨)</span></span></code></pre>
+<h3 id="43-型保証">4.3 型保証</h3>
+<p><code>envVarsCatalog[KEY].type</code> で宣言した型 (<code>string</code> / <code>number</code> / <code>boolean</code>) で実装側が parse する。式中での暗黙型変換は許容しない (例: <code>@env.MAX_RETRY_ATTEMPTS</code> が type=number なら number として扱う)。</p>
+<h3 id="44-使用可能フィールド">4.4 使用可能フィールド</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>場所</th><th>例</th></tr></thead><tbody><tr><td><code>runIf</code></td><td><code>"@env.FEATURE_FLAG_NEW_PRICING"</code></td></tr><tr><td><code>expression</code> (ComputeStep)</td><td><code>"@env.MAX_RETRY_ATTEMPTS * 2"</code></td></tr><tr><td><code>bodyExpression</code></td><td><code>"{ flag: @env.FEATURE_FLAG_NEW_PRICING }"</code></td></tr><tr><td><code>httpCall.path</code> / <code>body</code> / <code>query.value</code></td><td><code>"@env.STRIPE_API_BASE/payment_intents"</code></td></tr><tr><td><code>idempotencyKey</code></td><td>—</td></tr><tr><td><code>headers</code> の値</td><td>—</td></tr><tr><td><code>argumentMapping</code> の値</td><td>—</td></tr><tr><td><code>condition</code> (Branch)</td><td><code>"@env.FEATURE_FLAG_NEW_PRICING == true"</code></td></tr></tbody></table>
+<h2 id="5-secretkey-の規約">5. <code>@secret.&#x3C;KEY></code> の規約</h2>
+<h3 id="51-解決元">5.1 解決元</h3>
+<p><code>ProcessFlow.secretsCatalog[KEY]</code> に登録されたエントリ。詳細は <a href="/spec/process-flow-secrets/"><code>process-flow-secrets.md</code></a>。</p>
+<h3 id="52-解決順序">5.2 解決順序</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>1. secretsCatalog[KEY].values[現在環境] (参照式 vault://... / env://... を解析して実値取得)</span></span>
+<span class="line"><span>2. secretsCatalog[KEY].source + name (旧フォーマット fallback)</span></span>
+<span class="line"><span>3. 未定義 → エラー (実装は起動時 fast-fail 推奨)</span></span></code></pre>
+<h3 id="53-使用可能フィールド">5.3 使用可能フィールド</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>場所</th><th>例</th></tr></thead><tbody><tr><td><code>ExternalAuth.tokenRef</code></td><td><code>"@secret.stripeApiKey"</code></td></tr><tr><td><code>httpCall.headers</code> の値</td><td><code>"X-API-Key": "@secret.thirdPartyKey"</code></td></tr><tr><td>DB 接続文字列 (将来)</td><td>—</td></tr></tbody></table>
+<p>ログ出力 / 画面表示等の<strong>ユーザー可視出力に @secret を使うことは禁止</strong>。実装側はログ書込時にマスク必須。</p>
+<h3 id="54-ログマスク">5.4 ログマスク</h3>
+<p><code>@secret.*</code> を式中で使った step は、ログ出力時に値そのものを出さず key 名のみログする (例: <code>secretsRefs: ["stripeApiKey"]</code>)。<code>AuditStep.sensitive: true</code> と同等の扱い。</p>
+<h2 id="6-後方互換">6. 後方互換</h2>
+<p>旧記法 (#261 以前) は引き続き valid:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>旧記法</th><th>新記法 (推奨)</th></tr></thead><tbody><tr><td><code>"ENV:STRIPE_SECRET_KEY"</code> (<code>tokenRef</code>)</td><td><code>"@secret.stripeApiKey"</code> (catalog 経由)</td></tr><tr><td><code>"SECRET:stripe/api-key"</code> (<code>tokenRef</code>)</td><td><code>"@secret.stripeApiKey"</code> (catalog 経由)</td></tr><tr><td>(ハードコード値)</td><td><code>"@env.STRIPE_API_BASE"</code> (catalog 経由)</td></tr></tbody></table>
+<p>新規データは catalog 経由 (<code>@env.*</code> / <code>@secret.*</code>) を使う。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

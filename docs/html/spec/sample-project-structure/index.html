@@ -1,0 +1,284 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>sample project structure</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link active"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="サンプルプロジェクト構造">サンプルプロジェクト構造</h1>
+<h2 id="位置づけ">位置づけ</h2>
+<p><code>examples/&#x3C;project-id>/</code> 以下の各サブディレクトリは、<strong>designer で作成する業務アプリ設計成果物の独立したサンプル単位</strong>。フレームワーク本体のデバッグ・テスト・動作確認・ドッグフード検証を多様なシナリオで行うために配置されている。</p>
+<p>ディレクトリ命名 (<code>retail</code> / <code>realestate</code> 等) は <strong>シナリオ題材を簡易表現したもの</strong> に過ぎず、フレームワーク側に「業界」という概念は存在しない。各サブディレクトリは「1 つの完結した業務アプリ」として独立しており、相互に成果物を共有しない。</p>
+<h2 id="基本原則-プロジェクト--完結した成果物セット">基本原則: プロジェクト = 完結した成果物セット</h2>
+<p>designer の実運用は <strong>1 プロジェクト = 1 業務アプリ</strong> 単位。</p>
+<ul>
+<li>designer の規約カタログ画面 (<code>/conventions/catalog</code>) は 1 プロジェクトに 1 つの規約カタログを永続化</li>
+<li>テーブル / 処理フロー / 拡張 / 画面 等もすべてプロジェクト単位</li>
+</ul>
+<p>サンプルもこの実運用を模す。各サンプルプロジェクト (= サブディレクトリ) は以下の成果物を <strong>個別に・完結して</strong> 持つ。プロジェクト間で成果物を共有 (= サンプル特有の横断配置) してはならない。</p>
+<h2 id="canonical-配置先">canonical 配置先</h2>
+<p>サンプルプロジェクトの唯一の canonical 配置先は <strong><code>examples/&#x3C;project-id>/</code></strong>。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>現行プロジェクト</th><th>配置先</th><th>備考</th></tr></thead><tbody><tr><td>retail</td><td><code>examples/retail/</code></td><td>v3 schema / process-flows/ ディレクトリ</td></tr><tr><td>realestate</td><td><code>examples/realestate/</code></td><td>v3 schema / process-flows/ ディレクトリ</td></tr></tbody></table>
+<h2 id="プロジェクトに含まれる成果物">プロジェクトに含まれる成果物</h2>
+<p>各サンプルプロジェクト (<code>examples/&#x3C;project-id>/</code>) の推奨レイアウト:</p>
+<h3 id="必須">必須</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル / ディレクトリ</th><th>schema</th><th>役割</th></tr></thead><tbody><tr><td><code>harmony.json</code></td><td><code>schemas/v3/harmony.v3.schema.json</code></td><td>プロジェクトメタデータ (ID / 名称 / 説明 / 成熟度 / 作成日 / 更新日 + dataDir 指定)。旧 <code>project.json</code> (#849 で rename)</td></tr><tr><td><code>&#x3C;dataDir>/tables/*.json</code></td><td><code>schemas/v3/table.v3.schema.json</code></td><td>テーブル定義群</td></tr><tr><td><code>&#x3C;dataDir>/process-flows/*.json</code></td><td><code>schemas/v3/process-flow.v3.schema.json</code></td><td>処理フロー群 (旧 <code>actions/</code> から rename、L54 参照)</td></tr><tr><td><code>extensions/&#x3C;namespace>.v3.json</code></td><td><code>schemas/v3/extensions.v3.schema.json</code></td><td>拡張定義 (namespace 単位、v3 canonical combined format)</td></tr><tr><td><code>conventions/catalog.json</code></td><td><code>schemas/v3/conventions.v3.schema.json</code></td><td>規約カタログ (v3 canonical パス)</td></tr></tbody></table>
+<h3 id="任意-シナリオで必要に応じて">任意 (シナリオで必要に応じて)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル / ディレクトリ</th><th>schema</th><th>役割</th></tr></thead><tbody><tr><td><code>screens/*.json</code></td><td><code>schemas/v3/screen.v3.schema.json</code></td><td>画面 (画面項目定義 <code>items[]</code> を内包)</td></tr><tr><td><code>view-definitions/*.json</code></td><td><code>schemas/v3/view-definition.v3.schema.json</code></td><td>ビュー定義</td></tr></tbody></table>
+<h3 id="-廃止された配置">❌ 廃止された配置</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>旧配置</th><th>状態</th><th>移行先</th></tr></thead><tbody><tr><td><code>screen-items/&#x3C;screenId>.json</code></td><td>Phase 4-β で廃止 (#712)</td><td><code>screens/&#x3C;screenId>.json</code> の <code>items[]</code> に embed</td></tr><tr><td><code>conventions-catalog.v3.json</code> (プロジェクトルート直下)</td><td>#774 で非推奨 (旧 dogfood パス)</td><td><code>conventions/catalog.json</code></td></tr><tr><td><code>extensions/&#x3C;namespace>/&#x3C;type>.json</code> (種別ごと別ファイル)</td><td>廃止 — retail で v3 canonical combined に移行済み</td><td><code>extensions/&#x3C;namespace>.v3.json</code> (combined format)</td></tr><tr><td><code>actions/</code> (旧フロー DIR 命名)</td><td>廃止 — retail で process-flows/ に移行済み</td><td><code>process-flows/</code></td></tr><tr><td><code>docs/sample-project-v3/&#x3C;project>/</code></td><td>#774 で廃止</td><td><code>examples/&#x3C;project-id>/</code></td></tr><tr><td><code>docs/sample-project/</code> (v1)</td><td>#774 で廃止</td><td>削除 (git log で参照可)</td></tr><tr><td><code>docs/legacy-sample-project/</code></td><td>#774 で廃止</td><td>削除 (git log で参照可)</td></tr></tbody></table>
+<h2 id="schema-相対パス規約"><code>$schema</code> 相対パス規約</h2>
+<p><code>examples/&#x3C;project-id>/</code> 直下のファイル:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>"$schema": "../../schemas/v3/&#x3C;schema-name>.v3.schema.json"</span></span></code></pre>
+<p><code>examples/&#x3C;project-id>/&#x3C;subdir>/</code> 直下のファイル:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>"$schema": "../../../schemas/v3/&#x3C;schema-name>.v3.schema.json"</span></span></code></pre>
+<p><code>examples/retail/</code> の既存ファイルを参考にすること。</p>
+<h2 id="拡張定義-extensions-の-canonical-形式">拡張定義 (extensions) の canonical 形式</h2>
+<h3 id="v3-canonical-combined-format-推奨">v3 canonical combined format (推奨)</h3>
+<p><code>extensions/&#x3C;namespace>.v3.json</code> — 1 namespace = 1 ファイルで全拡張種別を含む形式:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"../../../schemas/v3/extensions.v3.schema.json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "namespace"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"myns"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "version"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"1.0.0"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "fieldTypes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "triggers"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "dbOperations"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"stepName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "responseTypes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"TypeName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<ul>
+<li><code>validate:samples</code> は <code>*.v3.json</code> ファイルをこの形式として読み込む</li>
+<li><code>namespace</code> フィールドが必須 (referentialIntegrity 検証で <code>&#x3C;namespace>:&#x3C;name></code> 形式の参照解決に使用)</li>
+</ul>
+<h3 id="レガシー形式-廃止済み">レガシー形式 (廃止済み)</h3>
+<p><code>extensions/&#x3C;namespace>/field-types.json</code> / <code>triggers.json</code> / <code>db-operations.json</code> / <code>steps.json</code> / <code>response-types.json</code> — 種別ごと別ファイルの旧形式。retail サンプルは <code>retail.v3.json</code> への移行が完了済み。新規サンプルでは combined format のみ使用すること。</p>
+<h2 id="規約カタログ-conventions-の-canonical-パス">規約カタログ (conventions) の canonical パス</h2>
+<p><code>conventions/catalog.json</code> — v3 canonical パス。</p>
+<p>旧 dogfood パス <code>conventions-catalog.v3.json</code> (プロジェクトルート直下) は非推奨。<code>validate:samples</code> は <code>conventions/catalog.json</code> のみ参照する。</p>
+<h2 id="反パターン">反パターン</h2>
+<h3 id="-プロジェクト横断の単一ファイル配置">❌ プロジェクト横断の単一ファイル配置</h3>
+<p><code>examples/conventions-catalog.v3.json</code> のようにトップレベル単一ファイルで複数サンプルプロジェクト共通とするのは <strong>禁止</strong>。理由:</p>
+<ul>
+<li>designer の実運用 (1 プロジェクト 1 規約カタログ) と整合しない</li>
+<li>サンプルは実運用を模すべきで、サンプル特有の構造を持つと設計検証が破綻する</li>
+<li>業務アプリ A が業務アプリ B の規約に依存することは普通あり得ない</li>
+</ul>
+<p>これは規約カタログだけでなく、全リソース (project / tables / process-flows / extensions 等) に適用される原則。</p>
+<h3 id="-業界という概念をフレームワークに持ち込む">❌ 「業界」という概念をフレームワークに持ち込む</h3>
+<p>サブディレクトリ名 (<code>retail</code> / <code>realestate</code>) は <strong>題材</strong> であって <strong>意味のある分類</strong> ではない。validator / loader / schema / UI が「業界」を判定材料にすることは禁止。任意のサンプル名 (例: <code>sample-a</code> / <code>demo-1</code>) でも動作する設計でなければならない。</p>
+<h3 id="-プロジェクトの一部リソース欠落を許容する">❌ プロジェクトの一部リソース欠落を許容する</h3>
+<p>「ある業務アプリのサンプルだから規約は要らない」のような判断はしない。実運用では業務アプリは必ず規約カタログを持つので、サンプルにも必ず存在する。最小有効インスタンス (<code>{ "version": "1.0.0" }</code> のみで各カテゴリ未定義) でも良いので、ファイル自体は配置する。</p>
+<h2 id="designjson-の-preview-only-マーキング規約-763">design.json の preview-only マーキング規約 (#763)</h2>
+<h3 id="背景目的">背景・目的</h3>
+<p><code>screens/&#x3C;id>.design.json</code> (GrapesJS 出力 HTML) には、見栄え確認のためのハードコードサンプル行が含まれることがある。AI がコンポーネントを生成する際、これが「preview ダミーで実 API 呼びに置き換える」のか「実データ初期値」なのかを判別する根拠が必要。本規約はその判別基準を定める。</p>
+<h3 id="規約本体">規約本体</h3>
+<p><strong>属性</strong>: HTML 要素に <code>data-preview-only="true"</code> を付与する。</p>
+<p><strong>意味</strong>: 「この DOM 要素配下の中身は、AI コード生成時に実 API 呼び結果で置換される placeholder」と解釈する。</p>
+<p><strong>適用対象例</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>適用例</th><th>説明</th></tr></thead><tbody><tr><td><code>&#x3C;tbody data-item-id="xxx" data-preview-only="true"></code></td><td>一覧 viewer の hardcoded <code>&#x3C;tr></code> 行 (実データ一覧で置換)</td></tr><tr><td><code>&#x3C;select data-preview-only="true"></code></td><td>動的 options bind 時の hardcoded <code>&#x3C;option></code> (API 取得オプションで置換)</td></tr><tr><td><code>&#x3C;div data-preview-only="true"></code></td><td>フロー出力で書き換わる文言を包む表示専用領域</td></tr></tbody></table>
+<p><strong><code>direction: "viewer"</code> の screen-item との関係</strong>: viewer screen-item を持つ画面では、対応する viewer DOM 要素 (= <code>data-item-id="&#x3C;viewerId>"</code> を持つ <code>&#x3C;tbody></code> / <code>&#x3C;ul></code> / <code>&#x3C;div></code> 等の包含要素) 自体に <code>data-preview-only="true"</code> を付与することで「この一覧は実データで置換される、配下の hardcoded 行は preview のみ」と明示できる。</p>
+<h3 id="ai-コード生成器の解釈ルール">AI コード生成器の解釈ルール</h3>
+<ul>
+<li><code>data-preview-only="true"</code> が付いた要素 → 子要素の中身は無視し、要素自体を対応する screen-item の binding で置換実装する</li>
+<li>親要素に <code>data-item-id="&#x3C;id>"</code> がある場合、対応する screen-item の <code>valueFrom: flowVariable</code> 等に従って実装する</li>
+<li><code>data-preview-only</code> は <strong>子要素を包含する</strong> (親に付いていれば配下の中身全体が preview 対象)。兄弟要素・親の外側には影響しない。子要素を単独で preview-only にしたい場合は子要素に直接付与する</li>
+</ul>
+<h3 id="業務設計者向けの記述ルール">業務設計者向けの記述ルール</h3>
+<ul>
+<li>preview ダミーは実装可能性検証 (見栄え・幅・空白の確認) のために温存を推奨する</li>
+<li><strong>実データに置換することを前提とする要素</strong> (検索結果 / カート明細 / 一覧表示等) は <strong>必ず</strong> <code>data-preview-only="true"</code> を付ける</li>
+<li>静的に表示確定する要素 (固定テキスト / ヘッダーラベル / ナビゲーション等) には付けない</li>
+</ul>
+<h2 id="検証規約">検証規約</h2>
+<p><code>npm run validate:samples</code> コマンド一本でサンプル検証を行う:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> frontend</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> validate:samples</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ../examples/retail</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> validate:samples</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ../examples/realestate</span></span></code></pre>
+<ul>
+<li><code>examples/&#x3C;project-id>/</code> を 1 プロジェクト単位で読み込む</li>
+<li>12 バリデータ (sqlColumnValidator / sqlOrderValidator / conventionsValidator / referentialIntegrity / identifierScope / screenItemFlowValidator / screenItemFieldTypeValidator / screenItemRefKeyValidator / viewDefinitionValidator / screenNavigationValidator / runtimeContractValidator / processFlowAntipatternValidator) を実行</li>
+<li>エラーがあれば exit code 1、全 pass で exit code 0</li>
+</ul>
+<blockquote>
+<p>旧コマンド <code>validate:dogfood</code> は #774 で削除済み。</p>
+</blockquote>
+<h2 id="関連">関連</h2>
+<ul>
+<li><code>docs/spec/schema-governance.md</code> — schema 変更ガバナンス (本仕様の前提)</li>
+<li><code>docs/spec/draft-state-policy.md</code> — 設計途中の保存許容ポリシー</li>
+<li><code>frontend/scripts/validate-samples.ts</code> — サンプルプロジェクト検証 CLI</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

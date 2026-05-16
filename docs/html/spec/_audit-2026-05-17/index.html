@@ -1,0 +1,392 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>_audit 2026 05 17</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link active"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="docs-監査レポート-2026-05-17">docs/ 監査レポート 2026-05-17</h1>
+<p>メタ ISSUE: <a href="https://github.com/csilost2001/harmony/issues/1124">#1124</a> — Harmony 仕様書・プレゼン HTML 化プロジェクト
+Phase A: <a href="https://github.com/csilost2001/harmony/issues/1125">#1125</a> — docs/ 監査・クリーンアップ</p>
+<h2 id="監査の目的">監査の目的</h2>
+<p>Harmony の仕様書群 (docs/spec 61 + docs/setup 3 + docs/user-guide 6 + docs/conventions 3 = 計 73 files / 23,402 行) を HTML 化するメタプロジェクト #1124 の前提作業。HTML 化後の二重メンテ負担を最小化するため、現状不一致 / 陳腐化 / 重複 / 不要な md を洗い出してクリーンアップする。</p>
+<h2 id="方法">方法</h2>
+<p>Sonnet サブエージェント 3 並列で領域別 audit を実施。</p>
+<ul>
+<li>Agent 1: docs/spec/ アルファベット順前半 (A-G、30 files)</li>
+<li>Agent 2: docs/spec/ アルファベット順後半 (M-W、31 files)</li>
+<li>Agent 3: docs/setup + docs/user-guide + docs/conventions (12 files)</li>
+</ul>
+<p>各 agent は AGENTS.md / CLAUDE.md / 主要 spec を読込んで判断軸を確立した上で、5 分類 (PASS / 陳腐化 / 重複 / 不要 / 判断保留) を実施。<strong>削除候補は <code>grep -rn</code> で他参照ゼロ確認済み</strong>。</p>
+<p>判断は Opus 親が統合し、削除 / 修正は Opus 監督下で Sonnet が実施。</p>
+<h2 id="結果サマリ">結果サマリ</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>領域</th><th>PASS</th><th>陳腐化</th><th>重複</th><th>削除候補</th><th>判断保留</th><th>合計</th></tr></thead><tbody><tr><td>spec A-G (30)</td><td>13</td><td>3</td><td>1</td><td>9</td><td>4</td><td>30</td></tr><tr><td>spec M-W (31)</td><td>22</td><td>3</td><td>0</td><td>0</td><td>6</td><td>31</td></tr><tr><td>setup/UG/conv (12)</td><td>5</td><td>5</td><td>0</td><td>0</td><td>2</td><td>12</td></tr><tr><td><strong>合計 (73)</strong></td><td><strong>40</strong></td><td><strong>11</strong></td><td><strong>1</strong></td><td><strong>9</strong></td><td><strong>12</strong></td><td><strong>73</strong></td></tr></tbody></table>
+<h2 id="1-削除実施-9-件">1. 削除実施 (9 件)</h2>
+<p>完了済 dogfood レポート群で、参照ゼロまたは inline 説明で代替可能と判定。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル</th><th>理由</th><th>削除時の対応</th></tr></thead><tbody><tr><td><code>docs/spec/dogfood-2026-04-27-schema-v3.md</code></td><td>Schema v3 Dogfood Round 1 完了済 historical record</td><td><code>dogfood-2026-04-29-phase2-validator-audit.md:L50</code> の参照を inline 説明に置換</td></tr><tr><td><code>docs/spec/dogfood-2026-04-28-schema-v3-finance.md</code></td><td>Schema v3 Round 2 完了済、参照ゼロ</td><td>なし</td></tr><tr><td><code>docs/spec/dogfood-2026-04-28-schema-v3-logistics.md</code></td><td>Schema v3 Round 5 完了済、参照ゼロ</td><td>なし</td></tr><tr><td><code>docs/spec/dogfood-2026-04-28-schema-v3-manufacturing.md</code></td><td>Schema v3 Round 3 完了済、参照ゼロ</td><td>なし</td></tr><tr><td><code>docs/spec/dogfood-2026-04-28-schema-v3-public-service.md</code></td><td>Schema v3 Round 4 完了済</td><td><code>dogfood-2026-04-29-phase2-validator-audit.md:L132</code> の参照を inline 説明に置換</td></tr><tr><td><code>docs/spec/dogfood-2026-05-12-page-layout-retail.md</code></td><td>PageLayout + Gadget 導入 dogfood 完了済、参照ゼロ</td><td>なし</td></tr><tr><td><code>docs/spec/dogfood-2026-05-12-pl7-codegen.md</code></td><td>pl-7 code generation dogfood 完了済、参照ゼロ</td><td>なし</td></tr><tr><td><code>docs/spec/dogfood-2026-05-12-pl7-generate-tests.md</code></td><td>pl-7 generate-tests (Thymeleaf/Spring) dogfood 完了済、参照ゼロ</td><td>なし</td></tr><tr><td><code>docs/spec/dogfood-2026-05-12-pl7-generate-tests-nestjs.md</code></td><td>pl-7 generate-tests (NestJS) dogfood 完了済、参照ゼロ</td><td>なし</td></tr></tbody></table>
+<h2 id="2-陳腐化修正実施-11-件">2. 陳腐化修正実施 (11 件)</h2>
+<h3 id="重大-廃止済-docssample-project-への参照-2-ファイル">重大: 廃止済 <code>docs/sample-project/</code> への参照 (2 ファイル)</h3>
+<p><code>docs/sample-project/</code> ディレクトリは #774 で廃止済、<code>examples/&#x3C;project-id>/</code> に統合済。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル</th><th>修正箇所</th><th>修正内容</th></tr></thead><tbody><tr><td><code>docs/spec/plugin-system.md</code></td><td>L50, L63, L351</td><td><code>docs/sample-project/extensions/</code> → <code>examples/&#x3C;project-id>/extensions/&#x3C;namespace>.v3.json</code></td></tr><tr><td><code>docs/spec/schema-governance.md</code></td><td>§2 (L10, L32), §6 (L76, L137)</td><td>同上のパス修正 + 「<code>schema-design-principles.md</code> (Phase B-2 で起草予定)」→ 「(#517 で起草済み)」に更新</td></tr></tbody></table>
+<h3 id="中規模-削除済機能の記述-2-ファイル">中規模: 削除済機能の記述 (2 ファイル)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル</th><th>修正箇所</th><th>修正内容</th></tr></thead><tbody><tr><td><code>docs/spec/collab-presence.md</code></td><td>§4-§8, §11</td><td>Phase 6 (#903) で obsolete になった節に callout 追加 (§9 Activity taxonomy と §6 Heartbeat 仕様は frontend コードから参照されているため除く)</td></tr><tr><td><code>docs/spec/dogfood-2026-04-29-phase2-validator-audit.md</code></td><td>§2 冒頭</td><td>「本記録は 2026-04-29 時点」note 追加。AI step kind core 昇格 (PR #936-#944) 以降の状況は実装直接確認推奨</td></tr></tbody></table>
+<h3 id="軽微-パス更新--チェックボックス更新-7-ファイル">軽微: パス更新 / チェックボックス更新 (7 ファイル)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル</th><th>修正箇所</th><th>修正内容</th></tr></thead><tbody><tr><td><code>docs/spec/css-framework-switching.md</code></td><td>§6.2 (L385-389)</td><td>実装済の未チェック項目を <code>[x]</code> に更新</td></tr><tr><td><code>docs/user-guide/README.md</code></td><td>L17, L24</td><td>backend 自動 spawn 記述 → 手動常駐起動 (#302 以降の URL mode)</td></tr><tr><td><code>docs/user-guide/marker-workflow.md</code></td><td>L100-110</td><td><code>.mcp.json</code> の JSON サンプルを旧 command 形式 → 現行 URL mode (<code>harmony-mcp</code> + <code>http://localhost:5179/mcp</code>)</td></tr><tr><td><code>docs/user-guide/rename-screen-ids-workflow.md</code></td><td>L85</td><td><code>data/screen-items/&#x3C;id>.json</code> → <code>workspaces/&#x3C;wsId>/&#x3C;dataDir>/screen-items/&#x3C;id>.json</code></td></tr><tr><td><code>docs/user-guide/troubleshooting.md</code></td><td>L22-23, L36</td><td>backend 多重起動セクション削除 / <code>data/</code> 書込権限 → workspace パス書込権限</td></tr><tr><td><code>docs/user-guide/process-flow-workflow.md</code></td><td>L57-72, L107</td><td>ステップ種別表に v3 追加 kind (aiCall/aiAgent/workflow/tryCatch/transactionScope/log/audit/event*/compute/componentCall/expression) 追加 + テストファイル参照を <code>validate:samples</code> コマンドに修正</td></tr><tr><td><code>docs/conventions/validation-rules.md</code></td><td>正本パス注釈</td><td><code>data/conventions/catalog.json</code> → active workspace の <code>&#x3C;dataDir>/conventions/catalog.json</code> / <code>docs/sample-project/</code> 参照削除 / 存在しない <code>seed.mjs</code> 参照削除</td></tr></tbody></table>
+<h2 id="3-重複-phase-c-再判断">3. 重複 (Phase C 再判断)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル</th><th>重複先</th><th>判断</th></tr></thead><tbody><tr><td><code>docs/spec/code-generation.md</code></td><td><code>ai-skills/generate-code/SKILL.md</code></td><td><strong>判断保留</strong>: spec (詳細) と skill (使い方) で性質が違うため両方残す候補。Phase C で navigation 構造を考えるとき再検討</td></tr></tbody></table>
+<h2 id="4-判断保留-12-件phase-c--d-着手時に再判断">4. 判断保留 (12 件、Phase C / D 着手時に再判断)</h2>
+<h3 id="dogfood-履歴の取扱い-5-件">dogfood 履歴の取扱い (5 件)</h3>
+<p><code>docs/spec/dogfood-*</code> 系で参照あり or 評価レポートの一部として機能しているため削除保留。Phase C 着手時に「dogfood 履歴を <code>docs/spec/archive/</code> または <code>docs/spec/dogfood/</code> サブディレクトリに分離するか」を判断。</p>
+<ul>
+<li><code>docs/spec/dogfood-2026-04-26-finance.md</code> (README + schema-design-principles + 他 dogfood から 4 箇所参照)</li>
+<li><code>docs/spec/dogfood-2026-04-26-manufacturing.md</code> (同上 4 箇所)</li>
+<li><code>docs/spec/dogfood-2026-04-27-logistics-create-flow-validation.md</code> (README + 他参照、PASS だが履歴扱い検討対象)</li>
+<li><code>docs/spec/dogfood-2026-04-27-phase4-retail-validation.md</code> (同上)</li>
+<li><code>docs/spec/dogfood-2026-04-30-phase2-healthcare-welfare.md</code> (phase2-evaluation と連動)</li>
+<li><code>docs/spec/dogfood-2026-05-04-english-learning.md</code> (型不整合 S-2 の修正状況確認後に再判断)</li>
+<li><code>docs/spec/dogfood-2026-05-05-multi-editor-puck.md</code> (multi-editor-puck.md から参照)</li>
+</ul>
+<h3 id="phase-評価レポート-3-件">Phase 評価レポート (3 件)</h3>
+<ul>
+<li><code>docs/spec/phase2-evaluation-2026-04-30.md</code></li>
+<li><code>docs/spec/phase3-evaluation-2026-04-30.md</code></li>
+<li><code>docs/spec/phase4-evaluation-2026-04-30.md</code></li>
+</ul>
+<p>Phase 2/3/4 完了の historical record。Phase 4 は最新の評価レポートのため保持優先度高。Phase C 着手時に「archive ディレクトリに分離するか HTML 化対象に含めるか」を判断。</p>
+<h3 id="rfc-草稿--設計記録-2-件">RFC 草稿 / 設計記録 (2 件)</h3>
+<ul>
+<li><code>docs/spec/schema-audit-2026-04-27.md</code> (schema-design-principles + schemas/README.md から証拠文書として参照)</li>
+<li><code>docs/spec/schema-v3-design.md</code> (RFC 草稿、schemas/v3/README.md と page-layout.md から参照、実装完了 PR #522)</li>
+</ul>
+<p>Phase C 着手時にステータスヘッダ (“実装完了 (PR #522)” 等) 追記で対応するか検討。</p>
+<h3 id="構想--位置づけ整理が必要-2-件">構想 / 位置づけ整理が必要 (2 件)</h3>
+<ul>
+<li><code>docs/setup/distribution-roadmap.md</code> (構想ドキュメント、現状未実装。HTML 化時に「current design」と「historical reference」の区分表現が必要)</li>
+<li><code>docs/conventions/product-scope.md</code> (正本パス注釈が古いが本文は有用。<code>docs/conventions/</code> か <code>examples/</code> 配下かの位置づけ整理が必要)</li>
+</ul>
+<h2 id="5-phase-b-技術スタック確定-audit-と並行調査済み">5. Phase B 技術スタック確定 (audit と並行調査済み)</h2>
+<p>別 agent (Phase B Tech Research) が並行調査済み、<code>agent-4-phase-b-research.md</code> (内部用) に詳細記録。要点:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>採用</th><th>バージョン</th><th>備考</th></tr></thead><tbody><tr><td>Astro</td><td><code>astro</code></td><td>^6.3.3</td><td>Node 22+ 必須</td></tr><tr><td>Tailwind</td><td><code>@tailwindcss/vite</code></td><td>^4.x</td><td><code>@astrojs/tailwind</code> は deprecated</td></tr><tr><td>Tailwind typography</td><td><code>@tailwindcss/typography</code></td><td>^0.5.x</td><td>CSS <code>@plugin</code> 構文で v4 対応</td></tr><tr><td>dark mode</td><td>CSS <code>@custom-variant</code></td><td>—</td><td><code>tailwind.config.js</code> 不要</td></tr><tr><td>pagefind</td><td><code>astro-pagefind</code></td><td>^2.0.0</td><td>post-build 自動インデックス、native web components UI</td></tr><tr><td>mermaid</td><td><code>rehype-mermaid</code></td><td>^3.0.0</td><td>Playwright 依存あり / <code>strategy: 'inline-svg'</code> で静的 SVG</td></tr><tr><td>shiki</td><td>Astro 同梱 (Shiki 4)</td><td>—</td><td>json/ts/bash/dockerfile/mermaid バンドル済</td></tr><tr><td>copy button</td><td>自前 <code>&#x3C;script></code></td><td>—</td><td>stable npm package なし</td></tr><tr><td>SchemaTable</td><td>自前 Astro component</td><td>—</td><td>再帰的 properties 展開の skeleton 提示済み</td></tr></tbody></table>
+<p>注意:</p>
+<ul>
+<li><code>rehype-mermaid</code> v3 は Playwright 必須。Dev Container では既存インストール済みだが build 前に確認推奨</li>
+<li><code>outDir: '../docs/html'</code> は相対パス指定可能、pagefind index も自動的にその配下に生成</li>
+<li>Astro 6 は Node 22+ 必須のため、Dockerfile の Node バージョン要確認</li>
+</ul>
+<h2 id="6-phase-a-の成果">6. Phase A の成果</h2>
+<ul>
+<li>削除: <strong>9 ファイル</strong> (合計 1,713 行削減、実績)</li>
+<li>修正: <strong>11 ファイル</strong> (パス更新 / callout 追加 / ステップ種別追記)</li>
+<li>判断保留: <strong>12 件</strong> (Phase C 着手時に navigation 構造を考えながら再判断)</li>
+<li>Phase B 技術スタック確定 (並行調査で前倒し完了)</li>
+</ul>
+<h2 id="7-次の-phase-へ">7. 次の Phase へ</h2>
+<ul>
+<li>Phase B (#1126): 推奨スタックで <code>docs-site/</code> を初期化、<code>docs/html/</code> 出力パイプラインを構築</li>
+<li>Phase D (#1128): プレゼン HTML 16 枚作成 (B 完了後)</li>
+<li>Phase C (#1127): 残り判断保留 12 件の最終判断 + 73 → 64 md (削除後) を HTML 変換</li>
+<li>Phase E (#1129): 運用ルール反映 + メタ #1124 close</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

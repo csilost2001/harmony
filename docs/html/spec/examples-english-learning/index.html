@@ -1,0 +1,546 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>examples english learning</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link active"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="examplesenglish-learning--英会話学習アプリ-サンプル仕様書">examples/english-learning/ — 英会話学習アプリ サンプル仕様書</h1>
+<p><code>examples/english-learning/</code> の業務スコープ・データモデル・画面構成・進め方をまとめた spec。Sonnet サブエージェントへの briefing 兼用。</p>
+<p>関連: <a href="https://github.com/csilost2001/harmony/issues/680">#680</a> (親メタ) / <a href="https://github.com/csilost2001/harmony/issues/787">#787</a> (本サンプルメタ) / <code>examples/english-learning/README.md</code> (子 2 で作成予定)</p>
+<h2 id="1-目的">1. 目的</h2>
+<p>retail (店舗オペレーション系 B2B) と並列の <strong>B2C コンテンツ + 学習履歴系サンプル</strong>。次の 4 点を本フレームワークでドッグフードする:</p>
+<ol>
+<li><strong>外部 AI (LLM / TTS / STT) を ProcessFlow にどう組み込むか</strong> — <code>stepKind</code> 拡張 (<code>CustomStepKind.schema</code> + <code>outputType</code>) パターンの実用例蓄積</li>
+<li><strong>設計範囲外の UX (リアルタイム会話 / 録音 / カラオケ字幕 / 単語タップ辞書) を <code>description</code> 待避でどこまで表現できるか</strong> — 待避粒度の妥当性検証</li>
+<li><strong>拡張パック (動的追加コンテンツ — IT エンジニア / ビジネス 等) を <code>extensions/&#x3C;namespace>/</code> でどう表現するか</strong></li>
+<li><strong>進捗ベース UI (連続学習日数 / CEFR レベル / 習熟度) を ViewDefinition でどう表現するか</strong></li>
+</ol>
+<p>retail で exercise されない領域を補完し、本フレームワークが B2C / 外部 AI 連携系にも対応できることを実証する。</p>
+<h2 id="2-業務スコープ">2. 業務スコープ</h2>
+<h3 id="21-業態">2.1 業態</h3>
+<p>B2C 英会話学習アプリ (中規模、画面 ~11、テーブル ~10、処理フロー ~5、view ~3、sequence ~2)。学習者がストーリー仕立ての会話練習を行い、AI 採点で発音・文法のフィードバックを受け取る。コンテンツは「分野別パック」(汎用 / IT エンジニア / ビジネス / 旅行 等) として動的追加可能。</p>
+<h3 id="22-4-シナリオ--補助">2.2 4 シナリオ + 補助</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>シナリオ ID</th><th>概要</th><th>関連 entity</th></tr></thead><tbody><tr><td><strong>S-1 学習セッション開始</strong></td><td>ストーリー一覧から選択 → セッション作成 → 会話プレイ画面遷移。ストーリー詳細表示時に必要なら <code>TtsGenerate</code> でセリフ音源を事前生成。</td><td>画面: ストーリー一覧 / 詳細 / 会話プレイ ・ flow: start-session ・ table: stories / scenes / learning_sessions / sequences: session-id ・ extension: (任意) <code>english-learning:TtsGenerate</code></td></tr><tr><td><strong>S-2 会話ターン進行</strong></td><td>ユーザー発話 (テキスト or 音声) → LLM 応答生成 → 応答 TTS 音声化 → 履歴保存。<strong>LLM 呼び出しは core stepKind <code>aiCall</code> + <code>modelEndpoints</code> catalog</strong>、<strong>TTS 呼び出しは namespace 拡張 stepKind <code>english-learning:TtsGenerate</code></strong> で表現する (#865 で 2026-05-08 移行)。</td><td>画面: 会話プレイ ・ flow: progress-turn ・ table: turn_logs ・ catalog: <code>modelEndpoints.dialogModel</code> ・ extension: <code>english-learning:TtsGenerate</code> stepKind</td></tr><tr><td><strong>S-3 発音採点</strong></td><td>ユーザーが目標セリフを録音送信 → STT + 評価 API → スコア保存 → 画面表示。<strong>外部 STT 呼び出しを stepKind 拡張で表現</strong>。</td><td>画面: 会話プレイ → セッション結果 ・ flow: evaluate-pronunciation ・ table: pronunciation_scores ・ extension: <code>english-learning:SttEvaluate</code> stepKind</td></tr><tr><td><strong>S-4 学習履歴閲覧 + 単語復習</strong></td><td>学習履歴一覧 / 詳細表示、単語帳で習熟度別に復習。タップで辞書詳細。</td><td>画面: 学習履歴 / 単語帳 / 単語詳細 ・ flow: update-word-progress (common) ・ table: user_word_progress / words</td></tr></tbody></table>
+<p>補助画面: ダッシュボード、コンテンツパック一覧、プロフィール / 設定。</p>
+<h3 id="23-画面一覧-約-11">2.3 画面一覧 (約 11)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>#</th><th>画面名</th><th>kind</th><th>path</th><th>関連シナリオ</th></tr></thead><tbody><tr><td>1</td><td>ダッシュボード</td><td>dashboard</td><td><code>/</code></td><td>(root)</td></tr><tr><td>2</td><td>ストーリー一覧</td><td>list</td><td><code>/stories</code></td><td>S-1</td></tr><tr><td>3</td><td>ストーリー詳細</td><td>detail</td><td><code>/stories/:storyId</code></td><td>S-1</td></tr><tr><td>4</td><td>会話プレイ</td><td>english-learning:conversationPlayer</td><td><code>/learn/:sessionId</code></td><td>S-2/S-3</td></tr><tr><td>5</td><td>セッション結果</td><td>complete</td><td><code>/learn/:sessionId/result</code></td><td>S-3</td></tr><tr><td>6</td><td>学習履歴一覧</td><td>list</td><td><code>/history</code></td><td>S-4</td></tr><tr><td>7</td><td>学習履歴詳細</td><td>detail</td><td><code>/history/:sessionId</code></td><td>S-4</td></tr><tr><td>8</td><td>単語帳</td><td>list</td><td><code>/vocabulary</code></td><td>S-4</td></tr><tr><td>9</td><td>単語詳細</td><td>detail</td><td><code>/vocabulary/:wordId</code></td><td>S-4</td></tr><tr><td>10</td><td>コンテンツパック一覧</td><td>list</td><td><code>/packs</code></td><td>補助</td></tr><tr><td>11</td><td>プロフィール / 設定</td><td>form</td><td><code>/profile</code></td><td>補助</td></tr></tbody></table>
+<h3 id="24-テーブル一覧-約-10">2.4 テーブル一覧 (約 10)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>#</th><th>physicalName</th><th>カテゴリ</th><th>主用途</th></tr></thead><tbody><tr><td>1</td><td>users</td><td>マスタ</td><td>ユーザー (CEFR レベル / 連続学習日数 / 興味分野)</td></tr><tr><td>2</td><td>content_packs</td><td>マスタ</td><td>コンテンツパック (汎用 / IT / ビジネス 等の分野別、<code>namespace_ref</code> で拡張紐付け可能)</td></tr><tr><td>3</td><td>stories</td><td>マスタ</td><td>ストーリー (パック配下、CEFR レベル付き)</td></tr><tr><td>4</td><td>scenes</td><td>マスタ</td><td>シーン (ストーリー配下、順序保持)</td></tr><tr><td>5</td><td>dialogue_lines</td><td>マスタ</td><td>セリフ (英文 + 日本語訳 + IPA + 想定音声 URL)</td></tr><tr><td>6</td><td>words</td><td>マスタ</td><td>単語 (英 / 品詞 / 訳 / IPA / 例文 / CEFR レベル)</td></tr><tr><td>7</td><td>learning_sessions</td><td>トランザクション</td><td>学習セッション (<code>(user_id, story_id, started_at)</code> で識別)</td></tr><tr><td>8</td><td>turn_logs</td><td>トランザクション</td><td>会話ターンログ (ユーザー発話 + AI 応答 + 採点結果 JSON)</td></tr><tr><td>9</td><td>pronunciation_scores</td><td>トランザクション</td><td>発音スコア (セリフ × セッション、score 0-100 + 差分 JSON)</td></tr><tr><td>10</td><td>user_word_progress</td><td>トランザクション</td><td>単語習熟度 (ユーザー × 単語、<code>(user_id, word_id)</code> UNIQUE、status: new/learning/mastered)</td></tr></tbody></table>
+<h3 id="25-拡張-namespace-english-learning">2.5 拡張 namespace <code>english-learning</code></h3>
+<p><code>extensions/english-learning.v3.json</code> 1 ファイルに統合 (retail と同様の v3 canonical combined format)。<code>extensions.v3.schema.json</code> の構造規約に厳密準拠する。</p>
+<p><strong>fieldTypes</strong> (<code>array</code>、各 item の <code>kind</code> は <strong>camelCase</strong>、画面項目 + テーブル列で利用):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>kind (camelCase)</th><th>baseType</th><th>FieldType.extensionRef 参照</th><th>用途</th></tr></thead><tbody><tr><td><code>ipa</code></td><td>string</td><td><code>english-learning:ipa</code></td><td>IPA 発音記号 (regex で IPA Unicode 範囲を制約)</td></tr><tr><td><code>cefrLevel</code></td><td>string</td><td><code>english-learning:cefrLevel</code></td><td>CEFR レベル (enum: A1/A2/B1/B2/C1/C2)</td></tr><tr><td><code>audioUrl</code></td><td>string</td><td><code>english-learning:audioUrl</code></td><td>音声ファイル URL (TTS 生成 or 既存音源)</td></tr><tr><td><code>pronunciationScore</code></td><td>number</td><td><code>english-learning:pronunciationScore</code></td><td>発音スコア 0-100</td></tr></tbody></table>
+<p><strong>stepKinds</strong> (<code>object</code>、<strong>キーは PascalCase 必須</strong> — <code>^[A-Z][A-Za-z0-9]*$</code>、ProcessFlow ステップ拡張):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>キー (PascalCase)</th><th>ProcessFlow.kind 参照</th><th>用途</th></tr></thead><tbody><tr><td><code>TtsGenerate</code></td><td><code>english-learning:TtsGenerate</code></td><td>TTS 音声生成 (S-1 でストーリー音源プリロード、S-2 で AI 応答音声化に使用)</td></tr><tr><td><code>SttEvaluate</code></td><td><code>english-learning:SttEvaluate</code></td><td>STT + 発音評価</td></tr></tbody></table>
+<p>LLM 会話呼び出しは <strong>core stepKind <code>aiCall</code> + <code>context.catalogs.modelEndpoints.&#x3C;key></code></strong> で表現する (#935 で core 化、本サンプルは #865 で 2026-05-08 移行済み)。TTS / STT は業務ドメイン固有のため当面 namespace 拡張に維持する (将来 core 化候補)。</p>
+<p>各 stepKind の構造は <code>CustomStepKind</code> (<code>label</code> / <code>icon</code> / <code>description</code> / <code>schema</code> / <code>outputType</code>) に準拠。<strong><code>schema</code></strong> は <code>ExtensionStep.config</code> の入力構造を縛る subset JSON Schema (動的フォーム生成用)、<strong><code>outputType</code></strong> は <code>outputBinding</code> 結果の <code>FieldType</code> (型推論用)。<code>outputSchema</code> というフィールドは存在しないため使わない。</p>
+<p><strong>screenKinds</strong> (<code>array</code>、各 item の <code>kind</code> は <strong>camelCase</strong>):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>kind (camelCase)</th><th>Screen.kind 参照</th><th>用途</th></tr></thead><tbody><tr><td><code>conversationPlayer</code></td><td><code>english-learning:conversationPlayer</code></td><td>会話プレイ画面 (字幕表示 + 録音ボタン + 履歴ペイン)</td></tr></tbody></table>
+<p>これにより <strong>TTS/STT 呼び出しが step として統一的に扱える</strong> ことを実証する (汎用エスケープ <code>type: "other"</code> ではなく namespace 拡張で表現する方針 — 詳細 3.5 節)。LLM 呼び出しは core 標準 <code>aiCall</code> を直接使う。</p>
+<h3 id="26-conventions-catalog">2.6 conventions catalog</h3>
+<p><code>schemas/v3/conventions.v3.schema.json</code> のプロパティ命名 (<code>numbering</code> / <code>regex</code> / <code>msg</code> / <code>limit</code> / <code>db</code> / <code>auth</code> / <code>tx</code> / <code>extensionCategories</code>) に準拠。各カテゴリ内のキーは camelCase。参照は <code>@conv.&#x3C;category>.&#x3C;key></code>。</p>
+<ul>
+<li><code>numbering.sessionId</code> — 学習セッション ID 採番</li>
+<li><code>numbering.scoreId</code> — 発音スコア ID 採番</li>
+<li><code>regex.ipa</code> — IPA Unicode 範囲正規表現</li>
+<li><code>extensionCategories.cefr.passingThreshold</code> — CEFR レベル昇格の発音スコア閾値 (例: 70 点)</li>
+<li><code>msg.sessionNotFound</code> — セッション未検出メッセージ</li>
+<li><code>msg.pronunciationLow</code> — 発音低評価メッセージ</li>
+<li><code>extensionCategories.wordProgress.masteryThreshold</code> — 単語習熟判定回数 (例: 連続 3 回正解で mastered)</li>
+</ul>
+<h2 id="3-設計判断">3. 設計判断</h2>
+<h3 id="31-id-規約-retail-と共通">3.1 ID 規約 (retail と共通)</h3>
+<ul>
+<li>top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence) は <strong><code>Uuid</code> 形式 (RFC 4122 v4)</strong>。<code>crypto.randomUUID()</code> 由来の値を埋め込む (非 secure context 環境で生成する場合は <code>frontend/src/utils/uuid.ts</code> の <code>generateUUID()</code> を使用)。</li>
+<li>ネスト LocalId は kebab-case (例: <code>step-llm-call</code>, <code>col-cefr-level</code>)。</li>
+<li>業務識別子 (画面項目 ID / 処理フロー変数名) は lowerCamelCase (例: <code>sessionId</code>, <code>pronunciationScore</code>)。</li>
+<li>DB 物理名は snake_case (例: <code>learning_sessions</code>, <code>user_word_progress</code>)。</li>
+<li>拡張 namespace 内のキー規約:
+<ul>
+<li><code>fieldTypes</code> / <code>screenKinds</code> / <code>processFlowKinds</code> (array): 各 item の <code>kind</code> は <strong>camelCase</strong></li>
+<li><code>stepKinds</code> / <code>responseTypes</code> (object): キーは <strong>PascalCase</strong> (<code>^[A-Z][A-Za-z0-9]*$</code>)</li>
+<li><code>dbOperations</code> (array): 各 item の <code>value</code> は <strong>UPPER_SNAKE_CASE</strong></li>
+<li><code>actionTriggers</code> (array): 各 item の <code>value</code> は <strong>camelCase</strong></li>
+</ul>
+</li>
+</ul>
+<h3 id="32-画面-html-の品質要件">3.2 画面 HTML の品質要件</h3>
+<ul>
+<li>Bootstrap 5 ベース、<strong>B2C アプリ寄りの清潔感</strong> (retail よりやや親しみのあるトーン、ただし業務見本品質は保つ)</li>
+<li>4 テーマ (standard / card / compact / dark) で破綻しないこと</li>
+<li><code>data-item-id</code> / <code>name</code> 属性は screen-items 定義と一致</li>
+<li>レスポンシブ: スマホ縦長を主用途と想定 (B2C 学習アプリのため)、タブレット / PC でも破綻しない</li>
+<li>アクセシビリティ: 録音ボタン等の重要操作に <code>aria-label</code> 必須</li>
+</ul>
+<h3 id="33-description-待避リスト-本サンプルの-dogfood-中心">3.3 description 待避リスト (本サンプルの dogfood 中心)</h3>
+<p>本フレームワーク schema で表現できない UX を <code>description</code> フィールドで記述する。<strong>待避は「機能を実装しない」のではなく「設計書粒度で表現するための MVP 縮退」</strong>。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>待避項目</th><th>待避先</th><th>待避内容</th></tr></thead><tbody><tr><td>TTS 同期カラオケ字幕</td><td>dialogue_lines / 会話プレイ screen の description</td><td>「将来 <code>english-learning:TtsGenerate</code> の出力 <code>wordTimings</code> を使い word-level highlight する。MVP は通常字幕のみ」</td></tr><tr><td>Web Audio 録音</td><td>会話プレイ screen の description / 録音ボタン項目の description</td><td>「ブラウザ MediaRecorder API で録音、終了後 audioUrl を <code>english-learning:SttEvaluate</code> step に POST」</td></tr><tr><td>LLM ストリーム会話</td><td>turn_logs テーブル + S-2 flow の description</td><td>「ターン単位 request/response。実装側で SSE / WebSocket による partial response ストリーム表示を行う想定」</td></tr><tr><td>単語タップ辞書ポップアップ</td><td>dialogue_lines.text / 会話プレイ画面項目の description</td><td>「セリフ内の単語をタップすると <code>/vocabulary/:wordId</code> を modal で表示。実装側 router で intercept」</td></tr><tr><td>録音波形 visualizer</td><td>録音ボタン項目の description</td><td>「録音中は Web Audio API AudioContext で波形描画 (canvas)」</td></tr><tr><td>発音採点フィードバック UI</td><td>pronunciation_scores テーブル + S-3 結果画面の description</td><td>「<code>diff</code> フィールド (PhoneDiff[]) は音素単位の正誤判定リスト。実装側で IPA テーブル + 色分け表示」</td></tr></tbody></table>
+<p><strong>待避ではなく MVP 縮退</strong> (schema で表現可能だが MVP では実装範囲を絞るもの):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>縮退項目</th><th>縮退方針</th></tr></thead><tbody><tr><td>連続学習日数の自動リセット job</td><td><code>ProcessFlow</code> の <code>scheduled</code> trigger で表現可能。MVP では <code>users.streak_days</code> カラムは持つが、毎日リセット job (scheduled flow) は <strong>子 4 で定義のみ + description で実装方針記述、実装は後段の LLM</strong></td></tr><tr><td>ユーザー単語進捗の自動降格 (一定期間未使用で習熟度を下げる)</td><td>同上、scheduled flow で表現可能だが MVP では定義のみ</td></tr></tbody></table>
+<p>待避内容は子 5 (dogfood) で <strong>粒度妥当性をレビューする</strong>。1 行で済んでいるか / 実装者が再現できる粒度か / 待避内容の重複がないか。</p>
+<h3 id="34-schemasv3-は変更しない">3.4 schemas/v3 は変更しない</h3>
+<p>業務記述で表現できないものは <strong>本 namespace の extension で対処</strong>。schemas/v3 を変更したくなったら作業停止 → 別 ISSUE 起票 → 設計者承認待ち (#511 / AGENTS.md schema governance)。</p>
+<p>特に「LLM 応答の構造」「カラオケ用 wordTimings」「PhoneDiff 構造」等は <code>CustomStepKind.outputType</code> (FieldType) または <code>extensions.fieldTypes</code> の object 型 fieldType として表現すれば、schema 本体を触らずに済むはず。</p>
+<h3 id="35-外部-ai-の-processflow-表現方針">3.5 外部 AI の ProcessFlow 表現方針</h3>
+<p>外部 AI 呼び出しは概念別に <strong>2 系統で表現</strong>:</p>
+<ol>
+<li><strong>LLM 会話呼び出し</strong>: core stepKind <code>aiCall</code> + <code>context.catalogs.modelEndpoints.&#x3C;key></code> (#935 / #865 で 2026-05-08 移行済み)。provider 切替が catalog 編集で完結し、tool use / structured output / vision input が業界共通の messages + responseFormat 構造で表現できる</li>
+<li><strong>業務ドメイン固有 AI 呼び出し</strong> (TTS / STT / 発音採点 等): 当面 namespace 拡張 stepKind (<code>english-learning:TtsGenerate</code> / <code>english-learning:SttEvaluate</code>)。汎用エスケープ <code>type: "other"</code> は使わない — namespace 拡張で表現できるならそちらを優先することがフレームワーク思想に沿う</li>
+</ol>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 例: S-2 progress-turn flow の LLM 呼び出しステップ (core stepKind aiCall)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"aiCall"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-llm-call"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "modelRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dialogModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "messages"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"system"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"あなたは日本人英語学習者向けの会話パートナーです。CEFR レベルに合った語彙と文法で英語応答してください。"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"user"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"[会話履歴]</span><span style="color:#005CC5;--shiki-dark:#F47067">\n</span><span style="color:#032F62;--shiki-dark:#96D0FF">@turnContext</span><span style="color:#005CC5;--shiki-dark:#F47067">\n\n</span><span style="color:#032F62;--shiki-dark:#96D0FF">[最新の発話]</span><span style="color:#005CC5;--shiki-dark:#F47067">\n</span><span style="color:#032F62;--shiki-dark:#96D0FF">@userInput"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"aiResponse"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"core stepKind aiCall + modelEndpoints.dialogModel で LLM 呼び出し。provider 選択は modelEndpoints catalog で完結。"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// modelEndpoints catalog (context.catalogs.modelEndpoints.dialogModel)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// provider/model/auth/defaults を 1 箇所に集約。step 側は modelRef のみ持つ</span></span></code></pre>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 例: TTS 呼び出しステップ (namespace 拡張、業務ドメイン固有)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"english-learning:TtsGenerate"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-tts"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "config"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"text"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@aiResponse.text"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"aiAudioUrl"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"AI 応答テキストを TTS で音声化する。"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>これにより:</p>
+<ul>
+<li>ProcessFlow viewer 上で LLM 呼び出し / TTS / STT が他 step と同じ抽象レベルで表示される</li>
+<li>aiCall は <code>messages</code> (system/user/assistant role 別) + <code>tools</code> + <code>responseFormat</code> (text / json / structuredObject / streaming) の業界共通構造で型安全に表現</li>
+<li>TTS / STT は <code>CustomStepKind.schema</code> で <code>config</code> の入力構造を縛り、<code>outputType</code> で <code>outputBinding</code> 結果型を後続 step の型推論で使える</li>
+<li>実装詳細は modelEndpoints catalog (LLM) または stepKind description (TTS/STT) に集約され、コード生成時に展開</li>
+</ul>
+<h3 id="36-動作確認は-data-コピー-retail-と同じ運用">3.6 動作確認は data/ コピー (retail と同じ運用)</h3>
+<p><code>examples/english-learning/</code> は git 管理の正本。動作確認は workspaces/ や任意フォルダにコピーして使う。詳細は <code>examples/english-learning/README.md</code> (子 2 で作成) に記載。</p>
+<h2 id="4-受け入れ基準">4. 受け入れ基準</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>examples/english-learning/harmony.json</code> が <code>schemas/v3/harmony.v3.schema.json</code> で AJV pass</li>
+<li class="task-list-item"><input type="checkbox" disabled> 全 entity ファイルが対応する v3 schema で pass</li>
+<li class="task-list-item"><input type="checkbox" disabled> designer 上で「フォルダを追加 → examples/english-learning」で開け、各一覧が描画される</li>
+<li class="task-list-item"><input type="checkbox" disabled> 4 シナリオの画面が画面フロー上で繋がっている</li>
+<li class="task-list-item"><input type="checkbox" disabled> 画面 HTML が <strong>3.2 見栄え要件</strong> を満たす (B2C トーン + 4 テーマ)</li>
+<li class="task-list-item"><input type="checkbox" disabled> AJV 全件検証 test が examples/english-learning/ もカバー、<code>npx vitest run</code> 全 pass</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>/review-flow</code> で全 ProcessFlow が Must-fix ゼロ</li>
+<li class="task-list-item"><input type="checkbox" disabled> description 待避リストが <strong>3.3</strong> の粒度妥当性レビューに通る (実装者が再現できる粒度)</li>
+<li class="task-list-item"><input type="checkbox" disabled> 半角カナ混入 0 件</li>
+</ul>
+<h2 id="5-進め方-シリーズ実装各単独-pr">5. 進め方 (シリーズ実装、各単独 PR)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>子 ISSUE</th><th>担当</th><th>スコープ</th><th>branch</th></tr></thead><tbody><tr><td>子 1 (本 PR)</td><td>Opus</td><td>本仕様書 (<code>docs/spec/examples-english-learning.md</code>)</td><td><code>docs/issue-787-spec-english-learning</code></td></tr><tr><td>子 2</td><td>Sonnet</td><td>業務データ層 — <code>examples/english-learning/{tables,extensions,conventions}/</code> + <code>project.json</code> 雛形 + <code>README.md</code>。テーブル / 拡張 ID を確定</td><td><code>feat/issue-787-tables-conventions</code></td></tr><tr><td>子 3</td><td>Sonnet</td><td>UI 層上半分 — <code>examples/english-learning/screens/</code> (HTML 見栄え重視) + <code>project.json</code> の <code>screens</code> / <code>screenTransitions</code></td><td><code>feat/issue-787-screens</code></td></tr><tr><td>子 4</td><td>Sonnet</td><td>UI 層下半分 + 業務処理 — <code>examples/english-learning/{process-flows,view-definitions,sequences,views}/</code> (子 2 の table ID + 子 3 の screen ID 参照)</td><td><code>feat/issue-787-flows</code></td></tr><tr><td>子 5</td><td>Opus</td><td>dogfood 検証 — <code>npm run validate:samples</code> + <code>/review-flow</code> Must-fix ゼロ + description 待避リスト粒度監査 + smoke (multi-workspace で開いて表示) + 親メタ #680 README 表更新</td><td><code>chore/issue-787-dogfood</code></td></tr></tbody></table>
+<p>各子 PR で AJV / vitest / lint / Playwright が pass すること。子 PR は <strong>逐次マージ</strong>、シリーズ統合 PR にはしない (前段の table/screen ID 確定が後段の前提のため)。</p>
+<h2 id="6-既存材料との関係">6. 既存材料との関係</h2>
+<ul>
+<li>過去の dogfood (Phase 1-4) は B2B 業務系のみ。本サンプルが <strong>本フレームワーク初の B2C + 外部 AI 連携サンプル</strong></li>
+<li>リリース前なので backward compat は考慮しない (memory <code>feedback_no_backward_compat_pre_release.md</code>)</li>
+<li>retail サンプルと並列の正本サンプル位置付け (memory <code>project_canonical_sample_layout_2026_05_03</code>)</li>
+</ul>
+<h2 id="7-テスト-fixture-としての利用">7. テスト fixture としての利用</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 固定 workspace でアプリ起動 (AI の動作確認 / E2E テスト)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">DESIGNER_DATA_DIR</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">examples/english-learning</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev:mcp</span></span></code></pre>
+<p><code>schemas/v3/*.test.ts</code> (AJV) に <code>examples/english-learning/**/*.json</code> を組み込み、schema 進化時の regression を検出。</p>
+<h2 id="8-想定されるドッグフード成果物">8. 想定されるドッグフード成果物</h2>
+<p>子 5 完了時に得られる知見の予想 (実際の結果は dogfood で確定):</p>
+<ol>
+<li><strong>stepKind 拡張による外部 AI 表現の有用性検証</strong> — <code>CustomStepKind.outputType</code> で型安全に AI 応答を後続 step に渡せるか</li>
+<li><strong>description 待避リストのフレームワーク横断パターン化</strong> — 他サンプル (医療画像診断、製造 AI 故障予測) にも転用できる「UX 待避テンプレート」が抽出できるか</li>
+<li><strong>B2C 画面 HTML の品質レベル感</strong> — retail (業務系) との見栄え差異をどこまで許容するか</li>
+<li><strong>拡張パック (動的コンテンツ) の表現方針</strong> — <code>content_packs.namespace_ref</code> で extension に紐付けるアプローチが妥当か</li>
+</ol>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

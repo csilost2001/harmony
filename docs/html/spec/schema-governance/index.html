@@ -1,0 +1,217 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>schema governance</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link active"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="schema-governance--グローバル定義スキーマ変更ガバナンス">Schema Governance — グローバル定義スキーマ変更ガバナンス</h1>
+<p>本フレームワークの<strong>最重要原則</strong>を定める。</p>
+<h2 id="1-変更権限の階層">1. 変更権限の階層</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>領域</th><th>ファイル例</th><th>変更権限</th></tr></thead><tbody><tr><td><strong>グローバル定義スキーマ</strong></td><td><code>schemas/process-flow.schema.json</code> / <code>schemas/extensions-*.schema.json</code> / <code>schemas/conventions.schema.json</code></td><td><strong>フレームワーク製作者 (設計者) の専権</strong></td></tr><tr><td><strong>拡張定義 (namespace)</strong></td><td><code>examples/&#x3C;project-id>/harmony/extensions/&#x3C;namespace>.v3.json</code> / <code>workspaces/&#x3C;id>/&#x3C;dataDir>/extensions/&#x3C;namespace>.v3.json</code></td><td>業務開発者 (AI 含む)</td></tr><tr><td><strong>業務規約 catalog</strong></td><td><code>examples/&#x3C;project-id>/harmony/conventions/catalog.json</code></td><td>業務開発者 (AI 含む)</td></tr><tr><td><strong>業務データ JSON</strong></td><td>処理フロー / テーブル定義 / 画面項目定義 等</td><td>業務開発者 (AI 含む)</td></tr></tbody></table>
+<p><strong>核心原則</strong>: グローバル定義スキーマは本フレームワークの<strong>統一性 / 互換性 / 価値の根幹</strong>。各業務開発者が勝手に拡張すると:</p>
+<ul>
+<li>schema が業界別都合の寄せ集めになり、統一思想を失う</li>
+<li>後発業務との非互換 / 互換性壊れの混入</li>
+<li>設計者の意図しない構造変更でフレームワーク全体の信頼性低下</li>
+<li>フレームワークの価値失墜</li>
+</ul>
+<h2 id="2-ai-claudecodexopus-等-に対する禁止事項">2. AI (Claude/Codex/Opus 等) に対する禁止事項</h2>
+<h3 id="禁止行為">禁止行為</h3>
+<ul>
+<li><code>schemas/process-flow.schema.json</code> の編集 (フィールド追加 / enum 値追加 / oneOf バリアント追加 / 構造変更)</li>
+<li><code>schemas/extensions-*.schema.json</code> の編集</li>
+<li><code>schemas/conventions.schema.json</code> の編集</li>
+<li><code>Step.oneOf</code> / <code>OtherStep</code> / <code>TransactionScope</code> 等の core 構造変更</li>
+</ul>
+<h3 id="許可される変更-拡張機構経由">許可される変更 (拡張機構経由)</h3>
+<ul>
+<li><code>examples/&#x3C;project-id>/harmony/extensions/&#x3C;namespace>.v3.json</code> の追加・編集</li>
+<li><code>workspaces/&#x3C;id>/&#x3C;dataDir>/extensions/&#x3C;namespace>.v3.json</code> の追加・編集 (実プロジェクト、<code>dataDir</code> は <code>harmony.json</code> で定義)</li>
+<li><code>examples/&#x3C;project-id>/harmony/conventions/catalog.json</code> の値追加 (catalog 拡充)</li>
+<li>処理フロー JSON / テーブル定義 JSON 等の業務データ</li>
+</ul>
+<h2 id="3-グローバル-schema-変更が必要な場合の手順">3. グローバル schema 変更が必要な場合の手順</h2>
+<p>業務記述で「拡張機構では表現できない」要素が出てきた場合:</p>
+<h3 id="step-1-代替手段の確認-まず試すべきこと">Step 1: 代替手段の確認 (まず試すべきこと)</h3>
+<ol>
+<li><strong>拡張機構 (namespace)</strong> で表現できないか?
+<ul>
+<li>新しい field-type / trigger / db-operation / step を <code>extensions/&#x3C;namespace>/*.json</code> に追加</li>
+</ul>
+</li>
+<li><strong>既存 schema フィールド</strong>で代替表現できないか?
+<ul>
+<li><code>type: "other"</code> + <code>outputSchema</code> + description 注記 で意図を表現</li>
+<li>description / note フィールドで業務意図を補足</li>
+</ul>
+</li>
+<li><strong>業務規約 catalog</strong> に追加することで解決できないか?
+<ul>
+<li><code>@conv.*</code> 参照を増やすことで業務側で対応</li>
+</ul>
+</li>
+</ol>
+<h3 id="step-2-それでも必要な場合--作業停止--issue-起票">Step 2: それでも必要な場合 — 作業停止 + ISSUE 起票</h3>
+<p>AI は実装中に「グローバル schema を変更しないと表現できない」と気付いた時点で:</p>
+<ol>
+<li><strong>即座に作業停止</strong> (テスト pass を理由に勝手に拡張しない)</li>
+<li><strong>別 ISSUE 起票</strong>:
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>タイトル: improve(schema): &#x3C;フィールド名> 追加検討 — &#x3C;経緯></span></span>
+<span class="line"><span>本文:</span></span>
+<span class="line"><span>  - 何のフィールド / 構造を追加したいか</span></span>
+<span class="line"><span>  - なぜ拡張機構 (namespace) で表現できないか</span></span>
+<span class="line"><span>  - 既存 schema 表現で代替できないか (回避案を試行した結果)</span></span>
+<span class="line"><span>  - 影響範囲 (既存サンプル / 拡張への影響、後方互換性)</span></span>
+<span class="line"><span>  - 緊急度・代替案</span></span></code></pre>
+</li>
+<li><strong>設計者 (ユーザー) のレビューを待つ</strong></li>
+<li>元のサンプル/フロー作業は:
+<ul>
+<li>代替表現で完成させる、もしくは</li>
+<li>schema 改修 PR マージ後に再開</li>
+</ul>
+</li>
+</ol>
+<h3 id="step-3-設計者の判断">Step 3: 設計者の判断</h3>
+<p>設計者は以下を確認して承認 / 拒否 / 改善要求:</p>
+<ul>
+<li>本当に拡張機構で代替できないか</li>
+<li>spec 全体の思想と整合するか (<a href="/spec/schema-design-principles/"><code>schema-design-principles.md</code></a> (#517 で起草済み) 参照)</li>
+<li>既存サンプルへの影響 (regression リスク)</li>
+<li>命名規約に準拠しているか</li>
+<li>後方互換性が保たれているか</li>
+</ul>
+<p>承認された場合は専用 PR で:</p>
+<ul>
+<li>schema 改修</li>
+<li>関連 spec 文書の更新</li>
+<li>SKILL の更新 (該当ルール)</li>
+<li>testCase 追加 (新規 schema フィールドを valid とする / 不正形式を invalid とする)</li>
+</ul>
+<h2 id="4-検出の仕組み-ci--orchestrator-チェック">4. 検出の仕組み (CI / Orchestrator チェック)</h2>
+<h3 id="issues-オーケストレーター-issues-n"><code>/issues</code> オーケストレーター (<code>/issues &#x3C;N></code>)</h3>
+<p>PR 作成後に必ず:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">gh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> pr</span><span style="color:#032F62;--shiki-dark:#96D0FF"> diff</span><span style="color:#D73A49;--shiki-dark:#F47067"> &#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">PR番</span><span style="color:#24292E;--shiki-dark:#ADBAC7">号</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --name-only</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> grep</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -E</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "^schemas/"</span></span></code></pre>
+<p>変更がある場合:</p>
+<ul>
+<li>設計者承認 ISSUE が紐付いているかを確認</li>
+<li>紐付かない schema 変更は <strong>即座に Codex/Sonnet に revert 指示</strong></li>
+<li>もしくは別 ISSUE 起票で隔離 (現 PR からは schema 変更を取り除く)</li>
+<li>紐付かない schema 変更を含む PR は <strong>マージ禁止</strong></li>
+</ul>
+<h3 id="review-pr-pr-独立レビュー"><code>/review-pr</code> PR 独立レビュー</h3>
+<p>PR の Step 5 (新設) で schema 変更チェック:</p>
+<ul>
+<li>設計者承認の紐付き確認</li>
+<li>拡張機構 / 既存表現での代替可能性検討</li>
+<li>紐付かない場合は <strong>必ず Must-fix として指摘</strong></li>
+</ul>
+<h3 id="create-flow-作成時-rule-15"><code>/create-flow</code> 作成時 (Rule 15)</h3>
+<p>ProcessFlow JSON 作成時の self-check に「グローバル schema を変更しない」を必須項目として組み込み。</p>
+<h2 id="5-過去事例-教訓">5. 過去事例 (教訓)</h2>
+<h3 id="正当な変更-例-pr-494--492-namespacestepname-改修">正当な変更 (例: PR #494 / #492 namespace:StepName 改修)</h3>
+<ul>
+<li>別 ISSUE で明示的に決定</li>
+<li>spec 改訂 / SKILL 更新 / testCase 追加が一括で行われた</li>
+<li>設計者の意図と整合</li>
+</ul>
+<h3 id="不正当な変更-例-pr-508--506-retail-ラウンド-3">不正当な変更 (例: PR #508 / #506 retail ラウンド 3)</h3>
+<ul>
+<li>Sonnet が修正中に schema 6 フィールドを勝手に追加</li>
+<li>設計者承認なしで通過 (#511 ガバナンス導入の発端)</li>
+<li>内容: <code>patternRef</code>, <code>ngEventPublish</code>, <code>object[]</code> 型, <code>responseSchema</code>, <code>CacheHint.note</code>, <code>ElseBranch.description</code></li>
+<li>後日 (Phase B-1 で) 適切性を再評価予定</li>
+</ul>
+<h3 id="判断保留が必要-例-pr-469--463--codex-の-outputschema--outcomes-追加">判断保留が必要 (例: PR #469 / #463 — Codex の <code>outputSchema</code> / <code>outcomes</code> 追加)</h3>
+<ul>
+<li>Codex 実装中に schema 拡張、レビューで承認されたが正式設計プロセスを経ていない</li>
+<li>Phase B-1 で再レビュー対象</li>
+</ul>
+<h2 id="6-関連ドキュメント">6. 関連ドキュメント</h2>
+<ul>
+<li>設計思想: <a href="/spec/schema-design-principles/"><code>docs/spec/schema-design-principles.md</code></a> (#517 で起草済み)</li>
+<li>過去変更レビュー (将来): Phase B-1 ISSUE 起票時に作成</li>
+</ul>
+<p>(注: AI 用の per-user 永続メモリは Claude Code が自動管理。本仕様書は git 管理 docs として自己完結する。)</p>
+<h2 id="7-例外規定">7. 例外規定</h2>
+<p>設計者自身による直接編集は本ガバナンスの対象外 (フレームワーク製作者の専権)。</p>
+<p>緊急 hotfix で AI が schema 変更を行う必要がある場合は、ユーザー (設計者) からの<strong>明示的な指示</strong>があった場合に限り許容。指示なしで AI 判断で行うのは禁止。</p>
+<h2 id="8-違反時の対応">8. 違反時の対応</h2>
+<p>PR で schema 変更が検出され、紐付き設計者承認 ISSUE がない場合:</p>
+<ol>
+<li>該当 PR にコメント: <code>⚠️ schema 変更検出: 設計者承認が必要、現状 NG</code></li>
+<li>以下のいずれかを実施:
+<ul>
+<li><strong>revert + 元の修正 PR に schema 変更を含めず再 push</strong></li>
+<li><strong>別 ISSUE 起票</strong> (<code>improve(schema): ...</code>) して schema 変更を隔離、現 PR からは除外</li>
+</ul>
+</li>
+<li>ISSUE が承認されたら schema 専用 PR で対応</li>
+</ol>
+<p>これにより業務修正 PR と schema 改修 PR を分離し、レビュー粒度を明確化。</p>
+<hr>
+<p><strong>本ドキュメントは本フレームワークの設計思想を守る最重要ガバナンス</strong>。AI / 業務開発者 全員の遵守を前提とする。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>process flow workflow</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="/user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="/user-guide/process-flow-workflow/" class="sidebar-link active"> ProcessFlow ワークフロー </a> </li><li> <a href="/user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="/user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="/user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="/user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="処理フロー編集ワークフロー">処理フロー編集ワークフロー</h1>
+<p><strong>目的</strong>: 業務担当者が書く「概要レベルの処理フロー」を、AI エージェント (Claude Code) と往復しながら「AI 実装者が迷わず実装できる詳細レベル」まで引き上げる。</p>
+<h2 id="位置づけと原則">位置づけと原則</h2>
+<ol>
+<li><strong>一次成果物は JSON スキーマに準拠した処理フロー JSON</strong> (<code>schemas/process-flow.schema.json</code>)</li>
+<li>上流の概要は人間が書く、詳細化は AI が行う (完全自動ではなく、人間と対話しながら)</li>
+<li>API 課金は発生しない (Anthropic Claude Code Max プラン内で完結)</li>
+<li>designer 画面は<strong>リッチなコンテキスト保持器</strong> (AI への指示・質問・注目点を保存)</li>
+</ol>
+<h2 id="全体の流れ">全体の流れ</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>┌─ 上流 (人間主体、maturity=draft) ──────────────────────────────────┐</span></span>
+<span class="line"><span>│ 1. 新規処理フロー作成 (処理フロー一覧 → 新規作成)                   │</span></span>
+<span class="line"><span>│ 2. アクション (ボタンクリック等) と ステップ (検証/DB/外部/...) を追加 │</span></span>
+<span class="line"><span>│ 3. 各ステップは概要だけ書く (description に 1-2 行)                │</span></span>
+<span class="line"><span>│ 4. 穴は付箋 (StepNote) や AI マーカーで明示                        │</span></span>
+<span class="line"><span>└────────────────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>                            ↓</span></span>
+<span class="line"><span>┌─ AI 往復 (人間がマーキング → Claude Code が MCP で編集) ────────────┐</span></span>
+<span class="line"><span>│ 5. 画面上でマーキング (AI マーカー追加)                             │</span></span>
+<span class="line"><span>│    - 「ここの SQL 書いて」→ kind=todo + stepId で該当 step に付ける │</span></span>
+<span class="line"><span>│    - 「これで合ってる?」→ kind=question                             │</span></span>
+<span class="line"><span>│    - 「ここ注意して見て」→ kind=attention                           │</span></span>
+<span class="line"><span>│ 6. 別 Claude Code 窓で `/designer-work &#x3C;processFlowId>` 実行          │</span></span>
+<span class="line"><span>│ 7. Claude Code は MCP tool で list_markers → 各 marker を kind 別に処理 │</span></span>
+<span class="line"><span>│    → update_step / add_catalog_entry 等で編集                      │</span></span>
+<span class="line"><span>│    → resolve_marker で応答メモを残す                               │</span></span>
+<span class="line"><span>│ 8. ブラウザは wsBridge broadcast で自動再描画                       │</span></span>
+<span class="line"><span>│ 9. 人間は結果を観察、未解決/新規質問があれば追加マーキング → 6 へ戻る │</span></span>
+<span class="line"><span>└────────────────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>                            ↓</span></span>
+<span class="line"><span>┌─ 下流 (AI 実装前チェック、maturity=committed) ──────────────────────┐</span></span>
+<span class="line"><span>│ 10. モードを "downstream" に切替                                    │</span></span>
+<span class="line"><span>│ 11. 未確定警告を解消 (maturity 昇格、カタログ埋め、参照整合性)       │</span></span>
+<span class="line"><span>│ 12. Schema 検証 + 参照整合性バリデータで clean 確認                  │</span></span>
+<span class="line"><span>│ 13. 別 AI セッションに JSON を渡して実装依頼                         │</span></span>
+<span class="line"><span>└────────────────────────────────────────────────────────────────────┘</span></span></code></pre>
+<h2 id="1-新規作成">1. 新規作成</h2>
+<p>「処理フロー一覧」画面 (<code>/process-flow/list</code>) から「+ 新規作成」で ProcessFlow を作る。</p>
+<ul>
+<li><strong>名前</strong>: 画面/画面遷移の業務名 (例: 注文登録画面)</li>
+<li><strong>種別</strong>: screen / batch / scheduled / system / common / other</li>
+<li><strong>モード</strong>: 初期は <code>upstream</code> (概要レベル)</li>
+<li><strong>成熟度</strong>: 初期は <code>draft</code></li>
+</ul>
+<h2 id="2-アクションステップの追加">2. アクション・ステップの追加</h2>
+<p>ProcessFlow 内に複数の <strong>アクション</strong> (ボタンクリック等のイベント単位) を作り、アクション内に <strong>ステップ</strong> (検証/DB操作/外部呼出/画面遷移 等) を積む。</p>
+<p>主なステップ種別 (v3 schema 由来、抜粋):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>種別</th><th>用途</th></tr></thead><tbody><tr><td>validation</td><td>入力検証</td></tr><tr><td>dbAccess</td><td>DB CRUD</td></tr><tr><td>externalSystem</td><td>外部 API 呼出</td></tr><tr><td>commonProcess</td><td>共通処理参照</td></tr><tr><td>componentCall</td><td>コンポーネント呼出</td></tr><tr><td>screenTransition</td><td>画面遷移</td></tr><tr><td>displayUpdate</td><td>表示更新</td></tr><tr><td>branch</td><td>条件分岐</td></tr><tr><td>loop / loopBreak / loopContinue</td><td>ループ</td></tr><tr><td>jump</td><td>ジャンプ</td></tr><tr><td>compute</td><td>純粋計算・代入</td></tr><tr><td>return</td><td>HTTP レスポンス返却</td></tr><tr><td>aiCall</td><td>AI 呼出 (構造化 JSON 出力)</td></tr><tr><td>aiAgent</td><td>AI エージェント (tool use 連携)</td></tr><tr><td>workflow</td><td>サブワークフロー (承認・エスカレーション・quorum 等)</td></tr><tr><td>transactionScope</td><td>構造的トランザクション</td></tr><tr><td>log</td><td>ログ記録</td></tr><tr><td>audit</td><td>監査ログ</td></tr><tr><td>eventPublish / eventSubscribe</td><td>イベント駆動</td></tr><tr><td>cdc</td><td>CDC (Change Data Capture)</td></tr><tr><td>closing</td><td>締め処理</td></tr></tbody></table>
+<p>注: <code>tryCatch</code> / <code>expression</code> / <code>affectedRowsZero</code> 等は <strong><code>BranchCondition.kind</code></strong> (<code>branch</code> step 内の条件種別) であり、独立した step ではない。<code>structuredObject</code> / <code>streaming</code> 等は <code>aiCall</code> の outputType / Message content の kind。完全列挙は <a href="../../schemas/v3/process-flow.v3.schema.json"><code>schemas/v3/process-flow.v3.schema.json</code></a> を直接参照。</p>
+<h2 id="3-概要だけ書く-draft">3. 概要だけ書く (draft)</h2>
+<p>各ステップの詳細 (SQL 本文、外部 API 仕様、条件式) は未確定でよい。最小限:</p>
+<ul>
+<li><code>description</code> に 1-2 行で「何をするステップか」</li>
+<li>必要なら <code>note</code> (付箋) で「想定:」「TODO:」等を明示</li>
+</ul>
+<h2 id="4-カタログを埋める">4. カタログを埋める</h2>
+<p>詳細化の過程で、ProcessFlow レベルのカタログに情報を集約する (ProcessFlowEditor 上部に編集パネル):</p>
+<ul>
+<li><strong>errorCatalog</strong> — エラーコード (STOCK_SHORTAGE 等) の HTTP ステータス・デフォルトメッセージ</li>
+<li><strong>response-types 拡張パッケージ</strong> — 共通型 (ApiError 等) の JSON Schema。<code>docs/sample-project/extensions/response-types.json</code> または <code>data/extensions/response-types.json</code> に定義する</li>
+<li><strong>externalSystemCatalog</strong> — 外部 API (stripe 等) の baseUrl / auth / timeout</li>
+<li><strong>secretsCatalog</strong> — API キー等のメタデータ (<code>@secret.stripeKey</code> で参照、値は含まない)</li>
+<li><strong>ambientVariables</strong> — ミドルウェア由来変数 (<code>@requestId</code> 等) の宣言</li>
+</ul>
+<h2 id="5-検証-警告パネル">5. 検証 (警告パネル)</h2>
+<p>画面右上の「N 警告」バッジをクリックで詳細パネルが開く。以下のバリデータが走る:</p>
+<ul>
+<li><strong>参照整合性</strong> (referentialIntegrity) — responseRef / errorCode / systemRef / typeRef / secretRef の未定義参照</li>
+<li><strong>@identifier スコープ</strong> (identifierScope) — inputs / outputBinding / ambient / ループ変数との突合</li>
+<li><strong>SQL 列</strong> (sqlColumnValidator) — DbAccessStep.sql の列がテーブル定義にあるか</li>
+<li><em><em>@conv.</em> 参照</em>* (conventionsValidator) — 規約カタログのキーに存在するか</li>
+</ul>
+<p>各警告の行の「AI に依頼」ボタンで、kind=todo の marker が 1-click 起票される。パネル上の「全て AI に依頼」で一括起票も可能。</p>
+<h2 id="6-9-ai-往復-詳しくは-marker-workflowmd">6-9. AI 往復 (詳しくは <a href="/user-guide/marker-workflow/">marker-workflow.md</a>)</h2>
+<h2 id="10-13-下流モード切替と実装引き渡し">10-13. 下流モード切替と実装引き渡し</h2>
+<ul>
+<li>モード切替ボタンで <code>downstream</code> に</li>
+<li>MarkerPanel / 警告バッジが clean (0 未解決 / 0 警告) になるまで詰める</li>
+<li><code>npm run validate:samples -- ../examples/&#x3C;project-id></code> で最終確認 (AGENTS.md 記載のコマンド)</li>
+<li>この JSON を別 AI セッション (実装担当) に渡して実装開始</li>
+</ul>
+<h2 id="成熟度-maturity-の目安">成熟度 (maturity) の目安</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>maturity</th><th>状態</th><th>何を意味するか</th></tr></thead><tbody><tr><td><code>draft</code></td><td>下書き</td><td>頻繁に変わる。外部に出さない</td></tr><tr><td><code>provisional</code></td><td>暫定</td><td>AI 依頼中 / レビュー中</td></tr><tr><td><code>committed</code></td><td>確定</td><td>下流に渡して良い。以降は保守的に編集</td></tr></tbody></table>
+<p>ProcessFlow / action / step の 3 粒度で設定可。step が committed なら、<code>/designer-work</code> は編集を保留 (人間承認待ち) する。</p>
+<h2 id="ai-実装者が設計書を読む順序">AI 実装者が設計書を読む順序</h2>
+<p>処理フロー JSON を渡されて実装する AI は以下の順で読む:</p>
+<ol>
+<li><strong><code>data/conventions/catalog.json</code></strong> — project-wide defaults (通貨・タイムゾーン・税率・認証・DB 規約等)。<code>default: true</code> のエントリが全フローの ambient 前提</li>
+<li><strong>対象 ProcessFlow の <code>ambientOverrides</code></strong> — このフローだけの特例 (無い場合は 1. の defaults をそのまま適用)</li>
+<li><strong>処理フロー本体</strong> (actions / steps) — 具体ロジック</li>
+<li><strong>テーブル定義 (DDL)</strong> — 採番ロジック等のインフラ層</li>
+<li><strong>画面項目定義</strong> — 入出力の UI 制約</li>
+</ol>
+<p>詳細: <a href="/spec/process-flow-runtime-conventions/"><code>docs/spec/process-flow-runtime-conventions.md §9</code></a></p>
+<h2 id="関連ドキュメント">関連ドキュメント</h2>
+<ul>
+<li>仕様: <a href="/spec/process-flow-extensions/"><code>docs/spec/process-flow-extensions.md</code></a></li>
+<li>式言語: <a href="/spec/process-flow-expression-language/"><code>docs/spec/process-flow-expression-language.md</code></a></li>
+<li>実行時規約: <a href="/spec/process-flow-runtime-conventions/"><code>docs/spec/process-flow-runtime-conventions.md</code></a></li>
+<li>JSON Schema: <a href="../../schemas/process-flow.schema.json"><code>schemas/process-flow.schema.json</code></a></li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

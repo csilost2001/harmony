@@ -1,0 +1,128 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>troubleshooting</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="/user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="/user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="/user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="/user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="/user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="/user-guide/troubleshooting/" class="sidebar-link active"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="トラブルシューティング">トラブルシューティング</h1>
+<p>よくある詰まりと回避策。issue 報告の前にまず確認。</p>
+<h2 id="起動接続">起動・接続</h2>
+<h3 id="ブラウザで処理フローが見えない-一覧が空">ブラウザで処理フローが見えない (一覧が空)</h3>
+<ul>
+<li>active workspace の <code>harmony.json</code> に <code>processFlows[]</code> があるか確認 (workspace 配置は #753 で <code>data/</code> から <code>workspaces/&#x3C;id>/</code> または任意フォルダに変更。#849 で <code>project.json</code> → <code>harmony.json</code> に rename)</li>
+<li>backend (ws://localhost:5179) が起動しているか: <code>netstat -ano | grep :5179</code></li>
+<li>ブラウザ DevTools Console で <code>[mcpBridge] connected</code> ログがあるか</li>
+<li>localStorage が古い可能性: Application タブから <code>flow-project</code> を削除して reload</li>
+</ul>
+<h3 id="dev-server-が起動しない">dev server が起動しない</h3>
+<ul>
+<li>ポート 5173 が占有されていないか (<code>netstat -ano | grep :5173</code>)</li>
+<li><code>cd frontend &#x26;&#x26; npm install</code> で依存解決済みか</li>
+<li><code>vite.config.ts</code> で <code>strictPort: true</code> にしているので、5173 が使えないと起動失敗</li>
+</ul>
+<h3 id="backend-が多重起動">backend が多重起動</h3>
+<p>URL mode (#302 以降) では <code>.mcp.json</code> の自動 spawn は行わないため、この問題は発生しません。以前 (command mode 時代) のトラブルシューティング記録として保持。</p>
+<p>もし何らかの理由で 5179 が占有されている場合は手動 kill:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">netstat</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -ano</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> grep</span><span style="color:#032F62;--shiki-dark:#96D0FF"> :5179</span><span style="color:#6A737D;--shiki-dark:#768390">  # PID 特定</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">taskkill</span><span style="color:#032F62;--shiki-dark:#96D0FF"> /F</span><span style="color:#032F62;--shiki-dark:#96D0FF"> /PID</span><span style="color:#D73A49;--shiki-dark:#F47067"> &#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">PI</span><span style="color:#24292E;--shiki-dark:#ADBAC7">D</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#6A737D;--shiki-dark:#768390">     # Windows</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># kill -9 &#x3C;PID>            # mac/linux</span></span></code></pre>
+<h2 id="マーカーと-designer-work">マーカーと /designer-work</h2>
+<h3 id="markerpanel-に保存した-marker-が消える">MarkerPanel に保存した marker が消える</h3>
+<ul>
+<li>ProcessFlow の保存 (Ctrl+S / 保存ボタン) を実行したか</li>
+<li>wsBridge 接続が切れていると localStorage にしか残らない</li>
+<li>保存したのに次回表示で消える → active workspace の <code>&#x3C;dataDir>/actions/&#x3C;id>.json</code> (process-flow) / <code>&#x3C;dataDir>/screens/&#x3C;id>.json</code> (画面) への書込み権限を確認 (<code>workspaces/&#x3C;wsId>/&#x3C;dataDir>/</code> 配下)</li>
+</ul>
+<h3 id="designer-work-実行でdesigner__list_markers-is-not-a-function">/designer-work 実行で「designer__list_markers is not a function」</h3>
+<ul>
+<li>backend が Claude Code のセッションから見えていない</li>
+<li><code>.mcp.json</code> が正しく読まれているか (プロジェクトルートで <code>claude</code> を起動したか)</li>
+<li>backend のビルドエラーがないか: <code>cd backend &#x26;&#x26; npm run build</code></li>
+</ul>
+<h3 id="marker-の編集対象-step-を間違えて指定した">marker の編集対象 step を間違えて指定した</h3>
+<ul>
+<li>MarkerPanel の削除ボタンで消してから新規作成</li>
+<li>または resolve して resolution に「間違いだった」と書く → <code>/designer-work</code> は既解決を無視</li>
+</ul>
+<h3 id="全て-ai-に依頼で警告が起票されない">「全て AI に依頼」で警告が起票されない</h3>
+<ul>
+<li>警告の <code>path</code> フィールドがない (構造エラー系は除外される、warning のみ)</li>
+<li>既に同じ code+path の marker が未解決で存在 → 重複ガードで skip</li>
+</ul>
+<h2 id="バリデータ関連">バリデータ関連</h2>
+<h3 id="意図せず未解決警告が増えた">意図せず未解決警告が増えた</h3>
+<ul>
+<li>新規追加した step や catalog が参照整合性違反を起こしている</li>
+<li>警告詳細パネルで code と path を確認</li>
+<li>よくあるパターン:
+<ul>
+<li><code>UNKNOWN_RESPONSE_REF</code>: ReturnStep.responseRef が action.responses[].id にない → responses に追加 or 別値に変更</li>
+<li><code>UNKNOWN_IDENTIFIER</code>: <code>@xxx</code> が inputs/outputBinding/ambient にない → ambient 宣言 or 変数作成</li>
+<li><code>UNKNOWN_SECRET_REF</code>: <code>@secret.xxx</code> が secretsCatalog にない → カタログ追加</li>
+<li><code>UNKNOWN_COLUMN</code>: SQL の列がテーブル定義にない → テーブル or SQL を修正</li>
+</ul>
+</li>
+</ul>
+<h3 id="警告が消えない">警告が消えない</h3>
+<ul>
+<li>ブラウザが localStorage の古いデータを見ている可能性 → reload</li>
+<li>ProcessFlowEditor が再計算していない → 保存して reload</li>
+</ul>
+<h2 id="データ周り">データ周り</h2>
+<h3 id="workspace-フォルダが-gitignored-なのでバックアップ方法は">workspace フォルダが gitignored なのでバックアップ方法は?</h3>
+<ul>
+<li>設計上 <code>data/</code> はデザイナー本体組み込み拡張定義 (<code>data/extensions/</code>) 専用、ユーザープロジェクトは <code>workspaces/&#x3C;id>/</code> または任意フォルダに配置 (#753)。正本サンプルは <code>examples/&#x3C;project-id>/</code> (git tracked)</li>
+<li>実データは wsBridge 経由で active workspace 配下に保存されるため、active workspace ディレクトリ全体をコピーすればバックアップ</li>
+<li>backend を停止してから workspace ディレクトリをコピー推奨</li>
+</ul>
+<h3 id="harmonyjson-と処理フローファイルが整合しない">harmony.json と処理フローファイルが整合しない</h3>
+<ul>
+<li>harmony.json: 一覧表示用の軽量メタ (旧 <code>project.json</code>、#849 で rename)</li>
+<li>active workspace の <code>&#x3C;dataDir>/actions/*.json</code>: 実体 (#393-#395 で旧 <code>process-flows/</code> から <code>actions/</code> にリネーム済)</li>
+<li>どちらかだけ編集した場合、不整合で「処理フローが見つかりません」等のエラーに</li>
+<li>復旧: harmony.json に該当 ID があるか、active workspace の <code>&#x3C;dataDir>/actions/&#x3C;ID>.json</code> が存在するか、両方確認</li>
+</ul>
+<h2 id="playwright-e2e">Playwright E2E</h2>
+<h3 id="pageclick-が-timeout-する"><code>page.click</code> が timeout する</h3>
+<ul>
+<li>React の onClick が発火していない可能性。force: true より <code>page.evaluate(() => element.dispatchEvent(...))</code> の方が確実な場合あり</li>
+<li><code>.action-validation-panel</code> のように scroll 内部の要素で pointer events がクリップされる → <code>dispatchEvent</code> 推奨</li>
+</ul>
+<h3 id="playwright-mcp-で---headlessfalse-が効かない-windows">Playwright MCP で <code>--headless=false</code> が効かない (Windows)</h3>
+<ul>
+<li>仕様。Windows では <code>--headless=false</code> の使用は避ける。<code>mcp.headed</code> 等別フラグ参照</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

@@ -1,0 +1,857 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>phase4 evaluation 2026 04 30</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link active"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="phase-4-統合評価レポート--phase-5-移行判断-2026-04-30">Phase 4 統合評価レポート + Phase 5 移行判断 (2026-04-30)</h1>
+<h2 id="エグゼクティブサマリ">エグゼクティブサマリ</h2>
+<p>Phase 4 メタ #648 (画面 ↔ DB ↔ 処理フロー の構造系統合) は、3 つの子 ISSUE (#649/#650/#651) が同日 (2026-04-30) に全て PR マージされ、<strong>目標を達成した状態でクローズ可能</strong>。Phase 5 への移行は <strong>進行可、フォローアップ ISSUE 管理が前提</strong> (Phase 3 と同パターン)。</p>
+<p>主要な到達点:</p>
+<ol>
+<li><strong>3 子同日マージ — 三軸の構造系統合が完結</strong> — ViewDefinition / 画面遷移整合 / 画面項目共通化の各 axis が独立 PR として並走し、同日クローズ</li>
+<li><strong>validator カウンター 5 件 → 12 件 (Phase 3 終了時 5 件 + Phase 3→4 間フォローアップ 4 件 + Phase 4 本体 3 件)</strong> — 検出機構が大幅に拡張され、CLI 一発で 12 観点の自動検査が可能に</li>
+<li><strong>Skill 統合 Rule 19 → Rule 22 / 観点 11 → 観点 14</strong> — Phase 4 3 子それぞれで Rule / 観点が追加され、<code>/create-flow</code> と <code>/review-flow</code> の自動チェックが更に強化</li>
+<li><strong>paving 2 業界先行戦略が Phase 4 でも有効</strong> — 各子で 2 業界を選定して具体実装し、残 5 業界は別 ISSUE 候補として整理。一括 7 業界対応より反復学習コストが低い</li>
+<li><strong>main 直接コミット事故の発生 → 記録と運用改善</strong> — 子 2 (#650) Sonnet が SKILL.md を main ブランチに直接コミット (commit <code>a744577</code>)。本 Phase 評価レポートに記録し、順次進行への方針変更で再発防止</li>
+</ol>
+<h2 id="子-issue-完了サマリ">子 ISSUE 完了サマリ</h2>
+<h3 id="子-1-viewdefinition-一覧-ui-viewer-概念新設-649--pr-656">子 1: ViewDefinition 一覧 UI viewer 概念新設 (#649 / PR #656)</h3>
+<p><strong>成果物</strong>: 一覧 UI viewer の構造化定義概念 <code>ViewDefinition</code> を v3 schema に新設。</p>
+<p><strong>主要な変更</strong>:</p>
+<ul>
+<li><code>schemas/v3/view-definition.v3.schema.json</code> 新規 (kind / sourceTableId / columns / sortDefaults / filterDefaults / pageSize / groupBy)</li>
+<li><code>schemas/v3/project.v3.schema.json</code> に <code>viewDefinitions[]</code> エントリ追加</li>
+<li><code>schemas/v3/screen.v3.schema.json</code> に <code>Screen.viewDefinitionRefs[]</code> 追加</li>
+<li><code>frontend/src/types/v3/view-definition.ts</code> 新設 (ViewDefinition / ViewColumn / SortSpec / FilterSpec / ViewDefinitionId)</li>
+<li><strong>validator 新設 (9 件目 / 通算で validate-dogfood 8 番目)</strong>: <code>viewDefinitionValidator.ts</code> — 9 観点 (#745 で 11 観点に拡張: 3 レベル DSL 対応 + DUPLICATE_QUERY_ALIAS)</li>
+</ul>
+<p><strong>validator 観点 (#745 反映、11 観点)</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>issue code</th><th>severity</th><th>検出内容</th></tr></thead><tbody><tr><td><code>UNKNOWN_SOURCE_TABLE</code></td><td>error</td><td>sourceTableId / query.from.tableId / query.joins[].tableId が同プロジェクト内に存在しない</td></tr><tr><td><code>UNKNOWN_TABLE_COLUMN_REF</code></td><td>error</td><td>ViewColumn.tableColumnRef が存在しないテーブル列を参照</td></tr><tr><td><code>UNKNOWN_TABLE_REF_IN_VIEW</code></td><td>error</td><td>Level 2: ViewColumn.tableColumnRef.tableId が query.from / query.joins[] のいずれにも含まれない (#745)</td></tr><tr><td><code>JOIN_NOT_DECLARED</code></td><td>warning</td><td>Level 1: tableColumnRef.tableId が sourceTableId と異なる (暗黙 join、Level 2 アップグレード推奨。#745、旧 <code>COLUMN_REF_NOT_IN_SOURCE_TABLE</code> を再定義)</td></tr><tr><td><code>DUPLICATE_VIEW_COLUMN_NAME</code></td><td>error</td><td>ViewDefinition 内で ViewColumn.name が重複</td></tr><tr><td><code>FIELD_TYPE_INCOMPATIBLE</code></td><td>warning</td><td>ViewColumn.type が参照先テーブル列の DataType と互換なし</td></tr><tr><td><code>UNKNOWN_SORT_COLUMN</code></td><td>error</td><td>sortDefaults が ViewDefinition.columns に存在しない列を参照</td></tr><tr><td><code>UNKNOWN_FILTER_COLUMN</code></td><td>error</td><td>filterDefaults が ViewDefinition.columns に存在しない列を参照</td></tr><tr><td><code>FILTER_OPERATOR_TYPE_MISMATCH</code></td><td>warning</td><td>filterDefaults.operator が列 type と不整合 (text に between、数値に contains 等)</td></tr><tr><td><code>UNKNOWN_GROUP_BY_COLUMN</code></td><td>error</td><td>groupBy が ViewDefinition.columns に存在しない列を参照</td></tr></tbody></table>
+<p><strong>テスト</strong>: 24 ケース (viewDefinitionValidator.test.ts)
+<strong>paving 業界</strong>: retail (商品一覧 5 列) + welfare-benefit (受給者一覧 5 列、eligibilityStatus フィルタ)
+<strong>Skill 統合</strong>: <code>/create-flow</code> Rule 20、<code>/review-flow</code> 観点 12
+<strong>validate:dogfood</strong>: 18/18 flows pass、2 viewDefinitions 検出 (regression なし)</p>
+<p><strong>設計判断</strong>: Screen と ViewDefinition の関係を Screen.viewDefinitionRefs[] による 1:N 方式で採用。DB View (view.v3.schema.json) とは別概念 (axis が異なる) として独立 schema 化。UI 編集画面 (ViewDefinitionEditor / ViewDefinitionListView) は別 ISSUE 候補 (本 PR スコープ外)。</p>
+<h3 id="子-2-画面遷移整合--screennavigationvalidator-三者整合-validator-650--pr-657">子 2: 画面遷移整合 — screenNavigationValidator 三者整合 validator (#650 / PR #657)</h3>
+<p><strong>成果物</strong>: 画面フロー edges × ScreenTransitionStep × URL ルーティングの三者整合を新 validator で検出。</p>
+<p><strong>主要な変更</strong>:</p>
+<ul>
+<li><strong>validator 新設 (12 件目 / validate-dogfood 9 番目)</strong>: <code>screenNavigationValidator.ts</code> — 7 観点</li>
+<li><code>screenNavigationValidator.test.ts</code> — 23 テストケース</li>
+<li>7 業界サンプル更新: retail 商品詳細 ↔ カート + 各業界 1 ScreenTransitionStep + 対応 edge</li>
+</ul>
+<p><strong>validator 7 観点</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>issue code</th><th>severity</th><th>検出内容</th></tr></thead><tbody><tr><td><code>UNKNOWN_TARGET_SCREEN</code></td><td>error</td><td>ScreenTransitionStep.targetScreenId が同プロジェクト内に存在しない</td></tr><tr><td><code>MISSING_FLOW_EDGE</code></td><td>warning</td><td>フロー内に ScreenTransitionStep があるが対応 edge (画面フロー) が無い</td></tr><tr><td><code>MISSING_FLOW_TRANSITION</code></td><td>error</td><td><code>kind: "flow-driven"</code> 宣言の edge に対応 ScreenTransitionStep が無い (#744、純 UI 遷移は <code>kind: "navigation"</code> で検出対象外。旧 <code>ORPHAN_FLOW_EDGE</code> warning を再定義)</td></tr><tr><td><code>DUPLICATE_SCREEN_PATH</code></td><td>error</td><td>同プロジェクト内で path が重複する画面</td></tr><tr><td><code>PATH_PARAM_MISMATCH</code></td><td>warning</td><td>遷移先 path の <code>:param</code> が遷移元 path にない</td></tr><tr><td><code>AUTH_TRANSITION_VIOLATION</code></td><td>error</td><td>auth:none/optional 画面から auth:required 画面への直接遷移</td></tr><tr><td><code>DEAD_END_SCREEN</code></td><td>warning</td><td>ゴール画面以外で遷移可能な先が無い画面</td></tr></tbody></table>
+<p><strong>テスト</strong>: 23 ケース (screenNavigationValidator.test.ts)
+<strong>paving 業界</strong>: retail (2 edge)、他 6 業界各 1 edge 以上 (finance/logistics/manufacturing/public-service は画面・フロー新規)
+<strong>Skill 統合</strong>: <code>/create-flow</code> Rule 21 (PR #657 ブランチコミット) → <strong>注: Skill ファイルは main ブランチ直接コミット</strong> (<code>a744577</code>)、<code>/review-flow</code> 観点 13
+<strong>validate:dogfood</strong>: 19/19 pass (8 プロジェクト、retail 追加で 1 増)
+<strong>schema 変更</strong>: なし (既存 schema で表現可能)</p>
+<h3 id="子-3-画面項目共通化--screenitemrefkey--conventionsfieldkeys-651--pr-655">子 3: 画面項目共通化 — ScreenItem.refKey + Conventions.fieldKeys (#651 / PR #655)</h3>
+<p><strong>成果物</strong>: 画面項目の論理同一性 (<code>ScreenItem.refKey</code>) + 規約カタログのフィールドキー定義 (<code>Conventions.fieldKeys</code>) + 横断整合 validator 新設。</p>
+<p><strong>主要な変更</strong>:</p>
+<ul>
+<li><code>schemas/v3/screen-item.v3.schema.json</code>: <code>ScreenItem.refKey?: Identifier</code> 追加</li>
+<li><code>schemas/v3/conventions.v3.schema.json</code>: <code>Conventions.fieldKeys?: Record&#x3C;string, FieldKeyEntry></code> + <code>FieldKeyEntry</code> $defs 追加</li>
+<li><code>frontend/src/types/v3/screen-item.ts</code> / <code>conventions.ts</code> 型同期</li>
+<li><strong>validator 新設 (10 件目 / validate-dogfood 10 番目)</strong>: <code>screenItemRefKeyValidator.ts</code> — 7 観点</li>
+<li><code>screenItemRefKeyValidator.test.ts</code> — 27 テストケース</li>
+<li><code>sqlOrderValidator.ts</code> 予防的修正: <code>colVarMap.get(c)</code> が <code>undefined</code> を返した場合の <code>Set.has(undefined)</code> 問題の予防的修正 (L414/L422)</li>
+</ul>
+<p><strong>validator 7 観点</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>issue code</th><th>severity</th><th>検出内容</th></tr></thead><tbody><tr><td><code>UNDECLARED_REF_KEY</code></td><td>error</td><td>ScreenItem.refKey が conventions.fieldKeys に宣言されていない</td></tr><tr><td><code>INCONSISTENT_TYPE_BY_REF_KEY</code></td><td>error</td><td>同一 refKey を持つ ScreenItem 間で type が不整合</td></tr><tr><td><code>INCONSISTENT_FORMAT_BY_REF_KEY</code></td><td>warning</td><td>同一 refKey の ScreenItem 間で format が不整合</td></tr><tr><td><code>INCONSISTENT_VALIDATION_BY_REF_KEY</code></td><td>warning</td><td>同一 refKey の ScreenItem 間で validation ルールが不整合</td></tr><tr><td><code>INCONSISTENT_HANDLER_FLOW_BY_REF_KEY</code></td><td>warning</td><td>同一 refKey の events.handlerFlowId が異なる</td></tr><tr><td><code>ORPHAN_FIELD_KEY</code></td><td>warning</td><td>conventions.fieldKeys に宣言されているが refKey を持つ ScreenItem が存在しない</td></tr><tr><td><code>DECLARED_TYPE_MISMATCH</code></td><td>warning</td><td>ScreenItem.type が fieldKeys エントリの expectedType と不整合</td></tr></tbody></table>
+<p><strong>テスト</strong>: 27 ケース (screenItemRefKeyValidator.test.ts)
+<strong>paving 業界</strong>: finance (accountNumber / transferAmount, 振込履歴照会画面新規) + logistics (warehouseCode / transferOrderNumber, 出荷一覧照会画面新規)
+<strong>Skill 統合</strong>: <code>/create-flow</code> Rule 22、<code>/review-flow</code> 観点 14
+<strong>validate:dogfood</strong>: 18/18 flows pass、false positive ゼロ
+<strong>設計判断</strong>: Opus が案 A (refKey のみ) / 案 B (conventions 単独) / 案 C (ハイブリッド) を評価し、案 C ハイブリッドを採用 (設計者承認済)</p>
+<h2 id="新-schema-拡張一覧">新 Schema 拡張一覧</h2>
+<p>Phase 4 で追加・拡張されたスキーマ要素:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>schema ファイル</th><th>追加要素</th><th>追加子 ISSUE</th></tr></thead><tbody><tr><td><code>schemas/v3/view-definition.v3.schema.json</code></td><td>新規ファイル全体 (ViewDefinition / ViewColumn / SortSpec / FilterSpec 等)</td><td>子 1 #649</td></tr><tr><td><code>schemas/v3/project.v3.schema.json</code></td><td><code>viewDefinitions?: ViewDefinitionId[]</code></td><td>子 1 #649</td></tr><tr><td><code>schemas/v3/screen.v3.schema.json</code></td><td><code>viewDefinitionRefs?: ViewDefinitionId[]</code></td><td>子 1 #649</td></tr><tr><td><code>schemas/v3/screen-item.v3.schema.json</code></td><td><code>ScreenItem.refKey?: Identifier</code></td><td>子 3 #651</td></tr><tr><td><code>schemas/v3/conventions.v3.schema.json</code></td><td><code>Conventions.fieldKeys?: Record&#x3C;string, FieldKeyEntry></code> + <code>FieldKeyEntry</code> $defs</td><td>子 3 #651</td></tr></tbody></table>
+<p>子 2 (#650) は schema 変更なし (既存 schema で ScreenTransitionStep / 画面フロー edge を表現可能なことを事前確認)。</p>
+<h2 id="validator-カウンター推移">Validator カウンター推移</h2>
+<p>Phase 3 終了時 (5 件) から Phase 4 終了時 (12 件) までの推移:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>#</th><th>validator</th><th>追加 Phase</th><th>PR</th><th>issue code 数</th></tr></thead><tbody><tr><td>1</td><td><code>sqlColumnValidator</code></td><td>Phase 2 (α→β)</td><td>#603</td><td>— (Phase 2 既存)</td></tr><tr><td>2</td><td><code>conventionsValidator</code></td><td>Phase 2 (α→β)</td><td>#603</td><td>— (Phase 2 既存)</td></tr><tr><td>3</td><td><code>referentialIntegrity</code></td><td>Phase 2 (α→β)</td><td>#603</td><td>— (Phase 2 既存)</td></tr><tr><td>4</td><td><code>identifierScope</code></td><td>Phase 2 (α→β)</td><td>#603</td><td>— (Phase 2 既存)</td></tr><tr><td>5</td><td><code>screenItemFlowValidator</code></td><td>Phase 3 子 1</td><td>#626</td><td>6</td></tr><tr><td>6</td><td><code>screenItemFieldTypeValidator</code></td><td>Phase 3→4 フォローアップ #631/#627</td><td>#633</td><td>6</td></tr><tr><td>7</td><td><code>sqlOrderValidator</code> (MVP 観点 1+2)</td><td>Phase 3→4 フォローアップ #632</td><td>#647</td><td>2</td></tr><tr><td>8</td><td><code>viewDefinitionValidator</code></td><td>Phase 4 子 1 #649</td><td>#656</td><td>9</td></tr><tr><td>9</td><td><code>screenNavigationValidator</code></td><td>Phase 4 子 2 #650</td><td>#657</td><td>7</td></tr><tr><td>10</td><td><code>screenItemRefKeyValidator</code></td><td>Phase 4 子 3 #651</td><td>#655</td><td>7</td></tr></tbody></table>
+<p><strong>Phase 3 終了時 5 件 → Phase 4 着手前フォローアップで +2 件 → Phase 4 本体 3 子で +3 件 = 合計 10 件</strong> (validate-dogfood 組込順)</p>
+<p>注: <code>sqlOrderValidator</code> は Phase 4 メタ (#648) 外の独立進行 (着手承認は 2026-04-30)。Phase 3 評価レポートのフォローアップ (δ) として扱われ、Phase 4 子扱いはしていないが、同日マージ済。</p>
+<h2 id="skill-統合">Skill 統合</h2>
+<p>Phase 4 を通じた <code>/create-flow</code> / <code>/review-flow</code> の Rule / 観点数推移:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>時点</th><th>/create-flow Rule 数</th><th>/review-flow 観点数</th><th>validator 数 (Skill 記載)</th></tr></thead><tbody><tr><td>Phase 3 完了時</td><td>Rule 16</td><td>9 観点</td><td>5</td></tr><tr><td>screenItemFieldTypeValidator 追加 (#633)</td><td>Rule 17</td><td>10 観点</td><td>6</td></tr><tr><td>sqlOrderValidator 追加 (#647)</td><td>Rule 19</td><td>11 観点</td><td>7</td></tr><tr><td>Phase 4 子 1 ViewDefinition (#656)</td><td>Rule 20</td><td>12 観点</td><td>8</td></tr><tr><td>Phase 4 子 2 screenNavigation (#657)</td><td>Rule 21</td><td>13 観点</td><td>9</td></tr><tr><td>Phase 4 子 3 screenItemRefKey (#655)</td><td><strong>Rule 22</strong></td><td><strong>14 観点</strong></td><td><strong>10</strong></td></tr></tbody></table>
+<p>各 Rule / 観点の内容:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Rule / 観点</th><th>内容</th><th>PR</th></tr></thead><tbody><tr><td>Rule 17 / 観点 10</td><td>screenItemFieldTypeValidator — 画面 ↔ フロー 値レベル整合 (Phase 3 M2 反省)</td><td>#633</td></tr><tr><td>Rule 18</td><td>testScenarios fixture バリエーション網羅指針 (Phase 2 M1 反省、#608)</td><td>#634</td></tr><tr><td>Rule 19 / 観点 11</td><td>sqlOrderValidator — DB 制約 × INSERT 順序交差検査</td><td>#647</td></tr><tr><td>Rule 20 / 観点 12</td><td>viewDefinitionValidator — 一覧 UI viewer 整合 (Phase 4 子 1)</td><td>#656</td></tr><tr><td>Rule 21 / 観点 13</td><td>screenNavigationValidator — 画面遷移三者整合 (Phase 4 子 2)</td><td>#657</td></tr><tr><td>Rule 22 / 観点 14</td><td>screenItemRefKeyValidator — 論理フィールド横断整合 (Phase 4 子 3)</td><td>#655</td></tr></tbody></table>
+<h2 id="paving-戦略の評価">paving 戦略の評価</h2>
+<h3 id="2-業界-paving--残別-issueの有効性">「2 業界 paving + 残別 ISSUE」の有効性</h3>
+<p>Phase 3 から継続している「各子で 2 業界を先行 paving + 残は別 ISSUE 候補」戦略は Phase 4 でも有効だった:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>子</th><th>paving 業界</th><th>paving の具体内容</th></tr></thead><tbody><tr><td>子 1 #649</td><td>retail + welfare-benefit</td><td>ViewDefinition JSON を直接記述 (一覧画面 + フィルタ設定)</td></tr><tr><td>子 2 #650</td><td>retail (2 edge) + 残 5 業界各 1 edge</td><td>retail は具体的 2 screen 新設、残はミニマル 1 ScreenTransitionStep</td></tr><tr><td>子 3 #651</td><td>finance + logistics</td><td>conventions.fieldKeys に業界特有キーを登録 + 新規照会画面</td></tr></tbody></table>
+<h3 id="業界選定の根拠">業界選定の根拠</h3>
+<ul>
+<li><strong>子 1 retail</strong>: 既存サンプルが最も完成度高く、商品マスタ テーブルに LIST 一覧適用しやすい</li>
+<li><strong>子 1 welfare-benefit</strong>: Phase 3 の画面項目 paving が完成済み、一覧 UI の eligibilityStatus フィルタが業務適合</li>
+<li><strong>子 2 retail</strong>: 商品詳細 ↔ カートの典型的な遷移シナリオが存在し、2-edge 構成を自然に作れる</li>
+<li><strong>子 3 finance</strong>: accountNumber / transferAmount という強い業務論理フィールドが複数画面で共有</li>
+<li><strong>子 3 logistics</strong>: warehouseCode が複数フロー・画面にまたがり refKey 適用効果が高い</li>
+</ul>
+<h3 id="7-業界完全-paving-の残課題">7 業界完全 paving の残課題</h3>
+<p>子 2 (#650) は validate-dogfood を 7 業界全対応に更新しているが、子 1 / 子 3 は 2 業界 paving のみ。残 5 業界への ViewDefinition 追加 / fieldKeys 追加は後続 ISSUE 候補として整理。</p>
+<h2 id="想定外の事象--改善余地">想定外の事象 + 改善余地</h2>
+<h3 id="1-main-直接コミット事故-a744577--子-2-sonnet">(1) main 直接コミット事故 (a744577 — 子 2 Sonnet)</h3>
+<p><strong>事象</strong>: 子 2 (#650) を実装した Sonnet セッションが <code>ai-skills/create-flow/SKILL.md</code> と <code>ai-skills/review-flow/SKILL.md</code> を <strong>main ブランチに直接コミット</strong> した (<code>improve(skill): /create-flow Rule 17 + /review-flow 観点 10</code>, commit <code>a744577</code>)。PR #657 のブランチではなく main に直接 push されており、後続ブランチの rebase で取り込まれる形になった。</p>
+<p><strong>影響</strong>: Skill ファイルが意図しないタイミングで main に適用。PR レビューが完了する前に本番 (main) に Skill 変更が反映されてしまった。</p>
+<p><strong>対策</strong>: 本 Phase 評価レポートに記録し、並行 worktree 運用を <strong>順次進行</strong> に方針変更。次 Phase からは「子 ISSUE を順番に実装 → マージ → 次の子に着手」とし、同時並行 worktree は使わない。</p>
+<h3 id="2-並行-worktree-での競合多発--順次運用に方針変更">(2) 並行 worktree での競合多発 → 順次運用に方針変更</h3>
+<p><strong>事象</strong>: Phase 4 は子 1/2/3 を並行 worktree で実装したため、3 ブランチが同じ <code>validate-dogfood.ts</code> / <code>SKILL.md</code> / <code>schemas/</code> を修正し、rebase/merge 競合が多発。</p>
+<p><strong>影響</strong>: rebase 時間が増加し、競合解消ミスのリスクがあった。</p>
+<p><strong>対策</strong>: Phase 5 から「3 子同時着手 → 順次マージ」方式を採用し、worktree 並行作業は外部サービス統合テスト等の完全独立 axis にのみ使用する。</p>
+<h3 id="3-pr-スコープ外変更-pr-645-nit-1nit-2">(3) PR スコープ外変更 (PR #645 Nit-1/Nit-2)</h3>
+<p><strong>事象</strong>: <code>generate-dogfood.ts</code> を per-project 構造に対応した PR #645 で、<code>discoverProjects</code> 2 重スキャン (Nit-1 #652) と v3 プロジェクトへの v1 フォーマット書き込み (Nit-2 #653) が Sonnet 独立レビューで発見。本 PR スコープ外として別 ISSUE 化。</p>
+<p><strong>影響</strong>: 機能的バグではないが、パフォーマンスと正確性の問題として残留している。</p>
+<p><strong>対策</strong>: #652 / #653 は Phase 5 またはバックログで対応予定。</p>
+<h3 id="4-sonnet-権限拒否-worktree-内-skillmd">(4) Sonnet 権限拒否 (worktree 内 SKILL.md)</h3>
+<p><strong>事象</strong>: 子 2 (#650) の Sonnet セッションが worktree 内で SKILL.md を読み込もうとした際、権限エラー (permission denied) が発生。Opus が直接対応し、別途 main への直接コミットにつながった。</p>
+<p><strong>対策</strong>: worktree 内での Skill ファイル参照をセッション開始前に許可設定するか、Opus が worktree 外で Skill ファイルを更新する手順を定式化する。</p>
+<h3 id="5-codex-文字化け疑念-誤報">(5) Codex 文字化け疑念 (誤報)</h3>
+<p><strong>事象</strong>: Phase 4 着手前のレビューで Rule 20 付近の表記に文字化けの疑念が生じた。<code>grep [ｦ-ﾟ]</code> で全 3 PR のファイルを検査した結果、<strong>半角カナは 0 件</strong> (誤報)。</p>
+<p><strong>確認</strong>: 各 PR に文字化け検査 (<code>grep [ｦ-ﾟ]</code>) 結果を明記し、false alarm を記録。</p>
+<h2 id="phase-5-移行判断">Phase 5 移行判断</h2>
+<h3 id="i18n--wai-aria-スコープ外-phase-5-候補">i18n / WAI-ARIA スコープ外 (Phase 5 候補)</h3>
+<p>Phase 4 メタ #648 策定時から「i18n (多言語化整合) + WAI-ARIA (アクセシビリティ整合)」は <strong>スコープ外</strong> として Phase 5 候補に分離されていた。2026-04-30 時点でのユーザー判断: <strong>「現状不要、将来再評価」</strong>。Phase 5 に組み込むかどうかは次のメタ ISSUE 起票時に改めて判断する。</p>
+<h3 id="残バックログ一覧">残バックログ一覧</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ISSUE</th><th>タイトル要約</th><th>種別</th><th>Phase 5 組込候補</th></tr></thead><tbody><tr><td>#640</td><td>sqlOrderValidator 観点 3 UNIQUE_CHECK_MISSING</td><td>validator 拡張</td><td>設計者承認待ち</td></tr><tr><td>#641</td><td>sqlOrderValidator 観点 4 CASCADE_DELETE_OMITTED</td><td>validator 拡張</td><td>設計者承認待ち</td></tr><tr><td>#642</td><td>sqlOrderValidator 観点 5 TX_CIRCULAR_DEPENDENCY</td><td>validator 拡張</td><td>設計者承認待ち</td></tr><tr><td>#652</td><td>generate-dogfood discoverProjects 2 重スキャン (Nit-1)</td><td>Nit</td><td>バックログ並走可</td></tr><tr><td>#653</td><td>generate-dogfood dummy モード v3 project に v1 フォーマット書込 (Nit-2)</td><td>Nit</td><td>バックログ並走可</td></tr><tr><td>#654</td><td>sqlOrderValidator の boundVars に fieldErrorsVar 等を追加</td><td>Nit</td><td>バックログ並走可</td></tr></tbody></table>
+<p>#640/#641/#642 は <strong>設計者承認済み</strong> (2026-04-30 確認)。Phase 5 子 ISSUE として組み込むか、独立並走か、起票時に判断する。</p>
+<p>#652/#653/#654 は Nit 相当で Phase 5 メタには組み込まず、バックログ並走で対応する方針。</p>
+<h3 id="phase-5-の候補-axis">Phase 5 の候補 axis</h3>
+<p>Phase 3/4 で積み上げた validator 群 + Skill 統合パターンを基盤に、以下の axis が Phase 5 候補:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>候補</th><th>内容</th><th>前提</th></tr></thead><tbody><tr><td>sqlOrderValidator 観点 3/4/5</td><td>UNIQUE_CHECK_MISSING / CASCADE_DELETE_OMITTED / TX_CIRCULAR_DEPENDENCY</td><td>設計者承認済 #640/#641/#642</td></tr><tr><td>ViewDefinition UI 編集</td><td>ViewDefinitionListView / ViewDefinitionEditor + store 実装</td><td>本 Phase で schema/validator のみ先行</td></tr><tr><td>7 業界完全 paving</td><td>子 1/3 の残 5 業界 paving</td><td>Phase 4 子 1/3 の paving 2 業界から拡張</td></tr><tr><td>i18n / WAI-ARIA 整合</td><td>多言語化 / アクセシビリティ validator + Skill 統合</td><td>「現状不要」のため将来再評価</td></tr></tbody></table>
+<h3 id="phase-5-起票の判断材料">Phase 5 起票の判断材料</h3>
+<ul>
+<li><strong>推奨</strong>: sqlOrderValidator 観点 3/4/5 (#640/#641/#642) を Phase 5 子 0a/0b/0c として組み込む (設計者承認済、Phase 4 と同パターンで着手障壁低い)</li>
+<li><strong>オプション</strong>: ViewDefinition UI 編集を Phase 5 子として追加 (validator は完成済みで UI 先行が不要なため、スコープ次第)</li>
+<li><strong>保留</strong>: i18n / WAI-ARIA は現時点で不要判断のため Phase 5 には含めない</li>
+</ul>
+<h2 id="phase-3--phase-4-検出方式の進化">Phase 3 / Phase 4 検出方式の進化</h2>
+<h3 id="検出機構の段階的拡張">検出機構の段階的拡張</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>Phase 3 完了時</th><th>Phase 4 フォローアップ (#631/#632)</th><th>Phase 4 本体 (#649/#650/#651)</th></tr></thead><tbody><tr><td>SQL カラム整合</td><td>sqlColumnValidator</td><td>(維持)</td><td>(維持)</td></tr><tr><td>@conv.* 整合</td><td>conventionsValidator</td><td>(維持)</td><td>(維持)</td></tr><tr><td>識別子スコープ</td><td>identifierScope (+ WorkflowStep recurse 修正)</td><td>(維持)</td><td>(維持)</td></tr><tr><td>参照整合</td><td>referentialIntegrity</td><td>(維持)</td><td>(維持)</td></tr><tr><td>画面項目 ↔ フロー キー集合整合</td><td>screenItemFlowValidator</td><td>(維持)</td><td>(維持)</td></tr><tr><td><strong>画面項目 ↔ フロー 値レベル整合 (M2 反省)</strong></td><td><strong>対象外</strong></td><td><strong>screenItemFieldTypeValidator (6 観点)</strong></td><td>(維持)</td></tr><tr><td><strong>DB 制約 × INSERT 順序 (M1 反省)</strong></td><td><strong>対象外</strong></td><td><strong>sqlOrderValidator (観点 1+2)</strong></td><td>(維持)</td></tr><tr><td><strong>一覧 UI viewer 整合</strong></td><td><strong>対象外</strong></td><td><strong>対象外</strong></td><td><strong>viewDefinitionValidator (9 観点)</strong></td></tr><tr><td><strong>画面遷移三者整合</strong></td><td><strong>対象外</strong></td><td><strong>対象外</strong></td><td><strong>screenNavigationValidator (7 観点)</strong></td></tr><tr><td><strong>論理フィールド横断整合</strong></td><td><strong>対象外</strong></td><td><strong>対象外</strong></td><td><strong>screenItemRefKeyValidator (7 観点)</strong></td></tr></tbody></table>
+<h3 id="must-fix-検出経路-phase-4">Must-fix 検出経路 (Phase 4)</h3>
+<p>Phase 4 の 3 子 PR では独立 Sonnet サブエージェントレビューを実施。Must-fix 発見件数:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>PR</th><th>業界</th><th>Must-fix</th><th>検出経路</th></tr></thead><tbody><tr><td>#656 (ViewDefinition)</td><td>retail + welfare-benefit</td><td>0 件</td><td>(Sonnet 独立レビュー pass)</td></tr><tr><td>#657 (screenNavigation)</td><td>7 業界</td><td>0 件</td><td>(Sonnet 独立レビュー pass)</td></tr><tr><td>#655 (screenItemRefKey)</td><td>finance + logistics</td><td>0 件</td><td>(Sonnet 独立レビュー pass)</td></tr></tbody></table>
+<p>Phase 4 本体 3 子では <strong>Must-fix ゼロ</strong> を達成。Phase 3 フォローアップ #633 (#631/#627) では Sonnet 独立レビューで Must-fix 2 件 + Should-fix 1 件を検出、全解消済。</p>
+<h3 id="phase-4-での追加発見-静的検査と動的検査の境界-更新">Phase 4 での追加発見: 静的検査と動的検査の境界 (更新)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>領域</th><th>静的検出</th><th>動的検出</th></tr></thead><tbody><tr><td>フロー単体整合 (TX / runIf / branch)</td><td>AI 目視</td><td>testScenarios</td></tr><tr><td>画面 ↔ フロー キー集合整合</td><td>screenItemFlowValidator</td><td>testScenarios</td></tr><tr><td>画面 ↔ フロー 値レベル整合</td><td>screenItemFieldTypeValidator (Phase 4 フォローアップ)</td><td>testScenarios fixture バリエーション (#608)</td></tr><tr><td>DB 制約 × INSERT 順序</td><td>sqlOrderValidator 観点 1+2 (MVP)</td><td>testScenarios</td></tr><tr><td>DB 制約 × INSERT 順序 (高度)</td><td>観点 3/4/5 は設計者承認待ち (#640/#641/#642)</td><td>testScenarios</td></tr><tr><td>一覧 UI viewer 整合</td><td>viewDefinitionValidator (Phase 4 新設)</td><td>testScenarios</td></tr><tr><td>画面遷移三者整合</td><td>screenNavigationValidator (Phase 4 新設)</td><td>testScenarios</td></tr><tr><td>論理フィールド横断整合</td><td>screenItemRefKeyValidator (Phase 4 新設)</td><td>testScenarios</td></tr></tbody></table>
+<h2 id="phase-4-メタ-648-のクローズ条件評価">Phase 4 メタ #648 のクローズ条件評価</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>完了基準</th><th>状態</th><th>達成箇所</th></tr></thead><tbody><tr><td>子 1 (#649) PR マージ</td><td>✅</td><td>PR #656 (2026-04-30)</td></tr><tr><td>子 2 (#650) PR マージ</td><td>✅</td><td>PR #657 (2026-04-30)</td></tr><tr><td>子 3 (#651) PR マージ</td><td>✅</td><td>PR #655 (2026-04-30)</td></tr><tr><td>Phase 4 統合評価レポート</td><td>✅</td><td>本レポート</td></tr><tr><td>フォローアップ ISSUE 起票</td><td>✅</td><td>#652/#653/#654 起票済、#640/#641/#642 は Phase 3→4 間で起票済</td></tr><tr><td>Phase 5 移行判断</td><td>✅</td><td>本レポート §Phase 5 移行判断</td></tr></tbody></table>
+<p><strong>結論</strong>: Phase 4 メタ #648 のクローズ条件を達成。本 PR マージ後に #648 をクローズ可能。</p>
+<h2 id="phase-4-セッション運用の知見-副産物">Phase 4 セッション運用の知見 (副産物)</h2>
+<ol>
+<li><strong>順次進行の方が競合コストが低い</strong> — 3 子並行 worktree は理論上高速だが、<code>validate-dogfood.ts</code> / <code>SKILL.md</code> の競合が多く、順次進行の合計コストより rebase コストが上回るケースがあった。Phase 5 からは順次実装を基本とする</li>
+<li><strong>Sonnet の worktree 権限問題は事前に解決する</strong> — SKILL.md / CLAUDE.md 等のプロジェクトルートファイルへのアクセスが worktree 内で拒否される場合、Opus が事前に読み取って briefing に転記するか、権限を明示的に付与する</li>
+<li><strong>Phase フォローアップ ISSUE のリードタイムが短い</strong> — Phase 3→4 フォローアップ (#633/#634/#635/#636/#637/#638/#639 等) が全て同日 (2026-04-30) マージされた。Phase のフォローアップが早期に解消されると Phase 4 本体着手がスムーズになるパターンが確認できた</li>
+<li><strong>paving 2 業界戦略を継続評価</strong> — 各 Phase で 2 業界先行 → 残別 ISSUE 化の戦略を継続。7 業界全 paving は 1 PR に盛り込まず、実証に適した 2 業界を選定して深く paving する方が品質・レビュー精度ともに高い</li>
+</ol>
+<h2 id="関連-pr--issue">関連 PR / ISSUE</h2>
+<ul>
+<li>親メタ: #648 (Phase 4 — 本レポートでクローズ条件を満たす)</li>
+<li>子 1: #649 / PR #656 (ViewDefinition 新設、viewDefinitionValidator 9 観点)</li>
+<li>子 2: #650 / PR #657 (screenNavigationValidator 7 観点)</li>
+<li>子 3: #651 / PR #655 (screenItemRefKeyValidator 7 観点)</li>
+<li>Phase 3→4 フォローアップ:
+<ul>
+<li>#631/#627 / PR #633 (screenItemFieldTypeValidator、Phase 3 M2 → 6 観点)</li>
+<li>#632 / PR #647 (sqlOrderValidator MVP 観点 1+2)</li>
+<li>#608 / PR #634 (testScenarios fixture バリエーション網羅指針、Rule 18)</li>
+<li>#612 / PR #635 (@error ambient onRollback)</li>
+<li>#610 / PR #636 (v3 TS 型同期)</li>
+<li>#607/#617 / PR #615/#645 (validate-dogfood per-project)</li>
+<li>#616 / PR #618 (retail subdir)</li>
+</ul>
+</li>
+<li>残バックログ: #640 / #641 / #642 (sqlOrderValidator 観点 3/4/5) / #652 / #653 / #654 (Nit 派生)</li>
+<li>関連メタ (Phase 1–3): #458 / #478 / #486 / #500 / #493 / #611 — 全完了</li>
+<li>評価レポート系列:
+<ul>
+<li>Phase 2: <code>docs/spec/phase2-evaluation-2026-04-30.md</code></li>
+<li>Phase 3: <code>docs/spec/phase3-evaluation-2026-04-30.md</code></li>
+<li>Phase 4: <code>docs/spec/phase4-evaluation-2026-04-30.md</code> (本レポート)</li>
+</ul>
+</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

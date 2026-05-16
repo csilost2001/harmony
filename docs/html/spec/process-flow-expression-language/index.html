@@ -1,0 +1,520 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>process flow expression language</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link active"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="処理フロー式言語-runif--expression--bodyexpression--condition">処理フロー式言語 (runIf / expression / bodyExpression / condition)</h1>
+<p>Issue: #253 (初版) / #533 R3 fix で IdentifierPath 規範化 / <strong>#539 R5-3 で datetime 算術明文化</strong>
+策定日: 2026-04-20 / <strong>改訂日: 2026-04-28 (v3 反映)</strong>
+ステータス: <strong>v3 確定</strong> (schema は v3.0.2 で確定、本仕様は v3 schema 整合性を保つ)</p>
+<h2 id="1-目的">1. 目的</h2>
+<p>処理フロー内の式 (<code>expression</code> / <code>runIf</code> / <code>bodyExpression</code> / <code>condition</code> / <code>countExpression</code> / <code>conditionExpression</code> / <code>collectionSource</code> / <code>ValidationRule.condition</code> / <code>idempotencyKey</code> 等) は schema 上 <code>ExpressionString</code> (= <code>string</code>) で表現される。<code>Math.floor(@subtotal * 0.10)</code> のような JS 風の式や <code>@flag == true</code> のような真偽式が混在するが、<strong>どの構文が許容されるか</strong> をスキーマから読み取れない (#253 ドッグフード評価 4/5 の主因の一つ)。</p>
+<p>本ドキュメントで処理フロー式言語の <strong>仕様 (BNF) と既定規約</strong> を定義し、スキーマ上は従来通り <code>string</code> のままとする。</p>
+<h2 id="2-設計判断-convention-over-configuration">2. 設計判断: convention over configuration</h2>
+<p><strong>採用案</strong>: ProcessFlow 全体に 1 言語を convention として採用。現時点では <code>js-subset</code> (下記 §3 で定義) 1 種のみ。</p>
+<p><strong>不採用案</strong>: <code>expression: { lang: "js-subset", src: "..." }</code> のラッパー。理由:</p>
+<ul>
+<li>現時点で 1 言語しか使わないため、ラッパーは純粋な冗長化</li>
+<li>既存データ全件の migration が必要</li>
+<li>将来 2 言語以上混在する必要が出てきたら、その時点で <code>expressionLang: "js-subset" | "custom-dsl"</code> を ProcessFlow に追加すれば済む (YAGNI)</li>
+</ul>
+<h2 id="3-js-subset-許容構文-bnf">3. <code>js-subset</code> 許容構文 (BNF)</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>expression      = conditionalExpr</span></span>
+<span class="line"><span>                | assignExpr</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>conditionalExpr = logicalOr</span></span>
+<span class="line"><span>logicalOr       = logicalAnd ('||' logicalAnd)*</span></span>
+<span class="line"><span>logicalAnd      = equality ('&#x26;&#x26;' equality)*</span></span>
+<span class="line"><span>equality        = relation (('==' | '!=') relation)*</span></span>
+<span class="line"><span>relation        = additive (('&#x3C;' | '&#x3C;=' | '>' | '>=') additive)*</span></span>
+<span class="line"><span>additive        = multiplicative (('+' | '-') multiplicative)*</span></span>
+<span class="line"><span>multiplicative  = unary (('*' | '/' | '%') unary)*</span></span>
+<span class="line"><span>unary           = ('!' | '-') unary</span></span>
+<span class="line"><span>                | postfix</span></span>
+<span class="line"><span>postfix         = primary postfixOp*</span></span>
+<span class="line"><span>postfixOp       = '.' IDENTIFIER                   (* プロパティ参照 *)</span></span>
+<span class="line"><span>                | '?.' IDENTIFIER                  (* optional chain *)</span></span>
+<span class="line"><span>                | '[' expression ']'               (* インデックス *)</span></span>
+<span class="line"><span>                | '(' argList? ')'                 (* 関数呼出 *)</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>primary         = '@' IDENTIFIER                   (* 変数参照 *)</span></span>
+<span class="line"><span>                | NUMBER | STRING | 'true' | 'false' | 'null'</span></span>
+<span class="line"><span>                | '(' expression ')'</span></span>
+<span class="line"><span>                | arrayLiteral</span></span>
+<span class="line"><span>                | objectLiteral</span></span>
+<span class="line"><span>                | 'Math' '.' IDENTIFIER            (* Math 組込 (下記 §4) *)</span></span>
+<span class="line"><span>                | 'duration' '(' STRING ')'        (* 期間リテラル (§4.4) *)</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>arrayLiteral    = '[' (expression (',' expression)*)? ']'</span></span>
+<span class="line"><span>objectLiteral   = '{' (objectEntry (',' objectEntry)*)? '}'</span></span>
+<span class="line"><span>objectEntry     = (IDENTIFIER | STRING) ':' expression</span></span>
+<span class="line"><span>                | IDENTIFIER                       (* shorthand *)</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>argList         = expression (',' expression)*</span></span></code></pre>
+<h3 id="31-リテラル">3.1 リテラル</h3>
+<ul>
+<li><strong>数値</strong>: <code>42</code>, <code>0.5</code>, <code>100_000</code> (underscore separator 可), 10 進のみ (16 進・8 進は不可)</li>
+<li><strong>文字列</strong>: <code>'...'</code> または <code>"..."</code>。エスケープは <code>\n \t \' \" \\</code> のみ</li>
+<li><strong>真偽値</strong>: <code>true</code> / <code>false</code></li>
+<li><strong>null</strong>: <code>null</code> (undefined は不使用、常に null)</li>
+<li><strong>期間</strong>: <code>duration('PnDTnHnMnS')</code> — ISO 8601 期間 (§4.4)</li>
+</ul>
+<h3 id="32-変数参照">3.2 変数参照</h3>
+<ul>
+<li><code>@identifier</code> が変数参照の基本形。<code>@</code> はこのフロー言語固有のマーカー</li>
+<li>ドット/ブラケット記法でネストアクセス: <code>@customer.address.postalCode</code> / <code>@items[0].quantity</code></li>
+<li>Optional chain: <code>@paymentAuth?.id</code> — undefined プロパティへのアクセス時に null を返す</li>
+<li><strong><code>@inputs</code> / <code>@outputs</code> 全体参照</strong>: <code>ActionDefinition.inputs</code> / <code>outputs</code> の配列全体をオブジェクトとしてアクセス可能。例: <code>@inputs.items</code> (inputs フィールド “items” へのアクセス)、<code>@outputs.result</code>。個別フィールド名 (<code>@items</code> 等) と全体参照 (<code>@inputs.items</code>) は<strong>どちらも解決可能</strong>だが、<strong>全体参照スタイルを推奨</strong> (名前衝突が生じにくい)。</li>
+<li><strong><code>@sessionUserId</code> / <code>@requestId</code> / <code>@traceId</code> 等</strong>: ambient 変数 (§6.5)</li>
+<li><strong>catalog 参照</strong>: <code>@conv.&#x3C;category>.&#x3C;key></code> / <code>@secret.&#x3C;key></code> / <code>@env.&#x3C;KEY></code> / <code>@fn.&#x3C;name>(...)</code> (§4.5)</li>
+</ul>
+<h3 id="33-比較論理">3.3 比較・論理</h3>
+<ul>
+<li>等値: <code>==</code> / <code>!=</code> (JS <code>===</code> / <code>!==</code> 相当、型強制なし)</li>
+<li>大小: <code>&#x3C;</code> <code>&#x3C;=</code> <code>></code> <code>>=</code></li>
+<li>論理: <code>&#x26;&#x26;</code> <code>||</code> (短絡評価)</li>
+<li>否定: <code>!</code></li>
+</ul>
+<h3 id="34-算術">3.4 算術</h3>
+<ul>
+<li><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code></li>
+<li><code>+</code> は文字列結合も兼ねる (JS 準拠)</li>
+<li><strong>datetime 算術</strong> (§4.4 で詳説、<code>+ duration('P2D')</code> 形式)</li>
+</ul>
+<h2 id="4-組込関数オブジェクト">4. 組込関数・オブジェクト</h2>
+<h3 id="41-math-部分">4.1 <code>Math.*</code> (部分)</h3>
+<p>実装側で JavaScript <code>Math</code> が提供する関数のうち、以下のみを使用可能:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>関数</th><th>用途</th><th>例</th></tr></thead><tbody><tr><td><code>Math.floor(x)</code></td><td>切り捨て</td><td><code>Math.floor(@subtotal * 0.10)</code></td></tr><tr><td><code>Math.ceil(x)</code></td><td>切り上げ</td><td><code>Math.ceil(@duration / 60)</code></td></tr><tr><td><code>Math.round(x)</code></td><td>四捨五入</td><td><code>Math.round(@rate * 100) / 100</code></td></tr><tr><td><code>Math.abs(x)</code></td><td>絶対値</td><td><code>Math.abs(@diff)</code></td></tr><tr><td><code>Math.min(a, b, ...)</code></td><td>最小</td><td><code>Math.min(@requested, @stock)</code></td></tr><tr><td><code>Math.max(a, b, ...)</code></td><td>最大</td><td><code>Math.max(0, @balance)</code></td></tr></tbody></table>
+<p>それ以外 (<code>Math.random</code>, <code>Math.pow</code>, <code>Math.sqrt</code>, 三角関数等) は <strong>使用禁止</strong>。処理フローは決定的であるべき (random は非決定、pow/sqrt は金額計算で不適切な丸めを招く)。</p>
+<h3 id="42-配列メソッド-関数呼出的に使用">4.2 配列メソッド (関数呼出的に使用)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>記法</th><th>用途</th><th>例</th></tr></thead><tbody><tr><td><code>.length</code></td><td>要素数 (プロパティ、関数でない)</td><td><code>@items.length</code></td></tr><tr><td><code>.every(fn)</code></td><td>全要素真?</td><td><code>@items.every(i => i.quantity >= 1)</code></td></tr><tr><td><code>.some(fn)</code></td><td>1 つでも真?</td><td><code>@items.some(i => i.quantity > 100)</code></td></tr><tr><td><code>.filter(fn)</code></td><td>絞込</td><td><code>@items.filter(i => i.stock == 0)</code></td></tr><tr><td><code>.map(fn)</code></td><td>変換</td><td><code>@items.map(i => i.itemId)</code></td></tr><tr><td><code>.find(fn)</code></td><td>最初の要素</td><td><code>@items.find(i => i.id == @targetId)</code></td></tr><tr><td><code>.includes(v)</code></td><td>含む?</td><td><code>@validStatuses.includes(@status)</code></td></tr></tbody></table>
+<h3 id="43-アロー関数-配列メソッドの引数のみ">4.3 アロー関数 (配列メソッドの引数のみ)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>(param) => expression       // 単項</span></span>
+<span class="line"><span>(a, b) => expression        // 多項</span></span></code></pre>
+<p><strong>制限</strong>: body は単一 expression のみ。<code>{ ... return ... }</code> ブロック形式・複数文は禁止。</p>
+<h3 id="44-datetime-算術-539-r5-3-で明文化">4.4 datetime 算術 (#539 R5-3 で明文化)</h3>
+<p><code>deadlineExpression</code> / <code>escalateAfter</code> / <code>idempotencyKey</code> 等で日時を扱う場面で使う。</p>
+<h4 id="推奨形式-durationpndtnhnmns-リテラル">推奨形式: <code>duration('PnDTnHnMnS')</code> リテラル</h4>
+<p>ISO 8601 期間表記。Tier 0 仕様。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>duration('P2D')        // 2 日</span></span>
+<span class="line"><span>duration('PT24H')      // 24 時間</span></span>
+<span class="line"><span>duration('PT15M')      // 15 分</span></span>
+<span class="line"><span>duration('P1DT12H')    // 1 日 12 時間</span></span>
+<span class="line"><span>duration('P14D')       // 14 日 (公示期間例)</span></span></code></pre>
+<p>datetime 値との算術:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>@createdAt + duration('P2D')           // 2 日後</span></span>
+<span class="line"><span>@deadline - duration('PT1H')           // 1 時間前</span></span>
+<span class="line"><span>@scheduledShipAt + duration('P14D')    // 14 日後</span></span></code></pre>
+<h4 id="shorthand--n-days----n-smhd-の扱い">shorthand (<code>+ N days</code> / <code>- N (s|m|h|d)</code>) の扱い</h4>
+<p>dogfood サンプル (#523〜#537) では shorthand (<code>+ 14 days</code> / <code>- 24h</code>) を使用していた箇所がある。本仕様では:</p>
+<ul>
+<li><strong>dogfood サンプル限定で許容</strong>: 既存サンプルとの互換性のため、parser は shorthand も受け付ける</li>
+<li><strong>新規記述は <code>duration('...')</code> 形式を推奨</strong>: spec 公式形式、TS 型の datetime ヘルパー / parser 実装も <code>duration()</code> のみを必須サポート対象とする</li>
+<li>shorthand → <code>duration()</code> 形式への変換 migration script は v3.1 で検討 (現状は手動で揃える)</li>
+</ul>
+<h4 id="受容する形式-parser-実装ガイド">受容する形式 (parser 実装ガイド)</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>形式</th><th>例</th><th>状態</th></tr></thead><tbody><tr><td><code>duration('P2D')</code> 等</td><td>ISO 8601 期間リテラル</td><td><strong>推奨</strong>、必須対応</td></tr><tr><td><code>duration('P2D').plus(@x)</code> 等 method chain</td><td>期間に対する操作</td><td>v3.1 候補、現状不要</td></tr><tr><td><code>+ N days</code> / <code>- N hours</code> 等 shorthand</td><td>dogfood サンプル互換</td><td>既存互換のみ、新規禁止</td></tr><tr><td><code>+ "P2D"</code> 等 ISO 文字列直接加算</td><td>曖昧</td><td>不可</td></tr></tbody></table>
+<h3 id="45-catalog-参照式">4.5 catalog 参照式</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>記法</th><th>解決先</th><th>例</th></tr></thead><tbody><tr><td><code>@conv.&#x3C;category>.&#x3C;key></code></td><td><code>Conventions</code> catalog (<code>conventions.v3.schema.json</code>)</td><td><code>@conv.regex.email</code> / <code>@conv.limit.lowStockThreshold</code> / <code>@conv.role.manager</code></td></tr><tr><td><code>@secret.&#x3C;key></code></td><td><code>ProcessFlow.context.catalogs.secrets[&#x3C;key>]</code></td><td><code>@secret.cicApiToken</code></td></tr><tr><td><code>@env.&#x3C;KEY></code></td><td><code>ProcessFlow.context.catalogs.envVars[&#x3C;KEY>]</code> (UPPER_SNAKE)</td><td><code>@env.STRIPE_API_BASE</code></td></tr><tr><td><code>@fn.&#x3C;name>(...)</code></td><td><code>ProcessFlow.context.catalogs.functions[&#x3C;name>]</code></td><td><code>@fn.calculateRequiredQuantity(@a, @b, @c)</code></td></tr></tbody></table>
+<h2 id="5-許容されない構文">5. 許容されない構文</h2>
+<ul>
+<li><code>===</code> / <code>!==</code> (型強制なしなので <code>==</code> で十分)</li>
+<li><code>=</code> / <code>+=</code> / <code>-=</code> 等の代入 (状態変更は <code>outputBinding</code> 経由で行う)</li>
+<li><code>++</code> / <code>--</code></li>
+<li><code>function</code> キーワード (アロー関数のみ許容)</li>
+<li><code>var</code> / <code>let</code> / <code>const</code> (局所変数は作らない)</li>
+<li><code>new</code>, <code>this</code></li>
+<li><code>Math</code> / <code>duration</code> 以外のグローバル (<code>Date</code>, <code>JSON</code>, <code>Object</code>, <code>Array</code>, <code>Promise</code> 等)</li>
+<li>正規表現リテラル <code>/.../</code> — 正規表現は <code>ValidationRule.pattern: string</code> で渡す</li>
+<li>テンプレート文字列 <code>`${...}`</code></li>
+<li>分割代入 <code>{a, b} = expr</code></li>
+<li>spread <code>...arr</code></li>
+<li>三項演算子 <code>? :</code> — 条件は <code>inlineBranch</code> / <code>branch</code> / <code>runIf</code> / outcomes で表現</li>
+<li>非同期関数 <code>async</code> / <code>await</code></li>
+</ul>
+<h2 id="6-式が現れるフィールド一覧-v3">6. 式が現れるフィールド一覧 (v3)</h2>
+<p>スキーマ (<code>schemas/v3/process-flow.v3.schema.json</code>) 上では <code>ExpressionString</code> (= <code>string</code>) だが、評価時は本 §3〜§5 のルールに従う。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>フィールド</th><th>型</th><th>例</th></tr></thead><tbody><tr><td><code>StepBaseProps.runIf</code></td><td>真偽式</td><td><code>"@paymentMethod == 'credit_card'"</code></td></tr><tr><td><code>ComputeStep.expression</code></td><td>任意式</td><td><code>"Math.floor(@subtotal * 0.10)"</code></td></tr><tr><td><code>ReturnStep.bodyExpression</code></td><td>object literal 式</td><td><code>"{ code: 'STOCK_SHORTAGE', detail: @shortageList }"</code></td></tr><tr><td><code>ValidationStep.conditions</code></td><td>自由記述 (人間向け補足)</td><td>—</td></tr><tr><td><code>ValidationRule.condition</code></td><td>真偽式 (type=custom 時)</td><td><code>"@items.length >= 1"</code></td></tr><tr><td><code>ValidationRule.pattern</code></td><td>正規表現 (type=regex 時)</td><td><code>"^\\d{3}-\\d{4}$"</code></td></tr><tr><td><code>BranchCondition.expression</code> (kind=expression)</td><td>真偽式</td><td><code>"@duplicateCustomer != null"</code></td></tr><tr><td><code>LoopStep.countExpression</code></td><td>数値式</td><td><code>"@items.length"</code></td></tr><tr><td><code>LoopStep.conditionExpression</code></td><td>真偽式</td><td><code>"@remaining > 0"</code></td></tr><tr><td><code>LoopStep.collectionSource</code></td><td>配列式</td><td><code>"@items"</code></td></tr><tr><td><code>OutputBinding.initialValue</code></td><td>JSON 値 または 式文字列</td><td><code>0</code> / <code>[]</code> / <code>"@emptyArr"</code></td></tr><tr><td><code>ExternalCallOutcomeSpec.sideEffects[].runIf</code></td><td>真偽式</td><td><code>"@error.code == 'INSUFFICIENT_BALANCE'"</code></td></tr><tr><td><code>CommonProcessStep.argumentMapping[k]</code></td><td>任意式</td><td><code>"@customerId"</code></td></tr><tr><td><code>ExternalSystemStep.idempotencyKey</code></td><td>任意式</td><td><code>"order-@registeredOrder.id"</code></td></tr><tr><td><code>ExternalHttpCall.body</code></td><td>任意式 (object literal 推奨)</td><td><code>"{ amount: @amount }"</code></td></tr><tr><td><code>EventPublishStep.payload</code></td><td>object literal 式</td><td><code>"{ orderId: @order.id }"</code></td></tr><tr><td><code>ValidationInlineBranch.ngBodyExpression</code></td><td>object literal 式</td><td><code>"{ code: 'VALIDATION', fieldErrors: @fieldErrors }"</code></td></tr><tr><td><code>WorkflowStep.deadlineExpression</code></td><td>datetime 算術式</td><td><code>"@submittedAt + duration('P2D')"</code></td></tr><tr><td><code>WorkflowStep.escalateAfter</code></td><td>ISO 期間または datetime 式</td><td><code>"duration('P1D')"</code></td></tr><tr><td><code>WorkflowStep.escalateTo.userExpression</code></td><td>任意式</td><td><code>"@managerOf(@employeeId)"</code></td></tr><tr><td><code>CacheHint.key</code></td><td>任意式</td><td><code>"product-@inputs.productCode"</code></td></tr><tr><td><code>ClosingStep.idempotencyKey</code></td><td>任意式</td><td><code>"@closingMonth"</code></td></tr></tbody></table>
+<h2 id="65-ambient-変数">6.5 Ambient 変数</h2>
+<p><code>@requestId</code> / <code>@traceId</code> / <code>@sessionUserId</code> 等、<strong>ミドルウェア・フレームワーク由来の自動注入変数</strong>は <code>ProcessFlow.context.ambientVariables: StructuredField[]</code> で宣言する (#525 R3 fix で <code>context.ambientVariables</code> 配置に統一)。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"context"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "ambientVariables"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"requestId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"リクエスト単位の一意 ID。ミドルウェアが注入"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"traceId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"sessionUserId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"ログインユーザー ID。auth ミドルウェアが注入"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"fieldErrors"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"fields"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"field"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"message"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      ] },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"ValidationStep.rules[] の結果。既定変数名 (ValidationStep.fieldErrorsVar で上書き可)"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>@</code> 参照時、<strong>inputs / outputBinding / ループ変数 / ambientVariables / catalog のいずれにも無い変数は未定義エラー</strong>扱い (将来の型推論バリデータで検査)。現状は運用規約として扱う。</p>
+<h3 id="65a-validationstepfielderrorsvar">6.5a <code>ValidationStep.fieldErrorsVar</code></h3>
+<p><code>ValidationStep.rules[]</code> の評価結果を格納する変数名を明示するフィールド。既定 <code>"fieldErrors"</code>。<code>inlineBranch.ngBodyExpression</code> 等で <code>@fieldErrors</code> として参照する。</p>
+<p>型は <code>Record&#x3C;fieldName, errorMessage></code>。<code>ambientVariables</code> で明示宣言すれば式参照との整合性が取れる。</p>
+<h2 id="7-runif-連鎖規則">7. runIf 連鎖規則</h2>
+<p><code>runIf</code> はステップ実行の条件ガード。ネスト構造での評価規則を以下に規定する。</p>
+<h3 id="71-short-circuit">7.1 short-circuit</h3>
+<p>親ステップの <code>runIf</code> が false の場合、<strong>その子ステップ (subSteps / branch 内 / loop 内 / outcomes.sideEffects 内) の runIf は一切評価されない</strong>。子ステップの変数参照は未初期化扱い。</p>
+<h3 id="72-branch--loop-内の評価順序">7.2 branch / loop 内の評価順序</h3>
+<p><code>BranchStep.branches[i].steps[j]</code> の step.runIf は、</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>effective = branch.condition.evaluate() &#x26;&#x26; step.runIf</span></span></code></pre>
+<p>で評価される (BranchCondition は v3 で discriminated union 化、kind=expression なら expression を、kind=tryCatch なら errorCode マッチを評価)。<strong>branch.condition が false → step.runIf 評価不要</strong>。</p>
+<p><code>LoopStep.steps[j]</code> の step.runIf は、<strong>ループ 1 イテレーションごとに評価</strong>される (count/condition/collection いずれでも同じ)。ループ入口で 1 回だけ評価する挙動は非採用。</p>
+<h3 id="73-outcomessideeffects">7.3 outcomes.sideEffects</h3>
+<p><code>ExternalCallOutcomeSpec.sideEffects[]</code> は outcome 条件 (success/failure/timeout) が matched した時のみ実行される。各 sideEffect の <code>runIf</code> は outcome matched 後に評価。</p>
+<h3 id="74-短絡と副作用">7.4 短絡と副作用</h3>
+<p><code>runIf</code> 式内で副作用を起こす関数呼出は禁止 (§5 で変数代入 <code>=</code> を禁止済みのため自動的に担保)。短絡評価を前提とした同等書き換え (<code>@a &#x26;&#x26; @a.b</code> 等) は安全に動作する。</p>
+<h2 id="8-idempotencykey-の評価規約">8. idempotencyKey の評価規約</h2>
+<p><code>ExternalSystemStep.idempotencyKey</code> は以下を満たすべし。</p>
+<h3 id="81-retry-間で安定">8.1 retry 間で安定</h3>
+<p><code>retryPolicy.maxAttempts > 1</code> の場合、同一 step の複数回試行で idempotencyKey は<strong>同じ値</strong>でなければならない。そうでないと外部 API の冪等性保証が機能しない。</p>
+<p>→ 実装上は step 入口で 1 回評価し、retry ループ内で再評価しない方針。</p>
+<h3 id="82-tx-rollback-後の-retry-は別キー">8.2 TX ROLLBACK 後の retry は別キー</h3>
+<p><code>txBoundary</code> に含まれる外部呼出が ROLLBACK 後にユーザ操作で再試行された場合、<strong>新しいリクエストとして別キー</strong>を生成するべき。具体的には <code>idempotencyKey</code> の式が <code>@order.id</code> のような DB 永続値ではなく、<code>@requestId</code> のような<strong>リクエスト単位の識別子</strong>を含むのが望ましい。</p>
+<h3 id="83-フォールバック">8.3 フォールバック</h3>
+<p><code>idempotencyKey</code> 未指定時、実装側は:</p>
+<ol>
+<li>外部 API が <code>Idempotency-Key</code> を必須とする場合 → UUID v4 を自動生成して送信</li>
+<li>任意の場合 → ヘッダを送信しない</li>
+</ol>
+<p>スキーマでは必須化しない (多くの外部 API は Idempotency-Key をオプション扱い)。</p>
+<h2 id="9-sideeffects-内で-return-禁止">9. sideEffects 内で return 禁止</h2>
+<p><code>ExternalCallOutcomeSpec.sideEffects</code> 配列には <code>ReturnStep</code> を置けない (JSON Schema レベルで <code>NonReturnStep</code> 制約化、process-flow.v3 で discriminator も追加)。</p>
+<p><strong>理由</strong>: <code>outcome.action</code> が <code>"abort"</code> (処理中断) の意味と <code>return</code> ステップ (HTTP レスポンス返却) の意味が衝突する。</p>
+<p><strong>書き方</strong>:</p>
+<ul>
+<li>レスポンスで返したい場合: <code>outcome.action = "continue"</code> にして、外側のフロー上に ReturnStep を配置</li>
+<li>処理中断する場合: <code>outcome.action = "abort"</code> のみ。body は <code>errorCatalog</code> / middleware で生成</li>
+</ul>
+<h2 id="10-参照整合性">10. 参照整合性</h2>
+<ul>
+<li><code>@identifier</code> が既存の <code>inputs[].name</code> / <code>outputBinding.name</code> / ループ変数 (<code>LoopStep.collectionItemName</code>) / ambient / catalog のいずれかに存在するかは、<strong>参照整合性バリデータ</strong> (<code>frontend/src/schemas/referentialIntegrity.ts</code>) の将来拡張で検査予定 (現状は未検査)</li>
+<li>catalog 階層 (<code>context.catalogs.errors[&#x3C;key>]</code> 等) の存在チェックも同バリデータで実施予定</li>
+<li>IdentifierPath (#533 R3-1) の field 部分 (<code>createdOrder.order_number</code> の <code>.order_number</code>) は型推論側で検査</li>
+</ul>
+<h2 id="11-将来の拡張余地">11. 将来の拡張余地</h2>
+<ul>
+<li><code>ProcessFlow.expressionLang: "js-subset" | "custom-dsl"</code> を追加して複数言語を併存</li>
+<li>式のパース結果を AST として <code>parsedExpression?: AstNode</code> のように保持 (静的解析可能化)</li>
+<li>shorthand datetime 算術 (<code>+ 14 days</code>) を <code>duration('P14D')</code> への自動変換 migration script (#539 R5-3 後続)</li>
+<li>datetime 算術の method chain 化 (<code>@x.plus(duration('P2D'))</code>)</li>
+</ul>
+<h2 id="関連">関連</h2>
+<ul>
+<li>スキーマ: <a href="../../schemas/v3/process-flow.v3.schema.json"><code>schemas/v3/process-flow.v3.schema.json</code></a> (<code>ExpressionString</code> ($defs) は <code>common.v3.schema.json#/$defs/ExpressionString</code>)</li>
+<li>ambient 変数: <a href="/spec/process-flow-variables/"><code>process-flow-variables.md</code></a></li>
+<li>catalog: <a href="/spec/process-flow-runtime-conventions/"><code>process-flow-runtime-conventions.md</code></a></li>
+<li>workflow deadline: <a href="/spec/process-flow-workflow/"><code>process-flow-workflow.md</code></a></li>
+<li>実例: <code>examples/retail/</code> / <code>examples/realestate/</code> (現行 canonical サンプル)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

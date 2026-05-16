@@ -1,0 +1,1591 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>schema design principles</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link active"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="schema-設計原則--harnize-harmony-processflow--conventions--extensions">Schema 設計原則 — Harnize Harmony ProcessFlow / Conventions / Extensions</h1>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>値</th></tr></thead><tbody><tr><td>関連 ISSUE</td><td>#517 (本ドキュメント) / 親 #511 (schema ガバナンス)</td></tr><tr><td>起草</td><td>設計者 (Opus) — Codex セカンドオピニオン (<code>schema-redesign-proposal-codex-2026-04-27.md</code>) を参照材料として使用</td></tr><tr><td>起草日</td><td>2026-04-27</td></tr><tr><td>対象 schema</td><td><code>schemas/process-flow.schema.json</code> (2036 行) / <code>schemas/conventions.schema.json</code> (291 行) / <code>schemas/extensions-*.schema.json</code> (5 ファイル)</td></tr><tr><td>ステータス</td><td><strong>初版</strong> — <code>schema-current-state-2026-04-27</code> を兼ねる (調査結果と規範を併記)</td></tr></tbody></table>
+<p>本ドキュメントは、本フレームワークの <strong>JSON Schema 設計原則</strong> を集約する。schema を <strong>どう書くか</strong> の規範であり、<strong>何を書くか</strong> (個別フィールド仕様) は各 <code>process-flow-*.md</code> を参照。</p>
+<p><code>schema-governance.md</code> (#511) が「<strong>誰が変えてよいか</strong>」を規定するのに対し、本ドキュメントは「<strong>設計者が schema を変えるとき / 業務開発者が拡張・規約を書くとき、どういう原則で書くか</strong>」を規定する。</p>
+<hr>
+<h2 id="1-設計思想の前提">1. 設計思想の前提</h2>
+<h3 id="11-json-schema-が一次成果物">1.1 JSON Schema が一次成果物</h3>
+<p>本プロジェクトの<strong>主用途は AI が ProcessFlow JSON を読んで実装すること</strong>。したがって設計層の優先順位は固定:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>順位</th><th>層</th><th>役割</th></tr></thead><tbody><tr><td><strong>1 (一次)</strong></td><td>JSON Schema (<code>schemas/*.json</code>)</td><td>機械可読な正規仕様。外部 AI / CI / 外部エディタからも参照可能</td></tr><tr><td>2 (派生)</td><td>TypeScript 型 (<code>frontend/src/types/action.ts</code>)</td><td>designer 内部で利用される派生物</td></tr><tr><td>3 (表示層)</td><td>UI (<code>frontend/src/components/process-flow/</code>)</td><td>エディタとしての視覚化</td></tr></tbody></table>
+<p>根拠: <code>schemas/README.md:5-13</code> / <code>AGENTS.md:147-156</code></p>
+<p><strong>帰結</strong>: 矛盾が起きたら schema を正、TS 型と UI を schema に合わせる。schema 変更は #511 ガバナンスで設計者専権。</p>
+<h3 id="12-json-schema-draft-2020-12-を採用">1.2 JSON Schema draft 2020-12 を採用</h3>
+<p>全 schema が draft 2020-12 (<code>$schema: "https://json-schema.org/draft/2020-12/schema"</code>)。根拠:</p>
+<ul>
+<li><code>schemas/process-flow.schema.json:2</code></li>
+<li><code>schemas/conventions.schema.json:2</code></li>
+<li><code>schemas/extensions-steps.schema.json:2</code> (同様に 5 ファイル全部)</li>
+<li><code>schemas/README.md:27</code></li>
+</ul>
+<p>draft 2020-12 で利用可能な以下を<strong>積極的に活用</strong>してよい:</p>
+<ul>
+<li><code>$defs</code> (旧 <code>definitions</code> ではなく)</li>
+<li><code>unevaluatedProperties</code> (allOf 合成時の未評価プロパティ拒否、§3.4 参照)</li>
+<li><code>prefixItems</code> (タプル型) — 現状未使用</li>
+<li><code>dependentRequired</code> / <code>dependentSchemas</code> — 現状未使用、<code>if/then</code> で代用</li>
+</ul>
+<p><code>additionalProperties</code> は draft 7 から使えるが、<code>unevaluatedProperties</code> は draft 2019-09 以降のため<strong>移行余地が大きい</strong> (§3.4)。</p>
+<h3 id="13-後方互換性は絶対">1.3 後方互換性は絶対</h3>
+<p>102 コミット監査 (<code>docs/spec/schema-audit-2026-04-27.md:138-145</code>) で破壊的変更ゼロが確認されている。本原則は維持:</p>
+<ul>
+<li>フィールド追加は <strong>必ず optional</strong> で行う</li>
+<li>enum 値追加は <strong>additive のみ</strong> (削除・置換不可)</li>
+<li>旧形式 → 新形式の移行は <strong>union 型</strong> で path を残す (例: <code>ActionFields = string | StructuredField[]</code> at <code>schemas/process-flow.schema.json:835-843</code>)</li>
+<li>既存 sample / 業務データを破壊する変更は禁止</li>
+</ul>
+<p>migration 戦略: <code>migrateProcessFlow</code> (frontend/src/utils/actionMigration.ts) が読み込み時に旧形式を新形式に正規化する。schema 側では旧形式も valid を維持。</p>
+<h3 id="14-ガバナンス-511-の遵守">1.4 ガバナンス (#511) の遵守</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>領域</th><th>変更権限</th></tr></thead><tbody><tr><td>グローバル schema (<code>schemas/*.json</code>)</td><td><strong>フレームワーク製作者 (設計者) の専権</strong></td></tr><tr><td>拡張定義 (<code>docs/sample-project/extensions/&#x3C;ns>/</code>、<code>data/extensions/&#x3C;ns>/</code>)</td><td>業務開発者 (AI 含む)</td></tr><tr><td>業務規約 catalog (<code>conventions/conventions-catalog.json</code>)</td><td>業務開発者</td></tr><tr><td>業務データ JSON (<code>process-flows/*.json</code> 等)</td><td>業務開発者</td></tr></tbody></table>
+<p>詳細: <code>docs/spec/schema-governance.md</code></p>
+<p>本ドキュメントが対象とするのは<strong>設計者がグローバル schema を書くときの原則</strong>。業務開発者向けの執筆規約は §6 (拡張判断ガイドライン) で扱う。</p>
+<h3 id="15-convention-over-configuration">1.5 Convention over configuration</h3>
+<p>schema で表現できないが業務上重要な規約は、<strong>spec 文書 (<code>docs/spec/process-flow-*.md</code>) で convention として明文化</strong>する。schema には載せない。</p>
+<p>代表例 (<code>docs/spec/process-flow-runtime-conventions.md</code> 全章):</p>
+<ul>
+<li>SQL 内 <code>@expression</code> の prepared statement 変換規約 (§1)</li>
+<li>HTTP body の form-urlencoded vs JSON 自動判定 (§2)</li>
+<li>TX × throw × tryCatch の連鎖規約 (§3)</li>
+<li><code>fireAndForget: true</code> の意味論 (§4)</li>
+<li><code>compensatesFor</code> の配置規約 (§10)</li>
+<li>Ambient context 解決順序 (§9.4)</li>
+</ul>
+<p>判断基準: schema で表現できるもの (型・必須・enum・参照整合) は schema に。<strong>実行時の動作・解決順序・テンプレート展開</strong>は spec で convention として規定する。</p>
+<p><code>docs/spec/process-flow-expression-language.md:13-20</code> も同様の判断 (<code>expression: { lang, src }</code> ラッパー化を YAGNI で不採用、convention で 1 言語固定)。</p>
+<hr>
+<h2 id="2-命名規約">2. 命名規約</h2>
+<p>JSON Schema 上の識別子は <strong>5 種類のレベル</strong> を持つ。それぞれ命名規約が異なる。</p>
+<h3 id="21-processflow-root-プロパティ-camelcase-主体">2.1 ProcessFlow root プロパティ (camelCase 主体)</h3>
+<p><code>schemas/process-flow.schema.json:9-95</code> で root に並ぶ 28 プロパティの実態:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>種別</th><th>命名</th><th>例</th></tr></thead><tbody><tr><td>識別子 (1 語)</td><td><code>lowercase</code></td><td><code>id</code>, <code>name</code>, <code>type</code>, <code>description</code>, <code>screenId</code>, <code>apiVersion</code></td></tr><tr><td>運用設定</td><td><code>lowerCamelCase</code></td><td><code>maturity</code>, <code>mode</code>, <code>createdAt</code>, <code>updatedAt</code></td></tr><tr><td>Catalog 系 (Record/object)</td><td><strong><code>xxxCatalog</code></strong> 接尾辞</td><td><code>errorCatalog</code>, <code>externalSystemCatalog</code>, <code>secretsCatalog</code>, <code>envVarsCatalog</code>, <code>domainsCatalog</code>, <code>functionsCatalog</code>, <code>eventsCatalog</code></td></tr><tr><td>配列系</td><td><strong>複数形</strong></td><td><code>actions</code>, <code>markers</code>, <code>decisions</code>, <code>testScenarios</code>, <code>ambientVariables</code></td></tr><tr><td>単数 noun (集合体)</td><td>用途名</td><td><code>glossary</code> (用語集), <code>sla</code>, <code>health</code>, <code>readiness</code>, <code>resources</code>, <code>httpRoute</code>, <code>responses</code></td></tr><tr><td>Override map</td><td><strong><code>xxxOverrides</code></strong> 接尾辞</td><td><code>ambientOverrides</code></td></tr></tbody></table>
+<h4 id="規範">規範</h4>
+<ul>
+<li><strong>新規 catalog は <code>xxxCatalog</code> 接尾辞 + Record/object 構造</strong>で root に並列配置する</li>
+<li><strong>新規配列は複数形</strong> (<code>actions</code>, <code>markers</code> 等と整合)</li>
+<li><strong>新規 override map は <code>xxxOverrides</code> 接尾辞</strong></li>
+<li>1 語の単数 noun (<code>sla</code>, <code>health</code> 等) は意味が一意な場合のみ使う。複数候補があるなら必ず suffix を付ける</li>
+</ul>
+<h4 id="採用しない代替案-検討した上で棄却">採用しない代替案 (検討した上で棄却)</h4>
+<ul>
+<li>「root 直下を <code>catalogs: { error, externalSystem, ... }</code> に階層化する」案: 既存 4 sample が root 並列を採用しており、移行コスト > メリット。階層化はデータ深さが 1 段増える分、JSON 編集の認知負荷が増える。Codex セカンドオピニオン (§4-A) でも短期不採用と判断</li>
+<li>「すべて Catalog 接尾辞に揃える」案: <code>markers</code> / <code>decisions</code> / <code>glossary</code> / <code>ambientVariables</code> を <code>markersCatalog</code> 等に rename する破壊的変更となるため不採用</li>
+</ul>
+<h3 id="22-enum-値-対象ドメインの慣習に従う">2.2 enum 値 (対象ドメインの慣習に従う)</h3>
+<p>enum 値の命名は<strong>対象ドメインの慣習</strong> に従う。schema 全体で 1 つの命名規則に統一しない (現状の混在は意図的)。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ドメイン</th><th>命名規則</th><th>schema 上の例</th></tr></thead><tbody><tr><td><strong>SQL keyword</strong></td><td><code>UPPER</code></td><td><code>DbOperation</code> (<code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>MERGE</code>, <code>LOCK</code>) at <code>schemas/process-flow.schema.json:1074-1077</code></td></tr><tr><td><strong>DB TX 設定</strong></td><td><code>UPPER_SNAKE</code></td><td><code>TransactionIsolationLevel</code> (<code>READ_COMMITTED</code>, <code>REPEATABLE_READ</code>, <code>SERIALIZABLE</code>) at <code>schemas/process-flow.schema.json:1949-1955</code><br><code>TransactionPropagation</code> (<code>REQUIRED</code>, <code>REQUIRES_NEW</code>, <code>NESTED</code>) at <code>schemas/process-flow.schema.json:1953-1956</code></td></tr><tr><td><strong>HTTP method</strong></td><td><code>UPPER</code></td><td><code>HttpMethod</code> (<code>GET</code>, <code>POST</code>, <code>PUT</code>, <code>PATCH</code>, <code>DELETE</code>) at <code>schemas/process-flow.schema.json:537-539</code></td></tr><tr><td><strong>Step type / 値オブジェクト discriminator</strong></td><td><code>lowerCamelCase</code></td><td><code>StepType</code> (<code>validation</code>, <code>dbAccess</code>, <code>externalSystem</code>, <code>transactionScope</code> 等) at <code>schemas/process-flow.schema.json:297-323</code></td></tr><tr><td><strong>ProcessFlow type / 列挙的値</strong></td><td><code>lowercase</code> 一語</td><td><code>ProcessFlowType</code> (<code>screen</code>, <code>batch</code>, <code>scheduled</code>, <code>system</code>, <code>common</code>, <code>other</code>) at <code>schemas/process-flow.schema.json:98-105</code></td></tr><tr><td><strong>Workflow pattern</strong></td><td><code>kebab-case</code></td><td><code>WorkflowPattern</code> (<code>approval-sequential</code>, <code>approval-parallel</code>, <code>branch-merge</code>, <code>sign-off</code>, <code>ad-hoc</code>) at <code>schemas/process-flow.schema.json:521-535</code></td></tr><tr><td><strong>GeneXus 由来 (互換性のため踏襲)</strong></td><td><code>PascalCase</code></td><td><code>ValidationRuleKind</code> (<code>Error</code>, <code>Msg</code>, <code>Noaccept</code>, <code>Default</code>) at <code>schemas/process-flow.schema.json:973-977</code></td></tr><tr><td><strong>Log level (syslog 慣習)</strong></td><td><code>lowercase</code></td><td><code>LogStep.level</code> (<code>trace</code>, <code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code>) at <code>schemas/process-flow.schema.json:1692-1695</code></td></tr><tr><td><strong>OAuth/HTTP auth</strong></td><td><code>lowerCamelCase</code> 1 語</td><td><code>ExternalAuthKind</code> (<code>bearer</code>, <code>basic</code>, <code>apiKey</code>, <code>oauth2</code>, <code>none</code>) at <code>schemas/process-flow.schema.json:1245-1247</code></td></tr><tr><td><strong>記号操作子</strong></td><td>記号</td><td><code>AffectedRowsOperator</code> (<code>></code>, <code>>=</code>, <code>=</code>, <code>&#x3C;</code>, <code>&#x3C;=</code>) at <code>schemas/process-flow.schema.json:1078-1081</code></td></tr></tbody></table>
+<h4 id="規範-1">規範</h4>
+<ul>
+<li>新規 enum 追加時、<strong>まず対象ドメインに既存の慣習があるか確認</strong> する。あればそれに従う</li>
+<li>ドメイン慣習が無い場合は <strong><code>lowerCamelCase</code></strong> をデフォルトに採用 (Step type / 値オブジェクト discriminator と整合)</li>
+<li>enum を<strong>型として明示</strong>する: <code>enum: [...]</code> 直下に値を並べるだけでなく、<code>$defs/&#x3C;EnumName></code> として name を付ける。理由: TypeScript 型生成時に named type として現れ、IDE 補完が改善される (§5)</li>
+</ul>
+<h4 id="採用しない代替案">採用しない代替案</h4>
+<ul>
+<li>「全 enum を <code>lowerCamelCase</code> に統一する」案: SQL keyword / HTTP method を camelCase にすると業界慣習に違反、業務開発者の認知負荷が大きい。GeneXus 由来 (<code>Error</code>/<code>Msg</code> 等) を rename すると互換性破壊</li>
+<li>「すべて kebab-case に統一」: SQL / HTTP がさらに違和感</li>
+</ul>
+<h3 id="23-catalog-key-ドメイン慣習">2.3 Catalog key (ドメイン慣習)</h3>
+<p><code>Record&#x3C;string, T></code> 形の catalog の <strong>キー命名</strong> はカタログ種別ごとに異なる。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Catalog</th><th>キー命名</th><th>例 (sample / spec)</th></tr></thead><tbody><tr><td><code>errorCatalog</code></td><td><code>UPPER_SNAKE</code> (errorCode 慣習)</td><td><code>STOCK_SHORTAGE</code>, <code>INSUFFICIENT_INVENTORY</code>, <code>VALIDATION</code>, <code>CART_EMPTY</code> (<code>docs/sample-project/process-flows/gggggggg-0003-*.json:170-204</code>)</td></tr><tr><td><code>externalSystemCatalog</code></td><td><code>lowercase</code> 1 語 (system 識別子)</td><td><code>stripe</code>, <code>sendgrid</code> (<code>docs/spec/process-flow-extensions.md:240-252</code>)</td></tr><tr><td><code>secretsCatalog</code></td><td><code>lowerCamelCase</code> (変数名相当)</td><td><code>stripeApiKey</code>, <code>thirdPartyKey</code> (<code>docs/spec/process-flow-secrets.md:38-52</code>)</td></tr><tr><td><code>envVarsCatalog</code></td><td><code>UPPER_SNAKE</code> (環境変数 OS 慣習)</td><td><code>STRIPE_API_BASE</code>, <code>MAX_RETRY_ATTEMPTS</code>, <code>FEATURE_FLAG_NEW_PRICING</code> (<code>docs/spec/process-flow-env-vars.md:26-49</code>)</td></tr><tr><td><code>domainsCatalog</code></td><td><code>PascalCase</code> (型らしい)</td><td><code>OrderId</code>, <code>CustomerId</code>, <code>Amount</code>, <code>EmailAddress</code>, <code>Quantity</code> (<code>docs/sample-project/process-flows/gggggggg-0003-*.json:209-232</code> / <code>docs/spec/process-flow-extensions.md:710-718</code>)</td></tr><tr><td><code>functionsCatalog</code></td><td><code>lowerCamelCase</code> (JS 関数慣習)</td><td><code>generateUUID</code>, <code>calcTax</code>, <code>calcSubtotal</code>, <code>formatCurrency</code> (<code>docs/sample-project/process-flows/gggggggg-0003-*.json:234-258</code>)</td></tr><tr><td><code>eventsCatalog</code></td><td><code>dot.separated.lowercase</code> (メッセージング topic 慣習)</td><td><code>order.confirmed</code>, <code>order.confirm_failed</code>, <code>invoice.issued</code>, <code>retail.order_tax_calculated</code> (<code>docs/sample-project/process-flows/gggggggg-0003-*.json:11-73</code>)</td></tr><tr><td><code>glossary</code></td><td>自然言語 (日本語可)</td><td><code>注文確定</code>, <code>在庫引当</code>, <code>消費税計算</code> (<code>docs/sample-project/process-flows/gggggggg-0003-*.json:76-115</code>)</td></tr><tr><td><code>decisions</code></td><td><code>ADR-NNN</code> (id 規約)</td><td><code>ADR-001</code>, <code>ADR-002</code> (<code>docs/spec/process-flow-extensions.md:1027-1038</code>)</td></tr><tr><td><code>conventions/msg</code></td><td><code>lowerCamelCase</code></td><td><code>required</code>, <code>maxLength</code>, <code>invalidFormat</code>, <code>mustBePositive</code>, <code>cartExpired</code> (<code>docs/sample-project/conventions/conventions-catalog.json:15-46</code>)</td></tr><tr><td><code>conventions/regex</code></td><td><code>kebab-case</code></td><td><code>email-simple</code>, <code>phone-jp</code>, <code>postal-jp</code>, <code>product-code</code> (<code>docs/sample-project/conventions/conventions-catalog.json:49-73</code>)</td></tr><tr><td><code>conventions/limit</code></td><td><code>lowerCamelCase</code></td><td><code>nameMax</code>, <code>quantityMax</code>, <code>cartItemMax</code>, <code>lowStockThreshold</code> (<code>docs/sample-project/conventions/conventions-catalog.json:76-87</code>)</td></tr><tr><td><code>conventions/numbering</code></td><td><code>lowerCamelCase</code></td><td><code>customerCode</code>, <code>orderNumber</code>, <code>cartCode</code>, <code>shipmentId</code> (<code>docs/sample-project/conventions/conventions-catalog.json:184-204</code>)</td></tr><tr><td><code>conventions/role</code></td><td><code>lowerCamelCase</code></td><td><code>customer</code>, <code>operationsSystem</code> (<code>docs/sample-project/conventions/conventions-catalog.json:160-170</code>)</td></tr><tr><td><code>conventions/permission</code></td><td><code>dot.separated.lowercase</code></td><td><code>order.create</code>, <code>order.read</code>, <code>inventory.read</code>, <code>shipment.create</code> (<code>docs/sample-project/conventions/conventions-catalog.json:133-156</code>)</td></tr></tbody></table>
+<h4 id="規範-2">規範</h4>
+<ul>
+<li>新規 catalog のキー命名は<strong>参照側 (式言語 / spec) の慣習に合わせる</strong>
+<ul>
+<li><code>@conv.&#x3C;key></code> で参照されるなら, <code>@conv.&#x3C;key></code> 自体の慣習に合わせる (例: <code>@conv.regex.phone-jp</code> なら kebab-case)</li>
+<li>HTTP / OS 慣習なら <code>UPPER_SNAKE</code></li>
+<li>JS 識別子として参照されるなら camelCase</li>
+</ul>
+</li>
+<li>キー命名は <strong>schema 上で <code>pattern</code> を強制しない</strong> (現状すべて <code>additionalProperties</code> で受け入れ)。convention として spec で規定し、参照整合性バリデータ (<code>frontend/src/schemas/conventionsValidator.ts</code>) で警告を出す</li>
+<li>例外: 拡張 namespace は <code>pattern: "^[a-z0-9_-]*$"</code> で強制している (<code>schemas/extensions-steps.schema.json:9-12</code>)</li>
+</ul>
+<h4 id="採用しない代替案-1">採用しない代替案</h4>
+<ul>
+<li>「全 catalog key を camelCase に統一する」案: HTTP env 変数 / errorCode の業界慣習に違反、参照式 (<code>@env.STRIPE_API_BASE</code>) でも違和感</li>
+<li>「catalog key に <code>pattern</code> を必ず付ける」案: 命名違反の早期検出には有効だが、<code>@conv.role.&#x3C;key></code> のように <strong>JS 識別子的なキー</strong> と <code>event.&#x3C;key></code> のように <strong>dot 区切り</strong> が混在する事情を schema 単体では表現しにくい。convention + 参照整合性バリデータの 2 段で十分</li>
+</ul>
+<h3 id="24-id-形式-kebab-case--数字--階層化">2.4 ID 形式 (kebab-case + 数字 / 階層化)</h3>
+<p><code>schemas/process-flow.schema.json</code> 上の各 <code>id: { "type": "string" }</code> には schema 上の制約 (pattern) はないが、<strong>実態 (sample 全 4 件)</strong> は以下の規範に従う:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>対象</th><th>形式</th><th>例</th></tr></thead><tbody><tr><td>ProcessFlow.id</td><td>UUID v4 風 (16 文字 group + ハイフン)</td><td><code>gggggggg-0003-4000-8000-gggggggggggg</code></td></tr><tr><td>ActionDefinition.id</td><td><code>act-NNN</code> または <code>act-&#x3C;slug>-NNN</code></td><td><code>act-001</code>, <code>act-orderreg-002</code>, <code>act-orderreg-003</code></td></tr><tr><td>Step.id</td><td><code>step-NN</code> または <code>step-NN-NN</code>/<code>step-NNa-NN-NN</code> (階層)</td><td><code>step-01</code>, <code>step-13-01</code>, <code>step-13b</code>, <code>step-13b-a-01</code></td></tr><tr><td>Branch.id</td><td><code>br-NN-&#x3C;code></code></td><td><code>br-03-a</code>, <code>br-03-b</code>, <code>br-13b-else</code></td></tr><tr><td>ElseBranch.id</td><td><code>br-NN-else</code></td><td><code>br-03-else</code>, <code>br-05-else</code></td></tr><tr><td>Branch.code</td><td>1 文字大文字 (<code>A</code> / <code>B</code> / <code>C</code> …)</td><td><code>A</code>, <code>B</code>, <code>C</code></td></tr><tr><td>StepNote.id</td><td><code>note-&#x3C;UUID></code></td><td>(任意 stable ID)</td></tr><tr><td>Marker.id</td><td>UUID v4</td><td>(任意 stable ID)</td></tr><tr><td>TestScenario.id</td><td><code>kebab-case</code> 説明的</td><td><code>happy-path-order-confirm</code>, <code>insufficient-inventory-rollback</code></td></tr><tr><td>ResponseSpec.id</td><td><code>&#x3C;status>-&#x3C;slug></code></td><td><code>201-created</code>, <code>400-validation</code>, <code>422-cart-empty</code></td></tr><tr><td>DecisionRecord.id</td><td><code>ADR-NNN</code></td><td><code>ADR-001</code></td></tr></tbody></table>
+<h4 id="規範-3">規範</h4>
+<ul>
+<li>ID は <strong>kebab-case + 階層化 (ハイフン区切り)</strong> が基本</li>
+<li>ProcessFlow.id のみ UUID v4 風 (外部システムから一意に参照されるため)</li>
+<li>数字部分は ゼロパディング (<code>001</code>, <code>02</code>) を推奨 (ソート時の自然順を維持)</li>
+<li>Step ID の階層 (<code>step-13-01</code> / <code>step-13b-a-01</code>) は parent step の ID に suffix を付ける形を推奨</li>
+<li>schema 上は <code>type: "string"</code> のままで、<strong>pattern は強制しない</strong> (実装制約・参照整合性バリデータで担保)</li>
+</ul>
+<h4 id="採用しない代替案-2">採用しない代替案</h4>
+<ul>
+<li>「全 ID を UUID に統一」: 人間可読性が失われ、レビュー時の認知負荷が大きい</li>
+<li>「step-id に pattern 制約を付ける」: 既存 sample が壊れる可能性、運用 convention で十分</li>
+</ul>
+<h3 id="25-discriminator-フィールド名-type-vs-kind">2.5 Discriminator フィールド名 (<code>type</code> vs <code>kind</code>)</h3>
+<p>union 型の variant を識別する <strong>discriminator フィールド</strong> は 2 つの命名が共存する:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>discriminator</th><th>用途</th><th>schema 上の例</th></tr></thead><tbody><tr><td><code>type</code></td><td><strong>Step union</strong> の variant (1 種のみ)</td><td><code>Step.oneOf</code> の各 variant が <code>type: { const: "validation" }</code> 等 (<code>schemas/process-flow.schema.json:1058</code>, 2008-2033)</td></tr><tr><td><code>kind</code></td><td><strong>値オブジェクト・前提条件・条件式・型</strong> の variant</td><td><code>FieldType</code> (<code>kind: array/object/tableRow/...</code> at <code>schemas/process-flow.schema.json:732-797</code>)<br><code>TestPrecondition</code> (<code>kind: dbState/sessionContext/externalStub/clock</code> at <code>schemas/process-flow.schema.json:159-208</code>)<br><code>TestAssertion</code> (<code>kind: outcome/dbRow/output/externalCall/auditLog/errorMessage</code> at <code>schemas/process-flow.schema.json:222-291</code>)<br><code>BranchConditionVariant</code> (<code>kind: tryCatch/affectedRowsZero/externalOutcome</code> at <code>schemas/process-flow.schema.json:1449-1487</code>)</td></tr></tbody></table>
+<h4 id="規範-4">規範</h4>
+<ul>
+<li><strong>Step は <code>type</code></strong>, それ以外の値オブジェクト discriminator は <strong><code>kind</code></strong></li>
+<li>理由:
+<ul>
+<li><code>type</code> は HTTP / API / コードでの慣習 (Step は実行可能エンティティであり、<code>type: "validation"</code> は OpenAPI/Arazzo で見慣れた表現)</li>
+<li><code>kind</code> は値クラス discriminator として一般的 (Rust enum kind / GraphQL <code>__typename</code> / TypeScript discriminated union での慣習)</li>
+</ul>
+</li>
+<li>新規 union 型を追加するときは: <strong>実行可能エンティティなら <code>type</code>、データ・条件・前提なら <code>kind</code></strong> で命名する</li>
+</ul>
+<h4 id="採用しない代替案-3">採用しない代替案</h4>
+<ul>
+<li>「全部 <code>type</code> に統一」: <code>kind</code> は値クラス的な含意があり、<code>type: "tryCatch"</code> だと「BranchCondition の type」と「Step の type」が文脈で混乱する</li>
+<li>「全部 <code>kind</code> に統一」: Step を <code>kind: "validation"</code> に変えると 4 sample すべてが破壊的変更</li>
+</ul>
+<hr>
+<h2 id="3-構造ルール">3. 構造ルール</h2>
+<h3 id="31-additionalproperties-false-を基本とする">3.1 <code>additionalProperties: false</code> を基本とする</h3>
+<p><code>schemas/process-flow.schema.json</code> 全体で <strong>167 箇所中 121 箇所 (72.5%) が <code>additionalProperties: false</code></strong> (Codex セカンドオピニオン §1 集計)。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>採用領域</th><th>例</th></tr></thead><tbody><tr><td>ProcessFlow root</td><td><code>schemas/process-flow.schema.json:8-9</code></td></tr><tr><td>ActionDefinition</td><td><code>:849</code></td></tr><tr><td>Step variants (全 22)</td><td><code>:1052</code>, <code>:1103</code>, <code>:1309</code>, etc.</td></tr><tr><td>Catalog entry ($defs)</td><td><code>ErrorCatalogEntry:634-642</code>, <code>ExternalSystemCatalogEntry:1276-1301</code>, <code>EnvVarEntry:611-631</code>, <code>SecretRef:592-608</code></td></tr><tr><td>value object</td><td><code>Sla:113</code>, <code>TxBoundary:919</code>, <code>HttpRoute:549</code>, <code>WorkflowApprover:1742</code></td></tr></tbody></table>
+<h4 id="規範-5">規範</h4>
+<ul>
+<li>新規 object 型は <strong>デフォルトで <code>additionalProperties: false</code></strong> を付ける</li>
+<li>例外 (open/<code>true</code> で残す): JSON Schema payload (validation 対象が任意 JSON) / response schema / structuredData / argumentMapping value
+<ul>
+<li><code>schemas/process-flow.schema.json:218-219</code> (TestInvocation.input)</li>
+<li><code>:369-372</code> (EventDef.payload)</li>
+<li><code>:1296-1300</code> (ExternalSystemCatalogEntry.responseSchema)</li>
+</ul>
+</li>
+<li>「テスト時の任意 JSON」「外部 API 仕様の動的形」など、本質的に閉じられない領域のみ open にする</li>
+</ul>
+<h4 id="採用しない代替案-4">採用しない代替案</h4>
+<ul>
+<li>「<code>additionalProperties: true</code> を default」案: 誤字検出機構が機能しなくなる</li>
+<li>「<code>additionalProperties: false</code> を厳格にすべて」案: 本質的に open な領域が表現できなくなる</li>
+</ul>
+<h3 id="32-oneof-による-discriminated-union">3.2 oneOf による discriminated union</h3>
+<p><code>schemas/process-flow.schema.json</code> 全体で <strong>15 箇所の oneOf / 計 83 variant</strong> (Codex 集計、§1)。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>union</th><th>variant 数</th><th>discriminator</th></tr></thead><tbody><tr><td><code>Step</code> (<code>:2008-2033</code>)</td><td>22</td><td><code>type</code></td></tr><tr><td><code>NonReturnStep</code> (<code>:1186-1210</code>)</td><td>21</td><td><code>type</code> (Return 除外)</td></tr><tr><td><code>FieldType</code> (<code>:724-799</code>)</td><td>8</td><td>string enum + <code>kind</code></td></tr><tr><td><code>TestAssertion</code> (<code>:222-291</code>)</td><td>6</td><td><code>kind</code></td></tr><tr><td><code>TestPrecondition</code> (<code>:159-208</code>)</td><td>4</td><td><code>kind</code></td></tr><tr><td><code>BranchConditionVariant</code> (<code>:1449-1487</code>)</td><td>3</td><td><code>kind</code></td></tr><tr><td><code>BodySchemaRef</code> (<code>:688-709</code>)</td><td>3</td><td>structural (string / <code>typeRef</code> / <code>schema</code>)</td></tr><tr><td><code>OutputBinding</code> (<code>:908-913</code>)</td><td>2</td><td>string / object</td></tr><tr><td><code>ActionFields</code> (<code>:835-843</code>)</td><td>2</td><td>string / array</td></tr><tr><td><code>Criterion</code> (<code>:1178-1184</code>)</td><td>2</td><td>string / structured</td></tr><tr><td><code>BranchCondition</code> (<code>:1488-1493</code>)</td><td>2</td><td>string / structured</td></tr><tr><td><code>ValidationInlineBranch.ok</code> / <code>.ng</code> (<code>:1018-1029</code>)</td><td>2</td><td>string / Step[]</td></tr></tbody></table>
+<h4 id="規範-6">規範</h4>
+<ul>
+<li>variant が <strong>複数の <code>const</code> / <code>kind</code> で識別できる場合は oneOf</strong> を使う (anyOf でなく)</li>
+<li>variant が<strong>構造的に区別できる場合</strong> (片方が string、片方が object 等) も oneOf を使う</li>
+<li>variant の各 schema には <code>description</code> を付ける (variant の意味を AI / IDE が読み取れるように)</li>
+</ul>
+<h3 id="33-allof-による-base-合成">3.3 allOf による base 合成</h3>
+<p><code>schemas/process-flow.schema.json</code> 全体で <strong>23 箇所の allOf</strong> (Codex 集計、§1)。主用途は <strong>StepBaseProps を全 step variant にマージ</strong> すること:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 例: ValidationStep (schemas/process-flow.schema.json:1046-1071)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "ValidationStep"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "allOf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"$ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"#/$defs/StepBaseProps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"conditions"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "additionalProperties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">false</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"note"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"notes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "maturity"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"runIf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "txBoundary"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"transactional"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"compensatesFor"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "externalChain"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"subSteps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"requiredPermissions"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"sla"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">true</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"const"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"validation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "conditions"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">          // ... validation 固有</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>このパターンは:</p>
+<ul>
+<li><code>StepBaseProps</code> (<code>:939-967</code>) で全 step 共通の 14 properties (<code>id</code>, <code>description</code>, <code>note</code>, <code>notes</code>, <code>maturity</code>, <code>sla</code>, <code>runIf</code>, <code>requiredPermissions</code>, <code>outputBinding</code>, <code>txBoundary</code>, <code>transactional</code>, <code>compensatesFor</code>, <code>externalChain</code>, <code>subSteps</code>) を宣言</li>
+<li>各 variant が <code>additionalProperties: false</code> を付けて閉じるため、共通 prop も <code>properties</code> に <strong><code>true</code> で再列挙</strong> が必要</li>
+<li>これは <strong>ドリフトの温床</strong>: variant ごとに 14 行の同じリストをコピーする必要があり、漏れると schema バグになる (§3.4 で詳述)</li>
+</ul>
+<h4 id="規範-7">規範</h4>
+<ul>
+<li>base + variant 合成は <code>allOf</code> で表現する (anyOf ではない、両方を満たす必要があるため)</li>
+<li>base の <code>$ref</code> を最初に置き、variant 固有を後ろに配置</li>
+<li>各 variant で <code>description</code> (変動部の意味) を付ける</li>
+</ul>
+<h3 id="34-unevaluatedproperties-false-への移行-推奨改善">3.4 <code>unevaluatedProperties: false</code> への移行 (推奨改善)</h3>
+<h4 id="問題-現状の二重列挙とドリフト">問題: 現状の二重列挙とドリフト</h4>
+<p>§3.3 の allOf + <code>additionalProperties: false</code> 構造では、各 variant が StepBaseProps の 14 props を <code>true</code> で再列挙する必要がある。実際にドリフトが発生している:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>variant</th><th>抜けている共通 prop</th></tr></thead><tbody><tr><td><code>WorkflowStep</code> (<code>schemas/process-flow.schema.json:1789-1797</code>)</td><td><strong><code>sla</code> 抜け</strong> (StepBaseProps では許可)</td></tr><tr><td><code>TransactionScopeStep</code> (<code>:1963-1970</code>)</td><td><strong><code>sla</code> 抜け</strong> (同上)</td></tr></tbody></table>
+<p>両者とも <code>additionalProperties: false</code> のため、現状の schema では <strong>WorkflowStep / TransactionScopeStep に <code>sla</code> を書くと validation error</strong>。これは schema バグ。</p>
+<h4 id="解決策-unevaluatedproperties-false">解決策: <code>unevaluatedProperties: false</code></h4>
+<p>draft 2020-12 の <code>unevaluatedProperties: false</code> を使うと、<code>allOf</code> の<strong>いずれかの schema</strong> で評価されたプロパティは許可、それ以外は拒否される。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 提案: 改善後の ValidationStep</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "ValidationStep"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "allOf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"$ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"#/$defs/StepBaseProps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"conditions"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">          // variant 固有のみ列挙</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"const"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"validation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "conditions"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "rules"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#6A737D;--shiki-dark:#768390">/* ... */</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "fieldErrorsVar"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "inlineBranch"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"$ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"#/$defs/ValidationInlineBranch"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "unevaluatedProperties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">false</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>これにより:</p>
+<ul>
+<li>StepBaseProps の <code>sla</code> / <code>runIf</code> / 他 12 props は base 側で評価される</li>
+<li>variant 側は variant 固有 props のみ列挙</li>
+<li>許可されない prop が現れたら拒否される (誤字検出機能は維持)</li>
+<li>variant ごとの 14 行重複が消え、ドリフトが構造的に発生しない</li>
+</ul>
+<h4 id="規範-本ドキュメント承認後">規範 (本ドキュメント承認後)</h4>
+<ul>
+<li>新規 step variant / 新規 allOf 合成型は <code>unevaluatedProperties: false</code> で書く</li>
+<li>既存 22 step variant は <strong>別 PR で漸進的に移行</strong> (本ドキュメントで原則を確定し、実装は #517 マージ後の専用 ISSUE)</li>
+</ul>
+<h4 id="採用しない代替案-5">採用しない代替案</h4>
+<ul>
+<li>「現状維持」: WorkflowStep / TransactionScopeStep の sla 抜けバグが現存し、設計者が手動でリストを揃える必要が残る</li>
+<li>「<code>additionalProperties: false</code> を variant から外す」: 誤字検出機能を失う (<code>schemas/process-flow.schema.json:1052</code> 等の閉じ込めが意図的)</li>
+</ul>
+<h3 id="35-ifthen-による条件付き必須">3.5 if/then による条件付き必須</h3>
+<p><code>schemas/process-flow.schema.json</code> 全体で <strong>6 箇所の if-then</strong> (Codex 集計、§1)。すべて「あるフィールドの値に応じて別フィールドを必須化する」用途:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>場所</th><th>条件</th><th>結果</th></tr></thead><tbody><tr><td><code>Sla</code> (<code>:125-129</code>)</td><td><code>onTimeout</code> が <code>throw</code> または <code>compensate</code></td><td><code>errorCode</code> 必須</td></tr><tr><td><code>WorkflowQuorum</code> (<code>:1762-1768</code>)</td><td><code>type: "n-of-m"</code></td><td><code>n</code> 必須</td></tr><tr><td><code>WorkflowStep</code> (<code>:1827-1846</code>)</td><td><code>pattern: "approval-escalation"</code></td><td><code>escalateAfter</code>, <code>escalateTo</code> 必須</td></tr><tr><td>同</td><td><code>pattern: "approval-quorum"</code></td><td><code>quorum</code> 必須</td></tr><tr><td>同</td><td><code>pattern: "ad-hoc"</code></td><td><code>description</code> 必須</td></tr></tbody></table>
+<h4 id="規範-8">規範</h4>
+<ul>
+<li>条件付き必須は <strong>if/then で構造化</strong>する。spec 文書に「○○のとき △△ も書く」と書くだけで終わらせない (検証されないため)</li>
+<li>if/then は allOf 内に並べることで複数条件を表現可能 (<code>WorkflowStep:1825-1847</code> の例)</li>
+<li>条件が複雑になる場合 (3 段以上のネスト等) は spec 側で convention として規定し、実装側 validator で補完する選択肢もある</li>
+</ul>
+<h3 id="36-ref-による-dry-化">3.6 <code>$ref</code> による DRY 化</h3>
+<p>全 schema で <strong>123 個の $defs</strong> (Codex 集計)。<code>$ref: "#/$defs/&#x3C;Name>"</code> で参照する。</p>
+<h4 id="規範-9">規範</h4>
+<ul>
+<li><strong>2 箇所以上で同じ structure が現れる場合は <code>$defs</code> に切り出す</strong></li>
+<li><code>$defs</code> の name は <strong>PascalCase</strong> (<code>Sla</code>, <code>OutputBinding</code>, <code>StepBaseProps</code>)</li>
+<li><code>$defs</code> 内では <code>description</code> を付ける (TypeScript 型生成時の JSDoc 元になる)</li>
+</ul>
+<p><code>$ref</code> を使うと、JSON Schema → TypeScript 型生成 (json-schema-to-typescript / quicktype) で <strong>named type</strong> として現れ、IDE 補完が向上する (§5 参照)。</p>
+<h3 id="37-deprecated-true-annotation">3.7 <code>deprecated: true</code> annotation</h3>
+<p>draft 2019-09 から <code>deprecated: true</code> がアノテーションとして使えるようになった。本 schema でも採用済み:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>場所</th><th>内容</th></tr></thead><tbody><tr><td><code>FieldType.custom</code> (<code>schemas/process-flow.schema.json:787-797</code>)</td><td><code>kind: "custom"</code> の label 文字列に型情報を自由記述するパターンを deprecated。新規データは array/object/primitive を優先</td></tr><tr><td><code>ExternalSystemStep.protocol</code> (<code>:1321-1325</code>)</td><td><code>httpCall</code> への移行推奨</td></tr></tbody></table>
+<h4 id="規範-10">規範</h4>
+<ul>
+<li>廃止予定の field / variant には <strong><code>deprecated: true</code> を付与し、<code>description</code> で代替を案内</strong>する</li>
+<li>既存 sample / 業務データに影響するため、<strong>deprecated 後すぐに削除しない</strong> (互換 path を残す)</li>
+<li>削除する場合は別 PR + ISSUE で明示的にユーザー (設計者) 承認を得る</li>
+</ul>
+<hr>
+<h2 id="4-フォーマット規約">4. フォーマット規約</h2>
+<h3 id="41-id-形式">4.1 ID 形式</h3>
+<p>§2.4 を参照。schema 上は <code>type: "string"</code> で pattern 強制せず、convention で形式を規定。</p>
+<h3 id="42-タイムスタンプ-format-date-time">4.2 タイムスタンプ (<code>format: "date-time"</code>)</h3>
+<p><code>schemas/process-flow.schema.json</code> 全体で <strong><code>format: "date-time"</code> 9 箇所</strong> (<code>:93</code>, <code>:94</code>, <code>:204</code> 他)。すべて ISO 8601 形式 (RFC 3339):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>2026-04-26T00:00:00.000Z</span></span></code></pre>
+<h4 id="規範-11">規範</h4>
+<ul>
+<li>タイムスタンプは <strong>ISO 8601 / RFC 3339 / <code>Z</code> (UTC)</strong> で保存する</li>
+<li>schema 上は <code>format: "date-time"</code> を必ず付ける (Ajv ajv-formats で実行時検証可)</li>
+<li>ローカル時刻 / <code>+09:00</code> 形式は <strong>使用しない</strong> (タイムゾーン解釈の差異を避ける)</li>
+</ul>
+<h3 id="43-参照式-式言語-の規範">4.3 参照式 (式言語) の規範</h3>
+<p><code>docs/spec/process-flow-expression-language.md</code> で BNF 定義済み (<code>js-subset</code>)。schema 上は <code>string</code> のままで、convention として:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>接頭辞</th><th>参照先</th><th>例</th></tr></thead><tbody><tr><td><code>@&#x3C;identifier></code></td><td>変数 (inputs / outputBinding / ループ変数 / ambientVariables)</td><td><code>@cart</code>, <code>@inventoryUpdate</code></td></tr><tr><td><code>@inputs.&#x3C;field></code></td><td>action inputs 全体参照 (推奨)</td><td><code>@inputs.cartId</code>, <code>@inputs.customerId</code></td></tr><tr><td><code>@&#x3C;var>.&#x3C;path></code> / <code>@&#x3C;var>?.&#x3C;path></code></td><td>ネストアクセス / Optional chain</td><td><code>@persistedOrder.id</code>, <code>@paymentAuth?.id</code></td></tr><tr><td><code>@conv.&#x3C;category>.&#x3C;key></code></td><td>conventions catalog 参照</td><td><code>@conv.tax.standard.rate</code>, <code>@conv.regex.phone-jp</code>, <code>@conv.limit.quantityMax</code>, <code>@conv.msg.required</code></td></tr><tr><td><code>@secret.&#x3C;key></code></td><td>secretsCatalog 参照</td><td><code>@secret.stripeApiKey</code></td></tr><tr><td><code>@env.&#x3C;KEY></code></td><td>envVarsCatalog 参照</td><td><code>@env.STRIPE_API_BASE</code>, <code>@env.MAX_RETRY_ATTEMPTS</code></td></tr><tr><td><code>@fn.&#x3C;name>(&#x3C;args>)</code></td><td>functionsCatalog 関数呼出</td><td><code>@fn.calcTax(@subtotal, @conv.tax.standard.rate)</code>, <code>@fn.generateUUID()</code></td></tr><tr><td><code>$statusCode</code> / <code>$response.body</code> / <code>$response.body#/path</code></td><td>Arazzo Runtime Expression (Criterion 内のみ)</td><td><code>$statusCode == 200</code></td></tr></tbody></table>
+<h4 id="規範-12">規範</h4>
+<ul>
+<li><strong>基本は <code>@</code> 記法 (一括統一)</strong></li>
+<li><code>$</code> 記法は <strong>Criterion (<code>ExternalSystemStep.successCriteria</code>) 内のみ</strong> (Arazzo 1.0 互換性のため)</li>
+<li>旧 <code>@statusCode</code> / <code>@responseBody</code> も Criterion 内では後方互換で valid (<code>docs/spec/process-flow-criterion.md:21-23</code>)</li>
+<li>schema 上は string で受け、参照整合性バリデータ (<code>frontend/src/schemas/identifierScope.ts</code> / <code>conventionsValidator.ts</code> / <code>referentialIntegrity.ts</code>) で警告を出す</li>
+</ul>
+<h4 id="採用しない代替案-6">採用しない代替案</h4>
+<ul>
+<li>「全部 <code>$</code> 記法に統一」: 既存 4 sample 全件に影響 (破壊的変更)、@ 記法は spec 全体で確立</li>
+<li>「<code>expression: { lang, src }</code> ラッパー化」: <code>docs/spec/process-flow-expression-language.md:13-20</code> で既に YAGNI 棄却済</li>
+</ul>
+<h3 id="44-sql-内式補間">4.4 SQL 内式補間</h3>
+<p><code>DbAccessStep.sql</code> (<code>schemas/process-flow.schema.json:1114</code>) は文字列。式補間規約は <code>docs/spec/process-flow-runtime-conventions.md §1</code>:</p>
+<ul>
+<li><code>@expression</code> は prepared statement の <code>$N</code> に変換 (PostgreSQL) / <code>?</code> に変換 (MySQL)</li>
+<li>SQL keyword (<code>CURRENT_TIMESTAMP</code>, <code>NULL</code> 等) と列名は SQL 字句としてそのまま</li>
+<li><code>IN (@ids)</code> 等の配列展開は要素数に応じて <code>$N, $N+1, ...</code> を展開</li>
+</ul>
+<p>schema 上は強制されないが、SQL 検証バリデータ (<code>frontend/src/schemas/sqlColumnValidator.ts</code>) でカラム整合をチェック。</p>
+<h3 id="45-環境別-override-の参照式スキーム">4.5 環境別 override の参照式スキーム</h3>
+<p><code>secretsCatalog[key].values</code> および <code>envVarsCatalog[key].values</code> の値文字列は以下のスキームで書く (<code>docs/spec/process-flow-secrets.md §3</code>):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>スキーム</th><th>形式</th><th>用途</th></tr></thead><tbody><tr><td><code>vault://</code></td><td><code>vault://&#x3C;path></code></td><td>HashiCorp Vault / AWS/GCP Secret Manager</td></tr><tr><td><code>env://</code></td><td><code>env://&#x3C;ENV_NAME></code></td><td>環境変数</td></tr><tr><td><code>k8s-secret://</code></td><td><code>k8s-secret://&#x3C;secret>[/&#x3C;key>]</code></td><td>Kubernetes Secret</td></tr><tr><td><code>file://</code></td><td><code>file://&#x3C;path></code></td><td>ローカルファイル (開発時のみ)</td></tr></tbody></table>
+<p>schema 上は <code>additionalProperties: { "type": "string" }</code> で受け、convention でスキーム規約を規定。</p>
+<hr>
+<h2 id="5-設計画面でのコード補完設計">5. 設計画面でのコード補完設計</h2>
+<p>ProcessFlow / Conventions / Extensions の各 JSON ファイルを編集するとき、IDE (VS Code 等) で IntelliSense を効かせるための設計原則。</p>
+<h3 id="51-processflow-root-に-schema-を許可する-推奨改善">5.1 ProcessFlow root に <code>$schema</code> を許可する (推奨改善)</h3>
+<h4 id="現状の問題">現状の問題</h4>
+<ul>
+<li><code>schemas/conventions.schema.json:10-13</code> は root に <code>$schema?: string</code> を<strong>許可</strong> している (実例: <code>docs/sample-project/conventions/conventions-catalog.json:2</code>)</li>
+<li><code>schemas/process-flow.schema.json:7-9</code> の root は <strong><code>$schema</code> を properties に持たず</strong>、<code>additionalProperties: false</code> のため、ProcessFlow JSON に <code>$schema</code> ヘッダを書くと <strong>validation error</strong></li>
+<li>結果として、ProcessFlow JSON 編集時に <strong>VS Code の自動 schema association が効かない</strong> (IDE 補完が機能しない)</li>
+</ul>
+<h4 id="提案-additive-改善">提案 (additive 改善)</h4>
+<p>ProcessFlow root に optional <code>$schema</code> を許可:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 提案 (本ドキュメント承認後の別 PR で実装)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "additionalProperties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">false</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },  </span><span style="color:#6A737D;--shiki-dark:#768390">// ← 追加</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">    // ... 既存</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>docs/sample-project/process-flows/*.json</code> にも以下を追加できる:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/process-flow.schema.json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">  ...</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>これにより VS Code が自動で schema を解決し、ProcessFlow JSON 全体に IntelliSense が効く。</p>
+<h4 id="互換性">互換性</h4>
+<ul>
+<li>既存 sample / 業務データは <code>$schema</code> を持たないので影響なし</li>
+<li>新規データから optional で追加可能</li>
+<li>additive で後方互換維持</li>
+</ul>
+<h4 id="規範-13">規範</h4>
+<ul>
+<li>全 schema の root は <code>$schema?: string</code> を <strong>許可する</strong> (本ドキュメント承認後)</li>
+<li>既存 conventions schema は既に許可済み、ProcessFlow schema を同じパターンに揃える</li>
+</ul>
+<h3 id="52-enum-と-const-を-named-type-化する">5.2 enum と const を named type 化する</h3>
+<p>JSON Schema → TypeScript 型生成 (json-schema-to-typescript / quicktype) は <strong><code>$defs</code> の名前付き型を named TypeScript type として出力</strong>する。inline の anonymous enum は anonymous union 型になり、IDE 補完精度が落ちる。</p>
+<h4 id="規範-14">規範</h4>
+<ul>
+<li>enum 値は <code>$defs/&#x3C;EnumName></code> として name を付ける (例: <code>StepType</code>, <code>WorkflowPattern</code>, <code>DbOperation</code>)</li>
+<li>variant の <code>type: { const: "..." }</code> は inline で OK (variant の文脈が明確)</li>
+<li>TypeScript 型は schema から生成可能な状態を維持する</li>
+</ul>
+<h3 id="53-additionalproperties-false-で誤字検出">5.3 <code>additionalProperties: false</code> で誤字検出</h3>
+<p>§3.1 で確立した規範。誤字を実行時に検出するため。</p>
+<h3 id="54-description-を全-prop-に付ける">5.4 <code>description</code> を全 prop に付ける</h3>
+<p><code>description</code> は JSON Schema annotation として:</p>
+<ul>
+<li>IDE のホバー hover ドキュメントとして表示される</li>
+<li>TypeScript 型生成時に JSDoc コメントとして出力される</li>
+<li>AI 実装者が prop の意図を読み取る正規情報源</li>
+</ul>
+<h4 id="規範-15">規範</h4>
+<ul>
+<li>新規 prop / 新規 $defs / 新規 enum 値には<strong>必ず <code>description</code> を付ける</strong></li>
+<li>description は <strong>「何のためにあるか」</strong> を書く。型情報の繰り返し (<code>integer 値</code>) は不要、<strong>意図と単位</strong>を書く (<code>タイムアウトまでのミリ秒</code>)</li>
+<li>既存 prop に description が無い箇所は別 PR で漸進的に追加</li>
+</ul>
+<p>例: <code>Sla.timeoutMs</code> (<code>schemas/process-flow.schema.json:115</code>) は description 無し → 追加対象。<code>Sla.warningThresholdMs</code> (<code>:118</code>) も同様。</p>
+<h3 id="55-各設計画面でのコード補完経路">5.5 各設計画面でのコード補完経路</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>画面</th><th>補完元</th><th>補完経路</th></tr></thead><tbody><tr><td>ProcessFlowEditor</td><td>StepType / WorkflowPattern / DbOperation / FieldType.kind 等の enum + ScreenItem.id (screenItemRef 用)</td><td>schema enum + extensions 合成 schema (§6)</td></tr><tr><td>Designer (画面)</td><td>ScreenItem.id / type 候補</td><td><code>screens/&#x3C;id>.json#items[]</code> (Phase 4-β migration 後は screen entity に embed、#712) + conventions catalog</td></tr><tr><td>TableEditor / ER 図</td><td>tableId / tableName / カラム型</td><td>tables JSON</td></tr><tr><td>Extensions panel</td><td>namespace / steps / fieldTypes / triggers / dbOperations</td><td>extensions/*.schema.json + DynamicFormSchema</td></tr><tr><td>拡張 step 編集</td><td>DynamicFormSchema (各拡張定義)</td><td>extensions/<ns>/steps.json の <code>schema</code> フィールド (<code>schemas/extensions-steps.schema.json:30-57</code> の subset)</ns></td></tr></tbody></table>
+<h3 id="56-動的フォーム生成のスコープ制限">5.6 動的フォーム生成のスコープ制限</h3>
+<p><code>docs/spec/plugin-system.md:265-281</code> で確立済みの <strong>DynamicFormSchema 対応キーワード</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>キーワード</th><th>対応</th></tr></thead><tbody><tr><td><code>type: "string"</code> / <code>"number"</code> / <code>"integer"</code> / <code>"boolean"</code></td><td>✅</td></tr><tr><td><code>enum</code></td><td>✅</td></tr><tr><td><code>type: "object"</code> + <code>properties</code></td><td>✅ (再帰)</td></tr><tr><td><code>type: "array"</code> + <code>items</code></td><td>✅ (再帰)</td></tr><tr><td><code>required</code>, <code>description</code>, <code>default</code>, <code>additionalProperties</code></td><td>✅</td></tr><tr><td><code>oneOf</code> / <code>anyOf</code> / <code>allOf</code> / <code>$ref</code> / <code>if-then-else</code> / <code>dependencies</code> / <code>patternProperties</code> / <code>format</code></td><td>❌ 非対応</td></tr></tbody></table>
+<h4 id="規範-16">規範</h4>
+<ul>
+<li>拡張 step の schema 定義者は対応キーワードのみ使う</li>
+<li>非対応キーワードは <code>extensions-steps.schema.json</code> の段階で reject</li>
+<li>core schema 側 (本ドキュメントが対象) はフル JSON Schema 機能を使ってよい (動的フォーム生成の対象ではないため)</li>
+</ul>
+<hr>
+<h2 id="6-拡張判断ガイドライン-フローチャート--version-metadata">6. 拡張判断ガイドライン (フローチャート + version metadata)</h2>
+<h3 id="61-グローバル-schema-vs-拡張定義-vs-業務-catalog-の判断フロー">6.1 グローバル schema vs 拡張定義 vs 業務 catalog の判断フロー</h3>
+<p>業務開発者 (AI 含む) が新しい概念を表現したいとき、以下の順で判断する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>新しい概念を表現したい</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  ├─ Q1: 既存 schema フィールドで表現できる?</span></span>
+<span class="line"><span>  │   YES → 既存 schema を使う (例: type: "other" + outputSchema + description)</span></span>
+<span class="line"><span>  │   NO  ↓</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  ├─ Q2: 業務規約 catalog (msg / regex / limit / role / numbering 等) で表現できる?</span></span>
+<span class="line"><span>  │   YES → conventions-catalog.json に追加 (BU 開発者権限)</span></span>
+<span class="line"><span>  │   NO  ↓</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  ├─ Q3: 拡張機構 (namespace) で表現できる?</span></span>
+<span class="line"><span>  │   ├─ 新しい step type     → extensions/&#x3C;ns>/steps.json</span></span>
+<span class="line"><span>  │   ├─ 新しい field type    → extensions/&#x3C;ns>/field-types.json</span></span>
+<span class="line"><span>  │   ├─ 新しい trigger       → extensions/&#x3C;ns>/triggers.json</span></span>
+<span class="line"><span>  │   ├─ 新しい db operation  → extensions/&#x3C;ns>/db-operations.json</span></span>
+<span class="line"><span>  │   ├─ 新しい response type → extensions/&#x3C;ns>/response-types.json</span></span>
+<span class="line"><span>  │   YES → 拡張定義に追加 (BU 開発者権限)</span></span>
+<span class="line"><span>  │   NO  ↓</span></span>
+<span class="line"><span>  │</span></span>
+<span class="line"><span>  └─ Q4: グローバル schema 変更が本当に必要</span></span>
+<span class="line"><span>      → 作業停止 + ISSUE 起票 (#511)</span></span>
+<span class="line"><span>        - タイトル: improve(schema): &#x3C;フィールド名> 追加検討 — &#x3C;経緯></span></span>
+<span class="line"><span>        - 設計者承認待ち</span></span></code></pre>
+<p>詳細: <code>docs/spec/schema-governance.md §3</code></p>
+<h3 id="62-グローバル化の判断基準">6.2 グローバル化の判断基準</h3>
+<p><code>docs/spec/plugin-system.md:11-18</code> 由来。<strong>「どの業務プロジェクトでも合理的に必要になるか」</strong> を問う:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>区分</th><th>基準</th><th>例</th></tr></thead><tbody><tr><td><strong>グローバル</strong></td><td>どの業務プロジェクトでも合理的に必要になる</td><td><code>"file"</code> FieldType (#443) / <code>"auto"</code> ActionTrigger (#443) / <code>MERGE</code>/<code>LOCK</code> DbOperation (#443)</td></tr><tr><td><strong>プラグイン (namespace)</strong></td><td>特定プロジェクト・業界・業態に固有</td><td><code>retail:OrderConfirmStep</code> / <code>productCode</code> fieldType / <code>UPSERT_CART_ITEM</code> dbOperation</td></tr></tbody></table>
+<h3 id="63-拡張定義のメタデータ-推奨改善">6.3 拡張定義のメタデータ (推奨改善)</h3>
+<h4 id="現状の問題-1">現状の問題</h4>
+<p><code>schemas/extensions-*.schema.json</code> 全 5 ファイルは <strong>namespace のみ必須</strong> で、version / 互換性宣言を持たない:</p>
+<ul>
+<li><code>schemas/extensions-steps.schema.json:6-16</code></li>
+<li><code>schemas/extensions-field-types.schema.json:6-12</code></li>
+<li><code>schemas/extensions-db-operations.schema.json:6-12</code></li>
+<li><code>schemas/extensions-triggers.schema.json:6-12</code></li>
+<li><code>schemas/extensions-response-types.schema.json:6-16</code></li>
+</ul>
+<p>長期運用 / 複数プロジェクト共有時に拡張定義の互換性追跡ができない。</p>
+<h4 id="提案-additive-改善-1">提案 (additive 改善)</h4>
+<p>各 extensions schema の root に optional 4 フィールドを追加:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"namespace"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;steps|fieldTypes|...>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "additionalProperties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">false</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },                    </span><span style="color:#6A737D;--shiki-dark:#768390">// §5.1 と同じ</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "namespace"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"pattern"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"^[a-z0-9_-]*$"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "version"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"拡張定義の SemVer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },              </span><span style="color:#6A737D;--shiki-dark:#768390">// ← 追加</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "requiresCoreSchema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"互換 core schema バージョン (例: '>=2026-04-25')"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },  </span><span style="color:#6A737D;--shiki-dark:#768390">// ← 追加</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "deprecated"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"boolean"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"拡張全体を廃止予定とマーク"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },  </span><span style="color:#6A737D;--shiki-dark:#768390">// ← 追加</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },                </span><span style="color:#6A737D;--shiki-dark:#768390">// ← 追加</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "&#x3C;steps|fieldTypes|...>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#6A737D;--shiki-dark:#768390">/* 既存 */</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h4 id="互換性-1">互換性</h4>
+<ul>
+<li>既存 retail / response-types 拡張は <code>version</code> 等を持たないが optional のため有効のまま</li>
+<li>新規拡張から段階的に <code>version</code> を付ける運用</li>
+</ul>
+<h4 id="規範-本ドキュメント承認後-1">規範 (本ドキュメント承認後)</h4>
+<ul>
+<li>新規 extensions schema および既存 5 ファイルに optional <code>version</code> / <code>requiresCoreSchema</code> / <code>deprecated</code> / <code>description</code> を additive 追加 (別 PR で実装)</li>
+<li>拡張定義執筆時は新規データに <code>version: "1.0.0"</code> を付ける推奨</li>
+</ul>
+<h3 id="64-二段検証-core-schema--extension-registry-の合成-validation">6.4 二段検証 (core schema + extension registry の合成 validation)</h3>
+<p><code>docs/spec/plugin-system.md:247-248</code> で既に方針が示されているが、原則として明文化:</p>
+<h4 id="規範-17">規範</h4>
+<ul>
+<li>core schema は <strong>拡張機構の入口だけ受ける</strong> (<code>OtherStep.type</code> の pattern: <code>^[a-z][a-z0-9_-]*:[A-Z][A-Za-z0-9]*$</code> at <code>schemas/process-flow.schema.json:1862-1866</code>)</li>
+<li>拡張 step の <strong>存在検証 / DynamicFormSchema 整合検証</strong> は <strong>二段検証</strong> で行う:
+<ul>
+<li><strong>段 1</strong>: core schema による pattern / 必須 / additionalProperties 検証</li>
+<li><strong>段 2</strong>: extensions registry を読んで、core schema + extensions の合成 schema を組み立て、追加検証</li>
+</ul>
+</li>
+<li>段 2 の実装: Node 環境では <code>loadExtensionsFromDir(dir)</code> (<code>frontend/src/schemas/loadExtensions.ts:125</code>) が拡張定義ディレクトリを読み合成 schema を組み立てる。ブラウザ環境では <code>wsBridge</code> 経由で取得した bundle に対して <code>loadExtensionsFromBundle(bundle)</code> (同上 <code>:174</code>) を使う</li>
+</ul>
+<h4 id="採用しない代替案-7">採用しない代替案</h4>
+<ul>
+<li>「core schema に拡張 step を直接展開 (<code>Step.oneOf</code> に追加)」: ガバナンス違反 (拡張は設計者専権の core schema を変えられない)</li>
+<li>「拡張のみで完結」: core schema が拡張機構を持たないと、拡張無しでも valid であることが保証できない</li>
+</ul>
+<h3 id="65-拡張間の参照は基本的に許可しない-現状">6.5 拡張間の参照は基本的に許可しない (現状)</h3>
+<p>現在の extensions schema では、拡張 step が拡張 fieldType を参照することは表現できない。</p>
+<ul>
+<li>拡張 step の <code>schema</code> (<code>schemas/extensions-steps.schema.json:30-57</code>) は DynamicFormSchema (subset) で、<code>$ref</code> 不可</li>
+<li>拡張 fieldType (<code>schemas/extensions-field-types.schema.json:13-24</code>) は kind/label のみ</li>
+</ul>
+<h4 id="規範-現時点">規範 (現時点)</h4>
+<ul>
+<li>拡張間参照は <strong>将来検討領域</strong> とし、現状は core schema (FieldType / OtherStep) を経由する形を取る</li>
+<li>必要が顕在化したら別 ISSUE で設計検討</li>
+</ul>
+<hr>
+<h2 id="7-後方互換性ルール">7. 後方互換性ルール</h2>
+<h3 id="71-すべての追加は-optional">7.1 すべての追加は optional</h3>
+<ul>
+<li>新規フィールドは <strong>常に optional</strong> (required 配列に追加しない)</li>
+<li>enum 値追加は <strong>additive のみ</strong> (削除・置換不可)</li>
+<li>既存 sample / 業務データが引き続き valid であること</li>
+</ul>
+<p>監査根拠: <code>docs/spec/schema-audit-2026-04-27.md:138-145</code> (102 コミット精査で破壊的変更ゼロ確認)</p>
+<h3 id="72-旧形式は-union-型で-path-を残す">7.2 旧形式は union 型で path を残す</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>旧</th><th>新</th><th>union 名</th></tr></thead><tbody><tr><td><code>string</code> (改行区切り)</td><td><code>StructuredField[]</code></td><td><code>ActionFields</code> (<code>:835-843</code>)</td></tr><tr><td><code>string</code> (<code>"ApiError"</code> 等)</td><td><code>{typeRef}</code> / <code>{schema}</code></td><td><code>BodySchemaRef</code> (<code>:688-709</code>)</td></tr><tr><td><code>string</code></td><td><code>StructuredCriterion</code></td><td><code>Criterion</code> (<code>:1178-1184</code>)</td></tr><tr><td><code>string</code></td><td><code>OutputBindingObject</code></td><td><code>OutputBinding</code> (<code>:908-913</code>)</td></tr><tr><td><code>string</code></td><td><code>BranchConditionVariant</code></td><td><code>BranchCondition</code> (<code>:1488-1493</code>)</td></tr><tr><td><code>string</code></td><td><code>Step[]</code></td><td><code>ValidationInlineBranch.ok/ng</code> (<code>:1018-1029</code>)</td></tr></tbody></table>
+<h4 id="規範-18">規範</h4>
+<ul>
+<li>旧形式 → 新形式の移行時は <strong>union 型 (oneOf)</strong> で path を残す</li>
+<li>新規データは structured (新形式) を使う、旧 string 形式は後方互換のみ</li>
+<li>移行が完了したら <code>deprecated: true</code> annotation を付ける検討 (将来 ISSUE)</li>
+</ul>
+<h3 id="73-deprecated-annotation-の活用">7.3 deprecated annotation の活用</h3>
+<p>§3.7 を参照。廃止予定の field / variant には <code>deprecated: true</code> を付け、<code>description</code> で代替を案内する。</p>
+<h3 id="74-migration-関数で読み込み時に正規化">7.4 migration 関数で読み込み時に正規化</h3>
+<p><code>frontend/src/utils/actionMigration.ts</code> の <code>migrateProcessFlow</code> が以下を読み込み時に変換:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>旧形式</th><th>新形式</th></tr></thead><tbody><tr><td><code>note: "想定: ..."</code></td><td><code>notes: [{type: "assumption", body: "想定: ..."}]</code></td></tr><tr><td><code>condition: ""</code> (空文字列)</td><td><code>condition: undefined</code> (ElseBranch では condition 自体が optional)</td></tr><tr><td><code>inputs: "userId\npassword"</code></td><td>(UI が表形式で開いたとき) <code>inputs: [{name: "userId"}, {name: "password"}]</code></td></tr><tr><td><code>outputBinding: "result"</code></td><td>(operation 必要時のみ) <code>{name: "result", operation: "assign"}</code></td></tr><tr><td><code>maturity</code> 未指定</td><td><code>"draft"</code></td></tr><tr><td><code>mode</code> 未指定</td><td><code>"upstream"</code></td></tr></tbody></table>
+<p>schema 側は両形式を受け、UI/実装側で migration して扱う。</p>
+<h3 id="75-schema-versioning-将来検討">7.5 schema versioning (将来検討)</h3>
+<p>現状 schema は単一バージョン (<code>$id: ".../main/schemas/process-flow.schema.json"</code>)。将来的に破壊的変更が必要になった場合の方針:</p>
+<ul>
+<li>v1 / v2 を別ファイル (<code>process-flow.v2.schema.json</code>) で並存</li>
+<li><code>$id</code> を versioned URL (<code>.../v2/process-flow.schema.json</code>) にする</li>
+<li>migration 関数を v1 → v2 で提供</li>
+<li>採用判断は本ドキュメントのスコープ外、別 ISSUE で起票</li>
+</ul>
+<hr>
+<h2 id="8-テスト規約">8. テスト規約</h2>
+<h3 id="81-schema-validation-テスト">8.1 schema validation テスト</h3>
+<p><code>frontend/src/schemas/samples-v3.schema.test.ts</code> / <code>v3-variant-coverage.test.ts</code> (および周辺) で:</p>
+<ul>
+<li><code>examples/&#x3C;project-id>/process-flows/*.json</code> 全件を schema validation で検証 (positive)</li>
+<li>故意に invalid なデータも negative ケースとして検証</li>
+<li>新規フィールド追加時は <strong>両ケース</strong> を追加する</li>
+</ul>
+<p>実行: <code>cd frontend &#x26;&#x26; npx vitest run</code></p>
+<blockquote>
+<p>注: v1 凍結テスト (v1 schema 用) は #774 で削除済み。現行は v3 schema を対象とする <code>samples-v3.schema.test.ts</code> を参照。</p>
+</blockquote>
+<h3 id="82-参照整合性テスト">8.2 参照整合性テスト</h3>
+<p><code>frontend/src/schemas/referentialIntegrity.ts</code> / <code>referentialIntegrity.test.ts</code> で:</p>
+<ul>
+<li><code>ReturnStep.responseRef</code> / <code>ValidationStep.inlineBranch.ngResponseRef</code> が <code>action.responses[].id</code> に存在</li>
+<li><code>affectedRowsCheck.errorCode</code> / <code>BranchConditionVariant.errorCode</code> が <code>errorCatalog</code> のキーに存在</li>
+<li>ネスト構造 (<code>loop.steps</code> / <code>branch.branches[].steps</code> / <code>outcomes.*.sideEffects</code> / <code>subSteps</code>) も再帰検査</li>
+</ul>
+<p>JSON Schema 単体で検証できない cross-reference を補完する。</p>
+<h3 id="83-拡張ローダーテスト">8.3 拡張ローダーテスト</h3>
+<p><code>frontend/src/schemas/loadExtensions.test.ts</code> で:</p>
+<ul>
+<li>各 namespace の拡張定義を読み込み合成 schema を組み立てる</li>
+<li>重複 enum 値の検出</li>
+<li>DynamicFormSchema の対応キーワード制限の検証</li>
+</ul>
+<h3 id="84-conventions-整合テスト">8.4 conventions 整合テスト</h3>
+<p><code>frontend/src/schemas/conventionsValidator.ts</code> / <code>conventionsValidator.test.ts</code> で:</p>
+<ul>
+<li><code>@conv.msg.*</code> / <code>@conv.regex.*</code> / <code>@conv.limit.*</code> 参照を catalog と突合</li>
+<li>未定義参照の警告</li>
+</ul>
+<h3 id="85-sql-カラム整合テスト">8.5 SQL カラム整合テスト</h3>
+<p><code>frontend/src/schemas/sqlColumnValidator.ts</code> / <code>sqlColumnValidator.test.ts</code> で:</p>
+<ul>
+<li><code>DbAccessStep.sql</code> 内の列参照をテーブル定義と突合 (node-sql-parser + PostgreSQL dialect)</li>
+<li><code>/create-flow</code> の Rule 9 (#486 検証で発覚した SELECT カラム整合) を CI で担保</li>
+</ul>
+<h3 id="86-規範">8.6 規範</h3>
+<ul>
+<li>新規 schema 拡張は <strong>同 PR 内で positive + negative テストを追加</strong>する</li>
+<li><code>docs/sample-project/process-flows/</code> の sample で<strong>新規拡張を実体使用</strong>する (<code>docs/spec/process-flow-extensions.md §15.3</code> の規範)</li>
+<li>テスト pass を理由に schema を勝手に拡張するのは<strong>絶対禁止</strong> (<code>schema-governance.md §2</code>)</li>
+</ul>
+<hr>
+<h2 id="9-文書化ルール-spec-カバレッジマップ">9. 文書化ルール (spec カバレッジマップ)</h2>
+<h3 id="91-19-spec-文書のカバレッジマップ">9.1 19 spec 文書のカバレッジマップ</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>spec 文書</th><th>規範化対象</th><th>主要 schema 領域</th></tr></thead><tbody><tr><td><code>process-flow-extensions.md</code></td><td>Phase B 包括リファレンス (HTTP 契約 / TX / outcome / Saga / runIf / ReturnStep / ComputeStep / errorCatalog / domainsCatalog / functionsCatalog / eventsCatalog / glossary / decisions / cache / lineage / apiVersion + 拡張実装ガイドライン)</td><td><code>ActionDefinition.httpRoute</code> / <code>responses</code> / <code>ExternalSystemStep.outcomes</code> / <code>affectedRowsCheck</code> / <code>BranchConditionVariant</code> / <code>OutputBinding</code> / <code>errorCatalog</code> / <code>domainsCatalog</code> / <code>functionsCatalog</code> / <code>eventsCatalog</code> / <code>glossary</code> / <code>decisions</code></td></tr><tr><td><code>process-flow-variables.md</code></td><td>入出力・変数・outputBinding (Phase 1 基盤)</td><td><code>ActionFields</code> / <code>StructuredField</code> / <code>OutputBinding</code> / <code>argumentMapping</code></td></tr><tr><td><code>process-flow-maturity.md</code></td><td>成熟度 (<code>maturity</code>)・付箋 (<code>notes[]</code>)・モード (<code>mode</code>)</td><td><code>Maturity</code> / <code>StepNote</code> / <code>ProcessFlowMode</code></td></tr><tr><td><code>process-flow-runtime-conventions.md</code></td><td>SQL 補間 / HTTP serialize / TX × throw × tryCatch / fireAndForget / sideEffects 境界 / ambient context</td><td>(schema 制約外 = convention) <code>DbAccessStep.sql</code> / <code>ExternalHttpCall.body</code> / <code>txBoundary</code> / <code>ambientOverrides</code></td></tr><tr><td><code>process-flow-expression-language.md</code></td><td>runIf / expression / bodyExpression / condition の BNF</td><td>(schema 制約外 = convention) <code>runIf</code> / <code>expression</code> / <code>bodyExpression</code> / <code>condition</code></td></tr><tr><td><code>process-flow-workflow.md</code></td><td>WorkflowStep / WorkflowPattern (11 パターン)</td><td><code>WorkflowStep</code> / <code>WorkflowPattern</code> / <code>WorkflowApprover</code> / <code>WorkflowQuorum</code> / <code>WorkflowEscalateTo</code></td></tr><tr><td><code>process-flow-transaction.md</code></td><td>TransactionScopeStep + 既存 txBoundary との関係</td><td><code>TransactionScopeStep</code> / <code>TxBoundary</code></td></tr><tr><td><code>process-flow-sla.md</code></td><td>SLA / Timeout (3 レベル)</td><td><code>Sla</code> (<code>ProcessFlow</code> / <code>ActionDefinition</code> / <code>StepBase</code>)</td></tr><tr><td><code>process-flow-criterion.md</code></td><td>Criterion (Arazzo successCriteria 互換)</td><td><code>Criterion</code> / <code>StructuredCriterion</code> / <code>CriterionType</code></td></tr><tr><td><code>process-flow-external-system.md</code></td><td>ExternalSystemStep の OpenAPI operation 参照</td><td><code>ExternalSystemStep.operationRef</code> / <code>operationId</code> / <code>requestBodyRef</code> / <code>responseRef</code></td></tr><tr><td><code>process-flow-testing.md</code></td><td>testScenarios (Given-When-Then)</td><td><code>TestScenario</code> / <code>TestPrecondition</code> / <code>TestInvocation</code> / <code>TestAssertion</code></td></tr><tr><td><code>process-flow-secrets.md</code></td><td>secretsCatalog (環境別参照式)</td><td><code>SecretRef</code> / <code>secretsCatalog</code></td></tr><tr><td><code>process-flow-env-vars.md</code></td><td>envVarsCatalog (Power Platform Environment Variables 由来)</td><td><code>EnvVarEntry</code> / <code>envVarsCatalog</code></td></tr><tr><td><code>process-flow-tier-c.md</code></td><td>C-1 ExternalSystemStep の circuitBreaker / bulkhead / C-2 ClosingStep / C-3 CdcStep / C-4 health/readiness / C-5 resources</td><td><code>CircuitBreakerConfig</code> / <code>BulkheadConfig</code> / <code>ClosingStep</code> / <code>CdcStep</code> / <code>HealthCheckGroup</code> / <code>ReadinessCheckGroup</code> / <code>ResourceRequirements</code></td></tr><tr><td><code>screen-items.md</code></td><td>画面項目定義 + ScreenItem.id ↔ StructuredField.screenItemRef</td><td>(別 schema) ScreenItem / <code>StructuredField.screenItemRef</code></td></tr><tr><td><code>list-common.md</code></td><td>一覧系 UI 共通仕様 (操作・キーボード・D&#x26;D・コピペ・ソート・フィルタ)</td><td>(UI 仕様、schema 関連薄い)</td></tr><tr><td><code>plugin-system.md</code></td><td>プラグインシステム (5 種拡張 + 二段検証)</td><td><code>extensions-*.schema.json</code> 全 5 ファイル / <code>OtherStep.type</code> の <code>namespace:Name</code> pattern</td></tr><tr><td><strong><code>schema-governance.md</code></strong></td><td><strong>最重要</strong>: グローバル schema 変更ガバナンス</td><td>(権限規範、schema そのものではない)</td></tr><tr><td><strong><code>schema-design-principles.md</code></strong> (本書)</td><td><strong>schema を どう書くか の規範</strong></td><td>(本書、schema そのものではない)</td></tr><tr><td><code>schema-audit-2026-04-27.md</code></td><td>過去 102 コミット精査レポート (Phase B-1)</td><td>(履歴監査)</td></tr><tr><td><code>dogfood-2026-04-26-finance.md</code> / <code>dogfood-2026-04-26-manufacturing.md</code> / <code>dogfood-2026-04-27-logistics-create-flow-validation.md</code> / <code>dogfood-2026-04-27-phase4-retail-validation.md</code></td><td>ドッグフード評価レポート</td><td>(実証ログ、規範ではない)</td></tr></tbody></table>
+<h3 id="92-重複領域-整理候補">9.2 重複領域 (整理候補)</h3>
+<p>以下の 3 文書には類似記述があり、将来整理候補:</p>
+<ul>
+<li><code>process-flow-expression-language.md §6</code> (式が現れるフィールド一覧)</li>
+<li><code>process-flow-runtime-conventions.md §1-§4</code> (SQL 補間 / body serialize / fireAndForget)</li>
+<li><code>process-flow-extensions.md §3.0-§3.3</code> (外部連携 outcome / httpCall)</li>
+</ul>
+<p>特に <code>process-flow-extensions.md</code> は Phase B 包括リファレンスを兼ねるため記述量が多い (§1-§15、約 1100 行)。新機能追加時の重複を避けるため、<strong>新規仕様は専用文書 (<code>process-flow-&#x3C;topic>.md</code>) に分離</strong>する規範を維持。</p>
+<h3 id="93-spec-文書執筆時の規範">9.3 spec 文書執筆時の規範</h3>
+<ul>
+<li><strong>意図 (Why)</strong> を冒頭で明記 (issue 番号 + 策定日 + 由来)</li>
+<li><strong>スキーマ (TS / JSON 型定義)</strong> を具体例として添える</li>
+<li><strong>JSON 例</strong> を最低 1 件示す</li>
+<li>既存規範との関係 (§N.x 参照) を相互リンク</li>
+<li><strong>後方互換性の方針</strong> を明記 (deprecated 扱い / migration 関数の役割)</li>
+<li><strong>採用しない代替案 (棄却理由)</strong> を残す (本ドキュメントの「採用しない代替案」セクションと同様)</li>
+</ul>
+<hr>
+<h2 id="10-既知の課題と将来-issue-候補">10. 既知の課題と将来 ISSUE 候補</h2>
+<p>本ドキュメント起草時点で認識された課題。<strong>本 #517 のスコープ外</strong> で、設計原則確立後に別 ISSUE で対応する。</p>
+<h3 id="101-schema-バグ-must-fix">10.1 schema バグ (Must-fix)</h3>
+<h4 id="b-1-workflowstep--transactionscopestep-から-sla-列挙抜け">B-1: WorkflowStep / TransactionScopeStep から <code>sla</code> 列挙抜け</h4>
+<ul>
+<li><strong>場所</strong>: <code>schemas/process-flow.schema.json:1789-1797</code> (WorkflowStep) / <code>:1963-1970</code> (TransactionScopeStep)</li>
+<li><strong>症状</strong>: StepBaseProps では <code>sla</code> を許可するが、WorkflowStep / TransactionScopeStep の variant <code>properties</code> で <code>sla: true</code> の列挙が抜けている。<code>additionalProperties: false</code> のため、両 step に <code>sla</code> を書くと validation error</li>
+<li><strong>解決策</strong>: variant の <code>properties</code> に <code>sla: true</code> を追加 (1 行ずつ)</li>
+<li><strong>より根本的な解決</strong>: §3.4 の <code>unevaluatedProperties: false</code> 移行</li>
+<li><strong>対応 ISSUE</strong>: 別途起票 (本ドキュメント承認後)</li>
+</ul>
+<h3 id="102-構造改善-should-fix非破壊">10.2 構造改善 (Should-fix、非破壊)</h3>
+<h4 id="b-2-processflow-root-に-schema-許可-51">B-2: ProcessFlow root に <code>$schema</code> 許可 (§5.1)</h4>
+<ul>
+<li><strong>対応 ISSUE</strong>: 別途起票</li>
+<li><strong>影響</strong>: ProcessFlow JSON で IDE IntelliSense が機能する</li>
+</ul>
+<h4 id="b-3-unevaluatedproperties-false-移行-34">B-3: <code>unevaluatedProperties: false</code> 移行 (§3.4)</h4>
+<ul>
+<li>22 step variant + WorkflowQuorum / WorkflowEscalateTo / etc の合成型を漸進的に移行</li>
+<li><strong>対応 ISSUE</strong>: 別途起票 (Phase 分け、最初は ValidationStep / DbAccessStep など主要 step から)</li>
+</ul>
+<h4 id="b-4-extensions-schema-の-version-metadata-追加-63">B-4: extensions schema の version metadata 追加 (§6.3)</h4>
+<ul>
+<li>5 extensions schema 全部に optional <code>version</code> / <code>requiresCoreSchema</code> / <code>deprecated</code> / <code>description</code> を additive 追加</li>
+<li><strong>対応 ISSUE</strong>: 別途起票</li>
+</ul>
+<h4 id="b-5-既存-prop-の-description-追加-54">B-5: 既存 prop の description 追加 (§5.4)</h4>
+<ul>
+<li>description が無い既存 prop (<code>Sla.timeoutMs</code> 他) に description を追加</li>
+<li><strong>対応 ISSUE</strong>: 別途起票 (低優先度)</li>
+</ul>
+<h3 id="103-運用改善-nit">10.3 運用改善 (Nit)</h3>
+<h4 id="b-6-workflowquorumtype-の-enum-を-named-type-化">B-6: WorkflowQuorum.type の <code>enum</code> を named type 化</h4>
+<ul>
+<li>現状 inline <code>enum: ["all", "any", "majority", "n-of-m"]</code> (<code>schemas/process-flow.schema.json:1757</code>)</li>
+<li><code>$defs/WorkflowQuorumType</code> に切り出して型として named にする</li>
+<li><strong>対応</strong>: 同上、低優先度</li>
+</ul>
+<h3 id="104-codex-セカンドオピニオンの引き継ぎ">10.4 Codex セカンドオピニオンの引き継ぎ</h3>
+<p><code>docs/spec/schema-redesign-proposal-codex-2026-04-27.md</code> で Codex が提示した 5 つの提案 (<code>unevaluatedProperties</code> / Step 階層化 / 二段検証 / extension version / <code>$schema</code> 許可) のうち、本ドキュメントで原則化したのは:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Codex 提案</th><th>本ドキュメントでの扱い</th></tr></thead><tbody><tr><td><code>unevaluatedProperties: false</code> 採用</td><td><strong>§3.4 で原則化、別 PR で実装 (B-3)</strong></td></tr><tr><td>Step 階層化 (CoreStep / ExtensionStep / NonReturnCoreStep)</td><td><strong>不採用</strong>: 現状の <code>Step</code> / <code>NonReturnStep</code> で機能十分、移行コスト > メリット</td></tr><tr><td>二段検証の正式化</td><td><strong>§6.4 で明文化 (既に <code>plugin-system.md:247-248</code> にあったものを原則として確立)</strong></td></tr><tr><td>extension file の <code>version</code> / <code>requiresCoreSchema</code> / <code>deprecated</code></td><td><strong>§6.3 で原則化、別 PR で実装 (B-4)</strong></td></tr><tr><td>ProcessFlow root に <code>$schema</code> optional 追加</td><td><strong>§5.1 で原則化、別 PR で実装 (B-2)</strong></td></tr></tbody></table>
+<hr>
+<h2 id="11-関連ドキュメント">11. 関連ドキュメント</h2>
+<ul>
+<li><code>docs/spec/schema-governance.md</code> (#511) — 変更権限の階層、本ドキュメントと対をなす</li>
+<li><code>docs/spec/schema-audit-2026-04-27.md</code> (#511 Phase B-1) — 過去 102 コミット精査レポート</li>
+<li><code>docs/spec/schema-redesign-proposal-codex-2026-04-27.md</code> (#517 セカンドオピニオン) — Codex (GPT-5.5) による現状分析と再設計提案、本ドキュメントの判断材料</li>
+<li><code>docs/spec/process-flow-*.md</code> (14 文書) — 個別仕様、本ドキュメントが横断する規範を補完する詳細</li>
+<li><code>docs/spec/plugin-system.md</code> (#442) — プラグインシステム (拡張機構の詳細)</li>
+<li><code>schemas/README.md</code> — JSON Schema 一次成果物の位置づけと使い方</li>
+<li>memory: <code>feedback_schema_governance_strict.md</code> (AI 永続記憶: schema 変更の権限)</li>
+</ul>
+<hr>
+<h2 id="12-変更履歴">12. 変更履歴</h2>
+<ul>
+<li>2026-04-27: 初版起草 (#517)。設計者 (Opus) が schema 全行 / spec 19 文書 / 4 sample / 拡張定義全件を読了の上で起草。Codex セカンドオピニオン (<code>schema-redesign-proposal-codex-2026-04-27.md</code>) を比較材料として使用</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

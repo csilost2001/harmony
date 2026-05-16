@@ -1,0 +1,171 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>process flow testing</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link active"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="処理フロー-テストシナリオ仕様">処理フロー テストシナリオ仕様</h1>
+<p><strong>改訂日: 2026-04-28 (v3 反映)</strong></p>
+<h2 id="目的">目的</h2>
+<p><code>testScenarios</code> は、処理フロー定義の中に Given-When-Then 形式のテストケースを同居させるための領域である。
+業務設計者が期待する振る舞いを、仕様書、実装指示、テスト観点として 1 つの <code>ProcessFlow</code> にまとめる。
+AI 実装者はこの配列を読み、単体テスト、結合テスト、E2E テストの下書きを自動生成できる。
+テストケースを別ファイルに分離しないことで、Action、outcome、DB 操作、外部システム参照とのずれを減らす。
+UI 表示は本仕様の対象外であり、まず JSON Schema と型定義で機械可読な形を固定する。</p>
+<h2 id="配置-v3">配置 (v3)</h2>
+<p>v3 では <code>testScenarios</code> は <code>ProcessFlow.authoring.testScenarios</code> に配置する (<code>ProcessFlow</code> 直下ではなく <code>authoring</code> ラッパ配下)。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"../../../schemas/v3/process-flow.v3.schema.json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "meta"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"11111111-1111-4111-8111-111111111111"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"注文処理"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "context"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"catalogs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {} },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "actions"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "authoring"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "testScenarios"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "glossary"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {},</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "decisions"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: []</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>既存の処理フローは <code>testScenarios</code> を持たなくても valid でなければならない。
+新規または成熟度の高い処理フローでは、最低限のシナリオを記述することを推奨する。</p>
+<h2 id="testscenario">TestScenario</h2>
+<p>各シナリオは 1 つの業務上の期待結果を表す。
+<code>id</code> はファイル内で一意な安定 ID とする。
+<code>name</code> は設計者と実装者が読む表示名とする。
+<code>description</code> は条件や狙いが名前だけで伝わらない場合に記述する。
+<code>given</code> は前提条件の配列である。
+<code>when</code> は起動する Action と入力値である。
+<code>then</code> は期待結果の配列である。
+<code>tags</code> は <code>happy</code>、<code>error</code>、<code>db</code>、<code>edge</code> など任意の分類に使う。</p>
+<h2 id="given">Given</h2>
+<p><code>given</code> にはテスト実行前に準備すべき状態を列挙する。
+複数の前提は配列順に読めるが、実行基盤は必要に応じて依存順に並べ替えてよい。
+前提条件は <code>kind</code> で種類を判別する。</p>
+<h3 id="dbstate">dbState</h3>
+<p><code>dbState</code> はテスト DB に投入するテーブル行を表す。
+<code>tableId</code> は対象テーブルの UUID (v3 では物理テーブル名でなく UUID 参照)。
+<code>rows</code> は投入する行オブジェクトの配列である。
+既存データを暗黙に期待せず、テストに必要な最小行を明示する。
+論理削除や有効期間など、分岐に影響する列も省略しない。</p>
+<p>v3 形式の dbState 例:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dbState"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "tableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"11111111-1111-4111-8111-111111111111"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "rows"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"status"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"active"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"expires_at"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"2099-12-31T23:59:59Z"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="sessioncontext">sessionContext</h3>
+<p><code>sessionContext</code> はログインユーザー、権限、リクエスト ID などの実行コンテキストを表す。
+<code>context</code> にはミドルウェアやフレームワークが通常注入する値を置く。
+<code>context.ambientVariables</code> と対応する値は、ここに記述すると実装テストが作りやすい。
+認可や監査に関わる値は、業務上の前提として明示する。</p>
+<h3 id="externalstub">externalStub</h3>
+<p><code>externalStub</code> は外部 API や外部サービスのモック応答を表す。
+<code>externalRef</code> は <code>context.catalogs.externalSystems</code> のキーを参照する (Identifier camelCase)。
+<code>responseMock</code> には HTTP ステータス、レスポンス body、例外相当の情報などを入れる。
+成功系だけでなく、タイムアウトや異常応答を表現する場合にも使う。</p>
+<h3 id="clock">clock</h3>
+<p><code>clock</code> は実行時刻を固定するための前提である。
+<code>now</code> は ISO 8601 形式の文字列とする。
+締め日、期限日、採番、監査ログ時刻など、現在時刻で結果が変わる処理で使う。
+時刻を固定しないと再現性が落ちるシナリオでは必ず指定する。</p>
+<h2 id="when">When</h2>
+<p><code>when</code> はテスト対象の起動点を表す。
+<code>actionId</code> は同じ <code>ProcessFlow</code> 内の <code>actions[].id</code> を参照する。
+<code>input</code> は画面入力値、HTTP request body、またはバッチ起動パラメータに相当する。
+入力値には正常値だけでなく、未入力、境界値、不正値もそのまま記述する。
+AI 実装者は <code>actionId</code> からルート、ハンドラ、ユースケースの呼び出し先を特定する。</p>
+<h2 id="then">Then</h2>
+<p><code>then</code> には検証すべき期待結果を列挙する。
+1 つのシナリオに複数の assertion を置いてよい。
+主要 outcome と、副作用の DB 行や外部呼び出しを同時に確認する使い方を想定する。
+assertion は <code>kind</code> で種類を判別する。</p>
+<h3 id="outcome">outcome</h3>
+<p><code>outcome</code> は Action の結果が期待した outcome または response に一致することを検証する。
+<code>expected</code> には <code>responses[].id</code>、分岐 outcome、または実装側が解釈できる結果 ID を記述する。
+正常終了、バリデーションエラー、業務エラーの最初の確認点として使う。</p>
+<h3 id="dbrow">dbRow</h3>
+<p><code>dbRow</code> は特定テーブルに期待する行が存在することを検証する。
+<code>tableId</code> は対象テーブルの UUID (v3 では物理テーブル名でなく UUID 参照)。
+<code>match</code> は一致条件または期待値の部分集合である。
+<code>count</code> を指定した場合は一致件数も検証する。
+INSERT、UPDATE、論理削除、履歴登録などの副作用確認に使う。</p>
+<h3 id="output">output</h3>
+<p><code>output</code> はレスポンス body や returnMapping の一部を検証する。
+<code>path</code> は JSON path など、実装側が解釈できる出力パスである。
+<code>equals</code> は完全一致の期待値である。
+<code>matches</code> は文字列や採番値を正規表現で検証する場合に使う。</p>
+<h3 id="externalcall">externalCall</h3>
+<p><code>externalCall</code> は外部システムが期待どおり呼び出されたことを検証する。
+<code>externalRef</code> は <code>context.catalogs.externalSystems</code> のキーを参照する (Identifier camelCase)。
+<code>method</code> は HTTP メソッドなどの呼び出し種別を表す。
+<code>bodyMatch</code> は送信 body の部分一致条件である。
+fire-and-forget の通知や、外部 API 連携の契約確認に使う。</p>
+<h3 id="auditlog">auditLog</h3>
+<p><code>auditLog</code> は監査ログが記録されたことを検証する。
+<code>action</code> は監査上の操作名である。
+<code>result</code> は <code>success</code> または <code>failure</code> を指定できる。
+この assertion は #397 で追加された <code>AuditStep</code> と対応する。
+監査要件がある処理では、成功時だけでなく失敗時の記録も検討する。</p>
+<h3 id="errormessage">errorMessage</h3>
+<p><code>errorMessage</code> はバリデーションや業務エラーのメッセージキーを検証する。
+<code>msgKey</code> は <code>@conv.msg.*</code> などの規約カタログ参照を想定する。
+文言そのものではなくキーを検証することで、多言語化や文言調整の影響を減らす。
+入力エラーのテストでは outcome と組み合わせて使う。</p>
+<h2 id="最低シナリオ">最低シナリオ</h2>
+<p>各 <code>ProcessFlow</code> には最低 3 件のシナリオを持たせることを推奨する。
+1 件目は happy path とし、主要な正常終了 outcome を確認する。
+2 件目は validation error とし、入力不備と <code>errorMessage</code> を確認する。
+3 件目は DB state dependency とし、<code>dbState</code> 前提と <code>dbRow</code> assertion を確認する。
+外部システム連携や監査要件が重要な場合は、<code>externalCall</code> や <code>auditLog</code> の追加シナリオを置く。</p>
+<h2 id="ai-実装者の責務">AI 実装者の責務</h2>
+<p>AI 実装者は <code>testScenarios</code> を単なる説明文として扱わず、テスト生成の入力として扱う。
+<code>when.actionId</code> が存在しない場合は、実装前に仕様不整合として報告する。
+<code>given</code> の <code>tableId</code> や <code>externalRef</code> が参照先と合わない場合も同様に扱う。
+assertion の意味を満たすために必要なテスト基盤は、対象アプリの標準的な方法で用意する。
+シナリオが 3 件未満の成熟した処理フローでは、テスト観点不足として追加提案する。</p>
+<h2 id="ajv-テスト">AJV テスト</h2>
+<p>v3 サンプルの検証: <code>cd frontend &#x26;&#x26; npx vitest run src/schemas/v3-samples.test.ts src/schemas/v3-variant-coverage.test.ts</code></p>
+<h2 id="関連">関連</h2>
+<ul>
+<li>スキーマ: <code>schemas/v3/process-flow.v3.schema.json</code> — <code>TestScenario</code> / <code>GivenVariant</code> / <code>ThenVariant</code></li>
+<li><code>docs/spec/process-flow-maturity.md</code> — 成熟度と down-stream モード</li>
+<li><code>examples/&#x3C;project-id>/actions/</code> または <code>examples/&#x3C;project-id>/process-flows/</code> — v3 形式の実サンプル (<code>authoring.testScenarios</code> 参照。canonical 置き場: <code>examples/retail/</code>, <code>examples/realestate/</code>)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

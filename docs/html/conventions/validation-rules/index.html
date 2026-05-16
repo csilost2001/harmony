@@ -1,0 +1,244 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>validation rules</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> 規約カタログ </div> <ul class="space-y-0.5"> <li> <a href="/conventions/expressions/" class="sidebar-link"> 式言語規約 (@conv/@env/@secret) </a> </li><li> <a href="/conventions/product-scope/" class="sidebar-link"> プロダクトスコープ </a> </li><li> <a href="/conventions/validation-rules/" class="sidebar-link active"> バリデーション規約 </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="バリデーション規約">バリデーション規約</h1>
+<p><strong>ステータス</strong>: JSON 正本 (active workspace の <code>&#x3C;dataDir>/conventions/catalog.json</code>)。本書は人間向け参考資料。
+<strong>策定日</strong>: 2026-04-20 (#151-A) / 更新 2026-04-22 (#317 で JSON 正本化・編集 UI 搭載)
+<strong>関連 issue</strong>: #151 (A: 設計書種別の追加) / #261 残 / #317 (UI 編集化)</p>
+<p>本書は処理フロー仕様書が参照する横断的なバリデーション規約 (メッセージテンプレート + 正規表現カタログ + 境界値) を定める。</p>
+<h2 id="正本の場所-317-で改訂">正本の場所 (#317 で改訂)</h2>
+<ul>
+<li><strong>ランタイム正本</strong>: active workspace の <code>&#x3C;dataDir>/conventions/catalog.json</code> (例: <code>workspaces/&#x3C;wsId>/&#x3C;dataDir>/conventions/catalog.json</code>)</li>
+<li><strong>サンプル</strong>: <code>examples/&#x3C;project-id>/harmony/conventions/catalog.json</code> (例: <code>examples/retail/harmony/conventions/catalog.json</code>)</li>
+<li><strong>JSON Schema</strong>: <a href="../../schemas/conventions.schema.json"><code>schemas/conventions.schema.json</code></a></li>
+<li><strong>参照整合性検証</strong>: <code>frontend/src/schemas/conventionsValidator.ts</code> が処理フロー内の <code>@conv.*</code> 参照を検査</li>
+<li><strong>編集 UI</strong>: 業務システムデザイナーの「規約カタログ」タブから閲覧・編集可 (#317)</li>
+</ul>
+<p><strong>本 md 本文 (§1-§3) は人間向け参考資料</strong>。編集・追加は基本的に designer アプリ経由で JSON を更新する。md と JSON で drift した場合は JSON 側が優先。</p>
+<hr>
+<h2 id="1-エラーメッセージ-テンプレート">1. エラーメッセージ テンプレート</h2>
+<p>全画面・全フロー共通。敬体 (ですます) で統一、簡潔を旨とする。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>コード</th><th>条件</th><th>テンプレート</th><th>置換例</th></tr></thead><tbody><tr><td><code>msg.required</code></td><td>非空必須</td><td><code>{label}は必須入力です</code></td><td><code>氏名は必須入力です</code></td></tr><tr><td><code>msg.maxLength</code></td><td>最大文字数超過</td><td><code>{label}は{max}文字以内で入力してください</code></td><td><code>氏名は100文字以内で入力してください</code></td></tr><tr><td><code>msg.invalidFormat</code></td><td>形式不一致</td><td><code>{label}の形式が正しくありません</code></td><td><code>メールアドレスの形式が正しくありません</code></td></tr><tr><td><code>msg.duplicate</code></td><td>重複</td><td><code>この{label}は既に登録されています</code></td><td><code>このメールアドレスは既に登録されています</code></td></tr><tr><td><code>msg.outOfRange</code></td><td>範囲外</td><td><code>{label}は{min}〜{max}の範囲で入力してください</code></td><td><code>数量は1〜9999の範囲で入力してください</code></td></tr><tr><td><code>msg.mustBePositive</code></td><td>正数必須</td><td><code>{label}は1以上の数値を入力してください</code></td><td><code>数量は1以上の数値を入力してください</code></td></tr></tbody></table>
+<p><code>{label}</code> は該当入力の表示名 (inputs[].label)、<code>{min}</code> / <code>{max}</code> は境界値。</p>
+<hr>
+<h2 id="2-正規表現カタログ">2. 正規表現カタログ</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ID</th><th>用途</th><th>パターン</th><th>例 OK</th><th>例 NG</th></tr></thead><tbody><tr><td><code>regex.email-simple</code></td><td>メールアドレス (RFC5322 簡易)</td><td><code>/^[^\s@]+@[^\s@]+\.[^\s@]+$/</code></td><td><code>a@b.jp</code></td><td><code>a@b</code></td></tr><tr><td><code>regex.phone-jp</code></td><td>国内電話番号 (固定/携帯、ハイフン必須)</td><td><code>/^0\d{1,4}-\d{1,4}-\d{4}$/</code></td><td><code>080-1234-5678</code>, <code>03-1234-5678</code></td><td><code>+81-80-1234-5678</code>, <code>08012345678</code></td></tr><tr><td><code>regex.postal-jp</code></td><td>日本の郵便番号 (ハイフン任意、保存時は NNN-NNNN に正規化)</td><td><code>/^\d{3}-?\d{4}$/</code></td><td><code>100-0001</code>, <code>1000001</code></td><td><code>10-00001</code></td></tr><tr><td><code>regex.kana-fullwidth</code></td><td>全角カタカナ (長音符・中黒・半角空白許容)</td><td><code>/^[\u30A0-\u30FF ー・]+$/</code></td><td><code>ヤマダ タロウ</code>, <code>オオノ・ケンイチ</code></td><td><code>やまだ</code>, <code>YAMADA</code></td></tr><tr><td><code>regex.alnum</code></td><td>英数字のみ</td><td><code>/^[A-Za-z0-9]+$/</code></td><td><code>Abc123</code></td><td><code>あいう</code>, <code>A-1</code></td></tr></tbody></table>
+<hr>
+<h2 id="3-境界値規約">3. 境界値規約</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>最大</th><th>最小</th><th>備考</th></tr></thead><tbody><tr><td>氏名 (<code>name</code>)</td><td>100 文字</td><td>1</td><td>customers.name 等と整合</td></tr><tr><td>氏名カナ (<code>nameKana</code>)</td><td>100 文字</td><td>1</td><td>customers.name_kana 等</td></tr><tr><td>メールアドレス</td><td>255 文字</td><td>1</td><td>RFC5321 準拠</td></tr><tr><td>電話番号</td><td>20 文字</td><td>1</td><td></td></tr><tr><td>郵便番号</td><td>10 文字</td><td>1</td><td>NNN-NNNN 正規化後は 8 文字</td></tr><tr><td>住所</td><td>500 文字</td><td>1</td><td></td></tr><tr><td>会社名</td><td>200 文字</td><td>0</td><td>任意入力</td></tr><tr><td>備考 (notes)</td><td>制限なし</td><td>0</td><td>TEXT 型</td></tr><tr><td>数量</td><td>9999</td><td>1</td><td>INTEGER</td></tr><tr><td>金額</td><td>DECIMAL(12,0) の上限</td><td>0</td><td>JPY 円</td></tr></tbody></table>
+<hr>
+<h2 id="4-処理フロー仕様書での参照方法-placeholder-運用">4. 処理フロー仕様書での参照方法 (Placeholder 運用)</h2>
+<p>処理フロー仕様内 (<code>ValidationStep.conditions</code> / <code>inputs[].description</code> / <code>step description</code> 等) では以下の ID で参照する:</p>
+<ul>
+<li><strong>正規表現</strong>: <code>@conv.regex.email-simple</code> 等</li>
+<li><strong>メッセージ</strong>: <code>@conv.msg.required</code> 等</li>
+<li><strong>境界値</strong>: <code>@conv.limit.nameMax</code> 等 (§3 の表参照)</li>
+</ul>
+<p>AI エージェントは本書を読み、ID を対応する正規表現 / テンプレート / 値に解決すること。</p>
+<hr>
+<h2 id="5-変更履歴">5. 変更履歴</h2>
+<ul>
+<li>2026-04-20: 初版プレースホルダー。issue #151-A で正式機能化予定。</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

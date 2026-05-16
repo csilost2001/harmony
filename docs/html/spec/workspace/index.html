@@ -1,0 +1,549 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>workspace</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link active"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="ワークスペース仕様-v1">ワークスペース仕様 (v1)</h1>
+<p>PR #676 で導入した「複数ワークスペース管理機能」の正規仕様。</p>
+<hr>
+<h2 id="1-用語定義">1. 用語定義</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>用語</th><th>説明</th></tr></thead><tbody><tr><td>ワークスペース</td><td><code>harmony.json</code> を含むフォルダ 1 つ。UI 表記は「ワークスペース」(カタカナ)、実装識別子・JSON key は <code>workspace</code> を用いる。</td></tr><tr><td><code>harmony.json</code></td><td>ワークスペースフォルダの root に配置する marker ファイル。<code>schemas/v3/harmony.v3.schema.json</code> 準拠。<code>dataDir</code> フィールドで設計データ格納先のサブディレクトリを指定する。</td></tr><tr><td><code>dataDir</code></td><td>設計データ (<code>screens/</code> / <code>tables/</code> / <code>actions/</code> 等) を格納するサブディレクトリのパス (ワークスペースルートからの相対パス)。推奨慣習は <code>"harmony"</code>。</td></tr><tr><td>active ワークスペース</td><td><code>backend</code> が現在 read/write 対象とする 1 つのワークスペース。1 サーバ = 1 active が原則。env <code>DESIGNER_DATA_DIR</code> 指定時は lockdown 固定。</td></tr><tr><td>recent</td><td>最近開いたワークスペースの履歴リスト (<code>~/.harmony/recent-workspaces.json</code>)。表示順は <code>lastOpenedAt</code> 降順。</td></tr><tr><td>lockdown モード</td><td>env <code>DESIGNER_DATA_DIR</code> が設定されている場合に起動する動作モード。active は env 値に固定され、切替操作は全て <code>LockdownError</code> となる。</td></tr></tbody></table>
+<p><code>data/</code> ディレクトリはデザイナー本体の組み込み拡張定義 (<code>data/extensions/</code>) 専用。ユーザープロジェクトは <code>workspaces/</code> 配下または任意フォルダに置く (#754)。</p>
+<p><strong>実装</strong>: <code>backend/src/workspaceState.ts:1-97</code></p>
+<hr>
+<h2 id="2-物理レイアウト">2. 物理レイアウト</h2>
+<h3 id="21-recent-workspacesjson">2.1 recent-workspaces.json</h3>
+<p>保存先: <code>~/.harmony/recent-workspaces.json</code>
+(env <code>DESIGNER_RECENT_FILE</code> で上書き可能 — テスト / VS Code 拡張 sandbox 用途)</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"harmony-recent-workspaces-v1"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "version"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "workspaces"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;uuid>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "path"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;絶対パス>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;表示名>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "lastOpenedAt"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;ISO 8601>"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "lastActiveId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;uuid | null>"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<ul>
+<li><code>version</code>: 常に <code>1</code></li>
+<li><code>workspaces[]</code>: <code>WorkspaceEntry</code> の配列。順序は追加順 (UI 側で <code>lastOpenedAt</code> 降順にソートして表示)</li>
+<li><code>lastActiveId</code>: 前回 active だったエントリの id。null = 前回も未選択</li>
+</ul>
+<p><strong>実装</strong>: <code>backend/src/recentStore.ts:1-193</code></p>
+<h3 id="22-ワークスペース内ディレクトリ構造">2.2 ワークスペース内ディレクトリ構造</h3>
+<p>ワークスペースルートは <code>workspaces/&#x3C;wsId>/</code> または任意の絶対パス。どちらも同じ構造を持つ。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>&#x3C;workspace-root>/           # workspaces/&#x3C;id>/ または任意フォルダ</span></span>
+<span class="line"><span>  harmony.json              # 必須 — schemas/v3/harmony.v3.schema.json 準拠 (marker file)</span></span>
+<span class="line"><span>  &#x3C;dataDir>/                # harmony.json の dataDir 値 (推奨慣習: "harmony")</span></span>
+<span class="line"><span>    screens/                # 画面定義 (*.json / *.design.json)</span></span>
+<span class="line"><span>    tables/                 # テーブル定義</span></span>
+<span class="line"><span>    actions/                # 処理フロー定義</span></span>
+<span class="line"><span>    conventions/            # 規約カタログ (catalog.json)</span></span>
+<span class="line"><span>    sequences/              # シーケンス定義</span></span>
+<span class="line"><span>    views/                  # ビュー定義</span></span>
+<span class="line"><span>    view-definitions/       # ビュー定義 (UI 編集可)</span></span>
+<span class="line"><span>    extensions/             # 拡張定義 (steps.json 等)</span></span>
+<span class="line"><span>    er-layout.json          # 任意 — ER 図レイアウト</span></span>
+<span class="line"><span>    custom-blocks.json      # 任意 — カスタムブロック</span></span>
+<span class="line"><span>    screen-flow-positions.json      # 任意 — 画面フロー UI 座標</span></span></code></pre>
+<p><code>harmony.json</code> はワークスペースフォルダの <strong>root に固定</strong>で配置する。設計データは <code>&#x3C;dataDir>/</code> 配下に格納され、他ツール (Git / IDE 等) の管理対象ファイルと混在しない。</p>
+<p><code>screen-items/</code> ディレクトリは Phase 4-β migration 後に廃止。<code>ensureDataDir</code> では再作成しない。</p>
+<p><strong>実装</strong>: <code>backend/src/workspaceInit.ts:119-175</code> (initializeWorkspace) / <code>backend/src/projectStorage.ts:92-104</code> (ensureDataDir)</p>
+<hr>
+<h2 id="3-ライフサイクル">3. ライフサイクル</h2>
+<h3 id="31-起動時-auto-activate-カスケード">3.1 起動時 auto-activate カスケード</h3>
+<p><code>backend</code> 起動時に <code>autoActivateOnStartup()</code> が以下の順で active を確定する:</p>
+<ol>
+<li>env <code>DESIGNER_DATA_DIR</code> が定義されている → lockdown active として確定 (recent は読み書きしない)</li>
+<li>それ以外で <code>recent.lastActiveId</code> が指す workspace の <code>inspectWorkspacePath</code> が <code>ready</code> → <code>setActivePath</code> で復元</li>
+<li>全て miss → active = null (UI は <code>/workspace/select</code> へ redirect)</li>
+</ol>
+<p><code>ready</code> 判定は <code>&#x3C;root>/harmony.json</code> の存在で行う (旧: <code>project.json</code>)。<code>data/</code> は <code>data/extensions/</code> 専用であり、ユーザープロジェクト領域ではない。</p>
+<p><strong>実装</strong>: <code>backend/src/workspaceInit.ts:211-234</code></p>
+<h3 id="32-workspaceopen">3.2 workspace.open</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>workspace.open(path, init?)</span></span></code></pre>
+<ul>
+<li><code>path</code> または <code>id</code> (recent エントリ) のいずれかを指定する (排他)</li>
+<li><code>init</code> 省略 / <code>false</code>: <code>inspectWorkspacePath</code> で <code>ready</code> 状態を確認してから active 化。<code>ready</code> でない場合は error を返す</li>
+<li><code>init=true</code>: 対象フォルダを作成し <code>harmony.json</code> + <code>&#x3C;dataDir>/</code> 配下のサブディレクトリ群を初期化してから active 化 (lockdown 時は error)。<code>dataDir</code> のデフォルト値は <code>"harmony"</code></li>
+<li>成功すると <code>recent</code> に <code>upsert</code> し <code>lastActiveId</code> を更新、<code>workspace.changed</code> を broadcast</li>
+</ul>
+<p><strong>実装</strong>: <code>backend/src/wsBridge.ts:710-778</code></p>
+<h3 id="33-workspaceclose">3.3 workspace.close</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>workspace.close()</span></span></code></pre>
+<ul>
+<li>active = null にする (recent からは削除しない)</li>
+<li>lockdown 時は <code>LockdownError</code> を返す</li>
+<li><code>workspace.changed</code> を broadcast (<code>activeId: null</code>)</li>
+</ul>
+<p><strong>実装</strong>: <code>backend/src/wsBridge.ts:780-793</code></p>
+<h3 id="34-workspaceremove">3.4 workspace.remove</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>workspace.remove(id)</span></span></code></pre>
+<ul>
+<li>recent からエントリを除外する (ファイルシステムは変更しない)</li>
+<li>lockdown 時は error を返す</li>
+</ul>
+<p><strong>実装</strong>: <code>backend/src/wsBridge.ts:794-800</code></p>
+<h3 id="35-workspaceinspect">3.5 workspace.inspect</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>workspace.inspect(path) → { status, path, name? }</span></span></code></pre>
+<p>3 状態を返す:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>status</th><th>意味</th></tr></thead><tbody><tr><td><code>ready</code></td><td><code>harmony.json</code> が存在する</td></tr><tr><td><code>needsInit</code></td><td>フォルダは存在するが <code>harmony.json</code> がない (空フォルダ含む)</td></tr><tr><td><code>notFound</code></td><td>path 自体が存在しない、またはフォルダでない</td></tr></tbody></table>
+<p><strong>実装</strong>: <code>backend/src/workspaceInit.ts:87-101</code></p>
+<h3 id="36-workspacehostinfo">3.6 workspace.hostInfo</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>workspace.hostInfo() → { platform, isWSL, homeDir }</span></span></code></pre>
+<p>backend が動作しているホスト OS 情報を返す。<code>AddWorkspaceDialog</code> が path 入力欄の placeholder / WSL 検出ヒント表示に使う (#858)。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>field</th><th>型</th><th>内容</th></tr></thead><tbody><tr><td><code>platform</code></td><td><code>"linux" | "win32" | "darwin" | "other"</code></td><td><code>process.platform</code> を 4 値に正規化</td></tr><tr><td><code>isWSL</code></td><td><code>boolean</code></td><td><code>process.platform === "linux"</code> かつ <code>/proc/version</code> に <code>Microsoft</code> または <code>WSL</code> 文字列を含む場合 <code>true</code> (大文字小文字無視)</td></tr><tr><td><code>homeDir</code></td><td><code>string</code></td><td><code>os.homedir()</code> (placeholder の “/home/<user>/projects/my-app” 等を組み立てるのに使用)</user></td></tr></tbody></table>
+<ul>
+<li>backend session 内でキャッシュされる (<code>/proc/version</code> を毎回読まない)</li>
+<li><code>inspectWorkspacePath</code> のような厳密判定ではなく<strong>情報提供 API</strong>。frontend は描画切替の hint として使うのみで、認可判断には使わない</li>
+</ul>
+<p><strong>実装</strong>: <code>backend/src/hostInfo.ts:32-49</code> / <code>backend/src/wsBridge.ts:1373-1376</code></p>
+<h3 id="37-inittrue-時の初期化内容">3.7 init=true 時の初期化内容</h3>
+<p><code>initializeWorkspace(path)</code> が実行する処理:</p>
+<ol>
+<li>フォルダを <code>mkdir -p</code> で作成 (既存なら無視)</li>
+<li><code>&#x3C;dataDir>/screens/</code> <code>&#x3C;dataDir>/tables/</code> … の 8 サブディレクトリを <code>&#x3C;dataDir>/</code> 配下に作成</li>
+<li><code>harmony.json</code> を生成 — <code>schemas/v3/harmony.v3.schema.json</code> を Ajv2020 で検証してから書き込む。検証失敗時は throw (schema を勝手に変更して通過させることは禁止)</li>
+<li>初期 <code>harmony.json</code> の構造: <code>schemaVersion: "v3"</code> / <code>dataDir: "harmony"</code> / <code>meta.mode: "upstream"</code> / <code>meta.maturity: "draft"</code> / <code>extensionsApplied: []</code> / <code>entities</code> に空配列</li>
+</ol>
+<p><strong>実装</strong>: <code>backend/src/workspaceInit.ts:119-175</code></p>
+<hr>
+<h2 id="4-lockdown-モード">4. lockdown モード</h2>
+<h3 id="41-有効化条件">4.1 有効化条件</h3>
+<p>起動時に env <code>DESIGNER_DATA_DIR</code> が非空文字で定義されていれば lockdown 入り。
+<code>initWorkspaceState()</code> が idempotent に判定する (複数回呼び出し可)。</p>
+<p><strong>実装</strong>: <code>backend/src/workspaceState.ts:39-49</code></p>
+<h3 id="42-無効化される操作">4.2 無効化される操作</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>挙動</th></tr></thead><tbody><tr><td><code>workspace.open</code></td><td><code>LockdownError</code> を返す (新規 init も含む)</td></tr><tr><td><code>workspace.close</code></td><td><code>LockdownError</code> を返す</td></tr><tr><td><code>workspace.remove</code></td><td>error を返す</td></tr><tr><td><code>setActivePath()</code></td><td><code>LockdownError</code> を throw</td></tr><tr><td><code>clearActive()</code></td><td><code>LockdownError</code> を throw</td></tr><tr><td>recent read/write</td><td>完全 skip (ファイルを読まず書かない)</td></tr></tbody></table>
+<p><strong>実装</strong>: <code>backend/src/workspaceState.ts:73-89</code></p>
+<h3 id="43-ui-での表示">4.3 UI での表示</h3>
+<ul>
+<li><code>WorkspaceIndicator</code>: ボタンに鍵アイコン (<code>bi-lock-fill</code>, 色 <code>#fbbf24</code>) を表示し、tooltip に <code>DESIGNER_DATA_DIR</code> の値を表示</li>
+<li><code>WorkspaceListView</code>: lockdown バナー (黄色) を表示し、追加・開く・リストから外すボタンを disabled 化</li>
+<li><code>WorkspaceSelectView</code>: lockdown バナーを表示し、新しくワークスペースを追加ボタンを非表示化</li>
+</ul>
+<p><strong>実装</strong>: <code>frontend/src/components/workspace/WorkspaceIndicator.tsx:96-101</code> / <code>frontend/src/components/workspace/WorkspaceListView.tsx:436-452</code> / <code>frontend/src/components/workspace/WorkspaceSelectView.tsx:191-206</code></p>
+<h3 id="44-主な用途">4.4 主な用途</h3>
+<ul>
+<li>CI / E2E テスト: <code>DESIGNER_DATA_DIR=./data npx ...</code> で単一プロジェクトに固定</li>
+<li>VS Code 拡張ホスト (将来): 拡張が管理するフォルダを固定</li>
+<li>recent への副作用を完全排除したい any シナリオ</li>
+</ul>
+<hr>
+<h2 id="5-ui-規約">5. UI 規約</h2>
+<h3 id="51-ルート">5.1 ルート</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Path</th><th>コンポーネント</th><th>性質</th></tr></thead><tbody><tr><td><code>/workspace/list</code></td><td><code>WorkspaceListView</code></td><td>singleton タブ — ヘッダー・タブバーあり</td></tr><tr><td><code>/workspace/select</code></td><td><code>WorkspaceSelectView</code></td><td>フルスクリーン welcome — ヘッダー・タブバーなし</td></tr></tbody></table>
+<p><code>/workspace/select</code> はタブ対象外 (<code>AppShell.tsx</code> の singleton ルートリストに含まれない)。
+<code>/workspace/list</code> は singleton タブとして管理される (type: <code>"workspace-list"</code>)。</p>
+<p><strong>実装</strong>: <code>frontend/src/components/AppShell.tsx:330-357</code></p>
+<h3 id="52-workspaceindicator">5.2 WorkspaceIndicator</h3>
+<p><code>CommonHeader</code> 内、HeaderMenu / ロゴ / タイトルに続く 4 番目の要素として配置。</p>
+<p><strong>実装</strong>: <code>frontend/src/components/CommonHeader.tsx:14-19</code></p>
+<p>表示要素:</p>
+<ul>
+<li>lockdown 時: 鍵アイコン (<code>bi-lock-fill</code>) + アクティブ名またはパス</li>
+<li>通常時: フォルダアイコン (<code>bi-folder2</code>) + アクティブ名 (未選択時はグレーアウト)</li>
+<li>ドロップダウン展開時: ワークスペース一覧へのリンク / 最近 5 件 / ワークスペースを閉じる</li>
+</ul>
+<p><strong>実装</strong>: <code>frontend/src/components/workspace/WorkspaceIndicator.tsx:10-204</code></p>
+<h3 id="53-redirect-条件">5.3 redirect 条件</h3>
+<p><code>AppShell</code> のルーティングガードが以下を全て満たす場合に <code>/workspace/select</code> へ navigate する:</p>
+<ul>
+<li><code>workspaceState.active === null</code></li>
+<li><code>workspaceState.loading === false</code></li>
+<li><code>workspaceState.error !== "e2e bypass"</code> (e2e テスト用 bypass 中は guard スキップ)</li>
+<li><code>workspaceState.lockdown === false</code> (lockdown 時は常にアクティブ扱いのためガード不要)</li>
+<li>現在パスが <code>/workspace/list</code> でも <code>/workspace/select</code> でもない</li>
+</ul>
+<p>backend offline 時 (port 5179 未接続) は <code>connectionFailed</code> が立ち、AppShell 上位で
+<code>ConnectionFailedView</code> (再試行ボタン + backend 起動コマンド案内) が表示される
+(#923 シリーズで localStorage fallback を廃止、<code>docs/spec/edit-session-draft.md</code> D-8 と整合)。</p>
+<p><strong>実装</strong>: <code>frontend/src/components/AppShell.tsx</code></p>
+<h3 id="54-ワークスペース切替時の-cleanup">5.4 ワークスペース切替時の cleanup</h3>
+<p><code>AppShell</code> が <code>workspaceState.active?.id</code> の変化 (non-null → 別値 or null) を検知して実行:</p>
+<ol>
+<li>dirty なタブがあれば <code>console.warn</code> で名前を出力 (確認ダイアログは未実装、follow-up)</li>
+<li><code>clearPersistedTabs()</code> で <code>localStorage</code> の <code>harmony-open-tabs</code> / <code>harmony-active-tab</code> を削除</li>
+<li><code>gjs-</code> プレフィックスの <code>localStorage</code> キーを全削除 (旧 GrapesJS autosave 残骸の除去、<code>legacyLocalStorageRescue</code> 救済対象)</li>
+<li><code>window.location.reload()</code> で完全リロード</li>
+</ol>
+<p>初回 hydration (null → non-null) はリロードしない (無限ループ防止)。</p>
+<p><strong>実装</strong>: <code>frontend/src/components/AppShell.tsx</code></p>
+<hr>
+<h2 id="6-プロトコル">6. プロトコル</h2>
+<h3 id="61-websocket-リクエストメソッド-browser--backend">6.1 WebSocket リクエストメソッド (browser → backend)</h3>
+<p><code>mcpBridge.request(method, params)</code> 経由で呼び出す。実体は <code>wsBridge._handleBrowserRequest</code>。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>method</th><th>params</th><th>レスポンス</th></tr></thead><tbody><tr><td><code>workspace.list</code></td><td>(なし)</td><td><code>{ workspaces: WorkspaceEntry[], lastActiveId, active: { id, path, name } | null, lockdown, lockdownPath }</code></td></tr><tr><td><code>workspace.status</code></td><td>(なし)</td><td><code>{ active: { path, name } | null, lockdown, lockdownPath }</code></td></tr><tr><td><code>workspace.inspect</code></td><td><code>{ path: string }</code></td><td><code>{ status: "ready" | "needsInit" | "notFound", path, name? }</code></td></tr><tr><td><code>workspace.open</code></td><td><code>{ path?: string, id?: string, init?: boolean }</code></td><td><code>{ active: { id, path, name } }</code> または error</td></tr><tr><td><code>workspace.close</code></td><td>(なし)</td><td><code>{ success: true }</code> または error</td></tr><tr><td><code>workspace.remove</code></td><td><code>{ id: string }</code></td><td><code>{ removed: boolean }</code> または error</td></tr></tbody></table>
+<p><strong>実装</strong>: <code>backend/src/wsBridge.ts:671-801</code></p>
+<h3 id="62-broadcast-イベント-backend--全ブラウザ">6.2 broadcast イベント (backend → 全ブラウザ)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>イベント</th><th>payload</th></tr></thead><tbody><tr><td><code>workspace.changed</code></td><td><code>{ activeId: string | null, path: string | null, name: string | null, lockdown: boolean }</code></td></tr></tbody></table>
+<p><code>workspace.open</code> 成功時と <code>workspace.close</code> 成功時に broadcast される。
+UI 側は <code>workspaceStore.subscribeWorkspaceChanges()</code> で subscribe し、自動的に <code>loadWorkspaces()</code> を再実行する。</p>
+<p>lockdown 時の <code>workspace.list.active.id</code> は recent に依存せず固定値 <code>"lockdown"</code> を返す。これにより <code>/w/:wsId/*</code> の URL 正規化は recent エントリが存在しない環境でも <code>/w/lockdown/</code> として成立する。</p>
+<p><strong>実装</strong>: <code>backend/src/wsBridge.ts:772-777, 789-791</code> (broadcast) / <code>frontend/src/store/workspaceStore.ts:163-190</code> (subscribe)</p>
+<h3 id="63-mcp-tools-ai-エージェント用">6.3 MCP tools (AI エージェント用)</h3>
+<p><code>backend/src/tools.ts</code> に定義された AI エージェント向けツール (6 件):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>tool name</th><th>説明</th><th>主なパラメータ</th></tr></thead><tbody><tr><td><code>designer__workspace_list</code></td><td>recent 一覧 + active + lockdown 状態を返す</td><td>なし</td></tr><tr><td><code>designer__workspace_status</code></td><td>現在 active のパス・名前・lockdown を返す</td><td>なし</td></tr><tr><td><code>designer__workspace_open</code></td><td>指定 path または id を active 化。<code>init=true</code> で初期化も実行</td><td><code>path</code> / <code>id</code> / <code>init</code></td></tr><tr><td><code>designer__workspace_inspect</code></td><td>path の状態を判定 (<code>ready</code> / <code>needsInit</code> / <code>notFound</code>)</td><td><code>path</code> (必須)</td></tr><tr><td><code>designer__workspace_close</code></td><td>active を閉じる (recent には残す)</td><td>なし</td></tr><tr><td><code>designer__workspace_remove</code></td><td>recent からエントリを除外 (fs は変更しない)</td><td><code>id</code> (必須)</td></tr></tbody></table>
+<p>合計 6 エントリが MCP tool として公開されている: <code>_list</code> / <code>_status</code> / <code>_open</code> / <code>_inspect</code> / <code>_close</code> / <code>_remove</code>。</p>
+<p><strong>実装</strong>: <code>backend/src/tools.ts:1233-1284</code></p>
+<hr>
+<h2 id="7-並行制御">7. 並行制御</h2>
+<h3 id="71-recentstore-の-write-直列化">7.1 recentStore の write 直列化</h3>
+<p><code>recentStore.ts</code> の write 系関数 (<code>upsertWorkspace</code> / <code>setLastActive</code> / <code>removeWorkspace</code>) は <code>withWriteLock</code> で直列化される。</p>
+<p>仕組み:</p>
+<ul>
+<li>モジュールレベルの <code>_writeChain: Promise&#x3C;unknown></code> を前段 Promise の tail に繋いでいく Promise chain</li>
+<li>前段の成否に関わらず次段を実行 (<code>continue-on-error</code> セマンティクス) — 1 回の例外で chain が永続停滞して後続 RMW がブロックされるのを防ぐ</li>
+<li>各 fn は <code>readRecent → modify → writeRecent</code> の独立 RMW — 前段が失敗しても次段は fresh な file を読む</li>
+</ul>
+<p>これにより <code>upsertWorkspace</code> と <code>setLastActive</code> が並行して呼ばれても <code>recent-workspaces.json</code> が壊れない。</p>
+<p><strong>実装</strong>: <code>backend/src/recentStore.ts:96-118</code></p>
+<h3 id="72-projectstorage-の-root-スナップショット規約">7.2 projectStorage の root スナップショット規約</h3>
+<p><code>projectStorage.ts</code> の公開関数は関数開始時に <code>requireActivePath()</code> または引数 <code>root</code> で workspace ルートを一度だけスナップショットし、以降の全 I/O をその snapshot した path に対して実施する。</p>
+<p>目的: workspace 切替が in-flight の read/write 操作を中断しない。切替後の新 active path には、切替前に開始した I/O の書き込み先が流れない。</p>
+<p><strong>実装</strong>: <code>backend/src/projectStorage.ts:14-26</code> (getter 関数化の解説コメント)</p>
+<h3 id="73-workspacechanged-broadcast-の冪等性">7.3 workspace.changed broadcast の冪等性</h3>
+<p><code>workspace.changed</code> は接続している全ブラウザに broadcast される。UI 側 (<code>workspaceStore</code>) は受信時に <code>loadWorkspaces()</code> を再実行するため、同一 broadcast が複数回届いても状態は収束する (冪等)。再 mount で recoverable を前提とすること。</p>
+<p><strong>実装</strong>: <code>frontend/src/store/workspaceStore.ts:163-190</code></p>
+<hr>
+<h2 id="8-既知の制約--未対応">8. 既知の制約 / 未対応</h2>
+<h3 id="81-同時複数ワークスペースの並行編集-v2">8.1 同時複数ワークスペースの並行編集 (v2)</h3>
+<p>v1 では「1 サーバ = 1 active」が原則だったが、v2 (#679 シリーズ) で per-session active state を導入し、ブラウザタブ単位で独立した active workspace を持てるようになる。詳細は <a href="/spec/workspace-multi/">workspace-multi.md</a> を参照。</p>
+<h3 id="82-harmonyjson-スキーマガバナンス">8.2 harmony.json スキーマガバナンス</h3>
+<p><code>harmony.json</code> の schema は <code>schemas/v3/harmony.v3.schema.json</code>。このスキーマは <strong>フレームワーク製作者 (設計者) の専権事項</strong> であり、AI が勝手に変更してはならない。詳細は <a href="/spec/schema-governance/">schema-governance.md</a> を参照。</p>
+<h3 id="83-未実装機能">8.3 未実装機能</h3>
+<p>以下の機能は v1 では未対応。必要に応じて別 ISSUE で設計・実装する:</p>
+<ul>
+<li><strong>workspace export/import</strong>: ワークスペースを zip 化してポータブルにする機能</li>
+<li><strong>テンプレート機能</strong>: 業界別サンプルから新規ワークスペースを初期化する機能</li>
+<li><strong>共有 workspace</strong>: URL からリモートワークスペースを開く機能</li>
+<li><strong>dirty タブの確認ダイアログ</strong>: 切替時に未保存タブを <code>console.warn</code> で記録するのみ (ユーザー確認は未実装)</li>
+</ul>
+<hr>
+<h2 id="付録-ソースファイル対照表">付録: ソースファイル対照表</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>spec 節</th><th>実装ファイル</th></tr></thead><tbody><tr><td>用語定義 / lockdown state</td><td><code>backend/src/workspaceState.ts:1-97</code></td></tr><tr><td>recent 永続化 / write lock</td><td><code>backend/src/recentStore.ts:1-193</code></td></tr><tr><td>inspect / initializeWorkspace / autoActivate</td><td><code>backend/src/workspaceInit.ts:1-240</code></td></tr><tr><td>WS リクエストハンドラ</td><td><code>backend/src/wsBridge.ts:671-801</code></td></tr><tr><td>MCP tools 定義</td><td><code>backend/src/tools.ts:1233-1284</code></td></tr><tr><td>root スナップショット規約</td><td><code>backend/src/projectStorage.ts:14-104</code></td></tr><tr><td>フロントエンドストア</td><td><code>frontend/src/store/workspaceStore.ts:1-190</code></td></tr><tr><td>WorkspaceIndicator</td><td><code>frontend/src/components/workspace/WorkspaceIndicator.tsx:1-204</code></td></tr><tr><td>WorkspaceListView</td><td><code>frontend/src/components/workspace/WorkspaceListView.tsx:1-586</code></td></tr><tr><td>WorkspaceSelectView</td><td><code>frontend/src/components/workspace/WorkspaceSelectView.tsx:1-217</code></td></tr><tr><td>redirect / cleanup / splash</td><td><code>frontend/src/components/AppShell.tsx:76-423</code></td></tr><tr><td>CommonHeader への配置</td><td><code>frontend/src/components/CommonHeader.tsx:1-30</code></td></tr></tbody></table>
+<h2 id="改訂履歴">改訂履歴</h2>
+<ul>
+<li>2026-05-06: workspace folder 構造を root + dataDir に分離。<code>project.json</code> → <code>harmony.json</code> rename。<code>harmony.v3.schema.json</code> スキーマ新設。シリーズ #849-#854 (PR #856) で統合実施。</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

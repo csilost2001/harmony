@@ -1,0 +1,397 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>wsl2 native</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> セットアップ </div> <ul class="space-y-0.5"> <li> <a href="/setup/dev-containers/" class="sidebar-link"> Dev Containers (推奨) </a> </li><li> <a href="/setup/wsl2-native/" class="sidebar-link active"> WSL2 native (代替) </a> </li><li> <a href="/setup/distribution-roadmap/" class="sidebar-link"> 配布構想 (将来) </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="wsl2-native-セットアップ手順-代替パターン">WSL2 native セットアップ手順 (代替パターン)</h1>
+<p>Harmony 本体を <strong>WSL2 native</strong> で開発する手順書。Windows native から WSL2 へソースを移し、I/O / file watcher / AI エージェントを native 速度で動かす構成。</p>
+<blockquote>
+<p>💡 <strong>推奨は Dev Containers です</strong> (<a href="/setup/dev-containers/"><code>dev-containers.md</code></a>)。本書は以下の場合の代替セットアップ手順です:</p>
+<ul>
+<li>Docker Desktop を使えない / 使いたくない環境</li>
+<li>既に WSL2 native で動かしており Dev Containers に移行する必要がない場合</li>
+<li>環境のクセを完全に把握したい場合</li>
+</ul>
+<p>Harmony 本体は WSL2 native でも <strong>実質サポート</strong> されており、<code>.mcp.json</code> の URL モード経由で AI エージェントから接続できる構成は両環境で共通です。新規 onboarding には Dev Containers の方が短時間で完成しますが、本書のセットアップ経路も valid です。</p>
+</blockquote>
+<p>Docker image としての Harmony 配布 (将来構想) は本書ではなく <a href="/setup/distribution-roadmap/"><code>distribution-roadmap.md</code></a> を参照してください。</p>
+<hr>
+<h2 id="ai-エージェント-claude-code-等-への指示">AI エージェント (Claude Code 等) への指示</h2>
+<p>このドキュメントを参照して step-by-step で実行する場合、必ず以下を守ること。</p>
+<ol>
+<li><strong>1 ステップずつ実行</strong>。複数 Step を一括実行しない。</li>
+<li>各 Step の <strong>「成功確認」</strong> セクションを満たしてから次へ進む。満たさない場合はユーザーに報告して指示を仰ぐ。</li>
+<li>失敗・想定外の出力があれば<strong>ユーザーに報告して指示を仰ぐ</strong> (自己判断で進めない、特に削除系)。</li>
+<li>既存の Windows 側 <code>C:\projects\html-designer\</code> は <strong>絶対に削除しない</strong>。移行完了後の保険として保持する。</li>
+<li>WSL2 シェル内のコマンド実行を前提とする。<code>Bash</code> ツール使用時は WSL2 内で動作するか確認すること。</li>
+<li>ユーザー名 / org 名等のプレースホルダ (<code>&#x3C;user></code> / <code>&#x3C;org></code> / <code>&#x3C;username></code>) は実値に置換が必要。不明ならユーザーに確認する。</li>
+<li>各 Step の所要目安: 5〜15 分。長くかかる場合は途中報告。</li>
+</ol>
+<hr>
+<h2 id="移行前後の構成">移行前後の構成</h2>
+<h3 id="移行前-windows-native">移行前 (Windows native)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Windows</span></span>
+<span class="line"><span>├── C:\projects\html-designer\        ← 現在の作業ディレクトリ</span></span>
+<span class="line"><span>├── C:\Users\csilo\.claude\           ← Claude Code 設定 / memory</span></span>
+<span class="line"><span>└── Node.js (Windows native install)</span></span></code></pre>
+<h3 id="wsl2-native-完成時">WSL2 native 完成時</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>WSL2 (Ubuntu)</span></span>
+<span class="line"><span>├── /home/&#x3C;user>/projects/harmony/   ← 新しい作業ディレクトリ</span></span>
+<span class="line"><span>├── /home/&#x3C;user>/.claude/            ← Claude Code 設定 (新規 or 移行)</span></span>
+<span class="line"><span>└── nvm + Node.js 20</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>Windows</span></span>
+<span class="line"><span>├── C:\projects\html-designer\        ← 退役 (削除しない、参照専用)</span></span>
+<span class="line"><span>├── VSCode (UI のみ、Remote-WSL で接続)</span></span>
+<span class="line"><span>└── Docker Desktop (任意、Dev Containers と併用する場合)</span></span></code></pre>
+<hr>
+<h2 id="step-1-0-前提条件チェック">Step 1-0: 前提条件チェック</h2>
+<p>WSL2 (+ 任意で Docker Desktop) が基本セットアップ済みかチェックする。</p>
+<p><strong>Windows PowerShell で実行</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="powershell"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">wsl </span><span style="color:#D73A49;--shiki-dark:#F47067">--</span><span style="color:#24292E;--shiki-dark:#ADBAC7">status</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">wsl </span><span style="color:#D73A49;--shiki-dark:#F47067">-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">l </span><span style="color:#D73A49;--shiki-dark:#F47067">-</span><span style="color:#24292E;--shiki-dark:#ADBAC7">v</span></span></code></pre>
+<p><strong>期待される出力</strong>:</p>
+<ul>
+<li><code>WSL のバージョン: 2</code></li>
+<li><code>Ubuntu</code> のディストリビューションが <code>STATE: Running</code> または <code>Stopped</code> として LIST にある</li>
+</ul>
+<p>未セットアップの場合:</p>
+<ul>
+<li>WSL2: <code>wsl --install -d Ubuntu</code> (管理者 PowerShell)</li>
+<li>Docker Desktop (任意): 公式サイトからインストールし、Settings → Resources → WSL Integration → Ubuntu を ON</li>
+</ul>
+<h4 id="成功確認">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>wsl --status</code> が <code>WSL のバージョン: 2</code> を含む</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>wsl -l -v</code> の出力に <code>Ubuntu</code> が含まれる</li>
+<li class="task-list-item"><input type="checkbox" disabled> WSL2 シェルが起動できる (PowerShell で <code>wsl</code> 実行で bash プロンプト)</li>
+</ul>
+<hr>
+<h2 id="step-1-1-wsl2-内基本ツール確認インストール">Step 1-1: WSL2 内基本ツール確認・インストール</h2>
+<p>WSL2 (Ubuntu) シェルで実行。</p>
+<p><strong>チェック</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">echo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "=== WSL2 Tools Check ==="</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">echo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "Node:    $(</span><span style="color:#6F42C1;--shiki-dark:#F69D50">node</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --version</span><span style="color:#D73A49;--shiki-dark:#F47067"> 2></span><span style="color:#032F62;--shiki-dark:#96D0FF">/dev/null </span><span style="color:#D73A49;--shiki-dark:#F47067">||</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> echo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> 'NOT INSTALLED')"</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">echo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "npm:     $(</span><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --version</span><span style="color:#D73A49;--shiki-dark:#F47067"> 2></span><span style="color:#032F62;--shiki-dark:#96D0FF">/dev/null </span><span style="color:#D73A49;--shiki-dark:#F47067">||</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> echo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> 'NOT INSTALLED')"</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">echo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "git:     $(</span><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --version</span><span style="color:#D73A49;--shiki-dark:#F47067"> 2></span><span style="color:#032F62;--shiki-dark:#96D0FF">/dev/null </span><span style="color:#D73A49;--shiki-dark:#F47067">||</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> echo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> 'NOT INSTALLED')"</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">echo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "gh:      $(</span><span style="color:#6F42C1;--shiki-dark:#F69D50">gh</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --version</span><span style="color:#D73A49;--shiki-dark:#F47067"> 2></span><span style="color:#032F62;--shiki-dark:#96D0FF">/dev/null </span><span style="color:#D73A49;--shiki-dark:#F47067">|</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> head</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -1</span><span style="color:#D73A49;--shiki-dark:#F47067"> ||</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> echo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> 'NOT INSTALLED')"</span></span></code></pre>
+<p><strong>未インストール対応</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># nvm + Node 20</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">if</span><span style="color:#D73A49;--shiki-dark:#F47067"> !</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> command</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -v</span><span style="color:#032F62;--shiki-dark:#96D0FF"> nvm</span><span style="color:#D73A49;--shiki-dark:#F47067"> ></span><span style="color:#032F62;--shiki-dark:#96D0FF">/dev/null</span><span style="color:#D73A49;--shiki-dark:#F47067"> 2>&#x26;1</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#D73A49;--shiki-dark:#F47067">then</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">  curl</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -o-</span><span style="color:#032F62;--shiki-dark:#96D0FF"> https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> bash</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">  source</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.bashrc</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">fi</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">nvm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> 20</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">nvm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> alias</span><span style="color:#032F62;--shiki-dark:#96D0FF"> default</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> 20</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># git / gh</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">sudo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> apt</span><span style="color:#032F62;--shiki-dark:#96D0FF"> update</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">sudo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> apt</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -y</span><span style="color:#032F62;--shiki-dark:#96D0FF"> git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> gh</span></span></code></pre>
+<p><strong>git 初期設定</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> config</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --global</span><span style="color:#032F62;--shiki-dark:#96D0FF"> user.name</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "Hidekatsu Matsukida"</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> config</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --global</span><span style="color:#032F62;--shiki-dark:#96D0FF"> user.email</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "csilost2001@gmail.com"</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> config</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --global</span><span style="color:#032F62;--shiki-dark:#96D0FF"> core.autocrlf</span><span style="color:#032F62;--shiki-dark:#96D0FF"> input</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> config</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --global</span><span style="color:#032F62;--shiki-dark:#96D0FF"> init.defaultBranch</span><span style="color:#032F62;--shiki-dark:#96D0FF"> main</span></span></code></pre>
+<p><strong>SSH 鍵 + GitHub 登録</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 既存鍵チェック</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">ls</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.ssh/id_ed25519</span><span style="color:#D73A49;--shiki-dark:#F47067"> 2></span><span style="color:#032F62;--shiki-dark:#96D0FF">/dev/null</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> &#x26;&#x26; </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">echo</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "既存鍵あり"</span><span style="color:#D73A49;--shiki-dark:#F47067"> ||</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ssh-keygen</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -t</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ed25519</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -C</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "csilost2001@gmail.com"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 公開鍵を表示 (GitHub に登録する用)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">cat</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.ssh/id_ed25519.pub</span></span></code></pre>
+<p>表示された公開鍵を <strong>GitHub Settings → SSH and GPG keys → New SSH key</strong> に貼り付け。</p>
+<p><strong>接続確認</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">ssh</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -T</span><span style="color:#032F62;--shiki-dark:#96D0FF"> git@github.com</span><span style="color:#6A737D;--shiki-dark:#768390">   # "Hi &#x3C;username>!" が出れば OK</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">gh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> auth</span><span style="color:#032F62;--shiki-dark:#96D0FF"> login</span><span style="color:#6A737D;--shiki-dark:#768390">           # CLI 経由でも認証</span></span></code></pre>
+<h4 id="成功確認-1">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>node --version</code> が <code>v20.x.x</code> を返す</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>git --version</code>, <code>gh --version</code> が表示される</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>ssh -T git@github.com</code> で <code>Hi &#x3C;username>!</code> が表示される</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>gh auth status</code> で <code>Logged in to github.com</code> 表示</li>
+</ul>
+<hr>
+<h2 id="step-1-2-harmony-を-wsl2-に-clone">Step 1-2: harmony を WSL2 に clone</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">mkdir</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -p</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 既存の Windows 側 (C:\projects\html-designer) はそのまま残す</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> clone</span><span style="color:#032F62;--shiki-dark:#96D0FF"> git@github.com:</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">or</span><span style="color:#24292E;--shiki-dark:#ADBAC7">g</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#032F62;--shiki-dark:#96D0FF">/harmony.git</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 状態確認</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> status</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> log</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --oneline</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -5</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">git</span><span style="color:#032F62;--shiki-dark:#96D0FF"> branch</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -a</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> head</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -20</span></span></code></pre>
+<p><strong>重要</strong>:</p>
+<ul>
+<li><code>C:\projects\html-designer\</code> は触らない (削除も移動も rename もしない)</li>
+<li>動作確認が完了するまで Windows 側を保険として保持</li>
+</ul>
+<h4 id="成功確認-2">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>~/projects/harmony/</code> が存在し、<code>.git/</code> ディレクトリがある</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>git status</code> でクリーンな状態か作業中の変更が見える</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>C:\projects\html-designer\</code> がそのまま残っている (<code>ls /mnt/c/projects/html-designer/</code> で確認)</li>
+</ul>
+<hr>
+<h2 id="step-1-3-依存パッケージインストール">Step 1-3: 依存パッケージインストール</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># .nvmrc があれば使用</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">[ </span><span style="color:#D73A49;--shiki-dark:#F47067">-f</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> .nvmrc ] &#x26;&#x26; </span><span style="color:#6F42C1;--shiki-dark:#F69D50">nvm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> use</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># frontend</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> frontend</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ..</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># backend</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ..</span></span></code></pre>
+<p><strong>所要時間</strong>: 各 1〜3 分 (WSL2 native なので速い)。Windows 側で同操作した時より大幅に速いはず。</p>
+<h4 id="成功確認-3">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>frontend/node_modules/</code> が存在</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>backend/node_modules/</code> が存在</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>npm install</code> が exit code 0 で終了 (deprecation 警告は許容)</li>
+</ul>
+<hr>
+<h2 id="step-1-4-backend-起動確認">Step 1-4: backend 起動確認</h2>
+<p>WSL2 シェル (ターミナル 1) で:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony/backend</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span></span></code></pre>
+<p><strong>期待される出力例</strong>:</p>
+<ul>
+<li><code>MCP server</code> のような起動メッセージ</li>
+<li>ポート <code>5179</code> の listen 開始</li>
+<li>WebSocket bridge 起動メッセージ</li>
+</ul>
+<p>このターミナルは閉じずに残す (常駐させる)。</p>
+<p>別の WSL2 タブで疎通確認:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">curl</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -s</span><span style="color:#032F62;--shiki-dark:#96D0FF"> http://localhost:5179/mcp</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -o</span><span style="color:#032F62;--shiki-dark:#96D0FF"> /dev/null</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -w</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "%{http_code}\n"</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 200 / 401 / 405 等のレスポンスコードが返れば listen 成立</span></span></code></pre>
+<h4 id="成功確認-4">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> backend プロセスが起動継続中 (Ctrl+C しない)</li>
+<li class="task-list-item"><input type="checkbox" disabled> curl で何らかのレスポンスコードが返る (具体的な値は問わず、connection refused でないこと)</li>
+<li class="task-list-item"><input type="checkbox" disabled> 別タブから <code>lsof -iTCP:5179</code> で listening 確認できる (任意)</li>
+</ul>
+<hr>
+<h2 id="step-1-5-frontend-起動確認">Step 1-5: frontend 起動確認</h2>
+<p>別の WSL2 タブ (ターミナル 2) で。Step 1-4 のターミナルは残したまま。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony/frontend</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span></span></code></pre>
+<p><strong>期待される出力</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>VITE vX.X.X  ready in XXX ms</span></span>
+<span class="line"><span>➜  Local:   http://localhost:5173/</span></span></code></pre>
+<p><strong>動作確認</strong>:</p>
+<ul>
+<li>Windows 側のブラウザ (Chrome / Edge) で <code>http://localhost:5173</code> を開く</li>
+<li>デザイナー画面が表示される</li>
+<li>右下 / 左下のステータス表示で MCP 接続状態が OK 系</li>
+<li>DevTools (F12) Console に critical なエラーがない</li>
+</ul>
+<h4 id="成功確認-5">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> ブラウザで <code>http://localhost:5173</code> がデザイナー UI を表示</li>
+<li class="task-list-item"><input type="checkbox" disabled> MCP 接続 OK の表示 (詳細はプロジェクトの UI 仕様による)</li>
+<li class="task-list-item"><input type="checkbox" disabled> テスト的に画面を作成・保存 → <code>~/projects/harmony/workspaces/&#x3C;id>/</code> 等にファイルが書き込まれる</li>
+</ul>
+<hr>
+<h2 id="step-1-6-vscode-を-remote-wsl-に切替">Step 1-6: VSCode を Remote-WSL に切替</h2>
+<ol>
+<li>Windows の VSCode を起動</li>
+<li>拡張機能 <code>Remote - WSL</code> (Microsoft 公式) をインストール (未導入なら)</li>
+<li>左下の青い <code>>&#x3C;</code> アイコン → <code>Connect to WSL</code></li>
+<li><code>File → Open Folder</code> → <code>/home/&#x3C;user>/projects/harmony</code></li>
+<li>ステータスバー左下が <code>WSL: Ubuntu</code> と表示される</li>
+</ol>
+<p><strong>WSL2 側に拡張機能を導入</strong>:</p>
+<ul>
+<li><code>ESLint</code>, <code>Prettier</code> 等の言語系</li>
+<li><code>GitHub Copilot</code> (拡張機能パネルで「Install in WSL: Ubuntu」ボタン)</li>
+<li><code>Docker</code> (任意)</li>
+</ul>
+<p>VSCode 内蔵ターミナルが bash で開くようになる。<code>npm run dev</code> も VSCode 内ターミナルで起動可能。</p>
+<h4 id="成功確認-6">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> ステータスバー左下が <code>WSL: Ubuntu</code> 表示</li>
+<li class="task-list-item"><input type="checkbox" disabled> VSCode 内蔵ターミナル (Ctrl+`) が bash プロンプトで開く</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>Ctrl+Shift+P</code> → <code>Remote-WSL: Show Log</code> でエラーがない</li>
+<li class="task-list-item"><input type="checkbox" disabled> 主要拡張 (Copilot 等) が WSL: Ubuntu 側にインストール済みになっている</li>
+</ul>
+<hr>
+<h2 id="step-1-7-claude-code-を-wsl2-側にインストール">Step 1-7: Claude Code を WSL2 側にインストール</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># WSL2 シェルで</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -g</span><span style="color:#032F62;--shiki-dark:#96D0FF"> @anthropic-ai/claude-code</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 動作確認</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">claude</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --version</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># プロジェクトディレクトリで起動</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">claude</span></span></code></pre>
+<p><code>.mcp.json</code> (リポジトリ内) は <code>http://localhost:5179/mcp</code> を指す URL エントリなので、backend が WSL2 内で動いていれば自動で接続される (Step 1-4 が起動継続中であること)。</p>
+<h4 id="成功確認-7">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>claude --version</code> が表示される</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>~/projects/harmony</code> で <code>claude</code> が起動する</li>
+<li class="task-list-item"><input type="checkbox" disabled> Claude Code から MCP の tool 一覧が見える / 呼び出せる</li>
+<li class="task-list-item"><input type="checkbox" disabled> Windows 側で動いていた Claude Code (PowerShell から起動するもの) は使わなくなる</li>
+</ul>
+<hr>
+<h2 id="step-1-8-claude-code-memory--設定の引き継ぎ-任意">Step 1-8: Claude Code memory / 設定の引き継ぎ (任意)</h2>
+<p>Windows 側 (<code>C:\Users\csilo\.claude\</code>) の memory を WSL2 側に持ち込む場合のみ実施。新規セッションから始める場合はスキップ可。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># Windows 側の memory ディレクトリを確認</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">ls</span><span style="color:#032F62;--shiki-dark:#96D0FF"> /mnt/c/Users/csilo/.claude/projects/</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 該当プロジェクトディレクトリ名を確認</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 元 (Windows): C--projects-html-designer</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 新 (WSL2):    -home-&#x3C;user>-projects-harmony (パスから自動生成される)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">mkdir</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -p</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.claude/projects</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">cp</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -r</span><span style="color:#032F62;--shiki-dark:#96D0FF"> /mnt/c/Users/csilo/.claude/projects/C--projects-html-designer</span><span style="color:#005CC5;--shiki-dark:#F47067"> \</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">      ~/.claude/projects/-home-csilo-projects-harmony</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">ls</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/.claude/projects/-home-csilo-projects-harmony/memory/</span></span></code></pre>
+<p><strong>注意</strong>: コピー後にディレクトリ名がプロジェクトパスと対応していないと Claude Code が memory を読み込めない。実際のディレクトリ名規則は Claude Code のバージョンに依存するので、初回起動後に <code>~/.claude/projects/</code> 配下に何ができるか確認してから合わせる方が確実。</p>
+<h4 id="成功確認-8">成功確認</h4>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> (任意) <code>~/.claude/projects/</code> 配下に該当ディレクトリがある</li>
+<li class="task-list-item"><input type="checkbox" disabled> (任意) <code>MEMORY.md</code> の内容が WSL2 セッションで recall される</li>
+</ul>
+<hr>
+<h2 id="step-1-9-wsl2-native-セットアップ完了総合テスト">Step 1-9: WSL2 native セットアップ完了総合テスト</h2>
+<p>以下が全て動作することを確認:</p>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> WSL2 シェルで <code>cd ~/projects/harmony</code> できる</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>cd backend &#x26;&#x26; npm run dev</code> が起動継続</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>cd frontend &#x26;&#x26; npm run dev</code> が起動継続 (別タブ)</li>
+<li class="task-list-item"><input type="checkbox" disabled> Windows ブラウザで <code>http://localhost:5173</code> でデザイナー操作可</li>
+<li class="task-list-item"><input type="checkbox" disabled> backend 経由で <code>workspaces/</code> に JSON ファイルが書き込まれる</li>
+<li class="task-list-item"><input type="checkbox" disabled> WSL2 内の Claude Code が起動して MCP tool を呼べる</li>
+<li class="task-list-item"><input type="checkbox" disabled> VSCode (Remote-WSL) でソース編集 → save → Vite HMR がブラウザに反映される</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>git status</code>, <code>git commit</code>, <code>git push</code> が WSL2 から成功する</li>
+<li class="task-list-item"><input type="checkbox" disabled> Windows 側 <code>C:\projects\html-designer\</code> がまだ残っている (削除していない)</li>
+</ul>
+<h4 id="完了">完了</h4>
+<p>ここまで全て OK なら WSL2 native セットアップ完了。</p>
+<p><strong>運用安定化期間</strong>: 1〜2 週間ほど WSL2 環境で運用し、問題が出ないことを確認する。問題が出たら一時的に Windows 側 (<code>C:\projects\html-designer\</code>) に戻れる状態を維持。</p>
+<p><strong>退役判断</strong>: 1〜2 週間運用して安定したら、Windows 側を archive 化または削除。</p>
+<ul>
+<li>archive 化: <code>Move-Item C:\projects\harmony C:\projects\_archived\harmony-windows-2026-XX-XX</code></li>
+<li>完全削除: 慎重に。git push 漏れがないことを WSL2 側と diff チェックしてから</li>
+</ul>
+<hr>
+<h2 id="dev-containers-への切替を検討する目安">Dev Containers への切替を検討する目安</h2>
+<p>WSL2 native で安定運用に入った後、以下のいずれかに該当する時は Dev Containers への切替を検討:</p>
+<ul>
+<li>複数プロジェクトを WSL2 上で開発し、Node / JDK / Python のバージョン衝突が発生</li>
+<li>B チーム / OSS contributor に dev 環境を配布する必要が出てきた</li>
+<li>新規開発者の onboarding を短縮したい</li>
+<li>WSL2 distro の汚れ (~/.npm / ~/.cache / 各種 SDK) を整理したい</li>
+</ul>
+<p>切替手順は <a href="/setup/dev-containers/"><code>dev-containers.md</code></a> §「WSL2 native ユーザー向け移行手順」を参照。後戻りも <code>Dev Containers: Reopen Folder Locally</code> で即可能、両モード併用も可。</p>
+<p>該当しないなら WSL2 native のままで問題なし。</p>
+<hr>
+<h2 id="トラブルシューティング">トラブルシューティング</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>症状</th><th>原因 / 対処</th></tr></thead><tbody><tr><td><code>npm install</code> が異様に遅い (5 分以上)</td><td>ソースが <code>/mnt/c/...</code> 配下にある可能性。WSL2 native パス (<code>~/projects/...</code>) に移動する</td></tr><tr><td>Vite HMR が反応しない</td><td><code>/mnt/c/...</code> 配下、または file watcher 上限。WSL2 native パスへ移動 + <code>cat /proc/sys/fs/inotify/max_user_watches</code> 確認</td></tr><tr><td><code>git push</code> で permission denied</td><td>SSH 鍵未登録 or <code>~/.ssh/</code> 権限不正。<code>chmod 700 ~/.ssh &#x26;&#x26; chmod 600 ~/.ssh/id_*</code></td></tr><tr><td>MCP に Claude Code が繋がらない</td><td>backend が起動しているか / ポート 5179 が空いているか (<code>lsof -iTCP:5179</code>)</td></tr><tr><td>WSL2 がメモリ食いすぎ</td><td><code>C:\Users\&#x3C;user>\.wslconfig</code> に <code>[wsl2]</code> <code>memory=12GB</code> を追記、<code>wsl --shutdown</code> で再起動</td></tr><tr><td>ブラウザで <code>localhost:5173</code> が見えない</td><td>WSL2 の port forwarding 確認 (<code>.wslconfig</code> の <code>localhostForwarding=true</code>)、Windows Firewall 確認</td></tr></tbody></table>
+<hr>
+<h2 id="関連ドキュメント">関連ドキュメント</h2>
+<ul>
+<li><a href="/setup/AGENTS/"><code>AGENTS.md</code></a> — プロジェクト全般のガイダンス</li>
+<li><a href="/setup/CLAUDE/"><code>CLAUDE.md</code></a> — Claude Code 固有の設定</li>
+<li><a href="/setup/dev-containers/"><code>dev-containers.md</code></a> — 開発環境 (推奨)</li>
+<li><a href="/setup/distribution-roadmap/"><code>distribution-roadmap.md</code></a> — Harmony 本体の Docker image 配布構想</li>
+<li><a href="/spec/workspace/"><code>docs/spec/workspace.md</code></a> — ワークスペース仕様</li>
+<li><a href="/spec/edit-session-draft/"><code>docs/spec/edit-session-draft.md</code></a> — サーバ側 draft 管理モデル</li>
+</ul>
+<hr>
+<h2 id="改訂履歴">改訂履歴</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>日付</th><th>改訂内容</th></tr></thead><tbody><tr><td>2026-05-06</td><td>初版 (旧 <code>wsl2-docker-migration.md</code>)</td></tr><tr><td>2026-05-15</td><td><code>wsl2-native.md</code> にリネーム + 「Phase」用語廃止 + Phase 1.5 セクション削除 + Phase 2 部分を <a href="/setup/distribution-roadmap/"><code>distribution-roadmap.md</code></a> に分離 + 「Dev Containers が推奨、本書は代替」の navigation banner 追加 (#1109)</td></tr></tbody></table>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

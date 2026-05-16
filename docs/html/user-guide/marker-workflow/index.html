@@ -1,0 +1,198 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>marker workflow</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="/user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="/user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="/user-guide/marker-workflow/" class="sidebar-link active"> Marker ワークフロー </a> </li><li> <a href="/user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="/user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="/user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="ai-マーカーと-designer-work">AI マーカーと <code>/designer-work</code></h1>
+<p>designer 画面に残した指示・質問・TODO・チャットを Claude Code が読み取り、処理フローを自動編集する仕組みです。</p>
+<h2 id="4-種類のマーカー-kind">4 種類のマーカー (kind)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>kind</th><th>色</th><th>用途</th><th>AI の対応</th></tr></thead><tbody><tr><td><code>todo</code></td><td>緑</td><td>作業指示 (命令形)</td><td>構造的に編集して resolve</td></tr><tr><td><code>question</code></td><td>紫</td><td>質問 (疑問形)</td><td>chat 返信 marker を追加して resolve</td></tr><tr><td><code>attention</code></td><td>オレンジ</td><td>注意喚起・レビュー依頼</td><td><strong>編集せず</strong> 提案を resolution に書いて resolve</td></tr><tr><td><code>chat</code></td><td>青</td><td>雑談・確認</td><td>chat 返信 marker を追加して resolve</td></tr></tbody></table>
+<h2 id="マーカー追加の-4-経路">マーカー追加の 4 経路</h2>
+<h3 id="a-markerpanel-で直接追加">(A) MarkerPanel で直接追加</h3>
+<p>ProcessFlowEditor を開くと上部に「AI へのマーカー」パネル。kind を選んで body を入力。</p>
+<h3 id="b-警告から-1-click-起票">(B) 警告から 1-click 起票</h3>
+<p>画面右上「N 警告」バッジをクリック → 詳細パネルの各行「AI に依頼」ボタン。validator コード (UNKNOWN_RESPONSE_REF 等) + path 付きで kind=todo が自動起票される。</p>
+<h3 id="c-step-card-の-3-dots-メニュー">(C) step card の 3-dots メニュー</h3>
+<p>対象 step の右上「…」→「AI に指摘」→ prompt で body 入力。stepId が自動で紐付く。</p>
+<h3 id="d-外部ツール--api">(D) 外部ツール / API</h3>
+<p>MCP tool <code>designer__add_marker</code> を Claude Code や外部スクリプトから呼ぶ。<code>author: "ai"</code> で AI 側からの返信にも使う。</p>
+<h3 id="e-画面への赤線描画-フリーハンド--261-強化">(E) 画面への赤線描画 (フリーハンド) — #261 強化</h3>
+<p>ProcessFlowEditor 右上「描画」ボタン ON でツールバーが出現。</p>
+<ul>
+<li><strong>ペン / 消しゴム切替</strong>: ペンで自由描画、消しゴムで既存 shape をクリック削除</li>
+<li><strong>マルチストローク</strong>: 複数ストロークを 1 marker (path “d” に M 区切りで合体) として確定</li>
+<li><strong>undo</strong>: 最後のストロークを 1 本戻す</li>
+<li><strong>確定 / キャンセル</strong>: 確定で prompt → body 入力 → kind=todo の marker 起票、キャンセルで破棄</li>
+</ul>
+<p>「ここ一帯」「この範囲」のような空間的な指摘が文章だけでは書きづらいときに使う。</p>
+<h2 id="マーカーの可視化">マーカーの可視化</h2>
+<p>ワークフローを回すため、未解決マーカーはいくつかの画面で一覧・カウント表示される。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>画面</th><th>表示内容</th></tr></thead><tbody><tr><td>Dashboard の MarkersSummaryPanel</td><td>全体の未解決件数 + kind 別内訳 + 最多 AG ランキング</td></tr><tr><td>処理フロー一覧 (カード / 表)</td><td>各 ProcessFlow の未解決件数を kind 別色分けバッジ (緑/紫/橙/青) で表示。「マーカーありのみ」フィルタで絞り込み</td></tr><tr><td>処理フロー編集 (StepCard)</td><td>各 step ヘッダに未解決 marker の kind 別チップ。どの step に何種類の指摘が集中しているか一目で分かる</td></tr><tr><td>処理フロー編集 (MarkerPanel)</td><td>詳細リスト。kind バッジ + body + 解決/削除ボタン</td></tr></tbody></table>
+<h2 id="スクショ例">スクショ例</h2>
+<ul>
+<li><a href="../ui-screenshots/22-warning-to-marker.png">22-warning-to-marker.png</a> — 警告からの 1-click 起票</li>
+<li><a href="../ui-screenshots/24-step-marker-badge.png">24-step-marker-badge.png</a> — step card 上のバッジ</li>
+</ul>
+<h2 id="designer-work-の実行"><code>/designer-work</code> の実行</h2>
+<h3 id="基本">基本</h3>
+<p>新しい Claude Code 窓 (本プロジェクト内で <code>claude</code> 起動) で:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>/designer-work &#x3C;processFlowId></span></span></code></pre>
+<p>例: <code>/designer-work cccccccc-0005-4000-8000-cccccccccccc</code></p>
+<h3 id="動作">動作</h3>
+<p>Claude Code は内部で以下を順次実行:</p>
+<ol>
+<li><code>designer__list_markers(processFlowId, unresolvedOnly=true)</code> で未解決 marker を取得</li>
+<li>各 marker を kind 別に処理:
+<ul>
+<li><code>todo</code> + 命令形 + 範囲明示 → MCP tool で編集 + <code>designer__resolve_marker</code></li>
+<li><code>question</code> / <code>chat</code> → <code>designer__add_marker(kind="chat", author="ai", body=回答)</code> + 元を resolve</li>
+<li><code>attention</code> → 編集せず resolution に提案を書いて resolve</li>
+</ul>
+</li>
+<li><strong>参照整合性チェック</strong>: 新しい responseRef / tableId / typeRef / systemRef / @secret / @conv を追加する前に対象が存在するか確認。未定義なら別 attention を起票</li>
+<li><strong>committed 保護</strong>: ProcessFlow / action / step が committed の場合、body が命令形 + 範囲明示でない限り編集しない</li>
+</ol>
+<h3 id="リアルタイム観察">リアルタイム観察</h3>
+<p>開いているブラウザは wsBridge broadcast で自動更新される。人間は画面を見ながら結果を確認し、追加 marker を書いて次の往復へ。</p>
+<h3 id="サンプル実行結果">サンプル実行結果</h3>
+<p><a href="../ui-screenshots/20-dogfood-before.png">20-dogfood-before.png</a> / <a href="../ui-screenshots/21-dogfood-after.png">21-dogfood-after.png</a> — 4 marker 投入 → /designer-work (シミュレータ) → AI 返信 2 + errorCatalog 追加 + 4 resolve。</p>
+<h3 id="試用サンプル">試用サンプル</h3>
+<p><code>examples/&#x3C;project-id>/harmony/process-flows/</code> 配下に「詳細化途中」の ProcessFlow サンプルが含まれる場合がある (6 種マーカー入りなど)。<code>workspaces/</code> 配下に作業 copy してブラウザで開き、<code>/designer-work</code> を試せる (<code>docs/sample-project/</code> は #774 で廃止済、<code>examples/&#x3C;project-id>/</code> に統合)。</p>
+<h2 id="事前準備-初回のみ">事前準備 (初回のみ)</h2>
+<h3 id="mcpjson-を確認"><code>.mcp.json</code> を確認</h3>
+<p>本プロジェクトには <code>.mcp.json</code> に <code>harmony-mcp</code> が登録済み (URL mode、自動 spawn しない)。Claude Code を本ディレクトリで起動する前に backend を常駐起動しておくこと。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "mcpServers"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "harmony-mcp"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"http"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "url"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"http://localhost:5179/mcp"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="ポート-5179-の扱い-302-以降">ポート 5179 の扱い (#302 以降)</h3>
+<p>backend は HTTP + WebSocket を port 5179 で listen する常駐サーバ。以下の方法で起動:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span><span style="color:#6A737D;--shiki-dark:#768390">    # 端末を 1 つ占有して常駐、Ctrl+C で終了</span></span></code></pre>
+<p>同 port に HTTP MCP endpoint (<code>/mcp</code>) とブラウザ向け WebSocket を同居。<code>.mcp.json</code> の URL エントリ経由で Claude Code が接続、複数 Claude Code セッション同時接続 OK。</p>
+<p>旧仕様 (#302 以前): <code>.mcp.json</code> の command エントリで <code>npx tsx backend/src/index.ts</code> を自動 spawn していた → port 競合・orphan 発生で廃止。</p>
+<p>古い orphan プロセスが残っていた場合は kill:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">netstat</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -ano</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> grep</span><span style="color:#032F62;--shiki-dark:#96D0FF"> :5179</span><span style="color:#6A737D;--shiki-dark:#768390">  # PID 取得</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">taskkill</span><span style="color:#032F62;--shiki-dark:#96D0FF"> //F</span><span style="color:#032F62;--shiki-dark:#96D0FF"> //PID</span><span style="color:#D73A49;--shiki-dark:#F47067"> &#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">PI</span><span style="color:#24292E;--shiki-dark:#ADBAC7">D</span><span style="color:#D73A49;--shiki-dark:#F47067">></span><span style="color:#6A737D;--shiki-dark:#768390">   # Windows (Git Bash は //F の escape 必要)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># kill -9 &#x3C;PID>            # macOS/Linux</span></span></code></pre>
+<h2 id="トラブル例">トラブル例</h2>
+<h3 id="backend-に接続できない--mcp-fail">「backend に接続できない / MCP FAIL」</h3>
+<ul>
+<li><code>cd backend &#x26;&#x26; npm run dev</code> で <strong>常駐サーバを起動済みか</strong> 確認 (#302 以降は自動 spawn しない)</li>
+<li><code>netstat -ano | grep :5179</code> で LISTENING プロセスが存在するか</li>
+<li><code>curl http://localhost:5179/</code> で <code>{"status":"ok",...}</code> が返るか</li>
+<li><code>.mcp.json</code> の backend エントリが URL 形式 (<code>"type": "http"</code>, <code>"url": "http://localhost:5179/mcp"</code>) か</li>
+<li><code>backend</code> の依存がインストール済みか (<code>cd backend &#x26;&#x26; npm install</code>)</li>
+</ul>
+<h3 id="marker-起票したのにブラウザに反映されない">「marker 起票したのにブラウザに反映されない」</h3>
+<ul>
+<li>ブラウザが wsBridge に接続できているか (DevTools Console で <code>mcpBridge</code> のログ確認)</li>
+<li>backend が古いプロセスのままで、新しい Claude Code 窓の tool 呼出を聞いていない可能性 → backend 再起動</li>
+</ul>
+<h3 id="designer-work-が-committed-ステップを一切触らない">「/designer-work が committed ステップを一切触らない」</h3>
+<p>仕様通り。committed は AI の独断編集を保護。編集させたい場合:</p>
+<ul>
+<li>kind を <code>todo</code> にする (attention では編集されない)</li>
+<li>body を命令形に (「〜を追加して」「〜を削除して」)</li>
+<li>対象 step / field を明示</li>
+</ul>
+<p>詳細は <code>.claude/commands/designer-work.md</code> 参照。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

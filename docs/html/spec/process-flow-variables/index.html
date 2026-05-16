@@ -1,0 +1,512 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>process flow variables</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link active"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="処理フローの入出力変数構造化">処理フローの入出力・変数構造化</h1>
+<p>Issue: #152 (親トラッキング: #151) / #525 R3 fix で StepBaseProps.lineage 透過 / #533 R3-1 で IdentifierPath 化 / <strong>#539 で v3 schema 反映</strong>
+策定日: 2026-04-20
+<strong>改訂日: 2026-04-28 (v3 反映 — schema は v3.0.2 で確定)</strong>
+ステータス: <strong>v3 整合性確保</strong> — データモデルは v3 schema (<code>schemas/v3/</code>) を一次成果物とし、本仕様で意図と慣例を補足する</p>
+<p>本ドキュメントは、処理フローの <strong>入出力とステップ間の変数受け渡し</strong> を構造化して、AI エージェントが実装時に関数シグネチャと中間変数を明確に決められるようにする仕様を定める。</p>
+<h2 id="1-目的">1. 目的</h2>
+<p>現状の処理フローは:</p>
+<ul>
+<li><code>inputs</code> / <code>outputs</code> が「改行区切り自由テキスト」</li>
+<li>ステップ間のデータ受け渡しが <code>description</code> の自由文で表現</li>
+<li>条件式 / ループソース / 表示対象が自由テキスト</li>
+</ul>
+<p>これにより AI エージェントは実装時に以下で迷う:</p>
+<ul>
+<li>各入出力の<strong>型・必須性</strong>が不明 → 関数シグネチャが決まらない</li>
+<li>DB 検索結果 → 後続ステップでの<strong>参照方法</strong>が不明 → 中間変数名を推測</li>
+<li>共通処理呼び出し時の<strong>引数マッピング</strong>が書けない</li>
+<li>条件式内のフィールド参照が識別子か自然言語か不明</li>
+</ul>
+<p>本仕様は、これを「<strong>自由テキスト併用可能・漸進的に構造化</strong>」な形式に拡張する。全か無かではなく、書ける範囲だけ構造化する。</p>
+<h2 id="2-背景">2. 背景</h2>
+<p>2026-04-20 のドッグフード結果:</p>
+<ul>
+<li>「Top 3 不足項目」の <strong>1 位</strong>「共通のコード採番ポリシーおよび outputs で保持する変数の型・命名」</li>
+<li>曖昧さパターン <strong>A (変数の受け渡し方法)</strong> が全 4 サンプルで頻出</li>
+<li>パターン <strong>C (DB 操作の詳細)</strong> で INSERT/UPDATE のフィールド順・省略項目・採番が不明と指摘</li>
+</ul>
+<h2 id="3-概念モデル-4-ピース">3. 概念モデル (4 ピース)</h2>
+<h3 id="31-入出力の構造化-v3">3.1 入出力の構造化 (v3)</h3>
+<p><code>ActionDefinition.inputs</code> / <code>outputs</code> は <strong><code>StructuredField[]</code> のみ</strong> (v3 で string 短縮形廃止):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> StructuredField</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  name</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                    </span><span style="color:#6A737D;--shiki-dark:#768390">// Identifier (camelCase 強制)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  label</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                  </span><span style="color:#6A737D;--shiki-dark:#768390">// 表示名 (例: "ユーザーID")</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  type</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> FieldType</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  required</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> boolean</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  description</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  format</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                 </span><span style="color:#6A737D;--shiki-dark:#768390">// 採番形式 / @conv.numbering.* 参照</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  defaultValue</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;           </span><span style="color:#6A737D;--shiki-dark:#768390">// 既定値 (式可)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  screenItemRef</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ScreenItemRef</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;   </span><span style="color:#6A737D;--shiki-dark:#768390">// Pattern B 参照 (画面項目)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  formula</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ExpressionString</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;      </span><span style="color:#6A737D;--shiki-dark:#768390">// 派生属性の計算式</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// FieldType (common.v3.schema.json#/$defs/FieldType) — v3 の確定形</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">type</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> FieldType</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "string"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "number"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "integer"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "boolean"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "date"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "datetime"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "json"</span><span style="color:#6A737D;--shiki-dark:#768390">  // プリミティブ 7 種</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  |</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "array"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#E36209;--shiki-dark:#F69D50">itemType</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> FieldType</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  |</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#E36209;--shiki-dark:#F69D50">fields</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> StructuredField</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[] }</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  |</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "tableRow"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#E36209;--shiki-dark:#F69D50">tableId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Uuid</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  |</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "tableList"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#E36209;--shiki-dark:#F69D50">tableId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Uuid</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  |</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "screenInput"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#E36209;--shiki-dark:#F69D50">screenId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Uuid</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  |</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "domain"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#E36209;--shiki-dark:#F69D50">domainKey</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }              </span><span style="color:#6A737D;--shiki-dark:#768390">// PascalCase、context.catalogs.domains 参照</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  |</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "file"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#E36209;--shiki-dark:#F69D50">format</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }                  </span><span style="color:#6A737D;--shiki-dark:#768390">// CSV/ZIP/PDF 等</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  |</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "extension"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#E36209;--shiki-dark:#F69D50">extensionRef</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> };       </span><span style="color:#6A737D;--shiki-dark:#768390">// namespace:fieldType 形式 (例: 'retail:productCode')</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ActionDefinition</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  inputs</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> StructuredField</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  outputs</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> StructuredField</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong>v3 での廃止</strong>:</p>
+<ul>
+<li><code>string</code> 短縮形 (改行区切り) — 全部 <code>StructuredField[]</code> で記述</li>
+<li><code>kind: "custom"</code> (deprecated) — array/object/extension で代替</li>
+</ul>
+<p><strong>v3 で追加</strong>:</p>
+<ul>
+<li><code>integer</code> プリミティブ (number と区別)</li>
+<li><code>datetime</code> プリミティブ (date と区別)</li>
+<li><code>json</code> プリミティブ (任意の構造化データ)</li>
+<li><code>kind: "domain"</code> (context.catalogs.domains 参照)</li>
+<li><code>kind: "file"</code> (バッチ I/O 等)</li>
+<li><code>kind: "extension"</code> (namespace:identifier、業界別拡張)</li>
+</ul>
+<h3 id="32-ステップの出力変数-output-binding--v3-構造化のみ">3.2 ステップの出力変数 (Output Binding) — v3 構造化のみ</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// v3 で string 短縮形廃止、object 形式に統一</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">type</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> OutputBindingOperation</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "assign"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "accumulate"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "push"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> OutputBindingTransformation</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  field</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                                         </span><span style="color:#6A737D;--shiki-dark:#768390">// 変換対象 column 名 (SELECT alias 名)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  type</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "integer"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "float"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "boolean"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "date"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">; </span><span style="color:#6A737D;--shiki-dark:#768390">// 変換後の型</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> OutputBinding</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  name</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                            </span><span style="color:#6A737D;--shiki-dark:#768390">// Identifier (camelCase 強制)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  operation</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> OutputBindingOperation</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;      </span><span style="color:#6A737D;--shiki-dark:#768390">// 既定 "assign"</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  initialValue</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                   </span><span style="color:#6A737D;--shiki-dark:#768390">// accumulate: "0", push: "[]" 相当 (式可)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  transformations</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> OutputBindingTransformation</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[]; </span><span style="color:#6A737D;--shiki-dark:#768390">// SELECT 結果の型変換 (#781)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> StepBaseProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  outputBinding</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> OutputBinding</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;  </span><span style="color:#6A737D;--shiki-dark:#768390">// 例: { name: "users" } / { name: "subtotal", operation: "accumulate", initialValue: "0" }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>operation の意味:</p>
+<ul>
+<li><code>assign</code> (既定): 上書き代入</li>
+<li><code>accumulate</code>: <code>+=</code> で数値累積 (例: 税額計算の積算)</li>
+<li><code>push</code>: 配列の末尾追加 (例: ループ内で enrichedItems を構築)</li>
+</ul>
+<h4 id="transformations--db-方言吸収-781">transformations — DB 方言吸収 (#781)</h4>
+<p><code>transformations</code> は SQL の SELECT 結果を binding に格納する前に runtime が型変換するための宣言。<strong>SQL 側に <code>CAST(...)</code> を書かずに DB 中立な SQL を保ちつつ</strong>、PG 固有の型変換問題を吸収できる。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>type</th><th>変換処理</th><th>主なユースケース</th></tr></thead><tbody><tr><td><code>integer</code></td><td><code>parseInt(value, 10)</code></td><td>PG <code>COUNT(*)</code>→bigint→string</td></tr><tr><td><code>float</code></td><td><code>parseFloat(value)</code></td><td>PG <code>SUM(amount)</code>→decimal→string</td></tr><tr><td><code>boolean</code></td><td>truthy 判定</td><td>PG <code>bool</code> 値→string “t”/“f”</td></tr><tr><td><code>date</code></td><td><code>new Date(value)</code></td><td>ISO 日付文字列→Date オブジェクト</td></tr><tr><td><code>json</code></td><td><code>JSON.parse(value)</code></td><td>JSON 文字列→オブジェクト</td></tr></tbody></table>
+<p><strong>適用範囲</strong>:</p>
+<ul>
+<li><code>transformations</code> は <code>dbAccess</code> step の <code>outputBinding</code> に対して適用される。</li>
+<li><code>transactionScope</code> の outputBinding (<code>txResult.committed</code> / <code>txResult.error</code>) には適用されない (txResult はフレームワークが型付きで expose するため変換不要)。</li>
+</ul>
+<p><strong>AI 実装時のルール</strong>:</p>
+<ol>
+<li>PG <code>COUNT(*)</code> / <code>SUM(...)</code> / <code>AVG(...)</code> 等の集約関数を使う <code>dbAccess</code> step は、後続で数値比較する場合 <code>transformations</code> で <code>integer</code> または <code>float</code> を宣言する</li>
+<li>SQL 側では PG 等の DB 固有の <code>CAST(COUNT(*) AS INTEGER)</code> 等の構文を書かず、<code>transformations</code> 経由で runtime に吸収させる (DB 中立な SQL を保つため)</li>
+<li><code>field</code> には SELECT の alias 名を指定する (例: <code>"itemCount"</code>, <code>"totalAmount"</code>)</li>
+</ol>
+<p><strong>例 (retail カート追加フロー)</strong>:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-09"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dbAccess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "operation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"SELECT"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "sql"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"SELECT COUNT(*) AS </span><span style="color:#005CC5;--shiki-dark:#F47067">\"</span><span style="color:#032F62;--shiki-dark:#96D0FF">itemCount</span><span style="color:#005CC5;--shiki-dark:#F47067">\"</span><span style="color:#032F62;--shiki-dark:#96D0FF"> FROM cart_items WHERE cart_id = @cart.id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"cartItemCount"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "transformations"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"field"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"itemCount"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"integer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>後続の <code>@cartItemCount.itemCount >= @conv.limit.cartMaxItems</code> は数値比較として正しく評価される。</p>
+<p>対応ステップタイプ (v3):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Step kind</th><th>出力変数</th><th>例</th></tr></thead><tbody><tr><td><code>dbAccess</code> (SELECT/INSERT)</td><td>✓ (既定候補: テーブル名)</td><td><code>{ name: "rows" }</code> / <code>{ name: "createdOrder" }</code> (RETURNING)</td></tr><tr><td><code>commonProcess</code></td><td>✓</td><td><code>{ name: "authResult" }</code></td></tr><tr><td><code>externalSystem</code></td><td>✓</td><td><code>{ name: "paymentResponse" }</code></td></tr><tr><td><code>compute</code></td><td>✓</td><td><code>{ name: "totalValuation" }</code></td></tr><tr><td><code>loop</code> (collection mode)</td><td>✓ (operation=push 推奨)</td><td><code>{ name: "bomComponents", operation: "push", initialValue: "[]" }</code></td></tr><tr><td><code>validation</code></td><td>✕ (<code>fieldErrorsVar</code> で出力先)</td><td>—</td></tr><tr><td><code>branch</code> / <code>loopBreak</code> / <code>loopContinue</code> / <code>jump</code></td><td>✕ (制御構造)</td><td>—</td></tr><tr><td><code>screenTransition</code> / <code>displayUpdate</code></td><td>✕ (副作用のみ)</td><td>—</td></tr><tr><td><code>eventPublish</code> / <code>eventSubscribe</code> / <code>audit</code> / <code>log</code></td><td>✕ (副作用のみ)</td><td>—</td></tr><tr><td><code>transactionScope</code> / <code>closing</code> / <code>cdc</code> / <code>workflow</code></td><td>✕ (制御構造、内部 step が outputBinding 持つ)</td><td>—</td></tr><tr><td><code>extension</code> (拡張 step)</td><td>✓</td><td><code>{ name: "creditCheckResult" }</code></td></tr></tbody></table>
+<p>空欄なら「この名前では参照できない」でよい。強制しない。</p>
+<h3 id="33-参照補完--記法">3.3 参照補完 (<code>@</code> 記法)</h3>
+<p>ExpressionString 内で <strong><code>@</code> プレフィックス</strong>を使った補完可能参照を使用:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>@users[0].role          # users 配列の先頭要素の role</span></span>
+<span class="line"><span>@authResult.userId      # authResult オブジェクトの userId</span></span>
+<span class="line"><span>@userId                 # そのアクションの入力値</span></span>
+<span class="line"><span>@inputs.userId          # 全体参照スタイル (推奨)</span></span>
+<span class="line"><span>@createdOrder.order_number  # IdentifierPath (#533 R3-1、underscore セグメント可)</span></span>
+<span class="line"><span>@conv.regex.email       # Conventions catalog 参照</span></span>
+<span class="line"><span>@secret.apiKey          # secrets catalog 参照</span></span>
+<span class="line"><span>@env.STRIPE_API_BASE    # envVars catalog 参照</span></span>
+<span class="line"><span>@fn.calculateTotal(@a, @b) # functions catalog 参照</span></span></code></pre>
+<p>対象フィールド (v3): 詳細は <a href="/spec/process-flow-expression-language/"><code>process-flow-expression-language.md</code></a> §6 を参照。</p>
+<p>ScreenItem.valueFrom.flowVariable.variableName は <strong>IdentifierPath</strong> ($defs in common.v3) で field 参照可:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"valueFrom"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"flowVariable"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "variableName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"createdOrder.order_number"</span><span style="color:#6A737D;--shiki-dark:#768390">  // ← #533 R3-1 fix で許容</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>動作:</p>
+<ul>
+<li><code>@</code> 押下で UI ポップアップ、そのステップまでに定義された変数 + アクションの inputs + ambient + catalog を候補表示</li>
+<li>↑↓ で選択、Enter で確定</li>
+<li>catalog 参照 (<code>@conv.*</code> / <code>@secret.*</code> / <code>@env.*</code> / <code>@fn.*</code>) は別グループで表示</li>
+<li><strong>厳密な型チェックはしない</strong> (構文的補完のみ、将来の参照整合性バリデータで強化)</li>
+</ul>
+<h3 id="34-共通処理の引数マッピング-v3">3.4 共通処理の引数マッピング (v3)</h3>
+<p><code>CommonProcessStep</code> (kind=“commonProcess”):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> CommonProcessStep</span><span style="color:#D73A49;--shiki-dark:#F47067"> extends</span><span style="color:#6F42C1;--shiki-dark:#6CB6FF"> StepBaseProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "commonProcess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  description</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  refId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Uuid</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                                   </span><span style="color:#6A737D;--shiki-dark:#768390">// 呼び出し先 ProcessFlow の Uuid (kind="common")</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  argumentMapping</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Record</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#6F42C1;--shiki-dark:#F69D50">ExpressionString</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // キー: 呼び先 inputs.name (Identifier)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // 値: 値表現 (式)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  returnMapping</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Record</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // キー: 呼び先 outputs.name</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // 値: 説明 / バインド先</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>UI: <code>refId</code> 選択時、呼び先フローの <code>inputs</code> を自動展開して対応表が現れる:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>共通処理: 認証チェック</span></span>
+<span class="line"><span>  呼び先の入力:</span></span>
+<span class="line"><span>    sessionId     → [@session.id         ]</span></span>
+<span class="line"><span>    trustedLevel  → ['high'               ]</span></span></code></pre>
+<h3 id="35-変数スコープ">3.5 変数スコープ</h3>
+<ul>
+<li><strong>アクション単位</strong>がスコープの単位</li>
+<li>アクション内の <code>outputBinding</code> は、そのステップ以降・同一アクション内で参照可能</li>
+<li>分岐・ループ内で定義した変数は、その分岐・ループを抜けると参照不可 (v1 では警告のみ、禁止にはしない)</li>
+<li>アクションの <code>inputs</code> はアクションの先頭から参照可能</li>
+</ul>
+<h2 id="4-ui-要素">4. UI 要素</h2>
+<h3 id="41-入出力の表形式エディタ-phase-1">4.1 入出力の表形式エディタ (Phase 1)</h3>
+<p>現在の改行区切りテキストエリアを次の表に置換 (切替可能):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>┌─ 入力 ──────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│  名前       | 型        | 必須 | 説明           [+] │</span></span>
+<span class="line"><span>│  userId     | 文字列    | ✓    | ログイン ID        │</span></span>
+<span class="line"><span>│  password   | 文字列    | ✓    |                    │</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span>[自由記述モードに戻す]</span></span></code></pre>
+<ul>
+<li><strong>自由記述モード ↔ 表形式</strong> のトグルがあり、いつでも行き来可能</li>
+<li>表形式から自由記述に戻すと、改行区切りのテキストに再シリアライズ (name のみ)</li>
+<li>自由記述から表形式に切り替えると、改行区切りを <code>StructuredField[]</code> に自動変換 (name のみ、type=<code>"string"</code> 既定)</li>
+</ul>
+<h3 id="42-ステップカードの出力変数欄-phase-2">4.2 ステップカードの出力変数欄 (Phase 2)</h3>
+<p>該当ステップタイプのカードに「結果変数名」欄を追加:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>┌─ DB 検索 (customers) ────────────────┐</span></span>
+<span class="line"><span>│  検索条件: email = @email             │</span></span>
+<span class="line"><span>│  結果を: [duplicates             ]    │</span></span>
+<span class="line"><span>└───────────────────────────────────────┘</span></span></code></pre>
+<h3 id="43--補完付き参照入力-phase-3">4.3 <code>@</code> 補完付き参照入力 (Phase 3)</h3>
+<p>自由テキストフィールド内で <code>@</code> 入力時にポップアップ:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>条件: @users</span></span>
+<span class="line"><span>         ┌──────────────────────────────────────┐</span></span>
+<span class="line"><span>         │ users      (DB検索結果, users テーブル) │ ← 矢印キー</span></span>
+<span class="line"><span>         │ userId     (入力)                      │</span></span>
+<span class="line"><span>         │ authResult (共通処理戻り値)            │</span></span>
+<span class="line"><span>         └──────────────────────────────────────┘</span></span></code></pre>
+<p>候補は、そのステップまでに定義された <code>outputBinding</code> + アクションの <code>inputs.name</code>。Esc で閉じる、選択しなくても自由テキストとして保存可能。</p>
+<h3 id="44-共通処理の引数マッピング-ui-phase-4">4.4 共通処理の引数マッピング UI (Phase 4)</h3>
+<p>共通処理カードに、呼び先 <code>inputs</code> が自動展開される専用エリア:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>共通処理: 認証チェック [ref: cccccccc-0003 ▼]</span></span>
+<span class="line"><span>───────────────────────────────────────</span></span>
+<span class="line"><span>呼び先の入力:</span></span>
+<span class="line"><span>  sessionId    → [@session.id       ] (文字列)</span></span>
+<span class="line"><span>  trustedLevel → ['high'             ] (文字列)</span></span></code></pre>
+<p>値側入力は §4.3 の <code>@</code> 補完が利く。</p>
+<h3 id="45-型のテーブル画面連携-phase-5-任意">4.5 型のテーブル・画面連携 (Phase 5, 任意)</h3>
+<p>型ドロップダウンに:</p>
+<ul>
+<li><code>テーブル: users の 1 行</code></li>
+<li><code>テーブル: users の配列</code></li>
+<li><code>画面: ログイン画面の入力</code></li>
+</ul>
+<p>を追加。選択するとその型のフィールド一覧が自動的に利用可能に。</p>
+<h2 id="5-データモデル-v3-確定形後方互換廃止">5. データモデル (v3 確定形、後方互換廃止)</h2>
+<p>v3 で string 短縮形は全廃止。v1/v2 サンプルから v3 への移行は人手必要 (機械変換不能、<code>schemas/v3/README.md</code> の v1→v3 マッピング表参照)。</p>
+<h3 id="51-v3-確定型">5.1 v3 確定型</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>型</th><th>フィールド</th><th>確定</th></tr></thead><tbody><tr><td><code>ActionDefinition.inputs</code></td><td>—</td><td><code>StructuredField[]</code> のみ (string 短縮形廃止)</td></tr><tr><td><code>ActionDefinition.outputs</code></td><td>—</td><td>同上</td></tr><tr><td><code>StepBaseProps</code></td><td><code>outputBinding?: OutputBinding</code></td><td>object 形式のみ (string 短縮形廃止)</td></tr><tr><td><code>StepBaseProps</code></td><td><code>lineage?: DataLineage</code></td><td><strong>#525 R3 fix で StepBaseProps に移植</strong>、全 step variant で利用可能</td></tr><tr><td><code>CommonProcessStep</code></td><td><code>argumentMapping?: Record&#x3C;string,ExpressionString></code></td><td>確定</td></tr><tr><td><code>ProcessFlow.context.ambientVariables</code></td><td><code>StructuredField[]</code></td><td><strong>#525 R3 fix で context 配下に統一</strong> (v1/v2 では root 直下)</td></tr><tr><td><code>ScreenItem.valueFrom.flowVariable.variableName</code></td><td><code>IdentifierPath</code></td><td><strong>#533 R3-1 fix で IdentifierPath (camelCase + snake_case + dot path) に変更</strong></td></tr></tbody></table>
+<h3 id="52-v1v2--v3-マッピング-機械変換不能人手必須">5.2 v1/v2 → v3 マッピング (機械変換不能、人手必須)</h3>
+<p>詳細は <code>schemas/v3/README.md</code> の v1→v3 マッピング表参照。主な変更:</p>
+<ul>
+<li><code>inputs: "name1\nname2"</code> (改行区切り) → <code>inputs: [{ name: "name1", type: "string" }, ...]</code></li>
+<li><code>outputBinding: "users"</code> (string) → <code>outputBinding: { name: "users" }</code> (object)</li>
+<li><code>valueFrom: { kind: "flowVariable", variableName: "users" }</code> (Identifier 単独) はそのまま、object field 参照 (<code>createdOrder.order_number</code>) を新規許容</li>
+</ul>
+<h2 id="6-型システム-v1-の範囲">6. 型システム (v1 の範囲)</h2>
+<p>v1 は<strong>構文レベルのみ</strong>:</p>
+<ul>
+<li><code>FieldType</code> の 5 基本型は文字列定数として保存</li>
+<li><code>tableRow</code> / <code>tableList</code> は <code>tableId</code> の参照整合性だけ検査 (存在する ID か)</li>
+<li><code>@</code> 参照のパスは検索可能な識別子列として保存 (ドット/インデックス解釈は実装側)</li>
+<li>型ミスマッチの実行時検査はしない</li>
+</ul>
+<h2 id="7-phase-分け">7. Phase 分け</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Phase</th><th>内容</th><th>視覚影響</th><th>規模</th></tr></thead><tbody><tr><td>1</td><td>入出力の表形式エディタ + <code>StructuredField[]</code> 保存 + モード切替</td><td>中</td><td>中</td></tr><tr><td>2</td><td>ステップの <code>outputBinding</code> 欄</td><td>小</td><td>小</td></tr><tr><td>3</td><td><code>@</code> 補完付き参照入力 (候補ポップアップ)</td><td>中</td><td>中</td></tr><tr><td>4</td><td>共通処理の引数マッピング UI</td><td>中</td><td>中</td></tr><tr><td>5 (任意)</td><td>型のテーブル・画面連携</td><td>大</td><td>大</td></tr></tbody></table>
+<p>Phase 1 から段階投入可能。Phase 2〜4 は独立に進められる。<code>process-flow-maturity.md</code> とは独立。</p>
+<h2 id="8-受け入れ条件">8. 受け入れ条件</h2>
+<blockquote>
+<p>これらは実装フェーズの追跡チェックリストです。凍結は設計確定を意味し、実装完了を意味しません。</p>
+</blockquote>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>inputs</code> / <code>outputs</code> を表形式で編集でき、<code>StructuredField[]</code> として JSON に保存される</li>
+<li class="task-list-item"><input type="checkbox" disabled> 旧形式 (<code>string</code>) のデータは壊れず、自由記述モードで表示される</li>
+<li class="task-list-item"><input type="checkbox" disabled> 表形式 ↔ 自由記述モードを UI で切り替え可能 (往復可能)</li>
+<li class="task-list-item"><input type="checkbox" disabled> 各ステップ (対応タイプのみ) に <code>outputBinding</code> 欄があり、JSON に保存される</li>
+<li class="task-list-item"><input type="checkbox" disabled> 自由テキストフィールドで <code>@</code> 押下時、そのステップまでに定義された変数 + アクション入力の補完ポップアップが出る</li>
+<li class="task-list-item"><input type="checkbox" disabled> 共通処理ステップで <code>refId</code> を選択すると、呼び先の <code>inputs</code> が展開されて引数マッピングを指定できる</li>
+<li class="task-list-item"><input type="checkbox" disabled> 既存 4 画面 (画面一覧 / テーブル一覧 / 処理フロー一覧 / テーブル定義) は引き続き動作する</li>
+<li class="task-list-item"><input type="checkbox" disabled> Vitest で主要ケース (変換、補完、マッピング) が検証されている</li>
+<li class="task-list-item"><input type="checkbox" disabled> Playwright で入出力表形式 / <code>@</code> 補完 / 引数マッピングの基本動作が検証されている</li>
+<li class="task-list-item"><input type="checkbox" disabled> docs/spec/process-flow-variables.md (本書) の仕様と実装が逐条一致する</li>
+</ul>
+<h2 id="9-スコープ外-将来検討">9. スコープ外 (将来検討)</h2>
+<ul>
+<li>実行時の型検査 / 厳密な型整合性チェック</li>
+<li>列型の自動推論 (SELECT 結果列から型を自動生成)</li>
+<li>変数のスコープリーク検査 (ループ外から中の変数参照を強制禁止)</li>
+<li><code>@</code> 補完のドット記法候補 (オブジェクトのフィールド候補)</li>
+<li>変数のリネーム・リファクタリング機能</li>
+<li>式言語の構文検証 (+、==、>、AND 等)</li>
+</ul>
+<h2 id="10-関連仕様">10. 関連仕様</h2>
+<ul>
+<li><code>schemas/v3/process-flow.v3.schema.json</code> — 一次成果物 (v3.0.2 確定)</li>
+<li><code>schemas/v3/common.v3.schema.json</code> — <code>StructuredField</code> / <code>FieldType</code> / <code>Identifier</code> / <code>IdentifierPath</code> / <code>OutputBinding</code> の $defs</li>
+<li><code>schemas/v3/screen-item.v3.schema.json</code> — <code>ScreenItem.valueFrom</code> (R3-1 IdentifierPath 化)</li>
+<li><code>docs/spec/process-flow-expression-language.md</code> — <code>@</code> 記法・式言語仕様</li>
+<li><code>docs/spec/process-flow-maturity.md</code> — 成熟度・曖昧さ管理</li>
+<li><code>docs/spec/process-flow-extensions.md</code> — schema 拡張機構</li>
+<li><code>frontend/src/types/action.ts</code> — TS 型同期 (本仕様完了後に着手予定)</li>
+</ul>
+<h2 id="11-変更履歴">11. 変更履歴</h2>
+<ul>
+<li>2026-04-20: 初版ドラフト</li>
+<li>2026-04-24: v1.0 凍結 (#253)</li>
+<li><strong>2026-04-28: v3 反映 (#539)</strong> — FieldType を v3 確定形に、OutputBinding を構造化のみに、ambientVariables を context 配下に移動、IdentifierPath (#533 R3-1) を valueFrom.flowVariable で許容、StepBaseProps.lineage 透過 (#525 R3 fix) を反映</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

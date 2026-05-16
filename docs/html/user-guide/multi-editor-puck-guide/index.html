@@ -1,0 +1,331 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>multi editor puck guide</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="/user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="/user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="/user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="/user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="/user-guide/multi-editor-puck-guide/" class="sidebar-link active"> マルチエディタ利用 </a> </li><li> <a href="/user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="マルチエディタ--puck-デザイナ-使い方ガイド">マルチエディタ / Puck デザイナ 使い方ガイド</h1>
+<p>本ガイドは <strong>#806 マルチエディタ対応 (Puck 併設)</strong> で追加された機能の使い方を説明します。<br>
+対象: 業務画面を設計する業務設計者。</p>
+<hr>
+<h2 id="1-画面新規作成-editorkind--cssframework-を選ぶ">1. 画面新規作成: editorKind / cssFramework を選ぶ</h2>
+<p>画面を新しく作るとき、2 つの設定を選択します。</p>
+<h3 id="editorkind-エディタ種別">editorKind (エディタ種別)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>選択肢</th><th>説明</th></tr></thead><tbody><tr><td><code>grapesjs</code> (既定)</td><td>従来の GrapesJS デザイナ。HTML ブロック drag &#x26; drop が中心</td></tr><tr><td><code>puck</code></td><td>Puck デザイナ (本ガイドで説明)。React コンポーネントベースで WYSIWYG リアルタイム反映</td></tr></tbody></table>
+<p><strong>一度設定したら変更不可</strong>。プロジェクト内で画面ごとに異なる種別を混在できます。</p>
+<h3 id="cssframework-css-フレームワーク">cssFramework (CSS フレームワーク)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>選択肢</th><th>説明</th></tr></thead><tbody><tr><td><code>bootstrap</code> (既定)</td><td>Bootstrap 5。既存システムとの互換性が高い</td></tr><tr><td><code>tailwind</code></td><td>Tailwind CSS utility-first。モダン UI に最適</td></tr></tbody></table>
+<p><strong>一度設定したら変更不可</strong>。同一プロジェクト内で画面ごとに異なるフレームワークが使えます。</p>
+<h3 id="解決の優先順位">解決の優先順位</h3>
+<p>画面個別に指定がない場合、以下の順で自動決定します:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>1. screen.design.editorKind / cssFramework  ← 画面個別指定</span></span>
+<span class="line"><span>2. project.techStack.designer.editorKind / cssFramework ← プロジェクトのデフォルト (#826 で project.design から移行)</span></span>
+<span class="line"><span>3. "grapesjs" / "bootstrap"                 ← システム最終デフォルト</span></span></code></pre>
+<p><strong>typical 運用</strong> (全画面同一): プロジェクトのデフォルトだけ設定すれば各画面に書かなくて済みます。<br>
+<strong>部分更新</strong> (旧システムの一部だけ Tailwind/Puck 化): 該当画面だけ個別 override を記述します。</p>
+<hr>
+<h2 id="2-puck-デザイナの使い方">2. Puck デザイナの使い方</h2>
+<p><code>editorKind: "puck"</code> の画面を開くと Puck デザイナが表示されます。</p>
+<h3 id="画面構成">画面構成</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>┌──────────┬────────────────────────────┬────────────────┐</span></span>
+<span class="line"><span>│ パレット │        中央キャンバス        │  右プロパティ  │</span></span>
+<span class="line"><span>│ (左列)   │ (WYSIWYG プレビュー)        │  パネル        │</span></span>
+<span class="line"><span>│          │                            │                │</span></span>
+<span class="line"><span>│ heading  │  [ここにドロップ]           │  align: 左     │</span></span>
+<span class="line"><span>│ paragraph│                            │  padding: md   │</span></span>
+<span class="line"><span>│ button   │                            │  ...           │</span></span>
+<span class="line"><span>│ ...      │                            │                │</span></span>
+<span class="line"><span>└──────────┴────────────────────────────┴────────────────┘</span></span></code></pre>
+<h3 id="primitive-をキャンバスに配置する">primitive をキャンバスに配置する</h3>
+<ol>
+<li>左パレットから置きたい primitive (heading / paragraph / button 等) を探す</li>
+<li>中央キャンバスにドラッグ&#x26;ドロップ</li>
+<li>キャンバスに即座に配置される</li>
+</ol>
+<h3 id="右プロパティパネルで見た目を調整する">右プロパティパネルで見た目を調整する</h3>
+<p>配置した要素を選択すると右プロパティパネルが表示されます。<br>
+<strong>共通レイアウト props</strong> で余白・配置・色をリアルタイム WYSIWYG で操作できます。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>prop</th><th>設定値例</th><th>操作できる見た目</th></tr></thead><tbody><tr><td><code>align</code></td><td>left / center / right</td><td>テキスト・コンテンツの水平配置</td></tr><tr><td><code>padding</code></td><td>none / sm / md / lg / xl</td><td>内側余白</td></tr><tr><td><code>paddingX</code> / <code>paddingY</code></td><td>同上</td><td>水平/垂直の内側余白</td></tr><tr><td><code>margin</code></td><td>none / sm / md / lg / xl</td><td>外側余白</td></tr><tr><td><code>marginBottom</code> / <code>marginTop</code></td><td>同上</td><td>下/上の外側余白</td></tr><tr><td><code>gap</code></td><td>none / sm / md / lg</td><td>子要素間の間隔</td></tr><tr><td><code>colorAccent</code></td><td>default / primary / secondary / muted / success / warning / danger</td><td>文字色アクセント</td></tr><tr><td><code>bgAccent</code></td><td>none / white / muted / primary-soft / …</td><td>背景色</td></tr><tr><td><code>border</code></td><td>none / default / strong</td><td>枠線</td></tr><tr><td><code>rounded</code></td><td>none / sm / md / lg / full</td><td>角丸</td></tr><tr><td><code>shadow</code></td><td>none / sm / md / lg</td><td>影</td></tr></tbody></table>
+<p><strong>例: テキストを右寄せにする</strong></p>
+<ol>
+<li>キャンバスで <code>heading</code> 要素をクリックして選択</li>
+<li>右プロパティパネルの <code>align</code> を <code>right</code> に変更</li>
+<li>キャンバスに即座に反映 (リロード不要)</li>
+</ol>
+<h4 id="cssframework-による出力の違い">cssFramework による出力の違い</h4>
+<p>同じ prop 設定でも cssFramework によって出力される class が異なります:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>prop</th><th>値</th><th>tailwind 出力</th><th>bootstrap 出力</th></tr></thead><tbody><tr><td>align</td><td>right</td><td><code>text-right</code></td><td><code>text-end</code></td></tr><tr><td>padding</td><td>md</td><td><code>p-4</code></td><td><code>p-3</code></td></tr><tr><td>colorAccent</td><td>primary</td><td><code>text-blue-600</code></td><td><code>text-primary</code></td></tr></tbody></table>
+<p><strong>Puck Data (保存ファイル) は cssFramework に依存しない</strong> semantic props 構造で保存されます。<br>
+これにより、将来 cssFramework を変えても保存データはそのまま使えます。</p>
+<h3 id="画面の保存と復元">画面の保存と復元</h3>
+<ul>
+<li><strong>保存</strong>: 上部の「保存」ボタンをクリック (GrapesJS と同様の明示保存式)</li>
+<li><strong>復元</strong>: 保存済みの画面を開くと自動でデータを読み込み、前回の状態が復元される</li>
+</ul>
+<p>保存先ファイル: <code>workspaces/&#x3C;wsId>/screens/&#x3C;screenId>/puck-data.json</code></p>
+<hr>
+<h2 id="3-動的コンポーネント登録の使い方">3. 動的コンポーネント登録の使い方</h2>
+<p>既存の primitive に加えて、独自の「業務向けコンポーネント」をダイアログで定義・登録できます。</p>
+<h3 id="登録ダイアログの起動">登録ダイアログの起動</h3>
+<p>Puck デザイナ上部の「コンポーネント登録」ボタンをクリック。</p>
+<h3 id="定義項目">定義項目</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>説明</th><th>例</th></tr></thead><tbody><tr><td>コンポーネント名 (label)</td><td>パレットに表示される名前</td><td><code>検索バー</code></td></tr><tr><td>種類 (primitive)</td><td>ベースとするビルトイン primitive</td><td><code>input-group</code></td></tr><tr><td>プロパティ</td><td>追加するプロパティ名・型・デフォルト値</td><td>placeholder: string, buttonLabel: string</td></tr></tbody></table>
+<h3 id="定義後の動作">定義後の動作</h3>
+<ol>
+<li>「登録」をクリックするとパレットに即座に反映 (再起動不要)</li>
+<li>定義は <code>workspaces/&#x3C;wsId>/puck-components.json</code> に永続化される</li>
+<li>同一 workspace の他のブラウザタブにも自動で伝搬される</li>
+</ol>
+<h3 id="利用可能な-primitive-の種類">利用可能な primitive の種類</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>primitive</th><th>用途</th></tr></thead><tbody><tr><td><code>container</code> / <code>row</code> / <code>col</code> / <code>section</code></td><td>レイアウト構造</td></tr><tr><td><code>heading</code> / <code>paragraph</code> / <code>link</code></td><td>テキスト</td></tr><tr><td><code>input</code> / <code>select</code> / <code>textarea</code> / <code>checkbox</code> / <code>radio</code> / <code>button</code></td><td>フォーム入力</td></tr><tr><td><code>table</code> / <code>image</code> / <code>icon</code></td><td>データ表示</td></tr><tr><td><code>input-group</code> / <code>card</code> / <code>data-list</code> / <code>pagination</code></td><td>業務複合</td></tr></tbody></table>
+<hr>
+<h2 id="4-部分更新シナリオ-旧システムの一部画面だけ-tailwindpuck-化">4. 部分更新シナリオ (旧システムの一部画面だけ Tailwind/Puck 化)</h2>
+<p>既存プロジェクト (bootstrap + grapesjs) の一部画面だけ新技術に移行する手順:</p>
+<h3 id="手順">手順</h3>
+<ol>
+<li><strong>プロジェクトのデフォルト設定はそのまま</strong> (<code>bootstrap</code> / <code>grapesjs</code>)</li>
+<li><strong>新しく作る特定画面だけ</strong> <code>editorKind: "puck"</code> / <code>cssFramework: "tailwind"</code> を選択</li>
+<li>旧画面 (grapesjs) と新画面 (puck) が同一プロジェクトで共存する</li>
+</ol>
+<h3 id="注意事項">注意事項</h3>
+<ul>
+<li>同一プロジェクト内で全 4 セル (<code>grapesjs × bootstrap</code> / <code>grapesjs × tailwind</code> / <code>puck × bootstrap</code> / <code>puck × tailwind</code>) が混在可能</li>
+<li><strong>Thymeleaf テンプレート出力</strong>: <code>editorKind: "puck"</code> 画面は React コンポーネントを前提とするため、Thymeleaf 出力ツールは Puck 画面を自動スキップし、スキップした画面名をレポートに記録します</li>
+<li>画面間のナビゲーション (画面フロー edges) はエディタ種別に関わらず統一管理されます</li>
+</ul>
+<hr>
+<h2 id="5-トラブルシューティング">5. トラブルシューティング</h2>
+<h3 id="puck-キャンバスが真っ白に表示される">Puck キャンバスが真っ白に表示される</h3>
+<ul>
+<li><code>puck-data.json</code> が存在しないか壊れている可能性があります</li>
+<li>backend が起動していない場合は localStorage にフォールバックします</li>
+<li><code>workspaces/&#x3C;wsId>/screens/&#x3C;screenId>/puck-data.json</code> の存在を確認してください</li>
+</ul>
+<h3 id="動的コンポーネントがパレットに表示されない">動的コンポーネントがパレットに表示されない</h3>
+<ul>
+<li><code>puck-components.json</code> の <code>primitive</code> フィールドが既知の名前か確認してください (大文字小文字は無視されます)</li>
+<li>ブラウザをリロードしてください</li>
+</ul>
+<h3 id="cssframework-を変えても見た目が変わらない">cssFramework を変えても見た目が変わらない</h3>
+<ul>
+<li><code>editorKind: "puck"</code> の画面作成後は cssFramework を変更できません (作成時固定)</li>
+<li>同じデザインで別 cssFramework が必要な場合は、新しい画面を作成してください</li>
+</ul>
+<hr>
+<p><em>詳細仕様: <a href="/spec/multi-editor-puck/"><code>docs/spec/multi-editor-puck.md</code></a></em></p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

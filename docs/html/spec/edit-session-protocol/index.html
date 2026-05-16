@@ -1,0 +1,1215 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>edit session protocol</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link active"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="edit-session-protocol--協調編集の正規プロトコル">edit-session-protocol — 協調編集の正規プロトコル</h1>
+<blockquote>
+<p><strong>位置付け</strong>: 既存 <a href="/spec/collab-presence/"><code>collab-presence.md</code></a> (#876 / RFC #855 派生) の <strong>発展的後継</strong>。
+既存 spec の概念 (Direction B / Forward-Compat 4 原則 / lock + draft + presence の 3 層) を、<strong>EditSession という単一の一級概念</strong> に統一して再定義する。</p>
+<p><strong>背景</strong>: PR #888 でマージされた現実装 (lockManager / draftStore / presenceManager の 3 層モデル) は、<strong>Direction B のメインユースケース「A が編集中に B を呼んで閲覧してもらう」が破綻している</strong>。原因は memory の隔離単位を session 単位にしてしまったため、後から接続した別 session が editor の最新 state を取得できないこと。本 spec はこの根本欠陥を解消する正規プロトコルを定義する。</p>
+<p><strong>状態</strong>: 設計確定済 (2026-05-07 議論で Q1-Q4 合意)。実装は新シリーズ ISSUE で順次対応。</p>
+</blockquote>
+<hr>
+<h2 id="目次">目次</h2>
+<ol>
+<li><a href="#1-%E6%A6%82%E8%A6%81--%E5%8B%95%E6%A9%9F">概要 / 動機</a></li>
+<li><a href="#2-%E7%94%A8%E8%AA%9E%E5%AE%9A%E7%BE%A9">用語定義</a></li>
+<li><a href="#3-editsession-%E3%81%AE%E6%A6%82%E5%BF%B5">EditSession の概念</a></li>
+<li><a href="#4-%E3%83%A9%E3%82%A4%E3%83%95%E3%82%B5%E3%82%A4%E3%82%AF%E3%83%AB%E7%8A%B6%E6%85%8B">ライフサイクル状態</a></li>
+<li><a href="#5-%E7%8A%B6%E6%85%8B%E9%81%B7%E7%A7%BB-1-6-step">状態遷移 (1-6 step)</a></li>
+<li><a href="#6-participant-%E3%81%A8-role">participant と role</a></li>
+<li><a href="#7-take-over-%E3%81%AE-atomic-%E4%BB%95%E6%A7%98">take-over の atomic 仕様</a></li>
+<li><a href="#8-save-%E8%A6%8F%E5%89%87">save 規則</a></li>
+<li><a href="#9-%E8%A4%87%E6%95%B0-editsession-%E3%81%AE%E4%B8%A6%E5%AD%98%E3%81%A8%E8%A1%9D%E7%AA%81%E8%A7%A3%E6%B1%BA">複数 EditSession の並存と衝突解決</a></li>
+<li><a href="#10-ai-participant-%E4%BB%95%E6%A7%98">AI participant 仕様</a></li>
+<li><a href="#11-url-%E3%81%A8%E3%83%96%E3%83%83%E3%82%AF%E3%83%9E%E3%83%BC%E3%82%AF">URL とブックマーク</a></li>
+<li><a href="#12-ttl-%E3%81%A8%E8%87%AA%E5%8B%95%E5%89%8A%E9%99%A4">TTL と自動削除</a></li>
+<li><a href="#13-memory-store-%E3%81%A8%E6%B0%B8%E7%B6%9A%E5%8C%96">memory store と永続化</a></li>
+<li><a href="#14-broadcast-%E3%83%97%E3%83%AD%E3%83%88%E3%82%B3%E3%83%AB">broadcast プロトコル</a></li>
+<li><a href="#15-api-%E3%82%B7%E3%82%B0%E3%83%8D%E3%83%81%E3%83%A3">API シグネチャ</a></li>
+<li><a href="#16-%E6%97%A2%E5%AD%98-spec-%E3%81%A8%E3%81%AE%E9%96%A2%E4%BF%82">既存 spec との関係</a></li>
+<li><a href="#17-direction-a-crdt-%E3%81%B8%E3%81%AE%E7%A7%BB%E8%A1%8C%E5%8F%AF%E8%83%BD%E6%80%A7">Direction A (CRDT) への移行可能性</a></li>
+<li><a href="#18-%E5%8F%97%E3%81%91%E5%85%A5%E3%82%8C%E5%9F%BA%E6%BA%96--%E3%82%BB%E3%82%AD%E3%83%A5%E3%83%AA%E3%83%86%E3%82%A3%E8%80%83%E6%85%AE%E4%BA%8B%E9%A0%85">受け入れ基準 / セキュリティ考慮事項</a></li>
+<li><a href="#19-%E6%94%B9%E8%A8%82%E5%B1%A5%E6%AD%B4">改訂履歴</a></li>
+</ol>
+<hr>
+<h2 id="1-概要--動機">1. 概要 / 動機</h2>
+<h3 id="11-既存実装の根本欠陥-pr-888-で発覚">1.1 既存実装の根本欠陥 (PR #888 で発覚)</h3>
+<p>PR #888 でマージされた協調編集実装は、編集中の draft を <strong>session 単位 (<code>${clientId}:${type}:${id}</code>)</strong> で in-memory shadow store に保持する。これにより:</p>
+<ul>
+<li>editor が編集 → 自分の shadow に書く + broadcast</li>
+<li>同時接続中の viewer は broadcast 経由で受信 ✓</li>
+<li><strong>後から接続した viewer は shadow にアクセスできず、broadcast もリプレイされないため、編集中の最新 state を取得できない ✗</strong></li>
+</ul>
+<p>具体ユースケース:</p>
+<ol>
+<li>ユーザ A が編集開始</li>
+<li>問題があるのでユーザ B に連絡し、閲覧してもらう</li>
+<li><strong>ユーザ B が接続した時点で破綻する</strong>: B は FS に書かれた古い state しか見えない (initial FS write 直後の編集はメモリにしかない、broadcast はリプレイされない)</li>
+</ol>
+<p>これは Direction B のメインユースケースであり、現実装の根本欠陥である。</p>
+<h3 id="12-解決方針--プロトコル化">1.2 解決方針 — プロトコル化</h3>
+<p>memory の隔離単位を <strong>「session 単位」から「編集セッション単位 (EditSession)」</strong> に変更する。EditSession は以下の特性を持つ:</p>
+<ul>
+<li>1 つの編集トランザクション全体を 1 つの一級概念として表現</li>
+<li>識別子 (<code>editSessionId</code>) は session 横断、複数 participant が共有</li>
+<li>take-over (編集権譲渡) で <code>editSessionId</code> は維持 → memory が新 owner に引き継がれる</li>
+<li>別 session が attach した瞬間に <code>editSessionId</code> 経由で memory を直接読める</li>
+</ul>
+<p>これにより「lock + draft + presence の 3 層」を <strong>「EditSession + role + audit」の 1 層</strong> に統一する。</p>
+<h3 id="13-概念モデルの転倒">1.3 概念モデルの転倒</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>PR #888 (現実装)</th><th>本 spec (新プロトコル)</th></tr></thead><tbody><tr><td>一級概念</td><td>lock / draft / presence (3 つ)</td><td>EditSession (1 つ)</td></tr><tr><td>memory 隔離単位</td><td>session (clientId)</td><td>editSessionId</td></tr><tr><td>take-over 時</td><td>session 切替 (transferDraft で key rename)</td><td>editSessionId 維持 (rename 不要)</td></tr><tr><td>別 session 閲覧</td><td>broadcast 経由のみ (= 接続前の編集は取れない)</td><td>editSessionId 経由で memory 直接読める</td></tr><tr><td>複数 active 並存</td><td>不可 (1 lock = 1 編集)</td><td>可 (1 リソース = 複数 EditSession 並存可能)</td></tr><tr><td>概念の自然さ</td><td>実装都合の隔離</td><td>1 編集 = 1 トランザクション = 1 EditSession</td></tr></tbody></table>
+<hr>
+<h2 id="2-用語定義">2. 用語定義</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>用語</th><th>意味</th></tr></thead><tbody><tr><td><strong>EditSession</strong></td><td>特定リソースに対する協調編集の作業空間。1 編集トランザクション全体を表現する一級概念。identifier <code>editSessionId</code> で参照される。</td></tr><tr><td><strong>editSessionId</strong></td><td>EditSession の identifier。EditSession の lifecycle と一致する識別子。<code>editSession.create</code> 時に発番、<code>editSession.transferEdit</code> 時は維持、<code>editSession.discard</code> / <code>editSession.detach</code> 時に終了。</td></tr><tr><td><strong>participant</strong></td><td>EditSession に参加している session (人間 / AI 共通)。<code>Edit</code> または <code>View</code> の role を持つ。</td></tr><tr><td><strong>role</strong></td><td>participant の役割。<code>Edit</code> (lock holder、書込み権) または <code>View</code> (read-only follower)。</td></tr><tr><td><strong>take-over</strong></td><td>別 participant の <code>View</code> から <code>Edit</code> への昇格 + 既存 editor の <code>Edit</code> から <code>View</code> への降格を atomic に行う操作。</td></tr><tr><td><strong>save</strong></td><td>EditSession の現時点 payload を本体ファイル (committed state) に書き込む操作。session lifecycle と独立、複数回実行可能。</td></tr><tr><td><strong>delete</strong></td><td>EditSession の完全終了。memory + 履歴 FS から削除される。TTL 経過 or 明示操作のみで発火。</td></tr><tr><td><strong>AI participant</strong></td><td>AI session が EditSession に参加する場合の特殊な participant。<code>parentHumanSessionId</code> で「誰が指示した AI か」を保持。表示は <code>Alice@AI</code> 形式。</td></tr><tr><td><strong>memory store</strong></td><td>active な EditSession の最新 payload を保持する in-memory store。<code>Map&#x3C;editSessionId, EditSessionState></code>。</td></tr><tr><td><strong>history FS</strong></td><td>save 完了 + Discarded 遷移時に EditSession を保持する file system。<code>&#x3C;workspace-root>/.edit-sessions/&#x3C;editSessionId>.json</code> に格納、retention 期間経過で完全削除。</td></tr><tr><td><strong>opaque envelope</strong></td><td>mid-edit broadcast の payload を非構造化 (server が解釈しない) として扱う規約 (collab-presence.md § 7 から継承)。</td></tr></tbody></table>
+<hr>
+<h2 id="3-editsession-の概念">3. EditSession の概念</h2>
+<h3 id="31-1-つの編集--1-つの-editsession">3.1 1 つの編集 = 1 つの EditSession</h3>
+<p>ユーザー A が「編集開始」ボタンを押した瞬間、新しい EditSession が生成され <code>editSessionId</code> が発番される。この EditSession は:</p>
+<ul>
+<li>同一リソースに対する 1 つの編集トランザクション全体を表現</li>
+<li>複数の participant (人間 / AI) が join できる</li>
+<li><code>Edit</code> role は 1 EditSession に最大 1 名 (= 同時編集はしない、Direction B の制約)</li>
+<li><code>View</code> role は複数可</li>
+<li>save / take-over を session lifecycle 内で複数回実行可能</li>
+<li>終了は明示 delete または TTL 経過のみ</li>
+</ul>
+<h3 id="32-editsession-の構造">3.2 EditSession の構造</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> EditSession</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  id</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                          </span><span style="color:#6A737D;--shiki-dark:#768390">// editSessionId (ULID-like、acquire 時発番)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  resourceType</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DraftResourceType</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  resourceId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  state</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "Active"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "Discarded"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;        </span><span style="color:#6A737D;--shiki-dark:#768390">// lifecycle 状態 (save 済の判定は saveHistory.length > 0 で行う、§ 4 参照)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  participants</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Map</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#6F42C1;--shiki-dark:#F69D50">sessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#6F42C1;--shiki-dark:#F69D50">ParticipantInfo</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;  </span><span style="color:#6A737D;--shiki-dark:#768390">// role を持つ session の集合</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  payload</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> unknown</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                     </span><span style="color:#6A737D;--shiki-dark:#768390">// 編集中の最新 state (in-memory 真実点)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sequence</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                     </span><span style="color:#6A737D;--shiki-dark:#768390">// monotonic counter (broadcast の reorder 検出用)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  createdAt</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                    </span><span style="color:#6A737D;--shiki-dark:#768390">// ISO 8601</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  expiresAt</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                    </span><span style="color:#6A737D;--shiki-dark:#768390">// 自動削除予定日時 (createdAt + TTL)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  saveHistory</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> SaveEvent</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];             </span><span style="color:#6A737D;--shiki-dark:#768390">// 各 save 操作の audit log</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ParticipantInfo</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sessionId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  role</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "Edit"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "View"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  joinedAt</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  lastActivityAt</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  parentHumanSessionId</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;        </span><span style="color:#6A737D;--shiki-dark:#768390">// AI participant の場合のみ (誰が指示した AI か)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  displayLabel</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                 </span><span style="color:#6A737D;--shiki-dark:#768390">// "@alice" / "Alice@AI" 等</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> SaveEvent</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  savedBy</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                      </span><span style="color:#6A737D;--shiki-dark:#768390">// sessionId (audit 必須)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  savedAt</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sequence</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                     </span><span style="color:#6A737D;--shiki-dark:#768390">// save 時の payload sequence</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="33-識別の決定性">3.3 識別の決定性</h3>
+<p><code>editSessionId</code> は ULID-like (時刻順序保証 + ランダム性) を採用。理由:</p>
+<ul>
+<li>同一リソースに複数 EditSession 並存時、UI 一覧で時系列順表示が容易</li>
+<li>URL <code>?session=&#x3C;editSessionId></code> で参加可能 (§ 11 参照)、推測攻撃に対する一定の耐性</li>
+<li>DB / FS の sort 索引と整合</li>
+</ul>
+<hr>
+<h2 id="4-ライフサイクル状態">4. ライフサイクル状態</h2>
+<p>EditSession は 3 つの <strong>state</strong> を持つ:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>state</th><th>意味</th><th>操作可能性</th></tr></thead><tbody><tr><td><strong>Active</strong></td><td>編集中。participant が join / leave / edit / save 可能</td><td>全操作可</td></tr><tr><td><strong>Discarded</strong></td><td>明示的に「破棄」操作されたか、TTL 経過で Active から降格</td><td>履歴閲覧のみ可、編集不可 (ただし retention 期間中は復元可能)</td></tr></tbody></table>
+<p><strong>重要</strong>: PR #888 や Word の「保存」とは異なり、save は session 終了ではない。save 後も Active 状態が継続し、複数回 save 可能 (Q2 合意)。「save 済」かどうかは <code>state</code> ではなく <code>saveHistory.length > 0</code> で判定する (§ 3.2 interface 参照)。</p>
+<h3 id="41-state-遷移図">4.1 state 遷移図</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>                     ┌──────────────────────────────┐</span></span>
+<span class="line"><span>                     ▼  (save、state 不変、Active 継続)</span></span>
+<span class="line"><span>[新規作成] ──→ Active ──┘</span></span>
+<span class="line"><span>                │</span></span>
+<span class="line"><span>                ├──→ (明示 discard) ──→ Discarded ──→ (retention 経過 / 明示 delete) ──→ [Deleted]</span></span>
+<span class="line"><span>                │</span></span>
+<span class="line"><span>                └──→ (TTL 7 日経過) ──→ Discarded ──→ (retention 30 日経過 / 明示 delete) ──→ [Deleted]</span></span></code></pre>
+<p>注: 削除は <strong>2 段階</strong>:</p>
+<ul>
+<li>1 段階目: Active の lastActivityAt から <code>ttlDays</code> 経過 OR 明示 discard 操作 → Discarded に遷移 (履歴 FS に保持、復元可能)</li>
+<li>2 段階目: Discarded から <code>discardedRetentionDays</code> 経過 OR 明示 delete 操作 → 完全削除</li>
+</ul>
+<hr>
+<h2 id="5-状態遷移-1-6-step">5. 状態遷移 (1-6 step)</h2>
+<p>1-6 step の正規化:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Step</th><th>操作</th><th>EditSession 状態の変化</th></tr></thead><tbody><tr><td><strong>1</strong></td><td>A が編集開始</td><td>EditSession 新規作成、participants = <code>{ A: Edit }</code>、state = Active</td></tr><tr><td><strong>2</strong></td><td>B が閲覧開始 (attach)</td><td>participants += <code>{ B: View }</code>、state 不変</td></tr><tr><td><strong>3</strong></td><td>B が編集取得 (take-over)</td><td><strong>atomic</strong>: A.role: Edit → View、B.role: View → Edit (順序: View 先 / Edit 後)、editSessionId 不変、payload 不変</td></tr><tr><td><strong>4</strong></td><td>B が編集終了 (release)</td><td>B.role: Edit → View、participants = <code>{ A: View, B: View }</code> (= editor 不在状態)</td></tr><tr><td><strong>5</strong></td><td>誰かが save</td><td>payload を本体ファイルに書く、saveHistory に追加、state 不変 (Active 継続)</td></tr><tr><td><strong>6a</strong></td><td>明示 discard / TTL (7 日) 経過</td><td>state: Active → Discarded、retention 期間中は復元可能</td></tr><tr><td><strong>6b</strong></td><td>明示 delete / retention (30 日) 経過</td><td>EditSession 完全削除 (memory + history FS から消去)、復元不能</td></tr><tr><td><strong>6</strong></td><td>7 日経過 / 明示 delete</td><td>EditSession 完全終了、memory + history FS から削除</td></tr></tbody></table>
+<h3 id="51-step-4-の意味-q1-合意">5.1 step 4 の意味 (Q1 合意)</h3>
+<p>「編集終了」は <strong>「Edit role を放棄、View に降格」</strong> を意味する (B は依然 participant、attach 状態を維持)。完全離脱 (detach) は別操作。</p>
+<h3 id="52-step-5-の-save-権限-q1-案-1-採用">5.2 step 5 の save 権限 (Q1 案 1 採用)</h3>
+<ul>
+<li><strong>Edit role の participant がいる場合</strong>: その participant のみ save 可能</li>
+<li><strong>全員 View の場合 (= editor 不在)</strong>: View の誰でも save 可能 (合意の上、誰かが代表で save する)</li>
+</ul>
+<p>理由: Edit がいる時に View が save すると Edit の最新変更を確定する奇妙な動きになる。Edit がいない時は責任主体が分散しているので誰でも OK。</p>
+<h3 id="53-step-5-の-audit-log-q1-必須">5.3 step 5 の audit log (Q1 必須)</h3>
+<p>各 save は <code>SaveEvent { savedBy, savedAt, sequence }</code> を <code>saveHistory</code> に追加。後から「この変更は誰が確定したか」を遡れる。</p>
+<hr>
+<h2 id="6-participant-と-role">6. participant と role</h2>
+<h3 id="61-role-の状態遷移">6.1 role の状態遷移</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>[新規 join]</span></span>
+<span class="line"><span>    ▲</span></span>
+<span class="line"><span>    │ (initial role 決定)</span></span>
+<span class="line"><span>    │</span></span>
+<span class="line"><span>    ├──→ View ←──── Edit ←─── (take-over to other) ←──── Edit</span></span>
+<span class="line"><span>    │     │           ▲</span></span>
+<span class="line"><span>    │     │           │ (take-over)</span></span>
+<span class="line"><span>    │     ▼           │</span></span>
+<span class="line"><span>    │   detach (leave EditSession)</span></span>
+<span class="line"><span>    │</span></span>
+<span class="line"><span>    └──→ Edit (= EditSession 創設時の最初の participant)</span></span></code></pre>
+<h3 id="62-role-transition-の規則">6.2 role transition の規則</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>遷移</th><th>条件</th><th>効果</th></tr></thead><tbody><tr><td><code>[新規 join] → Edit</code></td><td>EditSession 新規作成時の発起人のみ</td><td>initial editor</td></tr><tr><td><code>[新規 join] → View</code></td><td>既存 EditSession に attach 時</td><td>viewer として参加</td></tr><tr><td><code>View → Edit</code></td><td>take-over の <strong>昇格部分</strong> (§ 7 参照)</td><td>必ず <code>Edit → View</code> の降格と atomic に発生</td></tr><tr><td><code>Edit → View</code></td><td>take-over の <strong>降格部分</strong> / 自発的 release (step 4)</td><td>role 変更のみ、participants は維持</td></tr><tr><td><code>View → detach</code></td><td>participant が EditSession を離脱</td><td>participants から削除、EditSession lifecycle は不変</td></tr><tr><td><code>Edit → detach</code></td><td>editor が直接離脱する場合</td><td><strong>禁止または release を強制</strong>: editor は必ず先に View に降格してから detach</td></tr></tbody></table>
+<h3 id="63-1-editsession-内の-role-分布制約">6.3 1 EditSession 内の role 分布制約</h3>
+<ul>
+<li><code>Edit</code> role: 0 または 1 (= 同時編集はしない、Direction B の制約)</li>
+<li><code>View</code> role: 0 以上 (上限なし)</li>
+<li><code>Edit = 0</code> の状態 (= editor 不在) は許容される (step 4 後の状態)</li>
+</ul>
+<hr>
+<h2 id="7-take-over-の-atomic-仕様">7. take-over の atomic 仕様</h2>
+<h3 id="71-atomicity-の要請-q3-step-3-合意">7.1 atomicity の要請 (Q3 step 3 合意)</h3>
+<p>§ 5 step 3 の atomicity 規定: <strong>「View が先で Edit はそのあと」</strong></p>
+<p>これは take-over 操作の atomic 性を意味する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>前提: B は既に View 状態 (= step 2 を経由している)、A は現在 Edit</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>[atomic transaction begin]</span></span>
+<span class="line"><span>  1. A.role: Edit → View    (lock 降格)</span></span>
+<span class="line"><span>  2. B.role: View → Edit    (lock 昇格)</span></span>
+<span class="line"><span>  注: 1 と 2 は server 側で同一 critical section 内で実行</span></span>
+<span class="line"><span>[atomic transaction end]</span></span></code></pre>
+<h3 id="72-take-over-の前提条件">7.2 take-over の前提条件</h3>
+<ul>
+<li>B は <strong>必ず View 状態を経由</strong> していること (= step 2 を経由)</li>
+<li>B が View なしに直接 Edit を奪う操作 (= 「強制取得」) は <strong>禁止</strong></li>
+<li>理由: View 経由 = 連絡を取って合意してから昇格、というプロトコルを保証する</li>
+</ul>
+<h3 id="73-server-側実装の要件">7.3 server 側実装の要件</h3>
+<p><code>editSessionStore.transferEdit(fromSessionId, toSessionId, editSessionId)</code> の前提:</p>
+<ol>
+<li><code>toSessionId</code> が <code>View</code> participant として既に登録されていること (= 連絡を取った証拠)</li>
+<li>同一 mutex / critical section 内で role 変更を実行</li>
+<li>broadcast <code>editSession.roleChanged</code> op:<code>transferred</code> で全 participant に通知</li>
+</ol>
+<h3 id="74-ai-participant-の-take-over">7.4 AI participant の take-over</h3>
+<p>AI も人間と同じプロトコル (Q4 合意)。alice が AI に編集を任せる流れ:</p>
+<ol>
+<li>alice が AI を呼ぶ → AI が EditSession に View で join</li>
+<li>alice が take-over で AI に Edit を渡す → AI が編集</li>
+<li>AI が編集終了 → take-over で alice に Edit を返す or AI が自発的に Edit → View 降格</li>
+</ol>
+<p><code>onBehalfOfSession</code> の概念は <strong>保持</strong> (§ 10 参照)、ただし簡素化: AI session に <code>parentHumanSessionId</code> を持たせて責任追跡のみに限定、actor / owner の複雑な区別は不要。</p>
+<hr>
+<h2 id="8-save-規則">8. save 規則</h2>
+<h3 id="81-save-の権限-q1-案-1-合意-52-参照">8.1 save の権限 (Q1 案 1 合意、§ 5.2 参照)</h3>
+<ul>
+<li>Edit role の participant がいる時: その人のみ save 可能</li>
+<li>全員 View (editor 不在) の時: 誰でも save 可能</li>
+</ul>
+<h3 id="82-audit-log-q1-必須-53-参照">8.2 audit log (Q1 必須、§ 5.3 参照)</h3>
+<p>各 save は <code>SaveEvent</code> を <code>EditSession.saveHistory</code> に追加。</p>
+<h3 id="83-save-の効果">8.3 save の効果</h3>
+<ol>
+<li>EditSession.payload を本体ファイル (<code>&#x3C;resourceRoot>/&#x3C;id>.json</code>) に atomic write</li>
+<li>EditSession 自体は <strong>削除しない</strong> (Active 状態のまま、続けて編集可)</li>
+<li>broadcast <code>editSession.saved</code> event で全 participant に通知</li>
+<li>関連 ListView / dashboard の表示更新</li>
+</ol>
+<h3 id="84-save-と-delete-の独立性-q2-合意">8.4 save と delete の独立性 (Q2 合意)</h3>
+<p>save は session lifecycle と独立。session 削除は <strong>TTL 経過 / 明示 delete のみ</strong>。</p>
+<hr>
+<h2 id="9-複数-editsession-の並存と衝突解決">9. 複数 EditSession の並存と衝突解決</h2>
+<h3 id="91-複数-active-並存の許容-q3-合意">9.1 複数 active 並存の許容 (Q3 合意)</h3>
+<p>同一リソースに対し、<strong>同時に複数の EditSession が active</strong> であることを許容する。理由:</p>
+<ul>
+<li>業務的有用性: 2 人が同じ機能の別案 (A 案 / B 案) を独立に作成、後から比較して採用</li>
+<li>過去 EditSession (Discarded / Saved 履歴) も同時に保持可能</li>
+</ul>
+<h3 id="92-lock-概念の変更">9.2 lock 概念の変更</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>観点</th><th>旧モデル (PR #888)</th><th>新モデル (本 spec)</th></tr></thead><tbody><tr><td>lock の単位</td><td>リソース (1 resourceId = 1 lock)</td><td>EditSession (1 editSessionId = 1 lock)</td></tr><tr><td>同時 active</td><td>1 リソースに 1 lock のみ</td><td>1 リソースに複数 EditSession 並存可</td></tr><tr><td>1 EditSession 内</td><td>—</td><td>editor は 1 名のみ (Direction B 制約)</td></tr></tbody></table>
+<h3 id="93-衝突解決--save-時のチェック-q3-合意">9.3 衝突解決 — save 時のチェック (Q3 合意)</h3>
+<p>複数 active EditSession のいずれかが save する時:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>A が EditSession-1 で save をクリック</span></span>
+<span class="line"><span>   ↓</span></span>
+<span class="line"><span>server: 本体ファイルの最終 save 時刻を確認</span></span>
+<span class="line"><span>   ↓ (他の EditSession が後で save していた場合)</span></span>
+<span class="line"><span>警告ダイアログ:</span></span>
+<span class="line"><span>  「他の編集セッション (EditSession-2 by @bob, 5 分前 save) で本体ファイルが</span></span>
+<span class="line"><span>   更新されています。今回の save で上書きしますか?」</span></span>
+<span class="line"><span>   [上書きする] [キャンセル] [マージ確認 (Phase 2)]</span></span>
+<span class="line"><span>   ↓</span></span>
+<span class="line"><span>A が「上書きする」 → save 続行 (last-save-wins)</span></span>
+<span class="line"><span>A が「キャンセル」 → save 中止、UI で diff 表示 (任意)</span></span></code></pre>
+<p>Phase 1 では <code>last-save-wins + 警告 UI</code>、Phase 2 で <code>merge</code> を別 ISSUE で検討。</p>
+<h3 id="94-ui-表示-q3-合意">9.4 UI 表示 (Q3 合意)</h3>
+<p>リソース一覧画面で:</p>
+<ul>
+<li>リソース行に「同時 active EditSession 件数」をバッジ表示 (<code>📝 3</code> 等)</li>
+<li>クリックで全 EditSession 一覧モーダル表示</li>
+<li>URL <code>/process-flow/edit/&#x3C;id>?session=&#x3C;editSessionId></code> で個別 EditSession にアクセス</li>
+</ul>
+<p>URL 経由で参加できることで、チャットツール (Slack 等) に URL を貼り付けて他者を招待する運用が可能 (Q3 メリット明記)。</p>
+<hr>
+<h2 id="10-ai-participant-仕様">10. AI participant 仕様</h2>
+<h3 id="101-ai-session-の独立性-q4-合意">10.1 AI session の独立性 (Q4 合意)</h3>
+<p>AI も人間と同じ protocol で動作:</p>
+<ul>
+<li>AI 接続時に独立した sessionId が発番される (現状の MCP 接続パターン)</li>
+<li>AI は EditSession に participant として join できる</li>
+<li>role transition (Edit / View / take-over) は人間と完全に同じ規則に従う</li>
+</ul>
+<h3 id="102-責任追跡--parenthumansessionid">10.2 責任追跡 — <code>parentHumanSessionId</code></h3>
+<p>ユーザー指摘 (Q4): <strong>「AI にプロンプトを与えた人に責任がある」</strong></p>
+<p>AI session は以下のフィールドを保持:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> AIParticipantInfo</span><span style="color:#D73A49;--shiki-dark:#F47067"> extends</span><span style="color:#6F42C1;--shiki-dark:#6CB6FF"> ParticipantInfo</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  sessionId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "ai-xyz-..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                </span><span style="color:#6A737D;--shiki-dark:#768390">// AI 自身の独立 ID</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  parentHumanSessionId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "alice-..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;      </span><span style="color:#6A737D;--shiki-dark:#768390">// 誰が指示した AI か</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  displayLabel</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "Alice@AI"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;               </span><span style="color:#6A737D;--shiki-dark:#768390">// 表示形式 (Q4 (ii) 採用)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="103-表示形式--aliceai-q4-ii-採用">10.3 表示形式 — <code>Alice@AI</code> (Q4 (ii) 採用)</h3>
+<ul>
+<li>識別子の構造: <code>&#x3C;parentHumanLabel>@AI</code></li>
+<li>URL safe (<code>@</code> は URL 安全文字)</li>
+<li>audit log で <code>savedBy: "Alice@AI"</code> の形式</li>
+<li>UI 表示で「誰が指示した AI か」が即座に分かる</li>
+</ul>
+<h3 id="104-自動削除対象外-q4-合意-12-参照">10.4 自動削除対象外 (Q4 合意、§ 12 参照)</h3>
+<p>AI が Edit role の場合も自動削除対象外。詳細は § 12.2。</p>
+<h3 id="105-onbehalfofsession-概念の扱い">10.5 <code>onBehalfOfSession</code> 概念の扱い</h3>
+<p><strong>保持するが簡素化</strong> (Q4 合意):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>既存 (PR #888)</th><th>本 spec</th></tr></thead><tbody><tr><td><code>actor</code> / <code>owner</code> の複雑な区別</td><td>EditSession プロトコルに統合 (role + parentHumanSessionId)</td></tr><tr><td><code>resolveOnBehalfOfSession</code> で borrow 関係を解決</td><td>AI session 接続時に <code>parentHumanSessionId</code> を渡す簡素化</td></tr><tr><td>AI session-borrow registry (#892)</td><td><strong>不要</strong> (本プロトコルで代替)</td></tr></tbody></table>
+<p>→ #892 は本プロトコル化に統合し、別 ISSUE としては不要。</p>
+<hr>
+<h2 id="11-url-とブックマーク">11. URL とブックマーク</h2>
+<h3 id="111-url-構造">11.1 URL 構造</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>パス</th><th>意味</th></tr></thead><tbody><tr><td><code>/process-flow/edit/&#x3C;resourceId></code></td><td>既定 EditSession (= 最新 active EditSession) を開く。無ければ新規作成</td></tr><tr><td><code>/process-flow/edit/&#x3C;resourceId>?session=&#x3C;editSessionId></code></td><td>指定 EditSession に参加 (View で join)</td></tr><tr><td><code>/process-flow/edit/&#x3C;resourceId>/sessions</code></td><td>同一リソースの全 EditSession 一覧 (active + history)</td></tr></tbody></table>
+<p>同様の URL 構造を Table / ViewDefinition / ScreenItems / Sequence / Designer (画面 GrapesJS / Puck) でも採用。</p>
+<h3 id="112-url-からの-join-q3-メリット">11.2 URL からの join (Q3 メリット)</h3>
+<p>チャット (Slack 等) に <code>https://harmony.example/process-flow/edit/abc?session=es01HX...</code> を貼り付けて、他者を View role で招待できる:</p>
+<ol>
+<li>貼り付けた URL を相手がクリック</li>
+<li>ブラウザで開いた瞬間、<code>?session=</code> パラメータを解釈</li>
+<li><code>mcpBridge.request("editSession.attachAsView", { editSessionId })</code> 実行</li>
+<li>View role で participants に追加</li>
+<li>即座に最新 payload を取得して表示 (memory store から、§ 13 参照)</li>
+</ol>
+<h3 id="113-url-のセキュリティ">11.3 URL のセキュリティ</h3>
+<ul>
+<li>現状の認証層 (workspace に attach できれば全リソース閲覧可) を超える分離は行わない (内製ツール前提)</li>
+<li><code>editSessionId</code> は ULID-like で長く、推測攻撃に一定の耐性</li>
+<li>URL を貼られた相手は「workspace に access 権がある」前提</li>
+</ul>
+<hr>
+<h2 id="12-ttl-と自動削除">12. TTL と自動削除</h2>
+<h3 id="121-ttl-設定-q2-合意harmonyjson-で指定">12.1 TTL 設定 (Q2 合意、harmony.json で指定)</h3>
+<p><code>harmony.json</code> (workspace 設定ファイル) に追加:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "editSession"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "ttlDays"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">7</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "discardedRetentionDays"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">30</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>設定</th><th>デフォルト</th><th>意味</th></tr></thead><tbody><tr><td><code>editSession.ttlDays</code></td><td>7</td><td>Active からの最終操作経過時間 (これを超えると Discarded に自動遷移)</td></tr><tr><td><code>editSession.discardedRetentionDays</code></td><td>30</td><td>Discarded からの追加保持期間 (これを超えると完全削除)</td></tr></tbody></table>
+<h3 id="122-自動削除規則-q4-合意">12.2 自動削除規則 (Q4 合意)</h3>
+<p>EditSession 単位で判定:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>条件</th><th>自動削除</th></tr></thead><tbody><tr><td>Edit role の participant が 1 人でも存在 (人間 / AI 問わず)</td><td><strong>対象外</strong> (削除しない)</td></tr><tr><td>全員 View 状態 + EditSession.lastActivityAt から <code>ttlDays</code> 経過</td><td>Active → Discarded に遷移</td></tr><tr><td>Discarded 状態 + 最終遷移から <code>discardedRetentionDays</code> 経過</td><td>完全削除</td></tr></tbody></table>
+<p>理由 (Q4): Edit している人 (人間 / AI) を自動的に消すのは危険。横取り (take-over) で他者が強制 release する経路があるため、AI hang や放置 editor は人間の操作で解決可能。</p>
+<h3 id="123-activity-taxonomy-との関係">12.3 Activity taxonomy との関係</h3>
+<p>既存 Activity taxonomy (live / active / idle / stale / abandoned) は <strong>個別 participant の状態</strong> を表現する。</p>
+<p>自動削除判断は <strong>EditSession 全体の状態</strong> を見る。両者は独立した軸:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>軸</th><th>主体</th><th>用途</th></tr></thead><tbody><tr><td>Activity taxonomy</td><td>participant</td><td>UI 表示 (presence badge / dropdown)</td></tr><tr><td>自動削除判断</td><td>EditSession</td><td>TTL 評価 / cleanup 周期</td></tr></tbody></table>
+<h3 id="124-cleanup-の実行">12.4 cleanup の実行</h3>
+<ul>
+<li>1 時間に 1 回の <code>setInterval</code> で <code>cleanupExpiredEditSessions()</code> 実行 (現実装の <code>cleanupAbandoned</code> を発展)</li>
+<li>Active → Discarded への遷移 (§ 5 step 6a) → broadcast <code>editSession.discarded</code> op:<code>ttl-expired</code></li>
+<li>Discarded → 完全削除 (§ 5 step 6b) → broadcast <code>editSession.expired</code></li>
+</ul>
+<h3 id="125-明示-discard--delete-ux">12.5 明示 discard / delete UX</h3>
+<p>「破棄 (discard)」 と 「完全削除 (delete)」 は別操作:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>対象 state</th><th>遷移先</th><th>復元可否</th><th>broadcast event</th></tr></thead><tbody><tr><td>「破棄」</td><td>Active</td><td>Discarded</td><td>可 (<code>discardedRetentionDays</code> 期間中)</td><td><code>editSession.discarded</code> op:<code>manual</code></td></tr><tr><td>「完全削除」</td><td>Discarded</td><td>(削除)</td><td>不可</td><td><code>editSession.expired</code></td></tr></tbody></table>
+<p>UI:</p>
+<ul>
+<li>EditSessionDropdown または一覧画面のコンテキストメニューに「破棄」/「完全削除」 の 2 操作を提供</li>
+<li>「破棄」の confirm: 「この編集セッションを破棄しますか? 30 日間は復元可能です」</li>
+<li>「完全削除」の confirm: 「履歴から完全に削除しますか? 復元不能です」</li>
+<li>「完全削除」は Discarded 状態の EditSession にのみ提供 (Active からの直接 delete は禁止、安全策)</li>
+</ul>
+<hr>
+<h2 id="13-memory-store-と永続化">13. memory store と永続化</h2>
+<h3 id="131-隔離単位の根本変更">13.1 隔離単位の根本変更</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>旧モデル (PR #888)</th><th>本 spec</th></tr></thead><tbody><tr><td><code>${clientId}:${type}:${id}</code> で隔離</td><td><code>${editSessionId}</code> で隔離</td></tr><tr><td>session 単位</td><td>EditSession 単位</td></tr><tr><td>take-over 時に key rename 必要</td><td>不要 (editSessionId 維持)</td></tr><tr><td>別 session が直接読めない</td><td>別 session が editSessionId 経由で直接読める</td></tr></tbody></table>
+<h3 id="132-editsessionstore-構造">13.2 EditSessionStore 構造</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">class</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> EditSessionStore</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">  private</span><span style="color:#E36209;--shiki-dark:#F69D50"> store</span><span style="color:#D73A49;--shiki-dark:#F47067"> =</span><span style="color:#D73A49;--shiki-dark:#F47067"> new</span><span style="color:#6F42C1;--shiki-dark:#DCBDFB"> Map</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#6F42C1;--shiki-dark:#F69D50">EditSession</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>();   </span><span style="color:#6A737D;--shiki-dark:#768390">// key = editSessionId</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // lifecycle</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  create</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">actorSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">resourceType</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">resourceId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">displayLabel</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> EditSession</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  get</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">editSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> EditSession</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  delete</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">editSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // participant 管理</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  attachAsView</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">editSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">sessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">displayLabel</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">parentHumanSessionId</span><span style="color:#D73A49;--shiki-dark:#F47067">?</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ParticipantInfo</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  detach</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">editSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">sessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  setRole</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">editSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">sessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">role</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "Edit"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "View"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // edit</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  update</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">editSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">payload</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">byEditorSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">sequence</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> };  </span><span style="color:#6A737D;--shiki-dark:#768390">// payload を更新、broadcast 発火</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  fetchCurrentPayload</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">editSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">payload</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">sequence</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } </span><span style="color:#D73A49;--shiki-dark:#F47067">|</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;          </span><span style="color:#6A737D;--shiki-dark:#768390">// 別 session の attach 時に呼ぶ</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // save</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  save</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">editSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">bySessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> SaveEvent</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // take-over (atomic)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  transferEdit</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">fromSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">toSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">editSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> { </span><span style="color:#E36209;--shiki-dark:#F69D50">from</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">to</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> };</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // cleanup</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  cleanupExpired</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">now</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Date</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">ttlDays</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#E36209;--shiki-dark:#F69D50">retentionDays</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> number</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> EditSession</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="133-attach-時の-initial-fetch-根本欠陥の解消">13.3 attach 時の initial fetch (根本欠陥の解消)</h3>
+<p>別 session が attach する流れ (= § 1.1 の根本欠陥を解消する経路):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>1. user clicks "閲覧開始" (or URL ?session=&#x3C;id> でロード)</span></span>
+<span class="line"><span>2. frontend: mcpBridge.request("editSession.attachAsView", { editSessionId })</span></span>
+<span class="line"><span>3. server: editSessionStore.attachAsView(editSessionId, sessionId)</span></span>
+<span class="line"><span>4. server: fetchCurrentPayload(editSessionId) → payload + sequence を取得</span></span>
+<span class="line"><span>5. server: response { participantInfo, payload, sequence }</span></span>
+<span class="line"><span>6. frontend: payload を即座に表示 (broadcast 待ちでない)</span></span>
+<span class="line"><span>7. frontend: その後 broadcast `editSession.update` で追従</span></span></code></pre>
+<p><strong>これにより「後から接続した viewer」も最新 state を即座に取得できる</strong>。</p>
+<h3 id="134-永続化戦略-b5-議論への決着">13.4 永続化戦略 (B.5 議論への決着)</h3>
+<p>PR #888 で議論した B.5 (案 2 / 案 3 のどちらか) は本 spec で <strong>決着がつく</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>永続化対象</th><th>タイミング</th><th>場所</th></tr></thead><tbody><tr><td>EditSession 自体 (active)</td><td>acquire 時</td><td>in-memory <code>EditSessionStore</code> のみ</td></tr><tr><td>EditSession 自体 (history)</td><td>save 時 + Discarded 遷移時</td><td>FS <code>&#x3C;workspace-root>/.edit-sessions/&#x3C;editSessionId>.json</code> (#856 dataDir 分離仕様: workspace root 直下、<code>&#x3C;dataDir></code> 配下ではない — 編集セッション管理は workspace 全体のメタデータ扱い)</td></tr><tr><td>中間 payload (mid-edit)</td><td>update 毎</td><td>in-memory <code>EditSession.payload</code> のみ (FS write しない)</td></tr><tr><td>save の payload</td><td>save 操作時</td><td>本体ファイル + EditSession.saveHistory</td></tr></tbody></table>
+<p><strong>FS 即時書き込みは不要</strong>: 別 session が attach した時に memory から fetch できるため、「初回 FS 書き込みで cross-session 互換」が必要だった理由が消失する。</p>
+<p>→ B.5 は <strong>案 2 (snapshot only) に純粋化</strong> が可能になる。理由は本プロトコルが提供する「memory 共有」によって、PR #888 で必要だった「初回 FS 即時書き込み」の保守判断が不要になるため。</p>
+<h3 id="135-backend-crash-耐性">13.5 backend crash 耐性</h3>
+<p>Active EditSession の中間状態は in-memory のみ。crash 時:</p>
+<ul>
+<li>中間状態は失われる (= save していない部分は消える)</li>
+<li>これは PR #888 と同等の挙動 (PR #888 でも shadow store のみ in-memory)</li>
+<li>改善の余地: WS 切断検出時に明示 flush、定期的な snapshot を JSON dump 等</li>
+</ul>
+<p>→ Phase 2 以降の最適化対象。Phase 1 では crash 時消失を許容。</p>
+<h3 id="136-history-snapshot-永続化パス">13.6 history snapshot 永続化パス</h3>
+<p>draft history snapshot は以下のパスに保存する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>&#x3C;workspaceRoot>/.edit-sessions-history/&#x3C;resourceType>/&#x3C;resourceId>/&#x3C;historyId>.json</span></span></code></pre>
+<p><code>historyId</code> の形式は <code>&#x3C;timestamp-safe>--&#x3C;sessionIdPrefix>-&#x3C;rand></code> である。
+<code>timestamp-safe</code> は ISO8601 タイムスタンプのコロン <code>:</code> を <code>-</code> に置換したもの (Windows ファイル名互換)。
+二重ハイフン <code>--</code> を区切り文字として timestamp 部と sessionId prefix 部の境界を明示する。</p>
+<p>例: <code>2026-05-07T18-30-00.000Z--es01hxabc-f3a9.json</code></p>
+<p>snapshot 取得契機は EditSession の <code>discard</code> / <code>transferEdit</code> / <code>save</code> 時。fire-and-forget で記録され、本処理を阻害しない。</p>
+<p>7 日経過した snapshot は <code>cleanupExpired({ olderThanDays: 7 })</code> で自動削除される。削除は <code>setInterval</code> 1 時間周期の cleanup に組み込む (§ 12.4 参照)。</p>
+<p>なお <code>.edit-sessions-history/</code> は § 13.4 表の <code>.edit-sessions/</code> (EditSession 本体 history FS) とは別ディレクトリである。前者は <strong>payload snapshot</strong> の保持、後者は <strong>EditSession 自体 (metadata + saveHistory)</strong> の保持と責務が分かれる。</p>
+<hr>
+<h2 id="14-broadcast-プロトコル">14. broadcast プロトコル</h2>
+<p>既存 <code>collab-presence.md</code> § 7 (Opaque envelope) を継承し、event 名を整理:</p>
+<h3 id="141-editsession-関連-event">14.1 EditSession 関連 event</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>event</th><th>発火タイミング</th><th>data</th></tr></thead><tbody><tr><td><code>editSession.created</code></td><td>新規 EditSession 作成</td><td><code>{ editSession: EditSession }</code></td></tr><tr><td><code>editSession.attached</code></td><td>participant が join</td><td><code>{ editSessionId, participant }</code></td></tr><tr><td><code>editSession.detached</code></td><td>participant が離脱</td><td><code>{ editSessionId, sessionId }</code></td></tr><tr><td><code>editSession.roleChanged</code></td><td>role 遷移 (take-over 含む)</td><td><code>{ editSessionId, sessionId, oldRole, newRole, transferTo? }</code></td></tr><tr><td><code>editSession.update</code></td><td>mid-edit (payload 更新)</td><td><code>{ editSessionId, sequence, payload, senderSessionId }</code> (opaque)</td></tr><tr><td><code>editSession.saved</code></td><td>save 操作</td><td><code>{ editSessionId, savedBy, savedAt, sequence }</code></td></tr><tr><td><code>editSession.discarded</code></td><td>Discarded 遷移</td><td><code>{ editSessionId, reason: "manual" | "ttl" }</code></td></tr><tr><td><code>editSession.expired</code></td><td>完全削除</td><td><code>{ editSessionId }</code></td></tr><tr><td><code>presence.update</code></td><td>activity taxonomy 遷移</td><td>(既存 collab-presence.md と同じ)</td></tr></tbody></table>
+<h3 id="142-旧-event-との対応">14.2 旧 event との対応</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>旧 event (PR #888)</th><th>新 event</th></tr></thead><tbody><tr><td><code>lock.changed</code> op:<code>acquired</code></td><td><code>editSession.created</code> (initial Edit participant 含む)</td></tr><tr><td><code>lock.changed</code> op:<code>released</code></td><td><code>editSession.roleChanged</code> (Edit → View)</td></tr><tr><td><code>lock.changed</code> op:<code>transferred</code></td><td><code>editSession.roleChanged</code> (transferTo 付き、atomic)</td></tr><tr><td><code>lock.changed</code> op:<code>force-released</code></td><td><code>editSession.detached</code> (forced=true)</td></tr><tr><td><code>draft.changed</code> op:<code>updated</code></td><td>(削除、<code>editSession.update</code> に統合)</td></tr><tr><td><code>draft.changed</code> op:<code>committed</code></td><td><code>editSession.saved</code></td></tr><tr><td><code>draft.changed</code> op:<code>discarded</code></td><td><code>editSession.discarded</code></td></tr><tr><td><code>draft-update</code> (opaque)</td><td><code>editSession.update</code> (本 spec の opaque envelope)</td></tr></tbody></table>
+<h3 id="143-broadcast-の-wsid-scoping">14.3 broadcast の wsId scoping</h3>
+<p>既存 wsBridge の <code>wsId</code> scoping (workspace 単位) は維持。同一 workspace の全 client にのみ broadcast される。</p>
+<hr>
+<h2 id="15-api-シグネチャ">15. API シグネチャ</h2>
+<h3 id="151-backend-新規--変更">15.1 backend (新規 / 変更)</h3>
+<h4 id="backendsrceditsessionstorets-新規"><code>backend/src/editSessionStore.ts</code> (新規)</h4>
+<p>§ 13.2 のクラス定義参照。</p>
+<h4 id="backendsrcwsbridgets-request-handler-新規"><code>backend/src/wsBridge.ts</code> request handler (新規)</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// 新 request</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"editSession.create"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — </span><span style="color:#6F42C1;--shiki-dark:#F69D50">params</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { resourceType, resourceId } → EditSession</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"editSession.attachAsView"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — </span><span style="color:#6F42C1;--shiki-dark:#F69D50">params</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { editSessionId } → { participant, payload, sequence }</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"editSession.detach"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — </span><span style="color:#6F42C1;--shiki-dark:#F69D50">params</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { editSessionId } → </span><span style="color:#D73A49;--shiki-dark:#F47067">void</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"editSession.setRole"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — </span><span style="color:#6F42C1;--shiki-dark:#F69D50">params</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { editSessionId, </span><span style="color:#6F42C1;--shiki-dark:#F69D50">role</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"Edit"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "View"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } → ParticipantInfo</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"editSession.transferEdit"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — </span><span style="color:#6F42C1;--shiki-dark:#F69D50">params</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { editSessionId, toSessionId } → { from, to }</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"editSession.update"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — </span><span style="color:#6F42C1;--shiki-dark:#F69D50">params</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { editSessionId, payload } → { sequence }</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"editSession.save"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — </span><span style="color:#6F42C1;--shiki-dark:#F69D50">params</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { editSessionId } → SaveEvent</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"editSession.discard"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — </span><span style="color:#6F42C1;--shiki-dark:#F69D50">params</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { editSessionId } → </span><span style="color:#D73A49;--shiki-dark:#F47067">void</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"editSession.list"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — </span><span style="color:#6F42C1;--shiki-dark:#F69D50">params</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { resourceType, resourceId } → EditSession[]</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"editSession.fetchPayload"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — </span><span style="color:#6F42C1;--shiki-dark:#F69D50">params</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { editSessionId } → { payload, sequence }</span></span></code></pre>
+<h4 id="既存-api-の扱い-互換性--撤去">既存 API の扱い (互換性 / 撤去)</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>既存 API (PR #888)</th><th>本 spec での扱い</th></tr></thead><tbody><tr><td><code>lock.acquire</code></td><td>削除 (<code>editSession.create</code> に統合)</td></tr><tr><td><code>lock.release</code></td><td>削除 (<code>editSession.setRole(View)</code> に統合)</td></tr><tr><td><code>lock.forceRelease</code></td><td>削除 (Phase 6: <code>editSession.detach</code> forced=true 経路に統合)</td></tr><tr><td><code>lock.subscribeAsViewer</code></td><td>削除 (<code>editSession.attachAsView</code> に統合)</td></tr><tr><td><code>lock.unsubscribeViewer</code></td><td>削除 (<code>editSession.detach</code> に統合)</td></tr><tr><td><code>lock.transferLock</code></td><td>削除 (<code>editSession.transferEdit</code> に統合)</td></tr><tr><td><code>lock.list</code></td><td>削除 (<code>editSession.list</code> に統合)</td></tr><tr><td><code>draft.update</code></td><td>削除 (<code>editSession.update</code> に統合)</td></tr><tr><td><code>draft.commit</code></td><td>削除 (<code>editSession.save</code> に統合)</td></tr><tr><td><code>draft.discard</code></td><td>削除 (<code>editSession.discard</code> に統合)</td></tr><tr><td><code>draft.read</code> / <code>draft.readLatest</code></td><td>削除 (<code>editSession.fetchPayload</code> に統合)</td></tr><tr><td><code>presence.heartbeat</code> / <code>presence.list</code> / <code>presence.register</code></td><td>維持 (independent channel、§ 14.1 参照)</td></tr></tbody></table>
+<h3 id="152-frontend-新規--変更">15.2 frontend (新規 / 変更)</h3>
+<h4 id="frontendsrchooksuseeditsessionts-大幅改訂"><code>frontend/src/hooks/useEditSession.ts</code> (大幅改訂)</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> UseEditSessionOptions</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  resourceType</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DraftResourceType</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  resourceId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  editSessionId</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;  </span><span style="color:#6A737D;--shiki-dark:#768390">// URL ?session= から復元時 / 新規作成時は undefined</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> UseEditSessionResult</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  editSession</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> EditSession</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  myRole</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "Edit"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "View"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> null</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;  </span><span style="color:#6A737D;--shiki-dark:#768390">// 自分の現在 role</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  participants</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ParticipantInfo</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  payload</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> unknown</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  startEditing</span><span style="color:#24292E;--shiki-dark:#ADBAC7">()</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;     </span><span style="color:#6A737D;--shiki-dark:#768390">// 新規 EditSession 作成 + Edit role</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  attach</span><span style="color:#24292E;--shiki-dark:#ADBAC7">(</span><span style="color:#E36209;--shiki-dark:#F69D50">editSessionId</span><span style="color:#24292E;--shiki-dark:#ADBAC7">)</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;  </span><span style="color:#6A737D;--shiki-dark:#768390">// 既存 EditSession に View で join</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  takeOver</span><span style="color:#24292E;--shiki-dark:#ADBAC7">()</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;          </span><span style="color:#6A737D;--shiki-dark:#768390">// View → Edit (atomic、prevEditor は View に降格)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  releaseEdit</span><span style="color:#24292E;--shiki-dark:#ADBAC7">()</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;       </span><span style="color:#6A737D;--shiki-dark:#768390">// Edit → View</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  save</span><span style="color:#24292E;--shiki-dark:#ADBAC7">()</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  discard</span><span style="color:#24292E;--shiki-dark:#ADBAC7">()</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#DCBDFB">  detach</span><span style="color:#24292E;--shiki-dark:#ADBAC7">()</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Promise</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">void</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h4 id="関連-hooks">関連 hooks</h4>
+<ul>
+<li><code>usePresenceHeartbeat</code> — 維持 (presence channel 独立)</li>
+<li><code>usePresenceRegistry</code> — 維持 (participant の activity 状態を見る用途)</li>
+<li><code>useResourceEditor</code> — 内部実装を <code>useEditSession</code> ベースに改訂、外部 API は互換維持を推奨</li>
+</ul>
+<h4 id="ui-components-改訂">UI components (改訂)</h4>
+<ul>
+<li><code>EditSessionDropdown.tsx</code> — <code>editSession.list</code> 経由で全 active EditSession + 過去履歴を表示</li>
+<li><code>EditSessionBadge.tsx</code> / <code>PresenceBadge.tsx</code> — そのまま継続 (旧 <code>SessionBadge.tsx</code> は Phase 6 で削除)</li>
+<li><code>TransferNotificationBanner.tsx</code> — <code>editSession.roleChanged</code> event listen のみ (旧 <code>lock.changed</code> listen は Phase 6 で削除)</li>
+</ul>
+<hr>
+<h2 id="16-既存-spec-との関係">16. 既存 spec との関係</h2>
+<h3 id="161-collab-presencemd-876">16.1 <code>collab-presence.md</code> (#876)</h3>
+<p><strong>位置付け</strong>: 本 spec の overture (序章) として残し、本 spec が正規プロトコルを担う。</p>
+<p><code>collab-presence.md</code> で書かれた以下は <strong>継続有効</strong>:</p>
+<ul>
+<li>Direction B 採用根拠 (§ 2)</li>
+<li>Forward-Compat 4 原則 (§ 3) — ただし原則 ④ の解釈は本 spec で純粋化される (§ 13.4)</li>
+<li>Activity taxonomy (§ 9)</li>
+<li>AI 借受の方針 (§ 10) — ただし簡素化 (§ 10.5)</li>
+</ul>
+<p><code>collab-presence.md</code> の以下は <strong>本 spec で置き換え</strong>:</p>
+<ul>
+<li>§ 4 アーキテクチャ (lockManager / draftStore / presenceManager の 3 層) → § 3 EditSession 一級概念</li>
+<li>§ 5 lock 状態遷移 → § 5 / § 6 EditSession ライフサイクル + role</li>
+<li>§ 6 Heartbeat 仕様 → § 14.1 で <code>presence.heartbeat</code> を継続維持 (本 spec の broadcast プロトコルに統合、event 名のみ整理)</li>
+<li>§ 7 opaque envelope → § 14 broadcast プロトコル</li>
+<li>§ 8 Take-over フロー → § 7 take-over の atomic 仕様</li>
+<li>§ 11 既存 spec との関係 → 本 spec の § 16 で再整理</li>
+</ul>
+<h3 id="162-edit-session-draftmd-683">16.2 <code>edit-session-draft.md</code> (#683)</h3>
+<p><strong>位置付け</strong>: 旧モデル (lock + draft + onBehalfOfSession の 3 層) の正規仕様。本 spec で <strong>置き換え</strong>。</p>
+<p>D-1 ~ D-12 の設計判断は以下の扱い:</p>
+<ul>
+<li>D-1 (autosave 廃止) — 維持 (本 spec § 8 も明示保存式)</li>
+<li>D-2 (サーバ側 draft 管理) — 概念は維持、実装は本 spec で再設計 (§ 13)</li>
+<li>D-3 ~ D-7 (lock 関連) — 本 spec の EditSession + role に置き換え (§ 3 / § 5 / § 6 / § 7)</li>
+<li>D-8 (対象エディタ範囲) — 本 spec § 11 / § 15.2 で同範囲を継承 (ProcessFlow / Table / ViewDefinition / ScreenItems / Sequence / Designer)</li>
+<li>D-9 (maturity との別軸) — 本 spec § 16.5 (<code>draft-state-policy.md</code> との関係) で同方針を継承</li>
+<li>D-10 (dirty マーク) — 本 spec では editor が unsaved 編集を持つ間は <code>myRole === "Edit"</code> + <code>payload !== lastSaved</code> で表現 (UI components 改訂は § 15.2 で言及)</li>
+<li>D-11 (編集モード UI 共通化) — 本 spec § 15.2 の <code>useEditSession</code> 改訂で同共通化を継続</li>
+<li>D-12 (マルチ workspace との関係) — 本 spec § 16.3 で <code>workspace-multi.md</code> 別軸として独立、衝突なし</li>
+</ul>
+<h3 id="163-workspace-multimd-679">16.3 <code>workspace-multi.md</code> (#679)</h3>
+<p><strong>位置付け</strong>: 別軸 (複数 workspace の同時並行編集)、本 spec と独立。衝突なし。</p>
+<h3 id="164-multi-editor-puckmd-806">16.4 <code>multi-editor-puck.md</code> (#806)</h3>
+<p><strong>位置付け</strong>: editorKind / cssFramework の解決順序、本 spec と独立。</p>
+<h3 id="165-draft-state-policymd">16.5 <code>draft-state-policy.md</code></h3>
+<p><strong>位置付け</strong>: 業務リソースの maturity (draft / committed) policy。本 spec の draft (= edit session の payload) とは別軸 (本 spec では「edit-session payload」と呼ぶことで用語衝突を回避)。</p>
+<hr>
+<h2 id="17-direction-a-crdt-への移行可能性">17. Direction A (CRDT) への移行可能性</h2>
+<h3 id="171-現状の判断-q3-a-合意">17.1 現状の判断 (Q3 (a) 合意)</h3>
+<p>ユーザー本来の要望: <strong>「複数人同時 Edit (CRDT 風、Google Docs / Notion)」</strong></p>
+<p>これは Direction A (Loro CRDT 採用) に相当し、#855 で 8-12 週見積もり / schema-first 思想と衝突する不採用根拠で見送り。<strong>本 spec では未採用</strong>、将来再評価の余地として残す。</p>
+<h3 id="172-本-spec-から-direction-a-への移行コスト">17.2 本 spec から Direction A への移行コスト</h3>
+<p><code>collab-presence.md</code> § 3 の Forward-Compat 4 原則を本 spec も継承するため、Direction A 移行コストは引き続き <strong>8-12 週 → 5-8 週</strong> に低減される設計を維持:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>原則</th><th>本 spec での実装</th><th>A 移行時</th></tr></thead><tbody><tr><td>① opaque envelope</td><td>§ 14 broadcast プロトコルで継続</td><td>payload を Loro update binary に swap、envelope 不変</td></tr><tr><td>② lock 2 層化</td><td>EditSession の <code>Edit</code> role が UI hint として機能</td><td>サーバ強制を撤去、UI hint のみ残す</td></tr><tr><td>③ presence 独立</td><td>§ 12.3 で presence channel 維持</td><td>そのまま流用</td></tr><tr><td>④ snapshot only</td><td>§ 13.4 で純粋化</td><td>そのまま流用</td></tr></tbody></table>
+<h3 id="173-direction-a-移行時の追加変更">17.3 Direction A 移行時の追加変更</h3>
+<ul>
+<li>1 EditSession 内で <code>Edit</code> role を <strong>複数許容</strong> (= CRDT による同時編集)</li>
+<li>payload を JSON から Loro doc に置換</li>
+<li>同時編集の衝突解決 (LWW) と schema validator の関係を再設計</li>
+<li>これらが 5-8 週級の追加実装</li>
+</ul>
+<h3 id="174-移行判断の-trigger">17.4 移行判断の trigger</h3>
+<p>本 spec 運用で以下のいずれかが顕在化した場合、Direction A 移行を再評価:</p>
+<ul>
+<li>「同一 EditSession 内で 2 人以上が同時に編集したい」要望が常時 3 件以上</li>
+<li>リアルタイム collab を期待する顧客要件</li>
+<li>AI と人間が同じキャレットで作業する pair-programming 要求</li>
+</ul>
+<hr>
+<h2 id="18-受け入れ基準--セキュリティ考慮事項">18. 受け入れ基準 / セキュリティ考慮事項</h2>
+<h3 id="181-受け入れ基準">18.1 受け入れ基準</h3>
+<p>実装シリーズで以下を全て満たすこと:</p>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" checked disabled> § 3 EditSession 概念の正規実装</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> § 5 ライフサイクル 1-6 step が動作 (vitest + e2e)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> § 7 take-over の atomicity (View → Edit / Edit → View が同一 critical section)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> § 8 save 規則 (Edit のみ可 / 全員 View なら誰でも可、audit log 必須)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> § 9 複数 EditSession 並存 + last-save-wins 警告ダイアログ</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> § 10 AI participant + <code>Alice@AI</code> 表示 + <code>parentHumanSessionId</code> 保持</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> § 11 URL <code>?session=&#x3C;editSessionId></code> 経由の attach</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> § 12 TTL 2 段階 (Active → Discarded → 完全削除) の自動削除</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> § 13 attach 時の initial fetch (memory store から最新 payload 取得) — § 1.1 根本欠陥の解消</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> § 14 broadcast プロトコルの新 event 一式</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> PR #888 の旧 API (lock / draft 系) を全削除 (§ 15.1 表参照)</li>
+<li class="task-list-item"><input type="checkbox" checked disabled> 既存 spec (<code>collab-presence.md</code> / <code>edit-session-draft.md</code>) からの参照リンク追加</li>
+</ul>
+<h3 id="182-セキュリティ考慮事項">18.2 セキュリティ考慮事項</h3>
+<ul>
+<li><strong>EditSessionId の推測攻撃</strong>: ULID-like で十分長く、推測困難。ただし brute-force は技術的に可能 → workspace 認証層が一次防御</li>
+<li><strong>URL 経由の招待</strong>: workspace 認証を通っていれば View 可能 (内製ツール前提)</li>
+<li><strong>take-over の濫用</strong>: 元 owner の同意なしに take-over 可能 (View 経由は必須)。誤操作は 7 日 history で復元可能</li>
+<li><strong>AI 操作の責任</strong>: <code>parentHumanSessionId</code> で常に追跡、<code>Alice@AI</code> 表示で audit 容易</li>
+<li><strong>payload opaque</strong>: server は payload 中身を解釈しない → schema 違反 payload も transit する。viewer 側 UI で warning 表示 (本 spec ではこれを許容、edit 不可なので安全)</li>
+</ul>
+<h3 id="183-性能考慮事項">18.3 性能考慮事項</h3>
+<ul>
+<li>mid-edit broadcast は debounce (frontend 300ms throttle 維持)</li>
+<li>presence broadcast は state 遷移時のみ</li>
+<li>cleanup は 1h 間隔 setInterval</li>
+<li>EditSessionStore は in-memory Map、entry 数は active 数 + history 数で限定的</li>
+</ul>
+<h3 id="184-移行戦略-pr-888--本-spec">18.4 移行戦略 (PR #888 → 本 spec)</h3>
+<p>PR #888 マージ済の現実装は <strong>過渡的扱い</strong>。本 spec 実装シリーズで以下を段階的に置き換える:</p>
+<ol>
+<li>EditSessionStore 新規実装 (Phase 1)</li>
+<li>wsBridge の新 request handler 追加 (Phase 2)</li>
+<li>frontend useEditSession 改訂 (Phase 3)</li>
+<li>旧 API (lock.* / draft.*) を deprecation 経路で並行運用 (Phase 4)</li>
+<li>UI components 改訂 + URL <code>?session=</code> の正規化 (Phase 5)</li>
+<li>旧 API 完全削除 + 既存 spec 改訂 (Phase 6) ✅ 完了 (#903)</li>
+<li>テスト + e2e (Phase 7)</li>
+</ol>
+<p>各 Phase は別子 ISSUE として分割、統合 PR で main マージ。</p>
+<hr>
+<h2 id="19-改訂履歴">19. 改訂履歴</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>日付</th><th>内容</th></tr></thead><tbody><tr><td>2026-05-07</td><td>新設 (#876 / #855 派生 Direction B 実装の根本欠陥を解消する正規プロトコル)</td></tr><tr><td>2026-05-07</td><td>Phase 6 (#903): 旧 API 完全削除 (lock.* / draft.* MCP tools / handlers / lockManager.ts / draftStore.ts / onBehalfOfSession.ts 削除)、useEditSessionLegacy 削除、SessionBadge.tsx 削除、TransferNotificationBanner の lock.changed listen 削除、useDraftRegistry を editSession.list ベースに移行。§15.2 UI components 欄・§15.1 互換性表を更新。</td></tr></tbody></table>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

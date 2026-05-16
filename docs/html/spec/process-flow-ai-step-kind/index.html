@@ -1,0 +1,487 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>process flow ai step kind</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link active"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="processflow-ai-step-kind-935">ProcessFlow AI Step Kind (#935)</h1>
+<p><strong>初版: 2026-05-08</strong></p>
+<h2 id="目的">目的</h2>
+<p>業務アプリにおける LLM / AI agent 呼び出しを ProcessFlow の <strong>一級概念</strong> として表現する。Anthropic / OpenAI / Google / AWS Bedrock / Ollama / Azure OpenAI の現代的 AI provider を、step 側に provider 直書きせず catalog 経由で抽象化する。tool use / structured output / vision input / agent loop を業界標準形式で扱う。</p>
+<h2 id="背景">背景</h2>
+<p>ProcessFlow には従来 AI 呼び出し専用の step kind が無く、各 sample がアドホックに表現していた:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>sample</th><th>表現方法</th><th>限界</th></tr></thead><tbody><tr><td><code>examples/diary</code></td><td><code>externalSystem</code> step + <code>catalogs.externalSystems.claudeApi</code> (Anthropic 固有)</td><td>provider 直書き、provider 切替は catalog 全体の書換必要、tool use / structured output が semantic に表現できない</td></tr><tr><td><code>examples/english-learning</code></td><td><code>english-learning:LlmDialog</code> namespace 拡張 stepKind (extensions/english-learning.v3.json)</td><td>namespace ごとに同じ概念を再発明、core 標準化されておらず、業界共通の tool / response_format 構造を持てない</td></tr></tbody></table>
+<p>N=2 で表現方法が分裂しており、放置すると後続 sample (CRM / EC / 製造業 etc.) が独自表現を作り、移行コストが指数的に増える。リリース前のため breaking change / migration コストが発生しないタイミングで core 標準化する (#935 設計者承認 2026-05-08)。</p>
+<h2 id="業界共通パターン-採用根拠">業界共通パターン (採用根拠)</h2>
+<p>公式 doc 調査結果 (Azure AI Foundry Prompt Flow / Dify Workflow / LangChain LCEL / OpenAI Responses / Anthropic Messages / AWS Bedrock Agents / Camunda BPMN AI Connectors) より:</p>
+<ol>
+<li><strong>modality 別分割は少数派</strong> — ほぼ全プラットフォームが「LLM 呼び出し」を 1 概念で扱い、画像/音声は messages 内 content block か別 endpoint</li>
+<li><strong>single-shot vs agent loop の 2 分は普遍</strong> — Camunda (Task vs Sub-process) / OpenAI (Responses vs Conversations) / LangGraph</li>
+<li><strong>provider 切替は connection / endpoint catalog 型</strong> — 個別 step に provider 直書きせず参照キーで間接化</li>
+<li><strong>tool は array of <code>{name, description, parameters: JSON Schema}</code></strong> が事実上の標準</li>
+<li><strong>structured output は JSON Schema で response_format / schema として宣言</strong></li>
+</ol>
+<p>→ 上記 5 パターンに準拠した設計を採用する。</p>
+<h2 id="採用設計">採用設計</h2>
+<h3 id="step-kinds-2-種類">Step kinds (2 種類)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>kind</th><th>用途</th><th>業界対応</th></tr></thead><tbody><tr><td><code>aiCall</code></td><td>single-shot LLM 呼び出し (text + vision multimodal + tool use + structured output)</td><td>OpenAI Responses / Anthropic Messages / Camunda AI Agent Task</td></tr><tr><td><code>aiAgent</code></td><td>multi-step agent loop (<code>maxIterations</code> 制御、tool call 連鎖)</td><td>LangGraph / Camunda AI Agent Sub-process / OpenAI Conversations</td></tr></tbody></table>
+<p><code>aiCall</code> は tool 結果を後続 step (compute / dbAccess) で評価する用途、<code>aiAgent</code> は LLM 自身が tool 結果を見て次の tool を選ぶ自律 loop。tool が無い単発呼び出しは <code>aiCall</code> を使う。</p>
+<h3 id="catalog-の階層-project-level--flow-level939-提案-c2026-05-08">catalog の階層 (project level + flow level、#939 提案 C、2026-05-08)</h3>
+<p>外部 catalog (modelEndpoints / secrets / envVars / events / functions / externalSystems) は 2 階層で管理する:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>階層</th><th>配置</th><th>用途</th></tr></thead><tbody><tr><td><strong>project level</strong></td><td><code>harmony/catalogs/external.json</code> (schema: <code>external-catalogs.v3.schema.json</code>)</td><td>1 sample (project) 全体で共有。複数 flow が同じ provider / secret / endpoint を使う場合、本ファイルに集約</td></tr><tr><td><strong>flow level</strong></td><td><code>&#x3C;flow>.json</code> の <code>context.catalogs.*</code></td><td>個別 flow に閉じる定義 / project level の override</td></tr></tbody></table>
+<p><strong>merge 規則</strong>: 同じカテゴリ + 同じキーが両階層に存在する場合、<strong>flow level が project level を override</strong> する。typing 用途では merge 後の view を共通インターフェース (<code>ProjectCatalogs</code>) として扱う。</p>
+<p>例: 4 つの AI flow がすべて同じ Anthropic API を使う diary project では、project level に集約することで定義を 4 重複から 1 つに削減できる。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// examples/diary/harmony/catalogs/external.json (project level)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"../../../../schemas/v3/external-catalogs.v3.schema.json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "version"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"1.0.0"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "modelEndpoints"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "summarizeModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"provider"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"anthropic"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "tagSuggestModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"provider"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"anthropic"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "altTextModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "proofreadModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "secrets"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "anthropicApiKey"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"source"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"env"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"ANTHROPIC_API_KEY"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>各 flow は <code>context.catalogs</code> を持たずに直接 <code>modelRef: "summarizeModel"</code> で project level catalog のキーを参照する。</p>
+<h3 id="catalog-contextcatalogsmodelendpoints-flow-level">catalog: <code>context.catalogs.modelEndpoints</code> (flow level)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"modelEndpoints"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "summarizeModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "provider"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"anthropic"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "model"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"claude-opus-4-7"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "endpoint"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"https://api.anthropic.com"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "auth"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"bearer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"tokenRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@secret.anthropicApiKey"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "defaults"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"temperature"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">0.7</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"maxTokens"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1024</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "fallback"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"summarizeModelFallback"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<ul>
+<li><strong>provider</strong> (enum): <code>anthropic</code> / <code>openai</code> / <code>google</code> / <code>aws-bedrock</code> / <code>ollama</code> / <code>azure-openai</code> または拡張 <code>namespace:provider</code> 形式</li>
+<li><strong>model</strong>: provider 固有のモデル ID</li>
+<li><strong>endpoint</strong>: API base URL (省略時は provider のデフォルト、Ollama / 自前 BYO endpoint で必須)</li>
+<li><strong>auth</strong>: <code>ExternalAuth</code> (kind: bearer / basic / apiKey / oauth2 / iamRole / azureAd / none、tokenRef は <code>@secret.&#x3C;key></code> 参照)</li>
+<li><strong>defaults</strong>: temperature / maxTokens 等のデフォルト推論パラメータ (step 側 parameters で override)</li>
+<li><strong>fallback</strong>: プライマリ失敗時の fallback endpoint key (推奨: 別 provider)</li>
+</ul>
+<h3 id="aicallstep-の-field"><code>AiCallStep</code> の field</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>field</th><th>型</th><th>必須</th><th>説明</th></tr></thead><tbody><tr><td><code>kind</code></td><td><code>"aiCall"</code></td><td>✓</td><td>const</td></tr><tr><td><code>modelRef</code></td><td>Identifier</td><td>✓</td><td><code>modelEndpoints</code> のキー参照</td></tr><tr><td><code>messages</code></td><td><code>AiMessageItem[]</code> (minItems=1、AiMessage | AiMessageSpread の oneOf)</td><td>✓</td><td>system / user / assistant の role 別。spread item で動的会話履歴展開も許容 (#939 提案 A)</td></tr><tr><td><code>tools</code></td><td><code>AiToolRef[]</code></td><td></td><td>LLM に提供する tool 群</td></tr><tr><td><code>toolChoice</code></td><td><code>auto</code> / <code>any</code> / <code>none</code> / <code>{name}</code></td><td></td><td>tool 選択戦略</td></tr><tr><td><code>responseFormat</code></td><td><code>AiResponseFormat</code></td><td></td><td>text / json / structuredObject (JSON Schema) / streaming</td></tr><tr><td><code>parameters</code></td><td><code>AiInferenceParameters</code></td><td></td><td>modelEndpoint.defaults を override</td></tr><tr><td><code>outputBinding</code></td><td>from <code>StepBaseProps</code></td><td></td><td>LLM 応答全体を変数に bind</td></tr><tr><td><code>outcomes</code></td><td><code>ExternalCallOutcomes</code></td><td></td><td>失敗 / timeout 時の挙動 (既存パターン流用)</td></tr></tbody></table>
+<h3 id="aiagentstep-の-field"><code>AiAgentStep</code> の field</h3>
+<p><code>AiCallStep</code> の上位互換。差分のみ:</p>
+<ul>
+<li><code>tools</code> が <strong>必須</strong> (<code>minItems=1</code>、tool なしなら <code>aiCall</code> を使う)</li>
+<li><code>maxIterations</code> (integer, default 10) で tool call ループ上限を指定</li>
+</ul>
+<h3 id="outputbinding-の値構造-provider-中立な正規化形式"><code>outputBinding</code> の値構造 (provider 中立な正規化形式)</h3>
+<p><code>aiCall</code> / <code>aiAgent</code> の outputBinding は、provider 固有応答 (Anthropic <code>content[].text</code> / OpenAI <code>choices[].message.content</code> / Bedrock <code>output.message.content</code> 等) をランタイムが以下の正規化形式に変換した値を受け取る。後続 step (<code>compute</code> / <code>dbAccess</code> / <code>return</code>) はこの形式を前提に式参照する。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th><code>responseFormat.kind</code></th><th>outputBinding の値構造</th><th>後続 step での参照</th></tr></thead><tbody><tr><td><code>text</code> (デフォルト、未指定)</td><td><code>{ text: string, finishReason?: string, usage?: TokenUsage }</code></td><td><code>@&#x3C;binding>.text</code></td></tr><tr><td><code>json</code></td><td><code>{ object: any, raw: string, finishReason?: string, usage?: TokenUsage }</code></td><td><code>@&#x3C;binding>.object</code> (parse 済み) / <code>@&#x3C;binding>.raw</code> (生 JSON 文字列)</td></tr><tr><td><code>structuredObject</code></td><td><code>{ object: &#x3C;responseFormat.schema 準拠オブジェクト>, raw: string, finishReason?: string, usage?: TokenUsage }</code></td><td><code>@&#x3C;binding>.object.&#x3C;field></code> (型安全、JSON Schema 適合確認済み)</td></tr><tr><td><code>streaming</code></td><td><code>{ text: string, finishReason?: string, usage?: TokenUsage }</code> (完了後)</td><td><code>@&#x3C;binding>.text</code> (本フローでは partial を扱わない、SSE / WebSocket は実装層)</td></tr></tbody></table>
+<p><code>tools</code> を伴う <code>aiCall</code> / <code>aiAgent</code> で tool call が発生した場合は、上記に加え:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  toolCalls</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> Array</span><span style="color:#D73A49;--shiki-dark:#F47067">&#x3C;</span><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#6F42C1;--shiki-dark:#F69D50">id</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: string, </span><span style="color:#6F42C1;--shiki-dark:#F69D50">name</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: string, </span><span style="color:#6F42C1;--shiki-dark:#F69D50">arguments</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: any }</span><span style="color:#D73A49;--shiki-dark:#F47067">></span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>aiAgent</code> は agent loop 完了後の最終 assistant メッセージを上記形式で受け取り、途中の tool 呼び出しはランタイムが自動処理する (個別 step として現れない)。</p>
+<p><code>outcomes.failure.action = "abort"</code> で失敗時は HTTP 5xx 応答 (<code>responses[]</code> から responseId 一致を選択) を返し、outputBinding には何も入らない (<code>runIf</code> でガードされる後続 step は skip)。</p>
+<h3 id="messages-の-aimessageitem-939-提案-a2026-05-08"><code>messages[]</code> の AiMessageItem (#939 提案 A、2026-05-08)</h3>
+<p>messages[] の各要素は <strong>AiMessage</strong> (通常メッセージ) または <strong>AiMessageSpread</strong> (動的展開ディレクティブ) のいずれか。<code>AiMessageItem</code> の oneOf で表現する。</p>
+<h4 id="aimessage-通常メッセージ">AiMessage (通常メッセージ)</h4>
+<p><code>role</code> (system / user / assistant) + <code>content</code> (string または content blocks 配列)。Anthropic / OpenAI と整合。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"user"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"本文を要約してください: @inputs.body"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span></code></pre>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"user"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"text"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"text"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"この画像の alt を生成してください。"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"image"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"source"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"fileRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@inputs.photo"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">]}</span></span></code></pre>
+<h4 id="aimessagespread-動的配列展開">AiMessageSpread (動的配列展開)</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"spread"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@turnContext"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"過去会話履歴を展開"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span></code></pre>
+<p>ランタイムが <code>ref</code> の指す変数 (AiMessage 互換配列、典型例: 会話履歴 <code>DialogTurn[]</code>) を本位置に inline 展開する。multi-turn 会話で過去 turns を <strong>role 別に構造的に LLM へ伝える</strong> ことができる。</p>
+<p>例: english-learning S-2 progress-turn flow</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"messages"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"system"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"あなたは英会話パートナーです..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"spread"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@turnContext"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"user"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@userInput"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span></code></pre>
+<p>ランタイムは <code>@turnContext</code> (DialogTurn[]) を <code>[{role:"user", content:"..."}, {role:"assistant", content:"..."}, ...]</code> の AiMessage 列として展開し、結果として LLM に送信される messages[] は <code>[system, user(履歴1), assistant(履歴1), user(履歴2), assistant(履歴2), ..., user(最新)]</code> となる。</p>
+<h3 id="aimessagecontent"><code>AiMessage.content</code></h3>
+<p><code>string</code> (シンプルテキスト、式補間 <code>@&#x3C;var></code> 含む) または content blocks 配列 (text / image)。</p>
+<p><code>image.source</code> は 3 形式:</p>
+<ul>
+<li><code>fileRef</code>: ScreenItem (type=file) / step output 等の式参照 (ローカルファイル / アップロードハンドル)</li>
+<li><code>url</code>: HTTP(S) URL。<strong>literal な http(s) URI</strong> または <strong><code>@</code>-prefix expression (ランタイム変数参照)</strong> のいずれか (#939 提案 B、2026-05-08 で expression 対応)。例: <code>{ "kind": "url", "url": "@photoRow.url" }</code></li>
+<li><code>base64</code>: base64-encoded データ (test fixture / 小規模アイコン等に限定)</li>
+</ul>
+<h3 id="aitoolref"><code>AiToolRef</code></h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"functionRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"lookupGlossary"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span></code></pre>
+<p>または</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"inline"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"suggestTag"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"parameters"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> JSON</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> Schema</span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic"> ...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span></code></pre>
+<p><code>functionRef</code> は <code>context.catalogs.functions</code> の既存 entry を再利用 (DRY)。<code>inline</code> はアドホック使用。</p>
+<h3 id="airesponseformat"><code>AiResponseFormat</code></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>kind</th><th>追加 field</th><th>説明</th></tr></thead><tbody><tr><td><code>text</code></td><td>(なし)</td><td>デフォルト、自由テキスト。<code>kind</code> 以外の field は不可 (<code>additionalProperties: false</code>)</td></tr><tr><td><code>json</code></td><td><code>description?</code></td><td>free-form JSON、parse のみ (schema 制約なし)</td></tr><tr><td><code>structuredObject</code></td><td><code>schema</code> (必須) + <code>name?</code></td><td>JSON Schema 準拠の構造化出力 (Anthropic / OpenAI / Dify 共通)</td></tr><tr><td><code>streaming</code></td><td><code>description?</code></td><td>SSE / WebSocket、partial response</td></tr></tbody></table>
+<p>各 variant は schema で <code>additionalProperties: false</code>。<code>text</code> は <code>kind</code> のみ、他 variant も列挙された field 以外は不可。</p>
+<h2 id="使用例">使用例</h2>
+<h3 id="1-シンプル要約-text">1. シンプル要約 (text)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-summarize"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"aiCall"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"本文を 3-5 文で要約する"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "modelRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"summarizeModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "messages"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"system"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"あなたは日本語要約の専門家です。"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"user"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@inputs.body"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"summaryResponse"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="2-structured-output-タグ提案">2. structured output (タグ提案)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-suggest"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"aiCall"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"本文からタグ候補を構造化出力する"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "modelRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tagSuggestModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "messages"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"user"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@inputs.body"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "responseFormat"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"structuredObject"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"TagSuggestResult"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "tags"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"array"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "items"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "properties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">              "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">              "confidence"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"number"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"minimum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">0</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"maximum"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">1</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">            },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"confidence"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">          }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"tags"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tagsResponse"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="3-vision-input-画像-alt-生成">3. vision input (画像 alt 生成)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-alt"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"aiCall"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"写真の alt text を生成する"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "modelRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"altTextModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "messages"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"user"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"text"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"text"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"この画像の alt テキストを 40-100 字で生成してください。"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"image"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"source"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"fileRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@inputs.photo"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    ] }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"altResponse"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="4-agent-loop-顧客サポート">4. agent loop (顧客サポート)</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-agent"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"aiAgent"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"顧客問い合わせを agent loop で解決する"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "modelRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"supportAgent"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "messages"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"system"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"あなたはサポートエージェントです。"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"role"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"user"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"content"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@inputs.query"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "tools"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"functionRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"searchKnowledgeBase"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"functionRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"createTicket"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"functionRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"escalateToHuman"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "maxIterations"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">5</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"agentResult"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h2 id="provider-切替の運用">provider 切替の運用</h2>
+<p><code>modelEndpoints</code> catalog で <code>provider</code> / <code>model</code> / <code>endpoint</code> / <code>auth</code> を <strong>1 か所に集約</strong> することで、provider 切替は catalog の編集だけで完結する。step 側は <code>modelRef</code> のキー参照のみで provider 非依存。</p>
+<p>env 切替の典型:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"modelEndpoints"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "summarizeModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "provider"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"anthropic"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "model"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"claude-opus-4-7"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "auth"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"bearer"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"tokenRef"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@secret.anthropicApiKey"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>別環境では同 endpoint key を別 provider で再定義 (例: ローカル開発で Ollama に切替):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"modelEndpoints"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "summarizeModel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "provider"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"ollama"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "model"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"llama3.1:70b"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "endpoint"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"http://localhost:11434"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "auth"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"none"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h2 id="ドメイン固有-ai-機能-tts--stt--embedding--imagegen-との関係">ドメイン固有 AI 機能 (TTS / STT / Embedding / ImageGen) との関係</h2>
+<p>本 spec は <strong>LLM 呼び出し (text + vision + tool use)</strong> の core 標準化に絞る。TTS (Text-to-Speech) / STT (Speech-to-Text) / Embedding / ImageGen は別 endpoint で別概念のため、当面は以下のいずれかで対応:</p>
+<ol>
+<li><strong>namespace 拡張 stepKind</strong>: <code>examples/english-learning</code> の <code>english-learning:TtsGenerate</code> / <code>:SttEvaluate</code> のように、業界別の namespace 拡張で表現</li>
+<li><strong>将来 core 化</strong>: 業務アプリ横断の汎用ニーズが見えた時点 (N=3+ で複数 sample が同じ概念を再発明している状況) で <code>aiTts</code> / <code>aiStt</code> / <code>aiEmbedding</code> / <code>aiImageGen</code> を core に追加する候補</li>
+</ol>
+<p>英語学習 sample の domain 固有 fieldType (<code>cefrLevel</code> / <code>ipa</code> / <code>audioUrl</code> / <code>pronunciationScore</code> / <code>dialogTurn</code>) は業務ドメイン固有のため namespace 拡張に残す (core 化対象外)。</p>
+<h2 id="関連-schema-拡張-9392026-05-08">関連 schema 拡張 (#939、2026-05-08)</h2>
+<p>Phase 2-A の dogfood で発見された 3 つの schema 制約を解消した拡張 (本仕様書の「採用設計」セクション全体に統合済み):</p>
+<ul>
+<li><strong>提案 A (messages spread item)</strong>: <code>aiCall.messages[]</code> / <code>aiAgent.messages[]</code> の各要素を <code>AiMessage | AiMessageSpread</code> に拡張。動的会話履歴展開を schema レベルで表現可能に (上記「messages[] の AiMessageItem」節参照)</li>
+<li><strong>提案 B (image url ExpressionString)</strong>: <code>AiImageSource.url</code> variant の url field をリテラル http(s) URI または <code>@</code>-prefix expression の oneOf に拡張。ランタイム変数 URL を schema 上正しく表現可能に (上記「AiMessage.content」節参照)</li>
+<li><strong>提案 C (project level catalogs)</strong>: <code>harmony/catalogs/external.json</code> で project 全体の modelEndpoints / secrets / envVars / events / functions / externalSystems を共有定義。flow level (<code>context.catalogs.*</code>) は override 機構として機能 (上記「catalog の階層」節参照)</li>
+</ul>
+<h2 id="既存表現からの移行-phase-2">既存表現からの移行 (Phase 2)</h2>
+<p>本 spec を含む PR (Phase 1) は schema 改変 + spec + test fixture のみ。既存 sample の書き換えと skill 拡張は Phase 2 で段階的に実施する。</p>
+<h3 id="phase-2-a--既存-sample-移行-完了-2026-05-08865">Phase 2-A — 既存 sample 移行 (完了 2026-05-08、#865)</h3>
+<ul>
+<li><code>examples/diary</code> の AI 4 flow (要約/タグ提案/画像 alt/校正) を <code>aiCall</code> + <code>catalogs.modelEndpoints.&#x3C;key></code> に移行 (claudeApi externalSystem 廃止)</li>
+<li><code>examples/english-learning</code> の <code>english-learning:LlmDialog</code> step を <strong><code>aiCall</code></strong> (spec 準拠、tools 無しの単発呼び出しは <code>aiCall</code> を使う原則) に移行 — 元指示は “aiAgent (multi-turn)” だったが、当該 step は tool 無しの multi-turn 会話のため schema 上 <code>aiAgent</code> (tools minItems=1 必須) 不可。“multi-turn” は会話履歴を messages に並べることで表現する</li>
+<li><code>examples/english-learning/harmony/extensions/english-learning.v3.json</code> から <code>LlmDialog</code> stepKind 定義を削除 (<code>TtsGenerate</code> / <code>SttEvaluate</code> は当面残す)</li>
+<li><code>examples/english-learning-tailwind/</code> (Bootstrap 版と同一スコープの Tailwind 版) も同 PR で同期移行</li>
+<li><code>examples/diary/harmony/conventions/catalog.json</code> の <code>extensionCategories.ai</code> (provider/model 重複定義) を削除し modelEndpoints catalog に一本化</li>
+<li>暫定形だった「user content に <code>@turnContext</code> (DialogTurn[] JSON 文字列) を埋め込む」表現は #939 提案 A (AiMessageSpread) で正規形に解消済 (PR #940、2026-05-08)</li>
+</ul>
+<h3 id="phase-2-b--generate-tests-skill-拡張-完了本-pr">Phase 2-B — <code>/generate-tests</code> skill 拡張 (完了、本 PR)</h3>
+<ul>
+<li><code>ai-skills/generate-tests/SKILL.md</code> の AI flow 検出ロジックを <code>kind=externalSystem</code> + <code>systemRef=claudeApi</code> から <strong><code>kind ∈ {aiCall, aiAgent}</code></strong> に更新</li>
+<li>responseFormat 別 (<code>text</code> / <code>json</code> / <code>structuredObject</code> / <code>streaming</code>) の mock 戦略を P5-3 に整理
+<ul>
+<li>mock helper は provider 中立 (<code>mocks/ai-runtime.ts</code> の <code>mockAiText</code> / <code>mockAiStructured</code> / <code>mockAiJson</code> / <code>mockAiStreaming</code> / <code>mockAiFailure</code> / <code>mockAiFormatViolation</code> / <code>mockAiWithToolCalls</code>)</li>
+<li>戻り値は spec §「outputBinding の値構造」の正規化形式 (<code>{ text?, object?, raw?, finishReason?, usage?, toolCalls? }</code>)</li>
+</ul>
+</li>
+<li>AI-3 観点を responseFormat-aware に再設計 (text / streaming は skip、json / structuredObject は schema 違反 → 502)</li>
+<li>AI-4 観点を outcomes.failure 駆動に再設計 (failure responseId → status 自動解決)</li>
+<li>AiMessageSpread (<code>{kind:"spread", ref}</code>) の検出と fixture 化を P5-4 に追加</li>
+<li>AiImageSource variant (<code>fileRef</code> / <code>url(literal)</code> / <code>url(@-expression)</code> / <code>base64</code>) 別の fixture 戦略を P5-5 に追加</li>
+<li>modelEndpoints catalog 解決を project + flow merge に対応 (<code>harmony/catalogs/external.json</code> ⊕ <code>&#x3C;flow>.context.catalogs.modelEndpoints</code>)</li>
+<li>旧 <code>mocks/claude-api.ts</code> (Anthropic 形式 HTTP mock) は廃止 → <code>mocks/ai-runtime.ts</code> (provider 中立) に置換</li>
+<li>mock target (<code>AI_RUNTIME_SERVICE_TYPE</code> / <code>_METHOD</code> / <code>_IMPORT_PATH</code>) は Phase 2-C で確定する PLACEHOLDER として記録</li>
+<li>smoke 確認: diary 4 flow (f7a8b9c0 / a9b0c1d2 / b0c1d2e3 / c1d2e3f4) + english-learning(+tailwind) 96118ae1 で skill 経由の生成パスを mental trace で検証済 (validate:samples 27/27 pass、regression なし)</li>
+</ul>
+<h3 id="phase-2-c--generate-code-skill-テンプレート拡張-phase-2-b-と独立別-pr">Phase 2-C — <code>/generate-code</code> skill テンプレート拡張 (Phase 2-B と独立、別 PR)</h3>
+<ul>
+<li>テンプレート本体 (<code>templates/backend/typescript-nestjs/</code> / <code>templates/backend/java-spring-boot/</code>) に <code>aiCall</code> / <code>aiAgent</code> step の SDK 切替コード生成ロジックを追加 (現状 <code>SKILL.md</code> の step kind table に方針記述のみで、テンプレート本体は未対応)</li>
+</ul>
+<h2 id="関連">関連</h2>
+<ul>
+<li>起票元 ISSUE: #935 (本 spec)</li>
+<li>supersede: #865 (examples/diary AI provider 抽象化、本 spec が正規解決策)</li>
+<li>連動: #867 (Codex App Server BYOS、Harmony 本体側 AI 統合 — 別レイヤー)</li>
+<li>supersede memory: <code>project_phase2_modelEndpoint_rfc_2026_05_07.md</code> (RFC 起票方針 → 即実施に変更)</li>
+<li>上位 memory: <code>project_ai_step_kind_core_2026_05_08.md</code></li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

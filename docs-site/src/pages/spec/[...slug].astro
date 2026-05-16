@@ -1,0 +1,23 @@
+---
+import { getCollection, render } from 'astro:content';
+import SpecLayout from '../../layouts/SpecLayout.astro';
+import Sidebar from '../../components/Sidebar.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('spec');
+  return entries.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const title = entry.data.title ?? entry.id.replace(/-/g, ' ');
+const description = entry.data.description ?? '';
+---
+
+<SpecLayout title={title} description={description}>
+  <Sidebar slot="sidebar" area="spec" current={entry.id} />
+  <Content />
+</SpecLayout>

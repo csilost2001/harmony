@@ -1,0 +1,412 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>process flow transaction</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link active"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="process-flow--transaction-scope-transactionscopestep">Process Flow — Transaction Scope (<code>TransactionScopeStep</code>)</h1>
+<p>ISSUE: #415 / 親 #396 (Power Platform Changeset / EF Core TransactionScope 由来)
+<strong>改訂日: 2026-04-28 (#539 で v3 反映)</strong></p>
+<p>複数 DB 操作を atomic な TX 単位でラップする meta-step。「注文登録 + 在庫減算」のように、一連の DB 書き込みを「全部成功するか、何も無かったかにする」のを宣言的に表現する。一次成果物は <code>schemas/v3/process-flow.v3.schema.json</code> の <code>TransactionScopeStep</code> ($defs)。</p>
+<h2 id="1-動機">§1 動機</h2>
+<p>業務システムでは「複数の DB 操作を 1 TX でまとめる」が頻出。例:</p>
+<ul>
+<li>注文登録: <code>orders</code> INSERT + <code>order_items</code> INSERT + <code>inventory</code> UPDATE</li>
+<li>残高振替: <code>accounts</code> UPDATE × 2 (引落+入金)</li>
+<li>ユーザー削除: 関連テーブル群の cascade UPDATE</li>
+</ul>
+<p>既存 <code>StepBaseProps.txBoundary</code> は <code>{role: "begin"|"member"|"end", txId}</code> の平坦モデルで、同一 <code>txId</code> を持つ step 群が単一 TX を構成する。これは下位互換のため残すが、<strong>範囲が構造ではなく ID 一致で表現される</strong>ため、以下の問題がある:</p>
+<ul>
+<li>step を移動・複製した時に <code>txId</code> の整合性が崩れやすい</li>
+<li><code>begin</code> から <code>end</code> までの範囲が一目で読みづらい</li>
+<li>ネストが表現できない</li>
+</ul>
+<p><code>TransactionScopeStep</code> は <strong>TX の範囲を構造的にネストして表現</strong>する。範囲は <code>steps[]</code> 配列で明示。AI / 実装側はこれを 1 まとまりで TX として扱う。</p>
+<h2 id="2-スキーマ">§2 スキーマ</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tx-001"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"transactionScope"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,                          </span><span style="color:#6A737D;--shiki-dark:#768390">// v3: type → kind</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"注文登録 + 在庫減算"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "isolationLevel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"READ_COMMITTED"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,                  </span><span style="color:#6A737D;--shiki-dark:#768390">// optional・既定 "READ_COMMITTED"</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "propagation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"REQUIRED"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,                           </span><span style="color:#6A737D;--shiki-dark:#768390">// optional・既定 "REQUIRED"</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "timeoutMs"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">5000</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,                                   </span><span style="color:#6A737D;--shiki-dark:#768390">// optional</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "rollbackOn"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"VALIDATION"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"STOCK_SHORTAGE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],      </span><span style="color:#6A737D;--shiki-dark:#768390">// optional・context.catalogs.errors のキー参照</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [ </span><span style="color:#6A737D;--shiki-dark:#768390">/* TX 内で実行する step 列 */</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "onCommit"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [ </span><span style="color:#6A737D;--shiki-dark:#768390">/* commit 後の追加処理、optional */</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "onRollback"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [ </span><span style="color:#6A737D;--shiki-dark:#768390">/* rollback 後の補償処理、optional */</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><code>steps[]</code> 内には任意の Step を再帰的に置ける (LoopStep / BranchStep / 別の TransactionScopeStep もネスト可)。</p>
+<h3 id="21-isolationlevel">§2.1 <code>isolationLevel</code></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>値</th><th>意味</th></tr></thead><tbody><tr><td><code>READ_COMMITTED</code> (既定)</td><td>commit 済データのみ可視。phantom read / non-repeatable read を許容</td></tr><tr><td><code>REPEATABLE_READ</code></td><td>同一 TX 内で同じ行を再読すると常に同じ結果 (phantom は許容)</td></tr><tr><td><code>SERIALIZABLE</code></td><td>直列実行と等価。phantom read も防止 (実装で blocking / abort のいずれか)</td></tr></tbody></table>
+<p>選定指針: 業務系 DB 書込は通常 <code>READ_COMMITTED</code> で十分。在庫引当・残高振替など <strong>「同じ行を読んで条件付き書込」</strong> をする TX は <code>REPEATABLE_READ</code> 以上 (または <code>affectedRowsCheck</code> による楽観ロックで補完) を推奨。</p>
+<h3 id="22-propagation">§2.2 <code>propagation</code></h3>
+<p>Spring <code>@Transactional</code> / EF Core <code>TransactionScopeOption</code> 由来。既存 TX が呼び出し側にある場合の挙動を制御:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>値</th><th>既存 TX が無い場合</th><th>既存 TX がある場合</th></tr></thead><tbody><tr><td><code>REQUIRED</code> (既定)</td><td>新規 TX 開始</td><td>既存 TX に参加 (内側の rollback は外側にも波及)</td></tr><tr><td><code>REQUIRES_NEW</code></td><td>新規 TX 開始</td><td>既存 TX を一時停止し、新規 TX を独立に開始/commit (内側の結果は外側に影響しない)</td></tr><tr><td><code>NESTED</code></td><td>新規 TX 開始</td><td>既存 TX 内で savepoint を作る (内側だけ部分 rollback 可能)</td></tr></tbody></table>
+<p>選定指針: 大半は <code>REQUIRED</code>。<strong>監査ログ・通知記録など「呼び元 TX とは独立に必ず残したい」処理</strong>は <code>REQUIRES_NEW</code>。<strong>try-catch で部分 rollback したい</strong>場合は <code>NESTED</code>。</p>
+<h3 id="23-timeoutms">§2.3 <code>timeoutMs</code></h3>
+<p>TX 全体のタイムアウト (ms)。経過後はランタイムが TX を rollback する。未指定はランタイム既定 (DB / フレームワークが決める)。</p>
+<h3 id="24-rollbackon">§2.4 <code>rollbackOn</code></h3>
+<p>rollback を引き起こす <code>errorCode</code> の配列。<code>ProcessFlow.context.catalogs.errors</code> のキー参照 (v3 で catalog 階層化、v1/v2 の <code>errorCatalog</code> から移動)。</p>
+<ul>
+<li>列挙されたコードが TX 内で throw された場合のみ rollback</li>
+<li>未指定時は <strong>「すべての例外で rollback」</strong> がランタイム既定 (Spring の <code>RuntimeException</code> 既定挙動と同じ)</li>
+<li><code>affectedRowsCheck.errorCode</code> (例: <code>STOCK_SHORTAGE</code>) を含めると、影響行数違反でも rollback できる</li>
+</ul>
+<p>例:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"rollbackOn"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"STOCK_SHORTAGE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span></code></pre>
+<p>→ <code>affectedRowsCheck.onViolation: "throw"</code> で <code>errorCode: "STOCK_SHORTAGE"</code> が投げられた時に TX 全体が rollback。それ以外の例外は実装側の例外伝播ルールに委ねる。</p>
+<h3 id="25-steps">§2.5 <code>steps[]</code></h3>
+<p>TX 内で実行する step 列。順序通りに実行され、TX が始まってから commit / rollback の判定までを含む。</p>
+<ul>
+<li>任意の Step type を置ける (DbAccessStep / LoopStep / BranchStep / TransactionScopeStep ネスト可)</li>
+<li><code>ExternalSystemStep</code> を入れた場合の意味論は <strong>実装依存</strong> (DB TX に外部 HTTP は本質的に巻き込めない)。Saga 的に補償をかけるか、TX 外に出すのが基本</li>
+</ul>
+<h3 id="26-oncommit">§2.6 <code>onCommit[]</code></h3>
+<p>TX が commit 成功した<strong>後</strong>に実行する step 列。任意。例:</p>
+<ul>
+<li>通知メール送信 (<code>ExternalSystemStep</code> with <code>fireAndForget: true</code>)</li>
+<li>キャッシュ無効化</li>
+<li>監査ログ (<code>AuditStep</code>)</li>
+</ul>
+<p><code>onCommit</code> の step は <strong>TX の外</strong> で実行されるため、ここでの失敗は元の TX を巻き戻さない (best-effort)。</p>
+<h3 id="27-onrollback">§2.7 <code>onRollback[]</code></h3>
+<p>TX が rollback された<strong>後</strong>に実行する step 列。任意・補償処理 (Saga compensation) として使う:</p>
+<ul>
+<li>Stripe <code>authorize</code> の <code>cancel</code> (DB rollback で予約取消したので決済も取消)</li>
+<li>運用通知 (Slack 等)</li>
+<li>ログ記録 (<code>LogStep</code>)</li>
+</ul>
+<p><code>onRollback</code> の step は <strong>TX の外</strong> で実行されるため、ここでの失敗は元の rollback を撤回しない。</p>
+<h4 id="error-ambient"><code>@error</code> ambient</h4>
+<p><code>onRollback[]</code> 内の step では、rollback の原因を表す暗黙変数 <code>@error</code> を参照できる。<code>@error</code> は <code>onRollback[]</code> 専用 ambient であり、<code>transactionScope.steps[]</code>、<code>onCommit[]</code>、transactionScope 外の root steps から参照した場合は <code>UNKNOWN_IDENTIFIER</code> として扱う。</p>
+<p><code>@error</code> の型と具体的なフィールドは処理フローエンジン側で定義する。本バリデータは識別子 <code>error</code> がそのスコープで参照可能かだけを検証し、型検証は行わない。</p>
+<h2 id="3-既存-stepbasepropstxboundary-との関係">§3 既存 <code>StepBaseProps.txBoundary</code> との関係</h2>
+<p>両者は <strong>共存</strong> する。役割は明確に分かれる:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th><code>StepBaseProps.txBoundary</code></th><th><code>TransactionScopeStep</code></th></tr></thead><tbody><tr><td>モデル</td><td>平坦 (<code>{role, txId}</code> で同一 <code>txId</code> の step 群が 1 TX)</td><td>構造的 (<code>steps[]</code> 配列で範囲を表現)</td></tr><tr><td>表現</td><td>単独ステップが TX 境界の一部であることを宣言</td><td>複数ステップを 1 TX としてくくる meta-step</td></tr><tr><td>ネスト</td><td>不可 (txId 重複を禁止しない実装依存)</td><td>可 (ネストは <code>propagation</code> で制御)</td></tr><tr><td><code>onCommit</code>/<code>onRollback</code></td><td>持たない</td><td>持つ</td></tr><tr><td>移動・複製耐性</td><td>弱 (txId の同期が手動)</td><td>強 (構造ごと移動)</td></tr><tr><td>v3 sample 実機検証</td><td>未使用 (Round 5 fixture でのみ検証)</td><td><code>examples/retail/process-flows/efa7ac6e-...json</code> (在庫操作 TX) / <code>examples/retail/process-flows/f81dd9e0-...json</code> (注文確定 TX) で実機使用。旧サンプルは削除済 — <code>git log</code> でのみ参照可</td></tr></tbody></table>
+<h3 id="31-移行ガイダンス">§3.1 移行ガイダンス</h3>
+<p>新規データは <strong><code>TransactionScopeStep</code> を優先</strong> する。既存の平坦 <code>txBoundary</code> は当面残し、リファクタリング時に置き換える運用とする。</p>
+<p>平坦 → 構造化の機械変換は 1:1 でないことに注意:</p>
+<ul>
+<li>平坦の <code>begin/member/end</code> は range が連続でない (途中に TX 外 step が挟まる) ことを許容</li>
+<li><code>TransactionScopeStep.steps[]</code> は連続範囲のみ。挟まる TX 外処理は前後に出す必要あり</li>
+</ul>
+<h3 id="32-同一-step-内での併用は禁止">§3.2 同一 step 内での併用は禁止</h3>
+<p><code>TransactionScopeStep</code> 自身に <code>txBoundary</code> を付けたデータ (例: <code>transactionScope</code> の親 step が begin で、子の step が member) は <strong>意味曖昧</strong> のため使ってはいけない。<code>TransactionScopeStep</code> を使うなら、その内部 step には <code>txBoundary</code> を付けない (実装側は付いていても無視する)。</p>
+<h2 id="4-ランタイム規約">§4 ランタイム規約</h2>
+<p><a href="/spec/process-flow-runtime-conventions/"><code>process-flow-runtime-conventions.md</code></a> を補足する形で、TX スコープに関するランタイム挙動:</p>
+<ol>
+<li><strong>commit タイミング</strong>: <code>steps[]</code> の最後の step が成功で抜けた時点で commit。途中の throw は (rollbackOn にマッチすれば) rollback</li>
+<li><strong><code>onCommit</code> / <code>onRollback</code> の独立性</strong>: これらは TX の外で実行され、自身の失敗は元の TX 結果を覆さない</li>
+<li><strong>ネスト時の <code>REQUIRES_NEW</code></strong>: 親 TX が動いている時に <code>REQUIRES_NEW</code> の TransactionScopeStep に入ると、親 TX が一時停止して内側 TX が独立 commit/rollback する。内側 commit 後に親 TX が rollback しても、内側の commit は取り消されない</li>
+<li><strong>ネスト時の <code>NESTED</code></strong>: savepoint を使う。内側 rollback は親 TX の savepoint 復元、親 rollback は savepoint も含めて全 rollback</li>
+<li><strong><code>outputBinding</code> による TX 結果の expose</strong>: <code>transactionScope</code> step に <code>outputBinding: { "name": "txResult" }</code> を指定すると、TX 外の後続 step が <code>@txResult.committed</code> (boolean) と <code>@txResult.error</code> (失敗時のみ) を参照できる。これにより TX 失敗エラーコードを後続 branch の <code>condition.kind: "expression"</code> で参照できる (§8.5 参照)</li>
+<li><strong><code>tryCatch</code> Branch との組合せ</strong>: <code>outputBinding</code> なし / <code>tryCatch</code> branch による捕捉は以前から可能 (下位互換)。新規フローでは §8.5 の <code>outputBinding</code> + <code>expression</code> パターンを推奨する</li>
+</ol>
+<h2 id="5-サンプル-v3">§5 サンプル (v3)</h2>
+<p>実機検証済の TransactionScopeStep 典型パターン:</p>
+<ul>
+<li><strong>SERIALIZABLE TX + affectedRowsCheck + onRollback パターン</strong>: 複数 <code>dbAccess</code> ステップを <code>TransactionScopeStep.steps[]</code> でくくり、<code>isolationLevel: "SERIALIZABLE"</code> を指定。各 <code>dbAccess</code> に <code>affectedRowsCheck</code> で行数検証 (例: 残高不足で 0 行 UPDATE → rollback)。<code>onRollback</code> ブランチで監査ログ記録 + エラーレスポンス分岐 (422/500) を配置する。</li>
+<li>現行 canonical サンプルは <code>examples/retail/process-flows/efa7ac6e-...json</code> (在庫操作 TX) / <code>examples/retail/process-flows/f81dd9e0-...json</code> (注文確定 TX) / <code>examples/realestate/process-flows/d4b5c6e7-...json</code> (物件登録 TX) を参照。</li>
+<li>旧サンプル (finance / manufacturing 業界) は削除済み — <code>git log</code> で参照可。</li>
+</ul>
+<h2 id="6-ui">§6 UI</h2>
+<p><code>frontend/src/components/process-flow/TransactionScopeStepPanel.tsx</code> で編集 (TS 同期完了後の v3 化を予定):</p>
+<ul>
+<li><code>isolationLevel</code> / <code>propagation</code> / <code>timeoutMs</code>: dropdown / number input</li>
+<li><code>rollbackOn</code>: <code>context.catalogs.errors</code> のキーを multi-select (チェックボックス)</li>
+<li><code>steps[]</code>: 子 StepCard の InlineStepList で再帰編集</li>
+<li><code>onCommit[]</code> / <code>onRollback[]</code>: 折りたたみで InlineStepList</li>
+</ul>
+<h2 id="7-関連参照">§7 関連参照</h2>
+<ul>
+<li>親 ISSUE: #396 (処理フロー仕様拡張計画メタ)</li>
+<li>関連: <code>affectedRowsCheck</code> (<code>schemas/v3/process-flow.v3.schema.json</code> <code>DbAccessStep</code>)</li>
+<li>関連: <code>BranchCondition.kind = "tryCatch"</code> (TX rollback エラー捕捉、v3 で discriminated union 化 + #525 F-4 で discriminator keyword 追加)</li>
+<li>関連: <code>StepBaseProps.compensatesFor</code> (Saga 補償の手動マーキング)</li>
+<li>業界フレームワーク: Power Platform Dataverse “Changeset”, EF Core <code>TransactionScope</code>, Spring <code>@Transactional</code></li>
+</ul>
+<h2 id="8-実装ガイドライン-ドッグフード由来">§8 実装ガイドライン (ドッグフード由来)</h2>
+<p>シナリオ #2-#6 (PR #468-#472) の実装レビューで繰り返し検出された誤りパターンを以下にまとめる。新規フロー実装前に必読。</p>
+<h3 id="81-transactionscope-内外の変数アクセスパス">§8.1 TransactionScope 内外の変数アクセスパス</h3>
+<p><code>TransactionScopeStep</code> の inner step で <code>outputBinding</code> した変数を、TX 外の後続 step が参照する際のセマンティクス。</p>
+<ul>
+<li><strong>TX 全体に <code>outputBinding: "txName"</code> を付けた場合</strong>: 推奨は <strong>inner 変数を直接参照</strong> (<code>@innerVar</code>) する形。<code>@txName.innerVar</code> のネスト参照は spec で保証しない (シナリオ #3 で問題化)</li>
+<li><strong>後続参照は TX commit が前提</strong>: TX rollback 後は inner outputBinding 変数は未定義になりうる。後続 step に <code>runIf</code> ガード必須</li>
+</ul>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-tx"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"transactionScope"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"txResult"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-tx-insert"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dbAccess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"operation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"INSERT"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"newRow"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">]},</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-after"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"eventPublish"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"runIf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@txResult.committed == true"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"payload"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"{ id: @newRow.id }"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span></code></pre>
+<p>上の例では、TX commit 後の後続 step は <code>@newRow.id</code> (inner 変数直接参照) を使う。<code>@txResult.newRow.id</code> のようなネスト形式は避けること。</p>
+<h3 id="82-外部呼び出しと-tx-の位置関係-anti-pattern-と例外">§8.2 外部呼び出しと TX の位置関係 (anti-pattern と例外)</h3>
+<ul>
+<li><strong>原則</strong>: <code>externalSystem</code> step は <code>TransactionScopeStep</code> の inner に入れない (DB 接続長時間占有 / 外部障害で TX タイムアウト)</li>
+<li><strong>例外ケース</strong>: 補償処理が困難な場合 (例: 取引所への約定送信) でも、外部呼び出しは TX 外で行い <code>outcomes.failure: "compensate"</code> で逆操作を補償処理として記述する</li>
+<li><strong>検出パターン</strong>: TX inner step で <code>@外部呼び出しResult</code> を前方参照する誤りは <code>/review-flow</code> 観点 1 で検出 (シナリオ #1 で実例あり)</li>
+</ul>
+<p>推奨パターン:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-tx"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"transactionScope"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-db-insert"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dbAccess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"operation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"INSERT"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"newRow"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">]},</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-external"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"externalSystem"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"runIf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@txResult.committed == true"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outcomes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"failure"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"action"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"compensate"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } } }</span></span></code></pre>
+<h3 id="83-tx-rollback-時の制御フロー">§8.3 TX rollback 時の制御フロー</h3>
+<p><strong>TX rollback 発生後の後続 step</strong> (TX の外側) は<strong>明示的 <code>runIf</code> ガードが必要</strong>。エンジン仕様で「自動 skip」は保証されない。</p>
+<p>推奨パターン:</p>
+<ul>
+<li>TX に <code>outputBinding: "txResult"</code> を付与する</li>
+<li>TX commit 経路の後続 step: <code>runIf: "@txResult.committed == true"</code></li>
+<li>TX rollback 経路のエラー返却 step: <code>runIf: "@txResult.committed == false"</code></li>
+</ul>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-tx"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"transactionScope"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"txResult"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [ </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> ] },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-success"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"return"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"runIf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@txResult.committed == true"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "responseId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"201-success"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-rollback-error"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"return"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"runIf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@txResult.committed == false"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "responseId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"409-conflict"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span></code></pre>
+<p>参考: シナリオ #6 (#473 で修正) では <code>runIf: "@creditTxResult.committed == false"</code> で 409 INVALID_STATE_TRANSITION を返す step を追加して解決。</p>
+<h3 id="84-rollbackon-の発火可能性チェック">§8.4 rollbackOn の発火可能性チェック</h3>
+<p><strong>rollbackOn には TX inner step から実際に発生しうるエラーコードのみ列挙する。</strong></p>
+<ul>
+<li>TX 外 step が返すエラーコード (例: <code>EXCHANGE_REJECTED</code> が <code>externalSystem</code> step 由来) を <code>rollbackOn</code> に書くと<strong>死コード</strong>になる</li>
+<li>inner step の <code>affectedRowsCheck.errorCode</code> / <code>ValidationStep</code> が throw するコードのみが rollback トリガーになりえる</li>
+<li><strong>検出パターン</strong>: <code>/review-flow</code> 観点 8 で「rollbackOn の発火可能性」を体系チェック (シナリオ #1/#2/#3/#6 で実例)</li>
+</ul>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// NG: externalSystem step の結果コードを rollbackOn に列挙 (TX 内に externalSystem がない場合)</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"rollbackOn"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"EXCHANGE_REJECTED"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"STOCK_SHORTAGE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// OK: TX inner の dbAccess が throw するコードのみ列挙</span></span>
+<span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"rollbackOn"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"STOCK_SHORTAGE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span></code></pre>
+<h3 id="85-outputbinding-による-tx-結果の-expose-と-expression-branch-パターン-782">§8.5 <code>outputBinding</code> による TX 結果の expose と expression branch パターン (#782)</h3>
+<p><code>transactionScope</code> step の <code>outputBinding</code> は <code>StepBaseProps</code> を通じて他の step と同様に使用できる。TX の場合は特別な semantics が追加される:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>状態</th><th><code>@&#x3C;name>.committed</code></th><th><code>@&#x3C;name>.error</code></th></tr></thead><tbody><tr><td>TX commit 成功</td><td><code>true</code></td><td><code>undefined</code> (参照時は null 扱い)</td></tr><tr><td>TX rollback (rollbackOn のエラー)</td><td><code>false</code></td><td><code>{ code: "&#x3C;エラーコード>", message: "&#x3C;例外メッセージ>" }</code></td></tr><tr><td>TX rollback (rollbackOn 外の汎用エラー)</td><td><code>false</code></td><td><code>{ code: "UNHANDLED", message: "&#x3C;例外メッセージ>" }</code></td></tr></tbody></table>
+<p>この semantics により、TX 外の <code>branch</code> step の <code>condition.kind: "expression"</code> で具体的なエラーコードを参照できる:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-tx"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"transactionScope"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"txResult"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "rollbackOn"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"STOCK_SHORTAGE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"ORDER_NUMBER_CONFLICT"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [ </span><span style="color:#B31D28;--shiki-light-font-style:italic;--shiki-dark:#FF938A;--shiki-dark-font-style:italic">...</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">},</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-error-branch"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"branch"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"TX 失敗時のエラー分岐"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "branches"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"br-stock-shortage"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "code"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"A"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"在庫不足エラー"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "condition"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"expression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "expression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@txResult.error.code === 'STOCK_SHORTAGE'"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-return-422"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"return"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"responseId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"422-stock-shortage"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"br-conflict"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "code"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"B"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"番号競合エラー"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "condition"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"expression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "expression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@txResult.error.code === 'ORDER_NUMBER_CONFLICT'"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-return-422b"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"return"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"responseId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"422-conflict"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    },</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"br-unhandled"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "code"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"C"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"予期しない TX エラー (catch-all)"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "condition"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"expression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "expression"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@txResult.error.code === 'UNHANDLED'"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-return-500"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"return"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"responseId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"500-internal"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "elseBranch"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"br-tx-success"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "code"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"D"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"TX 成功 — 後続処理へ"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: []</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">},</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-after-tx"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"return"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "runIf"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@txResult.committed == true"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "responseId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"200-ok"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p><strong><code>tryCatch</code> branch との役割分離</strong>:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>方式</th><th>用途</th><th>推奨度</th></tr></thead><tbody><tr><td><code>condition.kind: "tryCatch"</code></td><td>step 単位の throw catch (TX 外でも使用可、TX 内の catch は <code>NESTED</code> + <code>tryCatch</code> の組合せ)</td><td>下位互換として継続利用可</td></tr><tr><td><code>outputBinding</code> + <code>expression: "@&#x3C;name>.error.code === ..."</code></td><td>TX 全体の失敗後に TX 外 branch でエラーコード別分岐</td><td><strong>新規フローで推奨</strong></td></tr></tbody></table>
+<p><strong>重要</strong>: 両方を同じ TX に対して使用しないこと。<code>outputBinding</code> + <code>expression</code> パターンを採用したら、同一 TX の <code>tryCatch</code> branch は削除する。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

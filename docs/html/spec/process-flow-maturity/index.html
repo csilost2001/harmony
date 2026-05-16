@@ -1,0 +1,359 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>process flow maturity</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link active"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="処理フローの成熟度曖昧さ管理">処理フローの成熟度・曖昧さ管理</h1>
+<p><strong>改訂日: 2026-04-28 (v3 反映)</strong></p>
+<p>Issue: #152 (親トラッキング: #151)
+策定日: 2026-04-20
+ステータス: <strong>v1.0 (凍結 2026-04-24)</strong> — データモデル・UI 仕様確定。Phase 実装中は本書を改訂せず、追加仕様は新規ドキュメントに分離する</p>
+<p>本ドキュメントは、処理フロー機能を<strong>上流工程 (人間が仕様を書く時) と下流工程 (AI が仕様を読んで実装する時) で兼用する</strong>ための「曖昧さ管理」の仕様を定める。</p>
+<h2 id="1-目的">1. 目的</h2>
+<p>処理フローは上流 → 下流に向けて段階的に詳細化される。上流時点では必然的に <strong>未確定・想定・将来検討</strong> を含むが、下流時点では AI エージェントが迷わず実装できる粒度まで確定している必要がある。</p>
+<p>本仕様は、この「成熟度の違い」をデータとして一級市民 (first class) にし、以下を実現する:</p>
+<ul>
+<li><strong>穴の可視化</strong>: どこが未確定かが一目で分かる</li>
+<li><strong>モード別バリデーション</strong>: 上流では緩く、下流では厳しく</li>
+<li><strong>AI への信頼できる受け渡し</strong>: 「ここは確定、ここは想定」を明示的に伝達</li>
+</ul>
+<h2 id="2-背景">2. 背景</h2>
+<p>2026-04-20 のドッグフード (別 AI セッションに 4 サンプル <code>cccccccc-0005..0008</code> を実装依頼) 結果:</p>
+<ul>
+<li>自信度 <strong>2/5</strong>、本番投入不可</li>
+<li>曖昧さのパターン 10 類型に分類、特に「<strong>未設計リソース / 想定 / 将来検討 の乱用</strong>」が致命的</li>
+<li>現状 <code>note: "想定: ..."</code> が頻出するが、「仕様のどの部分が確定 / 未確定か」の識別情報として機能していない (すべて同じ note 欄に詰め込まれている)</li>
+</ul>
+<p>→ 成熟度と付箋を構造化することで、下流モードでのバリデーション・ダッシュボード・AI 受け渡しが実現可能になる。</p>
+<h2 id="3-成熟度-maturity-の-3-値">3. 成熟度 (Maturity) の 3 値</h2>
+<p>処理フロー内の各要素は以下 3 値のいずれかを持つ:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>値</th><th>意味</th><th>UI バッジ</th><th>既定</th></tr></thead><tbody><tr><td><code>draft</code></td><td>下書き。書きかけ、頻繁に変わる</td><td>🟡</td><td>✓</td></tr><tr><td><code>provisional</code></td><td>暫定。現時点の想定、未確認事項あり</td><td>🟠</td><td></td></tr><tr><td><code>committed</code></td><td>確定。下流に渡して良い</td><td>🟢</td><td></td></tr></tbody></table>
+<p>明示的に昇格・降格する。</p>
+<p>UI サンプル:</p>
+<ul>
+<li>一覧での maturity サマリバー + フィルタ: <img alt="一覧 maturity UI" loading="lazy" decoding="async" fetchpriority="auto" width="1518" height="1526" src="/_astro/01-process-flow-list.CyObVMa3_Z2mmNm9.webp" ></li>
+<li>ダッシュボード成熟度パネル: <img alt="ダッシュボード成熟度" loading="lazy" decoding="async" fetchpriority="auto" width="1518" height="1526" src="/_astro/06-dashboard-maturity-panel.C81PCPZu_Z2ap4QW.webp" ></li>
+<li>下流モード切替時の未確定警告: <img alt="下流警告" loading="lazy" decoding="async" fetchpriority="auto" width="1518" height="1526" src="/_astro/13-downstream-mode.B7MwgX1D_2r64iM.webp" ></li>
+</ul>
+<h3 id="粒度-どこに付くか">粒度 (どこに付くか)</h3>
+<p>v3 では <code>meta.maturity</code> がフロー単位の成熟度を担う。</p>
+<ul>
+<li><strong>ステップ単位</strong> (<code>step.maturity</code>): ステップ全体の成熟度</li>
+<li><strong>アクション単位</strong> (<code>action.maturity</code>): アクションのまとまりとしての成熟度</li>
+<li><strong>処理フロー単位</strong> (<code>meta.maturity</code>): フロー全体の成熟度</li>
+</ul>
+<p>v1 はアクション単位まで。フィールド粒度 (例: <code>step.inputs</code> だけ draft) は Phase 3。</p>
+<p>v3 形式の例:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "meta"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"11111111-1111-4111-8111-111111111111"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"注文処理"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "maturity"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"committed"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "mode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"upstream"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h2 id="4-付箋-notes">4. 付箋 (Notes)</h2>
+<p>従来の <code>step.note: string</code> を拡張し、<strong>複数の付箋を種別付きで</strong>持てるようにする。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> StepNote</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  id</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  type</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "assumption"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "prerequisite"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "todo"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "deferred"</span><span style="color:#D73A49;--shiki-dark:#F47067"> |</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "question"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  body</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  createdAt</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;  </span><span style="color:#6A737D;--shiki-dark:#768390">// ISO timestamp</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> StepBase</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // 既存</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  note</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;       </span><span style="color:#6A737D;--shiki-dark:#768390">// 旧形式、後方互換</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // 新規</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  notes</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> StepNote</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="付箋種別">付箋種別</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>type</th><th>意味</th><th>アイコン</th><th>用途</th></tr></thead><tbody><tr><td><code>assumption</code></td><td>想定</td><td>💭</td><td>「こう仮定して書いた」を明示</td></tr><tr><td><code>prerequisite</code></td><td>前提</td><td>📎</td><td>別機能の設計が先に必要なとき</td></tr><tr><td><code>todo</code></td><td>TODO</td><td>☑</td><td>後で埋める作業項目</td></tr><tr><td><code>deferred</code></td><td>将来検討</td><td>🕒</td><td>今は書かないと明示</td></tr><tr><td><code>question</code></td><td>質問</td><td>❓</td><td>未解決の疑問</td></tr></tbody></table>
+<h3 id="旧-note-との関係">旧 <code>note</code> との関係</h3>
+<ul>
+<li>読み込み時: 旧 <code>note: string</code> は <code>notes: [{type: "assumption", body: note, createdAt: now}]</code> に自動変換</li>
+<li>書き込み時: <code>notes[]</code> を正として保存、旧 <code>note</code> は省略</li>
+<li>データ破壊はしない</li>
+</ul>
+<h2 id="5-モード-上流--下流">5. モード (上流 / 下流)</h2>
+<p>v3 では <code>meta.mode</code> でモードを宣言する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "meta"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"11111111-1111-4111-8111-111111111111"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"注文処理"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "mode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"upstream"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="モード別の挙動差">モード別の挙動差</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>上流モード</th><th>下流モード</th></tr></thead><tbody><tr><td>フィールド未入力</td><td>◎ 許容 (穴として記録)</td><td>△ 警告</td></tr><tr><td><code>maturity: draft</code> の混在</td><td>◎</td><td>✕ エラー (<code>provisional</code> 以上必須)</td></tr><tr><td>外部連携ステップの outcome 未定義</td><td>◎</td><td>△ 警告</td></tr><tr><td>保存</td><td>可</td><td>成熟度 NG でも可だが警告表示</td></tr><tr><td>AI への受け渡しエクスポート</td><td>✕ 不可</td><td>◎ 可</td></tr></tbody></table>
+<p>保存自体は常に可能。モードは<strong>そのフローが今どの工程か</strong>を宣言するメタ情報であり、ロックではない。</p>
+<h2 id="6-ui-要素">6. UI 要素</h2>
+<h3 id="61-成熟度バッジ">6.1 成熟度バッジ</h3>
+<p>ステップカード右上に 🟡/🟠/🟢 バッジ。クリック or ドロップダウンで昇格・降格。アクションカードとフロー一覧にも同様のバッジ。</p>
+<h3 id="62-付箋パネル">6.2 付箋パネル</h3>
+<p>ステップカード下部に折りたたみ可能な付箋パネル。「+ 付箋を追加」ボタン → 種別選択 → 本文入力。アイコン + 一行サマリで表示、展開で本文全体。</p>
+<h3 id="63-モード切替">6.3 モード切替</h3>
+<p>処理フロー編集画面ヘッダに「上流モード / 下流モード」のトグル。切替時、現在の未確定項目数を確認ダイアログで表示。</p>
+<h3 id="64-成熟度ダッシュボード">6.4 成熟度ダッシュボード</h3>
+<p>処理フロー編集画面ヘッダと処理フロー一覧の各行に:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>🟢 12 / 🟠 3 / 🟡 2  |  💭 5 📎 1 ☑ 2 🕒 1 ❓ 0</span></span></code></pre>
+<p>クリックで対応する項目だけにフィルタ。</p>
+<h3 id="65-未確定フィルタ">6.5 未確定フィルタ</h3>
+<p>処理フロー編集画面に「未確定のみ表示」ボタン。<code>draft</code> および <code>provisional</code> のステップだけ表示、他は折りたたみ。</p>
+<h3 id="66-ai-受け渡しエクスポート-phase-3">6.6 AI 受け渡しエクスポート (Phase 3)</h3>
+<p>下流モードのフローに「AI 向けにエクスポート」ボタン。成熟度と付箋をメタ情報として含む JSON を出力。AI 側は「確定 vs 想定」を識別可能。</p>
+<h2 id="7-データモデル-後方互換">7. データモデル (後方互換)</h2>
+<h3 id="追加フィールド一覧-v3">追加フィールド一覧 (v3)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>型</th><th>フィールド</th><th>既定</th><th>後方互換</th></tr></thead><tbody><tr><td><code>StepBase</code></td><td><code>maturity?: Maturity</code></td><td><code>"draft"</code></td><td>無しなら draft</td></tr><tr><td><code>StepBase</code></td><td><code>notes?: StepNote[]</code></td><td>—</td><td>旧 <code>note</code> を自動変換</td></tr><tr><td><code>ActionDefinition</code></td><td><code>maturity?</code></td><td><code>"draft"</code></td><td>同上</td></tr><tr><td><code>ProcessFlow.meta</code></td><td><code>maturity?</code></td><td><code>"draft"</code></td><td>同上</td></tr><tr><td><code>ProcessFlow.meta</code></td><td><code>mode?: "upstream"|"downstream"</code></td><td><code>"upstream"</code></td><td>同上</td></tr></tbody></table>
+<h3 id="マイグレーション">マイグレーション</h3>
+<p>既存 JSON は無変更で動作。初回保存時に上記の既定値が自動付与される。マイグレーションスクリプトは不要 (読み込み時補完)。</p>
+<h2 id="8-phase-分け">8. Phase 分け</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Phase</th><th>内容</th><th>視覚影響</th><th>規模</th></tr></thead><tbody><tr><td>1</td><td>データモデル追加 + 成熟度バッジ + <code>notes[]</code> への移行 UI</td><td>小</td><td>中</td></tr><tr><td>2</td><td>モード切替 + 下流バリデーション + 成熟度ダッシュボード + 未確定フィルタ</td><td>中</td><td>中</td></tr><tr><td>3</td><td>フィールド粒度の maturity + AI 向けエクスポート</td><td>大</td><td>大</td></tr></tbody></table>
+<h2 id="9-受け入れ条件">9. 受け入れ条件</h2>
+<blockquote>
+<p>これらは実装フェーズの追跡チェックリストです。凍結は設計確定を意味し、実装完了を意味しません。</p>
+</blockquote>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> ステップ・アクション・処理フローに <code>maturity</code> フィールドが追加され、JSON に永続化される</li>
+<li class="task-list-item"><input type="checkbox" disabled> 既存 JSON (maturity 欄なし) は <code>draft</code> として読み込まれ、初回保存で付与される</li>
+<li class="task-list-item"><input type="checkbox" disabled> 既存 <code>note: string</code> は <code>notes: [{type: "assumption"}]</code> に自動変換される</li>
+<li class="task-list-item"><input type="checkbox" disabled> 付箋の 5 種別が UI から追加・編集・削除できる</li>
+<li class="task-list-item"><input type="checkbox" disabled> ステップカード右上に 🟡/🟠/🟢 バッジが表示され、昇格・降格できる</li>
+<li class="task-list-item"><input type="checkbox" disabled> 各フローに上流/下流モードトグルがあり、JSON に保存される</li>
+<li class="task-list-item"><input type="checkbox" disabled> 下流モード + 未確定項目ありで、保存時に警告を出す</li>
+<li class="task-list-item"><input type="checkbox" disabled> 成熟度ダッシュボードが処理フロー編集画面ヘッダと一覧行に表示される</li>
+<li class="task-list-item"><input type="checkbox" disabled> 「未確定のみ表示」フィルタが機能する</li>
+<li class="task-list-item"><input type="checkbox" disabled> 既存の Vitest / Playwright テストが引き続き通る</li>
+<li class="task-list-item"><input type="checkbox" disabled> docs/spec/process-flow-maturity.md (本書) の仕様と実装が逐条一致する</li>
+</ul>
+<h2 id="10-スコープ外-将来検討">10. スコープ外 (将来検討)</h2>
+<ul>
+<li>フィールド粒度 (入力・出力・条件式など個別) の maturity — Phase 3 に含める可能性</li>
+<li>成熟度の変更履歴 (いつ committed になったか)</li>
+<li>複数人編集時のレビュー・承認フロー</li>
+<li>付箋へのコメント・スレッド機能</li>
+<li>AI への自動受け渡し (MCP ツール経由)</li>
+</ul>
+<h2 id="11-関連仕様">11. 関連仕様</h2>
+<ul>
+<li>スキーマ: <code>schemas/v3/process-flow.v3.schema.json</code> — <code>ProcessFlowMeta</code> / <code>StepBase</code> (maturity / notes)</li>
+<li><code>docs/spec/process-flow-variables.md</code> — 入出力・変数の構造化</li>
+<li><code>docs/spec/process-flow-extensions.md</code> — Phase B 以降のスキーマ拡張</li>
+<li><code>docs/spec/list-common.md</code> — 一覧系 UI 共通仕様 (変更なし、本仕様は独立)</li>
+</ul>
+<h2 id="12-変更履歴">12. 変更履歴</h2>
+<ul>
+<li>2026-04-20: 初版ドラフト。ドッグフード結果 (別 AI セッション実装依頼) に基づき策定</li>
+<li>2026-04-24: v1.0 凍結。データモデル (maturity/notes/mode) と UI 仕様の設計は確定済と判定</li>
+<li>2026-04-28: v3 反映。<code>meta.maturity</code> / <code>meta.mode</code> の配置を v3 スキーマに整合</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>examples retail</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="/_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="/_astro/_slug_.Z0gH1bhG.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="/spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="/spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="/spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="/spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="/spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="/spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="/spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="/spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="/spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="/spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="/spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="/spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="/spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="/spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="/spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="/spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="/spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="/spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="/spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="/spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="/spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="/spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="/spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="/spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="/spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="/spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="/spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="/spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="/spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="/spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="/spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="/spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="/spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="/spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="/spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="/spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="/spec/examples-retail/" class="sidebar-link active"> 小売業サンプル </a> </li><li> <a href="/spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="/spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="/spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="/spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="/spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="/spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="/spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="/spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="/spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="/spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="/spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="/spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="/spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="/spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="examplesretail--リテール総合サンプル仕様書">examples/retail/ — リテール総合サンプル仕様書</h1>
+<p><code>examples/retail/</code> の業務スコープ・データモデル・画面構成・進め方をまとめた spec。Sonnet サブエージェントへの briefing 兼用。</p>
+<p>関連: <a href="https://github.com/csilost2001/harmony/issues/680">#680</a> (親メタ) / <a href="https://github.com/csilost2001/harmony/issues/706">#706</a> (本作業) / <code>examples/retail/README.md</code></p>
+<h2 id="1-目的">1. 目的</h2>
+<p>リリース時に examples として提供する <strong>完結 業務 workspace サンプル</strong>。業務概要から AI が全仕様書を生成できることを実証 (Phase 4 の継続)、かつ業務系として <strong>見本となる品質</strong> (画面の見栄え / 整合性 / カバレッジ) を確保する。</p>
+<h2 id="2-業務スコープ">2. 業務スコープ</h2>
+<h3 id="21-業態">2.1 業態</h3>
+<p>EC + 店舗 POS + 在庫管理 のミックス。中規模 (画面 ~11、テーブル ~8、処理フロー ~4、view ~3-4、sequence ~2-3)。</p>
+<h3 id="22-4-シナリオ--補助">2.2 4 シナリオ + 補助</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>シナリオ ID</th><th>概要</th><th>関連 entity</th></tr></thead><tbody><tr><td><strong>S-1 店舗在庫照会</strong></td><td>商品コード・店舗で在庫検索。低在庫閾値で警告表示。</td><td>画面: 商品検索 / 在庫一覧 ・ flow: search-inventory ・ table: products / inventory / stores</td></tr><tr><td><strong>S-2 カート追加</strong></td><td>商品をカートへ追加 (重複排除 + null/0 区別)。</td><td>画面: カート画面 / 追加モーダル ・ flow: add-to-cart ・ table: carts / cart_items</td></tr><tr><td><strong>S-3 注文確定 (TX)</strong></td><td>カート → 確認 → 完了。在庫引き当て + 注文登録 + 採番を 1 TX。</td><td>画面: カート確認 / 完了 ・ flow: confirm-order ・ table: orders / order_items / inventory ・ sequence: order-number</td></tr><tr><td><strong>S-4 配送指示</strong></td><td>注文一覧 (バックオフィス) → 配送指示。外部キャリア API。</td><td>画面: 注文一覧 / 配送指示 ・ flow: dispatch-shipment ・ table: shipments ・ extension: retail dbOperations + stepKinds</td></tr></tbody></table>
+<p>補助画面: ダッシュボード、商品マスター、顧客マスター、店舗マスター。</p>
+<h3 id="23-画面一覧-約-11">2.3 画面一覧 (約 11)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>#</th><th>画面名</th><th>kind</th><th>path</th><th>関連シナリオ</th></tr></thead><tbody><tr><td>1</td><td>ダッシュボード</td><td>dashboard</td><td><code>/</code></td><td>(root)</td></tr><tr><td>2</td><td>商品検索</td><td>search</td><td><code>/products/search</code></td><td>S-1</td></tr><tr><td>3</td><td>在庫一覧</td><td>list</td><td><code>/inventory</code></td><td>S-1</td></tr><tr><td>4</td><td>カート画面</td><td>retail:cart</td><td><code>/cart</code></td><td>S-2/S-3</td></tr><tr><td>5</td><td>カート確認</td><td>confirm</td><td><code>/cart/confirm</code></td><td>S-3</td></tr><tr><td>6</td><td>注文完了</td><td>complete</td><td><code>/order/complete</code></td><td>S-3</td></tr><tr><td>7</td><td>注文一覧 (BO)</td><td>list</td><td><code>/orders</code></td><td>S-4</td></tr><tr><td>8</td><td>配送指示</td><td>form</td><td><code>/orders/:id/dispatch</code></td><td>S-4</td></tr><tr><td>9</td><td>商品マスター</td><td>list</td><td><code>/master/products</code></td><td>補助</td></tr><tr><td>10</td><td>顧客マスター</td><td>list</td><td><code>/master/customers</code></td><td>補助</td></tr><tr><td>11</td><td>店舗マスター</td><td>list</td><td><code>/master/stores</code></td><td>補助</td></tr></tbody></table>
+<h3 id="24-テーブル一覧-約-8">2.4 テーブル一覧 (約 8)</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>#</th><th>physicalName</th><th>カテゴリ</th><th>主用途</th></tr></thead><tbody><tr><td>1</td><td>products</td><td>マスタ</td><td>商品</td></tr><tr><td>2</td><td>customers</td><td>マスタ</td><td>顧客</td></tr><tr><td>3</td><td>stores</td><td>マスタ</td><td>店舗</td></tr><tr><td>4</td><td>inventory</td><td>トランザクション</td><td>店舗別在庫</td></tr><tr><td>5</td><td>carts</td><td>トランザクション</td><td>カート (顧客 1:1)</td></tr><tr><td>6</td><td>cart_items</td><td>トランザクション</td><td>カート明細 (<code>(cart_id, product_id, store_id)</code> で重複排除、multi-store inventory 整合)</td></tr><tr><td>7</td><td>orders</td><td>トランザクション</td><td>注文</td></tr><tr><td>8</td><td>order_items</td><td>トランザクション</td><td>注文明細 (<code>store_code_snapshot</code> で発送元店舗を履歴保存)</td></tr><tr><td>(9)</td><td>shipments</td><td>トランザクション</td><td>配送指示 (S-4 で必要なら追加)</td></tr></tbody></table>
+<h3 id="25-拡張-namespace-retail">2.5 拡張 namespace <code>retail</code></h3>
+<ul>
+<li><code>extensions/retail.v3.json</code> — fieldTypes / actionTriggers / dbOperations / stepKinds / responseTypes を 1 ファイルに統合した v3 canonical combined format</li>
+</ul>
+<h3 id="26-conventions-catalog">2.6 conventions catalog</h3>
+<ul>
+<li><code>numbering.order-number</code> — 注文番号採番 (sequences/order-number と紐付き)</li>
+<li><code>regex.product-code</code> — 商品コード正規表現</li>
+<li><code>regex.jan-code</code> — JAN コード正規表現</li>
+<li><code>messages.stock-shortage</code> — 在庫不足メッセージ</li>
+<li><code>lowStockThreshold</code> — 低在庫閾値 (S-1 で参照)</li>
+</ul>
+<h2 id="3-設計判断">3. 設計判断</h2>
+<h3 id="31-id-規約">3.1 ID 規約</h3>
+<ul>
+<li>top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence) は <strong><code>Uuid</code> 形式 (RFC 4122 v4)</strong> を使用。<code>crypto.randomUUID()</code> 由来の値を埋め込む。</li>
+<li>ネスト LocalId は kebab-case (例: <code>step-01</code>, <code>col-product-code</code>)。</li>
+<li>業務識別子 (画面項目 ID / 処理フロー変数名) は lowerCamelCase (例: <code>productCode</code>, <code>cartId</code>)。</li>
+<li>DB 物理名は snake_case (例: <code>order_items</code>, <code>inventory</code>)。</li>
+</ul>
+<h3 id="32-画面-html-の品質要件">3.2 画面 HTML の品質要件</h3>
+<ul>
+<li>Bootstrap 5 ベース、<strong>清潔・実用的</strong> (派手すぎない、業務見本として違和感ないレベル)</li>
+<li>4 テーマ (standard / card / compact / dark) で破綻しないこと (CSS 過剰指定を避ける)</li>
+<li><code>data-item-id</code> / <code>name</code> 属性は screen-items 定義と一致 (#323 抽出機能で連携)</li>
+<li>レスポンシブ: FHD / 4K で情報密度活用、極端に狭い幅では破綻可</li>
+<li>アクセシビリティ: form の <code>&#x3C;label for></code>, button の <code>aria-label</code> を最低限カバー</li>
+</ul>
+<h3 id="33-動作確認は-data-コピー-デプロイ相当-を推奨">3.3 動作確認は data/ コピー (デプロイ相当) を推奨</h3>
+<p><code>examples/retail/</code> は <strong>git 管理の正本</strong> で、直接開いて編集すると git 差分になる。本プロジェクトのサンプル更新作業以外では、以下の運用を推奨する。</p>
+<ul>
+<li><strong>動作確認 / 試行錯誤</strong>: <code>examples/retail/</code> を <strong><code>data/</code> または任意フォルダにコピー</strong> (デプロイ相当) して使う。data/ は gitignored なので自由に編集できる</li>
+<li><strong>直接開いて見るだけ</strong>は可。ただし編集して保存すると git 差分になるので <strong>自己責任</strong></li>
+<li>AI は examples/ 配下を <strong>明示指示なしには git add しない</strong> (誤コミット防止)</li>
+<li><strong>lockdown モードの誤解注意</strong>: env <code>DESIGNER_DATA_DIR</code> で起動する lockdown モードは「workspace 切替を禁止する固定モード」であり、データの read-only モードではない。lockdown でも編集 / 保存は可能でファイルが書き換わる</li>
+<li><strong>本プロジェクトのサンプル更新</strong>は examples/ 直接編集して PR (例: schema v4 移行に伴う retail サンプル更新)</li>
+</ul>
+<h3 id="34-schemasv3-は変更しない">3.4 schemas/v3 は変更しない</h3>
+<ul>
+<li>業務記述で表現できないものは extension で対処。schemas/v3 を変更したくなったら ISSUE 起票して停止 (#511 / AGENTS.md schema governance 準拠)</li>
+</ul>
+<h3 id="35-multi-store-inventory-整合-780">3.5 multi-store inventory 整合 (#780)</h3>
+<ul>
+<li>商品検索 (S-1) → カート追加 (S-2) → 注文確定 (S-3) の遷移で <strong>「どの店舗から商品を確保するか」を一貫して保持</strong> する</li>
+<li><code>cart_items.store_id</code> (NOT NULL FK→stores) で店舗単位の重複排除 (UNIQUE <code>(cart_id, product_id, store_id)</code>)。同一商品でも別店舗から追加した場合は別行として保持</li>
+<li>カート画面 (c73fa05c) は <code>addStoreCode</code> 入力で店舗を必須選択させる</li>
+<li>注文確定 TX の在庫減算は <code>UPDATE inventory ... WHERE store_id = @cartItem.storeId</code> で各店舗の inventory を独立に減算</li>
+<li><code>order_items.store_code_snapshot</code> に注文時点の店舗コードを保存し、配送指示 (S-4) や履歴照会で参照する</li>
+<li>中央倉庫モデルが必要になれば ‘CENTRAL’ 等の専用 storeCode を導入すれば対応可能 (現状は店舗網羅 multi-store 前提)</li>
+</ul>
+<h2 id="4-受け入れ基準">4. 受け入れ基準</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> <code>examples/retail/project.json</code> が <code>schemas/v3/project.v3.schema.json</code> で AJV pass</li>
+<li class="task-list-item"><input type="checkbox" disabled> 全 entity ファイルが対応する v3 schema で pass</li>
+<li class="task-list-item"><input type="checkbox" disabled> designer 上で「フォルダを追加 → examples/retail」で開け、各一覧が描画される</li>
+<li class="task-list-item"><input type="checkbox" disabled> 4 シナリオの画面が画面フロー上で繋がっている (画面遷移定義あり)</li>
+<li class="task-list-item"><input type="checkbox" disabled> 画面 HTML が <strong>見栄え要件 (3.2)</strong> を満たす</li>
+<li class="task-list-item"><input type="checkbox" disabled> AJV 全件検証 test に examples/ を追加し、<code>npx vitest run</code> 全 pass</li>
+<li class="task-list-item"><input type="checkbox" disabled> vitest / Playwright / TypeScript 全 pass</li>
+<li class="task-list-item"><input type="checkbox" disabled> 半角カナ混入 0 件</li>
+</ul>
+<h2 id="5-進め方-シリーズ実装featsamples-retail-ブランチ">5. 進め方 (シリーズ実装、<code>feat/samples-retail</code> ブランチ)</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Step</th><th>担当</th><th>スコープ</th></tr></thead><tbody><tr><td>Step 1</td><td>Opus</td><td>spec docs (本ファイル) + project.json 雛形 + README + .gitignore</td></tr><tr><td>Step 2</td><td>Sonnet</td><td>業務データ層 (tables / extensions/retail / conventions catalog)。テーブル ID を確定</td></tr><tr><td>Step 3</td><td>Sonnet</td><td>処理フロー × 4 (Step 2 の table ID 参照、4 シナリオ実装)</td></tr><tr><td>Step 4</td><td>Sonnet</td><td>UI 層 (screens HTML 見栄え重視 / screen-items / 画面フロー / view / view-definition / sequence)</td></tr><tr><td>Step 5</td><td>Opus</td><td>AJV 全件検証 test に examples/ 追加 + smoke (multi-workspace で開いて表示確認)</td></tr><tr><td>Step 6</td><td>Opus</td><td>PR 作成 → 独立レビュー → Must-fix 解決 → マージ</td></tr></tbody></table>
+<h2 id="6-既存材料との関係">6. 既存材料との関係</h2>
+<ul>
+<li><code>docs/sample-project/</code> の retail 材料 (Phase 4 retail validation 由来、<code>gggggggg-0001..0004</code> 等) は <strong>本サンプルでは使用しない</strong>。docs/sample-project/ は dogfood 一時作業領域、examples/retail/ はリリース版正本という役割分担 (memory <code>project_samples_strategy_2026_05_02.md</code>)</li>
+<li>リリース前なので backward compat は考慮しない (memory <code>feedback_no_backward_compat_pre_release.md</code>)</li>
+</ul>
+<h2 id="7-テスト-fixture-としての利用">7. テスト fixture としての利用</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 固定 workspace でアプリ起動 (AI の動作確認 / E2E テスト)</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">DESIGNER_DATA_DIR</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">examples/retail</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev:mcp</span></span></code></pre>
+<p><code>schemas/v3/*.test.ts</code> (AJV) に examples/**/*.json を組み込み、schema 進化時の regression を検出。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>
