@@ -84,31 +84,10 @@ RUN set -eux; \
   rm /tmp/copilot.tar.gz; \
   chmod +x /usr/local/bin/copilot
 
-# 4. docker-outside-of-docker (Docker CE upstream、moby=false 相当)
-#    元 feature install.sh L249-251 (apt repo) + L321/331 (CLI + buildx + compose plugin)
-#    + L388-399 (standalone docker-compose) + L438 (usermod) と同等。
-#
-#    socat socket forwarder (/usr/local/share/docker-init.sh) は省略。host docker.sock
-#    の owner GID は環境依存 (WSL2 + Docker Desktop で実測 1001、Linux native は distro
-#    と install 順次第) で build 時に確定できないため、container 内 docker group の
-#    GID は devcontainer.json の postStartCommand で起動毎に host に動的に合わせる
-#    (元 feature の docker-init.sh と同目的の軽量版、#1120 実機検証で再導入)。
-#    本 RUN では groupadd で docker group を作成し node を所属させるところまで担当
-#    (initial GID は postStartCommand が上書きするので何でもよい)。
-#
-#    standalone /usr/local/bin/docker-compose は元 feature と同様 symlink で提供
-#    (#1120 review S-2)。docker-compose-plugin の実体を直接 link、`docker compose`
-#    (スペース) と `docker-compose` (ハイフン) 両方をサポート。
-RUN install -m 0755 -d /etc/apt/keyrings \
-  && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
-  && chmod a+r /etc/apt/keyrings/docker.asc \
-  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" \
-      > /etc/apt/sources.list.d/docker.list \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends docker-ce-cli docker-buildx-plugin docker-compose-plugin \
-  && rm -rf /var/lib/apt/lists/* \
-  && (groupadd --system docker || true) \
-  && usermod -aG docker node \
-  && ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+# 4. docker-outside-of-docker は本 P5b 構成では inline しない (host 側 publish 運用、#1122)。
+#    publish-dev-image.sh は host bash で実行する (script 先頭で /.dockerenv 検出して reject)。
+#    container 内に docker CLI が無いことで image size -~220 MB (uncompressed) /
+#    -~115 MB (ghcr 圧縮 = registry 転送量)、GID 動的調整 / docker.sock bind /
+#    SELinux 緩和も不要。
 
 USER node

@@ -17,10 +17,10 @@
 #
 # base image 更新時の maintainer 手順は docs/setup/dev-containers.md の
 # 「Maintainer: base image の更新と publish」を参照。
-# Dev Container 内から `/publish-dev-image <version>` AI skill 経由で更新可能
-# (ai-skills/publish-dev-image/SKILL.md、Phase 3 で導入)
+# `/publish-dev-image <version>` AI skill は **host bash で実行** すること
+# (#1122 で container 内 docker CLI 廃止、ai-skills/publish-dev-image/SKILL.md)
 
-FROM ghcr.io/csilost2001/harmony-devcontainer-base:0.2
+FROM ghcr.io/csilost2001/harmony-devcontainer-base:0.3
 
 USER root
 

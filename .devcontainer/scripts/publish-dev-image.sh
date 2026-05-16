@@ -25,6 +25,17 @@
 
 set -euo pipefail
 
+# host 環境チェック (#1122 P5b 以降、Dev Container 内には docker CLI 無し)
+if [[ -f /.dockerenv ]] || [[ -f /run/.containerenv ]]; then
+  echo "[publish] ERROR: 本 script は host (WSL2 bash / Docker Desktop 等) で実行してください。" >&2
+  echo "[publish]        Dev Container 内では実行できません (#1122 で container 内 docker CLI 廃止)。" >&2
+  echo "[publish]" >&2
+  echo "[publish]   host WSL2 bash で:" >&2
+  echo "[publish]     cd ~/projects/harmony" >&2
+  echo "[publish]     bash .devcontainer/scripts/publish-dev-image.sh ${1:-<version>}" >&2
+  exit 1
+fi
+
 VERSION="${1:-}"
 if [[ -z "${VERSION}" ]]; then
   echo "Usage: $0 <version>" >&2
