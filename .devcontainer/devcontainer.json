@@ -8,9 +8,10 @@
   // ghcr publish には含まれず、毎回 install されていた (~50-60 秒 on Note PC)。
   //
   // 環境対応 (#1120 実機検証で判明): host docker.sock の owner GID は環境依存。
-  // - WSL2 + Docker Desktop: 実測 1001 (Docker Desktop が distro 内で auto-assign、
-  //   他 package の install 順で変動の可能性あり)
-  // - Linux native: distro / install 順次第。Fedora/RHEL は 992、Ubuntu は 999 等
+  // - WSL2 + Docker Desktop: Ryzen / Note PC 実測いずれも 1001 (Docker Desktop が
+  //   distro 内で auto-assign、他 package の install 順で変動の可能性あり)
+  // - Linux native: distro / install 順次第で変動 (例として 992〜999 台が多いが
+  //   実測値ではない、参考のみ)
   // - Mac Docker Desktop: linuxkit VM 経由で別挙動
   // container 内 docker group GID と一致しないと node user から socket アクセス不可。
   // postStartCommand で起動時に動的に GID を合わせることで任意の host 環境に対応する
@@ -43,6 +44,11 @@
 
   // host docker.sock GID と container docker group GID を一致させる (#1120 実機検証修正)。
   // 失敗しても (|| true) container 起動は継続 — docker.sock が未 bind の環境 (将来 CI 等) でも壊さない。
+  // 既知の silent failure: container 内に同一 GID の別 group が既に存在する場合、
+  // groupmod は衝突で fail し、docker group の GID は変わらない (= docker ps が permission
+  // denied のまま)。typescript-node:20-trixie の現状 GID 並びでは衝突しないが、将来
+  // base/overlay で group 追加した時に顕在化しうる。発生時は groupadd --gid <X> docker-host
+  // 等の別グループ追加方式に切替を検討 (#1120 review S-1)。
   "postStartCommand": "sudo groupmod -g $(stat -c %g /var/run/docker.sock) docker || true",
 
   "postCreateCommand": "npm install --prefix frontend && npm install --prefix backend && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
