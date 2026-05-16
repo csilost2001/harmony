@@ -43,6 +43,17 @@ Claude Code 向けの補足ガイダンス。
 
 Codex CLI 利用時はこれらのスキルは直接呼び出せません。等価機能は Codex plugin の `/codex:review` 等で代替するか、Opus が briefing で代替指示を出します。
 
+### Documentation HTML サイト (docs-site/)
+
+仕様書 / プレゼン HTML 化サイト (Astro 5 + Tailwind v4 + pagefind)。詳細運用ルールは [AGENTS.md](AGENTS.md) の "Documentation HTML サイト (docs-site/)" セクション参照。
+
+- **出力先**: `docs/html/` (git tracked、配布物、手編集禁止)
+- **更新**: `docs/spec/*.md` 等の md 編集後 `cd docs-site && npm run build` → commit
+- **初回**: `cd docs-site && npm install && npx playwright install chromium`
+- **メタ ISSUE**: [#1124](https://github.com/csilost2001/harmony/issues/1124) (Phase A-E 完了済)
+
+Markdown が canonical source、HTML は build artifact。Phase E 完了 (2026-05-17) 以降、md 編集 → build → commit のフローを守ること。
+
 ### ワークスペース機能
 
 複数ワークスペース管理機能の仕様は [docs/spec/workspace.md](docs/spec/workspace.md) を参照。`backend` は **active workspace** 1 つに対応し、env `DESIGNER_DATA_DIR` が指定されている場合は lockdown モードで固定される (recent への読み書きなし)。
