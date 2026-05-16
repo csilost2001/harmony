@@ -18,7 +18,8 @@ interface Row {
 
 function describeType(value: Record<string, unknown>): string {
   if (value.$ref) {
-    return String(value.$ref).replace('#/$defs/', '');
+    // `common.v3.schema.json#/$defs/Authoring` や `#/$defs/Authoring` 両対応 — 末尾要素のみ抽出
+    return String(value.$ref).split('/').pop() || 'ref';
   }
   if (value.oneOf) return 'oneOf';
   if (value.anyOf) return 'anyOf';
