@@ -19,15 +19,23 @@ metadata:
 - 通常開発作業 (npm test / コード変更等) では呼ばない
 - overlay (`.devcontainer/Dockerfile`) の codex バージョン変更のみの時は呼ばない (overlay は配布不要)
 
-## 前提条件 (1 回だけ確認)
+## 実行環境 — host bash で実行する (Dev Container 内ではない)
 
-1. **docker daemon access**: Dev Container 内から docker コマンドが叩ける状態
-   - `docker info` が succeed すれば OK
-   - 失敗する場合は devcontainer.json に `docker-outside-of-docker` feature + `/var/run/docker.sock` mount が必要 (#1118 Phase 3 で実装済)
+本 skill は **host (WSL2 bash / Docker Desktop が動く環境)** で実行する。Dev Container 内には docker CLI が存在しない (#1122 で P5b 採用、container 内 docker 廃止)。
+
+Claude Code が Dev Container 内から呼ばれた場合は、利用者に以下を依頼する:
+
+> `cd ~/projects/harmony` (host WSL2 bash) で `bash .devcontainer/scripts/publish-dev-image.sh <version>` を実行してください。Maintainer 専用機能のため container 内には docker daemon access を持たせていません (#1122)。
+
+## 前提条件 (1 回だけ確認、host bash で)
+
+1. **docker daemon access (host)**: `docker info` が succeed すること
+   - WSL2 + Docker Desktop integration で OK
+   - Linux native は host で dockerd 起動済
 
 2. **ghcr.io 認証**: `~/.docker/config.json` に ghcr.io credential が保存されている状態
    - `docker info` 出力に `Registry: ghcr.io` 表示があれば OK
-   - 無い場合は: `docker login ghcr.io -u <github-username>` を host 側で実行 (PAT が password、write:packages scope 必須)
+   - 無い場合: host bash で `docker login ghcr.io -u <github-username>` (PAT を password、write:packages scope 必須)
 
 ## 実行手順
 
@@ -39,9 +47,11 @@ metadata:
 - 既存 tag と衝突しないか確認 (任意): `docker manifest inspect ghcr.io/csilost2001/harmony-devcontainer-base:<version>` が **fail** すること (= まだ無い)
 - 衝突する場合は利用者に確認、bump 提案
 
-### Step 2: publish script を実行
+### Step 2: publish script を host で実行
 
 ```bash
+# host WSL2 bash (Dev Container の外) で実行
+cd ~/projects/harmony
 bash .devcontainer/scripts/publish-dev-image.sh <version>
 ```
 
@@ -101,14 +111,15 @@ HARMONY_GHCR_USER=myusername bash .devcontainer/scripts/publish-dev-image.sh 0.1
 
 | 症状 | 対処 |
 |---|---|
-| `docker: command not found` | Dev Container に docker integration が無い。devcontainer.json で `docker-outside-of-docker` feature + socket mount を追加して Rebuild |
-| `denied: permission_denied` (push 時) | ghcr.io にログインしていない or PAT の scope 不足。`docker login ghcr.io` をやり直す (write:packages 必須) |
+| `docker: command not found` | host bash (Dev Container の外) で実行していない可能性。`echo $HOSTNAME` で host か container か確認、host から実行 |
+| `denied: permission_denied` (push 時) | ghcr.io にログインしていない or PAT の scope 不足。host で `docker login ghcr.io` をやり直す (write:packages 必須) |
 | `manifest unknown` (Rebuild 時) | 利用者 side で base image を resolve できない。public visibility を確認 |
 | build 中の apt/Playwright DL fail | network 一時障害の可能性、再実行 |
 
 ## 関連
 
 - ISSUE [#1118](https://github.com/csilost2001/harmony/issues/1118) — Phase 3 で本 skill を新設
+- ISSUE [#1122](https://github.com/csilost2001/harmony/issues/1122) — P5b 採用で host 実行運用に切替 (container 内 docker 廃止)
 - `.devcontainer/scripts/publish-dev-image.sh` — 実体スクリプト
 - `.devcontainer/base/Dockerfile` — base image 定義
 - `docs/setup/dev-containers.md` — Maintainer: base image の更新と publish (人間向け詳細手順)
