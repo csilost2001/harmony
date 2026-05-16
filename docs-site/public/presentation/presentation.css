@@ -116,3 +116,36 @@ html, body {
   opacity: 1;
   transition: opacity 1s;
 }
+
+/* 印刷時: 1 ページ 1 スライドで出力 */
+@media print {
+  html, body {
+    overflow: visible;
+    height: auto;
+    background: white;
+  }
+  .swiper {
+    height: auto;
+  }
+  .swiper-wrapper {
+    display: block !important;
+    transform: none !important;
+  }
+  .swiper-slide {
+    page-break-after: always;
+    height: 100vh;
+    width: 100vw;
+    background: white;
+    color: #0f172a;
+  }
+  .slide-inner {
+    background: white;
+    color: #0f172a;
+  }
+  .swiper-button-next, .swiper-button-prev, .swiper-pagination, #fullscreen-hint {
+    display: none !important;
+  }
+  .slide-num {
+    color: #475569;
+  }
+}

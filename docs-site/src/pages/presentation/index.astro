@@ -8,7 +8,7 @@
     <title>Harmony — schema-first × AI native ローコード | プレゼンテーション</title>
     <meta name="description" content="Harmony プレゼンテーション" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    <link rel="stylesheet" href="/presentation.css" />
+    <link rel="stylesheet" href="./presentation.css" />
   </head>
   <body>
     <div id="fullscreen-hint">F11 で全画面 | ← → でスライド移動</div>
@@ -59,7 +59,8 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-top:16px; align-items:start;">
               <div>
                 <div style="font-size:0.75rem; color:#64748b; margin-bottom:10px;">開発工数内訳 (推定値)</div>
-                <svg viewBox="0 0 420 220" style="width:100%; max-height:220px;" xmlns="http://www.w3.org/2000/svg">
+                <svg role="img" viewBox="0 0 420 220" style="width:100%; max-height:220px;" xmlns="http://www.w3.org/2000/svg">
+                  <title>業務開発工数の構成 (要件 / 設計 / 実装 / 往復 / テスト)</title>
                   <text x="120" y="28" fill="#94a3b8" font-size="12" text-anchor="end">仕様⇄実装往復</text>
                   <text x="120" y="68" fill="#94a3b8" font-size="12" text-anchor="end">実装</text>
                   <text x="120" y="108" fill="#94a3b8" font-size="12" text-anchor="end">設計書作成</text>
@@ -172,7 +173,8 @@
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;">
               <div>
-                <svg viewBox="0 0 400 340" style="width:100%;" xmlns="http://www.w3.org/2000/svg">
+                <svg role="img" viewBox="0 0 400 340" style="width:100%;" xmlns="http://www.w3.org/2000/svg">
+                  <title>Harmony アーキテクチャ: 業務記述 md → AI → JSON Schema → コード生成</title>
                   <defs>
                     <marker id="a04a" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
                       <polygon points="0 0, 8 3, 0 6" fill="#475569"/>
@@ -255,7 +257,8 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px; align-items:start;">
               <div>
                 <div style="font-size:0.75rem; color:#64748b; margin-bottom:10px;">手戻り率比較 (推定値)</div>
-                <svg viewBox="0 0 360 200" style="width:100%; max-height:200px;" xmlns="http://www.w3.org/2000/svg">
+                <svg role="img" viewBox="0 0 360 200" style="width:100%; max-height:200px;" xmlns="http://www.w3.org/2000/svg">
+                  <title>手戻り率比較: 従来手法 vs Harmony JSON Schema 一次</title>
                   <line x1="10" y1="170" x2="350" y2="170" stroke="#334155" stroke-width="1"/>
                   <rect x="40" y="50" width="70" height="120" fill="#475569" rx="3"/>
                   <rect x="150" y="80" width="70" height="90" fill="#4338ca" rx="3"/>
@@ -268,6 +271,7 @@
                   <text x="295" y="185" fill="#fbbf24" font-size="9" text-anchor="middle" font-weight="bold">JSON Schema→AI</text>
                 </svg>
                 <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">推定値、AJV 検証込み比較</div>
+                <div style="font-size:0.65rem; color:#475569; margin-top:4px; line-height:1.4;">※ JSON Schema 一次 + AJV 検証 + AI 生成の組合せ。値は推定、業務複雑度・既存資産有無により ±5% 程度の変動見込み</div>
               </div>
               <div>
                 <div style="font-size:0.75rem; color:#64748b; margin-bottom:10px;">JSON Schema の優位性</div>
@@ -326,7 +330,8 @@
               </div>
               <div>
                 <div style="font-size:0.72rem; color:#64748b; margin-bottom:8px;">処理フロー図</div>
-                <svg viewBox="0 0 340 280" style="width:100%; max-height:260px;" xmlns="http://www.w3.org/2000/svg">
+                <svg role="img" viewBox="0 0 340 280" style="width:100%; max-height:260px;" xmlns="http://www.w3.org/2000/svg">
+                  <title>ProcessFlow ステップ実行フロー (submit → validation → dbAccess → branch)</title>
                   <defs>
                     <marker id="a06" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
                       <polygon points="0 0, 7 2.5, 0 5" fill="#4338ca"/>
@@ -370,7 +375,8 @@
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;">
               <div>
-                <svg viewBox="0 0 360 260" style="width:100%;" xmlns="http://www.w3.org/2000/svg">
+                <svg role="img" viewBox="0 0 360 260" style="width:100%;" xmlns="http://www.w3.org/2000/svg">
+                  <title>AI コーディングエージェントと Harmony Backend の MCP 連携</title>
                   <defs>
                     <marker id="a07a" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
                       <polygon points="0 0, 7 2.5, 0 5" fill="#f59e0b"/>
@@ -473,7 +479,8 @@
               <h2 style="font-size:1.9rem; font-weight:800; color:#f1f5f9; margin:0;">Schema 違反があっても保存・レビュー可。設計途中で AI と協議できる革新</h2>
             </div>
             <div style="margin-bottom:16px;">
-              <svg viewBox="0 0 900 110" style="width:100%; max-height:110px;" xmlns="http://www.w3.org/2000/svg">
+              <svg role="img" viewBox="0 0 900 110" style="width:100%; max-height:110px;" xmlns="http://www.w3.org/2000/svg">
+                <title>従来 vs Harmony の設計レビュータイミング比較タイムライン</title>
                 <text x="0" y="22" fill="#94a3b8" font-size="11" font-weight="bold">従来</text>
                 <rect x="60" y="8" width="80" height="26" rx="4" fill="#334155" stroke="#475569" stroke-width="1"/>
                 <text x="100" y="25" fill="#cbd5e1" font-size="10" text-anchor="middle">設計</text>
@@ -538,7 +545,8 @@
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px; align-items:start;">
               <div>
-                <svg viewBox="0 0 400 200" style="width:100%; max-height:200px;" xmlns="http://www.w3.org/2000/svg">
+                <svg role="img" viewBox="0 0 400 200" style="width:100%; max-height:200px;" xmlns="http://www.w3.org/2000/svg">
+                  <title>Core schema と業界 namespace 拡張 (GM50 / Finance / Retail)</title>
                   <rect x="120" y="10" width="160" height="36" rx="4" fill="#172554" stroke="#2563eb" stroke-width="2"/>
                   <text x="200" y="33" fill="#93c5fd" font-size="12" text-anchor="middle" font-weight="bold">Core Schema (凍結)</text>
                   <text x="200" y="56" fill="#64748b" font-size="9" text-anchor="middle">フレームワーク製作者のみ変更可</text>
@@ -608,7 +616,7 @@
                 </tr>
                 <tr>
                   <td style="color:#e2e8f0; font-weight:500;">AI コーディング連携</td>
-                  <td><span class="check-no">✗</span></td><td><span class="check-no">✗</span></td><td><span class="check-partial">△ (Copilot)</span></td>
+                  <td><span class="check-green">✓</span><br/><span style="font-size:0.65rem; color:#64748b;">(GeneXus for Agents 2026-03-31)</span></td><td><span class="check-no">✗</span></td><td><span class="check-partial">△ (Copilot)</span></td>
                   <td class="harmony-col">✓ MCP ネイティブ</td>
                 </tr>
                 <tr>
@@ -638,6 +646,7 @@
                 特に <strong>JSON Schema 一次 + MCP ネイティブ + コード書出し OSS</strong> の組合せは現時点で唯一
               </p>
             </div>
+            <div style="margin-top:8px; font-size:0.7rem; color:#64748b;">※ 公開情報ベース、2026 年 5 月時点。各製品の最新情報は公式サイトを参照。</div>
             <div class="slide-num">11 / 16</div>
           </div>
         </div>
@@ -650,7 +659,8 @@
               <h2 style="font-size:2rem; font-weight:800; color:#f1f5f9; margin:0;">業務記述から本番リリースまで、従来比 1/3〜1/5 に短縮 (推定)</h2>
             </div>
             <div style="margin-bottom:20px;">
-              <svg viewBox="0 0 800 200" style="width:100%; max-height:200px;" xmlns="http://www.w3.org/2000/svg">
+              <svg role="img" viewBox="0 0 800 200" style="width:100%; max-height:200px;" xmlns="http://www.w3.org/2000/svg">
+                <title>業務記述からデプロイまでのリードタイム比較 (手書き / ローコード / ノーコード / Harmony)</title>
                 <text x="195" y="38" fill="#94a3b8" font-size="12" text-anchor="end">手書き (要件→実装→テスト)</text>
                 <text x="195" y="88" fill="#94a3b8" font-size="12" text-anchor="end">ローコード (Wagby 等)</text>
                 <text x="195" y="138" fill="#94a3b8" font-size="12" text-anchor="end">ノーコード (Power Platform)</text>
@@ -694,7 +704,8 @@
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;">
               <div>
-                <svg viewBox="0 0 380 310" style="width:100%; max-height:310px;" xmlns="http://www.w3.org/2000/svg">
+                <svg role="img" viewBox="0 0 380 310" style="width:100%; max-height:310px;" xmlns="http://www.w3.org/2000/svg">
+                  <title>業務担当者 ⇔ AI ⇔ 開発者 の協業循環フロー</title>
                   <defs>
                     <marker id="a13a" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
                       <polygon points="0 0, 7 2.5, 0 5" fill="#2563eb"/>
@@ -816,7 +827,8 @@
               <div style="font-size:0.7rem; color:#818cf8; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:4px;">ロードマップ</div>
               <h2 style="font-size:2rem; font-weight:800; color:#f1f5f9; margin:0;">2026年中盤、コアスキーマ凍結 + AI 連携深化、2026後半に SaaS 展開検討</h2>
             </div>
-            <svg viewBox="0 0 900 220" style="width:100%; max-height:220px;" xmlns="http://www.w3.org/2000/svg">
+            <svg role="img" viewBox="0 0 900 220" style="width:100%; max-height:220px;" xmlns="http://www.w3.org/2000/svg">
+              <title>Harmony 開発ロードマップ (2026 Q1 - 2027 H1)</title>
               <line x1="30" y1="80" x2="880" y2="80" stroke="#334155" stroke-width="2"/>
               <circle cx="80" cy="80" r="8" fill="#4ade80"/>
               <text x="80" y="55" fill="#86efac" font-size="11" text-anchor="middle" font-weight="bold">2026 Q1</text>
@@ -883,7 +895,7 @@
               </div>
               <div style="background:#1e293b; border-radius:8px; padding:12px 16px;">
                 <div style="font-size:0.65rem; color:#64748b; margin-bottom:4px;">ローカルで試す</div>
-                <div style="font-size:0.78rem; color:#86efac; font-family:monospace;">git clone &amp;&amp; Reopen in Container</div>
+                <div style="font-size:0.78rem; color:#86efac; font-family:monospace;">git clone https://github.com/csilost2001/harmony.git &amp;&amp; Reopen in Container</div>
               </div>
               <div style="background:#1e293b; border-radius:8px; padding:12px 16px;">
                 <div style="font-size:0.65rem; color:#64748b; margin-bottom:4px;">ドキュメント</div>
