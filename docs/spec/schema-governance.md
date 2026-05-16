@@ -7,7 +7,7 @@
 | 領域 | ファイル例 | 変更権限 |
 |---|---|---|
 | **グローバル定義スキーマ** | `schemas/process-flow.schema.json` / `schemas/extensions-*.schema.json` / `schemas/conventions.schema.json` | **フレームワーク製作者 (設計者) の専権** |
-| **拡張定義 (namespace)** | `examples/<project-id>/extensions/<namespace>.v3.json` / `workspaces/<id>/extensions/<namespace>.v3.json` | 業務開発者 (AI 含む) |
+| **拡張定義 (namespace)** | `examples/<project-id>/harmony/extensions/<namespace>.v3.json` / `workspaces/<id>/<dataDir>/extensions/<namespace>.v3.json` | 業務開発者 (AI 含む) |
 | **業務規約 catalog** | `examples/<project-id>/harmony/conventions/catalog.json` | 業務開発者 (AI 含む) |
 | **業務データ JSON** | 処理フロー / テーブル定義 / 画面項目定義 等 | 業務開発者 (AI 含む) |
 
@@ -29,8 +29,8 @@
 
 ### 許可される変更 (拡張機構経由)
 
-- `examples/<project-id>/extensions/<namespace>.v3.json` の追加・編集
-- `workspaces/<id>/extensions/<namespace>.v3.json` の追加・編集 (実プロジェクト)
+- `examples/<project-id>/harmony/extensions/<namespace>.v3.json` の追加・編集
+- `workspaces/<id>/<dataDir>/extensions/<namespace>.v3.json` の追加・編集 (実プロジェクト、`dataDir` は `harmony.json` で定義)
 - `examples/<project-id>/harmony/conventions/catalog.json` の値追加 (catalog 拡充)
 - 処理フロー JSON / テーブル定義 JSON 等の業務データ
 
