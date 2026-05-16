@@ -2,12 +2,24 @@
   "name": "Harmony Dev",
   "build": { "dockerfile": "Dockerfile" },
 
-  "features": {
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
-    "ghcr.io/devcontainers/features/copilot-cli:1.1.2": {},
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": { "moby": false }
-  },
+  // Phase 5 (#1120): features は全て base/Dockerfile に inline 化済。
+  // 元 features (削除): github-cli / claude-code / copilot-cli / docker-outside-of-docker (moby=false)
+  // cold start 短縮目的 — Dev Containers の features は image build 後に apply されるため
+  // ghcr publish には含まれず、毎回 install されていた (~50-60 秒 on Note PC)。
+  //
+  // 環境対応 (#1120 実機検証で判明): host docker.sock の owner GID は環境依存。
+  // - WSL2 + Docker Desktop: Ryzen / Note PC 実測いずれも 1001 (Docker Desktop が
+  //   distro 内で auto-assign、他 package の install 順で変動の可能性あり)
+  // - Linux native: distro / install 順次第で変動 (例として 992〜999 台が多いが
+  //   実測値ではない、参考のみ)
+  // - Mac Docker Desktop: linuxkit VM 経由で別挙動
+  // container 内 docker group GID と一致しないと node user から socket アクセス不可。
+  // postStartCommand で起動時に動的に GID を合わせることで任意の host 環境に対応する
+  // (元 feature の docker-init.sh / socat forwarder と同目的の軽量版)。
+
+  // SELinux 環境 (Fedora/RHEL) で docker.sock bind が拒否されないよう label を緩和
+  // (元 docker-outside-of-docker feature の securityOpt 相当、#1120 review S-1)。
+  "runArgs": ["--security-opt", "label=disable"],
 
   "forwardPorts": [5173, 5179],
   "portsAttributes": {
@@ -22,10 +34,22 @@
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.harmony,target=/home/node/.harmony,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.docker,target=/home/node/.docker,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.docker,target=/home/node/.docker,type=bind,consistency=cached",
+    // Phase 5 (#1120): docker-outside-of-docker feature が裏で追加していた host docker socket bind。
+    // features inline 化に伴い手動指定が必要。
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
   ],
 
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.harmony /home/node/.config/gh /home/node/.gitconfig",
+
+  // host docker.sock GID と container docker group GID を一致させる (#1120 実機検証修正)。
+  // 失敗しても (|| true) container 起動は継続 — docker.sock が未 bind の環境 (将来 CI 等) でも壊さない。
+  // 既知の silent failure: container 内に同一 GID の別 group が既に存在する場合、
+  // groupmod は衝突で fail し、docker group の GID は変わらない (= docker ps が permission
+  // denied のまま)。typescript-node:20-trixie の現状 GID 並びでは衝突しないが、将来
+  // base/overlay で group 追加した時に顕在化しうる。発生時は groupadd --gid <X> docker-host
+  // 等の別グループ追加方式に切替を検討 (#1120 review S-1)。
+  "postStartCommand": "sudo groupmod -g $(stat -c %g /var/run/docker.sock) docker || true",
 
   "postCreateCommand": "npm install --prefix frontend && npm install --prefix backend && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
 

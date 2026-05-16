@@ -20,7 +20,7 @@
 # Dev Container 内から `/publish-dev-image <version>` AI skill 経由で更新可能
 # (ai-skills/publish-dev-image/SKILL.md、Phase 3 で導入)
 
-FROM ghcr.io/csilost2001/harmony-devcontainer-base:0.1
+FROM ghcr.io/csilost2001/harmony-devcontainer-base:0.2
 
 USER root
 
