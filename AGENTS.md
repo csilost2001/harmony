@@ -162,6 +162,47 @@ Dev Containers の利点:
 
 過去 WSL2 native で開発していた利用者の Dev Containers 移行手順は `dev-containers.md` §「過去 WSL2 native だった人向け移行手順」を参照。
 
+### Documentation HTML サイト (docs-site/)
+
+仕様書 / プレゼン HTML 化サイト (Astro 5 + Tailwind v4 + pagefind + rehype-mermaid)。詳細は [`docs-site/README.md`](docs-site/README.md) 参照。メタ ISSUE: [#1124](https://github.com/csilost2001/harmony/issues/1124) (Phase A-E 完了済)。
+
+#### 出力構成
+
+- **Source of truth (canonical)**: `docs/spec/*.md` / `docs/user-guide/*.md` / `docs/conventions/*.md` / `docs/setup/*.md` (Markdown が一次成果物)
+- **Build artifact (配布物)**: `docs/html/` (git tracked、**手編集禁止**)
+- **プレゼン**: `docs/html/presentation/index.html` (1 ファイル完結、Swiper、16 スライド)
+
+#### 初回セットアップ
+
+```bash
+cd docs-site
+npm install
+npx playwright install chromium  # rehype-mermaid 用、初回のみ
+```
+
+#### 更新フロー (md 編集後の必須手順)
+
+1. `docs/spec/*.md` 等の Markdown を編集 (canonical source)
+2. `cd docs-site && npm run build` で `docs/html/` を再生成
+3. `git add docs/html/ docs-site/` で commit
+4. push / PR
+
+#### スキーマ反映
+
+`schemas/v3/*.json` 変更時:
+
+- `SchemaTable` component が build 時に schema を再読込
+- 上記更新フローと同じ手順で HTML に反映 (rebuild 必須)
+
+#### 注意事項
+
+- **`docs/html/` 配下の手編集は禁止** (build artifact、次回 build で上書きされる)
+- `_astro/*.{css,js}` の hash 名は内容変化で変わる (commit diff 増加要因、想定済)
+- pagefind index (`docs/html/pagefind/`) も build 毎に再生成 (`.pf_index` / `.pf_fragment` の hash 変動)
+- **Astro 5 系を採用** (Astro 6 は Node 22+ 必須、本プロジェクト Node 20 環境のため不適合)
+- mermaid 図は build-time SVG 生成 (Playwright chromium 経由、client JS 不要)
+- 内部 `*.md` link は rehype plugin で自動的に Astro route (`/<area>/<slug>/`) に変換、4 area 外 link は GitHub blob URL に fallback
+
 ### ドッグフード deploy 先
 
 AI ドッグフード時のサンプル展開先は **`workspaces/dogfood-<目的-YYYYMMDD>/`** を使用する。`data/` への deploy は禁止 (`data/` はデザイナー本体組み込み拡張定義 `data/extensions/` 専用、#753 で責務縮退済み)。`examples/<project-id>/` を作業領域にコピーする際も `workspaces/<project-id>/` を使う。
