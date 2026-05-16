@@ -37,7 +37,7 @@
 
 
 
-<table><thead><tr><th>項目</th><th>値</th></tr></thead><tbody><tr><td>関連 ISSUE</td><td>#517 (本ドキュメント) / 親 #511 (schema ガバナンス)</td></tr><tr><td>起草</td><td>設計者 (Opus) — Codex セカンドオピニオン (<code>schema-redesign-proposal-codex-2026-04-27.md</code>) を参照材料として使用</td></tr><tr><td>起草日</td><td>2026-04-27</td></tr><tr><td>対象 schema</td><td><code>schemas/process-flow.schema.json</code> (2036 行) / <code>schemas/conventions.schema.json</code> (291 行) / <code>schemas/extensions-*.schema.json</code> (5 ファイル)</td></tr><tr><td>ステータス</td><td><strong>初版</strong> — <code>schema-current-state-2026-04-27</code> を兼ねる (調査結果と規範を併記)</td></tr></tbody></table>
+<table><thead><tr><th>項目</th><th>値</th></tr></thead><tbody><tr><td>関連 ISSUE</td><td>#517 (本ドキュメント) / 親 #511 (schema ガバナンス)</td></tr><tr><td>起草</td><td>設計者 (Opus) — Codex (GPT-5.5) セカンドオピニオンを参照材料として使用 (#517 で議論、proposal md は廃止済)</td></tr><tr><td>起草日</td><td>2026-04-27</td></tr><tr><td>対象 schema</td><td><code>schemas/process-flow.schema.json</code> (2036 行) / <code>schemas/conventions.schema.json</code> (291 行) / <code>schemas/extensions-*.schema.json</code> (5 ファイル)</td></tr><tr><td>ステータス</td><td><strong>初版</strong> — <code>schema-current-state-2026-04-27</code> を兼ねる (調査結果と規範を併記)</td></tr></tbody></table>
 <p>本ドキュメントは、本フレームワークの <strong>JSON Schema 設計原則</strong> を集約する。schema を <strong>どう書くか</strong> の規範であり、<strong>何を書くか</strong> (個別フィールド仕様) は各 <code>process-flow-*.md</code> を参照。</p>
 <p><code>schema-governance.md</code> (#511) が「<strong>誰が変えてよいか</strong>」を規定するのに対し、本ドキュメントは「<strong>設計者が schema を変えるとき / 業務開発者が拡張・規約を書くとき、どういう原則で書くか</strong>」を規定する。</p>
 <hr>
@@ -1511,7 +1511,7 @@
 <li><strong>対応</strong>: 同上、低優先度</li>
 </ul>
 <h3 id="104-codex-セカンドオピニオンの引き継ぎ">10.4 Codex セカンドオピニオンの引き継ぎ</h3>
-<p><code>docs/spec/schema-redesign-proposal-codex-2026-04-27.md</code> で Codex が提示した 5 つの提案 (<code>unevaluatedProperties</code> / Step 階層化 / 二段検証 / extension version / <code>$schema</code> 許可) のうち、本ドキュメントで原則化したのは:</p>
+<p>Codex (GPT-5.5) が #517 のセカンドオピニオンで提示した 5 つの提案 (<code>unevaluatedProperties</code> / Step 階層化 / 二段検証 / extension version / <code>$schema</code> 許可) のうち、本ドキュメントで原則化したのは:</p>
 
 
 
@@ -1547,7 +1547,6 @@
 <ul>
 <li><code>docs/spec/schema-governance.md</code> (#511) — 変更権限の階層、本ドキュメントと対をなす</li>
 <li><code>docs/spec/schema-audit-2026-04-27.md</code> (#511 Phase B-1) — 過去 102 コミット精査レポート</li>
-<li><code>docs/spec/schema-redesign-proposal-codex-2026-04-27.md</code> (#517 セカンドオピニオン) — Codex (GPT-5.5) による現状分析と再設計提案、本ドキュメントの判断材料</li>
 <li><code>docs/spec/process-flow-*.md</code> (14 文書) — 個別仕様、本ドキュメントが横断する規範を補完する詳細</li>
 <li><code>docs/spec/plugin-system.md</code> (#442) — プラグインシステム (拡張機構の詳細)</li>
 <li><code>schemas/README.md</code> — JSON Schema 一次成果物の位置づけと使い方</li>
@@ -1556,7 +1555,7 @@
 <hr>
 <h2 id="12-変更履歴">12. 変更履歴</h2>
 <ul>
-<li>2026-04-27: 初版起草 (#517)。設計者 (Opus) が schema 全行 / spec 19 文書 / 4 sample / 拡張定義全件を読了の上で起草。Codex セカンドオピニオン (<code>schema-redesign-proposal-codex-2026-04-27.md</code>) を比較材料として使用</li>
+<li>2026-04-27: 初版起草 (#517)。設計者 (Opus) が schema 全行 / spec 19 文書 / 4 sample / 拡張定義全件を読了の上で起草。Codex (GPT-5.5) セカンドオピニオン (#517 議論、proposal md は廃止済) を比較材料として使用</li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {

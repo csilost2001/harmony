@@ -3,7 +3,7 @@
 | 項目 | 値 |
 |---|---|
 | 関連 ISSUE | #517 (本ドキュメント) / 親 #511 (schema ガバナンス) |
-| 起草 | 設計者 (Opus) — Codex セカンドオピニオン (`schema-redesign-proposal-codex-2026-04-27.md`) を参照材料として使用 |
+| 起草 | 設計者 (Opus) — Codex (GPT-5.5) セカンドオピニオンを参照材料として使用 (#517 で議論、proposal md は廃止済) |
 | 起草日 | 2026-04-27 |
 | 対象 schema | `schemas/process-flow.schema.json` (2036 行) / `schemas/conventions.schema.json` (291 行) / `schemas/extensions-*.schema.json` (5 ファイル) |
 | ステータス | **初版** — `schema-current-state-2026-04-27` を兼ねる (調査結果と規範を併記) |
@@ -940,7 +940,7 @@ JSON Schema 単体で検証できない cross-reference を補完する。
 
 ### 10.4 Codex セカンドオピニオンの引き継ぎ
 
-`docs/spec/schema-redesign-proposal-codex-2026-04-27.md` で Codex が提示した 5 つの提案 (`unevaluatedProperties` / Step 階層化 / 二段検証 / extension version / `$schema` 許可) のうち、本ドキュメントで原則化したのは:
+Codex (GPT-5.5) が #517 のセカンドオピニオンで提示した 5 つの提案 (`unevaluatedProperties` / Step 階層化 / 二段検証 / extension version / `$schema` 許可) のうち、本ドキュメントで原則化したのは:
 
 | Codex 提案 | 本ドキュメントでの扱い |
 |---|---|
@@ -956,7 +956,6 @@ JSON Schema 単体で検証できない cross-reference を補完する。
 
 - `docs/spec/schema-governance.md` (#511) — 変更権限の階層、本ドキュメントと対をなす
 - `docs/spec/schema-audit-2026-04-27.md` (#511 Phase B-1) — 過去 102 コミット精査レポート
-- `docs/spec/schema-redesign-proposal-codex-2026-04-27.md` (#517 セカンドオピニオン) — Codex (GPT-5.5) による現状分析と再設計提案、本ドキュメントの判断材料
 - `docs/spec/process-flow-*.md` (14 文書) — 個別仕様、本ドキュメントが横断する規範を補完する詳細
 - `docs/spec/plugin-system.md` (#442) — プラグインシステム (拡張機構の詳細)
 - `schemas/README.md` — JSON Schema 一次成果物の位置づけと使い方
@@ -966,4 +965,4 @@ JSON Schema 単体で検証できない cross-reference を補完する。
 
 ## 12. 変更履歴
 
-- 2026-04-27: 初版起草 (#517)。設計者 (Opus) が schema 全行 / spec 19 文書 / 4 sample / 拡張定義全件を読了の上で起草。Codex セカンドオピニオン (`schema-redesign-proposal-codex-2026-04-27.md`) を比較材料として使用
+- 2026-04-27: 初版起草 (#517)。設計者 (Opus) が schema 全行 / spec 19 文書 / 4 sample / 拡張定義全件を読了の上で起草。Codex (GPT-5.5) セカンドオピニオン (#517 議論、proposal md は廃止済) を比較材料として使用
