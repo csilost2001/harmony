@@ -1,0 +1,107 @@
+---
+import '../styles/global.css';
+import PagefindConfig from 'astro-pagefind/components/PagefindConfig.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = 'Harmony Docs', description = 'Harmony 仕様書' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="ja" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <PagefindConfig />
+  </head>
+  <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen">
+    <header
+      class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"
+    >
+      <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4">
+        <a href="/" class="font-bold text-lg tracking-tight">Harmony Docs</a>
+        <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400">
+          <a href="/spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a>
+          <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a>
+          <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a>
+          <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a>
+          <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a>
+        </nav>
+        <div class="flex-1"></div>
+        <pagefind-modal-trigger>
+          <button
+            type="button"
+            class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            🔍 検索
+          </button>
+        </pagefind-modal-trigger>
+        <button
+          type="button"
+          id="theme-toggle"
+          class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+          aria-label="Toggle theme"
+        >
+          🌓
+        </button>
+      </div>
+    </header>
+
+    <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6">
+      <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore>
+        <slot name="sidebar" />
+      </aside>
+      <main class="flex-1 min-w-0">
+        <article class="prose dark:prose-invert max-w-none">
+          <slot />
+        </article>
+      </main>
+    </div>
+
+    <pagefind-modal reset-on-close></pagefind-modal>
+
+    <script is:inline>
+      // Theme toggle + restore
+      (function () {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'light') {
+          document.documentElement.classList.remove('dark');
+        }
+        document.getElementById('theme-toggle')?.addEventListener('click', () => {
+          document.documentElement.classList.toggle('dark');
+          localStorage.setItem(
+            'theme',
+            document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+          );
+        });
+      })();
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script>
+  </body>
+</html>

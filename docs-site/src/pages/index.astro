@@ -1,0 +1,71 @@
+---
+import SpecLayout from '../layouts/SpecLayout.astro';
+---
+
+<SpecLayout title="Harmony Docs" description="Harmony 仕様書・プレゼン HTML">
+  <h1>Harmony Docs</h1>
+  <p class="lead">
+    <strong>Harmony</strong> — schema-first × AI native の業務アプリ ローコードフレームワーク。
+  </p>
+
+  <h2>ドキュメント</h2>
+
+  <div class="not-prose grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+    <a
+      href="/spec/"
+      class="block p-5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors no-underline"
+    >
+      <div class="text-lg font-bold mb-1">📘 仕様書</div>
+      <div class="text-sm text-slate-600 dark:text-slate-400">
+        ProcessFlow / Screen / Table / draft-state / schema governance などの完全仕様
+      </div>
+    </a>
+    <a
+      href="/user-guide/"
+      class="block p-5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors no-underline"
+    >
+      <div class="text-lg font-bold mb-1">📖 ユーザーガイド</div>
+      <div class="text-sm text-slate-600 dark:text-slate-400">
+        業務設計者向けのワークフロー解説
+      </div>
+    </a>
+    <a
+      href="/conventions/"
+      class="block p-5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors no-underline"
+    >
+      <div class="text-lg font-bold mb-1">📐 規約</div>
+      <div class="text-sm text-slate-600 dark:text-slate-400">
+        式言語 / バリデーション規約 / プロダクトスコープ
+      </div>
+    </a>
+    <a
+      href="/setup/"
+      class="block p-5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors no-underline"
+    >
+      <div class="text-lg font-bold mb-1">🛠 セットアップ</div>
+      <div class="text-sm text-slate-600 dark:text-slate-400">
+        Dev Container / WSL2 native / 配布構想
+      </div>
+    </a>
+    <a
+      href="/presentation.html"
+      class="block p-5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors no-underline md:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950"
+    >
+      <div class="text-lg font-bold mb-1">🎯 プレゼン資料 (電通コンサル風 16 スライド)</div>
+      <div class="text-sm text-slate-600 dark:text-slate-400">
+        Harmony を業務設計者 / SIer / 開発者 / 採用候補に説明する 1 ファイル完結プレゼン
+      </div>
+    </a>
+  </div>
+
+  <h2>このサイトについて</h2>
+  <p>
+    本サイトは <code>docs/spec/*.md</code> / <code>docs/user-guide/*.md</code> /
+    <code>docs/conventions/*.md</code> / <code>docs/setup/*.md</code>
+    を Astro + Tailwind + pagefind で静的 HTML 化したものです。
+  </p>
+  <p>
+    <strong>Source of truth は Markdown</strong> — 本サイトの内容は <code>docs/*</code> の md 更新後に
+    <code>cd docs-site && npm run build</code> で再生成されます (<code>docs/html/</code> は build artifact、手編集禁止)。
+  </p>
+</SpecLayout>
