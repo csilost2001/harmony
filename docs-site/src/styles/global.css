@@ -1,0 +1,85 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 仕様書本文の密度調整 (高情報密度・視認性重視) */
+.prose {
+  --tw-prose-body: rgb(15 23 42);
+  --tw-prose-headings: rgb(15 23 42);
+  --tw-prose-code: rgb(15 23 42);
+}
+
+.dark .prose {
+  --tw-prose-body: rgb(226 232 240);
+  --tw-prose-headings: rgb(241 245 249);
+  --tw-prose-code: rgb(248 250 252);
+}
+
+.prose pre {
+  position: relative;
+  font-size: 0.85em;
+  line-height: 1.55;
+}
+
+.prose table {
+  font-size: 0.9em;
+}
+
+.prose h2 {
+  margin-top: 1.8em;
+  padding-top: 0.5em;
+  border-top: 1px solid rgb(226 232 240);
+}
+
+.dark .prose h2 {
+  border-top-color: rgb(30 41 59);
+}
+
+/* Sidebar 階層 */
+.sidebar-link {
+  display: block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  color: rgb(71 85 105);
+  font-size: 0.875rem;
+}
+.sidebar-link:hover {
+  background-color: rgb(241 245 249);
+  color: rgb(15 23 42);
+}
+.dark .sidebar-link {
+  color: rgb(148 163 184);
+}
+.dark .sidebar-link:hover {
+  background-color: rgb(30 41 59);
+  color: rgb(241 245 249);
+}
+.sidebar-link.active {
+  background-color: rgb(219 234 254);
+  color: rgb(30 64 175);
+  font-weight: 600;
+}
+.dark .sidebar-link.active {
+  background-color: rgb(30 58 138);
+  color: rgb(191 219 254);
+}
+
+/* Code block copy button */
+.copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  background: rgb(51 65 85);
+  color: white;
+  border-radius: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+  cursor: pointer;
+  border: none;
+}
+pre:hover .copy-btn {
+  opacity: 1;
+}

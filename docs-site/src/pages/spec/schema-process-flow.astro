@@ -1,0 +1,15 @@
+---
+import SpecLayout from '../../layouts/SpecLayout.astro';
+import SchemaTable from '../../components/SchemaTable.astro';
+import processFlowSchema from '../../../../schemas/v3/process-flow.v3.schema.json';
+---
+
+<SpecLayout title="ProcessFlow v3 Schema" description="JSON Schema 自動生成テーブル">
+  <h1>ProcessFlow v3 Schema (動作確認)</h1>
+  <p>
+    <code>schemas/v3/process-flow.v3.schema.json</code> から build 時に自動生成。
+    Phase B 動作確認用、Phase C で適切な navigation に統合予定。
+  </p>
+
+  <SchemaTable schema={processFlowSchema} title="root" maxDepth={2} />
+</SpecLayout>

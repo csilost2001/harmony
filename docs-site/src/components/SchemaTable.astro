@@ -1,0 +1,109 @@
+---
+interface Props {
+  schema: Record<string, unknown>;
+  title?: string;
+  maxDepth?: number;
+}
+
+const { schema, title, maxDepth = 3 } = Astro.props;
+
+interface Row {
+  name: string;
+  type: string;
+  required: boolean;
+  description: string;
+  enumValues?: string;
+  depth: number;
+}
+
+function describeType(value: Record<string, unknown>): string {
+  if (value.$ref) {
+    // `common.v3.schema.json#/$defs/Authoring` や `#/$defs/Authoring` 両対応 — 末尾要素のみ抽出
+    return String(value.$ref).split('/').pop() || 'ref';
+  }
+  if (value.oneOf) return 'oneOf';
+  if (value.anyOf) return 'anyOf';
+  if (value.allOf) return 'allOf';
+  const t = value.type;
+  if (Array.isArray(t)) return t.join(' | ');
+  if (typeof t === 'string') {
+    if (t === 'array' && value.items) {
+      const items = value.items as Record<string, unknown>;
+      return `array<${describeType(items)}>`;
+    }
+    return t;
+  }
+  if (value.const !== undefined) return `const: ${JSON.stringify(value.const)}`;
+  return 'any';
+}
+
+function flattenProps(
+  s: Record<string, unknown>,
+  prefix = '',
+  depth = 0,
+  maxDepth = 3
+): Row[] {
+  if (depth > maxDepth) return [];
+  const props = (s.properties ?? {}) as Record<string, Record<string, unknown>>;
+  const required = (s.required ?? []) as string[];
+  const rows: Row[] = [];
+
+  for (const [key, value] of Object.entries(props)) {
+    const fullName = prefix ? `${prefix}.${key}` : key;
+    const enumValues = (value.enum as unknown[] | undefined)?.map((v) => JSON.stringify(v)).join(' | ');
+    rows.push({
+      name: fullName,
+      type: describeType(value),
+      required: required.includes(key),
+      description: (value.description as string) ?? '',
+      enumValues,
+      depth,
+    });
+    if (value.type === 'object' && value.properties && depth < maxDepth) {
+      rows.push(...flattenProps(value as Record<string, unknown>, fullName, depth + 1, maxDepth));
+    }
+    if (value.type === 'array') {
+      const items = value.items as Record<string, unknown> | undefined;
+      if (items?.properties && depth < maxDepth) {
+        rows.push(...flattenProps(items, `${fullName}[]`, depth + 1, maxDepth));
+      }
+    }
+  }
+  return rows;
+}
+
+const rows = flattenProps(schema, '', 0, maxDepth);
+---
+
+{title && <h3 class="text-lg font-bold mt-6 mb-2">{title}</h3>}
+<div class="overflow-x-auto not-prose my-4">
+  <table class="w-full text-sm border-collapse">
+    <thead>
+      <tr class="border-b-2 border-slate-300 dark:border-slate-700 text-left bg-slate-50 dark:bg-slate-900">
+        <th class="py-2 px-3 font-semibold">フィールド</th>
+        <th class="py-2 px-3 font-semibold w-32">型</th>
+        <th class="py-2 px-3 font-semibold w-16 text-center">必須</th>
+        <th class="py-2 px-3 font-semibold">説明</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr class="border-b border-slate-100 dark:border-slate-800 align-top hover:bg-slate-50 dark:hover:bg-slate-900/50">
+          <td class="py-1.5 px-3 font-mono text-xs whitespace-nowrap">
+            <span style={`padding-left: ${row.depth * 1}rem`}>{row.name}</span>
+          </td>
+          <td class="py-1.5 px-3 text-blue-600 dark:text-blue-400 text-xs font-mono">{row.type}</td>
+          <td class="py-1.5 px-3 text-center text-rose-600 dark:text-rose-400">{row.required ? '✓' : ''}</td>
+          <td class="py-1.5 px-3 text-xs">
+            {row.description}
+            {row.enumValues && (
+              <div class="text-slate-500 dark:text-slate-400 mt-0.5">
+                enum: <code class="text-xs">{row.enumValues}</code>
+              </div>
+            )}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

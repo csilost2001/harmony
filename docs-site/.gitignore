@@ -1,0 +1,15 @@
+# Astro build artifacts
+.astro/
+dist/
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+.idea/
