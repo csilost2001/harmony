@@ -10,7 +10,7 @@ import { loadProject, loadRawProject, updateScreenThumbnail } from "../store/flo
 import { composePreviewHtml } from "../utils/pageLayoutCompositionPreview";
 import { loadScreenEntity } from "../store/screenStore";
 import { makeTabId, setDirty } from "../store/tabStore";
-import type { CssFramework } from "../types/v3/project";
+import type { CssFramework } from "../types/v3/harmony";
 import { resolveCssFramework } from "../utils/resolveCssFramework";
 import { resolveEditorKind } from "../utils/resolveEditorKind";
 import type { EditorKind } from "../utils/resolveEditorKind";

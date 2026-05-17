@@ -20,7 +20,7 @@ import type {
   ValidationStep,
   TransactionScopeStep,
 } from "./process-flow";
-import type { Project } from "./project";
+import type { Harmony } from "./harmony";
 import type { Table, Constraint, ForeignKeyConstraint } from "./table";
 import type { Screen } from "./screen";
 import type { ScreenItem, ValueSource } from "./screen-item";
@@ -197,8 +197,8 @@ function loadJson<T>(path: string): T {
 
 describe("v3 TS 型 と examples/ JSON の compatibility", () => {
   // R-4 #853: project.json → harmony.json + harmony/ (dataDir) 形式に migration 済
-  it("retail harmony.json を Project 型として parse できる", () => {
-    const project = loadJson<Project>(join(examplesDir, "retail/harmony.json"));
+  it("retail harmony.json を Harmony 型として parse できる", () => {
+    const project = loadJson<Harmony>(join(examplesDir, "retail/harmony.json"));
     expect(project.schemaVersion).toBe("v3");
     expect(project.meta.name).toBeDefined();
   });
@@ -240,8 +240,8 @@ describe("v3 TS 型 と examples/ JSON の compatibility", () => {
     expect(screen.kind).toBeDefined();
   });
 
-  it("realestate harmony.json を Project 型として parse できる", () => {
-    const project = loadJson<Project>(join(examplesDir, "realestate/harmony.json"));
+  it("realestate harmony.json を Harmony 型として parse できる", () => {
+    const project = loadJson<Harmony>(join(examplesDir, "realestate/harmony.json"));
     expect(project.schemaVersion).toBe("v3");
     expect(project.meta.name).toBeDefined();
   });

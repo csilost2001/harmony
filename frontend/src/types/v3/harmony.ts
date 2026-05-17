@@ -1,5 +1,7 @@
 /**
- * v3 Project 型定義 (`schemas/v3/harmony.v3.schema.json` と 1:1 対応)
+ * v3 Harmony 型定義 (`schemas/v3/harmony.v3.schema.json` と 1:1 対応)
+ *
+ * ワークスペース marker (`harmony.json`) の root 定義。
  *
  * 参考: schemas/v3/harmony.v3.schema.json
  */
@@ -130,8 +132,8 @@ export interface ScreenTransitionEntry {
   kind?: "navigation" | "flow-driven";
 }
 
-/** プロジェクトが保持する各 entity への参照一覧。 */
-export interface ProjectEntities {
+/** Harmony workspace が保持する各 entity への参照一覧。 */
+export interface HarmonyEntities {
   screens?: ScreenEntry[];
   tables?: TableEntry[];
   processFlows?: ProcessFlowEntry[];
@@ -143,8 +145,8 @@ export interface ProjectEntities {
   pageLayouts?: PageLayoutEntry[];
 }
 
-/** プロジェクト identity と運用設定。 */
-export interface ProjectMeta extends EntityMeta {
+/** Harmony workspace identity と運用設定。 */
+export interface HarmonyMeta extends EntityMeta {
   id: ProjectId;
   /** プロジェクト全体の上流/下流モード。 */
   mode?: Mode;
@@ -205,10 +207,10 @@ export interface TechStackDeployment {
 }
 
 /**
- * プロジェクトの技術スタック定義 (#826)。
+ * Harmony workspace の技術スタック定義 (#826)。
  * AI コード生成時のターゲット環境とデザイナー動作設定を統合する。
  */
-export interface ProjectTechStack {
+export interface HarmonyTechStack {
   /** デザイナー動作設定。editorKind / cssFramework のプロジェクト default を保持。 */
   designer?: TechStackDesigner;
   /** バックエンド技術スタック。 */
@@ -224,7 +226,7 @@ export interface ProjectTechStack {
 }
 
 /** 業務システム 1 案件の root 定義。ワークスペースルートの `harmony.json` に対応。 */
-export interface Project {
+export interface Harmony {
   $schema?: string;
   /** 本プロジェクトが使う schema バージョン。 */
   schemaVersion: "v3";
@@ -234,15 +236,15 @@ export interface Project {
    * 絶対パス・path traversal (`..` セグメント)・空文字・`"."` 単独は禁止。
    */
   dataDir: string;
-  meta: ProjectMeta;
+  meta: HarmonyMeta;
   /**
    * 本プロジェクトが適用する拡張 namespace 一覧 (version 制約付き)。
    * 例: `[{ namespace: 'retail', version: '>=2.0.0' }]`
    */
   extensionsApplied?: ExtensionApplied[];
-  entities?: ProjectEntities;
+  entities?: HarmonyEntities;
   /** プロジェクト全体の authoring 情報 (entity 横断で共有される ADR や用語集)。 */
   authoring?: Authoring;
   /** プロジェクトの技術スタック定義 (AI コード生成ターゲット + デザイナー動作設定)。 */
-  techStack?: ProjectTechStack;
+  techStack?: HarmonyTechStack;
 }

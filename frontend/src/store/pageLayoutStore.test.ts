@@ -5,8 +5,8 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { FlowProject } from "../types/flow";
-import type { Project, Timestamp } from "../types/v3";
-import type { PageLayoutEntry } from "../types/v3/project";
+import type { Harmony, Timestamp } from "../types/v3";
+import type { PageLayoutEntry } from "../types/v3/harmony";
 import type { FlowStorageBackend } from "./flowStore";
 import { setFlowDraftMode, setFlowStorageBackend } from "./flowStore";
 import { setScreenFlowPositionsStorageBackend } from "./screenFlowPositionsStore";
@@ -42,14 +42,14 @@ function pageLayoutEntry(id: string, no: number): PageLayoutEntry {
   };
 }
 
-function rawProjectWithPageLayouts(pageLayouts: PageLayoutEntry[]): Project {
-  const ts = TS as unknown as Project["meta"]["createdAt"];
+function rawProjectWithPageLayouts(pageLayouts: PageLayoutEntry[]): Harmony {
+  const ts = TS as unknown as Harmony["meta"]["createdAt"];
   return {
     $schema: "../../schemas/v3/harmony.v3.schema.json",
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      id: "11111111-2222-4333-8444-555555555555" as unknown as Project["meta"]["id"],
+      id: "11111111-2222-4333-8444-555555555555" as unknown as Harmony["meta"]["id"],
       name: "test",
       maturity: "draft",
       createdAt: ts,
@@ -96,16 +96,16 @@ describe("pageLayoutStore", () => {
 
   it("createPageLayout initializes required fields", async () => {
     const project = emptyFlowProject();
-    const rawProject: Project = {
+    const rawProject: Harmony = {
       $schema: "../../schemas/v3/harmony.v3.schema.json",
       schemaVersion: "v3",
       dataDir: "harmony",
       meta: {
-        id: "22222222-3333-4444-8555-666666666666" as unknown as Project["meta"]["id"],
+        id: "22222222-3333-4444-8555-666666666666" as unknown as Harmony["meta"]["id"],
         name: "test",
         maturity: "draft",
-        createdAt: TS as unknown as Project["meta"]["createdAt"],
-        updatedAt: TS as unknown as Project["meta"]["createdAt"],
+        createdAt: TS as unknown as Harmony["meta"]["createdAt"],
+        updatedAt: TS as unknown as Harmony["meta"]["createdAt"],
         mode: "upstream",
       },
       extensionsApplied: [],
@@ -132,8 +132,8 @@ describe("pageLayoutStore", () => {
 
     // Override raw project loader for syncPageLayoutMeta
     const flowBackendWithRaw: FlowStorageBackend & {
-      loadRawProject?: () => Promise<Project>;
-      saveRawProject?: (p: Project) => Promise<void>;
+      loadRawProject?: () => Promise<Harmony>;
+      saveRawProject?: (p: Harmony) => Promise<void>;
     } = {
       loadProject: vi.fn().mockResolvedValue(project),
       saveProject: vi.fn().mockResolvedValue(undefined),

@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import type { ScreenType } from "../../types/flow";
 import { SCREEN_TYPE_LABELS } from "../../types/flow";
 import type { EditorKind } from "../../utils/resolveEditorKind";
-import type { CssFramework } from "../../types/v3/project";
-import type { PageLayoutEntry } from "../../types/v3/project";
+import type { CssFramework } from "../../types/v3/harmony";
+import type { PageLayoutEntry } from "../../types/v3/harmony";
 
 export interface ScreenFormData {
   name: string;

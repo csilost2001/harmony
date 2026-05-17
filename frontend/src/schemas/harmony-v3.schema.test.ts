@@ -11,22 +11,22 @@ function loadJson(path: string): unknown {
   return JSON.parse(readFileSync(path, "utf-8"));
 }
 
-let validateProject: ValidateFunction;
+let validateHarmony: ValidateFunction;
 
 beforeAll(() => {
   const ajv = new Ajv2020({ allErrors: true, strict: false });
   addFormats(ajv);
   ajv.addSchema(loadJson(join(v3Dir, "common.v3.schema.json")) as object);
-  validateProject = ajv.compile(loadJson(join(v3Dir, "harmony.v3.schema.json")) as object);
+  validateHarmony = ajv.compile(loadJson(join(v3Dir, "harmony.v3.schema.json")) as object);
 });
 
 function dumpErrors(file: string): string {
-  const errs = validateProject.errors ?? [];
+  const errs = validateHarmony.errors ?? [];
   return `${file}\n${errs.map((e) => `  ${e.instancePath || "<root>"} ${e.keyword}: ${e.message ?? ""}`).join("\n")}`;
 }
 
-describe("project v3 schema (harmony.v3.schema.json)", () => {
-  it("empty project fixture validates against harmony.v3.schema.json", () => {
+describe("harmony v3 schema (harmony.v3.schema.json)", () => {
+  it("empty harmony fixture validates against harmony.v3.schema.json", () => {
     const fixture = {
       $schema: "../schemas/v3/harmony.v3.schema.json",
       schemaVersion: "v3",
@@ -51,7 +51,7 @@ describe("project v3 schema (harmony.v3.schema.json)", () => {
       },
     };
 
-    const ok = validateProject(fixture);
+    const ok = validateHarmony(fixture);
     expect(ok, ok ? "" : dumpErrors("empty fixture")).toBe(true);
   });
 });

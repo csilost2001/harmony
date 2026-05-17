@@ -13,7 +13,7 @@ function loadJson(path: string): unknown {
 }
 
 let ajv: Ajv2020;
-let validateProject: ValidateFunction;
+let validateHarmony: ValidateFunction;
 let validateScreen: ValidateFunction;
 let validateTable: ValidateFunction;
 let validateProcessFlow: ValidateFunction;
@@ -25,7 +25,7 @@ beforeAll(() => {
   addFormats(ajv);
   ajv.addSchema(loadJson(join(v3Dir, "common.v3.schema.json")) as object);
   ajv.addSchema(loadJson(join(v3Dir, "screen-item.v3.schema.json")) as object);
-  validateProject = ajv.compile(loadJson(join(v3Dir, "harmony.v3.schema.json")) as object);
+  validateHarmony = ajv.compile(loadJson(join(v3Dir, "harmony.v3.schema.json")) as object);
   validateScreen = ajv.compile(loadJson(join(v3Dir, "screen.v3.schema.json")) as object);
   validateTable = ajv.compile(loadJson(join(v3Dir, "table.v3.schema.json")) as object);
   validateProcessFlow = ajv.compile(loadJson(join(v3Dir, "process-flow.v3.schema.json")) as object);
@@ -58,8 +58,8 @@ describe("schema v3 examples (#774: examples/ を canonical サンプル領域�
     ];
     for (const file of files) {
       const data = loadJson(file);
-      const ok = validateProject(data);
-      expect(ok, ok ? "" : dumpErrors(file, validateProject)).toBe(true);
+      const ok = validateHarmony(data);
+      expect(ok, ok ? "" : dumpErrors(file, validateHarmony)).toBe(true);
     }
   });
 

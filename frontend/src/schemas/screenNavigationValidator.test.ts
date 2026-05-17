@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 import { checkScreenNavigation } from "./screenNavigationValidator";
 import type { ProcessFlow } from "../types/v3";
 import type { Screen } from "../types/v3/screen";
-import type { ScreenTransitionEntry } from "../types/v3/project";
+import type { ScreenTransitionEntry } from "../types/v3/harmony";
 
 // ─── テストヘルパー ────────────────────────────────────────────────────────
 

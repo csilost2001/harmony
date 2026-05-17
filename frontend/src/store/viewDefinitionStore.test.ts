@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { FlowProject } from "../types/flow";
 import type {
   DisplayName,
-  Project,
+  Harmony,
   TableId,
   Timestamp,
   ViewDefinitionEntry,
@@ -45,14 +45,14 @@ function viewDefinitionEntry(id: string, no: number): ViewDefinitionEntry {
 }
 
 // commitViewDefinitions が entities.viewDefinitions を使うため rawProject 形式のヘルパーを追加
-function rawProjectWithViewDefinitions(viewDefinitions: ViewDefinitionEntry[]): Project {
-  const ts = TS as unknown as Project["meta"]["createdAt"];
+function rawProjectWithViewDefinitions(viewDefinitions: ViewDefinitionEntry[]): Harmony {
+  const ts = TS as unknown as Harmony["meta"]["createdAt"];
   return {
     $schema: "../../schemas/v3/harmony.v3.schema.json",
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      id: "11111111-2222-4333-8444-555555555555" as unknown as Project["meta"]["id"],
+      id: "11111111-2222-4333-8444-555555555555" as unknown as Harmony["meta"]["id"],
       name: "test",
       maturity: "draft",
       createdAt: ts,

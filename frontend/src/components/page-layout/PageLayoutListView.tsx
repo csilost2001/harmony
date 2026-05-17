@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { DisplayName } from "../../types/v3";
-import type { PageLayoutEntry } from "../../types/v3/project";
+import type { PageLayoutEntry } from "../../types/v3/harmony";
 import type { PageLayoutEditorKind, PageLayoutCssFramework } from "../../store/pageLayoutStore";
 import {
   listPageLayouts,

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Project, ProjectId, Table, TableId, Timestamp } from "../types/v3";
+import type { Harmony, ProjectId, Table, TableId, Timestamp } from "../types/v3";
 import { setFlowStorageBackend } from "./flowStore";
 import { setScreenFlowPositionsStorageBackend } from "./screenFlowPositionsStore";
 import type { TableStorageBackend } from "./tableStore";
@@ -22,7 +22,7 @@ function table(id: TableId, name: string): Table {
   } as Table;
 }
 
-function project(tableIds: TableId[]): Project {
+function project(tableIds: TableId[]): Harmony {
   return {
     schemaVersion: "v3",
     meta: {

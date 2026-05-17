@@ -28,7 +28,7 @@ import type {
   Position,
   Timestamp,
   ScreenTransitionEntry,
-  Project,
+  Harmony,
   ProjectId,
   LocalId,
   ProcessFlowId,
@@ -44,7 +44,7 @@ import {
   removePosition as layoutRemovePosition,
   removeTransitionLayout as layoutRemoveTransition,
 } from "./screenFlowPositionsStore";
-import { assertValidProject } from "../utils/validateProject";
+import { assertValidHarmony } from "../utils/validateHarmony";
 
 // ─── ストレージバックエンド ──────────────────────────────────────────────
 
@@ -108,7 +108,7 @@ function nowTs(): Timestamp {
 // ─── 業務情報のみの永続化 shape (harmony.json 用) ──────────────────────
 //
 // Phase 3-β: 業務情報のみで永続化する。座標 (position/size/thumbnail) は
-// screen-flow-positions.json に分離する。Phase 4 で v3 Project (entities ネスト) に
+// screen-flow-positions.json に分離する。Phase 4 で v3 Harmony (entities ネスト) に
 // 完全移行する際に、本 shape は ScreenEntry / ScreenGroupEntry / ScreenTransitionEntry の
 // project.entities ネスト構造へ再編する。
 
@@ -154,7 +154,7 @@ export interface LegacyFlowProject {
   updatedAt: Timestamp;
 }
 
-type PersistedFlowProject = Project;
+type PersistedFlowProject = Harmony;
 
 // ─── 合成・分解 ─────────────────────────────────────────────────────────
 
@@ -173,7 +173,7 @@ function defaultGroupPosition(): Position {
 
 /** Persisted harmony.json + screen-flow-positions.json を UI 合成型 FlowProject に。 */
 export function composeFlowProject(
-  persisted: Project,
+  persisted: Harmony,
   layout: ScreenFlowPositions,
 ): FlowProject {
   const entities = persisted.entities ?? {};
@@ -255,10 +255,10 @@ export function composeFlowProject(
 export function decomposeFlowProject(
   project: FlowProject,
   baseLayout: ScreenFlowPositions,
-  existingRaw?: Project,
-): { project: Project; layout: ScreenFlowPositions } {
+  existingRaw?: Harmony,
+): { project: Harmony; layout: ScreenFlowPositions } {
   const ts = project.updatedAt || nowTs();
-  const persisted: Project = {
+  const persisted: Harmony = {
     $schema: PROJECT_SCHEMA_REF,
     schemaVersion: "v3",
     // dataDir を既存から保持。存在しない場合は推奨デフォルト "harmony"
@@ -449,7 +449,7 @@ function normalizeLegacyPersisted(raw: unknown): LegacyFlowProject {
   };
 }
 
-export function legacyToProject(legacy: LegacyFlowProject): Project {
+export function legacyToProject(legacy: LegacyFlowProject): Harmony {
   return {
     $schema: PROJECT_SCHEMA_REF,
     schemaVersion: "v3",
@@ -498,11 +498,11 @@ export function legacyToProject(legacy: LegacyFlowProject): Project {
   };
 }
 
-/** v1/v3 persisted shape を v3 Project root に正規化する。 */
+/** v1/v3 persisted shape を v3 Harmony root に正規化する。 */
 function normalizePersisted(raw: unknown): PersistedFlowProject {
   const obj = (raw ?? {}) as Record<string, unknown>;
   if (obj.schemaVersion === "v3" && obj.meta && typeof obj.meta === "object") {
-    const project = obj as unknown as Project;
+    const project = obj as unknown as Harmony;
     return {
       ...project,
       $schema: project.$schema ?? PROJECT_SCHEMA_REF,
@@ -584,7 +584,7 @@ function ensureProjectDefaults(project: FlowProject): FlowProject {
   return project;
 }
 
-function hasPersistedData(project: Project | null | undefined): boolean {
+function hasPersistedData(project: Harmony | null | undefined): boolean {
   const entities = project?.entities;
   return !!entities &&
     ((entities.screens?.length ?? 0) > 0 ||
@@ -607,7 +607,7 @@ export async function loadProject(): Promise<FlowProject> {
     const persisted = normalizePersisted(data);
     if (!((data as Record<string, unknown>).schemaVersion === "v3")) {
       // AJV validation: schema 違反があれば migration 書き戻しを中断し例外を投げる (#836)
-      assertValidProject(persisted);
+      assertValidHarmony(persisted);
       await backend.saveProject(persisted);
     }
     const layout = await loadScreenFlowPositions();
@@ -622,7 +622,7 @@ export async function loadProject(): Promise<FlowProject> {
     const layout = await loadScreenFlowPositions();
     try {
       // AJV validation: schema 違反があれば localStorage→backend migration 書き戻しを中断し例外を投げる (#836)
-      assertValidProject(local);
+      assertValidHarmony(local);
       await backend.saveProject(local);
       if (Object.keys(layout.positions).length > 0 || Object.keys(layout.transitions ?? {}).length > 0) {
         await saveScreenFlowPositions(layout);
@@ -637,11 +637,11 @@ export async function loadProject(): Promise<FlowProject> {
 }
 
 /**
- * プロジェクトの生 Project 定義を読み込む (techStack.designer.cssFramework 等の参照用)。
+ * プロジェクトの生 Harmony 定義を読み込む (techStack.designer.cssFramework 等の参照用)。
  * FlowProject へ合成する loadProject() とは異なり、harmony.json の raw shape を返す。
  * techStack field は FlowProject には含まれないため、本関数で取得する (#793 子 5 / #826)。
  */
-export async function loadRawProject(): Promise<Project> {
+export async function loadRawProject(): Promise<Harmony> {
   const data = await requireBackend().loadProject();
   if (data) return normalizePersisted(data);
   // backend が空応答の場合のみ、旧 localStorage データを 1 度きり救済として読み出す
@@ -651,23 +651,23 @@ export async function loadRawProject(): Promise<Project> {
 }
 
 /**
- * raw Project を直接永続化する。
+ * raw Harmony を直接永続化する。
  * FlowProject には含まれないフィールド (entities.viewDefinitions 等) を保存する専用関数。
  * AJV validation は行わない (draft-state policy により schema 違反でも保存可能)。
  */
-export async function saveRawProject(raw: Project): Promise<void> {
+export async function saveRawProject(raw: Harmony): Promise<void> {
   await requireBackend().saveProject(raw);
 }
 
 /**
  * project.techStack を更新して永続化する (#826)。
- * FlowProject には techStack フィールドがないため、raw Project を直接 patch する専用関数。
+ * FlowProject には techStack フィールドがないため、raw Harmony を直接 patch する専用関数。
  */
-export async function saveTechStack(techStack: Project["techStack"]): Promise<void> {
+export async function saveTechStack(techStack: Harmony["techStack"]): Promise<void> {
   const raw = await loadRawProject();
-  const patched: Project = { ...raw, techStack };
+  const patched: Harmony = { ...raw, techStack };
   // AJV validation: schema 違反があれば保存を中断し例外を投げる (#835)
-  assertValidProject(patched);
+  assertValidHarmony(patched);
   await requireBackend().saveProject(patched);
 }
 
@@ -677,7 +677,7 @@ async function persistFlowProject(project: FlowProject): Promise<void> {
   const existingRaw = await loadRawProject().catch(() => undefined);
   const { project: persisted, layout } = decomposeFlowProject(project, baseLayout, existingRaw);
   // AJV validation: schema 違反があれば保存を中断し例外を投げる (#835)
-  assertValidProject(persisted);
+  assertValidHarmony(persisted);
   await requireBackend().saveProject(persisted);
   await saveScreenFlowPositions(layout);
 }

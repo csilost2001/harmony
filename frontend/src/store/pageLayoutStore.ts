@@ -6,7 +6,7 @@
  */
 
 import type { Uuid, Timestamp, DisplayName, Maturity } from "../types/v3";
-import type { PageLayoutEntry } from "../types/v3/project";
+import type { PageLayoutEntry } from "../types/v3/harmony";
 import { generateUUID } from "../utils/uuid";
 import { loadRawProject, saveRawProject } from "./flowStore";
 import { renumber, nextNo } from "../utils/listOrder";

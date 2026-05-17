@@ -30,7 +30,7 @@ import { EdgeEditModal, type EdgeFormData, type HandlePosition } from "./EdgeEdi
 import type { FlowProject, ScreenNode, ScreenEdge, ScreenGroup } from "../../types/flow";
 import type { Screen } from "../../types/v3/screen";
 import type { Marker } from "../../types/v3/common";
-import type { PageLayoutEntry } from "../../types/v3/project";
+import type { PageLayoutEntry } from "../../types/v3/harmony";
 import { TRIGGER_LABELS } from "../../types/flow";
 import type { ScreenGroupId, ScreenKind, ScreenFlowPositions, Timestamp, Uuid } from "../../types/v3";
 import {

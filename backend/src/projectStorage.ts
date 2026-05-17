@@ -483,10 +483,30 @@ function isLegacyGrapesScreen(value: unknown): boolean {
   return Array.isArray(value.pages) || "frames" in value || "component" in value || "styles" in value;
 }
 
+/**
+ * `$schema` 文字列が指定された schema ファイル (basename 一致) を参照しているかを判定する (#1142)。
+ *
+ * 相対パス (`../schemas/v3/screen.v3.schema.json`)、絶対パス、
+ * URL 形式 ($id: `https://raw.githubusercontent.com/.../schemas/v3/screen.v3.schema.json`)、
+ * 直接 filename (`screen.v3.schema.json`) のいずれも last segment 比較で許容する。
+ * クエリ文字列・fragment が末尾に付くケースは除去してから比較する。
+ *
+ * 旧 `endsWith("schemas/v3/screen.v3.schema.json")` 文字列マッチは schema rename / 移動 /
+ * `$id` 形式変更 (例: github raw URL 化) で silent break するため robust 化した。
+ */
+function matchesSchemaBasename(schemaStr: string, expectedBasename: string): boolean {
+  if (!schemaStr) return false;
+  // strip query/fragment
+  const cleaned = schemaStr.split(/[?#]/)[0];
+  // POSIX basename (URL / Linux 相対パス 両対応)、Windows 区切り も念のため対応
+  const basename = cleaned.replace(/\\/g, "/").split("/").pop() ?? "";
+  return basename === expectedBasename;
+}
+
 function isScreenEntity(value: unknown): boolean {
   if (!isRecord(value)) return false;
   const schemaStr = typeof value.$schema === "string" ? value.$schema : "";
-  return schemaStr.endsWith("schemas/v3/screen.v3.schema.json") || (
+  return matchesSchemaBasename(schemaStr, "screen.v3.schema.json") || (
     typeof value.kind === "string" &&
     typeof value.path === "string" &&
     ("items" in value || "design" in value || "id" in value)

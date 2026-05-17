@@ -1,11 +1,11 @@
 /**
- * ProjectTechStack の組合せ制約バリデーター (#826)。
+ * HarmonyTechStack の組合せ制約バリデーター (#826)。
  *
  * schema レベルでは表現が困難な言語 × フレームワーク / エディタ × フロントエンド等の
  * 組合せ制約を TypeScript 関数として実装する。
  * 各違反は具体的な field path + 修正提案メッセージを返す。
  */
-import type { ProjectTechStack } from "../types/v3/project";
+import type { HarmonyTechStack } from "../types/v3/harmony";
 
 export interface TechStackConstraintViolation {
   field: string;
@@ -24,13 +24,13 @@ const BACKEND_LANG_FRAMEWORK_MAP: Record<string, string[]> = {
 };
 
 /**
- * ProjectTechStack の組合せ制約を検証し、違反リストを返す。
+ * HarmonyTechStack の組合せ制約を検証し、違反リストを返す。
  *
- * @param techStack - 検証対象の ProjectTechStack。undefined の場合は空配列を返す。
+ * @param techStack - 検証対象の HarmonyTechStack。undefined の場合は空配列を返す。
  * @returns 違反リスト。空配列は制約なし (全 OK)。
  */
 export function validateTechStackConstraints(
-  techStack: ProjectTechStack | undefined,
+  techStack: HarmonyTechStack | undefined,
 ): TechStackConstraintViolation[] {
   if (!techStack) return [];
 

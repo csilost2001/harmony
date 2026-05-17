@@ -43,7 +43,7 @@ import type {
   PanelMode,
   ThemeId,
 } from "./EditorBackend";
-import type { CssFramework } from "../types/v3/project";
+import type { CssFramework } from "../types/v3/harmony";
 import { registerBlocks } from "../grapes/blocks";
 import { registerValidationTraits } from "../grapes/validationTraits";
 import { attachDataItemIdAutoAssign } from "../grapes/dataItemId";

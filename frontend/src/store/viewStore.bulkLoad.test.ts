@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Project, ProjectId, Timestamp, View, ViewId } from "../types/v3";
+import type { Harmony, ProjectId, Timestamp, View, ViewId } from "../types/v3";
 import { setFlowStorageBackend } from "./flowStore";
 import { setScreenFlowPositionsStorageBackend } from "./screenFlowPositionsStore";
 import type { ViewStorageBackend } from "./viewStore";
@@ -23,7 +23,7 @@ function view(id: ViewId, name: string): View {
   } as View;
 }
 
-function project(viewIds: ViewId[]): Project {
+function project(viewIds: ViewId[]): Harmony {
   return {
     schemaVersion: "v3",
     meta: {

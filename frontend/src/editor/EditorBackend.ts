@@ -11,7 +11,7 @@
  */
 
 import type { ReactNode } from "react";
-import type { CssFramework } from "../types/v3/project";
+import type { CssFramework } from "../types/v3/harmony";
 import type { McpStatus } from "../mcp/mcpBridge";
 
 export type ThemeId = "standard" | "card" | "compact" | "dark";

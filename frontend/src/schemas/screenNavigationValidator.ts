@@ -38,7 +38,7 @@
  */
 
 import type { ProcessFlow, Screen, Step, ScreenTransitionStep } from "../types/v3";
-import type { ScreenTransitionEntry } from "../types/v3/project";
+import type { ScreenTransitionEntry } from "../types/v3/harmony";
 import { isBuiltinStep } from "./stepGuards";
 
 // ─── 出力型 ────────────────────────────────────────────────────────────────

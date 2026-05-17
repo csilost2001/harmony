@@ -11,13 +11,13 @@
  * #806 子 2: Designer.tsx の theme 解決ロジック画面単位化
  * #826: projectTechStack 引数に変更 (project.techStack.designer 参照)
  */
-import type { CssFramework } from "../types/v3/project";
+import type { CssFramework } from "../types/v3/harmony";
 import type { ScreenDesign } from "../types/v3/screen";
-import type { ProjectTechStack } from "../types/v3/project";
+import type { HarmonyTechStack } from "../types/v3/harmony";
 
 export function resolveCssFramework(
   screenDesign: Pick<ScreenDesign, "cssFramework"> | undefined,
-  projectTechStack: Pick<ProjectTechStack, "designer"> | undefined,
+  projectTechStack: Pick<HarmonyTechStack, "designer"> | undefined,
 ): CssFramework {
   return screenDesign?.cssFramework ?? projectTechStack?.designer?.cssFramework ?? "bootstrap";
 }

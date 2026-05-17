@@ -478,7 +478,7 @@ describe("autoActivateOnStartup (#754)", () => {
 });
 
 describe("_internals", () => {
-  it("PROJECT_SCHEMA_REF は schemas/v3/harmony.v3.schema.json への相対パスを含む", () => {
-    expect(_internals.PROJECT_SCHEMA_REF).toContain("harmony.v3.schema.json");
+  it("HARMONY_SCHEMA_REF は schemas/v3/harmony.v3.schema.json への相対パスを含む", () => {
+    expect(_internals.HARMONY_SCHEMA_REF).toContain("harmony.v3.schema.json");
   });
 });

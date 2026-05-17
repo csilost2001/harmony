@@ -13,7 +13,7 @@
  * #826: projectTechStack 引数に変更 (project.techStack.designer 参照)
  */
 import type { ScreenDesign } from "../types/v3/screen";
-import type { ProjectTechStack } from "../types/v3/project";
+import type { HarmonyTechStack } from "../types/v3/harmony";
 
 /** エディタ種別。画面作成時に固定し、以降変更不可。 */
 export type EditorKind = "grapesjs" | "puck";
@@ -27,7 +27,7 @@ export type EditorKind = "grapesjs" | "puck";
  */
 export function resolveEditorKind(
   screenDesign: Pick<ScreenDesign, "editorKind"> | undefined,
-  projectTechStack: Pick<ProjectTechStack, "designer"> | undefined,
+  projectTechStack: Pick<HarmonyTechStack, "designer"> | undefined,
 ): EditorKind {
   return screenDesign?.editorKind ?? projectTechStack?.designer?.editorKind ?? "grapesjs";
 }

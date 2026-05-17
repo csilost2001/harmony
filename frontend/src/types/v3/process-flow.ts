@@ -213,6 +213,46 @@ export interface EventEntry {
   payload?: Record<string, unknown>;
 }
 
+/**
+ * AI モデルエンドポイント定義 (#1142 同根の schema sync ギャップ吸収)。
+ * 1 エントリ = 1 provider+model+認証の組合せ。step 側は modelRef でキー参照することで
+ * provider 切替を catalog 編集に閉じ込める (LangChain / Camunda / Azure Foundry 等の業界共通パターン)。
+ *
+ * 対応 schema: schemas/v3/process-flow.v3.schema.json#/$defs/ModelEndpointEntry
+ */
+export interface ModelEndpointEntry {
+  /**
+   * AI provider 識別子。
+   * 組み込み 6 種 (anthropic / openai / google / aws-bedrock / ollama / azure-openai) または
+   * 拡張 (`namespace:provider` 形式)。
+   */
+  provider:
+    | "anthropic"
+    | "openai"
+    | "google"
+    | "aws-bedrock"
+    | "ollama"
+    | "azure-openai"
+    | string;
+  /** プロバイダー固有のモデル ID (例: 'claude-opus-4-7' / 'gpt-4o' / 'gemini-2.0-flash')。 */
+  model: string;
+  /** API base URL (Ollama / Azure OpenAI / 自前 BYO endpoint で必須)。 */
+  endpoint?: string;
+  /** 認証方式 (tokenRef は @secret.<key> 形式で参照)。 */
+  auth?: ExternalAuth;
+  /** step 側で未指定時に適用するデフォルトパラメータ。 */
+  defaults?: {
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+    topK?: number;
+    stopSequences?: string[];
+  };
+  /** プライマリ呼び出し失敗時の fallback endpoint key (modelEndpoints 内の別キー参照)。 */
+  fallback?: string;
+  description?: Description;
+}
+
 /** ProcessFlow 内 catalog 群を階層化集約。 */
 export interface Catalogs {
   /** エラーコード catalog。キー: ErrorCode (UPPER_SNAKE)。 */
@@ -229,6 +269,8 @@ export interface Catalogs {
   functions?: Record<string, FunctionEntry>;
   /** イベント catalog。キー: EventTopic (dot.lowercase + underscore)。 */
   events?: Record<string, EventEntry>;
+  /** AI モデルエンドポイント catalog。キー: endpointKey (Identifier / camelCase)。 */
+  modelEndpoints?: Record<string, ModelEndpointEntry>;
 }
 
 /** 健全性チェック 1 件。 */

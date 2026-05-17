@@ -16,7 +16,7 @@ import type {
   LocalId,
   Position,
   ProcessFlowId,
-  Project,
+  Harmony,
   ProjectId,
   ScreenGroupId,
   ScreenId,
@@ -43,7 +43,7 @@ function mkEmptyProject(): FlowProject {
   };
 }
 
-function mkPersistedProject(): Project {
+function mkPersistedProject(): Harmony {
   return {
     $schema: "../schemas/v3/harmony.v3.schema.json",
     schemaVersion: "v3",
@@ -165,7 +165,7 @@ describe("flowStore データ消失ガード (2026-04-22)", () => {
     expect(saveMock).not.toHaveBeenCalled();
   });
 
-  it("loadProject: localStorage に有効データがあれば backend に v3 Project として移行する", async () => {
+  it("loadProject: localStorage に有効データがあれば backend に v3 Harmony として移行する", async () => {
     const saveMock = vi.fn().mockResolvedValue(undefined);
     const backend: FlowStorageBackend = {
       loadProject: vi.fn().mockResolvedValue(null),
@@ -338,7 +338,7 @@ describe("addScreen opts (#825)", () => {
 });
 
 describe("flowStore v3 compose/decompose", () => {
-  it("Project entities と ScreenFlowPositions を FlowProject に合成し、保存 shape に戻せる", () => {
+  it("Harmony entities と ScreenFlowPositions を FlowProject に合成し、保存 shape に戻せる", () => {
     const project = mkPersistedProject();
     const layout = mkLayout();
 

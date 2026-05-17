@@ -2,7 +2,7 @@
  * genericDefinitionValidator.ts — Generic Definition Catalog の AJV バリデーション (#1079)
  *
  * draft-state-policy §6 に基づき、AJV で schema 検証 + kind 固有 semantic warning を提供する。
- * validateProject.ts のキャッシュパターンに倣い、singleton AJV + 初回呼び出し時 compile。
+ * validateHarmony.ts のキャッシュパターンに倣い、singleton AJV + 初回呼び出し時 compile。
  *
  * component-definition は schemas/v3/generic-definitions/ に固有 schema ファイルが存在しないため、
  * 親 schema 単独で検証する (briefing 指示に従う)。

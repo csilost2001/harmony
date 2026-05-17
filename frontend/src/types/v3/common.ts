@@ -105,13 +105,13 @@ export type ExpressionString = string;
 /** 成熟度 3 値。 */
 export type Maturity = "draft" | "provisional" | "committed";
 
-/** ProcessFlow / Project の上流・下流モード。 */
+/** ProcessFlow / Harmony workspace の上流・下流モード。 */
 export type Mode = "upstream" | "downstream";
 
 // ─── EntityMeta (全 top-level entity が allOf でマージ) ─────────────────
 
 /**
- * 全 top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence 等) の共通 meta。
+ * 全 top-level entity (Harmony / Screen / Table / ProcessFlow / View / Sequence 等) の共通 meta。
  * CustomBlock のような特殊形式 entity は EntityMeta を採用しない (個別型で定義)。
  */
 export interface EntityMeta {

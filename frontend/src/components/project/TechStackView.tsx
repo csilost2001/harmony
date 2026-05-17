@@ -14,14 +14,14 @@ import { useState, useEffect, useCallback } from "react";
 import { loadRawProject, saveTechStack } from "../../store/flowStore";
 import { validateTechStackConstraints } from "../../utils/techStackConstraints";
 import type {
-  ProjectTechStack,
+  HarmonyTechStack,
   TechStackDesigner,
   TechStackBackend,
   TechStackDatabase,
   TechStackFrontend,
   TechStackAuth,
   TechStackDeployment,
-} from "../../types/v3/project";
+} from "../../types/v3/harmony";
 
 // ── 定数 ───────────────────────────────────────────────────────────────────────
 
@@ -354,7 +354,7 @@ function SummarySection({ label, lines }: { label: string; lines: string[] }) {
 
 export function TechStackView() {
   const [activeCategory, setActiveCategory] = useState<CategoryId>("designer");
-  const [techStack, setTechStack] = useState<ProjectTechStack>({});
+  const [techStack, setTechStack] = useState<HarmonyTechStack>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);

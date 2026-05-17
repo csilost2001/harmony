@@ -39,13 +39,13 @@ export type WorkspaceInspectResult =
   | { status: "notFound"; path: string }
   | { status: "invalid"; path: string; reason: string };
 
-const PROJECT_SCHEMA_REF = "../schemas/v3/harmony.v3.schema.json";
+const HARMONY_SCHEMA_REF = "../schemas/v3/harmony.v3.schema.json";
 const SCHEMAS_DIR = path.resolve(import.meta.dirname, "../../schemas");
 
-let _validateProjectCache: ((data: unknown) => boolean) & { errors?: unknown } | null = null;
+let _validateHarmonyCache: ((data: unknown) => boolean) & { errors?: unknown } | null = null;
 
-async function getProjectValidator(): Promise<((data: unknown) => boolean) & { errors?: unknown }> {
-  if (_validateProjectCache) return _validateProjectCache;
+async function getHarmonyValidator(): Promise<((data: unknown) => boolean) & { errors?: unknown }> {
+  if (_validateHarmonyCache) return _validateHarmonyCache;
   // strict: false で format 系 ($ref 解決に format 制約が含まれる) の警告を抑制
   // schemas/v3/*.schema.json は JSON Schema draft 2020-12 を使用 (Ajv2020 が必要)
   const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -58,8 +58,8 @@ async function getProjectValidator(): Promise<((data: unknown) => boolean) & { e
   );
   ajv.addSchema(commonSchema);
   const validate = ajv.compile(harmonySchema);
-  _validateProjectCache = validate as ((data: unknown) => boolean) & { errors?: unknown };
-  return _validateProjectCache;
+  _validateHarmonyCache = validate as ((data: unknown) => boolean) & { errors?: unknown };
+  return _validateHarmonyCache;
 }
 
 async function pathExists(p: string): Promise<boolean> {
@@ -124,7 +124,7 @@ export async function inspectWorkspacePath(folderPath: string): Promise<Workspac
     return { status: "invalid", path: abs, reason: harmonyResult.error };
   }
   // AJV 検証
-  const validate = await getProjectValidator();
+  const validate = await getHarmonyValidator();
   if (!validate(harmonyResult.data)) {
     const reason = `harmony.v3.schema.json 検証エラー: ${JSON.stringify(validate.errors)}`;
     return { status: "invalid", path: abs, reason };
@@ -172,7 +172,7 @@ export async function initializeWorkspace(
   const harmonyResult = await readHarmonyAt(abs);
   if (harmonyResult !== null && "data" in harmonyResult) {
     const existing = harmonyResult.data;
-    const validate = await getProjectValidator();
+    const validate = await getHarmonyValidator();
     if (!validate(existing)) {
       throw new Error(
         `既存 harmony.json が schema 違反のため init を中止しました: ${path.join(abs, "harmony.json")}: ${JSON.stringify(validate.errors)}`,
@@ -199,7 +199,7 @@ export async function initializeWorkspace(
   const projectId = randomUUID();
   const name = path.basename(abs) || "新規ワークスペース";
   const project = {
-    $schema: PROJECT_SCHEMA_REF,
+    $schema: HARMONY_SCHEMA_REF,
     schemaVersion: "v3" as const,
     dataDir: dataDirVal,
     meta: {
@@ -223,7 +223,7 @@ export async function initializeWorkspace(
 
   // schema 検証してから書き込み (テスト pass を理由に schema を勝手に変更しない、
   // 失敗した場合は ISSUE 起票して停止する原則に従う)
-  const validate = await getProjectValidator();
+  const validate = await getHarmonyValidator();
   if (!validate(project)) {
     throw new Error(
       `初期 harmony.json が schemas/v3/harmony.v3.schema.json に違反: ${JSON.stringify(validate.errors)}`,
@@ -298,5 +298,5 @@ export async function autoActivateOnStartup(): Promise<AutoActivateResult> {
 
 /** test-only */
 export const _internals = {
-  PROJECT_SCHEMA_REF,
+  HARMONY_SCHEMA_REF,
 };

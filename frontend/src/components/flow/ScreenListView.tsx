@@ -4,7 +4,7 @@ import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { ScreenNode } from "../../types/flow";
 import { SCREEN_KIND_LABELS, SCREEN_KIND_ICONS } from "../../types/flow";
 import type { ScreenId, ScreenKind, Timestamp, Uuid } from "../../types/v3";
-import type { PageLayoutEntry } from "../../types/v3/project";
+import type { PageLayoutEntry } from "../../types/v3/harmony";
 import { loadProject, loadRawProject, saveProject, addScreen, removeScreen, DEFAULT_NODE_SIZE } from "../../store/flowStore";
 import { buildDefaultScreen, loadPuckScreenValidationMap, saveScreenEntity } from "../../store/screenStore";
 import { listPageLayouts } from "../../store/pageLayoutStore";
