@@ -18,6 +18,24 @@ npm run lint       # ESLint
 - `src/store/` — Persistence layer (flowStore, customBlockStore)
 - `src/mcp/mcpBridge.ts` — Browser-side WebSocket client
 
+### `<feature>/` vs `components/<feature>/` 二重配置の規約 (ISSUE #1147 N-5)
+
+特定 feature の SDK / 環境連携と、その UI ダイアログを別ディレクトリに分離するパターン:
+
+- **`src/<feature>/`** — 外部 SDK ラッパー / 環境連携 / hooks / 純粋ロジック (UI 非依存)。
+  - 例: `src/codex/` (Codex CLI client + hooks)、`src/puck/` (Puck buildConfig + primitives 等)
+- **`src/components/<feature>/`** — その feature 専用の UI ダイアログ / view / panel コンポーネント。
+  - 例: `src/components/codex/` (CodexIndicator / CodexSettingsView)、
+    `src/components/puck/` (RegisterComponentDialog)
+
+判定基準:
+- ロジック / hook / API client / 型 → `<feature>/`
+- React component / ダイアログ / インジケータ / 設定画面 → `components/<feature>/`
+
+両者は循環依存を避けるため、`components/<feature>/` から `<feature>/` への片方向 import のみ
+を許容する。`<feature>/` 配下に JSX を持ち込まない (testing-library の jest-dom 等の
+セットアップ衝突を避けるため)。
+
 ## Data Flow
 
 - **Save:** GrapesJS autosave → remoteStorage → mcpBridge (WS) → wsBridge → active workspace の `<workspace>/<dataDir>/screens/{id}.json` (例: `workspaces/my-app/harmony/screens/{id}.json`、path は `harmony.json` の `dataDir` 設定に依存、#856 で `data/` 直書きから移行済)

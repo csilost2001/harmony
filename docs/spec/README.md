@@ -44,6 +44,7 @@
 | [e2e-vite-stability.md](e2e-vite-stability.md) | Vite dev server multi-context e2e crash 調査 + 既知回避策 + 再現 scaffold spec | #992 |
 | **[generic-definition-layer.md](generic-definition-layer.md)** | **汎用設計定義レイヤー (RFC v0.2)** — 既存 entity 構造化拡張 + Generic Definition Catalog (8 kind: data-contract / domain-type / exception-type / application-rule / ui-behavior / runtime-policy / component-definition / ui-fragment) + AI 向け変換マニュアル方式。配置 `examples/<project>/<dataDir>/generic-definitions/<kind>/*.json` (実例: examples/retail/harmony/...) | #1060 |
 | **[conversion-guideline-for-ai.md](conversion-guideline-for-ai.md)** | **Markdown → Harmony JSON 変換ガイドライン (AI 向け、RFC v0.1)** — entity 構造 / archetype 10 種類別の落とし方 (§3.1〜§3.7 に JSON before/after pair 付き、§3.8/§3.9 は概要のみ) / Generic Definition catalog の共通メタモデル / audit warning 12 種 / 1 回限り変換 vs Importer 生成の判断 / TS scaffold テンプレ / 既知落とし穴 / decision flowchart。`/import-md` skill 起動点 | #1060 |
+| [react-exporter.md](react-exporter.md) | `designer__export_screen` MCP tool 用 HTML→JSX 機械変換器 (backend/reactExporter.ts) の存在意義 / `/generate-code` skill との関係 / 14 event placeholder | #1147 (N-8) |
 
 **一次成果物**: JSON スキーマ [`schemas/process-flow.schema.json`](../../schemas/process-flow.schema.json) ([README](../../schemas/README.md))。仕様書と突合する機械可読版。
 
