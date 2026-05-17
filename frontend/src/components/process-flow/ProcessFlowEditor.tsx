@@ -25,6 +25,7 @@ import {
   moveStep,
   addSubStep,
 } from "../../store/processFlowStore";
+import { applyProcessFlowMutation } from "./processFlowMutation";
 import { listTables, loadTable } from "../../store/tableStore";
 import { loadProject } from "../../store/flowStore";
 import { getStepLabel, clearJumpReferences } from "../../utils/actionUtils";
@@ -2130,46 +2131,8 @@ export function ProcessFlowEditor() {
   );
 }
 
-// ── browser-first 処理フロー変異ヘルパー (#361) ──────────────────────────────
-// add_step / remove_step / moveStep は processFlowStore の関数を再利用し、
-// ファイルベース (processFlowEdits.ts) と実装が乖離しないようにする。
-
-function applyProcessFlowMutation(
-  g: ProcessFlow,
-  type: string,
-  p: Record<string, unknown>,
-): void {
-  switch (type) {
-    case "designer__add_step": {
-      const act = g.actions.find((a) => a.id === p.actionId);
-      if (!act) return;
-      const pos = typeof p.position === "number" ? p.position : undefined;
-      const step = addStep(act, p.type as StepType, pos);
-      if (p.description) step.description = p.description as string;
-      Object.assign(step, (p.detail ?? {}) as object);
-      break;
-    }
-    case "designer__update_step": {
-      for (const act of g.actions) {
-        const step = act.steps.find((s) => s.id === p.stepId);
-        if (step) { Object.assign(step, p.patch); return; }
-      }
-      break;
-    }
-    case "designer__remove_step": {
-      for (const act of g.actions) {
-        const idx = act.steps.findIndex((s) => s.id === p.stepId);
-        if (idx >= 0) { removeStep(act, p.stepId as string); return; }
-      }
-      break;
-    }
-    case "designer__move_step": {
-      const newIndex = p.newIndex as number;
-      for (const act of g.actions) {
-        const fromIdx = act.steps.findIndex((s) => s.id === p.stepId);
-        if (fromIdx >= 0) { moveStep(act, fromIdx, newIndex); return; }
-      }
-      break;
-    }
-  }
-}
+// ── browser-first 処理フロー変異ヘルパー ───────────────────────────────────
+// #1149 (PR #1148 follow-up) で `./processFlowMutation.ts` に切り出し済。
+// 切り出し理由: vitest unit test で巨大エディタ全体を巻き込まずに mutation
+// ロジックを単体検証するため。v3 構造 (`kind` discriminator / RFC 4122 v4
+// UUID) は同モジュール内で受容する。
