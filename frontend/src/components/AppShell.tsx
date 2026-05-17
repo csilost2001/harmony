@@ -67,6 +67,7 @@ import { useErrorDialog } from "./common/ErrorDialogProvider";
 import { recordError } from "../utils/errorLog";
 import { checkRedirect, subscribeRedirectGuardTrip, isRedirectGuardTripped } from "../utils/redirectGuard";
 import { uiInfo, uiWarn, setupServerLogFlush } from "../utils/uiLog";
+import { evaluateRoutingGuard } from "../routing/workspaceRouting";
 
 function useTabs() {
   const [tabs, setTabs] = useState<readonly TabItem[]>(getTabs);
@@ -449,74 +450,44 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   // backend offline 時の localStorage fallback は #923 シリーズで廃止 (spec D-8)。
   // 接続失敗は AppShell 上位の `connectionFailed` (`markFailed()` 経由) が
   // `ConnectionFailedView` で UI を切り替える。本ガードは正常接続時の URL 同期に専念する。
+  //
+  // 判定ロジックは pure 関数 `evaluateRoutingGuard` (routing/workspaceRouting.ts) に抽出 (#1145 Phase-7)。
+  // 副作用 (並行発行ガード recoveryPendingRef / mcpBridge.request / redirectGuard / navigate / loadWorkspaces) は
+  // 本 useEffect 内で適用する。
   useEffect(() => {
-    if (workspaceState.loading) return; // ロード中は判定しない
-    if (workspaceState.lockdown) return; // lockdown 時はガード不要 (常にアクティブ扱い)
     // e2e テスト用 bypass (workspace-e2e-bypass=true) のみ guard スキップ。
     // それ以外の error 状態は明示的に redirect / エラー画面へ誘導する。
     if (workspaceState.error === "e2e bypass") return;
 
-    if (workspaceState.active === null) {
-      // active なし → /workspace/select
-      // /workspace/* パスは AppShell の上位 Route で処理済みのため、
-      // ここは /w/:wsId/* 配下の場合のみ。
-      // ただし URL に有効な wsId があり recent に存在する場合は、WS 再接続直後に
-      // activePath が null にリセットされた可能性があるため、workspace.open で復元を試みる。
-      // (WS 切断→再接続で per-session activePath が消える問題 #947)
-      if (wsId) {
-        const recentEntry = workspaceState.workspaces.find((w) => w.id === wsId);
-        if (recentEntry) {
-          // 並行発行ガード: 同 wsId に対する未完了 workspace.open RPC があれば skip (#963)
-          if (recoveryPendingRef.current === wsId) {
-            return;
-          }
-          recoveryPendingRef.current = wsId;
-          mcpBridge.request("workspace.open", { id: wsId })
-            // backend の workspace.changed broadcast は requester を除外する (wsBridge.ts excludeClientId)。
-            // 自セッション側は broadcast を受けないため、明示的に loadWorkspaces で state.active を更新する。
-            // (#956 / puck-editor:67 reload 復元 race の真因対応)
-            .then(() => loadWorkspaces())
-            .catch((err) => {
-              console.error("[workspace] workspace.open recovery failed:", err);
-              const guard = checkRedirect("/workspace/select");
-              if (guard.allow) navigate("/workspace/select", { replace: true });
-            })
-            .finally(() => {
-              if (recoveryPendingRef.current === wsId) recoveryPendingRef.current = null;
-            });
-          return; // workspace.open + 自 loadWorkspaces で active が復元される
-        }
+    const action = evaluateRoutingGuard(workspaceState, wsId);
+    if (action.type === "none") return;
+
+    if (action.type === "openWorkspace") {
+      // 並行発行ガード (#963): 同 wsId に対する未完了 workspace.open RPC があれば skip
+      if (recoveryPendingRef.current === action.id) {
+        return;
       }
-      const guard = checkRedirect("/workspace/select");
-      if (guard.allow) navigate("/workspace/select", { replace: true });
-    } else if (wsId && wsId !== workspaceState.active.id) {
-      // URL の :wsId が現在 active と異なる → workspace.open で同期
-      const recentEntry = workspaceState.workspaces.find((w) => w.id === wsId);
-      if (recentEntry) {
-        // 並行発行ガード (#963): URL 由来 sync 経路でも同 wsId 二重発行を抑止
-        if (recoveryPendingRef.current === wsId) {
-          return;
-        }
-        recoveryPendingRef.current = wsId;
-        mcpBridge.request("workspace.open", { id: wsId })
-          // backend broadcast は requester を除外するため、自セッション側で loadWorkspaces を明示呼び出し
-          // (#956 / puck-editor:67 reload 復元 race の真因対応、active=null 経路と同根)
-          .then(() => loadWorkspaces())
-          .catch((err) => {
-            console.error("[workspace] workspace.open from URL failed:", err);
-            const guard = checkRedirect("/workspace/select");
-            if (guard.allow) navigate("/workspace/select", { replace: true });
-          })
-          .finally(() => {
-            if (recoveryPendingRef.current === wsId) recoveryPendingRef.current = null;
-          });
-      } else {
-        // recent にない不正 wsId → /workspace/select
-        const guard = checkRedirect("/workspace/select");
-        if (guard.allow) navigate("/workspace/select", { replace: true });
-      }
+      recoveryPendingRef.current = action.id;
+      mcpBridge.request("workspace.open", { id: action.id })
+        // backend の workspace.changed broadcast は requester を除外する (wsBridge.ts excludeClientId)。
+        // 自セッション側は broadcast を受けないため、明示的に loadWorkspaces で state.active を更新する。
+        // (#956 / puck-editor:67 reload 復元 race の真因対応)
+        .then(() => loadWorkspaces())
+        .catch((err) => {
+          console.error("[workspace] workspace.open from routing guard failed:", err);
+          const guard = checkRedirect("/workspace/select");
+          if (guard.allow) navigate("/workspace/select", { replace: true });
+        })
+        .finally(() => {
+          if (recoveryPendingRef.current === action.id) recoveryPendingRef.current = null;
+        });
+      return;
     }
-  }, [workspaceState.active, workspaceState.active?.id, workspaceState.loading, workspaceState.lockdown, workspaceState.error, workspaceState.workspaces, wsId, location.pathname, navigate]);
+
+    // action.type === "navigate"
+    const guard = checkRedirect(action.path);
+    if (guard.allow) navigate(action.path, { replace: true });
+  }, [workspaceState, wsId, location.pathname, navigate]);
 
   // CSS variables でヘッダー・タブバーの高さを各コンポーネントに伝える
   useEffect(() => {

@@ -12,6 +12,7 @@
 
 import { useCallback } from "react";
 import { useParams } from "react-router-dom";
+import { wsPath as wsPathPure } from "../routing/workspaceRouting";
 
 interface UseWorkspacePathResult {
   /** /w/:wsId/<suffix> を返す。wsId が取れない場合は <suffix> のまま返す */
@@ -29,11 +30,10 @@ export function useWorkspacePath(): UseWorkspacePathResult {
   // 毎レンダー再評価され、setState 系を内側で叩いていると
   // 無限ループ ("Maximum update depth exceeded") を起こす
   // (UnsavedDraftsPanel で実際に発生していた、2026-05-04 修正)。
-  const wsPath = useCallback((suffix: string): string => {
-    if (!wsId) return suffix;
-    const normalizedSuffix = suffix.startsWith("/") ? suffix : `/${suffix}`;
-    return `/w/${wsId}${normalizedSuffix}`;
-  }, [wsId]);
+  //
+  // 純粋ロジックは routing/workspaceRouting.ts に集約 (#1145 Phase-7、
+  // 逆コロケーション解消)。本 hook は React 依存 (useParams + useCallback) のみ担う。
+  const wsPath = useCallback((suffix: string): string => wsPathPure(wsId, suffix), [wsId]);
 
   return { wsPath, wsId };
 }

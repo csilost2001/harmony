@@ -1,24 +1,26 @@
 /**
- * workspace routing guard ロジックの単体テスト (#702 R-4)
+ * workspace routing guard ロジックの単体テスト (#702 R-4 / #1145 Phase-7)
  *
  * AppShell の URL ↔ workspace context 連携ロジックを検証。
  * - routing guard: active なし → /workspace/select redirect
  * - routing guard: wsId が active と異なり recent にある → workspace.open 呼び出し
  * - routing guard: wsId が recent にない (不正 wsId) → /workspace/select redirect
- * - wsPath フック: wsId が取れる場合 /w/:wsId/<suffix> を返す
- * - wsPath フック: wsId がない場合は suffix をそのまま返す
+ * - wsPath 関数: wsId が取れる場合 /w/:wsId/<suffix> を返す
+ * - wsPath 関数: wsId がない場合は suffix をそのまま返す
+ *
+ * #1145 Phase-7: 旧版では本 test ファイル内に純粋ロジックを inline 重複定義していた
+ * (`wsPath` / `evaluateRoutingGuard`)。Phase-7 で `routing/workspaceRouting.ts` に
+ * 抽出したため、import で参照する形に整理 (逆コロケーション解消)。
  */
 
 import { describe, it, expect } from "vitest";
+import {
+  wsPath,
+  evaluateRoutingGuard,
+  type RoutingGuardWorkspaceState,
+} from "./workspaceRouting";
 
 // ─── wsPath ロジック単体テスト ───────────────────────────────────────────────
-// useWorkspacePath フックのロジックを直接テスト (React 不要)
-
-function wsPath(wsId: string | undefined, suffix: string): string {
-  if (!wsId) return suffix;
-  const normalizedSuffix = suffix.startsWith("/") ? suffix : `/${suffix}`;
-  return `/w/${wsId}${normalizedSuffix}`;
-}
 
 describe("wsPath (useWorkspacePath ロジック)", () => {
   it("wsId があれば /w/:wsId/<suffix> を返す", () => {
@@ -41,51 +43,16 @@ describe("wsPath (useWorkspacePath ロジック)", () => {
       "/w/ws-abc/extensions?tab=responseTypes"
     );
   });
+
+  it("wsId が空文字の場合は suffix をそのまま返す", () => {
+    expect(wsPath("", "/screen/list")).toBe("/screen/list");
+  });
 });
 
 // ─── routing guard ロジック単体テスト ─────────────────────────────────────────
-// AppShell の routing guard 判定ロジックを純粋関数として検証
 
-interface WorkspaceState {
-  active: { id: string; path: string; name: string | null } | null;
-  workspaces: Array<{ id: string; path: string; name: string }>;
-  loading: boolean;
-  lockdown: boolean;
-  error: string | null;
-}
-
-type GuardAction =
-  | { type: "navigate"; path: string }
-  | { type: "openWorkspace"; id: string }
-  | { type: "none" };
-
-/**
- * AppShellInner の routing guard ロジック (副作用なし純粋関数版)
- * AppShell.tsx のロジックをそのまま抽出
- */
-function evaluateRoutingGuard(
-  workspaceState: WorkspaceState,
-  wsId: string | undefined,
-): GuardAction {
-  if (workspaceState.loading) return { type: "none" };
-  if (workspaceState.lockdown) return { type: "none" };
-  if (workspaceState.error !== null) return { type: "none" };
-
-  if (workspaceState.active === null) {
-    return { type: "navigate", path: "/workspace/select" };
-  } else if (wsId && wsId !== workspaceState.active.id) {
-    const recentEntry = workspaceState.workspaces.find((w) => w.id === wsId);
-    if (recentEntry) {
-      return { type: "openWorkspace", id: wsId };
-    } else {
-      return { type: "navigate", path: "/workspace/select" };
-    }
-  }
-  return { type: "none" };
-}
-
-describe("routing guard ロジック (AppShellInner)", () => {
-  const baseState: WorkspaceState = {
+describe("evaluateRoutingGuard (AppShellInner)", () => {
+  const baseState: RoutingGuardWorkspaceState = {
     active: { id: "ws-aaa", path: "/data/ws-aaa", name: "テストWS" },
     workspaces: [
       { id: "ws-aaa", path: "/data/ws-aaa", name: "テストWS" },
@@ -111,9 +78,22 @@ describe("routing guard ロジック (AppShellInner)", () => {
     expect(result).toEqual({ type: "none" });
   });
 
-  it("active が null のとき /workspace/select に redirect", () => {
-    const result = evaluateRoutingGuard({ ...baseState, active: null }, "ws-aaa");
+  it("active が null かつ wsId なし → /workspace/select に redirect", () => {
+    const result = evaluateRoutingGuard({ ...baseState, active: null }, undefined);
     expect(result).toEqual({ type: "navigate", path: "/workspace/select" });
+  });
+
+  it("active が null かつ wsId が recent に無い → /workspace/select に redirect", () => {
+    const result = evaluateRoutingGuard(
+      { ...baseState, active: null },
+      "non-existent-uuid",
+    );
+    expect(result).toEqual({ type: "navigate", path: "/workspace/select" });
+  });
+
+  it("active が null かつ wsId が recent にある → workspace.open で復元", () => {
+    const result = evaluateRoutingGuard({ ...baseState, active: null }, "ws-bbb");
+    expect(result).toEqual({ type: "openWorkspace", id: "ws-bbb" });
   });
 
   it("URL の wsId が active と同じとき何もしない", () => {
