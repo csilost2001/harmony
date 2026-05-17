@@ -15,6 +15,7 @@ const { title = 'Harmony Docs', description = 'Harmony 仕様書' } = Astro.prop
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <PagefindConfig />
@@ -36,7 +37,7 @@ const { title = 'Harmony Docs', description = 'Harmony 仕様書' } = Astro.prop
           <a href="/user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a>
           <a href="/conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a>
           <a href="/setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a>
-          <a href="/presentation.html" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a>
+          <a href="/presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a>
         </nav>
         <div class="flex-1"></div>
         <pagefind-modal-trigger>
