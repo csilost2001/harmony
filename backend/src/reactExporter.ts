@@ -60,20 +60,20 @@ const ATTR_RENAME: Record<string, string> = {
 
 /** インラインイベントハンドラ → JSX イベントプロップ */
 const EVENT_HANDLERS: Record<string, { prop: string; handler: string }> = {
-  onclick:       { prop: "onClick",        handler: "() => { /* TODO */ }" },
-  ondblclick:    { prop: "onDoubleClick",  handler: "() => { /* TODO */ }" },
-  onchange:      { prop: "onChange",       handler: "(e) => { /* TODO */ }" },
-  onsubmit:      { prop: "onSubmit",       handler: "(e) => { e.preventDefault(); /* TODO */ }" },
-  oninput:       { prop: "onInput",        handler: "(e) => { /* TODO */ }" },
-  onblur:        { prop: "onBlur",         handler: "(e) => { /* TODO */ }" },
-  onfocus:       { prop: "onFocus",        handler: "(e) => { /* TODO */ }" },
-  onkeydown:     { prop: "onKeyDown",      handler: "(e) => { /* TODO */ }" },
-  onkeyup:       { prop: "onKeyUp",        handler: "(e) => { /* TODO */ }" },
-  onkeypress:    { prop: "onKeyPress",     handler: "(e) => { /* TODO */ }" },
-  onmouseenter:  { prop: "onMouseEnter",   handler: "() => { /* TODO */ }" },
-  onmouseleave:  { prop: "onMouseLeave",   handler: "() => { /* TODO */ }" },
-  onmousedown:   { prop: "onMouseDown",    handler: "(e) => { /* TODO */ }" },
-  onmouseup:     { prop: "onMouseUp",      handler: "(e) => { /* TODO */ }" },
+  onclick:       { prop: "onClick",        handler: "() => { /* USER_HANDLER */ }" },
+  ondblclick:    { prop: "onDoubleClick",  handler: "() => { /* USER_HANDLER */ }" },
+  onchange:      { prop: "onChange",       handler: "(e) => { /* USER_HANDLER */ }" },
+  onsubmit:      { prop: "onSubmit",       handler: "(e) => { e.preventDefault(); /* USER_HANDLER */ }" },
+  oninput:       { prop: "onInput",        handler: "(e) => { /* USER_HANDLER */ }" },
+  onblur:        { prop: "onBlur",         handler: "(e) => { /* USER_HANDLER */ }" },
+  onfocus:       { prop: "onFocus",        handler: "(e) => { /* USER_HANDLER */ }" },
+  onkeydown:     { prop: "onKeyDown",      handler: "(e) => { /* USER_HANDLER */ }" },
+  onkeyup:       { prop: "onKeyUp",        handler: "(e) => { /* USER_HANDLER */ }" },
+  onkeypress:    { prop: "onKeyPress",     handler: "(e) => { /* USER_HANDLER */ }" },
+  onmouseenter:  { prop: "onMouseEnter",   handler: "() => { /* USER_HANDLER */ }" },
+  onmouseleave:  { prop: "onMouseLeave",   handler: "() => { /* USER_HANDLER */ }" },
+  onmousedown:   { prop: "onMouseDown",    handler: "(e) => { /* USER_HANDLER */ }" },
+  onmouseup:     { prop: "onMouseUp",      handler: "(e) => { /* USER_HANDLER */ }" },
 };
 
 // ─── Type guards ─────────────────────────────────────────────────────────────
