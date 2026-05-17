@@ -85,9 +85,7 @@ import {
   readConventions,
   readExternalCatalogs,
   writeConventions,
-  readScreenItems,
   writeScreenItems,
-  deleteScreenItems,
   readSequence,
   writeSequence,
   deleteSequence as deleteSequenceFile,
@@ -1176,13 +1174,9 @@ class WsBridge extends EventEmitter {
           respond(data);
           break;
         }
-        case "savePageLayoutDesign": {
-          const { pageLayoutId, data } = (params ?? {}) as { pageLayoutId: string; data: unknown };
-          await writePageLayoutDesign(pageLayoutId, data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "pageLayoutChanged", data: { pageLayoutId }, excludeClientId: clientId });
-          break;
-        }
+        // RPC "savePageLayoutDesign" は frontend / MCP tools 双方から参照 0 件 (dead)。
+        // saveScreen 経路 (screenId が "page-layout:" prefix 時) で同等処理が走るため不要。
+        // ISSUE #1147 S-16 で dispatcher から削除。
         case "saveScreen": {
           const { screenId, data } = (params ?? {}) as { screenId: string; data: unknown };
           // RFC #1021 pl-6 (Codex A-2): PageLayout design は専用 storage へ
@@ -1383,26 +1377,12 @@ class WsBridge extends EventEmitter {
           this.broadcast({ wsId: wsId(), event: "conventionsChanged", data: {}, excludeClientId: clientId });
           break;
         }
-        case "loadScreenItems": {
-          const { screenId } = (params ?? {}) as { screenId: string };
-          const items = await readScreenItems(screenId, root());
-          respond(items);
-          break;
-        }
-        case "saveScreenItems": {
-          const { screenId, data } = (params ?? {}) as { screenId: string; data: unknown };
-          await writeScreenItems(screenId, data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "screenItemsChanged", data: { screenId }, excludeClientId: clientId });
-          break;
-        }
-        case "deleteScreenItems": {
-          const { screenId } = (params ?? {}) as { screenId: string };
-          await deleteScreenItems(screenId, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "screenItemsChanged", data: { screenId, deleted: true }, excludeClientId: clientId });
-          break;
-        }
+        // RPC "loadScreenItems" / "saveScreenItems" / "deleteScreenItems" は
+        // frontend が screenItemsStore 経由で loadScreenEntity / saveScreenEntity
+        // (Screen entity に embed された items を直接読み書き) に切り替えたため、
+        // 全て参照 0 件 (dead) となった。saveScreenEntity 経路で screenItemsChanged
+        // broadcast も継続発火されるため UI 同期に影響なし。
+        // ISSUE #1147 N-6 で dispatcher から削除。
         case "loadSequence": {
           const { sequenceId } = (params ?? {}) as { sequenceId: string };
           const seqData = await readSequence(sequenceId, root());
