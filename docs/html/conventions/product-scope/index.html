@@ -9,9 +9,9 @@
 🌓
 </button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> 規約カタログ </div> <ul class="space-y-0.5"> <li> <a href="/conventions/expressions/" class="sidebar-link"> 式言語規約 (@conv/@env/@secret) </a> </li><li> <a href="/conventions/product-scope/" class="sidebar-link active"> プロダクトスコープ </a> </li><li> <a href="/conventions/validation-rules/" class="sidebar-link"> バリデーション規約 </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="プロダクトスコープ規約-人間向け参考資料">プロダクトスコープ規約 (人間向け参考資料)</h1>
 <blockquote>
-<p><strong>正本は <code>data/conventions/catalog.json</code></strong> (scope / currency / tax / auth / db / numbering / tx / externalOutcomeDefaults カテゴリ)。
+<p><strong>正本は active workspace の <code>&#x3C;dataDir>/conventions/catalog.json</code></strong> (例: <code>workspaces/&#x3C;wsId>/&#x3C;dataDir>/conventions/catalog.json</code>、scope / currency / tax / auth / db / numbering / tx / externalOutcomeDefaults カテゴリ)。
 本 md はその人間向け参考資料であり、AI・ツールは JSON を参照すること (#346)。
-<code>docs/sample-project/conventions/conventions-catalog.json</code> が seed データ。
+サンプル: <code>examples/&#x3C;project-id>/harmony/conventions/catalog.json</code> (例: <code>examples/retail/harmony/conventions/catalog.json</code>)。
 <code>docs/conventions/validation-rules.md</code> と同じ扱い。</p>
 </blockquote>
 <p><strong>策定日</strong>: 2026-04-20

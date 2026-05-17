@@ -1,8 +1,8 @@
 # プロダクトスコープ規約 (人間向け参考資料)
 
-> **正本は `data/conventions/catalog.json`** (scope / currency / tax / auth / db / numbering / tx / externalOutcomeDefaults カテゴリ)。
+> **正本は active workspace の `<dataDir>/conventions/catalog.json`** (例: `workspaces/<wsId>/<dataDir>/conventions/catalog.json`、scope / currency / tax / auth / db / numbering / tx / externalOutcomeDefaults カテゴリ)。
 > 本 md はその人間向け参考資料であり、AI・ツールは JSON を参照すること (#346)。
-> `docs/sample-project/conventions/conventions-catalog.json` が seed データ。
+> サンプル: `examples/<project-id>/harmony/conventions/catalog.json` (例: `examples/retail/harmony/conventions/catalog.json`)。
 > `docs/conventions/validation-rules.md` と同じ扱い。
 
 **策定日**: 2026-04-20

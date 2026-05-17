@@ -194,6 +194,21 @@ npx playwright install chromium  # rehype-mermaid 用、初回のみ
 - `SchemaTable` component が build 時に schema を再読込
 - 上記更新フローと同じ手順で HTML に反映 (rebuild 必須)
 
+#### ローカル閲覧
+
+build 後の HTML を browser で開く方法:
+
+1. **静的に開く** (file:// プロトコル、検索機能含む大半の動作確認可):
+   - Linux: `xdg-open docs/html/index.html`
+   - macOS: `open docs/html/index.html`
+   - Windows: `start docs\html\index.html`
+2. **preview server で開く** (HTTP server、検索/SW 等の制約解消):
+   ```bash
+   cd docs-site
+   npm run preview
+   # → http://127.0.0.1:4321/
+   ```
+
 #### 注意事項
 
 - **`docs/html/` 配下の手編集は禁止** (build artifact、次回 build で上書きされる)

@@ -34,6 +34,21 @@ npm run dev
 # → http://localhost:4321
 ```
 
+## preview (build 済 HTML を確認)
+
+```bash
+cd docs-site
+npm run preview
+# → http://127.0.0.1:4321/ (../docs/html/ を serve)
+```
+
+## ローカル閲覧 (build 後)
+
+`docs/html/index.html` を browser で直接開くか、preview server 経由:
+
+- 静的開く: `xdg-open ../docs/html/index.html` (Linux) / `open ../docs/html/index.html` (macOS) / `start ..\docs\html\index.html` (Windows)
+- HTTP server (推奨): 上記 `npm run preview`
+
 ## 技術スタック
 
 | 領域 | 採用 | バージョン |
