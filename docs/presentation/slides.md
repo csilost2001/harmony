@@ -650,7 +650,7 @@ orchestrator パターンの **一例**:
 - Eclipse + Java プロジェクト: ~2-4 GB
 - Oracle VM 実行中: ~4-6 GB
 - ブラウザ多タブ: ~2-4 GB
-- Excel 複数同時 (仕様書/進捗/障害): ~1-2 GB
+- Excel 複数同時: ~1-2 GB
 - **計: 13-20 GB** (16 GB ではスワップ圏)
 
 ### 2026 推奨スペック [^14]
@@ -660,14 +660,14 @@ orchestrator パターンの **一例**:
 </div>
 <div>
 
-### 16 GB 環境で AI 開発時に報告されているエラー
-- **Claude Code が 11.6 GB を即消費、16 GB マシンが動作停止** [^18]
-- GitHub Copilot 拡張が TypeScript Server で 3-4 GB 消費、**extension host が OOM で再起動** [^18]
-- WSL2 + Dev Containers でファイル監視がメモリ集約、**IDE ハング** [^18]
+### 16 GB 環境で報告されている AI 開発エラー [^18]
+- **Claude Code が 11.6 GB を即消費、16 GB マシンが動作停止**
+- GitHub Copilot 拡張で TypeScript Server が 3-4 GB 消費、**extension host が OOM で再起動**
+- WSL2 + Dev Containers でファイル監視がメモリ集約、**IDE ハング**
 
-### 影響
-- メモリ圧迫下では AI ツールのメモリリーク・OOM・ハングが発生しやすい
-- 移行後も VM が DevContainers に置き換わるためメモリ需要は増えないが、現状の圧迫は解消されない
+<div class="note">
+移行後も VM が DevContainers に置き換わるためメモリ需要は増えないが、現状の圧迫は解消されない。
+</div>
 
 </div>
 </div>
@@ -867,31 +867,78 @@ orchestrator パターンの **一例**:
 
 ---
 
-<h1 data-eyebrow="References">参考・出典</h1>
+<h1 data-eyebrow="References">参考・出典 (1/5)</h1>
 
-<div style="font-size: 14px;">
+<div style="font-size: 14px; line-height: 1.55;">
 
-1. [^1]: 「Excel 仕様書からの脱却 - 生成 AI 時代に選ぶべきマークダウンという選択肢」 — https://note.com/yoken_taro/n/n0ba15bad70f5
-2. [^2]: JSON → Excel 変換ライブラリ: Apache POI / openpyxl / ExcelJS / EPPlus (各公式 docs 参照)
-3. [^3]: 「生成 AI for Software Engineering #3 — テスト仕様書生成技術のご紹介」(富士通) — https://blog.fltech.dev/entry/2025/10/29/testspecgen-ja
-4. [^4]: CNCF (Cloud Native Computing Foundation) — https://www.cncf.io/
-5. [^5]: OpenAI 「Introducing GPT-5.5」 (2026-04-24) — https://openai.com/index/introducing-gpt-5-5/
-6. [^6]: SWE-bench Verified / Pro ベンチマーク (vals.ai) — https://www.vals.ai/benchmarks/swebench
-7. [^7]: GitHub blog 「Changes to GitHub Copilot Individual Plans」 — https://github.blog/news-insights/company-news/changes-to-github-copilot-individual-plans/
-8. [^8]: Anthropic Status Page (2026 年 4-5 月の incident 履歴) — https://status.anthropic.com/
-9. [^9]: Addy Osmani 「Code Agent Orchestra」 — https://addyosmani.com/blog/code-agent-orchestra/
-10. [^10]: VS Code 公式 blog 「Multi-Agent Development」 (2026-02-05) — https://code.visualstudio.com/blogs/2026/02/05/multi-agent-development
-11. [^11]: OpenAI Developer Community 「Introducing Codex Plugin for Claude Code」 (2026-03-30) — https://community.openai.com/t/introducing-codex-plugin-for-claude-code/1378186 / GitHub: https://github.com/openai/codex-plugin-cc
-12. [^12]: GitHub Copilot の AGENTS.md / CLAUDE.md / Skills 対応 — https://github.com/features/copilot/agents / https://code.visualstudio.com/docs/copilot/agents/overview / https://www.deployhq.com/blog/ai-coding-config-files-guide
-13. [^13]: 2025 Stack Overflow Developer Survey — https://survey.stackoverflow.co/2025/ / JetBrains State of Developer Ecosystem 2025 — https://devecosystem-2025.jetbrains.com/ / JRebel 「Most Popular Java IDEs in 2026」 — https://www.jrebel.com/blog/best-java-ide
-14. [^14]: 2026 年開発者向け推奨スペック調査: Claude Code 公式 setup docs — https://code.claude.com/docs/en/setup / Visual Studio 2026 System Requirements — https://learn.microsoft.com/en-us/visualstudio/releases/2026/vs-system-requirements
-15. [^15]: Cursor / Windsurf / VSCode フォーク シェア — https://www.nxcode.io/resources/news/windsurf-vs-cursor-2026-ai-ide-comparison
-16. [^16]: GitHub Copilot premium request multipliers / 課金体系移行 — https://docs.github.com/en/copilot/reference/copilot-billing/model-multipliers-for-annual-plans / https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/ / Claude pricing — https://claude.com/pricing / ChatGPT plans — https://chatgpt.com/pricing/
-17. [^17]: Oracle Linux 9 ISO サイズ — https://yum.oracle.com/oracle-linux-isos.html / Oracle Database 23ai Free インストール — https://oracle-base.com/articles/23/oracle-db-23-free-rpm-installation-on-oracle-linux-9 / Oracle Database 23ai Free コンテナイメージ — https://blogs.oracle.com/database/announcing-oracle-database-23ai-free-container-images-for-armbased-apple-macbook-computers
-18. [^18]: 16 GB RAM での AI 開発エラー事例 — Claude Code Issue #21182 https://github.com/anthropics/claude-code/issues/21182 / GitHub Copilot Discussion #163309 https://github.com/orgs/community/discussions/163309 / Square Enix Tech Blog (Dev Container ディスク遅延) https://blog.jp.square-enix.com/iteng-blog/posts/00013-devcontainer-disk-slow/
+1. [^1]: Excel 仕様書からの脱却 — https://note.com/yoken_taro/n/n0ba15bad70f5
+2. [^2]: JSON → Excel 変換ライブラリ: Apache POI / openpyxl / ExcelJS / EPPlus (各公式 docs)
+3. [^3]: 富士通「生成 AI for Software Engineering #3」 — https://blog.fltech.dev/entry/2025/10/29/testspecgen-ja
+4. [^4]: CNCF — https://www.cncf.io/
+5. [^5]: OpenAI「Introducing GPT-5.5」(2026-04-24) — https://openai.com/index/introducing-gpt-5-5/
+6. [^6]: SWE-bench (vals.ai) — https://www.vals.ai/benchmarks/swebench
+
+</div>
+
+---
+
+<h1 data-eyebrow="References">参考・出典 (2/5)</h1>
+
+<div style="font-size: 14px; line-height: 1.55;">
+
+7. [^7]: GitHub blog「Changes to GitHub Copilot Individual Plans」 — https://github.blog/news-insights/company-news/changes-to-github-copilot-individual-plans/
+8. [^8]: Anthropic Status Page — https://status.anthropic.com/
+9. [^9]: Addy Osmani「Code Agent Orchestra」 — https://addyosmani.com/blog/code-agent-orchestra/
+10. [^10]: VS Code「Multi-Agent Development」(2026-02-05) — https://code.visualstudio.com/blogs/2026/02/05/multi-agent-development
+11. [^11]: OpenAI Developer Community「Codex Plugin for Claude Code」(2026-03-30) — https://community.openai.com/t/introducing-codex-plugin-for-claude-code/1378186 / https://github.com/openai/codex-plugin-cc
+12. [^12]: GitHub Copilot の AGENTS.md / CLAUDE.md / Skills 対応 — https://github.com/features/copilot/agents / https://code.visualstudio.com/docs/copilot/agents/overview
+
+</div>
+
+---
+
+<h1 data-eyebrow="References">参考・出典 (3/5)</h1>
+
+<div style="font-size: 14px; line-height: 1.55;">
+
+13. [^13]: Stack Overflow Developer Survey 2025 — https://survey.stackoverflow.co/2025/ / JetBrains State of Developer Ecosystem 2025 — https://devecosystem-2025.jetbrains.com/ / JRebel「Most Popular Java IDEs in 2026」 — https://www.jrebel.com/blog/best-java-ide
+14. [^14]: Claude Code 公式 setup — https://code.claude.com/docs/en/setup / Visual Studio 2026 System Requirements — https://learn.microsoft.com/en-us/visualstudio/releases/2026/vs-system-requirements
+15. [^15]: Cursor / Windsurf 比較 — https://www.nxcode.io/resources/news/windsurf-vs-cursor-2026-ai-ide-comparison
+
+</div>
+
+---
+
+<h1 data-eyebrow="References">参考・出典 (4/5)</h1>
+
+<div style="font-size: 13px; line-height: 1.55;">
+
+**[^16]: GitHub Copilot 課金体系移行**
+- multipliers: https://docs.github.com/en/copilot/reference/copilot-billing/model-multipliers-for-annual-plans
+- AI Credits 移行: https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/
+- Claude pricing: https://claude.com/pricing / ChatGPT plans: https://chatgpt.com/pricing/
+
+**[^17]: Oracle Linux / Oracle 23ai Free (VM・コンテナサイズ)**
+- OL9 ISO: https://yum.oracle.com/oracle-linux-isos.html
+- 23ai Free RPM: https://oracle-base.com/articles/23/oracle-db-23-free-rpm-installation-on-oracle-linux-9
+- 23ai Free コンテナ: https://blogs.oracle.com/database/announcing-oracle-database-23ai-free-container-images-for-armbased-apple-macbook-computers
+
+</div>
+
+---
+
+<h1 data-eyebrow="References">参考・出典 (5/5)</h1>
+
+<div style="font-size: 14px; line-height: 1.6;">
+
+**[^18]: 16 GB 環境 AI 開発エラー事例**
+
+- Claude Code Issue #21182 (会話 window で 11.6 GB 即消費): https://github.com/anthropics/claude-code/issues/21182
+- GitHub Copilot Discussion #163309 (extension host OOM 再起動): https://github.com/orgs/community/discussions/163309
+- Square Enix Tech Blog (Dev Container ディスク遅延): https://blog.jp.square-enix.com/iteng-blog/posts/00013-devcontainer-disk-slow/
 
 </div>
 
 <div class="footnote">
-記述時点: 2026 年 5 月。AI ツールの仕様は更新が頻繁なため、本資料利用時は各公式 docs で再確認のこと。
+記述時点: 2026 年 5 月。AI ツール仕様は更新頻繁、利用時は各公式 docs で再確認のこと。
 </div>
