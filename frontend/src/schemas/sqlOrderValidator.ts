@@ -86,6 +86,63 @@ export interface SqlOrderIssue {
   message: string;
 }
 
+// ─── node-sql-parser AST 部分型 (ISSUE #1147 S-15: any 局所化) ──────────────
+//
+// node-sql-parser v5 (postgresql dialect) の AST は @types 提供範囲が薄く、
+// dialect / version で shape が揺れるため `unknown` は実用上扱い辛い。
+// 本 validator が依存する fields だけを optional な構造体で表現し、
+// `as any` を validator 全体に振り撒くのを避ける。
+// (関係 issue: S-15 「sqlOrderValidator.ts any 局所化」)
+
+/** AST ノードの最小共通型。`type` のみ前提として後段は in 演算子 / typeof で narrow する。 */
+interface SqlAstNode {
+  type?: string;
+  [key: string]: unknown;
+}
+
+/** INSERT の columns 要素 (v5: `{ type:"default", value:string }`、旧来: 文字列)。 */
+interface SqlColumnRef {
+  type?: string;
+  value?: string;
+  [key: string]: unknown;
+}
+
+/** INSERT VALUES 行: `{ type:"expr_list", value: SqlExprNode[] }` を持つ。 */
+interface SqlValueRow {
+  type?: string;
+  value?: SqlExprNode[];
+  [key: string]: unknown;
+}
+
+/** VALUES 内の式ノード (プレースホルダ / null / リテラル等)。 */
+interface SqlExprNode {
+  type?: string;
+  name?: number | string;
+  prefix?: string;
+  value?: unknown;
+  expr?: { type?: string; value?: string; [key: string]: unknown };
+  column?: string | { expr?: { value?: string }; value?: string; [key: string]: unknown };
+  left?: SqlExprNode;
+  right?: SqlExprNode;
+  where?: SqlExprNode;
+  [key: string]: unknown;
+}
+
+/** INSERT / UPDATE / DELETE / SELECT 共通 root AST。 */
+interface SqlRootNode extends SqlAstNode {
+  table?: Array<{ table?: string; [key: string]: unknown }>;
+  from?: Array<{ table?: string; [key: string]: unknown }>;
+  columns?: SqlColumnRef[];
+  values?: { type?: string; values?: SqlValueRow[] } | SqlValueRow[];
+  where?: SqlExprNode;
+}
+
+/** INSERT の values コンテナの両形式を吸収する union。 */
+type SqlValuesContainer =
+  | { type?: string; values?: SqlValueRow[] }
+  | SqlValueRow[]
+  | undefined;
+
 // ─── パーサー初期化 ─────────────────────────────────────────────────────────
 
 const parser = new Parser();
@@ -100,8 +157,7 @@ function substituteAtVars(sql: string): string {
 // ─── AST ヘルパー ───────────────────────────────────────────────────────────
 
 /** INSERT AST から対象テーブル名を取得 (lowercase)。 */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractInsertTableName(ast: any): string | null {
+function extractInsertTableName(ast: SqlRootNode | null | undefined): string | null {
   if (!ast || typeof ast !== "object") return null;
   if (ast.type === "insert" && Array.isArray(ast.table)) {
     for (const t of ast.table) {
@@ -118,8 +174,7 @@ function extractInsertTableName(ast: any): string | null {
  *   - ast.from: Array<{ table: string, ... }>  (PostgreSQL DELETE FROM)
  *   - ast.table: Array<{ table: string, ... }>  (一部 dialect フォールバック)
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractDeleteTableName(ast: any): string | null {
+function extractDeleteTableName(ast: SqlRootNode | null | undefined): string | null {
   if (!ast || typeof ast !== "object") return null;
   if (ast.type === "delete") {
     // PostgreSQL: DELETE FROM table_name → ast.from
@@ -150,32 +205,26 @@ function extractDeleteTableName(ast: any): string | null {
  *
  * @atVarMap: プレースホルダ番号 (1, 2, ...) → 元の @varName のルート名のマップ
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractInsertColumnVarMap(ast: any, atVarMap: Map<number, string>): Map<string, string | null> {
+function extractInsertColumnVarMap(ast: SqlRootNode | null | undefined, atVarMap: Map<number, string>): Map<string, string | null> {
   const result = new Map<string, string | null>();
   if (!ast || ast.type !== "insert") return result;
 
   // columns: Array<{ type: "default", value: string }> または string[] のどちらもサポート
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const columns: string[] = Array.isArray(ast.columns) ? ast.columns.map((c: any) => {
+  const columns: string[] = Array.isArray(ast.columns) ? (ast.columns as Array<SqlColumnRef | string>).map((c) => {
     if (typeof c === "string") return c;
     if (c && typeof c.value === "string") return c.value;
     return String(c);
   }) : [];
 
-  // values: { type: "values", values: Array<{ type: "expr_list", value: any[] }> }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const valuesContainer: any = ast.values;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let valueRows: any[][] = [];
-  if (valuesContainer && Array.isArray(valuesContainer.values)) {
+  // values: { type: "values", values: Array<{ type: "expr_list", value: SqlExprNode[] }> }
+  const valuesContainer = ast.values as SqlValuesContainer;
+  let valueRows: SqlExprNode[][] = [];
+  if (valuesContainer && !Array.isArray(valuesContainer) && Array.isArray(valuesContainer.values)) {
     // v5 形式: { type: "values", values: [...] }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    valueRows = valuesContainer.values.map((row: any) => Array.isArray(row?.value) ? row.value : []);
+    valueRows = valuesContainer.values.map((row) => Array.isArray(row?.value) ? row.value : []);
   } else if (Array.isArray(valuesContainer)) {
     // フォールバック: 旧来の配列形式
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    valueRows = valuesContainer.map((row: any) => Array.isArray(row?.value) ? row.value : []);
+    valueRows = valuesContainer.map((row) => Array.isArray(row?.value) ? row.value : []);
   }
 
   if (columns.length === 0 || valueRows.length === 0) return result;
@@ -184,8 +233,7 @@ function extractInsertColumnVarMap(ast: any, atVarMap: Map<number, string>): Map
   const firstRow = valueRows[0];
   for (let i = 0; i < columns.length; i++) {
     const colName = columns[i].toLowerCase();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const valNode: any = firstRow[i];
+    const valNode: SqlExprNode | undefined = firstRow[i];
     if (!valNode) {
       result.set(colName, null);
       continue;
@@ -298,11 +346,11 @@ interface TableMeta {
  * テーブルまたはカラムの物理名を取得。
  * v3 では physicalName、v1 フォールバックでは name を使用。
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getPhysicalName(obj: any): string | undefined {
-  return (typeof obj?.physicalName === "string" && obj.physicalName)
+function getPhysicalName(obj: { physicalName?: unknown; name?: unknown } | null | undefined): string | undefined {
+  if (!obj) return undefined;
+  return (typeof obj.physicalName === "string" && obj.physicalName)
     ? obj.physicalName
-    : (typeof obj?.name === "string" ? obj.name : undefined);
+    : (typeof obj.name === "string" ? obj.name : undefined);
 }
 
 function buildTableMeta(tables: OrderTableDefinition[]): Map<string, TableMeta> {
@@ -362,8 +410,7 @@ function buildTableMeta(tables: OrderTableDefinition[]): Map<string, TableMeta> 
 
     // Column.unique: true も単体 UNIQUE として収集
     for (const col of t.columns) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((col as any).unique === true) {
+      if ((col as OrderTableColumn & { unique?: boolean }).unique === true) {
         const pName = getPhysicalName(col);
         if (pName) uniqueColumns.add(pName.toLowerCase());
       }
@@ -409,8 +456,7 @@ function isUniqueViolationErrorCode(code: string | undefined): boolean {
  * - { expr: { type: "default", value: "colName" } } オブジェクト (v5)
  * のどちらかになる。両方に対応する。
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractColumnName(node: any): string | null {
+function extractColumnName(node: SqlExprNode | null | undefined): string | null {
   if (!node || node.type !== "column_ref") return null;
   const col = node.column;
   if (typeof col === "string") return col.toLowerCase();
@@ -427,13 +473,11 @@ function extractColumnName(node: any): string | null {
  * SELECT SQL AST から WHERE 句で参照しているカラム物理名 (lowercase) を抽出する。
  * シンプルな `WHERE col = @var` 形式および `AND` / `OR` 連結を対象とする。
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractWhereColumns(ast: any): Set<string> {
+function extractWhereColumns(ast: SqlRootNode | null | undefined): Set<string> {
   const cols = new Set<string>();
   if (!ast || ast.type !== "select") return cols;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function walk(node: any): void {
+  function walk(node: SqlExprNode | null | undefined): void {
     if (!node || typeof node !== "object") return;
     // binary expression: left/right
     if (node.type === "binary_expr") {
@@ -448,7 +492,7 @@ function extractWhereColumns(ast: any): Set<string> {
     if (node.where) walk(node.where);
   }
 
-  walk(ast);
+  walk(ast as SqlExprNode);
   return cols;
 }
 
@@ -475,8 +519,7 @@ function hasPriorSelectForUniqueColumns(
  * step の affectedRowsCheck.errorCode が UNIQUE_VIOLATION 系かどうかを確認する。
  * パターン 2: INSERT step 自身の affectedRowsCheck でハンドリングしている。
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function hasAffectedRowsUniqueCheck(step: any): boolean {
+function hasAffectedRowsUniqueCheck(step: { affectedRowsCheck?: { errorCode?: string } } | null | undefined): boolean {
   return isUniqueViolationErrorCode(step?.affectedRowsCheck?.errorCode);
 }
 
@@ -497,16 +540,18 @@ function hasTryCatchUniqueViolationInSteps(steps: Step[]): boolean {
     if (step.kind === "branch") {
       // branches の condition を確認
       for (const branch of step.branches) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const cond = branch.condition as any;
+        // condition は実行時 union (schema 上は object / string 双方ありうる) のため
+        // ローカル型で narrow する。tryCatch 形式は { kind: "tryCatch"; catchErrors: ... }。
+        type BranchCondition = { kind?: string; catchErrors?: unknown[] } | string | undefined;
+        const cond = branch.condition as BranchCondition;
         if (
-          cond?.kind === "tryCatch" &&
-          Array.isArray(cond?.catchErrors) &&
+          cond && typeof cond === "object" &&
+          cond.kind === "tryCatch" &&
+          Array.isArray(cond.catchErrors) &&
           cond.catchErrors.some((e: unknown) => {
             if (typeof e === "string") return isUniqueViolationErrorCode(e);
             if (e && typeof e === "object") {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const obj = e as any;
+              const obj = e as { errorCode?: string; code?: string; kind?: string };
               return isUniqueViolationErrorCode(obj.errorCode ?? obj.code ?? obj.kind ?? "");
             }
             return false;
@@ -531,8 +576,7 @@ function hasTryCatchUniqueViolationInSteps(steps: Step[]): boolean {
     }
     if (step.kind === "externalSystem") {
       for (const spec of Object.values(step.outcomes ?? {})) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const s = spec as any;
+        const s = spec as { sideEffects?: Step[] } | undefined;
         if (s?.sideEffects && hasTryCatchUniqueViolationInSteps(s.sideEffects)) return true;
       }
     }
@@ -562,9 +606,8 @@ function collectTxWriteTableNames(
         // SQL パースでテーブル名を取得
         const substituted = substituteAtVars(step.sql);
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          let ast: any = parser.astify(substituted, { database: DIALECT });
-          ast = Array.isArray(ast) ? ast[0] : ast;
+          const rawAst = parser.astify(substituted, { database: DIALECT }) as unknown as SqlRootNode | SqlRootNode[];
+          const ast: SqlRootNode | undefined = Array.isArray(rawAst) ? rawAst[0] : rawAst;
           if (ast) {
             let tableName: string | null = null;
             if (ast.type === "insert") {
@@ -775,9 +818,8 @@ function checkAction(
     if (step.kind === "dbAccess" && step.operation === "SELECT" && step.sql) {
       const substitutedSel = substituteAtVars(step.sql);
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- node-sql-parser exposes dialect-specific AST shapes without stable TS types.
-        let astSel: any = parser.astify(substitutedSel, { database: DIALECT });
-        astSel = Array.isArray(astSel) ? astSel[0] : astSel;
+        const rawSel = parser.astify(substitutedSel, { database: DIALECT }) as unknown as SqlRootNode | SqlRootNode[];
+        const astSel: SqlRootNode | undefined = Array.isArray(rawSel) ? rawSel[0] : rawSel;
         if (astSel && astSel.type === "select") {
           // SELECT 対象テーブル名を抽出 (FROM 句)
           const fromTables: string[] = [];
@@ -810,16 +852,15 @@ function checkAction(
     if (step.kind === "dbAccess" && step.operation === "DELETE" && step.sql) {
       const delSql = step.sql;
       const delSubstituted = substituteAtVars(delSql);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let delAst: any;
+      let delAst: SqlRootNode | SqlRootNode[] | null;
       try {
-        delAst = parser.astify(delSubstituted, { database: DIALECT });
+        delAst = parser.astify(delSubstituted, { database: DIALECT }) as unknown as SqlRootNode | SqlRootNode[];
       } catch {
         // DELETE パース失敗は観点 4 をスキップ
         delAst = null;
       }
       if (delAst) {
-        const delRootNode = Array.isArray(delAst) ? delAst[0] : delAst;
+        const delRootNode: SqlRootNode | undefined = Array.isArray(delAst) ? delAst[0] : delAst;
         const delTableName = extractDeleteTableName(delRootNode);
         if (delTableName) {
           const delMeta = tableMeta.get(delTableName);
@@ -872,10 +913,9 @@ function checkAction(
     // SQL パース
     const atVarMap = buildAtVarMap(sql);
     const substituted = substituteAtVars(sql);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let ast: any;
+    let ast: SqlRootNode | SqlRootNode[];
     try {
-      ast = parser.astify(substituted, { database: DIALECT });
+      ast = parser.astify(substituted, { database: DIALECT }) as unknown as SqlRootNode | SqlRootNode[];
     } catch {
       issues.push({
         path: `${path}.sql`,
