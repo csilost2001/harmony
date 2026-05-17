@@ -1,117 +1,24 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { EventEmitter } from "events";
 import { randomUUID } from "crypto";
-import { CodexConnection } from "./codex/connection.js";
-import type { ServerNotification } from "./codex/types/ServerNotification.js";
-import type { ServerRequest } from "./codex/types/ServerRequest.js";
-import type { TurnStartParams } from "./codex/types/v2/TurnStartParams.js";
-import type { TurnSteerParams } from "./codex/types/v2/TurnSteerParams.js";
-import type { TurnInterruptParams } from "./codex/types/v2/TurnInterruptParams.js";
-import type { ThreadStartParams } from "./codex/types/v2/ThreadStartParams.js";
-import type { ThreadResumeParams } from "./codex/types/v2/ThreadResumeParams.js";
+import { CodexBroadcastBridge } from "./codex/broadcastBridge.js";
 import {
-  registerEditor as presenceRegisterEditor,
-  registerViewer as presenceRegisterViewer,
-  unregister as presenceUnregister,
   unregisterAllForSession as presenceUnregisterAllForSession,
-  heartbeat as presenceHeartbeat,
   list as presenceList,
   startCleanupInterval as presenceStartCleanupInterval,
   stopCleanupInterval as presenceStopCleanupInterval,
-  type PresenceEntryWithLevel,
 } from "./presenceManager.js";
-import { execSync } from "child_process";
-import { platform } from "node:os";
 import { createServer, type IncomingMessage, type ServerResponse, type Server as HttpServer } from "node:http";
-import { renameScreenItemId, checkScreenItemRefs } from "./renameScreenItem.js";
+import { workspaceContextManager } from "./workspaceState.js";
+import { killStaleProcessOnPort } from "./wsBridge/killStalePort.js";
+import { EditSessionService } from "./wsBridge/editSessionService.js";
 import {
-  isLockdown as isWorkspaceLockdown,
-  getLockdownPath as getWorkspaceLockdownPath,
-  LockdownError as WorkspaceLockdownError,
-  LOCKDOWN_WORKSPACE_ID,
-  workspaceContextManager,
-} from "./workspaceState.js";
-import {
-  listWorkspaces as listWorkspacesEntries,
-  upsertWorkspace as upsertWorkspaceEntry,
-  removeWorkspace as removeWorkspaceEntry,
-  findById as findWorkspaceById,
-  findByPath as findWorkspaceByPath,
-  setLastActive as setLastActiveWorkspace,
-} from "./recentStore.js";
-import {
-  inspectWorkspacePath,
-  initializeWorkspace as initializeWorkspaceFolder,
-} from "./workspaceInit.js";
-import { getHostInfo } from "./hostInfo.js";
-import { browseFs, BrowseFsError } from "./fsBrowse.js";
-import {
-  EditSessionStore,
-  EditSessionNotFoundError,
-  EditSessionStateError,
-  EditSessionPermissionError,
-  EditSessionParticipantError,
   type DraftResourceType as EditSessionResourceType,
   type ParticipantInfo as EditSessionParticipantInfo,
   type SaveEvent as EditSessionSaveEvent,
 } from "./editSessionStore.js";
-import { DraftHistoryStore } from "./draftHistoryStore.js";
-import {
-  readProject,
-  writeProject,
-  readScreen,
-  writeScreen,
-  readScreenEntity,
-  writeScreenEntity,
-  deleteScreen as deleteScreenFile,
-  readCustomBlocks,
-  writeCustomBlocks,
-  readPuckComponents,
-  writePuckComponents,
-  readPuckData,
-  writePuckData,
-  readTable,
-  writeTable,
-  deleteTable as deleteTableFile,
-  listAllTables,
-  readErLayout,
-  writeErLayout,
-  readScreenFlowPositions,
-  writeScreenFlowPositions,
-  readProcessFlow,
-  writeProcessFlow,
-  deleteProcessFlow as deleteProcessFlowFile,
-  listProcessFlows as listProcessFlowFiles,
-  readConventions,
-  readExternalCatalogs,
-  writeConventions,
-  writeScreenItems,
-  readSequence,
-  writeSequence,
-  deleteSequence as deleteSequenceFile,
-  readView,
-  writeView,
-  deleteView as deleteViewFile,
-  listAllViews,
-  readViewDefinition,
-  writeViewDefinition,
-  deleteViewDefinition as deleteViewDefinitionFile,
-  listAllViewDefinitions,
-  listAllGenericDefinitions,
-  readGenericDefinition,
-  writeGenericDefinition,
-  deleteGenericDefinition,
-  readPageLayout,
-  writePageLayout,
-  deletePageLayoutFile,
-  listAllPageLayouts,
-  readPageLayoutDesign,
-  writePageLayoutDesign,
-  getFileMtime,
-  readExtensionsBundle,
-  writeExtensionsFile,
-  resolveRoot,
-} from "./projectStorage.js";
+import { resolveRoot } from "./projectStorage.js";
+import { rpcHandlerMap, type RpcContext } from "./wsHandlers/index.js";
 
 type Command = { id: string; method: string; params?: unknown };
 type Response = { id: string; result?: unknown; error?: string };
@@ -121,88 +28,6 @@ type BrowserRequest = { type: "request"; id: string; method: string; params?: un
 const WS_PORT = parseInt(process.env.DESIGNER_MCP_PORT ?? "5179", 10);
 const TIMEOUT_MS = 10000;
 
-/** ポートを占有している古い backend プロセスを強制終了 (#846: WSL2/Linux/macOS 対応) */
-function killStaleProcessOnPort(port: number): boolean {
-  return platform() === "win32"
-    ? killStaleProcessOnPortWin32(port)
-    : killStaleProcessOnPortPosix(port);
-}
-
-/** Windows 経路: netstat + taskkill */
-function killStaleProcessOnPortWin32(port: number): boolean {
-  try {
-    const output = execSync(`netstat -ano -p tcp`, { encoding: "utf8", windowsHide: true });
-    const lines = output.split(/\r?\n/);
-    const ownPid = process.pid;
-    const pids = new Set<number>();
-
-    for (const line of lines) {
-      if (!/LISTENING/.test(line)) continue;
-      // 127.0.0.1 / 0.0.0.0 / [::] いずれの bind でも検出 (#302 対応で HTTP サーバは 0.0.0.0 bind)
-      const match = line.match(/(?:127\.0\.0\.1|0\.0\.0\.0|\[::\]|\[::1\]):(\d+)\s+\S+\s+LISTENING\s+(\d+)/);
-      if (!match) continue;
-      if (parseInt(match[1], 10) !== port) continue;
-      const pid = parseInt(match[2], 10);
-      if (pid !== ownPid) pids.add(pid);
-    }
-
-    if (pids.size === 0) return false;
-
-    for (const pid of pids) {
-      console.error(`[WsBridge] Killing stale process PID=${pid} on port ${port}`);
-      try {
-        execSync(`taskkill /F /PID ${pid}`, { windowsHide: true, stdio: "ignore" });
-      } catch (e) {
-        console.error(`[WsBridge] Failed to kill PID=${pid}:`, e);
-      }
-    }
-    return true;
-  } catch (e) {
-    console.error("[WsBridge] killStaleProcessOnPort error:", e);
-    return false;
-  }
-}
-
-/** POSIX 経路 (Linux / macOS / WSL2): lsof + kill -9 */
-function killStaleProcessOnPortPosix(port: number): boolean {
-  // -sTCP:LISTEN は重要: これが無いと当該 port に接続中のクライアント PID も返り、
-  // 無関係なプロセス (例: HTTP MCP client) を巻き添えで kill してしまう。
-  let output: string;
-  try {
-    output = execSync(`lsof -ti tcp:${port} -sTCP:LISTEN`, {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-  } catch (e) {
-    // execSync は shell 経由のため lsof 未導入は shell exit status 127、
-    // 該当プロセス無しは lsof 自身が exit 1。前者のみ warn で可視化する。
-    const status = (e as { status?: number }).status;
-    if (status === 127) {
-      console.warn(`[WsBridge] lsof not found; stale process kill on port ${port} skipped`);
-    }
-    return false;
-  }
-
-  const ownPid = process.pid;
-  const pids = new Set<number>();
-  for (const token of output.split(/\s+/)) {
-    const pid = parseInt(token, 10);
-    if (Number.isFinite(pid) && pid > 0 && pid !== ownPid) pids.add(pid);
-  }
-
-  if (pids.size === 0) return false;
-
-  for (const pid of pids) {
-    console.error(`[WsBridge] Killing stale process PID=${pid} on port ${port}`);
-    try {
-      execSync(`kill -9 ${pid}`, { stdio: "ignore" });
-    } catch (e) {
-      console.error(`[WsBridge] Failed to kill PID=${pid}:`, e);
-    }
-  }
-  return true;
-}
-
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -210,7 +35,7 @@ function delay(ms: number): Promise<void> {
 /** HTTP request handler (index.ts が MCP endpoint 等を register するために使用) */
 type HttpRequestHandler = (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
 
-class WsBridge extends EventEmitter {
+export class WsBridge extends EventEmitter {
   private wss: WebSocketServer | null = null;
   private httpServer: HttpServer | null = null;
   private httpRoutes: Array<{ pathPrefix: string; handler: HttpRequestHandler }> = [];
@@ -227,126 +52,21 @@ class WsBridge extends EventEmitter {
   private lastMessageAt: number | null = null;
   /** プロセス起動時刻 (ms) */
   private readonly startedAt: number = Date.now();
-  /**
-   * EditSessionStore を workspace 単位で管理 (spec §15.1, Phase 2)。
-   * key = wsId (workspace root path)。既存 lockManager / draftStore と同じ lazy 生成パターン。
-   */
-  private editSessionStores = new Map<string, EditSessionStore>();
-  /**
-   * DraftHistoryStore を workspace 単位で管理 (#893)。
-   * key = wsId (workspace root path)。EditSessionStore と同じ lazy 生成パターン。
-   */
-  private draftHistoryStores = new Map<string, DraftHistoryStore>();
-  /** spec §12.4 / §18.3: 1h 周期の EditSession cleanupExpired タイマー */
-  private editSessionCleanupTimer: NodeJS.Timeout | null = null;
+  // ── EditSession service (#906 / #1144 Phase-2) ───────────────────────────
+  // 内部実装は wsBridge/editSessionService.ts に分離。wsBridge は broadcast 関数を inject し、
+  // editSession.* RPC handler は ctx.bridge.editSession* (adapter) 経由で呼ぶ。
+  // MCP tool (handlers/editSession.ts) も同じ adapter を使う (契約共有 = #906)。
+  private readonly editSessionService: EditSessionService = new EditSessionService(
+    (opts) => this.broadcast(opts),
+  );
 
-  // ── Codex App Server integration (#867) ──────────────────────────────────
-  /** Singleton CodexConnection — lazy (on-demand connect). Module-local to wsBridge. */
-  private _codexConn: CodexConnection | null = null;
-
-  /**
-   * Pending Codex server-initiated requests waiting for a browser client to respond.
-   * key = requestId (from ServerRequest.id, coerced to string).
-   * 5 min default timeout via HARMONY_CODEX_APPROVAL_TIMEOUT_MS.
-   */
-  private _codexPendingServerRequests = new Map<
-    string,
-    { resolve: (result: unknown) => void; reject: (err: Error) => void; timer: NodeJS.Timeout }
-  >();
-
-  /** Lazy getter for CodexConnection singleton. */
-  private _getCodexConnection(): CodexConnection {
-    if (!this._codexConn) {
-      this._codexConn = new CodexConnection();
-
-      // Subscribe to notifications and forward to all WS clients.
-      this._codexConn.subscribe((n: ServerNotification) => {
-        this._broadcastCodexNotification(n.method, n.params);
-      });
-
-      // Subscribe to server-initiated requests: broadcast to all clients, manage pending map.
-      this._codexConn.subscribeServerRequest((r: ServerRequest) => {
-        return this._handleCodexServerRequest(r);
-      });
-    }
-    return this._codexConn;
-  }
-
-  /** Broadcast a codex notification to all WS clients (cross-workspace). */
-  private _broadcastCodexNotification(method: string, params: unknown): void {
-    this.broadcast({
-      wsId: null,
-      event: "codex.notification",
-      data: { method, params },
-    });
-  }
-
-  /** Broadcast a codex server request to all WS clients; manage pending response map. */
-  private _handleCodexServerRequest(r: ServerRequest): Promise<unknown> {
-    const timeoutMs = parseInt(
-      process.env.HARMONY_CODEX_APPROVAL_TIMEOUT_MS ?? "300000",
-      10,
-    );
-    const requestId = String(r.id);
-
-    // Reject if the same id is already pending (shouldn't happen but be safe).
-    const existing = this._codexPendingServerRequests.get(requestId);
-    if (existing) {
-      clearTimeout(existing.timer);
-      existing.reject(new Error(`duplicate server request id: ${requestId}`));
-      this._codexPendingServerRequests.delete(requestId);
-    }
-
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this._codexPendingServerRequests.delete(requestId);
-        reject(new Error(`approval timeout for server request id=${requestId}`));
-      }, timeoutMs);
-
-      this._codexPendingServerRequests.set(requestId, { resolve, reject, timer });
-
-      this.broadcast({
-        wsId: null,
-        event: "codex.serverRequest",
-        data: { id: requestId, method: r.method, params: r.params },
-      });
-    });
-  }
-
-  /** Handle `codex.serverRequest.respond` from browser. */
-  private _resolveCodexServerRequest(requestId: string, result: unknown, isError: false): void;
-  private _resolveCodexServerRequest(
-    requestId: string,
-    result: { code: number; message: string },
-    isError: true,
-  ): void;
-  private _resolveCodexServerRequest(
-    requestId: string,
-    result: unknown,
-    isError: boolean,
-  ): void {
-    const pending = this._codexPendingServerRequests.get(requestId);
-    if (!pending) return; // already resolved or timed out — silently drop
-    clearTimeout(pending.timer);
-    this._codexPendingServerRequests.delete(requestId);
-    if (isError) {
-      const e = result as { code: number; message: string };
-      const err = new Error(e.message);
-      (err as Error & { code?: number }).code = e.code;
-      pending.reject(err);
-    } else {
-      pending.resolve(result);
-    }
-  }
-
-  /** Close CodexConnection on shutdown. */
-  private async _closeCodexConnection(): Promise<void> {
-    if (this._codexConn) {
-      const conn = this._codexConn;
-      this._codexConn = null;
-      await conn.close();
-    }
-  }
+  // ── Codex App Server integration (#867 / #1144 Phase-2) ──────────────────
+  // 内部実装は codex/broadcastBridge.ts に分離。wsBridge は broadcast 関数を inject し、
+  // codex.* RPC handler は ctx.bridge.codex 経由で本インスタンスにアクセスする。
+  /** Codex broadcast bridge — public (handler 側からの adapter access 用) */
+  public readonly codex: CodexBroadcastBridge = new CodexBroadcastBridge(
+    (event, data) => this.broadcast({ wsId: null, event, data }),
+  );
 
   get isConnected(): boolean {
     return this.clients.size > 0;
@@ -372,45 +92,19 @@ class WsBridge extends EventEmitter {
     };
   }
 
-  /**
-   * wsId に対応する DraftHistoryStore を lazy 生成して返す (#893)。
-   */
-  private getOrCreateDraftHistoryStore(wsId: string): DraftHistoryStore {
-    let store = this.draftHistoryStores.get(wsId);
-    if (!store) {
-      store = new DraftHistoryStore(wsId);
-      this.draftHistoryStores.set(wsId, store);
-    }
-    return store;
-  }
-
-  /**
-   * wsId (workspace root path) に対応する EditSessionStore を lazy 生成して返す (Phase 2, spec §15.1)。
-   * 既存 lockManager / draftStore の workspace 単位インスタンス化パターンと同様。
-   * #893: DraftHistoryStore を DI して discard / transferEdit / save 時の snapshot 記録を有効化。
-   */
-  private getOrCreateEditSessionStore(wsId: string): EditSessionStore {
-    let store = this.editSessionStores.get(wsId);
-    if (!store) {
-      const historyStore = this.getOrCreateDraftHistoryStore(wsId);
-      store = new EditSessionStore(wsId, historyStore);
-      this.editSessionStores.set(wsId, store);
-    }
-    return store;
-  }
-
-  // ── EditSession public API (#906, MCP tool + WS handler 共有) ─────────────────
+  // ── EditSession adapter (#906, MCP tool + WS handler 共有 — 実装は wsBridge/editSessionService.ts) ──
   // sessionId は workspace 解決 + actor (participant.sessionId) として使われる。
   // WS 経由は WebSocket clientId、MCP 経由は MCP sessionId をそのまま渡す
   // (workspaceContextManager は両 namespace を統一管理する、#700 R-2)。
+  // 全 method を service への delegation として薄く保つ (#1144 Phase-2)。
 
   /**
-   * sessionId から active workspace path (wsId) を解決する。未選択時は WorkspaceUnsetError を throw。
-   * #917 review M-1: plain Error だと index.ts の catch ブロックで McpError(InvalidParams) に
-   * 変換されず汎用 isError に落ちるため、他 workspace 依存 MCP tool と同じ requireActivePath を使う。
+   * workspace close 時に当該 wsId の EditSessionStore を破棄する (#899 Phase 2)。
+   * #1144 Phase-2: wsHandlers/workspace.ts から呼ばれる公開 API。
+   * 存在しない場合は no-op。
    */
-  private _resolveActiveWsId(sessionId: string): string {
-    return workspaceContextManager.requireActivePath(sessionId);
+  deleteEditSessionStoreForWorkspace(wsId: string): void {
+    this.editSessionService.deleteStoreForWorkspace(wsId);
   }
 
   /** spec §5 step 1: 新規 EditSession を作成し initial Edit participant として登録 + broadcast */
@@ -421,18 +115,7 @@ class WsBridge extends EventEmitter {
     displayLabel?: string,
     parentHumanSessionId?: string,
   ): { editSession: unknown } {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const store = this.getOrCreateEditSessionStore(wsId);
-    const session = store.create(
-      sessionId,
-      resourceType,
-      resourceId,
-      displayLabel ?? sessionId,
-      parentHumanSessionId !== undefined ? { parentHumanSessionId } : undefined,
-    );
-    const serialized = _serializeEditSession(session);
-    this.broadcast({ wsId, event: "editSession.created", data: { editSession: serialized } });
-    return { editSession: serialized };
+    return this.editSessionService.create(sessionId, resourceType, resourceId, displayLabel, parentHumanSessionId);
   }
 
   /** spec §5 step 2: View role で attach + initial payload fetch + broadcast */
@@ -442,38 +125,12 @@ class WsBridge extends EventEmitter {
     displayLabel?: string,
     parentHumanSessionId?: string,
   ): { participant: EditSessionParticipantInfo; payload: unknown; sequence: number } {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const store = this.getOrCreateEditSessionStore(wsId);
-    const participant = store.attachAsView(
-      editSessionId,
-      sessionId,
-      displayLabel ?? sessionId,
-      parentHumanSessionId,
-    );
-    const fetchResult = store.fetchCurrentPayload(editSessionId);
-    this.broadcast({
-      wsId,
-      event: "editSession.attached",
-      data: { editSessionId, participant },
-    });
-    return {
-      participant,
-      payload: fetchResult?.payload ?? null,
-      sequence: fetchResult?.sequence ?? 0,
-    };
+    return this.editSessionService.attachAsView(sessionId, editSessionId, displayLabel, parentHumanSessionId);
   }
 
   /** participant detach + broadcast (Edit role は事前に View 降格必要) */
   editSessionDetach(sessionId: string, editSessionId: string): { detached: true } {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const store = this.getOrCreateEditSessionStore(wsId);
-    store.detach(editSessionId, sessionId);
-    this.broadcast({
-      wsId,
-      event: "editSession.detached",
-      data: { editSessionId, sessionId },
-    });
-    return { detached: true };
+    return this.editSessionService.detach(sessionId, editSessionId);
   }
 
   /** participant role 変更 + broadcast (通常は transferEdit を使う) */
@@ -482,17 +139,7 @@ class WsBridge extends EventEmitter {
     editSessionId: string,
     newRole: "Edit" | "View",
   ): { participant: EditSessionParticipantInfo } {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const store = this.getOrCreateEditSessionStore(wsId);
-    const session = store.get(editSessionId);
-    const oldRole = session?.participants.get(sessionId)?.role ?? null;
-    const updatedParticipant = store.setRole(editSessionId, sessionId, newRole);
-    this.broadcast({
-      wsId,
-      event: "editSession.roleChanged",
-      data: { editSessionId, sessionId, oldRole, newRole },
-    });
-    return { participant: updatedParticipant };
+    return this.editSessionService.setRole(sessionId, editSessionId, newRole);
   }
 
   /** spec §7: take-over (caller = new Edit holder)。fromSessionId は participants から自動検索 */
@@ -500,34 +147,7 @@ class WsBridge extends EventEmitter {
     sessionId: string,
     editSessionId: string,
   ): { from: EditSessionParticipantInfo; to: EditSessionParticipantInfo } {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const store = this.getOrCreateEditSessionStore(wsId);
-    const targetSession = store.getById(editSessionId);
-    if (!targetSession) {
-      throw new EditSessionNotFoundError(editSessionId);
-    }
-    // #917 review S-2: editor 不在時に caller fallback すると "from は Edit role ではない" と
-    // 不明瞭なエラーが返るため、editor 不在を明示的に検出してより正確なエラーを throw する。
-    const editor = Array.from(targetSession.participants.values()).find((p) => p.role === "Edit");
-    if (!editor) {
-      throw new EditSessionStateError(
-        `EditSession ${editSessionId} に Edit role の participant が存在しないため take-over できません`,
-      );
-    }
-    const result = store.transferEdit(editor.sessionId, sessionId, editSessionId);
-    this.broadcast({
-      wsId,
-      event: "editSession.roleChanged",
-      data: {
-        editSessionId,
-        sessionId,
-        oldRole: "View" as const,
-        newRole: "Edit" as const,
-        op: "transferred",
-        transferTo: sessionId,
-      },
-    });
-    return result;
+    return this.editSessionService.transferEdit(sessionId, editSessionId);
   }
 
   /** spec §13.2 update: payload を更新 + broadcast (FS write なし、Forward-Compat 原則 ④) */
@@ -536,22 +156,11 @@ class WsBridge extends EventEmitter {
     editSessionId: string,
     payload: unknown,
   ): { sequence: number } {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const store = this.getOrCreateEditSessionStore(wsId);
-    const { sequence } = store.update(editSessionId, payload, sessionId);
-    this.broadcast({
-      wsId,
-      event: "editSession.update",
-      data: { editSessionId, sequence, payload, senderSessionId: sessionId },
-    });
-    return { sequence };
+    return this.editSessionService.update(sessionId, editSessionId, payload);
   }
 
   /**
    * spec §5 step 5 / §8: 確定保存。stage パラメータで 2 段階保存をサポート (#912)。
-   *   - stage 未指定: conflict check + saveHistory + 本体書き込み + broadcast
-   *   - stage: "checkOnly": conflict check のみ
-   *   - stage: "commit": conflict check skip、saveHistory + 本体書き込み + broadcast
    * 衝突時は { ok: false, conflict } を return value で signal (throw しない)。
    */
   async editSessionSave(
@@ -562,127 +171,12 @@ class WsBridge extends EventEmitter {
     | { ok: true; saveEvent?: EditSessionSaveEvent }
     | { ok: false; conflict: { other: { editSessionId: string; savedBy: string; savedAt: string; displayLabel: string } } }
   > {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const store = this.getOrCreateEditSessionStore(wsId);
-    const force = opts?.force === true;
-    const stage = opts?.stage;
-
-    // spec §9.3 last-save-wins 衝突検出
-    if (!force && stage !== "commit") {
-      const targetSession = store.getById(editSessionId);
-      const allSessions = store.listByResource(
-        targetSession?.resourceType ?? "process-flow",
-        targetSession?.resourceId ?? "",
-      );
-      const conflicting = allSessions.find(
-        (s) => s.id !== editSessionId && s.state === "Active" && s.saveHistory.length > 0,
-      );
-      if (conflicting) {
-        const lastSave = conflicting.saveHistory[conflicting.saveHistory.length - 1];
-        const otherParticipants = Array.from(conflicting.participants.values());
-        const editor = otherParticipants.find((p) => p.role === "Edit") ?? otherParticipants[0];
-        return {
-          ok: false,
-          conflict: {
-            other: {
-              editSessionId: conflicting.id,
-              savedBy: lastSave.savedBy,
-              savedAt: lastSave.savedAt,
-              displayLabel: editor?.displayLabel ?? lastSave.savedBy,
-            },
-          },
-        };
-      }
-    }
-
-    // stage: "checkOnly" は conflict check のみで終了
-    if (stage === "checkOnly") {
-      return { ok: true };
-    }
-
-    const saveEvent = await store.save(editSessionId, sessionId);
-
-    // 本体 resource file へ atomic write (P1-1, #907 regression 解消)
-    const session = store.getById(editSessionId);
-    if (session && session.payload !== null && session.payload !== undefined) {
-      const root = resolveRoot(sessionId);
-      const type = session.resourceType;
-      const resId = session.resourceId;
-      const payload = session.payload;
-      try {
-        switch (type) {
-          case "screen":
-            await writeScreen(resId, payload, root);
-            break;
-          case "puck-data":
-            await writePuckData(resId, payload, root);
-            break;
-          case "table":
-            await writeTable(resId, payload, root);
-            break;
-          case "process-flow":
-            await writeProcessFlow(resId, payload, root);
-            break;
-          case "view":
-            await writeView(resId, payload, root);
-            break;
-          case "view-definition":
-            await writeViewDefinition(resId, payload, root);
-            break;
-          case "page-layout":
-            await writePageLayout(resId, payload, root);
-            break;
-          case "screen-item": {
-            const siPayload = payload as { screenId?: string } | null;
-            const siScreenId = siPayload && typeof siPayload.screenId === "string" && siPayload.screenId
-              ? siPayload.screenId
-              : resId;
-            await writeScreenItems(siScreenId, payload, root);
-            break;
-          }
-          case "sequence":
-            await writeSequence(resId, payload, root);
-            break;
-          case "flow":
-          case "er-layout":
-          case "extension":
-          case "convention":
-            // flow / er-layout は frontend 側が canonical 書き込みを担う。
-            // extension/convention は専用 MCP tool 経由のため skip。
-            break;
-          default:
-            break;
-        }
-      } catch (writeErr) {
-        console.error(`[editSession.save] resource file 書き込み失敗 (type=${type}, id=${resId}):`, writeErr);
-        // 書き込み失敗でも saveHistory / broadcast は続行 (可用性優先)
-      }
-    }
-
-    this.broadcast({
-      wsId,
-      event: "editSession.saved",
-      data: {
-        editSessionId,
-        savedBy: saveEvent.savedBy,
-        savedAt: saveEvent.savedAt,
-        sequence: saveEvent.sequence,
-      },
-    });
-    return { ok: true, saveEvent };
+    return this.editSessionService.save(sessionId, editSessionId, opts);
   }
 
   /** spec §5 step 6a: Active → Discarded + broadcast */
   async editSessionDiscard(sessionId: string, editSessionId: string): Promise<{ discarded: true }> {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const store = this.getOrCreateEditSessionStore(wsId);
-    await store.discard(editSessionId, "manual");
-    this.broadcast({
-      wsId,
-      event: "editSession.discarded",
-      data: { editSessionId, reason: "manual" as const },
-    });
-    return { discarded: true };
+    return this.editSessionService.discard(sessionId, editSessionId);
   }
 
   /** EditSession 一覧を返す (filter なしで全件、resourceType+resourceId 指定で絞り込み) */
@@ -690,12 +184,7 @@ class WsBridge extends EventEmitter {
     sessionId: string,
     filter?: { resourceType?: EditSessionResourceType; resourceId?: string },
   ): { sessions: unknown[] } {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const store = this.getOrCreateEditSessionStore(wsId);
-    const sessions = filter?.resourceType && filter?.resourceId
-      ? store.listByResource(filter.resourceType, filter.resourceId)
-      : store.listAll();
-    return { sessions: sessions.map(_serializeEditSession) };
+    return this.editSessionService.list(sessionId, filter);
   }
 
   /** spec §13.3: 現在の payload + sequence を取得 (broadcast 待ちなし) */
@@ -703,13 +192,7 @@ class WsBridge extends EventEmitter {
     sessionId: string,
     editSessionId: string,
   ): { payload: unknown; sequence: number } {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const store = this.getOrCreateEditSessionStore(wsId);
-    const result = store.fetchCurrentPayload(editSessionId);
-    if (!result) {
-      throw new EditSessionNotFoundError(editSessionId);
-    }
-    return result;
+    return this.editSessionService.fetchPayload(sessionId, editSessionId);
   }
 
   /** #893: DraftHistory 一覧を返す */
@@ -718,10 +201,7 @@ class WsBridge extends EventEmitter {
     resourceType: string,
     resourceId: string,
   ): Promise<{ history: unknown[] }> {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const historyStore = this.getOrCreateDraftHistoryStore(wsId);
-    const history = await historyStore.listHistory({ resourceType, resourceId });
-    return { history };
+    return this.editSessionService.listHistory(sessionId, resourceType, resourceId);
   }
 
   /**
@@ -734,34 +214,7 @@ class WsBridge extends EventEmitter {
     historyId: string,
     displayLabel?: string,
   ): Promise<{ editSession: unknown }> {
-    const wsId = this._resolveActiveWsId(sessionId);
-    const historyStore = this.getOrCreateDraftHistoryStore(wsId);
-    const entry = await historyStore.restoreFromHistory({ historyId });
-    if (!entry) {
-      throw new Error(`historyId ${historyId} が見つかりません`);
-    }
-
-    // 新規 EditSession を作成して snapshot を初期 payload として設定
-    const store = this.getOrCreateEditSessionStore(wsId);
-    const session = store.create(
-      sessionId,
-      entry.resourceType as EditSessionResourceType,
-      entry.resourceId,
-      displayLabel ?? sessionId,
-    );
-
-    // snapshot を初期 payload として update (sequence = 1)
-    if (entry.snapshot !== null && entry.snapshot !== undefined) {
-      store.update(session.id, entry.snapshot, sessionId);
-    }
-
-    const serialized = _serializeEditSession(store.get(session.id)!);
-    this.broadcast({
-      wsId,
-      event: "editSession.created",
-      data: { editSession: serialized, restoredFromHistoryId: historyId },
-    });
-    return { editSession: serialized };
+    return this.editSessionService.restoreFromHistory(sessionId, historyId, displayLabel);
   }
 
   /** MCP コマンドを送る先: 最後に接続した有効なクライアント */
@@ -791,63 +244,13 @@ class WsBridge extends EventEmitter {
     });
 
     // spec §12.4 / §18.3: EditSession の 1h 周期 cleanupExpired を開始
-    this._startEditSessionCleanupInterval();
-  }
-
-  /**
-   * spec §12.4 / §18.3 準拠: 1 時間に 1 回 全 EditSessionStore に cleanupExpired を実行する。
-   * Active + 全員 View + 無活動 → Discarded 遷移 / Discarded + retention 経過 → 完全削除。
-   */
-  private _startEditSessionCleanupInterval(intervalMs = 60 * 60 * 1000): void {
-    if (this.editSessionCleanupTimer !== null) return; // 二重起動防止
-    this.editSessionCleanupTimer = setInterval(async () => {
-      const now = new Date();
-      for (const [wsId, store] of this.editSessionStores.entries()) {
-        try {
-          const results = await store.cleanupExpired(now, 2 /* ttlDays */, 7 /* retentionDays */);
-          for (const { editSession, action } of results) {
-            // #917 review S-1: spec §12.4 / §14.1 準拠の broadcast event 名に修正
-            //   - "discarded" (TTL 経過 Active → Discarded): editSession.discarded (reason: "ttl")
-            //   - "deleted" (retention 経過 Discarded → 完全削除): editSession.expired
-            if (action === "discarded") {
-              this.broadcast({
-                wsId,
-                event: "editSession.discarded",
-                data: { editSessionId: editSession.id, reason: "ttl" as const },
-              });
-            } else if (action === "deleted") {
-              this.broadcast({
-                wsId,
-                event: "editSession.expired",
-                data: { editSessionId: editSession.id },
-              });
-            }
-          }
-        } catch (e) {
-          console.error(`[WsBridge] EditSession cleanupExpired error (wsId=${wsId}):`, e);
-        }
-      }
-
-      // #893: DraftHistory の 7 日 TTL cleanup を EditSession cleanup と同周期で実行
-      for (const [wsId, historyStore] of this.draftHistoryStores.entries()) {
-        try {
-          const deleted = await historyStore.cleanupExpired({ olderThanDays: 7 });
-          if (deleted.length > 0) {
-            console.info(`[WsBridge] DraftHistory cleanup (wsId=${wsId}): ${deleted.length} entries deleted`);
-          }
-        } catch (e) {
-          console.error(`[WsBridge] DraftHistory cleanupExpired error (wsId=${wsId}):`, e);
-        }
-      }
-    }, intervalMs);
+    // (実装は editSessionService、wsBridge は起動 / 停止のみ trigger)
+    this.editSessionService.startCleanupInterval();
   }
 
   /** spec §12.4: cleanupExpired タイマーを停止する。shutdown / テスト用。 */
   stopEditSessionCleanup(): void {
-    if (this.editSessionCleanupTimer !== null) {
-      clearInterval(this.editSessionCleanupTimer);
-      this.editSessionCleanupTimer = null;
-    }
+    this.editSessionService.stopCleanupInterval();
   }
 
   /** Phase 7 (#885): cleanup タイマーを停止する。shutdown hook 用。 */
@@ -860,7 +263,7 @@ class WsBridge extends EventEmitter {
     presenceStopCleanupInterval();
     this.stopEditSessionCleanup();
     // Close Codex connection if it was opened (#867)
-    void this._closeCodexConnection();
+    void this.codex.close();
     if (this.wss) {
       for (const client of this.wss.clients) {
         client.terminate();
@@ -1110,7 +513,12 @@ class WsBridge extends EventEmitter {
     }
   }
 
-  /** ブラウザからのファイル操作リクエストを処理 */
+  /**
+   * ブラウザからのファイル操作リクエストを処理。
+   *
+   * #1144 Phase-2: 64 RPC method の機能領域別 case body は `wsHandlers/*.ts` に分離済。
+   * 本メソッドは Map<method, handler> lookup と共通エラーハンドリングのみを担う。
+   */
   private async _handleBrowserRequest(
     ws: WebSocket,
     clientId: string,
@@ -1139,992 +547,28 @@ class WsBridge extends EventEmitter {
     const wsId = (): string | null => workspaceContextManager.getActivePath(clientId);
 
     try {
-      switch (method) {
-        case "loadProject": {
-          const project = await readProject(root());
-          respond(project);
-          break;
-        }
-        case "saveProject": {
-          const { project } = (params ?? {}) as { project: unknown };
-          await writeProject(project, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "projectChanged", data: {}, excludeClientId: clientId });
-          break;
-        }
-        case "loadScreen": {
-          const { screenId } = (params ?? {}) as { screenId: string };
-          // RFC #1021 pl-6 (Codex A-2): PageLayout Designer は synthetic id `page-layout:<id>` で来るので
-          // PageLayout design storage に routing (Windows 不正ファイル名 + 永続化境界違反の解消)
-          if (screenId.startsWith("page-layout:")) {
-            const plId = screenId.slice("page-layout:".length);
-            const data = await readPageLayoutDesign(plId, root());
-            respond(data);
-            break;
-          }
-          const data = await readScreen(screenId, root());
-          respond(data);
-          break;
-        }
-        // RFC #1021 pl-6 (Codex A-2 補強): synthetic id 経路に依存しない dedicated handler
-        // (composition preview / 外部呼び出しで明示的に使う)
-        case "loadPageLayoutDesign": {
-          const { pageLayoutId } = (params ?? {}) as { pageLayoutId: string };
-          const data = await readPageLayoutDesign(pageLayoutId, root());
-          respond(data);
-          break;
-        }
-        // RPC "savePageLayoutDesign" は frontend / MCP tools 双方から参照 0 件 (dead)。
-        // saveScreen 経路 (screenId が "page-layout:" prefix 時) で同等処理が走るため不要。
-        // ISSUE #1147 S-16 で dispatcher から削除。
-        case "saveScreen": {
-          const { screenId, data } = (params ?? {}) as { screenId: string; data: unknown };
-          // RFC #1021 pl-6 (Codex A-2): PageLayout design は専用 storage へ
-          if (screenId.startsWith("page-layout:")) {
-            const plId = screenId.slice("page-layout:".length);
-            await writePageLayoutDesign(plId, data, root());
-            respond({ success: true });
-            this.broadcast({ wsId: wsId(), event: "pageLayoutChanged", data: { pageLayoutId: plId }, excludeClientId: clientId });
-            break;
-          }
-          await writeScreen(screenId, data, root());
-          // 初回デザイン保存時に project の hasDesign フラグを更新
-          try {
-            const project = await readProject(root()) as { screens?: Array<{ id: string; hasDesign?: boolean; updatedAt?: string }>; updatedAt?: string } | null;
-            if (project?.screens) {
-              const screen = project.screens.find((s) => s.id === screenId);
-              if (screen && !screen.hasDesign) {
-                screen.hasDesign = true;
-                screen.updatedAt = new Date().toISOString();
-                project.updatedAt = new Date().toISOString();
-                await writeProject(project, root());
-                this.broadcast({ wsId: wsId(), event: "projectChanged", data: {}, excludeClientId: clientId });
-              }
-            }
-          } catch (e) {
-            console.error("[WsBridge] Failed to update hasDesign:", e);
-          }
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "screenChanged", data: { screenId }, excludeClientId: clientId });
-          break;
-        }
-        case "loadScreenEntity": {
-          const { screenId } = (params ?? {}) as { screenId: string };
-          const data = await readScreenEntity(screenId, root());
-          respond(data);
-          break;
-        }
-        case "saveScreenEntity": {
-          const { screenId, data } = (params ?? {}) as { screenId: string; data: unknown };
-          await writeScreenEntity(screenId, data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "screenEntityChanged", data: { screenId }, excludeClientId: clientId });
-          this.broadcast({ wsId: wsId(), event: "screenItemsChanged", data: { screenId }, excludeClientId: clientId });
-          break;
-        }
-        case "deleteScreen": {
-          const { screenId } = (params ?? {}) as { screenId: string };
-          await deleteScreenFile(screenId, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "screenChanged", data: { screenId, deleted: true }, excludeClientId: clientId });
-          break;
-        }
-        case "loadCustomBlocks": {
-          const blocks = await readCustomBlocks(root());
-          respond(blocks);
-          break;
-        }
-        case "saveCustomBlocks": {
-          const { blocks } = (params ?? {}) as { blocks: unknown[] };
-          await writeCustomBlocks(blocks, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "customBlocksChanged", data: {}, excludeClientId: clientId });
-          break;
-        }
-        case "loadPuckComponents": {
-          const components = await readPuckComponents(root());
-          respond(components);
-          break;
-        }
-        case "savePuckComponents": {
-          const { components } = (params ?? {}) as { components: unknown[] };
-          await writePuckComponents(components, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "puckComponentsChanged", data: {}, excludeClientId: clientId });
-          break;
-        }
-        case "loadPuckData": {
-          // #806: Puck Data を screens/<id>/puck-data.json から読み込み
-          const { screenId } = (params ?? {}) as { screenId: string };
-          const puckData = await readPuckData(screenId, root());
-          respond(puckData);
-          break;
-        }
-        case "savePuckData": {
-          // #806: Puck Data を screens/<id>/puck-data.json に書き込み
-          const { screenId, data: puckDataPayload } = (params ?? {}) as { screenId: string; data: unknown };
-          await writePuckData(screenId, puckDataPayload, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "puckDataChanged", data: { screenId }, excludeClientId: clientId });
-          break;
-        }
-        case "loadTable": {
-          const { tableId } = (params ?? {}) as { tableId: string };
-          const tableData = await readTable(tableId, root());
-          respond(tableData);
-          break;
-        }
-        case "saveTable": {
-          const { tableId, data } = (params ?? {}) as { tableId: string; data: unknown };
-          await writeTable(tableId, data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "tableChanged", data: { tableId }, excludeClientId: clientId });
-          break;
-        }
-        case "deleteTable": {
-          const { tableId } = (params ?? {}) as { tableId: string };
-          await deleteTableFile(tableId, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "tableChanged", data: { tableId, deleted: true }, excludeClientId: clientId });
-          break;
-        }
-        case "listAllTables": {
-          const tablesData = await listAllTables(root());
-          respond(tablesData);
-          break;
-        }
-        case "loadErLayout": {
-          const layoutData = await readErLayout(root());
-          respond(layoutData);
-          break;
-        }
-        case "saveErLayout": {
-          const { data } = (params ?? {}) as { data: unknown };
-          await writeErLayout(data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "erLayoutChanged", data: {}, excludeClientId: clientId });
-          break;
-        }
-        case "loadScreenFlowPositions": {
-          const layoutData = await readScreenFlowPositions(root());
-          respond(layoutData);
-          break;
-        }
-        case "saveScreenFlowPositions": {
-          const { data } = (params ?? {}) as { data: unknown };
-          await writeScreenFlowPositions(data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "screenFlowPositionsChanged", data: {}, excludeClientId: clientId });
-          break;
-        }
-        case "loadProcessFlow": {
-          const { id: agId } = (params ?? {}) as { id: string };
-          const agData = await readProcessFlow(agId, root());
-          respond(agData);
-          break;
-        }
-        case "saveProcessFlow": {
-          const { id: agId, data: agData } = (params ?? {}) as { id: string; data: unknown };
-          await writeProcessFlow(agId, agData, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { id: agId }, excludeClientId: clientId });
-          break;
-        }
-        case "deleteProcessFlow": {
-          const { id: agId } = (params ?? {}) as { id: string };
-          await deleteProcessFlowFile(agId, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { id: agId, deleted: true }, excludeClientId: clientId });
-          break;
-        }
-        case "listProcessFlows": {
-          const agList = await listProcessFlowFiles(root());
-          const metas = (agList as Array<{ id: string; name: string; type: string; screenId?: string; actions?: unknown[]; updatedAt: string }>).map((ag) => ({
-            id: ag.id,
-            name: ag.name,
-            type: ag.type,
-            screenId: ag.screenId,
-            actionCount: ag.actions?.length ?? 0,
-            updatedAt: ag.updatedAt,
-          }));
-          respond(metas);
-          break;
-        }
-        case "listAllViews": {
-          const viewsData = await listAllViews(root());
-          respond(viewsData);
-          break;
-        }
-        case "listAllViewDefinitions": {
-          const viewDefinitionsData = await listAllViewDefinitions(root());
-          respond(viewDefinitionsData);
-          break;
-        }
-        case "loadConventions": {
-          const catalog = await readConventions(root());
-          respond(catalog);
-          break;
-        }
-        case "loadProjectCatalogs": {
-          const catalog = await readExternalCatalogs(root());
-          respond(catalog);
-          break;
-        }
-        case "saveConventions": {
-          const { catalog } = (params ?? {}) as { catalog: unknown };
-          await writeConventions(catalog, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "conventionsChanged", data: {}, excludeClientId: clientId });
-          break;
-        }
-        // RPC "loadScreenItems" / "saveScreenItems" / "deleteScreenItems" は
-        // frontend が screenItemsStore 経由で loadScreenEntity / saveScreenEntity
-        // (Screen entity に embed された items を直接読み書き) に切り替えたため、
-        // 全て参照 0 件 (dead) となった。saveScreenEntity 経路で screenItemsChanged
-        // broadcast も継続発火されるため UI 同期に影響なし。
-        // ISSUE #1147 N-6 で dispatcher から削除。
-        case "loadSequence": {
-          const { sequenceId } = (params ?? {}) as { sequenceId: string };
-          const seqData = await readSequence(sequenceId, root());
-          respond(seqData);
-          break;
-        }
-        case "saveSequence": {
-          const { sequenceId, data } = (params ?? {}) as { sequenceId: string; data: unknown };
-          await writeSequence(sequenceId, data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "sequenceChanged", data: { sequenceId }, excludeClientId: clientId });
-          break;
-        }
-        case "deleteSequence": {
-          const { sequenceId } = (params ?? {}) as { sequenceId: string };
-          await deleteSequenceFile(sequenceId, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "sequenceChanged", data: { sequenceId, deleted: true }, excludeClientId: clientId });
-          break;
-        }
-        case "loadView": {
-          const { viewId } = (params ?? {}) as { viewId: string };
-          const data = await readView(viewId, root());
-          respond(data);
-          break;
-        }
-        case "saveView": {
-          const { viewId, data } = (params ?? {}) as { viewId: string; data: unknown };
-          await writeView(viewId, data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "viewChanged", data: { viewId }, excludeClientId: clientId });
-          break;
-        }
-        case "deleteView": {
-          const { viewId } = (params ?? {}) as { viewId: string };
-          await deleteViewFile(viewId, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "viewChanged", data: { viewId, deleted: true }, excludeClientId: clientId });
-          break;
-        }
-        case "loadViewDefinition": {
-          const { viewDefinitionId } = (params ?? {}) as { viewDefinitionId: string };
-          const data = await readViewDefinition(viewDefinitionId, root());
-          respond(data);
-          break;
-        }
-        case "saveViewDefinition": {
-          const { viewDefinitionId, data } = (params ?? {}) as { viewDefinitionId: string; data: unknown };
-          await writeViewDefinition(viewDefinitionId, data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "viewDefinitionChanged", data: { viewDefinitionId }, excludeClientId: clientId });
-          break;
-        }
-        case "deleteViewDefinition": {
-          const { viewDefinitionId } = (params ?? {}) as { viewDefinitionId: string };
-          await deleteViewDefinitionFile(viewDefinitionId, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "viewDefinitionChanged", data: { viewDefinitionId, deleted: true }, excludeClientId: clientId });
-          break;
-        }
-        case "listAllGenericDefinitions": {
-          const { kind } = (params ?? {}) as { kind: string };
-          const data = await listAllGenericDefinitions(root(), kind);
-          respond(data);
-          break;
-        }
-        case "loadGenericDefinition": {
-          const { kind, name } = (params ?? {}) as { kind: string; name: string };
-          const data = await readGenericDefinition(name, kind, root());
-          respond(data);
-          break;
-        }
-        case "saveGenericDefinition": {
-          const { kind, name, data } = (params ?? {}) as { kind: string; name: string; data: unknown };
-          await writeGenericDefinition(name, kind, data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "genericDefinitionChanged", data: { kind, name }, excludeClientId: clientId });
-          break;
-        }
-        case "deleteGenericDefinition": {
-          const { kind, name } = (params ?? {}) as { kind: string; name: string };
-          await deleteGenericDefinition(name, kind, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "genericDefinitionChanged", data: { kind, name, deleted: true }, excludeClientId: clientId });
-          break;
-        }
-        case "loadPageLayout": {
-          const { pageLayoutId } = (params ?? {}) as { pageLayoutId: string };
-          const data = await readPageLayout(pageLayoutId, root());
-          respond(data);
-          break;
-        }
-        case "savePageLayout": {
-          const { pageLayoutId, data } = (params ?? {}) as { pageLayoutId: string; data: unknown };
-          await writePageLayout(pageLayoutId, data, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "pageLayoutChanged", data: { pageLayoutId }, excludeClientId: clientId });
-          break;
-        }
-        case "deletePageLayout": {
-          const { pageLayoutId } = (params ?? {}) as { pageLayoutId: string };
-          await deletePageLayoutFile(pageLayoutId, root());
-          respond({ success: true });
-          this.broadcast({ wsId: wsId(), event: "pageLayoutChanged", data: { pageLayoutId, deleted: true }, excludeClientId: clientId });
-          break;
-        }
-        case "listAllPageLayouts": {
-          const data = await listAllPageLayouts(root());
-          respond(data);
-          break;
-        }
-        case "getFileMtime": {
-          const { kind, id: fid } = (params ?? {}) as { kind: string; id?: string };
-          const mtime = await getFileMtime(kind, root(), fid);
-          respond({ mtime });
-          break;
-        }
-        case "getExtensions": {
-          const bundle = await readExtensionsBundle(root());
-          respond(bundle);
-          break;
-        }
-        case "saveExtensionPackage": {
-          const { type, content } = (params ?? {}) as { type: string; content: unknown };
-          if (!["steps", "fieldTypes", "triggers", "dbOperations", "responseTypes"].includes(type)) {
-            respondError(`不明な拡張種別です: ${type}`);
-            break;
-          }
-          try {
-            await writeExtensionsFile(
-              type as "steps" | "fieldTypes" | "triggers" | "dbOperations" | "responseTypes",
-              content,
-              root(),
-              { onAfterWrite: () => this.broadcast({ wsId: root(), event: "extensionsChanged", data: { type }, excludeClientId: clientId }) },
-            );
-            respond({ success: true });
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-        case "renameScreenItem": {
-          const { screenId, oldId, newId } = (params ?? {}) as {
-            screenId: string; oldId: string; newId: string;
-          };
-          const result = await renameScreenItemId(screenId, oldId, newId, root());
-          respond(result);
-          this.broadcast({ wsId: wsId(), event: "screenItemsChanged", data: { screenId }, excludeClientId: clientId });
-          for (const agId of result.processFlowsUpdated) {
-            this.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { id: agId }, excludeClientId: clientId });
-          }
-          if (result.screenHtmlUpdated) {
-            this.broadcast({ wsId: wsId(), event: "screenChanged", data: { screenId }, excludeClientId: clientId });
-          }
-          break;
-        }
-        case "checkScreenItemRefs": {
-          const { screenId, itemId } = (params ?? {}) as { screenId: string; itemId: string };
-          const result = await checkScreenItemRefs(screenId, itemId, root());
-          respond(result);
-          break;
-        }
-
-        // ── ワークスペース管理 (#671/#672/#673) ─────────────────────────
-        case "workspace.list": {
-          const lockdown = isWorkspaceLockdown();
-          const { workspaces, lastActiveId } = lockdown
-            ? { workspaces: [], lastActiveId: null }
-            : await listWorkspacesEntries();
-          const activePath = workspaceContextManager.getActivePath(clientId);
-          const activeEntry = activePath ? await findWorkspaceByPath(activePath) : null;
-          respond({
-            workspaces,
-            lastActiveId,
-            active: activePath
-              ? { id: lockdown ? LOCKDOWN_WORKSPACE_ID : activeEntry?.id ?? null, path: activePath, name: activeEntry?.name ?? null }
-              : null,
-            lockdown,
-            lockdownPath: getWorkspaceLockdownPath(),
-          });
-          break;
-        }
-        case "workspace.status": {
-          // per-session active path (#700 R-2)
-          const activePath = workspaceContextManager.getActivePath(clientId);
-          let activeName: string | null = null;
-          if (activePath) {
-            const entry = await findWorkspaceByPath(activePath);
-            activeName = entry?.name ?? null;
-          }
-          respond({
-            active: activePath ? { path: activePath, name: activeName } : null,
-            lockdown: isWorkspaceLockdown(),
-            lockdownPath: getWorkspaceLockdownPath(),
-          });
-          break;
-        }
-        case "workspace.inspect": {
-          const { path: targetPath } = (params ?? {}) as { path?: string };
-          if (typeof targetPath !== "string") {
-            respondError("path は必須です");
-            break;
-          }
-          const r = await inspectWorkspacePath(targetPath);
-          respond(r);
-          break;
-        }
-        case "workspace.hostInfo": {
-          const info = await getHostInfo();
-          respond(info);
-          break;
-        }
-        case "workspace.browseFs": {
-          const { path: targetPath } = (params ?? {}) as { path?: string };
-          try {
-            const result = await browseFs(typeof targetPath === "string" ? targetPath : undefined);
-            respond(result);
-          } catch (e) {
-            if (e instanceof BrowseFsError) {
-              respondError(e.message);
-            } else {
-              throw e;
-            }
-          }
-          break;
-        }
-        case "workspace.open": {
-          const { path: targetPath, id, init, dataDir: initDataDir } = (params ?? {}) as { path?: string; id?: string; init?: boolean; dataDir?: string };
-          if (typeof targetPath !== "string" && typeof id !== "string") {
-            respondError("path または id のいずれかが必要です");
-            break;
-          }
-          const initFlag = init === true;
-          if (initFlag && typeof targetPath !== "string") {
-            respondError("init=true の場合は path が必須です");
-            break;
-          }
-          let resolved = typeof targetPath === "string" ? targetPath : null;
-          if (!resolved && typeof id === "string") {
-            const entry = await findWorkspaceById(id);
-            if (!entry) { respondError(`id ${id} のワークスペースが見つかりません`); break; }
-            resolved = entry.path;
-          }
-          if (!resolved) { respondError("path 解決に失敗しました"); break; }
-          let initName: string | null = null;
-          if (initFlag) {
-            if (isWorkspaceLockdown()) { respondError("lockdown モード中は新規ワークスペース初期化はできません"); break; }
-            try {
-              // dataDir は省略時 "harmony" がデフォルト (#852 R-3 D-5)
-              const initOpts = typeof initDataDir === "string" ? { dataDir: initDataDir } : undefined;
-              const initRes = await initializeWorkspaceFolder(resolved, initOpts);
-              initName = initRes.name;
-              resolved = initRes.path;
-            } catch (e) {
-              respondError(`ワークスペース初期化失敗: ${e instanceof Error ? e.message : String(e)}`);
-              break;
-            }
-          } else {
-            // init=false 時: stale recent エントリ / typo パスを active 化して fs を破壊しないよう、
-            // open 前に inspect で ready 状態を確認する (見つからない / harmony.json 無しは reject)
-            const inspect = await inspectWorkspacePath(resolved);
-            if (inspect.status !== "ready") {
-              respondError(
-                inspect.status === "notFound"
-                  ? `フォルダが見つかりません: ${resolved}`
-                  : inspect.status === "invalid"
-                    ? `ワークスペースの harmony.json が不正です: ${(inspect as { reason?: string }).reason ?? ""}`
-                    : `ワークスペースが初期化されていません (harmony.json が見つかりません): ${resolved}。init=true で初期化してください。`,
-              );
-              break;
-            }
-          }
-          try {
-            // per-session context を更新 (#700 R-2)
-            workspaceContextManager.setActivePath(clientId, resolved);
-          } catch (e) {
-            if (e instanceof WorkspaceLockdownError) { respondError(e.message); break; }
-            throw e;
-          }
-          let name = initName ?? resolved.split(/[\\/]/).pop() ?? "";
-          try {
-            const proj = await readProject(resolved);
-            if (proj && typeof proj === "object" && proj !== null) {
-              const meta = (proj as Record<string, unknown>).meta;
-              if (meta && typeof meta === "object" && meta !== null) {
-                const n = (meta as Record<string, unknown>).name;
-                if (typeof n === "string" && n.trim().length > 0) name = n;
-              }
-            }
-          } catch { /* fallback */ }
-          const entry = await upsertWorkspaceEntry(resolved, name);
-          await setLastActiveWorkspace(entry.id);
-          respond({ active: { id: entry.id, path: entry.path, name: entry.name } });
-          // workspace.open broadcast: 同 path を active にしている session のみ受信 (#703 R-5 A-2)
-          this.broadcast({ wsId: entry.path, event: "workspace.changed", data: {
-            activeId: entry.id,
-            path: entry.path,
-            name: entry.name,
-            lockdown: isWorkspaceLockdown(),
-          }, excludeClientId: clientId });
-          break;
-        }
-        case "workspace.close": {
-          // close 前に現在の path をキャプチャしておく (close 後は getActivePath が null になるため)
-          const closingPath = workspaceContextManager.getActivePath(clientId);
-          try {
-            // per-session context を更新 (#700 R-2)
-            workspaceContextManager.clearActive(clientId);
-          } catch (e) {
-            if (e instanceof WorkspaceLockdownError) { respondError(e.message); break; }
-            throw e;
-          }
-          await setLastActiveWorkspace(null);
-          // workspace close 時に EditSessionStore も cleanup (#899 Phase 2)
-          if (closingPath && this.editSessionStores.has(closingPath)) {
-            this.editSessionStores.delete(closingPath);
-          }
-          respond({ success: true });
-          // workspace.close broadcast: close 前のパスを持つ session のみ受信 (#703 R-5 A-2)
-          this.broadcast({ wsId: closingPath, event: "workspace.changed", data: {
-            activeId: null, path: null, name: null, lockdown: isWorkspaceLockdown(),
-          }, excludeClientId: clientId });
-          break;
-        }
-        case "workspace.remove": {
-          if (isWorkspaceLockdown()) { respondError("lockdown モード中はワークスペースを除外できません"); break; }
-          const { id } = (params ?? {}) as { id?: string };
-          if (typeof id !== "string") { respondError("id は必須です"); break; }
-          const removed = await removeWorkspaceEntry(id);
-          respond({ removed });
-          break;
-        }
-
-        // ── presence 管理 (#878 Phase 1) ──────────────────────────────────
-        case "presence.heartbeat": {
-          const {
-            resourceType: phrt,
-            resourceId: phrid,
-            kind: phkind,
-          } = (params ?? {}) as { resourceType: EditSessionResourceType; resourceId: string; kind: "activity" | "edit" };
-          const phWsId = wsId();
-          if (!phWsId) {
-            respondError("ワークスペースが選択されていません");
-            break;
-          }
-          const { levelChanged, entry, level } = presenceHeartbeat(phWsId, clientId, phrt, phrid, phkind);
-          respond({ entry, level });
-          // Phase 7 (#885): levelChanged が true の時のみ broadcast (broadcast 効率化)
-          if (levelChanged) {
-            const entries = presenceList(phWsId, phrt, phrid);
-            this.broadcast({
-              wsId: phWsId,
-              event: "presence:update",
-              data: { resourceType: phrt, resourceId: phrid, entries },
-            });
-          }
-          break;
-        }
-        case "presence.list": {
-          const { resourceType: plrt, resourceId: plrid } = (params ?? {}) as { resourceType: EditSessionResourceType; resourceId: string };
-          const plWsId = wsId();
-          if (!plWsId) {
-            respondError("ワークスペースが選択されていません");
-            break;
-          }
-          const entries = presenceList(plWsId, plrt, plrid);
-          respond({ entries });
-          break;
-        }
-        case "presence.register": {
-          // Phase 1 では editor/viewer 手動登録 API を提供 (viewer role は Phase 2 で本格利用)
-          const {
-            resourceType: prrt,
-            resourceId: prrid,
-            role: prrole,
-            ownerLabel: prownerLabel,
-          } = (params ?? {}) as { resourceType: EditSessionResourceType; resourceId: string; role: "editor" | "viewer"; ownerLabel?: string };
-          const prWsId = wsId();
-          if (!prWsId) {
-            respondError("ワークスペースが選択されていません");
-            break;
-          }
-          let entry;
-          if (prrole === "editor") {
-            entry = presenceRegisterEditor(prWsId, clientId, prrt, prrid, prownerLabel);
-          } else {
-            entry = presenceRegisterViewer(prWsId, clientId, prrt, prrid);
-          }
-          respond({ entry });
-          const allEntries = presenceList(prWsId, prrt, prrid);
-          this.broadcast({
-            wsId: prWsId,
-            event: "presence:update",
-            data: { resourceType: prrt, resourceId: prrid, entries: allEntries },
-          });
-          break;
-        }
-
-        // ── EditSession 管理 (#899 / meta #897 Phase 2) ──────────────────
-        // spec docs/spec/edit-session-protocol.md §14 / §15.1 に準拠。
-        // 旧 lock.* / draft.* handler は変更しない (Phase 4 で adapter 化、Phase 6 で削除)。
-
-        case "editSession.create": {
-          // #906: 公開 API editSessionCreate を adapter として呼ぶ (MCP tool と共有)
-          const {
-            resourceType: esRt,
-            resourceId: esRid,
-            displayLabel: esLabel,
-          } = (params ?? {}) as {
-            resourceType: EditSessionResourceType;
-            resourceId: string;
-            displayLabel?: string;
-          };
-          try {
-            const result = this.editSessionCreate(clientId, esRt, esRid, esLabel);
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.attachAsView": {
-          // #906: 公開 API editSessionAttachAsView を adapter として呼ぶ
-          const {
-            editSessionId: esAvId,
-            displayLabel: esAvLabel,
-            parentHumanSessionId: esAvParent,
-          } = (params ?? {}) as {
-            editSessionId: string;
-            displayLabel?: string;
-            parentHumanSessionId?: string;
-          };
-          try {
-            const result = this.editSessionAttachAsView(clientId, esAvId, esAvLabel, esAvParent);
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.detach": {
-          // #906: 公開 API editSessionDetach を adapter として呼ぶ
-          const { editSessionId: esDtId } = (params ?? {}) as { editSessionId: string };
-          try {
-            const result = this.editSessionDetach(clientId, esDtId);
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.setRole": {
-          // #906: 公開 API editSessionSetRole を adapter として呼ぶ
-          const {
-            editSessionId: esRoleId,
-            role: esNewRole,
-          } = (params ?? {}) as { editSessionId: string; role: "Edit" | "View" };
-          try {
-            const result = this.editSessionSetRole(clientId, esRoleId, esNewRole);
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.transferEdit": {
-          // #906: 公開 API editSessionTransferEdit を adapter として呼ぶ
-          // (caller = take-over 実行者 = new Edit holder; fromSessionId は participants から自動検索)
-          const { editSessionId: esTrId } = (params ?? {}) as { editSessionId: string; toSessionId?: string };
-          try {
-            const result = this.editSessionTransferEdit(clientId, esTrId);
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.update": {
-          // opaque envelope: payload は server で解釈しない (Forward-Compat 原則 ①)
-          // #906: 公開 API editSessionUpdate を adapter として呼ぶ
-          const {
-            editSessionId: esUpId,
-            payload: esUpPayload,
-          } = (params ?? {}) as { editSessionId: string; payload: unknown };
-          try {
-            const result = this.editSessionUpdate(clientId, esUpId, esUpPayload);
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.save": {
-          // #906: 公開 API editSessionSave を adapter として呼ぶ (#912 stage パラメータ含む)
-          const { editSessionId: esSvId, force, stage } = (params ?? {}) as {
-            editSessionId: string;
-            force?: boolean;
-            stage?: "checkOnly" | "commit";
-          };
-          try {
-            const result = await this.editSessionSave(clientId, esSvId, { force, stage });
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.discard": {
-          // #906: 公開 API editSessionDiscard を adapter として呼ぶ
-          const { editSessionId: esDiscId } = (params ?? {}) as { editSessionId: string };
-          try {
-            const result = await this.editSessionDiscard(clientId, esDiscId);
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.list": {
-          // #906: 公開 API editSessionList を adapter として呼ぶ
-          const {
-            resourceType: esLstRt,
-            resourceId: esLstRid,
-          } = (params ?? {}) as { resourceType?: EditSessionResourceType; resourceId?: string };
-          try {
-            const result = this.editSessionList(clientId, { resourceType: esLstRt, resourceId: esLstRid });
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.fetchPayload": {
-          // #906: 公開 API editSessionFetchPayload を adapter として呼ぶ
-          const { editSessionId: esFpId } = (params ?? {}) as { editSessionId: string };
-          try {
-            const result = this.editSessionFetchPayload(clientId, esFpId);
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.listHistory": {
-          // #893: DraftHistory 一覧を返す
-          const {
-            resourceType: esLhRt,
-            resourceId: esLhRid,
-          } = (params ?? {}) as { resourceType: string; resourceId: string };
-          try {
-            const result = await this.editSessionListHistory(clientId, esLhRt, esLhRid);
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "editSession.restoreFromHistory": {
-          // #893: 履歴から新規 EditSession を作成して返す
-          const {
-            historyId: esRhId,
-            displayLabel: esRhLabel,
-          } = (params ?? {}) as { historyId: string; displayLabel?: string };
-          try {
-            const result = await this.editSessionRestoreFromHistory(clientId, esRhId, esRhLabel);
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        // ── Codex App Server (#867) ──────────────────────────────────────────
-        // All codex.* methods delegate to the CodexConnection singleton.
-        // The connection is established on first use (on-demand).
-
-        case "codex.account.read": {
-          try {
-            const state = await this._getCodexConnection().account.readState();
-            respond(state);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.account.login.start": {
-          try {
-            const pending = await this._getCodexConnection().account.startChatgptLogin();
-            pending.completion.catch(() => {
-              // Browser observes login completion via Codex notifications; avoid unhandled rejections here.
-            });
-            respond({ loginId: pending.loginId, authUrl: pending.authUrl });
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.account.login.cancel": {
-          const { loginId: cxLoginId } = (params ?? {}) as { loginId: string };
-          try {
-            await this._getCodexConnection().account.cancelChatgptLogin(cxLoginId);
-            respond({ cancelled: true });
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.account.logout": {
-          try {
-            await this._getCodexConnection().account.logout();
-            respond({ ok: true });
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.account.rateLimits.read": {
-          try {
-            const result = await this._getCodexConnection().account.readRateLimits();
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.turn.start": {
-          try {
-            const result = await this._getCodexConnection().request<unknown>(
-              "turn/start",
-              params as TurnStartParams,
-            );
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.turn.steer": {
-          try {
-            const result = await this._getCodexConnection().request<unknown>(
-              "turn/steer",
-              params as TurnSteerParams,
-            );
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.turn.interrupt": {
-          try {
-            const result = await this._getCodexConnection().request<unknown>(
-              "turn/interrupt",
-              params as TurnInterruptParams,
-            );
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.thread.start": {
-          try {
-            const result = await this._getCodexConnection().request<unknown>(
-              "thread/start",
-              params as ThreadStartParams,
-            );
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.thread.resume": {
-          try {
-            const result = await this._getCodexConnection().request<unknown>(
-              "thread/resume",
-              params as ThreadResumeParams,
-            );
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.model.list": {
-          try {
-            const result = await this._getCodexConnection().request<unknown>("model/list", {});
-            respond(result);
-          } catch (e) {
-            respondError(e instanceof Error ? e.message : String(e));
-          }
-          break;
-        }
-
-        case "codex.serverRequest.respond": {
-          const { requestId: srId, result: srResult, error: srError } = (params ?? {}) as {
-            requestId: string;
-            result?: unknown;
-            error?: { code: number; message: string };
-          };
-          if (srError) {
-            this._resolveCodexServerRequest(srId, srError, true);
-          } else {
-            this._resolveCodexServerRequest(srId, srResult, false);
-          }
-          respond({ ok: true });
-          break;
-        }
-
-        default: {
-          // 動的に登録されたハンドラ (#750 follow-up: client.log.flush 等)
-          const dynHandler = this._browserHandlers.get(method);
-          if (dynHandler) {
-            const result = await dynHandler(params, { clientId });
-            respond(result);
-            break;
-          }
-          respondError(`未知のリクエストメソッド: ${method}`);
-        }
+      const handler = rpcHandlerMap.get(method);
+      if (handler) {
+        const ctx: RpcContext = {
+          params,
+          clientId,
+          root,
+          wsId,
+          respond,
+          respondError,
+          bridge: this,
+        };
+        await handler(ctx);
+        return;
       }
+      // 動的に登録されたハンドラ (#750 follow-up: client.log.flush 等)
+      const dynHandler = this._browserHandlers.get(method);
+      if (dynHandler) {
+        const result = await dynHandler(params, { clientId });
+        respond(result);
+        return;
+      }
+      respondError(`未知のリクエストメソッド: ${method}`);
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));
     }
@@ -2191,18 +635,3 @@ class WsBridge extends EventEmitter {
 }
 
 export const wsBridge = new WsBridge();
-
-// ── EditSession シリアライズヘルパー (Phase 2) ────────────────────────────────
-
-/**
- * EditSession の Map<string, ParticipantInfo> を JSON シリアライズ可能な
- * Record<string, ParticipantInfo> に変換して返す。
- * spec §14.3 broadcast の wsId scoping と同様の理由で、
- * participants の Map は Object.fromEntries で変換する (editSessionStore.ts の FS write と同じ手法)。
- */
-function _serializeEditSession(session: import("./editSessionStore.js").EditSession): unknown {
-  return {
-    ...session,
-    participants: Object.fromEntries(session.participants.entries()),
-  };
-}
