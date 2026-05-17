@@ -1,0 +1,24 @@
+---
+import SpecLayout from '../../layouts/SpecLayout.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import AreaIndex from '../../components/AreaIndex.astro';
+import { navigation } from '../../data/navigation';
+
+const groups = navigation.setup;
+---
+
+<SpecLayout title="Setup — セットアップ" description="開発環境セットアップガイド">
+  <Sidebar slot="sidebar" area="setup" />
+  <h1>セットアップ (Setup)</h1>
+  <p>
+    Harmony の開発環境構築ガイド。<strong>推奨は Dev Containers</strong> (Docker Desktop + WSL2)、WSL2 native も代替サポート。
+  </p>
+
+  <AreaIndex area="setup" groups={groups} />
+
+  <h2>関連</h2>
+  <ul>
+    <li><a href="/user-guide/">ユーザーガイド</a> — セットアップ後の使い方</li>
+    <li><a href="/spec/">仕様書</a> — 開発時に参照する中核仕様</li>
+  </ul>
+</SpecLayout>

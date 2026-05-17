@@ -1,5 +1,7 @@
 # Schema 変更履歴監査レポート (2026-04-27)
 
+> **📝 ステータス**: 完了済 historical record (Phase B-1 / #511 の成果物として保持)。`schema-design-principles.md` から証拠文書として line 参照あり、削除不可。
+
 `#511` schema ガバナンス導入を契機に、過去全期間の schema 変更を精査。本レポートは Phase B-1 の成果物。
 
 ## 監査範囲

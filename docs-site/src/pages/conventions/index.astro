@@ -1,0 +1,28 @@
+---
+import SpecLayout from '../../layouts/SpecLayout.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import AreaIndex from '../../components/AreaIndex.astro';
+import { navigation } from '../../data/navigation';
+
+const groups = navigation.conventions;
+---
+
+<SpecLayout title="Conventions — 規約カタログ" description="式言語 / バリデーション規約 / プロダクトスコープ">
+  <Sidebar slot="sidebar" area="conventions" />
+  <h1>規約カタログ (Conventions)</h1>
+  <p>
+    Harmony プロジェクトで採用する規約群。<code>@conv.*</code> / <code>@env.*</code> / <code>@secret.*</code> 等の式言語規約、バリデーション規約、プロダクトスコープ定義を含む。
+  </p>
+  <p>
+    実体の JSON 正本は active workspace の <code>&lt;dataDir&gt;/conventions/catalog.json</code> に格納。本ページは人間向け参考資料。
+  </p>
+
+  <AreaIndex area="conventions" groups={groups} />
+
+  <h2>関連</h2>
+  <ul>
+    <li><a href="/spec/process-flow-expression-language/">式言語仕様 (process-flow-expression-language)</a></li>
+    <li><a href="/spec/process-flow-secrets/">Secrets 仕様</a></li>
+    <li><a href="/spec/process-flow-env-vars/">環境変数仕様</a></li>
+  </ul>
+</SpecLayout>

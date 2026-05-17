@@ -83,3 +83,57 @@
 pre:hover .copy-btn {
   opacity: 1;
 }
+
+/* 印刷時 — spec / user-guide 等の通常 page 用 (presentation.css は別途定義) */
+@media print {
+  html, body {
+    background: white !important;
+    color: #0f172a !important;
+  }
+  /* nav header / sidebar / 検索 modal / dark toggle / fullscreen hint 非表示 */
+  header,
+  aside,
+  pagefind-modal-trigger,
+  pagefind-modal,
+  #theme-toggle,
+  #fullscreen-hint {
+    display: none !important;
+  }
+  /* main を full width に */
+  main {
+    max-width: 100% !important;
+  }
+  /* prose 内の色 / max-width 印刷最適化 */
+  .prose {
+    --tw-prose-body: #0f172a;
+    --tw-prose-headings: #0f172a;
+    --tw-prose-code: #0f172a;
+    --tw-prose-links: #1d4ed8;
+    max-width: 100% !important;
+  }
+  .prose pre {
+    page-break-inside: avoid;
+    background: #f3f4f6 !important;
+    color: #0f172a !important;
+    border: 1px solid #e5e7eb;
+  }
+  .prose code {
+    color: #0f172a !important;
+  }
+  .prose table {
+    page-break-inside: avoid;
+  }
+  .prose h2 {
+    page-break-before: auto;
+    page-break-after: avoid;
+  }
+  .copy-btn {
+    display: none !important;
+  }
+  /* リンクは下線 + URL 補足 */
+  .prose a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #475569;
+  }
+}

@@ -1,0 +1,30 @@
+---
+import SpecLayout from '../../layouts/SpecLayout.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import AreaIndex from '../../components/AreaIndex.astro';
+import { navigation } from '../../data/navigation';
+
+const groups = navigation.spec;
+---
+
+<SpecLayout title="Spec — 仕様書索引" description="Harmony 中核仕様書索引">
+  <Sidebar slot="sidebar" area="spec" />
+  <h1>仕様書 (Spec)</h1>
+  <p>
+    Harmony の中核仕様書群。<strong>ProcessFlow / Schema / Screen / Workspace / Plugin / Code Generation / Examples / Path / Audit / Dogfood archive</strong>
+    のカテゴリで整理。各カテゴリから関連 page にアクセス。
+  </p>
+  <p>
+    AI が読んで実装する一次成果物に近い扱い。Markdown を canonical source、本サイトは build artifact (`docs/html/` 配下)。
+  </p>
+
+  <AreaIndex area="spec" groups={groups} />
+
+  <h2>関連</h2>
+  <ul>
+    <li><a href="/user-guide/">ユーザーガイド</a> — 業務設計者向けワークフロー</li>
+    <li><a href="/conventions/">規約カタログ</a> — 式言語 / バリデーション規約 / プロダクトスコープ</li>
+    <li><a href="/setup/">セットアップ</a> — Dev Container / WSL2 native</li>
+    <li><a href="/presentation/">プレゼン資料</a> — 電通コンサル風 16 スライド</li>
+  </ul>
+</SpecLayout>

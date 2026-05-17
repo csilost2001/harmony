@@ -1,0 +1,25 @@
+---
+import SpecLayout from '../../layouts/SpecLayout.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import AreaIndex from '../../components/AreaIndex.astro';
+import { navigation } from '../../data/navigation';
+
+const groups = navigation['user-guide'];
+---
+
+<SpecLayout title="User Guide — ユーザーガイド" description="Harmony 業務設計者向けワークフロー">
+  <Sidebar slot="sidebar" area="user-guide" />
+  <h1>ユーザーガイド (User Guide)</h1>
+  <p>
+    Harmony を業務設計者として使う際のワークフロー解説。AI (Claude / Codex) との往復で業務記述から実装まで完結する手順を案内。
+  </p>
+
+  <AreaIndex area="user-guide" groups={groups} />
+
+  <h2>関連</h2>
+  <ul>
+    <li><a href="/spec/">仕様書</a> — 中核仕様 (ProcessFlow / Schema 等)</li>
+    <li><a href="/setup/">セットアップ</a> — まず開発環境を整える</li>
+    <li><a href="/presentation/">プレゼン資料</a> — Harmony 全体像</li>
+  </ul>
+</SpecLayout>
