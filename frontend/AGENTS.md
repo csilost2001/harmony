@@ -20,9 +20,11 @@ npm run lint       # ESLint
 
 ## Data Flow
 
-- **Save:** GrapesJS autosave → remoteStorage → mcpBridge (WS) → wsBridge → `data/screens/{id}.json`
+- **Save:** GrapesJS autosave → remoteStorage → mcpBridge (WS) → wsBridge → active workspace の `<workspace>/<dataDir>/screens/{id}.json` (例: `workspaces/my-app/harmony/screens/{id}.json`、path は `harmony.json` の `dataDir` 設定に依存、#856 で `data/` 直書きから移行済)
 - **Fallback:** If WS disconnected → localStorage (`gjs-screen-{id}`)
 - **Sync:** wsBridge broadcasts changes to all connected browser tabs
+
+workspace / dataDir 構造の詳細は [`../docs/spec/workspace.md`](../docs/spec/workspace.md) を参照。
 
 ## Environment Notes
 
@@ -51,7 +53,7 @@ multi browser context の e2e で **Vite dev server (port 5173) が間欠 crash*
 ## Themes & Custom Blocks
 
 - Themes: standard (default Bootstrap), card, compact, dark — CSS injected into GrapesJS canvas iframe
-- Custom blocks persist to `data/custom-blocks.json` via customBlockStore
+- Custom blocks persist to active workspace の `<workspace>/<dataDir>/custom-blocks.json` via customBlockStore (例: `workspaces/my-app/harmony/custom-blocks.json`)
 
 ## Routing / Tab Policy
 

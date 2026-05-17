@@ -341,22 +341,41 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 
 URL 規約: **`/category/feature[/:id]`** 形式（Java 風階層）。ルートは単一概念で意味が通るよう、複数解釈できる複数形は避ける（例: `/flow` は 画面フロー／処理フロー どちらか不明なため不採用）。
 
+表中の Path は **workspace-scoped route 配下のサブパス** として記載 (実 URL は `/w/:wsId/<path>`)。`/workspace/*` と `/ai-settings` のみ workspace スコープ外 (top-level)。
+
 | Path | Component | Purpose | Opens as tab? |
 |------|-----------|---------|---------------|
-| `/` | DashboardView | 全体俯瞰ダッシュボード | ✅ singleton |
+| `/` (index) | DashboardView | 全体俯瞰ダッシュボード | ✅ singleton |
 | `/screen/flow` | FlowEditor | 画面フロー図（ReactFlow、キャンバス固定）| ✅ singleton |
 | `/screen/list` | ScreenListView | 画面一覧（カード ⇔ 表切替）| ✅ singleton |
-| `/screen/design/:screenId` | Designer | 画面デザイナー（GrapesJS）| ✅ per-resource |
+| `/screen/design/:screenId` | Designer (`ResourceLoading` でラップ) | 画面デザイナー（GrapesJS）| ✅ per-resource |
+| `/screen/items/:screenId` | ScreenItemsView | 画面項目編集 | ✅ per-resource |
 | `/table/list` | TableListView | テーブル一覧 | ✅ singleton |
 | `/table/edit/:tableId` | TableEditor | テーブル編集 | ✅ per-resource |
 | `/table/er` | ErDiagram | ER 図 | ✅ singleton |
 | `/process-flow/list` | ProcessFlowListView | 処理フロー一覧 | ✅ singleton |
-| `/extensions` | ExtensionsPanel | 拡張管理 | ✅ singleton |
 | `/process-flow/edit/:processFlowId` | ProcessFlowEditor | 処理フロー編集 | ✅ per-resource |
+| `/sequence/list` | SequenceListView | シーケンス一覧 | ✅ singleton |
+| `/sequence/edit/:sequenceId` | SequenceEditor | シーケンス編集 | ✅ per-resource |
+| `/view/list` | ViewListView | DB ビュー一覧 | ✅ singleton |
+| `/view/edit/:viewId` | ViewEditor | DB ビュー編集 | ✅ per-resource |
+| `/view-definition/list` | ViewDefinitionListView | ViewDefinition (viewer) 一覧 | ✅ singleton |
+| `/view-definition/edit/:viewDefinitionId` | ViewDefinitionEditor | ViewDefinition 編集 | ✅ per-resource |
 | `/page-layout/list` | PageLayoutListView | ページレイアウト一覧 (RFC #1021) | ✅ singleton |
 | `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 | ✅ per-resource |
 | `/page-layout/design/:pageLayoutId` | PageLayoutDesigner | ページレイアウト Designer | ✅ per-resource |
 | `/gadget/list` | GadgetListView | ガジェット一覧 (Screen.purpose=gadget filter) | ✅ singleton |
+| `/generic-definition` | GenericDefinitionCatalogView | 汎用定義カタログ | ✅ singleton |
+| `/generic-definition/:kind` | GenericDefinitionListView | 汎用定義一覧 (kind 別) | ✅ per-resource (kind 単位) |
+| `/generic-definition/:kind/:name` | GenericDefinitionEditor | 汎用定義編集 | ✅ per-resource |
+| `/extensions` | ExtensionsPanel | 拡張管理 | ✅ singleton |
+| `/conventions/catalog` | ConventionsCatalogView | 横断規約カタログ | ✅ singleton |
+| `/project/tech-stack` | TechStackView | 技術スタック選定 | ✅ singleton |
+| `/workspace/list` (top-level) | WorkspaceListView | ワークスペース一覧 | ✅ singleton |
+| `/workspace/select` (top-level) | WorkspaceSelectView | ワークスペース選択 (フルスクリーン welcome) | ❌ route only (タブ対象外) |
+| `/ai-settings` (top-level) | CodexSettingsView | AI 設定 | ✅ singleton |
+
+**実装**: `frontend/src/components/AppShell.tsx:300-354` の `<Routes>` 定義 (workspace-scoped は `/w/:wsId` 配下 nested route)。
 
 ワークスペース概念 (active workspace / lockdown / recent / 切替プロトコル) は [docs/spec/workspace.md](docs/spec/workspace.md) を参照。複数ワークスペースの**同時並行編集** (v2) は [docs/spec/workspace-multi.md](docs/spec/workspace-multi.md) を参照 (#679 シリーズ)。
 
@@ -366,9 +385,9 @@ URL 規約: **`/category/feature[/:id]`** 形式（Java 風階層）。ルート
 
 | 種別 | 対象 | 性質 |
 |------|------|------|
-| シングルトンタブ | Dashboard / 画面フロー / 画面一覧 / テーブル一覧 / ER 図 / 処理フロー一覧 / 拡張管理 | 1 インスタンス固定、再オープン時は既存を再利用 |
-| マルチインスタンスタブ | Designer / TableEditor / ProcessFlowEditor | リソース ID 毎に独立タブ |
-| route only | なし | — |
+| シングルトンタブ | Dashboard / 画面フロー / 画面一覧 / テーブル一覧 / ER 図 / 処理フロー一覧 / シーケンス一覧 / DB ビュー一覧 / ViewDefinition 一覧 / ページレイアウト一覧 / ガジェット一覧 / 汎用定義カタログ / 拡張管理 / 横断規約カタログ / 技術スタック / ワークスペース一覧 / AI 設定 | 1 インスタンス固定、再オープン時は既存を再利用 |
+| マルチインスタンスタブ | Designer / ScreenItemsView / TableEditor / ProcessFlowEditor / SequenceEditor / ViewEditor / ViewDefinitionEditor / PageLayoutEditor / PageLayoutDesigner / GenericDefinitionListView (kind 別) / GenericDefinitionEditor | リソース ID 毎に独立タブ |
+| route only | `/workspace/select` (フルスクリーン welcome、ヘッダー・タブバーなし) | タブ管理対象外 |
 
 **理由**: 一覧画面は全機能の俯瞰・順序変更・検索・帳票出力等の中心機能で、**詳細より頻繁に開かれる**。タブ化しないと毎回 HeaderMenu から辿り直しで UX 劣化する。VS Code も Welcome / Settings / Source Control などシングルトンをタブで開く。
 
@@ -380,7 +399,7 @@ URL 規約: **`/category/feature[/:id]`** 形式（Java 風階層）。ルート
 - `frontend/src/grapes/blocks.ts` — 60+ pre-built block definitions
 - `frontend/src/store/` — Persistence layer (flowStore, customBlockStore)
 - `frontend/src/mcp/mcpBridge.ts` — Browser-side WebSocket client
-- `backend/src/tools.ts` — 20 MCP tool definitions
+- `backend/src/tools.ts` — 89 MCP tool definitions (実カウント: `grep -cE 'name:\s*"designer__' backend/src/tools.ts`、2026-05-17 時点)
 - `backend/src/wsBridge.ts` — WebSocket server + broadcast
 
 ### Data Flow
