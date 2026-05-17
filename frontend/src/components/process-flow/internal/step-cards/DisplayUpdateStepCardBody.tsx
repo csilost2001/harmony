@@ -4,7 +4,7 @@
 import type { Step } from "../../../../types/action";
 import type { StepCardBodyBaseProps } from "./types";
 
-export interface DisplayUpdateStepCardBodyProps extends StepCardBodyBaseProps {}
+export type DisplayUpdateStepCardBodyProps = StepCardBodyBaseProps;
 
 export function DisplayUpdateStepCardBody({
   step,

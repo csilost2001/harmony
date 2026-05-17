@@ -5,7 +5,7 @@ import type { Step } from "../../../../types/action";
 import { JumpTargetSelector } from "../../JumpTargetSelector";
 import type { StepCardBodyBaseProps } from "./types";
 
-export interface JumpStepCardBodyProps extends StepCardBodyBaseProps {}
+export type JumpStepCardBodyProps = StepCardBodyBaseProps;
 
 export function JumpStepCardBody({
   step,

@@ -6,7 +6,7 @@ import { ExternalOutcomesPanel } from "../../ExternalOutcomesPanel";
 import { trimToUndefined } from "../stepCardConstants";
 import type { StepCardBodyBaseProps } from "./types";
 
-export interface ExternalSystemStepCardBodyProps extends StepCardBodyBaseProps {}
+export type ExternalSystemStepCardBodyProps = StepCardBodyBaseProps;
 
 export function ExternalSystemStepCardBody({
   step,
