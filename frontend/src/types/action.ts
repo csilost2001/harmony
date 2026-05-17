@@ -39,6 +39,7 @@ export type StepKind =
   | "validation"
   | "dbAccess"
   | "externalSystem"
+  | "componentCall"
   | "commonProcess"
   | "screenTransition"
   | "displayUpdate"
@@ -57,6 +58,8 @@ export type StepKind =
   | "eventSubscribe"
   | "closing"
   | "cdc"
+  | "aiCall"
+  | "aiAgent"
   | "extension"
   | "other";
 export type StepType = StepKind;
@@ -210,6 +213,7 @@ export const STEP_TYPE_LABELS: Record<string, string> = {
   validation: "入力チェック",
   dbAccess: "DBアクセス",
   externalSystem: "外部システム",
+  componentCall: "コンポーネント呼出",
   commonProcess: "共通処理",
   screenTransition: "画面遷移",
   displayUpdate: "表示更新",
@@ -228,6 +232,8 @@ export const STEP_TYPE_LABELS: Record<string, string> = {
   eventSubscribe: "イベント購読",
   closing: "締め処理",
   cdc: "CDC",
+  aiCall: "AI 呼出",
+  aiAgent: "AI エージェント",
   extension: "拡張",
   other: "その他",
 };
@@ -236,6 +242,7 @@ export const STEP_TYPE_ICONS: Record<string, string> = {
   validation: "check-square",
   dbAccess: "database",
   externalSystem: "plug",
+  componentCall: "puzzle",
   commonProcess: "share",
   screenTransition: "arrow-right",
   displayUpdate: "refresh-cw",
@@ -254,6 +261,8 @@ export const STEP_TYPE_ICONS: Record<string, string> = {
   eventSubscribe: "rss",
   closing: "lock",
   cdc: "activity",
+  aiCall: "cpu",
+  aiAgent: "bi-robot",
   extension: "puzzle",
   other: "circle",
 };
@@ -262,6 +271,7 @@ export const STEP_TYPE_COLORS: Record<string, string> = {
   validation: "#0f766e",
   dbAccess: "#2563eb",
   externalSystem: "#7c3aed",
+  componentCall: "#6366f1",
   commonProcess: "#475569",
   screenTransition: "#16a34a",
   displayUpdate: "#0891b2",
@@ -280,6 +290,8 @@ export const STEP_TYPE_COLORS: Record<string, string> = {
   eventSubscribe: "#0d9488",
   closing: "#7f1d1d",
   cdc: "#0369a1",
+  aiCall: "#a855f7",
+  aiAgent: "#c026d3",
   extension: "#6b7280",
   other: "#6b7280",
 };

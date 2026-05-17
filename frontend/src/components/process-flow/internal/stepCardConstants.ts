@@ -3,13 +3,13 @@ import type { DbOperation, StepType } from "../../../types/action";
 /**
  * ProcessFlowEditor のパレット (toolbar) に表示する全 step kind。
  * 元: components/process-flow/ProcessFlowEditor.tsx (#1145 Phase-3 で分離)。
- * v3 schema には `componentCall` / `aiCall` / `aiAgent` も含まれるが、現状
- * パレット D&D は別 ISSUE で対応予定 (StepCard 側 dispatch は Phase-3 で追加済)。
+ * v3 schema 全 kind (componentCall / aiCall / aiAgent 含む) を登録 (#1145 完遂 follow-up)。
  */
 export const ALL_STEP_TYPES: StepType[] = [
   "validation",
   "dbAccess",
   "externalSystem",
+  "componentCall",
   "commonProcess",
   "screenTransition",
   "displayUpdate",
@@ -29,6 +29,8 @@ export const ALL_STEP_TYPES: StepType[] = [
   "eventSubscribe",
   "closing",
   "cdc",
+  "aiCall",
+  "aiAgent",
 ];
 
 /**
@@ -39,6 +41,7 @@ export const ALL_SUB_STEP_TYPES: StepType[] = [
   "validation",
   "dbAccess",
   "externalSystem",
+  "componentCall",
   "commonProcess",
   "screenTransition",
   "displayUpdate",
@@ -58,6 +61,8 @@ export const ALL_SUB_STEP_TYPES: StepType[] = [
   "eventSubscribe",
   "closing",
   "cdc",
+  "aiCall",
+  "aiAgent",
 ];
 
 /** DB 操作の選択肢。元: StepCard.tsx (#1145) */
