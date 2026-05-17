@@ -14,7 +14,7 @@ npm run build      # Compile to dist/
 
 ## Key Files
 
-- `src/tools.ts` — 20 MCP tool definitions
+- `src/tools.ts` — 89 MCP tool definitions (実カウント: `grep -cE 'name:\s*"designer__' src/tools.ts`、2026-05-17 時点)
 - `src/wsBridge.ts` — WebSocket server + broadcast
 
 ## MCP / WebSocket
