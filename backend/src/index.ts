@@ -47,6 +47,14 @@ initServerLog(projectRoot);
 // 常駐バックエンドなので停止 signal (SIGTERM/SIGINT/disconnect) のみ監視。
 // stdin は監視しない (#302: HTTP transport に統一、stdio 廃止)。
 function setupLifecycle(): void {
+  // stdout/stderr EPIPE は親プロセス pipe 切断時に発生しうるため silent drop する。
+  process.stdout.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EPIPE") return;
+  });
+  process.stderr.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EPIPE") return;
+  });
+
   const exitHandler = (reason: string) => {
     try {
       logInfo("lifecycle", `Exiting: ${reason}`);
@@ -58,7 +66,8 @@ function setupLifecycle(): void {
   process.on("SIGTERM", () => exitHandler("SIGTERM"));
   process.on("SIGINT", () => exitHandler("SIGINT"));
   process.on("disconnect", () => exitHandler("disconnected from parent"));
-  process.on("uncaughtException", (err) => {
+  process.on("uncaughtException", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EPIPE") return;
     try { logError("lifecycle", "uncaughtException", { error: err.message, stack: err.stack }); } catch { /* ignore */ }
   });
   process.on("unhandledRejection", (reason) => {
