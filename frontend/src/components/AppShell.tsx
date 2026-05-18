@@ -454,12 +454,49 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   // 判定ロジックは pure 関数 `evaluateRoutingGuard` (routing/workspaceRouting.ts) に抽出 (#1145 Phase-7)。
   // 副作用 (並行発行ガード recoveryPendingRef / mcpBridge.request / redirectGuard / navigate / loadWorkspaces) は
   // 本 useEffect 内で適用する。
+  //
+  // backend reconnect 時の per-session restore (#1145 Phase-2 #1165 wsBridge 分割で顕在化):
+  // - backend WebSocket disconnect で workspaceContextManager の per-session が消去される
+  // - reconnect 後、frontend は workspaceState.active.id === wsId で「active あり」と判定し
+  //   workspace.open を再発行しない (routing guard で "none" になる)
+  // - backend の per-session は空のまま → 各 RPC で「ワークスペースが選択されていません」reject
+  // - 解決策: 初回 mount 時、active.id === wsId であっても 1 回 workspace.open を呼んで per-session を確立する
+  const initialRestoreDoneRef = useRef(false);
+
   useEffect(() => {
     // e2e テスト用 bypass (workspace-e2e-bypass=true) のみ guard スキップ。
     // それ以外の error 状態は明示的に redirect / エラー画面へ誘導する。
     if (workspaceState.error === "e2e bypass") return;
 
     const action = evaluateRoutingGuard(workspaceState, wsId);
+
+    // 初回 mount 時の per-session restore (上記コメント参照):
+    // routing guard が "none" でも、active workspace あり + URL の wsId と一致するなら
+    // 1 回だけ workspace.open を呼んで backend per-session を確立する。
+    if (
+      action.type === "none" &&
+      !initialRestoreDoneRef.current &&
+      !workspaceState.loading &&
+      !workspaceState.lockdown &&
+      workspaceState.active !== null &&
+      wsId !== undefined &&
+      wsId === workspaceState.active.id &&
+      recoveryPendingRef.current === null
+    ) {
+      initialRestoreDoneRef.current = true;
+      const activeId = workspaceState.active.id;
+      recoveryPendingRef.current = activeId;
+      mcpBridge.request("workspace.open", { id: activeId })
+        .then(() => loadWorkspaces())
+        .catch((err) => {
+          console.error("[workspace] initial per-session restore failed:", err);
+        })
+        .finally(() => {
+          if (recoveryPendingRef.current === activeId) recoveryPendingRef.current = null;
+        });
+      return;
+    }
+
     if (action.type === "none") return;
 
     if (action.type === "openWorkspace") {
