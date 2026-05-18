@@ -48,11 +48,15 @@ initServerLog(projectRoot);
 // stdin は監視しない (#302: HTTP transport に統一、stdio 廃止)。
 function setupLifecycle(): void {
   // stdout/stderr EPIPE は親プロセス pipe 切断時に発生しうるため silent drop する。
+  // EPIPE 以外 (ENOSPC 等) は file log に残す。logError 経路が console.error にも書くが、
+  // serverLog.log の `_inLog` 再入 guard により無限ループにはならない (#1174)。
   process.stdout.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "EPIPE") return;
+    try { logError("lifecycle", "stdout error", { error: err.message, code: err.code }); } catch { /* ignore */ }
   });
   process.stderr.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "EPIPE") return;
+    try { logError("lifecycle", "stderr error", { error: err.message, code: err.code }); } catch { /* ignore */ }
   });
 
   const exitHandler = (reason: string) => {
