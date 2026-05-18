@@ -671,6 +671,25 @@ section.chapter::after {
   margin: 0 auto 6px auto;
 }
 
+.visual-tooling {
+  display: block;
+  width: 100%;
+  max-height: 455px;
+  object-fit: contain;
+  margin: 0 auto 6px auto;
+}
+
+.tooling-caption {
+  font-size: 14px;
+  line-height: 1.42;
+  color: var(--c-muted);
+  margin-top: 6px;
+}
+
+.tooling-caption strong {
+  color: var(--c-ink);
+}
+
 .visual-loop {
   display: block;
   width: 94%;

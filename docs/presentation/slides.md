@@ -39,6 +39,7 @@ size: 16:9
 
 **第 3 部 — 各論**
 5-1. 設計書 (JSON 原本 + 多形式出力)
+　　└ ツール構想 + プロトタイプ提案
 5-2. GitHub + Kanban
 5-3. コンテナ開発
 5-4. IDE (Eclipse → VSCode)
@@ -266,6 +267,44 @@ AI 生成物も曖昧になる (Garbage In, Garbage Out)。
 
 </div>
 </div>
+
+---
+
+<h1 data-eyebrow="05.1 / Tooling">設計書ツールに求められる機能像 — もし揃えば</h1>
+
+<img src="images/gpt-20260518-tooling-architecture.png" class="visual-tooling" alt="設計書ツールに求められる機能像">
+
+<div class="tooling-caption">
+<strong>JSON 定義を原本、JSON Schema を検証契約</strong>として利用する。画面 / 処理フロー / テーブル / 画面遷移 / 規約を機械可読にし、Web 編集 UX と多形式出力を同じ原本に接続する。
+</div>
+
+<div class="caption-note">ポイントは JSON 原本を Web 上で直接編集できること。Schema が型を強制し、AI も人間も同じ原本を共有できる。</div>
+
+---
+
+<h1 data-eyebrow="05.1 / Tooling">こうしたツールがあれば — 期待される生産性向上</h1>
+
+<img src="images/gpt-20260518-tooling-productivity.png" class="visual-tooling" alt="設計書ツールによる生産性向上の流れ">
+
+<div class="tooling-caption">
+鍵は <strong>設計 → AI → コード → レビューが同じ JSON 原本上で回ること</strong>。原本が 1 つなので、形式間のズレや仕様 / 実装の乖離が発生しにくい。
+</div>
+
+<div class="caption-note">
+※ MCP (Model Context Protocol): AI エージェントが外部データ・ツールと構造化通信するための標準仕様。Anthropic が提唱し、対応が広がりつつある。
+</div>
+
+---
+
+<h1 data-eyebrow="05.1 / Tooling">業界動向 + プロトタイプ作成の提案</h1>
+
+<img src="images/gpt-20260518-tooling-poc.png" class="visual-tooling" alt="業界動向と設計書ツールPoC提案">
+
+<div class="tooling-caption">
+GeneXus / Mendix / OutSystems / Wagby など類似アプローチは存在する。一方で <strong>JSON 原本 + Schema 検証 + Web エディタ + AI / MCP 連携 + 多形式出力</strong> が揃った既製品は、公開情報ベースの調査範囲では限定的。
+</div>
+
+<div class="caption-note">既存案件は触らず、新規案件の一部または社内プロジェクトで小さく PoC を行い、効果を実機で測定する。</div>
 
 ---
 
@@ -739,7 +778,7 @@ orchestrator パターンの **一例**:
   - GitHub + Kanban (即日切替可能)
   - DevContainers + Oracle コンテナ (短期間で導入可能)
   - VSCode (Eclipse からの自然な流れ)
-  - 設計書の JSON 化 (じっくり、設計書ツールで負担軽減)
+  - 設計書の JSON 化 (じっくり、専用ツールのプロトタイプ作成を推奨)
   - AI エージェントの複数併用 (業界 3 社が相互運用へ)
 - 新規論点としての **プロンプトインジェクション / 隔離環境** のリスク認識
 
