@@ -53,6 +53,8 @@
   "containerEnv": {
     "DISABLE_AUTOUPDATER": "1",
     "PLAYWRIGHT_BROWSERS_PATH": "/home/node/.cache/ms-playwright",
+    // タイムゾーン (harmony は日本向けプロダクト、log/date を JST 表示)
+    "TZ": "Asia/Tokyo",
     // WSLg 経由 headed browser 用 (Windows + WSL2 + Docker Desktop)
     // headless mode 時は無視される、他 OS では設定値そのまま入るが mount なしのため使われない
     "DISPLAY": ":0",
