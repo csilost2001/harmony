@@ -19,6 +19,7 @@ import {
 } from "./editSessionStore.js";
 import { resolveRoot } from "./projectStorage.js";
 import { rpcHandlerMap, type RpcContext } from "./wsHandlers/index.js";
+import { logInfo, logWarn, logError } from "./serverLog.js";
 
 type Command = { id: string; method: string; params?: unknown };
 type Response = { id: string; result?: unknown; error?: string };
@@ -30,6 +31,10 @@ const TIMEOUT_MS = 10000;
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isEpipe(err: unknown): boolean {
+  return err instanceof Error && (err as NodeJS.ErrnoException).code === "EPIPE";
 }
 
 /** HTTP request handler (index.ts が MCP endpoint 等を register するために使用) */
@@ -287,7 +292,7 @@ export class WsBridge extends EventEmitter {
       const onError = async (err: NodeJS.ErrnoException) => {
         httpServer.off("listening", onListening);
         if (err.code === "EADDRINUSE" && retries > 0) {
-          console.error(`[WsBridge] Port ${WS_PORT} busy, retrying (${retries} left)...`);
+          logWarn("ws-bridge", "Port busy, retrying", { port: WS_PORT, retries });
           killStaleProcessOnPort(WS_PORT);
           await delay(500);
           try {
@@ -297,7 +302,7 @@ export class WsBridge extends EventEmitter {
             reject(e);
           }
         } else {
-          console.error("[WsBridge] Failed to bind:", err);
+          logError("ws-bridge", "Failed to bind", { error: err.message, code: err.code, port: WS_PORT });
           reject(err);
         }
       };
@@ -306,7 +311,7 @@ export class WsBridge extends EventEmitter {
         httpServer.off("error", onError);
         this.httpServer = httpServer;
         this.wss = wss;
-        console.error(`[WsBridge] HTTP + WebSocket listening on 0.0.0.0:${WS_PORT} (ws:// and http://)`);
+        logInfo("ws-bridge", "HTTP + WebSocket listening", { host: "0.0.0.0", port: WS_PORT });
         this._attachHandlers();
         resolve();
       };
@@ -332,7 +337,11 @@ export class WsBridge extends EventEmitter {
         try {
           await route.handler(req, res);
         } catch (e) {
-          console.error(`[WsBridge] HTTP handler error (${route.pathPrefix}):`, e);
+          logError("ws-bridge", "HTTP handler error", {
+            pathPrefix: route.pathPrefix,
+            error: e instanceof Error ? e.message : String(e),
+            stack: e instanceof Error ? e.stack : undefined,
+          });
           if (!res.writableEnded) {
             res.writeHead(500, { "Content-Type": "text/plain" });
             res.end(`Internal error: ${e instanceof Error ? e.message : String(e)}`);
@@ -369,7 +378,7 @@ export class WsBridge extends EventEmitter {
       this.clientOrder.push(clientId);
       // per-session context を作成 (#700 R-2)
       workspaceContextManager.connect(clientId);
-      console.error(`[WsBridge] New connection (${clientId.substring(0, 12)}..., total: ${this.clients.size})`);
+      logInfo("ws-bridge", "New connection", { clientId: clientId.substring(0, 12), total: this.clients.size });
       if (this.clients.size === 1) this.emit("connected");
 
       ws.on("message", (data: Buffer) => {
@@ -378,7 +387,9 @@ export class WsBridge extends EventEmitter {
         try {
           msg = JSON.parse(data.toString()) as Record<string, unknown>;
         } catch (e) {
-          console.error("[WsBridge] Failed to parse message:", e);
+          logWarn("ws-bridge", "Failed to parse message", {
+            error: e instanceof Error ? e.message : String(e),
+          });
           return;
         }
 
@@ -406,7 +417,7 @@ export class WsBridge extends EventEmitter {
           this.clients.set(clientId, ws);
           // 実 ID で context を登録 (既存なら reconnect で activePath 維持)
           workspaceContextManager.connect(clientId, prevCtxActivePath);
-          console.error(`[WsBridge] Client registered: ${clientId.substring(0, 8)}... (total: ${this.clients.size})`);
+          logInfo("ws-bridge", "Client registered", { clientId: clientId.substring(0, 8), total: this.clients.size });
           return;
         }
 
@@ -414,7 +425,9 @@ export class WsBridge extends EventEmitter {
         if (msg.type === "request") {
           const req = msg as unknown as BrowserRequest;
           this._handleBrowserRequest(ws, clientId, req).catch((e) => {
-            console.error("[WsBridge] Browser request error:", e);
+            logWarn("ws-bridge", "Browser request error", {
+              error: e instanceof Error ? e.message : String(e),
+            });
             try {
               ws.send(JSON.stringify({ type: "response", id: req.id, error: String(e) }));
             } catch { /* ignore */ }
@@ -455,7 +468,7 @@ export class WsBridge extends EventEmitter {
           }
           // per-session context を削除 (#700 R-2)
           workspaceContextManager.disconnect(clientId);
-          console.error(`[WsBridge] Client disconnected: ${clientId.substring(0, 8)}... (remaining: ${this.clients.size})`);
+          logInfo("ws-bridge", "Client disconnected", { clientId: clientId.substring(0, 8), remaining: this.clients.size });
           if (this.clients.size === 0) {
             this.emit("disconnected");
             this._clearPending(new Error("デザイナーが切断されました"));
@@ -463,13 +476,14 @@ export class WsBridge extends EventEmitter {
         }
       });
 
-      ws.on("error", (err) => {
-        console.error("[WsBridge] WebSocket error:", err);
+      ws.on("error", (err: NodeJS.ErrnoException) => {
+        if (err.code === "EPIPE") return;
+        logWarn("ws-bridge", "WebSocket error", { error: err.message, code: err.code });
       });
     });
 
     this.wss.on("error", (err: NodeJS.ErrnoException) => {
-      console.error("[WsBridge] Server runtime error:", err);
+      logError("ws-bridge", "Server runtime error", { error: err.message, code: err.code });
     });
   }
 
@@ -478,8 +492,25 @@ export class WsBridge extends EventEmitter {
     const ws = this.clients.get(clientId);
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     try {
-      ws.send(JSON.stringify({ type: "broadcast", event, data }));
-    } catch { /* ignore */ }
+      ws.send(JSON.stringify({ type: "broadcast", event, data }), (err) => {
+        if (!err || isEpipe(err)) return;
+        const sendErr = err as NodeJS.ErrnoException;
+        logWarn("ws-bridge", "sendToClient failed", {
+          clientId,
+          event,
+          error: sendErr.message,
+          code: sendErr.code,
+        });
+      });
+    } catch (e) {
+      if (isEpipe(e)) return;
+      logWarn("ws-bridge", "sendToClient failed", {
+        clientId,
+        event,
+        error: e instanceof Error ? e.message : String(e),
+        code: e instanceof Error ? (e as NodeJS.ErrnoException).code : undefined,
+      });
+    }
   }
 
   /**
@@ -509,7 +540,26 @@ export class WsBridge extends EventEmitter {
       if (id === excludeClientId) continue;
       const ws = this.clients.get(id);
       if (!ws || ws.readyState !== WebSocket.OPEN) continue;
-      try { ws.send(msg); } catch { /* ignore */ }
+      try {
+        ws.send(msg, (err) => {
+          if (!err || isEpipe(err)) return;
+          const sendErr = err as NodeJS.ErrnoException;
+          logWarn("ws-bridge", "broadcast failed", {
+            clientId: id,
+            event,
+            error: sendErr.message,
+            code: sendErr.code,
+          });
+        });
+      } catch (e) {
+        if (isEpipe(e)) continue;
+        logWarn("ws-bridge", "broadcast failed", {
+          clientId: id,
+          event,
+          error: e instanceof Error ? e.message : String(e),
+          code: e instanceof Error ? (e as NodeJS.ErrnoException).code : undefined,
+        });
+      }
     }
   }
 
@@ -594,7 +644,10 @@ export class WsBridge extends EventEmitter {
       return await this.sendCommand(method, params);
     } catch (e) {
       if (process.env.NODE_ENV !== "production") {
-        console.error(`[WsBridge] tryCommand(${method}) failed, falling back to file:`, e);
+        logWarn("ws-bridge", "tryCommand failed, falling back to file", {
+          method,
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
       return null;
     }
