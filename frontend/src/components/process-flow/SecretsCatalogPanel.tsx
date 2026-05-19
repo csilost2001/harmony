@@ -1,4 +1,3 @@
-// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * ProcessFlow.context.catalogs.secrets 編集パネル (#278 / #414 values 編集対応 / #570 v3 移行)。
  *
@@ -7,7 +6,7 @@
  *   旧フォーマット (values 無し) も valid のまま (後方互換)。
  */
 import { useState } from "react";
-import type { ProcessFlow, SecretRef } from "../../types/v3";
+import type { ProcessFlow, SecretRef, Timestamp } from "../../types/v3";
 
 interface Props {
   group: ProcessFlow;
@@ -236,7 +235,7 @@ export function SecretsCatalogPanel({ group, onChange, expanded: expandedProp, o
                       className="form-control form-control-sm"
                       value={e.lastRotatedAt ? e.lastRotatedAt.slice(0, 16) : ""}
                       data-field-path={`context.catalogs.secrets.${k}.lastRotatedAt`}
-                      onChange={(ev) => updateEntry(k, { lastRotatedAt: ev.target.value ? new Date(ev.target.value).toISOString() : undefined })}
+                      onChange={(ev) => updateEntry(k, { lastRotatedAt: ev.target.value ? new Date(ev.target.value).toISOString() as Timestamp : undefined })}
                     />
                   </label>
                   <label className="catalog-wide">
