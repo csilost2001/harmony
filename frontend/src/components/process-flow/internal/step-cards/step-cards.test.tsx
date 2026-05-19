@@ -100,13 +100,14 @@ describe("DbAccessStepCardBody", () => {
 // ── ExternalSystemStepCardBody ──────────────────────────────────────
 
 describe("ExternalSystemStepCardBody", () => {
-  it("systemRef / protocol input が描画される", () => {
-    const step = baseStep({ kind: "externalSystem", systemRef: "stripe", protocol: "REST" });
+  it("systemRef input が描画される (#1016: protocol は v3 schema 外のため削除済)", () => {
+    const step = baseStep({ kind: "externalSystem", systemRef: "stripe" });
     const { container } = render(
       <ExternalSystemStepCardBody step={step} allSteps={[]} onChange={noop} />,
     );
     expect(container.textContent).toContain("接続先");
-    expect(container.textContent).toContain("プロトコル");
+    // protocol は v3 schema に存在しないため UI から削除済
+    expect(container.textContent).not.toContain("プロトコル");
   });
 
   it("retryPolicy 未設定時は backoff select が出ない", () => {
@@ -153,12 +154,12 @@ describe("ComputeStepCardBody", () => {
 // ── ReturnStepCardBody ──────────────────────────────────────────────
 
 describe("ReturnStepCardBody", () => {
-  it("responseRef と bodyExpression input を描画する", () => {
-    const step = baseStep({ kind: "return", responseRef: "200-ok" });
+  it("responseId と bodyExpression input を描画する (#1016: v3 ReturnStep.responseId に rename)", () => {
+    const step = baseStep({ kind: "return", responseId: "200-ok" });
     const { container } = render(
       <ReturnStepCardBody step={step} allSteps={[]} onChange={noop} />,
     );
-    expect(container.textContent).toContain("responseRef");
+    expect(container.textContent).toContain("responseId");
     expect(container.textContent).toContain("bodyExpression");
   });
 });

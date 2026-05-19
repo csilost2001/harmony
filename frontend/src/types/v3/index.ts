@@ -82,6 +82,10 @@ export type HttpAuthRequirement = "required" | "optional" | "none";
 // ── External Auth Kind (process-flow.v3 ExternalAuth.kind enum、frontend type alias) ──
 export type ExternalAuthKind = "bearer" | "basic" | "apiKey" | "oauth2" | "iamRole" | "azureAd" | "none";
 
+// ── Loop kind / condition mode (process-flow.v3 LoopStep と完全一致、#1186 Phase 1 で整合済) ──
+export type LoopKind = "count" | "condition" | "collection";
+export type LoopConditionMode = "continue" | "exit";
+
 // ── SLA / Transaction の frontend 拡張 enum (v3 schema には string で許容) ──
 export type OnTimeout = "throw" | "continue" | "compensate" | "log";
 export type TransactionIsolationLevel = "READ_COMMITTED" | "REPEATABLE_READ" | "SERIALIZABLE" | string;

@@ -1,10 +1,10 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "loop"` body を抽出 (Phase 4 ロジック)。
 //
 // `loopBodyCollapsed` は本 body 専用の純粋 UI state のため、parent から切り離して内部化。
+// #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<LoopStep> で type narrow、@ts-nocheck 除去。
 
 import { useState } from "react";
-import type { LoopConditionMode, LoopKind, Step } from "../../../../types/v3";
+import type { LoopStep, LoopConditionMode, LoopKind, Identifier } from "../../../../types/v3";
 import { InlineStepList } from "../InlineStepList";
 import type {
   StepCardBodyBaseProps,
@@ -16,7 +16,7 @@ import type {
 } from "./types";
 
 export interface LoopStepCardBodyProps
-  extends StepCardBodyBaseProps,
+  extends StepCardBodyBaseProps<LoopStep>,
     StepCardBodyCatalogProps,
     StepCardBodyTableProps,
     StepCardBodyScreenProps,
@@ -49,7 +49,7 @@ export function LoopStepCardBody({
               name={`loopkind-${step.id}`}
               value={k}
               checked={step.loopKind === k}
-              onChange={() => onChange({ loopKind: k } as Partial<Step>)}
+              onChange={() => onChange({ loopKind: k })}
             />
             {k === "count" ? "回数" : k === "condition" ? "条件" : "コレクション"}
           </label>
@@ -62,7 +62,7 @@ export function LoopStepCardBody({
           <input
             className="form-control form-control-sm"
             value={step.countExpression ?? ""}
-            onChange={(e) => onChange({ countExpression: e.target.value } as Partial<Step>)}
+            onChange={(e) => onChange({ countExpression: e.target.value })}
             onBlur={onCommit}
             placeholder="例: 3回, 検索結果の件数分"
           />
@@ -81,7 +81,7 @@ export function LoopStepCardBody({
                     name={`condmode-${step.id}`}
                     value={m}
                     checked={(step.conditionMode ?? "exit") === m}
-                    onChange={() => onChange({ conditionMode: m } as Partial<Step>)}
+                    onChange={() => onChange({ conditionMode: m })}
                   />
                   {m === "continue" ? "条件の間繰り返す (while)" : "条件になるまで繰り返す (until)"}
                 </label>
@@ -93,7 +93,7 @@ export function LoopStepCardBody({
             <input
               className="form-control form-control-sm"
               value={step.conditionExpression ?? ""}
-              onChange={(e) => onChange({ conditionExpression: e.target.value } as Partial<Step>)}
+              onChange={(e) => onChange({ conditionExpression: e.target.value })}
               onBlur={onCommit}
               placeholder="例: 残件数 > 0"
             />
@@ -108,7 +108,7 @@ export function LoopStepCardBody({
             <input
               className="form-control form-control-sm"
               value={step.collectionSource ?? ""}
-              onChange={(e) => onChange({ collectionSource: e.target.value } as Partial<Step>)}
+              onChange={(e) => onChange({ collectionSource: e.target.value })}
               onBlur={onCommit}
               placeholder="例: 検索結果"
             />
@@ -118,7 +118,7 @@ export function LoopStepCardBody({
             <input
               className="form-control form-control-sm"
               value={step.collectionItemName ?? ""}
-              onChange={(e) => onChange({ collectionItemName: e.target.value } as Partial<Step>)}
+              onChange={(e) => onChange({ collectionItemName: e.target.value as Identifier })}
               onBlur={onCommit}
               placeholder="例: ユーザー"
             />
@@ -147,7 +147,7 @@ export function LoopStepCardBody({
               tables={tables}
               screens={screens}
               commonGroups={commonGroups}
-              onChange={(newSteps) => onChange({ steps: newSteps } as Partial<Step>)}
+              onChange={(newSteps) => onChange({ steps: newSteps })}
               onCommit={onCommit}
               onNavigateCommon={onNavigateCommon}
               validationErrors={validationErrors}

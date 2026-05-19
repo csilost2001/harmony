@@ -1,12 +1,12 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "branch"` body を抽出 (Phase 3 ロジック含む)。
 //
 // `collapsedBranchIds` は branch body 専用の純粋 UI state のため、parent (StepCard) から
 // 切り離して本 sub-component 内に閉じ込めた。branch handler (setBranchAt / moveBranchUp/Down /
 // deleteBranch / addBranch / addElseBranch / toggleBranchCollapse) も同様に内部化。
+// #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<BranchStep> で type narrow、@ts-nocheck 除去。
 
 import { useState } from "react";
-import type { Branch, Step } from "../../../../types/v3";
+import type { BranchStep, Branch, ElseBranch, LocalId, ErrorCode } from "../../../../types/v3";
 import { generateUUID } from "../../../../utils/uuid";
 import { InlineStepList } from "../InlineStepList";
 import type {
@@ -19,7 +19,7 @@ import type {
 } from "./types";
 
 export interface BranchStepCardBodyProps
-  extends StepCardBodyBaseProps,
+  extends StepCardBodyBaseProps<BranchStep>,
     StepCardBodyCatalogProps,
     StepCardBodyTableProps,
     StepCardBodyScreenProps,
@@ -54,7 +54,7 @@ export function BranchStepCardBody({
   const setBranchAt = (idx: number, next: Branch) => {
     const branches = step.branches.slice();
     branches[idx] = next;
-    onChange({ branches } as Partial<Step>);
+    onChange({ branches });
   };
 
   const moveBranchUp = (idx: number) => {
@@ -62,7 +62,7 @@ export function BranchStepCardBody({
     const branches = step.branches.map((b) => ({ ...b }));
     [branches[idx - 1], branches[idx]] = [branches[idx], branches[idx - 1]];
     branches.forEach((b, i) => { b.code = String.fromCharCode(65 + i); });
-    onChange({ branches } as Partial<Step>);
+    onChange({ branches });
     onCommit?.();
   };
 
@@ -71,7 +71,7 @@ export function BranchStepCardBody({
     if (idx >= branches.length - 1) return;
     [branches[idx], branches[idx + 1]] = [branches[idx + 1], branches[idx]];
     branches.forEach((b, i) => { b.code = String.fromCharCode(65 + i); });
-    onChange({ branches } as Partial<Step>);
+    onChange({ branches });
     onCommit?.();
   };
 
@@ -81,20 +81,20 @@ export function BranchStepCardBody({
       ...b,
       code: String.fromCharCode(65 + i),
     }));
-    onChange({ branches } as Partial<Step>);
+    onChange({ branches });
     onCommit?.();
   };
 
   const addBranch = () => {
     const code = String.fromCharCode(65 + step.branches.length);
-    const newBranch: Branch = { id: generateUUID(), code, condition: { kind: "expression", expression: "" }, steps: [] };
-    onChange({ branches: [...step.branches, newBranch] } as Partial<Step>);
+    const newBranch: Branch = { id: generateUUID() as LocalId, code, condition: { kind: "expression", expression: "" }, steps: [] };
+    onChange({ branches: [...step.branches, newBranch] });
     onCommit?.();
   };
 
   const addElseBranch = () => {
-    const elseBranch: Branch = { id: generateUUID(), code: "ELSE", condition: { kind: "expression", expression: "" }, steps: [] };
-    onChange({ elseBranch } as Partial<Step>);
+    const elseBranch: ElseBranch = { id: generateUUID() as LocalId, code: "ELSE", steps: [] };
+    onChange({ elseBranch });
     onCommit?.();
   };
 
@@ -118,7 +118,7 @@ export function BranchStepCardBody({
                     placeholder="errorCode (例: STOCK_SHORTAGE)"
                     onChange={(e) => setBranchAt(bi, {
                       ...br,
-                      condition: { ...br.condition, errorCode: e.target.value },
+                      condition: { kind: "tryCatch", errorCode: e.target.value as ErrorCode },
                     })}
                     onBlur={onCommit}
                   />
@@ -149,7 +149,7 @@ export function BranchStepCardBody({
                       e.stopPropagation();
                       setBranchAt(bi, {
                         ...br,
-                        condition: { kind: "tryCatch", errorCode: "" },
+                        condition: { kind: "tryCatch", errorCode: "" as ErrorCode },
                       });
                     }}
                     style={{ flexShrink: 0 }}
@@ -247,7 +247,7 @@ export function BranchStepCardBody({
                 title="ELSE分岐を削除"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onChange({ elseBranch: undefined } as Partial<Step>);
+                  onChange({ elseBranch: undefined });
                   onCommit?.();
                 }}
               >
@@ -268,7 +268,7 @@ export function BranchStepCardBody({
                   screens={screens}
                   commonGroups={commonGroups}
                   onChange={(newSteps) =>
-                    onChange({ elseBranch: { ...el, steps: newSteps } } as Partial<Step>)
+                    onChange({ elseBranch: { ...el, steps: newSteps } })
                   }
                   onCommit={onCommit}
                   onNavigateCommon={onNavigateCommon}
