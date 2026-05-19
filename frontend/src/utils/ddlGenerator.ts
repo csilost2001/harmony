@@ -258,6 +258,11 @@ function constraintToDdl(
   const physical = table.physicalName;
   const constraintName = c.physicalName ?? c.id;
   switch (c.kind) {
+    case "primaryKey": {
+      // #1185 提案 C: PRIMARY KEY 制約 DDL (composite PK 対応)
+      const cols = c.columnIds.map((id) => resolveColumnPhysical(table, id));
+      return `ALTER TABLE ${physical} ADD CONSTRAINT ${constraintName} PRIMARY KEY (${cols.join(", ")});`;
+    }
     case "unique": {
       const cols = c.columnIds.map((id) => resolveColumnPhysical(table, id));
       return `ALTER TABLE ${physical} ADD CONSTRAINT ${constraintName} UNIQUE (${cols.join(", ")});`;

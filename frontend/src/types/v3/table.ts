@@ -94,6 +94,18 @@ export interface Index {
 
 // ─── Constraint (discriminated union) ────────────────────────────────────
 
+/** 主キー (PRIMARY KEY) 制約。composite (複合) PK の表現に必須 (#1185 提案 C)。
+ * 単一カラム PK は Column.primaryKey: true でも表現可能だが、本制約との併用は禁止
+ * (tableValidation.ts:table.primaryKey.duplicated で runtime 検出)。 */
+export interface PrimaryKeyConstraint {
+  id: LocalId;
+  kind: "primaryKey";
+  physicalName?: PhysicalName;
+  /** PK を構成する Column.id 配列。複合 PK の場合は 2 件以上。 */
+  columnIds: LocalId[];
+  description?: Description;
+}
+
 export interface UniqueConstraint {
   id: LocalId;
   kind: "unique";
@@ -132,8 +144,9 @@ export interface ForeignKeyConstraint {
   description?: Description;
 }
 
-/** テーブル制約 (discriminated union: unique / check / foreignKey)。 */
-export type Constraint = UniqueConstraint | CheckConstraint | ForeignKeyConstraint;
+/** テーブル制約 (discriminated union: primaryKey / unique / check / foreignKey)。
+ * primaryKey は #1185 提案 C で追加 (composite PK 対応、schema/v3/table.v3.schema.json と同期)。 */
+export type Constraint = PrimaryKeyConstraint | UniqueConstraint | CheckConstraint | ForeignKeyConstraint;
 
 // ─── DefaultDefinition / TriggerDefinition ───────────────────────────────
 

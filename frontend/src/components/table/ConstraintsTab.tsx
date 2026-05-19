@@ -57,6 +57,7 @@ export function ConstraintsTab({ table, update, allTables }: Props) {
    * - foreignKey: referencedTableId が UUID 形式 + columnIds / referencedColumnIds が 1 件以上
    */
   const isConstraintValid = (c: Constraint): boolean => {
+    if (c.kind === "primaryKey") return c.columnIds.length > 0;
     if (c.kind === "unique") return c.columnIds.length > 0;
     if (c.kind === "check") return c.expression.trim().length > 0;
     // foreignKey
@@ -467,6 +468,7 @@ function buildDefault(kind: ConstraintKind): Omit<Constraint, "id"> {
 
 function kindBadge(kind: Constraint["kind"]): string {
   switch (kind) {
+    case "primaryKey": return "PK";
     case "unique": return "UNIQUE";
     case "check": return "CHECK";
     case "foreignKey": return "FK";
@@ -479,6 +481,11 @@ function colPhysical(table: Table, columnId: string): string {
 
 function constraintSummary(c: Constraint, table: Table, allTables: Table[]): string {
   switch (c.kind) {
+    case "primaryKey":
+      // #1185 提案 C: PrimaryKeyConstraint summary (composite PK 表示)
+      return c.columnIds.length > 0
+        ? `PK: ${c.columnIds.map((id) => colPhysical(table, id)).join(", ")}`
+        : "(列未選択)";
     case "unique":
       return c.columnIds.length > 0
         ? `列: ${c.columnIds.map((id) => colPhysical(table, id)).join(", ")}`

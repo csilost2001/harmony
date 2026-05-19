@@ -1,3 +1,21 @@
+/**
+ * action.ts — **@deprecated v1/v2 ProcessFlow 互換 type 集約** (#1186)
+ *
+ * 本ファイルは旧 v1/v2 ProcessFlow 時代の type alias 群で、v3 schema (#955) 移行後は
+ * 段階的に廃止予定。**新規 consumer は本ファイルからの import を避け、以下を使うこと**:
+ *
+ * - schema 整合 strict 型 → `import type { ... } from "@/types/v3"`
+ * - UI 表示メタデータ (LABELS / ICONS / COLORS) → `import { ... } from "@/utils/processFlowMetadata"`
+ *
+ * 本ファイルは backward compat re-export 層として機能する。
+ * Phase 2-A (#1186): UI 定数を processFlowMetadata.ts に分離、本 file は re-export のみ
+ * Phase 2-B (TBD): consumer を types/v3 / processFlowMetadata 直接 import に移行
+ * Phase 3 (TBD): 本 file を削除 (consumer 移行完了後)
+ *
+ * AnyRecord 型 (Step / ProcessFlow / Branch 等) は backward compat 用に温存。
+ * v3 schema 整合 strict 型は `types/v3/process-flow.ts` 参照。
+ */
+
 import type * as V3ProcessFlow from "./v3/process-flow";
 import type * as V3Common from "./v3/common";
 
@@ -7,11 +25,13 @@ export type V3CommonTypes = typeof V3Common;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- legacy process-flow compatibility relies on permissive dictionary values.
 type AnyRecord = Record<string, any>;
 
+// ── Schema 整合 type (v3 から re-export) ────────────────────────────────────
 export type Maturity = V3Common.Maturity;
 export type ProcessFlowMode = V3Common.Mode;
 export type ProcessFlowType = V3ProcessFlow.ProcessFlowKind;
 export type ProcessFlowKind = V3ProcessFlow.ProcessFlowKind;
 
+// ── Field / Marker 系 (緩い表現で温存) ──────────────────────────────────────
 export type FieldType = string | AnyRecord;
 export type StructuredField = AnyRecord & { name: string; type: FieldType; description?: string };
 export type ActionFields = StructuredField[] | string | undefined;
@@ -19,8 +39,7 @@ export type ActionFields = StructuredField[] | string | undefined;
 export type MarkerKind = string;
 export type Marker = AnyRecord;
 
-// #1186 Phase 1: common.v3 Note.kind enum と完全一致 (assumption / prerequisite / todo / deferred / question)。
-// 旧 enum の "decision" / "risk" は schema 外の値で、actionMigration.ts:noteKind で "deferred" に正規化される (read 時 fallback あり)。
+// ── StepNote (#1186 Phase 1 で 5 値正規化済) ────────────────────────────────
 export type StepNoteType =
   | "assumption"
   | "prerequisite"
@@ -37,6 +56,7 @@ export interface StepNote {
   createdAt: string;
 }
 
+// ── StepKind (v3 schema 25 種、componentCall / aiCall / aiAgent / cdc / closing / log / audit 含む) ──
 export type StepKind =
   | "validation"
   | "dbAccess"
@@ -64,15 +84,15 @@ export type StepKind =
   | "aiAgent"
   | "extension"
   | "other";
+/** @deprecated v1/v2 では `type` だったが v3 では `kind`。互換のため alias 残置。 */
 export type StepType = StepKind;
 
+// ── Loose AnyRecord 型 (consumer 多数のため backward compat 温存) ───────────
+// 将来的に `types/v3/process-flow.ts` の strict 型へ段階移行予定 (#1186 Phase 2-B 以降)。
 export type Step = AnyRecord;
-
 export type ActionTrigger = string;
 export type ActionDefinition = AnyRecord;
-
 export type ProcessFlowMeta = AnyRecord;
-
 export type ProcessFlow = AnyRecord;
 
 export type BranchCondition = string | AnyRecord;
@@ -91,7 +111,6 @@ export type ValidationRuleType =
   | "range"
   | "enum"
   | "custom";
-// #1186 Phase 1: v3 で完全廃止 (field 名 kind→severity rename + lowerCamelCase に正規化)。Dead code として削除。
 export type ValidationRule = AnyRecord & { field?: string; type?: ValidationRuleType; severity?: string };
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -100,10 +119,11 @@ export type HttpRoute = AnyRecord;
 export type HttpResponseSpec = AnyRecord;
 export type BodySchema = string | AnyRecord;
 
-export type ExternalCallOutcome = "success" | "failure" | "timeout";
+// ── ExternalCallOutcome は frontend 表示用 enum (processFlowMetadata.ts と同期) ──
+export type { ExternalCallOutcome } from "../utils/processFlowMetadata";
 export type ExternalCallOutcomeSpec = AnyRecord;
 export type ExternalCallOutcomes = AnyRecord;
-// #1186 Phase 1: process-flow.v3 ExternalAuth.kind に iamRole / azureAd を追加 (AWS Bedrock / Azure OpenAI 認証、#867 / #939 連動)
+// #1186 Phase 1: process-flow.v3 ExternalAuth.kind に iamRole / azureAd を追加 (AWS Bedrock / Azure OpenAI、#867 / #939)
 export type ExternalAuthKind = "bearer" | "basic" | "apiKey" | "oauth2" | "iamRole" | "azureAd" | "none";
 export type ExternalAuth = AnyRecord;
 
@@ -115,13 +135,14 @@ export type TransactionIsolationLevel = "READ_COMMITTED" | "REPEATABLE_READ" | "
 export type TransactionPropagation = "REQUIRED" | "REQUIRES_NEW" | "NESTED" | string;
 export type ExternalChainPhase = "authorize" | "capture" | "cancel" | "other";
 export type ExternalChain = AnyRecord & { chainId?: string; phase?: ExternalChainPhase };
-// #1186 Phase 1: process-flow.v3 LoopStep.loopKind / conditionMode と完全一致 (string 緩和削除、schema 外 enum 削除)
+// #1186 Phase 1: process-flow.v3 LoopStep と完全一致
 export type LoopKind = "count" | "condition" | "collection";
 export type LoopConditionMode = "continue" | "exit";
 export type WorkflowPattern = V3ProcessFlow.WorkflowPattern | string;
 export type WorkflowApprover = AnyRecord;
 export type WorkflowQuorum = AnyRecord;
 
+// ── Step variant aliases (backward compat) ──────────────────────────────────
 export type StepBase = Step;
 export type ValidationStep = Step;
 export type DbAccessStep = Step;
@@ -147,6 +168,7 @@ export type CdcStep = Step;
 export type OtherStep = Step;
 export type NonReturnStep = Step;
 
+// ── Catalog entry 型 (緩い) ─────────────────────────────────────────────────
 export type AffectedRowsCheck = AnyRecord;
 export type CacheHint = AnyRecord;
 export type CdcDestination = AnyRecord;
@@ -166,17 +188,8 @@ export type DecisionRecord = AnyRecord;
 export type GlossaryEntry = AnyRecord;
 export type TestScenario = AnyRecord;
 export type TemplateStep = AnyRecord;
-export interface StepTemplate {
-  id?: string;
-  type?: StepKind;
-  kind?: StepKind;
-  label: string;
-  description?: string;
-  step?: TemplateStep;
-  steps?: TemplateStep[];
-}
 
-// #1186 Phase 1: common.v3 Note.kind と完全一致 (5 値、順序は schema 列挙順)
+// ── StepNote 関連定数 (Phase 1 で 5 値正規化済) ─────────────────────────────
 export const STEP_NOTE_TYPE_VALUES: readonly StepNoteType[] = [
   "assumption",
   "prerequisite",
@@ -185,164 +198,20 @@ export const STEP_NOTE_TYPE_VALUES: readonly StepNoteType[] = [
   "question",
 ] as const;
 
-export const ACTION_TRIGGER_LABELS: Record<string, string> = {
-  click: "クリック",
-  submit: "送信",
-  select: "選択",
-  change: "変更",
-  load: "読込",
-  unload: "終了",
-  timer: "タイマー",
-  manual: "手動",
-};
-
-export const PROCESS_FLOW_TYPE_LABELS: Record<string, string> = {
-  screen: "画面",
-  batch: "バッチ",
-  scheduled: "定期実行",
-  system: "システム",
-  common: "共通",
-  other: "その他",
-};
-
-export const PROCESS_FLOW_TYPE_ICONS: Record<string, string> = {
-  screen: "monitor",
-  batch: "layers",
-  scheduled: "clock",
-  system: "server",
-  common: "component",
-  other: "circle",
-};
-
-export const STEP_TYPE_LABELS: Record<string, string> = {
-  validation: "入力チェック",
-  dbAccess: "DBアクセス",
-  externalSystem: "外部システム",
-  componentCall: "コンポーネント呼出",
-  commonProcess: "共通処理",
-  screenTransition: "画面遷移",
-  displayUpdate: "表示更新",
-  branch: "分岐",
-  loop: "ループ",
-  loopBreak: "ループ終了",
-  loopContinue: "次の繰り返し",
-  jump: "ジャンプ",
-  compute: "計算/代入",
-  return: "レスポンス返却",
-  log: "ログ",
-  audit: "監査",
-  workflow: "ワークフロー",
-  transactionScope: "トランザクション",
-  eventPublish: "イベント発行",
-  eventSubscribe: "イベント購読",
-  closing: "締め処理",
-  cdc: "CDC",
-  aiCall: "AI 呼出",
-  aiAgent: "AI エージェント",
-  extension: "拡張",
-  other: "その他",
-};
-
-export const STEP_TYPE_ICONS: Record<string, string> = {
-  validation: "check-square",
-  dbAccess: "database",
-  externalSystem: "plug",
-  componentCall: "puzzle",
-  commonProcess: "share",
-  screenTransition: "arrow-right",
-  displayUpdate: "refresh-cw",
-  branch: "git-branch",
-  loop: "repeat",
-  loopBreak: "log-out",
-  loopContinue: "skip-forward",
-  jump: "corner-up-right",
-  compute: "bi-calculator",
-  return: "bi-reply",
-  log: "file-text",
-  audit: "shield-check",
-  workflow: "users",
-  transactionScope: "box",
-  eventPublish: "radio",
-  eventSubscribe: "rss",
-  closing: "lock",
-  cdc: "activity",
-  aiCall: "cpu",
-  aiAgent: "bi-robot",
-  extension: "puzzle",
-  other: "circle",
-};
-
-export const STEP_TYPE_COLORS: Record<string, string> = {
-  validation: "#0f766e",
-  dbAccess: "#2563eb",
-  externalSystem: "#7c3aed",
-  componentCall: "#6366f1",
-  commonProcess: "#475569",
-  screenTransition: "#16a34a",
-  displayUpdate: "#0891b2",
-  branch: "#d97706",
-  loop: "#ca8a04",
-  loopBreak: "#b45309",
-  loopContinue: "#a16207",
-  jump: "#9333ea",
-  compute: "#0284c7",
-  return: "#dc2626",
-  log: "#64748b",
-  audit: "#be123c",
-  workflow: "#4f46e5",
-  transactionScope: "#1d4ed8",
-  eventPublish: "#059669",
-  eventSubscribe: "#0d9488",
-  closing: "#7f1d1d",
-  cdc: "#0369a1",
-  aiCall: "#a855f7",
-  aiAgent: "#c026d3",
-  extension: "#6b7280",
-  other: "#6b7280",
-};
-
-export const EXTERNAL_CALL_OUTCOME_VALUES: readonly ExternalCallOutcome[] = [
-  "success",
-  "failure",
-  "timeout",
-] as const;
-
-export const WORKFLOW_PATTERN_VALUES: readonly WorkflowPattern[] = [
-  "approval-sequential",
-  "approval-parallel",
-  "approval-veto",
-  "approval-quorum",
-  "approval-escalation",
-  "review",
-  "sign-off",
-  "acknowledge",
-  "branch-merge",
-  "discussion",
-  "ad-hoc",
-] as const;
-
-export const WORKFLOW_PATTERN_LABELS: Record<string, string> = {
-  "approval-sequential": "順次承認",
-  "approval-parallel": "並列承認",
-  "approval-veto": "拒否権承認",
-  "approval-quorum": "定足数承認",
-  "approval-escalation": "エスカレーション承認",
-  review: "レビュー",
-  "sign-off": "サインオフ",
-  acknowledge: "確認",
-  "branch-merge": "分岐合流",
-  discussion: "議論",
-  "ad-hoc": "アドホック",
-};
-
-export const DB_OPERATION_LABELS: Record<string, string> = {
-  select: "検索",
-  insert: "登録",
-  update: "更新",
-  delete: "削除",
-  upsert: "登録または更新",
-  call: "呼び出し",
-  other: "その他",
-};
-
-export const STEP_TEMPLATES: readonly StepTemplate[] = [];
+// ── UI 表示メタデータ定数 (processFlowMetadata.ts から re-export、#1186 Phase 2-A) ──
+// 旧 consumer の `import { STEP_TYPE_LABELS } from "@/types/action"` 互換維持。
+// 新規 consumer は `@/utils/processFlowMetadata` から直接 import すること。
+export {
+  ACTION_TRIGGER_LABELS,
+  PROCESS_FLOW_TYPE_LABELS,
+  PROCESS_FLOW_TYPE_ICONS,
+  STEP_TYPE_LABELS,
+  STEP_TYPE_ICONS,
+  STEP_TYPE_COLORS,
+  EXTERNAL_CALL_OUTCOME_VALUES,
+  WORKFLOW_PATTERN_VALUES,
+  WORKFLOW_PATTERN_LABELS,
+  DB_OPERATION_LABELS,
+  STEP_TEMPLATES,
+  type StepTemplate,
+} from "../utils/processFlowMetadata";
