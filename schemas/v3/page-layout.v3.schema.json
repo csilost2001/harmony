@@ -58,7 +58,7 @@
     },
 
     "PageLayoutDesign": {
-      "description": "PageLayout デザインの参照情報。生 HTML/CSS (GrapesJS) または Puck Data tree (Puck) は別ファイル (workspace 配下) で管理し、本 schema は参照のみ持つ。editorKind / cssFramework は PageLayout 作成時に固定、以降変更不可 (multi-editor-puck.md 仕様準拠)。",
+      "description": "PageLayout デザインの参照情報。生 HTML/CSS (GrapesJS) または Puck Data tree (Puck) は別ファイル (workspace 配下) で管理し、本 schema は参照のみ持つ。editorKind / cssFramework は PageLayout 作成時に固定、以降変更不可 (multi-editor-puck.md 仕様準拠)。editorKind と対応 ref (designFileRef / puckDataRef) の排他は allOf+if/then で強制 (#1185 提案 D、draft-state 互換 — 対応 ref の存在は必須化せず、不一致 ref の同時指定のみ禁止)。",
       "type": "object",
       "additionalProperties": false,
       "required": ["editorKind", "cssFramework"],
@@ -75,17 +75,27 @@
         },
         "designFileRef": {
           "type": "string",
-          "description": "GrapesJS デザインファイルへの相対パス (editorKind='grapesjs' のとき、例: 'design.json')。editorKind='puck' のときは指定しない。"
+          "description": "GrapesJS デザインファイルへの相対パス (editorKind='grapesjs' のとき、例: 'design.json')。editorKind='puck' のときは指定不可 (allOf if/then で強制)。"
         },
         "puckDataRef": {
           "type": "string",
-          "description": "Puck Data JSON への相対パス (editorKind='puck' のとき、例: 'puck-data.json')。editorKind='grapesjs' のときは指定しない。"
+          "description": "Puck Data JSON への相対パス (editorKind='puck' のとき、例: 'puck-data.json')。editorKind='grapesjs' のときは指定不可 (allOf if/then で強制)。"
         },
         "thumbnailRef": {
           "type": "string",
           "description": "サムネイル画像への相対パス または data URL。"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "editorKind": { "const": "grapesjs" } }, "required": ["editorKind"] },
+          "then": { "not": { "required": ["puckDataRef"] } }
+        },
+        {
+          "if": { "properties": { "editorKind": { "const": "puck" } }, "required": ["editorKind"] },
+          "then": { "not": { "required": ["designFileRef"] } }
+        }
+      ]
     }
   }
 }
