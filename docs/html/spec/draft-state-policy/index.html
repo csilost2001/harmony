@@ -86,8 +86,8 @@
 </ul>
 <p>Table の代表例 (<code>frontend/src/utils/tableValidation.ts</code>):</p>
 <ul>
-<li>error: <code>physicalName</code> 空、<code>physicalName</code> が同一名前空間内で重複</li>
-<li>warning: <code>columns</code> 空、主キー (<code>primaryKey: true</code>) のカラムが 1 件もない、<code>name</code> (表示名) 空</li>
+<li>error: <code>physicalName</code> 空、<code>physicalName</code> が同一名前空間内で重複、PK 重複定義 (Column.primaryKey と Constraint.kind=primaryKey 併用、#1185 提案 C)、PrimaryKeyConstraint 複数 (1 table = 1 PK)、FK columnIds と referencedColumnIds の件数不一致 (#1185 追加#2)</li>
+<li>warning: <code>columns</code> 空、主キー (<code>Column.primaryKey: true</code> または <code>Constraint.kind=primaryKey</code> のいずれか) が 1 件もない、<code>name</code> (表示名) 空</li>
 </ul>
 <p>ProcessFlow の代表例 (<code>frontend/src/utils/actionValidation.ts</code> + <code>aggregatedValidation.ts</code>):</p>
 <ul>

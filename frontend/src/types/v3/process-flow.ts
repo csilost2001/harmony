@@ -898,6 +898,94 @@ export interface CdcStep extends StepBaseProps {
   excludeColumns?: TableColumnRef[];
 }
 
+// ─── AI step variants (#867 / #939、main 厳格レビュー A-1 で TS union 追加 2026-05-20) ───
+
+/** AI tool / response schema 名。OpenAI / Anthropic / Bedrock 共通の許容パターン。 */
+export type AiName = string; // pattern: ^[a-zA-Z][a-zA-Z0-9_-]*$
+
+/** LLM 推論パラメータ。modelEndpoint.defaults / AiCallStep.parameters で共通使用。 */
+export interface AiInferenceParameters {
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  topK?: number;
+  stopSequences?: string[];
+}
+
+/** LLM message の content block (text / image)。 */
+export type AiContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; source: AiImageSource };
+
+/** vision input の画像ソース (fileRef / url / base64)。 */
+export type AiImageSource =
+  | { kind: "fileRef"; ref: ExpressionString }
+  | { kind: "url"; url: string }
+  | { kind: "base64"; mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"; data: string };
+
+/** LLM 入力メッセージ 1 件。 */
+export interface AiMessage {
+  role: "system" | "user" | "assistant";
+  content: string | AiContentBlock[];
+  name?: string;
+}
+
+/** messages[] の動的配列展開ディレクティブ (#939 提案 A)。 */
+export interface AiMessageSpread {
+  kind: "spread";
+  ref: ExpressionString;
+  description?: Description;
+}
+
+/** messages[] の要素 1 件 (AiMessage または AiMessageSpread)。 */
+export type AiMessageItem = AiMessage | AiMessageSpread;
+
+/** LLM に提供する tool 1 件 (functionRef または inline)。 */
+export type AiToolRef =
+  | { kind: "functionRef"; ref: Identifier }
+  | { kind: "inline"; name: AiName; description: Description; parameters: Record<string, unknown> };
+
+/** tool 選択戦略。 */
+export type AiToolChoice =
+  | "auto"
+  | "any"
+  | "none"
+  | { name: AiName };
+
+/** LLM 出力 format 指定。 */
+export type AiResponseFormat =
+  | { kind: "text" }
+  | { kind: "json"; description?: string }
+  | { kind: "structuredObject"; schema: Record<string, unknown>; name?: AiName }
+  | { kind: "streaming"; description?: string };
+
+/** single-shot LLM 呼び出し step (#940)。 */
+export interface AiCallStep extends StepBaseProps {
+  kind: "aiCall";
+  description: Description;
+  modelRef: Identifier;
+  messages: AiMessageItem[];
+  tools?: AiToolRef[];
+  toolChoice?: AiToolChoice;
+  responseFormat?: AiResponseFormat;
+  parameters?: AiInferenceParameters;
+  outcomes?: ExternalCallOutcomes;
+}
+
+/** multi-step agent loop step (#940)。 */
+export interface AiAgentStep extends StepBaseProps {
+  kind: "aiAgent";
+  description: Description;
+  modelRef: Identifier;
+  messages: AiMessageItem[];
+  tools: AiToolRef[]; // 必須 (1 件以上)
+  toolChoice?: AiToolChoice;
+  maxIterations?: number;
+  responseFormat?: AiResponseFormat;
+  parameters?: AiInferenceParameters;
+  outcomes?: ExternalCallOutcomes;
+}
+
 // ─── ExtensionStep ────────────────────────────────────────────────────
 
 /**
@@ -944,6 +1032,8 @@ export type Step =
   | EventSubscribeStep
   | ClosingStep
   | CdcStep
+  | AiCallStep        // main 厳格レビュー A-1 で追加 (2026-05-20)
+  | AiAgentStep       // 同上
   | ExtensionStep;
 
 /** Return を除く Step subset (ExternalCallOutcomeSpec.sideEffects 等で使用)。 */

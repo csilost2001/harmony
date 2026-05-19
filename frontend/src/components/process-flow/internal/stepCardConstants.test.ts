@@ -12,8 +12,8 @@ import {
  */
 describe("stepCardConstants", () => {
   describe("ALL_STEP_TYPES (Phase-3 #1145 で追加、follow-up で componentCall/aiCall/aiAgent 追加)", () => {
-    it("25 種類の step kind を持つ (パレット側 toolbar 用、v3 schema 全 kind)", () => {
-      expect(ALL_STEP_TYPES).toHaveLength(25);
+    it("24 種類の step kind を持つ (パレット側 toolbar 用、v3 schema 全 kind)", () => {
+      expect(ALL_STEP_TYPES).toHaveLength(24);
     });
 
     it("代表的な kind を含む", () => {
@@ -34,8 +34,8 @@ describe("stepCardConstants", () => {
   });
 
   describe("ALL_SUB_STEP_TYPES", () => {
-    it("25 種類の step kind を持つ (v3 schema 全 kind)", () => {
-      expect(ALL_SUB_STEP_TYPES).toHaveLength(25);
+    it("24 種類の step kind を持つ (v3 schema 全 kind)", () => {
+      expect(ALL_SUB_STEP_TYPES).toHaveLength(24);
     });
 
     it("代表的な kind を含む", () => {
