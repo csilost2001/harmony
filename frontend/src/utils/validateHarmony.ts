@@ -7,18 +7,17 @@
  * JSON import は resolveJsonModule: true + Vite の JSON plugin で解決される。
  */
 
-import Ajv2020 from "ajv/dist/2020";
-import addFormats from "ajv-formats";
+import type Ajv2020 from "ajv/dist/2020";
 import type { Harmony } from "../types/v3/harmony";
 import commonSchema from "../../../schemas/v3/common.v3.schema.json";
 import harmonySchema from "../../../schemas/v3/harmony.v3.schema.json";
+import { buildHarmonyAjv } from "./buildHarmonyAjv";
 
 let _validateFn: ReturnType<InstanceType<typeof Ajv2020>["compile"]> | null = null;
 
 function getValidateFn(): ReturnType<InstanceType<typeof Ajv2020>["compile"]> {
   if (_validateFn) return _validateFn;
-  const ajv = new Ajv2020({ strict: false, allErrors: true });
-  addFormats(ajv);
+  const ajv = buildHarmonyAjv();
   // common schema を先に登録して $ref 解決できるようにする
   ajv.addSchema(commonSchema as object);
   _validateFn = ajv.compile(harmonySchema as object);
