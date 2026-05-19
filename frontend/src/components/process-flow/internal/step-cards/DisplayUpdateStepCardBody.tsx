@@ -1,10 +1,9 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "displayUpdate"` body を抽出。
 
-import type { Step } from "../../../../types/v3";
+import type { DisplayUpdateStep } from "../../../../types/v3";
 import type { StepCardBodyBaseProps } from "./types";
 
-export type DisplayUpdateStepCardBodyProps = StepCardBodyBaseProps;
+export type DisplayUpdateStepCardBodyProps = StepCardBodyBaseProps<DisplayUpdateStep>;
 
 export function DisplayUpdateStepCardBody({
   step,
@@ -18,7 +17,7 @@ export function DisplayUpdateStepCardBody({
         <input
           className="form-control form-control-sm"
           value={step.target}
-          onChange={(e) => onChange({ target: e.target.value } as Partial<Step>)}
+          onChange={(e) => onChange({ target: e.target.value })}
           onBlur={onCommit}
           placeholder="メッセージ表示、一覧テーブル更新 等"
         />

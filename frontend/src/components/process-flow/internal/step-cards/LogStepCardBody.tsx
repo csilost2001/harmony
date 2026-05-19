@@ -1,7 +1,6 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "log"` body を抽出 (#402)。
 
-import type { Step } from "../../../../types/v3";
+import type { LogStep } from "../../../../types/v3";
 import { LogStepPanel } from "../../LogStepPanel";
 import type {
   StepCardBodyBaseProps,
@@ -9,7 +8,7 @@ import type {
 } from "./types";
 
 export interface LogStepCardBodyProps
-  extends StepCardBodyBaseProps,
+  extends StepCardBodyBaseProps<LogStep>,
     Pick<StepCardBodyCatalogProps, "conventions"> {}
 
 export function LogStepCardBody({
@@ -21,7 +20,7 @@ export function LogStepCardBody({
   return (
     <LogStepPanel
       step={step}
-      onChange={(patch) => onChange(patch as Partial<Step>)}
+      onChange={(patch) => onChange(patch)}
       onCommit={onCommit}
       conventions={conventions ?? null}
     />

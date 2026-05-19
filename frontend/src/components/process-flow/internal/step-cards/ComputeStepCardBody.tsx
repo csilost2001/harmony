@@ -1,7 +1,6 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "compute"` body を抽出。
 
-import type { Step } from "../../../../types/v3";
+import type { ComputeStep } from "../../../../types/v3";
 import { ConvCompletionInput } from "../../../common/ConvCompletionInput";
 import type {
   StepCardBodyBaseProps,
@@ -9,7 +8,7 @@ import type {
 } from "./types";
 
 export interface ComputeStepCardBodyProps
-  extends StepCardBodyBaseProps,
+  extends StepCardBodyBaseProps<ComputeStep>,
     Pick<StepCardBodyCatalogProps, "conventions"> {}
 
 export function ComputeStepCardBody({
@@ -28,7 +27,7 @@ export function ComputeStepCardBody({
         <ConvCompletionInput
           className="form-control form-control-sm"
           value={step.expression}
-          onValueChange={(v) => onChange({ expression: v } as Partial<Step>)}
+          onValueChange={(v) => onChange({ expression: v })}
           onCommit={onCommit}
           conventions={conventions ?? null}
           placeholder="例: Math.floor(@subtotal * 0.10) / @subtotal + @taxAmount"

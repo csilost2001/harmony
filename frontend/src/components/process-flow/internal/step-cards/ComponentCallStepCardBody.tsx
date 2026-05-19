@@ -1,12 +1,11 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145、#1163 review Phase-2 補足): StepCard.tsx で dispatch が未実装だった
 // `componentCall` kind (PR #1066 で schema 追加) に最小 body を提供する。
 // CommonProcessStepCardBody と類似 (componentRef + operation + argumentMapping / returnMapping)。
 
-import type { Step } from "../../../../types/v3";
+import type { ComponentCallStep } from "../../../../types/v3";
 import type { StepCardBodyBaseProps } from "./types";
 
-export type ComponentCallStepCardBodyProps = StepCardBodyBaseProps;
+export type ComponentCallStepCardBodyProps = StepCardBodyBaseProps<ComponentCallStep>;
 
 export function ComponentCallStepCardBody({
   step,
@@ -25,7 +24,7 @@ export function ComponentCallStepCardBody({
             type="text"
             className="form-control form-control-sm"
             value={step.componentRef ?? ""}
-            onChange={(e) => onChange({ componentRef: e.target.value } as Partial<Step>)}
+            onChange={(e) => onChange({ componentRef: e.target.value })}
             onBlur={onCommit}
             placeholder="例: generic-definitions/component-definition/OrderValidator"
             style={{ fontFamily: "monospace", fontSize: "0.85rem" }}
@@ -42,7 +41,7 @@ export function ComponentCallStepCardBody({
             type="text"
             className="form-control form-control-sm"
             value={step.operation ?? ""}
-            onChange={(e) => onChange({ operation: e.target.value } as Partial<Step>)}
+            onChange={(e) => onChange({ operation: e.target.value })}
             onBlur={onCommit}
             placeholder="例: validate"
           />
@@ -68,7 +67,7 @@ export function ComponentCallStepCardBody({
             }
             onChange({
               argumentMapping: Object.keys(map).length > 0 ? map : undefined,
-            } as Partial<Step>);
+            });
           }}
           onBlur={onCommit}
           placeholder={"order=@input.order\nstrict=true"}
@@ -95,7 +94,7 @@ export function ComponentCallStepCardBody({
             }
             onChange({
               returnMapping: Object.keys(map).length > 0 ? map : undefined,
-            } as Partial<Step>);
+            });
           }}
           onBlur={onCommit}
           placeholder={"isValid=successFlag\nerrors=validationErrors"}
