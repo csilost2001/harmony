@@ -8,9 +8,9 @@
  * 親 schema 単独で検証する (briefing 指示に従う)。
  */
 
-import Ajv2020 from "ajv/dist/2020";
-import addFormats from "ajv-formats";
+import type Ajv2020 from "ajv/dist/2020";
 import type { GenericDefinition, GenericDefinitionKind } from "../types/v3";
+import { buildHarmonyAjv } from "../utils/buildHarmonyAjv";
 
 import parentSchema from "../../../schemas/v3/generic-definition.v3.schema.json";
 import dataContractSchema from "../../../schemas/v3/generic-definitions/data-contract.v3.schema.json";
@@ -49,8 +49,7 @@ let _validators: ValidatorMap | null = null;
 function getValidators(): ValidatorMap {
   if (_validators) return _validators;
 
-  const ajv = new Ajv2020({ strict: false, allErrors: true });
-  addFormats(ajv);
+  const ajv = buildHarmonyAjv();
 
   // 親 schema を先に登録して $ref 解決できるようにする
   ajv.addSchema(parentSchema as object);

@@ -19,7 +19,7 @@ import fsSync from "fs";
 import path from "path";
 import crypto from "node:crypto";
 import type { ValidateFunction } from "ajv";
-import Ajv2020 from "ajv/dist/2020.js";
+import { buildHarmonyAjv } from "./buildHarmonyAjv.js";
 import { workspaceContextManager } from "./workspaceState.js";
 
 // ── path 解決ヘルパー (#671 + #700 R-2) ─────────────────────────────────────
@@ -163,10 +163,10 @@ function kindToFileKey(kind: ExtensionFileKind): string {
   }
 }
 
-/** Ajv インスタンスとバリデーター関数のモジュールレベルキャッシュ (#455 / #955 / #1141)。
+/** Ajv インスタンスとバリデーター関数のモジュールレベルキャッシュ (#455 / #955 / #1141 / #1188)。
  * v3 統合 schema (#955) は draft 2020-12 のため Ajv2020 を使用。
- * strict: false は schema 内 description 等の警告を抑制 (workspaceInit.ts:51 と同方針) */
-const _ajv = new Ajv2020({ allErrors: true, strict: false });
+ * 共通設定 (strict: false / allErrors / discriminator / addFormats) は buildHarmonyAjv で集約 (#1188) */
+const _ajv = buildHarmonyAjv();
 let _v3SchemasRegistered = false;
 const _validatorCache = new Map<ExtensionFileKind, ValidateFunction>();
 

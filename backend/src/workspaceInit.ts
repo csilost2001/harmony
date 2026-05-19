@@ -20,7 +20,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import Ajv2020 from "ajv/dist/2020.js";
+import { buildHarmonyAjv } from "./buildHarmonyAjv.js";
 import {
   isLockdown,
   setGlobalDefaultPath,
@@ -46,9 +46,9 @@ let _validateHarmonyCache: ((data: unknown) => boolean) & { errors?: unknown } |
 
 async function getHarmonyValidator(): Promise<((data: unknown) => boolean) & { errors?: unknown }> {
   if (_validateHarmonyCache) return _validateHarmonyCache;
-  // strict: false で format 系 ($ref 解決に format 制約が含まれる) の警告を抑制
+  // 共通設定 (strict: false / allErrors / discriminator: true / addFormats) は buildHarmonyAjv で集約 (#1188)
   // schemas/v3/*.schema.json は JSON Schema draft 2020-12 を使用 (Ajv2020 が必要)
-  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  const ajv = buildHarmonyAjv();
   // load schemas: harmony.v3 + common.v3 (referenced via $ref)
   const harmonySchema = JSON.parse(
     await fs.readFile(path.join(SCHEMAS_DIR, "v3", "harmony.v3.schema.json"), "utf-8"),
