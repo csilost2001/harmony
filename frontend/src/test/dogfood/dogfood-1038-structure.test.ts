@@ -8,9 +8,12 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
-// 絶対パスで指定 (vitest context の __dirname は frontend/ なので相対パス解決に注意)
-const DOGFOOD_ROOT = '/home/hidekatsu/projects/harmony/.tmp/dogfood-1038';
+// projectRoot/.tmp/dogfood-1038 を file-URL ベースで解決 (machine 非依存、Dev Container / WSL / native すべてで動作)
+// 旧: hardcoded '/home/hidekatsu/projects/harmony/.tmp/dogfood-1038' は当 PC でのみ pass する
+const __filename = fileURLToPath(import.meta.url);
+const DOGFOOD_ROOT = path.resolve(path.dirname(__filename), '../../../../.tmp/dogfood-1038');
 
 describe('Dogfood #1038: 生成 test fixture structure 検証', () => {
 
