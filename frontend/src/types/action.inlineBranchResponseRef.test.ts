@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, ValidationStep } from "./action";
+import type { ProcessFlow, ValidationStep } from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("ValidationStep.inlineBranch.ngResponseRef (#180)", () => {

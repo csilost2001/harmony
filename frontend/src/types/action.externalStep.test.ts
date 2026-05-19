@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, ExternalSystemStep } from "./action";
-import { EXTERNAL_CALL_OUTCOME_VALUES } from "./action";
+import type { ProcessFlow, ExternalSystemStep } from "../types/v3";
+import { EXTERNAL_CALL_OUTCOME_VALUES } from "../utils/processFlowMetadata";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("ExternalSystemStep の新規フィールド (#158)", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, HttpResponseSpec, ReturnStep, Step } from "./action";
-import { STEP_TYPE_LABELS, STEP_TYPE_ICONS, STEP_TYPE_COLORS } from "./action";
+import type { ProcessFlow, HttpResponseSpec, ReturnStep, Step } from "../types/v3";
+import { STEP_TYPE_LABELS, STEP_TYPE_ICONS, STEP_TYPE_COLORS } from "../utils/processFlowMetadata";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("StepBase.runIf (#178)", () => {

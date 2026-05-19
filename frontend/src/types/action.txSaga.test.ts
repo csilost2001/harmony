@@ -5,7 +5,7 @@ import type {
   ExternalSystemStep,
   TxBoundary,
   ExternalChain,
-} from "./action";
+} from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("StepBase の txBoundary / transactional / compensatesFor / externalChain (#162)", () => {

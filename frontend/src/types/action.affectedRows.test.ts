@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, AffectedRowsCheck, DbAccessStep } from "./action";
+import type { ProcessFlow, AffectedRowsCheck, DbAccessStep } from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("DbAccessStep の affectedRowsCheck (#164)", () => {
