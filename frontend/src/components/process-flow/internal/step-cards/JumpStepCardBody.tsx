@@ -1,11 +1,11 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "jump"` body を抽出。
+// #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<JumpStep> で type narrow、@ts-nocheck 除去。
 
-import type { Step } from "../../../../types/v3";
+import type { JumpStep, LocalId } from "../../../../types/v3";
 import { JumpTargetSelector } from "../../JumpTargetSelector";
 import type { StepCardBodyBaseProps } from "./types";
 
-export type JumpStepCardBodyProps = StepCardBodyBaseProps;
+export type JumpStepCardBodyProps = StepCardBodyBaseProps<JumpStep>;
 
 export function JumpStepCardBody({
   step,
@@ -21,7 +21,7 @@ export function JumpStepCardBody({
           value={step.jumpTo}
           allSteps={allSteps}
           excludeStepId={step.id}
-          onChange={(val) => onChange({ jumpTo: val } as Partial<Step>)}
+          onChange={(val) => onChange({ jumpTo: val as LocalId })}
           onBlur={onCommit}
         />
       </div>

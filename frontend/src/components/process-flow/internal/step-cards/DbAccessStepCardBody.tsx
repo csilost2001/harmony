@@ -1,15 +1,13 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "dbAccess"` body を抽出。
+// #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<DbAccessStep> で type narrow、@ts-nocheck 除去。
 
-// #1186 Phase 2-D: DbOperation は v3 に固有型なし、local string alias。constants は processFlowMetadata
-import type { Step } from "../../../../types/v3";
-type DbOperation = string;
+import type { DbAccessStep, DbOperation, TableId, ErrorCode } from "../../../../types/v3";
 import { DB_OPERATION_LABELS } from "../../../../utils/processFlowMetadata";
 import { DB_OPS } from "../stepCardConstants";
 import type { StepCardBodyBaseProps, StepCardBodyTableProps } from "./types";
 
 export interface DbAccessStepCardBodyProps
-  extends StepCardBodyBaseProps,
+  extends StepCardBodyBaseProps<DbAccessStep>,
     StepCardBodyTableProps {}
 
 export function DbAccessStepCardBody({
@@ -26,7 +24,7 @@ export function DbAccessStepCardBody({
           className="form-select form-select-sm"
           value={step.tableId ?? ""}
           onChange={(e) => {
-            onChange({ tableId: e.target.value || undefined } as Partial<Step>);
+            onChange({ tableId: (e.target.value || undefined) as TableId | undefined });
           }}
         >
           <option value="">（選択）</option>
@@ -41,7 +39,7 @@ export function DbAccessStepCardBody({
           <select
             className="form-select form-select-sm"
             value={step.operation}
-            onChange={(e) => onChange({ operation: e.target.value as DbOperation } as Partial<Step>)}
+            onChange={(e) => onChange({ operation: e.target.value as DbOperation })}
           >
             {DB_OPS.map((op) => (
               <option key={op} value={op}>{DB_OPERATION_LABELS[op]}</option>
@@ -53,7 +51,7 @@ export function DbAccessStepCardBody({
           <input
             className="form-control form-control-sm"
             value={step.fields ?? ""}
-            onChange={(e) => onChange({ fields: e.target.value } as Partial<Step>)}
+            onChange={(e) => onChange({ fields: e.target.value })}
             onBlur={onCommit}
             placeholder="概要"
           />
@@ -65,7 +63,7 @@ export function DbAccessStepCardBody({
           className="form-control form-control-sm"
           rows={2}
           value={step.sql ?? ""}
-          onChange={(e) => onChange({ sql: e.target.value || undefined } as Partial<Step>)}
+          onChange={(e) => onChange({ sql: e.target.value || undefined })}
           onBlur={onCommit}
           placeholder="例: SELECT ... JOIN ... WHERE ... / INSERT ... RETURNING ..."
           style={{ fontFamily: "monospace", fontSize: "0.8rem" }}
@@ -83,7 +81,7 @@ export function DbAccessStepCardBody({
               value={step.affectedRowsCheck?.operator ?? ""}
               onChange={(e) => {
                 if (!e.target.value) {
-                  onChange({ affectedRowsCheck: undefined } as Partial<Step>);
+                  onChange({ affectedRowsCheck: undefined });
                 } else {
                   onChange({
                     affectedRowsCheck: {
@@ -92,7 +90,7 @@ export function DbAccessStepCardBody({
                       onViolation: step.affectedRowsCheck?.onViolation ?? "throw",
                       errorCode: step.affectedRowsCheck?.errorCode,
                     },
-                  } as Partial<Step>);
+                  });
                 }
               }}
               style={{ width: "auto" }}
@@ -115,7 +113,7 @@ export function DbAccessStepCardBody({
                       ...step.affectedRowsCheck!,
                       expected: Number(e.target.value),
                     },
-                  } as Partial<Step>)}
+                  })}
                   onBlur={onCommit}
                   style={{ width: 70 }}
                 />
@@ -128,7 +126,7 @@ export function DbAccessStepCardBody({
                       ...step.affectedRowsCheck!,
                       onViolation: e.target.value as "throw" | "abort" | "log" | "continue",
                     },
-                  } as Partial<Step>)}
+                  })}
                   style={{ width: "auto" }}
                 >
                   <option value="throw">throw</option>
@@ -143,9 +141,9 @@ export function DbAccessStepCardBody({
                   onChange={(e) => onChange({
                     affectedRowsCheck: {
                       ...step.affectedRowsCheck!,
-                      errorCode: e.target.value || undefined,
+                      errorCode: (e.target.value || undefined) as ErrorCode | undefined,
                     },
-                  } as Partial<Step>)}
+                  })}
                   onBlur={onCommit}
                   placeholder="errorCode (例: STOCK_SHORTAGE)"
                   style={{ width: 200 }}
