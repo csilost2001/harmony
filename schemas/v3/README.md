@@ -29,7 +29,7 @@ v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念か
 | `screen-flow-positions.v3.schema.json` | 画面フロー UI 座標 (Designer 専用、業務実装には不要)。配置: `<dataDir>/screen-flow-positions.json` |
 | `page-layout.v3.schema.json` | PageLayout (共通レイアウト entity、RFC #1021)。regions + assignments + design + optional processFlowId。配置: `<dataDir>/page-layouts/<id>.json` |
 | `screen-item.v3.schema.json` | ScreenItem (画面項目)。id は Identifier (camelCase 強制)、ValueSource discriminated union (組み込み 4 種 + 拡張) |
-| `table.v3.schema.json` | Table (DB テーブル)。EntityMeta + physicalName + columns + indexes + constraints (discriminated union: unique/check/foreignKey、FK は ConstraintDefinition に集約) + defaults + triggers。配置: `<dataDir>/tables/<id>.json` |
+| `table.v3.schema.json` | Table (DB テーブル)。EntityMeta + physicalName + columns + indexes + constraints (discriminated union: **primaryKey** / unique / check / foreignKey、PrimaryKeyConstraint は composite PK 対応、#1185 提案 C で追加) + defaults + triggers。配置: `<dataDir>/tables/<id>.json`。Column.primaryKey と PrimaryKeyConstraint の併用は禁止 (tableValidation.ts で runtime mutual exclusion 検証、1 table = 1 PK)。 |
 | `er-layout.v3.schema.json` | ER 図 UI 座標 + 論理リレーション。配置: `<dataDir>/er-layout.json` |
 | `sequence.v3.schema.json` | Sequence (DB シーケンス)。usedBy は common.v3#/$defs/TableColumnRef に統一。配置: `<dataDir>/sequences/<id>.json` |
 | `view.v3.schema.json` | View (DB ビュー)。配置: `<dataDir>/views/<id>.json` |

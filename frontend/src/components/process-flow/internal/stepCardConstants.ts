@@ -6,7 +6,7 @@ type DbOperation = string;
 /**
  * ProcessFlowEditor のパレット (toolbar) に表示する全 step kind。
  * 元: components/process-flow/ProcessFlowEditor.tsx (#1145 Phase-3 で分離)。
- * v3 schema 全 kind (componentCall / aiCall / aiAgent 含む) を登録 (#1145 完遂 follow-up)。
+ * v3 schema 全 24 kind (componentCall / aiCall / aiAgent 含む) を登録 (#1145 完遂 follow-up + main 厳格レビュー A-2: "other" は schema 外のため削除)。
  */
 export const ALL_STEP_TYPES: StepType[] = [
   "validation",
@@ -23,7 +23,6 @@ export const ALL_STEP_TYPES: StepType[] = [
   "jump",
   "compute",
   "return",
-  "other",
   "log",
   "audit",
   "workflow",
@@ -39,6 +38,7 @@ export const ALL_STEP_TYPES: StepType[] = [
 /**
  * StepCard のサブステップ追加メニューに表示する全 step kind。
  * 元: components/process-flow/StepCard.tsx (#1145 で分離)
+ * main 厳格レビュー A-2: "other" は schema 外のため削除。
  */
 export const ALL_SUB_STEP_TYPES: StepType[] = [
   "validation",
@@ -55,7 +55,6 @@ export const ALL_SUB_STEP_TYPES: StepType[] = [
   "jump",
   "compute",
   "return",
-  "other",
   "log",
   "audit",
   "workflow",

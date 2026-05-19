@@ -75,8 +75,8 @@ View の代表例 (`frontend/src/utils/viewValidation.ts`):
 
 Table の代表例 (`frontend/src/utils/tableValidation.ts`):
 
-- error: `physicalName` 空、`physicalName` が同一名前空間内で重複
-- warning: `columns` 空、主キー (`primaryKey: true`) のカラムが 1 件もない、`name` (表示名) 空
+- error: `physicalName` 空、`physicalName` が同一名前空間内で重複、PK 重複定義 (Column.primaryKey と Constraint.kind=primaryKey 併用、#1185 提案 C)、PrimaryKeyConstraint 複数 (1 table = 1 PK)、FK columnIds と referencedColumnIds の件数不一致 (#1185 追加#2)
+- warning: `columns` 空、主キー (`Column.primaryKey: true` または `Constraint.kind=primaryKey` のいずれか) が 1 件もない、`name` (表示名) 空
 
 ProcessFlow の代表例 (`frontend/src/utils/actionValidation.ts` + `aggregatedValidation.ts`):
 

@@ -48,7 +48,7 @@ describe("InlineStepList", () => {
     expect(container.querySelector(".inline-step-add")).toBeNull();
   });
 
-  it("追加ボタンを押すと型ピッカーが開き、25 種の kind が選べる", () => {
+  it("追加ボタンを押すと型ピッカーが開き、24 種の kind が選べる", () => {
     const { container } = render(
       <InlineStepList
         {...baseProps}
@@ -62,8 +62,8 @@ describe("InlineStepList", () => {
     const picker = container.querySelector(".inline-type-picker");
     expect(picker).not.toBeNull();
     const typeButtons = picker?.querySelectorAll(".inline-type-btn");
-    // ALL_SUB_STEP_TYPES は 25 種 (v3 schema 全 kind、follow-up で componentCall/aiCall/aiAgent 追加)
-    expect(typeButtons?.length).toBe(25);
+    // ALL_SUB_STEP_TYPES は 24 種 (v3 schema 全 kind、follow-up で componentCall/aiCall/aiAgent 追加)
+    expect(typeButtons?.length).toBe(24);
   });
 
   it("型ピッカーから kind を選択すると onChange + onCommit が呼ばれる", () => {
