@@ -1,4 +1,3 @@
-// @ts-nocheck -- legacy marker aggregation uses mixed v2/v3 shapes; tracked by #1016.
 /**
  * 未解決マーカー集計パネル (#261)
  *
@@ -30,14 +29,14 @@ interface Summary {
 
 const INITIAL: Summary = {
   total: 0,
-  byKind: { chat: 0, attention: 0, todo: 0, question: 0 },
+  byKind: { chat: 0, attention: 0, todo: 0, question: 0, validator: 0 },
   perGroup: [],
   recent: [],
 };
 
 async function fetchSummary(): Promise<Summary> {
   const metas = await listProcessFlows();
-  const s: Summary = { total: 0, byKind: { chat: 0, attention: 0, todo: 0, question: 0 }, perGroup: [], recent: [] };
+  const s: Summary = { total: 0, byKind: { chat: 0, attention: 0, todo: 0, question: 0, validator: 0 }, perGroup: [], recent: [] };
   for (const meta of metas) {
     const g: ProcessFlow | null = await loadProcessFlow(meta.id);
     if (!g) continue;
@@ -69,12 +68,14 @@ const KIND_LABEL: Record<MarkerKind, string> = {
   attention: "注目",
   todo: "TODO",
   question: "質問",
+  validator: "validator",
 };
 const KIND_COLOR: Record<MarkerKind, string> = {
   chat: "#3b82f6",
   attention: "#f59e0b",
   todo: "#10b981",
   question: "#8b5cf6",
+  validator: "#dc2626",
 };
 
 export function MarkersSummaryPanel() {
