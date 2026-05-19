@@ -1,14 +1,16 @@
-// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * 処理フロー成熟度パネル (#234)
  *
- * 全処理フロー (ProcessFlowMeta) の成熟度 (draft/provisional/committed) と付箋合計を集計。
+ * 全処理フロー (ProcessFlowEntry) の成熟度 (draft/provisional/committed) と付箋合計を集計。
  * クリックで処理フロー一覧画面へ遷移 (maturity フィルタ適用済み状態を想定、現状は単純遷移)。
+ *
+ * #1016 follow-up (2026-05-20): @ts-nocheck 除去。ProcessFlowEntry (harmony.json の entry block)
+ * の型を直接使用 (v3 ProcessFlow.meta とは別概念、notesCount field を持つ)。
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../../hooks/useWorkspacePath";
-import type { ProcessFlowMeta } from "../../../types/v3";
+import type { ProcessFlowEntry } from "../../../types/v3";
 import { loadProject } from "../../../store/flowStore";
 import { mcpBridge } from "../../../mcp/mcpBridge";
 
@@ -24,7 +26,7 @@ const INITIAL: Summary = { draft: 0, provisional: 0, committed: 0, total: 0, not
 
 async function fetchSummary(): Promise<Summary> {
   const project = await loadProject();
-  const groups = (project.processFlows ?? []) as ProcessFlowMeta[];
+  const groups = (project.processFlows ?? []) as ProcessFlowEntry[];
   const s: Summary = { ...INITIAL };
   for (const g of groups) {
     const m = g.maturity ?? "draft";
