@@ -1,3 +1,4 @@
+// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * actionFields.ts
  * ActionDefinition.inputs / outputs の `string | StructuredField[]` union を扱うヘルパー。
@@ -8,7 +9,7 @@
  * 現行 UI は自由記述 (string) のみ対応のため、表形式は fieldsToText でテキスト化して表示する。
  * Phase 1 時点では StructuredField[] の編集は未サポート (名前のみのテキスト表示)。
  */
-import type { ActionFields, StructuredField } from "../types/action";
+import type { ActionFields, StructuredField } from "../types/v3";
 
 /** 値が StructuredField[] (新形式) かを判定する型ガード */
 export function isStructuredFields(

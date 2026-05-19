@@ -5,7 +5,7 @@ import {
   checkScreenItemConventionReferences,
   type ConventionsCatalog,
 } from "./conventionsValidator";
-import type { ProcessFlow } from "../types/action";
+import type { ProcessFlow } from "../types/v3";
 import type { ScreenItemsDocument } from "../store/screenItemsStore";
 import type { Identifier, ScreenId, Timestamp } from "../types/v3";
 

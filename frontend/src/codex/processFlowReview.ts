@@ -1,4 +1,4 @@
-import type { ProcessFlow } from "../types/action";
+import type { ProcessFlow } from "../types/v3";
 import type { CodexBrowserClient } from "./codexClient";
 import { codexClient as defaultClient } from "./codexClient";
 import type { CodexNotification } from "./types";

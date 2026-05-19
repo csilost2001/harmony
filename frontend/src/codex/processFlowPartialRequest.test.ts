@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ProcessFlow } from "../types/action";
+import type { ProcessFlow } from "../types/v3";
 import { CodexBrowserClient, type McpBridgeLike } from "./codexClient";
 import {
   requestProcessFlowPartial,

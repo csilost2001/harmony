@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { Step } from "../../types/action";
+import type { Step } from "../../types/v3";
 import { getJumpTargetOptions } from "../../utils/actionUtils";
 
 interface JumpTargetSelectorProps {

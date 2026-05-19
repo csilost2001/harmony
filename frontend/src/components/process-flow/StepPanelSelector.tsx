@@ -1,4 +1,4 @@
-import type { Step } from "../../types/action";
+import type { Step } from "../../types/v3";
 
 export interface StepPanelSelectorProps {
   step: Step;

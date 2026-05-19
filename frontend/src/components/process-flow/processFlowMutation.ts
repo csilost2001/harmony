@@ -18,7 +18,7 @@
 // vitest unit test で巨大コンポーネント (GrapesJS / ReactFlow 等) を
 // 巻き込まずに mutation ロジックを単体検証するため。
 
-import type { ProcessFlow, StepType } from "../../types/action";
+import type { ProcessFlow, StepType } from "../../types/v3";
 import { addStep, removeStep, moveStep } from "../../store/processFlowStore";
 
 // #1145 Phase-3 N-3: mismatch / silent no-op を診断 log 化。

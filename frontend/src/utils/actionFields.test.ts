@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ActionFields, StructuredField } from "../types/action";
+import type { ActionFields, StructuredField } from "../types/v3";
 import {
   fieldsToText,
   isStructuredFields,

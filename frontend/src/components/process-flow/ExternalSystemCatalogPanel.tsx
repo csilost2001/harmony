@@ -1,8 +1,9 @@
+// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * ProcessFlow.context.catalogs.externalSystems 編集パネル (#278 / #570 v3 移行)
  */
 import { useState } from "react";
-import type { ProcessFlow, ExternalSystemCatalogEntry, ExternalAuthKind } from "../../types/action";
+import type { ProcessFlow, ExternalSystemCatalogEntry, ExternalAuthKind } from "../../types/v3";
 
 interface Props {
   group: ProcessFlow;

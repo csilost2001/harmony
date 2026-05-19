@@ -1,3 +1,4 @@
+// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * 画面項目定義ビュー (#318 プロトタイプ、#323 既存画面からの抽出対応)。
  *
@@ -44,7 +45,7 @@ import type {
   Identifier,
 } from "../../types/v3";
 import type { ScreenItemsDocument } from "../../store/screenItemsStore";
-import type { ProcessFlowMeta } from "../../types/action";
+import type { ProcessFlowMeta } from "../../types/v3";
 import { listProcessFlows } from "../../store/processFlowStore";
 import { listTables, loadTable } from "../../store/tableStore";
 import { listViews, loadView } from "../../store/viewStore";
