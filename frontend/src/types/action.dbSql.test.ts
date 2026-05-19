@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, DbAccessStep } from "./action";
+import type { ProcessFlow, DbAccessStep } from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("DbAccessStep の sql フィールド (#170)", () => {

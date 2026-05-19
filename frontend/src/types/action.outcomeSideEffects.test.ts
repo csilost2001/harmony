@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, ExternalSystemStep, ExternalCallOutcomeSpec, Step } from "./action";
+import type { ProcessFlow, ExternalSystemStep, ExternalCallOutcomeSpec, Step } from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("ExternalCallOutcomeSpec の sideEffects (#172)", () => {

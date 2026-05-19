@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ActionDefinition, ProcessFlow, HttpRoute, HttpResponseSpec } from "./action";
+import type { ActionDefinition, ProcessFlow, HttpRoute, HttpResponseSpec } from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("ActionDefinition の httpRoute / responses (#160)", () => {

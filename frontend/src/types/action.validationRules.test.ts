@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, ValidationRule, ValidationStep } from "./action";
+import type { ProcessFlow, ValidationRule, ValidationStep } from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("ValidationStep の rules[] (#166)", () => {
