@@ -20,7 +20,8 @@ type Step = {
   onCommit?: Step[]; // transactionScope: commit 成功後の追加処理
   onRollback?: Step[]; // transactionScope: rollback 後の補償処理
   outcomes?: Record<string, { sideEffects?: Step[] } | undefined>;
-  notes?: Array<{ id: string; type: string; body: string; createdAt: string }>;
+  /** common.v3 Note: kind は assumption/prerequisite/todo/deferred/question。`type` は legacy データ互換 (read-only)。 */
+  notes?: Array<{ id: string; kind: string; type?: string; body: string; createdAt: string }>;
   [k: string]: unknown;
 };
 
@@ -168,14 +169,15 @@ export function setMaturity(
 export function addStepNote(
   ag: ProcessFlowDoc,
   stepId: string,
-  type: string,
+  kind: string,
   body: string,
 ): { id: string } {
+  // #1187 提案 C: common.v3 Note.kind 規約に揃え、field 名を `type` から `kind` に統一
   const s = findStep(ag, stepId);
   if (!s) throw new Error(`step ${stepId} が見つかりません`);
   const note = {
     id: `note-${Date.now()}`,
-    type,
+    kind,
     body,
     createdAt: new Date().toISOString(),
   };

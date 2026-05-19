@@ -170,7 +170,7 @@ export const tools = [
         },
         type: {
           type: "string",
-          enum: ["login","dashboard","list","detail","form","search","confirm","complete","error","modal","other"],
+          enum: ["login","dashboard","list","detail","form","search","confirm","complete","error","modal","wizard","other"],
           description: "画面種別。省略時は other",
         },
         path: {
@@ -218,7 +218,7 @@ export const tools = [
         name: { type: "string", description: "新しい画面名" },
         type: {
           type: "string",
-          enum: ["login","dashboard","list","detail","form","search","confirm","complete","error","modal","other"],
+          enum: ["login","dashboard","list","detail","form","search","confirm","complete","error","modal","wizard","other"],
           description: "新しい画面種別",
         },
         description: { type: "string", description: "新しい説明" },
@@ -932,8 +932,8 @@ export const tools = [
         },
         trigger: {
           type: "string",
-          enum: ["click", "submit", "select", "change", "load", "timer", "other"],
-          description: "トリガー種別",
+          enum: ["click", "submit", "select", "change", "load", "timer", "auto", "other"],
+          description: "トリガー種別 (auto = 画面ロード時に自動実行)",
         },
       },
       required: ["processFlowId", "name", "trigger"],
@@ -956,8 +956,8 @@ export const tools = [
         },
         kind: {
           type: "string",
-          enum: ["validation", "dbAccess", "externalSystem", "commonProcess", "componentCall", "screenTransition", "displayUpdate", "branch", "loop", "loopBreak", "loopContinue", "jump", "compute", "return", "aiCall", "aiAgent", "transactionScope", "workflow", "publishEvent", "subscribeEvent", "other"],
-          description: "v3 ステップ discriminator (#8 / #1141)。組み込み 24 variant + 拡張参照 (`namespace:StepName`)。",
+          enum: ["validation", "dbAccess", "externalSystem", "commonProcess", "componentCall", "screenTransition", "displayUpdate", "branch", "loop", "loopBreak", "loopContinue", "jump", "compute", "return", "aiCall", "aiAgent", "transactionScope", "workflow", "eventPublish", "eventSubscribe", "log", "audit", "closing", "cdc"],
+          description: "v3 ステップ discriminator (#8 / #1141 / #1187)。組み込み 24 variant に完全一致。拡張参照は `namespace:StepName` パターン (例: retail:OrderConfirm) を直接渡す (本 enum は組み込みのみ列挙、拡張は MCP 上は free string で受容)。",
         },
         description: {
           type: "string",
@@ -1036,10 +1036,10 @@ export const tools = [
       properties: {
         processFlowId: { type: "string" },
         stepId: { type: "string" },
-        type: { type: "string", enum: ["assumption", "prerequisite", "todo", "deferred", "question"] },
+        kind: { type: "string", enum: ["assumption", "prerequisite", "todo", "deferred", "question"], description: "Note 種別 (common.v3 Note.kind と同名・同値)" },
         body: { type: "string" },
       },
-      required: ["processFlowId", "stepId", "type", "body"],
+      required: ["processFlowId", "stepId", "kind", "body"],
     },
   },
   {
@@ -1179,7 +1179,7 @@ export const tools = [
       type: "object" as const,
       properties: {
         processFlowId: { type: "string" },
-        kind: { type: "string", enum: ["chat", "attention", "todo", "question"] },
+        kind: { type: "string", enum: ["chat", "attention", "todo", "question"], description: "Marker 種別 (schema の \"validator\" は意図的に除外 — validator marker は validator runtime のみが追加可能、AI 手動付与は想定外)" },
         body: { type: "string" },
         stepId: { type: "string", description: "紐付ける step id (省略時はグループ全体宛)" },
         fieldPath: { type: "string" },

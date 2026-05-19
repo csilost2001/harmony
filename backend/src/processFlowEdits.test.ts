@@ -195,7 +195,8 @@ describe("addStepNote", () => {
     const s = findStep(ag, "s1");
     expect(s?.notes?.length).toBe(1);
     expect(s?.notes?.[0].id).toBe(id);
-    expect(s?.notes?.[0].type).toBe("question");
+    // #1187 提案 C: field 名は common.v3 Note.kind に統一 (旧 `type` は廃止)
+    expect(s?.notes?.[0].kind).toBe("question");
   });
 });
 
