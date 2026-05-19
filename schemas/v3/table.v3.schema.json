@@ -134,7 +134,9 @@
         "columnIds": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" }
+          "uniqueItems": true,
+          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+          "description": "UNIQUE 制約を構成する Column.id 配列 (#1185 追加#1: 重複列指定禁止のため uniqueItems)。"
         },
         "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
       }
@@ -154,7 +156,7 @@
     },
 
     "ForeignKeyConstraint": {
-      "description": "外部キー制約。単一カラム / 複合カラムを統一表現。referencedTableId は Uuid (物理名直書きは廃止)。",
+      "description": "外部キー制約。単一カラム / 複合カラムを統一表現。referencedTableId は Uuid (物理名直書きは廃止)。columnIds と referencedColumnIds の件数一致は AJV 単体では表現困難 (件数比較は別 schema keyword 必要) のため frontend/src/utils/tableValidation.ts で runtime 検証 (#1185 追加#2)。",
       "type": "object",
       "required": ["id", "kind", "columnIds", "referencedTableId", "referencedColumnIds"],
       "additionalProperties": false,
@@ -165,15 +167,17 @@
         "columnIds": {
           "type": "array",
           "minItems": 1,
+          "uniqueItems": true,
           "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
-          "description": "本テーブルの Column.id 配列。"
+          "description": "本テーブルの Column.id 配列 (#1185 追加#1: 重複列指定禁止のため uniqueItems)。"
         },
         "referencedTableId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "参照先 Table の Uuid。" },
         "referencedColumnIds": {
           "type": "array",
           "minItems": 1,
+          "uniqueItems": true,
           "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
-          "description": "参照先 Column.id 配列。"
+          "description": "参照先 Column.id 配列 (#1185 追加#1: 重複列指定禁止のため uniqueItems)。columnIds との件数一致は tableValidation.ts で runtime 検証。"
         },
         "onDelete": { "$ref": "#/$defs/FkAction" },
         "onUpdate": { "$ref": "#/$defs/FkAction" },
