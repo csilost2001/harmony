@@ -632,7 +632,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       } else {
         loadProcessFlow(processFlowId).then((ag) => {
           if (ag) {
-            openTab({ id: tabId, type: "process-flow", resourceId: processFlowId, label: ag.name });
+            // #1186 Phase 2-C: v3 ProcessFlow は name を meta.name に持つ (旧 AnyRecord 時代の .name は undefined)
+            openTab({ id: tabId, type: "process-flow", resourceId: processFlowId, label: ag.meta.name });
           } else {
             fallbackToDashboard("処理フロー", processFlowId);
           }

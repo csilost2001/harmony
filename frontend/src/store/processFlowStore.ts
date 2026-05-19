@@ -1,12 +1,13 @@
 ﻿// @ts-nocheck -- legacy process-flow store migration remains open; tracked by #1016.
+// #1186 Phase 2-C: types/action → types/v3 移行 (ProcessFlowType/StepType は v3 で ProcessFlowKind/StepKind に rename)
 import type {
   ActionDefinition,
   ActionTrigger,
   ProcessFlow,
-  ProcessFlowType,
+  ProcessFlowKind as ProcessFlowType,
   Step,
-  StepType,
-} from "../types/action";
+  StepKind as StepType,
+} from "../types/v3";
 import type { ProcessFlowId, ScreenId, Timestamp } from "../types/v3";
 import type { ProcessFlowMeta as FlowProcessFlowMeta } from "../types/flow";
 import { migrateProcessFlow, PROCESS_FLOW_V3_SCHEMA_REF } from "../utils/actionMigration";
