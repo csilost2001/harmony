@@ -110,4 +110,79 @@ describe("validateTable", () => {
 
     expect(validateTable(target, [target])).toEqual([]);
   });
+
+  // #1185 追加#2: FK columnIds と referencedColumnIds の件数一致検証
+  describe("FK column count mismatch (#1185 追加#2)", () => {
+    const fkColumn = (id: string, name: string, primaryKey = false): Column => column({
+      id: id as LocalId,
+      physicalName: name as PhysicalName,
+      name: name as DisplayName,
+      primaryKey,
+    });
+
+    it("件数一致 -> no error", () => {
+      const t = table({
+        columns: [fkColumn("col-01", "id", true), fkColumn("col-02", "ref_a"), fkColumn("col-03", "ref_b")],
+        constraints: [{
+          id: "fk-01",
+          kind: "foreignKey",
+          columnIds: ["col-02", "col-03"],
+          referencedTableId: "22222222-2222-4222-8222-222222222222",
+          referencedColumnIds: ["other_id_1", "other_id_2"],
+        }],
+      } as Partial<Table>);
+      const errors = validateTable(t, [t]);
+      expect(errors.find((e) => e.code === "table.foreignKey.columnCountMismatch")).toBeUndefined();
+    });
+
+    it("件数不一致 (1 vs 2) -> error", () => {
+      const t = table({
+        columns: [fkColumn("col-01", "id", true), fkColumn("col-02", "ref_a")],
+        constraints: [{
+          id: "fk-02",
+          kind: "foreignKey",
+          columnIds: ["col-02"],
+          referencedTableId: "22222222-2222-4222-8222-222222222222",
+          referencedColumnIds: ["other_id_1", "other_id_2"],
+        }],
+      } as Partial<Table>);
+      const errors = validateTable(t, [t]);
+      expect(errors).toContainEqual(expect.objectContaining({
+        severity: "error",
+        code: "table.foreignKey.columnCountMismatch",
+        path: "constraints[0].referencedColumnIds",
+      }));
+    });
+
+    it("件数不一致 (2 vs 1) -> error", () => {
+      const t = table({
+        columns: [fkColumn("col-01", "id", true), fkColumn("col-02", "ref_a"), fkColumn("col-03", "ref_b")],
+        constraints: [{
+          id: "fk-03",
+          kind: "foreignKey",
+          columnIds: ["col-02", "col-03"],
+          referencedTableId: "22222222-2222-4222-8222-222222222222",
+          referencedColumnIds: ["other_id_1"],
+        }],
+      } as Partial<Table>);
+      const errors = validateTable(t, [t]);
+      expect(errors).toContainEqual(expect.objectContaining({
+        severity: "error",
+        code: "table.foreignKey.columnCountMismatch",
+      }));
+    });
+
+    it("FK 以外の制約は対象外", () => {
+      const t = table({
+        columns: [fkColumn("col-01", "id", true), fkColumn("col-02", "ref_a")],
+        constraints: [{
+          id: "uq-01",
+          kind: "unique",
+          columnIds: ["col-02"],
+        }],
+      } as Partial<Table>);
+      const errors = validateTable(t, [t]);
+      expect(errors.find((e) => e.code === "table.foreignKey.columnCountMismatch")).toBeUndefined();
+    });
+  });
 });

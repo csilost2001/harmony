@@ -68,5 +68,22 @@ export function validateTable(table: Table, allTables: Table[]): ValidationError
     });
   }
 
+  // #1185 追加#2: FK の columnIds と referencedColumnIds の件数一致 (AJV 単体では表現困難なため runtime 検証)
+  const constraints = (table as Table & { constraints?: Array<Record<string, unknown>> }).constraints ?? [];
+  constraints.forEach((con, idx) => {
+    if (con.kind !== "foreignKey") return;
+    const cols = Array.isArray(con.columnIds) ? con.columnIds : [];
+    const refCols = Array.isArray(con.referencedColumnIds) ? con.referencedColumnIds : [];
+    if (cols.length !== refCols.length) {
+      errors.push({
+        stepId,
+        severity: "error",
+        code: "table.foreignKey.columnCountMismatch",
+        path: `constraints[${idx}].referencedColumnIds`,
+        message: `外部キー (constraint id: ${String(con.id ?? "?")}) の columnIds (${cols.length} 件) と referencedColumnIds (${refCols.length} 件) の件数が一致しません`,
+      });
+    }
+  });
+
   return errors;
 }
