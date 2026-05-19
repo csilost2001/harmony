@@ -1,7 +1,7 @@
 // @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "transactionScope"` body を抽出 (#415)。
 
-import type { Step } from "../../../../types/action";
+import type { Step } from "../../../../types/v3";
 import { TransactionScopeStepPanel } from "../../TransactionScopeStepPanel";
 import type {
   StepCardBodyBaseProps,

@@ -2,7 +2,7 @@
 // Phase-2 (#1145) で StepCard.tsx から各 kind 別 body sub-component を抽出する際の共通 props 型。
 // 各 sub-component は本 `StepCardBodyBaseProps` を拡張せず使い回す (1 sub = 1 kind 専用)。
 
-import type { ProcessFlow, Step } from "../../../../types/action";
+import type { ProcessFlow, Step } from "../../../../types/v3";
 import type { ValidationError } from "../../../../utils/actionValidation";
 
 export interface StepCardBodyBaseProps {

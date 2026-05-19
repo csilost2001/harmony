@@ -3,7 +3,7 @@
 // 警告一覧 + 「全て AI に依頼」 / 個別「AI に依頼」ボタン (既起票判定込み)。
 
 import { generateUUID } from "../../../utils/uuid";
-import type { ProcessFlow } from "../../../types/action";
+import type { ProcessFlow } from "../../../types/v3";
 import type { ValidationError } from "../../../utils/actionValidation";
 
 export interface WarningsPanelProps {

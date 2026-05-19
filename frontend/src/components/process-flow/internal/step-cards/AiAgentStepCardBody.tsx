@@ -4,7 +4,7 @@
 // AiAgentStep: modelRef + messages + tools (1 件以上必須) + maxIterations。
 // multi-step agent loop。tool が無い single-shot は AiCallStep を使う。
 
-import type { Step } from "../../../../types/action";
+import type { Step } from "../../../../types/v3";
 import type { StepCardBodyBaseProps } from "./types";
 
 export type AiAgentStepCardBodyProps = StepCardBodyBaseProps;

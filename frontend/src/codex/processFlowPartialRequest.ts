@@ -7,7 +7,8 @@
  * Codex 未認証時は "unavailable" エラーを throw する。
  */
 
-import type { ProcessFlow } from "../types/action";
+// #1186 Phase 2-D: types/action → types/v3 移行
+import type { ProcessFlow } from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
 import type { CodexBrowserClient } from "./codexClient";
 import { codexClient as defaultClient } from "./codexClient";

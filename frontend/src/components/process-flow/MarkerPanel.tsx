@@ -10,7 +10,7 @@
  * 対応後 resolvedAt を埋めて resolution コメントを付ける。
  */
 import { useMemo, useState } from "react";
-import type { ProcessFlow, Marker, MarkerKind, Step } from "../../types/action";
+import type { ProcessFlow, Marker, MarkerKind, Step } from "../../types/v3";
 import { generateUUID } from "../../utils/uuid";
 
 /** ProcessFlow 内の全 step.id を再帰的に収集 (anchor orphan 判定用) */

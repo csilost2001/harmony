@@ -3,7 +3,7 @@
 // `aiCall` kind (PR #935/#936 で schema 追加) に最小 body を提供する。
 // AiCallStep: modelRef + messages + tools (任意) + responseFormat (任意)。
 
-import type { Step } from "../../../../types/action";
+import type { Step } from "../../../../types/v3";
 import type { StepCardBodyBaseProps } from "./types";
 
 export type AiCallStepCardBodyProps = StepCardBodyBaseProps;

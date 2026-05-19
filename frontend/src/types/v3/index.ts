@@ -58,3 +58,35 @@ export * from "./custom-block";
 
 // Generic Definition Catalog (#1069)
 export * from "./generic-definition";
+
+// ── #1186 Phase 2-D: Legacy alias group (action.ts 廃止移行用) ─────────────
+// action.ts の旧 type 名 (v1/v2 互換) を v3 strict 型への alias として提供。
+// 新規 consumer は v3 直接命名を使うこと。本 alias 群は移行完了後に削除予定。
+
+import type { ProcessFlowKind, StepKind as _StepKind } from "./process-flow";
+import type { Mode } from "./common";
+
+/** @deprecated 旧 v1/v2 名。v3 は `ProcessFlowKind` を使う。 */
+export type ProcessFlowType = ProcessFlowKind;
+
+/** @deprecated 旧 v1/v2 名。v3 は `StepKind` を使う。 */
+export type StepType = _StepKind;
+
+/** @deprecated 旧 v1/v2 名。v3 は `Mode` (common.v3) を使う。 */
+export type ProcessFlowMode = Mode;
+
+// ── HTTP 関連 (frontend 表示専用、v3 schema には ExternalHttpCall.method として enum 定義) ──
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+export type HttpAuthRequirement = "required" | "optional" | "none";
+
+// ── External Auth Kind (process-flow.v3 ExternalAuth.kind enum、frontend type alias) ──
+export type ExternalAuthKind = "bearer" | "basic" | "apiKey" | "oauth2" | "iamRole" | "azureAd" | "none";
+
+// ── SLA / Transaction の frontend 拡張 enum (v3 schema には string で許容) ──
+export type OnTimeout = "throw" | "continue" | "compensate" | "log";
+export type TransactionIsolationLevel = "READ_COMMITTED" | "REPEATABLE_READ" | "SERIALIZABLE" | string;
+export type TransactionPropagation = "REQUIRED" | "REQUIRES_NEW" | "NESTED" | string;
+export type ExternalChainPhase = "authorize" | "capture" | "cancel" | "other";
+
+// ── TxBoundary.role (v3 schema TxBoundary.role と一致) ─────────────────────
+export type TxBoundaryRole = "begin" | "member" | "end";

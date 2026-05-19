@@ -1,6 +1,6 @@
 // @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 import { useState } from "react";
-import type { ActionDefinition, HttpMethod, HttpAuthRequirement, HttpResponseSpec } from "../../types/action";
+import type { ActionDefinition, HttpMethod, HttpAuthRequirement, HttpResponseSpec } from "../../types/v3";
 
 interface Props {
   action: ActionDefinition;

@@ -3,7 +3,7 @@
 // / AI レビューダイアログを 1 component に束ねた wrapper。
 // state は親側 (ProcessFlowEditor) が保持、本 component は宣言的レンダリングのみ。
 
-import type { ProcessFlow } from "../../../types/action";
+import type { ProcessFlow } from "../../../types/v3";
 import {
   DiscardConfirmDialog,
   ForceReleaseConfirmDialog,

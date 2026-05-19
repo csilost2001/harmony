@@ -2,8 +2,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
-import type { ProcessFlowMeta, ProcessFlowType, ProcessFlow } from "../../types/action";
-import { PROCESS_FLOW_TYPE_LABELS, PROCESS_FLOW_TYPE_ICONS } from "../../types/action";
+// #1186 Phase 2-D: types/action → types/v3 + processFlowMetadata 移行
+import type { ProcessFlowMeta, ProcessFlowType, ProcessFlow } from "../../types/v3";
+import { PROCESS_FLOW_TYPE_LABELS, PROCESS_FLOW_TYPE_ICONS } from "../../utils/processFlowMetadata";
 import {
   listProcessFlows,
   loadProcessFlow,

@@ -2,7 +2,7 @@
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "validation"` body を抽出。
 // 振る舞いの変更は無し (純粋なファイル分割)。
 
-import type { Step } from "../../../../types/action";
+import type { Step } from "../../../../types/v3";
 import { ValidationRulesPanel } from "../../ValidationRulesPanel";
 import type { StepCardBodyBaseProps, StepCardBodyCatalogProps } from "./types";
 

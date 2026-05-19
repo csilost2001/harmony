@@ -1,11 +1,12 @@
 // @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 import { useState } from "react";
-import type { ProcessFlow, Step, StepType } from "../../../types/action";
+import type { ProcessFlow, Step, StepType } from "../../../types/v3";
+// #1186 Phase 2-D: constants は processFlowMetadata から
 import {
   STEP_TYPE_COLORS,
   STEP_TYPE_ICONS,
   STEP_TYPE_LABELS,
-} from "../../../types/action";
+} from "../../../utils/processFlowMetadata";
 import { createDefaultStep } from "../../../store/processFlowStore";
 import type { ValidationError } from "../../../utils/actionValidation";
 import { generateUUID } from "../../../utils/uuid";

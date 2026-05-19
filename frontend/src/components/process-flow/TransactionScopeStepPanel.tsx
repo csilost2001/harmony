@@ -11,7 +11,7 @@ import type {
 import type {
   TransactionIsolationLevel,
   TransactionPropagation,
-} from "../../types/action";
+} from "../../types/v3";
 import {
   STEP_TYPE_LABELS,
   STEP_TYPE_ICONS,

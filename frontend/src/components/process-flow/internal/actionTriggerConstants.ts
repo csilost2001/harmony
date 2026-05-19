@@ -2,8 +2,9 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx から action trigger 関連の定数 / ヘルパーを抽出。
 // アクション (trigger) の icon / カテゴリ / リッチヘルプ / ラベルの取得。
 
-import { ACTION_TRIGGER_LABELS } from "../../../types/action";
-import type { ActionDefinition, ActionTrigger, Marker } from "../../../types/action";
+// #1186 Phase 2-D: constants は processFlowMetadata から
+import { ACTION_TRIGGER_LABELS } from "../../../utils/processFlowMetadata";
+import type { ActionDefinition, ActionTrigger, Marker } from "../../../types/v3";
 
 export const ALL_TRIGGERS: ActionTrigger[] = [
   "click",
@@ -123,7 +124,8 @@ export const getActionTriggerRichHelp = (trigger: string): ActionTriggerRichHelp
   ACTION_TRIGGER_RICH_HELP[trigger] ?? ACTION_TRIGGER_RICH_HELP.other;
 
 // ── アクションのメタ要約用ヘルパー ─────────────────────────────────────
-import { STEP_TYPE_LABELS } from "../../../types/action";
+// #1186 Phase 2-D: constants は processFlowMetadata から
+import { STEP_TYPE_LABELS } from "../../../utils/processFlowMetadata";
 
 export function countActionFields(fields: unknown): number {
   if (Array.isArray(fields)) return fields.length;

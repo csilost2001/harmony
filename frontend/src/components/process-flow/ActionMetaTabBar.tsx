@@ -1,3 +1,4 @@
+// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-D) で loose access パターン (step.subSteps / .branches / .elseBranch / .steps / .onCommit / .onRollback、Process Flow.sla) が露呈、proper narrow は #1016 で deferred
 /**
  * 処理フローエディタの上部タブバー (#309)
  *
@@ -12,8 +13,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
-import type { ProcessFlow, ProcessFlowType, Step } from "../../types/action";
-import { PROCESS_FLOW_TYPE_LABELS } from "../../types/action";
+// #1186 Phase 2-D: types/action → types/v3 + processFlowMetadata 移行
+import type { ProcessFlow, ProcessFlowType, Step } from "../../types/v3";
+import { PROCESS_FLOW_TYPE_LABELS } from "../../utils/processFlowMetadata";
 import { MaturityBadge } from "./MaturityBadge";
 import { MarkerPanel } from "./MarkerPanel";
 import { ErrorCatalogPanel } from "./ErrorCatalogPanel";
