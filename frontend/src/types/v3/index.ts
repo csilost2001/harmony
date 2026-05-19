@@ -105,11 +105,15 @@ export type ValidationRuleType =
   | "enum"
   | "custom";
 
-// ── SecretRef / ErrorCatalogEntry / EventDef / EnvVarEntry 等の catalog entry 型 (frontend では緩く扱う) ──
-/* eslint-disable @typescript-eslint/no-explicit-any -- legacy compat */
+// ── Legacy catalog entry alias (frontend では緩く扱うが、strict 型がある場合は再 export) ──
+// #1186 Phase 2 で action.ts AnyRecord から v3 strict 型へ。Codex review 指摘 (2026-05-20)。
+import type { SecretEntry as _SecretEntry } from "./process-flow";
+/** @deprecated 旧 v1/v2 名。v3 strict 型は SecretEntry (process-flow.v3 #/$defs/SecretEntry) */
+export type SecretRef = _SecretEntry;
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- 以下は v3 strict 型未定義のため互換 alias */
 type _AnyRecord = Record<string, any>;
 /* eslint-enable @typescript-eslint/no-explicit-any */
-export type SecretRef = _AnyRecord;
 export type StepBase = unknown;
 export type OtherStep = _AnyRecord;
 export type WorkflowApprover = _AnyRecord;
