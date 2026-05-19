@@ -19,18 +19,20 @@ export type ActionFields = StructuredField[] | string | undefined;
 export type MarkerKind = string;
 export type Marker = AnyRecord;
 
+// #1186 Phase 1: common.v3 Note.kind enum と完全一致 (assumption / prerequisite / todo / deferred / question)。
+// 旧 enum の "decision" / "risk" は schema 外の値で、actionMigration.ts:noteKind で "deferred" に正規化される (read 時 fallback あり)。
 export type StepNoteType =
   | "assumption"
-  | "decision"
-  | "todo"
-  | "risk"
-  | "question"
   | "prerequisite"
-  | "deferred";
+  | "todo"
+  | "deferred"
+  | "question";
 export interface StepNote {
   id: string;
+  /** common.v3 Note 規範。v3 schema 上 field 名は `kind` 必須 (旧 `type` は read 互換のみ)。 */
+  kind?: StepNoteType;
+  /** @deprecated v1/v2 legacy field。新規書込は `kind` を使用。 */
   type?: StepNoteType;
-  kind?: StepNoteType | "prerequisite" | "deferred";
   body: string;
   createdAt: string;
 }
@@ -89,7 +91,7 @@ export type ValidationRuleType =
   | "range"
   | "enum"
   | "custom";
-export type ValidationRuleKind = "Error" | "Msg" | "Noaccept" | "Default";
+// #1186 Phase 1: v3 で完全廃止 (field 名 kind→severity rename + lowerCamelCase に正規化)。Dead code として削除。
 export type ValidationRule = AnyRecord & { field?: string; type?: ValidationRuleType; severity?: string };
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -101,7 +103,8 @@ export type BodySchema = string | AnyRecord;
 export type ExternalCallOutcome = "success" | "failure" | "timeout";
 export type ExternalCallOutcomeSpec = AnyRecord;
 export type ExternalCallOutcomes = AnyRecord;
-export type ExternalAuthKind = "bearer" | "basic" | "apiKey" | "oauth2" | "none";
+// #1186 Phase 1: process-flow.v3 ExternalAuth.kind に iamRole / azureAd を追加 (AWS Bedrock / Azure OpenAI 認証、#867 / #939 連動)
+export type ExternalAuthKind = "bearer" | "basic" | "apiKey" | "oauth2" | "iamRole" | "azureAd" | "none";
 export type ExternalAuth = AnyRecord;
 
 export type Sla = AnyRecord;
@@ -112,8 +115,9 @@ export type TransactionIsolationLevel = "READ_COMMITTED" | "REPEATABLE_READ" | "
 export type TransactionPropagation = "REQUIRED" | "REQUIRES_NEW" | "NESTED" | string;
 export type ExternalChainPhase = "authorize" | "capture" | "cancel" | "other";
 export type ExternalChain = AnyRecord & { chainId?: string; phase?: ExternalChainPhase };
-export type LoopKind = "count" | "condition" | "collection" | "forEach" | "while" | "doWhile" | "for" | string;
-export type LoopConditionMode = "continue" | "exit" | "pre" | "post" | string;
+// #1186 Phase 1: process-flow.v3 LoopStep.loopKind / conditionMode と完全一致 (string 緩和削除、schema 外 enum 削除)
+export type LoopKind = "count" | "condition" | "collection";
+export type LoopConditionMode = "continue" | "exit";
 export type WorkflowPattern = V3ProcessFlow.WorkflowPattern | string;
 export type WorkflowApprover = AnyRecord;
 export type WorkflowQuorum = AnyRecord;
@@ -172,11 +176,12 @@ export interface StepTemplate {
   steps?: TemplateStep[];
 }
 
+// #1186 Phase 1: common.v3 Note.kind と完全一致 (5 値、順序は schema 列挙順)
 export const STEP_NOTE_TYPE_VALUES: readonly StepNoteType[] = [
   "assumption",
-  "decision",
+  "prerequisite",
   "todo",
-  "risk",
+  "deferred",
   "question",
 ] as const;
 

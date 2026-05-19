@@ -12,7 +12,8 @@ interface Props {
   render?: "full" | "toggleOnly" | "bodyOnly";
 }
 
-const AUTH_KINDS: ExternalAuthKind[] = ["bearer", "basic", "apiKey", "oauth2", "none"];
+// #1186 Phase 1: process-flow.v3 ExternalAuth.kind enum (7 値) に整合。iamRole / azureAd は #867 / #939 で導入された AWS Bedrock / Azure OpenAI 認証
+const AUTH_KINDS: ExternalAuthKind[] = ["bearer", "basic", "apiKey", "oauth2", "iamRole", "azureAd", "none"];
 const trimToUndefined = (value: string) => {
   const trimmed = value.trim();
   return trimmed ? trimmed : undefined;

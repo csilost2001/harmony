@@ -2,9 +2,10 @@
  * v3 ProcessFlow 型定義 (`schemas/v3/process-flow.v3.schema.json` と 1:1 対応)
  *
  * - root 4 セクション: meta / context / actions / authoring
- * - 22 step variants (validation / dbAccess / externalSystem / commonProcess / screenTransition /
- *   displayUpdate / branch / loop / loopBreak / loopContinue / jump / compute / return / log /
- *   audit / workflow / transactionScope / eventPublish / eventSubscribe / closing / cdc / extension)
+ * - 25 step variants (validation / dbAccess / externalSystem / componentCall / commonProcess /
+ *   screenTransition / displayUpdate / branch / loop / loopBreak / loopContinue / jump / compute /
+ *   return / log / audit / workflow / transactionScope / eventPublish / eventSubscribe / closing /
+ *   cdc / aiCall / aiAgent / extension)  ※ componentCall (#1067) / aiCall / aiAgent (#940) を含む
  * - WorkflowApprover.order semantics (#539 R5-2) を JSDoc で明示
  * - datetime 算術 duration() 推奨 (#539 R5-3) を JSDoc で明示
  *
@@ -438,7 +439,7 @@ export interface DataLineage {
 /**
  * 全 Step variant 共通のプロパティ集合。
  * 各 variant は本定義を allOf でマージし、固有プロパティを追加 + unevaluatedProperties: false で閉じる。
- * #525 R3 fix: lineage を StepBaseProps に集約 (全 22 step variant で利用可能)。
+ * #525 R3 fix: lineage を StepBaseProps に集約 (全 25 step variant で利用可能)。
  */
 export interface StepBaseProps {
   id: LocalId;
@@ -610,7 +611,7 @@ export interface ExternalSystemStep extends StepBaseProps {
   successCriteria?: Criterion[];
 }
 
-// ─── 残り 19 step variants ─────────────────────────────────────────────
+// ─── 残り step variants ────────────────────────────────────────────────
 
 export interface CommonProcessStep extends StepBaseProps {
   kind: "commonProcess";
@@ -911,10 +912,10 @@ export interface ExtensionStep extends StepBaseProps {
   config?: Record<string, unknown>;
 }
 
-// ─── Step union (22 variants) ──────────────────────────────────────────
+// ─── Step union (25 variants) ──────────────────────────────────────────
 
 /**
- * Step union。kind プロパティで variant を識別。組み込み 21 + ExtensionStep の計 22 variant。
+ * Step union。kind プロパティで variant を識別。組み込み 24 + ExtensionStep の計 25 variant。
  *
  * AJV `discriminator: true` モードで kind を識別子として 1 branch のみエラー報告 (#525 F-4)。
  * ただし Step.oneOf は ExtensionStep の kind がパターン (`namespace:StepName`) のため
