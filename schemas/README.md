@@ -6,19 +6,37 @@
 
 ```
 schemas/
-├── v3/                                   ← v3 (現行)
-│   ├── common.v3.schema.json             ← 共通 $defs (全 v3 schema が参照)
+├── v3/                                          ← v3 (現行) 17 top-level + 7 generic-definitions/ = 24 file
+│   ├── common.v3.schema.json                    ← 共通 $defs (全 v3 schema が参照)
+│   ├── harmony.v3.schema.json
 │   ├── process-flow.v3.schema.json
 │   ├── conventions.v3.schema.json
 │   ├── extensions.v3.schema.json
+│   ├── external-catalogs.v3.schema.json
 │   ├── screen.v3.schema.json
 │   ├── screen-item.v3.schema.json
+│   ├── screen-flow-positions.v3.schema.json
 │   ├── table.v3.schema.json
-│   ├── harmony.v3.schema.json
+│   ├── er-layout.v3.schema.json
+│   ├── sequence.v3.schema.json
+│   ├── view.v3.schema.json
 │   ├── view-definition.v3.schema.json
-│   └── README.md
+│   ├── page-layout.v3.schema.json               ← RFC #1021 で導入
+│   ├── custom-block.v3.schema.json
+│   ├── generic-definition.v3.schema.json
+│   ├── generic-definitions/                     ← Generic Definition Catalog kind 別 schema (#1063-)
+│   │   ├── application-rule.v3.schema.json
+│   │   ├── data-contract.v3.schema.json
+│   │   ├── domain-type.v3.schema.json
+│   │   ├── exception-type.v3.schema.json
+│   │   ├── runtime-policy.v3.schema.json
+│   │   ├── ui-behavior.v3.schema.json
+│   │   └── ui-fragment.v3.schema.json
+│   └── README.md                                ← schema 別の役割 / 配置 / 設計詳細はこちら
 └── README.md (本ファイル)
 ```
+
+各 schema の役割・配置 (`<dataDir>/...` 相対パス) は [`v3/README.md`](v3/README.md) 参照。
 
 > **Note**: v1 / v2 は #774 で削除済み。過去の記録は `git log` を参照してください。
 

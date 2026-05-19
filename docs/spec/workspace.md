@@ -10,7 +10,7 @@ PR #676 で導入した「複数ワークスペース管理機能」の正規仕
 |------|------|
 | ワークスペース | `harmony.json` を含むフォルダ 1 つ。UI 表記は「ワークスペース」(カタカナ)、実装識別子・JSON key は `workspace` を用いる。 |
 | `harmony.json` | ワークスペースフォルダの root に配置する marker ファイル。`schemas/v3/harmony.v3.schema.json` 準拠。`dataDir` フィールドで設計データ格納先のサブディレクトリを指定する。 |
-| `dataDir` | 設計データ (`screens/` / `tables/` / `actions/` 等) を格納するサブディレクトリのパス (ワークスペースルートからの相対パス)。推奨慣習は `"harmony"`。 |
+| `dataDir` | 設計データ (`screens/` / `tables/` / `process-flows/` 等) を格納するサブディレクトリのパス (ワークスペースルートからの相対パス)。推奨慣習は `"harmony"`。 |
 | active ワークスペース | `backend` が現在 read/write 対象とする 1 つのワークスペース。1 サーバ = 1 active が原則。env `DESIGNER_DATA_DIR` 指定時は lockdown 固定。 |
 | recent | 最近開いたワークスペースの履歴リスト (`~/.harmony/recent-workspaces.json`)。表示順は `lastOpenedAt` 降順。 |
 | lockdown モード | env `DESIGNER_DATA_DIR` が設定されている場合に起動する動作モード。active は env 値に固定され、切替操作は全て `LockdownError` となる。 |
@@ -55,20 +55,23 @@ PR #676 で導入した「複数ワークスペース管理機能」の正規仕
 ワークスペースルートは `workspaces/<wsId>/` または任意の絶対パス。どちらも同じ構造を持つ。
 
 ```
-<workspace-root>/           # workspaces/<id>/ または任意フォルダ
-  harmony.json              # 必須 — schemas/v3/harmony.v3.schema.json 準拠 (marker file)
-  <dataDir>/                # harmony.json の dataDir 値 (推奨慣習: "harmony")
-    screens/                # 画面定義 (*.json / *.design.json)
-    tables/                 # テーブル定義
-    actions/                # 処理フロー定義
-    conventions/            # 規約カタログ (catalog.json)
-    sequences/              # シーケンス定義
-    views/                  # ビュー定義
-    view-definitions/       # ビュー定義 (UI 編集可)
-    extensions/             # 拡張定義 (steps.json 等)
-    er-layout.json          # 任意 — ER 図レイアウト
-    custom-blocks.json      # 任意 — カスタムブロック
-    screen-flow-positions.json      # 任意 — 画面フロー UI 座標
+<workspace-root>/                       # workspaces/<id>/ または任意フォルダ
+  harmony.json                          # 必須 — schemas/v3/harmony.v3.schema.json 準拠 (marker file)
+  <dataDir>/                            # harmony.json の dataDir 値 (推奨慣習: "harmony")
+    screens/                            # 画面定義 (*.json / *.design.json)
+    tables/                             # テーブル定義
+    process-flows/                      # 処理フロー定義 (旧 actions/、#849 シリーズで rename)
+    conventions/                        # 規約カタログ (catalog.json)
+    sequences/                          # シーケンス定義
+    views/                              # ビュー定義 (DB ビュー)
+    view-definitions/                   # ViewDefinition (UI viewer)
+    page-layouts/                       # ページレイアウト (RFC #1021)
+    generic-definitions/                # 汎用定義 catalog (#1063-, kind 別サブディレクトリ)
+    extensions/                         # 拡張定義 (<namespace>.v3.json combined format)
+    catalogs/                           # 任意 — project-level 共有カタログ (external.json 等)
+    er-layout.json                      # 任意 — ER 図レイアウト
+    custom-blocks.json                  # 任意 — カスタムブロック
+    screen-flow-positions.json          # 任意 — 画面フロー UI 座標
 ```
 
 `harmony.json` はワークスペースフォルダの **root に固定**で配置する。設計データは `<dataDir>/` 配下に格納され、他ツール (Git / IDE 等) の管理対象ファイルと混在しない。
