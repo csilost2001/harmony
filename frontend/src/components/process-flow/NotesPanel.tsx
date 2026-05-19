@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { StepNote, StepNoteType } from "../../types/action";
-import { STEP_NOTE_TYPE_VALUES } from "../../types/action";
+import type { StepNote, StepNoteType } from "../../utils/processFlowMetadata";
+import { STEP_NOTE_TYPE_VALUES } from "../../utils/processFlowMetadata";
 import { generateUUID } from "../../utils/uuid";
 
 interface Props {

@@ -16,7 +16,31 @@
  * 新規 consumer は本ファイルから直接 import すること。
  */
 
+import type { Note } from "../types/v3/common";
 import type { WorkflowPattern } from "../types/v3/process-flow";
+
+// ── StepNote (common.v3 Note 派生 + v1/v2 legacy 互換 field) ────────────────
+// #1186 Phase 2-B: action.ts から移管 (UI 表示 + migration 互換が frontend 固有概念のため)
+export type StepNoteType = Note["kind"]; // common.v3 Note.kind と完全一致 (5 値)
+
+export interface StepNote {
+  id: string;
+  /** common.v3 Note 規範。v3 schema 上 field 名は `kind` 必須 (旧 `type` は read 互換のみ)。 */
+  kind?: StepNoteType;
+  /** @deprecated v1/v2 legacy field。新規書込は `kind` を使用。 */
+  type?: StepNoteType;
+  body: string;
+  createdAt: string;
+}
+
+// common.v3 Note.kind と完全一致 (5 値、順序は schema 列挙順)
+export const STEP_NOTE_TYPE_VALUES: readonly StepNoteType[] = [
+  "assumption",
+  "prerequisite",
+  "todo",
+  "deferred",
+  "question",
+] as const;
 
 // ── ActionTrigger (Action.trigger) ─────────────────────────────────────────
 export const ACTION_TRIGGER_LABELS: Record<string, string> = {

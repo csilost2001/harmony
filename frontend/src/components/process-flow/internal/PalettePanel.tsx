@@ -2,8 +2,8 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx 左サイドバー (パレット) を抽出。
 // 基本ステップ button / カスタムステップ button / テンプレート dropdown。
 
-import type { StepType } from "../../../types/action";
-import { STEP_TEMPLATES } from "../../../types/action";
+import type { StepKind as StepType } from "../../../types/v3";
+import { STEP_TEMPLATES } from "../../../utils/processFlowMetadata";
 import { ToolbarStepButton, CustomStepButton } from "./PaletteButtons";
 
 export interface PalettePanelProps {

@@ -1,17 +1,18 @@
 // @ts-nocheck -- StepCard still spans legacy/v3 process-flow unions; tracked by #1016.
 import { useState } from "react";
 import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
+// #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
 import type {
   ProcessFlow,
   Step,
-  StepType,
-} from "../../types/action";
+  StepKind as StepType,
+} from "../../types/v3";
 import {
   STEP_TYPE_LABELS,
   STEP_TYPE_ICONS,
   STEP_TYPE_COLORS,
   WORKFLOW_PATTERN_LABELS,
-} from "../../types/action";
+} from "../../utils/processFlowMetadata";
 import type { ValidationError } from "../../utils/actionValidation";
 import { getBindingName, getBindingOperation } from "../../utils/outputBinding";
 import { generateUUID } from "../../utils/uuid";

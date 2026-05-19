@@ -2,8 +2,8 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx からステップカードの右クリックコンテキストメニューを抽出。
 // 通常モード ⇔ サブステップ追加 (subType picker) モードの切替を内部 prop 経由で受ける。
 
-import type { StepType } from "../../../types/action";
-import { STEP_TYPE_ICONS, STEP_TYPE_LABELS, STEP_TYPE_COLORS } from "../../../types/action";
+import type { StepKind as StepType } from "../../../types/v3";
+import { STEP_TYPE_ICONS, STEP_TYPE_LABELS, STEP_TYPE_COLORS } from "../../../utils/processFlowMetadata";
 import { ALL_SUB_STEP_TYPES } from "./stepCardConstants";
 
 export interface StepContextMenuProps {

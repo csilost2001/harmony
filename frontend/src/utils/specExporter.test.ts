@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { generateSpecJson, type SpecStep } from "./specExporter";
 import type { Table, TableId, LocalId, PhysicalName, DisplayName, Timestamp, ErLayout } from "../types/v3";
 import type { FlowProject } from "../types/flow";
+// #1186 Phase 2-B: types/action → types/v3 移行
+// 24 step variants は v3 strict 型、ProcessFlow も v3 strict
 import type {
   AuditStep,
   CdcStep,
@@ -13,13 +15,14 @@ import type {
   LogStep,
   LoopBreakStep,
   LoopContinueStep,
-  OtherStep,
   ProcessFlow,
   ReturnStep,
   Step,
   ValidationStep,
   WorkflowStep,
-} from "../types/action";
+} from "../types/v3";
+// OtherStep は v3 に無い (extension で表現)、AnyRecord 互換のため action.ts 経由
+import type { OtherStep } from "../types/action";
 
 function makeFlow(steps: Step[]): ProcessFlow {
   return {

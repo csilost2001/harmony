@@ -1,4 +1,7 @@
-import type { DbOperation, StepType } from "../../../types/action";
+// #1186 Phase 2-B: types/action → types/v3 移行
+import type { StepKind as StepType } from "../../../types/v3";
+// DbOperation は action.ts に string として定義、schema 上は DbAccessStep.operation 固有 (固有型なし)
+type DbOperation = string;
 
 /**
  * ProcessFlowEditor のパレット (toolbar) に表示する全 step kind。

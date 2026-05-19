@@ -39,22 +39,9 @@ export type ActionFields = StructuredField[] | string | undefined;
 export type MarkerKind = string;
 export type Marker = AnyRecord;
 
-// ── StepNote (#1186 Phase 1 で 5 値正規化済) ────────────────────────────────
-export type StepNoteType =
-  | "assumption"
-  | "prerequisite"
-  | "todo"
-  | "deferred"
-  | "question";
-export interface StepNote {
-  id: string;
-  /** common.v3 Note 規範。v3 schema 上 field 名は `kind` 必須 (旧 `type` は read 互換のみ)。 */
-  kind?: StepNoteType;
-  /** @deprecated v1/v2 legacy field。新規書込は `kind` を使用。 */
-  type?: StepNoteType;
-  body: string;
-  createdAt: string;
-}
+// ── StepNote (#1186 Phase 2-B で processFlowMetadata.ts に移管) ─────────────
+// backward compat 用 re-export。新規 consumer は @/utils/processFlowMetadata 直接 import 推奨。
+export type { StepNoteType, StepNote } from "../utils/processFlowMetadata";
 
 // ── StepKind (v3 schema 25 種、componentCall / aiCall / aiAgent / cdc / closing / log / audit 含む) ──
 export type StepKind =
@@ -189,16 +176,7 @@ export type GlossaryEntry = AnyRecord;
 export type TestScenario = AnyRecord;
 export type TemplateStep = AnyRecord;
 
-// ── StepNote 関連定数 (Phase 1 で 5 値正規化済) ─────────────────────────────
-export const STEP_NOTE_TYPE_VALUES: readonly StepNoteType[] = [
-  "assumption",
-  "prerequisite",
-  "todo",
-  "deferred",
-  "question",
-] as const;
-
-// ── UI 表示メタデータ定数 (processFlowMetadata.ts から re-export、#1186 Phase 2-A) ──
+// ── UI 表示メタデータ定数 (processFlowMetadata.ts から re-export、#1186 Phase 2-A/B) ──
 // 旧 consumer の `import { STEP_TYPE_LABELS } from "@/types/action"` 互換維持。
 // 新規 consumer は `@/utils/processFlowMetadata` から直接 import すること。
 export {
@@ -213,5 +191,6 @@ export {
   WORKFLOW_PATTERN_LABELS,
   DB_OPERATION_LABELS,
   STEP_TEMPLATES,
+  STEP_NOTE_TYPE_VALUES,
   type StepTemplate,
 } from "../utils/processFlowMetadata";

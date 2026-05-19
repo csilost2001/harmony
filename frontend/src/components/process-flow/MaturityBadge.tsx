@@ -1,4 +1,4 @@
-import type { Maturity } from "../../types/action";
+import type { Maturity } from "../../types/v3";
 
 interface Props {
   /** 未指定は "draft" 既定として扱う (docs/spec/process-flow-maturity.md §3) */
