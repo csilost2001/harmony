@@ -44,7 +44,7 @@
 
 
 
-<table><thead><tr><th>用語</th><th>説明</th></tr></thead><tbody><tr><td>ワークスペース</td><td><code>harmony.json</code> を含むフォルダ 1 つ。UI 表記は「ワークスペース」(カタカナ)、実装識別子・JSON key は <code>workspace</code> を用いる。</td></tr><tr><td><code>harmony.json</code></td><td>ワークスペースフォルダの root に配置する marker ファイル。<code>schemas/v3/harmony.v3.schema.json</code> 準拠。<code>dataDir</code> フィールドで設計データ格納先のサブディレクトリを指定する。</td></tr><tr><td><code>dataDir</code></td><td>設計データ (<code>screens/</code> / <code>tables/</code> / <code>actions/</code> 等) を格納するサブディレクトリのパス (ワークスペースルートからの相対パス)。推奨慣習は <code>"harmony"</code>。</td></tr><tr><td>active ワークスペース</td><td><code>backend</code> が現在 read/write 対象とする 1 つのワークスペース。1 サーバ = 1 active が原則。env <code>DESIGNER_DATA_DIR</code> 指定時は lockdown 固定。</td></tr><tr><td>recent</td><td>最近開いたワークスペースの履歴リスト (<code>~/.harmony/recent-workspaces.json</code>)。表示順は <code>lastOpenedAt</code> 降順。</td></tr><tr><td>lockdown モード</td><td>env <code>DESIGNER_DATA_DIR</code> が設定されている場合に起動する動作モード。active は env 値に固定され、切替操作は全て <code>LockdownError</code> となる。</td></tr></tbody></table>
+<table><thead><tr><th>用語</th><th>説明</th></tr></thead><tbody><tr><td>ワークスペース</td><td><code>harmony.json</code> を含むフォルダ 1 つ。UI 表記は「ワークスペース」(カタカナ)、実装識別子・JSON key は <code>workspace</code> を用いる。</td></tr><tr><td><code>harmony.json</code></td><td>ワークスペースフォルダの root に配置する marker ファイル。<code>schemas/v3/harmony.v3.schema.json</code> 準拠。<code>dataDir</code> フィールドで設計データ格納先のサブディレクトリを指定する。</td></tr><tr><td><code>dataDir</code></td><td>設計データ (<code>screens/</code> / <code>tables/</code> / <code>process-flows/</code> 等) を格納するサブディレクトリのパス (ワークスペースルートからの相対パス)。推奨慣習は <code>"harmony"</code>。</td></tr><tr><td>active ワークスペース</td><td><code>backend</code> が現在 read/write 対象とする 1 つのワークスペース。1 サーバ = 1 active が原則。env <code>DESIGNER_DATA_DIR</code> 指定時は lockdown 固定。</td></tr><tr><td>recent</td><td>最近開いたワークスペースの履歴リスト (<code>~/.harmony/recent-workspaces.json</code>)。表示順は <code>lastOpenedAt</code> 降順。</td></tr><tr><td>lockdown モード</td><td>env <code>DESIGNER_DATA_DIR</code> が設定されている場合に起動する動作モード。active は env 値に固定され、切替操作は全て <code>LockdownError</code> となる。</td></tr></tbody></table>
 <p><code>data/</code> ディレクトリはデザイナー本体の組み込み拡張定義 (<code>data/extensions/</code>) 専用。ユーザープロジェクトは <code>workspaces/</code> 配下または任意フォルダに置く (#754)。</p>
 <p><strong>実装</strong>: <code>backend/src/workspaceState.ts:1-97</code></p>
 <hr>
@@ -73,20 +73,23 @@
 <p><strong>実装</strong>: <code>backend/src/recentStore.ts:1-193</code></p>
 <h3 id="22-ワークスペース内ディレクトリ構造">2.2 ワークスペース内ディレクトリ構造</h3>
 <p>ワークスペースルートは <code>workspaces/&#x3C;wsId>/</code> または任意の絶対パス。どちらも同じ構造を持つ。</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>&#x3C;workspace-root>/           # workspaces/&#x3C;id>/ または任意フォルダ</span></span>
-<span class="line"><span>  harmony.json              # 必須 — schemas/v3/harmony.v3.schema.json 準拠 (marker file)</span></span>
-<span class="line"><span>  &#x3C;dataDir>/                # harmony.json の dataDir 値 (推奨慣習: "harmony")</span></span>
-<span class="line"><span>    screens/                # 画面定義 (*.json / *.design.json)</span></span>
-<span class="line"><span>    tables/                 # テーブル定義</span></span>
-<span class="line"><span>    actions/                # 処理フロー定義</span></span>
-<span class="line"><span>    conventions/            # 規約カタログ (catalog.json)</span></span>
-<span class="line"><span>    sequences/              # シーケンス定義</span></span>
-<span class="line"><span>    views/                  # ビュー定義</span></span>
-<span class="line"><span>    view-definitions/       # ビュー定義 (UI 編集可)</span></span>
-<span class="line"><span>    extensions/             # 拡張定義 (steps.json 等)</span></span>
-<span class="line"><span>    er-layout.json          # 任意 — ER 図レイアウト</span></span>
-<span class="line"><span>    custom-blocks.json      # 任意 — カスタムブロック</span></span>
-<span class="line"><span>    screen-flow-positions.json      # 任意 — 画面フロー UI 座標</span></span></code></pre>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>&#x3C;workspace-root>/                       # workspaces/&#x3C;id>/ または任意フォルダ</span></span>
+<span class="line"><span>  harmony.json                          # 必須 — schemas/v3/harmony.v3.schema.json 準拠 (marker file)</span></span>
+<span class="line"><span>  &#x3C;dataDir>/                            # harmony.json の dataDir 値 (推奨慣習: "harmony")</span></span>
+<span class="line"><span>    screens/                            # 画面定義 (*.json / *.design.json)</span></span>
+<span class="line"><span>    tables/                             # テーブル定義</span></span>
+<span class="line"><span>    process-flows/                      # 処理フロー定義 (旧 actions/、#849 シリーズで rename)</span></span>
+<span class="line"><span>    conventions/                        # 規約カタログ (catalog.json)</span></span>
+<span class="line"><span>    sequences/                          # シーケンス定義</span></span>
+<span class="line"><span>    views/                              # ビュー定義 (DB ビュー)</span></span>
+<span class="line"><span>    view-definitions/                   # ViewDefinition (UI viewer)</span></span>
+<span class="line"><span>    page-layouts/                       # ページレイアウト (RFC #1021)</span></span>
+<span class="line"><span>    generic-definitions/                # 汎用定義 catalog (#1063-, kind 別サブディレクトリ)</span></span>
+<span class="line"><span>    extensions/                         # 拡張定義 (&#x3C;namespace>.v3.json combined format)</span></span>
+<span class="line"><span>    catalogs/                           # 任意 — project-level 共有カタログ (external.json 等)</span></span>
+<span class="line"><span>    er-layout.json                      # 任意 — ER 図レイアウト</span></span>
+<span class="line"><span>    custom-blocks.json                  # 任意 — カスタムブロック</span></span>
+<span class="line"><span>    screen-flow-positions.json          # 任意 — 画面フロー UI 座標</span></span></code></pre>
 <p><code>harmony.json</code> はワークスペースフォルダの <strong>root に固定</strong>で配置する。設計データは <code>&#x3C;dataDir>/</code> 配下に格納され、他ツール (Git / IDE 等) の管理対象ファイルと混在しない。</p>
 <p><code>screen-items/</code> ディレクトリは Phase 4-β migration 後に廃止。<code>ensureDataDir</code> では再作成しない。</p>
 <p><strong>実装</strong>: <code>backend/src/workspaceInit.ts:119-175</code> (initializeWorkspace) / <code>backend/src/projectStorage.ts:92-104</code> (ensureDataDir)</p>

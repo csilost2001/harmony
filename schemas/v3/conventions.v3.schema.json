@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/conventions.v3.schema.json",
   "title": "Conventions (v3 横断規約カタログ)",
-  "description": "プロジェクト横断の規約カタログ。@conv.<category>.<key> で参照される。data/conventions/catalog.json に対応。標準 14 カテゴリ + 拡張 (extensions.v3 の conventionCategories で追加) を持つ。",
+  "description": "プロジェクト横断の規約カタログ。@conv.<category>.<key> で参照される。<dataDir>/conventions/catalog.json に対応 (dataDir は harmony.json の dataDir、推奨慣習: 'harmony')。標準 14 カテゴリ + 拡張 (extensions.v3 の conventionCategories で追加) を持つ。",
   "type": "object",
   "required": ["version"],
   "additionalProperties": false,

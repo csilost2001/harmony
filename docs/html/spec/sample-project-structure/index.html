@@ -43,6 +43,7 @@
 <table><thead><tr><th>現行プロジェクト</th><th>配置先</th><th>備考</th></tr></thead><tbody><tr><td>retail</td><td><code>examples/retail/</code></td><td>v3 schema / process-flows/ ディレクトリ</td></tr><tr><td>realestate</td><td><code>examples/realestate/</code></td><td>v3 schema / process-flows/ ディレクトリ</td></tr></tbody></table>
 <h2 id="プロジェクトに含まれる成果物">プロジェクトに含まれる成果物</h2>
 <p>各サンプルプロジェクト (<code>examples/&#x3C;project-id>/</code>) の推奨レイアウト:</p>
+<p><code>&#x3C;dataDir></code> は <code>harmony.json</code> の <code>dataDir</code> field で指定 (推奨慣習: <code>"harmony"</code>)。</p>
 <h3 id="必須">必須</h3>
 
 
@@ -79,7 +80,7 @@
 
 
 
-<table><thead><tr><th>ファイル / ディレクトリ</th><th>schema</th><th>役割</th></tr></thead><tbody><tr><td><code>harmony.json</code></td><td><code>schemas/v3/harmony.v3.schema.json</code></td><td>プロジェクトメタデータ (ID / 名称 / 説明 / 成熟度 / 作成日 / 更新日 + dataDir 指定)。旧 <code>project.json</code> (#849 で rename)</td></tr><tr><td><code>&#x3C;dataDir>/tables/*.json</code></td><td><code>schemas/v3/table.v3.schema.json</code></td><td>テーブル定義群</td></tr><tr><td><code>&#x3C;dataDir>/process-flows/*.json</code></td><td><code>schemas/v3/process-flow.v3.schema.json</code></td><td>処理フロー群 (旧 <code>actions/</code> から rename、L54 参照)</td></tr><tr><td><code>extensions/&#x3C;namespace>.v3.json</code></td><td><code>schemas/v3/extensions.v3.schema.json</code></td><td>拡張定義 (namespace 単位、v3 canonical combined format)</td></tr><tr><td><code>conventions/catalog.json</code></td><td><code>schemas/v3/conventions.v3.schema.json</code></td><td>規約カタログ (v3 canonical パス)</td></tr></tbody></table>
+<table><thead><tr><th>ファイル / ディレクトリ</th><th>schema</th><th>役割</th></tr></thead><tbody><tr><td><code>harmony.json</code></td><td><code>schemas/v3/harmony.v3.schema.json</code></td><td>プロジェクトメタデータ (ID / 名称 / 説明 / 成熟度 / 作成日 / 更新日 + dataDir 指定)。<strong>workspace root 直下</strong> (dataDir 配下ではない、#849 で rename 旧 <code>project.json</code>)</td></tr><tr><td><code>&#x3C;dataDir>/tables/*.json</code></td><td><code>schemas/v3/table.v3.schema.json</code></td><td>テーブル定義群</td></tr><tr><td><code>&#x3C;dataDir>/process-flows/*.json</code></td><td><code>schemas/v3/process-flow.v3.schema.json</code></td><td>処理フロー群 (旧 <code>actions/</code> から rename、L54 参照)</td></tr><tr><td><code>&#x3C;dataDir>/extensions/&#x3C;namespace>.v3.json</code></td><td><code>schemas/v3/extensions.v3.schema.json</code></td><td>拡張定義 (namespace 単位、v3 canonical combined format)</td></tr><tr><td><code>&#x3C;dataDir>/conventions/catalog.json</code></td><td><code>schemas/v3/conventions.v3.schema.json</code></td><td>規約カタログ (v3 canonical パス)</td></tr></tbody></table>
 <h3 id="任意-シナリオで必要に応じて">任意 (シナリオで必要に応じて)</h3>
 
 
@@ -101,7 +102,47 @@
 
 
 
-<table><thead><tr><th>ファイル / ディレクトリ</th><th>schema</th><th>役割</th></tr></thead><tbody><tr><td><code>screens/*.json</code></td><td><code>schemas/v3/screen.v3.schema.json</code></td><td>画面 (画面項目定義 <code>items[]</code> を内包)</td></tr><tr><td><code>view-definitions/*.json</code></td><td><code>schemas/v3/view-definition.v3.schema.json</code></td><td>ビュー定義</td></tr></tbody></table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ファイル / ディレクトリ</th><th>schema</th><th>役割</th></tr></thead><tbody><tr><td><code>&#x3C;dataDir>/screens/*.json</code></td><td><code>schemas/v3/screen.v3.schema.json</code></td><td>画面 (画面項目定義 <code>items[]</code> を内包)</td></tr><tr><td><code>&#x3C;dataDir>/view-definitions/*.json</code></td><td><code>schemas/v3/view-definition.v3.schema.json</code></td><td>ViewDefinition (UI viewer)</td></tr><tr><td><code>&#x3C;dataDir>/sequences/*.json</code></td><td><code>schemas/v3/sequence.v3.schema.json</code></td><td>DB シーケンス定義</td></tr><tr><td><code>&#x3C;dataDir>/views/*.json</code></td><td><code>schemas/v3/view.v3.schema.json</code></td><td>DB ビュー定義</td></tr><tr><td><code>&#x3C;dataDir>/page-layouts/*.json</code></td><td><code>schemas/v3/page-layout.v3.schema.json</code></td><td>ページレイアウト (RFC #1021)</td></tr><tr><td><code>&#x3C;dataDir>/generic-definitions/&#x3C;kind>/&#x3C;name>.json</code></td><td><code>schemas/v3/generic-definition.v3.schema.json</code> + kind 別 schema</td><td>汎用定義カタログ (kind 別ファイル、#1063-)</td></tr><tr><td><code>&#x3C;dataDir>/catalogs/external.json</code></td><td><code>schemas/v3/external-catalogs.v3.schema.json</code></td><td>project-level 共有 catalog (外部システム / AI / シークレット / 環境変数 / イベント / 関数、#940 / #1142)</td></tr><tr><td><code>&#x3C;dataDir>/er-layout.json</code></td><td><code>schemas/v3/er-layout.v3.schema.json</code></td><td>ER 図 UI 座標 + 論理リレーション</td></tr><tr><td><code>&#x3C;dataDir>/screen-flow-positions.json</code></td><td><code>schemas/v3/screen-flow-positions.v3.schema.json</code></td><td>画面フロー UI 座標 (Designer 専用)</td></tr><tr><td><code>&#x3C;dataDir>/custom-blocks.json</code></td><td><code>schemas/v3/custom-block.v3.schema.json</code></td><td>GrapesJS カスタムブロック集合</td></tr></tbody></table>
 <h3 id="-廃止された配置">❌ 廃止された配置</h3>
 
 

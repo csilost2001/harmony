@@ -35,7 +35,7 @@ v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念か
 | `view.v3.schema.json` | View (DB ビュー)。配置: `<dataDir>/views/<id>.json` |
 | `view-definition.v3.schema.json` | ViewDefinition (画面 一覧 UI viewer)。kind (list / detail / kanban / calendar 等) + sourceTableId + columns。配置: `<dataDir>/view-definitions/<id>.json` |
 | `custom-block.v3.schema.json` | カスタムブロック集合 (id は Uuid 強制、v1 timestamp 形式廃止)。**注意: CustomBlock は EntityMeta を持たない例外** (label ベースの独自構造、業務 entity ではないため) |
-| `process-flow.v3.schema.json` | ProcessFlow (処理フロー)。**root を meta / context / actions / authoring の 4 並列に再編** (旧 v2 の root 並列肥大化を解消、ただし `body` セクションを設けず actions を root 直接持ちにすることで認知負荷を最小化)。catalogs を context.catalogs.<kind> に階層化 (modelEndpoints 含む)、22 種 Step variant (組み込み 21 + ExtensionStep)。配置: `<dataDir>/process-flows/<id>.json` |
+| `process-flow.v3.schema.json` | ProcessFlow (処理フロー)。**root を meta / context / actions / authoring の 4 並列に再編** (旧 v2 の root 並列肥大化を解消、ただし `body` セクションを設けず actions を root 直接持ちにすることで認知負荷を最小化)。catalogs を context.catalogs.<kind> に階層化 (modelEndpoints 含む)、25 種 Step variant (組み込み 24 + ExtensionStep)。配置: `<dataDir>/process-flows/<id>.json` |
 | `conventions.v3.schema.json` | 横断規約 catalog (i18n / msg / regex / limit / scope / currency / tax / auth / role / permission / db / numbering / tx / externalOutcomeDefaults + extensionCategories) |
 | `extensions.v3.schema.json` | **統合拡張定義** — 1 namespace = 1 ファイルで全種類 (fieldTypes / dataTypes / screenKinds / processFlowKinds / actionTriggers / dbOperations / stepKinds / responseTypes / valueSourceKinds / columnTemplates / constraintPatterns / conventionCategories) を集約。配置: `<dataDir>/extensions/<namespace>.v3.json` または `<dataDir>/extensions/<namespace>/*.v3.json` |
 | `generic-definition.v3.schema.json` | Generic Definition Catalog の親 schema (#1069)。catalog ファイル 1 件 = 1 GenericDefinition (kind 別)。実 catalog エントリ schema は `generic-definitions/<kind>.v3.schema.json` に分割 |
@@ -307,7 +307,7 @@ const validate = ajv.compile(processFlowV3);
 
 ポイント:
 - `discriminator: true` を有効化すると、`discriminator` keyword を持つ oneOf (BranchCondition / CdcDestination / Constraint / TestPrecondition / TestAssertion) で kind 単位の focused エラー報告 (1 branch のみ) になる (#525 F-4)
-- **Step.oneOf / NonReturnStep.oneOf には discriminator keyword なし**: ExtensionStep の `kind` がパターン (`namespace:StepName`) で AJV strict const 要件を満たさないため。Step 系は従来通り 22 branch 全評価で fall back する (限界、上位 UI 側でフィルタ推奨)
+- **Step.oneOf / NonReturnStep.oneOf には discriminator keyword なし**: ExtensionStep の `kind` がパターン (`namespace:StepName`) で AJV strict const 要件を満たさないため。Step 系は従来通り 25 branch 全評価で fall back する (限界、上位 UI 側でフィルタ推奨)
 - `addSchema(commonV3)` を先に呼んで cross-file `$ref` を解決可能にする
 - 他 schema (extensions / table / screen 等) も同様に addSchema で登録
 

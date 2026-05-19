@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/process-flow.v3.schema.json",
   "title": "ProcessFlow (v3 処理フロー定義)",
-  "description": "業務処理フロー entity 1 件分の正規定義。data/process-flows/<id>.json に対応。root を 4 セクション (meta / context / actions / authoring) に再編し、catalog 群を context.catalogs.<kind> に階層化することで意味付けと拡張性を確保する。actions は実行ロジック本体、authoring は実行不要 (markers / decisions / glossary / notes / testScenarios)。",
+  "description": "業務処理フロー entity 1 件分の正規定義。<dataDir>/process-flows/<id>.json に対応 (dataDir は harmony.json の dataDir、推奨慣習: 'harmony')。root を 4 セクション (meta / context / actions / authoring) に再編し、catalog 群を context.catalogs.<kind> に階層化することで意味付けと拡張性を確保する。actions は実行ロジック本体、authoring は実行不要 (markers / decisions / glossary / notes / testScenarios)。",
   "type": "object",
   "required": ["meta", "actions"],
   "additionalProperties": false,
@@ -879,7 +879,7 @@
             "kind": { "const": "aiCall" },
             "modelRef": {
               "$ref": "common.v3.schema.json#/$defs/Identifier",
-              "description": "context.catalogs.modelEndpoints (flow level) または harmony/catalogs/external.json (project level) のキー参照。"
+              "description": "context.catalogs.modelEndpoints (flow level) または <dataDir>/catalogs/external.json (project level) のキー参照。"
             },
             "messages": {
               "type": "array",

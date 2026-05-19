@@ -27,22 +27,32 @@ designer の実運用は **1 プロジェクト = 1 業務アプリ** 単位。
 
 各サンプルプロジェクト (`examples/<project-id>/`) の推奨レイアウト:
 
+`<dataDir>` は `harmony.json` の `dataDir` field で指定 (推奨慣習: `"harmony"`)。
+
 ### 必須
 
 | ファイル / ディレクトリ | schema | 役割 |
 |---|---|---|
-| `harmony.json` | `schemas/v3/harmony.v3.schema.json` | プロジェクトメタデータ (ID / 名称 / 説明 / 成熟度 / 作成日 / 更新日 + dataDir 指定)。旧 `project.json` (#849 で rename) |
+| `harmony.json` | `schemas/v3/harmony.v3.schema.json` | プロジェクトメタデータ (ID / 名称 / 説明 / 成熟度 / 作成日 / 更新日 + dataDir 指定)。**workspace root 直下** (dataDir 配下ではない、#849 で rename 旧 `project.json`) |
 | `<dataDir>/tables/*.json` | `schemas/v3/table.v3.schema.json` | テーブル定義群 |
 | `<dataDir>/process-flows/*.json` | `schemas/v3/process-flow.v3.schema.json` | 処理フロー群 (旧 `actions/` から rename、L54 参照) |
-| `extensions/<namespace>.v3.json` | `schemas/v3/extensions.v3.schema.json` | 拡張定義 (namespace 単位、v3 canonical combined format) |
-| `conventions/catalog.json` | `schemas/v3/conventions.v3.schema.json` | 規約カタログ (v3 canonical パス) |
+| `<dataDir>/extensions/<namespace>.v3.json` | `schemas/v3/extensions.v3.schema.json` | 拡張定義 (namespace 単位、v3 canonical combined format) |
+| `<dataDir>/conventions/catalog.json` | `schemas/v3/conventions.v3.schema.json` | 規約カタログ (v3 canonical パス) |
 
 ### 任意 (シナリオで必要に応じて)
 
 | ファイル / ディレクトリ | schema | 役割 |
 |---|---|---|
-| `screens/*.json` | `schemas/v3/screen.v3.schema.json` | 画面 (画面項目定義 `items[]` を内包) |
-| `view-definitions/*.json` | `schemas/v3/view-definition.v3.schema.json` | ビュー定義 |
+| `<dataDir>/screens/*.json` | `schemas/v3/screen.v3.schema.json` | 画面 (画面項目定義 `items[]` を内包) |
+| `<dataDir>/view-definitions/*.json` | `schemas/v3/view-definition.v3.schema.json` | ViewDefinition (UI viewer) |
+| `<dataDir>/sequences/*.json` | `schemas/v3/sequence.v3.schema.json` | DB シーケンス定義 |
+| `<dataDir>/views/*.json` | `schemas/v3/view.v3.schema.json` | DB ビュー定義 |
+| `<dataDir>/page-layouts/*.json` | `schemas/v3/page-layout.v3.schema.json` | ページレイアウト (RFC #1021) |
+| `<dataDir>/generic-definitions/<kind>/<name>.json` | `schemas/v3/generic-definition.v3.schema.json` + kind 別 schema | 汎用定義カタログ (kind 別ファイル、#1063-) |
+| `<dataDir>/catalogs/external.json` | `schemas/v3/external-catalogs.v3.schema.json` | project-level 共有 catalog (外部システム / AI / シークレット / 環境変数 / イベント / 関数、#940 / #1142) |
+| `<dataDir>/er-layout.json` | `schemas/v3/er-layout.v3.schema.json` | ER 図 UI 座標 + 論理リレーション |
+| `<dataDir>/screen-flow-positions.json` | `schemas/v3/screen-flow-positions.v3.schema.json` | 画面フロー UI 座標 (Designer 専用) |
+| `<dataDir>/custom-blocks.json` | `schemas/v3/custom-block.v3.schema.json` | GrapesJS カスタムブロック集合 |
 
 ### ❌ 廃止された配置
 
