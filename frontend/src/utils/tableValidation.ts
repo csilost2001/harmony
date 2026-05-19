@@ -12,6 +12,12 @@ export function validateTable(table: Table, allTables: Table[]): ValidationError
   const stepId = table.id;
 
   const columns = table.columns ?? [];
+  // #1185 提案 C: PK 表現は Column.primaryKey: true (single-column PK) と Constraint.kind=primaryKey (composite PK 含む) の 2 方式。
+  // 同時使用は禁止 (mutual exclusion) — どちらの方が PK か曖昧になり DDL 生成が壊れるため。
+  const constraintsRaw = (table as Table & { constraints?: Array<Record<string, unknown>> }).constraints ?? [];
+  const pkConstraints = constraintsRaw.filter((c) => c.kind === "primaryKey");
+  const columnsWithPk = columns.filter((c) => c.primaryKey);
+
   if (columns.length === 0) {
     errors.push({
       stepId,
@@ -21,13 +27,35 @@ export function validateTable(table: Table, allTables: Table[]): ValidationError
       message: "カラムが未定義です",
     });
     // columns 空の時点で PK 未指定は自明なので primaryKey.empty は重複発火させない
-  } else if (!columns.some((column) => column.primaryKey)) {
+  } else if (columnsWithPk.length === 0 && pkConstraints.length === 0) {
     errors.push({
       stepId,
       severity: "warning",
       code: "table.primaryKey.empty",
       path: "columns",
       message: "主キーが未指定です",
+    });
+  }
+
+  // #1185 提案 C: PK の二重定義は禁止 (Column.primaryKey と Constraint.kind=primaryKey の併用)
+  if (columnsWithPk.length > 0 && pkConstraints.length > 0) {
+    errors.push({
+      stepId,
+      severity: "error",
+      code: "table.primaryKey.duplicated",
+      path: "constraints",
+      message: `Column.primaryKey と Constraint.kind=primaryKey が併用されています。どちらか一方に統一してください (composite PK の場合は Constraint 側に統一、単一カラム PK は Column.primaryKey で OK)`,
+    });
+  }
+
+  // #1185 提案 C: PrimaryKeyConstraint は 1 table 内に最大 1 つ (1 table = 1 PK)
+  if (pkConstraints.length > 1) {
+    errors.push({
+      stepId,
+      severity: "error",
+      code: "table.primaryKey.multipleConstraints",
+      path: "constraints",
+      message: `PrimaryKeyConstraint が ${pkConstraints.length} 件定義されています。1 table = 1 PK のため 1 件に統合してください`,
     });
   }
 

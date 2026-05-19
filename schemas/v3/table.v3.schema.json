@@ -114,13 +114,34 @@
     },
 
     "Constraint": {
-      "description": "テーブル制約。kind による discriminated union (unique / check / foreignKey)。",
+      "description": "テーブル制約。kind による discriminated union (primaryKey / unique / check / foreignKey)。複合 (composite) primary key は PrimaryKeyConstraint で表現 (#1185 提案 C)。単一カラム PK は従来通り Column.primaryKey: true でも表現可能だが、テーブル内で両方使うことは禁止 (mutual exclusion を runtime validator で強制、tableValidation.ts)。",
       "oneOf": [
+        { "$ref": "#/$defs/PrimaryKeyConstraint" },
         { "$ref": "#/$defs/UniqueConstraint" },
         { "$ref": "#/$defs/CheckConstraint" },
         { "$ref": "#/$defs/ForeignKeyConstraint" }
       ],
       "discriminator": { "propertyName": "kind" }
+    },
+
+    "PrimaryKeyConstraint": {
+      "description": "主キー (PRIMARY KEY) 制約。composite (複合) PK の表現に必須。単一カラム PK の場合は Column.primaryKey: true でも表現可能だが、本制約と Column.primaryKey の併用は禁止 (tableValidation.ts で runtime 検証、#1185 提案 C)。",
+      "type": "object",
+      "required": ["id", "kind", "columnIds"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+        "kind": { "const": "primaryKey" },
+        "physicalName": { "$ref": "common.v3.schema.json#/$defs/PhysicalName", "description": "PK 制約の物理名 (例: 'pk_order_items')。省略時は DDL 生成側でテーブル名から自動生成。" },
+        "columnIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
+          "description": "PK を構成する Column.id 配列。複合 PK の場合は 2 件以上指定。"
+        },
+        "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
+      }
     },
 
     "UniqueConstraint": {

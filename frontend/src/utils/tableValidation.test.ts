@@ -185,4 +185,78 @@ describe("validateTable", () => {
       expect(errors.find((e) => e.code === "table.foreignKey.columnCountMismatch")).toBeUndefined();
     });
   });
+
+  // #1185 提案 C: PrimaryKeyConstraint と Column.primaryKey の重複検証
+  describe("PrimaryKey mutual exclusion (#1185 提案 C)", () => {
+    const pkCol = (id: string, name: string, primaryKey: boolean): Column => column({
+      id: id as LocalId,
+      physicalName: name as PhysicalName,
+      name: name as DisplayName,
+      primaryKey,
+    });
+
+    it("PK 未指定 (どちらもなし) -> warning", () => {
+      const t = table({
+        columns: [pkCol("col-01", "id", false)],
+      });
+      const errors = validateTable(t, [t]);
+      expect(errors).toContainEqual(expect.objectContaining({
+        code: "table.primaryKey.empty",
+      }));
+    });
+
+    it("Column.primaryKey のみ -> OK (single-column PK 表現)", () => {
+      const t = table({
+        columns: [pkCol("col-01", "id", true)],
+      });
+      const errors = validateTable(t, [t]);
+      expect(errors.find((e) => e.code === "table.primaryKey.empty")).toBeUndefined();
+      expect(errors.find((e) => e.code === "table.primaryKey.duplicated")).toBeUndefined();
+    });
+
+    it("PrimaryKeyConstraint のみ -> OK (composite PK 表現可)", () => {
+      const t = table({
+        columns: [pkCol("col-01", "order_id", false), pkCol("col-02", "line_no", false)],
+        constraints: [{
+          id: "pk-01",
+          kind: "primaryKey",
+          columnIds: ["col-01", "col-02"],
+        }],
+      } as Partial<Table>);
+      const errors = validateTable(t, [t]);
+      expect(errors.find((e) => e.code === "table.primaryKey.empty")).toBeUndefined();
+      expect(errors.find((e) => e.code === "table.primaryKey.duplicated")).toBeUndefined();
+    });
+
+    it("Column.primaryKey + PrimaryKeyConstraint 併用 -> error (duplicated)", () => {
+      const t = table({
+        columns: [pkCol("col-01", "id", true)],
+        constraints: [{
+          id: "pk-01",
+          kind: "primaryKey",
+          columnIds: ["col-01"],
+        }],
+      } as Partial<Table>);
+      const errors = validateTable(t, [t]);
+      expect(errors).toContainEqual(expect.objectContaining({
+        severity: "error",
+        code: "table.primaryKey.duplicated",
+      }));
+    });
+
+    it("PrimaryKeyConstraint 複数 -> error (multipleConstraints)", () => {
+      const t = table({
+        columns: [pkCol("col-01", "id_a", false), pkCol("col-02", "id_b", false)],
+        constraints: [
+          { id: "pk-01", kind: "primaryKey", columnIds: ["col-01"] },
+          { id: "pk-02", kind: "primaryKey", columnIds: ["col-02"] },
+        ],
+      } as Partial<Table>);
+      const errors = validateTable(t, [t]);
+      expect(errors).toContainEqual(expect.objectContaining({
+        severity: "error",
+        code: "table.primaryKey.multipleConstraints",
+      }));
+    });
+  });
 });

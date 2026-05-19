@@ -232,7 +232,7 @@
       "properties": {
         "id": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
         "label": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
-        "kind": { "type": "string", "enum": ["unique", "check", "foreignKey"] },
+        "kind": { "type": "string", "enum": ["primaryKey", "unique", "check", "foreignKey"], "description": "Constraint 種別。primaryKey は #1185 提案 C で追加 (composite PK 対応、table.v3 Constraint.oneOf と同期)。" },
         "description": { "$ref": "common.v3.schema.json#/$defs/Description" },
         "template": {
           "type": "object",
