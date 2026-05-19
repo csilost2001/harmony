@@ -471,13 +471,14 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
     }
 
     case "designer__add_step_note": {
-      if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string" || typeof a.type !== "string" || typeof a.body !== "string") {
-        throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, type, body は必須です");
+      // #1187 提案 C: tool param 名を common.v3 Note.kind に合わせて `kind` に統一 (旧 `type` を廃止)
+      if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string" || typeof a.kind !== "string" || typeof a.body !== "string") {
+        throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, kind, body は必須です");
       }
       const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {
-        const res = editAddStepNote(pf, a.stepId, a.type as string, a.body as string);
+        const res = editAddStepNote(pf, a.stepId, a.kind as string, a.body as string);
         await saveAndBroadcast(a.processFlowId, pf, root);
         return { content: [{ type: "text", text: `付箋を追加しました (ID: ${res.id})` }] };
       } catch (e) {
