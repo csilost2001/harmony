@@ -1356,6 +1356,7 @@
     },
 
     "LoopStep": {
+      "description": "繰り返しステップ。loopKind 別に必要な field を if/then で強制 (#1185 提案 A): count→countExpression / condition→conditionMode+conditionExpression / collection→collectionSource+collectionItemName。WorkflowStep / Sla と同パターン。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {
@@ -1371,6 +1372,18 @@
             "collectionItemName": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
             "steps": { "type": "array", "items": { "$ref": "#/$defs/Step" } }
           }
+        },
+        {
+          "if": { "properties": { "loopKind": { "const": "count" } }, "required": ["loopKind"] },
+          "then": { "required": ["countExpression"] }
+        },
+        {
+          "if": { "properties": { "loopKind": { "const": "condition" } }, "required": ["loopKind"] },
+          "then": { "required": ["conditionMode", "conditionExpression"] }
+        },
+        {
+          "if": { "properties": { "loopKind": { "const": "collection" } }, "required": ["loopKind"] },
+          "then": { "required": ["collectionSource", "collectionItemName"] }
         }
       ],
       "unevaluatedProperties": false
