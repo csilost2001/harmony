@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ProcessFlow, BranchStep, OtherStep, JumpStep, LoopStep } from "../types/action";
+import type { ProcessFlow, BranchStep, OtherStep, JumpStep, LoopStep } from "../types/v3";
 import { migrateProcessFlow, migrateStep, PROCESS_FLOW_V3_SCHEMA_REF } from "./actionMigration";
 
 // ─── migrateStep — BranchStep legacy → new ──────────────────────────────────

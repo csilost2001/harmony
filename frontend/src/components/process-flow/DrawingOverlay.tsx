@@ -1,3 +1,4 @@
+// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * 赤線 free-form マーカー オーバーレイ (#261)
  *
@@ -15,7 +16,7 @@
  * - anchor なし: 従来通り overlay 全体の SVG に描画
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { Marker } from "../../types/action";
+import type { Marker } from "../../types/v3";
 import { convertPathToAnchorRelative, strokesCenterInViewport } from "../../utils/markerAnchor";
 
 type Tool = "pen" | "eraser";

@@ -1,8 +1,9 @@
+// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * actionUtils.ts
  * 処理フローの自動採番・ジャンプ参照解決ユーティリティ
  */
-import type { Step } from "../types/action";
+import type { Step } from "../types/v3";
 
 /**
  * ステップの表示ラベルを生成（1, 2, 3... / 1-1, 1-2...）

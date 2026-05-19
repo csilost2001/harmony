@@ -22,7 +22,7 @@ import type {
   WorkflowStep,
 } from "../types/v3";
 // OtherStep は v3 に無い (extension で表現)、AnyRecord 互換のため action.ts 経由
-import type { OtherStep } from "../types/action";
+import type { OtherStep } from "../types/v3";
 
 function makeFlow(steps: Step[]): ProcessFlow {
   return {

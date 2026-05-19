@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import { InlineStepList } from "./InlineStepList";
-import type { Step } from "../../../types/action";
+import type { Step } from "../../../types/v3";
 
 /**
  * InlineStepList: StepCard.tsx から抽出 (#1145)。

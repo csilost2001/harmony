@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, within } from "@testing-library/react";
 import { WorkflowStepPanel } from "./WorkflowStepPanel";
-import type { Step, WorkflowStep } from "../../types/action";
+import type { Step, WorkflowStep } from "../../utils/processFlowMetadata";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
-import { WORKFLOW_PATTERN_VALUES } from "../../types/action";
+import { WORKFLOW_PATTERN_VALUES } from "../../utils/processFlowMetadata";
 
 const conventions: ConventionsCatalog = {
   version: "1.0.0",

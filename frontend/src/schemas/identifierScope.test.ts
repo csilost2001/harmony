@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { checkIdentifierScopes } from "./identifierScope";
-import type { ProcessFlow } from "../types/action";
+import type { ProcessFlow } from "../types/v3";
 
 function makeGroup(partial: Partial<ProcessFlow>): ProcessFlow {
   return {

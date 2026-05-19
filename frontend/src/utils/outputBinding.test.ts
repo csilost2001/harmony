@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { OutputBinding } from "../types/action";
+import type { OutputBinding } from "../types/v3";
 import {
   getBindingName,
   getBindingOperation,

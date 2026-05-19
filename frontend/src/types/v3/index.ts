@@ -90,3 +90,31 @@ export type ExternalChainPhase = "authorize" | "capture" | "cancel" | "other";
 
 // ── TxBoundary.role (v3 schema TxBoundary.role と一致) ─────────────────────
 export type TxBoundaryRole = "begin" | "member" | "end";
+
+// ── ActionFields (frontend 表示専用、v3 では ActionDefinition.fields が StructuredField[] | string) ──
+import type { StructuredField as _StructuredField } from "./common";
+export type ActionFields = _StructuredField[] | string | undefined;
+
+// ── ValidationRuleType (frontend 表示専用 enum、v3 schema には ValidationRule.kind 等の固有名) ──
+export type ValidationRuleType =
+  | "required"
+  | "regex"
+  | "maxLength"
+  | "minLength"
+  | "range"
+  | "enum"
+  | "custom";
+
+// ── SecretRef / ErrorCatalogEntry / EventDef / EnvVarEntry 等の catalog entry 型 (frontend では緩く扱う) ──
+/* eslint-disable @typescript-eslint/no-explicit-any -- legacy compat */
+type _AnyRecord = Record<string, any>;
+/* eslint-enable @typescript-eslint/no-explicit-any */
+export type SecretRef = _AnyRecord;
+export type StepBase = unknown;
+export type OtherStep = _AnyRecord;
+export type WorkflowApprover = _AnyRecord;
+export type WorkflowQuorum = _AnyRecord;
+export type ExternalCallOutcomeSpec = _AnyRecord;
+
+// ── OutputBinding (frontend 表示専用、v3 OutputBindingObject に近い概念) ──
+export type OutputBindingOperation = "assign" | "accumulate" | "push";

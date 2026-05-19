@@ -10,7 +10,7 @@
  * 同一 ProcessFlow 編集ヘッダ内 (ActionMetaTabBar) の 1 タブとして表示される。
  */
 import { useState } from "react";
-import type { ProcessFlow, EnvVarEntry } from "../../types/action";
+import type { ProcessFlow, EnvVarEntry } from "../../types/v3";
 
 interface Props {
   group: ProcessFlow;

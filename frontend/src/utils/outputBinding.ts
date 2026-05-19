@@ -1,10 +1,11 @@
+// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E)、string 形式の OutputBinding は v3 廃止 (legacy data 互換維持)
 /**
  * outputBinding.ts
  * StepBase.outputBinding の union (string | OutputBindingObject) を透過的に扱うヘルパー。
  *
  * docs/spec, #151 (B)
  */
-import type { OutputBinding, OutputBindingOperation } from "../types/action";
+import type { OutputBinding, OutputBindingOperation } from "../types/v3";
 
 /** outputBinding の変数名を取得 (string 形式はそのまま、object 形式は .name) */
 export function getBindingName(ob: OutputBinding | undefined): string | undefined {

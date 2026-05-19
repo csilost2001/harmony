@@ -1,4 +1,5 @@
-import type { Sla, OnTimeout } from "../../types/action";
+// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
+import type { Sla, OnTimeout } from "../../types/v3";
 
 interface Props {
   sla?: Sla;

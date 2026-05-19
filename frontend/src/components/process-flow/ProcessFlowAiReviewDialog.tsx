@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ProcessFlow } from "../../types/action";
+import type { ProcessFlow } from "../../types/v3";
 import { reviewProcessFlowWithCodex } from "../../codex/processFlowReview";
 
 interface Props {

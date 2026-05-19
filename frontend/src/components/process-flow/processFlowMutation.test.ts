@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { applyProcessFlowMutation } from "./processFlowMutation";
 import { setProcessFlowStorageBackend } from "../../store/processFlowStore";
-import type { ProcessFlow, ActionDefinition } from "../../types/action";
+import type { ProcessFlow, ActionDefinition } from "../../types/v3";
 
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 

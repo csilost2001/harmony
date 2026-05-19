@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ProcessFlow } from "../../types/action";
+import type { ProcessFlow } from "../../types/v3";
 import { AiDiffPreviewDialog } from "./AiDiffPreviewDialog";
 import {
   applyProcessFlowDiffSelection,

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import type { ProcessFlow } from "../../types/action";
+import type { ProcessFlow } from "../../types/v3";
 import { computeDiff } from "./AiDiffPreviewDialogUtils";
 
 interface AiDiffPreviewDialogProps {

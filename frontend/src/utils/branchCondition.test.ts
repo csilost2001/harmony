@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { BranchCondition } from "../types/action";
+import type { BranchCondition } from "../types/v3";
 import {
   getBranchConditionText,
   isStructuredCondition,

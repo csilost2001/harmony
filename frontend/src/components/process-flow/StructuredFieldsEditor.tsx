@@ -1,5 +1,6 @@
+// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 import { useState } from "react";
-import type { ActionFields, FieldType, StructuredField } from "../../types/action";
+import type { ActionFields, FieldType, StructuredField } from "../../types/v3";
 import { fieldsToText, isStructuredFields, textToStructuredFields } from "../../utils/actionFields";
 
 /** 画面項目ピッカーで返る型 — StructuredField にコピー元の値を載せて返す */

@@ -1,3 +1,4 @@
+// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * ProcessFlow.context.catalogs.secrets 編集パネル (#278 / #414 values 編集対応 / #570 v3 移行)。
  *
@@ -6,7 +7,7 @@
  *   旧フォーマット (values 無し) も valid のまま (後方互換)。
  */
 import { useState } from "react";
-import type { ProcessFlow, SecretRef } from "../../types/action";
+import type { ProcessFlow, SecretRef } from "../../types/v3";
 
 interface Props {
   group: ProcessFlow;

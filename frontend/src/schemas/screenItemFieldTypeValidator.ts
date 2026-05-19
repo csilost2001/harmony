@@ -1,4 +1,4 @@
-import type { ProcessFlow, StructuredField } from "../types/action";
+import type { ProcessFlow, StructuredField } from "../types/v3";
 import type { Screen } from "../types/v3/screen";
 import type { ScreenItem, ScreenItemEvent } from "../types/v3/screen-item";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { stepSummaryText } from "./stepSummaryText";
-import type { Step } from "../../../types/action";
+import type { Step } from "../../../types/v3";
 
 /**
  * stepSummaryText() の出力確認テスト。
