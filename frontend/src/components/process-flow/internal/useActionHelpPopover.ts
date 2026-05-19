@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx から ActionHelpPopover の位置計算 +
 // open/close debounce 制御を切り出したフック。
 
