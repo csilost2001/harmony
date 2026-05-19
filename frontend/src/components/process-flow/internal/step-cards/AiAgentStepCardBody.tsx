@@ -1,13 +1,13 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145、#1163 review Phase-2 補足): StepCard.tsx で dispatch が未実装だった
 // `aiAgent` kind (PR #935/#936 で schema 追加) に最小 body を提供する。
 // AiAgentStep: modelRef + messages + tools (1 件以上必須) + maxIterations。
 // multi-step agent loop。tool が無い single-shot は AiCallStep を使う。
+// #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<AiAgentStep> で type narrow、@ts-nocheck 除去。
 
-import type { Step } from "../../../../types/v3";
+import type { AiAgentStep, Identifier } from "../../../../types/v3";
 import type { StepCardBodyBaseProps } from "./types";
 
-export type AiAgentStepCardBodyProps = StepCardBodyBaseProps;
+export type AiAgentStepCardBodyProps = StepCardBodyBaseProps<AiAgentStep>;
 
 export function AiAgentStepCardBody({
   step,
@@ -28,7 +28,7 @@ export function AiAgentStepCardBody({
             type="text"
             className="form-control form-control-sm"
             value={step.modelRef ?? ""}
-            onChange={(e) => onChange({ modelRef: e.target.value } as Partial<Step>)}
+            onChange={(e) => onChange({ modelRef: e.target.value as Identifier })}
             onBlur={onCommit}
             placeholder="例: agentModel"
             style={{ fontFamily: "monospace", fontSize: "0.85rem" }}
@@ -44,7 +44,7 @@ export function AiAgentStepCardBody({
             className="form-control form-control-sm"
             min={1}
             value={step.maxIterations ?? 10}
-            onChange={(e) => onChange({ maxIterations: Number(e.target.value) || 1 } as Partial<Step>)}
+            onChange={(e) => onChange({ maxIterations: Number(e.target.value) || 1 })}
             onBlur={onCommit}
           />
         </div>
@@ -62,7 +62,7 @@ export function AiAgentStepCardBody({
             try {
               const parsed = JSON.parse(e.target.value);
               if (Array.isArray(parsed)) {
-                onChange({ messages: parsed } as Partial<Step>);
+                onChange({ messages: parsed });
               }
             } catch {
               // ignore
@@ -86,7 +86,7 @@ export function AiAgentStepCardBody({
             try {
               const parsed = JSON.parse(e.target.value);
               if (Array.isArray(parsed)) {
-                onChange({ tools: parsed } as Partial<Step>);
+                onChange({ tools: parsed });
               }
             } catch {
               // ignore

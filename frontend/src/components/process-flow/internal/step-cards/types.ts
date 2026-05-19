@@ -1,17 +1,17 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145) で StepCard.tsx から各 kind 別 body sub-component を抽出する際の共通 props 型。
-// 各 sub-component は本 `StepCardBodyBaseProps` を拡張せず使い回す (1 sub = 1 kind 専用)。
+// #1016 follow-up (2026-05-20): generic 化により step を specific variant で narrow 可能に。
+// 各 sub-component は `StepCardBodyBaseProps<XxxStep>` で固有 step 型を指定する。
 
 import type { ProcessFlow, Step } from "../../../../types/v3";
 import type { ValidationError } from "../../../../utils/actionValidation";
 
-export interface StepCardBodyBaseProps {
-  /** 対象 step (kind discriminator は各 sub-component 側で検査済) */
-  step: Step;
+export interface StepCardBodyBaseProps<S extends Step = Step> {
+  /** 対象 step (kind discriminator narrow 済の specific variant) */
+  step: S;
   /** trail (subSteps の親含む) の全 step (jumpTarget / outputBinding 参照解決用) */
   allSteps: Step[];
   /** 部分更新 patch を親 StepCard に通知 */
-  onChange: (changes: Partial<Step>) => void;
+  onChange: (changes: Partial<S>) => void;
   /** edit-commit (blur 時 persistence flush) */
   onCommit?: () => void;
   /** read-only mode で input を disable */

@@ -1,14 +1,14 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "commonProcess"` body を抽出。
+// #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<CommonProcessStep> で type narrow、@ts-nocheck 除去。
 
-import type { Step } from "../../../../types/v3";
+import type { CommonProcessStep, ProcessFlowId } from "../../../../types/v3";
 import type {
   StepCardBodyBaseProps,
   StepCardBodyCommonGroupsProps,
 } from "./types";
 
 export interface CommonProcessStepCardBodyProps
-  extends StepCardBodyBaseProps,
+  extends StepCardBodyBaseProps<CommonProcessStep>,
     StepCardBodyCommonGroupsProps {}
 
 export function CommonProcessStepCardBody({
@@ -26,8 +26,8 @@ export function CommonProcessStepCardBody({
             className="form-select form-select-sm"
             value={step.refId}
             onChange={(e) => {
-              const cg = commonGroups.find((g) => g.id === e.target.value);
-              onChange({ refId: e.target.value, refName: cg?.name ?? "" } as Partial<Step>);
+              // #1016 follow-up: refName は v3 schema 外 field のため除去 (AJV unevaluatedProperties: false で reject される silent bug を解消)
+              onChange({ refId: e.target.value as ProcessFlowId });
             }}
           >
             <option value="">（選択）</option>
@@ -57,7 +57,7 @@ export function CommonProcessStepCardBody({
             }
             onChange({
               argumentMapping: Object.keys(map).length > 0 ? map : undefined,
-            } as Partial<Step>);
+            });
           }}
           onBlur={onCommit}
           placeholder={"sessionId=@session.id\ntrustedLevel='high'"}

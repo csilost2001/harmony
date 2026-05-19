@@ -1,7 +1,6 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "workflow"` body を抽出。
 
-import type { Step } from "../../../../types/v3";
+import type { WorkflowStep } from "../../../../types/v3";
 import { WorkflowStepPanel } from "../../WorkflowStepPanel";
 import { InlineStepList } from "../InlineStepList";
 import type {
@@ -14,7 +13,7 @@ import type {
 } from "./types";
 
 export interface WorkflowStepCardBodyProps
-  extends StepCardBodyBaseProps,
+  extends StepCardBodyBaseProps<WorkflowStep>,
     StepCardBodyCatalogProps,
     StepCardBodyTableProps,
     StepCardBodyScreenProps,
@@ -39,7 +38,7 @@ export function WorkflowStepCardBody({
       step={step}
       allSteps={allSteps}
       conventions={conventions ?? null}
-      onChange={(patch) => onChange(patch as Partial<Step>)}
+      onChange={(patch) => onChange(patch)}
       onCommit={onCommit}
       renderInlineStepList={({ steps, parentLabel, onChange: onStepsChange }) => (
         <InlineStepList
