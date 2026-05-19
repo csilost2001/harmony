@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx の各種カタログ (tables / screens / commonGroups /
 // conventions / extensions / genericDefNames / projectCatalogs) ロード処理を集約したフック。
 // handleLoaded から呼び出される一括 fetch を含む。

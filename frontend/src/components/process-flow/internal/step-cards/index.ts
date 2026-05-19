@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の kind 別 body sub-component の barrel export。
 
 export { ValidationStepCardBody } from "./ValidationStepCardBody";

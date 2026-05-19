@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx からステップカードの右クリックコンテキストメニューを抽出。
 // 通常モード ⇔ サブステップ追加 (subType picker) モードの切替を内部 prop 経由で受ける。
 

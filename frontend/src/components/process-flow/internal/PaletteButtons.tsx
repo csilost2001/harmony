@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx から palette / insert zone 系の小 component を抽出。
 // - ToolbarStepButton: 左サイドバー (パレット) のドラッグ可能なステップ種別ボタン
 // - StepInsertZone: ステップ間の "+" / paste ドロップゾーン
