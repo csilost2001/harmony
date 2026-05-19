@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx の EditorHeader.extraRight に渡す
 // ボタン群 (AI 生成 / AI レビュー / EditSession ドロップダウン / 描画 / 検証バッジ) を抽出。
 

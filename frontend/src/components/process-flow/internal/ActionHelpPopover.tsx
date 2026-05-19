@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx から ActionHelpPopover を抽出。
 // アクションタブにホバー時のリッチヘルプ popover (契機 / 用途 / 定義例 / ステップ例 / メタ要約)。
 
