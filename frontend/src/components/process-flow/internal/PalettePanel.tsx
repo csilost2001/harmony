@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx 左サイドバー (パレット) を抽出。
 // 基本ステップ button / カスタムステップ button / テンプレート dropdown。
 
@@ -91,7 +90,7 @@ export function PalettePanel({
                 <div
                   key={tpl.id}
                   className="template-dropdown-item"
-                  onClick={() => onAddTemplate(tpl.id)}
+                  onClick={() => onAddTemplate(tpl.id ?? "")}
                 >
                   <div className="template-dropdown-item-label">{tpl.label}</div>
                   <div className="template-dropdown-item-desc">{tpl.description}</div>
