@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx からアクション追加モーダルを抽出。
 
 import type { ActionTrigger } from "../../../types/v3";
