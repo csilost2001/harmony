@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import type { LogStep } from "../../types/action";
+// #1186 Phase 2-C: types/action → types/v3 移行
+import type { LogStep } from "../../types/v3";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
 import { generateUUID } from "../../utils/uuid";

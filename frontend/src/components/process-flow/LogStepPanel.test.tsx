@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import { LogStepPanel } from "./LogStepPanel";
-import type { LogStep } from "../../types/action";
+// #1186 Phase 2-C: types/action → types/v3 移行 + 旧 `type:` field を schema 正規 `kind:` に
+import type { LogStep } from "../../types/v3";
 
 const baseStep: LogStep = {
   id: "test-step",
-  type: "log",
+  kind: "log",
   description: "",
   level: "info",
   message: "test",

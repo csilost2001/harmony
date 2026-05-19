@@ -1,11 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import { AuditStepPanel } from "./AuditStepPanel";
-import type { AuditStep } from "../../types/action";
+// #1186 Phase 2-C: types/action → types/v3 移行 + 旧 `type:` field を schema 正規 `kind:` に
+import type { AuditStep } from "../../types/v3";
 
 const baseStep: AuditStep = {
   id: "test-step",
-  type: "audit",
+  kind: "audit",
   description: "",
   action: "order.create",
   maturity: "draft",
