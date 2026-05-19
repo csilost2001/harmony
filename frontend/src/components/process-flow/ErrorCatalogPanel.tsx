@@ -1,4 +1,3 @@
-// @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 /**
  * ProcessFlow.context.catalogs.errors 編集パネル (#278 / #570 v3 移行)
  *
@@ -6,7 +5,7 @@
  * キー追加・削除、各フィールドの行編集。
  */
 import { useState } from "react";
-import type { ProcessFlow, ErrorCatalogEntry } from "../../types/v3";
+import type { ProcessFlow, ErrorCatalogEntry, LocalId } from "../../types/v3";
 
 interface Props {
   group: ProcessFlow;
@@ -30,7 +29,7 @@ export function ErrorCatalogPanel({ group, onChange, expanded: expandedProp, onE
 
   // ProcessFlow 内の全 response ID を収集 (responseRef ドロップダウン用)
   const responseIds = Array.from(new Set(
-    group.actions.flatMap((a) => (a.responses ?? []).map((r) => r.id).filter((x): x is string => !!x)),
+    group.actions.flatMap((a) => (a.responses ?? []).map((r) => r.id).filter((x): x is LocalId => !!x)),
   ));
 
   const setCatalog = (next: Record<string, ErrorCatalogEntry> | undefined) => {
@@ -110,11 +109,11 @@ export function ErrorCatalogPanel({ group, onChange, expanded: expandedProp, onE
                     />
                   </label>
                   <label>
-                    responseRef
+                    responseId
                     <select
                       className="form-select form-select-sm"
-                      value={e.responseRef ?? ""}
-                      onChange={(ev) => updateEntry(k, { responseRef: ev.target.value || undefined })}
+                      value={e.responseId ?? ""}
+                      onChange={(ev) => updateEntry(k, { responseId: (ev.target.value || undefined) as LocalId | undefined })}
                     >
                       <option value="">—</option>
                       {responseIds.map((id) => (

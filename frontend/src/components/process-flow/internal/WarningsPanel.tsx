@@ -1,9 +1,8 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx から警告詳細パネル (#261 UI 統合) を抽出。
 // 警告一覧 + 「全て AI に依頼」 / 個別「AI に依頼」ボタン (既起票判定込み)。
 
 import { generateUUID } from "../../../utils/uuid";
-import type { ProcessFlow } from "../../../types/v3";
+import type { ProcessFlow, Marker, Uuid, Timestamp, LocalId } from "../../../types/v3";
 import type { ValidationError } from "../../../utils/actionValidation";
 
 export interface WarningsPanelProps {
@@ -28,20 +27,23 @@ export function WarningsPanel({
     const existingKeys = new Set(
       (group.authoring?.markers ?? [])
         .filter((m) => !m.resolvedAt && m.kind === "todo")
-        .map((m) => `${m.code ?? ""}|${m.path ?? ""}`),
+        .map((m) => `${m.validatorCode ?? ""}|${m.validatorPath ?? ""}`),
     );
     const newMarkers = warnings
       .filter((e) => e.path)
       .filter((e) => !existingKeys.has(`${e.code ?? ""}|${e.path ?? ""}`))
-      .map((e) => ({
-        id: generateUUID(),
-        kind: "todo" as const,
+      .map((e): Marker => ({
+        id: generateUUID() as Uuid,
+        kind: "todo",
         body: `警告解消: ${e.message}`,
-        stepId: e.stepId || undefined,
-        code: e.code,
-        path: e.path,
-        author: "human" as const,
-        createdAt: new Date().toISOString(),
+        // #1016 silent bug fix: stepId は anchor.stepId に、code/path → validatorCode/validatorPath (v3 Marker schema 規範)
+        anchor: e.stepId
+          ? { stepId: e.stepId as LocalId, fieldPath: e.path }
+          : (e.path ? { fieldPath: e.path } : undefined),
+        validatorCode: e.code,
+        validatorPath: e.path,
+        author: "human",
+        createdAt: new Date().toISOString() as Timestamp,
       }));
     if (newMarkers.length === 0) {
       window.alert("全ての警告は既に AI 依頼済みです");
@@ -77,7 +79,7 @@ export function WarningsPanel({
         {warnings.map((e, i) => {
           const isMarked = (group?.authoring?.markers ?? []).some(
             (m) =>
-              !m.resolvedAt && m.kind === "todo" && m.code === e.code && m.path === e.path,
+              !m.resolvedAt && m.kind === "todo" && m.validatorCode === e.code && m.validatorPath === e.path,
           );
           return (
             <li key={i}>
@@ -90,15 +92,18 @@ export function WarningsPanel({
                 title={isMarked ? "AI に依頼済み" : "この警告を marker として AI に依頼"}
                 onClick={() => {
                   if (!group || isMarked) return;
-                  const newMarker = {
-                    id: generateUUID(),
-                    kind: "todo" as const,
+                  const newMarker: Marker = {
+                    id: generateUUID() as Uuid,
+                    kind: "todo",
                     body: `警告解消: ${e.message}`,
-                    stepId: e.stepId || undefined,
-                    code: e.code,
-                    path: e.path,
-                    author: "human" as const,
-                    createdAt: new Date().toISOString(),
+                    // #1016 silent bug fix: stepId は anchor.stepId に、code/path → validatorCode/validatorPath
+                    anchor: e.stepId
+                      ? { stepId: e.stepId as LocalId, fieldPath: e.path }
+                      : (e.path ? { fieldPath: e.path } : undefined),
+                    validatorCode: e.code,
+                    validatorPath: e.path,
+                    author: "human",
+                    createdAt: new Date().toISOString() as Timestamp,
                   };
                   onUpdateProcessFlow((g) => {
                     g.authoring = {
