@@ -1,6 +1,5 @@
-// @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 import { useState } from "react";
-import type { ActionDefinition, HttpMethod, HttpAuthRequirement, HttpResponseSpec } from "../../types/v3";
+import type { ActionDefinition, HttpMethod, HttpAuthRequirement, HttpResponseSpec, LocalId, BodySchema } from "../../types/v3";
 
 interface Props {
   action: ActionDefinition;
@@ -28,7 +27,8 @@ export function ActionHttpContractPanel({ action, onChange }: Props) {
   const clearRoute = () => onChange({ httpRoute: undefined });
 
   const addResponse = () => {
-    const next: HttpResponseSpec = { status: 200, description: "" };
+    // #1016 silent bug fix: v3 HttpResponseSpec.id は必須 (LocalId)。`200-ok` 等の kebab-case 規範
+    const next: HttpResponseSpec = { id: `r-${responses.length + 1}` as LocalId, status: 200, description: "" };
     onChange({ responses: [...responses, next] });
   };
 
@@ -130,7 +130,7 @@ export function ActionHttpContractPanel({ action, onChange }: Props) {
                   type="text"
                   className="form-control form-control-sm"
                   value={r.id ?? ""}
-                  onChange={(e) => updateResponse(i, { id: e.target.value || undefined })}
+                  onChange={(e) => updateResponse(i, { id: (e.target.value || "") as LocalId })}
                   placeholder="id (例: 409-stock-shortage)"
                   style={{ fontSize: "0.8rem" }}
                 />
@@ -140,7 +140,7 @@ export function ActionHttpContractPanel({ action, onChange }: Props) {
                   type="text"
                   className="form-control form-control-sm"
                   value={typeof r.bodySchema === "string" ? r.bodySchema : ""}
-                  onChange={(e) => updateResponse(i, { bodySchema: e.target.value || undefined })}
+                  onChange={(e) => updateResponse(i, { bodySchema: (e.target.value || undefined) as BodySchema | undefined })}
                   placeholder="bodySchema"
                   style={{ fontSize: "0.8rem" }}
                 />
