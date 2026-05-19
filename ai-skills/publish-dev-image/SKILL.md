@@ -1,6 +1,6 @@
 ---
 name: publish-dev-image
-description: Harmony Dev Container 用 base image を ghcr.io に build + push する。maintainer 専用、image 更新時 (Playwright/Node メジャー更新 / Debian 切替) に呼出す。version 引数必須 (例: 0.2、1.0、1.1-rc1)。
+description: "Harmony Dev Container 用 base image を ghcr.io に build + push する。maintainer 専用、image 更新時 (Playwright/Node メジャー更新 / Debian 切替) に呼出す。version 引数必須 (例: 0.2、1.0、1.1-rc1)。"
 metadata:
   type: maintainer-tool
 ---

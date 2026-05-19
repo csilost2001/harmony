@@ -1,7 +1,7 @@
 ---
 name: import-md
-description: Project ディレクトリが指定され、その配下の Markdown 設計書を Harmony JSON 成果物に変換するよう明示的に依頼された場合のみ実行。MD inventory → archetype 分類 → entity/generic-definition mapping → audit。説明・レビュー・調査用途では起動しない (引数なし / 既存 Harmony JSON への質問 / spec 説明依頼は対象外)
-argument-hint: <project ディレクトリのパス> (例: examples/retail or workspaces/my-project)
+description: "Project ディレクトリが指定され、その配下の Markdown 設計書を Harmony JSON 成果物に変換するよう明示的に依頼された場合のみ実行。MD inventory → archetype 分類 → entity/generic-definition mapping → audit。説明・レビュー・調査用途では起動しない (引数なし / 既存 Harmony JSON への質問 / spec 説明依頼は対象外)"
+argument-hint: "<project ディレクトリのパス> (例: examples/retail or workspaces/my-project)"
 ---
 
 <!--
