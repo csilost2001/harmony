@@ -1,6 +1,7 @@
 // @ts-nocheck -- StepCard と同じ理由で legacy/v3 union を緩く扱う (#1016)
-import type { Step } from "../../../types/action";
-import { DB_OPERATION_LABELS, WORKFLOW_PATTERN_LABELS } from "../../../types/action";
+import type { Step } from "../../../types/v3";
+// #1186 Phase 2-D: constants は processFlowMetadata から
+import { DB_OPERATION_LABELS, WORKFLOW_PATTERN_LABELS } from "../../../utils/processFlowMetadata";
 import { resolveJumpLabel } from "../../../utils/actionUtils";
 import { getBranchConditionText } from "../../../utils/branchCondition";
 

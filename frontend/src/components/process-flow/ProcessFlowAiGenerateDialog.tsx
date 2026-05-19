@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { ProcessFlow } from "../../types/action";
+// #1186 Phase 2-D: types/action → types/v3 移行
+import type { ProcessFlow } from "../../types/v3";
 import {
   generateProcessFlowWithCodex,
   mergeGeneratedProcessFlow,

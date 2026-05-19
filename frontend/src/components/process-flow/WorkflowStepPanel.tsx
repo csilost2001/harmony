@@ -10,7 +10,7 @@ import type {
 import type {
   WorkflowApprover,
   WorkflowQuorum,
-} from "../../types/action";
+} from "../../types/v3";
 import {
   WORKFLOW_PATTERN_LABELS,
   WORKFLOW_PATTERN_VALUES,

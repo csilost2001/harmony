@@ -22,7 +22,7 @@ import type {
 } from "../types/v3";
 import type { ErLayout } from "../types/v3";
 import type { FlowProject } from "../types/flow";
-import type { ProcessFlow, Step } from "../types/action";
+import type { ProcessFlow, Step } from "../types/v3";
 import { getAllRelations, type ErRelation } from "./erUtils";
 import { getStepLabel } from "./actionUtils";
 import { fieldsToText } from "./actionFields";

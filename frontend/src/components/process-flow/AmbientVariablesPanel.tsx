@@ -6,7 +6,7 @@
  * StructuredField[] として宣言する UI。
  */
 import { useState } from "react";
-import type { ProcessFlow, StructuredField, FieldType } from "../../types/action";
+import type { ProcessFlow, StructuredField, FieldType } from "../../types/v3";
 
 interface Props {
   group: ProcessFlow;

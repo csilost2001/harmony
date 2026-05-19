@@ -10,7 +10,7 @@ import type {
 import type {
   ExternalCallOutcomeSpec,
   OtherStep,
-} from "../../types/action";
+} from "../../types/v3";
 import {
   EXTERNAL_CALL_OUTCOME_VALUES,
   type ExternalCallOutcome,

@@ -6,7 +6,7 @@
  * キー追加・削除、各フィールドの行編集。
  */
 import { useState } from "react";
-import type { ProcessFlow, ErrorCatalogEntry } from "../../types/action";
+import type { ProcessFlow, ErrorCatalogEntry } from "../../types/v3";
 
 interface Props {
   group: ProcessFlow;

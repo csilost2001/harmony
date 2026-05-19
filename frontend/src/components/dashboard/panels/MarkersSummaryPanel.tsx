@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../../hooks/useWorkspacePath";
-import type { ProcessFlow, MarkerKind } from "../../../types/action";
+import type { ProcessFlow, MarkerKind } from "../../../types/v3";
 import { listProcessFlows, loadProcessFlow } from "../../../store/processFlowStore";
 import { mcpBridge } from "../../../mcp/mcpBridge";
 

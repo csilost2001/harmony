@@ -3,7 +3,7 @@
 // AI 依頼パネル / Meta タブ (ActionMetaTabBar) / HTTP contract / SLA / 入出力データ。
 
 import type { RefObject } from "react";
-import type { ActionDefinition, ProcessFlow } from "../../../types/action";
+import type { ActionDefinition, ProcessFlow } from "../../../types/v3";
 import { AiRequestPanel } from "../AiRequestPanel";
 import { ActionMetaTabBar } from "../ActionMetaTabBar";
 import { ActionHttpContractPanel } from "../ActionHttpContractPanel";

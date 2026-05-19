@@ -5,7 +5,7 @@ import type {
   BranchCondition,
   ProcessFlow,
   Step,
-} from "../types/action";
+} from "../types/v3";
 import type { Maturity, Mode } from "../types/v3/common";
 import { generateUUID } from "./uuid";
 

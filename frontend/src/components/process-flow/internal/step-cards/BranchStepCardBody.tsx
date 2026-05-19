@@ -6,7 +6,7 @@
 // deleteBranch / addBranch / addElseBranch / toggleBranchCollapse) も同様に内部化。
 
 import { useState } from "react";
-import type { Branch, Step } from "../../../../types/action";
+import type { Branch, Step } from "../../../../types/v3";
 import { generateUUID } from "../../../../utils/uuid";
 import { InlineStepList } from "../InlineStepList";
 import type {

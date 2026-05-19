@@ -4,7 +4,7 @@
 // `loopBodyCollapsed` は本 body 専用の純粋 UI state のため、parent から切り離して内部化。
 
 import { useState } from "react";
-import type { LoopConditionMode, LoopKind, Step } from "../../../../types/action";
+import type { LoopConditionMode, LoopKind, Step } from "../../../../types/v3";
 import { InlineStepList } from "../InlineStepList";
 import type {
   StepCardBodyBaseProps,

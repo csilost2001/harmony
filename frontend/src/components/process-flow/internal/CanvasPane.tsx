@@ -4,7 +4,7 @@
 
 import type { RefObject } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import type { ActionDefinition, ProcessFlow, Step, StepType } from "../../../types/action";
+import type { ActionDefinition, ProcessFlow, Step, StepType } from "../../../types/v3";
 import type { ConventionsCatalog } from "../../../schemas/conventionsValidator";
 import { SortableStepCard } from "../SortableStepCard";
 import { EmptyFlowDropZone, StepInsertZone } from "./PaletteButtons";

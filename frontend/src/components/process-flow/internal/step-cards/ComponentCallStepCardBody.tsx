@@ -3,7 +3,7 @@
 // `componentCall` kind (PR #1066 で schema 追加) に最小 body を提供する。
 // CommonProcessStepCardBody と類似 (componentRef + operation + argumentMapping / returnMapping)。
 
-import type { Step } from "../../../../types/action";
+import type { Step } from "../../../../types/v3";
 import type { StepCardBodyBaseProps } from "./types";
 
 export type ComponentCallStepCardBodyProps = StepCardBodyBaseProps;

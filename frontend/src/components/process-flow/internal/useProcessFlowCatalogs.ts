@@ -8,7 +8,7 @@
 // - mcpBridge.onExtensionsChanged 監視で extensions を auto-refresh
 
 import { useEffect, useState } from "react";
-import type { ProcessFlow } from "../../../types/action";
+import type { ProcessFlow } from "../../../types/v3";
 import { listTables, loadTable } from "../../../store/tableStore";
 import { loadProject } from "../../../store/flowStore";
 import type { TableDefinition as ValidatorTableDef } from "../../../schemas/sqlColumnValidator";

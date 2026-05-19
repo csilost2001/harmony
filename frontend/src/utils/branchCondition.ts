@@ -5,7 +5,7 @@
  *
  * docs/spec, #151 (B) / #176
  */
-import type { BranchCondition, BranchConditionVariant } from "../types/action";
+import type { BranchCondition, BranchConditionVariant } from "../types/v3";
 
 /** condition を人間可読な文字列に変換 (UI 表示・description ログ用) */
 export function getBranchConditionText(cond: BranchCondition | undefined): string {

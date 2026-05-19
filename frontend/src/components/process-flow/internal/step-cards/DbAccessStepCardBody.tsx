@@ -1,8 +1,10 @@
 // @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "dbAccess"` body を抽出。
 
-import type { Step, DbOperation } from "../../../../types/action";
-import { DB_OPERATION_LABELS } from "../../../../types/action";
+// #1186 Phase 2-D: DbOperation は v3 に固有型なし、local string alias。constants は processFlowMetadata
+import type { Step } from "../../../../types/v3";
+type DbOperation = string;
+import { DB_OPERATION_LABELS } from "../../../../utils/processFlowMetadata";
 import { DB_OPS } from "../stepCardConstants";
 import type { StepCardBodyBaseProps, StepCardBodyTableProps } from "./types";
 

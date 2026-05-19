@@ -2,7 +2,7 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx から ActionHelpPopover を抽出。
 // アクションタブにホバー時のリッチヘルプ popover (契機 / 用途 / 定義例 / ステップ例 / メタ要約)。
 
-import type { ActionDefinition, Marker } from "../../../types/action";
+import type { ActionDefinition, Marker } from "../../../types/v3";
 import {
   countActionFields,
   getActionOpenMarkers,
