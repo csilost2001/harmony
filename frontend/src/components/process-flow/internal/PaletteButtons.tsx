@@ -7,8 +7,8 @@
 
 import type { ReactNode } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import type { StepType } from "../../../types/action";
-import { STEP_TYPE_LABELS, STEP_TYPE_ICONS, STEP_TYPE_COLORS } from "../../../types/action";
+import type { StepKind as StepType } from "../../../types/v3";
+import { STEP_TYPE_LABELS, STEP_TYPE_ICONS, STEP_TYPE_COLORS } from "../../../utils/processFlowMetadata";
 
 export function ToolbarStepButton({
   type,

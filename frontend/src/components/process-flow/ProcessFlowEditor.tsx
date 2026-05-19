@@ -12,13 +12,15 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
+// #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
+// ProcessFlow / Step は v3 strict 型、StepType は StepKind alias、ActionTrigger は v3 ActionTrigger
 import type {
   ProcessFlow,
   ActionTrigger,
   Step,
-  StepType,
-} from "../../types/action";
-import { STEP_TEMPLATES, STEP_TYPE_LABELS } from "../../types/action";
+  StepKind as StepType,
+} from "../../types/v3";
+import { STEP_TEMPLATES, STEP_TYPE_LABELS } from "../../utils/processFlowMetadata";
 import {
   loadProcessFlow,
   saveProcessFlow,

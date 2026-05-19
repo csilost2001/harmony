@@ -1,7 +1,8 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { StepCard } from "./StepCard";
-import type { ProcessFlow, Step, StepType } from "../../types/action";
+// #1186 Phase 2-B: types/action → types/v3 移行 (StepCard.tsx と整合)
+import type { ProcessFlow, Step, StepKind as StepType } from "../../types/v3";
 import type { ValidationError } from "../../utils/actionValidation";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 

@@ -1,13 +1,20 @@
 // @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 import { useState } from "react";
+// #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
+// ExternalSystemStep / OtherStep / Step は v3 strict、ExternalCallOutcome / EXTERNAL_CALL_OUTCOME_VALUES は frontend UI metadata
 import type {
   ExternalSystemStep,
-  ExternalCallOutcome,
+  Step,
+} from "../../types/v3";
+// ExternalCallOutcomeSpec / OtherStep は AnyRecord 互換のため action.ts 経由 (#1186 Phase 2-D で v3 strict 化予定)
+import type {
   ExternalCallOutcomeSpec,
   OtherStep,
-  Step,
 } from "../../types/action";
-import { EXTERNAL_CALL_OUTCOME_VALUES } from "../../types/action";
+import {
+  EXTERNAL_CALL_OUTCOME_VALUES,
+  type ExternalCallOutcome,
+} from "../../utils/processFlowMetadata";
 import { generateUUID } from "../../utils/uuid";
 
 interface Props {

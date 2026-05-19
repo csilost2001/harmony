@@ -949,6 +949,13 @@ export type Step =
 /** Return を除く Step subset (ExternalCallOutcomeSpec.sideEffects 等で使用)。 */
 export type NonReturnStep = Exclude<Step, ReturnStep>;
 
+/**
+ * Step.kind の union (#1186 Phase 2-B で追加)。
+ * Step union から `kind` プロパティ型を抽出。25 variant + ExtensionStep の `namespace:StepName` pattern を含む。
+ * ExtensionStep の kind は `string` のため最終的に `string` に decay する点に注意 (組み込み 24 + 任意の文字列)。
+ */
+export type StepKind = Step["kind"];
+
 // ─── ProcessFlow root ────────────────────────────────────────────────────
 
 /**

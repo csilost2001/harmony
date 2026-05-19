@@ -1,18 +1,22 @@
 // @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 import { useState } from "react";
+// #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
 import type {
   Step,
-  StepType,
+  StepKind as StepType,
   TransactionScopeStep,
+  ProcessFlow,
+} from "../../types/v3";
+// TransactionIsolationLevel / TransactionPropagation は action.ts に string 緩和あり、v3 strict 化は Phase 2-D
+import type {
   TransactionIsolationLevel,
   TransactionPropagation,
-  ProcessFlow,
 } from "../../types/action";
 import {
   STEP_TYPE_LABELS,
   STEP_TYPE_ICONS,
   STEP_TYPE_COLORS,
-} from "../../types/action";
+} from "../../utils/processFlowMetadata";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import type { ValidationError } from "../../utils/actionValidation";
 import { createDefaultStep } from "../../store/processFlowStore";

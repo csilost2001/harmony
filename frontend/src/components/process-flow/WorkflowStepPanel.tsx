@@ -1,16 +1,20 @@
 // @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 import type { ReactNode } from "react";
+// #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
 import type {
   Step,
-  WorkflowApprover,
-  WorkflowPattern,
-  WorkflowQuorum,
   WorkflowStep,
+  WorkflowPattern,
+} from "../../types/v3";
+// WorkflowApprover / WorkflowQuorum は AnyRecord 互換のため action.ts 経由 (#1186 Phase 2-D で v3 strict 化予定)
+import type {
+  WorkflowApprover,
+  WorkflowQuorum,
 } from "../../types/action";
 import {
   WORKFLOW_PATTERN_LABELS,
   WORKFLOW_PATTERN_VALUES,
-} from "../../types/action";
+} from "../../utils/processFlowMetadata";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
 
