@@ -754,6 +754,7 @@
     },
 
     "ExternalSystemStep": {
+      "description": "外部システム呼出ステップ。invocation mode (#1185 提案 B + 追加#3 で hierarchy 明文化):\n  (1) **httpCall mode** — `httpCall` (method/path/query/body) で REST endpoint を直接指定。spec が無いケースや ad-hoc 呼出向け。\n  (2) **operationRef mode** — `operationRef` (例: '/v1/payment_intents POST') + `operationId` / `requestBodyRef` / `responseRef` で OpenAPI spec 駆動。systemRef → externalSystems catalog 経由で spec URL 解決、operation 単位の参照で型安全。\n両 mode の共存は schema 上 valid だが業界慣習として非推奨。共存時の loader 解釈順序: operationRef > httpCall (spec 駆動が優先、httpCall 側 query/body/headers は override として merge される実装が標準)。AJV による strict exclusion は採用しない (混合ニーズや段階的 migration を許容するため意図的に description 規約)。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {
@@ -765,11 +766,11 @@
               "$ref": "common.v3.schema.json#/$defs/Identifier",
               "description": "ProcessFlow.context.catalogs.externalSystems のキー参照 (Identifier / camelCase)。"
             },
-            "httpCall": { "$ref": "#/$defs/ExternalHttpCall" },
-            "operationRef": { "type": "string", "description": "OpenAPI operation 参照 (例: '/v1/payment_intents POST')。" },
-            "operationId": { "type": "string" },
-            "requestBodyRef": { "type": "string", "description": "OpenAPI request body schema への JSON Pointer。" },
-            "responseRef": { "type": "string" },
+            "httpCall": { "$ref": "#/$defs/ExternalHttpCall", "description": "**httpCall mode**: 直接 HTTP 呼出仕様 (method/path/query/body)。operationRef 系と排他推奨だが schema 強制せず (#1185 説明)。" },
+            "operationRef": { "type": "string", "description": "**operationRef mode**: OpenAPI operation 参照 (例: '/v1/payment_intents POST')。systemRef 経由で spec URL 解決。httpCall と排他推奨。" },
+            "operationId": { "type": "string", "description": "**operationRef mode**: OpenAPI operationId (operationRef より優先する場合の代替指定)。httpCall と排他推奨。" },
+            "requestBodyRef": { "type": "string", "description": "**operationRef mode**: OpenAPI request body schema への JSON Pointer (例: '#/components/schemas/CreatePaymentIntent')。httpCall.body と排他推奨。" },
+            "responseRef": { "type": "string", "description": "**operationRef mode**: OpenAPI response schema への JSON Pointer。httpCall mode では outcomes.success.responseSchema 等で代替。" },
             "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes" },
             "timeoutMs": { "type": "integer", "minimum": 0 },
             "retryPolicy": { "$ref": "#/$defs/RetryPolicy" },
