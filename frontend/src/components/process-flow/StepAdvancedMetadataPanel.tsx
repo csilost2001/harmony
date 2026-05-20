@@ -1,4 +1,3 @@
-// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 import { useState } from "react";
 import type { Step, ExternalChain, ExternalChainPhase } from "../../types/v3";
 import { SlaPanel } from "./SlaPanel";
