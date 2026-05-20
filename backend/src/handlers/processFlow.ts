@@ -41,6 +41,7 @@ import {
 } from "../processFlowEdits.js";
 import { saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
 import { wsBridge } from "../wsBridge.js";
+import { assertUuid, assertSafeName } from "../security/idValidator.js";
 
 type ResponseTypeEntry = {
   description?: string;
@@ -238,6 +239,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId は必須です");
       }
+      // S-002: ID validation
+      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       // browser-first: ProcessFlowEditor が開いていれば live 状態を取得
       const liveData = await wsBridge.tryCommand("getProcessFlow", { id: a.processFlowId });
       const pfData = liveData ?? await readProcessFlow(a.processFlowId, root);
@@ -289,6 +292,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || !a.definition) {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, definition は必須です");
       }
+      // S-002: ID validation
+      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const pfDef = a.definition as Record<string, unknown>;
       const pfNow = new Date().toISOString();
       // v3: meta.updatedAt を更新 (legacy 互換のため root.updatedAt も touch)
@@ -323,6 +328,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId は必須です");
       }
+      // S-002: ID validation
+      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       await deleteProcessFlowFile(a.processFlowId, root);
       const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
       removeProcessFlowEntry(pfProject, a.processFlowId);
@@ -337,6 +344,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.name !== "string" || typeof a.trigger !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, name, trigger は必須です");
       }
+      // S-002: ID validation
+      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const pf = await readProcessFlow(a.processFlowId, root) as Record<string, unknown> | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       const actions = Array.isArray(pf.actions) ? pf.actions as Array<Record<string, unknown>> : [];
@@ -364,6 +373,9 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.actionId !== "string" || typeof a.kind !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, actionId, kind は必須です");
       }
+      // S-002: ID validation
+      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      try { assertUuid(a.actionId, "actionId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       // browser-first: ProcessFlowEditor が開いていれば in-memory に適用
       // browser 側 mutation handler (applyProcessFlowMutation) は #1149 で v3 化済 (kind を直接受容)。
       const addApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
@@ -393,6 +405,9 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string" || typeof a.patch !== "object" || a.patch === null) {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, patch は必須です");
       }
+      // S-002: ID validation
+      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const updApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__update_step", params: a,
       });
@@ -415,6 +430,9 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId は必須です");
       }
+      // S-002: ID validation
+      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const rmApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__remove_step", params: a,
       });
@@ -437,6 +455,9 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string" || typeof a.newIndex !== "number") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, newIndex は必須です");
       }
+      // S-002: ID validation
+      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const mvApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__move_step", params: a,
       });
@@ -459,6 +480,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.target !== "string" || typeof a.maturity !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, target, maturity は必須です");
       }
+      // S-002: ID validation
+      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {
@@ -475,6 +498,9 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string" || typeof a.kind !== "string" || typeof a.body !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, kind, body は必須です");
       }
+      // S-002: ID validation
+      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {

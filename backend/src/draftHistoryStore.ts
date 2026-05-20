@@ -12,6 +12,7 @@
 
 import fs from "fs/promises";
 import path from "path";
+import { assertPathContained } from "./security/idValidator.js";
 
 // ── 公開型定義 ────────────────────────────────────────────────────────────────
 
@@ -34,7 +35,10 @@ export interface DraftHistoryEntry {
 const HISTORY_DIR = ".edit-sessions-history";
 
 function historyDir(workspaceRoot: string, resourceType: string, resourceId: string): string {
-  return path.join(workspaceRoot, HISTORY_DIR, resourceType, resourceId);
+  const dir = path.join(workspaceRoot, HISTORY_DIR, resourceType, resourceId);
+  // S-002: path containment check (defense-in-depth)
+  assertPathContained(dir, workspaceRoot);
+  return dir;
 }
 
 function historyFilePath(
@@ -43,7 +47,10 @@ function historyFilePath(
   resourceId: string,
   historyId: string,
 ): string {
-  return path.join(historyDir(workspaceRoot, resourceType, resourceId), `${historyId}.json`);
+  const filePath = path.join(historyDir(workspaceRoot, resourceType, resourceId), `${historyId}.json`);
+  // S-002: path containment check (defense-in-depth)
+  assertPathContained(filePath, workspaceRoot);
+  return filePath;
 }
 
 /**

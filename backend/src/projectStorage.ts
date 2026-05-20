@@ -21,6 +21,7 @@ import crypto from "node:crypto";
 import type { ValidateFunction } from "ajv";
 import { buildHarmonyAjv } from "./buildHarmonyAjv.js";
 import { workspaceContextManager } from "./workspaceState.js";
+import { assertPathContained } from "./security/idValidator.js";
 
 // ── path 解決ヘルパー (#671 + #700 R-2) ─────────────────────────────────────
 // workspace 切替に追従するため、絶対パス constant を廃止し getter 関数化。
@@ -456,22 +457,28 @@ export async function getFileMtime(kind: string, root: string, id?: string): Pro
 }
 
 function resolveDataFile(kind: string, dataRoot: string, id?: string): string | null {
+  let filePath: string | null = null;
   switch (kind) {
-    case "erLayout": return erLayoutFile(dataRoot);
-    case "customBlocks": return customBlocksFile(dataRoot);
-    case "conventions": return conventionsFile(dataRoot);
-    case "screen": return id ? path.join(screensDir(dataRoot), `${id}.design.json`) : null;
-    case "screenEntity": return id ? path.join(screensDir(dataRoot), `${id}.json`) : null;
-    case "table": return id ? path.join(tablesDir(dataRoot), `${id}.json`) : null;
-    case "processFlow": return id ? path.join(actionsDir(dataRoot), `${id}.json`) : null;
-    case "screenItems": return id ? path.join(screenItemsDir(dataRoot), `${id}.json`) : null;
-    case "sequence": return id ? path.join(sequencesDir(dataRoot), `${id}.json`) : null;
-    case "view": return id ? path.join(viewsDir(dataRoot), `${id}.json`) : null;
-    case "viewDefinition": return id ? path.join(viewDefsDir(dataRoot), `${id}.json`) : null;
-    case "pageLayout": return id ? path.join(pageLayoutsDir(dataRoot), `${id}.json`) : null;
-    case "pageLayoutDesign": return id ? path.join(pageLayoutsDir(dataRoot), `${id}.design.json`) : null;
+    case "erLayout": filePath = erLayoutFile(dataRoot); break;
+    case "customBlocks": filePath = customBlocksFile(dataRoot); break;
+    case "conventions": filePath = conventionsFile(dataRoot); break;
+    case "screen": filePath = id ? path.join(screensDir(dataRoot), `${id}.design.json`) : null; break;
+    case "screenEntity": filePath = id ? path.join(screensDir(dataRoot), `${id}.json`) : null; break;
+    case "table": filePath = id ? path.join(tablesDir(dataRoot), `${id}.json`) : null; break;
+    case "processFlow": filePath = id ? path.join(actionsDir(dataRoot), `${id}.json`) : null; break;
+    case "screenItems": filePath = id ? path.join(screenItemsDir(dataRoot), `${id}.json`) : null; break;
+    case "sequence": filePath = id ? path.join(sequencesDir(dataRoot), `${id}.json`) : null; break;
+    case "view": filePath = id ? path.join(viewsDir(dataRoot), `${id}.json`) : null; break;
+    case "viewDefinition": filePath = id ? path.join(viewDefsDir(dataRoot), `${id}.json`) : null; break;
+    case "pageLayout": filePath = id ? path.join(pageLayoutsDir(dataRoot), `${id}.json`) : null; break;
+    case "pageLayoutDesign": filePath = id ? path.join(pageLayoutsDir(dataRoot), `${id}.design.json`) : null; break;
     default: return null;
   }
+  // S-002: path containment check (defense-in-depth)
+  if (filePath !== null) {
+    assertPathContained(filePath, dataRoot);
+  }
+  return filePath;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1083,20 +1090,29 @@ export async function listAllGenericDefinitions(root: string, kind: string): Pro
 
 export async function readGenericDefinition(name: string, kind: string, root: string): Promise<unknown | null> {
   const dataRoot = await resolveDataRoot(root);
-  return readJSON<unknown>(path.join(genericDefinitionsDir(dataRoot, kind), `${name}.json`));
+  const filePath = path.join(genericDefinitionsDir(dataRoot, kind), `${name}.json`);
+  // S-002: path containment check (defense-in-depth)
+  assertPathContained(filePath, dataRoot);
+  return readJSON<unknown>(filePath);
 }
 
 export async function writeGenericDefinition(name: string, kind: string, data: unknown, root: string): Promise<void> {
   const dataRoot = await ensureDataDirFromRoot(root);
   const dir = genericDefinitionsDir(dataRoot, kind);
+  const filePath = path.join(dir, `${name}.json`);
+  // S-002: path containment check (defense-in-depth)
+  assertPathContained(filePath, dataRoot);
   await fs.mkdir(dir, { recursive: true });
-  await writeJSON(path.join(dir, `${name}.json`), data);
+  await writeJSON(filePath, data);
 }
 
 export async function deleteGenericDefinition(name: string, kind: string, root: string): Promise<void> {
   const dataRoot = await resolveDataRoot(root);
+  const filePath = path.join(genericDefinitionsDir(dataRoot, kind), `${name}.json`);
+  // S-002: path containment check (defense-in-depth)
+  assertPathContained(filePath, dataRoot);
   try {
-    await fs.unlink(path.join(genericDefinitionsDir(dataRoot, kind), `${name}.json`));
+    await fs.unlink(filePath);
   } catch { /* file not found is OK */ }
 }
 
