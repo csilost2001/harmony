@@ -1,5 +1,4 @@
-﻿// @ts-nocheck -- legacy action migration spans old/new process-flow shapes; tracked by #1016.
-import type {
+﻿import type {
   ActionDefinition,
   Branch,
   BranchCondition,
@@ -111,7 +110,7 @@ function legacyToBranch(code: string, condition: unknown, raw: LegacyBranchField
   }
   const label = raw?.label?.trim();
   return {
-    id: generateUUID(),
+    id: generateUUID() as never,
     code,
     label: label || undefined,
     condition: normalizeBranchCondition(condition),
