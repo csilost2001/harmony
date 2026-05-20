@@ -646,8 +646,10 @@ export async function writeExtensionsFile(
 export async function readScreen(screenId: string, root: string): Promise<unknown | null> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
+  const filePath = path.join(screensDir(dataRoot), `${screenId}.design.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
   await migrateScreenIfNeeded(screenId, r);
-  return readJSON<unknown>(path.join(screensDir(dataRoot), `${screenId}.design.json`));
+  return readJSON<unknown>(filePath);
 }
 
 /** screens/{screenId}.json を書き込み
@@ -658,6 +660,7 @@ export async function readScreen(screenId: string, root: string): Promise<unknow
 export async function writeScreen(screenId: string, data: unknown, root: string): Promise<void> {
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
+  assertPathContained(path.join(screensDir(dataRoot), `${screenId}.design.json`), dataRoot); // defense-in-depth
   let entity = await migrateScreenIfNeeded(screenId, r);
   if (!entity) {
     const project = await readProject(r);
@@ -685,6 +688,7 @@ export async function readScreenEntity(screenId: string, root: string): Promise<
 export async function writeScreenEntity(screenId: string, data: unknown, root: string): Promise<void> {
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
+  assertPathContained(path.join(screensDir(dataRoot), `${screenId}.json`), dataRoot); // defense-in-depth
   const current = isRecord(data) ? data : {};
   const project = await readProject(r);
   const entry = getScreenEntry(project, screenId);
@@ -708,6 +712,7 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
 export async function deleteScreen(screenId: string, root: string): Promise<void> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
+  assertPathContained(path.join(screensDir(dataRoot), `${screenId}.json`), dataRoot); // defense-in-depth
   const sDir = screensDir(dataRoot);
   const siDir = screenItemsDir(dataRoot);
   try {
@@ -739,7 +744,9 @@ export async function writeCustomBlocks(blocks: unknown[], root: string): Promis
 export async function readPuckData(screenId: string, root: string): Promise<unknown | null> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
-  return readJSON<unknown>(path.join(screensDir(dataRoot), screenId, "puck-data.json"));
+  const filePath = path.join(screensDir(dataRoot), screenId, "puck-data.json");
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  return readJSON<unknown>(filePath);
 }
 
 /** screens/{screenId}/puck-data.json を書き込み (#806) */
@@ -747,6 +754,7 @@ export async function writePuckData(screenId: string, data: unknown, root: strin
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
   const puckDir = path.join(screensDir(dataRoot), screenId);
+  assertPathContained(puckDir, dataRoot); // defense-in-depth
   await fs.mkdir(puckDir, { recursive: true });
   await writeJSON(path.join(puckDir, "puck-data.json"), data);
 }
@@ -807,7 +815,9 @@ export async function writeScreenFlowPositions(data: unknown, root: string): Pro
 export async function readTable(tableId: string, root: string): Promise<unknown | null> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
-  return readJSON<unknown>(path.join(tablesDir(dataRoot), `${tableId}.json`));
+  const filePath = path.join(tablesDir(dataRoot), `${tableId}.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  return readJSON<unknown>(filePath);
 }
 
 /** tables/{tableId}.json を書き込み
@@ -818,14 +828,17 @@ export async function readTable(tableId: string, root: string): Promise<unknown 
 export async function writeTable(tableId: string, data: unknown, root: string): Promise<void> {
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
+  const filePath = path.join(tablesDir(dataRoot), `${tableId}.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
   await annotateValidationWarnings("table", data);
-  await writeJSON(path.join(tablesDir(dataRoot), `${tableId}.json`), data);
+  await writeJSON(filePath, data);
 }
 
 /** tables/{tableId}.json を削除（存在しない場合は無視） */
 export async function deleteTable(tableId: string, root: string): Promise<void> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
+  assertPathContained(path.join(tablesDir(dataRoot), `${tableId}.json`), dataRoot); // defense-in-depth
   try {
     await fs.unlink(path.join(tablesDir(dataRoot), `${tableId}.json`));
   } catch { /* file not found is OK */ }
@@ -862,6 +875,7 @@ export async function readProcessFlow(processFlowId: string, root: string): Prom
   const r = root;
   const dataRoot = await resolveDataRoot(r);
   for (const filePath of processFlowFileCandidates(dataRoot, processFlowId)) {
+    assertPathContained(filePath, dataRoot); // defense-in-depth
     const data = await readJSON<unknown>(filePath);
     if (data) return data;
   }
@@ -889,6 +903,7 @@ export async function writeProcessFlow(processFlowId: string, data: unknown, roo
     // 新規: v3 規範 path (`process-flows/`) を使う (#1141)
     targetPath = currentPath;
   }
+  assertPathContained(targetPath, dataRoot); // defense-in-depth
   await annotateValidationWarnings("processFlow", data);
   await writeJSON(targetPath, data);
 }
@@ -898,6 +913,7 @@ export async function deleteProcessFlow(processFlowId: string, root: string): Pr
   const r = root;
   const dataRoot = await resolveDataRoot(r);
   for (const filePath of processFlowFileCandidates(dataRoot, processFlowId)) {
+    assertPathContained(filePath, dataRoot); // defense-in-depth
     try {
       await fs.unlink(filePath);
     } catch { /* file not found is OK */ }
@@ -940,6 +956,7 @@ export async function readScreenItems(screenId: string, root: string): Promise<u
 export async function writeScreenItems(screenId: string, data: unknown, root: string): Promise<void> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
+  assertPathContained(path.join(screenItemsDir(dataRoot), `${screenId}.json`), dataRoot); // defense-in-depth
   const current = (await migrateScreenIfNeeded(screenId, r)) as Record<string, unknown> | null;
   const project = await readProject(r);
   const items = extractItems(data);
@@ -956,6 +973,7 @@ export async function writeScreenItems(screenId: string, data: unknown, root: st
 export async function deleteScreenItems(screenId: string, root: string): Promise<void> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
+  assertPathContained(path.join(screenItemsDir(dataRoot), `${screenId}.json`), dataRoot); // defense-in-depth
   const current = (await migrateScreenIfNeeded(screenId, r)) as Record<string, unknown> | null;
   if (current) {
     await writeScreenEntity(screenId, { ...current, items: [] }, r);
@@ -969,20 +987,25 @@ export async function deleteScreenItems(screenId: string, root: string): Promise
 export async function readSequence(sequenceId: string, root: string): Promise<unknown | null> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
-  return readJSON<unknown>(path.join(sequencesDir(dataRoot), `${sequenceId}.json`));
+  const filePath = path.join(sequencesDir(dataRoot), `${sequenceId}.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  return readJSON<unknown>(filePath);
 }
 
 /** sequences/{sequenceId}.json を書き込み (#374) */
 export async function writeSequence(sequenceId: string, data: unknown, root: string): Promise<void> {
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
-  await writeJSON(path.join(sequencesDir(dataRoot), `${sequenceId}.json`), data);
+  const filePath = path.join(sequencesDir(dataRoot), `${sequenceId}.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  await writeJSON(filePath, data);
 }
 
 /** sequences/{sequenceId}.json を削除（存在しない場合は無視） (#374) */
 export async function deleteSequence(sequenceId: string, root: string): Promise<void> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
+  assertPathContained(path.join(sequencesDir(dataRoot), `${sequenceId}.json`), dataRoot); // defense-in-depth
   try {
     await fs.unlink(path.join(sequencesDir(dataRoot), `${sequenceId}.json`));
   } catch { /* file not found is OK */ }
@@ -1011,20 +1034,25 @@ export async function listAllViews(root: string): Promise<unknown[]> {
 export async function readView(viewId: string, root: string): Promise<unknown | null> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
-  return readJSON<unknown>(path.join(viewsDir(dataRoot), `${viewId}.json`));
+  const filePath = path.join(viewsDir(dataRoot), `${viewId}.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  return readJSON<unknown>(filePath);
 }
 
 /** views/{viewId}.json を書き込み (v3 per-entity #549) */
 export async function writeView(viewId: string, data: unknown, root: string): Promise<void> {
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
-  await writeJSON(path.join(viewsDir(dataRoot), `${viewId}.json`), data);
+  const filePath = path.join(viewsDir(dataRoot), `${viewId}.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  await writeJSON(filePath, data);
 }
 
 /** views/{viewId}.json を削除（存在しない場合は無視） (v3 per-entity #549) */
 export async function deleteView(viewId: string, root: string): Promise<void> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
+  assertPathContained(path.join(viewsDir(dataRoot), `${viewId}.json`), dataRoot); // defense-in-depth
   try {
     await fs.unlink(path.join(viewsDir(dataRoot), `${viewId}.json`));
   } catch { /* file not found is OK */ }
@@ -1051,18 +1079,23 @@ export async function listAllViewDefinitions(root: string): Promise<unknown[]> {
 export async function readViewDefinition(viewDefinitionId: string, root: string): Promise<unknown | null> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
-  return readJSON<unknown>(path.join(viewDefsDir(dataRoot), `${viewDefinitionId}.json`));
+  const filePath = path.join(viewDefsDir(dataRoot), `${viewDefinitionId}.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  return readJSON<unknown>(filePath);
 }
 
 export async function writeViewDefinition(viewDefinitionId: string, data: unknown, root: string): Promise<void> {
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
-  await writeJSON(path.join(viewDefsDir(dataRoot), `${viewDefinitionId}.json`), data);
+  const filePath = path.join(viewDefsDir(dataRoot), `${viewDefinitionId}.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  await writeJSON(filePath, data);
 }
 
 export async function deleteViewDefinition(viewDefinitionId: string, root: string): Promise<void> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
+  assertPathContained(path.join(viewDefsDir(dataRoot), `${viewDefinitionId}.json`), dataRoot); // defense-in-depth
   try {
     await fs.unlink(path.join(viewDefsDir(dataRoot), `${viewDefinitionId}.json`));
   } catch { /* file not found is OK */ }
@@ -1139,13 +1172,17 @@ export async function listAllPageLayouts(root: string): Promise<unknown[]> {
 export async function readPageLayout(pageLayoutId: string, root: string): Promise<unknown | null> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
-  return readJSON<unknown>(path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.json`));
+  const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  return readJSON<unknown>(filePath);
 }
 
 export async function writePageLayout(pageLayoutId: string, data: unknown, root: string): Promise<void> {
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
-  await writeJSON(path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.json`), data);
+  const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  await writeJSON(filePath, data);
 }
 
 /**
@@ -1156,18 +1193,23 @@ export async function writePageLayout(pageLayoutId: string, data: unknown, root:
  */
 export async function readPageLayoutDesign(pageLayoutId: string, root: string): Promise<unknown | null> {
   const dataRoot = await resolveDataRoot(root);
-  return readJSON<unknown>(path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`));
+  const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
+  return readJSON<unknown>(filePath);
 }
 
 export async function writePageLayoutDesign(pageLayoutId: string, data: unknown, root: string): Promise<void> {
   const dataRoot = await ensureDataDirFromRoot(root);
+  const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`);
+  assertPathContained(filePath, dataRoot); // defense-in-depth
   await fs.mkdir(pageLayoutsDir(dataRoot), { recursive: true });
-  await writeJSON(path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`), data);
+  await writeJSON(filePath, data);
 }
 
 export async function deletePageLayoutFile(pageLayoutId: string, root: string): Promise<void> {
   const r = root;
   const dataRoot = await resolveDataRoot(r);
+  assertPathContained(path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.json`), dataRoot); // defense-in-depth
   try {
     await fs.unlink(path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.json`));
   } catch { /* file not found is OK */ }

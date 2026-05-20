@@ -18,17 +18,20 @@ import {
   readScreenFlowPositions,
   writeScreenFlowPositions,
 } from "../projectStorage.js";
+import { assertSafeName } from "../security/idValidator.js";
 import type { RpcHandlerMap } from "./types.js";
 
 export const tableHandlers: RpcHandlerMap = {
   loadTable: async ({ params, root, respond }) => {
     const { tableId } = (params ?? {}) as { tableId: string };
+    assertSafeName(tableId, "tableId");
     const tableData = await readTable(tableId, root());
     respond(tableData);
   },
 
   saveTable: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { tableId, data } = (params ?? {}) as { tableId: string; data: unknown };
+    assertSafeName(tableId, "tableId");
     await writeTable(tableId, data, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "tableChanged", data: { tableId }, excludeClientId: clientId });
@@ -36,6 +39,7 @@ export const tableHandlers: RpcHandlerMap = {
 
   deleteTable: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { tableId } = (params ?? {}) as { tableId: string };
+    assertSafeName(tableId, "tableId");
     await deleteTableFile(tableId, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "tableChanged", data: { tableId, deleted: true }, excludeClientId: clientId });

@@ -11,7 +11,20 @@
  * 機能不変 — case body は一字一句変更なし。
  */
 import type { DraftResourceType as EditSessionResourceType } from "../editSessionStore.js";
+import { assertSafeName } from "../security/idValidator.js";
 import type { RpcHandlerMap } from "./types.js";
+
+const VALID_RESOURCE_TYPES = new Set<EditSessionResourceType>([
+  "screen", "puck-data", "table", "process-flow", "view", "view-definition",
+  "page-layout", "screen-item", "sequence", "extension", "convention", "flow", "er-layout",
+]);
+
+function assertResourceType(rt: unknown, label: string): EditSessionResourceType {
+  if (typeof rt !== "string" || !VALID_RESOURCE_TYPES.has(rt as EditSessionResourceType)) {
+    throw new Error(`Invalid ${label}: unknown resource type (got ${JSON.stringify(rt)})`);
+  }
+  return rt as EditSessionResourceType;
+}
 
 export const editSessionHandlers: RpcHandlerMap = {
   "editSession.create": async ({ params, clientId, respond, respondError, bridge }) => {
@@ -26,7 +39,9 @@ export const editSessionHandlers: RpcHandlerMap = {
       displayLabel?: string;
     };
     try {
-      const result = bridge.editSessionCreate(clientId, esRt, esRid, esLabel);
+      const validatedRt = assertResourceType(esRt, "resourceType");
+      assertSafeName(esRid, "resourceId");
+      const result = bridge.editSessionCreate(clientId, validatedRt, esRid, esLabel);
       respond(result);
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));
@@ -45,6 +60,7 @@ export const editSessionHandlers: RpcHandlerMap = {
       parentHumanSessionId?: string;
     };
     try {
+      assertSafeName(esAvId, "editSessionId");
       const result = bridge.editSessionAttachAsView(clientId, esAvId, esAvLabel, esAvParent);
       respond(result);
     } catch (e) {
@@ -56,6 +72,7 @@ export const editSessionHandlers: RpcHandlerMap = {
     // #906: 公開 API editSessionDetach を adapter として呼ぶ
     const { editSessionId: esDtId } = (params ?? {}) as { editSessionId: string };
     try {
+      assertSafeName(esDtId, "editSessionId");
       const result = bridge.editSessionDetach(clientId, esDtId);
       respond(result);
     } catch (e) {
@@ -70,6 +87,7 @@ export const editSessionHandlers: RpcHandlerMap = {
       role: esNewRole,
     } = (params ?? {}) as { editSessionId: string; role: "Edit" | "View" };
     try {
+      assertSafeName(esRoleId, "editSessionId");
       const result = bridge.editSessionSetRole(clientId, esRoleId, esNewRole);
       respond(result);
     } catch (e) {
@@ -82,6 +100,7 @@ export const editSessionHandlers: RpcHandlerMap = {
     // (caller = take-over 実行者 = new Edit holder; fromSessionId は participants から自動検索)
     const { editSessionId: esTrId } = (params ?? {}) as { editSessionId: string; toSessionId?: string };
     try {
+      assertSafeName(esTrId, "editSessionId");
       const result = bridge.editSessionTransferEdit(clientId, esTrId);
       respond(result);
     } catch (e) {
@@ -97,6 +116,7 @@ export const editSessionHandlers: RpcHandlerMap = {
       payload: esUpPayload,
     } = (params ?? {}) as { editSessionId: string; payload: unknown };
     try {
+      assertSafeName(esUpId, "editSessionId");
       const result = bridge.editSessionUpdate(clientId, esUpId, esUpPayload);
       respond(result);
     } catch (e) {
@@ -112,6 +132,7 @@ export const editSessionHandlers: RpcHandlerMap = {
       stage?: "checkOnly" | "commit";
     };
     try {
+      assertSafeName(esSvId, "editSessionId");
       const result = await bridge.editSessionSave(clientId, esSvId, { force, stage });
       respond(result);
     } catch (e) {
@@ -123,6 +144,7 @@ export const editSessionHandlers: RpcHandlerMap = {
     // #906: 公開 API editSessionDiscard を adapter として呼ぶ
     const { editSessionId: esDiscId } = (params ?? {}) as { editSessionId: string };
     try {
+      assertSafeName(esDiscId, "editSessionId");
       const result = await bridge.editSessionDiscard(clientId, esDiscId);
       respond(result);
     } catch (e) {
@@ -137,6 +159,8 @@ export const editSessionHandlers: RpcHandlerMap = {
       resourceId: esLstRid,
     } = (params ?? {}) as { resourceType?: EditSessionResourceType; resourceId?: string };
     try {
+      if (esLstRt !== undefined) assertResourceType(esLstRt, "resourceType");
+      if (esLstRid !== undefined) assertSafeName(esLstRid, "resourceId");
       const result = bridge.editSessionList(clientId, { resourceType: esLstRt, resourceId: esLstRid });
       respond(result);
     } catch (e) {
@@ -148,6 +172,7 @@ export const editSessionHandlers: RpcHandlerMap = {
     // #906: 公開 API editSessionFetchPayload を adapter として呼ぶ
     const { editSessionId: esFpId } = (params ?? {}) as { editSessionId: string };
     try {
+      assertSafeName(esFpId, "editSessionId");
       const result = bridge.editSessionFetchPayload(clientId, esFpId);
       respond(result);
     } catch (e) {
@@ -162,6 +187,8 @@ export const editSessionHandlers: RpcHandlerMap = {
       resourceId: esLhRid,
     } = (params ?? {}) as { resourceType: string; resourceId: string };
     try {
+      assertResourceType(esLhRt, "resourceType");
+      assertSafeName(esLhRid, "resourceId");
       const result = await bridge.editSessionListHistory(clientId, esLhRt, esLhRid);
       respond(result);
     } catch (e) {
@@ -176,6 +203,11 @@ export const editSessionHandlers: RpcHandlerMap = {
       displayLabel: esRhLabel,
     } = (params ?? {}) as { historyId: string; displayLabel?: string };
     try {
+      // historyId は "<ISO-timestamp>--<sessionId-prefix>-<rand>" 形式 (SafeName より広い文字集合)
+      // storage 層の assertPathContained が containment を保証するため、型チェックのみ実施
+      if (typeof esRhId !== "string" || esRhId.length === 0 || esRhId.length > 128) {
+        throw new Error(`Invalid historyId: must be a non-empty string (got ${JSON.stringify(esRhId)})`);
+      }
       const result = await bridge.editSessionRestoreFromHistory(clientId, esRhId, esRhLabel);
       respond(result);
     } catch (e) {
