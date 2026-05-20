@@ -7,6 +7,7 @@
  * backend に書き戻す migration を維持する (#923 シリーズで本体 fallback は廃止済み)。
  */
 import type { Editor as GEditor } from "grapesjs";
+import { uiInfo } from "../utils/uiLog";
 
 export interface CustomBlock {
   id: string;
@@ -66,7 +67,7 @@ export async function loadCustomBlocks(): Promise<CustomBlock[]> {
   const legacy = readLegacyLocalStorage();
   if (legacy.length > 0) {
     await backend.saveCustomBlocks(legacy);
-    console.log("[customBlockStore] Migrated custom blocks from localStorage to file");
+    uiInfo("load", "customBlockStore: Migrated custom blocks from localStorage to file");
     return legacy;
   }
   return [];

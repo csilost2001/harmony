@@ -8,7 +8,6 @@ export type TabType =
   // マルチインスタンス（リソース ID 毎に独立タブ）
   | "design"          // 画面デザイナー
   | "table"           // テーブル編集
-  | "action"          // 処理フロー編集
   | "process-flow"    // 処理フロー編集
   | "sequence"        // シーケンス編集 (#374)
   | "view"            // ビュー編集 (#376)
