@@ -1,6 +1,14 @@
-// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 import { useState } from "react";
-import type { ActionFields, FieldType, StructuredField } from "../../types/v3";
+import type {
+  ActionFields,
+  FieldType,
+  FieldTypeDomain,
+  FieldTypeExtension,
+  FieldTypePrimitive,
+  Identifier,
+  ScreenId,
+  StructuredField,
+} from "../../types/v3";
 import { fieldsToText, isStructuredFields, textToStructuredFields } from "../../utils/actionFields";
 
 /** 画面項目ピッカーで返る型 — StructuredField にコピー元の値を載せて返す */
@@ -28,7 +36,48 @@ interface Props {
   onPickScreenItem?: () => Promise<ScreenItemPickResult | null>;
 }
 
-const PRIMITIVE_TYPES: Array<"string" | "number" | "boolean" | "date"> = ["string", "number", "boolean", "date"];
+const PRIMITIVE_TYPES: FieldTypePrimitive[] = ["string", "number", "integer", "boolean", "date", "datetime", "json"];
+
+/** FieldType オブジェクトをテキスト入力の表示値に変換する */
+function fieldTypeToDisplay(type: FieldType): string {
+  if (typeof type === "string") return type;
+  // legacy `kind: "custom"` (v3 非規範、既存データ互換)
+  const t = type as { kind: string; domainKey?: string; extensionRef?: string; label?: string };
+  switch (t.kind) {
+    case "domain":    return `domain:${t.domainKey ?? ""}`;
+    case "extension": return `ext:${t.extensionRef ?? ""}`;
+    case "custom":    return t.label ?? "";
+    default:          return t.kind;
+  }
+}
+
+/** テキスト入力値から FieldType に変換する */
+function displayToFieldType(v: string): FieldType {
+  if (v === "") return "string";
+  if ((PRIMITIVE_TYPES as string[]).includes(v)) return v as FieldType;
+  if (v.startsWith("domain:")) {
+    const domainKey = v.slice("domain:".length).trim();
+    return { kind: "domain", domainKey: domainKey || v } satisfies FieldTypeDomain;
+  }
+  if (v.startsWith("ext:")) {
+    const extensionRef = v.slice("ext:".length).trim();
+    return { kind: "extension", extensionRef: extensionRef || v } satisfies FieldTypeExtension;
+  }
+  // fallback: plain text → domain (PascalCase) or keep as custom-compat
+  return { kind: "domain", domainKey: v } satisfies FieldTypeDomain;
+}
+
+/** FieldType オブジェクトのツールチップ表示 */
+function fieldTypeTitle(type: FieldType): string | undefined {
+  if (typeof type === "string") return undefined;
+  const t = type as { kind: string; domainKey?: string; extensionRef?: string; label?: string };
+  switch (t.kind) {
+    case "domain":    return `ドメイン型: ${t.domainKey}`;
+    case "extension": return `拡張型: ${t.extensionRef}`;
+    case "custom":    return `カスタム型: ${t.label}`;  // legacy 互換
+    default:          return t.kind;
+  }
+}
 
 /**
  * ActionDefinition.inputs / outputs の編集 UI (#226 / #310)。
@@ -57,7 +106,7 @@ export function StructuredFieldsEditor({ label, fields, onChange, onCommit, plac
 
   const addField = () => {
     const curr = isStructured ? fields : [];
-    const newField: StructuredField = { name: "", type: "string" };
+    const newField: StructuredField = { name: "" as Identifier, type: "string" };
     onChange([...curr, newField]);
   };
 
@@ -68,12 +117,12 @@ export function StructuredFieldsEditor({ label, fields, onChange, onCommit, plac
     if (!result) return;
     const curr = isStructured ? fields : [];
     const newField: StructuredField = {
-      name: result.name,
+      name: result.name as Identifier,
       label: result.label,
       type: result.type,
       required: result.required,
       description: result.description,
-      screenItemRef: { screenId: result.screenId, itemId: result.itemId },
+      screenItemRef: { screenId: result.screenId as ScreenId, itemId: result.itemId as Identifier },
     };
     onChange([...curr, newField]);
     onCommit?.();
@@ -181,7 +230,7 @@ export function StructuredFieldsEditor({ label, fields, onChange, onCommit, plac
                       type="text"
                       className="form-control form-control-sm"
                       value={f.name}
-                      onChange={(e) => updateField(i, { name: e.target.value })}
+                      onChange={(e) => updateField(i, { name: e.target.value as Identifier })}
                       onBlur={() => onCommit?.()}
                       placeholder="name"
                     />
@@ -201,26 +250,11 @@ export function StructuredFieldsEditor({ label, fields, onChange, onCommit, plac
                       type="text"
                       list="structured-fields-type-list"
                       className="form-control form-control-sm"
-                      value={typeof f.type === "string"
-                        ? f.type
-                        : f.type.kind === "custom"
-                          ? f.type.label ?? ""
-                          : ""}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === "") {
-                          updateField(i, { type: "string" });
-                        } else if ((PRIMITIVE_TYPES as string[]).includes(v)) {
-                          updateField(i, { type: v as FieldType });
-                        } else {
-                          updateField(i, { type: { kind: "custom", label: v } });
-                        }
-                      }}
+                      value={fieldTypeToDisplay(f.type)}
+                      onChange={(e) => updateField(i, { type: displayToFieldType(e.target.value) })}
                       onBlur={() => onCommit?.()}
-                      placeholder="型 (string/DTO名 等)"
-                      title={typeof f.type === "object" && f.type.kind === "custom"
-                        ? `カスタム型: ${f.type.label}`
-                        : undefined}
+                      placeholder="型 (string / domain:Name / ext:ns:key)"
+                      title={fieldTypeTitle(f.type)}
                     />
                   </td>
                   <td className="text-center">
