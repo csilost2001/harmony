@@ -352,6 +352,42 @@
           }
         },
         {
+          "id": "step-08b",
+          "kind": "branch",
+          "description": "step-08 の DB INSERT 失敗 (PHOTO_UPLOAD_FAILED) を捕捉し、step-04 でローカル保存したファイルを補償削除する (orphaned ファイル残存防止)。",
+          "tryScope": [
+            "step-08"
+          ],
+          "branches": [
+            {
+              "id": "br-08b-a",
+              "code": "A",
+              "label": "DB INSERT 失敗",
+              "condition": {
+                "kind": "tryCatch",
+                "errorCode": "PHOTO_UPLOAD_FAILED",
+                "description": "affectedRowsCheck が PHOTO_UPLOAD_FAILED を throw した場合に捕捉する。"
+              },
+              "steps": [
+                {
+                  "id": "step-08b-a-01",
+                  "kind": "compute",
+                  "description": "ローカル保存済みファイルを削除する補償操作 (step-04 で saveLocalFile した絶対パスを削除)。",
+                  "compensatesFor": "step-04",
+                  "expression": "deleteLocalFile(@saved.absolutePath)"
+                },
+                {
+                  "id": "step-08b-a-02",
+                  "kind": "return",
+                  "description": "500 写真登録失敗を返す。",
+                  "responseId": "500-internal",
+                  "bodyExpression": "{ code: 'PHOTO_UPLOAD_FAILED', message: '写真の登録に失敗しました。' }"
+                }
+              ]
+            }
+          ]
+        },
+        {
           "id": "step-09",
           "kind": "return",
           "description": "201 作成成功 + 登録された写真情報を返す。",
