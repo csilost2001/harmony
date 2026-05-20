@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Step, ExternalChain, ExternalChainPhase } from "../../types/v3";
+import type { Step, ExternalChain, ExternalChainPhase, LocalId } from "../../types/v3";
 import { SlaPanel } from "./SlaPanel";
 
 interface Props {
@@ -21,7 +21,7 @@ export function StepAdvancedMetadataPanel({ step, onChange, onCommit }: Props) {
 
   const extCh = step.externalChain;
   const setExtChain = (patch: Partial<ExternalChain>) => {
-    const next: ExternalChain = { chainId: "", phase: "authorize", ...extCh, ...patch };
+    const next: ExternalChain = { chainId: "" as LocalId, phase: "authorize", ...extCh, ...patch };
     onChange({ externalChain: next });
   };
   const clearExtChain = () => onChange({ externalChain: undefined });
@@ -60,7 +60,7 @@ export function StepAdvancedMetadataPanel({ step, onChange, onCommit }: Props) {
             type="text"
             className="form-control form-control-sm"
             value={step.compensatesFor ?? ""}
-            onChange={(e) => onChange({ compensatesFor: e.target.value || undefined })}
+            onChange={(e) => onChange({ compensatesFor: (e.target.value || undefined) as LocalId | undefined })}
             onBlur={onCommit}
             placeholder="補償対象ステップ ID (例: step-authorize)"
             style={{ fontSize: "0.8rem" }}
@@ -77,7 +77,7 @@ export function StepAdvancedMetadataPanel({ step, onChange, onCommit }: Props) {
             value={extCh?.chainId ?? ""}
             onChange={(e) => {
               if (!e.target.value && !extCh?.phase) clearExtChain();
-              else setExtChain({ chainId: e.target.value });
+              else setExtChain({ chainId: e.target.value as LocalId });
             }}
             onBlur={onCommit}
             placeholder="chainId (例: stripe-pi-order)"
