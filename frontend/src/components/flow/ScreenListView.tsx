@@ -22,6 +22,7 @@ import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
 import { ValidationBadge } from "../common/ValidationBadge";
+import { MaturityBadge } from "../process-flow/MaturityBadge";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { useListKeyboard } from "../../hooks/useListKeyboard";
@@ -499,6 +500,13 @@ export function ScreenListView() {
       },
     },
     {
+      key: "maturity",
+      header: "成熟度",
+      width: "72px",
+      align: "center",
+      render: (s) => <MaturityBadge maturity={s.maturity} />,
+    },
+    {
       key: "type",
       header: "種別",
       width: "120px",
@@ -566,6 +574,7 @@ export function ScreenListView() {
         <i className={`bi ${SCREEN_KIND_ICONS[s.kind] ?? "bi-circle"} screen-card-icon`} />
         <span className="screen-card-name">{s.name}</span>
         <span className="screen-type-badge">{SCREEN_KIND_LABELS[s.kind] ?? s.kind}</span>
+        <MaturityBadge maturity={s.maturity} />
         {hasDraft("screen", s.id) && (
           <span className="list-item-draft-mark" title="未保存の編集中 draft があります">●</span>
         )}
