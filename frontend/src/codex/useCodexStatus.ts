@@ -99,7 +99,7 @@ export function useCodexStatus(client: CodexBrowserClient = defaultClient): UseC
 
   useEffect(() => {
     aliveRef.current = true;
-    void refresh();
+    queueMicrotask(() => { if (aliveRef.current) void refresh(); });
 
     const unsub = client.subscribeNotification((n: CodexNotification) => {
       if (n.method === "account/login/completed" || n.method === "account/updated") {

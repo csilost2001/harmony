@@ -464,7 +464,7 @@ export function ProcessFlowEditor() {
     setContextMenuSubTypePicker(false);
   }, []);
 
-  const handleDeleteStep = (stepId: string) => {
+  const handleDeleteStep = useCallback((stepId: string) => {
     updateGroupWithDraft((g) => {
       const act = g.actions.find((a) => a.id === activeActionId);
       if (!act) return;
@@ -472,7 +472,7 @@ export function ProcessFlowEditor() {
       removeStep(act, stepId);
     });
     closeContextMenu();
-  };
+  }, [activeActionId, updateGroupWithDraft, closeContextMenu]);
 
   const handleIndentStep = (stepId: string) => {
     updateGroupWithDraft((g) => {
@@ -503,12 +503,12 @@ export function ProcessFlowEditor() {
     });
   };
 
-  const handleMoveStep = (fromIndex: number, toIndex: number) => {
+  const handleMoveStep = useCallback((fromIndex: number, toIndex: number) => {
     updateGroupWithDraft((g) => {
       const act = g.actions.find((a) => a.id === activeActionId);
       if (act) moveStep(act, fromIndex, toIndex);
     });
-  };
+  }, [activeActionId, updateGroupWithDraft]);
 
   const handleDragStart = (event: { active: { data: { current?: Record<string, unknown> } } }) => {
     setIsDraggingToolbarStep(event.active.data.current?.kind === "toolbar-step");
@@ -700,7 +700,7 @@ export function ProcessFlowEditor() {
     const toIndex = fromIndex + direction;
     if (fromIndex < 0 || toIndex < 0 || toIndex >= activeAction.steps.length) return;
     handleMoveStep(fromIndex, toIndex);
-  }, [activeAction, selectedIds]);
+  }, [activeAction, selectedIds, handleMoveStep]);
 
   useSelectionKeyboard({
     onCut: handleCut,
