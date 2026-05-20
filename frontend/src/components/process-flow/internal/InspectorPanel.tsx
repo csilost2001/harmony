@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx 右サイドバー (詳細インスペクタ) を抽出。
 // AI 依頼パネル / Meta タブ (ActionMetaTabBar) / HTTP contract / SLA / 入出力データ。
 
