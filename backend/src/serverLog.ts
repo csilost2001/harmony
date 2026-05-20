@@ -37,6 +37,24 @@ let _logDir: string | null = null;
 let _minLevel: LogLevel = "info";
 let _inLog = false;
 
+// ── S-007: ログ出力前のシークレットマスキング ─────────────────────────────────
+
+/**
+ * JSON 文字列中のシークレット (APIキー / Bearer トークン / パスワード) をマスクする。
+ * ファイルへの書き込み前に適用することで、ログ経由の機密情報漏洩 (S-007) を防ぐ。
+ */
+function maskSecrets(json: string): string {
+  return json
+    // Anthropic / OpenAI / 汎用 APIキー (sk-... / ant-... / claude-...)
+    .replace(/\b(sk|ant|claude)-[A-Za-z0-9_-]{8,}/g, "***")
+    // Bearer トークン (Authorization ヘッダ値等)
+    .replace(/(Bearer\s+)\S+/gi, "$1***")
+    // パスワード・シークレットフィールド (JSON の key:value 形式)
+    .replace(/(["']?(?:password|passwd|secret|apiKey|api_key|token)["']?\s*[:=]\s*)["']?[^"',}\s]+["']?/gi, "$1***");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /** logger 初期化。projectRoot は data/ の親ディレクトリ。 */
 export function initServerLog(projectRoot: string): void {
   _logDir = path.join(projectRoot, "logs");
@@ -102,7 +120,8 @@ export function log(
     // 日付ロールオーバーは _todayFileName() が UTC 日付ベースで毎回算出するので自動切替。
     if (_logDir) {
       try {
-        fs.appendFileSync(path.join(_logDir, _todayFileName()), JSON.stringify(entry) + "\n", "utf-8");
+        // S-007: シークレットをマスクしてからファイルに書き込む
+        fs.appendFileSync(path.join(_logDir, _todayFileName()), maskSecrets(JSON.stringify(entry)) + "\n", "utf-8");
       } catch (e) {
         try { console.error("[serverLog] write failed:", e); } catch { /* swallow */ }
       }

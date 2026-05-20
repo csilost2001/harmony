@@ -32,6 +32,56 @@ export const SQL_DIALECT_LABELS: Record<SqlDialect, string> = {
   standard: "標準SQL",
 };
 
+// ── S-004: SQL Injection 対策ヘルパー ──────────────────────────────────────
+
+/**
+ * SQL 識別子 (テーブル名・カラム名・インデックス名等) をダイアレクト対応でクォートする。
+ * MySQL は `backtick`、その他はダブルクォートを使用。
+ * 識別子内のクォート文字は適切にエスケープされる。
+ */
+export function quoteIdentifier(name: string, dialect: SqlDialect): string {
+  if (dialect === "mysql") {
+    return "`" + name.replace(/`/g, "``") + "`";
+  }
+  return '"' + name.replace(/"/g, '""') + '"';
+}
+
+/**
+ * SQL 文字列リテラル内のシングルクォートをエスケープする。
+ * NUL 文字 (\0) とバックスラッシュも除去・エスケープする。
+ * 戻り値はクォートを含まない (呼び出し側が ' で囲む)。
+ */
+export function escapeSqlString(s: string): string {
+  return s
+    .replace(/\0/g, "")            // NUL 除去
+    .replace(/\\/g, "\\\\")        // バックスラッシュエスケープ
+    .replace(/'/g, "''");          // シングルクォートエスケープ
+}
+
+/**
+ * DEFAULT 値の文字列を安全な SQL 式にサニタイズする。
+ * - NULL → NULL
+ * - 数値リテラル → そのまま
+ * - 既にシングルクォートで囲まれた文字列 → 内側をエスケープして再クォート
+ * - 関数呼び出し (英字・アンダースコア・丸括弧・数字のみ) → そのまま
+ * - それ以外 → シングルクォートで囲んでエスケープ
+ */
+export function sanitizeDefaultValue(val: string): string {
+  const trimmed = val.trim();
+  if (/^null$/i.test(trimmed)) return "NULL";
+  if (/^[+-]?\d+(\.\d+)?$/.test(trimmed)) return trimmed;
+  if (/^'.*'$/s.test(trimmed)) {
+    const inner = trimmed.slice(1, -1);
+    return "'" + escapeSqlString(inner) + "'";
+  }
+  // 関数呼び出しパターン (CURRENT_TIMESTAMP, NOW(), GETDATE() 等)
+  if (/^[A-Za-z_][A-Za-z0-9_]*(\(\)|\([0-9 ,]*\))?$/.test(trimmed)) return trimmed;
+  // 不明な値はシングルクォートでエスケープして囲む
+  return "'" + escapeSqlString(trimmed) + "'";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /** FkAction (lowerCamelCase) → DDL 出力 (UPPER スペース含み) への変換 */
 const FK_ACTION_DDL: Record<FkAction, string> = {
   cascade: "CASCADE",
@@ -58,7 +108,7 @@ function findTable(allTables: Table[], tableId: string): Table | undefined {
  * @param allTables FK 参照解決用の全テーブル一覧 (referencedTableId UUID から物理名を逆引きするのに使う)
  */
 export function generateDdl(table: Table, dialect: SqlDialect, allTables: Table[] = []): string {
-  const physical = table.physicalName;
+  const physical = quoteIdentifier(table.physicalName, dialect);
   const colDefs: string[] = [];
   const pks: string[] = [];
 
@@ -67,17 +117,17 @@ export function generateDdl(table: Table, dialect: SqlDialect, allTables: Table[
       ? autoIncrementType(col.dataType, dialect)
       : mapDataType(col.dataType, col.length, col.scale, dialect);
 
-    let line = `  ${col.physicalName} ${typeStr}`;
+    let line = `  ${quoteIdentifier(col.physicalName, dialect)} ${typeStr}`;
     if (col.notNull) line += " NOT NULL";
     if (col.unique && !col.primaryKey) line += " UNIQUE";
     if (col.defaultValue && !col.autoIncrement) {
-      line += ` DEFAULT ${col.defaultValue}`;
+      line += ` DEFAULT ${sanitizeDefaultValue(col.defaultValue)}`;
     }
     if (col.comment && dialect === "mysql") {
-      line += ` COMMENT '${col.comment.replace(/'/g, "''")}'`;
+      line += ` COMMENT '${escapeSqlString(col.comment)}'`;
     }
     colDefs.push(line);
-    if (col.primaryKey) pks.push(col.physicalName);
+    if (col.primaryKey) pks.push(quoteIdentifier(col.physicalName, dialect));
   }
 
   if (pks.length > 0) {
@@ -113,12 +163,12 @@ export function generateDdl(table: Table, dialect: SqlDialect, allTables: Table[
   if (dialect === "postgresql" || dialect === "oracle") {
     const tableComment = table.comment || table.name; // table.name は v3 では DisplayName (表示名)
     if (tableComment) {
-      ddl += `\n\nCOMMENT ON TABLE ${physical} IS '${tableComment.replace(/'/g, "''")}';`;
+      ddl += `\n\nCOMMENT ON TABLE ${physical} IS '${escapeSqlString(tableComment)}';`;
     }
     for (const col of table.columns) {
       const cmt = col.comment || col.name; // col.name は v3 では DisplayName (表示名)
       if (cmt) {
-        ddl += `\nCOMMENT ON COLUMN ${physical}.${col.physicalName} IS '${cmt.replace(/'/g, "''")}';`;
+        ddl += `\nCOMMENT ON COLUMN ${physical}.${quoteIdentifier(col.physicalName, dialect)} IS '${escapeSqlString(cmt)}';`;
       }
     }
   }
@@ -234,17 +284,17 @@ function mapDataType(dt: string, length?: number, scale?: number, dialect?: SqlD
 }
 
 function indexToDdl(table: Table, idx: Index, dialect: SqlDialect): string {
-  const physical = table.physicalName;
+  const physical = quoteIdentifier(table.physicalName, dialect);
   const colList = idx.columns.map((ic) => {
     const phys = resolveColumnPhysical(table, ic.columnId);
     const ord = ic.order === "desc" ? " DESC" : "";
-    return `${phys}${ord}`;
+    return `${quoteIdentifier(phys, dialect)}${ord}`;
   }).join(", ");
   const uniq = idx.unique ? "UNIQUE " : "";
   const method = idx.method && idx.method !== "btree" && dialect === "postgresql"
     ? ` USING ${idx.method.toUpperCase()}`
     : "";
-  let stmt = `CREATE ${uniq}INDEX ${idx.physicalName} ON ${physical}${method} (${colList})`;
+  let stmt = `CREATE ${uniq}INDEX ${quoteIdentifier(idx.physicalName, dialect)} ON ${physical}${method} (${colList})`;
   if (idx.where) stmt += `\n  WHERE ${idx.where}`;
   return stmt + ";";
 }
@@ -252,25 +302,25 @@ function indexToDdl(table: Table, idx: Index, dialect: SqlDialect): string {
 function constraintToDdl(
   table: Table,
   c: Constraint,
-  _dialect: SqlDialect,
+  dialect: SqlDialect,
   allTables: Table[],
 ): string {
-  const physical = table.physicalName;
-  const constraintName = c.physicalName ?? c.id;
+  const physical = quoteIdentifier(table.physicalName, dialect);
+  const constraintName = quoteIdentifier(c.physicalName ?? c.id, dialect);
   switch (c.kind) {
     case "primaryKey": {
       // #1185 提案 C: PRIMARY KEY 制約 DDL (composite PK 対応)
-      const cols = c.columnIds.map((id) => resolveColumnPhysical(table, id));
+      const cols = c.columnIds.map((id) => quoteIdentifier(resolveColumnPhysical(table, id), dialect));
       return `ALTER TABLE ${physical} ADD CONSTRAINT ${constraintName} PRIMARY KEY (${cols.join(", ")});`;
     }
     case "unique": {
-      const cols = c.columnIds.map((id) => resolveColumnPhysical(table, id));
+      const cols = c.columnIds.map((id) => quoteIdentifier(resolveColumnPhysical(table, id), dialect));
       return `ALTER TABLE ${physical} ADD CONSTRAINT ${constraintName} UNIQUE (${cols.join(", ")});`;
     }
     case "check":
       return `ALTER TABLE ${physical} ADD CONSTRAINT ${constraintName} CHECK (${c.expression});`;
     case "foreignKey":
-      return foreignKeyToDdl(table, c, allTables, constraintName);
+      return foreignKeyToDdl(table, c, allTables, constraintName, dialect);
   }
 }
 
@@ -279,13 +329,16 @@ function foreignKeyToDdl(
   fk: ForeignKeyConstraint,
   allTables: Table[],
   constraintName: string,
+  dialect: SqlDialect,
 ): string {
-  const physical = table.physicalName;
-  const ownCols = fk.columnIds.map((id) => resolveColumnPhysical(table, id));
+  const physical = quoteIdentifier(table.physicalName, dialect);
+  const ownCols = fk.columnIds.map((id) => quoteIdentifier(resolveColumnPhysical(table, id), dialect));
   const refTable = findTable(allTables, fk.referencedTableId);
-  const refTableName = refTable?.physicalName ?? `<unknown:${String(fk.referencedTableId).slice(0, 8)}>`;
+  const refTableName = refTable
+    ? quoteIdentifier(refTable.physicalName, dialect)
+    : `<unknown:${String(fk.referencedTableId).slice(0, 8)}>`;
   const refCols = fk.referencedColumnIds.map((id) =>
-    refTable ? resolveColumnPhysical(refTable, id) : id,
+    quoteIdentifier(refTable ? resolveColumnPhysical(refTable, id) : id, dialect),
   );
   let s = `ALTER TABLE ${physical} ADD CONSTRAINT ${constraintName}\n  FOREIGN KEY (${ownCols.join(", ")}) REFERENCES ${refTableName}(${refCols.join(", ")})`;
   if (fk.onDelete) s += `\n  ON DELETE ${FK_ACTION_DDL[fk.onDelete]}`;
@@ -294,21 +347,21 @@ function foreignKeyToDdl(
 }
 
 function defaultToDdl(table: Table, def: DefaultDefinition, dialect: SqlDialect): string {
-  const physical = table.physicalName;
-  const colName = resolveColumnPhysical(table, def.columnId);
+  const physical = quoteIdentifier(table.physicalName, dialect);
+  const colName = quoteIdentifier(resolveColumnPhysical(table, def.columnId), dialect);
   let expr: string;
   switch (def.kind) {
     case "literal":
     case "function":
-      expr = def.value;
+      expr = sanitizeDefaultValue(def.value);
       break;
     case "sequence":
       expr = dialect === "postgresql"
-        ? `nextval('${def.value}')`
-        : def.value;
+        ? `nextval('${escapeSqlString(def.value)}')`
+        : sanitizeDefaultValue(def.value);
       break;
     case "convention":
-      expr = `NULL /* ${def.value} */`;
+      expr = `NULL /* ${def.value.replace(/\*\//g, "* /")} */`;
       break;
   }
   if (dialect === "oracle") {
@@ -318,13 +371,14 @@ function defaultToDdl(table: Table, def: DefaultDefinition, dialect: SqlDialect)
 }
 
 function triggerToDdl(table: Table, trg: TriggerDefinition, dialect: SqlDialect): string {
-  const physical = table.physicalName;
+  const physical = quoteIdentifier(table.physicalName, dialect);
   const events = trg.events.join(" OR ");
   const when = trg.whenCondition ? `\n  WHEN (${trg.whenCondition})` : "";
   // INSTEAD_OF はビュー用、テーブルでは通常使わないが schema 上は有効
   const timing = trg.timing === "INSTEAD_OF" ? "INSTEAD OF" : trg.timing;
+  const triggerName = quoteIdentifier(trg.physicalName, dialect);
   if (dialect === "postgresql") {
-    const fnName = `${trg.physicalName}_fn`;
+    const fnName = quoteIdentifier(`${trg.physicalName}_fn`, dialect);
     const returnStmt = trg.events.length === 1 && trg.events[0] === "DELETE"
       ? "RETURN OLD;"
       : "RETURN NEW;";
@@ -336,13 +390,13 @@ function triggerToDdl(table: Table, trg: TriggerDefinition, dialect: SqlDialect)
       `END;`,
       `$$ LANGUAGE plpgsql;`,
       ``,
-      `CREATE TRIGGER ${trg.physicalName}`,
+      `CREATE TRIGGER ${triggerName}`,
       `${timing} ${events} ON ${physical}${when}`,
       `FOR EACH ROW EXECUTE FUNCTION ${fnName}();`,
     ].join("\n");
   }
   return [
-    `CREATE TRIGGER ${trg.physicalName}`,
+    `CREATE TRIGGER ${triggerName}`,
     `${timing} ${events} ON ${physical}${when}`,
     `FOR EACH ROW`,
     `BEGIN`,

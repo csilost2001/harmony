@@ -185,6 +185,8 @@ async function readResponseTypesFile(root: string): Promise<ResponseTypesFile> {
 
 async function writeResponseTypesFile(file: ResponseTypesFile, root: string): Promise<void> {
   await writeExtensionsFile("responseTypes", file, root, {
+    // S-009: wsId=root はメッセージボディに含まれない (wsBridge が routing に使うのみ)。
+    // broadcast JSON = { type, event, data } のみ。path はクライアントに漏洩しない。
     onAfterWrite: () => wsBridge.broadcast({ wsId: root, event: "extensionsChanged", data: { type: "responseTypes" } }),
   });
 }

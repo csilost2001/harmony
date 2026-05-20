@@ -14,6 +14,7 @@
  */
 
 import type { Editor as GEditor } from "grapesjs";
+import DOMPurify from "dompurify";
 
 /** PageLayout.assignments の型 (regionName → gadget screenId) */
 export type RegionAssignments = Record<string, string>;
@@ -63,14 +64,15 @@ export function composePreviewHtml(
       el.removeAttribute("data-region-name");
       el.setAttribute("data-pl-region-rendered", name);
       if (name === "main") {
-        el.innerHTML = screenContentHtml;
+        // S-003: design HTML を XSS対策でサニタイズ (CWE-79)
+        el.innerHTML = DOMPurify.sanitize(screenContentHtml);
         el.setAttribute("data-pl-content-slot", "true");
         return;
       }
       const gadgetId = assignments[name];
       const gadgetHtml = gadgetId ? gadgetHtmlByScreenId.get(gadgetId) : null;
       if (gadgetHtml) {
-        el.innerHTML = gadgetHtml;
+        el.innerHTML = DOMPurify.sanitize(gadgetHtml); // S-003
       } else {
         el.innerHTML = `<span style="font-size:11px;color:#94a3b8;font-style:italic">(region: ${name} — 未割り当て or 未ロード)</span>`;
       }
@@ -253,14 +255,10 @@ function _appendPreviewHtml(
 
   // gadget HTML を inject (innerHTML)。pointer-events:none で編集不可、scope は wrapper 内に閉じる
   //
-  // Security note (Sonnet Should-fix): innerHTML 経由のため、gadget design.json に
-  // 悪意ある <script> が含まれれば実行されうる "self-XSS" 経路となる。
-  // 本ツールは AI / 信頼された設計者が自分で書いた design data を表示する性質のため、
-  // sanitize は採用せず gadget の design HTML をそのまま表示する。
-  // 第三者 input を design に流す経路が将来できた場合は DOMPurify 等の導入を検討。
+  // S-003: gadget design HTML を DOMPurify でサニタイズして XSS を防ぐ (CWE-79)
   const body = regionEl.ownerDocument.createElement("div");
   body.style.cssText = "min-height:24px;";
-  body.innerHTML = opts.html;
+  body.innerHTML = DOMPurify.sanitize(opts.html);
   wrapper.appendChild(body);
 
   regionEl.appendChild(wrapper);

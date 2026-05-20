@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
+import DOMPurify from "dompurify";
 import type { BlocksResultProps } from "@grapesjs/react";
 import { useEditorMaybe } from "@grapesjs/react";
 import type { Block } from "grapesjs";
@@ -112,7 +113,10 @@ export function BlocksPanel({ mapCategoryBlocks, dragStart, dragStop }: BlocksRe
                         <div
                           className="block-icon"
                           dangerouslySetInnerHTML={{
-                            __html: (block.get("media") as string) || "",
+                            // S-003: GrapesJS block icon HTML を XSS対策でサニタイズ (CWE-79)
+                            __html: DOMPurify.sanitize((block.get("media") as string) || "", {
+                              USE_PROFILES: { svg: true, svgFilters: true, html: true },
+                            }),
                           }}
                         />
                         <div className="block-label">{block.get("label")}</div>
