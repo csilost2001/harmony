@@ -35,7 +35,11 @@ export function isValidationStep(step: Step): step is ValidationStep {
   return step.kind === "validation";
 }
 
-/** ExtensionStep は kind が "namespace:StepName" pattern。組み込み 24 種を除外したい型ガード。 */
+/**
+ * ExtensionStep は kind が "namespace:StepName" pattern (例: "retail:OrderConfirmStep")。
+ * 組み込み 24 種の kind には ":" を含むものは存在しないため、判定として安全。
+ * 将来 built-in kind に ":" を含むものが追加された場合、本判定を見直すこと。
+ */
 export function isExtensionStep(s: Step): s is ExtensionStep {
   return typeof s.kind === "string" && s.kind.includes(":");
 }
@@ -43,6 +47,7 @@ export function isExtensionStep(s: Step): s is ExtensionStep {
 /**
  * subSteps は StepBaseProps に未定義だが UI レイヤーで使用されている runtime プロパティ。
  * 型システム上は Step & { subSteps?: Step[] } として扱う。
+ * `actionUtils` / `InlineStepList` / `ActionMetaTabBar` 等で共用。
  */
 export type StepWithSubSteps = Step & { subSteps?: Step[] };
 
