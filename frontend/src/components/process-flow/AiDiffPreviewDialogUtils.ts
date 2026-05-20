@@ -10,8 +10,8 @@ export interface DiffEntry {
 export function computeDiff(current: ProcessFlow, proposed: ProcessFlow): DiffEntry[] {
   const entries: DiffEntry[] = [];
 
-  const currentMeta = (current.meta ?? {}) as Record<string, unknown>;
-  const proposedMeta = (proposed.meta ?? {}) as Record<string, unknown>;
+  const currentMeta = current.meta as unknown as Record<string, unknown>;
+  const proposedMeta = proposed.meta as unknown as Record<string, unknown>;
   const metaKeys = new Set([...Object.keys(currentMeta), ...Object.keys(proposedMeta)]);
   for (const key of metaKeys) {
     if (key === "updatedAt") continue;
@@ -27,8 +27,8 @@ export function computeDiff(current: ProcessFlow, proposed: ProcessFlow): DiffEn
     }
   }
 
-  const currentActions = ((current.actions ?? []) as Array<Record<string, unknown>>);
-  const proposedActions = ((proposed.actions ?? []) as Array<Record<string, unknown>>);
+  const currentActions = current.actions as unknown as Array<Record<string, unknown>>;
+  const proposedActions = proposed.actions as unknown as Array<Record<string, unknown>>;
   const currentActionMap = new Map(currentActions.map((a) => [String(a.id), a]));
   const proposedActionMap = new Map(proposedActions.map((a) => [String(a.id), a]));
 
@@ -108,8 +108,8 @@ export function applyProcessFlowDiffSelection(
   for (const path of selected) {
     if (path.startsWith("meta.")) {
       const key = path.slice("meta.".length);
-      const targetMeta = target.meta as Record<string, unknown>;
-      const proposedMeta = proposed.meta as Record<string, unknown>;
+      const targetMeta = target.meta as unknown as Record<string, unknown>;
+      const proposedMeta = proposed.meta as unknown as Record<string, unknown>;
       if (hasOwn(proposedMeta, key)) {
         targetMeta[key] = cloneValue(proposedMeta[key]);
       } else {
@@ -121,8 +121,8 @@ export function applyProcessFlowDiffSelection(
     const actionMatch = path.match(/^actions\[(.+)]$/);
     if (actionMatch) {
       const actionId = actionMatch[1];
-      const proposedActions = (proposed.actions ?? []) as Array<Record<string, unknown>>;
-      const targetActions = target.actions as Array<Record<string, unknown>>;
+      const proposedActions = proposed.actions as unknown as Array<Record<string, unknown>>;
+      const targetActions = target.actions as unknown as Array<Record<string, unknown>>;
       const proposedAction = proposedActions.find((a) => String(a.id) === actionId);
       const targetIndex = targetActions.findIndex((a) => String(a.id) === actionId);
       if (proposedAction) {
