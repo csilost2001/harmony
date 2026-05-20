@@ -356,8 +356,9 @@ export class WsBridge extends EventEmitter {
             stack: e instanceof Error ? e.stack : undefined,
           });
           if (!res.writableEnded) {
+            // S-013: 内部エラーメッセージを外部に露出しない (CWE-209)
             res.writeHead(500, { "Content-Type": "text/plain" });
-            res.end(`Internal error: ${e instanceof Error ? e.message : String(e)}`);
+            res.end("Internal Server Error");
           }
         }
         return;
@@ -365,6 +366,14 @@ export class WsBridge extends EventEmitter {
     }
     // Health check endpoint (#795-A): half-dead 検知情報を含む
     if (url === "/" || url === "/health") {
+      // S-014: 詳細な稼働状況は loopback (127.0.0.1/::1) のみに公開する (CWE-200)
+      const remoteAddr = (req.socket?.remoteAddress ?? "").replace(/^::ffff:/, "");
+      const isLoopback = remoteAddr === "127.0.0.1" || remoteAddr === "::1" || remoteAddr === "localhost";
+      if (!isLoopback) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "ok" }));
+        return;
+      }
       const health = this.getHealth();
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({

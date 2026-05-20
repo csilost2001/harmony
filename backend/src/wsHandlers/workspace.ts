@@ -55,7 +55,6 @@ export const workspaceHandlers: RpcHandlerMap = {
   },
 
   "workspace.status": async ({ clientId, respond }) => {
-    // per-session active path (#700 R-2)
     const activePath = workspaceContextManager.getActivePath(clientId);
     let activeName: string | null = null;
     if (activePath) {
@@ -113,16 +112,22 @@ export const workspaceHandlers: RpcHandlerMap = {
     }
     let resolved = typeof targetPath === "string" ? targetPath : null;
     if (!resolved && typeof id === "string") {
-      const entry = await findWorkspaceById(id);
-      if (!entry) { respondError(`id ${id} のワークスペースが見つかりません`); return; }
-      resolved = entry.path;
+      // S-010: lockdown モード中は recent.json を読まず、lockdown パスのみを返す (CWE-863)
+      if (isWorkspaceLockdown()) {
+        const lockdownPath = getWorkspaceLockdownPath();
+        if (!lockdownPath) { respondError("lockdown パスが未設定です"); return; }
+        resolved = lockdownPath;
+      } else {
+        const entry = await findWorkspaceById(id);
+        if (!entry) { respondError(`id ${id} のワークスペースが見つかりません`); return; }
+        resolved = entry.path;
+      }
     }
     if (!resolved) { respondError("path 解決に失敗しました"); return; }
     let initName: string | null = null;
     if (initFlag) {
       if (isWorkspaceLockdown()) { respondError("lockdown モード中は新規ワークスペース初期化はできません"); return; }
       try {
-        // dataDir は省略時 "harmony" がデフォルト (#852 R-3 D-5)
         const initOpts = typeof initDataDir === "string" ? { dataDir: initDataDir } : undefined;
         const initRes = await initializeWorkspaceFolder(resolved, initOpts);
         initName = initRes.name;
@@ -132,8 +137,6 @@ export const workspaceHandlers: RpcHandlerMap = {
         return;
       }
     } else {
-      // init=false 時: stale recent エントリ / typo パスを active 化して fs を破壊しないよう、
-      // open 前に inspect で ready 状態を確認する (見つからない / harmony.json 無しは reject)
       const inspect = await inspectWorkspacePath(resolved);
       if (inspect.status !== "ready") {
         respondError(
@@ -147,7 +150,6 @@ export const workspaceHandlers: RpcHandlerMap = {
       }
     }
     try {
-      // per-session context を更新 (#700 R-2)
       workspaceContextManager.setActivePath(clientId, resolved);
     } catch (e) {
       if (e instanceof WorkspaceLockdownError) { respondError(e.message); return; }
@@ -167,7 +169,6 @@ export const workspaceHandlers: RpcHandlerMap = {
     const entry = await upsertWorkspaceEntry(resolved, name);
     await setLastActiveWorkspace(entry.id);
     respond({ active: { id: entry.id, path: entry.path, name: entry.name } });
-    // workspace.open broadcast: 同 path を active にしている session のみ受信 (#703 R-5 A-2)
     bridge.broadcast({ wsId: entry.path, event: "workspace.changed", data: {
       activeId: entry.id,
       path: entry.path,
@@ -177,22 +178,18 @@ export const workspaceHandlers: RpcHandlerMap = {
   },
 
   "workspace.close": async ({ clientId, respond, respondError, bridge }) => {
-    // close 前に現在の path をキャプチャしておく (close 後は getActivePath が null になるため)
     const closingPath = workspaceContextManager.getActivePath(clientId);
     try {
-      // per-session context を更新 (#700 R-2)
       workspaceContextManager.clearActive(clientId);
     } catch (e) {
       if (e instanceof WorkspaceLockdownError) { respondError(e.message); return; }
       throw e;
     }
     await setLastActiveWorkspace(null);
-    // workspace close 時に EditSessionStore も cleanup (#899 Phase 2)
     if (closingPath) {
       bridge.deleteEditSessionStoreForWorkspace(closingPath);
     }
     respond({ success: true });
-    // workspace.close broadcast: close 前のパスを持つ session のみ受信 (#703 R-5 A-2)
     bridge.broadcast({ wsId: closingPath, event: "workspace.changed", data: {
       activeId: null, path: null, name: null, lockdown: isWorkspaceLockdown(),
     }, excludeClientId: clientId });

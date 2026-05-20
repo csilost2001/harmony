@@ -123,6 +123,12 @@ export async function handlePropose(req: IncomingMessage, res: ServerResponse): 
     jsonBody(res, 400, { error: "screenId は UUID 形式で指定してください" }, req);
     return;
   }
+  // S-012: defense-in-depth — UUID_RE 検証済だが念のため非 UUID 文字を除去 (CWE-78)
+  const safeScreenId = screenId.replace(/[^0-9a-f-]/gi, "");
+  if (safeScreenId !== screenId) {
+    jsonBody(res, 400, { error: "screenId に不正な文字が含まれています" }, req);
+    return;
+  }
   if (typeof clientId !== "string") {
     jsonBody(res, 400, { error: "clientId は必須です" }, req);
     return;
@@ -148,7 +154,7 @@ export async function handlePropose(req: IncomingMessage, res: ServerResponse): 
 
   const prompt =
     skillContent +
-    `\n\n引数 $ARGUMENTS = "${screenId}"\n\n` +
+    `\n\n引数 $ARGUMENTS = "${safeScreenId}"\n\n` +
     "**重要**: ブラウザから起動のため Step 4/5 のユーザー対話と apply はスキップ。\n" +
     "Step 1-3 を実行し、推論した mapping を最終行に `FINAL_MAPPING: {\"oldId\": \"newId\", ...}` の JSON 形式で出力。\n" +
     "apply_rename_mapping は呼ばない (ブラウザ側で確認後に別途実行される)。";

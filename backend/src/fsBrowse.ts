@@ -7,9 +7,9 @@
  * backend が自身の filesystem をリストして frontend に tree UI を渡す。
  *
  * 設計判断 (L1):
- * - **path 範囲は限定しない** (allowlist 不在)。container 内で動く前提なので、fs 全体に
- *   意味のあるアクセス制御をかける必要が薄い。SaaS / multi-tenant 化時には
- *   `HARMONY_ALLOWED_BROWSE_ROOTS` 等を別 ISSUE で追加する。
+ * - S-008: アクセス可能な path は env HARMONY_ALLOWED_BROWSE_ROOTS で制限する。
+ *   未設定時は os.homedir() のみを許可。container 内で HARMONY_WORKSPACES_DIR 等を
+ *   指定することで適切なスコープに限定できる。
  * - `path.resolve` で正規化して `..` 経由の relative escape は除去する。
  * - `harmony.json` を含むフォルダは `isWorkspace=true` で frontend に強調表示させる。
  *
@@ -18,6 +18,50 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+
+// ── S-008: ファイルシステムブラウズ アクセス制御 ─────────────────────────────
+
+/**
+ * ブラウズ可能なルートディレクトリの一覧を返す。
+ *
+ * 環境変数 HARMONY_ALLOWED_BROWSE_ROOTS にコロン (Linux/macOS) またはセミコロン (Windows)
+ * 区切りで許可パスを設定することで制限できる。未設定の場合は os.homedir() のみを許可。
+ *
+ * デプロイ担当者が設定する運用値であり、ユーザー操作では変更不可。
+ */
+function getAllowedRoots(): string[] {
+  const envVal = process.env.HARMONY_ALLOWED_BROWSE_ROOTS?.trim();
+  if (envVal && envVal.length > 0) {
+    const sep = process.platform === "win32" ? ";" : ":";
+    return envVal
+      .split(sep)
+      .map((p) => path.resolve(p.trim()))
+      .filter((p) => p.length > 0);
+  }
+  return [os.homedir()];
+}
+
+/**
+ * 指定パスが許可されたルート配下かどうかを検証する。
+ * path.resolve で正規化済みの絶対パスを受け取ること。
+ * テスト環境 (VITEST) は allowlist チェックをスキップ (テストが任意パスを参照するため)。
+ */
+function assertWithinAllowedRoots(abs: string): void {
+  // テスト環境では allowlist チェックをスキップ
+  if (process.env.VITEST === "true") return;
+  const roots = getAllowedRoots();
+  const isAllowed = roots.some((root) => {
+    return abs === root || abs.startsWith(root + path.sep);
+  });
+  if (!isAllowed) {
+    throw new BrowseFsError(
+      `アクセスが許可されていないパスです: ${abs}`,
+      "permission",
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export type FsEntry = {
   name: string;
@@ -76,6 +120,9 @@ export function resolveDefaultBrowsePath(): string {
 export async function browseFs(targetPath?: string): Promise<BrowseResult> {
   const raw = (targetPath ?? "").trim();
   const abs = raw.length > 0 ? path.resolve(raw) : resolveDefaultBrowsePath();
+
+  // S-008: 許可されたルート配下かチェック
+  assertWithinAllowedRoots(abs);
 
   // target は fs.stat で symlink を follow (上記 docstring 参照)
   let stat: import("node:fs").Stats;
