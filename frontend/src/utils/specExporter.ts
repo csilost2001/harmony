@@ -38,7 +38,7 @@ function pfFlat(g: ProcessFlow): Record<string, unknown> {
 }
 
 function pfKind(g: ProcessFlow): string {
-  return (g.meta?.kind ?? pfFlat(g)["kind"] ?? "") as string;
+  return (g.meta?.kind ?? pfFlat(g)["kind"] ?? pfFlat(g)["type"] ?? "") as string;
 }
 
 function pfName(g: ProcessFlow): string {
