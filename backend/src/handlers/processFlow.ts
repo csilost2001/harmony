@@ -41,7 +41,7 @@ import {
 } from "../processFlowEdits.js";
 import { saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
 import { wsBridge } from "../wsBridge.js";
-import { assertUuid, assertSafeName } from "../security/idValidator.js";
+import { assertUuid, assertSafeName, assertPathContained } from "../security/idValidator.js";
 
 type ResponseTypeEntry = {
   description?: string;
@@ -652,9 +652,11 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       }
 
       const _dataRoot = await resolveDataRoot(root);
-      const outPath = path.isAbsolute(a.outputPath as string)
+      const outPathRaw = path.isAbsolute(a.outputPath as string)
         ? (a.outputPath as string)
         : path.join(_dataRoot, a.outputPath as string);
+      // path traversal 対策: outputPath は workspace root 配下に限定 (#1229)
+      const outPath = assertPathContained(outPathRaw, root);
 
       const zip = new AdmZip();
       const manifest = {
@@ -685,9 +687,11 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "inputPath は必須です");
       }
       const _unpackDataRoot = await resolveDataRoot(root);
-      const inPath = path.isAbsolute(a.inputPath as string)
+      const inPathRaw = path.isAbsolute(a.inputPath as string)
         ? (a.inputPath as string)
         : path.join(_unpackDataRoot, a.inputPath as string);
+      // path traversal 対策: inputPath は workspace root 配下に限定 (#1229)
+      const inPath = assertPathContained(inPathRaw, root);
       const conflict = (a.conflictResolution as string | undefined) ?? "skip";
 
       const zip = new AdmZip(inPath);

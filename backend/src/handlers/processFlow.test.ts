@@ -354,3 +354,133 @@ describe("designer__list_process_flows — #1141 F-4 v3 meta path", () => {
     expect(text).not.toMatch(/\(undefined\)/);
   });
 });
+
+// ── 5. designer__solution_pack / solution_unpack の path traversal 拒否 (#1229 F-1) ──
+
+import fsSync from "node:fs";
+import AdmZip from "adm-zip";
+
+describe("designer__solution_pack — #1229 F-1 path traversal 拒否", () => {
+  const root = path.join(TMP_ROOT, "ws-pack-path");
+  beforeAll(async () => { await makeWorkspace(root); });
+
+  it("outputPath が workspace 外 (../ traversal) の場合は Error を throw する", async () => {
+    await expect(
+      handleProcessFlowTool(
+        "designer__solution_pack",
+        {
+          processFlowIds: ["aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"],
+          publisherPrefix: "test",
+          version: "1.0.0",
+          outputPath: "../../evil.zip",
+        },
+        root,
+        SESSION_ID,
+      ),
+    ).rejects.toThrow(/Path traversal detected/);
+  });
+
+  it("outputPath が絶対パスで workspace 外の場合は Error を throw する", async () => {
+    await expect(
+      handleProcessFlowTool(
+        "designer__solution_pack",
+        {
+          processFlowIds: ["aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"],
+          publisherPrefix: "test",
+          version: "1.0.0",
+          outputPath: "/tmp/evil.zip",
+        },
+        root,
+        SESSION_ID,
+      ),
+    ).rejects.toThrow(/Path traversal detected/);
+  });
+
+  it("outputPath が workspace 内の相対パスなら正常に実行される", async () => {
+    // 処理フローを事前に作成
+    const addRes = await handleProcessFlowTool(
+      "designer__add_process_flow",
+      { name: "pack-test-flow", kind: "common" },
+      root,
+      SESSION_ID,
+    );
+    const addText = addRes!.content[0].text as string;
+    const idMatch = addText.match(/ID: ([0-9a-f-]+)/);
+    const pfId = idMatch![1];
+
+    const res = await handleProcessFlowTool(
+      "designer__solution_pack",
+      {
+        processFlowIds: [pfId],
+        publisherPrefix: "test",
+        version: "1.0.0",
+        outputPath: "output/test.zip",
+      },
+      root,
+      SESSION_ID,
+    );
+    expect(res).not.toBeNull();
+    const text = res!.content[0].text as string;
+    expect(text).toMatch(/1 件をパックしました/);
+    // zip ファイルが workspace 内 (dataDir 配下) に作成されたことを確認
+    // _dataRoot = root/harmony なので outputPath 相対はそこに展開される
+    expect(fsSync.existsSync(path.join(root, "harmony", "output", "test.zip"))).toBe(true);
+  });
+});
+
+describe("designer__solution_unpack — #1229 F-1 path traversal 拒否", () => {
+  const root = path.join(TMP_ROOT, "ws-unpack-path");
+  beforeAll(async () => { await makeWorkspace(root); });
+
+  it("inputPath が workspace 外 (../ traversal) の場合は Error を throw する", async () => {
+    await expect(
+      handleProcessFlowTool(
+        "designer__solution_unpack",
+        { inputPath: "../../outside.zip" },
+        root,
+        SESSION_ID,
+      ),
+    ).rejects.toThrow(/Path traversal detected/);
+  });
+
+  it("inputPath が絶対パスで workspace 外の場合は Error を throw する", async () => {
+    await expect(
+      handleProcessFlowTool(
+        "designer__solution_unpack",
+        { inputPath: "/tmp/outside.zip" },
+        root,
+        SESSION_ID,
+      ),
+    ).rejects.toThrow(/Path traversal detected/);
+  });
+
+  it("inputPath が workspace 内の正常パスなら展開される", async () => {
+    // _dataRoot = root/harmony なので inputPath 相対はそこから解決される
+    const zipDir = path.join(root, "harmony", "input");
+    await fs.mkdir(zipDir, { recursive: true });
+    const zipPath = path.join(zipDir, "pack.zip");
+
+    const flowDoc = {
+      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      meta: { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", name: "unpack-test", kind: "common" },
+      context: {},
+      actions: [],
+      authoring: { markers: [] },
+    };
+    const zip = new AdmZip();
+    zip.addFile("manifest.json", Buffer.from(JSON.stringify({ publisher: "test", version: "1.0.0", processFlowIds: [flowDoc.id], createdAt: new Date().toISOString() }), "utf8"));
+    zip.addFile(`process-flows/${flowDoc.id}.json`, Buffer.from(JSON.stringify(flowDoc), "utf8"));
+    zip.writeZip(zipPath);
+
+    const res = await handleProcessFlowTool(
+      "designer__solution_unpack",
+      { inputPath: "input/pack.zip" },
+      root,
+      SESSION_ID,
+    );
+    expect(res).not.toBeNull();
+    const text = res!.content[0].text as string;
+    expect(text).toMatch(/展開完了/);
+    expect(text).toMatch(/OK: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/);
+  });
+});
