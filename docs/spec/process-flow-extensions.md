@@ -99,20 +99,25 @@ PR: #179
 
 UI: ![runIf / outputBinding / 代入方式](../ui-screenshots/04-step-expanded.png)
 
-### 2.2 トランザクション境界 (`StepBaseProps.txBoundary` / `transactional`)
+### 2.2 トランザクション境界 (`TransactionScopeStep`)
 
-同一 `txId` を持つステップ群が単一 TX 内で実行される想定。
+複数 step を構造的に 1 TX で囲うには `kind: "transactionScope"` step を使う。`steps[]` 配列内が TX 範囲、`rollbackOn` で対象 errorCode を絞り込める。
 
 ```ts
-interface TxBoundary {
-  role: "begin" | "member" | "end";
-  txId: string;                    // アクション内一意
+interface TransactionScopeStep {
+  kind: "transactionScope";
+  isolationLevel?: "READ_COMMITTED" | "REPEATABLE_READ" | "SERIALIZABLE";
+  propagation?: "REQUIRED" | "REQUIRES_NEW" | "NESTED";
+  rollbackOn?: string[];           // errorCode 配列
+  steps: Step[];                   // TX 内の step 列
+  onCommit?: Step[];               // commit 後
+  onRollback?: Step[];             // rollback 後 (Saga 補償)
 }
-// または簡易フラグ
-transactional?: boolean;
 ```
 
-PR: #163
+旧 `StepBaseProps.txBoundary` (`{role, txId}` の平坦モデル) と `transactional` (簡易フラグ) は #1221 で廃止。詳細: [`process-flow-transaction.md`](process-flow-transaction.md)。
+
+PR: #163, #1221
 
 ### 2.3 Saga 補償 (`StepBaseProps.compensatesFor`)
 

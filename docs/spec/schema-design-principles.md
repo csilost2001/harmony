@@ -250,7 +250,7 @@ union 型の variant を識別する **discriminator フィールド** は 2 つ
 | ActionDefinition | `:849` |
 | Step variants (全 22) | `:1052`, `:1103`, `:1309`, etc. |
 | Catalog entry ($defs) | `ErrorCatalogEntry:634-642`, `ExternalSystemCatalogEntry:1276-1301`, `EnvVarEntry:611-631`, `SecretRef:592-608` |
-| value object | `Sla:113`, `TxBoundary:919`, `HttpRoute:549`, `WorkflowApprover:1742` |
+| value object | `Sla:113`, `HttpRoute:549`, `WorkflowApprover:1742` |
 
 #### 規範
 
@@ -308,7 +308,7 @@ union 型の variant を識別する **discriminator フィールド** は 2 つ
         "properties": {
           "id": true, "description": true, "note": true, "notes": true,
           "maturity": true, "runIf": true, "outputBinding": true,
-          "txBoundary": true, "transactional": true, "compensatesFor": true,
+          "compensatesFor": true,
           "externalChain": true, "subSteps": true, "requiredPermissions": true, "sla": true,
           "type": { "const": "validation" },
           "conditions": { "type": "string" },
@@ -321,7 +321,7 @@ union 型の variant を識別する **discriminator フィールド** は 2 つ
 ```
 
 このパターンは:
-- `StepBaseProps` (`:939-967`) で全 step 共通の 14 properties (`id`, `description`, `note`, `notes`, `maturity`, `sla`, `runIf`, `requiredPermissions`, `outputBinding`, `txBoundary`, `transactional`, `compensatesFor`, `externalChain`, `subSteps`) を宣言
+- `StepBaseProps` (`:939-967`) で全 step 共通の properties (`id`, `description`, `note`, `notes`, `maturity`, `sla`, `runIf`, `requiredPermissions`, `outputBinding`, `compensatesFor`, `externalChain`, `subSteps`) を宣言 (txBoundary / transactional は #1221 で廃止)
 - 各 variant が `additionalProperties: false` を付けて閉じるため、共通 prop も `properties` に **`true` で再列挙** が必要
 - これは **ドリフトの温床**: variant ごとに 14 行の同じリストをコピーする必要があり、漏れると schema バグになる (§3.4 で詳述)
 
@@ -854,10 +854,10 @@ JSON Schema 単体で検証できない cross-reference を補完する。
 | `process-flow-extensions.md` | Phase B 包括リファレンス (HTTP 契約 / TX / outcome / Saga / runIf / ReturnStep / ComputeStep / errorCatalog / domainsCatalog / functionsCatalog / eventsCatalog / glossary / decisions / cache / lineage / apiVersion + 拡張実装ガイドライン) | `ActionDefinition.httpRoute` / `responses` / `ExternalSystemStep.outcomes` / `affectedRowsCheck` / `BranchConditionVariant` / `OutputBinding` / `errorCatalog` / `domainsCatalog` / `functionsCatalog` / `eventsCatalog` / `glossary` / `decisions` |
 | `process-flow-variables.md` | 入出力・変数・outputBinding (Phase 1 基盤) | `ActionFields` / `StructuredField` / `OutputBinding` / `argumentMapping` |
 | `process-flow-maturity.md` | 成熟度 (`maturity`)・付箋 (`notes[]`)・モード (`mode`) | `Maturity` / `StepNote` / `ProcessFlowMode` |
-| `process-flow-runtime-conventions.md` | SQL 補間 / HTTP serialize / TX × throw × tryCatch / fireAndForget / sideEffects 境界 / ambient context | (schema 制約外 = convention) `DbAccessStep.sql` / `ExternalHttpCall.body` / `txBoundary` / `ambientOverrides` |
+| `process-flow-runtime-conventions.md` | SQL 補間 / HTTP serialize / TX × throw × tryCatch / fireAndForget / sideEffects 境界 / ambient context | (schema 制約外 = convention) `DbAccessStep.sql` / `ExternalHttpCall.body` / `transactionScope` / `ambientOverrides` |
 | `process-flow-expression-language.md` | runIf / expression / bodyExpression / condition の BNF | (schema 制約外 = convention) `runIf` / `expression` / `bodyExpression` / `condition` |
 | `process-flow-workflow.md` | WorkflowStep / WorkflowPattern (11 パターン) | `WorkflowStep` / `WorkflowPattern` / `WorkflowApprover` / `WorkflowQuorum` / `WorkflowEscalateTo` |
-| `process-flow-transaction.md` | TransactionScopeStep + 既存 txBoundary との関係 | `TransactionScopeStep` / `TxBoundary` |
+| `process-flow-transaction.md` | TransactionScopeStep (v3 で TX 表現一本化、旧 txBoundary は #1221 で廃止) | `TransactionScopeStep` |
 | `process-flow-sla.md` | SLA / Timeout (3 レベル) | `Sla` (`ProcessFlow` / `ActionDefinition` / `StepBase`) |
 | `process-flow-criterion.md` | Criterion (Arazzo successCriteria 互換) | `Criterion` / `StructuredCriterion` / `CriterionType` |
 | `process-flow-external-system.md` | ExternalSystemStep の OpenAPI operation 参照 | `ExternalSystemStep.operationRef` / `operationId` / `requestBodyRef` / `responseRef` |

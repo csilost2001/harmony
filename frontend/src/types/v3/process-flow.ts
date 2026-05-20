@@ -410,12 +410,6 @@ export interface OutputBinding {
   transformations?: OutputBindingTransformation[];
 }
 
-/** TX 境界宣言。txId 単位で begin/member/end を結合。 */
-export interface TxBoundary {
-  role: "begin" | "member" | "end";
-  txId: LocalId;
-}
-
 /** 外部呼び出しチェーン (multi-phase external system call)。 */
 export interface ExternalChain {
   chainId: LocalId;
@@ -451,8 +445,6 @@ export interface StepBaseProps {
   runIf?: ExpressionString;
   requiredPermissions?: string[];
   outputBinding?: OutputBinding;
-  /** TX 境界宣言。簡易フラグの transactional は v3 で廃止 (txBoundary に統一)。 */
-  txBoundary?: TxBoundary;
   /** Saga 補償対象の Step.id 参照。 */
   compensatesFor?: LocalId;
   externalChain?: ExternalChain;

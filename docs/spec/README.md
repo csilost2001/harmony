@@ -20,7 +20,7 @@
 | [process-flow-workflow.md](process-flow-workflow.md) | WorkflowStep / WorkflowPattern (承認ワークフロー標準 11 パターン) | #411 |
 | [process-flow-env-vars.md](process-flow-env-vars.md) | 環境変数カタログ (`envVarsCatalog`) — 環境別 (dev/staging/prod) の型付き設定値 | #414 |
 | [process-flow-secrets.md](process-flow-secrets.md) | Secrets カタログ (`secretsCatalog`) — 秘匿値メタデータ + 環境別参照式 | #261 / #414 |
-| [process-flow-transaction.md](process-flow-transaction.md) | `TransactionScopeStep` (複数 DB 操作を 1 TX でまとめる meta-step) と既存 `txBoundary` の関係 | #415 |
+| [process-flow-transaction.md](process-flow-transaction.md) | `TransactionScopeStep` (複数 DB 操作を 1 TX でまとめる meta-step、v3 で TX 表現一本化、旧 `txBoundary` は #1221 で廃止) | #415 / #1221 |
 | [process-flow-ai-step-kind.md](process-flow-ai-step-kind.md) | AI step kind (`aiCall` / `aiAgent`) と `modelEndpoints` catalog — provider 抽象 / tool use / structured output / vision input (業界標準形式準拠) | #935 |
 | [screen-items.md](screen-items.md) | 画面項目定義 (フォーム系バリデーション 3 層のうち「画面」層) — **ドラフト v0.1** | #318 |
 | [view-definition.md](view-definition.md) | ViewDefinition (画面 一覧 UI viewer) — 3 レベル DSL (Simple / Structured / Raw SQL) / items[] の direction:viewer 連携 / kind 別レイアウト / validator 11 観点 | #649 / #666 / #745 / #761 |

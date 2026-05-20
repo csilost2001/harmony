@@ -548,65 +548,69 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
         },
         {
           "id": "step-02",
-          "kind": "dbAccess",
-          "description": "在庫チェック",
-          "tableId": "00000000-1060-4000-8000-000000000040",
-          "operation": "SELECT",
-          "sql": "SELECT quantity AS qty, price AS price FROM inventory inv WHERE inv.product_code = @inputs.productCode",
-          "outputBinding": { "name": "stock" },
-          "txBoundary": { "txId": "tx-main", "role": "begin" }
-        },
-        {
-          "id": "step-03",
-          "kind": "branch",
-          "description": "在庫不足なら 422 を返す",
-          "branches": [
+          "kind": "transactionScope",
+          "description": "在庫チェック + 注文登録 + 在庫減算を 1 TX で実行",
+          "rollbackOn": ["INVENTORY_SHORTAGE"],
+          "steps": [
             {
-              "id": "br-03-a",
-              "code": "A",
-              "label": "在庫不足",
-              "condition": { "kind": "expression", "expression": "@stock.qty < @inputs.quantity" },
-              "steps": [
+              "id": "step-02-01",
+              "kind": "dbAccess",
+              "description": "在庫チェック",
+              "tableId": "00000000-1060-4000-8000-000000000040",
+              "operation": "SELECT",
+              "sql": "SELECT quantity AS qty, price AS price FROM inventory inv WHERE inv.product_code = @inputs.productCode",
+              "outputBinding": { "name": "stock" }
+            },
+            {
+              "id": "step-02-02",
+              "kind": "branch",
+              "description": "在庫不足なら 422 を返す",
+              "branches": [
                 {
-                  "id": "step-03-a-01",
-                  "kind": "return",
-                  "description": "422 を返す",
-                  "responseId": "422-inventory-shortage",
-                  "bodyExpression": "{ code: 'INVENTORY_SHORTAGE' }"
+                  "id": "br-02-02-a",
+                  "code": "A",
+                  "label": "在庫不足",
+                  "condition": { "kind": "expression", "expression": "@stock.qty < @inputs.quantity" },
+                  "steps": [
+                    {
+                      "id": "step-02-02-a-01",
+                      "kind": "return",
+                      "description": "422 を返す",
+                      "responseId": "422-inventory-shortage",
+                      "bodyExpression": "{ code: 'INVENTORY_SHORTAGE' }"
+                    }
+                  ]
                 }
               ]
+            },
+            {
+              "id": "step-02-03",
+              "kind": "dbAccess",
+              "description": "注文登録",
+              "tableId": "00000000-1060-4000-8000-000000000041",
+              "operation": "INSERT",
+              "sql": "INSERT INTO orders (id, product_code, quantity) VALUES (NEXTVAL('SEQ_ORDER'), @inputs.productCode, @inputs.quantity) RETURNING id AS order_id",
+              "outputBinding": { "name": "orderId" }
+            },
+            {
+              "id": "step-02-04",
+              "kind": "dbAccess",
+              "description": "在庫減算",
+              "tableId": "00000000-1060-4000-8000-000000000040",
+              "operation": "UPDATE",
+              "sql": "UPDATE inventory inv SET quantity = quantity - @inputs.quantity WHERE inv.product_code = @inputs.productCode"
             }
           ]
         },
         {
-          "id": "step-04",
-          "kind": "dbAccess",
-          "description": "注文登録",
-          "tableId": "00000000-1060-4000-8000-000000000041",
-          "operation": "INSERT",
-          "sql": "INSERT INTO orders (id, product_code, quantity) VALUES (NEXTVAL('SEQ_ORDER'), @inputs.productCode, @inputs.quantity) RETURNING id AS order_id",
-          "outputBinding": { "name": "orderId" },
-          "txBoundary": { "txId": "tx-main", "role": "member" }
-        },
-        {
-          "id": "step-05",
-          "kind": "dbAccess",
-          "description": "在庫減算",
-          "tableId": "00000000-1060-4000-8000-000000000040",
-          "operation": "UPDATE",
-          "sql": "UPDATE inventory inv SET quantity = quantity - @inputs.quantity WHERE inv.product_code = @inputs.productCode",
-          "txBoundary": { "txId": "tx-main", "role": "end" }
-        },
-        {
-          "id": "step-06",
+          "id": "step-03",
           "kind": "commonProcess",
-          "description": "確認メール送信 (別 TX、失敗しても tx-main は維持)",
+          "description": "確認メール送信 (TX 外、失敗しても注文 TX は維持)",
           "refId": "00000000-1060-4000-8000-000000000050",
-          "argumentMapping": { "orderId": "@orderId" },
-          "txBoundary": { "txId": "tx-mail", "role": "begin" }
+          "argumentMapping": { "orderId": "@orderId" }
         },
         {
-          "id": "step-07",
+          "id": "step-04",
           "kind": "return",
           "description": "200 を返す",
           "responseId": "200-ok",
@@ -639,7 +643,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 - 「X テーブル参照 / INSERT / UPDATE」→ **すべて `kind: "dbAccess"`** + `operation: "SELECT|INSERT|UPDATE|DELETE"` + `tableId` (Uuid) + 完全 `sql`
 - 「不足なら / 失敗なら〜エラー応答」→ `kind: "validation"` (フィールドバリデーション + `inlineBranch.ng[]` に return) または `kind: "branch"` (任意条件分岐 + `branches[].condition.kind: "expression"` + `steps[]` に return)
 - 「採番」→ `sql` に `NEXTVAL('SEQ_NAME')` 等を直書き (DB 方言依存) or 別 step で取得
-- 「1〜N は 1 TX」「N+1 は別 TX」→ `txBoundary: { txId: "...", role: "begin|member|end" }` を必ず begin / member / end で揃える
+- 「1〜N は 1 TX」「N+1 は別 TX」→ `kind: "transactionScope"` で `steps[]` 配列に囲い、別 TX 部分は scope の外に出す。旧 `txBoundary` (`{txId, role}`) は v3 で廃止
 - 「返却値」→ `kind: "return"` step + `responseId` (Action.responses[].id 参照) + `bodyExpression`
 - 「エラーコード」→ `context.catalogs.errors.<CODE>` ({httpStatus, defaultMessage, responseId, description}) に登録、`responseId` を Action.responses[] と一致させる
 - SQL は必ず **alias を付ける** (`FROM orders o`、#775 規約)
@@ -647,7 +651,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 
 **よく落とす情報**:
 - `runIf` (StepBaseProps) は実行条件式、`condition` (BranchCondition) と用途が違う
-- TX 境界の `role` は begin/member/end を必ず正しく付ける (`feedback_processflow_known_pitfalls_retail_2026_05_02.md` の rollbackOn 欠落と関連)
+- TX 境界は `kind: "transactionScope"` の `steps[]` で構造的に囲う。`rollbackOn` を明示すれば対象 errorCode のみ rollback、未指定なら全例外で rollback (`feedback_processflow_known_pitfalls_retail_2026_05_02.md` の rollbackOn 欠落と関連)
 - conv 参照リテラルは `@conv.msg.XXX` / `@inputs.foo` / `@<var>.bar` 形式 (波括弧 `{{...}}` は禁止)
 - `expression` / `tryCatch` は BranchCondition の kind であって Step kind ではない (混同しやすい)
 - `auditLog` は CDC 出力先の kind であって Step kind ではない
@@ -687,7 +691,6 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 | field | 構造 | required (nested) |
 |---|---|---|
 | `outputBinding` | OutputBinding | `name` |
-| `txBoundary` | TxBoundary | `role`, `txId` |
 | `affectedRowsCheck` (dbAccess のみ) | AffectedRowsCheck | `operator`, `expected`, `onViolation` |
 
 **重要**: 本 cheatsheet は schema を機械抽出した snapshot。schema 更新時は **永続スクリプトで再生成**:

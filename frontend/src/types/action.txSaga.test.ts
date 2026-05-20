@@ -3,38 +3,11 @@ import type {
   ProcessFlow,
   DbAccessStep,
   ExternalSystemStep,
-  TxBoundary,
   ExternalChain,
 } from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
-describe("StepBase の txBoundary / transactional / compensatesFor / externalChain (#162)", () => {
-  it("txBoundary を保持できる", () => {
-    const tx: TxBoundary = { role: "begin", txId: "tx-order" };
-    const step: DbAccessStep = {
-      id: "s",
-      type: "dbAccess",
-      description: "",
-      tableName: "orders",
-      operation: "INSERT",
-      txBoundary: tx,
-    };
-    expect(step.txBoundary?.role).toBe("begin");
-    expect(step.txBoundary?.txId).toBe("tx-order");
-  });
-
-  it("transactional 簡易フラグを保持できる", () => {
-    const step: DbAccessStep = {
-      id: "s",
-      type: "dbAccess",
-      description: "",
-      tableName: "x",
-      operation: "UPDATE",
-      transactional: true,
-    };
-    expect(step.transactional).toBe(true);
-  });
-
+describe("StepBase の compensatesFor / externalChain (#162)", () => {
   it("compensatesFor で別ステップ ID を指せる", () => {
     const cancel: ExternalSystemStep = {
       id: "step-cancel",
@@ -86,15 +59,13 @@ describe("StepBase の txBoundary / transactional / compensatesFor / externalCha
       tableName: "x",
       operation: "SELECT",
     };
-    expect(step.txBoundary).toBeUndefined();
-    expect(step.transactional).toBeUndefined();
     expect(step.compensatesFor).toBeUndefined();
     expect(step.externalChain).toBeUndefined();
   });
 });
 
-describe("migrateProcessFlow — TX/Saga/externalChain 透過保持 (#162)", () => {
-  it("新フィールドを持つ複数ステップの冪等マイグレーション (TX chain + Saga)", () => {
+describe("migrateProcessFlow — Saga/externalChain 透過保持 + 旧 txBoundary/transactional 剥がし (#1221)", () => {
+  it("compensatesFor / externalChain を冪等に保持し、txBoundary/transactional は剥がす", () => {
     const raw = {
       id: "g",
       name: "x",
@@ -119,31 +90,9 @@ describe("migrateProcessFlow — TX/Saga/externalChain 透過保持 (#162)", () 
               description: "INSERT orders",
               tableName: "orders",
               operation: "INSERT",
+              // 旧 txBoundary / transactional — migrator が剥がすことを検証
               txBoundary: { role: "begin", txId: "tx-main" },
-            },
-            {
-              id: "ins-items",
-              type: "dbAccess",
-              description: "INSERT order_items",
-              tableName: "order_items",
-              operation: "INSERT",
-              txBoundary: { role: "member", txId: "tx-main" },
               transactional: true,
-            },
-            {
-              id: "upd-inv",
-              type: "dbAccess",
-              description: "在庫引当",
-              tableName: "inventory",
-              operation: "UPDATE",
-              txBoundary: { role: "end", txId: "tx-main" },
-            },
-            {
-              id: "cap",
-              type: "externalSystem",
-              description: "capture",
-              systemName: "Stripe",
-              externalChain: { chainId: "pi-1", phase: "capture" },
             },
             {
               id: "cancel",
@@ -165,9 +114,10 @@ describe("migrateProcessFlow — TX/Saga/externalChain 透過保持 (#162)", () 
 
     const steps = once.actions[0].steps;
     expect((steps[0] as ExternalSystemStep).externalChain?.phase).toBe("authorize");
-    expect((steps[1] as DbAccessStep).txBoundary?.role).toBe("begin");
-    expect((steps[2] as DbAccessStep).txBoundary?.role).toBe("member");
-    expect((steps[5] as ExternalSystemStep).compensatesFor).toBe("auth");
+    // 旧 txBoundary / transactional は v3 で廃止、migrator が剥がす
+    expect((steps[1] as Record<string, unknown>).txBoundary).toBeUndefined();
+    expect((steps[1] as Record<string, unknown>).transactional).toBeUndefined();
+    expect((steps[2] as ExternalSystemStep).compensatesFor).toBe("auth");
   });
 
   it("新フィールドなしの旧データでも破壊なし", () => {
@@ -191,7 +141,6 @@ describe("migrateProcessFlow — TX/Saga/externalChain 透過保持 (#162)", () 
     };
     const migrated = migrateProcessFlow(raw) as ProcessFlow;
     const step = migrated.actions[0].steps[0] as DbAccessStep;
-    expect(step.txBoundary).toBeUndefined();
     expect(step.externalChain).toBeUndefined();
   });
 });

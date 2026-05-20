@@ -141,6 +141,8 @@ function migrateStepInPlace(raw: unknown): Step {
   if (kind) step.kind = kind === "other" ? "legacy:OtherStep" : kind;
   delete step.type;
   delete step.transactional;
+  // txBoundary は v3 で廃止 (transactionScope step に一本化、#1221 Pending S-003 解消)
+  delete step.txBoundary;
   normalizeNotes(step);
   normalizeOutputBinding(step);
   if (!isValidMaturity(step.maturity)) step.maturity = "draft";

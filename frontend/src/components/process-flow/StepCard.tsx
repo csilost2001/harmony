@@ -285,17 +285,6 @@ export function StepCard({
               <i className="bi bi-funnel" />
             </button>
           )}
-          {step.txBoundary && (
-            <button
-              type="button"
-              className="btn btn-link p-0"
-              title={`TX: ${step.txBoundary.role} (${step.txBoundary.txId}) (クリックで編集)`}
-              onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-              style={{ color: "#8b5cf6", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
-            >
-              <i className="bi bi-layers" />
-            </button>
-          )}
           {step.compensatesFor && (
             <button
               type="button"

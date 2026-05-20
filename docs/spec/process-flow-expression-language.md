@@ -295,7 +295,7 @@ effective = branch.condition.evaluate() && step.runIf
 
 ### 8.2 TX ROLLBACK 後の retry は別キー
 
-`txBoundary` に含まれる外部呼出が ROLLBACK 後にユーザ操作で再試行された場合、**新しいリクエストとして別キー**を生成するべき。具体的には `idempotencyKey` の式が `@order.id` のような DB 永続値ではなく、`@requestId` のような**リクエスト単位の識別子**を含むのが望ましい。
+`transactionScope` に含まれる外部呼出が ROLLBACK 後にユーザ操作で再試行された場合、**新しいリクエストとして別キー**を生成するべき。具体的には `idempotencyKey` の式が `@order.id` のような DB 永続値ではなく、`@requestId` のような**リクエスト単位の識別子**を含むのが望ましい。
 
 ### 8.3 フォールバック
 

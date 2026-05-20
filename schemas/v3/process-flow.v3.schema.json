@@ -447,7 +447,6 @@
           "items": { "type": "string" }
         },
         "outputBinding": { "$ref": "#/$defs/OutputBinding" },
-        "txBoundary": { "$ref": "#/$defs/TxBoundary", "description": "TX 境界宣言。txId 単位で begin/member/end を結合。簡易フラグの transactional は v3 で廃止 (txBoundary に統一)。" },
         "compensatesFor": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Saga 補償対象の Step.id 参照。" },
         "externalChain": { "$ref": "#/$defs/ExternalChain" },
         "lineage": { "$ref": "#/$defs/DataLineage", "description": "本 step が読み書きするデータ系譜 (CDC / 監査 / 影響範囲分析用)。DbAccessStep に限らず任意の step (ExtensionStep / CdcStep / WorkflowStep 等) で宣言可能。#525 F-2: ExtensionStep の lineage 透過のため StepBaseProps に集約 (案 A)。" }
@@ -486,16 +485,6 @@
             }
           }
         }
-      }
-    },
-
-    "TxBoundary": {
-      "type": "object",
-      "required": ["role", "txId"],
-      "additionalProperties": false,
-      "properties": {
-        "role": { "type": "string", "enum": ["begin", "member", "end"] },
-        "txId": { "$ref": "common.v3.schema.json#/$defs/LocalId" }
       }
     },
 
@@ -1586,7 +1575,7 @@
     },
 
     "TransactionScopeStep": {
-      "description": "TX スコープ step。StepBaseProps.outputBinding を指定すると TX 結果を後続 step に expose する: commit 成功時は @<name>.committed=true / rollbackOn エラー時は @<name>.committed=false + @<name>.error={code,message} / rollbackOn 外の汎用エラー時は @<name>.error.code='UNHANDLED'。後続 branch で condition.kind='expression' + expression='@txResult.error.code===\"STOCK_SHORTAGE\"' のように参照する。詳細: docs/spec/process-flow-transaction.md §8.5 (#782)。",
+      "description": "TX スコープ step。v3 では TX 表現はこの transactionScope に一本化されている (旧 txBoundary / transactional フィールドは廃止)。StepBaseProps.outputBinding を指定すると TX 結果を後続 step に expose する: commit 成功時は @<name>.committed=true / rollbackOn エラー時は @<name>.committed=false + @<name>.error={code,message} / rollbackOn 外の汎用エラー時は @<name>.error.code='UNHANDLED'。後続 branch で condition.kind='expression' + expression='@txResult.error.code===\"STOCK_SHORTAGE\"' のように参照する。詳細: docs/spec/process-flow-transaction.md §8.5 (#782)。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {

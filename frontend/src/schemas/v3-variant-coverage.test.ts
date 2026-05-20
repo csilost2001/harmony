@@ -370,43 +370,34 @@ describe("v3 variant fixture coverage — Context (#531)", () => {
   });
 });
 
-describe("v3 variant fixture coverage — Saga (txBoundary + compensatesFor) (#531)", () => {
-  it("txBoundary.role=begin/member/end + compensatesFor", () => {
+describe("v3 variant fixture coverage — Saga (transactionScope + compensatesFor) (#531 / #1221)", () => {
+  it("transactionScope step が saga 内 step を囲い、compensatesFor で別 step を補償参照する", () => {
     const flow = makeFlow([
       {
         id: "step-01",
-        kind: "log",
-        description: "saga begin",
-        level: "info",
-        message: "begin tx",
-        txBoundary: { role: "begin", txId: "tx-saga-001" },
+        kind: "transactionScope",
+        description: "saga tx scope",
+        rollbackOn: ["STOCK_SHORTAGE"],
+        steps: [
+          {
+            id: "step-01-inner-1",
+            kind: "log",
+            description: "saga member",
+            level: "info",
+            message: "do work",
+          },
+        ],
       },
       {
         id: "step-02",
         kind: "log",
-        description: "saga member",
-        level: "info",
-        message: "do work",
-        txBoundary: { role: "member", txId: "tx-saga-001" },
-      },
-      {
-        id: "step-03",
-        kind: "log",
-        description: "saga compensation for step-02",
+        description: "saga compensation for step-01-inner-1",
         level: "warn",
         message: "compensate",
-        compensatesFor: "step-02",
-      },
-      {
-        id: "step-04",
-        kind: "log",
-        description: "saga end",
-        level: "info",
-        message: "end tx",
-        txBoundary: { role: "end", txId: "tx-saga-001" },
+        compensatesFor: "step-01-inner-1",
       },
     ]);
-    expectPass(flow, "Saga txBoundary + compensatesFor");
+    expectPass(flow, "Saga transactionScope + compensatesFor");
   });
 });
 

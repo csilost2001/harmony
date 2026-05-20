@@ -125,21 +125,23 @@ body: { amount: 100, metadata: { customer_id: 42 }, items: [1, 2] }
 
 ## 3. トランザクション × 例外 × Saga 補償の連鎖
 
-### 3.1 `txBoundary.role: "begin"` → `"end"` の範囲
+### 3.1 `transactionScope.steps[]` の範囲
 
-`role: "begin"` ステップから `role: "end"` ステップまで (同一 `txId`) が **1 つの DB トランザクション**。`"member"` は中間、個別に `txBoundary` を書かなくても begin〜end 間にある全 step は TX に属する。
+`transactionScope` step の `steps[]` 配列に含まれる step 群が **1 つの DB トランザクション**。v3 では旧 `txBoundary` (平坦モデル) は廃止、TX 範囲は構造で表現する (詳細: [`process-flow-transaction.md`](process-flow-transaction.md))。
 
 ### 3.2 throw → ROLLBACK の自動発火
 
-TX 範囲内 (begin〜end の間) で以下が起きた場合、**TX は自動 ROLLBACK**:
+TX 範囲内 (`transactionScope.steps[]` 配下) で以下が起きた場合、**TX は自動 ROLLBACK**:
 
 - `DbAccessStep.affectedRowsCheck.onViolation: "throw"` が発火
 - `ExternalSystemStep.outcomes.failure.action: "abort"` (compensate は個別補償なので ROLLBACK とは独立)
 - いずれかの step で JavaScript エラー (ValidationError 等) が throw される
 
+`rollbackOn` 指定がある場合は、列挙された `errorCode` の throw のみ rollback を引き起こす (詳細: [`process-flow-transaction.md`](process-flow-transaction.md) §2.4)。
+
 ### 3.3 ROLLBACK 後の `tryCatch` 捕捉
 
-自動 ROLLBACK された throw は、`txBoundary.role: "end"` より **後ろにある** `BranchStep` の `branches[].condition: { kind: "tryCatch", errorCode: "..." }` で捕捉される。
+自動 ROLLBACK された throw は、`transactionScope` step より **後ろにある** `BranchStep` の `branches[].condition: { kind: "tryCatch", errorCode: "..." }` で捕捉される。または `transactionScope.outputBinding` で TX 結果を expose し、後続 branch の `condition.kind: "expression"` で `@txResult.error.code` 等を参照する (推奨パターン、[`process-flow-transaction.md`](process-flow-transaction.md) §8.5)。
 
 `errorCode` のマッチング:
 - `affectedRowsCheck.errorCode` の値と `BranchConditionVariant.errorCode` が等しければマッチ
@@ -447,7 +449,7 @@ Step-level の `requiredPermissions` は Action-level と AND 条件で評価す
 
 - [ ] `sql` 内 `@x` → prepared statement `$N` 変換 (§1)
 - [ ] `httpCall.body` → JSON or form-urlencoded を Content-Type で判定 (§2)
-- [ ] `txBoundary.begin` 〜 `end` を Knex/pg の `tx.run()` / `BEGIN`/`COMMIT` に対応 (§3)
+- [ ] `transactionScope.steps[]` を Knex/pg の `tx.run()` / `BEGIN`/`COMMIT` に対応 (§3)
 - [ ] throw された errorCode を BranchConditionVariant.tryCatch で捕捉、Saga 補償の compensatesFor を走らせる (§3.4)
 - [ ] `fireAndForget: true` なら await せず、エラーは background で outcomes.failure.sideEffects (§4)
 - [ ] externalChain.phase は observability のみ (§5)

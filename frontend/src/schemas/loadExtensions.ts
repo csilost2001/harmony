@@ -504,8 +504,6 @@ function buildCustomStepSchema(type: string, schema: Record<string, unknown>): R
       maturity: true,
       runIf: true,
       outputBinding: true,
-      txBoundary: true,
-      transactional: true,
       compensatesFor: true,
       externalChain: true,
       subSteps: true,
