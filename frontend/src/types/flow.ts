@@ -9,6 +9,7 @@
  */
 import type {
   LocalId,
+  Maturity,
   ProcessFlowEntry,
   ScreenGroupId,
   ScreenId,
@@ -38,6 +39,7 @@ export interface ScreenNode {
    * 本 Screen が使用する PageLayout の ID (purpose='page' のみ意味を持つ)。
    */
   pageLayoutId?: Uuid;
+  maturity?: Maturity;
   position: { x: number; y: number };
   size: { width: number; height: number };
   hasDesign: boolean;

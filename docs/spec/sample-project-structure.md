@@ -22,6 +22,9 @@ designer の実運用は **1 プロジェクト = 1 業務アプリ** 単位。
 |---|---|---|
 | retail | `examples/retail/` | v3 schema / process-flows/ ディレクトリ |
 | realestate | `examples/realestate/` | v3 schema / process-flows/ ディレクトリ |
+| diary | `examples/diary/` | v3 schema |
+| english-learning | `examples/english-learning/` | v3 schema |
+| english-learning-tailwind | `examples/english-learning-tailwind/` | v3 schema / Tailwind CSS 変種 |
 
 ## プロジェクトに含まれる成果物
 

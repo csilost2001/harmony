@@ -10,6 +10,7 @@
  */
 
 import type { BUILTIN_PRIMITIVE_NAMES } from "../puck/buildConfig";
+import { uiInfo } from "../utils/uiLog";
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
@@ -73,7 +74,7 @@ export async function loadCustomPuckComponents(): Promise<CustomPuckComponentDef
   const legacy = readLegacyLocalStorage();
   if (legacy.length > 0) {
     await backend.savePuckComponents(legacy);
-    console.log("[puckComponentsStore] Migrated puck components from localStorage to file");
+    uiInfo("load", "puckComponentsStore: Migrated puck components from localStorage to file");
     return legacy;
   }
   return [];

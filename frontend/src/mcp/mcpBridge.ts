@@ -1,6 +1,7 @@
 import type { Editor as GEditor, Component, Block } from "grapesjs";
 import html2canvas from "html2canvas";
 import { generateUUID } from "../utils/uuid";
+import { uiInfo, uiWarn } from "../utils/uiLog";
 import type { ScreenType, TransitionTrigger } from "../types/flow";
 import {
   openTab,
@@ -245,10 +246,10 @@ class McpBridgeImpl {
   start(editor: GEditor): void {
     this.editor = editor;
     this.stopped = false;
-    console.log("[mcpBridge] starting...");
+    uiInfo("ws-broadcast", "mcpBridge starting...");
     // 既存の接続が生きていればそのまま再利用（FlowEditor からの遷移時にエディターだけ差し替え）
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      console.log("[mcpBridge] reusing existing connection");
+      uiInfo("ws-broadcast", "mcpBridge reusing existing connection");
       return;
     }
     this._connect();
@@ -267,7 +268,7 @@ class McpBridgeImpl {
       return;
     }
     this.stopped = false;
-    console.log("[mcpBridge] starting without editor (flow mode)...");
+    uiInfo("ws-broadcast", "mcpBridge starting without editor (flow mode)...");
     this._connect();
   }
 
@@ -277,7 +278,7 @@ class McpBridgeImpl {
    * retry は startWithoutEditor() の再呼び出しで行う。
    */
   markFailed(): void {
-    console.log("[mcpBridge] marking as failed (connection timeout)");
+    uiWarn("ws-broadcast", "mcpBridge marking as failed (connection timeout)");
     this._setStatus("failed");
   }
 
@@ -292,7 +293,7 @@ class McpBridgeImpl {
       this.ws = null;
     }
     this._setStatus("disconnected");
-    console.log("[mcpBridge] stopped");
+    uiInfo("ws-broadcast", "mcpBridge stopped");
   }
 
   // ── ブラウザ→サーバーリクエスト ──────────────────────────────────────
@@ -330,13 +331,13 @@ class McpBridgeImpl {
     if (this.stopped) return;
     this.connectAttempts++;
     this._setStatus("connecting");
-    console.log("[mcpBridge] connecting to", WS_URL, `(attempt ${this.connectAttempts})`);
+    uiInfo("ws-broadcast", `mcpBridge connecting to ${WS_URL} (attempt ${this.connectAttempts})`);
 
     const ws = new WebSocket(WS_URL);
     this.ws = ws;
 
     ws.addEventListener("open", () => {
-      console.log("[mcpBridge] connected");
+      uiInfo("ws-broadcast", "mcpBridge connected");
       // 登録メッセージを送信
       ws.send(JSON.stringify({ type: "register", clientId: this.clientId }));
       // ファイルストレージバックエンドを設定
@@ -351,7 +352,7 @@ class McpBridgeImpl {
     ws.addEventListener("close", () => {
       if (this.ws !== ws) return;
       this.ws = null;
-      console.log("[mcpBridge] disconnected, retrying in", RETRY_DELAY_MS, "ms");
+      uiWarn("ws-broadcast", `mcpBridge disconnected, retrying in ${RETRY_DELAY_MS}ms`);
       // 切断中も store の backend 参照は残し、再接続まで request 失敗 → 上位 UI で loading
       // 表示を維持する。localStorage fallback は #923 シリーズで廃止 (spec D-8)。
       this._setStatus("disconnected");
@@ -370,7 +371,7 @@ class McpBridgeImpl {
     });
 
     ws.addEventListener("error", () => {
-      console.log("[mcpBridge] connection error");
+      uiWarn("ws-broadcast", "mcpBridge connection error");
     });
   }
 

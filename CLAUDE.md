@@ -65,7 +65,7 @@ Markdown が canonical source、HTML は build artifact。Phase E 完了 (2026-0
 
 ### Schema ガバナンス (最重要、#511)
 
-`schemas/process-flow.schema.json` / `schemas/extensions-*.schema.json` / `schemas/conventions.schema.json` 等の **グローバル定義スキーマは、フレームワーク製作者 (設計者) の専権事項**。
+`schemas/v3/process-flow.v3.schema.json` / `schemas/v3/extensions.v3.schema.json` / `schemas/v3/conventions.v3.schema.json` 等の **グローバル定義スキーマは、フレームワーク製作者 (設計者) の専権事項**。
 
 - AI (Sonnet/Codex/Opus 含む) が**勝手に変更するのは禁止** (権限外行為)
 - 業務記述で表現できない場合は:
