@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { generateSpecJson, type SpecStep } from "./specExporter";
-import type { Table, TableId, LocalId, PhysicalName, DisplayName, Timestamp, ErLayout } from "../types/v3";
+import type { Table, TableId, LocalId, Identifier, PhysicalName, DisplayName, Timestamp, ErLayout } from "../types/v3";
 import type { FlowProject } from "../types/flow";
 // #1186 Phase 2-B: types/action → types/v3 移行
 // 24 step variants は v3 strict 型、ProcessFlow も v3 strict
@@ -12,6 +12,7 @@ import type {
   DbAccessStep,
   EventPublishStep,
   EventSubscribeStep,
+  ExternalSystemStep,
   LogStep,
   LoopBreakStep,
   LoopContinueStep,
@@ -521,5 +522,44 @@ describe("toSpecStep — step detail", () => {
     } as OtherStep);
     expect(step.type).toBe("legacy:OtherStep");
     expect(step.detail).toEqual({});
+  });
+});
+
+describe("toSpecStep — silent bug 修正 S-1〜S-3 の回帰テスト", () => {
+  it("S-1: ExternalSystemStep の systemRef が出力 spec に反映される (httpCall.method 移行保証)", () => {
+    const step = getStep({
+      id: "s1" as LocalId,
+      kind: "externalSystem",
+      description: "外部 API 呼び出し",
+      systemRef: "stripe" as Identifier,
+      httpCall: { method: "POST", path: "/v1/charges" },
+    } as ExternalSystemStep);
+    expect(step.type).toBe("externalSystem");
+    expect((step.detail as Record<string, unknown>).systemRef).toBe("stripe");
+  });
+
+  it("S-2: ReturnStep の responseId / bodyExpression が出力 spec に反映される", () => {
+    const step = getStep({
+      id: "s2" as LocalId,
+      kind: "return",
+      description: "正常終了",
+      responseId: "200OK" as LocalId,
+      bodyExpression: "@output",
+    } as ReturnStep);
+    expect(step.type).toBe("return");
+    expect((step.detail as Record<string, unknown>).responseId).toBe("200OK");
+    expect((step.detail as Record<string, unknown>).bodyExpression).toBe("@output");
+  });
+
+  it("S-3: EventPublishStep に eventRef が無くても出力が壊れない (topic のみで完結)", () => {
+    const step = getStep({
+      id: "s3" as LocalId,
+      kind: "eventPublish",
+      description: "イベント発行",
+      topic: "order.created",
+    } as EventPublishStep);
+    expect(step.type).toBe("eventPublish");
+    expect((step.detail as Record<string, unknown>).topic).toBe("order.created");
+    expect((step.detail as Record<string, unknown>).eventRef).toBeUndefined();
   });
 });

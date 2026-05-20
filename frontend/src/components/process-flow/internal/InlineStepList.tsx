@@ -1,6 +1,6 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 import { useState } from "react";
 import type { ProcessFlow, Step, StepType } from "../../../types/v3";
+import type { StepWithSubSteps } from "../../../utils/actionUtils";
 // #1186 Phase 2-D: constants は processFlowMetadata から
 import {
   STEP_TYPE_COLORS,
@@ -100,7 +100,7 @@ export function InlineStepList({
             }}
             onDuplicate={() => {
               const clone = JSON.parse(JSON.stringify(step)) as Step;
-              clone.id = generateUUID();
+              clone.id = generateUUID() as typeof clone.id;
               const arr = steps.slice();
               arr.splice(si + 1, 0, clone);
               onChange(arr);
@@ -109,7 +109,8 @@ export function InlineStepList({
             onAddSubStep={(type) => {
               const newSub = createDefaultStep(type);
               const arr = steps.slice();
-              arr[si] = { ...arr[si], subSteps: [...(arr[si].subSteps ?? []), newSub] } as Step;
+              const cur = arr[si] as StepWithSubSteps;
+              arr[si] = { ...cur, subSteps: [...(cur.subSteps ?? []), newSub] } as unknown as Step;
               onChange(arr);
               onCommit?.();
             }}

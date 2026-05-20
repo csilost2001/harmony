@@ -1,4 +1,3 @@
-// @ts-nocheck -- legacy spec exporter migration remains open; tracked by #1016.
 /**
  * specExporter.ts (v3, #556)
  * AI エージェント向け統合 JSON 仕様書の生成。
@@ -24,8 +23,39 @@ import type { ErLayout } from "../types/v3";
 import type { FlowProject } from "../types/flow";
 import type { ProcessFlow, Step } from "../types/v3";
 import { getAllRelations, type ErRelation } from "./erUtils";
-import { getStepLabel } from "./actionUtils";
+import { getStepLabel, isExtensionStep } from "./actionUtils";
 import { fieldsToText } from "./actionFields";
+
+/**
+ * ProcessFlow の flat-field アクセスヘルパー。
+ * v3 schema は meta セクションに階層化されているが、テストデータ・レガシーデータは
+ * root に直置きの flat shape で渡ってくる場合がある。
+ * runtime では実際のフィールドに安全にアクセスできるが TS 型は v3 strict のため
+ * unknown cast 経由でアクセスする (#1233)。
+ */
+function pfFlat(g: ProcessFlow): Record<string, unknown> {
+  return g as unknown as Record<string, unknown>;
+}
+
+function pfKind(g: ProcessFlow): string {
+  return (g.meta?.kind ?? pfFlat(g)["kind"] ?? pfFlat(g)["type"] ?? "") as string;
+}
+
+function pfName(g: ProcessFlow): string {
+  return (g.meta?.name ?? pfFlat(g)["name"] ?? "") as string;
+}
+
+function pfDescription(g: ProcessFlow): string {
+  return (g.meta?.description ?? pfFlat(g)["description"] ?? "") as string;
+}
+
+function pfScreenId(g: ProcessFlow): string | undefined {
+  return (g.meta?.screenId ?? pfFlat(g)["screenId"]) as string | undefined;
+}
+
+function pfId(g: ProcessFlow): string {
+  return (g.meta?.id ?? pfFlat(g)["id"] ?? "") as string;
+}
 
 export interface SpecJson {
   /** プロジェクト名 */
@@ -158,8 +188,8 @@ export function generateSpecJson(
 ): SpecJson {
   const relations = getAllRelations(tables, erLayout);
 
-  const commonGroups = (processFlows ?? []).filter((g) => g.kind === "common");
-  const nonCommonGroups = (processFlows ?? []).filter((g) => g.kind !== "common");
+  const commonGroups = (processFlows ?? []).filter((g) => pfKind(g) === "common");
+  const nonCommonGroups = (processFlows ?? []).filter((g) => pfKind(g) !== "common");
 
   const result: SpecJson = {
     projectName: project.name,
@@ -187,14 +217,15 @@ export function generateSpecJson(
 
   if (processFlows && processFlows.length > 0) {
     result.processFlows = nonCommonGroups.map((g) => {
-      const screenName = g.screenId
-        ? project.screens.find((s) => s.id === g.screenId)?.name
+      const sId = pfScreenId(g);
+      const screenName = sId
+        ? project.screens.find((s) => s.id === sId)?.name
         : undefined;
       return {
-        name: g.name,
-        type: g.type,
+        name: pfName(g),
+        type: pfKind(g),
         screenName,
-        description: g.description,
+        description: pfDescription(g),
         actions: g.actions.map((a) => ({
           name: a.name,
           trigger: a.trigger,
@@ -207,9 +238,9 @@ export function generateSpecJson(
 
     if (commonGroups.length > 0) {
       result.commonProcesses = commonGroups.map((g) => ({
-        id: g.id,
-        name: g.name,
-        description: g.description,
+        id: pfId(g),
+        name: pfName(g),
+        description: pfDescription(g),
         steps: g.actions.length > 0
           ? g.actions[0].steps.map((s, i) => toSpecStep(s, i))
           : [],
@@ -307,6 +338,10 @@ function toSpecRelation(r: ErRelation): SpecRelation {
 
 function toSpecStep(s: Step, index: number): SpecStep {
   const detail: Record<string, unknown> = {};
+  if (isExtensionStep(s)) {
+    if (s.config) detail.config = s.config;
+    return { number: getStepLabel(index), type: s.kind, description: s.description, detail };
+  }
   switch (s.kind) {
     case "validation":
       detail.conditions = s.conditions;
@@ -354,7 +389,9 @@ function toSpecStep(s: Step, index: number): SpecStep {
       if (s.outputBinding) detail.outputBinding = s.outputBinding;
       break;
     case "return":
-      if (s.value) detail.value = s.value;
+      // silent bug: s.value は v3 schema に存在しない (responseId / bodyExpression を使用) (#1233)
+      if (s.responseId) detail.responseId = s.responseId;
+      if (s.bodyExpression) detail.bodyExpression = s.bodyExpression;
       break;
     case "log":
       detail.level = s.level;
@@ -393,12 +430,12 @@ function toSpecStep(s: Step, index: number): SpecStep {
       break;
     case "eventPublish":
       detail.topic = s.topic;
-      if (s.eventRef) detail.eventRef = s.eventRef;
+      // silent bug: s.eventRef は v3 schema で廃止 (topic に一本化) (#1233)
       if (s.payload) detail.payload = s.payload;
       break;
     case "eventSubscribe":
       detail.topic = s.topic;
-      if (s.eventRef) detail.eventRef = s.eventRef;
+      // silent bug: s.eventRef は v3 schema で廃止 (topic に一本化) (#1233)
       if (s.filter) detail.filter = s.filter;
       break;
   }
