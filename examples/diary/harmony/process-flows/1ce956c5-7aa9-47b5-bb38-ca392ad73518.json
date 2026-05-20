@@ -105,9 +105,20 @@
           "type": {
             "kind": "object",
             "fields": [
-              { "name": "id", "type": "integer", "required": true },
-              { "name": "username", "type": "string", "required": true },
-              { "name": "displayName", "type": "string" }
+              {
+                "name": "id",
+                "type": "integer",
+                "required": true
+              },
+              {
+                "name": "username",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "displayName",
+                "type": "string"
+              }
             ]
           },
           "description": "ログインユーザーの ID + 表示用情報 (UI ヘッダ等に使用)。"
@@ -177,7 +188,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",

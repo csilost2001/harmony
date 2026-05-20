@@ -73,7 +73,10 @@
         {
           "name": "changes",
           "label": "変更箇所",
-          "type": { "kind": "array", "itemType": "json" },
+          "type": {
+            "kind": "array",
+            "itemType": "json"
+          },
           "description": "変更箇所の diff 配列 (type: 'added'|'removed'|'unchanged', text)。"
         }
       ],
@@ -138,7 +141,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",
@@ -169,7 +173,10 @@
             "name": "ProofreadResult",
             "schema": {
               "type": "object",
-              "required": ["corrected", "changes"],
+              "required": [
+                "corrected",
+                "changes"
+              ],
               "properties": {
                 "corrected": {
                   "type": "string",
@@ -179,10 +186,22 @@
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": ["type", "text"],
+                    "required": [
+                      "type",
+                      "text"
+                    ],
                     "properties": {
-                      "type": { "type": "string", "enum": ["unchanged", "added", "removed"] },
-                      "text": { "type": "string" }
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "unchanged",
+                          "added",
+                          "removed"
+                        ]
+                      },
+                      "text": {
+                        "type": "string"
+                      }
                     },
                     "additionalProperties": false
                   }

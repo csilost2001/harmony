@@ -101,10 +101,24 @@
             "itemType": {
               "kind": "object",
               "fields": [
-                { "name": "id", "type": "integer", "required": true },
-                { "name": "title", "type": "string", "required": true },
-                { "name": "summary", "type": "string" },
-                { "name": "thumbnailUrl", "type": "string" },
+                {
+                  "name": "id",
+                  "type": "integer",
+                  "required": true
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "summary",
+                  "type": "string"
+                },
+                {
+                  "name": "thumbnailUrl",
+                  "type": "string"
+                },
                 {
                   "name": "tags",
                   "type": {
@@ -112,10 +126,25 @@
                     "itemType": {
                       "kind": "object",
                       "fields": [
-                        { "name": "id", "type": "integer", "required": true },
-                        { "name": "name", "type": "string", "required": true },
-                        { "name": "slug", "type": "string", "required": true },
-                        { "name": "color", "type": "string" }
+                        {
+                          "name": "id",
+                          "type": "integer",
+                          "required": true
+                        },
+                        {
+                          "name": "name",
+                          "type": "string",
+                          "required": true
+                        },
+                        {
+                          "name": "slug",
+                          "type": "string",
+                          "required": true
+                        },
+                        {
+                          "name": "color",
+                          "type": "string"
+                        }
                       ]
                     }
                   }
@@ -185,21 +214,26 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '検索パラメータが不正です。', details: @fieldErrors }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",
           "kind": "compute",
           "description": "検索パラメータのデフォルト値設定: status='published'、limit=20、offset=0。",
           "expression": "{ status: @inputs.status ?? 'published', limit: @inputs.limit ?? 20, offset: @inputs.offset ?? 0 }",
-          "outputBinding": { "name": "params" }
+          "outputBinding": {
+            "name": "params"
+          }
         },
         {
           "id": "step-03",
           "kind": "compute",
           "description": "全文検索用の LIKE パターンを事前に計算する。@inputs.q が null の場合は null を設定し、SQL 側で NULL チェックする。",
           "expression": "@inputs.q != null ? '%' + @inputs.q + '%' : null",
-          "outputBinding": { "name": "likePattern" }
+          "outputBinding": {
+            "name": "likePattern"
+          }
         },
         {
           "id": "step-04",
@@ -208,12 +242,23 @@
           "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
           "operation": "SELECT",
           "sql": "SELECT p.id AS \"postId\", p.title, p.summary, p.status, p.mood, p.published_at AS \"publishedAt\", p.updated_at AS \"updatedAt\", u.display_name AS \"authorDisplayName\", (SELECT url FROM photos WHERE post_id = p.id ORDER BY order_index ASC LIMIT 1) AS \"thumbnailUrl\" FROM posts p INNER JOIN users u ON u.id = p.user_id WHERE p.status = @params.status AND (@likePattern IS NULL OR p.title LIKE @likePattern OR p.body LIKE @likePattern) AND (@inputs.dateFrom IS NULL OR p.published_at >= @inputs.dateFrom) AND (@inputs.dateTo IS NULL OR p.published_at <= @inputs.dateTo) ORDER BY p.published_at DESC LIMIT @params.limit OFFSET @params.offset",
-          "outputBinding": { "name": "searchResults" },
+          "outputBinding": {
+            "name": "searchResults"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "lookup" },
-              { "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa", "purpose": "lookup" },
-              { "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "purpose": "lookup" }
+              {
+                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                "purpose": "lookup"
+              }
             ]
           }
         },
@@ -226,10 +271,20 @@
           "sql": "SELECT COUNT(*) AS \"totalCount\" FROM posts p WHERE p.status = @params.status AND (@likePattern IS NULL OR p.title LIKE @likePattern OR p.body LIKE @likePattern) AND (@inputs.dateFrom IS NULL OR p.published_at >= @inputs.dateFrom) AND (@inputs.dateTo IS NULL OR p.published_at <= @inputs.dateTo)",
           "outputBinding": {
             "name": "countResult",
-            "transformations": [{ "field": "totalCount", "type": "integer" }]
+            "transformations": [
+              {
+                "field": "totalCount",
+                "type": "integer"
+              }
+            ]
           },
           "lineage": {
-            "reads": [{ "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -237,7 +292,9 @@
           "kind": "compute",
           "description": "hasNext を計算する: offset + limit < total ならば true。",
           "expression": "@params.offset + @params.limit < @countResult.totalCount",
-          "outputBinding": { "name": "hasNext" }
+          "outputBinding": {
+            "name": "hasNext"
+          }
         },
         {
           "id": "step-07",

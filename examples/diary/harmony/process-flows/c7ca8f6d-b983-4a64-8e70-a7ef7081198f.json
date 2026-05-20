@@ -101,11 +101,29 @@
           "type": {
             "kind": "object",
             "fields": [
-              { "name": "id", "type": "integer", "required": true },
-              { "name": "name", "type": "string", "required": true },
-              { "name": "slug", "type": "string", "required": true },
-              { "name": "color", "type": "string" },
-              { "name": "icon", "type": "string" }
+              {
+                "name": "id",
+                "type": "integer",
+                "required": true
+              },
+              {
+                "name": "name",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "slug",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "color",
+                "type": "string"
+              },
+              {
+                "name": "icon",
+                "type": "string"
+              }
             ]
           }
         }
@@ -183,7 +201,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",
@@ -333,11 +352,29 @@
           "type": {
             "kind": "object",
             "fields": [
-              { "name": "id", "type": "integer", "required": true },
-              { "name": "name", "type": "string", "required": true },
-              { "name": "slug", "type": "string", "required": true },
-              { "name": "color", "type": "string" },
-              { "name": "icon", "type": "string" }
+              {
+                "name": "id",
+                "type": "integer",
+                "required": true
+              },
+              {
+                "name": "name",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "slug",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "color",
+                "type": "string"
+              },
+              {
+                "name": "icon",
+                "type": "string"
+              }
             ]
           }
         }
@@ -422,7 +459,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",

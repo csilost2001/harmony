@@ -223,7 +223,7 @@
           "description": "photos テーブルから該当投稿の写真一覧を order_index ASC で取得する。",
           "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
           "operation": "SELECT",
-          "sql": "SELECT id AS \"photoId\", url, thumbnail_url AS \"thumbnailUrl\", alt, caption, order_index AS \"orderIndex\", width, height FROM photos WHERE post_id = @inputs.postId ORDER BY order_index ASC",
+          "sql": "SELECT id AS \"id\", url, thumbnail_url AS \"thumbnailUrl\", alt, caption, order_index AS \"orderIndex\", width, height FROM photos WHERE post_id = @inputs.postId ORDER BY order_index ASC",
           "outputBinding": { "name": "photos" },
           "lineage": {
             "reads": [{ "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "purpose": "lookup" }]
@@ -235,7 +235,7 @@
           "description": "post_tags と tags を JOIN して該当投稿のタグ一覧を取得する。",
           "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
           "operation": "SELECT",
-          "sql": "SELECT t.id AS \"tagId\", t.name AS \"tagName\", t.slug, t.color, t.icon, pt.source, pt.confidence FROM post_tags pt INNER JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = @inputs.postId",
+          "sql": "SELECT t.id AS \"id\", t.name AS \"name\", t.slug, t.color, t.icon, pt.source, pt.confidence FROM post_tags pt INNER JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = @inputs.postId",
           "outputBinding": { "name": "tags" },
           "lineage": {
             "reads": [

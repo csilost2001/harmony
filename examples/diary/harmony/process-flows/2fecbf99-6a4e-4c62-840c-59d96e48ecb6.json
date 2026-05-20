@@ -82,7 +82,10 @@
         {
           "name": "file",
           "label": "アップロードファイル",
-          "type": { "kind": "file", "format": "image/*" },
+          "type": {
+            "kind": "file",
+            "format": "image/*"
+          },
           "required": true,
           "description": "アップロード対象の画像ファイル。jpeg / png / webp / heic を許容。最大 @conv.limit.photoFileSize bytes。"
         },
@@ -115,15 +118,45 @@
           "type": {
             "kind": "object",
             "fields": [
-              { "name": "id", "type": "integer", "required": true },
-              { "name": "postId", "type": "integer", "required": true },
-              { "name": "url", "type": "string", "required": true },
-              { "name": "thumbnailUrl", "type": "string" },
-              { "name": "width", "type": "integer" },
-              { "name": "height", "type": "integer" },
-              { "name": "bytes", "type": "integer" },
-              { "name": "mimeType", "type": "string" },
-              { "name": "orderIndex", "type": "integer" }
+              {
+                "name": "id",
+                "type": "integer",
+                "required": true
+              },
+              {
+                "name": "postId",
+                "type": "integer",
+                "required": true
+              },
+              {
+                "name": "url",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "thumbnailUrl",
+                "type": "string"
+              },
+              {
+                "name": "width",
+                "type": "integer"
+              },
+              {
+                "name": "height",
+                "type": "integer"
+              },
+              {
+                "name": "bytes",
+                "type": "integer"
+              },
+              {
+                "name": "mimeType",
+                "type": "string"
+              },
+              {
+                "name": "orderIndex",
+                "type": "integer"
+              }
             ]
           },
           "description": "INSERT された photos 行 (UI 側でギャラリーに追加するための情報)。"
@@ -176,7 +209,12 @@
             {
               "field": "file.mimeType",
               "type": "enum",
-              "values": ["image/jpeg", "image/png", "image/webp", "image/heic"],
+              "values": [
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "image/heic"
+              ],
               "severity": "error",
               "message": "対応していない画像形式です。jpeg / png / webp / heic を指定してください。"
             },
@@ -199,7 +237,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: 'アップロード内容が不正です。', details: @fieldErrors }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",
