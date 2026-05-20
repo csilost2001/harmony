@@ -484,3 +484,78 @@ describe("designer__solution_unpack — #1229 F-1 path traversal 拒否", () => 
     expect(text).toMatch(/OK: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/);
   });
 });
+
+// ── 6. designer__solution_unpack — ZIP 由来 id の assertUuid 検証 (#1229 review-iter-1 I-001) ──
+
+describe("designer__solution_unpack — #1229 I-001 ZIP 由来 id の UUID 検証", () => {
+  const root = path.join(TMP_ROOT, "ws-unpack-id");
+  beforeAll(async () => { await makeWorkspace(root); });
+
+  async function makeZipWithId(id: string, entryName?: string): Promise<string> {
+    const zipDir = path.join(root, "harmony", "input-id");
+    await fs.mkdir(zipDir, { recursive: true });
+    const zipPath = path.join(zipDir, `${Date.now()}.zip`);
+    const flowDoc = { id, meta: { id, name: "t", kind: "common" }, context: {}, actions: [], authoring: { markers: [] } };
+    const zip = new AdmZip();
+    zip.addFile("manifest.json", Buffer.from(JSON.stringify({ publisher: "test", version: "1.0.0", processFlowIds: [id], createdAt: new Date().toISOString() }), "utf8"));
+    // entryName は必ず process-flows/ 配下に設定 (フィルタ通過のため)
+    const name = entryName ?? `process-flows/${id}.json`;
+    zip.addFile(name, Buffer.from(JSON.stringify(flowDoc), "utf8"));
+    zip.writeZip(zipPath);
+    return zipPath;
+  }
+
+  it("ZIP 内 JSON の id が UUID 形式でない場合は SKIP (invalid id) となる", async () => {
+    // entryName は process-flows/ で始める必要がある (フィルタ対象)
+    // JSON body の id に不正値を埋め込む
+    const zipPath = await makeZipWithId("../evil", "process-flows/evil.json");
+    const relPath = path.relative(path.join(root, "harmony"), zipPath);
+    const res = await handleProcessFlowTool(
+      "designer__solution_unpack",
+      { inputPath: relPath },
+      root,
+      SESSION_ID,
+    );
+    expect(res).not.toBeNull();
+    const text = res!.content[0].text as string;
+    expect(text).toMatch(/SKIP \(invalid id\)/);
+    expect(text).not.toMatch(/OK:/);
+  });
+
+  it("ZIP 内 JSON の id が空文字の場合は SKIP (no id) となる", async () => {
+    const zipDir = path.join(root, "harmony", "input-id");
+    await fs.mkdir(zipDir, { recursive: true });
+    const zipPath = path.join(zipDir, `empty-id-${Date.now()}.zip`);
+    const flowDoc = { id: "", meta: { id: "", name: "t", kind: "common" }, context: {}, actions: [], authoring: { markers: [] } };
+    const zip = new AdmZip();
+    zip.addFile("manifest.json", Buffer.from(JSON.stringify({ publisher: "test", version: "1.0.0", processFlowIds: [], createdAt: new Date().toISOString() }), "utf8"));
+    zip.addFile("process-flows/empty.json", Buffer.from(JSON.stringify(flowDoc), "utf8"));
+    zip.writeZip(zipPath);
+    const relPath = path.relative(path.join(root, "harmony"), zipPath);
+    const res = await handleProcessFlowTool(
+      "designer__solution_unpack",
+      { inputPath: relPath },
+      root,
+      SESSION_ID,
+    );
+    expect(res).not.toBeNull();
+    const text = res!.content[0].text as string;
+    expect(text).toMatch(/SKIP \(no id\)/);
+    expect(text).not.toMatch(/OK:/);
+  });
+
+  it("ZIP 内 JSON の id が正規 UUID の場合は OK となる", async () => {
+    const validId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    const zipPath = await makeZipWithId(validId);
+    const relPath = path.relative(path.join(root, "harmony"), zipPath);
+    const res = await handleProcessFlowTool(
+      "designer__solution_unpack",
+      { inputPath: relPath },
+      root,
+      SESSION_ID,
+    );
+    expect(res).not.toBeNull();
+    const text = res!.content[0].text as string;
+    expect(text).toMatch(/OK: cccccccc-cccc-4ccc-8ccc-cccccccccccc/);
+  });
+});

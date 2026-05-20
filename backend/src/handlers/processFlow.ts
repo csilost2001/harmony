@@ -708,6 +708,9 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         const id = doc.id as string | undefined;
         if (!id) { results.push(`SKIP (no id): ${entry.entryName}`); continue; }
 
+        // ZIP 由来の id を UUID 形式で検証 (defense-in-depth, #1229 review-iter-1 I-001)
+        try { assertUuid(id, "id"); } catch { results.push(`SKIP (invalid id): ${entry.entryName}`); continue; }
+
         const destPath = path.join(actionsDir, `${id}.json`);
         const exists = fs.existsSync(destPath);
 
