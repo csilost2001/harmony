@@ -1,4 +1,3 @@
-// @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 /**
  * ProcessFlow.ambientVariables 編集パネル (#278)
  *
