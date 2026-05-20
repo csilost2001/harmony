@@ -323,7 +323,6 @@
               "operation": "INSERT",
               "sql": "INSERT INTO pronunciation_scores (session_id, dialogue_line_id, audio_url, score, diff, created_at) VALUES (@sessionId, @dialogueLineId, @audioUrl, @pronunciationScore, @evalResult.diff, CURRENT_TIMESTAMP) RETURNING id",
               "outputBinding": { "name": "newScore" },
-              "txBoundary": { "role": "begin", "txId": "tx-score" },
               "lineage": {
                 "writes": [
                   { "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81", "purpose": "insert" }
@@ -337,7 +336,6 @@
               "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
               "operation": "UPDATE",
               "sql": "UPDATE learning_sessions SET score_avg = (SELECT AVG(score) FROM pronunciation_scores WHERE session_id = @sessionId), updated_at = CURRENT_TIMESTAMP WHERE id = @sessionId",
-              "txBoundary": { "role": "end", "txId": "tx-score" },
               "lineage": {
                 "reads": [
                   { "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81", "purpose": "lookup" }
@@ -352,14 +350,16 @@
         {
           "id": "step-07",
           "kind": "eventPublish",
-          "description": "発音採点完了イベントを発行し、UI の採点結果表示と CEFR 昇格判定をトリガーする。",
+          "runIf": "@txResult.committed == true",
+          "description": "発音採点完了イベントを発行し、UI の採点結果表示と CEFR 昇格判定をトリガーする。TX コミット後にのみ実行する (TX rollback 時の誤発火防止)。",
           "topic": "el.pronunciation.scored",
           "payload": "{ sessionId: @sessionId, scoreId: @newScore.id, score: @pronunciationScore }"
         },
         {
           "id": "step-08",
           "kind": "return",
-          "description": "201 Created — scoreId + score + diff を返す。score が合格ライン (conventions.extensionCategories.cefr.passingThreshold 参照) を下回る場合、UI 側でメッセージを表示する。",
+          "runIf": "@txResult.committed == true",
+          "description": "201 Created — scoreId + score + diff を返す。TX コミット後にのみ実行する。score が合格ライン (conventions.extensionCategories.cefr.passingThreshold 参照) を下回る場合、UI 側でメッセージを表示する。",
           "responseId": "201-created",
           "bodyExpression": "{ scoreId: @newScore.id, score: @pronunciationScore, diff: @evalResult.diff }"
         }
