@@ -1,4 +1,3 @@
-// @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 /**
  * ProcessFlow.ambientVariables 編集パネル (#278)
  *
@@ -7,7 +6,7 @@
  * (@fieldErrors の暗黙束縛は #1221 で廃止、ValidationStep.fieldErrorsVar の明示宣言で扱う)
  */
 import { useState } from "react";
-import type { ProcessFlow, StructuredField, FieldType } from "../../types/v3";
+import type { ProcessFlow, StructuredField, FieldType, Identifier } from "../../types/v3";
 
 interface Props {
   group: ProcessFlow;
@@ -39,7 +38,7 @@ export function AmbientVariablesPanel({ group, onChange, expanded: expandedProp,
   };
 
   const add = () => {
-    const next: StructuredField[] = [...vars, { name: "", type: "string" }];
+    const next: StructuredField[] = [...vars, { name: "" as Identifier, type: "string" }];
     setVars(next);
   };
 
@@ -99,7 +98,7 @@ export function AmbientVariablesPanel({ group, onChange, expanded: expandedProp,
                     <input
                       className="form-control form-control-sm"
                       value={v.name}
-                      onChange={(ev) => update(i, { name: ev.target.value })}
+                      onChange={(ev) => update(i, { name: ev.target.value as Identifier })}
                     />
                   </label>
                   <label>
@@ -109,8 +108,8 @@ export function AmbientVariablesPanel({ group, onChange, expanded: expandedProp,
                       className="form-control form-control-sm"
                       value={typeof v.type === "string"
                         ? v.type
-                        : v.type.kind === "custom"
-                          ? v.type.label ?? ""
+                        : v.type.kind === "domain"
+                          ? v.type.domainKey
                           : ""}
                       onChange={(ev) => {
                         const t = ev.target.value;
@@ -119,12 +118,12 @@ export function AmbientVariablesPanel({ group, onChange, expanded: expandedProp,
                         } else if ((PRIMITIVE_TYPES as string[]).includes(t)) {
                           update(i, { type: t as FieldType });
                         } else {
-                          update(i, { type: { kind: "custom", label: t } });
+                          update(i, { type: { kind: "domain", domainKey: t } });
                         }
                       }}
                       placeholder="型 (string/DTO名 等)"
-                      title={typeof v.type === "object" && v.type.kind === "custom"
-                        ? `カスタム型: ${v.type.label}`
+                      title={typeof v.type === "object" && v.type.kind === "domain"
+                        ? `ドメイン型: ${v.type.domainKey}`
                         : undefined}
                     />
                   </label>

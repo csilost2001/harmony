@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx 右サイドバー (詳細インスペクタ) を抽出。
 // AI 依頼パネル / Meta タブ (ActionMetaTabBar) / HTTP contract / SLA / 入出力データ。
 
@@ -10,6 +9,7 @@ import { ActionHttpContractPanel } from "../ActionHttpContractPanel";
 import { SlaPanel } from "../SlaPanel";
 import { StructuredFieldsEditor, type ScreenItemPickResult } from "../StructuredFieldsEditor";
 import type { UseAiContextChipsResult } from "../../../hooks/useAiContextChips";
+import { textToStructuredFields } from "../../../utils/actionFields";
 
 export interface InspectorPanelProps {
   group: ProcessFlow | null;
@@ -99,13 +99,13 @@ export function InspectorPanel({
               詳細項目の編集は「編集開始」後に利用できます。
             </div>
           </div>
-        ) : (
+        ) : group ? (
           <ActionMetaTabBar
             group={group}
             updateGroup={updateGroup}
             updateGroupSilent={updateGroupSilent}
           />
-        )}
+        ) : null}
         {!isReadonly && activeAction && (
           <>
             <div className="process-flow-inspector-section">
@@ -141,7 +141,7 @@ export function InspectorPanel({
                   onChange={(val) => {
                     updateGroupSilent((g) => {
                       const act = g.actions.find((a) => a.id === activeActionId);
-                      if (act) act.inputs = val;
+                      if (act) act.inputs = typeof val === "string" ? textToStructuredFields(val) : val;
                     });
                   }}
                   onCommit={commitGroup}
@@ -156,7 +156,7 @@ export function InspectorPanel({
                   onChange={(val) => {
                     updateGroupSilent((g) => {
                       const act = g.actions.find((a) => a.id === activeActionId);
-                      if (act) act.outputs = val;
+                      if (act) act.outputs = typeof val === "string" ? textToStructuredFields(val) : val;
                     });
                   }}
                   onCommit={commitGroup}

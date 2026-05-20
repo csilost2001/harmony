@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx の各種 confirm / save-conflict / AI 生成
 // / AI レビューダイアログを 1 component に束ねた wrapper。
 // state は親側 (ProcessFlowEditor) が保持、本 component は宣言的レンダリングのみ。
@@ -10,7 +9,7 @@ import {
   ForcedOutChoiceDialog,
   AfterForceUnlockChoiceDialog,
 } from "../../editing/ConfirmDialogs";
-import { SaveConflictDialog } from "../../editing/SaveConflictDialog";
+import { SaveConflictDialog, type ConflictInfo } from "../../editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "../../editing/ResumeOrDiscardDialog";
 import { ServerChangeBanner } from "../../common/ServerChangeBanner";
 import { ProcessFlowAiGenerateDialog } from "../ProcessFlowAiGenerateDialog";
@@ -39,7 +38,7 @@ export interface ProcessFlowDialogsProps {
   onForceReleaseConfirm: () => void;
   onForceReleaseCancel: () => void;
   /** save conflict */
-  saveConflict: unknown;
+  saveConflict: ConflictInfo | null;
   onSaveConflictOverwrite: () => Promise<void>;
   onSaveConflictCancel: () => void;
   /** server banner */
@@ -140,7 +139,7 @@ export function ProcessFlowDialogs({
         <ServerChangeBanner onReload={onServerReload} onDismiss={onServerDismiss} />
       )}
 
-      {showAiGenerateDialog && (
+      {showAiGenerateDialog && group && (
         <ProcessFlowAiGenerateDialog
           current={group}
           onClose={onCloseAiGenerate}
@@ -148,7 +147,7 @@ export function ProcessFlowDialogs({
         />
       )}
 
-      {showAiReviewDialog && (
+      {showAiReviewDialog && group && (
         <ProcessFlowAiReviewDialog current={group} onClose={onCloseAiReview} />
       )}
 

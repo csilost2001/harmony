@@ -1,5 +1,4 @@
-// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
-import type { Sla, OnTimeout } from "../../types/v3";
+import type { Sla, OnTimeout, ErrorCode } from "../../types/v3";
 
 interface Props {
   sla?: Sla;
@@ -20,7 +19,7 @@ const compact = (next: Sla): Sla | undefined => {
   if (next.onTimeout) normalized.onTimeout = next.onTimeout;
   if (next.warningThresholdMs !== undefined) normalized.warningThresholdMs = next.warningThresholdMs;
   if (next.p95LatencyMs !== undefined) normalized.p95LatencyMs = next.p95LatencyMs;
-  if (next.errorCode?.trim()) normalized.errorCode = next.errorCode.trim();
+  if (next.errorCode?.trim()) normalized.errorCode = next.errorCode.trim() as ErrorCode;
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 };
 
@@ -107,7 +106,7 @@ export function SlaPanel({ sla, onChange, label = "SLA / Timeout" }: Props) {
             type="text"
             className="form-control form-control-sm"
             value={sla?.errorCode ?? ""}
-            onChange={(e) => patch({ errorCode: e.target.value || undefined })}
+            onChange={(e) => patch({ errorCode: (e.target.value || undefined) as ErrorCode | undefined })}
             placeholder="TIMEOUT"
             style={{ fontFamily: "monospace" }}
           />
