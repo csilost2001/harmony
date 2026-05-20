@@ -49,12 +49,25 @@
           "description": "カート追加が正常完了した時点で発行する。新規追加・数量加算いずれの場合も発行する。",
           "payload": {
             "type": "object",
-            "required": ["cartId", "productId", "storeId", "quantity"],
+            "required": [
+              "cartId",
+              "productId",
+              "storeId",
+              "quantity"
+            ],
             "properties": {
-              "cartId": { "type": "number" },
-              "productId": { "type": "number" },
-              "storeId": { "type": "number" },
-              "quantity": { "type": "number" }
+              "cartId": {
+                "type": "number"
+              },
+              "productId": {
+                "type": "number"
+              },
+              "storeId": {
+                "type": "number"
+              },
+              "quantity": {
+                "type": "number"
+              }
             }
           }
         }
@@ -134,42 +147,54 @@
         {
           "id": "200-ok",
           "status": 200,
-          "bodySchema": { "typeRef": "retail:CartAddResponse" },
+          "bodySchema": {
+            "typeRef": "retail:CartAddResponse"
+          },
           "description": "カート追加成功。",
           "when": "商品が正常にカートに追加 (または数量加算) された場合。"
         },
         {
           "id": "400-validation",
           "status": 400,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "バリデーションエラー。",
           "when": "productCode / storeCode / quantity が不正な場合。"
         },
         {
           "id": "404-product-not-found",
           "status": 404,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "商品が存在しない。",
           "when": "productCode に対応する販売中商品が products に存在しない場合。"
         },
         {
           "id": "404-store-not-found",
           "status": 404,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "店舗が存在しない。",
           "when": "storeCode に対応する営業中店舗が stores に存在しない場合。"
         },
         {
           "id": "422-cart-limit",
           "status": 422,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "カート明細上限超過。",
           "when": "追加後の cart_items 件数が @conv.limit.cartMaxItems を超える場合。"
         },
         {
           "id": "422-cart-add-failed",
           "status": 422,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "カート追加内部失敗。",
           "when": "UPSERT_CART_ITEM が予期せず 0 行を返した場合。"
         }
@@ -236,9 +261,16 @@
           "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
           "operation": "SELECT",
           "sql": "SELECT id, store_code AS \"storeCode\", name FROM stores WHERE store_code = @inputs.storeCode AND is_active = TRUE",
-          "outputBinding": { "name": "store" },
+          "outputBinding": {
+            "name": "store"
+          },
           "lineage": {
-            "reads": [{ "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -279,9 +311,16 @@
           "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
           "operation": "SELECT",
           "sql": "SELECT id, product_code AS \"productCode\", name, unit_price AS \"unitPrice\" FROM products WHERE product_code = @inputs.productCode AND is_active = TRUE",
-          "outputBinding": { "name": "product" },
+          "outputBinding": {
+            "name": "product"
+          },
           "lineage": {
-            "reads": [{ "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -322,9 +361,16 @@
           "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
           "operation": "SELECT",
           "sql": "SELECT id, customer_id, status FROM carts WHERE customer_id = @sessionCustomerId AND status = 'active'",
-          "outputBinding": { "name": "cart" },
+          "outputBinding": {
+            "name": "cart"
+          },
           "lineage": {
-            "reads": [{ "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -348,9 +394,16 @@
                   "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
                   "operation": "INSERT",
                   "sql": "INSERT INTO carts (customer_id, status) VALUES (@sessionCustomerId, 'active') RETURNING id, customer_id, status, created_at, updated_at",
-                  "outputBinding": { "name": "cart" },
+                  "outputBinding": {
+                    "name": "cart"
+                  },
                   "lineage": {
-                    "writes": [{ "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6", "purpose": "insert" }]
+                    "writes": [
+                      {
+                        "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
+                        "purpose": "insert"
+                      }
+                    ]
                   }
                 }
               ]
@@ -370,9 +423,16 @@
           "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
           "operation": "SELECT",
           "sql": "SELECT id FROM cart_items WHERE cart_id = @cart.id AND product_id = @product.id AND store_id = @store.id LIMIT 1",
-          "outputBinding": { "name": "existingItem" },
+          "outputBinding": {
+            "name": "existingItem"
+          },
           "lineage": {
-            "reads": [{ "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -385,11 +445,19 @@
           "outputBinding": {
             "name": "cartItemCount",
             "transformations": [
-              { "field": "itemCount", "type": "integer" }
+              {
+                "field": "itemCount",
+                "type": "integer"
+              }
             ]
           },
           "lineage": {
-            "reads": [{ "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -430,7 +498,9 @@
           "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
           "operation": "retail:UPSERT_CART_ITEM",
           "sql": "INSERT INTO cart_items (cart_id, product_id, store_id, unit_price_snapshot, quantity) VALUES (@cart.id, @product.id, @store.id, @product.unitPrice, @inputs.quantity) ON CONFLICT (cart_id, product_id, store_id) DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity, unit_price_snapshot = EXCLUDED.unit_price_snapshot, updated_at = CURRENT_TIMESTAMP RETURNING id",
-          "outputBinding": { "name": "upsertedCartItem" },
+          "outputBinding": {
+            "name": "upsertedCartItem"
+          },
           "affectedRowsCheck": {
             "operator": "=",
             "expected": 1,
@@ -439,7 +509,12 @@
             "description": "UPSERT_CART_ITEM は必ず 1 行を返す。0 行は内部異常 (CART_ADD_FAILED として 422)。"
           },
           "lineage": {
-            "writes": [{ "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b", "purpose": "upsert" }]
+            "writes": [
+              {
+                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
+                "purpose": "upsert"
+              }
+            ]
           }
         },
         {
@@ -492,12 +567,17 @@
     "glossary": {
       "カート追加": {
         "definition": "ログイン顧客のカートに、指定店舗の指定商品と数量を追加する操作。同一商品でも別店舗の場合は別行として保持する (multi-store inventory 整合)。",
-        "aliases": ["AddToCart", "カートへ追加"],
+        "aliases": [
+          "AddToCart",
+          "カートへ追加"
+        ],
         "domainRef": "cart_items"
       },
       "単価スナップショット": {
         "definition": "カート追加時点の products.unit_price を cart_items.unit_price_snapshot に記録する値。注文確定時も同値を order_items にコピーするため、マスタ変更の影響を受けない。",
-        "aliases": ["UnitPriceSnapshot"],
+        "aliases": [
+          "UnitPriceSnapshot"
+        ],
         "domainRef": "cart_items.unit_price_snapshot"
       }
     },
@@ -509,17 +589,34 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "sessionCustomerId": 100 }
+            "context": {
+              "sessionCustomerId": 100
+            }
           },
           {
             "kind": "dbState",
             "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
-            "rows": [{ "id": 10, "store_code": "S-001", "name": "東京本店", "is_active": true }]
+            "rows": [
+              {
+                "id": 10,
+                "store_code": "S-001",
+                "name": "東京本店",
+                "is_active": true
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
-            "rows": [{ "id": 1, "product_code": "P-0001", "name": "サンプル商品A", "unit_price": 1000, "is_active": true }]
+            "rows": [
+              {
+                "id": 1,
+                "product_code": "P-0001",
+                "name": "サンプル商品A",
+                "unit_price": 1000,
+                "is_active": true
+              }
+            ]
           },
           {
             "kind": "dbState",
@@ -532,13 +629,34 @@
             "rows": []
           }
         ],
-        "when": { "actionId": "act-001", "input": { "productCode": "P-0001", "storeCode": "S-001", "quantity": 2 } },
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "productCode": "P-0001",
+            "storeCode": "S-001",
+            "quantity": 2
+          }
+        },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" },
-          { "kind": "output", "path": "$.productName", "equals": "サンプル商品A" },
-          { "kind": "output", "path": "$.storeName", "equals": "東京本店" }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.productName",
+            "equals": "サンプル商品A"
+          },
+          {
+            "kind": "output",
+            "path": "$.storeName",
+            "equals": "東京本店"
+          }
         ],
-        "tags": ["happy", "s2"]
+        "tags": [
+          "happy",
+          "s2"
+        ]
       },
       {
         "id": "duplicate-same-store-quantity-added",
@@ -547,34 +665,79 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "sessionCustomerId": 100 }
+            "context": {
+              "sessionCustomerId": 100
+            }
           },
           {
             "kind": "dbState",
             "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
-            "rows": [{ "id": 10, "store_code": "S-001", "name": "東京本店", "is_active": true }]
+            "rows": [
+              {
+                "id": 10,
+                "store_code": "S-001",
+                "name": "東京本店",
+                "is_active": true
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
-            "rows": [{ "id": 1, "product_code": "P-0001", "name": "サンプル商品A", "unit_price": 1000, "is_active": true }]
+            "rows": [
+              {
+                "id": 1,
+                "product_code": "P-0001",
+                "name": "サンプル商品A",
+                "unit_price": 1000,
+                "is_active": true
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-            "rows": [{ "id": 50, "customer_id": 100, "status": "active" }]
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
-            "rows": [{ "id": 200, "cart_id": 50, "product_id": 1, "store_id": 10, "unit_price_snapshot": 1000, "quantity": 3 }]
+            "rows": [
+              {
+                "id": 200,
+                "cart_id": 50,
+                "product_id": 1,
+                "store_id": 10,
+                "unit_price_snapshot": 1000,
+                "quantity": 3
+              }
+            ]
           }
         ],
-        "when": { "actionId": "act-001", "input": { "productCode": "P-0001", "storeCode": "S-001", "quantity": 2 } },
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "productCode": "P-0001",
+            "storeCode": "S-001",
+            "quantity": 2
+          }
+        },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          }
         ],
-        "tags": ["upsert", "s2"]
+        "tags": [
+          "upsert",
+          "s2"
+        ]
       },
       {
         "id": "duplicate-different-store-creates-new-row",
@@ -583,64 +746,154 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "sessionCustomerId": 100 }
+            "context": {
+              "sessionCustomerId": 100
+            }
           },
           {
             "kind": "dbState",
             "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
             "rows": [
-              { "id": 10, "store_code": "S-001", "name": "東京本店", "is_active": true },
-              { "id": 11, "store_code": "S-002", "name": "大阪支店", "is_active": true }
+              {
+                "id": 10,
+                "store_code": "S-001",
+                "name": "東京本店",
+                "is_active": true
+              },
+              {
+                "id": 11,
+                "store_code": "S-002",
+                "name": "大阪支店",
+                "is_active": true
+              }
             ]
           },
           {
             "kind": "dbState",
             "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
-            "rows": [{ "id": 1, "product_code": "P-0001", "name": "サンプル商品A", "unit_price": 1000, "is_active": true }]
+            "rows": [
+              {
+                "id": 1,
+                "product_code": "P-0001",
+                "name": "サンプル商品A",
+                "unit_price": 1000,
+                "is_active": true
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-            "rows": [{ "id": 50, "customer_id": 100, "status": "active" }]
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
-            "rows": [{ "id": 200, "cart_id": 50, "product_id": 1, "store_id": 10, "unit_price_snapshot": 1000, "quantity": 3 }]
+            "rows": [
+              {
+                "id": 200,
+                "cart_id": 50,
+                "product_id": 1,
+                "store_id": 10,
+                "unit_price_snapshot": 1000,
+                "quantity": 3
+              }
+            ]
           }
         ],
-        "when": { "actionId": "act-001", "input": { "productCode": "P-0001", "storeCode": "S-002", "quantity": 1 } },
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "productCode": "P-0001",
+            "storeCode": "S-002",
+            "quantity": 1
+          }
+        },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          }
         ],
-        "tags": ["multi-store", "s2"]
+        "tags": [
+          "multi-store",
+          "s2"
+        ]
       },
       {
         "id": "validation-error-invalid-quantity",
         "name": "quantity=0 で 400",
         "description": "数量 0 は range バリデーションで拒否される。",
         "given": [
-          { "kind": "sessionContext", "context": { "sessionCustomerId": 100 } }
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          }
         ],
-        "when": { "actionId": "act-001", "input": { "productCode": "P-0001", "storeCode": "S-001", "quantity": 0 } },
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "productCode": "P-0001",
+            "storeCode": "S-001",
+            "quantity": 0
+          }
+        },
         "then": [
-          { "kind": "outcome", "expected": "400-validation" }
+          {
+            "kind": "outcome",
+            "expected": "400-validation"
+          }
         ],
-        "tags": ["error", "validation", "s2"]
+        "tags": [
+          "error",
+          "validation",
+          "s2"
+        ]
       },
       {
         "id": "store-not-found-404",
         "name": "存在しない店舗コードで 404",
         "description": "stores に存在しない店舗コードを指定した場合は 404 を返す。",
         "given": [
-          { "kind": "sessionContext", "context": { "sessionCustomerId": 100 } },
-          { "kind": "dbState", "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5", "rows": [] }
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
+            "rows": []
+          }
         ],
-        "when": { "actionId": "act-001", "input": { "productCode": "P-0001", "storeCode": "S-999", "quantity": 1 } },
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "productCode": "P-0001",
+            "storeCode": "S-999",
+            "quantity": 1
+          }
+        },
         "then": [
-          { "kind": "outcome", "expected": "404-store-not-found" }
+          {
+            "kind": "outcome",
+            "expected": "404-store-not-found"
+          }
         ],
-        "tags": ["error", "not-found", "s2"]
+        "tags": [
+          "error",
+          "not-found",
+          "s2"
+        ]
       }
     ]
   }

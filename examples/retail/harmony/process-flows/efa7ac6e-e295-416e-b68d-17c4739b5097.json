@@ -31,11 +31,20 @@
           "description": "在庫照会が完了し、1 件以上の在庫レコードを返した時点で発行する。",
           "payload": {
             "type": "object",
-            "required": ["storeCode", "resultCount"],
+            "required": [
+              "storeCode",
+              "resultCount"
+            ],
             "properties": {
-              "storeCode": { "type": "string" },
-              "productCode": { "type": "string" },
-              "resultCount": { "type": "number" }
+              "storeCode": {
+                "type": "string"
+              },
+              "productCode": {
+                "type": "string"
+              },
+              "resultCount": {
+                "type": "number"
+              }
             }
           }
         },
@@ -43,11 +52,21 @@
           "description": "照会結果の中に quantity_available が lowStockThreshold 以下の行が 1 件以上あった場合に発行する。",
           "payload": {
             "type": "object",
-            "required": ["storeCode", "productId", "quantityAvailable"],
+            "required": [
+              "storeCode",
+              "productId",
+              "quantityAvailable"
+            ],
             "properties": {
-              "storeCode": { "type": "string" },
-              "productId": { "type": "number" },
-              "quantityAvailable": { "type": "number" }
+              "storeCode": {
+                "type": "string"
+              },
+              "productId": {
+                "type": "number"
+              },
+              "quantityAvailable": {
+                "type": "number"
+              }
             }
           }
         },
@@ -55,10 +74,16 @@
           "description": "照会条件に一致する在庫レコードが 0 件だった場合に発行する。",
           "payload": {
             "type": "object",
-            "required": ["storeCode"],
+            "required": [
+              "storeCode"
+            ],
             "properties": {
-              "storeCode": { "type": "string" },
-              "productCode": { "type": "string" }
+              "storeCode": {
+                "type": "string"
+              },
+              "productCode": {
+                "type": "string"
+              }
             }
           }
         }
@@ -125,7 +150,10 @@
         {
           "name": "items",
           "label": "在庫一覧",
-          "type": { "kind": "array", "itemType": "json" },
+          "type": {
+            "kind": "array",
+            "itemType": "json"
+          },
           "description": "在庫行 (product_code / product_name / quantity_available / quantity_reserved / isLowStock フラグ) の配列。"
         },
         {
@@ -137,7 +165,10 @@
         {
           "name": "rows",
           "label": "在庫一覧 (viewer 用)",
-          "type": { "kind": "array", "itemType": "json" },
+          "type": {
+            "kind": "array",
+            "itemType": "json"
+          },
           "description": "isLowStock フラグ付き在庫行の配列。画面 viewer 項目 (inventoryRows) の valueFrom.variableName='rows' で参照する (#771)。内容は items と同一 (inventoryItems 変数の alias)。"
         }
       ],
@@ -145,21 +176,27 @@
         {
           "id": "200-ok",
           "status": 200,
-          "bodySchema": { "typeRef": "retail:InventorySearchResponse" },
+          "bodySchema": {
+            "typeRef": "retail:InventorySearchResponse"
+          },
           "description": "照会成功。0 件でも 200 OK (items: [] で返す)。",
           "when": "在庫照会が正常完了した場合 (0 件含む)。"
         },
         {
           "id": "400-validation",
           "status": 400,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "入力値バリデーションエラー。",
           "when": "storeCode が空、または productCode がパターン違反の場合。"
         },
         {
           "id": "404-product-not-found",
           "status": 404,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "指定商品コードの商品が存在しない。",
           "when": "productCode を指定したが products テーブルに該当レコードがない場合。"
         }
@@ -207,10 +244,17 @@
           "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
           "operation": "SELECT",
           "sql": "SELECT id, product_code, name, unit_price FROM products WHERE product_code = @inputs.productCode AND is_active = TRUE",
-          "outputBinding": { "name": "product" },
+          "outputBinding": {
+            "name": "product"
+          },
           "runIf": "@inputs.productCode != null && @inputs.productCode !== ''",
           "lineage": {
-            "reads": [{ "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -251,12 +295,23 @@
           "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
           "operation": "SELECT",
           "sql": "SELECT i.id, p.id AS \"productId\", p.product_code AS \"productCode\", p.name AS \"productName\", p.unit_price AS \"unitPrice\", s.id AS \"storeId\", s.store_code AS \"storeCode\", s.name AS \"storeName\", i.quantity_available AS \"quantityAvailable\", i.quantity_reserved AS \"quantityReserved\" FROM inventory i JOIN products p ON p.id = i.product_id JOIN stores s ON s.id = i.store_id WHERE s.store_code = @inputs.storeCode AND (@inputs.productCode IS NULL OR @inputs.productCode = '' OR p.product_code = @inputs.productCode) AND p.is_active = TRUE AND s.is_active = TRUE ORDER BY p.product_code ASC",
-          "outputBinding": { "name": "inventoryRows" },
+          "outputBinding": {
+            "name": "inventoryRows"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a", "purpose": "lookup" },
-              { "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0", "purpose": "lookup" },
-              { "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5", "purpose": "lookup" }
+              {
+                "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
+                "purpose": "lookup"
+              }
             ]
           }
         },
@@ -286,7 +341,9 @@
                   "kind": "compute",
                   "description": "viewer 用 rows 変数を空配列で bind する。0 件 path でも viewer (inventoryRows screen-item) が undefined 参照にならないようにする (#780)。",
                   "expression": "[]",
-                  "outputBinding": { "name": "rows" }
+                  "outputBinding": {
+                    "name": "rows"
+                  }
                 },
                 {
                   "id": "step-05-a-03",
@@ -310,7 +367,9 @@
           "kind": "compute",
           "description": "各在庫行に isLowStock フラグを付与する。SQL で AS alias 済のため camelCase キーを直接参照する。quantityAvailable が lowStockThreshold 以下の場合に true とすることでオフバイワンを回避する。",
           "expression": "@inventoryRows.map(r => ({ ...r, isLowStock: r.quantityAvailable <= @conv.limit.lowStockThreshold }))",
-          "outputBinding": { "name": "inventoryItems" }
+          "outputBinding": {
+            "name": "inventoryItems"
+          }
         },
         {
           "id": "step-07",
@@ -331,7 +390,9 @@
                   "kind": "compute",
                   "description": "低在庫の最初の 1 行を取得してイベントペイロードに使用する。",
                   "expression": "@inventoryItems.find(r => r.isLowStock)",
-                  "outputBinding": { "name": "firstLowStockRow" }
+                  "outputBinding": {
+                    "name": "firstLowStockRow"
+                  }
                 },
                 {
                   "id": "step-07-a-02",
@@ -362,7 +423,9 @@
           "kind": "compute",
           "description": "viewer 用 rows 変数に inventoryItems を代入する。画面 viewer 項目 (inventoryRows) の valueFrom.variableName='rows' から参照される (#771)。",
           "expression": "@inventoryItems",
-          "outputBinding": { "name": "rows" }
+          "outputBinding": {
+            "name": "rows"
+          }
         },
         {
           "id": "step-10",
@@ -407,12 +470,18 @@
     "glossary": {
       "在庫照会": {
         "definition": "店舗コードと商品コードを条件に inventory テーブルを検索し、引き当て可能な在庫数量を返す業務操作。",
-        "aliases": ["InventorySearch", "在庫確認"],
+        "aliases": [
+          "InventorySearch",
+          "在庫確認"
+        ],
         "domainRef": "inventory"
       },
       "低在庫警告": {
         "definition": "quantity_available が @conv.limit.lowStockThreshold 以下になった在庫行に付与される警告フラグ。補充発注の判断材料となる。",
-        "aliases": ["LowStockAlert", "在庫不足通知"],
+        "aliases": [
+          "LowStockAlert",
+          "在庫不足通知"
+        ],
         "domainRef": "retail.lowStockThreshold"
       }
     },
@@ -424,94 +493,222 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "requestId": "req-s1-001", "sessionUserId": null }
+            "context": {
+              "requestId": "req-s1-001",
+              "sessionUserId": null
+            }
           },
           {
             "kind": "dbState",
             "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
             "rows": [
-              { "id": 1, "product_code": "P-0001", "name": "サンプル商品A", "unit_price": 1000, "is_active": true },
-              { "id": 2, "product_code": "P-0002", "name": "サンプル商品B", "unit_price": 2000, "is_active": true }
+              {
+                "id": 1,
+                "product_code": "P-0001",
+                "name": "サンプル商品A",
+                "unit_price": 1000,
+                "is_active": true
+              },
+              {
+                "id": 2,
+                "product_code": "P-0002",
+                "name": "サンプル商品B",
+                "unit_price": 2000,
+                "is_active": true
+              }
             ]
           },
           {
             "kind": "dbState",
             "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
             "rows": [
-              { "id": 10, "store_code": "S-001", "name": "新宿店" }
+              {
+                "id": 10,
+                "store_code": "S-001",
+                "name": "新宿店"
+              }
             ]
           },
           {
             "kind": "dbState",
             "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
             "rows": [
-              { "id": 101, "store_id": 10, "product_id": 1, "quantity_available": 50, "quantity_reserved": 5 },
-              { "id": 102, "store_id": 10, "product_id": 2, "quantity_available": 8, "quantity_reserved": 0 }
+              {
+                "id": 101,
+                "store_id": 10,
+                "product_id": 1,
+                "quantity_available": 50,
+                "quantity_reserved": 5
+              },
+              {
+                "id": 102,
+                "store_id": 10,
+                "product_id": 2,
+                "quantity_available": 8,
+                "quantity_reserved": 0
+              }
             ]
           }
         ],
-        "when": { "actionId": "act-001", "input": { "storeCode": "S-001" } },
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "storeCode": "S-001"
+          }
+        },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" },
-          { "kind": "output", "path": "$.totalCount", "equals": 2 }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.totalCount",
+            "equals": 2
+          }
         ],
-        "tags": ["happy", "s1"]
+        "tags": [
+          "happy",
+          "s1"
+        ]
       },
       {
         "id": "validation-error-no-store-code",
         "name": "storeCode 未指定で 400",
         "description": "storeCode が空文字の場合はバリデーションエラーになる。",
         "given": [
-          { "kind": "sessionContext", "context": { "requestId": "req-s1-002" } }
+          {
+            "kind": "sessionContext",
+            "context": {
+              "requestId": "req-s1-002"
+            }
+          }
         ],
-        "when": { "actionId": "act-001", "input": { "storeCode": "" } },
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "storeCode": ""
+          }
+        },
         "then": [
-          { "kind": "outcome", "expected": "400-validation" }
+          {
+            "kind": "outcome",
+            "expected": "400-validation"
+          }
         ],
-        "tags": ["error", "validation", "s1"]
+        "tags": [
+          "error",
+          "validation",
+          "s1"
+        ]
       },
       {
         "id": "product-not-found-404",
         "name": "存在しない商品コードで 404",
         "description": "products に存在しない商品コードを指定した場合は 404 を返す。",
         "given": [
-          { "kind": "sessionContext", "context": { "requestId": "req-s1-003" } },
-          { "kind": "dbState", "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0", "rows": [] }
+          {
+            "kind": "sessionContext",
+            "context": {
+              "requestId": "req-s1-003"
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
+            "rows": []
+          }
         ],
-        "when": { "actionId": "act-001", "input": { "storeCode": "S-001", "productCode": "P-9999" } },
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "storeCode": "S-001",
+            "productCode": "P-9999"
+          }
+        },
         "then": [
-          { "kind": "outcome", "expected": "404-product-not-found" }
+          {
+            "kind": "outcome",
+            "expected": "404-product-not-found"
+          }
         ],
-        "tags": ["error", "not-found", "s1"]
+        "tags": [
+          "error",
+          "not-found",
+          "s1"
+        ]
       },
       {
         "id": "low-stock-flag-set",
         "name": "quantity_available <= 10 の行に isLowStock=true が付与される",
         "description": "在庫数 8 の商品が返る場合、isLowStock=true が付与され retail.inventory.low_stock_detected イベントが発行される。",
         "given": [
-          { "kind": "sessionContext", "context": { "requestId": "req-s1-004" } },
+          {
+            "kind": "sessionContext",
+            "context": {
+              "requestId": "req-s1-004"
+            }
+          },
           {
             "kind": "dbState",
             "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
-            "rows": [{ "id": 3, "product_code": "P-0003", "name": "低在庫商品", "unit_price": 500, "is_active": true }]
+            "rows": [
+              {
+                "id": 3,
+                "product_code": "P-0003",
+                "name": "低在庫商品",
+                "unit_price": 500,
+                "is_active": true
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
-            "rows": [{ "id": 10, "store_code": "S-001", "name": "新宿店" }]
+            "rows": [
+              {
+                "id": 10,
+                "store_code": "S-001",
+                "name": "新宿店"
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
-            "rows": [{ "id": 103, "store_id": 10, "product_id": 3, "quantity_available": 8, "quantity_reserved": 0 }]
+            "rows": [
+              {
+                "id": 103,
+                "store_id": 10,
+                "product_id": 3,
+                "quantity_available": 8,
+                "quantity_reserved": 0
+              }
+            ]
           }
         ],
-        "when": { "actionId": "act-001", "input": { "storeCode": "S-001", "productCode": "P-0003" } },
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "storeCode": "S-001",
+            "productCode": "P-0003"
+          }
+        },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" },
-          { "kind": "output", "path": "$.items[0].isLowStock", "equals": true }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.items[0].isLowStock",
+            "equals": true
+          }
         ],
-        "tags": ["low-stock", "s1"]
+        "tags": [
+          "low-stock",
+          "s1"
+        ]
       }
     ]
   }

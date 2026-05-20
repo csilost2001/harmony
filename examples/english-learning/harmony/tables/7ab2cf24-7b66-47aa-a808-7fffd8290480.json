@@ -2,7 +2,7 @@
   "$schema": "../../../../schemas/v3/table.v3.schema.json",
   "id": "7ab2cf24-7b66-47aa-a808-7fffd8290480",
   "name": "単語習熟度",
-  "description": "ユーザーと単語の習熟度管理テーブル。(user_id, word_id) を UNIQUE キーとし、status (new / learning / mastered) と correct_count / attempt_count で習熟度を管理する。@conv.extensionCategories.wordProgress.masteryThreshold (連続正解回数) を超えた時点で mastered に昇格する。",
+  "description": "ユーザーと単語の習熟度管理テーブル。(user_id, word_id) を UNIQUE キーとし、status (new / learning / mastered) と correct_count / attempt_count で習熟度を管理する。@conv.wordProgress.masteryThreshold (連続正解回数) を超えた時点で mastered に昇格する。",
   "maturity": "draft",
   "createdAt": "2026-05-04T00:00:00.000Z",
   "updatedAt": "2026-05-04T00:00:00.000Z",
@@ -58,7 +58,7 @@
       "dataType": "INTEGER",
       "notNull": true,
       "defaultValue": "0",
-      "comment": "現在の連続正解回数。@conv.extensionCategories.wordProgress.masteryThreshold 以上で mastered に昇格"
+      "comment": "現在の連続正解回数。@conv.wordProgress.masteryThreshold 以上で mastered に昇格"
     },
     {
       "id": "col-attempt-count",

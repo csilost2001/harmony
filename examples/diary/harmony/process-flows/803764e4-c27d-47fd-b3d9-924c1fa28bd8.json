@@ -4,7 +4,7 @@
     "id": "803764e4-c27d-47fd-b3d9-924c1fa28bd8",
     "name": "タグ一覧取得",
     "description": "タグマスタ全件を usage_count DESC で取得する処理フロー。タグの総件数は現実的に少ない (数十〜数百) ため、サーバ側では 1 種類の並び順 (タグクラウド表示用) のみ返し、別ソート (五十音 / 新着) は UI 側でクライアントサイド並び替えする方針 (#862 の v1 設計判断)。動的 ORDER BY は SQL injection 経路を増やすため避ける。",
-    "kind": "screen",
+    "kind": "common",
     "maturity": "draft",
     "createdAt": "2026-05-07T00:00:00.000Z",
     "updatedAt": "2026-05-07T00:00:00.000Z"

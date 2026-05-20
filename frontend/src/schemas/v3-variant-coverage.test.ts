@@ -27,6 +27,8 @@ const META_BASE = {
   createdAt: "2026-04-28T00:00:00.000Z",
   updatedAt: "2026-04-28T00:00:00.000Z",
   kind: "screen",
+  // #1221 で kind="screen" の場合 screenId 必須
+  screenId: "22222222-2222-4222-8222-222222222222",
 };
 
 function makeFlow(steps: unknown[], opts?: { contextOverride?: object; metaOverride?: object }): unknown {

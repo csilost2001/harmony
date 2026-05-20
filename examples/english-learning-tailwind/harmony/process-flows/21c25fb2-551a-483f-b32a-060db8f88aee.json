@@ -3,7 +3,7 @@
   "meta": {
     "id": "21c25fb2-551a-483f-b32a-060db8f88aee",
     "name": "単語習熟度更新",
-    "description": "会話練習中にユーザーが単語を正解 / 練習したタイミングで呼び出す共通フロー (S-4)。user_word_progress に (user_id, word_id) で UPSERT し、correct_count / attempt_count / status を更新する。@conv.extensionCategories.wordProgress.masteryThreshold 回の連続正解で status を 'mastered' に昇格させ、wordMastered トリガーを発行する。複数画面 (会話プレイ / 単語帳) から共通呼び出しされる common フロー。",
+    "description": "会話練習中にユーザーが単語を正解 / 練習したタイミングで呼び出す共通フロー (S-4)。user_word_progress に (user_id, word_id) で UPSERT し、correct_count / attempt_count / status を更新する。@conv.wordProgress.masteryThreshold 回の連続正解で status を 'mastered' に昇格させ、wordMastered トリガーを発行する。複数画面 (会話プレイ / 単語帳) から共通呼び出しされる common フロー。",
     "kind": "common",
     "maturity": "draft",
     "createdAt": "2026-05-04T00:00:00.000Z",

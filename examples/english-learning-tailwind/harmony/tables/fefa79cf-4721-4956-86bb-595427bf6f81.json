@@ -48,7 +48,7 @@
       "length": 5,
       "scale": 2,
       "notNull": true,
-      "comment": "発音採点スコア (0.00〜100.00)。@conv.extensionCategories.cefr.passingThreshold と比較",
+      "comment": "発音採点スコア (0.00〜100.00)。@conv.cefr.passingThreshold と比較",
       "description": "fieldType: english-learning:pronunciationScore。SttEvaluate step の出力 EvaluationResult.score に対応する。"
     },
     {

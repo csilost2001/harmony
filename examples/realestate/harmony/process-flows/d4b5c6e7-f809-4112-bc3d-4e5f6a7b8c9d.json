@@ -25,10 +25,16 @@
           "description": "物件検索が完了した時点で発行する。",
           "payload": {
             "type": "object",
-            "required": ["resultCount"],
+            "required": [
+              "resultCount"
+            ],
             "properties": {
-              "propertyType": { "type": "string" },
-              "resultCount": { "type": "number" }
+              "propertyType": {
+                "type": "string"
+              },
+              "resultCount": {
+                "type": "number"
+              }
             }
           }
         }
@@ -74,7 +80,10 @@
         {
           "name": "rows",
           "label": "物件一覧",
-          "type": { "kind": "array", "itemType": "json" },
+          "type": {
+            "kind": "array",
+            "itemType": "json"
+          },
           "description": "検索条件に合致した物件行の配列。viewer screen-item の valueFrom.variableName='rows' で参照される (#762)。"
         },
         {
@@ -88,14 +97,18 @@
         {
           "id": "200-ok",
           "status": 200,
-          "bodySchema": { "typeRef": "realestate:PropertySearchResponse" },
+          "bodySchema": {
+            "typeRef": "realestate:PropertySearchResponse"
+          },
           "description": "検索成功。0 件でも 200 OK (rows: [] で返す)。",
           "when": "物件検索が正常完了した場合 (0 件含む)。"
         },
         {
           "id": "400-validation",
           "status": 400,
-          "bodySchema": { "typeRef": "realestate:ApiError" },
+          "bodySchema": {
+            "typeRef": "realestate:ApiError"
+          },
           "description": "入力値バリデーションエラー。",
           "when": "maxPrice10kYen または minAreaSqm に負値が指定された場合。"
         }
@@ -145,10 +158,15 @@
           "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
           "operation": "SELECT",
           "sql": "SELECT id, property_code AS \"propertyCode\", name, property_type AS \"propertyType\", area_sqm AS \"areaSqm\", price_10k_yen AS \"price10kYen\", listed_at AS \"listedAt\" FROM properties WHERE (@inputs.propertyType IS NULL OR property_type = @inputs.propertyType) AND (@inputs.maxPrice10kYen IS NULL OR price_10k_yen <= @inputs.maxPrice10kYen) AND (@inputs.minAreaSqm IS NULL OR area_sqm >= @inputs.minAreaSqm) ORDER BY price_10k_yen ASC",
-          "outputBinding": { "name": "rows" },
+          "outputBinding": {
+            "name": "rows"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c", "purpose": "lookup" }
+              {
+                "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
+                "purpose": "lookup"
+              }
             ]
           }
         },
@@ -193,7 +211,9 @@
     "glossary": {
       "物件検索": {
         "definition": "物件種別・上限価格・最小面積を条件に properties テーブルを検索し、条件に合致する物件一覧を返す業務操作。",
-        "aliases": ["PropertySearch"],
+        "aliases": [
+          "PropertySearch"
+        ],
         "domainRef": "realestate.property"
       }
     }

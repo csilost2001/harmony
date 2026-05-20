@@ -48,7 +48,10 @@
         {
           "name": "rows",
           "label": "カート明細一覧",
-          "type": { "kind": "array", "itemType": "json" },
+          "type": {
+            "kind": "array",
+            "itemType": "json"
+          },
           "description": "アクティブカートに紐付く cart_items 行 (productCode / productName / storeCode / storeName / quantity / unitPrice / subtotal) の配列。カート確認画面 (cff4a398) の viewer 項目 (cartSummary) の valueFrom.variableName='rows' で参照する (#771)。multi-store inventory 整合のため店舗情報を含む。"
         }
       ],
@@ -59,10 +62,17 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["itemCount", "totalAmount"],
+              "required": [
+                "itemCount",
+                "totalAmount"
+              ],
               "properties": {
-                "itemCount": { "type": "integer" },
-                "totalAmount": { "type": "integer" }
+                "itemCount": {
+                  "type": "integer"
+                },
+                "totalAmount": {
+                  "type": "integer"
+                }
               },
               "additionalProperties": false
             }
@@ -82,14 +92,26 @@
           "outputBinding": {
             "name": "summaryRows",
             "transformations": [
-              { "field": "itemCount", "type": "integer" },
-              { "field": "totalAmount", "type": "float" }
+              {
+                "field": "itemCount",
+                "type": "integer"
+              },
+              {
+                "field": "totalAmount",
+                "type": "float"
+              }
             ]
           },
           "lineage": {
             "reads": [
-              { "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6", "purpose": "lookup" },
-              { "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b", "purpose": "lookup" }
+              {
+                "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
+                "purpose": "lookup"
+              }
             ]
           }
         },
@@ -98,14 +120,18 @@
           "kind": "compute",
           "description": "summaryRows[0] が無い場合のフォールバック (defensive guard、aggregate は常に 1 行返るため通常は dead path)。runtime や DB driver の挙動差異に備えた防御で、null 安全のため明示的に 0 に正規化する。AI 実装でも optional chaining / nullish coalescing を生成するヒントになる。",
           "expression": "@summaryRows[0] != null ? @summaryRows[0].itemCount : 0",
-          "outputBinding": { "name": "itemCount" }
+          "outputBinding": {
+            "name": "itemCount"
+          }
         },
         {
           "id": "step-03",
           "kind": "compute",
           "description": "summaryRows[0] が無い場合の totalAmount フォールバック (step-02 と同じ defensive guard、aggregate は常に 1 行返るため通常は dead path)。",
           "expression": "@summaryRows[0] != null ? @summaryRows[0].totalAmount : 0",
-          "outputBinding": { "name": "totalAmount" }
+          "outputBinding": {
+            "name": "totalAmount"
+          }
         },
         {
           "id": "step-04a",
@@ -114,13 +140,27 @@
           "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
           "operation": "SELECT",
           "sql": "SELECT ci.id, p.product_code AS \"productCode\", p.name AS \"productName\", s.store_code AS \"storeCode\", s.name AS \"storeName\", ci.quantity, ci.unit_price_snapshot AS \"unitPrice\", (ci.unit_price_snapshot * ci.quantity) AS subtotal FROM carts c JOIN cart_items ci ON ci.cart_id = c.id JOIN products p ON p.id = ci.product_id JOIN stores s ON s.id = ci.store_id WHERE c.customer_id = @sessionCustomerId AND c.status = 'active' ORDER BY s.store_code ASC, ci.added_at ASC",
-          "outputBinding": { "name": "cartDetailRows" },
+          "outputBinding": {
+            "name": "cartDetailRows"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6", "purpose": "lookup" },
-              { "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b", "purpose": "lookup" },
-              { "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0", "purpose": "lookup" },
-              { "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5", "purpose": "lookup" }
+              {
+                "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
+                "purpose": "lookup"
+              }
             ]
           }
         },
@@ -129,7 +169,9 @@
           "kind": "compute",
           "description": "cartDetailRows を viewer 用 rows 変数に代入する (#771)。",
           "expression": "@cartDetailRows",
-          "outputBinding": { "name": "rows" }
+          "outputBinding": {
+            "name": "rows"
+          }
         },
         {
           "id": "step-05",
@@ -174,17 +216,24 @@
     "glossary": {
       "アクティブカート": {
         "definition": "carts.status='active' な 1 顧客 1 行のカート。注文確定 TX (S-3) で 'ordered' に遷移すると次回注文用に新たに 'active' が作成される (運用前提)。",
-        "aliases": ["activeCart"],
+        "aliases": [
+          "activeCart"
+        ],
         "domainRef": "carts.status"
       },
       "カート点数": {
         "definition": "アクティブカートに紐付く cart_items の行数 (各行の quantity ではなく行数そのもの)。同一商品で数量を増やしても 1 点として数える。",
-        "aliases": ["itemCount"],
+        "aliases": [
+          "itemCount"
+        ],
         "domainRef": "cart_items.id"
       },
       "カート小計": {
         "definition": "アクティブカートに紐付く cart_items の (unit_price_snapshot * quantity) 合算 (税抜)。",
-        "aliases": ["totalAmount", "cartTotalAmount"],
+        "aliases": [
+          "totalAmount",
+          "cartTotalAmount"
+        ],
         "domainRef": "cart_items.unit_price_snapshot * cart_items.quantity"
       }
     },
@@ -194,44 +243,105 @@
         "name": "カート 2 行の集計が正常に返る",
         "description": "アクティブカートに 2 商品 (商品A 単価 1000 × 2 @ S-001、商品B 単価 2000 × 1 @ S-001) が入っている場合、itemCount=2 / totalAmount=4000 が返る。",
         "given": [
-          { "kind": "sessionContext", "context": { "sessionCustomerId": 100 } },
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
           {
             "kind": "dbState",
             "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
-            "rows": [{ "id": 10, "store_code": "S-001", "name": "東京本店", "is_active": true }]
+            "rows": [
+              {
+                "id": 10,
+                "store_code": "S-001",
+                "name": "東京本店",
+                "is_active": true
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-            "rows": [{ "id": 50, "customer_id": 100, "status": "active" }]
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
             "rows": [
-              { "id": 200, "cart_id": 50, "product_id": 1, "store_id": 10, "unit_price_snapshot": 1000, "quantity": 2 },
-              { "id": 201, "cart_id": 50, "product_id": 2, "store_id": 10, "unit_price_snapshot": 2000, "quantity": 1 }
+              {
+                "id": 200,
+                "cart_id": 50,
+                "product_id": 1,
+                "store_id": 10,
+                "unit_price_snapshot": 1000,
+                "quantity": 2
+              },
+              {
+                "id": 201,
+                "cart_id": 50,
+                "product_id": 2,
+                "store_id": 10,
+                "unit_price_snapshot": 2000,
+                "quantity": 1
+              }
             ]
           }
         ],
-        "when": { "actionId": "act-001", "input": {} },
+        "when": {
+          "actionId": "act-001",
+          "input": {}
+        },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" },
-          { "kind": "output", "path": "$.itemCount", "matches": "^2$" },
-          { "kind": "output", "path": "$.totalAmount", "matches": "^4000$" }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.itemCount",
+            "matches": "^2$"
+          },
+          {
+            "kind": "output",
+            "path": "$.totalAmount",
+            "matches": "^4000$"
+          }
         ],
-        "tags": ["happy", "cart", "summary"]
+        "tags": [
+          "happy",
+          "cart",
+          "summary"
+        ]
       },
       {
         "id": "empty-cart-zero",
         "name": "アクティブカートはあるが明細 0 件で (0, 0) を返す",
         "description": "carts に active 行があるが cart_items が 0 件。COALESCE で itemCount=0 / totalAmount=0 になる。",
         "given": [
-          { "kind": "sessionContext", "context": { "sessionCustomerId": 100 } },
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
           {
             "kind": "dbState",
             "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-            "rows": [{ "id": 50, "customer_id": 100, "status": "active" }]
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
           },
           {
             "kind": "dbState",
@@ -239,24 +349,53 @@
             "rows": []
           }
         ],
-        "when": { "actionId": "act-001", "input": {} },
+        "when": {
+          "actionId": "act-001",
+          "input": {}
+        },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" },
-          { "kind": "output", "path": "$.itemCount", "matches": "^0$" },
-          { "kind": "output", "path": "$.totalAmount", "matches": "^0$" }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.itemCount",
+            "matches": "^0$"
+          },
+          {
+            "kind": "output",
+            "path": "$.totalAmount",
+            "matches": "^0$"
+          }
         ],
-        "tags": ["edge", "empty-cart", "summary"]
+        "tags": [
+          "edge",
+          "empty-cart",
+          "summary"
+        ]
       },
       {
         "id": "no-active-cart-zero",
         "name": "アクティブカート自体が無い顧客で (0, 0) を返す",
         "description": "carts に customer_id=100 / status='active' な行が存在しない。LEFT JOIN により aggregate は (0, 0) を返す。",
         "given": [
-          { "kind": "sessionContext", "context": { "sessionCustomerId": 100 } },
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
           {
             "kind": "dbState",
             "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-            "rows": [{ "id": 50, "customer_id": 100, "status": "ordered" }]
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "ordered"
+              }
+            ]
           },
           {
             "kind": "dbState",
@@ -264,13 +403,31 @@
             "rows": []
           }
         ],
-        "when": { "actionId": "act-001", "input": {} },
+        "when": {
+          "actionId": "act-001",
+          "input": {}
+        },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" },
-          { "kind": "output", "path": "$.itemCount", "matches": "^0$" },
-          { "kind": "output", "path": "$.totalAmount", "matches": "^0$" }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.itemCount",
+            "matches": "^0$"
+          },
+          {
+            "kind": "output",
+            "path": "$.totalAmount",
+            "matches": "^0$"
+          }
         ],
-        "tags": ["edge", "no-active-cart", "summary"]
+        "tags": [
+          "edge",
+          "no-active-cart",
+          "summary"
+        ]
       }
     ]
   }

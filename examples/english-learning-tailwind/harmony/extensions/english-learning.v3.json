@@ -41,7 +41,7 @@
         { "type": "minimum", "value": 0 },
         { "type": "maximum", "value": 100 }
       ],
-      "description": "発音採点スコア (0〜100)。SttEvaluate step の出力 EvaluationResult.score に対応。@conv.extensionCategories.cefr.passingThreshold と比較して CEFR レベル昇格を判定する。"
+      "description": "発音採点スコア (0〜100)。SttEvaluate step の出力 EvaluationResult.score に対応。@conv.cefr.passingThreshold と比較して CEFR レベル昇格を判定する。"
     },
     {
       "kind": "dialogTurn",

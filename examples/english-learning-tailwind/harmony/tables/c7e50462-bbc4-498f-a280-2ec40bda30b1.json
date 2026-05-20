@@ -51,7 +51,7 @@
       "length": 2,
       "notNull": true,
       "defaultValue": "'A1'",
-      "comment": "現在の英語レベル (A1/A2/B1/B2/C1/C2)。@conv.extensionCategories.cefr.passingThreshold で昇格判定",
+      "comment": "現在の英語レベル (A1/A2/B1/B2/C1/C2)。@conv.cefr.passingThreshold で昇格判定",
       "description": "fieldType: english-learning:cefrLevel。学習セッション完了時に発音スコアが閾値を超えた場合に自動更新する想定。"
     },
     {

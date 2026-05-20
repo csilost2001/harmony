@@ -3,7 +3,7 @@
   "meta": {
     "id": "6a49b14b-eb90-45bd-9df0-df4b5986626b",
     "name": "発音採点",
-    "description": "ユーザーが録音した音声を STT + 評価 API (english-learning:SttEvaluate) に送信し、発音スコアを算出して pronunciation_scores に INSERT する (S-3)。スコア保存後、learning_sessions のセッション平均スコア (score_avg) を更新する。TX 境界で scores INSERT + sessions UPDATE を原子的に実行する。@conv.extensionCategories.cefr.passingThreshold を下回ったセッションは pronunciationScored トリガーを発行し、UI 側でメッセージを表示する。発音採点フィードバック UI (diff フィールドの PhoneDiff[] 音素単位色分け表示) は実装側で処理する (description 待避、3.3 節)。",
+    "description": "ユーザーが録音した音声を STT + 評価 API (english-learning:SttEvaluate) に送信し、発音スコアを算出して pronunciation_scores に INSERT する (S-3)。スコア保存後、learning_sessions のセッション平均スコア (score_avg) を更新する。TX 境界で scores INSERT + sessions UPDATE を原子的に実行する。@conv.cefr.passingThreshold を下回ったセッションは pronunciationScored トリガーを発行し、UI 側でメッセージを表示する。発音採点フィードバック UI (diff フィールドの PhoneDiff[] 音素単位色分け表示) は実装側で処理する (description 待避、3.3 節)。",
     "kind": "screen",
     "screenId": "a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7",
     "maturity": "draft",
@@ -43,11 +43,21 @@
           "description": "発音採点が完了し、pronunciation_scores に保存された直後に発行する。採点結果 UI 更新とセッション平均スコア再計算をトリガーする。",
           "payload": {
             "type": "object",
-            "required": ["sessionId", "scoreId", "score"],
+            "required": [
+              "sessionId",
+              "scoreId",
+              "score"
+            ],
             "properties": {
-              "sessionId": { "type": "number" },
-              "scoreId": { "type": "number" },
-              "score": { "type": "number" }
+              "sessionId": {
+                "type": "number"
+              },
+              "scoreId": {
+                "type": "number"
+              },
+              "score": {
+                "type": "number"
+              }
             }
           }
         }
@@ -113,7 +123,10 @@
         {
           "name": "diff",
           "label": "音素差分",
-          "type": { "kind": "array", "itemType": "json" },
+          "type": {
+            "kind": "array",
+            "itemType": "json"
+          },
           "description": "音素単位の正誤判定リスト (PhoneDiff[])。実装側で IPA テーブル + 色分け表示する (description 待避)。"
         }
       ],
@@ -124,13 +137,23 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["scoreId", "score"],
+              "required": [
+                "scoreId",
+                "score"
+              ],
               "properties": {
-                "scoreId": { "type": "integer" },
-                "score": { "type": "number" },
+                "scoreId": {
+                  "type": "integer"
+                },
+                "score": {
+                  "type": "number"
+                },
                 "diff": {
                   "type": "array",
-                  "items": { "type": "object", "additionalProperties": true }
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
                 }
               },
               "additionalProperties": false
@@ -145,8 +168,14 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["error"],
-              "properties": { "error": { "type": "string" } },
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              },
               "additionalProperties": false
             }
           },
@@ -159,8 +188,14 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["error"],
-              "properties": { "error": { "type": "string" } },
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              },
               "additionalProperties": false
             }
           },
@@ -173,8 +208,14 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["error"],
-              "properties": { "error": { "type": "string" } },
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              },
               "additionalProperties": false
             }
           },
@@ -187,8 +228,14 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["error"],
-              "properties": { "error": { "type": "string" } },
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              },
               "additionalProperties": false
             }
           },
@@ -204,10 +251,15 @@
           "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
           "operation": "SELECT",
           "sql": "SELECT id, story_id FROM learning_sessions WHERE id = @sessionId AND user_id = @sessionUserId AND status = 'in_progress'",
-          "outputBinding": { "name": "sessionRow" },
+          "outputBinding": {
+            "name": "sessionRow"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103", "purpose": "validate" }
+              {
+                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
+                "purpose": "validate"
+              }
             ]
           }
         },
@@ -250,10 +302,15 @@
           "tableId": "246a3f13-7888-4b14-ad6d-641b7437b09d",
           "operation": "SELECT",
           "sql": "SELECT id, text, ipa FROM dialogue_lines WHERE id = @dialogueLineId",
-          "outputBinding": { "name": "dialogueLine" },
+          "outputBinding": {
+            "name": "dialogueLine"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "246a3f13-7888-4b14-ad6d-641b7437b09d", "purpose": "lookup" }
+              {
+                "tableId": "246a3f13-7888-4b14-ad6d-641b7437b09d",
+                "purpose": "lookup"
+              }
             ]
           }
         },
@@ -298,22 +355,30 @@
             "referenceText": "@dialogueLine[0].text",
             "referenceIpa": "@dialogueLine[0].ipa"
           },
-          "outputBinding": { "name": "evalResult" }
+          "outputBinding": {
+            "name": "evalResult"
+          }
         },
         {
           "id": "step-05b",
           "kind": "compute",
           "description": "evalResult から score と diff を独立変数に展開し、TX スコープ内の SQL から安全に参照できるようにする。",
           "expression": "@evalResult.score",
-          "outputBinding": { "name": "pronunciationScore" }
+          "outputBinding": {
+            "name": "pronunciationScore"
+          }
         },
         {
           "id": "step-06",
           "kind": "transactionScope",
           "description": "発音スコア INSERT + セッション平均スコア UPDATE を 1 TX で原子的に実行する。",
           "isolationLevel": "READ_COMMITTED",
-          "rollbackOn": ["SCORE_INSERT_FAILED"],
-          "outputBinding": { "name": "txResult" },
+          "rollbackOn": [
+            "SCORE_INSERT_FAILED"
+          ],
+          "outputBinding": {
+            "name": "txResult"
+          },
           "steps": [
             {
               "id": "step-06a",
@@ -322,10 +387,15 @@
               "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81",
               "operation": "INSERT",
               "sql": "INSERT INTO pronunciation_scores (session_id, dialogue_line_id, audio_url, score, diff, created_at) VALUES (@sessionId, @dialogueLineId, @audioUrl, @pronunciationScore, @evalResult.diff, CURRENT_TIMESTAMP) RETURNING id",
-              "outputBinding": { "name": "newScore" },
+              "outputBinding": {
+                "name": "newScore"
+              },
               "lineage": {
                 "writes": [
-                  { "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81", "purpose": "insert" }
+                  {
+                    "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81",
+                    "purpose": "insert"
+                  }
                 ]
               }
             },
@@ -338,10 +408,16 @@
               "sql": "UPDATE learning_sessions SET score_avg = (SELECT AVG(score) FROM pronunciation_scores WHERE session_id = @sessionId), updated_at = CURRENT_TIMESTAMP WHERE id = @sessionId",
               "lineage": {
                 "reads": [
-                  { "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81", "purpose": "lookup" }
+                  {
+                    "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81",
+                    "purpose": "lookup"
+                  }
                 ],
                 "writes": [
-                  { "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103", "purpose": "update" }
+                  {
+                    "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
+                    "purpose": "update"
+                  }
                 ]
               }
             }

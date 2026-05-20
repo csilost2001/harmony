@@ -17,21 +17,45 @@
           "description": "ダッシュボード KPI 集計が完了し、4 KPI 値を取得した時点で発行する。下流のメトリクス収集系で参照する。",
           "payload": {
             "type": "object",
-            "required": ["todaySales", "ordersToday", "lowStockCount", "dispatchPending"],
+            "required": [
+              "todaySales",
+              "ordersToday",
+              "lowStockCount",
+              "dispatchPending"
+            ],
             "properties": {
-              "todaySales": { "type": "number" },
-              "ordersToday": { "type": "number" },
-              "lowStockCount": { "type": "number" },
-              "dispatchPending": { "type": "number" },
-              "requestId": { "type": "string" }
+              "todaySales": {
+                "type": "number"
+              },
+              "ordersToday": {
+                "type": "number"
+              },
+              "lowStockCount": {
+                "type": "number"
+              },
+              "dispatchPending": {
+                "type": "number"
+              },
+              "requestId": {
+                "type": "string"
+              }
             }
           }
         }
       }
     },
     "ambientVariables": [
-      { "name": "requestId", "type": "string", "description": "リクエスト単位の追跡 ID (ミドルウェア自動付与)。" },
-      { "name": "sessionUserId", "type": "string", "required": true, "description": "ログイン中ユーザー ID。ダッシュボード閲覧は session 必須 (httpRoute.auth='required' と整合)。" }
+      {
+        "name": "requestId",
+        "type": "string",
+        "description": "リクエスト単位の追跡 ID (ミドルウェア自動付与)。"
+      },
+      {
+        "name": "sessionUserId",
+        "type": "string",
+        "required": true,
+        "description": "ログイン中ユーザー ID。ダッシュボード閲覧は session 必須 (httpRoute.auth='required' と整合)。"
+      }
     ]
   },
   "actions": [
@@ -41,19 +65,45 @@
       "trigger": "load",
       "description": "ダッシュボード画面ロード時に発火する読取専用 GET。当日売上・本日注文件数・低在庫数・配送指示待ち件数の 4 KPI を 3 SELECT (orders 集計 / inventory 低在庫件数 / orders 配送指示待ち件数) で集計し、retail.dashboard.refreshed イベントを発行して 200 で返す。",
       "maturity": "committed",
-      "httpRoute": { "method": "GET", "path": "/api/retail/dashboard/kpi", "auth": "required" },
+      "httpRoute": {
+        "method": "GET",
+        "path": "/api/retail/dashboard/kpi",
+        "auth": "required"
+      },
       "inputs": [],
       "outputs": [
-        { "name": "todaySales", "label": "今日の売上", "type": "integer", "description": "本日 (CURRENT_DATE) の累計売上金額 (税込)。orders.total_amount + tax_amount を合算。cancelled 注文は除外。" },
-        { "name": "ordersToday", "label": "本日の注文件数", "type": "integer", "description": "本日確定済みの注文件数 (status != 'cancelled')。" },
-        { "name": "lowStockCount", "label": "低在庫商品数", "type": "integer", "description": "@conv.limit.lowStockThreshold 以下の inventory 行数。補充発注の判断材料となる。" },
-        { "name": "dispatchPending", "label": "配送指示待ち", "type": "integer", "description": "配送指示未完了 (status IN ('pending', 'confirmed')) の注文件数。" }
+        {
+          "name": "todaySales",
+          "label": "今日の売上",
+          "type": "integer",
+          "description": "本日 (CURRENT_DATE) の累計売上金額 (税込)。orders.total_amount + tax_amount を合算。cancelled 注文は除外。"
+        },
+        {
+          "name": "ordersToday",
+          "label": "本日の注文件数",
+          "type": "integer",
+          "description": "本日確定済みの注文件数 (status != 'cancelled')。"
+        },
+        {
+          "name": "lowStockCount",
+          "label": "低在庫商品数",
+          "type": "integer",
+          "description": "@conv.limit.lowStockThreshold 以下の inventory 行数。補充発注の判断材料となる。"
+        },
+        {
+          "name": "dispatchPending",
+          "label": "配送指示待ち",
+          "type": "integer",
+          "description": "配送指示未完了 (status IN ('pending', 'confirmed')) の注文件数。"
+        }
       ],
       "responses": [
         {
           "id": "200-ok",
           "status": 200,
-          "bodySchema": { "typeRef": "retail:DashboardKpiResponse" },
+          "bodySchema": {
+            "typeRef": "retail:DashboardKpiResponse"
+          },
           "description": "KPI 集計成功。ダッシュボード KPI 4 件を返す。",
           "when": "全 SELECT が正常完了した場合 (0 件含む)。"
         }
@@ -69,12 +119,23 @@
           "outputBinding": {
             "name": "ordersAgg",
             "transformations": [
-              { "field": "todaySales", "type": "float" },
-              { "field": "ordersToday", "type": "integer" }
+              {
+                "field": "todaySales",
+                "type": "float"
+              },
+              {
+                "field": "ordersToday",
+                "type": "integer"
+              }
             ]
           },
           "lineage": {
-            "reads": [{ "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -87,11 +148,19 @@
           "outputBinding": {
             "name": "lowStockAgg",
             "transformations": [
-              { "field": "lowStockCount", "type": "integer" }
+              {
+                "field": "lowStockCount",
+                "type": "integer"
+              }
             ]
           },
           "lineage": {
-            "reads": [{ "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -104,11 +173,19 @@
           "outputBinding": {
             "name": "dispatchAgg",
             "transformations": [
-              { "field": "dispatchPending", "type": "integer" }
+              {
+                "field": "dispatchPending",
+                "type": "integer"
+              }
             ]
           },
           "lineage": {
-            "reads": [{ "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -161,27 +238,38 @@
     "glossary": {
       "KPI": {
         "definition": "Key Performance Indicator。ダッシュボードの主要業績指標。本サンプルでは 4 件 (todaySales / ordersToday / lowStockCount / dispatchPending)。",
-        "aliases": ["主要業績指標"],
+        "aliases": [
+          "主要業績指標"
+        ],
         "domainRef": "dashboard"
       },
       "本日売上": {
         "definition": "DATE(orders.ordered_at) = CURRENT_DATE かつ status != 'cancelled' な orders の total_amount + tax_amount 合計 (税込)。",
-        "aliases": ["todaySales", "今日の売上"],
+        "aliases": [
+          "todaySales",
+          "今日の売上"
+        ],
         "domainRef": "orders.total_amount + orders.tax_amount"
       },
       "配送指示待ち": {
         "definition": "orders.status が 'pending' または 'confirmed' の注文件数。'shipped' / 'delivered' / 'cancelled' は除外。",
-        "aliases": ["dispatchPending"],
+        "aliases": [
+          "dispatchPending"
+        ],
         "domainRef": "orders.status"
       },
       "本日注文件数": {
         "definition": "DATE(orders.ordered_at) = CURRENT_DATE かつ status != 'cancelled' な orders の件数。",
-        "aliases": ["ordersToday"],
+        "aliases": [
+          "ordersToday"
+        ],
         "domainRef": "orders.id"
       },
       "低在庫商品数": {
         "definition": "inventory.quantity_available <= @conv.limit.lowStockThreshold (= 10) を満たす行数。補充発注の判断材料。",
-        "aliases": ["lowStockCount"],
+        "aliases": [
+          "lowStockCount"
+        ],
         "domainRef": "inventory.quantity_available"
       }
     },
@@ -191,53 +279,158 @@
         "name": "4 KPI を正常集計して 200 を返す",
         "description": "本日注文 2 件 (税抜 3000 円 + 税込分) / inventory 5 件のうち 2 件低在庫 / 配送指示待ち 1 件で全 KPI が正しい値を返す。",
         "given": [
-          { "kind": "sessionContext", "context": { "sessionUserId": "u-001" } },
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionUserId": "u-001"
+            }
+          },
           {
             "kind": "dbState",
             "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
             "rows": [
-              { "id": 1, "order_number": "ORD-2026-000001", "customer_id": 100, "status": "pending", "total_amount": 1000, "tax_amount": 100, "ordered_at": "2026-05-02T10:00:00Z" },
-              { "id": 2, "order_number": "ORD-2026-000002", "customer_id": 101, "status": "confirmed", "total_amount": 2000, "tax_amount": 200, "ordered_at": "2026-05-02T11:00:00Z" }
+              {
+                "id": 1,
+                "order_number": "ORD-2026-000001",
+                "customer_id": 100,
+                "status": "pending",
+                "total_amount": 1000,
+                "tax_amount": 100,
+                "ordered_at": "2026-05-02T10:00:00Z"
+              },
+              {
+                "id": 2,
+                "order_number": "ORD-2026-000002",
+                "customer_id": 101,
+                "status": "confirmed",
+                "total_amount": 2000,
+                "tax_amount": 200,
+                "ordered_at": "2026-05-02T11:00:00Z"
+              }
             ]
           },
           {
             "kind": "dbState",
             "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
             "rows": [
-              { "id": 1, "store_id": 1, "product_id": 1, "quantity_available": 3, "quantity_reserved": 0 },
-              { "id": 2, "store_id": 1, "product_id": 2, "quantity_available": 8, "quantity_reserved": 0 },
-              { "id": 3, "store_id": 1, "product_id": 3, "quantity_available": 50, "quantity_reserved": 0 }
+              {
+                "id": 1,
+                "store_id": 1,
+                "product_id": 1,
+                "quantity_available": 3,
+                "quantity_reserved": 0
+              },
+              {
+                "id": 2,
+                "store_id": 1,
+                "product_id": 2,
+                "quantity_available": 8,
+                "quantity_reserved": 0
+              },
+              {
+                "id": 3,
+                "store_id": 1,
+                "product_id": 3,
+                "quantity_available": 50,
+                "quantity_reserved": 0
+              }
             ]
           }
         ],
-        "when": { "actionId": "act-001", "input": {} },
+        "when": {
+          "actionId": "act-001",
+          "input": {}
+        },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" },
-          { "kind": "output", "path": "$.todaySales", "matches": "^3300$" },
-          { "kind": "output", "path": "$.ordersToday", "matches": "^2$" },
-          { "kind": "output", "path": "$.lowStockCount", "matches": "^2$" },
-          { "kind": "output", "path": "$.dispatchPending", "matches": "^2$" }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.todaySales",
+            "matches": "^3300$"
+          },
+          {
+            "kind": "output",
+            "path": "$.ordersToday",
+            "matches": "^2$"
+          },
+          {
+            "kind": "output",
+            "path": "$.lowStockCount",
+            "matches": "^2$"
+          },
+          {
+            "kind": "output",
+            "path": "$.dispatchPending",
+            "matches": "^2$"
+          }
         ],
-        "tags": ["happy", "dashboard", "kpi"]
+        "tags": [
+          "happy",
+          "dashboard",
+          "kpi"
+        ]
       },
       {
         "id": "empty-state-zero-kpi",
         "name": "全 KPI 0 でも 200 を返す",
         "description": "orders / inventory が空の場合、4 KPI すべて 0 で 200 を返す。",
         "given": [
-          { "kind": "sessionContext", "context": { "sessionUserId": "u-001" } },
-          { "kind": "dbState", "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab", "rows": [] },
-          { "kind": "dbState", "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a", "rows": [] }
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionUserId": "u-001"
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
+            "rows": []
+          },
+          {
+            "kind": "dbState",
+            "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
+            "rows": []
+          }
         ],
-        "when": { "actionId": "act-001", "input": {} },
+        "when": {
+          "actionId": "act-001",
+          "input": {}
+        },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" },
-          { "kind": "output", "path": "$.todaySales", "matches": "^0$" },
-          { "kind": "output", "path": "$.ordersToday", "matches": "^0$" },
-          { "kind": "output", "path": "$.lowStockCount", "matches": "^0$" },
-          { "kind": "output", "path": "$.dispatchPending", "matches": "^0$" }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.todaySales",
+            "matches": "^0$"
+          },
+          {
+            "kind": "output",
+            "path": "$.ordersToday",
+            "matches": "^0$"
+          },
+          {
+            "kind": "output",
+            "path": "$.lowStockCount",
+            "matches": "^0$"
+          },
+          {
+            "kind": "output",
+            "path": "$.dispatchPending",
+            "matches": "^0$"
+          }
         ],
-        "tags": ["happy", "dashboard", "kpi", "empty"]
+        "tags": [
+          "happy",
+          "dashboard",
+          "kpi",
+          "empty"
+        ]
       }
     ]
   }

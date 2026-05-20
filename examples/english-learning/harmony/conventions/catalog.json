@@ -38,7 +38,7 @@
     "pronunciationLow": {
       "template": "発音スコア {score} 点でした。もう一度練習してみましょう！ (合格ライン: {threshold} 点)",
       "params": ["score", "threshold"],
-      "description": "発音低評価メッセージ。SttEvaluate の score が @conv.extensionCategories.cefr.passingThreshold を下回った場合に表示する。"
+      "description": "発音低評価メッセージ。SttEvaluate の score が @conv.cefr.passingThreshold を下回った場合に表示する。"
     },
     "sessionCompleted": {
       "template": "学習セッションを完了しました！平均発音スコア: {scoreAvg} 点",

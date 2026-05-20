@@ -135,7 +135,7 @@ describe("schema v3 examples (#774: examples/ を canonical サンプル領域�
         name: "F-2 lineage 透過テスト",
         createdAt: "2026-04-27T00:00:00.000Z",
         updatedAt: "2026-04-27T00:00:00.000Z",
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
       },
       actions: [
         {
@@ -174,7 +174,7 @@ describe("schema v3 examples (#774: examples/ を canonical サンプル領域�
         name: "F-2 DbAccessStep lineage 継承テスト",
         createdAt: "2026-04-27T00:00:00.000Z",
         updatedAt: "2026-04-27T00:00:00.000Z",
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
       },
       actions: [
         {
@@ -210,7 +210,7 @@ describe("schema v3 examples (#774: examples/ を canonical サンプル領域�
         name: "F-4 discriminator テスト",
         createdAt: "2026-04-27T00:00:00.000Z",
         updatedAt: "2026-04-27T00:00:00.000Z",
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
       },
       actions: [
         {
@@ -289,7 +289,7 @@ describe("schema v3 examples (#774: examples/ を canonical サンプル領域�
         name: "F-4 TestPrecondition",
         createdAt: "2026-04-27T00:00:00.000Z",
         updatedAt: "2026-04-27T00:00:00.000Z",
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
       },
       actions: [
         {

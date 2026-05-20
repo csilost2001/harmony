@@ -47,9 +47,13 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["redirectTo"],
+              "required": [
+                "redirectTo"
+              ],
               "properties": {
-                "redirectTo": { "type": "string" }
+                "redirectTo": {
+                  "type": "string"
+                }
               },
               "additionalProperties": false
             }
@@ -64,7 +68,9 @@
           "kind": "compute",
           "description": "セッション破棄後のリダイレクト先 URL を導出する。具体的なセッション invalidate は framework 側 (Spring Security / NestJS Passport 等) に委ね、本フローはレスポンスの redirectTo を明示する。",
           "expression": "'/login'",
-          "outputBinding": { "name": "redirectTo" }
+          "outputBinding": {
+            "name": "redirectTo"
+          }
         },
         {
           "id": "step-02",
