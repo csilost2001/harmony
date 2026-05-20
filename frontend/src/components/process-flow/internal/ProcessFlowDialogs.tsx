@@ -9,7 +9,7 @@ import {
   ForcedOutChoiceDialog,
   AfterForceUnlockChoiceDialog,
 } from "../../editing/ConfirmDialogs";
-import { SaveConflictDialog } from "../../editing/SaveConflictDialog";
+import { SaveConflictDialog, type ConflictInfo } from "../../editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "../../editing/ResumeOrDiscardDialog";
 import { ServerChangeBanner } from "../../common/ServerChangeBanner";
 import { ProcessFlowAiGenerateDialog } from "../ProcessFlowAiGenerateDialog";
@@ -38,7 +38,7 @@ export interface ProcessFlowDialogsProps {
   onForceReleaseConfirm: () => void;
   onForceReleaseCancel: () => void;
   /** save conflict */
-  saveConflict: unknown;
+  saveConflict: ConflictInfo | null;
   onSaveConflictOverwrite: () => Promise<void>;
   onSaveConflictCancel: () => void;
   /** server banner */
@@ -139,7 +139,7 @@ export function ProcessFlowDialogs({
         <ServerChangeBanner onReload={onServerReload} onDismiss={onServerDismiss} />
       )}
 
-      {showAiGenerateDialog && (
+      {showAiGenerateDialog && group && (
         <ProcessFlowAiGenerateDialog
           current={group}
           onClose={onCloseAiGenerate}
@@ -147,7 +147,7 @@ export function ProcessFlowDialogs({
         />
       )}
 
-      {showAiReviewDialog && (
+      {showAiReviewDialog && group && (
         <ProcessFlowAiReviewDialog current={group} onClose={onCloseAiReview} />
       )}
 
