@@ -23,14 +23,18 @@ type ScreenMeta = { id: string; name: string };
 /**
  * v3 ScreenItem.type → FieldType への変換。
  * v3 のみの primitive (integer/datetime/json) は string にマップ。
- * extension/domain は v3 FieldType のまま通過。
+ *
+ * TODO(#1233 Batch 4): StructuredFieldsEditor が v3 FieldType (domain/extension) 表示対応したら
+ * ここも v3 FieldType そのまま通過に書き換える。それまでは StructuredFieldsEditor が
+ * `kind === "custom"` のみ表示対応のため legacy 形式に変換 (v3 schema 違反だが UI 表示優先)。
  */
 function v3TypeToV1(type: ScreenItem["type"]): V1FieldType {
   if (typeof type === "string") {
     if (type === "string" || type === "number" || type === "boolean" || type === "date") return type;
     return "string";
   }
-  // extension/domain/object/array/tableRow/tableList/screenInput/file は v3 FieldType と同一形式。
+  if (type.kind === "extension") return { kind: "custom", label: type.extensionRef } as unknown as V1FieldType;
+  if (type.kind === "domain") return { kind: "custom", label: type.domainKey } as unknown as V1FieldType;
   return type;
 }
 
