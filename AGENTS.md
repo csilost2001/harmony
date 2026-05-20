@@ -91,7 +91,7 @@ Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/co
 
 ## Schema ガバナンス (最重要、#511 — 全 AI が遵守)
 
-`schemas/process-flow.schema.json` / `schemas/extensions-*.schema.json` / `schemas/conventions.schema.json` 等の **グローバル定義スキーマは、フレームワーク製作者 (設計者) の専権事項**。
+`schemas/v3/process-flow.v3.schema.json` / `schemas/v3/extensions.v3.schema.json` / `schemas/v3/conventions.v3.schema.json` 等の **グローバル定義スキーマは、フレームワーク製作者 (設計者) の専権事項**。
 
 - **AI (Claude/Codex/その他) が勝手に変更するのは禁止** — 権限外行為、フレームワークの統一性を損なう
 - 業務記述で表現できない場合の対処順序:
@@ -432,7 +432,7 @@ Claude Code 利用時は `/test-strategy` スキルが自動起動 (詳細は `C
 処理フロー定義はこのプロジェクトの主出力 (AI が読んで実装する前提)。TypeScript 型は派生物、UI は最後尾の表示層。変更時の順序:
 
 1. 仕様書 [`docs/spec/process-flow-*.md`](docs/spec/README.md)
-2. JSON Schema [`schemas/process-flow.schema.json`](schemas/process-flow.schema.json)
+2. JSON Schema [`schemas/v3/process-flow.v3.schema.json`](schemas/v3/process-flow.v3.schema.json)
 3. TypeScript 型 `frontend/src/types/action.ts`
 4. UI / 実装
 

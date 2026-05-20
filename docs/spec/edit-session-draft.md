@@ -324,7 +324,7 @@ data/
     <id>.json
   sequences/        # 画面遷移
     <id>.json
-  actions/          # 拡張定義
+  extensions/       # 拡張定義
     <id>.json
   conventions/      # 規約
     <id>.json
@@ -347,7 +347,7 @@ data/
       <id>.json
     sequences/
       <id>.json
-    actions/
+    extensions/
       <id>.json
     conventions/
       <id>.json
