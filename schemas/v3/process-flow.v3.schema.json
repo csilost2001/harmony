@@ -113,7 +113,7 @@
         "ambientVariables": {
           "type": "array",
           "items": { "$ref": "common.v3.schema.json#/$defs/StructuredField" },
-          "description": "ミドルウェア由来の自動注入変数 (@requestId / @traceId / @fieldErrors 等)。"
+          "description": "ミドルウェア由来の自動注入変数 (@requestId / @traceId / @sessionUserId 等)。#1221: 旧 '@fieldErrors' 暗黙束縛は廃止、ValidationStep.fieldErrorsVar の明示宣言で扱う (ambient ではない)。"
         },
         "ambientOverrides": {
           "type": "object",
