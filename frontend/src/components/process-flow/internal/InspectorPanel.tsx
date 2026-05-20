@@ -9,6 +9,7 @@ import { ActionHttpContractPanel } from "../ActionHttpContractPanel";
 import { SlaPanel } from "../SlaPanel";
 import { StructuredFieldsEditor, type ScreenItemPickResult } from "../StructuredFieldsEditor";
 import type { UseAiContextChipsResult } from "../../../hooks/useAiContextChips";
+import { textToStructuredFields } from "../../../utils/actionFields";
 
 export interface InspectorPanelProps {
   group: ProcessFlow | null;
@@ -140,7 +141,7 @@ export function InspectorPanel({
                   onChange={(val) => {
                     updateGroupSilent((g) => {
                       const act = g.actions.find((a) => a.id === activeActionId);
-                      if (act) act.inputs = typeof val === "string" ? undefined : val;
+                      if (act) act.inputs = typeof val === "string" ? textToStructuredFields(val) : val;
                     });
                   }}
                   onCommit={commitGroup}
@@ -155,7 +156,7 @@ export function InspectorPanel({
                   onChange={(val) => {
                     updateGroupSilent((g) => {
                       const act = g.actions.find((a) => a.id === activeActionId);
-                      if (act) act.outputs = typeof val === "string" ? undefined : val;
+                      if (act) act.outputs = typeof val === "string" ? textToStructuredFields(val) : val;
                     });
                   }}
                   onCommit={commitGroup}
