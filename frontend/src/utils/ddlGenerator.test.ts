@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateDdl } from "./ddlGenerator";
+import { generateDdl, quoteIdentifier, escapeSqlString, sanitizeDefaultValue } from "./ddlGenerator";
 import type { Table, TableId, LocalId, PhysicalName, DisplayName, Timestamp } from "../types/v3";
 
 function baseTable(overrides: Partial<Table> = {}): Table {
@@ -63,7 +63,7 @@ describe("generateDdl — constraints (v3)", () => {
       ],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("ALTER TABLE orders ADD CONSTRAINT uq_po_number UNIQUE (po_number);");
+    expect(ddl).toContain(`ALTER TABLE "orders" ADD CONSTRAINT "uq_po_number" UNIQUE ("po_number");`);
   });
 
   it("CHECK 制約が ALTER TABLE ... ADD CONSTRAINT ... CHECK として出力される", () => {
@@ -73,7 +73,7 @@ describe("generateDdl — constraints (v3)", () => {
       ],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("ALTER TABLE orders ADD CONSTRAINT chk_amount_positive CHECK (amount > 0);");
+    expect(ddl).toContain(`ALTER TABLE "orders" ADD CONSTRAINT "chk_amount_positive" CHECK (amount > 0);`);
   });
 
   it("FOREIGN KEY 制約が ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY として出力される", () => {
@@ -92,8 +92,8 @@ describe("generateDdl — constraints (v3)", () => {
       ],
     });
     const ddl = generateDdl(table, "postgresql", [suppliers]);
-    expect(ddl).toContain("ALTER TABLE orders ADD CONSTRAINT fk_orders_supplier");
-    expect(ddl).toContain("FOREIGN KEY (supplier_id) REFERENCES suppliers(id)");
+    expect(ddl).toContain(`ALTER TABLE "orders" ADD CONSTRAINT "fk_orders_supplier"`);
+    expect(ddl).toContain(`FOREIGN KEY ("supplier_id") REFERENCES "suppliers"("id")`);
     expect(ddl).toContain("ON DELETE RESTRICT");
   });
 
@@ -158,14 +158,14 @@ describe("generateDdl — constraints (v3)", () => {
     expect(uqPos).toBeLessThan(chkPos);
   });
 
-  it("MySQL でも同じ ALTER TABLE 構文が出力される", () => {
+  it("MySQL でも同じ ALTER TABLE 構文が出力される (backtick クォート)", () => {
     const table = baseTable({
       constraints: [
         { id: "uq-1" as LocalId, kind: "unique", physicalName: "uq_po" as PhysicalName, columnIds: ["c4" as LocalId] },
       ],
     });
     const ddl = generateDdl(table, "mysql");
-    expect(ddl).toContain("ALTER TABLE orders ADD CONSTRAINT uq_po UNIQUE (po_number);");
+    expect(ddl).toContain("ALTER TABLE `orders` ADD CONSTRAINT `uq_po` UNIQUE (`po_number`);");
   });
 
   it("FK noConstraint=true は DDL に出力しない (論理 FK のみ)", () => {
@@ -196,7 +196,7 @@ describe("generateDdl — indexes (v3)", () => {
       ],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("CREATE INDEX idx_orders_created_at ON orders (created_at);");
+    expect(ddl).toContain(`CREATE INDEX "idx_orders_created_at" ON "orders" ("created_at");`);
   });
 
   it("UNIQUE インデックスが CREATE UNIQUE INDEX として出力される", () => {
@@ -206,7 +206,7 @@ describe("generateDdl — indexes (v3)", () => {
       ],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("CREATE UNIQUE INDEX idx_uq_po_number ON orders (po_number);");
+    expect(ddl).toContain(`CREATE UNIQUE INDEX "idx_uq_po_number" ON "orders" ("po_number");`);
   });
 
   it("複合インデックスがカンマ区切りで出力される", () => {
@@ -220,7 +220,7 @@ describe("generateDdl — indexes (v3)", () => {
       ],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("(supplier_id, amount)");
+    expect(ddl).toContain(`("supplier_id", "amount")`);
   });
 
   it("DESC 列が DESC 付きで出力される", () => {
@@ -230,7 +230,7 @@ describe("generateDdl — indexes (v3)", () => {
       ],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("(amount DESC)");
+    expect(ddl).toContain(`("amount" DESC)`);
   });
 
   it("ASC 列は何も付かない", () => {
@@ -240,7 +240,7 @@ describe("generateDdl — indexes (v3)", () => {
       ],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("(amount)");
+    expect(ddl).toContain(`("amount")`);
     expect(ddl).not.toContain("ASC");
   });
 
@@ -302,7 +302,7 @@ describe("generateDdl — defaults (v3)", () => {
       defaults: [{ columnId: "c2" as LocalId, kind: "literal", value: "0" }],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("ALTER TABLE orders ALTER COLUMN amount SET DEFAULT 0;");
+    expect(ddl).toContain(`ALTER TABLE "orders" ALTER COLUMN "amount" SET DEFAULT 0;`);
   });
 
   it("function DEFAULT が ALTER TABLE SET DEFAULT として出力される", () => {
@@ -310,7 +310,7 @@ describe("generateDdl — defaults (v3)", () => {
       defaults: [{ columnId: "c5" as LocalId, kind: "function", value: "NOW()" }],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("ALTER TABLE orders ALTER COLUMN created_at SET DEFAULT NOW();");
+    expect(ddl).toContain(`ALTER TABLE "orders" ALTER COLUMN "created_at" SET DEFAULT NOW();`);
   });
 
   it("sequence DEFAULT が PostgreSQL で nextval() を使用する", () => {
@@ -349,10 +349,10 @@ describe("generateDdl — triggers (v3)", () => {
       }],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("CREATE OR REPLACE FUNCTION trg_po_number_fn()");
-    expect(ddl).toContain("CREATE TRIGGER trg_po_number");
-    expect(ddl).toContain("BEFORE INSERT ON orders");
-    expect(ddl).toContain("FOR EACH ROW EXECUTE FUNCTION trg_po_number_fn();");
+    expect(ddl).toContain(`CREATE OR REPLACE FUNCTION "trg_po_number_fn"()`);
+    expect(ddl).toContain(`CREATE TRIGGER "trg_po_number"`);
+    expect(ddl).toContain(`BEFORE INSERT ON "orders"`);
+    expect(ddl).toContain(`FOR EACH ROW EXECUTE FUNCTION "trg_po_number_fn"();`);
   });
 
   it("複数イベントが OR 区切りで出力される", () => {
@@ -366,7 +366,7 @@ describe("generateDdl — triggers (v3)", () => {
       }],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("AFTER INSERT OR UPDATE ON orders");
+    expect(ddl).toContain(`AFTER INSERT OR UPDATE ON "orders"`);
   });
 
   it("WHEN 句が指定された場合は WHEN (条件) として出力される", () => {
@@ -384,7 +384,7 @@ describe("generateDdl — triggers (v3)", () => {
     expect(ddl).toContain("WHEN (NEW.status IS DISTINCT FROM OLD.status)");
   });
 
-  it("MySQL ではシンプルな CREATE TRIGGER を出力する", () => {
+  it("MySQL ではシンプルな CREATE TRIGGER を出力する (backtick クォート)", () => {
     const table = baseTable({
       triggers: [{
         id: "trg-4" as LocalId,
@@ -395,8 +395,8 @@ describe("generateDdl — triggers (v3)", () => {
       }],
     });
     const ddl = generateDdl(table, "mysql");
-    expect(ddl).toContain("CREATE TRIGGER trg_simple");
-    expect(ddl).toContain("BEFORE INSERT ON orders");
+    expect(ddl).toContain("CREATE TRIGGER `trg_simple`");
+    expect(ddl).toContain("BEFORE INSERT ON `orders`");
     expect(ddl).not.toContain("CREATE OR REPLACE FUNCTION");
   });
 
@@ -417,6 +417,109 @@ describe("generateDdl — triggers (v3)", () => {
       }],
     });
     const ddl = generateDdl(table, "postgresql");
-    expect(ddl).toContain("INSTEAD OF TRUNCATE ON orders");
+    expect(ddl).toContain(`INSTEAD OF TRUNCATE ON "orders"`);
+  });
+});
+
+// ── S-004 セキュリティ回帰テスト ─────────────────────────────────────────────
+
+describe("quoteIdentifier — S-004 SQL injection prevention", () => {
+  it("postgresql: 通常識別子をダブルクォートで囲む", () => {
+    expect(quoteIdentifier("orders", "postgresql")).toBe('"orders"');
+  });
+
+  it("mysql: 通常識別子をバッククォートで囲む", () => {
+    expect(quoteIdentifier("orders", "mysql")).toBe("`orders`");
+  });
+
+  it("postgresql: ダブルクォートを含む識別子は二重化してエスケープ", () => {
+    expect(quoteIdentifier('ta"ble', "postgresql")).toBe('"ta""ble"');
+  });
+
+  it("mysql: バッククォートを含む識別子は二重化してエスケープ", () => {
+    expect(quoteIdentifier("ta`ble", "mysql")).toBe("`ta``ble`");
+  });
+
+  it("sqlite: ダブルクォートで囲む", () => {
+    expect(quoteIdentifier("my_table", "sqlite")).toBe('"my_table"');
+  });
+
+  it("oracle: ダブルクォートで囲む", () => {
+    expect(quoteIdentifier("MY_TABLE", "oracle")).toBe('"MY_TABLE"');
+  });
+
+  it("standard: ダブルクォートで囲む", () => {
+    expect(quoteIdentifier("my_table", "standard")).toBe('"my_table"');
+  });
+
+  it("SQL injection 試行: DROP TABLE が識別子としてクォートされる", () => {
+    const injected = quoteIdentifier("orders; DROP TABLE users--", "postgresql");
+    expect(injected).toBe('"orders; DROP TABLE users--"');
+    // クォートされているので DROP TABLE はコマンドとして実行されない
+  });
+});
+
+describe("escapeSqlString — S-004 SQL string literal safety", () => {
+  it("通常の文字列はそのまま返す", () => {
+    expect(escapeSqlString("hello")).toBe("hello");
+  });
+
+  it("シングルクォートを二重化する", () => {
+    expect(escapeSqlString("it's")).toBe("it''s");
+  });
+
+  it("バックスラッシュをエスケープする", () => {
+    expect(escapeSqlString("path\\to\\file")).toBe("path\\\\to\\\\file");
+  });
+
+  it("NUL 文字を除去する", () => {
+    expect(escapeSqlString("hello\0world")).toBe("helloworld");
+  });
+
+  it("SQL injection 試行: シングルクォートで区切りを破ろうとする", () => {
+    const injected = escapeSqlString("'; DROP TABLE users--");
+    expect(injected).toBe("''; DROP TABLE users--");
+    // エスケープされたのでシングルクォートは閉じにならない
+  });
+});
+
+describe("sanitizeDefaultValue — S-004 DEFAULT value sanitization", () => {
+  it("NULL (大文字小文字問わず) → NULL", () => {
+    expect(sanitizeDefaultValue("NULL")).toBe("NULL");
+    expect(sanitizeDefaultValue("null")).toBe("NULL");
+    expect(sanitizeDefaultValue("Null")).toBe("NULL");
+  });
+
+  it("整数リテラル → そのまま", () => {
+    expect(sanitizeDefaultValue("0")).toBe("0");
+    expect(sanitizeDefaultValue("42")).toBe("42");
+    expect(sanitizeDefaultValue("-1")).toBe("-1");
+  });
+
+  it("小数リテラル → そのまま", () => {
+    expect(sanitizeDefaultValue("3.14")).toBe("3.14");
+  });
+
+  it("関数呼び出し → そのまま", () => {
+    expect(sanitizeDefaultValue("NOW()")).toBe("NOW()");
+    expect(sanitizeDefaultValue("CURRENT_TIMESTAMP")).toBe("CURRENT_TIMESTAMP");
+    expect(sanitizeDefaultValue("GETDATE()")).toBe("GETDATE()");
+  });
+
+  it("既存のシングルクォート文字列 → 内側をエスケープして再クォート", () => {
+    expect(sanitizeDefaultValue("'hello'")).toBe("'hello'");
+    expect(sanitizeDefaultValue("'it''s'")).toBe("'it''''s'");
+  });
+
+  it("不明な値 → シングルクォートで囲んでエスケープ", () => {
+    expect(sanitizeDefaultValue("some value")).toBe("'some value'");
+  });
+
+  it("SQL injection 試行: シングルクォートを含む任意値", () => {
+    const injected = sanitizeDefaultValue("'); DROP TABLE users--");
+    // 関数/数値/null のどれにも一致しないので引用符で囲まれてエスケープされる
+    expect(injected).toContain("''");
+    expect(injected.startsWith("'")).toBe(true);
+    expect(injected.endsWith("'")).toBe(true);
   });
 });
