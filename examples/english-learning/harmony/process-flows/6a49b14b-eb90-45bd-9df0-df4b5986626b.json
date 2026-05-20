@@ -362,6 +362,14 @@
           "description": "201 Created — scoreId + score + diff を返す。TX コミット後にのみ実行する。score が合格ライン (conventions.extensionCategories.cefr.passingThreshold 参照) を下回る場合、UI 側でメッセージを表示する。",
           "responseId": "201-created",
           "bodyExpression": "{ scoreId: @newScore.id, score: @pronunciationScore, diff: @evalResult.diff }"
+        },
+        {
+          "id": "step-09",
+          "kind": "return",
+          "runIf": "@txResult.committed != true",
+          "description": "422 スコア保存失敗を返す。TX ロールバック時にのみ実行する (ADR-007 整合)。pronunciation_scores INSERT または learning_sessions score_avg UPDATE が失敗した場合の catch-all レスポンス。",
+          "responseId": "422-score-failed",
+          "bodyExpression": "{ error: 'SCORE_INSERT_FAILED', message: '発音スコアの保存に失敗しました。しばらく経ってから再試行してください。' }"
         }
       ]
     }

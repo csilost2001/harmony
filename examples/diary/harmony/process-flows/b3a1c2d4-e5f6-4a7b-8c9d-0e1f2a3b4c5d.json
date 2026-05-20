@@ -35,6 +35,12 @@
           "defaultMessage": "投稿が見つかりません。",
           "responseId": "404-not-found",
           "description": "指定された postId の投稿が存在しない場合。"
+        },
+        "POST_UPDATE_FAILED": {
+          "httpStatus": 422,
+          "defaultMessage": "投稿の更新に失敗しました。",
+          "responseId": "422-update-failed",
+          "description": "TX ロールバックが発生した場合の catch-all エラー。posts / photos / post_tags のいずれかの更新が失敗した場合に TX 全体がロールバックされ 422 を返す。"
         }
       }
     },
@@ -194,6 +200,12 @@
           "status": 404,
           "description": "投稿が存在しない。",
           "when": "指定 postId の投稿が見つからない場合。"
+        },
+        {
+          "id": "422-update-failed",
+          "status": 422,
+          "description": "投稿更新 TX 失敗。TX はロールバック済み。",
+          "when": "posts / photos / post_tags のいずれかの更新が失敗し TX がロールバックされた場合。"
         }
       ],
       "steps": [
@@ -408,6 +420,14 @@
           "description": "200 更新成功を返す。TX コミット後にのみ実行する。",
           "responseId": "200-ok",
           "bodyExpression": "{ postId: @inputs.postId, updatedAt: new Date().toISOString() }"
+        },
+        {
+          "id": "step-12",
+          "kind": "return",
+          "runIf": "@txResult.committed != true",
+          "description": "422 投稿更新失敗を返す。TX ロールバック時にのみ実行する (ADR-007 整合)。posts / photos / post_tags のいずれかの更新が失敗した場合の catch-all レスポンス。",
+          "responseId": "422-update-failed",
+          "bodyExpression": "{ code: 'POST_UPDATE_FAILED', message: '投稿の更新に失敗しました。しばらく経ってから再度お試しください。' }"
         }
       ]
     }
