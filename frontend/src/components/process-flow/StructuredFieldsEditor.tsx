@@ -4,6 +4,7 @@ import type {
   FieldType,
   FieldTypeDomain,
   FieldTypeExtension,
+  FieldTypePrimitive,
   Identifier,
   ScreenId,
   StructuredField,
@@ -35,7 +36,7 @@ interface Props {
   onPickScreenItem?: () => Promise<ScreenItemPickResult | null>;
 }
 
-const PRIMITIVE_TYPES: Array<"string" | "number" | "boolean" | "date"> = ["string", "number", "boolean", "date"];
+const PRIMITIVE_TYPES: FieldTypePrimitive[] = ["string", "number", "integer", "boolean", "date", "datetime", "json"];
 
 /** FieldType オブジェクトをテキスト入力の表示値に変換する */
 function fieldTypeToDisplay(type: FieldType): string {

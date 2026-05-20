@@ -55,10 +55,13 @@ export function ExternalOutcomesPanel({ step, onChange, onCommit }: Props) {
   const addSideEffect = (key: ExternalCallOutcome) => {
     const spec = outcomes[key] ?? { action: "continue" as const };
     // S-7 fix: v3 では step 識別は `kind` (旧 `type` は非規範)。最小構成として kind="log" step を生成。
+    // M-1 fix: LogStep 必須フィールド level / message を追加 (schema valid な状態で生成)
     const newStep = {
       id: generateUUID(),
       kind: "log",
       description: "",
+      level: "info",
+      message: "",
       maturity: "draft",
     } as unknown as NonReturnStep;
     const sideEffects = [...(spec.sideEffects ?? []), newStep];
