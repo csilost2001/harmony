@@ -5,7 +5,7 @@
   ProcessFlow,
   Step,
 } from "../types/v3";
-import type { Maturity, Mode } from "../types/v3/common";
+import type { LocalId, Maturity, Mode } from "../types/v3/common";
 import { generateUUID } from "./uuid";
 
 export const PROCESS_FLOW_V3_SCHEMA_REF = "../schemas/v3/process-flow.v3.schema.json";
@@ -110,7 +110,7 @@ function legacyToBranch(code: string, condition: unknown, raw: LegacyBranchField
   }
   const label = raw?.label?.trim();
   return {
-    id: generateUUID() as never,
+    id: generateUUID() as LocalId,
     code,
     label: label || undefined,
     condition: normalizeBranchCondition(condition),
