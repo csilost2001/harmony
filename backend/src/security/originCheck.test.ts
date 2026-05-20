@@ -109,6 +109,15 @@ describe("checkRequestOrigin", () => {
     const req = makeReq({ origin: "http://localhost:5173" });
     expect(checkRequestOrigin(req)).toBeNull();
   });
+
+  it("異常: Origin が文字列リテラル 'null' (file:// browser) → allowlist 外として拒否", () => {
+    // file:// プロトコルで開いたページは Origin: null (文字列) を送信する場合がある
+    // これは allowlist に含まれないため拒否される必要がある (SH-003)
+    const req = makeReq({ origin: "null", host: "localhost:5179" });
+    const result = checkRequestOrigin(req);
+    expect(result).not.toBeNull();
+    expect(result).toContain("Origin not allowed");
+  });
 });
 
 // ── getAllowedOriginHeader ─────────────────────────────────────────────────────

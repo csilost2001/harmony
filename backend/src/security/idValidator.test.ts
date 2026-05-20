@@ -32,6 +32,12 @@ describe("isValidUuid", () => {
     expect(isValidUuid("..")).toBe(false);
   });
 
+  it("異常: URL-encoded path traversal (%2e%2e%2f) → false (SH-004)", () => {
+    // URL デコード後に path traversal になる文字列も UUID regex で弾かれる
+    expect(isValidUuid("%2e%2e%2fetc%2fpasswd")).toBe(false);
+    expect(isValidUuid("%2e%2e%2f")).toBe(false);
+  });
+
   it("異常: 絶対パス", () => {
     expect(isValidUuid("/etc/passwd")).toBe(false);
   });
@@ -86,6 +92,17 @@ describe("isValidSafeName", () => {
 
   it("異常: .. (path traversal)", () => {
     expect(isValidSafeName("..")).toBe(false);
+  });
+
+  it("異常: URL-encoded path traversal (%2e%2e%2f, ..%2F) → false (SH-004)", () => {
+    // URL デコード後に path traversal になる文字列も SafeName regex で弾かれる
+    expect(isValidSafeName("..%2F")).toBe(false);
+    expect(isValidSafeName("..%2f")).toBe(false);
+    expect(isValidSafeName("%2e%2e%2f")).toBe(false);
+  });
+
+  it("異常: URL-encoded null byte (%00) → false (SH-004)", () => {
+    expect(isValidSafeName("%00")).toBe(false);
   });
 
   it("異常: スラッシュを含む", () => {
