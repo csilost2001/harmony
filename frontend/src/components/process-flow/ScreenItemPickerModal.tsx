@@ -21,20 +21,17 @@ interface Props {
 type ScreenMeta = { id: string; name: string };
 
 /**
- * v3 ScreenItem.type → v1 FieldType への暫定変換 (Phase 3-α 過渡形式)。
- * v3 のみの primitive (integer/datetime/json) は v1 では string にマップ。
- * Phase 4 で ProcessFlow も v3 化したら本関数は不要。
+ * v3 ScreenItem.type → FieldType への変換。
+ * v3 のみの primitive (integer/datetime/json) は string にマップ。
+ * extension/domain は v3 FieldType のまま通過。
  */
 function v3TypeToV1(type: ScreenItem["type"]): V1FieldType {
   if (typeof type === "string") {
     if (type === "string" || type === "number" || type === "boolean" || type === "date") return type;
     return "string";
   }
-  if (type.kind === "extension") return { kind: "custom", label: type.extensionRef };
-  if (type.kind === "domain") return { kind: "custom", label: type.domainKey };
-  // object/array/tableRow/tableList/screenInput/file は v1 と shape 互換のため通過。
-  // Phase 4 で ProcessFlow が v3 化したら本関数自体が不要になる。
-  return type as V1FieldType;
+  // extension/domain/object/array/tableRow/tableList/screenInput/file は v3 FieldType と同一形式。
+  return type;
 }
 
 export function ScreenItemPickerModal({ open, onClose, onPick }: Props) {
