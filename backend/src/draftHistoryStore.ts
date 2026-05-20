@@ -12,6 +12,7 @@
 
 import fs from "fs/promises";
 import path from "path";
+import { assertPathContained, assertHistoryId } from "./security/idValidator.js";
 
 // ── 公開型定義 ────────────────────────────────────────────────────────────────
 
@@ -34,7 +35,10 @@ export interface DraftHistoryEntry {
 const HISTORY_DIR = ".edit-sessions-history";
 
 function historyDir(workspaceRoot: string, resourceType: string, resourceId: string): string {
-  return path.join(workspaceRoot, HISTORY_DIR, resourceType, resourceId);
+  const dir = path.join(workspaceRoot, HISTORY_DIR, resourceType, resourceId);
+  // S-002: path containment check (defense-in-depth)
+  assertPathContained(dir, workspaceRoot);
+  return dir;
 }
 
 function historyFilePath(
@@ -43,7 +47,10 @@ function historyFilePath(
   resourceId: string,
   historyId: string,
 ): string {
-  return path.join(historyDir(workspaceRoot, resourceType, resourceId), `${historyId}.json`);
+  const filePath = path.join(historyDir(workspaceRoot, resourceType, resourceId), `${historyId}.json`);
+  // S-002: path containment check (defense-in-depth)
+  assertPathContained(filePath, workspaceRoot);
+  return filePath;
 }
 
 /**
@@ -167,6 +174,9 @@ export class DraftHistoryStore {
    */
   async restoreFromHistory(params: { historyId: string }): Promise<DraftHistoryEntry | null> {
     const { historyId } = params;
+    // S-002 (M-NEW-001): historyId が user-controlled のため handler 層から来た値でも
+    // storage 層で再検証する (defense-in-depth)。
+    assertHistoryId(historyId, "historyId");
     const baseDir = path.join(this.workspaceRoot, HISTORY_DIR);
 
     // historyId.json を全ディレクトリから glob 的に検索
@@ -188,6 +198,8 @@ export class DraftHistoryStore {
 
       for (const resourceId of resourceIds) {
         const filePath = path.join(rtDir, resourceId, `${historyId}.json`);
+        // S-002: path traversal 防止 (defense-in-depth)
+        assertPathContained(filePath, this.workspaceRoot);
         try {
           const content = await fs.readFile(filePath, "utf-8");
           return JSON.parse(content) as DraftHistoryEntry;

@@ -20,6 +20,7 @@ import {
 import { resolveRoot } from "./projectStorage.js";
 import { rpcHandlerMap, type RpcContext } from "./wsHandlers/index.js";
 import { logInfo, logWarn, logError } from "./serverLog.js";
+import { checkRequestOrigin } from "./security/originCheck.js";
 
 type Command = { id: string; method: string; params?: unknown };
 type Response = { id: string; result?: unknown; error?: string };
@@ -332,6 +333,18 @@ export class WsBridge extends EventEmitter {
 
   private async _handleHttp(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = req.url ?? "/";
+
+    // S-001: Origin / loopback 検証 (health check エンドポイントは除外)
+    if (url !== "/" && url !== "/health") {
+      const originError = checkRequestOrigin(req);
+      if (originError) {
+        logWarn("ws-bridge", "HTTP request rejected: origin check failed", { url, reason: originError });
+        res.writeHead(403, { "Content-Type": "text/plain" });
+        res.end("Forbidden");
+        return;
+      }
+    }
+
     for (const route of this.httpRoutes) {
       if (url === route.pathPrefix || url.startsWith(route.pathPrefix + "/") || url.startsWith(route.pathPrefix + "?")) {
         try {
@@ -371,7 +384,15 @@ export class WsBridge extends EventEmitter {
   private _attachHandlers(): void {
     if (!this.wss) return;
 
-    this.wss.on("connection", (ws: WebSocket) => {
+    this.wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
+      // S-001: Origin / loopback 検証
+      const originError = checkRequestOrigin(req);
+      if (originError) {
+        logWarn("ws-bridge", "WebSocket connection rejected: origin check failed", { reason: originError });
+        ws.close(1008, "Forbidden");
+        return;
+      }
+
       // 登録前は一時 ID で管理
       let clientId = `temp-${randomUUID()}`;
       this.clients.set(clientId, ws);

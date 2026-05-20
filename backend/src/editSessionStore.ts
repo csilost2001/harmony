@@ -15,6 +15,7 @@ import fs from "fs/promises";
 import path from "path";
 import { randomBytes } from "node:crypto";
 import type { DraftHistoryStore } from "./draftHistoryStore.js";
+import { assertPathContained } from "./security/idValidator.js";
 // ── 公開型定義 (spec §3.2 / §10.2) ──────────────────────────────────────────
 
 /**
@@ -128,11 +129,17 @@ function generateEditSessionId(): string {
 const EDIT_SESSIONS_DIR = ".edit-sessions";
 
 function editSessionsDir(workspaceRoot: string): string {
-  return path.join(workspaceRoot, EDIT_SESSIONS_DIR);
+  const dir = path.join(workspaceRoot, EDIT_SESSIONS_DIR);
+  // S-002: path containment check (defense-in-depth)
+  assertPathContained(dir, workspaceRoot);
+  return dir;
 }
 
 function editSessionFilePath(workspaceRoot: string, editSessionId: string): string {
-  return path.join(editSessionsDir(workspaceRoot), `${editSessionId}.json`);
+  const filePath = path.join(editSessionsDir(workspaceRoot), `${editSessionId}.json`);
+  // S-002: path containment check (defense-in-depth)
+  assertPathContained(filePath, workspaceRoot);
+  return filePath;
 }
 
 /**

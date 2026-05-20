@@ -28,6 +28,7 @@ import {
   readPageLayoutDesign,
   writePageLayoutDesign,
 } from "../projectStorage.js";
+import { assertUuid } from "../security/idValidator.js";
 import type { RpcHandlerMap } from "./types.js";
 
 export const projectHandlers: RpcHandlerMap = {
@@ -49,10 +50,12 @@ export const projectHandlers: RpcHandlerMap = {
     // PageLayout design storage に routing (Windows 不正ファイル名 + 永続化境界違反の解消)
     if (screenId.startsWith("page-layout:")) {
       const plId = screenId.slice("page-layout:".length);
+      assertUuid(plId, "pageLayoutId");
       const data = await readPageLayoutDesign(plId, root());
       respond(data);
       return;
     }
+    assertUuid(screenId, "screenId");
     const data = await readScreen(screenId, root());
     respond(data);
   },
@@ -61,6 +64,7 @@ export const projectHandlers: RpcHandlerMap = {
   // (composition preview / 外部呼び出しで明示的に使う)
   loadPageLayoutDesign: async ({ params, root, respond }) => {
     const { pageLayoutId } = (params ?? {}) as { pageLayoutId: string };
+    assertUuid(pageLayoutId, "pageLayoutId");
     const data = await readPageLayoutDesign(pageLayoutId, root());
     respond(data);
   },
@@ -73,11 +77,13 @@ export const projectHandlers: RpcHandlerMap = {
     // RFC #1021 pl-6 (Codex A-2): PageLayout design は専用 storage へ
     if (screenId.startsWith("page-layout:")) {
       const plId = screenId.slice("page-layout:".length);
+      assertUuid(plId, "pageLayoutId");
       await writePageLayoutDesign(plId, data, root());
       respond({ success: true });
       bridge.broadcast({ wsId: wsId(), event: "pageLayoutChanged", data: { pageLayoutId: plId }, excludeClientId: clientId });
       return;
     }
+    assertUuid(screenId, "screenId");
     await writeScreen(screenId, data, root());
     // 初回デザイン保存時に project の hasDesign フラグを更新
     try {
@@ -103,12 +109,14 @@ export const projectHandlers: RpcHandlerMap = {
 
   loadScreenEntity: async ({ params, root, respond }) => {
     const { screenId } = (params ?? {}) as { screenId: string };
+    assertUuid(screenId, "screenId");
     const data = await readScreenEntity(screenId, root());
     respond(data);
   },
 
   saveScreenEntity: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { screenId, data } = (params ?? {}) as { screenId: string; data: unknown };
+    assertUuid(screenId, "screenId");
     await writeScreenEntity(screenId, data, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "screenEntityChanged", data: { screenId }, excludeClientId: clientId });
@@ -117,6 +125,7 @@ export const projectHandlers: RpcHandlerMap = {
 
   deleteScreen: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { screenId } = (params ?? {}) as { screenId: string };
+    assertUuid(screenId, "screenId");
     await deleteScreenFile(screenId, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "screenChanged", data: { screenId, deleted: true }, excludeClientId: clientId });
@@ -149,6 +158,7 @@ export const projectHandlers: RpcHandlerMap = {
   loadPuckData: async ({ params, root, respond }) => {
     // #806: Puck Data を screens/<id>/puck-data.json から読み込み
     const { screenId } = (params ?? {}) as { screenId: string };
+    assertUuid(screenId, "screenId");
     const puckData = await readPuckData(screenId, root());
     respond(puckData);
   },
@@ -156,6 +166,7 @@ export const projectHandlers: RpcHandlerMap = {
   savePuckData: async ({ params, root, wsId, clientId, respond, bridge }) => {
     // #806: Puck Data を screens/<id>/puck-data.json に書き込み
     const { screenId, data: puckDataPayload } = (params ?? {}) as { screenId: string; data: unknown };
+    assertUuid(screenId, "screenId");
     await writePuckData(screenId, puckDataPayload, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "puckDataChanged", data: { screenId }, excludeClientId: clientId });
