@@ -36,6 +36,7 @@ import type {
 } from "../types/v3";
 import { SCREEN_KIND_LABELS, TRIGGER_LABELS } from "../types/flow";
 import { generateUUID } from "../utils/uuid";
+import { uiInfo } from "../utils/uiLog";
 import { saveDraft, clearDraft, loadDraft } from "../utils/draftStorage";
 import { renumber, nextNo } from "../utils/listOrder";
 import {
@@ -188,6 +189,7 @@ export function composeFlowProject(
       description: "",
       path: s.path ?? "",
       pageLayoutId: (s as { pageLayoutId?: string }).pageLayoutId as (Uuid | undefined),
+      maturity: (s as { maturity?: string }).maturity as (import('../types/v3').Maturity | undefined),
       position: { x: pos.x, y: pos.y },
       size: {
         width: pos.width ?? DEFAULT_NODE_SIZE.width,
@@ -627,7 +629,7 @@ export async function loadProject(): Promise<FlowProject> {
       if (Object.keys(layout.positions).length > 0 || Object.keys(layout.transitions ?? {}).length > 0) {
         await saveScreenFlowPositions(layout);
       }
-      console.log("[flowStore] Migrated project (and screen-flow-positions) from localStorage to file");
+      uiInfo("load", "flowStore: Migrated project (and screen-flow-positions) from localStorage to file");
     } catch (e) {
       console.warn("[flowStore] migration save failed, returning local without persist", e);
     }
