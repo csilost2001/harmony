@@ -1,15 +1,10 @@
-// @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 import { useState } from "react";
 // #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
-// ExternalSystemStep / OtherStep / Step は v3 strict、ExternalCallOutcome / EXTERNAL_CALL_OUTCOME_VALUES は frontend UI metadata
+// ExternalSystemStep / NonReturnStep は v3 strict、ExternalCallOutcome / EXTERNAL_CALL_OUTCOME_VALUES は frontend UI metadata
 import type {
   ExternalSystemStep,
-  Step,
-} from "../../types/v3";
-// ExternalCallOutcomeSpec / OtherStep は AnyRecord 互換のため action.ts 経由 (#1186 Phase 2-D で v3 strict 化予定)
-import type {
   ExternalCallOutcomeSpec,
-  OtherStep,
+  NonReturnStep,
 } from "../../types/v3";
 import {
   EXTERNAL_CALL_OUTCOME_VALUES,
@@ -59,20 +54,21 @@ export function ExternalOutcomesPanel({ step, onChange, onCommit }: Props) {
 
   const addSideEffect = (key: ExternalCallOutcome) => {
     const spec = outcomes[key] ?? { action: "continue" as const };
-    const newStep: OtherStep = {
+    // S-7 fix: v3 では step 識別は `kind` (旧 `type` は非規範)。最小構成として kind="log" step を生成。
+    const newStep = {
       id: generateUUID(),
-      type: "other",
+      kind: "log",
       description: "",
       maturity: "draft",
-    };
-    const sideEffects = [...(spec.sideEffects ?? []), newStep as Step];
+    } as unknown as NonReturnStep;
+    const sideEffects = [...(spec.sideEffects ?? []), newStep];
     setOutcome(key, { sideEffects });
   };
 
-  const updateSideEffect = (key: ExternalCallOutcome, idx: number, patch: Partial<Step>) => {
+  const updateSideEffect = (key: ExternalCallOutcome, idx: number, patch: Partial<NonReturnStep>) => {
     const spec = outcomes[key];
     if (!spec?.sideEffects) return;
-    const next = spec.sideEffects.map((s, i) => (i === idx ? ({ ...s, ...patch } as Step) : s));
+    const next = spec.sideEffects.map((s, i) => (i === idx ? ({ ...s, ...patch } as NonReturnStep) : s));
     setOutcome(key, { sideEffects: next });
   };
 
@@ -198,13 +194,14 @@ export function ExternalOutcomesPanel({ step, onChange, onCommit }: Props) {
                 </div>
                 {spec.sideEffects?.map((se, i) => (
                   <div key={se.id ?? i} className="d-flex align-items-center gap-1 mb-1" style={{ fontSize: "0.75rem" }}>
+                    {/* S-7 fix: v3 では step 識別は kind (旧 type は非規範フィールド) */}
                     <select
                       className="form-select form-select-sm"
-                      value={se.type}
-                      onChange={(e) => updateSideEffect(key, i, { type: e.target.value as Step["type"] } as Partial<Step>)}
+                      value={se.kind}
+                      onChange={(e) => updateSideEffect(key, i, { kind: e.target.value } as Partial<NonReturnStep>)}
                       style={{ width: 110, fontSize: "0.75rem" }}
                     >
-                      <option value="other">other</option>
+                      <option value="log">log</option>
                       <option value="dbAccess">dbAccess</option>
                       <option value="externalSystem">externalSystem</option>
                       <option value="compute">compute</option>

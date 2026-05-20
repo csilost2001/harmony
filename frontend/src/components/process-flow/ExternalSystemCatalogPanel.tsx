@@ -1,9 +1,8 @@
-// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * ProcessFlow.context.catalogs.externalSystems 編集パネル (#278 / #570 v3 移行)
  */
 import { useState } from "react";
-import type { ProcessFlow, ExternalSystemCatalogEntry, ExternalAuthKind } from "../../types/v3";
+import type { ProcessFlow, ExternalSystemCatalogEntry, ExternalAuth, ExternalAuthKind } from "../../types/v3";
 
 interface Props {
   group: ProcessFlow;
@@ -80,7 +79,9 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
           {keys.length === 0 && <div className="catalog-empty">まだエントリがありません。</div>}
           {keys.map((k) => {
             const e = catalog[k];
-            const auth = e.auth ?? { kind: "none" as ExternalAuthKind };
+            // S-8 note: ExternalAuth.kind が "iamRole"/"azureAd" を含む ExternalAuthKind より狭いため
+            // 局所キャストで UI 機能 (7 auth kind) を維持する (#1233 Batch 4a)
+            const auth = (e.auth ?? { kind: "none" }) as { kind: ExternalAuthKind; tokenRef?: string; headerName?: string };
             return (
               <div className="catalog-row" key={k}>
                 <div className="catalog-row-header">
@@ -128,7 +129,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
                     <select
                       className="form-select form-select-sm"
                       value={auth.kind}
-                      onChange={(ev) => updateEntry(k, { auth: { ...auth, kind: ev.target.value as ExternalAuthKind } })}
+                      onChange={(ev) => updateEntry(k, { auth: { ...auth, kind: ev.target.value as ExternalAuthKind } as ExternalAuth })}
                     >
                       {AUTH_KINDS.map((a) => <option key={a} value={a}>{a}</option>)}
                     </select>
@@ -139,7 +140,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
                       <select
                         className="form-select form-select-sm"
                         value={auth.tokenRef ?? ""}
-                        onChange={(ev) => updateEntry(k, { auth: { ...auth, tokenRef: ev.target.value || undefined } })}
+                        onChange={(ev) => updateEntry(k, { auth: { ...auth, tokenRef: ev.target.value || undefined } as ExternalAuth })}
                       >
                         <option value="">—</option>
                         {secretKeys.map((s) => <option key={s} value={`@secret.${s}`}>@secret.{s}</option>)}
@@ -148,7 +149,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
                       <input
                         className="form-control form-control-sm"
                         value={auth.tokenRef ?? ""}
-                        onChange={(ev) => updateEntry(k, { auth: { ...auth, tokenRef: ev.target.value || undefined } })}
+                        onChange={(ev) => updateEntry(k, { auth: { ...auth, tokenRef: ev.target.value || undefined } as ExternalAuth })}
                         placeholder="ENV:STRIPE_SECRET_KEY or @secret.X"
                       />
                     )}
