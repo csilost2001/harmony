@@ -65,7 +65,10 @@
         {
           "name": "existingTags",
           "label": "既存タグ",
-          "type": { "kind": "array", "itemType": "string" },
+          "type": {
+            "kind": "array",
+            "itemType": "string"
+          },
           "required": false,
           "description": "既に付いているタグのスラッグ一覧 (除外用)。"
         }
@@ -74,7 +77,10 @@
         {
           "name": "candidates",
           "label": "タグ候補",
-          "type": { "kind": "array", "itemType": "json" },
+          "type": {
+            "kind": "array",
+            "itemType": "json"
+          },
           "description": "信頼度付きタグ候補の配列 (slug, name, confidence, isNew)。"
         }
       ],
@@ -128,7 +134,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",
@@ -169,17 +176,32 @@
             "name": "TagSuggestResult",
             "schema": {
               "type": "object",
-              "required": ["tags"],
+              "required": [
+                "tags"
+              ],
               "properties": {
                 "tags": {
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": ["slug", "name", "confidence"],
+                    "required": [
+                      "slug",
+                      "name",
+                      "confidence"
+                    ],
                     "properties": {
-                      "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
-                      "name": { "type": "string" },
-                      "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+                      "slug": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "confidence": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
                     },
                     "additionalProperties": false
                   }

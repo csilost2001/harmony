@@ -123,14 +123,39 @@
             "itemType": {
               "kind": "object",
               "fields": [
-                { "name": "id", "type": "integer" },
-                { "name": "url", "type": "string", "required": true },
-                { "name": "alt", "type": "string" },
-                { "name": "caption", "type": "string" },
-                { "name": "orderIndex", "type": "integer" },
-                { "name": "width", "type": "integer" },
-                { "name": "height", "type": "integer" },
-                { "name": "exifJson", "type": "json" }
+                {
+                  "name": "id",
+                  "type": "integer"
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "alt",
+                  "type": "string"
+                },
+                {
+                  "name": "caption",
+                  "type": "string"
+                },
+                {
+                  "name": "orderIndex",
+                  "type": "integer"
+                },
+                {
+                  "name": "width",
+                  "type": "integer"
+                },
+                {
+                  "name": "height",
+                  "type": "integer"
+                },
+                {
+                  "name": "exifJson",
+                  "type": "json"
+                }
               ]
             }
           },
@@ -145,10 +170,22 @@
             "itemType": {
               "kind": "object",
               "fields": [
-                { "name": "id", "type": "integer" },
-                { "name": "name", "type": "string" },
-                { "name": "source", "type": "string" },
-                { "name": "confidence", "type": "number" }
+                {
+                  "name": "id",
+                  "type": "integer"
+                },
+                {
+                  "name": "name",
+                  "type": "string"
+                },
+                {
+                  "name": "source",
+                  "type": "string"
+                },
+                {
+                  "name": "confidence",
+                  "type": "number"
+                }
               ]
             }
           },
@@ -224,7 +261,10 @@
             {
               "field": "status",
               "type": "enum",
-              "values": ["draft", "published"],
+              "values": [
+                "draft",
+                "published"
+              ],
               "severity": "error",
               "message": "ステータスは 'draft' または 'published' で指定してください。"
             }
@@ -240,7 +280,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",
@@ -249,9 +290,16 @@
           "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
           "operation": "SELECT",
           "sql": "SELECT id AS \"postId\", user_id AS \"userId\", status, published_at AS \"publishedAt\" FROM posts WHERE id = @inputs.postId",
-          "outputBinding": { "name": "existingPost" },
+          "outputBinding": {
+            "name": "existingPost"
+          },
           "lineage": {
-            "reads": [{ "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -321,7 +369,9 @@
           "kind": "compute",
           "description": "published_at の計算: status が 'published' に変わる場合は NOW、既に 'published' の場合は既存値を保持、それ以外は null。",
           "expression": "@inputs.status == 'published' && @existingPost.status != 'published' ? new Date().toISOString() : (@existingPost.publishedAt)",
-          "outputBinding": { "name": "newPublishedAt" }
+          "outputBinding": {
+            "name": "newPublishedAt"
+          }
         },
         {
           "id": "step-06",
@@ -330,7 +380,9 @@
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
           "rollbackOn": [],
-          "outputBinding": { "name": "txResult" },
+          "outputBinding": {
+            "name": "txResult"
+          },
           "steps": [
             {
               "id": "step-06-01",
@@ -340,7 +392,12 @@
               "operation": "UPDATE",
               "sql": "UPDATE posts SET title = COALESCE(@inputs.title, title), body = COALESCE(@inputs.body, body), mood = COALESCE(@inputs.mood, mood), weather = COALESCE(@inputs.weather, weather), location = COALESCE(@inputs.location, location), status = COALESCE(@inputs.status, status), published_at = @newPublishedAt, updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.postId",
               "lineage": {
-                "writes": [{ "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "update" }]
+                "writes": [
+                  {
+                    "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                    "purpose": "update"
+                  }
+                ]
               }
             },
             {
@@ -352,7 +409,12 @@
               "sql": "DELETE FROM photos WHERE post_id = @inputs.postId",
               "runIf": "@inputs.photos != null",
               "lineage": {
-                "writes": [{ "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "purpose": "soft-delete" }]
+                "writes": [
+                  {
+                    "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                    "purpose": "soft-delete"
+                  }
+                ]
               }
             },
             {
@@ -372,7 +434,12 @@
                   "operation": "INSERT",
                   "sql": "INSERT INTO photos (post_id, url, thumbnail_url, alt, caption, order_index, width, height, exif_json, created_at) VALUES (@inputs.postId, @photo.url, @photo.thumbnail_url, @photo.alt, @photo.caption, COALESCE(@photo.order_index, 0), @photo.width, @photo.height, @photo.exif_json, CURRENT_TIMESTAMP)",
                   "lineage": {
-                    "writes": [{ "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "purpose": "insert" }]
+                    "writes": [
+                      {
+                        "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                        "purpose": "insert"
+                      }
+                    ]
                   }
                 }
               ]
@@ -386,7 +453,12 @@
               "sql": "DELETE FROM post_tags WHERE post_id = @inputs.postId",
               "runIf": "@inputs.tags != null",
               "lineage": {
-                "writes": [{ "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e", "purpose": "soft-delete" }]
+                "writes": [
+                  {
+                    "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+                    "purpose": "soft-delete"
+                  }
+                ]
               }
             },
             {
@@ -406,7 +478,12 @@
                   "operation": "INSERT",
                   "sql": "INSERT INTO post_tags (post_id, tag_id, source, confidence, created_at) VALUES (@inputs.postId, @tag.id, COALESCE(@tag.source, 'manual'), COALESCE(@tag.confidence, 1.0), CURRENT_TIMESTAMP)",
                   "lineage": {
-                    "writes": [{ "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e", "purpose": "insert" }]
+                    "writes": [
+                      {
+                        "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+                        "purpose": "insert"
+                      }
+                    ]
                   }
                 }
               ]

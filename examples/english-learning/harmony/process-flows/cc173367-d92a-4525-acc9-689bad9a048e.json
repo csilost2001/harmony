@@ -18,7 +18,17 @@
         "required": true,
         "description": "ログイン中のユーザー ID (JWT から取得)。"
       }
-    ]
+    ],
+    "catalogs": {
+      "errors": {
+        "STORY_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "ストーリーが見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定された storyId のストーリーが存在しないか、is_active=FALSE の場合。"
+        }
+      }
+    }
   },
   "actions": [
     {
@@ -56,15 +66,25 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["sessionId"],
+              "required": [
+                "sessionId"
+              ],
               "properties": {
-                "sessionId": { "type": "integer" }
+                "sessionId": {
+                  "type": "integer"
+                }
               },
               "additionalProperties": false
             }
           },
           "description": "セッション作成成功。sessionId を返し、呼び出し元画面が /learn/:sessionId に遷移する。",
           "when": "learning_sessions INSERT が正常完了した場合。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "ストーリーが見つからない。",
+          "when": "storyId が存在しないか、is_active=FALSE の場合。"
         }
       ],
       "steps": [
@@ -75,11 +95,47 @@
           "tableId": "b5aa3e1b-b5e4-46dd-8373-75fea340844b",
           "operation": "SELECT",
           "sql": "SELECT id, title, cefr_level FROM stories WHERE id = @storyId AND is_active = TRUE",
-          "outputBinding": { "name": "storyRow" },
+          "outputBinding": {
+            "name": "storyRow"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "b5aa3e1b-b5e4-46dd-8373-75fea340844b", "purpose": "validate" }
+              {
+                "tableId": "b5aa3e1b-b5e4-46dd-8373-75fea340844b",
+                "purpose": "validate"
+              }
             ]
+          }
+        },
+        {
+          "id": "step-01b",
+          "kind": "branch",
+          "description": "step-01 でストーリーが見つからない場合は 404 を返す (insert before null guard)。",
+          "branches": [
+            {
+              "id": "br-01b-a",
+              "code": "A",
+              "label": "ストーリー不在",
+              "condition": {
+                "kind": "expression",
+                "expression": "@storyRow == null"
+              },
+              "steps": [
+                {
+                  "id": "step-01b-a-01",
+                  "kind": "return",
+                  "description": "404 ストーリーなしを返す。",
+                  "responseId": "404-not-found",
+                  "bodyExpression": "{ code: 'STORY_NOT_FOUND', message: 'ストーリーが見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-01b-else",
+            "code": "B",
+            "label": "ストーリー存在",
+            "steps": []
           }
         },
         {
@@ -89,10 +145,15 @@
           "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
           "operation": "INSERT",
           "sql": "INSERT INTO learning_sessions (user_id, story_id, status, started_at, updated_at) VALUES (@sessionUserId, @storyId, 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id",
-          "outputBinding": { "name": "newSession" },
+          "outputBinding": {
+            "name": "newSession"
+          },
           "lineage": {
             "writes": [
-              { "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103", "purpose": "insert" }
+              {
+                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
+                "purpose": "insert"
+              }
             ]
           }
         },

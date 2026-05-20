@@ -128,7 +128,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",

@@ -109,13 +109,35 @@
             "itemType": {
               "kind": "object",
               "fields": [
-                { "name": "url", "type": "string", "required": true },
-                { "name": "alt", "type": "string" },
-                { "name": "caption", "type": "string" },
-                { "name": "orderIndex", "type": "integer" },
-                { "name": "width", "type": "integer" },
-                { "name": "height", "type": "integer" },
-                { "name": "exifJson", "type": "json" }
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "alt",
+                  "type": "string"
+                },
+                {
+                  "name": "caption",
+                  "type": "string"
+                },
+                {
+                  "name": "orderIndex",
+                  "type": "integer"
+                },
+                {
+                  "name": "width",
+                  "type": "integer"
+                },
+                {
+                  "name": "height",
+                  "type": "integer"
+                },
+                {
+                  "name": "exifJson",
+                  "type": "json"
+                }
               ]
             }
           },
@@ -130,10 +152,22 @@
             "itemType": {
               "kind": "object",
               "fields": [
-                { "name": "id", "type": "integer" },
-                { "name": "name", "type": "string" },
-                { "name": "source", "type": "string" },
-                { "name": "confidence", "type": "number" }
+                {
+                  "name": "id",
+                  "type": "integer"
+                },
+                {
+                  "name": "name",
+                  "type": "string"
+                },
+                {
+                  "name": "source",
+                  "type": "string"
+                },
+                {
+                  "name": "confidence",
+                  "type": "number"
+                }
               ]
             }
           },
@@ -222,7 +256,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",
