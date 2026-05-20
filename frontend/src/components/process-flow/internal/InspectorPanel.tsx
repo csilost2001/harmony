@@ -98,13 +98,13 @@ export function InspectorPanel({
               詳細項目の編集は「編集開始」後に利用できます。
             </div>
           </div>
-        ) : (
+        ) : group ? (
           <ActionMetaTabBar
             group={group}
             updateGroup={updateGroup}
             updateGroupSilent={updateGroupSilent}
           />
-        )}
+        ) : null}
         {!isReadonly && activeAction && (
           <>
             <div className="process-flow-inspector-section">
@@ -140,7 +140,7 @@ export function InspectorPanel({
                   onChange={(val) => {
                     updateGroupSilent((g) => {
                       const act = g.actions.find((a) => a.id === activeActionId);
-                      if (act) act.inputs = val;
+                      if (act) act.inputs = typeof val === "string" ? undefined : val;
                     });
                   }}
                   onCommit={commitGroup}
@@ -155,7 +155,7 @@ export function InspectorPanel({
                   onChange={(val) => {
                     updateGroupSilent((g) => {
                       const act = g.actions.find((a) => a.id === activeActionId);
-                      if (act) act.outputs = val;
+                      if (act) act.outputs = typeof val === "string" ? undefined : val;
                     });
                   }}
                   onCommit={commitGroup}
