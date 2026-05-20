@@ -9,36 +9,42 @@ import type {
   TransactionScopeStep,
   JumpStep,
   ValidationStep,
+  ExtensionStep,
   LocalId,
 } from "../types/v3";
 
 // ── Type guards ─────────────────────────────────────────────────────────
 
-function isBranchStep(step: Step): step is BranchStep {
+export function isBranchStep(step: Step): step is BranchStep {
   return step.kind === "branch";
 }
 
-function isLoopStep(step: Step): step is LoopStep {
+export function isLoopStep(step: Step): step is LoopStep {
   return step.kind === "loop";
 }
 
-function isTransactionScopeStep(step: Step): step is TransactionScopeStep {
+export function isTransactionScopeStep(step: Step): step is TransactionScopeStep {
   return step.kind === "transactionScope";
 }
 
-function isJumpStep(step: Step): step is JumpStep {
+export function isJumpStep(step: Step): step is JumpStep {
   return step.kind === "jump";
 }
 
-function isValidationStep(step: Step): step is ValidationStep {
+export function isValidationStep(step: Step): step is ValidationStep {
   return step.kind === "validation";
+}
+
+/** ExtensionStep は kind が "namespace:StepName" pattern。組み込み 24 種を除外したい型ガード。 */
+export function isExtensionStep(s: Step): s is ExtensionStep {
+  return typeof s.kind === "string" && s.kind.includes(":");
 }
 
 /**
  * subSteps は StepBaseProps に未定義だが UI レイヤーで使用されている runtime プロパティ。
  * 型システム上は Step & { subSteps?: Step[] } として扱う。
  */
-type StepWithSubSteps = Step & { subSteps?: Step[] };
+export type StepWithSubSteps = Step & { subSteps?: Step[] };
 
 /**
  * ステップの表示ラベルを生成（1, 2, 3... / 1-1, 1-2...）
