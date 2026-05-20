@@ -1,5 +1,4 @@
-﻿// @ts-nocheck -- legacy process-flow store migration remains open; tracked by #1016.
-// #1186 Phase 2-C: types/action → types/v3 移行 (ProcessFlowType/StepType は v3 で ProcessFlowKind/StepKind に rename)
+﻿// #1186 Phase 2-C: types/action → types/v3 移行 (ProcessFlowType/StepType は v3 で ProcessFlowKind/StepKind に rename)
 import type {
   ActionDefinition,
   ActionTrigger,
@@ -221,6 +220,9 @@ export function createDefaultStep(kind: StepType): Step {
       step = { ...base, kind: "cdc", tableIds: [], captureMode: "incremental", destination: { kind: "auditLog", auditAction: "" } }; break;
     case "extension":
       step = { ...base, kind: "legacy:OtherStep", config: {} } as Step; break;
+    default:
+      // extension steps with namespace:StepName kind (ExtensionStep)
+      step = { ...base, config: {} } as Step; break;
   }
   return step;
 }
@@ -231,14 +233,16 @@ function countGroupNotes(group: ProcessFlow): number {
     for (const s of steps) {
       count += s.notes?.length ?? 0;
       if (s.kind === "branch") {
-        for (const b of s.branches) visit(b.steps);
-        if (s.elseBranch) visit(s.elseBranch.steps);
+        const branch = s as Step & { branches: { steps: Step[] }[]; elseBranch?: { steps: Step[] } };
+        for (const b of branch.branches) visit(b.steps);
+        if (branch.elseBranch) visit(branch.elseBranch.steps);
       }
-      if (s.kind === "loop") visit(s.steps);
+      if (s.kind === "loop") visit((s as Step & { steps: Step[] }).steps);
       if (s.kind === "transactionScope") {
-        visit(s.steps);
-        if (s.onCommit) visit(s.onCommit);
-        if (s.onRollback) visit(s.onRollback);
+        const tx = s as Step & { steps: Step[]; onCommit?: Step[]; onRollback?: Step[] };
+        visit(tx.steps);
+        if (tx.onCommit) visit(tx.onCommit);
+        if (tx.onRollback) visit(tx.onRollback);
       }
     }
   };
