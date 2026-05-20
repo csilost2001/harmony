@@ -39,13 +39,19 @@
   "$defs": {
 
     "Meta": {
-      "description": "ProcessFlow の identity と運用設定。",
-      "allOf": [{ "$ref": "common.v3.schema.json#/$defs/EntityMeta" }],
+      "description": "ProcessFlow の identity と運用設定。kind='screen' は画面と直結した処理フローを表し、その場合は紐付く Screen の Uuid を `screenId` で必須宣言する (#1221)。画面に直結しない処理フロー (認証、共通 API、scheduled batch 等) は kind を `system` / `common` / `scheduled` / `batch` に分類する。",
+      "allOf": [
+        { "$ref": "common.v3.schema.json#/$defs/EntityMeta" },
+        {
+          "if": { "properties": { "kind": { "const": "screen" } }, "required": ["kind"] },
+          "then": { "required": ["screenId"] }
+        }
+      ],
       "type": "object",
       "required": ["kind"],
       "properties": {
         "kind": { "$ref": "#/$defs/ProcessFlowKind" },
-        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "kind='screen' の場合に紐付く Screen の Uuid。" },
+        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "kind='screen' の場合に紐付く Screen の Uuid。kind='screen' 時は必須 (#1221)。" },
         "apiVersion": { "type": "string", "description": "ProcessFlow が公開する API のバージョン (例: 'v1', '2026-04-25')。" },
         "mode": { "$ref": "common.v3.schema.json#/$defs/Mode" },
         "sla": { "$ref": "#/$defs/Sla" },
