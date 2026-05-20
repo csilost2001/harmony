@@ -39,8 +39,8 @@
  * [step ${STEP_TAGS_LOOP_ID}: kind=loop, collectionSource=@inputs.${TAGS_FIELD}]
  *   → Assert: ${TABLE_POST_TAGS} に 1 行追加 + source 値確認
  *
- * [step ${STEP_TX_BEGIN_ID}: txBoundary.role="begin", txId="${TX_ID}"]
- * [step ${STEP_TX_END_ID}: txBoundary.role="end", txId="${TX_ID}"]
+ * [step ${STEP_TX_BEGIN_ID}: transactionScope (kind=transactionScope, id="${STEP_TX_SCOPE_ID}")]
+ * [step (scope.steps[] の最後), txId="${TX_ID}"]
  *   → TX rollback テスト: 同一タグ 2 回指定 (${TABLE_POST_TAGS} UNIQUE 違反) → posts も rollback 確認
  *
  * [step ${STEP_PUBLISH_AT_COMPUTE_ID}: kind=compute]
@@ -53,7 +53,7 @@
  *
  * === 申し送り事項 ===
  * TX-1: 実装 (${SERVICE_FILE}) では $transaction が使われない場合がある。
- *        ProcessFlow の txBoundary (${STEP_TX_BEGIN_ID} begin ~ ${STEP_TX_END_ID} end) が
+ *        ProcessFlow の transactionScope step (${STEP_TX_SCOPE_ID}) が
  *        サービス層で TX として実装されていない場合、tag の途中失敗時に posts は残る。
  *        テスト #10 は「${HTTP_STATUS_ERROR} が返る」ことの確認で pass とし、TX 未実装は申し送り。
  *
@@ -425,8 +425,8 @@ describe(`${HTTP_ROUTE_METHOD} ${HTTP_ROUTE_PATH} (${ACTION_NAME} E2E)`, () => {
   // ──────────────────────────────────────────────────────────────
   /**
    * Spec: ProcessFlow ${FLOW_ID} ${ACTION_ID} ${STEP_TX_BEGIN_ID}
-   *   txBoundary.role="begin", txId="${TX_ID}"
-   *   ${STEP_TX_END_ID}: txBoundary.role="end"
+   *   transactionScope (kind=transactionScope, id="${STEP_TX_SCOPE_ID}")
+   *   (scope.steps[] の最後)
    *
    * 注意 (TX-1 申し送り): 実装 (${SERVICE_FILE}) が $transaction を使わない場合、
    * ${TABLE_JUNCTION} の UNIQUE 違反後に ${TABLE_MAIN} の行が残存する。
