@@ -14,6 +14,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { wsBridge } from "./wsBridge.js";
+import { checkRequestOrigin, getAllowedOriginHeader } from "./security/originCheck.js";
 
 // projectStorage.ts と同一パターン: src/aiRename.ts → src/ → backend/ → harmony/
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "../..");
@@ -33,15 +34,24 @@ function sendProgress(clientId: string, sessionId: string | undefined, event: Ai
   wsBridge.sendToClient(clientId, "aiRenameProgress", { ...event, sessionId });
 }
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+function buildCorsHeaders(req: IncomingMessage): Record<string, string> {
+  const allowedOrigin = getAllowedOriginHeader(req);
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+  // S-001: * → 動的 allowlist echo (allowlist 内なら echo、それ以外は省略)
+  if (allowedOrigin) {
+    headers["Access-Control-Allow-Origin"] = allowedOrigin;
+    headers["Vary"] = "Origin";
+  }
+  return headers;
+}
 
-function jsonBody(res: ServerResponse, status: number, body: unknown): void {
+function jsonBody(res: ServerResponse, status: number, body: unknown, req?: IncomingMessage): void {
   const json = JSON.stringify(body);
-  res.writeHead(status, { "Content-Type": "application/json", ...CORS_HEADERS });
+  const corsHeaders = req ? buildCorsHeaders(req) : {};
+  res.writeHead(status, { "Content-Type": "application/json", ...corsHeaders });
   res.end(json);
 }
 
@@ -66,35 +76,55 @@ function checkAuth(): boolean {
 
 /** GET /ai/rename-screen-ids/auth-check */
 export async function handleAuthCheck(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (req.method === "OPTIONS") { res.writeHead(204, CORS_HEADERS); res.end(); return; }
+  const corsHeaders = buildCorsHeaders(req);
+  if (req.method === "OPTIONS") { res.writeHead(204, corsHeaders); res.end(); return; }
+
+  // S-001: defense-in-depth
+  const originError = checkRequestOrigin(req);
+  if (originError) {
+    res.writeHead(403, { "Content-Type": "text/plain" });
+    res.end("Forbidden");
+    return;
+  }
+
   const authenticated = checkAuth();
   jsonBody(res, authenticated ? 200 : 503, {
     authenticated,
     message: authenticated
       ? "claude CLI に認証されています"
       : "claude CLI が未認証です。ターミナルで `claude login` を実行してください。",
-  });
+  }, req);
 }
 
 /** POST /ai/rename-screen-ids/propose */
 export async function handlePropose(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (req.method === "OPTIONS") { res.writeHead(204, CORS_HEADERS); res.end(); return; }
+  const corsHeaders = buildCorsHeaders(req);
+  if (req.method === "OPTIONS") { res.writeHead(204, corsHeaders); res.end(); return; }
+
+  // S-001: defense-in-depth
+  const originError = checkRequestOrigin(req);
+  if (originError) {
+    res.writeHead(403, { "Content-Type": "text/plain" });
+    res.end("Forbidden");
+    return;
+  }
+
   let body: { screenId?: string; clientId?: string; sessionId?: string };
   try {
     body = JSON.parse(await readBody(req)) as { screenId?: string; clientId?: string; sessionId?: string };
   } catch {
-    jsonBody(res, 400, { error: "リクエストボディが不正です" });
+    jsonBody(res, 400, { error: "リクエストボディが不正です" }, req);
     return;
   }
 
   const { screenId, clientId, sessionId } = body;
 
   if (typeof screenId !== "string" || !UUID_RE.test(screenId)) {
-    jsonBody(res, 400, { error: "screenId は UUID 形式で指定してください" });
+    jsonBody(res, 400, { error: "screenId は UUID 形式で指定してください" }, req);
     return;
   }
   if (typeof clientId !== "string") {
-    jsonBody(res, 400, { error: "clientId は必須です" });
+    jsonBody(res, 400, { error: "clientId は必須です" }, req);
     return;
   }
 
@@ -104,7 +134,7 @@ export async function handlePropose(req: IncomingMessage, res: ServerResponse): 
       message: "claude CLI が未認証です",
       error: "claude login を実行してください",
     });
-    jsonBody(res, 503, { error: "claude CLI が未認証です。`claude login` を実行してください。" });
+    jsonBody(res, 503, { error: "claude CLI が未認証です。`claude login` を実行してください。" }, req);
     return;
   }
 
@@ -112,7 +142,7 @@ export async function handlePropose(req: IncomingMessage, res: ServerResponse): 
   try {
     skillContent = await fs.readFile(SKILL_PATH, "utf-8");
   } catch {
-    jsonBody(res, 500, { error: `SKILL.md が見つかりません: ${SKILL_PATH}` });
+    jsonBody(res, 500, { error: `SKILL.md が見つかりません: ${SKILL_PATH}` }, req);
     return;
   }
 
@@ -208,12 +238,12 @@ export async function handlePropose(req: IncomingMessage, res: ServerResponse): 
       message: "タイムアウト (60秒) しました",
       error: "claude CLI の実行がタイムアウトしました",
     });
-    jsonBody(res, 504, { error: "タイムアウト" });
+    jsonBody(res, 504, { error: "タイムアウト" }, req);
     return;
   }
 
   if (spawnError) {
-    jsonBody(res, 500, { error: "claude CLI の起動に失敗しました" });
+    jsonBody(res, 500, { error: "claude CLI の起動に失敗しました" }, req);
     return;
   }
 
@@ -223,5 +253,5 @@ export async function handlePropose(req: IncomingMessage, res: ServerResponse): 
     mapping,
   });
 
-  jsonBody(res, 200, { mapping });
+  jsonBody(res, 200, { mapping }, req);
 }
