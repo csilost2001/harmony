@@ -264,7 +264,7 @@
 
 
 
-<table><thead><tr><th>記法</th><th>解決先</th><th>例</th></tr></thead><tbody><tr><td><code>@conv.&#x3C;category>.&#x3C;key></code></td><td><code>Conventions</code> catalog (<code>conventions.v3.schema.json</code>)</td><td><code>@conv.regex.email</code> / <code>@conv.limit.lowStockThreshold</code> / <code>@conv.role.manager</code></td></tr><tr><td><code>@secret.&#x3C;key></code></td><td><code>ProcessFlow.context.catalogs.secrets[&#x3C;key>]</code></td><td><code>@secret.cicApiToken</code></td></tr><tr><td><code>@env.&#x3C;KEY></code></td><td><code>ProcessFlow.context.catalogs.envVars[&#x3C;KEY>]</code> (UPPER_SNAKE)</td><td><code>@env.STRIPE_API_BASE</code></td></tr><tr><td><code>@fn.&#x3C;name>(...)</code></td><td><code>ProcessFlow.context.catalogs.functions[&#x3C;name>]</code></td><td><code>@fn.calculateRequiredQuantity(@a, @b, @c)</code></td></tr></tbody></table>
+<table><thead><tr><th>記法</th><th>解決先</th><th>例</th></tr></thead><tbody><tr><td><code>@conv.&#x3C;category>.&#x3C;key></code></td><td><code>Conventions</code> catalog (<code>conventions.v3.schema.json</code>)。built-in (msg/regex/limit/scope/currency/tax/auth/role/permission/db/numbering/tx/externalOutcomeDefaults) と <code>extensionCategories.&#x3C;categoryName></code> を <strong>同一名前空間</strong> で解決する (#1221)。<code>@conv.extensionCategories.&#x3C;cat>.&#x3C;key></code> 形式は禁止 — 拡張カテゴリも <code>@conv.&#x3C;categoryName>.&#x3C;key></code> で参照</td><td><code>@conv.regex.email</code> / <code>@conv.limit.lowStockThreshold</code> / <code>@conv.role.manager</code> / 拡張: <code>@conv.wordProgress.masteryThreshold</code></td></tr><tr><td><code>@secret.&#x3C;key></code></td><td><code>ProcessFlow.context.catalogs.secrets[&#x3C;key>]</code></td><td><code>@secret.cicApiToken</code></td></tr><tr><td><code>@env.&#x3C;KEY></code></td><td><code>ProcessFlow.context.catalogs.envVars[&#x3C;KEY>]</code> (UPPER_SNAKE)</td><td><code>@env.STRIPE_API_BASE</code></td></tr><tr><td><code>@fn.&#x3C;name>(...)</code></td><td><code>ProcessFlow.context.catalogs.functions[&#x3C;name>]</code></td><td><code>@fn.calculateRequiredQuantity(@a, @b, @c)</code></td></tr></tbody></table>
 <h2 id="5-許容されない構文">5. 許容されない構文</h2>
 <ul>
 <li><code>===</code> / <code>!==</code> (型強制なしなので <code>==</code> で十分)</li>
@@ -450,7 +450,7 @@
 <p><code>retryPolicy.maxAttempts > 1</code> の場合、同一 step の複数回試行で idempotencyKey は<strong>同じ値</strong>でなければならない。そうでないと外部 API の冪等性保証が機能しない。</p>
 <p>→ 実装上は step 入口で 1 回評価し、retry ループ内で再評価しない方針。</p>
 <h3 id="82-tx-rollback-後の-retry-は別キー">8.2 TX ROLLBACK 後の retry は別キー</h3>
-<p><code>txBoundary</code> に含まれる外部呼出が ROLLBACK 後にユーザ操作で再試行された場合、<strong>新しいリクエストとして別キー</strong>を生成するべき。具体的には <code>idempotencyKey</code> の式が <code>@order.id</code> のような DB 永続値ではなく、<code>@requestId</code> のような<strong>リクエスト単位の識別子</strong>を含むのが望ましい。</p>
+<p><code>transactionScope</code> に含まれる外部呼出が ROLLBACK 後にユーザ操作で再試行された場合、<strong>新しいリクエストとして別キー</strong>を生成するべき。具体的には <code>idempotencyKey</code> の式が <code>@order.id</code> のような DB 永続値ではなく、<code>@requestId</code> のような<strong>リクエスト単位の識別子</strong>を含むのが望ましい。</p>
 <h3 id="83-フォールバック">8.3 フォールバック</h3>
 <p><code>idempotencyKey</code> 未指定時、実装側は:</p>
 <ol>

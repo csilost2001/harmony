@@ -89,17 +89,18 @@
 <h3 id="24-query-の-serialize">2.4 query の serialize</h3>
 <p><code>httpCall.query</code> は常に URL クエリ文字列。値は js-subset 式として評価、<code>URLSearchParams</code> 相当で encode。</p>
 <h2 id="3-トランザクション--例外--saga-補償の連鎖">3. トランザクション × 例外 × Saga 補償の連鎖</h2>
-<h3 id="31-txboundaryrole-begin--end-の範囲">3.1 <code>txBoundary.role: "begin"</code> → <code>"end"</code> の範囲</h3>
-<p><code>role: "begin"</code> ステップから <code>role: "end"</code> ステップまで (同一 <code>txId</code>) が <strong>1 つの DB トランザクション</strong>。<code>"member"</code> は中間、個別に <code>txBoundary</code> を書かなくても begin〜end 間にある全 step は TX に属する。</p>
+<h3 id="31-transactionscopesteps-の範囲">3.1 <code>transactionScope.steps[]</code> の範囲</h3>
+<p><code>transactionScope</code> step の <code>steps[]</code> 配列に含まれる step 群が <strong>1 つの DB トランザクション</strong>。v3 では旧 <code>txBoundary</code> (平坦モデル) は廃止、TX 範囲は構造で表現する (詳細: <a href="../../spec/process-flow-transaction/"><code>process-flow-transaction.md</code></a>)。</p>
 <h3 id="32-throw--rollback-の自動発火">3.2 throw → ROLLBACK の自動発火</h3>
-<p>TX 範囲内 (begin〜end の間) で以下が起きた場合、<strong>TX は自動 ROLLBACK</strong>:</p>
+<p>TX 範囲内 (<code>transactionScope.steps[]</code> 配下) で以下が起きた場合、<strong>TX は自動 ROLLBACK</strong>:</p>
 <ul>
 <li><code>DbAccessStep.affectedRowsCheck.onViolation: "throw"</code> が発火</li>
 <li><code>ExternalSystemStep.outcomes.failure.action: "abort"</code> (compensate は個別補償なので ROLLBACK とは独立)</li>
 <li>いずれかの step で JavaScript エラー (ValidationError 等) が throw される</li>
 </ul>
+<p><code>rollbackOn</code> 指定がある場合は、列挙された <code>errorCode</code> の throw のみ rollback を引き起こす (詳細: <a href="../../spec/process-flow-transaction/"><code>process-flow-transaction.md</code></a> §2.4)。</p>
 <h3 id="33-rollback-後の-trycatch-捕捉">3.3 ROLLBACK 後の <code>tryCatch</code> 捕捉</h3>
-<p>自動 ROLLBACK された throw は、<code>txBoundary.role: "end"</code> より <strong>後ろにある</strong> <code>BranchStep</code> の <code>branches[].condition: { kind: "tryCatch", errorCode: "..." }</code> で捕捉される。</p>
+<p>自動 ROLLBACK された throw は、<code>transactionScope</code> step より <strong>後ろにある</strong> <code>BranchStep</code> の <code>branches[].condition: { kind: "tryCatch", errorCode: "..." }</code> で捕捉される。または <code>transactionScope.outputBinding</code> で TX 結果を expose し、後続 branch の <code>condition.kind: "expression"</code> で <code>@txResult.error.code</code> 等を参照する (推奨パターン、<a href="../../spec/process-flow-transaction/"><code>process-flow-transaction.md</code></a> §8.5)。</p>
 <p><code>errorCode</code> のマッチング:</p>
 <ul>
 <li><code>affectedRowsCheck.errorCode</code> の値と <code>BranchConditionVariant.errorCode</code> が等しければマッチ</li>
@@ -358,7 +359,7 @@
 <ul class="contains-task-list">
 <li class="task-list-item"><input type="checkbox" disabled> <code>sql</code> 内 <code>@x</code> → prepared statement <code>$N</code> 変換 (§1)</li>
 <li class="task-list-item"><input type="checkbox" disabled> <code>httpCall.body</code> → JSON or form-urlencoded を Content-Type で判定 (§2)</li>
-<li class="task-list-item"><input type="checkbox" disabled> <code>txBoundary.begin</code> 〜 <code>end</code> を Knex/pg の <code>tx.run()</code> / <code>BEGIN</code>/<code>COMMIT</code> に対応 (§3)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>transactionScope.steps[]</code> を Knex/pg の <code>tx.run()</code> / <code>BEGIN</code>/<code>COMMIT</code> に対応 (§3)</li>
 <li class="task-list-item"><input type="checkbox" disabled> throw された errorCode を BranchConditionVariant.tryCatch で捕捉、Saga 補償の compensatesFor を走らせる (§3.4)</li>
 <li class="task-list-item"><input type="checkbox" disabled> <code>fireAndForget: true</code> なら await せず、エラーは background で outcomes.failure.sideEffects (§4)</li>
 <li class="task-list-item"><input type="checkbox" disabled> externalChain.phase は observability のみ (§5)</li>

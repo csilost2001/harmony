@@ -18,13 +18,13 @@
 <li>残高振替: <code>accounts</code> UPDATE × 2 (引落+入金)</li>
 <li>ユーザー削除: 関連テーブル群の cascade UPDATE</li>
 </ul>
-<p>既存 <code>StepBaseProps.txBoundary</code> は <code>{role: "begin"|"member"|"end", txId}</code> の平坦モデルで、同一 <code>txId</code> を持つ step 群が単一 TX を構成する。これは下位互換のため残すが、<strong>範囲が構造ではなく ID 一致で表現される</strong>ため、以下の問題がある:</p>
+<p>v3 では TX 表現は <code>TransactionScopeStep</code> に一本化されている (旧 <code>StepBaseProps.txBoundary</code> / <code>transactional</code> フィールドは #1221 で廃止)。範囲は <code>steps[]</code> 配列で構造的に明示し、AI / 実装側はこれを 1 まとまりで TX として扱う。</p>
+<p>旧 <code>txBoundary</code> の平坦モデル (同一 <code>txId</code> の step 群が 1 TX) に対する利点:</p>
 <ul>
-<li>step を移動・複製した時に <code>txId</code> の整合性が崩れやすい</li>
-<li><code>begin</code> から <code>end</code> までの範囲が一目で読みづらい</li>
-<li>ネストが表現できない</li>
+<li>範囲が <code>steps[]</code> で構造的に明示され、step を移動・複製した時に整合性が崩れない</li>
+<li>ネストが表現できる (<code>propagation</code> で挙動制御)</li>
+<li><code>onCommit</code> / <code>onRollback</code> を明示できる</li>
 </ul>
-<p><code>TransactionScopeStep</code> は <strong>TX の範囲を構造的にネストして表現</strong>する。範囲は <code>steps[]</code> 配列で明示。AI / 実装側はこれを 1 まとまりで TX として扱う。</p>
 <h2 id="2-スキーマ">§2 スキーマ</h2>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tx-001"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
@@ -129,58 +129,13 @@
 <h4 id="error-ambient"><code>@error</code> ambient</h4>
 <p><code>onRollback[]</code> 内の step では、rollback の原因を表す暗黙変数 <code>@error</code> を参照できる。<code>@error</code> は <code>onRollback[]</code> 専用 ambient であり、<code>transactionScope.steps[]</code>、<code>onCommit[]</code>、transactionScope 外の root steps から参照した場合は <code>UNKNOWN_IDENTIFIER</code> として扱う。</p>
 <p><code>@error</code> の型と具体的なフィールドは処理フローエンジン側で定義する。本バリデータは識別子 <code>error</code> がそのスコープで参照可能かだけを検証し、型検証は行わない。</p>
-<h2 id="3-既存-stepbasepropstxboundary-との関係">§3 既存 <code>StepBaseProps.txBoundary</code> との関係</h2>
-<p>両者は <strong>共存</strong> する。役割は明確に分かれる:</p>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<table><thead><tr><th></th><th><code>StepBaseProps.txBoundary</code></th><th><code>TransactionScopeStep</code></th></tr></thead><tbody><tr><td>モデル</td><td>平坦 (<code>{role, txId}</code> で同一 <code>txId</code> の step 群が 1 TX)</td><td>構造的 (<code>steps[]</code> 配列で範囲を表現)</td></tr><tr><td>表現</td><td>単独ステップが TX 境界の一部であることを宣言</td><td>複数ステップを 1 TX としてくくる meta-step</td></tr><tr><td>ネスト</td><td>不可 (txId 重複を禁止しない実装依存)</td><td>可 (ネストは <code>propagation</code> で制御)</td></tr><tr><td><code>onCommit</code>/<code>onRollback</code></td><td>持たない</td><td>持つ</td></tr><tr><td>移動・複製耐性</td><td>弱 (txId の同期が手動)</td><td>強 (構造ごと移動)</td></tr><tr><td>v3 sample 実機検証</td><td>未使用 (Round 5 fixture でのみ検証)</td><td><code>examples/retail/process-flows/efa7ac6e-...json</code> (在庫操作 TX) / <code>examples/retail/process-flows/f81dd9e0-...json</code> (注文確定 TX) で実機使用。旧サンプルは削除済 — <code>git log</code> でのみ参照可</td></tr></tbody></table>
-<h3 id="31-移行ガイダンス">§3.1 移行ガイダンス</h3>
-<p>新規データは <strong><code>TransactionScopeStep</code> を優先</strong> する。既存の平坦 <code>txBoundary</code> は当面残し、リファクタリング時に置き換える運用とする。</p>
-<p>平坦 → 構造化の機械変換は 1:1 でないことに注意:</p>
+<h2 id="3-廃止された旧-tx-フィールド-1221">§3 廃止された旧 TX フィールド (#1221)</h2>
+<p>v3 では以下の旧 TX 表現は <strong>schema から削除済</strong>。読み込み時に <code>migrateProcessFlow</code> が strip するため、レガシー JSON を投入してもエラーにならず無視される:</p>
 <ul>
-<li>平坦の <code>begin/member/end</code> は range が連続でない (途中に TX 外 step が挟まる) ことを許容</li>
-<li><code>TransactionScopeStep.steps[]</code> は連続範囲のみ。挟まる TX 外処理は前後に出す必要あり</li>
+<li><code>StepBaseProps.txBoundary</code> (<code>{role: "begin"|"member"|"end", txId}</code>) — 平坦モデル</li>
+<li><code>StepBaseProps.transactional</code> (簡易フラグ)</li>
 </ul>
-<h3 id="32-同一-step-内での併用は禁止">§3.2 同一 step 内での併用は禁止</h3>
-<p><code>TransactionScopeStep</code> 自身に <code>txBoundary</code> を付けたデータ (例: <code>transactionScope</code> の親 step が begin で、子の step が member) は <strong>意味曖昧</strong> のため使ってはいけない。<code>TransactionScopeStep</code> を使うなら、その内部 step には <code>txBoundary</code> を付けない (実装側は付いていても無視する)。</p>
+<p>理由: リリース前段階で TX 表現を一本化することで、AI / 実装側が同一概念に複数の表現を選び続けるリスクを除去する。旧フィールドを使った設計は <code>TransactionScopeStep</code> に置き換える。</p>
 <h2 id="4-ランタイム規約">§4 ランタイム規約</h2>
 <p><a href="../../spec/process-flow-runtime-conventions/"><code>process-flow-runtime-conventions.md</code></a> を補足する形で、TX スコープに関するランタイム挙動:</p>
 <ol>
