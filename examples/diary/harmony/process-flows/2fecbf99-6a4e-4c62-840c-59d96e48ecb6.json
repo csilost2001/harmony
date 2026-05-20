@@ -82,7 +82,10 @@
         {
           "name": "file",
           "label": "アップロードファイル",
-          "type": { "kind": "file", "format": "image/*" },
+          "type": {
+            "kind": "file",
+            "format": "image/*"
+          },
           "required": true,
           "description": "アップロード対象の画像ファイル。jpeg / png / webp / heic を許容。最大 @conv.limit.photoFileSize bytes。"
         },
@@ -115,15 +118,45 @@
           "type": {
             "kind": "object",
             "fields": [
-              { "name": "id", "type": "integer", "required": true },
-              { "name": "postId", "type": "integer", "required": true },
-              { "name": "url", "type": "string", "required": true },
-              { "name": "thumbnailUrl", "type": "string" },
-              { "name": "width", "type": "integer" },
-              { "name": "height", "type": "integer" },
-              { "name": "bytes", "type": "integer" },
-              { "name": "mimeType", "type": "string" },
-              { "name": "orderIndex", "type": "integer" }
+              {
+                "name": "id",
+                "type": "integer",
+                "required": true
+              },
+              {
+                "name": "postId",
+                "type": "integer",
+                "required": true
+              },
+              {
+                "name": "url",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "thumbnailUrl",
+                "type": "string"
+              },
+              {
+                "name": "width",
+                "type": "integer"
+              },
+              {
+                "name": "height",
+                "type": "integer"
+              },
+              {
+                "name": "bytes",
+                "type": "integer"
+              },
+              {
+                "name": "mimeType",
+                "type": "string"
+              },
+              {
+                "name": "orderIndex",
+                "type": "integer"
+              }
             ]
           },
           "description": "INSERT された photos 行 (UI 側でギャラリーに追加するための情報)。"
@@ -176,7 +209,12 @@
             {
               "field": "file.mimeType",
               "type": "enum",
-              "values": ["image/jpeg", "image/png", "image/webp", "image/heic"],
+              "values": [
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "image/heic"
+              ],
               "severity": "error",
               "message": "対応していない画像形式です。jpeg / png / webp / heic を指定してください。"
             },
@@ -311,6 +349,42 @@
               }
             ]
           }
+        },
+        {
+          "id": "step-08b",
+          "kind": "branch",
+          "description": "step-08 の DB INSERT 失敗 (PHOTO_UPLOAD_FAILED) を捕捉し、step-04 でローカル保存したファイルを補償削除する (orphaned ファイル残存防止)。",
+          "tryScope": [
+            "step-08"
+          ],
+          "branches": [
+            {
+              "id": "br-08b-a",
+              "code": "A",
+              "label": "DB INSERT 失敗",
+              "condition": {
+                "kind": "tryCatch",
+                "errorCode": "PHOTO_UPLOAD_FAILED",
+                "description": "affectedRowsCheck が PHOTO_UPLOAD_FAILED を throw した場合に捕捉する。"
+              },
+              "steps": [
+                {
+                  "id": "step-08b-a-01",
+                  "kind": "compute",
+                  "description": "ローカル保存済みファイルを削除する補償操作 (step-04 で saveLocalFile した絶対パスを削除)。",
+                  "compensatesFor": "step-04",
+                  "expression": "deleteLocalFile(@saved.absolutePath)"
+                },
+                {
+                  "id": "step-08b-a-02",
+                  "kind": "return",
+                  "description": "500 写真登録失敗を返す。",
+                  "responseId": "500-internal",
+                  "bodyExpression": "{ code: 'PHOTO_UPLOAD_FAILED', message: '写真の登録に失敗しました。' }"
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "step-09",

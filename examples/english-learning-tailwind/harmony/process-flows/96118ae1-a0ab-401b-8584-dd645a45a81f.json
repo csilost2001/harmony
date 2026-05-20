@@ -31,11 +31,21 @@
           "description": "1 会話ターンが正常完了し、turn_logs に INSERT された直後に発行する。",
           "payload": {
             "type": "object",
-            "required": ["sessionId", "turnNumber", "role"],
+            "required": [
+              "sessionId",
+              "turnNumber",
+              "role"
+            ],
             "properties": {
-              "sessionId": { "type": "number" },
-              "turnNumber": { "type": "number" },
-              "role": { "type": "string" }
+              "sessionId": {
+                "type": "number"
+              },
+              "turnNumber": {
+                "type": "number"
+              },
+              "role": {
+                "type": "string"
+              }
             }
           }
         }
@@ -119,11 +129,23 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["aiResponseText", "turnId"],
+              "required": [
+                "aiResponseText",
+                "turnId"
+              ],
               "properties": {
-                "aiResponseText": { "type": "string" },
-                "aiAudioUrl": { "type": ["string", "null"] },
-                "turnId": { "type": "integer" }
+                "aiResponseText": {
+                  "type": "string"
+                },
+                "aiAudioUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "turnId": {
+                  "type": "integer"
+                }
               },
               "additionalProperties": false
             }
@@ -137,9 +159,13 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["error"],
+              "required": [
+                "error"
+              ],
               "properties": {
-                "error": { "type": "string" }
+                "error": {
+                  "type": "string"
+                }
               },
               "additionalProperties": false
             }
@@ -153,9 +179,13 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["error"],
+              "required": [
+                "error"
+              ],
               "properties": {
-                "error": { "type": "string" }
+                "error": {
+                  "type": "string"
+                }
               },
               "additionalProperties": false
             }
@@ -172,10 +202,15 @@
           "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
           "operation": "SELECT",
           "sql": "SELECT id, story_id, status FROM learning_sessions WHERE id = @sessionId AND user_id = @sessionUserId AND status = 'in_progress'",
-          "outputBinding": { "name": "sessionRow" },
+          "outputBinding": {
+            "name": "sessionRow"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103", "purpose": "validate" }
+              {
+                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
+                "purpose": "validate"
+              }
             ]
           }
         },
@@ -231,7 +266,9 @@
               "content": "@userInput"
             }
           ],
-          "outputBinding": { "name": "aiResponse" },
+          "outputBinding": {
+            "name": "aiResponse"
+          },
           "outcomes": {
             "failure": {
               "action": "abort",
@@ -260,7 +297,9 @@
                   "config": {
                     "text": "@aiResponse.text"
                   },
-                  "outputBinding": { "name": "aiAudioUrl" }
+                  "outputBinding": {
+                    "name": "aiAudioUrl"
+                  }
                 }
               ]
             }
@@ -276,7 +315,9 @@
                 "kind": "compute",
                 "description": "aiAudioUrl を null に設定する。",
                 "expression": "null",
-                "outputBinding": { "name": "aiAudioUrl" }
+                "outputBinding": {
+                  "name": "aiAudioUrl"
+                }
               }
             ]
           }
@@ -287,11 +328,16 @@
           "description": "現在のセッションのターン数を取得し、次のターン番号を計算する。(session_id, turn_number) の UNIQUE 制約に対応するため、INSERT 前に現在のターン数を確認する。",
           "tableId": "4e126323-4ab7-4747-961b-23cbaf651314",
           "operation": "SELECT",
-          "sql": "SELECT COALESCE(MAX(turn_number), 0) + 1 AS next_turn FROM turn_logs WHERE session_id = @sessionId",
-          "outputBinding": { "name": "turnNumberRow" },
+          "sql": "SELECT COALESCE(MAX(turn_number), 0) + 1 AS \"nextTurn\" FROM turn_logs WHERE session_id = @sessionId",
+          "outputBinding": {
+            "name": "turnNumberRow"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "4e126323-4ab7-4747-961b-23cbaf651314", "purpose": "lookup" }
+              {
+                "tableId": "4e126323-4ab7-4747-961b-23cbaf651314",
+                "purpose": "lookup"
+              }
             ]
           }
         },
@@ -299,8 +345,10 @@
           "id": "step-04d",
           "kind": "compute",
           "description": "次のターン番号をスカラー変数に展開する。",
-          "expression": "@turnNumberRow[0].next_turn",
-          "outputBinding": { "name": "nextTurnNumber" }
+          "expression": "@turnNumberRow[0].nextTurn",
+          "outputBinding": {
+            "name": "nextTurnNumber"
+          }
         },
         {
           "id": "step-05",
@@ -309,10 +357,15 @@
           "tableId": "4e126323-4ab7-4747-961b-23cbaf651314",
           "operation": "INSERT",
           "sql": "INSERT INTO turn_logs (session_id, turn_number, user_input, ai_response, ai_audio_url, llm_context, created_at) VALUES (@sessionId, @nextTurnNumber, @userInput, @aiResponse.text, @aiAudioUrl, @turnContext, CURRENT_TIMESTAMP) RETURNING id",
-          "outputBinding": { "name": "newTurnLog" },
+          "outputBinding": {
+            "name": "newTurnLog"
+          },
           "lineage": {
             "writes": [
-              { "tableId": "4e126323-4ab7-4747-961b-23cbaf651314", "purpose": "insert" }
+              {
+                "tableId": "4e126323-4ab7-4747-961b-23cbaf651314",
+                "purpose": "insert"
+              }
             ]
           }
         },

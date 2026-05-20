@@ -24,10 +24,17 @@
           "description": "user_word_progress.status が 'mastered' に遷移した直後に発行する。習熟達成バッジ表示や通知送信に使用する。",
           "payload": {
             "type": "object",
-            "required": ["userId", "wordId"],
+            "required": [
+              "userId",
+              "wordId"
+            ],
             "properties": {
-              "userId": { "type": "number" },
-              "wordId": { "type": "number" }
+              "userId": {
+                "type": "number"
+              },
+              "wordId": {
+                "type": "number"
+              }
             }
           }
         }
@@ -91,10 +98,17 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["newStatus", "mastered"],
+              "required": [
+                "newStatus",
+                "mastered"
+              ],
               "properties": {
-                "newStatus": { "type": "string" },
-                "mastered": { "type": "boolean" }
+                "newStatus": {
+                  "type": "string"
+                },
+                "mastered": {
+                  "type": "boolean"
+                }
               },
               "additionalProperties": false
             }
@@ -108,8 +122,14 @@
           "bodySchema": {
             "schema": {
               "type": "object",
-              "required": ["error"],
-              "properties": { "error": { "type": "string" } },
+              "required": [
+                "error"
+              ],
+              "properties": {
+                "error": {
+                  "type": "string"
+                }
+              },
               "additionalProperties": false
             }
           },
@@ -125,10 +145,15 @@
           "tableId": "8db75844-19ca-4e7d-8293-579e7631c5cc",
           "operation": "SELECT",
           "sql": "SELECT id FROM words WHERE id = @wordId",
-          "outputBinding": { "name": "wordRow" },
+          "outputBinding": {
+            "name": "wordRow"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "8db75844-19ca-4e7d-8293-579e7631c5cc", "purpose": "validate" }
+              {
+                "tableId": "8db75844-19ca-4e7d-8293-579e7631c5cc",
+                "purpose": "validate"
+              }
             ]
           }
         },
@@ -170,11 +195,16 @@
           "description": "現在の user_word_progress を取得する。未存在の場合は新規作成準備のため null を許容する。",
           "tableId": "7ab2cf24-7b66-47aa-a808-7fffd8290480",
           "operation": "SELECT",
-          "sql": "SELECT id, status, correct_count, attempt_count FROM user_word_progress WHERE user_id = @sessionUserId AND word_id = @wordId",
-          "outputBinding": { "name": "currentProgress" },
+          "sql": "SELECT id AS \"id\", status AS \"status\", correct_count AS \"correctCount\", attempt_count AS \"attemptCount\" FROM user_word_progress WHERE user_id = @sessionUserId AND word_id = @wordId",
+          "outputBinding": {
+            "name": "currentProgress"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "7ab2cf24-7b66-47aa-a808-7fffd8290480", "purpose": "lookup" }
+              {
+                "tableId": "7ab2cf24-7b66-47aa-a808-7fffd8290480",
+                "purpose": "lookup"
+              }
             ]
           }
         },
@@ -184,11 +214,16 @@
           "description": "user_word_progress を UPSERT する (english-learning:UPSERT_WORD_PROGRESS)。新規の場合は status='new' で INSERT、既存の場合は correct_count / attempt_count / status / last_practiced_at を更新する。mastery 閾値 (conventions.extensionCategories.wordProgress.masteryThreshold = 3) 以上の連続正解で status='mastered' に昇格する。",
           "tableId": "7ab2cf24-7b66-47aa-a808-7fffd8290480",
           "operation": "english-learning:UPSERT_WORD_PROGRESS",
-          "sql": "INSERT INTO user_word_progress (user_id, word_id, status, correct_count, attempt_count, last_practiced_at, updated_at) VALUES (@sessionUserId, @wordId, 'new', CASE WHEN @isCorrect THEN 1 ELSE 0 END, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (user_id, word_id) DO UPDATE SET attempt_count = user_word_progress.attempt_count + 1, correct_count = CASE WHEN @isCorrect THEN user_word_progress.correct_count + 1 ELSE user_word_progress.correct_count END, status = CASE WHEN @isCorrect AND (user_word_progress.correct_count + 1) >= 3 THEN 'mastered' WHEN user_word_progress.status != 'mastered' THEN 'learning' ELSE user_word_progress.status END, last_practiced_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP RETURNING id, status, correct_count, attempt_count",
-          "outputBinding": { "name": "updatedProgress" },
+          "sql": "INSERT INTO user_word_progress (user_id, word_id, status, correct_count, attempt_count, last_practiced_at, updated_at) VALUES (@sessionUserId, @wordId, 'new', CASE WHEN @isCorrect THEN 1 ELSE 0 END, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (user_id, word_id) DO UPDATE SET attempt_count = user_word_progress.attempt_count + 1, correct_count = CASE WHEN @isCorrect THEN user_word_progress.correct_count + 1 ELSE user_word_progress.correct_count END, status = CASE WHEN @isCorrect AND (user_word_progress.correct_count + 1) >= @conv.wordProgress.masteryThreshold THEN 'mastered' WHEN user_word_progress.status != 'mastered' THEN 'learning' ELSE user_word_progress.status END, last_practiced_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP RETURNING id AS \"id\", status AS \"status\", correct_count AS \"correctCount\", attempt_count AS \"attemptCount\"",
+          "outputBinding": {
+            "name": "updatedProgress"
+          },
           "lineage": {
             "writes": [
-              { "tableId": "7ab2cf24-7b66-47aa-a808-7fffd8290480", "purpose": "update" }
+              {
+                "tableId": "7ab2cf24-7b66-47aa-a808-7fffd8290480",
+                "purpose": "update"
+              }
             ]
           }
         },
@@ -197,7 +232,9 @@
           "kind": "compute",
           "description": "今回の更新で status が mastered になったかを判定する。以前が mastered 以外で今回が mastered になった場合のみ true。",
           "expression": "@updatedProgress[0].status == 'mastered' && (@currentProgress == null || @currentProgress.length == 0 || @currentProgress[0].status != 'mastered')",
-          "outputBinding": { "name": "mastered" }
+          "outputBinding": {
+            "name": "mastered"
+          }
         },
         {
           "id": "step-06",
