@@ -89,10 +89,12 @@ export function useActionHelpPopover(): UseActionHelpPopover {
       : Math.max(12, actionHelp.anchorTop - actualHeight - 10);
     const nextPlacement: "below" | "above" = canOpenBelow ? "below" : "above";
     if (Math.abs(nextTop - actionHelp.top) > 1 || nextPlacement !== actionHelp.placement) {
-      setActionHelp((cur) =>
-        cur && cur.actionId === actionHelp.actionId
-          ? { ...cur, top: nextTop, placement: nextPlacement }
-          : cur,
+      queueMicrotask(() =>
+        setActionHelp((cur) =>
+          cur && cur.actionId === actionHelp.actionId
+            ? { ...cur, top: nextTop, placement: nextPlacement }
+            : cur,
+        ),
       );
     }
   }, [actionHelp]);

@@ -1,9 +1,44 @@
-// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * actionUtils.ts
  * 処理フローの自動採番・ジャンプ参照解決ユーティリティ
  */
-import type { Step } from "../types/v3";
+import type {
+  Step,
+  BranchStep,
+  LoopStep,
+  TransactionScopeStep,
+  JumpStep,
+  ValidationStep,
+  LocalId,
+} from "../types/v3";
+
+// ── Type guards ─────────────────────────────────────────────────────────
+
+function isBranchStep(step: Step): step is BranchStep {
+  return step.kind === "branch";
+}
+
+function isLoopStep(step: Step): step is LoopStep {
+  return step.kind === "loop";
+}
+
+function isTransactionScopeStep(step: Step): step is TransactionScopeStep {
+  return step.kind === "transactionScope";
+}
+
+function isJumpStep(step: Step): step is JumpStep {
+  return step.kind === "jump";
+}
+
+function isValidationStep(step: Step): step is ValidationStep {
+  return step.kind === "validation";
+}
+
+/**
+ * subSteps は StepBaseProps に未定義だが UI レイヤーで使用されている runtime プロパティ。
+ * 型システム上は Step & { subSteps?: Step[] } として扱う。
+ */
+type StepWithSubSteps = Step & { subSteps?: Step[] };
 
 /**
  * ステップの表示ラベルを生成（1, 2, 3... / 1-1, 1-2...）
@@ -20,7 +55,7 @@ export function getStepLabel(stepIndex: number, subStepIndex?: number): string {
 export function buildStepLabelMap(steps: Step[]): Map<string, string> {
   const map = new Map<string, string>();
   for (let i = 0; i < steps.length; i++) {
-    const step = steps[i];
+    const step = steps[i] as StepWithSubSteps;
     map.set(step.id, getStepLabel(i));
     if (step.subSteps) {
       for (let j = 0; j < step.subSteps.length; j++) {
@@ -48,13 +83,14 @@ export function resolveJumpLabel(
 function walkSteps(steps: Step[], visit: (step: Step) => void): void {
   for (const step of steps) {
     visit(step);
-    if (step.subSteps) walkSteps(step.subSteps, visit);
-    if (step.kind === "branch") {
+    const s = step as StepWithSubSteps;
+    if (s.subSteps) walkSteps(s.subSteps, visit);
+    if (isBranchStep(step)) {
       for (const br of step.branches) walkSteps(br.steps, visit);
       if (step.elseBranch) walkSteps(step.elseBranch.steps, visit);
     }
-    if (step.kind === "loop") walkSteps(step.steps, visit);
-    if (step.kind === "transactionScope") {
+    if (isLoopStep(step)) walkSteps(step.steps, visit);
+    if (isTransactionScopeStep(step)) {
       walkSteps(step.steps, visit);
       if (step.onCommit) walkSteps(step.onCommit, visit);
       if (step.onRollback) walkSteps(step.onRollback, visit);
@@ -72,11 +108,11 @@ export function updateJumpReferences(
   newId: string,
 ): void {
   walkSteps(steps, (step) => {
-    if (step.kind === "jump" && step.jumpTo === oldId) {
-      step.jumpTo = newId;
+    if (isJumpStep(step) && step.jumpTo === oldId) {
+      step.jumpTo = newId as LocalId;
     }
-    if (step.kind === "validation" && step.inlineBranch?.ngJumpTo === oldId) {
-      step.inlineBranch.ngJumpTo = newId;
+    if (isValidationStep(step) && step.inlineBranch?.ngJumpTo === oldId) {
+      step.inlineBranch.ngJumpTo = newId as LocalId;
     }
   });
 }
@@ -86,10 +122,10 @@ export function updateJumpReferences(
  */
 export function clearJumpReferences(steps: Step[], deletedId: string): void {
   walkSteps(steps, (step) => {
-    if (step.kind === "jump" && step.jumpTo === deletedId) {
-      step.jumpTo = "";
+    if (isJumpStep(step) && step.jumpTo === deletedId) {
+      step.jumpTo = "" as LocalId;
     }
-    if (step.kind === "validation" && step.inlineBranch?.ngJumpTo === deletedId) {
+    if (isValidationStep(step) && step.inlineBranch?.ngJumpTo === deletedId) {
       step.inlineBranch.ngJumpTo = undefined;
     }
   });

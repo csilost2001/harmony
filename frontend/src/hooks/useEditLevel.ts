@@ -9,12 +9,13 @@
  * localStorage に永続化 (key=`processFlow:editLevel:<flowId>`)。
  * flowId が undefined の場合は in-memory のみ。
  *
- * S-2 fix: 同じ ProcessFlowEditor インスタンスが React Router で別 flow に
+ * S-2 fix (render-time sync): 同じ ProcessFlowEditor インスタンスが React Router で別 flow に
  * 再利用された場合 (タブ切替) でも、編集レベルが旧 flow の localStorage に
  * 書き戻されない (= 設定がにじまない) ことを保証する。
+ * React 公式推奨の render-time sync パターン (prevFlowId state 使用) で実装。
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type EditLevel = "rough" | "detail" | "implementation";
 
@@ -59,27 +60,26 @@ export interface UseEditLevelResult {
  * @param flowId 処理フロー ID (localStorage キーの suffix)。未指定時は in-memory のみ
  *
  * flowId が変化した場合 (タブ切替で同インスタンスが別 flow を扱うようになった場合) は、
- * 新しい flowId の永続値を再読込し、旧 flowId の localStorage には書き戻さない。
+ * React 公式推奨の render-time sync パターンで新しい flowId の永続値を即座に同期する。
+ * prevFlowId state を利用することで、旧 flowId の localStorage には書き戻されない。
  */
 export function useEditLevel(flowId?: string): UseEditLevelResult {
+  const [prevFlowId, setPrevFlowId] = useState<string | undefined>(flowId);
   const [editLevel, setEditLevelState] = useState<EditLevel>(() => readLevel(flowId));
-  // flowId 変更前の値を追跡し、変更直後の永続化を抑止する
-  const lastFlowIdRef = useRef<string | undefined>(flowId);
 
-  // flowId が変化したら state を新しい永続値に同期 (write effect より前に処理する)
-  useEffect(() => {
-    if (lastFlowIdRef.current === flowId) return;
-    lastFlowIdRef.current = flowId;
+  // render-time sync: flowId が変化したら即座に state を同期 (useEffect より前に処理)
+  if (flowId !== prevFlowId) {
+    setPrevFlowId(flowId);
     setEditLevelState(readLevel(flowId));
-  }, [flowId]);
+  }
 
-  // state 変更時のみ現在の flowId に書き戻す。flowId 変更直後の同 effect 起動では、
-  // 上の useEffect で先に state を更新するため、旧値の書き戻しは発生しない。
+  // state 変更時のみ現在の flowId に書き戻す。
+  // prevFlowId !== flowId の中間状態では書き戻しを抑止し、旧 flowId への設定にじみを防ぐ。
   useEffect(() => {
     if (!flowId) return;
-    if (lastFlowIdRef.current !== flowId) return; // 同期前の中間状態は永続化しない
+    if (prevFlowId !== flowId) return; // 同期前の中間状態は永続化しない
     writeLevel(flowId, editLevel);
-  }, [flowId, editLevel]);
+  }, [flowId, editLevel, prevFlowId]);
 
   const setEditLevel = useCallback((level: EditLevel) => {
     setEditLevelState(level);
