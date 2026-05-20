@@ -144,8 +144,8 @@ describe("checkIdentifierScopes — ループ変数のスコープ", () => {
   });
 });
 
-describe("checkIdentifierScopes — ValidationStep.fieldErrorsVar", () => {
-  it("既定 fieldErrors が ngBodyExpression で参照可能", () => {
+describe("checkIdentifierScopes — ValidationStep.fieldErrorsVar (#1221 で明示必須化、暗黙束縛廃止)", () => {
+  it("明示宣言された fieldErrorsVar が ngBodyExpression で参照可能", () => {
     const issues = checkIdentifierScopes(makeGroup({
       actions: [{
         id: "a1", name: "f", trigger: "click",
@@ -153,6 +153,7 @@ describe("checkIdentifierScopes — ValidationStep.fieldErrorsVar", () => {
           {
             id: "s1", kind: "validation", description: "", conditions: "",
             rules: [{ field: "x", type: "required" }],
+            fieldErrorsVar: "fieldErrors",
             inlineBranch: { ok: [], ng: [], ngBodyExpression: "{ errors: @fieldErrors }" },
           },
         ],
@@ -179,6 +180,32 @@ describe("checkIdentifierScopes — ValidationStep.fieldErrorsVar", () => {
       }],
     }));
     expect(issues).toHaveLength(0);
+  });
+
+  it("fieldErrorsVar 未宣言だと暗黙束縛されず @fieldErrors 参照は UNKNOWN_IDENTIFIER", () => {
+    // schema-level required ガードが効くため通常は到達不可、それでも runtime cross-validator が
+    // 暗黙束縛を提供しないことを明示する regression test (旧仕様: 'fieldErrors' を自動 known 化)
+    const issues = checkIdentifierScopes(makeGroup({
+      actions: [{
+        id: "a1", name: "f", trigger: "click",
+        steps: [
+          {
+            id: "s1", kind: "validation", description: "",
+            rules: [],
+            inlineBranch: {
+              ok: [],
+              ng: [
+                { id: "s1-ng", kind: "return", description: "", bodyExpression: "{ errors: @fieldErrors }" },
+              ],
+            },
+            // intentionally omit fieldErrorsVar to verify implicit binding is gone
+          },
+        ],
+      }],
+    }));
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues[0].code).toBe("UNKNOWN_IDENTIFIER");
+    expect(issues[0].identifier).toBe("fieldErrors");
   });
 });
 
@@ -516,13 +543,14 @@ describe("checkIdentifierScopes — ValidationStep inlineBranch", () => {
     expect(issues[0].code).toBe("UNKNOWN_IDENTIFIER");
   });
 
-  it("inlineBranch.ng 内で fieldErrors を参照可能 (validation step の暗黙宣言)", () => {
+  it("inlineBranch.ng 内で明示宣言された fieldErrorsVar を参照可能", () => {
     const issues = checkIdentifierScopes(makeGroup({
       actions: [{
         id: "a1", name: "f", trigger: "click",
         steps: [{
           id: "v1", kind: "validation", description: "",
           rules: [],
+          fieldErrorsVar: "fieldErrors",
           inlineBranch: {
             ok: [],
             ng: [

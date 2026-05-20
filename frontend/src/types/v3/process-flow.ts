@@ -310,7 +310,7 @@ export interface ResourceRequirements {
 /** 実行に必要な参照情報 (catalog 群 / ambient / 健全性 / リソース)。 */
 export interface Context {
   catalogs?: Catalogs;
-  /** ミドルウェア由来の自動注入変数 (`@requestId` / `@traceId` / `@fieldErrors` 等)。 */
+  /** ミドルウェア由来の自動注入変数 (`@requestId` / `@traceId` 等)。@fieldErrors 暗黙束縛は #1221 で廃止。 */
   ambientVariables?: StructuredField[];
   /** 規約カタログ defaults の本フロー固有 override。 */
   ambientOverrides?: Record<string, string>;
@@ -480,8 +480,8 @@ export interface ValidationStep extends StepBaseProps {
   /** 人間向けバリデーション概要。 */
   conditions?: string;
   rules?: ValidationRule[];
-  /** rules[] 結果格納変数名。既定: `fieldErrors`。 */
-  fieldErrorsVar?: Identifier;
+  /** rules[] 結果格納変数名。#1221 で必須化 (旧 '@fieldErrors' 暗黙束縛は廃止)。慣習: `fieldErrors`。 */
+  fieldErrorsVar: Identifier;
   inlineBranch?: ValidationInlineBranch;
 }
 

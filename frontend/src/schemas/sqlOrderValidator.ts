@@ -805,10 +805,10 @@ function checkAction(
     if (step.outputBinding?.name) {
       boundVars.add(step.outputBinding.name);
     }
-    // ValidationStep.fieldErrorsVar も暗黙宣言として boundVars に取り込む
-    // (identifierScope.ts:129-132 と同ロジック、デフォルト名 "fieldErrors")
-    if (step.kind === "validation") {
-      boundVars.add(step.fieldErrorsVar ?? "fieldErrors");
+    // ValidationStep.fieldErrorsVar を boundVars に取り込む。
+    // #1221 で必須化、暗黙束縛 (旧デフォルト '@fieldErrors') は廃止。
+    if (step.kind === "validation" && step.fieldErrorsVar) {
+      boundVars.add(step.fieldErrorsVar);
     }
     if (step.kind === "compute" && step.outputBinding?.name) {
       boundVars.add(step.outputBinding.name);

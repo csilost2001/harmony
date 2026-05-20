@@ -10,6 +10,7 @@ describe("ValidationStep.inlineBranch.ngResponseRef (#180)", () => {
       description: "",
       conditions: "",
       rules: [{ field: "x", type: "required" }],
+      fieldErrorsVar: "fieldErrors",
       inlineBranch: {
         ok: "次へ",
         ng: "400 VALIDATION で return",
@@ -27,6 +28,7 @@ describe("ValidationStep.inlineBranch.ngResponseRef (#180)", () => {
       type: "validation",
       description: "",
       conditions: "",
+      fieldErrorsVar: "fieldErrors",
       inlineBranch: { ok: "OK", ng: "NG" },
     };
     expect(step.inlineBranch?.ngResponseRef).toBeUndefined();
@@ -43,6 +45,7 @@ describe("ValidationStep.inlineBranch.ngResponseRef (#180)", () => {
           id: "s", type: "validation", description: "",
           conditions: "",
           rules: [{ field: "x", type: "required" }],
+          fieldErrorsVar: "fieldErrors",
           inlineBranch: {
             ok: "next",
             ng: "error",

@@ -137,10 +137,10 @@ function walkSteps(
     // 以下は組み込み step variant 固有の処理 (拡張 step は config 内の固有プロパティを持つため除外)
     if (!isBuiltinStep(step)) return;
 
-    // ValidationStep の fieldErrorsVar も known に
-    if (step.kind === "validation") {
-      if (step.fieldErrorsVar) known.add(step.fieldErrorsVar);
-      else known.add("fieldErrors"); // 既定
+    // ValidationStep の fieldErrorsVar も known に。#1221 で必須化済のため非 undefined と仮定する
+    // (schema-level required ガード後、レガシー JSON は migrateProcessFlow で 'fieldErrors' を補完)。
+    if (step.kind === "validation" && step.fieldErrorsVar) {
+      known.add(step.fieldErrorsVar);
     }
     // ReturnStep は新変数を作らない
 
@@ -199,11 +199,12 @@ function checkStep(
 ): void {
   // 拡張 step の固有 property は config に閉じるため、組み込み step に絞って検査
   if (!isBuiltinStep(step)) return;
-  // ValidationStep は自分自身の rules[] 評価結果 fieldErrors を同じ step の ngBodyExpression
-  // で使う (同時に可視) ので、available に足してから式チェック
+  // ValidationStep は自分自身の rules[] 評価結果を同じ step の ngBodyExpression
+  // で使う (同時に可視) ので、available に足してから式チェック。
+  // #1221: fieldErrorsVar は schema-level で必須宣言されるため null fallback はしない。
   const available = new Set(availableIn);
-  if (step.kind === "validation") {
-    available.add(step.fieldErrorsVar ?? "fieldErrors");
+  if (step.kind === "validation" && step.fieldErrorsVar) {
+    available.add(step.fieldErrorsVar);
   }
 
   const expressions: Array<{ src: string; field: string }> = [];

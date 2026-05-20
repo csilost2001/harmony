@@ -2,8 +2,9 @@
 /**
  * ProcessFlow.ambientVariables 編集パネル (#278)
  *
- * middleware 由来の自動注入変数 (@requestId, @traceId, @fieldErrors 等) を
+ * middleware 由来の自動注入変数 (@requestId, @traceId 等) を
  * StructuredField[] として宣言する UI。
+ * (@fieldErrors の暗黙束縛は #1221 で廃止、ValidationStep.fieldErrorsVar の明示宣言で扱う)
  */
 import { useState } from "react";
 import type { ProcessFlow, StructuredField, FieldType } from "../../types/v3";
@@ -65,8 +66,9 @@ export function AmbientVariablesPanel({ group, onChange, expanded: expandedProp,
       {showBody && (
         <div className="catalog-panel-body">
           <div className="catalog-help">
-            ミドルウェア / フレームワーク由来の自動注入変数を宣言。@requestId / @traceId /
-            @fieldErrors 等、inputs にも outputBinding にも無い @ 参照を valid 化。
+            ミドルウェア / フレームワーク由来の自動注入変数を宣言。@requestId / @traceId 等、
+            inputs にも outputBinding にも無い @ 参照を valid 化 (@fieldErrors の暗黙束縛は
+            #1221 で廃止、ValidationStep.fieldErrorsVar の明示宣言で扱う)。
           </div>
           {vars.length === 0 && <div className="catalog-empty">まだエントリがありません。</div>}
           {vars.map((v, i) => {

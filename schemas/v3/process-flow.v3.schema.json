@@ -592,7 +592,7 @@
         { "$ref": "#/$defs/StepBaseProps" },
         {
           "type": "object",
-          "required": ["id", "kind", "description"],
+          "required": ["id", "kind", "description", "fieldErrorsVar"],
           "properties": {
             "kind": { "const": "validation" },
             "conditions": { "type": "string", "description": "人間向けバリデーション概要。" },
@@ -600,7 +600,7 @@
               "type": "array",
               "items": { "$ref": "#/$defs/ValidationRule" }
             },
-            "fieldErrorsVar": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "rules[] 結果格納変数名。既定: 'fieldErrors'。" },
+            "fieldErrorsVar": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "rules[] 結果格納変数名。#1221 で必須化 (旧 '@fieldErrors' 暗黙束縛は廃止、明示宣言を強制)。慣習的に 'fieldErrors' を推奨するが、複数 validation step を並行配置する場合は step ごとに異なる名前を付ける。" },
             "inlineBranch": { "$ref": "#/$defs/ValidationInlineBranch" }
           }
         }
