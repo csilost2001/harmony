@@ -37,6 +37,8 @@ export interface ConventionIssue {
     | "UNKNOWN_CONV_TX"
     | "UNKNOWN_CONV_EXTERNAL_OUTCOME_DEFAULTS"
     | "UNKNOWN_CONV_CATEGORY"
+    | "INVALID_CONV_REFERENCE_FORM"
+    | "CONV_CATEGORY_COLLISION"
     | "ROLE_INHERITS_CYCLE"
     | "UNKNOWN_CONV_ROLE_PERMISSION"
     | "UNKNOWN_CONV_ROLE_INHERITS"
@@ -45,6 +47,28 @@ export interface ConventionIssue {
   value: string;
   message: string;
 }
+
+/**
+ * built-in category 名一覧 (#1221)。
+ * @conv の参照は built-in + extensionCategories 配下を **同一名前空間** で解決するため、
+ * 同名衝突は CONV_CATEGORY_COLLISION error として検出する。
+ * schema (`schemas/v3/conventions.v3.schema.json`) の top-level properties と一致させること。
+ */
+const BUILTIN_CONV_CATEGORIES = new Set<string>([
+  "msg",
+  "regex",
+  "limit",
+  "scope",
+  "currency",
+  "tax",
+  "auth",
+  "role",
+  "permission",
+  "db",
+  "numbering",
+  "tx",
+  "externalOutcomeDefaults",
+]);
 
 /** @conv.CAT.KEY にマッチ。KEY は order.approve のような dot 含みも許可する。 */
 const CONV_RE = /@conv\.([a-zA-Z_][\w-]*)\.([a-zA-Z_][\w-]*(?:\.[a-zA-Z_][\w-]*)*)/g;
@@ -118,7 +142,28 @@ export function checkConventionsCatalogIntegrity(catalog: ConventionsCatalog | n
   checkRoleInheritsReferences(catalog, issues);
   checkRoleInheritanceCycles(catalog, issues);
   checkI18nCatalog(catalog, issues);
+  checkExtensionCategoryCollisions(catalog, issues);
   return issues;
+}
+
+/**
+ * built-in カテゴリ名 (msg / regex / ...) と extensionCategories 配下のキー名が衝突しないことを検査する (#1221)。
+ * @conv.<category>.<key> 参照は両方を同一名前空間で解決するため、同名 category は曖昧で禁止。
+ */
+function checkExtensionCategoryCollisions(catalog: ConventionsCatalog, issues: ConventionIssue[]): void {
+  const extCats = catalog.extensionCategories;
+  if (!extCats) return;
+
+  for (const extName of Object.keys(extCats)) {
+    if (BUILTIN_CONV_CATEGORIES.has(extName)) {
+      issues.push({
+        path: `extensionCategories.${extName}`,
+        code: "CONV_CATEGORY_COLLISION",
+        value: extName,
+        message: `extensionCategories.${extName} が built-in カテゴリ '${extName}' と衝突しています (#1221、同一名前空間禁止)。拡張カテゴリ名を別名にリネームしてください。`,
+      });
+    }
+  }
 }
 
 function checkI18nCatalog(catalog: ConventionsCatalog, issues: ConventionIssue[]): void {
@@ -295,6 +340,17 @@ function walkSteps(
 /** 1 文字列値の @conv.* 参照を検査し issues に追記する */
 function checkValue(src: string, path: string, catalog: ConventionsCatalog, issues: ConventionIssue[]): void {
   for (const { category, key } of extractConvRefs(src)) {
+    // #1221: @conv.extensionCategories.<cat>.<key> 形式は禁止。
+    // 拡張カテゴリも @conv.<categoryName>.<key> として built-in と同一名前空間で参照する。
+    if (category === "extensionCategories") {
+      issues.push({
+        path,
+        code: "INVALID_CONV_REFERENCE_FORM",
+        value: `@conv.${category}.${key}`,
+        message: `@conv.extensionCategories.<category>.<key> 形式は禁止です (#1221)。拡張カテゴリも @conv.<category>.<key> 形式で参照してください (built-in カテゴリと同一名前空間で解決されます)。`,
+      });
+      continue;
+    }
     const cat = resolveCategory(catalog, category);
     if (cat === null) {
       issues.push({

@@ -4,7 +4,7 @@
     "id": "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f",
     "name": "投稿削除",
     "description": "既存投稿を削除する処理フロー。所有者検証後、photos / post_tags / posts を順に DELETE する (FK CASCADE 想定だが明示的に削除順序を記述)。",
-    "kind": "screen",
+    "kind": "common",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
     "updatedAt": "2026-05-06T14:00:00.000Z"
@@ -97,9 +97,16 @@
           "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
           "operation": "SELECT",
           "sql": "SELECT id AS \"postId\", user_id AS \"userId\" FROM posts WHERE id = @inputs.postId",
-          "outputBinding": { "name": "existingPost" },
+          "outputBinding": {
+            "name": "existingPost"
+          },
           "lineage": {
-            "reads": [{ "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -171,9 +178,13 @@
           "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
           "operation": "DELETE",
           "sql": "DELETE FROM photos WHERE post_id = @inputs.postId",
-          "txBoundary": { "role": "begin", "txId": "tx-post-delete" },
           "lineage": {
-            "writes": [{ "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "purpose": "soft-delete" }]
+            "writes": [
+              {
+                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                "purpose": "soft-delete"
+              }
+            ]
           }
         },
         {
@@ -183,9 +194,13 @@
           "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
           "operation": "DELETE",
           "sql": "DELETE FROM post_tags WHERE post_id = @inputs.postId",
-          "txBoundary": { "role": "member", "txId": "tx-post-delete" },
           "lineage": {
-            "writes": [{ "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e", "purpose": "soft-delete" }]
+            "writes": [
+              {
+                "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+                "purpose": "soft-delete"
+              }
+            ]
           }
         },
         {
@@ -195,7 +210,6 @@
           "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
           "operation": "DELETE",
           "sql": "DELETE FROM posts WHERE id = @inputs.postId",
-          "txBoundary": { "role": "end", "txId": "tx-post-delete" },
           "affectedRowsCheck": {
             "operator": "=",
             "expected": 1,
@@ -203,7 +217,12 @@
             "errorCode": "POST_NOT_FOUND"
           },
           "lineage": {
-            "writes": [{ "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "soft-delete" }]
+            "writes": [
+              {
+                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                "purpose": "soft-delete"
+              }
+            ]
           }
         },
         {

@@ -169,7 +169,9 @@ export function createDefaultStep(kind: StepType): Step {
   let step: Step;
   switch (kind) {
     case "validation":
-      step = { ...base, kind: "validation", conditions: "", inlineBranch: { ok: [], ng: [] } }; break;
+      // #1221: fieldErrorsVar は schema-level で必須 (旧 '@fieldErrors' 暗黙束縛廃止)。
+      // 新規 step は慣習名 'fieldErrors' で生成し、複数 validation step が並ぶ場合は user が rename。
+      step = { ...base, kind: "validation", conditions: "", fieldErrorsVar: "fieldErrors" as never, inlineBranch: { ok: [], ng: [] } }; break;
     case "dbAccess":
       step = { ...base, kind: "dbAccess", tableId: "" as never, operation: "SELECT" }; break;
     case "externalSystem":

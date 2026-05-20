@@ -196,7 +196,7 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker (screen-item-event) を持つ正常系", () => {
     const flow = {
       meta: makeMeta({
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
         primaryInvoker: {
           kind: "screen-item-event",
           screenId: SCREEN_UUID,
@@ -212,7 +212,7 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker.screenId を欠落させると fail", () => {
     const flow = {
       meta: makeMeta({
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
         primaryInvoker: {
           kind: "screen-item-event",
           itemId: "submitBtn",
@@ -227,7 +227,7 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker.kind が未対応の値だと fail", () => {
     const flow = {
       meta: makeMeta({
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
         primaryInvoker: { kind: "unknown-invoker" },
       }),
       actions: [],
@@ -238,7 +238,7 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker に未知のトップレベルプロパティを含むと fail (additionalProperties: false)", () => {
     const flow = {
       meta: makeMeta({
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
         primaryInvoker: {
           kind: "screen-item-event",
           screenId: SCREEN_UUID,
@@ -255,7 +255,7 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker.itemId が Identifier 形式 (lowerCamelCase) でないと fail", () => {
     const flow = {
       meta: makeMeta({
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
         primaryInvoker: {
           kind: "screen-item-event",
           screenId: SCREEN_UUID,
@@ -271,7 +271,7 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker.actionId 付きで pass (#1019)", () => {
     const flow = {
       meta: makeMeta({
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
         primaryInvoker: {
           kind: "screen-item-event",
           screenId: SCREEN_UUID,
@@ -288,7 +288,7 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker.actionId が LocalId 形式を満たさないと fail (#1019)", () => {
     const flow = {
       meta: makeMeta({
-        kind: "screen",
+        kind: "screen", screenId: "22222222-2222-4222-8222-222222222222",
         primaryInvoker: {
           kind: "screen-item-event",
           screenId: SCREEN_UUID,

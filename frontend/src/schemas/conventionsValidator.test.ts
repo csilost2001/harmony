@@ -1040,3 +1040,110 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
     expect(hit?.code).toBe("UNKNOWN_CONV_LIMIT");
   });
 });
+
+describe("conventionsValidator — @conv.<category>.<key> 統一仕様 + collision check (#1221)", () => {
+  it("@conv.extensionCategories.<cat>.<key> 参照は INVALID_CONV_REFERENCE_FORM を発する", () => {
+    const catalog: ConventionsCatalog = {
+      version: "1.0.0",
+      extensionCategories: {
+        wordProgress: { masteryThreshold: 3 },
+      },
+    };
+    const flow = {
+      id: "00000000-0000-4000-8000-000000000001" as Identifier,
+      meta: {
+        id: "00000000-0000-4000-8000-000000000001" as Identifier,
+        name: "test",
+        kind: "common",
+        createdAt: "2026-05-21T00:00:00Z" as Timestamp,
+        updatedAt: "2026-05-21T00:00:00Z" as Timestamp,
+      },
+      actions: [
+        {
+          id: "a1" as Identifier,
+          name: "act",
+          trigger: "submit" as const,
+          steps: [
+            {
+              id: "s1" as Identifier,
+              kind: "compute" as const,
+              description: "threshold ref",
+              expression: "@count >= @conv.extensionCategories.wordProgress.masteryThreshold",
+              outputBinding: { name: "isMastered" as Identifier },
+            },
+          ],
+        },
+      ],
+    } as unknown as ProcessFlow;
+    const issues = checkConventionReferences(flow, catalog);
+    const hit = issues.find((i) => i.code === "INVALID_CONV_REFERENCE_FORM");
+    expect(hit).toBeDefined();
+    expect(hit?.value).toContain("@conv.extensionCategories.wordProgress");
+    expect(hit?.message).toContain("@conv.<category>.<key>");
+  });
+
+  it("拡張 category への正規参照 @conv.<cat>.<key> は PASS する", () => {
+    const catalog: ConventionsCatalog = {
+      version: "1.0.0",
+      extensionCategories: {
+        wordProgress: { masteryThreshold: 3 },
+      },
+    };
+    const flow = {
+      id: "00000000-0000-4000-8000-000000000001" as Identifier,
+      meta: {
+        id: "00000000-0000-4000-8000-000000000001" as Identifier,
+        name: "test",
+        kind: "common",
+        createdAt: "2026-05-21T00:00:00Z" as Timestamp,
+        updatedAt: "2026-05-21T00:00:00Z" as Timestamp,
+      },
+      actions: [
+        {
+          id: "a1" as Identifier,
+          name: "act",
+          trigger: "submit" as const,
+          steps: [
+            {
+              id: "s1" as Identifier,
+              kind: "compute" as const,
+              description: "threshold ref",
+              expression: "@count >= @conv.wordProgress.masteryThreshold",
+              outputBinding: { name: "isMastered" as Identifier },
+            },
+          ],
+        },
+      ],
+    } as unknown as ProcessFlow;
+    const issues = checkConventionReferences(flow, catalog);
+    expect(issues).toHaveLength(0);
+  });
+
+  it("built-in カテゴリと extensionCategories の同名衝突は CONV_CATEGORY_COLLISION", () => {
+    const catalog: ConventionsCatalog = {
+      version: "1.0.0",
+      msg: { greeting: { template: "hello" } },
+      extensionCategories: {
+        msg: { greeting: "other" }, // built-in 'msg' と衝突
+      },
+    };
+    const issues = checkConventionsCatalogIntegrity(catalog);
+    const hit = issues.find((i) => i.code === "CONV_CATEGORY_COLLISION");
+    expect(hit).toBeDefined();
+    expect(hit?.path).toBe("extensionCategories.msg");
+    expect(hit?.value).toBe("msg");
+  });
+
+  it("built-in と異なる名前なら衝突なし", () => {
+    const catalog: ConventionsCatalog = {
+      version: "1.0.0",
+      extensionCategories: {
+        wordProgress: { masteryThreshold: 3 },
+        cefr: { passingThreshold: 60 },
+      },
+    };
+    const issues = checkConventionsCatalogIntegrity(catalog);
+    const hits = issues.filter((i) => i.code === "CONV_CATEGORY_COLLISION");
+    expect(hits).toHaveLength(0);
+  });
+});

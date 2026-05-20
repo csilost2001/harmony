@@ -153,8 +153,8 @@ FK 整合: 全件 OK
 ### conventions 参照整合
 
 - `@conv.msg.sessionNotFound` → catalog.json msg.sessionNotFound OK
-- `@conv.extensionCategories.cefr.passingThreshold` → catalog.json extensionCategories.cefr.passingThreshold OK
-- `@conv.extensionCategories.wordProgress.masteryThreshold` → catalog.json extensionCategories.wordProgress.masteryThreshold OK
+- `@conv.cefr.passingThreshold` → catalog.json extensionCategories.cefr.passingThreshold OK
+- `@conv.wordProgress.masteryThreshold` → catalog.json extensionCategories.wordProgress.masteryThreshold OK
 - `@conv.numbering.sessionId` → catalog.json numbering.sessionId OK
 - `@conv.numbering.scoreId` → catalog.json numbering.scoreId OK
 - `@conv.regex.ipa` → catalog.json regex.ipa OK

@@ -63,12 +63,25 @@
           "description": "配送指示が正常完了し、追跡番号を取得した後に発行する。出荷通知メール送信などの下流処理のトリガーとなる。",
           "payload": {
             "type": "object",
-            "required": ["orderId", "orderNumber", "trackingNumber", "carrierId"],
+            "required": [
+              "orderId",
+              "orderNumber",
+              "trackingNumber",
+              "carrierId"
+            ],
             "properties": {
-              "orderId": { "type": "number" },
-              "orderNumber": { "type": "string" },
-              "trackingNumber": { "type": "string" },
-              "carrierId": { "type": "string" }
+              "orderId": {
+                "type": "number"
+              },
+              "orderNumber": {
+                "type": "string"
+              },
+              "trackingNumber": {
+                "type": "string"
+              },
+              "carrierId": {
+                "type": "string"
+              }
             }
           }
         }
@@ -143,28 +156,36 @@
         {
           "id": "200-ok",
           "status": 200,
-          "bodySchema": { "typeRef": "retail:DispatchShipmentResponse" },
+          "bodySchema": {
+            "typeRef": "retail:DispatchShipmentResponse"
+          },
           "description": "配送指示成功。",
           "when": "外部 API への配送指示が成功し、orders.status が 'shipped' に更新された場合。"
         },
         {
           "id": "400-validation",
           "status": 400,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "バリデーションエラー。",
           "when": "orderId / carrierId が不正な場合。"
         },
         {
           "id": "404-order-not-found",
           "status": 404,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "注文が存在しないか配送指示対象外のステータス。",
           "when": "orders に対象レコードが存在しないか、status が 'shipped' / 'delivered' / 'cancelled' の場合。"
         },
         {
           "id": "502-carrier-api-failed",
           "status": 502,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "外部キャリア API 失敗。orders.status は変更していない。",
           "when": "外部キャリア API がエラーまたは timeout を返した場合。"
         }
@@ -217,9 +238,16 @@
           "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
           "operation": "SELECT",
           "sql": "SELECT id, order_number AS \"orderNumber\", customer_id AS \"customerId\", status, total_amount AS \"totalAmount\", shipping_address AS \"shippingAddress\" FROM orders WHERE id = @inputs.orderId AND status IN ('pending', 'confirmed')",
-          "outputBinding": { "name": "order" },
+          "outputBinding": {
+            "name": "order"
+          },
           "lineage": {
-            "reads": [{ "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -275,7 +303,9 @@
             "preferredDate": "@inputs.preferredDate",
             "timeSlot": "@inputs.timeSlot"
           },
-          "outputBinding": { "name": "dispatchResult" },
+          "outputBinding": {
+            "name": "dispatchResult"
+          },
           "sla": {
             "timeoutMs": 15000,
             "onTimeout": "throw",
@@ -353,7 +383,12 @@
             "description": "0 件更新 = 注文が存在しないか既に shipped に変更済み。"
           },
           "lineage": {
-            "writes": [{ "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab", "purpose": "statusUpdate" }]
+            "writes": [
+              {
+                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
+                "purpose": "statusUpdate"
+              }
+            ]
           }
         },
         {
@@ -406,12 +441,18 @@
     "glossary": {
       "配送指示": {
         "definition": "外部配送キャリア API に注文の出荷を依頼し、追跡番号を取得するバックオフィス操作。",
-        "aliases": ["DispatchShipment", "出荷指示"],
+        "aliases": [
+          "DispatchShipment",
+          "出荷指示"
+        ],
         "domainRef": "orders"
       },
       "追跡番号": {
         "definition": "外部キャリアが発行する配送追跡用の識別番号。顧客への出荷通知メールに含める。",
-        "aliases": ["TrackingNumber", "伝票番号"],
+        "aliases": [
+          "TrackingNumber",
+          "伝票番号"
+        ],
         "domainRef": "shipment"
       }
     },
@@ -423,7 +464,9 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "sessionUserId": "staff-001" }
+            "context": {
+              "sessionUserId": "staff-001"
+            }
           },
           {
             "kind": "dbState",
@@ -460,10 +503,20 @@
           }
         },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" },
-          { "kind": "output", "path": "$.trackingNumber", "equals": "TRK-20260502-001" }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.trackingNumber",
+            "equals": "TRK-20260502-001"
+          }
         ],
-        "tags": ["happy", "s4"]
+        "tags": [
+          "happy",
+          "s4"
+        ]
       },
       {
         "id": "carrier-api-failure-502",
@@ -472,7 +525,9 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "sessionUserId": "staff-001" }
+            "context": {
+              "sessionUserId": "staff-001"
+            }
           },
           {
             "kind": "dbState",
@@ -497,12 +552,22 @@
         ],
         "when": {
           "actionId": "act-001",
-          "input": { "orderId": 301, "carrierId": "sagawa" }
+          "input": {
+            "orderId": 301,
+            "carrierId": "sagawa"
+          }
         },
         "then": [
-          { "kind": "outcome", "expected": "502-carrier-api-failed" }
+          {
+            "kind": "outcome",
+            "expected": "502-carrier-api-failed"
+          }
         ],
-        "tags": ["error", "external-api", "s4"]
+        "tags": [
+          "error",
+          "external-api",
+          "s4"
+        ]
       },
       {
         "id": "order-not-found-404",
@@ -511,7 +576,9 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "sessionUserId": "staff-001" }
+            "context": {
+              "sessionUserId": "staff-001"
+            }
           },
           {
             "kind": "dbState",
@@ -521,12 +588,22 @@
         ],
         "when": {
           "actionId": "act-001",
-          "input": { "orderId": 9999, "carrierId": "yamato" }
+          "input": {
+            "orderId": 9999,
+            "carrierId": "yamato"
+          }
         },
         "then": [
-          { "kind": "outcome", "expected": "404-order-not-found" }
+          {
+            "kind": "outcome",
+            "expected": "404-order-not-found"
+          }
         ],
-        "tags": ["error", "not-found", "s4"]
+        "tags": [
+          "error",
+          "not-found",
+          "s4"
+        ]
       },
       {
         "id": "already-shipped-404",
@@ -535,7 +612,9 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "sessionUserId": "staff-001" }
+            "context": {
+              "sessionUserId": "staff-001"
+            }
           },
           {
             "kind": "dbState",
@@ -555,12 +634,22 @@
         ],
         "when": {
           "actionId": "act-001",
-          "input": { "orderId": 302, "carrierId": "japanpost" }
+          "input": {
+            "orderId": 302,
+            "carrierId": "japanpost"
+          }
         },
         "then": [
-          { "kind": "outcome", "expected": "404-order-not-found" }
+          {
+            "kind": "outcome",
+            "expected": "404-order-not-found"
+          }
         ],
-        "tags": ["error", "invalid-status", "s4"]
+        "tags": [
+          "error",
+          "invalid-status",
+          "s4"
+        ]
       }
     ]
   }

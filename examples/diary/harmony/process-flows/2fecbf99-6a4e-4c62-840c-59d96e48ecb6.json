@@ -4,7 +4,7 @@
     "id": "2fecbf99-6a4e-4c62-840c-59d96e48ecb6",
     "name": "写真アップロード",
     "description": "投稿に紐付く写真をアップロードする処理フロー。multipart/form-data で受け取り、ローカルファイルシステム (uploads/photos/) に保存 → サムネイル生成 → 寸法 + EXIF 抽出 → photos テーブル INSERT を 1 アップロード単位で実行する。photos.post_id は NOT NULL のため postId は必須 (post 作成後の upload を前提)。S3 / R2 互換ストレージへの切替は v2 で context.catalogs.externalSystems に photoStorage を登録して step-04 を externalSystem に置き換える。",
-    "kind": "screen",
+    "kind": "common",
     "maturity": "draft",
     "createdAt": "2026-05-07T00:00:00.000Z",
     "updatedAt": "2026-05-07T00:00:00.000Z"

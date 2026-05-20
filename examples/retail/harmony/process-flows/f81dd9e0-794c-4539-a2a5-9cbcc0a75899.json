@@ -50,12 +50,25 @@
           "description": "注文確定 TX が正常にコミットされ、persistedOrder の再取得が完了した後に発行する。",
           "payload": {
             "type": "object",
-            "required": ["orderId", "orderNumber", "customerId", "totalAmount"],
+            "required": [
+              "orderId",
+              "orderNumber",
+              "customerId",
+              "totalAmount"
+            ],
             "properties": {
-              "orderId": { "type": "number" },
-              "orderNumber": { "type": "string" },
-              "customerId": { "type": "number" },
-              "totalAmount": { "type": "number" }
+              "orderId": {
+                "type": "number"
+              },
+              "orderNumber": {
+                "type": "string"
+              },
+              "customerId": {
+                "type": "number"
+              },
+              "totalAmount": {
+                "type": "number"
+              }
             }
           }
         }
@@ -136,35 +149,45 @@
         {
           "id": "200-ok",
           "status": 200,
-          "bodySchema": { "typeRef": "retail:OrderConfirmResponse" },
+          "bodySchema": {
+            "typeRef": "retail:OrderConfirmResponse"
+          },
           "description": "注文確定成功。",
           "when": "TX が正常にコミットされた場合。"
         },
         {
           "id": "400-validation",
           "status": 400,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "バリデーションエラー。",
           "when": "配送先情報が不正な場合。"
         },
         {
           "id": "422-cart-empty",
           "status": 422,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "カートが空。",
           "when": "cart_items が 0 件の場合。"
         },
         {
           "id": "422-stock-shortage",
           "status": 422,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "在庫不足。TX はロールバック済み。",
           "when": "在庫減算時に quantity_available が注文数量未満だった場合。"
         },
         {
           "id": "422-order-confirm-failed",
           "status": 422,
-          "bodySchema": { "typeRef": "retail:ApiError" },
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
           "description": "注文確定 TX 失敗。TX はロールバック済み。",
           "when": "在庫不足以外の TX 内エラーが発生した場合。"
         }
@@ -211,7 +234,11 @@
             {
               "field": "paymentMethod",
               "type": "enum",
-              "values": ["credit_card", "bank_transfer", "cod"],
+              "values": [
+                "credit_card",
+                "bank_transfer",
+                "cod"
+              ],
               "severity": "error",
               "message": "支払方法は credit_card / bank_transfer / cod のいずれかを指定してください。"
             }
@@ -250,13 +277,27 @@
           "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
           "operation": "SELECT",
           "sql": "SELECT c.id AS \"cartId\", ci.id AS \"itemId\", ci.product_id AS \"productId\", ci.store_id AS \"storeId\", ci.unit_price_snapshot AS \"unitPriceSnapshot\", ci.quantity, p.product_code AS \"productCode\", p.name AS \"productName\", p.unit_price AS \"unitPrice\", s.store_code AS \"storeCode\", s.name AS \"storeName\" FROM carts c JOIN cart_items ci ON ci.cart_id = c.id JOIN products p ON p.id = ci.product_id JOIN stores s ON s.id = ci.store_id WHERE c.customer_id = @sessionCustomerId AND c.status = 'active'",
-          "outputBinding": { "name": "cartItems" },
+          "outputBinding": {
+            "name": "cartItems"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6", "purpose": "lookup" },
-              { "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b", "purpose": "lookup" },
-              { "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0", "purpose": "lookup" },
-              { "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5", "purpose": "lookup" }
+              {
+                "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
+                "purpose": "lookup"
+              }
             ]
           }
         },
@@ -297,7 +338,9 @@
           "kind": "compute",
           "description": "cart_items から注文合計金額 (税抜) を計算する。各行の line_amount = unit_price_snapshot * quantity の合計。",
           "expression": "@cartItems.reduce((sum, item) => sum + (item.unitPriceSnapshot * item.quantity), 0)",
-          "outputBinding": { "name": "totalAmount" }
+          "outputBinding": {
+            "name": "totalAmount"
+          }
         },
         {
           "id": "step-05",
@@ -306,9 +349,16 @@
           "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
           "operation": "SELECT",
           "sql": "SELECT 'ORD-' || EXTRACT(YEAR FROM CURRENT_DATE)::text || '-' || LPAD(nextval('seq_order_number')::text, 6, '0') AS order_number",
-          "outputBinding": { "name": "newOrderNumberRows" },
+          "outputBinding": {
+            "name": "newOrderNumberRows"
+          },
           "lineage": {
-            "reads": [{ "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -316,7 +366,9 @@
           "kind": "compute",
           "description": "newOrderNumberRows[0].order_number を newOrderNumber に展開する (dbAccess は配列で返るため)。",
           "expression": "@newOrderNumberRows[0].order_number",
-          "outputBinding": { "name": "newOrderNumber" }
+          "outputBinding": {
+            "name": "newOrderNumber"
+          }
         },
         {
           "id": "step-06",
@@ -325,8 +377,13 @@
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
           "timeoutMs": 10000,
-          "rollbackOn": ["STOCK_SHORTAGE", "ORDER_NUMBER_CONFLICT"],
-          "outputBinding": { "name": "txResult" },
+          "rollbackOn": [
+            "STOCK_SHORTAGE",
+            "ORDER_NUMBER_CONFLICT"
+          ],
+          "outputBinding": {
+            "name": "txResult"
+          },
           "steps": [
             {
               "id": "step-06-01",
@@ -351,7 +408,12 @@
                     "description": "0 件更新 = 在庫不足。TX がロールバックされ STOCK_SHORTAGE エラーを返す。"
                   },
                   "lineage": {
-                    "writes": [{ "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a", "purpose": "decrement" }]
+                    "writes": [
+                      {
+                        "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
+                        "purpose": "decrement"
+                      }
+                    ]
                   }
                 }
               ]
@@ -363,7 +425,9 @@
               "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
               "operation": "INSERT",
               "sql": "INSERT INTO orders (order_number, customer_id, status, total_amount, tax_amount, shipping_postal_code, shipping_address, note, payment_method, ordered_at) VALUES (@newOrderNumber, @sessionCustomerId, 'pending', @totalAmount, FLOOR(@totalAmount * @conv.tax.standard.rate), @inputs.shippingPostalCode, @inputs.shippingAddress, @inputs.note, @inputs.paymentMethod, CURRENT_TIMESTAMP) RETURNING id, order_number",
-              "outputBinding": { "name": "insertedOrder" },
+              "outputBinding": {
+                "name": "insertedOrder"
+              },
               "affectedRowsCheck": {
                 "operator": "=",
                 "expected": 1,
@@ -372,7 +436,12 @@
                 "description": "INSERT が 0 件 = order_number UNIQUE 制約違反またはその他の制約エラー。TX はロールバックされる。"
               },
               "lineage": {
-                "writes": [{ "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab", "purpose": "insert" }]
+                "writes": [
+                  {
+                    "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
+                    "purpose": "insert"
+                  }
+                ]
               }
             },
             {
@@ -391,7 +460,12 @@
                   "operation": "INSERT",
                   "sql": "INSERT INTO order_items (order_id, product_id, store_code_snapshot, product_code_snapshot, product_name_snapshot, unit_price_snapshot, quantity, line_amount) VALUES (@insertedOrder.id, @cartItem.productId, @cartItem.storeCode, @cartItem.productCode, @cartItem.productName, @cartItem.unitPriceSnapshot, @cartItem.quantity, @cartItem.unitPriceSnapshot * @cartItem.quantity)",
                   "lineage": {
-                    "writes": [{ "tableId": "dddfb0c1-0fde-40ac-bcf0-5ed75a7f1edc", "purpose": "insert" }]
+                    "writes": [
+                      {
+                        "tableId": "dddfb0c1-0fde-40ac-bcf0-5ed75a7f1edc",
+                        "purpose": "insert"
+                      }
+                    ]
                   }
                 }
               ]
@@ -405,7 +479,10 @@
               "sql": "DELETE FROM cart_items WHERE cart_id = (SELECT id FROM carts WHERE customer_id = @sessionCustomerId AND status = 'active')",
               "lineage": {
                 "writes": [
-                  { "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b", "purpose": "delete" }
+                  {
+                    "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
+                    "purpose": "delete"
+                  }
                 ]
               }
             },
@@ -418,7 +495,10 @@
               "sql": "UPDATE carts SET status = 'ordered', updated_at = CURRENT_TIMESTAMP WHERE customer_id = @sessionCustomerId AND status = 'active'",
               "lineage": {
                 "writes": [
-                  { "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6", "purpose": "update" }
+                  {
+                    "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
+                    "purpose": "update"
+                  }
                 ]
               }
             }
@@ -515,9 +595,16 @@
           "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
           "operation": "SELECT",
           "sql": "SELECT id, order_number AS \"orderNumber\", customer_id AS \"customerId\", status, total_amount AS \"totalAmount\", ordered_at AS \"orderedAt\" FROM orders WHERE order_number = @newOrderNumber",
-          "outputBinding": { "name": "persistedOrder" },
+          "outputBinding": {
+            "name": "persistedOrder"
+          },
           "lineage": {
-            "reads": [{ "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -641,22 +728,35 @@
     "glossary": {
       "注文確定": {
         "definition": "カート内容を 1 DB トランザクションで注文テーブルに登録し、在庫を引き当て、カートをクリアする一連の業務操作。",
-        "aliases": ["OrderConfirm", "Checkout"],
+        "aliases": [
+          "OrderConfirm",
+          "Checkout"
+        ],
         "domainRef": "orders"
       },
       "在庫引き当て": {
         "definition": "注文数量分だけ inventory.quantity_available を減算する操作。0 未満にはできない。",
-        "aliases": ["StockDecrement", "StockAllocation"],
+        "aliases": [
+          "StockDecrement",
+          "StockAllocation"
+        ],
         "domainRef": "inventory.quantity_available"
       },
       "注文番号": {
         "definition": "@conv.numbering.orderNumber 規約で採番される顧客向け識別子。形式: ORD-YYYY-NNNNNN。",
-        "aliases": ["OrderNumber", "受注番号"],
+        "aliases": [
+          "OrderNumber",
+          "受注番号"
+        ],
         "domainRef": "orders.order_number"
       },
       "支払方法": {
         "definition": "顧客が選択する決済手段。credit_card (クレジットカード) / bank_transfer (銀行振込) / cod (代金引換) の 3 択。orders.payment_method に保存する。",
-        "aliases": ["paymentMethod", "PaymentMethod", "決済手段"],
+        "aliases": [
+          "paymentMethod",
+          "PaymentMethod",
+          "決済手段"
+        ],
         "domainRef": "orders.payment_method"
       }
     },
@@ -668,40 +768,93 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "sessionCustomerId": 100 }
+            "context": {
+              "sessionCustomerId": 100
+            }
           },
           {
             "kind": "dbState",
             "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
-            "rows": [{ "id": 1, "store_code": "S-001", "name": "東京本店", "is_active": true }]
+            "rows": [
+              {
+                "id": 1,
+                "store_code": "S-001",
+                "name": "東京本店",
+                "is_active": true
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
             "rows": [
-              { "id": 1, "product_code": "P-0001", "name": "商品A", "unit_price": 1000, "is_active": true },
-              { "id": 2, "product_code": "P-0002", "name": "商品B", "unit_price": 2000, "is_active": true }
+              {
+                "id": 1,
+                "product_code": "P-0001",
+                "name": "商品A",
+                "unit_price": 1000,
+                "is_active": true
+              },
+              {
+                "id": 2,
+                "product_code": "P-0002",
+                "name": "商品B",
+                "unit_price": 2000,
+                "is_active": true
+              }
             ]
           },
           {
             "kind": "dbState",
             "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-            "rows": [{ "id": 50, "customer_id": 100, "status": "active" }]
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
             "rows": [
-              { "id": 200, "cart_id": 50, "product_id": 1, "store_id": 1, "unit_price_snapshot": 1000, "quantity": 2 },
-              { "id": 201, "cart_id": 50, "product_id": 2, "store_id": 1, "unit_price_snapshot": 2000, "quantity": 1 }
+              {
+                "id": 200,
+                "cart_id": 50,
+                "product_id": 1,
+                "store_id": 1,
+                "unit_price_snapshot": 1000,
+                "quantity": 2
+              },
+              {
+                "id": 201,
+                "cart_id": 50,
+                "product_id": 2,
+                "store_id": 1,
+                "unit_price_snapshot": 2000,
+                "quantity": 1
+              }
             ]
           },
           {
             "kind": "dbState",
             "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
             "rows": [
-              { "id": 101, "store_id": 1, "product_id": 1, "quantity_available": 50, "quantity_reserved": 0 },
-              { "id": 102, "store_id": 1, "product_id": 2, "quantity_available": 30, "quantity_reserved": 0 }
+              {
+                "id": 101,
+                "store_id": 1,
+                "product_id": 1,
+                "quantity_available": 50,
+                "quantity_reserved": 0
+              },
+              {
+                "id": 102,
+                "store_id": 1,
+                "product_id": 2,
+                "quantity_available": 30,
+                "quantity_reserved": 0
+              }
             ]
           }
         ],
@@ -715,10 +868,21 @@
           }
         },
         "then": [
-          { "kind": "outcome", "expected": "200-ok" },
-          { "kind": "output", "path": "$.orderNumber", "matches": "^ORD-\\d{4}-\\d{6}$" }
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.orderNumber",
+            "matches": "^ORD-\\d{4}-\\d{6}$"
+          }
         ],
-        "tags": ["happy", "s3", "tx"]
+        "tags": [
+          "happy",
+          "s3",
+          "tx"
+        ]
       },
       {
         "id": "stock-shortage-422",
@@ -727,32 +891,72 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "sessionCustomerId": 100 }
+            "context": {
+              "sessionCustomerId": 100
+            }
           },
           {
             "kind": "dbState",
             "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
-            "rows": [{ "id": 1, "store_code": "S-001", "name": "東京本店", "is_active": true }]
+            "rows": [
+              {
+                "id": 1,
+                "store_code": "S-001",
+                "name": "東京本店",
+                "is_active": true
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
-            "rows": [{ "id": 1, "product_code": "P-0001", "name": "商品A", "unit_price": 1000, "is_active": true }]
+            "rows": [
+              {
+                "id": 1,
+                "product_code": "P-0001",
+                "name": "商品A",
+                "unit_price": 1000,
+                "is_active": true
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-            "rows": [{ "id": 50, "customer_id": 100, "status": "active" }]
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
-            "rows": [{ "id": 200, "cart_id": 50, "product_id": 1, "store_id": 1, "unit_price_snapshot": 1000, "quantity": 5 }]
+            "rows": [
+              {
+                "id": 200,
+                "cart_id": 50,
+                "product_id": 1,
+                "store_id": 1,
+                "unit_price_snapshot": 1000,
+                "quantity": 5
+              }
+            ]
           },
           {
             "kind": "dbState",
             "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
-            "rows": [{ "id": 101, "store_id": 1, "product_id": 1, "quantity_available": 3, "quantity_reserved": 0 }]
+            "rows": [
+              {
+                "id": 101,
+                "store_id": 1,
+                "product_id": 1,
+                "quantity_available": 3,
+                "quantity_reserved": 0
+              }
+            ]
           }
         ],
         "when": {
@@ -764,9 +968,17 @@
           }
         },
         "then": [
-          { "kind": "outcome", "expected": "422-stock-shortage" }
+          {
+            "kind": "outcome",
+            "expected": "422-stock-shortage"
+          }
         ],
-        "tags": ["error", "stock", "tx", "s3"]
+        "tags": [
+          "error",
+          "stock",
+          "tx",
+          "s3"
+        ]
       },
       {
         "id": "cart-empty-422",
@@ -775,12 +987,20 @@
         "given": [
           {
             "kind": "sessionContext",
-            "context": { "sessionCustomerId": 100 }
+            "context": {
+              "sessionCustomerId": 100
+            }
           },
           {
             "kind": "dbState",
             "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-            "rows": [{ "id": 50, "customer_id": 100, "status": "active" }]
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
           },
           {
             "kind": "dbState",
@@ -797,16 +1017,28 @@
           }
         },
         "then": [
-          { "kind": "outcome", "expected": "422-cart-empty" }
+          {
+            "kind": "outcome",
+            "expected": "422-cart-empty"
+          }
         ],
-        "tags": ["error", "empty-cart", "s3"]
+        "tags": [
+          "error",
+          "empty-cart",
+          "s3"
+        ]
       },
       {
         "id": "validation-error-invalid-postal",
         "name": "郵便番号不正で 400",
         "description": "郵便番号がハイフンありの場合はバリデーションエラー。",
         "given": [
-          { "kind": "sessionContext", "context": { "sessionCustomerId": 100 } }
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          }
         ],
         "when": {
           "actionId": "act-001",
@@ -817,16 +1049,28 @@
           }
         },
         "then": [
-          { "kind": "outcome", "expected": "400-validation" }
+          {
+            "kind": "outcome",
+            "expected": "400-validation"
+          }
         ],
-        "tags": ["error", "validation", "s3"]
+        "tags": [
+          "error",
+          "validation",
+          "s3"
+        ]
       },
       {
         "id": "payment-method-invalid",
         "name": "支払方法不正で 400",
         "description": "paymentMethod が options 外 (例: 'paypal') の場合は enum バリデーションエラーで 400 を返す。",
         "given": [
-          { "kind": "sessionContext", "context": { "sessionCustomerId": 100 } }
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          }
         ],
         "when": {
           "actionId": "act-001",
@@ -837,9 +1081,17 @@
           }
         },
         "then": [
-          { "kind": "outcome", "expected": "400-validation" }
+          {
+            "kind": "outcome",
+            "expected": "400-validation"
+          }
         ],
-        "tags": ["error", "validation", "s3", "payment"]
+        "tags": [
+          "error",
+          "validation",
+          "s3",
+          "payment"
+        ]
       }
     ]
   }

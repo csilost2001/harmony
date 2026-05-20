@@ -310,7 +310,7 @@ export interface ResourceRequirements {
 /** 実行に必要な参照情報 (catalog 群 / ambient / 健全性 / リソース)。 */
 export interface Context {
   catalogs?: Catalogs;
-  /** ミドルウェア由来の自動注入変数 (`@requestId` / `@traceId` / `@fieldErrors` 等)。 */
+  /** ミドルウェア由来の自動注入変数 (`@requestId` / `@traceId` 等)。@fieldErrors 暗黙束縛は #1221 で廃止。 */
   ambientVariables?: StructuredField[];
   /** 規約カタログ defaults の本フロー固有 override。 */
   ambientOverrides?: Record<string, string>;
@@ -410,12 +410,6 @@ export interface OutputBinding {
   transformations?: OutputBindingTransformation[];
 }
 
-/** TX 境界宣言。txId 単位で begin/member/end を結合。 */
-export interface TxBoundary {
-  role: "begin" | "member" | "end";
-  txId: LocalId;
-}
-
 /** 外部呼び出しチェーン (multi-phase external system call)。 */
 export interface ExternalChain {
   chainId: LocalId;
@@ -451,8 +445,6 @@ export interface StepBaseProps {
   runIf?: ExpressionString;
   requiredPermissions?: string[];
   outputBinding?: OutputBinding;
-  /** TX 境界宣言。簡易フラグの transactional は v3 で廃止 (txBoundary に統一)。 */
-  txBoundary?: TxBoundary;
   /** Saga 補償対象の Step.id 参照。 */
   compensatesFor?: LocalId;
   externalChain?: ExternalChain;
@@ -488,8 +480,8 @@ export interface ValidationStep extends StepBaseProps {
   /** 人間向けバリデーション概要。 */
   conditions?: string;
   rules?: ValidationRule[];
-  /** rules[] 結果格納変数名。既定: `fieldErrors`。 */
-  fieldErrorsVar?: Identifier;
+  /** rules[] 結果格納変数名。#1221 で必須化 (旧 '@fieldErrors' 暗黙束縛は廃止)。慣習: `fieldErrors`。 */
+  fieldErrorsVar: Identifier;
   inlineBranch?: ValidationInlineBranch;
 }
 

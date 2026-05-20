@@ -7,7 +7,8 @@
     "kind": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
-    "updatedAt": "2026-05-06T14:00:00.000Z"
+    "updatedAt": "2026-05-06T14:00:00.000Z",
+    "screenId": "ffec74d0-6c21-45f7-a387-167ac8819255"
   },
   "context": {
     "catalogs": {
@@ -63,20 +64,69 @@
           "type": {
             "kind": "object",
             "fields": [
-              { "name": "postId", "type": "integer", "required": true },
-              { "name": "userId", "type": "integer", "required": true },
-              { "name": "title", "type": "string", "required": true },
-              { "name": "body", "type": "string", "required": true },
-              { "name": "summary", "type": "string" },
-              { "name": "status", "type": "string", "required": true },
-              { "name": "mood", "type": "string" },
-              { "name": "weather", "type": "string" },
-              { "name": "location", "type": "string" },
-              { "name": "publishedAt", "type": "datetime" },
-              { "name": "createdAt", "type": "datetime", "required": true },
-              { "name": "updatedAt", "type": "datetime", "required": true },
-              { "name": "authorDisplayName", "type": "string" },
-              { "name": "authorAvatarUrl", "type": "string" },
+              {
+                "name": "postId",
+                "type": "integer",
+                "required": true
+              },
+              {
+                "name": "userId",
+                "type": "integer",
+                "required": true
+              },
+              {
+                "name": "title",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "body",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "summary",
+                "type": "string"
+              },
+              {
+                "name": "status",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "mood",
+                "type": "string"
+              },
+              {
+                "name": "weather",
+                "type": "string"
+              },
+              {
+                "name": "location",
+                "type": "string"
+              },
+              {
+                "name": "publishedAt",
+                "type": "datetime"
+              },
+              {
+                "name": "createdAt",
+                "type": "datetime",
+                "required": true
+              },
+              {
+                "name": "updatedAt",
+                "type": "datetime",
+                "required": true
+              },
+              {
+                "name": "authorDisplayName",
+                "type": "string"
+              },
+              {
+                "name": "authorAvatarUrl",
+                "type": "string"
+              },
               {
                 "name": "photos",
                 "type": {
@@ -84,17 +134,52 @@
                   "itemType": {
                     "kind": "object",
                     "fields": [
-                      { "name": "id", "type": "integer", "required": true },
-                      { "name": "url", "type": "string", "required": true },
-                      { "name": "thumbnailUrl", "type": "string" },
-                      { "name": "alt", "type": "string" },
-                      { "name": "caption", "type": "string" },
-                      { "name": "orderIndex", "type": "integer" },
-                      { "name": "width", "type": "integer" },
-                      { "name": "height", "type": "integer" },
-                      { "name": "bytes", "type": "integer" },
-                      { "name": "mimeType", "type": "string" },
-                      { "name": "exifJson", "type": "json" }
+                      {
+                        "name": "id",
+                        "type": "integer",
+                        "required": true
+                      },
+                      {
+                        "name": "url",
+                        "type": "string",
+                        "required": true
+                      },
+                      {
+                        "name": "thumbnailUrl",
+                        "type": "string"
+                      },
+                      {
+                        "name": "alt",
+                        "type": "string"
+                      },
+                      {
+                        "name": "caption",
+                        "type": "string"
+                      },
+                      {
+                        "name": "orderIndex",
+                        "type": "integer"
+                      },
+                      {
+                        "name": "width",
+                        "type": "integer"
+                      },
+                      {
+                        "name": "height",
+                        "type": "integer"
+                      },
+                      {
+                        "name": "bytes",
+                        "type": "integer"
+                      },
+                      {
+                        "name": "mimeType",
+                        "type": "string"
+                      },
+                      {
+                        "name": "exifJson",
+                        "type": "json"
+                      }
                     ]
                   }
                 }
@@ -106,10 +191,25 @@
                   "itemType": {
                     "kind": "object",
                     "fields": [
-                      { "name": "id", "type": "integer", "required": true },
-                      { "name": "name", "type": "string", "required": true },
-                      { "name": "slug", "type": "string", "required": true },
-                      { "name": "color", "type": "string" }
+                      {
+                        "name": "id",
+                        "type": "integer",
+                        "required": true
+                      },
+                      {
+                        "name": "name",
+                        "type": "string",
+                        "required": true
+                      },
+                      {
+                        "name": "slug",
+                        "type": "string",
+                        "required": true
+                      },
+                      {
+                        "name": "color",
+                        "type": "string"
+                      }
                     ]
                   }
                 }
@@ -147,11 +247,19 @@
           "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
           "operation": "SELECT",
           "sql": "SELECT p.id AS \"postId\", p.user_id AS \"userId\", p.title, p.body, p.summary, p.status, p.mood, p.weather, p.location, p.published_at AS \"publishedAt\", p.created_at AS \"createdAt\", p.updated_at AS \"updatedAt\", u.display_name AS \"authorDisplayName\", u.avatar_url AS \"authorAvatarUrl\" FROM posts p INNER JOIN users u ON u.id = p.user_id WHERE p.id = @inputs.postId",
-          "outputBinding": { "name": "postRow" },
+          "outputBinding": {
+            "name": "postRow"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0", "purpose": "lookup" },
-              { "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa", "purpose": "lookup" }
+              {
+                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
+                "purpose": "lookup"
+              }
             ]
           }
         },
@@ -224,9 +332,16 @@
           "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
           "operation": "SELECT",
           "sql": "SELECT id AS \"id\", url, thumbnail_url AS \"thumbnailUrl\", alt, caption, order_index AS \"orderIndex\", width, height FROM photos WHERE post_id = @inputs.postId ORDER BY order_index ASC",
-          "outputBinding": { "name": "photos" },
+          "outputBinding": {
+            "name": "photos"
+          },
           "lineage": {
-            "reads": [{ "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "purpose": "lookup" }]
+            "reads": [
+              {
+                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                "purpose": "lookup"
+              }
+            ]
           }
         },
         {
@@ -236,11 +351,19 @@
           "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
           "operation": "SELECT",
           "sql": "SELECT t.id AS \"id\", t.name AS \"name\", t.slug, t.color, t.icon, pt.source, pt.confidence FROM post_tags pt INNER JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = @inputs.postId",
-          "outputBinding": { "name": "tags" },
+          "outputBinding": {
+            "name": "tags"
+          },
           "lineage": {
             "reads": [
-              { "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e", "purpose": "lookup" },
-              { "tableId": "07439e21-0743-48ca-af9e-763e4be2d094", "purpose": "lookup" }
+              {
+                "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+                "purpose": "lookup"
+              },
+              {
+                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                "purpose": "lookup"
+              }
             ]
           }
         },

@@ -4,7 +4,7 @@
     "id": "9537764e-3fe9-459d-8172-00d69a575c09",
     "name": "トークン更新",
     "description": "リフレッシュトークンを受け取り、検証成功時に新しいアクセストークンを発行して返す処理フロー。リフレッシュトークン自体は再発行しない (rotation 戦略は v1 では non-rotating で簡素化、必要なら別 ISSUE で導入)。",
-    "kind": "screen",
+    "kind": "system",
     "maturity": "draft",
     "createdAt": "2026-05-07T00:00:00.000Z",
     "updatedAt": "2026-05-07T00:00:00.000Z"
@@ -119,7 +119,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: 'リフレッシュトークンが必要です。' }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",

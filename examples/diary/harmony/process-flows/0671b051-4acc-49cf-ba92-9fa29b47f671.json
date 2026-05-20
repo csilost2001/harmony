@@ -7,7 +7,8 @@
     "kind": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-06T12:40:00.000Z",
-    "updatedAt": "2026-05-06T14:00:00.000Z"
+    "updatedAt": "2026-05-06T14:00:00.000Z",
+    "screenId": "531619ae-0f5f-4f55-8043-03e5a9ef6670"
   },
   "context": {
     "catalogs": {
@@ -278,10 +279,6 @@
           "outputBinding": {
             "name": "newPost"
           },
-          "txBoundary": {
-            "role": "begin",
-            "txId": "tx-post-create"
-          },
           "affectedRowsCheck": {
             "operator": "=",
             "expected": 1,
@@ -304,10 +301,6 @@
           "loopKind": "collection",
           "collectionSource": "@inputs.photos",
           "collectionItemName": "photo",
-          "txBoundary": {
-            "role": "member",
-            "txId": "tx-post-create"
-          },
           "steps": [
             {
               "id": "step-04-01",
@@ -334,10 +327,6 @@
           "loopKind": "collection",
           "collectionSource": "@inputs.tags",
           "collectionItemName": "tag",
-          "txBoundary": {
-            "role": "member",
-            "txId": "tx-post-create"
-          },
           "steps": [
             {
               "id": "step-05-01",
@@ -416,14 +405,10 @@
         {
           "id": "step-06",
           "kind": "dbAccess",
-          "description": "posts 作成 TX の commit ステップとして tags.usage_count を更新する (txBoundary role=end)。",
+          "description": "posts 作成 TX の最終ステップとして tags.usage_count を更新する (transactionScope.steps[] 内、commit 前の最後の DB UPDATE)。",
           "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
           "operation": "UPDATE",
           "sql": "UPDATE tags SET usage_count = usage_count + 1 WHERE id IN (SELECT tag_id AS \"tagId\" FROM post_tags WHERE post_id = @newPost.postId)",
-          "txBoundary": {
-            "role": "end",
-            "txId": "tx-post-create"
-          },
           "lineage": {
             "writes": [
               {

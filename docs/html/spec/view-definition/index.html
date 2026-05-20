@@ -41,7 +41,7 @@
 <p>両者は名前が似ているが axis が異なるため独立 schema として分離されている (#649 設計判断)。ViewDefinition は ViewColumn の値を「画面で見せる時の型 (FieldType)」で記述し、DB View は永続化された SELECT 結果のスキーマ (DataType) を持つ。ViewDefinition の Level 2 / Level 3 は DB View を介さず query を直接記述する (DB View の薄い置換ではなく、画面ごとに固有の集計が必要な場合の primary な手段)。</p>
 <h3 id="一次成果物">一次成果物</h3>
 <ul>
-<li>JSON Schema: <a href="../../schemas/v3/view-definition.v3.schema.json"><code>schemas/v3/view-definition.v3.schema.json</code></a> (<a href="https://github.com/csilost2001/harmony/blob/main/schemas/README.md">README</a>)</li>
+<li>JSON Schema: <a href="../../schemas/v3/view-definition.v3.schema.json"><code>schemas/v3/view-definition.v3.schema.json</code></a> (<a href="../../schemas/README/">README</a>)</li>
 <li>TypeScript 型: <a href="../../frontend/src/types/v3/view-definition.ts"><code>frontend/src/types/v3/view-definition.ts</code></a></li>
 <li>validator: <a href="../../frontend/src/schemas/viewDefinitionValidator.ts"><code>frontend/src/schemas/viewDefinitionValidator.ts</code></a></li>
 </ul>

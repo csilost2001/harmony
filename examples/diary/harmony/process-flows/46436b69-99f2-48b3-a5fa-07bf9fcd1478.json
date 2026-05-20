@@ -4,7 +4,7 @@
     "id": "46436b69-99f2-48b3-a5fa-07bf9fcd1478",
     "name": "ログアウト",
     "description": "ログアウトを受け付ける処理フロー。JWT stateless 認証 + 1 ユーザー個人運用前提のため、サーバ側のトークン失効処理 (blacklist) は行わず、監査ログだけ残して 204 を返す。クライアントは access/refresh トークンを localStorage から破棄するだけで完了する。",
-    "kind": "screen",
+    "kind": "system",
     "maturity": "draft",
     "createdAt": "2026-05-07T00:00:00.000Z",
     "updatedAt": "2026-05-07T00:00:00.000Z"

@@ -177,7 +177,7 @@ Step.kind / FieldType.kind / Constraint.kind / BranchCondition.kind / ValueSourc
 | `WorkflowQuorum.type` の `n-of-m` | `nOfM` |
 | `CustomBlock.id` の timestamp 形式 | Uuid 強制 |
 | `StepBaseProps` の二重列挙 | `unevaluatedProperties: false` で構造的解消 |
-| `StepBaseProps.transactional: boolean` 簡易 TX マーク | 削除 (txBoundary に統一、v3 の「短縮形廃止」方針) |
+| `StepBaseProps.transactional: boolean` 簡易 TX マーク + `StepBaseProps.txBoundary` 平坦モデル | 両者削除、TX 表現は `TransactionScopeStep` (#1221) に一本化 |
 | catalog key の命名規範が description のみ | `propertyNames` で schema 上強制 (errors → ErrorCode / externalSystems → Identifier / etc.) |
 | `DataLineage.reads / writes: Uuid[]` | `LineageEntry[]` (`{ tableId, purpose? }`) |
 | `CdcStep.destination.target: string` | discriminated union (auditLog / eventStream / table) |

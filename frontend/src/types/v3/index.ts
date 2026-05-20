@@ -92,9 +92,6 @@ export type TransactionIsolationLevel = "READ_COMMITTED" | "REPEATABLE_READ" | "
 export type TransactionPropagation = "REQUIRED" | "REQUIRES_NEW" | "NESTED" | string;
 export type ExternalChainPhase = "authorize" | "capture" | "cancel" | "other";
 
-// ── TxBoundary.role (v3 schema TxBoundary.role と一致) ─────────────────────
-export type TxBoundaryRole = "begin" | "member" | "end";
-
 // ── ActionFields (frontend 表示専用、v3 では ActionDefinition.fields が StructuredField[] | string) ──
 import type { StructuredField as _StructuredField } from "./common";
 export type ActionFields = _StructuredField[] | string | undefined;

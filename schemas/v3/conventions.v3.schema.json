@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/conventions.v3.schema.json",
   "title": "Conventions (v3 横断規約カタログ)",
-  "description": "プロジェクト横断の規約カタログ。@conv.<category>.<key> で参照される。<dataDir>/conventions/catalog.json に対応 (dataDir は harmony.json の dataDir、推奨慣習: 'harmony')。標準 14 カテゴリ + 拡張 (extensions.v3 の conventionCategories で追加) を持つ。",
+  "description": "プロジェクト横断の規約カタログ。@conv.<category>.<key> で参照される。<dataDir>/conventions/catalog.json に対応 (dataDir は harmony.json の dataDir、推奨慣習: 'harmony')。標準 14 カテゴリ + 拡張 (extensions.v3 の conventionCategories で追加) を持つ。#1221: built-in カテゴリと extensionCategories 配下のキーは validator により **同一名前空間** で解決される。@conv.extensionCategories.<cat>.<key> 形式の参照は禁止 (`INVALID_CONV_REFERENCE_FORM`)、拡張カテゴリも @conv.<categoryName>.<key> で参照する。built-in カテゴリ名と extensionCategories 配下のキー名が衝突した場合は `CONV_CATEGORY_COLLISION` error を発する。",
   "type": "object",
   "required": ["version"],
   "additionalProperties": false,
@@ -81,7 +81,7 @@
     },
     "extensionCategories": {
       "type": "object",
-      "description": "拡張カテゴリ (extensions.v3 の conventionCategories で定義された業界規約)。@conv.<categoryName>.<key> で参照。",
+      "description": "拡張カテゴリ (extensions.v3 の conventionCategories で定義された業界規約)。@conv.<categoryName>.<key> で参照 (built-in と同一名前空間、#1221)。@conv.extensionCategories.<categoryName>.<key> 形式の参照は禁止。built-in カテゴリ名 (msg / regex / limit / scope / currency / tax / auth / role / permission / db / numbering / tx / externalOutcomeDefaults) との衝突は validator がエラーとして検出する。",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": true

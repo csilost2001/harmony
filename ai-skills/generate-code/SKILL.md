@@ -297,8 +297,7 @@ ProcessFlow JSON を入力として、techStack に基づく backend code 雛形
 | `dbAccess` (UPDATE) | `@Modifying @Query` | `manager.update()` |
 | `dbAccess` (DELETE) | `@Modifying @Query` | `manager.delete()` |
 | `dbAccess` (拡張 op) | `// TODO: {{step.operation}} — 拡張操作。extensions/ 定義参照` | 同左 |
-| `transactionScope` | `@Transactional` メソッド + isolation / timeout / rollbackOn を適用 | `dataSource.transaction('READ COMMITTED', async manager => { ... })` |
-| `step.txBoundary` (`role`∈{begin, member, end}) | `txId` が同一の **全ステップ (begin / member / end の 3 役割)** を 1 メソッドに切り出して `@Transactional` 化 (`@Transactional` は private/同クラス self-call では AOP proxy を bypass するため別 `@Service` Bean か `TransactionTemplate` 利用に注意) | `prisma.$transaction(async (tx) => { ... })` または `dataSource.transaction(async manager => { ... })` で **同 txId の全ステップ (begin / member / end) を全部包む**。識別ロジック: `txBoundary.txId=X` かつ `role ∈ {begin, member, end}` の全ステップを 1 TX で wrap。詳細は `templates/backend/typescript-nestjs/SERVICE.md` の「txBoundary mapping」セクション参照 (#875) |
+| `transactionScope` | `@Transactional` メソッド + isolation / timeout / rollbackOn を適用 (`@Transactional` は private/同クラス self-call では AOP proxy を bypass するため別 `@Service` Bean か `TransactionTemplate` 利用に注意)。`steps[]` 内全 step を 1 TX で wrap | `prisma.$transaction(async (tx) => { ... })` または `dataSource.transaction('READ COMMITTED', async manager => { ... })` で `steps[]` 内全 step を 1 TX で wrap。詳細は `templates/backend/typescript-nestjs/SERVICE.md` の「transactionScope mapping」セクション参照 (#875 / #1221 で旧 txBoundary 廃止し本パターンに一本化) |
 | `compute` | ローカル変数計算 (stream / reduce / mapToLong 等) | ローカル変数計算 (reduce / map 等) |
 | `branch` | `if (...) { ... } else { ... }` + 例外 throw | 同左 + `throw new HttpException(...)` |
 | `loop` (collection) | `for (Type item : collection) { ... }` | `for (const item of collection) { ... }` |

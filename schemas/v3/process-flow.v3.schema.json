@@ -39,13 +39,19 @@
   "$defs": {
 
     "Meta": {
-      "description": "ProcessFlow の identity と運用設定。",
-      "allOf": [{ "$ref": "common.v3.schema.json#/$defs/EntityMeta" }],
+      "description": "ProcessFlow の identity と運用設定。kind='screen' は画面と直結した処理フローを表し、その場合は紐付く Screen の Uuid を `screenId` で必須宣言する (#1221)。画面に直結しない処理フロー (認証、共通 API、scheduled batch 等) は kind を `system` / `common` / `scheduled` / `batch` に分類する。",
+      "allOf": [
+        { "$ref": "common.v3.schema.json#/$defs/EntityMeta" },
+        {
+          "if": { "properties": { "kind": { "const": "screen" } }, "required": ["kind"] },
+          "then": { "required": ["screenId"] }
+        }
+      ],
       "type": "object",
       "required": ["kind"],
       "properties": {
         "kind": { "$ref": "#/$defs/ProcessFlowKind" },
-        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "kind='screen' の場合に紐付く Screen の Uuid。" },
+        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "kind='screen' の場合に紐付く Screen の Uuid。kind='screen' 時は必須 (#1221)。" },
         "apiVersion": { "type": "string", "description": "ProcessFlow が公開する API のバージョン (例: 'v1', '2026-04-25')。" },
         "mode": { "$ref": "common.v3.schema.json#/$defs/Mode" },
         "sla": { "$ref": "#/$defs/Sla" },
@@ -107,7 +113,7 @@
         "ambientVariables": {
           "type": "array",
           "items": { "$ref": "common.v3.schema.json#/$defs/StructuredField" },
-          "description": "ミドルウェア由来の自動注入変数 (@requestId / @traceId / @fieldErrors 等)。"
+          "description": "ミドルウェア由来の自動注入変数 (@requestId / @traceId / @sessionUserId 等)。#1221: 旧 '@fieldErrors' 暗黙束縛は廃止、ValidationStep.fieldErrorsVar の明示宣言で扱う (ambient ではない)。"
         },
         "ambientOverrides": {
           "type": "object",
@@ -447,7 +453,6 @@
           "items": { "type": "string" }
         },
         "outputBinding": { "$ref": "#/$defs/OutputBinding" },
-        "txBoundary": { "$ref": "#/$defs/TxBoundary", "description": "TX 境界宣言。txId 単位で begin/member/end を結合。簡易フラグの transactional は v3 で廃止 (txBoundary に統一)。" },
         "compensatesFor": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Saga 補償対象の Step.id 参照。" },
         "externalChain": { "$ref": "#/$defs/ExternalChain" },
         "lineage": { "$ref": "#/$defs/DataLineage", "description": "本 step が読み書きするデータ系譜 (CDC / 監査 / 影響範囲分析用)。DbAccessStep に限らず任意の step (ExtensionStep / CdcStep / WorkflowStep 等) で宣言可能。#525 F-2: ExtensionStep の lineage 透過のため StepBaseProps に集約 (案 A)。" }
@@ -486,16 +491,6 @@
             }
           }
         }
-      }
-    },
-
-    "TxBoundary": {
-      "type": "object",
-      "required": ["role", "txId"],
-      "additionalProperties": false,
-      "properties": {
-        "role": { "type": "string", "enum": ["begin", "member", "end"] },
-        "txId": { "$ref": "common.v3.schema.json#/$defs/LocalId" }
       }
     },
 
@@ -597,7 +592,7 @@
         { "$ref": "#/$defs/StepBaseProps" },
         {
           "type": "object",
-          "required": ["id", "kind", "description"],
+          "required": ["id", "kind", "description", "fieldErrorsVar"],
           "properties": {
             "kind": { "const": "validation" },
             "conditions": { "type": "string", "description": "人間向けバリデーション概要。" },
@@ -605,7 +600,7 @@
               "type": "array",
               "items": { "$ref": "#/$defs/ValidationRule" }
             },
-            "fieldErrorsVar": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "rules[] 結果格納変数名。既定: 'fieldErrors'。" },
+            "fieldErrorsVar": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "rules[] 結果格納変数名。#1221 で必須化 (旧 '@fieldErrors' 暗黙束縛は廃止、明示宣言を強制)。慣習的に 'fieldErrors' を推奨するが、複数 validation step を並行配置する場合は step ごとに異なる名前を付ける。" },
             "inlineBranch": { "$ref": "#/$defs/ValidationInlineBranch" }
           }
         }
@@ -1586,7 +1581,7 @@
     },
 
     "TransactionScopeStep": {
-      "description": "TX スコープ step。StepBaseProps.outputBinding を指定すると TX 結果を後続 step に expose する: commit 成功時は @<name>.committed=true / rollbackOn エラー時は @<name>.committed=false + @<name>.error={code,message} / rollbackOn 外の汎用エラー時は @<name>.error.code='UNHANDLED'。後続 branch で condition.kind='expression' + expression='@txResult.error.code===\"STOCK_SHORTAGE\"' のように参照する。詳細: docs/spec/process-flow-transaction.md §8.5 (#782)。",
+      "description": "TX スコープ step。v3 では TX 表現はこの transactionScope に一本化されている (旧 txBoundary / transactional フィールドは廃止)。StepBaseProps.outputBinding を指定すると TX 結果を後続 step に expose する: commit 成功時は @<name>.committed=true / rollbackOn エラー時は @<name>.committed=false + @<name>.error={code,message} / rollbackOn 外の汎用エラー時は @<name>.error.code='UNHANDLED'。後続 branch で condition.kind='expression' + expression='@txResult.error.code===\"STOCK_SHORTAGE\"' のように参照する。詳細: docs/spec/process-flow-transaction.md §8.5 (#782)。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {

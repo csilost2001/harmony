@@ -1,6 +1,6 @@
 // @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 import { useState } from "react";
-import type { Step, TxBoundary, TxBoundaryRole, ExternalChain, ExternalChainPhase } from "../../types/v3";
+import type { Step, ExternalChain, ExternalChainPhase } from "../../types/v3";
 import { SlaPanel } from "./SlaPanel";
 
 interface Props {
@@ -9,23 +9,16 @@ interface Props {
   onCommit?: () => void;
 }
 
-const TX_ROLES: TxBoundaryRole[] = ["begin", "member", "end"];
 const CHAIN_PHASES: ExternalChainPhase[] = ["authorize", "capture", "cancel", "other"];
 
 /**
- * step に付与される追加メタ情報 (txBoundary / compensatesFor / externalChain) の編集パネル (#208)。
+ * step に付与される追加メタ情報 (Saga 補償 / 外部 chain / SLA) の編集パネル (#208)。
+ * TX 境界は transactionScope step に一本化 (#1221 で txBoundary 廃止)。
  * 折りたたみ可能。未設定のステップでは「詳細メタ情報を追加」のボタンのみ表示。
  */
 export function StepAdvancedMetadataPanel({ step, onChange, onCommit }: Props) {
-  const hasAny = !!(step.txBoundary || step.compensatesFor || step.externalChain || step.transactional || step.sla);
+  const hasAny = !!(step.compensatesFor || step.externalChain || step.sla);
   const [expanded, setExpanded] = useState(hasAny);
-
-  const txB = step.txBoundary;
-  const setTxBoundary = (patch: Partial<TxBoundary>) => {
-    const next: TxBoundary = { role: "begin", txId: "", ...txB, ...patch };
-    onChange({ txBoundary: next });
-  };
-  const clearTxBoundary = () => onChange({ txBoundary: undefined });
 
   const extCh = step.externalChain;
   const setExtChain = (patch: Partial<ExternalChain>) => {
@@ -43,7 +36,7 @@ export function StepAdvancedMetadataPanel({ step, onChange, onCommit }: Props) {
         style={{ fontSize: "0.75rem" }}
       >
         <i className="bi bi-gear me-1" />
-        詳細メタ情報 (TX / Saga / 外部 chain)
+        詳細メタ情報 (Saga / 外部 chain / SLA)
       </button>
     );
   }
@@ -59,49 +52,6 @@ export function StepAdvancedMetadataPanel({ step, onChange, onCommit }: Props) {
         >
           <i className="bi bi-chevron-down me-1" />詳細メタ情報
         </button>
-      </div>
-
-      <div className="row g-2 mb-1">
-        <div className="col-12 d-flex align-items-center gap-1">
-          <label className="form-label small mb-0" style={{ width: "6em" }}>TX 境界:</label>
-          <select
-            className="form-select form-select-sm"
-            value={txB?.role ?? ""}
-            onChange={(e) => {
-              if (!e.target.value) clearTxBoundary();
-              else setTxBoundary({ role: e.target.value as TxBoundaryRole });
-            }}
-            style={{ width: "auto", fontSize: "0.8rem" }}
-          >
-            <option value="">—</option>
-            {TX_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
-          {txB && (
-            <>
-              <input
-                type="text"
-                className="form-control form-control-sm"
-                value={txB.txId}
-                onChange={(e) => setTxBoundary({ txId: e.target.value })}
-                onBlur={() => onCommit?.()}
-                placeholder="txId (例: tx-order-main)"
-                style={{ fontSize: "0.8rem" }}
-              />
-              <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={clearTxBoundary}>
-                <i className="bi bi-x" />
-              </button>
-            </>
-          )}
-          <label className="form-label small mb-0 ms-2">
-            <input
-              type="checkbox"
-              className="form-check-input me-1"
-              checked={!!step.transactional}
-              onChange={(e) => onChange({ transactional: e.target.checked || undefined })}
-            />
-            transactional
-          </label>
-        </div>
       </div>
 
       <div className="row g-2 mb-1">

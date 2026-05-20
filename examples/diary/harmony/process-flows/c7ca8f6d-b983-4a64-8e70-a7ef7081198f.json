@@ -693,7 +693,8 @@
                 "bodyExpression": "{ code: 'VALIDATION_ERROR', message: 'タグ ID を指定してください。' }"
               }
             ]
-          }
+          },
+          "fieldErrorsVar": "fieldErrors"
         },
         {
           "id": "step-02",
