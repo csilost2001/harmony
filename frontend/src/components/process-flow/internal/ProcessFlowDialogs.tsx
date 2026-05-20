@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx の各種 confirm / save-conflict / AI 生成
 // / AI レビューダイアログを 1 component に束ねた wrapper。
 // state は親側 (ProcessFlowEditor) が保持、本 component は宣言的レンダリングのみ。
