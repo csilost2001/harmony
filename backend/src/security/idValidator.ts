@@ -11,6 +11,10 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SAFE_NAME_RE = /^[A-Za-z0-9_-]{1,64}$/;
 // kind: lowercase alpha 先頭、以降は lowercase alphanumeric / hyphen / colon (namespace:kind 形式許可)
 const SAFE_KIND_RE = /^[a-z][a-z0-9:-]{0,63}$/;
+// historyId: "<ISO-timestamp-safe>--<sessionId-prefix>-<rand>" 形式
+// ISO timestamp はコロンを "-" に置換済: 例 "2026-05-19T10-30-00.000Z--abc123-xy12"
+// 許容文字: 数字 / 大小英字 / "." / "_" / ":" / "-" (パスセパレータ / ".." は不可)
+const HISTORY_ID_RE = /^[0-9A-Za-z._:-]{1,128}$/;
 
 // ── 型ガード ───────────────────────────────────────────────────────────────────
 
@@ -45,6 +49,30 @@ export function assertSafeName(s: unknown, label: string): string {
 export function assertKind(s: unknown, label: string): string {
   if (!isValidKind(s)) {
     throw new Error(`Invalid ${label}: must match [a-z][a-z0-9:-]{0,63} (got ${JSON.stringify(s)})`);
+  }
+  return s;
+}
+
+// ── historyId validator ───────────────────────────────────────────────────────
+
+/**
+ * historyId の型ガード。
+ * 形式: "<ISO-timestamp-safe>--<sessionId-prefix>-<rand>"
+ * 許容文字: [0-9A-Za-z._:-]{1,128}
+ * "/" "\" ".." は含まない (path traversal 不可)。
+ */
+export function isValidHistoryId(s: unknown): s is string {
+  if (typeof s !== "string") return false;
+  // path separator および ".." を明示拒否 (regex の前に高速フィルタ)
+  if (s.includes("/") || s.includes("\\") || s.includes("..")) return false;
+  return HISTORY_ID_RE.test(s);
+}
+
+export function assertHistoryId(s: unknown, label: string): string {
+  if (!isValidHistoryId(s)) {
+    throw new Error(
+      `Invalid ${label}: must match [0-9A-Za-z._:-]{1,128} without path separators or ".." (got ${JSON.stringify(s)})`,
+    );
   }
   return s;
 }

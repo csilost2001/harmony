@@ -8,9 +8,11 @@ import {
   isValidUuid,
   isValidSafeName,
   isValidKind,
+  isValidHistoryId,
   assertUuid,
   assertSafeName,
   assertKind,
+  assertHistoryId,
   assertPathContained,
 } from "./idValidator.js";
 
@@ -195,6 +197,92 @@ describe("assertKind", () => {
     expect(() => assertKind("../evil", "kind")).toThrow("Invalid kind");
     expect(() => assertKind("", "kind")).toThrow("Invalid kind");
     expect(() => assertKind("Domain", "kind")).toThrow("Invalid kind");
+  });
+});
+
+// ── isValidHistoryId / assertHistoryId ───────────────────────────────────────
+
+describe("isValidHistoryId", () => {
+  it("正常: 実形式 '<ISO-safe-timestamp>--<idPrefix>-<rand>'", () => {
+    expect(isValidHistoryId("2026-05-19T10-30-00.000Z--abc123def456-xy12")).toBe(true);
+    expect(isValidHistoryId("2026-05-19T10-30-00.000Z--ABCDEF123456-ab34")).toBe(true);
+  });
+
+  it("正常: 最短 1 文字", () => {
+    expect(isValidHistoryId("a")).toBe(true);
+  });
+
+  it("正常: 128 文字ちょうど", () => {
+    expect(isValidHistoryId("a".repeat(128))).toBe(true);
+  });
+
+  it("異常: 空文字", () => {
+    expect(isValidHistoryId("")).toBe(false);
+  });
+
+  it("異常: 129 文字超え", () => {
+    expect(isValidHistoryId("a".repeat(129))).toBe(false);
+  });
+
+  it("異常: スラッシュを含む (path traversal)", () => {
+    expect(isValidHistoryId("../etc/shadow")).toBe(false);
+    expect(isValidHistoryId("../../etc/passwd")).toBe(false);
+    expect(isValidHistoryId("a/b")).toBe(false);
+  });
+
+  it("異常: バックスラッシュを含む (Windows path traversal)", () => {
+    expect(isValidHistoryId("..\\evil")).toBe(false);
+    expect(isValidHistoryId("a\\b")).toBe(false);
+  });
+
+  it("異常: \"..\" のみ", () => {
+    expect(isValidHistoryId("..")).toBe(false);
+  });
+
+  it("異常: URL-encoded path separator (%2F, %5C) → regex が弾く", () => {
+    expect(isValidHistoryId("..%2Fetc%2Fshadow")).toBe(false);
+    expect(isValidHistoryId("..%5Cevil")).toBe(false);
+  });
+
+  it("異常: null byte", () => {
+    expect(isValidHistoryId("abc\0def")).toBe(false);
+  });
+
+  it("異常: null", () => {
+    expect(isValidHistoryId(null)).toBe(false);
+  });
+
+  it("異常: undefined", () => {
+    expect(isValidHistoryId(undefined)).toBe(false);
+  });
+
+  it("異常: 数値", () => {
+    expect(isValidHistoryId(42)).toBe(false);
+  });
+});
+
+describe("assertHistoryId", () => {
+  it("正常: 有効な historyId なら値を返す", () => {
+    const id = "2026-05-19T10-30-00.000Z--abc123-xy12";
+    expect(assertHistoryId(id, "historyId")).toBe(id);
+  });
+
+  it("異常: path traversal を含む場合 Error を throw", () => {
+    expect(() => assertHistoryId("../etc/shadow", "historyId")).toThrow("Invalid historyId");
+    expect(() => assertHistoryId("../../etc/passwd", "historyId")).toThrow("Invalid historyId");
+    expect(() => assertHistoryId("..%2Fetc", "historyId")).toThrow("Invalid historyId");
+  });
+
+  it("異常: バックスラッシュ path traversal で Error を throw", () => {
+    expect(() => assertHistoryId("..\\evil", "historyId")).toThrow("Invalid historyId");
+  });
+
+  it("異常: 空文字で Error を throw", () => {
+    expect(() => assertHistoryId("", "historyId")).toThrow("Invalid historyId");
+  });
+
+  it("異常: null で Error を throw", () => {
+    expect(() => assertHistoryId(null, "historyId")).toThrow("Invalid historyId");
   });
 });
 

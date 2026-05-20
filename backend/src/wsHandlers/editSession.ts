@@ -11,7 +11,7 @@
  * 機能不変 — case body は一字一句変更なし。
  */
 import type { DraftResourceType as EditSessionResourceType } from "../editSessionStore.js";
-import { assertSafeName } from "../security/idValidator.js";
+import { assertSafeName, assertHistoryId } from "../security/idValidator.js";
 import type { RpcHandlerMap } from "./types.js";
 
 const VALID_RESOURCE_TYPES = new Set<EditSessionResourceType>([
@@ -203,11 +203,9 @@ export const editSessionHandlers: RpcHandlerMap = {
       displayLabel: esRhLabel,
     } = (params ?? {}) as { historyId: string; displayLabel?: string };
     try {
-      // historyId は "<ISO-timestamp>--<sessionId-prefix>-<rand>" 形式 (SafeName より広い文字集合)
-      // storage 層の assertPathContained が containment を保証するため、型チェックのみ実施
-      if (typeof esRhId !== "string" || esRhId.length === 0 || esRhId.length > 128) {
-        throw new Error(`Invalid historyId: must be a non-empty string (got ${JSON.stringify(esRhId)})`);
-      }
+      // SH-ITER2-001: historyId は "<ISO-timestamp>--<sessionId-prefix>-<rand>" 形式。
+      // assertHistoryId で path separator / ".." を含む文字列を早期 reject する。
+      assertHistoryId(esRhId, "historyId");
       const result = await bridge.editSessionRestoreFromHistory(clientId, esRhId, esRhLabel);
       respond(result);
     } catch (e) {
