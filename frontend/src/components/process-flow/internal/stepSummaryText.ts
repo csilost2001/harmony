@@ -1,8 +1,7 @@
-// @ts-nocheck -- StepCard と同じ理由で legacy/v3 union を緩く扱う (#1016)
 import type { Step } from "../../../types/v3";
 // #1186 Phase 2-D: constants は processFlowMetadata から
 import { DB_OPERATION_LABELS, WORKFLOW_PATTERN_LABELS } from "../../../utils/processFlowMetadata";
-import { resolveJumpLabel } from "../../../utils/actionUtils";
+import { resolveJumpLabel, isExtensionStep } from "../../../utils/actionUtils";
 import { getBranchConditionText } from "../../../utils/branchCondition";
 
 /**
@@ -10,13 +9,15 @@ import { getBranchConditionText } from "../../../utils/branchCondition";
  * 元: components/process-flow/StepCard.tsx の summaryText() (#1145 で分離)
  */
 export function stepSummaryText(step: Step, allSteps: Step[]): string {
+  if (isExtensionStep(step)) return step.description || "拡張ステップ";
   switch (step.kind) {
     case "validation":
       return step.conditions || step.description || "バリデーション";
     case "dbAccess":
       return `${step.tableId || "?"} ${DB_OPERATION_LABELS[step.operation] ?? step.operation}${step.description ? ` - ${step.description}` : ""}`;
     case "externalSystem":
-      return `${step.systemRef || "?"}${step.protocol ? ` (${step.protocol})` : ""}${step.description ? ` - ${step.description}` : ""}`;
+      // silent bug: step.protocol は v3 schema に存在しない (#1233)
+      return `${step.systemRef || "?"}${step.httpCall?.method ? ` (${step.httpCall.method})` : ""}${step.description ? ` - ${step.description}` : ""}`;
     case "commonProcess":
       return step.refId || step.description || "共通処理";
     case "screenTransition":
