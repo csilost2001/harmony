@@ -23,12 +23,6 @@
           "defaultMessage": "AI API の呼び出しに失敗しました。",
           "responseId": "502-ai-error",
           "description": "AI モデルへのリクエストが失敗した場合。"
-        },
-        "VALIDATION_ERROR": {
-          "httpStatus": 400,
-          "defaultMessage": "入力値が不正です。",
-          "responseId": "400-validation",
-          "description": "postId / body がどちらも未指定の場合 (XOR 必須チェック)。"
         }
       }
     },
@@ -79,12 +73,6 @@
       ],
       "responses": [
         {
-          "id": "400-validation",
-          "status": 400,
-          "description": "バリデーションエラー。",
-          "when": "postId / body がどちらも未指定の場合。"
-        },
-        {
           "id": "200-ok",
           "status": 200,
           "description": "要約生成成功。",
@@ -104,33 +92,6 @@
         }
       ],
       "steps": [
-        {
-          "id": "step-00",
-          "kind": "validation",
-          "description": "postId / body のどちらか必須チェック (XOR: 両方 null は NG)。",
-          "rules": [
-            {
-              "field": "postId",
-              "type": "custom",
-              "condition": "@inputs.postId == null && @inputs.body == null",
-              "severity": "error",
-              "message": "postId または body のいずれかを指定してください。"
-            }
-          ],
-          "fieldErrorsVar": "fieldErrors",
-          "inlineBranch": {
-            "ok": [],
-            "ng": [
-              {
-                "id": "step-00-ng-01",
-                "kind": "return",
-                "description": "400 バリデーションエラーを返す。",
-                "responseId": "400-validation",
-                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
-              }
-            ]
-          }
-        },
         {
           "id": "step-01",
           "kind": "dbAccess",

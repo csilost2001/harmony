@@ -23,17 +23,10 @@
           "description": "streak_days をリセットした際に発行する。影響ユーザー数を payload に含め、監視ダッシュボードで件数を確認できるようにする。",
           "payload": {
             "type": "object",
-            "required": [
-              "affectedCount",
-              "executedAt"
-            ],
+            "required": ["affectedCount", "executedAt"],
             "properties": {
-              "affectedCount": {
-                "type": "number"
-              },
-              "executedAt": {
-                "type": "string"
-              }
+              "affectedCount": { "type": "number" },
+              "executedAt": { "type": "string" }
             }
           }
         }
@@ -55,9 +48,7 @@
           "tableId": "c7e50462-bbc4-498f-a280-2ec40bda30b1",
           "operation": "UPDATE",
           "sql": "UPDATE users SET streak_days = 0, updated_at = CURRENT_TIMESTAMP WHERE streak_days > 0 AND id NOT IN (SELECT DISTINCT user_id FROM learning_sessions WHERE status = 'completed' AND completed_at >= CURRENT_TIMESTAMP - INTERVAL '24 hours')",
-          "outputBinding": {
-            "name": "resetResult"
-          },
+          "outputBinding": { "name": "resetResult" },
           "affectedRowsCheck": {
             "operator": ">=",
             "expected": 0,
@@ -66,16 +57,10 @@
           },
           "lineage": {
             "reads": [
-              {
-                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
-                "purpose": "lookup"
-              }
+              { "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103", "purpose": "lookup" }
             ],
             "writes": [
-              {
-                "tableId": "c7e50462-bbc4-498f-a280-2ec40bda30b1",
-                "purpose": "update"
-              }
+              { "tableId": "c7e50462-bbc4-498f-a280-2ec40bda30b1", "purpose": "update" }
             ]
           }
         },
@@ -90,20 +75,11 @@
           }
         },
         {
-          "id": "step-02b",
-          "kind": "compute",
-          "description": "イベント payload 用の実行タイムスタンプを JS 式で生成する。SQL 予約語 CURRENT_TIMESTAMP は JS expression context では undefined になるため、new Date().toISOString() を使用する。",
-          "expression": "new Date().toISOString()",
-          "outputBinding": {
-            "name": "executedAt"
-          }
-        },
-        {
           "id": "step-03",
           "kind": "eventPublish",
           "description": "streak リセットイベントを発行し、影響件数を監視システムに通知する。",
           "topic": "el.streak.reset",
-          "payload": "{ affectedCount: @resetResult.affectedRows, executedAt: @executedAt }"
+          "payload": "{ affectedCount: @resetResult.affectedRows, executedAt: CURRENT_TIMESTAMP }"
         }
       ]
     }
