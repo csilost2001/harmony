@@ -1,7 +1,7 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx から action trigger 関連の定数 / ヘルパーを抽出。
 // アクション (trigger) の icon / カテゴリ / リッチヘルプ / ラベルの取得。
-// #1016 follow-up (2026-05-20): @ts-nocheck 除去。legacy marker field (actionId / stepId / path) は
-// pre-v3 data 互換のため optional read fallback として保持 (新規書込は v3 規範に従う)。
+// #1016 follow-up (2026-05-20): @ts-nocheck 除去。
+// #1248 follow-up (2026-05-21): legacy marker flat field (actionId / stepId / path) read fallback 完全除去、v3 anchor 規範のみ参照。
 
 // #1186 Phase 2-D: constants は processFlowMetadata から
 import { ACTION_TRIGGER_LABELS } from "../../../utils/processFlowMetadata";
@@ -173,12 +173,9 @@ export function getActionOpenMarkers(
   const actionPathByIndex = actionIndex >= 0 ? `actions[${actionIndex}]` : null;
   return markers.filter((marker) => {
     if (marker.resolvedAt) return false;
-    // legacy v1/v2 field: marker.actionId (v3 では anchor 経由のみ、pre-v3 data 互換のため optional read)
-    const legacyMarker = marker as Marker & { actionId?: string; stepId?: string; path?: string };
-    if (legacyMarker.actionId === action.id) return true;
-    const markerStepId = legacyMarker.stepId ?? marker.anchor?.stepId;
-    if (markerStepId && stepIds.has(markerStepId as string)) return true;
-    const markerPath = legacyMarker.path ?? marker.validatorPath ?? marker.anchor?.fieldPath ?? "";
+    const markerStepId = marker.anchor?.stepId;
+    if (markerStepId && stepIds.has(markerStepId)) return true;
+    const markerPath = marker.validatorPath ?? marker.anchor?.fieldPath ?? "";
     return (
       typeof markerPath === "string" &&
       (markerPath.includes(actionPathById) ||
