@@ -64,23 +64,30 @@ export function computeCompletion(
 /**
  * 補完候補を確定してテキストに挿入する純粋関数。
  * category phase では末尾に "." を付与し、key phase では置換のみ。
- * 内部では統合 reference completer に委譲する。
+ * catalog を渡すと統合 reference completer 経由の新 API path を使う。
+ * catalog が未指定 or resolver miss の場合は legacy 計算 fallback。
  */
 export function insertCandidate(
   value: string,
   cursorPos: number,
   state: CompletionState,
   picked: string,
+  catalog?: ConventionsCatalog | null,
 ): { newValue: string; newCursor: number } {
   if (state.phase === "idle") return { newValue: value, newCursor: cursorPos };
   const trailing = state.phase === "category" ? "." : "";
-  const newState = computeReferenceCompletion(value, cursorPos, [convResolver], {});
-  // newState が idle の場合は直接計算にフォールバック (backward compat)
-  if (newState.phase !== "active") {
-    const before = value.slice(0, cursorPos);
-    const after = value.slice(cursorPos);
-    const newBefore = before.slice(0, before.length - state.prefix.length) + picked + trailing;
-    return { newValue: newBefore + after, newCursor: newBefore.length };
+  if (catalog) {
+    const newState = computeReferenceCompletion(value, cursorPos, [convResolver], { conventions: catalog });
+    if (newState.phase === "active") {
+      return insertReferenceCandidate(value, cursorPos, newState, {
+        value: picked,
+        trailing: trailing || undefined,
+      });
+    }
   }
-  return insertReferenceCandidate(value, cursorPos, newState, { value: picked, trailing: trailing || undefined });
+  // catalog 未指定 or resolver miss: legacy 計算 fallback
+  const before = value.slice(0, cursorPos);
+  const after = value.slice(cursorPos);
+  const newBefore = before.slice(0, before.length - state.prefix.length) + picked + trailing;
+  return { newValue: newBefore + after, newCursor: newBefore.length };
 }

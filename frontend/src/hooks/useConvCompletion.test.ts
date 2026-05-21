@@ -135,4 +135,30 @@ describe("insertCandidate", () => {
     expect(newValue).toBe("hello");
     expect(newCursor).toBe(5);
   });
+
+  // #1258 review follow-up: catalog 渡しの新 API path カバレッジ
+  it("catalog 渡し (新 API path): category phase は legacy と同等の結果になる", () => {
+    const v = "@conv.curre";
+    const state = computeCompletion(v, v.length, catalog);
+    const { newValue, newCursor } = insertCandidate(v, v.length, state, "currency", catalog);
+    expect(newValue).toBe("@conv.currency.");
+    expect(newCursor).toBe(newValue.length);
+  });
+
+  it("catalog 渡し (新 API path): key phase は legacy と同等の結果になる", () => {
+    const v = "@conv.currency.j";
+    const state = computeCompletion(v, v.length, catalog);
+    const { newValue, newCursor } = insertCandidate(v, v.length, state, "jpy", catalog);
+    expect(newValue).toBe("@conv.currency.jpy");
+    expect(newCursor).toBe(newValue.length);
+  });
+
+  it("catalog 渡し (新 API path): カーソル文中でも legacy と同等の結果になる", () => {
+    const v = "@conv.curre xxx";
+    const cursor = "@conv.curre".length;
+    const state = computeCompletion(v, cursor, catalog);
+    const { newValue, newCursor } = insertCandidate(v, cursor, state, "currency", catalog);
+    expect(newValue).toBe("@conv.currency. xxx");
+    expect(newCursor).toBe("@conv.currency.".length);
+  });
 });

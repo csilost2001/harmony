@@ -1,16 +1,23 @@
 // Phase-3 (#1145、#1163 review Phase-2 補足): StepCard.tsx で dispatch が未実装だった
 // `componentCall` kind (PR #1066 で schema 追加) に最小 body を提供する。
 // CommonProcessStepCardBody と類似 (componentRef + operation + argumentMapping / returnMapping)。
+// #1258 follow-up: componentRef を ReferenceCompletionInput に置換して補完対応。
 
 import type { ComponentCallStep } from "../../../../types/v3";
+import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
+import { componentRefResolver } from "../../../../utils/reference-completer/workspaceResolver";
+import { ReferenceCompletionInput } from "../../../common/ReferenceCompletionInput";
 import type { StepCardBodyBaseProps } from "./types";
 
-export type ComponentCallStepCardBodyProps = StepCardBodyBaseProps<ComponentCallStep>;
+export interface ComponentCallStepCardBodyProps extends StepCardBodyBaseProps<ComponentCallStep> {
+  workspace?: WorkspaceRefs;
+}
 
 export function ComponentCallStepCardBody({
   step,
   onChange,
   onCommit,
+  workspace,
 }: ComponentCallStepCardBodyProps) {
   return (
     <>
@@ -20,12 +27,13 @@ export function ComponentCallStepCardBody({
             <i className="bi bi-puzzle me-1" />
             コンポーネント参照 (componentRef)
           </label>
-          <input
-            type="text"
-            className="form-control form-control-sm"
+          <ReferenceCompletionInput
             value={step.componentRef ?? ""}
-            onChange={(e) => onChange({ componentRef: e.target.value })}
-            onBlur={onCommit}
+            onValueChange={(v) => onChange({ componentRef: v })}
+            onCommit={onCommit}
+            resolvers={[componentRefResolver]}
+            ctx={{ fieldKind: "componentRef", workspace }}
+            className="form-control form-control-sm"
             placeholder="例: generic-definitions/component-definition/OrderValidator"
             style={{ fontFamily: "monospace", fontSize: "0.85rem" }}
           />

@@ -63,7 +63,11 @@ export const stepResultResolver: Resolver = {
     if (stepAny.kind === "dbAccess") {
       const sql = stepAny.sql as string | undefined;
       if (sql) {
-        const aliasMatches = [...sql.matchAll(/\bAS\s+(\w+)/gi)];
+        // コメント内の alias を誤検出しないよう、ブロックコメント・行末コメントを先に除去する
+        const stripped = sql
+          .replace(/\/\*[\s\S]*?\*\//g, " ")  // ブロックコメント
+          .replace(/--.*$/gm, " ");             // 行末コメント
+        const aliasMatches = [...stripped.matchAll(/\bAS\s+(\w+)/gi)];
         for (const match of aliasMatches) {
           if (match[1]) fields.add(match[1]);
         }

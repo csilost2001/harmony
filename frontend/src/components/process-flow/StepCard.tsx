@@ -7,6 +7,7 @@ import type {
   Step,
   StepKind as StepType,
 } from "../../types/v3";
+import type { WorkspaceRefs } from "../../utils/reference-completer/types";
 import {
   STEP_TYPE_LABELS,
   STEP_TYPE_ICONS,
@@ -90,6 +91,8 @@ interface StepCardProps {
   /** #1076 AI 依頼ボタン押下時のコールバック */
   onAskAi?: () => void;
   readOnly?: boolean;
+  /** #1258 workspace 参照情報 (componentRef / modelRef 補完用) */
+  workspace?: WorkspaceRefs;
 }
 
 export function StepCard({
@@ -128,6 +131,7 @@ export function StepCard({
   editLevel = "implementation",
   onAskAi,
   readOnly = false,
+  workspace,
 }: StepCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded ?? false);
   const [showMenu, setShowMenu] = useState(false);
@@ -766,6 +770,7 @@ export function StepCard({
                   onChange={onChange}
                   onCommit={onCommit}
                   readOnly={readOnly}
+                  workspace={workspace}
                 />
               )}
 
@@ -776,6 +781,7 @@ export function StepCard({
                   onChange={onChange}
                   onCommit={onCommit}
                   readOnly={readOnly}
+                  workspace={workspace}
                 />
               )}
 
@@ -786,6 +792,7 @@ export function StepCard({
                   onChange={onChange}
                   onCommit={onCommit}
                   readOnly={readOnly}
+                  workspace={workspace}
                 />
               )}
             </div>{/* end step-card-section data-level-min="detail" */}
@@ -852,6 +859,7 @@ export function StepCard({
                 editLevel={editLevel}
                 onAskAi={onAskAi}
                 readOnly={readOnly}
+                workspace={workspace}
               />
             </div>
           ))}

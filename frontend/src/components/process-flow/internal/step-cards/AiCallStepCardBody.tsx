@@ -2,16 +2,23 @@
 // `aiCall` kind (PR #935/#936 で schema 追加) に最小 body を提供する。
 // AiCallStep: modelRef + messages + tools (任意) + responseFormat (任意)。
 // #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<AiCallStep> で type narrow、@ts-nocheck 除去。
+// #1258 follow-up: modelRef を ReferenceCompletionInput に置換して補完対応。
 
 import type { AiCallStep, Identifier } from "../../../../types/v3";
+import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
+import { modelRefResolver } from "../../../../utils/reference-completer/workspaceResolver";
+import { ReferenceCompletionInput } from "../../../common/ReferenceCompletionInput";
 import type { StepCardBodyBaseProps } from "./types";
 
-export type AiCallStepCardBodyProps = StepCardBodyBaseProps<AiCallStep>;
+export interface AiCallStepCardBodyProps extends StepCardBodyBaseProps<AiCallStep> {
+  workspace?: WorkspaceRefs;
+}
 
 export function AiCallStepCardBody({
   step,
   onChange,
   onCommit,
+  workspace,
 }: AiCallStepCardBodyProps) {
   const messages = Array.isArray(step.messages) ? step.messages : [];
   return (
@@ -22,12 +29,13 @@ export function AiCallStepCardBody({
             <i className="bi bi-cpu me-1" />
             modelRef (context.catalogs.modelEndpoints のキー)
           </label>
-          <input
-            type="text"
-            className="form-control form-control-sm"
+          <ReferenceCompletionInput
             value={step.modelRef ?? ""}
-            onChange={(e) => onChange({ modelRef: e.target.value as Identifier })}
-            onBlur={onCommit}
+            onValueChange={(v) => onChange({ modelRef: v as Identifier })}
+            onCommit={onCommit}
+            resolvers={[modelRefResolver]}
+            ctx={{ fieldKind: "modelRef", workspace }}
+            className="form-control form-control-sm"
             placeholder="例: summarizeModel / projectModel"
             style={{ fontFamily: "monospace", fontSize: "0.85rem" }}
           />

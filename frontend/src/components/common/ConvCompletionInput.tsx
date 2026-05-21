@@ -45,7 +45,7 @@ export function ConvCompletionInput({
     const pos = inputRef.current?.selectionStart ?? value.length;
     const st = computeCompletion(value, pos, conventions);
     if (st.phase === "idle") return;
-    const { newValue, newCursor } = insertCandidate(value, pos, st, candidate);
+    const { newValue, newCursor } = insertCandidate(value, pos, st, candidate, conventions);
     onValueChange(newValue);
     setSuppressed(false);
     setActiveIndex(0);
