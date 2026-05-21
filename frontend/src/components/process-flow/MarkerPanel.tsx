@@ -1,4 +1,3 @@
-// @ts-nocheck -- legacy marker panel types still span old/new process-flow shapes; tracked by #1016.
 /**
  * ProcessFlow.markers 編集パネル (#261)
  *
@@ -12,6 +11,12 @@
 import { useMemo, useState } from "react";
 import type { ProcessFlow, Marker, MarkerKind, Step } from "../../types/v3";
 import { generateUUID } from "../../utils/uuid";
+import type { StepWithSubSteps } from "../../utils/actionUtils";
+import {
+  isBranchStep,
+  isLoopStep,
+  isTransactionScopeStep,
+} from "../../utils/actionUtils";
 
 /** ProcessFlow 内の全 step.id を再帰的に収集 (anchor orphan 判定用) */
 function collectStepIds(group: ProcessFlow): Set<string> {
@@ -19,13 +24,14 @@ function collectStepIds(group: ProcessFlow): Set<string> {
   const visit = (steps: Step[]) => {
     for (const s of steps) {
       ids.add(s.id);
-      if (s.subSteps) visit(s.subSteps);
-      if (s.kind === "branch") {
+      const sw = s as StepWithSubSteps;
+      if (sw.subSteps) visit(sw.subSteps);
+      if (isBranchStep(s)) {
         for (const b of s.branches) visit(b.steps);
         if (s.elseBranch) visit(s.elseBranch.steps);
       }
-      if (s.kind === "loop") visit(s.steps);
-      if (s.kind === "transactionScope") {
+      if (isLoopStep(s)) visit(s.steps);
+      if (isTransactionScopeStep(s)) {
         visit(s.steps);
         if (s.onCommit) visit(s.onCommit);
         if (s.onRollback) visit(s.onRollback);
@@ -56,12 +62,14 @@ const KIND_LABELS: Record<MarkerKind, string> = {
   attention: "注目",
   todo: "TODO",
   question: "質問",
+  validator: "バリデーター",
 };
 const KIND_ICONS: Record<MarkerKind, string> = {
   chat: "bi-chat-left-text",
   attention: "bi-eye",
   todo: "bi-check2-square",
   question: "bi-question-circle",
+  validator: "bi-shield-exclamation",
 };
 
 export function MarkerPanel({ group, onChange, expanded: expandedProp, onExpandedChange, render = "full" }: Props) {
