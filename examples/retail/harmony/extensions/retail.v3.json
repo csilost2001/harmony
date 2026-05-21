@@ -52,6 +52,13 @@
       "description": "クリック操作を発火する button-like 要素。直接のデータ binding は持たず、events[] で handlerFlow を起動する。typically direction='output' + readonly=true で使い、value はラベル文字列を流用する。"
     }
   ],
+  "screenKinds": [
+    {
+      "kind": "cart",
+      "label": "カート画面",
+      "description": "ショッピングカート画面 (購入手続き前の商品一覧)"
+    }
+  ],
   "actionTriggers": [
     {
       "value": "orderConfirmed",
