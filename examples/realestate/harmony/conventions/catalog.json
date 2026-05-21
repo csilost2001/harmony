@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/conventions.v3.schema.json",
   "version": "1.0.0",
-  "description": "不動産仲介システムの横断規約カタログ。物件コード規約・メッセージ・限度値を集約する。",
+  "description": "不動産仲介システム (最小サンプル) の横断規約カタログ。i18n / 通貨 / DB 接続規約のみ定義し、viewer demo 構成と整合させた最小構成。",
   "updatedAt": "2026-05-03T00:00:00.000Z",
   "i18n": {
     "supportedLocales": ["ja-JP"],
@@ -10,38 +10,6 @@
     "timeFormat": { "ja-JP": "HH:mm" },
     "currencyDisplay": { "ja-JP": "symbol" },
     "numberGrouping": { "ja-JP": true }
-  },
-  "regex": {
-    "propertyCode": {
-      "pattern": "^RE-[0-9]{5}$",
-      "description": "物件コードの正規表現。'RE-' プレフィックス + 5 桁数字。例: RE-00001。",
-      "exampleValid": ["RE-00001", "RE-99999"],
-      "exampleInvalid": ["00001", "RE-001", "re-00001"]
-    }
-  },
-  "msg": {
-    "propertyNotFound": {
-      "template": "物件コード {propertyCode} の物件が見つかりません。",
-      "params": ["propertyCode"],
-      "description": "物件検索で該当なし時のメッセージ。"
-    },
-    "searchResultEmpty": {
-      "template": "指定した条件に合致する物件が見つかりませんでした。条件を変更してお試しください。",
-      "params": [],
-      "description": "物件検索結果が 0 件の場合に表示するメッセージ。"
-    }
-  },
-  "limit": {
-    "maxSearchResults": {
-      "value": 100,
-      "unit": "integer",
-      "description": "物件検索結果の最大返却件数。これを超えた場合はページングを促す。"
-    },
-    "propertyCodeMaxLength": {
-      "value": 20,
-      "unit": "char",
-      "description": "物件コードの最大文字数 (@conv.regex.propertyCode と整合)。"
-    }
   },
   "currency": {
     "jpy": {
@@ -54,12 +22,10 @@
   },
   "db": {
     "primary": {
-      "engine": "postgresql@15",
+      "engine": "postgresql@17",
       "namingConvention": "snake_case",
-      "timestampColumns": ["created_at", "updated_at"],
-      "logicalDeleteColumn": "is_active",
       "default": true,
-      "description": "本サンプルの主 DB。PostgreSQL 15 を想定。"
+      "description": "本サンプルの主 DB。PostgreSQL 17 を想定 (harmony.json techStack.database.version と整合)。"
     }
   }
 }
