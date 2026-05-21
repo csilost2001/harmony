@@ -30,9 +30,9 @@
     {
       "id": "sessionList",
       "label": "学習セッション一覧",
-      "type": "json",
-      "direction": "output",
-      "description": "フィルタ条件で絞り込んだ learning_sessions 一覧 (JSON 配列)。各行に story_title / started_at / status / 総合スコアを含む。"
+      "direction": "viewer",
+      "viewDefinitionId": "4c9cdc85-2537-4ca8-a979-4de21a56e0fa",
+      "description": "フィルタ条件で絞り込んだ learning_sessions 一覧。学習履歴一覧 viewer (4c9cdc85) の列定義に従い story_title / started_at / status / 総合スコアを表示する。"
     }
   ],
   "design": {
