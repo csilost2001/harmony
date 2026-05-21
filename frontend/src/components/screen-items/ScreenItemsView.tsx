@@ -356,6 +356,14 @@ export function ScreenItemsView() {
       }
       return next;
     });
+    setExpandedEventRows((prev) => {
+      const next = new Set<number>();
+      for (const i of prev) {
+        if (i < idx) next.add(i);
+        else if (i > idx) next.add(i - 1);
+      }
+      return next;
+    });
   }, [updateWithDraft]);
 
   /** 複数インデックスのリセット用新 ID を計算 (バッチ内で重複しないよう pool を積み上げ) */
@@ -694,12 +702,12 @@ export function ScreenItemsView() {
   }, [updateWithDraft, commit]);
 
   const handleUpdateEvent = useCallback((idx: number, eventIdx: number, patch: Partial<ScreenItemEvent>) => {
-    updateWithDraft((f) => {
+    updateSilentWithDraft((f) => {
       const item = f.items[idx];
       if (!item.events) return;
       item.events[eventIdx] = { ...item.events[eventIdx], ...patch };
     });
-  }, [updateWithDraft]);
+  }, [updateSilentWithDraft]);
 
   // ファイル切替時に選択・展開状態をリセット
   useEffect(() => {
@@ -1250,7 +1258,9 @@ export function ScreenItemsView() {
                                       type="button"
                                       className="btn btn-sm btn-link p-0"
                                       onClick={() => {
-                                        handleUpdateEvent(i, eIdx, { argumentMapping: { ...(ev.argumentMapping ?? {}), "": "" as ExpressionString } });
+                                        const current = ev.argumentMapping ?? {};
+                                        if ("" in current) return; // 既に空キー行がある場合は追加しない
+                                        handleUpdateEvent(i, eIdx, { argumentMapping: { ...current, "": "" as ExpressionString } });
                                       }}
                                       disabled={isReadonly}
                                       title="マッピング行を追加"
@@ -1268,6 +1278,9 @@ export function ScreenItemsView() {
                                         value={k}
                                         onChange={(e) => {
                                           const newKey = e.target.value;
+                                          // 自身以外の既存 key と衝突する場合は rename を拒否 (silent rollback)
+                                          const collision = argEntries.some(([kk, _vv], ii) => ii !== aIdx && kk === newKey && newKey !== "");
+                                          if (collision) return;
                                           const next: Record<string, ExpressionString> = {};
                                           argEntries.forEach(([kk, vv], ii) => {
                                             next[ii === aIdx ? newKey : kk] = vv;
