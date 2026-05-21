@@ -90,6 +90,10 @@ npm run dev
 cd frontend && npm run validate:samples -- ../examples/english-learning-tailwind
 ```
 
+## generated/ の Prisma provider について
+
+注: `generated/` は #1038 dogfood の test fixture で Prisma provider に sqlite を採用 (test 高速化用)。本番 techStack の postgresql は別途 `/generate-code` で再生成する想定。`harmony.json` の techStack 宣言 (postgresql) が spec source として正しく、`generated/` の sqlite はテスト用の仮実装です。
+
 ## 関連
 
 - 親メタ: #793 (CSS フレームワーク切替対応)
