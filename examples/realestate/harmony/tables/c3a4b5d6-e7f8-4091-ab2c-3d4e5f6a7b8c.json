@@ -16,6 +16,7 @@
       "dataType": "INTEGER",
       "notNull": true,
       "primaryKey": true,
+      "autoIncrement": true,
       "description": "物件の一意識別子 (auto increment)。"
     },
     {
@@ -51,6 +52,8 @@
       "name": "面積 (m2)",
       "physicalName": "area_sqm",
       "dataType": "DECIMAL",
+      "length": 10,
+      "scale": 2,
       "description": "物件の面積 (平方メートル)。土地の場合は敷地面積。"
     },
     {
