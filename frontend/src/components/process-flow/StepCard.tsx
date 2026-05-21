@@ -83,7 +83,7 @@ interface StepCardProps {
   /** この step の未解決 marker tooltip 本文 */
   markerTooltip?: string;
   /** kind 別未解決件数 (#261 色分け badge 表示用、省略時は markerCount のみ表示) */
-  markerKinds?: { todo: number; question: number; attention: number; chat: number };
+  markerKinds?: { todo: number; question: number; attention: number; chat: number; validator: number };
   /** #1076 編集レベル (rough / detail / implementation)。デフォルトは implementation (全項目) */
   editLevel?: "rough" | "detail" | "implementation";
   /** #1076 AI 依頼ボタン押下時のコールバック */
@@ -261,6 +261,11 @@ export function StepCard({
                 {markerKinds.chat > 0 && (
                   <span className="step-marker-chip kind-chat" title={`メモ ${markerKinds.chat} 件`}>
                     <i className="bi bi-chat-dots-fill" />{markerKinds.chat}
+                  </span>
+                )}
+                {markerKinds.validator > 0 && (
+                  <span className="step-marker-chip kind-validator" title={`バリデーター ${markerKinds.validator} 件`}>
+                    <i className="bi bi-shield-exclamation" />{markerKinds.validator}
                   </span>
                 )}
               </span>

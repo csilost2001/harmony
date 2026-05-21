@@ -2063,6 +2063,7 @@
 .step-marker-chip.kind-question { background: #ede9fe; color: #5b21b6; border-color: #c4b5fd; }
 .step-marker-chip.kind-attention { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
 .step-marker-chip.kind-chat { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+.step-marker-chip.kind-validator { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
 .validation-code {
   font-family: ui-monospace, monospace;
   font-size: 0.7rem;

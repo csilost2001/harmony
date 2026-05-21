@@ -1,10 +1,9 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx 中央キャンバス (ステップリスト) を抽出。
 // SortableContext + 各 SortableStepCard + StepInsertZone の組合せ。
 
 import type { RefObject } from "react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import type { ActionDefinition, ProcessFlow, Step, StepType } from "../../../types/v3";
+import type { ActionDefinition, Marker, ProcessFlow, Step, StepType } from "../../../types/v3";
 import type { ConventionsCatalog } from "../../../schemas/conventionsValidator";
 import { SortableStepCard } from "../SortableStepCard";
 import { EmptyFlowDropZone, StepInsertZone } from "./PaletteButtons";
@@ -134,7 +133,7 @@ export function CanvasPane({
                 >
                   {activeAction.steps.map((step, index) => {
                     const stepMarkers = (group?.authoring?.markers ?? []).filter(
-                      (m) => !m.resolvedAt && m.stepId === step.id,
+                      (m) => !m.resolvedAt && m.anchor?.stepId === step.id,
                     );
                     const markerCount = stepMarkers.length;
                     const markerTooltip =
@@ -150,6 +149,7 @@ export function CanvasPane({
                             question: stepMarkers.filter((m) => m.kind === "question").length,
                             attention: stepMarkers.filter((m) => m.kind === "attention").length,
                             chat: stepMarkers.filter((m) => m.kind === "chat").length,
+                            validator: stepMarkers.filter((m) => m.kind === "validator").length,
                           }
                         : undefined;
                     return (
@@ -202,13 +202,13 @@ export function CanvasPane({
                           validationErrors={validationErrors}
                           onAddMarker={(body, kind = "todo") => {
                             updateGroupWithDraft((g) => {
-                              const m = {
-                                id: generateUUID(),
+                              const m: Marker = {
+                                id: generateUUID() as Marker["id"],
                                 kind,
                                 body,
-                                stepId: step.id,
-                                author: "human" as const,
-                                createdAt: new Date().toISOString(),
+                                anchor: { stepId: step.id },
+                                author: "human",
+                                createdAt: new Date().toISOString() as Marker["createdAt"],
                               };
                               g.authoring = {
                                 ...(g.authoring ?? {}),

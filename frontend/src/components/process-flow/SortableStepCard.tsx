@@ -32,7 +32,7 @@ interface SortableStepCardProps {
   onAddMarker?: (body: string, kind?: "todo" | "question" | "attention" | "chat") => void;
   markerCount?: number;
   markerTooltip?: string;
-  markerKinds?: { todo: number; question: number; attention: number; chat: number };
+  markerKinds?: { todo: number; question: number; attention: number; chat: number; validator: number };
   conventions?: ConventionsCatalog | null;
   group?: ProcessFlow | null;
   /** #1076 編集レベル (rough / detail / implementation) */

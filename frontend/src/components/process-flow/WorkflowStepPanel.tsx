@@ -1,7 +1,7 @@
-// @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 import type { ReactNode } from "react";
 // #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
 import type {
+  LocalId,
   Step,
   WorkflowStep,
   WorkflowPattern,
@@ -17,6 +17,7 @@ import {
 } from "../../utils/processFlowMetadata";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
+import { generateUUID } from "../../utils/uuid";
 
 interface Props {
   step: WorkflowStep;
@@ -95,8 +96,8 @@ export function WorkflowStepPanel({
 
   const updateQuorum = (patch: { type?: WorkflowQuorum["type"]; n?: number }) => {
     const type = patch.type ?? step.quorum?.type ?? "any";
-    if (type === "n-of-m") {
-      const currentN = step.quorum?.type === "n-of-m" ? step.quorum.n : undefined;
+    if (type === "nOfM") {
+      const currentN = step.quorum?.type === "nOfM" ? step.quorum.n : undefined;
       onChange({ quorum: { type, n: patch.n ?? currentN ?? 1 } });
     } else {
       onChange({ quorum: { type } });
@@ -146,8 +147,10 @@ export function WorkflowStepPanel({
           onStepsChange([
             ...steps,
             {
-              id: `workflow-${parentLabel.toLowerCase()}-${steps.length + 1}`,
-              type: "other",
+              id: generateUUID() as LocalId,
+              kind: "log" as const,
+              level: "info" as const,
+              message: "",
               description: "",
               maturity: "draft",
             },
@@ -211,10 +214,10 @@ export function WorkflowStepPanel({
             <option value="all">all</option>
             <option value="any">any</option>
             <option value="majority">majority</option>
-            <option value="n-of-m">n-of-m</option>
+            <option value="nOfM">n-of-m</option>
           </select>
         </div>
-        {step.quorum?.type === "n-of-m" && (
+        {step.quorum?.type === "nOfM" && (
           <div className="col-md-3" data-field-path="quorum.n">
             <label className="form-label">必要数 n</label>
             <input

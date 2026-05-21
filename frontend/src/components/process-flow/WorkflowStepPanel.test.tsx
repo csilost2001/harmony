@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, within } from "@testing-library/react";
 import { WorkflowStepPanel } from "./WorkflowStepPanel";
-import type { Step, WorkflowStep } from "../../utils/processFlowMetadata";
+import type { Step, WorkflowStep } from "../../types/v3";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import { WORKFLOW_PATTERN_VALUES } from "../../utils/processFlowMetadata";
 
@@ -14,8 +14,8 @@ const conventions: ConventionsCatalog = {
 };
 
 const baseStep: WorkflowStep = {
-  id: "workflow-step",
-  type: "workflow",
+  id: "workflow-step" as WorkflowStep["id"],
+  kind: "workflow",
   description: "承認",
   maturity: "draft",
   pattern: "approval-sequential",
@@ -100,12 +100,12 @@ describe("WorkflowStepPanel", () => {
     const { container, rerender } = renderPanel({ ...baseStep, quorum: { type: "any" } }, onChange);
     expect(field(container, "quorum.n")).toBeNull();
 
-    fireEvent.change(firstSelect(container, "quorum.type"), { target: { value: "n-of-m" } });
-    expect(onChange).toHaveBeenLastCalledWith({ quorum: { type: "n-of-m", n: 1 } });
+    fireEvent.change(firstSelect(container, "quorum.type"), { target: { value: "nOfM" } });
+    expect(onChange).toHaveBeenLastCalledWith({ quorum: { type: "nOfM", n: 1 } });
 
     rerender(
       <WorkflowStepPanel
-        step={{ ...baseStep, quorum: { type: "n-of-m", n: 2 } }}
+        step={{ ...baseStep, quorum: { type: "nOfM", n: 2 } }}
         allSteps={[]}
         conventions={conventions}
         onChange={onChange}
@@ -126,8 +126,10 @@ describe("WorkflowStepPanel", () => {
       const patch = onChange.mock.lastCall?.[0] as Partial<WorkflowStep>;
       expect(patch[path]).toEqual([
         {
-          id: expect.stringMatching(/^workflow-/),
-          type: "other",
+          id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+          kind: "log",
+          level: "info",
+          message: "",
           description: "",
           maturity: "draft",
         },
@@ -135,8 +137,10 @@ describe("WorkflowStepPanel", () => {
     }
 
     const child: Step = {
-      id: "child-step",
-      type: "other",
+      id: "child-step" as Step["id"],
+      kind: "log",
+      level: "info",
+      message: "子ステップ",
       description: "子ステップ",
       maturity: "draft",
     };
