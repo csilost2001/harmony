@@ -3,11 +3,11 @@
   "meta": {
     "id": "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f",
     "name": "投稿削除",
-    "description": "既存投稿を削除する処理フロー。所有者検証後、photos / post_tags / posts を順に DELETE する (FK CASCADE 想定だが明示的に削除順序を記述)。",
+    "description": "既存投稿を削除する処理フロー。所有者検証後、photos / post_tags / posts を 1 TX 内で順に DELETE する (FK CASCADE 想定だが明示的に削除順序を記述)。TX 失敗時は全体をロールバックする。",
     "kind": "common",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
-    "updatedAt": "2026-05-06T14:00:00.000Z"
+    "updatedAt": "2026-05-22T00:00:00.000Z"
   },
   "context": {
     "catalogs": {
@@ -29,6 +29,12 @@
           "defaultMessage": "投稿が見つかりません。",
           "responseId": "404-not-found",
           "description": "指定された postId の投稿が存在しない場合。"
+        },
+        "POST_DELETE_FAILED": {
+          "httpStatus": 422,
+          "defaultMessage": "投稿の削除に失敗しました。",
+          "responseId": "422-delete-failed",
+          "description": "TX ロールバックが発生した場合の catch-all エラー。photos / post_tags / posts のいずれかの DELETE が失敗した場合に TX 全体がロールバックされ 422 を返す。"
         }
       }
     },
@@ -46,7 +52,7 @@
       "id": "act-001",
       "name": "投稿削除",
       "trigger": "submit",
-      "description": "postId で既存投稿を特定し、所有者検証後に photos / post_tags / posts を順に DELETE する。",
+      "description": "postId で既存投稿を特定し、所有者検証後に photos / post_tags / posts を 1 TX 内で順に DELETE する。",
       "maturity": "draft",
       "httpRoute": {
         "method": "DELETE",
@@ -68,7 +74,7 @@
           "id": "204-no-content",
           "status": 204,
           "description": "投稿削除成功。",
-          "when": "全 DELETE が正常完了した場合。"
+          "when": "全 DELETE が正常完了し TX がコミットされた場合。"
         },
         {
           "id": "401-unauthorized",
@@ -87,6 +93,12 @@
           "status": 404,
           "description": "投稿が存在しない。",
           "when": "指定 postId の投稿が見つからない場合。"
+        },
+        {
+          "id": "422-delete-failed",
+          "status": 422,
+          "description": "投稿削除 TX 失敗。TX はロールバック済み。",
+          "when": "photos / post_tags / posts のいずれかの DELETE が失敗し TX がロールバックされた場合。"
         }
       ],
       "steps": [
@@ -173,63 +185,87 @@
         },
         {
           "id": "step-04",
-          "kind": "dbAccess",
-          "description": "photos テーブルから該当投稿の写真を全削除する。",
-          "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-          "operation": "DELETE",
-          "sql": "DELETE FROM photos WHERE post_id = @inputs.postId",
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-                "purpose": "soft-delete"
-              }
-            ]
-          }
-        },
-        {
-          "id": "step-05",
-          "kind": "dbAccess",
-          "description": "post_tags テーブルから該当投稿のタグ関連を全削除する。",
-          "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
-          "operation": "DELETE",
-          "sql": "DELETE FROM post_tags WHERE post_id = @inputs.postId",
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
-                "purpose": "soft-delete"
-              }
-            ]
-          }
-        },
-        {
-          "id": "step-06",
-          "kind": "dbAccess",
-          "description": "posts テーブルから該当投稿を削除する。",
-          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-          "operation": "DELETE",
-          "sql": "DELETE FROM posts WHERE id = @inputs.postId",
-          "affectedRowsCheck": {
-            "operator": "=",
-            "expected": 1,
-            "onViolation": "throw",
-            "errorCode": "POST_NOT_FOUND"
+          "kind": "transactionScope",
+          "description": "photos / post_tags / posts の DELETE を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @txResult に結果を expose する。POST_DELETE_FAILED はロールバックトリガーとして列挙する。",
+          "isolationLevel": "READ_COMMITTED",
+          "propagation": "REQUIRED",
+          "rollbackOn": [
+            "POST_DELETE_FAILED"
+          ],
+          "outputBinding": {
+            "name": "txResult"
           },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                "purpose": "soft-delete"
+          "steps": [
+            {
+              "id": "step-04-01",
+              "kind": "dbAccess",
+              "description": "photos テーブルから該当投稿の写真を全削除する。",
+              "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+              "operation": "DELETE",
+              "sql": "DELETE FROM photos WHERE post_id = @inputs.postId",
+              "lineage": {
+                "writes": [
+                  {
+                    "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                    "purpose": "soft-delete"
+                  }
+                ]
               }
-            ]
-          }
+            },
+            {
+              "id": "step-04-02",
+              "kind": "dbAccess",
+              "description": "post_tags テーブルから該当投稿のタグ関連を全削除する。",
+              "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+              "operation": "DELETE",
+              "sql": "DELETE FROM post_tags WHERE post_id = @inputs.postId",
+              "lineage": {
+                "writes": [
+                  {
+                    "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+                    "purpose": "soft-delete"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "step-04-03",
+              "kind": "dbAccess",
+              "description": "posts テーブルから該当投稿を削除する。",
+              "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+              "operation": "DELETE",
+              "sql": "DELETE FROM posts WHERE id = @inputs.postId",
+              "affectedRowsCheck": {
+                "operator": "=",
+                "expected": 1,
+                "onViolation": "throw",
+                "errorCode": "POST_DELETE_FAILED"
+              },
+              "lineage": {
+                "writes": [
+                  {
+                    "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+                    "purpose": "soft-delete"
+                  }
+                ]
+              }
+            }
+          ]
         },
         {
           "id": "step-07",
           "kind": "return",
-          "description": "204 削除成功を返す。",
+          "runIf": "@txResult.committed == true",
+          "description": "204 削除成功を返す。TX コミット後にのみ実行する。",
           "responseId": "204-no-content"
+        },
+        {
+          "id": "step-08",
+          "kind": "return",
+          "runIf": "@txResult.committed != true",
+          "description": "422 投稿削除失敗を返す。TX ロールバック時にのみ実行する。",
+          "responseId": "422-delete-failed",
+          "bodyExpression": "{ code: 'POST_DELETE_FAILED', message: '投稿の削除に失敗しました。しばらく経ってから再度お試しください。' }"
         }
       ]
     }
