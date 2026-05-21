@@ -289,7 +289,7 @@ step 側の auth/timeoutMs 等を指定した場合は catalog を上書き。
 ### 3.1b 認証・冪等性・カスタムヘッダ (#253 v1.2)
 
 ```ts
-type ExternalAuthKind = "bearer" | "basic" | "apiKey" | "oauth2" | "none";
+type ExternalAuthKind = "bearer" | "basic" | "apiKey" | "oauth2" | "iamRole" | "azureAd" | "none";
 
 interface ExternalAuth {
   kind: ExternalAuthKind;

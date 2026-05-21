@@ -133,7 +133,7 @@ enum 値の命名は**対象ドメインの慣習** に従う。schema 全体で
 | **Workflow pattern** | `kebab-case` | `WorkflowPattern` (`approval-sequential`, `approval-parallel`, `branch-merge`, `sign-off`, `ad-hoc`) at `schemas/process-flow.schema.json:521-535` |
 | **GeneXus 由来 (互換性のため踏襲)** | `PascalCase` | `ValidationRuleKind` (`Error`, `Msg`, `Noaccept`, `Default`) at `schemas/process-flow.schema.json:973-977` |
 | **Log level (syslog 慣習)** | `lowercase` | `LogStep.level` (`trace`, `debug`, `info`, `warn`, `error`) at `schemas/process-flow.schema.json:1692-1695` |
-| **OAuth/HTTP auth** | `lowerCamelCase` 1 語 | `ExternalAuthKind` (`bearer`, `basic`, `apiKey`, `oauth2`, `none`) at `schemas/process-flow.schema.json:1245-1247` |
+| **OAuth/HTTP auth** | `lowerCamelCase` 1 語 | `ExternalAuthKind` (`bearer`, `basic`, `apiKey`, `oauth2`, `iamRole`, `azureAd`, `none`) at `schemas/v3/process-flow.v3.schema.json:518-527` |
 | **記号操作子** | 記号 | `AffectedRowsOperator` (`>`, `>=`, `=`, `<`, `<=`) at `schemas/process-flow.schema.json:1078-1081` |
 
 #### 規範
