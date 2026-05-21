@@ -5,7 +5,7 @@
   "meta": {
     "id": "a1e2f3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
     "name": "不動産仲介システム",
-    "description": "不動産仲介業務サンプル。物件検索・顧客検索・取引履歴を軸に、viewer screen-item (#762) の direction=viewer パターンを実証する。",
+    "description": "ViewerScreenItem (#762) デモ用の最小サンプル。物件検索画面 1 つで物件マスタの一覧 / 詳細を viewer pattern で表示する構成のみを実装。顧客管理 / 内見予約 / 契約処理等の他業務軸は本サンプルのスコープ外。",
     "version": "1.0.0",
     "maturity": "provisional",
     "createdAt": "2026-05-03T00:00:00.000Z",
