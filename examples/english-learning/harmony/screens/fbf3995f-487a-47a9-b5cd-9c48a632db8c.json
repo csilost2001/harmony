@@ -38,9 +38,9 @@
     {
       "id": "wordList",
       "label": "単語一覧",
-      "type": "json",
-      "direction": "output",
-      "description": "フィルタ条件で絞り込んだ user_word_progress JOIN words の一覧 (JSON 配列)。単語 / 訳 / IPA / 習熟度 / 最終学習日を含む。"
+      "direction": "viewer",
+      "viewDefinitionId": "090e9db0-ce45-4fc4-9fa6-5784f655ca07",
+      "description": "フィルタ条件で絞り込んだ user_word_progress JOIN words の一覧。単語帳 viewer (090e9db0) の列定義に従い単語 / 訳 / IPA / 習熟度 / 最終学習日を表示する。"
     }
   ],
   "design": {

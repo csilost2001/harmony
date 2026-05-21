@@ -14,9 +14,9 @@
     {
       "id": "packList",
       "label": "コンテンツパック一覧",
-      "type": "json",
-      "direction": "output",
-      "description": "content_packs 一覧 (JSON 配列)。pack_name / namespace_ref / story_count / is_active を含む。namespace_ref で拡張定義に紐付く分野別パックを識別する。"
+      "direction": "viewer",
+      "viewDefinitionId": "ba1c7d9d-5907-4535-99b9-f9fa170bb248",
+      "description": "content_packs 一覧。コンテンツパック一覧 viewer (ba1c7d9d) の列定義に従い pack_name / namespace_ref / story_count / is_active を表示する。"
     },
     {
       "id": "activatePackId",

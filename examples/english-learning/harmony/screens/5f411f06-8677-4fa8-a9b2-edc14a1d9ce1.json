@@ -49,9 +49,9 @@
     {
       "id": "storyList",
       "label": "ストーリー一覧",
-      "type": "json",
-      "direction": "output",
-      "description": "フィルタ条件で絞り込んだ stories 一覧 (JSON 配列)。各行に title / cefr_level / scene_count / 未完了フラグを含む。"
+      "direction": "viewer",
+      "viewDefinitionId": "cfdbf081-368d-4a33-8a36-1c7a0c535011",
+      "description": "フィルタ条件で絞り込んだ stories 一覧。ストーリー一覧 viewer (cfdbf081) の列定義に従い title / cefr_level / scene_count を表示する。"
     }
   ],
   "design": {

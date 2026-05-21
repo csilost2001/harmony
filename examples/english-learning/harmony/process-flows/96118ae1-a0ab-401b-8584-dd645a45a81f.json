@@ -90,9 +90,9 @@
         {
           "name": "turnContext",
           "label": "会話コンテキスト",
-          "type": "string",
+          "type": { "kind": "array", "itemType": { "kind": "extension", "extensionRef": "english-learning:dialogTurn" } },
           "required": false,
-          "description": "直近の会話履歴 (DialogTurn[] の JSON 文字列)。aiCall step の user メッセージ content に埋め込んで LLM へ渡す。"
+          "description": "直近の会話履歴 (DialogTurn 配列)。aiCall step の messages 内 spread item で role 別に展開し、LLM API に構造的に渡す (#939)。"
         },
         {
           "name": "generateAudio",
