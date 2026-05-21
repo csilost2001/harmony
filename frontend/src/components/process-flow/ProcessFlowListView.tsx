@@ -1,9 +1,10 @@
-// @ts-nocheck -- list view still consumes mixed process-flow shapes; tracked by #1016.
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 // #1186 Phase 2-D: types/action → types/v3 + processFlowMetadata 移行
-import type { ProcessFlowMeta, ProcessFlowType, ProcessFlow } from "../../types/v3";
+// #1233 Batch 5b: ProcessFlowMeta (v3 inner) → ProcessFlowEntry (harmony.json entity shape)
+import type { ProcessFlowEntry, ProcessFlowType, ProcessFlow, LocalId } from "../../types/v3";
+type ProcessFlowMeta = ProcessFlowEntry; // ファイル内 alias、差分最小化 (#1233 Batch 5b)
 import { PROCESS_FLOW_TYPE_LABELS, PROCESS_FLOW_TYPE_ICONS } from "../../utils/processFlowMetadata";
 import {
   listProcessFlows,
@@ -254,7 +255,7 @@ export function ProcessFlowListView() {
     switch (key) {
       case "name": return g.name;
       case "type": return PROCESS_FLOW_TYPE_LABELS[g.kind as ProcessFlowType] ?? g.kind;
-      case "actionCount": return g.actionCount;
+      case "actionCount": return g.actionCount ?? 0;
       case "screenId": return g.screenId ? 1 : 0;
       case "errorPriority": return getErrorPriority(g.id);
       case "maturity": {
@@ -338,8 +339,8 @@ export function ProcessFlowListView() {
       },
       actions: full.actions.map((a) => ({
         ...a,
-        id: generateUUID(),
-        steps: a.steps.map((s) => ({ ...s, id: generateUUID() })),
+        id: generateUUID() as LocalId,
+        steps: a.steps.map((s) => ({ ...s, id: generateUUID() as LocalId })),
       })),
     };
     await saveProcessFlow(dup);
@@ -362,7 +363,7 @@ export function ProcessFlowListView() {
     if (!clipItems.length) return;
 
     if (mode === "cut") {
-      const cutIds = new Set(clipItems.map((c) => c.id));
+      const cutIds = new Set(clipItems.map((c) => c.id as string));
       const selIds = selection.selectedIds;
       const sameSet = selIds.size === cutIds.size && [...selIds].every((id) => cutIds.has(id));
       if (sameSet) return;
@@ -417,7 +418,7 @@ export function ProcessFlowListView() {
     setAddType("screen");
     setAddScreenId("");
     setAddDescription("");
-    navigate(wsPath(`/process-flow/edit/${group.meta?.id ?? group.id}`));
+    navigate(wsPath(`/process-flow/edit/${group.meta.id}`));
   };
 
   // docs/spec/list-common.md §3.11: 右クリックメニュー項目を構築
@@ -463,7 +464,7 @@ export function ProcessFlowListView() {
         disabled: pasteBlocked, disabledReason: pasteBlocked && sortActive ? sortReason : pasteReason,
         onClick: () => {
           const ids = Array.from(selection.selectedIds);
-          const allIds = editor.items.map((g) => g.id);
+          const allIds = editor.items.map((g) => g.id as string);
           const insertIndex = ids.length > 0
             ? Math.max(...ids.map((id) => allIds.indexOf(id))) + 1
             : null;
@@ -633,7 +634,7 @@ export function ProcessFlowListView() {
       width: "90px",
       align: "right",
       sortable: true,
-      sortAccessor: (g) => g.actionCount,
+      sortAccessor: (g) => g.actionCount ?? 0,
       render: (g) => <span>{g.actionCount}</span>,
     },
     {
@@ -720,7 +721,7 @@ export function ProcessFlowListView() {
 
   const typeCounts = useMemo(() => {
     const c: Record<string, number> = {};
-    for (const g of groups) c[g.kind] = (c[g.kind] ?? 0) + 1;
+    for (const g of groups) if (g.kind != null) c[g.kind] = (c[g.kind] ?? 0) + 1;
     return c;
   }, [groups]);
 
