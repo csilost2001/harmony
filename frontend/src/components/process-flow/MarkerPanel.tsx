@@ -14,6 +14,7 @@ import { generateUUID } from "../../utils/uuid";
 import type { StepWithSubSteps } from "../../utils/actionUtils";
 import {
   isBranchStep,
+  isExtensionStep,
   isLoopStep,
   isTransactionScopeStep,
 } from "../../utils/actionUtils";
@@ -36,7 +37,7 @@ function collectStepIds(group: ProcessFlow): Set<string> {
         if (s.onCommit) visit(s.onCommit);
         if (s.onRollback) visit(s.onRollback);
       }
-      if (s.kind === "externalSystem" && s.outcomes) {
+      if (s.kind === "externalSystem" && !isExtensionStep(s) && s.outcomes) {
         for (const oc of Object.values(s.outcomes)) {
           if (oc?.sideEffects) visit(oc.sideEffects);
         }
@@ -94,7 +95,7 @@ export function MarkerPanel({ group, onChange, expanded: expandedProp, onExpande
   // anchor の追跡先 step が現存するかを判定するために step id セットを memo 化
   const existingStepIds = useMemo(() => collectStepIds(group), [group]);
   const isOrphanAnchor = (m: Marker): boolean => {
-    const anchorId = m.shape?.anchorStepId ?? m.stepId;
+    const anchorId = m.anchor?.stepId;
     if (!anchorId) return false;
     // ActionMetaTabBar の body (基本情報タブ/カタログタブ) に描画された場合の擬似 ID (#309 フォローアップ)
     // これは group.actions[*].steps に存在しないが orphan ではなく「タブが閉じている」状態なので除外
@@ -106,11 +107,11 @@ export function MarkerPanel({ group, onChange, expanded: expandedProp, onExpande
     const body = newBody.trim();
     if (!body) return;
     const next: Marker = {
-      id: generateUUID(),
+      id: generateUUID() as Marker["id"],
       kind: newKind,
       body,
       author: "human",
-      createdAt: new Date().toISOString(),
+      createdAt: new Date().toISOString() as Marker["createdAt"],
     };
     onChange({ ...group, authoring: { ...(group.authoring ?? {}), markers: [...markers, next] } });
     setNewBody("");
@@ -133,11 +134,11 @@ export function MarkerPanel({ group, onChange, expanded: expandedProp, onExpande
 
   const confirmResolve = (id: string) => {
     const note = resolveNote.trim();
-    const next = markers.map((m) => (
+    const next: Marker[] = markers.map((m) => (
       m.id === id
         ? {
             ...m,
-            resolvedAt: new Date().toISOString(),
+            resolvedAt: new Date().toISOString() as Marker["resolvedAt"],
             resolution: note || "(人間が手動で解決)",
           }
         : m
@@ -205,10 +206,10 @@ export function MarkerPanel({ group, onChange, expanded: expandedProp, onExpande
                   <span className="marker-author small text-muted">
                     {m.author === "human" ? "人間" : "AI"}
                   </span>
-                  {m.stepId && (
+                  {m.anchor?.stepId && (
                     <span className="marker-step-ref small text-muted">
-                      step: {m.stepId}
-                      {m.fieldPath && `.${m.fieldPath}`}
+                      step: {m.anchor.stepId}
+                      {m.anchor.fieldPath && `.${m.anchor.fieldPath}`}
                     </span>
                   )}
                   {isOrphanAnchor(m) && !resolved && (
