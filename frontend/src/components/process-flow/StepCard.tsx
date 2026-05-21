@@ -1,8 +1,8 @@
-// @ts-nocheck -- StepCard still spans legacy/v3 process-flow unions; tracked by #1016.
 import { useState } from "react";
 import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 // #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
 import type {
+  LocalId,
   ProcessFlow,
   Step,
   StepKind as StepType,
@@ -15,6 +15,7 @@ import {
 } from "../../utils/processFlowMetadata";
 import type { ValidationError } from "../../utils/actionValidation";
 import { getBindingName, getBindingOperation } from "../../utils/outputBinding";
+import { isExtensionStep, type StepWithSubSteps } from "../../utils/actionUtils";
 import { generateUUID } from "../../utils/uuid";
 import { createDefaultStep } from "../../store/processFlowStore";
 import { MaturityBadge } from "./MaturityBadge";
@@ -135,7 +136,10 @@ export function StepCard({
   // 内部化済 (Phase-2 #1145)。state lift する必要がある場合は本 component に戻す。
 
   const color = STEP_TYPE_COLORS[step.kind];
-  const subSteps = step.subSteps ?? [];
+  const stepWithSubs = step as StepWithSubSteps;
+  const subSteps = stepWithSubs.subSteps ?? [];
+  /** subSteps 変更を親の onChange に通知する際に型を合わせるキャスト */
+  const onChangeWithSubs = onChange as (changes: Partial<StepWithSubSteps>) => void;
   const myErrors = validationErrors.filter((e) => e.stepId === step.id);
   const hasError = myErrors.some((e) => e.severity === "error");
   const hasWarning = myErrors.some((e) => e.severity === "warning");
@@ -145,26 +149,27 @@ export function StepCard({
   const handleSubAddSubStep = (parentSubIdx: number, type: StepType) => {
     const newSub = createDefaultStep(type);
     const arr = subSteps.slice();
+    const parentWithSubs = arr[parentSubIdx] as StepWithSubSteps;
     arr[parentSubIdx] = {
       ...arr[parentSubIdx],
-      subSteps: [...(arr[parentSubIdx].subSteps ?? []), newSub],
-    };
-    onChange({ subSteps: arr });
+      subSteps: [...(parentWithSubs.subSteps ?? []), newSub],
+    } as unknown as Step;
+    onChangeWithSubs({ subSteps: arr });
     onCommit?.();
   };
 
   const handleOutdentFromSubSteps = (parentSubId: string, stepToOutdentId: string) => {
     const arr = subSteps.slice();
-    const parentIdx = arr.findIndex((s) => s.id === parentSubId);
+    const parentIdx = arr.findIndex((s: Step) => s.id === parentSubId);
     if (parentIdx < 0) return;
-    const parent = { ...arr[parentIdx] };
-    const outIdx = (parent.subSteps ?? []).findIndex((s) => s.id === stepToOutdentId);
+    const parent = { ...arr[parentIdx] } as StepWithSubSteps;
+    const outIdx = (parent.subSteps ?? []).findIndex((s: Step) => s.id === stepToOutdentId);
     if (outIdx < 0) return;
     const outStep = parent.subSteps![outIdx];
-    parent.subSteps = parent.subSteps!.filter((s) => s.id !== stepToOutdentId);
-    arr[parentIdx] = parent;
+    parent.subSteps = parent.subSteps!.filter((s: Step) => s.id !== stepToOutdentId);
+    arr[parentIdx] = parent as Step;
     arr.splice(parentIdx + 1, 0, outStep);
-    onChange({ subSteps: arr });
+    onChangeWithSubs({ subSteps: arr });
     onCommit?.();
   };
 
@@ -312,7 +317,7 @@ export function StepCard({
               <i className="bi bi-link-45deg" />
             </button>
           )}
-          {step.kind === "dbAccess" && step.affectedRowsCheck && (
+          {step.kind === "dbAccess" && !isExtensionStep(step) && step.affectedRowsCheck && (
             <button
               type="button"
               className="btn btn-link p-0"
@@ -323,7 +328,7 @@ export function StepCard({
               <i className="bi bi-shield-check" />
             </button>
           )}
-          {step.kind === "externalSystem" && step.outcomes && Object.keys(step.outcomes).length > 0 && (
+          {step.kind === "externalSystem" && !isExtensionStep(step) && step.outcomes && Object.keys(step.outcomes).length > 0 && (
             <button
               type="button"
               className="btn btn-link p-0"
@@ -334,12 +339,12 @@ export function StepCard({
               <i className="bi bi-diagram-3" />
             </button>
           )}
-          {step.kind === "externalSystem" && step.fireAndForget && (
+          {step.kind === "externalSystem" && !isExtensionStep(step) && step.fireAndForget && (
             <span title="fire-and-forget" style={{ color: "#eab308", fontSize: 11, flexShrink: 0 }}>
               <i className="bi bi-fire" />
             </span>
           )}
-          {step.kind === "workflow" && (
+          {step.kind === "workflow" && !isExtensionStep(step) && (
             <span
               className="badge"
               title={step.pattern}
@@ -354,7 +359,7 @@ export function StepCard({
             </span>
           )}
           <span className="step-card-description">{stepSummaryText(step, allSteps)}</span>
-          {step.kind === "commonProcess" && step.refId && (
+          {step.kind === "commonProcess" && !isExtensionStep(step) && step.refId && (
             <button
               className="btn btn-link btn-sm p-0 text-success"
               onClick={(e) => { e.stopPropagation(); onNavigateCommon(step.refId); }}
@@ -513,7 +518,7 @@ export function StepCard({
                     if (!name) {
                       onChange({ outputBinding: undefined } as Partial<Step>);
                     } else if (op === "assign") {
-                      onChange({ outputBinding: name } as Partial<Step>);
+                      onChange({ outputBinding: { name } } as Partial<Step>);
                     } else {
                       onChange({ outputBinding: { name, operation: op } } as Partial<Step>);
                     }
@@ -535,7 +540,7 @@ export function StepCard({
                       return;
                     }
                     if (op === "assign") {
-                      onChange({ outputBinding: name } as Partial<Step>);
+                      onChange({ outputBinding: { name } } as Partial<Step>);
                     } else {
                       onChange({ outputBinding: { name, operation: op } } as Partial<Step>);
                     }
@@ -565,7 +570,7 @@ export function StepCard({
              * dispatch 順は元の StepCard.tsx と同一。
              */}
             <div className="step-card-section" data-level-min="detail">
-              {step.kind === "validation" && (
+              {step.kind === "validation" && !isExtensionStep(step) && (
                 <ValidationStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -576,7 +581,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "dbAccess" && (
+              {step.kind === "dbAccess" && !isExtensionStep(step) && (
                 <DbAccessStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -587,7 +592,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "externalSystem" && (
+              {step.kind === "externalSystem" && !isExtensionStep(step) && (
                 <ExternalSystemStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -597,7 +602,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "commonProcess" && (
+              {step.kind === "commonProcess" && !isExtensionStep(step) && (
                 <CommonProcessStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -608,7 +613,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "compute" && (
+              {step.kind === "compute" && !isExtensionStep(step) && (
                 <ComputeStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -619,7 +624,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "return" && (
+              {step.kind === "return" && !isExtensionStep(step) && (
                 <ReturnStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -630,7 +635,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "screenTransition" && (
+              {step.kind === "screenTransition" && !isExtensionStep(step) && (
                 <ScreenTransitionStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -641,7 +646,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "displayUpdate" && (
+              {step.kind === "displayUpdate" && !isExtensionStep(step) && (
                 <DisplayUpdateStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -651,7 +656,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "branch" && (
+              {step.kind === "branch" && !isExtensionStep(step) && (
                 <BranchStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -668,7 +673,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "loop" && (
+              {step.kind === "loop" && !isExtensionStep(step) && (
                 <LoopStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -685,7 +690,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "log" && (
+              {step.kind === "log" && !isExtensionStep(step) && (
                 <LogStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -696,7 +701,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "audit" && (
+              {step.kind === "audit" && !isExtensionStep(step) && (
                 <AuditStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -707,7 +712,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "transactionScope" && (
+              {step.kind === "transactionScope" && !isExtensionStep(step) && (
                 <TransactionScopeStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -724,7 +729,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "jump" && (
+              {step.kind === "jump" && !isExtensionStep(step) && (
                 <JumpStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -734,7 +739,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "workflow" && (
+              {step.kind === "workflow" && !isExtensionStep(step) && (
                 <WorkflowStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -752,7 +757,7 @@ export function StepCard({
               )}
 
               {/* Phase-3 (#1145、#1163 review Phase-2 補足) 追加 3 dispatch */}
-              {step.kind === "componentCall" && (
+              {step.kind === "componentCall" && !isExtensionStep(step) && (
                 <ComponentCallStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -762,7 +767,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "aiCall" && (
+              {step.kind === "aiCall" && !isExtensionStep(step) && (
                 <AiCallStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -772,7 +777,7 @@ export function StepCard({
                 />
               )}
 
-              {step.kind === "aiAgent" && (
+              {step.kind === "aiAgent" && !isExtensionStep(step) && (
                 <AiAgentStepCardBody
                   step={step}
                   allSteps={allSteps}
@@ -783,17 +788,6 @@ export function StepCard({
               )}
             </div>{/* end step-card-section data-level-min="detail" */}
 
-            <div className="row g-2">
-              <div className="col-12">
-                <label className="form-label">メモ</label>
-                <AutoResizeTextarea
-                  value={step.note ?? ""}
-                  onChange={(e) => onChange({ note: e.target.value })}
-                  onBlur={onCommit}
-                  placeholder="補足情報"
-                />
-              </div>
-            </div>
           </div>
         )}
       </div>
@@ -813,35 +807,35 @@ export function StepCard({
                 commonGroups={commonGroups}
                 onChange={(changes) => {
                   const arr = subSteps.slice();
-                  const idx = arr.findIndex((s) => s.id === sub.id);
+                  const idx = arr.findIndex((s: Step) => s.id === sub.id);
                   if (idx >= 0) {
                     arr[idx] = { ...arr[idx], ...changes } as Step;
-                    onChange({ subSteps: arr });
+                    onChangeWithSubs({ subSteps: arr });
                   }
                 }}
                 onCommit={onCommit}
                 onMoveUp={si > 0 ? () => {
                   const arr = subSteps.slice();
                   [arr[si - 1], arr[si]] = [arr[si], arr[si - 1]];
-                  onChange({ subSteps: arr });
+                  onChangeWithSubs({ subSteps: arr });
                   onCommit?.();
                 } : undefined}
                 onMoveDown={si < subSteps.length - 1 ? () => {
                   const arr = subSteps.slice();
                   [arr[si], arr[si + 1]] = [arr[si + 1], arr[si]];
-                  onChange({ subSteps: arr });
+                  onChangeWithSubs({ subSteps: arr });
                   onCommit?.();
                 } : undefined}
                 onDelete={() => {
-                  onChange({ subSteps: subSteps.filter((s) => s.id !== sub.id) });
+                  onChangeWithSubs({ subSteps: subSteps.filter((s: Step) => s.id !== sub.id) });
                   onCommit?.();
                 }}
                 onDuplicate={() => {
                   const clone = JSON.parse(JSON.stringify(sub)) as Step;
-                  clone.id = generateUUID();
+                  clone.id = generateUUID() as LocalId;
                   const arr = subSteps.slice();
                   arr.splice(si + 1, 0, clone);
-                  onChange({ subSteps: arr });
+                  onChangeWithSubs({ subSteps: arr });
                   onCommit?.();
                 }}
                 onAddSubStep={(type) => handleSubAddSubStep(si, type)}
