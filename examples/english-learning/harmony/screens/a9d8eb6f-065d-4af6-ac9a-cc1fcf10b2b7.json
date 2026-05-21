@@ -44,7 +44,20 @@
       "label": "録音ボタン",
       "type": "string",
       "direction": "input",
-      "description": "ブラウザ MediaRecorder API で録音し、終了後 audioUrl を english-learning:SttEvaluate ステップに POST する。録音中は Web Audio API AudioContext で波形描画 (canvas) を行う。aria-label は必須。"
+      "description": "ブラウザ MediaRecorder API で録音し、終了後 audioUrl を english-learning:SttEvaluate ステップに POST する。録音中は Web Audio API AudioContext で波形描画 (canvas) を行う。aria-label は必須。",
+      "events": [
+        {
+          "id": "click",
+          "label": "録音終了 → 発音採点",
+          "handlerFlowId": "6a49b14b-eb90-45bd-9df0-df4b5986626b",
+          "handlerActionId": "act-001",
+          "argumentMapping": {
+            "sessionId": "@screen.sessionId",
+            "dialogueLineId": "@screen.currentDialogueLine",
+            "audioUrl": "@self.audioUrl"
+          }
+        }
+      ]
     },
     {
       "id": "userTextInput",
@@ -53,7 +66,19 @@
       "direction": "input",
       "maxLength": 500,
       "placeholder": "テキストで入力する場合はこちら",
-      "description": "録音が困難な環境向けのテキスト入力代替手段。progress-turn フローに userInput として渡す。"
+      "description": "録音が困難な環境向けのテキスト入力代替手段。progress-turn フローに userInput として渡す。",
+      "events": [
+        {
+          "id": "submit",
+          "label": "テキスト送信 → 会話ターン進行",
+          "handlerFlowId": "96118ae1-a0ab-401b-8584-dd645a45a81f",
+          "handlerActionId": "act-001",
+          "argumentMapping": {
+            "sessionId": "@screen.sessionId",
+            "userInput": "@self.value"
+          }
+        }
+      ]
     },
     {
       "id": "turnHistory",

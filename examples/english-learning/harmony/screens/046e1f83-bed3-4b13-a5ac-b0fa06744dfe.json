@@ -56,7 +56,18 @@
       "label": "学習を開始する",
       "type": "string",
       "direction": "input",
-      "description": "クリック時に start-session 処理フローを実行し、learning_sessions レコードを作成してから会話プレイ画面 (/learn/:sessionId) へ遷移する。"
+      "description": "クリック時に start-session 処理フローを実行し、learning_sessions レコードを作成してから会話プレイ画面 (/learn/:sessionId) へ遷移する。",
+      "events": [
+        {
+          "id": "click",
+          "label": "セッション開始ボタンクリック",
+          "handlerFlowId": "cc173367-d92a-4525-acc9-689bad9a048e",
+          "handlerActionId": "act-001",
+          "argumentMapping": {
+            "storyId": "@routeParam.storyId"
+          }
+        }
+      ]
     }
   ],
   "design": {
