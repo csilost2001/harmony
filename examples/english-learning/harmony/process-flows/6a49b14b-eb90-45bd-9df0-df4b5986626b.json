@@ -357,6 +357,12 @@
           },
           "outputBinding": {
             "name": "evalResult"
+          },
+          "outcomes": {
+            "failure": {
+              "action": "abort",
+              "description": "STT API 失敗時は abort。502-stt-failed カタログエントリに対応。"
+            }
           }
         },
         {
@@ -435,7 +441,7 @@
           "id": "step-08",
           "kind": "return",
           "runIf": "@txResult.committed == true",
-          "description": "201 Created — scoreId + score + diff を返す。TX コミット後にのみ実行する。score が合格ライン (conventions.extensionCategories.cefr.passingThreshold 参照) を下回る場合、UI 側でメッセージを表示する。",
+          "description": "201 Created — scoreId + score + diff を返す。TX コミット後にのみ実行する。score が合格ライン (@conv.cefr.passingThreshold 参照) を下回る場合、UI 側でメッセージを表示する。",
           "responseId": "201-created",
           "bodyExpression": "{ scoreId: @newScore.id, score: @pronunciationScore, diff: @evalResult.diff }"
         },
