@@ -38,10 +38,17 @@ import { loadConventions } from "../../store/conventionsStore";
 import { checkScreenItemConventionReferences } from "../../schemas/conventionsValidator";
 import type { ConventionsCatalog, ConventionIssue } from "../../schemas/conventionsValidator";
 import { mcpBridge } from "../../mcp/mcpBridge";
+import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
+import { ReferenceCompletionInput } from "../common/ReferenceCompletionInput";
+import { handlerFlowIdResolver, handlerActionIdResolver } from "../../utils/reference-completer/workspaceResolver";
 import type {
   ScreenItem,
+  ScreenItemEvent,
   FieldType,
   Identifier,
+  ProcessFlowId,
+  LocalId,
+  ExpressionString,
 } from "../../types/v3";
 import type { ScreenItemsDocument } from "../../store/screenItemsStore";
 // #1016 follow-up (2026-05-20): listProcessFlows() の return type は frontend/src/types/flow の ProcessFlowMeta
@@ -86,6 +93,7 @@ export function ScreenItemsView() {
   const [lintIssues, setLintIssues] = useState<ConventionIssue[]>([]);
   const [expandedErrorRows, setExpandedErrorRows] = useState<Set<number>>(new Set());
   const [expandedDetailRows, setExpandedDetailRows] = useState<Set<number>>(new Set());
+  const [expandedEventRows, setExpandedEventRows] = useState<Set<number>>(new Set());
   const [processFlows, setProcessFlows] = useState<ProcessFlowMeta[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
   const [views, setViews] = useState<View[]>([]);
@@ -123,6 +131,9 @@ export function ScreenItemsView() {
   useEffect(() => {
     loadConventions().then(setConventions).catch(console.error);
   }, []);
+
+  // ワークスペース全参照情報 (handlerFlowId / handlerActionId 補完用、#1260 A)
+  const workspace = useWorkspaceReferences();
 
   // 処理フロー・テーブル・ビュー一覧をロード (valueFrom セレクタ用、列まで含む完全形)
   useEffect(() => {
@@ -338,6 +349,14 @@ export function ScreenItemsView() {
       return next;
     });
     setExpandedDetailRows((prev) => {
+      const next = new Set<number>();
+      for (const i of prev) {
+        if (i < idx) next.add(i);
+        else if (i > idx) next.add(i - 1);
+      }
+      return next;
+    });
+    setExpandedEventRows((prev) => {
       const next = new Set<number>();
       for (const i of prev) {
         if (i < idx) next.add(i);
@@ -654,11 +673,48 @@ export function ScreenItemsView() {
     });
   }, []);
 
+  const handleToggleEventRow = useCallback((idx: number) => {
+    setExpandedEventRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  }, []);
+
+  const handleAddEvent = useCallback((idx: number) => {
+    updateWithDraft((f) => {
+      const item = f.items[idx];
+      if (!item.events) item.events = [];
+      item.events.push({ id: "", handlerFlowId: "" as ProcessFlowId });
+    });
+    commit();
+  }, [updateWithDraft, commit]);
+
+  const handleRemoveEvent = useCallback((idx: number, eventIdx: number) => {
+    updateWithDraft((f) => {
+      const item = f.items[idx];
+      if (!item.events) return;
+      item.events.splice(eventIdx, 1);
+      if (item.events.length === 0) delete item.events;
+    });
+    commit();
+  }, [updateWithDraft, commit]);
+
+  const handleUpdateEvent = useCallback((idx: number, eventIdx: number, patch: Partial<ScreenItemEvent>) => {
+    updateSilentWithDraft((f) => {
+      const item = f.items[idx];
+      if (!item.events) return;
+      item.events[eventIdx] = { ...item.events[eventIdx], ...patch };
+    });
+  }, [updateSilentWithDraft]);
+
   // ファイル切替時に選択・展開状態をリセット
   useEffect(() => {
     setSelectedIndices(new Set());
     setExpandedErrorRows(new Set());
     setExpandedDetailRows(new Set());
+    setExpandedEventRows(new Set());
   }, [screenId]);
 
   const selectedScreenName = screens.find((s) => s.id === screenId)?.name;
@@ -963,6 +1019,15 @@ export function ScreenItemsView() {
                       </button>
                       <button
                         type="button"
+                        className={`btn btn-sm btn-link p-0 ${expandedEventRows.has(i) ? "text-primary" : "text-secondary"}`}
+                        onClick={() => handleToggleEventRow(i)}
+                        title="イベントを展開"
+                        aria-label="イベント展開"
+                      >
+                        <i className={`bi bi-${expandedEventRows.has(i) ? "lightning-fill" : "lightning"}`} />
+                      </button>
+                      <button
+                        type="button"
                         className="btn btn-sm btn-link text-secondary p-0"
                         onClick={() => handleResetItems([i])}
                         title="IDをリセット (自動採番形式に戻す)"
@@ -1124,6 +1189,159 @@ export function ScreenItemsView() {
                               />
                             </label>
                           ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {expandedEventRows.has(i) && (
+                    <tr className="screen-items-event-row">
+                      <td colSpan={11}>
+                        <div className="screen-items-event-list">
+                          {(item.events ?? []).map((ev, eIdx) => {
+                            const argEntries = Object.entries(ev.argumentMapping ?? {});
+                            return (
+                              <div key={eIdx} className="screen-items-event-card">
+                                <div className="screen-items-event-grid">
+                                  <label className="screen-items-event-field">
+                                    <span className="screen-items-event-label">id</span>
+                                    <input
+                                      className="form-control form-control-sm"
+                                      value={ev.id}
+                                      onChange={(e) => handleUpdateEvent(i, eIdx, { id: e.target.value })}
+                                      onBlur={commit}
+                                      placeholder="click"
+                                      disabled={isReadonly}
+                                    />
+                                  </label>
+                                  <label className="screen-items-event-field">
+                                    <span className="screen-items-event-label">label</span>
+                                    <input
+                                      className="form-control form-control-sm"
+                                      value={ev.label ?? ""}
+                                      onChange={(e) => handleUpdateEvent(i, eIdx, { label: e.target.value || undefined })}
+                                      onBlur={commit}
+                                      placeholder="クリック"
+                                      disabled={isReadonly}
+                                    />
+                                  </label>
+                                  <label className="screen-items-event-field">
+                                    <span className="screen-items-event-label">handlerFlowId</span>
+                                    <ReferenceCompletionInput
+                                      value={ev.handlerFlowId ?? ""}
+                                      onValueChange={(v) => handleUpdateEvent(i, eIdx, { handlerFlowId: v as ProcessFlowId })}
+                                      onCommit={commit}
+                                      resolvers={[handlerFlowIdResolver]}
+                                      ctx={{ fieldKind: "handlerFlowId", workspace }}
+                                      className="form-control form-control-sm"
+                                      placeholder="ProcessFlow ID"
+                                      disabled={isReadonly}
+                                    />
+                                  </label>
+                                  <label className="screen-items-event-field">
+                                    <span className="screen-items-event-label">handlerActionId</span>
+                                    <ReferenceCompletionInput
+                                      value={ev.handlerActionId ?? ""}
+                                      onValueChange={(v) => handleUpdateEvent(i, eIdx, { handlerActionId: (v || undefined) as LocalId | undefined })}
+                                      onCommit={commit}
+                                      resolvers={[handlerActionIdResolver]}
+                                      ctx={{ fieldKind: "handlerActionId", workspace, handlerFlowId: ev.handlerFlowId }}
+                                      className="form-control form-control-sm"
+                                      placeholder="action ID (省略時 actions[0])"
+                                      disabled={isReadonly}
+                                    />
+                                  </label>
+                                </div>
+                                <div className="screen-items-event-mapping">
+                                  <div className="screen-items-event-mapping-header">
+                                    <span className="screen-items-event-label">argumentMapping</span>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-link p-0"
+                                      onClick={() => {
+                                        const current = ev.argumentMapping ?? {};
+                                        if ("" in current) return; // 既に空キー行がある場合は追加しない
+                                        handleUpdateEvent(i, eIdx, { argumentMapping: { ...current, "": "" as ExpressionString } });
+                                      }}
+                                      disabled={isReadonly}
+                                      title="マッピング行を追加"
+                                    >
+                                      <i className="bi bi-plus-lg" /> 追加
+                                    </button>
+                                  </div>
+                                  {argEntries.length === 0 && (
+                                    <div className="screen-items-event-mapping-empty">なし</div>
+                                  )}
+                                  {argEntries.map(([k, v], aIdx) => (
+                                    <div key={aIdx} className="screen-items-event-mapping-row">
+                                      <input
+                                        className="form-control form-control-sm"
+                                        value={k}
+                                        onChange={(e) => {
+                                          const newKey = e.target.value;
+                                          // 自身以外の既存 key と衝突する場合は rename を拒否 (silent rollback)
+                                          const collision = argEntries.some(([kk, _vv], ii) => ii !== aIdx && kk === newKey && newKey !== "");
+                                          if (collision) return;
+                                          const next: Record<string, ExpressionString> = {};
+                                          argEntries.forEach(([kk, vv], ii) => {
+                                            next[ii === aIdx ? newKey : kk] = vv;
+                                          });
+                                          handleUpdateEvent(i, eIdx, { argumentMapping: next });
+                                        }}
+                                        onBlur={commit}
+                                        placeholder="action 引数名 (Identifier)"
+                                        disabled={isReadonly}
+                                      />
+                                      <span className="screen-items-event-mapping-eq">=</span>
+                                      <input
+                                        className="form-control form-control-sm"
+                                        value={v}
+                                        onChange={(e) => {
+                                          const next = { ...(ev.argumentMapping ?? {}) };
+                                          next[k] = e.target.value as ExpressionString;
+                                          handleUpdateEvent(i, eIdx, { argumentMapping: next });
+                                        }}
+                                        onBlur={commit}
+                                        placeholder="@screen.email"
+                                        disabled={isReadonly}
+                                      />
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-link text-danger p-0"
+                                        onClick={() => {
+                                          const next = { ...(ev.argumentMapping ?? {}) };
+                                          delete next[k];
+                                          handleUpdateEvent(i, eIdx, { argumentMapping: Object.keys(next).length > 0 ? next : undefined });
+                                        }}
+                                        disabled={isReadonly}
+                                        title="マッピング行を削除"
+                                      >
+                                        <i className="bi bi-x" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="screen-items-event-actions">
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-link text-danger p-0"
+                                    onClick={() => handleRemoveEvent(i, eIdx)}
+                                    disabled={isReadonly}
+                                    title="イベントを削除"
+                                  >
+                                    <i className="bi bi-x" /> イベント削除
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => handleAddEvent(i)}
+                            disabled={isReadonly}
+                          >
+                            <i className="bi bi-plus-lg me-1" /> イベント追加
+                          </button>
                         </div>
                       </td>
                     </tr>

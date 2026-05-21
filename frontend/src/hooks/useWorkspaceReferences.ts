@@ -12,6 +12,7 @@ import { loadProject } from "../store/flowStore";
 import { listTables } from "../store/tableStore";
 import { listViewDefinitions } from "../store/viewDefinitionStore";
 import { listGenericDefinitions } from "../store/genericDefinitionStore";
+import { loadProcessFlow } from "../store/processFlowStore";
 import { mcpBridge } from "../mcp/mcpBridge";
 import type { WorkspaceRefs } from "../utils/reference-completer/types";
 import type { ProjectCatalogs } from "../schemas/projectCatalogs";
@@ -41,76 +42,87 @@ export function useWorkspaceReferences(): WorkspaceRefs {
   const [refs, setRefs] = useState<WorkspaceRefs>(emptyRefs);
 
   const load = useCallback(() => {
-    Promise.allSettled([
-      loadProject(),
-      listTables(),
-      listViewDefinitions(),
-      listGenericDefinitions("ui-fragment"),
-      listGenericDefinitions("component-definition"),
-      listGenericDefinitions("exception-type"),
-      mcpBridge.request("loadProjectCatalogs").catch(() => null),
-    ]).then(
-      ([projectResult, tablesResult, viewDefsResult, fragmentsResult, componentsResult, exceptionsResult, catalogsResult]) => {
-        const projectData = projectResult.status === "fulfilled" ? projectResult.value : null;
-        const tablesData = tablesResult.status === "fulfilled" ? tablesResult.value : [];
-        const viewDefsData = viewDefsResult.status === "fulfilled" ? viewDefsResult.value : [];
-        const fragmentsData = fragmentsResult.status === "fulfilled" ? fragmentsResult.value : [];
-        const componentsData = componentsResult.status === "fulfilled" ? componentsResult.value : [];
-        const exceptionsData = exceptionsResult.status === "fulfilled" ? exceptionsResult.value : [];
-        const projectCatalogs = (catalogsResult.status === "fulfilled" ? catalogsResult.value : null) as ProjectCatalogs | null;
+    (async () => {
+      const [projectResult, tablesResult, viewDefsResult, fragmentsResult, componentsResult, exceptionsResult, catalogsResult] =
+        await Promise.allSettled([
+          loadProject(),
+          listTables(),
+          listViewDefinitions(),
+          listGenericDefinitions("ui-fragment"),
+          listGenericDefinitions("component-definition"),
+          listGenericDefinitions("exception-type"),
+          mcpBridge.request("loadProjectCatalogs").catch(() => null),
+        ]);
 
-        // processFlows は loadProject から meta 情報を取得
-        // actions は ProcessFlow を個別ロードしないと取れないため meta のみ
-        const processFlowMetas = projectData?.processFlows ?? [];
+      const projectData = projectResult.status === "fulfilled" ? projectResult.value : null;
+      const tablesData = tablesResult.status === "fulfilled" ? tablesResult.value : [];
+      const viewDefsData = viewDefsResult.status === "fulfilled" ? viewDefsResult.value : [];
+      const fragmentsData = fragmentsResult.status === "fulfilled" ? fragmentsResult.value : [];
+      const componentsData = componentsResult.status === "fulfilled" ? componentsResult.value : [];
+      const exceptionsData = exceptionsResult.status === "fulfilled" ? exceptionsResult.value : [];
+      const projectCatalogs = (catalogsResult.status === "fulfilled" ? catalogsResult.value : null) as ProjectCatalogs | null;
 
-        setRefs({
-          screens: (projectData?.screens ?? []).map((s) => ({
-            id: s.id,
-            name: s.name,
-            maturity: s.maturity,
-          })),
-          tables: tablesData.map((t) => ({
-            id: t.id,
-            physicalName: t.physicalName ?? "",
-            name: t.name,
-            maturity: t.maturity,
-          })),
-          viewDefinitions: viewDefsData.map((v) => ({
-            id: v.id as unknown as string,
-            name: v.name,
-            maturity: v.maturity,
-          })),
-          processFlows: processFlowMetas.map((f) => ({
+      // processFlows は loadProject から meta 情報を取得
+      // actions は各 ProcessFlow を parallel ロードして取得 (#1260 D)
+      const processFlowMetas = projectData?.processFlows ?? [];
+
+      // actions[] を eager parallel preload する
+      const actionsResults = await Promise.allSettled(
+        processFlowMetas.map((m) => loadProcessFlow(m.id as unknown as string)),
+      );
+
+      setRefs({
+        screens: (projectData?.screens ?? []).map((s) => ({
+          id: s.id,
+          name: s.name,
+          maturity: s.maturity,
+        })),
+        tables: tablesData.map((t) => ({
+          id: t.id,
+          physicalName: t.physicalName ?? "",
+          name: t.name,
+          maturity: t.maturity,
+        })),
+        viewDefinitions: viewDefsData.map((v) => ({
+          id: v.id as unknown as string,
+          name: v.name,
+          maturity: v.maturity,
+        })),
+        processFlows: processFlowMetas.map((f, idx) => {
+          const result = actionsResults[idx];
+          const loaded = result.status === "fulfilled" ? result.value : null;
+          return {
             id: f.id as unknown as string,
             name: f.name,
             kind: f.kind ?? "other",
             maturity: f.maturity,
-            // actions: ProcessFlowMeta には actions がないため省略
-            actions: undefined,
-          })),
-          fragments: fragmentsData.map((d) => ({ name: d.name })),
-          components: componentsData.map((d) => ({ name: d.name })),
-          exceptionTypes: exceptionsData.map((d) => ({ name: d.name })),
-          modelEndpoints: Object.keys(projectCatalogs?.modelEndpoints ?? {}).map((id) => ({
-            id,
-            name: id,
-          })),
-          secrets: Object.keys(projectCatalogs?.secrets ?? {}).map((id) => ({
-            id,
-            name: id,
-          })),
-          events: Object.keys(projectCatalogs?.events ?? {}).map((topic) => ({
-            topic,
-          })),
-        });
-      },
-    ).catch(() => {
+            actions: loaded?.actions?.map((a) => ({ id: a.id as unknown as string, name: a.name })),
+          };
+        }),
+        fragments: fragmentsData.map((d) => ({ name: d.name })),
+        components: componentsData.map((d) => ({ name: d.name })),
+        exceptionTypes: exceptionsData.map((d) => ({ name: d.name })),
+        modelEndpoints: Object.keys(projectCatalogs?.modelEndpoints ?? {}).map((id) => ({
+          id,
+          name: id,
+        })),
+        secrets: Object.keys(projectCatalogs?.secrets ?? {}).map((id) => ({
+          id,
+          name: id,
+        })),
+        events: Object.keys(projectCatalogs?.events ?? {}).map((topic) => ({
+          topic,
+        })),
+      });
+    })().catch(() => {
       // ロード失敗時は空のまま (UI は degraded state で動作継続)
     });
   }, []);
 
   useEffect(() => {
     load();
+    const unsub = mcpBridge.onBroadcast("processFlowChanged", load);
+    return unsub;
   }, [load]);
 
   return refs;
