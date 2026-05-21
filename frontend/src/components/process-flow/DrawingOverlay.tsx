@@ -1,4 +1,3 @@
-// @ts-nocheck -- v3 strict 型移行 (#1186 Phase 2-E) で loose access パターン露呈、proper narrow は #1016 で deferred
 /**
  * 赤線 free-form マーカー オーバーレイ (#261)
  *
@@ -73,9 +72,10 @@ function AnchoredMarker({
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   useLayoutEffect(() => {
-    const stepId = marker.shape?.anchorStepId;
+    // v3: shape は Marker.anchor.shape に移動 (旧: Marker.shape.anchorStepId は S-9 パターン)
+    const stepId = marker.anchor?.stepId;
     if (!stepId) return;
-    const fieldPath = marker.shape?.anchorFieldPath;
+    const fieldPath = marker.anchor?.fieldPath;
     const selector = fieldPath
       ? `[data-step-id="${CSS.escape(stepId)}"] [data-field-path="${CSS.escape(fieldPath)}"]`
       : `[data-step-id="${CSS.escape(stepId)}"]`;
@@ -110,9 +110,9 @@ function AnchoredMarker({
       window.removeEventListener("scroll", measure, true);
       window.removeEventListener("resize", measure);
     };
-  }, [marker.shape?.anchorStepId, marker.shape?.anchorFieldPath]);
+  }, [marker.anchor?.stepId, marker.anchor?.fieldPath]);
 
-  const shape = marker.shape;
+  const shape = marker.anchor?.shape;
   if (!shape || !rect) return null;
 
   return (
@@ -268,10 +268,10 @@ export function DrawingOverlay({ markers, drawing, onCommitStrokes, onEraseMarke
     setStrokes((s) => s.slice(0, -1));
   };
 
-  // 既存 marker を anchor 有無で分割
-  const visibleMarkers = markers.filter((m) => m.shape && m.shape.type === "path" && !m.resolvedAt);
-  const anchoredMarkers = visibleMarkers.filter((m) => m.shape?.anchorStepId);
-  const floatingMarkers = visibleMarkers.filter((m) => !m.shape?.anchorStepId);
+  // 既存 marker を anchor 有無で分割 (v3: shape は Marker.anchor.shape, kind は "path")
+  const visibleMarkers = markers.filter((m) => m.anchor?.shape && m.anchor.shape.kind === "path" && !m.resolvedAt);
+  const anchoredMarkers = visibleMarkers.filter((m) => m.anchor?.stepId);
+  const floatingMarkers = visibleMarkers.filter((m) => !m.anchor?.stepId);
 
   const eraserMode = drawing && tool === "eraser";
 
@@ -303,7 +303,7 @@ export function DrawingOverlay({ markers, drawing, onCommitStrokes, onEraseMarke
       >
         {/* anchor なし marker (overlay 全体の % で描画) */}
         {floatingMarkers.map((m) => {
-          const s = m.shape!;
+          const s = m.anchor!.shape!;
           return (
             <path
               key={m.id}
