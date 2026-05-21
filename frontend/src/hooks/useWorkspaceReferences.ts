@@ -81,9 +81,9 @@ export function useWorkspaceReferences(): WorkspaceRefs {
             maturity: v.maturity,
           })),
           processFlows: processFlowMetas.map((f) => ({
-            id: f.id,
+            id: f.id as unknown as string,
             name: f.name,
-            kind: f.kind,
+            kind: f.kind ?? "other",
             maturity: f.maturity,
             // actions: ProcessFlowMeta には actions がないため省略
             actions: undefined,
