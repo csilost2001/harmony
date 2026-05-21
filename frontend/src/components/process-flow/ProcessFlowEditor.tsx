@@ -1,5 +1,3 @@
-// @ts-nocheck -- large legacy editor migration remains open; tracked by #1016.
-//
 // Phase-3 (#1145): 94KB → 30KB 目標で以下を抽出:
 //   - internal/PaletteButtons.tsx (ToolbarStepButton / StepInsertZone / EmptyFlowDropZone / CustomStepButton)
 //   - internal/ActionHelpPopover.tsx
@@ -19,6 +17,9 @@ import type {
   ActionTrigger,
   Step,
   StepKind as StepType,
+  Uuid,
+  LocalId,
+  Timestamp,
 } from "../../types/v3";
 import { STEP_TEMPLATES, STEP_TYPE_LABELS } from "../../utils/processFlowMetadata";
 import {
@@ -32,7 +33,7 @@ import {
   addSubStep,
 } from "../../store/processFlowStore";
 import { applyProcessFlowMutation } from "./processFlowMutation";
-import { clearJumpReferences } from "../../utils/actionUtils";
+import { clearJumpReferences, type StepWithSubSteps } from "../../utils/actionUtils";
 import { hasBlockingErrors } from "../../utils/actionValidation";
 import { aggregateValidation } from "../../utils/aggregatedValidation";
 import { generateUUID } from "../../utils/uuid";
@@ -70,6 +71,7 @@ import { AddActionModal } from "./internal/AddActionModal";
 import { StepContextMenu } from "./internal/StepContextMenu";
 import { WarningsPanel } from "./internal/WarningsPanel";
 import { ALL_STEP_TYPES } from "./internal/stepCardConstants";
+import { getActionTriggerLabel } from "./internal/actionTriggerConstants";
 import { ProcessFlowDialogs } from "./internal/ProcessFlowDialogs";
 import { useProcessFlowCatalogs } from "./internal/useProcessFlowCatalogs";
 import { useActionHelpPopover } from "./internal/useActionHelpPopover";
@@ -193,7 +195,8 @@ export function ProcessFlowEditor() {
     onNotFound: handleNotFound,
     onLoaded: handleLoaded,
     // #891 fix: viewer mode で mid-edit broadcast を受信するため渡す
-    viewerMode: mode.kind,
+    // mode.kind の全バリアントを useResourceEditor の制限型にキャスト (非 viewer 値は内部で無視される)
+    viewerMode: mode.kind as "viewer" | "editing" | "readonly" | undefined,
     viewerResourceType: "process-flow",
     viewerEditSessionId: editSession?.id,
   });
@@ -451,7 +454,7 @@ export function ProcessFlowEditor() {
     updateGroupWithDraft((g) => {
       const act = g.actions.find((a) => a.id === activeActionId);
       if (!act) return;
-      for (const stepDef of tpl.steps) {
+      for (const stepDef of (tpl.steps ?? [])) {
         const step = { ...stepDef, id: generateUUID() } as Step;
         act.steps.push(step);
       }
@@ -481,9 +484,9 @@ export function ProcessFlowEditor() {
       const idx = act.steps.findIndex((s) => s.id === stepId);
       if (idx <= 0) return;
       const stepToMove = act.steps[idx];
-      const target = { ...act.steps[idx - 1] };
+      const target = { ...act.steps[idx - 1] } as StepWithSubSteps;
       target.subSteps = [...(target.subSteps ?? []), stepToMove];
-      act.steps[idx - 1] = target;
+      act.steps[idx - 1] = target as unknown as Step;
       act.steps.splice(idx, 1);
     });
   };
@@ -494,11 +497,11 @@ export function ProcessFlowEditor() {
       if (!act) return;
       const parentIdx = act.steps.findIndex((s) => s.id === parentStepId);
       if (parentIdx < 0) return;
-      const parent = act.steps[parentIdx];
+      const parent = act.steps[parentIdx] as StepWithSubSteps;
       const subIdx = (parent.subSteps ?? []).findIndex((s) => s.id === subStepId);
       if (subIdx < 0) return;
       const subStep = parent.subSteps![subIdx];
-      act.steps[parentIdx] = { ...parent, subSteps: parent.subSteps!.filter((s) => s.id !== subStepId) };
+      act.steps[parentIdx] = { ...parent, subSteps: parent.subSteps!.filter((s) => s.id !== subStepId) } as unknown as Step;
       act.steps.splice(parentIdx + 1, 0, subStep);
     });
   };
@@ -571,9 +574,10 @@ export function ProcessFlowEditor() {
       const idx = act.steps.findIndex((s) => s.id === stepId);
       if (idx < 0) return;
       const clone = JSON.parse(JSON.stringify(act.steps[idx])) as Step;
-      clone.id = generateUUID();
-      if (clone.subSteps) {
-        clone.subSteps = clone.subSteps.map((s) => ({ ...s, id: generateUUID() }));
+      clone.id = generateUUID() as LocalId;
+      const cloneWithSubs = clone as StepWithSubSteps;
+      if (cloneWithSubs.subSteps) {
+        cloneWithSubs.subSteps = cloneWithSubs.subSteps.map((s) => ({ ...s, id: generateUUID() as LocalId }));
       }
       act.steps.splice(idx + 1, 0, clone);
     });
@@ -650,9 +654,10 @@ export function ProcessFlowEditor() {
       if (!act) return;
       const newSteps = clipboard.steps.map((s) => {
         const clone = JSON.parse(JSON.stringify(s)) as Step;
-        clone.id = generateUUID();
-        if (clone.subSteps) {
-          clone.subSteps = clone.subSteps.map((sub: Step) => ({ ...sub, id: generateUUID() }));
+        clone.id = generateUUID() as LocalId;
+        const cloneWithSubs = clone as StepWithSubSteps;
+        if (cloneWithSubs.subSteps) {
+          cloneWithSubs.subSteps = cloneWithSubs.subSteps.map((sub) => ({ ...sub, id: generateUUID() as LocalId }));
         }
         return clone;
       });
@@ -746,21 +751,21 @@ export function ProcessFlowEditor() {
       // (anchor.shape は常に記録するので DrawingOverlay の位置追従は効く)。
       const isMetaTabAnchor = shape.anchorStepId?.startsWith("__meta-tab-") ?? false;
       g.authoring = { ...(g.authoring ?? {}), markers: [...(g.authoring?.markers ?? []), {
-        id: generateUUID(),
-        kind: "todo",
+        id: generateUUID() as Uuid,
+        kind: "todo" as const,
         body: body.trim(),
         anchor: {
-          stepId: isMetaTabAnchor ? undefined : shape.anchorStepId,
+          stepId: (isMetaTabAnchor ? undefined : shape.anchorStepId) as LocalId | undefined,
           fieldPath: isMetaTabAnchor ? undefined : shape.anchorFieldPath,
           shape: {
-            kind: "path",
+            kind: "path" as const,
             d: shape.d,
             color: shape.color,
             strokeWidth: shape.strokeWidth,
           },
         },
-        author: "human",
-        createdAt: new Date().toISOString(),
+        author: "human" as const,
+        createdAt: new Date().toISOString() as Timestamp,
       }] };
     });
     setDrawingMode(false);
@@ -812,8 +817,8 @@ export function ProcessFlowEditor() {
         showAiGenerateDialog={showAiGenerateDialog}
         showAiReviewDialog={showAiReviewDialog}
         serverChanged={serverChanged}
-        onForcedOutChoice={(choice) => editActions.handleForcedOut(choice)}
-        onAfterForceUnlockChoice={(choice) => editActions.handleAfterForceUnlock(choice)}
+        onForcedOutChoice={(choice) => editActions.handleForcedOut(choice as "continue" | "discard" | "adopt")}
+        onAfterForceUnlockChoice={(choice) => editActions.handleAfterForceUnlock(choice as "continue" | "discard" | "adopt")}
         onResumeContinue={handleResumeContinue}
         onResumeDiscard={handleResumeDiscard}
         onCancelResume={() => setShowResumeDialog(false)}
@@ -858,11 +863,11 @@ export function ProcessFlowEditor() {
         onAddAiDiffMarker={(body) => {
           updateGroupWithDraft((g) => {
             const m = {
-              id: generateUUID(),
+              id: generateUUID() as Uuid,
               kind: "chat" as const,
               body,
               author: "human" as const,
-              createdAt: new Date().toISOString(),
+              createdAt: new Date().toISOString() as Timestamp,
             };
             g.authoring = {
               ...(g.authoring ?? {}),

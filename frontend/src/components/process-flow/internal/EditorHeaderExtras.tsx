@@ -20,8 +20,8 @@ export interface EditorHeaderExtrasProps {
   onToggleDrawing: () => void;
   onToggleWarnings: () => void;
   onStartEditing: () => void;
-  onViewerAttached: () => void;
-  onAttachAsView: () => Promise<void>;
+  onViewerAttached: (editSessionId: string) => void;
+  onAttachAsView: (editSessionId: string) => Promise<void>;
   onTakeOver: () => Promise<void>;
 }
 

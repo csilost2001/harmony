@@ -1,7 +1,7 @@
 // Phase-3 (#1145): ProcessFlowEditor.tsx からアクションタブ + 検索 + ActionHelpPopover 統合を抽出。
 // 「コマンドバー」エリア全体 (アクション名 / 検索ボックス / タブ / popover / EditLevelToggle)。
 
-import type { ActionDefinition, ProcessFlow } from "../../../types/v3";
+import type { ActionDefinition, ProcessFlow, Maturity } from "../../../types/v3";
 import { MaturityBadge } from "../MaturityBadge";
 import { EditLevelToggle } from "../EditLevelToggle";
 import { ActionHelpPopover } from "./ActionHelpPopover";
@@ -23,7 +23,7 @@ export interface ActionTabBarProps {
   editLevel: import("../../../hooks/useEditLevel").EditLevel;
   onChangeEditLevel: (lv: import("../../../hooks/useEditLevel").EditLevel) => void;
   /** アクション maturity の更新 */
-  onChangeActionMaturity: (actionId: string, maturity: string) => void;
+  onChangeActionMaturity: (actionId: string, maturity: Maturity) => void;
   /** ActionHelpPopover */
   actionHelp: ActionHelpState | null;
   actionHelpTarget: ActionDefinition | null;

@@ -27,7 +27,7 @@ export interface CanvasPaneProps {
   selectedIds: Set<string>;
   validationErrors: ValidationError[];
   editLevel: EditLevel;
-  stepListRef: RefObject<HTMLDivElement>;
+  stepListRef: RefObject<HTMLDivElement | null>;
   aiChips: UseAiContextChipsResult;
   aiPanelRef: RefObject<HTMLDivElement | null>;
   /** step 操作 */
