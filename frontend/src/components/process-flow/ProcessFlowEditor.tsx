@@ -738,20 +738,27 @@ export function ProcessFlowEditor() {
     );
     if (!body || !body.trim()) return;
     updateGroupWithDraft((g) => {
-      // anchor があれば Marker.stepId / fieldPath にも自動反映:
-      // /designer-work スラッシュコマンドは stepId / fieldPath を既存で読むので、
+      // anchor があれば Marker.anchor.stepId / anchor.fieldPath に反映:
+      // /designer-work スラッシュコマンドは anchor.stepId / anchor.fieldPath を読むので、
       // AI 側は「どの step のどのフィールドへの指示か」を即座に把握できる。
       // ただし __meta-tab-* は ActionMetaTabBar の body 用擬似 ID (#309 フォローアップ) で
-      // 実 step ID ではないため、Marker.stepId / fieldPath にはコピーしない
-      // (shape.anchorStepId 側に残るので DrawingOverlay の位置追従は効く)。
+      // 実 step ID ではないため、anchor.stepId / anchor.fieldPath にはコピーしない
+      // (anchor.shape は常に記録するので DrawingOverlay の位置追従は効く)。
       const isMetaTabAnchor = shape.anchorStepId?.startsWith("__meta-tab-") ?? false;
       g.authoring = { ...(g.authoring ?? {}), markers: [...(g.authoring?.markers ?? []), {
         id: generateUUID(),
         kind: "todo",
         body: body.trim(),
-        shape,
-        stepId: isMetaTabAnchor ? undefined : shape.anchorStepId,
-        fieldPath: isMetaTabAnchor ? undefined : shape.anchorFieldPath,
+        anchor: {
+          stepId: isMetaTabAnchor ? undefined : shape.anchorStepId,
+          fieldPath: isMetaTabAnchor ? undefined : shape.anchorFieldPath,
+          shape: {
+            kind: "path",
+            d: shape.d,
+            color: shape.color,
+            strokeWidth: shape.strokeWidth,
+          },
+        },
         author: "human",
         createdAt: new Date().toISOString(),
       }] };

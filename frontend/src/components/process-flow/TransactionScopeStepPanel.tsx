@@ -1,4 +1,3 @@
-// @ts-nocheck -- legacy process-flow action panel types are being migrated; tracked by #1016.
 import { useState } from "react";
 // #1186 Phase 2-B: types/action → types/v3 + processFlowMetadata 移行
 import type {
@@ -6,12 +5,10 @@ import type {
   StepKind as StepType,
   TransactionScopeStep,
   ProcessFlow,
+  ErrorCode,
+  LocalId,
 } from "../../types/v3";
-// TransactionIsolationLevel / TransactionPropagation は action.ts に string 緩和あり、v3 strict 化は Phase 2-D
-import type {
-  TransactionIsolationLevel,
-  TransactionPropagation,
-} from "../../types/v3";
+import type { StepWithSubSteps } from "../../utils/actionUtils";
 import {
   STEP_TYPE_LABELS,
   STEP_TYPE_ICONS,
@@ -39,13 +36,13 @@ interface Props {
   onNavigateCommon: (refId: string) => void;
 }
 
-const ISOLATION_LEVELS: Array<{ value: TransactionIsolationLevel; label: string }> = [
+const ISOLATION_LEVELS: Array<{ value: NonNullable<TransactionScopeStep["isolationLevel"]>; label: string }> = [
   { value: "READ_COMMITTED", label: "READ_COMMITTED (commit 済データのみ可視・既定)" },
   { value: "REPEATABLE_READ", label: "REPEATABLE_READ (同 TX 内で同じ行は安定)" },
   { value: "SERIALIZABLE", label: "SERIALIZABLE (直列実行と等価・最厳)" },
 ];
 
-const PROPAGATIONS: Array<{ value: TransactionPropagation; label: string }> = [
+const PROPAGATIONS: Array<{ value: NonNullable<TransactionScopeStep["propagation"]>; label: string }> = [
   { value: "REQUIRED", label: "REQUIRED (既存 TX に参加・既定)" },
   { value: "REQUIRES_NEW", label: "REQUIRES_NEW (既存を一時停止して新規 TX)" },
   { value: "NESTED", label: "NESTED (savepoint で部分 rollback 可)" },
@@ -137,7 +134,7 @@ function InlineStepList({
             }}
             onDuplicate={() => {
               const clone = JSON.parse(JSON.stringify(step)) as Step;
-              clone.id = generateUUID();
+              clone.id = generateUUID() as LocalId;
               const arr = steps.slice();
               arr.splice(si + 1, 0, clone);
               onChange(arr);
@@ -146,7 +143,8 @@ function InlineStepList({
             onAddSubStep={(type) => {
               const newSub = createDefaultStep(type);
               const arr = steps.slice();
-              arr[si] = { ...arr[si], subSteps: [...(arr[si].subSteps ?? []), newSub] } as Step;
+              const cur = arr[si] as StepWithSubSteps;
+              arr[si] = { ...cur, subSteps: [...(cur.subSteps ?? []), newSub] } as unknown as Step;
               onChange(arr);
               onCommit?.();
             }}
@@ -195,11 +193,11 @@ export function TransactionScopeStepPanel({
   const [onRollbackOpen, setOnRollbackOpen] = useState((step.onRollback ?? []).length > 0);
 
   // context.catalogs.errors の key 候補
-  const errorCodes = Object.keys(group?.context?.catalogs?.errors ?? {});
-  const selectedErrorCodes = new Set(step.rollbackOn ?? []);
+  const errorCodes = Object.keys(group?.context?.catalogs?.errors ?? {}) as ErrorCode[];
+  const selectedErrorCodes = new Set<ErrorCode>(step.rollbackOn ?? []);
 
-  const toggleRollbackCode = (code: string) => {
-    const next = new Set(selectedErrorCodes);
+  const toggleRollbackCode = (code: ErrorCode) => {
+    const next = new Set<ErrorCode>(selectedErrorCodes);
     if (next.has(code)) next.delete(code);
     else next.add(code);
     const arr = Array.from(next);
@@ -219,7 +217,7 @@ export function TransactionScopeStepPanel({
             className="form-select form-select-sm"
             value={step.isolationLevel ?? "READ_COMMITTED"}
             onChange={(e) => {
-              onChange({ isolationLevel: e.target.value as TransactionIsolationLevel });
+              onChange({ isolationLevel: e.target.value as TransactionScopeStep["isolationLevel"] });
               onCommit?.();
             }}
           >
@@ -237,7 +235,7 @@ export function TransactionScopeStepPanel({
             className="form-select form-select-sm"
             value={step.propagation ?? "REQUIRED"}
             onChange={(e) => {
-              onChange({ propagation: e.target.value as TransactionPropagation });
+              onChange({ propagation: e.target.value as TransactionScopeStep["propagation"] });
               onCommit?.();
             }}
           >
