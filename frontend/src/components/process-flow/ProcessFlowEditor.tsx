@@ -80,6 +80,7 @@ import { PalettePanel } from "./internal/PalettePanel";
 import { InspectorPanel } from "./internal/InspectorPanel";
 import { CanvasPane } from "./internal/CanvasPane";
 import { EditorHeaderExtras } from "./internal/EditorHeaderExtras";
+import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
 
 export function ProcessFlowEditor() {
   const { processFlowId } = useParams<{ processFlowId: string }>();
@@ -202,6 +203,9 @@ export function ProcessFlowEditor() {
   });
 
   const isReadonly = mode.kind !== "editing";
+
+  // #1258 workspace 参照情報 (componentRef / modelRef 補完用)
+  const workspace = useWorkspaceReferences();
 
   // ProcessFlowEditor の live 状態を mcpBridge に公開 (#361 browser-first)
   const groupRef = useRef<ProcessFlow | null>(null);
@@ -975,6 +979,7 @@ export function ProcessFlowEditor() {
               screens={screens}
               commonGroups={commonGroups}
               conventions={conventions}
+              workspace={workspace}
               isReadonly={isReadonly}
               isDraggingToolbarStep={isDraggingToolbarStep}
               clipboard={clipboard}

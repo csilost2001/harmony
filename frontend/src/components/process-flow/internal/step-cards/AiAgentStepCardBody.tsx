@@ -3,16 +3,23 @@
 // AiAgentStep: modelRef + messages + tools (1 件以上必須) + maxIterations。
 // multi-step agent loop。tool が無い single-shot は AiCallStep を使う。
 // #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<AiAgentStep> で type narrow、@ts-nocheck 除去。
+// #1258 follow-up: modelRef を ReferenceCompletionInput に置換して補完対応。
 
 import type { AiAgentStep, Identifier } from "../../../../types/v3";
+import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
+import { modelRefResolver } from "../../../../utils/reference-completer/workspaceResolver";
+import { ReferenceCompletionInput } from "../../../common/ReferenceCompletionInput";
 import type { StepCardBodyBaseProps } from "./types";
 
-export type AiAgentStepCardBodyProps = StepCardBodyBaseProps<AiAgentStep>;
+export interface AiAgentStepCardBodyProps extends StepCardBodyBaseProps<AiAgentStep> {
+  workspace?: WorkspaceRefs;
+}
 
 export function AiAgentStepCardBody({
   step,
   onChange,
   onCommit,
+  workspace,
 }: AiAgentStepCardBodyProps) {
   const messages = Array.isArray(step.messages) ? step.messages : [];
   const tools = Array.isArray(step.tools) ? step.tools : [];
@@ -24,12 +31,13 @@ export function AiAgentStepCardBody({
             <i className="bi bi-robot me-1" />
             modelRef
           </label>
-          <input
-            type="text"
-            className="form-control form-control-sm"
+          <ReferenceCompletionInput
             value={step.modelRef ?? ""}
-            onChange={(e) => onChange({ modelRef: e.target.value as Identifier })}
-            onBlur={onCommit}
+            onValueChange={(v) => onChange({ modelRef: v as Identifier })}
+            onCommit={onCommit}
+            resolvers={[modelRefResolver]}
+            ctx={{ fieldKind: "modelRef", workspace }}
+            className="form-control form-control-sm"
             placeholder="例: agentModel"
             style={{ fontFamily: "monospace", fontSize: "0.85rem" }}
           />

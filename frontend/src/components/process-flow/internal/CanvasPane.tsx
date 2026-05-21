@@ -12,6 +12,7 @@ import { generateUUID } from "../../../utils/uuid";
 import type { ValidationError } from "../../../utils/actionValidation";
 import type { UseAiContextChipsResult } from "../../../hooks/useAiContextChips";
 import type { EditLevel } from "../../../hooks/useEditLevel";
+import type { WorkspaceRefs } from "../../../utils/reference-completer/types";
 
 export interface CanvasPaneProps {
   group: ProcessFlow | null;
@@ -51,6 +52,8 @@ export interface CanvasPaneProps {
   setSelectedIds: (ids: Set<string>) => void;
   /** 最終選択 ref (Shift+Click 範囲選択用) */
   lastSelectedIdRef: { current: string | null };
+  /** #1258 workspace 参照情報 (componentRef / modelRef 補完用) */
+  workspace?: WorkspaceRefs;
 }
 
 export function CanvasPane({
@@ -86,6 +89,7 @@ export function CanvasPane({
   onContextMenu,
   setSelectedIds,
   lastSelectedIdRef,
+  workspace,
 }: CanvasPaneProps) {
   return (
     <main className="process-flow-canvas-pane">
@@ -171,6 +175,7 @@ export function CanvasPane({
                           tables={tables}
                           screens={screens}
                           commonGroups={commonGroups}
+                          workspace={workspace}
                           onChange={(changes) => handleStepChange(step.id, changes)}
                           onCommit={commitGroup}
                           onMoveUp={

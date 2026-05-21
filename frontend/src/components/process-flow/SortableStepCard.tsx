@@ -5,6 +5,7 @@ import { StepCard } from "./StepCard";
 import type { ProcessFlow, Step, StepKind as StepType } from "../../types/v3";
 import type { ValidationError } from "../../utils/actionValidation";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
+import type { WorkspaceRefs } from "../../utils/reference-completer/types";
 
 interface SortableStepCardProps {
   step: Step;
@@ -40,6 +41,8 @@ interface SortableStepCardProps {
   /** #1076 AI 依頼ボタン押下時のコールバック */
   onAskAi?: () => void;
   readOnly?: boolean;
+  /** #1258 workspace 参照情報 (componentRef / modelRef 補完用) */
+  workspace?: WorkspaceRefs;
 }
 
 export function SortableStepCard({ step, readOnly = false, ...props }: SortableStepCardProps) {
