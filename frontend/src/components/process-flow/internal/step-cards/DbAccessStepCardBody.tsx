@@ -1,21 +1,30 @@
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "dbAccess"` body を抽出。
 // #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<DbAccessStep> で type narrow、@ts-nocheck 除去。
+// Phase-3 (#1255): SQL body textarea に @conv / @stepResult / @inputs / @fieldErrors 補完を追加。
 
 import type { DbAccessStep, DbOperation, TableId, ErrorCode } from "../../../../types/v3";
 import { DB_OPERATION_LABELS } from "../../../../utils/processFlowMetadata";
 import { DB_OPS } from "../stepCardConstants";
-import type { StepCardBodyBaseProps, StepCardBodyTableProps } from "./types";
+import type { StepCardBodyBaseProps, StepCardBodyCatalogProps, StepCardBodyTableProps } from "./types";
+import { ReferenceCompletionTextarea } from "../../../common/ReferenceCompletionTextarea";
+import { convResolver } from "../../../../utils/reference-completer/convResolver";
+import { ALL_PROCESS_FLOW_SCOPE_RESOLVERS } from "../../../../utils/reference-completer/processFlowScopeResolver";
 
 export interface DbAccessStepCardBodyProps
   extends StepCardBodyBaseProps<DbAccessStep>,
-    StepCardBodyTableProps {}
+    StepCardBodyTableProps,
+    Partial<StepCardBodyCatalogProps> {}
 
 export function DbAccessStepCardBody({
   step,
   tables,
   onChange,
   onCommit,
+  conventions,
+  group,
 }: DbAccessStepCardBodyProps) {
+  const sqlResolvers = [convResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS];
+  const sqlCtx = { conventions: conventions ?? null, flow: group ?? undefined };
   return (
     <>
       <div className="form-group">
@@ -59,12 +68,14 @@ export function DbAccessStepCardBody({
       </div>
       <div className="form-group" data-field-path="sql">
         <label className="form-label">完全 SQL (sql、fields より優先)</label>
-        <textarea
+        <ReferenceCompletionTextarea
+          value={step.sql ?? ""}
+          onValueChange={(v) => onChange({ sql: v || undefined })}
+          onCommit={onCommit}
+          resolvers={sqlResolvers}
+          ctx={sqlCtx}
           className="form-control form-control-sm"
           rows={2}
-          value={step.sql ?? ""}
-          onChange={(e) => onChange({ sql: e.target.value || undefined })}
-          onBlur={onCommit}
           placeholder="例: SELECT ... JOIN ... WHERE ... / INSERT ... RETURNING ..."
           style={{ fontFamily: "monospace", fontSize: "0.8rem" }}
         />

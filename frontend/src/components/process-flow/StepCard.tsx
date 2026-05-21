@@ -589,6 +589,8 @@ export function StepCard({
                   onChange={onChange}
                   onCommit={onCommit}
                   readOnly={readOnly}
+                  conventions={conventions}
+                  group={group}
                 />
               )}
 
