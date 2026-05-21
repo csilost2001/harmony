@@ -17,7 +17,7 @@ export const stepResultResolver: Resolver = {
     if (!ctx.flow) return null;
 
     const before = value.slice(0, cursorPos);
-    const m = before.match(/@stepResult(?:\.([\w-]*)(?:\.([\w-]*))?)?$/);
+    const m = before.match(/@stepResult\.([\w-]*)(?:\.([\w-]*))?$/);
     if (!m) return null;
 
     const stepIdPart = m[1];
