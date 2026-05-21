@@ -79,9 +79,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
           {keys.length === 0 && <div className="catalog-empty">まだエントリがありません。</div>}
           {keys.map((k) => {
             const e = catalog[k];
-            // S-8 note: ExternalAuth.kind が "iamRole"/"azureAd" を含む ExternalAuthKind より狭いため
-            // 局所キャストで UI 機能 (7 auth kind) を維持する (#1233 Batch 4a)
-            const auth = (e.auth ?? { kind: "none" }) as { kind: ExternalAuthKind; tokenRef?: string; headerName?: string };
+            const auth: ExternalAuth = e.auth ?? { kind: "none" };
             return (
               <div className="catalog-row" key={k}>
                 <div className="catalog-row-header">
@@ -129,7 +127,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
                     <select
                       className="form-select form-select-sm"
                       value={auth.kind}
-                      onChange={(ev) => updateEntry(k, { auth: { ...auth, kind: ev.target.value as ExternalAuthKind } as ExternalAuth })}
+                      onChange={(ev) => updateEntry(k, { auth: { ...auth, kind: ev.target.value as ExternalAuthKind } })}
                     >
                       {AUTH_KINDS.map((a) => <option key={a} value={a}>{a}</option>)}
                     </select>
@@ -140,7 +138,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
                       <select
                         className="form-select form-select-sm"
                         value={auth.tokenRef ?? ""}
-                        onChange={(ev) => updateEntry(k, { auth: { ...auth, tokenRef: ev.target.value || undefined } as ExternalAuth })}
+                        onChange={(ev) => updateEntry(k, { auth: { ...auth, tokenRef: ev.target.value || undefined } })}
                       >
                         <option value="">—</option>
                         {secretKeys.map((s) => <option key={s} value={`@secret.${s}`}>@secret.{s}</option>)}
@@ -149,7 +147,7 @@ export function ExternalSystemCatalogPanel({ group, onChange, expanded: expanded
                       <input
                         className="form-control form-control-sm"
                         value={auth.tokenRef ?? ""}
-                        onChange={(ev) => updateEntry(k, { auth: { ...auth, tokenRef: ev.target.value || undefined } as ExternalAuth })}
+                        onChange={(ev) => updateEntry(k, { auth: { ...auth, tokenRef: ev.target.value || undefined } })}
                         placeholder="ENV:STRIPE_SECRET_KEY or @secret.X"
                       />
                     )}

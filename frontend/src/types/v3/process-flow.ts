@@ -107,9 +107,13 @@ export interface ErrorCatalogEntry {
   exceptionTypeRef?: string;
 }
 
+/** 外部システム認証種別 (process-flow.v3 ExternalAuth.kind enum と完全一致、7 値)。
+ *  iamRole / azureAd は #867 / #939 で AWS Bedrock / Azure OpenAI 認証用に追加。 */
+export type ExternalAuthKind = "bearer" | "basic" | "apiKey" | "oauth2" | "iamRole" | "azureAd" | "none";
+
 /** 外部システム認証定義 (旧 ENV: / SECRET: 形式は v3 廃止、@secret.<key> 推奨)。 */
 export interface ExternalAuth {
-  kind: "bearer" | "basic" | "apiKey" | "oauth2" | "none";
+  kind: ExternalAuthKind;
   /** `@secret.<key>` 推奨。 */
   tokenRef?: string;
   headerName?: string;
