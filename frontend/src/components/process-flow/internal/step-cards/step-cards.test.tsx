@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-2 (#1145): step-cards/ 配下 15 個の sub-component の最小 rendering test。
 //
 // 各 sub-component は StepCard.tsx から純粋に抽出されたもの。本テストは
