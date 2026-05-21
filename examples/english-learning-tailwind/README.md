@@ -87,7 +87,7 @@ npm run dev
 `examples/**/*.json` は schema 検証 test に組み込まれる。schema 進化時に本サンプルが breakage したら CI で検出。
 
 ```bash
-npm --prefix designer run validate:samples -- ../examples/english-learning-tailwind
+cd frontend && npm run validate:samples -- ../examples/english-learning-tailwind
 ```
 
 ## 関連
