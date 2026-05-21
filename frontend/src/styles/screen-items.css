@@ -188,6 +188,71 @@
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 
+/* イベント (#624) 展開行 (#1260) */
+.screen-items-event-row > td {
+  background: #fff7ed;
+  padding: 6px 8px;
+  border-bottom: 1px solid #fed7aa;
+}
+.screen-items-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.screen-items-event-card {
+  background: #ffffff;
+  border: 1px solid #fed7aa;
+  border-radius: 4px;
+  padding: 8px;
+}
+.screen-items-event-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.screen-items-event-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 14em;
+  flex: 1;
+}
+.screen-items-event-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #92400e;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.screen-items-event-mapping {
+  margin-top: 8px;
+  border-top: 1px dashed #fed7aa;
+  padding-top: 6px;
+}
+.screen-items-event-mapping-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.screen-items-event-mapping-empty {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+.screen-items-event-mapping-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.screen-items-event-mapping-eq {
+  color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+.screen-items-event-actions {
+  margin-top: 6px;
+  text-align: right;
+}
+
 /* 出力項目専用フィールド (#377) */
 .screen-items-output-section {
   width: 100%;
