@@ -133,7 +133,7 @@ export function CanvasPane({
                 >
                   {activeAction.steps.map((step, index) => {
                     const stepMarkers = (group?.authoring?.markers ?? []).filter(
-                      (m) => !m.resolvedAt && (m.anchor?.stepId ?? (m as Marker & { stepId?: string }).stepId) === step.id,
+                      (m) => !m.resolvedAt && m.anchor?.stepId === step.id,
                     );
                     const markerCount = stepMarkers.length;
                     const markerTooltip =
@@ -149,6 +149,7 @@ export function CanvasPane({
                             question: stepMarkers.filter((m) => m.kind === "question").length,
                             attention: stepMarkers.filter((m) => m.kind === "attention").length,
                             chat: stepMarkers.filter((m) => m.kind === "chat").length,
+                            validator: stepMarkers.filter((m) => m.kind === "validator").length,
                           }
                         : undefined;
                     return (
