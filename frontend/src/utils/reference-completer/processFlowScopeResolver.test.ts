@@ -113,6 +113,64 @@ describe("stepResultResolver", () => {
     }
   });
 
+  it("SQL ブロックコメント内の alias は補完候補に出ない (S-2 false positive 回避)", () => {
+    const flowWithComment: ProcessFlow = {
+      ...mockFlow,
+      actions: [
+        {
+          ...mockFlow.actions[0],
+          steps: [
+            {
+              id: "commentTest",
+              kind: "dbAccess" as const,
+              description: "コメント内 alias テスト",
+              operation: "SELECT",
+              sql: "SELECT id /* AS badAlias */, name AS goodAlias FROM t",
+              outputBinding: { name: "result" },
+            } as unknown as ProcessFlow["actions"][0]["steps"][0],
+          ],
+        },
+      ],
+    };
+    const v = "@stepResult.commentTest.";
+    const result = stepResultResolver.match(v, v.length, { flow: flowWithComment });
+    expect(result?.phase).toBe("active");
+    if (result?.phase === "active") {
+      const vals = result.candidates.map((c) => c.value);
+      expect(vals).toContain("goodAlias");
+      expect(vals).not.toContain("badAlias");
+    }
+  });
+
+  it("SQL 行末コメント内の alias は補完候補に出ない (S-2 false positive 回避)", () => {
+    const flowWithLineComment: ProcessFlow = {
+      ...mockFlow,
+      actions: [
+        {
+          ...mockFlow.actions[0],
+          steps: [
+            {
+              id: "lineCommentTest",
+              kind: "dbAccess" as const,
+              description: "行末コメント内 alias テスト",
+              operation: "SELECT",
+              sql: "SELECT id, name AS validAlias FROM t -- AS commentAlias",
+              outputBinding: { name: "result" },
+            } as unknown as ProcessFlow["actions"][0]["steps"][0],
+          ],
+        },
+      ],
+    };
+    const v = "@stepResult.lineCommentTest.";
+    const result = stepResultResolver.match(v, v.length, { flow: flowWithLineComment });
+    expect(result?.phase).toBe("active");
+    if (result?.phase === "active") {
+      const vals = result.candidates.map((c) => c.value);
+      expect(vals).toContain("validAlias");
+      expect(vals).not.toContain("commentAlias");
+    }
+  });
+
   it("存在しない stepId → active / 候補 0 件", () => {
     const v = "@stepResult.unknown.";
     const result = stepResultResolver.match(v, v.length, ctx());
