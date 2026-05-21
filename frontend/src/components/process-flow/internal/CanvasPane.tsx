@@ -1,4 +1,3 @@
-// @ts-nocheck -- StepCard と同じ legacy/v3 union 緩和理由 (#1016)
 // Phase-3 (#1145): ProcessFlowEditor.tsx 中央キャンバス (ステップリスト) を抽出。
 // SortableContext + 各 SortableStepCard + StepInsertZone の組合せ。
 
