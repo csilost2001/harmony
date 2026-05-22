@@ -415,7 +415,7 @@
         "id": "cc173367-d92a-4525-acc9-689bad9a048e",
         "no": 1,
         "name": "学習セッション開始",
-        "kind": "screen",
+        "flowType": "screen",
         "actionCount": 1,
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
@@ -424,7 +424,7 @@
         "id": "96118ae1-a0ab-401b-8584-dd645a45a81f",
         "no": 2,
         "name": "会話ターン進行",
-        "kind": "screen",
+        "flowType": "screen",
         "actionCount": 1,
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
@@ -433,7 +433,7 @@
         "id": "6a49b14b-eb90-45bd-9df0-df4b5986626b",
         "no": 3,
         "name": "発音採点",
-        "kind": "screen",
+        "flowType": "screen",
         "actionCount": 1,
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
@@ -442,7 +442,7 @@
         "id": "21c25fb2-551a-483f-b32a-060db8f88aee",
         "no": 4,
         "name": "単語習熟度更新",
-        "kind": "common",
+        "flowType": "common",
         "actionCount": 1,
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
@@ -451,7 +451,7 @@
         "id": "3c4d9bfd-f648-4875-a135-a04e709a87a7",
         "no": 5,
         "name": "連続学習日数リセット",
-        "kind": "scheduled",
+        "flowType": "scheduled",
         "actionCount": 1,
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"

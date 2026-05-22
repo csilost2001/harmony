@@ -21,14 +21,14 @@
     "properties": {
       "meta": {
         "type": "object",
-        "properties": { "kind": { "const": "scheduled" } },
-        "required": ["kind"]
+        "properties": { "flowType": { "const": "scheduled" } },
+        "required": ["flowType"]
       }
     },
     "required": ["meta"]
   },
   "then": {
-    "description": "#533 R3-3: meta.kind='scheduled' のフローでは、cron 起動の定期実行であり HTTP ルートからは呼ばれないため、Action.httpRoute を禁止する。",
+    "description": "#533 R3-3 / #1263 Phase X1: meta.flowType='scheduled' のフローでは、cron 起動の定期実行であり HTTP ルートからは呼ばれないため、Action.httpRoute を禁止する。",
     "properties": {
       "actions": {
         "items": { "not": { "required": ["httpRoute"] } }
@@ -39,19 +39,19 @@
   "$defs": {
 
     "Meta": {
-      "description": "ProcessFlow の identity と運用設定。kind='screen' は画面と直結した処理フローを表し、その場合は紐付く Screen の Uuid を `screenId` で必須宣言する (#1221)。画面に直結しない処理フロー (認証、共通 API、scheduled batch 等) は kind を `system` / `common` / `scheduled` / `batch` に分類する。",
+      "description": "ProcessFlow の identity と運用設定。flowType='screen' は画面と直結した処理フローを表し、その場合は紐付く Screen の Uuid を `screenId` で必須宣言する (#1221)。画面に直結しない処理フロー (認証、共通 API、scheduled batch 等) は flowType を `system` / `common` / `scheduled` / `batch` に分類する (#1263 Phase X1: meta.kind → meta.flowType rename)。",
       "allOf": [
         { "$ref": "common.v3.schema.json#/$defs/EntityMeta" },
         {
-          "if": { "properties": { "kind": { "const": "screen" } }, "required": ["kind"] },
+          "if": { "properties": { "flowType": { "const": "screen" } }, "required": ["flowType"] },
           "then": { "required": ["screenId"] }
         }
       ],
       "type": "object",
-      "required": ["kind"],
+      "required": ["flowType"],
       "properties": {
-        "kind": { "$ref": "#/$defs/ProcessFlowKind" },
-        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "kind='screen' の場合に紐付く Screen の Uuid。kind='screen' 時は必須 (#1221)。" },
+        "flowType": { "$ref": "#/$defs/ProcessFlowKind" },
+        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "flowType='screen' の場合に紐付く Screen の Uuid。flowType='screen' 時は必須 (#1221)。" },
         "apiVersion": { "type": "string", "description": "ProcessFlow が公開する API のバージョン (例: 'v1', '2026-04-25')。" },
         "mode": { "$ref": "common.v3.schema.json#/$defs/Mode" },
         "sla": { "$ref": "#/$defs/Sla" },

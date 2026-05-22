@@ -160,7 +160,7 @@ const FLOW_ID = normalizeId("flow-a-draft-934");
 const processFlowA = buildProcessFlow({
   id: FLOW_ID,
   name: "意図的な未定義参照フロー",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   maturity: "draft",
   actions: [
@@ -197,7 +197,7 @@ const dummyProject = buildProject({
   entities: {
     screens: [
       // puck 画面 (puckDataRef 欠落 → validatePuckScreen error)
-      { id: SCREEN_P_ID, no: 1, name: "puck 画面 (puckDataRef 欠落)", kind: "list", updatedAt: FIXED_TS },
+      { id: SCREEN_P_ID, no: 1, name: "puck 画面 (puckDataRef 欠落)", flowType: "list", updatedAt: FIXED_TS },
     ],
     tables: [
       { id: TABLE_A_ID, no: 1, physicalName: "orders_934",          name: "受注テーブル",        columnCount: 1, updatedAt: FIXED_TS, maturity: "draft" },
@@ -209,11 +209,11 @@ const dummyProject = buildProject({
       { id: VIEW_B_ID, no: 2, physicalName: "v_orders_934", name: "受注ビュー (重複)", updatedAt: FIXED_TS },
     ],
     viewDefinitions: [
-      { id: VD_A_ID, no: 1, name: "存在しないテーブルを参照する定義", kind: "list", updatedAt: FIXED_TS },
-      { id: VD_B_ID, no: 2, name: "alias が重複する定義 (DUPLICATE_QUERY_ALIAS)", kind: "list", updatedAt: FIXED_TS },
+      { id: VD_A_ID, no: 1, name: "存在しないテーブルを参照する定義", flowType: "list", updatedAt: FIXED_TS },
+      { id: VD_B_ID, no: 2, name: "alias が重複する定義 (DUPLICATE_QUERY_ALIAS)", flowType: "list", updatedAt: FIXED_TS },
     ],
     processFlows: [
-      { id: FLOW_ID, no: 1, name: "意図的な未定義参照フロー", kind: "screen", actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" },
+      { id: FLOW_ID, no: 1, name: "意図的な未定義参照フロー", flowType: "screen", actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" },
     ],
   } as ProjectEntities,
 });

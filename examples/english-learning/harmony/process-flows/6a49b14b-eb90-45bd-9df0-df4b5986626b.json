@@ -4,7 +4,7 @@
     "id": "6a49b14b-eb90-45bd-9df0-df4b5986626b",
     "name": "発音採点",
     "description": "ユーザーが録音した音声を STT + 評価 API (english-learning:SttEvaluate) に送信し、発音スコアを算出して pronunciation_scores に INSERT する (S-3)。スコア保存後、learning_sessions のセッション平均スコア (score_avg) を更新する。TX 境界で scores INSERT + sessions UPDATE を原子的に実行する。@conv.cefr.passingThreshold を下回ったセッションは pronunciationScored トリガーを発行し、UI 側でメッセージを表示する。発音採点フィードバック UI (diff フィールドの PhoneDiff[] 音素単位色分け表示) は実装側で処理する (description 待避、3.3 節)。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7",
     "maturity": "draft",
     "createdAt": "2026-05-04T00:00:00.000Z",

@@ -4,7 +4,7 @@
     "id": "0671b051-4acc-49cf-ba92-9fa29b47f671",
     "name": "投稿作成",
     "description": "新規投稿を作成する処理フロー。タイトル + 本文 + 写真 + タグを受け取り、posts / photos / post_tags を 1 TX 内に登録する。status='published' の場合は published_at を NOW に設定する。AI 要約 (aiSummarize) は別フローで非同期実行を想定。",
-    "kind": "screen",
+    "flowType": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-06T12:40:00.000Z",
     "updatedAt": "2026-05-22T00:00:00.000Z",

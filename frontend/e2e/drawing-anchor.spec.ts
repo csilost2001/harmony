@@ -89,7 +89,7 @@ const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const dummyProject = buildProject({
   name: "anchor",
   entities: {
-    processFlows: [{ id: groupId, no: 1, name: dummyGroup.name, kind: dummyGroup.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" }],
+    processFlows: [{ id: groupId, no: 1, name: dummyGroup.name, flowType: dummyGroup.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" }],
   } as ProjectEntities,
 });
 
@@ -115,7 +115,7 @@ async function setup(page: Page) {
 const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: dummyGroup.name,
-  kind: (dummyGroup.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["kind"],
+  flowType: (dummyGroup.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["flowType"],
   mode: "upstream",
   actions: dummyGroup.actions as ReturnType<typeof buildProcessFlow>["actions"],
   authoring: dummyGroup.markers !== undefined ? { markers: dummyGroup.markers } : undefined,

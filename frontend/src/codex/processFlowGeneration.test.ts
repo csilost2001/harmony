@@ -12,7 +12,7 @@ function baseFlow(): ProcessFlow {
     meta: {
       id: "flow-1" as never,
       name: "既存フロー",
-      kind: "screen",
+      flowType: "screen", // #1263 Phase X1: meta.kind → meta.flowType
       screenId: "screen-1" as never,
       maturity: "draft",
       mode: "upstream",
@@ -107,7 +107,7 @@ describe("generateProcessFlowWithCodex", () => {
       meta: {
         id: "flow-1",
         name: "商品検索",
-        kind: "screen",
+        flowType: "screen", // #1263 Phase X1
         createdAt: "2026-05-01T00:00:00.000Z",
         updatedAt: "2026-05-12T00:00:00.000Z",
       },

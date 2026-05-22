@@ -35,7 +35,7 @@ const PF_NORM = normalizeId(PF_ID);
 const dummyProcessFlowBody = buildProcessFlow({
   id: PF_ID,
   name: "AI participant 検証テスト",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [],
 });
@@ -43,7 +43,7 @@ const dummyProcessFlowBody = buildProcessFlow({
 const dummyProject = buildProject({
   name: "edit-session-ai-participant-test",
   entities: {
-    processFlows: [{ id: PF_ID, no: 1, name: "AI participant 検証テスト", kind: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: PF_ID, no: 1, name: "AI participant 検証テスト", flowType: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

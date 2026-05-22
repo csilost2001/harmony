@@ -67,9 +67,9 @@ export interface ProcessFlowMeta {
   maturity?: Maturity;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  // ProcessFlow 固有
-  kind: ProcessFlowKind;
-  /** kind='screen' の場合に紐付く Screen の Uuid。 */
+  // ProcessFlow 固有 (#1263 Phase X1: kind → flowType に rename)
+  flowType: ProcessFlowKind;
+  /** flowType='screen' の場合に紐付く Screen の Uuid。 */
   screenId?: ScreenId;
   /** ProcessFlow が公開する API のバージョン (例: `v1`, `2026-04-25`)。 */
   apiVersion?: string;

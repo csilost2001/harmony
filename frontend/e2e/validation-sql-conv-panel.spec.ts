@@ -80,7 +80,7 @@ const project = buildProject({
   name: "sql-conv",
   entities: {
     tables: [{ id: tableId, no: 1, physicalName: "customers", name: "顧客", columnCount: 2, updatedAt: FIXED_TS }],
-    processFlows: [{ id: groupId, no: 1, name: group.name, kind: group.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" }],
+    processFlows: [{ id: groupId, no: 1, name: group.name, flowType: group.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" }],
   } as ProjectEntities,
 });
 
@@ -106,7 +106,7 @@ async function setupEditor(page: Page) {
 const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: group.name,
-  kind: (group.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["kind"],
+  flowType: (group.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["flowType"],
   mode: "upstream",
   actions: group.actions as ReturnType<typeof buildProcessFlow>["actions"],
   authoring: (group as { markers?: unknown }).markers !== undefined

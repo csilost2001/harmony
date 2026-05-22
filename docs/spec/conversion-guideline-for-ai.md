@@ -344,7 +344,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
   "meta": {
     "id": "00000000-1060-4000-8000-000000000010",
     "name": "市区町村プルダウン更新",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "00000000-1060-4000-8000-000000000001",
     "createdAt": "2026-05-13T00:00:00.000Z",
     "updatedAt": "2026-05-13T00:00:00.000Z"
@@ -482,7 +482,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
     "id": "00000000-1060-4000-8000-000000000030",
     "name": "注文受付",
     "description": "spec_OrderService.md placeOrder メソッドの変換。",
-    "kind": "common",
+    "flowType": "common",
     "createdAt": "2026-05-13T00:00:00.000Z",
     "updatedAt": "2026-05-13T00:00:00.000Z"
   },

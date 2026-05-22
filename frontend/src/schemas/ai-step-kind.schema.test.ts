@@ -53,7 +53,7 @@ function envelope(action: object) {
       id: "00000000-0000-4000-8000-000000000001",
       name: "Test",
       description: "test fixture for AI step kind",
-      kind: "common" as const,
+      flowType: "common" as const, // #1263 Phase X1: meta.kind → meta.flowType
       maturity: "draft" as const,
       createdAt: "2026-05-08T00:00:00.000Z",
       updatedAt: "2026-05-08T00:00:00.000Z",

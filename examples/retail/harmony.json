@@ -387,7 +387,7 @@
         "id": "efa7ac6e-e295-416e-b68d-17c4739b5097",
         "no": 1,
         "name": "店舗在庫照会",
-        "kind": "screen",
+        "flowType": "screen",
         "actionCount": 1,
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
@@ -396,7 +396,7 @@
         "id": "9515d6f6-8342-48cf-a045-9e9d8fab1cfa",
         "no": 2,
         "name": "カート追加",
-        "kind": "screen",
+        "flowType": "screen",
         "actionCount": 1,
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
@@ -405,7 +405,7 @@
         "id": "f81dd9e0-794c-4539-a2a5-9cbcc0a75899",
         "no": 3,
         "name": "注文確定",
-        "kind": "screen",
+        "flowType": "screen",
         "actionCount": 1,
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
@@ -414,7 +414,7 @@
         "id": "d63c703c-26ed-4704-8b76-329c6bfae9c9",
         "no": 4,
         "name": "配送指示",
-        "kind": "screen",
+        "flowType": "screen",
         "actionCount": 1,
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
@@ -423,7 +423,7 @@
         "id": "267e94bf-0397-44b8-b665-d3c40c38935b",
         "no": 5,
         "name": "カート集計",
-        "kind": "common",
+        "flowType": "common",
         "actionCount": 1,
         "maturity": "committed",
         "updatedAt": "2026-05-03T00:00:00.000Z"
@@ -432,7 +432,7 @@
         "id": "60e08c25-3daa-41b4-a7bd-b8f5fb571349",
         "no": 6,
         "name": "ヘッダーガジェット処理",
-        "kind": "common",
+        "flowType": "common",
         "actionCount": 1,
         "maturity": "committed",
         "updatedAt": "2026-05-12T00:00:00.000Z"

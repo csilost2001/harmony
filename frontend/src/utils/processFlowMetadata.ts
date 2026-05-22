@@ -54,7 +54,7 @@ export const ACTION_TRIGGER_LABELS: Record<string, string> = {
   manual: "手動",
 };
 
-// ── ProcessFlow.meta.kind ───────────────────────────────────────────────────
+// ── ProcessFlow.meta.flowType (旧 meta.kind, #1263 Phase X1) ────────────────
 export const PROCESS_FLOW_TYPE_LABELS: Record<string, string> = {
   screen: "画面",
   batch: "バッチ",

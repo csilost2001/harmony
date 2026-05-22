@@ -4,7 +4,7 @@
     "id": "1ce956c5-7aa9-47b5-bb38-ca392ad73518",
     "name": "ログイン",
     "description": "username + password を受け取り、users テーブルで認証して JWT (access token + refresh token) を発行する処理フロー。1 ユーザー個人運用前提 + JWT stateless 認証。失敗ケース (ユーザー不在 / パスワード不一致) は同一の 401 INVALID_CREDENTIALS を返してユーザー列挙攻撃を防ぐ。",
-    "kind": "screen",
+    "flowType": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-07T00:00:00.000Z",
     "updatedAt": "2026-05-07T00:00:00.000Z",

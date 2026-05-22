@@ -4,7 +4,7 @@
     "id": "60e08c25-3daa-41b4-a7bd-b8f5fb571349",
     "name": "ヘッダーガジェット処理",
     "description": "PageLayout の header region に配置される グローバルヘッダ gadget の専用 ProcessFlow。logout ボタン押下時のセッション破棄 + ログイン画面リダイレクト処理を提供する。Thymeleaf 大規模パターンの『各ガジェットが専用 controller を持つ』方針を踏襲 (RFC #1021 決定 2)。",
-    "kind": "common",
+    "flowType": "common",
     "maturity": "committed",
     "createdAt": "2026-05-12T00:00:00.000Z",
     "updatedAt": "2026-05-12T00:00:00.000Z"

@@ -25,7 +25,7 @@
         },
         "processFlowKinds": {
           "type": "array",
-          "description": "ProcessFlowKind の拡張。ProcessFlow.meta.kind の namespace:kindName で参照される。",
+          "description": "ProcessFlowKind の拡張。ProcessFlow.meta.flowType の namespace:kindName で参照される (#1263 Phase X1)。",
           "items": { "$ref": "#/$defs/CustomProcessFlowKind" }
         },
         "actionTriggers": {
@@ -168,7 +168,7 @@
     },
 
     "CustomProcessFlowKind": {
-      "description": "拡張 ProcessFlowKind。ProcessFlow.meta.kind の namespace:kindName で参照される。",
+      "description": "拡張 ProcessFlowKind。ProcessFlow.meta.flowType の namespace:kindName で参照される (#1263 Phase X1)。",
       "type": "object",
       "required": ["kind", "label"],
       "additionalProperties": false,

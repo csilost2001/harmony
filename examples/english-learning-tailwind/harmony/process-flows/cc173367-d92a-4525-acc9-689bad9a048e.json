@@ -4,7 +4,7 @@
     "id": "cc173367-d92a-4525-acc9-689bad9a048e",
     "name": "学習セッション開始",
     "description": "ユーザーがストーリーを選択して学習セッションを開始するフロー (S-1)。learning_sessions に新規セッションを INSERT し、会話プレイ画面遷移用のセッション ID を返す。子 2 で先行実装済 (validate:samples が flows ≥1 を要求するため)。子 4 では本フローを残し、S-2 (会話ターン進行) / S-3 (発音採点) / S-4 (履歴 / 単語復習) / scheduled (連続日数リセット) フローを追加する。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "046e1f83-bed3-4b13-a5ac-b0fa06744dfe",
     "maturity": "draft",
     "createdAt": "2026-05-04T00:00:00.000Z",

@@ -4,7 +4,7 @@
     "id": "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f",
     "name": "投稿削除",
     "description": "既存投稿を削除する処理フロー。所有者検証後、photos / post_tags / posts を 1 TX 内で順に DELETE する (FK CASCADE 想定だが明示的に削除順序を記述)。TX 失敗時は全体をロールバックする。",
-    "kind": "common",
+    "flowType": "common",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
     "updatedAt": "2026-05-22T00:00:00.000Z"

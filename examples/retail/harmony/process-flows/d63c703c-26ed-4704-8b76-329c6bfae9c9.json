@@ -4,7 +4,7 @@
     "id": "d63c703c-26ed-4704-8b76-329c6bfae9c9",
     "name": "配送指示",
     "description": "バックオフィス担当者が注文一覧から対象注文を選択し、外部キャリア API (retail:DispatchShipment) に配送指示を送信する。成功時は orders.status を 'shipped' に更新し、retail.shipment.dispatched イベントを発行する。外部 API 失敗時は補償処理を実行してエラーを返す。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "c2254dd6-ab5d-4428-931f-d27c71e89951",
     "maturity": "committed",
     "createdAt": "2026-05-02T00:00:00.000Z",

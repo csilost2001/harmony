@@ -20,14 +20,14 @@ import type { ProjectEntities, Timestamp, ProcessFlowKind, Maturity } from "../s
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 const listGroups = [
-  { id: "g-a", no: 1, name: "Alpha ログイン", kind: "screen" as ProcessFlowKind, actionCount: 2, updatedAt: FIXED_TS, maturity: "committed" as Maturity },
-  { id: "g-b", no: 2, name: "Beta バッチ", kind: "batch" as ProcessFlowKind, actionCount: 1, updatedAt: FIXED_TS, maturity: "provisional" as Maturity },
-  { id: "g-c", no: 3, name: "Charlie 共通", kind: "common" as ProcessFlowKind, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" as Maturity },
-  { id: "g-d", no: 4, name: "Delta 登録", kind: "screen" as ProcessFlowKind, actionCount: 3, updatedAt: FIXED_TS, maturity: "draft" as Maturity },
+  { id: "g-a", no: 1, name: "Alpha ログイン", flowType: "screen" as ProcessFlowKind, actionCount: 2, updatedAt: FIXED_TS, maturity: "committed" as Maturity },
+  { id: "g-b", no: 2, name: "Beta バッチ", flowType: "batch" as ProcessFlowKind, actionCount: 1, updatedAt: FIXED_TS, maturity: "provisional" as Maturity },
+  { id: "g-c", no: 3, name: "Charlie 共通", flowType: "common" as ProcessFlowKind, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" as Maturity },
+  { id: "g-d", no: 4, name: "Delta 登録", flowType: "screen" as ProcessFlowKind, actionCount: 3, updatedAt: FIXED_TS, maturity: "draft" as Maturity },
 ];
 
 const listGroupBodies = listGroups.map((g) =>
-  buildProcessFlow({ id: g.id, name: g.name, kind: g.kind, maturity: g.maturity, mode: "upstream" }),
+  buildProcessFlow({ id: g.id, name: g.name, flowType: g.flowType, maturity: g.maturity, mode: "upstream" }),
 );
 
 const project = buildProject({

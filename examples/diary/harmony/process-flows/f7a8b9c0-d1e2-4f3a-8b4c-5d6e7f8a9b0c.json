@@ -4,7 +4,7 @@
     "id": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
     "name": "AI要約生成",
     "description": "投稿本文を AI モデルへ送信し、3-5 文の日本語要約を生成して posts.summary に書き戻す処理フロー。投稿作成/更新後に非同期で呼ぶ想定 (TX 外、idempotent)。AI 呼び出しは aiCall step + modelEndpoints.summarizeModel で表現。provider 切替は modelEndpoints の編集だけで完結する。",
-    "kind": "common",
+    "flowType": "common",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
     "updatedAt": "2026-05-08T00:00:00.000Z"

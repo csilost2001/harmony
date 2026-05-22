@@ -35,7 +35,7 @@ const groupId = "ag-test-completion";
 const sampleGroupBody = buildProcessFlow({
   id: groupId,
   name: "補完テスト",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [{
     id: "act-001", name: "テストアクション", trigger: "click",
@@ -46,7 +46,7 @@ const sampleGroupBody = buildProcessFlow({
 const dummyProject = buildProject({
   name: "補完 E2E テスト",
   entities: {
-    processFlows: [{ id: groupId, no: 1, name: "補完テスト", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: groupId, no: 1, name: "補完テスト", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

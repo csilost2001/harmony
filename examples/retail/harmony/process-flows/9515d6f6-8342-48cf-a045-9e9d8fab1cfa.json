@@ -4,7 +4,7 @@
     "id": "9515d6f6-8342-48cf-a045-9e9d8fab1cfa",
     "name": "カート追加",
     "description": "指定商品を、商品検索で在庫を確認した店舗から、ログイン顧客のカートに追加する。stores 存在確認 → products 存在確認 → carts UPSERT → cart_items UPSERT (retail:UPSERT_CART_ITEM) の順で実行し、(cart, product, store) の重複の場合は数量を加算する。multi-store inventory 整合のため storeCode 必須 (#780)。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "c73fa05c-4a71-4593-800d-b9814e97be83",
     "maturity": "committed",
     "createdAt": "2026-05-02T00:00:00.000Z",

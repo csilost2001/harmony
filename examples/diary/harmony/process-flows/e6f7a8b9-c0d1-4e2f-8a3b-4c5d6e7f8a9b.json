@@ -4,7 +4,7 @@
     "id": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
     "name": "投稿検索",
     "description": "投稿を動的条件で検索するフロー。全文検索 (title+body LIKE)、タグ絞り込み (slug AND 条件)、ステータス / 日付範囲 / ページネーションをサポートする。",
-    "kind": "screen",
+    "flowType": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
     "updatedAt": "2026-05-06T14:00:00.000Z",

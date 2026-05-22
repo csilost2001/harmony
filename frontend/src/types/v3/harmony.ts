@@ -67,9 +67,9 @@ export interface TableEntry extends EntryBase {
 
 export interface ProcessFlowEntry extends EntryBase {
   id: ProcessFlowId;
-  /** ProcessFlowKind (screen/batch/scheduled/system/common/other 等)。 */
-  kind?: string;
-  /** screen kind の場合の関連画面 ID。 */
+  /** ProcessFlowKind (screen/batch/scheduled/system/common/other 等)。#1263 Phase X1 で kind → flowType に rename。 */
+  flowType?: string;
+  /** flowType='screen' の場合の関連画面 ID。 */
   screenId?: ScreenId;
   actionCount?: number;
   notesCount?: number;
