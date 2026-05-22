@@ -16,6 +16,8 @@ import {
   ComputeStepCardBody,
   DbAccessStepCardBody,
   DisplayUpdateStepCardBody,
+  EventPublishStepCardBody,
+  EventSubscribeStepCardBody,
   ExternalSystemStepCardBody,
   JumpStepCardBody,
   LogStepCardBody,
@@ -523,5 +525,110 @@ describe("AiAgentStepCardBody", () => {
     const numberInput = container.querySelector('input[type="number"]') as HTMLInputElement;
     fireEvent.change(numberInput, { target: { value: "7" } });
     expect(onChange).toHaveBeenCalledWith({ maxIterations: 7 });
+  });
+});
+
+// ── EventPublishStepCardBody (#1260 Phase 2 sub-section B) ───────────────
+describe("EventPublishStepCardBody", () => {
+  it("topic input と payload textarea が描画される", () => {
+    const step = baseStep({
+      kind: "eventPublish",
+      topic: "order.placed",
+      payload: "@input.order",
+    });
+    const { container } = render(
+      <EventPublishStepCardBody step={step} allSteps={[]} onChange={noop} />,
+    );
+    expect(container.textContent).toContain("topic");
+    expect(container.textContent).toContain("payload");
+    const input = container.querySelector("input") as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.value).toBe("order.placed");
+    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    expect(textarea).not.toBeNull();
+    expect(textarea.value).toBe("@input.order");
+  });
+
+  it("topic 変更で onChange が呼ばれる", () => {
+    const onChange = vi.fn();
+    const step = baseStep({ kind: "eventPublish", topic: "", payload: undefined });
+    const { container } = render(
+      <EventPublishStepCardBody step={step} allSteps={[]} onChange={onChange} />,
+    );
+    const input = container.querySelector("input") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "payment.completed" } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ topic: "payment.completed" }));
+  });
+});
+
+// ── EventSubscribeStepCardBody (#1260 Phase 2 sub-section B) ────────────
+describe("EventSubscribeStepCardBody", () => {
+  it("topic input と filter textarea が描画される", () => {
+    const step = baseStep({
+      kind: "eventSubscribe",
+      topic: "order.placed",
+      filter: "@event.amount > 1000",
+    });
+    const { container } = render(
+      <EventSubscribeStepCardBody step={step} allSteps={[]} onChange={noop} />,
+    );
+    expect(container.textContent).toContain("topic");
+    expect(container.textContent).toContain("filter");
+    const input = container.querySelector("input") as HTMLInputElement;
+    expect(input).not.toBeNull();
+    expect(input.value).toBe("order.placed");
+    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    expect(textarea).not.toBeNull();
+    expect(textarea.value).toBe("@event.amount > 1000");
+  });
+
+  it("topic 変更で onChange が呼ばれる", () => {
+    const onChange = vi.fn();
+    const step = baseStep({ kind: "eventSubscribe", topic: "", filter: undefined });
+    const { container } = render(
+      <EventSubscribeStepCardBody step={step} allSteps={[]} onChange={onChange} />,
+    );
+    const input = container.querySelector("input") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "inventory.low" } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ topic: "inventory.low" }));
+  });
+});
+
+// ── ExternalSystemStepCardBody auth セクション (#1260 Phase 2 sub-section B) ──
+describe("ExternalSystemStepCardBody auth section", () => {
+  it("auth.kind select が描画される (workspace prop あり)", () => {
+    const step = baseStep({
+      kind: "externalSystem",
+      systemRef: "stripe",
+      auth: { kind: "bearer", tokenRef: "@secret.stripeKey" },
+    });
+    const { container } = render(
+      <ExternalSystemStepCardBody step={step} allSteps={[]} onChange={noop} workspace={undefined} />,
+    );
+    expect(container.textContent).toContain("認証");
+    const selects = container.querySelectorAll("select");
+    // auth.kind select が存在する (他に retryPolicy backoff select がある場合もあり)
+    const authSelect = Array.from(selects).find(
+      (s) => (s as HTMLSelectElement).value === "bearer",
+    ) as HTMLSelectElement | undefined;
+    expect(authSelect).not.toBeUndefined();
+    expect(authSelect!.value).toBe("bearer");
+  });
+
+  it("auth.tokenRef input が描画される", () => {
+    const step = baseStep({
+      kind: "externalSystem",
+      systemRef: "stripe",
+      auth: { kind: "apiKey", tokenRef: "@secret.stripeKey" },
+    });
+    const { container } = render(
+      <ExternalSystemStepCardBody step={step} allSteps={[]} onChange={noop} />,
+    );
+    const inputs = container.querySelectorAll("input");
+    // tokenRef input が存在し値が "@secret.stripeKey" である
+    const tokenInput = Array.from(inputs).find(
+      (i) => (i as HTMLInputElement).value === "@secret.stripeKey",
+    ) as HTMLInputElement | undefined;
+    expect(tokenInput).not.toBeUndefined();
   });
 });

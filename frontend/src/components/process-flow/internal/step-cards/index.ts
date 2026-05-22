@@ -19,3 +19,6 @@ export { WorkflowStepCardBody } from "./WorkflowStepCardBody";
 export { ComponentCallStepCardBody } from "./ComponentCallStepCardBody";
 export { AiCallStepCardBody } from "./AiCallStepCardBody";
 export { AiAgentStepCardBody } from "./AiAgentStepCardBody";
+// #1260 Phase 2: eventPublish / eventSubscribe の step-card body (topic 補完 bind)
+export { EventPublishStepCardBody } from "./EventPublishStepCardBody";
+export { EventSubscribeStepCardBody } from "./EventSubscribeStepCardBody";
