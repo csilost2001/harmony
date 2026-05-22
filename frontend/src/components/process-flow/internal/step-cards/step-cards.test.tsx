@@ -6,6 +6,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
+import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
 import {
   AiAgentStepCardBody,
   AiCallStepCardBody,
@@ -37,6 +38,20 @@ const baseStep = (overrides: any = {}) => ({
   description: "",
   ...overrides,
 });
+
+// N-1/N-2 用: workspace prop あり テストで使う最小 mock
+const mockWorkspace: WorkspaceRefs = {
+  screens: [],
+  tables: [],
+  viewDefinitions: [],
+  processFlows: [],
+  fragments: [],
+  components: [],
+  exceptionTypes: [],
+  modelEndpoints: [],
+  secrets: [{ id: "stripeApiKey", name: "Stripe API Key" }],
+  events: [],
+};
 
 // ── ValidationStepCardBody ─────────────────────────────────────────
 
@@ -603,7 +618,7 @@ describe("ExternalSystemStepCardBody auth section", () => {
       auth: { kind: "bearer", tokenRef: "@secret.stripeKey" },
     });
     const { container } = render(
-      <ExternalSystemStepCardBody step={step} allSteps={[]} onChange={noop} workspace={undefined} />,
+      <ExternalSystemStepCardBody step={step} allSteps={[]} onChange={noop} workspace={mockWorkspace} />,
     );
     expect(container.textContent).toContain("認証");
     const selects = container.querySelectorAll("select");
@@ -630,5 +645,22 @@ describe("ExternalSystemStepCardBody auth section", () => {
       (i) => (i as HTMLInputElement).value === "@secret.stripeKey",
     ) as HTMLInputElement | undefined;
     expect(tokenInput).not.toBeUndefined();
+  });
+
+  it("auth.kind 変更で onChange に auth patch が届く", () => {
+    const onChange = vi.fn();
+    const step = baseStep({
+      kind: "externalSystem",
+      systemRef: "stripe",
+    });
+    const { container } = render(
+      <ExternalSystemStepCardBody step={step} allSteps={[]} onChange={onChange} workspace={mockWorkspace} />,
+    );
+    const authSelect = container.querySelector('select[data-field-path="auth.kind"]') as HTMLSelectElement;
+    expect(authSelect).not.toBeNull();
+    fireEvent.change(authSelect, { target: { value: "bearer" } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+      auth: expect.objectContaining({ kind: "bearer" }),
+    }));
   });
 });

@@ -765,7 +765,6 @@ export function StepCard({
                 />
               )}
 
-              {/* Phase-3 (#1145、#1163 review Phase-2 補足) 追加 3 dispatch */}
               {/* #1260 Phase 2 sub-section B: eventPublish / eventSubscribe dispatch */}
               {step.kind === "eventPublish" && !isExtensionStep(step) && (
                 <EventPublishStepCardBody
@@ -789,6 +788,7 @@ export function StepCard({
                 />
               )}
 
+              {/* Phase-3 (#1145、#1163 review Phase-2 補足) 追加 3 dispatch: componentCall / aiCall / aiAgent */}
               {step.kind === "componentCall" && !isExtensionStep(step) && (
                 <ComponentCallStepCardBody
                   step={step}

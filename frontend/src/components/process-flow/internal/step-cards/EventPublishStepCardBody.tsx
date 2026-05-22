@@ -2,7 +2,7 @@
 // topic は topicResolver (context.catalogs.events キー) で @reference 補完対応。
 // payload は式入力のため plain textarea (resolver 未対応)。
 
-import type { EventPublishStep } from "../../../../types/v3";
+import type { EventPublishStep, EventTopic } from "../../../../types/v3";
 import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
 import { topicResolver } from "../../../../utils/reference-completer/workspaceResolver";
 import { ReferenceCompletionInput } from "../../../common/ReferenceCompletionInput";
@@ -29,7 +29,7 @@ export function EventPublishStepCardBody({
           </label>
           <ReferenceCompletionInput
             value={step.topic ?? ""}
-            onValueChange={(v) => onChange({ topic: v as never })}
+            onValueChange={(v) => onChange({ topic: v as EventTopic })}
             onCommit={onCommit}
             resolvers={[topicResolver]}
             ctx={{ fieldKind: "topic", workspace }}

@@ -26,6 +26,16 @@ export function ExternalSystemStepCardBody({
   const updateAuth = (patch: Partial<ExternalAuth>) => {
     const base: ExternalAuth = step.auth ?? { kind: "none" };
     const next: ExternalAuth = { ...base, ...patch };
+    // kind="none" の場合は stale tokenRef / headerName を strip して JSON ノイズを抑える
+    if (next.kind === "none") {
+      onChange({ auth: { kind: "none" } });
+      return;
+    }
+    // kind 変更時は前の kind に紐づく stale フィールドをクリアして semantic consistency を保つ
+    if (patch.kind !== undefined && patch.kind !== base.kind) {
+      onChange({ auth: { kind: next.kind } });
+      return;
+    }
     onChange({ auth: next });
   };
   return (
@@ -195,6 +205,7 @@ export function ExternalSystemStepCardBody({
         <div className="col-3">
           <select
             className="form-select form-select-sm"
+            data-field-path="auth.kind"
             value={step.auth?.kind ?? "none"}
             onChange={(e) => {
               updateAuth({ kind: e.target.value as ExternalAuthKind });
