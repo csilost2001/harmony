@@ -320,3 +320,167 @@ describe("Check 23: MULTIPLE_STATEMENTS_IN_SQL", () => {
     expect(found.length).toBeGreaterThan(0);
   });
 });
+
+// ─── Check 30: SIDE_EFFECT_INLINE_BAN (#1263 Phase X2) ───────────────────────
+
+describe("Check 30: SIDE_EFFECT_INLINE_BAN (#1263 Phase X2)", () => {
+  it("positive: ${...} 内の @flow.<id> 呼び出しを検出する", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "Hello ${@flow.someFlowId(arg=1)} world",
+    };
+    const flow = makeFlow([step]);
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "SIDE_EFFECT_INLINE_BAN");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("error");
+    expect(found[0].message).toContain("@flow");
+  });
+
+  it("positive: ${...} 内の @action.<id> 呼び出しを検出する", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "${@action.confirmOrder(orderId=@var.action.orderId)}",
+    };
+    const flow = makeFlow([step]);
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "SIDE_EFFECT_INLINE_BAN");
+    expect(found.length).toBeGreaterThan(0);
+  });
+
+  it("positive: ${...} 内の @step.<id> / @component.<name> / @rule.<name> 呼び出しを検出する", () => {
+    const expressions = [
+      "${@step.step-01.outputBinding}",
+      "${@component.OrderValidator.validate(@var.action.order)}",
+      "${@rule.authzCheck(@var.action.user)}",
+    ];
+    for (const expr of expressions) {
+      const flow = makeFlow([{ kind: "compute", id: "step-1", expression: expr }]);
+      const rawJson = JSON.stringify(flow, null, 2);
+      const issues = checkAntipatterns(flow, rawJson);
+      const found = issues.filter((i) => i.code === "SIDE_EFFECT_INLINE_BAN");
+      expect(found.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("negative: pure ref (@var / @conv / @msg / @const / @validation) は許容", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression:
+        "Hello ${@var.action.userName}, your ${@const.taxRate} is ${@msg.notice} validating ${@validation.isPositive(@var.action.quantity)} with ${@conv.numbering.orderNumber}",
+    };
+    const flow = makeFlow([step]);
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "SIDE_EFFECT_INLINE_BAN");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative: ${...} の外側で @flow 言及されている場合は検出しない", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      // ${...} の外側、e.g. リテラルの中で `@flow` という単語を使うだけ
+      expression: "'説明: @flow という記法はinline禁止'",
+    };
+    const flow = makeFlow([step]);
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "SIDE_EFFECT_INLINE_BAN");
+    expect(found).toHaveLength(0);
+  });
+});
+
+// ─── Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2) ──────────────
+
+describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
+  it("positive (committed): 未定義 @var.<name> は error として検出", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@var.unknownVarThatDoesNotExist",
+    };
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("error");
+  });
+
+  it("positive (draft): 未定義 @var.<name> は warning として検出", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@var.unknownVarThatDoesNotExist",
+    };
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "draft", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("warning");
+  });
+
+  it("negative: 6 値 scope enum (@var.flowParameter etc) は許容", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@var.flowParameter.foo + @var.action.bar + @var.step.baz + @var.tx.qux + @var.loop.idx + @var.global.tenant",
+    };
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative: 既知 conv category (@conv.msg / @conv.regex 等) は許容", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@conv.msg.orderConfirmed + @conv.regex.email + @conv.tx.orderConfirm",
+    };
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative: action.inputs[].name で定義された変数は許容", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          inputs: [{ name: "customerId" as never, type: "string" }],
+          steps: [{ kind: "compute", id: "step-1", expression: "@var.customerId", description: "use input" } as never],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found).toHaveLength(0);
+  });
+});

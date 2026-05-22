@@ -8,6 +8,12 @@
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
+    "expressionLanguage": {
+      "type": "string",
+      "enum": ["js-subset", "cel"],
+      "default": "js-subset",
+      "description": "TemplateString の `${...}` 補間内で解釈する式言語 (#1254 件 3 verdict / #1263 Phase X2)。`js-subset` (現行、docs/spec/process-flow-expression-language.md §3 で定義) が唯一の実装。将来 `cel` (Google Common Expression Language) 切替を見据えて root field として保持する。省略時は `js-subset` を採用 (default)。"
+    },
     "meta": { "$ref": "#/$defs/Meta" },
     "context": { "$ref": "#/$defs/Context" },
     "actions": {

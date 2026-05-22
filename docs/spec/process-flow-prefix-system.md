@@ -91,7 +91,53 @@ walk(${...} 内 AST):
 
 `@validation.<name>` は boolean return のみ許可 (`severity` / `errorCode` field 参照は副作用なしの pure call として扱う)。
 
-## 7. 関連仕様
+## 7. Field annotation システム (`x-*` 拡張、#1254 件 3 / 件 7 verdict)
+
+JSON Schema 標準の vocabulary を拡張する `x-*` annotation で、TemplateString 系 field の装飾 / 検証 / 型ヒントを per-field 制御する。validator / UI renderer が読み取り、schema の core validation には影響しない (annotation only)。
+
+### 3 annotation
+
+| annotation | 値域 | 意味 |
+|---|---|---|
+| `x-render` | `"markdown" / "plain" / "single-line"` | UI renderer の表示モード。`markdown` (default for Description / TemplateString) / `plain` (装飾無効、`${...}` 補間のみ) / `single-line` (改行禁止 + truncate、button label / 一覧 column header 等) |
+| `x-expression-type` | `"boolean" / "number" / "string" / "object" / "array"` | `${...}` 評価結果の期待型。validator が compile-time に式の最外殻型を推定して mismatch を warning |
+| `x-validator-key` | `"@validation.<name>"` 形式 string | 該当 field の追加検証を generic-definition/validation-rule にて宣言する。`@validation.<name>` で参照される validation-rule の boolean expression を「真であるべき条件」として適用 |
+
+### 適用例 (per-field、schema 利用側)
+
+```jsonc
+{
+  "properties": {
+    "emailField": {
+      "$ref": "common.v3.schema.json#/$defs/TemplateString",
+      "x-render": "single-line",
+      "x-expression-type": "string",
+      "x-validator-key": "@validation.emailFormat"
+    },
+    "descriptionField": {
+      "$ref": "common.v3.schema.json#/$defs/Description",
+      "x-render": "markdown"
+    },
+    "isEnabledField": {
+      "$ref": "common.v3.schema.json#/$defs/TemplateString",
+      "x-expression-type": "boolean",
+      "x-validator-key": "@validation.notNull"
+    }
+  }
+}
+```
+
+### `x-validator-key` と `@validation` prefix の関係
+
+`x-validator-key: "@validation.<name>"` で参照される validation-rule (generic-definitions/validation-rule/<Name>.json) は `boolean` を返す式である必要がある。validator は field 値を arg として渡し、false / undefined を返した場合は schema-level error として扱う。
+
+`inline 許可 namespace` (§1 表) として `@validation.<name>(args)` は `${...}` 内でも直接呼出し可能、`x-validator-key` annotation は per-field の「常時適用」宣言。
+
+### AJV strict mode との互換
+
+JSON Schema 2020-12 では `x-*` keyword は未定義扱い (warning が出る環境あり)。AJV strict mode の場合は `addKeyword({ keyword: "x-render", ... })` 等で事前登録するか `strict: false` で読み飛ばす。validator / UI renderer 側でのみ semantic を持つ運用。
+
+## 8. 関連仕様
 
 - 親 RFC: [#1254](https://github.com/csilost2001/harmony/issues/1254) 件 3.7
 - 実装: [#1263](https://github.com/csilost2001/harmony/issues/1263) Phase X2
@@ -100,6 +146,6 @@ walk(${...} 内 AST):
 - 撤廃制限ストック: [#1265](https://github.com/csilost2001/harmony/issues/1265)
 - Generic Definition Catalog: [generic-definition-layer.md](generic-definition-layer.md)
 
-## 8. 変更履歴
+## 9. 変更履歴
 
 - 2026-05-23: 初版作成 (#1263 Phase X2 — RFC #1254 件 3.7 verdict 反映)

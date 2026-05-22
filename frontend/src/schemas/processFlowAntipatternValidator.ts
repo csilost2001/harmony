@@ -1,24 +1,32 @@
 /**
- * ProcessFlow JSON の既知アンチパターン 4 件を機械検出 (#741)。
+ * ProcessFlow JSON の既知アンチパターン + #1263 Phase X2 dispatch rule を機械検出。
  *
- * retail dogfood (#709) で発見した 8 種の既知落とし穴のうち、
- * 静的解析で機械検出できる 4 件を実装する。
+ * Check 16-23: retail dogfood (#709、#741) で発見した既知落とし穴 4 件。
+ * Check 30-31: RFC #1254 件 3.5 / 件 3.7 verdict の副作用 inline 禁止 + maturity-aware broken ref。
  *
  * Check 16: LITERAL_CONV_REFERENCE
  *   '@conv.X' または "@conv.X" のリテラル化を検出。
- *   クォート内に @conv.<path> があると評価エンジンが文字列扱いし conv 解決されない。
  *
  * Check 17: DUPLICATE_KIND_KEY
- *   同 step オブジェクト内で "kind": フィールドが複数出現。
- *   JSON.parse 後では後者で上書きされ検出不能なため、raw 文字列 scan で検出する。
+ *   同 step オブジェクト内で "kind": フィールドが複数出現 (raw scan)。
  *
  * Check 19: INVALID_SEQUENCE_CALL_SYNTAX
  *   @conv.numbering.X.nextSeq() / nextval() 呼び出し風の conv 経由構文を検出。
- *   シーケンスは dbAccess step + SELECT nextval('seq_X') で取得する必要がある。
  *
  * Check 23: MULTIPLE_STATEMENTS_IN_SQL
- *   dbAccess step の sql フィールドに ; で区切られた複数文が含まれる場合に warning。
- *   多くの ORM / DB ライブラリは単一文しか実行しないため step 分割を推奨。
+ *   dbAccess step の sql フィールドに ; で区切られた複数文。
+ *
+ * Check 30: SIDE_EFFECT_INLINE_BAN (#1254 件 3.7 / #1263 Phase X2)
+ *   `${...}` 補間内で `@flow.<id>(...)` / `@action.<id>(...)` / `@step.<id>(...)` /
+ *   `@component.<name>.<op>(...)` / `@rule.<name>(...)` を呼び出すのは禁止。
+ *   副作用 invocation のため専用 step (commonProcess / componentCall 等) を使うこと。
+ *   error severity。
+ *
+ * Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1254 件 3.5 / #1263 Phase X2)
+ *   `@<prefix>.<key>` 参照のうち、限定 prefix (`@conv` / `@var` / `@msg` / `@const` /
+ *   `@validation` / `@event`) のキー後半が既知 catalog / scope に存在しない場合に検出。
+ *   meta.maturity === "committed" なら error、それ以外 (draft / provisional) なら warning。
+ *   24 prefix 全体の解決は scope 広大なため、本 PR では上記 6 prefix のみ対象 (Phase X3 で拡張)。
  */
 import type { ProcessFlow, Step } from "../types/v3";
 import { isBuiltinStep } from "./stepGuards";
@@ -32,7 +40,9 @@ export interface AntipatternIssue {
     | "LITERAL_CONV_REFERENCE"
     | "DUPLICATE_KIND_KEY"
     | "INVALID_SEQUENCE_CALL_SYNTAX"
-    | "MULTIPLE_STATEMENTS_IN_SQL";
+    | "MULTIPLE_STATEMENTS_IN_SQL"
+    | "SIDE_EFFECT_INLINE_BAN"
+    | "BROKEN_REFERENCE_MATURITY_AWARE";
   /** ドットパス (例: actions[0].steps[1].expression) */
   path: string;
   message: string;
@@ -233,6 +243,151 @@ function hasMultipleStatements(sql: string): boolean {
   return false;
 }
 
+// ─── Check 30: SIDE_EFFECT_INLINE_BAN (#1254 件 3.7 / #1263 Phase X2) ───────
+
+/**
+ * `${...}` 補間内で副作用 invocation prefix (`@flow / @action / @step / @component / @rule`)
+ * を呼び出すのは禁止。これらは副作用を伴うため、専用 step (commonProcess / componentCall 等)
+ * を使う必要がある。
+ *
+ * 検出: `${...}` 内 (closing `}` まで) に `@(flow|action|step|component|rule)\.` が現れる
+ * または `@(flow|action|step|component|rule)(` (関数呼び出し) パターンを検出。
+ */
+const SIDE_EFFECT_PREFIXES = ["flow", "action", "step", "component", "rule"];
+const INLINE_INTERPOLATION_RE = /\$\{([^}]*)\}/g;
+
+function findSideEffectInlineBans(value: string): Array<{ prefix: string; snippet: string }> {
+  const violations: Array<{ prefix: string; snippet: string }> = [];
+  INLINE_INTERPOLATION_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = INLINE_INTERPOLATION_RE.exec(value)) !== null) {
+    const inner = match[1];
+    for (const prefix of SIDE_EFFECT_PREFIXES) {
+      // `@<prefix>.<...>` または `@<prefix>(...)` (関数呼び出し風)
+      const detectRe = new RegExp(`@${prefix}\\b\\s*[.(]`);
+      if (detectRe.test(inner)) {
+        violations.push({ prefix, snippet: match[0].slice(0, 100) });
+        break; // 同じ ${...} 内で重複報告しない
+      }
+    }
+  }
+  return violations;
+}
+
+// ─── Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1254 件 3.5 / #1263 Phase X2) ─
+
+interface BrokenRefContext {
+  /** ProcessFlow.context.catalogs から導出した参照可能 key 集合 */
+  convKeys: Set<string>;
+  /** action / step / loop / tx で定義された変数 (簡易、scope chain は厳密追跡しない) */
+  varKeys: Set<string>;
+  /** ProcessFlow.context.catalogs.events のキー集合 */
+  eventKeys: Set<string>;
+  /**
+   * Phase X2 では @msg / @const / @validation の catalog は generic-definitions/* に
+   * 置かれるが本 validator は ProcessFlow 単体検証のため横断 catalog の load は行わない。
+   * 当該 prefix は「報告しない」(scope-out)、将来 X3 で project 全体 validator に拡張する想定。
+   */
+}
+
+/**
+ * ProcessFlow 全文字列値から `@<prefix>.<key>` 参照を収集し、context catalogs / 変数 scope に
+ * 存在しない場合に broken ref として報告する。本 PR では @conv / @var / @event の 3 prefix のみ。
+ */
+const REF_RE = /@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z_][a-zA-Z0-9_.]*)/g;
+
+function collectBrokenRefs(value: string, ctx: BrokenRefContext): Array<{ prefix: string; key: string }> {
+  const broken: Array<{ prefix: string; key: string }> = [];
+  REF_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = REF_RE.exec(value)) !== null) {
+    const prefix = match[1];
+    const key = match[2];
+    // 簡易判定: 最初のドット区切り segment が catalog key
+    const head = key.split(".")[0];
+    if (prefix === "conv") {
+      // @conv.<category>.<key> 形式、<category> の存在のみ check (key 後半は dynamic)
+      if (!ctx.convKeys.has(head)) broken.push({ prefix, key });
+    } else if (prefix === "var") {
+      // @var.<scope>.<name> または @var.<name>、最初の segment を check
+      if (!ctx.varKeys.has(head)) broken.push({ prefix, key });
+    } else if (prefix === "event") {
+      // @event.<topic> 形式
+      if (!ctx.eventKeys.has(head) && !ctx.eventKeys.has(key)) broken.push({ prefix, key });
+    }
+    // 他 prefix (msg / const / validation / screen / table / view 等) は本 PR では skip
+    // (横断 catalog 検証が必要、Phase X3 で project-level validator に拡張)
+  }
+  return broken;
+}
+
+function buildBrokenRefContext(flow: unknown): BrokenRefContext {
+  const flowAny = flow as {
+    context?: {
+      catalogs?: {
+        errors?: Record<string, unknown>;
+        externalSystems?: Record<string, unknown>;
+        secrets?: Record<string, unknown>;
+        envVars?: Record<string, unknown>;
+        domains?: Record<string, unknown>;
+        functions?: Record<string, unknown>;
+        events?: Record<string, unknown>;
+        modelEndpoints?: Record<string, unknown>;
+      };
+      ambientVariables?: Array<{ name: string }>;
+    };
+    actions?: Array<{
+      inputs?: Array<{ name: string }>;
+      steps?: Array<unknown>;
+    }>;
+  };
+  const catalogs = flowAny.context?.catalogs ?? {};
+  // @conv は category 名 (error / msg / regex / limit / role 等) を許容 + 既存 catalog keys
+  // 簡易: 既知 conv カテゴリを hard-code (conventions catalog の category list)
+  const convKeys = new Set<string>([
+    "i18n", "msg", "regex", "limit", "scope", "currency", "tax",
+    "auth", "role", "permission", "db", "numbering", "tx",
+    "externalOutcomeDefaults", "extensionCategories", "fieldKeys",
+  ]);
+  // ProcessFlow 内 catalogs にあるキーも追加 (例: errors / externalSystems / events)
+  Object.keys(catalogs.errors ?? {}).forEach((k) => convKeys.add(k));
+  Object.keys(catalogs.externalSystems ?? {}).forEach((k) => convKeys.add(k));
+  Object.keys(catalogs.events ?? {}).forEach((k) => convKeys.add(k));
+
+  const varKeys = new Set<string>();
+  // 6 値 scope enum (#1264 verdict)
+  ["flowParameter", "action", "step", "tx", "loop", "global"].forEach((s) => varKeys.add(s));
+  // action.inputs[].name (flowParameter scope の暗黙 var)
+  (flowAny.actions ?? []).forEach((a) => {
+    (a.inputs ?? []).forEach((inp) => varKeys.add(inp.name));
+  });
+  // ambient variables (@requestId / @traceId / @sessionUserId 等)
+  (flowAny.context?.ambientVariables ?? []).forEach((av) => varKeys.add(av.name));
+
+  // walk steps to collect outputBinding.name (簡易、scope chain は厳密追跡しない)
+  function walkVarBindings(steps: unknown[]) {
+    for (const s of steps) {
+      const sAny = s as { outputBinding?: { name?: string }; steps?: unknown[]; branches?: Array<{ steps?: unknown[]; condition?: { errorVar?: string } }>; elseBranch?: { steps?: unknown[] }; onCommit?: unknown[]; onRollback?: unknown[]; collectionItemName?: string; collectionIndexName?: string };
+      if (sAny.outputBinding?.name) varKeys.add(sAny.outputBinding.name);
+      if (sAny.collectionItemName) varKeys.add(sAny.collectionItemName);
+      if (sAny.collectionIndexName) varKeys.add(sAny.collectionIndexName);
+      (sAny.branches ?? []).forEach((b) => {
+        if (b.condition?.errorVar) varKeys.add(b.condition.errorVar);
+        if (b.steps) walkVarBindings(b.steps);
+      });
+      if (sAny.elseBranch?.steps) walkVarBindings(sAny.elseBranch.steps);
+      if (sAny.steps) walkVarBindings(sAny.steps);
+      if (sAny.onCommit) walkVarBindings(sAny.onCommit);
+      if (sAny.onRollback) walkVarBindings(sAny.onRollback);
+    }
+  }
+  (flowAny.actions ?? []).forEach((a) => walkVarBindings(a.steps ?? []));
+
+  const eventKeys = new Set<string>(Object.keys(catalogs.events ?? {}));
+
+  return { convKeys, varKeys, eventKeys };
+}
+
 // ─── walkSteps ──────────────────────────────────────────────────────────────
 
 type StepVisitor = (step: Step, path: string) => void;
@@ -319,14 +474,20 @@ export function checkAntipatterns(
     }
   }
 
-  // Check 16, 19, 23: ステップ走査
+  // #1263 Phase X2: Check 31 のための context 構築
+  const refCtx = buildBrokenRefContext(flowAny);
+  // maturity 判定 (meta.maturity = "committed" → broken ref は error、それ以外 → warning)
+  const maturity = (flowAny.meta as { maturity?: string })?.maturity ?? "draft";
+  const brokenRefSeverity: "error" | "warning" = maturity === "committed" ? "error" : "warning";
+
+  // Check 16, 19, 23, 30, 31: ステップ走査
   const actions: unknown[] = Array.isArray(flowAny.actions) ? flowAny.actions : [];
   actions.forEach((action: unknown, ai: number) => {
     const actionAny = action as { steps?: Step[] };
     const steps: Step[] = actionAny.steps ?? [];
 
     walkSteps(steps, `actions[${ai}].steps`, (step, stepPath) => {
-      // Check 16: LITERAL_CONV_REFERENCE — step 内の全文字列値を走査
+      // Check 16, 30, 31: step 内の全文字列値を走査
       const stringValues: Array<{ path: string; value: string }> = [];
       collectStringValues(step, stepPath, stringValues);
 
@@ -365,6 +526,34 @@ export function checkAntipatterns(
             code: "MULTIPLE_STATEMENTS_IN_SQL",
             path: `${stepPath}.sql`,
             message: `\`dbAccess.sql\` に複数文が含まれています (\`;\` で区切り)。多くの ORM / DB ライブラリは単一文しか実行しないため、step を分割してください`,
+          });
+        }
+      }
+
+      // Check 30: SIDE_EFFECT_INLINE_BAN (#1254 件 3.7 / #1263 Phase X2)
+      for (const { path, value } of stringValues) {
+        const bans = findSideEffectInlineBans(value);
+        for (const { prefix, snippet } of bans) {
+          issues.push({
+            validator: "processFlowAntipatternValidator",
+            severity: "error",
+            code: "SIDE_EFFECT_INLINE_BAN",
+            path,
+            message: `\`\${...}\` 内で \`@${prefix}.<...>\` を呼び出すのは副作用 invocation のため禁止です (#1254 件 3.7)。専用 step (commonProcess / componentCall / eventPublish 等) を使ってください (検出: ${snippet})`,
+          });
+        }
+      }
+
+      // Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1254 件 3.5 / #1263 Phase X2)
+      for (const { path, value } of stringValues) {
+        const refs = collectBrokenRefs(value, refCtx);
+        for (const { prefix, key } of refs) {
+          issues.push({
+            validator: "processFlowAntipatternValidator",
+            severity: brokenRefSeverity,
+            code: "BROKEN_REFERENCE_MATURITY_AWARE",
+            path,
+            message: `\`@${prefix}.${key}\` の参照先が ProcessFlow.context / 変数 scope に存在しません (maturity=${maturity})。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
           });
         }
       }

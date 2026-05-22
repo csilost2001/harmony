@@ -1092,6 +1092,13 @@ export type StepKind = Step["kind"];
  */
 export interface ProcessFlow {
   $schema?: string;
+  /**
+   * TemplateString の `${...}` 補間内で解釈する式言語 (#1254 件 3 verdict / #1263 Phase X2)。
+   * `js-subset` (現行、docs/spec/process-flow-expression-language.md §3) が唯一の実装。
+   * 将来 `cel` (Google Common Expression Language) 切替を見据えて root field として保持。
+   * 省略時は `js-subset` を採用 (default)。
+   */
+  expressionLanguage?: "js-subset" | "cel";
   meta: ProcessFlowMeta;
   context?: Context;
   /** 実行ロジック本体。0 件も許容 (placeholder ProcessFlow 用)。 */
