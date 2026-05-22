@@ -4,8 +4,8 @@
  * 検証観点:
  * 1. designer__add_process_flow が v3 構造 (meta/context/actions/authoring 4 並列) で書き込む
  * 2. 生成される ID (processFlow / action / step) が RFC 4122 v4 UUID 形式
- * 3. meta.kind discriminator が使用される (旧 type フィールドは新規 entity に出現しない)
- * 4. harmony.json の entities.processFlows[] に upsert される (kind / no / actionCount)
+ * 3. meta.flowType discriminator が使用される (旧 type / kind フィールドは新規 entity に出現しない、#1263 Phase X1)
+ * 4. harmony.json の entities.processFlows[] に upsert される (flowType / no / actionCount)
  * 5. designer__add_action が v3 ActionDefinition 構造で UUID 付き action を追加する
  * 6. designer__add_step が v3 step (kind discriminator + UUID) を追加する
  * 7. AJV 検証で違反があれば authoring.markers に validator marker (Marker.kind='validator' +
@@ -63,7 +63,7 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
   it("v3 構造 (meta/context/actions/authoring 4 並列) で書き込まれる", async () => {
     const res = await handleProcessFlowTool(
       "designer__add_process_flow",
-      { name: "テスト処理フロー", kind: "common" },
+      { name: "テスト処理フロー", flowType: "common" },
       root,
       SESSION_ID,
     );
@@ -95,7 +95,8 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
     expect(meta.id).toBe(pfId);
     expect(meta.id).toMatch(UUID_V4_PATTERN);
     expect(meta.name).toBe("テスト処理フロー");
-    expect(meta.kind).toBe("common"); // #8 / #1141: discriminator は `kind`
+    expect(meta.flowType).toBe("common"); // #8 / #1141 / #1263 Phase X1: discriminator は `flowType`
+    expect(meta).not.toHaveProperty("kind"); // #1263 Phase X1: 旧 meta.kind は出現しない
     expect(meta).not.toHaveProperty("type");
     expect(meta.maturity).toBe("draft");
     expect(typeof meta.createdAt).toBe("string");
@@ -105,7 +106,7 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
   it("ProcessFlowId が RFC 4122 v4 UUID 形式である (旧 ag-${Date.now()} 全廃)", async () => {
     const res = await handleProcessFlowTool(
       "designer__add_process_flow",
-      { name: "uuid-format-check", kind: "batch" },
+      { name: "uuid-format-check", flowType: "batch" },
       root,
       SESSION_ID,
     );
@@ -116,19 +117,19 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
     expect(idMatch![1]).not.toMatch(/^ag-/);
   });
 
-  it("name または kind 欠落で InvalidParams が throw される", async () => {
+  it("name または flowType 欠落で InvalidParams が throw される (#1263 Phase X1)", async () => {
     await expect(
-      handleProcessFlowTool("designer__add_process_flow", { name: "no-kind" }, root, SESSION_ID),
-    ).rejects.toThrow(/name, kind は必須/);
+      handleProcessFlowTool("designer__add_process_flow", { name: "no-flow-type" }, root, SESSION_ID),
+    ).rejects.toThrow(/name, flowType は必須/);
     await expect(
-      handleProcessFlowTool("designer__add_process_flow", { kind: "screen" }, root, SESSION_ID),
-    ).rejects.toThrow(/name, kind は必須/);
+      handleProcessFlowTool("designer__add_process_flow", { flowType: "screen" }, root, SESSION_ID),
+    ).rejects.toThrow(/name, flowType は必須/);
   });
 
-  it("harmony.json の entities.processFlows[] に upsert される (no / kind / actionCount)", async () => {
+  it("harmony.json の entities.processFlows[] に upsert される (no / flowType / actionCount, #1263 Phase X1)", async () => {
     await handleProcessFlowTool(
       "designer__add_process_flow",
-      { name: "entity-upsert-check", kind: "screen", screenId: "11111111-1111-4111-8111-111111111110", description: "test desc" },
+      { name: "entity-upsert-check", flowType: "screen", screenId: "11111111-1111-4111-8111-111111111110", description: "test desc" },
       root,
       SESSION_ID,
     );
@@ -138,7 +139,8 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
     const list = entities.processFlows as Array<Record<string, unknown>>;
     const entry = list.find((e) => e.name === "entity-upsert-check");
     expect(entry).toBeDefined();
-    expect(entry!.kind).toBe("screen");
+    expect(entry!.flowType).toBe("screen");
+    expect(entry).not.toHaveProperty("kind"); // #1263 Phase X1: 旧 kind は出現しない
     expect(entry!.actionCount).toBe(0);
     expect(entry!.screenId).toBe("11111111-1111-4111-8111-111111111110");
     expect(typeof entry!.no).toBe("number");
@@ -157,7 +159,7 @@ describe("designer__add_action + designer__add_step — #1141 F-4 + S-9", () => 
     await makeWorkspace(root);
     const addRes = await handleProcessFlowTool(
       "designer__add_process_flow",
-      { name: "for-action-step", kind: "common" },
+      { name: "for-action-step", flowType: "common" },
       root,
       SESSION_ID,
     );
@@ -241,14 +243,14 @@ describe("writeProcessFlow AJV validation — #1141 F-2", () => {
   beforeAll(async () => { await makeWorkspace(root); });
 
   it("schema 違反の ProcessFlow を writeProcessFlow すると authoring.markers に validator marker が記録される (書き込みは許可)", async () => {
-    // schema 違反データ: meta.id が UUID 形式違反 (旧 `ag-xxx` 形式)、kind 欠落
+    // schema 違反データ: meta.id が UUID 形式違反 (旧 `ag-xxx` 形式)、flowType 欠落
     const bad = {
       meta: {
         id: "ag-bad-id-not-uuid",
         name: "違反テスト",
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
-        // kind が欠落 (meta.required: ['kind'])
+        // flowType が欠落 (meta.required: ['flowType'], #1263 Phase X1)
       },
       context: {},
       actions: [],
@@ -305,7 +307,7 @@ describe("writeProcessFlow AJV validation — #1141 F-2", () => {
       meta: {
         id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
         name: "valid-flow",
-        kind: "common",
+        flowType: "common",
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
       },
@@ -323,7 +325,7 @@ describe("writeProcessFlow AJV validation — #1141 F-2", () => {
   });
 });
 
-// ── 4. designer__list_process_flows が meta.{name,kind} を読む (v3 path) ────────
+// ── 4. designer__list_process_flows が meta.{name,flowType} を読む (v3 path, #1263 Phase X1) ──
 
 describe("designer__list_process_flows — #1141 F-4 v3 meta path", () => {
   const root = path.join(TMP_ROOT, "ws-list");
@@ -332,16 +334,16 @@ describe("designer__list_process_flows — #1141 F-4 v3 meta path", () => {
     await makeWorkspace(root);
   });
 
-  it("v3 entity (meta.{name,kind}) を一覧に表示する", async () => {
+  it("v3 entity (meta.{name,flowType}) を一覧に表示する (#1263 Phase X1)", async () => {
     await handleProcessFlowTool(
       "designer__add_process_flow",
-      { name: "list-test-1", kind: "common" },
+      { name: "list-test-1", flowType: "common" },
       root,
       SESSION_ID,
     );
     await handleProcessFlowTool(
       "designer__add_process_flow",
-      { name: "list-test-2", kind: "batch" },
+      { name: "list-test-2", flowType: "batch" },
       root,
       SESSION_ID,
     );
@@ -350,7 +352,7 @@ describe("designer__list_process_flows — #1141 F-4 v3 meta path", () => {
     const text = res!.content[0].text as string;
     expect(text).toMatch(/list-test-1.*common/);
     expect(text).toMatch(/list-test-2.*batch/);
-    // 旧 (type) でなく v3 (kind) の値が表示されている
+    // 旧 (type) / 旧 (kind) でなく v3 (flowType) の値が表示されている
     expect(text).not.toMatch(/\(undefined\)/);
   });
 });
@@ -400,7 +402,7 @@ describe("designer__solution_pack — #1229 F-1 path traversal 拒否", () => {
     // 処理フローを事前に作成
     const addRes = await handleProcessFlowTool(
       "designer__add_process_flow",
-      { name: "pack-test-flow", kind: "common" },
+      { name: "pack-test-flow", flowType: "common" },
       root,
       SESSION_ID,
     );
@@ -462,7 +464,7 @@ describe("designer__solution_unpack — #1229 F-1 path traversal 拒否", () => 
 
     const flowDoc = {
       id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-      meta: { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", name: "unpack-test", kind: "common" },
+      meta: { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", name: "unpack-test", flowType: "common" },
       context: {},
       actions: [],
       authoring: { markers: [] },
@@ -495,7 +497,7 @@ describe("designer__solution_unpack — #1229 I-001 ZIP 由来 id の UUID 検�
     const zipDir = path.join(root, "harmony", "input-id");
     await fs.mkdir(zipDir, { recursive: true });
     const zipPath = path.join(zipDir, `${Date.now()}.zip`);
-    const flowDoc = { id, meta: { id, name: "t", kind: "common" }, context: {}, actions: [], authoring: { markers: [] } };
+    const flowDoc = { id, meta: { id, name: "t", flowType: "common" }, context: {}, actions: [], authoring: { markers: [] } };
     const zip = new AdmZip();
     zip.addFile("manifest.json", Buffer.from(JSON.stringify({ publisher: "test", version: "1.0.0", processFlowIds: [id], createdAt: new Date().toISOString() }), "utf8"));
     // entryName は必ず process-flows/ 配下に設定 (フィルタ通過のため)
@@ -526,7 +528,7 @@ describe("designer__solution_unpack — #1229 I-001 ZIP 由来 id の UUID 検�
     const zipDir = path.join(root, "harmony", "input-id");
     await fs.mkdir(zipDir, { recursive: true });
     const zipPath = path.join(zipDir, `empty-id-${Date.now()}.zip`);
-    const flowDoc = { id: "", meta: { id: "", name: "t", kind: "common" }, context: {}, actions: [], authoring: { markers: [] } };
+    const flowDoc = { id: "", meta: { id: "", name: "t", flowType: "common" }, context: {}, actions: [], authoring: { markers: [] } };
     const zip = new AdmZip();
     zip.addFile("manifest.json", Buffer.from(JSON.stringify({ publisher: "test", version: "1.0.0", processFlowIds: [], createdAt: new Date().toISOString() }), "utf8"));
     zip.addFile("process-flows/empty.json", Buffer.from(JSON.stringify(flowDoc), "utf8"));

@@ -22,7 +22,7 @@ const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const dummyProcessFlowBody = buildProcessFlow({
   id: PROCESS_FLOW_ID,
   name: "テスト処理フロー",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [],
 });
@@ -30,7 +30,7 @@ const dummyProcessFlowBody = buildProcessFlow({
 const dummyProject = buildProject({
   name: "E2Eテスト用プロジェクト",
   entities: {
-    processFlows: [{ id: PROCESS_FLOW_ID, no: 1, name: "テスト処理フロー", kind: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: PROCESS_FLOW_ID, no: 1, name: "テスト処理フロー", flowType: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

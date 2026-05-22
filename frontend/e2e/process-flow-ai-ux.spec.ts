@@ -58,7 +58,7 @@ const project = buildProject({
       id: flowId,
       no: 1,
       name: "AI UX Smoke",
-      kind: "screen",
+      flowType: "screen",
       actionCount: 1,
       updatedAt: FIXED_TS,
       maturity: "draft",
@@ -69,7 +69,7 @@ const project = buildProject({
 const processFlow = buildProcessFlow({
   id: flowId,
   name: "AI UX Smoke",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [action] as ReturnType<typeof buildProcessFlow>["actions"],
 });

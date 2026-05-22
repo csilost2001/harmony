@@ -70,7 +70,7 @@
         "id": "d4b5c6e7-f809-4112-bc3d-4e5f6a7b8c9d",
         "no": 1,
         "name": "物件検索",
-        "kind": "screen",
+        "flowType": "screen",
         "actionCount": 1,
         "maturity": "committed",
         "updatedAt": "2026-05-03T00:00:00.000Z"

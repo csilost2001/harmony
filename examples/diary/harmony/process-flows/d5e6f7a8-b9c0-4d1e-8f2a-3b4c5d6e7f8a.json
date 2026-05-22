@@ -4,7 +4,7 @@
     "id": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
     "name": "投稿詳細取得",
     "description": "投稿の詳細情報を取得する処理フロー。posts を取得し、users (author)、photos (order_index ASC)、tags (post_tags JOIN tags) の情報を結合して返す。公開状態チェック: status='published' は誰でもアクセス可、'draft'/'archived' は所有者のみ。",
-    "kind": "screen",
+    "flowType": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
     "updatedAt": "2026-05-06T14:00:00.000Z",

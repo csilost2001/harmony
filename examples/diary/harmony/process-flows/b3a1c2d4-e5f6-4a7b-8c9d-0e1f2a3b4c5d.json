@@ -4,7 +4,7 @@
     "id": "b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
     "name": "投稿更新",
     "description": "既存投稿を更新する処理フロー。所有者検証後、posts / photos / post_tags を 1 TX 内に更新する。status を 'published' に変更する場合は published_at を NOW に設定する。",
-    "kind": "screen",
+    "flowType": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
     "updatedAt": "2026-05-06T14:00:00.000Z",

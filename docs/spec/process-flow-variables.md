@@ -209,7 +209,7 @@ ScreenItem.valueFrom.flowVariable.variableName は **IdentifierPath** ($defs in 
 interface CommonProcessStep extends StepBaseProps {
   kind: "commonProcess";
   description: string;
-  refId: Uuid;                                   // 呼び出し先 ProcessFlow の Uuid (kind="common")
+  refId: Uuid;                                   // 呼び出し先 ProcessFlow の Uuid (flowType="common", #1263 Phase X1: kind → flowType)
   argumentMapping?: Record<string, ExpressionString>;
   // キー: 呼び先 inputs.name (Identifier)
   // 値: 値表現 (式)

@@ -4,7 +4,7 @@
     "id": "267e94bf-0397-44b8-b665-d3c40c38935b",
     "name": "カート集計",
     "description": "ログイン顧客のアクティブカートの明細件数 (itemCount) と税抜合計金額 (totalAmount) を 1 リクエストで集計する読取専用フロー。カート画面 (c73fa05c) のヘッダ表示と、カート確認画面 (cff4a398) の合計表示の双方から共通利用する。アクティブカートが無い / 明細 0 件の場合は (0, 0) を返す。明細表示用の rows は店舗情報 (storeCode/storeName) を含み multi-store inventory に整合する。",
-    "kind": "common",
+    "flowType": "common",
     "maturity": "committed",
     "createdAt": "2026-05-03T00:00:00.000Z",
     "updatedAt": "2026-05-03T00:00:00.000Z"

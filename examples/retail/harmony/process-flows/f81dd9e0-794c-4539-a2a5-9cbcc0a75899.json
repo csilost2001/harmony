@@ -4,7 +4,7 @@
     "id": "f81dd9e0-794c-4539-a2a5-9cbcc0a75899",
     "name": "注文確定",
     "description": "カート内容を 1 TX (@conv.tx.orderConfirm) で確定する。在庫減算 (retail:DECREMENT_STOCK) → 注文番号採番 (@conv.numbering.orderNumber) → orders INSERT → order_items loop INSERT → カートクリア (retail:CLEAR_CART) の順に原子的に実行する。在庫減算は cart_items.store_id 単位で各店舗の inventory に対して実行する (multi-store inventory 整合)。TX 失敗時は 422 を返す。TX 後に persistedOrder を再取得してから注文確定イベントを発行する。支払方法 (paymentMethod) は credit_card / bank_transfer / cod の 3 択で受け付け、orders.payment_method 列に保存する。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3",
     "maturity": "committed",
     "createdAt": "2026-05-02T00:00:00.000Z",

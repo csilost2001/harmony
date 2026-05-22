@@ -85,7 +85,7 @@ const dummyProject = buildProject({
         id: groupId,
         no: 1,
         name: dummyGroup.name,
-        kind: dummyGroup.type as string,
+        flowType: dummyGroup.type as string,
         actionCount: 1,
         maturity: dummyGroup.maturity,
         updatedAt: FIXED_TS,
@@ -127,7 +127,7 @@ async function expandStep(page: Page, index: number) {
 const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: dummyGroup.name,
-  kind: (dummyGroup.type ?? "screen") as ReturnType<typeof buildProcessFlow>["meta"]["kind"],
+  flowType: (dummyGroup.type ?? "screen") as ReturnType<typeof buildProcessFlow>["meta"]["flowType"],
   mode: "upstream",
   actions: dummyGroup.actions as ReturnType<typeof buildProcessFlow>["actions"],
 });

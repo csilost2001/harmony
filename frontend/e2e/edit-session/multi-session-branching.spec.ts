@@ -36,7 +36,7 @@ const PF_NORM = normalizeId(PF_ID);
 const dummyProcessFlowBody = buildProcessFlow({
   id: PF_ID,
   name: "A 案 / B 案 並行編集テスト",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [],
 });
@@ -44,7 +44,7 @@ const dummyProcessFlowBody = buildProcessFlow({
 const dummyProject = buildProject({
   name: "edit-session-multi-branching-test",
   entities: {
-    processFlows: [{ id: PF_ID, no: 1, name: "A 案 / B 案 並行編集テスト", kind: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: PF_ID, no: 1, name: "A 案 / B 案 並行編集テスト", flowType: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

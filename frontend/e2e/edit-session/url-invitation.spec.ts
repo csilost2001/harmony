@@ -34,7 +34,7 @@ const PF_NORM = normalizeId(PF_ID);
 const dummyProcessFlowBody = buildProcessFlow({
   id: PF_ID,
   name: "URL 招待テスト",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [],
 });
@@ -42,7 +42,7 @@ const dummyProcessFlowBody = buildProcessFlow({
 const dummyProject = buildProject({
   name: "edit-session-url-invitation-test",
   entities: {
-    processFlows: [{ id: PF_ID, no: 1, name: "URL 招待テスト", kind: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: PF_ID, no: 1, name: "URL 招待テスト", flowType: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

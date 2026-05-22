@@ -311,12 +311,12 @@ $statusCode (Criterion 内のみ)
     "meta": {
       "description": "ProcessFlow の identity と運用設定。",
       "type": "object",
-      "required": ["id", "name", "kind", "createdAt", "updatedAt"],
+      "required": ["id", "name", "flowType", "createdAt", "updatedAt"],
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "common.v2.schema.json#/$defs/Uuid" },
         "name": { "type": "string" },
-        "kind": { "$ref": "#/$defs/ProcessFlowKind" },
+        "flowType": { "$ref": "#/$defs/ProcessFlowKind" },
         "screenId": { "$ref": "common.v2.schema.json#/$defs/Uuid" },
         "description": { "$ref": "common.v2.schema.json#/$defs/Description" },
         "version": { "$ref": "common.v2.schema.json#/$defs/SemVer" },

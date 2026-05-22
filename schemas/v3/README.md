@@ -205,7 +205,7 @@ v3 EventTopic regex は `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$` (lowercase + und
 
 | v1 | v3 |
 |---|---|
-| `type: "screen"` | `meta.kind: "screen"` |
+| `type: "screen"` | `meta.flowType: "screen"` (#1263 Phase X1: meta.kind → meta.flowType) |
 | `screenId`, `apiVersion`, `mode`, `maturity`, `description`, `version`, `createdAt`, `updatedAt` | `meta.{...}` (EntityMeta + ProcessFlow 固有) |
 | `errorCatalog: { CODE: { responseRef } }` | `context.catalogs.errors: { CODE: { responseId } }` |
 | `eventsCatalog` | `context.catalogs.events` (EventTopic 規範遵守) |

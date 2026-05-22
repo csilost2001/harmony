@@ -29,15 +29,15 @@ describe("buildProcessFlow", () => {
       console.error(validateProcessFlow.errors);
     }
     expect(ok).toBe(true);
-    expect(pf.meta.kind).toBe("other");
+    expect(pf.meta.flowType).toBe("other"); // #1263 Phase X1: meta.kind → meta.flowType
     expect(pf.meta.maturity).toBe("draft");
     expect(pf.actions).toEqual([]);
   });
 
   it("respects overrides", () => {
-    const pf = buildProcessFlow({ name: "注文処理", kind: "screen", mode: "upstream" });
+    const pf = buildProcessFlow({ name: "注文処理", flowType: "screen", mode: "upstream" });
     expect(pf.meta.name).toBe("注文処理");
-    expect(pf.meta.kind).toBe("screen");
+    expect(pf.meta.flowType).toBe("screen"); // #1263 Phase X1
     expect(pf.meta.mode).toBe("upstream");
   });
 

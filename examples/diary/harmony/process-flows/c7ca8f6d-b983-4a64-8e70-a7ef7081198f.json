@@ -4,7 +4,7 @@
     "id": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
     "name": "タグ管理",
     "description": "タグ管理画面 (c0bd613a) の CRUD ハンドラを集約した処理フロー (#1019)。1 画面 = 1 処理フロー + 複数アクション モデルの典型例として、create / update / delete の 3 actions を保持する。各 action は画面項目イベント側 events[].handlerActionId から個別に呼び出される。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2",
     "maturity": "draft",
     "createdAt": "2026-05-11T00:00:00.000Z",

@@ -19,14 +19,14 @@ const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 // header (project.processFlows[]) 用 — actionCount / kind 等の表示用 meta を持つ
 // schema v3 EntryBase: id (Uuid), no, name, updatedAt 必須
 const dummyGroups = [
-  { id: "11111111-1111-4111-8111-111111111111", no: 1, name: "ログイン処理", kind: "screen", actionCount: 3, screenId: "screen-1", updatedAt: FIXED_TS },
-  { id: "22222222-2222-4222-8222-222222222222", no: 2, name: "月次集計バッチ", kind: "batch", actionCount: 5, updatedAt: FIXED_TS },
-  { id: "33333333-3333-4333-8333-333333333333", no: 3, name: "共通バリデーション", kind: "common", actionCount: 2, updatedAt: FIXED_TS },
+  { id: "11111111-1111-4111-8111-111111111111", no: 1, name: "ログイン処理", flowType: "screen", actionCount: 3, screenId: "screen-1", updatedAt: FIXED_TS },
+  { id: "22222222-2222-4222-8222-222222222222", no: 2, name: "月次集計バッチ", flowType: "batch", actionCount: 5, updatedAt: FIXED_TS },
+  { id: "33333333-3333-4333-8333-333333333333", no: 3, name: "共通バリデーション", flowType: "common", actionCount: 2, updatedAt: FIXED_TS },
 ];
 
 // body (process-flows/<id>.json) 用 — v3 ProcessFlow shape
 const dummyGroupBodies = dummyGroups.map((g) =>
-  buildProcessFlow({ id: g.id, name: g.name, kind: g.kind as Parameters<typeof buildProcessFlow>[0]["kind"], mode: "upstream" })
+  buildProcessFlow({ id: g.id, name: g.name, flowType: g.flowType as Parameters<typeof buildProcessFlow>[0]["flowType"], mode: "upstream" })
 );
 
 const dummyProject = buildProject({

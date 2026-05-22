@@ -21,7 +21,8 @@ function clone<T>(raw: T): T {
 }
 
 function isV3ProcessFlow(raw: Raw): boolean {
-  return raw.$schema === PROCESS_FLOW_V3_SCHEMA_REF || (isRecord(raw.meta) && typeof raw.meta.kind === "string");
+  // #1263 Phase X1: meta.kind → meta.flowType に rename
+  return raw.$schema === PROCESS_FLOW_V3_SCHEMA_REF || (isRecord(raw.meta) && typeof raw.meta.flowType === "string");
 }
 
 function isValidMaturity(v: unknown): v is Maturity {
@@ -291,7 +292,7 @@ export function migrateProcessFlow(raw: unknown): ProcessFlow {
     meta: {
       id: source.id,
       name: source.name ?? "",
-      kind: source.type ?? "other",
+      flowType: source.type ?? "other",
       description: source.description ?? "",
       version: source.version ?? "1.0.0",
       maturity: isValidMaturity(source.maturity) ? source.maturity : "draft",

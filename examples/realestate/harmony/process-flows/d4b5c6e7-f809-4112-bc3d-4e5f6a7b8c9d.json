@@ -4,7 +4,7 @@
     "id": "d4b5c6e7-f809-4112-bc3d-4e5f6a7b8c9d",
     "name": "物件検索",
     "description": "物件種別・上限価格・最小面積を条件に properties テーブルを検索し、条件に合う物件一覧を返す。読取専用フロー (TX 不要)。viewer screen-item (#762) の動的 binding デモ用。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b",
     "maturity": "committed",
     "createdAt": "2026-05-03T00:00:00.000Z",

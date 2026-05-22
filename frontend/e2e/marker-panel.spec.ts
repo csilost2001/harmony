@@ -19,14 +19,14 @@ const groupId = "ag-marker";
 const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: "marker test",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [{ id: "act-1", name: "ボタン", trigger: "click", maturity: "draft", steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
 });
 const dummyProject = buildProject({
   name: "marker",
   entities: {
-    processFlows: [{ id: groupId, no: 1, name: "marker test", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: groupId, no: 1, name: "marker test", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

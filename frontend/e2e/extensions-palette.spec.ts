@@ -22,14 +22,14 @@ const groupId = "ag-extension-palette";
 const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: "extension palette",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [{ id: "act-1", name: "ボタン", trigger: "click", maturity: "draft", responses: [], steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
 });
 const dummyProject = buildProject({
   name: "extension-palette",
   entities: {
-    processFlows: [{ id: groupId, no: 1, name: "extension palette", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: groupId, no: 1, name: "extension palette", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 
