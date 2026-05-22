@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/validation-rule.v3.schema.json",
+  "title": "Validation Rule (v3 generic-definition kind: validation-rule)",
+  "description": "Generic Definition Catalog の validation-rule kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。親 schema (../generic-definition.v3.schema.json) を `allOf` 継承し、`kind` を const \"validation-rule\" に固定。validation-rule は業務検証ルール (条件 + メッセージ + severity) を表現する catalog 記録。`@validation.<name>` 参照元。inline 許可 namespace (boolean return) として `${...}` 内で呼び出し可能。仕様: docs/spec/generic-definition-layer.md §4.2 / docs/spec/process-flow-prefix-system.md。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "validation-rule" }
+  }
+}

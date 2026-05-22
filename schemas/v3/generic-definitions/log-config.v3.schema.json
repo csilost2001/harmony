@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/log-config.v3.schema.json",
+  "title": "Log Config (v3 generic-definition kind: log-config)",
+  "description": "Generic Definition Catalog の log-config kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。親 schema (../generic-definition.v3.schema.json) を `allOf` 継承し、`kind` を const \"log-config\" に固定。log-config はログ設定 (log level / sink / format / rotation / retention) を catalog 化する。`@logConfig.<key>` 参照元、runtime-policy と類似だがログ専用に分離 (catalog 識別性を上げるため)。pure 参照のため inline 許可 namespace。仕様: docs/spec/generic-definition-layer.md §4.2 / docs/spec/process-flow-prefix-system.md。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "log-config" }
+  }
+}

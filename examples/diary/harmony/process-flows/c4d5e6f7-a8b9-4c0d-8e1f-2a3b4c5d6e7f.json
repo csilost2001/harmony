@@ -193,7 +193,8 @@
             "POST_DELETE_FAILED"
           ],
           "outputBinding": {
-            "name": "txResult"
+            "name": "txResult",
+            "expose": ["committed", "error"]
           },
           "steps": [
             {

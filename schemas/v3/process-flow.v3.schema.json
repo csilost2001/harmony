@@ -447,7 +447,7 @@
         },
         "maturity": { "$ref": "common.v3.schema.json#/$defs/Maturity" },
         "sla": { "$ref": "#/$defs/Sla" },
-        "runIf": { "$ref": "common.v3.schema.json#/$defs/ExpressionString", "description": "実行条件式。false なら本 step を skip。" },
+        "runIf": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "実行条件式。false なら本 step を skip。" },
         "requiredPermissions": {
           "type": "array",
           "items": { "type": "string" }
@@ -460,7 +460,7 @@
     },
 
     "OutputBinding": {
-      "description": "Step 結果の outputBinding (構造化のみ、v3 で string 短縮形は廃止)。",
+      "description": "Step 結果の outputBinding (構造化のみ、v3 で string 短縮形は廃止)。#1263 Phase X2 (#1264 verdict 観点 4): TransactionScopeStep で使用する場合は `expose` field で TX 外参照可な値を明示宣言する。",
       "type": "object",
       "required": ["name"],
       "additionalProperties": false,
@@ -473,6 +473,16 @@
         },
         "initialValue": {
           "description": "accumulate / push 時の初期値。JSON 値 (例: 0, []) または式文字列。"
+        },
+        "expose": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["committed", "error", "diagnostics"]
+          },
+          "uniqueItems": true,
+          "description": "TransactionScopeStep 専用 (#1264 verdict 観点 4)。TX commit 成功時 / rollback 時に TX 外 (親 scope) へ expose する値の明示宣言。`committed` = `@<name>.committed` (boolean、TX commit 成否) / `error` = `@<name>.error` (`{code, message}`、rollback 時のみ) / `diagnostics` = `@<name>.diagnostics` (TX 実行 metrics)。expose されていない値は TX 外から参照不可 (memory 汚染防止、TX 内 → TX 外 mutation 禁止原則)。",
+          "examples": [["committed", "error"]]
         },
         "transformations": {
           "type": "array",
@@ -629,7 +639,7 @@
         "maxRef": { "type": "string", "description": "@conv.limit.<key> 参照 (max の代替)。" },
         "lengthRef": { "type": "string", "description": "@conv.limit.<key> 参照 (length の代替)。loader が integer 値に展開する。" },
         "values": { "type": "array", "items": { "type": "string" } },
-        "condition": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+        "condition": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
         "message": { "type": "string", "description": "違反メッセージ (@conv.msg.<key> 推奨)。" },
         "exceptionTypeRef": {
           "type": "string",
@@ -648,7 +658,7 @@
         "ng": { "type": "array", "items": { "$ref": "#/$defs/Step" }, "description": "NG 時の後続 step 列。" },
         "ngJumpTo": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
         "ngResponseId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "NG 時の Response.id 参照。" },
-        "ngBodyExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+        "ngBodyExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
         "ngEventPublish": {
           "type": "object",
           "description": "NG 時に eventPublish を実行してから ngResponseId を返す。topic は context.catalogs.events のキーと一致する (eventRef 二重持ちは v3 廃止、EventPublishStep と整合)。",
@@ -656,7 +666,7 @@
           "additionalProperties": false,
           "properties": {
             "topic": { "$ref": "common.v3.schema.json#/$defs/EventTopic" },
-            "payload": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "payload": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
       }
@@ -674,7 +684,7 @@
             "operation": { "$ref": "#/$defs/DbOperation" },
             "fields": { "type": "string", "description": "対象フィールド (人間向け簡易表記)。" },
             "sql": { "type": "string", "description": "完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。" },
-            "bulkValues": { "$ref": "common.v3.schema.json#/$defs/ExpressionString", "description": "一括 INSERT 時に VALUES に展開する配列変数の式。" },
+            "bulkValues": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "一括 INSERT 時に VALUES に展開する配列変数の式。" },
             "affectedRowsCheck": { "$ref": "#/$defs/AffectedRowsCheck" },
             "cache": { "$ref": "#/$defs/CacheHint" }
           }
@@ -739,7 +749,7 @@
       "additionalProperties": false,
       "properties": {
         "ttlSeconds": { "type": "number", "minimum": 0 },
-        "key": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+        "key": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
         "invalidateOn": {
           "type": "array",
           "items": { "$ref": "common.v3.schema.json#/$defs/EventTopic" }
@@ -773,7 +783,7 @@
             "bulkhead": { "$ref": "#/$defs/BulkheadConfig" },
             "fireAndForget": { "type": "boolean" },
             "auth": { "$ref": "#/$defs/ExternalAuth" },
-            "idempotencyKey": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+            "idempotencyKey": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "headers": {
               "type": "object",
               "additionalProperties": { "type": "string" }
@@ -801,7 +811,7 @@
           "type": "object",
           "additionalProperties": { "type": "string" }
         },
-        "body": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+        "body": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
       }
     },
 
@@ -974,7 +984,7 @@
       "properties": {
         "kind": { "const": "spread" },
         "ref": {
-          "$ref": "common.v3.schema.json#/$defs/ExpressionString",
+          "$ref": "common.v3.schema.json#/$defs/TemplateString",
           "description": "AiMessage 互換配列を持つ変数参照 (例: '@turnContext')。展開対象は { role: 'user'|'assistant'|'system', content: string } の配列を期待し、ランタイムが各要素を AiMessage として messages[] に展開する。"
         },
         "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
@@ -1015,7 +1025,7 @@
           "properties": {
             "kind": { "const": "fileRef" },
             "ref": {
-              "$ref": "common.v3.schema.json#/$defs/ExpressionString",
+              "$ref": "common.v3.schema.json#/$defs/TemplateString",
               "description": "ScreenItem (type=file) または step output 等の式参照 (例: '@inputs.photo' / '@uploaded.file')。ローカルファイル / アップロード済 file ハンドルを想定。"
             }
           }
@@ -1164,6 +1174,7 @@
     },
 
     "CommonProcessStep": {
+      "description": "他 ProcessFlow (kind='common') を呼び出す step。#1263 Phase X2 (#1264 verdict 3): `returnMapping` 廃止、StepBaseProps.outputBinding (`{ name }`) で 1 object bind に統一。呼び先 ProcessFlow の outputs 全体が単一変数として bind される。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {
@@ -1174,13 +1185,8 @@
             "refId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "呼び出し先 ProcessFlow の Uuid (kind='common' の他フロー)。" },
             "argumentMapping": {
               "type": "object",
-              "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+              "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
               "description": "呼び先 inputs 名 → 引数式の対応。"
-            },
-            "returnMapping": {
-              "type": "object",
-              "additionalProperties": { "type": "string" },
-              "description": "呼び先 outputs 名 → 説明 / バインド先の対応。"
             }
           }
         }
@@ -1189,6 +1195,7 @@
     },
 
     "ComponentCallStep": {
+      "description": "component-definition の operation 呼び出し step。#1263 Phase X2 (#1264 verdict 3): `returnMapping` 廃止、StepBaseProps.outputBinding (`{ name }`) で 1 object bind に統一。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {
@@ -1209,13 +1216,8 @@
             },
             "argumentMapping": {
               "type": "object",
-              "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+              "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
               "description": "呼び先 inputs 名 → 引数式の対応。"
-            },
-            "returnMapping": {
-              "type": "object",
-              "additionalProperties": { "type": "string" },
-              "description": "呼び先 outputs 名 → 説明 / バインド先の対応。"
             }
           }
         }
@@ -1313,7 +1315,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "expression" },
-            "expression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "expression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         },
         {
@@ -1323,6 +1325,10 @@
           "properties": {
             "kind": { "const": "tryCatch" },
             "errorCode": { "$ref": "common.v3.schema.json#/$defs/ErrorCode" },
+            "errorVar": {
+              "$ref": "common.v3.schema.json#/$defs/Identifier",
+              "description": "catch block 内で tryCatch error 全体を bind する変数名 (#1264 verdict 観点 3、#1263 Phase X2)。指定時は branch.steps 配下で `@var.<errorVar>` (例: `@var.caughtError.code`、`@var.caughtError.message`) として参照可能。専用 scope を持たず、enclosing scope に named binding として導入される。"
+            },
             "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
           }
         },
@@ -1361,11 +1367,15 @@
           "properties": {
             "kind": { "const": "loop" },
             "loopKind": { "type": "string", "enum": ["count", "condition", "collection"] },
-            "countExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+            "countExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "conditionMode": { "type": "string", "enum": ["continue", "exit"] },
-            "conditionExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
-            "collectionSource": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+            "conditionExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
+            "collectionSource": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "collectionItemName": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
+            "collectionIndexName": {
+              "$ref": "common.v3.schema.json#/$defs/Identifier",
+              "description": "collection loop の現在 index を bind する変数名 (#1264 verdict 観点 3、#1263 Phase X2)。指定時は steps[] 配下で `@var.<collectionIndexName>` として参照可能 (0-based integer)。省略時は明示 index 参照不可 (item のみ)。loop iteration ごとに fresh、外側 scope に持ち越されない。"
+            },
             "steps": { "type": "array", "items": { "$ref": "#/$defs/Step" } }
           }
         },
@@ -1432,7 +1442,7 @@
           "required": ["id", "kind", "description", "expression"],
           "properties": {
             "kind": { "const": "compute" },
-            "expression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "expression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
       ],
@@ -1448,7 +1458,7 @@
           "properties": {
             "kind": { "const": "return" },
             "responseId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Action.responses[].id 参照。" },
-            "bodyExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "bodyExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
       ],
@@ -1520,14 +1530,14 @@
             "onApproved": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
             "onRejected": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
             "onTimeout": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
-            "deadlineExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+            "deadlineExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "escalateAfter": { "type": "string", "description": "ISO 8601 duration またはエスカレーション期間式。" },
             "escalateTo": {
               "type": "object",
               "additionalProperties": false,
               "properties": {
                 "role": { "type": "string", "description": "@conv.role.<key>" },
-                "userExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+                "userExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
               }
             }
           }
@@ -1617,7 +1627,7 @@
           "properties": {
             "kind": { "const": "eventPublish" },
             "topic": { "$ref": "common.v3.schema.json#/$defs/EventTopic", "description": "発行先 topic。同時に context.catalogs.events のキーとして登録されている必要がある。" },
-            "payload": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "payload": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
       ],
@@ -1634,7 +1644,7 @@
           "properties": {
             "kind": { "const": "eventSubscribe" },
             "topic": { "$ref": "common.v3.schema.json#/$defs/EventTopic", "description": "購読 topic。同時に context.catalogs.events のキーとして登録されている必要がある。" },
-            "filter": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "filter": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
       ],
@@ -1652,7 +1662,7 @@
             "period": { "type": "string", "enum": ["daily", "monthly", "quarterly", "yearly", "custom"] },
             "customCron": { "type": "string" },
             "cutoffAt": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$", "description": "締切時刻 (HH:MM または HH:MM:SS、24 時間表記、timezone なし)。例: '23:59:59' / '23:59' / '00:00:00'。#533 R3-2 で pattern 追加 (\"99:99\" 等の不正値を reject)。format: \"time\" は ajv-formats では timezone 必須のため不採用。" },
-            "idempotencyKey": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+            "idempotencyKey": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "rollbackOnFailure": { "type": "boolean" }
           }
         }

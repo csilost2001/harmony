@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/constants.v3.schema.json",
+  "title": "Constants (v3 generic-definition kind: constants)",
+  "description": "Generic Definition Catalog の constants kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。親 schema (../generic-definition.v3.schema.json) を `allOf` 継承し、`kind` を const \"constants\" に固定。constants はドメイン定数集 (税率 / 最大件数 / 業務マジックナンバー等) を catalog 化する。`@const.<key>` 参照元 (JS keyword 衝突回避のため `@const`、3 AI Gemini/Opus 多数派採用)。pure 参照のため inline 許可 namespace (`${...}` 内で呼び出し可)。仕様: docs/spec/generic-definition-layer.md §4.2 / docs/spec/process-flow-prefix-system.md。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "constants" }
+  }
+}

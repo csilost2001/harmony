@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/log-event.v3.schema.json",
+  "title": "Log Event (v3 generic-definition kind: log-event)",
+  "description": "Generic Definition Catalog の log-event kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。親 schema (../generic-definition.v3.schema.json) を `allOf` 継承し、`kind` を const \"log-event\" に固定。log-event は構造化ログのイベント定義 (event key / structured fields / category / severity 標準) を catalog 化する。`@logEvent.<key>` 参照元、LogStep.category / structuredData から参照可能。observability / SIEM 連携の語彙統一に使用。pure 参照のため inline 許可 namespace。仕様: docs/spec/generic-definition-layer.md §4.2 / docs/spec/process-flow-prefix-system.md。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "log-event" }
+  }
+}

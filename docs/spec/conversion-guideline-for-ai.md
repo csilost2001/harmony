@@ -660,7 +660,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 
 | step kind | 追加必須 field | 用途 |
 |---|---|---|
-| `validation` | (なし、`rules` / `fieldErrorsVar` / `inlineBranch` は任意) | フィールドバリデーション |
+| `validation` | `fieldErrorsVar` | フィールドバリデーション (#1221 で必須化、`rules` / `inlineBranch` は任意) |
 | `dbAccess` | `tableId`, `operation` | DB 操作 (`sql` は任意だが現行ほぼ必須) |
 | `externalSystem` | `systemRef` | 外部システム呼び出し |
 | `commonProcess` | `refId` | 他 ProcessFlow 呼び出し |

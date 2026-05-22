@@ -1,7 +1,9 @@
 // Phase-3 (#1145、#1163 review Phase-2 補足): StepCard.tsx で dispatch が未実装だった
 // `componentCall` kind (PR #1066 で schema 追加) に最小 body を提供する。
-// CommonProcessStepCardBody と類似 (componentRef + operation + argumentMapping / returnMapping)。
+// CommonProcessStepCardBody と類似 (componentRef + operation + argumentMapping)。
 // #1258 follow-up: componentRef を ReferenceCompletionInput に置換して補完対応。
+// #1263 Phase X2 (#1264 verdict 観点 3): returnMapping 廃止、StepBaseProps.outputBinding (`{ name }`)
+// で 1 object bind に統一。本 card body から returnMapping UI を削除。outputBinding は共通 card側で編集。
 
 import type { ComponentCallStep } from "../../../../types/v3";
 import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
@@ -79,33 +81,6 @@ export function ComponentCallStepCardBody({
           }}
           onBlur={onCommit}
           placeholder={"order=@input.order\nstrict=true"}
-          style={{ fontFamily: "monospace", fontSize: "0.8rem" }}
-        />
-      </div>
-      <div className="form-group">
-        <label className="form-label small">
-          <i className="bi bi-arrow-return-right me-1" />
-          戻り値マッピング (returnMapping、key=value、改行区切り)
-        </label>
-        <textarea
-          className="form-control form-control-sm"
-          rows={2}
-          value={Object.entries(step.returnMapping ?? {}).map(([k, v]) => `${k}=${v}`).join("\n")}
-          onChange={(e) => {
-            const lines = e.target.value.split("\n").map((l) => l.trim()).filter(Boolean);
-            const map: Record<string, string> = {};
-            for (const line of lines) {
-              const eq = line.indexOf("=");
-              if (eq > 0) {
-                map[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
-              }
-            }
-            onChange({
-              returnMapping: Object.keys(map).length > 0 ? map : undefined,
-            });
-          }}
-          onBlur={onCommit}
-          placeholder={"isValid=successFlag\nerrors=validationErrors"}
           style={{ fontFamily: "monospace", fontSize: "0.8rem" }}
         />
       </div>

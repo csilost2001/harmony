@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/domain-event.v3.schema.json",
+  "title": "Domain Event (v3 generic-definition kind: domain-event)",
+  "description": "Generic Definition Catalog の domain-event kind 固有 schema (#1254 件 3.7 / #1263 Phase X2)。親 schema (../generic-definition.v3.schema.json) を `allOf` 継承し、`kind` を const \"domain-event\" に固定。domain-event は業務イベント定義 (発生条件 / payload schema / publisher / subscriber 期待) を catalog 化する。`@event.<topic>` 参照元、EventPublishStep.topic / EventSubscribeStep.topic から参照される。ProcessFlow.context.catalogs.events と semantic 重複だが catalog 独立 (events catalog は ProcessFlow ローカル、domain-event は cross-flow catalog 記録)。pure 参照のため inline 許可 namespace。仕様: docs/spec/generic-definition-layer.md §4.2 / docs/spec/process-flow-prefix-system.md。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "domain-event" }
+  }
+}

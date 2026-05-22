@@ -217,7 +217,7 @@ describe("v3 variant fixture coverage — Step kinds (#531)", () => {
     expectPass(flow, "LoopContinueStep");
   });
 
-  it("kind=commonProcess with refId + argumentMapping + returnMapping", () => {
+  it("kind=commonProcess with refId + argumentMapping + outputBinding (#1264 verdict 観点 3)", () => {
     const flow = makeFlow([
       {
         id: "step-01",
@@ -225,7 +225,7 @@ describe("v3 variant fixture coverage — Step kinds (#531)", () => {
         description: "common process fixture",
         refId: "33333333-3333-4333-8333-333333333333",
         argumentMapping: { customerId: "@inputs.customerId" },
-        returnMapping: { customerProfile: "顧客プロファイル" },
+        outputBinding: { name: "customerProfile" },
       },
     ]);
     expectPass(flow, "CommonProcessStep");

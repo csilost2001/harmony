@@ -94,7 +94,7 @@ export function useWorkspaceReferences(): WorkspaceRefs {
           return {
             id: f.id as unknown as string,
             name: f.name,
-            kind: f.kind ?? "other",
+            kind: f.flowType ?? "other",
             maturity: f.maturity,
             actions: loaded?.actions?.map((a) => ({ id: a.id as unknown as string, name: a.name })),
           };

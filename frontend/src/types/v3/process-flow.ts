@@ -398,7 +398,11 @@ export interface OutputBindingTransformation {
   type: "integer" | "float" | "boolean" | "date" | "json";
 }
 
-/** Step 結果の outputBinding (構造化のみ、v3 で string 短縮形廃止)。 */
+/**
+ * Step 結果の outputBinding (構造化のみ、v3 で string 短縮形廃止)。
+ * #1263 Phase X2 (#1264 verdict 観点 4): TransactionScopeStep で使用する場合は `expose` field で
+ * TX 外参照可な値を明示宣言する。
+ */
 export interface OutputBinding {
   /** 結果変数名 (Identifier / camelCase)。 */
   name: Identifier;
@@ -406,6 +410,16 @@ export interface OutputBinding {
   operation?: "assign" | "accumulate" | "push";
   /** accumulate / push 時の初期値。JSON 値 (例: 0, []) または式文字列。 */
   initialValue?: unknown;
+  /**
+   * TransactionScopeStep 専用 (#1264 verdict 観点 4)。
+   * TX commit 成功時 / rollback 時に TX 外 (親 scope) へ expose する値の明示宣言。
+   * - `committed`: `@<name>.committed` (boolean、TX commit 成否)
+   * - `error`: `@<name>.error` (`{code, message}`、rollback 時のみ)
+   * - `diagnostics`: `@<name>.diagnostics` (TX 実行 metrics)
+   *
+   * expose されていない値は TX 外から参照不可 (memory 汚染防止、TX 内 → TX 外 mutation 禁止原則)。
+   */
+  expose?: ("committed" | "error" | "diagnostics")[];
   /**
    * 結果列の型変換指示。runtime が SELECT 結果を binding に格納する前に各 field の型を変換する。
    * SQL 方言 (PG COUNT(*)→bigint→string、SUM(...)→decimal→string 等) を吸収する責務を
@@ -609,6 +623,11 @@ export interface ExternalSystemStep extends StepBaseProps {
 
 // ─── 残り step variants ────────────────────────────────────────────────
 
+/**
+ * 他 ProcessFlow (kind='common') を呼び出す step。
+ * #1263 Phase X2 (#1264 verdict 観点 3): `returnMapping` 廃止、
+ * StepBaseProps.outputBinding (`{ name }`) で 1 object bind に統一。
+ */
 export interface CommonProcessStep extends StepBaseProps {
   kind: "commonProcess";
   description: Description;
@@ -616,11 +635,13 @@ export interface CommonProcessStep extends StepBaseProps {
   refId: ProcessFlowId;
   /** 呼び先 inputs 名 → 引数式の対応。 */
   argumentMapping?: Record<string, ExpressionString>;
-  /** 呼び先 outputs 名 → 説明 / バインド先の対応。 */
-  returnMapping?: Record<string, string>;
 }
 
-/** ProcessFlow 内で Generic Definition Catalog の component-definition を呼び出す step (#1066)。 */
+/**
+ * ProcessFlow 内で Generic Definition Catalog の component-definition を呼び出す step (#1066)。
+ * #1263 Phase X2 (#1264 verdict 観点 3): `returnMapping` 廃止、
+ * StepBaseProps.outputBinding (`{ name }`) で 1 object bind に統一。
+ */
 export interface ComponentCallStep extends StepBaseProps {
   kind: "componentCall";
   description: Description;
@@ -630,8 +651,6 @@ export interface ComponentCallStep extends StepBaseProps {
   operation?: string;
   /** 呼び先 inputs 名 → 引数式の対応。 */
   argumentMapping?: Record<string, ExpressionString>;
-  /** 呼び先 outputs 名 → 説明 / バインド先の対応。 */
-  returnMapping?: Record<string, string>;
 }
 
 export interface ScreenTransitionStep extends StepBaseProps {
@@ -647,10 +666,25 @@ export interface DisplayUpdateStep extends StepBaseProps {
   target: string;
 }
 
-/** Branch 1 件 (kind=expression 等の discriminated union)。 */
+/**
+ * Branch 1 件 (kind=expression 等の discriminated union)。
+ * #1263 Phase X2 (#1264 verdict 観点 3): tryCatch variant に `errorVar` (catch block 内で
+ * error 全体を bind する変数名) を追加。
+ */
 export type BranchCondition =
   | { kind: "expression"; expression: ExpressionString }
-  | { kind: "tryCatch"; errorCode: ErrorCode; description?: Description }
+  | {
+      kind: "tryCatch";
+      errorCode: ErrorCode;
+      /**
+       * catch block 内で tryCatch error 全体を bind する変数名 (#1264 verdict 観点 3)。
+       * 指定時は branch.steps 配下で `@var.<errorVar>` (例: `@var.caughtError.code`、
+       * `@var.caughtError.message`) として参照可能。
+       * 専用 scope を持たず、enclosing scope に named binding として導入される。
+       */
+      errorVar?: Identifier;
+      description?: Description;
+    }
   | { kind: "affectedRowsZero"; stepId?: LocalId; description?: Description }
   | {
       kind: "externalOutcome";
@@ -695,6 +729,13 @@ export interface LoopStep extends StepBaseProps {
   conditionExpression?: ExpressionString;
   collectionSource?: ExpressionString;
   collectionItemName?: Identifier;
+  /**
+   * collection loop の現在 index を bind する変数名 (#1264 verdict 観点 3、#1263 Phase X2)。
+   * 指定時は steps[] 配下で `@var.<collectionIndexName>` として参照可能 (0-based integer)。
+   * 省略時は明示 index 参照不可 (item のみ)。
+   * loop iteration ごとに fresh、外側 scope に持ち越されない。
+   */
+  collectionIndexName?: Identifier;
   steps: Step[];
 }
 

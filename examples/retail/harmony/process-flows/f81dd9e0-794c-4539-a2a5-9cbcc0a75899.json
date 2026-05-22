@@ -266,8 +266,8 @@
           "argumentMapping": {
             "order": "@inputs"
           },
-          "returnMapping": {
-            "result": "validationResult"
+          "outputBinding": {
+            "name": "validationResult"
           }
         },
         {
@@ -382,7 +382,8 @@
             "ORDER_NUMBER_CONFLICT"
           ],
           "outputBinding": {
-            "name": "txResult"
+            "name": "txResult",
+            "expose": ["committed", "error"]
           },
           "steps": [
             {

@@ -383,7 +383,8 @@
             "SCORE_INSERT_FAILED"
           ],
           "outputBinding": {
-            "name": "txResult"
+            "name": "txResult",
+            "expose": ["committed", "error"]
           },
           "steps": [
             {

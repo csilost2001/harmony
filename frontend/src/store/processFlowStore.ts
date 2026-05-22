@@ -71,7 +71,7 @@ export async function createProcessFlow(
     meta: {
       id,
       name,
-      kind: type,
+      flowType: type,
       screenId: screenId as ScreenId | undefined,
       description: description ?? "",
       version: "1.0.0",

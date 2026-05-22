@@ -1260,7 +1260,7 @@ export function ScreenItemsView() {
                                       onClick={() => {
                                         const current = ev.argumentMapping ?? {};
                                         if ("" in current) return; // 既に空キー行がある場合は追加しない
-                                        handleUpdateEvent(i, eIdx, { argumentMapping: { ...current, "": "" as ExpressionString } });
+                                        handleUpdateEvent(i, eIdx, { argumentMapping: { ...current, ["" as Identifier]: "" as ExpressionString } });
                                       }}
                                       disabled={isReadonly}
                                       title="マッピング行を追加"
@@ -1297,7 +1297,7 @@ export function ScreenItemsView() {
                                         value={v}
                                         onChange={(e) => {
                                           const next = { ...(ev.argumentMapping ?? {}) };
-                                          next[k] = e.target.value as ExpressionString;
+                                          next[k as Identifier] = e.target.value as ExpressionString;
                                           handleUpdateEvent(i, eIdx, { argumentMapping: next });
                                         }}
                                         onBlur={commit}
@@ -1309,7 +1309,7 @@ export function ScreenItemsView() {
                                         className="btn btn-sm btn-link text-danger p-0"
                                         onClick={() => {
                                           const next = { ...(ev.argumentMapping ?? {}) };
-                                          delete next[k];
+                                          delete next[k as Identifier];
                                           handleUpdateEvent(i, eIdx, { argumentMapping: Object.keys(next).length > 0 ? next : undefined });
                                         }}
                                         disabled={isReadonly}

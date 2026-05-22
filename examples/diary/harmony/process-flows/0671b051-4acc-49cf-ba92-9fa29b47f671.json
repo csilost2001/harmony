@@ -280,7 +280,8 @@
             "UNIQUE_VIOLATION"
           ],
           "outputBinding": {
-            "name": "txResult"
+            "name": "txResult",
+            "expose": ["committed", "error"]
           },
           "steps": [
             {

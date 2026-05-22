@@ -75,12 +75,18 @@
         "domain-type",
         "exception-type",
         "application-rule",
+        "validation-rule",
         "ui-behavior",
         "runtime-policy",
         "component-definition",
-        "ui-fragment"
+        "ui-fragment",
+        "constants",
+        "message",
+        "domain-event",
+        "log-event",
+        "log-config"
       ],
-      "description": "Generic Definition Catalog の 8 kind (spec §4.2)。data-contract = DTO/Form/Result/ViewModel 等の層間契約。domain-type = Entity/Model などドメイン型。exception-type = 例外種別・階層・semantic kind。application-rule = 認証認可/ログ/監査などの横断ルール。ui-behavior = 画面横断振る舞い。runtime-policy = retry/timeout/circuit breaker/cache 等の横断適用ポリシー。component-definition = service/mapper/validator/formatter 等の責務。ui-fragment = 再利用 UI 断片。"
+      "description": "Generic Definition Catalog の 14 kind (#1254 件 3.7 / #1263 Phase X2、spec §4.2)。data-contract = DTO/Form/Result/ViewModel 等の層間契約。domain-type = Entity/Model などドメイン型。exception-type = 例外種別・階層・semantic kind。application-rule = 認証認可/ログ/監査などの横断ルール。validation-rule = 業務検証ルール (条件 + メッセージ + severity)。ui-behavior = 画面横断振る舞い。runtime-policy = retry/timeout/circuit breaker/cache 等の横断適用ポリシー。component-definition = service/mapper/validator/formatter 等の責務。ui-fragment = 再利用 UI 断片。constants = ドメイン定数集 (@const.<key> 参照元)。message = メッセージカタログ (@msg.<key> 参照元、i18n source)。domain-event = ドメインイベント定義 (@event.<topic> 参照元)。log-event = ログイベント定義 (@logEvent.<key> 参照元、構造化ログ)。log-config = ログ設定 (@logConfig.<key> 参照元、log level / sink / format)。"
     },
 
     "GenericDefinitionName": {

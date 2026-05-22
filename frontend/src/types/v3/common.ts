@@ -94,11 +94,40 @@ export type DisplayName = string;
 export type Namespace = Brand<string, "Namespace">;
 
 /**
- * 式言語 (js-subset) の文字列表現。文法は `docs/spec/process-flow-expression-language.md`。
- * `@conv.* / @secret.* / @env.* / @fn.* / @<var> / Arazzo $ 記法 (Criterion 内のみ)` を許容。
- * datetime 算術は `duration('PnDTnHnMnS')` 形式推奨 (#539 R5-3)。
+ * テンプレート文字列 (#1254 件 3 / #1263 Phase X2)。
+ * リテラル + `${...}` 補間 + `@<仕様書名>.<key>` 参照を許容する文字列。
+ * `${...}` 内は JS-like 式 (`eval` / `Function constructor` / `require` / `import` / `fetch` 等の
+ * runtime executor 機能のみ syntactic ban)。
+ * 装飾 / 返却型は field annotation (`x-render`, `x-expression-type`) で制御する。
+ * 副作用 invocation (`@flow.* / @action.* / @step.*`) を `${...}` 内で呼び出すのは禁止
+ * (validator dispatch rule で enforce)。
+ * 詳細: docs/spec/process-flow-expression-language.md / docs/spec/process-flow-variables.md。
  */
-export type ExpressionString = string;
+export type TemplateString = string;
+
+/**
+ * JSONPath sublanguage (#1254 件 3 / #1263 Phase X2)。
+ * `$.path.to.value` 形式の JSONPath 専用文字列。TemplateString と構文体系が完全に別。
+ * Marker.anchor.fieldPath / TestAssertion.output.path 等で使用。
+ */
+export type SelectorString = string;
+
+/**
+ * ProcessFlow 変数 scope 名 (#1264 verdict 観点 1)。
+ * 6 値: `flowParameter` (action 入力) / `action` (action body 全体) /
+ * `step.<step-id>` (step 出力 binding) / `tx.<tx-id>` (TX 内 binding) /
+ * `loop` (loop iteration 内) / `global` (workspace / project 横断、`@const` と区別)。
+ * `@var.<scope>.<name>` の明示参照で使用する。
+ * `step.` / `tx.` 接頭辞は具体的な step-id / tx-id を後続する。
+ * 詳細: docs/spec/process-flow-variables.md §2。
+ */
+export type VariableScope = string;
+
+/**
+ * @deprecated TemplateString の旧名 (#1263 Phase X2 で rename)。
+ * 後方互換のために残置、新規 import は TemplateString を使うこと。
+ */
+export type ExpressionString = TemplateString;
 
 // ─── 共通 enum ───────────────────────────────────────────────────────────
 
