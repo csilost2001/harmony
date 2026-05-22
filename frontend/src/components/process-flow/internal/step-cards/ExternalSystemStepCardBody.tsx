@@ -2,19 +2,42 @@
 // #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<ExternalSystemStep> で type narrow、
 // 副次 silent bug fix: `protocol` field 入力欄を削除 (v3 schema 上 ExternalSystemStep.protocol 不在、
 // unevaluatedProperties: false で reject される silent field だった)。
+// #1260 Phase 2 sub-section B: auth 編集セクション追加 (auth.tokenRef を secretRef 補完 bind)。
 
-import type { ExternalSystemStep, Identifier } from "../../../../types/v3";
+import type { ExternalAuth, ExternalAuthKind, ExternalSystemStep, Identifier } from "../../../../types/v3";
+import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
+import { secretRefResolver } from "../../../../utils/reference-completer/workspaceResolver";
+import { ReferenceCompletionInput } from "../../../common/ReferenceCompletionInput";
 import { ExternalOutcomesPanel } from "../../ExternalOutcomesPanel";
 import { trimToUndefined } from "../stepCardConstants";
 import type { StepCardBodyBaseProps } from "./types";
 
-export type ExternalSystemStepCardBodyProps = StepCardBodyBaseProps<ExternalSystemStep>;
+export interface ExternalSystemStepCardBodyProps extends StepCardBodyBaseProps<ExternalSystemStep> {
+  workspace?: WorkspaceRefs;
+}
 
 export function ExternalSystemStepCardBody({
   step,
   onChange,
   onCommit,
+  readOnly,
+  workspace,
 }: ExternalSystemStepCardBodyProps) {
+  const updateAuth = (patch: Partial<ExternalAuth>) => {
+    const base: ExternalAuth = step.auth ?? { kind: "none" };
+    const next: ExternalAuth = { ...base, ...patch };
+    // kind="none" の場合は stale tokenRef / headerName を strip して JSON ノイズを抑える
+    if (next.kind === "none") {
+      onChange({ auth: { kind: "none" } });
+      return;
+    }
+    // kind 変更時は前の kind に紐づく stale フィールドをクリアして semantic consistency を保つ
+    if (patch.kind !== undefined && patch.kind !== base.kind) {
+      onChange({ auth: { kind: next.kind } });
+      return;
+    }
+    onChange({ auth: next });
+  };
   return (
     <>
       <div className="form-group">
@@ -175,6 +198,54 @@ export function ExternalSystemStepCardBody({
             </div>
           </>
         )}
+      </div>
+      {/* #1260 Phase 2: auth 編集セクション (secretRef 補完 bind) */}
+      <label className="form-label small">認証 (auth)</label>
+      <div className="row g-2 mb-2">
+        <div className="col-3">
+          <select
+            className="form-select form-select-sm"
+            data-field-path="auth.kind"
+            value={step.auth?.kind ?? "none"}
+            onChange={(e) => {
+              updateAuth({ kind: e.target.value as ExternalAuthKind });
+            }}
+            onBlur={onCommit}
+            disabled={readOnly}
+          >
+            <option value="none">none</option>
+            <option value="bearer">bearer</option>
+            <option value="basic">basic</option>
+            <option value="apiKey">apiKey</option>
+            <option value="oauth2">oauth2</option>
+            <option value="iamRole">iamRole</option>
+            <option value="azureAd">azureAd</option>
+          </select>
+        </div>
+        <div className="col-5">
+          <ReferenceCompletionInput
+            value={step.auth?.tokenRef ?? ""}
+            onValueChange={(v) => updateAuth({ tokenRef: v || undefined })}
+            onCommit={onCommit}
+            resolvers={[secretRefResolver]}
+            ctx={{ fieldKind: "secretRef", workspace }}
+            className="form-control form-control-sm"
+            placeholder="例: stripeApiKey (@secret 参照)"
+            style={{ fontFamily: "monospace", fontSize: "0.85rem" }}
+            disabled={readOnly || !step.auth?.kind || step.auth.kind === "none"}
+          />
+        </div>
+        <div className="col-4">
+          <input
+            type="text"
+            className="form-control form-control-sm"
+            value={step.auth?.headerName ?? ""}
+            onChange={(e) => updateAuth({ headerName: e.target.value || undefined })}
+            onBlur={onCommit}
+            placeholder="X-API-Key"
+            disabled={readOnly || !step.auth?.kind || step.auth.kind === "none"}
+          />
+        </div>
       </div>
       <ExternalOutcomesPanel
         step={step}
