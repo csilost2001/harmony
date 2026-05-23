@@ -1,0 +1,53 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/log-event.v3.schema.json",
+  "kind": "log-event",
+  "name": "OrderAuditLogVocabulary",
+  "purpose": "注文操作の監査ログイベント語彙集 (event key + structured fields + severity 標準を統一、`@logEvent.<key>` 参照)",
+  "responsibilities": [
+    "注文の作成 / 確定 / キャンセル / 在庫不足検知の各操作で発行される log event を定義",
+    "structured logging field の語彙 (orderId / customerId / actor / source) を標準化",
+    "SIEM / observability 連携時の検索クエリ統一に使用 (語彙が定義済なら抽出が機械的に可能)"
+  ],
+  "targets": ["backend", "runtime"],
+  "fields": [
+    {
+      "name": "order.created",
+      "type": "string",
+      "description": "注文ドラフトが新規作成された (severity: info)。fields: orderId, customerId, actor, source."
+    },
+    {
+      "name": "order.confirmed",
+      "type": "string",
+      "description": "注文が確定された (severity: info)。fields: orderId, customerId, totalAmount, lineItemCount."
+    },
+    {
+      "name": "order.canceled",
+      "type": "string",
+      "description": "注文がキャンセルされた (severity: info)。fields: orderId, reason, actor."
+    },
+    {
+      "name": "order.stock-insufficient-detected",
+      "type": "string",
+      "description": "在庫不足が検知され注文確定が中断された (severity: warn)。fields: orderId, productId, requestedQty, availableQty."
+    },
+    {
+      "name": "order.credit-limit-exceeded",
+      "type": "string",
+      "description": "与信限度超過で注文確定が拒否された (severity: warn)。fields: orderId, customerId, requestedAmount, limit."
+    }
+  ],
+  "constraints": [
+    "event key は kebab-case + dot-separated namespace (例: order.confirmed)",
+    "structured fields はすべて optional だが、定義された語彙の中から選んで使用すること"
+  ],
+  "mappingHints": {
+    "backend.spring": {
+      "implementation": "Logback + Logstash encoder + MDC で structured fields をセット",
+      "format": "JSON line"
+    },
+    "backend.nestjs": {
+      "implementation": "@nestjs/common Logger + pino with structured fields",
+      "format": "JSON line"
+    }
+  }
+}

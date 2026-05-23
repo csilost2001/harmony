@@ -1,0 +1,71 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/log-config.v3.schema.json",
+  "kind": "log-config",
+  "name": "OrderingDomainLogConfig",
+  "purpose": "注文ドメインのログ設定 (level / sink / format / retention)、`@logConfig.<key>` で参照",
+  "responsibilities": [
+    "log level / sink (stdout / file / external) / format / rotation / retention の運用設定を一元化",
+    "監査要件と運用負荷のトレードオフを設計時に明示する (例: 注文ドメインは 90 日保持必須等)",
+    "runtime-policy と分離して catalog 識別性を上げ、log 設定だけを横断的に把握可能にする"
+  ],
+  "targets": ["runtime"],
+  "fields": [
+    {
+      "name": "level",
+      "type": "string",
+      "constraints": ["既定値: 'info'", "enum: trace / debug / info / warn / error"],
+      "description": "出力対象 log level 閾値"
+    },
+    {
+      "name": "sink",
+      "type": "string",
+      "constraints": ["既定値: 'stdout'", "enum: stdout / file / loki / cloudwatch"],
+      "description": "ログ出力先"
+    },
+    {
+      "name": "format",
+      "type": "string",
+      "constraints": ["既定値: 'json'", "enum: json / text"],
+      "description": "ログ出力フォーマット"
+    },
+    {
+      "name": "rotation",
+      "type": "string",
+      "constraints": ["既定値: 'time-daily'", "enum: size / time-daily / time-hourly / none"],
+      "description": "ローテーション方式"
+    },
+    {
+      "name": "retentionDays",
+      "type": "integer",
+      "constraints": ["既定値: 90", "監査要件で 90 日以上必須"],
+      "description": "ログ保持日数 (監査要件 / GDPR / 業法準拠で決定)"
+    },
+    {
+      "name": "includeMdc",
+      "type": "boolean",
+      "constraints": ["既定値: true"],
+      "description": "MDC (Mapped Diagnostic Context) を structured field に含めるか"
+    }
+  ],
+  "relations": [
+    {
+      "kind": "uses",
+      "ref": "generic-definitions/log-event/OrderAuditLogVocabulary",
+      "description": "本 log-config が適用される log event 語彙"
+    }
+  ],
+  "constraints": [
+    "format=json + sink=stdout は container 環境のデフォルト",
+    "level は env で overridable (LOG_LEVEL=debug 等) だが、デフォルトは info"
+  ],
+  "mappingHints": {
+    "backend.spring": {
+      "implementation": "logback-spring.xml + appender 構成",
+      "package": "src/main/resources"
+    },
+    "backend.nestjs": {
+      "implementation": "pino with daily-rotate-file transport",
+      "config": "logger.config.ts"
+    }
+  }
+}
