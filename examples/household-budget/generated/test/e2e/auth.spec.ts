@@ -21,8 +21,8 @@ test.describe('J1: 初回アクセス + login 後ダッシュボード表示', (
     await page.getByRole('button', { name: 'ログイン' }).click();
 
     // Should redirect to dashboard
-    await page.waitForURL('http://localhost:3000/', { timeout: 15_000 });
-    await expect(page).toHaveURL('http://localhost:3000/');
+    await page.waitForURL('/', { timeout: 15_000 });
+    await expect(page).toHaveURL('/');
 
     // Dashboard title
     await expect(page.getByText('家計簿ダッシュボード')).toBeVisible({ timeout: 10_000 });

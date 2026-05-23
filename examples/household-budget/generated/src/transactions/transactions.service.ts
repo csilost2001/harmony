@@ -4,6 +4,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toNumber } from '../lib/prisma-utils';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 
@@ -83,14 +84,6 @@ export class TransactionsService {
        ORDER BY t.occurred_on DESC, t.id DESC`,
       sessionUserId,
     );
-
-    const toNumber = (v: number | bigint | { toNumber(): number }): number => {
-      if (typeof v === 'bigint') return Number(v);
-      if (typeof v === 'object' && v !== null && typeof (v as { toNumber(): number }).toNumber === 'function') {
-        return (v as { toNumber(): number }).toNumber();
-      }
-      return v as number;
-    };
 
     return rows.map((row) => ({
       id: Number(row.id),

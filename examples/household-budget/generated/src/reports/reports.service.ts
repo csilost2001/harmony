@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toNumber } from '../lib/prisma-utils';
 
 interface CategoryBreakdownRow {
   categoryName: string;
@@ -45,14 +46,6 @@ export class ReportsService {
       sessionUserId,
       yearMonth,
     );
-
-    const toNumber = (v: number | bigint | { toNumber(): number }): number => {
-      if (typeof v === 'bigint') return Number(v);
-      if (typeof v === 'object' && v !== null && typeof (v as { toNumber(): number }).toNumber === 'function') {
-        return (v as { toNumber(): number }).toNumber();
-      }
-      return v as number;
-    };
 
     // step-04: report object に compose
     return {

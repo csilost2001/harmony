@@ -11,5 +11,5 @@ export async function login(page: Page) {
   await page.locator('#login_id').fill('demo');
   await page.locator('#password').fill('demo123');
   await page.getByRole('button', { name: 'ログイン' }).click();
-  await page.waitForURL('http://localhost:3000/', { timeout: 15_000 });
+  await page.waitForURL('/', { timeout: 15_000 });
 }

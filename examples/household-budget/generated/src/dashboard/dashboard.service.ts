@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toNumber } from '../lib/prisma-utils';
 
 interface MonthlyTotalsRow {
   monthlyIncome: number | bigint | { toNumber(): number };
@@ -57,14 +58,6 @@ export class DashboardService {
        LIMIT 5`,
       sessionUserId,
     );
-
-    const toNumber = (v: number | bigint | { toNumber(): number }): number => {
-      if (typeof v === 'bigint') return Number(v);
-      if (typeof v === 'object' && v !== null && typeof (v as { toNumber(): number }).toNumber === 'function') {
-        return (v as { toNumber(): number }).toNumber();
-      }
-      return v as number;
-    };
 
     const monthlyIncome = toNumber(monthlyTotals?.monthlyIncome ?? 0);
     const monthlyExpense = toNumber(monthlyTotals?.monthlyExpense ?? 0);

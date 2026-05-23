@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { MonthlyReportQueryDto } from './dto/monthly-report-query.dto';
 import { ReportsService } from './reports.service';
@@ -27,12 +27,6 @@ export class ReportsController {
     @Query() query: MonthlyReportQueryDto,
     @Request() req: AuthRequest,
   ) {
-    const pattern = /^\d{4}-(0[1-9]|1[0-2])$/;
-    if (!query.yearMonth || !pattern.test(query.yearMonth)) {
-      throw new BadRequestException(
-        '対象月の形式が不正です。YYYY-MM で指定してください。',
-      );
-    }
     return this.reportsService.fetchMonthlyReport(query.yearMonth, req.user.userId);
   }
 }

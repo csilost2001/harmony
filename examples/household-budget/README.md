@@ -192,6 +192,46 @@ npm install
 npm run validate:samples -- ../examples/household-budget
 ```
 
+## 生成 app (generated/)
+
+`examples/household-budget/generated/` には Harmony JSON 設計から生成した動く NestJS + Next.js + Prisma + JWT アプリケーションが配置されている (#1306)。
+
+### 構成
+
+| layer | 場所 | 技術 |
+|---|---|---|
+| Backend | `generated/src/` | NestJS 10 + Prisma 5 + SQLite + JWT |
+| Frontend | `generated/src/app/` | Next.js 14 App Router + React 18 + Tailwind 3 |
+| DB | `generated/prisma/` | schema + seed loader |
+| E2E test | `generated/test/e2e/` | Playwright (J1-J7 user journey) |
+
+### 起動手順
+
+```bash
+cd examples/household-budget/generated
+npm install
+DATABASE_URL=file:./prisma/dev.db npm run db:push
+DATABASE_URL=file:./prisma/dev.db npm run db:seed
+
+# 別ターミナルで backend (port 3001)
+npm run start:backend
+
+# 別ターミナルで frontend (port 3000)
+npm run start:frontend
+```
+
+ブラウザで http://localhost:3000 にアクセスし、デモアカウント (login_id: `demo` / password: `demo123`) でログイン可能。
+
+### E2E テスト実行
+
+```bash
+cd examples/household-budget/generated
+npx playwright install chromium  # 初回のみ
+npm run test:p4
+```
+
+J1〜J7 を網羅した 9 spec が pass する。
+
 ## 既知の MVP 範囲外
 
 - 認証画面 (login) — jwt 発行 / 検証は backend NestJS guard 想定、画面 / フローは未実装

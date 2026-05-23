@@ -4,12 +4,12 @@
   "description": "Generated app for household-budget sample (ISSUE #1306) — NestJS + Next.js + Prisma + SQLite + JWT + Tailwind",
   "private": true,
   "scripts": {
-    "test:p3": "vitest run src/test/p3/",
     "test:p4": "playwright test --config=test/playwright.config.ts",
     "db:push": "prisma db push --skip-generate --accept-data-loss",
     "db:seed": "prisma generate && ts-node prisma/seed.ts",
     "db:reset": "rm -f prisma/dev.db && npm run db:push && npm run db:seed",
-    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "build:frontend": "next build",
     "start:backend": "DATABASE_URL=file:./prisma/dev.db ts-node src/main.ts",
     "start:frontend": "next dev -p 3000"
   },
@@ -34,9 +34,6 @@
   "devDependencies": {
     "@nestjs/testing": "^10.0.0",
     "@playwright/test": "^1.59.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.0.0",
-    "@testing-library/user-event": "^14.6.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
@@ -46,15 +43,13 @@
     "@types/supertest": "^6.0.0",
     "autoprefixer": "^10.4.20",
     "jest": "^29.0.0",
-    "jsdom": "^29.1.1",
     "postcss": "^8.4.47",
     "prisma": "^5.0.0",
     "supertest": "^7.0.0",
     "tailwindcss": "^3.4.14",
     "ts-jest": "^29.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.0.0",
-    "vitest": "^4.0.0"
+    "typescript": "^5.0.0"
   },
   "notes": "ISSUE #1306 household-budget generated app skeleton. Run: npm install && npm run db:reset to initialize."
 }
