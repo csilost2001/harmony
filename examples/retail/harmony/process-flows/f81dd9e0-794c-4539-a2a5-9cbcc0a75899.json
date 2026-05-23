@@ -373,7 +373,7 @@
         {
           "id": "step-06",
           "kind": "transactionScope",
-          "description": "注文確定 TX (@conv.tx.orderConfirm)。在庫減算 → orders INSERT → order_items loop INSERT → カートクリアを原子的に実行する。いずれかが失敗した場合は全体をロールバックする。TX 結果は @txResult に expose され、後続 step-07 が @txResult.error.code で分岐する (ADR-007)。",
+          "description": "注文確定 TX (@conv.tx.orderConfirm)。在庫減算 → orders INSERT → order_items loop INSERT → カートクリアを原子的に実行する。いずれかが失敗した場合は全体をロールバックする。TX 結果は @var.action.txResult に expose され、後続 step-07 が @var.action.txResult.error.code で分岐する (ADR-007)。",
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
           "timeoutMs": 10000,
@@ -522,8 +522,8 @@
         {
           "id": "step-07",
           "kind": "branch",
-          "runIf": "@txResult.committed == false",
-          "description": "TX 失敗時にエラーコード別レスポンスを返す (runIf ガード済: TX 失敗時のみ評価)。@txResult.error.code で STOCK_SHORTAGE / ORDER_NUMBER_CONFLICT を識別し、それ以外 (UNHANDLED) は 422-order-confirm-failed に集約する。TX 成功時は runIf ガードにより skip される (ADR-007、spec §8.3 準拠)。",
+          "runIf": "@var.action.txResult.committed == false",
+          "description": "TX 失敗時にエラーコード別レスポンスを返す (runIf ガード済: TX 失敗時のみ評価)。@var.action.txResult.error.code で STOCK_SHORTAGE / ORDER_NUMBER_CONFLICT を識別し、それ以外 (UNHANDLED) は 422-order-confirm-failed に集約する。TX 成功時は runIf ガードにより skip される (ADR-007、spec §8.3 準拠)。",
           "branches": [
             {
               "id": "br-07-stock",
@@ -531,7 +531,7 @@
               "label": "在庫不足エラー",
               "condition": {
                 "kind": "expression",
-                "expression": "@txResult.error.code === 'STOCK_SHORTAGE'"
+                "expression": "@var.action.txResult.error.code === 'STOCK_SHORTAGE'"
               },
               "steps": [
                 {
@@ -549,7 +549,7 @@
               "label": "注文番号競合エラー",
               "condition": {
                 "kind": "expression",
-                "expression": "@txResult.error.code === 'ORDER_NUMBER_CONFLICT'"
+                "expression": "@var.action.txResult.error.code === 'ORDER_NUMBER_CONFLICT'"
               },
               "steps": [
                 {
@@ -567,7 +567,7 @@
               "label": "予期しない TX エラー (catch-all)",
               "condition": {
                 "kind": "expression",
-                "expression": "@txResult.error.code === 'UNHANDLED'"
+                "expression": "@var.action.txResult.error.code === 'UNHANDLED'"
               },
               "steps": [
                 {
@@ -591,7 +591,7 @@
         {
           "id": "step-08",
           "kind": "dbAccess",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "TX コミット後に orders を再取得する (runIf ガード済: TX commit 後にのみ実行)。TX 内の insertedOrder の変数をそのまま参照するとネスト変数問題が起きるため、TX 後に SELECT で再取得する (spec §8.3 準拠)。",
           "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
           "operation": "SELECT",
@@ -611,7 +611,7 @@
         {
           "id": "step-08b",
           "kind": "branch",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "TX コミット後の orders 再取得で null の場合は内部エラーとして 422 を返す (runIf ガード済: TX commit 後にのみ評価。TX コミット直後なので理論上は発生しないが安全ガード、spec §8.3 準拠)。",
           "branches": [
             {
@@ -644,7 +644,7 @@
         {
           "id": "step-09",
           "kind": "eventPublish",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "retail.order.confirmed イベントを発行する (runIf ガード済: TX commit 後にのみ実行)。TX コミット後 + persistedOrder 再取得後に発行するため、イベントペイロードは確定済み値のみ参照する (spec §8.3 準拠)。",
           "topic": "retail.order.confirmed",
           "payload": "{ orderId: @persistedOrder.id, orderNumber: @persistedOrder.orderNumber, customerId: @persistedOrder.customerId, totalAmount: @persistedOrder.totalAmount }"
@@ -652,7 +652,7 @@
         {
           "id": "step-10",
           "kind": "return",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "200 OK — 注文確定完了を返す (runIf ガード済: TX commit 後にのみ実行、spec §8.3 準拠)。",
           "responseId": "200-ok",
           "bodyExpression": "{ orderId: @persistedOrder.id, orderNumber: @persistedOrder.orderNumber, totalAmount: @persistedOrder.totalAmount, orderedAt: @persistedOrder.orderedAt, message: '注文が確定しました。注文番号: ' + @persistedOrder.orderNumber }"
@@ -712,7 +712,7 @@
         "title": "step-07 の TX 失敗捕捉を tryCatch から outputBinding + expression パターンに migration (#782)",
         "status": "accepted",
         "context": "旧版 step-07 は condition.kind: 'tryCatch' で STOCK_SHORTAGE / ORDER_NUMBER_CONFLICT を個別 catch していた。この方式はフレームワーク contract が暗黙的で AI 実装ごとに独自パターンが発生する問題が ISSUE #782 で指摘された。",
-        "decision": "step-06 (transactionScope) に outputBinding: { name: 'txResult' } を追加し、TX 失敗後は @txResult.error.code で標準的に識別できるようにした。step-07 の各 branch を condition.kind: 'expression', expression: \"@txResult.error.code === 'STOCK_SHORTAGE'\" 形式に書き換えた。rollbackOn に列挙されていない予期しないエラーは @txResult.error.code === 'UNHANDLED' で catch-all する (br-07-unhandled 追加)。",
+        "decision": "step-06 (transactionScope) に outputBinding: { name: 'txResult' } を追加し、TX 失敗後は @var.action.txResult.error.code で標準的に識別できるようにした。step-07 の各 branch を condition.kind: 'expression', expression: \"@var.action.txResult.error.code === 'STOCK_SHORTAGE'\" 形式に書き換えた。rollbackOn に列挙されていない予期しないエラーは @var.action.txResult.error.code === 'UNHANDLED' で catch-all する (br-07-unhandled 追加)。",
         "consequences": "ADR-005 で定義した catch-all の役割が step-08b の persistedOrder == null ガード (TX 成功後の SELECT 失敗) と step-07.br-07-unhandled (TX 失敗の汎用 catch-all) に役割分離された。step-08b はそのまま存在し、TX 成功後の SELECT 失敗ガードとして機能する。txResult.error.code === 'UNHANDLED' はフレームワーク (runtime) が rollbackOn 外エラー発生時に自動付与するコードである。",
         "date": "2026-05-04"
       },

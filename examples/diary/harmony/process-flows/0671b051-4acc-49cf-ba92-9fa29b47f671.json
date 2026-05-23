@@ -272,7 +272,7 @@
         {
           "id": "step-03",
           "kind": "transactionScope",
-          "description": "posts / photos / post_tags / tags.usage_count の登録を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @txResult に結果を expose する。POST_CREATE_FAILED / UNIQUE_VIOLATION はロールバックトリガーとして列挙する。",
+          "description": "posts / photos / post_tags / tags.usage_count の登録を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @var.action.txResult に結果を expose する。POST_CREATE_FAILED / UNIQUE_VIOLATION はロールバックトリガーとして列挙する。",
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
           "rollbackOn": [
@@ -438,7 +438,7 @@
         {
           "id": "step-07",
           "kind": "return",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "201 作成成功を返す。TX コミット後にのみ実行する。",
           "responseId": "201-created",
           "bodyExpression": "{ postId: @newPost.postId }"
@@ -446,7 +446,7 @@
         {
           "id": "step-08",
           "kind": "return",
-          "runIf": "@txResult.committed != true",
+          "runIf": "@var.action.txResult.committed != true",
           "description": "500 内部エラーを返す。TX ロールバック時にのみ実行する。",
           "responseId": "500-internal",
           "bodyExpression": "{ code: 'POST_CREATE_FAILED', message: '投稿の作成に失敗しました。しばらく経ってから再度お試しください。' }"

@@ -377,7 +377,7 @@
         {
           "id": "step-06",
           "kind": "transactionScope",
-          "description": "posts / photos / post_tags の更新を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @txResult に結果を expose する。photos / tags は省略可能 (runIf あり) だが TX 境界は wrapper が管理するため runIf による TX 未クローズ問題は発生しない。",
+          "description": "posts / photos / post_tags の更新を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @var.action.txResult に結果を expose する。photos / tags は省略可能 (runIf あり) だが TX 境界は wrapper が管理するため runIf による TX 未クローズ問題は発生しない。",
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
           "rollbackOn": [],
@@ -495,7 +495,7 @@
         {
           "id": "step-11",
           "kind": "return",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "200 更新成功を返す。TX コミット後にのみ実行する。",
           "responseId": "200-ok",
           "bodyExpression": "{ postId: @inputs.postId, updatedAt: new Date().toISOString() }"
@@ -503,7 +503,7 @@
         {
           "id": "step-12",
           "kind": "return",
-          "runIf": "@txResult.committed != true",
+          "runIf": "@var.action.txResult.committed != true",
           "description": "422 投稿更新失敗を返す。TX ロールバック時にのみ実行する (ADR-007 整合)。posts / photos / post_tags のいずれかの更新が失敗した場合の catch-all レスポンス。",
           "responseId": "422-update-failed",
           "bodyExpression": "{ code: 'POST_UPDATE_FAILED', message: '投稿の更新に失敗しました。しばらく経ってから再度お試しください。' }"
