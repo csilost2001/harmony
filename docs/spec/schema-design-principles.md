@@ -851,7 +851,7 @@ JSON Schema 単体で検証できない cross-reference を補完する。
 
 | spec 文書 | 規範化対象 | 主要 schema 領域 |
 |---|---|---|
-| `process-flow-extensions.md` | Phase B 包括リファレンス (HTTP 契約 / TX / outcome / Saga / runIf / ReturnStep / ComputeStep / errorCatalog / domainsCatalog / functionsCatalog / eventsCatalog / glossary / decisions / cache / lineage / apiVersion + 拡張実装ガイドライン) | `ActionDefinition.httpRoute` / `responses` / `ExternalSystemStep.outcomes` / `affectedRowsCheck` / `BranchConditionVariant` / `OutputBinding` / `errorCatalog` / `domainsCatalog` / `functionsCatalog` / `eventsCatalog` / `glossary` / `decisions` |
+| `process-flow-extensions.md` | Phase B 包括リファレンス (HTTP 契約 / TX / outcome / Saga / runIf / ReturnStep / ComputeStep / errorCatalog / domainsCatalog / functionsCatalog / eventsCatalog / glossary / decisions / cache / apiVersion + 拡張実装ガイドライン)。**§13.2 lineage は #1263 Phase X3 で削除済 (`schema-deletions-record.md` §3)** | `ActionDefinition.httpRoute` / `responses` / `StepBaseProps.errorHandling.outcomes` (#1263 Phase X3 集約) / `affectedRowsCheck` / `BranchConditionVariant` / `OutputBinding` / `errorCatalog` / `domainsCatalog` / `functionsCatalog` / `eventsCatalog` / `glossary` / `decisions` |
 | `process-flow-variables.md` | 入出力・変数・outputBinding (Phase 1 基盤) | `ActionFields` / `StructuredField` / `OutputBinding` / `argumentMapping` |
 | `process-flow-maturity.md` | 成熟度 (`maturity`)・付箋 (`notes[]`)・モード (`mode`) | `Maturity` / `StepNote` / `ProcessFlowMode` |
 | `process-flow-runtime-conventions.md` | SQL 補間 / HTTP serialize / TX × throw × tryCatch / fireAndForget / sideEffects 境界 / ambient context | (schema 制約外 = convention) `DbAccessStep.sql` / `ExternalHttpCall.body` / `transactionScope` / `ambientOverrides` |

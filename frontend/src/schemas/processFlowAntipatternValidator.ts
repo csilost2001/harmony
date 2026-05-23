@@ -616,7 +616,7 @@ function walkSteps(steps: Step[], basePath: string, visit: StepVisitor, withinTx
     if (step.kind === "externalSystem") {
       Object.entries(step.errorHandling?.outcomes ?? {}).forEach(([k, spec]: [string, unknown]) => {
         const specAny = spec as { sideEffects?: Step[] } | undefined;
-        if (specAny?.sideEffects) walkSteps(specAny.sideEffects, `${path}.outcomes.${k}.sideEffects`, visit, withinTx);
+        if (specAny?.sideEffects) walkSteps(specAny.sideEffects, `${path}.errorHandling.outcomes.${k}.sideEffects`, visit, withinTx);
       });
     }
   });

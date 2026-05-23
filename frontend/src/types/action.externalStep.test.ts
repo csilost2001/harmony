@@ -113,9 +113,10 @@ describe("migrateProcessFlow — ExternalSystemStep の新フィールド透過�
 
     const step = once.actions[0].steps[0] as ExternalSystemStep;
     expect(step.timeoutMs).toBe(10000);
-    expect(step.retryPolicy?.maxAttempts).toBe(3);
-    expect(step.outcomes?.success?.action).toBe("continue");
-    expect(step.outcomes?.failure?.action).toBe("abort");
+    // #1263 Phase X3: outcomes / retryPolicy / rollbackOn は errorHandling object に集約
+    expect(step.errorHandling?.retryPolicy?.maxAttempts).toBe(3);
+    expect(step.errorHandling?.outcomes?.success?.action).toBe("continue");
+    expect(step.errorHandling?.outcomes?.failure?.action).toBe("abort");
     expect(step.fireAndForget).toBe(false);
     // maturity は既定付与 (既存挙動)
     expect(step.maturity).toBe("draft");

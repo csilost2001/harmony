@@ -933,30 +933,18 @@ interface EventSubscribeStep extends StepBase {
 ]
 ```
 
-### 13.2 データ系譜 (B-2)
+### 13.2 データ系譜 (B-2) — **#1263 Phase X3 で削除済 (#1254 件 5)**
 
-`DbAccessStep` がどのテーブルを読み書きするかを宣言的に記述する。データリネージ分析・影響範囲特定に使用。
+旧仕様: `StepBaseProps.lineage` + `DataLineage` $def + `LineageEntry` $def によりデータリネージ分析・影響範囲特定に使用していた。
 
-```ts
-interface DataLineage {
-  reads?: string[];    // 読み取るテーブル名一覧
-  writes?: string[];   // 書き込むテーブル名一覧
-}
+**削除理由 (#1263 Phase X3、#1254 件 5 verdict)**:
+- 重複情報: DB アクセスの reads / writes は SQL AST 解析で完全復元可能
+- 保守コスト高: examples 全件で reads/writes を手書きしていた、SQL と二重管理
+- SQL が canonical なら lineage は派生情報として validator / AST 解析で生成可能
 
-// DbAccessStep に追加
-lineage?: DataLineage;
-```
+**復元方法**: 将来 SQL AST 解析 validator を実装することで `dbAccess.sql` から reads/writes を機械抽出可能。実装は dogfood で必要性判明時 (#1265 ストック候補)。
 
-用例:
-
-```json
-{
-  "kind": "dbAccess",
-  "tableId": "22222222-2222-4222-8222-222222222222",
-  "operation": "INSERT",
-  "lineage": { "writes": [{ "tableId": "22222222-2222-4222-8222-222222222222", "purpose": "create" }] }
-}
-```
+詳細: [`docs/spec/schema-deletions-record.md`](schema-deletions-record.md) §3
 
 ### 13.3 ビジネス用語集 (B-3)
 
