@@ -26,6 +26,9 @@ const KIND_ICONS: Record<GenericDefinitionKind, string> = {
   "domain-event": "bi-broadcast",
   "log-event": "bi-journal-text",
   "log-config": "bi-sliders",
+  dialog: "bi-chat-square",
+  messageArea: "bi-chat-left-text",
+  options: "bi-list-ul",
 };
 
 const KIND_DESCRIPTIONS: Record<GenericDefinitionKind, string> = {
@@ -43,6 +46,9 @@ const KIND_DESCRIPTIONS: Record<GenericDefinitionKind, string> = {
   "domain-event": "業務イベント (発生条件 / payload / publisher) を定義します (`@event.<topic>` 参照元、#1263 Phase X2)",
   "log-event": "構造化ログイベントを定義します (`@logEvent.<key>` 参照元、#1263 Phase X2)",
   "log-config": "ログ設定 (log level / sink / format) を定義します (`@logConfig.<key>` 参照元、#1263 Phase X2)",
+  dialog: "画面から呼び出すダイアログ定義 (`@dialog.<name>` 参照元、#1303)",
+  messageArea: "画面内メッセージエリア定義 (`@messageArea.<name>` 参照元、#1303)",
+  options: "選択肢カタログ (selectbox / radio 等の選択肢セット) を定義します (`@options.<name>` 参照元、#1303)",
 };
 
 export function GenericDefinitionCatalogView() {

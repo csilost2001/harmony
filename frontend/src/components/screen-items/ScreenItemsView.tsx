@@ -65,6 +65,8 @@ import type { ProcessFlowMeta } from "../../types/flow";
 import { listProcessFlows } from "../../store/processFlowStore";
 import { listTables, loadTable } from "../../store/tableStore";
 import { listViews, loadView } from "../../store/viewStore";
+import { listGenericDefinitions } from "../../store/genericDefinitionStore";
+import { genericDefinitionResolver } from "../../utils/reference-completer/genericDefinitionResolver";
 import type { Table, View } from "../../types/v3";
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
 import { ScreenItemCandidatesModal } from "./ScreenItemCandidatesModal";
@@ -181,6 +183,27 @@ export function ScreenItemsView() {
 
   // ワークスペース全参照情報 (handlerFlowId / handlerActionId 補完用、#1260 A)
   const workspace = useWorkspaceReferences();
+
+  // generic-definitions catalog (kind 別、dialog / messageArea / options 補完用、#1303)
+  const [genericDefinitionsByKind, setGenericDefinitionsByKind] = useState<Record<string, { name: string }[]>>({});
+  useEffect(() => {
+    if (!wsPath) return;
+    // dialog / messageArea / options の 3 kind を並列ロード
+    Promise.all([
+      listGenericDefinitions("dialog").catch(() => [] as { name: string }[]),
+      listGenericDefinitions("messageArea").catch(() => [] as { name: string }[]),
+      listGenericDefinitions("options").catch(() => [] as { name: string }[]),
+    ]).then(([dialogs, messageAreas, options]) => {
+      setGenericDefinitionsByKind({
+        dialog: dialogs.map((d) => ({ name: d.name })),
+        messageArea: messageAreas.map((m) => ({ name: m.name })),
+        options: options.map((o) => ({ name: o.name })),
+      });
+    }).catch(() => {
+      // ロード失敗時は空 object (resolver が空候補返却)
+      setGenericDefinitionsByKind({});
+    });
+  }, [wsPath]);
 
   // 処理フロー・テーブル・ビュー一覧をロード (valueFrom セレクタ用、列まで含む完全形)
   useEffect(() => {
@@ -1476,22 +1499,73 @@ export function ScreenItemsView() {
                                             placeholder="target (ScreenItem.id)"
                                             disabled={isReadonly}
                                           />
-                                          <input
-                                            className="form-control form-control-sm screen-items-event-effect-value"
-                                            value={String(eff.value)}
-                                            onChange={(e) => {
-                                              const raw = e.target.value;
-                                              const val: boolean | TemplateString =
-                                                raw === "true" ? true : raw === "false" ? false : (raw as TemplateString);
-                                              const next = (ev.effects ?? []).map((item, ii) =>
-                                                ii === fIdx ? { ...eff, value: val } : item
-                                              );
-                                              handleUpdateEvent(i, eIdx, { effects: next });
-                                            }}
-                                            onBlur={commit}
-                                            placeholder="true / false / 式"
-                                            disabled={isReadonly}
-                                          />
+                                          {/* value 編集 — boolean / expression 切替 (#1303 課題 1) */}
+                                          {typeof eff.value === "boolean" ? (
+                                            <span className="screen-items-event-effect-value-boolean">
+                                              <label className="form-check-label d-flex align-items-center gap-1">
+                                                <input
+                                                  type="checkbox"
+                                                  className="form-check-input m-0"
+                                                  checked={eff.value}
+                                                  onChange={(e) => {
+                                                    const next = (ev.effects ?? []).map((item, ii) =>
+                                                      ii === fIdx ? { ...eff, value: e.target.checked } : item
+                                                    );
+                                                    handleUpdateEvent(i, eIdx, { effects: next });
+                                                    commit();
+                                                  }}
+                                                  disabled={isReadonly}
+                                                />
+                                                {eff.value ? "true" : "false"}
+                                              </label>
+                                              <button
+                                                type="button"
+                                                className="btn btn-sm btn-link p-0 ms-2"
+                                                onClick={() => {
+                                                  const next = (ev.effects ?? []).map((item, ii) =>
+                                                    ii === fIdx ? { ...eff, value: "" as TemplateString } : item
+                                                  );
+                                                  handleUpdateEvent(i, eIdx, { effects: next });
+                                                  commit();
+                                                }}
+                                                disabled={isReadonly}
+                                                title="式モードに切替"
+                                              >
+                                                式に切替
+                                              </button>
+                                            </span>
+                                          ) : (
+                                            <span className="screen-items-event-effect-value-expression">
+                                              <input
+                                                className="form-control form-control-sm screen-items-event-effect-value"
+                                                value={eff.value as string}
+                                                onChange={(e) => {
+                                                  const next = (ev.effects ?? []).map((item, ii) =>
+                                                    ii === fIdx ? { ...eff, value: e.target.value as TemplateString } : item
+                                                  );
+                                                  handleUpdateEvent(i, eIdx, { effects: next });
+                                                }}
+                                                onBlur={commit}
+                                                placeholder="@var.* / TemplateString 式"
+                                                disabled={isReadonly}
+                                              />
+                                              <button
+                                                type="button"
+                                                className="btn btn-sm btn-link p-0 ms-2"
+                                                onClick={() => {
+                                                  const next = (ev.effects ?? []).map((item, ii) =>
+                                                    ii === fIdx ? { ...eff, value: false } : item
+                                                  );
+                                                  handleUpdateEvent(i, eIdx, { effects: next });
+                                                  commit();
+                                                }}
+                                                disabled={isReadonly}
+                                                title="boolean モードに切替"
+                                              >
+                                                boolean に戻す
+                                              </button>
+                                            </span>
+                                          )}
                                         </>
                                       )}
                                       {eff.kind === "setOptions" && (
@@ -1509,34 +1583,60 @@ export function ScreenItemsView() {
                                             placeholder="target (ScreenItem.id)"
                                             disabled={isReadonly}
                                           />
-                                          <input
-                                            className="form-control form-control-sm screen-items-event-effect-value"
+                                          {/* value: @options.<name> 補完対応 (#1303) */}
+                                          <ReferenceCompletionInput
                                             value={eff.value}
-                                            onChange={(e) => {
+                                            onValueChange={(val) => {
                                               const next = (ev.effects ?? []).map((item, ii) =>
-                                                ii === fIdx ? { ...eff, value: e.target.value } : item
+                                                ii === fIdx ? { ...eff, value: val } : item
                                               );
                                               handleUpdateEvent(i, eIdx, { effects: next });
                                             }}
-                                            onBlur={commit}
-                                            placeholder="catalogRef / 式"
+                                            onCommit={commit}
+                                            resolvers={[screenHierarchicalResolver, thisResolver, selfResolver, genericDefinitionResolver, convResolver]}
+                                            ctx={{
+                                              workspace,
+                                              conventions,
+                                              currentScreenId: screenId,
+                                              currentScreenItems: (file?.items ?? []).map((it) => ({ id: it.id, label: it.label })),
+                                              currentDocumentKind: "screen",
+                                              currentSelfRef: file?.items[i]
+                                                ? { kind: "screenItem", id: file.items[i].id }
+                                                : undefined,
+                                              genericDefinitionsByKind,
+                                            }}
+                                            className="form-control form-control-sm screen-items-event-effect-value"
+                                            placeholder="@options.<name> / catalogRef / 式"
                                             disabled={isReadonly}
                                           />
                                         </>
                                       )}
                                       {(eff.kind === "showDialog" || eff.kind === "setMessage") && (
                                         <>
-                                          <input
-                                            className="form-control form-control-sm screen-items-event-effect-value"
+                                          {/* target: @dialog.<name> / @messageArea.<name> 補完対応 (#1303) */}
+                                          <ReferenceCompletionInput
                                             value={eff.target}
-                                            onChange={(e) => {
+                                            onValueChange={(val) => {
                                               const next = (ev.effects ?? []).map((item, ii) =>
-                                                ii === fIdx ? { ...eff, target: e.target.value } : item
+                                                ii === fIdx ? { ...eff, target: val } : item
                                               );
                                               handleUpdateEvent(i, eIdx, { effects: next });
                                             }}
-                                            onBlur={commit}
-                                            placeholder="target (dialogRef / messageAreaRef)"
+                                            onCommit={commit}
+                                            resolvers={[screenHierarchicalResolver, thisResolver, selfResolver, genericDefinitionResolver, convResolver]}
+                                            ctx={{
+                                              workspace,
+                                              conventions,
+                                              currentScreenId: screenId,
+                                              currentScreenItems: (file?.items ?? []).map((it) => ({ id: it.id, label: it.label })),
+                                              currentDocumentKind: "screen",
+                                              currentSelfRef: file?.items[i]
+                                                ? { kind: "screenItem", id: file.items[i].id }
+                                                : undefined,
+                                              genericDefinitionsByKind,
+                                            }}
+                                            className="form-control form-control-sm screen-items-event-effect-value"
+                                            placeholder={eff.kind === "showDialog" ? "@dialog.<name>" : "@messageArea.<name>"}
                                             disabled={isReadonly}
                                           />
                                           <input

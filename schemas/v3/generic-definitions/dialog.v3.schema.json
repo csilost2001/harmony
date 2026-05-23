@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/dialog.v3.schema.json",
+  "title": "Dialog (v3 generic-definition kind: dialog)",
+  "description": "Generic Definition Catalog の dialog kind 固有 schema (#1303)。親 schema (../generic-definition.v3.schema.json) を `allOf` 継承し、`kind` を const \"dialog\" に固定。dialog catalog は ScreenItemEvent.effects[].showDialog.target の参照先 (例: confirm dialog / alert dialog / custom dialog の定義)。`@dialog.<name>` 参照元。仕様: docs/spec/generic-definition-layer.md §4.2。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "dialog" }
+  }
+}

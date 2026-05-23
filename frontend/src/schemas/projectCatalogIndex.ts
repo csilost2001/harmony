@@ -44,7 +44,7 @@ export interface ProjectCatalogIndex {
   /** `@system.<systemId>` (externalSystems catalog) */
   externalSystems: Set<string>;
 
-  // ─── Generic Definition Catalog (#1090 / #1267 Phase X2、14 kind) ────────
+  // ─── Generic Definition Catalog (#1090 / #1267 Phase X2 14 kind + #1303 3 kind = 17 kind) ───
   /** `@contract.<name>` — data-contract */
   dataContracts: Set<string>;
   /** `@type.<name>` — domain-type */
@@ -63,6 +63,12 @@ export interface ProjectCatalogIndex {
   componentDefinitions: Set<string>;
   /** `@fragment.<name>` — ui-fragment */
   uiFragments: Set<string>;
+  /** `@dialog.<name>` — dialog (#1303) */
+  dialogs: Set<string>;
+  /** `@messageArea.<name>` — messageArea (#1303) */
+  messageAreas: Set<string>;
+  /** `@options.<name>` — options (#1303) */
+  optionSets: Set<string>;
 
   /**
    * `@const.<key>` — constants catalog (#1267 Phase X2)。
@@ -112,6 +118,9 @@ export function createEmptyProjectCatalogIndex(): ProjectCatalogIndex {
     runtimePolicies: new Set(),
     componentDefinitions: new Set(),
     uiFragments: new Set(),
+    dialogs: new Set(),
+    messageAreas: new Set(),
+    optionSets: new Set(),
     constants: new Set(),
     messages: new Set(),
     domainEvents: new Set(),
@@ -169,6 +178,10 @@ const GENERIC_KIND_TO_SET_KEY: Record<string, keyof ProjectCatalogIndex> = {
   "domain-event": "domainEvents",
   "log-event": "logEvents",
   "log-config": "logConfigs",
+  // #1303 — 3 新規 kind
+  dialog: "dialogs",
+  messageArea: "messageAreas",
+  options: "optionSets",
 };
 
 /** conventions catalog の中で `@conv.<category>` として ref されない metadata field */

@@ -88,6 +88,12 @@ export interface CompletionContext {
     | { kind: "screenItem"; id: string; fields?: { name: string; label?: string }[] }
     | { kind: "step"; id: string; fields?: { name: string; label?: string }[] }
     | { kind: "column"; id: string; fields?: { name: string; label?: string }[] };
+  /**
+   * 現在 workspace の generic-definition catalog (kind 別、#1303)。
+   * dialog / messageArea / options 等の kind を引数に取り、name 候補配列を返す。
+   * genericDefinitionResolver で @dialog.* / @messageArea.* / @options.* の補完に使用。
+   */
+  genericDefinitionsByKind?: Record<string, { name: string }[]>;
 }
 
 /** 補完 Resolver インターフェース。 */
