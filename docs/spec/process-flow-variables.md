@@ -48,7 +48,7 @@ interface StructuredField {
   format?: string;                 // 採番形式 / @conv.numbering.* 参照
   defaultValue?: string;           // 既定値 (式可)
   screenItemRef?: ScreenItemRef;   // Pattern B 参照 (画面項目)
-  formula?: ExpressionString;      // 派生属性の計算式
+  formula?: TemplateString;      // 派生属性の計算式
 }
 
 // FieldType (common.v3.schema.json#/$defs/FieldType) — v3 の確定形
@@ -169,7 +169,7 @@ operation の意味:
 
 ### 3.3 参照補完 (`@` 記法)
 
-ExpressionString 内で **`@` プレフィックス**を使った補完可能参照を使用:
+TemplateString 内で **`@` プレフィックス**を使った補完可能参照を使用:
 
 ```
 @users[0].role          # users 配列の先頭要素の role
@@ -446,7 +446,7 @@ v3 で string 短縮形は全廃止。v1/v2 サンプルから v3 への移行�
 | `ActionDefinition.outputs` | — | 同上 |
 | `StepBaseProps` | `outputBinding?: OutputBinding` | object 形式のみ (string 短縮形廃止) |
 | `StepBaseProps` | `lineage?: DataLineage` | **#525 R3 fix で StepBaseProps に移植**、全 step variant で利用可能 |
-| `CommonProcessStep` | `argumentMapping?: Record<string,ExpressionString>` | 確定 |
+| `CommonProcessStep` | `argumentMapping?: Record<string,TemplateString>` | 確定 |
 | `ProcessFlow.context.ambientVariables` | `StructuredField[]` | **#525 R3 fix で context 配下に統一** (v1/v2 では root 直下) |
 | `ScreenItem.valueFrom.flowVariable.variableName` | `IdentifierPath` | **#533 R3-1 fix で IdentifierPath (camelCase + snake_case + dot path) に変更** |
 

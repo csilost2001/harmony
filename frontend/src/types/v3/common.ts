@@ -248,7 +248,7 @@ export interface StructuredField {
   defaultValue?: string;
   screenItemRef?: ScreenItemRef;
   /** 派生属性の計算式。`= ` で始まる (例: `= @quantity * @unitPrice`)。 */
-  formula?: ExpressionString;
+  formula?: TemplateString;
 }
 
 // ─── 複合参照型 (Pattern B) ─────────────────────────────────────────────

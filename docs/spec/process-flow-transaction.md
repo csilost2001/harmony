@@ -178,7 +178,7 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 **重要 (#1264 verdict 観点 4)**: TX 外から TX inner outputBinding 変数を**直接参照することは spec で保証しない (static 禁止)**。TX 外参照可な値は `outputBinding.expose` で明示宣言した 3 値 (`committed` / `error` / `diagnostics`) のみ。
 
 - **`outputBinding.expose` で明示宣言**: TX 外で参照可能な値を `expose: ["committed", "error", ...]` で宣言
-- **TX commit 経路の inner データを TX 外へ渡したい場合**: TX 内最終 step で `eventPublish` / `audit` / `return` 等で消費するか、TX 外 step を TX 直後に置き parent scope merge 後の値を `@<inner-var>` 参照 (lifecycle 上は parent scope にマージされるが、design パターンとしては明示 expose を推奨)
+- **TX commit 経路の inner データを TX 外へ渡したい場合**: TX 内最終 step で `eventPublish` / `audit` / `return` 等で **TX 内に閉じて消費** する。TX 内最終結果を TX 外へ持ち出す API は `outputBinding.expose` の 3 値 (`committed` / `error` / `diagnostics`) のみで、inner 変数の TX 外参照は spec 上保証されない (#1264 verdict 観点 4)。
 - **TX rollback 経路では inner 変数は完全破棄**: rollback 後の後続 step で inner var を参照しない
 
 新仕様での推奨パターン:
@@ -223,12 +223,16 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 
 推奨パターン:
 
-- TX に `outputBinding: "txResult"` を付与する
+- TX に `outputBinding: { "name": "txResult", "expose": ["committed", "error"] }` を付与する (v3 で string 短縮形 `"txResult"` は廃止、`expose` 明示宣言が #1264 verdict 観点 4 の要求)
 - TX commit 経路の後続 step: `runIf: "@txResult.committed == true"`
 - TX rollback 経路のエラー返却 step: `runIf: "@txResult.committed == false"`
 
 ```json
-{ "id": "step-tx", "kind": "transactionScope", "outputBinding": { "name": "txResult" }, "steps": [ ... ] },
+{
+  "id": "step-tx", "kind": "transactionScope",
+  "outputBinding": { "name": "txResult", "expose": ["committed", "error"] },
+  "steps": [ ... ]
+},
 { "id": "step-success", "kind": "return", "runIf": "@txResult.committed == true",
   "responseId": "201-success" },
 { "id": "step-rollback-error", "kind": "return", "runIf": "@txResult.committed == false",
@@ -269,7 +273,7 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 {
   "id": "step-tx",
   "kind": "transactionScope",
-  "outputBinding": { "name": "txResult" },
+  "outputBinding": { "name": "txResult", "expose": ["committed", "error"] },
   "rollbackOn": ["STOCK_SHORTAGE", "ORDER_NUMBER_CONFLICT"],
   "steps": [ ... ]
 },

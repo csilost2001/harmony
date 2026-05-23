@@ -18,7 +18,7 @@ import type {
   DisplayName,
   ErrorCode,
   EventTopic,
-  ExpressionString,
+  TemplateString,
   FieldType,
   Identifier,
   LocalId,
@@ -186,7 +186,7 @@ export interface ValidationRule {
   /** `@conv.limit.<key>` 参照 (length の代替)。loader 段階で integer 値に展開される。 */
   lengthRef?: string;
   values?: string[];
-  condition?: ExpressionString;
+  condition?: TemplateString;
   /** 違反メッセージ (`@conv.msg.<key>` 推奨)。 */
   message?: string;
   /** Generic Definition Catalog の exception-type 参照 (#1066)。形式: 'generic-definitions/exception-type/<Name>'。severity='error' 時に違反を業務例外として throw する際の意味論を catalog から引く。 */
@@ -460,7 +460,7 @@ export interface StepBaseProps {
   maturity?: Maturity;
   sla?: Sla;
   /** 実行条件式。false なら本 step を skip。 */
-  runIf?: ExpressionString;
+  runIf?: TemplateString;
   requiredPermissions?: string[];
   outputBinding?: OutputBinding;
   /** Saga 補償対象の Step.id 参照。 */
@@ -484,11 +484,11 @@ export interface ValidationInlineBranch {
   ngJumpTo?: LocalId;
   /** NG 時の Response.id 参照。 */
   ngResponseId?: LocalId;
-  ngBodyExpression?: ExpressionString;
+  ngBodyExpression?: TemplateString;
   /** NG 時に eventPublish を実行してから ngResponseId を返す。 */
   ngEventPublish?: {
     topic: EventTopic;
-    payload: ExpressionString;
+    payload: TemplateString;
   };
 }
 
@@ -527,7 +527,7 @@ export interface AffectedRowsCheck {
 /** キャッシュヒント。 */
 export interface CacheHint {
   ttlSeconds: number;
-  key?: ExpressionString;
+  key?: TemplateString;
   invalidateOn?: EventTopic[];
   description?: Description;
 }
@@ -543,7 +543,7 @@ export interface DbAccessStep extends StepBaseProps {
   /** 完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。 */
   sql?: string;
   /** 一括 INSERT 時に VALUES に展開する配列変数の式。 */
-  bulkValues?: ExpressionString;
+  bulkValues?: TemplateString;
   affectedRowsCheck?: AffectedRowsCheck;
   cache?: CacheHint;
 }
@@ -563,7 +563,7 @@ export interface ExternalHttpCall {
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
   query?: Record<string, string>;
-  body?: ExpressionString;
+  body?: TemplateString;
 }
 
 /** 外部呼び出しの結果分岐定義。 */
@@ -614,7 +614,7 @@ export interface ExternalSystemStep extends StepBaseProps {
   bulkhead?: BulkheadConfig;
   fireAndForget?: boolean;
   auth?: ExternalAuth;
-  idempotencyKey?: ExpressionString;
+  idempotencyKey?: TemplateString;
   headers?: Record<string, string>;
   apiVersion?: string;
   cache?: CacheHint;
@@ -634,7 +634,7 @@ export interface CommonProcessStep extends StepBaseProps {
   /** 呼び出し先 ProcessFlow の Uuid (kind='common' の他フロー)。 */
   refId: ProcessFlowId;
   /** 呼び先 inputs 名 → 引数式の対応。 */
-  argumentMapping?: Record<string, ExpressionString>;
+  argumentMapping?: Record<string, TemplateString>;
 }
 
 /**
@@ -650,7 +650,7 @@ export interface ComponentCallStep extends StepBaseProps {
   /** 呼び出す operation 名 (component-definition の operations[].name と一致)。 */
   operation?: string;
   /** 呼び先 inputs 名 → 引数式の対応。 */
-  argumentMapping?: Record<string, ExpressionString>;
+  argumentMapping?: Record<string, TemplateString>;
 }
 
 export interface ScreenTransitionStep extends StepBaseProps {
@@ -672,7 +672,7 @@ export interface DisplayUpdateStep extends StepBaseProps {
  * error 全体を bind する変数名) を追加。
  */
 export type BranchCondition =
-  | { kind: "expression"; expression: ExpressionString }
+  | { kind: "expression"; expression: TemplateString }
   | {
       kind: "tryCatch";
       errorCode: ErrorCode;
@@ -724,10 +724,10 @@ export interface LoopStep extends StepBaseProps {
   kind: "loop";
   description: Description;
   loopKind: "count" | "condition" | "collection";
-  countExpression?: ExpressionString;
+  countExpression?: TemplateString;
   conditionMode?: "continue" | "exit";
-  conditionExpression?: ExpressionString;
-  collectionSource?: ExpressionString;
+  conditionExpression?: TemplateString;
+  collectionSource?: TemplateString;
   collectionItemName?: Identifier;
   /**
    * collection loop の現在 index を bind する変数名 (#1264 verdict 観点 3、#1263 Phase X2)。
@@ -758,7 +758,7 @@ export interface JumpStep extends StepBaseProps {
 export interface ComputeStep extends StepBaseProps {
   kind: "compute";
   description: Description;
-  expression: ExpressionString;
+  expression: TemplateString;
 }
 
 export interface ReturnStep extends StepBaseProps {
@@ -766,7 +766,7 @@ export interface ReturnStep extends StepBaseProps {
   description: Description;
   /** Action.responses[].id 参照。 */
   responseId?: LocalId;
-  bodyExpression?: ExpressionString;
+  bodyExpression?: TemplateString;
 }
 
 export interface LogStep extends StepBaseProps {
@@ -846,28 +846,35 @@ export interface WorkflowStep extends StepBaseProps {
    * 期限式。datetime 算術は `duration('PnDTnHnMnS')` 形式推奨 (#539 R5-3)。
    * 例: `@submittedAt + duration('P2D')`
    */
-  deadlineExpression?: ExpressionString;
+  deadlineExpression?: TemplateString;
   /** ISO 8601 期間。pattern='approval-escalation' で必須。例: `duration('P1D')` */
   escalateAfter?: string;
   /** pattern='approval-escalation' で必須。 */
   escalateTo?: {
     /** `@conv.role.<key>` */
     role?: string;
-    userExpression?: ExpressionString;
+    userExpression?: TemplateString;
   };
 }
 
 // ─── TransactionScopeStep ──────────────────────────────────────────────
 
 /**
- * TX スコープ step。`outputBinding` を指定すると TX 結果が以下の semantics で expose される:
+ * TX スコープ step。#1263 Phase X2 (#1264 verdict 観点 4):
+ * `outputBinding` は `{ name, expose: ["committed" | "error" | "diagnostics"] }` 形式で
+ * TX 外参照可な値を明示宣言する。expose 宣言後の semantics:
  *
- * - TX commit 成功: `@<name>.committed === true`、`@<name>.error` は未定義
- * - TX rollback (rollbackOn のエラー): `@<name>.committed === false`、`@<name>.error.code` = エラーコード、`@<name>.error.message` = 例外メッセージ
- * - TX rollback (rollbackOn 外の汎用エラー): `@<name>.committed === false`、`@<name>.error.code === "UNHANDLED"`
+ * - TX commit 成功: `@var.action.<name>.committed === true`、`@var.action.<name>.error` は未定義
+ * - TX rollback (rollbackOn のエラー): `@var.action.<name>.committed === false`、
+ *   `@var.action.<name>.error.code` = エラーコード、`@var.action.<name>.error.message` = 例外メッセージ
+ * - TX rollback (rollbackOn 外の汎用エラー): `@var.action.<name>.committed === false`、
+ *   `@var.action.<name>.error.code === "UNHANDLED"`
  *
- * 後続 branch の `condition.kind: "expression"` で `@txResult.error.code === 'STOCK_SHORTAGE'` のように参照する。
- * 参照: docs/spec/process-flow-transaction.md §8.5、ISSUE #782
+ * 後続 branch の `condition.kind: "expression"` で
+ * `@var.action.<name>.error.code === 'STOCK_SHORTAGE'` のように参照する
+ * (旧 shorthand `@txResult.*` は #1263 Phase X2 で `@var.<scope>.<name>` 形式に統一)。
+ *
+ * 参照: docs/spec/process-flow-transaction.md §8.5、process-flow-variables.md §3.6-3.7、ISSUE #782
  */
 export interface TransactionScopeStep extends StepBaseProps {
   kind: "transactionScope";
@@ -890,14 +897,14 @@ export interface EventPublishStep extends StepBaseProps {
   description: Description;
   /** 発行先 topic。同時に context.catalogs.events のキーとして登録されている必要がある (eventRef 二重持ちは v3 廃止)。 */
   topic: EventTopic;
-  payload?: ExpressionString;
+  payload?: TemplateString;
 }
 
 export interface EventSubscribeStep extends StepBaseProps {
   kind: "eventSubscribe";
   description: Description;
   topic: EventTopic;
-  filter?: ExpressionString;
+  filter?: TemplateString;
 }
 
 // ─── ClosingStep ────────────────────────────────────────────────────────
@@ -912,7 +919,7 @@ export interface ClosingStep extends StepBaseProps {
    * pattern: `^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$` (#533 R3-2)
    */
   cutoffAt?: string;
-  idempotencyKey?: ExpressionString;
+  idempotencyKey?: TemplateString;
   rollbackOnFailure?: boolean;
 }
 
@@ -956,7 +963,7 @@ export type AiContentBlock =
 
 /** vision input の画像ソース (fileRef / url / base64)。 */
 export type AiImageSource =
-  | { kind: "fileRef"; ref: ExpressionString }
+  | { kind: "fileRef"; ref: TemplateString }
   | { kind: "url"; url: string }
   | { kind: "base64"; mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"; data: string };
 
@@ -970,7 +977,7 @@ export interface AiMessage {
 /** messages[] の動的配列展開ディレクティブ (#939 提案 A)。 */
 export interface AiMessageSpread {
   kind: "spread";
-  ref: ExpressionString;
+  ref: TemplateString;
   description?: Description;
 }
 

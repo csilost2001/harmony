@@ -672,7 +672,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 | `loopBreak` | (なし) | loop break |
 | `loopContinue` | (なし) | loop continue |
 | `jump` | `jumpTo` | ステップジャンプ |
-| `compute` | `expression` | 計算式評価 (この `expression` は ExpressionString、BranchCondition.expression と概念別) |
+| `compute` | `expression` | 計算式評価 (この `expression` は TemplateString、BranchCondition.expression と概念別) |
 | `return` | (なし、`responseId` / `bodyExpression` は任意) | 応答返却 |
 | `log` | `level`, `message` | ログ出力 |
 | `audit` | `action` | 監査ログ |

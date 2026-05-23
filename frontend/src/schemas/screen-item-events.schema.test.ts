@@ -135,7 +135,7 @@ describe("ScreenItem.events[] (#624)", () => {
     expect(validateScreenItem(item)).toBe(false);
   });
 
-  it("argumentMapping の値が string (ExpressionString) でないと fail", () => {
+  it("argumentMapping の値が string (TemplateString) でないと fail", () => {
     const item = {
       id: "submitBtn",
       label: "送信",

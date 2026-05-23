@@ -199,7 +199,7 @@
           "properties": {
             "kind": { "const": "setOptions" },
             "target": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
-            "value": { "type": "string", "description": "catalogRef または ExpressionString" }
+            "value": { "type": "string", "description": "catalogRef または TemplateString" }
           }
         },
         {
@@ -209,7 +209,7 @@
           "properties": {
             "kind": { "const": "showDialog" },
             "target": { "type": "string", "description": "dialogRef (extensions namespace 想定)" },
-            "value": { "type": "string", "description": "messageRef または ExpressionString" }
+            "value": { "type": "string", "description": "messageRef または TemplateString" }
           }
         },
         {
@@ -219,7 +219,7 @@
           "properties": {
             "kind": { "const": "setMessage" },
             "target": { "type": "string", "description": "messageAreaRef" },
-            "value": { "type": "string", "description": "messageRef または ExpressionString" }
+            "value": { "type": "string", "description": "messageRef または TemplateString" }
           }
         },
         {

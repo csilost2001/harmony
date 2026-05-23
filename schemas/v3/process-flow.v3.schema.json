@@ -1022,7 +1022,7 @@
     },
 
     "AiImageSource": {
-      "description": "vision input の画像ソース。fileRef (ScreenItem type=file / step output 等の式参照、ローカルファイル想定) / url (HTTP(S) URL、storage / CDN 上の画像) / base64 (リテラル data) の 3 形式。url は literal URI または ExpressionString 経由のランタイム変数 (#939 提案 B、2026-05-08) の双方を許容する。",
+      "description": "vision input の画像ソース。fileRef (ScreenItem type=file / step output 等の式参照、ローカルファイル想定) / url (HTTP(S) URL、storage / CDN 上の画像) / base64 (リテラル data) の 3 形式。url は literal URI または TemplateString 経由のランタイム変数 (#939 提案 B、2026-05-08) の双方を許容する。",
       "oneOf": [
         {
           "type": "object",
@@ -1597,7 +1597,7 @@
     },
 
     "TransactionScopeStep": {
-      "description": "TX スコープ step。v3 では TX 表現はこの transactionScope に一本化されている (旧 txBoundary / transactional フィールドは廃止)。StepBaseProps.outputBinding を指定すると TX 結果を後続 step に expose する: commit 成功時は @<name>.committed=true / rollbackOn エラー時は @<name>.committed=false + @<name>.error={code,message} / rollbackOn 外の汎用エラー時は @<name>.error.code='UNHANDLED'。後続 branch で condition.kind='expression' + expression='@txResult.error.code===\"STOCK_SHORTAGE\"' のように参照する。詳細: docs/spec/process-flow-transaction.md §8.5 (#782)。",
+      "description": "TX スコープ step。v3 では TX 表現はこの transactionScope に一本化されている (旧 txBoundary / transactional フィールドは廃止)。#1263 Phase X2 (#1264 verdict 観点 4): StepBaseProps.outputBinding に加えて `expose: ['committed', 'error', 'diagnostics']` で TX 外参照可な値を明示宣言する。expose 宣言後の semantics: commit 成功時は @var.action.<name>.committed=true / rollbackOn エラー時は @var.action.<name>.committed=false + @var.action.<name>.error={code,message} / rollbackOn 外の汎用エラー時は @var.action.<name>.error.code='UNHANDLED'。後続 branch で condition.kind='expression' + expression='@var.action.<name>.error.code===\"STOCK_SHORTAGE\"' のように参照する (旧 shorthand `@txResult.*` は docs/spec/process-flow-variables.md §3.6 の @var.<scope>.<name> 形式が canonical)。詳細: docs/spec/process-flow-transaction.md §8.5 (#782) / process-flow-variables.md §3.7。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {
