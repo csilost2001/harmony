@@ -233,14 +233,14 @@ v3 EventTopic regex は `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$` (lowercase + und
 | `step.type: "validation"` | `step.kind: "validation"` |
 | `outputBinding: "var"` (string 短縮形) | `outputBinding: { name: "var" }` (構造化、v3 短縮形廃止) |
 | `tableName: "products"` | `tableId: "<Uuid>"` (物理名直書き廃止) |
-| `lineage.reads: ["products"]` | `lineage.reads: [{ tableId: "<Uuid>", purpose?: "..." }]` |
+| `lineage.reads: ["products"]` | **#1263 Phase X3 で削除済** (schema 不在、`docs/spec/schema-deletions-record.md` §3 参照) |
 | `eventPublish.eventRef + topic` 二重持ち | `eventPublish.topic` のみ |
 | `validation.inlineBranch.ngEventPublish.eventRef + topic` | `topic` のみ |
 | `return.responseRef` | `return.responseId` |
 | `branch.branches[].condition: "@x == 1"` (string) | `condition: { kind: "expression", expression: "@x == 1" }` |
 | `externalSystem.systemName + systemRef` 併記 | `systemRef` のみ (catalog キー = systemId) |
 | `validation.rules[].kind: "Error"` (PascalCase) | `validation.rules[].severity: "error"` (lowerCamelCase + フィールド名 rename) |
-| `dbAccess.lineage` のみ持てた | **任意の step に `lineage` を持てる** (#525 F-2、StepBaseProps 移植) |
+| `dbAccess.lineage` のみ持てた | **#1263 Phase X3 で削除済** (任意の step への移植後 Phase X3 で全廃、`docs/spec/schema-deletions-record.md` §3 参照) |
 
 ### ValidationInlineBranch
 
