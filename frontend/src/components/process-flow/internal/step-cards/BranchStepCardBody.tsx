@@ -6,7 +6,7 @@
 // #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<BranchStep> で type narrow、@ts-nocheck 除去。
 
 import { useState } from "react";
-import type { BranchStep, Branch, ElseBranch, LocalId, ErrorCode } from "../../../../types/v3";
+import type { BranchStep, Branch, ElseBranch, LocalId, ErrorCode, Identifier } from "../../../../types/v3";
 import { generateUUID } from "../../../../utils/uuid";
 import { InlineStepList } from "../InlineStepList";
 import type {
@@ -110,7 +110,7 @@ export function BranchStepCardBody({
             >
               <span className="branch-code-badge">{br.code}</span>
               {br.condition?.kind === "tryCatch" ? (
-                <div className="d-flex align-items-center gap-1 flex-grow-1" onClick={(e) => e.stopPropagation()}>
+                <div className="d-flex align-items-center gap-1 flex-grow-1" onClick={(e) => e.stopPropagation()} data-field-path={`branches[${bi}].condition`}>
                   <span className="badge bg-info text-dark" style={{ fontSize: "0.7rem" }}>tryCatch</span>
                   <input
                     className="form-control form-control-sm"
@@ -118,9 +118,31 @@ export function BranchStepCardBody({
                     placeholder="errorCode (例: STOCK_SHORTAGE)"
                     onChange={(e) => setBranchAt(bi, {
                       ...br,
-                      condition: { kind: "tryCatch", errorCode: e.target.value as ErrorCode },
+                      condition: { kind: "tryCatch", errorCode: e.target.value as ErrorCode, errorVar: br.condition && br.condition.kind === "tryCatch" ? br.condition.errorVar : undefined },
                     })}
                     onBlur={onCommit}
+                    style={{ maxWidth: "12rem" }}
+                  />
+                  {/* #1269 Phase B: errorVar (catch block 内で error 全体を bind する変数名) */}
+                  <input
+                    className="form-control form-control-sm"
+                    value={br.condition.errorVar ?? ""}
+                    placeholder="errorVar (例: caughtError)"
+                    title="catch block 内で @var.<errorVar>.code / .message 参照に使う変数名 (任意 / camelCase)"
+                    pattern="^[a-z][a-zA-Z0-9]*$"
+                    onChange={(e) => {
+                      if (br.condition?.kind !== "tryCatch") return;
+                      setBranchAt(bi, {
+                        ...br,
+                        condition: {
+                          kind: "tryCatch",
+                          errorCode: br.condition.errorCode,
+                          errorVar: (e.target.value || undefined) as Identifier | undefined,
+                        },
+                      });
+                    }}
+                    onBlur={onCommit}
+                    style={{ maxWidth: "10rem" }}
                   />
                   <button
                     type="button"
