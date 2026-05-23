@@ -969,4 +969,140 @@ describe("checkIdentifierScopes — #1289 @var.<scope>.<name> grammar-aware", ()
       expect(issues.filter((i) => i.identifier.startsWith("var"))).toHaveLength(0);
     });
   });
+
+  // #1289 独立レビュー follow-up: TX inner var leak 防止 (process-flow-variables.md §3.7)
+  describe("#1289 follow-up: TX inner var leak 防止", () => {
+    it("TX 内の outputBinding を TX 外で shorthand @<innerVar> 参照 → UNKNOWN_IDENTIFIER (leak しない)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "tx-confirm", kind: "transactionScope", description: "",
+              steps: [
+                { id: "inner-step", kind: "compute", description: "", expression: "1", outputBinding: { name: "secretInnerVar" } },
+              ],
+              outputBinding: { name: "txResult" },
+            },
+            // TX 外で TX inner の outputBinding 名を shorthand 参照 → spec §3.7 違反、leak 防止が機能していれば UNKNOWN
+            { id: "leak-attempt", kind: "return", description: "", bodyExpression: "@secretInnerVar" },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "secretInnerVar")).toBe(true);
+    });
+
+    it("TX 内の outputBinding を TX 外で @var.<innerVar> shorthand 参照 → UNKNOWN_IDENTIFIER", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "tx-confirm", kind: "transactionScope", description: "",
+              steps: [
+                { id: "inner-step", kind: "compute", description: "", expression: "1", outputBinding: { name: "secretInnerVar" } },
+              ],
+              outputBinding: { name: "txResult" },
+            },
+            { id: "leak-attempt", kind: "return", description: "", bodyExpression: "@var.secretInnerVar" },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.secretInnerVar")).toBe(true);
+    });
+
+    it("TX 外の outputBinding (TX wrapper 自身) は引き続き参照可 (TX 完了後の通常変数として)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "tx-confirm", kind: "transactionScope", description: "",
+              steps: [
+                { id: "inner-step", kind: "compute", description: "", expression: "1", outputBinding: { name: "secretInnerVar" } },
+              ],
+              outputBinding: { name: "txResult" },
+            },
+            // TX wrapper 自身 (`txResult`) は parent known に居る → shorthand 参照 OK
+            { id: "ok", kind: "return", description: "", bodyExpression: "@txResult" },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier === "txResult")).toHaveLength(0);
+    });
+
+    it("TX 内 step が TX 内で先行 step の outputBinding を参照 → OK (TX scope 内では引き続き見える)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "tx-confirm", kind: "transactionScope", description: "",
+              steps: [
+                { id: "step-a", kind: "compute", description: "", expression: "1", outputBinding: { name: "a" } },
+                { id: "step-b", kind: "compute", description: "", expression: "@a + 1", outputBinding: { name: "b" } },
+              ],
+            },
+          ],
+        }],
+      }));
+      expect(issues).toHaveLength(0);
+    });
+
+    it("TX.onCommit 内で TX 内 step の outputBinding 参照 → OK (commit context)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "tx-confirm", kind: "transactionScope", description: "",
+              steps: [
+                { id: "step-a", kind: "compute", description: "", expression: "1", outputBinding: { name: "committedValue" } },
+              ],
+              onCommit: [
+                { id: "log-success", kind: "log", description: "", level: "info", message: "committed: ${@committedValue}" },
+              ],
+            },
+          ],
+        }],
+      }));
+      expect(issues).toHaveLength(0);
+    });
+  });
+
+  // #1289 独立レビュー follow-up: extractReferences regex の path 部 digit-start 許容
+  describe("#1289 follow-up: path 部 digit-start 許容", () => {
+    it("@var.step.<stepId>.404-not-found 形式の参照 (response-id / outcome-id) を正しく parse", () => {
+      // step の outputBinding.name と 404-not-found は一致しないため step scope 検証で
+      // mismatch error が出る (= regex が 404-not-found を path として正しく抽出している証拠)
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "fetch-step", kind: "compute", description: "", expression: "1", outputBinding: { name: "data" } },
+            { id: "use", kind: "return", description: "", bodyExpression: "@var.step.fetch-step.404-not-found" },
+          ],
+        }],
+      }));
+      // path[2]="404-not-found" が抽出されて name 比較に到達、mismatch error として捕捉
+      expect(issues.some((i) => i.identifier === "var.step.fetch-step.404-not-found")).toBe(true);
+    });
+
+    it("path 部 digit-start を含む参照が完全に extract される (regex 部分一致で切れない)", () => {
+      // 旧 regex `[a-zA-Z_]` のみで digit-start path segment 不可だったため
+      // `@var.action.txResult` の後ろに `.committed` が続いても segment 名が `committed` なので OK だった。
+      // 本 fix の趣旨は digit-start 識別子 (例: outcome-id `404-not-found`) を含む path を扱えるようにすること。
+      // 副作用として通常の camelCase path は引き続き正しく動くことを確認:
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          inputs: [{ name: "amount", type: "number" }],
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var.flowParameter.amount", outputBinding: { name: "doubled" } },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var.flowParameter"))).toHaveLength(0);
+    });
+  });
 });

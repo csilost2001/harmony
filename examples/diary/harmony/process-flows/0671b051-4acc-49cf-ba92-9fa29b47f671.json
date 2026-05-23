@@ -279,7 +279,8 @@
             "name": "txResult",
             "expose": [
               "committed",
-              "error"
+              "error",
+              "newPost"
             ]
           },
           "steps": [
@@ -398,7 +399,7 @@
           "runIf": "@var.action.txResult.committed == true",
           "description": "201 作成成功を返す。TX コミット後にのみ実行する。",
           "responseId": "201-created",
-          "bodyExpression": "{ postId: @newPost.postId }"
+          "bodyExpression": "{ postId: @txResult.newPost.postId }"
         },
         {
           "id": "step-08",

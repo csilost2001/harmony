@@ -85,10 +85,16 @@ const TX_RESERVED_VALUES = new Set<string>(["committed", "error", "diagnostics"]
  * #1289: path 部のセグメントに hyphen を許容するよう更新 (`@var.step.<step-id>.<name>` の
  * step-id が LocalId 形式で hyphen を含むため、例: `step-01-validate`)。root 部 (Identifier、
  * camelCase 強制) は従来通り hyphen 不許可。
+ *
+ * #1289 独立レビュー follow-up: path 部のセグメント先頭文字に digit (0-9) も許容
+ * (LocalId は `[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?` で digit-start を許容
+ * するため、`response-id: '404-not-found'` 等の参照 `@var.step.<stepId>.404-not-found`
+ * を拾えるようにする)。これにより processFlowAntipatternValidator.ts:426 の REF_RE
+ * と非対称が解消する。root 部は引き続き Identifier (camelCase / letter-start) のみ。
  */
 function extractReferences(src: string): Array<{ root: string; path: string[] }> {
   const result: Array<{ root: string; path: string[] }> = [];
-  const re = /@([a-zA-Z_][\w]*)(?:\.([a-zA-Z_][\w-]*(?:\.[a-zA-Z_][\w-]*)*))?/g;
+  const re = /@([a-zA-Z_][\w]*)(?:\.([a-zA-Z0-9_][\w-]*(?:\.[a-zA-Z0-9_][\w-]*)*))?/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(src)) !== null) {
     result.push({ root: m[1], path: m[2]?.split(".") ?? [] });
@@ -254,10 +260,25 @@ function walkSteps(
       walkSteps(step.steps, `${path}.steps`, known, childLoopItems, envVarNames, actionInputs, stepIndex, issues);
     }
     if (step.kind === "transactionScope") {
-      walkSteps(step.steps, `${path}.steps`, known, loopItems, envVarNames, actionInputs, stepIndex, issues);
-      if (step.onCommit) walkSteps(step.onCommit, `${path}.onCommit`, known, loopItems, envVarNames, actionInputs, stepIndex, issues);
+      // #1289 独立レビュー follow-up: TX inner var leak 防止 (spec process-flow-variables.md
+      // §3.7「TX 外参照は expose 経由のみ」)。TX body / onCommit / onRollback 内で宣言された
+      // outputBinding は parent scope に leak しない設計とする。
+      //
+      // 実装: known の snapshot (txKnown) を clone して TX body に渡す。inner step が
+      // outputBinding で txKnown を mutate しても、parent の known は影響を受けない。
+      // TX 完了後の parent は、TX wrapper 自体の outputBinding.name (既に上の `known.add(bindName)`
+      // で追加済) と予約値 / expose 列挙を `@var.action.<txWrapperName>.<accessor>` 経由で
+      // 参照する形になり、shorthand `@<innerVarName>` 直接参照は別 validator (Check 32) が
+      // 静的検出する。
+      //
+      // onCommit / onRollback は TX body の continuation で inner bindings (commit 後の値 /
+      // rollback context) を見られる必要があるため、同じ txKnown を渡す (parent への leak は
+      // 引き続き起こらない)。
+      const txKnown = new Set(known);
+      walkSteps(step.steps, `${path}.steps`, txKnown, loopItems, envVarNames, actionInputs, stepIndex, issues);
+      if (step.onCommit) walkSteps(step.onCommit, `${path}.onCommit`, txKnown, loopItems, envVarNames, actionInputs, stepIndex, issues);
       if (step.onRollback) {
-        const onRollbackKnown = new Set([...known, "error"]);
+        const onRollbackKnown = new Set([...txKnown, "error"]);
         walkSteps(step.onRollback, `${path}.onRollback`, onRollbackKnown, loopItems, envVarNames, actionInputs, stepIndex, issues);
       }
     }
@@ -414,6 +435,19 @@ function checkVarReference(
       });
       return;
     }
+    // #1289 独立レビュー follow-up: step scope name validation policy
+    //
+    // canonical 仕様 (process-flow-variables.md §3.6) は `@var.step.<step-id>.<name>` で
+    // `<name>` が step の outputBinding.name と一致することを要求する。それ以降の path
+    // segment (`<name>.<field>` 以降) は binding object の field access であり、本 validator
+    // では型解析を行わず free-form として受容する (例: dbAccess の SELECT 結果 row の各列、
+    // transformations で変換された各 field、object 型 outputBinding の sub-field 等は
+    // 全て name 以降の path として扱う)。
+    //
+    // outputBinding を持たない step (例: ReturnStep / LogStep / displayUpdate 等) への
+    // `@var.step.<id>.<anything>` 参照は silent pass (検証 skip)。理由: 一部の step は
+    // 暗黙的に値を産み出す可能性があり (例: ReturnStep の response object)、厳密 error 化は
+    // 過剰検出になり得るため、本 PR ではそれらを許容する保守的方針を採用。
     const bindName = step.outputBinding?.name;
     if (bindName && bindName !== name) {
       issues.push({
@@ -423,7 +457,6 @@ function checkVarReference(
         message: `@var.step.${stepId}.${name}: step "${stepId}" の outputBinding.name は "${bindName}" であり "${name}" と一致しません`,
       });
     }
-    // bindName が undefined (= step に outputBinding なし) の場合は検証 skip (silent pass)
     return;
   }
 
