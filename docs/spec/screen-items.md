@@ -532,8 +532,8 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
           // 単一 action の処理フローでは省略可 (validator が actions[0] にフォールバック)。
           "handlerActionId": "act-search",
           "argumentMapping": {
-            "propertyType": "@screen.propertyType",
-            "maxPrice": "@screen.maxPrice"
+            "propertyType": "@screen.<screenId>.item.propertyType",
+            "maxPrice": "@screen.<screenId>.item.maxPrice"
           }
         }
       ]

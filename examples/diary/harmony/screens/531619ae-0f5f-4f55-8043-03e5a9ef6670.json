@@ -36,14 +36,38 @@
       "direction": "input",
       "description": "投稿時の気分を表す絵文字。",
       "options": [
-        { "value": "happy", "label": "😊 嬉しい" },
-        { "value": "excited", "label": "🤩 興奮" },
-        { "value": "calm", "label": "😌 穏やか" },
-        { "value": "sad", "label": "😢 悲しい" },
-        { "value": "tired", "label": "😴 疲れた" },
-        { "value": "angry", "label": "😤 怒り" },
-        { "value": "anxious", "label": "😰 不安" },
-        { "value": "grateful", "label": "🙏 感謝" }
+        {
+          "value": "happy",
+          "label": "😊 嬉しい"
+        },
+        {
+          "value": "excited",
+          "label": "🤩 興奮"
+        },
+        {
+          "value": "calm",
+          "label": "😌 穏やか"
+        },
+        {
+          "value": "sad",
+          "label": "😢 悲しい"
+        },
+        {
+          "value": "tired",
+          "label": "😴 疲れた"
+        },
+        {
+          "value": "angry",
+          "label": "😤 怒り"
+        },
+        {
+          "value": "anxious",
+          "label": "😰 不安"
+        },
+        {
+          "value": "grateful",
+          "label": "🙏 感謝"
+        }
       ],
       "required": false
     },
@@ -54,12 +78,30 @@
       "direction": "input",
       "description": "投稿時の天気を表す絵文字。",
       "options": [
-        { "value": "sunny", "label": "☀️ 晴れ" },
-        { "value": "cloudy", "label": "☁️ 曇り" },
-        { "value": "rainy", "label": "🌧️ 雨" },
-        { "value": "snowy", "label": "❄️ 雪" },
-        { "value": "partly_cloudy", "label": "⛅ 晴れのち曇り" },
-        { "value": "stormy", "label": "⛈️ 嵐" }
+        {
+          "value": "sunny",
+          "label": "☀️ 晴れ"
+        },
+        {
+          "value": "cloudy",
+          "label": "☁️ 曇り"
+        },
+        {
+          "value": "rainy",
+          "label": "🌧️ 雨"
+        },
+        {
+          "value": "snowy",
+          "label": "❄️ 雪"
+        },
+        {
+          "value": "partly_cloudy",
+          "label": "⛅ 晴れのち曇り"
+        },
+        {
+          "value": "stormy",
+          "label": "⛈️ 嵐"
+        }
       ],
       "required": false
     },
@@ -76,7 +118,10 @@
     {
       "id": "tagIds",
       "label": "タグ",
-      "type": { "kind": "array", "itemType": "integer" },
+      "type": {
+        "kind": "array",
+        "itemType": "integer"
+      },
       "direction": "input",
       "description": "投稿に付与するタグのID配列。タグ候補一覧からマルチセレクト。",
       "required": false
@@ -89,18 +134,55 @@
         "itemType": {
           "kind": "object",
           "fields": [
-            { "name": "id", "type": "integer" },
-            { "name": "postId", "type": "integer" },
-            { "name": "url", "type": "string", "required": true },
-            { "name": "thumbnailUrl", "type": "string" },
-            { "name": "alt", "type": "string" },
-            { "name": "caption", "type": "string" },
-            { "name": "orderIndex", "type": "integer" },
-            { "name": "width", "type": "integer" },
-            { "name": "height", "type": "integer" },
-            { "name": "bytes", "type": "integer" },
-            { "name": "mimeType", "type": "string" },
-            { "name": "exifJson", "type": "json" }
+            {
+              "name": "id",
+              "type": "integer"
+            },
+            {
+              "name": "postId",
+              "type": "integer"
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "thumbnailUrl",
+              "type": "string"
+            },
+            {
+              "name": "alt",
+              "type": "string"
+            },
+            {
+              "name": "caption",
+              "type": "string"
+            },
+            {
+              "name": "orderIndex",
+              "type": "integer"
+            },
+            {
+              "name": "width",
+              "type": "integer"
+            },
+            {
+              "name": "height",
+              "type": "integer"
+            },
+            {
+              "name": "bytes",
+              "type": "integer"
+            },
+            {
+              "name": "mimeType",
+              "type": "string"
+            },
+            {
+              "name": "exifJson",
+              "type": "json"
+            }
           ]
         }
       },
@@ -115,8 +197,14 @@
       "direction": "input",
       "description": "投稿の公開状態。published=公開 / draft=下書き。",
       "options": [
-        { "value": "published", "label": "公開" },
-        { "value": "draft", "label": "下書き" }
+        {
+          "value": "published",
+          "label": "公開"
+        },
+        {
+          "value": "draft",
+          "label": "下書き"
+        }
       ],
       "defaultValue": "draft",
       "required": true
@@ -141,10 +229,26 @@
         "itemType": {
           "kind": "object",
           "fields": [
-            { "name": "slug", "type": "string", "required": true },
-            { "name": "name", "type": "string", "required": true },
-            { "name": "confidence", "type": "number", "required": true },
-            { "name": "isNew", "type": "boolean", "required": true }
+            {
+              "name": "slug",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "confidence",
+              "type": "number",
+              "required": true
+            },
+            {
+              "name": "isNew",
+              "type": "boolean",
+              "required": true
+            }
           ]
         }
       },
@@ -203,7 +307,10 @@
     {
       "id": "uploadPhotoFile",
       "label": "写真アップロード",
-      "type": { "kind": "file", "format": "image/*" },
+      "type": {
+        "kind": "file",
+        "format": "image/*"
+      },
       "direction": "input",
       "description": "写真 D&D ゾーン / file picker。ファイル選択 (submit event) で 写真アップロード ProcessFlow を起動し、photos[] に追加する。",
       "required": false,
@@ -213,7 +320,7 @@
           "label": "写真アップロード実行",
           "handlerFlowId": "2fecbf99-6a4e-4c62-840c-59d96e48ecb6",
           "argumentMapping": {
-            "postId": "@screen.postId",
+            "postId": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postId",
             "file": "@self"
           }
         }
@@ -232,14 +339,14 @@
           "label": "新規投稿作成",
           "handlerFlowId": "0671b051-4acc-49cf-ba92-9fa29b47f671",
           "argumentMapping": {
-            "title": "@screen.postTitle",
-            "body": "@screen.postBody",
-            "mood": "@screen.mood",
-            "weather": "@screen.weather",
-            "location": "@screen.location",
-            "status": "@screen.status",
-            "photos": "@screen.photos",
-            "tags": "@screen.tagIds"
+            "title": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postTitle",
+            "body": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postBody",
+            "mood": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.mood",
+            "weather": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.weather",
+            "location": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.location",
+            "status": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.status",
+            "photos": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.photos",
+            "tags": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.tagIds"
           }
         },
         {
@@ -247,15 +354,15 @@
           "label": "既存投稿更新",
           "handlerFlowId": "b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
           "argumentMapping": {
-            "postId": "@screen.postId",
-            "title": "@screen.postTitle",
-            "body": "@screen.postBody",
-            "mood": "@screen.mood",
-            "weather": "@screen.weather",
-            "location": "@screen.location",
-            "status": "@screen.status",
-            "photos": "@screen.photos",
-            "tags": "@screen.tagIds"
+            "postId": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postId",
+            "title": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postTitle",
+            "body": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postBody",
+            "mood": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.mood",
+            "weather": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.weather",
+            "location": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.location",
+            "status": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.status",
+            "photos": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.photos",
+            "tags": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.tagIds"
           }
         }
       ]
@@ -273,8 +380,8 @@
           "label": "AI 要約実行",
           "handlerFlowId": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
           "argumentMapping": {
-            "postId": "@screen.postId",
-            "body": "@screen.postBody"
+            "postId": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postId",
+            "body": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postBody"
           }
         }
       ]
@@ -292,8 +399,8 @@
           "label": "AI タグ提案実行",
           "handlerFlowId": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
           "argumentMapping": {
-            "title": "@screen.postTitle",
-            "body": "@screen.postBody"
+            "title": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postTitle",
+            "body": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postBody"
           }
         }
       ]
@@ -311,7 +418,7 @@
           "label": "AI 校正実行",
           "handlerFlowId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
           "argumentMapping": {
-            "text": "@screen.postBody",
+            "text": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postBody",
             "style": "@conv.msg.proofreadStyle"
           }
         }
@@ -330,7 +437,7 @@
           "label": "AI 画像 alt 実行",
           "handlerFlowId": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e",
           "argumentMapping": {
-            "photoId": "@screen.selectedPhotoId"
+            "photoId": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.selectedPhotoId"
           }
         }
       ]

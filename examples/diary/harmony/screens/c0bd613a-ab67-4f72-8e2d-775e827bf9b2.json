@@ -18,11 +18,29 @@
         "itemType": {
           "kind": "object",
           "fields": [
-            { "name": "id", "type": "integer", "required": true },
-            { "name": "name", "type": "string", "required": true },
-            { "name": "slug", "type": "string", "required": true },
-            { "name": "color", "type": "string" },
-            { "name": "postCount", "type": "integer" }
+            {
+              "name": "id",
+              "type": "integer",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "slug",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "color",
+              "type": "string"
+            },
+            {
+              "name": "postCount",
+              "type": "integer"
+            }
           ]
         }
       },
@@ -111,10 +129,10 @@
           "handlerFlowId": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
           "handlerActionId": "act-create",
           "argumentMapping": {
-            "name": "@screen.newTagName",
-            "slug": "@screen.newTagSlug",
-            "color": "@screen.newTagColor",
-            "icon": "@screen.newTagIcon"
+            "name": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagName",
+            "slug": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagSlug",
+            "color": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagColor",
+            "icon": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagIcon"
           }
         }
       ]
@@ -133,11 +151,11 @@
           "handlerFlowId": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
           "handlerActionId": "act-update",
           "argumentMapping": {
-            "id": "@screen.editTagId",
-            "name": "@screen.newTagName",
-            "slug": "@screen.newTagSlug",
-            "color": "@screen.newTagColor",
-            "icon": "@screen.newTagIcon"
+            "id": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.editTagId",
+            "name": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagName",
+            "slug": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagSlug",
+            "color": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagColor",
+            "icon": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagIcon"
           }
         }
       ]
@@ -156,7 +174,7 @@
           "handlerFlowId": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
           "handlerActionId": "act-delete",
           "argumentMapping": {
-            "id": "@screen.deleteTagId"
+            "id": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.deleteTagId"
           }
         }
       ]

@@ -318,7 +318,7 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
           "label": "都道府県変更",
           "handlerFlowId": "00000000-1060-4000-8000-000000000010",
           "argumentMapping": {
-            "prefectureCode": "@screen.prefecture"
+            "prefectureCode": "@screen.<screenId>.item.prefecture"
           }
         }
       ],
@@ -404,7 +404,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
     {
       "id": "change",
       "handlerFlowId": "00000000-1060-4000-8000-000000000010",
-      "argumentMapping": { "prefectureCode": "@screen.prefecture" },
+      "argumentMapping": { "prefectureCode": "@screen.<screenId>.item.prefecture" },
       "effects": [
         { "kind": "clear", "target": "city" },
         { "kind": "setOptions", "target": "city", "value": "catalog.cities" }

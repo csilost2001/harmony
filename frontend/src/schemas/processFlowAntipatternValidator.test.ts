@@ -531,6 +531,30 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
     expect(found).toHaveLength(0);
   });
 
+  it("negative: 階層参照 `@screen.<UUID>.item.<id>` は数字始まり UUID でも false positive を出さない (#1269 提案 A)", () => {
+    // docs/spec/process-flow-prefix-system.md §3 階層参照記法。Phase A では @screen は silent pass
+    // (project catalog load 未実装、Phase C で活性化予定) のため、broken ref として検出しないこと
+    // を保証する。
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      // 数字始まり (0739c454-...) / 文字始まり (cff4a398-...) の両 UUID を含む
+      expression:
+        "@screen.0739c454-45d6-4c99-962a-7b0b9e113a22.item.searchQuery + " +
+        "@screen.cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3.item.shippingPostalCode",
+    };
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter(
+      (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@screen"),
+    );
+    expect(found).toHaveLength(0);
+  });
+
   it("negative: @conv の未知 category は本 PR では検出 skip (#1267 Opus S-2、#1269 で再活性化)", () => {
     // project 拡張の conventionCategories 取りこぼし回避のため、本 PR では @conv broken-ref
     // 検出を一時 disable している。Phase X3 で project-level catalog load を実装後再活性化。

@@ -53,9 +53,9 @@
           "label": "ログイン実行",
           "handlerFlowId": "1ce956c5-7aa9-47b5-bb38-ca392ad73518",
           "argumentMapping": {
-            "username": "@screen.username",
-            "password": "@screen.password",
-            "rememberMe": "@screen.rememberMe"
+            "username": "@screen.a5088d22-4ad8-4615-a4c5-447ff9cdd280.item.username",
+            "password": "@screen.a5088d22-4ad8-4615-a4c5-447ff9cdd280.item.password",
+            "rememberMe": "@screen.a5088d22-4ad8-4615-a4c5-447ff9cdd280.item.rememberMe"
           }
         }
       ]

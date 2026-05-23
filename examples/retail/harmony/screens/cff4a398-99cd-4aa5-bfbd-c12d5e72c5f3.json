@@ -10,7 +10,10 @@
   "groupId": "c720b549-ecf4-4d20-9be4-c8d38f89a13e",
   "maturity": "committed",
   "fragments": [
-    { "fragmentRef": "generic-definitions/ui-fragment/messageArea", "instanceId": "errorArea" }
+    {
+      "fragmentRef": "generic-definitions/ui-fragment/messageArea",
+      "instanceId": "errorArea"
+    }
   ],
   "createdAt": "2026-05-02T00:00:00.000Z",
   "updatedAt": "2026-05-02T00:00:00.000Z",
@@ -123,10 +126,10 @@
           "label": "注文確定",
           "handlerFlowId": "f81dd9e0-794c-4539-a2a5-9cbcc0a75899",
           "argumentMapping": {
-            "shippingPostalCode": "@screen.shippingPostalCode",
-            "shippingAddress": "@screen.shippingAddress",
-            "note": "@screen.note",
-            "paymentMethod": "@screen.paymentMethod"
+            "shippingPostalCode": "@screen.cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3.item.shippingPostalCode",
+            "shippingAddress": "@screen.cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3.item.shippingAddress",
+            "note": "@screen.cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3.item.note",
+            "paymentMethod": "@screen.cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3.item.paymentMethod"
           }
         }
       ],

@@ -669,22 +669,16 @@
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "payload"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"{ invoiceId: @newInvoice.id, invoiceNumber: @newInvoice.invoice_number }"</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  }</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span></code></pre>
-<h3 id="132-データ系譜-b-2">13.2 データ系譜 (B-2)</h3>
-<p><code>DbAccessStep</code> がどのテーブルを読み書きするかを宣言的に記述する。データリネージ分析・影響範囲特定に使用。</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> DataLineage</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
-<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  reads</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];    </span><span style="color:#6A737D;--shiki-dark:#768390">// 読み取るテーブル名一覧</span></span>
-<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  writes</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">[];   </span><span style="color:#6A737D;--shiki-dark:#768390">// 書き込むテーブル名一覧</span></span>
-<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
-<span class="line"></span>
-<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// DbAccessStep に追加</span></span>
-<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">lineage</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> DataLineage;</span></span></code></pre>
-<p>用例:</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dbAccess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "tableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"22222222-2222-4222-8222-222222222222"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "operation"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"INSERT"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "lineage"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"writes"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [{ </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"tableId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"22222222-2222-4222-8222-222222222222"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"purpose"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"create"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }] }</span></span>
-<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<h3 id="132-データ系譜-b-2--1263-phase-x3-で削除済-1254-件-5">13.2 データ系譜 (B-2) — <strong>#1263 Phase X3 で削除済 (#1254 件 5)</strong></h3>
+<p>旧仕様: <code>StepBaseProps.lineage</code> + <code>DataLineage</code> $def + <code>LineageEntry</code> $def によりデータリネージ分析・影響範囲特定に使用していた。</p>
+<p><strong>削除理由 (#1263 Phase X3、#1254 件 5 verdict)</strong>:</p>
+<ul>
+<li>重複情報: DB アクセスの reads / writes は SQL AST 解析で完全復元可能</li>
+<li>保守コスト高: examples 全件で reads/writes を手書きしていた、SQL と二重管理</li>
+<li>SQL が canonical なら lineage は派生情報として validator / AST 解析で生成可能</li>
+</ul>
+<p><strong>復元方法</strong>: 将来 SQL AST 解析 validator を実装することで <code>dbAccess.sql</code> から reads/writes を機械抽出可能。実装は dogfood で必要性判明時 (#1265 ストック候補)。</p>
+<p>詳細: <a href="../../spec/schema-deletions-record/"><code>docs/spec/schema-deletions-record.md</code></a> §3</p>
 <h3 id="133-ビジネス用語集-b-3">13.3 ビジネス用語集 (B-3)</h3>
 <p>ドメイン固有語・略語を 1 箇所に集約し、AI 実装者がドメイン語義を誤解なく解釈できるよう支援する。</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> GlossaryEntry</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
