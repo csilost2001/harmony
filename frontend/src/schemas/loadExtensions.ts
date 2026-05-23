@@ -14,6 +14,7 @@ export interface StepDef {
 export interface FieldTypeDef {
   kind: string;
   label: string;
+  namespace?: string;
 }
 
 export interface TriggerDef {
@@ -242,9 +243,10 @@ function loadFieldTypes(raw: unknown, extensions: LoadedExtensions, errors: Exte
     pushSchemaError(errors, "fieldTypes", "fieldTypes は array である必要があります");
     return;
   }
+  const namespace = file.namespace as string;
   for (const item of file.fieldTypes) {
     if (isRecord(item) && typeof item.kind === "string" && item.kind && typeof item.label === "string" && item.label) {
-      extensions.fieldTypes.push({ kind: item.kind, label: item.label });
+      extensions.fieldTypes.push({ kind: item.kind, label: item.label, namespace });
     } else {
       pushSchemaError(errors, "fieldTypes", "fieldTypes の各要素は kind と label が必要です");
     }
