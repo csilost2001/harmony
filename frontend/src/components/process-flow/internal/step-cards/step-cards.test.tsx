@@ -5,7 +5,8 @@
 // 詳細な振る舞いテストは元々 StepCard 系では薄かったため、本 PR では rendering 中心。
 
 import { describe, expect, it, vi } from "vitest";
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, act } from "@testing-library/react";
+import { useState } from "react";
 import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
 import {
   AiAgentStepCardBody,
@@ -847,5 +848,85 @@ describe("ExternalSystemStepCardBody auth section", () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
       auth: expect.objectContaining({ kind: "bearer" }),
     }));
+  });
+});
+
+// ── EventPublishStepCardBody resolver popup (#1282) ─────────────────────────
+// ReferenceCompletionTextarea は controlled component のため、
+// wrapper component で useState 管理してリレンダリングを発火させる必要がある。
+
+function EventPublishWrapper() {
+  const [payload, setPayload] = useState<string | undefined>(undefined);
+  const step = baseStep({
+    kind: "eventPublish",
+    topic: "order.placed",
+    payload,
+  });
+  return (
+    <EventPublishStepCardBody
+      step={step}
+      allSteps={[]}
+      onChange={(changes) => {
+        if (changes.payload !== undefined || "payload" in changes) {
+          setPayload(changes.payload as string | undefined);
+        }
+      }}
+      workspace={mockWorkspace}
+    />
+  );
+}
+
+describe("EventPublishStepCardBody resolver popup (#1282)", () => {
+  it("payload textarea で @secret. 入力時に補完 popup が描画される", () => {
+    const { container } = render(<EventPublishWrapper />);
+    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    expect(textarea).not.toBeNull();
+    // wrapper が onChange でリレンダリングして value="@secret." になる
+    // cursorPos は e.target.value.length = 8 にフォールバックされる
+    act(() => {
+      fireEvent.change(textarea, { target: { value: "@secret." } });
+    });
+    // secretPrefixResolver が stripeApiKey を candidates に返すので listbox が出現する
+    const listbox = container.querySelector('[role="listbox"]');
+    expect(listbox).not.toBeNull();
+  });
+});
+
+// ── EventSubscribeStepCardBody resolver popup (#1282) ────────────────────────
+
+function EventSubscribeWrapper() {
+  const [filter, setFilter] = useState<string | undefined>(undefined);
+  const step = baseStep({
+    kind: "eventSubscribe",
+    topic: "order.placed",
+    filter,
+  });
+  return (
+    <EventSubscribeStepCardBody
+      step={step}
+      allSteps={[]}
+      onChange={(changes) => {
+        if (changes.filter !== undefined || "filter" in changes) {
+          setFilter(changes.filter as string | undefined);
+        }
+      }}
+      workspace={mockWorkspace}
+    />
+  );
+}
+
+describe("EventSubscribeStepCardBody resolver popup (#1282)", () => {
+  it("filter textarea で @var. 入力時に補完 popup が描画される", () => {
+    const { container } = render(<EventSubscribeWrapper />);
+    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    expect(textarea).not.toBeNull();
+    // wrapper が onChange でリレンダリングして value="@var." になる
+    // cursorPos は e.target.value.length = 5 にフォールバックされる
+    act(() => {
+      fireEvent.change(textarea, { target: { value: "@var." } });
+    });
+    // varScopeResolver が scope candidates を返すので listbox が出現する
+    const listbox = container.querySelector('[role="listbox"]');
+    expect(listbox).not.toBeNull();
   });
 });

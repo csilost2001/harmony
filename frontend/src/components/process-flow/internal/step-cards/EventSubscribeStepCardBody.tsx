@@ -1,15 +1,21 @@
-// #1260 Phase 2 sub-section B: EventSubscribe step に topic 補完 bind + filter plain textarea。
+// #1260 Phase 2 sub-section B: EventSubscribe step に topic 補完 bind + filter ReferenceCompletionTextarea。
 // topic は topicResolver (context.catalogs.events キー) で @reference 補完対応。
-// filter は式入力のため plain textarea (resolver 未対応)。
+// filter は式入力のため ReferenceCompletionTextarea で補完対応 (#1282)。
 
-import type { EventSubscribeStep, EventTopic } from "../../../../types/v3";
+import type { EventSubscribeStep, EventTopic, ProcessFlow, TemplateString } from "../../../../types/v3";
 import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
 import { topicResolver } from "../../../../utils/reference-completer/workspaceResolver";
+import { convResolver } from "../../../../utils/reference-completer/convResolver";
+import { ALL_PROCESS_FLOW_SCOPE_RESOLVERS } from "../../../../utils/reference-completer/processFlowScopeResolver";
 import { ReferenceCompletionInput } from "../../../common/ReferenceCompletionInput";
+import { ReferenceCompletionTextarea } from "../../../common/ReferenceCompletionTextarea";
+import type { ConventionsCatalog } from "../../../../schemas/conventionsValidator";
 import type { StepCardBodyBaseProps } from "./types";
 
 export interface EventSubscribeStepCardBodyProps extends StepCardBodyBaseProps<EventSubscribeStep> {
   workspace?: WorkspaceRefs;
+  group?: ProcessFlow | null;
+  conventions?: ConventionsCatalog | null;
 }
 
 export function EventSubscribeStepCardBody({
@@ -18,7 +24,11 @@ export function EventSubscribeStepCardBody({
   onCommit,
   readOnly,
   workspace,
+  group,
+  conventions,
 }: EventSubscribeStepCardBodyProps) {
+  const filterResolvers = [convResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS];
+  const filterCtx = { conventions: conventions ?? null, flow: group ?? undefined, workspace };
   return (
     <>
       <div className="row g-2 mb-2">
@@ -46,15 +56,17 @@ export function EventSubscribeStepCardBody({
             <i className="bi bi-funnel me-1" />
             filter (式)
           </label>
-          <textarea
-            className="form-control form-control-sm"
-            rows={2}
+          <ReferenceCompletionTextarea
             value={step.filter ?? ""}
-            onChange={(e) => onChange({ filter: e.target.value || undefined })}
-            onBlur={onCommit}
+            onValueChange={(v) => onChange({ filter: (v || undefined) as TemplateString | undefined })}
+            onCommit={onCommit}
+            resolvers={filterResolvers}
+            ctx={filterCtx}
+            className="form-control form-control-sm"
             placeholder="例: @event.amount > 1000"
             style={{ fontFamily: "monospace", fontSize: "0.85rem" }}
             disabled={readOnly}
+            rows={2}
           />
         </div>
       </div>

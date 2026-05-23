@@ -1,13 +1,17 @@
 /**
- * ProcessFlow スコープ式補完 Resolver 群 (Phase 3 / #1255)。
+ * ProcessFlow スコープ式補完 Resolver 群 (Phase 3 / #1255 + #1282)。
  *
  * @stepResult.<stepId>.<field> / @inputs.<name> / @fieldErrors.<field>
  * の 3 種類のスコープ式を補完する。
+ *
+ * #1282 で varScopeResolver / secretPrefixResolver を追加。
  *
  * ctx.flow に ProcessFlow が渡されている場合のみ動作する。
  */
 
 import type { Candidate, CompletionContext, CompletionState, Resolver } from "./types";
+import { varScopeResolver } from "./varScopeResolver";
+import { secretPrefixResolver } from "./secretPrefixResolver";
 
 /** @stepResult.<stepId>.<field> resolver。 */
 export const stepResultResolver: Resolver = {
@@ -182,4 +186,6 @@ export const ALL_PROCESS_FLOW_SCOPE_RESOLVERS: Resolver[] = [
   stepResultResolver,
   inputsResolver,
   fieldErrorsResolver,
+  varScopeResolver,        // #1282: @var.<scope>.<name>
+  secretPrefixResolver,    // #1282: @secret.<key>
 ];
