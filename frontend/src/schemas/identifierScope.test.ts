@@ -585,3 +585,388 @@ describe("checkIdentifierScopes — ValidationStep inlineBranch", () => {
     expect(issues).toHaveLength(0);
   });
 });
+
+// #1289: @var.<scope>.<name> grammar-aware check (RFC #1264 verdict 実装)
+describe("checkIdentifierScopes — #1289 @var.<scope>.<name> grammar-aware", () => {
+  describe("flowParameter scope", () => {
+    it("@var.flowParameter.<name> が action.inputs に存在 → OK", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          inputs: [{ name: "customerId", type: "number" }],
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var.flowParameter.customerId * 2", outputBinding: { name: "doubled" } },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var.flowParameter"))).toHaveLength(0);
+    });
+
+    it("@var.flowParameter.<name> が action.inputs に無い → UNKNOWN_IDENTIFIER", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          inputs: [{ name: "customerId", type: "number" }],
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var.flowParameter.unknownInput", outputBinding: { name: "x" } },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.flowParameter.unknownInput")).toBe(true);
+    });
+
+    it("@var.flowParameter (name 欠落) → error", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var.flowParameter", outputBinding: { name: "x" } },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.flowParameter")).toBe(true);
+    });
+  });
+
+  describe("action scope", () => {
+    it("@var.action.<name> が先行 step の outputBinding に存在 → OK (retail dogfood 実例)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "tx-step", kind: "transactionScope", description: "",
+              steps: [
+                { id: "inner", kind: "compute", description: "", expression: "1", outputBinding: { name: "value" } },
+              ],
+              outputBinding: { name: "txResult" },
+            },
+            { id: "next", kind: "return", description: "", bodyExpression: "{ committed: @var.action.txResult.committed }" },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var.action"))).toHaveLength(0);
+    });
+
+    it("@var.action.<name> が action scope に無い → UNKNOWN_IDENTIFIER", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var.action.notDeclared", outputBinding: { name: "x" } },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.action.notDeclared")).toBe(true);
+    });
+  });
+
+  describe("loop scope", () => {
+    it("@var.loop.<collectionItemName> → OK (loop iteration item 参照)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          inputs: [{ name: "items", type: { kind: "array", itemType: "number" } }],
+          steps: [{
+            id: "loop1", kind: "loop", description: "",
+            loopKind: "collection",
+            collectionSource: "@inputs.items",
+            collectionItemName: "item",
+            steps: [
+              { id: "inner", kind: "compute", description: "", expression: "@var.loop.item * 2", outputBinding: { name: "doubled" } },
+            ],
+          }],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var.loop"))).toHaveLength(0);
+    });
+
+    it("@var.loop.<collectionIndexName> → OK (collection loop index 参照、#1264 verdict 観点 3)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          inputs: [{ name: "items", type: { kind: "array", itemType: "number" } }],
+          steps: [{
+            id: "loop1", kind: "loop", description: "",
+            loopKind: "collection",
+            collectionSource: "@inputs.items",
+            collectionItemName: "item",
+            collectionIndexName: "idx",
+            steps: [
+              { id: "inner", kind: "compute", description: "", expression: "@var.loop.idx + 1", outputBinding: { name: "nextIdx" } },
+            ],
+          }],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var.loop"))).toHaveLength(0);
+    });
+
+    it("@var.loop.<name> が enclosing loop に無い → UNKNOWN_IDENTIFIER", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          inputs: [{ name: "items", type: { kind: "array", itemType: "number" } }],
+          steps: [{
+            id: "loop1", kind: "loop", description: "",
+            loopKind: "collection",
+            collectionSource: "@inputs.items",
+            collectionItemName: "item",
+            steps: [
+              { id: "inner", kind: "compute", description: "", expression: "@var.loop.notDeclared", outputBinding: { name: "x" } },
+            ],
+          }],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.loop.notDeclared")).toBe(true);
+    });
+
+    it("@var.loop.<name> を loop 外で参照 → UNKNOWN_IDENTIFIER (loop item は外に leak しない)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          inputs: [{ name: "items", type: { kind: "array", itemType: "number" } }],
+          steps: [
+            {
+              id: "loop1", kind: "loop", description: "",
+              loopKind: "collection",
+              collectionSource: "@inputs.items",
+              collectionItemName: "item",
+              steps: [],
+            },
+            { id: "after", kind: "compute", description: "", expression: "@var.loop.item", outputBinding: { name: "x" } },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.loop.item")).toBe(true);
+    });
+  });
+
+  describe("step scope", () => {
+    it("@var.step.<stepId>.<name> が outputBinding.name と一致 → OK", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "fetch-step", kind: "compute", description: "", expression: "1", outputBinding: { name: "userData" } },
+            { id: "use", kind: "return", description: "", bodyExpression: "{ name: @var.step.fetch-step.userData }" },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var.step"))).toHaveLength(0);
+    });
+
+    it("@var.step.<unknown-id> → UNKNOWN_IDENTIFIER", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var.step.no-such-step.field", outputBinding: { name: "x" } },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.step.no-such-step")).toBe(true);
+    });
+
+    it("@var.step.<id>.<wrongName> → outputBinding.name mismatch detected", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "fetch-step", kind: "compute", description: "", expression: "1", outputBinding: { name: "correctName" } },
+            { id: "use", kind: "return", description: "", bodyExpression: "@var.step.fetch-step.wrongName" },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.step.fetch-step.wrongName")).toBe(true);
+    });
+  });
+
+  describe("tx scope", () => {
+    it("@var.tx.<txStepId>.committed (予約値) → OK (expose 不要)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "tx-confirm", kind: "transactionScope", description: "",
+              steps: [
+                { id: "inner", kind: "compute", description: "", expression: "1", outputBinding: { name: "v" } },
+              ],
+            },
+            { id: "check", kind: "return", description: "", bodyExpression: "{ ok: @var.tx.tx-confirm.committed }" },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var.tx"))).toHaveLength(0);
+    });
+
+    it("@var.tx.<txStepId>.error / .diagnostics (予約値) → OK", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "tx-confirm", kind: "transactionScope", description: "",
+              steps: [
+                { id: "inner", kind: "compute", description: "", expression: "1", outputBinding: { name: "v" } },
+              ],
+            },
+            { id: "log-err", kind: "log", description: "", level: "error", message: "${@var.tx.tx-confirm.error.code} / ${@var.tx.tx-confirm.diagnostics}" },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var.tx"))).toHaveLength(0);
+    });
+
+    it("@var.tx.<unknown-id> → UNKNOWN_IDENTIFIER", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var.tx.no-such-tx.committed", outputBinding: { name: "x" } },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.tx.no-such-tx")).toBe(true);
+    });
+
+    it("@var.tx.<stepId> で <stepId> が非 transactionScope → UNKNOWN_IDENTIFIER", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "compute-step", kind: "compute", description: "", expression: "1", outputBinding: { name: "v" } },
+            { id: "wrong", kind: "return", description: "", bodyExpression: "@var.tx.compute-step.committed" },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.tx.compute-step")).toBe(true);
+    });
+  });
+
+  describe("global scope (silent pass、project-level)", () => {
+    it("@var.global.<name> は silent pass (本 PR scope 外、別 validator 担当)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var.global.tenantId", outputBinding: { name: "x" } },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var.global"))).toHaveLength(0);
+    });
+  });
+
+  describe("shorthand @var.<name> (lexical chain auto-infer)", () => {
+    it("@var.<name> が known scope に存在 → OK", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          inputs: [{ name: "amount", type: "number" }],
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var.amount * 2", outputBinding: { name: "doubled" } },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var."))).toHaveLength(0);
+    });
+
+    it("@var.<name> が known scope に無い → UNKNOWN_IDENTIFIER", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var.notDeclared", outputBinding: { name: "x" } },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.notDeclared")).toBe(true);
+    });
+
+    it("@var 単独 (path 欠落) → error", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression: "@var", outputBinding: { name: "x" } },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var")).toBe(true);
+    });
+  });
+
+  describe("tryCatch.errorVar (catch block 内 named binding)", () => {
+    it("catch branch 内で @var.<errorVar> 参照 → OK", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "br1", kind: "branch", description: "",
+              branches: [
+                {
+                  id: "catch", code: "A",
+                  condition: { kind: "tryCatch", errorCode: "VALIDATION_FAILED", errorVar: "caughtError" },
+                  steps: [
+                    { id: "log", kind: "log", description: "", level: "error", message: "${@var.caughtError.code}: ${@var.caughtError.message}" },
+                  ],
+                },
+              ],
+            },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var.caughtError"))).toHaveLength(0);
+    });
+
+    it("catch branch 外 (兄弟 branch) で errorVar 参照 → UNKNOWN_IDENTIFIER (scope leak しない)", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "br1", kind: "branch", description: "",
+              branches: [
+                {
+                  id: "catch", code: "A",
+                  condition: { kind: "tryCatch", errorCode: "VALIDATION_FAILED", errorVar: "caughtError" },
+                  steps: [],
+                },
+                {
+                  id: "other", code: "B",
+                  condition: { kind: "expression", expression: "@var.caughtError" },
+                  steps: [],
+                },
+              ],
+            },
+          ],
+        }],
+      }));
+      expect(issues.some((i) => i.identifier === "var.caughtError")).toBe(true);
+    });
+  });
+
+  describe("retail dogfood で実発生する canonical 形式の regression", () => {
+    it("@var.action.txResult.committed (TX expose 予約値) → OK", () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            {
+              id: "tx-confirm", kind: "transactionScope", description: "",
+              steps: [
+                { id: "inner", kind: "compute", description: "", expression: "1", outputBinding: { name: "v" } },
+              ],
+              outputBinding: { name: "txResult" },
+            },
+            { id: "after", kind: "return", description: "", bodyExpression: "@var.action.txResult.committed" },
+            { id: "alt", kind: "compute", description: "", expression: "@var.action.txResult.error.code === 'STOCK_SHORTAGE'", outputBinding: { name: "isShortage" }, runIf: "@var.action.txResult.committed == false" },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier.startsWith("var"))).toHaveLength(0);
+    });
+  });
+});
