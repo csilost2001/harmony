@@ -207,7 +207,7 @@ describe("v3 TS 型 と examples/ JSON の compatibility", () => {
     const flow = loadJson<ProcessFlow>(
       join(examplesDir, "retail/harmony/process-flows/267e94bf-0397-44b8-b665-d3c40c38935b.json"),
     );
-    expect(flow.meta.kind).toBe("common");
+    expect(flow.meta.flowType).toBe("common"); // #1263 Phase X1: meta.kind → meta.flowType
     const firstStep: Step = flow.actions[0].steps[0];
     expect(firstStep.kind).toBe("dbAccess");
   });
@@ -250,6 +250,6 @@ describe("v3 TS 型 と examples/ JSON の compatibility", () => {
     const flow = loadJson<ProcessFlow>(
       join(examplesDir, "realestate/harmony/process-flows/d4b5c6e7-f809-4112-bc3d-4e5f6a7b8c9d.json"),
     );
-    expect(flow.meta.kind).toBeDefined();
+    expect(flow.meta.flowType).toBeDefined(); // #1263 Phase X1: meta.kind → meta.flowType
   });
 });

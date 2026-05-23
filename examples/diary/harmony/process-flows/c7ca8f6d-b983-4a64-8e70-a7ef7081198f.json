@@ -4,7 +4,7 @@
     "id": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
     "name": "タグ管理",
     "description": "タグ管理画面 (c0bd613a) の CRUD ハンドラを集約した処理フロー (#1019)。1 画面 = 1 処理フロー + 複数アクション モデルの典型例として、create / update / delete の 3 actions を保持する。各 action は画面項目イベント側 events[].handlerActionId から個別に呼び出される。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2",
     "maturity": "draft",
     "createdAt": "2026-05-11T00:00:00.000Z",
@@ -222,14 +222,6 @@
           "sql": "SELECT id AS \"tagId\" FROM tags WHERE name = @inputs.name OR slug = @resolvedSlug LIMIT 1",
           "outputBinding": {
             "name": "duplicateTag"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "uniqueness-check"
-              }
-            ]
           }
         },
         {
@@ -278,14 +270,6 @@
             "expected": 1,
             "onViolation": "throw",
             "errorCode": "TAG_CREATE_FAILED"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "insert"
-              }
-            ]
           }
         },
         {
@@ -471,14 +455,6 @@
           "sql": "SELECT id AS \"tagId\", name AS \"name\", slug AS \"slug\" FROM tags WHERE id = @inputs.id LIMIT 1",
           "outputBinding": {
             "name": "existingTag"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -530,14 +506,6 @@
           "sql": "SELECT id AS \"tagId\" FROM tags WHERE id != @inputs.id AND (name = @resolved.name OR slug = @resolved.slug) LIMIT 1",
           "outputBinding": {
             "name": "duplicateTag"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "uniqueness-check"
-              }
-            ]
           }
         },
         {
@@ -584,14 +552,6 @@
             "onViolation": "throw",
             "errorCode": "TAG_UPDATE_FAILED",
             "description": "step-03 の存在確認後に削除された競合の場合 0 行になるため throw。"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "update"
-              }
-            ]
           }
         },
         {
@@ -603,14 +563,6 @@
           "sql": "SELECT id AS \"tagId\", name AS \"name\", slug AS \"slug\", color AS \"color\", icon AS \"icon\" FROM tags WHERE id = @inputs.id LIMIT 1",
           "outputBinding": {
             "name": "updatedTag"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -705,14 +657,6 @@
           "sql": "SELECT COUNT(*) AS \"usageCount\" FROM post_tags WHERE tag_id = @inputs.id",
           "outputBinding": {
             "name": "usage"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
-                "purpose": "in-use-check"
-              }
-            ]
           }
         },
         {
@@ -759,14 +703,6 @@
             "onViolation": "throw",
             "errorCode": "TAG_NOT_FOUND",
             "description": "0 行は既に削除済 (= 404)、複数行は schema 違反 (id PK のため発生しない想定)。"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "delete"
-              }
-            ]
           }
         },
         {

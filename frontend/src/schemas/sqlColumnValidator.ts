@@ -236,7 +236,7 @@ function walkSteps(steps: Step[], basePath: string, visit: (s: Step, p: string) 
       if (step.onRollback) walkSteps(step.onRollback, `${path}.onRollback`, visit);
     }
     if (step.kind === "externalSystem") {
-      Object.entries(step.outcomes ?? {}).forEach(([k, spec]) => {
+      Object.entries(step.errorHandling?.outcomes ?? {}).forEach(([k, spec]) => {
         if (spec?.sideEffects) walkSteps(spec.sideEffects, `${path}.outcomes.${k}.sideEffects`, visit);
       });
     }

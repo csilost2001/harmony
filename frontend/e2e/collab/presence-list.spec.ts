@@ -31,7 +31,7 @@ const PF_NORM = normalizeId(PF_ID);
 const dummyProcessFlowBody = buildProcessFlow({
   id: PF_ID,
   name: "一覧バッジテストフロー",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [],
 });
@@ -39,7 +39,7 @@ const dummyProcessFlowBody = buildProcessFlow({
 const dummyProject = buildProject({
   name: "collab-presence-list-test",
   entities: {
-    processFlows: [{ id: PF_ID, no: 1, name: "一覧バッジテストフロー", kind: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: PF_ID, no: 1, name: "一覧バッジテストフロー", flowType: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

@@ -4,7 +4,7 @@
     "id": "b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
     "name": "投稿更新",
     "description": "既存投稿を更新する処理フロー。所有者検証後、posts / photos / post_tags を 1 TX 内に更新する。status を 'published' に変更する場合は published_at を NOW に設定する。",
-    "kind": "screen",
+    "flowType": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
     "updatedAt": "2026-05-06T14:00:00.000Z",
@@ -293,14 +293,6 @@
           "sql": "SELECT id AS \"postId\", user_id AS \"userId\", status, published_at AS \"publishedAt\" FROM posts WHERE id = @inputs.postId",
           "outputBinding": {
             "name": "existingPost"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -377,12 +369,15 @@
         {
           "id": "step-06",
           "kind": "transactionScope",
-          "description": "posts / photos / post_tags の更新を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @txResult に結果を expose する。photos / tags は省略可能 (runIf あり) だが TX 境界は wrapper が管理するため runIf による TX 未クローズ問題は発生しない。",
+          "description": "posts / photos / post_tags の更新を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @var.action.txResult に結果を expose する。photos / tags は省略可能 (runIf あり) だが TX 境界は wrapper が管理するため runIf による TX 未クローズ問題は発生しない。",
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
-          "rollbackOn": [],
           "outputBinding": {
-            "name": "txResult"
+            "name": "txResult",
+            "expose": [
+              "committed",
+              "error"
+            ]
           },
           "steps": [
             {
@@ -391,15 +386,7 @@
               "description": "posts テーブルを更新する。",
               "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
               "operation": "UPDATE",
-              "sql": "UPDATE posts SET title = COALESCE(@inputs.title, title), body = COALESCE(@inputs.body, body), mood = COALESCE(@inputs.mood, mood), weather = COALESCE(@inputs.weather, weather), location = COALESCE(@inputs.location, location), status = COALESCE(@inputs.status, status), published_at = @newPublishedAt, updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.postId",
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                    "purpose": "update"
-                  }
-                ]
-              }
+              "sql": "UPDATE posts SET title = COALESCE(@inputs.title, title), body = COALESCE(@inputs.body, body), mood = COALESCE(@inputs.mood, mood), weather = COALESCE(@inputs.weather, weather), location = COALESCE(@inputs.location, location), status = COALESCE(@inputs.status, status), published_at = @newPublishedAt, updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.postId"
             },
             {
               "id": "step-06-02",
@@ -408,15 +395,7 @@
               "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
               "operation": "DELETE",
               "sql": "DELETE FROM photos WHERE post_id = @inputs.postId",
-              "runIf": "@inputs.photos != null",
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-                    "purpose": "soft-delete"
-                  }
-                ]
-              }
+              "runIf": "@inputs.photos != null"
             },
             {
               "id": "step-06-03",
@@ -433,15 +412,7 @@
                   "description": "photos テーブルに写真を INSERT する。",
                   "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
                   "operation": "INSERT",
-                  "sql": "INSERT INTO photos (post_id, url, thumbnail_url, alt, caption, order_index, width, height, exif_json, created_at) VALUES (@inputs.postId, @photo.url, @photo.thumbnail_url, @photo.alt, @photo.caption, COALESCE(@photo.order_index, 0), @photo.width, @photo.height, @photo.exif_json, CURRENT_TIMESTAMP)",
-                  "lineage": {
-                    "writes": [
-                      {
-                        "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-                        "purpose": "insert"
-                      }
-                    ]
-                  }
+                  "sql": "INSERT INTO photos (post_id, url, thumbnail_url, alt, caption, order_index, width, height, exif_json, created_at) VALUES (@inputs.postId, @photo.url, @photo.thumbnail_url, @photo.alt, @photo.caption, COALESCE(@photo.order_index, 0), @photo.width, @photo.height, @photo.exif_json, CURRENT_TIMESTAMP)"
                 }
               ]
             },
@@ -452,15 +423,7 @@
               "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
               "operation": "DELETE",
               "sql": "DELETE FROM post_tags WHERE post_id = @inputs.postId",
-              "runIf": "@inputs.tags != null",
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
-                    "purpose": "soft-delete"
-                  }
-                ]
-              }
+              "runIf": "@inputs.tags != null"
             },
             {
               "id": "step-06-05",
@@ -477,24 +440,19 @@
                   "description": "post_tags に投稿とタグの関連を INSERT する。",
                   "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
                   "operation": "INSERT",
-                  "sql": "INSERT INTO post_tags (post_id, tag_id, source, confidence, created_at) VALUES (@inputs.postId, @tag.id, COALESCE(@tag.source, 'manual'), COALESCE(@tag.confidence, 1.0), CURRENT_TIMESTAMP)",
-                  "lineage": {
-                    "writes": [
-                      {
-                        "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
-                        "purpose": "insert"
-                      }
-                    ]
-                  }
+                  "sql": "INSERT INTO post_tags (post_id, tag_id, source, confidence, created_at) VALUES (@inputs.postId, @tag.id, COALESCE(@tag.source, 'manual'), COALESCE(@tag.confidence, 1.0), CURRENT_TIMESTAMP)"
                 }
               ]
             }
-          ]
+          ],
+          "errorHandling": {
+            "rollbackOn": []
+          }
         },
         {
           "id": "step-11",
           "kind": "return",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "200 更新成功を返す。TX コミット後にのみ実行する。",
           "responseId": "200-ok",
           "bodyExpression": "{ postId: @inputs.postId, updatedAt: new Date().toISOString() }"
@@ -502,7 +460,7 @@
         {
           "id": "step-12",
           "kind": "return",
-          "runIf": "@txResult.committed != true",
+          "runIf": "@var.action.txResult.committed != true",
           "description": "422 投稿更新失敗を返す。TX ロールバック時にのみ実行する (ADR-007 整合)。posts / photos / post_tags のいずれかの更新が失敗した場合の catch-all レスポンス。",
           "responseId": "422-update-failed",
           "bodyExpression": "{ code: 'POST_UPDATE_FAILED', message: '投稿の更新に失敗しました。しばらく経ってから再度お試しください。' }"

@@ -24,11 +24,11 @@ const nestedDefs = [
   // aiCall / aiAgent
   "AiMessage", "AiMessageItem", "AiTool", "AiToolRef", "AiToolChoice", "AiResponseFormat",
   // dbAccess nested
-  "AffectedRowsCheck", "DataLineage",
+  "AffectedRowsCheck",
   // cdc nested
   "CdcDestination",
   // step base
-  "OutputBinding", "TxBoundary",
+  "OutputBinding",
 ];
 
 console.log("Nested object required fields:");

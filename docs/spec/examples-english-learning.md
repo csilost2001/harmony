@@ -78,7 +78,7 @@ B2C 英会話学習アプリ (中規模、画面 ~11、テーブル ~10、処理
 
 **stepKinds** (`object`、**キーは PascalCase 必須** — `^[A-Z][A-Za-z0-9]*$`、ProcessFlow ステップ拡張):
 
-| キー (PascalCase) | ProcessFlow.kind 参照 | 用途 |
+| キー (PascalCase) | ProcessFlow.flowType 参照 (#1263 Phase X1: meta.kind → meta.flowType) | 用途 |
 |---|---|---|
 | `TtsGenerate` | `english-learning:TtsGenerate` | TTS 音声生成 (S-1 でストーリー音源プリロード、S-2 で AI 応答音声化に使用) |
 | `SttEvaluate` | `english-learning:SttEvaluate` | STT + 発音評価 |

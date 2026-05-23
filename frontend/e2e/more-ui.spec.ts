@@ -19,7 +19,7 @@ const groupId = "ag-more-test";
 const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: "追加 UI テスト",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   maturity: "provisional",
   actions: [
@@ -42,8 +42,8 @@ const dummyProject = buildProject({
   name: "more-e2e",
   entities: {
     processFlows: [
-      { id: groupId, no: 1, name: "追加 UI テスト", kind: "screen", actionCount: 1, maturity: "provisional", updatedAt: FIXED_TS },
-      { id: "ag-extra-committed", no: 2, name: "確定フロー", kind: "screen", actionCount: 1, maturity: "committed", updatedAt: FIXED_TS },
+      { id: groupId, no: 1, name: "追加 UI テスト", flowType: "screen", actionCount: 1, maturity: "provisional", updatedAt: FIXED_TS },
+      { id: "ag-extra-committed", no: 2, name: "確定フロー", flowType: "screen", actionCount: 1, maturity: "committed", updatedAt: FIXED_TS },
     ],
   } as ProjectEntities,
 });

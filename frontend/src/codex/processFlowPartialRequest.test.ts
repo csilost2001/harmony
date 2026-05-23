@@ -12,7 +12,7 @@ function baseFlow(): ProcessFlow {
     meta: {
       id: "flow-1" as never,
       name: "既存フロー",
-      kind: "screen",
+      flowType: "screen", // #1263 Phase X1: meta.kind → meta.flowType
       screenId: "screen-1" as never,
       maturity: "draft",
       mode: "upstream",
@@ -148,7 +148,7 @@ describe("requestProcessFlowPartial", () => {
       meta: {
         id: "different-id",
         name: "修正済フロー",
-        kind: "screen",
+        flowType: "screen", // #1263 Phase X1: meta.kind → meta.flowType
         screenId: "other-screen",
         createdAt: "2026-05-13T00:00:00.000Z",
         maturity: "draft",
@@ -181,7 +181,7 @@ describe("requestProcessFlowPartial", () => {
 
   it("includes contextString in the prompt when provided", async () => {
     const generated = {
-      meta: { id: "flow-1", name: "フロー", kind: "screen", maturity: "draft" },
+      meta: { id: "flow-1", name: "フロー", flowType: "screen", maturity: "draft" }, // #1263 Phase X1
       actions: [],
     };
     const { client, request } = authenticatedClientWithText(JSON.stringify(generated));
@@ -214,7 +214,7 @@ describe("requestProcessFlowPartial", () => {
 
   it("parses JSON wrapped in fenced code blocks", async () => {
     const generated = {
-      meta: { id: "flow-1", name: "フロー", kind: "screen", maturity: "draft" },
+      meta: { id: "flow-1", name: "フロー", flowType: "screen", maturity: "draft" }, // #1263 Phase X1
       actions: [],
     };
     const { client } = authenticatedClientWithText(`\`\`\`json\n${JSON.stringify(generated)}\n\`\`\``);
@@ -232,7 +232,7 @@ describe("requestProcessFlowPartial", () => {
     // 独立レビュー指摘 S-1: AI が `authoring: { markers: [] }` を返してきた場合でも
     // 既存のユーザ/システム生成マーカーを silently 失わないことを保証する
     const generated = {
-      meta: { id: "flow-1", name: "フロー", kind: "screen", maturity: "draft" },
+      meta: { id: "flow-1", name: "フロー", flowType: "screen", maturity: "draft" }, // #1263 Phase X1
       actions: [],
       authoring: { markers: [] },
     };

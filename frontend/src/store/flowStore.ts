@@ -238,7 +238,7 @@ export function composeFlowProject(
     tables: entities.tables,
     processFlows: entities.processFlows?.map((f) => ({
       ...f,
-      type: (f.kind ?? "other"),
+      type: (f.flowType ?? "other"),
     })),
     sequences: entities.sequences,
     views: entities.views,

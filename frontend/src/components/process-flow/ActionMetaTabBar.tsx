@@ -233,8 +233,8 @@ export function ActionMetaTabBar({ group, updateGroup, updateGroupSilent }: Prop
               <label className="form-label small fw-semibold">種別</label>
               <select
                 className="form-select form-select-sm"
-                value={group.meta?.kind ?? "other"}
-                onChange={(e) => handleInfoChange("kind", e.target.value)}
+                value={group.meta?.flowType ?? "other"}
+                onChange={(e) => handleInfoChange("flowType", e.target.value)}
               >
                 {(["screen", "batch", "scheduled", "system", "common", "other"] as ProcessFlowType[]).map((t) => (
                   <option key={t} value={t}>{PROCESS_FLOW_TYPE_LABELS[t]}</option>

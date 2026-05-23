@@ -4,7 +4,7 @@
     "id": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
     "name": "AIタグ提案",
     "description": "投稿のタイトル + 本文を AI モデルへ送信し、信頼度付きタグ候補を構造化出力 (responseFormat=structuredObject) で取得する処理フロー。信頼度が conventions/catalog.json の limit.tagSuggestThreshold 未満のものは除外する。UI 側でユーザー選択後、確定は投稿作成/更新フロー経由で post_tags に INSERT。",
-    "kind": "common",
+    "flowType": "common",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
     "updatedAt": "2026-05-08T00:00:00.000Z"
@@ -146,14 +146,6 @@
           "sql": "SELECT slug FROM tags",
           "outputBinding": {
             "name": "allTagSlugs"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -213,10 +205,12 @@
           "outputBinding": {
             "name": "aiResponse"
           },
-          "outcomes": {
-            "failure": {
-              "action": "abort",
-              "description": "AI モデル呼び出し失敗時は 502 を返す。"
+          "errorHandling": {
+            "outcomes": {
+              "failure": {
+                "action": "abort",
+                "description": "AI モデル呼び出し失敗時は 502 を返す。"
+              }
             }
           }
         },

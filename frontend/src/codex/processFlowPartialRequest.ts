@@ -105,7 +105,7 @@ export async function requestProcessFlowPartial({
     baseInstructions: [
       "You modify or extend a Harmony ProcessFlow JSON for a Japanese business application designer.",
       "Return only a complete JSON object. Do not include Markdown fences or commentary.",
-      "Preserve meta.id, meta.createdAt, meta.screenId, and meta.kind unless explicitly asked to change.",
+      "Preserve meta.id, meta.createdAt, meta.screenId, and meta.flowType unless explicitly asked to change.",
       "Preserve authoring.markers. Apply changes only to the portions relevant to the user request.",
       "Use draft-state semantics: incomplete details may remain draft/provisional.",
     ].join("\n"),
@@ -140,7 +140,7 @@ export async function requestProcessFlowPartial({
     createdAt: current.meta.createdAt,
     updatedAt: current.meta.updatedAt,
     screenId: current.meta.screenId ?? proposed.meta.screenId,
-    kind: proposed.meta.kind ?? current.meta.kind,
+    flowType: proposed.meta.flowType ?? current.meta.flowType,
   };
   // markers はユーザ/システム生成リソースで AI 提案では消さない (S-1 fix、独立レビュー指摘)
   proposed.authoring = {

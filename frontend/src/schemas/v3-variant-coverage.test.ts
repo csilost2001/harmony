@@ -26,8 +26,8 @@ const META_BASE = {
   name: "fixture flow",
   createdAt: "2026-04-28T00:00:00.000Z",
   updatedAt: "2026-04-28T00:00:00.000Z",
-  kind: "screen",
-  // #1221 で kind="screen" の場合 screenId 必須
+  flowType: "screen", // #1263 Phase X1: meta.kind → meta.flowType
+  // #1221 で flowType="screen" の場合 screenId 必須
   screenId: "22222222-2222-4222-8222-222222222222",
 };
 
@@ -217,7 +217,7 @@ describe("v3 variant fixture coverage — Step kinds (#531)", () => {
     expectPass(flow, "LoopContinueStep");
   });
 
-  it("kind=commonProcess with refId + argumentMapping + returnMapping", () => {
+  it("kind=commonProcess with refId + argumentMapping + outputBinding (#1264 verdict 観点 3)", () => {
     const flow = makeFlow([
       {
         id: "step-01",
@@ -225,7 +225,7 @@ describe("v3 variant fixture coverage — Step kinds (#531)", () => {
         description: "common process fixture",
         refId: "33333333-3333-4333-8333-333333333333",
         argumentMapping: { customerId: "@inputs.customerId" },
-        returnMapping: { customerProfile: "顧客プロファイル" },
+        outputBinding: { name: "customerProfile" },
       },
     ]);
     expectPass(flow, "CommonProcessStep");
@@ -379,7 +379,7 @@ describe("v3 variant fixture coverage — Saga (transactionScope + compensatesFo
         id: "step-01",
         kind: "transactionScope",
         description: "saga tx scope",
-        rollbackOn: ["STOCK_SHORTAGE"],
+        errorHandling: { rollbackOn: ["STOCK_SHORTAGE"] },
         steps: [
           {
             id: "step-01-inner-1",
@@ -642,18 +642,18 @@ describe("v3 schema fix #533 R3-2: ClosingStep.cutoffAt pattern (#533)", () => {
   });
 });
 
-describe("v3 schema fix #533 R3-3: scheduled + httpRoute 不整合 reject (#533)", () => {
-  it("kind=scheduled + Action に httpRoute なし → pass", () => {
+describe("v3 schema fix #533 R3-3: scheduled + httpRoute 不整合 reject (#533, #1263 Phase X1: meta.flowType)", () => {
+  it("flowType=scheduled + Action に httpRoute なし → pass", () => {
     const flow = makeFlow(
       [{ id: "step-01", kind: "log", description: "ok", level: "info", message: "ok" }],
-      { metaOverride: { kind: "scheduled" } },
+      { metaOverride: { flowType: "scheduled" } },
     );
     expectPass(flow, "scheduled + no httpRoute");
   });
 
-  it("kind=screen + Action に httpRoute あり → 従来通り pass", () => {
+  it("flowType=screen + Action に httpRoute あり → 従来通り pass", () => {
     const flow = {
-      meta: { ...META_BASE, kind: "screen" },
+      meta: { ...META_BASE, flowType: "screen" },
       actions: [
         {
           id: "act-001",
@@ -667,9 +667,9 @@ describe("v3 schema fix #533 R3-3: scheduled + httpRoute 不整合 reject (#533)
     expectPass(flow, "screen + httpRoute should pass");
   });
 
-  it("kind=scheduled + Action に httpRoute あり → reject (R3-3 if/then)", () => {
+  it("flowType=scheduled + Action に httpRoute あり → reject (R3-3 if/then)", () => {
     const flow = {
-      meta: { ...META_BASE, kind: "scheduled" },
+      meta: { ...META_BASE, flowType: "scheduled" },
       actions: [
         {
           id: "act-001",

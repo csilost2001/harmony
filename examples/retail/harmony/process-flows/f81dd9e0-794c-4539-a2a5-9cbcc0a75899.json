@@ -4,7 +4,7 @@
     "id": "f81dd9e0-794c-4539-a2a5-9cbcc0a75899",
     "name": "注文確定",
     "description": "カート内容を 1 TX (@conv.tx.orderConfirm) で確定する。在庫減算 (retail:DECREMENT_STOCK) → 注文番号採番 (@conv.numbering.orderNumber) → orders INSERT → order_items loop INSERT → カートクリア (retail:CLEAR_CART) の順に原子的に実行する。在庫減算は cart_items.store_id 単位で各店舗の inventory に対して実行する (multi-store inventory 整合)。TX 失敗時は 422 を返す。TX 後に persistedOrder を再取得してから注文確定イベントを発行する。支払方法 (paymentMethod) は credit_card / bank_transfer / cod の 3 択で受け付け、orders.payment_method 列に保存する。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3",
     "maturity": "committed",
     "createdAt": "2026-05-02T00:00:00.000Z",
@@ -266,8 +266,8 @@
           "argumentMapping": {
             "order": "@inputs"
           },
-          "returnMapping": {
-            "result": "validationResult"
+          "outputBinding": {
+            "name": "validationResult"
           }
         },
         {
@@ -279,26 +279,6 @@
           "sql": "SELECT c.id AS \"cartId\", ci.id AS \"itemId\", ci.product_id AS \"productId\", ci.store_id AS \"storeId\", ci.unit_price_snapshot AS \"unitPriceSnapshot\", ci.quantity, p.product_code AS \"productCode\", p.name AS \"productName\", p.unit_price AS \"unitPrice\", s.store_code AS \"storeCode\", s.name AS \"storeName\" FROM carts c JOIN cart_items ci ON ci.cart_id = c.id JOIN products p ON p.id = ci.product_id JOIN stores s ON s.id = ci.store_id WHERE c.customer_id = @sessionCustomerId AND c.status = 'active'",
           "outputBinding": {
             "name": "cartItems"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -351,14 +331,6 @@
           "sql": "SELECT 'ORD-' || EXTRACT(YEAR FROM CURRENT_DATE)::text || '-' || LPAD(nextval('seq_order_number')::text, 6, '0') AS order_number",
           "outputBinding": {
             "name": "newOrderNumberRows"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -373,16 +345,16 @@
         {
           "id": "step-06",
           "kind": "transactionScope",
-          "description": "注文確定 TX (@conv.tx.orderConfirm)。在庫減算 → orders INSERT → order_items loop INSERT → カートクリアを原子的に実行する。いずれかが失敗した場合は全体をロールバックする。TX 結果は @txResult に expose され、後続 step-07 が @txResult.error.code で分岐する (ADR-007)。",
+          "description": "注文確定 TX (@conv.tx.orderConfirm)。在庫減算 → orders INSERT → order_items loop INSERT → カートクリアを原子的に実行する。いずれかが失敗した場合は全体をロールバックする。TX 結果は @var.action.txResult に expose され、後続 step-07 が @var.action.txResult.error.code で分岐する (ADR-007)。",
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
           "timeoutMs": 10000,
-          "rollbackOn": [
-            "STOCK_SHORTAGE",
-            "ORDER_NUMBER_CONFLICT"
-          ],
           "outputBinding": {
-            "name": "txResult"
+            "name": "txResult",
+            "expose": [
+              "committed",
+              "error"
+            ]
           },
           "steps": [
             {
@@ -406,14 +378,6 @@
                     "onViolation": "throw",
                     "errorCode": "STOCK_SHORTAGE",
                     "description": "0 件更新 = 在庫不足。TX がロールバックされ STOCK_SHORTAGE エラーを返す。"
-                  },
-                  "lineage": {
-                    "writes": [
-                      {
-                        "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
-                        "purpose": "decrement"
-                      }
-                    ]
                   }
                 }
               ]
@@ -434,14 +398,6 @@
                 "onViolation": "throw",
                 "errorCode": "ORDER_NUMBER_CONFLICT",
                 "description": "INSERT が 0 件 = order_number UNIQUE 制約違反またはその他の制約エラー。TX はロールバックされる。"
-              },
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                    "purpose": "insert"
-                  }
-                ]
               }
             },
             {
@@ -458,15 +414,7 @@
                   "description": "order_items に 1 行 INSERT する。order_id は step-06-02 で取得した insertedOrder.id を使用する。商品コード/商品名/店舗コードは cart_items から取得した値を snapshot として保存し、後の配送指示 (S-4) や履歴照会で参照する。",
                   "tableId": "dddfb0c1-0fde-40ac-bcf0-5ed75a7f1edc",
                   "operation": "INSERT",
-                  "sql": "INSERT INTO order_items (order_id, product_id, store_code_snapshot, product_code_snapshot, product_name_snapshot, unit_price_snapshot, quantity, line_amount) VALUES (@insertedOrder.id, @cartItem.productId, @cartItem.storeCode, @cartItem.productCode, @cartItem.productName, @cartItem.unitPriceSnapshot, @cartItem.quantity, @cartItem.unitPriceSnapshot * @cartItem.quantity)",
-                  "lineage": {
-                    "writes": [
-                      {
-                        "tableId": "dddfb0c1-0fde-40ac-bcf0-5ed75a7f1edc",
-                        "purpose": "insert"
-                      }
-                    ]
-                  }
+                  "sql": "INSERT INTO order_items (order_id, product_id, store_code_snapshot, product_code_snapshot, product_name_snapshot, unit_price_snapshot, quantity, line_amount) VALUES (@insertedOrder.id, @cartItem.productId, @cartItem.storeCode, @cartItem.productCode, @cartItem.productName, @cartItem.unitPriceSnapshot, @cartItem.quantity, @cartItem.unitPriceSnapshot * @cartItem.quantity)"
                 }
               ]
             },
@@ -476,15 +424,7 @@
               "description": "cart_items を全削除する (CLEAR_CART step 1/2)。顧客のアクティブカートに紐づく全明細を削除する。",
               "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
               "operation": "DELETE",
-              "sql": "DELETE FROM cart_items WHERE cart_id = (SELECT id FROM carts WHERE customer_id = @sessionCustomerId AND status = 'active')",
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
-                    "purpose": "delete"
-                  }
-                ]
-              }
+              "sql": "DELETE FROM cart_items WHERE cart_id = (SELECT id FROM carts WHERE customer_id = @sessionCustomerId AND status = 'active')"
             },
             {
               "id": "step-06-04-b",
@@ -492,15 +432,7 @@
               "description": "carts.status を 'ordered' に更新する (CLEAR_CART step 2/2)。",
               "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
               "operation": "UPDATE",
-              "sql": "UPDATE carts SET status = 'ordered', updated_at = CURRENT_TIMESTAMP WHERE customer_id = @sessionCustomerId AND status = 'active'",
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-                    "purpose": "update"
-                  }
-                ]
-              }
+              "sql": "UPDATE carts SET status = 'ordered', updated_at = CURRENT_TIMESTAMP WHERE customer_id = @sessionCustomerId AND status = 'active'"
             }
           ],
           "onRollback": [
@@ -516,13 +448,19 @@
                 "orderNumber": "@newOrderNumber"
               }
             }
-          ]
+          ],
+          "errorHandling": {
+            "rollbackOn": [
+              "STOCK_SHORTAGE",
+              "ORDER_NUMBER_CONFLICT"
+            ]
+          }
         },
         {
           "id": "step-07",
           "kind": "branch",
-          "runIf": "@txResult.committed == false",
-          "description": "TX 失敗時にエラーコード別レスポンスを返す (runIf ガード済: TX 失敗時のみ評価)。@txResult.error.code で STOCK_SHORTAGE / ORDER_NUMBER_CONFLICT を識別し、それ以外 (UNHANDLED) は 422-order-confirm-failed に集約する。TX 成功時は runIf ガードにより skip される (ADR-007、spec §8.3 準拠)。",
+          "runIf": "@var.action.txResult.committed == false",
+          "description": "TX 失敗時にエラーコード別レスポンスを返す (runIf ガード済: TX 失敗時のみ評価)。@var.action.txResult.error.code で STOCK_SHORTAGE / ORDER_NUMBER_CONFLICT を識別し、それ以外 (UNHANDLED) は 422-order-confirm-failed に集約する。TX 成功時は runIf ガードにより skip される (ADR-007、spec §8.3 準拠)。",
           "branches": [
             {
               "id": "br-07-stock",
@@ -530,7 +468,7 @@
               "label": "在庫不足エラー",
               "condition": {
                 "kind": "expression",
-                "expression": "@txResult.error.code === 'STOCK_SHORTAGE'"
+                "expression": "@var.action.txResult.error.code === 'STOCK_SHORTAGE'"
               },
               "steps": [
                 {
@@ -548,7 +486,7 @@
               "label": "注文番号競合エラー",
               "condition": {
                 "kind": "expression",
-                "expression": "@txResult.error.code === 'ORDER_NUMBER_CONFLICT'"
+                "expression": "@var.action.txResult.error.code === 'ORDER_NUMBER_CONFLICT'"
               },
               "steps": [
                 {
@@ -566,7 +504,7 @@
               "label": "予期しない TX エラー (catch-all)",
               "condition": {
                 "kind": "expression",
-                "expression": "@txResult.error.code === 'UNHANDLED'"
+                "expression": "@var.action.txResult.error.code === 'UNHANDLED'"
               },
               "steps": [
                 {
@@ -590,27 +528,19 @@
         {
           "id": "step-08",
           "kind": "dbAccess",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "TX コミット後に orders を再取得する (runIf ガード済: TX commit 後にのみ実行)。TX 内の insertedOrder の変数をそのまま参照するとネスト変数問題が起きるため、TX 後に SELECT で再取得する (spec §8.3 準拠)。",
           "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
           "operation": "SELECT",
           "sql": "SELECT id, order_number AS \"orderNumber\", customer_id AS \"customerId\", status, total_amount AS \"totalAmount\", ordered_at AS \"orderedAt\" FROM orders WHERE order_number = @newOrderNumber",
           "outputBinding": {
             "name": "persistedOrder"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
           "id": "step-08b",
           "kind": "branch",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "TX コミット後の orders 再取得で null の場合は内部エラーとして 422 を返す (runIf ガード済: TX commit 後にのみ評価。TX コミット直後なので理論上は発生しないが安全ガード、spec §8.3 準拠)。",
           "branches": [
             {
@@ -643,7 +573,7 @@
         {
           "id": "step-09",
           "kind": "eventPublish",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "retail.order.confirmed イベントを発行する (runIf ガード済: TX commit 後にのみ実行)。TX コミット後 + persistedOrder 再取得後に発行するため、イベントペイロードは確定済み値のみ参照する (spec §8.3 準拠)。",
           "topic": "retail.order.confirmed",
           "payload": "{ orderId: @persistedOrder.id, orderNumber: @persistedOrder.orderNumber, customerId: @persistedOrder.customerId, totalAmount: @persistedOrder.totalAmount }"
@@ -651,7 +581,7 @@
         {
           "id": "step-10",
           "kind": "return",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "200 OK — 注文確定完了を返す (runIf ガード済: TX commit 後にのみ実行、spec §8.3 準拠)。",
           "responseId": "200-ok",
           "bodyExpression": "{ orderId: @persistedOrder.id, orderNumber: @persistedOrder.orderNumber, totalAmount: @persistedOrder.totalAmount, orderedAt: @persistedOrder.orderedAt, message: '注文が確定しました。注文番号: ' + @persistedOrder.orderNumber }"
@@ -711,7 +641,7 @@
         "title": "step-07 の TX 失敗捕捉を tryCatch から outputBinding + expression パターンに migration (#782)",
         "status": "accepted",
         "context": "旧版 step-07 は condition.kind: 'tryCatch' で STOCK_SHORTAGE / ORDER_NUMBER_CONFLICT を個別 catch していた。この方式はフレームワーク contract が暗黙的で AI 実装ごとに独自パターンが発生する問題が ISSUE #782 で指摘された。",
-        "decision": "step-06 (transactionScope) に outputBinding: { name: 'txResult' } を追加し、TX 失敗後は @txResult.error.code で標準的に識別できるようにした。step-07 の各 branch を condition.kind: 'expression', expression: \"@txResult.error.code === 'STOCK_SHORTAGE'\" 形式に書き換えた。rollbackOn に列挙されていない予期しないエラーは @txResult.error.code === 'UNHANDLED' で catch-all する (br-07-unhandled 追加)。",
+        "decision": "step-06 (transactionScope) に outputBinding: { name: 'txResult' } を追加し、TX 失敗後は @var.action.txResult.error.code で標準的に識別できるようにした。step-07 の各 branch を condition.kind: 'expression', expression: \"@var.action.txResult.error.code === 'STOCK_SHORTAGE'\" 形式に書き換えた。rollbackOn に列挙されていない予期しないエラーは @var.action.txResult.error.code === 'UNHANDLED' で catch-all する (br-07-unhandled 追加)。",
         "consequences": "ADR-005 で定義した catch-all の役割が step-08b の persistedOrder == null ガード (TX 成功後の SELECT 失敗) と step-07.br-07-unhandled (TX 失敗の汎用 catch-all) に役割分離された。step-08b はそのまま存在し、TX 成功後の SELECT 失敗ガードとして機能する。txResult.error.code === 'UNHANDLED' はフレームワーク (runtime) が rollbackOn 外エラー発生時に自動付与するコードである。",
         "date": "2026-05-04"
       },

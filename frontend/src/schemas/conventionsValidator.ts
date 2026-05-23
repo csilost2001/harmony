@@ -330,7 +330,7 @@ function walkSteps(
       if (step.onRollback) walkSteps(step.onRollback, `${path}.onRollback`, catalog, issues);
     }
     if (step.kind === "externalSystem") {
-      Object.entries(step.outcomes ?? {}).forEach(([k, spec]) => {
+      Object.entries(step.errorHandling?.outcomes ?? {}).forEach(([k, spec]) => {
         if (spec?.sideEffects) walkSteps(spec.sideEffects, `${path}.outcomes.${k}.sideEffects`, catalog, issues);
       });
     }

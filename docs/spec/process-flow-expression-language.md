@@ -1,14 +1,25 @@
 # 処理フロー式言語 (runIf / expression / bodyExpression / condition)
 
-Issue: #253 (初版) / #533 R3 fix で IdentifierPath 規範化 / **#539 R5-3 で datetime 算術明文化**
-策定日: 2026-04-20 / **改訂日: 2026-04-28 (v3 反映)**
+Issue: #253 (初版) / #533 R3 fix で IdentifierPath 規範化 / **#539 R5-3 で datetime 算術明文化** / **#1263 Phase X2 (RFC #1254 件 3) で TemplateString rename + 副作用 inline 禁止 enforce**
+策定日: 2026-04-20 / **改訂日: 2026-05-23 (#1263 Phase X2: ExpressionString → TemplateString rename)**
 ステータス: **v3 確定** (schema は v3.0.2 で確定、本仕様は v3 schema 整合性を保つ)
 
 ## 1. 目的
 
-処理フロー内の式 (`expression` / `runIf` / `bodyExpression` / `condition` / `countExpression` / `conditionExpression` / `collectionSource` / `ValidationRule.condition` / `idempotencyKey` 等) は schema 上 `ExpressionString` (= `string`) で表現される。`Math.floor(@subtotal * 0.10)` のような JS 風の式や `@flag == true` のような真偽式が混在するが、**どの構文が許容されるか** をスキーマから読み取れない (#253 ドッグフード評価 4/5 の主因の一つ)。
+処理フロー内の式 (`expression` / `runIf` / `bodyExpression` / `condition` / `countExpression` / `conditionExpression` / `collectionSource` / `ValidationRule.condition` / `idempotencyKey` 等) は schema 上 **`TemplateString`** (= `string`、旧 `ExpressionString` は deprecated alias、#1263 Phase X2) で表現される。`Math.floor(@subtotal * 0.10)` のような JS 風の式や `@flag == true` のような真偽式が混在するが、**どの構文が許容されるか** をスキーマから読み取れない (#253 ドッグフード評価 4/5 の主因の一つ)。
 
 本ドキュメントで処理フロー式言語の **仕様 (BNF) と既定規約** を定義し、スキーマ上は従来通り `string` のままとする。
+
+**TemplateString と SelectorString の区分** (#1263 Phase X2):
+
+- **TemplateString**: 本ドキュメントで定義する式言語。リテラル + `${...}` 補間 + `@<prefix>.<key>` 参照を許容。JSONPath 不可。
+- **SelectorString**: JSONPath sublanguage (`$.path.to.value`)。`Marker.anchor.fieldPath` / `TestAssertion.output.path` 等で使用。本ドキュメント対象外、独立 syntax。
+
+**副作用 inline 禁止** (#1263 Phase X2 / RFC #1254 件 3.7、validator dispatch rule で enforce):
+
+- ❌ `${...}` 内で `@flow.<id>(...)` / `@action.<id>(...)` / `@step.<id>(...)` / `@component.<name>.<op>(...)` を呼び出すのは禁止
+- ✅ `@validation.<name>(args)` (boolean return) / `@conv.*` / `@const.*` / `@msg.*` / `@var.*` 等の pure 参照は inline 可
+- 詳細: [process-flow-prefix-system.md](process-flow-prefix-system.md) §2
 
 ## 2. 設計判断: convention over configuration
 
@@ -192,7 +203,7 @@ dogfood サンプル (#523〜#537) では shorthand (`+ 14 days` / `- 24h`) を�
 
 ## 6. 式が現れるフィールド一覧 (v3)
 
-スキーマ (`schemas/v3/process-flow.v3.schema.json`) 上では `ExpressionString` (= `string`) だが、評価時は本 §3〜§5 のルールに従う。
+スキーマ (`schemas/v3/process-flow.v3.schema.json`) 上では `TemplateString` (= `string`、旧 `ExpressionString` は deprecated alias) だが、評価時は本 §3〜§5 のルールに従う。
 
 | フィールド | 型 | 例 |
 |------|------|-----|
@@ -324,7 +335,7 @@ effective = branch.condition.evaluate() && step.runIf
 
 ## 関連
 
-- スキーマ: [`schemas/v3/process-flow.v3.schema.json`](../../schemas/v3/process-flow.v3.schema.json) (`ExpressionString` ($defs) は `common.v3.schema.json#/$defs/ExpressionString`)
+- スキーマ: [`schemas/v3/process-flow.v3.schema.json`](../../schemas/v3/process-flow.v3.schema.json) (`TemplateString` ($defs) は `common.v3.schema.json#/$defs/TemplateString`、旧 `ExpressionString` は deprecated alias として retain)
 - ambient 変数: [`process-flow-variables.md`](process-flow-variables.md)
 - catalog: [`process-flow-runtime-conventions.md`](process-flow-runtime-conventions.md)
 - workflow deadline: [`process-flow-workflow.md`](process-flow-workflow.md)

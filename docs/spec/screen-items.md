@@ -86,8 +86,8 @@ interface ScreenItem {
    *  キー: required / minLength / maxLength / invalidFormat / outOfRange / 任意のカスタムコード。 */
   errorMessages?: Record<string, string>;
   /** 表示制御 (式言語、`docs/spec/process-flow-expression-language.md` と共有)。 */
-  visibleWhen?: ExpressionString;
-  enabledWhen?: ExpressionString;
+  visibleWhen?: TemplateString;
+  enabledWhen?: TemplateString;
   /** 画面上での役割 (デフォルト: "input")。
    *  - "input"  = フォーム入力項目
    *  - "output" = 表示専用項目 (スカラー)
@@ -105,7 +105,7 @@ interface ScreenItem {
   /** バインド元 (direction="output" 専用) — #377、ValueSource は v3 で Pattern B 複合参照に変更。 */
   valueFrom?: ValueSource;
   /** 派生計算式 (= で始まる)。output 項目用。 */
-  formula?: ExpressionString;
+  formula?: TemplateString;
   /** 備考。 */
   description?: Description;
 }
@@ -139,7 +139,7 @@ type ValueSource =
     }
   | { kind: "tableColumn"; ref: TableColumnRef }   // { tableId: Uuid, columnId: LocalId }
   | { kind: "viewColumn"; ref: ViewColumnRef }     // { viewId: Uuid, columnPhysicalName: PhysicalName }
-  | { kind: "expression"; expression: ExpressionString }
+  | { kind: "expression"; expression: TemplateString }
   | {
       // 拡張 ValueSource (extensions.v3.valueSourceKinds で定義)
       kind: string;                    // namespace:identifier 形式 (例: 'retail:cartCalculation')

@@ -47,7 +47,7 @@
 <span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  format</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                 </span><span style="color:#6A737D;--shiki-dark:#768390">// 採番形式 / @conv.numbering.* 参照</span></span>
 <span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  defaultValue</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;           </span><span style="color:#6A737D;--shiki-dark:#768390">// 既定値 (式可)</span></span>
 <span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  screenItemRef</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ScreenItemRef</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;   </span><span style="color:#6A737D;--shiki-dark:#768390">// Pattern B 参照 (画面項目)</span></span>
-<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  formula</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> ExpressionString</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;      </span><span style="color:#6A737D;--shiki-dark:#768390">// 派生属性の計算式</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  formula</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> TemplateString</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;      </span><span style="color:#6A737D;--shiki-dark:#768390">// 派生属性の計算式</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// FieldType (common.v3.schema.json#/$defs/FieldType) — v3 の確定形</span></span>
@@ -237,7 +237,7 @@
 <table><thead><tr><th>Step kind</th><th>出力変数</th><th>例</th></tr></thead><tbody><tr><td><code>dbAccess</code> (SELECT/INSERT)</td><td>✓ (既定候補: テーブル名)</td><td><code>{ name: "rows" }</code> / <code>{ name: "createdOrder" }</code> (RETURNING)</td></tr><tr><td><code>commonProcess</code></td><td>✓</td><td><code>{ name: "authResult" }</code></td></tr><tr><td><code>externalSystem</code></td><td>✓</td><td><code>{ name: "paymentResponse" }</code></td></tr><tr><td><code>compute</code></td><td>✓</td><td><code>{ name: "totalValuation" }</code></td></tr><tr><td><code>loop</code> (collection mode)</td><td>✓ (operation=push 推奨)</td><td><code>{ name: "bomComponents", operation: "push", initialValue: "[]" }</code></td></tr><tr><td><code>validation</code></td><td>✕ (<code>fieldErrorsVar</code> で出力先)</td><td>—</td></tr><tr><td><code>branch</code> / <code>loopBreak</code> / <code>loopContinue</code> / <code>jump</code></td><td>✕ (制御構造)</td><td>—</td></tr><tr><td><code>screenTransition</code> / <code>displayUpdate</code></td><td>✕ (副作用のみ)</td><td>—</td></tr><tr><td><code>eventPublish</code> / <code>eventSubscribe</code> / <code>audit</code> / <code>log</code></td><td>✕ (副作用のみ)</td><td>—</td></tr><tr><td><code>transactionScope</code> / <code>closing</code> / <code>cdc</code> / <code>workflow</code></td><td>✕ (制御構造、内部 step が outputBinding 持つ)</td><td>—</td></tr><tr><td><code>extension</code> (拡張 step)</td><td>✓</td><td><code>{ name: "creditCheckResult" }</code></td></tr></tbody></table>
 <p>空欄なら「この名前では参照できない」でよい。強制しない。</p>
 <h3 id="33-参照補完--記法">3.3 参照補完 (<code>@</code> 記法)</h3>
-<p>ExpressionString 内で <strong><code>@</code> プレフィックス</strong>を使った補完可能参照を使用:</p>
+<p>TemplateString 内で <strong><code>@</code> プレフィックス</strong>を使った補完可能参照を使用:</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>@users[0].role          # users 配列の先頭要素の role</span></span>
 <span class="line"><span>@authResult.userId      # authResult オブジェクトの userId</span></span>
 <span class="line"><span>@userId                 # そのアクションの入力値</span></span>
@@ -265,19 +265,21 @@
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="ts"><code><span class="line"><span style="color:#D73A49;--shiki-dark:#F47067">interface</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> CommonProcessStep</span><span style="color:#D73A49;--shiki-dark:#F47067"> extends</span><span style="color:#6F42C1;--shiki-dark:#6CB6FF"> StepBaseProps</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> {</span></span>
 <span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  kind</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#032F62;--shiki-dark:#96D0FF"> "commonProcess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
 <span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  description</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;</span></span>
-<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  refId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Uuid</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                                   </span><span style="color:#6A737D;--shiki-dark:#768390">// 呼び出し先 ProcessFlow の Uuid (kind="common")</span></span>
-<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  argumentMapping</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Record</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#6F42C1;--shiki-dark:#F69D50">ExpressionString</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  refId</span><span style="color:#D73A49;--shiki-dark:#F47067">:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Uuid</span><span style="color:#24292E;--shiki-dark:#ADBAC7">;                                   </span><span style="color:#6A737D;--shiki-dark:#768390">// 呼び出し先 ProcessFlow の Uuid (flowType="common", #1263 Phase X1: kind → flowType)</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  argumentMapping</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Record</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#6F42C1;--shiki-dark:#F69D50">TemplateString</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
 <span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // キー: 呼び先 inputs.name (Identifier)</span></span>
-<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // 値: 値表現 (式)</span></span>
-<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">  returnMapping</span><span style="color:#D73A49;--shiki-dark:#F47067">?:</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> Record</span><span style="color:#24292E;--shiki-dark:#ADBAC7">&#x3C;</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">string</span><span style="color:#24292E;--shiki-dark:#ADBAC7">>;</span></span>
-<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // キー: 呼び先 outputs.name</span></span>
-<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // 値: 説明 / バインド先</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // 値: 値表現 (TemplateString)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // #1263 Phase X2 (#1264 verdict 観点 3): returnMapping 廃止、</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // 呼び先 outputs 全体を StepBaseProps.outputBinding (`{ name }`) で</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">  // 1 object 変数として bind。後続で `@var.action.&#x3C;name>.&#x3C;field>` で参照。</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
 <p>UI: <code>refId</code> 選択時、呼び先フローの <code>inputs</code> を自動展開して対応表が現れる:</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>共通処理: 認証チェック</span></span>
 <span class="line"><span>  呼び先の入力:</span></span>
 <span class="line"><span>    sessionId     → [@session.id         ]</span></span>
-<span class="line"><span>    trustedLevel  → ['high'               ]</span></span></code></pre>
+<span class="line"><span>    trustedLevel  → ['high'               ]</span></span>
+<span class="line"><span>  結果変数 (outputBinding.name):</span></span>
+<span class="line"><span>    [authResult                          ]   ← 呼び先 outputs 全体を bind</span></span></code></pre>
 <h3 id="35-変数スコープ">3.5 変数スコープ</h3>
 <ul>
 <li><strong>アクション単位</strong>がスコープの単位</li>
@@ -285,6 +287,173 @@
 <li>分岐・ループ内で定義した変数は、その分岐・ループを抜けると参照不可 (v1 では警告のみ、禁止にはしない)</li>
 <li>アクションの <code>inputs</code> はアクションの先頭から参照可能</li>
 </ul>
+<h3 id="36-スコープ-enum-6-値と-varscopename-1264-verdict--1263-phase-x2">3.6 スコープ enum 6 値と <code>@var.&#x3C;scope>.&#x3C;name></code> (#1264 verdict / #1263 Phase X2)</h3>
+<p>RFC #1264 で確定した hybrid scope chain (case C) の具体仕様。<strong>暗黙参照 <code>@var.&#x3C;name></code> で auto-infer</strong>、衝突時は <strong>nearest scope を採用 + warning</strong>、明示が必要なら <strong><code>@var.&#x3C;scope>.&#x3C;name></code> で曖昧性解消</strong>。</p>
+<h4 id="scope-enum-6-値">scope enum 6 値</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>scope</th><th>説明</th><th>lifetime</th><th>例</th></tr></thead><tbody><tr><td><code>flowParameter</code></td><td>action 入力 (<code>ActionDefinition.inputs[]</code>)</td><td>action 全体</td><td><code>@var.flowParameter.customerId</code></td></tr><tr><td><code>action</code></td><td>action body 全体で生きる</td><td>action 全体</td><td><code>@var.action.totalAmount</code></td></tr><tr><td><code>step.&#x3C;step-id></code></td><td>step 出力 binding (<code>outputBinding.name</code>)</td><td>scope enter で生成 / exit で破棄</td><td><code>@var.step.step-05.newOrderNumber</code></td></tr><tr><td><code>tx.&#x3C;tx-id></code></td><td>TransactionScopeStep 内 binding</td><td>TX commit でマージ / rollback で破棄</td><td><code>@var.tx.step-06.txResult</code></td></tr><tr><td><code>loop</code></td><td>loop iteration 内 (<code>collectionItemName</code> / <code>collectionIndexName</code>)</td><td>iteration ごとに fresh</td><td><code>@var.loop.cartItem</code>、<code>@var.loop.idx</code></td></tr><tr><td><code>global</code></td><td>workspace / project 横断 (mutable、<code>@const</code> と区別)</td><td>session 全体</td><td><code>@var.global.tenantId</code></td></tr></tbody></table>
+<p><code>step.</code> / <code>tx.</code> 接頭辞は具体的な step-id / tx-id を後続する (LocalId pattern)。</p>
+<h4 id="暗黙参照の解決順序-lexical-chain-auto-infer">暗黙参照の解決順序 (lexical chain auto-infer)</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>current step → enclosing loop/tryCatch → enclosing tx → action → flowParameter → global</span></span></code></pre>
+<ul>
+<li>nearest match を採用、複数 scope に同名変数がある場合は nearest wins + warning</li>
+<li>未定義変数: <code>maturity: "draft"</code> で warning、<code>maturity: "committed"</code> で error</li>
+<li>shadowing (外側 scope の変数を内側 scope で再定義): <strong><code>maturity: "committed"</code> で error 一律</strong> (R3 多数派採用、user 裁定 2)</li>
+</ul>
+<h4 id="catch-block-内の-error-参照-branchconditionvarianterrorvar">catch block 内の error 参照 (<code>BranchConditionVariant.errorVar</code>)</h4>
+<p><code>BranchCondition.kind = "tryCatch"</code> の <code>errorVar</code> field で error 全体を bind:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"branch"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "branches"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"br-01-a"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "code"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"A"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "condition"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tryCatch"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "errorCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"STOCK_SHORTAGE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">        "errorVar"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"caughtError"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"log"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"message"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"${@var.caughtError.message}"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>専用 scope を持たず、enclosing scope (action / loop / tx) に named binding として導入される。</p>
+<h4 id="loop-iteration-の明示-index-loopstepcollectionindexname">loop iteration の明示 index (<code>LoopStep.collectionIndexName</code>)</h4>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"loop"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "loopKind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"collection"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "collectionSource"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@var.action.cartItems"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "collectionItemName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"cartItem"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "collectionIndexName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"cartItemIdx"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"log"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"message"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"${@var.cartItemIdx}: ${@var.cartItem.productId}"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>省略時は明示 index 参照不可 (item のみ)、<code>collectionIndexName</code> を指定すると 0-based integer として参照可能。loop iteration ごとに fresh、外側 scope に持ち越されない。</p>
+<h3 id="37-tx-transactionscope-境界での変数挙動-1264-verdict-観点-4--1267-round-7-option-c">3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)</h3>
+<p>R3 で 3 AI 完全合流した折衷案を、Round 7 で <strong>option C (expose を任意 inner var 名まで拡張)</strong> として最終化:</p>
+<ul>
+<li><strong>TX commit 成功時</strong>: TX 内 binding は <strong>ランタイムが破棄せず親 scope に残す (lifecycle semantics)</strong>。ただし TX 外の後続 step からアクセスできる API は <code>outputBinding.expose</code> で宣言した key のみ。詳細: <a href="../../spec/process-flow-transaction/">process-flow-transaction.md §8.1</a></li>
+<li><strong>TX rollback 時</strong>: TX 内で新たに bind された変数は <strong>完全破棄</strong> (Gemini 案採用、メモリ汚染防止)</li>
+<li><strong>TX 外参照可な値</strong>: <code>transactionScope.outputBinding.expose</code> で明示宣言した key のみ。各 key は以下のいずれか:
+<ul>
+<li><strong>3 予約値</strong> (常に利用可能、expose に明示不要): <code>committed</code> / <code>error</code> / <code>diagnostics</code></li>
+</ul>
+</li>
+<li><strong>TX 内 → TX 外 mutation</strong>: <strong>static 禁止</strong> (Gemini 主張採用、ランタイム undo log 不要)</li>
+</ul>
+<h4 id="canonical-access-form-round-7-option-c">canonical access form (Round 7 option C)</h4>
+<p>TX 外参照は必ず <code>@var.action.&#x3C;txName>.&#x3C;key></code> または shorthand <code>@&#x3C;txName>.&#x3C;key></code> 経由。TX 内 inner var を shorthand <code>@&#x3C;innerVar></code> で TX 外から直接参照することは禁止 (validator Check 32 が静的検出)。</p>
+<p>例 (expose に inner var 名を列挙する場合):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"transactionScope"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-tx"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "isolationLevel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"READ_COMMITTED"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "rollbackOn"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"STOCK_SHORTAGE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"txResult"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "expose"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"committed"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"error"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"newOrder"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dbAccess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"newOrder"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>後続 step (TX 外):</p>
+<ul>
+<li>✅ <code>@var.action.txResult.committed</code> (予約値、常時参照可)</li>
+<li>✅ <code>@var.action.txResult.error.code</code> (rollback 時のみ意味あり)</li>
+<li>✅ <code>@var.action.txResult.newOrder.id</code> (expose 列挙済)</li>
+<li>✅ <code>@txResult.newOrder.id</code> (shorthand、上と等価)</li>
+<li>✅ <code>@var.tx.step-tx.newOrder.id</code> (<code>@var.tx.&#x3C;step-id>.&#x3C;key></code> 形式も同 expose を共有)</li>
+<li>❌ <code>@newOrder.id</code> (TX 内 inner var の shorthand 直接参照、禁止)</li>
+<li>❌ <code>@var.action.txResult.privateVar.x</code> (privateVar は expose 不在、禁止)</li>
+</ul>
+<h3 id="38-副作用と-purity-1264-verdict-観点-5">3.8 副作用と purity (#1264 verdict 観点 5)</h3>
+<p><strong>soft side effect</strong> (変数代入) と <strong>hard side effect</strong> (DB / 外部呼び出し / event publish) の二段分類:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>種別</th><th>例</th><th><code>${...}</code> 内呼び出し</th></tr></thead><tbody><tr><td>pure (副作用なし)</td><td><code>@var.*</code> / <code>@const.*</code> / <code>@msg.*</code> / <code>@conv.*</code> / <code>@validation.*</code> (boolean)</td><td>✅ 許可</td></tr><tr><td>soft side effect (変数代入のみ)</td><td><code>outputBinding.name</code> への代入</td><td>✅ step として実行 (step body)</td></tr><tr><td>hard side effect (副作用 invocation)</td><td><code>@flow.&#x3C;id>(...)</code> / <code>@action.&#x3C;id>(...)</code> / <code>@step.&#x3C;id>(...)</code></td><td>❌ inline 禁止</td></tr></tbody></table>
+<p><code>${...}</code> / <code>runIf</code> / <code>condition</code> 内は <strong>pure 必須</strong>、副作用 invocation (<code>@flow / @action / @step</code>) は専用 step (<code>commonProcess</code> / <code>componentCall</code> / <code>eventPublish</code> 等) でのみ呼び出し可能。</p>
+<h3 id="39-commonprocess--componentcall-の-1-object-bind-統一-1264-verdict-観点-3">3.9 commonProcess / componentCall の 1 object bind 統一 (#1264 verdict 観点 3)</h3>
+<p><code>commonProcess.returnMapping</code> / <code>componentCall.returnMapping</code> 廃止 (#1263 Phase X2)。呼び先 ProcessFlow / component-definition の outputs 全体を、<code>StepBaseProps.outputBinding</code> の <code>name</code> で 1 object 変数として bind する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"commonProcess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "refId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"..."</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "argumentMapping"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"customerId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@var.flowParameter.customerId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"customerProfile"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+<p>後続で <code>@var.action.customerProfile.email</code> のように object field access で参照する。</p>
 <h2 id="4-ui-要素">4. UI 要素</h2>
 <h3 id="41-入出力の表形式エディタ-phase-1">4.1 入出力の表形式エディタ (Phase 1)</h3>
 <p>現在の改行区切りテキストエリアを次の表に置換 (切替可能):</p>
@@ -378,7 +547,7 @@
 
 
 
-<table><thead><tr><th>型</th><th>フィールド</th><th>確定</th></tr></thead><tbody><tr><td><code>ActionDefinition.inputs</code></td><td>—</td><td><code>StructuredField[]</code> のみ (string 短縮形廃止)</td></tr><tr><td><code>ActionDefinition.outputs</code></td><td>—</td><td>同上</td></tr><tr><td><code>StepBaseProps</code></td><td><code>outputBinding?: OutputBinding</code></td><td>object 形式のみ (string 短縮形廃止)</td></tr><tr><td><code>StepBaseProps</code></td><td><code>lineage?: DataLineage</code></td><td><strong>#525 R3 fix で StepBaseProps に移植</strong>、全 step variant で利用可能</td></tr><tr><td><code>CommonProcessStep</code></td><td><code>argumentMapping?: Record&#x3C;string,ExpressionString></code></td><td>確定</td></tr><tr><td><code>ProcessFlow.context.ambientVariables</code></td><td><code>StructuredField[]</code></td><td><strong>#525 R3 fix で context 配下に統一</strong> (v1/v2 では root 直下)</td></tr><tr><td><code>ScreenItem.valueFrom.flowVariable.variableName</code></td><td><code>IdentifierPath</code></td><td><strong>#533 R3-1 fix で IdentifierPath (camelCase + snake_case + dot path) に変更</strong></td></tr></tbody></table>
+<table><thead><tr><th>型</th><th>フィールド</th><th>確定</th></tr></thead><tbody><tr><td><code>ActionDefinition.inputs</code></td><td>—</td><td><code>StructuredField[]</code> のみ (string 短縮形廃止)</td></tr><tr><td><code>ActionDefinition.outputs</code></td><td>—</td><td>同上</td></tr><tr><td><code>StepBaseProps</code></td><td><code>outputBinding?: OutputBinding</code></td><td>object 形式のみ (string 短縮形廃止)</td></tr><tr><td><code>StepBaseProps</code></td><td><code>lineage?: DataLineage</code></td><td><strong>#525 R3 fix で StepBaseProps に移植</strong>、全 step variant で利用可能</td></tr><tr><td><code>CommonProcessStep</code></td><td><code>argumentMapping?: Record&#x3C;string,TemplateString></code></td><td>確定</td></tr><tr><td><code>ProcessFlow.context.ambientVariables</code></td><td><code>StructuredField[]</code></td><td><strong>#525 R3 fix で context 配下に統一</strong> (v1/v2 では root 直下)</td></tr><tr><td><code>ScreenItem.valueFrom.flowVariable.variableName</code></td><td><code>IdentifierPath</code></td><td><strong>#533 R3-1 fix で IdentifierPath (camelCase + snake_case + dot path) に変更</strong></td></tr></tbody></table>
 <h3 id="52-v1v2--v3-マッピング-機械変換不能人手必須">5.2 v1/v2 → v3 マッピング (機械変換不能、人手必須)</h3>
 <p>詳細は <code>schemas/v3/README.md</code> の v1→v3 マッピング表参照。主な変更:</p>
 <ul>

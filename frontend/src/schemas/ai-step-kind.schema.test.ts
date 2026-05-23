@@ -53,7 +53,7 @@ function envelope(action: object) {
       id: "00000000-0000-4000-8000-000000000001",
       name: "Test",
       description: "test fixture for AI step kind",
-      kind: "common" as const,
+      flowType: "common" as const, // #1263 Phase X1: meta.kind → meta.flowType
       maturity: "draft" as const,
       createdAt: "2026-05-08T00:00:00.000Z",
       updatedAt: "2026-05-08T00:00:00.000Z",
@@ -129,7 +129,7 @@ describe("AI step kind core schema (#935)", () => {
             },
             parameters: { temperature: 0.3, maxTokens: 512 },
             outputBinding: { name: "aiResponse" },
-            outcomes: { failure: { action: "abort" } },
+            errorHandling: { outcomes: { failure: { action: "abort" } } },
           },
         ])
       );
@@ -423,7 +423,7 @@ describe("AI step kind core schema (#935)", () => {
     });
   });
 
-  describe("#939 提案 B — AiImageSource.url ExpressionString 対応", () => {
+  describe("#939 提案 B — AiImageSource.url TemplateString 対応", () => {
     it("valid: literal http URI in url variant", () => {
       const data = envelope(
         baseAction([
@@ -452,7 +452,7 @@ describe("AI step kind core schema (#935)", () => {
       expect(ok, ok ? "" : dumpErrors()).toBe(true);
     });
 
-    it("valid: ExpressionString runtime variable in url variant", () => {
+    it("valid: TemplateString runtime variable in url variant", () => {
       const data = envelope(
         baseAction([
           {

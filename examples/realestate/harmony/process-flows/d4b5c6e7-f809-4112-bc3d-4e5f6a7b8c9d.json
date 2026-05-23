@@ -4,7 +4,7 @@
     "id": "d4b5c6e7-f809-4112-bc3d-4e5f6a7b8c9d",
     "name": "物件検索",
     "description": "物件種別・上限価格・最小面積を条件に properties テーブルを検索し、条件に合う物件一覧を返す。読取専用フロー (TX 不要)。viewer screen-item (#762) の動的 binding デモ用。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b",
     "maturity": "committed",
     "createdAt": "2026-05-03T00:00:00.000Z",
@@ -160,14 +160,6 @@
           "sql": "SELECT id, property_code AS \"propertyCode\", name, property_type AS \"propertyType\", area_sqm AS \"areaSqm\", price_10k_yen AS \"price10kYen\", listed_at AS \"listedAt\" FROM properties WHERE (@inputs.propertyType IS NULL OR property_type = @inputs.propertyType) AND (@inputs.maxPrice10kYen IS NULL OR price_10k_yen <= @inputs.maxPrice10kYen) AND (@inputs.minAreaSqm IS NULL OR area_sqm >= @inputs.minAreaSqm) ORDER BY price_10k_yen ASC",
           "outputBinding": {
             "name": "rows"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {

@@ -70,22 +70,23 @@ function newId(): string {
  * v3 ProcessFlow entity の初期構造を生成する (#1141 F-4)。
  * schemas/v3/process-flow.v3.schema.json 規範:
  *   - root: { $schema, meta, context?, actions, authoring? }
- *   - meta: { id (Uuid), name, description?, kind, maturity?, createdAt, updatedAt, screenId?, ... }
+ *   - meta: { id (Uuid), name, description?, flowType, maturity?, createdAt, updatedAt, screenId?, ... }
+ *     - #1263 Phase X1: meta.kind → meta.flowType に rename
  *   - actions: ActionDefinition[] (0 件許容)
  */
 function buildV3ProcessFlow(opts: {
   id: string;
   name: string;
-  kind: string;
+  flowType: string;
   screenId?: string;
   description?: string;
   now: string;
 }): Record<string, unknown> {
-  const { id, name, kind, screenId, description, now } = opts;
+  const { id, name, flowType, screenId, description, now } = opts;
   const meta: Record<string, unknown> = {
     id,
     name,
-    kind,
+    flowType,
     maturity: "draft",
     createdAt: now,
     updatedAt: now,
@@ -113,24 +114,25 @@ function isRecord(v: unknown): v is Record<string, unknown> {
  * harmony.json の entities.processFlows[] 一覧を upsert する (#1141 F-4)。
  * schemas/v3/harmony.v3.schema.json#ProcessFlowEntry に従う:
  *   - 必須: id (Uuid), no (1..N), name, updatedAt
- *   - 任意: kind, screenId, actionCount, notesCount, maturity
+ *   - 任意: flowType, screenId, actionCount, notesCount, maturity
+ *   - #1263 Phase X1: kind → flowType に rename
  *
  * `no` は重複しない最大値 + 1 を採番する (sample harmony.json の運用に倣う)。
  */
 function upsertProcessFlowEntry(
   project: Record<string, unknown>,
-  entry: { id: string; name: string; kind: string; screenId?: string; actionCount: number; updatedAt: string; maturity?: string },
+  entry: { id: string; name: string; flowType: string; screenId?: string; actionCount: number; updatedAt: string; maturity?: string },
 ): void {
   const entities = isRecord(project.entities) ? project.entities : {};
   const list = Array.isArray(entities.processFlows) ? entities.processFlows as Array<Record<string, unknown>> : [];
   const idx = list.findIndex((m) => isRecord(m) && m.id === entry.id);
   if (idx >= 0) {
-    // 既存 entry: name/kind/screenId/actionCount/updatedAt/maturity を更新、no は維持
+    // 既存 entry: name/flowType/screenId/actionCount/updatedAt/maturity を更新、no は維持
     const prev = list[idx];
     list[idx] = {
       ...prev,
       name: entry.name,
-      kind: entry.kind,
+      flowType: entry.flowType,
       ...(entry.screenId !== undefined ? { screenId: entry.screenId } : {}),
       actionCount: entry.actionCount,
       updatedAt: entry.updatedAt,
@@ -145,7 +147,7 @@ function upsertProcessFlowEntry(
       id: entry.id,
       no: maxNo + 1,
       name: entry.name,
-      kind: entry.kind,
+      flowType: entry.flowType,
       actionCount: entry.actionCount,
       updatedAt: entry.updatedAt,
     };
@@ -220,7 +222,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
 
   switch (name) {
     case "designer__list_process_flows": {
-      // #1141 F-4: v3 entity は meta.{name,kind} に格納される。レガシー (flat) も移行猶予で表示。
+      // #1141 F-4 / #1263 Phase X1: v3 entity は meta.{name,flowType} に格納される。レガシー (flat) も移行猶予で表示。
       const pfList = await listProcessFlowFiles(root) as Array<Record<string, unknown>>;
       if (pfList.length === 0) {
         return { content: [{ type: "text", text: "処理フロー定義はまだありません。" }] };
@@ -229,10 +231,10 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         const meta = isRecord(pf.meta) ? pf.meta : {};
         const id = (meta.id as string | undefined) ?? (pf.id as string | undefined) ?? "(no-id)";
         const name = (meta.name as string | undefined) ?? (pf.name as string | undefined) ?? "(no-name)";
-        // v3: meta.kind / legacy: type
-        const kind = (meta.kind as string | undefined) ?? (pf.type as string | undefined) ?? "(no-kind)";
+        // v3: meta.flowType (#1263 Phase X1) / legacy: type
+        const flowType = (meta.flowType as string | undefined) ?? (pf.type as string | undefined) ?? "(no-flowType)";
         const actions = Array.isArray(pf.actions) ? pf.actions : [];
-        return `- ${id}  ${name}（${kind}）アクション:${actions.length}件`;
+        return `- ${id}  ${name}（${flowType}）アクション:${actions.length}件`;
       });
       return { content: [{ type: "text", text: `処理フロー一覧 (${pfList.length}件):\n${lines.join("\n")}` }] };
     }
@@ -255,16 +257,16 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
     }
 
     case "designer__add_process_flow": {
-      // #1141 F-4: v3 構造で書き出す。kind は ProcessFlowKind (旧 type) に rename (#8 discriminator)。
-      if (typeof a.name !== "string" || typeof a.kind !== "string") {
-        throw new McpError(ErrorCode.InvalidParams, "name, kind は必須です");
+      // #1141 F-4 / #1263 Phase X1: v3 構造で書き出す。flowType は ProcessFlowKind (旧 type → kind → flowType) に rename (#8 discriminator)。
+      if (typeof a.name !== "string" || typeof a.flowType !== "string") {
+        throw new McpError(ErrorCode.InvalidParams, "name, flowType は必須です");
       }
       const pfId = newId(); // #1141 S-9: RFC 4122 v4 UUID (旧 `ag-${Date.now()}` を全廃)
       const pfNow = new Date().toISOString();
       const pfDef = buildV3ProcessFlow({
         id: pfId,
         name: a.name,
-        kind: a.kind,
+        flowType: a.flowType,
         screenId: typeof a.screenId === "string" ? a.screenId : undefined,
         description: typeof a.description === "string" ? a.description : undefined,
         now: pfNow,
@@ -276,7 +278,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       upsertProcessFlowEntry(pfProject, {
         id: pfId,
         name: a.name,
-        kind: a.kind,
+        flowType: a.flowType,
         screenId: typeof a.screenId === "string" ? a.screenId : undefined,
         actionCount: 0,
         updatedAt: pfNow,
@@ -287,7 +289,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       projMeta.updatedAt = pfNow;
       pfProject.meta = projMeta;
       await writeProject(pfProject, root);
-      return { content: [{ type: "text", text: `処理フロー「${a.name}」(${a.kind}) を追加しました（ID: ${pfId}）` }] };
+      return { content: [{ type: "text", text: `処理フロー「${a.name}」(${a.flowType}) を追加しました（ID: ${pfId}）` }] };
     }
 
     case "designer__update_process_flow": {
@@ -307,13 +309,14 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
       const actions = Array.isArray(pfDef.actions) ? pfDef.actions : [];
       const name = (pfMeta.name as string | undefined) ?? (pfDef.name as string | undefined) ?? "(no-name)";
-      const kind = (pfMeta.kind as string | undefined) ?? (pfDef.type as string | undefined) ?? "other";
+      // #1263 Phase X1: meta.flowType (旧 meta.kind) / legacy: type
+      const flowType = (pfMeta.flowType as string | undefined) ?? (pfDef.type as string | undefined) ?? "other";
       const screenId = (pfMeta.screenId as string | undefined) ?? (pfDef.screenId as string | undefined);
       const maturity = (pfMeta.maturity as string | undefined) ?? (pfDef.maturity as string | undefined);
       upsertProcessFlowEntry(pfProject, {
         id: a.processFlowId,
         name,
-        kind,
+        flowType,
         screenId,
         actionCount: actions.length,
         updatedAt: pfNow,

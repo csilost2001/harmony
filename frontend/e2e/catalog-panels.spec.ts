@@ -20,14 +20,14 @@ const groupId = "ag-catalog-all";
 const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: "all catalog UI",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [{ id: "act-1", name: "ボタン", trigger: "click", maturity: "draft", responses: [], steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
 });
 const dummyProject = buildProject({
   name: "catalog-ui",
   entities: {
-    processFlows: [{ id: groupId, no: 1, name: "all catalog UI", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: groupId, no: 1, name: "all catalog UI", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

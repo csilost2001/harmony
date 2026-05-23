@@ -11,7 +11,7 @@
 import type {
   Description,
   DisplayName,
-  ExpressionString,
+  TemplateString,
   FieldType,
   Identifier,
   IdentifierPath,
@@ -47,7 +47,7 @@ export interface ScreenItemEvent {
    * 変換するマッピング。キーは action 側 inputs[].name (Identifier 形式)、
    * 値は画面コンテキスト式 (`@screen.* / @self.* / @session.*` 等)。
    */
-  argumentMapping?: Record<Identifier, ExpressionString>;
+  argumentMapping?: Record<Identifier, TemplateString>;
 }
 
 /** ScreenItem.options 1 件。 */
@@ -73,7 +73,7 @@ export type ValueSource =
     }
   | { kind: "tableColumn"; ref: TableColumnRef }
   | { kind: "viewColumn"; ref: ViewColumnRef }
-  | { kind: "expression"; expression: ExpressionString }
+  | { kind: "expression"; expression: TemplateString }
   | {
       /** 拡張 ValueSource。kind は `namespace:identifier` 形式。例: `retail:cartCalculation` */
       kind: string;
@@ -142,14 +142,14 @@ export interface ScreenItem {
   /** バリデーション NG 時のメッセージ。`@conv.msg.<key>` 参照推奨。 */
   errorMessages?: Record<string, string>;
   /** 表示条件式。 */
-  visibleWhen?: ExpressionString;
+  visibleWhen?: TemplateString;
   /** 活性条件式。 */
-  enabledWhen?: ExpressionString;
+  enabledWhen?: TemplateString;
   /** 表示書式 (output 専用)。例: `YYYY/MM/DD`, `¥#,##0`, `0.00%` */
   displayFormat?: string;
   valueFrom?: ValueSource;
   /** 派生計算式 (= で始まる)。output 項目用。 */
-  formula?: ExpressionString;
+  formula?: TemplateString;
   /** 本画面項目で発火するイベントと処理フロー連携 (#624)。 */
   events?: ScreenItemEvent[];
   description?: Description;

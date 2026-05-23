@@ -2,8 +2,10 @@
  * Generic Definition Catalog 型定義 (v3 schema 準拠)
  *
  * schema: schemas/v3/generic-definition.v3.schema.json
- * 8 kind: data-contract / domain-type / exception-type / application-rule /
- *         ui-behavior / runtime-policy / component-definition / ui-fragment
+ * 14 kind (#1254 件 3.7 / #1263 Phase X2):
+ *   既存 8: data-contract / domain-type / exception-type / application-rule /
+ *            ui-behavior / runtime-policy / component-definition / ui-fragment
+ *   新規 6: validation-rule / constants / message / domain-event / log-event / log-config
  */
 
 export type GenericDefinitionKind =
@@ -11,10 +13,16 @@ export type GenericDefinitionKind =
   | "domain-type"
   | "exception-type"
   | "application-rule"
+  | "validation-rule"
   | "ui-behavior"
   | "runtime-policy"
   | "component-definition"
-  | "ui-fragment";
+  | "ui-fragment"
+  | "constants"
+  | "message"
+  | "domain-event"
+  | "log-event"
+  | "log-config";
 
 export type GenericDefinitionTarget = "backend" | "frontend" | "shared" | "runtime";
 
@@ -73,10 +81,16 @@ export const GENERIC_DEFINITION_KINDS: GenericDefinitionKind[] = [
   "domain-type",
   "exception-type",
   "application-rule",
+  "validation-rule",
   "ui-behavior",
   "runtime-policy",
   "component-definition",
   "ui-fragment",
+  "constants",
+  "message",
+  "domain-event",
+  "log-event",
+  "log-config",
 ];
 
 export const GENERIC_DEFINITION_KIND_LABELS: Record<GenericDefinitionKind, string> = {
@@ -84,10 +98,16 @@ export const GENERIC_DEFINITION_KIND_LABELS: Record<GenericDefinitionKind, strin
   "domain-type": "ドメイン型",
   "exception-type": "例外型",
   "application-rule": "アプリケーションルール",
+  "validation-rule": "業務検証ルール",
   "ui-behavior": "UI ビヘイビア",
   "runtime-policy": "ランタイムポリシー",
   "component-definition": "コンポーネント定義",
   "ui-fragment": "UI フラグメント",
+  constants: "定数集",
+  message: "メッセージ",
+  "domain-event": "ドメインイベント",
+  "log-event": "ログイベント",
+  "log-config": "ログ設定",
 };
 
 export const GENERIC_DEFINITION_TARGETS: GenericDefinitionTarget[] = [

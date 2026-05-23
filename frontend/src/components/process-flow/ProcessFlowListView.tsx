@@ -239,7 +239,7 @@ export function ProcessFlowListView() {
       return;
     }
     filter.applyFilter((g) => {
-      if (hasTypeFilter && g.kind !== filterType) return false;
+      if (hasTypeFilter && g.flowType !== filterType) return false;
       if (filterErrorsOnly && getErrorPriority(g.id) === 0) return false;
       if (filterMarkersOnly && (markerMap.get(g.id)?.total ?? 0) === 0) return false;
       if (hasMaturityFilter) {
@@ -254,7 +254,7 @@ export function ProcessFlowListView() {
   const sortAccessor = useCallback((g: ProcessFlowMeta, key: string): string | number => {
     switch (key) {
       case "name": return g.name;
-      case "type": return PROCESS_FLOW_TYPE_LABELS[g.kind as ProcessFlowType] ?? g.kind;
+      case "type": return PROCESS_FLOW_TYPE_LABELS[g.flowType as ProcessFlowType] ?? g.flowType ?? "";
       case "actionCount": return g.actionCount ?? 0;
       case "screenId": return g.screenId ? 1 : 0;
       case "errorPriority": return getErrorPriority(g.id);
@@ -608,11 +608,11 @@ export function ProcessFlowListView() {
       header: "種別",
       width: "130px",
       sortable: true,
-      sortAccessor: (g) => PROCESS_FLOW_TYPE_LABELS[g.kind as ProcessFlowType] ?? g.kind,
+      sortAccessor: (g) => PROCESS_FLOW_TYPE_LABELS[g.flowType as ProcessFlowType] ?? g.flowType ?? "",
       render: (g) => (
-        <span className={`process-flow-type-badge ${g.kind}`}>
-          <i className={`${PROCESS_FLOW_TYPE_ICONS[g.kind as ProcessFlowType] ?? "bi-three-dots"} me-1`} />
-          {PROCESS_FLOW_TYPE_LABELS[g.kind as ProcessFlowType] ?? g.kind}
+        <span className={`process-flow-type-badge ${g.flowType}`}>
+          <i className={`${PROCESS_FLOW_TYPE_ICONS[g.flowType as ProcessFlowType] ?? "bi-three-dots"} me-1`} />
+          {PROCESS_FLOW_TYPE_LABELS[g.flowType as ProcessFlowType] ?? g.flowType}
         </span>
       ),
     },
@@ -688,9 +688,9 @@ export function ProcessFlowListView() {
     return (
       <div className={`process-flow-card-content${hasError ? " has-error" : hasWarning ? " has-warning" : ""}`}>
         <div className="process-flow-card-head">
-          <span className={`process-flow-type-badge ${g.kind}`}>
-            <i className={`${PROCESS_FLOW_TYPE_ICONS[g.kind as ProcessFlowType] ?? "bi-three-dots"} me-1`} />
-            {PROCESS_FLOW_TYPE_LABELS[g.kind as ProcessFlowType] ?? g.kind}
+          <span className={`process-flow-type-badge ${g.flowType}`}>
+            <i className={`${PROCESS_FLOW_TYPE_ICONS[g.flowType as ProcessFlowType] ?? "bi-three-dots"} me-1`} />
+            {PROCESS_FLOW_TYPE_LABELS[g.flowType as ProcessFlowType] ?? g.flowType}
           </span>
           <MaturityBadge maturity={g.maturity} />
           <span className="process-flow-card-name">{g.name}</span>
@@ -721,7 +721,7 @@ export function ProcessFlowListView() {
 
   const typeCounts = useMemo(() => {
     const c: Record<string, number> = {};
-    for (const g of groups) if (g.kind != null) c[g.kind] = (c[g.kind] ?? 0) + 1;
+    for (const g of groups) if (g.flowType != null) c[g.flowType] = (c[g.flowType] ?? 0) + 1;
     return c;
   }, [groups]);
 

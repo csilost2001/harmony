@@ -9,15 +9,15 @@
 
 v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念から一から再設計した版。
 
-## ファイル構成 (24 ファイル)
+## ファイル構成 (31 ファイル)
 
-合計 24 ファイル: top-level **17 ファイル** + `generic-definitions/` サブディレクトリ **7 ファイル** (#1142 で再棚卸し)。
+合計 31 ファイル: top-level **17 ファイル** + `generic-definitions/` サブディレクトリ **14 ファイル** (#1263 Phase X2 で 7 → 14 kind に拡張、RFC #1254 件 3.7 verdict)。
 
 ### 共通基盤
 
 | ファイル | 役割 |
 |---|---|
-| `common.v3.schema.json` | 全 schema が `$ref` で参照する共通 `$defs`。Uuid / UuidLoose / LocalId / Identifier / PhysicalName / EnvVarKey / ErrorCode / EventTopic / Timestamp / SemVer / SemVerRange / Description / DisplayName / Maturity / Mode / ExpressionString / Namespace / EntityMeta / Authoring / Marker / MarkerShape / DecisionRecord / GlossaryEntry / Note / FieldType / StructuredField / 複合参照型 (ScreenItemRef / TableColumnRef / ViewColumnRef / ActionRef / StepRef / ResponseRef) / ExtensionApplied / ExtensionRoot / TestScenario / TestPrecondition / TestInvocation / TestAssertion を集約。Pattern A (top-level entity 単独参照) は素 Uuid を直接 `$ref` する方針のため named Ref 型 (旧 ScreenRef / TableRef 等) は設けない |
+| `common.v3.schema.json` | 全 schema が `$ref` で参照する共通 `$defs`。Uuid / UuidLoose / LocalId / Identifier / PhysicalName / EnvVarKey / ErrorCode / EventTopic / Timestamp / SemVer / SemVerRange / Description / DisplayName / Maturity / Mode / **TemplateString** (#1263 Phase X2、旧 ExpressionString は Round 7 で削除済 — pre-release policy) / **SelectorString** (JSONPath sublanguage、#1263 Phase X2) / **VariableScope** (`@var.<scope>.<name>` の 6 値 enum、#1264 verdict) / Namespace / EntityMeta / Authoring / Marker / MarkerShape / DecisionRecord / GlossaryEntry / Note / FieldType / StructuredField / 複合参照型 (ScreenItemRef / TableColumnRef / ViewColumnRef / ActionRef / StepRef / ResponseRef) / ExtensionApplied / ExtensionRoot / TestScenario / TestPrecondition / TestInvocation / TestAssertion を集約。Pattern A (top-level entity 単独参照) は素 Uuid を直接 `$ref` する方針のため named Ref 型 (旧 ScreenRef / TableRef 等) は設けない |
 
 ### Workspace marker / entity 定義 (top-level)
 
@@ -40,19 +40,26 @@ v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念か
 | `extensions.v3.schema.json` | **統合拡張定義** — 1 namespace = 1 ファイルで全種類 (fieldTypes / dataTypes / screenKinds / processFlowKinds / actionTriggers / dbOperations / stepKinds / responseTypes / valueSourceKinds / columnTemplates / constraintPatterns / conventionCategories) を集約。配置: `<dataDir>/extensions/<namespace>.v3.json` または `<dataDir>/extensions/<namespace>/*.v3.json` |
 | `generic-definition.v3.schema.json` | Generic Definition Catalog の親 schema (#1069)。catalog ファイル 1 件 = 1 GenericDefinition (kind 別)。実 catalog エントリ schema は `generic-definitions/<kind>.v3.schema.json` に分割 |
 
-### `generic-definitions/` サブディレクトリ (Generic Definition Catalog の kind 別 schema、#1063 / #1064 / #1066 / #1067)
+### `generic-definitions/` サブディレクトリ (Generic Definition Catalog の kind 別 schema、#1063 / #1064 / #1066 / #1067 / #1263 Phase X2)
 
 | ファイル | 役割 |
 |---|---|
 | `generic-definitions/application-rule.v3.schema.json` | ApplicationRule (業務ルール catalog エントリ、#1067) |
+| `generic-definitions/component-definition.v3.schema.json` | ComponentDefinition (service / mapper / validator / formatter 等、#1066 / #1263 Phase X2 で schema ファイル追加) |
+| `generic-definitions/constants.v3.schema.json` | Constants (ドメイン定数集、`@const.<key>` 参照元、#1263 Phase X2) |
 | `generic-definitions/data-contract.v3.schema.json` | DataContract (データ契約 catalog エントリ、#1064) |
+| `generic-definitions/domain-event.v3.schema.json` | DomainEvent (業務イベント定義、`@event.<topic>` 参照元、#1263 Phase X2) |
 | `generic-definitions/domain-type.v3.schema.json` | DomainType (ドメイン型 catalog エントリ、#1064) |
 | `generic-definitions/exception-type.v3.schema.json` | ExceptionType (業務例外型 catalog エントリ、#1066) |
+| `generic-definitions/log-config.v3.schema.json` | LogConfig (log level / sink / format 設定、`@logConfig.<key>` 参照元、#1263 Phase X2) |
+| `generic-definitions/log-event.v3.schema.json` | LogEvent (構造化ログイベント、`@logEvent.<key>` 参照元、#1263 Phase X2) |
+| `generic-definitions/message.v3.schema.json` | Message (メッセージカタログ / i18n source、`@msg.<key>` 参照元、#1263 Phase X2) |
 | `generic-definitions/runtime-policy.v3.schema.json` | RuntimePolicy (runtime 動作ポリシー catalog エントリ、#1067) |
 | `generic-definitions/ui-behavior.v3.schema.json` | UiBehavior (UI 振る舞い catalog エントリ、#1067) |
 | `generic-definitions/ui-fragment.v3.schema.json` | UiFragment (UI 断片 catalog エントリ、#1067) |
+| `generic-definitions/validation-rule.v3.schema.json` | ValidationRule (業務検証ルール、`@validation.<name>` 参照元、#1263 Phase X2) |
 
-注: `component-definition` は親 schema (`generic-definition.v3.schema.json`) 単独で検証する (固有 schema ファイルなし)。
+GenericDefinitionKind enum は `generic-definition.v3.schema.json` (親) に 14 値で集約定義。詳細: [docs/spec/process-flow-prefix-system.md](../../docs/spec/process-flow-prefix-system.md) (24 prefix system)。
 
 ## v3 で導入した主要設計
 
@@ -205,7 +212,7 @@ v3 EventTopic regex は `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$` (lowercase + und
 
 | v1 | v3 |
 |---|---|
-| `type: "screen"` | `meta.kind: "screen"` |
+| `type: "screen"` | `meta.flowType: "screen"` (#1263 Phase X1: meta.kind → meta.flowType) |
 | `screenId`, `apiVersion`, `mode`, `maturity`, `description`, `version`, `createdAt`, `updatedAt` | `meta.{...}` (EntityMeta + ProcessFlow 固有) |
 | `errorCatalog: { CODE: { responseRef } }` | `context.catalogs.errors: { CODE: { responseId } }` |
 | `eventsCatalog` | `context.catalogs.events` (EventTopic 規範遵守) |
@@ -226,14 +233,14 @@ v3 EventTopic regex は `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$` (lowercase + und
 | `step.type: "validation"` | `step.kind: "validation"` |
 | `outputBinding: "var"` (string 短縮形) | `outputBinding: { name: "var" }` (構造化、v3 短縮形廃止) |
 | `tableName: "products"` | `tableId: "<Uuid>"` (物理名直書き廃止) |
-| `lineage.reads: ["products"]` | `lineage.reads: [{ tableId: "<Uuid>", purpose?: "..." }]` |
+| `lineage.reads: ["products"]` | **#1263 Phase X3 で削除済** (schema 不在、`docs/spec/schema-deletions-record.md` §3 参照) |
 | `eventPublish.eventRef + topic` 二重持ち | `eventPublish.topic` のみ |
 | `validation.inlineBranch.ngEventPublish.eventRef + topic` | `topic` のみ |
 | `return.responseRef` | `return.responseId` |
 | `branch.branches[].condition: "@x == 1"` (string) | `condition: { kind: "expression", expression: "@x == 1" }` |
 | `externalSystem.systemName + systemRef` 併記 | `systemRef` のみ (catalog キー = systemId) |
 | `validation.rules[].kind: "Error"` (PascalCase) | `validation.rules[].severity: "error"` (lowerCamelCase + フィールド名 rename) |
-| `dbAccess.lineage` のみ持てた | **任意の step に `lineage` を持てる** (#525 F-2、StepBaseProps 移植) |
+| `dbAccess.lineage` のみ持てた | **#1263 Phase X3 で削除済** (任意の step への移植後 Phase X3 で全廃、`docs/spec/schema-deletions-record.md` §3 参照) |
 
 ### ValidationInlineBranch
 

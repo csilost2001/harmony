@@ -221,8 +221,8 @@
       "allOf": [{ "$ref": "#/$defs/EntryBase" }],
       "type": "object",
       "properties": {
-        "kind": { "type": "string", "description": "ProcessFlowKind (screen/batch/scheduled/system/common/other、または 'retail:posTransaction' 等の拡張参照)。" },
-        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "screen kind の場合の関連画面 ID。" },
+        "flowType": { "type": "string", "description": "ProcessFlowKind (screen/batch/scheduled/system/common/other、または 'retail:posTransaction' 等の拡張参照)。#1263 Phase X1 で kind → flowType に rename。" },
+        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "flowType='screen' の場合の関連画面 ID。" },
         "actionCount": { "type": "integer", "minimum": 0 },
         "notesCount": { "type": "integer", "minimum": 0 }
       },

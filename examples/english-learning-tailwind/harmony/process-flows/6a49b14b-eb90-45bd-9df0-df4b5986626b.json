@@ -4,7 +4,7 @@
     "id": "6a49b14b-eb90-45bd-9df0-df4b5986626b",
     "name": "発音採点",
     "description": "ユーザーが録音した音声を STT + 評価 API (english-learning:SttEvaluate) に送信し、発音スコアを算出して pronunciation_scores に INSERT する (S-3)。スコア保存後、learning_sessions のセッション平均スコア (score_avg) を更新する。TX 境界で scores INSERT + sessions UPDATE を原子的に実行する。@conv.cefr.passingThreshold を下回ったセッションは pronunciationScored トリガーを発行し、UI 側でメッセージを表示する。発音採点フィードバック UI (diff フィールドの PhoneDiff[] 音素単位色分け表示) は実装側で処理する (description 待避、3.3 節)。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7",
     "maturity": "draft",
     "createdAt": "2026-05-04T00:00:00.000Z",
@@ -253,14 +253,6 @@
           "sql": "SELECT id, story_id FROM learning_sessions WHERE id = @sessionId AND user_id = @sessionUserId AND status = 'in_progress'",
           "outputBinding": {
             "name": "sessionRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
-                "purpose": "validate"
-              }
-            ]
           }
         },
         {
@@ -304,14 +296,6 @@
           "sql": "SELECT id, text, ipa FROM dialogue_lines WHERE id = @dialogueLineId",
           "outputBinding": {
             "name": "dialogueLine"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "246a3f13-7888-4b14-ad6d-641b7437b09d",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -358,10 +342,12 @@
           "outputBinding": {
             "name": "evalResult"
           },
-          "outcomes": {
-            "failure": {
-              "action": "abort",
-              "description": "STT API 失敗時は abort。502-stt-failed カタログエントリに対応。"
+          "errorHandling": {
+            "outcomes": {
+              "failure": {
+                "action": "abort",
+                "description": "STT API 失敗時は abort。502-stt-failed カタログエントリに対応。"
+              }
             }
           }
         },
@@ -379,11 +365,13 @@
           "kind": "transactionScope",
           "description": "発音スコア INSERT + セッション平均スコア UPDATE を 1 TX で原子的に実行する。",
           "isolationLevel": "READ_COMMITTED",
-          "rollbackOn": [
-            "SCORE_INSERT_FAILED"
-          ],
           "outputBinding": {
-            "name": "txResult"
+            "name": "txResult",
+            "expose": [
+              "committed",
+              "error",
+              "newScore"
+            ]
           },
           "steps": [
             {
@@ -395,14 +383,6 @@
               "sql": "INSERT INTO pronunciation_scores (session_id, dialogue_line_id, audio_url, score, diff, created_at) VALUES (@sessionId, @dialogueLineId, @audioUrl, @pronunciationScore, @evalResult.diff, CURRENT_TIMESTAMP) RETURNING id",
               "outputBinding": {
                 "name": "newScore"
-              },
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81",
-                    "purpose": "insert"
-                  }
-                ]
               }
             },
             {
@@ -411,44 +391,35 @@
               "description": "learning_sessions の score_avg をセッション内の全 pronunciation_scores の平均で更新する。",
               "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
               "operation": "UPDATE",
-              "sql": "UPDATE learning_sessions SET score_avg = (SELECT AVG(score) FROM pronunciation_scores WHERE session_id = @sessionId), updated_at = CURRENT_TIMESTAMP WHERE id = @sessionId",
-              "lineage": {
-                "reads": [
-                  {
-                    "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81",
-                    "purpose": "lookup"
-                  }
-                ],
-                "writes": [
-                  {
-                    "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
-                    "purpose": "update"
-                  }
-                ]
-              }
+              "sql": "UPDATE learning_sessions SET score_avg = (SELECT AVG(score) FROM pronunciation_scores WHERE session_id = @sessionId), updated_at = CURRENT_TIMESTAMP WHERE id = @sessionId"
             }
-          ]
+          ],
+          "errorHandling": {
+            "rollbackOn": [
+              "SCORE_INSERT_FAILED"
+            ]
+          }
         },
         {
           "id": "step-07",
           "kind": "eventPublish",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "発音採点完了イベントを発行し、UI の採点結果表示と CEFR 昇格判定をトリガーする。TX コミット後にのみ実行する (TX rollback 時の誤発火防止)。",
           "topic": "el.pronunciation.scored",
-          "payload": "{ sessionId: @sessionId, scoreId: @newScore.id, score: @pronunciationScore }"
+          "payload": "{ sessionId: @sessionId, scoreId: @var.action.txResult.newScore.id, score: @pronunciationScore }"
         },
         {
           "id": "step-08",
           "kind": "return",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "201 Created — scoreId + score + diff を返す。TX コミット後にのみ実行する。score が合格ライン (@conv.cefr.passingThreshold 参照) を下回る場合、UI 側でメッセージを表示する。",
           "responseId": "201-created",
-          "bodyExpression": "{ scoreId: @newScore.id, score: @pronunciationScore, diff: @evalResult.diff }"
+          "bodyExpression": "{ scoreId: @var.action.txResult.newScore.id, score: @pronunciationScore, diff: @evalResult.diff }"
         },
         {
           "id": "step-09",
           "kind": "return",
-          "runIf": "@txResult.committed != true",
+          "runIf": "@var.action.txResult.committed != true",
           "description": "422 スコア保存失敗を返す。TX ロールバック時にのみ実行する (ADR-007 整合)。pronunciation_scores INSERT または learning_sessions score_avg UPDATE が失敗した場合の catch-all レスポンス。",
           "responseId": "422-score-failed",
           "bodyExpression": "{ error: 'SCORE_INSERT_FAILED', message: '発音スコアの保存に失敗しました。しばらく経ってから再試行してください。' }"

@@ -16,14 +16,14 @@ import type { ProjectEntities, Timestamp } from "../src/types/v3";
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 const dummyGroups = [
-  { id: "ag-with-markers", no: 1, name: "マーカー入り", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS },
-  { id: "ag-clean", no: 2, name: "マーカーなし", kind: "batch", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS },
+  { id: "ag-with-markers", no: 1, name: "マーカー入り", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS },
+  { id: "ag-clean", no: 2, name: "マーカーなし", flowType: "batch", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS },
 ];
 
 const baseFlowWithMarkers = buildProcessFlow({
   id: "ag-with-markers",
   name: "マーカー入り",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [{ id: "act-1", name: "", trigger: "click", maturity: "draft", responses: [{ id: "201-ok", status: 201 }], steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
 });
@@ -43,7 +43,7 @@ const fullGroupWithMarkers = {
 const fullGroupClean = buildProcessFlow({
   id: "ag-clean",
   name: "マーカーなし",
-  kind: "batch",
+  flowType: "batch",
   mode: "upstream",
   actions: [{ id: "act-2", name: "", trigger: "click", maturity: "draft", responses: [{ id: "201-ok", status: 201 }], steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
 });

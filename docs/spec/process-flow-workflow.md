@@ -16,7 +16,7 @@
 | `onApproved` | no | `Step[]` | 承認成立時に実行するサブステップ |
 | `onRejected` | no | `Step[]` | 却下、拒否、差戻し時に実行するサブステップ |
 | `onTimeout` | no | `Step[]` | 期限切れ時に実行するサブステップ |
-| `deadlineExpression` | no | `ExpressionString` | 期限式 (詳細は [process-flow-expression-language.md](process-flow-expression-language.md) §datetime 算術) |
+| `deadlineExpression` | no | `TemplateString` | 期限式 (詳細は [process-flow-expression-language.md](process-flow-expression-language.md) §datetime 算術) |
 | `escalateAfter` | conditional | string | エスカレーションまでの ISO 8601 期間。`approval-escalation` では必須 |
 | `escalateTo` | conditional | `{ role?, userExpression? }` | エスカレーション先。`approval-escalation` では必須 |
 

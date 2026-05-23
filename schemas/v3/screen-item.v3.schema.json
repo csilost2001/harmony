@@ -66,15 +66,15 @@
           "description": "バリデーション NG 時のメッセージ。@conv.msg.<key> 参照推奨。キーは required / minLength / maxLength / invalidFormat / outOfRange / 任意のカスタムコード。",
           "additionalProperties": { "type": "string" }
         },
-        "visibleWhen": { "$ref": "common.v3.schema.json#/$defs/ExpressionString", "description": "表示条件式。" },
-        "enabledWhen": { "$ref": "common.v3.schema.json#/$defs/ExpressionString", "description": "活性条件式。" },
+        "visibleWhen": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "表示条件式。" },
+        "enabledWhen": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "活性条件式。" },
         "displayFormat": {
           "type": "string",
           "description": "表示書式 (output 専用)。例: 'YYYY/MM/DD', '¥#,##0', '0.00%'"
         },
         "valueFrom": { "$ref": "#/$defs/ValueSource" },
         "formula": {
-          "$ref": "common.v3.schema.json#/$defs/ExpressionString",
+          "$ref": "common.v3.schema.json#/$defs/TemplateString",
           "description": "派生計算式 (= で始まる)。output 項目用。"
         },
         "binding": {
@@ -123,7 +123,7 @@
           "type": "object",
           "description": "画面コンテキストを処理フロー引数 (handlerActionId が指す action の inputs[]) に変換するマッピング。キーは action 側 inputs[].name (Identifier 形式: lowerCamelCase)、値は画面コンテキスト式 (@screen.* / @self.* / @session.* 等)。",
           "propertyNames": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
-          "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+          "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
         },
         "effects": {
           "type": "array",
@@ -186,7 +186,7 @@
             "value": {
               "oneOf": [
                 { "type": "boolean" },
-                { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+                { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
               ],
               "description": "boolean リテラルまたは式文字列"
             }
@@ -199,7 +199,7 @@
           "properties": {
             "kind": { "const": "setOptions" },
             "target": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
-            "value": { "type": "string", "description": "catalogRef または ExpressionString" }
+            "value": { "type": "string", "description": "catalogRef または TemplateString" }
           }
         },
         {
@@ -209,7 +209,7 @@
           "properties": {
             "kind": { "const": "showDialog" },
             "target": { "type": "string", "description": "dialogRef (extensions namespace 想定)" },
-            "value": { "type": "string", "description": "messageRef または ExpressionString" }
+            "value": { "type": "string", "description": "messageRef または TemplateString" }
           }
         },
         {
@@ -219,7 +219,7 @@
           "properties": {
             "kind": { "const": "setMessage" },
             "target": { "type": "string", "description": "messageAreaRef" },
-            "value": { "type": "string", "description": "messageRef または ExpressionString" }
+            "value": { "type": "string", "description": "messageRef または TemplateString" }
           }
         },
         {
@@ -285,7 +285,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "expression" },
-            "expression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "expression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         },
         {

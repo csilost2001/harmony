@@ -132,19 +132,21 @@ describe("checkReferentialIntegrity — ネスト走査", () => {
     expect(issues[0].path).toContain("steps[0].steps[0]");
   });
 
-  it("externalSystem.outcomes.sideEffects 内も検査", () => {
+  it("externalSystem.errorHandling.outcomes.sideEffects 内も検査 (#1263 Phase X3)", () => {
     const issues = checkReferentialIntegrity(makeGroup({
       actions: [{
         id: "a1", name: "f", trigger: "click",
         responses: [],
         steps: [{
           id: "ext", kind: "externalSystem", description: "", systemRef: "s",
-          outcomes: {
-            failure: {
-              action: "continue",
-              sideEffects: [
-                { id: "ret", kind: "return", description: "", responseId: "missing" },
-              ],
+          errorHandling: {
+            outcomes: {
+              failure: {
+                action: "continue",
+                sideEffects: [
+                  { id: "ret", kind: "return", description: "", responseId: "missing" },
+                ],
+              },
             },
           },
         }],

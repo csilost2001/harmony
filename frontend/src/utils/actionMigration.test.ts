@@ -254,9 +254,9 @@ describe("migrateProcessFlow — ProcessFlow 全体", () => {
 
     const migrated = migrateProcessFlow(sample) as ProcessFlow;
 
-    // v3: id / name / type は meta に移動 (v3 vocabulary に直接アクセス)
+    // v3: id / name / type は meta に移動 (v3 vocabulary に直接アクセス) — #1263 Phase X1: meta.kind → meta.flowType
     expect(migrated.meta.id).toBe(sample.id);
-    expect(migrated.meta.kind).toBe("common");
+    expect(migrated.meta.flowType).toBe("common");
     expect(migrated.actions).toHaveLength(1);
     const steps = migrated.actions[0].steps;
     expect(steps).toHaveLength(2);
@@ -458,7 +458,7 @@ describe("migrateProcessFlow — v3 root 4 セクション化 + maturity / mode 
     expect(migrated.meta).toMatchObject({
       id: "aaaaaaaa-0000-4000-8000-000000000001",
       name: "注文登録",
-      kind: "screen",
+      flowType: "screen", // #1263 Phase X1: meta.kind → meta.flowType
       screenId: "bbbbbbbb-0000-4000-8000-000000000001",
       mode: "downstream",
       maturity: "committed",

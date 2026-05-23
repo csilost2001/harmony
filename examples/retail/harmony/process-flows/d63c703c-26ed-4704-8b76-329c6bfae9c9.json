@@ -4,7 +4,7 @@
     "id": "d63c703c-26ed-4704-8b76-329c6bfae9c9",
     "name": "配送指示",
     "description": "バックオフィス担当者が注文一覧から対象注文を選択し、外部キャリア API (retail:DispatchShipment) に配送指示を送信する。成功時は orders.status を 'shipped' に更新し、retail.shipment.dispatched イベントを発行する。外部 API 失敗時は補償処理を実行してエラーを返す。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "c2254dd6-ab5d-4428-931f-d27c71e89951",
     "maturity": "committed",
     "createdAt": "2026-05-02T00:00:00.000Z",
@@ -240,14 +240,6 @@
           "sql": "SELECT id, order_number AS \"orderNumber\", customer_id AS \"customerId\", status, total_amount AS \"totalAmount\", shipping_address AS \"shippingAddress\" FROM orders WHERE id = @inputs.orderId AND status IN ('pending', 'confirmed')",
           "outputBinding": {
             "name": "order"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -381,14 +373,6 @@
             "onViolation": "throw",
             "errorCode": "ORDER_NOT_FOUND",
             "description": "0 件更新 = 注文が存在しないか既に shipped に変更済み。"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "statusUpdate"
-              }
-            ]
           }
         },
         {

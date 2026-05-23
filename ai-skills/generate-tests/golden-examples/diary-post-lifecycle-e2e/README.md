@@ -82,7 +82,7 @@ diary アプリ (`examples/diary/harmony.json`) を題材にした
 | 投稿削除 | `c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f` | DELETE /api/posts/:id |
 | 投稿詳細取得 | `d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a` | GET /api/posts/:id |
 
-**注意**: 上記は ProcessFlow の kind/name から推定した値。
+**注意**: 上記は ProcessFlow の flowType/name から推定した値 (#1263 Phase X1: meta.kind → meta.flowType)。
 実際の httpRoute.path は各 ProcessFlow JSON を Read して確認すること。
 
 ---

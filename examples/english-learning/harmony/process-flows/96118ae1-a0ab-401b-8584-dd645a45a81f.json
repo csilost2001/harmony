@@ -4,7 +4,7 @@
     "id": "96118ae1-a0ab-401b-8584-dd645a45a81f",
     "name": "会話ターン進行",
     "description": "ユーザーの発話 (テキストまたは音声) を受け取り、LLM に会話リクエストを送信して AI 応答を取得する (S-2)。必要に応じて TTS で応答を音声化し、turn_logs に 1 ターン分のログを INSERT する。LLM 呼び出しは core stepKind aiCall + modelEndpoints.dialogModel で表現し、TTS 呼び出しは english-learning:TtsGenerate で表現する。ターン単位 request/response 方式。実装側で SSE / WebSocket による partial response ストリーム表示を行う想定 (description 待避、3.3 節)。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7",
     "maturity": "draft",
     "createdAt": "2026-05-04T00:00:00.000Z",
@@ -90,7 +90,13 @@
         {
           "name": "turnContext",
           "label": "会話コンテキスト",
-          "type": { "kind": "array", "itemType": { "kind": "extension", "extensionRef": "english-learning:dialogTurn" } },
+          "type": {
+            "kind": "array",
+            "itemType": {
+              "kind": "extension",
+              "extensionRef": "english-learning:dialogTurn"
+            }
+          },
           "required": false,
           "description": "直近の会話履歴 (DialogTurn 配列)。aiCall step の messages 内 spread item で role 別に展開し、LLM API に構造的に渡す (#939)。"
         },
@@ -204,14 +210,6 @@
           "sql": "SELECT id, story_id, status FROM learning_sessions WHERE id = @sessionId AND user_id = @sessionUserId AND status = 'in_progress'",
           "outputBinding": {
             "name": "sessionRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
-                "purpose": "validate"
-              }
-            ]
           }
         },
         {
@@ -269,10 +267,12 @@
           "outputBinding": {
             "name": "aiResponse"
           },
-          "outcomes": {
-            "failure": {
-              "action": "abort",
-              "description": "LLM 呼び出し失敗時は 502 を返す。"
+          "errorHandling": {
+            "outcomes": {
+              "failure": {
+                "action": "abort",
+                "description": "LLM 呼び出し失敗時は 502 を返す。"
+              }
             }
           }
         },
@@ -331,14 +331,6 @@
           "sql": "SELECT COALESCE(MAX(turn_number), 0) + 1 AS \"nextTurn\" FROM turn_logs WHERE session_id = @sessionId",
           "outputBinding": {
             "name": "turnNumberRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "4e126323-4ab7-4747-961b-23cbaf651314",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -359,14 +351,6 @@
           "sql": "INSERT INTO turn_logs (session_id, turn_number, user_input, ai_response, ai_audio_url, llm_context, created_at) VALUES (@sessionId, @nextTurnNumber, @userInput, @aiResponse.text, @aiAudioUrl, @turnContext, CURRENT_TIMESTAMP) RETURNING id",
           "outputBinding": {
             "name": "newTurnLog"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "4e126323-4ab7-4747-961b-23cbaf651314",
-                "purpose": "insert"
-              }
-            ]
           }
         },
         {

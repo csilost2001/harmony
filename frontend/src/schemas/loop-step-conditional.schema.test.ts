@@ -36,8 +36,8 @@ const META_BASE = {
   name: "fixture flow",
   createdAt: "2026-05-19T00:00:00.000Z",
   updatedAt: "2026-05-19T00:00:00.000Z",
-  kind: "screen",
-  // #1221 で kind="screen" の場合 screenId 必須
+  flowType: "screen", // #1263 Phase X1: meta.kind → meta.flowType
+  // #1221 で flowType="screen" の場合 screenId 必須
   screenId: "22222222-2222-4222-8222-222222222222",
 };
 

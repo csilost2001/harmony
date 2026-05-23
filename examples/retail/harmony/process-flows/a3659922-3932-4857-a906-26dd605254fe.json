@@ -4,7 +4,7 @@
     "id": "a3659922-3932-4857-a906-26dd605254fe",
     "name": "ダッシュボード KPI 集計",
     "description": "ダッシュボード (765c3c23) の KPI カード 4 件 (todaySales / ordersToday / lowStockCount / dispatchPending) を 1 リクエストで集計する読取専用フロー。画面ロード時に GET で発火し、当日売上・本日注文件数・低在庫数・配送指示待ち件数を 3 SELECT (orders 集計 / inventory 低在庫件数 / orders 配送指示待ち件数) で取得する。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0",
     "maturity": "committed",
     "createdAt": "2026-05-02T00:00:00.000Z",
@@ -128,14 +128,6 @@
                 "type": "integer"
               }
             ]
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -153,14 +145,6 @@
                 "type": "integer"
               }
             ]
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -176,14 +160,6 @@
               {
                 "field": "dispatchPending",
                 "type": "integer"
-              }
-            ]
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "lookup"
               }
             ]
           }

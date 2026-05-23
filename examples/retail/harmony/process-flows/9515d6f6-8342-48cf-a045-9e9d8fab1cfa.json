@@ -4,7 +4,7 @@
     "id": "9515d6f6-8342-48cf-a045-9e9d8fab1cfa",
     "name": "カート追加",
     "description": "指定商品を、商品検索で在庫を確認した店舗から、ログイン顧客のカートに追加する。stores 存在確認 → products 存在確認 → carts UPSERT → cart_items UPSERT (retail:UPSERT_CART_ITEM) の順で実行し、(cart, product, store) の重複の場合は数量を加算する。multi-store inventory 整合のため storeCode 必須 (#780)。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "c73fa05c-4a71-4593-800d-b9814e97be83",
     "maturity": "committed",
     "createdAt": "2026-05-02T00:00:00.000Z",
@@ -263,14 +263,6 @@
           "sql": "SELECT id, store_code AS \"storeCode\", name FROM stores WHERE store_code = @inputs.storeCode AND is_active = TRUE",
           "outputBinding": {
             "name": "store"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -313,14 +305,6 @@
           "sql": "SELECT id, product_code AS \"productCode\", name, unit_price AS \"unitPrice\" FROM products WHERE product_code = @inputs.productCode AND is_active = TRUE",
           "outputBinding": {
             "name": "product"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -363,14 +347,6 @@
           "sql": "SELECT id, customer_id, status FROM carts WHERE customer_id = @sessionCustomerId AND status = 'active'",
           "outputBinding": {
             "name": "cart"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -396,14 +372,6 @@
                   "sql": "INSERT INTO carts (customer_id, status) VALUES (@sessionCustomerId, 'active') RETURNING id, customer_id, status, created_at, updated_at",
                   "outputBinding": {
                     "name": "cart"
-                  },
-                  "lineage": {
-                    "writes": [
-                      {
-                        "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-                        "purpose": "insert"
-                      }
-                    ]
                   }
                 }
               ]
@@ -425,14 +393,6 @@
           "sql": "SELECT id FROM cart_items WHERE cart_id = @cart.id AND product_id = @product.id AND store_id = @store.id LIMIT 1",
           "outputBinding": {
             "name": "existingItem"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -448,14 +408,6 @@
               {
                 "field": "itemCount",
                 "type": "integer"
-              }
-            ]
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
-                "purpose": "lookup"
               }
             ]
           }
@@ -507,14 +459,6 @@
             "onViolation": "throw",
             "errorCode": "CART_ADD_FAILED",
             "description": "UPSERT_CART_ITEM は必ず 1 行を返す。0 行は内部異常 (CART_ADD_FAILED として 422)。"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
-                "purpose": "upsert"
-              }
-            ]
           }
         },
         {

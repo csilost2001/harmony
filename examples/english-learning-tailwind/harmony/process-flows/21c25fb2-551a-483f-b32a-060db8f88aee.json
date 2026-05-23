@@ -4,7 +4,7 @@
     "id": "21c25fb2-551a-483f-b32a-060db8f88aee",
     "name": "単語習熟度更新",
     "description": "会話練習中にユーザーが単語を正解 / 練習したタイミングで呼び出す共通フロー (S-4)。user_word_progress に (user_id, word_id) で UPSERT し、correct_count / attempt_count / status を更新する。@conv.wordProgress.masteryThreshold 回の連続正解で status を 'mastered' に昇格させ、wordMastered トリガーを発行する。複数画面 (会話プレイ / 単語帳) から共通呼び出しされる common フロー。",
-    "kind": "common",
+    "flowType": "common",
     "maturity": "draft",
     "createdAt": "2026-05-04T00:00:00.000Z",
     "updatedAt": "2026-05-04T00:00:00.000Z"
@@ -147,14 +147,6 @@
           "sql": "SELECT id FROM words WHERE id = @wordId",
           "outputBinding": {
             "name": "wordRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "8db75844-19ca-4e7d-8293-579e7631c5cc",
-                "purpose": "validate"
-              }
-            ]
           }
         },
         {
@@ -198,14 +190,6 @@
           "sql": "SELECT id AS \"id\", status AS \"status\", correct_count AS \"correctCount\", attempt_count AS \"attemptCount\" FROM user_word_progress WHERE user_id = @sessionUserId AND word_id = @wordId",
           "outputBinding": {
             "name": "currentProgress"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "7ab2cf24-7b66-47aa-a808-7fffd8290480",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -217,14 +201,6 @@
           "sql": "INSERT INTO user_word_progress (user_id, word_id, status, correct_count, attempt_count, last_practiced_at, updated_at) VALUES (@sessionUserId, @wordId, 'new', CASE WHEN @isCorrect THEN 1 ELSE 0 END, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (user_id, word_id) DO UPDATE SET attempt_count = user_word_progress.attempt_count + 1, correct_count = CASE WHEN @isCorrect THEN user_word_progress.correct_count + 1 ELSE user_word_progress.correct_count END, status = CASE WHEN @isCorrect AND (user_word_progress.correct_count + 1) >= @conv.wordProgress.masteryThreshold THEN 'mastered' WHEN user_word_progress.status != 'mastered' THEN 'learning' ELSE user_word_progress.status END, last_practiced_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP RETURNING id AS \"id\", status AS \"status\", correct_count AS \"correctCount\", attempt_count AS \"attemptCount\"",
           "outputBinding": {
             "name": "updatedProgress"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "7ab2cf24-7b66-47aa-a808-7fffd8290480",
-                "purpose": "update"
-              }
-            ]
           }
         },
         {

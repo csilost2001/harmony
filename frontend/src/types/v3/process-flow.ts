@@ -18,7 +18,7 @@ import type {
   DisplayName,
   ErrorCode,
   EventTopic,
-  ExpressionString,
+  TemplateString,
   FieldType,
   Identifier,
   LocalId,
@@ -67,9 +67,9 @@ export interface ProcessFlowMeta {
   maturity?: Maturity;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  // ProcessFlow 固有
-  kind: ProcessFlowKind;
-  /** kind='screen' の場合に紐付く Screen の Uuid。 */
+  // ProcessFlow 固有 (#1263 Phase X1: kind → flowType に rename)
+  flowType: ProcessFlowKind;
+  /** flowType='screen' の場合に紐付く Screen の Uuid。 */
   screenId?: ScreenId;
   /** ProcessFlow が公開する API のバージョン (例: `v1`, `2026-04-25`)。 */
   apiVersion?: string;
@@ -186,7 +186,7 @@ export interface ValidationRule {
   /** `@conv.limit.<key>` 参照 (length の代替)。loader 段階で integer 値に展開される。 */
   lengthRef?: string;
   values?: string[];
-  condition?: ExpressionString;
+  condition?: TemplateString;
   /** 違反メッセージ (`@conv.msg.<key>` 推奨)。 */
   message?: string;
   /** Generic Definition Catalog の exception-type 参照 (#1066)。形式: 'generic-definitions/exception-type/<Name>'。severity='error' 時に違反を業務例外として throw する際の意味論を catalog から引く。 */
@@ -398,7 +398,11 @@ export interface OutputBindingTransformation {
   type: "integer" | "float" | "boolean" | "date" | "json";
 }
 
-/** Step 結果の outputBinding (構造化のみ、v3 で string 短縮形廃止)。 */
+/**
+ * Step 結果の outputBinding (構造化のみ、v3 で string 短縮形廃止)。
+ * #1263 Phase X2 (#1264 verdict 観点 4): TransactionScopeStep で使用する場合は `expose` field で
+ * TX 外参照可な値を明示宣言する。
+ */
 export interface OutputBinding {
   /** 結果変数名 (Identifier / camelCase)。 */
   name: Identifier;
@@ -406,6 +410,24 @@ export interface OutputBinding {
   operation?: "assign" | "accumulate" | "push";
   /** accumulate / push 時の初期値。JSON 値 (例: 0, []) または式文字列。 */
   initialValue?: unknown;
+  /**
+   * TransactionScopeStep 専用 (#1264 verdict 観点 4 / #1267 Round 7 option C で拡張)。
+   * TX 外 (親 scope) から参照可能な key の明示宣言。Identifier (lowerCamelCase) の配列で、
+   * 以下を指定可:
+   *
+   * **予約値** (全 TX で常に利用可能、expose に明示宣言不要):
+   * - `committed`: `@var.action.<name>.committed` (boolean、TX commit 成否)
+   * - `error`: `@var.action.<name>.error` (`{code, message}`、rollback 時のみ)
+   * - `diagnostics`: `@var.action.<name>.diagnostics` (TX 実行 metrics)
+   *
+   * **任意 inner var 名**: TX 内 step の outputBinding.name を expose に列挙すると、
+   * TX 外から `@var.action.<txName>.<innerVar>.<field>` で参照可能になる。
+   *
+   * **canonical access form**: TX 外参照は `@var.action.<txName>.<key>` または shorthand
+   * `@<txName>.<key>` のみ。TX 内 inner var の `@<innerVar>` 直接参照は禁止
+   * (validator Check 32 で静的検出)。
+   */
+  expose?: string[];
   /**
    * 結果列の型変換指示。runtime が SELECT 結果を binding に格納する前に各 field の型を変換する。
    * SQL 方言 (PG COUNT(*)→bigint→string、SUM(...)→decimal→string 等) を吸収する責務を
@@ -420,24 +442,30 @@ export interface ExternalChain {
   phase: "authorize" | "capture" | "cancel" | "other";
 }
 
-/** DataLineage 1 エントリ。 */
-export interface LineageEntry {
-  tableId: TableId;
-  /** 読み取り/書き込みの目的 (例: `lookup`, `lock`, `audit`, `snapshot`, `soft-delete`)。 */
-  purpose?: string;
-  description?: Description;
-}
-
-/** DbAccess (および任意の step) のデータ系譜。 */
-export interface DataLineage {
-  reads?: LineageEntry[];
-  writes?: LineageEntry[];
+/**
+ * Step の失敗系挙動を集約する object (#1263 Phase X3 / #1254 件 2 案 D)。
+ * outcomes / rollbackOn / retryPolicy / onTimeout を 1 object に統一し schema 浅 nest 化。
+ * step kind に応じて意味のある subset のみ使用する (validator が semantic 妥当性を判定)。
+ */
+export interface ErrorHandling {
+  /** 成功 / 失敗 / timeout 時の挙動分岐。ExternalSystemStep / AiCallStep / AiAgentStep / TransactionScopeStep で意味あり。 */
+  outcomes?: ExternalCallOutcomes;
+  /** TX rollback を引き起こす error code 集合 (TransactionScopeStep のみ)。 */
+  rollbackOn?: ErrorCode[];
+  /** 再試行ポリシー。外部呼び出し系 step (ExternalSystemStep / AiCallStep / AiAgentStep) で意味あり。 */
+  retryPolicy?: RetryPolicy;
+  /** timeout 時挙動。WorkflowStep.onTimeout (Step[]) とは別概念。step 単位の timeout 結果分岐。 */
+  onTimeout?: "throw" | "continue" | "compensate" | "log";
 }
 
 /**
  * 全 Step variant 共通のプロパティ集合。
  * 各 variant は本定義を allOf でマージし、固有プロパティを追加 + unevaluatedProperties: false で閉じる。
- * #525 R3 fix: lineage を StepBaseProps に集約 (全 25 step variant で利用可能)。
+ *
+ * #1263 Phase X3 (#1254 件 5): `lineage` field 削除 (AST 解析で復元可能、保守コスト高)。
+ * #1263 Phase X3 (#1254 件 2): 失敗系 field (outcomes / rollbackOn / retryPolicy / onTimeout) を
+ * `errorHandling` object に集約、`runIf` / `tryCatch` 分岐は独立 (lifecycle 順表示:
+ * pre `runIf` → main → post `errorHandling`)。
  */
 export interface StepBaseProps {
   id: LocalId;
@@ -445,18 +473,19 @@ export interface StepBaseProps {
   notes?: Note[];
   maturity?: Maturity;
   sla?: Sla;
-  /** 実行条件式。false なら本 step を skip。 */
-  runIf?: ExpressionString;
+  /** 実行条件式 (pre 評価)。false なら本 step を skip。lifecycle 上は `errorHandling` (post) と独立。 */
+  runIf?: TemplateString;
   requiredPermissions?: string[];
   outputBinding?: OutputBinding;
   /** Saga 補償対象の Step.id 参照。 */
   compensatesFor?: LocalId;
   externalChain?: ExternalChain;
   /**
-   * 本 step が読み書きするデータ系譜 (CDC / 監査 / 影響範囲分析用)。
-   * #525 F-2 で StepBaseProps に集約、全 step variant で宣言可能。
+   * 失敗系挙動の集約 object (#1263 Phase X3 / #1254 件 2 案 D)。
+   * step kind に応じて意味的に有効な subset のみ使用 (例: rollbackOn は transactionScope のみ、
+   * retryPolicy は外部呼び出し系のみ)。UI lifecycle 順表示で post セクション扱い。
    */
-  lineage?: DataLineage;
+  errorHandling?: ErrorHandling;
 }
 
 // ─── ValidationStep ─────────────────────────────────────────────────────
@@ -470,11 +499,11 @@ export interface ValidationInlineBranch {
   ngJumpTo?: LocalId;
   /** NG 時の Response.id 参照。 */
   ngResponseId?: LocalId;
-  ngBodyExpression?: ExpressionString;
+  ngBodyExpression?: TemplateString;
   /** NG 時に eventPublish を実行してから ngResponseId を返す。 */
   ngEventPublish?: {
     topic: EventTopic;
-    payload: ExpressionString;
+    payload: TemplateString;
   };
 }
 
@@ -513,11 +542,18 @@ export interface AffectedRowsCheck {
 /** キャッシュヒント。 */
 export interface CacheHint {
   ttlSeconds: number;
-  key?: ExpressionString;
+  key?: TemplateString;
   invalidateOn?: EventTopic[];
   description?: Description;
 }
 
+/**
+ * DB アクセス step。#1263 Phase X3 (#1254 件 5):
+ * - `lineage` field 削除 (StepBaseProps から削除済み)
+ * - `naturalQuery` 自然言語 SQL 追加 (dual representation)
+ * - maturity-aware: `maturity: "draft"` で naturalQuery のみ可 (sql 省略可)、
+ *   `maturity: "committed"` で sql 必須 (validator Check 33 で enforce)
+ */
 export interface DbAccessStep extends StepBaseProps {
   kind: "dbAccess";
   description: Description;
@@ -526,10 +562,17 @@ export interface DbAccessStep extends StepBaseProps {
   operation: DbOperation;
   /** 対象フィールド (人間向け簡易表記)。 */
   fields?: string;
-  /** 完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。 */
+  /** 完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。`maturity: "committed"` で必須、`draft` で省略可。 */
   sql?: string;
+  /**
+   * 自然言語による SQL 記述 (#1263 Phase X3 / #1254 件 5)。設計初期の dual representation で AI が後で
+   * 実 SQL に変換する想定。例: `"在庫数を product_id で取得"` / `"カート明細を customer_id で SELECT、店舗情報と JOIN"`。
+   * `maturity: "draft"` の段階で sql の代わりに記述可能、`committed` で実 SQL に変換必須
+   * (validator Check 33 で enforce)。
+   */
+  naturalQuery?: TemplateString;
   /** 一括 INSERT 時に VALUES に展開する配列変数の式。 */
-  bulkValues?: ExpressionString;
+  bulkValues?: TemplateString;
   affectedRowsCheck?: AffectedRowsCheck;
   cache?: CacheHint;
 }
@@ -549,7 +592,7 @@ export interface ExternalHttpCall {
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
   query?: Record<string, string>;
-  body?: ExpressionString;
+  body?: TemplateString;
 }
 
 /** 外部呼び出しの結果分岐定義。 */
@@ -593,14 +636,12 @@ export interface ExternalSystemStep extends StepBaseProps {
   /** OpenAPI request body schema への JSON Pointer。 */
   requestBodyRef?: string;
   responseRef?: string;
-  outcomes?: ExternalCallOutcomes;
   timeoutMs?: number;
-  retryPolicy?: RetryPolicy;
   circuitBreaker?: CircuitBreakerConfig;
   bulkhead?: BulkheadConfig;
   fireAndForget?: boolean;
   auth?: ExternalAuth;
-  idempotencyKey?: ExpressionString;
+  idempotencyKey?: TemplateString;
   headers?: Record<string, string>;
   apiVersion?: string;
   cache?: CacheHint;
@@ -609,18 +650,25 @@ export interface ExternalSystemStep extends StepBaseProps {
 
 // ─── 残り step variants ────────────────────────────────────────────────
 
+/**
+ * 他 ProcessFlow (kind='common') を呼び出す step。
+ * #1263 Phase X2 (#1264 verdict 観点 3): `returnMapping` 廃止、
+ * StepBaseProps.outputBinding (`{ name }`) で 1 object bind に統一。
+ */
 export interface CommonProcessStep extends StepBaseProps {
   kind: "commonProcess";
   description: Description;
   /** 呼び出し先 ProcessFlow の Uuid (kind='common' の他フロー)。 */
   refId: ProcessFlowId;
   /** 呼び先 inputs 名 → 引数式の対応。 */
-  argumentMapping?: Record<string, ExpressionString>;
-  /** 呼び先 outputs 名 → 説明 / バインド先の対応。 */
-  returnMapping?: Record<string, string>;
+  argumentMapping?: Record<string, TemplateString>;
 }
 
-/** ProcessFlow 内で Generic Definition Catalog の component-definition を呼び出す step (#1066)。 */
+/**
+ * ProcessFlow 内で Generic Definition Catalog の component-definition を呼び出す step (#1066)。
+ * #1263 Phase X2 (#1264 verdict 観点 3): `returnMapping` 廃止、
+ * StepBaseProps.outputBinding (`{ name }`) で 1 object bind に統一。
+ */
 export interface ComponentCallStep extends StepBaseProps {
   kind: "componentCall";
   description: Description;
@@ -629,9 +677,7 @@ export interface ComponentCallStep extends StepBaseProps {
   /** 呼び出す operation 名 (component-definition の operations[].name と一致)。 */
   operation?: string;
   /** 呼び先 inputs 名 → 引数式の対応。 */
-  argumentMapping?: Record<string, ExpressionString>;
-  /** 呼び先 outputs 名 → 説明 / バインド先の対応。 */
-  returnMapping?: Record<string, string>;
+  argumentMapping?: Record<string, TemplateString>;
 }
 
 export interface ScreenTransitionStep extends StepBaseProps {
@@ -647,10 +693,25 @@ export interface DisplayUpdateStep extends StepBaseProps {
   target: string;
 }
 
-/** Branch 1 件 (kind=expression 等の discriminated union)。 */
+/**
+ * Branch 1 件 (kind=expression 等の discriminated union)。
+ * #1263 Phase X2 (#1264 verdict 観点 3): tryCatch variant に `errorVar` (catch block 内で
+ * error 全体を bind する変数名) を追加。
+ */
 export type BranchCondition =
-  | { kind: "expression"; expression: ExpressionString }
-  | { kind: "tryCatch"; errorCode: ErrorCode; description?: Description }
+  | { kind: "expression"; expression: TemplateString }
+  | {
+      kind: "tryCatch";
+      errorCode: ErrorCode;
+      /**
+       * catch block 内で tryCatch error 全体を bind する変数名 (#1264 verdict 観点 3)。
+       * 指定時は branch.steps 配下で `@var.<errorVar>` (例: `@var.caughtError.code`、
+       * `@var.caughtError.message`) として参照可能。
+       * 専用 scope を持たず、enclosing scope に named binding として導入される。
+       */
+      errorVar?: Identifier;
+      description?: Description;
+    }
   | { kind: "affectedRowsZero"; stepId?: LocalId; description?: Description }
   | {
       kind: "externalOutcome";
@@ -690,11 +751,18 @@ export interface LoopStep extends StepBaseProps {
   kind: "loop";
   description: Description;
   loopKind: "count" | "condition" | "collection";
-  countExpression?: ExpressionString;
+  countExpression?: TemplateString;
   conditionMode?: "continue" | "exit";
-  conditionExpression?: ExpressionString;
-  collectionSource?: ExpressionString;
+  conditionExpression?: TemplateString;
+  collectionSource?: TemplateString;
   collectionItemName?: Identifier;
+  /**
+   * collection loop の現在 index を bind する変数名 (#1264 verdict 観点 3、#1263 Phase X2)。
+   * 指定時は steps[] 配下で `@var.<collectionIndexName>` として参照可能 (0-based integer)。
+   * 省略時は明示 index 参照不可 (item のみ)。
+   * loop iteration ごとに fresh、外側 scope に持ち越されない。
+   */
+  collectionIndexName?: Identifier;
   steps: Step[];
 }
 
@@ -717,7 +785,7 @@ export interface JumpStep extends StepBaseProps {
 export interface ComputeStep extends StepBaseProps {
   kind: "compute";
   description: Description;
-  expression: ExpressionString;
+  expression: TemplateString;
 }
 
 export interface ReturnStep extends StepBaseProps {
@@ -725,7 +793,7 @@ export interface ReturnStep extends StepBaseProps {
   description: Description;
   /** Action.responses[].id 参照。 */
   responseId?: LocalId;
-  bodyExpression?: ExpressionString;
+  bodyExpression?: TemplateString;
 }
 
 export interface LogStep extends StepBaseProps {
@@ -805,28 +873,47 @@ export interface WorkflowStep extends StepBaseProps {
    * 期限式。datetime 算術は `duration('PnDTnHnMnS')` 形式推奨 (#539 R5-3)。
    * 例: `@submittedAt + duration('P2D')`
    */
-  deadlineExpression?: ExpressionString;
+  deadlineExpression?: TemplateString;
   /** ISO 8601 期間。pattern='approval-escalation' で必須。例: `duration('P1D')` */
   escalateAfter?: string;
   /** pattern='approval-escalation' で必須。 */
   escalateTo?: {
     /** `@conv.role.<key>` */
     role?: string;
-    userExpression?: ExpressionString;
+    userExpression?: TemplateString;
   };
 }
 
 // ─── TransactionScopeStep ──────────────────────────────────────────────
 
 /**
- * TX スコープ step。`outputBinding` を指定すると TX 結果が以下の semantics で expose される:
+ * TX スコープ step。#1263 Phase X2 (#1264 verdict 観点 4) + #1267 Round 7 option C:
+ * `outputBinding` は `{ name, expose: ["committed", "error", ...innerVarNames] }` 形式で
+ * TX 外参照可な key を明示宣言する。expose の各要素は以下のいずれか:
  *
- * - TX commit 成功: `@<name>.committed === true`、`@<name>.error` は未定義
- * - TX rollback (rollbackOn のエラー): `@<name>.committed === false`、`@<name>.error.code` = エラーコード、`@<name>.error.message` = 例外メッセージ
- * - TX rollback (rollbackOn 外の汎用エラー): `@<name>.committed === false`、`@<name>.error.code === "UNHANDLED"`
+ * **予約値** (3 値、常に利用可能、expose に明示宣言不要):
+ * - `committed`: TX commit 成否 (boolean)
+ * - `error`: rollback 時のエラー情報 `{code, message}`
+ * - `diagnostics`: TX 実行 metrics
  *
- * 後続 branch の `condition.kind: "expression"` で `@txResult.error.code === 'STOCK_SHORTAGE'` のように参照する。
- * 参照: docs/spec/process-flow-transaction.md §8.5、ISSUE #782
+ * **任意 inner var 名**: TX 内 step の `outputBinding.name` を expose に列挙すると
+ * TX 外から参照可能 (例: `expose: ["committed", "error", "newOrder"]` で TX 内 INSERT 結果
+ * `newOrder` を `@var.action.<name>.newOrder.id` で参照可)。
+ *
+ * **expose 宣言後の semantics**:
+ * - TX commit 成功: `@var.action.<name>.committed === true`、`@var.action.<name>.error` は未定義
+ * - TX rollback (rollbackOn のエラー): `@var.action.<name>.committed === false`、
+ *   `@var.action.<name>.error.code` = エラーコード、`@var.action.<name>.error.message` = 例外メッセージ
+ * - TX rollback (rollbackOn 外の汎用エラー): `@var.action.<name>.committed === false`、
+ *   `@var.action.<name>.error.code === "UNHANDLED"`
+ * - TX commit 成功 + expose に inner var 名: `@var.action.<name>.<innerVar>.<field>` で参照可
+ *
+ * **canonical access form**: TX 外参照は `@var.action.<txName>.<key>` または shorthand
+ * `@<txName>.<key>` のみ。TX 内 inner var の `@<innerVar>` 直接参照は禁止
+ * (validator Check 32 で静的検出)。旧 shorthand `@txResult.*` は #1263 Phase X2 で
+ * canonical form に統一。
+ *
+ * 参照: docs/spec/process-flow-transaction.md §8.5、process-flow-variables.md §3.6-3.7、ISSUE #782、#1267 option C
  */
 export interface TransactionScopeStep extends StepBaseProps {
   kind: "transactionScope";
@@ -834,12 +921,9 @@ export interface TransactionScopeStep extends StepBaseProps {
   isolationLevel?: "READ_COMMITTED" | "REPEATABLE_READ" | "SERIALIZABLE";
   propagation?: "REQUIRED" | "REQUIRES_NEW" | "NESTED";
   timeoutMs?: number;
-  /** ProcessFlow.context.catalogs.errors のキー参照。 */
-  rollbackOn?: ErrorCode[];
   steps: Step[];
   onCommit?: Step[];
   onRollback?: Step[];
-  outcomes?: ExternalCallOutcomes;
 }
 
 // ─── EventPublishStep / EventSubscribeStep ─────────────────────────────
@@ -849,14 +933,14 @@ export interface EventPublishStep extends StepBaseProps {
   description: Description;
   /** 発行先 topic。同時に context.catalogs.events のキーとして登録されている必要がある (eventRef 二重持ちは v3 廃止)。 */
   topic: EventTopic;
-  payload?: ExpressionString;
+  payload?: TemplateString;
 }
 
 export interface EventSubscribeStep extends StepBaseProps {
   kind: "eventSubscribe";
   description: Description;
   topic: EventTopic;
-  filter?: ExpressionString;
+  filter?: TemplateString;
 }
 
 // ─── ClosingStep ────────────────────────────────────────────────────────
@@ -871,7 +955,7 @@ export interface ClosingStep extends StepBaseProps {
    * pattern: `^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$` (#533 R3-2)
    */
   cutoffAt?: string;
-  idempotencyKey?: ExpressionString;
+  idempotencyKey?: TemplateString;
   rollbackOnFailure?: boolean;
 }
 
@@ -915,7 +999,7 @@ export type AiContentBlock =
 
 /** vision input の画像ソース (fileRef / url / base64)。 */
 export type AiImageSource =
-  | { kind: "fileRef"; ref: ExpressionString }
+  | { kind: "fileRef"; ref: TemplateString }
   | { kind: "url"; url: string }
   | { kind: "base64"; mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"; data: string };
 
@@ -929,7 +1013,7 @@ export interface AiMessage {
 /** messages[] の動的配列展開ディレクティブ (#939 提案 A)。 */
 export interface AiMessageSpread {
   kind: "spread";
-  ref: ExpressionString;
+  ref: TemplateString;
   description?: Description;
 }
 
@@ -965,7 +1049,6 @@ export interface AiCallStep extends StepBaseProps {
   toolChoice?: AiToolChoice;
   responseFormat?: AiResponseFormat;
   parameters?: AiInferenceParameters;
-  outcomes?: ExternalCallOutcomes;
 }
 
 /** multi-step agent loop step (#940)。 */
@@ -979,7 +1062,6 @@ export interface AiAgentStep extends StepBaseProps {
   maxIterations?: number;
   responseFormat?: AiResponseFormat;
   parameters?: AiInferenceParameters;
-  outcomes?: ExternalCallOutcomes;
 }
 
 // ─── ExtensionStep ────────────────────────────────────────────────────
@@ -1051,6 +1133,13 @@ export type StepKind = Step["kind"];
  */
 export interface ProcessFlow {
   $schema?: string;
+  /**
+   * TemplateString の `${...}` 補間内で解釈する式言語 (#1254 件 3 verdict / #1263 Phase X2)。
+   * `js-subset` (現行、docs/spec/process-flow-expression-language.md §3) が唯一の実装。
+   * 将来 `cel` (Google Common Expression Language) 切替を見据えて root field として保持。
+   * 省略時は `js-subset` を採用 (default)。
+   */
+  expressionLanguage?: "js-subset" | "cel";
   meta: ProcessFlowMeta;
   context?: Context;
   /** 実行ロジック本体。0 件も許容 (placeholder ProcessFlow 用)。 */

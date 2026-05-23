@@ -71,7 +71,7 @@ export async function createProcessFlow(
     meta: {
       id,
       name,
-      kind: type,
+      flowType: type,
       screenId: screenId as ScreenId | undefined,
       description: description ?? "",
       version: "1.0.0",
@@ -259,7 +259,7 @@ async function syncProcessFlowMeta(group: ProcessFlow): Promise<void> {
     id: group.meta.id as ProcessFlowId,
     no: idx >= 0 ? project.processFlows[idx].no : nextNo(project.processFlows),
     name: group.meta.name,
-    kind: group.meta.kind,
+    flowType: group.meta.flowType,
     screenId: group.meta.screenId as ScreenId | undefined,
     actionCount: group.actions.length,
     updatedAt: group.meta.updatedAt as Timestamp,

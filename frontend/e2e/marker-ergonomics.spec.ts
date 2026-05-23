@@ -31,7 +31,7 @@ const baseMarkers = [
 const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: "erg test",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: baseActions,
   authoring: { markers: baseMarkers },
@@ -39,7 +39,7 @@ const dummyGroupBody = buildProcessFlow({
 const dummyGroupResolvedBody = buildProcessFlow({
   id: groupId,
   name: "erg test",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: baseActions,
   authoring: {
@@ -50,7 +50,7 @@ const dummyGroupResolvedBody = buildProcessFlow({
 const dummyProject = buildProject({
   name: "erg",
   entities: {
-    processFlows: [{ id: groupId, no: 1, name: "erg test", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: groupId, no: 1, name: "erg test", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

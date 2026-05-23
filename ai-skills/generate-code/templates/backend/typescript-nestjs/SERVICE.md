@@ -155,7 +155,7 @@ const txResult = await this.dataSource.transaction('READ COMMITTED', async (mana
   return { committed: true, data: { ... } };
 });
 
-// txResult から @txResult.committed / @txResult.error.code に相当するフィールドで分岐
+// txResult から @var.action.txResult.committed / @var.action.txResult.error.code に相当するフィールドで分岐
 if (!txResult.committed) {
   if (txResult.errorCode === 'STOCK_SHORTAGE') {
     throw new HttpException({ code: 'STOCK_SHORTAGE', message: '在庫が不足しています。' }, HttpStatus.UNPROCESSABLE_ENTITY);

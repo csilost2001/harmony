@@ -4,7 +4,7 @@
     "id": "efa7ac6e-e295-416e-b68d-17c4739b5097",
     "name": "店舗在庫照会",
     "description": "商品コード + 店舗コードで inventory を検索し、低在庫閾値 (@conv.limit.lowStockThreshold) を満たす行に警告フラグを付与して返す。読取専用フロー (TX 不要)。",
-    "kind": "screen",
+    "flowType": "screen",
     "screenId": "e6147dc0-94b7-436d-ba87-d0080ac34f44",
     "maturity": "committed",
     "createdAt": "2026-05-02T00:00:00.000Z",
@@ -247,15 +247,7 @@
           "outputBinding": {
             "name": "product"
           },
-          "runIf": "@inputs.productCode != null && @inputs.productCode !== ''",
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
-                "purpose": "lookup"
-              }
-            ]
-          }
+          "runIf": "@inputs.productCode != null && @inputs.productCode !== ''"
         },
         {
           "id": "step-03",
@@ -297,22 +289,6 @@
           "sql": "SELECT i.id, p.id AS \"productId\", p.product_code AS \"productCode\", p.name AS \"productName\", p.unit_price AS \"unitPrice\", s.id AS \"storeId\", s.store_code AS \"storeCode\", s.name AS \"storeName\", i.quantity_available AS \"quantityAvailable\", i.quantity_reserved AS \"quantityReserved\" FROM inventory i JOIN products p ON p.id = i.product_id JOIN stores s ON s.id = i.store_id WHERE s.store_code = @inputs.storeCode AND (@inputs.productCode IS NULL OR @inputs.productCode = '' OR p.product_code = @inputs.productCode) AND p.is_active = TRUE AND s.is_active = TRUE ORDER BY p.product_code ASC",
           "outputBinding": {
             "name": "inventoryRows"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {

@@ -8,6 +8,12 @@
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
+    "expressionLanguage": {
+      "type": "string",
+      "enum": ["js-subset", "cel"],
+      "default": "js-subset",
+      "description": "TemplateString の `${...}` 補間内で解釈する式言語 (#1254 件 3 verdict / #1263 Phase X2)。`js-subset` (現行、docs/spec/process-flow-expression-language.md §3 で定義) が唯一の実装。将来 `cel` (Google Common Expression Language) 切替を見据えて root field として保持する。省略時は `js-subset` を採用 (default)。"
+    },
     "meta": { "$ref": "#/$defs/Meta" },
     "context": { "$ref": "#/$defs/Context" },
     "actions": {
@@ -21,14 +27,14 @@
     "properties": {
       "meta": {
         "type": "object",
-        "properties": { "kind": { "const": "scheduled" } },
-        "required": ["kind"]
+        "properties": { "flowType": { "const": "scheduled" } },
+        "required": ["flowType"]
       }
     },
     "required": ["meta"]
   },
   "then": {
-    "description": "#533 R3-3: meta.kind='scheduled' のフローでは、cron 起動の定期実行であり HTTP ルートからは呼ばれないため、Action.httpRoute を禁止する。",
+    "description": "#533 R3-3 / #1263 Phase X1: meta.flowType='scheduled' のフローでは、cron 起動の定期実行であり HTTP ルートからは呼ばれないため、Action.httpRoute を禁止する。",
     "properties": {
       "actions": {
         "items": { "not": { "required": ["httpRoute"] } }
@@ -39,19 +45,19 @@
   "$defs": {
 
     "Meta": {
-      "description": "ProcessFlow の identity と運用設定。kind='screen' は画面と直結した処理フローを表し、その場合は紐付く Screen の Uuid を `screenId` で必須宣言する (#1221)。画面に直結しない処理フロー (認証、共通 API、scheduled batch 等) は kind を `system` / `common` / `scheduled` / `batch` に分類する。",
+      "description": "ProcessFlow の identity と運用設定。flowType='screen' は画面と直結した処理フローを表し、その場合は紐付く Screen の Uuid を `screenId` で必須宣言する (#1221)。画面に直結しない処理フロー (認証、共通 API、scheduled batch 等) は flowType を `system` / `common` / `scheduled` / `batch` に分類する (#1263 Phase X1: meta.kind → meta.flowType rename)。",
       "allOf": [
         { "$ref": "common.v3.schema.json#/$defs/EntityMeta" },
         {
-          "if": { "properties": { "kind": { "const": "screen" } }, "required": ["kind"] },
+          "if": { "properties": { "flowType": { "const": "screen" } }, "required": ["flowType"] },
           "then": { "required": ["screenId"] }
         }
       ],
       "type": "object",
-      "required": ["kind"],
+      "required": ["flowType"],
       "properties": {
-        "kind": { "$ref": "#/$defs/ProcessFlowKind" },
-        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "kind='screen' の場合に紐付く Screen の Uuid。kind='screen' 時は必須 (#1221)。" },
+        "flowType": { "$ref": "#/$defs/ProcessFlowKind" },
+        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "flowType='screen' の場合に紐付く Screen の Uuid。flowType='screen' 時は必須 (#1221)。" },
         "apiVersion": { "type": "string", "description": "ProcessFlow が公開する API のバージョン (例: 'v1', '2026-04-25')。" },
         "mode": { "$ref": "common.v3.schema.json#/$defs/Mode" },
         "sla": { "$ref": "#/$defs/Sla" },
@@ -436,7 +442,7 @@
     },
 
     "StepBaseProps": {
-      "description": "全 Step variant 共通のプロパティ集合。各 variant は本定義を allOf でマージし、固有プロパティを追加 + unevaluatedProperties: false で閉じる。",
+      "description": "全 Step variant 共通のプロパティ集合。各 variant は本定義を allOf でマージし、固有プロパティを追加 + unevaluatedProperties: false で閉じる。#1263 Phase X3 (#1254 件 5): `lineage` field 削除 (AST 解析で復元可能、保守コスト高)。#1263 Phase X3 (#1254 件 2): 失敗系 field (`outcomes` / `rollbackOn` / `retryPolicy` / `onTimeout`) を `errorHandling` object に集約、`runIf` / `tryCatch` 分岐は独立 (lifecycle 順表示: pre `runIf` → main → post `errorHandling`)。",
       "type": "object",
       "properties": {
         "id": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
@@ -447,7 +453,7 @@
         },
         "maturity": { "$ref": "common.v3.schema.json#/$defs/Maturity" },
         "sla": { "$ref": "#/$defs/Sla" },
-        "runIf": { "$ref": "common.v3.schema.json#/$defs/ExpressionString", "description": "実行条件式。false なら本 step を skip。" },
+        "runIf": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "実行条件式 (pre 評価)。false なら本 step を skip。lifecycle 上は `errorHandling` (post) と独立。" },
         "requiredPermissions": {
           "type": "array",
           "items": { "type": "string" }
@@ -455,12 +461,39 @@
         "outputBinding": { "$ref": "#/$defs/OutputBinding" },
         "compensatesFor": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Saga 補償対象の Step.id 参照。" },
         "externalChain": { "$ref": "#/$defs/ExternalChain" },
-        "lineage": { "$ref": "#/$defs/DataLineage", "description": "本 step が読み書きするデータ系譜 (CDC / 監査 / 影響範囲分析用)。DbAccessStep に限らず任意の step (ExtensionStep / CdcStep / WorkflowStep 等) で宣言可能。#525 F-2: ExtensionStep の lineage 透過のため StepBaseProps に集約 (案 A)。" }
+        "errorHandling": { "$ref": "#/$defs/ErrorHandling", "description": "失敗系挙動の集約 object (#1263 Phase X3 / #1254 件 2 案 D)。`outcomes` (外部呼び出し / TX の成功/失敗/timeout 後挙動) / `rollbackOn` (TX rollback トリガー error code 集合) / `retryPolicy` (再試行ポリシー) / `onTimeout` (timeout 時挙動) を集約。各 field は step kind に応じて意味的に有効な subset のみ使用 (例: rollbackOn は transactionScope のみ、retryPolicy は外部呼び出し系のみ)。UI lifecycle 順表示で post セクション扱い。" }
+      }
+    },
+
+    "ErrorHandling": {
+      "description": "Step の失敗系挙動を集約する object (#1263 Phase X3 / #1254 件 2 案 D)。outcomes / rollbackOn / retryPolicy / onTimeout を 1 object に統一し schema 浅 nest 化。step kind に応じて意味のある subset のみ使用する (validator が semantic 妥当性を判定、schema は緩く許容)。",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "outcomes": {
+          "$ref": "#/$defs/ExternalCallOutcomes",
+          "description": "成功 / 失敗 / timeout 時の挙動分岐。ExternalSystemStep / AiCallStep / AiAgentStep / TransactionScopeStep で意味あり。"
+        },
+        "rollbackOn": {
+          "type": "array",
+          "items": { "$ref": "common.v3.schema.json#/$defs/ErrorCode" },
+          "uniqueItems": true,
+          "description": "TX rollback を引き起こす error code 集合 (TransactionScopeStep のみ)。TX inner step から実際に throw されるコードのみ列挙する。列挙外のエラーが発生した場合は outputBinding の @<name>.error.code が 'UNHANDLED' になる。"
+        },
+        "retryPolicy": {
+          "$ref": "#/$defs/RetryPolicy",
+          "description": "再試行ポリシー。外部呼び出し系 step (ExternalSystemStep / AiCallStep / AiAgentStep) で意味あり。"
+        },
+        "onTimeout": {
+          "type": "string",
+          "enum": ["throw", "continue", "compensate", "log"],
+          "description": "timeout 時挙動。WorkflowStep の onTimeout (steps[]) とは別概念で、step 単位の timeout 結果分岐に使う。Sla.onTimeout の short form として errorHandling 内で使う場合もこの enum を採用。"
+        }
       }
     },
 
     "OutputBinding": {
-      "description": "Step 結果の outputBinding (構造化のみ、v3 で string 短縮形は廃止)。",
+      "description": "Step 結果の outputBinding (構造化のみ、v3 で string 短縮形は廃止)。#1263 Phase X2 (#1264 verdict 観点 4): TransactionScopeStep で使用する場合は `expose` field で TX 外参照可な値を明示宣言する。",
       "type": "object",
       "required": ["name"],
       "additionalProperties": false,
@@ -473,6 +506,18 @@
         },
         "initialValue": {
           "description": "accumulate / push 時の初期値。JSON 値 (例: 0, []) または式文字列。"
+        },
+        "expose": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "uniqueItems": true,
+          "description": "TransactionScopeStep 専用 (#1264 verdict 観点 4 / #1267 Round 7 option C で拡張)。TX 外 (親 scope) から参照可能な key の明示宣言。各要素は Identifier (lowerCamelCase) で、以下のいずれか:\n\n**予約値 (全 TX で常に利用可能、expose に明示宣言しなくても利用可)**:\n- `committed`: `@var.action.<name>.committed` (boolean、TX commit 成否)\n- `error`: `@var.action.<name>.error` (`{code, message}`、rollback 時のみ)\n- `diagnostics`: `@var.action.<name>.diagnostics` (TX 実行 metrics)\n\n**任意 inner var 名**: TransactionScopeStep.steps[] 内の任意の outputBinding.name を指定可。例: `expose: [\"committed\", \"error\", \"newScore\"]` で TX 内 step の `outputBinding: { name: \"newScore\" }` を TX 外から `@var.action.<txName>.newScore.<field>` (or shorthand `@<txName>.newScore.<field>`) で参照可能にする。\n\n**access form (canonical)**: TX 外参照は `@var.action.<txName>.<key>` または shorthand `@<txName>.<key>` のみ許容。TX 内 inner var の shorthand `@<innerVar>` 直接参照は禁止 (TX scope 越境防止)。\n\n**enforcement**: validator `processFlowAntipatternValidator` Check 32 が静的検出 (#1267 Round 7 Must-fix 5)。",
+          "examples": [["committed", "error"], ["committed", "error", "newScore"], ["committed", "error", "newOrderId", "newOrderItemIds"]]
         },
         "transformations": {
           "type": "array",
@@ -629,7 +674,7 @@
         "maxRef": { "type": "string", "description": "@conv.limit.<key> 参照 (max の代替)。" },
         "lengthRef": { "type": "string", "description": "@conv.limit.<key> 参照 (length の代替)。loader が integer 値に展開する。" },
         "values": { "type": "array", "items": { "type": "string" } },
-        "condition": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+        "condition": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
         "message": { "type": "string", "description": "違反メッセージ (@conv.msg.<key> 推奨)。" },
         "exceptionTypeRef": {
           "type": "string",
@@ -648,7 +693,7 @@
         "ng": { "type": "array", "items": { "$ref": "#/$defs/Step" }, "description": "NG 時の後続 step 列。" },
         "ngJumpTo": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
         "ngResponseId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "NG 時の Response.id 参照。" },
-        "ngBodyExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+        "ngBodyExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
         "ngEventPublish": {
           "type": "object",
           "description": "NG 時に eventPublish を実行してから ngResponseId を返す。topic は context.catalogs.events のキーと一致する (eventRef 二重持ちは v3 廃止、EventPublishStep と整合)。",
@@ -656,13 +701,14 @@
           "additionalProperties": false,
           "properties": {
             "topic": { "$ref": "common.v3.schema.json#/$defs/EventTopic" },
-            "payload": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "payload": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
       }
     },
 
     "DbAccessStep": {
+      "description": "DB アクセス step。#1263 Phase X3 (#1254 件 5): `naturalQuery` (自然言語 SQL の dual representation) 追加 + maturity-aware: `maturity: \"draft\"` で naturalQuery のみ可 (sql 省略可、AI が後で SQL に変換)、`maturity: \"committed\"` で sql 必須 (実行可能形式)。validator Check 33 が semantic 判定。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {
@@ -673,8 +719,12 @@
             "tableId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "対象 Table の Uuid (物理名直書きは v3 廃止)。" },
             "operation": { "$ref": "#/$defs/DbOperation" },
             "fields": { "type": "string", "description": "対象フィールド (人間向け簡易表記)。" },
-            "sql": { "type": "string", "description": "完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。" },
-            "bulkValues": { "$ref": "common.v3.schema.json#/$defs/ExpressionString", "description": "一括 INSERT 時に VALUES に展開する配列変数の式。" },
+            "sql": { "type": "string", "description": "完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。`maturity: \"committed\"` で必須、`draft` で省略可 (#1263 Phase X3)。" },
+            "naturalQuery": {
+              "$ref": "common.v3.schema.json#/$defs/TemplateString",
+              "description": "自然言語による SQL 記述 (#1263 Phase X3 / #1254 件 5)。設計初期の dual representation で AI が後で実 SQL に変換する想定。例: `\"在庫数を product_id で取得\"` / `\"カート明細を customer_id で SELECT、店舗情報と JOIN\"`。`maturity: \"draft\"` の段階で sql の代わりに記述可能、`committed` で実 SQL に変換必須 (validator Check 33 で enforce)。"
+            },
+            "bulkValues": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "一括 INSERT 時に VALUES に展開する配列変数の式。" },
             "affectedRowsCheck": { "$ref": "#/$defs/AffectedRowsCheck" },
             "cache": { "$ref": "#/$defs/CacheHint" }
           }
@@ -703,43 +753,13 @@
       }
     },
 
-    "DataLineage": {
-      "description": "DbAccessStep のデータ系譜。reads/writes の各エントリは目的 (purpose) を持てる (CDC / 監査 / 影響範囲分析用)。",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "reads": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/LineageEntry" },
-          "description": "読み取り対象 Table の参照 + 目的。"
-        },
-        "writes": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/LineageEntry" },
-          "description": "書き込み対象 Table の参照 + 目的。"
-        }
-      }
-    },
-
-    "LineageEntry": {
-      "description": "DataLineage の 1 エントリ。tableId 必須 + purpose 任意。",
-      "type": "object",
-      "required": ["tableId"],
-      "additionalProperties": false,
-      "properties": {
-        "tableId": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
-        "purpose": { "type": "string", "description": "読み取り/書き込みの目的 (例: 'lookup', 'lock', 'audit', 'snapshot', 'soft-delete')。" },
-        "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
-      }
-    },
-
     "CacheHint": {
       "type": "object",
       "required": ["ttlSeconds"],
       "additionalProperties": false,
       "properties": {
         "ttlSeconds": { "type": "number", "minimum": 0 },
-        "key": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+        "key": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
         "invalidateOn": {
           "type": "array",
           "items": { "$ref": "common.v3.schema.json#/$defs/EventTopic" }
@@ -765,15 +785,13 @@
             "operationRef": { "type": "string", "description": "**operationRef mode**: OpenAPI operation 参照 (例: '/v1/payment_intents POST')。systemRef 経由で spec URL 解決。httpCall と排他推奨。" },
             "operationId": { "type": "string", "description": "**operationRef mode**: OpenAPI operationId (operationRef より優先する場合の代替指定)。httpCall と排他推奨。" },
             "requestBodyRef": { "type": "string", "description": "**operationRef mode**: OpenAPI request body schema への JSON Pointer (例: '#/components/schemas/CreatePaymentIntent')。httpCall.body と排他推奨。" },
-            "responseRef": { "type": "string", "description": "**operationRef mode**: OpenAPI response schema への JSON Pointer。httpCall mode では outcomes.success.responseSchema 等で代替。" },
-            "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes" },
+            "responseRef": { "type": "string", "description": "**operationRef mode**: OpenAPI response schema への JSON Pointer。httpCall mode では errorHandling.outcomes.success.responseSchema 等で代替。" },
             "timeoutMs": { "type": "integer", "minimum": 0 },
-            "retryPolicy": { "$ref": "#/$defs/RetryPolicy" },
             "circuitBreaker": { "$ref": "#/$defs/CircuitBreakerConfig" },
             "bulkhead": { "$ref": "#/$defs/BulkheadConfig" },
             "fireAndForget": { "type": "boolean" },
             "auth": { "$ref": "#/$defs/ExternalAuth" },
-            "idempotencyKey": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+            "idempotencyKey": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "headers": {
               "type": "object",
               "additionalProperties": { "type": "string" }
@@ -801,7 +819,7 @@
           "type": "object",
           "additionalProperties": { "type": "string" }
         },
-        "body": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+        "body": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
       }
     },
 
@@ -890,8 +908,7 @@
             },
             "toolChoice": { "$ref": "#/$defs/AiToolChoice" },
             "responseFormat": { "$ref": "#/$defs/AiResponseFormat" },
-            "parameters": { "$ref": "#/$defs/AiInferenceParameters", "description": "modelEndpoint.defaults を override。同キーは本フィールド優先。" },
-            "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes", "description": "失敗 / timeout 時の挙動。既存 ExternalSystemStep と同じ pattern を流用。" }
+            "parameters": { "$ref": "#/$defs/AiInferenceParameters", "description": "modelEndpoint.defaults を override。同キーは本フィールド優先。" }
           }
         }
       ],
@@ -928,8 +945,7 @@
               "description": "tool call ループの最大反復回数。LLM が連続 tool 呼び出しに陥った場合の安全装置。"
             },
             "responseFormat": { "$ref": "#/$defs/AiResponseFormat", "description": "最終 assistant message の構造化指定。" },
-            "parameters": { "$ref": "#/$defs/AiInferenceParameters" },
-            "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes" }
+            "parameters": { "$ref": "#/$defs/AiInferenceParameters" }
           }
         }
       ],
@@ -974,7 +990,7 @@
       "properties": {
         "kind": { "const": "spread" },
         "ref": {
-          "$ref": "common.v3.schema.json#/$defs/ExpressionString",
+          "$ref": "common.v3.schema.json#/$defs/TemplateString",
           "description": "AiMessage 互換配列を持つ変数参照 (例: '@turnContext')。展開対象は { role: 'user'|'assistant'|'system', content: string } の配列を期待し、ランタイムが各要素を AiMessage として messages[] に展開する。"
         },
         "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
@@ -1006,7 +1022,7 @@
     },
 
     "AiImageSource": {
-      "description": "vision input の画像ソース。fileRef (ScreenItem type=file / step output 等の式参照、ローカルファイル想定) / url (HTTP(S) URL、storage / CDN 上の画像) / base64 (リテラル data) の 3 形式。url は literal URI または ExpressionString 経由のランタイム変数 (#939 提案 B、2026-05-08) の双方を許容する。",
+      "description": "vision input の画像ソース。fileRef (ScreenItem type=file / step output 等の式参照、ローカルファイル想定) / url (HTTP(S) URL、storage / CDN 上の画像) / base64 (リテラル data) の 3 形式。url は literal URI または TemplateString 経由のランタイム変数 (#939 提案 B、2026-05-08) の双方を許容する。",
       "oneOf": [
         {
           "type": "object",
@@ -1015,7 +1031,7 @@
           "properties": {
             "kind": { "const": "fileRef" },
             "ref": {
-              "$ref": "common.v3.schema.json#/$defs/ExpressionString",
+              "$ref": "common.v3.schema.json#/$defs/TemplateString",
               "description": "ScreenItem (type=file) または step output 等の式参照 (例: '@inputs.photo' / '@uploaded.file')。ローカルファイル / アップロード済 file ハンドルを想定。"
             }
           }
@@ -1164,6 +1180,7 @@
     },
 
     "CommonProcessStep": {
+      "description": "他 ProcessFlow (kind='common') を呼び出す step。#1263 Phase X2 (#1264 verdict 3): `returnMapping` 廃止、StepBaseProps.outputBinding (`{ name }`) で 1 object bind に統一。呼び先 ProcessFlow の outputs 全体が単一変数として bind される。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {
@@ -1174,13 +1191,8 @@
             "refId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "呼び出し先 ProcessFlow の Uuid (kind='common' の他フロー)。" },
             "argumentMapping": {
               "type": "object",
-              "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+              "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
               "description": "呼び先 inputs 名 → 引数式の対応。"
-            },
-            "returnMapping": {
-              "type": "object",
-              "additionalProperties": { "type": "string" },
-              "description": "呼び先 outputs 名 → 説明 / バインド先の対応。"
             }
           }
         }
@@ -1189,6 +1201,7 @@
     },
 
     "ComponentCallStep": {
+      "description": "component-definition の operation 呼び出し step。#1263 Phase X2 (#1264 verdict 3): `returnMapping` 廃止、StepBaseProps.outputBinding (`{ name }`) で 1 object bind に統一。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {
@@ -1209,13 +1222,8 @@
             },
             "argumentMapping": {
               "type": "object",
-              "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+              "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
               "description": "呼び先 inputs 名 → 引数式の対応。"
-            },
-            "returnMapping": {
-              "type": "object",
-              "additionalProperties": { "type": "string" },
-              "description": "呼び先 outputs 名 → 説明 / バインド先の対応。"
             }
           }
         }
@@ -1313,7 +1321,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "expression" },
-            "expression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "expression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         },
         {
@@ -1323,6 +1331,10 @@
           "properties": {
             "kind": { "const": "tryCatch" },
             "errorCode": { "$ref": "common.v3.schema.json#/$defs/ErrorCode" },
+            "errorVar": {
+              "$ref": "common.v3.schema.json#/$defs/Identifier",
+              "description": "catch block 内で tryCatch error 全体を bind する変数名 (#1264 verdict 観点 3、#1263 Phase X2)。指定時は branch.steps 配下で `@var.<errorVar>` (例: `@var.caughtError.code`、`@var.caughtError.message`) として参照可能。専用 scope を持たず、enclosing scope に named binding として導入される。"
+            },
             "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
           }
         },
@@ -1361,11 +1373,15 @@
           "properties": {
             "kind": { "const": "loop" },
             "loopKind": { "type": "string", "enum": ["count", "condition", "collection"] },
-            "countExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+            "countExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "conditionMode": { "type": "string", "enum": ["continue", "exit"] },
-            "conditionExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
-            "collectionSource": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+            "conditionExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
+            "collectionSource": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "collectionItemName": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
+            "collectionIndexName": {
+              "$ref": "common.v3.schema.json#/$defs/Identifier",
+              "description": "collection loop の現在 index を bind する変数名 (#1264 verdict 観点 3、#1263 Phase X2)。指定時は steps[] 配下で `@var.<collectionIndexName>` として参照可能 (0-based integer)。省略時は明示 index 参照不可 (item のみ)。loop iteration ごとに fresh、外側 scope に持ち越されない。"
+            },
             "steps": { "type": "array", "items": { "$ref": "#/$defs/Step" } }
           }
         },
@@ -1432,7 +1448,7 @@
           "required": ["id", "kind", "description", "expression"],
           "properties": {
             "kind": { "const": "compute" },
-            "expression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "expression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
       ],
@@ -1448,7 +1464,7 @@
           "properties": {
             "kind": { "const": "return" },
             "responseId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Action.responses[].id 参照。" },
-            "bodyExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "bodyExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
       ],
@@ -1520,14 +1536,14 @@
             "onApproved": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
             "onRejected": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
             "onTimeout": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
-            "deadlineExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+            "deadlineExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "escalateAfter": { "type": "string", "description": "ISO 8601 duration またはエスカレーション期間式。" },
             "escalateTo": {
               "type": "object",
               "additionalProperties": false,
               "properties": {
                 "role": { "type": "string", "description": "@conv.role.<key>" },
-                "userExpression": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+                "userExpression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
               }
             }
           }
@@ -1581,7 +1597,7 @@
     },
 
     "TransactionScopeStep": {
-      "description": "TX スコープ step。v3 では TX 表現はこの transactionScope に一本化されている (旧 txBoundary / transactional フィールドは廃止)。StepBaseProps.outputBinding を指定すると TX 結果を後続 step に expose する: commit 成功時は @<name>.committed=true / rollbackOn エラー時は @<name>.committed=false + @<name>.error={code,message} / rollbackOn 外の汎用エラー時は @<name>.error.code='UNHANDLED'。後続 branch で condition.kind='expression' + expression='@txResult.error.code===\"STOCK_SHORTAGE\"' のように参照する。詳細: docs/spec/process-flow-transaction.md §8.5 (#782)。",
+      "description": "TX スコープ step。v3 では TX 表現はこの transactionScope に一本化されている (旧 txBoundary / transactional フィールドは廃止)。#1263 Phase X2 (#1264 verdict 観点 4): StepBaseProps.outputBinding に加えて `expose: ['committed', 'error', 'diagnostics']` で TX 外参照可な値を明示宣言する。expose 宣言後の semantics: commit 成功時は @var.action.<name>.committed=true / rollbackOn エラー時は @var.action.<name>.committed=false + @var.action.<name>.error={code,message} / rollbackOn 外の汎用エラー時は @var.action.<name>.error.code='UNHANDLED'。後続 branch で condition.kind='expression' + expression='@var.action.<name>.error.code===\"STOCK_SHORTAGE\"' のように参照する (旧 shorthand `@txResult.*` は docs/spec/process-flow-variables.md §3.6 の @var.<scope>.<name> 形式が canonical)。詳細: docs/spec/process-flow-transaction.md §8.5 (#782) / process-flow-variables.md §3.7。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {
@@ -1592,15 +1608,9 @@
             "isolationLevel": { "type": "string", "enum": ["READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE"] },
             "propagation": { "type": "string", "enum": ["REQUIRED", "REQUIRES_NEW", "NESTED"] },
             "timeoutMs": { "type": "number", "minimum": 0 },
-            "rollbackOn": {
-              "type": "array",
-              "items": { "$ref": "common.v3.schema.json#/$defs/ErrorCode" },
-              "description": "TX rollback を引き起こすエラーコード集合。TX inner step から実際に throw されるコードのみを列挙する。列挙外のエラーが発生した場合は outputBinding の @<name>.error.code が 'UNHANDLED' になる。"
-            },
             "steps": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
             "onCommit": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
-            "onRollback": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
-            "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes" }
+            "onRollback": { "type": "array", "items": { "$ref": "#/$defs/Step" } }
           }
         }
       ],
@@ -1617,7 +1627,7 @@
           "properties": {
             "kind": { "const": "eventPublish" },
             "topic": { "$ref": "common.v3.schema.json#/$defs/EventTopic", "description": "発行先 topic。同時に context.catalogs.events のキーとして登録されている必要がある。" },
-            "payload": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "payload": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
       ],
@@ -1634,7 +1644,7 @@
           "properties": {
             "kind": { "const": "eventSubscribe" },
             "topic": { "$ref": "common.v3.schema.json#/$defs/EventTopic", "description": "購読 topic。同時に context.catalogs.events のキーとして登録されている必要がある。" },
-            "filter": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" }
+            "filter": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
           }
         }
       ],
@@ -1652,7 +1662,7 @@
             "period": { "type": "string", "enum": ["daily", "monthly", "quarterly", "yearly", "custom"] },
             "customCron": { "type": "string" },
             "cutoffAt": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$", "description": "締切時刻 (HH:MM または HH:MM:SS、24 時間表記、timezone なし)。例: '23:59:59' / '23:59' / '00:00:00'。#533 R3-2 で pattern 追加 (\"99:99\" 等の不正値を reject)。format: \"time\" は ajv-formats では timezone 必須のため不採用。" },
-            "idempotencyKey": { "$ref": "common.v3.schema.json#/$defs/ExpressionString" },
+            "idempotencyKey": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
             "rollbackOnFailure": { "type": "boolean" }
           }
         }

@@ -68,9 +68,9 @@ const dummyProject = buildProject({
   name: "maturity-test",
   entities: {
     processFlows: [
-      { id: groupId, no: 1, name: dummyGroup.name, kind: dummyGroup.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" },
-      { id: committedGroupId, no: 2, name: "確定フロー", kind: "screen", actionCount: 0, maturity: "committed", updatedAt: FIXED_TS },
-      { id: provisionalGroupId, no: 3, name: "暫定フロー", kind: "screen", actionCount: 0, maturity: "provisional", updatedAt: FIXED_TS },
+      { id: groupId, no: 1, name: dummyGroup.name, flowType: dummyGroup.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" },
+      { id: committedGroupId, no: 2, name: "確定フロー", flowType: "screen", actionCount: 0, maturity: "committed", updatedAt: FIXED_TS },
+      { id: provisionalGroupId, no: 3, name: "暫定フロー", flowType: "screen", actionCount: 0, maturity: "provisional", updatedAt: FIXED_TS },
     ],
   } as ProjectEntities,
 });
@@ -96,7 +96,7 @@ async function setupEditor(page: Page) {
 const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: dummyGroup.name,
-  kind: (dummyGroup.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["kind"],
+  flowType: (dummyGroup.type ?? "screen") as Parameters<typeof buildProcessFlow>[0]["flowType"],
   mode: "upstream",
   actions: dummyGroup.actions as ReturnType<typeof buildProcessFlow>["actions"],
   ...(dummyGroup.markers !== undefined ? { authoring: { markers: dummyGroup.markers } } : {}),
@@ -117,14 +117,14 @@ test.afterAll(async () => {
 const committedGroupBody = buildProcessFlow({
   id: committedGroupId,
   name: "確定フロー",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   maturity: "committed",
 });
 const provisionalGroupBody = buildProcessFlow({
   id: provisionalGroupId,
   name: "暫定フロー",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   maturity: "provisional",
 });

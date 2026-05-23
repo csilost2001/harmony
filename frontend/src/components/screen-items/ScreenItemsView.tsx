@@ -48,7 +48,7 @@ import type {
   Identifier,
   ProcessFlowId,
   LocalId,
-  ExpressionString,
+  TemplateString,
 } from "../../types/v3";
 import type { ScreenItemsDocument } from "../../store/screenItemsStore";
 // #1016 follow-up (2026-05-20): listProcessFlows() の return type は frontend/src/types/flow の ProcessFlowMeta
@@ -1260,7 +1260,7 @@ export function ScreenItemsView() {
                                       onClick={() => {
                                         const current = ev.argumentMapping ?? {};
                                         if ("" in current) return; // 既に空キー行がある場合は追加しない
-                                        handleUpdateEvent(i, eIdx, { argumentMapping: { ...current, "": "" as ExpressionString } });
+                                        handleUpdateEvent(i, eIdx, { argumentMapping: { ...current, ["" as Identifier]: "" as TemplateString } });
                                       }}
                                       disabled={isReadonly}
                                       title="マッピング行を追加"
@@ -1281,7 +1281,7 @@ export function ScreenItemsView() {
                                           // 自身以外の既存 key と衝突する場合は rename を拒否 (silent rollback)
                                           const collision = argEntries.some(([kk, _vv], ii) => ii !== aIdx && kk === newKey && newKey !== "");
                                           if (collision) return;
-                                          const next: Record<string, ExpressionString> = {};
+                                          const next: Record<string, TemplateString> = {};
                                           argEntries.forEach(([kk, vv], ii) => {
                                             next[ii === aIdx ? newKey : kk] = vv;
                                           });
@@ -1297,7 +1297,7 @@ export function ScreenItemsView() {
                                         value={v}
                                         onChange={(e) => {
                                           const next = { ...(ev.argumentMapping ?? {}) };
-                                          next[k] = e.target.value as ExpressionString;
+                                          next[k as Identifier] = e.target.value as TemplateString;
                                           handleUpdateEvent(i, eIdx, { argumentMapping: next });
                                         }}
                                         onBlur={commit}
@@ -1309,7 +1309,7 @@ export function ScreenItemsView() {
                                         className="btn btn-sm btn-link text-danger p-0"
                                         onClick={() => {
                                           const next = { ...(ev.argumentMapping ?? {}) };
-                                          delete next[k];
+                                          delete next[k as Identifier];
                                           handleUpdateEvent(i, eIdx, { argumentMapping: Object.keys(next).length > 0 ? next : undefined });
                                         }}
                                         disabled={isReadonly}

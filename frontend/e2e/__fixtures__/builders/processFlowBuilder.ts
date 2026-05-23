@@ -4,7 +4,7 @@
  * defaults:
  * - createdAt/updatedAt: 固定値 "2026-05-08T00:00:00.000Z" (再現性)
  * - maturity: "draft"
- * - kind: "other"
+ * - flowType: "other"  (#1263 Phase X1: kind → flowType に rename)
  * - actions: [] (空 ProcessFlow も schema valid)
  */
 
@@ -27,7 +27,7 @@ const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 export interface BuildProcessFlowOpts {
   id?: string;
   name?: string;
-  kind?: ProcessFlowKind;
+  flowType?: ProcessFlowKind;
   screenId?: string;
   maturity?: Maturity;
   mode?: Mode;
@@ -47,7 +47,7 @@ export function buildProcessFlow(opts: BuildProcessFlowOpts = {}): ProcessFlow {
     meta: {
       id,
       name: opts.name ?? "テスト処理フロー",
-      kind: opts.kind ?? "other",
+      flowType: opts.flowType ?? "other",
       maturity: opts.maturity ?? "draft",
       mode: opts.mode,
       screenId: opts.screenId

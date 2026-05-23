@@ -36,18 +36,21 @@ describe("ExternalCallOutcomeSpec の sideEffects (#172)", () => {
   });
 
   it("sameAs で他 outcome の定義を流用できる (timeout=failure と同じ)", () => {
+    // #1263 Phase X3: outcomes は errorHandling.outcomes に集約済
     const step: ExternalSystemStep = {
       id: "s",
-      type: "externalSystem",
+      kind: "externalSystem",
       description: "",
-      systemName: "X",
-      outcomes: {
-        success: { action: "continue" },
-        failure: { action: "abort", description: "失敗時は中断" },
-        timeout: { action: "abort", sameAs: "failure" },
+      systemRef: "x",
+      errorHandling: {
+        outcomes: {
+          success: { action: "continue" },
+          failure: { action: "abort", description: "失敗時は中断" },
+          timeout: { action: "abort", sameAs: "failure" },
+        },
       },
     };
-    expect(step.outcomes?.timeout?.sameAs).toBe("failure");
+    expect(step.errorHandling?.outcomes?.timeout?.sameAs).toBe("failure");
   });
 
   it("abort + sideEffects の組合せ (補償後に中断する Saga パターン)", () => {
@@ -112,10 +115,11 @@ describe("migrateProcessFlow — outcome sideEffects / sameAs 透過保持 (#172
     expect(JSON.stringify(twice)).toBe(JSON.stringify(once));
 
     const step = once.actions[0].steps[0] as ExternalSystemStep;
-    expect(step.outcomes?.failure?.sideEffects).toHaveLength(1);
+    // #1263 Phase X3: outcomes は errorHandling.outcomes に集約
+    expect(step.errorHandling?.outcomes?.failure?.sideEffects).toHaveLength(1);
     // sideEffects 内のステップも通常通りマイグレーションされている (maturity 既定)
-    const sideStep = step.outcomes?.failure?.sideEffects?.[0] as Step;
+    const sideStep = step.errorHandling?.outcomes?.failure?.sideEffects?.[0] as Step;
     expect(sideStep.maturity).toBe("draft");
-    expect(step.outcomes?.timeout?.sameAs).toBe("failure");
+    expect(step.errorHandling?.outcomes?.timeout?.sameAs).toBe("failure");
   });
 });

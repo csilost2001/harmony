@@ -38,7 +38,8 @@ function pfFlat(g: ProcessFlow): Record<string, unknown> {
 }
 
 function pfKind(g: ProcessFlow): string {
-  return (g.meta?.kind ?? pfFlat(g)["kind"] ?? pfFlat(g)["type"] ?? "") as string;
+  // #1263 Phase X1: meta.flowType (旧 meta.kind) を優先、legacy も fallback で読む
+  return (g.meta?.flowType ?? pfFlat(g)["flowType"] ?? pfFlat(g)["kind"] ?? pfFlat(g)["type"] ?? "") as string;
 }
 
 function pfName(g: ProcessFlow): string {
@@ -409,7 +410,7 @@ function toSpecStep(s: Step, index: number): SpecStep {
       if (s.isolationLevel) detail.isolationLevel = s.isolationLevel;
       if (s.propagation) detail.propagation = s.propagation;
       if (s.timeoutMs !== undefined) detail.timeoutMs = s.timeoutMs;
-      if (s.rollbackOn && s.rollbackOn.length > 0) detail.rollbackOn = s.rollbackOn;
+      if (s.errorHandling?.rollbackOn && s.errorHandling?.rollbackOn.length > 0) detail.rollbackOn = s.errorHandling?.rollbackOn;
       detail.steps = s.steps;
       if (s.onCommit) detail.onCommit = s.onCommit;
       if (s.onRollback) detail.onRollback = s.onRollback;

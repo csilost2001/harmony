@@ -100,7 +100,7 @@
 </ul>
 <p><code>rollbackOn</code> 指定がある場合は、列挙された <code>errorCode</code> の throw のみ rollback を引き起こす (詳細: <a href="../../spec/process-flow-transaction/"><code>process-flow-transaction.md</code></a> §2.4)。</p>
 <h3 id="33-rollback-後の-trycatch-捕捉">3.3 ROLLBACK 後の <code>tryCatch</code> 捕捉</h3>
-<p>自動 ROLLBACK された throw は、<code>transactionScope</code> step より <strong>後ろにある</strong> <code>BranchStep</code> の <code>branches[].condition: { kind: "tryCatch", errorCode: "..." }</code> で捕捉される。または <code>transactionScope.outputBinding</code> で TX 結果を expose し、後続 branch の <code>condition.kind: "expression"</code> で <code>@txResult.error.code</code> 等を参照する (推奨パターン、<a href="../../spec/process-flow-transaction/"><code>process-flow-transaction.md</code></a> §8.5)。</p>
+<p>自動 ROLLBACK された throw は、<code>transactionScope</code> step より <strong>後ろにある</strong> <code>BranchStep</code> の <code>branches[].condition: { kind: "tryCatch", errorCode: "..." }</code> で捕捉される。または <code>transactionScope.outputBinding</code> で TX 結果を expose し、後続 branch の <code>condition.kind: "expression"</code> で <code>@var.action.txResult.error.code</code> 等を参照する (推奨パターン、<a href="../../spec/process-flow-transaction/"><code>process-flow-transaction.md</code></a> §8.5)。</p>
 <p><code>errorCode</code> のマッチング:</p>
 <ul>
 <li><code>affectedRowsCheck.errorCode</code> の値と <code>BranchConditionVariant.errorCode</code> が等しければマッチ</li>

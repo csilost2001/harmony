@@ -20,7 +20,7 @@ const groupId = "ag-ec-ui";
 const dummyGroupBody = buildProcessFlow({
   id: groupId,
   name: "errorCatalog UI",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [{
     id: "act-1", name: "ボタン", trigger: "click", maturity: "draft",
@@ -36,7 +36,7 @@ const dummyGroupBody = buildProcessFlow({
 const dummyProject = buildProject({
   name: "ec-test",
   entities: {
-    processFlows: [{ id: groupId, no: 1, name: "errorCatalog UI", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: groupId, no: 1, name: "errorCatalog UI", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

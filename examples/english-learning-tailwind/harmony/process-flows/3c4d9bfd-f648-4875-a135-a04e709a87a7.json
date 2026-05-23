@@ -4,7 +4,7 @@
     "id": "3c4d9bfd-f648-4875-a135-a04e709a87a7",
     "name": "連続学習日数リセット",
     "description": "毎日 00:00 (UTC+9 / JST) に実行するスケジュールフロー。前日 24 時間以内に学習セッションを完了していないユーザーの users.streak_days を 0 にリセットする。バッチ UPDATE で対象ユーザーを一括処理する。仕様書 3.3 節の「連続学習日数の自動リセット job」に対応 (scheduled flow で定義のみ、実装は後段の LLM が担当)。",
-    "kind": "scheduled",
+    "flowType": "scheduled",
     "maturity": "draft",
     "createdAt": "2026-05-04T00:00:00.000Z",
     "updatedAt": "2026-05-04T00:00:00.000Z"
@@ -63,20 +63,6 @@
             "expected": 0,
             "onViolation": "log",
             "description": "0 件でも正常 (全ユーザーが前日学習した場合)。エラーにはしない。"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
-                "purpose": "lookup"
-              }
-            ],
-            "writes": [
-              {
-                "tableId": "c7e50462-bbc4-498f-a280-2ec40bda30b1",
-                "purpose": "update"
-              }
-            ]
           }
         },
         {

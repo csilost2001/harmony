@@ -33,7 +33,7 @@ const dummyTable = buildTable({
 const dummyProcessFlowBody = buildProcessFlow({
   id: PF_ID,
   name: "dirty マークテストフロー",
-  kind: "screen",
+  flowType: "screen",
   mode: "upstream",
   actions: [{ id: "act-001", name: "テストアクション", trigger: "click", maturity: "draft", steps: [] }] as ReturnType<typeof buildProcessFlow>["actions"],
 });
@@ -42,7 +42,7 @@ const dummyProject = buildProject({
   name: "dirty-mark-test",
   entities: {
     tables: [{ id: TABLE_ID, no: 1, name: dummyTable.name, physicalName: dummyTable.physicalName, category: dummyTable.category, columnCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
-    processFlows: [{ id: PF_ID, no: 1, name: "dirty マークテストフロー", kind: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
+    processFlows: [{ id: PF_ID, no: 1, name: "dirty マークテストフロー", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
   } as ProjectEntities,
 });
 

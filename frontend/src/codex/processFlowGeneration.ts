@@ -91,7 +91,7 @@ export function mergeGeneratedProcessFlow(current: ProcessFlow, generated: Proce
     createdAt: current.meta.createdAt,
     updatedAt: current.meta.updatedAt,
     screenId: current.meta.screenId ?? next.meta.screenId,
-    kind: next.meta.kind ?? current.meta.kind,
+    flowType: next.meta.flowType ?? current.meta.flowType,
   };
   next.authoring = current.authoring;
   return next;
