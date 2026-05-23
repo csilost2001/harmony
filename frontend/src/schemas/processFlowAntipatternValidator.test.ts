@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { checkAntipatterns } from "./processFlowAntipatternValidator";
+import { buildProjectCatalogIndex } from "./projectCatalogIndex";
 import type { ProcessFlow } from "../types/v3";
 
 // ─── テスト用 fixture ヘルパー ────────────────────────────────────────────────
@@ -1225,5 +1226,379 @@ describe("Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3)", () =
     expect(found).toHaveLength(1);
     expect(found[0].severity).toBe("error");
     expect(found[0].path).toContain("actions[0].steps[0]");
+  });
+});
+
+// ─── Check 31 (#1269 提案 C): projectIndex 渡し時の 24 prefix broken-ref 検証 ──
+
+/**
+ * 共通 helper: 期待される全 prefix を valid とする充実 index を作る。
+ * 個別 test は必要に応じて差分のみ override する。
+ */
+function buildRichIndex() {
+  return buildProjectCatalogIndex({
+    screens: [
+      { id: "screen-A", items: [{ id: "field-1" }, { id: "field-2" }] },
+      { id: "0739c454-45d6-4c99-962a-7b0b9e113a22", items: [{ id: "searchQuery" }] },
+    ],
+    tables: [{ id: "users", fields: [{ name: "id" }, { name: "email" }] }],
+    views: [{ id: "activeUsers", fields: [{ name: "user_id" }] }],
+    viewDefinitions: [{ id: "userListViewer", columns: [{ id: "name_col" }] }],
+    pageLayouts: [{ id: "main-layout" }],
+    sequences: [{ id: "orderSeq" }],
+    processFlows: [{ meta: { id: "flow-A" } }, { id: "flow-B" }],
+    genericDefinitions: [
+      { kind: "data-contract", name: "OrderForm" },
+      { kind: "domain-type", name: "Order" },
+      { kind: "exception-type", name: "NotFoundException" },
+      { kind: "application-rule", name: "InventoryRule" },
+      { kind: "validation-rule", name: "IsPositiveQuantity" },
+      { kind: "ui-behavior", name: "DebounceInput" },
+      { kind: "runtime-policy", name: "RetryPolicy" },
+      { kind: "component-definition", name: "OrderValidator" },
+      { kind: "ui-fragment", name: "OrderSummary" },
+      {
+        kind: "constants",
+        name: "OrderConstants",
+        fields: [{ name: "TAX_RATE" }, { name: "MAX_LINES" }],
+      },
+      { kind: "message", name: "OrderMessages", fields: [{ name: "order-confirmed" }] },
+      { kind: "domain-event", name: "OrderConfirmed" },
+      { kind: "log-event", name: "AuditLog", fields: [{ name: "order-created" }] },
+      { kind: "log-config", name: "Default" },
+    ],
+    conventions: { numbering: {}, regex: {}, msg: {} },
+    externalCatalogs: { externalSystems: { paymentGateway: {}, shippingApi: {} } },
+    extensionNamespaces: ["retail", "common"],
+  });
+}
+
+function makeFlowWithExpr(expression: string, maturity = "committed") {
+  return {
+    meta: {
+      id: "test-flow" as never,
+      name: "Test",
+      flowType: "screen",
+      maturity,
+      createdAt: "2026-01-01" as never,
+      updatedAt: "2026-01-01" as never,
+    },
+    actions: [
+      {
+        id: "action-1" as never,
+        name: "Action 1",
+        trigger: "click",
+        steps: [
+          {
+            kind: "compute",
+            id: "step-1",
+            expression,
+            description: "ref",
+          } as never,
+        ],
+      },
+    ],
+  } as ProcessFlow;
+}
+
+describe("Check 31 (#1269 提案 C): projectIndex 渡し時の 24 prefix broken-ref 検証", () => {
+  describe("backward compat: projectIndex 未渡し時は @var / @event 以外を silent pass", () => {
+    it("@screen / @table / @const 等は projectIndex 未渡し時 silent pass (Phase X2 互換)", () => {
+      const flow = makeFlowWithExpr(
+        "@screen.nonexistent + @table.notInProject + @const.UNKNOWN_KEY + @msg.unknown-msg",
+      );
+      const rawJson = JSON.stringify(flow, null, 2);
+      const issues = checkAntipatterns(flow, rawJson); // projectIndex 未渡し
+      const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+      expect(found).toHaveLength(0);
+    });
+  });
+
+  describe("entity prefixes (階層検証)", () => {
+    it("@screen.<id>: id が index にあれば valid", () => {
+      const flow = makeFlowWithExpr("@screen.screen-A");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("@screen.<unknownId>: index に無ければ broken (committed=error)", () => {
+      const flow = makeFlowWithExpr("@screen.unknownScreen");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found.length).toBeGreaterThan(0);
+      expect(found[0].severity).toBe("error");
+      expect(found[0].message).toContain("@screen.unknownScreen");
+    });
+
+    it("@screen.<id>.item.<itemId>: 階層 ref で childId 検証", () => {
+      const flow = makeFlowWithExpr("@screen.screen-A.item.field-1");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("@screen.<id>.item.<unknownItem>: childId が無ければ broken", () => {
+      const flow = makeFlowWithExpr("@screen.screen-A.item.unknownField");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found.length).toBeGreaterThan(0);
+    });
+
+    it("@table.<id>.field.<fieldName>: table field 検証", () => {
+      const flow = makeFlowWithExpr("@table.users.field.email + @table.users.field.unknownCol");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0].message).toContain("@table.users.field.unknownCol");
+    });
+
+    it("@view.<id>.field.<fieldName>: view field 検証", () => {
+      const flow = makeFlowWithExpr("@view.activeUsers.field.user_id");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("@viewer.<id>.column.<colId>: viewer column 検証", () => {
+      const flow = makeFlowWithExpr("@viewer.userListViewer.column.name_col");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("数字始まり UUID の @screen 階層 ref も正しく検証 (#1269 提案 A の regex fix と組合せ)", () => {
+      const flow = makeFlowWithExpr(
+        "@screen.0739c454-45d6-4c99-962a-7b0b9e113a22.item.searchQuery",
+      );
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+  });
+
+  describe("entity prefixes (単純 ID lookup)", () => {
+    it("@layout.<id>: layouts set 突合", () => {
+      const okFlow = makeFlowWithExpr("@layout.main-layout");
+      const ngFlow = makeFlowWithExpr("@layout.notExist");
+      const idx = buildRichIndex();
+      expect(
+        checkAntipatterns(okFlow, JSON.stringify(okFlow), idx).filter(
+          (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+        ),
+      ).toHaveLength(0);
+      const ng = checkAntipatterns(ngFlow, JSON.stringify(ngFlow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(ng.length).toBeGreaterThan(0);
+    });
+
+    it("@seq / @flow / @system: 単純 set 突合", () => {
+      const okFlow = makeFlowWithExpr("@seq.orderSeq + @flow.flow-A + @system.paymentGateway");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(okFlow, JSON.stringify(okFlow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("@seq / @flow / @system: 未知 id は broken", () => {
+      const ngFlow = makeFlowWithExpr("@seq.unknownSeq + @flow.unknownFlow + @system.unknownSys");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(ngFlow, JSON.stringify(ngFlow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found.length).toBe(3);
+    });
+  });
+
+  describe("generic-definition prefixes (14 kind)", () => {
+    it.each([
+      ["@contract.OrderForm", true],
+      ["@contract.UnknownContract", false],
+      ["@type.Order", true],
+      ["@type.UnknownType", false],
+      ["@exception.NotFoundException", true],
+      ["@exception.UnknownException", false],
+      ["@rule.InventoryRule", true],
+      ["@rule.UnknownRule", false],
+      ["@validation.IsPositiveQuantity", true],
+      ["@validation.UnknownValidation", false],
+      ["@behavior.DebounceInput", true],
+      ["@behavior.UnknownBehavior", false],
+      ["@policy.RetryPolicy", true],
+      ["@policy.UnknownPolicy", false],
+      ["@component.OrderValidator", true],
+      ["@component.UnknownComponent", false],
+      ["@fragment.OrderSummary", true],
+      ["@fragment.UnknownFragment", false],
+      ["@logConfig.Default", true],
+      ["@logConfig.UnknownLogConfig", false],
+    ])("`%s` → expectedValid=%s", (ref, expectedValid) => {
+      const flow = makeFlowWithExpr(ref);
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      if (expectedValid) {
+        expect(found).toHaveLength(0);
+      } else {
+        expect(found.length).toBeGreaterThan(0);
+        expect(found[0].message).toContain(ref);
+      }
+    });
+  });
+
+  describe("catalog prefixes (constants / message / log-event の field 名解決)", () => {
+    it("@const.<catalogName>: catalog instance 名で valid", () => {
+      const flow = makeFlowWithExpr("@const.OrderConstants");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("@const.<fieldName>: catalog 内 field 名で valid (flat key 形式)", () => {
+      const flow = makeFlowWithExpr("@const.TAX_RATE");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("@const.<unknownKey>: catalog name でも field 名でも無い → broken", () => {
+      const flow = makeFlowWithExpr("@const.UNKNOWN_KEY");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found.length).toBeGreaterThan(0);
+    });
+
+    it("@msg.<fieldName>: message catalog field 名で valid", () => {
+      const flow = makeFlowWithExpr("@msg.order-confirmed");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("@logEvent.<fieldName>: log-event catalog field 名で valid", () => {
+      const flow = makeFlowWithExpr("@logEvent.order-created");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+  });
+
+  describe("project-level prefixes (@conv / @ext)", () => {
+    it("@conv.<category>: convention category で valid", () => {
+      const flow = makeFlowWithExpr("@conv.numbering.orderNumber + @conv.regex.productCode");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("@conv.<unknownCategory>: 未知 category は broken", () => {
+      const flow = makeFlowWithExpr("@conv.unknownCategory.someKey");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found.length).toBeGreaterThan(0);
+    });
+
+    it("@ext.<namespace>: 既知 namespace は valid", () => {
+      const flow = makeFlowWithExpr("@ext.retail.someExtension + @ext.common.helper");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("@ext.<unknownNamespace>: 未知 namespace は broken", () => {
+      const flow = makeFlowWithExpr("@ext.unknownNs.something");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("severity (maturity 連動)", () => {
+    it("maturity=draft 時、broken ref は warning", () => {
+      const flow = makeFlowWithExpr("@screen.unknownScreen", "draft");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found.length).toBeGreaterThan(0);
+      expect(found[0].severity).toBe("warning");
+    });
+
+    it("maturity=committed 時、broken ref は error", () => {
+      const flow = makeFlowWithExpr("@screen.unknownScreen", "committed");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found.length).toBeGreaterThan(0);
+      expect(found[0].severity).toBe("error");
+    });
+  });
+
+  describe("error message に Phase C 拡張を示す", () => {
+    it("projectIndex 渡し時、message は `project catalog 系` を含む", () => {
+      const flow = makeFlowWithExpr("@screen.unknownScreen");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found[0].message).toContain("project catalog 系");
+    });
+
+    it("projectIndex 未渡し時、message は `@var / @event のみ` を含む", () => {
+      const flow = makeFlowWithExpr("@var.unknownVar");
+      const found = checkAntipatterns(flow, JSON.stringify(flow)).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found[0].message).toContain("のみ");
+    });
+  });
+
+  describe("不明 prefix は silent pass (将来拡張のための safety)", () => {
+    it("`@unknownPrefix.foo` は false positive を出さない", () => {
+      const flow = makeFlowWithExpr("@somethingNew.foo");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
   });
 });

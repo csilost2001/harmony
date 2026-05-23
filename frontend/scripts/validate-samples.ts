@@ -28,6 +28,7 @@ import { resolveScreenItemRefs } from "../src/schemas/screenItemRefResolver.js";
 import { loadExtensionsFromBundle, type ExtensionsBundle, type LoadedExtensions } from "../src/schemas/loadExtensions.js";
 import type { ProjectCatalogs } from "../src/schemas/projectCatalogs.js";
 import { checkAntipatterns } from "../src/schemas/processFlowAntipatternValidator.js";
+import { buildProjectCatalogIndex, type ProjectCatalogIndex } from "../src/schemas/projectCatalogIndex.js";
 import type { Screen } from "../src/types/v3/screen.js";
 import type { Conventions } from "../src/types/v3/conventions.js";
 import type { ViewDefinition } from "../src/types/v3/view-definition.js";
@@ -58,6 +59,17 @@ interface ProjectResources {
   externalCatalogs: ProjectCatalogs | null;
   /** PageLayout entity 一覧 (page-layouts/ ディレクトリから読み込む、#1022) */
   pageLayouts: PageLayoutForValidator[];
+  /** 14 kind generic-definition instance 一覧 (#1269 提案 C、Project-level broken-ref 検証用) */
+  genericDefinitions: GenericDefinitionLike[];
+  /** Extension namespace 集合 (#1269 提案 C、`@ext.<namespace>` 検証用) */
+  extensionNamespaces: string[];
+}
+
+/** Generic Definition の最小型 (kind / name のみ project catalog index で利用) */
+interface GenericDefinitionLike {
+  kind?: string;
+  name?: string;
+  fields?: Array<{ name?: string }>;
 }
 
 interface ValidationIssue {
@@ -163,6 +175,61 @@ function loadViewDefinitionsFromDir(dir: string): ViewDefinition[] {
   }
 }
 
+/**
+ * 14 kind generic-definition instance を全て walk して読み込む (#1269 提案 C)。
+ * `<dataDir>/generic-definitions/<kind>/<Name>.json` 階層を走査。
+ */
+function loadGenericDefinitionsFromDir(genericDefsDir: string): GenericDefinitionLike[] {
+  if (!existsSync(genericDefsDir)) return [];
+  const out: GenericDefinitionLike[] = [];
+  try {
+    const kindDirs = readdirSync(genericDefsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+    for (const kindDir of kindDirs) {
+      const fullKindDir = join(genericDefsDir, kindDir);
+      const files = readdirSync(fullKindDir).filter((f) => f.endsWith(".json"));
+      for (const f of files) {
+        try {
+          const raw = JSON.parse(readFileSync(join(fullKindDir, f), "utf-8")) as GenericDefinitionLike;
+          out.push(raw);
+        } catch {
+          // parse error は skip (本 validator の責務外)
+        }
+      }
+    }
+  } catch {
+    // dir read error → 空配列で返す
+  }
+  return out;
+}
+
+/**
+ * Extensions ディレクトリから namespace 一覧を抽出 (#1269 提案 C)。
+ * v3 形式 `<namespace>.v3.json` の `namespace` field を読み取る。
+ */
+function loadExtensionNamespacesFromDir(extDir: string): string[] {
+  if (!existsSync(extDir)) return [];
+  const namespaces = new Set<string>();
+  try {
+    const allFiles = readdirSync(extDir, { recursive: true })
+      .filter((f): f is string => typeof f === "string" && f.endsWith(".json"));
+    for (const f of allFiles) {
+      try {
+        const raw = JSON.parse(readFileSync(join(extDir, f), "utf-8")) as { namespace?: string };
+        if (typeof raw.namespace === "string" && raw.namespace.length > 0) {
+          namespaces.add(raw.namespace);
+        }
+      } catch {
+        // skip
+      }
+    }
+  } catch {
+    return [];
+  }
+  return [...namespaces];
+}
+
 function loadScreenTransitionsFromProjectJson(projectDir: string): ScreenTransitionEntry[] {
   // R-4 #853: project.json → harmony.json にリネーム済。harmony/ (dataDir) は harmony.json の dataDir 値。
   // harmony.json は workspace root 直下に固定 (dataDir 外)。
@@ -235,6 +302,8 @@ function discoverProject(projectDirArg: string): ProjectResources {
     flowsDir: join(dataDir, "process-flows"),
     externalCatalogs,
     pageLayouts: loadPageLayoutsFromDir(join(dataDir, "page-layouts")),
+    genericDefinitions: loadGenericDefinitionsFromDir(join(dataDir, "generic-definitions")),
+    extensionNamespaces: loadExtensionNamespacesFromDir(join(dataDir, "extensions")),
   };
 }
 
@@ -609,6 +678,22 @@ export async function runValidation(projectDirArg: string): Promise<ValidationSu
   const results: FlowValidationResult[] = [];
   const projectResults: ProjectValidationResult[] = [];
 
+  // #1269 提案 C: 全 flow が同じ project-level catalog index を共有する
+  // (`@screen` / `@table` / `@conv` / `@ext` / 14 generic-definition kind の broken-ref 検証用)
+  const projectIndex: ProjectCatalogIndex = buildProjectCatalogIndex({
+    screens: project.screens,
+    tables: project.tables as Array<{ id?: string; fields?: Array<{ name?: string; id?: string }> }>,
+    views: [], // 現状 view (DB view) は loader 未実装 (#1023 系、Phase D follow-up)
+    viewDefinitions: project.viewDefinitions,
+    pageLayouts: project.pageLayouts,
+    sequences: [], // sequences entity loader 未実装、必要になったら追加
+    processFlows: flows.map((f) => f.flow),
+    genericDefinitions: project.genericDefinitions,
+    conventions: project.conventionsV3 as Record<string, unknown> | null,
+    externalCatalogs: project.externalCatalogs,
+    extensionNamespaces: project.extensionNamespaces,
+  });
+
   // ─── 必須リソース欠落チェック (docs/spec/sample-project-structure.md) ───────
   // conventions/catalog.json が欠落 → @conv.* 参照検証が全スキップされサイレント pass になるため error
   if (project.conventions === null) {
@@ -655,7 +740,8 @@ export async function runValidation(projectDirArg: string): Promise<ValidationSu
       issues.push(issue("identifierScope", i.code, i.path, `@${i.identifier} - ${i.message}`));
     }
 
-    for (const i of checkAntipatterns(flow, rawJson)) {
+    // #1269 提案 C: project catalog index を渡して 24 prefix broken-ref を検証
+    for (const i of checkAntipatterns(flow, rawJson, projectIndex)) {
       issues.push(issue("processFlowAntipatternValidator", i.code, i.path, i.message, i.severity));
     }
 

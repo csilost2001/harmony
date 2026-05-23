@@ -146,6 +146,23 @@ JSON Schema 2020-12 では `x-*` keyword は未定義扱い (warning が出る�
 - 撤廃制限ストック: [#1265](https://github.com/csilost2001/harmony/issues/1265)
 - Generic Definition Catalog: [generic-definition-layer.md](generic-definition-layer.md)
 
-## 9. 変更履歴
+## 9. 24 prefix broken-ref 検証 (#1269 提案 C)
+
+`processFlowAntipatternValidator` Check 31 BROKEN_REFERENCE_MATURITY_AWARE は project catalog index (`frontend/src/schemas/projectCatalogIndex.ts`) を渡すことで本仕様 §1 の 24 prefix 全件を検証する。validator 実装範囲は以下の通り:
+
+| prefix 群 | 検証ロジック | catalog source |
+|---|---|---|
+| `@var` / `@event` | flow context のみで検証 (project index 不要) | runtime scope / `context.catalogs.events` |
+| `@screen` / `@table` / `@view` / `@viewer` | 2 段 ref で id 検証、4 段以上 (`<id>.<container>.<child>`) で child id 検証 | `screens/` / `tables/` / `views/` / `view-definitions/` |
+| `@layout` / `@seq` / `@flow` / `@system` | head id 単純 lookup | `page-layouts/` / `sequences/` / `process-flows/` / `external.json#/externalSystems` |
+| `@contract` / `@type` / `@exception` / `@rule` / `@validation` / `@behavior` / `@policy` / `@component` / `@fragment` | name lookup | `generic-definitions/<kind>/<Name>.json` |
+| `@const` / `@msg` / `@logEvent` / `@logConfig` | catalog instance 名 + 全 catalog の fields[].name の union | 同上 (kind 別) |
+| `@conv` | conventions top-level key + `extensionCategories.<name>` | `conventions/catalog.json` |
+| `@ext` | extension namespace lookup | `extensions/<ns>.v3.json#/namespace` |
+
+severity は maturity 連動 (`committed`=error / `draft`/`provisional`=warning)。projectCatalogIndex 未渡し時は @var / @event のみ検証 (silent pass on the rest、Phase X2 互換)。
+
+## 10. 変更履歴
 
 - 2026-05-23: 初版作成 (#1263 Phase X2 — RFC #1254 件 3.7 verdict 反映)
+- 2026-05-23: §9 24 prefix broken-ref 検証 追加 (#1269 提案 C — Phase X2 follow-up)
