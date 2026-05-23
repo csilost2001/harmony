@@ -127,10 +127,25 @@
         "itemType": {
           "kind": "object",
           "fields": [
-            { "name": "id", "type": "integer", "required": true },
-            { "name": "name", "type": "string", "required": true },
-            { "name": "slug", "type": "string", "required": true },
-            { "name": "color", "type": "string" }
+            {
+              "name": "id",
+              "type": "integer",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "slug",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "color",
+              "type": "string"
+            }
           ]
         }
       },
@@ -150,10 +165,24 @@
         "itemType": {
           "kind": "object",
           "fields": [
-            { "name": "id", "type": "integer", "required": true },
-            { "name": "url", "type": "string", "required": true },
-            { "name": "alt", "type": "string" },
-            { "name": "orderIndex", "type": "integer" }
+            {
+              "name": "id",
+              "type": "integer",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "alt",
+              "type": "string"
+            },
+            {
+              "name": "orderIndex",
+              "type": "integer"
+            }
           ]
         }
       },
@@ -190,7 +219,7 @@
           "label": "削除実行",
           "handlerFlowId": "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f",
           "argumentMapping": {
-            "postId": "@screen.postId"
+            "postId": "@screen.ffec74d0-6c21-45f7-a387-167ac8819255.item.postId"
           }
         }
       ]

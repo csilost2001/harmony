@@ -17,10 +17,22 @@
       "direction": "input",
       "required": false,
       "options": [
-        { "value": "apartment", "label": "マンション" },
-        { "value": "house", "label": "一戸建て" },
-        { "value": "land", "label": "土地" },
-        { "value": "office", "label": "事務所" }
+        {
+          "value": "apartment",
+          "label": "マンション"
+        },
+        {
+          "value": "house",
+          "label": "一戸建て"
+        },
+        {
+          "value": "land",
+          "label": "土地"
+        },
+        {
+          "value": "office",
+          "label": "事務所"
+        }
       ],
       "description": "検索条件: 物件種別。未指定時は全種別が対象。"
     },
@@ -48,7 +60,10 @@
     {
       "id": "searchButton",
       "label": "物件を検索",
-      "type": { "kind": "extension", "extensionRef": "realestate:button" },
+      "type": {
+        "kind": "extension",
+        "extensionRef": "realestate:button"
+      },
       "direction": "output",
       "readonly": true,
       "events": [
@@ -57,9 +72,9 @@
           "label": "物件検索実行",
           "handlerFlowId": "d4b5c6e7-f809-4112-bc3d-4e5f6a7b8c9d",
           "argumentMapping": {
-            "propertyType": "@screen.propertyType",
-            "maxPrice10kYen": "@screen.maxPrice10kYen",
-            "minAreaSqm": "@screen.minAreaSqm"
+            "propertyType": "@screen.b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b.item.propertyType",
+            "maxPrice10kYen": "@screen.b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b.item.maxPrice10kYen",
+            "minAreaSqm": "@screen.b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b.item.minAreaSqm"
           }
         }
       ],
@@ -68,7 +83,10 @@
     {
       "id": "propertyRows",
       "label": "物件一覧",
-      "type": { "kind": "array", "itemType": "json" },
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
       "direction": "viewer",
       "viewDefinitionId": "e5c6d7f8-0912-4223-8d4e-5f6a7b8c9d0e",
       "valueFrom": {

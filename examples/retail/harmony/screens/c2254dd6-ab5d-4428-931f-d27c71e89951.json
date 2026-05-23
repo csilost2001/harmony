@@ -109,10 +109,10 @@
           "label": "配送指示登録",
           "handlerFlowId": "d63c703c-26ed-4704-8b76-329c6bfae9c9",
           "argumentMapping": {
-            "orderId": "@screen.orderId",
-            "carrierId": "@screen.carrierId",
-            "preferredDate": "@screen.preferredDate",
-            "timeSlot": "@screen.timeSlot"
+            "orderId": "@screen.c2254dd6-ab5d-4428-931f-d27c71e89951.item.orderId",
+            "carrierId": "@screen.c2254dd6-ab5d-4428-931f-d27c71e89951.item.carrierId",
+            "preferredDate": "@screen.c2254dd6-ab5d-4428-931f-d27c71e89951.item.preferredDate",
+            "timeSlot": "@screen.c2254dd6-ab5d-4428-931f-d27c71e89951.item.timeSlot"
           }
         }
       ],

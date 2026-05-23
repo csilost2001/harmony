@@ -38,8 +38,8 @@
           "label": "在庫照会",
           "handlerFlowId": "efa7ac6e-e295-416e-b68d-17c4739b5097",
           "argumentMapping": {
-            "storeCode": "@screen.storeFilter",
-            "productCode": "@screen.productCodeFilter"
+            "storeCode": "@screen.4a9df651-e0cc-4523-a9bf-f3fb9d45c53f.item.storeFilter",
+            "productCode": "@screen.4a9df651-e0cc-4523-a9bf-f3fb9d45c53f.item.productCodeFilter"
           }
         }
       ],

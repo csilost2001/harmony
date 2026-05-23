@@ -79,8 +79,8 @@
           "label": "在庫照会",
           "handlerFlowId": "efa7ac6e-e295-416e-b68d-17c4739b5097",
           "argumentMapping": {
-            "productCode": "@screen.productCode",
-            "storeCode": "@screen.storeCode"
+            "productCode": "@screen.e6147dc0-94b7-436d-ba87-d0080ac34f44.item.productCode",
+            "storeCode": "@screen.e6147dc0-94b7-436d-ba87-d0080ac34f44.item.storeCode"
           }
         }
       ],

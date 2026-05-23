@@ -52,8 +52,8 @@
           "handlerFlowId": "6a49b14b-eb90-45bd-9df0-df4b5986626b",
           "handlerActionId": "act-001",
           "argumentMapping": {
-            "sessionId": "@screen.sessionId",
-            "dialogueLineId": "@screen.currentDialogueLine",
+            "sessionId": "@screen.a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7.item.sessionId",
+            "dialogueLineId": "@screen.a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7.item.currentDialogueLine",
             "audioUrl": "@self.audioUrl"
           }
         }
@@ -74,7 +74,7 @@
           "handlerFlowId": "96118ae1-a0ab-401b-8584-dd645a45a81f",
           "handlerActionId": "act-001",
           "argumentMapping": {
-            "sessionId": "@screen.sessionId",
+            "sessionId": "@screen.a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7.item.sessionId",
             "userInput": "@self.value"
           }
         }

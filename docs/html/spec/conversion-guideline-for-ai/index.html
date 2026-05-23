@@ -491,7 +491,7 @@
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"都道府県変更"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "handlerFlowId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"00000000-1060-4000-8000-000000000010"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">          "argumentMapping"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "prefectureCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@screen.prefecture"</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">            "prefectureCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@screen.&#x3C;screenId>.item.prefecture"</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">          }</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        }</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      ],</span></span>
@@ -569,7 +569,7 @@
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"change"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "handlerFlowId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"00000000-1060-4000-8000-000000000010"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "argumentMapping"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"prefectureCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@screen.prefecture"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "argumentMapping"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"prefectureCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@screen.&#x3C;screenId>.item.prefecture"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "effects"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"clear"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"target"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"city"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">        { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"setOptions"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"target"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"city"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"value"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"catalog.cities"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>
@@ -1666,8 +1666,8 @@
 <li><strong>JSON 重複 kind</strong> — <code>kind: "dbQuery"</code> と <code>kind: "compute"</code> を同 step 内に書く誤り。1 step 1 kind</li>
 <li><strong>screenTransition と httpRoute 衝突</strong> — 同じパスを両方で定義しない</li>
 <li><strong>採番 nextSeq() 不能</strong> — <code>sequence.ref</code> の参照先 sequence 未定義</li>
-<li><strong>rollbackOn 欠落</strong> — TX 内のステップが throw する条件で <code>rollbackOn</code> 未指定</li>
-<li><strong>lineage purpose 誤り</strong> — <code>purpose</code> を type と混同</li>
+<li><strong>rollbackOn 欠落</strong> — TX 内のステップが throw する条件で <code>errorHandling.rollbackOn</code> 未指定 (#1263 Phase X3 で errorHandling 集約済)</li>
+<li><strong>lineage</strong> — <strong>#1263 Phase X3 で削除済</strong>。記述すると schema 不適合になる (購入元 / 加工 / 流出経路の追跡は別途 <code>notes[]</code> か独自 extension で表現)</li>
 <li><strong>loop 同名衝突</strong> — 複数 loop で同 iterator 名</li>
 <li><strong>複数文 SQL</strong> — 1 SQL ステップに <code>;</code> 区切り複数文を書く誤り</li>
 </ol>

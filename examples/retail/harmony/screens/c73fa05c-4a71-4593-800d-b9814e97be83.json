@@ -107,9 +107,9 @@
           "label": "カートに追加",
           "handlerFlowId": "9515d6f6-8342-48cf-a045-9e9d8fab1cfa",
           "argumentMapping": {
-            "productCode": "@screen.addProductCode",
-            "storeCode": "@screen.addStoreCode",
-            "quantity": "@screen.addQuantity"
+            "productCode": "@screen.c73fa05c-4a71-4593-800d-b9814e97be83.item.addProductCode",
+            "storeCode": "@screen.c73fa05c-4a71-4593-800d-b9814e97be83.item.addStoreCode",
+            "quantity": "@screen.c73fa05c-4a71-4593-800d-b9814e97be83.item.addQuantity"
           }
         }
       ],

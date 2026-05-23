@@ -404,12 +404,17 @@ interface BrokenRefContext {
  * key 部の charset: LocalId (`-` 含む camelCase / kebab-case) + Uuid (`-` 含む) + Identifier (camelCase)
  * を許容するため `-` を明示的に含める。例: `@var.step.step-06.committed`、`@screen.27e9117-0982-...`
  *
+ * #1269 提案 A fix: UUID は数字始まりも有り得るため key 先頭 charset に `0-9` を追加。
+ * (例: `@screen.0739c454-45d6-4c99-962a-7b0b9e113a22.item.foo` も match させる)
+ * docs/spec/process-flow-prefix-system.md §3 階層参照 (`@screen.<id>.item.<id>` 等) を機械検証で
+ * 取り扱うため必須。
+ *
  * #1267 Opus review S-1 fix: `user@var.foo` のような email/IRC 風文字列で false positive を出さない
  * よう、`@` の直前が identifier 文字 (`[a-zA-Z0-9_]`) でないことを lookbehind で確認する。
  * Description が TemplateString 統合された影響で description / note 内に email アドレスが
  * 含まれる頻度が高いため重要 (Markdown link `[text](mailto:user@example.com)` 等も safe)。
  */
-const REF_RE = /(?<![a-zA-Z0-9_])@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z_][a-zA-Z0-9_.-]*)/g;
+const REF_RE = /(?<![a-zA-Z0-9_])@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z0-9_][a-zA-Z0-9_.-]*)/g;
 
 /**
  * `@<prefix>.<key>` 参照を 1 件抽出し、Phase X2 で対応する prefix について broken / TX-leak を判定する。
@@ -759,7 +764,7 @@ export function checkAntipatterns(
             severity: "error",
             code: "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED",
             path: `${stepPath}.sql`,
-            message: `\`dbAccess\` step は \`maturity: \"committed\"\` の場合 \`sql\` 必須です${dbStep.naturalQuery ? ` (現状 \`naturalQuery\` のみで sql 未設定)` : ""}。draft 期間で \`naturalQuery\` を AI が実 SQL に変換してから committed 昇格してください (#1263 Phase X3 / #1254 件 5)。`,
+            message: `\`dbAccess\` step は \`maturity: "committed"\` の場合 \`sql\` 必須です${dbStep.naturalQuery ? ` (現状 \`naturalQuery\` のみで sql 未設定)` : ""}。draft 期間で \`naturalQuery\` を AI が実 SQL に変換してから committed 昇格してください (#1263 Phase X3 / #1254 件 5)。`,
           });
         }
       }

@@ -391,7 +391,7 @@ ViewDefinition の列定義を使い ProcessFlow 出力を画面に表示する�
         {
           "id": "click",
           "handlerFlowId": "<検索フロー UUID>",
-          "argumentMapping": { "keyword": "@screen.keyword" }
+          "argumentMapping": { "keyword": "@screen.<screenId>.item.keyword" }
         }
       ]
     },
