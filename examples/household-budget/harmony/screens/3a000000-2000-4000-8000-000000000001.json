@@ -11,6 +11,7 @@
   "path": "/",
   "groupId": "3a000000-6000-4000-8000-000000000001",
   "auth": "required",
+  "processFlowId": "3a000000-5000-4000-8000-000000000005",
   "items": [
     {
       "id": "currentMonthIncome",
@@ -19,10 +20,10 @@
       "direction": "output",
       "displayFormat": "¥#,##0",
       "valueFrom": {
-        "kind": "expression",
-        "expression": "${summary.monthlyIncome}"
+        "kind": "flowVariable",
+        "variableName": "summary.monthlyIncome"
       },
-      "helperText": "当月 (1 日 〜 月末) の収入合計。"
+      "helperText": "当月 (1 日 〜 月末) の収入合計。fetchDashboardData flow が strftime('%Y-%m','now') で当月絞り込みして算出。"
     },
     {
       "id": "currentMonthExpense",
@@ -31,10 +32,10 @@
       "direction": "output",
       "displayFormat": "¥#,##0",
       "valueFrom": {
-        "kind": "expression",
-        "expression": "${summary.monthlyExpense}"
+        "kind": "flowVariable",
+        "variableName": "summary.monthlyExpense"
       },
-      "helperText": "当月の支出合計。"
+      "helperText": "当月の支出合計。fetchDashboardData flow から取得。"
     },
     {
       "id": "currentMonthBalance",
@@ -43,10 +44,10 @@
       "direction": "output",
       "displayFormat": "¥#,##0",
       "valueFrom": {
-        "kind": "expression",
-        "expression": "${summary.monthlyIncome - summary.monthlyExpense}"
+        "kind": "flowVariable",
+        "variableName": "summary.balance"
       },
-      "helperText": "収入 - 支出。正値=黒字、負値=赤字。"
+      "helperText": "収入 - 支出 (fetchDashboardData flow の compute step で導出済)。正値=黒字、負値=赤字。"
     },
     {
       "id": "recentTransactions",

@@ -330,6 +330,16 @@
         "actionCount": 2,
         "maturity": "draft",
         "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-5000-4000-8000-000000000005",
+        "no": 5,
+        "name": "ダッシュボードデータ取得",
+        "flowType": "screen",
+        "screenId": "3a000000-2000-4000-8000-000000000001",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
       }
     ]
   }

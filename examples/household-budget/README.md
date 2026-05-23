@@ -13,9 +13,9 @@
 ### コアシナリオ
 
 1. **取引登録**: 日付 + 口座 + カテゴリ + 金額 + メモ を入力して 1 件 INSERT
-2. **取引一覧**: 時系列降順で過去取引を閲覧、行スワイプで削除
+2. **取引一覧**: 時系列降順で過去取引を閲覧、行 click で取引編集画面へ遷移 (削除は編集画面の deleteButton から)
 3. **月次レポート**: 対象月のカテゴリ別収支 + 収入 / 支出合計 / 差引残高
-4. **カテゴリ管理**: 収支カテゴリの CRUD (初期 seed で 8 種類投入想定)
+4. **カテゴリ管理**: 収支カテゴリの CRUD (初期 seed で 12 種類投入: 支出 8 + 収入 4、後述の seed/categories.json と整合)
 
 ## 技術スタック (techStack)
 
@@ -61,6 +61,8 @@
 
 各画面に対応する `<screen-id>.design.json` (GrapesJS shape + Tailwind HTML) を同梱しているため、designer で開いた瞬間からビジュアル付きで表示される (空キャンバスにならない)。
 
+**注意**: design.json 内の表示値 (¥320,000 等の KPI 数値、6/14 等の日付、店名 / 用途のメモ等) は **demo 用のハードコード値**。実 runtime ではダッシュボード画面が `fetchDashboardData` flow を mount 時に実行し、`@summary.monthlyIncome` 等の flow variable で動的に上書きされる (各 item の `valueFrom.flowVariable` 参照)。design.json は Tailwind aesthetic のプレビュー目的で seed データ相当の現実値を埋めてあるだけで、業務 logic 上の意味は持たない。
+
 ### ViewDefinitions (2 個)
 
 | name | source | 役割 |
@@ -68,14 +70,15 @@
 | 取引一覧 viewer | `transactions` + JOIN (accounts / categories) | level 2 構造化クエリ |
 | カテゴリ一覧 viewer | `categories` | level 1 (sourceTableId) シンプル |
 
-### ProcessFlows (4 個)
+### ProcessFlows (5 個)
 
 | name | flowType | screen | 主処理 |
 |---|---|---|---|
 | 取引登録 | `screen` | `/transactions/new` | validation → INSERT → 201 |
-| 取引削除 | `screen` | `/transactions` | DELETE (user_id 一致 WHERE) → affectedRows=1 検査 → 204 |
+| 取引削除 | `screen` | `/transactions/:transactionId/edit` | snapshot SELECT → DELETE (user_id 一致 WHERE) → event publish → 204 (削除 UX は編集画面 deleteButton から発火) |
 | 月次レポート取得 | `screen` | `/reports/monthly` | validation → category 別 SELECT → 合計 SELECT → compose → 200 |
 | 取引更新 | `screen` | `/transactions/:transactionId/edit` | 2 アクション: load (GET, mount 時 pre-fill) + update (PUT, submit 時 UPDATE) |
+| ダッシュボードデータ取得 | `screen` | `/` | mount 時 (trigger=load) に当月収支サマリ + 直近 5 件取引を取得、画面 items の `valueFrom.flowVariable` 経由で bind |
 
 ## 設計判断 (主なもの)
 
@@ -135,7 +138,7 @@ examples だから最初から多様なデータを入れている。`seed/` デ
 
 ### v3 schema との配線
 
-- **`processFlow.context.catalogs.errors.<CODE>.exceptionTypeRef`** → `generic-definitions/exception-type/<Name>` (process-flows/createTransaction / deleteTransaction / updateTransaction / fetchMonthlyReport の全 4 flow で配線済)
+- **`processFlow.context.catalogs.errors.<CODE>.exceptionTypeRef`** → `generic-definitions/exception-type/<Name>` (process-flows/createTransaction / deleteTransaction / updateTransaction / fetchMonthlyReport の 4 flow で配線済、fetchDashboardData は読取のみで error catalog 不要)
 - **`processFlow.context.catalogs.events.<topic>`** に domain-event を登録 → `EventPublishStep.topic` で発火 (createTransaction / deleteTransaction / updateTransaction)
 - **`ValidationRule.exceptionTypeRef`** → exception-type 参照 (全 6 rule × 3 flow で配線済)
 - **`Description` 等のテキスト**で `generic-definitions/<kind>/<Name>` パスを reference 文字列として相互リンク
@@ -163,7 +166,7 @@ examples/household-budget/
     ├── view-definitions/<uuid>.json × 2
     ├── screens/<uuid>.json          × 6
     ├── screens/<uuid>.design.json   × 6  (Tailwind HTML)
-    ├── process-flows/<uuid>.json    × 4
+    ├── process-flows/<uuid>.json    × 5
     └── generic-definitions/         # 14 kind 全 dogfood (37 ファイル)
         ├── message/                 × 8
         ├── validation-rule/         × 4

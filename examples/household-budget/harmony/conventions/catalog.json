@@ -4,11 +4,11 @@
   "description": "家計簿アプリの最小規約カタログ。i18n / 通貨 / 認証 / 主要 message と regex を定義。",
   "updatedAt": "2026-05-24T00:00:00.000Z",
   "i18n": {
-    "supportedLocales": ["ja-JP"],
+    "supportedLocales": ["ja-JP", "en-US"],
     "defaultLocale": "ja-JP",
-    "dateFormat": { "ja-JP": "YYYY/MM/DD" },
-    "currencyDisplay": { "ja-JP": "symbol" },
-    "numberGrouping": { "ja-JP": true }
+    "dateFormat": { "ja-JP": "YYYY/MM/DD", "en-US": "MM/DD/YYYY" },
+    "currencyDisplay": { "ja-JP": "symbol", "en-US": "symbol" },
+    "numberGrouping": { "ja-JP": true, "en-US": true }
   },
   "currency": {
     "primary": {

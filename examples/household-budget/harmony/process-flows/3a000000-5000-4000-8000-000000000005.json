@@ -1,0 +1,100 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "3a000000-5000-4000-8000-000000000005",
+    "name": "ダッシュボードデータ取得",
+    "description": "ダッシュボード画面 mount 時 (trigger=load) に実行される flow。当月の収入/支出/差引残高サマリと直近 5 件の取引行をまとめて返す。SQLite の strftime('%Y-%m','now') で現在月を自動判定するため、画面側は yearMonth 入力不要 (月次レポート画面との違い)。",
+    "createdAt": "2026-05-24T00:00:00.000Z",
+    "updatedAt": "2026-05-24T00:00:00.000Z",
+    "maturity": "draft",
+    "flowType": "screen",
+    "screenId": "3a000000-2000-4000-8000-000000000001",
+    "apiVersion": "v1",
+    "mode": "upstream"
+  },
+  "context": {
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "label": "セッションユーザー ID",
+        "type": "integer",
+        "required": true
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-load-dashboard",
+      "name": "ダッシュボードデータ取得",
+      "trigger": "load",
+      "description": "ダッシュボード mount 時に当月サマリ + 直近 5 件取引を取得する。",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "summary",
+          "label": "当月収支サマリ",
+          "type": {
+            "kind": "object",
+            "fields": [
+              { "name": "monthlyIncome",  "type": "number", "label": "当月収入合計" },
+              { "name": "monthlyExpense", "type": "number", "label": "当月支出合計" },
+              { "name": "balance",        "type": "number", "label": "当月差引収支" }
+            ]
+          }
+        },
+        {
+          "name": "recentTransactionRows",
+          "label": "直近 5 件取引",
+          "type": { "kind": "tableList", "tableId": "3a000000-1000-4000-8000-000000000004" }
+        }
+      ],
+      "httpRoute": {
+        "method": "GET",
+        "path": "/api/dashboard",
+        "auth": "required"
+      },
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "contentType": "application/json",
+          "description": "summary + recentTransactionRows をまとめた object を返却。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01-fetch-totals",
+          "kind": "dbAccess",
+          "description": "当月の収入 / 支出 合計を 1 row で SELECT。strftime で当月絞り込み (タイムゾーン UTC 想定、JST 運用なら別途調整必要)。",
+          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "operation": "SELECT",
+          "sql": "SELECT COALESCE(SUM(CASE WHEN c.category_type = 'income'  THEN t.amount ELSE 0 END), 0) AS monthlyIncome, COALESCE(SUM(CASE WHEN c.category_type = 'expense' THEN t.amount ELSE 0 END), 0) AS monthlyExpense FROM transactions t JOIN categories c ON c.id = t.category_id WHERE t.user_id = @sessionUserId AND strftime('%Y-%m', t.occurred_on) = strftime('%Y-%m', 'now')",
+          "outputBinding": { "name": "monthlyTotals" }
+        },
+        {
+          "id": "step-02-fetch-recent",
+          "kind": "dbAccess",
+          "description": "occurred_on 降順 5 件の取引を categoryName / accountName 付きで SELECT。",
+          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "operation": "SELECT",
+          "sql": "SELECT t.id AS id, t.occurred_on AS occurredOn, t.amount AS amount, t.memo AS memo, c.name AS categoryName, c.category_type AS categoryType, c.color AS categoryColor, a.name AS accountName FROM transactions t JOIN categories c ON c.id = t.category_id JOIN accounts a ON a.id = t.account_id WHERE t.user_id = @sessionUserId ORDER BY t.occurred_on DESC, t.id DESC LIMIT 5",
+          "outputBinding": { "name": "recentTransactionRows" }
+        },
+        {
+          "id": "step-03-compose-summary",
+          "kind": "compute",
+          "description": "monthlyIncome / monthlyExpense / balance を summary object にまとめる。balance は導出値 (monthlyIncome - monthlyExpense)。",
+          "expression": "${ { monthlyIncome: @monthlyTotals.monthlyIncome, monthlyExpense: @monthlyTotals.monthlyExpense, balance: @monthlyTotals.monthlyIncome - @monthlyTotals.monthlyExpense } }",
+          "outputBinding": { "name": "summary" }
+        },
+        {
+          "id": "step-04-return",
+          "kind": "return",
+          "description": "summary + recentTransactionRows を返却。dashboard 画面 items が valueFrom.flowVariable で参照する。",
+          "responseId": "200-ok",
+          "bodyExpression": "${ { summary: @summary, recentTransactionRows: @recentTransactionRows } }"
+        }
+      ]
+    }
+  ]
+}
