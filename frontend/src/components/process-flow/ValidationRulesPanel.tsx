@@ -2,6 +2,20 @@ import { useState } from "react";
 import type { ValidationRule, ValidationRuleType } from "../../types/v3";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
+import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
+import { exceptionTypeRefResolver } from "../../utils/reference-completer/workspaceResolver";
+import { ReferenceCompletionInput } from "../common/ReferenceCompletionInput";
+
+// schema: `^generic-definitions/exception-type/[A-Za-z][A-Za-z0-9_]*$`
+const EXCEPTION_TYPE_REF_PREFIX = "generic-definitions/exception-type/";
+
+type Severity = NonNullable<ValidationRule["severity"]>;
+const SEVERITY_OPTIONS: Array<{ value: Severity; label: string }> = [
+  { value: "error", label: "error (ブロック)" },
+  { value: "msg", label: "msg (続行可)" },
+  { value: "noaccept", label: "noaccept (受け付けない)" },
+  { value: "default", label: "default (既定値設定)" },
+];
 
 interface Props {
   rules: ValidationRule[] | undefined;
@@ -26,6 +40,7 @@ const RULE_TYPES: Array<{ value: ValidationRuleType; label: string }> = [
 export function ValidationRulesPanel({ rules, onChange, conventions }: Props) {
   const list = rules ?? [];
   const [expanded, setExpanded] = useState(list.length > 0);
+  const workspace = useWorkspaceReferences();
 
   const addRule = () => {
     onChange([...list, { field: "", type: "required" }]);
@@ -175,6 +190,37 @@ export function ValidationRulesPanel({ rules, onChange, conventions }: Props) {
             >
               <i className="bi bi-x" />
             </button>
+          </div>
+          <div className="col-12 d-flex gap-1 mt-1" style={{ fontSize: "0.8rem" }}>
+            <div style={{ width: 180 }}>
+              <select
+                className="form-select form-select-sm"
+                value={r.severity ?? ""}
+                onChange={(e) =>
+                  updateRule(i, {
+                    severity: (e.target.value || undefined) as Severity | undefined,
+                  })
+                }
+                aria-label="severity"
+                style={{ fontSize: "0.8rem" }}
+              >
+                <option value="">severity —</option>
+                {SEVERITY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-grow-1">
+              <ReferenceCompletionInput
+                className="form-control form-control-sm"
+                value={r.exceptionTypeRef ?? ""}
+                onValueChange={(v) => updateRule(i, { exceptionTypeRef: v || undefined })}
+                resolvers={[exceptionTypeRefResolver]}
+                ctx={{ fieldKind: "exceptionTypeRef", workspace }}
+                placeholder={`exceptionTypeRef (例: ${EXCEPTION_TYPE_REF_PREFIX}StockShortage)`}
+                style={{ fontFamily: "monospace", fontSize: "0.8rem" }}
+              />
+            </div>
           </div>
         </div>
       ))}
