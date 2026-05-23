@@ -366,7 +366,7 @@ interface BrokenRefContext {
  * Description が TemplateString 統合された影響で description / note 内に email アドレスが
  * 含まれる頻度が高いため重要 (Markdown link `[text](mailto:user@example.com)` 等も safe)。
  */
-const REF_RE = /(?<![a-zA-Z0-9_])@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z_][a-zA-Z0-9_.\-]*)/g;
+const REF_RE = /(?<![a-zA-Z0-9_])@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z_][a-zA-Z0-9_.-]*)/g;
 
 function collectBrokenRefs(value: string, ctx: BrokenRefContext): Array<{ prefix: string; key: string }> {
   const broken: Array<{ prefix: string; key: string }> = [];
