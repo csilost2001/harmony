@@ -3,6 +3,24 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import type { ProcessFlow } from "../../types/v3";
+
+// useWorkspaceReferences が内部で WS / store I/O を呼ぶため test 環境では mock して
+// store fallback 削除等の将来変更で silent breakage しないよう固定する (S-1 review feedback)
+vi.mock("../../hooks/useWorkspaceReferences", () => ({
+  useWorkspaceReferences: () => ({
+    screens: [],
+    tables: [],
+    viewDefinitions: [],
+    processFlows: [],
+    fragments: [],
+    components: [],
+    exceptionTypes: [],
+    modelEndpoints: [],
+    secrets: [],
+    events: [],
+  }),
+}));
+
 import { ErrorCatalogPanel } from "./ErrorCatalogPanel";
 
 function groupWith(errors: Record<string, Partial<{ httpStatus: number; defaultMessage: string; description: string; exceptionTypeRef: string }>>): ProcessFlow {

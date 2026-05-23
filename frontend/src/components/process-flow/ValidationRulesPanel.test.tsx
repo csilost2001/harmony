@@ -4,6 +4,24 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import type { ValidationRule } from "../../types/v3";
+
+// useWorkspaceReferences が内部で WS / store I/O を呼ぶため test 環境では mock して
+// store fallback 削除等の将来変更で silent breakage しないよう固定する (S-1 review feedback)
+vi.mock("../../hooks/useWorkspaceReferences", () => ({
+  useWorkspaceReferences: () => ({
+    screens: [],
+    tables: [],
+    viewDefinitions: [],
+    processFlows: [],
+    fragments: [],
+    components: [],
+    exceptionTypes: [],
+    modelEndpoints: [],
+    secrets: [],
+    events: [],
+  }),
+}));
+
 import { ValidationRulesPanel } from "./ValidationRulesPanel";
 
 describe("ValidationRulesPanel — severity + exceptionTypeRef (#1260 B)", () => {
@@ -55,6 +73,15 @@ describe("ValidationRulesPanel — severity + exceptionTypeRef (#1260 B)", () =>
     expect(onChange).toHaveBeenCalledWith([
       expect.not.objectContaining({ severity: expect.anything() }),
     ]);
+  });
+
+  it("rules 空 + 初期 collapsed で severity / exceptionTypeRef 入力欄は描画されない", () => {
+    // panel は useState(list.length > 0) で初期展開を決めるので空 rules は collapsed
+    const { container } = render(
+      <ValidationRulesPanel rules={[]} onChange={() => {}} />,
+    );
+    expect(container.querySelector('select[aria-label="severity"]')).toBeNull();
+    expect(container.querySelector('input[placeholder^="exceptionTypeRef"]')).toBeNull();
   });
 
   it("exceptionTypeRef 変更で onChange が呼ばれる (raw storage 形式)", () => {
