@@ -13,32 +13,32 @@
     {
       "name": "order-confirmed",
       "type": "string",
-      "description": "注文確定後の確認メッセージ。位置引数 orderNumber を埋め込む。",
-      "default": "ご注文 {orderNumber} を承りました"
+      "constraints": ["既定値: 'ご注文 {orderNumber} を承りました'", "位置引数: orderNumber"],
+      "description": "注文確定後の確認メッセージ"
     },
     {
       "name": "stock-insufficient",
       "type": "string",
-      "description": "在庫不足エラー。位置引数 productName / availableQty を埋め込む。",
-      "default": "{productName} の在庫が不足しています (残り {availableQty} 個)"
+      "constraints": ["既定値: '{productName} の在庫が不足しています (残り {availableQty} 個)'", "位置引数: productName, availableQty"],
+      "description": "在庫不足エラーメッセージ"
     },
     {
       "name": "credit-limit-exceeded",
       "type": "string",
-      "description": "与信限度超過エラー。",
-      "default": "ご注文金額が与信限度を超えています"
+      "constraints": ["既定値: 'ご注文金額が与信限度を超えています'"],
+      "description": "与信限度超過エラーメッセージ"
     },
     {
       "name": "quantity-must-be-positive",
       "type": "string",
-      "description": "数量バリデーション違反 (validation-rule IsPositiveQuantity から参照)。",
-      "default": "数量は 1 以上の整数で入力してください"
+      "constraints": ["既定値: '数量は 1 以上の整数で入力してください'"],
+      "description": "数量バリデーション違反メッセージ (validation-rule IsPositiveQuantity から参照)"
     },
     {
       "name": "order-cancel-window-expired",
       "type": "string",
-      "description": "キャンセル猶予経過エラー。位置引数 cancelWindowHours を埋め込む。",
-      "default": "ご注文後 {cancelWindowHours} 時間を過ぎたためキャンセルできません"
+      "constraints": ["既定値: 'ご注文後 {cancelWindowHours} 時間を過ぎたためキャンセルできません'", "位置引数: cancelWindowHours"],
+      "description": "キャンセル猶予経過エラーメッセージ"
     }
   ],
   "relations": [

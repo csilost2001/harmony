@@ -13,32 +13,32 @@
     {
       "name": "TAX_RATE",
       "type": "decimal",
-      "description": "消費税率 (10% の小数表現)",
-      "default": 0.1
+      "constraints": ["既定値: 0.1 (10%)"],
+      "description": "消費税率 (小数表現、10% を 0.1 と保持)"
     },
     {
       "name": "FREE_SHIPPING_THRESHOLD",
       "type": "integer",
-      "description": "送料無料となる注文小計の最低額 (円)",
-      "default": 5000
+      "constraints": ["既定値: 5000", "単位: 円"],
+      "description": "送料無料となる注文小計の最低額"
     },
     {
       "name": "MAX_ORDER_LINE_ITEMS",
       "type": "integer",
-      "description": "1 注文に含められる明細行の最大数",
-      "default": 50
+      "constraints": ["既定値: 50"],
+      "description": "1 注文に含められる明細行の最大数"
     },
     {
       "name": "CREDIT_LIMIT_DEFAULT",
       "type": "integer",
-      "description": "新規顧客の与信限度デフォルト (円)",
-      "default": 100000
+      "constraints": ["既定値: 100000", "単位: 円"],
+      "description": "新規顧客の与信限度デフォルト"
     },
     {
       "name": "CANCEL_WINDOW_HOURS",
       "type": "integer",
-      "description": "注文確定後にキャンセル可能な猶予時間 (時間)",
-      "default": 24
+      "constraints": ["既定値: 24", "単位: 時間"],
+      "description": "注文確定後にキャンセル可能な猶予時間"
     }
   ],
   "constraints": [

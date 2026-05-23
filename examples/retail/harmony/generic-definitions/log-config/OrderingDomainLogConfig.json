@@ -13,38 +13,38 @@
     {
       "name": "level",
       "type": "string",
-      "description": "出力対象 log level 閾値 (trace / debug / info / warn / error のいずれか)",
-      "default": "info"
+      "constraints": ["既定値: 'info'", "enum: trace / debug / info / warn / error"],
+      "description": "出力対象 log level 閾値"
     },
     {
       "name": "sink",
       "type": "string",
-      "description": "出力先 (stdout / file / loki / cloudwatch のいずれか)",
-      "default": "stdout"
+      "constraints": ["既定値: 'stdout'", "enum: stdout / file / loki / cloudwatch"],
+      "description": "ログ出力先"
     },
     {
       "name": "format",
       "type": "string",
-      "description": "ログ出力フォーマット (json / text)",
-      "default": "json"
+      "constraints": ["既定値: 'json'", "enum: json / text"],
+      "description": "ログ出力フォーマット"
     },
     {
       "name": "rotation",
       "type": "string",
-      "description": "ローテーション方式 (size / time-daily / time-hourly / none)",
-      "default": "time-daily"
+      "constraints": ["既定値: 'time-daily'", "enum: size / time-daily / time-hourly / none"],
+      "description": "ローテーション方式"
     },
     {
       "name": "retentionDays",
       "type": "integer",
-      "description": "ログ保持日数 (監査要件 / GDPR / 業法準拠で決定)",
-      "default": 90
+      "constraints": ["既定値: 90", "監査要件で 90 日以上必須"],
+      "description": "ログ保持日数 (監査要件 / GDPR / 業法準拠で決定)"
     },
     {
       "name": "includeMdc",
       "type": "boolean",
-      "description": "MDC (Mapped Diagnostic Context) を structured field に含めるか",
-      "default": true
+      "constraints": ["既定値: true"],
+      "description": "MDC (Mapped Diagnostic Context) を structured field に含めるか"
     }
   ],
   "relations": [
@@ -55,7 +55,6 @@
     }
   ],
   "constraints": [
-    "retentionDays は監査要件で 90 日以上必須",
     "format=json + sink=stdout は container 環境のデフォルト",
     "level は env で overridable (LOG_LEVEL=debug 等) だが、デフォルトは info"
   ],

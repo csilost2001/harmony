@@ -12,27 +12,32 @@
   "fields": [
     {
       "name": "orderId",
-      "type": "Uuid",
+      "type": "string",
+      "constraints": ["必須", "UUID 形式"],
       "description": "確定された注文の ID (orders table の PK)"
     },
     {
       "name": "customerId",
-      "type": "Uuid",
+      "type": "string",
+      "constraints": ["必須", "UUID 形式"],
       "description": "注文者の顧客 ID"
     },
     {
       "name": "totalAmount",
       "type": "integer",
-      "description": "注文確定時の総額 (税込・送料込、円)"
+      "constraints": ["必須", "単位: 円"],
+      "description": "注文確定時の総額 (税込・送料込)"
     },
     {
       "name": "lineItems",
       "type": "OrderLineItem[]",
+      "constraints": ["最低 1 件"],
       "description": "確定された明細行配列 (productId / quantity / unitPrice)"
     },
     {
       "name": "confirmedAt",
-      "type": "datetime",
+      "type": "dateTime",
+      "constraints": ["必須", "UTC"],
       "description": "確定時刻 (transactionScope.onCommit で発火するタイミング)"
     }
   ],
@@ -41,11 +46,6 @@
       "kind": "uses",
       "ref": "generic-definitions/data-contract/OrderForm",
       "description": "確定対象の注文フォーム (payload 生成元)"
-    },
-    {
-      "kind": "implements",
-      "ref": "generic-definitions/application-rule/OrderConfirmationRule",
-      "description": "OrderConfirmed イベント発火は本 application-rule が確定する業務イベント"
     }
   ],
   "constraints": [

@@ -58,13 +58,24 @@ beforeAll(() => {
   const ajv = new Ajv2020({ allErrors: true, strict: false });
   addFormats(ajv);
   // 全 v3 schema を addSchema (相互 $ref 解決のため、$id をキーに登録)
+  // top-level + generic-definitions/ サブディレクトリの 14 kind 固有 schema も対象 (#1269 Phase D)
   const schemasByFile = new Map<string, { schema: object; id: string }>();
-  for (const f of readdirSync(v3Dir)) {
-    if (!f.endsWith(".json")) continue;
-    const schemaObj = loadJson(join(v3Dir, f)) as { $id?: string };
-    if (typeof schemaObj.$id !== "string") continue;
+  const loadSchemaFile = (relPath: string, absPath: string) => {
+    const schemaObj = loadJson(absPath) as { $id?: string };
+    if (typeof schemaObj.$id !== "string") return;
     ajv.addSchema(schemaObj as object, schemaObj.$id);
-    schemasByFile.set(f, { schema: schemaObj as object, id: schemaObj.$id });
+    schemasByFile.set(relPath, { schema: schemaObj as object, id: schemaObj.$id });
+  };
+  for (const f of readdirSync(v3Dir)) {
+    const abs = join(v3Dir, f);
+    if (f.endsWith(".json")) {
+      loadSchemaFile(f, abs);
+    } else if (statSync(abs).isDirectory()) {
+      for (const sub of readdirSync(abs)) {
+        if (!sub.endsWith(".json")) continue;
+        loadSchemaFile(`${f}/${sub}`, join(abs, sub));
+      }
+    }
   }
   // 必要な schema の validator を getSchema で取得 (compile しない、重複登録回避)
   const allSchemaFiles = new Set([
@@ -74,6 +85,10 @@ beforeAll(() => {
     "extensions.v3.schema.json",
     "conventions.v3.schema.json",
   ]);
+  // generic-definitions/<kind>.v3.schema.json も全件追加
+  for (const key of schemasByFile.keys()) {
+    if (key.startsWith("generic-definitions/")) allSchemaFiles.add(key);
+  }
   for (const sf of allSchemaFiles) {
     const entry = schemasByFile.get(sf);
     if (!entry) throw new Error(`schema not loaded: ${sf}`);
@@ -157,6 +172,29 @@ function collectFiles(projectDir: string): FileEntry[] {
         schemaFile: "conventions.v3.schema.json",
         relativePath: `harmony/conventions/${f}`,
       });
+    }
+  }
+
+  // generic-definitions/<kind>/<Name>.json — 14 kind を kind 固有 schema で検証 (#1269 Phase D で coverage 追加)
+  const gdDir = join(dataDir, "generic-definitions");
+  if (existsSync(gdDir)) {
+    for (const kindName of readdirSync(gdDir)) {
+      const kindDir = join(gdDir, kindName);
+      try {
+        if (!statSync(kindDir).isDirectory()) continue;
+      } catch {
+        continue;
+      }
+      // kind 固有 schema は schemas/v3/generic-definitions/<kind>.v3.schema.json
+      const kindSchemaFile = `generic-definitions/${kindName}.v3.schema.json`;
+      for (const f of readdirSync(kindDir)) {
+        if (!f.endsWith(".json")) continue;
+        entries.push({
+          filePath: join(kindDir, f),
+          schemaFile: kindSchemaFile,
+          relativePath: `harmony/generic-definitions/${kindName}/${f}`,
+        });
+      }
     }
   }
 
