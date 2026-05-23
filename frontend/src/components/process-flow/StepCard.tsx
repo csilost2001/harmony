@@ -771,6 +771,7 @@ export function StepCard({
               )}
 
               {/* #1260 Phase 2 sub-section B: eventPublish / eventSubscribe dispatch */}
+              {/* #1282: group + conventions を追加 (payload/filter resolver context 用) */}
               {step.kind === "eventPublish" && !isExtensionStep(step) && (
                 <EventPublishStepCardBody
                   step={step}
@@ -779,6 +780,8 @@ export function StepCard({
                   onCommit={onCommit}
                   readOnly={readOnly}
                   workspace={workspace}
+                  group={group}
+                  conventions={conventions}
                 />
               )}
 
@@ -790,6 +793,8 @@ export function StepCard({
                   onCommit={onCommit}
                   readOnly={readOnly}
                   workspace={workspace}
+                  group={group}
+                  conventions={conventions}
                 />
               )}
 

@@ -41,6 +41,8 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
 import { ReferenceCompletionInput } from "../common/ReferenceCompletionInput";
 import { handlerFlowIdResolver, handlerActionIdResolver } from "../../utils/reference-completer/workspaceResolver";
+import { convResolver } from "../../utils/reference-completer/convResolver";
+import { screenHierarchicalResolver } from "../../utils/reference-completer/screenHierarchicalResolver";
 import { screenItemTypeResolver } from "./screenItemTypeResolver";
 import { loadExtensionsFromBundle, type LoadedExtensions } from "../../schemas/loadExtensions";
 import type {
@@ -1332,16 +1334,24 @@ export function ScreenItemsView() {
                                         disabled={isReadonly}
                                       />
                                       <span className="screen-items-event-mapping-eq">=</span>
-                                      <input
-                                        className="form-control form-control-sm"
+                                      {/* #1282: input → ReferenceCompletionInput (@screen.<id>.item.<id> / @conv 補完) */}
+                                      <ReferenceCompletionInput
                                         value={v}
-                                        onChange={(e) => {
+                                        onValueChange={(val) => {
                                           const next = { ...(ev.argumentMapping ?? {}) };
-                                          next[k as Identifier] = e.target.value as TemplateString;
+                                          next[k as Identifier] = val as TemplateString;
                                           handleUpdateEvent(i, eIdx, { argumentMapping: next });
                                         }}
-                                        onBlur={commit}
-                                        placeholder="@screen.email"
+                                        onCommit={commit}
+                                        resolvers={[screenHierarchicalResolver, convResolver]}
+                                        ctx={{
+                                          workspace,
+                                          conventions,
+                                          currentScreenId: screenId,
+                                          currentScreenItems: (file?.items ?? []).map((it) => ({ id: it.id, label: it.label })),
+                                        }}
+                                        className="form-control form-control-sm"
+                                        placeholder="@screen.<screenId>.item.<itemId>"
                                         disabled={isReadonly}
                                       />
                                       <button

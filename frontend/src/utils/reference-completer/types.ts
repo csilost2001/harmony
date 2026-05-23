@@ -71,6 +71,10 @@ export interface CompletionContext {
   extensions?: LoadedExtensions;
   /** handlerActionId resolver: 対象 flow の id。 */
   handlerFlowId?: string;
+  /** 現在編集中の画面の画面項目一覧 (@screen.<id>.item.<id> resolver 用、#1282)。 */
+  currentScreenItems?: { id: string; label?: string }[];
+  /** 現在編集中の画面の screenId (@screen.<id>.item.<id> resolver 用、#1282)。 */
+  currentScreenId?: string;
 }
 
 /** 補完 Resolver インターフェース。 */
