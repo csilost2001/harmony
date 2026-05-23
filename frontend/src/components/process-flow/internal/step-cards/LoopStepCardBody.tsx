@@ -102,28 +102,47 @@ export function LoopStepCardBody({
       )}
 
       {step.loopKind === "collection" && (
-        <div className="form-row-pair">
-          <div className="form-group">
-            <label className="form-label">コレクション</label>
+        <>
+          <div className="form-row-pair">
+            <div className="form-group">
+              <label className="form-label">コレクション</label>
+              <input
+                className="form-control form-control-sm"
+                value={step.collectionSource ?? ""}
+                onChange={(e) => onChange({ collectionSource: e.target.value })}
+                onBlur={onCommit}
+                placeholder="例: 検索結果"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">要素変数名</label>
+              <input
+                className="form-control form-control-sm"
+                value={step.collectionItemName ?? ""}
+                onChange={(e) => onChange({ collectionItemName: e.target.value as Identifier })}
+                onBlur={onCommit}
+                placeholder="例: ユーザー"
+              />
+            </div>
+          </div>
+          {/* #1269 Phase B: collection mode の index 変数名 (任意) */}
+          <div className="form-group" data-field-path="collectionIndexName">
+            <label className="form-label">
+              index 変数名 (任意)
+              <span className="text-muted ms-1" style={{ fontSize: "0.75rem" }}>
+                — 0 始まりの index を loop 本体内で参照する場合に使用 (Identifier / camelCase)
+              </span>
+            </label>
             <input
               className="form-control form-control-sm"
-              value={step.collectionSource ?? ""}
-              onChange={(e) => onChange({ collectionSource: e.target.value })}
+              value={step.collectionIndexName ?? ""}
+              onChange={(e) => onChange({ collectionIndexName: (e.target.value || undefined) as Identifier | undefined })}
               onBlur={onCommit}
-              placeholder="例: 検索結果"
+              placeholder="例: idx"
+              pattern="^[a-z][a-zA-Z0-9]*$"
             />
           </div>
-          <div className="form-group">
-            <label className="form-label">要素変数名</label>
-            <input
-              className="form-control form-control-sm"
-              value={step.collectionItemName ?? ""}
-              onChange={(e) => onChange({ collectionItemName: e.target.value as Identifier })}
-              onBlur={onCommit}
-              placeholder="例: ユーザー"
-            />
-          </div>
-        </div>
+        </>
       )}
 
       <div className={`loop-body${loopBodyCollapsed ? " collapsed" : ""}`}>

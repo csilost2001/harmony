@@ -325,6 +325,52 @@ export function TransactionScopeStepPanel({
         </div>
       </div>
 
+      {/* #1269 Phase B: outputBinding.expose (TX 外参照可な inner var 名の明示宣言) */}
+      <div className="row g-2 mb-2" data-field-path="outputBinding.expose">
+        <div className="col-12">
+          <label className="form-label">
+            <i className="bi bi-box-arrow-right me-1" />
+            TX 外参照可な変数 (outputBinding.expose)
+            <span className="text-muted ms-1" style={{ fontSize: "0.75rem" }}>
+              — TX 内 step の outputBinding.name を列挙すると <code>{`@var.action.${step.outputBinding?.name ?? "<txName>"}.<name>.<field>`}</code> で TX 外参照可
+            </span>
+          </label>
+          <div className="text-muted small mb-1">
+            予約値 (<code>committed</code> / <code>error</code> / <code>diagnostics</code>) は常に利用可能、ここへの明示宣言不要 (#1264 verdict 観点 4)
+          </div>
+          <input
+            type="text"
+            className="form-control form-control-sm"
+            value={(step.outputBinding?.expose ?? []).join(", ")}
+            placeholder="例: newOrder, paymentReceipt (カンマ区切り、Identifier / camelCase)"
+            onChange={(e) => {
+              const list = e.target.value
+                .split(",")
+                .map((s) => s.trim())
+                .filter((s) => s.length > 0);
+              const currentName = step.outputBinding?.name;
+              if (!currentName) {
+                // outputBinding 自体が未設定なら expose は単独で意味を持たない → 何もしない
+                return;
+              }
+              const nextBinding = list.length > 0
+                ? { ...step.outputBinding, name: currentName, expose: list }
+                : { ...step.outputBinding, name: currentName, expose: undefined };
+              onChange({ outputBinding: nextBinding });
+            }}
+            onBlur={onCommit}
+            disabled={!step.outputBinding?.name}
+            title={step.outputBinding?.name ? undefined : "先に outputBinding.name (結果変数名) を設定してください"}
+          />
+          {!step.outputBinding?.name && (
+            <div className="text-muted small mt-1">
+              <i className="bi bi-info-circle me-1" />
+              先に結果変数名 (outputBinding) を上部で設定してください。
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="mb-2" data-field-path="steps">
         <label className="form-label small">
           <i className="bi bi-shield-fill me-1" style={{ color: "#dc2626" }} />

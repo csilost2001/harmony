@@ -290,6 +290,57 @@ describe("BranchStepCardBody", () => {
     expect(call.branches.length).toBe(3);
     expect(call.branches[2].code).toBe("C");
   });
+
+  // #1269 Phase B: tryCatch errorVar UI 追加
+  it("tryCatch 分岐で errorVar input が描画される (#1269 Phase B)", () => {
+    const step = baseStep({
+      kind: "branch",
+      branches: [
+        { id: "b-1", code: "A", condition: { kind: "tryCatch", errorCode: "STOCK_SHORTAGE", errorVar: "caughtError" }, steps: [] },
+      ],
+    });
+    const { container } = render(
+      <BranchStepCardBody
+        step={step}
+        allSteps={[]}
+        tables={[]}
+        screens={[]}
+        commonGroups={[]}
+        onChange={noop}
+        onNavigateCommon={noop}
+      />,
+    );
+    const errorVarInput = container.querySelector('input[placeholder*="errorVar"]') as HTMLInputElement | null;
+    expect(errorVarInput).not.toBeNull();
+    expect(errorVarInput?.value).toBe("caughtError");
+  });
+
+  it("tryCatch errorVar 変更で onChange が errorCode を保持しつつ呼ばれる (#1269 Phase B)", () => {
+    const onChange = vi.fn();
+    const step = baseStep({
+      kind: "branch",
+      branches: [
+        { id: "b-1", code: "A", condition: { kind: "tryCatch", errorCode: "STOCK_SHORTAGE" }, steps: [] },
+      ],
+    });
+    const { container } = render(
+      <BranchStepCardBody
+        step={step}
+        allSteps={[]}
+        tables={[]}
+        screens={[]}
+        commonGroups={[]}
+        onChange={onChange}
+        onNavigateCommon={noop}
+      />,
+    );
+    const errorVarInput = container.querySelector('input[placeholder*="errorVar"]') as HTMLInputElement;
+    fireEvent.change(errorVarInput, { target: { value: "caughtError" } });
+    expect(onChange).toHaveBeenCalled();
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+    expect(lastCall.branches[0].condition.errorVar).toBe("caughtError");
+    expect(lastCall.branches[0].condition.errorCode).toBe("STOCK_SHORTAGE");
+  });
 });
 
 // ── LoopStepCardBody ────────────────────────────────────────────────
@@ -361,6 +412,33 @@ describe("LoopStepCardBody", () => {
     expect(container.textContent).toContain("コレクション");
     expect(container.textContent).toContain("要素変数名");
   });
+
+  // #1269 Phase B: collectionIndexName UI 追加
+  it("collection loop で index 変数名 input が描画される (#1269 Phase B)", () => {
+    const step = baseStep({
+      kind: "loop",
+      loopKind: "collection",
+      collectionSource: "items",
+      collectionItemName: "item",
+      collectionIndexName: "idx",
+      steps: [],
+    });
+    const { container } = render(
+      <LoopStepCardBody
+        step={step}
+        allSteps={[]}
+        tables={[]}
+        screens={[]}
+        commonGroups={[]}
+        onChange={noop}
+        onNavigateCommon={noop}
+      />,
+    );
+    expect(container.textContent).toContain("index 変数名");
+    const indexInput = container.querySelector('[data-field-path="collectionIndexName"] input') as HTMLInputElement | null;
+    expect(indexInput).not.toBeNull();
+    expect(indexInput?.value).toBe("idx");
+  });
 });
 
 // ── LogStepCardBody / AuditStepCardBody / TransactionScopeStepCardBody ──
@@ -406,6 +484,113 @@ describe("TransactionScopeStepCardBody", () => {
       />,
     );
     expect(container.firstChild).not.toBeNull();
+  });
+
+  // #1269 Phase B: outputBinding.expose UI 追加
+  it("outputBinding.expose input が描画され、設定済 expose が表示される (#1269 Phase B)", () => {
+    const step = baseStep({
+      kind: "transactionScope",
+      isolationLevel: "READ_COMMITTED",
+      propagation: "REQUIRED",
+      steps: [],
+      outputBinding: { name: "orderTx", expose: ["newOrder", "paymentReceipt"] },
+    });
+    const { container } = render(
+      <TransactionScopeStepCardBody
+        step={step}
+        allSteps={[]}
+        tables={[]}
+        screens={[]}
+        commonGroups={[]}
+        onChange={noop}
+        onNavigateCommon={noop}
+      />,
+    );
+    expect(container.textContent).toContain("TX 外参照可な変数");
+    const exposeInput = container.querySelector('[data-field-path="outputBinding.expose"] input') as HTMLInputElement | null;
+    expect(exposeInput).not.toBeNull();
+    expect(exposeInput?.value).toBe("newOrder, paymentReceipt");
+    expect(exposeInput?.disabled).toBe(false);
+  });
+
+  it("outputBinding.name が未設定だと expose input は disabled (#1269 Phase B)", () => {
+    const step = baseStep({
+      kind: "transactionScope",
+      isolationLevel: "READ_COMMITTED",
+      propagation: "REQUIRED",
+      steps: [],
+    });
+    const { container } = render(
+      <TransactionScopeStepCardBody
+        step={step}
+        allSteps={[]}
+        tables={[]}
+        screens={[]}
+        commonGroups={[]}
+        onChange={noop}
+        onNavigateCommon={noop}
+      />,
+    );
+    const exposeInput = container.querySelector('[data-field-path="outputBinding.expose"] input') as HTMLInputElement | null;
+    expect(exposeInput).not.toBeNull();
+    expect(exposeInput?.disabled).toBe(true);
+  });
+
+  // #1269 Phase B Round 1 S-2: expose onChange の payload 検証
+  it("expose input 変更で カンマ区切り parse + trim + 空項目除外 が動く (#1269 Phase B Round 1 S-2)", () => {
+    const onChange = vi.fn();
+    const step = baseStep({
+      kind: "transactionScope",
+      isolationLevel: "READ_COMMITTED",
+      propagation: "REQUIRED",
+      steps: [],
+      outputBinding: { name: "orderTx" },
+    });
+    const { container } = render(
+      <TransactionScopeStepCardBody
+        step={step}
+        allSteps={[]}
+        tables={[]}
+        screens={[]}
+        commonGroups={[]}
+        onChange={onChange}
+        onNavigateCommon={noop}
+      />,
+    );
+    const exposeInput = container.querySelector('[data-field-path="outputBinding.expose"] input') as HTMLInputElement;
+    fireEvent.change(exposeInput, { target: { value: "  newOrder ,  paymentReceipt , , empty " } });
+    expect(onChange).toHaveBeenCalled();
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+    expect(lastCall.outputBinding.name).toBe("orderTx");
+    expect(lastCall.outputBinding.expose).toEqual(["newOrder", "paymentReceipt", "empty"]);
+  });
+
+  it("expose を空文字に戻すと expose: undefined になり、name は保持される (#1269 Phase B Round 1 S-2)", () => {
+    const onChange = vi.fn();
+    const step = baseStep({
+      kind: "transactionScope",
+      isolationLevel: "READ_COMMITTED",
+      propagation: "REQUIRED",
+      steps: [],
+      outputBinding: { name: "orderTx", expose: ["newOrder"] },
+    });
+    const { container } = render(
+      <TransactionScopeStepCardBody
+        step={step}
+        allSteps={[]}
+        tables={[]}
+        screens={[]}
+        commonGroups={[]}
+        onChange={onChange}
+        onNavigateCommon={noop}
+      />,
+    );
+    const exposeInput = container.querySelector('[data-field-path="outputBinding.expose"] input') as HTMLInputElement;
+    fireEvent.change(exposeInput, { target: { value: "" } });
+    expect(onChange).toHaveBeenCalled();
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+    expect(lastCall.outputBinding.name).toBe("orderTx");
+    expect(lastCall.outputBinding.expose).toBeUndefined();
   });
 });
 
