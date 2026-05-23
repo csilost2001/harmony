@@ -387,6 +387,64 @@ describe("checkIdentifierScopes — 組み込み関数 BUILTIN_AMBIENTS", () => 
     }));
     expect(issues.some((i) => i.identifier === "reallyUnknownVar")).toBe(true);
   });
+
+  // #1285: Generic Definition Catalog refs + Top-level entity hierarchical refs を
+  // 一括で table-driven テスト。catalog 参照系の broken-ref は別 validator
+  // (processFlowAntipatternValidator Check 31) が担うため identifierScope は skip するだけで OK。
+  describe.each([
+    // Generic Definition Catalog (13 prefix)
+    ["msg",        "@msg.AmountRequired"],
+    ["validation", "@validation.AmountPositiveRange"],
+    ["const",      "@const.TransactionLimits.maxAmount"],
+    ["event",      "@event.transaction.created"],
+    ["logEvent",   "@logEvent.TransactionAuditCreated"],
+    ["logConfig",  "@logConfig.DefaultLogConfig"],
+    ["fragment",   "@fragment.CategoryBadge"],
+    ["behavior",   "@behavior.FormDirtyConfirmExit"],
+    ["contract",   "@contract.TransactionCreateRequest"],
+    ["type",       "@type.Money"],
+    ["exception",  "@exception.TransactionNotFoundException"],
+    ["policy",     "@policy.BackendRetryPolicy"],
+    ["component",  "@component.BalanceCalculator"],
+    // Top-level entity hierarchical refs (5 prefix)
+    ["screen",     "@screen.userForm.item.email.value"],
+    ["table",      "@table.users.field.id.value"],
+    ["view",       "@view.v_monthly_summary.field.total_amount"],
+    ["viewer",     "@viewer.transactionListViewer"],
+    ["layout",     "@layout.defaultLayout"],
+  ])("#1285: @%s 参照は UNKNOWN_IDENTIFIER を出さない", (prefix, expression) => {
+    it(`expression="${expression}" で suppress される`, () => {
+      const issues = checkIdentifierScopes(makeGroup({
+        actions: [{
+          id: "a1", name: "f", trigger: "click",
+          steps: [
+            { id: "s1", kind: "compute", description: "", expression, outputBinding: "r" },
+          ],
+        }],
+      }));
+      expect(issues.filter((i) => i.identifier === prefix)).toHaveLength(0);
+    });
+  });
+
+  it("#1285: ValidationRule.message 内の @msg.<Name> も検出されない (household-budget dogfood で発見した実シナリオ)", () => {
+    const issues = checkIdentifierScopes(makeGroup({
+      actions: [{
+        id: "a1", name: "f", trigger: "click",
+        inputs: [{ name: "amount", type: "number" }],
+        steps: [
+          {
+            id: "s1", kind: "validation", description: "",
+            fieldErrorsVar: "fieldErrors",
+            rules: [
+              { field: "amount", type: "required", severity: "error", message: "@msg.AmountRequired" },
+              { field: "amount", type: "range", min: 1, max: 100000000, severity: "error", message: "@msg.AmountOutOfRange" },
+            ],
+          },
+        ],
+      }],
+    }));
+    expect(issues.filter((i) => i.identifier === "msg")).toHaveLength(0);
+  });
 });
 
 describe("checkIdentifierScopes - TransactionScopeStep onRollback @error ambient", () => {

@@ -33,6 +33,7 @@ export interface IdentifierIssue {
  * 組み込み関数・グローバル識別子。
  * これらは宣言なしで常に参照可能なため、スコープ検査から除外する。
  *
+ * **組み込み関数 / グローバル**:
  * - fn    : @fn.calcXxx(...) 形式の業務関数呼び出し
  * - now   : @now  現在時刻 (Timestamp)
  * - uuid  : @uuid 新規 UUID 生成
@@ -40,16 +41,61 @@ export interface IdentifierIssue {
  * - conv  : @conv.* conventions 参照 (conventionsValidator でカバー)
  * - ambient: @ambient.* 旧形式の ambient 参照
  *
+ * **Generic Definition Catalog 参照** (docs/spec/process-flow-prefix-system.md §3、
+ * #1285 で追加): broken-ref 検証は processFlowAntipatternValidator Check 31 が担うため
+ * identifierScope は変数 scope 検査の対象外として skip する。
+ * - msg        : @msg.<Name> generic-definitions/message
+ * - validation : @validation.<Name> generic-definitions/validation-rule
+ * - const      : @const.<Name>.<key> generic-definitions/constants
+ * - event      : @event.<topic> generic-definitions/domain-event (catalogs.events と兼用)
+ * - logEvent   : @logEvent.<Name> generic-definitions/log-event
+ * - logConfig  : @logConfig.<Name> generic-definitions/log-config
+ * - fragment   : @fragment.<Name> generic-definitions/ui-fragment
+ * - behavior   : @behavior.<Name> generic-definitions/ui-behavior
+ * - contract   : @contract.<Name> generic-definitions/data-contract
+ * - type       : @type.<Name> generic-definitions/domain-type
+ * - exception  : @exception.<Name> generic-definitions/exception-type
+ * - policy     : @policy.<Name> generic-definitions/runtime-policy
+ * - component  : @component.<Name> generic-definitions/component-definition
+ *
+ * **Top-level entity 階層参照** (process-flow-prefix-system.md §3、#1285 で追加):
+ * - screen : @screen.<id>.item.<id>.<field> Screen entity 参照
+ * - table  : @table.<id>.field.<id>.<field> Table entity 参照
+ * - view   : @view.<id>.field.<col> View entity 参照
+ * - viewer : @viewer.<id> ViewDefinition 参照
+ * - layout : @layout.<id> PageLayout 参照
+ *
  * @env.* は special-case として checkStep 内で context.catalogs.envVars と突合するため
  * ここには含めない (下記 root === "env" ブランチを参照)。
  */
 const BUILTIN_AMBIENTS = new Set<string>([
+  // Built-in functions / globals
   "fn",
   "now",
   "uuid",
   "secret",
   "conv",
   "ambient",
+  // Generic Definition Catalog refs (#1285)
+  "msg",
+  "validation",
+  "const",
+  "event",
+  "logEvent",
+  "logConfig",
+  "fragment",
+  "behavior",
+  "contract",
+  "type",
+  "exception",
+  "policy",
+  "component",
+  // Top-level entity hierarchical refs (#1285)
+  "screen",
+  "table",
+  "view",
+  "viewer",
+  "layout",
 ]);
 
 /** 任意の文字列から @identifier と property path を抽出 */
