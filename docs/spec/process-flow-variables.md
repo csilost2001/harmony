@@ -313,6 +313,19 @@ current step → enclosing loop/tryCatch → enclosing tx → action → flowPar
 
 editor 編集時の補完では両方の候補が並列に出る (resolver 別)。詳細は [process-flow-prefix-system.md § 11](process-flow-prefix-system.md#11-designer-time-alias-this--self-1301)。
 
+#### resolver 補完範囲 (#1282 / #1302)
+
+`@var.<scope>.<name>` の補完 resolver (`varScopeResolver`) の実装状況:
+
+| scope | Phase 1/2 (#1282) | Phase 2-bis (#1302) |
+|---|---|---|
+| `flowParameter` | ✅ name 補完 | — |
+| `action` | ✅ name 補完 | — |
+| `step` | — | ✅ name 補完 (全 step id、TX/loop/branch 内 nested 含む) |
+| `tx` | — | ✅ name 補完 (kind="transactionScope" の id のみ) |
+| `loop` | — | ✅ name 補完 (collectionItemName / collectionIndexName / outputBinding.name) |
+| `global` | — | ⚠️ 空候補 (catalog 未確立、別 ISSUE で対応予定) |
+
 ### 3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)
 
 R3 で 3 AI 完全合流した折衷案を、Round 7 で **option C (expose を任意 inner var 名まで拡張)** として最終化:
