@@ -250,23 +250,83 @@ function hasMultipleStatements(sql: string): boolean {
  * を呼び出すのは禁止。これらは副作用を伴うため、専用 step (commonProcess / componentCall 等)
  * を使う必要がある。
  *
- * 検出: `${...}` 内 (closing `}` まで) に `@(flow|action|step|component|rule)\.` が現れる
- * または `@(flow|action|step|component|rule)(` (関数呼び出し) パターンを検出。
+ * #1267 Codex review fix: `${someFunc({foo: 1}) + @flow.bar()}` のような nested object literal
+ * が `${...}` 内に含まれる場合、単純な regex (`/\$\{([^}]*)\}/`) は最初の `}` で打ち切られて
+ * 後続の `@flow.bar()` を見逃す。これを brace-counting parser で正しく対の `}` を捕捉する。
  */
 const SIDE_EFFECT_PREFIXES = ["flow", "action", "step", "component", "rule"];
-const INLINE_INTERPOLATION_RE = /\$\{([^}]*)\}/g;
+
+/**
+ * `${...}` 補間ブロックを brace-counting で抽出する。nested `{...}` を含む式も対応。
+ * 戻り値: 各 `${...}` の inner 内容 (`${` の直後から対の `}` 直前まで) と外側全文 snippet。
+ */
+function extractInterpolationBlocks(value: string): Array<{ inner: string; snippet: string }> {
+  const blocks: Array<{ inner: string; snippet: string }> = [];
+  let i = 0;
+  const len = value.length;
+  while (i < len) {
+    // `${` の出現を探す
+    if (value[i] === "$" && value[i + 1] === "{") {
+      const startOuter = i;
+      const startInner = i + 2;
+      let depth = 1;
+      let j = startInner;
+      // 文字列リテラル内の `{` / `}` は depth に含めない
+      let inSingle = false;
+      let inDouble = false;
+      let inBacktick = false;
+      while (j < len && depth > 0) {
+        const ch = value[j];
+        if (ch === "\\") {
+          j += 2;
+          continue;
+        }
+        if (!inDouble && !inBacktick && ch === "'") {
+          inSingle = !inSingle;
+          j++;
+          continue;
+        }
+        if (!inSingle && !inBacktick && ch === '"') {
+          inDouble = !inDouble;
+          j++;
+          continue;
+        }
+        if (!inSingle && !inDouble && ch === "`") {
+          inBacktick = !inBacktick;
+          j++;
+          continue;
+        }
+        if (!inSingle && !inDouble && !inBacktick) {
+          if (ch === "{") depth++;
+          else if (ch === "}") depth--;
+        }
+        j++;
+      }
+      if (depth === 0) {
+        const inner = value.slice(startInner, j - 1);
+        const snippet = value.slice(startOuter, j).slice(0, 150);
+        blocks.push({ inner, snippet });
+        i = j;
+        continue;
+      } else {
+        // 対の `}` が見つからない (壊れた式) — 残りを skip
+        break;
+      }
+    }
+    i++;
+  }
+  return blocks;
+}
 
 function findSideEffectInlineBans(value: string): Array<{ prefix: string; snippet: string }> {
   const violations: Array<{ prefix: string; snippet: string }> = [];
-  INLINE_INTERPOLATION_RE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = INLINE_INTERPOLATION_RE.exec(value)) !== null) {
-    const inner = match[1];
+  const blocks = extractInterpolationBlocks(value);
+  for (const { inner, snippet } of blocks) {
     for (const prefix of SIDE_EFFECT_PREFIXES) {
       // `@<prefix>.<...>` または `@<prefix>(...)` (関数呼び出し風)
       const detectRe = new RegExp(`@${prefix}\\b\\s*[.(]`);
       if (detectRe.test(inner)) {
-        violations.push({ prefix, snippet: match[0].slice(0, 100) });
+        violations.push({ prefix, snippet });
         break; // 同じ ${...} 内で重複報告しない
       }
     }
@@ -283,6 +343,10 @@ interface BrokenRefContext {
   varKeys: Set<string>;
   /** ProcessFlow.context.catalogs.events のキー集合 */
   eventKeys: Set<string>;
+  /** flow 全体に存在する step.id 集合 (`@var.step.<step-id>` の step-id 検証用、#1267 Codex review fix) */
+  stepIds: Set<string>;
+  /** flow 全体に存在する transactionScope step の id 集合 (`@var.tx.<tx-id>` の tx-id 検証用) */
+  txIds: Set<string>;
   /**
    * Phase X2 では @msg / @const / @validation の catalog は generic-definitions/* に
    * 置かれるが本 validator は ProcessFlow 単体検証のため横断 catalog の load は行わない。
@@ -293,8 +357,11 @@ interface BrokenRefContext {
 /**
  * ProcessFlow 全文字列値から `@<prefix>.<key>` 参照を収集し、context catalogs / 変数 scope に
  * 存在しない場合に broken ref として報告する。本 PR では @conv / @var / @event の 3 prefix のみ。
+ *
+ * key 部の charset: LocalId (`-` 含む camelCase / kebab-case) + Uuid (`-` 含む) + Identifier (camelCase)
+ * を許容するため `-` を明示的に含める。例: `@var.step.step-06.committed`、`@screen.27e9117-0982-...`
  */
-const REF_RE = /@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z_][a-zA-Z0-9_.]*)/g;
+const REF_RE = /@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z_][a-zA-Z0-9_.\-]*)/g;
 
 function collectBrokenRefs(value: string, ctx: BrokenRefContext): Array<{ prefix: string; key: string }> {
   const broken: Array<{ prefix: string; key: string }> = [];
@@ -304,13 +371,31 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): Array<{ prefix
     const prefix = match[1];
     const key = match[2];
     // 簡易判定: 最初のドット区切り segment が catalog key
-    const head = key.split(".")[0];
+    const segments = key.split(".");
+    const head = segments[0];
     if (prefix === "conv") {
       // @conv.<category>.<key> 形式、<category> の存在のみ check (key 後半は dynamic)
       if (!ctx.convKeys.has(head)) broken.push({ prefix, key });
     } else if (prefix === "var") {
-      // @var.<scope>.<name> または @var.<name>、最初の segment を check
-      if (!ctx.varKeys.has(head)) broken.push({ prefix, key });
+      // @var.<scope>.<name> または @var.<name>。
+      // #1267 Codex review fix: scope が `step` / `tx` の場合は 2 段目の step-id / tx-id が
+      // 実 flow に存在するか追加検証する (#1264 verdict 6 値 scope のうち step / tx は LocalId 付き)。
+      if (head === "step") {
+        // @var.step.<step-id>[.<field>...] 形式: 2 段目の step-id 存在を check
+        const stepId = segments[1];
+        if (!stepId || !ctx.stepIds.has(stepId)) {
+          broken.push({ prefix, key });
+        }
+      } else if (head === "tx") {
+        // @var.tx.<tx-id>[.<field>...] 形式: 2 段目の tx-id (transactionScope step の LocalId) を check
+        const txId = segments[1];
+        if (!txId || !ctx.txIds.has(txId)) {
+          broken.push({ prefix, key });
+        }
+      } else if (!ctx.varKeys.has(head)) {
+        // それ以外の scope (`flowParameter` / `action` / `loop` / `global`) または変数名直接参照
+        broken.push({ prefix, key });
+      }
     } else if (prefix === "event") {
       // @event.<topic> 形式
       if (!ctx.eventKeys.has(head) && !ctx.eventKeys.has(key)) broken.push({ prefix, key });
@@ -364,10 +449,27 @@ function buildBrokenRefContext(flow: unknown): BrokenRefContext {
   // ambient variables (@requestId / @traceId / @sessionUserId 等)
   (flowAny.context?.ambientVariables ?? []).forEach((av) => varKeys.add(av.name));
 
-  // walk steps to collect outputBinding.name (簡易、scope chain は厳密追跡しない)
+  // walk steps to collect outputBinding.name + step.id + transactionScope.id (#1267 Codex review fix)
+  const stepIds = new Set<string>();
+  const txIds = new Set<string>();
   function walkVarBindings(steps: unknown[]) {
     for (const s of steps) {
-      const sAny = s as { outputBinding?: { name?: string }; steps?: unknown[]; branches?: Array<{ steps?: unknown[]; condition?: { errorVar?: string } }>; elseBranch?: { steps?: unknown[] }; onCommit?: unknown[]; onRollback?: unknown[]; collectionItemName?: string; collectionIndexName?: string };
+      const sAny = s as {
+        id?: string;
+        kind?: string;
+        outputBinding?: { name?: string };
+        steps?: unknown[];
+        branches?: Array<{ steps?: unknown[]; condition?: { errorVar?: string } }>;
+        elseBranch?: { steps?: unknown[] };
+        onCommit?: unknown[];
+        onRollback?: unknown[];
+        collectionItemName?: string;
+        collectionIndexName?: string;
+      };
+      if (sAny.id) {
+        stepIds.add(sAny.id);
+        if (sAny.kind === "transactionScope") txIds.add(sAny.id);
+      }
       if (sAny.outputBinding?.name) varKeys.add(sAny.outputBinding.name);
       if (sAny.collectionItemName) varKeys.add(sAny.collectionItemName);
       if (sAny.collectionIndexName) varKeys.add(sAny.collectionIndexName);
@@ -385,7 +487,7 @@ function buildBrokenRefContext(flow: unknown): BrokenRefContext {
 
   const eventKeys = new Set<string>(Object.keys(catalogs.events ?? {}));
 
-  return { convKeys, varKeys, eventKeys };
+  return { convKeys, varKeys, eventKeys, stepIds, txIds };
 }
 
 // ─── walkSteps ──────────────────────────────────────────────────────────────

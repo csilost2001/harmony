@@ -132,8 +132,15 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 2. **`onCommit` / `onRollback` の独立性**: これらは TX の外で実行され、自身の失敗は元の TX 結果を覆さない
 3. **ネスト時の `REQUIRES_NEW`**: 親 TX が動いている時に `REQUIRES_NEW` の TransactionScopeStep に入ると、親 TX が一時停止して内側 TX が独立 commit/rollback する。内側 commit 後に親 TX が rollback しても、内側の commit は取り消されない
 4. **ネスト時の `NESTED`**: savepoint を使う。内側 rollback は親 TX の savepoint 復元、親 rollback は savepoint も含めて全 rollback
-5. **`outputBinding` による TX 結果の expose**: `transactionScope` step に `outputBinding: { "name": "txResult" }` を指定すると、TX 外の後続 step が `@txResult.committed` (boolean) と `@txResult.error` (失敗時のみ) を参照できる。これにより TX 失敗エラーコードを後続 branch の `condition.kind: "expression"` で参照できる (§8.5 参照)
-6. **`tryCatch` Branch との組合せ**: `outputBinding` なし / `tryCatch` branch による捕捉は以前から可能 (下位互換)。新規フローでは §8.5 の `outputBinding` + `expression` パターンを推奨する
+5. **`outputBinding.expose` による TX 結果の明示宣言** (#1263 Phase X2 / #1264 verdict 観点 4): `transactionScope` step に `outputBinding: { "name": "txResult", "expose": ["committed", "error"] }` を指定する。TX 外の後続 step が参照できるのは expose で明示宣言した値のみ:
+   - `committed` → `@txResult.committed` (boolean、TX commit 成否)
+   - `error` → `@txResult.error` (`{ code, message }`、rollback 時のみ)
+   - `diagnostics` → `@txResult.diagnostics` (TX 実行 metrics)
+6. **TX 境界での変数挙動** (#1264 verdict 観点 4 折衷案):
+   - TX commit 成功時: TX 内 binding は親 scope にマージ・保持される (lifecycle semantics)
+   - TX rollback 時: TX 内で新たに bind された変数は完全破棄 (メモリ汚染防止)
+   - **TX 内 → TX 外 mutation は static 禁止** (TX 外から TX 内 inner 変数の直接参照は spec で保証しない、§8.1 参照)
+7. **`tryCatch` Branch との組合せ**: `outputBinding.expose` なし / `tryCatch` branch による捕捉は以前から可能 (下位互換)。新規フローでは §8.5 の `outputBinding.expose` + `expression` パターンを推奨する
 
 ## §5 サンプル (v3)
 
@@ -164,21 +171,35 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 
 シナリオ #2-#6 (PR #468-#472) の実装レビューで繰り返し検出された誤りパターンを以下にまとめる。新規フロー実装前に必読。
 
-### §8.1 TransactionScope 内外の変数アクセスパス
+### §8.1 TransactionScope 内外の変数アクセスパス (#1263 Phase X2 で再定義)
 
 `TransactionScopeStep` の inner step で `outputBinding` した変数を、TX 外の後続 step が参照する際のセマンティクス。
 
-- **TX 全体に `outputBinding: "txName"` を付けた場合**: 推奨は **inner 変数を直接参照** (`@innerVar`) する形。`@txName.innerVar` のネスト参照は spec で保証しない (シナリオ #3 で問題化)
-- **後続参照は TX commit が前提**: TX rollback 後は inner outputBinding 変数は未定義になりうる。後続 step に `runIf` ガード必須
+**重要 (#1264 verdict 観点 4)**: TX 外から TX inner outputBinding 変数を**直接参照することは spec で保証しない (static 禁止)**。TX 外参照可な値は `outputBinding.expose` で明示宣言した 3 値 (`committed` / `error` / `diagnostics`) のみ。
+
+- **`outputBinding.expose` で明示宣言**: TX 外で参照可能な値を `expose: ["committed", "error", ...]` で宣言
+- **TX commit 経路の inner データを TX 外へ渡したい場合**: TX 内最終 step で `eventPublish` / `audit` / `return` 等で消費するか、TX 外 step を TX 直後に置き parent scope merge 後の値を `@<inner-var>` 参照 (lifecycle 上は parent scope にマージされるが、design パターンとしては明示 expose を推奨)
+- **TX rollback 経路では inner 変数は完全破棄**: rollback 後の後続 step で inner var を参照しない
+
+新仕様での推奨パターン:
 
 ```json
-{ "id": "step-tx", "kind": "transactionScope", "outputBinding": { "name": "txResult" }, "steps": [
-  { "id": "step-tx-insert", "kind": "dbAccess", "operation": "INSERT", "outputBinding": { "name": "newRow" } }
-]},
-{ "id": "step-after", "kind": "eventPublish", "runIf": "@txResult.committed == true", "payload": "{ id: @newRow.id }" }
+{
+  "id": "step-tx", "kind": "transactionScope",
+  "outputBinding": { "name": "txResult", "expose": ["committed", "error"] },
+  "rollbackOn": ["STOCK_SHORTAGE", "ORDER_NUMBER_CONFLICT"],
+  "steps": [
+    { "id": "step-tx-insert", "kind": "dbAccess", "operation": "INSERT", "outputBinding": { "name": "newRow" } },
+    { "id": "step-tx-publish", "kind": "eventPublish", "topic": "order.created", "payload": "{ id: @newRow.id }" }
+  ]
+},
+{ "id": "step-after-success", "kind": "return", "runIf": "@txResult.committed == true", "responseId": "201-created" },
+{ "id": "step-after-failure", "kind": "return", "runIf": "@txResult.committed == false && @txResult.error.code == 'STOCK_SHORTAGE'", "responseId": "409-stock-shortage" }
 ```
 
-上の例では、TX commit 後の後続 step は `@newRow.id` (inner 変数直接参照) を使う。`@txResult.newRow.id` のようなネスト形式は避けること。
+上の例では、`newRow` などの inner 変数の利用は TX 内 (`steps[]` の中、`step-tx-publish` 等) で完結させる。TX 外の `step-after-success` は `@txResult.committed` のみ参照する。
+
+旧仕様 (#1263 Phase X2 前) では `@newRow.id` のような inner 変数直接参照を許容していたが、#1264 verdict 観点 4 で「TX 内 → TX 外 mutation static 禁止」が確定したため非推奨化された。
 
 ### §8.2 外部呼び出しと TX の位置関係 (anti-pattern と例外)
 

@@ -210,12 +210,12 @@ interface CommonProcessStep extends StepBaseProps {
   kind: "commonProcess";
   description: string;
   refId: Uuid;                                   // 呼び出し先 ProcessFlow の Uuid (flowType="common", #1263 Phase X1: kind → flowType)
-  argumentMapping?: Record<string, ExpressionString>;
+  argumentMapping?: Record<string, TemplateString>;
   // キー: 呼び先 inputs.name (Identifier)
-  // 値: 値表現 (式)
-  returnMapping?: Record<string, string>;
-  // キー: 呼び先 outputs.name
-  // 値: 説明 / バインド先
+  // 値: 値表現 (TemplateString)
+  // #1263 Phase X2 (#1264 verdict 観点 3): returnMapping 廃止、
+  // 呼び先 outputs 全体を StepBaseProps.outputBinding (`{ name }`) で
+  // 1 object 変数として bind。後続で `@var.action.<name>.<field>` で参照。
 }
 ```
 
@@ -226,6 +226,8 @@ UI: `refId` 選択時、呼び先フローの `inputs` を自動展開して対�
   呼び先の入力:
     sessionId     → [@session.id         ]
     trustedLevel  → ['high'               ]
+  結果変数 (outputBinding.name):
+    [authResult                          ]   ← 呼び先 outputs 全体を bind
 ```
 
 ### 3.5 変数スコープ

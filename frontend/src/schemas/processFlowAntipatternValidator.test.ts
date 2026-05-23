@@ -394,6 +394,50 @@ describe("Check 30: SIDE_EFFECT_INLINE_BAN (#1263 Phase X2)", () => {
     const found = issues.filter((i) => i.code === "SIDE_EFFECT_INLINE_BAN");
     expect(found).toHaveLength(0);
   });
+
+  it("positive: ${...} 内に nested object literal {foo: 1} を含む後続 @flow.<id> 呼出を検出 (#1267 Codex review fix)", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      // simple regex /\$\{([^}]*)\}/ は最初の `}` で切れて後続を見逃す。
+      // brace-counting parser で正しく検出する必要がある。
+      expression: "${someHelper({foo: 1, bar: 2}) + @flow.someFlowId(arg=1)}",
+    };
+    const flow = makeFlow([step]);
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "SIDE_EFFECT_INLINE_BAN");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].message).toContain("@flow");
+  });
+
+  it("positive: ${...} 内に nested array literal + nested {...} + @action.<id> 呼出を検出", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "${[1, 2, {x: {y: 'z'}}].map(v => @action.handler(v))}",
+    };
+    const flow = makeFlow([step]);
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "SIDE_EFFECT_INLINE_BAN");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].message).toContain("@action");
+  });
+
+  it("negative: ${...} 内の文字列リテラル '${a}' の中の `}` は depth に含めない", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      // 文字列リテラル内の `}` (` 'inline-}' ` 等) で外側 `}` と混同しないこと
+      expression: "${'literal-}-here' + @var.action.foo}",
+    };
+    const flow = makeFlow([step]);
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "SIDE_EFFECT_INLINE_BAN");
+    expect(found).toHaveLength(0);
+  });
 });
 
 // ─── Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2) ──────────────
@@ -433,15 +477,21 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
     expect(found[0].severity).toBe("warning");
   });
 
-  it("negative: 6 値 scope enum (@var.flowParameter etc) は許容", () => {
-    const step = {
-      kind: "compute",
-      id: "step-1",
-      expression: "@var.flowParameter.foo + @var.action.bar + @var.step.baz + @var.tx.qux + @var.loop.idx + @var.global.tenant",
-    };
+  it("negative: 6 値 scope enum + 実 step-id / tx-id (@var.flowParameter etc) は許容", () => {
     const flow: ProcessFlow = {
       meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
-      actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            { kind: "transactionScope", id: "step-tx", description: "TX", outputBinding: { name: "txResult" as never, expose: ["committed"] }, steps: [] } as never,
+            // step.<step-id> は実 step を指す必要があるため step-tx を参照
+            { kind: "compute", id: "step-ref", expression: "@var.flowParameter.foo + @var.action.bar + @var.step.step-tx.committed + @var.tx.step-tx.committed + @var.loop.idx + @var.global.tenant", description: "all 6 scopes" } as never,
+          ],
+        },
+      ],
     } as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
@@ -475,6 +525,92 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
           trigger: "click",
           inputs: [{ name: "customerId" as never, type: "string" }],
           steps: [{ kind: "compute", id: "step-1", expression: "@var.customerId", description: "use input" } as never],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found).toHaveLength(0);
+  });
+
+  it("positive: @var.step.<unknown-step-id> は壊れ参照として検出 (#1267 Codex review fix)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            { kind: "compute", id: "step-real", expression: "@var.step.unknownStepIdThatDoesNotExist.foo", description: "ref nonexistent step" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("error");
+    expect(found[0].message).toContain("@var.step.unknownStepIdThatDoesNotExist");
+  });
+
+  it("positive: @var.tx.<unknown-tx-id> は壊れ参照として検出 (#1267 Codex review fix)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            { kind: "compute", id: "step-real", expression: "@var.tx.unknownTxIdThatDoesNotExist.committed", description: "ref nonexistent tx" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("error");
+    expect(found[0].message).toContain("@var.tx.unknownTxIdThatDoesNotExist");
+  });
+
+  it("negative: @var.step.<real-step-id> は flow に存在する step-id なら許容", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            { kind: "dbAccess", id: "step-01", tableId: "00000000-0000-4000-8000-000000000001" as never, operation: "SELECT", outputBinding: { name: "rows" as never }, description: "fetch" } as never,
+            { kind: "compute", id: "step-02", expression: "@var.step.step-01.foo", description: "ref existing step" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative: @var.tx.<real-tx-id> は flow に存在する transactionScope step なら許容", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            { kind: "transactionScope", id: "step-tx", description: "TX", outputBinding: { name: "txResult" as never, expose: ["committed", "error"] }, steps: [] } as never,
+            { kind: "compute", id: "step-after", expression: "@var.tx.step-tx.committed", description: "ref TX" } as never,
+          ],
         },
       ],
     } as ProcessFlow;
