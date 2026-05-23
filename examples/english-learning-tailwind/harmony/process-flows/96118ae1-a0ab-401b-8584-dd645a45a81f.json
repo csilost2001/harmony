@@ -210,14 +210,6 @@
           "sql": "SELECT id, story_id, status FROM learning_sessions WHERE id = @sessionId AND user_id = @sessionUserId AND status = 'in_progress'",
           "outputBinding": {
             "name": "sessionRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
-                "purpose": "validate"
-              }
-            ]
           }
         },
         {
@@ -275,10 +267,12 @@
           "outputBinding": {
             "name": "aiResponse"
           },
-          "outcomes": {
-            "failure": {
-              "action": "abort",
-              "description": "LLM 呼び出し失敗時は 502 を返す。"
+          "errorHandling": {
+            "outcomes": {
+              "failure": {
+                "action": "abort",
+                "description": "LLM 呼び出し失敗時は 502 を返す。"
+              }
             }
           }
         },
@@ -337,14 +331,6 @@
           "sql": "SELECT COALESCE(MAX(turn_number), 0) + 1 AS \"nextTurn\" FROM turn_logs WHERE session_id = @sessionId",
           "outputBinding": {
             "name": "turnNumberRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "4e126323-4ab7-4747-961b-23cbaf651314",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -365,14 +351,6 @@
           "sql": "INSERT INTO turn_logs (session_id, turn_number, user_input, ai_response, ai_audio_url, llm_context, created_at) VALUES (@sessionId, @nextTurnNumber, @userInput, @aiResponse.text, @aiAudioUrl, @turnContext, CURRENT_TIMESTAMP) RETURNING id",
           "outputBinding": {
             "name": "newTurnLog"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "4e126323-4ab7-4747-961b-23cbaf651314",
-                "purpose": "insert"
-              }
-            ]
           }
         },
         {

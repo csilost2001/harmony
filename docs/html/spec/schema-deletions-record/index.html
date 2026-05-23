@@ -1,0 +1,149 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>schema deletions record</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.DpmzT9nP.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Overview </div> <ul class="space-y-0.5"> <li> <a href="../../spec/readme/" class="sidebar-link"> Spec Index (README) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ProcessFlow </div> <ul class="space-y-0.5"> <li> <a href="../../spec/process-flow-workflow/" class="sidebar-link"> Overview </a> </li><li> <a href="../../spec/process-flow-variables/" class="sidebar-link"> 変数 </a> </li><li> <a href="../../spec/process-flow-expression-language/" class="sidebar-link"> 式言語 </a> </li><li> <a href="../../spec/process-flow-criterion/" class="sidebar-link"> 条件 (Criterion) </a> </li><li> <a href="../../spec/process-flow-runtime-conventions/" class="sidebar-link"> Runtime 規約 </a> </li><li> <a href="../../spec/process-flow-transaction/" class="sidebar-link"> トランザクション </a> </li><li> <a href="../../spec/process-flow-sla/" class="sidebar-link"> SLA </a> </li><li> <a href="../../spec/process-flow-tier-c/" class="sidebar-link"> Tier-C (高可用) </a> </li><li> <a href="../../spec/process-flow-external-system/" class="sidebar-link"> 外部システム </a> </li><li> <a href="../../spec/process-flow-secrets/" class="sidebar-link"> Secrets </a> </li><li> <a href="../../spec/process-flow-env-vars/" class="sidebar-link"> 環境変数 </a> </li><li> <a href="../../spec/process-flow-ai-step-kind/" class="sidebar-link"> AI step kind </a> </li><li> <a href="../../spec/process-flow-testing/" class="sidebar-link"> Testing </a> </li><li> <a href="../../spec/process-flow-maturity/" class="sidebar-link"> 成熟度 (maturity) </a> </li><li> <a href="../../spec/process-flow-extensions/" class="sidebar-link"> 拡張機構 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Schema </div> <ul class="space-y-0.5"> <li> <a href="../../spec/schema-governance/" class="sidebar-link"> Governance (最重要) </a> </li><li> <a href="../../spec/schema-design-principles/" class="sidebar-link"> 設計原則 </a> </li><li> <a href="../../spec/schema-v3-design/" class="sidebar-link"> V3 設計記録 </a> </li><li> <a href="../../spec/schema-audit-2026-04-27/" class="sidebar-link"> 監査記録 (2026-04-27) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Screen / Layout / View </div> <ul class="space-y-0.5"> <li> <a href="../../spec/screen-items/" class="sidebar-link"> 画面項目定義 </a> </li><li> <a href="../../spec/page-layout/" class="sidebar-link"> PageLayout </a> </li><li> <a href="../../spec/view-definition/" class="sidebar-link"> ViewDefinition </a> </li><li> <a href="../../spec/list-common/" class="sidebar-link"> 一覧共通仕様 </a> </li><li> <a href="../../spec/multi-editor-puck/" class="sidebar-link"> マルチエディタ (Puck) </a> </li><li> <a href="../../spec/css-framework-switching/" class="sidebar-link"> CSS framework 切替 </a> </li><li> <a href="../../spec/generic-definition-layer/" class="sidebar-link"> 汎用定義レイヤ </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Workspace / Edit Session </div> <ul class="space-y-0.5"> <li> <a href="../../spec/workspace/" class="sidebar-link"> Workspace </a> </li><li> <a href="../../spec/workspace-multi/" class="sidebar-link"> マルチワークスペース </a> </li><li> <a href="../../spec/edit-session-draft/" class="sidebar-link"> Edit session draft </a> </li><li> <a href="../../spec/edit-session-protocol/" class="sidebar-link"> Edit session protocol </a> </li><li> <a href="../../spec/collab-presence/" class="sidebar-link"> 協業 presence (一部 obsolete) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Plugin / Extension </div> <ul class="space-y-0.5"> <li> <a href="../../spec/plugin-system/" class="sidebar-link"> プラグインシステム </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Code Generation / Testing </div> <ul class="space-y-0.5"> <li> <a href="../../spec/code-generation/" class="sidebar-link"> コード生成 </a> </li><li> <a href="../../spec/conversion-guideline-for-ai/" class="sidebar-link"> AI 変換ガイドライン </a> </li><li> <a href="../../spec/react-exporter/" class="sidebar-link"> React Exporter (designer__export_screen) </a> </li><li> <a href="../../spec/e2e-vite-stability/" class="sidebar-link"> E2E Vite 安定性 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Examples </div> <ul class="space-y-0.5"> <li> <a href="../../spec/examples-retail/" class="sidebar-link"> 小売業サンプル </a> </li><li> <a href="../../spec/examples-english-learning/" class="sidebar-link"> 英語学習アプリサンプル </a> </li><li> <a href="../../spec/sample-project-structure/" class="sidebar-link"> サンプル project 構造 </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Path / Policy </div> <ul class="space-y-0.5"> <li> <a href="../../spec/path-conventions/" class="sidebar-link"> パス規約 </a> </li><li> <a href="../../spec/draft-state-policy/" class="sidebar-link"> Draft-state policy </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Audit Reports </div> <ul class="space-y-0.5"> <li> <a href="../../spec/_audit-2026-05-17/" class="sidebar-link"> docs/ 監査 (2026-05-17) </a> </li> </ul> </div><div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> Dogfood / Phase Evaluation (Archive) </div> <ul class="space-y-0.5"> <li> <a href="../../spec/phase2-evaluation-2026-04-30/" class="sidebar-link"> Phase 2 評価 </a> </li><li> <a href="../../spec/phase3-evaluation-2026-04-30/" class="sidebar-link"> Phase 3 評価 </a> </li><li> <a href="../../spec/phase4-evaluation-2026-04-30/" class="sidebar-link"> Phase 4 評価 </a> </li><li> <a href="../../spec/dogfood-2026-04-26-finance/" class="sidebar-link"> 金融 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-26-manufacturing/" class="sidebar-link"> 製造 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-04-27-logistics-create-flow-validation/" class="sidebar-link"> 物流 create-flow 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-27-phase4-retail-validation/" class="sidebar-link"> Phase 4 retail 検証 </a> </li><li> <a href="../../spec/dogfood-2026-04-29-phase2-validator-audit/" class="sidebar-link"> Phase 2 validator audit </a> </li><li> <a href="../../spec/dogfood-2026-04-30-phase2-healthcare-welfare/" class="sidebar-link"> Phase 2 医療/福祉 </a> </li><li> <a href="../../spec/dogfood-2026-05-04-english-learning/" class="sidebar-link"> 英語学習 dogfood </a> </li><li> <a href="../../spec/dogfood-2026-05-05-multi-editor-puck/" class="sidebar-link"> マルチエディタ dogfood </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="schema-削除事項記録-phase-x1-x3-で取り下げられた提案--削除された-field">Schema 削除事項記録 (Phase X1-X3 で取り下げられた提案 + 削除された field)</h1>
+<p>Issue: <a href="https://github.com/csilost2001/harmony/issues/1254">#1254</a> (RFC) / <a href="https://github.com/csilost2001/harmony/issues/1263">#1263</a> (実装)
+策定日: 2026-05-23
+ステータス: <strong>記録のみ</strong> (将来 dogfood で同種の case が再発した時の判断材料)</p>
+<p><code>#1254</code> で 3 AI 議論を経て <strong>不採用</strong> になった提案と、<code>#1263</code> Phase X1-X3 で <strong>schema 削除</strong> された field を記録する。schema 変更を伴わない削除事項として spec doc に明文化する目的。</p>
+<hr>
+<h2 id="1-件-6-b-1--b-6--b-4-不採用-phase-x2-x3-共通">§1 件 6 (B-1 / B-6 / B-4) 不採用 (Phase X2-X3 共通)</h2>
+<h3 id="b-1-step-kind-core-4-縮約-data--control--compute--effect--不採用">B-1: Step kind core 4 縮約 (<code>data</code> / <code>control</code> / <code>compute</code> / <code>effect</code>) — <strong>不採用</strong></h3>
+<ul>
+<li>提案: 現 24 step kind 列を <code>data</code> (dbAccess / externalSystem / aiCall 統合) / <code>control</code> (branch / loop / transactionScope) / <code>compute</code> / <code>effect</code> (eventPublish / system) の 4 種に縮約</li>
+<li><strong>不採用理由</strong>:
+<ul>
+<li>intent-rich semantics の喪失 (kind 列が薄まると AI 生成精度が下がる)</li>
+<li>二段 kind (meta.flowType + step.kind) 問題の解消にはならず、step 内部の <code>kind 拡張 enum</code> に移動するだけ</li>
+<li>Step 固有 validator (<code>processFlowAntipatternValidator</code> / <code>referentialIntegrity</code> 等) が kind 別 dispatch を失う</li>
+</ul>
+</li>
+<li>3 AI R3 全員反対、user 裁定で不採用</li>
+</ul>
+<h3 id="b-6-bpmn-風-graph--state-machine-化--不採用">B-6: BPMN 風 graph + state machine 化 — <strong>不採用</strong></h3>
+<ul>
+<li>提案: 現行 linear+branch+loop モデルを BPMN graph + state machine に振り切る</li>
+<li><strong>不採用理由</strong>:
+<ul>
+<li>AI codegen 契約との相性悪 (graph → code 変換は AI 推論精度が低い)</li>
+<li>visual editor 必須化 (人間が graph を手書きするのは現実的でない)</li>
+<li>既存 linear+branch+loop モデルの AI 親和性 (Markdown spec → JSON 変換) を喪失</li>
+</ul>
+</li>
+<li>3 AI R3 全員反対、user 裁定で不採用</li>
+</ul>
+<h3 id="b-4-kindscreen-processflow-の物理分離--不採用">B-4: <code>kind=screen</code> ProcessFlow の物理分離 — <strong>不採用</strong></h3>
+<ul>
+<li>提案: <code>kind=screen</code> を別 resource type (“screen-bound action group”) として独立</li>
+<li><strong>不採用理由</strong>:
+<ul>
+<li><code>#1019</code> で逆方向の統合経緯がある (action group → ProcessFlow に統合)</li>
+<li>論理境界明示は既存 <code>flowType=screen</code> で十分 (新 resource type 不要)</li>
+</ul>
+</li>
+<li>user 裁定で不採用</li>
+</ul>
+<hr>
+<h2 id="2-actionprofile-削除-phase-x2-で確定">§2 <code>actionProfile</code> 削除 (Phase X2 で確定)</h2>
+<ul>
+<li>提案: <code>semanticProfiles</code> の action-level alias として <code>actionProfile</code> (wizard / report / CRUD / batch / integration / notification / search / ai-orchestration) を採用 (件 1 派生)</li>
+<li><strong>2026-05-23 user 壁打ち + 3 AI 議論で全面撤回</strong>:
+<ul>
+<li>上位 (Screen / view-definition / flowType) または下位 (step kind) で既に正規表現がある</li>
+<li>action level 固有 profile が 1 件も挙げられない (上位/下位で表現済)</li>
+<li>TX 境界は step グループ単位の事実、action level で <code>profile=transactional-write</code> を持っても「どの step グループに TX 必須か」は判定不能 (粒度誤り)</li>
+<li><code>/generate-code</code> の template (scaffold) 選択は flowType + step kind 列 + screen 仕様で閉じる、action profile は二重管理</li>
+<li>将来 action 種類別 contract (idempotency / rate limit 等) が必要になったら <strong>専用 field</strong> で前倒しなしに追加 (enum 予測列挙より dogfood 駆動)</li>
+</ul>
+</li>
+<li>復活トリガー: <code>#1265</code> S-8 で記録</li>
+</ul>
+<hr>
+<h2 id="3-lineage-field-削除-phase-x3--1254-件-5">§3 <code>lineage</code> field 削除 (Phase X3 / #1254 件 5)</h2>
+<ul>
+<li>提案: 現行 <code>StepBaseProps.lineage</code> (<code>DataLineage</code> $def) を削除</li>
+<li><strong>削除理由</strong>:
+<ul>
+<li>重複情報 (DB アクセスの reads / writes は SQL AST 解析で完全復元可能)</li>
+<li>保守コスト高 (examples 全件で reads/writes を手書きしていた、SQL と二重管理)</li>
+<li>SQL が canonical なら lineage は派生情報として validator / AST 解析で生成可能</li>
+</ul>
+</li>
+<li>3 AI R3 Option E、user 裁定で削除確定</li>
+<li>影響範囲:
+<ul>
+<li><code>schemas/v3/process-flow.v3.schema.json</code>: <code>StepBaseProps.lineage</code> + <code>DataLineage</code> $def + <code>LineageEntry</code> $def 削除</li>
+<li><code>frontend/src/types/v3/process-flow.ts</code>: <code>LineageEntry</code> / <code>DataLineage</code> interface + <code>StepBaseProps.lineage</code> 削除</li>
+<li>examples 全 33 ファイル: 90 lineage block 削除 (機械 migration)</li>
+</ul>
+</li>
+<li>復活トリガー: SQL AST 解析 validator が未実装の段階で「特定 example の lineage が必要」と判明したら再検討 (<code>#1265</code> ストック予定)</li>
+</ul>
+<hr>
+<h2 id="4-個別-step-variant-の-inline-失敗系-field-集約-phase-x3--1254-件-2">§4 個別 step variant の inline 失敗系 field 集約 (Phase X3 / #1254 件 2)</h2>
+<ul>
+<li>個別 step variant に inline 配置されていた失敗系 field を <code>StepBaseProps.errorHandling</code> object に集約 (案 D):
+<ul>
+<li>ExternalSystemStep の <code>outcomes</code> / <code>retryPolicy</code> 削除</li>
+<li>AiCallStep / AiAgentStep の <code>outcomes</code> 削除</li>
+<li>TransactionScopeStep の <code>outcomes</code> / <code>rollbackOn</code> 削除</li>
+</ul>
+</li>
+<li>集約後の構造: <code>errorHandling: { outcomes?, rollbackOn?, retryPolicy?, onTimeout? }</code></li>
+<li>効果:
+<ul>
+<li>Schema 認知 simple (浅 nest、4 field を 1 object に統合)</li>
+<li>UI lifecycle 順表示が容易 (pre <code>runIf</code> → main → post <code>errorHandling</code>)</li>
+<li>step kind に応じて意味のある subset のみ使用 (validator が semantic 妥当性を判定)</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="5-関連">§5 関連</h2>
+<ul>
+<li>親 RFC: <a href="https://github.com/csilost2001/harmony/issues/1254">#1254</a></li>
+<li>実装: <a href="https://github.com/csilost2001/harmony/issues/1263">#1263</a> Phase X1-X3</li>
+<li>撤廃制限ストック: <a href="https://github.com/csilost2001/harmony/issues/1265">#1265</a></li>
+<li>復活判断: dogfood で同種 case が再発した場合、本記録 + #1265 を参照</li>
+</ul>
+<h2 id="6-変更履歴">§6 変更履歴</h2>
+<ul>
+<li>2026-05-23: 初版作成 (#1263 Phase X3 — RFC #1254 件 6 + 件 2 + 件 5 削除事項を記録)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

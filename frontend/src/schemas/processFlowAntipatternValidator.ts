@@ -3,6 +3,8 @@
  *
  * Check 16-23: retail dogfood (#709、#741) で発見した既知落とし穴 4 件。
  * Check 30-31: RFC #1254 件 3.5 / 件 3.7 verdict の副作用 inline 禁止 + maturity-aware broken ref。
+ * Check 32: RFC #1254 件 2 / #1264 verdict 観点 4 (#1263 Phase X2) の TX inner var leak 検出。
+ * Check 33: RFC #1254 件 5 (#1263 Phase X3) の dbAccess SQL maturity-aware 必須化。
  *
  * Check 16: LITERAL_CONV_REFERENCE
  *   '@conv.X' または "@conv.X" のリテラル化を検出。
@@ -68,7 +70,8 @@ export interface AntipatternIssue {
     | "MULTIPLE_STATEMENTS_IN_SQL"
     | "SIDE_EFFECT_INLINE_BAN"
     | "BROKEN_REFERENCE_MATURITY_AWARE"
-    | "TX_INNER_VAR_LEAK_OUTSIDE_TX";
+    | "TX_INNER_VAR_LEAK_OUTSIDE_TX"
+    | "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED";
   /** ドットパス (例: actions[0].steps[1].expression) */
   path: string;
   message: string;
@@ -611,9 +614,9 @@ function walkSteps(steps: Step[], basePath: string, visit: StepVisitor, withinTx
       if (step.onRollback) walkSteps(step.onRollback, `${path}.onRollback`, visit, false);
     }
     if (step.kind === "externalSystem") {
-      Object.entries(step.outcomes ?? {}).forEach(([k, spec]: [string, unknown]) => {
+      Object.entries(step.errorHandling?.outcomes ?? {}).forEach(([k, spec]: [string, unknown]) => {
         const specAny = spec as { sideEffects?: Step[] } | undefined;
-        if (specAny?.sideEffects) walkSteps(specAny.sideEffects, `${path}.outcomes.${k}.sideEffects`, visit, withinTx);
+        if (specAny?.sideEffects) walkSteps(specAny.sideEffects, `${path}.errorHandling.outcomes.${k}.sideEffects`, visit, withinTx);
       });
     }
   });
@@ -695,8 +698,10 @@ export function checkAntipatterns(
   // Check 16, 19, 23, 30, 31: ステップ走査
   const actions: unknown[] = Array.isArray(flowAny.actions) ? flowAny.actions : [];
   actions.forEach((action: unknown, ai: number) => {
-    const actionAny = action as { steps?: Step[] };
+    const actionAny = action as { steps?: Step[]; maturity?: string };
     const steps: Step[] = actionAny.steps ?? [];
+    // Action-level maturity が指定されていれば flow-level よりそちらを優先 (step < action < flow の継承)
+    const actionMaturity: string = actionAny.maturity ?? maturity;
 
     walkSteps(steps, `actions[${ai}].steps`, (step, stepPath, withinTx) => {
       // Check 16, 30, 31, 32: step 内の全文字列値を走査
@@ -738,6 +743,23 @@ export function checkAntipatterns(
             code: "MULTIPLE_STATEMENTS_IN_SQL",
             path: `${stepPath}.sql`,
             message: `\`dbAccess.sql\` に複数文が含まれています (\`;\` で区切り)。多くの ORM / DB ライブラリは単一文しか実行しないため、step を分割してください`,
+          });
+        }
+      }
+
+      // Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3 / #1254 件 5)
+      // maturity-aware: dbAccess step は maturity=committed 時に sql 必須、draft は naturalQuery のみで可。
+      // 継承順: step.maturity > action.maturity > flow.meta.maturity (Round 2 SF-3 で action-level 対応)。
+      if (isBuiltinStep(step) && step.kind === "dbAccess") {
+        const dbStep = step as unknown as { sql?: string; naturalQuery?: string; maturity?: string };
+        const stepMaturity = dbStep.maturity ?? actionMaturity;
+        if (stepMaturity === "committed" && !dbStep.sql) {
+          issues.push({
+            validator: "processFlowAntipatternValidator",
+            severity: "error",
+            code: "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED",
+            path: `${stepPath}.sql`,
+            message: `\`dbAccess\` step は \`maturity: \"committed\"\` の場合 \`sql\` 必須です${dbStep.naturalQuery ? ` (現状 \`naturalQuery\` のみで sql 未設定)` : ""}。draft 期間で \`naturalQuery\` を AI が実 SQL に変換してから committed 昇格してください (#1263 Phase X3 / #1254 件 5)。`,
           });
         }
       }

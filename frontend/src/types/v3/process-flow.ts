@@ -442,24 +442,30 @@ export interface ExternalChain {
   phase: "authorize" | "capture" | "cancel" | "other";
 }
 
-/** DataLineage 1 エントリ。 */
-export interface LineageEntry {
-  tableId: TableId;
-  /** 読み取り/書き込みの目的 (例: `lookup`, `lock`, `audit`, `snapshot`, `soft-delete`)。 */
-  purpose?: string;
-  description?: Description;
-}
-
-/** DbAccess (および任意の step) のデータ系譜。 */
-export interface DataLineage {
-  reads?: LineageEntry[];
-  writes?: LineageEntry[];
+/**
+ * Step の失敗系挙動を集約する object (#1263 Phase X3 / #1254 件 2 案 D)。
+ * outcomes / rollbackOn / retryPolicy / onTimeout を 1 object に統一し schema 浅 nest 化。
+ * step kind に応じて意味のある subset のみ使用する (validator が semantic 妥当性を判定)。
+ */
+export interface ErrorHandling {
+  /** 成功 / 失敗 / timeout 時の挙動分岐。ExternalSystemStep / AiCallStep / AiAgentStep / TransactionScopeStep で意味あり。 */
+  outcomes?: ExternalCallOutcomes;
+  /** TX rollback を引き起こす error code 集合 (TransactionScopeStep のみ)。 */
+  rollbackOn?: ErrorCode[];
+  /** 再試行ポリシー。外部呼び出し系 step (ExternalSystemStep / AiCallStep / AiAgentStep) で意味あり。 */
+  retryPolicy?: RetryPolicy;
+  /** timeout 時挙動。WorkflowStep.onTimeout (Step[]) とは別概念。step 単位の timeout 結果分岐。 */
+  onTimeout?: "throw" | "continue" | "compensate" | "log";
 }
 
 /**
  * 全 Step variant 共通のプロパティ集合。
  * 各 variant は本定義を allOf でマージし、固有プロパティを追加 + unevaluatedProperties: false で閉じる。
- * #525 R3 fix: lineage を StepBaseProps に集約 (全 25 step variant で利用可能)。
+ *
+ * #1263 Phase X3 (#1254 件 5): `lineage` field 削除 (AST 解析で復元可能、保守コスト高)。
+ * #1263 Phase X3 (#1254 件 2): 失敗系 field (outcomes / rollbackOn / retryPolicy / onTimeout) を
+ * `errorHandling` object に集約、`runIf` / `tryCatch` 分岐は独立 (lifecycle 順表示:
+ * pre `runIf` → main → post `errorHandling`)。
  */
 export interface StepBaseProps {
   id: LocalId;
@@ -467,7 +473,7 @@ export interface StepBaseProps {
   notes?: Note[];
   maturity?: Maturity;
   sla?: Sla;
-  /** 実行条件式。false なら本 step を skip。 */
+  /** 実行条件式 (pre 評価)。false なら本 step を skip。lifecycle 上は `errorHandling` (post) と独立。 */
   runIf?: TemplateString;
   requiredPermissions?: string[];
   outputBinding?: OutputBinding;
@@ -475,10 +481,11 @@ export interface StepBaseProps {
   compensatesFor?: LocalId;
   externalChain?: ExternalChain;
   /**
-   * 本 step が読み書きするデータ系譜 (CDC / 監査 / 影響範囲分析用)。
-   * #525 F-2 で StepBaseProps に集約、全 step variant で宣言可能。
+   * 失敗系挙動の集約 object (#1263 Phase X3 / #1254 件 2 案 D)。
+   * step kind に応じて意味的に有効な subset のみ使用 (例: rollbackOn は transactionScope のみ、
+   * retryPolicy は外部呼び出し系のみ)。UI lifecycle 順表示で post セクション扱い。
    */
-  lineage?: DataLineage;
+  errorHandling?: ErrorHandling;
 }
 
 // ─── ValidationStep ─────────────────────────────────────────────────────
@@ -540,6 +547,13 @@ export interface CacheHint {
   description?: Description;
 }
 
+/**
+ * DB アクセス step。#1263 Phase X3 (#1254 件 5):
+ * - `lineage` field 削除 (StepBaseProps から削除済み)
+ * - `naturalQuery` 自然言語 SQL 追加 (dual representation)
+ * - maturity-aware: `maturity: "draft"` で naturalQuery のみ可 (sql 省略可)、
+ *   `maturity: "committed"` で sql 必須 (validator Check 33 で enforce)
+ */
 export interface DbAccessStep extends StepBaseProps {
   kind: "dbAccess";
   description: Description;
@@ -548,8 +562,15 @@ export interface DbAccessStep extends StepBaseProps {
   operation: DbOperation;
   /** 対象フィールド (人間向け簡易表記)。 */
   fields?: string;
-  /** 完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。 */
+  /** 完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。`maturity: "committed"` で必須、`draft` で省略可。 */
   sql?: string;
+  /**
+   * 自然言語による SQL 記述 (#1263 Phase X3 / #1254 件 5)。設計初期の dual representation で AI が後で
+   * 実 SQL に変換する想定。例: `"在庫数を product_id で取得"` / `"カート明細を customer_id で SELECT、店舗情報と JOIN"`。
+   * `maturity: "draft"` の段階で sql の代わりに記述可能、`committed` で実 SQL に変換必須
+   * (validator Check 33 で enforce)。
+   */
+  naturalQuery?: TemplateString;
   /** 一括 INSERT 時に VALUES に展開する配列変数の式。 */
   bulkValues?: TemplateString;
   affectedRowsCheck?: AffectedRowsCheck;
@@ -615,9 +636,7 @@ export interface ExternalSystemStep extends StepBaseProps {
   /** OpenAPI request body schema への JSON Pointer。 */
   requestBodyRef?: string;
   responseRef?: string;
-  outcomes?: ExternalCallOutcomes;
   timeoutMs?: number;
-  retryPolicy?: RetryPolicy;
   circuitBreaker?: CircuitBreakerConfig;
   bulkhead?: BulkheadConfig;
   fireAndForget?: boolean;
@@ -902,12 +921,9 @@ export interface TransactionScopeStep extends StepBaseProps {
   isolationLevel?: "READ_COMMITTED" | "REPEATABLE_READ" | "SERIALIZABLE";
   propagation?: "REQUIRED" | "REQUIRES_NEW" | "NESTED";
   timeoutMs?: number;
-  /** ProcessFlow.context.catalogs.errors のキー参照。 */
-  rollbackOn?: ErrorCode[];
   steps: Step[];
   onCommit?: Step[];
   onRollback?: Step[];
-  outcomes?: ExternalCallOutcomes;
 }
 
 // ─── EventPublishStep / EventSubscribeStep ─────────────────────────────
@@ -1033,7 +1049,6 @@ export interface AiCallStep extends StepBaseProps {
   toolChoice?: AiToolChoice;
   responseFormat?: AiResponseFormat;
   parameters?: AiInferenceParameters;
-  outcomes?: ExternalCallOutcomes;
 }
 
 /** multi-step agent loop step (#940)。 */
@@ -1047,7 +1062,6 @@ export interface AiAgentStep extends StepBaseProps {
   maxIterations?: number;
   responseFormat?: AiResponseFormat;
   parameters?: AiInferenceParameters;
-  outcomes?: ExternalCallOutcomes;
 }
 
 // ─── ExtensionStep ────────────────────────────────────────────────────

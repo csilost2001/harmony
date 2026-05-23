@@ -455,7 +455,7 @@ v3 で string 短縮形は全廃止。v1/v2 サンプルから v3 への移行�
 | `ActionDefinition.inputs` | — | `StructuredField[]` のみ (string 短縮形廃止) |
 | `ActionDefinition.outputs` | — | 同上 |
 | `StepBaseProps` | `outputBinding?: OutputBinding` | object 形式のみ (string 短縮形廃止) |
-| `StepBaseProps` | `lineage?: DataLineage` | **#525 R3 fix で StepBaseProps に移植**、全 step variant で利用可能 |
+| `StepBaseProps` | `errorHandling?: ErrorHandling` | **#1263 Phase X3 で集約 (outcomes / rollbackOn / retryPolicy / onTimeout を集約、案 D)**、旧 `lineage?: DataLineage` は同 phase で削除 (SQL AST 復元可能、`schema-deletions-record.md` §3) |
 | `CommonProcessStep` | `argumentMapping?: Record<string,TemplateString>` | 確定 |
 | `ProcessFlow.context.ambientVariables` | `StructuredField[]` | **#525 R3 fix で context 配下に統一** (v1/v2 では root 直下) |
 | `ScreenItem.valueFrom.flowVariable.variableName` | `IdentifierPath` | **#533 R3-1 fix で IdentifierPath (camelCase + snake_case + dot path) に変更** |

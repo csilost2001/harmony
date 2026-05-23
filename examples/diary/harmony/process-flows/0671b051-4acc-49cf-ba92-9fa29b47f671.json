@@ -275,13 +275,12 @@
           "description": "posts / photos / post_tags / tags.usage_count の登録を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @var.action.txResult に結果を expose する。POST_CREATE_FAILED / UNIQUE_VIOLATION はロールバックトリガーとして列挙する。",
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
-          "rollbackOn": [
-            "POST_CREATE_FAILED",
-            "UNIQUE_VIOLATION"
-          ],
           "outputBinding": {
             "name": "txResult",
-            "expose": ["committed", "error"]
+            "expose": [
+              "committed",
+              "error"
+            ]
           },
           "steps": [
             {
@@ -299,14 +298,6 @@
                 "expected": 1,
                 "onViolation": "throw",
                 "errorCode": "POST_CREATE_FAILED"
-              },
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                    "purpose": "insert"
-                  }
-                ]
               }
             },
             {
@@ -323,15 +314,7 @@
                   "description": "photos テーブルに写真を INSERT する。",
                   "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
                   "operation": "INSERT",
-                  "sql": "INSERT INTO photos (post_id, url, thumbnail_url, alt, caption, order_index, width, height, exif_json, created_at) VALUES (@newPost.postId, @photo.url, @photo.thumbnail_url, @photo.alt, @photo.caption, COALESCE(@photo.order_index, 0), @photo.width, @photo.height, @photo.exif_json, CURRENT_TIMESTAMP)",
-                  "lineage": {
-                    "writes": [
-                      {
-                        "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-                        "purpose": "insert"
-                      }
-                    ]
-                  }
+                  "sql": "INSERT INTO photos (post_id, url, thumbnail_url, alt, caption, order_index, width, height, exif_json, created_at) VALUES (@newPost.postId, @photo.url, @photo.thumbnail_url, @photo.alt, @photo.caption, COALESCE(@photo.order_index, 0), @photo.width, @photo.height, @photo.exif_json, CURRENT_TIMESTAMP)"
                 }
               ]
             },
@@ -353,14 +336,6 @@
                   "runIf": "@tag.id == null",
                   "outputBinding": {
                     "name": "existingTag"
-                  },
-                  "lineage": {
-                    "reads": [
-                      {
-                        "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                        "purpose": "lookup"
-                      }
-                    ]
                   }
                 },
                 {
@@ -380,14 +355,6 @@
                     "onViolation": "log",
                     "errorCode": "UNIQUE_VIOLATION",
                     "description": "UNIQUE 制約違反 (slug 重複) の場合 0 行になるため log して続行。step-03-03-01 で事前チェック済みだが競合が起きた場合の安全装置。"
-                  },
-                  "lineage": {
-                    "writes": [
-                      {
-                        "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                        "purpose": "insert"
-                      }
-                    ]
                   }
                 },
                 {
@@ -405,15 +372,7 @@
                   "description": "post_tags に投稿とタグの関連を INSERT する。",
                   "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
                   "operation": "INSERT",
-                  "sql": "INSERT INTO post_tags (post_id, tag_id, source, confidence, created_at) VALUES (@newPost.postId, @resolvedTagId, COALESCE(@tag.source, 'manual'), COALESCE(@tag.confidence, 1.0), CURRENT_TIMESTAMP)",
-                  "lineage": {
-                    "writes": [
-                      {
-                        "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
-                        "purpose": "insert"
-                      }
-                    ]
-                  }
+                  "sql": "INSERT INTO post_tags (post_id, tag_id, source, confidence, created_at) VALUES (@newPost.postId, @resolvedTagId, COALESCE(@tag.source, 'manual'), COALESCE(@tag.confidence, 1.0), CURRENT_TIMESTAMP)"
                 }
               ]
             },
@@ -423,17 +382,15 @@
               "description": "tags.usage_count を更新する (TX 内 commit 前の最後の DB UPDATE)。",
               "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
               "operation": "UPDATE",
-              "sql": "UPDATE tags SET usage_count = usage_count + 1 WHERE id IN (SELECT tag_id AS \"tagId\" FROM post_tags WHERE post_id = @newPost.postId)",
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                    "purpose": "update"
-                  }
-                ]
-              }
+              "sql": "UPDATE tags SET usage_count = usage_count + 1 WHERE id IN (SELECT tag_id AS \"tagId\" FROM post_tags WHERE post_id = @newPost.postId)"
             }
-          ]
+          ],
+          "errorHandling": {
+            "rollbackOn": [
+              "POST_CREATE_FAILED",
+              "UNIQUE_VIOLATION"
+            ]
+          }
         },
         {
           "id": "step-07",

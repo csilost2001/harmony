@@ -222,14 +222,6 @@
           "sql": "SELECT id AS \"tagId\" FROM tags WHERE name = @inputs.name OR slug = @resolvedSlug LIMIT 1",
           "outputBinding": {
             "name": "duplicateTag"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "uniqueness-check"
-              }
-            ]
           }
         },
         {
@@ -278,14 +270,6 @@
             "expected": 1,
             "onViolation": "throw",
             "errorCode": "TAG_CREATE_FAILED"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "insert"
-              }
-            ]
           }
         },
         {
@@ -471,14 +455,6 @@
           "sql": "SELECT id AS \"tagId\", name AS \"name\", slug AS \"slug\" FROM tags WHERE id = @inputs.id LIMIT 1",
           "outputBinding": {
             "name": "existingTag"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -530,14 +506,6 @@
           "sql": "SELECT id AS \"tagId\" FROM tags WHERE id != @inputs.id AND (name = @resolved.name OR slug = @resolved.slug) LIMIT 1",
           "outputBinding": {
             "name": "duplicateTag"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "uniqueness-check"
-              }
-            ]
           }
         },
         {
@@ -584,14 +552,6 @@
             "onViolation": "throw",
             "errorCode": "TAG_UPDATE_FAILED",
             "description": "step-03 の存在確認後に削除された競合の場合 0 行になるため throw。"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "update"
-              }
-            ]
           }
         },
         {
@@ -603,14 +563,6 @@
           "sql": "SELECT id AS \"tagId\", name AS \"name\", slug AS \"slug\", color AS \"color\", icon AS \"icon\" FROM tags WHERE id = @inputs.id LIMIT 1",
           "outputBinding": {
             "name": "updatedTag"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -705,14 +657,6 @@
           "sql": "SELECT COUNT(*) AS \"usageCount\" FROM post_tags WHERE tag_id = @inputs.id",
           "outputBinding": {
             "name": "usage"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
-                "purpose": "in-use-check"
-              }
-            ]
           }
         },
         {
@@ -759,14 +703,6 @@
             "onViolation": "throw",
             "errorCode": "TAG_NOT_FOUND",
             "description": "0 行は既に削除済 (= 404)、複数行は schema 違反 (id PK のため発生しない想定)。"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "delete"
-              }
-            ]
           }
         },
         {

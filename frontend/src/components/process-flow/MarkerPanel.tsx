@@ -37,8 +37,8 @@ function collectStepIds(group: ProcessFlow): Set<string> {
         if (s.onCommit) visit(s.onCommit);
         if (s.onRollback) visit(s.onRollback);
       }
-      if (s.kind === "externalSystem" && !isExtensionStep(s) && s.outcomes) {
-        for (const oc of Object.values(s.outcomes)) {
+      if (s.kind === "externalSystem" && !isExtensionStep(s) && s.errorHandling?.outcomes) {
+        for (const oc of Object.values(s.errorHandling?.outcomes)) {
           if (oc?.sideEffects) visit(oc.sideEffects);
         }
       }

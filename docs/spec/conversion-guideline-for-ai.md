@@ -550,7 +550,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
           "id": "step-02",
           "kind": "transactionScope",
           "description": "在庫チェック + 注文登録 + 在庫減算を 1 TX で実行",
-          "rollbackOn": ["INVENTORY_SHORTAGE"],
+          "errorHandling": { "rollbackOn": ["INVENTORY_SHORTAGE"] },
           "steps": [
             {
               "id": "step-02-01",
@@ -1356,8 +1356,8 @@ export async function applyAIFeedback(profile: any, aiDecisions: AIDecision[]) {
 2. **JSON 重複 kind** — `kind: "dbQuery"` と `kind: "compute"` を同 step 内に書く誤り。1 step 1 kind
 3. **screenTransition と httpRoute 衝突** — 同じパスを両方で定義しない
 4. **採番 nextSeq() 不能** — `sequence.ref` の参照先 sequence 未定義
-5. **rollbackOn 欠落** — TX 内のステップが throw する条件で `rollbackOn` 未指定
-6. **lineage purpose 誤り** — `purpose` を type と混同
+5. **rollbackOn 欠落** — TX 内のステップが throw する条件で `errorHandling.rollbackOn` 未指定 (#1263 Phase X3 で errorHandling 集約済)
+6. **lineage** — **#1263 Phase X3 で削除済**。記述すると schema 不適合になる (購入元 / 加工 / 流出経路の追跡は別途 `notes[]` か独自 extension で表現)
 7. **loop 同名衝突** — 複数 loop で同 iterator 名
 8. **複数文 SQL** — 1 SQL ステップに `;` 区切り複数文を書く誤り
 

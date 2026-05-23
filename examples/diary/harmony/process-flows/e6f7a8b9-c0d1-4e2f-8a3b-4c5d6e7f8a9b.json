@@ -245,22 +245,6 @@
           "sql": "SELECT p.id AS \"postId\", p.title, p.summary, p.status, p.mood, p.published_at AS \"publishedAt\", p.updated_at AS \"updatedAt\", u.display_name AS \"authorDisplayName\", (SELECT url FROM photos WHERE post_id = p.id ORDER BY order_index ASC LIMIT 1) AS \"thumbnailUrl\" FROM posts p INNER JOIN users u ON u.id = p.user_id WHERE p.status = @params.status AND (@likePattern IS NULL OR p.title LIKE @likePattern OR p.body LIKE @likePattern) AND (@inputs.dateFrom IS NULL OR p.published_at >= @inputs.dateFrom) AND (@inputs.dateTo IS NULL OR p.published_at <= @inputs.dateTo) ORDER BY p.published_at DESC LIMIT @params.limit OFFSET @params.offset",
           "outputBinding": {
             "name": "searchResults"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -276,14 +260,6 @@
               {
                 "field": "totalCount",
                 "type": "integer"
-              }
-            ]
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                "purpose": "lookup"
               }
             ]
           }

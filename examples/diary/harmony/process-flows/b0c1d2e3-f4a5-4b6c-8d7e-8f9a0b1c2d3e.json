@@ -141,14 +141,6 @@
           "runIf": "@inputs.photoId != null",
           "outputBinding": {
             "name": "photoRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -221,10 +213,12 @@
           "outputBinding": {
             "name": "aiResponse"
           },
-          "outcomes": {
-            "failure": {
-              "action": "abort",
-              "description": "AI モデル呼び出し失敗時は 502 を返す。"
+          "errorHandling": {
+            "outcomes": {
+              "failure": {
+                "action": "abort",
+                "description": "AI モデル呼び出し失敗時は 502 を返す。"
+              }
             }
           }
         },
@@ -245,14 +239,6 @@
           "operation": "UPDATE",
           "sql": "UPDATE photos SET alt = @altText WHERE id = @inputs.photoId",
           "runIf": "@inputs.photoId != null",
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-                "purpose": "update"
-              }
-            ]
-          },
           "affectedRowsCheck": {
             "operator": "<=",
             "expected": 1,

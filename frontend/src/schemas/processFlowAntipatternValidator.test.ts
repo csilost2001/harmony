@@ -1030,3 +1030,176 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
     expect(found).toHaveLength(0);
   });
 });
+
+// ─── Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3 / #1254 件 5) ─
+
+describe("Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3)", () => {
+  it("positive (committed): sql 不在 + naturalQuery のみ → error (naturalQuery を AI 変換促す message)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "dbAccess",
+              id: "step-01",
+              description: "fetch users",
+              tableId: "00000000-0000-4000-8000-000000000001" as never,
+              operation: "SELECT",
+              naturalQuery: "ユーザーを id で取得",
+              // sql 不在
+              outputBinding: { name: "user" as never },
+            } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("error");
+    expect(found[0].message).toContain("naturalQuery");
+    expect(found[0].message).toContain("committed");
+  });
+
+  it("positive (committed): sql 不在 + naturalQuery も不在 → error (シンプル message)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "dbAccess",
+              id: "step-01",
+              description: "fetch",
+              tableId: "00000000-0000-4000-8000-000000000001" as never,
+              operation: "SELECT",
+              outputBinding: { name: "rows" as never },
+              // sql / naturalQuery 両方不在
+            } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("error");
+  });
+
+  it("negative (draft): sql 不在 + naturalQuery のみ → 許容 (#1254 件 5 maturity-aware)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "draft", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "dbAccess",
+              id: "step-01",
+              description: "fetch users — naturalQuery only (draft)",
+              tableId: "00000000-0000-4000-8000-000000000001" as never,
+              operation: "SELECT",
+              naturalQuery: "ユーザーを id で取得",
+              outputBinding: { name: "user" as never },
+            } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative (committed): sql あり → 許容 (naturalQuery 併用も OK)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "dbAccess",
+              id: "step-01",
+              description: "fetch users",
+              tableId: "00000000-0000-4000-8000-000000000001" as never,
+              operation: "SELECT",
+              sql: "SELECT * FROM users WHERE id = @inputs.userId",
+              naturalQuery: "ユーザーを id で取得",  // 併用 OK
+              outputBinding: { name: "user" as never },
+            } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative: dbAccess 以外の step は対象外", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            { kind: "compute", id: "step-01", description: "compute", expression: "1+1" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
+    expect(found).toHaveLength(0);
+  });
+
+  it("positive: flow=draft でも action.maturity=committed なら sql 必須 (Round 2 SF-3)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "draft", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1 (committed)",
+          trigger: "click",
+          maturity: "committed",
+          steps: [
+            {
+              kind: "dbAccess",
+              id: "step-01",
+              description: "fetch users",
+              tableId: "00000000-0000-4000-8000-000000000001" as never,
+              operation: "SELECT",
+              naturalQuery: "ユーザーを id で取得",
+              outputBinding: { name: "user" as never },
+            } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
+    expect(found).toHaveLength(1);
+    expect(found[0].severity).toBe("error");
+    expect(found[0].path).toContain("actions[0].steps[0]");
+  });
+});

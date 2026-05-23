@@ -141,14 +141,6 @@
           "runIf": "@inputs.postId != null",
           "outputBinding": {
             "name": "postRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -209,10 +201,12 @@
           "outputBinding": {
             "name": "aiResponse"
           },
-          "outcomes": {
-            "failure": {
-              "action": "abort",
-              "description": "AI モデル呼び出し失敗時は 502 を返す。"
+          "errorHandling": {
+            "outcomes": {
+              "failure": {
+                "action": "abort",
+                "description": "AI モデル呼び出し失敗時は 502 を返す。"
+              }
             }
           }
         },
@@ -233,14 +227,6 @@
           "operation": "UPDATE",
           "sql": "UPDATE posts SET summary = @summaryText, updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.postId",
           "runIf": "@inputs.postId != null",
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                "purpose": "update"
-              }
-            ]
-          },
           "affectedRowsCheck": {
             "operator": "<=",
             "expected": 1,

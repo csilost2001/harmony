@@ -56,14 +56,6 @@
           "sql": "SELECT id AS \"tagId\", name AS \"name\", slug AS \"slug\", color AS \"color\", icon AS \"icon\", usage_count AS \"usageCount\", created_at AS \"createdAt\", updated_at AS \"updatedAt\" FROM tags ORDER BY usage_count DESC, name ASC",
           "outputBinding": {
             "name": "tagRows"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "list"
-              }
-            ]
           }
         },
         {

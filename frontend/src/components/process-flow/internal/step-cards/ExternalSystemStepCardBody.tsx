@@ -141,17 +141,20 @@ export function ExternalSystemStepCardBody({
           <input
             type="number"
             className="form-control form-control-sm"
-            value={step.retryPolicy?.maxAttempts ?? ""}
+            value={step.errorHandling?.retryPolicy?.maxAttempts ?? ""}
             onChange={(e) => {
               const n = e.target.value ? Number(e.target.value) : 0;
               if (n <= 0) {
-                onChange({ retryPolicy: undefined });
+                onChange({ errorHandling: step.errorHandling ? { ...step.errorHandling, retryPolicy: undefined } : undefined });
               } else {
                 onChange({
-                  retryPolicy: {
-                    maxAttempts: n,
-                    backoff: step.retryPolicy?.backoff,
-                    initialDelayMs: step.retryPolicy?.initialDelayMs,
+                  errorHandling: {
+                    ...step.errorHandling,
+                    retryPolicy: {
+                      maxAttempts: n,
+                      backoff: step.errorHandling?.retryPolicy?.backoff,
+                      initialDelayMs: step.errorHandling?.retryPolicy?.initialDelayMs,
+                    },
                   },
                 });
               }
@@ -161,16 +164,19 @@ export function ExternalSystemStepCardBody({
             style={{ width: 90, fontSize: "0.8rem" }}
           />
         </div>
-        {step.retryPolicy && (
+        {step.errorHandling?.retryPolicy && (
           <>
             <div className="col-auto">
               <select
                 className="form-select form-select-sm"
-                value={step.retryPolicy.backoff ?? ""}
+                value={step.errorHandling?.retryPolicy.backoff ?? ""}
                 onChange={(e) => onChange({
-                  retryPolicy: {
-                    ...step.retryPolicy!,
-                    backoff: e.target.value as "fixed" | "exponential" || undefined,
+                  errorHandling: {
+                    ...step.errorHandling,
+                    retryPolicy: {
+                      ...step.errorHandling!.retryPolicy!,
+                      backoff: e.target.value as "fixed" | "exponential" || undefined,
+                    },
                   },
                 })}
                 style={{ width: "auto", fontSize: "0.8rem" }}
@@ -184,11 +190,14 @@ export function ExternalSystemStepCardBody({
               <input
                 type="number"
                 className="form-control form-control-sm"
-                value={step.retryPolicy.initialDelayMs ?? ""}
+                value={step.errorHandling?.retryPolicy.initialDelayMs ?? ""}
                 onChange={(e) => onChange({
-                  retryPolicy: {
-                    ...step.retryPolicy!,
-                    initialDelayMs: e.target.value ? Number(e.target.value) : undefined,
+                  errorHandling: {
+                    ...step.errorHandling,
+                    retryPolicy: {
+                      ...step.errorHandling!.retryPolicy!,
+                      initialDelayMs: e.target.value ? Number(e.target.value) : undefined,
+                    },
                   },
                 })}
                 onBlur={onCommit}

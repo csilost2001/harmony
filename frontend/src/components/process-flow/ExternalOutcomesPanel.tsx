@@ -36,20 +36,20 @@ const OUTCOME_LABEL: Record<ExternalCallOutcome, string> = {
  * sideEffects は簡易エディタ (type + description のペア)。複雑な step はまだ JSON 直接編集。
  */
 export function ExternalOutcomesPanel({ step, onChange, onCommit }: Props) {
-  const [expanded, setExpanded] = useState(!!step.outcomes && Object.keys(step.outcomes).length > 0);
+  const [expanded, setExpanded] = useState(!!step.errorHandling?.outcomes && Object.keys(step.errorHandling?.outcomes).length > 0);
 
-  const outcomes = step.outcomes ?? {};
+  const outcomes = step.errorHandling?.outcomes ?? {};
 
   const setOutcome = (key: ExternalCallOutcome, patch: Partial<ExternalCallOutcomeSpec>) => {
     const current = outcomes[key] ?? { action: "continue" as const };
     const next = { ...outcomes, [key]: { ...current, ...patch } };
-    onChange({ outcomes: next });
+    onChange({ errorHandling: { ...step.errorHandling, outcomes: next } });
   };
 
   const clearOutcome = (key: ExternalCallOutcome) => {
     const next = { ...outcomes };
     delete next[key];
-    onChange({ outcomes: Object.keys(next).length > 0 ? next : undefined });
+    onChange({ errorHandling: { ...step.errorHandling, outcomes: Object.keys(next).length > 0 ? next : undefined } });
   };
 
   const addSideEffect = (key: ExternalCallOutcome) => {

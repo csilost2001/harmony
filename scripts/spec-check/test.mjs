@@ -94,9 +94,9 @@ console.log("\n## extract-nested-required.mjs (full snapshot)");
     "ValidationRule", "ValidationInlineBranch",
     "WorkflowApprover", "WorkflowQuorum",
     "AiMessage", "AiMessageItem", "AiTool", "AiToolRef", "AiToolChoice", "AiResponseFormat",
-    "AffectedRowsCheck", "DataLineage",
+    "AffectedRowsCheck",
     "CdcDestination",
-    "OutputBinding", "TxBoundary",
+    "OutputBinding",
   ];
   for (const name of nestedDefs) {
     const def = $defs[name];

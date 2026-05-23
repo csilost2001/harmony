@@ -279,26 +279,6 @@
           "sql": "SELECT c.id AS \"cartId\", ci.id AS \"itemId\", ci.product_id AS \"productId\", ci.store_id AS \"storeId\", ci.unit_price_snapshot AS \"unitPriceSnapshot\", ci.quantity, p.product_code AS \"productCode\", p.name AS \"productName\", p.unit_price AS \"unitPrice\", s.store_code AS \"storeCode\", s.name AS \"storeName\" FROM carts c JOIN cart_items ci ON ci.cart_id = c.id JOIN products p ON p.id = ci.product_id JOIN stores s ON s.id = ci.store_id WHERE c.customer_id = @sessionCustomerId AND c.status = 'active'",
           "outputBinding": {
             "name": "cartItems"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -351,14 +331,6 @@
           "sql": "SELECT 'ORD-' || EXTRACT(YEAR FROM CURRENT_DATE)::text || '-' || LPAD(nextval('seq_order_number')::text, 6, '0') AS order_number",
           "outputBinding": {
             "name": "newOrderNumberRows"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -377,13 +349,12 @@
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
           "timeoutMs": 10000,
-          "rollbackOn": [
-            "STOCK_SHORTAGE",
-            "ORDER_NUMBER_CONFLICT"
-          ],
           "outputBinding": {
             "name": "txResult",
-            "expose": ["committed", "error"]
+            "expose": [
+              "committed",
+              "error"
+            ]
           },
           "steps": [
             {
@@ -407,14 +378,6 @@
                     "onViolation": "throw",
                     "errorCode": "STOCK_SHORTAGE",
                     "description": "0 件更新 = 在庫不足。TX がロールバックされ STOCK_SHORTAGE エラーを返す。"
-                  },
-                  "lineage": {
-                    "writes": [
-                      {
-                        "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
-                        "purpose": "decrement"
-                      }
-                    ]
                   }
                 }
               ]
@@ -435,14 +398,6 @@
                 "onViolation": "throw",
                 "errorCode": "ORDER_NUMBER_CONFLICT",
                 "description": "INSERT が 0 件 = order_number UNIQUE 制約違反またはその他の制約エラー。TX はロールバックされる。"
-              },
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                    "purpose": "insert"
-                  }
-                ]
               }
             },
             {
@@ -459,15 +414,7 @@
                   "description": "order_items に 1 行 INSERT する。order_id は step-06-02 で取得した insertedOrder.id を使用する。商品コード/商品名/店舗コードは cart_items から取得した値を snapshot として保存し、後の配送指示 (S-4) や履歴照会で参照する。",
                   "tableId": "dddfb0c1-0fde-40ac-bcf0-5ed75a7f1edc",
                   "operation": "INSERT",
-                  "sql": "INSERT INTO order_items (order_id, product_id, store_code_snapshot, product_code_snapshot, product_name_snapshot, unit_price_snapshot, quantity, line_amount) VALUES (@insertedOrder.id, @cartItem.productId, @cartItem.storeCode, @cartItem.productCode, @cartItem.productName, @cartItem.unitPriceSnapshot, @cartItem.quantity, @cartItem.unitPriceSnapshot * @cartItem.quantity)",
-                  "lineage": {
-                    "writes": [
-                      {
-                        "tableId": "dddfb0c1-0fde-40ac-bcf0-5ed75a7f1edc",
-                        "purpose": "insert"
-                      }
-                    ]
-                  }
+                  "sql": "INSERT INTO order_items (order_id, product_id, store_code_snapshot, product_code_snapshot, product_name_snapshot, unit_price_snapshot, quantity, line_amount) VALUES (@insertedOrder.id, @cartItem.productId, @cartItem.storeCode, @cartItem.productCode, @cartItem.productName, @cartItem.unitPriceSnapshot, @cartItem.quantity, @cartItem.unitPriceSnapshot * @cartItem.quantity)"
                 }
               ]
             },
@@ -477,15 +424,7 @@
               "description": "cart_items を全削除する (CLEAR_CART step 1/2)。顧客のアクティブカートに紐づく全明細を削除する。",
               "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
               "operation": "DELETE",
-              "sql": "DELETE FROM cart_items WHERE cart_id = (SELECT id FROM carts WHERE customer_id = @sessionCustomerId AND status = 'active')",
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "57110336-a984-4d39-bb21-1e5d5bb4390b",
-                    "purpose": "delete"
-                  }
-                ]
-              }
+              "sql": "DELETE FROM cart_items WHERE cart_id = (SELECT id FROM carts WHERE customer_id = @sessionCustomerId AND status = 'active')"
             },
             {
               "id": "step-06-04-b",
@@ -493,15 +432,7 @@
               "description": "carts.status を 'ordered' に更新する (CLEAR_CART step 2/2)。",
               "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
               "operation": "UPDATE",
-              "sql": "UPDATE carts SET status = 'ordered', updated_at = CURRENT_TIMESTAMP WHERE customer_id = @sessionCustomerId AND status = 'active'",
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
-                    "purpose": "update"
-                  }
-                ]
-              }
+              "sql": "UPDATE carts SET status = 'ordered', updated_at = CURRENT_TIMESTAMP WHERE customer_id = @sessionCustomerId AND status = 'active'"
             }
           ],
           "onRollback": [
@@ -517,7 +448,13 @@
                 "orderNumber": "@newOrderNumber"
               }
             }
-          ]
+          ],
+          "errorHandling": {
+            "rollbackOn": [
+              "STOCK_SHORTAGE",
+              "ORDER_NUMBER_CONFLICT"
+            ]
+          }
         },
         {
           "id": "step-07",
@@ -598,14 +535,6 @@
           "sql": "SELECT id, order_number AS \"orderNumber\", customer_id AS \"customerId\", status, total_amount AS \"totalAmount\", ordered_at AS \"orderedAt\" FROM orders WHERE order_number = @newOrderNumber",
           "outputBinding": {
             "name": "persistedOrder"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {

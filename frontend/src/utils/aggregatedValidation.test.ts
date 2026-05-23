@@ -67,16 +67,18 @@ describe("aggregateValidation — 統合テスト", () => {
     expect(w?.stepId).toBe("inner-return");
   });
 
-  it("externalSystem.outcomes.sideEffects 内の step も stepId 解決", () => {
+  it("externalSystem.errorHandling.outcomes.sideEffects 内の step も stepId 解決 (#1263 Phase X3)", () => {
     const errors = aggregateValidation(makeGroup({
       actions: [{
         id: "a1", name: "f", trigger: "click",
         steps: [{
           id: "ext", kind: "externalSystem", description: "", systemRef: "x",
-          outcomes: {
-            failure: {
-              action: "continue",
-              sideEffects: [{ id: "se-unknown", kind: "compute", description: "", expression: "@unknownVar", outputBinding: { name: "r" } }],
+          errorHandling: {
+            outcomes: {
+              failure: {
+                action: "continue",
+                sideEffects: [{ id: "se-unknown", kind: "compute", description: "", expression: "@unknownVar", outputBinding: { name: "r" } }],
+              },
             },
           },
         }],

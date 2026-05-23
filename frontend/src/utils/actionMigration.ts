@@ -207,12 +207,40 @@ function migrateStepInPlace(raw: unknown): Step {
     if (isRecord(step.quorum) && step.quorum.type === "n-of-m") step.quorum.type = "nOfM";
   }
 
-  if (step.kind === "externalSystem" && isRecord(step.outcomes)) {
-    for (const outcome of Object.values(step.outcomes)) {
+  // #1263 Phase X3: 旧形式 (step 直下 outcomes / rollbackOn / retryPolicy / onTimeout) を
+  // errorHandling object に集約。外部プロジェクトから流入する legacy data 用 migration path。
+  // 集約後の outcomes.<key>.sideEffects は引き続き migrateStepInPlace で再帰処理。
+  const errorHandlingFields = ["outcomes", "rollbackOn", "retryPolicy", "onTimeout"] as const;
+  const migrated: Record<string, unknown> = {};
+  let hasLegacy = false;
+  for (const f of errorHandlingFields) {
+    // onTimeout は WorkflowStep の Step[] 形式と区別 (Step[] は維持、string enum のみ集約)
+    if (f === "onTimeout" && Array.isArray(step[f])) continue;
+    if (step[f] !== undefined) {
+      migrated[f] = step[f];
+      delete step[f];
+      hasLegacy = true;
+    }
+  }
+  if (hasLegacy) {
+    if (isRecord(step.errorHandling)) {
+      Object.assign(step.errorHandling, migrated);
+    } else {
+      step.errorHandling = migrated;
+    }
+  }
+
+  if (isRecord(step.errorHandling) && isRecord(step.errorHandling.outcomes)) {
+    for (const outcome of Object.values(step.errorHandling.outcomes)) {
       if (isRecord(outcome) && Array.isArray(outcome.sideEffects)) {
         outcome.sideEffects = outcome.sideEffects.map(migrateStepInPlace);
       }
     }
+  }
+
+  // #1263 Phase X3: lineage field 削除 (SQL AST 解析で復元可能)
+  if (step.lineage !== undefined) {
+    delete step.lineage;
   }
 
   if (step.kind === "cdc") {

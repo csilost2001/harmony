@@ -209,7 +209,7 @@ function walkSteps(
       if (step.onRollback) walkSteps(step.onRollback, `${path}.onRollback`, visit);
     }
     if (step.kind === "externalSystem") {
-      Object.entries(step.outcomes ?? {}).forEach(([k, spec]) => {
+      Object.entries(step.errorHandling?.outcomes ?? {}).forEach(([k, spec]) => {
         if (spec?.sideEffects) {
           walkSteps(spec.sideEffects, `${path}.outcomes.${k}.sideEffects`, visit);
         }
@@ -308,14 +308,14 @@ function checkStep(
       }
     });
   }
-  if (step.kind === "transactionScope" && step.rollbackOn && hasErrorCatalog) {
-    step.rollbackOn.forEach((code, ci) => {
+  if (step.kind === "transactionScope" && step.errorHandling?.rollbackOn && hasErrorCatalog) {
+    step.errorHandling.rollbackOn.forEach((code: string, ci: number) => {
       if (!errorCodes.has(code)) {
         issues.push({
-          path: `${path}.rollbackOn[${ci}]`,
+          path: `${path}.errorHandling.rollbackOn[${ci}]`,
           code: "UNKNOWN_ERROR_CODE",
           value: code,
-          message: `TransactionScopeStep.rollbackOn[${ci}] "${code}" が context.catalogs.errors に存在しません`,
+          message: `TransactionScopeStep.errorHandling.rollbackOn[${ci}] "${code}" が context.catalogs.errors に存在しません`,
         });
       }
     });

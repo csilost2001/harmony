@@ -128,78 +128,11 @@ describe("schema v3 examples (#774: examples/ を canonical サンプル領域�
     }
   });
 
-  it("F-2: ExtensionStep can declare lineage at top-level (StepBaseProps への移植)", () => {
-    const fixture = {
-      meta: {
-        id: "11111111-1111-4111-8111-111111111111",
-        name: "F-2 lineage 透過テスト",
-        createdAt: "2026-04-27T00:00:00.000Z",
-        updatedAt: "2026-04-27T00:00:00.000Z",
-        flowType: "screen", screenId: "22222222-2222-4222-8222-222222222222",
-      },
-      actions: [
-        {
-          id: "act-001",
-          name: "extension step lineage test",
-          trigger: "submit",
-          steps: [
-            {
-              id: "step-01",
-              kind: "retail:CartManageStep",
-              description: "ExtensionStep が lineage を top-level に持てる (StepBaseProps から継承)",
-              lineage: {
-                writes: [
-                  { tableId: "eb574288-88f2-419f-ac5e-56a9948e8f46", purpose: "upsert" },
-                ],
-              },
-              config: {
-                cartId: "cart-001",
-                productCode: "PROD001",
-                quantity: 2,
-              },
-            },
-          ],
-        },
-      ],
-    };
-    const ok = validateProcessFlow(fixture);
-    expect(ok, ok ? "" : dumpErrors("F-2 fixture", validateProcessFlow)).toBe(true);
-  });
-
-  it("F-2 regression: DbAccessStep が継承された lineage を保持", () => {
-    // F-2 で DbAccessStep の lineage 重複宣言を削除した。継承で機能するか検証
-    const fixture = {
-      meta: {
-        id: "33333333-3333-4333-8333-333333333333",
-        name: "F-2 DbAccessStep lineage 継承テスト",
-        createdAt: "2026-04-27T00:00:00.000Z",
-        updatedAt: "2026-04-27T00:00:00.000Z",
-        flowType: "screen", screenId: "22222222-2222-4222-8222-222222222222",
-      },
-      actions: [
-        {
-          id: "act-001",
-          name: "dbAccess lineage regression",
-          trigger: "submit",
-          steps: [
-            {
-              id: "step-01",
-              kind: "dbAccess",
-              description: "DbAccessStep の lineage は StepBaseProps から継承される",
-              tableId: "eb574288-88f2-419f-ac5e-56a9948e8f46",
-              operation: "SELECT",
-              sql: "SELECT * FROM products",
-              outputBinding: { name: "rows" },
-              lineage: {
-                reads: [{ tableId: "eb574288-88f2-419f-ac5e-56a9948e8f46", purpose: "lookup" }],
-              },
-            },
-          ],
-        },
-      ],
-    };
-    const ok = validateProcessFlow(fixture);
-    expect(ok, ok ? "" : dumpErrors("F-2 DbAccessStep regression", validateProcessFlow)).toBe(true);
+  // F-2 lineage tests: #1263 Phase X3 で lineage field は schema から削除されたためテスト削除
+  // (旧 #525 R3 fix で StepBaseProps に集約していたが、Phase X3 で全削除に方針転換 — AST 解析で
+  // データ系譜は復元可能、明示宣言の重複保守コストが高いと判断)
+  it.skip("F-2: lineage field removed in #1263 Phase X3 (#1254 件 5)", () => {
+    // 旧テスト削除済、lineage は schema 不在のため検証不要
   });
 
   it("F-4: BranchCondition の不正 kind は discriminator で 1 branch のみエラー", () => {

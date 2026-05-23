@@ -249,18 +249,6 @@
           "sql": "SELECT p.id AS \"postId\", p.user_id AS \"userId\", p.title, p.body, p.summary, p.status, p.mood, p.weather, p.location, p.published_at AS \"publishedAt\", p.created_at AS \"createdAt\", p.updated_at AS \"updatedAt\", u.display_name AS \"authorDisplayName\", u.avatar_url AS \"authorAvatarUrl\" FROM posts p INNER JOIN users u ON u.id = p.user_id WHERE p.id = @inputs.postId",
           "outputBinding": {
             "name": "postRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -334,14 +322,6 @@
           "sql": "SELECT id AS \"id\", url, thumbnail_url AS \"thumbnailUrl\", alt, caption, order_index AS \"orderIndex\", width, height FROM photos WHERE post_id = @inputs.postId ORDER BY order_index ASC",
           "outputBinding": {
             "name": "photos"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -353,18 +333,6 @@
           "sql": "SELECT t.id AS \"id\", t.name AS \"name\", t.slug, t.color, t.icon, pt.source, pt.confidence FROM post_tags pt INNER JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = @inputs.postId",
           "outputBinding": {
             "name": "tags"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
-                "purpose": "lookup"
-              },
-              {
-                "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {

@@ -63,20 +63,6 @@
             "expected": 0,
             "onViolation": "log",
             "description": "0 件でも正常 (全ユーザーが前日学習した場合)。エラーにはしない。"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
-                "purpose": "lookup"
-              }
-            ],
-            "writes": [
-              {
-                "tableId": "c7e50462-bbc4-498f-a280-2ec40bda30b1",
-                "purpose": "update"
-              }
-            ]
           }
         },
         {

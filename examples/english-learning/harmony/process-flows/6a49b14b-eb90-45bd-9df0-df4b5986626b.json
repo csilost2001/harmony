@@ -253,14 +253,6 @@
           "sql": "SELECT id, story_id FROM learning_sessions WHERE id = @sessionId AND user_id = @sessionUserId AND status = 'in_progress'",
           "outputBinding": {
             "name": "sessionRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
-                "purpose": "validate"
-              }
-            ]
           }
         },
         {
@@ -304,14 +296,6 @@
           "sql": "SELECT id, text, ipa FROM dialogue_lines WHERE id = @dialogueLineId",
           "outputBinding": {
             "name": "dialogueLine"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "246a3f13-7888-4b14-ad6d-641b7437b09d",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -358,10 +342,12 @@
           "outputBinding": {
             "name": "evalResult"
           },
-          "outcomes": {
-            "failure": {
-              "action": "abort",
-              "description": "STT API 失敗時は abort。502-stt-failed カタログエントリに対応。"
+          "errorHandling": {
+            "outcomes": {
+              "failure": {
+                "action": "abort",
+                "description": "STT API 失敗時は abort。502-stt-failed カタログエントリに対応。"
+              }
             }
           }
         },
@@ -379,12 +365,13 @@
           "kind": "transactionScope",
           "description": "発音スコア INSERT + セッション平均スコア UPDATE を 1 TX で原子的に実行する。",
           "isolationLevel": "READ_COMMITTED",
-          "rollbackOn": [
-            "SCORE_INSERT_FAILED"
-          ],
           "outputBinding": {
             "name": "txResult",
-            "expose": ["committed", "error", "newScore"]
+            "expose": [
+              "committed",
+              "error",
+              "newScore"
+            ]
           },
           "steps": [
             {
@@ -396,14 +383,6 @@
               "sql": "INSERT INTO pronunciation_scores (session_id, dialogue_line_id, audio_url, score, diff, created_at) VALUES (@sessionId, @dialogueLineId, @audioUrl, @pronunciationScore, @evalResult.diff, CURRENT_TIMESTAMP) RETURNING id",
               "outputBinding": {
                 "name": "newScore"
-              },
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81",
-                    "purpose": "insert"
-                  }
-                ]
               }
             },
             {
@@ -412,23 +391,14 @@
               "description": "learning_sessions の score_avg をセッション内の全 pronunciation_scores の平均で更新する。",
               "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
               "operation": "UPDATE",
-              "sql": "UPDATE learning_sessions SET score_avg = (SELECT AVG(score) FROM pronunciation_scores WHERE session_id = @sessionId), updated_at = CURRENT_TIMESTAMP WHERE id = @sessionId",
-              "lineage": {
-                "reads": [
-                  {
-                    "tableId": "fefa79cf-4721-4956-86bb-595427bf6f81",
-                    "purpose": "lookup"
-                  }
-                ],
-                "writes": [
-                  {
-                    "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
-                    "purpose": "update"
-                  }
-                ]
-              }
+              "sql": "UPDATE learning_sessions SET score_avg = (SELECT AVG(score) FROM pronunciation_scores WHERE session_id = @sessionId), updated_at = CURRENT_TIMESTAMP WHERE id = @sessionId"
             }
-          ]
+          ],
+          "errorHandling": {
+            "rollbackOn": [
+              "SCORE_INSERT_FAILED"
+            ]
+          }
         },
         {
           "id": "step-07",

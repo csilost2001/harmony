@@ -139,11 +139,11 @@
 <h2 id="4-ランタイム規約">§4 ランタイム規約</h2>
 <p><a href="../../spec/process-flow-runtime-conventions/"><code>process-flow-runtime-conventions.md</code></a> を補足する形で、TX スコープに関するランタイム挙動:</p>
 <ol>
-<li><strong>commit タイミング</strong>: <code>steps[]</code> の最後の step が成功で抜けた時点で commit。途中の throw は (rollbackOn にマッチすれば) rollback</li>
+<li><strong>commit タイミング</strong>: <code>steps[]</code> の最後の step が成功で抜けた時点で commit。途中の throw は (<code>errorHandling.rollbackOn</code> にマッチすれば) rollback (#1263 Phase X3: <code>rollbackOn</code> は <code>errorHandling</code> object 内に移動)</li>
 <li><strong><code>onCommit</code> / <code>onRollback</code> の独立性</strong>: これらは TX の外で実行され、自身の失敗は元の TX 結果を覆さない</li>
 <li><strong>ネスト時の <code>REQUIRES_NEW</code></strong>: 親 TX が動いている時に <code>REQUIRES_NEW</code> の TransactionScopeStep に入ると、親 TX が一時停止して内側 TX が独立 commit/rollback する。内側 commit 後に親 TX が rollback しても、内側の commit は取り消されない</li>
 <li><strong>ネスト時の <code>NESTED</code></strong>: savepoint を使う。内側 rollback は親 TX の savepoint 復元、親 rollback は savepoint も含めて全 rollback</li>
-<li><strong><code>outputBinding.expose</code> による TX 結果の明示宣言</strong> (#1263 Phase X2 / #1264 verdict 観点 4 / #1267 Round 7 option C): <code>transactionScope</code> step に <code>outputBinding: { "name": "txResult", "expose": [...] }</code> を指定する。expose の各要素は以下のいずれか:
+<li><strong><code>outputBinding.expose</code> による TX 結果の明示宣言</strong> (#1263 Phase X2 / #1264 verdict 観点 4 / #1267 Round 7 option C): <code>transactionScope</code> step に <code>outputBinding: { "name": "txResult", "expose": [...] }</code> を指定する (<code>rollbackOn</code> は #1263 Phase X3 で <code>errorHandling.rollbackOn</code> に移動)。expose の各要素は以下のいずれか:
 <ul>
 <li><strong>3 予約値</strong> (常に利用可能、expose に明示不要):
 <ul>
