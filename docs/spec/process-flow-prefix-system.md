@@ -36,7 +36,7 @@ Issue: [RFC #1254](https://github.com/csilost2001/harmony/issues/1254) 件 3.7 /
 | `@logEvent` | log-event (構造化ログ) | ✅ pure ref | `generic-definitions/log-event/*.json` |
 | `@logConfig` | log-config (log level / sink) | ✅ pure ref | `generic-definitions/log-config/*.json` |
 
-(計 27 — catalog 24 + runtime @var 1 + designer-time @this/@self 2、§11 参照)
+(計 25 — `@var` は runtime scope 専用なので catalog 24 + runtime 1)。designer-time alias (`@this` / `@self`) は別表で §11 参照、含めると計 27。
 
 ## 2. 副作用 inline 禁止 (validator dispatch rule)
 
@@ -204,14 +204,11 @@ Phase A 実装範囲: **ScreenItem context のみ完全動作**。他 context �
 
 ### 11.3 designer-time alias の特性
 
-- `@this` / `@self` は **designer 補完・validator alias** として機能。runtime 評価時は static ref に **pre-resolve** される (or codegen で展開) — 本 Phase では codegen 側の対応は未着手 (Phase B)。
-- broken-ref validator (`processFlowAntipatternValidator` Check 31) は `@this.*` / `@self.*` を認識し、context 解決可能なら static ref と等価に検証する。context 解決不可 (例: standalone JSON ファイルだけを validate する場面) では silent pass。
+- `@this` / `@self` は **designer 補完・validator alias** として機能。runtime 評価時は static ref に **pre-resolve** される設計 (or codegen で展開) — Phase A (本 ISSUE #1301) では runtime/codegen 側の対応は未着手で、Phase B (#1308) で実装予定。
+- broken-ref validator (`processFlowAntipatternValidator` Check 31) の挙動:
+  - **Phase A (現状)**: `@this.*` / `@self.*` を **常に silent pass** で skip (validator に designer context 注入の仕組みが未整備のため、false positive 回避を優先)
+  - **Phase B (#1308 予定)**: context 注入後に static ref と等価検証を行う (例: Screen 編集中の `@this.item.<id>` を `@screen.<curScrId>.item.<id>` に解決して既存 Check 31 catalog で検証)
 
-### 11.4 prefix 一覧への追加 (§1 拡張)
+### 11.4 prefix 一覧との関係 (§1 補足)
 
-§1 の 24 prefix 表に以下 2 prefix を追加 (計 27 — catalog 24 + runtime @var + designer-time @this + @self):
-
-| prefix | 参照先 | inline 可否 (`${...}` 内) | catalog source |
-|---|---|---|---|
-| `@this` | designer-time alias: 現在編集中の root 設計書 (Screen/ProcessFlow/Table/View/ViewDefinition/Sequence/PageLayout) | ✅ pure ref のみ (例: `@this.item.<id>.value`) | designer context (現在 editor 種別 + id) |
-| `@self` | designer-time alias: 現在編集中の要素 (ScreenItem / Step / Column 等) | ✅ pure ref のみ (例: `@self.value`) | designer context (currentSelfRef) |
+§1 の 24 prefix 表は **runtime catalog (24) + runtime scope `@var` (1) = 計 25** の canonical 一覧で、designer-time alias である `@this` / `@self` は性質が異なる (context 依存・editor 内のみで有効) ため §1 表には含めず、本 §11 で別表として扱う。両者を含めた総数は **計 27**。
