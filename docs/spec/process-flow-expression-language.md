@@ -83,6 +83,7 @@ argList         = expression (',' expression)*
 - **`@inputs` / `@outputs` 全体参照**: `ActionDefinition.inputs` / `outputs` の配列全体をオブジェクトとしてアクセス可能。例: `@inputs.items` (inputs フィールド "items" へのアクセス)、`@outputs.result`。個別フィールド名 (`@items` 等) と全体参照 (`@inputs.items`) は**どちらも解決可能**だが、**全体参照スタイルを推奨** (名前衝突が生じにくい)。
 - **`@sessionUserId` / `@requestId` / `@traceId` 等**: ambient 変数 (§6.5)
 - **catalog 参照**: `@conv.<category>.<key>` / `@secret.<key>` / `@env.<KEY>` / `@fn.<name>(...)` (§4.5)
+- **designer-time alias** (#1301): `@this.*` / `@self.*` は editor context 依存の alias。詳細は [process-flow-prefix-system.md § 11](process-flow-prefix-system.md#11-designer-time-alias-this--self-1301)
 
 ### 3.3 比較・論理
 
@@ -332,6 +333,10 @@ effective = branch.condition.evaluate() && step.runIf
 - 式のパース結果を AST として `parsedExpression?: AstNode` のように保持 (静的解析可能化)
 - shorthand datetime 算術 (`+ 14 days`) を `duration('P14D')` への自動変換 migration script (#539 R5-3 後続)
 - datetime 算術の method chain 化 (`@x.plus(duration('P2D'))`)
+
+## 変更履歴
+
+- 2026-05-24: §3.2 designer-time alias @this/@self への言及追加 (#1301)
 
 ## 関連
 

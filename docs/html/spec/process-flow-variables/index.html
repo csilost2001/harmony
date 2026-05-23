@@ -378,6 +378,9 @@
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
 <p>省略時は明示 index 参照不可 (item のみ)、<code>collectionIndexName</code> を指定すると 0-based integer として参照可能。loop iteration ごとに fresh、外側 scope に持ち越されない。</p>
+<h4 id="scope-chain-と-designer-time-alias-this--self1301">scope chain と designer-time alias (<code>@this</code> / <code>@self</code>、#1301)</h4>
+<p><code>@var.&#x3C;scope>.&#x3C;name></code> は <strong>runtime variable scope</strong>、<code>@this</code> / <code>@self</code> は <strong>designer editor context alias</strong>。両者は独立 — <code>@var.flowParameter.x</code> は runtime の flow parameter を、<code>@this.item.&#x3C;id>.value</code> は designer の現在 screen item field を指す。</p>
+<p>editor 編集時の補完では両方の候補が並列に出る (resolver 別)。詳細は <a href="../../spec/process-flow-prefix-system/#11-designer-time-alias-this--self-1301">process-flow-prefix-system.md § 11</a>。</p>
 <h3 id="37-tx-transactionscope-境界での変数挙動-1264-verdict-観点-4--1267-round-7-option-c">3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)</h3>
 <p>R3 で 3 AI 完全合流した折衷案を、Round 7 で <strong>option C (expose を任意 inner var 名まで拡張)</strong> として最終化:</p>
 <ul>

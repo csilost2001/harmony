@@ -36,7 +36,7 @@ Issue: [RFC #1254](https://github.com/csilost2001/harmony/issues/1254) 件 3.7 /
 | `@logEvent` | log-event (構造化ログ) | ✅ pure ref | `generic-definitions/log-event/*.json` |
 | `@logConfig` | log-config (log level / sink) | ✅ pure ref | `generic-definitions/log-config/*.json` |
 
-(計 25 — `@var` は runtime scope 専用なので catalog 24 + runtime 1)
+(計 25 — `@var` は runtime scope 専用なので catalog 24 + runtime 1)。designer-time alias (`@this` / `@self`) は別表で §11 参照、含めると計 27。
 
 ## 2. 副作用 inline 禁止 (validator dispatch rule)
 
@@ -162,7 +162,53 @@ JSON Schema 2020-12 では `x-*` keyword は未定義扱い (warning が出る�
 
 severity は maturity 連動 (`committed`=error / `draft`/`provisional`=warning)。projectCatalogIndex 未渡し時は @var / @event のみ検証 (silent pass on the rest、Phase X2 互換)。
 
+`@this` / `@self` (designer-time alias、§11) は runtime catalog では解決不可のため、Check 31 は **silent pass** する (context 不在での standalone validation では検証不能)。
+
 ## 10. 変更履歴
 
 - 2026-05-23: 初版作成 (#1263 Phase X2 — RFC #1254 件 3.7 verdict 反映)
 - 2026-05-23: §9 24 prefix broken-ref 検証 追加 (#1269 提案 C — Phase X2 follow-up)
+- 2026-05-24: §11 designer-time alias (@this / @self) 追加 (#1301)
+
+## 11. designer-time alias (`@this` / `@self`、#1301)
+
+`@this` / `@self` は **designer (editor) の context** に依存する alias prefix。runtime では具体 `@screen.<id>.item.<id>` / `@flow.<id>` 等の static ref に展開される。
+
+### 11.1 `@this` — root 設計書 alias
+
+現在編集中の root 設計書を指す。editor 種別から自動展開:
+
+| editor 種別 | `@this` が指すもの | example |
+|---|---|---|
+| Screen 編集 (`/screen/items/:id` / `/screen/design/:id`) | `@screen.<currentScreenId>` | `@this.item.<otherItemId>.value` → `@screen.<curScrId>.item.<otherItemId>.value` |
+| ProcessFlow 編集 (`/process-flow/edit/:id`) | `@flow.<currentFlowId>` (※ inline 禁止規則は不変、designer alias としては許容) | `@this.action.<actionId>.outputBinding` |
+| Table 編集 (`/table/edit/:id`) | `@table.<currentTableId>` | `@this.field.<fieldId>.physicalName` |
+| View 編集 (`/view/edit/:id`) | `@view.<currentViewId>` | 同上 |
+| ViewDefinition 編集 | `@viewer.<currentViewDefId>` | — |
+| Sequence 編集 | `@seq.<currentSequenceId>` | — |
+| PageLayout 編集 | `@layout.<currentPageLayoutId>` | — |
+
+Phase A 実装範囲: **Screen editor のみ完全動作**。他 editor は Phase B (別 ISSUE で後続) で対応。Phase B 未対応 editor 内で `@this` を使った場合、resolver は idle (補完候補なし)、validator は `@this` を未知 prefix として warning。
+
+### 11.2 `@self` — 現在編集中の要素 alias
+
+現在 designer が編集している具体的な要素を指す。
+
+| editor 種別 / context | `@self` が指すもの | example |
+|---|---|---|
+| ScreenItemsView の items table 行編集 / events panel / effects 編集 / argumentMapping | 当該 ScreenItem | `@self.value` / `@self.id` / `@self.label` |
+| ProcessFlowEditor の step 編集 | 当該 step | `@self.id` / `@self.outputBinding.name` (Phase B) |
+| TableEditor の column 編集 | 当該 column (Phase B) | `@self.physicalName` |
+
+Phase A 実装範囲: **ScreenItem context のみ完全動作**。他 context は Phase B (別 ISSUE) で。
+
+### 11.3 designer-time alias の特性
+
+- `@this` / `@self` は **designer 補完・validator alias** として機能。runtime 評価時は static ref に **pre-resolve** される設計 (or codegen で展開) — Phase A (本 ISSUE #1301) では runtime/codegen 側の対応は未着手で、Phase B (#1308) で実装予定。
+- broken-ref validator (`processFlowAntipatternValidator` Check 31) の挙動:
+  - **Phase A (現状)**: `@this.*` / `@self.*` を **常に silent pass** で skip (validator に designer context 注入の仕組みが未整備のため、false positive 回避を優先)
+  - **Phase B (#1308 予定)**: context 注入後に static ref と等価検証を行う (例: Screen 編集中の `@this.item.<id>` を `@screen.<curScrId>.item.<id>` に解決して既存 Check 31 catalog で検証)
+
+### 11.4 prefix 一覧との関係 (§1 補足)
+
+§1 の 24 prefix 表は **runtime catalog (24) + runtime scope `@var` (1) = 計 25** の canonical 一覧で、designer-time alias である `@this` / `@self` は性質が異なる (context 依存・editor 内のみで有効) ため §1 表には含めず、本 §11 で別表として扱う。両者を含めた総数は **計 27**。

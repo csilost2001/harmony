@@ -175,7 +175,7 @@
 
 
 <table><thead><tr><th>prefix</th><th>参照先</th><th>inline 可否 (<code>${...}</code> 内)</th><th>catalog source</th></tr></thead><tbody><tr><td><code>@flow</code></td><td>ProcessFlow entity (Uuid)</td><td>❌ inline 禁止 (副作用 invocation)</td><td><code>process-flows/&#x3C;id>.json</code></td></tr><tr><td><code>@screen</code></td><td>Screen entity / 画面項目</td><td>✅ pure ref のみ (例: <code>@screen.&#x3C;id>.item.&#x3C;id>.label</code>)</td><td><code>screens/&#x3C;id>.json</code></td></tr><tr><td><code>@table</code></td><td>Table entity / カラム</td><td>✅ pure ref のみ (例: <code>@table.&#x3C;id>.field.&#x3C;id>.physicalName</code>)</td><td><code>tables/&#x3C;id>.json</code></td></tr><tr><td><code>@view</code></td><td>View entity (DB)</td><td>✅ pure ref のみ</td><td><code>views/&#x3C;id>.json</code></td></tr><tr><td><code>@viewer</code></td><td>ViewDefinition entity (viewer UI)</td><td>✅ pure ref のみ</td><td><code>view-definitions/&#x3C;id>.json</code></td></tr><tr><td><code>@seq</code></td><td>Sequence entity</td><td>✅ pure ref のみ</td><td><code>sequences/&#x3C;id>.json</code></td></tr><tr><td><code>@layout</code></td><td>PageLayout entity</td><td>✅ pure ref のみ</td><td><code>page-layouts/&#x3C;id>.json</code></td></tr><tr><td><code>@system</code></td><td>ExternalSystem catalog</td><td>✅ pure ref のみ</td><td><code>context.catalogs.externalSystems</code></td></tr><tr><td><code>@conv</code></td><td>Conventions catalog (規約)</td><td>✅ pure ref</td><td><code>conventions/*.json</code></td></tr><tr><td><code>@ext</code></td><td>Extension namespace</td><td>✅ pure ref</td><td><code>extensions/&#x3C;ns>/*.json</code></td></tr><tr><td><code>@var</code></td><td>ProcessFlow 変数 (scope chain)</td><td>✅ pure ref (<a href="../../spec/process-flow-variables/#36-%E3%82%B9%E3%82%B3%E3%83%BC%E3%83%97-enum-6-%E5%80%A4%E3%81%A8-varscopename-1264-verdict--1263-phase-x2">process-flow-variables.md §3.6</a> scope chain / <a href="../../spec/process-flow-variables/#37-tx-transactionscope-%E5%A2%83%E7%95%8C%E3%81%A7%E3%81%AE%E5%A4%89%E6%95%B0%E6%8C%99%E5%8B%95-1264-verdict-%E8%A6%B3%E7%82%B9-4--1267-round-7-option-c">§3.7</a> TX expose 参照)</td><td>runtime scope</td></tr><tr><td><code>@contract</code></td><td>data-contract (DTO / Form / Result / ViewModel)</td><td>✅ pure ref</td><td><code>generic-definitions/data-contract/*.json</code></td></tr><tr><td><code>@type</code></td><td>domain-type (Entity / Model)</td><td>✅ pure ref</td><td><code>generic-definitions/domain-type/*.json</code></td></tr><tr><td><code>@exception</code></td><td>exception-type (例外階層)</td><td>✅ pure ref</td><td><code>generic-definitions/exception-type/*.json</code></td></tr><tr><td><code>@rule</code></td><td>application-rule (横断ルール)</td><td>❌ inline 不可 (purity 不明、別 RFC)</td><td><code>generic-definitions/application-rule/*.json</code></td></tr><tr><td><code>@validation</code></td><td>validation-rule (業務検証)</td><td>✅ inline 可 (<strong>boolean return のみ</strong>)</td><td><code>generic-definitions/validation-rule/*.json</code></td></tr><tr><td><code>@behavior</code></td><td>ui-behavior</td><td>✅ pure ref</td><td><code>generic-definitions/ui-behavior/*.json</code></td></tr><tr><td><code>@policy</code></td><td>runtime-policy (retry / timeout / cache)</td><td>✅ pure ref</td><td><code>generic-definitions/runtime-policy/*.json</code></td></tr><tr><td><code>@component</code></td><td>component-definition</td><td>❌ inline 禁止 (副作用 invocation)</td><td><code>generic-definitions/component-definition/*.json</code></td></tr><tr><td><code>@fragment</code></td><td>ui-fragment</td><td>✅ pure ref</td><td><code>generic-definitions/ui-fragment/*.json</code></td></tr><tr><td><code>@const</code></td><td>constants catalog</td><td>✅ pure ref (JS keyword 衝突回避で <code>@const</code> 採用)</td><td><code>generic-definitions/constants/*.json</code></td></tr><tr><td><code>@msg</code></td><td>message catalog (i18n)</td><td>✅ pure ref + label override</td><td><code>generic-definitions/message/*.json</code></td></tr><tr><td><code>@event</code></td><td>domain-event</td><td>✅ pure ref</td><td><code>generic-definitions/domain-event/*.json</code></td></tr><tr><td><code>@logEvent</code></td><td>log-event (構造化ログ)</td><td>✅ pure ref</td><td><code>generic-definitions/log-event/*.json</code></td></tr><tr><td><code>@logConfig</code></td><td>log-config (log level / sink)</td><td>✅ pure ref</td><td><code>generic-definitions/log-config/*.json</code></td></tr></tbody></table>
-<p>(計 25 — <code>@var</code> は runtime scope 専用なので catalog 24 + runtime 1)</p>
+<p>(計 27 — catalog 24 + runtime @var 1 + designer-time @this/@self 2、§11 参照)</p>
 <h2 id="2-副作用-inline-禁止-validator-dispatch-rule">2. 副作用 inline 禁止 (validator dispatch rule)</h2>
 <p><code>${...}</code> (TemplateString 補間) / <code>runIf</code> / <code>BranchCondition.expression</code> 内では <strong>pure 参照のみ許可</strong>。以下は inline 禁止:</p>
 <ul>
@@ -322,11 +322,124 @@
 
 <table><thead><tr><th>prefix 群</th><th>検証ロジック</th><th>catalog source</th></tr></thead><tbody><tr><td><code>@var</code> / <code>@event</code></td><td>flow context のみで検証 (project index 不要)</td><td>runtime scope / <code>context.catalogs.events</code></td></tr><tr><td><code>@screen</code> / <code>@table</code> / <code>@view</code> / <code>@viewer</code></td><td>2 段 ref で id 検証、4 段以上 (<code>&#x3C;id>.&#x3C;container>.&#x3C;child></code>) で child id 検証</td><td><code>screens/</code> / <code>tables/</code> / <code>views/</code> / <code>view-definitions/</code></td></tr><tr><td><code>@layout</code> / <code>@seq</code> / <code>@flow</code> / <code>@system</code></td><td>head id 単純 lookup</td><td><code>page-layouts/</code> / <code>sequences/</code> / <code>process-flows/</code> / <code>external.json#/externalSystems</code></td></tr><tr><td><code>@contract</code> / <code>@type</code> / <code>@exception</code> / <code>@rule</code> / <code>@validation</code> / <code>@behavior</code> / <code>@policy</code> / <code>@component</code> / <code>@fragment</code></td><td>name lookup</td><td><code>generic-definitions/&#x3C;kind>/&#x3C;Name>.json</code></td></tr><tr><td><code>@const</code> / <code>@msg</code> / <code>@logEvent</code> / <code>@logConfig</code></td><td>catalog instance 名 + 全 catalog の fields[].name の union</td><td>同上 (kind 別)</td></tr><tr><td><code>@conv</code></td><td>conventions top-level key + <code>extensionCategories.&#x3C;name></code></td><td><code>conventions/catalog.json</code></td></tr><tr><td><code>@ext</code></td><td>extension namespace lookup</td><td><code>extensions/&#x3C;ns>.v3.json#/namespace</code></td></tr></tbody></table>
 <p>severity は maturity 連動 (<code>committed</code>=error / <code>draft</code>/<code>provisional</code>=warning)。projectCatalogIndex 未渡し時は @var / @event のみ検証 (silent pass on the rest、Phase X2 互換)。</p>
+<p><code>@this</code> / <code>@self</code> (designer-time alias、§11) は runtime catalog では解決不可のため、Check 31 は <strong>silent pass</strong> する (context 不在での standalone validation では検証不能)。</p>
 <h2 id="10-変更履歴">10. 変更履歴</h2>
 <ul>
 <li>2026-05-23: 初版作成 (#1263 Phase X2 — RFC #1254 件 3.7 verdict 反映)</li>
 <li>2026-05-23: §9 24 prefix broken-ref 検証 追加 (#1269 提案 C — Phase X2 follow-up)</li>
-</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+<li>2026-05-24: §11 designer-time alias (@this / @self) 追加 (#1301)</li>
+</ul>
+<h2 id="11-designer-time-alias-this--self1301">11. designer-time alias (<code>@this</code> / <code>@self</code>、#1301)</h2>
+<p><code>@this</code> / <code>@self</code> は <strong>designer (editor) の context</strong> に依存する alias prefix。runtime では具体 <code>@screen.&#x3C;id>.item.&#x3C;id></code> / <code>@flow.&#x3C;id></code> 等の static ref に展開される。</p>
+<h3 id="111-this--root-設計書-alias">11.1 <code>@this</code> — root 設計書 alias</h3>
+<p>現在編集中の root 設計書を指す。editor 種別から自動展開:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>editor 種別</th><th><code>@this</code> が指すもの</th><th>example</th></tr></thead><tbody><tr><td>Screen 編集 (<code>/screen/items/:id</code> / <code>/screen/design/:id</code>)</td><td><code>@screen.&#x3C;currentScreenId></code></td><td><code>@this.item.&#x3C;otherItemId>.value</code> → <code>@screen.&#x3C;curScrId>.item.&#x3C;otherItemId>.value</code></td></tr><tr><td>ProcessFlow 編集 (<code>/process-flow/edit/:id</code>)</td><td><code>@flow.&#x3C;currentFlowId></code> (※ inline 禁止規則は不変、designer alias としては許容)</td><td><code>@this.action.&#x3C;actionId>.outputBinding</code></td></tr><tr><td>Table 編集 (<code>/table/edit/:id</code>)</td><td><code>@table.&#x3C;currentTableId></code></td><td><code>@this.field.&#x3C;fieldId>.physicalName</code></td></tr><tr><td>View 編集 (<code>/view/edit/:id</code>)</td><td><code>@view.&#x3C;currentViewId></code></td><td>同上</td></tr><tr><td>ViewDefinition 編集</td><td><code>@viewer.&#x3C;currentViewDefId></code></td><td>—</td></tr><tr><td>Sequence 編集</td><td><code>@seq.&#x3C;currentSequenceId></code></td><td>—</td></tr><tr><td>PageLayout 編集</td><td><code>@layout.&#x3C;currentPageLayoutId></code></td><td>—</td></tr></tbody></table>
+<p>Phase A 実装範囲: <strong>Screen editor のみ完全動作</strong>。他 editor は Phase B (別 ISSUE で後続) で対応。Phase B 未対応 editor 内で <code>@this</code> を使った場合、resolver は idle (補完候補なし)、validator は <code>@this</code> を未知 prefix として warning。</p>
+<h3 id="112-self--現在編集中の要素-alias">11.2 <code>@self</code> — 現在編集中の要素 alias</h3>
+<p>現在 designer が編集している具体的な要素を指す。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>editor 種別 / context</th><th><code>@self</code> が指すもの</th><th>example</th></tr></thead><tbody><tr><td>ScreenItemsView の items table 行編集 / events panel / effects 編集 / argumentMapping</td><td>当該 ScreenItem</td><td><code>@self.value</code> / <code>@self.id</code> / <code>@self.label</code></td></tr><tr><td>ProcessFlowEditor の step 編集</td><td>当該 step</td><td><code>@self.id</code> / <code>@self.outputBinding.name</code> (Phase B)</td></tr><tr><td>TableEditor の column 編集</td><td>当該 column (Phase B)</td><td><code>@self.physicalName</code></td></tr></tbody></table>
+<p>Phase A 実装範囲: <strong>ScreenItem context のみ完全動作</strong>。他 context は Phase B (別 ISSUE) で。</p>
+<h3 id="113-designer-time-alias-の特性">11.3 designer-time alias の特性</h3>
+<ul>
+<li><code>@this</code> / <code>@self</code> は <strong>designer 補完・validator alias</strong> として機能。runtime 評価時は static ref に <strong>pre-resolve</strong> される (or codegen で展開) — 本 Phase では codegen 側の対応は未着手 (Phase B)。</li>
+<li>broken-ref validator (<code>processFlowAntipatternValidator</code> Check 31) は <code>@this.*</code> / <code>@self.*</code> を認識し、context 解決可能なら static ref と等価に検証する。context 解決不可 (例: standalone JSON ファイルだけを validate する場面) では silent pass。</li>
+</ul>
+<h3 id="114-prefix-一覧への追加-1-拡張">11.4 prefix 一覧への追加 (§1 拡張)</h3>
+<p>§1 の 24 prefix 表に以下 2 prefix を追加 (計 27 — catalog 24 + runtime @var + designer-time @this + @self):</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>prefix</th><th>参照先</th><th>inline 可否 (<code>${...}</code> 内)</th><th>catalog source</th></tr></thead><tbody><tr><td><code>@this</code></td><td>designer-time alias: 現在編集中の root 設計書 (Screen/ProcessFlow/Table/View/ViewDefinition/Sequence/PageLayout)</td><td>✅ pure ref のみ (例: <code>@this.item.&#x3C;id>.value</code>)</td><td>designer context (現在 editor 種別 + id)</td></tr><tr><td><code>@self</code></td><td>designer-time alias: 現在編集中の要素 (ScreenItem / Step / Column 等)</td><td>✅ pure ref のみ (例: <code>@self.value</code>)</td><td>designer context (currentSelfRef)</td></tr></tbody></table>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {
         document.documentElement.classList.toggle('dark');
