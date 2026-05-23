@@ -1,0 +1,81 @@
+{
+  "$schema": "../../../../schemas/v3/conventions.v3.schema.json",
+  "version": "1.0.0",
+  "description": "家計簿アプリの最小規約カタログ。i18n / 通貨 / 認証 / 主要 message と regex を定義。",
+  "updatedAt": "2026-05-24T00:00:00.000Z",
+  "i18n": {
+    "supportedLocales": ["ja-JP"],
+    "defaultLocale": "ja-JP",
+    "dateFormat": { "ja-JP": "YYYY/MM/DD" },
+    "currencyDisplay": { "ja-JP": "symbol" },
+    "numberGrouping": { "ja-JP": true }
+  },
+  "currency": {
+    "primary": {
+      "code": "JPY",
+      "subunit": 0,
+      "roundingMode": "floor",
+      "default": true,
+      "description": "本アプリのデフォルト通貨。"
+    }
+  },
+  "auth": {
+    "userJwt": {
+      "scheme": "bearer-jwt",
+      "default": true,
+      "description": "個人利用前提の jwt 認証。1 ユーザー 1 トークン。"
+    }
+  },
+  "regex": {
+    "yearMonth": {
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+      "description": "YYYY-MM 形式の年月。月次レポートの対象月指定に使用。",
+      "exampleValid": ["2026-05", "2026-12"],
+      "exampleInvalid": ["2026-13", "26-05", "2026/05"]
+    },
+    "hexColor": {
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "description": "#RRGGBB 形式の色コード。",
+      "exampleValid": ["#6366f1", "#10b981"],
+      "exampleInvalid": ["6366f1", "#fff", "#GGGGGG"]
+    }
+  },
+  "limit": {
+    "amountMax": {
+      "value": 100000000,
+      "unit": "yen",
+      "description": "1 取引あたりの上限金額 (1 億円)。"
+    },
+    "memoMaxLength": {
+      "value": 200,
+      "unit": "char",
+      "description": "メモ欄の最大文字数。"
+    }
+  },
+  "msg": {
+    "required": {
+      "template": "{field} は必須です。"
+    },
+    "outOfRange": {
+      "template": "{field} は {min} 以上 {max} 以下で入力してください。"
+    },
+    "maxLength": {
+      "template": "{field} は {length} 文字以内で入力してください。"
+    },
+    "invalidFormat": {
+      "template": "{field} の形式が正しくありません。"
+    },
+    "deleteConfirm": {
+      "template": "{name} を削除しますか? この操作は取り消せません。"
+    }
+  },
+  "db": {
+    "sqlite": {
+      "engine": "sqlite@3",
+      "namingConvention": "snake_case",
+      "timestampColumns": ["created_at", "updated_at"],
+      "default": true,
+      "description": "本アプリは SQLite (組み込み軽量 DB) を採用。"
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "3a000000-5000-4000-8000-000000000002",
+    "name": "取引削除",
+    "description": "取引一覧画面の各行から発火する削除フロー。所有者チェック (user_id=@sessionUserId) を WHERE に含めることで、他ユーザーの取引を誤って削除しないよう SQL 層で防御する。",
+    "createdAt": "2026-05-24T00:00:00.000Z",
+    "updatedAt": "2026-05-24T00:00:00.000Z",
+    "maturity": "draft",
+    "flowType": "screen",
+    "screenId": "3a000000-2000-4000-8000-000000000002",
+    "apiVersion": "v1",
+    "mode": "upstream"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "対象の取引が見つかりません。",
+          "responseId": "404-not-found"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "label": "セッションユーザー ID",
+        "type": "integer",
+        "required": true
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-delete-transaction",
+      "name": "取引を削除",
+      "trigger": "click",
+      "description": "指定 ID の取引を削除する。",
+      "inputs": [
+        { "name": "transactionId", "label": "取引 ID", "type": "integer", "required": true }
+      ],
+      "httpRoute": {
+        "method": "DELETE",
+        "path": "/api/transactions/:transactionId",
+        "auth": "required"
+      },
+      "responses": [
+        {
+          "id": "204-deleted",
+          "status": 204,
+          "description": "削除成功。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "contentType": "application/json",
+          "description": "指定 ID の取引が見つからない (削除済 or 他ユーザー)。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01-delete",
+          "kind": "dbAccess",
+          "description": "user_id 一致を WHERE に含めて DELETE。affectedRows=0 なら 404 へ。",
+          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "operation": "DELETE",
+          "sql": "DELETE FROM transactions WHERE id = @transactionId AND user_id = @sessionUserId",
+          "affectedRowsCheck": {
+            "operator": "=",
+            "expected": 1,
+            "onViolation": "throw",
+            "errorCode": "NOT_FOUND"
+          }
+        },
+        {
+          "id": "step-02-return",
+          "kind": "return",
+          "description": "削除成功時は 204 No Content。",
+          "responseId": "204-deleted"
+        }
+      ]
+    }
+  ]
+}
