@@ -6,6 +6,12 @@
  */
 import { useState } from "react";
 import type { ProcessFlow, ErrorCatalogEntry, LocalId } from "../../types/v3";
+import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
+import { exceptionTypeRefResolver } from "../../utils/reference-completer/workspaceResolver";
+import { ReferenceCompletionInput } from "../common/ReferenceCompletionInput";
+
+// schema: `^generic-definitions/exception-type/[A-Za-z][A-Za-z0-9_]*$`
+const EXCEPTION_TYPE_REF_PREFIX = "generic-definitions/exception-type/";
 
 interface Props {
   group: ProcessFlow;
@@ -24,6 +30,7 @@ export function ErrorCatalogPanel({ group, onChange, expanded: expandedProp, onE
     onExpandedChange?.(next);
   };
   const [newKey, setNewKey] = useState("");
+  const workspace = useWorkspaceReferences();
   const catalog = group.context?.catalogs?.errors ?? {};
   const keys = Object.keys(catalog);
 
@@ -137,6 +144,18 @@ export function ErrorCatalogPanel({ group, onChange, expanded: expandedProp, onE
                       value={e.description ?? ""}
                       onChange={(ev) => updateEntry(k, { description: ev.target.value || undefined })}
                       placeholder="例: 引当 UPDATE で rowCount=0"
+                    />
+                  </label>
+                  <label className="catalog-wide">
+                    exceptionTypeRef
+                    <ReferenceCompletionInput
+                      className="form-control form-control-sm"
+                      value={e.exceptionTypeRef ?? ""}
+                      onValueChange={(v) => updateEntry(k, { exceptionTypeRef: v || undefined })}
+                      resolvers={[exceptionTypeRefResolver]}
+                      ctx={{ fieldKind: "exceptionTypeRef", workspace }}
+                      placeholder={`例: ${EXCEPTION_TYPE_REF_PREFIX}StockShortage`}
+                      style={{ fontFamily: "monospace", fontSize: "0.85rem" }}
                     />
                   </label>
                 </div>
