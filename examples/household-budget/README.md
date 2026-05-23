@@ -22,7 +22,7 @@
 | layer | 採用 | 理由 |
 |---|---|---|
 | frontend.library | `react` | コンポーネント指向 + 豊富な可視化エコシステム (recharts / d3 等) |
-| frontend.framework | `vite` | 軽量 + HMR が速い、個人開発に最適 |
+| frontend.framework | `next` | App Router + Server Components で SSR/CSR を柔軟に切替可、`/generate-code` の React 系テンプレが Next.js を前提とするため整合 (#1306 で vite → next に変更) |
 | designer.editorKind | `puck` | React コンポーネントツリー編集、後で生コード生成しやすい |
 | designer.cssFramework | `tailwind` | 余白 / soft shadow / rounded-2xl で先進的 B2C アプリの見た目を実現 |
 | backend.language | `typescript` | frontend と型を共有可能、JSON Schema → 型生成と相性良 |
