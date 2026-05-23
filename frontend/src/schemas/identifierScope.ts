@@ -42,10 +42,11 @@ export interface IdentifierIssue {
  * - ambient: @ambient.* 旧形式の ambient 参照
  *
  * **Generic Definition Catalog 参照** (docs/spec/process-flow-prefix-system.md §3、
- * #1285 で追加): broken-ref 検証は processFlowAntipatternValidator Check 31 が担うため
- * identifierScope は変数 scope 検査の対象外として skip する。
+ * #1285 で追加、14 kind 全件): broken-ref 検証は processFlowAntipatternValidator Check 31
+ * が担うため identifierScope は変数 scope 検査の対象外として skip する。
  * - msg        : @msg.<Name> generic-definitions/message
- * - validation : @validation.<Name> generic-definitions/validation-rule
+ * - validation : @validation.<Name> generic-definitions/validation-rule (inline boolean return)
+ * - rule       : @rule.<Name> generic-definitions/application-rule
  * - const      : @const.<Name>.<key> generic-definitions/constants
  * - event      : @event.<topic> generic-definitions/domain-event (catalogs.events と兼用)
  * - logEvent   : @logEvent.<Name> generic-definitions/log-event
@@ -64,6 +65,10 @@ export interface IdentifierIssue {
  * - view   : @view.<id>.field.<col> View entity 参照
  * - viewer : @viewer.<id> ViewDefinition 参照
  * - layout : @layout.<id> PageLayout 参照
+ * - seq    : @seq.<id> Sequence entity 参照
+ * - flow   : @flow.<id> ProcessFlow entity 参照 (inline 禁止、副作用 invocation)
+ * - system : @system.<id> ExternalSystem catalog 参照 (context.catalogs.externalSystems)
+ * - ext    : @ext.<namespace> Extension namespace 参照
  *
  * @env.* は special-case として checkStep 内で context.catalogs.envVars と突合するため
  * ここには含めない (下記 root === "env" ブランチを参照)。
@@ -76,9 +81,10 @@ const BUILTIN_AMBIENTS = new Set<string>([
   "secret",
   "conv",
   "ambient",
-  // Generic Definition Catalog refs (#1285)
+  // Generic Definition Catalog refs (#1285、14 kind 全件)
   "msg",
   "validation",
+  "rule",
   "const",
   "event",
   "logEvent",
@@ -90,12 +96,16 @@ const BUILTIN_AMBIENTS = new Set<string>([
   "exception",
   "policy",
   "component",
-  // Top-level entity hierarchical refs (#1285)
+  // Top-level entity / catalog refs (#1285)
   "screen",
   "table",
   "view",
   "viewer",
   "layout",
+  "seq",
+  "flow",
+  "system",
+  "ext",
 ]);
 
 /** 任意の文字列から @identifier と property path を抽出 */

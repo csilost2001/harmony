@@ -388,13 +388,14 @@ describe("checkIdentifierScopes — 組み込み関数 BUILTIN_AMBIENTS", () => 
     expect(issues.some((i) => i.identifier === "reallyUnknownVar")).toBe(true);
   });
 
-  // #1285: Generic Definition Catalog refs + Top-level entity hierarchical refs を
+  // #1285: Generic Definition Catalog refs + Top-level entity / catalog refs を
   // 一括で table-driven テスト。catalog 参照系の broken-ref は別 validator
   // (processFlowAntipatternValidator Check 31) が担うため identifierScope は skip するだけで OK。
   describe.each([
-    // Generic Definition Catalog (13 prefix)
+    // Generic Definition Catalog (14 kind 全件)
     ["msg",        "@msg.AmountRequired"],
     ["validation", "@validation.AmountPositiveRange"],
+    ["rule",       "@rule.DeficitWarning"],
     ["const",      "@const.TransactionLimits.maxAmount"],
     ["event",      "@event.transaction.created"],
     ["logEvent",   "@logEvent.TransactionAuditCreated"],
@@ -406,12 +407,16 @@ describe("checkIdentifierScopes — 組み込み関数 BUILTIN_AMBIENTS", () => 
     ["exception",  "@exception.TransactionNotFoundException"],
     ["policy",     "@policy.BackendRetryPolicy"],
     ["component",  "@component.BalanceCalculator"],
-    // Top-level entity hierarchical refs (5 prefix)
+    // Top-level entity / catalog refs (9 prefix)
     ["screen",     "@screen.userForm.item.email.value"],
     ["table",      "@table.users.field.id.value"],
     ["view",       "@view.v_monthly_summary.field.total_amount"],
     ["viewer",     "@viewer.transactionListViewer"],
     ["layout",     "@layout.defaultLayout"],
+    ["seq",        "@seq.orderNumberSeq"],
+    ["flow",       "@flow.createOrder"],
+    ["system",     "@system.stripeApi"],
+    ["ext",        "@ext.retail"],
   ])("#1285: @%s 参照は UNKNOWN_IDENTIFIER を出さない", (prefix, expression) => {
     it(`expression="${expression}" で suppress される`, () => {
       const issues = checkIdentifierScopes(makeGroup({
