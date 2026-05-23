@@ -49,6 +49,7 @@ import type {
   ScreenItem,
   ScreenItemEvent,
   ScreenItemEventEffect,
+  ScreenFragmentInstance,
   FieldType,
   Identifier,
   ProcessFlowId,
@@ -77,6 +78,7 @@ import {
   JS_IDENTIFIER_RE,
 } from "./internal/screenItemsConstants";
 import { OutputFields } from "./internal/sections/OutputFields";
+import { FragmentsPanel } from "./internal/sections/FragmentsPanel";
 
 type ScreenMeta = { id: string; name: string };
 
@@ -752,6 +754,14 @@ export function ScreenItemsView() {
     });
   }, [updateSilentWithDraft]);
 
+  // #1281: ui-fragment instance 一覧の更新ハンドラ
+  const handleFragmentsChange = useCallback((next: ScreenFragmentInstance[] | undefined) => {
+    updateWithDraft((f) => {
+      f.fragments = next;
+    });
+    commit();
+  }, [updateWithDraft, commit]);
+
   // ファイル切替時に選択・展開状態をリセット
   useEffect(() => {
     setSelectedIndices(new Set());
@@ -860,6 +870,12 @@ export function ScreenItemsView() {
               </ul>
             </div>
           )}
+          {/* #1281: ui-fragment 使用一覧 (collapsible、default collapsed) */}
+          <FragmentsPanel
+            fragments={file.fragments ?? []}
+            onChange={handleFragmentsChange}
+            readonly={isReadonly}
+          />
           <div className="screen-items-table-wrap">
             <table className="screen-items-table">
               <colgroup>
