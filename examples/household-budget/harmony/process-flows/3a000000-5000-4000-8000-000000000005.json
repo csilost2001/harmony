@@ -44,8 +44,24 @@
         },
         {
           "name": "recentTransactionRows",
-          "label": "直近 5 件取引",
-          "type": { "kind": "tableList", "tableId": "3a000000-1000-4000-8000-000000000004" }
+          "label": "直近 5 件取引 (JOIN 済 display 用 shape)",
+          "type": {
+            "kind": "array",
+            "itemType": {
+              "kind": "object",
+              "fields": [
+                { "name": "id",            "type": "integer", "label": "取引 ID" },
+                { "name": "occurredOn",    "type": "date",    "label": "取引日" },
+                { "name": "amount",        "type": "number",  "label": "金額" },
+                { "name": "memo",          "type": "string",  "label": "メモ" },
+                { "name": "categoryName",  "type": "string",  "label": "カテゴリ名" },
+                { "name": "categoryType",  "type": "string",  "label": "種別 (income/expense)" },
+                { "name": "categoryColor", "type": "string",  "label": "カテゴリ表示色 (#RRGGBB)" },
+                { "name": "accountName",   "type": "string",  "label": "口座名" }
+              ]
+            },
+            "description": "SQL SELECT で transactions × categories × accounts を JOIN した display 用 shape。tableList<transactions> ではなく明示的 array<object> として宣言する理由: SQL 出力に categoryName / accountName / categoryColor 等 transactions table に存在しない JOIN 列を含むため、type 宣言と実 shape を一致させる (fetchMonthlyReport.report.categoryBreakdown と同設計)。"
+          }
         }
       ],
       "httpRoute": {
@@ -65,10 +81,10 @@
         {
           "id": "step-01-fetch-totals",
           "kind": "dbAccess",
-          "description": "当月の収入 / 支出 合計を 1 row で SELECT。strftime で当月絞り込み (タイムゾーン UTC 想定、JST 運用なら別途調整必要)。",
+          "description": "当月の収入 / 支出 合計を 1 row で SELECT。strftime に `'localtime'` modifier を付与して host タイムゾーン (本サンプルは JST 運用想定) 基準で当月絞り込みする。SQLite default の 'now' は UTC のため、JST 23:00 〜 翌 09:00 帯で月境界がズレる問題を回避。occurred_on は date 型で TZ 情報を持たないため、書き込み側 (画面側 JST 入力) と読み出し側 (本 SQL の localtime) で TZ 解釈を揃える設計。SQLite 'localtime' は OS 環境変数 TZ を参照、container deploy では TZ=Asia/Tokyo 設定推奨。",
           "tableId": "3a000000-1000-4000-8000-000000000004",
           "operation": "SELECT",
-          "sql": "SELECT COALESCE(SUM(CASE WHEN c.category_type = 'income'  THEN t.amount ELSE 0 END), 0) AS monthlyIncome, COALESCE(SUM(CASE WHEN c.category_type = 'expense' THEN t.amount ELSE 0 END), 0) AS monthlyExpense FROM transactions t JOIN categories c ON c.id = t.category_id WHERE t.user_id = @sessionUserId AND strftime('%Y-%m', t.occurred_on) = strftime('%Y-%m', 'now')",
+          "sql": "SELECT COALESCE(SUM(CASE WHEN c.category_type = 'income'  THEN t.amount ELSE 0 END), 0) AS monthlyIncome, COALESCE(SUM(CASE WHEN c.category_type = 'expense' THEN t.amount ELSE 0 END), 0) AS monthlyExpense FROM transactions t JOIN categories c ON c.id = t.category_id WHERE t.user_id = @sessionUserId AND strftime('%Y-%m', t.occurred_on) = strftime('%Y-%m', 'now', 'localtime')",
           "outputBinding": { "name": "monthlyTotals" }
         },
         {
