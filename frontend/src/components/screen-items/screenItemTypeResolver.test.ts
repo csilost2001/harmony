@@ -34,6 +34,7 @@ describe("screenItemTypeResolver", () => {
 
   it("\"str\" prefix → primitive filter", () => {
     const r = screenItemTypeResolver.match("str", 3, ctx(mockExtensions));
+    expect(r?.phase).toBe("active");
     if (r?.phase === "active") {
       const vals = r.candidates.map((c) => c.value);
       expect(vals).toEqual(["string"]);
@@ -42,6 +43,7 @@ describe("screenItemTypeResolver", () => {
 
   it("\"retail\" prefix → extension filter", () => {
     const r = screenItemTypeResolver.match("retail", 6, ctx(mockExtensions));
+    expect(r?.phase).toBe("active");
     if (r?.phase === "active") {
       const vals = r.candidates.map((c) => c.value);
       expect(vals).toContain("retail:productCode");
@@ -52,6 +54,7 @@ describe("screenItemTypeResolver", () => {
 
   it("ctx.extensions が undefined → primitives のみ", () => {
     const r = screenItemTypeResolver.match("", 0, ctx(undefined));
+    expect(r?.phase).toBe("active");
     if (r?.phase === "active") {
       const vals = r.candidates.map((c) => c.value);
       expect(vals).toContain("string");
