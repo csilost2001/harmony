@@ -43,6 +43,8 @@ import { ReferenceCompletionInput } from "../common/ReferenceCompletionInput";
 import { handlerFlowIdResolver, handlerActionIdResolver } from "../../utils/reference-completer/workspaceResolver";
 import { convResolver } from "../../utils/reference-completer/convResolver";
 import { screenHierarchicalResolver } from "../../utils/reference-completer/screenHierarchicalResolver";
+import { thisResolver } from "../../utils/reference-completer/thisResolver";
+import { selfResolver } from "../../utils/reference-completer/selfResolver";
 import { screenItemTypeResolver } from "./screenItemTypeResolver";
 import { loadExtensionsFromBundle, type LoadedExtensions } from "../../schemas/loadExtensions";
 import type {
@@ -1357,6 +1359,7 @@ export function ScreenItemsView() {
                                       />
                                       <span className="screen-items-event-mapping-eq">=</span>
                                       {/* #1282: input → ReferenceCompletionInput (@screen.<id>.item.<id> / @conv 補完) */}
+                                      {/* #1301: @this/@self resolver 追加 */}
                                       <ReferenceCompletionInput
                                         value={v}
                                         onValueChange={(val) => {
@@ -1365,12 +1368,16 @@ export function ScreenItemsView() {
                                           handleUpdateEvent(i, eIdx, { argumentMapping: next });
                                         }}
                                         onCommit={commit}
-                                        resolvers={[screenHierarchicalResolver, convResolver]}
+                                        resolvers={[screenHierarchicalResolver, thisResolver, selfResolver, convResolver]}
                                         ctx={{
                                           workspace,
                                           conventions,
                                           currentScreenId: screenId,
                                           currentScreenItems: (file?.items ?? []).map((it) => ({ id: it.id, label: it.label })),
+                                          currentDocumentKind: "screen",
+                                          currentSelfRef: file?.items[i]
+                                            ? { kind: "screenItem", id: file.items[i].id }
+                                            : undefined,
                                         }}
                                         className="form-control form-control-sm"
                                         placeholder="@screen.<screenId>.item.<itemId>"

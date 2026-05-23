@@ -75,6 +75,19 @@ export interface CompletionContext {
   currentScreenItems?: { id: string; label?: string }[];
   /** 現在編集中の画面の screenId (@screen.<id>.item.<id> resolver 用、#1282)。 */
   currentScreenId?: string;
+  /**
+   * 現在編集中の root 設計書の kind (designer-time alias `@this` 用、#1301)。
+   * Phase A は "screen" のみ完全動作、他は Phase B で対応。
+   */
+  currentDocumentKind?: "screen" | "processFlow" | "table" | "view" | "viewDefinition" | "sequence" | "pageLayout";
+  /**
+   * 現在編集中の具体要素 (designer-time alias `@self` 用、#1301)。
+   * Phase A は kind="screenItem" のみ完全動作。
+   */
+  currentSelfRef?:
+    | { kind: "screenItem"; id: string; fields?: { name: string; label?: string }[] }
+    | { kind: "step"; id: string; fields?: { name: string; label?: string }[] }
+    | { kind: "column"; id: string; fields?: { name: string; label?: string }[] };
 }
 
 /** 補完 Resolver インターフェース。 */

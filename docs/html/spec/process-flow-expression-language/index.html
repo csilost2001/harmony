@@ -82,6 +82,7 @@
 <li><strong><code>@inputs</code> / <code>@outputs</code> 全体参照</strong>: <code>ActionDefinition.inputs</code> / <code>outputs</code> の配列全体をオブジェクトとしてアクセス可能。例: <code>@inputs.items</code> (inputs フィールド “items” へのアクセス)、<code>@outputs.result</code>。個別フィールド名 (<code>@items</code> 等) と全体参照 (<code>@inputs.items</code>) は<strong>どちらも解決可能</strong>だが、<strong>全体参照スタイルを推奨</strong> (名前衝突が生じにくい)。</li>
 <li><strong><code>@sessionUserId</code> / <code>@requestId</code> / <code>@traceId</code> 等</strong>: ambient 変数 (§6.5)</li>
 <li><strong>catalog 参照</strong>: <code>@conv.&#x3C;category>.&#x3C;key></code> / <code>@secret.&#x3C;key></code> / <code>@env.&#x3C;KEY></code> / <code>@fn.&#x3C;name>(...)</code> (§4.5)</li>
+<li><strong>designer-time alias</strong> (#1301): <code>@this.*</code> / <code>@self.*</code> は editor context 依存の alias。詳細は <a href="../../spec/process-flow-prefix-system/#11-designer-time-alias-this--self-1301">process-flow-prefix-system.md § 11</a></li>
 </ul>
 <h3 id="33-比較論理">3.3 比較・論理</h3>
 <ul>
@@ -482,6 +483,10 @@
 <li>式のパース結果を AST として <code>parsedExpression?: AstNode</code> のように保持 (静的解析可能化)</li>
 <li>shorthand datetime 算術 (<code>+ 14 days</code>) を <code>duration('P14D')</code> への自動変換 migration script (#539 R5-3 後続)</li>
 <li>datetime 算術の method chain 化 (<code>@x.plus(duration('P2D'))</code>)</li>
+</ul>
+<h2 id="変更履歴">変更履歴</h2>
+<ul>
+<li>2026-05-24: §3.2 designer-time alias @this/@self への言及追加 (#1301)</li>
 </ul>
 <h2 id="関連">関連</h2>
 <ul>

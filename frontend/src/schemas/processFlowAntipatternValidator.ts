@@ -449,6 +449,12 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): RefIssue[] {
     const segments = key.split(".");
     const head = segments[0];
 
+    // process-flow-prefix-system.md § 11 — designer-time alias
+    // runtime catalog では解決不可。standalone validate では silent pass (#1301)
+    if (prefix === "this" || prefix === "self") {
+      continue; // skip — designer-time alias、context 不在では検証不能
+    }
+
     if (prefix === "var") {
       // @var.<scope>.<name>.<...> 形式
       if (head === "step") {

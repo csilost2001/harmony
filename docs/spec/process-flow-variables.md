@@ -307,6 +307,12 @@ current step → enclosing loop/tryCatch → enclosing tx → action → flowPar
 
 省略時は明示 index 参照不可 (item のみ)、`collectionIndexName` を指定すると 0-based integer として参照可能。loop iteration ごとに fresh、外側 scope に持ち越されない。
 
+#### scope chain と designer-time alias (`@this` / `@self`、#1301)
+
+`@var.<scope>.<name>` は **runtime variable scope**、`@this` / `@self` は **designer editor context alias**。両者は独立 — `@var.flowParameter.x` は runtime の flow parameter を、`@this.item.<id>.value` は designer の現在 screen item field を指す。
+
+editor 編集時の補完では両方の候補が並列に出る (resolver 別)。詳細は [process-flow-prefix-system.md § 11](process-flow-prefix-system.md#11-designer-time-alias-this--self-1301)。
+
 ### 3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)
 
 R3 で 3 AI 完全合流した折衷案を、Round 7 で **option C (expose を任意 inner var 名まで拡張)** として最終化:
