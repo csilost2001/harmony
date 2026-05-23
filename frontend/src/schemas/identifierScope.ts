@@ -47,8 +47,8 @@ export interface IdentifierIssue {
  * - ambient: @ambient.* 旧形式の ambient 参照
  *
  * **Generic Definition Catalog 参照** (docs/spec/process-flow-prefix-system.md §3、
- * #1285 で追加、14 kind 全件): broken-ref 検証は processFlowAntipatternValidator Check 31
- * が担うため identifierScope は変数 scope 検査の対象外として skip する。
+ * #1285 で追加、14 kind 全件 + #1303 追加 3 kind = 17 kind): broken-ref 検証は
+ * processFlowAntipatternValidator Check 31 が担うため identifierScope は変数 scope 検査の対象外として skip する。
  * - msg        : @msg.<Name> generic-definitions/message
  * - validation : @validation.<Name> generic-definitions/validation-rule (inline boolean return)
  * - rule       : @rule.<Name> generic-definitions/application-rule
@@ -63,6 +63,9 @@ export interface IdentifierIssue {
  * - exception  : @exception.<Name> generic-definitions/exception-type
  * - policy     : @policy.<Name> generic-definitions/runtime-policy
  * - component  : @component.<Name> generic-definitions/component-definition
+ * - dialog     : @dialog.<Name> generic-definitions/dialog (#1303)
+ * - messageArea: @messageArea.<Name> generic-definitions/messageArea (#1303)
+ * - options    : @options.<Name> generic-definitions/options (#1303)
  *
  * **Top-level entity 階層参照** (process-flow-prefix-system.md §3、#1285 で追加):
  * - screen : @screen.<id>.item.<id>.<field> Screen entity 参照
@@ -89,7 +92,7 @@ const BUILTIN_AMBIENTS = new Set<string>([
   "secret",
   "conv",
   "ambient",
-  // Generic Definition Catalog refs (#1285、14 kind 全件)
+  // Generic Definition Catalog refs (#1285 14 kind + #1303 3 kind = 17 kind)
   "msg",
   "validation",
   "rule",
@@ -104,6 +107,9 @@ const BUILTIN_AMBIENTS = new Set<string>([
   "exception",
   "policy",
   "component",
+  "dialog",
+  "messageArea",
+  "options",
   // Top-level entity / catalog refs (#1285)
   "screen",
   "table",

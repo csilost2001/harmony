@@ -38,7 +38,7 @@
  *   - entity (projectIndex.screens/tables/views/viewers/layouts/sequences/flows/externalSystems):
  *     `@screen` / `@table` / `@view` / `@viewer` (2 段は id 検証、4 段は id + child 検証)
  *     `@layout` / `@seq` / `@flow` / `@system` (id 単純 lookup)
- *   - generic-definition (14 kind × 1 prefix):
+ *   - generic-definition (17 kind × 1 prefix, #1303 追加: dialog/messageArea/options):
  *     `@contract` / `@type` / `@exception` / `@rule` / `@validation` / `@behavior` /
  *     `@policy` / `@component` / `@fragment` / `@const` / `@msg` / `@logEvent` / `@logConfig`
  *     (`@event` は flow-level context と generic-definition/domain-event の両方が candidate)
@@ -521,7 +521,7 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): RefIssue[] {
 /**
  * `@<prefix>.<key>` を project catalog index で検証する (#1269 提案 C)。
  *
- * 検証対象 prefix (24 prefix の内 @var / @event は別 path):
+ * 検証対象 prefix (27 prefix の内 @var / @event は別 path、#1303 追加: @dialog/@messageArea/@options):
  *   - Entity: @screen / @table / @view / @viewer / @layout / @seq / @flow / @system
  *   - Generic Definition: @contract / @type / @exception / @rule / @validation / @behavior /
  *                          @policy / @component / @fragment
@@ -599,6 +599,10 @@ function checkProjectScopedRef(
     msg: idx.messages,
     logEvent: idx.logEvents,
     logConfig: idx.logConfigs,
+    // #1303 — 3 新規 kind
+    dialog: idx.dialogs,
+    messageArea: idx.messageAreas,
+    options: idx.optionSets,
   };
   if (prefix in definitionSets) {
     if (!definitionSets[prefix].has(head)) {

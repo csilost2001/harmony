@@ -2,10 +2,11 @@
  * Generic Definition Catalog 型定義 (v3 schema 準拠)
  *
  * schema: schemas/v3/generic-definition.v3.schema.json
- * 14 kind (#1254 件 3.7 / #1263 Phase X2):
+ * 17 kind (#1254 件 3.7 / #1263 Phase X2 / #1303):
  *   既存 8: data-contract / domain-type / exception-type / application-rule /
  *            ui-behavior / runtime-policy / component-definition / ui-fragment
  *   新規 6: validation-rule / constants / message / domain-event / log-event / log-config
+ *   新規 3: dialog / messageArea / options (#1303)
  */
 
 export type GenericDefinitionKind =
@@ -22,7 +23,10 @@ export type GenericDefinitionKind =
   | "message"
   | "domain-event"
   | "log-event"
-  | "log-config";
+  | "log-config"
+  | "dialog"
+  | "messageArea"
+  | "options";
 
 export type GenericDefinitionTarget = "backend" | "frontend" | "shared" | "runtime";
 
@@ -91,6 +95,9 @@ export const GENERIC_DEFINITION_KINDS: GenericDefinitionKind[] = [
   "domain-event",
   "log-event",
   "log-config",
+  "dialog",
+  "messageArea",
+  "options",
 ];
 
 export const GENERIC_DEFINITION_KIND_LABELS: Record<GenericDefinitionKind, string> = {
@@ -108,6 +115,9 @@ export const GENERIC_DEFINITION_KIND_LABELS: Record<GenericDefinitionKind, strin
   "domain-event": "ドメインイベント",
   "log-event": "ログイベント",
   "log-config": "ログ設定",
+  dialog: "ダイアログ",
+  messageArea: "メッセージエリア",
+  options: "選択肢",
 };
 
 export const GENERIC_DEFINITION_TARGETS: GenericDefinitionTarget[] = [
