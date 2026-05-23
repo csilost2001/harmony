@@ -535,6 +535,63 @@ describe("TransactionScopeStepCardBody", () => {
     expect(exposeInput).not.toBeNull();
     expect(exposeInput?.disabled).toBe(true);
   });
+
+  // #1269 Phase B Round 1 S-2: expose onChange の payload 検証
+  it("expose input 変更で カンマ区切り parse + trim + 空項目除外 が動く (#1269 Phase B Round 1 S-2)", () => {
+    const onChange = vi.fn();
+    const step = baseStep({
+      kind: "transactionScope",
+      isolationLevel: "READ_COMMITTED",
+      propagation: "REQUIRED",
+      steps: [],
+      outputBinding: { name: "orderTx" },
+    });
+    const { container } = render(
+      <TransactionScopeStepCardBody
+        step={step}
+        allSteps={[]}
+        tables={[]}
+        screens={[]}
+        commonGroups={[]}
+        onChange={onChange}
+        onNavigateCommon={noop}
+      />,
+    );
+    const exposeInput = container.querySelector('[data-field-path="outputBinding.expose"] input') as HTMLInputElement;
+    fireEvent.change(exposeInput, { target: { value: "  newOrder ,  paymentReceipt , , empty " } });
+    expect(onChange).toHaveBeenCalled();
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+    expect(lastCall.outputBinding.name).toBe("orderTx");
+    expect(lastCall.outputBinding.expose).toEqual(["newOrder", "paymentReceipt", "empty"]);
+  });
+
+  it("expose を空文字に戻すと expose: undefined になり、name は保持される (#1269 Phase B Round 1 S-2)", () => {
+    const onChange = vi.fn();
+    const step = baseStep({
+      kind: "transactionScope",
+      isolationLevel: "READ_COMMITTED",
+      propagation: "REQUIRED",
+      steps: [],
+      outputBinding: { name: "orderTx", expose: ["newOrder"] },
+    });
+    const { container } = render(
+      <TransactionScopeStepCardBody
+        step={step}
+        allSteps={[]}
+        tables={[]}
+        screens={[]}
+        commonGroups={[]}
+        onChange={onChange}
+        onNavigateCommon={noop}
+      />,
+    );
+    const exposeInput = container.querySelector('[data-field-path="outputBinding.expose"] input') as HTMLInputElement;
+    fireEvent.change(exposeInput, { target: { value: "" } });
+    expect(onChange).toHaveBeenCalled();
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+    expect(lastCall.outputBinding.name).toBe("orderTx");
+    expect(lastCall.outputBinding.expose).toBeUndefined();
+  });
 });
 
 // ── JumpStepCardBody ────────────────────────────────────────────────

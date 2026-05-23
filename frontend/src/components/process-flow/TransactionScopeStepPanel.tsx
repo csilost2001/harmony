@@ -332,7 +332,7 @@ export function TransactionScopeStepPanel({
             <i className="bi bi-box-arrow-right me-1" />
             TX 外参照可な変数 (outputBinding.expose)
             <span className="text-muted ms-1" style={{ fontSize: "0.75rem" }}>
-              — TX 内 step の outputBinding.name を列挙すると `@var.action.{step.outputBinding?.name ?? "<txName>"}.&lt;name&gt;.&lt;field&gt;` で TX 外参照可
+              — TX 内 step の outputBinding.name を列挙すると <code>{`@var.action.${step.outputBinding?.name ?? "<txName>"}.<name>.<field>`}</code> で TX 外参照可
             </span>
           </label>
           <div className="text-muted small mb-1">

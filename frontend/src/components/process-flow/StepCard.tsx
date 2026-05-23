@@ -521,12 +521,15 @@ export function StepCard({
                   onChange={(e) => {
                     const name = e.target.value;
                     const op = getBindingOperation(step.outputBinding);
+                    // #1269 Phase B Round 1 M-1: existing expose / transformations / initialValue を保全
+                    // するため step.outputBinding を spread ベースに変更。name 削除時のみ全削除。
+                    const existing = step.outputBinding;
                     if (!name) {
                       onChange({ outputBinding: undefined } as Partial<Step>);
                     } else if (op === "assign") {
-                      onChange({ outputBinding: { name } } as Partial<Step>);
+                      onChange({ outputBinding: { ...existing, name, operation: undefined } } as Partial<Step>);
                     } else {
-                      onChange({ outputBinding: { name, operation: op } } as Partial<Step>);
+                      onChange({ outputBinding: { ...existing, name, operation: op } } as Partial<Step>);
                     }
                   }}
                   onBlur={onCommit}
@@ -545,10 +548,12 @@ export function StepCard({
                       // 名前未入力時は代入方式だけ先に決めても undefined 維持 (空の binding を作らない)
                       return;
                     }
+                    // #1269 Phase B Round 1 M-1: existing expose / transformations / initialValue を保全
+                    const existing = step.outputBinding;
                     if (op === "assign") {
-                      onChange({ outputBinding: { name } } as Partial<Step>);
+                      onChange({ outputBinding: { ...existing, name, operation: undefined } } as Partial<Step>);
                     } else {
-                      onChange({ outputBinding: { name, operation: op } } as Partial<Step>);
+                      onChange({ outputBinding: { ...existing, name, operation: op } } as Partial<Step>);
                     }
                   }}
                 >
