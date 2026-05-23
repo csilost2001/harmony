@@ -36,18 +36,21 @@ describe("ExternalCallOutcomeSpec の sideEffects (#172)", () => {
   });
 
   it("sameAs で他 outcome の定義を流用できる (timeout=failure と同じ)", () => {
+    // #1263 Phase X3: outcomes は errorHandling.outcomes に集約済
     const step: ExternalSystemStep = {
       id: "s",
-      type: "externalSystem",
+      kind: "externalSystem",
       description: "",
-      systemName: "X",
-      outcomes: {
-        success: { action: "continue" },
-        failure: { action: "abort", description: "失敗時は中断" },
-        timeout: { action: "abort", sameAs: "failure" },
+      systemRef: "x",
+      errorHandling: {
+        outcomes: {
+          success: { action: "continue" },
+          failure: { action: "abort", description: "失敗時は中断" },
+          timeout: { action: "abort", sameAs: "failure" },
+        },
       },
     };
-    expect(step.outcomes?.timeout?.sameAs).toBe("failure");
+    expect(step.errorHandling?.outcomes?.timeout?.sameAs).toBe("failure");
   });
 
   it("abort + sideEffects の組合せ (補償後に中断する Saga パターン)", () => {

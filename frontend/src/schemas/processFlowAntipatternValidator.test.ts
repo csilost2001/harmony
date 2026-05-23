@@ -1171,4 +1171,35 @@ describe("Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3)", () =
     const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
     expect(found).toHaveLength(0);
   });
+
+  it("positive: flow=draft でも action.maturity=committed なら sql 必須 (Round 2 SF-3)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "draft", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1 (committed)",
+          trigger: "click",
+          maturity: "committed",
+          steps: [
+            {
+              kind: "dbAccess",
+              id: "step-01",
+              description: "fetch users",
+              tableId: "00000000-0000-4000-8000-000000000001" as never,
+              operation: "SELECT",
+              naturalQuery: "ユーザーを id で取得",
+              outputBinding: { name: "user" as never },
+            } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
+    expect(found).toHaveLength(1);
+    expect(found[0].severity).toBe("error");
+    expect(found[0].path).toContain("actions[0].steps[0]");
+  });
 });

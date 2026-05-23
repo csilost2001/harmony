@@ -698,8 +698,10 @@ export function checkAntipatterns(
   // Check 16, 19, 23, 30, 31: ステップ走査
   const actions: unknown[] = Array.isArray(flowAny.actions) ? flowAny.actions : [];
   actions.forEach((action: unknown, ai: number) => {
-    const actionAny = action as { steps?: Step[] };
+    const actionAny = action as { steps?: Step[]; maturity?: string };
     const steps: Step[] = actionAny.steps ?? [];
+    // Action-level maturity が指定されていれば flow-level よりそちらを優先 (step < action < flow の継承)
+    const actionMaturity: string = actionAny.maturity ?? maturity;
 
     walkSteps(steps, `actions[${ai}].steps`, (step, stepPath, withinTx) => {
       // Check 16, 30, 31, 32: step 内の全文字列値を走査
@@ -747,9 +749,10 @@ export function checkAntipatterns(
 
       // Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3 / #1254 件 5)
       // maturity-aware: dbAccess step は maturity=committed 時に sql 必須、draft は naturalQuery のみで可。
+      // 継承順: step.maturity > action.maturity > flow.meta.maturity (Round 2 SF-3 で action-level 対応)。
       if (isBuiltinStep(step) && step.kind === "dbAccess") {
         const dbStep = step as unknown as { sql?: string; naturalQuery?: string; maturity?: string };
-        const stepMaturity = dbStep.maturity ?? maturity;
+        const stepMaturity = dbStep.maturity ?? actionMaturity;
         if (stepMaturity === "committed" && !dbStep.sql) {
           issues.push({
             validator: "processFlowAntipatternValidator",

@@ -3,40 +3,42 @@ import type { ProcessFlow, ExternalSystemStep } from "../types/v3";
 import { EXTERNAL_CALL_OUTCOME_VALUES } from "../utils/processFlowMetadata";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
-describe("ExternalSystemStep の新規フィールド (#158)", () => {
-  it("outcomes / timeoutMs / retryPolicy / fireAndForget をすべて保持できる", () => {
+// #1263 Phase X3: outcomes / retryPolicy / rollbackOn は errorHandling object に集約済。
+// 本 describe は元 #158 で導入された ExternalSystemStep のフィールド保持テスト。
+describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 errorHandling 経由)", () => {
+  it("errorHandling.outcomes / timeoutMs / errorHandling.retryPolicy / fireAndForget をすべて保持できる", () => {
     const step: ExternalSystemStep = {
       id: "s1",
-      type: "externalSystem",
+      kind: "externalSystem",
       description: "決済呼出",
-      systemName: "Stripe",
-      protocol: "HTTPS",
-      outcomes: {
-        success: { action: "continue" },
-        failure: { action: "abort", description: "402 で返す" },
-        timeout: { action: "abort", description: "failure と同じ扱い" },
-      },
+      systemRef: "stripe",
       timeoutMs: 10000,
-      retryPolicy: { maxAttempts: 2, backoff: "exponential", initialDelayMs: 500 },
       fireAndForget: false,
+      errorHandling: {
+        outcomes: {
+          success: { action: "continue" },
+          failure: { action: "abort", description: "402 で返す" },
+          timeout: { action: "abort", description: "failure と同じ扱い" },
+        },
+        retryPolicy: { maxAttempts: 2, backoff: "exponential", initialDelayMs: 500 },
+      },
     };
-    expect(step.outcomes?.success?.action).toBe("continue");
-    expect(step.outcomes?.failure?.action).toBe("abort");
+    expect(step.errorHandling?.outcomes?.success?.action).toBe("continue");
+    expect(step.errorHandling?.outcomes?.failure?.action).toBe("abort");
     expect(step.timeoutMs).toBe(10000);
-    expect(step.retryPolicy?.maxAttempts).toBe(2);
+    expect(step.errorHandling?.retryPolicy?.maxAttempts).toBe(2);
     expect(step.fireAndForget).toBe(false);
   });
 
   it("すべて省略可能 (既存コードの型互換)", () => {
     const step: ExternalSystemStep = {
       id: "s2",
-      type: "externalSystem",
+      kind: "externalSystem",
       description: "",
-      systemName: "SomeService",
+      systemRef: "someService",
     };
-    expect(step.outcomes).toBeUndefined();
+    expect(step.errorHandling).toBeUndefined();
     expect(step.timeoutMs).toBeUndefined();
-    expect(step.retryPolicy).toBeUndefined();
     expect(step.fireAndForget).toBeUndefined();
   });
 
@@ -47,31 +49,35 @@ describe("ExternalSystemStep の新規フィールド (#158)", () => {
   it("outcomes の partial 指定 (success のみ) も可能", () => {
     const step: ExternalSystemStep = {
       id: "s3",
-      type: "externalSystem",
+      kind: "externalSystem",
       description: "",
-      systemName: "X",
-      outcomes: {
-        success: { action: "continue", description: "ログ記録" },
+      systemRef: "x",
+      errorHandling: {
+        outcomes: {
+          success: { action: "continue", description: "ログ記録" },
+        },
       },
     };
-    expect(step.outcomes?.success).toBeDefined();
-    expect(step.outcomes?.failure).toBeUndefined();
+    expect(step.errorHandling?.outcomes?.success).toBeDefined();
+    expect(step.errorHandling?.outcomes?.failure).toBeUndefined();
   });
 
   it("fireAndForget=true の形式", () => {
     const step: ExternalSystemStep = {
       id: "s4",
-      type: "externalSystem",
+      kind: "externalSystem",
       description: "メール送信",
-      systemName: "SendGrid",
+      systemRef: "sendgrid",
       fireAndForget: true,
-      outcomes: {
-        failure: { action: "continue", description: "ログのみ、続行" },
-        timeout: { action: "continue", description: "同上" },
+      errorHandling: {
+        outcomes: {
+          failure: { action: "continue", description: "ログのみ、続行" },
+          timeout: { action: "continue", description: "同上" },
+        },
       },
     };
     expect(step.fireAndForget).toBe(true);
-    expect(step.outcomes?.failure?.action).toBe("continue");
+    expect(step.errorHandling?.outcomes?.failure?.action).toBe("continue");
   });
 });
 
