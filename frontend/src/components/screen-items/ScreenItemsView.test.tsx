@@ -79,6 +79,15 @@ vi.mock("../../store/screenItemsStore", () => ({
   }),
 }));
 
+// items 1 件 fixture (S-3 用: events toggle / fragments panel の render 条件を満たす)
+const FIXTURE_SCREEN_ITEMS_ONE_ITEM = {
+  screenId: "test-screen-id",
+  updatedAt: "2026-01-01T00:00:00Z",
+  items: [
+    { id: "customerId", label: "顧客ID", type: "string" as const },
+  ],
+};
+
 // ---------------------------------------------------------------------------
 // schema / validator mocks (重い処理回避)
 // ---------------------------------------------------------------------------
@@ -146,25 +155,41 @@ describe("ScreenItemsView (統合 scaffold)", () => {
     }, { timeout: 3000 });
   });
 
-  it("4. screenId が URL params から正しく渡される (DOM が描画完了)", async () => {
-    const screenId = "my-screen-001";
-    const { container } = renderWithRouter(screenId);
-    // 異なる screenId でも render が成功する
-    expect(container.firstChild).not.toBeNull();
+  it("4. items 1 件状態でイベント展開ボタン (toggle) が render される", async () => {
+    // S-3: events panel の toggle button は items 行が存在する場合のみ render される
+    // loadScreenItems を items 1 件返す fixture に差し替える
+    const { loadScreenItems } = await import("../../store/screenItemsStore");
+    vi.mocked(loadScreenItems).mockResolvedValueOnce(FIXTURE_SCREEN_ITEMS_ONE_ITEM);
+
+    const { container } = renderWithRouter();
+    // 非同期ロード完了後に items 行が描画される
+    await waitFor(() => {
+      // イベント展開ボタンは aria-label="イベント展開" で識別可能
+      const eventToggleBtn = container.querySelector('[aria-label="イベント展開"]');
+      expect(eventToggleBtn).not.toBeNull();
+    }, { timeout: 3000 });
   });
 
-  it("5. フラグメントパネル / 全体コンポーネントが統合 render される", async () => {
+  it("5. fragments panel が常に render される (.fragments-panel className 確認)", async () => {
     const { container } = renderWithRouter();
-    // ScreenItemsView 全体が描画完了している (firstChild + children 存在)
-    expect(container.children.length).toBeGreaterThan(0);
-    // 何らかの DOM 要素が存在する (統合 render 成功の基本確認)
-    expect(container.innerHTML).not.toBe("");
+    // S-3: FragmentsPanel は items 数に関わらず常時 render (collapsible toggle UI)
+    // .fragments-panel className は FragmentsPanel のルート div で必ず付与される
+    await waitFor(() => {
+      const fragmentsPanel = container.querySelector(".fragments-panel");
+      expect(fragmentsPanel).not.toBeNull();
+    }, { timeout: 3000 });
   });
 
-  it("6. items 0 件の空状態で DOM に button 要素が存在する (ツールバー等)", () => {
+  it("6. screen-items-toolbar と「項目追加」ボタンが render される", async () => {
     const { container } = renderWithRouter();
-    // EditModeToolbar / 追加ボタン等が render されること
-    const buttons = container.querySelectorAll("button");
-    expect(buttons.length).toBeGreaterThanOrEqual(0); // ツールバー 0 件でも ok (画面状態依存)
+    // S-1: items 0 件でもツールバーは必ず render される
+    // screen-items-toolbar div の存在と、その中の「項目追加」ボタンを具体的に確認
+    await waitFor(() => {
+      const toolbar = container.querySelector(".screen-items-toolbar");
+      expect(toolbar).not.toBeNull();
+      // 「項目追加」ボタン (.screen-items-add) が 1 つ以上存在すること
+      const addButtons = container.querySelectorAll(".screen-items-add");
+      expect(addButtons.length).toBeGreaterThan(0);
+    }, { timeout: 3000 });
   });
 });
