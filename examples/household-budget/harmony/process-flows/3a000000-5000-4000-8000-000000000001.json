@@ -18,12 +18,19 @@
         "VALIDATION_FAILED": {
           "httpStatus": 400,
           "defaultMessage": "入力エラーがあります。",
-          "responseId": "400-validation"
+          "responseId": "400-validation",
+          "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
         },
         "FOREIGN_KEY_VIOLATION": {
           "httpStatus": 422,
           "defaultMessage": "指定された口座またはカテゴリが見つかりません。",
-          "responseId": "422-fk"
+          "responseId": "422-fk",
+          "exceptionTypeRef": "generic-definitions/exception-type/ForeignKeyViolationException"
+        }
+      },
+      "events": {
+        "transaction.created": {
+          "description": "新規取引が登録されたことを通知する domain event。subscriber: 残高再計算 / 監査ログ / 月次集計キャッシュ無効化。詳細: generic-definitions/domain-event/TransactionCreated."
         }
       }
     },
@@ -86,12 +93,12 @@
           "description": "入力バリデーション。必須項目欠落・金額範囲・日付形式をチェックし、NG なら 400 を返却して action を打ち切る。",
           "fieldErrorsVar": "fieldErrors",
           "rules": [
-            { "field": "occurredOn", "type": "required", "severity": "error", "message": "取引日は必須です。" },
-            { "field": "accountId", "type": "required", "severity": "error", "message": "口座を選択してください。" },
-            { "field": "categoryId", "type": "required", "severity": "error", "message": "カテゴリを選択してください。" },
-            { "field": "amount", "type": "required", "severity": "error", "message": "金額は必須です。" },
-            { "field": "amount", "type": "range", "min": 1, "max": 100000000, "severity": "error", "message": "金額は 1 〜 1 億円の範囲で入力してください。" },
-            { "field": "memo", "type": "maxLength", "length": 200, "severity": "error", "message": "メモは 200 文字以内で入力してください。" }
+            { "field": "occurredOn", "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "accountId",  "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "categoryId", "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "amount",     "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "amount",     "type": "range",     "min": 1, "max": 100000000, "severity": "error", "message": "@conv.msg.outOfRange", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "memo",       "type": "maxLength", "length": 200, "severity": "error", "message": "@conv.msg.maxLength", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" }
           ],
           "inlineBranch": {
             "ok": [],
@@ -116,7 +123,14 @@
           }
         },
         {
-          "id": "step-03-return",
+          "id": "step-03-publish",
+          "kind": "eventPublish",
+          "description": "transaction.created domain event を発行 (subscriber: 残高再計算 / 監査ログ / 月次集計キャッシュ無効化)。詳細: generic-definitions/domain-event/TransactionCreated。",
+          "topic": "transaction.created",
+          "payload": "${ { transactionId: @createdTransaction.id, userId: @sessionUserId, amount: @amount, categoryId: @categoryId, occurredOn: @occurredOn, createdAt: @createdTransaction.created_at } }"
+        },
+        {
+          "id": "step-04-return",
           "kind": "return",
           "description": "作成された取引行を 201 で返却。",
           "responseId": "201-created",

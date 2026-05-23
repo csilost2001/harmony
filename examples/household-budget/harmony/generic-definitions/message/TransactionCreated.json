@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "TransactionCreated",
+  "purpose": "取引登録成功時にトーストで表示する完了メッセージ (i18n source、@msg.TransactionCreated 参照元)。",
+  "responsibilities": [
+    "取引登録 process-flow の 201 レスポンス後に画面側 toast で 3 秒間表示",
+    "ja-JP / en-US の 2 ロケール対応",
+    "金額 ({amount}) と日付 ({occurredOn}) を placeholder で受け取る"
+  ],
+  "targets": ["frontend"],
+  "fields": [
+    { "name": "amount",     "type": "string", "description": "通貨フォーマット済み金額 (例: '¥1,200')" },
+    { "name": "occurredOn", "type": "string", "description": "取引日 YYYY-MM-DD" }
+  ],
+  "mappingHints": {
+    "locales": {
+      "ja-JP": "{occurredOn} の取引 {amount} を登録しました",
+      "en-US": "Transaction {amount} on {occurredOn} has been recorded"
+    },
+    "toastDurationMs": 3000,
+    "toastVariant": "success"
+  }
+}

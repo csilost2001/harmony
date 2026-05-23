@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/validation-rule.v3.schema.json",
+  "kind": "validation-rule",
+  "name": "YearMonthFormat",
+  "purpose": "対象年月が YYYY-MM 形式に合致することを検証 (@validation.YearMonthFormat)。",
+  "responsibilities": [
+    "月次レポート画面 / fetchMonthlyReport flow で対象月の形式チェック",
+    "失敗時 @msg.InvalidYearMonthFormat"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "yearMonth", "type": "string", "description": "検証対象文字列" }
+  ],
+  "constraints": [
+    "yearMonth matches /^\\d{4}-(0[1-9]|1[0-2])$/"
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "generic-definitions/domain-type/YearMonth" },
+    { "kind": "uses", "ref": "generic-definitions/message/InvalidYearMonthFormat" }
+  ]
+}

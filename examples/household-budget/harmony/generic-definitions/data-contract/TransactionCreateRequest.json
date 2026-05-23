@@ -1,0 +1,37 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/data-contract.v3.schema.json",
+  "kind": "data-contract",
+  "name": "TransactionCreateRequest",
+  "purpose": "POST /api/transactions のリクエストボディ DTO。frontend → backend の入力契約。",
+  "responsibilities": [
+    "createTransaction flow の inputs[] と 1:1 対応",
+    "frontend の取引入力画面 (transactionForm) が serialize して送信",
+    "validation は ValidationStep が server side で再評価 (defense in depth)",
+    "Money / AccountType / YearMonth 等の domain-type 参照で意味付け"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "occurredOn", "type": "string",  "constraints": ["YYYY-MM-DD"], "description": "取引日 ISO date" },
+    { "name": "accountId",  "type": "integer", "constraints": ["existing accounts.id"], "description": "口座 ID" },
+    { "name": "categoryId", "type": "integer", "constraints": ["existing categories.id"], "description": "カテゴリ ID" },
+    { "name": "amount",     "type": "Money.amount",  "description": "金額 (Money domain-type の amount 部分のみ、currency は backend 側で account.currency から導出)" },
+    { "name": "memo",       "type": "string", "constraints": ["max 200 chars", "optional"], "description": "メモ" }
+  ],
+  "relations": [
+    { "kind": "transformsTo", "ref": "tables/transactions",                                "description": "INSERT 先の table" },
+    { "kind": "uses",         "ref": "generic-definitions/domain-type/Money" },
+    { "kind": "uses",         "ref": "generic-definitions/validation-rule/AmountRequired" },
+    { "kind": "uses",         "ref": "generic-definitions/validation-rule/AmountPositiveRange" },
+    { "kind": "uses",         "ref": "generic-definitions/validation-rule/MemoMaxLength" }
+  ],
+  "mappingHints": {
+    "contentType": "application/json",
+    "exampleRequest": {
+      "occurredOn": "2026-06-14",
+      "accountId":  3,
+      "categoryId": 1,
+      "amount":     6200,
+      "memo":       "外食 (デート)"
+    }
+  }
+}

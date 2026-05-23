@@ -112,6 +112,38 @@ examples だから最初から多様なデータを入れている。`seed/` デ
 
 詳細は `seed/README.md` 参照。NestJS の起動時 seed として読み込む想定 (`INSERT OR IGNORE` で idempotent)。
 
+## Generic Definition Catalog (14 kind, 37 entries)
+
+`harmony/generic-definitions/<kind>/<Name>.json` 配下に v3 schema の 14 kind を **全て dogfood** している。conventions catalog がフラット辞書を提供するのに対し、こちらは「kind ごとの構造化された再利用ピース」として 1 ファイル 1 エントリで管理。
+
+| kind | 件数 | 例 |
+|---|---:|---|
+| `message` | 8 | TransactionCreated / DeleteConfirm / AmountRequired / InvalidYearMonthFormat 等 (i18n source、`@msg.<Name>` 参照元) |
+| `validation-rule` | 4 | AmountPositiveRange / AmountRequired / MemoMaxLength / YearMonthFormat (`@validation.<Name>`) |
+| `domain-type` | 3 | Money (通貨単位付き) / YearMonth / AccountType (`@<scope>.<Name>` で参照) |
+| `exception-type` | 3 | TransactionNotFoundException / ValidationException / ForeignKeyViolationException — `errorCatalog.exceptionTypeRef` で参照 |
+| `domain-event` | 3 | TransactionCreated / Updated / Deleted — `context.catalogs.events` に登録 + `EventPublishStep` から発火 |
+| `constants` | 2 | TransactionLimits (minAmount / maxAmount / memoMaxLength) / UndoWindow (`@const.<Name>` 参照元) |
+| `data-contract` | 2 | TransactionCreateRequest / MonthlyReportResponse (API I/O 契約) |
+| `ui-fragment` | 2 | CategoryBadge (色+アイコン+名前) / AmountDisplay (¥ + 符号 + 桁揃え) |
+| `application-rule` | 2 | DeficitWarning (赤字バナー) / HighExpenseAlert (10 万円超 confirm) |
+| `component-definition` | 2 | BalanceCalculator (NestJS service) / CurrencyFormatter (純粋関数) |
+| `ui-behavior` | 1 | FormDirtyConfirmExit (未保存離脱の確認) |
+| `runtime-policy` | 2 | BackendRetryPolicy / HttpTimeoutPolicy |
+| `log-config` | 1 | DefaultLogConfig (env-based level / 構造化 JSON / PII redact) |
+| `log-event` | 2 | TransactionAuditCreated / TransactionAuditDeleted (監査ログ、365 日保管) |
+
+### v3 schema との配線
+
+- **`processFlow.context.catalogs.errors.<CODE>.exceptionTypeRef`** → `generic-definitions/exception-type/<Name>` (process-flows/createTransaction / deleteTransaction / updateTransaction / fetchMonthlyReport の全 4 flow で配線済)
+- **`processFlow.context.catalogs.events.<topic>`** に domain-event を登録 → `EventPublishStep.topic` で発火 (createTransaction / deleteTransaction / updateTransaction)
+- **`ValidationRule.exceptionTypeRef`** → exception-type 参照 (全 6 rule × 3 flow で配線済)
+- **`Description` 等のテキスト**で `generic-definitions/<kind>/<Name>` パスを reference 文字列として相互リンク
+
+### dogfood で見つけた validator gap
+
+- `@msg.<Name>` 形式の参照は `identifierScope` validator が `@msg` を bare variable と誤解する。canonical 設計では `@msg.<Name>` が generic-definitions/message/ の参照だが、現在の validator はこれを認識しない。**回避策**: 本サンプルでは `ValidationRule.message` に `@conv.msg.<key>` (旧 conventions 規約参照) を使用、参照表現の dogfood は exception-type/domain-event/context.catalogs で実施。
+
 ## ディレクトリ構成
 
 ```
@@ -131,7 +163,22 @@ examples/household-budget/
     ├── view-definitions/<uuid>.json × 2
     ├── screens/<uuid>.json          × 6
     ├── screens/<uuid>.design.json   × 6  (Tailwind HTML)
-    └── process-flows/<uuid>.json    × 4
+    ├── process-flows/<uuid>.json    × 4
+    └── generic-definitions/         # 14 kind 全 dogfood (37 ファイル)
+        ├── message/                 × 8
+        ├── validation-rule/         × 4
+        ├── domain-type/             × 3
+        ├── exception-type/          × 3
+        ├── domain-event/            × 3
+        ├── constants/               × 2
+        ├── data-contract/           × 2
+        ├── ui-fragment/             × 2
+        ├── application-rule/        × 2
+        ├── component-definition/    × 2
+        ├── ui-behavior/             × 1
+        ├── runtime-policy/          × 2
+        ├── log-config/              × 1
+        └── log-event/               × 2
 ```
 
 ## 動作確認

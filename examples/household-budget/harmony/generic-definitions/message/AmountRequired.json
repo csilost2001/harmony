@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "AmountRequired",
+  "purpose": "金額未入力時のフィールドエラーメッセージ (@msg.AmountRequired)。",
+  "responsibilities": [
+    "取引入力 / 編集画面の amount field 下に inline 表示",
+    "ValidationRule.AmountRequired と組合せて使用 (validation-rule 側 message=@msg.AmountRequired)"
+  ],
+  "targets": ["frontend"],
+  "mappingHints": {
+    "locales": {
+      "ja-JP": "金額を入力してください",
+      "en-US": "Please enter an amount"
+    },
+    "severity": "error"
+  }
+}

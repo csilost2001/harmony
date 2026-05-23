@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "AmountOutOfRange",
+  "purpose": "金額が許容範囲外 (1 円未満 or 1 億円超) のエラー (@msg.AmountOutOfRange)。",
+  "responsibilities": [
+    "ValidationRule.AmountPositiveRange と組合せて inline 表示",
+    "上限・下限は constants.TransactionLimits から引く (placeholder {min} / {max})"
+  ],
+  "targets": ["frontend"],
+  "fields": [
+    { "name": "min", "type": "string", "description": "通貨フォーマット済み下限 (例: '¥1')" },
+    { "name": "max", "type": "string", "description": "通貨フォーマット済み上限 (例: '¥100,000,000')" }
+  ],
+  "mappingHints": {
+    "locales": {
+      "ja-JP": "金額は {min} 〜 {max} の範囲で入力してください",
+      "en-US": "Amount must be between {min} and {max}"
+    },
+    "severity": "error"
+  }
+}

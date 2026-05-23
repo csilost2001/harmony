@@ -18,7 +18,8 @@
         "INVALID_YEAR_MONTH": {
           "httpStatus": 400,
           "defaultMessage": "対象月の形式が不正です。YYYY-MM で指定してください。",
-          "responseId": "400-validation"
+          "responseId": "400-validation",
+          "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
         }
       }
     },
@@ -95,8 +96,8 @@
           "description": "yearMonth が YYYY-MM 形式かをチェック。",
           "fieldErrorsVar": "fieldErrors",
           "rules": [
-            { "field": "yearMonth", "type": "required", "severity": "error", "message": "対象月は必須です。" },
-            { "field": "yearMonth", "type": "regex", "pattern": "^\\d{4}-(0[1-9]|1[0-2])$", "severity": "error", "message": "対象月は YYYY-MM 形式で指定してください。" }
+            { "field": "yearMonth", "type": "required", "severity": "error", "message": "@conv.msg.required",         "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "yearMonth", "type": "regex", "pattern": "^\\d{4}-(0[1-9]|1[0-2])$", "severity": "error", "message": "@conv.msg.invalidFormat", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" }
           ],
           "inlineBranch": {
             "ok": [],

@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/domain-event.v3.schema.json",
+  "kind": "domain-event",
+  "name": "TransactionUpdated",
+  "purpose": "既存取引が更新されたことを通知する domain event (@event.transaction.updated)。",
+  "responsibilities": [
+    "updateTransaction flow の最終 step で publish",
+    "before / after の両方を含むため、差分ベース監査ログ (TransactionAuditUpdated) が利用可能"
+  ],
+  "targets": ["backend"],
+  "fields": [
+    { "name": "transactionId", "type": "integer" },
+    { "name": "userId",        "type": "integer" },
+    { "name": "before",        "type": "TransactionRow", "description": "更新前の値 (snapshot)" },
+    { "name": "after",         "type": "TransactionRow", "description": "更新後の値" },
+    { "name": "updatedAt",     "type": "string" }
+  ],
+  "mappingHints": {
+    "topic": "transaction.updated",
+    "schemaVersion": 1
+  }
+}

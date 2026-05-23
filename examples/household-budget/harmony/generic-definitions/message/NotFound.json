@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "NotFound",
+  "purpose": "対象リソース未発見時の汎用エラー (@msg.NotFound)。",
+  "responsibilities": [
+    "404 レスポンスの message field",
+    "他ユーザー所有の取引にアクセスした場合も「未発見」扱いで情報漏洩を防ぐ"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "resourceType", "type": "string", "description": "リソース種別表示名 (例: '取引', 'カテゴリ')" }
+  ],
+  "mappingHints": {
+    "locales": {
+      "ja-JP": "{resourceType}が見つかりませんでした",
+      "en-US": "{resourceType} not found"
+    },
+    "severity": "warning"
+  }
+}

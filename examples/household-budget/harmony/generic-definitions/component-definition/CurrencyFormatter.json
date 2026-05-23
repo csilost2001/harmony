@@ -1,0 +1,38 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/component-definition.v3.schema.json",
+  "kind": "component-definition",
+  "name": "CurrencyFormatter",
+  "purpose": "Money.amount + currency を locale-aware にフォーマットする pure 関数 (frontend で利用)。",
+  "responsibilities": [
+    "Intl.NumberFormat(locale, { style: 'currency', currency }) ラッパ",
+    "@conv.currency.primary (現状 JPY) のデフォルトで小数部 0 桁",
+    "AmountDisplay / KPI カード等から呼び出される",
+    "loose-tyspe (string も number も受ける) で受けて parseFloat 内部処理"
+  ],
+  "targets": ["frontend"],
+  "operations": [
+    {
+      "name": "format",
+      "inputs":  [
+        { "name": "amount",   "type": "number" },
+        { "name": "currency", "type": "string", "description": "ISO 4217、省略時 JPY" },
+        { "name": "locale",   "type": "string", "description": "BCP 47、省略時 ja-JP" }
+      ],
+      "outputs": [{ "name": "formatted", "type": "string", "description": "例: '¥1,200'" }]
+    },
+    {
+      "name": "parse",
+      "inputs":  [{ "name": "formatted", "type": "string" }],
+      "outputs": [{ "name": "amount", "type": "number" }],
+      "description": "逆変換 (UI からの input parse 用)"
+    }
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "generic-definitions/domain-type/Money" }
+  ],
+  "mappingHints": {
+    "framework": "react",
+    "pureFunctional": true,
+    "exampleCall": "CurrencyFormatter.format(1200, 'JPY', 'ja-JP') === '¥1,200'"
+  }
+}

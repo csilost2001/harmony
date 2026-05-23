@@ -18,12 +18,19 @@
         "VALIDATION_FAILED": {
           "httpStatus": 400,
           "defaultMessage": "入力エラーがあります。",
-          "responseId": "400-validation"
+          "responseId": "400-validation",
+          "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
         },
         "NOT_FOUND": {
           "httpStatus": 404,
           "defaultMessage": "対象の取引が見つかりません。",
-          "responseId": "404-not-found"
+          "responseId": "404-not-found",
+          "exceptionTypeRef": "generic-definitions/exception-type/TransactionNotFoundException"
+        }
+      },
+      "events": {
+        "transaction.updated": {
+          "description": "既存取引が更新されたことを通知する domain event (before / after を含む)。詳細: generic-definitions/domain-event/TransactionUpdated."
         }
       }
     },
@@ -115,12 +122,12 @@
           "description": "新規入力と同じバリデーション規則。",
           "fieldErrorsVar": "fieldErrors",
           "rules": [
-            { "field": "occurredOn", "type": "required", "severity": "error", "message": "取引日は必須です。" },
-            { "field": "accountId",  "type": "required", "severity": "error", "message": "口座を選択してください。" },
-            { "field": "categoryId", "type": "required", "severity": "error", "message": "カテゴリを選択してください。" },
-            { "field": "amount",     "type": "required", "severity": "error", "message": "金額は必須です。" },
-            { "field": "amount",     "type": "range",    "min": 1, "max": 100000000, "severity": "error", "message": "金額は 1 〜 1 億円の範囲で入力してください。" },
-            { "field": "memo",       "type": "maxLength","length": 200, "severity": "error", "message": "メモは 200 文字以内で入力してください。" }
+            { "field": "occurredOn", "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "accountId",  "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "categoryId", "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "amount",     "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "amount",     "type": "range",     "min": 1, "max": 100000000, "severity": "error", "message": "@conv.msg.outOfRange", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "memo",       "type": "maxLength", "length": 200, "severity": "error", "message": "@conv.msg.maxLength", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" }
           ],
           "inlineBranch": {
             "ok": [],
@@ -130,7 +137,22 @@
           }
         },
         {
-          "id": "step-02-update",
+          "id": "step-02-before-snapshot",
+          "kind": "dbAccess",
+          "description": "更新前の snapshot を取得 (TransactionUpdated event payload の before に使用)。",
+          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "operation": "SELECT",
+          "sql": "SELECT id, user_id, account_id, category_id, occurred_on, amount, memo, created_at, updated_at FROM transactions WHERE id = @transactionId AND user_id = @sessionUserId",
+          "outputBinding": { "name": "beforeSnapshot" },
+          "affectedRowsCheck": {
+            "operator": "=",
+            "expected": 1,
+            "onViolation": "throw",
+            "errorCode": "NOT_FOUND"
+          }
+        },
+        {
+          "id": "step-03-update",
           "kind": "dbAccess",
           "description": "user_id 一致を WHERE に含めて UPDATE。affectedRows=0 なら 404 へ。",
           "tableId": "3a000000-1000-4000-8000-000000000004",
@@ -145,7 +167,14 @@
           }
         },
         {
-          "id": "step-03-return",
+          "id": "step-04-publish",
+          "kind": "eventPublish",
+          "description": "transaction.updated domain event を発行 (before / after を含む)。差分監査ログ等の subscriber が利用。詳細: generic-definitions/domain-event/TransactionUpdated。",
+          "topic": "transaction.updated",
+          "payload": "${ { transactionId: @transactionId, userId: @sessionUserId, before: @beforeSnapshot, after: @updatedTransaction, updatedAt: @updatedTransaction.updated_at } }"
+        },
+        {
+          "id": "step-05-return",
           "kind": "return",
           "description": "更新後の行を 200 で返却。",
           "responseId": "200-ok",

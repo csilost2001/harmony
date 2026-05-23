@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/domain-type.v3.schema.json",
+  "kind": "domain-type",
+  "name": "Money",
+  "purpose": "通貨単位を持つ金額型。家計簿アプリの全金額表現で使用する意味付きドメイン型。",
+  "responsibilities": [
+    "transactions.amount / accounts.initial_balance / レポート集計値の semantic 型を統一",
+    "DB レベルでは DECIMAL(12,2) として永続化 (mappingHints.sql 参照)",
+    "API レベルでは number として transport (JSON は通貨情報を別 field で持つ運用)",
+    "UI レベルでは ¥#,##0 形式で表示 (@conv.currency.primary 参照)"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "amount",   "type": "number", "constraints": [">=0", "<=99999999.99"], "description": "金額値" },
+    { "name": "currency", "type": "string", "constraints": ["ISO 4217 3 letter code"], "description": "通貨コード (本アプリは 'JPY' 固定だが将来 multi-currency 対応に備えて分離)" }
+  ],
+  "constraints": [
+    "amount は常に正値 (符号は category_type で表現)",
+    "currency は ISO 4217 (現状 'JPY' のみ)"
+  ],
+  "mappingHints": {
+    "sql": {
+      "type": "DECIMAL(12,2)",
+      "comment": "12 桁中 2 桁が小数部、JPY 運用では小数部は常に 0"
+    },
+    "typescript": "{ amount: number; currency: string }",
+    "uiFormat": "${amount.toLocaleString('ja-JP', { style: 'currency', currency: currency, maximumFractionDigits: 0 })}"
+  }
+}

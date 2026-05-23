@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/domain-type.v3.schema.json",
+  "kind": "domain-type",
+  "name": "AccountType",
+  "purpose": "口座種別 (現金 / 銀行 / クレジットカード) を表す閉じた値域型。",
+  "responsibilities": [
+    "accounts.account_type 列の semantic 型と UI ハイライト用色 / アイコンの単一情報源",
+    "DB CHECK 制約 ck_accounts_account_type と整合する 3 値 (`cash` / `bank` / `credit_card`)",
+    "UI のカード背景色 / アイコンを mappingHints から引く"
+  ],
+  "targets": ["shared"],
+  "constraints": [
+    "値は 'cash' / 'bank' / 'credit_card' のいずれか",
+    "新しい種別追加時は本 catalog + accounts ck 制約の両方を更新"
+  ],
+  "mappingHints": {
+    "enumValues": {
+      "cash":        { "displayName": { "ja-JP": "現金",         "en-US": "Cash" },        "icon": "wallet",      "color": "#94a3b8" },
+      "bank":        { "displayName": { "ja-JP": "銀行",         "en-US": "Bank" },        "icon": "building",    "color": "#3b82f6" },
+      "credit_card": { "displayName": { "ja-JP": "クレジット",   "en-US": "Credit Card" }, "icon": "credit-card", "color": "#ef4444" }
+    }
+  }
+}

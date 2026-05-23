@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/constants.v3.schema.json",
+  "kind": "constants",
+  "name": "UndoWindow",
+  "purpose": "削除操作の undo 受付時間枠 (@const.UndoWindow)。",
+  "responsibilities": [
+    "TransactionDeleted toast の表示時間 (mappingHints.toastDurationMs) と一致",
+    "undo trigger 期限を超えたら snapshot を破棄、永続削除確定",
+    "frontend が setTimeout に渡す値の単一情報源"
+  ],
+  "targets": ["frontend"],
+  "fields": [
+    { "name": "windowMs",       "type": "integer", "description": "undo 受付時間 (ミリ秒、5000=5 秒)" },
+    { "name": "showCountdown",  "type": "boolean", "description": "トースト上にカウントダウン表示するか" }
+  ],
+  "mappingHints": {
+    "values": {
+      "windowMs":      5000,
+      "showCountdown": true
+    }
+  }
+}

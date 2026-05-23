@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/runtime-policy.v3.schema.json",
+  "kind": "runtime-policy",
+  "name": "HttpTimeoutPolicy",
+  "purpose": "HTTP 呼出の timeout 値を一元管理する横断ポリシー。",
+  "responsibilities": [
+    "個別 process-flow に Sla.timeoutMs を都度書かない設計判断 (このポリシーから引く)",
+    "クエリ系 (GET) と更新系 (POST/PUT/DELETE) で別 timeout (read 系は短く、write 系は長め)",
+    "SQLite + 個人規模なら read 1s / write 3s で十分"
+  ],
+  "targets": ["runtime"],
+  "mappingHints": {
+    "values": {
+      "readTimeoutMs":  1000,
+      "writeTimeoutMs": 3000,
+      "longRunningTimeoutMs": 10000
+    },
+    "appliesGlobally": true,
+    "overridable": "process-flow.sla で override 可"
+  }
+}

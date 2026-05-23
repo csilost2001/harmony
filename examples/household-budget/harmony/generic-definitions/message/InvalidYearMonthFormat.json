@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "InvalidYearMonthFormat",
+  "purpose": "月次レポートの対象月が YYYY-MM 形式に合致しない場合のエラー (@msg.InvalidYearMonthFormat)。",
+  "responsibilities": [
+    "月次レポート画面の targetYearMonth field で発火",
+    "fetchMonthlyReport flow の validation step に紐付く"
+  ],
+  "targets": ["shared"],
+  "mappingHints": {
+    "locales": {
+      "ja-JP": "対象月は YYYY-MM 形式で指定してください (例: 2026-05)",
+      "en-US": "Year-month must be in YYYY-MM format (e.g. 2026-05)"
+    },
+    "severity": "error"
+  }
+}

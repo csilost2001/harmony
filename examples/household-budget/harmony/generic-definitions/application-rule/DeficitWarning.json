@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/application-rule.v3.schema.json",
+  "kind": "application-rule",
+  "name": "DeficitWarning",
+  "purpose": "当月収支が赤字に転落した場合にダッシュボードに警告バナーを表示する横断ルール。",
+  "responsibilities": [
+    "ダッシュボードの mount 時 (or 取引登録後の再計算後) に評価",
+    "totalIncome - totalExpense < 0 なら警告バナー描画",
+    "警告は dismissable (ユーザーが閉じれば次回計算まで非表示)",
+    "メッセージは @msg.DeficitWarning (本ルール固有)、severity=warning"
+  ],
+  "targets": ["frontend"],
+  "constraints": [
+    "trigger: dashboard mount + transaction.created event + transaction.updated event + transaction.deleted event",
+    "evaluation: currentMonthBalance := totalIncome - totalExpense",
+    "action: if (currentMonthBalance < 0) showBanner('deficit')"
+  ],
+  "relations": [
+    { "kind": "appliesTo", "ref": "screens/dashboard", "description": "ダッシュボード画面に適用" },
+    { "kind": "uses",      "ref": "generic-definitions/domain-event/TransactionCreated" },
+    { "kind": "uses",      "ref": "generic-definitions/domain-event/TransactionUpdated" },
+    { "kind": "uses",      "ref": "generic-definitions/domain-event/TransactionDeleted" }
+  ],
+  "mappingHints": {
+    "uiVariant": "banner-warning",
+    "dismissable": true,
+    "iconHint": "alert-triangle"
+  }
+}

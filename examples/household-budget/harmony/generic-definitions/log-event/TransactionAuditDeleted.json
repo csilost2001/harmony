@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/log-event.v3.schema.json",
+  "kind": "log-event",
+  "name": "TransactionAuditDeleted",
+  "purpose": "取引削除の監査ログイベント (@logEvent.TransactionAuditDeleted)。",
+  "responsibilities": [
+    "deleteTransaction flow 成功時に emit",
+    "snapshot (削除前の全 column) を保持して復元可能性を担保",
+    "5 秒以内に undo された場合は別 logEvent (TransactionAuditUndone、本 sample では未実装) で打ち消し記録"
+  ],
+  "targets": ["backend"],
+  "fields": [
+    { "name": "userId",        "type": "integer" },
+    { "name": "transactionId", "type": "integer" },
+    { "name": "snapshot",      "type": "TransactionRow" },
+    { "name": "deletedAt",     "type": "string" },
+    { "name": "requestId",     "type": "string" }
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "generic-definitions/domain-event/TransactionDeleted" },
+    { "kind": "uses", "ref": "generic-definitions/log-config/DefaultLogConfig" }
+  ],
+  "mappingHints": {
+    "logLevel": "warn",
+    "category": "audit.transaction.delete",
+    "retentionDays": 365,
+    "rationale": "削除は破壊的操作のため warn level、長期保管"
+  }
+}

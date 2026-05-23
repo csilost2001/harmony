@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/exception-type.v3.schema.json",
+  "kind": "exception-type",
+  "name": "TransactionNotFoundException",
+  "purpose": "対象取引が存在しない or 他ユーザー所有のため操作不可な場合の業務例外。",
+  "responsibilities": [
+    "削除 / 編集 flow で affectedRows=0 検出時に throw",
+    "他ユーザー所有の取引にアクセスした場合も本例外 (情報漏洩を避けるため `Forbidden` ではなく `NotFound` 扱い)",
+    "HTTP 404 + @msg.NotFound (resourceType='取引') にマップ"
+  ],
+  "targets": ["backend"],
+  "fields": [
+    { "name": "transactionId", "type": "integer", "description": "見つからなかった取引 ID" }
+  ],
+  "constraints": [
+    "recoverable=false (リトライしても結果は変わらない)",
+    "audit log には記録するが、外部レスポンスには transactionId を含めない (escalation 対策)"
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "generic-definitions/message/NotFound", "description": "client 向けメッセージ" }
+  ],
+  "mappingHints": {
+    "httpStatus": 404,
+    "errorCode": "NOT_FOUND",
+    "loggable": true,
+    "stackTrace": false
+  }
+}

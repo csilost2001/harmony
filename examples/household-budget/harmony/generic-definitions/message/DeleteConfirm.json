@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "DeleteConfirm",
+  "purpose": "削除操作前のユーザー確認ダイアログ文言 (@msg.DeleteConfirm)。",
+  "responsibilities": [
+    "取引一覧 / 編集画面の削除ボタン click 時にモーダル表示",
+    "カテゴリ削除等、他の削除アクションでも再利用",
+    "破壊的操作のため severity=danger"
+  ],
+  "targets": ["frontend"],
+  "fields": [
+    { "name": "name", "type": "string", "description": "削除対象の名称 (例: '6/14 の取引', '食費カテゴリ')" }
+  ],
+  "mappingHints": {
+    "locales": {
+      "ja-JP": "「{name}」を削除しますか? この操作は取り消せません。",
+      "en-US": "Delete \"{name}\"? This action cannot be undone."
+    },
+    "dialogVariant": "danger",
+    "confirmLabel": { "ja-JP": "削除する", "en-US": "Delete" },
+    "cancelLabel":  { "ja-JP": "キャンセル", "en-US": "Cancel" }
+  }
+}

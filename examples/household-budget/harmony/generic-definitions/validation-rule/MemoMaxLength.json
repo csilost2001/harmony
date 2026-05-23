@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/validation-rule.v3.schema.json",
+  "kind": "validation-rule",
+  "name": "MemoMaxLength",
+  "purpose": "メモ最大文字数チェック (@validation.MemoMaxLength)。",
+  "responsibilities": [
+    "transactions.memo の VARCHAR(200) と一致する制約を業務層で明示",
+    "上限は @const.TransactionLimits.memoMaxLength を参照"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "memo", "type": "string", "description": "検証対象テキスト (空文字 / null は OK)" }
+  ],
+  "constraints": [
+    "memo == null OR memo.length <= @const.TransactionLimits.memoMaxLength"
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "generic-definitions/constants/TransactionLimits" }
+  ]
+}

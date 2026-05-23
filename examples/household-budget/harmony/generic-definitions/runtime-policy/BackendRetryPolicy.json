@@ -1,0 +1,27 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/runtime-policy.v3.schema.json",
+  "kind": "runtime-policy",
+  "name": "BackendRetryPolicy",
+  "purpose": "フロントエンド → バックエンド API 呼出時の再試行ポリシー。ネットワーク不安定環境でも UX を維持する。",
+  "responsibilities": [
+    "全 API call (createTransaction / deleteTransaction / fetchMonthlyReport / updateTransaction) に適用",
+    "5xx エラーのみ再試行、4xx は即時失敗 (validation 等は retry 無意味)",
+    "exponential backoff (200ms / 400ms / 800ms)、最大 3 回",
+    "全 retry 失敗時はトーストでネットワークエラー表示"
+  ],
+  "targets": ["runtime"],
+  "relations": [
+    { "kind": "appliesTo", "ref": "process-flows/createTransaction" },
+    { "kind": "appliesTo", "ref": "process-flows/updateTransaction" },
+    { "kind": "appliesTo", "ref": "process-flows/deleteTransaction" },
+    { "kind": "appliesTo", "ref": "process-flows/fetchMonthlyReport" }
+  ],
+  "mappingHints": {
+    "maxAttempts": 3,
+    "backoff": "exponential",
+    "initialDelayMs": 200,
+    "retryOnStatus": [500, 502, 503, 504],
+    "noRetryOnStatus": [400, 401, 403, 404, 422],
+    "framework": "axios-retry (frontend) or @nestjs-toolkit/retry (backend)"
+  }
+}

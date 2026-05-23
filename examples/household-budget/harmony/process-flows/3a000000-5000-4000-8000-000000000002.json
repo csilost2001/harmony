@@ -18,7 +18,13 @@
         "NOT_FOUND": {
           "httpStatus": 404,
           "defaultMessage": "対象の取引が見つかりません。",
-          "responseId": "404-not-found"
+          "responseId": "404-not-found",
+          "exceptionTypeRef": "generic-definitions/exception-type/TransactionNotFoundException"
+        }
+      },
+      "events": {
+        "transaction.deleted": {
+          "description": "取引が削除されたことを通知する domain event (snapshot を含む)。subscriber: 監査ログ / 残高再計算 / undo 機能。詳細: generic-definitions/domain-event/TransactionDeleted."
         }
       }
     },
@@ -60,12 +66,13 @@
       ],
       "steps": [
         {
-          "id": "step-01-delete",
+          "id": "step-01-snapshot",
           "kind": "dbAccess",
-          "description": "user_id 一致を WHERE に含めて DELETE。affectedRows=0 なら 404 へ。",
+          "description": "削除前の snapshot を SELECT (event payload + undo 復元用)。所有者チェックも兼ねる。",
           "tableId": "3a000000-1000-4000-8000-000000000004",
-          "operation": "DELETE",
-          "sql": "DELETE FROM transactions WHERE id = @transactionId AND user_id = @sessionUserId",
+          "operation": "SELECT",
+          "sql": "SELECT id, user_id, account_id, category_id, occurred_on, amount, memo, created_at, updated_at FROM transactions WHERE id = @transactionId AND user_id = @sessionUserId",
+          "outputBinding": { "name": "snapshot" },
           "affectedRowsCheck": {
             "operator": "=",
             "expected": 1,
@@ -74,7 +81,22 @@
           }
         },
         {
-          "id": "step-02-return",
+          "id": "step-02-delete",
+          "kind": "dbAccess",
+          "description": "DELETE 実行。snapshot 取得済なので all-or-nothing で確実に行う。",
+          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "operation": "DELETE",
+          "sql": "DELETE FROM transactions WHERE id = @transactionId AND user_id = @sessionUserId"
+        },
+        {
+          "id": "step-03-publish",
+          "kind": "eventPublish",
+          "description": "transaction.deleted domain event を発行。snapshot を payload に含めることで subscriber 側で undo / 復元可能。詳細: generic-definitions/domain-event/TransactionDeleted。",
+          "topic": "transaction.deleted",
+          "payload": "${ { transactionId: @transactionId, userId: @sessionUserId, snapshot: @snapshot, deletedAt: new Date().toISOString() } }"
+        },
+        {
+          "id": "step-04-return",
           "kind": "return",
           "description": "削除成功時は 204 No Content。",
           "responseId": "204-deleted"
