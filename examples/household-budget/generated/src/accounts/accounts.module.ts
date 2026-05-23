@@ -1,5 +1,12 @@
 import { Module } from '@nestjs/common';
+import { PrismaModule } from '../prisma/prisma.module';
+import { AccountsController } from './accounts.controller';
+import { AccountsService } from './accounts.service';
 
-// TODO: Phase B (/generate-code) で AccountsController / AccountsService を生成する
-@Module({})
+@Module({
+  imports: [PrismaModule],
+  controllers: [AccountsController],
+  providers: [AccountsService],
+  exports: [AccountsService],
+})
 export class AccountsModule {}
