@@ -68,8 +68,9 @@ export const varScopeResolver: Resolver = {
           }
         }
       } else if (scope === "global") {
-        // 候補 source 未確立 (spec/schema governance 未対応、別 ISSUE 起票済)
-        // 空候補返却で OK (resolver は active mode、candidates: [])
+        // 候補 source 未確立 (spec/schema governance 未対応、follow-up ISSUE で対応予定)
+        // project.json / harmony.json に globals catalog が未定義のため、空候補返却で OK
+        // (resolver は active mode、candidates: [] — ユーザーは自由入力可能)
       }
 
       const candidates = [...names]

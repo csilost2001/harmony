@@ -249,7 +249,7 @@ RFC #1264 で確定した hybrid scope chain (case C) の具体仕様。**暗黙
 | `action` | action body 全体で生きる | action 全体 | `@var.action.totalAmount` |
 | `step.<step-id>` | step 出力 binding (`outputBinding.name`) | scope enter で生成 / exit で破棄 | `@var.step.step-05.newOrderNumber` |
 | `tx.<tx-id>` | TransactionScopeStep 内 binding | TX commit でマージ / rollback で破棄 | `@var.tx.step-06.txResult` |
-| `loop` | loop iteration 内 (`collectionItemName` / `collectionIndexName`) | iteration ごとに fresh | `@var.loop.cartItem`、`@var.loop.idx` |
+| `loop` | loop iteration 内 (`collectionItemName` / `collectionIndexName` / push operation の `outputBinding.name`) | iteration ごとに fresh / `outputBinding.name` は loop 終了後 enclosing scope に push | `@var.loop.cartItem`、`@var.loop.idx`、`@var.loop.enrichedItems` |
 | `global` | workspace / project 横断 (mutable、`@const` と区別) | session 全体 | `@var.global.tenantId` |
 
 `step.` / `tx.` 接頭辞は具体的な step-id / tx-id を後続する (LocalId pattern)。
