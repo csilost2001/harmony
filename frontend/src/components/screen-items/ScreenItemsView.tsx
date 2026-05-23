@@ -41,6 +41,8 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
 import { ReferenceCompletionInput } from "../common/ReferenceCompletionInput";
 import { handlerFlowIdResolver, handlerActionIdResolver } from "../../utils/reference-completer/workspaceResolver";
+import { screenItemTypeResolver } from "./screenItemTypeResolver";
+import { loadExtensionsFromBundle, type LoadedExtensions } from "../../schemas/loadExtensions";
 import type {
   ScreenItem,
   ScreenItemEvent,
@@ -130,6 +132,21 @@ export function ScreenItemsView() {
   // 規約カタログをロード (初回のみ)
   useEffect(() => {
     loadConventions().then(setConventions).catch(console.error);
+  }, []);
+
+  // 拡張定義をロード (type 列 extensionRef 補完用、#1260 Phase 4)
+  const [extensions, setExtensions] = useState<LoadedExtensions | undefined>(undefined);
+  useEffect(() => {
+    mcpBridge
+      .getExtensions()
+      .then((bundle) => setExtensions(loadExtensionsFromBundle(bundle).extensions))
+      .catch(() => setExtensions(undefined));
+    return mcpBridge.onExtensionsChanged(() => {
+      mcpBridge
+        .getExtensions(true)
+        .then((bundle) => setExtensions(loadExtensionsFromBundle(bundle).extensions))
+        .catch(() => setExtensions(undefined));
+    });
   }, []);
 
   // ワークスペース全参照情報 (handlerFlowId / handlerActionId 補完用、#1260 A)
@@ -909,26 +926,25 @@ export function ScreenItemsView() {
                       />
                     </td>
                     <td>
-                      <input
-                        type="text"
-                        list="screen-items-type-list"
+                      <ReferenceCompletionInput
                         className="form-control form-control-sm"
                         value={typeof item.type === "string"
                           ? item.type
                           : item.type.kind === "extension"
                             ? item.type.extensionRef
                             : item.type.kind}
-                        onChange={(e) => {
-                          const v = e.target.value;
+                        onValueChange={(v) => {
                           if (v === "") {
                             handleUpdateItem(i, { type: "string" });
-                          } else if ((PRIMITIVE_TYPES as string[]).includes(v)) {
+                          } else if ((PRIMITIVE_TYPES as readonly string[]).includes(v)) {
                             handleUpdateItem(i, { type: v as FieldType });
                           } else {
                             handleUpdateItem(i, { type: { kind: "extension", extensionRef: v } });
                           }
                         }}
-                        onBlur={commit}
+                        onCommit={commit}
+                        resolvers={[screenItemTypeResolver]}
+                        ctx={{ fieldKind: "extensionRef", extensions }}
                         placeholder="string"
                         disabled={isReadonly}
                       />
@@ -1381,9 +1397,6 @@ export function ScreenItemsView() {
                 </button>
               )}
             </div>
-            <datalist id="screen-items-type-list">
-              {PRIMITIVE_TYPES.map((t) => <option key={t} value={t} />)}
-            </datalist>
             <datalist id="screen-items-display-format-list">
               {DISPLAY_FORMAT_PRESETS.map((f) => <option key={f} value={f} />)}
             </datalist>
