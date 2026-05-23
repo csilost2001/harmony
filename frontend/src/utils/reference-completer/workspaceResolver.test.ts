@@ -176,33 +176,48 @@ describe("handlerActionIdResolver", () => {
 });
 
 describe("fragmentRefResolver", () => {
-  it("fieldKind='fragmentRef' → 全 fragment を返す", () => {
+  it("fieldKind='fragmentRef' → 全 fragment を full path 形式の value で返す", () => {
     const s = fragmentRefResolver.match("", 0, ctx("fragmentRef"));
     expect(s?.phase).toBe("active");
     if (s?.phase === "active") {
       expect(s.candidates).toHaveLength(2);
-      expect(s.candidates.map((c) => c.value)).toContain("HeaderFragment");
+      // schema: ^generic-definitions/ui-fragment/<Name>$ (補完 dropdown 選択時の schema 違反防止)
+      expect(s.candidates.map((c) => c.value)).toContain("generic-definitions/ui-fragment/HeaderFragment");
+      // label は短縮 name (表示用)
+      expect(s.candidates.map((c) => c.label)).toContain("HeaderFragment");
+    }
+  });
+  it("short name 入力 → label match で hit する", () => {
+    const s = fragmentRefResolver.match("Header", 0, ctx("fragmentRef"));
+    if (s?.phase === "active") {
+      expect(s.candidates.length).toBeGreaterThan(0);
+      expect(s.candidates[0].value).toMatch(/^generic-definitions\/ui-fragment\//);
     }
   });
 });
 
 describe("componentRefResolver", () => {
-  it("fieldKind='componentRef' → 全 component を返す", () => {
+  it("fieldKind='componentRef' → 全 component を full path 形式の value で返す", () => {
     const s = componentRefResolver.match("", 0, ctx("componentRef"));
     expect(s?.phase).toBe("active");
     if (s?.phase === "active") {
       expect(s.candidates).toHaveLength(2);
+      // schema: ^generic-definitions/component-definition/<Name>$
+      expect(s.candidates.every((c) => c.value.startsWith("generic-definitions/component-definition/"))).toBe(true);
+      expect(s.candidates.every((c) => typeof c.label === "string" && !c.label.includes("/"))).toBe(true);
     }
   });
 });
 
 describe("exceptionTypeRefResolver", () => {
-  it("fieldKind='exceptionTypeRef' → 全 exceptionType を返す", () => {
+  it("fieldKind='exceptionTypeRef' → 全 exceptionType を full path 形式の value で返す", () => {
     const s = exceptionTypeRefResolver.match("", 0, ctx("exceptionTypeRef"));
     expect(s?.phase).toBe("active");
     if (s?.phase === "active") {
       expect(s.candidates).toHaveLength(2);
-      expect(s.candidates.map((c) => c.value)).toContain("BusinessException");
+      // schema: ^generic-definitions/exception-type/<Name>$
+      expect(s.candidates.map((c) => c.value)).toContain("generic-definitions/exception-type/BusinessException");
+      expect(s.candidates.map((c) => c.label)).toContain("BusinessException");
     }
   });
 });
