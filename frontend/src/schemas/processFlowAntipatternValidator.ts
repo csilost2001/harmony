@@ -363,7 +363,7 @@ function findSideEffectInlineBans(value: string): Array<{ prefix: string; snippe
 // ─── Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1254 件 3.5 / #1263 Phase X2) ─
 
 interface BrokenRefContext {
-  /** action 全体で参照可能な変数集合 (action.inputs / ambient / 通常 step の outputBinding.name / loop var / errorVar) */
+  /** action 全体で参照可能な変数集合 (action.inputs / ambient / 通常 step の outputBinding.name / loop var / errorVar / TX wrapper の outputBinding.name) */
   varKeys: Set<string>;
   /** ProcessFlow.context.catalogs.events のキー集合 */
   eventKeys: Set<string>;
@@ -374,17 +374,23 @@ interface BrokenRefContext {
   /**
    * TX inner step の outputBinding.name 集合 (#1267 Round 7 Must-fix 5)。
    * `@<varName>` shorthand 参照 (例: `@newScore.id`) で `varName` が **txInnerVars に存在し
-   * varKeys に存在しない** 場合、TX inner var の TX 外参照として broken ref 報告する。
-   * #1264 verdict 観点 4 「TX 内 → TX 外 mutation static 禁止」の validator-level enforcement。
+   * varKeys に存在しない** 場合、TX inner var の TX 外 shorthand 参照として違反報告。
    */
   txInnerVars: Set<string>;
   /**
+   * TX wrapper の expose 設定 (#1267 Round 7 option C)。
+   * key = TX wrapper outputBinding.name (`txResult` 等) OR TX step.id (`step-tx` 等、
+   *       `@var.tx.<step-id>.<key>` form 用)、value = expose Set (`committed` / `error` /
+   *       `diagnostics` の 3 予約値 + 任意 inner var 名)。
+   *
+   * `@var.action.<txName>.<key>` / `@<txName>.<key>` shorthand / `@var.tx.<step-id>.<key>` の
+   * 全形式で `<key>` が expose Set に含まれない場合、TX 外参照 spec violation として検出する
+   * (Check 32 TX_INNER_VAR_LEAK_OUTSIDE_TX)。
+   */
+  txExposeMap: Map<string, Set<string>>;
+  /**
    * Phase X2 で対象外の prefix (msg / const / validation / screen / table / view 等) は
    * silent pass。横断 catalog 参照が必要なため #1269 提案 C (project-level validator) で対応予定。
-   *
-   * Round 7 Should-fix 2: `@conv` 専用の convKeys Set は本 PR で削除 (dead-code 化していた)。
-   * 再活性化時は #1269 提案 C で project-level conventionCategories catalog index と一緒に
-   * 再設計する。
    */
 }
 
@@ -422,38 +428,54 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): RefIssue[] {
   while ((match = REF_RE.exec(value)) !== null) {
     const prefix = match[1];
     const key = match[2];
-    // 簡易判定: 最初のドット区切り segment が catalog key
     const segments = key.split(".");
     const head = segments[0];
 
     if (prefix === "var") {
-      // @var.<scope>.<name> または @var.<name>。
-      // #1267 Codex review fix: scope が `step` / `tx` の場合は 2 段目の step-id / tx-id が
-      // 実 flow に存在するか追加検証する (#1264 verdict 6 値 scope のうち step / tx は LocalId 付き)。
+      // @var.<scope>.<name>.<...> 形式
       if (head === "step") {
+        // @var.step.<step-id>.<...>
         const stepId = segments[1];
         if (!stepId || !ctx.stepIds.has(stepId)) {
           issues.push({ kind: "broken", prefix, key });
         }
       } else if (head === "tx") {
+        // @var.tx.<tx-step-id>.<accessor>.<...> — #1267 option C: accessor を expose で検証
         const txId = segments[1];
         if (!txId || !ctx.txIds.has(txId)) {
           issues.push({ kind: "broken", prefix, key });
+        } else if (segments.length >= 3) {
+          const exposeSet = ctx.txExposeMap.get(txId);
+          const accessor = segments[2];
+          if (exposeSet && !exposeSet.has(accessor)) {
+            issues.push({ kind: "txLeak", varName: `${txId}.${accessor}`, key });
+          }
+        }
+      } else if (head === "action" && segments.length >= 2 && ctx.txExposeMap.has(segments[1])) {
+        // @var.action.<txName>.<accessor>.<...> — #1267 option C: accessor を expose で検証
+        const txName = segments[1];
+        const exposeSet = ctx.txExposeMap.get(txName)!;
+        const accessor = segments[2];
+        if (!accessor || !exposeSet.has(accessor)) {
+          issues.push({ kind: "txLeak", varName: `${txName}.${accessor ?? "?"}`, key });
         }
       } else if (!ctx.varKeys.has(head)) {
-        // それ以外の scope (`flowParameter` / `action` / `loop` / `global`) または変数名直接参照
+        // generic loose check (`flowParameter` / `action` / `loop` / `global` scope enum + ambient + 一般 var)
         issues.push({ kind: "broken", prefix, key });
       }
     } else if (prefix === "event") {
-      // @event.<topic> 形式
       if (!ctx.eventKeys.has(head) && !ctx.eventKeys.has(key)) {
         issues.push({ kind: "broken", prefix, key });
       }
+    } else if (ctx.txExposeMap.has(prefix)) {
+      // Shorthand `@<txName>.<accessor>.<...>` — #1267 option C: accessor を expose で検証
+      const exposeSet = ctx.txExposeMap.get(prefix)!;
+      if (!exposeSet.has(head)) {
+        issues.push({ kind: "txLeak", varName: `${prefix}.${head}`, key });
+      }
     } else if (ctx.txInnerVars.has(prefix) && !ctx.varKeys.has(prefix)) {
-      // Round 7 Must-fix 5: `@<varName>` shorthand 参照で <varName> が TX inner var かつ
-      // action scope var に存在しない場合、TX 外参照 spec violation として報告。
-      // 例: TX 内で `outputBinding: { name: "newScore" }`、TX 外で `@newScore.id` 参照
-      // → #1264 verdict 観点 4 「TX 内 → TX 外 mutation static 禁止」違反
+      // Shorthand `@<innerVar>.<...>` 直接参照 — TX 内 outputBinding を TX 外から shorthand 参照は
+      // 常に禁止 (expose にあっても canonical access form は `@<txName>.<innerVar>` 経由のみ)。
       issues.push({ kind: "txLeak", varName: prefix, key });
     }
     // 他 prefix (conv / msg / const / validation / screen / table / view 等) は本 PR では skip
@@ -485,19 +507,22 @@ function buildBrokenRefContext(flow: unknown): BrokenRefContext {
   // ambient variables (@requestId / @traceId / @sessionUserId 等)
   (flowAny.context?.ambientVariables ?? []).forEach((av) => varKeys.add(av.name));
 
-  // walk steps to collect outputBinding.name + step.id + transactionScope.id (#1267 Codex review fix)。
+  // walk steps to collect outputBinding.name + step.id + transactionScope.id。
   // Round 7 Must-fix 5: TX scope tracking — TX inner step の outputBinding.name は txInnerVars に
-  // 振り分け (varKeys に追加しない)。TX wrapper 自体の outputBinding (txResult 等) は varKeys へ
-  // (これは TX boundary の expose 機構)。
+  // 振り分け (varKeys に追加しない)。TX wrapper 自体の outputBinding (txResult 等) は varKeys へ。
+  // Round 7 option C: TX wrapper の expose 設定を txExposeMap に記録 (outputBinding.name + step.id
+  // 両方を key にして、`@var.action.<name>.<key>` / `@<name>.<key>` / `@var.tx.<step-id>.<key>` の
+  // 全形式から lookup 可能にする)。3 予約値 (committed/error/diagnostics) は常に追加。
   const stepIds = new Set<string>();
   const txIds = new Set<string>();
   const txInnerVars = new Set<string>();
+  const txExposeMap = new Map<string, Set<string>>();
   function walkVarBindings(steps: unknown[], withinTx: boolean) {
     for (const s of steps) {
       const sAny = s as {
         id?: string;
         kind?: string;
-        outputBinding?: { name?: string };
+        outputBinding?: { name?: string; expose?: string[] };
         steps?: unknown[];
         branches?: Array<{ steps?: unknown[]; condition?: { errorVar?: string } }>;
         elseBranch?: { steps?: unknown[] };
@@ -514,10 +539,15 @@ function buildBrokenRefContext(flow: unknown): BrokenRefContext {
       if (isTxStep) {
         // TX wrapper 自体の outputBinding (txResult 等) は action scope の expose 機構として varKeys へ
         if (sAny.outputBinding?.name) varKeys.add(sAny.outputBinding.name);
+        // TX wrapper の expose Set を構築: 3 予約値 + 明示 expose 列挙値
+        const exposeSet = new Set<string>(["committed", "error", "diagnostics"]);
+        (sAny.outputBinding?.expose ?? []).forEach((k) => exposeSet.add(k));
+        // outputBinding.name と step.id の両方を key にして lookup 可能化
+        if (sAny.outputBinding?.name) txExposeMap.set(sAny.outputBinding.name, exposeSet);
+        if (sAny.id) txExposeMap.set(sAny.id, exposeSet);
         // TX inner steps[] は withinTx=true で再帰
         if (sAny.steps) walkVarBindings(sAny.steps, true);
-        // onCommit / onRollback は TX 外で実行 (process-flow-transaction.md §4 規約 2)、
-        // しかし inner step 結果は破棄済 / commit 後マージなので、ここでも withinTx=false (parent scope)。
+        // onCommit / onRollback は TX 外で実行 (process-flow-transaction.md §4 規約 2)
         if (sAny.onCommit) walkVarBindings(sAny.onCommit, false);
         if (sAny.onRollback) walkVarBindings(sAny.onRollback, false);
       } else {
@@ -539,7 +569,7 @@ function buildBrokenRefContext(flow: unknown): BrokenRefContext {
 
   const eventKeys = new Set<string>(Object.keys(catalogs.events ?? {}));
 
-  return { varKeys, eventKeys, stepIds, txIds, txInnerVars };
+  return { varKeys, eventKeys, stepIds, txIds, txInnerVars, txExposeMap };
 }
 
 // ─── walkSteps ──────────────────────────────────────────────────────────────

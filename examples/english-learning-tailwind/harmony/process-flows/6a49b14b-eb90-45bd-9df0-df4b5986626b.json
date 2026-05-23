@@ -384,7 +384,7 @@
           ],
           "outputBinding": {
             "name": "txResult",
-            "expose": ["committed", "error"]
+            "expose": ["committed", "error", "newScore"]
           },
           "steps": [
             {
@@ -436,7 +436,7 @@
           "runIf": "@var.action.txResult.committed == true",
           "description": "発音採点完了イベントを発行し、UI の採点結果表示と CEFR 昇格判定をトリガーする。TX コミット後にのみ実行する (TX rollback 時の誤発火防止)。",
           "topic": "el.pronunciation.scored",
-          "payload": "{ sessionId: @sessionId, scoreId: @newScore.id, score: @pronunciationScore }"
+          "payload": "{ sessionId: @sessionId, scoreId: @var.action.txResult.newScore.id, score: @pronunciationScore }"
         },
         {
           "id": "step-08",
@@ -444,7 +444,7 @@
           "runIf": "@var.action.txResult.committed == true",
           "description": "201 Created — scoreId + score + diff を返す。TX コミット後にのみ実行する。score が合格ライン (@conv.cefr.passingThreshold 参照) を下回る場合、UI 側でメッセージを表示する。",
           "responseId": "201-created",
-          "bodyExpression": "{ scoreId: @newScore.id, score: @pronunciationScore, diff: @evalResult.diff }"
+          "bodyExpression": "{ scoreId: @var.action.txResult.newScore.id, score: @pronunciationScore, diff: @evalResult.diff }"
         },
         {
           "id": "step-09",

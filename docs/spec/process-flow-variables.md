@@ -307,28 +307,31 @@ current step → enclosing loop/tryCatch → enclosing tx → action → flowPar
 
 省略時は明示 index 参照不可 (item のみ)、`collectionIndexName` を指定すると 0-based integer として参照可能。loop iteration ごとに fresh、外側 scope に持ち越されない。
 
-### 3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4)
+### 3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)
 
-R3 で 3 AI 完全合流した折衷案:
+R3 で 3 AI 完全合流した折衷案を、Round 7 で **option C (expose を任意 inner var 名まで拡張)** として最終化:
 
-- **TX commit 成功時**: TX 内 binding は **ランタイムが破棄せず親 scope に残す (lifecycle semantics)**。ただし TX 外の後続 step からアクセスできる API は `outputBinding.expose` の 3 値のみ。inner 変数の **直接参照は spec 上保証しない** (詳細: [process-flow-transaction.md §8.1](process-flow-transaction.md))
+- **TX commit 成功時**: TX 内 binding は **ランタイムが破棄せず親 scope に残す (lifecycle semantics)**。ただし TX 外の後続 step からアクセスできる API は `outputBinding.expose` で宣言した key のみ。詳細: [process-flow-transaction.md §8.1](process-flow-transaction.md)
 - **TX rollback 時**: TX 内で新たに bind された変数は **完全破棄** (Gemini 案採用、メモリ汚染防止)
-- **TX 外参照可な値**: `transactionScope.outputBinding.expose` で明示宣言した値のみ
-  - `committed`: `@<name>.committed` (boolean、TX commit 成否)
-  - `error`: `@<name>.error` (`{code, message}`、rollback 時のみ)
-  - `diagnostics`: `@<name>.diagnostics` (TX 実行 metrics)
+- **TX 外参照可な値**: `transactionScope.outputBinding.expose` で明示宣言した key のみ。各 key は以下のいずれか:
+  - **3 予約値** (常に利用可能、expose に明示不要): `committed` / `error` / `diagnostics`
 - **TX 内 → TX 外 mutation**: **static 禁止** (Gemini 主張採用、ランタイム undo log 不要)
 
-例:
+#### canonical access form (Round 7 option C)
+
+TX 外参照は必ず `@var.action.<txName>.<key>` または shorthand `@<txName>.<key>` 経由。TX 内 inner var を shorthand `@<innerVar>` で TX 外から直接参照することは禁止 (validator Check 32 が静的検出)。
+
+例 (expose に inner var 名を列挙する場合):
 
 ```json
 {
   "kind": "transactionScope",
+  "id": "step-tx",
   "isolationLevel": "READ_COMMITTED",
   "rollbackOn": ["STOCK_SHORTAGE"],
   "outputBinding": {
     "name": "txResult",
-    "expose": ["committed", "error"]
+    "expose": ["committed", "error", "newOrder"]
   },
   "steps": [
     { "kind": "dbAccess", "outputBinding": { "name": "newOrder" } }
@@ -336,7 +339,14 @@ R3 で 3 AI 完全合流した折衷案:
 }
 ```
 
-後続 step は `@var.action.txResult.committed` / `@var.action.txResult.error.code` のみ参照可。`newOrder` は TX 外参照不可。
+後続 step (TX 外):
+- ✅ `@var.action.txResult.committed` (予約値、常時参照可)
+- ✅ `@var.action.txResult.error.code` (rollback 時のみ意味あり)
+- ✅ `@var.action.txResult.newOrder.id` (expose 列挙済)
+- ✅ `@txResult.newOrder.id` (shorthand、上と等価)
+- ✅ `@var.tx.step-tx.newOrder.id` (`@var.tx.<step-id>.<key>` 形式も同 expose を共有)
+- ❌ `@newOrder.id` (TX 内 inner var の shorthand 直接参照、禁止)
+- ❌ `@var.action.txResult.privateVar.x` (privateVar は expose 不在、禁止)
 
 ### 3.8 副作用と purity (#1264 verdict 観点 5)
 

@@ -484,11 +484,13 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["committed", "error", "diagnostics"]
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "minLength": 1,
+            "maxLength": 64
           },
           "uniqueItems": true,
-          "description": "TransactionScopeStep 専用 (#1264 verdict 観点 4)。TX commit 成功時 / rollback 時に TX 外 (親 scope) へ expose する値の明示宣言。`committed` = `@<name>.committed` (boolean、TX commit 成否) / `error` = `@<name>.error` (`{code, message}`、rollback 時のみ) / `diagnostics` = `@<name>.diagnostics` (TX 実行 metrics)。expose されていない値は TX 外から参照不可 (memory 汚染防止、TX 内 → TX 外 mutation 禁止原則)。",
-          "examples": [["committed", "error"]]
+          "description": "TransactionScopeStep 専用 (#1264 verdict 観点 4 / #1267 Round 7 option C で拡張)。TX 外 (親 scope) から参照可能な key の明示宣言。各要素は Identifier (lowerCamelCase) で、以下のいずれか:\n\n**予約値 (全 TX で常に利用可能、expose に明示宣言しなくても利用可)**:\n- `committed`: `@var.action.<name>.committed` (boolean、TX commit 成否)\n- `error`: `@var.action.<name>.error` (`{code, message}`、rollback 時のみ)\n- `diagnostics`: `@var.action.<name>.diagnostics` (TX 実行 metrics)\n\n**任意 inner var 名**: TransactionScopeStep.steps[] 内の任意の outputBinding.name を指定可。例: `expose: [\"committed\", \"error\", \"newScore\"]` で TX 内 step の `outputBinding: { name: \"newScore\" }` を TX 外から `@var.action.<txName>.newScore.<field>` (or shorthand `@<txName>.newScore.<field>`) で参照可能にする。\n\n**access form (canonical)**: TX 外参照は `@var.action.<txName>.<key>` または shorthand `@<txName>.<key>` のみ許容。TX 内 inner var の shorthand `@<innerVar>` 直接参照は禁止 (TX scope 越境防止)。\n\n**enforcement**: validator `processFlowAntipatternValidator` Check 32 が静的検出 (#1267 Round 7 Must-fix 5)。",
+          "examples": [["committed", "error"], ["committed", "error", "newScore"], ["committed", "error", "newOrderId", "newOrderItemIds"]]
         },
         "transformations": {
           "type": "array",

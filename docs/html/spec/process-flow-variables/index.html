@@ -378,34 +378,44 @@
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
 <p>省略時は明示 index 参照不可 (item のみ)、<code>collectionIndexName</code> を指定すると 0-based integer として参照可能。loop iteration ごとに fresh、外側 scope に持ち越されない。</p>
-<h3 id="37-tx-transactionscope-境界での変数挙動-1264-verdict-観点-4">3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4)</h3>
-<p>R3 で 3 AI 完全合流した折衷案:</p>
+<h3 id="37-tx-transactionscope-境界での変数挙動-1264-verdict-観点-4--1267-round-7-option-c">3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)</h3>
+<p>R3 で 3 AI 完全合流した折衷案を、Round 7 で <strong>option C (expose を任意 inner var 名まで拡張)</strong> として最終化:</p>
 <ul>
-<li><strong>TX commit 成功時</strong>: TX 内 binding は <strong>ランタイムが破棄せず親 scope に残す (lifecycle semantics)</strong>。ただし TX 外の後続 step からアクセスできる API は <code>outputBinding.expose</code> の 3 値のみ。inner 変数の <strong>直接参照は spec 上保証しない</strong> (詳細: <a href="../../spec/process-flow-transaction/">process-flow-transaction.md §8.1</a>)</li>
+<li><strong>TX commit 成功時</strong>: TX 内 binding は <strong>ランタイムが破棄せず親 scope に残す (lifecycle semantics)</strong>。ただし TX 外の後続 step からアクセスできる API は <code>outputBinding.expose</code> で宣言した key のみ。詳細: <a href="../../spec/process-flow-transaction/">process-flow-transaction.md §8.1</a></li>
 <li><strong>TX rollback 時</strong>: TX 内で新たに bind された変数は <strong>完全破棄</strong> (Gemini 案採用、メモリ汚染防止)</li>
-<li><strong>TX 外参照可な値</strong>: <code>transactionScope.outputBinding.expose</code> で明示宣言した値のみ
+<li><strong>TX 外参照可な値</strong>: <code>transactionScope.outputBinding.expose</code> で明示宣言した key のみ。各 key は以下のいずれか:
 <ul>
-<li><code>committed</code>: <code>@&#x3C;name>.committed</code> (boolean、TX commit 成否)</li>
-<li><code>error</code>: <code>@&#x3C;name>.error</code> (<code>{code, message}</code>、rollback 時のみ)</li>
-<li><code>diagnostics</code>: <code>@&#x3C;name>.diagnostics</code> (TX 実行 metrics)</li>
+<li><strong>3 予約値</strong> (常に利用可能、expose に明示不要): <code>committed</code> / <code>error</code> / <code>diagnostics</code></li>
 </ul>
 </li>
 <li><strong>TX 内 → TX 外 mutation</strong>: <strong>static 禁止</strong> (Gemini 主張採用、ランタイム undo log 不要)</li>
 </ul>
-<p>例:</p>
+<h4 id="canonical-access-form-round-7-option-c">canonical access form (Round 7 option C)</h4>
+<p>TX 外参照は必ず <code>@var.action.&#x3C;txName>.&#x3C;key></code> または shorthand <code>@&#x3C;txName>.&#x3C;key></code> 経由。TX 内 inner var を shorthand <code>@&#x3C;innerVar></code> で TX 外から直接参照することは禁止 (validator Check 32 が静的検出)。</p>
+<p>例 (expose に inner var 名を列挙する場合):</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"transactionScope"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-tx"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "isolationLevel"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"READ_COMMITTED"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "rollbackOn"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"STOCK_SHORTAGE"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"txResult"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "expose"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"committed"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"error"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "expose"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"committed"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"error"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"newOrder"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">]</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  },</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "steps"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"dbAccess"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"outputBinding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"newOrder"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> } }</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ]</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
-<p>後続 step は <code>@var.action.txResult.committed</code> / <code>@var.action.txResult.error.code</code> のみ参照可。<code>newOrder</code> は TX 外参照不可。</p>
+<p>後続 step (TX 外):</p>
+<ul>
+<li>✅ <code>@var.action.txResult.committed</code> (予約値、常時参照可)</li>
+<li>✅ <code>@var.action.txResult.error.code</code> (rollback 時のみ意味あり)</li>
+<li>✅ <code>@var.action.txResult.newOrder.id</code> (expose 列挙済)</li>
+<li>✅ <code>@txResult.newOrder.id</code> (shorthand、上と等価)</li>
+<li>✅ <code>@var.tx.step-tx.newOrder.id</code> (<code>@var.tx.&#x3C;step-id>.&#x3C;key></code> 形式も同 expose を共有)</li>
+<li>❌ <code>@newOrder.id</code> (TX 内 inner var の shorthand 直接参照、禁止)</li>
+<li>❌ <code>@var.action.txResult.privateVar.x</code> (privateVar は expose 不在、禁止)</li>
+</ul>
 <h3 id="38-副作用と-purity-1264-verdict-観点-5">3.8 副作用と purity (#1264 verdict 観点 5)</h3>
 <p><strong>soft side effect</strong> (変数代入) と <strong>hard side effect</strong> (DB / 外部呼び出し / event publish) の二段分類:</p>
 

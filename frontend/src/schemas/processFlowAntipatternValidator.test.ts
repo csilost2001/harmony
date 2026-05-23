@@ -787,6 +787,126 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
     expect(found).toHaveLength(0);
   });
 
+  it("positive (option C): TX 外で `@var.action.<txName>.<unknownKey>` 参照、unknownKey は expose 不在 → leak", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "transactionScope",
+              id: "step-tx",
+              description: "TX",
+              outputBinding: { name: "txResult" as never, expose: ["committed"] },
+              steps: [],
+            } as never,
+            // 予約値以外で expose に列挙されていない accessor → leak
+            { kind: "compute", id: "step-after", expression: "@var.action.txResult.someUnknownKey.foo", description: "leak via canonical form" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].message).toContain("someUnknownKey");
+  });
+
+  it("negative (option C): expose に列挙された inner var 名は `@var.action.<txName>.<innerVar>` で参照可", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "transactionScope",
+              id: "step-tx",
+              description: "TX",
+              outputBinding: { name: "txResult" as never, expose: ["committed", "error", "newScore"] },
+              steps: [
+                { kind: "dbAccess", id: "step-tx-insert", description: "ins", tableId: "00000000-0000-4000-8000-000000000001" as never, operation: "INSERT", outputBinding: { name: "newScore" as never } } as never,
+              ],
+            } as never,
+            // expose に "newScore" を列挙、TX 外から canonical form で参照 → OK
+            { kind: "compute", id: "step-after", expression: "@var.action.txResult.newScore.id", description: "valid via expose" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative (option C): expose に列挙された inner var は shorthand `@<txName>.<innerVar>` でも参照可", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "transactionScope",
+              id: "step-tx",
+              description: "TX",
+              outputBinding: { name: "txResult" as never, expose: ["committed", "newScore"] },
+              steps: [
+                { kind: "dbAccess", id: "step-tx-insert", description: "ins", tableId: "00000000-0000-4000-8000-000000000001" as never, operation: "INSERT", outputBinding: { name: "newScore" as never } } as never,
+              ],
+            } as never,
+            // shorthand 形式 @<txName>.<innerVar>.<field>
+            { kind: "compute", id: "step-after", expression: "@txResult.newScore.id", description: "valid via shorthand" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found).toHaveLength(0);
+  });
+
+  it("positive (option C): expose に NOT 列挙の inner var は shorthand 直接参照で leak (canonical access form 経由のみ許容、本 case は inner shorthand `@<innerVar>`)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "transactionScope",
+              id: "step-tx",
+              description: "TX",
+              outputBinding: { name: "txResult" as never, expose: ["committed"] },  // newScore NOT exposed
+              steps: [
+                { kind: "dbAccess", id: "step-tx-insert", description: "ins", tableId: "00000000-0000-4000-8000-000000000001" as never, operation: "INSERT", outputBinding: { name: "newScore" as never } } as never,
+              ],
+            } as never,
+            // newScore は expose されていない、shorthand 直接参照 → leak
+            { kind: "compute", id: "step-after", expression: "@newScore.id", description: "leak — inner shorthand" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].message).toContain("newScore");
+  });
+
   it("negative: TX なしの通常 step 間 outputBinding 参照 → 許容 (TX boundary 不在のため)", () => {
     const flow: ProcessFlow = {
       meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },

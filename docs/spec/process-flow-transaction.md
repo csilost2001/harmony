@@ -132,14 +132,16 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 2. **`onCommit` / `onRollback` の独立性**: これらは TX の外で実行され、自身の失敗は元の TX 結果を覆さない
 3. **ネスト時の `REQUIRES_NEW`**: 親 TX が動いている時に `REQUIRES_NEW` の TransactionScopeStep に入ると、親 TX が一時停止して内側 TX が独立 commit/rollback する。内側 commit 後に親 TX が rollback しても、内側の commit は取り消されない
 4. **ネスト時の `NESTED`**: savepoint を使う。内側 rollback は親 TX の savepoint 復元、親 rollback は savepoint も含めて全 rollback
-5. **`outputBinding.expose` による TX 結果の明示宣言** (#1263 Phase X2 / #1264 verdict 観点 4): `transactionScope` step に `outputBinding: { "name": "txResult", "expose": ["committed", "error"] }` を指定する。TX 外の後続 step が参照できるのは expose で明示宣言した値のみ:
-   - `committed` → `@var.action.txResult.committed` (boolean、TX commit 成否)
-   - `error` → `@var.action.txResult.error` (`{ code, message }`、rollback 時のみ)
-   - `diagnostics` → `@var.action.txResult.diagnostics` (TX 実行 metrics)
-6. **TX 境界での変数挙動** (#1264 verdict 観点 4 折衷案):
-   - TX commit 成功時: TX 内 binding は親 scope にマージ・保持される (lifecycle semantics)
+5. **`outputBinding.expose` による TX 結果の明示宣言** (#1263 Phase X2 / #1264 verdict 観点 4 / #1267 Round 7 option C): `transactionScope` step に `outputBinding: { "name": "txResult", "expose": [...] }` を指定する。expose の各要素は以下のいずれか:
+   - **3 予約値** (常に利用可能、expose に明示不要):
+     - `committed` → `@var.action.txResult.committed` (boolean、TX commit 成否)
+     - `error` → `@var.action.txResult.error` (`{ code, message }`、rollback 時のみ)
+     - `diagnostics` → `@var.action.txResult.diagnostics` (TX 実行 metrics)
+   - **任意 inner var 名**: TX 内 step の `outputBinding.name` を列挙すると TX 外参照可能化 (例: `expose: ["committed", "error", "newOrder"]` で TX 内 INSERT 結果 `newOrder` を TX 外から `@var.action.txResult.newOrder.id` で参照可)
+6. **TX 境界での変数挙動** (#1264 verdict 観点 4 折衷案 / Round 7 option C):
+   - TX commit 成功時: TX 内 binding は **ランタイムが破棄せず親 scope に残す (lifecycle semantics)**。ただし TX 外からアクセス可能な API は `outputBinding.expose` の宣言値のみ
    - TX rollback 時: TX 内で新たに bind された変数は完全破棄 (メモリ汚染防止)
-   - **TX 内 → TX 外 mutation は static 禁止** (TX 外から TX 内 inner 変数の直接参照は spec で保証しない、§8.1 参照)
+   - **TX 内 → TX 外 mutation は static 禁止**。TX 内 inner var の shorthand 直接参照 (`@<innerVar>`) は禁止、`@var.action.<txName>.<innerVar>` 経由のみ許容 (validator Check 32 で静的検出、§8.1 参照)
 7. **`tryCatch` Branch との組合せ**: `outputBinding.expose` なし / `tryCatch` branch による捕捉は以前から可能 (下位互換)。新規フローでは §8.5 の `outputBinding.expose` + `expression` パターンを推奨する
 
 ## §5 サンプル (v3)
@@ -171,35 +173,38 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 
 シナリオ #2-#6 (PR #468-#472) の実装レビューで繰り返し検出された誤りパターンを以下にまとめる。新規フロー実装前に必読。
 
-### §8.1 TransactionScope 内外の変数アクセスパス (#1263 Phase X2 で再定義)
+### §8.1 TransactionScope 内外の変数アクセスパス (#1263 Phase X2 で再定義、#1267 Round 7 option C で確定)
 
 `TransactionScopeStep` の inner step で `outputBinding` した変数を、TX 外の後続 step が参照する際のセマンティクス。
 
-**重要 (#1264 verdict 観点 4)**: TX 外から TX inner outputBinding 変数を**直接参照することは spec で保証しない (static 禁止)**。TX 外参照可な値は `outputBinding.expose` で明示宣言した 3 値 (`committed` / `error` / `diagnostics`) のみ。
+**重要 (#1264 verdict 観点 4 + Round 7 option C)**: TX 外から TX inner outputBinding 変数を **shorthand 直接参照することは禁止**。TX 外参照は `outputBinding.expose` で明示宣言した key のみ、`@var.action.<txName>.<key>` または shorthand `@<txName>.<key>` 経由のみ許容。
 
-- **`outputBinding.expose` で明示宣言**: TX 外で参照可能な値を `expose: ["committed", "error", ...]` で宣言
-- **TX commit 経路の inner データを TX 外へ渡したい場合**: TX 内最終 step で `eventPublish` / `audit` / `return` 等で **TX 内に閉じて消費** する。TX 内最終結果を TX 外へ持ち出す API は `outputBinding.expose` の 3 値 (`committed` / `error` / `diagnostics`) のみで、inner 変数の TX 外参照は spec 上保証されない (#1264 verdict 観点 4)。
-- **TX rollback 経路では inner 変数は完全破棄**: rollback 後の後続 step で inner var を参照しない
+- **`outputBinding.expose` で明示宣言**: 各 key は 3 予約値 (`committed` / `error` / `diagnostics`) または任意 inner var 名 (TX 内 step の outputBinding.name)
+- **TX commit 経路の inner データを TX 外で使いたい場合**: expose に inner var 名を列挙し、`@var.action.<txName>.<innerVar>.<field>` で参照する
+- **TX rollback 経路では inner 変数は完全破棄**: rollback 時は inner var を参照しない (`@var.action.<txName>.committed === false` でガード)
 
-新仕様での推奨パターン:
+新仕様での推奨パターン (option C):
 
 ```json
 {
   "id": "step-tx", "kind": "transactionScope",
-  "outputBinding": { "name": "txResult", "expose": ["committed", "error"] },
+  "outputBinding": { "name": "txResult", "expose": ["committed", "error", "newRow"] },
   "rollbackOn": ["STOCK_SHORTAGE", "ORDER_NUMBER_CONFLICT"],
   "steps": [
     { "id": "step-tx-insert", "kind": "dbAccess", "operation": "INSERT", "outputBinding": { "name": "newRow" } },
     { "id": "step-tx-publish", "kind": "eventPublish", "topic": "order.created", "payload": "{ id: @newRow.id }" }
   ]
 },
-{ "id": "step-after-success", "kind": "return", "runIf": "@var.action.txResult.committed == true", "responseId": "201-created" },
+{ "id": "step-after-success", "kind": "return", "runIf": "@var.action.txResult.committed == true", "responseId": "201-created", "bodyExpression": "{ orderId: @var.action.txResult.newRow.id }" },
 { "id": "step-after-failure", "kind": "return", "runIf": "@var.action.txResult.committed == false && @var.action.txResult.error.code == 'STOCK_SHORTAGE'", "responseId": "409-stock-shortage" }
 ```
 
-上の例では、`newRow` などの inner 変数の利用は TX 内 (`steps[]` の中、`step-tx-publish` 等) で完結させる。TX 外の `step-after-success` は `@var.action.txResult.committed` のみ参照する。
+ポイント:
+- TX 内の step-tx-publish は **TX 内** で `@newRow.id` を shorthand 参照 (TX 内 inner var の shorthand は同 TX 内で valid)
+- TX 外の step-after-success は **expose 経由** で `@var.action.txResult.newRow.id` を参照 (canonical form)
+- `newRow` を expose に列挙していなければ、TX 外参照は validator Check 32 で違反検出される
 
-旧仕様 (#1263 Phase X2 前) では `@newRow.id` のような inner 変数直接参照を許容していたが、#1264 verdict 観点 4 で「TX 内 → TX 外 mutation static 禁止」が確定したため非推奨化された。
+旧仕様 (Round 7 前) では `@newRow.id` 直接参照を許容していたが、TX 内 → TX 外 mutation static 禁止原則と整合させるため、option C (expose 拡張 + canonical access) に統一された。
 
 ### §8.2 外部呼び出しと TX の位置関係 (anti-pattern と例外)
 

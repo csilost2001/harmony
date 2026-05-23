@@ -411,15 +411,23 @@ export interface OutputBinding {
   /** accumulate / push 時の初期値。JSON 値 (例: 0, []) または式文字列。 */
   initialValue?: unknown;
   /**
-   * TransactionScopeStep 専用 (#1264 verdict 観点 4)。
-   * TX commit 成功時 / rollback 時に TX 外 (親 scope) へ expose する値の明示宣言。
-   * - `committed`: `@<name>.committed` (boolean、TX commit 成否)
-   * - `error`: `@<name>.error` (`{code, message}`、rollback 時のみ)
-   * - `diagnostics`: `@<name>.diagnostics` (TX 実行 metrics)
+   * TransactionScopeStep 専用 (#1264 verdict 観点 4 / #1267 Round 7 option C で拡張)。
+   * TX 外 (親 scope) から参照可能な key の明示宣言。Identifier (lowerCamelCase) の配列で、
+   * 以下を指定可:
    *
-   * expose されていない値は TX 外から参照不可 (memory 汚染防止、TX 内 → TX 外 mutation 禁止原則)。
+   * **予約値** (全 TX で常に利用可能、expose に明示宣言不要):
+   * - `committed`: `@var.action.<name>.committed` (boolean、TX commit 成否)
+   * - `error`: `@var.action.<name>.error` (`{code, message}`、rollback 時のみ)
+   * - `diagnostics`: `@var.action.<name>.diagnostics` (TX 実行 metrics)
+   *
+   * **任意 inner var 名**: TX 内 step の outputBinding.name を expose に列挙すると、
+   * TX 外から `@var.action.<txName>.<innerVar>.<field>` で参照可能になる。
+   *
+   * **canonical access form**: TX 外参照は `@var.action.<txName>.<key>` または shorthand
+   * `@<txName>.<key>` のみ。TX 内 inner var の `@<innerVar>` 直接参照は禁止
+   * (validator Check 32 で静的検出)。
    */
-  expose?: ("committed" | "error" | "diagnostics")[];
+  expose?: string[];
   /**
    * 結果列の型変換指示。runtime が SELECT 結果を binding に格納する前に各 field の型を変換する。
    * SQL 方言 (PG COUNT(*)→bigint→string、SUM(...)→decimal→string 等) を吸収する責務を
