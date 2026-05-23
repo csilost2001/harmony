@@ -249,7 +249,7 @@ RFC #1264 で確定した hybrid scope chain (case C) の具体仕様。**暗黙
 | `action` | action body 全体で生きる | action 全体 | `@var.action.totalAmount` |
 | `step.<step-id>` | step 出力 binding (`outputBinding.name`) | scope enter で生成 / exit で破棄 | `@var.step.step-05.newOrderNumber` |
 | `tx.<tx-id>` | TransactionScopeStep 内 binding | TX commit でマージ / rollback で破棄 | `@var.tx.step-06.txResult` |
-| `loop` | loop iteration 内 (`collectionItemName` / `collectionIndexName`) | iteration ごとに fresh | `@var.loop.cartItem`、`@var.loop.idx` |
+| `loop` | loop iteration 内 (`collectionItemName` / `collectionIndexName` / push operation の `outputBinding.name`) | iteration ごとに fresh / `outputBinding.name` は loop 終了後 enclosing scope に push | `@var.loop.cartItem`、`@var.loop.idx`、`@var.loop.enrichedItems` |
 | `global` | workspace / project 横断 (mutable、`@const` と区別) | session 全体 | `@var.global.tenantId` |
 
 `step.` / `tx.` 接頭辞は具体的な step-id / tx-id を後続する (LocalId pattern)。
@@ -312,6 +312,19 @@ current step → enclosing loop/tryCatch → enclosing tx → action → flowPar
 `@var.<scope>.<name>` は **runtime variable scope**、`@this` / `@self` は **designer editor context alias**。両者は独立 — `@var.flowParameter.x` は runtime の flow parameter を、`@this.item.<id>.value` は designer の現在 screen item field を指す。
 
 editor 編集時の補完では両方の候補が並列に出る (resolver 別)。詳細は [process-flow-prefix-system.md § 11](process-flow-prefix-system.md#11-designer-time-alias-this--self-1301)。
+
+#### resolver 補完範囲 (#1282 / #1302)
+
+`@var.<scope>.<name>` の補完 resolver (`varScopeResolver`) の実装状況:
+
+| scope | Phase 1/2 (#1282) | Phase 2-bis (#1302) |
+|---|---|---|
+| `flowParameter` | ✅ name 補完 | — |
+| `action` | ✅ name 補完 | — |
+| `step` | — | ✅ name 補完 (全 step id、TX/loop/branch 内 nested 含む) |
+| `tx` | — | ✅ name 補完 (kind="transactionScope" の id のみ) |
+| `loop` | — | ✅ name 補完 (collectionItemName / collectionIndexName / outputBinding.name) |
+| `global` | — | ⚠️ 空候補 (catalog 未確立、別 ISSUE で対応予定) |
 
 ### 3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)
 
