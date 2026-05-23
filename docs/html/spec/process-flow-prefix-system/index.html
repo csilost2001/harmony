@@ -273,9 +273,59 @@
 <li>撤廃制限ストック: <a href="https://github.com/csilost2001/harmony/issues/1265">#1265</a></li>
 <li>Generic Definition Catalog: <a href="../../spec/generic-definition-layer/">generic-definition-layer.md</a></li>
 </ul>
-<h2 id="9-変更履歴">9. 変更履歴</h2>
+<h2 id="9-24-prefix-broken-ref-検証-1269-提案-c">9. 24 prefix broken-ref 検証 (#1269 提案 C)</h2>
+<p><code>processFlowAntipatternValidator</code> Check 31 BROKEN_REFERENCE_MATURITY_AWARE は project catalog index (<code>frontend/src/schemas/projectCatalogIndex.ts</code>) を渡すことで本仕様 §1 の 24 prefix 全件を検証する。validator 実装範囲は以下の通り:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>prefix 群</th><th>検証ロジック</th><th>catalog source</th></tr></thead><tbody><tr><td><code>@var</code> / <code>@event</code></td><td>flow context のみで検証 (project index 不要)</td><td>runtime scope / <code>context.catalogs.events</code></td></tr><tr><td><code>@screen</code> / <code>@table</code> / <code>@view</code> / <code>@viewer</code></td><td>2 段 ref で id 検証、4 段以上 (<code>&#x3C;id>.&#x3C;container>.&#x3C;child></code>) で child id 検証</td><td><code>screens/</code> / <code>tables/</code> / <code>views/</code> / <code>view-definitions/</code></td></tr><tr><td><code>@layout</code> / <code>@seq</code> / <code>@flow</code> / <code>@system</code></td><td>head id 単純 lookup</td><td><code>page-layouts/</code> / <code>sequences/</code> / <code>process-flows/</code> / <code>external.json#/externalSystems</code></td></tr><tr><td><code>@contract</code> / <code>@type</code> / <code>@exception</code> / <code>@rule</code> / <code>@validation</code> / <code>@behavior</code> / <code>@policy</code> / <code>@component</code> / <code>@fragment</code></td><td>name lookup</td><td><code>generic-definitions/&#x3C;kind>/&#x3C;Name>.json</code></td></tr><tr><td><code>@const</code> / <code>@msg</code> / <code>@logEvent</code> / <code>@logConfig</code></td><td>catalog instance 名 + 全 catalog の fields[].name の union</td><td>同上 (kind 別)</td></tr><tr><td><code>@conv</code></td><td>conventions top-level key + <code>extensionCategories.&#x3C;name></code></td><td><code>conventions/catalog.json</code></td></tr><tr><td><code>@ext</code></td><td>extension namespace lookup</td><td><code>extensions/&#x3C;ns>.v3.json#/namespace</code></td></tr></tbody></table>
+<p>severity は maturity 連動 (<code>committed</code>=error / <code>draft</code>/<code>provisional</code>=warning)。projectCatalogIndex 未渡し時は @var / @event のみ検証 (silent pass on the rest、Phase X2 互換)。</p>
+<h2 id="10-変更履歴">10. 変更履歴</h2>
 <ul>
 <li>2026-05-23: 初版作成 (#1263 Phase X2 — RFC #1254 件 3.7 verdict 反映)</li>
+<li>2026-05-23: §9 24 prefix broken-ref 検証 追加 (#1269 提案 C — Phase X2 follow-up)</li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {

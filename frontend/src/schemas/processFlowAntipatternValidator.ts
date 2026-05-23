@@ -24,27 +24,27 @@
  *   副作用 invocation のため専用 step (commonProcess / componentCall 等) を使うこと。
  *   error severity。
  *
- * Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1254 件 3.5 / #1263 Phase X2)
- *   `@<prefix>.<key>` 参照のうち、本 PR で **実装済みの 2 prefix** (`@var` / `@event`) で
- *   キー後半が既知 catalog / scope に存在しない場合に検出。
+ * Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1254 件 3.5 / #1263 Phase X2 + #1269 提案 C)
+ *   `@<prefix>.<key>` 参照のうち、キー後半が既知 catalog / scope に存在しない場合に検出。
  *   meta.maturity === "committed" なら error、それ以外 (draft / provisional) なら warning。
  *
- *   実装範囲 (#1267 adversarial review S-1 で正確化):
- *   - `@var`: 6 値 scope enum + step-id / tx-id の存在確認、暗黙参照は varKeys (action.inputs /
- *     ambient / step.outputBinding.name / loop.collectionItemName / branch.errorVar など) で突合
- *   - `@event`: ProcessFlow.context.catalogs.events のキー突合
+ *   #1269 提案 C で `projectIndex: ProjectCatalogIndex` 引数を追加。渡されると 24 prefix 全体
+ *   (entity + generic-definition + catalog + project) を検証する。projectIndex 未渡し時は
+ *   Phase X2 互換で `@var` / `@event` のみ検証 (他 prefix は silent pass)。
  *
- *   本 PR で対象外 (silent pass、validator name に "_VAR_AND_EVENT_" を含めない代わりに
- *   error message で scope を明示する):
- *   - `@conv`: project-level conventionCategories catalog load 未実装のため Phase X2 で disable
- *     (Round 7 Should-fix 2 で convKeys dead-code 構築は削除、#1269 提案 C で再活性化予定)
- *   - `@msg` / `@const` / `@validation`: 横断 generic-definitions/* catalog 参照が必要、
- *     ProcessFlow 単体 validator では対応不可。#1269 提案 C (project-level catalog index) で対応予定
- *   - `@screen` / `@table` / `@view` / `@viewer` / `@layout` / `@contract` / `@type` /
- *     `@exception` / `@rule` / `@behavior` / `@policy` / `@component` / `@fragment` /
- *     `@logEvent` / `@logConfig` / `@seq` / `@system` / `@ext`: 同上、Phase X3 拡張対象
+ *   検証 prefix (projectIndex 渡し時、合計 24):
+ *   - flow context (常時): `@var` (6 値 scope enum + step-id / tx-id + 暗黙 varKeys),
+ *                          `@event` (context.catalogs.events)
+ *   - entity (projectIndex.screens/tables/views/viewers/layouts/sequences/flows/externalSystems):
+ *     `@screen` / `@table` / `@view` / `@viewer` (2 段は id 検証、4 段は id + child 検証)
+ *     `@layout` / `@seq` / `@flow` / `@system` (id 単純 lookup)
+ *   - generic-definition (14 kind × 1 prefix):
+ *     `@contract` / `@type` / `@exception` / `@rule` / `@validation` / `@behavior` /
+ *     `@policy` / `@component` / `@fragment` / `@const` / `@msg` / `@logEvent` / `@logConfig`
+ *     (`@event` は flow-level context と generic-definition/domain-event の両方が candidate)
+ *   - project-level: `@conv` (conventionCategories) / `@ext` (extension namespaces)
  *
- *   将来 #1269 提案 C で 24 prefix 全体へ拡張時、本コメントを更新すること。
+ *   検証ルール詳細は collectBrokenRefs + checkProjectScopedRef を参照。
  *
  * Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1264 verdict 観点 4 / #1267 Round 7 Must-fix 5)
  *   TransactionScopeStep inner step の outputBinding.name が TX 外から `@<varName>.<...>`
@@ -56,6 +56,7 @@
  *   `@newScore.id` 参照 → 本 Check 32 が違反として報告。
  */
 import type { ProcessFlow, Step } from "../types/v3";
+import type { ProjectCatalogIndex } from "./projectCatalogIndex";
 import { isBuiltinStep } from "./stepGuards";
 
 export interface AntipatternIssue {
@@ -392,14 +393,22 @@ interface BrokenRefContext {
    */
   txExposeMap: Map<string, Set<string>>;
   /**
-   * Phase X2 で対象外の prefix (msg / const / validation / screen / table / view 等) は
-   * silent pass。横断 catalog 参照が必要なため #1269 提案 C (project-level validator) で対応予定。
+   * Project 全体の catalog index (#1269 提案 C)。**undefined の場合は当該 prefix を silent pass** にする
+   * (Phase X2 互換)。渡されると 23 prefix dispatch (`@screen` / `@table` / `@view` / `@viewer` /
+   * `@layout` / `@seq` / `@flow` / `@system` / `@conv` / `@ext` / 14 generic-definition kind 中 13 prefix)
+   * + `@event` の補助 catalog (`domainEvents`) で計 14 prefix の検証カバー範囲を拡張する。
+   * (合計 `@var` を含めて 24 prefix 全件カバー。)
    */
+  projectIndex?: ProjectCatalogIndex;
 }
 
 /**
  * ProcessFlow 全文字列値から `@<prefix>.<key>` 参照を収集し、context catalogs / 変数 scope に
- * 存在しない場合に broken ref として報告する。本 PR では @conv / @var / @event の 3 prefix のみ。
+ * 存在しない場合に broken ref として報告する。
+ *
+ * 検証範囲は `ctx.projectIndex` の有無で切り替わる:
+ *   - undefined: `@var` / `@event` の 2 prefix のみ (Phase X2 互換、他 prefix は silent pass)
+ *   - 渡された: 24 prefix 全件 (entity 8 + generic-definition 14 + project 2)
  *
  * key 部の charset: LocalId (`-` 含む camelCase / kebab-case) + Uuid (`-` 含む) + Identifier (camelCase)
  * を許容するため `-` を明示的に含める。例: `@var.step.step-06.committed`、`@screen.27e9117-0982-...`
@@ -420,7 +429,8 @@ const REF_RE = /(?<![a-zA-Z0-9_])@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z0-9_][a-zA-Z0-
  * `@<prefix>.<key>` 参照を 1 件抽出し、Phase X2 で対応する prefix について broken / TX-leak を判定する。
  *
  * @returns
- *  - `{ kind: "broken", prefix, key }` — `@var` / `@event` の参照先未定義 (Phase X3 で全 prefix 拡張予定)
+ *  - `{ kind: "broken", prefix, key }` — 参照先未定義。`@var` / `@event` (常時) +
+ *    `ctx.projectIndex` 渡し時は entity / generic-definition / project-level 22 prefix も検証 (#1269 提案 C)
  *  - `{ kind: "txLeak", varName, key }` — `@<varName>` shorthand 参照で `<varName>` が TX inner var
  *    (txInnerVars に存在) かつ action scope var に不在 (varKeys に不在) → TX 外参照 spec violation
  *  - `null` — 問題なし or 対象外 prefix (silent pass)
@@ -472,7 +482,13 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): RefIssue[] {
         issues.push({ kind: "broken", prefix, key });
       }
     } else if (prefix === "event") {
-      if (!ctx.eventKeys.has(head) && !ctx.eventKeys.has(key)) {
+      // @event は 2 段階で valid 判定する (#1269 提案 C):
+      //   1. flow-level context.catalogs.events (Phase X2 から既存) — event publish 系
+      //   2. project-level generic-definitions/domain-event/<Name> — domain event catalog (本 Phase C)
+      // どちらかに head (or full key) が含まれていれば valid。両 catalog が欠落していて初めて broken。
+      const inFlowCatalog = ctx.eventKeys.has(head) || ctx.eventKeys.has(key);
+      const inDomainCatalog = ctx.projectIndex?.domainEvents.has(head) ?? false;
+      if (!inFlowCatalog && !inDomainCatalog) {
         issues.push({ kind: "broken", prefix, key });
       }
     } else if (ctx.txExposeMap.has(prefix)) {
@@ -485,14 +501,125 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): RefIssue[] {
       // Shorthand `@<innerVar>.<...>` 直接参照 — TX 内 outputBinding を TX 外から shorthand 参照は
       // 常に禁止 (expose にあっても canonical access form は `@<txName>.<innerVar>` 経由のみ)。
       issues.push({ kind: "txLeak", varName: prefix, key });
+    } else if (ctx.projectIndex) {
+      // #1269 提案 C: project-level catalog index による 23 prefix broken-ref 検証
+      // (entity 8 + generic-definition 13 + project-level 2、`@event` は上 elif で別 path)。
+      // projectIndex が渡されない場合は silent pass (Phase X2 互換)。
+      const projIssue = checkProjectScopedRef(prefix, key, segments, head, ctx.projectIndex);
+      if (projIssue) issues.push(projIssue);
     }
-    // 他 prefix (conv / msg / const / validation / screen / table / view 等) は本 PR では skip
-    // (横断 catalog 検証が必要、#1269 提案 C で project-level validator に拡張予定)
   }
   return issues;
 }
 
-function buildBrokenRefContext(flow: unknown): BrokenRefContext {
+/**
+ * `@<prefix>.<key>` を project catalog index で検証する (#1269 提案 C)。
+ *
+ * 検証対象 prefix (24 prefix の内 @var / @event は別 path):
+ *   - Entity: @screen / @table / @view / @viewer / @layout / @seq / @flow / @system
+ *   - Generic Definition: @contract / @type / @exception / @rule / @validation / @behavior /
+ *                          @policy / @component / @fragment
+ *   - Catalog: @const / @msg / @logEvent / @logConfig
+ *   - Project: @conv / @ext
+ *
+ * 検証ルール (entity 系):
+ *   - 2 段 ref (`@screen.<id>`): head が Map のキーに存在すれば OK
+ *   - 4 段以上 ref (`@screen.<id>.item.<itemId>`): head + 3 段目の childId 両方検証
+ *
+ * 検証ルール (generic-definition 系):
+ *   - head が Set に存在すれば OK
+ *
+ * 不明 prefix は silent pass (将来拡張のため、未知 prefix で false positive を出さない)。
+ *
+ * @returns broken-ref Issue または null (OK / 対象外 prefix)
+ */
+function checkProjectScopedRef(
+  prefix: string,
+  key: string,
+  segments: string[],
+  head: string,
+  idx: ProjectCatalogIndex,
+): RefIssue | null {
+  // Entity 系: 階層検証 (id + child id)
+  const entityMaps: Record<string, { map: Map<string, Set<string>>; containerKey: string }> = {
+    screen: { map: idx.screens, containerKey: "item" },
+    table: { map: idx.tables, containerKey: "field" },
+    view: { map: idx.views, containerKey: "field" },
+    viewer: { map: idx.viewers, containerKey: "column" },
+  };
+  if (prefix in entityMaps) {
+    const { map, containerKey } = entityMaps[prefix];
+    const childIds = map.get(head);
+    if (!childIds) {
+      return { kind: "broken", prefix, key };
+    }
+    // 階層 ref: `@<prefix>.<id>.<container>.<childId>` で 3 段以上の場合 child 検証
+    // (segments = [<id>, <container>, <childId>, ...] なので length >= 3)
+    if (segments.length >= 3 && segments[1] === containerKey) {
+      const childId = segments[2];
+      if (childId && !childIds.has(childId)) {
+        return { kind: "broken", prefix, key };
+      }
+    }
+    return null;
+  }
+
+  // Entity 系: 単純 ID lookup
+  const simpleEntitySets: Record<string, Set<string>> = {
+    layout: idx.layouts,
+    seq: idx.sequences,
+    flow: idx.flows,
+    system: idx.externalSystems,
+  };
+  if (prefix in simpleEntitySets) {
+    if (!simpleEntitySets[prefix].has(head)) {
+      return { kind: "broken", prefix, key };
+    }
+    return null;
+  }
+
+  // Generic Definition + 横断 catalog 系: head が Set に存在すれば OK
+  const definitionSets: Record<string, Set<string>> = {
+    contract: idx.dataContracts,
+    type: idx.domainTypes,
+    exception: idx.exceptionTypes,
+    rule: idx.applicationRules,
+    validation: idx.validationRules,
+    behavior: idx.uiBehaviors,
+    policy: idx.runtimePolicies,
+    component: idx.componentDefinitions,
+    fragment: idx.uiFragments,
+    const: idx.constants,
+    msg: idx.messages,
+    logEvent: idx.logEvents,
+    logConfig: idx.logConfigs,
+  };
+  if (prefix in definitionSets) {
+    if (!definitionSets[prefix].has(head)) {
+      return { kind: "broken", prefix, key };
+    }
+    return null;
+  }
+
+  // Project-level catalogs
+  if (prefix === "conv") {
+    if (!idx.conventionCategories.has(head)) {
+      return { kind: "broken", prefix, key };
+    }
+    return null;
+  }
+  if (prefix === "ext") {
+    if (!idx.extensionNamespaces.has(head)) {
+      return { kind: "broken", prefix, key };
+    }
+    return null;
+  }
+
+  // 不明 prefix は silent pass (Phase X2 互換、将来拡張のため未知 prefix で false positive 回避)
+  return null;
+}
+
+function buildBrokenRefContext(flow: unknown, projectIndex?: ProjectCatalogIndex): BrokenRefContext {
   const flowAny = flow as {
     context?: {
       catalogs?: { events?: Record<string, unknown> };
@@ -588,7 +715,7 @@ function buildBrokenRefContext(flow: unknown): BrokenRefContext {
 
   const eventKeys = new Set<string>(Object.keys(catalogs.events ?? {}));
 
-  return { varKeys, eventKeys, stepIds, txIds, txInnerVars, txExposeMap };
+  return { varKeys, eventKeys, stepIds, txIds, txInnerVars, txExposeMap, projectIndex };
 }
 
 // ─── walkSteps ──────────────────────────────────────────────────────────────
@@ -668,11 +795,15 @@ function collectStringValues(obj: any, basePath: string, out: Array<{ path: stri
  *
  * @param flow JSON.parse 済みの ProcessFlow オブジェクト
  * @param rawJson readFileSync で得たファイルの生文字列 (Check 17 用)
+ * @param projectIndex Project 全体の catalog index (#1269 提案 C)。渡されない場合、Phase X2 互換の
+ *   silent pass (@var / @event 以外の prefix は検証 skip) になる。validate-samples 等で project 全体を
+ *   walk できる context では必ず build して渡すこと。
  */
 export function checkAntipatterns(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   flow: ProcessFlow | Record<string, any>,
   rawJson: string,
+  projectIndex?: ProjectCatalogIndex,
 ): AntipatternIssue[] {
   const issues: AntipatternIssue[] = [];
 
@@ -694,8 +825,8 @@ export function checkAntipatterns(
     }
   }
 
-  // #1263 Phase X2: Check 31 のための context 構築
-  const refCtx = buildBrokenRefContext(flowAny);
+  // #1263 Phase X2 + #1269 提案 C: Check 31 のための context 構築
+  const refCtx = buildBrokenRefContext(flowAny, projectIndex);
   // maturity 判定 (meta.maturity = "committed" → broken ref は error、それ以外 → warning)
   const maturity = (flowAny.meta as { maturity?: string })?.maturity ?? "draft";
   const brokenRefSeverity: "error" | "warning" = maturity === "committed" ? "error" : "warning";
@@ -794,9 +925,9 @@ export function checkAntipatterns(
               severity: brokenRefSeverity,
               code: "BROKEN_REFERENCE_MATURITY_AWARE",
               path,
-              // Round 7 Should-fix 1: scope を message で明示 (validator は @var / @event のみ対応、
-              // 他 prefix は #1269 提案 C で実装予定)
-              message: `\`@${ref.prefix}.${ref.key}\` の参照先が ProcessFlow.context / 変数 scope に存在しません (maturity=${maturity}、対象 prefix: @var / @event のみ)。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
+              // #1269 提案 C: project-level catalog index 渡し時は 24 prefix 全件 (entity + generic-definition +
+              // catalog + project) を検証する。projectIndex 未渡し時は Phase X2 互換で @var / @event のみ。
+              message: `\`@${ref.prefix}.${ref.key}\` の参照先が ProcessFlow.context / 変数 scope / project catalog に存在しません (maturity=${maturity}、対象 prefix: @var / @event${refCtx.projectIndex ? " + project catalog 系" : " のみ"})。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
             });
           } else {
             // ref.kind === "txLeak" (Check 32):
