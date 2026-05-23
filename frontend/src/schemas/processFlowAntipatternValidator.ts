@@ -394,15 +394,21 @@ interface BrokenRefContext {
   txExposeMap: Map<string, Set<string>>;
   /**
    * Project 全体の catalog index (#1269 提案 C)。**undefined の場合は当該 prefix を silent pass** にする
-   * (Phase X2 互換)。渡されると `@screen` / `@table` / `@view` / `@viewer` / `@layout` / `@seq` /
-   * `@flow` / `@system` / `@conv` / `@ext` / 14 generic-definition kind の参照を broken-ref 検証する。
+   * (Phase X2 互換)。渡されると 23 prefix dispatch (`@screen` / `@table` / `@view` / `@viewer` /
+   * `@layout` / `@seq` / `@flow` / `@system` / `@conv` / `@ext` / 14 generic-definition kind 中 13 prefix)
+   * + `@event` の補助 catalog (`domainEvents`) で計 14 prefix の検証カバー範囲を拡張する。
+   * (合計 `@var` を含めて 24 prefix 全件カバー。)
    */
   projectIndex?: ProjectCatalogIndex;
 }
 
 /**
  * ProcessFlow 全文字列値から `@<prefix>.<key>` 参照を収集し、context catalogs / 変数 scope に
- * 存在しない場合に broken ref として報告する。本 PR では @conv / @var / @event の 3 prefix のみ。
+ * 存在しない場合に broken ref として報告する。
+ *
+ * 検証範囲は `ctx.projectIndex` の有無で切り替わる:
+ *   - undefined: `@var` / `@event` の 2 prefix のみ (Phase X2 互換、他 prefix は silent pass)
+ *   - 渡された: 24 prefix 全件 (entity 8 + generic-definition 14 + project 2)
  *
  * key 部の charset: LocalId (`-` 含む camelCase / kebab-case) + Uuid (`-` 含む) + Identifier (camelCase)
  * を許容するため `-` を明示的に含める。例: `@var.step.step-06.committed`、`@screen.27e9117-0982-...`
@@ -423,7 +429,8 @@ const REF_RE = /(?<![a-zA-Z0-9_])@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z0-9_][a-zA-Z0-
  * `@<prefix>.<key>` 参照を 1 件抽出し、Phase X2 で対応する prefix について broken / TX-leak を判定する。
  *
  * @returns
- *  - `{ kind: "broken", prefix, key }` — `@var` / `@event` の参照先未定義 (Phase X3 で全 prefix 拡張予定)
+ *  - `{ kind: "broken", prefix, key }` — 参照先未定義。`@var` / `@event` (常時) +
+ *    `ctx.projectIndex` 渡し時は entity / generic-definition / project-level 22 prefix も検証 (#1269 提案 C)
  *  - `{ kind: "txLeak", varName, key }` — `@<varName>` shorthand 参照で `<varName>` が TX inner var
  *    (txInnerVars に存在) かつ action scope var に不在 (varKeys に不在) → TX 外参照 spec violation
  *  - `null` — 問題なし or 対象外 prefix (silent pass)
@@ -475,7 +482,13 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): RefIssue[] {
         issues.push({ kind: "broken", prefix, key });
       }
     } else if (prefix === "event") {
-      if (!ctx.eventKeys.has(head) && !ctx.eventKeys.has(key)) {
+      // @event は 2 段階で valid 判定する (#1269 提案 C):
+      //   1. flow-level context.catalogs.events (Phase X2 から既存) — event publish 系
+      //   2. project-level generic-definitions/domain-event/<Name> — domain event catalog (本 Phase C)
+      // どちらかに head (or full key) が含まれていれば valid。両 catalog が欠落していて初めて broken。
+      const inFlowCatalog = ctx.eventKeys.has(head) || ctx.eventKeys.has(key);
+      const inDomainCatalog = ctx.projectIndex?.domainEvents.has(head) ?? false;
+      if (!inFlowCatalog && !inDomainCatalog) {
         issues.push({ kind: "broken", prefix, key });
       }
     } else if (ctx.txExposeMap.has(prefix)) {
@@ -489,7 +502,8 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): RefIssue[] {
       // 常に禁止 (expose にあっても canonical access form は `@<txName>.<innerVar>` 経由のみ)。
       issues.push({ kind: "txLeak", varName: prefix, key });
     } else if (ctx.projectIndex) {
-      // #1269 提案 C: project-level catalog index による 22 prefix broken-ref 検証。
+      // #1269 提案 C: project-level catalog index による 23 prefix broken-ref 検証
+      // (entity 8 + generic-definition 13 + project-level 2、`@event` は上 elif で別 path)。
       // projectIndex が渡されない場合は silent pass (Phase X2 互換)。
       const projIssue = checkProjectScopedRef(prefix, key, segments, head, ctx.projectIndex);
       if (projIssue) issues.push(projIssue);

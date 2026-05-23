@@ -1465,6 +1465,72 @@ describe("Check 31 (#1269 提案 C): projectIndex 渡し時の 24 prefix broken-
     });
   });
 
+  describe("@event (domain-event catalog) — Phase X2 flow-level + Phase C project-level の両 fallback", () => {
+    it("flow-level context.catalogs.events に存在すれば valid (Phase X2 既存挙動)", () => {
+      const flow: ProcessFlow = {
+        meta: {
+          id: "test-flow" as never,
+          name: "Test",
+          flowType: "screen",
+          maturity: "committed",
+          createdAt: "2026-01-01" as never,
+          updatedAt: "2026-01-01" as never,
+        },
+        context: { catalogs: { events: { OrderShipped: { description: "X" } } } } as never,
+        actions: [
+          {
+            id: "action-1" as never,
+            name: "Action 1",
+            trigger: "click",
+            steps: [
+              {
+                kind: "compute",
+                id: "step-1",
+                expression: "@event.OrderShipped",
+                description: "ref flow event",
+              } as never,
+            ],
+          },
+        ],
+      } as ProcessFlow;
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("project-level generic-definitions/domain-event に存在すれば valid (Phase C 新規挙動)", () => {
+      // flow context に events catalog なし、domain-event catalog のみで参照可能
+      const flow = makeFlowWithExpr("@event.OrderConfirmed");
+      const idx = buildRichIndex(); // OrderConfirmed は buildRichIndex の domain-event に登録済
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found).toHaveLength(0);
+    });
+
+    it("flow / project どちらにも存在しない @event は broken", () => {
+      const flow = makeFlowWithExpr("@event.UnknownEvent");
+      const idx = buildRichIndex();
+      const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found.length).toBeGreaterThan(0);
+      expect(found[0].message).toContain("@event.UnknownEvent");
+    });
+
+    it("projectIndex 未渡し時、project-level domain-event は見えない (Phase X2 互換)", () => {
+      // OrderConfirmed は本来 domain-event catalog にあるが、projectIndex 未渡しなので
+      // flow context.catalogs.events のみで判定 → broken
+      const flow = makeFlowWithExpr("@event.OrderConfirmed");
+      const found = checkAntipatterns(flow, JSON.stringify(flow)).filter(
+        (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",
+      );
+      expect(found.length).toBeGreaterThan(0);
+    });
+  });
+
   describe("catalog prefixes (constants / message / log-event の field 名解決)", () => {
     it("@const.<catalogName>: catalog instance 名で valid", () => {
       const flow = makeFlowWithExpr("@const.OrderConstants");

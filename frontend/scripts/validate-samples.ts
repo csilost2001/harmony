@@ -175,6 +175,37 @@ function loadViewDefinitionsFromDir(dir: string): ViewDefinition[] {
   }
 }
 
+/** 簡易型の View / Sequence resource (#1269 提案 C で `@view` / `@seq` 検証用に最小読み込み) */
+interface ViewLike {
+  id?: string;
+  outputColumns?: Array<{ physicalName?: string; name?: string }>;
+}
+interface SequenceLike {
+  id?: string;
+}
+
+/** DB View entity を読み込む (`views/*.json`、#1269 提案 C で `@view.<id>.field.<col>` 検証用) */
+function loadViewsFromDir(dir: string): ViewLike[] {
+  if (!existsSync(dir)) return [];
+  try {
+    const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
+    return files.map((f) => JSON.parse(readFileSync(join(dir, f), "utf-8")) as ViewLike);
+  } catch {
+    return [];
+  }
+}
+
+/** Sequence entity を読み込む (`sequences/*.json`、#1269 提案 C で `@seq.<id>` 検証用) */
+function loadSequencesFromDir(dir: string): SequenceLike[] {
+  if (!existsSync(dir)) return [];
+  try {
+    const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
+    return files.map((f) => JSON.parse(readFileSync(join(dir, f), "utf-8")) as SequenceLike);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * 14 kind generic-definition instance を全て walk して読み込む (#1269 提案 C)。
  * `<dataDir>/generic-definitions/<kind>/<Name>.json` 階層を走査。
@@ -680,13 +711,20 @@ export async function runValidation(projectDirArg: string): Promise<ValidationSu
 
   // #1269 提案 C: 全 flow が同じ project-level catalog index を共有する
   // (`@screen` / `@table` / `@conv` / `@ext` / 14 generic-definition kind の broken-ref 検証用)
+  // DB views / sequences は ProjectResources に乗っていないので、本関数内で都度ロード
+  // (将来 ProjectResources に正式統合する場合は discoverProject で読む)
+  const dataDirForIndex = resolveDataDirPath(project.projectDir);
   const projectIndex: ProjectCatalogIndex = buildProjectCatalogIndex({
     screens: project.screens,
     tables: project.tables as Array<{ id?: string; fields?: Array<{ name?: string; id?: string }> }>,
-    views: [], // 現状 view (DB view) は loader 未実装 (#1023 系、Phase D follow-up)
+    views: loadViewsFromDir(join(dataDirForIndex, "views")).map((v) => ({
+      id: v.id,
+      // view.v3.schema.json は outputColumns[].physicalName を field 名として使う (DDL カラム名と整合)
+      fields: (v.outputColumns ?? []).map((c) => ({ name: c.physicalName ?? c.name })),
+    })),
     viewDefinitions: project.viewDefinitions,
     pageLayouts: project.pageLayouts,
-    sequences: [], // sequences entity loader 未実装、必要になったら追加
+    sequences: loadSequencesFromDir(join(dataDirForIndex, "sequences")),
     processFlows: flows.map((f) => f.flow),
     genericDefinitions: project.genericDefinitions,
     conventions: project.conventionsV3 as Record<string, unknown> | null,
