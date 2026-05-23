@@ -381,6 +381,22 @@ describe("Check 30: SIDE_EFFECT_INLINE_BAN (#1263 Phase X2)", () => {
     expect(found).toHaveLength(0);
   });
 
+  it("negative: 文字列内の word boundary 違反 (user@var.foo / x@flow.bar 等) を false positive しない (#1267 Opus S-1)", () => {
+    // email address や IRC ハンドル風文字列で誤検出しないこと
+    // Description が TemplateString 統合された影響で email を含む description は増えると想定
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      description: "問い合わせ先 user@var.example で OK。issue は githubuser@flow.tag に通知。",
+      expression: "1 + 1",
+    };
+    const flow = makeFlow([step]);
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "SIDE_EFFECT_INLINE_BAN" || i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found).toHaveLength(0);
+  });
+
   it("negative: ${...} の外側で @flow 言及されている場合は検出しない", () => {
     const step = {
       kind: "compute",
@@ -512,6 +528,24 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative: @conv の未知 category は本 PR では検出 skip (#1267 Opus S-2、#1269 で再活性化)", () => {
+    // project 拡張の conventionCategories 取りこぼし回避のため、本 PR では @conv broken-ref
+    // 検出を一時 disable している。Phase X3 で project-level catalog load を実装後再活性化。
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@conv.customExtensionCategory.foo + @conv.anotherUnknownCat.bar",
+    };
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@conv"));
     expect(found).toHaveLength(0);
   });
 

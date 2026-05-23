@@ -1509,6 +1509,10 @@ console.log("\n## process-flow.v3.schema.json componentCall / exceptionTypeRef s
 
   // ── ComponentCallStep cases ───────────────────────────────────────────
   // 共通の最小 ProcessFlow wrapper (actions[].steps[] に step を埋め込む)
+  // #1267 Opus review Nit: flowType="system" を使う (元は kind="screen")。Phase X1 rename で
+  // kind → flowType に置換した際、`flowType="screen"` は schema-level で screenId 必須化される
+  // (Meta.allOf の if/then)。本 test は ComponentCallStep / ErrorCatalogEntry / ValidationRule
+  // の検証が目的で screen-bound 性は不要のため、screenId 不要な `system` flowType を採用。
   function wrapStep(step) {
     return {
       $schema: "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/process-flow.v3.schema.json",

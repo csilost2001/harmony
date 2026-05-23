@@ -360,8 +360,13 @@ interface BrokenRefContext {
  *
  * key 部の charset: LocalId (`-` 含む camelCase / kebab-case) + Uuid (`-` 含む) + Identifier (camelCase)
  * を許容するため `-` を明示的に含める。例: `@var.step.step-06.committed`、`@screen.27e9117-0982-...`
+ *
+ * #1267 Opus review S-1 fix: `user@var.foo` のような email/IRC 風文字列で false positive を出さない
+ * よう、`@` の直前が identifier 文字 (`[a-zA-Z0-9_]`) でないことを lookbehind で確認する。
+ * Description が TemplateString 統合された影響で description / note 内に email アドレスが
+ * 含まれる頻度が高いため重要 (Markdown link `[text](mailto:user@example.com)` 等も safe)。
  */
-const REF_RE = /@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z_][a-zA-Z0-9_.\-]*)/g;
+const REF_RE = /(?<![a-zA-Z0-9_])@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z_][a-zA-Z0-9_.\-]*)/g;
 
 function collectBrokenRefs(value: string, ctx: BrokenRefContext): Array<{ prefix: string; key: string }> {
   const broken: Array<{ prefix: string; key: string }> = [];
@@ -374,8 +379,15 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): Array<{ prefix
     const segments = key.split(".");
     const head = segments[0];
     if (prefix === "conv") {
-      // @conv.<category>.<key> 形式、<category> の存在のみ check (key 後半は dynamic)
-      if (!ctx.convKeys.has(head)) broken.push({ prefix, key });
+      // #1267 Opus review S-2 fix: project 拡張の `conventionCategories` を hardcoded list で
+      // 取りこぼすと committed maturity で false positive error を出すリスクがある。
+      // project-level conventionCategories catalog load の実装は #1269 提案 C で対応する想定で、
+      // 本 PR では @conv broken-ref 検出を一時的に **skip** (silent pass) する。
+      // hardcoded list (i18n / msg / regex / limit / scope / currency / tax / auth / role /
+      // permission / db / numbering / tx / externalOutcomeDefaults / extensionCategories /
+      // fieldKeys) では拡張カテゴリを網羅できない。
+      // (void ctx.convKeys; — convKeys は将来 project-level loader と共に再活性化する)
+      void ctx.convKeys;
     } else if (prefix === "var") {
       // @var.<scope>.<name> または @var.<name>。
       // #1267 Codex review fix: scope が `step` / `tx` の場合は 2 段目の step-id / tx-id が
