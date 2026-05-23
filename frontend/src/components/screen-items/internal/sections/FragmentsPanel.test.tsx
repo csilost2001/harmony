@@ -35,7 +35,7 @@ describe("FragmentsPanel", () => {
   it("1. 既存 fragments が描画される (fragmentRef + instanceId 両方 input に値が入る)", () => {
     const frags = [makeFragment("generic-definitions/ui-fragment/messageArea", "errorArea")];
     const { container } = render(
-      <FragmentsPanel fragments={frags} onChange={() => {}} readonly={false} defaultExpanded />,
+      <FragmentsPanel fragments={frags} onChange={() => {}} onCommit={() => {}} readonly={false} defaultExpanded />,
     );
     const inputs = container.querySelectorAll("input");
     const fragmentRefInput = Array.from(inputs).find(
@@ -55,7 +55,7 @@ describe("FragmentsPanel", () => {
     const frags = [makeFragment("generic-definitions/ui-fragment/messageArea")];
     const onChange = vi.fn();
     const { container } = render(
-      <FragmentsPanel fragments={frags} onChange={onChange} readonly={false} defaultExpanded />,
+      <FragmentsPanel fragments={frags} onChange={onChange} onCommit={() => {}} readonly={false} defaultExpanded />,
     );
     const fragmentRefInput = Array.from(container.querySelectorAll("input")).find(
       (inp) => inp.placeholder.startsWith("例: generic-definitions/ui-fragment/"),
@@ -72,7 +72,7 @@ describe("FragmentsPanel", () => {
     const frags = [makeFragment("generic-definitions/ui-fragment/messageArea", "slot1")];
     const onChange = vi.fn();
     const { container } = render(
-      <FragmentsPanel fragments={frags} onChange={onChange} readonly={false} defaultExpanded />,
+      <FragmentsPanel fragments={frags} onChange={onChange} onCommit={() => {}} readonly={false} defaultExpanded />,
     );
     const instanceIdInput = Array.from(container.querySelectorAll("input")).find(
       (inp) => inp.placeholder === "例: errorArea",
@@ -83,11 +83,12 @@ describe("FragmentsPanel", () => {
     expect(result[0].instanceId).toBeUndefined();
   });
 
-  it("4. 追加ボタンで空欄 fragment 追加 (onChange 引数長 +1、最後の要素 {fragmentRef: ''})", () => {
+  it("4. 追加ボタンで空欄 fragment 追加 (onChange 引数長 +1、最後の要素 {fragmentRef: ''}、onCommit 呼出)", () => {
     const frags = [makeFragment("generic-definitions/ui-fragment/messageArea")];
     const onChange = vi.fn();
+    const onCommit = vi.fn();
     const { container } = render(
-      <FragmentsPanel fragments={frags} onChange={onChange} readonly={false} defaultExpanded />,
+      <FragmentsPanel fragments={frags} onChange={onChange} onCommit={onCommit} readonly={false} defaultExpanded />,
     );
     const addBtn = Array.from(container.querySelectorAll("button")).find(
       (btn) => btn.textContent?.includes("追加"),
@@ -98,13 +99,15 @@ describe("FragmentsPanel", () => {
     const result = onChange.mock.calls.at(-1)![0] as ScreenFragmentInstance[];
     expect(result).toHaveLength(2);
     expect(result.at(-1)).toEqual({ fragmentRef: "" });
+    expect(onCommit).toHaveBeenCalledOnce(); // 構造変更は commit が必要
   });
 
-  it("5. 削除ボタンで該当 fragment 除去 (最後の 1 件削除で undefined)", () => {
+  it("5. 削除ボタンで該当 fragment 除去 (最後の 1 件削除で undefined、onCommit 呼出)", () => {
     const frags = [makeFragment("generic-definitions/ui-fragment/messageArea")];
     const onChange = vi.fn();
+    const onCommit = vi.fn();
     const { container } = render(
-      <FragmentsPanel fragments={frags} onChange={onChange} readonly={false} defaultExpanded />,
+      <FragmentsPanel fragments={frags} onChange={onChange} onCommit={onCommit} readonly={false} defaultExpanded />,
     );
     const deleteBtn = Array.from(container.querySelectorAll("button")).find(
       (btn) => btn.title === "削除",
@@ -114,16 +117,27 @@ describe("FragmentsPanel", () => {
     expect(onChange).toHaveBeenCalled();
     const result = onChange.mock.calls.at(-1)![0];
     expect(result).toBeUndefined();
+    expect(onCommit).toHaveBeenCalledOnce(); // 構造変更は commit が必要
   });
 
   it("6. broken fragmentRef は warning icon (catalog 不在の name で warning)", () => {
     // "nonExistent" は mock catalog (messageArea / uploadRow) に存在しない
     const frags = [makeFragment("generic-definitions/ui-fragment/nonExistent")];
     const { container } = render(
-      <FragmentsPanel fragments={frags} onChange={() => {}} readonly={false} defaultExpanded />,
+      <FragmentsPanel fragments={frags} onChange={() => {}} onCommit={() => {}} readonly={false} defaultExpanded />,
     );
     const warningIcon = container.querySelector(".bi-exclamation-triangle.text-warning");
     expect(warningIcon).not.toBeNull();
+  });
+
+  it("6b. 空文字 fragmentRef は broken 扱いしない (新規追加直後の視覚ノイズ抑制、S-4)", () => {
+    // 追加直後は fragmentRef="" になる → broken badge を出さない
+    const frags = [makeFragment("")];
+    const { container } = render(
+      <FragmentsPanel fragments={frags} onChange={() => {}} onCommit={() => {}} readonly={false} defaultExpanded />,
+    );
+    const warningIcon = container.querySelector(".bi-exclamation-triangle.text-warning");
+    expect(warningIcon).toBeNull();
   });
 
   it("7. (fragmentRef, instanceId) ペア重複は warning icon (同一 pair の 2 件で両方 warning)", () => {
@@ -132,7 +146,7 @@ describe("FragmentsPanel", () => {
       makeFragment("generic-definitions/ui-fragment/messageArea", "slot1"),
     ];
     const { container } = render(
-      <FragmentsPanel fragments={frags} onChange={() => {}} readonly={false} defaultExpanded />,
+      <FragmentsPanel fragments={frags} onChange={() => {}} onCommit={() => {}} readonly={false} defaultExpanded />,
     );
     const warningIcons = container.querySelectorAll(".bi-exclamation-triangle.text-warning");
     expect(warningIcons.length).toBeGreaterThanOrEqual(2);
@@ -141,7 +155,7 @@ describe("FragmentsPanel", () => {
   it("8. readonly モードで input disabled + 追加/削除ボタン非表示", () => {
     const frags = [makeFragment("generic-definitions/ui-fragment/messageArea", "slot1")];
     const { container } = render(
-      <FragmentsPanel fragments={frags} onChange={() => {}} readonly defaultExpanded />,
+      <FragmentsPanel fragments={frags} onChange={() => {}} onCommit={() => {}} readonly defaultExpanded />,
     );
     // input は disabled になっている
     const inputs = container.querySelectorAll("input");

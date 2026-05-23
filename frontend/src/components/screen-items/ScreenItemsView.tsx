@@ -754,13 +754,18 @@ export function ScreenItemsView() {
     });
   }, [updateSilentWithDraft]);
 
-  // #1281: ui-fragment instance 一覧の更新ハンドラ
+  // #1281: ui-fragment instance 一覧の更新ハンドラ (S-1: silent update に分離し per-keystroke commit 解消)
+  // テキスト変更 (fragmentRef / instanceId の onChange) は silent update のみ → undo stack 肥大化防止
+  // 構造変更 (add/remove) は FragmentsPanel 内で onCommit を呼び commit 確定させる
   const handleFragmentsChange = useCallback((next: ScreenFragmentInstance[] | undefined) => {
-    updateWithDraft((f) => {
+    updateSilentWithDraft((f) => {
       f.fragments = next;
     });
+  }, [updateSilentWithDraft]);
+
+  const handleFragmentsCommit = useCallback(() => {
     commit();
-  }, [updateWithDraft, commit]);
+  }, [commit]);
 
   // ファイル切替時に選択・展開状態をリセット
   useEffect(() => {
@@ -874,6 +879,7 @@ export function ScreenItemsView() {
           <FragmentsPanel
             fragments={file.fragments ?? []}
             onChange={handleFragmentsChange}
+            onCommit={handleFragmentsCommit}
             readonly={isReadonly}
           />
           <div className="screen-items-table-wrap">

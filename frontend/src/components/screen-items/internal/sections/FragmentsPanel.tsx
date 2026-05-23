@@ -10,20 +10,20 @@
 import { useState, useMemo } from "react";
 import type { ScreenFragmentInstance } from "../../../../types/v3";
 import { useWorkspaceReferences } from "../../../../hooks/useWorkspaceReferences";
-import { fragmentRefResolver } from "../../../../utils/reference-completer/workspaceResolver";
+import { fragmentRefResolver, FRAGMENT_REF_PREFIX } from "../../../../utils/reference-completer/workspaceResolver";
 import { ReferenceCompletionInput } from "../../../common/ReferenceCompletionInput";
-
-// schema: `^generic-definitions/ui-fragment/[A-Za-z][A-Za-z0-9_]*$`
-const FRAGMENT_REF_PREFIX = "generic-definitions/ui-fragment/";
 
 interface Props {
   fragments: ScreenFragmentInstance[];
+  /** テキスト変更時の silent update (per-keystroke、undo stack に積まない) */
   onChange: (next: ScreenFragmentInstance[] | undefined) => void;
+  /** 構造変更 (add/remove) 完了時の commit trigger */
+  onCommit: () => void;
   readonly: boolean;
   defaultExpanded?: boolean;
 }
 
-export function FragmentsPanel({ fragments, onChange, readonly, defaultExpanded = false }: Props) {
+export function FragmentsPanel({ fragments, onChange, onCommit, readonly, defaultExpanded = false }: Props) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const workspace = useWorkspaceReferences();
 
@@ -32,10 +32,11 @@ export function FragmentsPanel({ fragments, onChange, readonly, defaultExpanded 
     [workspace.fragments],
   );
 
-  /** catalog 不在の fragmentRef を持つ index の集合 */
+  /** catalog 不在の fragmentRef を持つ index の集合 (空文字は「未入力」扱い、broken 対象外) */
   const brokenIdx = useMemo(() => {
     const broken = new Set<number>();
     fragments.forEach((f, i) => {
+      if (!f.fragmentRef) return; // 空文字は broken 扱いしない (新規追加直後の視覚ノイズ抑制)
       const m = f.fragmentRef.match(/^generic-definitions\/ui-fragment\/([A-Za-z][A-Za-z0-9_]*)$/);
       if (!m || !fragmentNameSet.has(m[1])) broken.add(i);
     });
@@ -67,10 +68,12 @@ export function FragmentsPanel({ fragments, onChange, readonly, defaultExpanded 
   const removeAt = (i: number) => {
     const next = fragments.filter((_, idx) => idx !== i);
     onChange(next.length > 0 ? next : undefined);
+    onCommit(); // 削除は undo 単位として記録する
   };
 
   const add = () => {
     onChange([...fragments, { fragmentRef: "" }]);
+    onCommit(); // 追加は undo 単位として記録する
   };
 
   return (
@@ -95,10 +98,10 @@ export function FragmentsPanel({ fragments, onChange, readonly, defaultExpanded 
             <div className="catalog-empty">使用中の fragment はありません。</div>
           )}
           {fragments.map((f, i) => (
-            <div className="catalog-row fragments-panel-row" key={i}>
+            <div className="catalog-row fragments-panel-row" key={`${i}-${f.fragmentRef}`}>
               <div className="catalog-row-fields">
                 <label className="catalog-wide">
-                  fragmentRef
+                  <span>fragmentRef</span>
                   <ReferenceCompletionInput
                     className="form-control form-control-sm"
                     value={f.fragmentRef}
@@ -111,7 +114,7 @@ export function FragmentsPanel({ fragments, onChange, readonly, defaultExpanded 
                   />
                 </label>
                 <label>
-                  instanceId
+                  <span>instanceId</span>
                   <input
                     className="form-control form-control-sm"
                     value={f.instanceId ?? ""}

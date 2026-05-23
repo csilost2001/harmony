@@ -103,7 +103,7 @@ export const handlerActionIdResolver = makeIdResolver("handlerActionId", (ctx) =
 //   exceptionTypeRef: ^generic-definitions/exception-type/<Name>$
 // 補完 dropdown 選択時に short name のみ挿入すると schema 違反になるため、
 // value は full path、label は短縮表示用に name のみを保持する。
-const FRAGMENT_REF_PREFIX = "generic-definitions/ui-fragment/";
+export const FRAGMENT_REF_PREFIX = "generic-definitions/ui-fragment/";
 const COMPONENT_REF_PREFIX = "generic-definitions/component-definition/";
 const EXCEPTION_TYPE_REF_PREFIX = "generic-definitions/exception-type/";
 
