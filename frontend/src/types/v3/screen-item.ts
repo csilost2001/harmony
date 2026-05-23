@@ -25,6 +25,22 @@ import type { ViewDefinitionId } from "./view-definition";
 export type { ViewDefinitionId };
 
 /**
+ * ScreenItemEvent の UI ローカル効果 (#1065 / spec generic-definition-layer.md §3.2)。
+ * kind 別の discriminated union。`handlerFlowId` は処理起動、`effects[]` は純粋な
+ * UI ローカル効果。両者は概念分離し並存する。
+ *
+ * 参考: schemas/v3/screen-item.v3.schema.json#/$defs/ScreenItemEventEffect
+ */
+export type ScreenItemEventEffect =
+  | { kind: "clear"; target: Identifier }
+  | { kind: "setReadonly" | "setEnabled" | "setVisible"; target: Identifier; value: boolean | TemplateString }
+  | { kind: "setOptions"; target: Identifier; value: string }
+  | { kind: "showDialog"; target: string; value?: string }
+  | { kind: "setMessage"; target: string; value?: string }
+  | { kind: "refreshList"; target: Identifier }
+  | { kind: "applyAjaxResult"; mapping: Record<string, Identifier> };
+
+/**
  * 画面項目イベント (#624 / #1019) — 発火時に handlerFlowId + handlerActionId 指定の
  * 処理フロー内 action を呼び出し、argumentMapping で画面コンテキストを当該 action の
  * inputs[] に変換する。1 画面 = 1 処理フロー + 複数アクション モデルを成立させるため、
@@ -48,6 +64,12 @@ export interface ScreenItemEvent {
    * 値は画面コンテキスト式 (`@screen.* / @self.* / @session.*` 等)。
    */
   argumentMapping?: Record<Identifier, TemplateString>;
+  /**
+   * イベント発火時に適用する UI ローカル効果リスト (#1065)。
+   * `handlerFlowId` による処理起動とは概念分離。両者は並存する。
+   * 参考: schemas/v3/screen-item.v3.schema.json#/$defs/ScreenItemEventEffect
+   */
+  effects?: ScreenItemEventEffect[];
 }
 
 /** ScreenItem.options 1 件。 */

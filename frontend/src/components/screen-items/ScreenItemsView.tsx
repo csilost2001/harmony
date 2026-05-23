@@ -46,6 +46,7 @@ import { loadExtensionsFromBundle, type LoadedExtensions } from "../../schemas/l
 import type {
   ScreenItem,
   ScreenItemEvent,
+  ScreenItemEventEffect,
   FieldType,
   Identifier,
   ProcessFlowId,
@@ -83,6 +84,29 @@ async function loadFile(screenId: string): Promise<ScreenItemsDocument | null> {
 }
 async function saveFile(data: ScreenItemsDocument): Promise<void> {
   await saveScreenItems(data);
+}
+
+/**
+ * kind 変更時に安全な初期値を返す (#1283)。
+ * kind 変更時は必ずこの関数で新規生成し、既存 field は捨てる。
+ */
+function defaultEffectFor(kind: ScreenItemEventEffect["kind"]): ScreenItemEventEffect {
+  switch (kind) {
+    case "clear":
+    case "refreshList":
+      return { kind, target: "" as Identifier };
+    case "setReadonly":
+    case "setEnabled":
+    case "setVisible":
+      return { kind, target: "" as Identifier, value: false };
+    case "setOptions":
+      return { kind, target: "" as Identifier, value: "" };
+    case "showDialog":
+    case "setMessage":
+      return { kind, target: "" };
+    case "applyAjaxResult":
+      return { kind, mapping: {} };
+  }
 }
 
 export function ScreenItemsView() {
@@ -1330,6 +1354,259 @@ export function ScreenItemsView() {
                                         }}
                                         disabled={isReadonly}
                                         title="マッピング行を削除"
+                                      >
+                                        <i className="bi bi-x" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                                {/* effects[] 編集 UI (#1283) */}
+                                <div className="screen-items-event-effects">
+                                  <div className="screen-items-event-effects-header">
+                                    <span className="screen-items-event-label">effects</span>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-link p-0"
+                                      onClick={() => {
+                                        const next = [...(ev.effects ?? []), defaultEffectFor("clear")];
+                                        handleUpdateEvent(i, eIdx, { effects: next });
+                                        commit();
+                                      }}
+                                      disabled={isReadonly}
+                                      title="効果を追加"
+                                    >
+                                      <i className="bi bi-plus-lg" /> 効果追加
+                                    </button>
+                                  </div>
+                                  {(ev.effects ?? []).length === 0 && (
+                                    <div className="screen-items-event-effects-empty">なし</div>
+                                  )}
+                                  {(ev.effects ?? []).map((eff, fIdx) => (
+                                    <div key={fIdx} className="screen-items-event-effect-row">
+                                      <select
+                                        className="form-control form-control-sm screen-items-event-effect-kind"
+                                        value={eff.kind}
+                                        onChange={(e) => {
+                                          const newKind = e.target.value as ScreenItemEventEffect["kind"];
+                                          const next = (ev.effects ?? []).map((item, ii) =>
+                                            ii === fIdx ? defaultEffectFor(newKind) : item
+                                          );
+                                          handleUpdateEvent(i, eIdx, { effects: next });
+                                          commit();
+                                        }}
+                                        disabled={isReadonly}
+                                      >
+                                        <option value="clear">clear</option>
+                                        <option value="setReadonly">setReadonly</option>
+                                        <option value="setEnabled">setEnabled</option>
+                                        <option value="setVisible">setVisible</option>
+                                        <option value="setOptions">setOptions</option>
+                                        <option value="showDialog">showDialog</option>
+                                        <option value="setMessage">setMessage</option>
+                                        <option value="refreshList">refreshList</option>
+                                        <option value="applyAjaxResult">applyAjaxResult</option>
+                                      </select>
+                                      {/* kind 別インライン入力 */}
+                                      {(eff.kind === "clear" || eff.kind === "refreshList") && (
+                                        <input
+                                          className="form-control form-control-sm screen-items-event-effect-value"
+                                          value={eff.target}
+                                          onChange={(e) => {
+                                            const next = (ev.effects ?? []).map((item, ii) =>
+                                              ii === fIdx ? { ...eff, target: e.target.value as Identifier } : item
+                                            );
+                                            handleUpdateEvent(i, eIdx, { effects: next });
+                                          }}
+                                          onBlur={commit}
+                                          placeholder="target (ScreenItem.id)"
+                                          disabled={isReadonly}
+                                        />
+                                      )}
+                                      {(eff.kind === "setReadonly" || eff.kind === "setEnabled" || eff.kind === "setVisible") && (
+                                        <>
+                                          <input
+                                            className="form-control form-control-sm screen-items-event-effect-value"
+                                            value={eff.target}
+                                            onChange={(e) => {
+                                              const next = (ev.effects ?? []).map((item, ii) =>
+                                                ii === fIdx ? { ...eff, target: e.target.value as Identifier } : item
+                                              );
+                                              handleUpdateEvent(i, eIdx, { effects: next });
+                                            }}
+                                            onBlur={commit}
+                                            placeholder="target (ScreenItem.id)"
+                                            disabled={isReadonly}
+                                          />
+                                          <input
+                                            className="form-control form-control-sm screen-items-event-effect-value"
+                                            value={String(eff.value)}
+                                            onChange={(e) => {
+                                              const raw = e.target.value;
+                                              const val: boolean | TemplateString =
+                                                raw === "true" ? true : raw === "false" ? false : (raw as TemplateString);
+                                              const next = (ev.effects ?? []).map((item, ii) =>
+                                                ii === fIdx ? { ...eff, value: val } : item
+                                              );
+                                              handleUpdateEvent(i, eIdx, { effects: next });
+                                            }}
+                                            onBlur={commit}
+                                            placeholder="true / false / 式"
+                                            disabled={isReadonly}
+                                          />
+                                        </>
+                                      )}
+                                      {eff.kind === "setOptions" && (
+                                        <>
+                                          <input
+                                            className="form-control form-control-sm screen-items-event-effect-value"
+                                            value={eff.target}
+                                            onChange={(e) => {
+                                              const next = (ev.effects ?? []).map((item, ii) =>
+                                                ii === fIdx ? { ...eff, target: e.target.value as Identifier } : item
+                                              );
+                                              handleUpdateEvent(i, eIdx, { effects: next });
+                                            }}
+                                            onBlur={commit}
+                                            placeholder="target (ScreenItem.id)"
+                                            disabled={isReadonly}
+                                          />
+                                          <input
+                                            className="form-control form-control-sm screen-items-event-effect-value"
+                                            value={eff.value}
+                                            onChange={(e) => {
+                                              const next = (ev.effects ?? []).map((item, ii) =>
+                                                ii === fIdx ? { ...eff, value: e.target.value } : item
+                                              );
+                                              handleUpdateEvent(i, eIdx, { effects: next });
+                                            }}
+                                            onBlur={commit}
+                                            placeholder="catalogRef / 式"
+                                            disabled={isReadonly}
+                                          />
+                                        </>
+                                      )}
+                                      {(eff.kind === "showDialog" || eff.kind === "setMessage") && (
+                                        <>
+                                          <input
+                                            className="form-control form-control-sm screen-items-event-effect-value"
+                                            value={eff.target}
+                                            onChange={(e) => {
+                                              const next = (ev.effects ?? []).map((item, ii) =>
+                                                ii === fIdx ? { ...eff, target: e.target.value } : item
+                                              );
+                                              handleUpdateEvent(i, eIdx, { effects: next });
+                                            }}
+                                            onBlur={commit}
+                                            placeholder="target (dialogRef / messageAreaRef)"
+                                            disabled={isReadonly}
+                                          />
+                                          <input
+                                            className="form-control form-control-sm screen-items-event-effect-value"
+                                            value={eff.value ?? ""}
+                                            onChange={(e) => {
+                                              const next = (ev.effects ?? []).map((item, ii) =>
+                                                ii === fIdx ? { ...eff, value: e.target.value || undefined } : item
+                                              );
+                                              handleUpdateEvent(i, eIdx, { effects: next });
+                                            }}
+                                            onBlur={commit}
+                                            placeholder="value (省略可)"
+                                            disabled={isReadonly}
+                                          />
+                                        </>
+                                      )}
+                                      {eff.kind === "applyAjaxResult" && (
+                                        <div className="screen-items-event-effect-mapping-block">
+                                          <div className="screen-items-event-effect-mapping-header">
+                                            <span className="screen-items-event-label">mapping</span>
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm btn-link p-0"
+                                              onClick={() => {
+                                                const currentMapping = { ...(eff.mapping ?? {}) };
+                                                if ("" in currentMapping) return;
+                                                const next = (ev.effects ?? []).map((item, ii) =>
+                                                  ii === fIdx ? { ...eff, mapping: { ...currentMapping, "": "" as Identifier } } : item
+                                                );
+                                                handleUpdateEvent(i, eIdx, { effects: next });
+                                                commit();
+                                              }}
+                                              disabled={isReadonly}
+                                              title="mapping 行を追加"
+                                            >
+                                              <i className="bi bi-plus-lg" /> 追加
+                                            </button>
+                                          </div>
+                                          {Object.entries(eff.mapping ?? {}).map(([mk, mv], mIdx) => (
+                                            <div key={mIdx} className="screen-items-event-effect-mapping-row">
+                                              <input
+                                                className="form-control form-control-sm"
+                                                value={mk}
+                                                onChange={(e) => {
+                                                  const newKey = e.target.value;
+                                                  const entries = Object.entries(eff.mapping ?? {});
+                                                  const collision = entries.some(([kk], ii) => ii !== mIdx && kk === newKey && newKey !== "");
+                                                  if (collision) return;
+                                                  const nextMap: Record<string, Identifier> = {};
+                                                  entries.forEach(([kk, vv], ii) => {
+                                                    nextMap[ii === mIdx ? newKey : kk] = vv;
+                                                  });
+                                                  const next = (ev.effects ?? []).map((item, ii) =>
+                                                    ii === fIdx ? { ...eff, mapping: nextMap } : item
+                                                  );
+                                                  handleUpdateEvent(i, eIdx, { effects: next });
+                                                }}
+                                                onBlur={commit}
+                                                placeholder="response path (例: data.cities)"
+                                                disabled={isReadonly}
+                                              />
+                                              <span className="screen-items-event-effect-mapping-eq">=</span>
+                                              <input
+                                                className="form-control form-control-sm"
+                                                value={mv}
+                                                onChange={(e) => {
+                                                  const nextMap = { ...(eff.mapping ?? {}), [mk]: e.target.value as Identifier };
+                                                  const next = (ev.effects ?? []).map((item, ii) =>
+                                                    ii === fIdx ? { ...eff, mapping: nextMap } : item
+                                                  );
+                                                  handleUpdateEvent(i, eIdx, { effects: next });
+                                                }}
+                                                onBlur={commit}
+                                                placeholder="ScreenItem.id (Identifier)"
+                                                disabled={isReadonly}
+                                              />
+                                              <button
+                                                type="button"
+                                                className="btn btn-sm btn-link text-danger p-0"
+                                                onClick={() => {
+                                                  const nextMap = { ...(eff.mapping ?? {}) };
+                                                  delete nextMap[mk];
+                                                  const next = (ev.effects ?? []).map((item, ii) =>
+                                                    ii === fIdx ? { ...eff, mapping: nextMap } : item
+                                                  );
+                                                  handleUpdateEvent(i, eIdx, { effects: next });
+                                                  commit();
+                                                }}
+                                                disabled={isReadonly}
+                                                title="mapping 行を削除"
+                                              >
+                                                <i className="bi bi-x" />
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {/* 削除ボタン */}
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm btn-link text-danger p-0"
+                                        onClick={() => {
+                                          const next = (ev.effects ?? []).filter((_, ii) => ii !== fIdx);
+                                          handleUpdateEvent(i, eIdx, { effects: next.length > 0 ? next : undefined });
+                                          commit();
+                                        }}
+                                        disabled={isReadonly}
+                                        title="効果を削除"
                                       >
                                         <i className="bi bi-x" />
                                       </button>
