@@ -1,0 +1,70 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "OrderMessages",
+  "purpose": "注文ドメインで利用される業務メッセージカタログ (i18n key、`@msg.<key>` で参照)",
+  "responsibilities": [
+    "エラーメッセージ / 確認メッセージ / 通知メッセージを i18n key で集約",
+    "AI コード生成時に message key と format string の対応を解決可能にする",
+    "label override 構文 `@msg.order-confirmed(orderNumber=@var.action.newOrderNumber)[注文確定]` の参照先"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    {
+      "name": "order-confirmed",
+      "type": "string",
+      "description": "注文確定後の確認メッセージ。位置引数 orderNumber を埋め込む。",
+      "default": "ご注文 {orderNumber} を承りました"
+    },
+    {
+      "name": "stock-insufficient",
+      "type": "string",
+      "description": "在庫不足エラー。位置引数 productName / availableQty を埋め込む。",
+      "default": "{productName} の在庫が不足しています (残り {availableQty} 個)"
+    },
+    {
+      "name": "credit-limit-exceeded",
+      "type": "string",
+      "description": "与信限度超過エラー。",
+      "default": "ご注文金額が与信限度を超えています"
+    },
+    {
+      "name": "quantity-must-be-positive",
+      "type": "string",
+      "description": "数量バリデーション違反 (validation-rule IsPositiveQuantity から参照)。",
+      "default": "数量は 1 以上の整数で入力してください"
+    },
+    {
+      "name": "order-cancel-window-expired",
+      "type": "string",
+      "description": "キャンセル猶予経過エラー。位置引数 cancelWindowHours を埋め込む。",
+      "default": "ご注文後 {cancelWindowHours} 時間を過ぎたためキャンセルできません"
+    }
+  ],
+  "relations": [
+    {
+      "kind": "uses",
+      "ref": "generic-definitions/validation-rule/IsPositiveQuantity",
+      "description": "quantity-must-be-positive を violation 時の messageKey として使用"
+    },
+    {
+      "kind": "uses",
+      "ref": "generic-definitions/constants/OrderConstants",
+      "description": "order-cancel-window-expired の位置引数 cancelWindowHours は @const.OrderConstants.CANCEL_WINDOW_HOURS"
+    }
+  ],
+  "constraints": [
+    "メッセージキーは kebab-case",
+    "位置引数は `{name}` 記法で記述、UI/backend 共通の placeholder 解決を前提"
+  ],
+  "mappingHints": {
+    "backend.spring": {
+      "implementation": "src/main/resources/messages_ja.properties",
+      "format": "MessageFormat (java.text)"
+    },
+    "frontend.next": {
+      "implementation": "i18n/ja/order.json",
+      "format": "ICU MessageFormat"
+    }
+  }
+}

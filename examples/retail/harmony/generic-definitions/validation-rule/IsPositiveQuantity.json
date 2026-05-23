@@ -1,0 +1,37 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/validation-rule.v3.schema.json",
+  "kind": "validation-rule",
+  "name": "IsPositiveQuantity",
+  "purpose": "数量フィールドが 1 以上の正の整数であることを検証する業務ルール (画面項目・処理フロー両方から参照)",
+  "responsibilities": [
+    "input が integer かつ >= 1 であることを確認する",
+    "違反時は @msg.quantity-must-be-positive を error severity で返す",
+    "副作用なし (boolean / ValidationResult を返すのみ)"
+  ],
+  "targets": ["shared"],
+  "operations": [
+    {
+      "name": "validate",
+      "inputs": [
+        { "name": "quantity", "type": "integer" }
+      ],
+      "outputs": [
+        { "name": "result", "type": "ValidationResult" }
+      ],
+      "description": "quantity が正の整数か検証。違反時 violations[].messageKey に quantity-must-be-positive をセット。"
+    }
+  ],
+  "constraints": [
+    "integer 以外 (string / float / null) は型違反として field error 扱い",
+    "0 や負数は messageKey: quantity-must-be-positive で違反"
+  ],
+  "mappingHints": {
+    "backend.spring": {
+      "annotation": "@Constraint",
+      "implementation": "javax.validation.ConstraintValidator<IsPositiveQuantity, Integer>"
+    },
+    "frontend.next": {
+      "implementation": "zod.number().int().positive()"
+    }
+  }
+}

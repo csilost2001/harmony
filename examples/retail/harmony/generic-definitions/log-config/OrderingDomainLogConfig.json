@@ -1,0 +1,72 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/log-config.v3.schema.json",
+  "kind": "log-config",
+  "name": "OrderingDomainLogConfig",
+  "purpose": "注文ドメインのログ設定 (level / sink / format / retention)、`@logConfig.<key>` で参照",
+  "responsibilities": [
+    "log level / sink (stdout / file / external) / format / rotation / retention の運用設定を一元化",
+    "監査要件と運用負荷のトレードオフを設計時に明示する (例: 注文ドメインは 90 日保持必須等)",
+    "runtime-policy と分離して catalog 識別性を上げ、log 設定だけを横断的に把握可能にする"
+  ],
+  "targets": ["runtime"],
+  "fields": [
+    {
+      "name": "level",
+      "type": "string",
+      "description": "出力対象 log level 閾値 (trace / debug / info / warn / error のいずれか)",
+      "default": "info"
+    },
+    {
+      "name": "sink",
+      "type": "string",
+      "description": "出力先 (stdout / file / loki / cloudwatch のいずれか)",
+      "default": "stdout"
+    },
+    {
+      "name": "format",
+      "type": "string",
+      "description": "ログ出力フォーマット (json / text)",
+      "default": "json"
+    },
+    {
+      "name": "rotation",
+      "type": "string",
+      "description": "ローテーション方式 (size / time-daily / time-hourly / none)",
+      "default": "time-daily"
+    },
+    {
+      "name": "retentionDays",
+      "type": "integer",
+      "description": "ログ保持日数 (監査要件 / GDPR / 業法準拠で決定)",
+      "default": 90
+    },
+    {
+      "name": "includeMdc",
+      "type": "boolean",
+      "description": "MDC (Mapped Diagnostic Context) を structured field に含めるか",
+      "default": true
+    }
+  ],
+  "relations": [
+    {
+      "kind": "uses",
+      "ref": "generic-definitions/log-event/OrderAuditLogVocabulary",
+      "description": "本 log-config が適用される log event 語彙"
+    }
+  ],
+  "constraints": [
+    "retentionDays は監査要件で 90 日以上必須",
+    "format=json + sink=stdout は container 環境のデフォルト",
+    "level は env で overridable (LOG_LEVEL=debug 等) だが、デフォルトは info"
+  ],
+  "mappingHints": {
+    "backend.spring": {
+      "implementation": "logback-spring.xml + appender 構成",
+      "package": "src/main/resources"
+    },
+    "backend.nestjs": {
+      "implementation": "pino with daily-rotate-file transport",
+      "config": "logger.config.ts"
+    }
+  }
+}

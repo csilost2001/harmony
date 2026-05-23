@@ -1,0 +1,65 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/domain-event.v3.schema.json",
+  "kind": "domain-event",
+  "name": "OrderConfirmed",
+  "purpose": "注文確定時に発火する業務イベント。物流 / 在庫引当 / メール送信等の後続業務が subscribe する",
+  "responsibilities": [
+    "注文確定 transactionScope の onCommit で publish される (orderId / customerId / totalAmount / lineItems を payload に含む)",
+    "後続業務 (出荷準備 / 在庫差し引き / 顧客への確認メール) が subscribe して非同期処理を開始する",
+    "ProcessFlow.context.catalogs.events.order-confirmed と semantic 一致するが、cross-flow catalog 記録として独立保持する"
+  ],
+  "targets": ["backend", "runtime"],
+  "fields": [
+    {
+      "name": "orderId",
+      "type": "Uuid",
+      "description": "確定された注文の ID (orders table の PK)"
+    },
+    {
+      "name": "customerId",
+      "type": "Uuid",
+      "description": "注文者の顧客 ID"
+    },
+    {
+      "name": "totalAmount",
+      "type": "integer",
+      "description": "注文確定時の総額 (税込・送料込、円)"
+    },
+    {
+      "name": "lineItems",
+      "type": "OrderLineItem[]",
+      "description": "確定された明細行配列 (productId / quantity / unitPrice)"
+    },
+    {
+      "name": "confirmedAt",
+      "type": "datetime",
+      "description": "確定時刻 (transactionScope.onCommit で発火するタイミング)"
+    }
+  ],
+  "relations": [
+    {
+      "kind": "uses",
+      "ref": "generic-definitions/data-contract/OrderForm",
+      "description": "確定対象の注文フォーム (payload 生成元)"
+    },
+    {
+      "kind": "implements",
+      "ref": "generic-definitions/application-rule/OrderConfirmationRule",
+      "description": "OrderConfirmed イベント発火は本 application-rule が確定する業務イベント"
+    }
+  ],
+  "constraints": [
+    "transactionScope の onCommit でのみ publish される (失敗時は publish されない)",
+    "payload は immutable、subscriber は idempotent に処理すること (at-least-once delivery 想定)"
+  ],
+  "mappingHints": {
+    "backend.spring": {
+      "implementation": "Spring ApplicationEvent or Kafka topic 'order-confirmed'",
+      "package": "com.example.retail.order.event"
+    },
+    "backend.nestjs": {
+      "implementation": "EventEmitter2 or @nestjs/microservices Kafka producer",
+      "topic": "order.confirmed"
+    }
+  }
+}

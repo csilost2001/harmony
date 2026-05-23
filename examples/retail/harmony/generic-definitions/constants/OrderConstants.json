@@ -1,0 +1,61 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/constants.v3.schema.json",
+  "kind": "constants",
+  "name": "OrderConstants",
+  "purpose": "注文ドメインで横断利用する業務定数集 (税率 / 最大件数 / リードタイム等)、`@const.<key>` で参照",
+  "responsibilities": [
+    "消費税率・送料無料閾値・注文最大点数・与信限度デフォルト・キャンセル可能猶予を一元定義",
+    "値の更新は本ファイル 1 箇所で完結し、各 ProcessFlow / 画面項目から `@const.<key>` で参照される",
+    "実装層では config / DB に展開されるが、概念的には semantic 不変な業務マジックナンバーを catalog 化する"
+  ],
+  "targets": ["shared", "runtime"],
+  "fields": [
+    {
+      "name": "TAX_RATE",
+      "type": "decimal",
+      "description": "消費税率 (10% の小数表現)",
+      "default": 0.1
+    },
+    {
+      "name": "FREE_SHIPPING_THRESHOLD",
+      "type": "integer",
+      "description": "送料無料となる注文小計の最低額 (円)",
+      "default": 5000
+    },
+    {
+      "name": "MAX_ORDER_LINE_ITEMS",
+      "type": "integer",
+      "description": "1 注文に含められる明細行の最大数",
+      "default": 50
+    },
+    {
+      "name": "CREDIT_LIMIT_DEFAULT",
+      "type": "integer",
+      "description": "新規顧客の与信限度デフォルト (円)",
+      "default": 100000
+    },
+    {
+      "name": "CANCEL_WINDOW_HOURS",
+      "type": "integer",
+      "description": "注文確定後にキャンセル可能な猶予時間 (時間)",
+      "default": 24
+    }
+  ],
+  "constraints": [
+    "値の変更は migration ではなく本 catalog の編集で完結する",
+    "runtime 上書き (env / 顧客別 override) は別 catalog `runtime-policy` で扱う"
+  ],
+  "mappingHints": {
+    "backend.spring": {
+      "implementation": "@ConfigurationProperties(prefix=\"retail.order\")",
+      "package": "com.example.retail.order.config"
+    },
+    "backend.nestjs": {
+      "implementation": "@Injectable() OrderConstantsService",
+      "decorator": "useValue"
+    },
+    "frontend.next": {
+      "implementation": "shared/order-constants.ts (exported const object)"
+    }
+  }
+}
