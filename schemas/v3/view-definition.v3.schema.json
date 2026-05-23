@@ -217,7 +217,7 @@
         "sortable": { "type": "boolean" },
         "filterable": { "type": "boolean" },
         "visibleWhen": {
-          "$ref": "common.v3.schema.json#/$defs/ExpressionString",
+          "$ref": "common.v3.schema.json#/$defs/TemplateString",
           "description": "列表示条件式。"
         },
         "linkTo": {
@@ -252,7 +252,7 @@
           "description": "比較リテラル値。operator に応じて型が変わる (in: array / between: [min, max] / contains-startsWith: string)。"
         },
         "valueExpression": {
-          "$ref": "common.v3.schema.json#/$defs/ExpressionString",
+          "$ref": "common.v3.schema.json#/$defs/TemplateString",
           "description": "比較値を式で渡したい場合 (例: '@conv.numbering.lowStockThreshold')。"
         }
       }

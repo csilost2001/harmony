@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { BranchCondition, ErrorCode, ExpressionString } from "../types/v3";
+import type { BranchCondition, ErrorCode, TemplateString } from "../types/v3";
 import {
   getBranchConditionText,
   isStructuredCondition,
@@ -11,7 +11,7 @@ import {
 
 describe("getBranchConditionText", () => {
   it("expression variant は expression 文字列を返す", () => {
-    const cond: BranchCondition = { kind: "expression", expression: "@x > 0" as ExpressionString };
+    const cond: BranchCondition = { kind: "expression", expression: "@x > 0" as TemplateString };
     expect(getBranchConditionText(cond)).toBe("@x > 0");
   });
 
@@ -36,7 +36,7 @@ describe("getBranchConditionText", () => {
 
 describe("isTryCatchCondition", () => {
   it("expression variant は false", () => {
-    const cond: BranchCondition = { kind: "expression", expression: "@x" as ExpressionString };
+    const cond: BranchCondition = { kind: "expression", expression: "@x" as TemplateString };
     expect(isTryCatchCondition(cond)).toBe(false);
   });
 
@@ -51,7 +51,7 @@ describe("isTryCatchCondition", () => {
 
 describe("isStructuredCondition", () => {
   it("expression variant は true (構造化された discriminated union)", () => {
-    const cond: BranchCondition = { kind: "expression", expression: "anything" as ExpressionString };
+    const cond: BranchCondition = { kind: "expression", expression: "anything" as TemplateString };
     expect(isStructuredCondition(cond)).toBe(true);
   });
 
@@ -78,7 +78,7 @@ describe("BranchCondition union の典型運用", () => {
   it("通常の式ベース分岐 (expression variant)", () => {
     const cond: BranchCondition = {
       kind: "expression",
-      expression: "@shortageList.length > 0" as ExpressionString,
+      expression: "@shortageList.length > 0" as TemplateString,
     };
     expect(isStructuredCondition(cond)).toBe(true);
     expect(getBranchConditionText(cond)).toBe("@shortageList.length > 0");

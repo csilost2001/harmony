@@ -16,10 +16,16 @@ const KIND_ICONS: Record<GenericDefinitionKind, string> = {
   "domain-type": "bi-diagram-2",
   "exception-type": "bi-exclamation-triangle",
   "application-rule": "bi-shield-check",
+  "validation-rule": "bi-check2-square",
   "ui-behavior": "bi-hand-index",
   "runtime-policy": "bi-clock-history",
   "component-definition": "bi-box",
   "ui-fragment": "bi-puzzle",
+  constants: "bi-hash",
+  message: "bi-chat-text",
+  "domain-event": "bi-broadcast",
+  "log-event": "bi-journal-text",
+  "log-config": "bi-sliders",
 };
 
 const KIND_DESCRIPTIONS: Record<GenericDefinitionKind, string> = {
@@ -27,10 +33,16 @@ const KIND_DESCRIPTIONS: Record<GenericDefinitionKind, string> = {
   "domain-type": "エンティティ / モデルなどドメイン型を定義します",
   "exception-type": "業務例外の種別・階層・セマンティクスを定義します",
   "application-rule": "認証認可 / ログ / 監査など横断ルールを定義します",
+  "validation-rule": "業務検証ルール (条件 + メッセージ + severity) を定義します (#1263 Phase X2)",
   "ui-behavior": "画面横断の UI 振る舞いを定義します",
   "runtime-policy": "リトライ / タイムアウト / サーキットブレーカー等の横断ポリシーを定義します",
   "component-definition": "サービス / マッパー / バリデータなどの責務を定義します",
   "ui-fragment": "再利用可能な UI 断片を定義します",
+  constants: "ドメイン定数集 (税率 / 最大件数等) を定義します (`@const.<key>` 参照元、#1263 Phase X2)",
+  message: "メッセージカタログ (i18n source) を定義します (`@msg.<key>` 参照元、#1263 Phase X2)",
+  "domain-event": "業務イベント (発生条件 / payload / publisher) を定義します (`@event.<topic>` 参照元、#1263 Phase X2)",
+  "log-event": "構造化ログイベントを定義します (`@logEvent.<key>` 参照元、#1263 Phase X2)",
+  "log-config": "ログ設定 (log level / sink / format) を定義します (`@logConfig.<key>` 参照元、#1263 Phase X2)",
 };
 
 export function GenericDefinitionCatalogView() {

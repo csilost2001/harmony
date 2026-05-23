@@ -279,7 +279,7 @@
 
 
 
-<table><thead><tr><th>キー (PascalCase)</th><th>ProcessFlow.kind 参照</th><th>用途</th></tr></thead><tbody><tr><td><code>TtsGenerate</code></td><td><code>english-learning:TtsGenerate</code></td><td>TTS 音声生成 (S-1 でストーリー音源プリロード、S-2 で AI 応答音声化に使用)</td></tr><tr><td><code>SttEvaluate</code></td><td><code>english-learning:SttEvaluate</code></td><td>STT + 発音評価</td></tr></tbody></table>
+<table><thead><tr><th>キー (PascalCase)</th><th>ProcessFlow.flowType 参照 (#1263 Phase X1: meta.kind → meta.flowType)</th><th>用途</th></tr></thead><tbody><tr><td><code>TtsGenerate</code></td><td><code>english-learning:TtsGenerate</code></td><td>TTS 音声生成 (S-1 でストーリー音源プリロード、S-2 で AI 応答音声化に使用)</td></tr><tr><td><code>SttEvaluate</code></td><td><code>english-learning:SttEvaluate</code></td><td>STT + 発音評価</td></tr></tbody></table>
 <p>LLM 会話呼び出しは <strong>core stepKind <code>aiCall</code> + <code>context.catalogs.modelEndpoints.&#x3C;key></code></strong> で表現する (#935 で core 化、本サンプルは #865 で 2026-05-08 移行済み)。TTS / STT は業務ドメイン固有のため当面 namespace 拡張に維持する (将来 core 化候補)。</p>
 <p>各 stepKind の構造は <code>CustomStepKind</code> (<code>label</code> / <code>icon</code> / <code>description</code> / <code>schema</code> / <code>outputType</code>) に準拠。<strong><code>schema</code></strong> は <code>ExtensionStep.config</code> の入力構造を縛る subset JSON Schema (動的フォーム生成用)、<strong><code>outputType</code></strong> は <code>outputBinding</code> 結果の <code>FieldType</code> (型推論用)。<code>outputSchema</code> というフィールドは存在しないため使わない。</p>
 <p><strong>screenKinds</strong> (<code>array</code>、各 item の <code>kind</code> は <strong>camelCase</strong>):</p>

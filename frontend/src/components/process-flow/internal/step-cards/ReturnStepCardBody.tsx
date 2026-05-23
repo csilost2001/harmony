@@ -3,7 +3,7 @@
 // 副次 silent bug fix: input field 名と書込 field 名を `responseRef` → `responseId` に修正
 // (v3 schema ReturnStep.responseId、`responseRef` は schema 外で unevaluatedProperties: false reject)。
 
-import type { ReturnStep, LocalId, ExpressionString } from "../../../../types/v3";
+import type { ReturnStep, LocalId, TemplateString } from "../../../../types/v3";
 import { ConvCompletionInput } from "../../../common/ConvCompletionInput";
 import type {
   StepCardBodyBaseProps,
@@ -41,7 +41,7 @@ export function ReturnStepCardBody({
         <ConvCompletionInput
           className="form-control form-control-sm"
           value={step.bodyExpression ?? ""}
-          onValueChange={(v) => onChange({ bodyExpression: (v || undefined) as ExpressionString | undefined })}
+          onValueChange={(v) => onChange({ bodyExpression: (v || undefined) as TemplateString | undefined })}
           onCommit={onCommit}
           conventions={conventions ?? null}
           placeholder="例: { code: 'STOCK_SHORTAGE', detail: @shortageList }"

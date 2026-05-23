@@ -90,8 +90,9 @@
     },
 
     "Description": {
-      "description": "自由記述の説明文。Markdown 改行可。AI 実装者・業務開発者が読む人間向け補足情報。",
-      "type": "string"
+      "description": "自由記述の説明文。#1254 件 3.5 / #1263 Phase X2: TemplateString に統合、CommonMark 完全許容 (raw HTML 含む全装飾)、`${...}` 補間 / `@<仕様書名>.<key>` 参照可。XSS sanitize は UI renderer 側責務 (schema 層では sanitize しない)。AI 実装者・業務開発者が読む人間向け補足情報。",
+      "$ref": "#/$defs/TemplateString",
+      "x-render": "markdown"
     },
 
     "DisplayName": {
@@ -112,9 +113,21 @@
       "enum": ["upstream", "downstream"]
     },
 
-    "ExpressionString": {
-      "description": "式言語 (js-subset) の文字列表現。文法は docs/spec/process-flow-expression-language.md を参照。@conv.* / @secret.* / @env.* / @fn.* / @<var> および Arazzo の $ 記法 (Criterion 内のみ) を許容。",
+    "TemplateString": {
+      "description": "テンプレート文字列 (#1254 件 3 / #1263 Phase X2)。リテラル + `${...}` 補間 + `@<仕様書名>.<key>` 参照を許容する文字列。`${...}` 内は JS-like 式 (`eval` / `Function constructor` / `require` / `import` / `fetch` 等の runtime executor 機能のみ syntactic ban)。装飾 / 返却型は field annotation (`x-render`: markdown / plain / single-line、`x-expression-type`: boolean / number / string) で制御する。副作用 invocation (`@flow.*` / `@action.*` / `@step.*`) を `${...}` 内で呼び出すのは禁止 (validator dispatch rule で enforce)。詳細: docs/spec/process-flow-expression-language.md / docs/spec/process-flow-variables.md。",
       "type": "string"
+    },
+
+    "SelectorString": {
+      "description": "JSONPath sublanguage (#1254 件 3 / #1263 Phase X2)。`$.path.to.value` 形式の JSONPath 専用文字列。TemplateString と構文体系が完全に別であるため別 type として扱う。Marker.anchor.fieldPath / TestAssertion.output.path 等で使用。",
+      "type": "string",
+      "pattern": "^\\$(\\.[A-Za-z_][A-Za-z0-9_]*|\\[(\\*|'[^']*'|[0-9]+)\\])*$"
+    },
+
+    "VariableScope": {
+      "description": "ProcessFlow 変数 scope 名 (#1264 verdict 観点 1)。6 値固定: `flowParameter` (action 入力) / `action` (action body 全体) / `step.<step-id>` (step 出力 binding) / `tx.<tx-id>` (TX 内 binding) / `loop` (loop iteration 内) / `global` (workspace / project 横断、`@const` と区別)。`@var.<scope>.<name>` の明示参照で使用する。`step.` / `tx.` 接頭辞は具体的な step-id / tx-id を後続する。詳細: docs/spec/process-flow-variables.md §2。",
+      "type": "string",
+      "pattern": "^(flowParameter|action|loop|global|step\\.[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?|tx\\.[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?)$"
     },
 
     "Namespace": {
@@ -382,7 +395,7 @@
         "defaultValue": { "type": "string", "description": "既定値 (式可)。" },
         "screenItemRef": { "$ref": "#/$defs/ScreenItemRef" },
         "formula": {
-          "$ref": "#/$defs/ExpressionString",
+          "$ref": "#/$defs/TemplateString",
           "description": "派生属性の計算式。'= ' で始まる (例: '= @quantity * @unitPrice')。"
         }
       }

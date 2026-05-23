@@ -5,7 +5,7 @@
 //   - ngResponseRef → ngResponseId (v3 ValidationInlineBranch.ngResponseId、ngResponseRef は schema 外)
 //   - string-form ok/ng の handling 除去 (v3 ValidationInlineBranch.ok/ng は Step[] のみ、string は v1/v2 legacy で v3 schema 不一致)
 
-import type { ValidationStep, LocalId, ExpressionString } from "../../../../types/v3";
+import type { ValidationStep, LocalId, TemplateString } from "../../../../types/v3";
 import { ValidationRulesPanel } from "../../ValidationRulesPanel";
 import type { StepCardBodyBaseProps, StepCardBodyCatalogProps } from "./types";
 
@@ -89,7 +89,7 @@ export function ValidationStepCardBody({
                 onChange({
                   inlineBranch: {
                     ...step.inlineBranch!,
-                    ngBodyExpression: (e.target.value || undefined) as ExpressionString | undefined,
+                    ngBodyExpression: (e.target.value || undefined) as TemplateString | undefined,
                   },
                 })
               }

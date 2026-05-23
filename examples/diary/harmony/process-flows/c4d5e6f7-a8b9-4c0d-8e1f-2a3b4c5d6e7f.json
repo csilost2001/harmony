@@ -186,14 +186,15 @@
         {
           "id": "step-04",
           "kind": "transactionScope",
-          "description": "photos / post_tags / posts の DELETE を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @txResult に結果を expose する。POST_DELETE_FAILED はロールバックトリガーとして列挙する。",
+          "description": "photos / post_tags / posts の DELETE を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @var.action.txResult に結果を expose する。POST_DELETE_FAILED はロールバックトリガーとして列挙する。",
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
           "rollbackOn": [
             "POST_DELETE_FAILED"
           ],
           "outputBinding": {
-            "name": "txResult"
+            "name": "txResult",
+            "expose": ["committed", "error"]
           },
           "steps": [
             {
@@ -255,14 +256,14 @@
         {
           "id": "step-07",
           "kind": "return",
-          "runIf": "@txResult.committed == true",
+          "runIf": "@var.action.txResult.committed == true",
           "description": "204 削除成功を返す。TX コミット後にのみ実行する。",
           "responseId": "204-no-content"
         },
         {
           "id": "step-08",
           "kind": "return",
-          "runIf": "@txResult.committed != true",
+          "runIf": "@var.action.txResult.committed != true",
           "description": "422 投稿削除失敗を返す。TX ロールバック時にのみ実行する。",
           "responseId": "422-delete-failed",
           "bodyExpression": "{ code: 'POST_DELETE_FAILED', message: '投稿の削除に失敗しました。しばらく経ってから再度お試しください。' }"

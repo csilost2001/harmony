@@ -1509,13 +1509,17 @@ console.log("\n## process-flow.v3.schema.json componentCall / exceptionTypeRef s
 
   // ── ComponentCallStep cases ───────────────────────────────────────────
   // 共通の最小 ProcessFlow wrapper (actions[].steps[] に step を埋め込む)
+  // #1267 Opus review Nit: flowType="system" を使う (元は kind="screen")。Phase X1 rename で
+  // kind → flowType に置換した際、`flowType="screen"` は schema-level で screenId 必須化される
+  // (Meta.allOf の if/then)。本 test は ComponentCallStep / ErrorCatalogEntry / ValidationRule
+  // の検証が目的で screen-bound 性は不要のため、screenId 不要な `system` flowType を採用。
   function wrapStep(step) {
     return {
       $schema: "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/process-flow.v3.schema.json",
       meta: {
         id: "ffffffff-0001-4000-8000-000000000001",
         name: "テストフロー",
-        kind: "screen",
+        flowType: "system",
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
       },
@@ -1550,7 +1554,7 @@ console.log("\n## process-flow.v3.schema.json componentCall / exceptionTypeRef s
     componentRef: "generic-definitions/component-definition/OrderValidator",
   }), true);
 
-  // positive: all fields
+  // positive: all fields (#1263 Phase X2: returnMapping 廃止 → outputBinding)
   assertPf("componentCall positive (all fields)", wrapStep({
     id: "step-01",
     kind: "componentCall",
@@ -1558,7 +1562,7 @@ console.log("\n## process-flow.v3.schema.json componentCall / exceptionTypeRef s
     componentRef: "generic-definitions/component-definition/OrderValidator",
     operation: "validate",
     argumentMapping: { "order": "@inputs.order" },
-    returnMapping: { "errors": "validationErrors" },
+    outputBinding: { name: "validationResult" },
   }), true);
 
   // negative: componentRef pattern violation (must start with generic-definitions/component-definition/)
@@ -1601,7 +1605,7 @@ console.log("\n## process-flow.v3.schema.json componentCall / exceptionTypeRef s
       meta: {
         id: "ffffffff-0001-4000-8000-000000000002",
         name: "エラーカタログテスト",
-        kind: "screen",
+        flowType: "system",
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
       },
@@ -1632,6 +1636,7 @@ console.log("\n## process-flow.v3.schema.json componentCall / exceptionTypeRef s
       id: "step-01",
       kind: "validation",
       description: "入力検証",
+      fieldErrorsVar: "fieldErrors",
       rules: [
         {
           field: "quantity",

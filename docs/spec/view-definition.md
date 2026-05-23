@@ -103,7 +103,7 @@ interface ViewColumn {
   filterable?: boolean;
 
   /** 列表示条件式 (式言語)。 */
-  visibleWhen?: ExpressionString;
+  visibleWhen?: TemplateString;
 
   /** セル click で navigate する path (例: '/orders/:id'、:colon で同行値を埋め込み)。 */
   linkTo?: string;
@@ -127,7 +127,7 @@ interface FilterSpec {
   /** リテラル値 (operator 依存: in は array、between は [min, max] 等)。 */
   value?: unknown;
   /** 比較値を式で渡す場合 (例: '@conv.numbering.lowStockThreshold')。 */
-  valueExpression?: ExpressionString;
+  valueExpression?: TemplateString;
 }
 ```
 

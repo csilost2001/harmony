@@ -48,7 +48,7 @@ interface StructuredField {
   format?: string;                 // 採番形式 / @conv.numbering.* 参照
   defaultValue?: string;           // 既定値 (式可)
   screenItemRef?: ScreenItemRef;   // Pattern B 参照 (画面項目)
-  formula?: ExpressionString;      // 派生属性の計算式
+  formula?: TemplateString;      // 派生属性の計算式
 }
 
 // FieldType (common.v3.schema.json#/$defs/FieldType) — v3 の確定形
@@ -169,7 +169,7 @@ operation の意味:
 
 ### 3.3 参照補完 (`@` 記法)
 
-ExpressionString 内で **`@` プレフィックス**を使った補完可能参照を使用:
+TemplateString 内で **`@` プレフィックス**を使った補完可能参照を使用:
 
 ```
 @users[0].role          # users 配列の先頭要素の role
@@ -210,12 +210,12 @@ interface CommonProcessStep extends StepBaseProps {
   kind: "commonProcess";
   description: string;
   refId: Uuid;                                   // 呼び出し先 ProcessFlow の Uuid (flowType="common", #1263 Phase X1: kind → flowType)
-  argumentMapping?: Record<string, ExpressionString>;
+  argumentMapping?: Record<string, TemplateString>;
   // キー: 呼び先 inputs.name (Identifier)
-  // 値: 値表現 (式)
-  returnMapping?: Record<string, string>;
-  // キー: 呼び先 outputs.name
-  // 値: 説明 / バインド先
+  // 値: 値表現 (TemplateString)
+  // #1263 Phase X2 (#1264 verdict 観点 3): returnMapping 廃止、
+  // 呼び先 outputs 全体を StepBaseProps.outputBinding (`{ name }`) で
+  // 1 object 変数として bind。後続で `@var.action.<name>.<field>` で参照。
 }
 ```
 
@@ -226,6 +226,8 @@ UI: `refId` 選択時、呼び先フローの `inputs` を自動展開して対�
   呼び先の入力:
     sessionId     → [@session.id         ]
     trustedLevel  → ['high'               ]
+  結果変数 (outputBinding.name):
+    [authResult                          ]   ← 呼び先 outputs 全体を bind
 ```
 
 ### 3.5 変数スコープ
@@ -234,6 +236,144 @@ UI: `refId` 選択時、呼び先フローの `inputs` を自動展開して対�
 - アクション内の `outputBinding` は、そのステップ以降・同一アクション内で参照可能
 - 分岐・ループ内で定義した変数は、その分岐・ループを抜けると参照不可 (v1 では警告のみ、禁止にはしない)
 - アクションの `inputs` はアクションの先頭から参照可能
+
+### 3.6 スコープ enum 6 値と `@var.<scope>.<name>` (#1264 verdict / #1263 Phase X2)
+
+RFC #1264 で確定した hybrid scope chain (case C) の具体仕様。**暗黙参照 `@var.<name>` で auto-infer**、衝突時は **nearest scope を採用 + warning**、明示が必要なら **`@var.<scope>.<name>` で曖昧性解消**。
+
+#### scope enum 6 値
+
+| scope | 説明 | lifetime | 例 |
+|---|---|---|---|
+| `flowParameter` | action 入力 (`ActionDefinition.inputs[]`) | action 全体 | `@var.flowParameter.customerId` |
+| `action` | action body 全体で生きる | action 全体 | `@var.action.totalAmount` |
+| `step.<step-id>` | step 出力 binding (`outputBinding.name`) | scope enter で生成 / exit で破棄 | `@var.step.step-05.newOrderNumber` |
+| `tx.<tx-id>` | TransactionScopeStep 内 binding | TX commit でマージ / rollback で破棄 | `@var.tx.step-06.txResult` |
+| `loop` | loop iteration 内 (`collectionItemName` / `collectionIndexName`) | iteration ごとに fresh | `@var.loop.cartItem`、`@var.loop.idx` |
+| `global` | workspace / project 横断 (mutable、`@const` と区別) | session 全体 | `@var.global.tenantId` |
+
+`step.` / `tx.` 接頭辞は具体的な step-id / tx-id を後続する (LocalId pattern)。
+
+#### 暗黙参照の解決順序 (lexical chain auto-infer)
+
+```
+current step → enclosing loop/tryCatch → enclosing tx → action → flowParameter → global
+```
+
+- nearest match を採用、複数 scope に同名変数がある場合は nearest wins + warning
+- 未定義変数: `maturity: "draft"` で warning、`maturity: "committed"` で error
+- shadowing (外側 scope の変数を内側 scope で再定義): **`maturity: "committed"` で error 一律** (R3 多数派採用、user 裁定 2)
+
+#### catch block 内の error 参照 (`BranchConditionVariant.errorVar`)
+
+`BranchCondition.kind = "tryCatch"` の `errorVar` field で error 全体を bind:
+
+```json
+{
+  "kind": "branch",
+  "branches": [
+    {
+      "id": "br-01-a",
+      "code": "A",
+      "condition": {
+        "kind": "tryCatch",
+        "errorCode": "STOCK_SHORTAGE",
+        "errorVar": "caughtError"
+      },
+      "steps": [
+        { "kind": "log", "message": "${@var.caughtError.message}" }
+      ]
+    }
+  ]
+}
+```
+
+専用 scope を持たず、enclosing scope (action / loop / tx) に named binding として導入される。
+
+#### loop iteration の明示 index (`LoopStep.collectionIndexName`)
+
+```json
+{
+  "kind": "loop",
+  "loopKind": "collection",
+  "collectionSource": "@var.action.cartItems",
+  "collectionItemName": "cartItem",
+  "collectionIndexName": "cartItemIdx",
+  "steps": [
+    { "kind": "log", "message": "${@var.cartItemIdx}: ${@var.cartItem.productId}" }
+  ]
+}
+```
+
+省略時は明示 index 参照不可 (item のみ)、`collectionIndexName` を指定すると 0-based integer として参照可能。loop iteration ごとに fresh、外側 scope に持ち越されない。
+
+### 3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)
+
+R3 で 3 AI 完全合流した折衷案を、Round 7 で **option C (expose を任意 inner var 名まで拡張)** として最終化:
+
+- **TX commit 成功時**: TX 内 binding は **ランタイムが破棄せず親 scope に残す (lifecycle semantics)**。ただし TX 外の後続 step からアクセスできる API は `outputBinding.expose` で宣言した key のみ。詳細: [process-flow-transaction.md §8.1](process-flow-transaction.md)
+- **TX rollback 時**: TX 内で新たに bind された変数は **完全破棄** (Gemini 案採用、メモリ汚染防止)
+- **TX 外参照可な値**: `transactionScope.outputBinding.expose` で明示宣言した key のみ。各 key は以下のいずれか:
+  - **3 予約値** (常に利用可能、expose に明示不要): `committed` / `error` / `diagnostics`
+- **TX 内 → TX 外 mutation**: **static 禁止** (Gemini 主張採用、ランタイム undo log 不要)
+
+#### canonical access form (Round 7 option C)
+
+TX 外参照は必ず `@var.action.<txName>.<key>` または shorthand `@<txName>.<key>` 経由。TX 内 inner var を shorthand `@<innerVar>` で TX 外から直接参照することは禁止 (validator Check 32 が静的検出)。
+
+例 (expose に inner var 名を列挙する場合):
+
+```json
+{
+  "kind": "transactionScope",
+  "id": "step-tx",
+  "isolationLevel": "READ_COMMITTED",
+  "rollbackOn": ["STOCK_SHORTAGE"],
+  "outputBinding": {
+    "name": "txResult",
+    "expose": ["committed", "error", "newOrder"]
+  },
+  "steps": [
+    { "kind": "dbAccess", "outputBinding": { "name": "newOrder" } }
+  ]
+}
+```
+
+後続 step (TX 外):
+- ✅ `@var.action.txResult.committed` (予約値、常時参照可)
+- ✅ `@var.action.txResult.error.code` (rollback 時のみ意味あり)
+- ✅ `@var.action.txResult.newOrder.id` (expose 列挙済)
+- ✅ `@txResult.newOrder.id` (shorthand、上と等価)
+- ✅ `@var.tx.step-tx.newOrder.id` (`@var.tx.<step-id>.<key>` 形式も同 expose を共有)
+- ❌ `@newOrder.id` (TX 内 inner var の shorthand 直接参照、禁止)
+- ❌ `@var.action.txResult.privateVar.x` (privateVar は expose 不在、禁止)
+
+### 3.8 副作用と purity (#1264 verdict 観点 5)
+
+**soft side effect** (変数代入) と **hard side effect** (DB / 外部呼び出し / event publish) の二段分類:
+
+| 種別 | 例 | `${...}` 内呼び出し |
+|---|---|---|
+| pure (副作用なし) | `@var.*` / `@const.*` / `@msg.*` / `@conv.*` / `@validation.*` (boolean) | ✅ 許可 |
+| soft side effect (変数代入のみ) | `outputBinding.name` への代入 | ✅ step として実行 (step body) |
+| hard side effect (副作用 invocation) | `@flow.<id>(...)` / `@action.<id>(...)` / `@step.<id>(...)` | ❌ inline 禁止 |
+
+`${...}` / `runIf` / `condition` 内は **pure 必須**、副作用 invocation (`@flow / @action / @step`) は専用 step (`commonProcess` / `componentCall` / `eventPublish` 等) でのみ呼び出し可能。
+
+### 3.9 commonProcess / componentCall の 1 object bind 統一 (#1264 verdict 観点 3)
+
+`commonProcess.returnMapping` / `componentCall.returnMapping` 廃止 (#1263 Phase X2)。呼び先 ProcessFlow / component-definition の outputs 全体を、`StepBaseProps.outputBinding` の `name` で 1 object 変数として bind する:
+
+```json
+{
+  "kind": "commonProcess",
+  "refId": "...",
+  "argumentMapping": { "customerId": "@var.flowParameter.customerId" },
+  "outputBinding": { "name": "customerProfile" }
+}
+```
+
+後続で `@var.action.customerProfile.email` のように object field access で参照する。
 
 ## 4. UI 要素
 
@@ -316,7 +456,7 @@ v3 で string 短縮形は全廃止。v1/v2 サンプルから v3 への移行�
 | `ActionDefinition.outputs` | — | 同上 |
 | `StepBaseProps` | `outputBinding?: OutputBinding` | object 形式のみ (string 短縮形廃止) |
 | `StepBaseProps` | `lineage?: DataLineage` | **#525 R3 fix で StepBaseProps に移植**、全 step variant で利用可能 |
-| `CommonProcessStep` | `argumentMapping?: Record<string,ExpressionString>` | 確定 |
+| `CommonProcessStep` | `argumentMapping?: Record<string,TemplateString>` | 確定 |
 | `ProcessFlow.context.ambientVariables` | `StructuredField[]` | **#525 R3 fix で context 配下に統一** (v1/v2 では root 直下) |
 | `ScreenItem.valueFrom.flowVariable.variableName` | `IdentifierPath` | **#533 R3-1 fix で IdentifierPath (camelCase + snake_case + dot path) に変更** |
 

@@ -423,7 +423,7 @@ describe("AI step kind core schema (#935)", () => {
     });
   });
 
-  describe("#939 提案 B — AiImageSource.url ExpressionString 対応", () => {
+  describe("#939 提案 B — AiImageSource.url TemplateString 対応", () => {
     it("valid: literal http URI in url variant", () => {
       const data = envelope(
         baseAction([
@@ -452,7 +452,7 @@ describe("AI step kind core schema (#935)", () => {
       expect(ok, ok ? "" : dumpErrors()).toBe(true);
     });
 
-    it("valid: ExpressionString runtime variable in url variant", () => {
+    it("valid: TemplateString runtime variable in url variant", () => {
       const data = envelope(
         baseAction([
           {

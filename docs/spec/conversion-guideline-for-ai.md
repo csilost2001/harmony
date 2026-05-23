@@ -660,7 +660,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 
 | step kind | 追加必須 field | 用途 |
 |---|---|---|
-| `validation` | (なし、`rules` / `fieldErrorsVar` / `inlineBranch` は任意) | フィールドバリデーション |
+| `validation` | `fieldErrorsVar` | フィールドバリデーション (#1221 で必須化、`rules` / `inlineBranch` は任意) |
 | `dbAccess` | `tableId`, `operation` | DB 操作 (`sql` は任意だが現行ほぼ必須) |
 | `externalSystem` | `systemRef` | 外部システム呼び出し |
 | `commonProcess` | `refId` | 他 ProcessFlow 呼び出し |
@@ -672,7 +672,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 | `loopBreak` | (なし) | loop break |
 | `loopContinue` | (なし) | loop continue |
 | `jump` | `jumpTo` | ステップジャンプ |
-| `compute` | `expression` | 計算式評価 (この `expression` は ExpressionString、BranchCondition.expression と概念別) |
+| `compute` | `expression` | 計算式評価 (この `expression` は TemplateString、BranchCondition.expression と概念別) |
 | `return` | (なし、`responseId` / `bodyExpression` は任意) | 応答返却 |
 | `log` | `level`, `message` | ログ出力 |
 | `audit` | `action` | 監査ログ |

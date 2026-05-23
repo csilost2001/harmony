@@ -107,17 +107,32 @@ testScenarios 設計時に、各 `dbAccess SELECT` で使用するテーブル�
 ### Rule 2: TransactionScope 内外整合
 
 - TX 内 step は TX **開始前**に設定された変数のみ参照
-- TX 外 step が TX inner outputBinding を参照する場合の方針:
-  - **方針 A (推奨、TX 成功後の再取得)**: TX 後に `dbAccess SELECT` で再取得する step を挟んで `@persistedX` 等にバインド
-  - **方針 B (TX 結果の判別と分岐)**: `transactionScope` の `outputBinding: { name: "txResult" }` を使い、TX 外で `@txResult.committed` (boolean) と `@txResult.error.code` で TX 結果を判別する。エラー条件分岐は `condition.kind: "expression"` + `expression: "@txResult.error.code === '<rollbackOn のコード>'"` (rollbackOn 列挙外の汎用エラーは catch-all `'UNHANDLED'`)。spec `docs/spec/process-flow-transaction.md §8.5` 参照 (#782)
-- TX 後の後続 step (TX 外) には **明示的 `runIf` ガード必須** (spec §8.3): `@txResult.committed == true` (commit 経路) / `@txResult.committed == false` (rollback 経路)。エンジン仕様で「自動 skip」は保証されない
+- TX 外 step が TX inner outputBinding を参照する場合の方針 (Round 7 option C で 3 方針確立):
+  - **方針 A (TX 成功後の再取得)**: TX 後に `dbAccess SELECT` で再取得する step を挟んで `@persistedX` 等にバインド (TX 内データに依存しないシンプルケース)
+  - **方針 B (TX 結果の判別と分岐)**: `transactionScope` の `outputBinding: { name: "txResult" }` で TX 結果メタを expose。3 予約値 `committed` / `error` / `diagnostics` は常時利用可能。TX 外で `@var.action.txResult.committed` (boolean) と `@var.action.txResult.error.code` で TX 結果を判別。エラー条件分岐は `condition.kind: "expression"` + `expression: "@var.action.txResult.error.code === '<rollbackOn のコード>'"` (rollbackOn 列挙外の汎用エラーは catch-all `'UNHANDLED'`)
+  - **方針 C (推奨、TX inner var の TX 外参照、option C)**: TX 内 INSERT 結果の id 等を TX 外で使う場合、`outputBinding.expose` に **inner var 名を列挙** し canonical form `@var.action.<txName>.<innerVar>.<field>` で参照する:
+    ```jsonc
+    // TX 内: outputBinding に "newOrder" を expose 列挙
+    {
+      "kind": "transactionScope",
+      "outputBinding": { "name": "txResult", "expose": ["committed", "error", "newOrder"] },
+      "steps": [
+        { "kind": "dbAccess", "operation": "INSERT", "outputBinding": { "name": "newOrder" } }
+      ]
+    },
+    // TX 外: canonical form で参照
+    { "kind": "return", "bodyExpression": "{ orderId: @var.action.txResult.newOrder.id }" }
+    ```
+    - 禁止: TX 内 inner var の shorthand 直接参照 `@<innerVar>` (例: `@newOrder.id`)。validator Check 32 が静的検出する。
+    - spec: `docs/spec/process-flow-transaction.md §8.5` / `process-flow-variables.md §3.7`
+- TX 後の後続 step (TX 外) には **明示的 `runIf` ガード必須** (spec §8.3): `@var.action.txResult.committed == true` (commit 経路) / `@var.action.txResult.committed == false` (rollback 経路)。エンジン仕様で「自動 skip」は保証されない
 - **外部呼び出し (`externalSystem` step) は TX 内に入れない** (anti-pattern、DB 接続長時間占有)
 
 ### Rule 3: runIf 連鎖の網羅性
 
 - 冪等 UPSERT (`UPSERT_IDEMPOTENT` 等) 後に続く step **すべて**に同条件 runIf
 - no-op パスにも対応する return step (典型: `{ status: 'ALREADY_PROCESSED' }`)
-- TX rollback ガード: TX 後の step に `runIf: "@txResult.committed == true"` (もしくは `false` で rollback パス)
+- TX rollback ガード: TX 後の step に `runIf: "@var.action.txResult.committed == true"` (もしくは `false` で rollback パス)
 
 ### Rule 4: branch / elseBranch 到達性
 

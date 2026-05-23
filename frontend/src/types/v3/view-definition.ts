@@ -13,7 +13,7 @@ import type {
   Brand,
   DisplayName,
   EntityMeta,
-  ExpressionString,
+  TemplateString,
   FieldType,
   Identifier,
   TableColumnRef,
@@ -59,7 +59,7 @@ export interface FilterSpec {
   /** 比較リテラル (operator に応じて型が変わる)。 */
   value?: unknown;
   /** 比較値を式で渡す場合 (例: `@conv.numbering.lowStockThreshold`)。 */
-  valueExpression?: ExpressionString;
+  valueExpression?: TemplateString;
 }
 
 /**
@@ -85,7 +85,7 @@ export interface ViewColumn {
   sortable?: boolean;
   filterable?: boolean;
   /** 列表示条件式。 */
-  visibleWhen?: ExpressionString;
+  visibleWhen?: TemplateString;
   /** セル click で navigate する path (例: `'/orders/:id'`)。 */
   linkTo?: string;
 }

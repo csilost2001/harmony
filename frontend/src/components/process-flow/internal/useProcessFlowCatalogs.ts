@@ -48,7 +48,7 @@ export function useProcessFlowCatalogs(): ProcessFlowCatalogs {
         setScreens(p.screens.map((s) => ({ id: s.id, name: s.name })));
         const agMetas = p.processFlows ?? [];
         setCommonGroups(
-          agMetas.filter((a) => a.kind === "common").map((a) => ({ id: a.id, name: a.name })),
+          agMetas.filter((a) => a.flowType === "common").map((a) => ({ id: a.id, name: a.name })),
         );
       })
       .catch(console.error);
