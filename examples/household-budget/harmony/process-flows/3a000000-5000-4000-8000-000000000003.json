@@ -96,8 +96,8 @@
           "description": "yearMonth が YYYY-MM 形式かをチェック。",
           "fieldErrorsVar": "fieldErrors",
           "rules": [
-            { "field": "yearMonth", "type": "required", "severity": "error", "message": "@conv.msg.required",         "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "yearMonth", "type": "regex", "pattern": "^\\d{4}-(0[1-9]|1[0-2])$", "severity": "error", "message": "@conv.msg.invalidFormat", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" }
+            { "field": "yearMonth", "type": "required", "severity": "error", "message": "@msg.FieldRequired",         "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "yearMonth", "type": "regex", "pattern": "^\\d{4}-(0[1-9]|1[0-2])$", "severity": "error", "message": "@msg.InvalidYearMonthFormat", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" }
           ],
           "inlineBranch": {
             "ok": [],

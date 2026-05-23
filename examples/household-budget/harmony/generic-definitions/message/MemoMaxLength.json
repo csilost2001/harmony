@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "MemoMaxLength",
+  "purpose": "取引メモが上限文字数 (200) を超えた場合のエラー (@msg.MemoMaxLength)。",
+  "responsibilities": [
+    "validation rule の `maxLength` type で memo field 限定で使用",
+    "上限値は @const.TransactionLimits.memoMaxLength と整合 (現状 200)",
+    "client-side inline error + server-side 400 レスポンス両方"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "length", "type": "integer", "description": "許容最大文字数 (constants から差し込み)" }
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "generic-definitions/constants/TransactionLimits" }
+  ],
+  "mappingHints": {
+    "locales": {
+      "ja-JP": "メモは {length} 文字以内で入力してください",
+      "en-US": "Memo must be at most {length} characters"
+    },
+    "severity": "error"
+  }
+}

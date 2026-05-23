@@ -122,12 +122,12 @@
           "description": "新規入力と同じバリデーション規則。",
           "fieldErrorsVar": "fieldErrors",
           "rules": [
-            { "field": "occurredOn", "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "accountId",  "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "categoryId", "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "amount",     "type": "required",  "severity": "error", "message": "@conv.msg.required",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "amount",     "type": "range",     "min": 1, "max": 100000000, "severity": "error", "message": "@conv.msg.outOfRange", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "memo",       "type": "maxLength", "length": 200, "severity": "error", "message": "@conv.msg.maxLength", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" }
+            { "field": "occurredOn", "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "accountId",  "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "categoryId", "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "amount",     "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "amount",     "type": "range",     "min": 1, "max": 100000000, "severity": "error", "message": "@msg.AmountOutOfRange", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
+            { "field": "memo",       "type": "maxLength", "length": 200, "severity": "error", "message": "@msg.MemoMaxLength", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" }
           ],
           "inlineBranch": {
             "ok": [],
