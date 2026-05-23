@@ -31,8 +31,8 @@ export class DashboardService {
       `SELECT
          COALESCE(SUM(CASE WHEN c.category_type = 'income'  THEN t.amount ELSE 0 END), 0) AS monthlyIncome,
          COALESCE(SUM(CASE WHEN c.category_type = 'expense' THEN t.amount ELSE 0 END), 0) AS monthlyExpense
-       FROM transactions t
-       JOIN categories c ON c.id = t.category_id
+       FROM "Transaction" t
+       JOIN "Category" c ON c.id = t.category_id
        WHERE t.user_id = ?
          AND strftime('%Y-%m', t.occurred_on) = strftime('%Y-%m', 'now', 'localtime')`,
       sessionUserId,
@@ -49,9 +49,9 @@ export class DashboardService {
          c.category_type AS categoryType,
          c.color AS categoryColor,
          a.name AS accountName
-       FROM transactions t
-       JOIN categories c ON c.id = t.category_id
-       JOIN accounts a ON a.id = t.account_id
+       FROM "Transaction" t
+       JOIN "Category" c ON c.id = t.category_id
+       JOIN "Account" a ON a.id = t.account_id
        WHERE t.user_id = ?
        ORDER BY t.occurred_on DESC, t.id DESC
        LIMIT 5`,

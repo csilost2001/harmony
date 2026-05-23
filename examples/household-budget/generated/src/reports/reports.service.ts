@@ -25,8 +25,8 @@ export class ReportsService {
     // step-02: カテゴリ別金額合計
     const categoryBreakdown = await this.prisma.$queryRawUnsafe<CategoryBreakdownRow[]>(
       `SELECT c.name AS categoryName, c.category_type AS categoryType, c.color AS color, SUM(t.amount) AS amount
-       FROM transactions t
-       JOIN categories c ON c.id = t.category_id
+       FROM "Transaction" t
+       JOIN "Category" c ON c.id = t.category_id
        WHERE t.user_id = ? AND strftime('%Y-%m', t.occurred_on) = ?
        GROUP BY c.id, c.name, c.category_type, c.color
        ORDER BY amount DESC`,
@@ -39,8 +39,8 @@ export class ReportsService {
       `SELECT
          COALESCE(SUM(CASE WHEN c.category_type = 'income'  THEN t.amount ELSE 0 END), 0) AS totalIncome,
          COALESCE(SUM(CASE WHEN c.category_type = 'expense' THEN t.amount ELSE 0 END), 0) AS totalExpense
-       FROM transactions t
-       JOIN categories c ON c.id = t.category_id
+       FROM "Transaction" t
+       JOIN "Category" c ON c.id = t.category_id
        WHERE t.user_id = ? AND strftime('%Y-%m', t.occurred_on) = ?`,
       sessionUserId,
       yearMonth,

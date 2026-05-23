@@ -25,6 +25,7 @@ interface AuthRequest {
  * TransactionsController
  *
  * Routes (prefix: /api/transactions):
+ *   GET    /api/transactions                    — listTransactions  (取引一覧、J3 要件)
  *   POST   /api/transactions                    — createTransaction (flow -000001)
  *   DELETE /api/transactions/:transactionId     — deleteTransaction (flow -000002)
  *   GET    /api/transactions/:transactionId     — loadTransaction   (flow -000004 act-load)
@@ -34,6 +35,15 @@ interface AuthRequest {
 @UseGuards(JwtAuthGuard)
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
+
+  /**
+   * 取引一覧 (J3 取引一覧閲覧)
+   * GET /api/transactions → 200 transaction[]
+   */
+  @Get()
+  async findAll(@Request() req: AuthRequest) {
+    return this.transactionsService.findAll(req.user.userId);
+  }
 
   /**
    * 取引登録 (process-flow: createTransaction)

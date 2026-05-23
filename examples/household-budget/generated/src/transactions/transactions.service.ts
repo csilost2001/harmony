@@ -49,6 +49,64 @@ export class TransactionsService {
   }
 
   /**
+   * 取引一覧 (J3 取引一覧閲覧)
+   * GET /api/transactions
+   */
+  async findAll(sessionUserId: number) {
+    const rows = await this.prisma.$queryRawUnsafe<{
+      id: number | bigint;
+      occurredOn: string;
+      amount: number | bigint | { toNumber(): number };
+      memo: string | null;
+      categoryId: number | bigint;
+      categoryName: string;
+      categoryType: string;
+      categoryColor: string;
+      accountId: number | bigint;
+      accountName: string;
+    }[]>(
+      `SELECT
+         t.id          AS id,
+         t.occurred_on AS occurredOn,
+         t.amount      AS amount,
+         t.memo        AS memo,
+         t.category_id AS categoryId,
+         c.name        AS categoryName,
+         c.category_type AS categoryType,
+         c.color       AS categoryColor,
+         t.account_id  AS accountId,
+         a.name        AS accountName
+       FROM "Transaction" t
+       JOIN "Category" c ON c.id = t.category_id
+       JOIN "Account"   a ON a.id = t.account_id
+       WHERE t.user_id = ?
+       ORDER BY t.occurred_on DESC, t.id DESC`,
+      sessionUserId,
+    );
+
+    const toNumber = (v: number | bigint | { toNumber(): number }): number => {
+      if (typeof v === 'bigint') return Number(v);
+      if (typeof v === 'object' && v !== null && typeof (v as { toNumber(): number }).toNumber === 'function') {
+        return (v as { toNumber(): number }).toNumber();
+      }
+      return v as number;
+    };
+
+    return rows.map((row) => ({
+      id: Number(row.id),
+      occurredOn: row.occurredOn,
+      amount: toNumber(row.amount),
+      memo: row.memo,
+      categoryId: Number(row.categoryId),
+      categoryName: row.categoryName,
+      categoryType: row.categoryType,
+      categoryColor: row.categoryColor,
+      accountId: Number(row.accountId),
+      accountName: row.accountName,
+    }));
+  }
+
+  /**
    * 取引削除 (process-flow: deleteTransaction)
    * DELETE /api/transactions/:transactionId
    */
