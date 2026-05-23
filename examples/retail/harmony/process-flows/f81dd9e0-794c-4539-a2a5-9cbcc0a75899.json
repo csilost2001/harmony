@@ -345,7 +345,7 @@
         {
           "id": "step-06",
           "kind": "transactionScope",
-          "description": "注文確定 TX (@conv.tx.orderConfirm)。在庫減算 → orders INSERT → order_items loop INSERT → カートクリアを原子的に実行する。いずれかが失敗した場合は全体をロールバックする。TX 結果は @var.action.txResult に expose され、後続 step-07 が @var.action.txResult.error.code で分岐する (ADR-007)。",
+          "description": "注文確定 TX (@conv.tx.orderConfirm)。在庫減算 → orders INSERT → order_items loop INSERT → カートクリアを原子的に実行する。いずれかが失敗した場合は全体をロールバックする。TX 結果は outputBinding.name=txResult として保持され、@var.action.txResult.committed / @var.action.txResult.error.code / @var.action.txResult.diagnostics で外部参照可能。後続 step-07 が @var.action.txResult.error.code で分岐する (ADR-007)。",
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
           "timeoutMs": 10000,
