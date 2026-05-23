@@ -1476,22 +1476,73 @@ export function ScreenItemsView() {
                                             placeholder="target (ScreenItem.id)"
                                             disabled={isReadonly}
                                           />
-                                          <input
-                                            className="form-control form-control-sm screen-items-event-effect-value"
-                                            value={String(eff.value)}
-                                            onChange={(e) => {
-                                              const raw = e.target.value;
-                                              const val: boolean | TemplateString =
-                                                raw === "true" ? true : raw === "false" ? false : (raw as TemplateString);
-                                              const next = (ev.effects ?? []).map((item, ii) =>
-                                                ii === fIdx ? { ...eff, value: val } : item
-                                              );
-                                              handleUpdateEvent(i, eIdx, { effects: next });
-                                            }}
-                                            onBlur={commit}
-                                            placeholder="true / false / 式"
-                                            disabled={isReadonly}
-                                          />
+                                          {/* value 編集 — boolean / expression 切替 (#1303 課題 1) */}
+                                          {typeof eff.value === "boolean" ? (
+                                            <span className="screen-items-event-effect-value-boolean">
+                                              <label className="form-check-label d-flex align-items-center gap-1">
+                                                <input
+                                                  type="checkbox"
+                                                  className="form-check-input m-0"
+                                                  checked={eff.value}
+                                                  onChange={(e) => {
+                                                    const next = (ev.effects ?? []).map((item, ii) =>
+                                                      ii === fIdx ? { ...eff, value: e.target.checked } : item
+                                                    );
+                                                    handleUpdateEvent(i, eIdx, { effects: next });
+                                                    commit();
+                                                  }}
+                                                  disabled={isReadonly}
+                                                />
+                                                {eff.value ? "true" : "false"}
+                                              </label>
+                                              <button
+                                                type="button"
+                                                className="btn btn-sm btn-link p-0 ms-2"
+                                                onClick={() => {
+                                                  const next = (ev.effects ?? []).map((item, ii) =>
+                                                    ii === fIdx ? { ...eff, value: "" as TemplateString } : item
+                                                  );
+                                                  handleUpdateEvent(i, eIdx, { effects: next });
+                                                  commit();
+                                                }}
+                                                disabled={isReadonly}
+                                                title="式モードに切替"
+                                              >
+                                                式に切替
+                                              </button>
+                                            </span>
+                                          ) : (
+                                            <span className="screen-items-event-effect-value-expression">
+                                              <input
+                                                className="form-control form-control-sm screen-items-event-effect-value"
+                                                value={eff.value as string}
+                                                onChange={(e) => {
+                                                  const next = (ev.effects ?? []).map((item, ii) =>
+                                                    ii === fIdx ? { ...eff, value: e.target.value as TemplateString } : item
+                                                  );
+                                                  handleUpdateEvent(i, eIdx, { effects: next });
+                                                }}
+                                                onBlur={commit}
+                                                placeholder="@var.* / TemplateString 式"
+                                                disabled={isReadonly}
+                                              />
+                                              <button
+                                                type="button"
+                                                className="btn btn-sm btn-link p-0 ms-2"
+                                                onClick={() => {
+                                                  const next = (ev.effects ?? []).map((item, ii) =>
+                                                    ii === fIdx ? { ...eff, value: false } : item
+                                                  );
+                                                  handleUpdateEvent(i, eIdx, { effects: next });
+                                                  commit();
+                                                }}
+                                                disabled={isReadonly}
+                                                title="boolean モードに切替"
+                                              >
+                                                boolean に戻す
+                                              </button>
+                                            </span>
+                                          )}
                                         </>
                                       )}
                                       {eff.kind === "setOptions" && (

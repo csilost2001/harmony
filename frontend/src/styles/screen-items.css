@@ -284,6 +284,23 @@
   flex: 1;
   min-width: 120px;
 }
+/* boolean / expression 切替 mode コンテナ (#1303) */
+.screen-items-event-effect-value-boolean,
+.screen-items-event-effect-value-expression {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 120px;
+}
+.screen-items-event-effect-value-expression {
+  flex: 1;
+  min-width: 0;
+}
+.screen-items-event-effect-value-expression .screen-items-event-effect-value {
+  flex: 1;
+  min-width: 0;
+}
 .screen-items-event-effect-mapping-header {
   display: flex;
   align-items: center;
