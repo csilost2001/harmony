@@ -97,14 +97,6 @@
           "sql": "SELECT id, title, cefr_level FROM stories WHERE id = @storyId AND is_active = TRUE",
           "outputBinding": {
             "name": "storyRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "b5aa3e1b-b5e4-46dd-8373-75fea340844b",
-                "purpose": "validate"
-              }
-            ]
           }
         },
         {
@@ -147,14 +139,6 @@
           "sql": "INSERT INTO learning_sessions (user_id, story_id, status, started_at, updated_at) VALUES (@sessionUserId, @storyId, 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id",
           "outputBinding": {
             "name": "newSession"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "d524cba6-0878-4cf5-ba70-deaa7b459103",
-                "purpose": "insert"
-              }
-            ]
           }
         },
         {

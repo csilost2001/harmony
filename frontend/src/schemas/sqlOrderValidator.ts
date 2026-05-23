@@ -310,7 +310,7 @@ function walkStepsInOrder(
       if (step.onRollback) walkStepsInOrder(step.onRollback, `${path}.onRollback`, visitor, loopHooks);
     }
     if (step.kind === "externalSystem") {
-      Object.entries(step.outcomes ?? {}).forEach(([k, spec]) => {
+      Object.entries(step.errorHandling?.outcomes ?? {}).forEach(([k, spec]) => {
         if (spec?.sideEffects) walkStepsInOrder(spec.sideEffects, `${path}.outcomes.${k}.sideEffects`, visitor, loopHooks);
       });
     }
@@ -575,7 +575,7 @@ function hasTryCatchUniqueViolationInSteps(steps: Step[]): boolean {
       if (hasTryCatchUniqueViolationInSteps(step.steps)) return true;
     }
     if (step.kind === "externalSystem") {
-      for (const spec of Object.values(step.outcomes ?? {})) {
+      for (const spec of Object.values(step.errorHandling?.outcomes ?? {})) {
         const s = spec as { sideEffects?: Step[] } | undefined;
         if (s?.sideEffects && hasTryCatchUniqueViolationInSteps(s.sideEffects)) return true;
       }

@@ -111,14 +111,6 @@
           "sql": "SELECT id AS \"postId\", user_id AS \"userId\" FROM posts WHERE id = @inputs.postId",
           "outputBinding": {
             "name": "existingPost"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -189,12 +181,12 @@
           "description": "photos / post_tags / posts の DELETE を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @var.action.txResult に結果を expose する。POST_DELETE_FAILED はロールバックトリガーとして列挙する。",
           "isolationLevel": "READ_COMMITTED",
           "propagation": "REQUIRED",
-          "rollbackOn": [
-            "POST_DELETE_FAILED"
-          ],
           "outputBinding": {
             "name": "txResult",
-            "expose": ["committed", "error"]
+            "expose": [
+              "committed",
+              "error"
+            ]
           },
           "steps": [
             {
@@ -203,15 +195,7 @@
               "description": "photos テーブルから該当投稿の写真を全削除する。",
               "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
               "operation": "DELETE",
-              "sql": "DELETE FROM photos WHERE post_id = @inputs.postId",
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-                    "purpose": "soft-delete"
-                  }
-                ]
-              }
+              "sql": "DELETE FROM photos WHERE post_id = @inputs.postId"
             },
             {
               "id": "step-04-02",
@@ -219,15 +203,7 @@
               "description": "post_tags テーブルから該当投稿のタグ関連を全削除する。",
               "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
               "operation": "DELETE",
-              "sql": "DELETE FROM post_tags WHERE post_id = @inputs.postId",
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
-                    "purpose": "soft-delete"
-                  }
-                ]
-              }
+              "sql": "DELETE FROM post_tags WHERE post_id = @inputs.postId"
             },
             {
               "id": "step-04-03",
@@ -241,17 +217,14 @@
                 "expected": 1,
                 "onViolation": "throw",
                 "errorCode": "POST_DELETE_FAILED"
-              },
-              "lineage": {
-                "writes": [
-                  {
-                    "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                    "purpose": "soft-delete"
-                  }
-                ]
               }
             }
-          ]
+          ],
+          "errorHandling": {
+            "rollbackOn": [
+              "POST_DELETE_FAILED"
+            ]
+          }
         },
         {
           "id": "step-07",

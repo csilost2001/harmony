@@ -334,11 +334,11 @@ export function StepCard({
               <i className="bi bi-shield-check" />
             </button>
           )}
-          {step.kind === "externalSystem" && !isExtensionStep(step) && step.outcomes && Object.keys(step.outcomes).length > 0 && (
+          {step.kind === "externalSystem" && !isExtensionStep(step) && step.errorHandling?.outcomes && Object.keys(step.errorHandling?.outcomes).length > 0 && (
             <button
               type="button"
               className="btn btn-link p-0"
-              title={`outcomes: ${Object.keys(step.outcomes).join(", ")} (クリックで編集)`}
+              title={`outcomes: ${Object.keys(step.errorHandling?.outcomes).join(", ")} (クリックで編集)`}
               onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
               style={{ color: "#0ea5e9", fontSize: 11, flexShrink: 0, lineHeight: 1 }}
             >

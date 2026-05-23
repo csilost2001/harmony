@@ -128,11 +128,11 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 
 [`process-flow-runtime-conventions.md`](process-flow-runtime-conventions.md) を補足する形で、TX スコープに関するランタイム挙動:
 
-1. **commit タイミング**: `steps[]` の最後の step が成功で抜けた時点で commit。途中の throw は (rollbackOn にマッチすれば) rollback
+1. **commit タイミング**: `steps[]` の最後の step が成功で抜けた時点で commit。途中の throw は (`errorHandling.rollbackOn` にマッチすれば) rollback (#1263 Phase X3: `rollbackOn` は `errorHandling` object 内に移動)
 2. **`onCommit` / `onRollback` の独立性**: これらは TX の外で実行され、自身の失敗は元の TX 結果を覆さない
 3. **ネスト時の `REQUIRES_NEW`**: 親 TX が動いている時に `REQUIRES_NEW` の TransactionScopeStep に入ると、親 TX が一時停止して内側 TX が独立 commit/rollback する。内側 commit 後に親 TX が rollback しても、内側の commit は取り消されない
 4. **ネスト時の `NESTED`**: savepoint を使う。内側 rollback は親 TX の savepoint 復元、親 rollback は savepoint も含めて全 rollback
-5. **`outputBinding.expose` による TX 結果の明示宣言** (#1263 Phase X2 / #1264 verdict 観点 4 / #1267 Round 7 option C): `transactionScope` step に `outputBinding: { "name": "txResult", "expose": [...] }` を指定する。expose の各要素は以下のいずれか:
+5. **`outputBinding.expose` による TX 結果の明示宣言** (#1263 Phase X2 / #1264 verdict 観点 4 / #1267 Round 7 option C): `transactionScope` step に `outputBinding: { "name": "txResult", "expose": [...] }` を指定する (`rollbackOn` は #1263 Phase X3 で `errorHandling.rollbackOn` に移動)。expose の各要素は以下のいずれか:
    - **3 予約値** (常に利用可能、expose に明示不要):
      - `committed` → `@var.action.txResult.committed` (boolean、TX commit 成否)
      - `error` → `@var.action.txResult.error` (`{ code, message }`、rollback 時のみ)

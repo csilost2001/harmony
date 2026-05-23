@@ -128,14 +128,6 @@
                 "type": "integer"
               }
             ]
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -153,14 +145,6 @@
                 "type": "integer"
               }
             ]
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -176,14 +160,6 @@
               {
                 "field": "dispatchPending",
                 "type": "integer"
-              }
-            ]
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "lookup"
               }
             ]
           }

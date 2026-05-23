@@ -442,7 +442,7 @@
     },
 
     "StepBaseProps": {
-      "description": "全 Step variant 共通のプロパティ集合。各 variant は本定義を allOf でマージし、固有プロパティを追加 + unevaluatedProperties: false で閉じる。",
+      "description": "全 Step variant 共通のプロパティ集合。各 variant は本定義を allOf でマージし、固有プロパティを追加 + unevaluatedProperties: false で閉じる。#1263 Phase X3 (#1254 件 5): `lineage` field 削除 (AST 解析で復元可能、保守コスト高)。#1263 Phase X3 (#1254 件 2): 失敗系 field (`outcomes` / `rollbackOn` / `retryPolicy` / `onTimeout`) を `errorHandling` object に集約、`runIf` / `tryCatch` 分岐は独立 (lifecycle 順表示: pre `runIf` → main → post `errorHandling`)。",
       "type": "object",
       "properties": {
         "id": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
@@ -453,7 +453,7 @@
         },
         "maturity": { "$ref": "common.v3.schema.json#/$defs/Maturity" },
         "sla": { "$ref": "#/$defs/Sla" },
-        "runIf": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "実行条件式。false なら本 step を skip。" },
+        "runIf": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "実行条件式 (pre 評価)。false なら本 step を skip。lifecycle 上は `errorHandling` (post) と独立。" },
         "requiredPermissions": {
           "type": "array",
           "items": { "type": "string" }
@@ -461,7 +461,34 @@
         "outputBinding": { "$ref": "#/$defs/OutputBinding" },
         "compensatesFor": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "Saga 補償対象の Step.id 参照。" },
         "externalChain": { "$ref": "#/$defs/ExternalChain" },
-        "lineage": { "$ref": "#/$defs/DataLineage", "description": "本 step が読み書きするデータ系譜 (CDC / 監査 / 影響範囲分析用)。DbAccessStep に限らず任意の step (ExtensionStep / CdcStep / WorkflowStep 等) で宣言可能。#525 F-2: ExtensionStep の lineage 透過のため StepBaseProps に集約 (案 A)。" }
+        "errorHandling": { "$ref": "#/$defs/ErrorHandling", "description": "失敗系挙動の集約 object (#1263 Phase X3 / #1254 件 2 案 D)。`outcomes` (外部呼び出し / TX の成功/失敗/timeout 後挙動) / `rollbackOn` (TX rollback トリガー error code 集合) / `retryPolicy` (再試行ポリシー) / `onTimeout` (timeout 時挙動) を集約。各 field は step kind に応じて意味的に有効な subset のみ使用 (例: rollbackOn は transactionScope のみ、retryPolicy は外部呼び出し系のみ)。UI lifecycle 順表示で post セクション扱い。" }
+      }
+    },
+
+    "ErrorHandling": {
+      "description": "Step の失敗系挙動を集約する object (#1263 Phase X3 / #1254 件 2 案 D)。outcomes / rollbackOn / retryPolicy / onTimeout を 1 object に統一し schema 浅 nest 化。step kind に応じて意味のある subset のみ使用する (validator が semantic 妥当性を判定、schema は緩く許容)。",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "outcomes": {
+          "$ref": "#/$defs/ExternalCallOutcomes",
+          "description": "成功 / 失敗 / timeout 時の挙動分岐。ExternalSystemStep / AiCallStep / AiAgentStep / TransactionScopeStep で意味あり。"
+        },
+        "rollbackOn": {
+          "type": "array",
+          "items": { "$ref": "common.v3.schema.json#/$defs/ErrorCode" },
+          "uniqueItems": true,
+          "description": "TX rollback を引き起こす error code 集合 (TransactionScopeStep のみ)。TX inner step から実際に throw されるコードのみ列挙する。列挙外のエラーが発生した場合は outputBinding の @<name>.error.code が 'UNHANDLED' になる。"
+        },
+        "retryPolicy": {
+          "$ref": "#/$defs/RetryPolicy",
+          "description": "再試行ポリシー。外部呼び出し系 step (ExternalSystemStep / AiCallStep / AiAgentStep) で意味あり。"
+        },
+        "onTimeout": {
+          "type": "string",
+          "enum": ["throw", "continue", "compensate", "log"],
+          "description": "timeout 時挙動。WorkflowStep の onTimeout (steps[]) とは別概念で、step 単位の timeout 結果分岐に使う。Sla.onTimeout の short form として errorHandling 内で使う場合もこの enum を採用。"
+        }
       }
     },
 
@@ -681,6 +708,7 @@
     },
 
     "DbAccessStep": {
+      "description": "DB アクセス step。#1263 Phase X3 (#1254 件 5): `naturalQuery` (自然言語 SQL の dual representation) 追加 + maturity-aware: `maturity: \"draft\"` で naturalQuery のみ可 (sql 省略可、AI が後で SQL に変換)、`maturity: \"committed\"` で sql 必須 (実行可能形式)。validator Check 33 が semantic 判定。",
       "allOf": [
         { "$ref": "#/$defs/StepBaseProps" },
         {
@@ -691,7 +719,11 @@
             "tableId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "対象 Table の Uuid (物理名直書きは v3 廃止)。" },
             "operation": { "$ref": "#/$defs/DbOperation" },
             "fields": { "type": "string", "description": "対象フィールド (人間向け簡易表記)。" },
-            "sql": { "type": "string", "description": "完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。" },
+            "sql": { "type": "string", "description": "完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。`maturity: \"committed\"` で必須、`draft` で省略可 (#1263 Phase X3)。" },
+            "naturalQuery": {
+              "$ref": "common.v3.schema.json#/$defs/TemplateString",
+              "description": "自然言語による SQL 記述 (#1263 Phase X3 / #1254 件 5)。設計初期の dual representation で AI が後で実 SQL に変換する想定。例: `\"在庫数を product_id で取得\"` / `\"カート明細を customer_id で SELECT、店舗情報と JOIN\"`。`maturity: \"draft\"` の段階で sql の代わりに記述可能、`committed` で実 SQL に変換必須 (validator Check 33 で enforce)。"
+            },
             "bulkValues": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "一括 INSERT 時に VALUES に展開する配列変数の式。" },
             "affectedRowsCheck": { "$ref": "#/$defs/AffectedRowsCheck" },
             "cache": { "$ref": "#/$defs/CacheHint" }
@@ -717,36 +749,6 @@
         "expected": { "type": "integer", "minimum": 0 },
         "onViolation": { "type": "string", "enum": ["throw", "abort", "log", "continue"] },
         "errorCode": { "$ref": "common.v3.schema.json#/$defs/ErrorCode" },
-        "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
-      }
-    },
-
-    "DataLineage": {
-      "description": "DbAccessStep のデータ系譜。reads/writes の各エントリは目的 (purpose) を持てる (CDC / 監査 / 影響範囲分析用)。",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "reads": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/LineageEntry" },
-          "description": "読み取り対象 Table の参照 + 目的。"
-        },
-        "writes": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/LineageEntry" },
-          "description": "書き込み対象 Table の参照 + 目的。"
-        }
-      }
-    },
-
-    "LineageEntry": {
-      "description": "DataLineage の 1 エントリ。tableId 必須 + purpose 任意。",
-      "type": "object",
-      "required": ["tableId"],
-      "additionalProperties": false,
-      "properties": {
-        "tableId": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
-        "purpose": { "type": "string", "description": "読み取り/書き込みの目的 (例: 'lookup', 'lock', 'audit', 'snapshot', 'soft-delete')。" },
         "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
       }
     },
@@ -783,10 +785,8 @@
             "operationRef": { "type": "string", "description": "**operationRef mode**: OpenAPI operation 参照 (例: '/v1/payment_intents POST')。systemRef 経由で spec URL 解決。httpCall と排他推奨。" },
             "operationId": { "type": "string", "description": "**operationRef mode**: OpenAPI operationId (operationRef より優先する場合の代替指定)。httpCall と排他推奨。" },
             "requestBodyRef": { "type": "string", "description": "**operationRef mode**: OpenAPI request body schema への JSON Pointer (例: '#/components/schemas/CreatePaymentIntent')。httpCall.body と排他推奨。" },
-            "responseRef": { "type": "string", "description": "**operationRef mode**: OpenAPI response schema への JSON Pointer。httpCall mode では outcomes.success.responseSchema 等で代替。" },
-            "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes" },
+            "responseRef": { "type": "string", "description": "**operationRef mode**: OpenAPI response schema への JSON Pointer。httpCall mode では errorHandling.outcomes.success.responseSchema 等で代替。" },
             "timeoutMs": { "type": "integer", "minimum": 0 },
-            "retryPolicy": { "$ref": "#/$defs/RetryPolicy" },
             "circuitBreaker": { "$ref": "#/$defs/CircuitBreakerConfig" },
             "bulkhead": { "$ref": "#/$defs/BulkheadConfig" },
             "fireAndForget": { "type": "boolean" },
@@ -908,8 +908,7 @@
             },
             "toolChoice": { "$ref": "#/$defs/AiToolChoice" },
             "responseFormat": { "$ref": "#/$defs/AiResponseFormat" },
-            "parameters": { "$ref": "#/$defs/AiInferenceParameters", "description": "modelEndpoint.defaults を override。同キーは本フィールド優先。" },
-            "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes", "description": "失敗 / timeout 時の挙動。既存 ExternalSystemStep と同じ pattern を流用。" }
+            "parameters": { "$ref": "#/$defs/AiInferenceParameters", "description": "modelEndpoint.defaults を override。同キーは本フィールド優先。" }
           }
         }
       ],
@@ -946,8 +945,7 @@
               "description": "tool call ループの最大反復回数。LLM が連続 tool 呼び出しに陥った場合の安全装置。"
             },
             "responseFormat": { "$ref": "#/$defs/AiResponseFormat", "description": "最終 assistant message の構造化指定。" },
-            "parameters": { "$ref": "#/$defs/AiInferenceParameters" },
-            "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes" }
+            "parameters": { "$ref": "#/$defs/AiInferenceParameters" }
           }
         }
       ],
@@ -1610,15 +1608,9 @@
             "isolationLevel": { "type": "string", "enum": ["READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE"] },
             "propagation": { "type": "string", "enum": ["REQUIRED", "REQUIRES_NEW", "NESTED"] },
             "timeoutMs": { "type": "number", "minimum": 0 },
-            "rollbackOn": {
-              "type": "array",
-              "items": { "$ref": "common.v3.schema.json#/$defs/ErrorCode" },
-              "description": "TX rollback を引き起こすエラーコード集合。TX inner step から実際に throw されるコードのみを列挙する。列挙外のエラーが発生した場合は outputBinding の @<name>.error.code が 'UNHANDLED' になる。"
-            },
             "steps": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
             "onCommit": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
-            "onRollback": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
-            "outcomes": { "$ref": "#/$defs/ExternalCallOutcomes" }
+            "onRollback": { "type": "array", "items": { "$ref": "#/$defs/Step" } }
           }
         }
       ],

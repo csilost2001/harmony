@@ -129,7 +129,7 @@ describe("AI step kind core schema (#935)", () => {
             },
             parameters: { temperature: 0.3, maxTokens: 512 },
             outputBinding: { name: "aiResponse" },
-            outcomes: { failure: { action: "abort" } },
+            errorHandling: { outcomes: { failure: { action: "abort" } } },
           },
         ])
       );

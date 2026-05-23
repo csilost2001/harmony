@@ -201,14 +201,6 @@
           "sql": "SELECT id AS \"userId\", username AS \"username\", display_name AS \"displayName\", password_hash AS \"passwordHash\" FROM users WHERE username = @inputs.username LIMIT 1",
           "outputBinding": {
             "name": "userRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
-                "purpose": "auth-lookup"
-              }
-            ]
           }
         },
         {

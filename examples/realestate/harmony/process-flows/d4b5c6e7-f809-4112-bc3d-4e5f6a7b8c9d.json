@@ -160,14 +160,6 @@
           "sql": "SELECT id, property_code AS \"propertyCode\", name, property_type AS \"propertyType\", area_sqm AS \"areaSqm\", price_10k_yen AS \"price10kYen\", listed_at AS \"listedAt\" FROM properties WHERE (@inputs.propertyType IS NULL OR property_type = @inputs.propertyType) AND (@inputs.maxPrice10kYen IS NULL OR price_10k_yen <= @inputs.maxPrice10kYen) AND (@inputs.minAreaSqm IS NULL OR area_sqm >= @inputs.minAreaSqm) ORDER BY price_10k_yen ASC",
           "outputBinding": {
             "name": "rows"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {

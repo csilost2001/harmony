@@ -194,14 +194,14 @@ export function TransactionScopeStepPanel({
 
   // context.catalogs.errors の key 候補
   const errorCodes = Object.keys(group?.context?.catalogs?.errors ?? {}) as ErrorCode[];
-  const selectedErrorCodes = new Set<ErrorCode>(step.rollbackOn ?? []);
+  const selectedErrorCodes = new Set<ErrorCode>(step.errorHandling?.rollbackOn ?? []);
 
   const toggleRollbackCode = (code: ErrorCode) => {
     const next = new Set<ErrorCode>(selectedErrorCodes);
     if (next.has(code)) next.delete(code);
     else next.add(code);
     const arr = Array.from(next);
-    onChange({ rollbackOn: arr.length > 0 ? arr : undefined });
+    onChange({ errorHandling: { ...step.errorHandling, rollbackOn: arr.length > 0 ? arr : undefined } });
     onCommit?.();
   };
 
@@ -306,7 +306,7 @@ export function TransactionScopeStepPanel({
             </div>
           )}
           {/* エラーカタログに無い不明な rollbackOn コードがあれば警告表示 */}
-          {(step.rollbackOn ?? [])
+          {(step.errorHandling?.rollbackOn ?? [])
             .filter((c) => !errorCodes.includes(c))
             .map((c) => (
               <div key={c} className="text-danger small mt-1">

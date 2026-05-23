@@ -171,14 +171,6 @@
           "sql": "SELECT id AS \"userId\" FROM users WHERE id = @decoded.sub LIMIT 1",
           "outputBinding": {
             "name": "userRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
-                "purpose": "auth-lookup"
-              }
-            ]
           }
         },
         {

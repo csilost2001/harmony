@@ -410,7 +410,7 @@ function toSpecStep(s: Step, index: number): SpecStep {
       if (s.isolationLevel) detail.isolationLevel = s.isolationLevel;
       if (s.propagation) detail.propagation = s.propagation;
       if (s.timeoutMs !== undefined) detail.timeoutMs = s.timeoutMs;
-      if (s.rollbackOn && s.rollbackOn.length > 0) detail.rollbackOn = s.rollbackOn;
+      if (s.errorHandling?.rollbackOn && s.errorHandling?.rollbackOn.length > 0) detail.rollbackOn = s.errorHandling?.rollbackOn;
       detail.steps = s.steps;
       if (s.onCommit) detail.onCommit = s.onCommit;
       if (s.onRollback) detail.onRollback = s.onRollback;

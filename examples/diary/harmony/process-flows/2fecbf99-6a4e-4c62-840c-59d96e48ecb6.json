@@ -249,14 +249,6 @@
           "sql": "SELECT id AS \"postId\", user_id AS \"userId\" FROM posts WHERE id = @inputs.postId AND user_id = @sessionUserId LIMIT 1",
           "outputBinding": {
             "name": "postRow"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
-                "purpose": "ownership-check"
-              }
-            ]
           }
         },
         {
@@ -341,14 +333,6 @@
             "expected": 1,
             "onViolation": "throw",
             "errorCode": "PHOTO_UPLOAD_FAILED"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
-                "purpose": "insert"
-              }
-            ]
           }
         },
         {

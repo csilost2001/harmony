@@ -240,14 +240,6 @@
           "sql": "SELECT id, order_number AS \"orderNumber\", customer_id AS \"customerId\", status, total_amount AS \"totalAmount\", shipping_address AS \"shippingAddress\" FROM orders WHERE id = @inputs.orderId AND status IN ('pending', 'confirmed')",
           "outputBinding": {
             "name": "order"
-          },
-          "lineage": {
-            "reads": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "lookup"
-              }
-            ]
           }
         },
         {
@@ -381,14 +373,6 @@
             "onViolation": "throw",
             "errorCode": "ORDER_NOT_FOUND",
             "description": "0 件更新 = 注文が存在しないか既に shipped に変更済み。"
-          },
-          "lineage": {
-            "writes": [
-              {
-                "tableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
-                "purpose": "statusUpdate"
-              }
-            ]
           }
         },
         {

@@ -379,7 +379,7 @@ describe("v3 variant fixture coverage — Saga (transactionScope + compensatesFo
         id: "step-01",
         kind: "transactionScope",
         description: "saga tx scope",
-        rollbackOn: ["STOCK_SHORTAGE"],
+        errorHandling: { rollbackOn: ["STOCK_SHORTAGE"] },
         steps: [
           {
             id: "step-01-inner-1",

@@ -550,7 +550,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
           "id": "step-02",
           "kind": "transactionScope",
           "description": "在庫チェック + 注文登録 + 在庫減算を 1 TX で実行",
-          "rollbackOn": ["INVENTORY_SHORTAGE"],
+          "errorHandling": { "rollbackOn": ["INVENTORY_SHORTAGE"] },
           "steps": [
             {
               "id": "step-02-01",

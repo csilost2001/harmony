@@ -152,7 +152,7 @@ function stepIdFromPath(path: string, group: ProcessFlow): string | null {
       }
     } else if (sm[5] !== undefined && sm[6] !== undefined) {
       if (!isBuiltinStep(currentStep) || currentStep.kind !== "externalSystem") return currentStep.id;
-      const outcome = currentStep.outcomes?.[sm[5] as "success" | "failure" | "timeout"];
+      const outcome = currentStep.errorHandling?.outcomes?.[sm[5] as "success" | "failure" | "timeout"];
       if (!outcome?.sideEffects) return currentStep.id;
       const next = outcome.sideEffects[+sm[6]];
       if (!next) return currentStep.id;

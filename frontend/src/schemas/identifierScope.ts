@@ -180,7 +180,7 @@ function walkSteps(
       walkSteps(step.inlineBranch.ng, `${path}.inlineBranch.ng`, known, loopItems, envVarNames, issues);
     }
     if (step.kind === "externalSystem") {
-      Object.entries(step.outcomes ?? {}).forEach(([k, spec]) => {
+      Object.entries(step.errorHandling?.outcomes ?? {}).forEach(([k, spec]) => {
         if (spec?.sideEffects) {
           walkSteps(spec.sideEffects, `${path}.outcomes.${k}.sideEffects`, known, loopItems, envVarNames, issues);
         }
