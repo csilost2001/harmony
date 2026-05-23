@@ -26,7 +26,7 @@
     },
     "frontend": {
       "library": "react",
-      "framework": "vite"
+      "framework": "next"
     },
     "auth": {
       "method": "jwt"

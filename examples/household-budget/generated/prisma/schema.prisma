@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  login_id      String    @unique
+  password_hash String
+  display_name  String
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  accounts     Account[]
+  categories   Category[]
+  transactions Transaction[]
+}
+
+model Account {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  name            String
+  account_type    String
+  initial_balance Decimal   @default(0)
+  currency        String    @default("JPY")
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+}
+
+model Category {
+  id            Int       @id @default(autoincrement())
+  user_id       Int
+  name          String
+  category_type String
+  icon          String?
+  color         String    @default("#6366f1")
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([user_id, name])
+}
+
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  account_id  Int
+  category_id Int
+  occurred_on String
+  amount      Decimal
+  memo        String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  account  Account  @relation(fields: [account_id], references: [id])
+  category Category @relation(fields: [category_id], references: [id])
+}

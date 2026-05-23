@@ -22,7 +22,7 @@
 | layer | 採用 | 理由 |
 |---|---|---|
 | frontend.library | `react` | コンポーネント指向 + 豊富な可視化エコシステム (recharts / d3 等) |
-| frontend.framework | `vite` | 軽量 + HMR が速い、個人開発に最適 |
+| frontend.framework | `next` | App Router + Server Components で SSR/CSR を柔軟に切替可、`/generate-code` の React 系テンプレが Next.js を前提とするため整合 (#1306 で vite → next に変更) |
 | designer.editorKind | `puck` | React コンポーネントツリー編集、後で生コード生成しやすい |
 | designer.cssFramework | `tailwind` | 余白 / soft shadow / rounded-2xl で先進的 B2C アプリの見た目を実現 |
 | backend.language | `typescript` | frontend と型を共有可能、JSON Schema → 型生成と相性良 |
@@ -191,6 +191,46 @@ cd frontend
 npm install
 npm run validate:samples -- ../examples/household-budget
 ```
+
+## 生成 app (generated/)
+
+`examples/household-budget/generated/` には Harmony JSON 設計から生成した動く NestJS + Next.js + Prisma + JWT アプリケーションが配置されている (#1306)。
+
+### 構成
+
+| layer | 場所 | 技術 |
+|---|---|---|
+| Backend | `generated/src/` | NestJS 10 + Prisma 5 + SQLite + JWT |
+| Frontend | `generated/src/app/` | Next.js 14 App Router + React 18 + Tailwind 3 |
+| DB | `generated/prisma/` | schema + seed loader |
+| E2E test | `generated/test/e2e/` | Playwright (J1-J7 user journey) |
+
+### 起動手順
+
+```bash
+cd examples/household-budget/generated
+npm install
+DATABASE_URL=file:./prisma/dev.db npm run db:push
+DATABASE_URL=file:./prisma/dev.db npm run db:seed
+
+# 別ターミナルで backend (port 3001)
+npm run start:backend
+
+# 別ターミナルで frontend (port 3000)
+npm run start:frontend
+```
+
+ブラウザで http://localhost:3000 にアクセスし、デモアカウント (login_id: `demo` / password: `demo123`) でログイン可能。
+
+### E2E テスト実行
+
+```bash
+cd examples/household-budget/generated
+npx playwright install chromium  # 初回のみ
+npm run test:p4
+```
+
+J1〜J7 を網羅した 9 spec が pass する。
 
 ## 既知の MVP 範囲外
 
