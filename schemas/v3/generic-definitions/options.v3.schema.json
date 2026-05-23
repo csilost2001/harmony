@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/options.v3.schema.json",
+  "title": "Options (v3 generic-definition kind: options)",
+  "description": "Generic Definition Catalog の options kind 固有 schema (#1303)。親 schema (../generic-definition.v3.schema.json) を `allOf` 継承し、`kind` を const \"options\" に固定。options catalog は ScreenItemEvent.effects[].setOptions の選択肢カタログ参照先 (例: 選択肢一覧の動的切替定義)。`@options.<name>` 参照元。仕様: docs/spec/generic-definition-layer.md §4.2。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "options" }
+  }
+}

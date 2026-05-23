@@ -222,7 +222,9 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 - **`mappingHints` は完全 optional / advisory** (任意): 特定 techStack (Spring / Nest / Next 等) への codegen 時のヒント。設計書の本質ではなく **AI 生成側のチューニング材料**。本 spec の Spring/Nest/Next 例はあくまでサンプルで、Django / Rails / Vue 等への展開も自由
 - `mappingHints` が無くても **言語非依存の本体だけで設計意図は完結する** こと。逆に `mappingHints` だけで設計意図を表現するのは禁止 (本体に migrate する)
 
-### 4.2 8 種類の kind
+### 4.2 17 種類の kind
+
+初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張。
 
 | kind | 用途 | 主な参照元 |
 |---|---|---|
@@ -230,10 +232,19 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 | `domain-type` | Entity / Model などドメイン型 (永続化を含む) | table 補完 / ProcessFlow |
 | `exception-type` | 例外種別・階層・semantic kind | errorCode catalog |
 | `application-rule` | 認証認可ポリシー / ログ / 監査 / 例外変換 / 横断ルール | project-level config |
+| `validation-rule` | 業務検証ルール (条件 + メッセージ + severity) | `@validation.<name>` |
 | `ui-behavior` | 画面横断振る舞い (dirty check / dialog / datepicker / 二重送信防止) | ScreenItem.event.effects[] / screen.commonBehaviors[] |
 | `runtime-policy` | retry / timeout / circuit breaker / cache (横断適用ポリシー) | ProcessFlow step / external system |
 | `component-definition` | service / mapper / repository / validator / formatter / facade / adapter / helper 等の責務 | ProcessFlow.componentCall |
 | `ui-fragment` | 再利用 UI 断片 (ヘッダー / フッター / メッセージ領域等) | screen.fragments[] |
+| `constants` | ドメイン定数集 | `@const.<key>` |
+| `message` | メッセージカタログ (i18n source) | `@msg.<key>` |
+| `domain-event` | ドメインイベント定義 | `@event.<topic>` |
+| `log-event` | ログイベント定義 (構造化ログ) | `@logEvent.<key>` |
+| `log-config` | ログ設定 (log level / sink / format) | `@logConfig.<key>` |
+| `dialog` | confirm / alert / custom dialog の定義 (ScreenItemEvent.effects[].showDialog.target 参照先) | `@dialog.<name>` |
+| `messageArea` | 画面横断 message area の定義 (ScreenItemEvent.effects[].setMessage.target 参照先) | `@messageArea.<name>` |
+| `options` | 選択肢カタログ (ScreenItemEvent.effects[].setOptions 動的差し替え参照先) | `@options.<name>` |
 
 ### 4.3 既存仕様との関係
 
