@@ -49,6 +49,7 @@ import type {
   ScreenItem,
   ScreenItemEvent,
   ScreenItemEventEffect,
+  ScreenFragmentInstance,
   FieldType,
   Identifier,
   ProcessFlowId,
@@ -77,6 +78,7 @@ import {
   JS_IDENTIFIER_RE,
 } from "./internal/screenItemsConstants";
 import { OutputFields } from "./internal/sections/OutputFields";
+import { FragmentsPanel } from "./internal/sections/FragmentsPanel";
 
 type ScreenMeta = { id: string; name: string };
 
@@ -752,6 +754,19 @@ export function ScreenItemsView() {
     });
   }, [updateSilentWithDraft]);
 
+  // #1281: ui-fragment instance 一覧の更新ハンドラ (S-1: silent update に分離し per-keystroke commit 解消)
+  // テキスト変更 (fragmentRef / instanceId の onChange) は silent update のみ → undo stack 肥大化防止
+  // 構造変更 (add/remove) は FragmentsPanel 内で onCommit を呼び commit 確定させる
+  const handleFragmentsChange = useCallback((next: ScreenFragmentInstance[] | undefined) => {
+    updateSilentWithDraft((f) => {
+      f.fragments = next;
+    });
+  }, [updateSilentWithDraft]);
+
+  const handleFragmentsCommit = useCallback(() => {
+    commit();
+  }, [commit]);
+
   // ファイル切替時に選択・展開状態をリセット
   useEffect(() => {
     setSelectedIndices(new Set());
@@ -860,6 +875,13 @@ export function ScreenItemsView() {
               </ul>
             </div>
           )}
+          {/* #1281: ui-fragment 使用一覧 (collapsible、default collapsed) */}
+          <FragmentsPanel
+            fragments={file.fragments ?? []}
+            onChange={handleFragmentsChange}
+            onCommit={handleFragmentsCommit}
+            readonly={isReadonly}
+          />
           <div className="screen-items-table-wrap">
             <table className="screen-items-table">
               <colgroup>
