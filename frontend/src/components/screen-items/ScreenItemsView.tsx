@@ -1538,7 +1538,7 @@ export function ScreenItemsView() {
                                             </button>
                                           </div>
                                           {Object.entries(eff.mapping ?? {}).map(([mk, mv], mIdx) => (
-                                            <div key={mIdx} className="screen-items-event-effect-mapping-row">
+                                            <div key={`${mIdx}-${mk}`} className="screen-items-event-effect-mapping-row">
                                               <input
                                                 className="form-control form-control-sm"
                                                 value={mk}
