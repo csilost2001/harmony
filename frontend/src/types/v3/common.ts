@@ -123,11 +123,8 @@ export type SelectorString = string;
  */
 export type VariableScope = string;
 
-/**
- * @deprecated TemplateString の旧名 (#1263 Phase X2 で rename)。
- * 後方互換のために残置、新規 import は TemplateString を使うこと。
- */
-export type ExpressionString = TemplateString;
+// Round 7 Nit 12: ExpressionString deprecated alias 削除 (pre-release policy で後方互換不要、
+// 削除前 0 import 確認済)。新規参照は `TemplateString` を使う。
 
 // ─── 共通 enum ───────────────────────────────────────────────────────────
 

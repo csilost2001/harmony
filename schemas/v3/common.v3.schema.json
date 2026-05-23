@@ -124,12 +124,6 @@
       "pattern": "^\\$(\\.[A-Za-z_][A-Za-z0-9_]*|\\[(\\*|'[^']*'|[0-9]+)\\])*$"
     },
 
-    "ExpressionString": {
-      "description": "[deprecated alias] TemplateString の旧名。後方互換のために残置。新規参照は TemplateString を使用すること。#1263 Phase X2 で TemplateString に rename された。",
-      "$ref": "#/$defs/TemplateString",
-      "deprecated": true
-    },
-
     "VariableScope": {
       "description": "ProcessFlow 変数 scope 名 (#1264 verdict 観点 1)。6 値固定: `flowParameter` (action 入力) / `action` (action body 全体) / `step.<step-id>` (step 出力 binding) / `tx.<tx-id>` (TX 内 binding) / `loop` (loop iteration 内) / `global` (workspace / project 横断、`@const` と区別)。`@var.<scope>.<name>` の明示参照で使用する。`step.` / `tx.` 接頭辞は具体的な step-id / tx-id を後続する。詳細: docs/spec/process-flow-variables.md §2。",
       "type": "string",

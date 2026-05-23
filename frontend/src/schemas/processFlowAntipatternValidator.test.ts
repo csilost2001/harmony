@@ -654,3 +654,157 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
     expect(found).toHaveLength(0);
   });
 });
+
+// ─── Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5) ─────────
+
+describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", () => {
+  it("positive (committed): TX 内 outputBinding を TX 外から `@<varName>.<field>` で参照 → error", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "transactionScope",
+              id: "step-tx",
+              description: "TX",
+              outputBinding: { name: "txResult" as never, expose: ["committed", "error"] },
+              steps: [
+                {
+                  kind: "dbAccess",
+                  id: "step-tx-insert",
+                  description: "insert",
+                  tableId: "00000000-0000-4000-8000-000000000001" as never,
+                  operation: "INSERT",
+                  outputBinding: { name: "newScore" as never },
+                } as never,
+              ],
+            } as never,
+            // TX 外で TX inner var `newScore` を参照 → spec violation
+            { kind: "compute", id: "step-after", expression: "@newScore.id", description: "ref tx inner" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("error");
+    expect(found[0].message).toContain("newScore");
+    expect(found[0].message).toContain("TX 内 → TX 外 mutation static 禁止");
+  });
+
+  it("positive (draft): 同上を maturity=draft で → warning", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "draft", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "transactionScope",
+              id: "step-tx",
+              description: "TX",
+              outputBinding: { name: "txResult" as never, expose: ["committed"] },
+              steps: [
+                { kind: "compute", id: "step-tx-1", expression: "1", description: "compute", outputBinding: { name: "innerVar" as never } } as never,
+              ],
+            } as never,
+            { kind: "compute", id: "step-after", expression: "@innerVar.x", description: "leak" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("warning");
+  });
+
+  it("negative: TX 内 outputBinding を TX 内別 step から参照 → 許容 (TX scope 内では valid)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "transactionScope",
+              id: "step-tx",
+              description: "TX",
+              outputBinding: { name: "txResult" as never, expose: ["committed"] },
+              steps: [
+                { kind: "dbAccess", id: "step-tx-insert", description: "ins", tableId: "00000000-0000-4000-8000-000000000001" as never, operation: "INSERT", outputBinding: { name: "newScore" as never } } as never,
+                // TX 内別 step が @newScore.id を参照 (同 TX scope 内、許容される)
+                { kind: "eventPublish", id: "step-tx-publish", description: "pub", topic: "score.recorded", payload: "{ id: @newScore.id }" } as never,
+              ],
+            } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative: TX wrapper の outputBinding (txResult) を TX 外で `@txResult` shorthand 参照 → 許容 (expose 機構経由)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "transactionScope",
+              id: "step-tx",
+              description: "TX",
+              outputBinding: { name: "txResult" as never, expose: ["committed", "error"] },
+              steps: [],
+            } as never,
+            // TX wrapper の outputBinding.name=txResult は action scope (varKeys) に追加されるため
+            // TX 外参照は valid
+            { kind: "compute", id: "step-after", expression: "@txResult.committed", description: "valid" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative: TX なしの通常 step 間 outputBinding 参照 → 許容 (TX boundary 不在のため)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            { kind: "dbAccess", id: "step-01", description: "fetch", tableId: "00000000-0000-4000-8000-000000000001" as never, operation: "SELECT", outputBinding: { name: "rows" as never } } as never,
+            { kind: "compute", id: "step-02", expression: "@rows.length", description: "use rows" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found).toHaveLength(0);
+  });
+});

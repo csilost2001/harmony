@@ -32,9 +32,10 @@
  *     ambient / step.outputBinding.name / loop.collectionItemName / branch.errorVar など) で突合
  *   - `@event`: ProcessFlow.context.catalogs.events のキー突合
  *
- *   本 PR で対象外 (silent pass):
- *   - `@conv`: project-level conventionCategories catalog load 未実装のため Phase X2 で一時 disable
- *     (false positive 回避優先、#1269 提案 C で再活性化予定)
+ *   本 PR で対象外 (silent pass、validator name に "_VAR_AND_EVENT_" を含めない代わりに
+ *   error message で scope を明示する):
+ *   - `@conv`: project-level conventionCategories catalog load 未実装のため Phase X2 で disable
+ *     (Round 7 Should-fix 2 で convKeys dead-code 構築は削除、#1269 提案 C で再活性化予定)
  *   - `@msg` / `@const` / `@validation`: 横断 generic-definitions/* catalog 参照が必要、
  *     ProcessFlow 単体 validator では対応不可。#1269 提案 C (project-level catalog index) で対応予定
  *   - `@screen` / `@table` / `@view` / `@viewer` / `@layout` / `@contract` / `@type` /
@@ -42,6 +43,15 @@
  *     `@logEvent` / `@logConfig` / `@seq` / `@system` / `@ext`: 同上、Phase X3 拡張対象
  *
  *   将来 #1269 提案 C で 24 prefix 全体へ拡張時、本コメントを更新すること。
+ *
+ * Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1264 verdict 観点 4 / #1267 Round 7 Must-fix 5)
+ *   TransactionScopeStep inner step の outputBinding.name が TX 外から `@<varName>.<...>`
+ *   shorthand 参照されている場合に検出 (severity は maturity 連動: committed=error / その他=warning)。
+ *   #1264 verdict 「TX 内 → TX 外 mutation static 禁止」の validator-level enforcement。
+ *   TX 外参照可な値は `transactionScope.outputBinding.expose` で明示宣言した 3 値
+ *   (`committed` / `error` / `diagnostics`) のみ。
+ *   例: TX 内 `step-06a` で `outputBinding: { name: "newScore" }`、TX 外 `step-07` で
+ *   `@newScore.id` 参照 → 本 Check 32 が違反として報告。
  */
 import type { ProcessFlow, Step } from "../types/v3";
 import { isBuiltinStep } from "./stepGuards";
@@ -57,7 +67,8 @@ export interface AntipatternIssue {
     | "INVALID_SEQUENCE_CALL_SYNTAX"
     | "MULTIPLE_STATEMENTS_IN_SQL"
     | "SIDE_EFFECT_INLINE_BAN"
-    | "BROKEN_REFERENCE_MATURITY_AWARE";
+    | "BROKEN_REFERENCE_MATURITY_AWARE"
+    | "TX_INNER_VAR_LEAK_OUTSIDE_TX";
   /** ドットパス (例: actions[0].steps[1].expression) */
   path: string;
   message: string;
@@ -352,20 +363,28 @@ function findSideEffectInlineBans(value: string): Array<{ prefix: string; snippe
 // ─── Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1254 件 3.5 / #1263 Phase X2) ─
 
 interface BrokenRefContext {
-  /** ProcessFlow.context.catalogs から導出した参照可能 key 集合 */
-  convKeys: Set<string>;
-  /** action / step / loop / tx で定義された変数 (簡易、scope chain は厳密追跡しない) */
+  /** action 全体で参照可能な変数集合 (action.inputs / ambient / 通常 step の outputBinding.name / loop var / errorVar) */
   varKeys: Set<string>;
   /** ProcessFlow.context.catalogs.events のキー集合 */
   eventKeys: Set<string>;
-  /** flow 全体に存在する step.id 集合 (`@var.step.<step-id>` の step-id 検証用、#1267 Codex review fix) */
+  /** flow 全体に存在する step.id 集合 (`@var.step.<step-id>` の step-id 検証用) */
   stepIds: Set<string>;
   /** flow 全体に存在する transactionScope step の id 集合 (`@var.tx.<tx-id>` の tx-id 検証用) */
   txIds: Set<string>;
   /**
-   * Phase X2 では @msg / @const / @validation の catalog は generic-definitions/* に
-   * 置かれるが本 validator は ProcessFlow 単体検証のため横断 catalog の load は行わない。
-   * 当該 prefix は「報告しない」(scope-out)、将来 X3 で project 全体 validator に拡張する想定。
+   * TX inner step の outputBinding.name 集合 (#1267 Round 7 Must-fix 5)。
+   * `@<varName>` shorthand 参照 (例: `@newScore.id`) で `varName` が **txInnerVars に存在し
+   * varKeys に存在しない** 場合、TX inner var の TX 外参照として broken ref 報告する。
+   * #1264 verdict 観点 4 「TX 内 → TX 外 mutation static 禁止」の validator-level enforcement。
+   */
+  txInnerVars: Set<string>;
+  /**
+   * Phase X2 で対象外の prefix (msg / const / validation / screen / table / view 等) は
+   * silent pass。横断 catalog 参照が必要なため #1269 提案 C (project-level validator) で対応予定。
+   *
+   * Round 7 Should-fix 2: `@conv` 専用の convKeys Set は本 PR で削除 (dead-code 化していた)。
+   * 再活性化時は #1269 提案 C で project-level conventionCategories catalog index と一緒に
+   * 再設計する。
    */
 }
 
@@ -383,8 +402,21 @@ interface BrokenRefContext {
  */
 const REF_RE = /(?<![a-zA-Z0-9_])@([a-zA-Z][a-zA-Z0-9]*)\.([a-zA-Z_][a-zA-Z0-9_.-]*)/g;
 
-function collectBrokenRefs(value: string, ctx: BrokenRefContext): Array<{ prefix: string; key: string }> {
-  const broken: Array<{ prefix: string; key: string }> = [];
+/**
+ * `@<prefix>.<key>` 参照を 1 件抽出し、Phase X2 で対応する prefix について broken / TX-leak を判定する。
+ *
+ * @returns
+ *  - `{ kind: "broken", prefix, key }` — `@var` / `@event` の参照先未定義 (Phase X3 で全 prefix 拡張予定)
+ *  - `{ kind: "txLeak", varName, key }` — `@<varName>` shorthand 参照で `<varName>` が TX inner var
+ *    (txInnerVars に存在) かつ action scope var に不在 (varKeys に不在) → TX 外参照 spec violation
+ *  - `null` — 問題なし or 対象外 prefix (silent pass)
+ */
+type RefIssue =
+  | { kind: "broken"; prefix: string; key: string }
+  | { kind: "txLeak"; varName: string; key: string };
+
+function collectBrokenRefs(value: string, ctx: BrokenRefContext): RefIssue[] {
+  const issues: RefIssue[] = [];
   REF_RE.lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = REF_RE.exec(value)) !== null) {
@@ -393,59 +425,47 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): Array<{ prefix
     // 簡易判定: 最初のドット区切り segment が catalog key
     const segments = key.split(".");
     const head = segments[0];
-    if (prefix === "conv") {
-      // #1267 Opus review S-2 fix: project 拡張の `conventionCategories` を hardcoded list で
-      // 取りこぼすと committed maturity で false positive error を出すリスクがある。
-      // project-level conventionCategories catalog load の実装は #1269 提案 C で対応する想定で、
-      // 本 PR では @conv broken-ref 検出を一時的に **skip** (silent pass) する。
-      // hardcoded list (i18n / msg / regex / limit / scope / currency / tax / auth / role /
-      // permission / db / numbering / tx / externalOutcomeDefaults / extensionCategories /
-      // fieldKeys) では拡張カテゴリを網羅できない。
-      // (void ctx.convKeys; — convKeys は将来 project-level loader と共に再活性化する)
-      void ctx.convKeys;
-    } else if (prefix === "var") {
+
+    if (prefix === "var") {
       // @var.<scope>.<name> または @var.<name>。
       // #1267 Codex review fix: scope が `step` / `tx` の場合は 2 段目の step-id / tx-id が
       // 実 flow に存在するか追加検証する (#1264 verdict 6 値 scope のうち step / tx は LocalId 付き)。
       if (head === "step") {
-        // @var.step.<step-id>[.<field>...] 形式: 2 段目の step-id 存在を check
         const stepId = segments[1];
         if (!stepId || !ctx.stepIds.has(stepId)) {
-          broken.push({ prefix, key });
+          issues.push({ kind: "broken", prefix, key });
         }
       } else if (head === "tx") {
-        // @var.tx.<tx-id>[.<field>...] 形式: 2 段目の tx-id (transactionScope step の LocalId) を check
         const txId = segments[1];
         if (!txId || !ctx.txIds.has(txId)) {
-          broken.push({ prefix, key });
+          issues.push({ kind: "broken", prefix, key });
         }
       } else if (!ctx.varKeys.has(head)) {
         // それ以外の scope (`flowParameter` / `action` / `loop` / `global`) または変数名直接参照
-        broken.push({ prefix, key });
+        issues.push({ kind: "broken", prefix, key });
       }
     } else if (prefix === "event") {
       // @event.<topic> 形式
-      if (!ctx.eventKeys.has(head) && !ctx.eventKeys.has(key)) broken.push({ prefix, key });
+      if (!ctx.eventKeys.has(head) && !ctx.eventKeys.has(key)) {
+        issues.push({ kind: "broken", prefix, key });
+      }
+    } else if (ctx.txInnerVars.has(prefix) && !ctx.varKeys.has(prefix)) {
+      // Round 7 Must-fix 5: `@<varName>` shorthand 参照で <varName> が TX inner var かつ
+      // action scope var に存在しない場合、TX 外参照 spec violation として報告。
+      // 例: TX 内で `outputBinding: { name: "newScore" }`、TX 外で `@newScore.id` 参照
+      // → #1264 verdict 観点 4 「TX 内 → TX 外 mutation static 禁止」違反
+      issues.push({ kind: "txLeak", varName: prefix, key });
     }
-    // 他 prefix (msg / const / validation / screen / table / view 等) は本 PR では skip
-    // (横断 catalog 検証が必要、Phase X3 で project-level validator に拡張)
+    // 他 prefix (conv / msg / const / validation / screen / table / view 等) は本 PR では skip
+    // (横断 catalog 検証が必要、#1269 提案 C で project-level validator に拡張予定)
   }
-  return broken;
+  return issues;
 }
 
 function buildBrokenRefContext(flow: unknown): BrokenRefContext {
   const flowAny = flow as {
     context?: {
-      catalogs?: {
-        errors?: Record<string, unknown>;
-        externalSystems?: Record<string, unknown>;
-        secrets?: Record<string, unknown>;
-        envVars?: Record<string, unknown>;
-        domains?: Record<string, unknown>;
-        functions?: Record<string, unknown>;
-        events?: Record<string, unknown>;
-        modelEndpoints?: Record<string, unknown>;
-      };
+      catalogs?: { events?: Record<string, unknown> };
       ambientVariables?: Array<{ name: string }>;
     };
     actions?: Array<{
@@ -454,17 +474,6 @@ function buildBrokenRefContext(flow: unknown): BrokenRefContext {
     }>;
   };
   const catalogs = flowAny.context?.catalogs ?? {};
-  // @conv は category 名 (error / msg / regex / limit / role 等) を許容 + 既存 catalog keys
-  // 簡易: 既知 conv カテゴリを hard-code (conventions catalog の category list)
-  const convKeys = new Set<string>([
-    "i18n", "msg", "regex", "limit", "scope", "currency", "tax",
-    "auth", "role", "permission", "db", "numbering", "tx",
-    "externalOutcomeDefaults", "extensionCategories", "fieldKeys",
-  ]);
-  // ProcessFlow 内 catalogs にあるキーも追加 (例: errors / externalSystems / events)
-  Object.keys(catalogs.errors ?? {}).forEach((k) => convKeys.add(k));
-  Object.keys(catalogs.externalSystems ?? {}).forEach((k) => convKeys.add(k));
-  Object.keys(catalogs.events ?? {}).forEach((k) => convKeys.add(k));
 
   const varKeys = new Set<string>();
   // 6 値 scope enum (#1264 verdict)
@@ -476,10 +485,14 @@ function buildBrokenRefContext(flow: unknown): BrokenRefContext {
   // ambient variables (@requestId / @traceId / @sessionUserId 等)
   (flowAny.context?.ambientVariables ?? []).forEach((av) => varKeys.add(av.name));
 
-  // walk steps to collect outputBinding.name + step.id + transactionScope.id (#1267 Codex review fix)
+  // walk steps to collect outputBinding.name + step.id + transactionScope.id (#1267 Codex review fix)。
+  // Round 7 Must-fix 5: TX scope tracking — TX inner step の outputBinding.name は txInnerVars に
+  // 振り分け (varKeys に追加しない)。TX wrapper 自体の outputBinding (txResult 等) は varKeys へ
+  // (これは TX boundary の expose 機構)。
   const stepIds = new Set<string>();
   const txIds = new Set<string>();
-  function walkVarBindings(steps: unknown[]) {
+  const txInnerVars = new Set<string>();
+  function walkVarBindings(steps: unknown[], withinTx: boolean) {
     for (const s of steps) {
       const sAny = s as {
         id?: string;
@@ -497,51 +510,69 @@ function buildBrokenRefContext(flow: unknown): BrokenRefContext {
         stepIds.add(sAny.id);
         if (sAny.kind === "transactionScope") txIds.add(sAny.id);
       }
-      if (sAny.outputBinding?.name) varKeys.add(sAny.outputBinding.name);
-      if (sAny.collectionItemName) varKeys.add(sAny.collectionItemName);
-      if (sAny.collectionIndexName) varKeys.add(sAny.collectionIndexName);
-      (sAny.branches ?? []).forEach((b) => {
-        if (b.condition?.errorVar) varKeys.add(b.condition.errorVar);
-        if (b.steps) walkVarBindings(b.steps);
-      });
-      if (sAny.elseBranch?.steps) walkVarBindings(sAny.elseBranch.steps);
-      if (sAny.steps) walkVarBindings(sAny.steps);
-      if (sAny.onCommit) walkVarBindings(sAny.onCommit);
-      if (sAny.onRollback) walkVarBindings(sAny.onRollback);
+      const isTxStep = sAny.kind === "transactionScope";
+      if (isTxStep) {
+        // TX wrapper 自体の outputBinding (txResult 等) は action scope の expose 機構として varKeys へ
+        if (sAny.outputBinding?.name) varKeys.add(sAny.outputBinding.name);
+        // TX inner steps[] は withinTx=true で再帰
+        if (sAny.steps) walkVarBindings(sAny.steps, true);
+        // onCommit / onRollback は TX 外で実行 (process-flow-transaction.md §4 規約 2)、
+        // しかし inner step 結果は破棄済 / commit 後マージなので、ここでも withinTx=false (parent scope)。
+        if (sAny.onCommit) walkVarBindings(sAny.onCommit, false);
+        if (sAny.onRollback) walkVarBindings(sAny.onRollback, false);
+      } else {
+        // 通常 step: withinTx に応じて targetSet を切替
+        const targetSet = withinTx ? txInnerVars : varKeys;
+        if (sAny.outputBinding?.name) targetSet.add(sAny.outputBinding.name);
+        if (sAny.collectionItemName) targetSet.add(sAny.collectionItemName);
+        if (sAny.collectionIndexName) targetSet.add(sAny.collectionIndexName);
+        (sAny.branches ?? []).forEach((b) => {
+          if (b.condition?.errorVar) targetSet.add(b.condition.errorVar);
+          if (b.steps) walkVarBindings(b.steps, withinTx);
+        });
+        if (sAny.elseBranch?.steps) walkVarBindings(sAny.elseBranch.steps, withinTx);
+        if (sAny.steps) walkVarBindings(sAny.steps, withinTx);
+      }
     }
   }
-  (flowAny.actions ?? []).forEach((a) => walkVarBindings(a.steps ?? []));
+  (flowAny.actions ?? []).forEach((a) => walkVarBindings(a.steps ?? [], false));
 
   const eventKeys = new Set<string>(Object.keys(catalogs.events ?? {}));
 
-  return { convKeys, varKeys, eventKeys, stepIds, txIds };
+  return { varKeys, eventKeys, stepIds, txIds, txInnerVars };
 }
 
 // ─── walkSteps ──────────────────────────────────────────────────────────────
 
-type StepVisitor = (step: Step, path: string) => void;
+/**
+ * Step visitor. #1267 Round 7 Must-fix 5: `withinTx` 引数を追加し、TransactionScopeStep の
+ * `steps[]` 内を visit する際 true を渡す。`onCommit` / `onRollback` は TX 外で実行されるため false。
+ */
+type StepVisitor = (step: Step, path: string, withinTx: boolean) => void;
 
-function walkSteps(steps: Step[], basePath: string, visit: StepVisitor): void {
+function walkSteps(steps: Step[], basePath: string, visit: StepVisitor, withinTx: boolean = false): void {
   steps.forEach((step, i) => {
     const path = `${basePath}[${i}]`;
-    visit(step, path);
+    visit(step, path, withinTx);
     if (!isBuiltinStep(step)) return;
     if (step.kind === "branch") {
       (step.branches ?? []).forEach((b: { steps?: Step[] }, bi: number) =>
-        walkSteps(b.steps ?? [], `${path}.branches[${bi}].steps`, visit),
+        walkSteps(b.steps ?? [], `${path}.branches[${bi}].steps`, visit, withinTx),
       );
-      if (step.elseBranch) walkSteps(step.elseBranch.steps ?? [], `${path}.elseBranch.steps`, visit);
+      if (step.elseBranch) walkSteps(step.elseBranch.steps ?? [], `${path}.elseBranch.steps`, visit, withinTx);
     }
-    if (step.kind === "loop") walkSteps(step.steps ?? [], `${path}.steps`, visit);
+    if (step.kind === "loop") walkSteps(step.steps ?? [], `${path}.steps`, visit, withinTx);
     if (step.kind === "transactionScope") {
-      walkSteps(step.steps ?? [], `${path}.steps`, visit);
-      if (step.onCommit) walkSteps(step.onCommit, `${path}.onCommit`, visit);
-      if (step.onRollback) walkSteps(step.onRollback, `${path}.onRollback`, visit);
+      // TX inner: withinTx=true で再帰
+      walkSteps(step.steps ?? [], `${path}.steps`, visit, true);
+      // onCommit / onRollback は TX 外で実行 (process-flow-transaction.md §4 規約 2)
+      if (step.onCommit) walkSteps(step.onCommit, `${path}.onCommit`, visit, false);
+      if (step.onRollback) walkSteps(step.onRollback, `${path}.onRollback`, visit, false);
     }
     if (step.kind === "externalSystem") {
       Object.entries(step.outcomes ?? {}).forEach(([k, spec]: [string, unknown]) => {
         const specAny = spec as { sideEffects?: Step[] } | undefined;
-        if (specAny?.sideEffects) walkSteps(specAny.sideEffects, `${path}.outcomes.${k}.sideEffects`, visit);
+        if (specAny?.sideEffects) walkSteps(specAny.sideEffects, `${path}.outcomes.${k}.sideEffects`, visit, withinTx);
       });
     }
   });
@@ -552,7 +583,16 @@ function walkSteps(steps: Step[], basePath: string, visit: StepVisitor): void {
 /**
  * step オブジェクト内の文字列値を再帰的に走査して、述語に一致する値を収集する。
  * expression / condition / sql 等の任意フィールドを対象にする。
+ *
+ * #1267 Round 7 Must-fix 5 fix: ネスト sub-step 構造 (`steps` / `branches` / `elseBranch` /
+ * `onCommit` / `onRollback` / `sideEffects`) は walkSteps が個別 visit するため、本関数では skip
+ * する。これにより TransactionScopeStep wrapper の visit で TX inner step の string value を
+ * 重複検出 (withinTx context が不正確になる問題) を防ぐ。
  */
+const NESTED_STEP_KEYS = new Set([
+  "steps", "branches", "elseBranch", "onCommit", "onRollback", "sideEffects",
+]);
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function collectStringValues(obj: any, basePath: string, out: Array<{ path: string; value: string }>): void {
   if (!obj || typeof obj !== "object") return;
@@ -561,6 +601,8 @@ function collectStringValues(obj: any, basePath: string, out: Array<{ path: stri
     return;
   }
   for (const [key, value] of Object.entries(obj)) {
+    // ネスト sub-step 構造は walkSteps が個別 visit する (Round 7 fix)
+    if (NESTED_STEP_KEYS.has(key)) continue;
     const childPath = `${basePath}.${key}`;
     if (typeof value === "string") {
       out.push({ path: childPath, value });
@@ -615,8 +657,8 @@ export function checkAntipatterns(
     const actionAny = action as { steps?: Step[] };
     const steps: Step[] = actionAny.steps ?? [];
 
-    walkSteps(steps, `actions[${ai}].steps`, (step, stepPath) => {
-      // Check 16, 30, 31: step 内の全文字列値を走査
+    walkSteps(steps, `actions[${ai}].steps`, (step, stepPath, withinTx) => {
+      // Check 16, 30, 31, 32: step 内の全文字列値を走査
       const stringValues: Array<{ path: string; value: string }> = [];
       collectStringValues(step, stepPath, stringValues);
 
@@ -674,16 +716,34 @@ export function checkAntipatterns(
       }
 
       // Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1254 件 3.5 / #1263 Phase X2)
+      // Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1264 verdict 観点 4 / #1267 Round 7 Must-fix 5)
       for (const { path, value } of stringValues) {
         const refs = collectBrokenRefs(value, refCtx);
-        for (const { prefix, key } of refs) {
-          issues.push({
-            validator: "processFlowAntipatternValidator",
-            severity: brokenRefSeverity,
-            code: "BROKEN_REFERENCE_MATURITY_AWARE",
-            path,
-            message: `\`@${prefix}.${key}\` の参照先が ProcessFlow.context / 変数 scope に存在しません (maturity=${maturity})。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
-          });
+        for (const ref of refs) {
+          if (ref.kind === "broken") {
+            issues.push({
+              validator: "processFlowAntipatternValidator",
+              severity: brokenRefSeverity,
+              code: "BROKEN_REFERENCE_MATURITY_AWARE",
+              path,
+              // Round 7 Should-fix 1: scope を message で明示 (validator は @var / @event のみ対応、
+              // 他 prefix は #1269 提案 C で実装予定)
+              message: `\`@${ref.prefix}.${ref.key}\` の参照先が ProcessFlow.context / 変数 scope に存在しません (maturity=${maturity}、対象 prefix: @var / @event のみ)。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
+            });
+          } else {
+            // ref.kind === "txLeak" (Check 32):
+            // 現在の参照が TX 外から発生している場合のみ違反として報告 (TX 内 step が同 TX 内
+            // outputBinding を参照するのは valid pattern)。
+            if (!withinTx) {
+              issues.push({
+                validator: "processFlowAntipatternValidator",
+                severity: brokenRefSeverity,
+                code: "TX_INNER_VAR_LEAK_OUTSIDE_TX",
+                path,
+                message: `\`@${ref.varName}.${ref.key}\` は TransactionScopeStep inner step の outputBinding を TX 外から参照していますが、#1264 verdict 観点 4「TX 内 → TX 外 mutation static 禁止」違反です (maturity=${maturity})。TX 外参照は \`transactionScope.outputBinding.expose\` で宣言した \`committed\` / \`error\` / \`diagnostics\` のみ許可されます。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
+              });
+            }
+          }
         }
       }
     });
