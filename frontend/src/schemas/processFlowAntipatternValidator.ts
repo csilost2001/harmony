@@ -48,8 +48,8 @@
  *   TransactionScopeStep inner step の outputBinding.name が TX 外から `@<varName>.<...>`
  *   shorthand 参照されている場合に検出 (severity は maturity 連動: committed=error / その他=warning)。
  *   #1264 verdict 「TX 内 → TX 外 mutation static 禁止」の validator-level enforcement。
- *   TX 外参照可な値は `transactionScope.outputBinding.expose` で明示宣言した 3 値
- *   (`committed` / `error` / `diagnostics`) のみ。
+ *   TX 外参照可な値は `transactionScope.outputBinding.expose` で明示宣言した key のみ
+ *   (3 予約値 `committed` / `error` / `diagnostics` + 任意 inner var 名、Round 7 option C で拡張)。
  *   例: TX 内 `step-06a` で `outputBinding: { name: "newScore" }`、TX 外 `step-07` で
  *   `@newScore.id` 参照 → 本 Check 32 が違反として報告。
  */
@@ -540,11 +540,22 @@ function buildBrokenRefContext(flow: unknown): BrokenRefContext {
         // TX wrapper 自体の outputBinding (txResult 等) は action scope の expose 機構として varKeys へ
         if (sAny.outputBinding?.name) varKeys.add(sAny.outputBinding.name);
         // TX wrapper の expose Set を構築: 3 予約値 + 明示 expose 列挙値
-        const exposeSet = new Set<string>(["committed", "error", "diagnostics"]);
-        (sAny.outputBinding?.expose ?? []).forEach((k) => exposeSet.add(k));
+        // #1267 Round 8 Codex Must-fix: 同一 action 内で同名 outputBinding.name を持つ
+        // 複数 TX がある場合、後出しが前を上書きすると false positive leak になるため
+        // 既存 entry があれば union する (safe 側、expose されたものは expose されたまま)。
+        const newExpose = new Set<string>(["committed", "error", "diagnostics"]);
+        (sAny.outputBinding?.expose ?? []).forEach((k) => newExpose.add(k));
+        const mergeIntoExposeMap = (key: string) => {
+          const existing = txExposeMap.get(key);
+          if (existing) {
+            newExpose.forEach((k) => existing.add(k));
+          } else {
+            txExposeMap.set(key, new Set(newExpose));
+          }
+        };
         // outputBinding.name と step.id の両方を key にして lookup 可能化
-        if (sAny.outputBinding?.name) txExposeMap.set(sAny.outputBinding.name, exposeSet);
-        if (sAny.id) txExposeMap.set(sAny.id, exposeSet);
+        if (sAny.outputBinding?.name) mergeIntoExposeMap(sAny.outputBinding.name);
+        if (sAny.id) mergeIntoExposeMap(sAny.id);
         // TX inner steps[] は withinTx=true で再帰
         if (sAny.steps) walkVarBindings(sAny.steps, true);
         // onCommit / onRollback は TX 外で実行 (process-flow-transaction.md §4 規約 2)
@@ -770,7 +781,7 @@ export function checkAntipatterns(
                 severity: brokenRefSeverity,
                 code: "TX_INNER_VAR_LEAK_OUTSIDE_TX",
                 path,
-                message: `\`@${ref.varName}.${ref.key}\` は TransactionScopeStep inner step の outputBinding を TX 外から参照していますが、#1264 verdict 観点 4「TX 内 → TX 外 mutation static 禁止」違反です (maturity=${maturity})。TX 外参照は \`transactionScope.outputBinding.expose\` で宣言した \`committed\` / \`error\` / \`diagnostics\` のみ許可されます。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
+                message: `\`@${ref.varName}.${ref.key}\` は TransactionScopeStep inner step の outputBinding を TX 外から参照していますが、#1264 verdict 観点 4「TX 内 → TX 外 mutation static 禁止」違反です (maturity=${maturity})。TX 外参照は \`transactionScope.outputBinding.expose\` で宣言した key のみ許可されます (3 予約値 \`committed\` / \`error\` / \`diagnostics\` + 任意 inner var 名、Round 7 option C)。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
               });
             }
           }

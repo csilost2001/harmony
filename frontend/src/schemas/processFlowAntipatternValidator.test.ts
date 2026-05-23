@@ -876,6 +876,108 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
     expect(found).toHaveLength(0);
   });
 
+  it("positive (option C, @var.tx form): expose 不在 accessor を @var.tx.<step-id>.<accessor> で参照 → leak", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "transactionScope",
+              id: "step-tx",
+              description: "TX",
+              outputBinding: { name: "txResult" as never, expose: ["committed"] },  // newScore NOT exposed
+              steps: [
+                { kind: "dbAccess", id: "step-tx-insert", description: "ins", tableId: "00000000-0000-4000-8000-000000000001" as never, operation: "INSERT", outputBinding: { name: "newScore" as never } } as never,
+              ],
+            } as never,
+            // @var.tx.<step-id>.<accessor> 形式で expose 不在 accessor を参照 → leak
+            { kind: "compute", id: "step-after", expression: "@var.tx.step-tx.newScore.id", description: "leak via @var.tx form" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].message).toContain("newScore");
+  });
+
+  it("negative (option C, @var.tx form): expose 列挙済 accessor を @var.tx.<step-id>.<accessor> で参照 → 許容", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            {
+              kind: "transactionScope",
+              id: "step-tx",
+              description: "TX",
+              outputBinding: { name: "txResult" as never, expose: ["committed", "newScore"] },
+              steps: [
+                { kind: "dbAccess", id: "step-tx-insert", description: "ins", tableId: "00000000-0000-4000-8000-000000000001" as never, operation: "INSERT", outputBinding: { name: "newScore" as never } } as never,
+              ],
+            } as never,
+            { kind: "compute", id: "step-after", expression: "@var.tx.step-tx.newScore.id", description: "valid via @var.tx form" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative (option C, Round 8 Codex Must-fix): 同一 action 内に同名 outputBinding.name の TX が複数ある場合、expose は union される (false positive 回避)", () => {
+    const flow: ProcessFlow = {
+      meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
+      actions: [
+        {
+          id: "action-1" as never,
+          name: "Action 1",
+          trigger: "click",
+          steps: [
+            // TX-A: expose に "newOrder" を列挙
+            {
+              kind: "transactionScope",
+              id: "step-tx-a",
+              description: "TX A",
+              outputBinding: { name: "txResult" as never, expose: ["committed", "newOrder"] },
+              steps: [
+                { kind: "dbAccess", id: "step-a-ins", description: "ins", tableId: "00000000-0000-4000-8000-000000000001" as never, operation: "INSERT", outputBinding: { name: "newOrder" as never } } as never,
+              ],
+            } as never,
+            // TX-B: 同名 outputBinding "txResult" で expose に "newPayment" を列挙
+            // union merge により txExposeMap["txResult"] には {committed, error, diagnostics, newOrder, newPayment} が入る
+            {
+              kind: "transactionScope",
+              id: "step-tx-b",
+              description: "TX B",
+              outputBinding: { name: "txResult" as never, expose: ["committed", "newPayment"] },
+              steps: [
+                { kind: "dbAccess", id: "step-b-ins", description: "ins", tableId: "00000000-0000-4000-8000-000000000002" as never, operation: "INSERT", outputBinding: { name: "newPayment" as never } } as never,
+              ],
+            } as never,
+            // 両 TX の inner var を canonical form で参照 → 両方 OK (union のおかげ)
+            { kind: "compute", id: "step-after", expression: "@var.action.txResult.newOrder.id + @var.action.txResult.newPayment.id", description: "ref both" } as never,
+          ],
+        },
+      ],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
+    expect(found).toHaveLength(0);
+  });
+
   it("positive (option C): expose に NOT 列挙の inner var は shorthand 直接参照で leak (canonical access form 経由のみ許容、本 case は inner shorthand `@<innerVar>`)", () => {
     const flow: ProcessFlow = {
       meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },

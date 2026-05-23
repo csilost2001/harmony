@@ -20,7 +20,7 @@ Issue: [RFC #1254](https://github.com/csilost2001/harmony/issues/1254) 件 3.7 /
 | `@system` | ExternalSystem catalog | ✅ pure ref のみ | `context.catalogs.externalSystems` |
 | `@conv` | Conventions catalog (規約) | ✅ pure ref | `conventions/*.json` |
 | `@ext` | Extension namespace | ✅ pure ref | `extensions/<ns>/*.json` |
-| `@var` | ProcessFlow 変数 (scope chain) | ✅ pure ref ([process-flow-variables.md §3.6](process-flow-variables.md#36-スコープ-enum-6-値と-varscopename-1264-verdict--1263-phase-x2) 参照) | runtime scope |
+| `@var` | ProcessFlow 変数 (scope chain) | ✅ pure ref ([process-flow-variables.md §3.6](process-flow-variables.md#36-スコープ-enum-6-値と-varscopename-1264-verdict--1263-phase-x2) scope chain / [§3.7](process-flow-variables.md#37-tx-transactionscope-境界での変数挙動-1264-verdict-観点-4--1267-round-7-option-c) TX expose 参照) | runtime scope |
 | `@contract` | data-contract (DTO / Form / Result / ViewModel) | ✅ pure ref | `generic-definitions/data-contract/*.json` |
 | `@type` | domain-type (Entity / Model) | ✅ pure ref | `generic-definitions/domain-type/*.json` |
 | `@exception` | exception-type (例外階層) | ✅ pure ref | `generic-definitions/exception-type/*.json` |

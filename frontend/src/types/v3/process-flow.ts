@@ -868,21 +868,33 @@ export interface WorkflowStep extends StepBaseProps {
 // ─── TransactionScopeStep ──────────────────────────────────────────────
 
 /**
- * TX スコープ step。#1263 Phase X2 (#1264 verdict 観点 4):
- * `outputBinding` は `{ name, expose: ["committed" | "error" | "diagnostics"] }` 形式で
- * TX 外参照可な値を明示宣言する。expose 宣言後の semantics:
+ * TX スコープ step。#1263 Phase X2 (#1264 verdict 観点 4) + #1267 Round 7 option C:
+ * `outputBinding` は `{ name, expose: ["committed", "error", ...innerVarNames] }` 形式で
+ * TX 外参照可な key を明示宣言する。expose の各要素は以下のいずれか:
  *
+ * **予約値** (3 値、常に利用可能、expose に明示宣言不要):
+ * - `committed`: TX commit 成否 (boolean)
+ * - `error`: rollback 時のエラー情報 `{code, message}`
+ * - `diagnostics`: TX 実行 metrics
+ *
+ * **任意 inner var 名**: TX 内 step の `outputBinding.name` を expose に列挙すると
+ * TX 外から参照可能 (例: `expose: ["committed", "error", "newOrder"]` で TX 内 INSERT 結果
+ * `newOrder` を `@var.action.<name>.newOrder.id` で参照可)。
+ *
+ * **expose 宣言後の semantics**:
  * - TX commit 成功: `@var.action.<name>.committed === true`、`@var.action.<name>.error` は未定義
  * - TX rollback (rollbackOn のエラー): `@var.action.<name>.committed === false`、
  *   `@var.action.<name>.error.code` = エラーコード、`@var.action.<name>.error.message` = 例外メッセージ
  * - TX rollback (rollbackOn 外の汎用エラー): `@var.action.<name>.committed === false`、
  *   `@var.action.<name>.error.code === "UNHANDLED"`
+ * - TX commit 成功 + expose に inner var 名: `@var.action.<name>.<innerVar>.<field>` で参照可
  *
- * 後続 branch の `condition.kind: "expression"` で
- * `@var.action.<name>.error.code === 'STOCK_SHORTAGE'` のように参照する
- * (旧 shorthand `@txResult.*` は #1263 Phase X2 で `@var.<scope>.<name>` 形式に統一)。
+ * **canonical access form**: TX 外参照は `@var.action.<txName>.<key>` または shorthand
+ * `@<txName>.<key>` のみ。TX 内 inner var の `@<innerVar>` 直接参照は禁止
+ * (validator Check 32 で静的検出)。旧 shorthand `@txResult.*` は #1263 Phase X2 で
+ * canonical form に統一。
  *
- * 参照: docs/spec/process-flow-transaction.md §8.5、process-flow-variables.md §3.6-3.7、ISSUE #782
+ * 参照: docs/spec/process-flow-transaction.md §8.5、process-flow-variables.md §3.6-3.7、ISSUE #782、#1267 option C
  */
 export interface TransactionScopeStep extends StepBaseProps {
   kind: "transactionScope";
