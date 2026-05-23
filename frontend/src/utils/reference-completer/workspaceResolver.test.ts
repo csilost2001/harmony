@@ -203,8 +203,11 @@ describe("componentRefResolver", () => {
     if (s?.phase === "active") {
       expect(s.candidates).toHaveLength(2);
       // schema: ^generic-definitions/component-definition/<Name>$
+      // fragmentRef / exceptionTypeRef と同 symmetry の specific assertion (#1278 review S-1)
+      expect(s.candidates.map((c) => c.value)).toContain("generic-definitions/component-definition/SearchBox");
+      expect(s.candidates.find((c) => c.value.endsWith("/SearchBox"))?.label).toBe("SearchBox");
+      // 全件 schema pattern 適合の aggregate check (補強)
       expect(s.candidates.every((c) => c.value.startsWith("generic-definitions/component-definition/"))).toBe(true);
-      expect(s.candidates.every((c) => typeof c.label === "string" && !c.label.includes("/"))).toBe(true);
     }
   });
 });
