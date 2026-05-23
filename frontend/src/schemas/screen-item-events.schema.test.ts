@@ -302,3 +302,136 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
     expect(validateProcessFlow(flow)).toBe(false);
   });
 });
+
+// ─── ScreenItem.events[].effects[] AJV 検証 (#1283) ───────────────────────
+
+function makeItemWithEffects(effects: unknown[]): Record<string, unknown> {
+  return {
+    id: "submitBtn",
+    label: "送信",
+    type: "string",
+    events: [
+      {
+        id: "click",
+        handlerFlowId: FLOW_UUID,
+        effects,
+      },
+    ],
+  };
+}
+
+describe("ScreenItem.events[].effects[] (#1065 / #1283)", () => {
+  // --- 正常系 ---
+
+  it("effects 未指定で pass (後方互換)", () => {
+    const item = { id: "submitBtn", label: "送信", type: "string", events: [{ id: "click", handlerFlowId: FLOW_UUID }] };
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("clear variant — kind + target で pass", () => {
+    const item = makeItemWithEffects([{ kind: "clear", target: "cityList" }]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("setReadonly variant — boolean value で pass", () => {
+    const item = makeItemWithEffects([{ kind: "setReadonly", target: "amountInput", value: true }]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("setEnabled variant — boolean false で pass", () => {
+    const item = makeItemWithEffects([{ kind: "setEnabled", target: "submitBtn", value: false }]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("setVisible variant — TemplateString (string) value で pass", () => {
+    const item = makeItemWithEffects([{ kind: "setVisible", target: "errorMsg", value: "@self.hasError" }]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("setOptions variant — target + value (string) で pass", () => {
+    const item = makeItemWithEffects([{ kind: "setOptions", target: "prefSelect", value: "pref-catalog" }]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("showDialog variant — target のみ (value optional) で pass", () => {
+    const item = makeItemWithEffects([{ kind: "showDialog", target: "confirmDialog" }]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("showDialog variant — target + value で pass", () => {
+    const item = makeItemWithEffects([{ kind: "showDialog", target: "confirmDialog", value: "削除しますか?" }]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("setMessage variant — target + optional value で pass", () => {
+    const item = makeItemWithEffects([{ kind: "setMessage", target: "errorArea" }]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("refreshList variant — target のみで pass", () => {
+    const item = makeItemWithEffects([{ kind: "refreshList", target: "orderList" }]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("applyAjaxResult variant — mapping object で pass", () => {
+    const item = makeItemWithEffects([{ kind: "applyAjaxResult", mapping: { "data.cities": "cityList" } }]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  it("複数 effect を同時に持つ event が pass", () => {
+    const item = makeItemWithEffects([
+      { kind: "clear", target: "messageArea" },
+      { kind: "setVisible", target: "spinner", value: true },
+      { kind: "applyAjaxResult", mapping: { result: "outputField" } },
+    ]);
+    expect(validateScreenItem(item)).toBe(true);
+  });
+
+  // --- 異常系 ---
+
+  it("clear variant — target 欠落で fail", () => {
+    const item = makeItemWithEffects([{ kind: "clear" }]);
+    expect(validateScreenItem(item)).toBe(false);
+  });
+
+  it("setReadonly variant — value 欠落で fail", () => {
+    const item = makeItemWithEffects([{ kind: "setReadonly", target: "nameInput" }]);
+    expect(validateScreenItem(item)).toBe(false);
+  });
+
+  it("setEnabled variant — target 欠落で fail", () => {
+    const item = makeItemWithEffects([{ kind: "setEnabled", value: true }]);
+    expect(validateScreenItem(item)).toBe(false);
+  });
+
+  it("applyAjaxResult variant — mapping 欠落で fail", () => {
+    const item = makeItemWithEffects([{ kind: "applyAjaxResult" }]);
+    expect(validateScreenItem(item)).toBe(false);
+  });
+
+  it("applyAjaxResult.mapping の value が Identifier 形式違反 (大文字始まり) で fail", () => {
+    // Identifier は lowerCamelCase (^[a-z][a-zA-Z0-9]*$ パターン)
+    const item = makeItemWithEffects([{ kind: "applyAjaxResult", mapping: { "data.cities": "InvalidKey" } }]);
+    expect(validateScreenItem(item)).toBe(false);
+  });
+
+  it("未知 kind で fail", () => {
+    const item = makeItemWithEffects([{ kind: "unknownEffect", target: "field" }]);
+    expect(validateScreenItem(item)).toBe(false);
+  });
+
+  it("clear variant に unknownField を含むと fail (additionalProperties: false)", () => {
+    const item = makeItemWithEffects([{ kind: "clear", target: "cityList", unknownField: "rejected" }]);
+    expect(validateScreenItem(item)).toBe(false);
+  });
+
+  it("setVisible variant に unknownField を含むと fail (additionalProperties: false)", () => {
+    const item = makeItemWithEffects([{ kind: "setVisible", target: "field", value: true, unknownField: "rejected" }]);
+    expect(validateScreenItem(item)).toBe(false);
+  });
+
+  it("applyAjaxResult variant に unknownField を含むと fail (additionalProperties: false)", () => {
+    const item = makeItemWithEffects([{ kind: "applyAjaxResult", mapping: {}, unknownField: "rejected" }]);
+    expect(validateScreenItem(item)).toBe(false);
+  });
+});

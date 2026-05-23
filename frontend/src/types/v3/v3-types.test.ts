@@ -23,7 +23,7 @@ import type {
 import type { Harmony } from "./harmony";
 import type { Table, Constraint, ForeignKeyConstraint } from "./table";
 import type { Screen } from "./screen";
-import type { ScreenItem, ValueSource } from "./screen-item";
+import type { ScreenItem, ScreenItemEvent, ScreenItemEventEffect, ValueSource } from "./screen-item";
 import type {
   Uuid,
   TableId,
@@ -183,6 +183,113 @@ describe("v3 ScreenItem.valueFrom", () => {
   it("expression variant", () => {
     const v: ValueSource = { kind: "expression", expression: "@x + @y" };
     expect(v.kind).toBe("expression");
+  });
+});
+
+// ─── ScreenItemEventEffect discriminated union (#1283) ──────────────────
+
+describe("v3 ScreenItemEventEffect", () => {
+  it("clear variant — target のみ", () => {
+    const e: ScreenItemEventEffect = { kind: "clear", target: "cityList" as Identifier };
+    expect(e.kind).toBe("clear");
+    if (e.kind === "clear") {
+      expect(e.target).toBe("cityList");
+    }
+  });
+
+  it("setReadonly / setEnabled / setVisible — boolean value", () => {
+    const ro: ScreenItemEventEffect = { kind: "setReadonly", target: "nameInput" as Identifier, value: true };
+    const en: ScreenItemEventEffect = { kind: "setEnabled", target: "submitBtn" as Identifier, value: false };
+    const vi: ScreenItemEventEffect = { kind: "setVisible", target: "errorMsg" as Identifier, value: true };
+    expect(ro.kind).toBe("setReadonly");
+    expect(en.kind).toBe("setEnabled");
+    expect(vi.kind).toBe("setVisible");
+  });
+
+  it("setReadonly — TemplateString value (条件式)", () => {
+    const e: ScreenItemEventEffect = {
+      kind: "setReadonly",
+      target: "amountInput" as Identifier,
+      value: "@self.roleCode === 'admin'" as TemplateString,
+    };
+    expect(e.kind).toBe("setReadonly");
+    if (e.kind === "setReadonly") {
+      expect(typeof e.value).toBe("string");
+    }
+  });
+
+  it("setOptions — target + value (string)", () => {
+    const e: ScreenItemEventEffect = { kind: "setOptions", target: "prefectureSelect" as Identifier, value: "pref-options" };
+    expect(e.kind).toBe("setOptions");
+  });
+
+  it("showDialog — target + optional value", () => {
+    const withValue: ScreenItemEventEffect = { kind: "showDialog", target: "confirmDialog", value: "confirm message" };
+    const withoutValue: ScreenItemEventEffect = { kind: "showDialog", target: "infoDialog" };
+    expect(withValue.kind).toBe("showDialog");
+    expect(withoutValue.value).toBeUndefined();
+  });
+
+  it("setMessage — target + optional value", () => {
+    const e: ScreenItemEventEffect = { kind: "setMessage", target: "errorArea" };
+    expect(e.kind).toBe("setMessage");
+    expect(e.value).toBeUndefined();
+  });
+
+  it("refreshList — target のみ", () => {
+    const e: ScreenItemEventEffect = { kind: "refreshList", target: "orderList" as Identifier };
+    expect(e.kind).toBe("refreshList");
+  });
+
+  it("applyAjaxResult — mapping Record<string, Identifier>", () => {
+    const e: ScreenItemEventEffect = {
+      kind: "applyAjaxResult",
+      mapping: { "data.cities": "cityList" as Identifier },
+    };
+    expect(e.kind).toBe("applyAjaxResult");
+    if (e.kind === "applyAjaxResult") {
+      expect(e.mapping["data.cities"]).toBe("cityList");
+    }
+  });
+
+  it("discriminated narrowing — switch で kind 別 access が type-safe", () => {
+    const effects: ScreenItemEventEffect[] = [
+      { kind: "clear", target: "fieldA" as Identifier },
+      { kind: "setVisible", target: "fieldB" as Identifier, value: false },
+      { kind: "applyAjaxResult", mapping: { result: "outputField" as Identifier } },
+    ];
+    for (const eff of effects) {
+      switch (eff.kind) {
+        case "clear":
+          expect(eff.target).toBeDefined();
+          break;
+        case "setVisible":
+          expect(eff.value).toBeDefined();
+          break;
+        case "applyAjaxResult":
+          expect(eff.mapping).toBeDefined();
+          break;
+      }
+    }
+  });
+
+  it("ScreenItemEvent.effects?: ScreenItemEventEffect[] — ScreenItem に含めた compile + parse", () => {
+    const item: ScreenItem = {
+      id: "submitBtn" as Identifier,
+      label: "送信",
+      type: "string",
+      events: [
+        {
+          id: "click",
+          handlerFlowId: "11111111-1111-4111-8111-111111111111" as ScreenItemEvent["handlerFlowId"],
+          effects: [
+            { kind: "clear", target: "messageArea" as Identifier },
+            { kind: "setVisible", target: "spinner" as Identifier, value: true },
+          ],
+        } as ScreenItemEvent,
+      ],
+    };
+    expect(item.events?.[0].effects?.length).toBe(2);
   });
 });
 
