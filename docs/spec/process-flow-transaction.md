@@ -133,9 +133,9 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 3. **ネスト時の `REQUIRES_NEW`**: 親 TX が動いている時に `REQUIRES_NEW` の TransactionScopeStep に入ると、親 TX が一時停止して内側 TX が独立 commit/rollback する。内側 commit 後に親 TX が rollback しても、内側の commit は取り消されない
 4. **ネスト時の `NESTED`**: savepoint を使う。内側 rollback は親 TX の savepoint 復元、親 rollback は savepoint も含めて全 rollback
 5. **`outputBinding.expose` による TX 結果の明示宣言** (#1263 Phase X2 / #1264 verdict 観点 4): `transactionScope` step に `outputBinding: { "name": "txResult", "expose": ["committed", "error"] }` を指定する。TX 外の後続 step が参照できるのは expose で明示宣言した値のみ:
-   - `committed` → `@txResult.committed` (boolean、TX commit 成否)
-   - `error` → `@txResult.error` (`{ code, message }`、rollback 時のみ)
-   - `diagnostics` → `@txResult.diagnostics` (TX 実行 metrics)
+   - `committed` → `@var.action.txResult.committed` (boolean、TX commit 成否)
+   - `error` → `@var.action.txResult.error` (`{ code, message }`、rollback 時のみ)
+   - `diagnostics` → `@var.action.txResult.diagnostics` (TX 実行 metrics)
 6. **TX 境界での変数挙動** (#1264 verdict 観点 4 折衷案):
    - TX commit 成功時: TX 内 binding は親 scope にマージ・保持される (lifecycle semantics)
    - TX rollback 時: TX 内で新たに bind された変数は完全破棄 (メモリ汚染防止)
@@ -193,11 +193,11 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
     { "id": "step-tx-publish", "kind": "eventPublish", "topic": "order.created", "payload": "{ id: @newRow.id }" }
   ]
 },
-{ "id": "step-after-success", "kind": "return", "runIf": "@txResult.committed == true", "responseId": "201-created" },
-{ "id": "step-after-failure", "kind": "return", "runIf": "@txResult.committed == false && @txResult.error.code == 'STOCK_SHORTAGE'", "responseId": "409-stock-shortage" }
+{ "id": "step-after-success", "kind": "return", "runIf": "@var.action.txResult.committed == true", "responseId": "201-created" },
+{ "id": "step-after-failure", "kind": "return", "runIf": "@var.action.txResult.committed == false && @var.action.txResult.error.code == 'STOCK_SHORTAGE'", "responseId": "409-stock-shortage" }
 ```
 
-上の例では、`newRow` などの inner 変数の利用は TX 内 (`steps[]` の中、`step-tx-publish` 等) で完結させる。TX 外の `step-after-success` は `@txResult.committed` のみ参照する。
+上の例では、`newRow` などの inner 変数の利用は TX 内 (`steps[]` の中、`step-tx-publish` 等) で完結させる。TX 外の `step-after-success` は `@var.action.txResult.committed` のみ参照する。
 
 旧仕様 (#1263 Phase X2 前) では `@newRow.id` のような inner 変数直接参照を許容していたが、#1264 verdict 観点 4 で「TX 内 → TX 外 mutation static 禁止」が確定したため非推奨化された。
 
@@ -213,7 +213,7 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 { "id": "step-tx", "kind": "transactionScope", "steps": [
   { "id": "step-db-insert", "kind": "dbAccess", "operation": "INSERT", "outputBinding": { "name": "newRow" } }
 ]},
-{ "id": "step-external", "kind": "externalSystem", "runIf": "@txResult.committed == true",
+{ "id": "step-external", "kind": "externalSystem", "runIf": "@var.action.txResult.committed == true",
   "outcomes": { "failure": { "action": "compensate" } } }
 ```
 
@@ -224,8 +224,8 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 推奨パターン:
 
 - TX に `outputBinding: { "name": "txResult", "expose": ["committed", "error"] }` を付与する (v3 で string 短縮形 `"txResult"` は廃止、`expose` 明示宣言が #1264 verdict 観点 4 の要求)
-- TX commit 経路の後続 step: `runIf: "@txResult.committed == true"`
-- TX rollback 経路のエラー返却 step: `runIf: "@txResult.committed == false"`
+- TX commit 経路の後続 step: `runIf: "@var.action.txResult.committed == true"`
+- TX rollback 経路のエラー返却 step: `runIf: "@var.action.txResult.committed == false"`
 
 ```json
 {
@@ -233,9 +233,9 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
   "outputBinding": { "name": "txResult", "expose": ["committed", "error"] },
   "steps": [ ... ]
 },
-{ "id": "step-success", "kind": "return", "runIf": "@txResult.committed == true",
+{ "id": "step-success", "kind": "return", "runIf": "@var.action.txResult.committed == true",
   "responseId": "201-success" },
-{ "id": "step-rollback-error", "kind": "return", "runIf": "@txResult.committed == false",
+{ "id": "step-rollback-error", "kind": "return", "runIf": "@var.action.txResult.committed == false",
   "responseId": "409-conflict" }
 ```
 
@@ -288,7 +288,7 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
       "label": "在庫不足エラー",
       "condition": {
         "kind": "expression",
-        "expression": "@txResult.error.code === 'STOCK_SHORTAGE'"
+        "expression": "@var.action.txResult.error.code === 'STOCK_SHORTAGE'"
       },
       "steps": [
         { "id": "step-return-422", "kind": "return", "responseId": "422-stock-shortage" }
@@ -300,7 +300,7 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
       "label": "番号競合エラー",
       "condition": {
         "kind": "expression",
-        "expression": "@txResult.error.code === 'ORDER_NUMBER_CONFLICT'"
+        "expression": "@var.action.txResult.error.code === 'ORDER_NUMBER_CONFLICT'"
       },
       "steps": [
         { "id": "step-return-422b", "kind": "return", "responseId": "422-conflict" }
@@ -312,7 +312,7 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
       "label": "予期しない TX エラー (catch-all)",
       "condition": {
         "kind": "expression",
-        "expression": "@txResult.error.code === 'UNHANDLED'"
+        "expression": "@var.action.txResult.error.code === 'UNHANDLED'"
       },
       "steps": [
         { "id": "step-return-500", "kind": "return", "responseId": "500-internal" }
@@ -329,7 +329,7 @@ v3 では以下の旧 TX 表現は **schema から削除済**。読み込み時�
 {
   "id": "step-after-tx",
   "kind": "return",
-  "runIf": "@txResult.committed == true",
+  "runIf": "@var.action.txResult.committed == true",
   "responseId": "200-ok"
 }
 ```

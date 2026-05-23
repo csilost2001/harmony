@@ -293,7 +293,7 @@
 <li>非同期関数 <code>async</code> / <code>await</code></li>
 </ul>
 <h2 id="6-式が現れるフィールド一覧-v3">6. 式が現れるフィールド一覧 (v3)</h2>
-<p>スキーマ (<code>schemas/v3/process-flow.v3.schema.json</code>) 上では <code>ExpressionString</code> (= <code>string</code>) だが、評価時は本 §3〜§5 のルールに従う。</p>
+<p>スキーマ (<code>schemas/v3/process-flow.v3.schema.json</code>) 上では <code>TemplateString</code> (= <code>string</code>、旧 <code>ExpressionString</code> は deprecated alias) だが、評価時は本 §3〜§5 のルールに従う。</p>
 
 
 
@@ -485,7 +485,7 @@
 </ul>
 <h2 id="関連">関連</h2>
 <ul>
-<li>スキーマ: <a href="../../schemas/v3/process-flow.v3.schema.json"><code>schemas/v3/process-flow.v3.schema.json</code></a> (<code>ExpressionString</code> ($defs) は <code>common.v3.schema.json#/$defs/ExpressionString</code>)</li>
+<li>スキーマ: <a href="../../schemas/v3/process-flow.v3.schema.json"><code>schemas/v3/process-flow.v3.schema.json</code></a> (<code>TemplateString</code> ($defs) は <code>common.v3.schema.json#/$defs/TemplateString</code>、旧 <code>ExpressionString</code> は deprecated alias として retain)</li>
 <li>ambient 変数: <a href="../../spec/process-flow-variables/"><code>process-flow-variables.md</code></a></li>
 <li>catalog: <a href="../../spec/process-flow-runtime-conventions/"><code>process-flow-runtime-conventions.md</code></a></li>
 <li>workflow deadline: <a href="../../spec/process-flow-workflow/"><code>process-flow-workflow.md</code></a></li>

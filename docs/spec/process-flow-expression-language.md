@@ -203,7 +203,7 @@ dogfood サンプル (#523〜#537) では shorthand (`+ 14 days` / `- 24h`) を�
 
 ## 6. 式が現れるフィールド一覧 (v3)
 
-スキーマ (`schemas/v3/process-flow.v3.schema.json`) 上では `ExpressionString` (= `string`) だが、評価時は本 §3〜§5 のルールに従う。
+スキーマ (`schemas/v3/process-flow.v3.schema.json`) 上では `TemplateString` (= `string`、旧 `ExpressionString` は deprecated alias) だが、評価時は本 §3〜§5 のルールに従う。
 
 | フィールド | 型 | 例 |
 |------|------|-----|
@@ -335,7 +335,7 @@ effective = branch.condition.evaluate() && step.runIf
 
 ## 関連
 
-- スキーマ: [`schemas/v3/process-flow.v3.schema.json`](../../schemas/v3/process-flow.v3.schema.json) (`ExpressionString` ($defs) は `common.v3.schema.json#/$defs/ExpressionString`)
+- スキーマ: [`schemas/v3/process-flow.v3.schema.json`](../../schemas/v3/process-flow.v3.schema.json) (`TemplateString` ($defs) は `common.v3.schema.json#/$defs/TemplateString`、旧 `ExpressionString` は deprecated alias として retain)
 - ambient 変数: [`process-flow-variables.md`](process-flow-variables.md)
 - catalog: [`process-flow-runtime-conventions.md`](process-flow-runtime-conventions.md)
 - workflow deadline: [`process-flow-workflow.md`](process-flow-workflow.md)

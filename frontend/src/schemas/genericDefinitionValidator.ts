@@ -4,8 +4,10 @@
  * draft-state-policy §6 に基づき、AJV で schema 検証 + kind 固有 semantic warning を提供する。
  * validateHarmony.ts のキャッシュパターンに倣い、singleton AJV + 初回呼び出し時 compile。
  *
- * component-definition は schemas/v3/generic-definitions/ に固有 schema ファイルが存在しないため、
- * 親 schema 単独で検証する (briefing 指示に従う)。
+ * #1263 Phase X2 (#1267 Opus Round 4 Should-fix #1): 全 14 kind に固有 schema が存在する。
+ * 旧 8 kind (data-contract / domain-type / exception-type / application-rule / ui-behavior /
+ *   runtime-policy / ui-fragment) + 新 7 kind (component-definition / validation-rule /
+ *   constants / message / domain-event / log-event / log-config) すべて KIND_SCHEMAS に登録。
  */
 
 import type Ajv2020 from "ajv/dist/2020";
@@ -20,6 +22,14 @@ import applicationRuleSchema from "../../../schemas/v3/generic-definitions/appli
 import uiBehaviorSchema from "../../../schemas/v3/generic-definitions/ui-behavior.v3.schema.json";
 import runtimePolicySchema from "../../../schemas/v3/generic-definitions/runtime-policy.v3.schema.json";
 import uiFragmentSchema from "../../../schemas/v3/generic-definitions/ui-fragment.v3.schema.json";
+// #1263 Phase X2 — 7 新規 sub-schema
+import componentDefinitionSchema from "../../../schemas/v3/generic-definitions/component-definition.v3.schema.json";
+import validationRuleSchema from "../../../schemas/v3/generic-definitions/validation-rule.v3.schema.json";
+import constantsSchema from "../../../schemas/v3/generic-definitions/constants.v3.schema.json";
+import messageSchema from "../../../schemas/v3/generic-definitions/message.v3.schema.json";
+import domainEventSchema from "../../../schemas/v3/generic-definitions/domain-event.v3.schema.json";
+import logEventSchema from "../../../schemas/v3/generic-definitions/log-event.v3.schema.json";
+import logConfigSchema from "../../../schemas/v3/generic-definitions/log-config.v3.schema.json";
 
 export interface GenericDefinitionIssue {
   kind: GenericDefinitionKind;
@@ -29,8 +39,7 @@ export interface GenericDefinitionIssue {
   severity: "error" | "warning";
 }
 
-// kind → 固有 schema の $id
-// component-definition は固有 schema なしのため除外 (親 schema 単独で検証)
+// kind → 固有 schema の $id (#1263 Phase X2: 14 kind 全件)
 const KIND_SCHEMAS: Partial<Record<GenericDefinitionKind, object>> = {
   "data-contract": dataContractSchema as object,
   "exception-type": exceptionTypeSchema as object,
@@ -39,6 +48,14 @@ const KIND_SCHEMAS: Partial<Record<GenericDefinitionKind, object>> = {
   "ui-behavior": uiBehaviorSchema as object,
   "runtime-policy": runtimePolicySchema as object,
   "ui-fragment": uiFragmentSchema as object,
+  // #1263 Phase X2 — 7 新規 kind
+  "component-definition": componentDefinitionSchema as object,
+  "validation-rule": validationRuleSchema as object,
+  constants: constantsSchema as object,
+  message: messageSchema as object,
+  "domain-event": domainEventSchema as object,
+  "log-event": logEventSchema as object,
+  "log-config": logConfigSchema as object,
 };
 
 type ValidateFn = ReturnType<InstanceType<typeof Ajv2020>["compile"]>;

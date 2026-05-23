@@ -141,7 +141,7 @@ TX 範囲内 (`transactionScope.steps[]` 配下) で以下が起きた場合、*
 
 ### 3.3 ROLLBACK 後の `tryCatch` 捕捉
 
-自動 ROLLBACK された throw は、`transactionScope` step より **後ろにある** `BranchStep` の `branches[].condition: { kind: "tryCatch", errorCode: "..." }` で捕捉される。または `transactionScope.outputBinding` で TX 結果を expose し、後続 branch の `condition.kind: "expression"` で `@txResult.error.code` 等を参照する (推奨パターン、[`process-flow-transaction.md`](process-flow-transaction.md) §8.5)。
+自動 ROLLBACK された throw は、`transactionScope` step より **後ろにある** `BranchStep` の `branches[].condition: { kind: "tryCatch", errorCode: "..." }` で捕捉される。または `transactionScope.outputBinding` で TX 結果を expose し、後続 branch の `condition.kind: "expression"` で `@var.action.txResult.error.code` 等を参照する (推奨パターン、[`process-flow-transaction.md`](process-flow-transaction.md) §8.5)。
 
 `errorCode` のマッチング:
 - `affectedRowsCheck.errorCode` の値と `BranchConditionVariant.errorCode` が等しければマッチ
