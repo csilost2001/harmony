@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/exception-type.v3.schema.json",
+  "kind": "exception-type",
+  "name": "ValidationException",
+  "purpose": "入力 validation 失敗を統一的に表現する業務例外。",
+  "responsibilities": [
+    "ValidationStep が ngBodyExpression と組合せて throw する論理例外",
+    "fieldErrors 配列を抱える (どの field が NG だったか trace 可能)",
+    "HTTP 400 + @msg.ValidationFailed + 個別 fieldErrors にマップ"
+  ],
+  "targets": ["backend"],
+  "fields": [
+    { "name": "fieldErrors", "type": "array", "description": "{ field, code, message }[] 形式の各フィールドエラー詳細" }
+  ],
+  "constraints": [
+    "recoverable=true (ユーザー再入力で解消可能)",
+    "fieldErrors は client にそのまま開示する (悪用懸念なし、UX 上必要)"
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "generic-definitions/message/ValidationFailed" }
+  ],
+  "mappingHints": {
+    "httpStatus": 400,
+    "errorCode": "VALIDATION_FAILED",
+    "loggable": false,
+    "stackTrace": false
+  }
+}

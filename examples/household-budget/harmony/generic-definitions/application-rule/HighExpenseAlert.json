@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/application-rule.v3.schema.json",
+  "kind": "application-rule",
+  "name": "HighExpenseAlert",
+  "purpose": "1 件の支出が 100,000 円を超える取引を登録しようとした場合に確認ダイアログを挟む業務ルール。",
+  "responsibilities": [
+    "取引入力 / 編集画面の submit 直前に評価 (client-side)",
+    "amount > 100,000 AND categoryType=expense なら confirm dialog を表示",
+    "「本当にこの金額で登録しますか?」+ Yes/No",
+    "Yes なら通常の submit flow へ進む、No ならフォームに戻る"
+  ],
+  "targets": ["frontend"],
+  "constraints": [
+    "trigger: submit ボタン click",
+    "evaluation: categoryType=='expense' AND amount > 100000",
+    "action: showConfirmDialog -> if user says no, abort submit"
+  ],
+  "relations": [
+    { "kind": "appliesTo", "ref": "screens/transactionForm" },
+    { "kind": "appliesTo", "ref": "screens/transactionEdit" },
+    { "kind": "uses",      "ref": "generic-definitions/message/DeleteConfirm", "description": "ダイアログ UI は同じ Variant" }
+  ],
+  "mappingHints": {
+    "thresholdAmount": 100000,
+    "dialogVariant": "warning",
+    "rationale": "誤入力での高額取引を防ぐ (例: 1,200 円のつもりで 12,000 円と打った場合の検出)"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "TransactionDeleted",
+  "purpose": "取引削除成功時の完了トースト (@msg.TransactionDeleted)。",
+  "responsibilities": [
+    "削除 process-flow の 204 レスポンス後に toast 表示",
+    "undo 操作ヒントを併記 (5 秒以内なら undo 可能、UI 実装側で復元)"
+  ],
+  "targets": ["frontend"],
+  "mappingHints": {
+    "locales": {
+      "ja-JP": "取引を削除しました (5秒以内なら取り消し可)",
+      "en-US": "Transaction deleted (undo within 5s)"
+    },
+    "toastDurationMs": 5000,
+    "toastVariant": "warning",
+    "showUndoButton": true
+  }
+}

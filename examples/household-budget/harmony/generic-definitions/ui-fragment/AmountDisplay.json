@@ -1,0 +1,36 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/ui-fragment.v3.schema.json",
+  "kind": "ui-fragment",
+  "name": "AmountDisplay",
+  "purpose": "金額を ¥#,##0 形式 + 収入 / 支出に応じた符号と色で表示する再利用 UI 断片。",
+  "responsibilities": [
+    "取引一覧 / ダッシュボード KPI / 月次レポートで表示",
+    "categoryType=income → 緑 + 先頭に「+」、expense → 赤 + 先頭に「-」",
+    "通貨記号は @conv.currency.primary.code から導出 (現状 ¥)",
+    "tabular-nums で桁揃え (右寄せレイアウト用)"
+  ],
+  "targets": ["frontend"],
+  "fields": [
+    { "name": "amount",       "type": "Money.amount", "description": "表示する金額 (常に正値で渡す、符号は本 fragment が付与)" },
+    { "name": "categoryType", "type": "string", "constraints": ["'income' | 'expense'"], "description": "符号 + 色判定用" },
+    { "name": "size",         "type": "string", "constraints": ["'sm' | 'md' | 'lg' | 'xl'"], "description": "フォントサイズ" }
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "generic-definitions/domain-type/Money" }
+  ],
+  "mappingHints": {
+    "framework": "react",
+    "cssFramework": "tailwind",
+    "skeletonHtml": "<span class=\"font-bold tabular-nums {sizeClass} {colorClass}\">{sign}¥{formattedAmount}</span>",
+    "colorClasses": {
+      "income":  "text-emerald-600",
+      "expense": "text-rose-600"
+    },
+    "sizeClasses": {
+      "sm": "text-sm",
+      "md": "text-base",
+      "lg": "text-xl",
+      "xl": "text-3xl"
+    }
+  }
+}

@@ -1,0 +1,346 @@
+{
+  "$schema": "../../schemas/v3/harmony.v3.schema.json",
+  "schemaVersion": "v3",
+  "dataDir": "harmony",
+  "meta": {
+    "id": "3a000000-0000-4000-8000-000000000001",
+    "name": "家計簿アプリ (Household Budget)",
+    "description": "個人向け家計簿アプリ。複数口座 (現金 / 銀行 / クレジット) を横断して日々の収支を記録し、カテゴリ別 / 月次の支出傾向を可視化する。設計者が新スキーマ (v3) のみを根拠に一から構築した先進的 UX 寄りサンプル — React + Tailwind + SQLite + NestJS。",
+    "createdAt": "2026-05-24T00:00:00.000Z",
+    "updatedAt": "2026-05-24T00:00:00.000Z",
+    "mode": "upstream",
+    "maturity": "draft"
+  },
+  "techStack": {
+    "designer": {
+      "editorKind": "puck",
+      "cssFramework": "tailwind"
+    },
+    "backend": {
+      "language": "typescript",
+      "framework": "nestjs"
+    },
+    "database": {
+      "type": "sqlite",
+      "version": "3"
+    },
+    "frontend": {
+      "library": "react",
+      "framework": "vite"
+    },
+    "auth": {
+      "method": "jwt"
+    },
+    "deployment": {
+      "target": "docker"
+    }
+  },
+  "entities": {
+    "screenGroups": [
+      {
+        "id": "3a000000-6000-4000-8000-000000000001",
+        "name": "家計簿",
+        "color": "#6366f1"
+      },
+      {
+        "id": "3a000000-6000-4000-8000-000000000002",
+        "name": "マスタ管理",
+        "color": "#10b981"
+      }
+    ],
+    "screens": [
+      {
+        "id": "3a000000-2000-4000-8000-000000000001",
+        "no": 1,
+        "name": "ダッシュボード",
+        "kind": "dashboard",
+        "path": "/",
+        "groupId": "3a000000-6000-4000-8000-000000000001",
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-2000-4000-8000-000000000002",
+        "no": 2,
+        "name": "取引一覧",
+        "kind": "list",
+        "path": "/transactions",
+        "groupId": "3a000000-6000-4000-8000-000000000001",
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-2000-4000-8000-000000000003",
+        "no": 3,
+        "name": "取引入力",
+        "kind": "form",
+        "path": "/transactions/new",
+        "groupId": "3a000000-6000-4000-8000-000000000001",
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-2000-4000-8000-000000000004",
+        "no": 4,
+        "name": "カテゴリ管理",
+        "kind": "list",
+        "path": "/categories",
+        "groupId": "3a000000-6000-4000-8000-000000000002",
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-2000-4000-8000-000000000005",
+        "no": 5,
+        "name": "月次レポート",
+        "kind": "detail",
+        "path": "/reports/monthly",
+        "groupId": "3a000000-6000-4000-8000-000000000001",
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-2000-4000-8000-000000000006",
+        "no": 6,
+        "name": "取引編集",
+        "kind": "form",
+        "path": "/transactions/:transactionId/edit",
+        "groupId": "3a000000-6000-4000-8000-000000000001",
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      }
+    ],
+    "screenTransitions": [
+      {
+        "id": "tr-dashboard-to-new",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000001",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000003",
+        "label": "取引を追加",
+        "trigger": "click",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-dashboard-to-list",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000001",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000002",
+        "label": "取引一覧へ",
+        "trigger": "click",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-dashboard-to-report",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000001",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000005",
+        "label": "月次レポートへ",
+        "trigger": "click",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-dashboard-to-categories",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000001",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000004",
+        "label": "カテゴリを管理",
+        "trigger": "click",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-list-to-new",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000002",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000003",
+        "label": "新規追加",
+        "trigger": "click",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-new-to-list",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000003",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000002",
+        "label": "保存して一覧へ",
+        "trigger": "submit",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-new-to-list-cancel",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000003",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000002",
+        "label": "キャンセル",
+        "trigger": "cancel",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-list-to-dashboard",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000002",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000001",
+        "label": "ダッシュボードへ戻る",
+        "trigger": "back",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-categories-to-dashboard",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000004",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000001",
+        "label": "ダッシュボードへ戻る",
+        "trigger": "back",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-report-to-dashboard",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000005",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000001",
+        "label": "ダッシュボードへ戻る",
+        "trigger": "back",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-list-to-edit",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000002",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000006",
+        "label": "行 click で編集",
+        "trigger": "click",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-edit-to-list",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000006",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000002",
+        "label": "保存して一覧へ",
+        "trigger": "submit",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-edit-to-list-cancel",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000006",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000002",
+        "label": "キャンセル",
+        "trigger": "cancel",
+        "kind": "navigation"
+      }
+    ],
+    "tables": [
+      {
+        "id": "3a000000-1000-4000-8000-000000000001",
+        "no": 1,
+        "name": "ユーザー",
+        "physicalName": "users",
+        "category": "マスタ",
+        "columnCount": 6,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-1000-4000-8000-000000000002",
+        "no": 2,
+        "name": "口座",
+        "physicalName": "accounts",
+        "category": "マスタ",
+        "columnCount": 8,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-1000-4000-8000-000000000003",
+        "no": 3,
+        "name": "カテゴリ",
+        "physicalName": "categories",
+        "category": "マスタ",
+        "columnCount": 8,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-1000-4000-8000-000000000004",
+        "no": 4,
+        "name": "取引",
+        "physicalName": "transactions",
+        "category": "トランザクション",
+        "columnCount": 9,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      }
+    ],
+    "views": [
+      {
+        "id": "3a000000-3000-4000-8000-000000000001",
+        "no": 1,
+        "name": "月次集計ビュー",
+        "physicalName": "v_monthly_summary",
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      }
+    ],
+    "viewDefinitions": [
+      {
+        "id": "3a000000-4000-4000-8000-000000000001",
+        "no": 1,
+        "name": "取引一覧 viewer",
+        "kind": "list",
+        "sourceTableId": "3a000000-1000-4000-8000-000000000004",
+        "columnCount": 6,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-4000-4000-8000-000000000002",
+        "no": 2,
+        "name": "カテゴリ一覧 viewer",
+        "kind": "list",
+        "sourceTableId": "3a000000-1000-4000-8000-000000000003",
+        "columnCount": 5,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      }
+    ],
+    "processFlows": [
+      {
+        "id": "3a000000-5000-4000-8000-000000000001",
+        "no": 1,
+        "name": "取引登録",
+        "flowType": "screen",
+        "screenId": "3a000000-2000-4000-8000-000000000003",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-5000-4000-8000-000000000002",
+        "no": 2,
+        "name": "取引削除",
+        "flowType": "screen",
+        "screenId": "3a000000-2000-4000-8000-000000000002",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-5000-4000-8000-000000000003",
+        "no": 3,
+        "name": "月次レポート取得",
+        "flowType": "screen",
+        "screenId": "3a000000-2000-4000-8000-000000000005",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-5000-4000-8000-000000000004",
+        "no": 4,
+        "name": "取引更新",
+        "flowType": "screen",
+        "screenId": "3a000000-2000-4000-8000-000000000006",
+        "actionCount": 2,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-5000-4000-8000-000000000005",
+        "no": 5,
+        "name": "ダッシュボードデータ取得",
+        "flowType": "screen",
+        "screenId": "3a000000-2000-4000-8000-000000000001",
+        "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      }
+    ]
+  }
+}

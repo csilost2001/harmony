@@ -1,0 +1,125 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "3a000000-2000-4000-8000-000000000006",
+  "name": "取引編集",
+  "description": "既存取引を編集するフォーム。画面 mount 時に load action で transactions/:transactionId を取得して各 input に pre-fill、submit で update action を呼ぶ。新規画面 (transactionForm) と項目構成は同じ。",
+  "createdAt": "2026-05-24T00:00:00.000Z",
+  "updatedAt": "2026-05-24T00:00:00.000Z",
+  "maturity": "draft",
+  "kind": "form",
+  "purpose": "page",
+  "path": "/transactions/:transactionId/edit",
+  "groupId": "3a000000-6000-4000-8000-000000000001",
+  "auth": "required",
+  "processFlowId": "3a000000-5000-4000-8000-000000000004",
+  "items": [
+    {
+      "id": "occurredOn",
+      "label": "取引日",
+      "type": "date",
+      "direction": "input",
+      "required": true,
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "loadedTransaction.occurred_on"
+      },
+      "errorMessages": { "required": "取引日は必須です。" }
+    },
+    {
+      "id": "accountId",
+      "label": "口座",
+      "type": "integer",
+      "direction": "input",
+      "required": true,
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "loadedTransaction.account_id"
+      },
+      "errorMessages": { "required": "口座を選択してください。" }
+    },
+    {
+      "id": "categoryId",
+      "label": "カテゴリ",
+      "type": "integer",
+      "direction": "input",
+      "required": true,
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "loadedTransaction.category_id"
+      },
+      "errorMessages": { "required": "カテゴリを選択してください。" }
+    },
+    {
+      "id": "amount",
+      "label": "金額",
+      "type": "number",
+      "direction": "input",
+      "required": true,
+      "min": 1,
+      "max": 100000000,
+      "displayFormat": "¥#,##0",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "loadedTransaction.amount"
+      },
+      "errorMessages": {
+        "required": "金額は必須です。",
+        "outOfRange": "1 円以上 1 億円以下で入力してください。"
+      }
+    },
+    {
+      "id": "memo",
+      "label": "メモ",
+      "type": "string",
+      "direction": "input",
+      "required": false,
+      "maxLength": 200,
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "loadedTransaction.memo"
+      }
+    },
+    {
+      "id": "submitButton",
+      "label": "更新",
+      "type": "string",
+      "direction": "input",
+      "events": [
+        {
+          "id": "click",
+          "label": "更新を保存",
+          "handlerFlowId": "3a000000-5000-4000-8000-000000000004",
+          "handlerActionId": "act-update-transaction",
+          "argumentMapping": {
+            "transactionId": "@screen.route.transactionId",
+            "occurredOn": "@screen.occurredOn",
+            "accountId": "@screen.accountId",
+            "categoryId": "@screen.categoryId",
+            "amount": "@screen.amount",
+            "memo": "@screen.memo"
+          }
+        }
+      ]
+    },
+    {
+      "id": "deleteButton",
+      "label": "削除",
+      "type": "string",
+      "direction": "input",
+      "events": [
+        {
+          "id": "click",
+          "label": "この取引を削除",
+          "handlerFlowId": "3a000000-5000-4000-8000-000000000002",
+          "argumentMapping": {
+            "transactionId": "@screen.route.transactionId"
+          }
+        }
+      ]
+    }
+  ],
+  "design": {
+    "editorKind": "puck",
+    "cssFramework": "tailwind"
+  }
+}

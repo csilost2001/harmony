@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "FieldRequired",
+  "purpose": "汎用「必須項目未入力」エラー (@msg.FieldRequired)。{field} placeholder で具体的なフィールド名を差し込む。",
+  "responsibilities": [
+    "validation rule の `required` type 全件で使用 (occurredOn / accountId / categoryId / amount / yearMonth 等)",
+    "client-side inline error + server-side 400 レスポンスの fieldErrors 配列 両方で表示",
+    "{field} に field の label (display name) を埋める"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "field", "type": "string", "description": "対象フィールドの表示名 (例: '取引日', '金額', 'カテゴリ')" }
+  ],
+  "mappingHints": {
+    "locales": {
+      "ja-JP": "{field}は必須です",
+      "en-US": "{field} is required"
+    },
+    "severity": "error"
+  }
+}

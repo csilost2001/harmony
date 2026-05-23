@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/domain-event.v3.schema.json",
+  "kind": "domain-event",
+  "name": "TransactionDeleted",
+  "purpose": "取引が削除されたことを通知する domain event (@event.transaction.deleted)。",
+  "responsibilities": [
+    "deleteTransaction flow の最終 step で publish",
+    "削除済データを subscriber 側で復元可能にするため、payload に削除前の全行 (snapshot) を含む",
+    "undo 機能 (5 秒以内 cancel) はこの snapshot を使って再 INSERT する想定"
+  ],
+  "targets": ["backend"],
+  "fields": [
+    { "name": "transactionId", "type": "integer" },
+    { "name": "userId",        "type": "integer" },
+    { "name": "snapshot",      "type": "TransactionRow", "description": "削除前の取引全 column" },
+    { "name": "deletedAt",     "type": "string" }
+  ],
+  "mappingHints": {
+    "topic": "transaction.deleted",
+    "schemaVersion": 1
+  }
+}

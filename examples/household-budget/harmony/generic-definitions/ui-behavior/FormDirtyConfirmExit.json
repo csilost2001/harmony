@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/ui-behavior.v3.schema.json",
+  "kind": "ui-behavior",
+  "name": "FormDirtyConfirmExit",
+  "purpose": "未保存の変更があるフォーム画面から離脱しようとした場合に確認ダイアログを表示する横断 UX ルール。",
+  "responsibilities": [
+    "form 系画面 (transactionForm / transactionEdit) で適用",
+    "ブラウザの beforeunload + React Router の useBlocker の両方で検知",
+    "変更検知は form の initial state と現在値の deep-equal で判定",
+    "ダイアログで「破棄して移動 / キャンセル」の 2 択 (Save & Move は提供しない、submit ボタン誘導)"
+  ],
+  "targets": ["frontend"],
+  "relations": [
+    { "kind": "appliesTo", "ref": "screens/transactionForm" },
+    { "kind": "appliesTo", "ref": "screens/transactionEdit" }
+  ],
+  "mappingHints": {
+    "browserApi": "beforeunload",
+    "routerApi": "useBlocker (react-router v6.4+)",
+    "messageKey": "DiscardChangesConfirm",
+    "buttonLabels": {
+      "discard": { "ja-JP": "破棄して移動",   "en-US": "Discard Changes" },
+      "cancel":  { "ja-JP": "編集を続ける",   "en-US": "Keep Editing" }
+    }
+  }
+}

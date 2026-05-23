@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/domain-event.v3.schema.json",
+  "kind": "domain-event",
+  "name": "TransactionCreated",
+  "purpose": "新規取引が登録されたことを通知する domain event (@event.transaction.created)。",
+  "responsibilities": [
+    "createTransaction flow の最終 step で publish",
+    "subscriber 候補: 残高再計算 (BalanceCalculator) / 監査ログ (TransactionAuditCreated) / 月次集計キャッシュ無効化",
+    "現状は async pub/sub なしの inline 連携想定 (NestJS EventEmitter 等)"
+  ],
+  "targets": ["backend"],
+  "fields": [
+    { "name": "transactionId", "type": "integer", "description": "新規取引 ID" },
+    { "name": "userId",        "type": "integer" },
+    { "name": "amount",        "type": "number" },
+    { "name": "categoryId",    "type": "integer" },
+    { "name": "occurredOn",    "type": "string", "description": "ISO date" },
+    { "name": "createdAt",     "type": "string", "description": "ISO datetime" }
+  ],
+  "mappingHints": {
+    "topic": "transaction.created",
+    "schemaVersion": 1
+  }
+}

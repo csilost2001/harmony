@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../schemas/v3/view.v3.schema.json",
+  "id": "3a000000-3000-4000-8000-000000000001",
+  "name": "月次集計ビュー",
+  "description": "transactions を ユーザー × 年月 × 収支種別で集計する DB view。ダッシュボード / 月次レポート画面が直接 SELECT して使う。SQLite では view も透過的 (storage は持たず SELECT 時に展開)。",
+  "createdAt": "2026-05-24T00:00:00.000Z",
+  "updatedAt": "2026-05-24T00:00:00.000Z",
+  "maturity": "draft",
+  "physicalName": "v_monthly_summary",
+  "selectStatement": "SELECT t.user_id AS user_id, strftime('%Y-%m', t.occurred_on) AS year_month, c.category_type AS category_type, SUM(t.amount) AS total_amount FROM transactions t JOIN categories c ON c.id = t.category_id GROUP BY t.user_id, strftime('%Y-%m', t.occurred_on), c.category_type",
+  "outputColumns": [
+    { "physicalName": "user_id", "name": "ユーザー ID", "dataType": "INTEGER" },
+    { "physicalName": "year_month", "name": "年月", "dataType": "VARCHAR", "description": "YYYY-MM 形式。" },
+    { "physicalName": "category_type", "name": "種別", "dataType": "VARCHAR" },
+    { "physicalName": "total_amount", "name": "合計金額", "dataType": "DECIMAL" }
+  ],
+  "dependencies": [
+    "3a000000-1000-4000-8000-000000000004",
+    "3a000000-1000-4000-8000-000000000003"
+  ],
+  "materialized": false
+}

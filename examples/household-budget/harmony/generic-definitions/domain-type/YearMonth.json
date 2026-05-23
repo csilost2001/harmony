@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/domain-type.v3.schema.json",
+  "kind": "domain-type",
+  "name": "YearMonth",
+  "purpose": "YYYY-MM 形式の年月。月次集計 / レポート絞り込みで使用するドメイン型。",
+  "responsibilities": [
+    "fetchMonthlyReport の input.yearMonth, view v_monthly_summary.year_month 列の semantic 型",
+    "client-side パース時に Date オブジェクトに変換するヒントを mappingHints で提示",
+    "正規表現は @conv.regex.yearMonth と整合"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "year",  "type": "integer", "constraints": ["1900 <= year <= 9999"] },
+    { "name": "month", "type": "integer", "constraints": ["1 <= month <= 12"] }
+  ],
+  "constraints": [
+    "string 形式は ^\\d{4}-(0[1-9]|1[0-2])$",
+    "year + month 整数表現に展開可能"
+  ],
+  "mappingHints": {
+    "sql": { "type": "VARCHAR(7)", "comment": "ISO 8601 部分形式" },
+    "typescript": "`${number}-${'01'|'02'|...|'12'}`",
+    "parse": "const [y, m] = s.split('-').map(Number); return { year: y, month: m };"
+  }
+}

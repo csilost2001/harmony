@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/log-config.v3.schema.json",
+  "kind": "log-config",
+  "name": "DefaultLogConfig",
+  "purpose": "本アプリ全体のログ出力設定。レベル / 出力先 / フォーマット / ローテーションを一元管理。",
+  "responsibilities": [
+    "backend (NestJS pino) と frontend (console + Sentry 想定) の双方で参照する設定の単一情報源",
+    "dev=debug / staging=info / prod=warn の env-based level 切替",
+    "JSON 構造化ログ (CloudWatch / Loki / DataDog 等の取り込みやすさ重視)",
+    "PII (login_id / display_name) は明示マスク"
+  ],
+  "targets": ["runtime"],
+  "mappingHints": {
+    "levels": {
+      "dev":     "debug",
+      "staging": "info",
+      "prod":    "warn"
+    },
+    "sinks": {
+      "stdout": { "format": "json", "color": false },
+      "file":   { "path": "./logs/app.log", "rotate": "daily", "retention": "14d" }
+    },
+    "redactFields": ["login_id", "display_name", "password_hash"],
+    "structuredFormat": {
+      "timestamp": "ISO 8601",
+      "level":     "string",
+      "message":   "string",
+      "context":   "object (request_id / user_id / trace_id 等)"
+    }
+  }
+}

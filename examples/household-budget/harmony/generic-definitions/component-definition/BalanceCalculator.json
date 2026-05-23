@@ -1,0 +1,42 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/component-definition.v3.schema.json",
+  "kind": "component-definition",
+  "name": "BalanceCalculator",
+  "purpose": "口座残高をオンデマンドで集計する純粋関数コンポーネント (NestJS service)。残高は永続化せず本コンポーネントが都度算出する設計判断 (ADR-001 取引登録 flow 参照)。",
+  "responsibilities": [
+    "accounts.initial_balance + sum(income transactions where account_id=...) - sum(expense transactions where account_id=...)",
+    "全 user / 全 account のリクエスト時に計算",
+    "キャッシュは持たない (SQLite + 個人規模 < 数万件で十分高速)",
+    "transactions の INSERT / UPDATE / DELETE 後に再計算 (subscribe TransactionCreated/Updated/Deleted)"
+  ],
+  "targets": ["backend"],
+  "operations": [
+    {
+      "name": "calculateAccountBalance",
+      "inputs":  [
+        { "name": "userId",    "type": "integer" },
+        { "name": "accountId", "type": "integer" }
+      ],
+      "outputs": [{ "name": "balance", "type": "Money.amount" }],
+      "description": "指定 user × account の現在残高を計算"
+    },
+    {
+      "name": "calculateAllAccountsBalance",
+      "inputs":  [{ "name": "userId", "type": "integer" }],
+      "outputs": [{ "name": "accountBalances", "type": "AccountBalance[]" }],
+      "description": "全口座の残高を一括取得 (ダッシュボード用)"
+    }
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "tables/accounts" },
+    { "kind": "uses", "ref": "tables/transactions" },
+    { "kind": "uses", "ref": "tables/categories", "description": "category_type で income / expense 判別" }
+  ],
+  "mappingHints": {
+    "nestjs": {
+      "moduleClass": "BalanceModule",
+      "serviceClass": "BalanceCalculator",
+      "providers": ["@nestjs/typeorm"]
+    }
+  }
+}

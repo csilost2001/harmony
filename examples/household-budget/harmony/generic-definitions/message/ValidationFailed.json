@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/message.v3.schema.json",
+  "kind": "message",
+  "name": "ValidationFailed",
+  "purpose": "入力 validation 失敗時の汎用エラーメッセージ (@msg.ValidationFailed)。各フィールド固有エラーは別 message + validation-rule で表示。",
+  "responsibilities": [
+    "ValidationStep.inlineBranch.ngBodyExpression と組合せて 400 レスポンスの message field に展開",
+    "画面側で alert box / inline error の上部見出しとして表示"
+  ],
+  "targets": ["shared"],
+  "mappingHints": {
+    "locales": {
+      "ja-JP": "入力エラーがあります。下の項目を確認してください。",
+      "en-US": "Validation failed. Please check the fields below."
+    },
+    "severity": "error"
+  }
+}

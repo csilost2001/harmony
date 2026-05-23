@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/log-event.v3.schema.json",
+  "kind": "log-event",
+  "name": "TransactionAuditCreated",
+  "purpose": "取引登録の監査ログイベント (@logEvent.TransactionAuditCreated)。",
+  "responsibilities": [
+    "createTransaction flow 成功時に backend が emit",
+    "監査要件: 誰が / いつ / どの口座 × カテゴリ × 金額の取引を登録したか",
+    "構造化ログとして audit_log table or 外部 SIEM に流す想定",
+    "PII (金額自体は除く) は redact 対象外 (家計簿用途は本人のみ参照)"
+  ],
+  "targets": ["backend"],
+  "fields": [
+    { "name": "userId",        "type": "integer" },
+    { "name": "transactionId", "type": "integer" },
+    { "name": "accountId",     "type": "integer" },
+    { "name": "categoryId",    "type": "integer" },
+    { "name": "amount",        "type": "Money.amount" },
+    { "name": "createdAt",     "type": "string", "description": "ISO datetime" },
+    { "name": "requestId",     "type": "string", "description": "ambient @requestId" }
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "generic-definitions/domain-event/TransactionCreated", "description": "domain-event を契機に emit" },
+    { "kind": "uses", "ref": "generic-definitions/log-config/DefaultLogConfig" }
+  ],
+  "mappingHints": {
+    "logLevel": "info",
+    "category": "audit.transaction",
+    "retentionDays": 365
+  }
+}

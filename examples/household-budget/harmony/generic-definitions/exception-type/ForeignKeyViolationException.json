@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/exception-type.v3.schema.json",
+  "kind": "exception-type",
+  "name": "ForeignKeyViolationException",
+  "purpose": "FK 違反 (存在しない account_id / category_id 指定 or 他ユーザー所有のリソース参照) で INSERT が失敗した場合の業務例外。",
+  "responsibilities": [
+    "createTransaction の affectedRowsCheck で throw",
+    "DB の FK 制約発火を semantic 例外に翻訳 (raw SQL エラーをクライアントに見せない)",
+    "HTTP 422 (Unprocessable Entity) + 専用 errorCode にマップ"
+  ],
+  "targets": ["backend"],
+  "fields": [
+    { "name": "referencedField", "type": "string", "description": "違反した FK の field 名 (例: 'accountId', 'categoryId')" }
+  ],
+  "constraints": [
+    "recoverable=true (ユーザーが正しい ID を選び直せば成功する)"
+  ],
+  "mappingHints": {
+    "httpStatus": 422,
+    "errorCode": "FOREIGN_KEY_VIOLATION",
+    "loggable": true,
+    "stackTrace": false
+  }
+}

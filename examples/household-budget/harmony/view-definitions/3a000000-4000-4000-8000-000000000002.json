@@ -1,0 +1,57 @@
+{
+  "$schema": "../../../../schemas/v3/view-definition.v3.schema.json",
+  "id": "3a000000-4000-4000-8000-000000000002",
+  "name": "カテゴリ一覧 viewer",
+  "description": "categories を Level 1 (sourceTableId) で表示する単純 viewer。種別バッジ + アイコン + 色プレビューで視認性を上げる。",
+  "createdAt": "2026-05-24T00:00:00.000Z",
+  "updatedAt": "2026-05-24T00:00:00.000Z",
+  "maturity": "draft",
+  "kind": "list",
+  "sourceTableId": "3a000000-1000-4000-8000-000000000003",
+  "pageSize": 100,
+  "columns": [
+    {
+      "name": "name",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000003", "columnId": "col-name" },
+      "displayName": "カテゴリ名",
+      "type": "string",
+      "width": "1fr",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "categoryType",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000003", "columnId": "col-category-type" },
+      "displayName": "種別",
+      "type": "string",
+      "width": "100px"
+    },
+    {
+      "name": "icon",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000003", "columnId": "col-icon" },
+      "displayName": "アイコン",
+      "type": "string",
+      "width": "100px"
+    },
+    {
+      "name": "color",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000003", "columnId": "col-color" },
+      "displayName": "色",
+      "type": "string",
+      "width": "80px"
+    },
+    {
+      "name": "createdAt",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000003", "columnId": "col-created-at" },
+      "displayName": "作成日",
+      "type": "datetime",
+      "displayFormat": "YYYY/MM/DD",
+      "width": "120px",
+      "sortable": true
+    }
+  ],
+  "sortDefaults": [
+    { "columnName": "categoryType", "order": "asc" },
+    { "columnName": "name", "order": "asc" }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "$schema": "../../../../schemas/v3/view-definition.v3.schema.json",
+  "id": "3a000000-4000-4000-8000-000000000001",
+  "name": "取引一覧 viewer",
+  "description": "transactions を中心に accounts / categories を INNER JOIN した一覧 viewer。occurred_on 降順、ページサイズ 50、行 click で取引編集画面へ。",
+  "createdAt": "2026-05-24T00:00:00.000Z",
+  "updatedAt": "2026-05-24T00:00:00.000Z",
+  "maturity": "draft",
+  "kind": "list",
+  "pageSize": 50,
+  "query": {
+    "from": {
+      "tableId": "3a000000-1000-4000-8000-000000000004",
+      "alias": "t"
+    },
+    "joins": [
+      {
+        "kind": "INNER",
+        "tableId": "3a000000-1000-4000-8000-000000000002",
+        "alias": "a",
+        "on": ["t.account_id = a.id"]
+      },
+      {
+        "kind": "INNER",
+        "tableId": "3a000000-1000-4000-8000-000000000003",
+        "alias": "c",
+        "on": ["t.category_id = c.id"]
+      }
+    ],
+    "where": ["t.user_id = @sessionUserId"],
+    "orderBy": ["t.occurred_on DESC", "t.id DESC"]
+  },
+  "columns": [
+    {
+      "name": "occurredOn",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000004", "columnId": "col-occurred-on" },
+      "displayName": "取引日",
+      "type": "date",
+      "displayFormat": "YYYY/MM/DD",
+      "width": "110px",
+      "sortable": true
+    },
+    {
+      "name": "categoryName",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000003", "columnId": "col-name" },
+      "displayName": "カテゴリ",
+      "type": "string",
+      "width": "150px",
+      "filterable": true
+    },
+    {
+      "name": "categoryType",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000003", "columnId": "col-category-type" },
+      "displayName": "種別",
+      "type": "string",
+      "width": "90px"
+    },
+    {
+      "name": "accountName",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000002", "columnId": "col-name" },
+      "displayName": "口座",
+      "type": "string",
+      "width": "140px",
+      "filterable": true
+    },
+    {
+      "name": "amount",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000004", "columnId": "col-amount" },
+      "displayName": "金額",
+      "type": "number",
+      "displayFormat": "¥#,##0",
+      "width": "120px",
+      "align": "right",
+      "sortable": true
+    },
+    {
+      "name": "memo",
+      "tableColumnRef": { "tableId": "3a000000-1000-4000-8000-000000000004", "columnId": "col-memo" },
+      "displayName": "メモ",
+      "type": "string",
+      "width": "1fr"
+    }
+  ],
+  "sortDefaults": [
+    { "columnName": "occurredOn", "order": "desc" }
+  ]
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "name": "財布",
+    "account_type": "cash",
+    "initial_balance": 30000,
+    "currency": "JPY",
+    "created_at": "2026-04-01T00:00:00.000Z",
+    "updated_at": "2026-04-01T00:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "user_id": 1,
+    "name": "みずほ銀行",
+    "account_type": "bank",
+    "initial_balance": 500000,
+    "currency": "JPY",
+    "created_at": "2026-04-01T00:00:00.000Z",
+    "updated_at": "2026-04-01T00:00:00.000Z"
+  },
+  {
+    "id": 3,
+    "user_id": 1,
+    "name": "楽天カード",
+    "account_type": "credit_card",
+    "initial_balance": 0,
+    "currency": "JPY",
+    "created_at": "2026-04-01T00:00:00.000Z",
+    "updated_at": "2026-04-01T00:00:00.000Z"
+  }
+]

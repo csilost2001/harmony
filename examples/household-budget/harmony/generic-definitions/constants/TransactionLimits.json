@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/constants.v3.schema.json",
+  "kind": "constants",
+  "name": "TransactionLimits",
+  "purpose": "取引入力の境界値定数 (@const.TransactionLimits)。マジックナンバーを集約してアプリ横断で一意に。",
+  "responsibilities": [
+    "ValidationRule.AmountPositiveRange / MemoMaxLength から参照",
+    "Table 制約 ck_tx_amount_positive と整合 (DB CHECK の上限はここから生成する想定)",
+    "UI の input.max / maxLength 属性とも整合 (frontend 側でも参照)"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "minAmount",      "type": "integer", "description": "最小金額 (1 円、ゼロ取引は登録不可)" },
+    { "name": "maxAmount",      "type": "integer", "description": "最大金額 (1 億円、現実的に家計簿で扱う上限)" },
+    { "name": "memoMaxLength",  "type": "integer", "description": "メモ最大文字数 (200)" }
+  ],
+  "constraints": [
+    "minAmount > 0",
+    "maxAmount <= 100000000",
+    "memoMaxLength <= 200 (transactions.memo の VARCHAR(200) と一致)"
+  ],
+  "mappingHints": {
+    "values": {
+      "minAmount":     1,
+      "maxAmount":     100000000,
+      "memoMaxLength": 200
+    }
+  }
+}

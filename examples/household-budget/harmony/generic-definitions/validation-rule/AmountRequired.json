@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/validation-rule.v3.schema.json",
+  "kind": "validation-rule",
+  "name": "AmountRequired",
+  "purpose": "金額入力必須チェック (@validation.AmountRequired)。",
+  "responsibilities": [
+    "取引入力 / 編集画面の amount field と createTransaction / updateTransaction flow の双方で適用",
+    "client-side で先に評価して即フィードバック、server-side で再評価 (defense in depth)",
+    "失敗時 @msg.AmountRequired で表示"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "amount", "type": "number", "description": "検証対象 (null / undefined / 0 / 空文字いずれも NG)" }
+  ],
+  "constraints": [
+    "amount is not null",
+    "amount is not undefined",
+    "amount !== 0",
+    "amount !== ''"
+  ],
+  "relations": [
+    { "kind": "uses", "ref": "generic-definitions/message/AmountRequired" }
+  ]
+}

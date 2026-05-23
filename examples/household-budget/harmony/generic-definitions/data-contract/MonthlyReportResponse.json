@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/data-contract.v3.schema.json",
+  "kind": "data-contract",
+  "name": "MonthlyReportResponse",
+  "purpose": "GET /api/reports/monthly のレスポンス DTO。月次レポート画面の display モデル。",
+  "responsibilities": [
+    "fetchMonthlyReport flow の output.report と 1:1 対応",
+    "monthlyReport 画面の categoryBreakdown / totalIncome / totalExpense bind 元",
+    "categoryBreakdown[] は降順ソート済 (frontend は受信順そのまま描画)"
+  ],
+  "targets": ["shared"],
+  "fields": [
+    { "name": "yearMonth",         "type": "YearMonth", "description": "対象年月" },
+    { "name": "totalIncome",       "type": "Money.amount",  "description": "収入合計" },
+    { "name": "totalExpense",      "type": "Money.amount",  "description": "支出合計" },
+    { "name": "categoryBreakdown", "type": "CategoryAmount[]", "description": "カテゴリ別内訳の配列" }
+  ],
+  "relations": [
+    { "kind": "uses",           "ref": "generic-definitions/domain-type/YearMonth" },
+    { "kind": "uses",           "ref": "generic-definitions/domain-type/Money" },
+    { "kind": "transformsFrom", "ref": "views/v_monthly_summary", "description": "DB view からの集計結果を再整形" }
+  ],
+  "mappingHints": {
+    "contentType": "application/json",
+    "exampleResponse": {
+      "yearMonth":         "2026-06",
+      "totalIncome":       320000,
+      "totalExpense":      123470,
+      "categoryBreakdown": [
+        { "categoryName": "住居費", "categoryType": "expense", "color": "#10b981", "amount": 80000 },
+        { "categoryName": "食費",   "categoryType": "expense", "color": "#f59e0b", "amount": 10850 }
+      ]
+    }
+  }
+}
