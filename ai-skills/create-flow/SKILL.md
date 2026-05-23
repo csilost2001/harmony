@@ -109,15 +109,15 @@ testScenarios 設計時に、各 `dbAccess SELECT` で使用するテーブル�
 - TX 内 step は TX **開始前**に設定された変数のみ参照
 - TX 外 step が TX inner outputBinding を参照する場合の方針:
   - **方針 A (推奨、TX 成功後の再取得)**: TX 後に `dbAccess SELECT` で再取得する step を挟んで `@persistedX` 等にバインド
-  - **方針 B (TX 結果の判別と分岐)**: `transactionScope` の `outputBinding: { name: "txResult" }` を使い、TX 外で `@txResult.committed` (boolean) と `@txResult.error.code` で TX 結果を判別する。エラー条件分岐は `condition.kind: "expression"` + `expression: "@txResult.error.code === '<rollbackOn のコード>'"` (rollbackOn 列挙外の汎用エラーは catch-all `'UNHANDLED'`)。spec `docs/spec/process-flow-transaction.md §8.5` 参照 (#782)
-- TX 後の後続 step (TX 外) には **明示的 `runIf` ガード必須** (spec §8.3): `@txResult.committed == true` (commit 経路) / `@txResult.committed == false` (rollback 経路)。エンジン仕様で「自動 skip」は保証されない
+  - **方針 B (TX 結果の判別と分岐)**: `transactionScope` の `outputBinding: { name: "txResult" }` を使い、TX 外で `@var.action.txResult.committed` (boolean) と `@var.action.txResult.error.code` で TX 結果を判別する。エラー条件分岐は `condition.kind: "expression"` + `expression: "@var.action.txResult.error.code === '<rollbackOn のコード>'"` (rollbackOn 列挙外の汎用エラーは catch-all `'UNHANDLED'`)。spec `docs/spec/process-flow-transaction.md §8.5` 参照 (#782)
+- TX 後の後続 step (TX 外) には **明示的 `runIf` ガード必須** (spec §8.3): `@var.action.txResult.committed == true` (commit 経路) / `@var.action.txResult.committed == false` (rollback 経路)。エンジン仕様で「自動 skip」は保証されない
 - **外部呼び出し (`externalSystem` step) は TX 内に入れない** (anti-pattern、DB 接続長時間占有)
 
 ### Rule 3: runIf 連鎖の網羅性
 
 - 冪等 UPSERT (`UPSERT_IDEMPOTENT` 等) 後に続く step **すべて**に同条件 runIf
 - no-op パスにも対応する return step (典型: `{ status: 'ALREADY_PROCESSED' }`)
-- TX rollback ガード: TX 後の step に `runIf: "@txResult.committed == true"` (もしくは `false` で rollback パス)
+- TX rollback ガード: TX 後の step に `runIf: "@var.action.txResult.committed == true"` (もしくは `false` で rollback パス)
 
 ### Rule 4: branch / elseBranch 到達性
 

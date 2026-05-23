@@ -23,10 +23,25 @@
  *   error severity。
  *
  * Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1254 件 3.5 / #1263 Phase X2)
- *   `@<prefix>.<key>` 参照のうち、限定 prefix (`@conv` / `@var` / `@msg` / `@const` /
- *   `@validation` / `@event`) のキー後半が既知 catalog / scope に存在しない場合に検出。
+ *   `@<prefix>.<key>` 参照のうち、本 PR で **実装済みの 2 prefix** (`@var` / `@event`) で
+ *   キー後半が既知 catalog / scope に存在しない場合に検出。
  *   meta.maturity === "committed" なら error、それ以外 (draft / provisional) なら warning。
- *   24 prefix 全体の解決は scope 広大なため、本 PR では上記 6 prefix のみ対象 (Phase X3 で拡張)。
+ *
+ *   実装範囲 (#1267 adversarial review S-1 で正確化):
+ *   - `@var`: 6 値 scope enum + step-id / tx-id の存在確認、暗黙参照は varKeys (action.inputs /
+ *     ambient / step.outputBinding.name / loop.collectionItemName / branch.errorVar など) で突合
+ *   - `@event`: ProcessFlow.context.catalogs.events のキー突合
+ *
+ *   本 PR で対象外 (silent pass):
+ *   - `@conv`: project-level conventionCategories catalog load 未実装のため Phase X2 で一時 disable
+ *     (false positive 回避優先、#1269 提案 C で再活性化予定)
+ *   - `@msg` / `@const` / `@validation`: 横断 generic-definitions/* catalog 参照が必要、
+ *     ProcessFlow 単体 validator では対応不可。#1269 提案 C (project-level catalog index) で対応予定
+ *   - `@screen` / `@table` / `@view` / `@viewer` / `@layout` / `@contract` / `@type` /
+ *     `@exception` / `@rule` / `@behavior` / `@policy` / `@component` / `@fragment` /
+ *     `@logEvent` / `@logConfig` / `@seq` / `@system` / `@ext`: 同上、Phase X3 拡張対象
+ *
+ *   将来 #1269 提案 C で 24 prefix 全体へ拡張時、本コメントを更新すること。
  */
 import type { ProcessFlow, Step } from "../types/v3";
 import { isBuiltinStep } from "./stepGuards";

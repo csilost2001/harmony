@@ -311,7 +311,7 @@ current step → enclosing loop/tryCatch → enclosing tx → action → flowPar
 
 R3 で 3 AI 完全合流した折衷案:
 
-- **TX commit 成功時**: TX 内 binding は親 scope にマージ・保持される
+- **TX commit 成功時**: TX 内 binding は **ランタイムが破棄せず親 scope に残す (lifecycle semantics)**。ただし TX 外の後続 step からアクセスできる API は `outputBinding.expose` の 3 値のみ。inner 変数の **直接参照は spec 上保証しない** (詳細: [process-flow-transaction.md §8.1](process-flow-transaction.md))
 - **TX rollback 時**: TX 内で新たに bind された変数は **完全破棄** (Gemini 案採用、メモリ汚染防止)
 - **TX 外参照可な値**: `transactionScope.outputBinding.expose` で明示宣言した値のみ
   - `committed`: `@<name>.committed` (boolean、TX commit 成否)

@@ -381,7 +381,7 @@
 <h3 id="37-tx-transactionscope-境界での変数挙動-1264-verdict-観点-4">3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4)</h3>
 <p>R3 で 3 AI 完全合流した折衷案:</p>
 <ul>
-<li><strong>TX commit 成功時</strong>: TX 内 binding は親 scope にマージ・保持される</li>
+<li><strong>TX commit 成功時</strong>: TX 内 binding は <strong>ランタイムが破棄せず親 scope に残す (lifecycle semantics)</strong>。ただし TX 外の後続 step からアクセスできる API は <code>outputBinding.expose</code> の 3 値のみ。inner 変数の <strong>直接参照は spec 上保証しない</strong> (詳細: <a href="../../spec/process-flow-transaction/">process-flow-transaction.md §8.1</a>)</li>
 <li><strong>TX rollback 時</strong>: TX 内で新たに bind された変数は <strong>完全破棄</strong> (Gemini 案採用、メモリ汚染防止)</li>
 <li><strong>TX 外参照可な値</strong>: <code>transactionScope.outputBinding.expose</code> で明示宣言した値のみ
 <ul>
