@@ -48,15 +48,18 @@
 |---|---|
 | `v_monthly_summary` | `user_id × year_month × category_type` で SUM 集計、レポート画面が SELECT |
 
-### Screens (5 個)
+### Screens (6 個)
 
 | path | kind | 役割 |
 |---|---|---|
-| `/` | dashboard | 当月収支 KPI + 直近取引 + カテゴリ別ドーナツ |
-| `/transactions` | list | 取引一覧 (occurred_on DESC) |
-| `/transactions/new` | form | 取引新規入力 |
-| `/categories` | list | カテゴリ管理 |
-| `/reports/monthly` | detail | 月次レポート (年月セレクタ + KPI + 棒グラフ) |
+| `/` | dashboard | 当月収支 KPI + 直近取引 + クイックアクション |
+| `/transactions` | list | 取引一覧 (日付グループ + occurred_on DESC、行 click で編集) |
+| `/transactions/new` | form | 取引新規入力 (大きな金額入力 + 種別タブ + フォームカード) |
+| `/transactions/:transactionId/edit` | form | 取引編集 (mount 時 load action で pre-fill、削除ボタン併設) |
+| `/categories` | list | カテゴリ管理 (アイコン + 色プレビュー grid) |
+| `/reports/monthly` | detail | 月次レポート (年月セレクタ + 3 KPI + カテゴリ別棒グラフ) |
+
+各画面に対応する `<screen-id>.design.json` (GrapesJS shape + Tailwind HTML) を同梱しているため、designer で開いた瞬間からビジュアル付きで表示される (空キャンバスにならない)。
 
 ### ViewDefinitions (2 個)
 
@@ -65,13 +68,14 @@
 | 取引一覧 viewer | `transactions` + JOIN (accounts / categories) | level 2 構造化クエリ |
 | カテゴリ一覧 viewer | `categories` | level 1 (sourceTableId) シンプル |
 
-### ProcessFlows (3 個)
+### ProcessFlows (4 個)
 
 | name | flowType | screen | 主処理 |
 |---|---|---|---|
 | 取引登録 | `screen` | `/transactions/new` | validation → INSERT → 201 |
 | 取引削除 | `screen` | `/transactions` | DELETE (user_id 一致 WHERE) → affectedRows=1 検査 → 204 |
 | 月次レポート取得 | `screen` | `/reports/monthly` | validation → category 別 SELECT → 合計 SELECT → compose → 200 |
+| 取引更新 | `screen` | `/transactions/:transactionId/edit` | 2 アクション: load (GET, mount 時 pre-fill) + update (PUT, submit 時 UPDATE) |
 
 ## 設計判断 (主なもの)
 
@@ -95,19 +99,39 @@
 | ViewDefinition Level 1 / 2 | 単純 + JOIN を kind 別 | view-definitions/*.json |
 | Convention catalog | currency / regex / limit / msg / db | conventions/catalog.json |
 
+## 初期データ (seed)
+
+examples だから最初から多様なデータを入れている。`seed/` ディレクトリに以下:
+
+| ファイル | 件数 | 内容 |
+|---|---|---|
+| `seed/users.json` | 1 | デモユーザー (login_id=`demo`) |
+| `seed/accounts.json` | 3 | 財布 / みずほ銀行 / 楽天カード |
+| `seed/categories.json` | 12 | 支出 8 + 収入 4 (色 + アイコン付き) |
+| `seed/transactions.json` | 40 | 2026-04 〜 2026-06 の取引 (給与 / 家賃 / 食費 / GW 旅行 / 副収入 / ボーナス 等を含む現実的な多様性) |
+
+詳細は `seed/README.md` 参照。NestJS の起動時 seed として読み込む想定 (`INSERT OR IGNORE` で idempotent)。
+
 ## ディレクトリ構成
 
 ```
 examples/household-budget/
 ├── harmony.json              # workspace marker + techStack + entities 一覧
 ├── README.md                 # 本ファイル
+├── seed/                     # 初期サンプルデータ (1 + 3 + 12 + 40 = 56 行)
+│   ├── README.md
+│   ├── users.json
+│   ├── accounts.json
+│   ├── categories.json
+│   └── transactions.json
 └── harmony/                  # dataDir (harmony.json の dataDir で指定)
     ├── conventions/catalog.json
-    ├── tables/<uuid>.json    × 4
-    ├── views/<uuid>.json     × 1
+    ├── tables/<uuid>.json           × 4
+    ├── views/<uuid>.json            × 1
     ├── view-definitions/<uuid>.json × 2
-    ├── screens/<uuid>.json   × 5
-    └── process-flows/<uuid>.json × 3
+    ├── screens/<uuid>.json          × 6
+    ├── screens/<uuid>.design.json   × 6  (Tailwind HTML)
+    └── process-flows/<uuid>.json    × 4
 ```
 
 ## 動作確認
@@ -121,7 +145,7 @@ npm run validate:samples -- ../examples/household-budget
 ## 既知の MVP 範囲外
 
 - 認証画面 (login) — jwt 発行 / 検証は backend NestJS guard 想定、画面 / フローは未実装
-- 口座 CRUD 画面 — 初期 seed で 1 口座固定、複数口座 UI は将来
-- 取引編集画面 — 新規入力のみ、編集は同 form 画面の URL 引数で対応する想定
+- 口座 CRUD 画面 — seed で 3 口座を投入済だが、UI からの追加 / 編集はない (将来)
 - 予算機能 — `budgets` table + 進捗バー UI は別 sample / 別 PR で
 - インポート (CSV / Money Forward) — 将来検討
+- カテゴリ CRUD 画面 — 一覧表示のみ、新規 / 編集 / 削除 UI はない (seed で 12 件投入済)

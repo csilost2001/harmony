@@ -98,6 +98,16 @@
         "groupId": "3a000000-6000-4000-8000-000000000001",
         "maturity": "draft",
         "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-2000-4000-8000-000000000006",
+        "no": 6,
+        "name": "取引編集",
+        "kind": "form",
+        "path": "/transactions/:transactionId/edit",
+        "groupId": "3a000000-6000-4000-8000-000000000001",
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
       }
     ],
     "screenTransitions": [
@@ -179,6 +189,30 @@
         "targetScreenId": "3a000000-2000-4000-8000-000000000001",
         "label": "ダッシュボードへ戻る",
         "trigger": "back",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-list-to-edit",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000002",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000006",
+        "label": "行 click で編集",
+        "trigger": "click",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-edit-to-list",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000006",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000002",
+        "label": "保存して一覧へ",
+        "trigger": "submit",
+        "kind": "navigation"
+      },
+      {
+        "id": "tr-edit-to-list-cancel",
+        "sourceScreenId": "3a000000-2000-4000-8000-000000000006",
+        "targetScreenId": "3a000000-2000-4000-8000-000000000002",
+        "label": "キャンセル",
+        "trigger": "cancel",
         "kind": "navigation"
       }
     ],
@@ -284,6 +318,16 @@
         "flowType": "screen",
         "screenId": "3a000000-2000-4000-8000-000000000005",
         "actionCount": 1,
+        "maturity": "draft",
+        "updatedAt": "2026-05-24T00:00:00.000Z"
+      },
+      {
+        "id": "3a000000-5000-4000-8000-000000000004",
+        "no": 4,
+        "name": "取引更新",
+        "flowType": "screen",
+        "screenId": "3a000000-2000-4000-8000-000000000006",
+        "actionCount": 2,
         "maturity": "draft",
         "updatedAt": "2026-05-24T00:00:00.000Z"
       }
