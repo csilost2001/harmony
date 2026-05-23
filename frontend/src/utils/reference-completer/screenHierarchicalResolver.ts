@@ -41,11 +41,13 @@ export const screenHierarchicalResolver: Resolver = {
     if (m1) {
       const prefix = m1[1];
       const screens = ctx.workspace?.screens ?? [];
+      const lowerPrefix = prefix.toLowerCase();
       const candidates = screens
         .filter(
           (s) =>
+            prefix === "" ||
             s.id.startsWith(prefix) ||
-            s.name.toLowerCase().includes(prefix.toLowerCase()),
+            s.name.toLowerCase().includes(lowerPrefix),
         )
         .map((s) => ({
           value: s.id,

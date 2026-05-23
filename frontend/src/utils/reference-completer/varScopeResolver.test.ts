@@ -31,7 +31,7 @@ const mockFlow = {
 const ctx: CompletionContext = { flow: mockFlow };
 
 describe("varScopeResolver", () => {
-  it("@var. 入力時に全 scope 候補を返す", () => {
+  it("@var. 入力で 6 scope enum 全件候補", () => {
     const value = "@var.";
     const state = varScopeResolver.match(value, value.length, ctx);
     expect(state?.phase).toBe("active");
@@ -40,7 +40,10 @@ describe("varScopeResolver", () => {
     expect(values).toContain("flowParameter");
     expect(values).toContain("action");
     expect(values).toContain("step");
+    expect(values).toContain("tx");
+    expect(values).toContain("loop");
     expect(values).toContain("global");
+    expect(values.length).toBe(6);
   });
 
   it("@var.flow で prefix フィルタが効く", () => {
@@ -78,5 +81,19 @@ describe("varScopeResolver", () => {
     expect(state?.phase).toBe("active");
     if (state?.phase !== "active") return;
     expect(state.candidates.map((c) => c.value)).toContain("orderResult");
+  });
+
+  // S-3: Phase 1 範囲固定 — step / tx の name 補完は Phase 2-bis 未対応
+  it("@var.step.<id> name 補完は Phase 2-bis 未対応のため候補なし", () => {
+    const value = "@var.step.foo";
+    const state = varScopeResolver.match(value, value.length, { flow: mockFlow });
+    // Phase 2 regex は (flowParameter|action) 限定のため null
+    expect(state).toBeNull();
+  });
+
+  it("@var.tx.<id> name 補完も Phase 2-bis 未対応のため候補なし", () => {
+    const value = "@var.tx.bar";
+    const state = varScopeResolver.match(value, value.length, { flow: mockFlow });
+    expect(state).toBeNull();
   });
 });

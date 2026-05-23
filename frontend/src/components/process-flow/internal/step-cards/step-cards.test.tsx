@@ -889,6 +889,10 @@ describe("EventPublishStepCardBody resolver popup (#1282)", () => {
     // secretPrefixResolver が stripeApiKey を candidates に返すので listbox が出現する
     const listbox = container.querySelector('[role="listbox"]');
     expect(listbox).not.toBeNull();
+    // S-4: listbox 内容 assert — stripeApiKey が candidate として表示される
+    expect(listbox?.textContent).toContain("stripeApiKey");
+    const options = container.querySelectorAll('[role="option"]');
+    expect(options.length).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -928,5 +932,10 @@ describe("EventSubscribeStepCardBody resolver popup (#1282)", () => {
     // varScopeResolver が scope candidates を返すので listbox が出現する
     const listbox = container.querySelector('[role="listbox"]');
     expect(listbox).not.toBeNull();
+    // S-4: listbox 内容 assert — scope enum が candidate として表示される
+    expect(listbox?.textContent).toContain("flowParameter");
+    expect(listbox?.textContent).toContain("action");
+    const options = container.querySelectorAll('[role="option"]');
+    expect(options.length).toBe(6); // 6 scope enum 全件
   });
 });
