@@ -313,18 +313,20 @@ current step → enclosing loop/tryCatch → enclosing tx → action → flowPar
 
 editor 編集時の補完では両方の候補が並列に出る (resolver 別)。詳細は [process-flow-prefix-system.md § 11](process-flow-prefix-system.md#11-designer-time-alias-this--self-1301)。
 
-#### resolver 補完範囲 (#1282 / #1302)
+#### resolver 補完範囲 (#1282 / #1302 / #1316)
 
 `@var.<scope>.<name>` の補完 resolver (`varScopeResolver`) の実装状況:
 
-| scope | Phase 1/2 (#1282) | Phase 2-bis (#1302) |
-|---|---|---|
-| `flowParameter` | ✅ name 補完 | — |
-| `action` | ✅ name 補完 | — |
-| `step` | — | ✅ name 補完 (全 step id、TX/loop/branch 内 nested 含む) |
-| `tx` | — | ✅ name 補完 (kind="transactionScope" の id のみ) |
-| `loop` | — | ✅ name 補完 (collectionItemName / collectionIndexName / outputBinding.name) |
-| `global` | — | ⚠️ 空候補 (catalog 未確立、別 ISSUE で対応予定) |
+| scope | Phase 1/2 (#1282) | Phase 2-bis (#1302) | Phase 3 (#1316) |
+|---|---|---|---|
+| `flowParameter` | ✅ name 補完 | — | — |
+| `action` | ✅ name 補完 | — | — |
+| `step` | — | ✅ step-id 補完 (全 step id、TX/loop/branch/workflow/validation の nested 含む) | ✅ `@var.step.<id>.<binding-name>` 4-segment 補完 (`outputBinding.name`) + 候補に trailing "." 付与 |
+| `tx` | — | ✅ tx-id 補完 (kind="transactionScope" の id のみ) | ✅ `@var.tx.<id>.<member>` 4-segment 補完 (予約 3 値 `committed`/`error`/`diagnostics` + `outputBinding.expose[]`) + 候補に trailing "." 付与 |
+| `loop` | — | ✅ name 補完 (collectionItemName / collectionIndexName / outputBinding.name) | — (3-segment で完結) |
+| `global` | — | ⚠️ 空候補 (catalog 未確立、#1310 で対応予定) | — |
+
+注: Phase 2-bis の表記「name 補完」は実際には scope 階層第 3 segment (step-id / tx-id / loop-name) の補完を指す。`step` / `tx` は spec §3.6 line 250-251 の canonical 文法どおり 4-segment (`@var.step.<step-id>.<binding-name>` / `@var.tx.<tx-id>.<member>`) で完結し、Phase 3 (#1316) で最終 segment まで補完が繋がる。nested step 列挙の網羅は `iterSteps` ヘルパが担当 (compound step kind = transactionScope / loop / branch / workflow / validation の各 nested 配置 `steps[]` / `branches[].steps[]` / `elseBranch.steps[]` / `onCommit[]` / `onRollback[]` / `onApproved[]` / `onRejected[]` / `onTimeout[]` / `inlineBranch.{ok,ng}[]` を再帰列挙)。
 
 ### 3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)
 

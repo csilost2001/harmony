@@ -1,5 +1,6 @@
 // #1282: varScopeResolver unit tests
 // #1302: Phase 2-bis テスト (step / tx / loop / global name 補完) 追加
+// #1316: Phase 3 テスト (iterSteps nested 6 種網羅 + 4-segment 文法 + step/tx trailing)
 
 import { describe, expect, it } from "vitest";
 import { varScopeResolver } from "./varScopeResolver";
@@ -203,5 +204,263 @@ describe("varScopeResolver", () => {
     expect(state?.phase).toBe("active");
     if (state?.phase !== "active") return;
     expect(state.candidates).toHaveLength(0);
+  });
+
+  // Phase 3 (#1316): step / tx 候補に trailing: "." 付与 (4-segment 文法連動)
+  describe("Phase 3 (#1316) — step/tx 候補の trailing", () => {
+    it("@var.step. の各候補に trailing: \".\" が付く", () => {
+      const value = "@var.step.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase2bis });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      expect(state.candidates.length).toBeGreaterThan(0);
+      state.candidates.forEach((c) => expect(c.trailing).toBe("."));
+    });
+
+    it("@var.tx. の候補に trailing: \".\" が付く", () => {
+      const value = "@var.tx.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase2bis });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      expect(state.candidates.length).toBeGreaterThan(0);
+      state.candidates.forEach((c) => expect(c.trailing).toBe("."));
+    });
+
+    it("@var.loop. の候補には trailing が付かない (3-segment で完結)", () => {
+      const value = "@var.loop.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase2bis });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      expect(state.candidates.length).toBeGreaterThan(0);
+      state.candidates.forEach((c) => expect(c.trailing).toBeUndefined());
+    });
+
+    it("@var.flowParameter. の候補にも trailing が付かない", () => {
+      const value = "@var.flowParameter.";
+      const state = varScopeResolver.match(value, value.length, ctx);
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      expect(state.candidates.length).toBeGreaterThan(0);
+      state.candidates.forEach((c) => expect(c.trailing).toBeUndefined());
+    });
+  });
+
+  // Phase 3 (#1316): iterSteps の nested 6 種網羅
+  // workflow / TX.onCommit / TX.onRollback / branch.elseBranch / validation.inlineBranch
+  describe("Phase 3 (#1316) — iterSteps nested 網羅", () => {
+    const mockFlowPhase3Nested = {
+      id: "flow-3",
+      name: "phase3 nested",
+      actions: [
+        {
+          id: "action-1",
+          name: "compound nesting",
+          inputs: [],
+          steps: [
+            // TX.onCommit / onRollback 内 step
+            {
+              id: "tx-01",
+              kind: "transactionScope",
+              isolationLevel: "READ_COMMITTED",
+              rollbackOn: [],
+              steps: [{ id: "in-tx-body", kind: "dbAccess" }],
+              onCommit: [{ id: "in-tx-oncommit", kind: "log", message: "ok" }],
+              onRollback: [{ id: "in-tx-onrollback", kind: "log", message: "ng" }],
+            },
+            // branch.elseBranch 内 step
+            {
+              id: "branch-01",
+              kind: "branch",
+              description: "if-else",
+              branches: [
+                {
+                  id: "br-A",
+                  code: "A",
+                  condition: { kind: "expression", expression: "true" },
+                  steps: [{ id: "in-branch-a", kind: "dbAccess" }],
+                },
+              ],
+              elseBranch: {
+                id: "br-X",
+                code: "X",
+                steps: [{ id: "in-else-branch", kind: "log", message: "else" }],
+              },
+            },
+            // workflow.on{Approved,Rejected,Timeout} 内 step
+            {
+              id: "wf-01",
+              kind: "workflow",
+              description: "approval",
+              pattern: "approval-sequential",
+              approvers: [{ role: "manager" }],
+              onApproved: [{ id: "in-wf-approved", kind: "log", message: "ok" }],
+              onRejected: [{ id: "in-wf-rejected", kind: "log", message: "ng" }],
+              onTimeout: [{ id: "in-wf-timeout", kind: "log", message: "tm" }],
+            },
+            // validation.inlineBranch.{ok,ng} 内 step
+            {
+              id: "val-01",
+              kind: "validation",
+              description: "validate",
+              fieldErrorsVar: "fieldErrors",
+              inlineBranch: {
+                ok: [{ id: "in-val-ok", kind: "dbAccess" }],
+                ng: [{ id: "in-val-ng", kind: "log", message: "ng" }],
+              },
+            },
+          ],
+        },
+      ],
+    } as unknown as V3ProcessFlow;
+
+    it("@var.step. で TX.onCommit / onRollback 内 step id が候補に出る", () => {
+      const value = "@var.step.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase3Nested });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      const values = state.candidates.map((c) => c.value);
+      expect(values).toContain("in-tx-body");
+      expect(values).toContain("in-tx-oncommit");
+      expect(values).toContain("in-tx-onrollback");
+    });
+
+    it("@var.step. で branch.elseBranch 内 step id が候補に出る", () => {
+      const value = "@var.step.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase3Nested });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      const values = state.candidates.map((c) => c.value);
+      expect(values).toContain("in-branch-a");
+      expect(values).toContain("in-else-branch");
+    });
+
+    it("@var.step. で workflow.on{Approved,Rejected,Timeout} 内 step id が候補に出る", () => {
+      const value = "@var.step.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase3Nested });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      const values = state.candidates.map((c) => c.value);
+      expect(values).toContain("in-wf-approved");
+      expect(values).toContain("in-wf-rejected");
+      expect(values).toContain("in-wf-timeout");
+    });
+
+    it("@var.step. で validation.inlineBranch.{ok,ng} 内 step id が候補に出る", () => {
+      const value = "@var.step.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase3Nested });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      const values = state.candidates.map((c) => c.value);
+      expect(values).toContain("in-val-ok");
+      expect(values).toContain("in-val-ng");
+    });
+  });
+
+  // Phase 3 (#1316): 4-segment 文法 @var.step.<id>.<binding-name>
+  describe("Phase 3 (#1316) — 4-segment @var.step.<id>.<name>", () => {
+    it("@var.step.step-01. で該当 step の outputBinding.name が候補になる", () => {
+      const value = "@var.step.step-01.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase2bis });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      const values = state.candidates.map((c) => c.value);
+      expect(values).toContain("userResult"); // step-01.outputBinding.name
+      expect(values.length).toBe(1);
+    });
+
+    it("@var.step.step-02. (TX 内 nested step) でも outputBinding.name が候補になる", () => {
+      const value = "@var.step.step-02.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase2bis });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      const values = state.candidates.map((c) => c.value);
+      expect(values).toContain("createdOrder"); // step-02 (TX 内).outputBinding.name
+    });
+
+    it("@var.step.step-01.user で prefix フィルタが効く", () => {
+      const value = "@var.step.step-01.user";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase2bis });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      const values = state.candidates.map((c) => c.value);
+      expect(values).toContain("userResult");
+    });
+
+    it("@var.step.<存在しない id>. で空候補 (該当 step なし)", () => {
+      const value = "@var.step.nonexistent.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase2bis });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      expect(state.candidates).toHaveLength(0);
+    });
+  });
+
+  // Phase 3 (#1316): 4-segment 文法 @var.tx.<id>.<member>
+  describe("Phase 3 (#1316) — 4-segment @var.tx.<id>.<member>", () => {
+    const mockFlowPhase3Tx = {
+      id: "flow-3-tx",
+      name: "phase3 tx with expose",
+      actions: [
+        {
+          id: "action-1",
+          name: "tx with expose",
+          inputs: [],
+          steps: [
+            {
+              id: "tx-with-expose",
+              kind: "transactionScope",
+              isolationLevel: "READ_COMMITTED",
+              rollbackOn: [],
+              outputBinding: { name: "txResult", expose: ["newOrderId", "stockReserved"] },
+              steps: [
+                { id: "tx-child-01", kind: "dbAccess", outputBinding: { name: "newOrderId" } },
+              ],
+            },
+            // 非 TX step (tx scope ではマッチしないことを確認)
+            { id: "not-tx-step", kind: "dbAccess", outputBinding: { name: "x" } },
+          ],
+        },
+      ],
+    } as unknown as V3ProcessFlow;
+
+    it("@var.tx.tx-with-expose. で予約 3 値 + expose[] が候補になる", () => {
+      const value = "@var.tx.tx-with-expose.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase3Tx });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      const values = state.candidates.map((c) => c.value);
+      expect(values).toContain("committed");
+      expect(values).toContain("error");
+      expect(values).toContain("diagnostics");
+      expect(values).toContain("newOrderId");
+      expect(values).toContain("stockReserved");
+      expect(values.length).toBe(5);
+    });
+
+    it("@var.tx.tx-with-expose.comm で prefix フィルタが効く", () => {
+      const value = "@var.tx.tx-with-expose.comm";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase3Tx });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      const values = state.candidates.map((c) => c.value);
+      expect(values).toContain("committed");
+      expect(values.length).toBe(1);
+    });
+
+    it("@var.tx.not-tx-step. (非 TX step を tx scope で指定) は空候補", () => {
+      const value = "@var.tx.not-tx-step.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase3Tx });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      expect(state.candidates).toHaveLength(0);
+    });
+
+    it("@var.tx.<存在しない id>. でも空候補", () => {
+      const value = "@var.tx.nonexistent.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase3Tx });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      expect(state.candidates).toHaveLength(0);
+    });
   });
 });
