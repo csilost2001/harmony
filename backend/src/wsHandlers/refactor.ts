@@ -86,7 +86,8 @@ export const refactorHandlers: RpcHandlerMap = {
       });
       respond(result);
 
-      // broadcast: entityType 別 changed + 主要 4 種 reload (UI cache 無効化)
+      // broadcast: entityType 別 changed + 7 種 reload (UI cache 無効化)
+      // S-2 (Opus 独立レビュー): rename / undo で同じ 7 種を broadcast (cache 不整合防止)
       const wid = wsId();
       bridge.broadcast({
         wsId: wid,
@@ -94,9 +95,10 @@ export const refactorHandlers: RpcHandlerMap = {
         data: { oldId, newId, renamed: true },
         excludeClientId: clientId,
       });
-      // 参照側 entity の cache を全 broadcast で reload させる (主要 4 種: screen / table / processFlow / view)
+      // 参照側 entity の cache を全 broadcast で reload させる (7 種全件)
       const RELOAD_EVENTS = [
         "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
+        "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
       ];
       for (const ev of RELOAD_EVENTS) {
         if (ev === `${et}Changed`) continue; // 自身の event は上で発行済

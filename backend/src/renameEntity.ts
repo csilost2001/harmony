@@ -138,10 +138,16 @@ const PROCESS_FLOW_LEGACY_DIR = "actions";
  * 別途 specialRefHandlers で扱う。
  *
  * 例: rename target が "table" の場合、参照側 JSON 内の `tableId: "<oldId>"` を更新する。
+ *
+ * M-2/M-3 (Opus 独立レビュー): 各種スキーマ上の追加 ref field を追補:
+ * - table: sourceTableId (view-definition.v3 §25), targetTableId (er-layout.v3 §41),
+ *   referencedTableId (table.v3 §195 FK)
+ * - screen: sourceScreenId / targetScreenId (harmony.v3 §290 ScreenTransitions、
+ *   process-flow.v3 §1244 ScreenTransitionStep)
  */
 const SCALAR_REF_FIELDS: Record<RenameEntityType, string[]> = {
-  screen: ["screenId", "initialScreen"],
-  table: ["tableId"],
+  screen: ["screenId", "initialScreen", "sourceScreenId", "targetScreenId"],
+  table: ["tableId", "sourceTableId", "targetTableId", "referencedTableId"],
   processFlow: ["processFlowId"],
   sequence: ["sequenceId"],
   view: ["viewId"],
@@ -153,17 +159,19 @@ const SCALAR_REF_FIELDS: Record<RenameEntityType, string[]> = {
  * 複合 ref 構造 (entity 種別 → 親 field 名 → 内部 sub-field 名)。
  *
  * 例: rename target が "table" → 親 "tableColumnRef" → sub "tableId" を更新。
+ *
+ * S-1 (Opus 独立レビュー): 実 schema (`schemas/v3/`) 全 grep を根拠に整理:
+ * - `screenItemRef` (common.v3.schema.json §408 ScreenItemRef): 実在
+ * - `tableColumnRef` (view-definition.v3.schema.json §197 + 他): 実在
+ * - `viewColumnRef` / `processFlowResponseRef` / `actionRef` / `actionStepRef`:
+ *   全 schema で 0 hit のため削除 (dead code、misleading)
  */
 const COMPOSITE_REF_FIELDS: Record<RenameEntityType, Array<{ parent: string; sub: string }>> = {
   screen: [{ parent: "screenItemRef", sub: "screenId" }],
   table: [{ parent: "tableColumnRef", sub: "tableId" }],
-  processFlow: [
-    { parent: "processFlowResponseRef", sub: "processFlowId" },
-    { parent: "actionRef", sub: "processFlowId" },
-    { parent: "actionStepRef", sub: "processFlowId" },
-  ],
+  processFlow: [],
   sequence: [],
-  view: [{ parent: "viewColumnRef", sub: "viewId" }],
+  view: [],
   viewDefinition: [],
   pageLayout: [],
 };
@@ -299,16 +307,25 @@ async function readEntityRaw(
   }
 }
 
-/** entity の `id` field (top-level) を newId に書き換えた copy を返す (ProcessFlow も top-level `id` を持つ) */
+/** entity の id を newId に書き換えた copy を返す。
+ *
+ * - ProcessFlow は **meta.id** を持つ (top-level id は schema 違反 — process-flow.v3.schema.json
+ *   は `additionalProperties: false` で root を `meta` / `actions` 等に限定)。
+ *   M-1/M-5 (Opus 独立レビュー): top-level `id` を付けず、meta.id を常時 set する。
+ * - 他 6 entity (Screen / Table / Sequence / View / ViewDefinition / PageLayout) は
+ *   EntityMeta を直接展開して top-level に `id` を持つ。
+ */
 function withRewrittenId(entityType: RenameEntityType, data: unknown, newId: string): unknown {
   if (!data || typeof data !== "object") return data;
   const obj = data as Record<string, unknown>;
-  // ProcessFlow は meta.id も持つ場合あり
   if (entityType === "processFlow") {
-    const meta = obj.meta && typeof obj.meta === "object" && !Array.isArray(obj.meta)
-      ? { ...(obj.meta as Record<string, unknown>) } : null;
-    if (meta && typeof meta.id === "string") meta.id = newId;
-    return { ...obj, id: newId, ...(meta ? { meta } : {}) };
+    const baseMeta = obj.meta && typeof obj.meta === "object" && !Array.isArray(obj.meta)
+      ? (obj.meta as Record<string, unknown>) : null;
+    const meta = baseMeta ? { ...baseMeta, id: newId } : { id: newId };
+    // top-level id を意図せず混入させない (process-flow.v3 schema: additionalProperties: false)
+    const { id: _droppedTopLevelId, ...rest } = obj;
+    void _droppedTopLevelId;
+    return { ...rest, meta };
   }
   return { ...obj, id: newId };
 }
@@ -517,8 +534,32 @@ async function scanAllRefs(
     // 参照側 update には含めない
     if (src.entityKind === entityType && src.entityId === oldId) continue;
 
+    // M-4 (Opus 独立レビュー): screen-flow-positions / harmony.json は walker の VALUE 一致
+    // ロジックでは捕捉できない (object KEY / entry 自身の id field) ため、専用 handler で
+    // 先に走査 + plan 化する。汎用 walker は変更しない (KEY 走査の generic 化は scope 外)。
+    let specializedUpdated: unknown = src.data;
+    let specializedHits = 0;
+    const onSpecialMatch = (jsonPointer: string) => {
+      specializedHits++;
+      locations.push({
+        filePath: toRel(src.absPath, dataRoot),
+        entityKind: src.entityKind,
+        entityId: src.entityId,
+        jsonPointer,
+        oldValue: oldId,
+      });
+    };
+    if (src.entityKind === "screenFlowPositions" && entityType === "screen") {
+      specializedUpdated = rewriteScreenFlowPositionsKeys(src.data, oldId, newId, onSpecialMatch);
+    } else if (src.entityKind === "project") {
+      specializedUpdated = rewriteHarmonyEntitiesId(
+        src.data, entityType, oldId, newId, onSpecialMatch,
+      );
+    }
+
+    // 汎用 walker (scalar / composite ref VALUE 一致)
     let hitCount = 0;
-    const updated = walkAndReplace(src.data, "", {
+    const updated = walkAndReplace(specializedUpdated, "", {
       scalarFields, compositeFields, oldId, newId,
       onMatch: (jsonPointer, oldValue) => {
         hitCount++;
@@ -531,7 +572,8 @@ async function scanAllRefs(
         });
       },
     });
-    if (hitCount > 0) {
+    const totalHits = hitCount + specializedHits;
+    if (totalHits > 0) {
       const originalContent = await readFileContentOrNull(src.absPath);
       if (originalContent !== null) {
         perFileUpdate.set(src.absPath, {
@@ -544,6 +586,91 @@ async function scanAllRefs(
   }
 
   return { locations, perFileUpdate };
+}
+
+// ── specialized handlers (M-4): KEY / entry self-id ─────────────────────────
+
+/** entityType → harmony.json `entities.<kind>[]` array key 名 mapping */
+const ENTITY_TYPE_TO_HARMONY_KIND_KEY: Record<RenameEntityType, string> = {
+  screen: "screens",
+  table: "tables",
+  processFlow: "processFlows",
+  sequence: "sequences",
+  view: "views",
+  viewDefinition: "viewDefinitions",
+  pageLayout: "pageLayouts",
+};
+
+/**
+ * harmony.json の `entities.<kind>[].id` を新 id に書き換える (KEY ではなく entry 自身の id field)。
+ *
+ * 汎用 walker は scalar `id` field を rename 対象 entity に紐付けて識別できないため、本専用 handler
+ * で `entities.<kind>` 配下に限定して `id === oldId` を検出 + 置換する。
+ *
+ * 注: ScreenTransition の `sourceScreenId` / `targetScreenId` は SCALAR_REF_FIELDS で
+ * 既に拾われるため、ここでは扱わない (汎用 walker 側で処理)。
+ */
+function rewriteHarmonyEntitiesId(
+  data: unknown,
+  entityType: RenameEntityType,
+  oldId: string,
+  newId: string,
+  onMatch: (jsonPointer: string) => void,
+): unknown {
+  if (!data || typeof data !== "object") return data;
+  const obj = data as Record<string, unknown>;
+  const entities = obj.entities;
+  if (!entities || typeof entities !== "object" || Array.isArray(entities)) return data;
+  const ent = entities as Record<string, unknown>;
+  const kindKey = ENTITY_TYPE_TO_HARMONY_KIND_KEY[entityType];
+  const arr = ent[kindKey];
+  if (!Array.isArray(arr)) return data;
+
+  let mutated = false;
+  const newArr = arr.map((entry, i) => {
+    if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+      const e = entry as Record<string, unknown>;
+      if (e.id === oldId) {
+        mutated = true;
+        onMatch(`/entities/${escapeJsonPointerToken(kindKey)}/${i}/id`);
+        return { ...e, id: newId };
+      }
+    }
+    return entry;
+  });
+
+  if (!mutated) return data;
+  return { ...obj, entities: { ...ent, [kindKey]: newArr } };
+}
+
+/**
+ * screen-flow-positions.json の `positions[oldId]` (object KEY) と `positions[oldId].* ` の
+ * 値を新 id に migrate する。Screen rename 専用 (他 entity は positions に含まれない)。
+ *
+ * KEY 走査のため walker (VALUE 一致のみ) では捕捉できない。
+ */
+function rewriteScreenFlowPositionsKeys(
+  data: unknown,
+  oldId: string,
+  newId: string,
+  onMatch: (jsonPointer: string) => void,
+): unknown {
+  if (!data || typeof data !== "object") return data;
+  const obj = data as Record<string, unknown>;
+  const positions = obj.positions;
+  if (!positions || typeof positions !== "object" || Array.isArray(positions)) return data;
+  const p = positions as Record<string, unknown>;
+  if (!(oldId in p)) return data;
+  // newId 既存衝突は preview の uniqueOk で検出済 (同 entity 内 unique 保証)
+  // ただし screen-flow-positions は ScreenGroup id も同 propertyNames に並ぶため、念のため検査
+  if (newId in p) {
+    // 既に存在 — overwrite せず skip (rename 対象 entity uniqueness とは別の同名 group の可能性)
+    // この場合は warning として onMatch を呼ばず data そのまま返す
+    return data;
+  }
+  onMatch(`/positions/${escapeJsonPointerToken(oldId)}`);
+  const { [oldId]: moved, ...rest } = p;
+  return { ...obj, positions: { ...rest, [newId]: moved } };
 }
 
 // ── lock check ───────────────────────────────────────────────────────────────
