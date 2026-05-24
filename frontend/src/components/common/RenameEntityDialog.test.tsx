@@ -47,6 +47,11 @@ const PREVIEW_FIXTURE = {
     },
   ],
   totalRefs: 1,
+  // Phase I round 3+4 SF-1: backend で追加された 4 field、空が通常 case
+  ambiguousDependencies: [],
+  concurrentEditRefs: [],
+  warnings: [],
+  positionsCollisions: [],
 };
 
 const RENAME_RESULT_FIXTURE = {
@@ -57,6 +62,7 @@ const RENAME_RESULT_FIXTURE = {
     newId: "products-v2",
     uuid: "entity-uuid-1234",
     ts: 1714000000000,
+    ttlExpiresAt: 1714000000000 + 5 * 60 * 1000,
   },
   preview: PREVIEW_FIXTURE,
 };
@@ -240,5 +246,117 @@ describe("RenameEntityDialog", () => {
     );
     fireEvent.click(screen.getByTestId("rename-entity-cancel"));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Phase I round 3+4 SF-1: backend で追加された 4 field (ambiguousDependencies /
+  //   concurrentEditRefs / warnings / positionsCollisions) を UI で render + execute
+  //   button を disable する
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async function gotoPreview(previewFixture: typeof PREVIEW_FIXTURE) {
+    vi.mocked(mcpBridge.request).mockResolvedValueOnce(previewFixture);
+    render(
+      <RenameEntityDialog
+        entityType="table"
+        currentId="products"
+        currentName="商品マスタ"
+        existingIds={[]}
+        onClose={NOOP}
+        onSuccess={NOOP}
+      />,
+    );
+    // input 入力 + シミュレーション click
+    const input = screen.getByTestId("entity-id-input") as HTMLInputElement;
+    act(() => fireEvent.change(input, { target: { value: "products-v2" } }));
+    await act(async () => { fireEvent.click(screen.getByTestId("rename-entity-preview-btn")); });
+    await waitFor(() => expect(screen.getByTestId("rename-entity-preview-summary")).toBeTruthy());
+  }
+
+  it("SF-1: ambiguousDependencies が非空 → section 表示 + 実行 button disable", async () => {
+    await gotoPreview({
+      ...PREVIEW_FIXTURE,
+      ambiguousDependencies: [
+        { viewId: "monthly-sales", conflictingEntityType: "view" as const, filePath: "views/monthly-sales.json" },
+      ],
+    });
+    expect(screen.getByTestId("rename-entity-ambiguous-deps")).toBeTruthy();
+    const execBtn = screen.getByTestId("rename-entity-execute-btn") as HTMLButtonElement;
+    expect(execBtn.disabled).toBe(true);
+  });
+
+  it("SF-1: concurrentEditRefs が非空 → section 表示 + 実行 button disable", async () => {
+    await gotoPreview({
+      ...PREVIEW_FIXTURE,
+      concurrentEditRefs: [
+        { entityKind: "processFlow", entityId: "order-create", sessionId: "sess-A" },
+      ],
+    });
+    expect(screen.getByTestId("rename-entity-concurrent-edits")).toBeTruthy();
+    const execBtn = screen.getByTestId("rename-entity-execute-btn") as HTMLButtonElement;
+    expect(execBtn.disabled).toBe(true);
+  });
+
+  it("SF-1: positionsCollisions が非空 → section 表示 + 実行 button disable", async () => {
+    await gotoPreview({
+      ...PREVIEW_FIXTURE,
+      positionsCollisions: [
+        `screen-flow-positions.json: positions に旧 id "home" と新 id "landing" が同時存在`,
+      ],
+    });
+    expect(screen.getByTestId("rename-entity-positions-collisions")).toBeTruthy();
+    const execBtn = screen.getByTestId("rename-entity-execute-btn") as HTMLButtonElement;
+    expect(execBtn.disabled).toBe(true);
+  });
+
+  it("SF-1: warnings は非 blocker — section 表示 + 実行 button enable", async () => {
+    await gotoPreview({
+      ...PREVIEW_FIXTURE,
+      warnings: ["将来拡張用の通知 message"],
+    });
+    expect(screen.getByTestId("rename-entity-warnings")).toBeTruthy();
+    const execBtn = screen.getByTestId("rename-entity-execute-btn") as HTMLButtonElement;
+    expect(execBtn.disabled).toBe(false);
+  });
+
+  it("SF-1: 全 field 空 (normal case) → 4 section 不在 + 実行 button enable", async () => {
+    await gotoPreview(PREVIEW_FIXTURE);
+    expect(screen.queryByTestId("rename-entity-ambiguous-deps")).toBeNull();
+    expect(screen.queryByTestId("rename-entity-concurrent-edits")).toBeNull();
+    expect(screen.queryByTestId("rename-entity-positions-collisions")).toBeNull();
+    expect(screen.queryByTestId("rename-entity-warnings")).toBeNull();
+    const execBtn = screen.getByTestId("rename-entity-execute-btn") as HTMLButtonElement;
+    expect(execBtn.disabled).toBe(false);
+  });
+
+  it("N-1: fetchExistingIds が渡された場合、open 時に呼ばれ existingIds を refresh", async () => {
+    const fetchExistingIds = vi.fn(async () => ["products", "customers", "new-from-other-session"]);
+    render(
+      <RenameEntityDialog
+        entityType="table"
+        currentId="products"
+        currentName="商品マスタ"
+        existingIds={["products", "customers"]}
+        fetchExistingIds={fetchExistingIds}
+        onClose={NOOP}
+        onSuccess={NOOP}
+      />,
+    );
+    await waitFor(() => expect(fetchExistingIds).toHaveBeenCalled());
+  });
+
+  it("N-1: fetchExistingIds 省略時は props.existingIds を使用 (旧挙動 = backward compat)", () => {
+    render(
+      <RenameEntityDialog
+        entityType="table"
+        currentId="products"
+        currentName="商品マスタ"
+        existingIds={["products", "customers"]}
+        onClose={NOOP}
+        onSuccess={NOOP}
+      />,
+    );
+    // 例外無く render される
+    expect(screen.getByTestId("rename-entity-dialog")).toBeTruthy();
   });
 });

@@ -279,7 +279,7 @@ function FlowEditorInner() {
     }
   }, [isLoading, nodes, fitView]);
 
-  const { serverChanged, dismissServerBanner } = useFlowProjectSync({
+  const { serverChanged, dismissServerBanner, markExternalChangeForBanner } = useFlowProjectSync({
     reload: reloadProject,
     isDirtyRef,
     setIsDirty,
@@ -289,12 +289,21 @@ function FlowEditorInner() {
   // Phase H SF-2 (Opus round 2 独立レビュー、#1298 I-6): rename / 関連 entity 変更の
   // broadcast を購読し、画面フロー図を最新化する。`useFlowProjectSync` は projectChanged のみ
   // 購読しているため、Screen / Table / ProcessFlow / PageLayout rename (entity 別 broadcast)
-  // を受信せず stale 表示になっていた。dirty 中は ServerChangeBanner にゆずって自動 reload は
-  // 抑止する (`useFlowProjectSync.handleExternalChange` と同じ方針)。
+  // を受信せず stale 表示になっていた。
+  //
+  // Phase I round 3+4 SF-2 (Codex round 3 S-2 / round 4 S-2): 旧実装は dirty 中は単に return
+  // していたため、ServerChangeBanner が立たず競合通知を見逃していた (useFlowProjectSync の
+  // banner は projectChanged のみ購読)。本 phase で dirty 中も serverChanged 経路を発火する
+  // 共通 handler を呼び出すように修正。
   useEffect(() => {
     const handleExternalChange = () => {
-      if (isDirtyRef.current) return; // dirty 中は banner 側で通知される
-      reloadProject().catch(console.error);
+      if (isDirtyRef.current) {
+        // dirty: banner で通知 (useFlowProjectSync 内の serverChanged 状態を立てる)
+        markExternalChangeForBanner();
+      } else {
+        // clean: 自動 reload
+        reloadProject().catch(console.error);
+      }
     };
     const unsubScreen = mcpBridge.onBroadcast("screenChanged", handleExternalChange);
     const unsubTable = mcpBridge.onBroadcast("tableChanged", handleExternalChange);
@@ -306,7 +315,7 @@ function FlowEditorInner() {
       unsubProcessFlow();
       unsubPageLayout();
     };
-  }, [reloadProject, isDirtyRef]);
+  }, [reloadProject, isDirtyRef, markExternalChangeForBanner]);
 
   // タブ dirty マーク
   useEffect(() => {

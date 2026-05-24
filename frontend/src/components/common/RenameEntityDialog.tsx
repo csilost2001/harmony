@@ -11,7 +11,7 @@
  * 親 callback `onSuccess(newId, operationId)` で URL/tab migration + 5 分 TTL undo toast を
  * 表示する責務 (handleRenameSuccess helper 利用)。
  */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { EntityIdInput, type EntityIdValidationState } from "./EntityIdInput";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { getRenameEntityMeta, type RenameEntityType } from "../../utils/renameEntityMapping";
@@ -30,13 +30,23 @@ export interface RenameEntityDialogProps {
   currentName: string;
   /** 同 entity 種別内の既存 id 配列 (currentId は除外して渡す想定、含まれていても無害) */
   existingIds: readonly string[];
+  /**
+   * Phase I round 3+4 Nit N-1 (Opus round 3): dialog open 時に existingIds を最新化する
+   * 任意の async fetcher。省略時は props.existingIds を固定使用 (旧挙動)。
+   *
+   * 各 editor は mount 時に listTables() 等で fetch した snapshot を保持しているが、
+   * dialog open までに他 session が新規 id を作成すると stale。本 callback で
+   * dialog open 時に再取得する経路を提供する (multi-session 運用での UX 改善)。
+   * backend execute 時の uniqueness check は引き続き safety net。
+   */
+  fetchExistingIds?: () => Promise<readonly string[]>;
   /** dialog を閉じる (cancel / 成功後 共通) */
   onClose: () => void;
   /** rename 成功時のコールバック (URL/tab migration + undo toast 表示は親の責務) */
   onSuccess: (newId: string, operationId: string) => void;
 }
 
-// backend `PreviewResult` 型と一致 (renameEntity.ts:65-81)
+// backend `PreviewResult` 型と一致 (renameEntity.ts: PreviewResult interface)
 interface PreviewResult {
   entityType: RenameEntityType;
   oldId: string;
@@ -53,6 +63,19 @@ interface PreviewResult {
     oldValue: string;
   }>;
   totalRefs: number;
+  /**
+   * Phase I round 3+4 Should-fix SF-1 (Codex S-1 / Opus SF-1 / Antigravity SF-1):
+   * 以下 4 field は backend で追加されたが UI dialog に未反映だった。
+   * 全 4 field を render + execute button の disable 条件に組み込む。
+   */
+  ambiguousDependencies: Array<{
+    viewId: string;
+    conflictingEntityType: RenameEntityType;
+    filePath: string;
+  }>;
+  concurrentEditRefs: Array<{ entityKind: string; entityId: string; sessionId: string }>;
+  warnings: string[];
+  positionsCollisions: string[];
 }
 
 interface RenameRpcResult {
@@ -75,6 +98,7 @@ export function RenameEntityDialog({
   currentId,
   currentName,
   existingIds,
+  fetchExistingIds,
   onClose,
   onSuccess,
 }: RenameEntityDialogProps) {
@@ -91,8 +115,25 @@ export function RenameEntityDialog({
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
 
+  // Phase I round 3+4 N-1 (Opus round 3): dialog open 時に existingIds を再取得 (任意)
+  const [refreshedExistingIds, setRefreshedExistingIds] = useState<readonly string[] | null>(null);
+  useEffect(() => {
+    if (!fetchExistingIds) return;
+    let cancelled = false;
+    fetchExistingIds()
+      .then((ids) => {
+        if (!cancelled) setRefreshedExistingIds(ids);
+      })
+      .catch((e) => {
+        // best effort: 失敗時は props.existingIds を継続使用 (safety net は backend uniqueness)
+        console.warn("RenameEntityDialog: existingIds refresh failed (fallback to props snapshot)", e);
+      });
+    return () => { cancelled = true; };
+  }, [fetchExistingIds]);
+
   // EntityIdInput の existingIds に currentId が混ざっていると「衝突」扱いになるため除外
-  const filteredExistingIds = existingIds.filter((id) => id !== currentId);
+  const effectiveExistingIds = refreshedExistingIds ?? existingIds;
+  const filteredExistingIds = effectiveExistingIds.filter((id) => id !== currentId);
 
   const handlePreview = useCallback(async () => {
     if (validation.isInvalid) return;
@@ -201,6 +242,68 @@ export function RenameEntityDialog({
                 </div>
               )}
 
+              {/*
+                Phase I round 3+4 SF-1: backend で追加された blocker 系 field を UI に反映
+                - ambiguousDependencies: 同名 entity が他 type に存在 + View.dependencies 経由参照
+                - concurrentEditRefs: 参照側 entity を他 session が編集中
+                - positionsCollisions: screen-flow-positions / er-layout の KEY 衝突
+                - warnings: 非 blocker 情報通知 (現状未使用、将来拡張用)
+                blocker 系 3 field は execute button disable + 専用 error section で表示する
+              */}
+              {preview.ambiguousDependencies.length > 0 && (
+                <div className="rename-entity-preview-warning" data-testid="rename-entity-ambiguous-deps">
+                  <i className="bi bi-exclamation-octagon" />
+                  <strong>{` cross-type ambiguous dependency 検出 (${preview.ambiguousDependencies.length} 件)`}</strong>
+                  <ul className="mb-0 mt-1">
+                    {preview.ambiguousDependencies.map((d, i) => (
+                      <li key={i}>
+                        View <code>{d.viewId}</code> ({d.filePath}) が <code>{d.conflictingEntityType}</code> "{preview.oldId}" を参照している可能性
+                      </li>
+                    ))}
+                  </ul>
+                  <small>先に同名の別 entity を rename / 削除してから再実行してください。</small>
+                </div>
+              )}
+
+              {preview.concurrentEditRefs.length > 0 && (
+                <div className="rename-entity-preview-warning" data-testid="rename-entity-concurrent-edits">
+                  <i className="bi bi-people" />
+                  <strong>{` 他 session が参照側 entity を編集中 (${preview.concurrentEditRefs.length} 件)`}</strong>
+                  <ul className="mb-0 mt-1">
+                    {preview.concurrentEditRefs.map((c, i) => (
+                      <li key={i}>
+                        <code>{c.entityKind}/{c.entityId}</code> (session=<code>{c.sessionId}</code>)
+                      </li>
+                    ))}
+                  </ul>
+                  <small>当該 editor の編集を確定 / 破棄してから再実行してください。</small>
+                </div>
+              )}
+
+              {preview.positionsCollisions.length > 0 && (
+                <div className="rename-entity-preview-warning" data-testid="rename-entity-positions-collisions">
+                  <i className="bi bi-exclamation-octagon" />
+                  <strong>{` positions key 衝突 (${preview.positionsCollisions.length} 件)`}</strong>
+                  <ul className="mb-0 mt-1">
+                    {preview.positionsCollisions.map((m, i) => (
+                      <li key={i}>{m}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {preview.warnings.length > 0 && (
+                <div className="rename-entity-preview-info" data-testid="rename-entity-warnings">
+                  <i className="bi bi-info-circle" />
+                  <strong>{` 通知 (${preview.warnings.length} 件)`}</strong>
+                  <ul className="mb-0 mt-1">
+                    {preview.warnings.map((m, i) => (
+                      <li key={i}>{m}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="rename-entity-preview-section">
                 <h4>ファイル rename ({preview.fileRenames.length})</h4>
                 {preview.fileRenames.length === 0 ? (
@@ -280,7 +383,21 @@ export function RenameEntityDialog({
                 type="button"
                 className="btn btn-sm btn-danger"
                 onClick={() => { void handleExecute(); }}
-                disabled={preview.lockedByOther || !preview.oldExists || !preview.uniqueOk}
+                /*
+                 * Phase I round 3+4 SF-1: backend blocker 系 field を disable 条件に組み込む。
+                 * - lockedByOther / !oldExists / !uniqueOk: 既存 disable 条件
+                 * - ambiguousDependencies / concurrentEditRefs / positionsCollisions: backend が
+                 *   execute throw する 3 種の blocker。preview 段階で button 無効化して
+                 *   設計者が無駄な execute → raw error を回避できるようにする。
+                 */
+                disabled={
+                  preview.lockedByOther ||
+                  !preview.oldExists ||
+                  !preview.uniqueOk ||
+                  preview.ambiguousDependencies.length > 0 ||
+                  preview.concurrentEditRefs.length > 0 ||
+                  preview.positionsCollisions.length > 0
+                }
                 data-testid="rename-entity-execute-btn"
               >
                 <i className="bi bi-check2" /> 実行
