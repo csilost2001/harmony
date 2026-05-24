@@ -106,6 +106,16 @@ export interface PreviewResult {
    * 巻き戻して orphan 再生成するリスクを防ぐ。
    */
   concurrentEditRefs: Array<{ entityKind: string; entityId: string; sessionId: string }>;
+  /**
+   * Phase H N-2 (Opus round 2 独立レビュー): rename を block せず通せるが設計者へ通知すべき
+   * 状況のメッセージ列。例:
+   * - screen-flow-positions / er-layout の positions に oldId と newId が同時存在する stale data
+   *   (silent skip するため orphan として残る可能性)
+   *
+   * UI は本配列を warning として preview / 実行後 toast に表示し、設計者が手動で stale data
+   * を解消する判断材料とする。execute はこれを理由に block しない (情報通知のみ)。
+   */
+  warnings: string[];
 }
 
 export interface RenameOperation {
@@ -195,9 +205,15 @@ const PROCESS_FLOW_LEGACY_DIR = "actions";
  * - handlerFlowId (screen-item.v3 §114 ScreenItemEvent — 画面項目 click 等の handler)
  * - refId (process-flow.v3 §1193 CommonProcessStep — 他 ProcessFlow を呼ぶ step)
  * 同一 PF を `processFlowId` と `handlerFlowId` 両方で参照する fixture (retail global-header) あり。
+ *
+ * Phase H N-1 (Opus round 2 独立レビュー): screen 側から `initialScreen` を削除。
+ * `harmony.v3.schema.json` top-level は `additionalProperties: false` で `initialScreen` を
+ * 許容しないため、実 harmony.json には present しない (dead code、`grep initialScreen
+ * schemas/v3/harmony.v3.schema.json` で 0 hit)。test fixture のみで artificial に seed
+ * していたため、misleading な map entry を排除。
  */
 const SCALAR_REF_FIELDS: Record<RenameEntityType, string[]> = {
-  screen: ["screenId", "initialScreen", "sourceScreenId", "targetScreenId"],
+  screen: ["screenId", "sourceScreenId", "targetScreenId"],
   table: ["tableId", "sourceTableId", "targetTableId", "referencedTableId"],
   processFlow: ["processFlowId", "handlerFlowId", "refId"],
   sequence: ["sequenceId"],
@@ -609,6 +625,11 @@ interface RefScanResult {
   locations: RefLocation[];
   /** ref 更新を伴う各 file の更新後 content (JSON.stringify, indent=2) */
   perFileUpdate: Map<string, { original: string; updated: string; updatedData: unknown }>;
+  /**
+   * Phase H N-2 (Opus round 2): scan 中に発生した非 fatal な異常 (stale data 等) のメッセージ。
+   * preview / 実行を block しないが、設計者へ通知すべき情報。
+   */
+  warnings: string[];
 }
 
 interface RefSourceFile {
@@ -715,7 +736,7 @@ async function scanAllRefs(
     });
   }
 
-  // 7. harmony.json (screen rename で initialScreen / screenFlow nodes 参照)
+  // 7. harmony.json (screen rename で screenTransitions / entities.screens[].id 参照)
   const projectData = await readProject(root);
   if (projectData) {
     sources.push({
@@ -751,6 +772,9 @@ async function scanAllRefs(
   // ── walk + update plan 作成 ────────────────────────────────
   const locations: RefLocation[] = [];
   const perFileUpdate = new Map<string, { original: string; updated: string; updatedData: unknown }>();
+  // Phase H N-2 (Opus round 2): scan 中の非 fatal な異常 (positions silent skip 等) を集積。
+  const warnings: string[] = [];
+  const onScanWarn = (msg: string) => warnings.push(msg);
 
   for (const src of sources) {
     // Phase F M-4 (Codex 独立レビュー): 旧実装は rename 対象 entity 自身を ref scan から常に
@@ -791,7 +815,9 @@ async function scanAllRefs(
       });
     };
     if (src.entityKind === "screenFlowPositions" && entityType === "screen") {
-      specializedUpdated = rewriteScreenFlowPositionsKeys(src.data, oldId, newId, onSpecialMatch);
+      specializedUpdated = rewriteScreenFlowPositionsKeys(
+        src.data, oldId, newId, onSpecialMatch, onScanWarn,
+      );
     } else if (src.entityKind === "project") {
       specializedUpdated = rewriteHarmonyEntitiesId(
         src.data, entityType, oldId, newId, onSpecialMatch,
@@ -799,7 +825,9 @@ async function scanAllRefs(
     } else if (src.entityKind === "erLayout" && entityType === "table") {
       // Phase F M-2: er-layout.json の positions[oldId] (object KEY) を新 id に migrate。
       // logicalRelations[].sourceTableId/targetTableId は SCALAR_REF_FIELDS で拾われる。
-      specializedUpdated = rewriteErLayoutPositionsKeys(src.data, oldId, newId, onSpecialMatch);
+      specializedUpdated = rewriteErLayoutPositionsKeys(
+        src.data, oldId, newId, onSpecialMatch, onScanWarn,
+      );
     }
 
     // 汎用 walker (scalar / composite ref VALUE 一致 + array / map value)
@@ -832,7 +860,7 @@ async function scanAllRefs(
     }
   }
 
-  return { locations, perFileUpdate };
+  return { locations, perFileUpdate, warnings };
 }
 
 // ── specialized handlers (M-4): KEY / entry self-id ─────────────────────────
@@ -901,6 +929,7 @@ function rewriteScreenFlowPositionsKeys(
   oldId: string,
   newId: string,
   onMatch: (jsonPointer: string) => void,
+  onWarn?: (message: string) => void,
 ): unknown {
   if (!data || typeof data !== "object") return data;
   const obj = data as Record<string, unknown>;
@@ -911,8 +940,13 @@ function rewriteScreenFlowPositionsKeys(
   // newId 既存衝突は preview の uniqueOk で検出済 (同 entity 内 unique 保証)
   // ただし screen-flow-positions は ScreenGroup id も同 propertyNames に並ぶため、念のため検査
   if (newId in p) {
-    // 既に存在 — overwrite せず skip (rename 対象 entity uniqueness とは別の同名 group の可能性)
-    // この場合は warning として onMatch を呼ばず data そのまま返す
+    // 既に存在 — overwrite せず skip (rename 対象 entity uniqueness とは別の同名 group の可能性
+    // / stale data の異常状態)。Phase H N-2 (Opus round 2): silent skip では orphan として残る
+    // 可能性があるため warning として通知する。
+    onWarn?.(
+      `screen-flow-positions.json: positions に旧 id "${oldId}" と新 id "${newId}" が同時存在 — ` +
+      `KEY 移行を skip しました (stale data の可能性。手動で旧 entry 削除を検討してください)`,
+    );
     return data;
   }
   onMatch(`/positions/${escapeJsonPointerToken(oldId)}`);
@@ -932,6 +966,7 @@ function rewriteErLayoutPositionsKeys(
   oldId: string,
   newId: string,
   onMatch: (jsonPointer: string) => void,
+  onWarn?: (message: string) => void,
 ): unknown {
   if (!data || typeof data !== "object") return data;
   const obj = data as Record<string, unknown>;
@@ -940,7 +975,12 @@ function rewriteErLayoutPositionsKeys(
   const p = positions as Record<string, unknown>;
   if (!(oldId in p)) return data;
   if (newId in p) {
-    // 既に新 id が存在 — preview の uniqueOk で衝突検出される想定のため、ここは skip
+    // 既に新 id が存在 — preview の uniqueOk で衝突検出される想定のため、ここは skip。
+    // Phase H N-2 (Opus round 2): stale data 状態を warning として通知 (silent skip 解消)。
+    onWarn?.(
+      `er-layout.json: positions に旧 id "${oldId}" と新 id "${newId}" が同時存在 — ` +
+      `KEY 移行を skip しました (stale data の可能性。手動で旧 entry 削除を検討してください)`,
+    );
     return data;
   }
   onMatch(`/positions/${escapeJsonPointerToken(oldId)}`);
@@ -1105,7 +1145,7 @@ export async function previewEntityRename(
       entityType, oldId, newId,
       uniqueOk: true, oldExists: true, lockedByOther: false,
       fileRenames: [], refUpdates: [], totalRefs: 0,
-      ambiguousDependencies: [], concurrentEditRefs: [],
+      ambiguousDependencies: [], concurrentEditRefs: [], warnings: [],
     };
   }
 
@@ -1139,6 +1179,7 @@ export async function previewEntityRename(
     totalRefs: refScan.locations.length,
     ambiguousDependencies,
     concurrentEditRefs,
+    warnings: refScan.warnings,
   };
 }
 
@@ -1347,6 +1388,8 @@ export async function renameEntityId(
     // Phase G M-1/M-4: execute まで来た = ambiguous も concurrent もなかった
     ambiguousDependencies: [],
     concurrentEditRefs: [],
+    // Phase H N-2: scan warnings (positions silent skip 等) は実行成功後も UI に伝達
+    warnings: refScan.warnings,
   };
 
   // ── snapshot に design.json も含めて undo を完備 ──

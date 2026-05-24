@@ -286,6 +286,28 @@ function FlowEditorInner() {
     navigate,
   });
 
+  // Phase H SF-2 (Opus round 2 独立レビュー、#1298 I-6): rename / 関連 entity 変更の
+  // broadcast を購読し、画面フロー図を最新化する。`useFlowProjectSync` は projectChanged のみ
+  // 購読しているため、Screen / Table / ProcessFlow / PageLayout rename (entity 別 broadcast)
+  // を受信せず stale 表示になっていた。dirty 中は ServerChangeBanner にゆずって自動 reload は
+  // 抑止する (`useFlowProjectSync.handleExternalChange` と同じ方針)。
+  useEffect(() => {
+    const handleExternalChange = () => {
+      if (isDirtyRef.current) return; // dirty 中は banner 側で通知される
+      reloadProject().catch(console.error);
+    };
+    const unsubScreen = mcpBridge.onBroadcast("screenChanged", handleExternalChange);
+    const unsubTable = mcpBridge.onBroadcast("tableChanged", handleExternalChange);
+    const unsubProcessFlow = mcpBridge.onBroadcast("processFlowChanged", handleExternalChange);
+    const unsubPageLayout = mcpBridge.onBroadcast("pageLayoutChanged", handleExternalChange);
+    return () => {
+      unsubScreen();
+      unsubTable();
+      unsubProcessFlow();
+      unsubPageLayout();
+    };
+  }, [reloadProject, isDirtyRef]);
+
   // タブ dirty マーク
   useEffect(() => {
     const tabId = makeTabId("screen-flow", "main");

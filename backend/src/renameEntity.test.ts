@@ -696,29 +696,28 @@ describe("renameEntityId — M-3: screen rename が ScreenTransition (sourceScre
           { id: "t2", sourceScreenId: "dashboard", targetScreenId: "login", trigger: "logout" },
         ],
       },
-      initialScreen: "login",
+      // Phase H N-1 (Opus round 2): `initialScreen` は harmony.v3 schema に未登録のため fixture
+      // からも削除。test は schema 準拠の field (sourceScreenId/targetScreenId/entities.screens[].id)
+      // のみで rename 網羅性を検証する。
     };
     await fs.writeFile(harmonyFile(root), JSON.stringify(harmonyData, null, 2), "utf-8");
 
     const { preview } = await renameEntityId("screen", "login", "sign-in", root);
 
-    // sourceScreenId / targetScreenId / initialScreen / harmony.entries[].id 全部捕捉
+    // sourceScreenId / targetScreenId / harmony.entries[].id を全部捕捉
     const matched = preview.refUpdates.filter((r) => r.entityKind === "project");
     const ptrs = matched.map((r) => r.jsonPointer).sort();
-    // initialScreen + transitions[0].sourceScreenId + transitions[1].targetScreenId + entities/screens/0/id
-    expect(ptrs).toContain("/initialScreen");
+    // transitions[0].sourceScreenId + transitions[1].targetScreenId + entities/screens/0/id
     expect(ptrs).toContain("/entities/screens/0/id");
     expect(ptrs.some((p) => p.includes("/sourceScreenId"))).toBe(true);
     expect(ptrs.some((p) => p.includes("/targetScreenId"))).toBe(true);
 
     const harmonyAfter = await readJsonFile<{
-      initialScreen: string;
       entities: {
         screens: Array<{ id: string }>;
         screenTransitions: Array<{ sourceScreenId: string; targetScreenId: string }>;
       };
     }>(harmonyFile(root));
-    expect(harmonyAfter.initialScreen).toBe("sign-in");
     expect(harmonyAfter.entities.screens[0].id).toBe("sign-in");
     expect(harmonyAfter.entities.screens[1].id).toBe("dashboard"); // 無関係
     expect(harmonyAfter.entities.screenTransitions[0].sourceScreenId).toBe("sign-in");
@@ -1446,5 +1445,124 @@ describe("renameEntityId — Phase G M-4: 参照側 entity の active Edit sessi
     // callback 渡さず → ref-side check 走らない
     const { operation } = await renameEntityId("table", "skip-tbl", "skip-tbl-v2", root);
     expect(operation.newId).toBe("skip-tbl-v2");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase H regression (Opus round 2 独立レビュー Nit / Should-fix 関連)
+//   H-N2: positions に oldId + newId 同時存在の silent skip を warning 化
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase H N-2: positions silent skip → warnings に通知", () => {
+  it("screen-flow-positions に oldId と newId が同時存在する場合、KEY 移行を skip しつつ warnings を返す", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("home", { id: "home", kind: "page", path: "/", items: [] }, root);
+
+    // screen-flow-positions.json seed: oldId "home" + newId "landing" が同時存在 (stale data)
+    const sfp = {
+      positions: {
+        "home": { x: 100, y: 100, width: 200, height: 80 },
+        "landing": { x: 300, y: 100, width: 200, height: 80 },
+      },
+      updatedAt: "2026-05-25T00:00:00.000Z",
+    };
+    await fs.writeFile(
+      dataPath(root, "screen-flow-positions.json"),
+      JSON.stringify(sfp, null, 2),
+      "utf-8",
+    );
+
+    const preview = await previewEntityRename("screen", "home", "landing", root);
+
+    // warnings が非空 + メッセージに oldId/newId/screen-flow-positions が含まれる
+    expect(preview.warnings.length).toBeGreaterThan(0);
+    expect(preview.warnings[0]).toMatch(/screen-flow-positions/);
+    expect(preview.warnings[0]).toMatch(/"home"/);
+    expect(preview.warnings[0]).toMatch(/"landing"/);
+
+    // refUpdates には positions の match が含まれない (skip された)
+    const positionHits = preview.refUpdates.filter(
+      (r) => r.entityKind === "screenFlowPositions" && r.jsonPointer.startsWith("/positions/"),
+    );
+    expect(positionHits.length).toBe(0);
+  });
+
+  it("er-layout.json で table rename 時に oldId と newId が同時存在 → warnings 返却 + skip", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "orders");
+    await seedTable(root, "orders-v2");
+
+    // er-layout.json seed: oldId "orders" + newId "orders-v2" 同時存在 (stale data)
+    const erLayout = {
+      schemaVersion: "v3",
+      updatedAt: "2026-05-25T00:00:00.000Z",
+      positions: {
+        "orders": { x: 0, y: 0, width: 200, height: 100 },
+        "orders-v2": { x: 220, y: 0, width: 200, height: 100 },
+      },
+    };
+    await fs.writeFile(
+      erLayoutFile(path.join(root, "harmony")),
+      JSON.stringify(erLayout, null, 2),
+      "utf-8",
+    );
+
+    const preview = await previewEntityRename("table", "orders", "orders-v2", root);
+
+    // 主 entity uniqueness 衝突は uniqueOk=false で別経路で検出されるため、本テストは
+    // warnings 経路だけを assert する (execute は uniqueness で reject されるが本 preview では
+    // warnings を返すこと自体を検証)。
+    expect(preview.warnings.length).toBeGreaterThan(0);
+    expect(preview.warnings[0]).toMatch(/er-layout/);
+    expect(preview.warnings[0]).toMatch(/"orders"/);
+    expect(preview.warnings[0]).toMatch(/"orders-v2"/);
+
+    // positions match は出ない (skip)
+    const erPositionHits = preview.refUpdates.filter(
+      (r) => r.entityKind === "erLayout" && r.jsonPointer.startsWith("/positions/"),
+    );
+    expect(erPositionHits.length).toBe(0);
+  });
+
+  it("通常 case (oldId のみ存在) は warnings 空", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("normal", { id: "normal", kind: "page", path: "/n", items: [] }, root);
+
+    const sfp = {
+      positions: {
+        "normal": { x: 0, y: 0, width: 200, height: 80 },
+      },
+      updatedAt: "2026-05-25T00:00:00.000Z",
+    };
+    await fs.writeFile(
+      dataPath(root, "screen-flow-positions.json"),
+      JSON.stringify(sfp, null, 2),
+      "utf-8",
+    );
+
+    const preview = await previewEntityRename("screen", "normal", "renamed", root);
+    expect(preview.warnings.length).toBe(0);
+  });
+
+  it("renameEntityId 実行成功時も preview.warnings が伝搬される", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("src", { id: "src", kind: "page", path: "/s", items: [] }, root);
+
+    const sfp = {
+      positions: {
+        "src": { x: 0, y: 0, width: 200, height: 80 },
+        "dst": { x: 220, y: 0, width: 200, height: 80 }, // stale newId
+      },
+      updatedAt: "2026-05-25T00:00:00.000Z",
+    };
+    await fs.writeFile(
+      dataPath(root, "screen-flow-positions.json"),
+      JSON.stringify(sfp, null, 2),
+      "utf-8",
+    );
+
+    const { preview } = await renameEntityId("screen", "src", "dst", root);
+    expect(preview.warnings.length).toBeGreaterThan(0);
+    expect(preview.warnings[0]).toMatch(/screen-flow-positions/);
   });
 });
