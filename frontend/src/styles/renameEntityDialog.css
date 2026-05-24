@@ -1,0 +1,233 @@
+/* RenameEntityDialog — RFC #1284 / ISSUE #1298 I-6 */
+
+.rename-entity-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+
+.rename-entity-modal {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.25);
+  min-width: 480px;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.rename-entity-modal__header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e9ecef;
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rename-entity-modal__body {
+  padding: 16px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.rename-entity-modal__footer {
+  padding: 10px 16px;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.rename-entity-current {
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.rename-entity-current code {
+  background: #f5f5f5;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 0.95em;
+}
+
+.rename-entity-error {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #f8d7da;
+  color: #842029;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.rename-entity-preview-summary {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  background: #e7f3fe;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.rename-entity-preview-summary strong {
+  font-weight: 600;
+}
+
+.rename-entity-preview-warning {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  background: #fff3cd;
+  color: #856404;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.rename-entity-preview-section {
+  margin-bottom: 14px;
+}
+
+.rename-entity-preview-section h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0 0 6px;
+  color: #495057;
+}
+
+.rename-entity-preview-table {
+  width: 100%;
+  font-size: 0.8rem;
+  border-collapse: collapse;
+}
+
+.rename-entity-preview-table th,
+.rename-entity-preview-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #f1f3f5;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rename-entity-preview-table th {
+  background: #f8f9fa;
+  font-weight: 500;
+  color: #495057;
+}
+
+.rename-entity-preview-table code {
+  background: #f5f5f5;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+
+.rename-entity-ref-group {
+  margin-bottom: 6px;
+}
+
+.rename-entity-ref-group summary {
+  cursor: pointer;
+  padding: 4px 0;
+  font-size: 0.85rem;
+  color: #495057;
+}
+
+.rename-entity-ref-group summary:hover {
+  color: #0d6efd;
+}
+
+.rename-entity-ref-group ul {
+  margin: 4px 0 4px 18px;
+  padding-left: 12px;
+  font-size: 0.78rem;
+  color: #6c757d;
+}
+
+.rename-entity-ref-group ul li code {
+  background: #f5f5f5;
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.rename-entity-executing {
+  text-align: center;
+  padding: 32px 16px;
+  color: #6c757d;
+}
+
+.rename-entity-executing .spinner-border {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 8px;
+}
+
+/* === Undo Toast === */
+.rename-entity-undo-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1100;
+  background: #212529;
+  color: #fff;
+  border-radius: 6px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+  max-width: 460px;
+}
+
+.rename-entity-undo-toast__message {
+  flex: 1 1 auto;
+}
+
+.rename-entity-undo-toast__message code {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 0.95em;
+}
+
+.rename-entity-undo-toast__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.rename-entity-undo-toast__undo {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.rename-entity-undo-toast__undo:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.rename-entity-undo-toast__undo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rename-entity-undo-toast__close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0 4px;
+}
+
+.rename-entity-undo-toast__close:hover {
+  color: #fff;
+}
