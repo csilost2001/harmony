@@ -125,11 +125,19 @@ vi.mock("../../schemas/conventionsValidator", () => ({
 // ---------------------------------------------------------------------------
 // 重い子 component mocks (modal 系は DOM に出てこない方が test 軽い)
 // ---------------------------------------------------------------------------
+// Step 3: dialog mock を marker 出力型に変更 (props 駆動で testid 出力)
+// Step 1/2 の test は dialog 条件 (saveConflict truthy or showResumeDialog=true) を
+// 満たさないため marker は出現せず、後方互換性を維持する。
 vi.mock("../editing/SaveConflictDialog", () => ({
-  SaveConflictDialog: () => null,
+  SaveConflictDialog: ({ conflict }: { conflict: unknown }) =>
+    conflict ? <div data-testid="save-conflict-dialog" /> : null,
 }));
 vi.mock("../editing/ResumeOrDiscardDialog", () => ({
-  ResumeOrDiscardDialog: () => null,
+  ResumeOrDiscardDialog: ({ onResume }: { onResume?: () => void }) => (
+    <div data-testid="resume-or-discard-dialog">
+      <button data-testid="resume-or-discard-resume" onClick={onResume}>resume</button>
+    </div>
+  ),
 }));
 vi.mock("./ScreenItemCandidatesModal", () => ({
   ScreenItemCandidatesModal: () => null,
@@ -791,6 +799,352 @@ describe("ScreenItemsView (Step 2: 編集動作)", () => {
         const rows = container.querySelectorAll("[aria-label*='を選択']:not([aria-label='全選択'])");
         expect(rows.length).toBe(2);
       }, { timeout: 3000 });
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tests (Step 3: autosave / draft / lock — #1315)
+//
+// 設計: ISSUE #1315 comment
+//   https://github.com/csilost2001/harmony/issues/1315#issuecomment-4528558182
+//
+// 観点 (test 19-25):
+//   - autosave debounce (#19-#21): updateWithDraft 経由の editSession.update が
+//     300ms debounce で 1 回に圧縮されること、保存時には即 flush されること
+//   - edit-session draft (#22-#23): readonly mode で自分の Active session が
+//     残っていた場合に ResumeOrDiscardDialog が出現、Resume click で startEditing
+//     (= editSession.create) が呼ばれること
+//   - lock / saveConflict (#24-#25): backend が {ok:false, conflict:...} を返した
+//     場合に SaveConflictDialog が表示されること、editSession.list が正しい
+//     {resourceType, resourceId} で呼ばれていること (sanity)
+// ---------------------------------------------------------------------------
+
+/**
+ * editing mode 用の mock implementation を返す。
+ * editSession.list / editSession.create / editSession.save / editSession.update を
+ * デフォルト挙動 (それぞれ妥当な response) で返す factory。
+ * 個別 test は必要に応じて mockImplementation を差し替えて override する。
+ */
+function makeDefaultBridgeImpl(overrides: Partial<Record<string, (params: unknown) => unknown | Promise<unknown>>> = {}) {
+  return (method: string, params?: unknown) => {
+    if (overrides[method]) {
+      return Promise.resolve(overrides[method]!(params));
+    }
+    if (method === "editSession.list") {
+      return Promise.resolve({ sessions: [] });
+    }
+    if (method === "editSession.create") {
+      return Promise.resolve({
+        editSession: {
+          id: "mock-session-id",
+          resourceType: "screen-item",
+          resourceId: "test-screen-id",
+          state: "Active",
+          participants: { "test-session-id": { role: "Edit" } },
+          sequence: 0,
+          payload: null,
+        },
+      });
+    }
+    if (method === "editSession.save") {
+      return Promise.resolve({ ok: true });
+    }
+    if (method === "editSession.update") {
+      return Promise.resolve(null);
+    }
+    return Promise.resolve(null);
+  };
+}
+
+describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
+  beforeEach(async () => {
+    // editing mode サポート (Step 2 と同等の base impl + editSession.save/update を追加)
+    vi.mocked(mcpBridge.request).mockImplementation(makeDefaultBridgeImpl() as never);
+
+    // Step 1/2 test が localStorage に draft を残す + setTimeout(300) が pending のまま
+    // 終わるため、Step 3 の autosave debounce 観測前に必ず flush + clear する。
+    //   - localStorage.clear(): 旧 draft (effects 等) が useResourceEditor.reload で
+    //     restoreされてしまい計測前の payload を汚染するのを防ぐ
+    //   - 350ms 待機: 前 test の updateSilentWithDraft 由来の setTimeout(300) が
+    //     unmount 後も pending で残っており、本 test の計測窓に紛れ込むのを防ぐ
+    //   (PR #1326 review MF-1: fake timer → real timer 切替に伴う追加防御)
+    localStorage.clear();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    vi.mocked(mcpBridge.request).mockClear();
+  });
+
+  // -------------------------------------------------------------------------
+  describe("autosave debounce (#19-#21)", () => {
+    it("19. 編集 1 回 → 300ms 後に editSession.update が 1 回呼ばれる", async () => {
+      const { loadScreenItems } = await import("../../store/screenItemsStore");
+      vi.mocked(loadScreenItems).mockResolvedValueOnce(FIXTURE_SCREEN_ITEMS_ONE_ITEM);
+
+      const { container } = renderWithRouter();
+      await startEditingMode(container);
+
+      // editing mode 移行時に editSession.create が呼ばれているので clear して計測開始
+      vi.mocked(mcpBridge.request).mockClear();
+
+      // ID 列の input (Identifier 入力欄) を 1 回編集 → updateSilentWithDraft 経由で
+      // debounce timer が start する
+      // tbody の最初の行の最初の text input (= ID 入力欄) を取得
+      const idInput = container.querySelector<HTMLInputElement>(
+        "tbody tr input[type='text']"
+      );
+      expect(idInput).not.toBeNull();
+
+      await act(async () => {
+        fireEvent.change(idInput!, { target: { value: "customerCode" } });
+      });
+
+      // debounce 完了 (300ms) を超えて 350ms 実時間待機
+      // (fake timer + shouldAdvanceTime は full-file 実行で real-time 二重計上による
+      //  事前 flush flake を起こすため real timer に統一、PR #1326 review MF-1)
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 350));
+      });
+
+      // editSession.update が **1 回だけ** 呼ばれたこと
+      const updateCalls = vi.mocked(mcpBridge.request).mock.calls.filter(
+        ([m]) => m === "editSession.update"
+      );
+      expect(updateCalls.length).toBe(1);
+    });
+
+    it("20. 連続 2 編集 (各 100ms 間隔) → debounce で 1 回に圧縮される", async () => {
+      const { loadScreenItems } = await import("../../store/screenItemsStore");
+      vi.mocked(loadScreenItems).mockResolvedValueOnce(FIXTURE_SCREEN_ITEMS_ONE_ITEM);
+
+      const { container } = renderWithRouter();
+      await startEditingMode(container);
+
+      vi.mocked(mcpBridge.request).mockClear();
+
+      const idInput = container.querySelector<HTMLInputElement>(
+        "tbody tr input[type='text']"
+      );
+      expect(idInput).not.toBeNull();
+
+      // 1 回目編集
+      await act(async () => {
+        fireEvent.change(idInput!, { target: { value: "x1" } });
+      });
+
+      // 100ms 経過 (debounce 未 flush) — real timer wait
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+
+      // 2 回目編集 (previous timer reset)
+      await act(async () => {
+        fireEvent.change(idInput!, { target: { value: "x2" } });
+      });
+
+      // 300ms 進める (合計 400ms だが 2 回目から 300ms = flush) — real timer wait
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      });
+
+      // editSession.update は 1 回だけ呼ばれること (debounce 圧縮)
+      const updateCalls = vi.mocked(mcpBridge.request).mock.calls.filter(
+        ([m]) => m === "editSession.update"
+      );
+      expect(updateCalls.length).toBe(1);
+    });
+
+    it("21. 「保存」click → editSession.save 呼ばれる + editSession.update flush + 保存後 timer 残存しない", async () => {
+      const { loadScreenItems } = await import("../../store/screenItemsStore");
+      vi.mocked(loadScreenItems).mockResolvedValueOnce(FIXTURE_SCREEN_ITEMS_ONE_ITEM);
+
+      const { container } = renderWithRouter();
+      await startEditingMode(container);
+
+      vi.mocked(mcpBridge.request).mockClear();
+
+      const idInput = container.querySelector<HTMLInputElement>(
+        "tbody tr input[type='text']"
+      );
+      expect(idInput).not.toBeNull();
+
+      // 編集 → debounce timer start
+      await act(async () => {
+        fireEvent.change(idInput!, { target: { value: "x" } });
+      });
+
+      // 100ms だけ実時間 wait (debounce 300ms 未満なので pending のまま)
+      // 続いて 即座に「保存」click → handleSave 内で clearTimeout + 直接 flush するため
+      // editSession.update は **厳密に 1 回** だけ呼ばれる
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+
+      // 「保存」button click
+      const saveBtn = container.querySelector<HTMLButtonElement>('[data-testid="edit-mode-save"]');
+      expect(saveBtn).not.toBeNull();
+      await act(async () => {
+        fireEvent.click(saveBtn!);
+      });
+
+      // editSession.save が呼ばれること
+      await waitFor(() => {
+        const saveCalls = vi.mocked(mcpBridge.request).mock.calls.filter(
+          ([m]) => m === "editSession.save"
+        );
+        expect(saveCalls.length).toBe(1);
+      }, { timeout: 3000 });
+
+      // editSession.update は handleSave 内で clearTimeout + 直接 flush するため
+      // **厳密に 1 回** (PR #1326 review SF-1: MF-1 解消で flake 要因消滅、tighten 可能)
+      const afterSaveUpdateCount = vi.mocked(mcpBridge.request).mock.calls.filter(
+        ([m]) => m === "editSession.update"
+      ).length;
+      expect(afterSaveUpdateCount).toBe(1);
+
+      // さらに 400ms 実時間待っても update は増えない (handleSave 内で timer cleared)
+      // = 保存処理の本質契約: pending debounce が save 後にゾンビ発火しない
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      });
+      const finalUpdateCount = vi.mocked(mcpBridge.request).mock.calls.filter(
+        ([m]) => m === "editSession.update"
+      ).length;
+      expect(finalUpdateCount).toBe(afterSaveUpdateCount);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  describe("edit-session draft (#22-#23)", () => {
+    it("22. editSession.list が my Active session を返す → ResumeOrDiscardDialog marker 表示", async () => {
+      // editSession.list を「my Active session 1 件」を返すよう差し替え
+      vi.mocked(mcpBridge.request).mockImplementation(
+        makeDefaultBridgeImpl({
+          "editSession.list": () => ({
+            sessions: [
+              {
+                id: "es-existing",
+                resourceType: "screen-item",
+                resourceId: "test-screen-id",
+                state: "Active",
+                participants: { "test-session-id": { role: "Edit" } },
+                sequence: 0,
+                payload: null,
+              },
+            ],
+          }),
+        }) as never,
+      );
+
+      const { container } = renderWithRouter();
+
+      // readonly mode のままで Resume dialog 表示を待つ (startEditingMode は呼ばない)
+      await waitFor(() => {
+        const marker = container.querySelector('[data-testid="resume-or-discard-dialog"]');
+        expect(marker).not.toBeNull();
+      }, { timeout: 3000 });
+    });
+
+    it("23. Resume click → startEditing (editSession.create) が呼ばれる", async () => {
+      vi.mocked(mcpBridge.request).mockImplementation(
+        makeDefaultBridgeImpl({
+          "editSession.list": () => ({
+            sessions: [
+              {
+                id: "es-existing",
+                resourceType: "screen-item",
+                resourceId: "test-screen-id",
+                state: "Active",
+                participants: { "test-session-id": { role: "Edit" } },
+                sequence: 0,
+                payload: null,
+              },
+            ],
+          }),
+        }) as never,
+      );
+
+      const { container } = renderWithRouter();
+
+      await waitFor(() => {
+        const marker = container.querySelector('[data-testid="resume-or-discard-dialog"]');
+        expect(marker).not.toBeNull();
+      }, { timeout: 3000 });
+
+      // resume click 前の create 呼び出し履歴をクリア
+      vi.mocked(mcpBridge.request).mockClear();
+
+      const resumeBtn = container.querySelector<HTMLButtonElement>(
+        '[data-testid="resume-or-discard-resume"]'
+      );
+      expect(resumeBtn).not.toBeNull();
+      await act(async () => {
+        fireEvent.click(resumeBtn!);
+      });
+
+      await waitFor(() => {
+        const createCalls = vi.mocked(mcpBridge.request).mock.calls.filter(
+          ([m]) => m === "editSession.create"
+        );
+        expect(createCalls.length).toBeGreaterThanOrEqual(1);
+      }, { timeout: 3000 });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  describe("lock / saveConflict (#24-#25)", () => {
+    it("24. 保存 click → backend 返却 {ok:false, conflict} → SaveConflictDialog marker 表示", async () => {
+      vi.mocked(mcpBridge.request).mockImplementation(
+        makeDefaultBridgeImpl({
+          "editSession.save": () => ({
+            ok: false,
+            conflict: {
+              other: {
+                savedAt: "2026-01-02T00:00:00Z",
+                ownerSessionId: "other-session",
+              },
+            },
+          }),
+        }) as never,
+      );
+
+      const { loadScreenItems } = await import("../../store/screenItemsStore");
+      vi.mocked(loadScreenItems).mockResolvedValueOnce(FIXTURE_SCREEN_ITEMS_ONE_ITEM);
+
+      const { container } = renderWithRouter();
+      await startEditingMode(container);
+
+      // 「保存」click
+      const saveBtn = container.querySelector<HTMLButtonElement>('[data-testid="edit-mode-save"]');
+      expect(saveBtn).not.toBeNull();
+      await act(async () => {
+        fireEvent.click(saveBtn!);
+      });
+
+      // SaveConflictDialog marker が表示されること
+      await waitFor(() => {
+        const marker = container.querySelector('[data-testid="save-conflict-dialog"]');
+        expect(marker).not.toBeNull();
+      }, { timeout: 3000 });
+    });
+
+    it("25. mcpBridge.request の calls 履歴に editSession.list {resourceType:'screen-item', resourceId:'test-screen-id'} が含まれる (sanity)", async () => {
+      renderWithRouter();
+
+      // ResumeOrDiscardDialog effect が editSession.list を呼ぶことを待つ
+      await waitFor(() => {
+        const listCalls = vi.mocked(mcpBridge.request).mock.calls.filter(
+          ([m]) => m === "editSession.list"
+        );
+        expect(listCalls.length).toBeGreaterThanOrEqual(1);
+      }, { timeout: 3000 });
+
+      // params が想定通り {resourceType, resourceId} を持つ call が存在すること
+      const matchedCall = vi.mocked(mcpBridge.request).mock.calls.find(([m, params]) => {
+        if (m !== "editSession.list") return false;
+        const p = params as { resourceType?: string; resourceId?: string } | undefined;
+        return p?.resourceType === "screen-item" && p?.resourceId === "test-screen-id";
+      });
+      expect(matchedCall).toBeDefined();
     });
   });
 });
