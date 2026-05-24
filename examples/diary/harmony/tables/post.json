@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/table.v3.schema.json",
-  "id": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+  "id": "post",
+  "uuid": "79d2c08c-7511-4d37-9051-e6f4587630e0",
   "name": "投稿",
   "description": "日記/ブログの投稿1件。本文 (Markdown 想定) + AI 生成サマリ + 気分・天気メタ + 公開ステータス。写真は photos テーブル、タグは post_tags 中間テーブル経由 N:N。",
   "maturity": "draft",
@@ -127,21 +128,36 @@
       "id": "idx-user-published",
       "physicalName": "idx_posts_user_published",
       "columns": [
-        { "columnId": "col-user-id", "order": "asc" },
-        { "columnId": "col-published-at", "order": "desc" }
+        {
+          "columnId": "col-user-id",
+          "order": "asc"
+        },
+        {
+          "columnId": "col-published-at",
+          "order": "desc"
+        }
       ],
       "description": "ユーザー別の公開順 (一覧画面のソート)"
     },
     {
       "id": "idx-status",
       "physicalName": "idx_posts_status",
-      "columns": [{ "columnId": "col-status" }],
+      "columns": [
+        {
+          "columnId": "col-status"
+        }
+      ],
       "description": "下書き/公開フィルタ"
     },
     {
       "id": "idx-created-at",
       "physicalName": "idx_posts_created_at",
-      "columns": [{ "columnId": "col-created-at", "order": "desc" }],
+      "columns": [
+        {
+          "columnId": "col-created-at",
+          "order": "desc"
+        }
+      ],
       "description": "新着投稿のスキャン用"
     }
   ],

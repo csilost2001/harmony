@@ -1,14 +1,15 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+    "id": "post-detail-get",
+    "uuid": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
     "name": "投稿詳細取得",
     "description": "投稿の詳細情報を取得する処理フロー。posts を取得し、users (author)、photos (order_index ASC)、tags (post_tags JOIN tags) の情報を結合して返す。公開状態チェック: status='published' は誰でもアクセス可、'draft'/'archived' は所有者のみ。",
     "flowType": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
     "updatedAt": "2026-05-06T14:00:00.000Z",
-    "screenId": "ffec74d0-6c21-45f7-a387-167ac8819255"
+    "screenId": "post-detail"
   },
   "context": {
     "catalogs": {
@@ -244,7 +245,7 @@
           "id": "step-01",
           "kind": "dbAccess",
           "description": "posts テーブルから投稿を取得し、users テーブルを JOIN して author 情報を取得する。",
-          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "tableId": "post",
           "operation": "SELECT",
           "sql": "SELECT p.id AS \"postId\", p.user_id AS \"userId\", p.title, p.body, p.summary, p.status, p.mood, p.weather, p.location, p.published_at AS \"publishedAt\", p.created_at AS \"createdAt\", p.updated_at AS \"updatedAt\", u.display_name AS \"authorDisplayName\", u.avatar_url AS \"authorAvatarUrl\" FROM posts p INNER JOIN users u ON u.id = p.user_id WHERE p.id = @inputs.postId",
           "outputBinding": {
@@ -317,7 +318,7 @@
           "id": "step-04",
           "kind": "dbAccess",
           "description": "photos テーブルから該当投稿の写真一覧を order_index ASC で取得する。",
-          "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+          "tableId": "photo",
           "operation": "SELECT",
           "sql": "SELECT id AS \"id\", url, thumbnail_url AS \"thumbnailUrl\", alt, caption, order_index AS \"orderIndex\", width, height FROM photos WHERE post_id = @inputs.postId ORDER BY order_index ASC",
           "outputBinding": {
@@ -328,7 +329,7 @@
           "id": "step-05",
           "kind": "dbAccess",
           "description": "post_tags と tags を JOIN して該当投稿のタグ一覧を取得する。",
-          "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+          "tableId": "post-tag",
           "operation": "SELECT",
           "sql": "SELECT t.id AS \"id\", t.name AS \"name\", t.slug, t.color, t.icon, pt.source, pt.confidence FROM post_tags pt INNER JOIN tags t ON t.id = pt.tag_id WHERE pt.post_id = @inputs.postId",
           "outputBinding": {

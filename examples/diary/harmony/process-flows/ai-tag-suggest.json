@@ -1,7 +1,8 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
+    "id": "ai-tag-suggest",
+    "uuid": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
     "name": "AIタグ提案",
     "description": "投稿のタイトル + 本文を AI モデルへ送信し、信頼度付きタグ候補を構造化出力 (responseFormat=structuredObject) で取得する処理フロー。信頼度が conventions/catalog.json の limit.tagSuggestThreshold 未満のものは除外する。UI 側でユーザー選択後、確定は投稿作成/更新フロー経由で post_tags に INSERT。",
     "flowType": "common",
@@ -141,7 +142,7 @@
           "id": "step-02",
           "kind": "dbAccess",
           "description": "既存タグの全 slug 一覧を取得し、isNew 判定に使用する。",
-          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "tableId": "tag",
           "operation": "SELECT",
           "sql": "SELECT slug FROM tags",
           "outputBinding": {

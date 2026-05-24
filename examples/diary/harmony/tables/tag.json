@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/table.v3.schema.json",
-  "id": "07439e21-0743-48ca-af9e-763e4be2d094",
+  "id": "tag",
+  "uuid": "07439e21-0743-48ca-af9e-763e4be2d094",
   "name": "タグ",
   "description": "投稿に付与するタグ。AI 提案 (aiTagSuggest) で自動生成 + ユーザー手動編集の両方をサポート。色は UI で chip 表示時の背景色に使用。",
   "maturity": "draft",
@@ -95,13 +96,22 @@
     {
       "id": "idx-slug",
       "physicalName": "idx_tags_slug",
-      "columns": [{ "columnId": "col-slug" }],
+      "columns": [
+        {
+          "columnId": "col-slug"
+        }
+      ],
       "unique": true
     },
     {
       "id": "idx-usage-count",
       "physicalName": "idx_tags_usage_count",
-      "columns": [{ "columnId": "col-usage-count", "order": "desc" }],
+      "columns": [
+        {
+          "columnId": "col-usage-count",
+          "order": "desc"
+        }
+      ],
       "description": "タグクラウドや AI suggest のランキング"
     }
   ],
@@ -110,13 +120,17 @@
       "id": "uq-name",
       "kind": "unique",
       "physicalName": "uq_tags_name",
-      "columnIds": ["col-name"]
+      "columnIds": [
+        "col-name"
+      ]
     },
     {
       "id": "uq-slug",
       "kind": "unique",
       "physicalName": "uq_tags_slug",
-      "columnIds": ["col-slug"]
+      "columnIds": [
+        "col-slug"
+      ]
     }
   ]
 }

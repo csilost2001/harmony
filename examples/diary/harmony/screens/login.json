@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
-  "id": "a5088d22-4ad8-4615-a4c5-447ff9cdd280",
+  "id": "login",
+  "uuid": "a5088d22-4ad8-4615-a4c5-447ff9cdd280",
   "name": "ログイン",
   "description": "ミニマリスト風のログイン画面。中央配置カードにロゴ + username/passwordフィールド + ログインボタン + 管理者依頼ヒントテキストを配置。loginButton.events で `ログイン` ProcessFlow と結線。",
   "kind": "login",
@@ -51,17 +52,17 @@
         {
           "id": "submit",
           "label": "ログイン実行",
-          "handlerFlowId": "1ce956c5-7aa9-47b5-bb38-ca392ad73518",
+          "handlerFlowId": "login",
           "argumentMapping": {
-            "username": "@screen.a5088d22-4ad8-4615-a4c5-447ff9cdd280.item.username",
-            "password": "@screen.a5088d22-4ad8-4615-a4c5-447ff9cdd280.item.password",
-            "rememberMe": "@screen.a5088d22-4ad8-4615-a4c5-447ff9cdd280.item.rememberMe"
+            "username": "@screen.login.item.username",
+            "password": "@screen.login.item.password",
+            "rememberMe": "@screen.login.item.rememberMe"
           }
         }
       ]
     }
   ],
   "design": {
-    "designFileRef": "a5088d22-4ad8-4615-a4c5-447ff9cdd280.design.json"
+    "designFileRef": "login.design.json"
   }
 }

@@ -1,7 +1,8 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "2fecbf99-6a4e-4c62-840c-59d96e48ecb6",
+    "id": "photo-upload",
+    "uuid": "2fecbf99-6a4e-4c62-840c-59d96e48ecb6",
     "name": "写真アップロード",
     "description": "投稿に紐付く写真をアップロードする処理フロー。multipart/form-data で受け取り、ローカルファイルシステム (uploads/photos/) に保存 → サムネイル生成 → 寸法 + EXIF 抽出 → photos テーブル INSERT を 1 アップロード単位で実行する。photos.post_id は NOT NULL のため postId は必須 (post 作成後の upload を前提)。S3 / R2 互換ストレージへの切替は v2 で context.catalogs.externalSystems に photoStorage を登録して step-04 を externalSystem に置き換える。",
     "flowType": "common",
@@ -244,7 +245,7 @@
           "id": "step-02",
           "kind": "dbAccess",
           "description": "postId の投稿がログインユーザーのものか確認する (所有者チェック)。",
-          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "tableId": "post",
           "operation": "SELECT",
           "sql": "SELECT id AS \"postId\", user_id AS \"userId\" FROM posts WHERE id = @inputs.postId AND user_id = @sessionUserId LIMIT 1",
           "outputBinding": {
@@ -322,7 +323,7 @@
           "id": "step-08",
           "kind": "dbAccess",
           "description": "photos テーブルに新規写真を INSERT する。order_index 未指定時は 0 (default)。",
-          "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+          "tableId": "photo",
           "operation": "INSERT",
           "sql": "INSERT INTO photos (post_id, url, thumbnail_url, alt, caption, order_index, width, height, bytes, mime_type, exif_json, created_at) VALUES (@inputs.postId, @saved.url, @thumbnail.url, @inputs.alt, @inputs.caption, COALESCE(@inputs.orderIndex, 0), @dimensions.width, @dimensions.height, @inputs.file.bytes, @inputs.file.mimeType, @exifJson, CURRENT_TIMESTAMP) RETURNING id AS \"photoId\"",
           "outputBinding": {

@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/table.v3.schema.json",
-  "id": "1681eee2-39d9-4548-9044-5cedac68d41e",
+  "id": "post-tag",
+  "uuid": "1681eee2-39d9-4548-9044-5cedac68d41e",
   "name": "投稿タグ (中間)",
   "description": "Post と Tag の N:N 中間テーブル。複合主キー (post_id, tag_id)。タグの自動生成元 (AI suggest / 手動付与) と確定時刻を保持。",
   "maturity": "draft",
@@ -66,8 +67,12 @@
       "id": "idx-tag-post",
       "physicalName": "idx_post_tags_tag_post",
       "columns": [
-        { "columnId": "col-tag-id" },
-        { "columnId": "col-post-id" }
+        {
+          "columnId": "col-tag-id"
+        },
+        {
+          "columnId": "col-post-id"
+        }
       ],
       "description": "タグからの逆引き (タグページの投稿一覧)"
     }

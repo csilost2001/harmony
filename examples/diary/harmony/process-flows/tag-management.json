@@ -1,12 +1,13 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
+    "id": "tag-management",
+    "uuid": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
     "name": "タグ管理",
     "description": "タグ管理画面 (c0bd613a) の CRUD ハンドラを集約した処理フロー (#1019)。1 画面 = 1 処理フロー + 複数アクション モデルの典型例として、create / update / delete の 3 actions を保持する。各 action は画面項目イベント側 events[].handlerActionId から個別に呼び出される。",
     "flowType": "screen",
-    "screenId": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2",
     "maturity": "draft",
+    "screenId": "tag-management",
     "createdAt": "2026-05-11T00:00:00.000Z",
     "updatedAt": "2026-05-11T00:00:00.000Z"
   },
@@ -217,7 +218,7 @@
           "id": "step-03",
           "kind": "dbAccess",
           "description": "name または slug が既存タグと重複していないか SELECT で事前チェックする。",
-          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "tableId": "tag",
           "operation": "SELECT",
           "sql": "SELECT id AS \"tagId\" FROM tags WHERE name = @inputs.name OR slug = @resolvedSlug LIMIT 1",
           "outputBinding": {
@@ -259,7 +260,7 @@
           "id": "step-05",
           "kind": "dbAccess",
           "description": "tags に新規タグを INSERT する。color 未指定時は default '#6366f1'。",
-          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "tableId": "tag",
           "operation": "INSERT",
           "sql": "INSERT INTO tags (name, slug, color, icon, usage_count, created_at, updated_at) VALUES (@inputs.name, @resolvedSlug, COALESCE(@inputs.color, '#6366f1'), @inputs.icon, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id AS \"tagId\"",
           "outputBinding": {
@@ -450,7 +451,7 @@
           "id": "step-02",
           "kind": "dbAccess",
           "description": "対象タグの存在を SELECT で確認する。",
-          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "tableId": "tag",
           "operation": "SELECT",
           "sql": "SELECT id AS \"tagId\", name AS \"name\", slug AS \"slug\" FROM tags WHERE id = @inputs.id LIMIT 1",
           "outputBinding": {
@@ -501,7 +502,7 @@
           "id": "step-05",
           "kind": "dbAccess",
           "description": "他タグとの name / slug 重複を SELECT で確認する (自身は除外)。",
-          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "tableId": "tag",
           "operation": "SELECT",
           "sql": "SELECT id AS \"tagId\" FROM tags WHERE id != @inputs.id AND (name = @resolved.name OR slug = @resolved.slug) LIMIT 1",
           "outputBinding": {
@@ -543,7 +544,7 @@
           "id": "step-07",
           "kind": "dbAccess",
           "description": "tags を UPDATE する。指定されない field は既存値を維持。",
-          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "tableId": "tag",
           "operation": "UPDATE",
           "sql": "UPDATE tags SET name = @resolved.name, slug = @resolved.slug, color = COALESCE(@inputs.color, color), icon = COALESCE(@inputs.icon, icon), updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.id",
           "affectedRowsCheck": {
@@ -558,7 +559,7 @@
           "id": "step-08",
           "kind": "dbAccess",
           "description": "更新後の行を読み戻して返す。",
-          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "tableId": "tag",
           "operation": "SELECT",
           "sql": "SELECT id AS \"tagId\", name AS \"name\", slug AS \"slug\", color AS \"color\", icon AS \"icon\" FROM tags WHERE id = @inputs.id LIMIT 1",
           "outputBinding": {
@@ -652,7 +653,7 @@
           "id": "step-02",
           "kind": "dbAccess",
           "description": "post_tags 経由でタグの使用件数を集計する (使用中なら 409 で削除拒否)。",
-          "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+          "tableId": "post-tag",
           "operation": "SELECT",
           "sql": "SELECT COUNT(*) AS \"usageCount\" FROM post_tags WHERE tag_id = @inputs.id",
           "outputBinding": {
@@ -694,7 +695,7 @@
           "id": "step-04",
           "kind": "dbAccess",
           "description": "tags から id を DELETE する。0 行 (既に削除済) なら 404 を返す。",
-          "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+          "tableId": "tag",
           "operation": "DELETE",
           "sql": "DELETE FROM tags WHERE id = @inputs.id",
           "affectedRowsCheck": {

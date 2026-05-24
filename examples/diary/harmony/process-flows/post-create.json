@@ -1,14 +1,15 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "0671b051-4acc-49cf-ba92-9fa29b47f671",
+    "id": "post-create",
+    "uuid": "0671b051-4acc-49cf-ba92-9fa29b47f671",
     "name": "投稿作成",
     "description": "新規投稿を作成する処理フロー。タイトル + 本文 + 写真 + タグを受け取り、posts / photos / post_tags を 1 TX 内に登録する。status='published' の場合は published_at を NOW に設定する。AI 要約 (aiSummarize) は別フローで非同期実行を想定。",
     "flowType": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-06T12:40:00.000Z",
     "updatedAt": "2026-05-22T00:00:00.000Z",
-    "screenId": "531619ae-0f5f-4f55-8043-03e5a9ef6670"
+    "screenId": "post-edit"
   },
   "context": {
     "catalogs": {
@@ -288,7 +289,7 @@
               "id": "step-03-01",
               "kind": "dbAccess",
               "description": "posts テーブルに新規投稿を INSERT する。",
-              "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+              "tableId": "post",
               "operation": "INSERT",
               "sql": "INSERT INTO posts (user_id, title, body, mood, weather, location, status, published_at, created_at, updated_at) VALUES (@sessionUserId, @inputs.title, @inputs.body, @inputs.mood, @inputs.weather, @inputs.location, COALESCE(@inputs.status, 'draft'), @publishedAt, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id AS \"postId\"",
               "outputBinding": {
@@ -313,7 +314,7 @@
                   "id": "step-03-02-01",
                   "kind": "dbAccess",
                   "description": "photos テーブルに写真を INSERT する。",
-                  "tableId": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+                  "tableId": "photo",
                   "operation": "INSERT",
                   "sql": "INSERT INTO photos (post_id, url, thumbnail_url, alt, caption, order_index, width, height, exif_json, created_at) VALUES (@newPost.postId, @photo.url, @photo.thumbnail_url, @photo.alt, @photo.caption, COALESCE(@photo.order_index, 0), @photo.width, @photo.height, @photo.exif_json, CURRENT_TIMESTAMP)"
                 }
@@ -331,7 +332,7 @@
                   "id": "step-03-03-01",
                   "kind": "dbAccess",
                   "description": "タグ名から既存タグを検索する (id 未指定の場合)。",
-                  "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                  "tableId": "tag",
                   "operation": "SELECT",
                   "sql": "SELECT id AS \"tagId\" FROM tags WHERE name = @tag.name LIMIT 1",
                   "runIf": "@tag.id == null",
@@ -343,7 +344,7 @@
                   "id": "step-03-03-02",
                   "kind": "dbAccess",
                   "description": "既存タグが見つからない場合は新規 INSERT する。slug は UNIQUE 制約がありロール競合の場合は affectedRowsCheck でハンドリングする。",
-                  "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+                  "tableId": "tag",
                   "operation": "INSERT",
                   "sql": "INSERT INTO tags (name, slug, usage_count, created_at) VALUES (@tag.name, LOWER(REPLACE(@tag.name, ' ', '-')), 0, CURRENT_TIMESTAMP) RETURNING id AS \"tagId\"",
                   "runIf": "@tag.id == null && @existingTag == null",
@@ -371,7 +372,7 @@
                   "id": "step-03-03-04",
                   "kind": "dbAccess",
                   "description": "post_tags に投稿とタグの関連を INSERT する。",
-                  "tableId": "1681eee2-39d9-4548-9044-5cedac68d41e",
+                  "tableId": "post-tag",
                   "operation": "INSERT",
                   "sql": "INSERT INTO post_tags (post_id, tag_id, source, confidence, created_at) VALUES (@newPost.postId, @resolvedTagId, COALESCE(@tag.source, 'manual'), COALESCE(@tag.confidence, 1.0), CURRENT_TIMESTAMP)"
                 }
@@ -381,7 +382,7 @@
               "id": "step-03-04",
               "kind": "dbAccess",
               "description": "tags.usage_count を更新する (TX 内 commit 前の最後の DB UPDATE)。",
-              "tableId": "07439e21-0743-48ca-af9e-763e4be2d094",
+              "tableId": "tag",
               "operation": "UPDATE",
               "sql": "UPDATE tags SET usage_count = usage_count + 1 WHERE id IN (SELECT tag_id AS \"tagId\" FROM post_tags WHERE post_id = @newPost.postId)"
             }

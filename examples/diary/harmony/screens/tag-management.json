@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
-  "id": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2",
+  "id": "tag-management",
+  "uuid": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2",
   "name": "タグ管理",
   "description": "Notion 風のタグ管理画面。色付きchip + 使用回数付きタグ一覧を表示。新規追加modal・編集modal (name/slug/colorPicker/iconPicker)・削除確認dialogを提供。tags 一覧の取得は タグ一覧取得 ProcessFlow を valueFrom で結線、CRUD button は events で各タグ ProcessFlow と結線。",
   "kind": "list",
@@ -48,7 +49,7 @@
       "description": "全タグの配列。usage_count DESC + name ASC で並び替え済 (postCount は usageCount と同義)。",
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "803764e4-c27d-47fd-b3d9-924c1fa28bd8",
+        "processFlowId": "tag-list-get",
         "variableName": "tags"
       }
     },
@@ -126,13 +127,13 @@
         {
           "id": "submit",
           "label": "タグ作成実行",
-          "handlerFlowId": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
+          "handlerFlowId": "tag-management",
           "handlerActionId": "act-create",
           "argumentMapping": {
-            "name": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagName",
-            "slug": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagSlug",
-            "color": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagColor",
-            "icon": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagIcon"
+            "name": "@screen.tag-management.item.newTagName",
+            "slug": "@screen.tag-management.item.newTagSlug",
+            "color": "@screen.tag-management.item.newTagColor",
+            "icon": "@screen.tag-management.item.newTagIcon"
           }
         }
       ]
@@ -148,14 +149,14 @@
         {
           "id": "submit",
           "label": "タグ更新実行",
-          "handlerFlowId": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
+          "handlerFlowId": "tag-management",
           "handlerActionId": "act-update",
           "argumentMapping": {
-            "id": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.editTagId",
-            "name": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagName",
-            "slug": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagSlug",
-            "color": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagColor",
-            "icon": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.newTagIcon"
+            "id": "@screen.tag-management.item.editTagId",
+            "name": "@screen.tag-management.item.newTagName",
+            "slug": "@screen.tag-management.item.newTagSlug",
+            "color": "@screen.tag-management.item.newTagColor",
+            "icon": "@screen.tag-management.item.newTagIcon"
           }
         }
       ]
@@ -171,16 +172,16 @@
         {
           "id": "submit",
           "label": "タグ削除実行",
-          "handlerFlowId": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
+          "handlerFlowId": "tag-management",
           "handlerActionId": "act-delete",
           "argumentMapping": {
-            "id": "@screen.c0bd613a-ab67-4f72-8e2d-775e827bf9b2.item.deleteTagId"
+            "id": "@screen.tag-management.item.deleteTagId"
           }
         }
       ]
     }
   ],
   "design": {
-    "designFileRef": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2.design.json"
+    "designFileRef": "tag-management.design.json"
   }
 }

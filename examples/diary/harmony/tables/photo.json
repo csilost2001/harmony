@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/table.v3.schema.json",
-  "id": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+  "id": "photo",
+  "uuid": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
   "name": "写真",
   "description": "投稿に紐付く写真。1 投稿に複数枚 (ギャラリー)、order_index で並び順制御。AI 生成 alt text / EXIF メタ / 寸法を保持。lightbox / masonry レイアウト前提。",
   "maturity": "draft",
@@ -133,8 +134,13 @@
       "id": "idx-post-order",
       "physicalName": "idx_photos_post_order",
       "columns": [
-        { "columnId": "col-post-id" },
-        { "columnId": "col-order-index", "order": "asc" }
+        {
+          "columnId": "col-post-id"
+        },
+        {
+          "columnId": "col-order-index",
+          "order": "asc"
+        }
       ],
       "description": "投稿のギャラリー取得 (post_id 一致 + order_index 昇順)"
     }

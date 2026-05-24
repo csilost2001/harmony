@@ -1,7 +1,8 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
+    "id": "ai-summary-generate",
+    "uuid": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
     "name": "AI要約生成",
     "description": "投稿本文を AI モデルへ送信し、3-5 文の日本語要約を生成して posts.summary に書き戻す処理フロー。投稿作成/更新後に非同期で呼ぶ想定 (TX 外、idempotent)。AI 呼び出しは aiCall step + modelEndpoints.summarizeModel で表現。provider 切替は modelEndpoints の編集だけで完結する。",
     "flowType": "common",
@@ -135,7 +136,7 @@
           "id": "step-01",
           "kind": "dbAccess",
           "description": "postId が指定された場合、posts テーブルから本文を取得する。",
-          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "tableId": "post",
           "operation": "SELECT",
           "sql": "SELECT id AS \"postId\", body FROM posts WHERE id = @inputs.postId",
           "runIf": "@inputs.postId != null",
@@ -223,7 +224,7 @@
           "id": "step-06",
           "kind": "dbAccess",
           "description": "posts.summary を更新する (postId が指定された場合のみ)。 (0 行は対象が削除済のケースとして許容、複数行はあり得ない / pitfall #5 対応)",
-          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "tableId": "post",
           "operation": "UPDATE",
           "sql": "UPDATE posts SET summary = @summaryText, updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.postId",
           "runIf": "@inputs.postId != null",

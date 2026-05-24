@@ -1,7 +1,8 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+    "id": "ai-text-proofread",
+    "uuid": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
     "name": "AI文章校正",
     "description": "投稿本文のテキストを AI モデルへ送信し、指定スタイルで校正した結果 + 変更箇所 diff を responseFormat=structuredObject で返す処理フロー。DB 書き込みなし (UI が結果を表示するのみ)。ユーザーが採用した場合は投稿更新フロー経由で body を更新する。",
     "flowType": "common",

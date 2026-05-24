@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
-  "id": "531619ae-0f5f-4f55-8043-03e5a9ef6670",
+  "id": "post-edit",
+  "uuid": "531619ae-0f5f-4f55-8043-03e5a9ef6670",
   "name": "投稿編集",
   "description": "Notion + Substack 風の投稿作成・編集フォーム画面。タイトル入力・Markdownエディタ・写真D&Dアップロード・AI assistサイドパネル (要約/タグ提案/校正/画像alt)・mood/weather/locationフィールド・保存ボタン (sticky bottom)。path :id? の有無で新規作成 / 更新モードを切り替え。saveButton.events に create/update 双方を結線し、UI 側で URL parameter から実行 event を選ぶ実装を想定。",
   "kind": "form",
@@ -217,7 +218,7 @@
       "description": "AI要約生成フローから返却された要約テキスト。サイドパネルに表示。",
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
+        "processFlowId": "ai-summary-generate",
         "variableName": "summary"
       }
     },
@@ -256,7 +257,7 @@
       "description": "AIタグ提案フローから返却されたタグ候補配列。サイドパネルに表示し、1クリックで適用可。",
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
+        "processFlowId": "ai-tag-suggest",
         "variableName": "suggestedTags"
       }
     },
@@ -268,7 +269,7 @@
       "description": "AI文章校正フローから返却された校正済みテキストまたは指摘コメント。サイドパネルに表示。",
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+        "processFlowId": "ai-text-proofread",
         "variableName": "proofreadResult"
       }
     },
@@ -280,7 +281,7 @@
       "description": "AI画像alt生成フローから返却されたalt文字列。写真カードに適用可。",
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e",
+        "processFlowId": "ai-image-alt-generate",
         "variableName": "altText"
       }
     },
@@ -292,7 +293,7 @@
       "description": "URL :id? が指定されている場合の編集対象 postId。新規モードでは null。投稿詳細取得 ProcessFlow の outputs.post.postId を IdentifierPath (post.postId) で参照する。",
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "processFlowId": "post-detail-get",
         "variableName": "post.postId"
       }
     },
@@ -318,9 +319,9 @@
         {
           "id": "submit",
           "label": "写真アップロード実行",
-          "handlerFlowId": "2fecbf99-6a4e-4c62-840c-59d96e48ecb6",
+          "handlerFlowId": "photo-upload",
           "argumentMapping": {
-            "postId": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postId",
+            "postId": "@screen.post-edit.item.postId",
             "file": "@self"
           }
         }
@@ -337,32 +338,32 @@
         {
           "id": "click-create",
           "label": "新規投稿作成",
-          "handlerFlowId": "0671b051-4acc-49cf-ba92-9fa29b47f671",
+          "handlerFlowId": "post-create",
           "argumentMapping": {
-            "title": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postTitle",
-            "body": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postBody",
-            "mood": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.mood",
-            "weather": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.weather",
-            "location": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.location",
-            "status": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.status",
-            "photos": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.photos",
-            "tags": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.tagIds"
+            "title": "@screen.post-edit.item.postTitle",
+            "body": "@screen.post-edit.item.postBody",
+            "mood": "@screen.post-edit.item.mood",
+            "weather": "@screen.post-edit.item.weather",
+            "location": "@screen.post-edit.item.location",
+            "status": "@screen.post-edit.item.status",
+            "photos": "@screen.post-edit.item.photos",
+            "tags": "@screen.post-edit.item.tagIds"
           }
         },
         {
           "id": "click-update",
           "label": "既存投稿更新",
-          "handlerFlowId": "b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+          "handlerFlowId": "post-update",
           "argumentMapping": {
-            "postId": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postId",
-            "title": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postTitle",
-            "body": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postBody",
-            "mood": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.mood",
-            "weather": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.weather",
-            "location": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.location",
-            "status": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.status",
-            "photos": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.photos",
-            "tags": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.tagIds"
+            "postId": "@screen.post-edit.item.postId",
+            "title": "@screen.post-edit.item.postTitle",
+            "body": "@screen.post-edit.item.postBody",
+            "mood": "@screen.post-edit.item.mood",
+            "weather": "@screen.post-edit.item.weather",
+            "location": "@screen.post-edit.item.location",
+            "status": "@screen.post-edit.item.status",
+            "photos": "@screen.post-edit.item.photos",
+            "tags": "@screen.post-edit.item.tagIds"
           }
         }
       ]
@@ -378,10 +379,10 @@
         {
           "id": "click",
           "label": "AI 要約実行",
-          "handlerFlowId": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
+          "handlerFlowId": "ai-summary-generate",
           "argumentMapping": {
-            "postId": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postId",
-            "body": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postBody"
+            "postId": "@screen.post-edit.item.postId",
+            "body": "@screen.post-edit.item.postBody"
           }
         }
       ]
@@ -397,10 +398,10 @@
         {
           "id": "click",
           "label": "AI タグ提案実行",
-          "handlerFlowId": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
+          "handlerFlowId": "ai-tag-suggest",
           "argumentMapping": {
-            "title": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postTitle",
-            "body": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postBody"
+            "title": "@screen.post-edit.item.postTitle",
+            "body": "@screen.post-edit.item.postBody"
           }
         }
       ]
@@ -416,9 +417,9 @@
         {
           "id": "click",
           "label": "AI 校正実行",
-          "handlerFlowId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+          "handlerFlowId": "ai-text-proofread",
           "argumentMapping": {
-            "text": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.postBody",
+            "text": "@screen.post-edit.item.postBody",
             "style": "@conv.msg.proofreadStyle"
           }
         }
@@ -435,15 +436,15 @@
         {
           "id": "click",
           "label": "AI 画像 alt 実行",
-          "handlerFlowId": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e",
+          "handlerFlowId": "ai-image-alt-generate",
           "argumentMapping": {
-            "photoId": "@screen.531619ae-0f5f-4f55-8043-03e5a9ef6670.item.selectedPhotoId"
+            "photoId": "@screen.post-edit.item.selectedPhotoId"
           }
         }
       ]
     }
   ],
   "design": {
-    "designFileRef": "531619ae-0f5f-4f55-8043-03e5a9ef6670.design.json"
+    "designFileRef": "post-edit.design.json"
   }
 }

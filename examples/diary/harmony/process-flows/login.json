@@ -1,14 +1,15 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "1ce956c5-7aa9-47b5-bb38-ca392ad73518",
+    "id": "login",
+    "uuid": "1ce956c5-7aa9-47b5-bb38-ca392ad73518",
     "name": "ログイン",
     "description": "username + password を受け取り、users テーブルで認証して JWT (access token + refresh token) を発行する処理フロー。1 ユーザー個人運用前提 + JWT stateless 認証。失敗ケース (ユーザー不在 / パスワード不一致) は同一の 401 INVALID_CREDENTIALS を返してユーザー列挙攻撃を防ぐ。",
     "flowType": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-07T00:00:00.000Z",
     "updatedAt": "2026-05-07T00:00:00.000Z",
-    "screenId": "a5088d22-4ad8-4615-a4c5-447ff9cdd280"
+    "screenId": "login"
   },
   "context": {
     "catalogs": {
@@ -196,7 +197,7 @@
           "id": "step-02",
           "kind": "dbAccess",
           "description": "username で users を検索し、認証に必要な id / passwordHash + UI 表示用 displayName を取得する。",
-          "tableId": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
+          "tableId": "user",
           "operation": "SELECT",
           "sql": "SELECT id AS \"userId\", username AS \"username\", display_name AS \"displayName\", password_hash AS \"passwordHash\" FROM users WHERE username = @inputs.username LIMIT 1",
           "outputBinding": {

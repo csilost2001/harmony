@@ -1,14 +1,15 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+    "id": "post-search",
+    "uuid": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
     "name": "投稿検索",
     "description": "投稿を動的条件で検索するフロー。全文検索 (title+body LIKE)、タグ絞り込み (slug AND 条件)、ステータス / 日付範囲 / ページネーションをサポートする。",
     "flowType": "screen",
     "maturity": "draft",
     "createdAt": "2026-05-06T14:00:00.000Z",
     "updatedAt": "2026-05-06T14:00:00.000Z",
-    "screenId": "31d56212-b654-46dc-b004-096c7382c404"
+    "screenId": "post-list"
   },
   "context": {
     "catalogs": {
@@ -240,7 +241,7 @@
           "id": "step-04",
           "kind": "dbAccess",
           "description": "条件に一致する投稿を検索し、サムネイルを取得する。全文検索 (LIKE)、ステータス / 日付範囲フィルタ、ORDER BY published_at DESC、LIMIT / OFFSET を適用する。",
-          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "tableId": "post",
           "operation": "SELECT",
           "sql": "SELECT p.id AS \"postId\", p.title, p.summary, p.status, p.mood, p.published_at AS \"publishedAt\", p.updated_at AS \"updatedAt\", u.display_name AS \"authorDisplayName\", (SELECT url FROM photos WHERE post_id = p.id ORDER BY order_index ASC LIMIT 1) AS \"thumbnailUrl\" FROM posts p INNER JOIN users u ON u.id = p.user_id WHERE p.status = @params.status AND (@likePattern IS NULL OR p.title LIKE @likePattern OR p.body LIKE @likePattern) AND (@inputs.dateFrom IS NULL OR p.published_at >= @inputs.dateFrom) AND (@inputs.dateTo IS NULL OR p.published_at <= @inputs.dateTo) ORDER BY p.published_at DESC LIMIT @params.limit OFFSET @params.offset",
           "outputBinding": {
@@ -251,7 +252,7 @@
           "id": "step-05",
           "kind": "dbAccess",
           "description": "同条件での総件数を取得する。",
-          "tableId": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+          "tableId": "post",
           "operation": "SELECT",
           "sql": "SELECT COUNT(*) AS \"totalCount\" FROM posts p WHERE p.status = @params.status AND (@likePattern IS NULL OR p.title LIKE @likePattern OR p.body LIKE @likePattern) AND (@inputs.dateFrom IS NULL OR p.published_at >= @inputs.dateFrom) AND (@inputs.dateTo IS NULL OR p.published_at <= @inputs.dateTo)",
           "outputBinding": {

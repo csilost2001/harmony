@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
-  "id": "31d56212-b654-46dc-b004-096c7382c404",
+  "id": "post-list",
+  "uuid": "31d56212-b654-46dc-b004-096c7382c404",
   "name": "投稿一覧",
   "description": "Day One 風の投稿一覧画面。masonry グリッドで投稿カードを表示し、検索バー・タグチップフィルタ・公開状態トグルで絞り込み可能。各カードにヒーロー画像・AI生成要約・mood絵文字・天気アイコン・場所バッジ・タグチップを表示。新規投稿用フローティングFABを装備。検索フォーム / フィルタ変更時は events で 投稿検索 ProcessFlow を再起動、新規投稿 FAB は /post/edit への画面遷移 (リンク扱い、events 結線なし)。",
   "kind": "list",
@@ -22,11 +23,11 @@
         {
           "id": "submit",
           "label": "検索実行",
-          "handlerFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+          "handlerFlowId": "post-search",
           "argumentMapping": {
-            "q": "@screen.31d56212-b654-46dc-b004-096c7382c404.item.searchQuery",
-            "tagSlug": "@screen.31d56212-b654-46dc-b004-096c7382c404.item.selectedTagSlugs",
-            "status": "@screen.31d56212-b654-46dc-b004-096c7382c404.item.statusFilter"
+            "q": "@screen.post-list.item.searchQuery",
+            "tagSlug": "@screen.post-list.item.selectedTagSlugs",
+            "status": "@screen.post-list.item.statusFilter"
           }
         }
       ]
@@ -45,11 +46,11 @@
         {
           "id": "change",
           "label": "タグフィルタ変更",
-          "handlerFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+          "handlerFlowId": "post-search",
           "argumentMapping": {
-            "q": "@screen.31d56212-b654-46dc-b004-096c7382c404.item.searchQuery",
-            "tagSlug": "@screen.31d56212-b654-46dc-b004-096c7382c404.item.selectedTagSlugs",
-            "status": "@screen.31d56212-b654-46dc-b004-096c7382c404.item.statusFilter"
+            "q": "@screen.post-list.item.searchQuery",
+            "tagSlug": "@screen.post-list.item.selectedTagSlugs",
+            "status": "@screen.post-list.item.statusFilter"
           }
         }
       ]
@@ -80,11 +81,11 @@
         {
           "id": "change",
           "label": "公開状態フィルタ変更",
-          "handlerFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+          "handlerFlowId": "post-search",
           "argumentMapping": {
-            "q": "@screen.31d56212-b654-46dc-b004-096c7382c404.item.searchQuery",
-            "tagSlug": "@screen.31d56212-b654-46dc-b004-096c7382c404.item.selectedTagSlugs",
-            "status": "@screen.31d56212-b654-46dc-b004-096c7382c404.item.statusFilter"
+            "q": "@screen.post-list.item.searchQuery",
+            "tagSlug": "@screen.post-list.item.selectedTagSlugs",
+            "status": "@screen.post-list.item.statusFilter"
           }
         }
       ]
@@ -173,7 +174,7 @@
       "description": "投稿検索フローから返却された投稿オブジェクト配列。id / title / summary / thumbnailUrl / mood / weather / location / tags / status / publishedAt を含む。",
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+        "processFlowId": "post-search",
         "variableName": "items"
       }
     },
@@ -212,7 +213,7 @@
       "required": false,
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "803764e4-c27d-47fd-b3d9-924c1fa28bd8",
+        "processFlowId": "tag-list-get",
         "variableName": "tags"
       }
     },
@@ -224,7 +225,7 @@
       "description": "フィルタ条件に合致する投稿の総件数。",
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+        "processFlowId": "post-search",
         "variableName": "total"
       }
     },
@@ -239,12 +240,12 @@
         {
           "id": "click",
           "label": "ログアウト実行",
-          "handlerFlowId": "46436b69-99f2-48b3-a5fa-07bf9fcd1478"
+          "handlerFlowId": "logout"
         }
       ]
     }
   ],
   "design": {
-    "designFileRef": "31d56212-b654-46dc-b004-096c7382c404.design.json"
+    "designFileRef": "post-list.design.json"
   }
 }
