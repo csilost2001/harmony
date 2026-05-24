@@ -64,7 +64,7 @@ export interface IdentifierIssue {
  * - policy     : @policy.<Name> generic-definitions/runtime-policy
  * - component  : @component.<Name> generic-definitions/component-definition
  * - dialog     : @dialog.<Name> generic-definitions/dialog (#1303)
- * - messageArea: @messageArea.<Name> generic-definitions/messageArea (#1303)
+ * - messageArea: @messageArea.<Name> generic-definitions/message-area (#1303、#1318 で kind=kebab `message-area` / prefix=camelCase `messageArea` に分離、BUILTIN_AMBIENTS は prefix-keyed)
  * - options    : @options.<Name> generic-definitions/options (#1303)
  *
  * **Top-level entity 階層参照** (process-flow-prefix-system.md §3、#1285 で追加):

@@ -184,18 +184,21 @@ export function ScreenItemsView() {
   // ワークスペース全参照情報 (handlerFlowId / handlerActionId 補完用、#1260 A)
   const workspace = useWorkspaceReferences();
 
-  // generic-definitions catalog (kind 別、dialog / messageArea / options 補完用、#1303)
+  // generic-definitions catalog (kind 別、dialog / message-area / options 補完用、#1303 / #1318)
+  // 注意: setState のキーは resolver ctx と一致させる必要があり、prefix 名 (`messageArea`) を採用。
+  // kind 値は `message-area` だが、補完 ctx は prefix-keyed (`@messageArea.<name>` を扱う resolver と整合)。
   const [genericDefinitionsByKind, setGenericDefinitionsByKind] = useState<Record<string, { name: string }[]>>({});
   useEffect(() => {
     if (!wsPath) return;
-    // dialog / messageArea / options の 3 kind を並列ロード
+    // dialog / message-area / options の 3 kind を並列ロード (#1318: kind は kebab-case で listGenericDefinitions に渡す)
     Promise.all([
       listGenericDefinitions("dialog").catch(() => [] as { name: string }[]),
-      listGenericDefinitions("messageArea").catch(() => [] as { name: string }[]),
+      listGenericDefinitions("message-area").catch(() => [] as { name: string }[]),
       listGenericDefinitions("options").catch(() => [] as { name: string }[]),
     ]).then(([dialogs, messageAreas, options]) => {
       setGenericDefinitionsByKind({
         dialog: dialogs.map((d) => ({ name: d.name })),
+        // resolver ctx は prefix-keyed (`@messageArea.<name>` 補完)、kind=kebab/prefix=camelCase 分離
         messageArea: messageAreas.map((m) => ({ name: m.name })),
         options: options.map((o) => ({ name: o.name })),
       });

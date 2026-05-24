@@ -6,7 +6,10 @@
  *   既存 8: data-contract / domain-type / exception-type / application-rule /
  *            ui-behavior / runtime-policy / component-definition / ui-fragment
  *   新規 6: validation-rule / constants / message / domain-event / log-event / log-config
- *   新規 3: dialog / messageArea / options (#1303)
+ *   新規 3: dialog / message-area / options (#1303 で導入、#1318 で messageArea → message-area kebab-case 統一)
+ *
+ * 命名規約: 複合語 kind は kebab-case で統一。prefix は log-event/logEvent、log-config/logConfig、
+ * message-area/messageArea のように camelCase 短縮形を取りうる (kind と prefix は別概念)。
  */
 
 export type GenericDefinitionKind =
@@ -25,7 +28,7 @@ export type GenericDefinitionKind =
   | "log-event"
   | "log-config"
   | "dialog"
-  | "messageArea"
+  | "message-area"
   | "options";
 
 export type GenericDefinitionTarget = "backend" | "frontend" | "shared" | "runtime";
@@ -96,7 +99,7 @@ export const GENERIC_DEFINITION_KINDS: GenericDefinitionKind[] = [
   "log-event",
   "log-config",
   "dialog",
-  "messageArea",
+  "message-area",
   "options",
 ];
 
@@ -116,7 +119,7 @@ export const GENERIC_DEFINITION_KIND_LABELS: Record<GenericDefinitionKind, strin
   "log-event": "ログイベント",
   "log-config": "ログ設定",
   dialog: "ダイアログ",
-  messageArea: "メッセージエリア",
+  "message-area": "メッセージエリア",
   options: "選択肢",
 };
 

@@ -1,10 +1,15 @@
 /**
- * @<kind-prefix>.<name> 補完 Resolver (#1303)。
+ * @<prefix>.<name> 補完 Resolver (#1303、#1318 で kind=kebab / prefix=camelCase 分離)。
  *
- * generic-definition の各 kind を catalog として補完候補化:
- *   - @dialog.<name>       → ctx.genericDefinitionsByKind["dialog"]
- *   - @messageArea.<name>  → ctx.genericDefinitionsByKind["messageArea"]
- *   - @options.<name>      → ctx.genericDefinitionsByKind["options"]
+ * generic-definition の各 kind を catalog として補完候補化。`KIND_PREFIXES` は **prefix-keyed**
+ * (regex 対象 + ctx dict key 両方):
+ *   - @dialog.<name>       → ctx.genericDefinitionsByKind["dialog"]      (kind: "dialog")
+ *   - @messageArea.<name>  → ctx.genericDefinitionsByKind["messageArea"] (kind: "message-area" #1318)
+ *   - @options.<name>      → ctx.genericDefinitionsByKind["options"]     (kind: "options")
+ *
+ * messageArea / message-area は kind と prefix が異なるが、本 resolver は prefix-keyed のため
+ * ctx dict も prefix で参照する。ScreenItemsView 側で kind=`message-area` で `listGenericDefinitions`
+ * を呼び、prefix=`messageArea` を key として dict に格納する。
  *
  * spec 出典: docs/spec/generic-definition-layer.md §4.2
  */

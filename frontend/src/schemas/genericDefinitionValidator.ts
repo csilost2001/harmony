@@ -8,7 +8,9 @@
  * 旧 8 kind (data-contract / domain-type / exception-type / application-rule / ui-behavior /
  *   runtime-policy / ui-fragment) + 新 7 kind (component-definition / validation-rule /
  *   constants / message / domain-event / log-event / log-config) すべて KIND_SCHEMAS に登録。
- * #1303: 新 3 kind (dialog / messageArea / options) を追加 (全 17 kind)。
+ * #1303: 新 3 kind (dialog / message-area / options) を追加 (全 17 kind)。
+ * #1318: messageArea → message-area kebab-case 統一 (kind は kebab-case 統一規約、
+ *   prefix `@messageArea.<name>` は log-event/logEvent 前例と同様に camelCase 維持)。
  */
 
 import type Ajv2020 from "ajv/dist/2020";
@@ -31,9 +33,9 @@ import messageSchema from "../../../schemas/v3/generic-definitions/message.v3.sc
 import domainEventSchema from "../../../schemas/v3/generic-definitions/domain-event.v3.schema.json";
 import logEventSchema from "../../../schemas/v3/generic-definitions/log-event.v3.schema.json";
 import logConfigSchema from "../../../schemas/v3/generic-definitions/log-config.v3.schema.json";
-// #1303 — 3 新規 sub-schema (dialog / messageArea / options)
+// #1303 — 3 新規 sub-schema (dialog / message-area / options、#1318 で messageArea → message-area kebab-case 統一)
 import dialogSchema from "../../../schemas/v3/generic-definitions/dialog.v3.schema.json";
-import messageAreaSchema from "../../../schemas/v3/generic-definitions/messageArea.v3.schema.json";
+import messageAreaSchema from "../../../schemas/v3/generic-definitions/message-area.v3.schema.json";
 import optionsSchema from "../../../schemas/v3/generic-definitions/options.v3.schema.json";
 
 export interface GenericDefinitionIssue {
@@ -61,9 +63,9 @@ const KIND_SCHEMAS: Partial<Record<GenericDefinitionKind, object>> = {
   "domain-event": domainEventSchema as object,
   "log-event": logEventSchema as object,
   "log-config": logConfigSchema as object,
-  // #1303 — 3 新規 kind
+  // #1303 — 3 新規 kind (#1318 で messageArea → message-area kebab-case 統一)
   dialog: dialogSchema as object,
-  messageArea: messageAreaSchema as object,
+  "message-area": messageAreaSchema as object,
   options: optionsSchema as object,
 };
 

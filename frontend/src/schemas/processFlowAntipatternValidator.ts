@@ -38,7 +38,7 @@
  *   - entity (projectIndex.screens/tables/views/viewers/layouts/sequences/flows/externalSystems):
  *     `@screen` / `@table` / `@view` / `@viewer` (2 段は id 検証、4 段は id + child 検証)
  *     `@layout` / `@seq` / `@flow` / `@system` (id 単純 lookup)
- *   - generic-definition (17 kind × 1 prefix, #1303 追加: dialog/messageArea/options):
+ *   - generic-definition (17 kind × 1 prefix, #1303 追加: dialog/message-area/options、#1318 で kind=kebab/prefix=camelCase 分離):
  *     `@contract` / `@type` / `@exception` / `@rule` / `@validation` / `@behavior` /
  *     `@policy` / `@component` / `@fragment` / `@const` / `@msg` / `@logEvent` / `@logConfig`
  *     (`@event` は flow-level context と generic-definition/domain-event の両方が candidate)
