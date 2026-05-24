@@ -99,6 +99,29 @@ export class EditSessionService {
   }
 
   /**
+   * 指定 resource の EditSession を返す (#1298 I-6 refactor 用 lock check)。
+   * wsId に対応する store が存在しない (= 全 session 未生成) なら空配列。
+   *
+   * lazy 生成すると一時的な store 副作用が出るため、明示的に has check で skip する
+   * (renameEntity の lock check では何も session が無い workspace を「lock なし」と扱いたい)。
+   */
+  listByResourceRaw(
+    wsId: string,
+    resourceType: EditSessionResourceType,
+    resourceId: string,
+  ): Array<{
+    state: "Active" | "Discarded";
+    participants: Map<string, { sessionId: string; role: "Edit" | "View" }>;
+  }> {
+    const store = this.editSessionStores.get(wsId);
+    if (!store) return [];
+    return store.listByResource(resourceType, resourceId).map((es) => ({
+      state: es.state,
+      participants: es.participants,
+    }));
+  }
+
+  /**
    * sessionId から active workspace path (wsId) を解決する。未選択時は WorkspaceUnsetError を throw。
    * #917 review M-1: plain Error だと index.ts の catch ブロックで McpError(InvalidParams) に
    * 変換されず汎用 isError に落ちるため、他 workspace 依存 MCP tool と同じ requireActivePath を使う。
