@@ -322,13 +322,14 @@
 
 <table><thead><tr><th>prefix 群</th><th>検証ロジック</th><th>catalog source</th></tr></thead><tbody><tr><td><code>@var</code> / <code>@event</code></td><td>flow context のみで検証 (project index 不要)</td><td>runtime scope / <code>context.catalogs.events</code></td></tr><tr><td><code>@screen</code> / <code>@table</code> / <code>@view</code> / <code>@viewer</code></td><td>2 段 ref で id 検証、4 段以上 (<code>&#x3C;id>.&#x3C;container>.&#x3C;child></code>) で child id 検証</td><td><code>screens/</code> / <code>tables/</code> / <code>views/</code> / <code>view-definitions/</code></td></tr><tr><td><code>@layout</code> / <code>@seq</code> / <code>@flow</code> / <code>@system</code></td><td>head id 単純 lookup</td><td><code>page-layouts/</code> / <code>sequences/</code> / <code>process-flows/</code> / <code>external.json#/externalSystems</code></td></tr><tr><td><code>@contract</code> / <code>@type</code> / <code>@exception</code> / <code>@rule</code> / <code>@validation</code> / <code>@behavior</code> / <code>@policy</code> / <code>@component</code> / <code>@fragment</code></td><td>name lookup</td><td><code>generic-definitions/&#x3C;kind>/&#x3C;Name>.json</code></td></tr><tr><td><code>@const</code> / <code>@msg</code> / <code>@logEvent</code> / <code>@logConfig</code></td><td>catalog instance 名 + 全 catalog の fields[].name の union</td><td>同上 (kind 別)</td></tr><tr><td><code>@conv</code></td><td>conventions top-level key + <code>extensionCategories.&#x3C;name></code></td><td><code>conventions/catalog.json</code></td></tr><tr><td><code>@ext</code></td><td>extension namespace lookup</td><td><code>extensions/&#x3C;ns>.v3.json#/namespace</code></td></tr></tbody></table>
 <p>severity は maturity 連動 (<code>committed</code>=error / <code>draft</code>/<code>provisional</code>=warning)。projectCatalogIndex 未渡し時は @var / @event のみ検証 (silent pass on the rest、Phase X2 互換)。</p>
-<p><code>@this</code> / <code>@self</code> (designer-time alias、§11) は runtime catalog では解決不可のため、Check 31 は <strong>silent pass</strong> する (context 不在での standalone validation では検証不能、Phase B-3 #1322 で context 注入を予定)。</p>
+<p><code>@this</code> / <code>@self</code> (designer-time alias、§11) は <strong>#1322 Phase B-3a で validator-side context 注入完了</strong>。<code>@this.action.&#x3C;id></code> を flow.actions[].id で検証、<code>@this.meta.&#x3C;field></code> を EntityMeta + ProcessFlow Meta 固有 field で検証、<code>@self.&#x3C;field></code> を step 共通 5 field (id / description / runIf / outputBinding / compensatesFor) で検証する。runtime / codegen 側の static ref への pre-resolve は §11.3 参照 (Phase B-3b で実装予定)。</p>
 <h2 id="10-変更履歴">10. 変更履歴</h2>
 <ul>
 <li>2026-05-23: 初版作成 (#1263 Phase X2 — RFC #1254 件 3.7 verdict 反映)</li>
 <li>2026-05-23: §9 24 prefix broken-ref 検証 追加 (#1269 提案 C — Phase X2 follow-up)</li>
 <li>2026-05-24: §11 designer-time alias (@this / @self) 追加 (#1301)</li>
 <li>2026-05-24: §11 Phase B (#1308) — resolver layer を全 kind に拡張 + ProcessFlow editor へ bind。validator / runtime / codegen 側 (Phase B-3) は #1322 へ deferred</li>
+<li>2026-05-24: §11.3 Phase B-3a (#1322) — validator context 注入完了。Phase B-3b (runtime/codegen pre-resolve) / B-3c (<code>/generate-code</code> skill 統合) は同 ISSUE 内の後続 commit で対応</li>
 </ul>
 <h2 id="11-designer-time-alias-this--self1301--1308">11. designer-time alias (<code>@this</code> / <code>@self</code>、#1301 / #1308)</h2>
 <p><code>@this</code> / <code>@self</code> は <strong>designer (editor) の context</strong> に依存する alias prefix。runtime では具体 <code>@screen.&#x3C;id>.item.&#x3C;id></code> / <code>@flow.&#x3C;id></code> 等の static ref に展開される。</p>
@@ -443,15 +444,97 @@
 <li><strong>resolver 層</strong>: kind = <code>screenItem</code> / <code>step</code> / <code>column</code> / <code>region</code> の 4 kind に対応 (Phase B で <code>selfResolver.ts</code> の <code>screenItem only</code> guard 解除、kind 別 default fields table を追加)</li>
 <li><strong>editor bind 層</strong>: ScreenItem context (Phase A) + step context (Phase B、ProcessFlow editor 3 expression field) で完全動作。column / region context は bind 先 UI 未導入</li>
 </ul>
-<h3 id="113-designer-time-alias-の特性">11.3 designer-time alias の特性</h3>
+<h3 id="113-designer-time-alias-の特性--runtime--codegen-pre-resolve-設計">11.3 designer-time alias の特性 + runtime / codegen pre-resolve 設計</h3>
+<p><code>@this</code> / <code>@self</code> は <strong>designer 補完・validator alias</strong> として機能。runtime 評価時は static ref に <strong>pre-resolve</strong> される設計 (or codegen で展開)。</p>
+<h4 id="段階別実装状況-1322-phase-b-3-系列">段階別実装状況 (#1322 Phase B-3 系列)</h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Phase</th><th>領域</th><th>ステータス</th><th>説明</th></tr></thead><tbody><tr><td>A (#1301)</td><td>resolver (screen) + ScreenItem bind</td><td>✅ 完了</td><td>Screen editor の Phase A 限定 resolver、screenItem context</td></tr><tr><td>B (#1308)</td><td>resolver (全 7 kind) + ProcessFlow editor bind</td><td>✅ 完了</td><td>thisResolver/selfResolver の <code>screen only</code> guard 解除、全 kind 補完、ProcessFlow expression UI bind</td></tr><tr><td>B-3a (#1322)</td><td>validator context 注入</td><td>✅ 完了</td><td><code>processFlowAntipatternValidator</code> Check 31 で <code>@this/@self</code> を context-aware に検証 (本節 “validator 側の動作” 参照)</td></tr><tr><td>B-3b (#1322)</td><td>runtime / codegen 静的 pre-resolve</td><td>🚧 同 ISSUE 内後続 commit</td><td>永続化前 or 起動時に static ref へ展開する util を新設</td></tr><tr><td>B-3c (#1322)</td><td><code>/generate-code</code> skill 統合</td><td>🚧 同 ISSUE 内後続 commit</td><td>コード生成時に展開後 ref を渡し、生成コードに <code>@this/@self</code> を残さない</td></tr></tbody></table>
+<h4 id="validator-側の動作-phase-b-3a-完了時点">validator 側の動作 (Phase B-3a 完了時点)</h4>
+<p>ProcessFlow を走査中、<code>processFlowAntipatternValidator</code> は <strong>flow 自体を <code>@this</code> context、現在 walk 中の step を <code>@self</code> context</strong> に常に bind し、Check 31 で以下を検証する:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>ref form</th><th>検証ロジック</th></tr></thead><tbody><tr><td><code>@this.action.&#x3C;actionId>.&#x3C;...></code></td><td><code>&#x3C;actionId></code> を <code>flow.actions[].id</code> で照合、不在は broken</td></tr><tr><td><code>@this.meta.&#x3C;field>.&#x3C;...></code></td><td><code>&#x3C;field></code> を EntityMeta (id/name/description/version/maturity/createdAt/updatedAt) + ProcessFlow Meta 固有 (flowType/screenId/apiVersion/mode/sla/primaryInvoker) で照合</td></tr><tr><td><code>@this.context.&#x3C;...></code> / <code>@this.expressionLanguage</code></td><td>top-level field のみ照合、深い nested は loose pass (Phase B-3b の runtime evaluator 担当)</td></tr><tr><td><code>@this.&#x3C;unknown></code></td><td>unknown top-level → broken</td></tr><tr><td><code>@self.&#x3C;field>.&#x3C;...></code></td><td><code>&#x3C;field></code> を step 共通 5 field (id/description/runIf/outputBinding/compensatesFor) で照合、unknown は broken。step kind 固有 field (例: dbAccess.sql) は step body に直書きする規約なので <code>@self</code> 経由でアクセスしない設計</td></tr></tbody></table>
+<p>severity は他の broken-ref と同じく maturity 連動 (<code>committed</code>=error / <code>draft</code>/<code>provisional</code>=warning)。</p>
+<h4 id="runtime--codegen-静的-pre-resolve-phase-b-3b-予定">runtime / codegen 静的 pre-resolve (Phase B-3b 予定)</h4>
+<p>設計方針 (#1322 Phase B-3b で実装):</p>
 <ul>
-<li><code>@this</code> / <code>@self</code> は <strong>designer 補完・validator alias</strong> として機能。runtime 評価時は static ref に <strong>pre-resolve</strong> される設計 (or codegen で展開) — Phase A (#1301) + Phase B (#1308) では designer 側の補完サポートまでが対象。validator / runtime / codegen 側の context 解決は <strong>Phase B-3 (#1322)</strong> で扱う</li>
-<li>broken-ref validator (<code>processFlowAntipatternValidator</code> Check 31) の挙動:
+<li>pre-resolve タイミング: <strong>コード生成時</strong> (永続化 JSON はそのまま <code>@this/@self</code> を保持、<code>/generate-code</code> 時に展開)</li>
+<li>展開規則:
 <ul>
-<li><strong>現状 (Phase B 時点)</strong>: <code>@this.*</code> / <code>@self.*</code> を <strong>常に silent pass</strong> で skip (validator に designer context 注入の仕組みが未整備のため、false positive 回避を優先)</li>
-<li><strong>Phase B-3 (#1322 予定)</strong>: context 注入後に static ref と等価検証を行う (例: Screen 編集中の <code>@this.item.&#x3C;id></code> を <code>@screen.&#x3C;curScrId>.item.&#x3C;id></code> に解決して既存 Check 31 catalog で検証)、runtime / codegen 側で static ref への pre-resolve を実装</li>
+<li>ProcessFlow JSON で <code>@this.action.&#x3C;id></code> → 生成コードでは <code>&#x3C;currentFlowId>.action.&#x3C;id></code> 相当の構造参照に置換</li>
+<li><code>@this.meta.&#x3C;field></code> → flow 定義 import 経由の固定参照に置換</li>
+<li><code>@self.&#x3C;field></code> → 当該 step の context-bound 変数参照に置換 (例: TypeScript なら <code>this.id</code> / <code>this.outputBinding.name</code>)</li>
 </ul>
 </li>
+<li>例外処理: 展開先 ref が存在しないケースは Phase B-3a の validator で error として検出済 (= 設計者修正待ち)、生成 skip + warning</li>
+<li>spec 詳細は Phase B-3b 実装時に本節を再更新</li>
 </ul>
 <h3 id="114-prefix-一覧との関係-1-補足">11.4 prefix 一覧との関係 (§1 補足)</h3>
 <p>§1 の 24 prefix 表は <strong>runtime catalog (24) + runtime scope <code>@var</code> (1) = 計 25</strong> の canonical 一覧で、designer-time alias である <code>@this</code> / <code>@self</code> は性質が異なる (context 依存・editor 内のみで有効) ため §1 表には含めず、本 §11 で別表として扱う。両者を含めた総数は <strong>計 27</strong>。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
