@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
-  "id": "3a000000-2000-4000-8000-000000000001",
+  "id": "dashboard",
+  "uuid": "3a000000-2000-4000-8000-000000000001",
   "name": "ダッシュボード",
   "description": "アプリ起動時の最初に表示される画面。当月の収入合計・支出合計・差引残高に加え、直近の取引 (5 件) と支出カテゴリ別ドーナツチャートを 1 画面に集約する。Tailwind の gradient hero + soft shadow card grid + rounded-2xl で先進的な見た目を実現する想定。",
   "createdAt": "2026-05-24T00:00:00.000Z",
@@ -9,9 +10,9 @@
   "kind": "dashboard",
   "purpose": "page",
   "path": "/",
-  "groupId": "3a000000-6000-4000-8000-000000000001",
+  "groupId": "household-budget",
   "auth": "required",
-  "processFlowId": "3a000000-5000-4000-8000-000000000005",
+  "processFlowId": "dashboard-data-get",
   "items": [
     {
       "id": "currentMonthIncome",
@@ -52,9 +53,12 @@
     {
       "id": "recentTransactions",
       "label": "直近の取引",
-      "type": { "kind": "tableList", "tableId": "3a000000-1000-4000-8000-000000000004" },
+      "type": {
+        "kind": "tableList",
+        "tableId": "transaction"
+      },
       "direction": "viewer",
-      "viewDefinitionId": "3a000000-4000-4000-8000-000000000001",
+      "viewDefinitionId": "transaction-list-viewer",
       "valueFrom": {
         "kind": "flowVariable",
         "variableName": "recentTransactionRows"

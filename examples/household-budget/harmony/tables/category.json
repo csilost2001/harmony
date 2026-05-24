@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/table.v3.schema.json",
-  "id": "3a000000-1000-4000-8000-000000000003",
+  "id": "category",
+  "uuid": "3a000000-1000-4000-8000-000000000003",
   "name": "カテゴリ",
   "description": "収入 / 支出のカテゴリ。ユーザーごとに独立して管理する (初期 seed で標準カテゴリを 8 件挿入想定)。",
   "createdAt": "2026-05-24T00:00:00.000Z",
@@ -91,9 +92,13 @@
       "id": "fk-categories-user",
       "kind": "foreignKey",
       "physicalName": "fk_categories_user",
-      "columnIds": ["col-user-id"],
-      "referencedTableId": "3a000000-1000-4000-8000-000000000001",
-      "referencedColumnIds": ["col-id"],
+      "columnIds": [
+        "col-user-id"
+      ],
+      "referencedTableId": "user",
+      "referencedColumnIds": [
+        "col-id"
+      ],
       "onDelete": "cascade",
       "onUpdate": "cascade"
     },
@@ -107,7 +112,10 @@
       "id": "uq-categories-user-name",
       "kind": "unique",
       "physicalName": "uq_categories_user_name",
-      "columnIds": ["col-user-id", "col-name"],
+      "columnIds": [
+        "col-user-id",
+        "col-name"
+      ],
       "description": "同一ユーザー内でカテゴリ名は一意。"
     }
   ],
@@ -115,7 +123,11 @@
     {
       "id": "idx-categories-user",
       "physicalName": "idx_categories_user",
-      "columns": [{ "columnId": "col-user-id" }]
+      "columns": [
+        {
+          "columnId": "col-user-id"
+        }
+      ]
     }
   ]
 }

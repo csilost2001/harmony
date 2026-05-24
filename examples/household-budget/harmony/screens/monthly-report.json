@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
-  "id": "3a000000-2000-4000-8000-000000000005",
+  "id": "monthly-report",
+  "uuid": "3a000000-2000-4000-8000-000000000005",
   "name": "月次レポート",
   "description": "選択月の収支詳細レポート。カテゴリ別棒グラフ + 累積収支推移ライン + 前月比 KPI を表示する。年月セレクタを変更すると fetchMonthlyReport flow が再実行される。",
   "createdAt": "2026-05-24T00:00:00.000Z",
@@ -9,9 +10,9 @@
   "kind": "detail",
   "purpose": "page",
   "path": "/reports/monthly",
-  "groupId": "3a000000-6000-4000-8000-000000000001",
+  "groupId": "household-budget",
   "auth": "required",
-  "processFlowId": "3a000000-5000-4000-8000-000000000003",
+  "processFlowId": "monthly-report-get",
   "items": [
     {
       "id": "targetYearMonth",
@@ -26,7 +27,7 @@
         {
           "id": "change",
           "label": "対象月変更",
-          "handlerFlowId": "3a000000-5000-4000-8000-000000000003",
+          "handlerFlowId": "monthly-report-get",
           "argumentMapping": {
             "yearMonth": "@self.value"
           }
@@ -74,10 +75,26 @@
         "itemType": {
           "kind": "object",
           "fields": [
-            { "name": "categoryName", "label": "カテゴリ", "type": "string" },
-            { "name": "categoryType", "label": "種別", "type": "string" },
-            { "name": "color", "label": "色", "type": "string" },
-            { "name": "amount", "label": "金額", "type": "number" }
+            {
+              "name": "categoryName",
+              "label": "カテゴリ",
+              "type": "string"
+            },
+            {
+              "name": "categoryType",
+              "label": "種別",
+              "type": "string"
+            },
+            {
+              "name": "color",
+              "label": "色",
+              "type": "string"
+            },
+            {
+              "name": "amount",
+              "label": "金額",
+              "type": "number"
+            }
           ]
         }
       },

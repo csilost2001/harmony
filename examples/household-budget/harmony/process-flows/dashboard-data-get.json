@@ -1,14 +1,15 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "3a000000-5000-4000-8000-000000000005",
+    "id": "dashboard-data-get",
+    "uuid": "3a000000-5000-4000-8000-000000000005",
     "name": "ダッシュボードデータ取得",
     "description": "ダッシュボード画面 mount 時 (trigger=load) に実行される flow。当月の収入/支出/差引残高サマリと直近 5 件の取引行をまとめて返す。SQLite の strftime('%Y-%m','now') で現在月を自動判定するため、画面側は yearMonth 入力不要 (月次レポート画面との違い)。",
+    "flowType": "screen",
+    "maturity": "draft",
     "createdAt": "2026-05-24T00:00:00.000Z",
     "updatedAt": "2026-05-24T00:00:00.000Z",
-    "maturity": "draft",
-    "flowType": "screen",
-    "screenId": "3a000000-2000-4000-8000-000000000001",
+    "screenId": "dashboard",
     "apiVersion": "v1",
     "mode": "upstream"
   },
@@ -36,9 +37,21 @@
           "type": {
             "kind": "object",
             "fields": [
-              { "name": "monthlyIncome",  "type": "number", "label": "当月収入合計" },
-              { "name": "monthlyExpense", "type": "number", "label": "当月支出合計" },
-              { "name": "balance",        "type": "number", "label": "当月差引収支" }
+              {
+                "name": "monthlyIncome",
+                "type": "number",
+                "label": "当月収入合計"
+              },
+              {
+                "name": "monthlyExpense",
+                "type": "number",
+                "label": "当月支出合計"
+              },
+              {
+                "name": "balance",
+                "type": "number",
+                "label": "当月差引収支"
+              }
             ]
           }
         },
@@ -50,14 +63,46 @@
             "itemType": {
               "kind": "object",
               "fields": [
-                { "name": "id",            "type": "integer", "label": "取引 ID" },
-                { "name": "occurredOn",    "type": "date",    "label": "取引日" },
-                { "name": "amount",        "type": "number",  "label": "金額" },
-                { "name": "memo",          "type": "string",  "label": "メモ" },
-                { "name": "categoryName",  "type": "string",  "label": "カテゴリ名" },
-                { "name": "categoryType",  "type": "string",  "label": "種別 (income/expense)" },
-                { "name": "categoryColor", "type": "string",  "label": "カテゴリ表示色 (#RRGGBB)" },
-                { "name": "accountName",   "type": "string",  "label": "口座名" }
+                {
+                  "name": "id",
+                  "type": "integer",
+                  "label": "取引 ID"
+                },
+                {
+                  "name": "occurredOn",
+                  "type": "date",
+                  "label": "取引日"
+                },
+                {
+                  "name": "amount",
+                  "type": "number",
+                  "label": "金額"
+                },
+                {
+                  "name": "memo",
+                  "type": "string",
+                  "label": "メモ"
+                },
+                {
+                  "name": "categoryName",
+                  "type": "string",
+                  "label": "カテゴリ名"
+                },
+                {
+                  "name": "categoryType",
+                  "type": "string",
+                  "label": "種別 (income/expense)"
+                },
+                {
+                  "name": "categoryColor",
+                  "type": "string",
+                  "label": "カテゴリ表示色 (#RRGGBB)"
+                },
+                {
+                  "name": "accountName",
+                  "type": "string",
+                  "label": "口座名"
+                }
               ]
             },
             "description": "SQL SELECT で transactions × categories × accounts を JOIN した display 用 shape。tableList<transactions> ではなく明示的 array<object> として宣言する理由: SQL 出力に categoryName / accountName / categoryColor 等 transactions table に存在しない JOIN 列を含むため、type 宣言と実 shape を一致させる (fetchMonthlyReport.report.categoryBreakdown と同設計)。"
@@ -82,26 +127,32 @@
           "id": "step-01-fetch-totals",
           "kind": "dbAccess",
           "description": "当月の収入 / 支出 合計を 1 row で SELECT。strftime に `'localtime'` modifier を付与して host タイムゾーン (本サンプルは JST 運用想定) 基準で当月絞り込みする。SQLite default の 'now' は UTC のため、JST 23:00 〜 翌 09:00 帯で月境界がズレる問題を回避。occurred_on は date 型で TZ 情報を持たないため、書き込み側 (画面側 JST 入力) と読み出し側 (本 SQL の localtime) で TZ 解釈を揃える設計。SQLite 'localtime' は OS 環境変数 TZ を参照、container deploy では TZ=Asia/Tokyo 設定推奨。",
-          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "tableId": "transaction",
           "operation": "SELECT",
           "sql": "SELECT COALESCE(SUM(CASE WHEN c.category_type = 'income'  THEN t.amount ELSE 0 END), 0) AS monthlyIncome, COALESCE(SUM(CASE WHEN c.category_type = 'expense' THEN t.amount ELSE 0 END), 0) AS monthlyExpense FROM transactions t JOIN categories c ON c.id = t.category_id WHERE t.user_id = @sessionUserId AND strftime('%Y-%m', t.occurred_on) = strftime('%Y-%m', 'now', 'localtime')",
-          "outputBinding": { "name": "monthlyTotals" }
+          "outputBinding": {
+            "name": "monthlyTotals"
+          }
         },
         {
           "id": "step-02-fetch-recent",
           "kind": "dbAccess",
           "description": "occurred_on 降順 5 件の取引を categoryName / accountName 付きで SELECT。",
-          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "tableId": "transaction",
           "operation": "SELECT",
           "sql": "SELECT t.id AS id, t.occurred_on AS occurredOn, t.amount AS amount, t.memo AS memo, c.name AS categoryName, c.category_type AS categoryType, c.color AS categoryColor, a.name AS accountName FROM transactions t JOIN categories c ON c.id = t.category_id JOIN accounts a ON a.id = t.account_id WHERE t.user_id = @sessionUserId ORDER BY t.occurred_on DESC, t.id DESC LIMIT 5",
-          "outputBinding": { "name": "recentTransactionRows" }
+          "outputBinding": {
+            "name": "recentTransactionRows"
+          }
         },
         {
           "id": "step-03-compose-summary",
           "kind": "compute",
           "description": "monthlyIncome / monthlyExpense / balance を summary object にまとめる。balance は導出値 (monthlyIncome - monthlyExpense)。",
           "expression": "${ { monthlyIncome: @monthlyTotals.monthlyIncome, monthlyExpense: @monthlyTotals.monthlyExpense, balance: @monthlyTotals.monthlyIncome - @monthlyTotals.monthlyExpense } }",
-          "outputBinding": { "name": "summary" }
+          "outputBinding": {
+            "name": "summary"
+          }
         },
         {
           "id": "step-04-return",

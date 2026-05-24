@@ -1,14 +1,15 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "3a000000-5000-4000-8000-000000000004",
+    "id": "transaction-update",
+    "uuid": "3a000000-5000-4000-8000-000000000004",
     "name": "取引更新",
     "description": "取引編集画面の 2 アクション処理フロー: (1) 画面 mount 時に load action で対象取引を取得して loadedTransaction に bind、(2) submit 時に update action で UPDATE を実行する。所有者チェック (user_id=@sessionUserId) を WHERE に含め、他ユーザーの取引を編集できないよう SQL 層で防御。",
+    "flowType": "screen",
+    "maturity": "draft",
     "createdAt": "2026-05-24T00:00:00.000Z",
     "updatedAt": "2026-05-24T00:00:00.000Z",
-    "maturity": "draft",
-    "flowType": "screen",
-    "screenId": "3a000000-2000-4000-8000-000000000006",
+    "screenId": "transaction-edit",
     "apiVersion": "v1",
     "mode": "upstream"
   },
@@ -50,10 +51,22 @@
       "trigger": "load",
       "description": "編集画面 mount 時に対象取引を取得し loadedTransaction として返す。",
       "inputs": [
-        { "name": "transactionId", "label": "取引 ID", "type": "integer", "required": true }
+        {
+          "name": "transactionId",
+          "label": "取引 ID",
+          "type": "integer",
+          "required": true
+        }
       ],
       "outputs": [
-        { "name": "loadedTransaction", "label": "読み込まれた取引", "type": { "kind": "tableRow", "tableId": "3a000000-1000-4000-8000-000000000004" } }
+        {
+          "name": "loadedTransaction",
+          "label": "読み込まれた取引",
+          "type": {
+            "kind": "tableRow",
+            "tableId": "transaction"
+          }
+        }
       ],
       "httpRoute": {
         "method": "GET",
@@ -61,18 +74,30 @@
         "auth": "required"
       },
       "responses": [
-        { "id": "200-ok",        "status": 200, "contentType": "application/json", "description": "取引データを返却。" },
-        { "id": "404-not-found", "status": 404, "contentType": "application/json", "description": "存在しない or 別ユーザー所有。" }
+        {
+          "id": "200-ok",
+          "status": 200,
+          "contentType": "application/json",
+          "description": "取引データを返却。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "contentType": "application/json",
+          "description": "存在しない or 別ユーザー所有。"
+        }
       ],
       "steps": [
         {
           "id": "step-01-load",
           "kind": "dbAccess",
           "description": "transactions から 1 行 SELECT。user_id 一致を WHERE に含める。",
-          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "tableId": "transaction",
           "operation": "SELECT",
           "sql": "SELECT id, user_id, account_id, category_id, occurred_on, amount, memo, created_at, updated_at FROM transactions WHERE id = @transactionId AND user_id = @sessionUserId",
-          "outputBinding": { "name": "loadedTransaction" },
+          "outputBinding": {
+            "name": "loadedTransaction"
+          },
           "affectedRowsCheck": {
             "operator": "=",
             "expected": 1,
@@ -95,15 +120,52 @@
       "trigger": "submit",
       "description": "編集フォームの submit 時に対象取引を更新する。",
       "inputs": [
-        { "name": "transactionId", "label": "取引 ID", "type": "integer", "required": true },
-        { "name": "occurredOn",    "label": "取引日",   "type": "date",    "required": true },
-        { "name": "accountId",     "label": "口座 ID",  "type": "integer", "required": true },
-        { "name": "categoryId",    "label": "カテゴリ ID","type": "integer", "required": true },
-        { "name": "amount",        "label": "金額",     "type": "number",  "required": true },
-        { "name": "memo",          "label": "メモ",     "type": "string",  "required": false }
+        {
+          "name": "transactionId",
+          "label": "取引 ID",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "occurredOn",
+          "label": "取引日",
+          "type": "date",
+          "required": true
+        },
+        {
+          "name": "accountId",
+          "label": "口座 ID",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "categoryId",
+          "label": "カテゴリ ID",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "amount",
+          "label": "金額",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "memo",
+          "label": "メモ",
+          "type": "string",
+          "required": false
+        }
       ],
       "outputs": [
-        { "name": "updatedTransaction", "label": "更新後の取引", "type": { "kind": "tableRow", "tableId": "3a000000-1000-4000-8000-000000000004" } }
+        {
+          "name": "updatedTransaction",
+          "label": "更新後の取引",
+          "type": {
+            "kind": "tableRow",
+            "tableId": "transaction"
+          }
+        }
       ],
       "httpRoute": {
         "method": "PUT",
@@ -111,9 +173,24 @@
         "auth": "required"
       },
       "responses": [
-        { "id": "200-ok",         "status": 200, "contentType": "application/json", "description": "更新成功、更新後の行を返却。" },
-        { "id": "400-validation", "status": 400, "contentType": "application/json", "description": "入力バリデーション失敗。" },
-        { "id": "404-not-found",  "status": 404, "contentType": "application/json", "description": "存在しない or 別ユーザー所有。" }
+        {
+          "id": "200-ok",
+          "status": 200,
+          "contentType": "application/json",
+          "description": "更新成功、更新後の行を返却。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "contentType": "application/json",
+          "description": "入力バリデーション失敗。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "contentType": "application/json",
+          "description": "存在しない or 別ユーザー所有。"
+        }
       ],
       "steps": [
         {
@@ -122,12 +199,51 @@
           "description": "新規入力と同じバリデーション規則。",
           "fieldErrorsVar": "fieldErrors",
           "rules": [
-            { "field": "occurredOn", "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "accountId",  "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "categoryId", "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "amount",     "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "amount",     "type": "range",     "min": 1, "max": 100000000, "severity": "error", "message": "@msg.AmountOutOfRange", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "memo",       "type": "maxLength", "length": 200, "severity": "error", "message": "@msg.MemoMaxLength", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" }
+            {
+              "field": "occurredOn",
+              "type": "required",
+              "severity": "error",
+              "message": "@msg.FieldRequired",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            },
+            {
+              "field": "accountId",
+              "type": "required",
+              "severity": "error",
+              "message": "@msg.FieldRequired",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            },
+            {
+              "field": "categoryId",
+              "type": "required",
+              "severity": "error",
+              "message": "@msg.FieldRequired",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            },
+            {
+              "field": "amount",
+              "type": "required",
+              "severity": "error",
+              "message": "@msg.FieldRequired",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            },
+            {
+              "field": "amount",
+              "type": "range",
+              "min": 1,
+              "max": 100000000,
+              "severity": "error",
+              "message": "@msg.AmountOutOfRange",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            },
+            {
+              "field": "memo",
+              "type": "maxLength",
+              "length": 200,
+              "severity": "error",
+              "message": "@msg.MemoMaxLength",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            }
           ],
           "inlineBranch": {
             "ok": [],
@@ -140,10 +256,12 @@
           "id": "step-02-before-snapshot",
           "kind": "dbAccess",
           "description": "更新前の snapshot を取得 (TransactionUpdated event payload の before に使用)。",
-          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "tableId": "transaction",
           "operation": "SELECT",
           "sql": "SELECT id, user_id, account_id, category_id, occurred_on, amount, memo, created_at, updated_at FROM transactions WHERE id = @transactionId AND user_id = @sessionUserId",
-          "outputBinding": { "name": "beforeSnapshot" },
+          "outputBinding": {
+            "name": "beforeSnapshot"
+          },
           "affectedRowsCheck": {
             "operator": "=",
             "expected": 1,
@@ -155,10 +273,12 @@
           "id": "step-03-update",
           "kind": "dbAccess",
           "description": "user_id 一致を WHERE に含めて UPDATE。affectedRows=0 なら 404 へ。",
-          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "tableId": "transaction",
           "operation": "UPDATE",
           "sql": "UPDATE transactions SET account_id = @accountId, category_id = @categoryId, occurred_on = @occurredOn, amount = @amount, memo = @memo, updated_at = CURRENT_TIMESTAMP WHERE id = @transactionId AND user_id = @sessionUserId RETURNING id, user_id, account_id, category_id, occurred_on, amount, memo, created_at, updated_at",
-          "outputBinding": { "name": "updatedTransaction" },
+          "outputBinding": {
+            "name": "updatedTransaction"
+          },
           "affectedRowsCheck": {
             "operator": "=",
             "expected": 1,

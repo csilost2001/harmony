@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/table.v3.schema.json",
-  "id": "3a000000-1000-4000-8000-000000000002",
+  "id": "account",
+  "uuid": "3a000000-1000-4000-8000-000000000002",
   "name": "口座",
   "description": "ユーザー所有の口座 (現金 / 銀行 / クレジット)。複数口座を横断して取引を集計するための起点エンティティ。",
   "createdAt": "2026-05-24T00:00:00.000Z",
@@ -96,9 +97,13 @@
       "id": "fk-accounts-user",
       "kind": "foreignKey",
       "physicalName": "fk_accounts_user",
-      "columnIds": ["col-user-id"],
-      "referencedTableId": "3a000000-1000-4000-8000-000000000001",
-      "referencedColumnIds": ["col-id"],
+      "columnIds": [
+        "col-user-id"
+      ],
+      "referencedTableId": "user",
+      "referencedColumnIds": [
+        "col-id"
+      ],
       "onDelete": "cascade",
       "onUpdate": "cascade",
       "description": "ユーザー削除時に紐付く口座も連動削除。"
@@ -115,7 +120,11 @@
     {
       "id": "idx-accounts-user",
       "physicalName": "idx_accounts_user",
-      "columns": [{ "columnId": "col-user-id" }]
+      "columns": [
+        {
+          "columnId": "col-user-id"
+        }
+      ]
     }
   ]
 }

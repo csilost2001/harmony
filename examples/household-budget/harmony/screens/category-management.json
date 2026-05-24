@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
-  "id": "3a000000-2000-4000-8000-000000000004",
+  "id": "category-management",
+  "uuid": "3a000000-2000-4000-8000-000000000004",
   "name": "カテゴリ管理",
   "description": "ユーザーが収支カテゴリを CRUD する画面。初期 seed で食費・交通費・住居費・娯楽・給与・副収入・その他収入・その他支出の 8 件を投入する想定。",
   "createdAt": "2026-05-24T00:00:00.000Z",
@@ -9,15 +10,18 @@
   "kind": "list",
   "purpose": "page",
   "path": "/categories",
-  "groupId": "3a000000-6000-4000-8000-000000000002",
+  "groupId": "master-management",
   "auth": "required",
   "items": [
     {
       "id": "categoryRows",
       "label": "カテゴリ一覧",
-      "type": { "kind": "tableList", "tableId": "3a000000-1000-4000-8000-000000000003" },
+      "type": {
+        "kind": "tableList",
+        "tableId": "category"
+      },
       "direction": "viewer",
-      "viewDefinitionId": "3a000000-4000-4000-8000-000000000002",
+      "viewDefinitionId": "category-list-viewer",
       "helperText": "viewDefinition で kind=list、type ごとにバッジ色を変える。"
     }
   ],

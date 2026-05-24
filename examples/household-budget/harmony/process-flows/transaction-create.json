@@ -1,14 +1,15 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "3a000000-5000-4000-8000-000000000001",
+    "id": "transaction-create",
+    "uuid": "3a000000-5000-4000-8000-000000000001",
     "name": "取引登録",
     "description": "取引入力画面から submit された 1 件の取引を transactions テーブルに INSERT する。validation → INSERT → 201 を返す単純フロー。MVP では同時実行による残高整合性は検査しない (口座残高は集計クエリで都度算出する設計のため)。",
+    "flowType": "screen",
+    "maturity": "draft",
     "createdAt": "2026-05-24T00:00:00.000Z",
     "updatedAt": "2026-05-24T00:00:00.000Z",
-    "maturity": "draft",
-    "flowType": "screen",
-    "screenId": "3a000000-2000-4000-8000-000000000003",
+    "screenId": "transaction-create",
     "apiVersion": "v1",
     "mode": "upstream"
   },
@@ -51,14 +52,46 @@
       "trigger": "submit",
       "description": "取引入力フォームの submit ハンドラ。",
       "inputs": [
-        { "name": "occurredOn", "label": "取引日", "type": "date", "required": true },
-        { "name": "accountId", "label": "口座 ID", "type": "integer", "required": true },
-        { "name": "categoryId", "label": "カテゴリ ID", "type": "integer", "required": true },
-        { "name": "amount", "label": "金額", "type": "number", "required": true },
-        { "name": "memo", "label": "メモ", "type": "string", "required": false }
+        {
+          "name": "occurredOn",
+          "label": "取引日",
+          "type": "date",
+          "required": true
+        },
+        {
+          "name": "accountId",
+          "label": "口座 ID",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "categoryId",
+          "label": "カテゴリ ID",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "amount",
+          "label": "金額",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "memo",
+          "label": "メモ",
+          "type": "string",
+          "required": false
+        }
       ],
       "outputs": [
-        { "name": "createdTransaction", "label": "作成された取引", "type": { "kind": "tableRow", "tableId": "3a000000-1000-4000-8000-000000000004" } }
+        {
+          "name": "createdTransaction",
+          "label": "作成された取引",
+          "type": {
+            "kind": "tableRow",
+            "tableId": "transaction"
+          }
+        }
       ],
       "httpRoute": {
         "method": "POST",
@@ -93,12 +126,51 @@
           "description": "入力バリデーション。必須項目欠落・金額範囲・日付形式をチェックし、NG なら 400 を返却して action を打ち切る。",
           "fieldErrorsVar": "fieldErrors",
           "rules": [
-            { "field": "occurredOn", "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "accountId",  "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "categoryId", "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "amount",     "type": "required",  "severity": "error", "message": "@msg.FieldRequired",        "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "amount",     "type": "range",     "min": 1, "max": 100000000, "severity": "error", "message": "@msg.AmountOutOfRange", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" },
-            { "field": "memo",       "type": "maxLength", "length": 200, "severity": "error", "message": "@msg.MemoMaxLength", "exceptionTypeRef": "generic-definitions/exception-type/ValidationException" }
+            {
+              "field": "occurredOn",
+              "type": "required",
+              "severity": "error",
+              "message": "@msg.FieldRequired",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            },
+            {
+              "field": "accountId",
+              "type": "required",
+              "severity": "error",
+              "message": "@msg.FieldRequired",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            },
+            {
+              "field": "categoryId",
+              "type": "required",
+              "severity": "error",
+              "message": "@msg.FieldRequired",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            },
+            {
+              "field": "amount",
+              "type": "required",
+              "severity": "error",
+              "message": "@msg.FieldRequired",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            },
+            {
+              "field": "amount",
+              "type": "range",
+              "min": 1,
+              "max": 100000000,
+              "severity": "error",
+              "message": "@msg.AmountOutOfRange",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            },
+            {
+              "field": "memo",
+              "type": "maxLength",
+              "length": 200,
+              "severity": "error",
+              "message": "@msg.MemoMaxLength",
+              "exceptionTypeRef": "generic-definitions/exception-type/ValidationException"
+            }
           ],
           "inlineBranch": {
             "ok": [],
@@ -111,10 +183,12 @@
           "id": "step-02-insert",
           "kind": "dbAccess",
           "description": "transactions テーブルへ 1 行 INSERT。FK 違反 (account / category 不存在 or 他ユーザー) は SQLite が ON DELETE restrict + check で防ぐ想定。affectedRows!=1 なら 422 へ。",
-          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "tableId": "transaction",
           "operation": "INSERT",
           "sql": "INSERT INTO transactions (user_id, account_id, category_id, occurred_on, amount, memo) VALUES (@sessionUserId, @accountId, @categoryId, @occurredOn, @amount, @memo) RETURNING id, user_id, account_id, category_id, occurred_on, amount, memo, created_at, updated_at",
-          "outputBinding": { "name": "createdTransaction" },
+          "outputBinding": {
+            "name": "createdTransaction"
+          },
           "affectedRowsCheck": {
             "operator": "=",
             "expected": 1,

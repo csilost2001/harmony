@@ -1,17 +1,18 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
-  "id": "3a000000-2000-4000-8000-000000000003",
-  "name": "取引入力",
-  "description": "新規取引を登録するフォーム。occurredOn (default=今日) / accountId / categoryId / amount / memo を入力し、submit で createTransaction flow を実行する。Tailwind で大きめ余白 + 段組み + キーパッド風数値入力で B2C UX を目指す。",
+  "id": "transaction-edit",
+  "uuid": "3a000000-2000-4000-8000-000000000006",
+  "name": "取引編集",
+  "description": "既存取引を編集するフォーム。画面 mount 時に load action で transactions/:transactionId を取得して各 input に pre-fill、submit で update action を呼ぶ。新規画面 (transactionForm) と項目構成は同じ。",
   "createdAt": "2026-05-24T00:00:00.000Z",
   "updatedAt": "2026-05-24T00:00:00.000Z",
   "maturity": "draft",
   "kind": "form",
   "purpose": "page",
-  "path": "/transactions/new",
-  "groupId": "3a000000-6000-4000-8000-000000000001",
+  "path": "/transactions/:transactionId/edit",
+  "groupId": "household-budget",
   "auth": "required",
-  "processFlowId": "3a000000-5000-4000-8000-000000000001",
+  "processFlowId": "transaction-update",
   "items": [
     {
       "id": "occurredOn",
@@ -19,8 +20,10 @@
       "type": "date",
       "direction": "input",
       "required": true,
-      "defaultValue": null,
-      "helperText": "default は当日。過去日付の遡及入力可。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "loadedTransaction.occurred_on"
+      },
       "errorMessages": {
         "required": "取引日は必須です。"
       }
@@ -31,8 +34,10 @@
       "type": "integer",
       "direction": "input",
       "required": true,
-      "placeholder": "選択してください",
-      "helperText": "accounts テーブルから select で取得 (初期は単一口座運用、複数口座は将来追加)。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "loadedTransaction.account_id"
+      },
       "errorMessages": {
         "required": "口座を選択してください。"
       }
@@ -43,8 +48,10 @@
       "type": "integer",
       "direction": "input",
       "required": true,
-      "placeholder": "選択してください",
-      "helperText": "categories テーブルから select で取得。アイコン+色で視認性を向上。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "loadedTransaction.category_id"
+      },
       "errorMessages": {
         "required": "カテゴリを選択してください。"
       }
@@ -57,10 +64,11 @@
       "required": true,
       "min": 1,
       "max": 100000000,
-      "step": 1,
       "displayFormat": "¥#,##0",
-      "placeholder": "0",
-      "helperText": "正値で入力 (収入 / 支出の符号はカテゴリで判別)。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "loadedTransaction.amount"
+      },
       "errorMessages": {
         "required": "金額は必須です。",
         "outOfRange": "1 円以上 1 億円以下で入力してください。"
@@ -73,25 +81,45 @@
       "direction": "input",
       "required": false,
       "maxLength": 200,
-      "placeholder": "店名 / 用途など (任意)",
-      "helperText": "200 文字まで。"
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "loadedTransaction.memo"
+      }
     },
     {
       "id": "submitButton",
-      "label": "登録",
+      "label": "更新",
       "type": "string",
       "direction": "input",
       "events": [
         {
           "id": "click",
-          "label": "保存",
-          "handlerFlowId": "3a000000-5000-4000-8000-000000000001",
+          "label": "更新を保存",
+          "handlerFlowId": "transaction-update",
+          "handlerActionId": "act-update-transaction",
           "argumentMapping": {
+            "transactionId": "@screen.route.transactionId",
             "occurredOn": "@screen.occurredOn",
             "accountId": "@screen.accountId",
             "categoryId": "@screen.categoryId",
             "amount": "@screen.amount",
             "memo": "@screen.memo"
+          }
+        }
+      ]
+    },
+    {
+      "id": "deleteButton",
+      "label": "削除",
+      "type": "string",
+      "direction": "input",
+      "events": [
+        {
+          "id": "click",
+          "label": "この取引を削除",
+          "handlerFlowId": "transaction-delete",
+          "argumentMapping": {
+            "transactionId": "@screen.route.transactionId"
           }
         }
       ]

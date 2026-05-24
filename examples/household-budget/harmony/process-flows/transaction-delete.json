@@ -1,14 +1,15 @@
 {
   "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "3a000000-5000-4000-8000-000000000002",
+    "id": "transaction-delete",
+    "uuid": "3a000000-5000-4000-8000-000000000002",
     "name": "取引削除",
     "description": "取引一覧画面の各行から発火する削除フロー。所有者チェック (user_id=@sessionUserId) を WHERE に含めることで、他ユーザーの取引を誤って削除しないよう SQL 層で防御する。",
+    "flowType": "screen",
+    "maturity": "draft",
     "createdAt": "2026-05-24T00:00:00.000Z",
     "updatedAt": "2026-05-24T00:00:00.000Z",
-    "maturity": "draft",
-    "flowType": "screen",
-    "screenId": "3a000000-2000-4000-8000-000000000002",
+    "screenId": "transaction-list",
     "apiVersion": "v1",
     "mode": "upstream"
   },
@@ -44,7 +45,12 @@
       "trigger": "click",
       "description": "指定 ID の取引を削除する。",
       "inputs": [
-        { "name": "transactionId", "label": "取引 ID", "type": "integer", "required": true }
+        {
+          "name": "transactionId",
+          "label": "取引 ID",
+          "type": "integer",
+          "required": true
+        }
       ],
       "httpRoute": {
         "method": "DELETE",
@@ -69,10 +75,12 @@
           "id": "step-01-snapshot",
           "kind": "dbAccess",
           "description": "削除前の snapshot を SELECT (event payload + undo 復元用)。所有者チェックも兼ねる。",
-          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "tableId": "transaction",
           "operation": "SELECT",
           "sql": "SELECT id, user_id, account_id, category_id, occurred_on, amount, memo, created_at, updated_at FROM transactions WHERE id = @transactionId AND user_id = @sessionUserId",
-          "outputBinding": { "name": "snapshot" },
+          "outputBinding": {
+            "name": "snapshot"
+          },
           "affectedRowsCheck": {
             "operator": "=",
             "expected": 1,
@@ -84,7 +92,7 @@
           "id": "step-02-delete",
           "kind": "dbAccess",
           "description": "DELETE 実行。snapshot 取得済なので all-or-nothing で確実に行う。",
-          "tableId": "3a000000-1000-4000-8000-000000000004",
+          "tableId": "transaction",
           "operation": "DELETE",
           "sql": "DELETE FROM transactions WHERE id = @transactionId AND user_id = @sessionUserId"
         },

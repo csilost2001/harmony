@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/table.v3.schema.json",
-  "id": "3a000000-1000-4000-8000-000000000004",
+  "id": "transaction",
+  "uuid": "3a000000-1000-4000-8000-000000000004",
   "name": "取引",
   "description": "本アプリの中核テーブル。1 行 = 1 件の収入 / 支出。口座とカテゴリへの FK を持ち、occurred_on で時系列分析する。",
   "createdAt": "2026-05-24T00:00:00.000Z",
@@ -99,9 +100,13 @@
       "id": "fk-tx-user",
       "kind": "foreignKey",
       "physicalName": "fk_tx_user",
-      "columnIds": ["col-user-id"],
-      "referencedTableId": "3a000000-1000-4000-8000-000000000001",
-      "referencedColumnIds": ["col-id"],
+      "columnIds": [
+        "col-user-id"
+      ],
+      "referencedTableId": "user",
+      "referencedColumnIds": [
+        "col-id"
+      ],
       "onDelete": "cascade",
       "onUpdate": "cascade"
     },
@@ -109,9 +114,13 @@
       "id": "fk-tx-account",
       "kind": "foreignKey",
       "physicalName": "fk_tx_account",
-      "columnIds": ["col-account-id"],
-      "referencedTableId": "3a000000-1000-4000-8000-000000000002",
-      "referencedColumnIds": ["col-id"],
+      "columnIds": [
+        "col-account-id"
+      ],
+      "referencedTableId": "account",
+      "referencedColumnIds": [
+        "col-id"
+      ],
       "onDelete": "restrict",
       "onUpdate": "cascade",
       "description": "使用中の口座は削除を禁止 (取引履歴保全)。"
@@ -120,9 +129,13 @@
       "id": "fk-tx-category",
       "kind": "foreignKey",
       "physicalName": "fk_tx_category",
-      "columnIds": ["col-category-id"],
-      "referencedTableId": "3a000000-1000-4000-8000-000000000003",
-      "referencedColumnIds": ["col-id"],
+      "columnIds": [
+        "col-category-id"
+      ],
+      "referencedTableId": "category",
+      "referencedColumnIds": [
+        "col-id"
+      ],
       "onDelete": "restrict",
       "onUpdate": "cascade",
       "description": "使用中のカテゴリは削除を禁止。"
@@ -140,15 +153,24 @@
       "id": "idx-tx-user-occurred",
       "physicalName": "idx_tx_user_occurred",
       "columns": [
-        { "columnId": "col-user-id" },
-        { "columnId": "col-occurred-on", "order": "desc" }
+        {
+          "columnId": "col-user-id"
+        },
+        {
+          "columnId": "col-occurred-on",
+          "order": "desc"
+        }
       ],
       "description": "月次集計 / 一覧画面の主要クエリ index。"
     },
     {
       "id": "idx-tx-category",
       "physicalName": "idx_tx_category",
-      "columns": [{ "columnId": "col-category-id" }],
+      "columns": [
+        {
+          "columnId": "col-category-id"
+        }
+      ],
       "description": "カテゴリ別集計用。"
     }
   ]

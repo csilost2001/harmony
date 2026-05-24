@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/table.v3.schema.json",
-  "id": "3a000000-1000-4000-8000-000000000001",
+  "id": "user",
+  "uuid": "3a000000-1000-4000-8000-000000000001",
   "name": "ユーザー",
   "description": "本アプリの利用者。MVP では single user 想定 (initial seed で 1 件挿入) だが、将来マルチユーザー化を見据えて user_id を全業務テーブルに保持する。認証は jwt method (techStack.auth.method) を採用。",
   "createdAt": "2026-05-24T00:00:00.000Z",
@@ -75,7 +76,9 @@
       "id": "uq-users-login-id",
       "kind": "unique",
       "physicalName": "uq_users_login_id",
-      "columnIds": ["col-login-id"],
+      "columnIds": [
+        "col-login-id"
+      ],
       "description": "ログイン ID は一意 (重複登録不可)。"
     }
   ],
@@ -83,7 +86,11 @@
     {
       "id": "idx-users-login-id",
       "physicalName": "idx_users_login_id",
-      "columns": [{ "columnId": "col-login-id" }],
+      "columns": [
+        {
+          "columnId": "col-login-id"
+        }
+      ],
       "unique": true
     }
   ]
