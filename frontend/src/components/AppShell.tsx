@@ -65,6 +65,7 @@ import { TabErrorFallback } from "./common/ErrorFallback";
 import { ResourceLoading } from "./common/ResourceLoading";
 import { useErrorDialog } from "./common/ErrorDialogProvider";
 import { recordError } from "../utils/errorLog";
+import { isValidUuid } from "../utils/entityIdValidation";
 import { checkRedirect, subscribeRedirectGuardTrip, isRedirectGuardTripped } from "../utils/redirectGuard";
 import { uiInfo, uiWarn, setupServerLogFlush } from "../utils/uiLog";
 import { evaluateRoutingGuard } from "../routing/workspaceRouting";
@@ -539,18 +540,27 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   // リソース詳細 URL で対象が見つからなかったときにダッシュボードへ戻す共通処理。
   // ブラウザが握っている URL を「存在しないリソース」のまま放置すると次回リロードで
   // また袋小路に入るため、URL 自体も / に書き換える。
-  const fallbackToDashboard = useCallback((kind: string, id: string) => {
-    const msg = `URL が指すリソース (${kind}: ${id}) が見つかりません。ダッシュボードへフォールバック。`;
-    uiWarn("urlsync", "resource not found → fallback", { kind, id, pathname: location.pathname });
+  // RFC #1284 (#1296 I-4): options.reason="uuid-url" の場合は旧 UUID 形式 URL 検出として
+  // 明示エラーメッセージを表示する (loadXxx を待たずに即 fallback)。
+  const fallbackToDashboard = useCallback((kind: string, id: string, options?: { reason?: "uuid-url" }) => {
+    const isUuidUrl = options?.reason === "uuid-url";
+    const msg = isUuidUrl
+      ? `URL に旧 UUID 形式の ${kind} id が含まれています (${id})。ダッシュボードへフォールバック。`
+      : `URL が指すリソース (${kind}: ${id}) が見つかりません。ダッシュボードへフォールバック。`;
+    uiWarn("urlsync", isUuidUrl ? "uuid url detected → fallback" : "resource not found → fallback", {
+      kind, id, pathname: location.pathname, reason: options?.reason,
+    });
     recordError({
       source: "manual",
       message: msg,
-      context: { kind, id, pathname: location.pathname },
+      context: { kind, id, pathname: location.pathname, reason: options?.reason },
     });
     showError({
-      title: `${kind}が見つかりません`,
-      message: `指定された${kind} (${id}) は存在しないか削除されています。ダッシュボードに戻ります。`,
-      context: { kind, id, pathname: location.pathname },
+      title: isUuidUrl ? `${kind}の URL 形式が古いです` : `${kind}が見つかりません`,
+      message: isUuidUrl
+        ? `URL に旧 UUID 形式が含まれています (${id})。最新の ID 体系では kebab-case を使用してください。ダッシュボードに戻ります。`
+        : `指定された${kind} (${id}) は存在しないか削除されています。ダッシュボードに戻ります。`,
+      context: { kind, id, pathname: location.pathname, reason: options?.reason },
       skipLogRecord: true, // 直前に recordError 済み
     });
     const dashPath = wsId ? `/w/${wsId}/` : "/";
@@ -580,6 +590,11 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const designMatch = matchPath("/w/:wsId/screen/design/:screenId", location.pathname);
     if (designMatch?.params.screenId) {
       const screenId = designMatch.params.screenId;
+      // RFC #1284 (#1296 I-4): 旧 UUID URL は load を待たずに明示エラー fallback
+      if (isValidUuid(screenId)) {
+        fallbackToDashboard("画面", screenId, { reason: "uuid-url" });
+        return;
+      }
       const tabId = makeTabId("design", screenId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -603,6 +618,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const tableMatch = matchPath("/w/:wsId/table/edit/:tableId", location.pathname);
     if (tableMatch?.params.tableId) {
       const tableId = tableMatch.params.tableId;
+      if (isValidUuid(tableId)) {
+        fallbackToDashboard("テーブル", tableId, { reason: "uuid-url" });
+        return;
+      }
       const tabId = makeTabId("table", tableId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -625,6 +644,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const actionMatch = matchPath("/w/:wsId/process-flow/edit/:processFlowId", location.pathname);
     if (actionMatch?.params.processFlowId) {
       const processFlowId = actionMatch.params.processFlowId;
+      if (isValidUuid(processFlowId)) {
+        fallbackToDashboard("処理フロー", processFlowId, { reason: "uuid-url" });
+        return;
+      }
       const tabId = makeTabId("process-flow", processFlowId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -648,6 +671,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const sequenceMatch = matchPath("/w/:wsId/sequence/edit/:sequenceId", location.pathname);
     if (sequenceMatch?.params.sequenceId) {
       const sequenceId = sequenceMatch.params.sequenceId;
+      if (isValidUuid(sequenceId)) {
+        fallbackToDashboard("シーケンス", sequenceId, { reason: "uuid-url" });
+        return;
+      }
       const tabId = makeTabId("sequence", sequenceId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -670,6 +697,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const viewMatch = matchPath("/w/:wsId/view/edit/:viewId", location.pathname);
     if (viewMatch?.params.viewId) {
       const viewId = viewMatch.params.viewId;
+      if (isValidUuid(viewId)) {
+        fallbackToDashboard("ビュー", viewId, { reason: "uuid-url" });
+        return;
+      }
       const tabId = makeTabId("view", viewId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -692,6 +723,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const viewDefinitionMatch = matchPath("/w/:wsId/view-definition/edit/:viewDefinitionId", location.pathname);
     if (viewDefinitionMatch?.params.viewDefinitionId) {
       const viewDefinitionId = decodeURIComponent(viewDefinitionMatch.params.viewDefinitionId);
+      if (isValidUuid(viewDefinitionId)) {
+        fallbackToDashboard("ビュー定義", viewDefinitionId, { reason: "uuid-url" });
+        return;
+      }
       const tabId = makeTabId("view-definition", viewDefinitionId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -716,6 +751,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const pageLayoutMatch = pageLayoutEditMatch ?? pageLayoutDesignMatch;
     if (pageLayoutMatch?.params.pageLayoutId) {
       const pageLayoutId = decodeURIComponent(pageLayoutMatch.params.pageLayoutId);
+      if (isValidUuid(pageLayoutId)) {
+        fallbackToDashboard("ページレイアウト", pageLayoutId, { reason: "uuid-url" });
+        return;
+      }
       const tabId = makeTabId("page-layout", pageLayoutId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -780,6 +819,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const screenItemsMatch = matchPath("/w/:wsId/screen/items/:screenId", location.pathname);
     if (screenItemsMatch?.params.screenId) {
       const screenId = screenItemsMatch.params.screenId;
+      if (isValidUuid(screenId)) {
+        fallbackToDashboard("画面", screenId, { reason: "uuid-url" });
+        return;
+      }
       const tabId = makeTabId("screen-items", screenId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {

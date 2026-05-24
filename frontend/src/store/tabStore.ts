@@ -1,5 +1,6 @@
 import { recordError } from "../utils/errorLog";
 import { uiInfo } from "../utils/uiLog";
+import { isValidUuid } from "../utils/entityIdValidation";
 
 const TABS_KEY = "harmony-open-tabs";
 const ACTIVE_KEY = "harmony-active-tab";
@@ -42,6 +43,14 @@ const KNOWN_TAB_TYPES: ReadonlySet<TabType> = new Set([
   "generic-definition", "generic-definition-list", "generic-definition-catalog",
 ]);
 
+// RFC #1284 (#1296 I-4): top-level entity の id 体系を UUID → kebab-case EntityId に移行。
+// per-resource タブ kind は resourceId が UUID 形式の場合、migration 後に backend で解決不能 (404)。
+// localStorage ロード時に破棄して死タブを除去する。
+// シングルトンタブ (resourceId="main") や、namespace:name 形式 (generic-definition) は影響なし。
+const RESOURCE_TAB_TYPES: ReadonlySet<TabType> = new Set([
+  "design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout",
+]);
+
 export interface TabItem {
   id: string;
   type: TabType;
@@ -74,6 +83,9 @@ function _isValidTab(t: unknown): t is TabItem {
   }
   // #696: screen-items は per-screen タブ化されたため、旧 singleton 形式 (resourceId="singleton") は無効
   if (o.type === "screen-items" && o.resourceId === "singleton") return false;
+  // RFC #1284 (#1296 I-4): per-resource タブ kind で resourceId が旧 UUID 形式なら破棄。
+  // I-3 で examples / data が kebab-case id に移行済のため、UUID resourceId は解決不能。
+  if (RESOURCE_TAB_TYPES.has(o.type as TabType) && isValidUuid(o.resourceId)) return false;
   return true;
 }
 
