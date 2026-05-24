@@ -27,7 +27,7 @@ const KIND_ICONS: Record<GenericDefinitionKind, string> = {
   "log-event": "bi-journal-text",
   "log-config": "bi-sliders",
   dialog: "bi-chat-square",
-  messageArea: "bi-chat-left-text",
+  "message-area": "bi-chat-left-text",
   options: "bi-list-ul",
 };
 
@@ -47,7 +47,7 @@ const KIND_DESCRIPTIONS: Record<GenericDefinitionKind, string> = {
   "log-event": "構造化ログイベントを定義します (`@logEvent.<key>` 参照元、#1263 Phase X2)",
   "log-config": "ログ設定 (log level / sink / format) を定義します (`@logConfig.<key>` 参照元、#1263 Phase X2)",
   dialog: "画面から呼び出すダイアログ定義 (`@dialog.<name>` 参照元、#1303)",
-  messageArea: "画面内メッセージエリア定義 (`@messageArea.<name>` 参照元、#1303)",
+  "message-area": "画面内メッセージエリア定義 (`@messageArea.<name>` 参照元、#1303 / #1318 で messageArea → message-area kebab-case 統一)",
   options: "選択肢カタログ (selectbox / radio 等の選択肢セット) を定義します (`@options.<name>` 参照元、#1303)",
 };
 

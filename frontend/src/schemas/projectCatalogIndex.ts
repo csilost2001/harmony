@@ -65,7 +65,7 @@ export interface ProjectCatalogIndex {
   uiFragments: Set<string>;
   /** `@dialog.<name>` — dialog (#1303) */
   dialogs: Set<string>;
-  /** `@messageArea.<name>` — messageArea (#1303) */
+  /** `@messageArea.<name>` — message-area (#1303、#1318 で kind=kebab `message-area` / prefix=camelCase `messageArea` に分離) */
   messageAreas: Set<string>;
   /** `@options.<name>` — options (#1303) */
   optionSets: Set<string>;
@@ -178,9 +178,9 @@ const GENERIC_KIND_TO_SET_KEY: Record<string, keyof ProjectCatalogIndex> = {
   "domain-event": "domainEvents",
   "log-event": "logEvents",
   "log-config": "logConfigs",
-  // #1303 — 3 新規 kind
+  // #1303 — 3 新規 kind (#1318 で messageArea → message-area kebab-case 統一、prefix は camelCase 維持)
   dialog: "dialogs",
-  messageArea: "messageAreas",
+  "message-area": "messageAreas",
   options: "optionSets",
 };
 

@@ -224,7 +224,7 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 
 ### 4.2 17 種類の kind
 
-初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張。
+初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張。#1318 で `messageArea` kind を `message-area` に kebab-case 統一 (prefix `@messageArea.<name>` は維持、kind=kebab/prefix=camelCase は log-event/logEvent と同じ分離パターン)。
 
 | kind | 用途 | 主な参照元 |
 |---|---|---|
@@ -243,7 +243,7 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 | `log-event` | ログイベント定義 (構造化ログ) | `@logEvent.<key>` |
 | `log-config` | ログ設定 (log level / sink / format) | `@logConfig.<key>` |
 | `dialog` | confirm / alert / custom dialog の定義 (ScreenItemEvent.effects[].showDialog.target 参照先) | `@dialog.<name>` |
-| `messageArea` | 画面横断 message area の定義 (ScreenItemEvent.effects[].setMessage.target 参照先) | `@messageArea.<name>` |
+| `message-area` | 画面横断 message area の定義 (ScreenItemEvent.effects[].setMessage.target 参照先、#1318 で `messageArea` → `message-area` kebab-case 統一、prefix は `@messageArea.` を維持 = log-event/logEvent 前例と同様の kind=kebab/prefix=camelCase 分離) | `@messageArea.<name>` |
 | `options` | 選択肢カタログ (ScreenItemEvent.effects[].setOptions 動的差し替え参照先) | `@options.<name>` |
 
 ### 4.3 既存仕様との関係

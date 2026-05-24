@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definitions/message-area.v3.schema.json",
+  "title": "MessageArea (v3 generic-definition kind: message-area)",
+  "description": "Generic Definition Catalog の message-area kind 固有 schema (#1303 で導入、#1318 で messageArea → message-area に kebab-case 統一)。親 schema (../generic-definition.v3.schema.json) を `allOf` 継承し、`kind` を const \"message-area\" に固定。message-area catalog は ScreenItemEvent.effects[].setMessage.target の参照先 (画面横断 message area の定義、例: エラー表示エリア / 通知バー)。prefix は `@messageArea.<name>` (log-event / log-config 前例と一致、kind=kebab / prefix=camelCase 分離)。仕様: docs/spec/generic-definition-layer.md §4.2。",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../generic-definition.v3.schema.json" }
+  ],
+  "properties": {
+    "kind": { "const": "message-area" }
+  }
+}
