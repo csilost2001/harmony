@@ -136,6 +136,20 @@ describe("varScopeResolver", () => {
     expect(state.candidates.map((c) => c.value)).toContain("orderResult");
   });
 
+  // Phase 3 (#1317 review fix): action scope に nested step (TX/loop 内) の outputBinding も含む
+  it("@var.action. で TX/loop 内 nested step の outputBinding.name も候補に出る (PR #1317 review fix)", () => {
+    const value = "@var.action.";
+    const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase2bis });
+    expect(state?.phase).toBe("active");
+    if (state?.phase !== "active") return;
+    const values = state.candidates.map((c) => c.value);
+    expect(values).toContain("userResult");      // top-level step-01
+    expect(values).toContain("txResult");        // TX 自体の outputBinding
+    expect(values).toContain("createdOrder");    // TX 内 nested step-02
+    expect(values).toContain("enrichedItems");   // loop 自体の outputBinding
+    expect(values).toContain("lineTotal");       // loop 内 nested step-03
+  });
+
   // Phase 2-bis: step scope
   it("@var.step. で全 step id が候補になる (nested TX/loop 内含む)", () => {
     const value = "@var.step.";

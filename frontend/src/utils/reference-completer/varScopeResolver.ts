@@ -102,12 +102,14 @@ export const varScopeResolver: Resolver = {
           }
         }
       } else if (scope === "action") {
-        for (const action of ctx.flow.actions) {
-          for (const step of action.steps ?? []) {
-            const stepAny = step as unknown as Record<string, unknown>;
-            const ob = stepAny.outputBinding as Record<string, unknown> | undefined;
-            if (ob?.name && typeof ob.name === "string") names.add(ob.name);
-          }
+        // action body 全体 (top-level + TX/loop/branch/workflow/validation 内 nested 全 step)
+        // の outputBinding.name を列挙。spec §3.6 line 249 が "action body 全体で生きる" と
+        // 定義しており、Phase 2 までは top-level のみ参照していた pre-existing 問題を
+        // PR #1317 review (Should-fix) で吸収。
+        for (const { step } of iterAllSteps(ctx.flow)) {
+          const sAny = step as Record<string, unknown>;
+          const ob = sAny.outputBinding as Record<string, unknown> | undefined;
+          if (ob?.name && typeof ob.name === "string") names.add(ob.name);
         }
       } else if (scope === "step") {
         // step id を全列挙 (TX/loop/branch/validation/workflow 内 nested 含む)
