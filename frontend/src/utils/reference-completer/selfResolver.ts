@@ -75,11 +75,14 @@ export const selfResolver: Resolver = {
     const fields = selfRef.fields ?? FIELDS_BY_SELF_KIND[selfRef.kind] ?? [];
     const candidates = fields
       .filter((f) => f.name.startsWith(prefix))
-      .map((f) => ({
-        value: f.name,
-        label: f.name,
-        hint: "hint" in f ? f.hint : undefined,
-      }));
+      .map((f) => {
+        const label = "label" in f && f.label ? f.label : f.name;
+        return {
+          value: f.name,
+          label,
+          hint: "hint" in f ? f.hint : undefined,
+        };
+      });
 
     return {
       phase: "active",

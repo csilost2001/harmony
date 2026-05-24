@@ -112,18 +112,26 @@ describe("thisResolver — Phase B: ProcessFlow editor", () => {
     expect(state.prefix).toBe("sub");
   });
 
-  it("@this. → ProcessFlow top-level fields (id/name/flowType/action)", () => {
+  it("@this. → ProcessFlow top-level fields (meta/context/action/expressionLanguage)", () => {
+    // ProcessFlow は EntityMeta を継承せず root に meta nested。
+    // id / name / flowType 等は @this.meta.<field> 経由 (S-1 review fix、2026-05-24)。
     const value = "@this.";
     const state = thisResolver.match(value, value.length, ctxFlow);
     expect(state?.phase).toBe("active");
     if (state?.phase !== "active") return;
     const values = state.candidates.map((c) => c.value);
-    expect(values).toContain("id");
-    expect(values).toContain("name");
-    expect(values).toContain("flowType");
+    expect(values).toContain("meta");
+    expect(values).toContain("context");
     expect(values).toContain("action");
+    expect(values).toContain("expressionLanguage");
+    // 旧 Phase A 風 flat field は ProcessFlow には存在しない
+    expect(values).not.toContain("id");
+    expect(values).not.toContain("name");
+    expect(values).not.toContain("flowType");
     const actionCandidate = state.candidates.find((c) => c.value === "action");
     expect(actionCandidate?.trailing).toBe(".");
+    const metaCandidate = state.candidates.find((c) => c.value === "meta");
+    expect(metaCandidate?.trailing).toBe(".");
   });
 });
 

@@ -32,11 +32,14 @@ const SCREEN_TOPLEVEL_FIELDS: FieldDef[] = [
   { name: "item", hint: "item.<itemId>...", trailing: "." },
 ];
 
+// ProcessFlow は他 entity と異なり EntityMeta を継承せず root に `meta` nested。
+// id / name / flowType 等は `@this.meta.<field>` 経由でアクセス。
+// 一方 `action` collection は spec § 11.1 example に従い singular alias で expose。
 const PROCESS_FLOW_TOPLEVEL_FIELDS: FieldDef[] = [
-  { name: "id", hint: "processFlow id" },
-  { name: "name", hint: "processFlow 表示名" },
-  { name: "flowType", hint: "kind ('action' / 'common')" },
-  { name: "action", hint: "action.<actionId>...", trailing: "." },
+  { name: "meta", hint: "meta.<field> (id / name / flowType / maturity / sla / etc.)", trailing: "." },
+  { name: "context", hint: "context.<catalogs / variables / etc.>", trailing: "." },
+  { name: "action", hint: "action.<actionId>... (designer alias、runtime では actions[] へ展開)", trailing: "." },
+  { name: "expressionLanguage", hint: "式言語 ('js-subset' / 'cel')" },
 ];
 
 const TABLE_TOPLEVEL_FIELDS: FieldDef[] = [

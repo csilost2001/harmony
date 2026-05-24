@@ -25,6 +25,7 @@ export function DbAccessStepCardBody({
   onCommit,
   conventions,
   group,
+  readOnly,
 }: DbAccessStepCardBodyProps) {
   const sqlResolvers = [convResolver, thisResolver, selfResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS];
   const sqlCtx = {
@@ -86,6 +87,7 @@ export function DbAccessStepCardBody({
           rows={2}
           placeholder="例: SELECT ... JOIN ... WHERE ... / INSERT ... RETURNING ..."
           style={{ fontFamily: "monospace", fontSize: "0.8rem" }}
+          disabled={readOnly}
         />
       </div>
       {(step.operation === "UPDATE" || step.operation === "DELETE") && (

@@ -182,7 +182,7 @@ severity は maturity 連動 (`committed`=error / `draft`/`provisional`=warning)
 | editor 種別 | `@this` が指すもの | example | resolver / 補完 bind 状態 |
 |---|---|---|---|
 | Screen 編集 (`/screen/items/:id` / `/screen/design/:id`) | `@screen.<currentScreenId>` | `@this.item.<otherItemId>.value` → `@screen.<curScrId>.item.<otherItemId>.value` | resolver: ✅、bind: ✅ (ScreenItemsView、Phase A) |
-| ProcessFlow 編集 (`/process-flow/edit/:id`) | `@flow.<currentFlowId>` (※ inline 禁止規則は不変、designer alias としては許容) | `@this.action.<actionId>.outputBinding` | resolver: ✅、bind: ✅ (DbAccess.sql / EventPublish.payload / EventSubscribe.filter、Phase B) |
+| ProcessFlow 編集 (`/process-flow/edit/:id`) | `@flow.<currentFlowId>` (※ inline 禁止規則は不変、designer alias としては許容) | `@this.action.<actionId>.outputBinding` / `@this.meta.flowType` (id / name / flowType は meta nested) | resolver: ✅、bind: ✅ (DbAccess.sql / EventPublish.payload / EventSubscribe.filter、Phase B) |
 | Table 編集 (`/table/edit/:id`) | `@table.<currentTableId>` | `@this.field.<fieldId>.physicalName` | resolver: ✅、bind: ⏳ (式入力 UI 未導入、別 ISSUE 待ち) |
 | View 編集 (`/view/edit/:id`) | `@view.<currentViewId>` | `@this.outputColumn.<name>` | resolver: ✅、bind: ⏳ (同上) |
 | ViewDefinition 編集 | `@viewer.<currentViewDefId>` | `@this.column.<name>` | resolver: ✅、bind: ⏳ (同上) |

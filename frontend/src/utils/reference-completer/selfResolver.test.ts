@@ -128,7 +128,7 @@ describe("selfResolver — Phase B: region kind (PageLayout editor)", () => {
 });
 
 describe("selfResolver — fields override", () => {
-  it("currentSelfRef.fields が明示指定されたら default を上書き", () => {
+  it("currentSelfRef.fields が明示指定されたら default を上書き、label も反映される", () => {
     const ctxOverride: CompletionContext = {
       currentSelfRef: {
         kind: "step",
@@ -141,5 +141,22 @@ describe("selfResolver — fields override", () => {
     if (state?.phase !== "active") return;
     expect(state.candidates).toHaveLength(1);
     expect(state.candidates[0].value).toBe("customField");
+    // override 経路で label が指定された場合は value ではなく label を表示する (review N-3 fix)
+    expect(state.candidates[0].label).toBe("カスタム");
+  });
+
+  it("currentSelfRef.fields に label を渡さない場合は value がそのまま label に", () => {
+    const ctxOverride: CompletionContext = {
+      currentSelfRef: {
+        kind: "step",
+        id: "step-01",
+        fields: [{ name: "noLabelField" }],
+      },
+    };
+    const state = selfResolver.match("@self.", "@self.".length, ctxOverride);
+    expect(state?.phase).toBe("active");
+    if (state?.phase !== "active") return;
+    expect(state.candidates).toHaveLength(1);
+    expect(state.candidates[0].label).toBe("noLabelField");
   });
 });
