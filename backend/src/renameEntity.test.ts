@@ -1201,3 +1201,250 @@ describe("renameEntityId — Phase F M-6: 旧ファイル削除 failure → byte
     }
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase G regression (Codex round 2 独立レビュー、2026-05-25)
+//   M-1: View.dependencies[] cross-type ambiguous (Table+View 共存) → block
+//   M-2: legacy actions/<id>.json ProcessFlow rename → undo で orphan を残さない
+//   M-3: undo の strictUnlink atomic (失敗時 byte-identical rollback)
+//   M-4: 参照側 active EditSession 検出 → block
+// ─────────────────────────────────────────────────────────────────────────
+
+// ─── G M-1: cross-type ambiguous dependency ────────────────────────────
+
+describe("renameEntityId — Phase G M-1: View.dependencies[] cross-type ambiguous は block", () => {
+  it("Table と同名の View が共存し、別 View が View 側を dependencies で参照する場合に Table rename は throw", async () => {
+    const root = await makeWorkspace();
+    // Table "sales" と View "sales" を共存 (RFC #1284: entity type 内 unique なので valid)
+    await seedTable(root, "sales");
+    await writeView("sales", {
+      id: "sales",
+      physicalName: "v_sales",
+      selectStatement: "SELECT 1",
+      outputColumns: [{ physicalName: "n", dataType: { kind: "string" } }],
+    }, root);
+    // 別 View が View "sales" を dependencies で参照
+    await writeView("monthly-sales", {
+      id: "monthly-sales",
+      physicalName: "v_monthly",
+      selectStatement: "SELECT 1",
+      outputColumns: [{ physicalName: "n", dataType: { kind: "string" } }],
+      dependencies: ["sales"], // ambiguous: Table と View どちらの "sales" を指すか不明
+    }, root);
+
+    // preview は ambiguousDependencies を非空で返す
+    const preview = await previewEntityRename("table", "sales", "sales-tbl", root);
+    expect(preview.ambiguousDependencies.length).toBeGreaterThan(0);
+    expect(preview.ambiguousDependencies[0].viewId).toBe("monthly-sales");
+    expect(preview.ambiguousDependencies[0].conflictingEntityType).toBe("view");
+
+    // execute は throw
+    await expect(
+      renameEntityId("table", "sales", "sales-tbl", root),
+    ).rejects.toThrow(/ambiguous/);
+
+    // ファイル状態は変化なし (silent corruption が無いこと)
+    await fs.access(dataPath(root, "tables", "sales.json"));
+    await expect(fs.access(dataPath(root, "tables", "sales-tbl.json"))).rejects.toThrow();
+    const depAfter = await readJsonFile<{ dependencies: string[] }>(
+      dataPath(root, "views", "monthly-sales.json"),
+    );
+    expect(depAfter.dependencies).toEqual(["sales"]);
+  });
+
+  it("同名 entity が他 type に無ければ通常通り rename される (ambiguous でない)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "orders");
+    await writeView("orders-view", {
+      id: "orders-view",
+      physicalName: "v_orders",
+      selectStatement: "SELECT 1",
+      outputColumns: [{ physicalName: "n", dataType: { kind: "string" } }],
+      dependencies: ["orders"], // Table "orders" のみ存在 → ambiguous でない
+    }, root);
+
+    const preview = await previewEntityRename("table", "orders", "orders-renamed", root);
+    expect(preview.ambiguousDependencies).toEqual([]);
+
+    const { operation } = await renameEntityId("table", "orders", "orders-renamed", root);
+    expect(operation.newId).toBe("orders-renamed");
+    const depAfter = await readJsonFile<{ dependencies: string[] }>(
+      dataPath(root, "views", "orders-view.json"),
+    );
+    expect(depAfter.dependencies).toEqual(["orders-renamed"]);
+  });
+});
+
+// ─── G M-2: legacy actions/ ProcessFlow rename + undo ──────────────────
+
+describe("renameEntityId — Phase G M-2: legacy actions/<id>.json PF の rename + undo orphan 防止", () => {
+  it("actions/<oldId>.json fixture を rename → process-flows/<newId>.json (canonical) に書かれ、orphan 無し", async () => {
+    const root = await makeWorkspace();
+    // legacy 配置で seed: actions/legacy-pf.json を直接 write
+    const legacyDir = dataPath(root, "actions");
+    await fs.mkdir(legacyDir, { recursive: true });
+    const legacyPath = path.join(legacyDir, "legacy-pf.json");
+    const initialContent = {
+      meta: {
+        id: "legacy-pf",
+        uuid: "11111111-2222-3333-4444-555555555555",
+        name: "legacy",
+      },
+      actions: [],
+    };
+    await fs.writeFile(legacyPath, JSON.stringify(initialContent, null, 2), "utf-8");
+
+    const { operation } = await renameEntityId("processFlow", "legacy-pf", "new-pf", root);
+
+    // canonical 側に書かれていること
+    await fs.access(dataPath(root, "process-flows", "new-pf.json"));
+    // legacy 側の old file は削除されていること
+    await expect(fs.access(legacyPath)).rejects.toThrow();
+    // legacy 側に new file は存在しないこと (= orphan 無し)
+    await expect(fs.access(path.join(legacyDir, "new-pf.json"))).rejects.toThrow();
+
+    // operation.fileRenames は legacy → canonical の plan を持つこと
+    const planToCanonical = operation.fileRenames.find(
+      (f) => f.from.includes("actions/") && f.to.includes("process-flows/"),
+    );
+    expect(planToCanonical).toBeDefined();
+
+    // undo → legacy 側に restore + canonical 側削除 (完全 revert)
+    await undoEntityRename(operation.operationId, root);
+    await fs.access(legacyPath); // legacy 側に戻る
+    await expect(fs.access(dataPath(root, "process-flows", "new-pf.json"))).rejects.toThrow();
+    // orphan 無し
+    await expect(fs.access(path.join(legacyDir, "new-pf.json"))).rejects.toThrow();
+
+    // 復元 content が byte-identical (uuid 含む)
+    const restoredContent = await readJsonFile<{ meta: { id: string; uuid: string } }>(legacyPath);
+    expect(restoredContent.meta.id).toBe("legacy-pf");
+    expect(restoredContent.meta.uuid).toBe("11111111-2222-3333-4444-555555555555");
+  });
+});
+
+// ─── G M-3: undo の strict unlink atomic ────────────────────────────────
+
+describe("renameEntityId — Phase G M-3: undo の new-path unlink が失敗 → byte-identical rollback + 再 undo 可", () => {
+  it("undo 中の strictUnlink EACCES → rollback で rename 完了状態に戻り、operation は再度 undo 可能", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "tbl-old");
+    await seedProcessFlow(root, "pf-x", { steps: [{ tableId: "tbl-old" }] });
+
+    // rename 実行 (この時点では strictUnlink 透過)
+    const { operation } = await renameEntityId("table", "tbl-old", "tbl-new", root);
+
+    // rename 完了状態の bytes を保持
+    const newPathAbs = dataPath(root, "tables", "tbl-new.json");
+    const newRefAbs  = dataPath(root, "process-flows", "pf-x.json");
+    const renamedNewPath = await fs.readFile(newPathAbs, "utf-8");
+    const renamedRef     = await fs.readFile(newRefAbs, "utf-8");
+
+    // undo 中の tbl-new.json delete を EACCES で fail させる
+    _setStrictUnlinkOverrideForTest(async (p: string) => {
+      if (p.endsWith(path.join("tables", "tbl-new.json"))) {
+        const err = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
+        err.code = "EACCES";
+        throw err;
+      }
+      try { await fs.unlink(p); } catch { /* ignore */ }
+    });
+
+    try {
+      await expect(undoEntityRename(operation.operationId, root)).rejects.toThrow(/EACCES/);
+
+      // rollback で rename 完了状態に戻ること (byte-identical)
+      // (a) new path content が再復元
+      expect(await fs.readFile(newPathAbs, "utf-8")).toBe(renamedNewPath);
+      // (b) ref 側 (PF) が rename 完了時の newContent に戻る
+      expect(await fs.readFile(newRefAbs, "utf-8")).toBe(renamedRef);
+      // (c) old path は不在 (= rename 完了状態と一致)
+      await expect(fs.access(dataPath(root, "tables", "tbl-old.json"))).rejects.toThrow();
+    } finally {
+      _setStrictUnlinkOverrideForTest(null);
+    }
+
+    // operation が再 push されており、再 undo が可能であること
+    const undoResult = await undoEntityRename(operation.operationId, root);
+    expect(undoResult.restoredFiles).toBeGreaterThan(0);
+    // 完全 revert 確認
+    await fs.access(dataPath(root, "tables", "tbl-old.json"));
+    await expect(fs.access(newPathAbs)).rejects.toThrow();
+  });
+});
+
+// ─── G M-4: ref-side active EditSession block ──────────────────────────
+
+describe("renameEntityId — Phase G M-4: 参照側 entity の active Edit session があれば block", () => {
+  it("ref scan で更新する ProcessFlow を別 session が Edit 中なら preview で concurrentEditRefs を報告、execute で throw", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "ref-tbl");
+    await seedProcessFlow(root, "ref-pf", { steps: [{ tableId: "ref-tbl" }] });
+
+    // fetchEditSessionsForRef を inject: ProcessFlow "ref-pf" には他 session の Edit がある
+    const fetchEditSessionsForRef = (entityKind: string, entityId: string): ReadonlyArray<EditSessionLike> => {
+      if (entityKind === "processFlow" && entityId === "ref-pf") {
+        return [{
+          state: "Active",
+          participants: new Map([
+            ["other-sess", { sessionId: "other-sess", role: "Edit" }],
+          ]),
+        }];
+      }
+      return [];
+    };
+
+    // preview は concurrentEditRefs を非空で返す
+    const preview = await previewEntityRename("table", "ref-tbl", "new-tbl", root, {
+      sessionId: "self", fetchEditSessionsForRef,
+    });
+    expect(preview.concurrentEditRefs.length).toBeGreaterThan(0);
+    expect(preview.concurrentEditRefs[0].entityKind).toBe("processFlow");
+    expect(preview.concurrentEditRefs[0].entityId).toBe("ref-pf");
+    expect(preview.concurrentEditRefs[0].sessionId).toBe("other-sess");
+
+    // execute は throw
+    await expect(
+      renameEntityId("table", "ref-tbl", "new-tbl", root, {
+        sessionId: "self", fetchEditSessionsForRef,
+      }),
+    ).rejects.toThrow(/参照側.*編集中/);
+
+    // ファイル状態は変化なし
+    await fs.access(dataPath(root, "tables", "ref-tbl.json"));
+    await expect(fs.access(dataPath(root, "tables", "new-tbl.json"))).rejects.toThrow();
+  });
+
+  it("自セッションが ref 側 Edit role でも rename は通る (excluded)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "self-ref-tbl");
+    await seedProcessFlow(root, "self-pf", { steps: [{ tableId: "self-ref-tbl" }] });
+
+    const fetchEditSessionsForRef = (entityKind: string, entityId: string): ReadonlyArray<EditSessionLike> => {
+      if (entityKind === "processFlow" && entityId === "self-pf") {
+        return [{
+          state: "Active",
+          participants: new Map([
+            ["self-sess", { sessionId: "self-sess", role: "Edit" }],
+          ]),
+        }];
+      }
+      return [];
+    };
+
+    const { operation } = await renameEntityId("table", "self-ref-tbl", "renamed-tbl", root, {
+      sessionId: "self-sess", fetchEditSessionsForRef,
+    });
+    expect(operation.newId).toBe("renamed-tbl");
+  });
+
+  it("fetchEditSessionsForRef 省略時は ref-side check skip (後方互換)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "skip-tbl");
+    await seedProcessFlow(root, "skip-pf", { steps: [{ tableId: "skip-tbl" }] });
+
+    // callback 渡さず → ref-side check 走らない
+    const { operation } = await renameEntityId("table", "skip-tbl", "skip-tbl-v2", root);
+    expect(operation.newId).toBe("skip-tbl-v2");
+  });
+});

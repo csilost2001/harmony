@@ -51,6 +51,42 @@ function fetchEditSessions(
   return bridge.editSessionListByResource(wsId, resourceType, oldId);
 }
 
+/**
+ * Phase G M-4 (Codex round 2): renameEntity internal の entityKind (camelCase: "processFlow",
+ * "viewDefinition", "pageLayout") を DraftResourceType (kebab-case: "process-flow",
+ * "view-definition", "page-layout") に変換する map。renameEntity の RenameEntityType と
+ * 同一値の場合は同名で OK (table / screen / view / sequence)。
+ */
+const INTERNAL_KIND_TO_RESOURCE_TYPE: Record<string, EditSessionResourceType> = {
+  screen: "screen",
+  table: "table",
+  processFlow: "process-flow",
+  sequence: "sequence",
+  view: "view",
+  viewDefinition: "view-definition",
+  pageLayout: "page-layout",
+};
+
+/**
+ * Phase G M-4 (Codex round 2): rename が ref scan で書き換える参照側 entity に対し
+ * active EditSession 一覧を返す callback を生成する。
+ *
+ * renameEntity 側は (entityKind, entityId) を呼出 — entityKind は internal camelCase 表記。
+ * bridge.editSessionListByResource は DraftResourceType (kebab-case) を要求するため、
+ * 本 callback で変換 + workspace 解決を行う。
+ */
+function makeFetchEditSessionsForRef(
+  bridge: WsBridge,
+  wsId: string | null,
+): (entityKind: string, entityId: string) => ReadonlyArray<EditSessionLike> {
+  return (entityKind: string, entityId: string) => {
+    if (!wsId) return [];
+    const resourceType = INTERNAL_KIND_TO_RESOURCE_TYPE[entityKind];
+    if (!resourceType) return []; // 未知 kind (project / screenFlowPositions / erLayout 等) は EditSession 非対象
+    return bridge.editSessionListByResource(wsId, resourceType, entityId);
+  };
+}
+
 export const refactorHandlers: RpcHandlerMap = {
   previewEntityRename: async ({ params, root, wsId, clientId, respond, respondError, bridge }) => {
     try {
@@ -61,9 +97,11 @@ export const refactorHandlers: RpcHandlerMap = {
       assertEntityIdOrUuid(oldId, "oldId");
       assertEntityId(newId, "newId");
       const sessionId = clientId;
-      const editSessions = fetchEditSessions(bridge, wsId(), et, oldId as string);
+      const wid = wsId();
+      const editSessions = fetchEditSessions(bridge, wid, et, oldId as string);
+      const fetchEditSessionsForRef = makeFetchEditSessionsForRef(bridge, wid);
       const result = await previewEntityRename(et, oldId as string, newId as string, root(), {
-        sessionId, editSessions,
+        sessionId, editSessions, fetchEditSessionsForRef,
       });
       respond(result);
     } catch (e) {
@@ -80,15 +118,16 @@ export const refactorHandlers: RpcHandlerMap = {
       assertEntityIdOrUuid(oldId, "oldId");
       assertEntityId(newId, "newId");
       const sessionId = clientId;
-      const editSessions = fetchEditSessions(bridge, wsId(), et, oldId as string);
+      const wid = wsId();
+      const editSessions = fetchEditSessions(bridge, wid, et, oldId as string);
+      const fetchEditSessionsForRef = makeFetchEditSessionsForRef(bridge, wid);
       const result = await renameEntityId(et, oldId as string, newId as string, root(), {
-        sessionId, editSessions,
+        sessionId, editSessions, fetchEditSessionsForRef,
       });
       respond(result);
 
       // broadcast: entityType 別 changed + 7 種 reload (UI cache 無効化)
       // S-2 (Opus 独立レビュー): rename / undo で同じ 7 種を broadcast (cache 不整合防止)
-      const wid = wsId();
       bridge.broadcast({
         wsId: wid,
         event: `${et}Changed`,

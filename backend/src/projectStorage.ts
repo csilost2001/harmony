@@ -468,18 +468,21 @@ function entityFilePathFor(kind: TopLevelEntityKind, dataRoot: string, id: strin
 export async function listExistingEntityIds(kind: TopLevelEntityKind, root: string): Promise<string[]> {
   const dataRoot = await resolveDataRoot(root);
   const dir = entityDirOf(kind, dataRoot);
-  let files: string[];
-  try {
-    files = await fs.readdir(dir);
-  } catch {
-    return [];
-  }
   const ids: string[] = [];
-  for (const f of files) {
-    if (!f.endsWith(".json")) continue;
-    // Screen / PageLayout は <id>.design.json を id として扱わない
-    if (f.endsWith(".design.json")) continue;
-    ids.push(f.slice(0, -".json".length));
+  // Phase G (#1298 I-6 follow-up): canonical dir が ENOENT でも legacy fallback (ProcessFlow)
+  // を必ず check する。旧実装は canonical readdir 失敗で early return していたため、legacy
+  // 配置のみ存在する PF が listExistingEntityIds で空に見える bug があった (rename 経路で
+  // "id が見つかりません" を誤発火する)。
+  try {
+    const files = await fs.readdir(dir);
+    for (const f of files) {
+      if (!f.endsWith(".json")) continue;
+      // Screen / PageLayout は <id>.design.json を id として扱わない
+      if (f.endsWith(".design.json")) continue;
+      ids.push(f.slice(0, -".json".length));
+    }
+  } catch {
+    // canonical dir 不在は OK (未作成 workspace)。ProcessFlow は下で legacy fallback を試す。
   }
   // ProcessFlow は legacy actions/<id>.json も候補に含む (#1141 互換)
   if (kind === "processFlow") {

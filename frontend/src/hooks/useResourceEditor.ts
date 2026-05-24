@@ -259,10 +259,29 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
   }, [id, draftKind, mtimeKind, reload]);
 
   // 外部 broadcast 受信: dirty ならバナー、clean なら自動リロード
+  //
+  // Phase G S-1 (Codex round 2 / Opus 独立レビュー confirm): rename / undo の broadcast は
+  // 参照側 entity 種別の reload event を `{ reload: true }` payload で発火するが、id field を
+  // 持たないため従来の `d[broadcastIdField] !== id` filter で reject されていた。これにより
+  // 別 tab で開いている参照側 editor (例: cart-add ProcessFlow が Table store-master を参照、
+  // 両方 open) は backend で disk 更新後も stale cache を保持 → dirty 状態で保存すると rename
+  // の ref 更新が overwrite されて silent data corruption する。
+  //
+  // 対策: `reload: true` を「全件 invalidation シグナル」として id filter より先に処理する。
+  // dirty なら serverChanged バナー、clean なら自動 reload (通常 event と同じ分岐)。
   useEffect(() => {
     if (!id) return;
     return mcpBridge.onBroadcast(broadcastName, (data) => {
       const d = data as Record<string, unknown>;
+      // Phase G S-1: rename/undo 由来の全件 invalidation signal を id filter より先に処理
+      if (d.reload === true) {
+        if (isDirtyRef.current || !autoReloadOnClean) {
+          setServerChanged(true);
+        } else {
+          reload().catch(console.error);
+        }
+        return;
+      }
       if (d[broadcastIdField] !== id) return;
       if (isDirtyRef.current || !autoReloadOnClean) {
         setServerChanged(true);

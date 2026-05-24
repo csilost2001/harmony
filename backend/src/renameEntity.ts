@@ -64,6 +64,20 @@ export interface RefLocation {
   oldValue: string;
 }
 
+/**
+ * Phase G M-1 (Codex round 2 独立レビュー): 別 entity type に同名 entity が存在し、かつ
+ * `View.dependencies[]` (untyped EntityId 配列、Table or View どちらでも可) で参照されている
+ * ambiguous なケースを表す。silent data corruption を防ぐため preview / execute を block する。
+ */
+export interface AmbiguousDependencyRef {
+  /** ambiguous dependency を抱える View の id */
+  viewId: string;
+  /** 対象 entity と同名の別 entity type ("table" or "view") */
+  conflictingEntityType: RenameEntityType;
+  /** filePath (dataRoot 相対) */
+  filePath: string;
+}
+
 export interface PreviewResult {
   entityType: RenameEntityType;
   oldId: string;
@@ -80,6 +94,18 @@ export interface PreviewResult {
   refUpdates: RefLocation[];
   /** refUpdates.length (UI 表示用に明示) */
   totalRefs: number;
+  /**
+   * Phase G M-1 (Codex round 2): cross-type ambiguous dependency が検出された View 一覧。
+   * 空配列なら通常実行可。空でない場合は rename を block (execute 側で throw)。
+   * UI は本配列を error として表示し、設計者に「先に同名の別 entity を rename / 削除」を促す。
+   */
+  ambiguousDependencies: AmbiguousDependencyRef[];
+  /**
+   * Phase G M-4 (Codex round 2): 参照側 entity を編集中の active EditSession が存在する場合に列挙。
+   * 1 件でも入っていれば rename を block (execute 側で throw)。後続 save で rename 済 ref を
+   * 巻き戻して orphan 再生成するリスクを防ぐ。
+   */
+  concurrentEditRefs: Array<{ entityKind: string; entityId: string; sessionId: string }>;
 }
 
 export interface RenameOperation {
@@ -115,6 +141,24 @@ export interface RenameOpts {
    * 省略時は lock check skip (test path / standalone path 用)。
    */
   editSessions?: ReadonlyArray<EditSessionLike>;
+  /**
+   * Phase G M-4 (Codex round 2): rename は ref scan で更新する参照側 entity (ProcessFlow /
+   * Screen / View / Table / PageLayout / ViewDefinition 等) を committed file に直接 write
+   * するため、別 session が当該 ref 側 entity を Edit 中だと後続 save で rename 済 ref を
+   * 旧 id に巻き戻して orphan を再生成する。
+   *
+   * 本 callback は (entityKind, entityId) を受け取り、active Edit session 一覧を返す。
+   * 1 件でも返れば preview に concurrentEditRefs として記録 + execute は throw する。
+   * 省略時 (test path / standalone path) は ref-side lock check skip。
+   *
+   * entityKind は EditSessionStore の DraftResourceType 文字列で来るが、refScan が出力する
+   * entityKind は本 module の internal 名 ("processFlow" / "viewDefinition" 等) のため、
+   * caller (handler) 側で kebab 形式に変換して bridge を呼ぶ責務を持つ。
+   */
+  fetchEditSessionsForRef?: (
+    entityKind: string,
+    entityId: string,
+  ) => ReadonlyArray<EditSessionLike>;
 }
 
 // ── 内部定数 ────────────────────────────────────────────────────────────────
@@ -521,10 +565,24 @@ async function planFileRenames(
       plans.push({ from: currentFrom, to: path.join(dir, `${newId}.json`) });
     }
     // legacy: actions/<id>.json
+    //
+    // Phase G M-2 (Codex round 2): legacy rename は to を **canonical 移行** とする。
+    // 理由: writeProcessFlow(newId, ...) は両 candidate 不在 → canonical (`process-flows/`)
+    // に書く実装のため、to を `actions/<newId>.json` のままにすると plan と実 write 先が
+    // 乖離して undo orphan を生む。canonical 化により plan / 実 write / undo restore が整合。
+    // undo 時は actions/<oldId>.json に restore + process-flows/<newId>.json を unlink する。
     const legacyDir = path.join(dataRoot, PROCESS_FLOW_LEGACY_DIR);
     const legacyFrom = path.join(legacyDir, `${oldId}.json`);
     if (await fileExists(legacyFrom)) {
-      plans.push({ from: legacyFrom, to: path.join(legacyDir, `${newId}.json`) });
+      // currentFrom 同名が両方ある場合は currentFrom rename plan が既に同 to を持つため、
+      // legacy → canonical の to は currentFrom と衝突。実運用ではどちらか片方のみ存在する
+      // (writeProcessFlow が既存 path に書くため) が、defense-in-depth で同 to の場合は
+      // legacy plan 側を skip して current 経路に委ねる。
+      const canonicalTo = path.join(dir, `${newId}.json`);
+      const alreadyPlanned = plans.some((p) => p.to === canonicalTo);
+      if (!alreadyPlanned) {
+        plans.push({ from: legacyFrom, to: canonicalTo });
+      }
     }
     return plans;
   }
@@ -890,6 +948,53 @@ function rewriteErLayoutPositionsKeys(
   return { ...obj, positions: { ...rest, [newId]: moved } };
 }
 
+// ── Phase G M-1 (Codex round 2): cross-type ambiguous dependency 検出 ─────────
+
+/**
+ * `View.dependencies[]` (items=EntityId、Table or View どちらでも可) で oldId を参照している
+ * View について、rename 対象 entityType (table | view) **とは別の** entityType に同名 entity
+ * が存在するかを検査する。
+ *
+ * RFC #1284 は EntityId を entity type 内 unique と定義しているため、Table `sales` と
+ * View `sales` の同名共存は valid。しかし `View.dependencies[]` は untyped EntityId 配列で
+ * どちらの type を指しているか schema 上判別できないため、Table rename が View 依存を誤更新
+ * する可能性がある (silent data corruption)。
+ *
+ * 本関数は ambiguous な参照を持つ View の一覧を返し、preview / execute で block する材料とする。
+ */
+async function detectAmbiguousDependencies(
+  entityType: RenameEntityType,
+  oldId: string,
+  root: string,
+  dataRoot: string,
+): Promise<AmbiguousDependencyRef[]> {
+  // 対象は Table または View rename のみ (他 entity type は dependencies[] の対象でない)
+  if (entityType !== "table" && entityType !== "view") return [];
+
+  // 「別 entity type」に同名 entity が存在するか
+  const otherType: RenameEntityType = entityType === "table" ? "view" : "table";
+  const otherIds = await listExistingEntityIds(otherType, root);
+  if (!otherIds.includes(oldId)) return []; // 同名 entity が他 type に無ければ ambiguous でない
+
+  // 全 View を走査し、dependencies[] に oldId を含むものを探す
+  const views = (await listAllViews(root)) as Array<Record<string, unknown>>;
+  const results: AmbiguousDependencyRef[] = [];
+  for (const v of views) {
+    const vid = typeof v.id === "string" ? v.id : null;
+    if (!vid) continue;
+    const deps = v.dependencies;
+    if (!Array.isArray(deps)) continue;
+    if (!deps.some((d) => typeof d === "string" && d === oldId)) continue;
+    const absPath = path.join(dataRoot, "views", `${vid}.json`);
+    results.push({
+      viewId: vid,
+      conflictingEntityType: otherType,
+      filePath: toRel(absPath, dataRoot),
+    });
+  }
+  return results;
+}
+
 // ── lock check ───────────────────────────────────────────────────────────────
 
 function detectLockedByOther(
@@ -921,6 +1026,63 @@ export function entityTypeToResourceType(entityType: RenameEntityType): string {
   }
 }
 
+/**
+ * Phase G M-4 (Codex round 2): 参照側 entity を編集中の active EditSession を検出する。
+ *
+ * refScan.perFileUpdate に列挙された各 file (entityKind, entityId) に対し、callback
+ * (fetchEditSessionsForRef) を呼び、Edit role の session が 1 件でもあれば
+ * concurrentEditRefs に積む。
+ *
+ * - 主 entity 自身 (rename 対象 entityType + oldId) は呼出元 lock check で別途検査済 → skip
+ * - selfSessionId (rename 実行 session) は除外 (自セッションが Edit role でも問題なし)
+ * - entityKind は本 module の internal 名 (例: "processFlow", "viewDefinition") をそのまま渡し、
+ *   callback 側で kebab に変換する責務を持つ
+ * - 副次 file (project / screenFlowPositions / erLayout) は EditSession 対象外なので skip
+ */
+async function detectConcurrentEditRefs(
+  refScan: RefScanResult,
+  entityType: RenameEntityType,
+  oldId: string,
+  opts: RenameOpts | undefined,
+): Promise<Array<{ entityKind: string; entityId: string; sessionId: string }>> {
+  const fetcher = opts?.fetchEditSessionsForRef;
+  if (!fetcher) return [];
+  const selfSessionId = opts?.sessionId;
+  const result: Array<{ entityKind: string; entityId: string; sessionId: string }> = [];
+
+  // perFileUpdate の (entityKind, entityId) を一意化 (同一 file が複数 location を持つため)
+  const seenKeys = new Set<string>();
+  const candidates: Array<{ entityKind: string; entityId: string }> = [];
+  for (const loc of refScan.locations) {
+    // 主 entity 自身は呼出元 lock check で別途検査済 → skip
+    if (loc.entityKind === entityType && loc.entityId === oldId) continue;
+    // 副次 file (EditSession 非対象) → skip
+    if (loc.entityKind === "project" || loc.entityKind === "screenFlowPositions" || loc.entityKind === "erLayout") continue;
+    const key = `${loc.entityKind}:${loc.entityId}`;
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    candidates.push({ entityKind: loc.entityKind, entityId: loc.entityId });
+  }
+
+  for (const c of candidates) {
+    const sessions = fetcher(c.entityKind, c.entityId);
+    for (const es of sessions) {
+      if (es.state !== "Active") continue;
+      for (const [, participant] of es.participants) {
+        if (participant.role !== "Edit") continue;
+        if (selfSessionId && participant.sessionId === selfSessionId) continue;
+        result.push({
+          entityKind: c.entityKind,
+          entityId: c.entityId,
+          sessionId: participant.sessionId,
+        });
+        break; // 同 (kind, id) で 1 件だけ報告
+      }
+    }
+  }
+  return result;
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /**
@@ -943,6 +1105,7 @@ export async function previewEntityRename(
       entityType, oldId, newId,
       uniqueOk: true, oldExists: true, lockedByOther: false,
       fileRenames: [], refUpdates: [], totalRefs: 0,
+      ambiguousDependencies: [], concurrentEditRefs: [],
     };
   }
 
@@ -962,12 +1125,20 @@ export async function previewEntityRename(
   // ref 走査
   const refScan = await scanAllRefs(entityType, oldId, newId, root);
 
+  // Phase G M-1 (Codex round 2): cross-type ambiguous dependency 検出
+  const ambiguousDependencies = await detectAmbiguousDependencies(entityType, oldId, root, dataRoot);
+
+  // Phase G M-4 (Codex round 2): 参照側 entity の active EditSession 検出
+  const concurrentEditRefs = await detectConcurrentEditRefs(refScan, entityType, oldId, opts);
+
   return {
     entityType, oldId, newId,
     uniqueOk, oldExists, lockedByOther,
     fileRenames,
     refUpdates: refScan.locations,
     totalRefs: refScan.locations.length,
+    ambiguousDependencies,
+    concurrentEditRefs,
   };
 }
 
@@ -1005,6 +1176,19 @@ export async function renameEntityId(
     throw new Error(`${entityType} "${oldId}" は他 session が編集中です。lock 解放を待つか、編集を引き取ってください。`);
   }
 
+  // Phase G M-1 (Codex round 2): cross-type ambiguous dependency が存在する場合は block
+  // (`View.dependencies[]` が untyped EntityId 配列のため、同名 Table+View 共存時に他 entity
+  // type の依存を誤更新する silent data corruption を防ぐ)
+  const ambiguousDeps = await detectAmbiguousDependencies(entityType, oldId, root, dataRoot);
+  if (ambiguousDeps.length > 0) {
+    const viewIds = ambiguousDeps.map((d) => d.viewId).join(", ");
+    const other = ambiguousDeps[0].conflictingEntityType;
+    throw new Error(
+      `${entityType} "${oldId}" の rename は ambiguous: 同名の ${other} "${oldId}" が存在し、` +
+      `View [${viewIds}] が dependencies[] で参照しています。先に片方を rename / 削除してください。`,
+    );
+  }
+
   // 主 entity の snapshot + uuid 取得
   const primaryData = await readEntityRaw(entityType, oldId, root);
   if (!primaryData) {
@@ -1021,6 +1205,20 @@ export async function renameEntityId(
     throw new Error(`${entityType} "${oldId}" の物理ファイルが見つかりません`);
   }
   const refScan = await scanAllRefs(entityType, oldId, newId, root);
+
+  // Phase G M-4 (Codex round 2): 参照側 entity に active Edit session があれば block
+  // (rename は committed file を直接 write するため、別 session の draft 保持 → 後続 save で
+  // rename 済 ref を旧 id に巻き戻して orphan 再生成するリスクを回避)
+  const concurrentEditRefs = await detectConcurrentEditRefs(refScan, entityType, oldId, opts);
+  if (concurrentEditRefs.length > 0) {
+    const refs = concurrentEditRefs
+      .map((r) => `${r.entityKind}/${r.entityId} (session=${r.sessionId})`)
+      .join(", ");
+    throw new Error(
+      `${entityType} "${oldId}" の rename は参照側 entity を編集中の他 session があるため block されました: [${refs}]。` +
+      `先に当該 editor の編集を確定/破棄してください。`,
+    );
+  }
 
   // snapshot 構築 (失敗時 restore 用)
   const fileRenameSnapshots: Array<{ from: string; to: string; originalContent: string }> = [];
@@ -1146,6 +1344,9 @@ export async function renameEntityId(
     fileRenames: fileRenameSnapshots.map((s) => ({ from: s.from, to: s.to })),
     refUpdates: refScan.locations,
     totalRefs: refScan.locations.length,
+    // Phase G M-1/M-4: execute まで来た = ambiguous も concurrent もなかった
+    ambiguousDependencies: [],
+    concurrentEditRefs: [],
   };
 
   // ── snapshot に design.json も含めて undo を完備 ──
@@ -1182,25 +1383,74 @@ export async function undoEntityRename(
   const dataRoot = await resolveDataRoot(root);
   let restored = 0;
 
-  // N-4 (Opus 独立レビュー #1298) 前提: refUpdates の filePath と fileRenames の from/to は
-  // 同一 file を含まない (主ファイル = rename 対象自身は ref 側に出てこない / 参照側 entity は
-  // rename 対象 entity と別 file)。この不変条件のもとでは `restored++` の二重カウントは発生しない。
-  // 将来 same file が両方に出るような変更を入れる場合は Set<absPath> で重複排除すること。
-  // (a) ref 側 file を snapshot の original で完全上書き
-  for (const r of op.refUpdates) {
-    const absPath = path.join(dataRoot, r.filePath);
-    await writeFileContent(absPath, r.originalContent);
-    restored++;
+  // Phase G M-3 (Codex round 2): undo 経路の atomic 化。
+  //
+  // 旧実装は (a) ref restore → (b) old path 書戻し → (c) new path tryUnlink の順で
+  // 全 error を握り潰していたため、permission/I/O 失敗で同一 uuid file が old/new に
+  // 並存 + operation 既消費 で再 undo 不可な状態になっていた。Phase F M-6 が rename 側で
+  // 塞いだ atomic 違反と同型の問題が undo 側に残存していた。
+  //
+  // 対策: undo の new-path delete も strictUnlink 化、失敗時は本関数全体で
+  //   - これまでに upload した restore (old path 書戻し + ref 書戻し) を再度 newContent で
+  //     書き戻して「rename 完了状態」に戻し、
+  //   - operation を再度 pushUndo して操作消費を取り消し (再 undo 可能に保つ)、
+  //   - error を throw する。
+  // これにより undo は「成功なら完全 revert、失敗なら byte-identical な rename 完了状態」の
+  // 2 状態しか取りえない (atomic)。
+
+  // 復元前 snapshot: undo 失敗時の rollback (= rename 完了状態に戻す) 用
+  const newSnapshots: Array<{ absPath: string; newContent: string }> = op.refUpdates.map((r) => ({
+    absPath: path.join(dataRoot, r.filePath),
+    newContent: r.newContent,
+  }));
+  // 主ファイル new path の content も undo 失敗時 rollback 用に事前 read (delete 前の bytes 保持)
+  const newPathContents: Array<{ absPath: string; content: string | null }> = [];
+  for (const f of op.fileRenames) {
+    const toAbs = path.join(dataRoot, f.to);
+    newPathContents.push({ absPath: toAbs, content: await readFileContentOrNull(toAbs) });
   }
 
-  // (b) 主ファイル + design ファイルを oldId 側に restore
-  for (const f of op.fileRenames) {
-    const fromAbs = path.join(dataRoot, f.from); // 元の path (oldId 側)
-    const toAbs   = path.join(dataRoot, f.to);   // rename 後の path (newId 側)
-    await writeFileContent(fromAbs, f.originalContent);
-    // newId 側 file を削除
-    await tryUnlink(toAbs);
-    restored++;
+  const restoredAbsRefPaths: string[] = []; // 既に書戻した ref 側 abs path
+  const restoredOldFromPaths: string[] = []; // 既に restore した old from path
+
+  try {
+    // (a) ref 側 file を snapshot の original で完全上書き
+    for (const r of op.refUpdates) {
+      const absPath = path.join(dataRoot, r.filePath);
+      await writeFileContent(absPath, r.originalContent);
+      restoredAbsRefPaths.push(absPath);
+      restored++;
+    }
+
+    // (b) 主ファイル + design ファイルを oldId 側に restore
+    for (const f of op.fileRenames) {
+      const fromAbs = path.join(dataRoot, f.from); // 元の path (oldId 側)
+      const toAbs   = path.join(dataRoot, f.to);   // rename 後の path (newId 側)
+      await writeFileContent(fromAbs, f.originalContent);
+      restoredOldFromPaths.push(fromAbs);
+      // newId 側 file を strict 削除 (Phase G M-3): 失敗時は catch で rollback
+      await strictUnlink(toAbs);
+      restored++;
+    }
+  } catch (err) {
+    // undo rollback: rename 完了状態 (newContent / new path) に byte-identical 復元
+    // (1) 書戻した ref 側 を newContent で再上書き (snapshot 配列を逆順、index 一致で安全)
+    for (const ns of newSnapshots) {
+      if (!restoredAbsRefPaths.includes(ns.absPath)) continue;
+      try { await writeFileContent(ns.absPath, ns.newContent); } catch { /* best effort */ }
+    }
+    // (2) restore した old path を削除 (= 元の rename 完了時は不在)
+    for (const absPath of restoredOldFromPaths) {
+      try { await fs.unlink(absPath); } catch { /* best effort */ }
+    }
+    // (3) new path content を復元 (delete 前 bytes が残っていれば書戻し)
+    for (const npc of newPathContents) {
+      if (npc.content === null) continue;
+      try { await writeFileContent(npc.absPath, npc.content); } catch { /* best effort */ }
+    }
+    // (4) operation を再 push して再 undo を可能にする (popUndo の取り消し)
+    pushUndo(root, op);
+    throw err;
   }
 
   return { restoredFiles: restored };
