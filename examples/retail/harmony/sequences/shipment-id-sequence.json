@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../../schemas/v3/sequence.v3.schema.json",
+  "id": "shipment-id-sequence",
+  "uuid": "536a2528-8cde-4bd2-8884-e3e3c53c57dd",
+  "name": "配送ID採番",
+  "description": "配送指示フロー (S-4) で 1 配送指示につき 1 つの配送 ID を発行するシーケンス。採番値はアプリ層で 'SHIP-{YYYYMMDD}-{NNNN}' にフォーマットする。YYYYMMDD は配送指示日 (8 桁)、NNNN はシーケンス値をゼロ埋め 4 桁で表現する。日次リセットはアプリ層制御 (DB シーケンス自体は CYCLE なし)。",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-02T00:00:00.000Z",
+  "physicalName": "seq_shipment_id",
+  "startValue": 1,
+  "increment": 1,
+  "minValue": 1,
+  "maxValue": 9999,
+  "cycle": false,
+  "cache": 5
+}

@@ -1,0 +1,641 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "shipment-dispatch",
+    "uuid": "d63c703c-26ed-4704-8b76-329c6bfae9c9",
+    "name": "配送指示",
+    "description": "バックオフィス担当者が注文一覧から対象注文を選択し、外部キャリア API (retail:DispatchShipment) に配送指示を送信する。成功時は orders.status を 'shipped' に更新し、retail.shipment.dispatched イベントを発行する。外部 API 失敗時は補償処理を実行してエラーを返す。",
+    "flowType": "screen",
+    "maturity": "committed",
+    "screenId": "shipment-dispatch",
+    "createdAt": "2026-05-02T00:00:00.000Z",
+    "updatedAt": "2026-05-02T00:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "入力値が不正です。",
+          "responseId": "400-validation",
+          "description": "orderId 未指定、carrierId 未指定などのバリデーションエラー。"
+        },
+        "ORDER_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "指定の注文が見つかりません。",
+          "responseId": "404-order-not-found",
+          "description": "指定 orderId の注文が存在しないか、配送指示対象ステータス ('pending' または 'confirmed') でない。"
+        },
+        "CARRIER_API_FAILED": {
+          "httpStatus": 502,
+          "defaultMessage": "配送キャリア API との通信に失敗しました。",
+          "responseId": "502-carrier-api-failed",
+          "description": "外部キャリア API が 5xx または timeout を返した場合。orders.status は変更しない。"
+        }
+      },
+      "externalSystems": {
+        "carrierApi": {
+          "name": "外部配送キャリア API",
+          "baseUrl": "https://carrier.retail.example.internal",
+          "auth": {
+            "kind": "apiKey",
+            "tokenRef": "@secret.carrierApiKey",
+            "headerName": "X-Carrier-API-Key"
+          },
+          "timeoutMs": 15000,
+          "retryPolicy": {
+            "maxAttempts": 2,
+            "backoff": "exponential",
+            "initialDelayMs": 1000
+          },
+          "description": "配送指示・追跡番号取得を行う外部キャリア API。retail:DispatchShipment 拡張 step で利用する。"
+        }
+      },
+      "secrets": {
+        "carrierApiKey": {
+          "source": "env",
+          "name": "CARRIER_API_KEY",
+          "rotationDays": 90,
+          "description": "外部配送キャリア API の認証キー。"
+        }
+      },
+      "events": {
+        "retail.shipment.dispatched": {
+          "description": "配送指示が正常完了し、追跡番号を取得した後に発行する。出荷通知メール送信などの下流処理のトリガーとなる。",
+          "payload": {
+            "type": "object",
+            "required": [
+              "orderId",
+              "orderNumber",
+              "trackingNumber",
+              "carrierId"
+            ],
+            "properties": {
+              "orderId": {
+                "type": "number"
+              },
+              "orderNumber": {
+                "type": "string"
+              },
+              "trackingNumber": {
+                "type": "string"
+              },
+              "carrierId": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "string",
+        "required": true,
+        "description": "バックオフィス担当者のユーザー ID (監査ログ用)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "配送指示実行",
+      "trigger": "submit",
+      "description": "注文 ID とキャリア情報を受け取り、外部キャリア API に配送指示を送信後、注文ステータスを 'shipped' に更新する。",
+      "maturity": "committed",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/retail/orders/:orderId/dispatch",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "orderId",
+          "label": "注文ID",
+          "type": "integer",
+          "required": true,
+          "description": "配送指示を行う注文の ID。"
+        },
+        {
+          "name": "carrierId",
+          "label": "キャリア",
+          "type": "string",
+          "required": true,
+          "description": "使用する配送キャリアの識別子 (例: yamato / sagawa / japanpost)。"
+        },
+        {
+          "name": "preferredDate",
+          "label": "希望配送日",
+          "type": "string",
+          "required": false,
+          "description": "希望配送日 (YYYY-MM-DD 形式)。省略時はキャリア側の標準日程。"
+        },
+        {
+          "name": "timeSlot",
+          "label": "希望時間帯",
+          "type": "string",
+          "required": false,
+          "description": "morning / afternoon / evening / any のいずれか。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "trackingNumber",
+          "label": "追跡番号",
+          "type": "string",
+          "description": "キャリア API から返された追跡番号。"
+        },
+        {
+          "name": "estimatedDelivery",
+          "label": "配達予定日",
+          "type": "date",
+          "description": "キャリア API から返された配達予定日。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "bodySchema": {
+            "typeRef": "retail:DispatchShipmentResponse"
+          },
+          "description": "配送指示成功。",
+          "when": "外部 API への配送指示が成功し、orders.status が 'shipped' に更新された場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
+          "description": "バリデーションエラー。",
+          "when": "orderId / carrierId が不正な場合。"
+        },
+        {
+          "id": "404-order-not-found",
+          "status": 404,
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
+          "description": "注文が存在しないか配送指示対象外のステータス。",
+          "when": "orders に対象レコードが存在しないか、status が 'shipped' / 'delivered' / 'cancelled' の場合。"
+        },
+        {
+          "id": "502-carrier-api-failed",
+          "status": 502,
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
+          "description": "外部キャリア API 失敗。orders.status は変更していない。",
+          "when": "外部キャリア API がエラーまたは timeout を返した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "orderId 必須チェック (1 以上の整数)。carrierId 必須チェック (非空)。",
+          "conditions": "orderId は 1 以上の整数。carrierId は非空文字列。",
+          "rules": [
+            {
+              "field": "orderId",
+              "type": "required",
+              "severity": "error",
+              "message": "注文 ID は必須です。"
+            },
+            {
+              "field": "orderId",
+              "type": "range",
+              "min": 1,
+              "severity": "error",
+              "message": "注文 ID は 1 以上の整数で指定してください。"
+            },
+            {
+              "field": "carrierId",
+              "type": "required",
+              "severity": "error",
+              "message": "配送キャリアは必須です。"
+            }
+          ],
+          "fieldErrorsVar": "fieldErrors",
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "dbAccess",
+          "description": "注文を取得する。配送指示対象は status が 'pending' または 'confirmed' のみ。",
+          "tableId": "order",
+          "operation": "SELECT",
+          "sql": "SELECT id, order_number AS \"orderNumber\", customer_id AS \"customerId\", status, total_amount AS \"totalAmount\", shipping_address AS \"shippingAddress\" FROM orders WHERE id = @inputs.orderId AND status IN ('pending', 'confirmed')",
+          "outputBinding": {
+            "name": "order"
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "注文が存在しないか配送指示対象外ステータスの場合は 404 を返す。null guard を含む。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "注文なし / 対象外ステータス",
+              "condition": {
+                "kind": "expression",
+                "expression": "@order == null || @order === undefined"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "404 注文なし / 対象外を返す。",
+                  "responseId": "404-order-not-found",
+                  "bodyExpression": "{ code: 'ORDER_NOT_FOUND', message: '注文 ID ' + @inputs.orderId + ' は存在しないか、配送指示対象外のステータスです。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "注文あり — 続行",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "audit",
+          "description": "配送指示操作を監査ログに記録する。担当者 ID と注文情報を含む。result は省略 (操作完了前のため確定値なし)。",
+          "action": "order.dispatch",
+          "resource": {
+            "type": "order",
+            "id": "@inputs.orderId"
+          },
+          "reason": "配送指示操作開始 by @sessionUserId"
+        },
+        {
+          "id": "step-05",
+          "kind": "retail:DispatchShipment",
+          "description": "外部キャリア API に配送指示を送信する (retail:DispatchShipment)。追跡番号と配達予定日を受け取る。失敗時は 502 を返し、orders.status を変更しない。",
+          "config": {
+            "carrierId": "@inputs.carrierId",
+            "orderId": "@order.id",
+            "shippingAddress": "@order.shippingAddress",
+            "preferredDate": "@inputs.preferredDate",
+            "timeSlot": "@inputs.timeSlot"
+          },
+          "outputBinding": {
+            "name": "dispatchResult"
+          },
+          "sla": {
+            "timeoutMs": 15000,
+            "onTimeout": "throw",
+            "errorCode": "CARRIER_API_FAILED"
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "branch",
+          "description": "外部キャリア API の結果に応じて分岐する。失敗時は補償処理 (監査ログ記録) を実行して 502 を返す。",
+          "branches": [
+            {
+              "id": "br-06-fail",
+              "code": "A",
+              "label": "キャリア API 失敗",
+              "condition": {
+                "kind": "expression",
+                "expression": "@dispatchResult == null || @dispatchResult.trackingNumber == null"
+              },
+              "steps": [
+                {
+                  "id": "step-06-a-01",
+                  "kind": "audit",
+                  "description": "配送指示失敗を監査ログに記録する。補償ログとして機能する。",
+                  "action": "order.dispatch.failed",
+                  "resource": {
+                    "type": "order",
+                    "id": "@inputs.orderId"
+                  },
+                  "result": "failure",
+                  "reason": "キャリア API からの応答が不正または null (追跡番号なし)"
+                },
+                {
+                  "id": "step-06-a-02",
+                  "kind": "log",
+                  "description": "キャリア API 失敗の詳細をログに記録する。",
+                  "level": "error",
+                  "message": "配送指示失敗: キャリア API が無効な応答を返しました。",
+                  "category": "order.dispatch",
+                  "structuredData": {
+                    "orderId": "@inputs.orderId",
+                    "carrierId": "@inputs.carrierId",
+                    "dispatchResult": "@dispatchResult"
+                  }
+                },
+                {
+                  "id": "step-06-a-03",
+                  "kind": "return",
+                  "description": "502 キャリア API 失敗を返す。orders.status は 'pending' のまま変更していない。",
+                  "responseId": "502-carrier-api-failed",
+                  "bodyExpression": "{ code: 'CARRIER_API_FAILED', message: '配送キャリア API との通信に失敗しました。しばらく経ってから再試行してください。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-06-else",
+            "code": "B",
+            "label": "キャリア API 成功",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "dbAccess",
+          "description": "追跡番号取得後、orders.status を 'shipped' に更新する。",
+          "tableId": "order",
+          "operation": "UPDATE",
+          "sql": "UPDATE orders SET status = 'shipped', updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.orderId AND status IN ('pending', 'confirmed')",
+          "affectedRowsCheck": {
+            "operator": "=",
+            "expected": 1,
+            "onViolation": "throw",
+            "errorCode": "ORDER_NOT_FOUND",
+            "description": "0 件更新 = 注文が存在しないか既に shipped に変更済み。"
+          }
+        },
+        {
+          "id": "step-08",
+          "kind": "eventPublish",
+          "description": "retail.shipment.dispatched イベントを発行する。下流の出荷通知メール (retail:SendOrderConfirmEmail) や在庫 CDC が購読する。",
+          "topic": "retail.shipment.dispatched",
+          "payload": "{ orderId: @order.id, orderNumber: @order.orderNumber, trackingNumber: @dispatchResult.trackingNumber, carrierId: @inputs.carrierId }"
+        },
+        {
+          "id": "step-10",
+          "kind": "return",
+          "description": "200 OK — 配送指示成功を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ orderId: @order.id, orderNumber: @order.orderNumber, trackingNumber: @dispatchResult.trackingNumber, carrierId: @inputs.carrierId, estimatedDelivery: @dispatchResult.estimatedDelivery }"
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "decisions": [
+      {
+        "id": "ADR-001",
+        "title": "外部 API 成功確認後に orders.status を更新する",
+        "status": "accepted",
+        "context": "外部キャリア API への配送指示とステータス更新の順序を決定する必要があった。",
+        "decision": "外部 API 呼び出しが成功し追跡番号を取得した後に orders.status を 'shipped' に更新する。外部 API 失敗時は orders.status を変更しない。",
+        "consequences": "API 成功後の UPDATE が失敗した場合は状態の不整合が生じる可能性がある。この場合は監査ログから手動復旧するオペレーション手順を設ける。",
+        "date": "2026-05-02"
+      },
+      {
+        "id": "ADR-002",
+        "title": "外部 API 失敗時は補償として監査ログを記録し 502 を返す",
+        "status": "accepted",
+        "context": "外部キャリア API が失敗した場合の補償処理を設計する必要があった。",
+        "decision": "外部 API 失敗 (null response / timeout) を検出した場合、audit step で失敗ログを記録し 502 を返す。orders.status は変更しない (ロールバックは不要)。担当者が再試行できる。",
+        "consequences": "補償処理はベストエフォート (audit step 自体の失敗は無視)。監査ログで担当者が失敗を検知して手動再試行するフローが前提。",
+        "date": "2026-05-02"
+      },
+      {
+        "id": "ADR-003",
+        "title": "dispatchResult の null guard を明示する",
+        "status": "accepted",
+        "context": "ExtensionStep の戻り値が null の場合の安全な処理が必要だった。",
+        "decision": "@dispatchResult == null || @dispatchResult.trackingNumber == null をガード条件とし、null 参照エラーを防ぐ。",
+        "consequences": "キャリア API が trackingNumber を含まない正常レスポンスを返した場合も失敗として扱われる (業務的に正しい判定)。",
+        "date": "2026-05-02"
+      }
+    ],
+    "glossary": {
+      "配送指示": {
+        "definition": "外部配送キャリア API に注文の出荷を依頼し、追跡番号を取得するバックオフィス操作。",
+        "aliases": [
+          "DispatchShipment",
+          "出荷指示"
+        ],
+        "domainRef": "orders"
+      },
+      "追跡番号": {
+        "definition": "外部キャリアが発行する配送追跡用の識別番号。顧客への出荷通知メールに含める。",
+        "aliases": [
+          "TrackingNumber",
+          "伝票番号"
+        ],
+        "domainRef": "shipment"
+      }
+    },
+    "testScenarios": [
+      {
+        "id": "happy-path-dispatch",
+        "name": "配送指示が成功して追跡番号が返る",
+        "description": "status='pending' の注文に対してキャリア API が正常応答し、orders.status が 'shipped' に更新される。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionUserId": "staff-001"
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "order",
+            "rows": [
+              {
+                "id": 300,
+                "order_number": "ORD-2026-000001",
+                "customer_id": 100,
+                "status": "pending",
+                "total_amount": 5000,
+                "shipping_postal_code": "1600022",
+                "shipping_address": "東京都新宿区新宿1-1-1"
+              }
+            ]
+          },
+          {
+            "kind": "externalStub",
+            "externalRef": "carrierApi",
+            "responseMock": {
+              "trackingNumber": "TRK-20260502-001",
+              "estimatedDelivery": "2026-05-04",
+              "carrierId": "yamato"
+            }
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "orderId": 300,
+            "carrierId": "yamato",
+            "preferredDate": "2026-05-04",
+            "timeSlot": "afternoon"
+          }
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.trackingNumber",
+            "equals": "TRK-20260502-001"
+          }
+        ],
+        "tags": [
+          "happy",
+          "s4"
+        ]
+      },
+      {
+        "id": "carrier-api-failure-502",
+        "name": "キャリア API 失敗で 502 — orders.status は変更なし",
+        "description": "外部キャリア API が null 応答を返した場合、補償ログを記録して 502 を返す。orders.status は 'pending' のまま。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionUserId": "staff-001"
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "order",
+            "rows": [
+              {
+                "id": 301,
+                "order_number": "ORD-2026-000002",
+                "customer_id": 100,
+                "status": "pending",
+                "total_amount": 3000,
+                "shipping_postal_code": "5310073",
+                "shipping_address": "大阪府大阪市北区梅田1-2-3"
+              }
+            ]
+          },
+          {
+            "kind": "externalStub",
+            "externalRef": "carrierApi",
+            "responseMock": null
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "orderId": 301,
+            "carrierId": "sagawa"
+          }
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "502-carrier-api-failed"
+          }
+        ],
+        "tags": [
+          "error",
+          "external-api",
+          "s4"
+        ]
+      },
+      {
+        "id": "order-not-found-404",
+        "name": "存在しない注文 ID で 404",
+        "description": "orders に該当レコードがない場合は 404 を返す。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionUserId": "staff-001"
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "order",
+            "rows": []
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "orderId": 9999,
+            "carrierId": "yamato"
+          }
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "404-order-not-found"
+          }
+        ],
+        "tags": [
+          "error",
+          "not-found",
+          "s4"
+        ]
+      },
+      {
+        "id": "already-shipped-404",
+        "name": "配送済み注文への指示は 404 (対象外ステータス)",
+        "description": "status='shipped' の注文は配送指示対象外なので 404 を返す。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionUserId": "staff-001"
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "order",
+            "rows": [
+              {
+                "id": 302,
+                "order_number": "ORD-2026-000003",
+                "customer_id": 100,
+                "status": "shipped",
+                "total_amount": 2000,
+                "shipping_postal_code": "1600022",
+                "shipping_address": "東京都新宿区新宿1-1-1"
+              }
+            ]
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "orderId": 302,
+            "carrierId": "japanpost"
+          }
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "404-order-not-found"
+          }
+        ],
+        "tags": [
+          "error",
+          "invalid-status",
+          "s4"
+        ]
+      }
+    ]
+  }
+}

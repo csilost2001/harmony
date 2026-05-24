@@ -1,0 +1,84 @@
+{
+  "$schema": "../../../../schemas/v3/view.v3.schema.json",
+  "id": "order-with-customer-view",
+  "uuid": "feb6d55d-33bc-4f25-adac-b5fa18b2a579",
+  "name": "顧客付き注文ビュー",
+  "description": "注文テーブルに顧客マスタを JOIN し、注文一覧画面 (S-4 バックオフィス) で顧客名・メールアドレスを含む一覧を表示するためのビュー。status による絞り込みや ordered_at 降順ソートを前提に設計する。",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-02T00:00:00.000Z",
+  "physicalName": "v_orders_with_customer",
+  "selectStatement": "SELECT\n  o.id           AS order_id,\n  o.order_number,\n  o.status,\n  o.total_amount,\n  o.tax_amount,\n  o.shipping_address,\n  o.ordered_at,\n  o.updated_at,\n  c.email        AS customer_email,\n  c.full_name    AS customer_name,\n  c.phone        AS customer_phone\nFROM orders AS o\nINNER JOIN customers AS c ON c.id = o.customer_id\nORDER BY o.ordered_at DESC",
+  "outputColumns": [
+    {
+      "physicalName": "order_id",
+      "name": "注文ID",
+      "dataType": "BIGINT",
+      "description": "注文のサロゲートキー。"
+    },
+    {
+      "physicalName": "order_number",
+      "name": "注文番号",
+      "dataType": "VARCHAR",
+      "description": "顧客向け注文番号。@conv.numbering.orderNumber 規約で採番 (例: ORD-2026-000001)。"
+    },
+    {
+      "physicalName": "status",
+      "name": "注文ステータス",
+      "dataType": "VARCHAR",
+      "description": "pending / confirmed / shipped / delivered / cancelled のいずれか。"
+    },
+    {
+      "physicalName": "total_amount",
+      "name": "合計金額",
+      "dataType": "DECIMAL",
+      "description": "注文合計金額 (税抜)。"
+    },
+    {
+      "physicalName": "tax_amount",
+      "name": "消費税額",
+      "dataType": "DECIMAL",
+      "description": "消費税額。@conv.tax.standard で計算。"
+    },
+    {
+      "physicalName": "shipping_address",
+      "name": "配送先住所",
+      "dataType": "VARCHAR",
+      "description": "注文時点の配送先住所スナップショット。"
+    },
+    {
+      "physicalName": "ordered_at",
+      "name": "注文日時",
+      "dataType": "TIMESTAMP",
+      "description": "注文確定日時。"
+    },
+    {
+      "physicalName": "updated_at",
+      "name": "更新日時",
+      "dataType": "TIMESTAMP",
+      "description": "注文レコードの最終更新日時。"
+    },
+    {
+      "physicalName": "customer_email",
+      "name": "顧客メールアドレス",
+      "dataType": "VARCHAR",
+      "description": "顧客のメールアドレス。通知・照会に使用。"
+    },
+    {
+      "physicalName": "customer_name",
+      "name": "顧客氏名",
+      "dataType": "VARCHAR",
+      "description": "顧客の氏名 (姓名連結)。"
+    },
+    {
+      "physicalName": "customer_phone",
+      "name": "顧客電話番号",
+      "dataType": "VARCHAR",
+      "description": "顧客の連絡先電話番号。"
+    }
+  ],
+  "dependencies": [
+    "order",
+    "customer-master"
+  ]
+}

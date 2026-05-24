@@ -1,0 +1,128 @@
+{
+  "$schema": "../../../../schemas/v3/view-definition.v3.schema.json",
+  "id": "inventory-list-viewer",
+  "uuid": "fbd95d09-4ac4-44e0-a6a7-44affff128a0",
+  "name": "在庫一覧",
+  "description": "在庫一覧画面 (No.3) 向けの一覧 UI viewer 定義。v_inventory_with_product ビューのデータを表示する。sourceTableId は inventory テーブルを指定し、店舗・商品の各列は JOIN 済み view 列 (同テーブル参照) を表現する。低在庫行 (quantity_available <= lowStockThreshold) は UI 側でバッジ表示する。",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-02T00:00:00.000Z",
+  "kind": "list",
+  "query": {
+    "from": {
+      "tableId": "inventory-by-store",
+      "alias": "inv"
+    },
+    "joins": [
+      {
+        "kind": "INNER",
+        "tableId": "store-master",
+        "alias": "s",
+        "on": [
+          "inv.store_id = s.id"
+        ]
+      },
+      {
+        "kind": "INNER",
+        "tableId": "product-master",
+        "alias": "p",
+        "on": [
+          "inv.product_id = p.id"
+        ]
+      }
+    ]
+  },
+  "columns": [
+    {
+      "name": "storeCode",
+      "tableColumnRef": {
+        "tableId": "store-master",
+        "columnId": "col-store-code"
+      },
+      "displayName": "店舗コード",
+      "type": "string",
+      "width": "110px",
+      "align": "left",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "storeName",
+      "tableColumnRef": {
+        "tableId": "store-master",
+        "columnId": "col-name"
+      },
+      "displayName": "店舗名",
+      "type": "string",
+      "width": "140px",
+      "align": "left",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "productCode",
+      "tableColumnRef": {
+        "tableId": "product-master",
+        "columnId": "col-product-code"
+      },
+      "displayName": "商品コード",
+      "type": "string",
+      "width": "120px",
+      "align": "left",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "productName",
+      "tableColumnRef": {
+        "tableId": "product-master",
+        "columnId": "col-name"
+      },
+      "displayName": "商品名",
+      "type": "string",
+      "width": "auto",
+      "align": "left",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "quantityAvailable",
+      "tableColumnRef": {
+        "tableId": "inventory-by-store",
+        "columnId": "col-quantity-available"
+      },
+      "displayName": "在庫数",
+      "type": "integer",
+      "displayFormat": "#,##0",
+      "width": "90px",
+      "align": "right",
+      "sortable": true,
+      "filterable": false
+    },
+    {
+      "name": "unitPrice",
+      "tableColumnRef": {
+        "tableId": "product-master",
+        "columnId": "col-unit-price"
+      },
+      "displayName": "単価 (税抜)",
+      "type": "number",
+      "displayFormat": "#,##0",
+      "width": "100px",
+      "align": "right",
+      "sortable": true,
+      "filterable": false
+    }
+  ],
+  "sortDefaults": [
+    {
+      "columnName": "storeCode",
+      "order": "asc"
+    },
+    {
+      "columnName": "productCode",
+      "order": "asc"
+    }
+  ],
+  "pageSize": 100
+}

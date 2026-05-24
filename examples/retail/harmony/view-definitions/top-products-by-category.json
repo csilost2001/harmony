@@ -1,0 +1,77 @@
+{
+  "$schema": "../../../../schemas/v3/view-definition.v3.schema.json",
+  "id": "top-products-by-category",
+  "uuid": "37a3af9a-f240-4fbb-b33d-6937305b430b",
+  "name": "カテゴリ別 売れ筋商品 上位 N (#745 Level 3 サンプル)",
+  "description": "ROW_NUMBER() window 関数 + CTE で各カテゴリの上位 N 商品を抽出する。Level 2 (Structured) では表現できないため Level 3 (Raw SQL) を使う。@param.topN は呼び出し画面 filter 等から渡される (例: ダッシュボードの売れ筋カード)。本サンプルは #745 で raw SQL escape hatch の検証用に追加。",
+  "maturity": "draft",
+  "createdAt": "2026-05-03T00:00:00.000Z",
+  "updatedAt": "2026-05-03T00:00:00.000Z",
+  "kind": "list",
+  "query": {
+    "sql": "WITH ranked AS (SELECT id, product_code, name, category, unit_price, ROW_NUMBER() OVER (PARTITION BY category ORDER BY unit_price DESC) AS rn FROM products WHERE is_active = true) SELECT id, product_code, name, category, unit_price, rn FROM ranked WHERE rn <= @param.topN ORDER BY category ASC, rn ASC",
+    "parameterRefs": [
+      {
+        "name": "topN",
+        "fieldType": "integer",
+        "description": "各カテゴリで取得する上位件数。呼び出し側が画面 filter から渡す (例: 3 / 5 / 10)。"
+      }
+    ]
+  },
+  "columns": [
+    {
+      "name": "id",
+      "type": "integer",
+      "displayName": "商品ID",
+      "width": "80px",
+      "align": "right"
+    },
+    {
+      "name": "productCode",
+      "type": "string",
+      "displayName": "商品コード",
+      "width": "120px",
+      "align": "left"
+    },
+    {
+      "name": "productName",
+      "type": "string",
+      "displayName": "商品名",
+      "width": "auto",
+      "align": "left"
+    },
+    {
+      "name": "category",
+      "type": "string",
+      "displayName": "カテゴリ",
+      "width": "120px",
+      "align": "left"
+    },
+    {
+      "name": "unitPrice",
+      "type": "number",
+      "displayName": "単価",
+      "displayFormat": "#,##0",
+      "width": "100px",
+      "align": "right"
+    },
+    {
+      "name": "rn",
+      "type": "integer",
+      "displayName": "順位",
+      "width": "60px",
+      "align": "right"
+    }
+  ],
+  "sortDefaults": [
+    {
+      "columnName": "category",
+      "order": "asc"
+    },
+    {
+      "columnName": "rn",
+      "order": "asc"
+    }
+  ],
+  "pageSize": 50
+}

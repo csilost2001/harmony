@@ -1,0 +1,73 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "dashboard",
+  "uuid": "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0",
+  "name": "ダッシュボード",
+  "description": "リテール総合システムのトップ画面。KPI カード (今日の売上・本日注文件数・低在庫商品数・配送指示待ち) と 4 シナリオへのナビゲーションを提供する。",
+  "purpose": "page",
+  "kind": "dashboard",
+  "path": "/",
+  "pageLayoutId": "main-layout",
+  "auth": "required",
+  "groupId": "back-office",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-02T00:00:00.000Z",
+  "items": [
+    {
+      "id": "todaySales",
+      "label": "今日の売上",
+      "type": "integer",
+      "direction": "output",
+      "displayFormat": "¥#,##0",
+      "description": "ダッシュボード KPI: 本日の累計売上金額 (税込)。集計元はダッシュボード KPI 集計フロー (dashboard-kpi-summary) の todaySales 出力。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "dashboard-kpi-summary",
+        "variableName": "todaySales"
+      }
+    },
+    {
+      "id": "ordersToday",
+      "label": "本日の注文件数",
+      "type": "integer",
+      "direction": "output",
+      "displayFormat": "#,##0 件",
+      "description": "ダッシュボード KPI: 本日の受注件数。集計元はダッシュボード KPI 集計フロー (dashboard-kpi-summary) の ordersToday 出力。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "dashboard-kpi-summary",
+        "variableName": "ordersToday"
+      }
+    },
+    {
+      "id": "lowStockCount",
+      "label": "低在庫商品数",
+      "type": "integer",
+      "direction": "output",
+      "displayFormat": "#,##0 件",
+      "description": "ダッシュボード KPI: 低在庫しきい値以下 (@conv.limit.lowStockThreshold) の商品件数。集計元はダッシュボード KPI 集計フロー (dashboard-kpi-summary) の lowStockCount 出力。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "dashboard-kpi-summary",
+        "variableName": "lowStockCount"
+      }
+    },
+    {
+      "id": "dispatchPending",
+      "label": "配送指示待ち",
+      "type": "integer",
+      "direction": "output",
+      "displayFormat": "#,##0 件",
+      "description": "ダッシュボード KPI: 配送指示待ちの注文件数 (status IN ('pending', 'confirmed'))。集計元はダッシュボード KPI 集計フロー (dashboard-kpi-summary) の dispatchPending 出力。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "dashboard-kpi-summary",
+        "variableName": "dispatchPending"
+      }
+    }
+  ],
+  "design": {
+    "designFileRef": "dashboard.design.json"
+  }
+}
