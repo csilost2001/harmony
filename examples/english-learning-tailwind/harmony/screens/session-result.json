@@ -1,0 +1,54 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "session-result",
+  "uuid": "18bcc879-0b84-4e63-9317-37b94e799886",
+  "name": "セッション結果",
+  "description": "S-3 セッション完了後の結果画面。総合スコア・発音フィードバック・習得単語・次の推奨ストーリーを表示し、学習継続またはダッシュボードへ誘導する。\n\n[description 待避]\n- 発音フィードバック UI: diff フィールド (PhoneDiff[]) は音素単位の正誤判定リストで、実装側で IPA テーブル + 色分け表示を行う。",
+  "kind": "complete",
+  "path": "/learn/:sessionId/result",
+  "auth": "required",
+  "groupId": "learner",
+  "maturity": "draft",
+  "createdAt": "2026-05-04T00:00:00.000Z",
+  "updatedAt": "2026-05-04T00:00:00.000Z",
+  "items": [
+    {
+      "id": "totalScore",
+      "label": "総合発音スコア",
+      "type": "number",
+      "direction": "output",
+      "description": "セッション全ターンの pronunciation_scores.score の平均値。"
+    },
+    {
+      "id": "turnCount",
+      "label": "完了ターン数",
+      "type": "integer",
+      "direction": "output",
+      "description": "今回セッションで完了した turn_logs の件数。"
+    },
+    {
+      "id": "newWordsCount",
+      "label": "新規習得単語数",
+      "type": "integer",
+      "direction": "output",
+      "description": "今回セッションで user_word_progress.status が new → learning に更新された単語数。"
+    },
+    {
+      "id": "pronunciationFeedback",
+      "label": "発音フィードバック",
+      "type": "json",
+      "direction": "output",
+      "description": "今回セッションの pronunciation_scores 一覧 (JSON 配列)。diff フィールド (PhoneDiff[]) は音素単位の正誤判定リストで、実装側で IPA テーブル + 色分け表示を行う。"
+    },
+    {
+      "id": "recommendedStory",
+      "label": "次に推奨するストーリー",
+      "type": "string",
+      "direction": "output",
+      "description": "ユーザーの CEFR レベルと学習履歴から次に推奨するストーリー名。"
+    }
+  ],
+  "design": {
+    "designFileRef": "session-result.design.json"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "story-detail",
+  "uuid": "046e1f83-bed3-4b13-a5ac-b0fa06744dfe",
+  "name": "ストーリー詳細",
+  "description": "ストーリーの詳細情報を表示し、学習セッションを開始する画面 (S-1)。シーン一覧・CEFR レベル・学習進捗を確認でき、セッション作成フローを経て会話プレイへ遷移する。",
+  "kind": "detail",
+  "path": "/stories/:storyId",
+  "auth": "required",
+  "groupId": "learner",
+  "maturity": "draft",
+  "createdAt": "2026-05-04T00:00:00.000Z",
+  "updatedAt": "2026-05-04T00:00:00.000Z",
+  "items": [
+    {
+      "id": "storyTitle",
+      "label": "ストーリー名",
+      "type": "string",
+      "direction": "output",
+      "valueFrom": {
+        "kind": "tableColumn",
+        "ref": {
+          "tableId": "story",
+          "columnId": "col-title"
+        }
+      },
+      "description": "stories.title の表示。"
+    },
+    {
+      "id": "storyDescription",
+      "label": "概要",
+      "type": "string",
+      "direction": "output",
+      "valueFrom": {
+        "kind": "tableColumn",
+        "ref": {
+          "tableId": "story",
+          "columnId": "col-description"
+        }
+      },
+      "description": "stories.description の表示。"
+    },
+    {
+      "id": "storyCefrLevel",
+      "label": "CEFR レベル",
+      "type": "string",
+      "direction": "output",
+      "valueFrom": {
+        "kind": "tableColumn",
+        "ref": {
+          "tableId": "story",
+          "columnId": "col-cefr-level"
+        }
+      },
+      "description": "stories.cefr_level の表示 (A1-C2)。"
+    },
+    {
+      "id": "sceneList",
+      "label": "シーン一覧",
+      "type": "json",
+      "direction": "output",
+      "description": "stories に紐付く scenes の順序付きリスト (JSON 配列)。scene_title / sort_order / 完了フラグを含む。"
+    },
+    {
+      "id": "startSession",
+      "label": "学習を開始する",
+      "type": "string",
+      "direction": "input",
+      "description": "クリック時に start-session 処理フローを実行し、learning_sessions レコードを作成してから会話プレイ画面 (/learn/:sessionId) へ遷移する。",
+      "events": [
+        {
+          "id": "click",
+          "label": "セッション開始ボタンクリック",
+          "handlerFlowId": "study-session-start",
+          "handlerActionId": "act-001",
+          "argumentMapping": {
+            "storyId": "@routeParam.storyId"
+          }
+        }
+      ]
+    }
+  ],
+  "design": {
+    "designFileRef": "story-detail.design.json"
+  }
+}

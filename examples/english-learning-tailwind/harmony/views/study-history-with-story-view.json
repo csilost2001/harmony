@@ -1,0 +1,85 @@
+{
+  "$schema": "../../../../schemas/v3/view.v3.schema.json",
+  "id": "study-history-with-story-view",
+  "uuid": "af699800-b15f-4588-9d0d-6a76a3eb2e48",
+  "name": "学習履歴とストーリー結合ビュー",
+  "description": "learning_sessions と stories を JOIN し、学習履歴一覧画面 (S-4) で使用する横断ビュー。セッション ID・ユーザー ID・ストーリータイトル・CEFR レベル・学習開始日時・完了日時・平均スコア・ステータスを含む。view-definitions の学習履歴一覧 viewer から参照される。",
+  "maturity": "draft",
+  "createdAt": "2026-05-04T00:00:00.000Z",
+  "updatedAt": "2026-05-04T00:00:00.000Z",
+  "physicalName": "v_learning_history_with_story",
+  "selectStatement": "SELECT\n  ls.id           AS session_id,\n  ls.user_id,\n  ls.status,\n  ls.score_avg,\n  ls.started_at,\n  ls.completed_at,\n  s.id            AS story_id,\n  s.title         AS story_title,\n  s.cefr_level,\n  cp.id           AS pack_id,\n  cp.name         AS pack_name\nFROM learning_sessions AS ls\nINNER JOIN stories AS s  ON s.id  = ls.story_id\nINNER JOIN content_packs AS cp ON cp.id = s.pack_id\nORDER BY ls.started_at DESC",
+  "outputColumns": [
+    {
+      "physicalName": "session_id",
+      "name": "セッションID",
+      "dataType": "INTEGER",
+      "description": "学習セッションの一意 ID。"
+    },
+    {
+      "physicalName": "user_id",
+      "name": "ユーザーID",
+      "dataType": "INTEGER",
+      "description": "セッション所有者のユーザー ID。"
+    },
+    {
+      "physicalName": "status",
+      "name": "ステータス",
+      "dataType": "VARCHAR",
+      "description": "セッションステータス (in_progress / completed / abandoned)。"
+    },
+    {
+      "physicalName": "score_avg",
+      "name": "平均スコア",
+      "dataType": "DECIMAL",
+      "description": "セッション内の発音採点の平均スコア (0〜100)。NULL の場合は採点未実施。"
+    },
+    {
+      "physicalName": "started_at",
+      "name": "学習開始日時",
+      "dataType": "TIMESTAMP",
+      "description": "学習セッション開始日時。"
+    },
+    {
+      "physicalName": "completed_at",
+      "name": "完了日時",
+      "dataType": "TIMESTAMP",
+      "description": "学習セッション完了日時。NULL の場合は未完了。"
+    },
+    {
+      "physicalName": "story_id",
+      "name": "ストーリーID",
+      "dataType": "INTEGER",
+      "description": "学習したストーリーの ID。"
+    },
+    {
+      "physicalName": "story_title",
+      "name": "ストーリータイトル",
+      "dataType": "VARCHAR",
+      "description": "学習したストーリーのタイトル。"
+    },
+    {
+      "physicalName": "cefr_level",
+      "name": "CEFR レベル",
+      "dataType": "VARCHAR",
+      "description": "ストーリーの CEFR 難易度レベル (A1/A2/B1/B2/C1/C2)。"
+    },
+    {
+      "physicalName": "pack_id",
+      "name": "パックID",
+      "dataType": "INTEGER",
+      "description": "コンテンツパックの ID。"
+    },
+    {
+      "physicalName": "pack_name",
+      "name": "パック名",
+      "dataType": "VARCHAR",
+      "description": "コンテンツパック名 (汎用 / IT エンジニア / ビジネス 等)。"
+    }
+  ],
+  "dependencies": [
+    "study-session",
+    "story",
+    "content-pack"
+  ]
+}
