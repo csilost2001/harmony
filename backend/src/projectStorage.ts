@@ -911,6 +911,26 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
   const current = isRecord(data) ? data : {};
   const project = await readProject(r);
   const entry = getScreenEntry(project, screenId);
+  // Phase I round 3+4 Must-fix F (Codex round 4 M-5): editorKind に応じて
+  // designFileRef (grapesjs) と puckDataRef (puck) の **排他**を保証する。
+  // schema (`screen.v3.schema.json:146-155` allOf if/then) は両方を同時に持つことを禁止しているが、
+  // 旧 writeScreenEntity は常に designFileRef を付加しており、Puck screen で schema violation を
+  // 引き起こしていた (#1185 提案 D 違反)。
+  //
+  // 判定: current.design.editorKind === "puck" の場合は puckDataRef のみ、grapesjs (or 省略) は
+  // designFileRef のみを設定する。他 design field (cssFramework / thumbnailRef 等) は preserve する。
+  const currentDesign = isRecord(current.design) ? current.design : {};
+  const editorKind = typeof currentDesign.editorKind === "string" ? currentDesign.editorKind : null;
+  const designOut: Record<string, unknown> = { ...currentDesign };
+  if (editorKind === "puck") {
+    // puck: puckDataRef のみ。designFileRef を明示的に除去 (上書きから残らないように)。
+    delete designOut.designFileRef;
+    designOut.puckDataRef = "puck-data.json";
+  } else {
+    // grapesjs (default) or 未指定: designFileRef のみ。puckDataRef を明示的に除去。
+    delete designOut.puckDataRef;
+    designOut.designFileRef = `${screenId}.design.json`;
+  }
   const toSave: Record<string, unknown> = {
     ...buildDefaultScreenEntity(screenId, entry, [], dataRoot),
     ...current,
@@ -919,10 +939,7 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
     kind: typeof current.kind === "string" ? current.kind : (typeof entry?.kind === "string" ? entry.kind : "other"),
     path: typeof current.path === "string" ? current.path : (typeof entry?.path === "string" ? entry.path : ""),
     updatedAt: new Date().toISOString(),
-    design: {
-      ...(isRecord(current.design) ? current.design : {}),
-      designFileRef: `${screenId}.design.json`,
-    },
+    design: designOut,
   };
   // #1294 I-2: uuid preserve / 採番 (entity meta)
   await preserveOrAssignUuid("screen", toSave, path.join(screensDir(dataRoot), `${screenId}.json`));

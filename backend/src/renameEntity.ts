@@ -108,14 +108,30 @@ export interface PreviewResult {
   concurrentEditRefs: Array<{ entityKind: string; entityId: string; sessionId: string }>;
   /**
    * Phase H N-2 (Opus round 2 独立レビュー): rename を block せず通せるが設計者へ通知すべき
-   * 状況のメッセージ列。例:
-   * - screen-flow-positions / er-layout の positions に oldId と newId が同時存在する stale data
-   *   (silent skip するため orphan として残る可能性)
+   * 状況のメッセージ列。execute はこれを理由に block しない (情報通知のみ)。
    *
-   * UI は本配列を warning として preview / 実行後 toast に表示し、設計者が手動で stale data
-   * を解消する判断材料とする。execute はこれを理由に block しない (情報通知のみ)。
+   * 例:
+   * - その他の非 fatal な scan warning (将来追加余地)
+   *
+   * Phase I round 3+4 で `screen-flow-positions` / `er-layout` の positions oldId+newId
+   * 同時存在は blocker に格上げ (`positionsCollisions` 専用 field、execute throw)。
+   * 旧 `warnings` 経路に乗せていた positions collision メッセージは `positionsCollisions`
+   * に分離されたため、本配列には現状他の通知のみが入る (将来拡張用)。
+   *
+   * UI は本配列を warning として preview / 実行後 toast に表示する。
    */
   warnings: string[];
+  /**
+   * Phase I round 3+4 Must-fix D (3 AI 全員指摘): positions KEY (object key) に oldId と
+   * newId が同時存在する場合、旧実装は KEY 移行を skip して warning 扱いで rename 成功させ
+   * ていた。これは screen-flow-positions / er-layout で本来移行すべき座標 entry を orphan
+   * 化させる data corruption リスクのため、blocker に格上げする。
+   *
+   * 空配列なら通常実行可。空でない場合は rename を block (execute 側で throw、UI dialog
+   * で execute button disable + error 表示)。設計者は先に stale な positions entry を
+   * 手動で除去してから rename を再実行する必要がある。
+   */
+  positionsCollisions: string[];
 }
 
 export interface RenameOperation {
@@ -615,6 +631,17 @@ async function planFileRenames(
       plans.push({ from: designFrom, to: path.join(dir, `${newId}.design.json`) });
     }
   }
+  // Phase I round 3+4 Must-fix F (Codex round 4 M-5): Puck screen は payload を
+  // `screens/<screenId>/puck-data.json` (subdirectory) に持つ。旧実装はこれを rename plan に
+  // 含めず、Puck screen を rename すると payload が old directory に残り新 id から不可視になる
+  // (data corruption)。schema 上 editorKind は固定なので screen entity の editorKind を判定して
+  // 該当 case のみ追加する。
+  if (entityType === "screen") {
+    const puckFrom = path.join(dir, oldId, "puck-data.json");
+    if (await fileExists(puckFrom)) {
+      plans.push({ from: puckFrom, to: path.join(dir, newId, "puck-data.json") });
+    }
+  }
   return plans;
 }
 
@@ -630,6 +657,12 @@ interface RefScanResult {
    * preview / 実行を block しないが、設計者へ通知すべき情報。
    */
   warnings: string[];
+  /**
+   * Phase I round 3+4 Must-fix D: positions oldId+newId 同時存在 (blocker)。
+   * scanAllRefs 側で specialized handler (rewriteScreenFlowPositionsKeys /
+   * rewriteErLayoutPositionsKeys) から onCollision callback 経由で集積。
+   */
+  positionsCollisions: string[];
 }
 
 interface RefSourceFile {
@@ -769,12 +802,57 @@ async function scanAllRefs(
     });
   }
 
+  // 10. generic-definitions/<kind>/*.json (Phase I round 3+4 Must-fix E、Antigravity M-6)
+  //     `relations[].ref` に top-level entity への path 形式 ref が記述される (例:
+  //     "tables/transactions", "screens/dashboard", "process-flows/createTransaction" 等)。
+  //     rename 時にこれを更新しないと orphan ref が永続化されるため、ここで scan source に含める。
+  //     generic-definitions 自体の rename は I-6 scope 外 (top-level 7 entity rename のみ)。
+  const gdDir = path.join(dataRoot, "generic-definitions");
+  try {
+    const kindDirs = await fs.readdir(gdDir, { withFileTypes: true });
+    for (const kindEntry of kindDirs) {
+      if (!kindEntry.isDirectory()) continue;
+      const kind = kindEntry.name;
+      const kindAbs = path.join(gdDir, kind);
+      let files: string[];
+      try {
+        files = await fs.readdir(kindAbs);
+      } catch {
+        continue;
+      }
+      for (const f of files) {
+        if (!f.endsWith(".json")) continue;
+        const absPath = path.join(kindAbs, f);
+        let data: unknown = null;
+        try {
+          const content = await fs.readFile(absPath, "utf-8");
+          data = JSON.parse(content);
+        } catch {
+          continue; // 壊れた JSON は skip
+        }
+        if (!data || typeof data !== "object") continue;
+        const name = f.replace(/\.json$/, "");
+        sources.push({
+          entityKind: "genericDefinition",
+          entityId: `${kind}/${name}`,
+          absPath,
+          data,
+        });
+      }
+    }
+  } catch {
+    // generic-definitions/ 不在は通常 case (workspace 初期化直後等) — 例外で 0 source 化のみ
+  }
+
   // ── walk + update plan 作成 ────────────────────────────────
   const locations: RefLocation[] = [];
   const perFileUpdate = new Map<string, { original: string; updated: string; updatedData: unknown }>();
-  // Phase H N-2 (Opus round 2): scan 中の非 fatal な異常 (positions silent skip 等) を集積。
+  // Phase H N-2 (Opus round 2): scan 中の非 fatal な異常を集積。
   const warnings: string[] = [];
   const onScanWarn = (msg: string) => warnings.push(msg);
+  // Phase I round 3+4 Must-fix D: positions oldId+newId 同時存在は blocker として別 channel に分離。
+  const positionsCollisions: string[] = [];
+  const onCollision = (msg: string) => positionsCollisions.push(msg);
 
   for (const src of sources) {
     // Phase F M-4 (Codex 独立レビュー): 旧実装は rename 対象 entity 自身を ref scan から常に
@@ -815,8 +893,9 @@ async function scanAllRefs(
       });
     };
     if (src.entityKind === "screenFlowPositions" && entityType === "screen") {
+      // Phase I round 3+4 Must-fix D: positions collision は blocker channel に分離
       specializedUpdated = rewriteScreenFlowPositionsKeys(
-        src.data, oldId, newId, onSpecialMatch, onScanWarn,
+        src.data, oldId, newId, onSpecialMatch, onCollision,
       );
     } else if (src.entityKind === "project") {
       specializedUpdated = rewriteHarmonyEntitiesId(
@@ -825,10 +904,19 @@ async function scanAllRefs(
     } else if (src.entityKind === "erLayout" && entityType === "table") {
       // Phase F M-2: er-layout.json の positions[oldId] (object KEY) を新 id に migrate。
       // logicalRelations[].sourceTableId/targetTableId は SCALAR_REF_FIELDS で拾われる。
+      // Phase I round 3+4 Must-fix D: positions collision は blocker channel に分離
       specializedUpdated = rewriteErLayoutPositionsKeys(
-        src.data, oldId, newId, onSpecialMatch, onScanWarn,
+        src.data, oldId, newId, onSpecialMatch, onCollision,
       );
     }
+    // Phase I round 3+4 Must-fix E (Antigravity M-6): generic-definitions の path 形式 ref も走査
+    if (src.entityKind === "genericDefinition") {
+      specializedUpdated = rewriteGenericDefinitionPathRefs(
+        specializedUpdated, entityType, oldId, newId, onSpecialMatch,
+      );
+    }
+    // onScanWarn は将来の非 fatal warning 拡張余地のため引き続き保持 (現状未使用)
+    void onScanWarn;
 
     // 汎用 walker (scalar / composite ref VALUE 一致 + array / map value)
     let hitCount = 0;
@@ -860,7 +948,7 @@ async function scanAllRefs(
     }
   }
 
-  return { locations, perFileUpdate, warnings };
+  return { locations, perFileUpdate, warnings, positionsCollisions };
 }
 
 // ── specialized handlers (M-4): KEY / entry self-id ─────────────────────────
@@ -929,7 +1017,7 @@ function rewriteScreenFlowPositionsKeys(
   oldId: string,
   newId: string,
   onMatch: (jsonPointer: string) => void,
-  onWarn?: (message: string) => void,
+  onCollision?: (message: string) => void,
 ): unknown {
   if (!data || typeof data !== "object") return data;
   const obj = data as Record<string, unknown>;
@@ -940,12 +1028,12 @@ function rewriteScreenFlowPositionsKeys(
   // newId 既存衝突は preview の uniqueOk で検出済 (同 entity 内 unique 保証)
   // ただし screen-flow-positions は ScreenGroup id も同 propertyNames に並ぶため、念のため検査
   if (newId in p) {
-    // 既に存在 — overwrite せず skip (rename 対象 entity uniqueness とは別の同名 group の可能性
-    // / stale data の異常状態)。Phase H N-2 (Opus round 2): silent skip では orphan として残る
-    // 可能性があるため warning として通知する。
-    onWarn?.(
+    // 既に存在 — Phase I round 3+4 Must-fix D: 旧実装は silent skip + warning だったが、
+    // 当該 entry の座標が orphan 化する data corruption リスクを優先し blocker に格上げ。
+    // 設計者は先に stale entry を手動で除去してから rename 再実行する責務を負う。
+    onCollision?.(
       `screen-flow-positions.json: positions に旧 id "${oldId}" と新 id "${newId}" が同時存在 — ` +
-      `KEY 移行を skip しました (stale data の可能性。手動で旧 entry 削除を検討してください)`,
+      `KEY 衝突。先に stale entry "${oldId}" または "${newId}" を手動で削除してください。`,
     );
     return data;
   }
@@ -966,7 +1054,7 @@ function rewriteErLayoutPositionsKeys(
   oldId: string,
   newId: string,
   onMatch: (jsonPointer: string) => void,
-  onWarn?: (message: string) => void,
+  onCollision?: (message: string) => void,
 ): unknown {
   if (!data || typeof data !== "object") return data;
   const obj = data as Record<string, unknown>;
@@ -975,17 +1063,62 @@ function rewriteErLayoutPositionsKeys(
   const p = positions as Record<string, unknown>;
   if (!(oldId in p)) return data;
   if (newId in p) {
-    // 既に新 id が存在 — preview の uniqueOk で衝突検出される想定のため、ここは skip。
-    // Phase H N-2 (Opus round 2): stale data 状態を warning として通知 (silent skip 解消)。
-    onWarn?.(
+    // Phase I round 3+4 Must-fix D: 旧実装は silent skip + warning だったが、blocker に格上げ。
+    // 当該 entry の座標が orphan 化する data corruption リスクを優先する。
+    onCollision?.(
       `er-layout.json: positions に旧 id "${oldId}" と新 id "${newId}" が同時存在 — ` +
-      `KEY 移行を skip しました (stale data の可能性。手動で旧 entry 削除を検討してください)`,
+      `KEY 衝突。先に stale entry "${oldId}" または "${newId}" を手動で削除してください。`,
     );
     return data;
   }
   onMatch(`/positions/${escapeJsonPointerToken(oldId)}`);
   const { [oldId]: moved, ...rest } = p;
   return { ...obj, positions: { ...rest, [newId]: moved } };
+}
+
+/**
+ * Phase I round 3+4 Must-fix E (Antigravity M-6): generic-definitions の `ref` field 内に
+ * 記述される top-level entity への path 形式参照 (例: "tables/transactions",
+ * "screens/dashboard") を rename target に合わせて更新する。
+ *
+ * 対応形式: `<entity-primary-dir>/<oldId>` のみ (exact match)。
+ * generic-definitions 内の `generic-definitions/<kind>/<name>` 形式自己参照は
+ * top-level 7 entity rename の対象外なので touch しない (本 ISSUE は top-level entity 限定)。
+ *
+ * walker は再帰的に object を走査し、key === "ref" かつ value === expected path string の
+ * 場合のみ置換する。複合 ref (object 内 sub-ref 等) や別 field 名は touch しない。
+ */
+function rewriteGenericDefinitionPathRefs(
+  data: unknown,
+  entityType: RenameEntityType,
+  oldId: string,
+  newId: string,
+  onMatch: (jsonPointer: string) => void,
+): unknown {
+  const dir = ENTITY_PRIMARY_DIR[entityType];
+  const oldRef = `${dir}/${oldId}`;
+  const newRef = `${dir}/${newId}`;
+
+  function walk(node: unknown, pointer: string): unknown {
+    if (node === null || node === undefined || typeof node !== "object") return node;
+    if (Array.isArray(node)) {
+      return node.map((v, i) => walk(v, `${pointer}/${i}`));
+    }
+    const obj = node as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(obj)) {
+      const childPointer = `${pointer}/${escapeJsonPointerToken(key)}`;
+      if (key === "ref" && typeof v === "string" && v === oldRef) {
+        onMatch(childPointer);
+        out[key] = newRef;
+        continue;
+      }
+      out[key] = walk(v, childPointer);
+    }
+    return out;
+  }
+
+  return walk(data, "");
 }
 
 // ── Phase G M-1 (Codex round 2): cross-type ambiguous dependency 検出 ─────────
@@ -1091,13 +1224,22 @@ async function detectConcurrentEditRefs(
   const result: Array<{ entityKind: string; entityId: string; sessionId: string }> = [];
 
   // perFileUpdate の (entityKind, entityId) を一意化 (同一 file が複数 location を持つため)
+  //
+  // Phase I round 3+4 Must-fix B (3 AI 全員指摘): 旧実装は project / screenFlowPositions /
+  // erLayout を「EditSession 非対象」として skip していたが、FlowEditor (project +
+  // screenFlowPositions を 1 つの flow/singleton session で扱う) と ErDiagram
+  // (er-layout/singleton session) が実際に singleton EditSession を持っており、
+  // rename で書き換える file 群と 1:1 で紐付く。skip すると Flow/ER editor active 中の
+  // Screen/Table rename が block されず、後続 save で巻き戻る orphan を生む。
+  //
+  // 本 phase で fetcher 側 (wsHandlers/refactor.ts: makeFetchEditSessionsForRef) が
+  // (project / screenFlowPositions / erLayout) → flow/singleton or er-layout/singleton に
+  // 変換するため、ここでは skip を解除して candidates に積む。
   const seenKeys = new Set<string>();
   const candidates: Array<{ entityKind: string; entityId: string }> = [];
   for (const loc of refScan.locations) {
     // 主 entity 自身は呼出元 lock check で別途検査済 → skip
     if (loc.entityKind === entityType && loc.entityId === oldId) continue;
-    // 副次 file (EditSession 非対象) → skip
-    if (loc.entityKind === "project" || loc.entityKind === "screenFlowPositions" || loc.entityKind === "erLayout") continue;
     const key = `${loc.entityKind}:${loc.entityId}`;
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
@@ -1146,6 +1288,7 @@ export async function previewEntityRename(
       uniqueOk: true, oldExists: true, lockedByOther: false,
       fileRenames: [], refUpdates: [], totalRefs: 0,
       ambiguousDependencies: [], concurrentEditRefs: [], warnings: [],
+      positionsCollisions: [],
     };
   }
 
@@ -1180,6 +1323,7 @@ export async function previewEntityRename(
     ambiguousDependencies,
     concurrentEditRefs,
     warnings: refScan.warnings,
+    positionsCollisions: refScan.positionsCollisions,
   };
 }
 
@@ -1246,6 +1390,17 @@ export async function renameEntityId(
     throw new Error(`${entityType} "${oldId}" の物理ファイルが見つかりません`);
   }
   const refScan = await scanAllRefs(entityType, oldId, newId, root);
+
+  // Phase I round 3+4 Must-fix D: positions oldId+newId 同時存在は blocker。
+  // screen-flow-positions / er-layout の座標 entry を migrate せず stale 残しで rename
+  // 成功させていた旧 silent skip 経路を、execute throw に格上げする。
+  if (refScan.positionsCollisions.length > 0) {
+    throw new Error(
+      `${entityType} "${oldId}" の rename は positions key 衝突のため block されました:\n` +
+      refScan.positionsCollisions.map((m) => `  - ${m}`).join("\n") + "\n" +
+      `先に当該 positions entry を手動で除去してから rename を再実行してください。`,
+    );
+  }
 
   // Phase G M-4 (Codex round 2): 参照側 entity に active Edit session があれば block
   // (rename は committed file を直接 write するため、別 session の draft 保持 → 後続 save で
@@ -1324,6 +1479,15 @@ export async function renameEntityId(
         await writeFileContent(newDesignAbs, oldDesignContent);
         writtenFiles.push(newDesignAbs);
       }
+      // Phase I round 3+4 Must-fix F: Puck payload (`screens/<id>/puck-data.json`)
+      // も raw copy で新 directory に複製する。writeScreenEntity は puck-data には touch しない。
+      const oldPuckAbs = path.join(dataRoot, "screens", oldId, "puck-data.json");
+      const newPuckAbs = path.join(dataRoot, "screens", newId, "puck-data.json");
+      const oldPuckContent = await readFileContentOrNull(oldPuckAbs);
+      if (oldPuckContent !== null) {
+        await writeFileContent(newPuckAbs, oldPuckContent);
+        writtenFiles.push(newPuckAbs);
+      }
     } else if (entityType === "pageLayout") {
       const oldDesignAbs = path.join(dataRoot, "page-layouts", `${oldId}.design.json`);
       const newDesignAbs = path.join(dataRoot, "page-layouts", `${newId}.design.json`);
@@ -1354,8 +1518,15 @@ export async function renameEntityId(
       await strictUnlink(plan.from);
     }
     // screen / pageLayout の旧 design.json も削除 (存在すれば)
+    // 注: 旧 Puck payload (`screens/<oldId>/puck-data.json`) は planFileRenames に含まれている
+    // ため上の `strictUnlink(plan.from)` loop で削除済。ここでは追加で空 directory 化された
+    // `screens/<oldId>/` を rmdir で掃除する (best effort)。
     if (entityType === "screen") {
       await strictUnlink(path.join(dataRoot, "screens", `${oldId}.design.json`));
+      // Phase I round 3+4 Must-fix F: Puck payload の親 directory が空ならまとめて掃除
+      try {
+        await fs.rmdir(path.join(dataRoot, "screens", oldId));
+      } catch { /* directory が空でない、もしくは存在しない: ignore */ }
     } else if (entityType === "pageLayout") {
       await strictUnlink(path.join(dataRoot, "page-layouts", `${oldId}.design.json`));
     }
@@ -1388,8 +1559,10 @@ export async function renameEntityId(
     // Phase G M-1/M-4: execute まで来た = ambiguous も concurrent もなかった
     ambiguousDependencies: [],
     concurrentEditRefs: [],
-    // Phase H N-2: scan warnings (positions silent skip 等) は実行成功後も UI に伝達
+    // Phase H N-2: scan warnings (将来拡張用) は実行成功後も UI に伝達
     warnings: refScan.warnings,
+    // Phase I round 3+4 Must-fix D: 実行成功時は positions 衝突なし (throw されているはず)
+    positionsCollisions: [],
   };
 
   // ── snapshot に design.json も含めて undo を完備 ──
@@ -1440,17 +1613,58 @@ export async function undoEntityRename(
   //   - error を throw する。
   // これにより undo は「成功なら完全 revert、失敗なら byte-identical な rename 完了状態」の
   // 2 状態しか取りえない (atomic)。
+  //
+  // Phase I round 3+4 Must-fix C (3 AI 全員指摘): 旧実装は (1) rename 後に行われた正当な編集を
+  // 無条件に破棄、(2) rollback も `op` の rename-time bytes (`r.newContent`) で復元するため
+  // 直前まで存在していた事後編集を失う、という 2 つの atomic 違反があった。
+  //
+  // 対策:
+  //   (a) undo 開始前に全対象 file の現在 content を read し、`op` snapshot の rename 直後 bytes
+  //       (refUpdates の newContent / fileRenames の new path 期待値) と比較する。
+  //   (b) 差分があれば「rename 後に編集されたファイルがあります — 手動 merge してください」と
+  //       throw して undo を block (op を再 push して再 undo 可能に保つ)。
+  //   (c) rollback には rename-time bytes ではなく **undo 開始時に snapshot した現在 bytes** を
+  //       使う。これにより undo 失敗時にも事後編集を失わない。
 
-  // 復元前 snapshot: undo 失敗時の rollback (= rename 完了状態に戻す) 用
-  const newSnapshots: Array<{ absPath: string; newContent: string }> = op.refUpdates.map((r) => ({
-    absPath: path.join(dataRoot, r.filePath),
-    newContent: r.newContent,
-  }));
-  // 主ファイル new path の content も undo 失敗時 rollback 用に事前 read (delete 前の bytes 保持)
-  const newPathContents: Array<{ absPath: string; content: string | null }> = [];
+  // (i) undo 開始時の現在 content snapshot (rollback 用、user の事後編集も保持される)
+  const currentRefContents: Array<{ absPath: string; content: string | null }> = [];
+  for (const r of op.refUpdates) {
+    const absPath = path.join(dataRoot, r.filePath);
+    currentRefContents.push({ absPath, content: await readFileContentOrNull(absPath) });
+  }
+  const currentNewPathContents: Array<{ absPath: string; content: string | null }> = [];
   for (const f of op.fileRenames) {
     const toAbs = path.join(dataRoot, f.to);
-    newPathContents.push({ absPath: toAbs, content: await readFileContentOrNull(toAbs) });
+    currentNewPathContents.push({ absPath: toAbs, content: await readFileContentOrNull(toAbs) });
+  }
+
+  // (ii) 事後編集検出: rename-time bytes と current bytes を比較
+  const editedFiles: string[] = [];
+  for (let i = 0; i < op.refUpdates.length; i++) {
+    const expected = op.refUpdates[i].newContent;
+    const actual = currentRefContents[i].content;
+    // 不在 (= 削除済 = drift)、もしくは bytes 差分 = post-update edit
+    if (actual === null || actual !== expected) {
+      editedFiles.push(op.refUpdates[i].filePath);
+    }
+  }
+  // 主ファイル new path も検査 (newContent の期待値は writeEntityById 経由で書かれた内容なので
+  // 厳密 byte 一致は難しい — annotateValidationWarnings 等の副作用がある。
+  // ここでは「new path file が存在するか」のみ最低限の検査とする。
+  // ref 側のみ厳密検査することで「rename 後に新 id 側を編集 → undo block」をカバーする)
+  for (let i = 0; i < op.fileRenames.length; i++) {
+    if (currentNewPathContents[i].content === null) {
+      editedFiles.push(`${op.fileRenames[i].to} (存在しません)`);
+    }
+  }
+  if (editedFiles.length > 0) {
+    // op を再 push して再試行可能に保ち、user 確認後の undo を許す
+    pushUndo(root, op);
+    throw new Error(
+      `Undo を block しました: rename 後に編集された (または削除された) file があります。\n` +
+      editedFiles.map((f) => `  - ${f}`).join("\n") + "\n" +
+      `先に当該 file の編集内容を確認し、必要なら手動で merge してから再度 undo してください。`,
+    );
   }
 
   const restoredAbsRefPaths: string[] = []; // 既に書戻した ref 側 abs path
@@ -1476,18 +1690,27 @@ export async function undoEntityRename(
       restored++;
     }
   } catch (err) {
-    // undo rollback: rename 完了状態 (newContent / new path) に byte-identical 復元
-    // (1) 書戻した ref 側 を newContent で再上書き (snapshot 配列を逆順、index 一致で安全)
-    for (const ns of newSnapshots) {
-      if (!restoredAbsRefPaths.includes(ns.absPath)) continue;
-      try { await writeFileContent(ns.absPath, ns.newContent); } catch { /* best effort */ }
+    // undo rollback: rename 完了状態 (= undo 開始時の現在 bytes) に復元。
+    //
+    // Phase I round 3+4 Must-fix C: 旧実装は rename-time `r.newContent` で復元していたため
+    // 「rename → user edit → undo (失敗)」シナリオで user edit が消失していた。
+    // 本 phase で rollback も undo 開始時 snapshot (currentRefContents / currentNewPathContents)
+    // を使うように修正。事後編集 detection を通過した時点で current = newContent のはずなので
+    // 機能的には同じ bytes だが、検出を回避できる corner case (file 削除等) でも正しい。
+    //
+    // (1) 書戻した ref 側 を undo 開始時 bytes で再上書き
+    for (let i = 0; i < op.refUpdates.length; i++) {
+      const cur = currentRefContents[i];
+      if (!restoredAbsRefPaths.includes(cur.absPath)) continue;
+      if (cur.content === null) continue; // 元々不在ならそのまま (skip)
+      try { await writeFileContent(cur.absPath, cur.content); } catch { /* best effort */ }
     }
     // (2) restore した old path を削除 (= 元の rename 完了時は不在)
     for (const absPath of restoredOldFromPaths) {
       try { await fs.unlink(absPath); } catch { /* best effort */ }
     }
-    // (3) new path content を復元 (delete 前 bytes が残っていれば書戻し)
-    for (const npc of newPathContents) {
+    // (3) new path content を undo 開始時 bytes で復元 (delete 前)
+    for (const npc of currentNewPathContents) {
       if (npc.content === null) continue;
       try { await writeFileContent(npc.absPath, npc.content); } catch { /* best effort */ }
     }

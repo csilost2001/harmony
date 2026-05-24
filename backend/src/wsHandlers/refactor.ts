@@ -39,6 +39,11 @@ function assertEntityType(t: unknown, label: string): RenameEntityType {
 /**
  * lock check 用 EditSession 一覧を bridge から取得 (wsId 必須)。
  * wsId が null (workspace 未選択) なら空配列 (rename 自体が走らないが defensive)。
+ *
+ * Phase I round 3+4 Must-fix G (Codex round 4 M-6): Screen rename 時は
+ * `screen` / `screen-item` / `puck-data` の 3 種を集約して返す。
+ * (旧実装は primary entity type 1 種のみ問い合わせていたため、ScreenItemsView /
+ * Puck Designer の active session が lock check を素通りしていた。)
  */
 function fetchEditSessions(
   bridge: WsBridge,
@@ -47,8 +52,14 @@ function fetchEditSessions(
   oldId: string,
 ): ReadonlyArray<EditSessionLike> {
   if (!wsId) return [];
-  const resourceType = entityTypeToResourceType(entityType) as EditSessionResourceType;
-  return bridge.editSessionListByResource(wsId, resourceType, oldId);
+  // entityTypeToResourceType の存在は import 互換性のため保持 (他箇所で使用される)
+  void entityTypeToResourceType;
+  const resourceTypes = PRIMARY_RESOURCE_TYPES_BY_ENTITY[entityType];
+  const all: EditSessionLike[] = [];
+  for (const rt of resourceTypes) {
+    all.push(...bridge.editSessionListByResource(wsId, rt, oldId));
+  }
+  return all;
 }
 
 /**
@@ -56,6 +67,12 @@ function fetchEditSessions(
  * "viewDefinition", "pageLayout") を DraftResourceType (kebab-case: "process-flow",
  * "view-definition", "page-layout") に変換する map。renameEntity の RenameEntityType と
  * 同一値の場合は同名で OK (table / screen / view / sequence)。
+ *
+ * Phase I round 3+4 Must-fix B (3 AI 全員指摘): singleton EditSession を持つ副次 file
+ * (project / screenFlowPositions → flow/singleton、erLayout → er-layout/singleton) も
+ * rename で直接書き換える file 群なので lock check 対象に含める。これらは entityId が
+ * singleton 1 件固定のため、本 map では `<resourceType>:singleton` の形式で扱い、
+ * fetch 時に entityId を "singleton" 固定で問い合わせる (下記 makeFetchEditSessionsForRef)。
  */
 const INTERNAL_KIND_TO_RESOURCE_TYPE: Record<string, EditSessionResourceType> = {
   screen: "screen",
@@ -68,12 +85,36 @@ const INTERNAL_KIND_TO_RESOURCE_TYPE: Record<string, EditSessionResourceType> = 
 };
 
 /**
+ * Phase I round 3+4 Must-fix B: singleton EditSession を持つ副次 file の resourceType mapping。
+ * renameEntity 側 scan source の entityKind (project / screenFlowPositions / erLayout) を
+ * DraftResourceType の singleton resource に変換する。
+ *
+ * 対応関係 (実装根拠):
+ * - project / screenFlowPositions → flow/singleton (FlowEditor: `harmony.json` +
+ *   `screen-flow-positions.json` を 1 つの flow draft で扱う)
+ * - erLayout → er-layout/singleton (ErDiagram: `er-layout.json` 専用 singleton)
+ *
+ * これらの session が active Edit 中に Screen/Table rename が走ると、後続の FlowEditor /
+ * ErDiagram の save (`harmony.json` / `er-layout.json` を full overwrite) で rename 済の
+ * 内容を旧 id 含む snapshot で巻き戻し、orphan を生成するため block 対象とする。
+ */
+const INTERNAL_KIND_TO_SINGLETON_RESOURCE_TYPE: Record<string, EditSessionResourceType> = {
+  project: "flow",
+  screenFlowPositions: "flow",
+  erLayout: "er-layout",
+};
+const SINGLETON_RESOURCE_ID = "singleton";
+
+/**
  * Phase G M-4 (Codex round 2): rename が ref scan で書き換える参照側 entity に対し
  * active EditSession 一覧を返す callback を生成する。
  *
  * renameEntity 側は (entityKind, entityId) を呼出 — entityKind は internal camelCase 表記。
  * bridge.editSessionListByResource は DraftResourceType (kebab-case) を要求するため、
  * 本 callback で変換 + workspace 解決を行う。
+ *
+ * Phase I round 3+4 Must-fix B: 副次 file (project / screenFlowPositions / erLayout) も
+ * singleton EditSession として lock check 対象に含める。
  */
 function makeFetchEditSessionsForRef(
   bridge: WsBridge,
@@ -81,11 +122,42 @@ function makeFetchEditSessionsForRef(
 ): (entityKind: string, entityId: string) => ReadonlyArray<EditSessionLike> {
   return (entityKind: string, entityId: string) => {
     if (!wsId) return [];
+    // 通常 entity (Table/Screen/ProcessFlow 等): entityId を直接使用
     const resourceType = INTERNAL_KIND_TO_RESOURCE_TYPE[entityKind];
-    if (!resourceType) return []; // 未知 kind (project / screenFlowPositions / erLayout 等) は EditSession 非対象
-    return bridge.editSessionListByResource(wsId, resourceType, entityId);
+    if (resourceType) {
+      return bridge.editSessionListByResource(wsId, resourceType, entityId);
+    }
+    // 副次 file (project/screenFlowPositions/erLayout): singleton EditSession を引く
+    const singletonRT = INTERNAL_KIND_TO_SINGLETON_RESOURCE_TYPE[entityKind];
+    if (singletonRT) {
+      return bridge.editSessionListByResource(wsId, singletonRT, SINGLETON_RESOURCE_ID);
+    }
+    return []; // 未知 kind (defensive)
   };
 }
+
+/**
+ * Phase I round 3+4 Must-fix G (Codex round 4 M-6): Screen rename 時の primary lock 対象を
+ * `screen` 単独から `screen` + `screen-item` + `puck-data` の 3 種に拡張する。
+ *
+ * 理由: ScreenItemsView は `screen-item/<screenId>` session で編集し、保存時に
+ * `writeScreenItems()` → `writeScreenEntity(screenId, ...)` で同じ `screens/<id>.json` を
+ * 更新する。Puck Designer も `puck-data/<screenId>` session を使用し、`puck-data.json` を
+ * 同 directory に書く。Screen rename 中にこれら auxiliary editor が active のままだと、
+ * rename 後の save で old ID の screen / payload を再作成して orphan を生む。
+ *
+ * 主 entity 種別ごとに「同じ disk file を競合的に書く resource type 群」を返す。
+ * Table 等 auxiliary session を持たない entity は 1 件のみ返す (= 既存挙動互換)。
+ */
+const PRIMARY_RESOURCE_TYPES_BY_ENTITY: Record<RenameEntityType, EditSessionResourceType[]> = {
+  screen: ["screen", "screen-item", "puck-data"],
+  table: ["table"],
+  processFlow: ["process-flow"],
+  sequence: ["sequence"],
+  view: ["view"],
+  viewDefinition: ["view-definition"],
+  pageLayout: ["page-layout"],
+};
 
 export const refactorHandlers: RpcHandlerMap = {
   previewEntityRename: async ({ params, root, wsId, clientId, respond, respondError, bridge }) => {
@@ -128,11 +200,30 @@ export const refactorHandlers: RpcHandlerMap = {
 
       // broadcast: entityType 別 changed + 7 種 reload (UI cache 無効化)
       // S-2 (Opus 独立レビュー): rename / undo で同じ 7 種を broadcast (cache 不整合防止)
+      //
+      // Phase I round 3+4 Must-fix A (Opus M-1 / Codex M-7 / Antigravity M-1):
+      // primary entity changed event の payload に `reload: true` を追加する。
+      // 旧実装は `{oldId, newId, renamed: true}` のみで、useResourceEditor 側の
+      // id filter (`d[broadcastIdField] !== id` で reject) を通過できず、別 tab
+      // で primary entity (oldId 含む同名) を開いている editor が stale cache のまま
+      // 残り、後続 save で silent data corruption する経路があった。
+      // `reload: true` 付与により id filter より前の早期分岐で hit するため、
+      // 全 receiver が確実に invalidation を受ける。
+      //
+      // Phase I round 3+4 Must-fix A (Opus M-1 / Codex M-2 / Antigravity M-2):
+      // primary broadcast から `excludeClientId` を外す。
+      // 理由: 同一 browser 内の別 tab で参照側 editor を開いていると、rename を
+      // 実行した origin client にも invalidation を届ける必要がある。origin の
+      // 主 entity tab は handleRenameSuccess (closeTab + navigate) で URL/tab を
+      // 差し替えるが、参照側 (ProcessFlow が Table を参照、等) は別 tab で開いて
+      // いるため自前の cache 更新経路を持たない。excludeClientId を外して
+      // origin/non-origin 双方の参照側 editor が確実に reload するようにする。
+      // 主 entity 側 tab は handleRenameSuccess の navigate で旧 tab が close され
+      // 新 tab の reload event は新 id を持つ store cache が拾うため副作用なし。
       bridge.broadcast({
         wsId: wid,
         event: `${et}Changed`,
-        data: { oldId, newId, renamed: true },
-        excludeClientId: clientId,
+        data: { oldId, newId, renamed: true, reload: true },
       });
       // 参照側 entity の cache を全 broadcast で reload させる (7 種全件)
       const RELOAD_EVENTS = [
@@ -142,7 +233,9 @@ export const refactorHandlers: RpcHandlerMap = {
       for (const ev of RELOAD_EVENTS) {
         if (ev === `${et}Changed`) continue; // 自身の event は上で発行済
         bridge.broadcast({
-          wsId: wid, event: ev, data: { reload: true }, excludeClientId: clientId,
+          wsId: wid, event: ev, data: { reload: true },
+          // Phase I round 3+4 Must-fix A: origin client にも参照側 reload を届ける
+          // (excludeClientId を外す。primary broadcast と同じ理由)
         });
       }
     } catch (e) {

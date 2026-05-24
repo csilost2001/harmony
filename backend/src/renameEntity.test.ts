@@ -1449,12 +1449,13 @@ describe("renameEntityId — Phase G M-4: 参照側 entity の active Edit sessi
 });
 
 // ─────────────────────────────────────────────────────────────────────────
-// Phase H regression (Opus round 2 独立レビュー Nit / Should-fix 関連)
-//   H-N2: positions に oldId + newId 同時存在の silent skip を warning 化
+// Phase I round 3+4 Must-fix D (3 AI 全員指摘): positions に oldId + newId 同時存在を
+//   warning → **blocker** に格上げ。旧 Phase H N-2 の warning 経路は positionsCollisions
+//   に分離され、execute 時 throw される。
 // ─────────────────────────────────────────────────────────────────────────
 
-describe("renameEntityId — Phase H N-2: positions silent skip → warnings に通知", () => {
-  it("screen-flow-positions に oldId と newId が同時存在する場合、KEY 移行を skip しつつ warnings を返す", async () => {
+describe("renameEntityId — Phase I D: positions key 衝突は blocker (preview.positionsCollisions + execute throw)", () => {
+  it("screen-flow-positions に oldId と newId が同時存在 → preview.positionsCollisions が非空", async () => {
     const root = await makeWorkspace();
     await writeScreenEntity("home", { id: "home", kind: "page", path: "/", items: [] }, root);
 
@@ -1474,11 +1475,13 @@ describe("renameEntityId — Phase H N-2: positions silent skip → warnings に
 
     const preview = await previewEntityRename("screen", "home", "landing", root);
 
-    // warnings が非空 + メッセージに oldId/newId/screen-flow-positions が含まれる
-    expect(preview.warnings.length).toBeGreaterThan(0);
-    expect(preview.warnings[0]).toMatch(/screen-flow-positions/);
-    expect(preview.warnings[0]).toMatch(/"home"/);
-    expect(preview.warnings[0]).toMatch(/"landing"/);
+    // positionsCollisions が非空 + メッセージに oldId/newId/screen-flow-positions が含まれる
+    expect(preview.positionsCollisions.length).toBeGreaterThan(0);
+    expect(preview.positionsCollisions[0]).toMatch(/screen-flow-positions/);
+    expect(preview.positionsCollisions[0]).toMatch(/"home"/);
+    expect(preview.positionsCollisions[0]).toMatch(/"landing"/);
+    // warnings 配列には positions collision メッセージは含まれない (blocker に分離済)
+    expect(preview.warnings).toEqual([]);
 
     // refUpdates には positions の match が含まれない (skip された)
     const positionHits = preview.refUpdates.filter(
@@ -1487,7 +1490,7 @@ describe("renameEntityId — Phase H N-2: positions silent skip → warnings に
     expect(positionHits.length).toBe(0);
   });
 
-  it("er-layout.json で table rename 時に oldId と newId が同時存在 → warnings 返却 + skip", async () => {
+  it("er-layout.json で table rename 時に oldId と newId が同時存在 → preview.positionsCollisions 返却 + skip", async () => {
     const root = await makeWorkspace();
     await seedTable(root, "orders");
     await seedTable(root, "orders-v2");
@@ -1510,12 +1513,11 @@ describe("renameEntityId — Phase H N-2: positions silent skip → warnings に
     const preview = await previewEntityRename("table", "orders", "orders-v2", root);
 
     // 主 entity uniqueness 衝突は uniqueOk=false で別経路で検出されるため、本テストは
-    // warnings 経路だけを assert する (execute は uniqueness で reject されるが本 preview では
-    // warnings を返すこと自体を検証)。
-    expect(preview.warnings.length).toBeGreaterThan(0);
-    expect(preview.warnings[0]).toMatch(/er-layout/);
-    expect(preview.warnings[0]).toMatch(/"orders"/);
-    expect(preview.warnings[0]).toMatch(/"orders-v2"/);
+    // positionsCollisions 経路だけを assert する。
+    expect(preview.positionsCollisions.length).toBeGreaterThan(0);
+    expect(preview.positionsCollisions[0]).toMatch(/er-layout/);
+    expect(preview.positionsCollisions[0]).toMatch(/"orders"/);
+    expect(preview.positionsCollisions[0]).toMatch(/"orders-v2"/);
 
     // positions match は出ない (skip)
     const erPositionHits = preview.refUpdates.filter(
@@ -1524,7 +1526,7 @@ describe("renameEntityId — Phase H N-2: positions silent skip → warnings に
     expect(erPositionHits.length).toBe(0);
   });
 
-  it("通常 case (oldId のみ存在) は warnings 空", async () => {
+  it("通常 case (oldId のみ存在) は positionsCollisions 空", async () => {
     const root = await makeWorkspace();
     await writeScreenEntity("normal", { id: "normal", kind: "page", path: "/n", items: [] }, root);
 
@@ -1541,10 +1543,11 @@ describe("renameEntityId — Phase H N-2: positions silent skip → warnings に
     );
 
     const preview = await previewEntityRename("screen", "normal", "renamed", root);
+    expect(preview.positionsCollisions.length).toBe(0);
     expect(preview.warnings.length).toBe(0);
   });
 
-  it("renameEntityId 実行成功時も preview.warnings が伝搬される", async () => {
+  it("renameEntityId は positionsCollisions が非空なら throw する (execute blocker)", async () => {
     const root = await makeWorkspace();
     await writeScreenEntity("src", { id: "src", kind: "page", path: "/s", items: [] }, root);
 
@@ -1561,8 +1564,307 @@ describe("renameEntityId — Phase H N-2: positions silent skip → warnings に
       "utf-8",
     );
 
-    const { preview } = await renameEntityId("screen", "src", "dst", root);
-    expect(preview.warnings.length).toBeGreaterThan(0);
-    expect(preview.warnings[0]).toMatch(/screen-flow-positions/);
+    // execute は throw — 旧 silent success 経路を blocker に格上げ
+    await expect(renameEntityId("screen", "src", "dst", root)).rejects.toThrow(/positions key 衝突/);
+
+    // 主 entity ファイル状態は変化なし (block されたため)
+    await fs.access(dataPath(root, "screens", "src.json"));
+    await expect(fs.access(dataPath(root, "screens", "dst.json"))).rejects.toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase I round 3+4 Must-fix B (3 AI 全員指摘): Flow / ER singleton EditSession を
+//   detectConcurrentEditRefs から skip しない (rename ref scan が当該 file を touch する場合は
+//   block 対象)。
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase I B: singleton EditSession (flow/er-layout) も ref-side lock check", () => {
+  it("Screen rename で harmony.json を編集する場合、flow/singleton session を block 対象に含める", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("home", { id: "home", kind: "page", path: "/", items: [] }, root);
+
+    // harmony.json の entities.screens に home を追加 → ref scan が harmony.json を touch する
+    const harmony = JSON.parse(await fs.readFile(path.join(root, "harmony.json"), "utf-8")) as Record<string, unknown>;
+    (harmony.entities as Record<string, unknown>).screens = [{ id: "home", uuid: "00000000-0000-4000-8000-000000000001" }];
+    await fs.writeFile(path.join(root, "harmony.json"), JSON.stringify(harmony, null, 2), "utf-8");
+
+    // fetchEditSessionsForRef: project (= flow/singleton) に active Edit がある
+    const fetcher = (entityKind: string, entityId: string): ReadonlyArray<EditSessionLike> => {
+      if (entityKind === "project" && entityId === "harmony.json") {
+        return [{
+          state: "Active",
+          participants: new Map([
+            ["other-sess", { sessionId: "other-sess", role: "Edit" }],
+          ]),
+        }];
+      }
+      return [];
+    };
+
+    // preview は concurrentEditRefs に project を含む (skip されない)
+    const preview = await previewEntityRename("screen", "home", "renamed", root, {
+      sessionId: "self", fetchEditSessionsForRef: fetcher,
+    });
+    expect(preview.concurrentEditRefs.some((r) => r.entityKind === "project")).toBe(true);
+
+    // execute は throw
+    await expect(
+      renameEntityId("screen", "home", "renamed", root, {
+        sessionId: "self", fetchEditSessionsForRef: fetcher,
+      }),
+    ).rejects.toThrow(/参照側.*編集中/);
+  });
+
+  it("Table rename で er-layout.json を編集する場合、erLayout singleton session を block 対象に含める", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "accounts");
+
+    // er-layout.json seed: positions に accounts エントリ + logicalRelations
+    const erLayout = {
+      schemaVersion: "v3",
+      updatedAt: "2026-05-25T00:00:00.000Z",
+      positions: { "accounts": { x: 0, y: 0, width: 200, height: 100 } },
+    };
+    await fs.writeFile(erLayoutFile(path.join(root, "harmony")), JSON.stringify(erLayout, null, 2), "utf-8");
+
+    const fetcher = (entityKind: string, entityId: string): ReadonlyArray<EditSessionLike> => {
+      if (entityKind === "erLayout" && entityId === "er-layout.json") {
+        return [{
+          state: "Active",
+          participants: new Map([
+            ["er-sess", { sessionId: "er-sess", role: "Edit" }],
+          ]),
+        }];
+      }
+      return [];
+    };
+
+    const preview = await previewEntityRename("table", "accounts", "accounts-v2", root, {
+      sessionId: "self", fetchEditSessionsForRef: fetcher,
+    });
+    expect(preview.concurrentEditRefs.some((r) => r.entityKind === "erLayout")).toBe(true);
+
+    await expect(
+      renameEntityId("table", "accounts", "accounts-v2", root, {
+        sessionId: "self", fetchEditSessionsForRef: fetcher,
+      }),
+    ).rejects.toThrow(/参照側.*編集中/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase I round 3+4 Must-fix C (3 AI 全員指摘): undo は rename 後の事後編集を破棄しない
+//   (block + 再 undo 可能) + rollback も undo 開始時 bytes で復元する
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase I C: undo post-update detection + rollback uses current bytes", () => {
+  it("rename → ref 側 file を編集 → undo は block + 再 undo 可能", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "src-tbl");
+    await seedProcessFlow(root, "ref-pf", { steps: [{ tableId: "src-tbl" }] });
+
+    // rename 実行
+    const { operation } = await renameEntityId("table", "src-tbl", "renamed-tbl", root);
+
+    // rename 後の ref file (process-flow) を編集 (新 tableId は維持しつつ追加 step を入れる)
+    const pfPath = dataPath(root, "process-flows", "ref-pf.json");
+    const pf = JSON.parse(await fs.readFile(pfPath, "utf-8")) as Record<string, unknown>;
+    (pf.steps as Array<Record<string, unknown>>).push({ tableId: "renamed-tbl", extraNote: "user added after rename" });
+    await fs.writeFile(pfPath, JSON.stringify(pf, null, 2), "utf-8");
+
+    // undo は block (事後編集検出)
+    await expect(undoEntityRename(operation.operationId, root)).rejects.toThrow(/Undo を block|rename 後に編集/);
+
+    // user の事後編集は保持されている (pf の steps が 2 件のまま)
+    const after = JSON.parse(await fs.readFile(pfPath, "utf-8")) as Record<string, unknown>;
+    expect((after.steps as Array<Record<string, unknown>>).length).toBe(2);
+
+    // operation は再 pushUndo されているため、再 undo を試みると同じ block error が出る
+    await expect(undoEntityRename(operation.operationId, root)).rejects.toThrow(/Undo を block|rename 後に編集/);
+  });
+
+  it("rename → 事後編集なし → undo 成功 (完全 revert)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "src2");
+    await seedProcessFlow(root, "ref-pf2", { steps: [{ tableId: "src2" }] });
+
+    const { operation } = await renameEntityId("table", "src2", "renamed2", root);
+
+    // undo (事後編集なし) → 成功
+    const result = await undoEntityRename(operation.operationId, root);
+    expect(result.restoredFiles).toBeGreaterThan(0);
+    // 旧 path 復元 + 新 path 削除
+    await fs.access(dataPath(root, "tables", "src2.json"));
+    await expect(fs.access(dataPath(root, "tables", "renamed2.json"))).rejects.toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase I round 3+4 Must-fix E (Antigravity M-6): generic-definitions の path 形式 ref も
+//   rename 対象に含める (`relations[].ref: "tables/<id>"` 等)
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase I E: generic-definitions の path 形式 ref も rewrite", () => {
+  it("Table rename で generic-definitions の `tables/<oldId>` ref が新 id に更新される", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "transactions");
+
+    // generic-definitions/data-contract/TransactionCreateRequest.json を seed
+    const gdDir = dataPath(root, "generic-definitions", "data-contract");
+    await fs.mkdir(gdDir, { recursive: true });
+    const gd = {
+      kind: "data-contract",
+      name: "TransactionCreateRequest",
+      relations: [
+        { kind: "transformsTo", ref: "tables/transactions", description: "INSERT 先" },
+        { kind: "uses", ref: "generic-definitions/domain-type/Money" },
+      ],
+    };
+    const gdPath = path.join(gdDir, "TransactionCreateRequest.json");
+    await fs.writeFile(gdPath, JSON.stringify(gd, null, 2), "utf-8");
+
+    // rename Table
+    const { preview } = await renameEntityId("table", "transactions", "tx-records", root);
+
+    // preview.refUpdates に genericDefinition の hit が含まれる
+    const gdHits = preview.refUpdates.filter((r) => r.entityKind === "genericDefinition");
+    expect(gdHits.length).toBeGreaterThan(0);
+    expect(gdHits[0].entityId).toBe("data-contract/TransactionCreateRequest");
+
+    // 実 file が更新されている
+    const updated = JSON.parse(await fs.readFile(gdPath, "utf-8")) as Record<string, unknown>;
+    const rels = updated.relations as Array<Record<string, unknown>>;
+    expect(rels[0].ref).toBe("tables/tx-records");
+    // 自己参照型 (generic-definitions/...) は touch しない
+    expect(rels[1].ref).toBe("generic-definitions/domain-type/Money");
+  });
+
+  it("Screen rename で generic-definitions の `screens/<oldId>` ref が更新される", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("dashboard", { id: "dashboard", kind: "page", path: "/d", items: [] }, root);
+
+    const gdDir = dataPath(root, "generic-definitions", "application-rule");
+    await fs.mkdir(gdDir, { recursive: true });
+    const gd = {
+      kind: "application-rule",
+      name: "DeficitWarning",
+      relations: [{ kind: "appliesTo", ref: "screens/dashboard" }],
+    };
+    const gdPath = path.join(gdDir, "DeficitWarning.json");
+    await fs.writeFile(gdPath, JSON.stringify(gd, null, 2), "utf-8");
+
+    await renameEntityId("screen", "dashboard", "main-board", root);
+
+    const updated = JSON.parse(await fs.readFile(gdPath, "utf-8")) as Record<string, unknown>;
+    expect((updated.relations as Array<Record<string, unknown>>)[0].ref).toBe("screens/main-board");
+  });
+
+  it("ProcessFlow rename で generic-definitions の `process-flows/<oldId>` ref が更新される", async () => {
+    const root = await makeWorkspace();
+    await seedProcessFlow(root, "createTx", {});
+
+    const gdDir = dataPath(root, "generic-definitions", "runtime-policy");
+    await fs.mkdir(gdDir, { recursive: true });
+    const gd = {
+      kind: "runtime-policy",
+      name: "BackendRetryPolicy",
+      relations: [{ kind: "appliesTo", ref: "process-flows/createTx" }],
+    };
+    const gdPath = path.join(gdDir, "BackendRetryPolicy.json");
+    await fs.writeFile(gdPath, JSON.stringify(gd, null, 2), "utf-8");
+
+    await renameEntityId("processFlow", "createTx", "createTransaction", root);
+
+    const updated = JSON.parse(await fs.readFile(gdPath, "utf-8")) as Record<string, unknown>;
+    expect((updated.relations as Array<Record<string, unknown>>)[0].ref).toBe("process-flows/createTransaction");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase I round 3+4 Must-fix F (Codex round 4 M-5): Puck Screen rename が
+//   `screens/<id>/puck-data.json` を新 directory に移動 + entity の puckDataRef 整合
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase I F: Puck Screen rename → puck-data.json 同伴 + schema 整合", () => {
+  it("Puck screen rename で puck-data.json が新 directory に移動し、entity は puckDataRef のみ持つ", async () => {
+    const root = await makeWorkspace();
+    // Puck screen entity を seed (design.editorKind = "puck")
+    await writeScreenEntity("puck-scr", {
+      id: "puck-scr",
+      kind: "page",
+      path: "/p",
+      items: [],
+      design: { editorKind: "puck", puckDataRef: "puck-data.json" },
+    }, root);
+
+    // puck-data.json を seed (screens/<id>/puck-data.json)
+    const oldPuckPath = dataPath(root, "screens", "puck-scr", "puck-data.json");
+    await fs.mkdir(path.dirname(oldPuckPath), { recursive: true });
+    await fs.writeFile(oldPuckPath, JSON.stringify({ root: { type: "Root" }, content: [] }, null, 2), "utf-8");
+
+    // rename
+    await renameEntityId("screen", "puck-scr", "renamed-puck", root);
+
+    // 新 directory に puck-data.json が存在
+    const newPuckPath = dataPath(root, "screens", "renamed-puck", "puck-data.json");
+    await fs.access(newPuckPath);
+    // 旧 directory は cleanup されている (rmdir best-effort、puck-data.json は削除済)
+    await expect(fs.access(oldPuckPath)).rejects.toThrow();
+
+    // 新 entity ファイルは puckDataRef のみ持ち、designFileRef を持たない (schema 整合)
+    const newEntity = JSON.parse(
+      await fs.readFile(dataPath(root, "screens", "renamed-puck.json"), "utf-8"),
+    ) as Record<string, unknown>;
+    const design = newEntity.design as Record<string, unknown>;
+    expect(design.editorKind).toBe("puck");
+    expect(design.puckDataRef).toBe("puck-data.json");
+    expect(design.designFileRef).toBeUndefined();
+  });
+
+  it("grapesjs screen の writeScreenEntity は designFileRef のみで puckDataRef を持たない (regression)", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("g-scr", {
+      id: "g-scr",
+      kind: "page",
+      path: "/g",
+      items: [],
+      design: { editorKind: "grapesjs" },
+    }, root);
+
+    const entity = JSON.parse(
+      await fs.readFile(dataPath(root, "screens", "g-scr.json"), "utf-8"),
+    ) as Record<string, unknown>;
+    const design = entity.design as Record<string, unknown>;
+    expect(design.editorKind).toBe("grapesjs");
+    expect(design.designFileRef).toBe("g-scr.design.json");
+    expect(design.puckDataRef).toBeUndefined();
+  });
+
+  it("Puck screen rename の undo は puck-data.json も旧 path に復元する", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("p2", {
+      id: "p2",
+      kind: "page",
+      path: "/p2",
+      items: [],
+      design: { editorKind: "puck", puckDataRef: "puck-data.json" },
+    }, root);
+    const oldPuckPath = dataPath(root, "screens", "p2", "puck-data.json");
+    const puckContent = JSON.stringify({ root: { type: "Root" }, content: [{ type: "Text" }] }, null, 2);
+    await fs.mkdir(path.dirname(oldPuckPath), { recursive: true });
+    await fs.writeFile(oldPuckPath, puckContent, "utf-8");
+
+    const { operation } = await renameEntityId("screen", "p2", "p2-renamed", root);
+
+    // undo
+    await undoEntityRename(operation.operationId, root);
+
+    // 旧 path に puck-data.json が復元 + 新 path は削除
+    const restored = await fs.readFile(oldPuckPath, "utf-8");
+    expect(restored).toBe(puckContent);
+    await expect(
+      fs.access(dataPath(root, "screens", "p2-renamed", "puck-data.json")),
+    ).rejects.toThrow();
   });
 });
