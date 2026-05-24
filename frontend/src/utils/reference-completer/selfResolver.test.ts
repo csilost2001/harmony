@@ -1,4 +1,4 @@
-// #1301: selfResolver unit tests (5 件)
+// #1301 Phase A + #1308 Phase B: selfResolver unit tests
 
 import { describe, expect, it } from "vitest";
 import { selfResolver } from "./selfResolver";
@@ -8,7 +8,7 @@ const ctxScreenItem: CompletionContext = {
   currentSelfRef: { kind: "screenItem", id: "username" },
 };
 
-describe("selfResolver", () => {
+describe("selfResolver — Phase A: ScreenItem context", () => {
   it("@self. (空 prefix) → ScreenItem fields 全候補", () => {
     const value = "@self.";
     const state = selfResolver.match(value, value.length, ctxScreenItem);
@@ -45,19 +45,118 @@ describe("selfResolver", () => {
     expect(state.candidates).toHaveLength(0);
   });
 
-  it("currentSelfRef.kind === 'step' → null (Phase A 範囲外)", () => {
-    const ctxStep: CompletionContext = {
-      currentSelfRef: { kind: "step", id: "step-01" },
-    };
-    const value = "@self.";
-    const state = selfResolver.match(value, value.length, ctxStep);
-    expect(state).toBeNull();
-  });
-
   it("currentSelfRef 未設定 → null", () => {
     const ctxEmpty: CompletionContext = {};
     const value = "@self.";
     const state = selfResolver.match(value, value.length, ctxEmpty);
     expect(state).toBeNull();
+  });
+});
+
+describe("selfResolver — Phase B: step kind (ProcessFlow editor)", () => {
+  const ctxStep: CompletionContext = {
+    currentSelfRef: { kind: "step", id: "step-01" },
+  };
+
+  it("@self. → Step base fields 候補", () => {
+    const state = selfResolver.match("@self.", "@self.".length, ctxStep);
+    expect(state?.phase).toBe("active");
+    if (state?.phase !== "active") return;
+    const values = state.candidates.map((c) => c.value);
+    expect(values).toContain("id");
+    expect(values).toContain("description");
+    expect(values).toContain("runIf");
+    expect(values).toContain("outputBinding");
+    expect(values).toContain("compensatesFor");
+    // screenItem 専用 field は含まない
+    expect(values).not.toContain("label");
+    expect(values).not.toContain("readonly");
+  });
+
+  it("@self.out → outputBinding のみ", () => {
+    const state = selfResolver.match("@self.out", "@self.out".length, ctxStep);
+    expect(state?.phase).toBe("active");
+    if (state?.phase !== "active") return;
+    expect(state.candidates).toHaveLength(1);
+    expect(state.candidates[0].value).toBe("outputBinding");
+  });
+});
+
+describe("selfResolver — Phase B: column kind (Table/View editor)", () => {
+  const ctxColumn: CompletionContext = {
+    currentSelfRef: { kind: "column", id: "col-01" },
+  };
+
+  it("@self. → Column fields 候補", () => {
+    const state = selfResolver.match("@self.", "@self.".length, ctxColumn);
+    expect(state?.phase).toBe("active");
+    if (state?.phase !== "active") return;
+    const values = state.candidates.map((c) => c.value);
+    expect(values).toContain("id");
+    expect(values).toContain("physicalName");
+    expect(values).toContain("name");
+    expect(values).toContain("dataType");
+    expect(values).toContain("notNull");
+    expect(values).toContain("primaryKey");
+    expect(values).toContain("defaultValue");
+    expect(values).toContain("comment");
+  });
+
+  it("@self.phys → physicalName のみ", () => {
+    const state = selfResolver.match("@self.phys", "@self.phys".length, ctxColumn);
+    expect(state?.phase).toBe("active");
+    if (state?.phase !== "active") return;
+    expect(state.candidates).toHaveLength(1);
+    expect(state.candidates[0].value).toBe("physicalName");
+  });
+});
+
+describe("selfResolver — Phase B: region kind (PageLayout editor)", () => {
+  const ctxRegion: CompletionContext = {
+    currentSelfRef: { kind: "region", id: "main" },
+  };
+
+  it("@self. → Region fields 候補 (name / description)", () => {
+    const state = selfResolver.match("@self.", "@self.".length, ctxRegion);
+    expect(state?.phase).toBe("active");
+    if (state?.phase !== "active") return;
+    const values = state.candidates.map((c) => c.value);
+    expect(values).toContain("name");
+    expect(values).toContain("description");
+    expect(values).toHaveLength(2);
+  });
+});
+
+describe("selfResolver — fields override", () => {
+  it("currentSelfRef.fields が明示指定されたら default を上書き、label も反映される", () => {
+    const ctxOverride: CompletionContext = {
+      currentSelfRef: {
+        kind: "step",
+        id: "step-01",
+        fields: [{ name: "customField", label: "カスタム" }],
+      },
+    };
+    const state = selfResolver.match("@self.", "@self.".length, ctxOverride);
+    expect(state?.phase).toBe("active");
+    if (state?.phase !== "active") return;
+    expect(state.candidates).toHaveLength(1);
+    expect(state.candidates[0].value).toBe("customField");
+    // override 経路で label が指定された場合は value ではなく label を表示する (review N-3 fix)
+    expect(state.candidates[0].label).toBe("カスタム");
+  });
+
+  it("currentSelfRef.fields に label を渡さない場合は value がそのまま label に", () => {
+    const ctxOverride: CompletionContext = {
+      currentSelfRef: {
+        kind: "step",
+        id: "step-01",
+        fields: [{ name: "noLabelField" }],
+      },
+    };
+    const state = selfResolver.match("@self.", "@self.".length, ctxOverride);
+    expect(state?.phase).toBe("active");
+    if (state?.phase !== "active") return;
+    expect(state.candidates).toHaveLength(1);
+    expect(state.candidates[0].label).toBe("noLabelField");
   });
 });

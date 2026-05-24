@@ -81,13 +81,15 @@ export interface CompletionContext {
    */
   currentDocumentKind?: "screen" | "processFlow" | "table" | "view" | "viewDefinition" | "sequence" | "pageLayout";
   /**
-   * 現在編集中の具体要素 (designer-time alias `@self` 用、#1301)。
-   * Phase A は kind="screenItem" のみ完全動作。
+   * 現在編集中の具体要素 (designer-time alias `@self` 用、#1301 / #1308)。
+   * Phase B (#1308) で kind="step" / "column" / "region" の bind 経路を開放。
+   * resolver 側は全 kind に対応済 (selfResolver.ts の FIELDS_BY_SELF_KIND 参照)。
    */
   currentSelfRef?:
     | { kind: "screenItem"; id: string; fields?: { name: string; label?: string }[] }
     | { kind: "step"; id: string; fields?: { name: string; label?: string }[] }
-    | { kind: "column"; id: string; fields?: { name: string; label?: string }[] };
+    | { kind: "column"; id: string; fields?: { name: string; label?: string }[] }
+    | { kind: "region"; id: string; fields?: { name: string; label?: string }[] };
   /**
    * 現在 workspace の generic-definition catalog (kind 別、#1303)。
    * dialog / messageArea / options 等の kind を引数に取り、name 候補配列を返す。

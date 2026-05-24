@@ -337,7 +337,7 @@
 
 
 
-<table><thead><tr><th>scope</th><th>説明</th><th>lifetime</th><th>例</th></tr></thead><tbody><tr><td><code>flowParameter</code></td><td>action 入力 (<code>ActionDefinition.inputs[]</code>)</td><td>action 全体</td><td><code>@var.flowParameter.customerId</code></td></tr><tr><td><code>action</code></td><td>action body 全体で生きる</td><td>action 全体</td><td><code>@var.action.totalAmount</code></td></tr><tr><td><code>step.&#x3C;step-id></code></td><td>step 出力 binding (<code>outputBinding.name</code>)</td><td>scope enter で生成 / exit で破棄</td><td><code>@var.step.step-05.newOrderNumber</code></td></tr><tr><td><code>tx.&#x3C;tx-id></code></td><td>TransactionScopeStep 内 binding</td><td>TX commit でマージ / rollback で破棄</td><td><code>@var.tx.step-06.txResult</code></td></tr><tr><td><code>loop</code></td><td>loop iteration 内 (<code>collectionItemName</code> / <code>collectionIndexName</code>)</td><td>iteration ごとに fresh</td><td><code>@var.loop.cartItem</code>、<code>@var.loop.idx</code></td></tr><tr><td><code>global</code></td><td>workspace / project 横断 (mutable、<code>@const</code> と区別)</td><td>session 全体</td><td><code>@var.global.tenantId</code></td></tr></tbody></table>
+<table><thead><tr><th>scope</th><th>説明</th><th>lifetime</th><th>例</th></tr></thead><tbody><tr><td><code>flowParameter</code></td><td>action 入力 (<code>ActionDefinition.inputs[]</code>)</td><td>action 全体</td><td><code>@var.flowParameter.customerId</code></td></tr><tr><td><code>action</code></td><td>action body 全体で生きる</td><td>action 全体</td><td><code>@var.action.totalAmount</code></td></tr><tr><td><code>step.&#x3C;step-id></code></td><td>step 出力 binding (<code>outputBinding.name</code>)</td><td>scope enter で生成 / exit で破棄</td><td><code>@var.step.step-05.newOrderNumber</code></td></tr><tr><td><code>tx.&#x3C;tx-id></code></td><td>TransactionScopeStep 内 binding</td><td>TX commit でマージ / rollback で破棄</td><td><code>@var.tx.step-06.txResult</code></td></tr><tr><td><code>loop</code></td><td>loop iteration 内 (<code>collectionItemName</code> / <code>collectionIndexName</code> / push operation の <code>outputBinding.name</code>)</td><td>iteration ごとに fresh / <code>outputBinding.name</code> は loop 終了後 enclosing scope に push</td><td><code>@var.loop.cartItem</code>、<code>@var.loop.idx</code>、<code>@var.loop.enrichedItems</code></td></tr><tr><td><code>global</code></td><td>workspace / project 横断 catalog 定義 (mutable、<code>@const</code> と区別)、<code>generic-definitions/global/&#x3C;key>.json</code> で定義 (#1310)</td><td>session 全体 (write 機能は将来 follow-up)</td><td><code>@var.global.TenantContext</code></td></tr></tbody></table>
 <p><code>step.</code> / <code>tx.</code> 接頭辞は具体的な step-id / tx-id を後続する (LocalId pattern)。</p>
 <h4 id="暗黙参照の解決順序-lexical-chain-auto-infer">暗黙参照の解決順序 (lexical chain auto-infer)</h4>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>current step → enclosing loop/tryCatch → enclosing tx → action → flowParameter → global</span></span></code></pre>
@@ -381,6 +381,58 @@
 <h4 id="scope-chain-と-designer-time-alias-this--self1301">scope chain と designer-time alias (<code>@this</code> / <code>@self</code>、#1301)</h4>
 <p><code>@var.&#x3C;scope>.&#x3C;name></code> は <strong>runtime variable scope</strong>、<code>@this</code> / <code>@self</code> は <strong>designer editor context alias</strong>。両者は独立 — <code>@var.flowParameter.x</code> は runtime の flow parameter を、<code>@this.item.&#x3C;id>.value</code> は designer の現在 screen item field を指す。</p>
 <p>editor 編集時の補完では両方の候補が並列に出る (resolver 別)。詳細は <a href="../../spec/process-flow-prefix-system/#11-designer-time-alias-this--self-1301">process-flow-prefix-system.md § 11</a>。</p>
+<h4 id="resolver-補完範囲-1282--1302--1316">resolver 補完範囲 (#1282 / #1302 / #1316)</h4>
+<p><code>@var.&#x3C;scope>.&#x3C;name></code> の補完 resolver (<code>varScopeResolver</code>) の実装状況:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>scope</th><th>Phase 1/2 (#1282)</th><th>Phase 2-bis (#1302)</th><th>Phase 3 (#1316)</th></tr></thead><tbody><tr><td><code>flowParameter</code></td><td>✅ name 補完</td><td>—</td><td>—</td></tr><tr><td><code>action</code></td><td>✅ name 補完</td><td>—</td><td>—</td></tr><tr><td><code>step</code></td><td>—</td><td>✅ step-id 補完 (全 step id、TX/loop/branch/workflow/validation の nested 含む)</td><td>✅ <code>@var.step.&#x3C;id>.&#x3C;binding-name></code> 4-segment 補完 (<code>outputBinding.name</code>) + 候補に trailing ”.” 付与</td></tr><tr><td><code>tx</code></td><td>—</td><td>✅ tx-id 補完 (kind=“transactionScope” の id のみ)</td><td>✅ <code>@var.tx.&#x3C;id>.&#x3C;member></code> 4-segment 補完 (予約 3 値 <code>committed</code>/<code>error</code>/<code>diagnostics</code> + <code>outputBinding.expose[]</code>) + 候補に trailing ”.” 付与</td></tr><tr><td><code>loop</code></td><td>—</td><td>✅ name 補完 (collectionItemName / collectionIndexName / outputBinding.name)</td><td>— (3-segment で完結)</td></tr><tr><td><code>global</code></td><td>—</td><td>✅ catalog 補完 (#1310)</td><td>—</td></tr></tbody></table>
+<p>注: Phase 2-bis の表記「name 補完」は実際には scope 階層第 3 segment (step-id / tx-id / loop-name) の補完を指す。<code>step</code> / <code>tx</code> は spec §3.6 line 250-251 の canonical 文法どおり 4-segment (<code>@var.step.&#x3C;step-id>.&#x3C;binding-name></code> / <code>@var.tx.&#x3C;tx-id>.&#x3C;member></code>) で完結し、Phase 3 (#1316) で最終 segment まで補完が繋がる。nested step 列挙の網羅は <code>iterSteps</code> ヘルパが担当 (compound step kind = transactionScope / loop / branch / workflow / validation の各 nested 配置 <code>steps[]</code> / <code>branches[].steps[]</code> / <code>elseBranch.steps[]</code> / <code>onCommit[]</code> / <code>onRollback[]</code> / <code>onApproved[]</code> / <code>onRejected[]</code> / <code>onTimeout[]</code> / <code>inlineBranch.{ok,ng}[]</code> を再帰列挙)。</p>
+<p>注: <code>global</code> scope は #1310 で導入された generic-definitions/global/ catalog から <code>genericDefinitionsByKind</code> context 経由で候補取得する (read-only catalog のみ、write step kind は将来 follow-up)。</p>
 <h3 id="37-tx-transactionscope-境界での変数挙動-1264-verdict-観点-4--1267-round-7-option-c">3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)</h3>
 <p>R3 で 3 AI 完全合流した折衷案を、Round 7 で <strong>option C (expose を任意 inner var 名まで拡張)</strong> として最終化:</p>
 <ul>
