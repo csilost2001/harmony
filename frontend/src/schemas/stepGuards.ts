@@ -32,6 +32,7 @@ export const BUILTIN_STEP_KINDS = [
   "return",
   "log",
   "audit",
+  "setGlobal",
   "workflow",
   "transactionScope",
   "eventPublish",

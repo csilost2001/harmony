@@ -245,7 +245,7 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 | `dialog` | confirm / alert / custom dialog の定義 (ScreenItemEvent.effects[].showDialog.target 参照先) | `@dialog.<name>` |
 | `message-area` | 画面横断 message area の定義 (ScreenItemEvent.effects[].setMessage.target 参照先、#1318 で `messageArea` → `message-area` kebab-case 統一、prefix は `@messageArea.` を維持 = log-event/logEvent 前例と同様の kind=kebab/prefix=camelCase 分離) | `@messageArea.<name>` |
 | `options` | 選択肢カタログ (ScreenItemEvent.effects[].setOptions 動的差し替え参照先) | `@options.<name>` |
-| `global` | workspace/project 横断の mutable 設定 slot (`@var.global.<key>` 参照元、Spring `@Value` / `@SessionScope` 相当、#1310)。read-only catalog として 1 instance = 1 設定群を定義、`fields[]` で field schema を記述。本 PR では catalog のみ、write semantics (step kind / lifetime) は将来 follow-up。 | `@var.global.<key>` |
+| `global` | workspace/project 横断の mutable 設定 slot (`@var.global.<key>` 参照元、Spring `@Value` / `@SessionScope` 相当、#1310)。catalog で 1 instance = 1 設定群を定義 (`fields[]` で field schema 記述)、write は `setGlobal` step kind (#1322 Phase B-3e) で行う。lifetime は `application` / `session` / `request` 3 値 (catalog 側 `mappingHints.scope` で default 指定、step 側 `lifetime` で override)。詳細: [process-flow-variables.md §3.6](process-flow-variables.md) globals write 節。 | `@var.global.<key>` |
 
 ### 4.3 既存仕様との関係
 

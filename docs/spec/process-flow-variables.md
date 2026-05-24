@@ -250,7 +250,7 @@ RFC #1264 で確定した hybrid scope chain (case C) の具体仕様。**暗黙
 | `step.<step-id>` | step 出力 binding (`outputBinding.name`) | scope enter で生成 / exit で破棄 | `@var.step.step-05.newOrderNumber` |
 | `tx.<tx-id>` | TransactionScopeStep 内 binding | TX commit でマージ / rollback で破棄 | `@var.tx.step-06.txResult` |
 | `loop` | loop iteration 内 (`collectionItemName` / `collectionIndexName` / push operation の `outputBinding.name`) | iteration ごとに fresh / `outputBinding.name` は loop 終了後 enclosing scope に push | `@var.loop.cartItem`、`@var.loop.idx`、`@var.loop.enrichedItems` |
-| `global` | workspace / project 横断 catalog 定義 (mutable、`@const` と区別)、`generic-definitions/global/<key>.json` で定義 (#1310) | session 全体 (write 機能は将来 follow-up) | `@var.global.TenantContext` |
+| `global` | workspace / project 横断 catalog 定義 (mutable、`@const` と区別)、`generic-definitions/global/<key>.json` で定義 (#1310)、write は `setGlobal` step kind (#1322 Phase B-3e、本 §3.6 末尾) | lifetime field で制御: `application` (process 全体) / `session` (ユーザーセッション) / `request` (1 HTTP request) | `@var.global.TenantContext.tenantId` |
 
 `step.` / `tx.` 接頭辞は具体的な step-id / tx-id を後続する (LocalId pattern)。
 
@@ -328,7 +328,49 @@ editor 編集時の補完では両方の候補が並列に出る (resolver 別)�
 
 注: Phase 2-bis の表記「name 補完」は実際には scope 階層第 3 segment (step-id / tx-id / loop-name) の補完を指す。`step` / `tx` は spec §3.6 line 250-251 の canonical 文法どおり 4-segment (`@var.step.<step-id>.<binding-name>` / `@var.tx.<tx-id>.<member>`) で完結し、Phase 3 (#1316) で最終 segment まで補完が繋がる。nested step 列挙の網羅は `iterSteps` ヘルパが担当 (compound step kind = transactionScope / loop / branch / workflow / validation の各 nested 配置 `steps[]` / `branches[].steps[]` / `elseBranch.steps[]` / `onCommit[]` / `onRollback[]` / `onApproved[]` / `onRejected[]` / `onTimeout[]` / `inlineBranch.{ok,ng}[]` を再帰列挙)。
 
-注: `global` scope は #1310 で導入された generic-definitions/global/ catalog から `genericDefinitionsByKind` context 経由で候補取得する (read-only catalog のみ、write step kind は将来 follow-up)。
+注: `global` scope は #1310 で導入された generic-definitions/global/ catalog から `genericDefinitionsByKind` context 経由で候補取得する (read-only catalog のみ、write は #1322 Phase B-3e で `setGlobal` step kind を導入、本 §3.6 末尾 globals write section 参照)。
+
+#### globals write (`setGlobal` step kind、#1322 Phase B-3e)
+
+generic-definitions/global/<name>.json で定義された globals catalog instance に対する **write 操作** は専用 step kind `setGlobal` で行う。`@var.global.<name>` / `@var.global.<name>.<field>` 経由で read 可能な値の更新 entry point。
+
+##### step shape
+
+```json
+{
+  "kind": "setGlobal",
+  "id": "step-set-tenant",
+  "description": "テナント context を設定",
+  "globalName": "TenantContext",
+  "field": "tenantId",
+  "value": "@var.flowParameter.tenantId",
+  "lifetime": "session"
+}
+```
+
+| field | 必須 | 説明 |
+|---|---|---|
+| `globalName` | ✅ | 書き込み対象 globals catalog instance 名 (`@var.global.<name>` の `<name>` 部、PascalCase-ish: `^[A-Za-z][A-Za-z0-9_]*$`)。generic-definitions/global/<globalName>.json の `name` field と一致。 |
+| `field` | — | 書き込み対象 field 名 (省略時は globals 全体を value で上書き)。指定時は globals.fields[].name のいずれかと一致 (catalog 側で field schema 定義済)。 |
+| `value` | ✅ | 書き込む値 (TemplateString)。`@var.flowParameter.x` / `@var.step.<id>.y` / リテラル等。 |
+| `lifetime` | — | 値の寿命を上書き。省略時は globals catalog 側 (`mappingHints.scope` 等) の指定を採用。enum: `application` / `session` / `request`。 |
+
+##### lifetime semantics
+
+| lifetime | 説明 | Java Spring Boot 実装パターン | TypeScript NestJS 実装パターン |
+|---|---|---|---|
+| `application` | process 起動中ずっと保持 (全リクエスト・全セッション共通) | `@Service` + `ConcurrentHashMap` の singleton bean | `@Injectable()` (Scope.DEFAULT) DI singleton + `Map<string, unknown>` |
+| `session` | 1 ユーザーセッション内で保持 (異なるユーザーには隔離) | `HttpSession.setAttribute(globalName + "." + field, value)` | `req.session[globalName] = ...` (express-session) |
+| `request` | 1 HTTP リクエストの間のみ保持 (request 終了で破棄) | `@RequestScope` Bean に store | `@Injectable({ scope: Scope.REQUEST })` の per-request store |
+
+##### 設計上の注意
+
+- `setGlobal` は **side-effect step** (RFC #1254 件 3.8 副作用 invocation 禁止の対象外、専用 step として明示)
+- TransactionScopeStep 内部での `setGlobal` は **即時反映** で実装 (TX rollback 時の globals 値巻き戻しは現状未対応、dogfood で必要性を再検証)
+- `setGlobal` と `@var.global.<name>` 読み出し側の lifetime mismatch は **warning** として記録 (例: catalog が `application` 宣言なのに step で `session` 指定)
+- runtime 永続化レイヤ (in-memory / KV / DB) と scope 適用ロジックは **target 言語の codegen 側** で実装する。Harmony 本体は schema + step kind 表現のみ提供
+
+詳細実装ガイド: [/generate-code skill SKILL.md の "setGlobal step 詳細" 節](../../ai-skills/generate-code/SKILL.md)。
 
 ### 3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)
 

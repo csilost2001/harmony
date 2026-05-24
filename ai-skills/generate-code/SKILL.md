@@ -331,7 +331,65 @@ ProcessFlow JSON 内の文字列値 (sql / payload / filter / expression / condi
 | `log` | `log.error(message, structuredData)` | `this.logger.error(message, structuredData)` |
 | `aiCall` (#935 / Phase 2-C) | `aiRuntime.invoke(new AiInvocationRequest(modelRef, messages, responseFormat?, tools?, ...))` (詳細は `templates/backend/java-spring-boot/AI_SERVICE.md`)。Spring AI starter で provider 切替、業務 Service は provider 中立 | `await this.aiRuntime.invoke({ modelRef, messages, responseFormat?, tools?, ... })` (詳細は `templates/backend/typescript-nestjs/AI_SERVICE.md`)。`AiRuntimeService` 内部で `@anthropic-ai/sdk` / `openai` / `@aws-sdk/client-bedrock-runtime` 等を dispatch、業務 Service は provider 中立 |
 | `aiAgent` (#935 / Phase 2-C) | aiCall と同形 + `AiInvocationRequest.AgentSpec(maxIterations, toolRunner)` を渡す。tool 実行ループは `AiRuntimeService` 内部で完結 (業務 Service は toolRunner だけ書く) | 同左、`agent: { maxIterations, toolRunner: async (call) => ... }` を渡す |
+| `setGlobal` (#1322 Phase B-3e) | lifetime に応じて分岐: `application` → `@Bean` singleton (`@Service` + ConcurrentHashMap)、`session` → `HttpSession.setAttribute(globalName + "." + field, value)`、`request` → `@RequestScope` Bean に setter。field 省略時は object 全体を 1 entry として set | 同様の lifetime 分岐: `application` → DI Container 内 singleton (`@Injectable({ scope: Scope.DEFAULT })`)、`session` → `req.session[globalName] = ...` (express-session)、`request` → `@Injectable({ scope: Scope.REQUEST })` の per-request store。詳細は `templates/backend/typescript-nestjs/GLOBALS.md` 参照 |
 | `other` | `// TODO: {{step.description}}` + outputSchema で型推定 (注: schema の `kind` に `other` は存在しない。extension step では `type: "other"` を使う別階層の概念であるため混同注意) | 同左 |
+
+### setGlobal step 詳細 (#1322 Phase B-3e、globals catalog write)
+
+`setGlobal` step は `generic-definitions/global/<globalName>.json` で定義された globals catalog instance に対する **write 操作**。`@var.global.<globalName>` / `@var.global.<globalName>.<field>` で read される値の更新 entry point。
+
+#### 解決順序
+
+1. step.lifetime > globals catalog の `mappingHints.scope` > default `application`
+2. step.field 指定時は当該 field のみ set、省略時は globals 全体を value で上書き
+3. value は TemplateString として評価 (`@var.flowParameter.x` / `@var.action.y` / `@var.step.<id>.z` 等)
+
+#### Java Spring Boot — lifetime 別パターン
+
+```java
+// lifetime: "application" — singleton bean + ConcurrentHashMap
+@Service
+public class TenantContextHolder {
+    private final ConcurrentHashMap<String, Object> store = new ConcurrentHashMap<>();
+    public void set(String field, Object value) { store.put(field, value); }
+    public Object get(String field) { return store.get(field); }
+}
+// generated: tenantContextHolder.set("tenantId", flowParameter.getTenantId());
+
+// lifetime: "session" — HttpSession 直接
+session.setAttribute("TenantContext." + "tenantId", flowParameter.getTenantId());
+
+// lifetime: "request" — @RequestScope Bean
+@RequestScope @Component
+public class RequestContextHolder { /* same shape as application but per-request */ }
+```
+
+#### TypeScript NestJS — lifetime 別パターン
+
+```typescript
+// lifetime: "application" — DI singleton
+@Injectable() // Scope.DEFAULT = singleton
+export class TenantContextHolder {
+  private readonly store = new Map<string, unknown>();
+  set(field: string, value: unknown) { this.store.set(field, value); }
+  get(field: string) { return this.store.get(field); }
+}
+// generated: this.tenantContextHolder.set("tenantId", flowParameter.tenantId);
+
+// lifetime: "session" — express-session
+(req.session as any).TenantContext = (req.session as any).TenantContext || {};
+(req.session as any).TenantContext.tenantId = flowParameter.tenantId;
+
+// lifetime: "request" — Scope.REQUEST DI
+@Injectable({ scope: Scope.REQUEST })
+export class RequestContextHolder { /* same shape */ }
+```
+
+#### 注意点
+
+- 生成 Service 名は globals catalog name に基づく PascalCase + `Holder` suffix で安定化する
+- `@var.global.<globalName>` 読み出し側 (Read) と setGlobal (Write) は同 lifetime を使う前提。lifetime mismatch は warning として記録
+- TransactionScopeStep 内部での setGlobal は **コミット時のみ反映** すべきか議論あり (現状は即時反映で実装、TX rollback 時に globals が残る問題は #1322 後続の dogfood で再検証)
 
 ### affectedRowsCheck → 実装パターン
 

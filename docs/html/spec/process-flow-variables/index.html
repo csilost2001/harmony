@@ -337,7 +337,7 @@
 
 
 
-<table><thead><tr><th>scope</th><th>説明</th><th>lifetime</th><th>例</th></tr></thead><tbody><tr><td><code>flowParameter</code></td><td>action 入力 (<code>ActionDefinition.inputs[]</code>)</td><td>action 全体</td><td><code>@var.flowParameter.customerId</code></td></tr><tr><td><code>action</code></td><td>action body 全体で生きる</td><td>action 全体</td><td><code>@var.action.totalAmount</code></td></tr><tr><td><code>step.&#x3C;step-id></code></td><td>step 出力 binding (<code>outputBinding.name</code>)</td><td>scope enter で生成 / exit で破棄</td><td><code>@var.step.step-05.newOrderNumber</code></td></tr><tr><td><code>tx.&#x3C;tx-id></code></td><td>TransactionScopeStep 内 binding</td><td>TX commit でマージ / rollback で破棄</td><td><code>@var.tx.step-06.txResult</code></td></tr><tr><td><code>loop</code></td><td>loop iteration 内 (<code>collectionItemName</code> / <code>collectionIndexName</code> / push operation の <code>outputBinding.name</code>)</td><td>iteration ごとに fresh / <code>outputBinding.name</code> は loop 終了後 enclosing scope に push</td><td><code>@var.loop.cartItem</code>、<code>@var.loop.idx</code>、<code>@var.loop.enrichedItems</code></td></tr><tr><td><code>global</code></td><td>workspace / project 横断 catalog 定義 (mutable、<code>@const</code> と区別)、<code>generic-definitions/global/&#x3C;key>.json</code> で定義 (#1310)</td><td>session 全体 (write 機能は将来 follow-up)</td><td><code>@var.global.TenantContext</code></td></tr></tbody></table>
+<table><thead><tr><th>scope</th><th>説明</th><th>lifetime</th><th>例</th></tr></thead><tbody><tr><td><code>flowParameter</code></td><td>action 入力 (<code>ActionDefinition.inputs[]</code>)</td><td>action 全体</td><td><code>@var.flowParameter.customerId</code></td></tr><tr><td><code>action</code></td><td>action body 全体で生きる</td><td>action 全体</td><td><code>@var.action.totalAmount</code></td></tr><tr><td><code>step.&#x3C;step-id></code></td><td>step 出力 binding (<code>outputBinding.name</code>)</td><td>scope enter で生成 / exit で破棄</td><td><code>@var.step.step-05.newOrderNumber</code></td></tr><tr><td><code>tx.&#x3C;tx-id></code></td><td>TransactionScopeStep 内 binding</td><td>TX commit でマージ / rollback で破棄</td><td><code>@var.tx.step-06.txResult</code></td></tr><tr><td><code>loop</code></td><td>loop iteration 内 (<code>collectionItemName</code> / <code>collectionIndexName</code> / push operation の <code>outputBinding.name</code>)</td><td>iteration ごとに fresh / <code>outputBinding.name</code> は loop 終了後 enclosing scope に push</td><td><code>@var.loop.cartItem</code>、<code>@var.loop.idx</code>、<code>@var.loop.enrichedItems</code></td></tr><tr><td><code>global</code></td><td>workspace / project 横断 catalog 定義 (mutable、<code>@const</code> と区別)、<code>generic-definitions/global/&#x3C;key>.json</code> で定義 (#1310)、write は <code>setGlobal</code> step kind (#1322 Phase B-3e、本 §3.6 末尾)</td><td>lifetime field で制御: <code>application</code> (process 全体) / <code>session</code> (ユーザーセッション) / <code>request</code> (1 HTTP request)</td><td><code>@var.global.TenantContext.tenantId</code></td></tr></tbody></table>
 <p><code>step.</code> / <code>tx.</code> 接頭辞は具体的な step-id / tx-id を後続する (LocalId pattern)。</p>
 <h4 id="暗黙参照の解決順序-lexical-chain-auto-infer">暗黙参照の解決順序 (lexical chain auto-infer)</h4>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>current step → enclosing loop/tryCatch → enclosing tx → action → flowParameter → global</span></span></code></pre>
@@ -432,7 +432,89 @@
 
 <table><thead><tr><th>scope</th><th>Phase 1/2 (#1282)</th><th>Phase 2-bis (#1302)</th><th>Phase 3 (#1316)</th></tr></thead><tbody><tr><td><code>flowParameter</code></td><td>✅ name 補完</td><td>—</td><td>—</td></tr><tr><td><code>action</code></td><td>✅ name 補完</td><td>—</td><td>—</td></tr><tr><td><code>step</code></td><td>—</td><td>✅ step-id 補完 (全 step id、TX/loop/branch/workflow/validation の nested 含む)</td><td>✅ <code>@var.step.&#x3C;id>.&#x3C;binding-name></code> 4-segment 補完 (<code>outputBinding.name</code>) + 候補に trailing ”.” 付与</td></tr><tr><td><code>tx</code></td><td>—</td><td>✅ tx-id 補完 (kind=“transactionScope” の id のみ)</td><td>✅ <code>@var.tx.&#x3C;id>.&#x3C;member></code> 4-segment 補完 (予約 3 値 <code>committed</code>/<code>error</code>/<code>diagnostics</code> + <code>outputBinding.expose[]</code>) + 候補に trailing ”.” 付与</td></tr><tr><td><code>loop</code></td><td>—</td><td>✅ name 補完 (collectionItemName / collectionIndexName / outputBinding.name)</td><td>— (3-segment で完結)</td></tr><tr><td><code>global</code></td><td>—</td><td>✅ catalog 補完 (#1310)</td><td>—</td></tr></tbody></table>
 <p>注: Phase 2-bis の表記「name 補完」は実際には scope 階層第 3 segment (step-id / tx-id / loop-name) の補完を指す。<code>step</code> / <code>tx</code> は spec §3.6 line 250-251 の canonical 文法どおり 4-segment (<code>@var.step.&#x3C;step-id>.&#x3C;binding-name></code> / <code>@var.tx.&#x3C;tx-id>.&#x3C;member></code>) で完結し、Phase 3 (#1316) で最終 segment まで補完が繋がる。nested step 列挙の網羅は <code>iterSteps</code> ヘルパが担当 (compound step kind = transactionScope / loop / branch / workflow / validation の各 nested 配置 <code>steps[]</code> / <code>branches[].steps[]</code> / <code>elseBranch.steps[]</code> / <code>onCommit[]</code> / <code>onRollback[]</code> / <code>onApproved[]</code> / <code>onRejected[]</code> / <code>onTimeout[]</code> / <code>inlineBranch.{ok,ng}[]</code> を再帰列挙)。</p>
-<p>注: <code>global</code> scope は #1310 で導入された generic-definitions/global/ catalog から <code>genericDefinitionsByKind</code> context 経由で候補取得する (read-only catalog のみ、write step kind は将来 follow-up)。</p>
+<p>注: <code>global</code> scope は #1310 で導入された generic-definitions/global/ catalog から <code>genericDefinitionsByKind</code> context 経由で候補取得する (read-only catalog のみ、write は #1322 Phase B-3e で <code>setGlobal</code> step kind を導入、本 §3.6 末尾 globals write section 参照)。</p>
+<h4 id="globals-write-setglobal-step-kind1322-phase-b-3e">globals write (<code>setGlobal</code> step kind、#1322 Phase B-3e)</h4>
+<p>generic-definitions/global/<name>.json で定義された globals catalog instance に対する <strong>write 操作</strong> は専用 step kind <code>setGlobal</code> で行う。<code>@var.global.&#x3C;name></code> / <code>@var.global.&#x3C;name>.&#x3C;field></code> 経由で read 可能な値の更新 entry point。</name></p>
+<h5 id="step-shape">step shape</h5>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"setGlobal"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"step-set-tenant"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"テナント context を設定"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "globalName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"TenantContext"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "field"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"tenantId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "value"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"@var.flowParameter.tenantId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "lifetime"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"session"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>field</th><th>必須</th><th>説明</th></tr></thead><tbody><tr><td><code>globalName</code></td><td>✅</td><td>書き込み対象 globals catalog instance 名 (<code>@var.global.&#x3C;name></code> の <code>&#x3C;name></code> 部、PascalCase-ish: <code>^[A-Za-z][A-Za-z0-9_]*$</code>)。generic-definitions/global/<globalname>.json の <code>name</code> field と一致。</globalname></td></tr><tr><td><code>field</code></td><td>—</td><td>書き込み対象 field 名 (省略時は globals 全体を value で上書き)。指定時は globals.fields[].name のいずれかと一致 (catalog 側で field schema 定義済)。</td></tr><tr><td><code>value</code></td><td>✅</td><td>書き込む値 (TemplateString)。<code>@var.flowParameter.x</code> / <code>@var.step.&#x3C;id>.y</code> / リテラル等。</td></tr><tr><td><code>lifetime</code></td><td>—</td><td>値の寿命を上書き。省略時は globals catalog 側 (<code>mappingHints.scope</code> 等) の指定を採用。enum: <code>application</code> / <code>session</code> / <code>request</code>。</td></tr></tbody></table>
+<h5 id="lifetime-semantics">lifetime semantics</h5>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>lifetime</th><th>説明</th><th>Java Spring Boot 実装パターン</th><th>TypeScript NestJS 実装パターン</th></tr></thead><tbody><tr><td><code>application</code></td><td>process 起動中ずっと保持 (全リクエスト・全セッション共通)</td><td><code>@Service</code> + <code>ConcurrentHashMap</code> の singleton bean</td><td><code>@Injectable()</code> (Scope.DEFAULT) DI singleton + <code>Map&#x3C;string, unknown></code></td></tr><tr><td><code>session</code></td><td>1 ユーザーセッション内で保持 (異なるユーザーには隔離)</td><td><code>HttpSession.setAttribute(globalName + "." + field, value)</code></td><td><code>req.session[globalName] = ...</code> (express-session)</td></tr><tr><td><code>request</code></td><td>1 HTTP リクエストの間のみ保持 (request 終了で破棄)</td><td><code>@RequestScope</code> Bean に store</td><td><code>@Injectable({ scope: Scope.REQUEST })</code> の per-request store</td></tr></tbody></table>
+<h5 id="設計上の注意">設計上の注意</h5>
+<ul>
+<li><code>setGlobal</code> は <strong>side-effect step</strong> (RFC #1254 件 3.8 副作用 invocation 禁止の対象外、専用 step として明示)</li>
+<li>TransactionScopeStep 内部での <code>setGlobal</code> は <strong>即時反映</strong> で実装 (TX rollback 時の globals 値巻き戻しは現状未対応、dogfood で必要性を再検証)</li>
+<li><code>setGlobal</code> と <code>@var.global.&#x3C;name></code> 読み出し側の lifetime mismatch は <strong>warning</strong> として記録 (例: catalog が <code>application</code> 宣言なのに step で <code>session</code> 指定)</li>
+<li>runtime 永続化レイヤ (in-memory / KV / DB) と scope 適用ロジックは <strong>target 言語の codegen 側</strong> で実装する。Harmony 本体は schema + step kind 表現のみ提供</li>
+</ul>
+<p>詳細実装ガイド: <a href="https://github.com/csilost2001/harmony/blob/main/ai-skills/generate-code/SKILL.md">/generate-code skill SKILL.md の “setGlobal step 詳細” 節</a>。</p>
 <h3 id="37-tx-transactionscope-境界での変数挙動-1264-verdict-観点-4--1267-round-7-option-c">3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)</h3>
 <p>R3 で 3 AI 完全合流した折衷案を、Round 7 で <strong>option C (expose を任意 inner var 名まで拡張)</strong> として最終化:</p>
 <ul>
