@@ -1,0 +1,90 @@
+{
+  "$schema": "../../../../schemas/v3/view-definition.v3.schema.json",
+  "id": "study-history-list-viewer",
+  "uuid": "4c9cdc85-2537-4ca8-a979-4de21a56e0fa",
+  "name": "学習履歴一覧 viewer",
+  "description": "学習履歴一覧画面 (No.6) 向けの一覧 UI viewer 定義。v_learning_history_with_story ビュー (af699800-...) を Level 3 Raw SQL で参照し、ログインユーザーの履歴のみを表示する。ストーリータイトル / CEFR レベル / 学習日時 / スコア / ステータスを表示し、行クリックで詳細画面 (/history/:sessionId) に遷移する。",
+  "maturity": "draft",
+  "createdAt": "2026-05-04T00:00:00.000Z",
+  "updatedAt": "2026-05-04T00:00:00.000Z",
+  "kind": "list",
+  "query": {
+    "sql": "SELECT session_id, story_title, cefr_level, started_at, completed_at, score_avg, status, pack_name FROM v_learning_history_with_story WHERE user_id = @param.userId ORDER BY started_at DESC",
+    "parameterRefs": [
+      {
+        "name": "userId",
+        "fieldType": "integer",
+        "description": "ログインユーザーの ID。画面側から @sessionUserId を渡す。"
+      }
+    ]
+  },
+  "columns": [
+    {
+      "name": "sessionId",
+      "type": "integer",
+      "displayName": "セッションID",
+      "width": "100px",
+      "align": "right",
+      "linkTo": "/history/:sessionId"
+    },
+    {
+      "name": "storyTitle",
+      "type": "string",
+      "displayName": "ストーリー",
+      "width": "auto",
+      "align": "left",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "cefrLevel",
+      "type": "string",
+      "displayName": "CEFR",
+      "width": "80px",
+      "align": "center",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "startedAt",
+      "type": "datetime",
+      "displayName": "学習日時",
+      "displayFormat": "YYYY-MM-DD HH:mm",
+      "width": "160px",
+      "align": "left",
+      "sortable": true
+    },
+    {
+      "name": "scoreAvg",
+      "type": "number",
+      "displayName": "平均スコア",
+      "displayFormat": "#,##0.0",
+      "width": "100px",
+      "align": "right",
+      "sortable": true
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "displayName": "ステータス",
+      "width": "100px",
+      "align": "center",
+      "filterable": true
+    },
+    {
+      "name": "packName",
+      "type": "string",
+      "displayName": "パック",
+      "width": "120px",
+      "align": "left",
+      "filterable": true
+    }
+  ],
+  "sortDefaults": [
+    {
+      "columnName": "startedAt",
+      "order": "desc"
+    }
+  ],
+  "pageSize": 20
+}

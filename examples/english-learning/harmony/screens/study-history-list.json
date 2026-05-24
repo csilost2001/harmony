@@ -1,0 +1,46 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "study-history-list",
+  "uuid": "297e9117-0982-4a40-9ce7-bced3bc6d2c5",
+  "name": "学習履歴一覧",
+  "description": "S-4 学習履歴の一覧画面。過去の learning_sessions を日付降順で表示し、詳細画面へのリンクを提供する。",
+  "kind": "list",
+  "path": "/history",
+  "auth": "required",
+  "groupId": "learner",
+  "maturity": "draft",
+  "createdAt": "2026-05-04T00:00:00.000Z",
+  "updatedAt": "2026-05-04T00:00:00.000Z",
+  "items": [
+    {
+      "id": "dateFromFilter",
+      "label": "開始日 (From)",
+      "type": "date",
+      "direction": "input",
+      "required": false,
+      "description": "learning_sessions.started_at の範囲フィルタ (開始日)。"
+    },
+    {
+      "id": "dateToFilter",
+      "label": "開始日 (To)",
+      "type": "date",
+      "direction": "input",
+      "required": false,
+      "description": "learning_sessions.started_at の範囲フィルタ (終了日)。"
+    },
+    {
+      "id": "sessionList",
+      "label": "学習セッション一覧",
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
+      "direction": "viewer",
+      "viewDefinitionId": "study-history-list-viewer",
+      "description": "フィルタ条件で絞り込んだ learning_sessions 一覧。学習履歴一覧 viewer (4c9cdc85) の列定義に従い story_title / started_at / status / 総合スコアを表示する。"
+    }
+  ],
+  "design": {
+    "designFileRef": "study-history-list.design.json"
+  }
+}
