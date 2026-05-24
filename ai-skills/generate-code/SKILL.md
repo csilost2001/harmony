@@ -389,7 +389,7 @@ export class RequestContextHolder { /* same shape */ }
 
 - 生成 Service 名は globals catalog name に基づく PascalCase + `Holder` suffix で安定化する
 - `@var.global.<globalName>` 読み出し側 (Read) と setGlobal (Write) は同 lifetime を使う前提。lifetime mismatch は warning として記録
-- TransactionScopeStep 内部での setGlobal は **コミット時のみ反映** すべきか議論あり (現状は即時反映で実装、TX rollback 時に globals が残る問題は #1322 後続の dogfood で再検証)
+- TransactionScopeStep 内部での `setGlobal` は **即時反映** で実装 (TX rollback 時の globals 値巻き戻しは現状未対応、必要性は dogfood で再検証 — spec 確定: [docs/spec/process-flow-variables.md §3.6 globals write](../../docs/spec/process-flow-variables.md))
 
 ### affectedRowsCheck → 実装パターン
 
