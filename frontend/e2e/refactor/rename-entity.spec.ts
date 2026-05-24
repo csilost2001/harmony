@@ -12,8 +12,14 @@
  * 既知 infra issue (entity-id-creation.spec.ts と同じ #1297 I-5 で確認済):
  *   - workspace の re-render loop で button が detach/re-attach する場合あり
  *   - dialog 開く操作で連続クリックが必要なケースあり
- *   - 安定するまで test.describe.skip 推奨 (component test
- *     RenameEntityDialog.test.tsx 8 ケースで state machine は網羅済)
+ *   - 安定するまで test.describe.skip 維持 (本 PR では skip 解除しない、I-7 #1299 で解禁)
+ *
+ * Phase F M-5 (Codex 独立レビュー、2026-05-25):
+ *   - skip 解禁時に意味のある assertion になるよう、test body の参照側 JSON 取得を
+ *     `void pfText` 廃止 → mcpBridge.request 経由で生 JSON を取得 + 新 id 出現 / 旧 id 不在を assert
+ *   - undo 後の参照側 rollback (旧 id 復帰) も assertion 追加
+ *   - undo toast を `if (visible)` 条件分岐 → 必須 `await expect(toast).toBeVisible()` に変更
+ *   - skip 自体は本 PR では維持 (I-7 で workspace re-render loop infra 解消 → 解禁)
  *
  * 残り 6 entity (screen / processFlow / sequence / view / viewDefinition /
  * pageLayout) は manual smoke で代替 (RFC コメント本文より、scope inflation
@@ -102,26 +108,43 @@ test.describe.skip("Rename entity refactor — Table smoke (#1298 I-6)", { tag: 
     await expect(page.getByTestId("rename-entity-undo-toast")).toBeVisible({ timeout: 5000 });
 
     // 5. 別 tab で参照側 processFlow を開き、tableId が新 id に変わっていることを assert
+    //
+    // Phase F M-5 (Codex 独立レビュー): 旧実装は `pfText` を `void` で捨てており、参照側 update の
+    // acceptance #6 (rename → ref 確認 → undo → 復帰) を実際に検証していなかった。
+    // mcpBridge.request 経由で生 ProcessFlow JSON を取得し、新 id 出現 / 旧 id 不在を明示 assert する。
     await ws.gotoActive(page, `/process-flow/edit/${REFERENCING_FLOW_ID}`);
     await expect(page.locator(".process-flow-workbench")).toBeVisible({ timeout: 10000 });
-    // 簡易確認: source JSON に旧 id が消えて新 id が含まれることを mcpBridge.request で取得して比較
-    const pfText = await page.evaluate(async (id) => {
-      // wsBridge 経由で raw JSON を取得 (実際は store 経由)
-      // editor が render する JSON viewer が無いため evaluate で confirm
-      const resp = await fetch(`/api/process-flow/${encodeURIComponent(id)}`).catch(() => null);
-      return resp ? await resp.text().catch(() => "") : "";
-    }, REFERENCING_FLOW_ID).catch(() => "");
-    // 直 API 経由は env 依存のため確認はスキップ (UI assertion で代替)
-    void pfText;
+    const pfTextAfterRename = await page.evaluate(async (id) => {
+      // window.__mcpBridge.request 経由で生 JSON 取得 (UI viewer 非依存の堅牢 path)
+      const bridge = (window as unknown as { __mcpBridge?: { request: (m: string, p: unknown) => Promise<unknown> } }).__mcpBridge;
+      if (!bridge) return "";
+      const pf = await bridge.request("designer__get_flow", { id }).catch(() => null);
+      return pf ? JSON.stringify(pf) : "";
+    }, REFERENCING_FLOW_ID);
+    expect(pfTextAfterRename.length).toBeGreaterThan(0);
+    expect(pfTextAfterRename).toContain(`"${NEW_TABLE_ID}"`);
+    expect(pfTextAfterRename).not.toContain(`"${OLD_TABLE_ID}"`);
 
-    // 6. 元のテーブル edit 画面に戻ってから undo
+    // 6. 元のテーブル edit 画面に戻ってから undo (toast 必須 — 条件分岐削除)
     await ws.gotoActive(page, `/table/edit/${NEW_TABLE_ID}`);
     await expect(page.locator(".table-editor-page")).toBeVisible({ timeout: 10000 });
     const toast = page.getByTestId("rename-entity-undo-toast");
-    if (await toast.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await page.getByTestId("rename-entity-undo-btn").click();
-      // undo 成功で URL が旧 id に戻る
-      await expect(page).toHaveURL(new RegExp(`/table/edit/${OLD_TABLE_ID}(\\?|$)`), { timeout: 10000 });
-    }
+    await expect(toast).toBeVisible({ timeout: 5000 });
+    await page.getByTestId("rename-entity-undo-btn").click();
+    // undo 成功で URL が旧 id に戻る
+    await expect(page).toHaveURL(new RegExp(`/table/edit/${OLD_TABLE_ID}(\\?|$)`), { timeout: 10000 });
+
+    // 7. undo 後、参照側 ProcessFlow の tableId が旧 id に rollback されていること
+    await ws.gotoActive(page, `/process-flow/edit/${REFERENCING_FLOW_ID}`);
+    await expect(page.locator(".process-flow-workbench")).toBeVisible({ timeout: 10000 });
+    const pfTextAfterUndo = await page.evaluate(async (id) => {
+      const bridge = (window as unknown as { __mcpBridge?: { request: (m: string, p: unknown) => Promise<unknown> } }).__mcpBridge;
+      if (!bridge) return "";
+      const pf = await bridge.request("designer__get_flow", { id }).catch(() => null);
+      return pf ? JSON.stringify(pf) : "";
+    }, REFERENCING_FLOW_ID);
+    expect(pfTextAfterUndo.length).toBeGreaterThan(0);
+    expect(pfTextAfterUndo).toContain(`"${OLD_TABLE_ID}"`);
+    expect(pfTextAfterUndo).not.toContain(`"${NEW_TABLE_ID}"`);
   });
 });

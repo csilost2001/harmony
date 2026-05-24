@@ -118,7 +118,14 @@ export const refactorHandlers: RpcHandlerMap = {
       assertSafeName(operationId, "operationId");
       const result = await undoEntityRename(operationId as string, root());
       respond(result);
-      // undo は全 entity 種別の cache を invalidate するため、主要 4 種 reload を broadcast
+      // Phase F S-1 (Codex 独立レビュー): undo は originating client 自身の cache (newId 側 store
+      // データ + ref 側 cache) も完全に無効化する必要がある。renameEntityId の broadcast は
+      // originating client を `excludeClientId` で除外しても良い (rename を起こした側は自分で
+      // tab/URL 遷移 + handleRenameSuccess で旧 tab close 等の cache 入替を行うため不要)。
+      // 一方 undo は editor が「同じ URL に戻る」だけのため、cache 同期は broadcast に頼る必要が
+      // あり、originating client を除外すると stale cache が残る (固定 300ms hard delay は決定的
+      // でない緩和策、Codex 独立レビュー S-1 で指摘)。
+      // → undo 経路では excludeClientId を渡さず、originating client にも reload event を届ける。
       const wid = wsId();
       const RELOAD_EVENTS = [
         "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
@@ -126,7 +133,8 @@ export const refactorHandlers: RpcHandlerMap = {
       ];
       for (const ev of RELOAD_EVENTS) {
         bridge.broadcast({
-          wsId: wid, event: ev, data: { reload: true }, excludeClientId: clientId,
+          wsId: wid, event: ev, data: { reload: true },
+          // Phase F S-1: undo は originating client を除外しない (cache 同期保証)
         });
       }
     } catch (e) {

@@ -22,15 +22,20 @@ export interface RenameEntityUndoToastProps {
   /** TTL ms (default 5 分 = 300000) */
   ttlMs?: number;
   /**
-   * undo RPC 完了後 `onUndo()` を呼ぶ前の小 delay (default 300ms)。
+   * undo RPC 完了後 `onUndo()` を呼ぶ前の小 delay (default 0ms)。
    *
-   * S-3 (Opus 独立レビュー #1298): undo RPC 応答後に editor が即 navigate(oldUrl) すると、
-   * 同一 client 内の cache invalidation (broadcast event は backend が `excludeClientId` で
-   * originating client を除外するため受信不可) が完了する前に new→old URL の editor load が
-   * 走り、stale cache (newId 側) を読みに行く race リスクがある。300ms hard delay を挟むことで
-   * - backend の file IO (rename revert + ref restore) が settle する余地
-   * - editor の navigate trigger の reload が、復元済 oldId 側 file を fetch する
-   * 状態を担保する。test では `postUndoDelayMs={0}` で無効化可能。
+   * Phase F S-1 (Codex 独立レビュー #1298): 旧 default 300ms は decorator 的な race 緩和策で
+   * 決定的でない。backend handler 側で undo は originating client を broadcast から除外しない
+   * ように変更したため (`wsHandlers/refactor.ts undoEntityRename`)、cache invalidation が確実に
+   * originating client にも届くようになった。これにより hard delay は不要 (default 0)。
+   *
+   * backward compat 上 prop 自体は残す (test や特殊ケースで明示指定可)。
+   *
+   * 旧 S-3 (Opus 独立レビュー) の race リスク説明 (history):
+   *   - undo RPC 応答後に editor が即 navigate(oldUrl) すると、同一 client 内の cache
+   *     invalidation が完了する前に new→old URL の editor load が走り stale cache を読む
+   *   - これを 300ms hard delay で緩和していたが、S-1 (Codex) により broadcast 自体を
+   *     originating client にも届ける handshake に変更したため delay 不要
    */
   postUndoDelayMs?: number;
 }
@@ -43,7 +48,7 @@ export function RenameEntityUndoToast({
   onUndo,
   onDismiss,
   ttlMs = 5 * 60 * 1000,
-  postUndoDelayMs = 300,
+  postUndoDelayMs = 0,
 }: RenameEntityUndoToastProps) {
   const [undoing, setUndoing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,10 +70,9 @@ export function RenameEntityUndoToast({
     setError(null);
     try {
       await mcpBridge.request("undoEntityRename", { operationId });
-      // S-3: RPC 応答後に小 delay を挟んでから navigate trigger を起こす (cache race 回避)。
-      // 300ms は人間 perception 上ほぼ無視できる範囲かつ、backend file IO + 同一 client 内の
-      // 各 store reload が settle するのに十分な余裕値 (renameEntity の rename/undo は同期 fs API
-      // を使っており、event loop 数 tick + flush で完了するため 300ms で過剰)
+      // Phase F S-1: backend handler が originating client にも reload broadcast を送るよう変更
+      // (`wsHandlers/refactor.ts undoEntityRename` excludeClientId 廃止) されたため、
+      // hard delay は default 0。test や特殊ケースで postUndoDelayMs を明示指定したい場合は適用。
       if (postUndoDelayMs > 0) {
         await new Promise<void>((resolve) => setTimeout(resolve, postUndoDelayMs));
       }

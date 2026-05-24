@@ -25,6 +25,7 @@ import {
   renameEntityId,
   undoEntityRename,
   _clearUndoStoreForTest,
+  _setStrictUnlinkOverrideForTest,
   type EditSessionLike,
   type RenameEntityType,
 } from "./renameEntity.js";
@@ -818,5 +819,385 @@ describe("renameEntityId — M-4: screen rename → screen-flow-positions.positi
       entities: { tables: Array<{ id: string }> };
     }>(harmonyFile(root));
     expect(after.entities.tables[0].id).toBe("t-renamed");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase F regression (Codex 独立レビュー Must-fix 6 + Should-fix 1)
+//   F-1: ProcessFlow ref に handlerFlowId / refId 追加 (M-1)
+//   F-2: er-layout.json scan source 追加 + positions KEY migration (M-2)
+//   F-3: array / map walker (View.dependencies / PageLayout.assignments / ProcessFlow.tableIds) (M-3)
+//   F-4: 自己参照 rewrite (Table self-FK / self-ref ProcessFlow) (M-4)
+//   F-6: 旧ファイル削除 failure で snapshot rollback (M-6)
+// ─────────────────────────────────────────────────────────────────────────
+
+import { erLayoutFile } from "./projectStorage.js";
+
+// ─── F-1: ProcessFlow rename が handlerFlowId / refId を更新 (Codex M-1) ───
+
+describe("renameEntityId — Phase F M-1: ProcessFlow rename → handlerFlowId / refId 更新", () => {
+  it("Screen items の event.handlerFlowId が新 id に置換される", async () => {
+    const root = await makeWorkspace();
+    // PF を seed
+    await seedProcessFlow(root, "header-handler", { actions: [] });
+    // Screen に handlerFlowId 参照を seed
+    await writeScreenEntity("hdr-screen", {
+      id: "hdr-screen",
+      kind: "other",
+      path: "/hdr",
+      items: [
+        {
+          id: "btn",
+          label: "ボタン",
+          type: "boolean",
+          direction: "input",
+          events: [
+            { id: "click", handlerFlowId: "header-handler", argumentMapping: {} },
+          ],
+        },
+      ],
+    }, root);
+
+    const { preview } = await renameEntityId("processFlow", "header-handler", "header-handler-2", root);
+    const hit = preview.refUpdates.find(
+      (r) => r.jsonPointer.endsWith("/handlerFlowId") && r.oldValue === "header-handler",
+    );
+    expect(hit).toBeDefined();
+
+    const scrAfter = await readJsonFile<{
+      items: Array<{ events: Array<{ handlerFlowId: string }> }>;
+    }>(dataPath(root, "screens", "hdr-screen.json"));
+    expect(scrAfter.items[0].events[0].handlerFlowId).toBe("header-handler-2");
+  });
+
+  it("ProcessFlow commonProcess.refId が新 id に置換される", async () => {
+    const root = await makeWorkspace();
+    await seedProcessFlow(root, "common-logger", { actions: [] });
+    await seedProcessFlow(root, "caller-flow", {
+      actions: [
+        {
+          id: "act-1",
+          steps: [
+            { id: "s1", kind: "commonProcess", refId: "common-logger", description: "" },
+          ],
+        },
+      ],
+    });
+
+    const { preview } = await renameEntityId("processFlow", "common-logger", "common-logger-v2", root);
+    const hit = preview.refUpdates.find(
+      (r) => r.jsonPointer.endsWith("/refId") && r.oldValue === "common-logger",
+    );
+    expect(hit).toBeDefined();
+
+    const callerAfter = await readJsonFile<{
+      actions: Array<{ steps: Array<{ refId: string }> }>;
+    }>(dataPath(root, "process-flows", "caller-flow.json"));
+    expect(callerAfter.actions[0].steps[0].refId).toBe("common-logger-v2");
+  });
+
+  it("retail global-header 形 fixture: 同一 PF を processFlowId と handlerFlowId 双方で参照しても両方更新される", async () => {
+    const root = await makeWorkspace();
+    await seedProcessFlow(root, "hdr-pf", { actions: [] });
+    // Screen が processFlowId + items[].events[].handlerFlowId 両方で同 PF を参照
+    await writeScreenEntity("hdr", {
+      id: "hdr",
+      kind: "other",
+      path: "/hdr",
+      processFlowId: "hdr-pf",
+      items: [
+        {
+          id: "logout",
+          label: "ログアウト",
+          type: "boolean",
+          direction: "input",
+          events: [{ id: "click", handlerFlowId: "hdr-pf", argumentMapping: {} }],
+        },
+      ],
+    }, root);
+
+    const { preview } = await renameEntityId("processFlow", "hdr-pf", "hdr-pf-renamed", root);
+    // processFlowId + handlerFlowId 両方が refUpdates に含まれる
+    expect(preview.refUpdates.some((r) => r.jsonPointer === "/processFlowId")).toBe(true);
+    expect(preview.refUpdates.some((r) => r.jsonPointer.endsWith("/handlerFlowId"))).toBe(true);
+
+    const hdrAfter = await readJsonFile<{
+      processFlowId: string;
+      items: Array<{ events: Array<{ handlerFlowId: string }> }>;
+    }>(dataPath(root, "screens", "hdr.json"));
+    expect(hdrAfter.processFlowId).toBe("hdr-pf-renamed");
+    expect(hdrAfter.items[0].events[0].handlerFlowId).toBe("hdr-pf-renamed");
+  });
+});
+
+// ─── F-2: er-layout.json scan + positions KEY migration (Codex M-2) ────
+
+describe("renameEntityId — Phase F M-2: er-layout.json scan + positions KEY migration", () => {
+  it("Table rename → er-layout.positions[KEY] と logicalRelations[sourceTableId/targetTableId] 全部更新", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "customer");
+    await seedTable(root, "orders");
+
+    // er-layout.json seed: positions に KEY "customer" + logicalRelations に sourceTableId 参照
+    const erLayout = {
+      positions: {
+        "customer": { x: 100, y: 100 },
+        "orders": { x: 300, y: 100 },
+      },
+      logicalRelations: [
+        {
+          id: "lr-1",
+          sourceTableId: "orders",
+          targetTableId: "customer",
+          cardinality: "many-to-many" as const,
+        },
+      ],
+      updatedAt: "2026-05-25T00:00:00.000Z",
+    };
+    const dataRoot = path.join(root, "harmony");
+    await fs.writeFile(erLayoutFile(dataRoot), JSON.stringify(erLayout, null, 2), "utf-8");
+
+    const { preview } = await renameEntityId("table", "customer", "user", root);
+
+    // refUpdates に er-layout 関連 location が含まれる
+    const erHits = preview.refUpdates.filter((r) => r.entityKind === "erLayout");
+    // 期待: /positions/customer (KEY) + /logicalRelations/0/targetTableId
+    expect(erHits.length).toBeGreaterThanOrEqual(2);
+    expect(erHits.some((r) => r.jsonPointer === "/positions/customer")).toBe(true);
+    expect(erHits.some((r) => r.jsonPointer === "/logicalRelations/0/targetTableId")).toBe(true);
+
+    const erAfter = await readJsonFile<{
+      positions: Record<string, unknown>;
+      logicalRelations: Array<{ sourceTableId: string; targetTableId: string }>;
+    }>(erLayoutFile(dataRoot));
+    expect("customer" in erAfter.positions).toBe(false);
+    expect("user" in erAfter.positions).toBe(true);
+    expect("orders" in erAfter.positions).toBe(true); // 無関係 KEY は維持
+    expect(erAfter.logicalRelations[0].targetTableId).toBe("user");
+    expect(erAfter.logicalRelations[0].sourceTableId).toBe("orders");
+  });
+});
+
+// ─── F-3: array / map walker (Codex M-3) ──────────────────────────────
+
+describe("renameEntityId — Phase F M-3: array / map 形の ref walker", () => {
+  it("PageLayout.assignments map value が新 id に置換される (Screen rename)", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("global-header", {
+      id: "global-header", kind: "other", path: "/g", items: [],
+    }, root);
+    await writePageLayout("main-layout", {
+      id: "main-layout",
+      regions: [{ name: "header" }, { name: "main" }],
+      assignments: {
+        header: "global-header",
+        sidebar: "other-gadget",
+      },
+      design: { editorKind: "grapesjs", cssFramework: "bootstrap" },
+    }, root);
+
+    const { preview } = await renameEntityId("screen", "global-header", "global-header-v2", root);
+    const hit = preview.refUpdates.find(
+      (r) => r.jsonPointer === "/assignments/header" && r.oldValue === "global-header",
+    );
+    expect(hit).toBeDefined();
+
+    const plAfter = await readJsonFile<{
+      assignments: Record<string, string>;
+    }>(dataPath(root, "page-layouts", "main-layout.json"));
+    expect(plAfter.assignments.header).toBe("global-header-v2");
+    expect(plAfter.assignments.sidebar).toBe("other-gadget"); // 無関係は維持
+  });
+
+  it("View.dependencies[] array に含まれる EntityId が新 id に置換される (Table rename)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "store-master");
+    await writeView("store-view", {
+      id: "store-view",
+      physicalName: "store_view",
+      selectStatement: "SELECT * FROM stores",
+      outputColumns: [{ physicalName: "id", dataType: { kind: "string" } }],
+      dependencies: ["store-master", "other-table"],
+    }, root);
+
+    const { preview } = await renameEntityId("table", "store-master", "store", root);
+    const hit = preview.refUpdates.find(
+      (r) => r.jsonPointer.startsWith("/dependencies/") && r.oldValue === "store-master",
+    );
+    expect(hit).toBeDefined();
+
+    const viewAfter = await readJsonFile<{ dependencies: string[] }>(
+      dataPath(root, "views", "store-view.json"),
+    );
+    expect(viewAfter.dependencies).toContain("store");
+    expect(viewAfter.dependencies).toContain("other-table");
+    expect(viewAfter.dependencies).not.toContain("store-master");
+  });
+
+  it("ProcessFlow CdcStep.tableIds[] array に含まれる EntityId が新 id に置換される (Table rename)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "audit-log");
+    await seedProcessFlow(root, "cdc-flow", {
+      actions: [
+        {
+          id: "act-cdc",
+          steps: [
+            {
+              id: "s1",
+              kind: "cdc",
+              description: "CDC",
+              tableIds: ["audit-log", "other-table"],
+              captureMode: "incremental",
+              destination: {},
+            },
+          ],
+        },
+      ],
+    });
+
+    const { preview } = await renameEntityId("table", "audit-log", "audit-event", root);
+    const hit = preview.refUpdates.find(
+      (r) => r.jsonPointer.startsWith("/actions/0/steps/0/tableIds/") && r.oldValue === "audit-log",
+    );
+    expect(hit).toBeDefined();
+
+    const pfAfter = await readJsonFile<{
+      actions: Array<{ steps: Array<{ tableIds: string[] }> }>;
+    }>(dataPath(root, "process-flows", "cdc-flow.json"));
+    expect(pfAfter.actions[0].steps[0].tableIds).toContain("audit-event");
+    expect(pfAfter.actions[0].steps[0].tableIds).toContain("other-table");
+    expect(pfAfter.actions[0].steps[0].tableIds).not.toContain("audit-log");
+  });
+});
+
+// ─── F-4: 自己参照 rewrite (Codex M-4) ────────────────────────────────
+
+describe("renameEntityId — Phase F M-4: 自己参照 (self-FK / self-ref) も rewrite される", () => {
+  it("Table self-FK (constraints[].referencedTableId === 自己 id) が新 id に置換される", async () => {
+    const root = await makeWorkspace();
+    // 階層 Table (parent_id → 自身を参照する FK)
+    await writeTable("category", {
+      id: "category",
+      name: "category",
+      columns: [
+        { id: "id-col", physicalName: "id", dataType: { kind: "string" } },
+        { id: "parent-col", physicalName: "parent_id", dataType: { kind: "string" } },
+      ],
+      constraints: [
+        {
+          id: "fk-self",
+          kind: "foreignKey",
+          columnIds: ["parent-col"],
+          referencedTableId: "category", // 自己参照
+          referencedColumnIds: ["id-col"],
+        },
+      ],
+    }, root);
+
+    const { preview } = await renameEntityId("table", "category", "category-v2", root);
+    // refUpdates に自己 ref location が含まれる (entityKind === "table" + entityId === "category")
+    const selfRefHit = preview.refUpdates.find(
+      (r) => r.entityKind === "table"
+        && r.entityId === "category"
+        && r.jsonPointer.endsWith("/referencedTableId")
+        && r.oldValue === "category",
+    );
+    expect(selfRefHit).toBeDefined();
+
+    // 新 file 内の自己 FK referencedTableId が newId に置換されていること
+    const after = await readJsonFile<{
+      id: string;
+      constraints: Array<{ referencedTableId: string }>;
+    }>(dataPath(root, "tables", "category-v2.json"));
+    expect(after.id).toBe("category-v2");
+    expect(after.constraints[0].referencedTableId).toBe("category-v2");
+
+    // 旧 file は削除されていること
+    await expect(fs.access(dataPath(root, "tables", "category.json"))).rejects.toThrow();
+  });
+
+  it("ProcessFlow 自己参照 (commonProcess.refId === 自己 id) も新 id に置換される", async () => {
+    const root = await makeWorkspace();
+    // PF が自身を再帰呼出する fixture
+    await seedProcessFlow(root, "recursive-pf", {
+      actions: [
+        {
+          id: "act-recurse",
+          steps: [
+            { id: "s1", kind: "commonProcess", refId: "recursive-pf", description: "self-call" },
+          ],
+        },
+      ],
+    });
+
+    await renameEntityId("processFlow", "recursive-pf", "recursive-pf-v2", root);
+    const after = await readJsonFile<{
+      meta: { id: string };
+      actions: Array<{ steps: Array<{ refId: string }> }>;
+    }>(dataPath(root, "process-flows", "recursive-pf-v2.json"));
+    expect(after.meta.id).toBe("recursive-pf-v2");
+    expect(after.actions[0].steps[0].refId).toBe("recursive-pf-v2");
+  });
+});
+
+// ─── F-6: 旧ファイル削除 failure → snapshot rollback (Codex M-6) ────────
+
+describe("renameEntityId — Phase F M-6: 旧ファイル削除 failure → byte-identical rollback", () => {
+  it("commit phase の strictUnlink が permission denied で fail → 旧 file 復元 + 新 file 削除", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "src-table");
+    await seedProcessFlow(root, "ref-pf", { steps: [{ tableId: "src-table" }] });
+
+    const beforeSrc = await fs.readFile(dataPath(root, "tables", "src-table.json"), "utf-8");
+    const beforeRef = await fs.readFile(dataPath(root, "process-flows", "ref-pf.json"), "utf-8");
+
+    // strictUnlink を上書きして、対象 src-table.json への delete のみ EACCES で fail させる。
+    // 他 path (design.json 等) は real unlink で透過させる。
+    _setStrictUnlinkOverrideForTest(async (p: string) => {
+      if (p.endsWith(path.join("tables", "src-table.json"))) {
+        const err = new Error("EACCES: permission denied") as NodeJS.ErrnoException;
+        err.code = "EACCES";
+        throw err;
+      }
+      try { await fs.unlink(p); } catch { /* ignore */ }
+    });
+
+    try {
+      await expect(
+        renameEntityId("table", "src-table", "dst-table", root),
+      ).rejects.toThrow(/EACCES/);
+
+      // 旧 file content が byte-identical で復元されていること (rollback 復元)
+      expect(await fs.readFile(dataPath(root, "tables", "src-table.json"), "utf-8")).toBe(beforeSrc);
+      // 新 file (dst-table.json) は削除されていること (同一 uuid file が複数残らない)
+      await expect(fs.access(dataPath(root, "tables", "dst-table.json"))).rejects.toThrow();
+      // 参照側 PF も rollback されていること
+      expect(await fs.readFile(dataPath(root, "process-flows", "ref-pf.json"), "utf-8")).toBe(beforeRef);
+    } finally {
+      _setStrictUnlinkOverrideForTest(null);
+    }
+  });
+
+  it("ENOENT (既に削除済) は tolerant: rename 成功扱い (副作用なし)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "src-2");
+
+    // strictUnlink で対象 file への delete を ENOENT で fail させる (= 既に消えてる扱い)
+    _setStrictUnlinkOverrideForTest(async (p: string) => {
+      if (p.endsWith(path.join("tables", "src-2.json"))) {
+        // ENOENT は tolerant 扱い: 実 strictUnlink と同じ早期 return
+        return;
+      }
+      try { await fs.unlink(p); } catch { /* ignore */ }
+    });
+
+    try {
+      const { operation } = await renameEntityId("table", "src-2", "dst-2", root);
+      expect(operation.newId).toBe("dst-2");
+      // 新 file 存在
+      await fs.access(dataPath(root, "tables", "dst-2.json"));
+    } finally {
+      _setStrictUnlinkOverrideForTest(null);
+    }
   });
 });

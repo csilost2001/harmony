@@ -40,6 +40,8 @@ import {
   listAllPageLayouts,
   listAllTables,
   readScreenFlowPositions,
+  readErLayout,
+  erLayoutFile,
   type TopLevelEntityKind,
 } from "./projectStorage.js";
 
@@ -144,11 +146,16 @@ const PROCESS_FLOW_LEGACY_DIR = "actions";
  *   referencedTableId (table.v3 §195 FK)
  * - screen: sourceScreenId / targetScreenId (harmony.v3 §290 ScreenTransitions、
  *   process-flow.v3 §1244 ScreenTransitionStep)
+ *
+ * Phase F M-1 (Codex 独立レビュー): ProcessFlow を参照する追加 field:
+ * - handlerFlowId (screen-item.v3 §114 ScreenItemEvent — 画面項目 click 等の handler)
+ * - refId (process-flow.v3 §1193 CommonProcessStep — 他 ProcessFlow を呼ぶ step)
+ * 同一 PF を `processFlowId` と `handlerFlowId` 両方で参照する fixture (retail global-header) あり。
  */
 const SCALAR_REF_FIELDS: Record<RenameEntityType, string[]> = {
   screen: ["screenId", "initialScreen", "sourceScreenId", "targetScreenId"],
   table: ["tableId", "sourceTableId", "targetTableId", "referencedTableId"],
-  processFlow: ["processFlowId"],
+  processFlow: ["processFlowId", "handlerFlowId", "refId"],
   sequence: ["sequenceId"],
   view: ["viewId"],
   viewDefinition: ["viewDefinitionId"],
@@ -169,6 +176,45 @@ const SCALAR_REF_FIELDS: Record<RenameEntityType, string[]> = {
 const COMPOSITE_REF_FIELDS: Record<RenameEntityType, Array<{ parent: string; sub: string }>> = {
   screen: [{ parent: "screenItemRef", sub: "screenId" }],
   table: [{ parent: "tableColumnRef", sub: "tableId" }],
+  processFlow: [],
+  sequence: [],
+  view: [],
+  viewDefinition: [],
+  pageLayout: [],
+};
+
+/**
+ * array<EntityId> 形の ref field (entity 種別 → 親 field 名)。
+ *
+ * Phase F M-3 (Codex 独立レビュー): walker は scalar string match のみだったため
+ * array<string> 形の ref を取りこぼしていた。schema に基づき:
+ * - View.dependencies[]: items=EntityId (Table or View どちらの id も入る、view.v3 §27)
+ * - ProcessFlow.tableIds[] (CdcStep): items=EntityId (Table のみ、process-flow.v3 §1722)
+ *
+ * 当該 array に oldId と一致する string が含まれる場合、新 id に置換する。
+ */
+const ARRAY_REF_FIELDS: Record<RenameEntityType, string[]> = {
+  screen: [],
+  table: ["dependencies", "tableIds"],
+  processFlow: [],
+  sequence: [],
+  view: ["dependencies"],
+  viewDefinition: [],
+  pageLayout: [],
+};
+
+/**
+ * object map で値が EntityId の ref field (entity 種別 → 親 field 名)。
+ *
+ * Phase F M-3 (Codex 独立レビュー): walker は scalar string match のみだったため
+ * map value 形の ref を取りこぼしていた。schema に基づき:
+ * - PageLayout.assignments: {regionName: EntityId} (gadget Screen を参照、page-layout.v3 §26)
+ *
+ * 当該 map の value 群を走査し、oldId と一致する value を新 id に置換する。
+ */
+const MAP_VALUE_REF_FIELDS: Record<RenameEntityType, string[]> = {
+  screen: ["assignments"],
+  table: [],
   processFlow: [],
   sequence: [],
   view: [],
@@ -219,6 +265,8 @@ function escapeJsonPointerToken(s: string): string {
 type WalkOpts = {
   scalarFields: Set<string>;
   compositeFields: Array<{ parent: string; sub: string }>;
+  arrayFields: Set<string>;
+  mapValueFields: Set<string>;
   oldId: string;
   newId: string;
   onMatch: (jsonPointer: string, oldValue: string) => void;
@@ -253,6 +301,45 @@ function walkAndReplace(value: unknown, pointer: string, opts: WalkOpts): unknow
       }
     }
 
+    // Phase F M-3 (Codex): array<EntityId> 形の ref (View.dependencies / CdcStep.tableIds)
+    if (opts.arrayFields.has(key) && Array.isArray(v)) {
+      let arrayMutated = false;
+      const newArr = v.map((item, i) => {
+        if (typeof item === "string" && item === opts.oldId) {
+          opts.onMatch(`${childPointer}/${i}`, opts.oldId);
+          arrayMutated = true;
+          return opts.newId;
+        }
+        return item;
+      });
+      // 配列内に sub-object が混在するケースは想定外 (schema 上 items=EntityId のみ) だが、
+      // 安全策として置換が無ければ通常再帰で内部 sub-object を走査する余地を残す。
+      if (arrayMutated) {
+        result[key] = newArr;
+        continue;
+      }
+    }
+
+    // Phase F M-3 (Codex): object map で value が EntityId (PageLayout.assignments)
+    if (opts.mapValueFields.has(key) && v && typeof v === "object" && !Array.isArray(v)) {
+      const innerMap = v as Record<string, unknown>;
+      let mapMutated = false;
+      const newMap: Record<string, unknown> = {};
+      for (const [mk, mv] of Object.entries(innerMap)) {
+        if (typeof mv === "string" && mv === opts.oldId) {
+          opts.onMatch(`${childPointer}/${escapeJsonPointerToken(mk)}`, opts.oldId);
+          newMap[mk] = opts.newId;
+          mapMutated = true;
+        } else {
+          newMap[mk] = mv;
+        }
+      }
+      if (mapMutated) {
+        result[key] = newMap;
+        continue;
+      }
+    }
+
     // scalar field check: field 名一致 + 値一致 (string)
     if (opts.scalarFields.has(key) && typeof v === "string" && v === opts.oldId) {
       opts.onMatch(childPointer, opts.oldId);
@@ -282,6 +369,38 @@ async function writeFileContent(absPath: string, content: string): Promise<void>
 
 async function tryUnlink(absPath: string): Promise<void> {
   try { await fs.unlink(absPath); } catch { /* ignore */ }
+}
+
+/**
+ * 旧ファイル削除 (strict)。Phase F M-6 (Codex 独立レビュー)。
+ *
+ * ENOENT (既に削除済 / 存在しない) のみ tolerant、それ以外の error (permission denied / I/O error 等) は
+ * throw する。commit phase の旧ファイル削除に使用し、削除失敗時は同一 uuid file が複数残らないよう
+ * 上位 catch で snapshot から完全 restore する。
+ *
+ * Test seam: `_setStrictUnlinkOverrideForTest()` で fault injection 可能 (`*  as fs` の namespace import
+ * は vi.spyOn で差し替えできないため、module-level の差し替え seam を用意する)。
+ */
+let _strictUnlinkOverride: ((absPath: string) => Promise<void>) | null = null;
+
+async function strictUnlink(absPath: string): Promise<void> {
+  if (_strictUnlinkOverride) {
+    return _strictUnlinkOverride(absPath);
+  }
+  try {
+    await fs.unlink(absPath);
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") return; // 既に存在しない: tolerant
+    throw e;
+  }
+}
+
+/** test-only: strictUnlink を fault inject 用に差し替える (test 終了時に null で reset 必須) */
+export function _setStrictUnlinkOverrideForTest(
+  override: ((absPath: string) => Promise<void>) | null,
+): void {
+  _strictUnlinkOverride = override;
 }
 
 async function fileExists(absPath: string): Promise<boolean> {
@@ -330,6 +449,36 @@ function withRewrittenId(entityType: RenameEntityType, data: unknown, newId: str
     return { ...rest, meta };
   }
   return { ...obj, id: newId };
+}
+
+/**
+ * 主 entity 内の **自己参照** (例: Table の constraints[].referencedTableId が自己 id)
+ * を newId に書き換えた copy を返す。Phase F M-4 (Codex 独立レビュー)。
+ *
+ * `withRewrittenId` は identity field (`id` / `meta.id`) のみ書き換え、自己 ref は触らない。
+ * その後本関数で同じ rename 規約 (SCALAR / COMPOSITE / ARRAY / MAP) を適用して自己参照も rewrite する。
+ *
+ * 注: identity field は既に newId に確定しているため、walker (value === oldId のみ match) で
+ * 二重置換されない。自己参照 (例: referencedTableId === oldId) のみが置換される。
+ *
+ * `pageLayout` の `processFlowId` (kind=pageLayout が ProcessFlow を参照) のような entity 跨り
+ * 参照は ARRAY/MAP/COMPOSITE/SCALAR 全部 entity rename 対象 entityType に紐付くため、自己 entity 型
+ * の rename ではマッチしない。
+ */
+function rewriteSelfRefsInPrimary(
+  entityType: RenameEntityType, data: unknown, oldId: string, newId: string,
+): { rewritten: unknown; hits: number } {
+  let hits = 0;
+  const rewritten = walkAndReplace(data, "", {
+    scalarFields: new Set(SCALAR_REF_FIELDS[entityType]),
+    compositeFields: COMPOSITE_REF_FIELDS[entityType],
+    arrayFields: new Set(ARRAY_REF_FIELDS[entityType]),
+    mapValueFields: new Set(MAP_VALUE_REF_FIELDS[entityType]),
+    oldId,
+    newId,
+    onMatch: () => { hits++; },
+  });
+  return { rewritten, hits };
 }
 
 /** entity から uuid を取得 (ProcessFlow は meta.uuid、それ以外は root.uuid) */
@@ -426,6 +575,8 @@ async function scanAllRefs(
   const dataRoot = await resolveDataRoot(root);
   const scalarFields = new Set(SCALAR_REF_FIELDS[entityType]);
   const compositeFields = COMPOSITE_REF_FIELDS[entityType];
+  const arrayFields = new Set(ARRAY_REF_FIELDS[entityType]);
+  const mapValueFields = new Set(MAP_VALUE_REF_FIELDS[entityType]);
 
   // 探索対象 file 群を収集
   const sources: RefSourceFile[] = [];
@@ -526,19 +677,49 @@ async function scanAllRefs(
     });
   }
 
+  // 9. er-layout.json (Phase F M-2): Table rename で positions[KEY] / logicalRelations 参照
+  //    Codex 独立レビュー指摘: SCALAR_REF_FIELDS に targetTableId を追加しただけでは scan source
+  //    に er-layout.json が含まれず実走査されない。logicalRelations の sourceTableId/targetTableId
+  //    は汎用 walker で拾えるが、positions の object KEY は専用 handler が必要。
+  const erLayout = await readErLayout(root);
+  if (erLayout) {
+    sources.push({
+      entityKind: "erLayout", entityId: "er-layout.json",
+      absPath: erLayoutFile(dataRoot),
+      data: erLayout,
+    });
+  }
+
   // ── walk + update plan 作成 ────────────────────────────────
   const locations: RefLocation[] = [];
   const perFileUpdate = new Map<string, { original: string; updated: string; updatedData: unknown }>();
 
   for (const src of sources) {
-    // self-reference は rename 対象側でカバーされるので skip
-    // (entityType === src.entityKind && src.entityId === oldId) はファイル自体を rename するため
-    // 参照側 update には含めない
-    if (src.entityKind === entityType && src.entityId === oldId) continue;
+    // Phase F M-4 (Codex 独立レビュー): 旧実装は rename 対象 entity 自身を ref scan から常に
+    // 除外していたため、自己参照 (例: Table の constraints[].referencedTableId === 自己 id、
+    // self-referential ProcessFlow / Screen) が更新されず orphan ref を残していた。
+    // 主 entity の identity (`id` / `meta.id`) は `withRewrittenId` で別途書換えるが、
+    // それ以外の自己 ref は walker で拾わせるため、本 src skip は廃止した。
+    //
+    // 識別の二重置換は発生しない:
+    //   - `withRewrittenId` で identity を `newId` に確定後、本 walker は scalarFields に対し
+    //     value === oldId のみマッチするため、置換済 identity (=newId) は再 hit しない。
+    //   - 自己参照 ref 値 (constraints[].referencedTableId 等) は oldId のままなのでマッチする。
+    //
+    // ただし、主ファイル自体は filePlans (rename 対象、新 path に書く) で扱うため、ref scan で
+    // perFileUpdate には載せない (= 旧 path に upload しない)。代わりに「主 entity の自己 ref を
+    // 含む新 content」を `renameEntityId` 本体で `withRewrittenId` 後にこの walker で再走査して
+    // 構築する。ここでは「他 entity から自己 entity への参照を漏らさず拾う」目的で skip を解除。
+    //
+    // ファイル位置で言うと、主ファイルは「rename 対象 entity 自身」(`src.entityKind === entityType
+    // && src.entityId === oldId`) で、そのファイルへの書き込みは `writeEntityById(newId, ...)`
+    // が新 path に行う。本 walker でこれを `perFileUpdate.set(主ファイル absPath, ...)` してしまうと
+    // 旧 path に対して書き込もうとして衝突するため、絶対 path 一致での skip 条件にする:
+    const isPrimaryFile = src.entityKind === entityType && src.entityId === oldId;
 
-    // M-4 (Opus 独立レビュー): screen-flow-positions / harmony.json は walker の VALUE 一致
-    // ロジックでは捕捉できない (object KEY / entry 自身の id field) ため、専用 handler で
-    // 先に走査 + plan 化する。汎用 walker は変更しない (KEY 走査の generic 化は scope 外)。
+    // Phase F M-4 (Codex): screen-flow-positions / harmony.json / er-layout.json は walker の
+    // VALUE 一致ロジックでは捕捉できない (object KEY / entry 自身の id field) ため、専用 handler
+    // で先に走査 + plan 化する。汎用 walker は変更しない (KEY 走査の generic 化は scope 外)。
     let specializedUpdated: unknown = src.data;
     let specializedHits = 0;
     const onSpecialMatch = (jsonPointer: string) => {
@@ -557,12 +738,16 @@ async function scanAllRefs(
       specializedUpdated = rewriteHarmonyEntitiesId(
         src.data, entityType, oldId, newId, onSpecialMatch,
       );
+    } else if (src.entityKind === "erLayout" && entityType === "table") {
+      // Phase F M-2: er-layout.json の positions[oldId] (object KEY) を新 id に migrate。
+      // logicalRelations[].sourceTableId/targetTableId は SCALAR_REF_FIELDS で拾われる。
+      specializedUpdated = rewriteErLayoutPositionsKeys(src.data, oldId, newId, onSpecialMatch);
     }
 
-    // 汎用 walker (scalar / composite ref VALUE 一致)
+    // 汎用 walker (scalar / composite ref VALUE 一致 + array / map value)
     let hitCount = 0;
     const updated = walkAndReplace(specializedUpdated, "", {
-      scalarFields, compositeFields, oldId, newId,
+      scalarFields, compositeFields, arrayFields, mapValueFields, oldId, newId,
       onMatch: (jsonPointer, oldValue) => {
         hitCount++;
         locations.push({
@@ -576,6 +761,8 @@ async function scanAllRefs(
     });
     const totalHits = hitCount + specializedHits;
     if (totalHits > 0) {
+      // 主ファイルは新 path に書き出されるため perFileUpdate には載せない (locations のみ反映)
+      if (isPrimaryFile) continue;
       const originalContent = await readFileContentOrNull(src.absPath);
       if (originalContent !== null) {
         perFileUpdate.set(src.absPath, {
@@ -668,6 +855,34 @@ function rewriteScreenFlowPositionsKeys(
   if (newId in p) {
     // 既に存在 — overwrite せず skip (rename 対象 entity uniqueness とは別の同名 group の可能性)
     // この場合は warning として onMatch を呼ばず data そのまま返す
+    return data;
+  }
+  onMatch(`/positions/${escapeJsonPointerToken(oldId)}`);
+  const { [oldId]: moved, ...rest } = p;
+  return { ...obj, positions: { ...rest, [newId]: moved } };
+}
+
+/**
+ * er-layout.json の `positions[oldId]` (object KEY) を新 id に migrate する。
+ * Phase F M-2 (Codex 独立レビュー)。Table rename 専用。
+ *
+ * `logicalRelations[].sourceTableId` / `.targetTableId` は SCALAR_REF_FIELDS で汎用 walker が
+ * 拾うため、ここでは扱わない (object KEY のみ専用 handler)。
+ */
+function rewriteErLayoutPositionsKeys(
+  data: unknown,
+  oldId: string,
+  newId: string,
+  onMatch: (jsonPointer: string) => void,
+): unknown {
+  if (!data || typeof data !== "object") return data;
+  const obj = data as Record<string, unknown>;
+  const positions = obj.positions;
+  if (!positions || typeof positions !== "object" || Array.isArray(positions)) return data;
+  const p = positions as Record<string, unknown>;
+  if (!(oldId in p)) return data;
+  if (newId in p) {
+    // 既に新 id が存在 — preview の uniqueOk で衝突検出される想定のため、ここは skip
     return data;
   }
   onMatch(`/positions/${escapeJsonPointerToken(oldId)}`);
@@ -843,7 +1058,15 @@ export async function renameEntityId(
     // (b) 主ファイル新規 path に write (oldId → newId に rewrite した copy で)
     //     uuid は preserve される必要があるが、preserveOrAssignUuid は新規ファイルなら supplied を採用するので OK
     //     ProcessFlow と通常 entity の write 関数を使い分け、`id` field を newId に書き換えた data を渡す
-    const rewrittenPrimary = withRewrittenId(entityType, primaryData, newId);
+    //
+    // Phase F M-4 (Codex 独立レビュー): identity 書換え (withRewrittenId) に加えて、自己参照
+    // (例: Table self-FK の constraints[].referencedTableId、self-ref PF) も rewrite する。
+    // scanAllRefs は既に主ファイルの自己 ref location を locations に含めている (M-4 skip 解除済)
+    // ため、ここでは write する content の整合だけ取れば良い。
+    const identityRewritten = withRewrittenId(entityType, primaryData, newId);
+    const { rewritten: rewrittenPrimary } = rewriteSelfRefsInPrimary(
+      entityType, identityRewritten, oldId, newId,
+    );
 
     // 主ファイル new write は writeX 関数経由で行う (uuid preserve + schema annotate + path containment)
     await writeEntityById(entityType, newId, rewrittenPrimary, root);
@@ -883,22 +1106,35 @@ export async function renameEntityId(
     }
 
     // (d) 旧ファイル削除 — ここまで成功なら旧ファイルは不要
+    //
+    // Phase F M-6 (Codex 独立レビュー): 旧 `tryUnlink` は全 error を握り潰し、permission/I/O 失敗で
+    // 同一 uuid file が複数残る (= acceptance #5 atomic 違反) 状態でも rename 成功扱いだった。
+    // 本 phase の delete 失敗は throw して上位 catch で rollback (新 file 削除 + 旧 file content 復元
+    // + ref 側 rollback) を行う。
     for (const plan of filePlans) {
-      await tryUnlink(plan.from);
+      await strictUnlink(plan.from);
     }
-    // screen / pageLayout の旧 design.json も削除
+    // screen / pageLayout の旧 design.json も削除 (存在すれば)
     if (entityType === "screen") {
-      await tryUnlink(path.join(dataRoot, "screens", `${oldId}.design.json`));
+      await strictUnlink(path.join(dataRoot, "screens", `${oldId}.design.json`));
     } else if (entityType === "pageLayout") {
-      await tryUnlink(path.join(dataRoot, "page-layouts", `${oldId}.design.json`));
+      await strictUnlink(path.join(dataRoot, "page-layouts", `${oldId}.design.json`));
     }
   } catch (err) {
     // rollback: 新規 write した file を消す + 参照側を元に戻す
+    // Phase F M-6: 加えて、commit phase の旧ファイル削除が部分的に成功している可能性があるため、
+    // fileRenameSnapshots の from (旧 path) も snapshot content で書き戻す (byte-identical 復元)。
     for (const abs of writtenFiles) {
       await tryUnlink(abs);
     }
     for (const r of restoreActions) {
       try { await writeFileContent(r.absPath, r.originalContent); } catch { /* best effort */ }
+    }
+    // 旧ファイル復元 (commit phase の strictUnlink で一部削除されたケースをカバー)
+    for (const snap of fileRenameSnapshots) {
+      try {
+        await writeFileContent(path.join(dataRoot, snap.from), snap.originalContent);
+      } catch { /* best effort */ }
     }
     throw err;
   }
