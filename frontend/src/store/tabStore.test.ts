@@ -444,4 +444,24 @@ describe("UUID resourceId の per-resource タブ破棄 (RFC #1284 / #1296 I-4)"
     _reloadFromStorageForTests();
     expect(getTabs()).toHaveLength(1);
   });
+
+  it("activeTabId が破棄された UUID タブを指していたら空文字に reset される (S-3 follow-up)", () => {
+    localStorage.setItem("harmony-open-tabs", JSON.stringify([
+      { id: `design:${UUID_V4}`, type: "design", resourceId: UUID_V4, label: "破棄対象" },
+      { id: "design:user-form", type: "design", resourceId: "user-form", label: "残存" },
+    ]));
+    localStorage.setItem("harmony-active-tab", `design:${UUID_V4}`);
+    _reloadFromStorageForTests();
+    expect(getActiveTabId()).toBe("");
+    expect(getTabs().map((t) => t.id)).toEqual(["design:user-form"]);
+  });
+
+  it("activeTabId が残存タブを指していたら維持される (S-3 follow-up regression guard)", () => {
+    localStorage.setItem("harmony-open-tabs", JSON.stringify([
+      { id: "design:user-form", type: "design", resourceId: "user-form", label: "残存" },
+    ]));
+    localStorage.setItem("harmony-active-tab", "design:user-form");
+    _reloadFromStorageForTests();
+    expect(getActiveTabId()).toBe("design:user-form");
+  });
 });

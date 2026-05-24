@@ -774,6 +774,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       return;
     }
 
+    // RFC #1284 (#1296 I-4) では generic-definition (`kind:name` 形式、本 RFC 範囲外) を
+    // UUID URL 検出対象に含めない。tabStore の RESOURCE_TAB_TYPES にも generic-definition は含まれない。
     const genericDefEditorMatch = matchPath("/w/:wsId/generic-definition/:kind/:name", location.pathname);
     if (genericDefEditorMatch?.params.kind && genericDefEditorMatch?.params.name) {
       const kind = decodeURIComponent(genericDefEditorMatch.params.kind);

@@ -127,8 +127,12 @@ function _loadTabs(): TabItem[] {
 
 function _loadActiveId(): string {
   const v = localStorage.getItem(ACTIVE_KEY) ?? "";
-  // 存在しないタブを指していても起動時点では判断できないため文字列としてだけ検証
-  return typeof v === "string" ? v : "";
+  if (typeof v !== "string") return "";
+  // RFC #1284 (#1296 I-4 follow-up S-3): _loadTabs() で破棄された tab (UUID resourceId 等)
+  // を指していたら stale なので空文字に reset する。_loadActiveId は _loadTabs の後に呼ぶ前提
+  // (module-level 初期化順序: _tabs → _activeTabId)。
+  if (v && !_tabs.find((t) => t.id === v)) return "";
+  return v;
 }
 
 function _persist() {

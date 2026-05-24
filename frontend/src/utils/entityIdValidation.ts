@@ -7,8 +7,12 @@
  * 注意:
  * - `isValidUuid` は schemas/v3/common.v3.schema.json#Uuid の pattern と完全一致させる
  *   (RFC 4122 v4 厳密形式)。backend の loose UUID とは異なり、誤検出を減らすため strict。
+ *   schemas/v3/common.v3.schema.json#UuidLoose (g-z 許容、test / sample 専用、deprecated)
+ *   は本 utility では検出対象外。production data に流入しない前提。
  * - `isValidEntityId` は schemas/v3/common.v3.schema.json#EntityId の pattern +
- *   minLength: 1 / maxLength: 64 と一致。
+ *   minLength: 1 / maxLength: 64 と一致。本 file 単独では production 未使用だが、
+ *   I-5 (UI 創成ダイアログ) / I-6 (rename refactor) で backend `isValidEntityId` と
+ *   pair として利用予定のため事前 export しておく (RFC #1284 シリーズ整合)。
  */
 
 // schemas/v3/common.v3.schema.json#Uuid と完全一致 (RFC 4122 v4 厳密)
