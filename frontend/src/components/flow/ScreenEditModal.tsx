@@ -4,6 +4,7 @@ import { SCREEN_TYPE_LABELS } from "../../types/flow";
 import type { EditorKind } from "../../utils/resolveEditorKind";
 import type { CssFramework } from "../../types/v3/harmony";
 import type { PageLayoutEntry } from "../../types/v3/harmony";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 
 export interface ScreenFormData {
   name: string;
@@ -16,6 +17,11 @@ export interface ScreenFormData {
   cssFramework?: CssFramework;
   /** purpose='page' のときに設定する PageLayout ID (編集時のみ)。 */
   pageLayoutId?: string;
+  /**
+   * RFC #1284 / #1297 I-5: kebab-case Screen id。
+   * isCreate=true のときのみ意味を持つ (新規作成時に store/addScreen に渡す)。
+   */
+  id?: string;
 }
 
 interface Props {
@@ -33,6 +39,11 @@ interface Props {
    * undefined のとき (= gadget 画面 / 一覧未取得) は dropdown を非表示にする。
    */
   pageLayouts?: PageLayoutEntry[];
+  /**
+   * RFC #1284 / #1297 I-5: isCreate=true のとき、既存 Screen id の uniqueness check に使う。
+   * isCreate=false のときは無視される。
+   */
+  existingScreenIds?: readonly string[];
   onSave: (data: ScreenFormData) => void;
   onClose: () => void;
 }
@@ -52,6 +63,7 @@ export function ScreenEditModal({
   defaultEditorKind = "grapesjs",
   defaultCssFramework = "bootstrap",
   pageLayouts,
+  existingScreenIds = [],
   onSave,
   onClose,
 }: Props) {
@@ -61,6 +73,8 @@ export function ScreenEditModal({
     cssFramework: defaultCssFramework,
     ...initial,
   });
+  // RFC #1284 / #1297 I-5: 創成モードのみ id field の validation 状態を保持
+  const [idValidation, setIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
 
   useEffect(() => {
     if (open) {
@@ -79,7 +93,9 @@ export function ScreenEditModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
-    onSave({ ...form, name: form.name.trim() });
+    // 創成モードのみ id validation を強制
+    if (isCreate && idValidation.isInvalid) return;
+    onSave({ ...form, name: form.name.trim(), id: form.id?.trim() });
   };
 
   return (
@@ -200,6 +216,21 @@ export function ScreenEditModal({
               </div>
             )}
 
+            {isCreate && (
+              <>
+                <label htmlFor="screen-id">画面 ID <small>(kebab-case)</small></label>
+                <EntityIdInput
+                  value={form.id ?? ""}
+                  onChange={(id) => setForm((f) => ({ ...f, id }))}
+                  name={form.name}
+                  existingIds={existingScreenIds}
+                  entityLabel="画面"
+                  inputId="screen-id"
+                  onValidationChange={setIdValidation}
+                />
+              </>
+            )}
+
             <label htmlFor="screen-desc">説明</label>
             <textarea
               id="screen-desc"
@@ -216,7 +247,7 @@ export function ScreenEditModal({
             <button
               type="submit"
               className="flow-btn flow-btn-primary"
-              disabled={!form.name.trim()}
+              disabled={!form.name.trim() || (isCreate && idValidation.isInvalid)}
             >
               <i className="bi bi-check-lg" /> 保存
             </button>

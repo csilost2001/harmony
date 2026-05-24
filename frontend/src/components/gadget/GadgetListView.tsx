@@ -26,6 +26,7 @@ import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { useListKeyboard } from "../../hooks/useListKeyboard";
@@ -68,6 +69,9 @@ export function GadgetListView() {
   const [addName, setAddName] = useState("");
   const [addKind, setAddKind] = useState<ScreenKind>("other");
   const [addNameError, setAddNameError] = useState("");
+  // RFC #1284 / #1297 I-5: kebab-case Screen id + AI 提案ボタン + uniqueness 警告
+  const [addId, setAddId] = useState("");
+  const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
 
   // purpose='gadget' の Screen のみをロード
   const loadGadgets = useCallback(async (): Promise<ScreenNode[]> => {
@@ -242,23 +246,30 @@ export function GadgetListView() {
 
   const handleAddSave = async () => {
     const name = addName.trim();
+    const id = addId.trim();
     if (!name) {
       setAddNameError("ガジェット名を入力してください");
       return;
     }
+    if (addIdValidation.isInvalid) return;
     const project = await loadProject();
     const editorKind = projectDefaultEditorKind;
     const cssFramework = projectDefaultCssFramework;
+    // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って addScreen に渡す
     const screen = await addScreen(project, name, addKind, {
       purpose: "gadget",
       editorKind,
       cssFramework,
+      id,
     });
     await saveProject(project);
     const entity = await buildDefaultScreen(screen.id);
     entity.design = { ...entity.design, editorKind, cssFramework };
     await saveScreenEntity(entity);
     setShowAdd(false);
+    setAddId("");
+    setAddName("");
+    setAddNameError("");
     await editor.reload();
     selection.setSelectedIds(new Set([screen.id]));
   };
@@ -580,16 +591,29 @@ export function GadgetListView() {
                   </select>
                   <div className="form-text">ガジェットは URL を持たないため「その他」を推奨します</div>
                 </div>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold" htmlFor="gadget-id-input">ID <small>(kebab-case)</small></label>
+                  <EntityIdInput
+                    value={addId}
+                    onChange={setAddId}
+                    name={addName}
+                    existingIds={editor.items.map((s) => s.id)}
+                    entityLabel="ガジェット"
+                    inputId="gadget-id-input"
+                    onEnter={() => handleAddSave().catch(console.error)}
+                    onValidationChange={setAddIdValidation}
+                  />
+                </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowAdd(false); setAddId(""); }}>
                   キャンセル
                 </button>
                 <button
                   type="button"
                   className="btn btn-primary"
                   onClick={() => handleAddSave().catch(console.error)}
-                  disabled={!addName.trim()}
+                  disabled={!addName.trim() || addIdValidation.isInvalid}
                 >
                   <i className="bi bi-plus-lg me-1" />作成
                 </button>

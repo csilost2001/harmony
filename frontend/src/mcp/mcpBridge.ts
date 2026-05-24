@@ -746,7 +746,9 @@ class McpBridgeImpl {
         case "addScreen": {
           // RFC #1021 pl-6 (Codex 2nd review Must-fix): purpose を destructure + addScreen に渡す
           // (旧実装は purpose を捨てて undefined のまま追加していたので AI 経由で gadget が作れない bug)
-          const { name, type, path: screenPath, position, editorKind: reqEditorKind, cssFramework: reqCssFramework, purpose: reqPurpose } = (params ?? {}) as {
+          // RFC #1284 / #1297 I-5: id (kebab-case EntityId) を任意で受け取って addScreen に渡す
+          const { id: reqId, name, type, path: screenPath, position, editorKind: reqEditorKind, cssFramework: reqCssFramework, purpose: reqPurpose } = (params ?? {}) as {
+            id?: string;
             name: string;
             type?: ScreenType;
             path?: string;
@@ -766,6 +768,7 @@ class McpBridgeImpl {
             editorKind: reqEditorKind,
             cssFramework: reqCssFramework,
             purpose: reqPurpose,
+            id: reqId,
           });
           // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
           // buildDefaultScreen は project.techStack.designer を参照して解決するので project default も反映される

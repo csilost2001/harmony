@@ -1,5 +1,6 @@
 import type { View, ViewEntry, ViewId, PhysicalName, DisplayName, Timestamp } from "../types/v3";
 import { generateUUID } from "../utils/uuid";
+import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { validateView } from "../utils/viewValidation";
 import type { ValidationError } from "../utils/actionValidation";
 import { loadProject, saveProject } from "./flowStore";
@@ -84,11 +85,13 @@ export async function createView(
   physicalName: PhysicalName,
   name: DisplayName,
   description?: string,
+  opts?: { id?: string },
 ): Promise<View> {
+  // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
   const ts = nowTs();
   const view: View = {
     $schema: VIEW_SCHEMA_REF,
-    id: generateUUID() as ViewId,
+    id: (opts?.id ?? generateFallbackEntityId("view")) as ViewId,
     name,
     description,
     physicalName,

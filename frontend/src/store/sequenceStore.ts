@@ -1,5 +1,6 @@
 import type { Sequence, SequenceEntry, SequenceId, PhysicalName, DisplayName, Timestamp } from "../types/v3";
 import { generateUUID } from "../utils/uuid";
+import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { loadProject, saveProject } from "./flowStore";
 import { renumber, nextNo } from "../utils/listOrder";
 
@@ -58,11 +59,13 @@ export async function createSequence(
   physicalName: PhysicalName,
   name: DisplayName,
   description?: string,
+  opts?: { id?: string },
 ): Promise<Sequence> {
+  // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
   const ts = nowTs();
   const sequence: Sequence = {
     $schema: SEQUENCE_SCHEMA_REF,
-    id: generateUUID() as SequenceId,
+    id: (opts?.id ?? generateFallbackEntityId("seq")) as SequenceId,
     name,
     description,
     physicalName,

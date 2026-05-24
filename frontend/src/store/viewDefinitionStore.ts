@@ -8,6 +8,7 @@ import type {
   ViewDefinitionKind,
 } from "../types/v3";
 import { generateUUID } from "../utils/uuid";
+import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import {
   checkViewDefinitions,
   type ViewDefinitionIssue,
@@ -109,11 +110,13 @@ export async function createViewDefinition(
   kind: ViewDefinitionKind,
   sourceTableId: TableId,
   description?: string,
+  opts?: { id?: string },
 ): Promise<ViewDefinition> {
+  // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
   const ts = nowTs();
   const viewDefinition: ViewDefinition = {
     $schema: VIEW_DEFINITION_SCHEMA_REF,
-    id: generateUUID() as ViewDefinitionId,
+    id: (opts?.id ?? generateFallbackEntityId("vd")) as ViewDefinitionId,
     name,
     description,
     kind,

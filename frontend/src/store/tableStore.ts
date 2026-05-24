@@ -22,6 +22,7 @@ import type {
 } from "../types/v3";
 import { loadProject, saveProject } from "./flowStore";
 import { generateUUID } from "../utils/uuid";
+import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { validateTable } from "../utils/tableValidation";
 import type { ValidationError } from "../utils/actionValidation";
 import { renumber, nextNo } from "../utils/listOrder";
@@ -144,11 +145,14 @@ export async function createTable(
   name: DisplayName,
   description?: string,
   category?: string,
+  opts?: { id?: string },
 ): Promise<Table> {
+  // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
+  // 渡されない programmatic path (ErDiagram inline create / 旧 test 等) は fallback。
   const ts = nowTs();
   const table: Table = {
     $schema: TABLE_SCHEMA_REF,
-    id: generateUUID() as TableId,
+    id: (opts?.id ?? generateFallbackEntityId("tbl")) as TableId,
     name,
     description,
     physicalName,

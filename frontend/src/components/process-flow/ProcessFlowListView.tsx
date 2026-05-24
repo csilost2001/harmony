@@ -30,6 +30,7 @@ import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { ValidationBadge } from "../common/ValidationBadge";
 import { MaturityBadge } from "./MaturityBadge";
 import { useListSelection } from "../../hooks/useListSelection";
@@ -86,6 +87,9 @@ export function ProcessFlowListView() {
   const [addType, setAddType] = useState<ProcessFlowType>("screen");
   const [addScreenId, setAddScreenId] = useState("");
   const [addDescription, setAddDescription] = useState("");
+  // RFC #1284 / #1297 I-5: kebab-case ProcessFlow id + AI 提案ボタン + uniqueness 警告
+  const [addId, setAddId] = useState("");
+  const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [screens, setScreens] = useState<{ id: string; name: string }[]>([]);
   const [tableDefs, setTableDefs] = useState<ValidatorTableDef[]>([]);
   const [conventions, setConventions] = useState<ConventionsCatalog | null>(null);
@@ -406,18 +410,22 @@ export function ProcessFlowListView() {
 
   const handleAdd = async () => {
     const name = addName.trim();
-    if (!name) return;
+    const id = addId.trim();
+    if (!name || addIdValidation.isInvalid) return;
+    // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って store に渡す
     const group = await createProcessFlow(
       name,
       addType,
       addType === "screen" && addScreenId ? addScreenId : undefined,
       addDescription.trim() || undefined,
+      { id },
     );
     setShowAdd(false);
     setAddName("");
     setAddType("screen");
     setAddScreenId("");
     setAddDescription("");
+    setAddId("");
     navigate(wsPath(`/process-flow/edit/${group.meta.id}`));
   };
 
@@ -978,11 +986,24 @@ export function ProcessFlowListView() {
                 placeholder="処理フローの概要"
               />
             </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="process-flow-id-input">ID <small>(kebab-case)</small></label>
+              <EntityIdInput
+                value={addId}
+                onChange={setAddId}
+                name={addName}
+                existingIds={editor.items.map((p) => p.id)}
+                entityLabel="処理フロー"
+                inputId="process-flow-id-input"
+                onEnter={handleAdd}
+                onValidationChange={setAddIdValidation}
+              />
+            </div>
             <div className="process-flow-modal-footer">
-              <button className="btn btn-outline-secondary btn-sm" onClick={() => setShowAdd(false)}>
+              <button className="btn btn-outline-secondary btn-sm" onClick={() => { setShowAdd(false); setAddId(""); }}>
                 キャンセル
               </button>
-              <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={!addName.trim()}>
+              <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={!addName.trim() || addIdValidation.isInvalid}>
                 作成
               </button>
             </div>

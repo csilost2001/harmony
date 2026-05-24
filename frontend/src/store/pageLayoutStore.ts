@@ -8,6 +8,7 @@
 import type { Uuid, Timestamp, DisplayName, Maturity } from "../types/v3";
 import type { PageLayoutEntry } from "../types/v3/harmony";
 import { generateUUID } from "../utils/uuid";
+import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { loadRawProject, saveRawProject } from "./flowStore";
 import { renumber, nextNo } from "../utils/listOrder";
 
@@ -100,11 +101,13 @@ export async function createPageLayout(
   editorKind: PageLayoutEditorKind,
   cssFramework: PageLayoutCssFramework,
   description?: string,
+  opts?: { id?: string },
 ): Promise<PageLayout> {
+  // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
   const ts = nowTs();
   const pl: PageLayout = {
     $schema: PAGE_LAYOUT_SCHEMA_REF,
-    id: generateUUID() as Uuid,
+    id: (opts?.id ?? generateFallbackEntityId("pl")) as Uuid,
     name,
     description,
     maturity: "draft",

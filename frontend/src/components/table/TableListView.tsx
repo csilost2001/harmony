@@ -14,6 +14,7 @@ import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { ValidationBadge } from "../common/ValidationBadge";
 import { MaturityBadge } from "../process-flow/MaturityBadge";
 import { useListSelection } from "../../hooks/useListSelection";
@@ -58,6 +59,9 @@ export function TableListView() {
   const [addName, setAddName] = useState("");
   const [addLogical, setAddLogical] = useState("");
   const [addCategory, setAddCategory] = useState("");
+  // RFC #1284 / #1297 I-5: kebab-case Table id + AI 提案ボタン + uniqueness 警告
+  const [addId, setAddId] = useState("");
+  const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [exportDialect, setExportDialect] = useState<SqlDialect>("postgresql");
   const [showExport, setShowExport] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
@@ -299,12 +303,15 @@ export function TableListView() {
   const handleAdd = async () => {
     const physical = addName.trim();
     const display = addLogical.trim();
-    if (!physical || !display) return;
-    const table = await createTable(physical as PhysicalName, display as DisplayName, "", addCategory || undefined);
+    const id = addId.trim();
+    if (!physical || !display || addIdValidation.isInvalid) return;
+    // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って store に渡す
+    const table = await createTable(physical as PhysicalName, display as DisplayName, "", addCategory || undefined, { id });
     setShowAdd(false);
     setAddName("");
     setAddLogical("");
     setAddCategory("");
+    setAddId("");
     // #960: 「作成して編集」は auto-edit モードで Editor を開く (sessionStorage 経由)。
     sessionStorage.setItem(`harmony-auto-edit:table:${table.id}`, "1");
     navigate(wsPath(`/table/edit/${table.id}`));
@@ -733,14 +740,27 @@ export function TableListView() {
                   <option value="その他">その他</option>
                 </select>
               </label>
+              <label className="tbl-field">
+                <span>ID <small>(kebab-case)</small></span>
+                <EntityIdInput
+                  value={addId}
+                  onChange={setAddId}
+                  name={addLogical}
+                  existingIds={editor.items.map((t) => t.id)}
+                  entityLabel="テーブル"
+                  inputId="tbl-id-input"
+                  onEnter={handleAdd}
+                  onValidationChange={setAddIdValidation}
+                />
+              </label>
               <div className="tbl-modal-btns">
-                <button className="tbl-btn tbl-btn-ghost" onClick={() => setShowAdd(false)}>
+                <button className="tbl-btn tbl-btn-ghost" onClick={() => { setShowAdd(false); setAddId(""); }}>
                   キャンセル
                 </button>
                 <button
                   className="tbl-btn tbl-btn-primary"
                   onClick={handleAdd}
-                  disabled={!addName.trim() || !addLogical.trim()}
+                  disabled={!addName.trim() || !addLogical.trim() || addIdValidation.isInvalid}
                 >
                   作成して編集
                 </button>

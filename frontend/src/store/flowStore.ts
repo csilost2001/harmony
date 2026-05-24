@@ -36,6 +36,7 @@ import type {
 } from "../types/v3";
 import { SCREEN_KIND_LABELS, TRIGGER_LABELS } from "../types/flow";
 import { generateUUID } from "../utils/uuid";
+import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { uiInfo } from "../utils/uiLog";
 import { saveDraft, clearDraft, loadDraft } from "../utils/draftStorage";
 import { renumber, nextNo } from "../utils/listOrder";
@@ -756,6 +757,11 @@ export interface AddScreenOptions {
   cssFramework?: "bootstrap" | "tailwind";
   /** Screen 用途種別 (RFC #1021)。省略時は 'page' 相当。 */
   purpose?: "page" | "gadget";
+  /**
+   * RFC #1284 / #1297 I-5: kebab-case Screen id を明示指定する (UI 創成ダイアログ / Codex 経由 MCP / duplicate)。
+   * 省略時は `scr-<8桁>` の fallback id を採番する。
+   */
+  id?: string;
 }
 
 /** 画面を追加。 */
@@ -765,7 +771,9 @@ export async function addScreen(
   kind: ScreenKind,
   opts?: AddScreenOptions,
 ): Promise<ScreenNode> {
-  const id = generateUUID() as ScreenId;
+  // RFC #1284 / #1297 I-5: UI 創成ダイアログ / mcpBridge / duplicate path から
+  // kebab-case id が opts.id 経由で渡される。渡されない programmatic path は fallback。
+  const id = (opts?.id ?? generateFallbackEntityId("scr")) as ScreenId;
   const screen: ScreenNode = {
     id,
     no: nextNo(project.screens),

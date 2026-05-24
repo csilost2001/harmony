@@ -441,7 +441,8 @@ export function ScreenListView() {
     } else {
       const editorKind = data.editorKind ?? projectDefaultEditorKind;
       const cssFramework = data.cssFramework ?? projectDefaultCssFramework;
-      const screen = await addScreen(project, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework });
+      // RFC #1284 / #1297 I-5: kebab-case id を modal から受け取って addScreen に渡す
+      const screen = await addScreen(project, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework, id: data.id });
       screen.description = data.description;
       await saveProject(project);
       // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
@@ -715,6 +716,7 @@ export function ScreenListView() {
         defaultEditorKind={projectDefaultEditorKind}
         defaultCssFramework={projectDefaultCssFramework}
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
+        existingScreenIds={editor.items.map((s) => s.id)}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />

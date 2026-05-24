@@ -467,7 +467,8 @@ function FlowEditorInner() {
     } else {
       const editorKind = data.editorKind ?? projectDefaultEditorKind;
       const cssFramework = data.cssFramework ?? projectDefaultCssFramework;
-      const screen = await addScreen(projectRef.current, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework });
+      // RFC #1284 / #1297 I-5: kebab-case id を modal から受け取って addScreen に渡す
+      const screen = await addScreen(projectRef.current, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework, id: data.id });
       screen.description = data.description;
       await saveProject(projectRef.current);
       // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
@@ -1237,6 +1238,7 @@ function FlowEditorInner() {
         defaultEditorKind={projectDefaultEditorKind}
         defaultCssFramework={projectDefaultCssFramework}
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
+        existingScreenIds={projectRef.current?.screens.map((s) => s.id) ?? []}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />

@@ -25,6 +25,7 @@ import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { useListKeyboard } from "../../hooks/useListKeyboard";
@@ -64,6 +65,9 @@ export function PageLayoutListView() {
   const [addCssFramework, setAddCssFramework] = useState<PageLayoutCssFramework>("bootstrap");
   const [addDescription, setAddDescription] = useState("");
   const [addNameError, setAddNameError] = useState("");
+  // RFC #1284 / #1297 I-5: kebab-case PageLayout id + AI 提案ボタン + uniqueness 警告
+  const [addId, setAddId] = useState("");
+  const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
 
@@ -233,20 +237,25 @@ export function PageLayoutListView() {
     setAddCssFramework("bootstrap");
     setAddDescription("");
     setAddNameError("");
+    setAddId("");
   };
 
   const handleAdd = async () => {
     const name = addName.trim();
+    const id = addId.trim();
     if (!name) {
       setAddNameError("名前は必須です");
       return;
     }
+    if (addIdValidation.isInvalid) return;
 
+    // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って store に渡す
     const pl = await createPageLayout(
       name as DisplayName,
       addEditorKind,
       addCssFramework,
       addDescription.trim() || undefined,
+      { id },
     );
     setShowAdd(false);
     resetAddForm();
@@ -626,6 +635,19 @@ export function PageLayoutListView() {
                   rows={3}
                 />
               </label>
+              <label className="tbl-field">
+                <span>ID <small>(kebab-case)</small></span>
+                <EntityIdInput
+                  value={addId}
+                  onChange={setAddId}
+                  name={addName}
+                  existingIds={editor.items.map((pl) => String(pl.id))}
+                  entityLabel="ページレイアウト"
+                  inputId="page-layout-id-input"
+                  onEnter={handleAdd}
+                  onValidationChange={setAddIdValidation}
+                />
+              </label>
               <div className="tbl-modal-btns">
                 <button
                   className="tbl-btn tbl-btn-ghost"
@@ -636,7 +658,7 @@ export function PageLayoutListView() {
                 <button
                   className="tbl-btn tbl-btn-primary"
                   onClick={handleAdd}
-                  disabled={!addName.trim()}
+                  disabled={!addName.trim() || addIdValidation.isInvalid}
                 >
                   作成して編集
                 </button>
