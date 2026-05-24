@@ -1,12 +1,15 @@
 // #1260 Phase 2 sub-section B: EventPublish step に topic 補完 bind + payload ReferenceCompletionTextarea。
 // topic は topicResolver (context.catalogs.events キー) で @reference 補完対応。
 // payload は式入力のため ReferenceCompletionTextarea で補完対応 (#1282)。
+// #1308 Phase B: payload textarea に @this / @self 補完を追加。
 
 import type { EventPublishStep, EventTopic, ProcessFlow, TemplateString } from "../../../../types/v3";
 import type { WorkspaceRefs } from "../../../../utils/reference-completer/types";
 import { topicResolver } from "../../../../utils/reference-completer/workspaceResolver";
 import { convResolver } from "../../../../utils/reference-completer/convResolver";
 import { ALL_PROCESS_FLOW_SCOPE_RESOLVERS } from "../../../../utils/reference-completer/processFlowScopeResolver";
+import { thisResolver } from "../../../../utils/reference-completer/thisResolver";
+import { selfResolver } from "../../../../utils/reference-completer/selfResolver";
 import { ReferenceCompletionInput } from "../../../common/ReferenceCompletionInput";
 import { ReferenceCompletionTextarea } from "../../../common/ReferenceCompletionTextarea";
 import type { ConventionsCatalog } from "../../../../schemas/conventionsValidator";
@@ -27,8 +30,14 @@ export function EventPublishStepCardBody({
   group,
   conventions,
 }: EventPublishStepCardBodyProps) {
-  const payloadResolvers = [convResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS];
-  const payloadCtx = { conventions: conventions ?? null, flow: group ?? undefined, workspace };
+  const payloadResolvers = [convResolver, thisResolver, selfResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS];
+  const payloadCtx = {
+    conventions: conventions ?? null,
+    flow: group ?? undefined,
+    workspace,
+    currentDocumentKind: "processFlow" as const,
+    currentSelfRef: { kind: "step" as const, id: step.id },
+  };
   return (
     <>
       <div className="row g-2 mb-2">

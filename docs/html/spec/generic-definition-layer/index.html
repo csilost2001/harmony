@@ -249,7 +249,8 @@
 <li><strong><code>mappingHints</code> は完全 optional / advisory</strong> (任意): 特定 techStack (Spring / Nest / Next 等) への codegen 時のヒント。設計書の本質ではなく <strong>AI 生成側のチューニング材料</strong>。本 spec の Spring/Nest/Next 例はあくまでサンプルで、Django / Rails / Vue 等への展開も自由</li>
 <li><code>mappingHints</code> が無くても <strong>言語非依存の本体だけで設計意図は完結する</strong> こと。逆に <code>mappingHints</code> だけで設計意図を表現するのは禁止 (本体に migrate する)</li>
 </ul>
-<h3 id="42-8-種類の-kind">4.2 8 種類の kind</h3>
+<h3 id="42-18-種類の-kind">4.2 18 種類の kind</h3>
+<p>初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張 → #1310 で 18 種に拡張。#1318 で <code>messageArea</code> kind を <code>message-area</code> に kebab-case 統一 (prefix <code>@messageArea.&#x3C;name></code> は維持、kind=kebab/prefix=camelCase は log-event/logEvent と同じ分離パターン)。</p>
 
 
 
@@ -300,7 +301,57 @@
 
 
 
-<table><thead><tr><th>kind</th><th>用途</th><th>主な参照元</th></tr></thead><tbody><tr><td><code>data-contract</code></td><td>DTO / Form / Result / ViewModel など、層間契約</td><td>ScreenItem / ProcessFlow.inputs/outputs</td></tr><tr><td><code>domain-type</code></td><td>Entity / Model などドメイン型 (永続化を含む)</td><td>table 補完 / ProcessFlow</td></tr><tr><td><code>exception-type</code></td><td>例外種別・階層・semantic kind</td><td>errorCode catalog</td></tr><tr><td><code>application-rule</code></td><td>認証認可ポリシー / ログ / 監査 / 例外変換 / 横断ルール</td><td>project-level config</td></tr><tr><td><code>ui-behavior</code></td><td>画面横断振る舞い (dirty check / dialog / datepicker / 二重送信防止)</td><td>ScreenItem.event.effects[] / screen.commonBehaviors[]</td></tr><tr><td><code>runtime-policy</code></td><td>retry / timeout / circuit breaker / cache (横断適用ポリシー)</td><td>ProcessFlow step / external system</td></tr><tr><td><code>component-definition</code></td><td>service / mapper / repository / validator / formatter / facade / adapter / helper 等の責務</td><td>ProcessFlow.componentCall</td></tr><tr><td><code>ui-fragment</code></td><td>再利用 UI 断片 (ヘッダー / フッター / メッセージ領域等)</td><td>screen.fragments[]</td></tr></tbody></table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>kind</th><th>用途</th><th>主な参照元</th></tr></thead><tbody><tr><td><code>data-contract</code></td><td>DTO / Form / Result / ViewModel など、層間契約</td><td>ScreenItem / ProcessFlow.inputs/outputs</td></tr><tr><td><code>domain-type</code></td><td>Entity / Model などドメイン型 (永続化を含む)</td><td>table 補完 / ProcessFlow</td></tr><tr><td><code>exception-type</code></td><td>例外種別・階層・semantic kind</td><td>errorCode catalog</td></tr><tr><td><code>application-rule</code></td><td>認証認可ポリシー / ログ / 監査 / 例外変換 / 横断ルール</td><td>project-level config</td></tr><tr><td><code>validation-rule</code></td><td>業務検証ルール (条件 + メッセージ + severity)</td><td><code>@validation.&#x3C;name></code></td></tr><tr><td><code>ui-behavior</code></td><td>画面横断振る舞い (dirty check / dialog / datepicker / 二重送信防止)</td><td>ScreenItem.event.effects[] / screen.commonBehaviors[]</td></tr><tr><td><code>runtime-policy</code></td><td>retry / timeout / circuit breaker / cache (横断適用ポリシー)</td><td>ProcessFlow step / external system</td></tr><tr><td><code>component-definition</code></td><td>service / mapper / repository / validator / formatter / facade / adapter / helper 等の責務</td><td>ProcessFlow.componentCall</td></tr><tr><td><code>ui-fragment</code></td><td>再利用 UI 断片 (ヘッダー / フッター / メッセージ領域等)</td><td>screen.fragments[]</td></tr><tr><td><code>constants</code></td><td>ドメイン定数集</td><td><code>@const.&#x3C;key></code></td></tr><tr><td><code>message</code></td><td>メッセージカタログ (i18n source)</td><td><code>@msg.&#x3C;key></code></td></tr><tr><td><code>domain-event</code></td><td>ドメインイベント定義</td><td><code>@event.&#x3C;topic></code></td></tr><tr><td><code>log-event</code></td><td>ログイベント定義 (構造化ログ)</td><td><code>@logEvent.&#x3C;key></code></td></tr><tr><td><code>log-config</code></td><td>ログ設定 (log level / sink / format)</td><td><code>@logConfig.&#x3C;key></code></td></tr><tr><td><code>dialog</code></td><td>confirm / alert / custom dialog の定義 (ScreenItemEvent.effects[].showDialog.target 参照先)</td><td><code>@dialog.&#x3C;name></code></td></tr><tr><td><code>message-area</code></td><td>画面横断 message area の定義 (ScreenItemEvent.effects[].setMessage.target 参照先、#1318 で <code>messageArea</code> → <code>message-area</code> kebab-case 統一、prefix は <code>@messageArea.</code> を維持 = log-event/logEvent 前例と同様の kind=kebab/prefix=camelCase 分離)</td><td><code>@messageArea.&#x3C;name></code></td></tr><tr><td><code>options</code></td><td>選択肢カタログ (ScreenItemEvent.effects[].setOptions 動的差し替え参照先)</td><td><code>@options.&#x3C;name></code></td></tr><tr><td><code>global</code></td><td>workspace/project 横断の mutable 設定 slot (<code>@var.global.&#x3C;key></code> 参照元、Spring <code>@Value</code> / <code>@SessionScope</code> 相当、#1310)。read-only catalog として 1 instance = 1 設定群を定義、<code>fields[]</code> で field schema を記述。本 PR では catalog のみ、write semantics (step kind / lifetime) は将来 follow-up。</td><td><code>@var.global.&#x3C;key></code></td></tr></tbody></table>
 <h3 id="43-既存仕様との関係">4.3 既存仕様との関係</h3>
 
 

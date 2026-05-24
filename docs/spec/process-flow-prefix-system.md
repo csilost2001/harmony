@@ -162,15 +162,16 @@ JSON Schema 2020-12 では `x-*` keyword は未定義扱い (warning が出る�
 
 severity は maturity 連動 (`committed`=error / `draft`/`provisional`=warning)。projectCatalogIndex 未渡し時は @var / @event のみ検証 (silent pass on the rest、Phase X2 互換)。
 
-`@this` / `@self` (designer-time alias、§11) は runtime catalog では解決不可のため、Check 31 は **silent pass** する (context 不在での standalone validation では検証不能)。
+`@this` / `@self` (designer-time alias、§11) は runtime catalog では解決不可のため、Check 31 は **silent pass** する (context 不在での standalone validation では検証不能、Phase B-3 #1322 で context 注入を予定)。
 
 ## 10. 変更履歴
 
 - 2026-05-23: 初版作成 (#1263 Phase X2 — RFC #1254 件 3.7 verdict 反映)
 - 2026-05-23: §9 24 prefix broken-ref 検証 追加 (#1269 提案 C — Phase X2 follow-up)
 - 2026-05-24: §11 designer-time alias (@this / @self) 追加 (#1301)
+- 2026-05-24: §11 Phase B (#1308) — resolver layer を全 kind に拡張 + ProcessFlow editor へ bind。validator / runtime / codegen 側 (Phase B-3) は #1322 へ deferred
 
-## 11. designer-time alias (`@this` / `@self`、#1301)
+## 11. designer-time alias (`@this` / `@self`、#1301 / #1308)
 
 `@this` / `@self` は **designer (editor) の context** に依存する alias prefix。runtime では具体 `@screen.<id>.item.<id>` / `@flow.<id>` 等の static ref に展開される。
 
@@ -178,36 +179,45 @@ severity は maturity 連動 (`committed`=error / `draft`/`provisional`=warning)
 
 現在編集中の root 設計書を指す。editor 種別から自動展開:
 
-| editor 種別 | `@this` が指すもの | example |
-|---|---|---|
-| Screen 編集 (`/screen/items/:id` / `/screen/design/:id`) | `@screen.<currentScreenId>` | `@this.item.<otherItemId>.value` → `@screen.<curScrId>.item.<otherItemId>.value` |
-| ProcessFlow 編集 (`/process-flow/edit/:id`) | `@flow.<currentFlowId>` (※ inline 禁止規則は不変、designer alias としては許容) | `@this.action.<actionId>.outputBinding` |
-| Table 編集 (`/table/edit/:id`) | `@table.<currentTableId>` | `@this.field.<fieldId>.physicalName` |
-| View 編集 (`/view/edit/:id`) | `@view.<currentViewId>` | 同上 |
-| ViewDefinition 編集 | `@viewer.<currentViewDefId>` | — |
-| Sequence 編集 | `@seq.<currentSequenceId>` | — |
-| PageLayout 編集 | `@layout.<currentPageLayoutId>` | — |
+| editor 種別 | `@this` が指すもの | example | resolver / 補完 bind 状態 |
+|---|---|---|---|
+| Screen 編集 (`/screen/items/:id` / `/screen/design/:id`) | `@screen.<currentScreenId>` | `@this.item.<otherItemId>.value` → `@screen.<curScrId>.item.<otherItemId>.value` | resolver: ✅、bind: ✅ (ScreenItemsView、Phase A) |
+| ProcessFlow 編集 (`/process-flow/edit/:id`) | `@flow.<currentFlowId>` (※ inline 禁止規則は不変、designer alias としては許容) | `@this.action.<actionId>.outputBinding` | resolver: ✅、bind: ✅ (DbAccess.sql / EventPublish.payload / EventSubscribe.filter、Phase B) |
+| Table 編集 (`/table/edit/:id`) | `@table.<currentTableId>` | `@this.field.<fieldId>.physicalName` | resolver: ✅、bind: ⏳ (式入力 UI 未導入、別 ISSUE 待ち) |
+| View 編集 (`/view/edit/:id`) | `@view.<currentViewId>` | `@this.outputColumn.<name>` | resolver: ✅、bind: ⏳ (同上) |
+| ViewDefinition 編集 | `@viewer.<currentViewDefId>` | `@this.column.<name>` | resolver: ✅、bind: ⏳ (同上) |
+| Sequence 編集 | `@seq.<currentSequenceId>` | `@this.startValue` / `@this.physicalName` (collection 無し、flat 構造) | resolver: ✅、bind: ⏳ (同上) |
+| PageLayout 編集 | `@layout.<currentPageLayoutId>` | `@this.region.<name>` (schema field `regions`) | resolver: ✅、bind: ⏳ (同上) |
 
-Phase A 実装範囲: **Screen editor のみ完全動作**。他 editor は Phase B (別 ISSUE で後続) で対応。Phase B 未対応 editor 内で `@this` を使った場合、resolver は idle (補完候補なし)、validator は `@this` を未知 prefix として warning。
+実装範囲 (#1308 完了時点):
+
+- **resolver 層**: 全 7 kind に対応 (Phase B で `thisResolver.ts` の `screen only` guard 解除、kind 別 top-level fields table + ProcessFlow `@this.action.<id>` 補完を追加)
+- **editor bind 層**: Screen editor (Phase A、3 箇所) + ProcessFlow editor (Phase B、3 expression field) で完全動作。Table / View / ViewDefinition / Sequence / PageLayout の各 editor は現状 `ReferenceCompletionInput` / `ReferenceCompletionTextarea` を使う式入力 UI が未導入のため bind 対象なし。式入力 UI 自体の導入は別 feature ISSUE で別途検討
+- **collection 補完** (`@this.<col>.<id>`): context に collection list が供給される場合のみ動作。screen.item は `ctx.currentScreenItems` (Phase A)、processFlow.action は `ctx.flow?.actions` (Phase B) を参照。他 collection (table.field / view.outputColumn 等) は context list 未供給で補完候補は空 (resolver は active を返すが candidates が 0 件)
 
 ### 11.2 `@self` — 現在編集中の要素 alias
 
 現在 designer が編集している具体的な要素を指す。
 
-| editor 種別 / context | `@self` が指すもの | example |
-|---|---|---|
-| ScreenItemsView の items table 行編集 / events panel / effects 編集 / argumentMapping | 当該 ScreenItem | `@self.value` / `@self.id` / `@self.label` |
-| ProcessFlowEditor の step 編集 | 当該 step | `@self.id` / `@self.outputBinding.name` (Phase B) |
-| TableEditor の column 編集 | 当該 column (Phase B) | `@self.physicalName` |
+| editor 種別 / context | `@self` が指すもの | example | resolver / 補完 bind 状態 |
+|---|---|---|---|
+| ScreenItemsView の items table 行編集 / events panel / effects 編集 / argumentMapping | 当該 ScreenItem | `@self.value` / `@self.id` / `@self.label` | resolver: ✅、bind: ✅ (Phase A) |
+| ProcessFlowEditor の step 編集 (DbAccess / EventPublish / EventSubscribe body) | 当該 step | `@self.id` / `@self.outputBinding` / `@self.runIf` | resolver: ✅、bind: ✅ (Phase B、3 expression field) |
+| TableEditor の column 編集 | 当該 column | `@self.physicalName` / `@self.dataType` / `@self.defaultValue` | resolver: ✅、bind: ⏳ (式入力 UI 未導入) |
+| ViewEditor / ViewDefinitionEditor の column 編集 | 当該 column | 同上 | resolver: ✅、bind: ⏳ |
+| PageLayoutEditor の region 編集 | 当該 region | `@self.name` / `@self.description` | resolver: ✅、bind: ⏳ |
 
-Phase A 実装範囲: **ScreenItem context のみ完全動作**。他 context は Phase B (別 ISSUE) で。
+実装範囲 (#1308 完了時点):
+
+- **resolver 層**: kind = `screenItem` / `step` / `column` / `region` の 4 kind に対応 (Phase B で `selfResolver.ts` の `screenItem only` guard 解除、kind 別 default fields table を追加)
+- **editor bind 層**: ScreenItem context (Phase A) + step context (Phase B、ProcessFlow editor 3 expression field) で完全動作。column / region context は bind 先 UI 未導入
 
 ### 11.3 designer-time alias の特性
 
-- `@this` / `@self` は **designer 補完・validator alias** として機能。runtime 評価時は static ref に **pre-resolve** される設計 (or codegen で展開) — Phase A (本 ISSUE #1301) では runtime/codegen 側の対応は未着手で、Phase B (#1308) で実装予定。
+- `@this` / `@self` は **designer 補完・validator alias** として機能。runtime 評価時は static ref に **pre-resolve** される設計 (or codegen で展開) — Phase A (#1301) + Phase B (#1308) では designer 側の補完サポートまでが対象。validator / runtime / codegen 側の context 解決は **Phase B-3 (#1322)** で扱う
 - broken-ref validator (`processFlowAntipatternValidator` Check 31) の挙動:
-  - **Phase A (現状)**: `@this.*` / `@self.*` を **常に silent pass** で skip (validator に designer context 注入の仕組みが未整備のため、false positive 回避を優先)
-  - **Phase B (#1308 予定)**: context 注入後に static ref と等価検証を行う (例: Screen 編集中の `@this.item.<id>` を `@screen.<curScrId>.item.<id>` に解決して既存 Check 31 catalog で検証)
+  - **現状 (Phase B 時点)**: `@this.*` / `@self.*` を **常に silent pass** で skip (validator に designer context 注入の仕組みが未整備のため、false positive 回避を優先)
+  - **Phase B-3 (#1322 予定)**: context 注入後に static ref と等価検証を行う (例: Screen 編集中の `@this.item.<id>` を `@screen.<curScrId>.item.<id>` に解決して既存 Check 31 catalog で検証)、runtime / codegen 側で static ref への pre-resolve を実装
 
 ### 11.4 prefix 一覧との関係 (§1 補足)
 

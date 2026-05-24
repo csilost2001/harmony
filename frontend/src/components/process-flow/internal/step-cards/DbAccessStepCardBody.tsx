@@ -1,6 +1,7 @@
 // Phase-2 (#1145): StepCard.tsx の `step.kind === "dbAccess"` body を抽出。
 // #1016 follow-up (2026-05-20): generic StepCardBodyBaseProps<DbAccessStep> で type narrow、@ts-nocheck 除去。
 // Phase-3 (#1255): SQL body textarea に @conv / @stepResult / @inputs / @fieldErrors 補完を追加。
+// #1308 Phase B: SQL body textarea に @this / @self 補完を追加 (currentDocumentKind="processFlow" + currentSelfRef step)。
 
 import type { DbAccessStep, DbOperation, TableId, ErrorCode } from "../../../../types/v3";
 import { DB_OPERATION_LABELS } from "../../../../utils/processFlowMetadata";
@@ -9,6 +10,8 @@ import type { StepCardBodyBaseProps, StepCardBodyCatalogProps, StepCardBodyTable
 import { ReferenceCompletionTextarea } from "../../../common/ReferenceCompletionTextarea";
 import { convResolver } from "../../../../utils/reference-completer/convResolver";
 import { ALL_PROCESS_FLOW_SCOPE_RESOLVERS } from "../../../../utils/reference-completer/processFlowScopeResolver";
+import { thisResolver } from "../../../../utils/reference-completer/thisResolver";
+import { selfResolver } from "../../../../utils/reference-completer/selfResolver";
 
 export interface DbAccessStepCardBodyProps
   extends StepCardBodyBaseProps<DbAccessStep>,
@@ -23,8 +26,13 @@ export function DbAccessStepCardBody({
   conventions,
   group,
 }: DbAccessStepCardBodyProps) {
-  const sqlResolvers = [convResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS];
-  const sqlCtx = { conventions: conventions ?? null, flow: group ?? undefined };
+  const sqlResolvers = [convResolver, thisResolver, selfResolver, ...ALL_PROCESS_FLOW_SCOPE_RESOLVERS];
+  const sqlCtx = {
+    conventions: conventions ?? null,
+    flow: group ?? undefined,
+    currentDocumentKind: "processFlow" as const,
+    currentSelfRef: { kind: "step" as const, id: step.id },
+  };
   return (
     <>
       <div className="form-group">
