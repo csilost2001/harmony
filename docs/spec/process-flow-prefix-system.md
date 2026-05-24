@@ -162,7 +162,7 @@ JSON Schema 2020-12 では `x-*` keyword は未定義扱い (warning が出る�
 
 severity は maturity 連動 (`committed`=error / `draft`/`provisional`=warning)。projectCatalogIndex 未渡し時は @var / @event のみ検証 (silent pass on the rest、Phase X2 互換)。
 
-`@this` / `@self` (designer-time alias、§11) は runtime catalog では解決不可のため、Check 31 は **silent pass** する (context 不在での standalone validation では検証不能、Phase B-3 #1322 で context 注入を予定)。
+`@this` / `@self` (designer-time alias、§11) は **#1322 Phase B-3a で validator-side context 注入完了**。`@this.action.<id>` を flow.actions[].id で検証、`@this.meta.<field>` を EntityMeta + ProcessFlow Meta 固有 field で検証、`@self.<field>` を step 共通 5 field (id / description / runIf / outputBinding / compensatesFor) で検証する。runtime / codegen 側の static ref への pre-resolve は §11.3 参照 (Phase B-3b で実装予定)。
 
 ## 10. 変更履歴
 
@@ -170,6 +170,7 @@ severity は maturity 連動 (`committed`=error / `draft`/`provisional`=warning)
 - 2026-05-23: §9 24 prefix broken-ref 検証 追加 (#1269 提案 C — Phase X2 follow-up)
 - 2026-05-24: §11 designer-time alias (@this / @self) 追加 (#1301)
 - 2026-05-24: §11 Phase B (#1308) — resolver layer を全 kind に拡張 + ProcessFlow editor へ bind。validator / runtime / codegen 側 (Phase B-3) は #1322 へ deferred
+- 2026-05-24: §11.3 Phase B-3a (#1322) — validator context 注入完了。Phase B-3b (runtime/codegen pre-resolve) / B-3c (`/generate-code` skill 統合) は同 ISSUE 内の後続 commit で対応
 
 ## 11. designer-time alias (`@this` / `@self`、#1301 / #1308)
 
@@ -212,12 +213,58 @@ severity は maturity 連動 (`committed`=error / `draft`/`provisional`=warning)
 - **resolver 層**: kind = `screenItem` / `step` / `column` / `region` の 4 kind に対応 (Phase B で `selfResolver.ts` の `screenItem only` guard 解除、kind 別 default fields table を追加)
 - **editor bind 層**: ScreenItem context (Phase A) + step context (Phase B、ProcessFlow editor 3 expression field) で完全動作。column / region context は bind 先 UI 未導入
 
-### 11.3 designer-time alias の特性
+### 11.3 designer-time alias の特性 + runtime / codegen pre-resolve 設計
 
-- `@this` / `@self` は **designer 補完・validator alias** として機能。runtime 評価時は static ref に **pre-resolve** される設計 (or codegen で展開) — Phase A (#1301) + Phase B (#1308) では designer 側の補完サポートまでが対象。validator / runtime / codegen 側の context 解決は **Phase B-3 (#1322)** で扱う
-- broken-ref validator (`processFlowAntipatternValidator` Check 31) の挙動:
-  - **現状 (Phase B 時点)**: `@this.*` / `@self.*` を **常に silent pass** で skip (validator に designer context 注入の仕組みが未整備のため、false positive 回避を優先)
-  - **Phase B-3 (#1322 予定)**: context 注入後に static ref と等価検証を行う (例: Screen 編集中の `@this.item.<id>` を `@screen.<curScrId>.item.<id>` に解決して既存 Check 31 catalog で検証)、runtime / codegen 側で static ref への pre-resolve を実装
+`@this` / `@self` は **designer 補完・validator alias** として機能。runtime 評価時は static ref に **pre-resolve** される設計 (or codegen で展開)。
+
+#### 段階別実装状況 (#1322 Phase B-3 系列)
+
+| Phase | 領域 | ステータス | 説明 |
+|---|---|---|---|
+| A (#1301) | resolver (screen) + ScreenItem bind | ✅ 完了 | Screen editor の Phase A 限定 resolver、screenItem context |
+| B (#1308) | resolver (全 7 kind) + ProcessFlow editor bind | ✅ 完了 | thisResolver/selfResolver の `screen only` guard 解除、全 kind 補完、ProcessFlow expression UI bind |
+| B-3a (#1322) | validator context 注入 | ✅ 完了 | `processFlowAntipatternValidator` Check 31 で `@this/@self` を context-aware に検証 (本節 "validator 側の動作" 参照) |
+| B-3b (#1322) | runtime / codegen 静的 pre-resolve | ✅ 完了 | `frontend/src/utils/reference-completer/designerAliasResolve.ts` を新設、`findDesignerAliases` / `resolveDesignerAlias` で `DesignerAliasResolution` discriminated union (8 kind + unresolved) を返す (本節 "runtime / codegen 静的 pre-resolve" 参照) |
+| B-3c (#1322) | `/generate-code` skill 統合 | ✅ 完了 | `ai-skills/generate-code/SKILL.md` の Step 3-A / Step 3-B 冒頭に `@this/@self` 事前展開ガイダンスを追記、各 target 言語 (Java Spring Boot / TypeScript NestJS / Thymeleaf / React) の render 例を記載 |
+
+#### validator 側の動作 (Phase B-3a 完了時点)
+
+ProcessFlow を走査中、`processFlowAntipatternValidator` は **flow 自体を `@this` context、現在 walk 中の step を `@self` context** に常に bind し、Check 31 で以下を検証する:
+
+| ref form | 検証ロジック |
+|---|---|
+| `@this.action.<actionId>.<...>` | `<actionId>` を `flow.actions[].id` で照合、不在は broken |
+| `@this.meta.<field>.<...>` | `<field>` を EntityMeta (id/name/description/version/maturity/createdAt/updatedAt) + ProcessFlow Meta 固有 (flowType/screenId/apiVersion/mode/sla/primaryInvoker) で照合 |
+| `@this.context.<...>` / `@this.expressionLanguage` | top-level field のみ照合、深い nested は loose pass (Phase B-3b の runtime evaluator 担当) |
+| `@this.<unknown>` | unknown top-level → broken |
+| `@self.<field>.<...>` | `<field>` を step 共通 5 field (id/description/runIf/outputBinding/compensatesFor) で照合、unknown は broken。step kind 固有 field (例: dbAccess.sql) は step body に直書きする規約なので `@self` 経由でアクセスしない設計 |
+
+severity は他の broken-ref と同じく maturity 連動 (`committed`=error / `draft`/`provisional`=warning)。
+
+#### runtime / codegen 静的 pre-resolve (Phase B-3b 実装、#1322 PR #1324)
+
+`frontend/src/utils/reference-completer/designerAliasResolve.ts` を新設し、純粋関数 `findDesignerAliases(template, ctx)` / `resolveDesignerAlias(alias, segments, ctx)` で designer-time alias を **target 言語非依存** な構造化 `DesignerAliasResolution` (discriminated union、8 kind + unresolved) に展開する設計:
+
+| `DesignerAliasResolution.kind` | 元 ref | 主な consumer |
+|---|---|---|
+| `flowAction` | `@this.action.<id>.<...>` (ProcessFlow editor) | `/generate-code` skill Step 3-A — Java `flow.findAction("...").path` / TS `flow.actions.find(...).path` |
+| `flowMeta` | `@this.meta.<field>.<...>` | Meta 定数化 (`@MetaService.get("...")` / `FLOW_META.<field>`) |
+| `flowContext` | `@this.context.<...>` | catalogs / variables / ambientVariables 直接アクセス |
+| `flowExpressionLanguage` | `@this.expressionLanguage` | leaf、codegen 時 constant |
+| `stepSelf` | `@self.<field>.<...>` (step context) | Java `this.field.<...>` (step メソッド内) / TS `step.<field>.<...>` |
+| `screenItem` | `@this.item.<id>.<...>` (Screen editor) | React `formState.<id>.<path>` / Thymeleaf `${form.<id>.<path>}` |
+| `screenTopLevel` | `@this.<field>` (Screen editor: id / name / purpose) | screen-level constant |
+| `screenItemSelf` | `@self.<field>.<...>` (screenItem context) | React `this.<field>` / Thymeleaf `${this.<field>}` |
+| `unresolved` | 解決失敗 (segments 空 / context 不在 / unknown field) | Phase B-3a validator で事前検出済の前提、生成 skip + warning |
+
+設計方針:
+
+- **pre-resolve タイミング**: コード生成時 (永続化 JSON はそのまま `@this/@self` を保持、`/generate-code` skill が展開) — runtime evaluator は alias を直接認識しない設計
+- **責務分担**: 本 util は **alias 検出 + structured resolution** (target 言語非依存)、codegen target が `resolution.kind` を switch して target 言語の構文に render
+- **例外処理**: 展開先 ref が存在しないケース (`flowAction` の actionId 不在 / `stepSelf` の unknown field 等) は Phase B-3a の validator で error として検出済 (= 設計者修正待ち)、`/generate-code` skill 側は fail-fast にレポートして生成中止
+- **string-level 置換**: `DesignerAliasMatch.{offset, length, original}` で元 template の絶対位置を返すため、target 言語側の string templating engine と組み合わせやすい
+
+詳細実装: [/generate-code skill SKILL.md の "designer-time alias の事前展開" 節](../../ai-skills/generate-code/SKILL.md) を参照。
 
 ### 11.4 prefix 一覧との関係 (§1 補足)
 

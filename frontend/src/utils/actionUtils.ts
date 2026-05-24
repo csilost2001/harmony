@@ -37,7 +37,7 @@ export function isValidationStep(step: Step): step is ValidationStep {
 
 /**
  * ExtensionStep は kind が "namespace:StepName" pattern (例: "retail:OrderConfirmStep")。
- * 組み込み 24 種の kind には ":" を含むものは存在しないため、判定として安全。
+ * 組み込み 25 種の kind (#1322 Phase B-3e で setGlobal 追加) には ":" を含むものは存在しないため、判定として安全。
  * 将来 built-in kind に ":" を含むものが追加された場合、本判定を見直すこと。
  */
 export function isExtensionStep(s: Step): s is ExtensionStep {

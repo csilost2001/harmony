@@ -572,7 +572,7 @@
     },
 
     "Step": {
-      "description": "Step union。kind プロパティで variant を識別。組み込み 24 variant + ExtensionStep の計 25 variant。ExtensionStep は kind にパターン (namespace:StepName) を取るため AJV `discriminator: true` の strict const 要件を満たさず、本 oneOf には discriminator keyword を付けない (#525 F-4 limitation)。Step.kind ミスマッチ時のエラー読みやすさは AJV `allErrors: true` + 上位 UI 側でフィルタ推奨。",
+      "description": "Step union。kind プロパティで variant を識別。組み込み 25 variant + ExtensionStep の計 26 variant (#1322 Phase B-3e で setGlobal 追加、24 → 25)。ExtensionStep は kind にパターン (namespace:StepName) を取るため AJV `discriminator: true` の strict const 要件を満たさず、本 oneOf には discriminator keyword を付けない (#525 F-4 limitation)。Step.kind ミスマッチ時のエラー読みやすさは AJV `allErrors: true` + 上位 UI 側でフィルタ推奨。",
       "oneOf": [
         { "$ref": "#/$defs/ValidationStep" },
         { "$ref": "#/$defs/DbAccessStep" },
@@ -590,6 +590,7 @@
         { "$ref": "#/$defs/ReturnStep" },
         { "$ref": "#/$defs/LogStep" },
         { "$ref": "#/$defs/AuditStep" },
+        { "$ref": "#/$defs/SetGlobalStep" },
         { "$ref": "#/$defs/WorkflowStep" },
         { "$ref": "#/$defs/TransactionScopeStep" },
         { "$ref": "#/$defs/EventPublishStep" },
@@ -620,6 +621,7 @@
         { "$ref": "#/$defs/ComputeStep" },
         { "$ref": "#/$defs/LogStep" },
         { "$ref": "#/$defs/AuditStep" },
+        { "$ref": "#/$defs/SetGlobalStep" },
         { "$ref": "#/$defs/WorkflowStep" },
         { "$ref": "#/$defs/TransactionScopeStep" },
         { "$ref": "#/$defs/EventPublishStep" },
@@ -1513,6 +1515,41 @@
             "result": { "type": "string", "enum": ["success", "failure"] },
             "reason": { "type": "string" },
             "sensitive": { "type": "boolean" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "SetGlobalStep": {
+      "description": "globals catalog (generic-definitions/global/<name>) への write 操作 (#1322 Phase B-3e)。`@var.global.<name>` または `@var.global.<name>.<field>` 経由で read 可能な mutable 設定 slot に対し、TemplateString 式で評価した値を保存する。globals catalog 自体は generic-definitions/global/<name>.json で型 (fields[]) が定義され、本 step はその write entry point。runtime の永続化レイヤ (in-memory / KV / DB) と scope 適用は target 言語の codegen 側 (Spring の @SessionScope / NestJS の SessionGuard 等) で実装する (詳細: /generate-code skill の Step 3-A.SetGlobalStep 節 / docs/spec/process-flow-variables.md §3.6)。",
+      "allOf": [
+        { "$ref": "#/$defs/StepBaseProps" },
+        {
+          "type": "object",
+          "required": ["id", "kind", "description", "globalName", "value"],
+          "properties": {
+            "kind": { "const": "setGlobal" },
+            "globalName": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_]*$",
+              "minLength": 1,
+              "maxLength": 64,
+              "description": "書き込み対象 globals catalog instance 名 (generic-definitions/global/<name>.json の `name` field と一致、`@var.global.<name>` の <name> 部)。GenericDefinitionName (PascalCase-ish) と同パターン。"
+            },
+            "field": {
+              "$ref": "common.v3.schema.json#/$defs/Identifier",
+              "description": "書き込み対象 field 名 (省略時は globals 全体を value で上書き)。指定時は globals.fields[].name のいずれかと一致 (validator は generic-definitions/global/<globalName> の fields[] を参照して照合)。"
+            },
+            "value": {
+              "$ref": "common.v3.schema.json#/$defs/TemplateString",
+              "description": "書き込む値 (TemplateString)。`@var.flowParameter.x` / `@var.step.<id>.y` / リテラル等を許容。field 省略時は object 全体 (DTO / record 等)、field 指定時は当該 field の primitive / object 値。"
+            },
+            "lifetime": {
+              "type": "string",
+              "enum": ["application", "session", "request"],
+              "description": "値が保持される寿命。`application` = process 起動中ずっと (singleton)、`session` = 1 ユーザーセッション (HttpSession / express-session 等)、`request` = 1 HTTP request の間のみ (request-scoped DI)。省略時は globals catalog 側 (`mappingHints.scope` 等) の指定を採用する。step 側に明示すれば catalog 側設定を override する。"
+            }
           }
         }
       ],

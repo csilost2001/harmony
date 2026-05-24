@@ -9,12 +9,22 @@
  *     - processFlow.action → ctx.flow?.actions
  *     - 他 collection は context list 未供給のため idle (補完候補なし)
  *
- * Phase B-3 (#1322) で runtime / codegen 側の pre-resolve を実装予定。
+ * Phase B-3a (#1322) で validator 側に同等の field 一覧を共有するため、field 名は
+ * designerAliasFields.ts に集約。本ファイルは UI 用 hint / trailing を組み合わせる責務のみ。
  *
  * spec: docs/spec/process-flow-prefix-system.md § 11.1
  */
 
 import type { CompletionContext, CompletionState, Resolver } from "./types";
+import {
+  PAGE_LAYOUT_THIS_TOPLEVEL_FIELD_NAMES,
+  PROCESS_FLOW_THIS_TOPLEVEL_FIELD_NAMES,
+  SCREEN_THIS_TOPLEVEL_FIELD_NAMES,
+  SEQUENCE_THIS_TOPLEVEL_FIELD_NAMES,
+  TABLE_THIS_TOPLEVEL_FIELD_NAMES,
+  VIEW_DEFINITION_THIS_TOPLEVEL_FIELD_NAMES,
+  VIEW_THIS_TOPLEVEL_FIELD_NAMES,
+} from "./designerAliasFields";
 
 type DocKind = NonNullable<CompletionContext["currentDocumentKind"]>;
 
@@ -25,61 +35,76 @@ interface FieldDef {
   trailing?: string;
 }
 
-const SCREEN_TOPLEVEL_FIELDS: FieldDef[] = [
-  { name: "id", hint: "screen id" },
-  { name: "name", hint: "screen 表示名" },
-  { name: "purpose", hint: "用途 (form / list / detail / etc.)" },
-  { name: "item", hint: "item.<itemId>...", trailing: "." },
-];
+const SCREEN_FIELD_META: Record<(typeof SCREEN_THIS_TOPLEVEL_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  id: { hint: "screen id" },
+  name: { hint: "screen 表示名" },
+  purpose: { hint: "用途 (form / list / detail / etc.)" },
+  item: { hint: "item.<itemId>...", trailing: "." },
+};
 
 // ProcessFlow は他 entity と異なり EntityMeta を継承せず root に `meta` nested。
 // id / name / flowType 等は `@this.meta.<field>` 経由でアクセス。
 // 一方 `action` collection は spec § 11.1 example に従い singular alias で expose。
-const PROCESS_FLOW_TOPLEVEL_FIELDS: FieldDef[] = [
-  { name: "meta", hint: "meta.<field> (id / name / flowType / maturity / sla / etc.)", trailing: "." },
-  { name: "context", hint: "context.<catalogs / variables / etc.>", trailing: "." },
-  { name: "action", hint: "action.<actionId>... (designer alias、runtime では actions[] へ展開)", trailing: "." },
-  { name: "expressionLanguage", hint: "式言語 ('js-subset' / 'cel')" },
-];
+const PROCESS_FLOW_FIELD_META: Record<(typeof PROCESS_FLOW_THIS_TOPLEVEL_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  meta: { hint: "meta.<field> (id / name / flowType / maturity / sla / etc.)", trailing: "." },
+  context: { hint: "context.<catalogs / variables / etc.>", trailing: "." },
+  action: { hint: "action.<actionId>... (designer alias、runtime では actions[] へ展開)", trailing: "." },
+  expressionLanguage: { hint: "式言語 ('js-subset' / 'cel')" },
+};
 
-const TABLE_TOPLEVEL_FIELDS: FieldDef[] = [
-  { name: "id", hint: "table id" },
-  { name: "name", hint: "table 表示名" },
-  { name: "physicalName", hint: "DB 物理名 (snake_case)" },
-  { name: "field", hint: "field.<fieldId>...", trailing: "." },
-];
+const TABLE_FIELD_META: Record<(typeof TABLE_THIS_TOPLEVEL_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  id: { hint: "table id" },
+  name: { hint: "table 表示名" },
+  physicalName: { hint: "DB 物理名 (snake_case)" },
+  field: { hint: "field.<fieldId>...", trailing: "." },
+};
 
-const VIEW_TOPLEVEL_FIELDS: FieldDef[] = [
-  { name: "id", hint: "view id" },
-  { name: "name", hint: "view 表示名" },
-  { name: "physicalName", hint: "DB 物理名" },
-  { name: "outputColumn", hint: "outputColumn.<name>...", trailing: "." },
-];
+const VIEW_FIELD_META: Record<(typeof VIEW_THIS_TOPLEVEL_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  id: { hint: "view id" },
+  name: { hint: "view 表示名" },
+  physicalName: { hint: "DB 物理名" },
+  outputColumn: { hint: "outputColumn.<name>...", trailing: "." },
+};
 
-const VIEW_DEFINITION_TOPLEVEL_FIELDS: FieldDef[] = [
-  { name: "id", hint: "viewDefinition id" },
-  { name: "name", hint: "viewDefinition 表示名" },
-  { name: "kind", hint: "viewDefinition kind (table / list / kanban / etc.)" },
-  { name: "column", hint: "column.<name>...", trailing: "." },
-];
+const VIEW_DEFINITION_FIELD_META: Record<(typeof VIEW_DEFINITION_THIS_TOPLEVEL_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  id: { hint: "viewDefinition id" },
+  name: { hint: "viewDefinition 表示名" },
+  kind: { hint: "viewDefinition kind (table / list / kanban / etc.)" },
+  column: { hint: "column.<name>...", trailing: "." },
+};
 
-const SEQUENCE_TOPLEVEL_FIELDS: FieldDef[] = [
-  { name: "id", hint: "sequence id" },
-  { name: "name", hint: "sequence 表示名" },
-  { name: "physicalName", hint: "DB 物理名 (例: seq_order_number)" },
-  { name: "startValue", hint: "初期値" },
-  { name: "increment", hint: "増分" },
-  { name: "minValue", hint: "下限値" },
-  { name: "maxValue", hint: "上限値" },
-  { name: "cycle", hint: "max 到達後に min へ巡回するフラグ" },
-  { name: "cache", hint: "キャッシュサイズ" },
-];
+const SEQUENCE_FIELD_META: Record<(typeof SEQUENCE_THIS_TOPLEVEL_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  id: { hint: "sequence id" },
+  name: { hint: "sequence 表示名" },
+  physicalName: { hint: "DB 物理名 (例: seq_order_number)" },
+  startValue: { hint: "初期値" },
+  increment: { hint: "増分" },
+  minValue: { hint: "下限値" },
+  maxValue: { hint: "上限値" },
+  cycle: { hint: "max 到達後に min へ巡回するフラグ" },
+  cache: { hint: "キャッシュサイズ" },
+};
 
-const PAGE_LAYOUT_TOPLEVEL_FIELDS: FieldDef[] = [
-  { name: "id", hint: "pageLayout id" },
-  { name: "name", hint: "pageLayout 表示名" },
-  { name: "region", hint: "region.<name>...", trailing: "." },
-];
+const PAGE_LAYOUT_FIELD_META: Record<(typeof PAGE_LAYOUT_THIS_TOPLEVEL_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  id: { hint: "pageLayout id" },
+  name: { hint: "pageLayout 表示名" },
+  region: { hint: "region.<name>...", trailing: "." },
+};
+
+function expandFields<T extends readonly string[]>(
+  names: T,
+  meta: Record<T[number], Omit<FieldDef, "name">>,
+): FieldDef[] {
+  return names.map((name) => ({ name, ...meta[name as T[number]] }));
+}
+
+const SCREEN_TOPLEVEL_FIELDS: FieldDef[] = expandFields(SCREEN_THIS_TOPLEVEL_FIELD_NAMES, SCREEN_FIELD_META);
+const PROCESS_FLOW_TOPLEVEL_FIELDS: FieldDef[] = expandFields(PROCESS_FLOW_THIS_TOPLEVEL_FIELD_NAMES, PROCESS_FLOW_FIELD_META);
+const TABLE_TOPLEVEL_FIELDS: FieldDef[] = expandFields(TABLE_THIS_TOPLEVEL_FIELD_NAMES, TABLE_FIELD_META);
+const VIEW_TOPLEVEL_FIELDS: FieldDef[] = expandFields(VIEW_THIS_TOPLEVEL_FIELD_NAMES, VIEW_FIELD_META);
+const VIEW_DEFINITION_TOPLEVEL_FIELDS: FieldDef[] = expandFields(VIEW_DEFINITION_THIS_TOPLEVEL_FIELD_NAMES, VIEW_DEFINITION_FIELD_META);
+const SEQUENCE_TOPLEVEL_FIELDS: FieldDef[] = expandFields(SEQUENCE_THIS_TOPLEVEL_FIELD_NAMES, SEQUENCE_FIELD_META);
+const PAGE_LAYOUT_TOPLEVEL_FIELDS: FieldDef[] = expandFields(PAGE_LAYOUT_THIS_TOPLEVEL_FIELD_NAMES, PAGE_LAYOUT_FIELD_META);
 
 const TOPLEVEL_FIELDS_BY_KIND: Record<DocKind, FieldDef[]> = {
   screen: SCREEN_TOPLEVEL_FIELDS,

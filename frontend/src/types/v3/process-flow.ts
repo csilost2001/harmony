@@ -816,6 +816,30 @@ export interface AuditStep extends StepBaseProps {
   sensitive?: boolean;
 }
 
+// ─── SetGlobalStep (#1322 Phase B-3e) ──────────────────────────────────
+
+/**
+ * globals catalog (`generic-definitions/global/<name>.json`) への write 操作 step。
+ *
+ * 参照側 `@var.global.<name>` / `@var.global.<name>.<field>` に対する書き込み entry point。
+ * runtime の永続化 (in-memory / KV / DB) と lifetime 適用は target 言語の codegen 側
+ * (Spring の @SessionScope / NestJS の SessionGuard 等) で実装する。
+ *
+ * spec: docs/spec/process-flow-variables.md §3.6 / docs/spec/generic-definition-layer.md §4.2
+ */
+export interface SetGlobalStep extends StepBaseProps {
+  kind: "setGlobal";
+  description: Description;
+  /** 書き込み対象 globals catalog instance 名 (`@var.global.<name>` の `<name>` 部、PascalCase-ish)。 */
+  globalName: string;
+  /** 書き込み対象 field 名 (省略時は globals 全体を value で上書き)。指定時は globals.fields[].name のいずれかと一致。 */
+  field?: Identifier;
+  /** 書き込む値 (TemplateString)。`@var.flowParameter.x` / リテラル等。 */
+  value: TemplateString;
+  /** 値の寿命を上書き。省略時は globals catalog 側 (mappingHints.scope 等) の指定を採用。 */
+  lifetime?: "application" | "session" | "request";
+}
+
 // ─── WorkflowStep ──────────────────────────────────────────────────────
 
 export type WorkflowPattern =
@@ -1078,10 +1102,10 @@ export interface ExtensionStep extends StepBaseProps {
   config?: Record<string, unknown>;
 }
 
-// ─── Step union (25 variants) ──────────────────────────────────────────
+// ─── Step union (26 variants、#1322 Phase B-3e で setGlobal 追加 25→26) ──
 
 /**
- * Step union。kind プロパティで variant を識別。組み込み 24 + ExtensionStep の計 25 variant。
+ * Step union。kind プロパティで variant を識別。組み込み 25 + ExtensionStep の計 26 variant。
  *
  * AJV `discriminator: true` モードで kind を識別子として 1 branch のみエラー報告 (#525 F-4)。
  * ただし Step.oneOf は ExtensionStep の kind がパターン (`namespace:StepName`) のため
@@ -1104,6 +1128,7 @@ export type Step =
   | ReturnStep
   | LogStep
   | AuditStep
+  | SetGlobalStep
   | WorkflowStep
   | TransactionScopeStep
   | EventPublishStep
@@ -1118,9 +1143,9 @@ export type Step =
 export type NonReturnStep = Exclude<Step, ReturnStep>;
 
 /**
- * Step.kind の union (#1186 Phase 2-B で追加)。
- * Step union から `kind` プロパティ型を抽出。25 variant + ExtensionStep の `namespace:StepName` pattern を含む。
- * ExtensionStep の kind は `string` のため最終的に `string` に decay する点に注意 (組み込み 24 + 任意の文字列)。
+ * Step.kind の union (#1186 Phase 2-B で追加、#1322 Phase B-3e で setGlobal 追加して 25 → 26 variant)。
+ * Step union から `kind` プロパティ型を抽出。26 variant + ExtensionStep の `namespace:StepName` pattern を含む。
+ * ExtensionStep の kind は `string` のため最終的に `string` に decay する点に注意 (組み込み 25 + 任意の文字列)。
  */
 export type StepKind = Step["kind"];
 

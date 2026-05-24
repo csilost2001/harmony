@@ -6,52 +6,71 @@
  *   - 各 kind の default fields table を定義
  *   - currentSelfRef.fields でケース毎に override 可
  *
- * Phase B-3 (#1322) で validator / runtime / codegen 側の context 解決を実装予定。
+ * Phase B-3a (#1322) で validator 側に同等の field 一覧を共有するため、field 名は
+ * designerAliasFields.ts に集約。本ファイルは UI 用 hint を組み合わせる責務のみ。
  *
  * spec: docs/spec/process-flow-prefix-system.md § 11.2
  */
 
 import type { CompletionContext, CompletionState, Resolver } from "./types";
+import {
+  SELF_COLUMN_FIELD_NAMES,
+  SELF_REGION_FIELD_NAMES,
+  SELF_SCREEN_ITEM_FIELD_NAMES,
+  SELF_STEP_FIELD_NAMES,
+} from "./designerAliasFields";
 
 interface FieldDef {
   name: string;
   hint?: string;
 }
 
-const SCREEN_ITEM_FIELDS: FieldDef[] = [
-  { name: "id", hint: "item id (string)" },
-  { name: "label", hint: "表示 label (string)" },
-  { name: "value", hint: "current value (any)" },
-  { name: "readonly", hint: "読取専用フラグ (boolean)" },
-  { name: "enabled", hint: "活性フラグ (boolean)" },
-  { name: "visible", hint: "表示フラグ (boolean)" },
-  { name: "errors", hint: "エラー配列 (string[])" },
-  { name: "options", hint: "選択肢 (options 系 item のみ)" },
-];
+const SCREEN_ITEM_FIELD_META: Record<(typeof SELF_SCREEN_ITEM_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  id: { hint: "item id (string)" },
+  label: { hint: "表示 label (string)" },
+  value: { hint: "current value (any)" },
+  readonly: { hint: "読取専用フラグ (boolean)" },
+  enabled: { hint: "活性フラグ (boolean)" },
+  visible: { hint: "表示フラグ (boolean)" },
+  errors: { hint: "エラー配列 (string[])" },
+  options: { hint: "選択肢 (options 系 item のみ)" },
+};
 
-const STEP_FIELDS: FieldDef[] = [
-  { name: "id", hint: "step id (LocalId)" },
-  { name: "description", hint: "step 説明" },
-  { name: "runIf", hint: "実行条件式 (TemplateString)" },
-  { name: "outputBinding", hint: "outputBinding object (name / expose / transformations)" },
-  { name: "compensatesFor", hint: "Saga 補償対象 step.id" },
-];
+const STEP_FIELD_META: Record<(typeof SELF_STEP_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  id: { hint: "step id (LocalId)" },
+  description: { hint: "step 説明" },
+  runIf: { hint: "実行条件式 (TemplateString)" },
+  outputBinding: { hint: "outputBinding object (name / expose / transformations)" },
+  compensatesFor: { hint: "Saga 補償対象 step.id" },
+};
 
-const COLUMN_FIELDS: FieldDef[] = [
-  { name: "id", hint: "column id (LocalId)" },
-  { name: "physicalName", hint: "DB 物理名 (snake_case)" },
-  { name: "name", hint: "表示名" },
-  { name: "dataType", hint: "DataType (VARCHAR / INTEGER / etc.)" },
-  { name: "notNull", hint: "NOT NULL フラグ" },
-  { name: "primaryKey", hint: "PRIMARY KEY フラグ" },
-  { name: "defaultValue", hint: "DEFAULT 値 (literal / 式)" },
-  { name: "comment", hint: "DDL カラムコメント" },
-];
+const COLUMN_FIELD_META: Record<(typeof SELF_COLUMN_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  id: { hint: "column id (LocalId)" },
+  physicalName: { hint: "DB 物理名 (snake_case)" },
+  name: { hint: "表示名" },
+  dataType: { hint: "DataType (VARCHAR / INTEGER / etc.)" },
+  notNull: { hint: "NOT NULL フラグ" },
+  primaryKey: { hint: "PRIMARY KEY フラグ" },
+  defaultValue: { hint: "DEFAULT 値 (literal / 式)" },
+  comment: { hint: "DDL カラムコメント" },
+};
 
-const REGION_FIELDS: FieldDef[] = [
-  { name: "name", hint: "region 名 (header / sidebar / footer / main / custom)" },
-  { name: "description", hint: "region の用途説明" },
-];
+const REGION_FIELD_META: Record<(typeof SELF_REGION_FIELD_NAMES)[number], Omit<FieldDef, "name">> = {
+  name: { hint: "region 名 (header / sidebar / footer / main / custom)" },
+  description: { hint: "region の用途説明" },
+};
+
+function expandFields<T extends readonly string[]>(
+  names: T,
+  meta: Record<T[number], Omit<FieldDef, "name">>,
+): FieldDef[] {
+  return names.map((name) => ({ name, ...meta[name as T[number]] }));
+}
+
+const SCREEN_ITEM_FIELDS: FieldDef[] = expandFields(SELF_SCREEN_ITEM_FIELD_NAMES, SCREEN_ITEM_FIELD_META);
+const STEP_FIELDS: FieldDef[] = expandFields(SELF_STEP_FIELD_NAMES, STEP_FIELD_META);
+const COLUMN_FIELDS: FieldDef[] = expandFields(SELF_COLUMN_FIELD_NAMES, COLUMN_FIELD_META);
+const REGION_FIELDS: FieldDef[] = expandFields(SELF_REGION_FIELD_NAMES, REGION_FIELD_META);
 
 const FIELDS_BY_SELF_KIND: Record<"screenItem" | "step" | "column" | "region", FieldDef[]> = {
   screenItem: SCREEN_ITEM_FIELDS,
