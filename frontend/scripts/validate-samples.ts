@@ -59,7 +59,7 @@ interface ProjectResources {
   externalCatalogs: ProjectCatalogs | null;
   /** PageLayout entity 一覧 (page-layouts/ ディレクトリから読み込む、#1022) */
   pageLayouts: PageLayoutForValidator[];
-  /** 14 kind generic-definition instance 一覧 (#1269 提案 C、Project-level broken-ref 検証用) */
+  /** 17 kind generic-definition instance 一覧 (#1269 提案 C、#1303 で 14→17 / #1318 で messageArea→message-area kebab-case 統一、Project-level broken-ref 検証用) */
   genericDefinitions: GenericDefinitionLike[];
   /** Extension namespace 集合 (#1269 提案 C、`@ext.<namespace>` 検証用) */
   extensionNamespaces: string[];
@@ -207,7 +207,7 @@ function loadSequencesFromDir(dir: string): SequenceLike[] {
 }
 
 /**
- * 14 kind generic-definition instance を全て walk して読み込む (#1269 提案 C)。
+ * 17 kind generic-definition instance を全て walk して読み込む (#1269 提案 C、#1303/#1318)。
  * `<dataDir>/generic-definitions/<kind>/<Name>.json` 階層を走査。
  */
 function loadGenericDefinitionsFromDir(genericDefsDir: string): GenericDefinitionLike[] {
