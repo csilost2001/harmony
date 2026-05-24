@@ -19,8 +19,7 @@ import {
   writeTable,
   deleteTable as deleteTableFile,
 } from "../projectStorage.js";
-import type { ToolHandler } from "../mcpHelpers.js";
-import { assertEntityIdOrUuid } from "../security/idValidator.js";
+import { assertEntityIdOrUuidMcp, type ToolHandler } from "../mcpHelpers.js";
 
 export const handleTableTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
@@ -43,7 +42,7 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "tableId は必須です");
       }
       // S-002: ID validation
-      try { assertEntityIdOrUuid(a.tableId, "tableId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.tableId, "tableId");
       const tableData = await readTable(a.tableId, root);
       if (!tableData) {
         throw new McpError(ErrorCode.InvalidParams, `テーブル ${a.tableId} が見つかりません`);
@@ -88,7 +87,7 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "tableId, definition は必須です");
       }
       // S-002: ID validation
-      try { assertEntityIdOrUuid(a.tableId, "tableId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.tableId, "tableId");
       const def = a.definition as Record<string, unknown>;
       def.updatedAt = new Date().toISOString();
       await writeTable(a.tableId, def, root);
@@ -110,7 +109,7 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "tableId は必須です");
       }
       // S-002: ID validation
-      try { assertEntityIdOrUuid(a.tableId, "tableId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.tableId, "tableId");
       await deleteTableFile(a.tableId, root);
       const project = (await readProject(root) ?? {}) as Record<string, unknown>;
       const tables = ((project.tables ?? []) as Array<Record<string, unknown>>).filter((t) => t.id !== a.tableId);

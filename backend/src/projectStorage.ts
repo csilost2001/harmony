@@ -444,9 +444,13 @@ function entityDirOf(kind: TopLevelEntityKind, dataRoot: string): string {
 }
 
 /**
- * 各 entity kind の primary `<id>.json` file path 解決 (uniqueness check 用)。
- * processFlow は legacy `actions/<id>.json` も候補に含むため、processFlow 専用は
- * `processFlowFileCandidates` (既存) を併用する。
+ * 各 entity の current file path を返す (`<dataRoot>/<dir>/<id>.json`)。
+ *
+ * 注: processFlow は legacy `actions/<id>.json` も path 候補だが、本関数は **current**
+ * path (`process-flows/<id>.json`) のみを返す。writeProcessFlow / processFlowFileCandidates
+ * 側で legacy / current を解決済の targetFile を ensureUniqueOnCreate 等に渡すため、本
+ * 関数を直接呼ぶ用途 (uniqueness check や new write) では current のみで足りる
+ * (#1294 I-2 review Nit #2)。
  */
 function entityFilePathFor(kind: TopLevelEntityKind, dataRoot: string, id: string): string {
   return path.join(entityDirOf(kind, dataRoot), `${id}.json`);

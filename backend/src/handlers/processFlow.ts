@@ -39,7 +39,7 @@ import {
   type ProcessFlowDoc,
   type CatalogName,
 } from "../processFlowEdits.js";
-import { saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
+import { assertEntityIdOrUuidMcp, saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
 import { wsBridge } from "../wsBridge.js";
 import { assertUuid, assertEntityIdOrUuid, assertPathContained } from "../security/idValidator.js";
 
@@ -257,7 +257,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId は必須です");
       }
       // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
-      try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.processFlowId, "processFlowId");
       // browser-first: ProcessFlowEditor が開いていれば live 状態を取得
       const liveData = await wsBridge.tryCommand("getProcessFlow", { id: a.processFlowId });
       const pfData = liveData ?? await readProcessFlow(a.processFlowId, root);
@@ -313,7 +313,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, definition は必須です");
       }
       // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
-      try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.processFlowId, "processFlowId");
       const pfDef = a.definition as Record<string, unknown>;
       // #1294 I-2 review Should-fix #2: meta.id と URL/path 上の processFlowId の整合性 check
       // rename は I-6 スコープのため、本 PR では「不一致 = エラー」で sealed する。
@@ -361,7 +361,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId は必須です");
       }
       // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
-      try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.processFlowId, "processFlowId");
       await deleteProcessFlowFile(a.processFlowId, root);
       const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
       removeProcessFlowEntry(pfProject, a.processFlowId);
@@ -377,7 +377,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, name, trigger は必須です");
       }
       // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
-      try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.processFlowId, "processFlowId");
       const pf = await readProcessFlow(a.processFlowId, root) as Record<string, unknown> | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       const actions = Array.isArray(pf.actions) ? pf.actions as Array<Record<string, unknown>> : [];
@@ -406,8 +406,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, actionId, kind は必須です");
       }
       // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat)
-      try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
-      try { assertEntityIdOrUuid(a.actionId, "actionId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.processFlowId, "processFlowId");
+      assertEntityIdOrUuidMcp(a.actionId, "actionId");
       // browser-first: ProcessFlowEditor が開いていれば in-memory に適用
       // browser 側 mutation handler (applyProcessFlowMutation) は #1149 で v3 化済 (kind を直接受容)。
       const addApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
@@ -438,7 +438,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, patch は必須です");
       }
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
-      try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.processFlowId, "processFlowId");
       try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const updApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__update_step", params: a,
@@ -463,7 +463,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId は必須です");
       }
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
-      try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.processFlowId, "processFlowId");
       try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const rmApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__remove_step", params: a,
@@ -488,7 +488,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, newIndex は必須です");
       }
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
-      try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.processFlowId, "processFlowId");
       try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const mvApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__move_step", params: a,
@@ -513,7 +513,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, target, maturity は必須です");
       }
       // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
-      try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.processFlowId, "processFlowId");
       const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {
@@ -531,7 +531,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, kind, body は必須です");
       }
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
-      try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdOrUuidMcp(a.processFlowId, "processFlowId");
       try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
