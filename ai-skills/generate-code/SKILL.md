@@ -278,6 +278,29 @@ cssFramework が全て同一の場合、またはフィールドが存在しな�
 
 ProcessFlow JSON を入力として、techStack に基づく backend code 雛形を生成する。
 
+### 0. designer-time alias (`@this` / `@self`) の事前展開 (#1322 Phase B-3c)
+
+ProcessFlow JSON 内の文字列値 (sql / payload / filter / expression / condition / outputBinding.transformations 等の TemplateString) には、designer-time alias **`@this.<...>` / `@self.<...>`** が含まれることがある (`/process-flow/edit/:id` 編集時に補完される、#1308)。
+
+これらは **runtime catalog では解決できない** ため、コード生成前に **静的 pre-resolve** する。runtime expression evaluator は `@this/@self` を直接認識しない設計とし、本 step で展開後の static ref のみ評価対象とする。
+
+#### 展開規則 (本 step の AI 実装責務)
+
+| 元 ref | 展開先 (canonical) | 各 target 言語での render 例 |
+|---|---|---|
+| `@this.action.<actionId>.<path>` | flow.actions[].id 経由の action 参照 | Java: `flow.findAction("<actionId>").<path>` / TS: `flow.actions.find(a => a.id === "<actionId>").<path>` |
+| `@this.meta.<field>.<path>` | flow.meta.<field> 経由 (EntityMeta + ProcessFlow Meta 固有 field、id/name/flowType/sla 等) | Java: 定数化 / `MetaService.get("<field>")` / TS: `FLOW_META.<field>` |
+| `@this.context.<path>` | flow.context (catalogs / variables / ambientVariables) | 各 catalog の type-safe getter (例: `Context.events.<topic>` / `ambient.<name>`) |
+| `@this.expressionLanguage` | flow.expressionLanguage (leaf) | 通常 codegen 時に既知の constant、render skip 可 |
+| `@self.<field>.<path>` (step context) | 当該 step の field 直接アクセス | Java: `this.<field>.<path>` (step メソッド内) / TS: `step.<field>.<path>` / SQL prepared param |
+
+#### 実装ガイダンス
+
+- 生成コード内に `@this.*` / `@self.*` の文字列を **そのまま残さない** こと。残った場合は spec 違反 (runtime 評価不能) として fail-fast にレポート
+- 解決不能な ref (例: `@this.action.<unknownId>`) は **Phase B-3a validator (processFlowAntipatternValidator Check 31)** で事前検出されている前提。本 step で再検出した場合は **fatal error** として中止し、ユーザーに「先に validator を pass させてください」と報告
+- 純粋関数 `findDesignerAliases(template, ctx)` (`frontend/src/utils/reference-completer/designerAliasResolve.ts`) が template 内の全 `@this/@self` を `DesignerAliasMatch[]` として返す。本 skill 実行時は AI が JSON を読みつつ同等のロジックで static ref へ展開する (utility 直接呼出しは不要、再現可能なルール docs に従って実装)
+- spec: [docs/spec/process-flow-prefix-system.md §11.3](../../docs/spec/process-flow-prefix-system.md)
+
 ### テンプレート選択
 
 | techStack.backend | 参照テンプレート |
@@ -1038,6 +1061,20 @@ Spring Boot の `PropertiesPropertySourceLoader` は `application.properties` �
 ## Step 3-B: Screen → frontend code 生成
 
 Screen JSON を入力として、techStack に基づく frontend code 雛形を生成する。
+
+### 0. designer-time alias (`@this` / `@self`) の事前展開 (#1322 Phase B-3c)
+
+Screen JSON 内の文字列値 (item.value / event.effects[].argumentMapping / showDialog.target 等の TemplateString) に **`@this.<...>` / `@self.<...>`** が含まれる場合がある (`/screen/items/:id` 編集時に補完される、#1301 / #1308)。
+
+ProcessFlow と同じ方針で **生成前に静的 pre-resolve** する:
+
+| 元 ref | 展開先 (canonical) | render 例 (React / Thymeleaf) |
+|---|---|---|
+| `@this.item.<itemId>.<path>` | screen.items[].id 経由の item 参照 | React: `formState.<itemId>.<path>` / Thymeleaf: `${form.<itemId>.<path>}` |
+| `@this.<field>` (top-level: id / name / purpose) | screen.<field> | screen 定数 / page title 等 |
+| `@self.<field>.<path>` (screenItem context) | 当該 item の field | React: `this.<field>` (component 内) / Thymeleaf: `${this.<field>}` |
+
+generated code に `@this/@self` の文字列を **残さない**。展開ルールは [docs/spec/process-flow-prefix-system.md §11.3](../../docs/spec/process-flow-prefix-system.md) 参照、ProcessFlow と同じ semantics。
 
 ### テンプレート選択
 
