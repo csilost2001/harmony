@@ -587,14 +587,19 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     }
 
     uiInfo("urlsync", "pathname change", { pathname: location.pathname });
+
+    // RFC #1284 (#1296 I-4): URL param が旧 UUID 形式なら load を待たずに明示エラー fallback。
+    // 各 entity block で 1 行で呼び、true なら caller で return する。
+    const rejectIfUuidUrl = (id: string, kind: string): boolean => {
+      if (!isValidUuid(id)) return false;
+      fallbackToDashboard(kind, id, { reason: "uuid-url" });
+      return true;
+    };
+
     const designMatch = matchPath("/w/:wsId/screen/design/:screenId", location.pathname);
     if (designMatch?.params.screenId) {
       const screenId = designMatch.params.screenId;
-      // RFC #1284 (#1296 I-4): 旧 UUID URL は load を待たずに明示エラー fallback
-      if (isValidUuid(screenId)) {
-        fallbackToDashboard("画面", screenId, { reason: "uuid-url" });
-        return;
-      }
+      if (rejectIfUuidUrl(screenId, "画面")) return;
       const tabId = makeTabId("design", screenId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -618,10 +623,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const tableMatch = matchPath("/w/:wsId/table/edit/:tableId", location.pathname);
     if (tableMatch?.params.tableId) {
       const tableId = tableMatch.params.tableId;
-      if (isValidUuid(tableId)) {
-        fallbackToDashboard("テーブル", tableId, { reason: "uuid-url" });
-        return;
-      }
+      if (rejectIfUuidUrl(tableId, "テーブル")) return;
       const tabId = makeTabId("table", tableId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -644,10 +646,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const actionMatch = matchPath("/w/:wsId/process-flow/edit/:processFlowId", location.pathname);
     if (actionMatch?.params.processFlowId) {
       const processFlowId = actionMatch.params.processFlowId;
-      if (isValidUuid(processFlowId)) {
-        fallbackToDashboard("処理フロー", processFlowId, { reason: "uuid-url" });
-        return;
-      }
+      if (rejectIfUuidUrl(processFlowId, "処理フロー")) return;
       const tabId = makeTabId("process-flow", processFlowId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -671,10 +670,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const sequenceMatch = matchPath("/w/:wsId/sequence/edit/:sequenceId", location.pathname);
     if (sequenceMatch?.params.sequenceId) {
       const sequenceId = sequenceMatch.params.sequenceId;
-      if (isValidUuid(sequenceId)) {
-        fallbackToDashboard("シーケンス", sequenceId, { reason: "uuid-url" });
-        return;
-      }
+      if (rejectIfUuidUrl(sequenceId, "シーケンス")) return;
       const tabId = makeTabId("sequence", sequenceId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -697,10 +693,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const viewMatch = matchPath("/w/:wsId/view/edit/:viewId", location.pathname);
     if (viewMatch?.params.viewId) {
       const viewId = viewMatch.params.viewId;
-      if (isValidUuid(viewId)) {
-        fallbackToDashboard("ビュー", viewId, { reason: "uuid-url" });
-        return;
-      }
+      if (rejectIfUuidUrl(viewId, "ビュー")) return;
       const tabId = makeTabId("view", viewId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -723,10 +716,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const viewDefinitionMatch = matchPath("/w/:wsId/view-definition/edit/:viewDefinitionId", location.pathname);
     if (viewDefinitionMatch?.params.viewDefinitionId) {
       const viewDefinitionId = decodeURIComponent(viewDefinitionMatch.params.viewDefinitionId);
-      if (isValidUuid(viewDefinitionId)) {
-        fallbackToDashboard("ビュー定義", viewDefinitionId, { reason: "uuid-url" });
-        return;
-      }
+      if (rejectIfUuidUrl(viewDefinitionId, "ビュー定義")) return;
       const tabId = makeTabId("view-definition", viewDefinitionId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -751,10 +741,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const pageLayoutMatch = pageLayoutEditMatch ?? pageLayoutDesignMatch;
     if (pageLayoutMatch?.params.pageLayoutId) {
       const pageLayoutId = decodeURIComponent(pageLayoutMatch.params.pageLayoutId);
-      if (isValidUuid(pageLayoutId)) {
-        fallbackToDashboard("ページレイアウト", pageLayoutId, { reason: "uuid-url" });
-        return;
-      }
+      if (rejectIfUuidUrl(pageLayoutId, "ページレイアウト")) return;
       const tabId = makeTabId("page-layout", pageLayoutId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -821,10 +808,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const screenItemsMatch = matchPath("/w/:wsId/screen/items/:screenId", location.pathname);
     if (screenItemsMatch?.params.screenId) {
       const screenId = screenItemsMatch.params.screenId;
-      if (isValidUuid(screenId)) {
-        fallbackToDashboard("画面", screenId, { reason: "uuid-url" });
-        return;
-      }
+      if (rejectIfUuidUrl(screenId, "画面")) return;
       const tabId = makeTabId("screen-items", screenId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
