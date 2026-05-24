@@ -315,9 +315,20 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
       try { assertEntityIdOrUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const pfDef = a.definition as Record<string, unknown>;
+      // #1294 I-2 review Should-fix #2: meta.id と URL/path 上の processFlowId の整合性 check
+      // rename は I-6 スコープのため、本 PR では「不一致 = エラー」で sealed する。
+      const pfMetaIn = isRecord(pfDef.meta) ? pfDef.meta : null;
+      const metaId = pfMetaIn && typeof pfMetaIn.id === "string" ? pfMetaIn.id : null;
+      if (metaId !== null && metaId !== a.processFlowId) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `processFlowId (${a.processFlowId}) と definition.meta.id (${metaId}) が不一致です。` +
+            `rename は本 ISSUE スコープ外 (I-6) のため、両者が一致する状態で update を送ってください。`,
+        );
+      }
       const pfNow = new Date().toISOString();
       // v3: meta.updatedAt を更新 (legacy 互換のため root.updatedAt も touch)
-      const pfMeta = isRecord(pfDef.meta) ? pfDef.meta : {};
+      const pfMeta = pfMetaIn ?? {};
       pfMeta.updatedAt = pfNow;
       pfDef.meta = pfMeta;
       await writeProcessFlow(a.processFlowId, pfDef, root);

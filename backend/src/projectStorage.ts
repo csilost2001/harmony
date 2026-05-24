@@ -508,6 +508,27 @@ export async function ensureUniqueEntityId(kind: TopLevelEntityKind, id: string,
   }
 }
 
+/**
+ * write 経路で「新規 create (= target ファイル無)」のときだけ uniqueness を check する内部ヘルパー
+ * (#1294 I-2 review Must-fix #1)。
+ *
+ * - targetFile が既に存在 → update 経路として扱い、check skip (同 id 上書きは正常)
+ * - targetFile 不在 → new create として扱い、`listExistingEntityIds` と突合
+ *
+ * 各 entity の write 関数 (writeTable / writeScreen / writeProcessFlow / writeView /
+ * writeSequence / writeViewDefinition / writePageLayout) の先頭で呼ぶことで、
+ * MCP handler / WS RPC / browser fallback の全 create 経路を単一点で網羅する。
+ */
+async function ensureUniqueOnCreate(
+  kind: TopLevelEntityKind,
+  id: string,
+  targetFile: string,
+  root: string,
+): Promise<void> {
+  if (await fileExists(targetFile)) return; // update 経路は check 不要
+  await ensureUniqueEntityId(kind, id, root);
+}
+
 /** isRecord helper の前方使用に備えて軽量版を本セクション内で定義 (既存 isRecord は本ファイル後半) */
 function _isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -719,9 +740,17 @@ function buildDefaultScreenEntity(
 ): Record<string, unknown> {
   const ts = new Date().toISOString();
   const updatedAt = typeof entry?.updatedAt === "string" ? entry.updatedAt : ts;
+  // #1294 I-2 (review fix Should-fix #1, RFC #1284): entry に uuid があれば継承、
+  // 無ければここで採番する。_migrateScreenCore の writeJSON 経路は preserveOrAssignUuid を
+  // bypass するため、buildDefaultScreenEntity 側で uuid を必ず付与しておく必要がある。
+  const uuid =
+    typeof entry?.uuid === "string" && entry.uuid.length > 0
+      ? entry.uuid
+      : crypto.randomUUID();
   return {
     $schema: screenSchemaRef(dataRoot),
     id: screenId,
+    uuid,
     name: typeof entry?.name === "string" && entry.name ? entry.name : screenId,
     ...(typeof entry?.description === "string" && entry.description ? { description: entry.description } : {}),
     ...(typeof entry?.maturity === "string" ? { maturity: entry.maturity } : {}),
@@ -838,6 +867,8 @@ export async function writeScreen(screenId: string, data: unknown, root: string)
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
   assertPathContained(path.join(screensDir(dataRoot), `${screenId}.design.json`), dataRoot); // defense-in-depth
+  // #1294 I-2 review Must-fix #1: 新規 create (entity .json 不在) のとき uniqueness check
+  await ensureUniqueOnCreate("screen", screenId, path.join(screensDir(dataRoot), `${screenId}.json`), r);
   let entity = await migrateScreenIfNeeded(screenId, r);
   if (!entity) {
     const project = await readProject(r);
@@ -868,6 +899,8 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
   assertPathContained(path.join(screensDir(dataRoot), `${screenId}.json`), dataRoot); // defense-in-depth
+  // #1294 I-2 review Must-fix #1: 新規 create (entity .json 不在) のとき uniqueness check
+  await ensureUniqueOnCreate("screen", screenId, path.join(screensDir(dataRoot), `${screenId}.json`), r);
   const current = isRecord(data) ? data : {};
   const project = await readProject(r);
   const entry = getScreenEntry(project, screenId);
@@ -1011,6 +1044,8 @@ export async function writeTable(tableId: string, data: unknown, root: string): 
   const dataRoot = await ensureDataDirFromRoot(r);
   const filePath = path.join(tablesDir(dataRoot), `${tableId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
+  // #1294 I-2 review Must-fix #1: 新規 create (target ファイル不在) のとき uniqueness check
+  await ensureUniqueOnCreate("table", tableId, filePath, r);
   // #1294 I-2: uuid preserve / 採番 (root.uuid)
   if (isRecord(data)) {
     await preserveOrAssignUuid("table", data, filePath);
@@ -1080,15 +1115,23 @@ export async function writeProcessFlow(processFlowId: string, data: unknown, roo
   const dataRoot = await ensureDataDirFromRoot(r);
   const [legacyPath, currentPath] = processFlowFileCandidates(dataRoot, processFlowId);
   let targetPath: string;
-  if (await fileExists(currentPath)) {
+  const currentExists = await fileExists(currentPath);
+  const legacyExists = await fileExists(legacyPath);
+  if (currentExists) {
     targetPath = currentPath;
-  } else if (await fileExists(legacyPath)) {
+  } else if (legacyExists) {
     targetPath = legacyPath;
   } else {
     // 新規: v3 規範 path (`process-flows/`) を使う (#1141)
     targetPath = currentPath;
   }
   assertPathContained(targetPath, dataRoot); // defense-in-depth
+  // #1294 I-2 review Must-fix #1: 新規 create (両 candidate ファイル不在) のとき uniqueness check
+  // listExistingEntityIds("processFlow") は actions/ と process-flows/ の両方を走査するため、
+  // ここでは fileExists で local check するだけで十分。
+  if (!currentExists && !legacyExists) {
+    await ensureUniqueEntityId("processFlow", processFlowId, r);
+  }
   // #1294 I-2: meta.uuid preserve / 採番 (ProcessFlow は uuid を meta 配下に持つ — 1 階層下)
   if (isRecord(data)) {
     await preserveOrAssignUuid("processFlow", data, targetPath);
@@ -1187,6 +1230,8 @@ export async function writeSequence(sequenceId: string, data: unknown, root: str
   const dataRoot = await ensureDataDirFromRoot(r);
   const filePath = path.join(sequencesDir(dataRoot), `${sequenceId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
+  // #1294 I-2 review Must-fix #1: 新規 create (target ファイル不在) のとき uniqueness check
+  await ensureUniqueOnCreate("sequence", sequenceId, filePath, r);
   // #1294 I-2: uuid preserve / 採番 (root.uuid)
   if (isRecord(data)) {
     await preserveOrAssignUuid("sequence", data, filePath);
@@ -1238,6 +1283,8 @@ export async function writeView(viewId: string, data: unknown, root: string): Pr
   const dataRoot = await ensureDataDirFromRoot(r);
   const filePath = path.join(viewsDir(dataRoot), `${viewId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
+  // #1294 I-2 review Must-fix #1: 新規 create (target ファイル不在) のとき uniqueness check
+  await ensureUniqueOnCreate("view", viewId, filePath, r);
   // #1294 I-2: uuid preserve / 採番 (root.uuid)
   if (isRecord(data)) {
     await preserveOrAssignUuid("view", data, filePath);
@@ -1286,6 +1333,8 @@ export async function writeViewDefinition(viewDefinitionId: string, data: unknow
   const dataRoot = await ensureDataDirFromRoot(r);
   const filePath = path.join(viewDefsDir(dataRoot), `${viewDefinitionId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
+  // #1294 I-2 review Must-fix #1: 新規 create (target ファイル不在) のとき uniqueness check
+  await ensureUniqueOnCreate("viewDefinition", viewDefinitionId, filePath, r);
   // #1294 I-2: uuid preserve / 採番 (root.uuid)
   if (isRecord(data)) {
     await preserveOrAssignUuid("viewDefinition", data, filePath);
@@ -1383,6 +1432,8 @@ export async function writePageLayout(pageLayoutId: string, data: unknown, root:
   const dataRoot = await ensureDataDirFromRoot(r);
   const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
+  // #1294 I-2 review Must-fix #1: 新規 create (target ファイル不在) のとき uniqueness check
+  await ensureUniqueOnCreate("pageLayout", pageLayoutId, filePath, r);
   // #1294 I-2: uuid preserve / 採番 (root.uuid)
   if (isRecord(data)) {
     await preserveOrAssignUuid("pageLayout", data, filePath);

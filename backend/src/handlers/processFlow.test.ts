@@ -572,3 +572,120 @@ describe("designer__solution_unpack — #1229 I-001 ZIP 由来 id の UUID 検�
     expect(text).toMatch(/OK: cccccccc-cccc-4ccc-8ccc-cccccccccccc/);
   });
 });
+
+// ── 8. designer__update_process_flow meta.id 整合性 (#1294 I-2 review Should-fix #2) ─
+
+describe("designer__update_process_flow — meta.id 整合性 check (#1294 I-2)", () => {
+  const root = path.join(TMP_ROOT, "ws-update-pf-metaid");
+  beforeAll(async () => { await makeWorkspace(root); });
+
+  it("processFlowId と definition.meta.id が不一致なら InvalidParams で reject", async () => {
+    // 先に処理フローを 1 件作成して update 対象とする
+    const addRes = await handleProcessFlowTool(
+      "designer__add_process_flow",
+      { name: "meta-id-mismatch-test", flowType: "common" },
+      root,
+      SESSION_ID,
+    );
+    const message = addRes!.content[0].text as string;
+    const idMatch = message.match(ID_CAPTURE_RE);
+    const pfId = idMatch![1];
+
+    // 異なる meta.id を持つ definition で update を試みる
+    await expect(
+      handleProcessFlowTool(
+        "designer__update_process_flow",
+        {
+          processFlowId: pfId,
+          definition: {
+            meta: {
+              id: "different-id",
+              name: "renamed",
+              flowType: "common",
+              maturity: "draft",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-02T00:00:00.000Z",
+            },
+            context: {},
+            actions: [],
+            authoring: {},
+          },
+        },
+        root,
+        SESSION_ID,
+      ),
+    ).rejects.toThrow(/processFlowId.*definition\.meta\.id.*不一致/);
+  });
+
+  it("processFlowId と definition.meta.id が一致すれば update 成功", async () => {
+    const addRes = await handleProcessFlowTool(
+      "designer__add_process_flow",
+      { name: "meta-id-match-test", flowType: "common" },
+      root,
+      SESSION_ID,
+    );
+    const message = addRes!.content[0].text as string;
+    const idMatch = message.match(ID_CAPTURE_RE);
+    const pfId = idMatch![1];
+
+    await expect(
+      handleProcessFlowTool(
+        "designer__update_process_flow",
+        {
+          processFlowId: pfId,
+          definition: {
+            meta: {
+              id: pfId,
+              name: "renamed-but-id-same",
+              flowType: "common",
+              maturity: "draft",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-02T00:00:00.000Z",
+            },
+            context: {},
+            actions: [],
+            authoring: {},
+          },
+        },
+        root,
+        SESSION_ID,
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("definition.meta が未定義 / meta.id が無い場合は check skip (後方互換)", async () => {
+    const addRes = await handleProcessFlowTool(
+      "designer__add_process_flow",
+      { name: "no-meta-id-test", flowType: "common" },
+      root,
+      SESSION_ID,
+    );
+    const message = addRes!.content[0].text as string;
+    const idMatch = message.match(ID_CAPTURE_RE);
+    const pfId = idMatch![1];
+
+    // meta はあるが meta.id 無し
+    await expect(
+      handleProcessFlowTool(
+        "designer__update_process_flow",
+        {
+          processFlowId: pfId,
+          definition: {
+            meta: {
+              name: "no-meta-id",
+              flowType: "common",
+              maturity: "draft",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-02T00:00:00.000Z",
+            },
+            context: {},
+            actions: [],
+            authoring: {},
+          },
+        },
+        root,
+        SESSION_ID,
+      ),
+    ).resolves.toBeDefined();
+  });
+});
