@@ -26,7 +26,7 @@
           "description": "input = フォーム入力項目 (既定) / output = 表示専用項目 (スカラー) / viewer = ViewDefinition の列定義を参照し、`valueFrom` で flow 変数から配列データを bind する配列データ表示項目 (#762)。"
         },
         "viewDefinitionId": {
-          "$ref": "common.v3.schema.json#/$defs/Uuid",
+          "$ref": "common.v3.schema.json#/$defs/EntityId",
           "description": "viewer 項目が参照する ViewDefinition の ID (#762)。direction='viewer' の場合のみ使用し、列定義・ソート・kind 等の viewer 設定を提供する ViewDefinition を指定する。`valueFrom` で flow 変数から配列データを bind する。`valueFrom` 省略時は ViewDefinition の query を画面 mount 時に自動発行する (静的マスター一覧)。"
         },
         "required": { "type": "boolean" },
@@ -112,7 +112,7 @@
           "description": "イベントの表示名 (designer UI 用)。"
         },
         "handlerFlowId": {
-          "$ref": "common.v3.schema.json#/$defs/Uuid",
+          "$ref": "common.v3.schema.json#/$defs/EntityId",
           "description": "発火時に実行する処理フローの ID (backward reference)。"
         },
         "handlerActionId": {
@@ -257,7 +257,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "flowVariable" },
-            "processFlowId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "省略時はカレント画面に紐付く ProcessFlow を解決する。" },
+            "processFlowId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "省略時はカレント画面に紐付く ProcessFlow を解決する。" },
             "variableName": { "$ref": "common.v3.schema.json#/$defs/IdentifierPath", "description": "ProcessFlow 変数名。Identifier 単独 (例: 'inventoryRows') または ドット区切りで object の field 参照 (例: 'createdOrder.order_number')。#533 R3-1 で IdentifierPath に変更し object field 参照を許容。" }
           }
         },

@@ -10,8 +10,8 @@
     "$schema": { "type": "string" },
     "positions": {
       "type": "object",
-      "description": "Table の Uuid をキーとし、UI 座標を値とする。",
-      "propertyNames": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+      "description": "Table の EntityId をキーとし、UI 座標を値とする。",
+      "propertyNames": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
       "additionalProperties": {
         "type": "object",
         "required": ["x", "y"],
@@ -36,9 +36,9 @@
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
-        "sourceTableId": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+        "sourceTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
         "sourceColumnId": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
-        "targetTableId": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+        "targetTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
         "targetColumnId": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
         "cardinality": {
           "type": "string",

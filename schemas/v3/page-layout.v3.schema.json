@@ -23,11 +23,11 @@
         },
         "assignments": {
           "type": "object",
-          "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+          "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
           "description": "region 名 → gadget Screen ID マップ。各 region に割り当てる Screen は purpose='gadget' でなければならない (cross-entity validator で検証)。main region は content slot として page Screen が嵌まるため assignments には通常含めない (含めても loader が無視)。"
         },
         "processFlowId": {
-          "$ref": "common.v3.schema.json#/$defs/Uuid",
+          "$ref": "common.v3.schema.json#/$defs/EntityId",
           "description": "ガジェット間連携 orchestrator として紐付ける ProcessFlow ID (optional)。MVP では schema 上は枠のみ用意、実装は Phase 2 (RFC #1021 Q2=a)。"
         },
         "design": {
