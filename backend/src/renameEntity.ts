@@ -26,7 +26,6 @@ import {
   writeTable,
   readProcessFlow,
   writeProcessFlow,
-  listProcessFlows,
   readSequence,
   writeSequence,
   readView,
@@ -144,10 +143,28 @@ export interface RenameOperation {
   uuid: string;
   /** TTL 計算用 (ms epoch) */
   ts: number;
+  /**
+   * Phase I round 3+4 Nit N-4 (Opus round 4): TTL 期限の ms epoch (server clock 基準)。
+   * `ts + UNDO_TTL_MS` で計算済。frontend toast はこの timestamp を基準に自動 dismiss する
+   * ことで client/server clock drift による confusing UX を回避できる。
+   */
+  ttlExpiresAt: number;
   /** dataRoot 相対 path + 元 content (undo 時の restore 用) */
   fileRenames: Array<{ from: string; to: string; originalContent: string }>;
   /** ref 側 update の dataRoot 相対 path + 元 content + 新 content */
   refUpdates: Array<{ filePath: string; originalContent: string; newContent: string }>;
+  /**
+   * Phase I round 3+4 Should-fix SF-5 (Opus round 4): history directory rename。
+   * `<root>/.edit-sessions-history/<resourceType>/<oldId>/` → `.../<newId>/` の
+   * atomic rename を行った場合に記録 (undo で逆方向 rename)。
+   */
+  historyMigration?: { resourceType: string; oldId: string; newId: string };
+  /**
+   * Phase I round 3+4 Should-fix SF-4 / SF-6 (Codex S-3 / Opus SF-2): edit-sessions
+   * file 内の `content.resourceId` が oldId のものを newId に書き換えた一覧。
+   * undo で逆方向に書き戻すため `editSessionId` と元の `resourceId` を保持。
+   */
+  editSessionMigrations?: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>;
 }
 
 /** rename 中 lock 検査で参照する EditSession 抽象 (テスト容易性のため最小契約) */
@@ -298,30 +315,91 @@ const MAP_VALUE_REF_FIELDS: Record<RenameEntityType, string[]> = {
   pageLayout: [],
 };
 
-// ── In-memory undo store (workspace root → 最新 1 件、5 分 TTL) ───────────────
+// ── In-memory undo store (workspace root → 最大 N 件 LRU、5 分 TTL) ───────────
 
 const UNDO_TTL_MS = 5 * 60 * 1000;
-/** key = workspace root path, value = 最新の RenameOperation 1 件 (5 分 TTL) */
-const _undoStore = new Map<string, RenameOperation>();
+/**
+ * Phase I round 3+4 Should-fix SF-7 (Opus round 4): 旧実装は workspace root に対し 1 件のみ
+ * 保持していたため、multi-tab で連続 rename すると先の operation の undo capability が
+ * silent に上書きされていた (Tab A の "元に戻す" click で「operationId が見つかりません」
+ * error 発生)。本 phase で per-workspace に最大 N 件 (LRU) を保持する Map に変更。
+ *
+ * 5 分 TTL は各 operation ごとに維持。LRU は Map の insertion-order 性質を利用 (新規 push
+ * 時に既に存在する場合は delete + set で末尾に移動、size 超過時は先頭を削除)。
+ */
+const UNDO_MAX_PER_WORKSPACE = 5;
+/** key = workspace root path, value = Map<operationId, RenameOperation> (LRU、insertion order) */
+const _undoStore = new Map<string, Map<string, RenameOperation>>();
 
 function pushUndo(root: string, op: RenameOperation): void {
-  _undoStore.set(root, op);
+  let perWorkspace = _undoStore.get(root);
+  if (!perWorkspace) {
+    perWorkspace = new Map<string, RenameOperation>();
+    _undoStore.set(root, perWorkspace);
+  }
+  // 既存 operation を新しい op で上書き (新規 push 時に同 id の場合)
+  if (perWorkspace.has(op.operationId)) perWorkspace.delete(op.operationId);
+  perWorkspace.set(op.operationId, op);
+  // LRU 上限超過時は先頭 (最古) を削除
+  while (perWorkspace.size > UNDO_MAX_PER_WORKSPACE) {
+    const firstKey = perWorkspace.keys().next().value;
+    if (firstKey === undefined) break;
+    perWorkspace.delete(firstKey);
+  }
 }
 
 function popUndo(root: string, operationId: string): RenameOperation | null {
-  const op = _undoStore.get(root);
-  if (!op || op.operationId !== operationId) return null;
+  const perWorkspace = _undoStore.get(root);
+  if (!perWorkspace) return null;
+  const op = perWorkspace.get(operationId);
+  if (!op) return null;
   if (Date.now() - op.ts > UNDO_TTL_MS) {
-    _undoStore.delete(root);
+    perWorkspace.delete(operationId);
     return null;
   }
-  _undoStore.delete(root);
+  perWorkspace.delete(operationId);
   return op;
 }
 
 /** test-only: undo store を全 root についてクリア */
 export function _clearUndoStoreForTest(): void {
   _undoStore.clear();
+}
+
+// ── Workspace mutex (Phase I round 3+4 Should-fix SF-3) ─────────────────────
+//
+// 同一 workspace root に対する preview / rename / undo 全体を直列化する async mutex。
+// 旧実装は単一 process 内でも `await` 境界で並行 invocation が起こり、_undoStore 上書き
+// (SF-7 で別経路解消) や ref scan の中間状態 read 等の race を発生させていた。
+// Node.js の単一スレッド実行でも `await` で event loop が他 task に処理権を譲るため、
+// scan → write → push の atomic 性は明示的な lock で保証する必要がある。
+
+const _workspaceLocks = new Map<string, Promise<unknown>>();
+
+/**
+ * workspace root 単位で async critical section を獲得する。
+ * 戻り値の `release` 関数を必ず finally で呼ぶこと (await 不要)。
+ */
+async function acquireWorkspaceLock(root: string): Promise<() => void> {
+  const prev = _workspaceLocks.get(root) ?? Promise.resolve();
+  let release: () => void;
+  const next = new Promise<void>((r) => { release = r; });
+  // chain 接続: prev が settle してから next を pending 中として登録
+  const chained = prev.then(() => next);
+  _workspaceLocks.set(root, chained);
+  await prev;
+  return () => {
+    release!();
+    // 最後尾の chain なら map から外す (GC + デバッグ性)
+    if (_workspaceLocks.get(root) === chained) {
+      _workspaceLocks.delete(root);
+    }
+  };
+}
+
+/** test-only: workspace lock 全クリア */
+export function _clearWorkspaceLocksForTest(): void {
+  _workspaceLocks.clear();
 }
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -557,6 +635,29 @@ function rewriteSelfRefsInPrimary(
   return { rewritten, hits };
 }
 
+/**
+ * Phase I round 3+4 Nit N-1 (Opus round 4): entity data 内の identity field (id) を取得。
+ * filename-id drift detection 用 (N-1)。
+ *
+ * - ProcessFlow: meta.id
+ * - 他 6 entity: top-level id
+ *
+ * null を返すケース: data 形状不正、id field 不在 (旧 fixture 等)。null の場合は drift
+ * check を skip する (誤検出回避)。
+ */
+function extractIdentityForDriftCheck(entityType: RenameEntityType, data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const obj = data as Record<string, unknown>;
+  if (entityType === "processFlow") {
+    const meta = obj.meta && typeof obj.meta === "object" && !Array.isArray(obj.meta)
+      ? (obj.meta as Record<string, unknown>) : null;
+    const id = meta?.id;
+    return typeof id === "string" ? id : null;
+  }
+  const id = obj.id;
+  return typeof id === "string" ? id : null;
+}
+
 /** entity から uuid を取得 (ProcessFlow は meta.uuid、それ以外は root.uuid) */
 function extractUuid(entityType: RenameEntityType, data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
@@ -609,11 +710,19 @@ async function planFileRenames(
       // currentFrom 同名が両方ある場合は currentFrom rename plan が既に同 to を持つため、
       // legacy → canonical の to は currentFrom と衝突。実運用ではどちらか片方のみ存在する
       // (writeProcessFlow が既存 path に書くため) が、defense-in-depth で同 to の場合は
-      // legacy plan 側を skip して current 経路に委ねる。
+      // legacy plan 側を「delete-only plan」として記録し、commit phase の strictUnlink で
+      // 確実に削除されるようにする (Phase I round 3+4 Nit N-2 = Opus round 4 N-2)。
+      //
+      // delete-only plan の判別: `to` 値が canonical path と等しい場合は plan に追加しても
+      // strictUnlink loop で legacyFrom を消すだけ。writeEntityById は newId 1 件のみ書くため
+      // 二重書込みは起こらない (canonical to は currentFrom plan で既に予約済)。
       const canonicalTo = path.join(dir, `${newId}.json`);
       const alreadyPlanned = plans.some((p) => p.to === canonicalTo);
       if (!alreadyPlanned) {
         plans.push({ from: legacyFrom, to: canonicalTo });
+      } else {
+        // Phase I N-2: delete-only plan として legacy を必ず削除する (orphan 防止)
+        plans.push({ from: legacyFrom, to: legacyFrom });
       }
     }
     return plans;
@@ -694,11 +803,16 @@ async function scanAllRefs(
   const sources: RefSourceFile[] = [];
 
   // 1. ProcessFlow 全件 (ほぼ全 entity rename で対象)
-  const pfList = (await listProcessFlows(root)) as Array<Record<string, unknown>>;
-  for (const pf of pfList) {
-    const pfId = typeof pf.id === "string" ? pf.id
-      : (pf.meta && typeof pf.meta === "object" ? (pf.meta as Record<string, unknown>).id as string : null);
+  //
+  // Phase I round 3+4 Nit N-3 (Opus round 4): listProcessFlows は data.id / meta.id ベースだが、
+  // 他 source (Screen / View 等) は filename ベース。両者を symmetric に揃えるため、
+  // listExistingEntityIds (filename ベース) で id 列挙し、各 id で readProcessFlow し直す。
+  // drift state でも `entityId` は filename baseline で報告される。
+  const pfIds = await listExistingEntityIds("processFlow", root);
+  for (const pfId of pfIds) {
     if (!pfId) continue;
+    const pf = await readProcessFlow(pfId, root);
+    if (!pf) continue;
     // current / legacy どちらかから読まれた data。実 file path を再特定するため、両 candidate を試す
     const currentAbs = path.join(dataRoot, "process-flows", `${pfId}.json`);
     const legacyAbs  = path.join(dataRoot, "actions", `${pfId}.json`);
@@ -1265,6 +1379,108 @@ async function detectConcurrentEditRefs(
   return result;
 }
 
+// ── Phase I round 3+4 Should-fix SF-4 / SF-5 / SF-6: history + edit-sessions migration ─
+
+/**
+ * `<root>/.edit-sessions-history/<resourceType>/<oldId>/` を `.../<newId>/` に atomic rename。
+ * (Phase I round 3+4 Should-fix SF-5)
+ *
+ * entity の history continuity を rename 後も保つため。directory 不在は no-op。
+ * 戻り値: 実際に rename したかどうか。
+ */
+async function migrateHistoryDirectory(
+  root: string, resourceType: string, oldId: string, newId: string,
+): Promise<boolean> {
+  const fromDir = path.join(root, ".edit-sessions-history", resourceType, oldId);
+  const toDir = path.join(root, ".edit-sessions-history", resourceType, newId);
+  if (!(await fileExists(fromDir))) return false;
+  if (await fileExists(toDir)) {
+    // 衝突: 既に新 id directory が存在 — merge は危険なので skip (warning にも上げない、稀)
+    return false;
+  }
+  await fs.mkdir(path.dirname(toDir), { recursive: true });
+  await fs.rename(fromDir, toDir);
+
+  // history JSON 内の `resourceId` field も書き換える (entry が listHistory({resourceId: newId})
+  // で検索可能になるよう)
+  try {
+    const files = await fs.readdir(toDir);
+    for (const f of files) {
+      if (!f.endsWith(".json")) continue;
+      const filePath = path.join(toDir, f);
+      try {
+        const raw = await fs.readFile(filePath, "utf-8");
+        const data = JSON.parse(raw) as Record<string, unknown>;
+        if (data.resourceId === oldId) {
+          data.resourceId = newId;
+          await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
+        }
+      } catch { /* 壊れた JSON は skip */ }
+    }
+  } catch { /* readdir 失敗は ignore */ }
+
+  return true;
+}
+
+/**
+ * `<root>/.edit-sessions/*.json` を scan し、content.resourceType === <kebab> &&
+ * content.resourceId === oldId のものを newId に書き換える。
+ * (Phase I round 3+4 Should-fix SF-4 / SF-6)
+ *
+ * state (Active / Discarded) や role (Edit / View) は問わず全件書換。Phase G M-4
+ * detectConcurrentEditRefs は active Edit のみ block するため、Discarded 残骸 / View
+ * session は通過して stale resourceId のまま残るのを防ぐ。
+ *
+ * 戻り値: 書換えた session の migration log (undo で逆方向書戻し用)。
+ */
+async function migrateEditSessions(
+  root: string, kebabResourceType: string, oldId: string, newId: string,
+): Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>> {
+  const dir = path.join(root, ".edit-sessions");
+  const log: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }> = [];
+  let files: string[];
+  try {
+    files = await fs.readdir(dir);
+  } catch { return log; }
+  for (const f of files) {
+    if (!f.endsWith(".json")) continue;
+    if (f.includes(".tmp-")) continue; // in-flight atomic write は skip
+    const filePath = path.join(dir, f);
+    try {
+      const raw = await fs.readFile(filePath, "utf-8");
+      const data = JSON.parse(raw) as Record<string, unknown>;
+      if (data.resourceType === kebabResourceType && data.resourceId === oldId) {
+        data.resourceId = newId;
+        await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
+        const id = typeof data.id === "string" ? data.id : f.replace(/\.json$/, "");
+        log.push({ editSessionId: id, oldResourceId: oldId, newResourceId: newId });
+      }
+    } catch { /* 壊れた JSON / 書込み失敗は skip (best effort、rename commit を block しない) */ }
+  }
+  return log;
+}
+
+/**
+ * undo 用: edit-sessions migration を逆方向に書き戻す。
+ */
+async function revertEditSessionsMigration(
+  root: string,
+  migrations: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>,
+): Promise<void> {
+  const dir = path.join(root, ".edit-sessions");
+  for (const m of migrations) {
+    const filePath = path.join(dir, `${m.editSessionId}.json`);
+    try {
+      const raw = await fs.readFile(filePath, "utf-8");
+      const data = JSON.parse(raw) as Record<string, unknown>;
+      if (data.resourceId === m.newResourceId) {
+        data.resourceId = m.oldResourceId;
+        await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
+      }
+    } catch { /* best effort */ }
+  }
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /**
@@ -1276,6 +1492,23 @@ async function detectConcurrentEditRefs(
  * - 参照側 update 件数 + file rename 件数を返す
  */
 export async function previewEntityRename(
+  entityType: RenameEntityType,
+  oldId: string,
+  newId: string,
+  root: string,
+  opts?: RenameOpts,
+): Promise<PreviewResult> {
+  // Phase I round 3+4 Should-fix SF-3: 同一 workspace への並行 preview / rename / undo は
+  // workspace mutex で直列化 (scan 中間状態露出 + TOCTOU の race を防止)
+  const release = await acquireWorkspaceLock(root);
+  try {
+    return await _previewEntityRenameImpl(entityType, oldId, newId, root, opts);
+  } finally {
+    release();
+  }
+}
+
+async function _previewEntityRenameImpl(
   entityType: RenameEntityType,
   oldId: string,
   newId: string,
@@ -1343,6 +1576,22 @@ export async function renameEntityId(
   root: string,
   opts?: RenameOpts,
 ): Promise<{ operation: RenameOperation; preview: PreviewResult }> {
+  // Phase I round 3+4 Should-fix SF-3: workspace mutex で直列化
+  const release = await acquireWorkspaceLock(root);
+  try {
+    return await _renameEntityIdImpl(entityType, oldId, newId, root, opts);
+  } finally {
+    release();
+  }
+}
+
+async function _renameEntityIdImpl(
+  entityType: RenameEntityType,
+  oldId: string,
+  newId: string,
+  root: string,
+  opts?: RenameOpts,
+): Promise<{ operation: RenameOperation; preview: PreviewResult }> {
   if (oldId === newId) {
     throw new Error(`oldId と newId が同一です: "${oldId}"`);
   }
@@ -1382,6 +1631,18 @@ export async function renameEntityId(
   const expectedUuid = extractUuid(entityType, primaryData);
   if (!expectedUuid) {
     throw new Error(`${entityType} "${oldId}" に uuid がありません。I-2 migration 完了後に再実行してください。`);
+  }
+  // Phase I round 3+4 Nit (Opus round 4 N-1): filename-id drift detection。
+  // `readEntityRaw(oldId)` で読まれた data の identity field (data.id / meta.id) と filename
+  // (oldId) が一致するかを assert する。drift 状態 (filename と data.id 不一致) で rename すると
+  // walker が参照側で探す key (= oldId、filename baseline) と withRewrittenId が上書きする
+  // identity (= data.id、別値) が乖離し、orphan ref を残す可能性。
+  const dataIdentity = extractIdentityForDriftCheck(entityType, primaryData);
+  if (dataIdentity !== null && dataIdentity !== oldId) {
+    throw new Error(
+      `Filename-id drift: file "${oldId}.json" の ${entityType === "processFlow" ? "meta.id" : "id"} ` +
+      `は "${dataIdentity}" です (filename と不一致)。rename 前に手動で整合させてください。`,
+    );
   }
 
   // 主ファイル plan + ref 走査
@@ -1549,6 +1810,19 @@ export async function renameEntityId(
     throw err;
   }
 
+  // Phase I round 3+4 Should-fix SF-4 / SF-5 / SF-6: rename 主処理成功後の post-commit
+  // migration。失敗しても rename 自体は成功扱いとし、operation snapshot に書込状況を
+  // 記録して undo で reversible に扱う。
+  const kebabResourceType = entityTypeToResourceType(entityType);
+  let historyMigrated = false;
+  try {
+    historyMigrated = await migrateHistoryDirectory(root, kebabResourceType, oldId, newId);
+  } catch { /* best effort: history migration 失敗は rename を block しない */ }
+  let editSessionMigrations: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }> = [];
+  try {
+    editSessionMigrations = await migrateEditSessions(root, kebabResourceType, oldId, newId);
+  } catch { /* best effort */ }
+
   // PreviewResult 再構築 (実行後の正常 case を返す)
   const preview: PreviewResult = {
     entityType, oldId, newId,
@@ -1567,13 +1841,18 @@ export async function renameEntityId(
 
   // ── snapshot に design.json も含めて undo を完備 ──
   // filePlans は design.json 含むため fileRenameSnapshots と整合
+  const ts = Date.now();
   const operation: RenameOperation = {
     operationId: crypto.randomUUID(),
     entityType, oldId, newId,
     uuid: expectedUuid,
-    ts: Date.now(),
+    ts,
+    // Phase I round 3+4 Nit N-4: TTL 期限の絶対 timestamp を含める (client clock drift 回避)
+    ttlExpiresAt: ts + UNDO_TTL_MS,
     fileRenames: fileRenameSnapshots,
     refUpdates: refUpdateSnapshots,
+    ...(historyMigrated ? { historyMigration: { resourceType: kebabResourceType, oldId, newId } } : {}),
+    ...(editSessionMigrations.length > 0 ? { editSessionMigrations } : {}),
   };
   pushUndo(root, operation);
 
@@ -1589,6 +1868,18 @@ export async function renameEntityId(
  * 戻り値: 復元した file 数 (主 + design + ref 側 合計)。
  */
 export async function undoEntityRename(
+  operationId: string, root: string,
+): Promise<{ restoredFiles: number }> {
+  // Phase I round 3+4 Should-fix SF-3: workspace mutex で直列化
+  const release = await acquireWorkspaceLock(root);
+  try {
+    return await _undoEntityRenameImpl(operationId, root);
+  } finally {
+    release();
+  }
+}
+
+async function _undoEntityRenameImpl(
   operationId: string, root: string,
 ): Promise<{ restoredFiles: number }> {
   const op = popUndo(root, operationId);
@@ -1685,8 +1976,13 @@ export async function undoEntityRename(
       const toAbs   = path.join(dataRoot, f.to);   // rename 後の path (newId 側)
       await writeFileContent(fromAbs, f.originalContent);
       restoredOldFromPaths.push(fromAbs);
-      // newId 側 file を strict 削除 (Phase G M-3): 失敗時は catch で rollback
-      await strictUnlink(toAbs);
+      // Phase I round 3+4 Nit N-2: delete-only plan (from === to、legacy ProcessFlow 等) は
+      // 「rename ではなく削除のみ」だったため、undo では from 復元のみで、to の strictUnlink
+      // を skip する (= 二重 unlink で復元したばかりの file を消さない)。
+      if (fromAbs !== toAbs) {
+        // newId 側 file を strict 削除 (Phase G M-3): 失敗時は catch で rollback
+        await strictUnlink(toAbs);
+      }
       restored++;
     }
   } catch (err) {
@@ -1719,11 +2015,46 @@ export async function undoEntityRename(
     throw err;
   }
 
+  // Phase I round 3+4 Should-fix SF-4 / SF-5 / SF-6: post-undo migration revert
+  // (rename 時の history dir 移行 / edit-sessions resourceId 書換えを逆方向に戻す)。
+  // best effort: 失敗しても restored file 数には影響させない (undo 本体は成功)。
+  if (op.historyMigration) {
+    try {
+      await migrateHistoryDirectory(
+        root, op.historyMigration.resourceType,
+        op.historyMigration.newId, op.historyMigration.oldId,
+      );
+    } catch { /* best effort */ }
+  }
+  if (op.editSessionMigrations && op.editSessionMigrations.length > 0) {
+    try {
+      await revertEditSessionsMigration(root, op.editSessionMigrations);
+    } catch { /* best effort */ }
+  }
+
   return { restoredFiles: restored };
 }
 
 // ── internal: entity 種別ごとの write ───────────────────────────────────────
 
+/**
+ * Phase I round 3+4 Nit (Opus round 3 N-2): writeEntityById は内部で各 writer
+ * (writeScreenEntity / writeTable / writeProcessFlow 等) を call し、その先で
+ * `annotateValidationWarnings(data)` が呼ばれる場合がある。
+ *
+ * 副作用: AJV invalid な entity を write すると `data.authoring.markers` に validator marker
+ * が **mutate** で append される。結果として「rename 後の新 file content」は walker の純粋
+ * output に対して +N 件 marker が追加された状態で disk に出力される。
+ *
+ * これは draft-state policy (`docs/spec/draft-state-policy.md`) で許容された挙動 (schema
+ * invalid 状態を保存しつつ marker で trace する) だが、test の byte-identity assertion を
+ * 組む場合は当該副作用を考慮する必要がある。undo 時は raw snapshot (rename 前 content) を
+ * そのまま書き戻すため byte-identical だが、「rename → 新 file → undo (= 旧 file 復元)」の
+ * 往復で旧 file は元のまま、新 file は marker 追加された content となる点に留意。
+ *
+ * rename module 自身は ref 書換えのみで schema validity を変えない前提のため、ここでは
+ * bypass option を導入しない (writer 側で適切に annotate する責務に任せる)。
+ */
 async function writeEntityById(
   entityType: RenameEntityType, id: string, data: unknown, root: string,
 ): Promise<void> {

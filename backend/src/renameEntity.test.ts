@@ -1868,3 +1868,197 @@ describe("renameEntityId — Phase I F: Puck Screen rename → puck-data.json �
     ).rejects.toThrow();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase I round 3+4 Should-fix SF-3 (Opus round 3): workspace-level mutex で並行 rename
+//   race を直列化
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase I SF-3: workspace mutex で並行 rename 直列化", () => {
+  it("並行 rename 2 件を Promise.all で投げても両方 undo 可能 (_undoStore 上書きしない)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "tbl-a");
+    await seedTable(root, "tbl-b");
+
+    // 並行 rename
+    const [r1, r2] = await Promise.all([
+      renameEntityId("table", "tbl-a", "tbl-a-renamed", root),
+      renameEntityId("table", "tbl-b", "tbl-b-renamed", root),
+    ]);
+
+    // 両者の operationId が undo 可能 (SF-7 LRU 効果)
+    expect(r1.operation.operationId).not.toBe(r2.operation.operationId);
+    await undoEntityRename(r1.operation.operationId, root);
+    await undoEntityRename(r2.operation.operationId, root);
+    // 両方とも旧 path に復元
+    await fs.access(dataPath(root, "tables", "tbl-a.json"));
+    await fs.access(dataPath(root, "tables", "tbl-b.json"));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase I round 3+4 Should-fix SF-7 (Opus round 4): undo store multi-tab で LRU 保持
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase I SF-7: undo store は per-workspace LRU で複数 operation 保持", () => {
+  it("連続 rename 3 件すべての operationId で undo 可能", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "t1");
+    await seedTable(root, "t2");
+    await seedTable(root, "t3");
+
+    const r1 = await renameEntityId("table", "t1", "t1-r", root);
+    const r2 = await renameEntityId("table", "t2", "t2-r", root);
+    const r3 = await renameEntityId("table", "t3", "t3-r", root);
+
+    // 3 件すべて pop 可能 (旧実装は r1, r2 が上書きされ最後 r3 のみ可能だった)
+    await undoEntityRename(r3.operation.operationId, root);
+    await undoEntityRename(r2.operation.operationId, root);
+    await undoEntityRename(r1.operation.operationId, root);
+  });
+
+  it("LRU 上限 5 件超過時は最古から削除される", async () => {
+    const root = await makeWorkspace();
+    for (let i = 1; i <= 6; i++) {
+      await seedTable(root, `lru-t${i}`);
+    }
+    const ops: string[] = [];
+    for (let i = 1; i <= 6; i++) {
+      const r = await renameEntityId("table", `lru-t${i}`, `lru-t${i}-r`, root);
+      ops.push(r.operation.operationId);
+    }
+    // 最古 (ops[0]) は LRU 押し出されているはず — undo 不可
+    await expect(undoEntityRename(ops[0], root)).rejects.toThrow(/見つかりません/);
+    // 最新 5 件は undo 可能
+    for (let i = 5; i >= 1; i--) {
+      await undoEntityRename(ops[i], root);
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase I round 3+4 Should-fix SF-5 (Opus round 4): history directory rename
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase I SF-5: history directory も rename + undo で逆方向", () => {
+  it("rename 後 listHistory(newId) で取得可、undo 後は listHistory(oldId) で取得可", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "hist-t");
+
+    // history file を seed (`.edit-sessions-history/table/hist-t/`)
+    const histDir = path.join(root, ".edit-sessions-history", "table", "hist-t");
+    await fs.mkdir(histDir, { recursive: true });
+    const entry = {
+      historyId: "h1",
+      timestamp: "2026-05-25T00:00:00.000Z",
+      editSessionId: "es-001",
+      ownerSessionId: "s1",
+      ownerLabel: "@test",
+      reason: "save",
+      resourceType: "table",
+      resourceId: "hist-t",
+      snapshot: { foo: "bar" },
+    };
+    await fs.writeFile(path.join(histDir, "h1.json"), JSON.stringify(entry, null, 2), "utf-8");
+
+    // rename
+    const { operation } = await renameEntityId("table", "hist-t", "renamed-hist-t", root);
+
+    // 新 directory が存在 + 旧 directory は不在
+    const newHistDir = path.join(root, ".edit-sessions-history", "table", "renamed-hist-t");
+    await fs.access(newHistDir);
+    await expect(fs.access(histDir)).rejects.toThrow();
+
+    // 新 entry の resourceId が更新されている
+    const newEntry = JSON.parse(await fs.readFile(path.join(newHistDir, "h1.json"), "utf-8")) as Record<string, unknown>;
+    expect(newEntry.resourceId).toBe("renamed-hist-t");
+    expect(newEntry.historyId).toBe("h1"); // 他 field は preserve
+
+    // undo
+    await undoEntityRename(operation.operationId, root);
+
+    // 旧 directory に復元 + 新 directory 不在
+    await fs.access(histDir);
+    await expect(fs.access(newHistDir)).rejects.toThrow();
+    const restored = JSON.parse(await fs.readFile(path.join(histDir, "h1.json"), "utf-8")) as Record<string, unknown>;
+    expect(restored.resourceId).toBe("hist-t");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase I round 3+4 Should-fix SF-4 / SF-6 (Codex S-3 / Opus SF-2): edit-sessions
+//   stale resourceId 書換え + undo で逆方向
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase I SF-4/SF-6: edit-sessions の resourceId も migration", () => {
+  it("rename 後、`.edit-sessions/*.json` 内の resourceId === oldId が newId に書換えされる", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "es-tbl");
+
+    // edit-sessions seed (Discarded state、role View)
+    const esDir = path.join(root, ".edit-sessions");
+    await fs.mkdir(esDir, { recursive: true });
+    const esId = "es-001";
+    const session = {
+      id: esId,
+      resourceType: "table",
+      resourceId: "es-tbl",
+      state: "Discarded",
+      participants: { "s1": { sessionId: "s1", role: "View", joinedAt: "x", lastActivityAt: "x", displayLabel: "v" } },
+      payload: null,
+      sequence: 0,
+      createdAt: "x",
+      expiresAt: "x",
+      saveHistory: [],
+      lastActivityAt: "x",
+    };
+    await fs.writeFile(path.join(esDir, `${esId}.json`), JSON.stringify(session, null, 2), "utf-8");
+
+    // rename (Discarded session は detectConcurrentEditRefs を block しない)
+    const { operation } = await renameEntityId("table", "es-tbl", "es-tbl-renamed", root);
+
+    // session content の resourceId が newId に書換されている
+    const after = JSON.parse(await fs.readFile(path.join(esDir, `${esId}.json`), "utf-8")) as Record<string, unknown>;
+    expect(after.resourceId).toBe("es-tbl-renamed");
+
+    // undo で oldId に戻る
+    await undoEntityRename(operation.operationId, root);
+    const reverted = JSON.parse(await fs.readFile(path.join(esDir, `${esId}.json`), "utf-8")) as Record<string, unknown>;
+    expect(reverted.resourceId).toBe("es-tbl");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase I round 3+4 Nit (Opus round 4): N-1 filename-id drift / N-4 ttlExpiresAt
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase I Nit N-1: filename-id drift detection", () => {
+  it("filename と data.id が不一致なら rename を block", async () => {
+    const root = await makeWorkspace();
+    // 通常 seed → tables/drift-t.json (id: "drift-t")
+    await seedTable(root, "drift-t");
+
+    // 直接 file を編集して id を別値に変える (drift state を作る)
+    const filePath = dataPath(root, "tables", "drift-t.json");
+    const data = JSON.parse(await fs.readFile(filePath, "utf-8")) as Record<string, unknown>;
+    data.id = "different-name"; // drift inject
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
+
+    // rename は throw
+    await expect(renameEntityId("table", "drift-t", "new-t", root)).rejects.toThrow(/Filename-id drift/);
+  });
+});
+
+describe("renameEntityId — Phase I Nit N-4: operation.ttlExpiresAt", () => {
+  it("RenameOperation に ttlExpiresAt (絶対 timestamp) が含まれる", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "ttl-t");
+
+    const before = Date.now();
+    const { operation } = await renameEntityId("table", "ttl-t", "ttl-renamed", root);
+    const after = Date.now();
+
+    expect(operation.ttlExpiresAt).toBeGreaterThanOrEqual(before + 5 * 60 * 1000);
+    expect(operation.ttlExpiresAt).toBeLessThanOrEqual(after + 5 * 60 * 1000 + 1000);
+  });
+});
