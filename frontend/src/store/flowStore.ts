@@ -773,7 +773,8 @@ export async function addScreen(
 ): Promise<ScreenNode> {
   // RFC #1284 / #1297 I-5: UI 創成ダイアログ / mcpBridge / duplicate path から
   // kebab-case id が opts.id 経由で渡される。渡されない programmatic path は fallback。
-  const id = (opts?.id ?? generateFallbackEntityId("scr")) as ScreenId;
+  // 空文字 / whitespace-only も fallback に流す (S-1 defense-in-depth)。
+  const id = ((opts?.id && opts.id.trim()) || generateFallbackEntityId("scr")) as ScreenId;
   const screen: ScreenNode = {
     id,
     no: nextNo(project.screens),

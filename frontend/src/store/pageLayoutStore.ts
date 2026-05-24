@@ -104,10 +104,11 @@ export async function createPageLayout(
   opts?: { id?: string },
 ): Promise<PageLayout> {
   // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
+  // 空文字 / whitespace-only も fallback に流す (S-1 defense-in-depth)。
   const ts = nowTs();
   const pl: PageLayout = {
     $schema: PAGE_LAYOUT_SCHEMA_REF,
-    id: (opts?.id ?? generateFallbackEntityId("pl")) as Uuid,
+    id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("pl")) as Uuid,
     name,
     description,
     maturity: "draft",

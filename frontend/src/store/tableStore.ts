@@ -149,10 +149,11 @@ export async function createTable(
 ): Promise<Table> {
   // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
   // 渡されない programmatic path (ErDiagram inline create / 旧 test 等) は fallback。
+  // 空文字 / whitespace-only も fallback に流す (S-1 defense-in-depth)。
   const ts = nowTs();
   const table: Table = {
     $schema: TABLE_SCHEMA_REF,
-    id: (opts?.id ?? generateFallbackEntityId("tbl")) as TableId,
+    id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("tbl")) as TableId,
     name,
     description,
     physicalName,

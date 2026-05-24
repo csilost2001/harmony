@@ -68,7 +68,8 @@ export async function createProcessFlow(
 ): Promise<ProcessFlow> {
   // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
   // 渡されない programmatic path (mcpBridge legacy / test 等) は fallback。
-  const id = (opts?.id ?? generateFallbackEntityId("flow")) as ProcessFlowId;
+  // 空文字 / whitespace-only も fallback に流す (S-1 defense-in-depth)。
+  const id = ((opts?.id && opts.id.trim()) || generateFallbackEntityId("flow")) as ProcessFlowId;
   const ts = now();
   const group: ProcessFlow = {
     $schema: PROCESS_FLOW_V3_SCHEMA_REF,

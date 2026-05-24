@@ -62,10 +62,11 @@ export async function createSequence(
   opts?: { id?: string },
 ): Promise<Sequence> {
   // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
+  // 空文字 / whitespace-only も fallback に流す (S-1 defense-in-depth)。
   const ts = nowTs();
   const sequence: Sequence = {
     $schema: SEQUENCE_SCHEMA_REF,
-    id: (opts?.id ?? generateFallbackEntityId("seq")) as SequenceId,
+    id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("seq")) as SequenceId,
     name,
     description,
     physicalName,

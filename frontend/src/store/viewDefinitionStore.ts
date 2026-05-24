@@ -113,10 +113,11 @@ export async function createViewDefinition(
   opts?: { id?: string },
 ): Promise<ViewDefinition> {
   // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
+  // 空文字 / whitespace-only も fallback に流す (S-1 defense-in-depth)。
   const ts = nowTs();
   const viewDefinition: ViewDefinition = {
     $schema: VIEW_DEFINITION_SCHEMA_REF,
-    id: (opts?.id ?? generateFallbackEntityId("vd")) as ViewDefinitionId,
+    id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("vd")) as ViewDefinitionId,
     name,
     description,
     kind,

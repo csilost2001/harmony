@@ -136,7 +136,8 @@ export async function requestAiSuggestedEntityId(
     baseInstructions: [
       "You generate short kebab-case English identifiers for Harmony business entities.",
       "Reply with ONLY the identifier (no quotes, no Markdown, no commentary).",
-      "Format rules: lowercase letters (a-z), digits (0-9), and hyphens; must start with a letter; 1-3 words; max 32 characters; must match /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.",
+      // Length / pattern は schema common.v3#EntityId と single source of truth で揃える (S-2)。
+      `Format rules: lowercase letters (a-z), digits (0-9), and hyphens; must start with a letter; max ${MAX_ENTITY_ID_LENGTH} characters; prefer 1-3 words and under 32 characters; must match /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.`,
     ].join("\n"),
   });
   const threadId = readThreadId(threadResponse);
