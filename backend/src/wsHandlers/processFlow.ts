@@ -39,13 +39,13 @@ import {
   listAllPageLayouts,
 } from "../projectStorage.js";
 import type { RpcHandlerMap } from "./types.js";
-import { assertUuid, assertSafeName, assertKind } from "../security/idValidator.js";
+import { assertSafeName, assertKind, assertEntityIdOrUuid } from "../security/idValidator.js";
 
 export const processFlowHandlers: RpcHandlerMap = {
   loadProcessFlow: async ({ params, root, respond }) => {
     const { id: agId } = (params ?? {}) as { id: string };
     // S-002: ID validation
-    assertUuid(agId, "id");
+    assertEntityIdOrUuid(agId, "id");
     const agData = await readProcessFlow(agId, root());
     respond(agData);
   },
@@ -53,7 +53,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   saveProcessFlow: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { id: agId, data: agData } = (params ?? {}) as { id: string; data: unknown };
     // S-002: ID validation
-    assertUuid(agId, "id");
+    assertEntityIdOrUuid(agId, "id");
     await writeProcessFlow(agId, agData, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { id: agId }, excludeClientId: clientId });
@@ -62,7 +62,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   deleteProcessFlow: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { id: agId } = (params ?? {}) as { id: string };
     // S-002: ID validation
-    assertUuid(agId, "id");
+    assertEntityIdOrUuid(agId, "id");
     await deleteProcessFlowFile(agId, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { id: agId, deleted: true }, excludeClientId: clientId });
@@ -101,7 +101,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   loadSequence: async ({ params, root, respond }) => {
     const { sequenceId } = (params ?? {}) as { sequenceId: string };
     // S-002: ID validation
-    assertUuid(sequenceId, "sequenceId");
+    assertEntityIdOrUuid(sequenceId, "sequenceId");
     const seqData = await readSequence(sequenceId, root());
     respond(seqData);
   },
@@ -109,7 +109,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   saveSequence: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { sequenceId, data } = (params ?? {}) as { sequenceId: string; data: unknown };
     // S-002: ID validation
-    assertUuid(sequenceId, "sequenceId");
+    assertEntityIdOrUuid(sequenceId, "sequenceId");
     await writeSequence(sequenceId, data, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "sequenceChanged", data: { sequenceId }, excludeClientId: clientId });
@@ -118,7 +118,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   deleteSequence: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { sequenceId } = (params ?? {}) as { sequenceId: string };
     // S-002: ID validation
-    assertUuid(sequenceId, "sequenceId");
+    assertEntityIdOrUuid(sequenceId, "sequenceId");
     await deleteSequenceFile(sequenceId, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "sequenceChanged", data: { sequenceId, deleted: true }, excludeClientId: clientId });
@@ -127,7 +127,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   loadView: async ({ params, root, respond }) => {
     const { viewId } = (params ?? {}) as { viewId: string };
     // S-002: ID validation
-    assertUuid(viewId, "viewId");
+    assertEntityIdOrUuid(viewId, "viewId");
     const data = await readView(viewId, root());
     respond(data);
   },
@@ -135,7 +135,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   saveView: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { viewId, data } = (params ?? {}) as { viewId: string; data: unknown };
     // S-002: ID validation
-    assertUuid(viewId, "viewId");
+    assertEntityIdOrUuid(viewId, "viewId");
     await writeView(viewId, data, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "viewChanged", data: { viewId }, excludeClientId: clientId });
@@ -144,7 +144,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   deleteView: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { viewId } = (params ?? {}) as { viewId: string };
     // S-002: ID validation
-    assertUuid(viewId, "viewId");
+    assertEntityIdOrUuid(viewId, "viewId");
     await deleteViewFile(viewId, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "viewChanged", data: { viewId, deleted: true }, excludeClientId: clientId });
@@ -153,7 +153,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   loadViewDefinition: async ({ params, root, respond }) => {
     const { viewDefinitionId } = (params ?? {}) as { viewDefinitionId: string };
     // S-002: ID validation
-    assertUuid(viewDefinitionId, "viewDefinitionId");
+    assertEntityIdOrUuid(viewDefinitionId, "viewDefinitionId");
     const data = await readViewDefinition(viewDefinitionId, root());
     respond(data);
   },
@@ -161,7 +161,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   saveViewDefinition: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { viewDefinitionId, data } = (params ?? {}) as { viewDefinitionId: string; data: unknown };
     // S-002: ID validation
-    assertUuid(viewDefinitionId, "viewDefinitionId");
+    assertEntityIdOrUuid(viewDefinitionId, "viewDefinitionId");
     await writeViewDefinition(viewDefinitionId, data, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "viewDefinitionChanged", data: { viewDefinitionId }, excludeClientId: clientId });
@@ -170,7 +170,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   deleteViewDefinition: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { viewDefinitionId } = (params ?? {}) as { viewDefinitionId: string };
     // S-002: ID validation
-    assertUuid(viewDefinitionId, "viewDefinitionId");
+    assertEntityIdOrUuid(viewDefinitionId, "viewDefinitionId");
     await deleteViewDefinitionFile(viewDefinitionId, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "viewDefinitionChanged", data: { viewDefinitionId, deleted: true }, excludeClientId: clientId });
@@ -216,7 +216,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   loadPageLayout: async ({ params, root, respond }) => {
     const { pageLayoutId } = (params ?? {}) as { pageLayoutId: string };
     // S-002: ID validation
-    assertUuid(pageLayoutId, "pageLayoutId");
+    assertEntityIdOrUuid(pageLayoutId, "pageLayoutId");
     const data = await readPageLayout(pageLayoutId, root());
     respond(data);
   },
@@ -224,7 +224,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   savePageLayout: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { pageLayoutId, data } = (params ?? {}) as { pageLayoutId: string; data: unknown };
     // S-002: ID validation
-    assertUuid(pageLayoutId, "pageLayoutId");
+    assertEntityIdOrUuid(pageLayoutId, "pageLayoutId");
     await writePageLayout(pageLayoutId, data, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "pageLayoutChanged", data: { pageLayoutId }, excludeClientId: clientId });
@@ -233,7 +233,7 @@ export const processFlowHandlers: RpcHandlerMap = {
   deletePageLayout: async ({ params, root, wsId, clientId, respond, bridge }) => {
     const { pageLayoutId } = (params ?? {}) as { pageLayoutId: string };
     // S-002: ID validation
-    assertUuid(pageLayoutId, "pageLayoutId");
+    assertEntityIdOrUuid(pageLayoutId, "pageLayoutId");
     await deletePageLayoutFile(pageLayoutId, root());
     respond({ success: true });
     bridge.broadcast({ wsId: wsId(), event: "pageLayoutChanged", data: { pageLayoutId, deleted: true }, excludeClientId: clientId });

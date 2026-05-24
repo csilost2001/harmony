@@ -9,10 +9,14 @@ import {
   isValidSafeName,
   isValidKind,
   isValidHistoryId,
+  isValidEntityId,
+  isValidEntityIdOrUuid,
   assertUuid,
   assertSafeName,
   assertKind,
   assertHistoryId,
+  assertEntityId,
+  assertEntityIdOrUuid,
   assertPathContained,
 } from "./idValidator.js";
 
@@ -283,6 +287,154 @@ describe("assertHistoryId", () => {
 
   it("異常: null で Error を throw", () => {
     expect(() => assertHistoryId(null, "historyId")).toThrow("Invalid historyId");
+  });
+});
+
+// ── isValidEntityId / assertEntityId (RFC #1284) ──────────────────────────────
+
+describe("isValidEntityId", () => {
+  it("正常: 単一の小文字英字 (1 文字)", () => {
+    expect(isValidEntityId("a")).toBe(true);
+  });
+
+  it("正常: kebab-case 英単語", () => {
+    expect(isValidEntityId("order-form")).toBe(true);
+    expect(isValidEntityId("customer-master")).toBe(true);
+    expect(isValidEntityId("flow-1")).toBe(true);
+    expect(isValidEntityId("step-01")).toBe(true);
+  });
+
+  it("正常: 単一の小文字英字 + 数字", () => {
+    expect(isValidEntityId("a1")).toBe(true);
+    expect(isValidEntityId("order123")).toBe(true);
+  });
+
+  it("正常: 64 文字ちょうど", () => {
+    expect(isValidEntityId("a".repeat(64))).toBe(true);
+  });
+
+  it("異常: 65 文字超え", () => {
+    expect(isValidEntityId("a".repeat(65))).toBe(false);
+  });
+
+  it("異常: 空文字", () => {
+    expect(isValidEntityId("")).toBe(false);
+  });
+
+  it("異常: 大文字を含む", () => {
+    expect(isValidEntityId("OrderForm")).toBe(false);
+    expect(isValidEntityId("order-Form")).toBe(false);
+  });
+
+  it("異常: 数字で始まる", () => {
+    expect(isValidEntityId("1-order")).toBe(false);
+    expect(isValidEntityId("0abc")).toBe(false);
+  });
+
+  it("異常: ハイフンで始まる", () => {
+    expect(isValidEntityId("-order")).toBe(false);
+  });
+
+  it("異常: ハイフンで終わる", () => {
+    expect(isValidEntityId("order-")).toBe(false);
+  });
+
+  it("異常: 連続ハイフン", () => {
+    expect(isValidEntityId("order--form")).toBe(false);
+  });
+
+  it("異常: アンダースコアを含む", () => {
+    expect(isValidEntityId("order_form")).toBe(false);
+  });
+
+  it("異常: 日本語を含む", () => {
+    expect(isValidEntityId("注文画面")).toBe(false);
+    expect(isValidEntityId("order-注文")).toBe(false);
+  });
+
+  it("異常: UUID 形式 (EntityId 単独では UUID を受け入れない)", () => {
+    expect(isValidEntityId("267e94bf-0397-44b8-b665-d3c40c38935b")).toBe(false);
+  });
+
+  it("異常: path traversal (..)", () => {
+    expect(isValidEntityId("..")).toBe(false);
+    expect(isValidEntityId("../evil")).toBe(false);
+  });
+
+  it("異常: null / undefined / 数値", () => {
+    expect(isValidEntityId(null)).toBe(false);
+    expect(isValidEntityId(undefined)).toBe(false);
+    expect(isValidEntityId(123)).toBe(false);
+  });
+});
+
+describe("isValidEntityIdOrUuid", () => {
+  it("正常: EntityId 形式を accept", () => {
+    expect(isValidEntityIdOrUuid("order-form")).toBe(true);
+    expect(isValidEntityIdOrUuid("flow-1")).toBe(true);
+  });
+
+  it("正常: UUID 形式を accept (移行期間 compat)", () => {
+    expect(isValidEntityIdOrUuid("267e94bf-0397-44b8-b665-d3c40c38935b")).toBe(true);
+    expect(isValidEntityIdOrUuid("00000000-0000-0000-0000-000000000000")).toBe(true);
+  });
+
+  it("異常: 不正な形式 (大文字 + 非 UUID)", () => {
+    expect(isValidEntityIdOrUuid("OrderForm")).toBe(false);
+    expect(isValidEntityIdOrUuid("order_form")).toBe(false);
+  });
+
+  it("異常: 空文字", () => {
+    expect(isValidEntityIdOrUuid("")).toBe(false);
+  });
+
+  it("異常: path traversal", () => {
+    expect(isValidEntityIdOrUuid("../etc/passwd")).toBe(false);
+  });
+});
+
+describe("assertEntityId", () => {
+  it("正常: 有効な EntityId なら値を返す", () => {
+    expect(assertEntityId("order-form", "screenId")).toBe("order-form");
+  });
+
+  it("異常: 大文字を含むと throw", () => {
+    expect(() => assertEntityId("OrderForm", "screenId")).toThrow("Invalid screenId");
+  });
+
+  it("異常: UUID 形式は assertEntityId では reject (strict)", () => {
+    expect(() => assertEntityId("267e94bf-0397-44b8-b665-d3c40c38935b", "screenId")).toThrow("Invalid screenId");
+  });
+
+  it("異常: 空文字で throw", () => {
+    expect(() => assertEntityId("", "screenId")).toThrow("Invalid screenId");
+  });
+
+  it("異常: null で throw", () => {
+    expect(() => assertEntityId(null, "screenId")).toThrow("Invalid screenId");
+  });
+});
+
+describe("assertEntityIdOrUuid", () => {
+  it("正常: EntityId 形式を accept", () => {
+    expect(assertEntityIdOrUuid("order-form", "screenId")).toBe("order-form");
+  });
+
+  it("正常: UUID 形式を accept (移行期間 compat)", () => {
+    const uuid = "267e94bf-0397-44b8-b665-d3c40c38935b";
+    expect(assertEntityIdOrUuid(uuid, "screenId")).toBe(uuid);
+  });
+
+  it("異常: 大文字混じり (どちらの形式でもない) で throw", () => {
+    expect(() => assertEntityIdOrUuid("OrderForm", "screenId")).toThrow("Invalid screenId");
+  });
+
+  it("異常: 空文字で throw", () => {
+    expect(() => assertEntityIdOrUuid("", "screenId")).toThrow("Invalid screenId");
+  });
+
+  it("異常: path traversal で throw", () => {
+    expect(() => assertEntityIdOrUuid("../etc/passwd", "screenId")).toThrow("Invalid screenId");
   });
 });
 

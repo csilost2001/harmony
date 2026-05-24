@@ -18,7 +18,7 @@ import {
   writeExtensionsFile,
 } from "../projectStorage.js";
 import { renameScreenItemId, checkScreenItemRefs } from "../renameScreenItem.js";
-import { assertUuid, assertSafeName } from "../security/idValidator.js";
+import { assertSafeName, assertEntityIdOrUuid } from "../security/idValidator.js";
 import type { RpcHandlerMap } from "./types.js";
 
 export const miscHandlers: RpcHandlerMap = {
@@ -73,7 +73,8 @@ export const miscHandlers: RpcHandlerMap = {
     const { screenId, oldId, newId } = (params ?? {}) as {
       screenId: string; oldId: string; newId: string;
     };
-    assertUuid(screenId, "screenId");
+    // #1294 I-2: screenId は EntityId|UUID、oldId/newId は screen item LocalId なので維持
+    assertEntityIdOrUuid(screenId, "screenId");
     assertSafeName(oldId, "oldId");
     assertSafeName(newId, "newId");
     const result = await renameScreenItemId(screenId, oldId, newId, root());

@@ -37,6 +37,9 @@ import {
   writeCustomBlocks,
   readErLayout,
   writeErLayout,
+  // #1294 I-2 / RFC #1284: kebab-case EntityId + uuid 構造の helper
+  listExistingEntityIds,
+  ensureUniqueEntityId,
 } from "./projectStorage.js";
 
 const TMP_ROOT = path.join(os.tmpdir(), `proj-storage-r2-test-${process.pid}-${Date.now()}`);
@@ -327,5 +330,182 @@ describe("ensureDataDir (root, dataDirVal)", () => {
     // root 直下に screens/ などが作られないこと
     await expect(fs.access(path.join(root, "screens"))).rejects.toThrow();
     await expect(fs.access(path.join(root, "tables"))).rejects.toThrow();
+  });
+});
+
+// ── 9. uuid 採番 / preserve / immutability (#1294 I-2 / RFC #1284) ────────────
+
+describe("uuid 採番 / preserve / immutability (#1294 I-2)", () => {
+  const root = path.join(TMP_ROOT, "ws-uuid-tests");
+
+  beforeAll(async () => {
+    await makeWorkspace(root, "harmony");
+  });
+
+  it("writeTable: 新規 create 時に uuid が自動採番される", async () => {
+    await writeTable("tbl-uuid-create", { id: "tbl-uuid-create", name: "uuid-create-test" }, root);
+    const data = await readTable("tbl-uuid-create", root) as Record<string, unknown>;
+    expect(typeof data.uuid).toBe("string");
+    expect(data.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it("writeTable: 既存 update 時に uuid が preserve される (data に uuid 指定なし)", async () => {
+    await writeTable("tbl-uuid-preserve", { id: "tbl-uuid-preserve", name: "v1" }, root);
+    const v1 = await readTable("tbl-uuid-preserve", root) as Record<string, unknown>;
+    const uuid1 = v1.uuid;
+    // update: data に uuid 指定なしでも、storage 側で旧 uuid を継承する
+    await writeTable("tbl-uuid-preserve", { id: "tbl-uuid-preserve", name: "v2" }, root);
+    const v2 = await readTable("tbl-uuid-preserve", root) as Record<string, unknown>;
+    expect(v2.uuid).toBe(uuid1);
+    expect(v2.name).toBe("v2");
+  });
+
+  it("writeTable: data に uuid 指定があり旧値と一致 → 維持", async () => {
+    const fixed = "22222222-2222-4222-8222-222222222222";
+    await writeTable("tbl-uuid-supplied", { id: "tbl-uuid-supplied", uuid: fixed, name: "v1" }, root);
+    const v1 = await readTable("tbl-uuid-supplied", root) as Record<string, unknown>;
+    expect(v1.uuid).toBe(fixed);
+    await writeTable("tbl-uuid-supplied", { id: "tbl-uuid-supplied", uuid: fixed, name: "v2" }, root);
+    const v2 = await readTable("tbl-uuid-supplied", root) as Record<string, unknown>;
+    expect(v2.uuid).toBe(fixed);
+  });
+
+  it("writeTable: data に uuid 指定があり旧値と不一致 → uuid immutability violation で throw", async () => {
+    const original = "33333333-3333-4333-8333-333333333333";
+    await writeTable("tbl-uuid-imm", { id: "tbl-uuid-imm", uuid: original, name: "v1" }, root);
+    // 異なる uuid で update → throw
+    const conflicting = "44444444-4444-4444-8444-444444444444";
+    await expect(
+      writeTable("tbl-uuid-imm", { id: "tbl-uuid-imm", uuid: conflicting, name: "v2" }, root),
+    ).rejects.toThrow(/uuid immutability violation/);
+  });
+
+  it("writeView: 新規 create 時に uuid が自動採番される (root.uuid 構造)", async () => {
+    await writeView("view-uuid-create", { id: "view-uuid-create", name: "view-create" }, root);
+    const data = await readView("view-uuid-create", root) as Record<string, unknown>;
+    expect(typeof data.uuid).toBe("string");
+    expect(data.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it("writeSequence: 新規 create 時に uuid が自動採番される (root.uuid 構造)", async () => {
+    await writeSequence("seq-uuid-create", { id: "seq-uuid-create", currentValue: 0 }, root);
+    const data = await readSequence("seq-uuid-create", root) as Record<string, unknown>;
+    expect(typeof data.uuid).toBe("string");
+    expect(data.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it("writeProcessFlow: 新規 create 時に meta.uuid が自動採番される (ProcessFlow は 1 階層下)", async () => {
+    const flowId = "flow-uuid-create";
+    await writeProcessFlow(flowId, {
+      $schema: "../../../../schemas/v3/process-flow.v3.schema.json",
+      meta: { id: flowId, name: "uuid-create-flow", flowType: "common", maturity: "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
+      context: {},
+      actions: [],
+      authoring: {},
+    }, root);
+    const data = await readProcessFlow(flowId, root) as Record<string, unknown>;
+    const meta = data.meta as Record<string, unknown>;
+    expect(typeof meta.uuid).toBe("string");
+    expect(meta.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it("writeProcessFlow: 既存 update 時に meta.uuid が preserve される", async () => {
+    const flowId = "flow-uuid-preserve";
+    await writeProcessFlow(flowId, {
+      $schema: "../../../../schemas/v3/process-flow.v3.schema.json",
+      meta: { id: flowId, name: "v1", flowType: "common", maturity: "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
+      context: {},
+      actions: [],
+      authoring: {},
+    }, root);
+    const v1 = await readProcessFlow(flowId, root) as Record<string, unknown>;
+    const uuid1 = (v1.meta as Record<string, unknown>).uuid;
+    await writeProcessFlow(flowId, {
+      $schema: "../../../../schemas/v3/process-flow.v3.schema.json",
+      meta: { id: flowId, name: "v2", flowType: "common", maturity: "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-02T00:00:00.000Z" },
+      context: {},
+      actions: [],
+      authoring: {},
+    }, root);
+    const v2 = await readProcessFlow(flowId, root) as Record<string, unknown>;
+    const uuid2 = (v2.meta as Record<string, unknown>).uuid;
+    expect(uuid2).toBe(uuid1);
+    expect((v2.meta as Record<string, unknown>).name).toBe("v2");
+  });
+
+  it("writeProcessFlow: meta.uuid 不一致 update で immutability violation throw", async () => {
+    const flowId = "flow-uuid-imm";
+    const original = "55555555-5555-4555-8555-555555555555";
+    await writeProcessFlow(flowId, {
+      $schema: "../../../../schemas/v3/process-flow.v3.schema.json",
+      meta: { id: flowId, uuid: original, name: "v1", flowType: "common", maturity: "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
+      context: {},
+      actions: [],
+      authoring: {},
+    }, root);
+    const conflicting = "66666666-6666-4666-8666-666666666666";
+    await expect(
+      writeProcessFlow(flowId, {
+        $schema: "../../../../schemas/v3/process-flow.v3.schema.json",
+        meta: { id: flowId, uuid: conflicting, name: "v2", flowType: "common", maturity: "draft", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-02T00:00:00.000Z" },
+        context: {},
+        actions: [],
+        authoring: {},
+      }, root),
+    ).rejects.toThrow(/uuid immutability violation/);
+  });
+});
+
+// ── 10. ensureUniqueEntityId / listExistingEntityIds (#1294 I-2 / RFC #1284) ─
+
+describe("ensureUniqueEntityId / listExistingEntityIds (#1294 I-2)", () => {
+  const root = path.join(TMP_ROOT, "ws-unique-tests");
+
+  beforeAll(async () => {
+    await makeWorkspace(root, "harmony");
+  });
+
+  it("listExistingEntityIds: 空 dir では空配列を返す", async () => {
+    const ids = await listExistingEntityIds("table", root);
+    expect(ids).toEqual([]);
+  });
+
+  it("listExistingEntityIds: 書き込んだ id 一覧が取得できる", async () => {
+    await writeTable("tbl-list-1", { id: "tbl-list-1", name: "a" }, root);
+    await writeTable("tbl-list-2", { id: "tbl-list-2", name: "b" }, root);
+    const ids = await listExistingEntityIds("table", root);
+    expect(ids).toContain("tbl-list-1");
+    expect(ids).toContain("tbl-list-2");
+  });
+
+  it("listExistingEntityIds (screen): .design.json は id として扱わない", async () => {
+    await writeScreen("scr-list-1", { assets: [], pages: [] }, root);
+    const ids = await listExistingEntityIds("screen", root);
+    expect(ids).toContain("scr-list-1");
+    // .design.json prefix が含まれていないこと
+    expect(ids).not.toContain("scr-list-1.design");
+  });
+
+  it("ensureUniqueEntityId: 既存 id と衝突する場合 throw", async () => {
+    await writeTable("tbl-conflict", { id: "tbl-conflict", name: "first" }, root);
+    await expect(
+      ensureUniqueEntityId("table", "tbl-conflict", root),
+    ).rejects.toThrow(/Duplicate table id/);
+  });
+
+  it("ensureUniqueEntityId: 既存 id と衝突しない場合は throw しない", async () => {
+    await expect(
+      ensureUniqueEntityId("table", "tbl-no-conflict", root),
+    ).resolves.toBeUndefined();
+  });
+
+  it("ensureUniqueEntityId: entity type 内 unique (cross-entity 衝突は許容)", async () => {
+    // 同 id でも table と view が別 entity なので衝突しない
+    await writeTable("ent-id", { id: "ent-id", name: "table-side" }, root);
+    await writeView("ent-id", { id: "ent-id", name: "view-side" }, root);
+    // view 側の uniqueness check は table 側 id を見ない
+    await expect(
+      ensureUniqueEntityId("view", "ent-other", root),
+    ).resolves.toBeUndefined();
   });
 });

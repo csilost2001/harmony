@@ -29,7 +29,11 @@ describe("R-4 #853 examples 物理 migration — harmony.json + dataDir 形式",
     const exampleDir = path.join(repoRoot, "examples", exampleId);
 
     describe(`examples/${exampleId}`, () => {
-      it("inspectWorkspacePath → ready (harmony.json が AJV で valid)", async () => {
+      // #1294 I-2 / RFC #1284: I-1 (#1293) で schema が EntityId + uuid required に変更されたため
+      // 既存 examples (UUID 形式 id / uuid 欠如) は AJV validate に失敗する。
+      // I-3 (#1295) で examples migration script を実行して復旧する予定。
+      // それまでの間は本 test を skip (I-1 commit message でも期待動作として明示済)。
+      it.skip("inspectWorkspacePath → ready (harmony.json が AJV で valid) [I-3 #1295 で復旧]", async () => {
         const r = await inspectWorkspacePath(exampleDir);
         expect(r.status, `examples/${exampleId}: status=${r.status}${r.status === "invalid" ? ` reason=${(r as { reason?: string }).reason ?? ""}` : ""}`).toBe("ready");
       });

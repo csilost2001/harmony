@@ -15,7 +15,7 @@ import { readProject } from "../projectStorage.js";
 import { wsBridge } from "../wsBridge.js";
 import { htmlToReact, toPascalCase } from "../reactExporter.js";
 import type { ToolHandler } from "../mcpHelpers.js";
-import { assertUuid } from "../security/idValidator.js";
+import { assertEntityIdOrUuid } from "../security/idValidator.js";
 
 export const handleScreenTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
@@ -100,7 +100,7 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "screenId は必須です");
       }
       // S-002: ID validation
-      try { assertUuid(a.screenId, "screenId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      try { assertEntityIdOrUuid(a.screenId, "screenId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       // RFC #1021 pl-6 (Codex B-2): purpose / pageLayoutId も update 可能に
       await wsBridge.sendCommand("updateScreenMeta", {
         screenId: a.screenId,
@@ -124,7 +124,7 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "screenId は必須です");
       }
       // S-002: ID validation
-      try { assertUuid(a.screenId, "screenId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      try { assertEntityIdOrUuid(a.screenId, "screenId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       await wsBridge.sendCommand("removeScreenNode", { screenId: a.screenId });
       return {
         content: [
@@ -138,7 +138,7 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "screenId は必須です");
       }
       // S-002: ID validation
-      try { assertUuid(a.screenId, "screenId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      try { assertEntityIdOrUuid(a.screenId, "screenId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
 
       // ブラウザ側から HTML + 画面名を取得
       const result = (await wsBridge.sendCommand("exportScreen", {

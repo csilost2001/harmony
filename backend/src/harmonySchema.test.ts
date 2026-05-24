@@ -31,12 +31,16 @@ beforeAll(async () => {
   validate = ajv.compile(harmonySchema) as ValidateFn;
 });
 
-/** 最小限の valid な harmony.json ベース */
+/** 最小限の valid な harmony.json ベース
+ *
+ * #1294 I-2 / RFC #1284: meta.id を kebab-case EntityId に、uuid (UUID v4、不変) を required で追加。
+ */
 function makeBase(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     schemaVersion: "v3",
     meta: {
-      id: "11111111-1111-4111-8111-111111111111",
+      id: "test-project",
+      uuid: "11111111-1111-4111-8111-111111111111",
       name: "テストプロジェクト",
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",

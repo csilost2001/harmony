@@ -416,6 +416,183 @@ async function writeJSON(filePath: string, data: unknown): Promise<void> {
   await fs.writeFile(filePath, json, "utf-8");
 }
 
+// ── EntityId uniqueness / uuid preserve helpers (#1294 I-2, RFC #1284) ──────
+// Screen / Table / ProcessFlow / Sequence / View / ViewDefinition / PageLayout の
+// top-level entity に対して、id (kebab-case EntityId) の集合と uuid の不変性を扱う。
+
+/** EntityKind 表現 (CRUD で uniqueness check が必要な top-level entity 列挙) */
+export type TopLevelEntityKind =
+  | "screen"
+  | "table"
+  | "processFlow"
+  | "sequence"
+  | "view"
+  | "viewDefinition"
+  | "pageLayout";
+
+/** 各 entity kind の dir resolver (uniqueness check / id 列挙用) */
+function entityDirOf(kind: TopLevelEntityKind, dataRoot: string): string {
+  switch (kind) {
+    case "screen":         return screensDir(dataRoot);
+    case "table":          return tablesDir(dataRoot);
+    case "processFlow":    return processFlowsDir(dataRoot);
+    case "sequence":       return sequencesDir(dataRoot);
+    case "view":           return viewsDir(dataRoot);
+    case "viewDefinition": return viewDefsDir(dataRoot);
+    case "pageLayout":     return pageLayoutsDir(dataRoot);
+  }
+}
+
+/**
+ * 各 entity kind の primary `<id>.json` file path 解決 (uniqueness check 用)。
+ * processFlow は legacy `actions/<id>.json` も候補に含むため、processFlow 専用は
+ * `processFlowFileCandidates` (既存) を併用する。
+ */
+function entityFilePathFor(kind: TopLevelEntityKind, dataRoot: string, id: string): string {
+  return path.join(entityDirOf(kind, dataRoot), `${id}.json`);
+}
+
+/**
+ * 指定 entity kind の dir を読み、`<id>.json` 系のファイルから id 一覧を抽出する。
+ * Screen は `<id>.json` (entity) と `<id>.design.json` (GrapesJS HTML) の両方が存在しうるため、
+ * `.design.json` は除外する。PageLayout も同様に `.design.json` を除外。
+ *
+ * 不存在の dir は空配列扱い (workspace 初期化前 / dir 未作成は normal な状態)。
+ *
+ * RFC #1284 / メタ #1292 — kebab-case EntityId に統一する I-2 で導入 (#1294)。
+ */
+export async function listExistingEntityIds(kind: TopLevelEntityKind, root: string): Promise<string[]> {
+  const dataRoot = await resolveDataRoot(root);
+  const dir = entityDirOf(kind, dataRoot);
+  let files: string[];
+  try {
+    files = await fs.readdir(dir);
+  } catch {
+    return [];
+  }
+  const ids: string[] = [];
+  for (const f of files) {
+    if (!f.endsWith(".json")) continue;
+    // Screen / PageLayout は <id>.design.json を id として扱わない
+    if (f.endsWith(".design.json")) continue;
+    ids.push(f.slice(0, -".json".length));
+  }
+  // ProcessFlow は legacy actions/<id>.json も候補に含む (#1141 互換)
+  if (kind === "processFlow") {
+    try {
+      const legacyDir = actionsDir(dataRoot);
+      const legacyFiles = await fs.readdir(legacyDir);
+      for (const f of legacyFiles) {
+        if (!f.endsWith(".json")) continue;
+        if (f.endsWith(".design.json")) continue;
+        const id = f.slice(0, -".json".length);
+        if (!ids.includes(id)) ids.push(id);
+      }
+    } catch {
+      // legacy dir は無くて OK
+    }
+  }
+  return ids;
+}
+
+/**
+ * 新規 create 時、同 entity kind 内で id 衝突がないことを保証する。
+ * 衝突時は throw する (handler 側で 409 相当のエラーとしてクライアントに返す)。
+ *
+ * NOTE: update (既存ファイル上書き) では衝突 OK のため、本関数は create 経路のみで呼ぶ。
+ */
+export async function ensureUniqueEntityId(kind: TopLevelEntityKind, id: string, root: string): Promise<void> {
+  const existingIds = await listExistingEntityIds(kind, root);
+  if (existingIds.includes(id)) {
+    throw new Error(`Duplicate ${kind} id: "${id}" already exists in this workspace (RFC #1284: entity type 内 unique)`);
+  }
+}
+
+/** isRecord helper の前方使用に備えて軽量版を本セクション内で定義 (既存 isRecord は本ファイル後半) */
+function _isObj(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * 既存ファイルから uuid を読み取って取得する内部ヘルパー (#1294 I-2)。
+ *
+ * - ProcessFlow は uuid を `meta.uuid` に持つ (1 階層下)
+ * - その他 entity は root.uuid に持つ
+ * - 既存ファイル不在 / parse 失敗 / uuid 欠如時は null を返す
+ */
+async function readExistingUuid(filePath: string, kind: TopLevelEntityKind): Promise<string | null> {
+  const existing = await readJSON<Record<string, unknown>>(filePath);
+  if (!existing) return null;
+  if (kind === "processFlow") {
+    const meta = _isObj(existing.meta) ? existing.meta : null;
+    const u = meta?.uuid;
+    return typeof u === "string" && u.length > 0 ? u : null;
+  }
+  const u = existing.uuid;
+  return typeof u === "string" && u.length > 0 ? u : null;
+}
+
+/**
+ * write 前の uuid preserve / 採番ロジック (#1294 I-2, RFC #1284)。
+ *
+ * 動作:
+ *   1. 既存ファイル (entityFilePath) に uuid があれば、新 data の uuid と整合 check:
+ *      - 新 data に uuid 指定があり旧値と不一致 → immutability violation として throw
+ *      - 新 data に uuid 指定無し → 旧値を継承
+ *   2. 既存ファイルが無ければ:
+ *      - 新 data に uuid 指定があれば preserve
+ *      - 無ければ `crypto.randomUUID()` で採番
+ *
+ * @param kind        entity kind (processFlow なら meta.uuid、それ以外は root.uuid)
+ * @param data        書き込み対象 data (mutate される)
+ * @param entityFilePath  uuid を読みに行く対象の primary entity file path
+ * @returns 確定した uuid (data にも反映済)
+ */
+async function preserveOrAssignUuid(
+  kind: TopLevelEntityKind,
+  data: unknown,
+  entityFilePath: string,
+): Promise<string> {
+  if (!_isObj(data)) {
+    throw new Error(`preserveOrAssignUuid: data must be a JSON object (kind=${kind})`);
+  }
+  const existingUuid = await readExistingUuid(entityFilePath, kind);
+
+  // 新 data 側の uuid を取り出す (processFlow は meta.uuid、その他は root.uuid)
+  let suppliedUuid: string | null = null;
+  if (kind === "processFlow") {
+    const meta = _isObj(data.meta) ? data.meta : null;
+    if (meta && typeof meta.uuid === "string" && meta.uuid.length > 0) suppliedUuid = meta.uuid;
+  } else {
+    if (typeof data.uuid === "string" && data.uuid.length > 0) suppliedUuid = data.uuid;
+  }
+
+  let finalUuid: string;
+  if (existingUuid !== null) {
+    // 既存ファイルあり: uuid immutability を強制
+    if (suppliedUuid !== null && suppliedUuid !== existingUuid) {
+      throw new Error(
+        `uuid immutability violation (${kind}): existing=${existingUuid} vs supplied=${suppliedUuid}. ` +
+          `uuid は不変です (RFC #1284 Q4: identity tracking 用、rename refactor でも維持)。`,
+      );
+    }
+    finalUuid = existingUuid;
+  } else {
+    // 既存ファイル無し: supplied があれば preserve、無ければ新規採番
+    finalUuid = suppliedUuid ?? crypto.randomUUID();
+  }
+
+  // data に確定 uuid を書き戻し
+  if (kind === "processFlow") {
+    const meta = _isObj(data.meta) ? data.meta : {};
+    meta.uuid = finalUuid;
+    data.meta = meta;
+  } else {
+    data.uuid = finalUuid;
+  }
+  return finalUuid;
+}
+
 /** harmony.json を読み込み（存在しない場合は null） */
 export async function readProject(root: string): Promise<unknown | null> {
   return readJSON<unknown>(harmonyFile(root));
@@ -675,6 +852,8 @@ export async function writeScreen(screenId: string, data: unknown, root: string)
       designFileRef: `${screenId}.design.json`,
     },
   };
+  // #1294 I-2: uuid preserve / 採番 (entity 側の .json に uuid を持つ。.design.json は GrapesJS HTML のため uuid 不要)
+  await preserveOrAssignUuid("screen", entity, path.join(screensDir(dataRoot), `${screenId}.json`));
   await annotateValidationWarnings("screen", entity);
   const sDir = screensDir(dataRoot);
   await writeJSON(path.join(sDir, `${screenId}.json`), entity);
@@ -692,7 +871,7 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
   const current = isRecord(data) ? data : {};
   const project = await readProject(r);
   const entry = getScreenEntry(project, screenId);
-  const toSave = {
+  const toSave: Record<string, unknown> = {
     ...buildDefaultScreenEntity(screenId, entry, [], dataRoot),
     ...current,
     $schema: screenSchemaRef(dataRoot),
@@ -705,6 +884,8 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
       designFileRef: `${screenId}.design.json`,
     },
   };
+  // #1294 I-2: uuid preserve / 採番 (entity meta)
+  await preserveOrAssignUuid("screen", toSave, path.join(screensDir(dataRoot), `${screenId}.json`));
   await writeJSON(path.join(screensDir(dataRoot), `${screenId}.json`), toSave);
 }
 
@@ -830,6 +1011,10 @@ export async function writeTable(tableId: string, data: unknown, root: string): 
   const dataRoot = await ensureDataDirFromRoot(r);
   const filePath = path.join(tablesDir(dataRoot), `${tableId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
+  // #1294 I-2: uuid preserve / 採番 (root.uuid)
+  if (isRecord(data)) {
+    await preserveOrAssignUuid("table", data, filePath);
+  }
   await annotateValidationWarnings("table", data);
   await writeJSON(filePath, data);
 }
@@ -904,6 +1089,10 @@ export async function writeProcessFlow(processFlowId: string, data: unknown, roo
     targetPath = currentPath;
   }
   assertPathContained(targetPath, dataRoot); // defense-in-depth
+  // #1294 I-2: meta.uuid preserve / 採番 (ProcessFlow は uuid を meta 配下に持つ — 1 階層下)
+  if (isRecord(data)) {
+    await preserveOrAssignUuid("processFlow", data, targetPath);
+  }
   await annotateValidationWarnings("processFlow", data);
   await writeJSON(targetPath, data);
 }
@@ -998,6 +1187,10 @@ export async function writeSequence(sequenceId: string, data: unknown, root: str
   const dataRoot = await ensureDataDirFromRoot(r);
   const filePath = path.join(sequencesDir(dataRoot), `${sequenceId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
+  // #1294 I-2: uuid preserve / 採番 (root.uuid)
+  if (isRecord(data)) {
+    await preserveOrAssignUuid("sequence", data, filePath);
+  }
   await writeJSON(filePath, data);
 }
 
@@ -1045,6 +1238,10 @@ export async function writeView(viewId: string, data: unknown, root: string): Pr
   const dataRoot = await ensureDataDirFromRoot(r);
   const filePath = path.join(viewsDir(dataRoot), `${viewId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
+  // #1294 I-2: uuid preserve / 採番 (root.uuid)
+  if (isRecord(data)) {
+    await preserveOrAssignUuid("view", data, filePath);
+  }
   await writeJSON(filePath, data);
 }
 
@@ -1089,6 +1286,10 @@ export async function writeViewDefinition(viewDefinitionId: string, data: unknow
   const dataRoot = await ensureDataDirFromRoot(r);
   const filePath = path.join(viewDefsDir(dataRoot), `${viewDefinitionId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
+  // #1294 I-2: uuid preserve / 採番 (root.uuid)
+  if (isRecord(data)) {
+    await preserveOrAssignUuid("viewDefinition", data, filePath);
+  }
   await writeJSON(filePath, data);
 }
 
@@ -1182,6 +1383,10 @@ export async function writePageLayout(pageLayoutId: string, data: unknown, root:
   const dataRoot = await ensureDataDirFromRoot(r);
   const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
+  // #1294 I-2: uuid preserve / 採番 (root.uuid)
+  if (isRecord(data)) {
+    await preserveOrAssignUuid("pageLayout", data, filePath);
+  }
   await writeJSON(filePath, data);
 }
 

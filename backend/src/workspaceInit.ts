@@ -196,14 +196,18 @@ export async function initializeWorkspace(
 
   // 新規作成
   const ts = isoTimestampZ();
-  const projectId = randomUUID();
+  // #1294 I-2 / RFC #1284: project.meta は id (kebab-case EntityId) + uuid (UUID v4) の 3 fields 構造に変更
+  // I-5 で UI 創成ダイアログから人間入力 + AI 提案に置き換える (本暫定形式は I-5 まで)
+  const projectUuid = randomUUID();
+  const projectEntityId = `project-${projectUuid.slice(0, 8)}`;
   const name = path.basename(abs) || "新規ワークスペース";
   const project = {
     $schema: HARMONY_SCHEMA_REF,
     schemaVersion: "v3" as const,
     dataDir: dataDirVal,
     meta: {
-      id: projectId,
+      id: projectEntityId,
+      uuid: projectUuid,
       name,
       createdAt: ts,
       updatedAt: ts,
@@ -235,7 +239,9 @@ export async function initializeWorkspace(
   // dataDir 配下にサブディレクトリ群を作成
   await ensureSubdirs(abs, dataDirVal);
 
-  return { path: abs, name, projectId, dataDir: dataDirVal };
+  // #1294 I-2: InitializeResult.projectId は backward-compat のため kebab-case EntityId を返す
+  // (旧 projectId = randomUUID() → 新 EntityId = `project-<short>`、呼び出し側は文字列として扱うだけ)
+  return { path: abs, name, projectId: projectEntityId, dataDir: dataDirVal };
 }
 
 /**

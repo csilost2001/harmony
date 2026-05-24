@@ -28,17 +28,25 @@ import {
 
 const TMP_ROOT = path.join(os.tmpdir(), `processFlow-handler-test-${process.pid}-${Date.now()}`);
 const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+// #1294 I-2 / RFC #1284: processFlow id は kebab-case EntityId に変更 (旧 UUID v4 から)
+// 採番形式は backend が `flow-<8桁短縮>` を生成する暫定形式 (I-5 で UI から人間入力 + AI 提案に置き換え)
+const ENTITY_ID_PATTERN = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+const FLOW_ID_PATTERN = /^flow-[0-9a-f]{8}$/;
+// 「ID: <captured>」message capture 用の broader regex (kebab-case と UUID の両方に対応)
+const ID_CAPTURE_RE = /ID: ([a-z0-9][a-z0-9-]*)/;
 // handler は sessionId を引数に取るが、本テストでは wsBridge.tryCommand 経路 (browser-first) を
 // 通らない fallback path のみ検証するため、固定の dummy sessionId を渡す。
 const SESSION_ID = "test-session";
 
 async function makeWorkspace(root: string): Promise<void> {
   await fs.mkdir(root, { recursive: true });
+  // #1294 I-2: meta.id を kebab-case EntityId に、uuid を required で追加
   const harmony = {
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      id: "11111111-1111-4111-8111-111111111111",
+      id: "test-ws",
+      uuid: "11111111-1111-4111-8111-111111111111",
       name: "test-ws",
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
@@ -72,10 +80,11 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
 
     // 物理ファイルを確認
     const message = res!.content[0].text as string;
-    const idMatch = message.match(/ID: ([0-9a-f-]+)/);
+    const idMatch = message.match(ID_CAPTURE_RE);
     expect(idMatch).not.toBeNull();
     const pfId = idMatch![1];
-    expect(pfId).toMatch(UUID_V4_PATTERN);
+    // #1294 I-2 / RFC #1284: id は kebab-case EntityId (`flow-XXXXXXXX`)、uuid は別 field
+    expect(pfId).toMatch(FLOW_ID_PATTERN);
 
     const doc = await readProcessFlow(pfId, root) as Record<string, unknown>;
     expect(doc).not.toBeNull();
@@ -93,7 +102,9 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
     // (上記は meta 配下に移動済み)
     const meta = doc.meta as Record<string, unknown>;
     expect(meta.id).toBe(pfId);
-    expect(meta.id).toMatch(UUID_V4_PATTERN);
+    expect(meta.id).toMatch(ENTITY_ID_PATTERN);
+    // #1294 I-2 / RFC #1284: meta.uuid (UUID v4、不変) が新規採番される
+    expect(meta.uuid).toMatch(UUID_V4_PATTERN);
     expect(meta.name).toBe("テスト処理フロー");
     expect(meta.flowType).toBe("common"); // #8 / #1141 / #1263 Phase X1: discriminator は `flowType`
     expect(meta).not.toHaveProperty("kind"); // #1263 Phase X1: 旧 meta.kind は出現しない
@@ -103,16 +114,16 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
     expect(typeof meta.updatedAt).toBe("string");
   });
 
-  it("ProcessFlowId が RFC 4122 v4 UUID 形式である (旧 ag-${Date.now()} 全廃)", async () => {
+  it("ProcessFlowId が kebab-case EntityId (`flow-XXXXXXXX`) 形式である (#1294 I-2 / RFC #1284、旧 UUID 全廃)", async () => {
     const res = await handleProcessFlowTool(
       "designer__add_process_flow",
-      { name: "uuid-format-check", flowType: "batch" },
+      { name: "id-format-check", flowType: "batch" },
       root,
       SESSION_ID,
     );
-    const idMatch = (res!.content[0].text as string).match(/ID: ([0-9a-f-]+)/);
+    const idMatch = (res!.content[0].text as string).match(ID_CAPTURE_RE);
     expect(idMatch).not.toBeNull();
-    expect(idMatch![1]).toMatch(UUID_V4_PATTERN);
+    expect(idMatch![1]).toMatch(FLOW_ID_PATTERN);
     // 旧 prefix が含まれないこと
     expect(idMatch![1]).not.toMatch(/^ag-/);
   });
@@ -163,7 +174,7 @@ describe("designer__add_action + designer__add_step — #1141 F-4 + S-9", () => 
       root,
       SESSION_ID,
     );
-    const idMatch = (addRes!.content[0].text as string).match(/ID: ([0-9a-f-]+)/);
+    const idMatch = (addRes!.content[0].text as string).match(ID_CAPTURE_RE);
     pfId = idMatch![1];
   });
 
@@ -407,7 +418,7 @@ describe("designer__solution_pack — #1229 F-1 path traversal 拒否", () => {
       SESSION_ID,
     );
     const addText = addRes!.content[0].text as string;
-    const idMatch = addText.match(/ID: ([0-9a-f-]+)/);
+    const idMatch = addText.match(ID_CAPTURE_RE);
     const pfId = idMatch![1];
 
     const res = await handleProcessFlowTool(
