@@ -807,7 +807,7 @@ describe("ScreenItemsView (Step 2: 編集動作)", () => {
 // tests (Step 3: autosave / draft / lock — #1315)
 //
 // 設計: ISSUE #1315 comment
-//   https://github.com/csilost2001/issues/1315#issuecomment-4528558182
+//   https://github.com/csilost2001/harmony/issues/1315#issuecomment-4528558182
 //
 // 観点 (test 19-25):
 //   - autosave debounce (#19-#21): updateWithDraft 経由の editSession.update が
@@ -826,7 +826,7 @@ describe("ScreenItemsView (Step 2: 編集動作)", () => {
  * デフォルト挙動 (それぞれ妥当な response) で返す factory。
  * 個別 test は必要に応じて mockImplementation を差し替えて override する。
  */
-function makeDefaultBridgeImpl(overrides: Partial<Record<string, (params: unknown) => unknown>> = {}) {
+function makeDefaultBridgeImpl(overrides: Partial<Record<string, (params: unknown) => unknown | Promise<unknown>>> = {}) {
   return (method: string, params?: unknown) => {
     if (overrides[method]) {
       return Promise.resolve(overrides[method]!(params));
@@ -858,16 +858,20 @@ function makeDefaultBridgeImpl(overrides: Partial<Record<string, (params: unknow
 }
 
 describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     // editing mode サポート (Step 2 と同等の base impl + editSession.save/update を追加)
     vi.mocked(mcpBridge.request).mockImplementation(makeDefaultBridgeImpl() as never);
-  });
 
-  afterEach(() => {
-    // fake timer を有効にした test の後、real timer に戻す (test 内でも cleanup 済みの場合は no-op)
-    if (vi.isFakeTimers()) {
-      vi.useRealTimers();
-    }
+    // Step 1/2 test が localStorage に draft を残す + setTimeout(300) が pending のまま
+    // 終わるため、Step 3 の autosave debounce 観測前に必ず flush + clear する。
+    //   - localStorage.clear(): 旧 draft (effects 等) が useResourceEditor.reload で
+    //     restoreされてしまい計測前の payload を汚染するのを防ぐ
+    //   - 350ms 待機: 前 test の updateSilentWithDraft 由来の setTimeout(300) が
+    //     unmount 後も pending で残っており、本 test の計測窓に紛れ込むのを防ぐ
+    //   (PR #1326 review MF-1: fake timer → real timer 切替に伴う追加防御)
+    localStorage.clear();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    vi.mocked(mcpBridge.request).mockClear();
   });
 
   // -------------------------------------------------------------------------
@@ -890,16 +894,15 @@ describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
       );
       expect(idInput).not.toBeNull();
 
-      // fake timer 切替 (shouldAdvanceTime: true で waitFor の polling も動作可)
-      vi.useFakeTimers({ shouldAdvanceTime: true });
-
       await act(async () => {
         fireEvent.change(idInput!, { target: { value: "customerCode" } });
       });
 
-      // debounce 完了 (300ms) を超えて 350ms 進める
+      // debounce 完了 (300ms) を超えて 350ms 実時間待機
+      // (fake timer + shouldAdvanceTime は full-file 実行で real-time 二重計上による
+      //  事前 flush flake を起こすため real timer に統一、PR #1326 review MF-1)
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(350);
+        await new Promise((resolve) => setTimeout(resolve, 350));
       });
 
       // editSession.update が **1 回だけ** 呼ばれたこと
@@ -923,16 +926,14 @@ describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
       );
       expect(idInput).not.toBeNull();
 
-      vi.useFakeTimers({ shouldAdvanceTime: true });
-
       // 1 回目編集
       await act(async () => {
         fireEvent.change(idInput!, { target: { value: "x1" } });
       });
 
-      // 100ms 経過 (debounce 未 flush)
+      // 100ms 経過 (debounce 未 flush) — real timer wait
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(100);
+        await new Promise((resolve) => setTimeout(resolve, 100));
       });
 
       // 2 回目編集 (previous timer reset)
@@ -940,9 +941,9 @@ describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
         fireEvent.change(idInput!, { target: { value: "x2" } });
       });
 
-      // 300ms 進める (合計 400ms だが 2 回目から 300ms = flush)
+      // 300ms 進める (合計 400ms だが 2 回目から 300ms = flush) — real timer wait
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(300);
+        await new Promise((resolve) => setTimeout(resolve, 300));
       });
 
       // editSession.update は 1 回だけ呼ばれること (debounce 圧縮)
@@ -966,19 +967,16 @@ describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
       );
       expect(idInput).not.toBeNull();
 
-      vi.useFakeTimers({ shouldAdvanceTime: true });
-
       // 編集 → debounce timer start
       await act(async () => {
         fireEvent.change(idInput!, { target: { value: "x" } });
       });
 
-      // 100ms だけ進める (実時間環境では shouldAdvanceTime により debounce が
-      // 部分的に flush される場合があるが、本 test の本質的契約は
-      // 「保存後に editSession.save が呼ばれ、editSession.update が flush され、
-      //  保存後に新たな debounce 発火がない」点なので flush 発生有無は許容する)
+      // 100ms だけ実時間 wait (debounce 300ms 未満なので pending のまま)
+      // 続いて 即座に「保存」click → handleSave 内で clearTimeout + 直接 flush するため
+      // editSession.update は **厳密に 1 回** だけ呼ばれる
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(100);
+        await new Promise((resolve) => setTimeout(resolve, 100));
       });
 
       // 「保存」button click
@@ -996,17 +994,17 @@ describe("ScreenItemsView (Step 3: autosave / draft / lock)", () => {
         expect(saveCalls.length).toBe(1);
       }, { timeout: 3000 });
 
-      // editSession.update も少なくとも 1 回は flush されている
-      //   (handleSave 内で同期 await + 場合により先行 debounce flush)
+      // editSession.update は handleSave 内で clearTimeout + 直接 flush するため
+      // **厳密に 1 回** (PR #1326 review SF-1: MF-1 解消で flake 要因消滅、tighten 可能)
       const afterSaveUpdateCount = vi.mocked(mcpBridge.request).mock.calls.filter(
         ([m]) => m === "editSession.update"
       ).length;
-      expect(afterSaveUpdateCount).toBeGreaterThanOrEqual(1);
+      expect(afterSaveUpdateCount).toBe(1);
 
-      // さらに 400ms 進めても update は増えない (handleSave 内で timer cleared)
+      // さらに 400ms 実時間待っても update は増えない (handleSave 内で timer cleared)
       // = 保存処理の本質契約: pending debounce が save 後にゾンビ発火しない
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(400);
+        await new Promise((resolve) => setTimeout(resolve, 400));
       });
       const finalUpdateCount = vi.mocked(mcpBridge.request).mock.calls.filter(
         ([m]) => m === "editSession.update"
