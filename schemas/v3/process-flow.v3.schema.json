@@ -1539,7 +1539,7 @@
             },
             "field": {
               "$ref": "common.v3.schema.json#/$defs/Identifier",
-              "description": "書き込み対象 field 名 (省略時は globals 全体を value で上書き)。指定時は globals.fields[].name のいずれかと一致 (validator は generic-definitions/global/<globalName> の fields[] を参照して照合)。"
+              "description": "書き込み対象 field 名 (省略時は globals 全体を value で上書き)。指定時は generic-definitions/global/<globalName>.json の fields[].name のいずれかと一致させる運用 (Phase B-3e 時点では schema-level の Identifier pattern 検証のみ。cross-catalog 検証 = `@var.global.<globalName>.<field>` 読み出し側と field 名整合 を validator で enforce するのは follow-up タスク)。"
             },
             "value": {
               "$ref": "common.v3.schema.json#/$defs/TemplateString",

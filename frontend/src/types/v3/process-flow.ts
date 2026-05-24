@@ -2,10 +2,11 @@
  * v3 ProcessFlow 型定義 (`schemas/v3/process-flow.v3.schema.json` と 1:1 対応)
  *
  * - root 4 セクション: meta / context / actions / authoring
- * - 25 step variants (validation / dbAccess / externalSystem / componentCall / commonProcess /
+ * - 26 step variants (validation / dbAccess / externalSystem / componentCall / commonProcess /
  *   screenTransition / displayUpdate / branch / loop / loopBreak / loopContinue / jump / compute /
- *   return / log / audit / workflow / transactionScope / eventPublish / eventSubscribe / closing /
- *   cdc / aiCall / aiAgent / extension)  ※ componentCall (#1067) / aiCall / aiAgent (#940) を含む
+ *   return / log / audit / setGlobal / workflow / transactionScope / eventPublish / eventSubscribe /
+ *   closing / cdc / aiCall / aiAgent / extension)  ※ componentCall (#1067) / aiCall / aiAgent (#940) /
+ *   setGlobal (#1322 Phase B-3e) を含む
  * - WorkflowApprover.order semantics (#539 R5-2) を JSDoc で明示
  * - datetime 算術 duration() 推奨 (#539 R5-3) を JSDoc で明示
  *
