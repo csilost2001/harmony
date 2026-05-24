@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
-  "id": "b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b",
+  "id": "property-search",
+  "uuid": "b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b",
   "name": "物件検索",
   "description": "物件種別・上限価格・最小面積を条件に物件を検索する。検索ボタン押下で物件検索フロー (d4b5c6e7) を起動し、結果を viewer screen-item (propertyRows) に表示する (#762 direction=viewer デモ)。",
   "kind": "search",
@@ -70,11 +71,11 @@
         {
           "id": "click",
           "label": "物件検索実行",
-          "handlerFlowId": "d4b5c6e7-f809-4112-bc3d-4e5f6a7b8c9d",
+          "handlerFlowId": "property-search",
           "argumentMapping": {
-            "propertyType": "@screen.b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b.item.propertyType",
-            "maxPrice10kYen": "@screen.b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b.item.maxPrice10kYen",
-            "minAreaSqm": "@screen.b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b.item.minAreaSqm"
+            "propertyType": "@screen.property-search.item.propertyType",
+            "maxPrice10kYen": "@screen.property-search.item.maxPrice10kYen",
+            "minAreaSqm": "@screen.property-search.item.minAreaSqm"
           }
         }
       ],
@@ -88,10 +89,10 @@
         "itemType": "json"
       },
       "direction": "viewer",
-      "viewDefinitionId": "e5c6d7f8-0912-4223-8d4e-5f6a7b8c9d0e",
+      "viewDefinitionId": "property-list-viewer",
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "d4b5c6e7-f809-4112-bc3d-4e5f6a7b8c9d",
+        "processFlowId": "property-search",
         "variableName": "rows"
       },
       "description": "物件検索結果の一覧表示。direction=viewer (#762): 物件一覧 ViewDefinition (e5c6d7f8) の列定義を使い、物件検索フロー (d4b5c6e7) の出力変数 'rows' を binding して表示する。"

@@ -1,9 +1,10 @@
 {
   "$schema": "../../../../schemas/v3/table.v3.schema.json",
-  "id": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
+  "id": "property-master",
+  "uuid": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
   "name": "物件マスタ",
-  "physicalName": "properties",
   "description": "不動産物件の基本情報を管理するマスタテーブル。物件コード・種別・名称・所在地・面積・価格・掲載日を保持する。",
+  "physicalName": "properties",
   "category": "マスタ",
   "maturity": "committed",
   "createdAt": "2026-05-03T00:00:00.000Z",

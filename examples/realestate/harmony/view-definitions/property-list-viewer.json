@@ -1,18 +1,19 @@
 {
   "$schema": "../../../../schemas/v3/view-definition.v3.schema.json",
-  "id": "e5c6d7f8-0912-4223-8d4e-5f6a7b8c9d0e",
+  "id": "property-list-viewer",
+  "uuid": "e5c6d7f8-0912-4223-8d4e-5f6a7b8c9d0e",
   "name": "物件一覧",
   "description": "物件検索画面向けの一覧 viewer 定義。物件コード・物件名・種別・面積・価格・掲載日を表示し、価格昇順ソートをサポートする。viewer screen-item (#762) のデモ用サンプル。",
   "maturity": "committed",
   "createdAt": "2026-05-03T00:00:00.000Z",
   "updatedAt": "2026-05-03T00:00:00.000Z",
   "kind": "list",
-  "sourceTableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
+  "sourceTableId": "property-master",
   "columns": [
     {
       "name": "propertyCode",
       "tableColumnRef": {
-        "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
+        "tableId": "property-master",
         "columnId": "col-property-code"
       },
       "displayName": "物件コード",
@@ -25,7 +26,7 @@
     {
       "name": "name",
       "tableColumnRef": {
-        "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
+        "tableId": "property-master",
         "columnId": "col-name"
       },
       "displayName": "物件名",
@@ -38,7 +39,7 @@
     {
       "name": "propertyType",
       "tableColumnRef": {
-        "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
+        "tableId": "property-master",
         "columnId": "col-property-type"
       },
       "displayName": "種別",
@@ -51,7 +52,7 @@
     {
       "name": "areaSqm",
       "tableColumnRef": {
-        "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
+        "tableId": "property-master",
         "columnId": "col-area-sqm"
       },
       "displayName": "面積 (m2)",
@@ -65,7 +66,7 @@
     {
       "name": "price10kYen",
       "tableColumnRef": {
-        "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
+        "tableId": "property-master",
         "columnId": "col-price-10k-yen"
       },
       "displayName": "価格 (万円)",
@@ -79,7 +80,7 @@
     {
       "name": "listedAt",
       "tableColumnRef": {
-        "tableId": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
+        "tableId": "property-master",
         "columnId": "col-listed-at"
       },
       "displayName": "掲載日",
@@ -92,7 +93,10 @@
     }
   ],
   "sortDefaults": [
-    { "columnName": "price10kYen", "order": "asc" }
+    {
+      "columnName": "price10kYen",
+      "order": "asc"
+    }
   ],
   "pageSize": 30
 }
