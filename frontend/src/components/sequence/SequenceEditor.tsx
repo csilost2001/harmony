@@ -11,6 +11,10 @@ import { useEditSession } from "../../hooks/useEditSession";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { EditorHeader, type EditorHeaderSaveReset, type EditorHeaderBackLink } from "../common/EditorHeader";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
+import { listSequences } from "../../store/sequenceStore";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
@@ -49,6 +53,20 @@ export function SequenceEditor() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [renameUndoToast, setRenameUndoToast] = useState<{
+    operationId: string; oldId: string; newId: string;
+  } | null>(null);
+  const [allSequenceIds, setAllSequenceIds] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await listSequences();
+        setAllSequenceIds(list.map((s) => s.id as unknown as string));
+      } catch { /* backend 未接続時は空配列のまま */ }
+    })();
+  }, [sequenceId]);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/sequence/list"), { replace: true }), [navigate, wsPath]);
 
@@ -330,16 +348,35 @@ export function SequenceEditor() {
           onClick: () => navigate(wsPath("/sequence/list")),
         } satisfies EditorHeaderBackLink}
         extraRight={
-          <EditSessionDropdown
-            resourceType="sequence"
-            resourceId={sequenceId ?? ""}
-            currentMode={mode}
-            currentSessionId={sessionId}
-            onStartEditing={() => { void actions.startEditing(); }}
-            onViewerAttached={syncSessionToUrl}
-            onAttachAsView={attach}
-            onTakeOver={takeOver}
-          />
+          <>
+            <EditSessionDropdown
+              resourceType="sequence"
+              resourceId={sequenceId ?? ""}
+              currentMode={mode}
+              currentSessionId={sessionId}
+              onStartEditing={() => { void actions.startEditing(); }}
+              onViewerAttached={syncSessionToUrl}
+              onAttachAsView={attach}
+              onTakeOver={takeOver}
+            />
+            {/* #1298 I-6 (RFC #1284): id rename refactor */}
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => setShowRenameDialog(true)}
+              disabled={isReadonly || isDirty}
+              title={
+                isReadonly
+                  ? "編集モードに切り替えてから id を変更できます"
+                  : isDirty
+                  ? "未保存の変更があります。保存または破棄してから id を変更してください"
+                  : "id を変更 (rename refactor)"
+              }
+              data-testid="rename-entity-open-btn"
+            >
+              <i className="bi bi-tag" /> id 変更
+            </button>
+          </>
         }
         saveReset={isReadonly ? undefined : {
           isDirty,
@@ -614,6 +651,50 @@ export function SequenceEditor() {
           )}
         </section>
       </div>
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && sequenceId && (
+        <RenameEntityDialog
+          entityType="sequence"
+          currentId={sequenceId}
+          currentName={seq.physicalName || seq.name || ""}
+          existingIds={allSequenceIds}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "sequence",
+              oldId: sequenceId,
+              newId,
+              label: seq.physicalName || seq.name || newId,
+              navigate,
+              wsPath,
+            });
+            setRenameUndoToast({ operationId, oldId: sequenceId, newId });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          entityLabel="シーケンス"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "sequence",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: seq.physicalName || seq.name || renameUndoToast.oldId,
+              navigate,
+              wsPath,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </div>
   );
 }

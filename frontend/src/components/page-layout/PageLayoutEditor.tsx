@@ -14,7 +14,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { Maturity } from "../../types/v3";
 import type { PageLayout, PageLayoutRegion } from "../../store/pageLayoutStore";
-import { loadPageLayout, savePageLayout } from "../../store/pageLayoutStore";
+import { loadPageLayout, savePageLayout, listPageLayouts } from "../../store/pageLayoutStore";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
@@ -62,6 +65,20 @@ export function PageLayoutEditor() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [renameUndoToast, setRenameUndoToast] = useState<{
+    operationId: string; oldId: string; newId: string;
+  } | null>(null);
+  const [allPageLayoutIds, setAllPageLayoutIds] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await listPageLayouts();
+        setAllPageLayoutIds(list.map((pl) => pl.id as unknown as string));
+      } catch { /* backend 未接続時は空配列のまま */ }
+    })();
+  }, [pageLayoutId]);
 
   const [regionNameError, setRegionNameError] = useState<string>("");
   const [newRegionName, setNewRegionName] = useState("");
@@ -368,16 +385,35 @@ export function PageLayoutEditor() {
         title={<><i className="bi bi-layout-wtf" /> ページレイアウト編集: <code>{pl.name}</code></>}
         backLink={backLink}
         extraRight={
-          <EditSessionDropdown
-            resourceType="page-layout"
-            resourceId={pageLayoutId ?? ""}
-            currentMode={mode}
-            currentSessionId={sessionId}
-            onStartEditing={() => { void actions.startEditing(); }}
-            onViewerAttached={syncSessionToUrl}
-            onAttachAsView={attach}
-            onTakeOver={takeOver}
-          />
+          <>
+            <EditSessionDropdown
+              resourceType="page-layout"
+              resourceId={pageLayoutId ?? ""}
+              currentMode={mode}
+              currentSessionId={sessionId}
+              onStartEditing={() => { void actions.startEditing(); }}
+              onViewerAttached={syncSessionToUrl}
+              onAttachAsView={attach}
+              onTakeOver={takeOver}
+            />
+            {/* #1298 I-6 (RFC #1284): id rename refactor */}
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => setShowRenameDialog(true)}
+              disabled={isReadonly || isDirty}
+              title={
+                isReadonly
+                  ? "編集モードに切り替えてから id を変更できます"
+                  : isDirty
+                  ? "未保存の変更があります。保存または破棄してから id を変更してください"
+                  : "id を変更 (rename refactor)"
+              }
+              data-testid="rename-entity-open-btn"
+            >
+              <i className="bi bi-tag" /> id 変更
+            </button>
+          </>
         }
         saveReset={saveReset}
       />
@@ -634,6 +670,50 @@ export function PageLayoutEditor() {
       <div style={{ position: "fixed", bottom: 16, right: 16 }}>
         <MaturityBadge maturity={pl.maturity} />
       </div>
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && pageLayoutId && (
+        <RenameEntityDialog
+          entityType="pageLayout"
+          currentId={pageLayoutId}
+          currentName={pl.name || ""}
+          existingIds={allPageLayoutIds}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "pageLayout",
+              oldId: pageLayoutId,
+              newId,
+              label: pl.name || newId,
+              navigate,
+              wsPath,
+            });
+            setRenameUndoToast({ operationId, oldId: pageLayoutId, newId });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          entityLabel="ページレイアウト"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "pageLayout",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: pl.name || renameUndoToast.oldId,
+              navigate,
+              wsPath,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </div>
   );
 }

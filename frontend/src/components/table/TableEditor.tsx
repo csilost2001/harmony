@@ -24,6 +24,9 @@ import { useListClipboard } from "../../hooks/useListClipboard";
 import { useListKeyboard } from "../../hooks/useListKeyboard";
 import { useListSort } from "../../hooks/useListSort";
 import { EditorHeader } from "../common/EditorHeader";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { DataList, type DataListColumn } from "../common/DataList";
 import { SortBar } from "../common/SortBar";
@@ -56,6 +59,11 @@ export function TableEditor() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [renameUndoToast, setRenameUndoToast] = useState<{
+    operationId: string; oldId: string; newId: string;
+  } | null>(null);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/table/list"), { replace: true }), [navigate, wsPath]);
 
@@ -341,6 +349,22 @@ export function TableEditor() {
               onAttachAsView={attach}
               onTakeOver={takeOver}
             />
+            {/* #1298 I-6 (RFC #1284): id rename refactor */}
+            <button
+              className="editor-header-undo-btn"
+              onClick={() => setShowRenameDialog(true)}
+              disabled={isReadonly || isDirty}
+              title={
+                isReadonly
+                  ? "編集モードに切り替えてから id を変更できます"
+                  : isDirty
+                  ? "未保存の変更があります。保存または破棄してから id を変更してください"
+                  : "id を変更 (rename refactor)"
+              }
+              data-testid="rename-entity-open-btn"
+            >
+              <i className="bi bi-tag" />
+            </button>
             <button
               className="editor-header-undo-btn"
               onClick={() => {
@@ -412,6 +436,52 @@ export function TableEditor() {
           defaultOpen={ddlOpen}
         />
       </div>
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && tableId && (
+        <RenameEntityDialog
+          entityType="table"
+          currentId={tableId}
+          currentName={table.physicalName || table.name || ""}
+          existingIds={allTables.map((t) => t.id)}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "table",
+              oldId: tableId,
+              newId,
+              label: table.physicalName || table.name || newId,
+              navigate,
+              wsPath,
+            });
+            setRenameUndoToast({ operationId, oldId: tableId, newId });
+          }}
+        />
+      )}
+
+      {/* rename 成功直後の undo toast (5 分 TTL) */}
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          entityLabel="テーブル定義"
+          onUndo={() => {
+            // undo 後、旧 id の編集ページに戻す
+            handleRenameSuccess({
+              entityType: "table",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: table.physicalName || table.name || renameUndoToast.oldId,
+              navigate,
+              wsPath,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </div>
   );
 }

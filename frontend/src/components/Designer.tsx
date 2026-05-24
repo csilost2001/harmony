@@ -1,4 +1,9 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useWorkspacePath } from "../hooks/useWorkspacePath";
+import { RenameEntityDialog } from "./common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "./common/RenameEntityUndoToast";
+import { handleRenameSuccess } from "../utils/handleRenameSuccess";
 import { checkLegacyLocalStorage, executeRescue, clearLegacyLocalStorage } from "../grapes/legacyLocalStorageRescue";
 import { acknowledgeServerMtime } from "../utils/serverMtime";
 import { recordError } from "../utils/errorLog";
@@ -144,6 +149,22 @@ export function Designer({
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [showAiGenerateDialog, setShowAiGenerateDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const navigate = useNavigate();
+  const { wsPath } = useWorkspacePath();
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [renameUndoToast, setRenameUndoToast] = useState<{
+    operationId: string; oldId: string; newId: string;
+  } | null>(null);
+  const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const project = await loadProject();
+        setAllScreenIds((project.screens ?? []).map((s) => s.id));
+      } catch { /* backend 未接続時は空配列のまま */ }
+    })();
+  }, [screenId]);
   // localStorage 救済確認ダイアログ
   const [showLegacyRescueDialog, setShowLegacyRescueDialog] = useState(false);
   const legacyDataRef = useRef<unknown>(null);
@@ -820,6 +841,50 @@ export function Designer({
           onClose={() => setShowAiGenerateDialog(false)}
         />
       )}
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && (
+        <RenameEntityDialog
+          entityType="screen"
+          currentId={screenId}
+          currentName={screenName ?? ""}
+          existingIds={allScreenIds}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "screen",
+              oldId: screenId,
+              newId,
+              label: screenName ?? newId,
+              navigate,
+              wsPath,
+            });
+            setRenameUndoToast({ operationId, oldId: screenId, newId });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          entityLabel="画面"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "screen",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: screenName ?? renameUndoToast.oldId,
+              navigate,
+              wsPath,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </>
   );
 
@@ -861,6 +926,7 @@ export function Designer({
         onViewerAttached={syncSessionToUrl}
         onAttachAsView={editAttach}
         onTakeOver={editTakeOver}
+        onOpenRenameDialog={() => setShowRenameDialog(true)}
       />
     );
     const puckProps: PuckRenderEditorProps = {
@@ -919,6 +985,7 @@ export function Designer({
       onViewerAttached={syncSessionToUrl}
       onAttachAsView={editAttach}
       onTakeOver={editTakeOver}
+      onOpenRenameDialog={() => setShowRenameDialog(true)}
     />
   );
   // GrapesJSRenderEditorProps で GrapesJS 固有 callback を型レベル required として渡す

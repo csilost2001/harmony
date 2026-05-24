@@ -34,7 +34,10 @@ import type {
 } from "../../types/v3/view-definition";
 import type { FieldTypePrimitive } from "../../types/v3";
 import type { TableId, LocalId, Identifier } from "../../types/v3/common";
-import { loadViewDefinition, saveViewDefinition } from "../../store/viewDefinitionStore";
+import { loadViewDefinition, saveViewDefinition, listViewDefinitions } from "../../store/viewDefinitionStore";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
@@ -91,6 +94,12 @@ export function ViewDefinitionEditor() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [renameUndoToast, setRenameUndoToast] = useState<{
+    operationId: string; oldId: string; newId: string;
+  } | null>(null);
+  const [allViewDefIds, setAllViewDefIds] = useState<string[]>([]);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/view-definition/list"), { replace: true }), [navigate, wsPath]);
 
@@ -173,6 +182,16 @@ export function ViewDefinitionEditor() {
 
   const viewDefRef = useRef<ViewDefinition | null>(null);
   useEffect(() => { viewDefRef.current = viewDefinition ?? null; }, [viewDefinition]);
+
+  // #1298 I-6 (RFC #1284): id rename refactor — existing ids 一覧を読み込む
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await listViewDefinitions();
+        setAllViewDefIds(list.map((vd) => vd.id as unknown as string));
+      } catch { /* backend 未接続時は空配列のまま */ }
+    })();
+  }, [viewDefinitionId]);
 
   const draftUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -588,16 +607,35 @@ export function ViewDefinitionEditor() {
           canRedo,
         } satisfies EditorHeaderUndoRedo}
         extraRight={
-          <EditSessionDropdown
-            resourceType="view-definition"
-            resourceId={viewDefinitionId ?? ""}
-            currentMode={mode}
-            currentSessionId={sessionId}
-            onStartEditing={() => { void actions.startEditing(); }}
-            onViewerAttached={syncSessionToUrl}
-            onAttachAsView={attach}
-            onTakeOver={takeOver}
-          />
+          <>
+            <EditSessionDropdown
+              resourceType="view-definition"
+              resourceId={viewDefinitionId ?? ""}
+              currentMode={mode}
+              currentSessionId={sessionId}
+              onStartEditing={() => { void actions.startEditing(); }}
+              onViewerAttached={syncSessionToUrl}
+              onAttachAsView={attach}
+              onTakeOver={takeOver}
+            />
+            {/* #1298 I-6 (RFC #1284): id rename refactor */}
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => setShowRenameDialog(true)}
+              disabled={isReadonly || isDirty}
+              title={
+                isReadonly
+                  ? "編集モードに切り替えてから id を変更できます"
+                  : isDirty
+                  ? "未保存の変更があります。保存または破棄してから id を変更してください"
+                  : "id を変更 (rename refactor)"
+              }
+              data-testid="rename-entity-open-btn"
+            >
+              <i className="bi bi-tag" /> id 変更
+            </button>
+          </>
         }
         saveReset={isReadonly ? undefined : {
           isDirty,
@@ -739,6 +777,50 @@ export function ViewDefinitionEditor() {
 
         </div>{/* seq-editor-left-col */}
       </div>
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && viewDefinitionId && (
+        <RenameEntityDialog
+          entityType="viewDefinition"
+          currentId={viewDefinitionId}
+          currentName={viewDefinition.name || ""}
+          existingIds={allViewDefIds}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "viewDefinition",
+              oldId: viewDefinitionId,
+              newId,
+              label: viewDefinition.name || newId,
+              navigate,
+              wsPath,
+            });
+            setRenameUndoToast({ operationId, oldId: viewDefinitionId, newId });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          entityLabel="ビュー定義"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "viewDefinition",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: viewDefinition.name || renameUndoToast.oldId,
+              navigate,
+              wsPath,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </div>
   );
 }
