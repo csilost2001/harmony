@@ -14,8 +14,8 @@
  * Step 1: scaffold render baseline (6 test)
  * Step 2: 編集動作 interaction (12 test) — #1314
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, waitFor, fireEvent, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, waitFor, fireEvent, act, cleanup } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 
 // ---------------------------------------------------------------------------
@@ -270,19 +270,33 @@ async function expandEventPanel(container: HTMLElement): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// afterEach cleanup (act() 警告 24 件解消 — #1313 scaffold から継承の pre-existing)
+// ---------------------------------------------------------------------------
+afterEach(() => {
+  cleanup();
+});
+
+// ---------------------------------------------------------------------------
 // tests (Step 1: scaffold render baseline)
 // ---------------------------------------------------------------------------
 describe("ScreenItemsView (統合 scaffold)", () => {
-  it("1. 基本 render が成功する (例外なく描画)", () => {
+  it("1. 基本 render が成功する (例外なく描画)", async () => {
     const { container } = renderWithRouter();
     expect(container.firstChild).not.toBeNull();
+    // 非同期 useEffect の state 更新が act() 外で起きる警告を解消するため、初期 load 完了まで待つ
+    await waitFor(() => {
+      expect(container.querySelector(".screen-items-view")).not.toBeNull();
+    }, { timeout: 3000 });
   });
 
-  it("2. screen-items-view container が存在する", () => {
+  it("2. screen-items-view container が存在する", async () => {
     const { container } = renderWithRouter();
     // ScreenItemsView のルート div は className "screen-items-view" を持つ
-    const view = container.querySelector(".screen-items-view");
-    expect(view).not.toBeNull();
+    // waitFor で非同期 useEffect の完了を待ち、act() 外の state 更新警告を解消する
+    await waitFor(() => {
+      const view = container.querySelector(".screen-items-view");
+      expect(view).not.toBeNull();
+    }, { timeout: 3000 });
   });
 
   it("3. items 0 件で items table 領域が render される (非同期ロード後)", async () => {
@@ -742,7 +756,7 @@ describe("ScreenItemsView (Step 2: 編集動作)", () => {
       }, { timeout: 3000 });
     });
 
-    it("18. 連続「項目追加」2 回で tbody tr が 2 件になる", async () => {
+    it("18. 連続「項目追加」2 回で tbody tr が 2 件になる (件数増加のみ確認、auto-id 採番は handleAddItem 外で実施)", async () => {
       const { container } = renderWithRouter();
 
       // 編集モードに切り替え
@@ -753,6 +767,10 @@ describe("ScreenItemsView (Step 2: 編集動作)", () => {
         const addBtn = container.querySelector<HTMLButtonElement>(".screen-items-add");
         expect(addBtn).not.toBeNull();
       }, { timeout: 3000 });
+
+      // S-3: 初期状態 (0 件) を明示 — 他 CRUD test の両端 assert パターンに整合
+      const initialRows = container.querySelectorAll("[aria-label*='を選択']:not([aria-label='全選択'])");
+      expect(initialRows.length).toBe(0);
 
       const addBtn = container.querySelector<HTMLButtonElement>(".screen-items-add")!;
 
