@@ -250,7 +250,7 @@ RFC #1264 で確定した hybrid scope chain (case C) の具体仕様。**暗黙
 | `step.<step-id>` | step 出力 binding (`outputBinding.name`) | scope enter で生成 / exit で破棄 | `@var.step.step-05.newOrderNumber` |
 | `tx.<tx-id>` | TransactionScopeStep 内 binding | TX commit でマージ / rollback で破棄 | `@var.tx.step-06.txResult` |
 | `loop` | loop iteration 内 (`collectionItemName` / `collectionIndexName` / push operation の `outputBinding.name`) | iteration ごとに fresh / `outputBinding.name` は loop 終了後 enclosing scope に push | `@var.loop.cartItem`、`@var.loop.idx`、`@var.loop.enrichedItems` |
-| `global` | workspace / project 横断 (mutable、`@const` と区別) | session 全体 | `@var.global.tenantId` |
+| `global` | workspace / project 横断 catalog 定義 (mutable、`@const` と区別)、`generic-definitions/global/<key>.json` で定義 (#1310) | session 全体 (write 機能は将来 follow-up) | `@var.global.TenantContext` |
 
 `step.` / `tx.` 接頭辞は具体的な step-id / tx-id を後続する (LocalId pattern)。
 
@@ -324,9 +324,11 @@ editor 編集時の補完では両方の候補が並列に出る (resolver 別)�
 | `step` | — | ✅ step-id 補完 (全 step id、TX/loop/branch/workflow/validation の nested 含む) | ✅ `@var.step.<id>.<binding-name>` 4-segment 補完 (`outputBinding.name`) + 候補に trailing "." 付与 |
 | `tx` | — | ✅ tx-id 補完 (kind="transactionScope" の id のみ) | ✅ `@var.tx.<id>.<member>` 4-segment 補完 (予約 3 値 `committed`/`error`/`diagnostics` + `outputBinding.expose[]`) + 候補に trailing "." 付与 |
 | `loop` | — | ✅ name 補完 (collectionItemName / collectionIndexName / outputBinding.name) | — (3-segment で完結) |
-| `global` | — | ⚠️ 空候補 (catalog 未確立、#1310 で対応予定) | — |
+| `global` | — | ✅ catalog 補完 (#1310) | — |
 
 注: Phase 2-bis の表記「name 補完」は実際には scope 階層第 3 segment (step-id / tx-id / loop-name) の補完を指す。`step` / `tx` は spec §3.6 line 250-251 の canonical 文法どおり 4-segment (`@var.step.<step-id>.<binding-name>` / `@var.tx.<tx-id>.<member>`) で完結し、Phase 3 (#1316) で最終 segment まで補完が繋がる。nested step 列挙の網羅は `iterSteps` ヘルパが担当 (compound step kind = transactionScope / loop / branch / workflow / validation の各 nested 配置 `steps[]` / `branches[].steps[]` / `elseBranch.steps[]` / `onCommit[]` / `onRollback[]` / `onApproved[]` / `onRejected[]` / `onTimeout[]` / `inlineBranch.{ok,ng}[]` を再帰列挙)。
+
+注: `global` scope は #1310 で導入された generic-definitions/global/ catalog から `genericDefinitionsByKind` context 経由で候補取得する (read-only catalog のみ、write step kind は将来 follow-up)。
 
 ### 3.7 TX (transactionScope) 境界での変数挙動 (#1264 verdict 観点 4 / #1267 Round 7 option C)
 

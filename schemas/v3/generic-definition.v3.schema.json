@@ -2,13 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definition.v3.schema.json",
   "title": "Generic Definition (v3 汎用設計定義 親 schema)",
-  "description": "Layer 2 Generic Definition Catalog の 17 kind 共通メタモデル (#1263 Phase X2 / RFC #1254 件 3.7 で 8 → 14 kind に拡張、#1303 で 14 → 17 kind に拡張)。<project>/<dataDir>/generic-definitions/<kind>/<Name>.json に対応。仕様: docs/spec/generic-definition-layer.md §4.1。本 schema は kind / name / purpose / responsibilities / targets を必須とする共通親で、kind 別の固有 schema (旧 7: data-contract / domain-type / exception-type / application-rule / ui-behavior / runtime-policy / ui-fragment は #1064-#1068 で導入、新 7: component-definition / validation-rule / constants / message / domain-event / log-event / log-config は #1263 Phase X2 で導入、追加 3: dialog / message-area / options は #1303 で導入、#1318 で messageArea → message-area kebab-case 統一) は allOf で本定義を継承する。catalog 記録のため EntityMeta (uuid id / timestamps) は採用せず、`name` field が catalog identifier を兼ねる (ファイル名と一致させる運用)。",
+  "description": "Layer 2 Generic Definition Catalog の 18 kind 共通メタモデル (#1263 Phase X2 / RFC #1254 件 3.7 で 8 → 14 kind に拡張、#1303 で 14 → 17 kind に拡張、#1310 で 17 → 18 kind に拡張)。<project>/<dataDir>/generic-definitions/<kind>/<Name>.json に対応。仕様: docs/spec/generic-definition-layer.md §4.1。本 schema は kind / name / purpose / responsibilities / targets を必須とする共通親で、kind 別の固有 schema (旧 7: data-contract / domain-type / exception-type / application-rule / ui-behavior / runtime-policy / ui-fragment は #1064-#1068 で導入、新 7: component-definition / validation-rule / constants / message / domain-event / log-event / log-config は #1263 Phase X2 で導入、追加 3: dialog / message-area / options は #1303 で導入、#1318 で messageArea → message-area kebab-case 統一、#1310 で global 追加) は allOf で本定義を継承する。catalog 記録のため EntityMeta (uuid id / timestamps) は採用せず、`name` field が catalog identifier を兼ねる (ファイル名と一致させる運用)。",
   "type": "object",
   "$ref": "#/$defs/GenericDefinition",
   "$defs": {
     "GenericDefinition": {
       "type": "object",
-      "required": ["kind", "name", "purpose", "responsibilities", "targets"],
+      "required": [
+        "kind",
+        "name",
+        "purpose",
+        "responsibilities",
+        "targets"
+      ],
       "properties": {
         "$schema": {
           "type": "string",
@@ -28,35 +34,49 @@
         },
         "responsibilities": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "minItems": 1,
           "description": "本定義が担う責務の列挙。コード生成時の AI が読み取る semantic 情報源。"
         },
         "targets": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GenericDefinitionTarget" },
+          "items": {
+            "$ref": "#/$defs/GenericDefinitionTarget"
+          },
           "minItems": 1,
           "uniqueItems": true,
           "description": "適用領域。backend / frontend / shared / runtime。例: data-contract の DTO は backend + frontend の shared、runtime-policy は runtime のみ。"
         },
         "fields": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GenericField" },
+          "items": {
+            "$ref": "#/$defs/GenericField"
+          },
           "description": "本定義が保持する field / property 一覧 (data-contract / domain-type / exception-type 等で利用)。"
         },
         "operations": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GenericOperation" },
+          "items": {
+            "$ref": "#/$defs/GenericOperation"
+          },
           "description": "本定義が提供する operation / method (component-definition / ui-behavior 等で利用)。"
         },
         "relations": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GenericRelation" },
+          "items": {
+            "$ref": "#/$defs/GenericRelation"
+          },
           "description": "他 catalog 記録 / entity への関係 (継承 / 実装 / 利用 / 変換元先 / 適用対象)。"
         },
         "constraints": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "description": "不変条件・事前/事後条件の自然言語記述。AI コード生成のヒント。"
         },
         "mappingHints": {
@@ -67,7 +87,6 @@
       },
       "unevaluatedProperties": false
     },
-
     "GenericDefinitionKind": {
       "type": "string",
       "enum": [
@@ -87,11 +106,11 @@
         "log-config",
         "dialog",
         "message-area",
-        "options"
+        "options",
+        "global"
       ],
-      "description": "Generic Definition Catalog の 17 kind (#1254 件 3.7 / #1263 Phase X2 で 14 種 / #1303 で 14→17 種に拡張、spec §4.2)。data-contract = DTO/Form/Result/ViewModel 等の層間契約。domain-type = Entity/Model などドメイン型。exception-type = 例外種別・階層・semantic kind。application-rule = 認証認可/ログ/監査などの横断ルール。validation-rule = 業務検証ルール (条件 + メッセージ + severity)。ui-behavior = 画面横断振る舞い。runtime-policy = retry/timeout/circuit breaker/cache 等の横断適用ポリシー。component-definition = service/mapper/validator/formatter 等の責務。ui-fragment = 再利用 UI 断片。constants = ドメイン定数集 (@const.<key> 参照元)。message = メッセージカタログ (@msg.<key> 参照元、i18n source)。domain-event = ドメインイベント定義 (@event.<topic> 参照元)。log-event = ログイベント定義 (@logEvent.<key> 参照元、構造化ログ)。log-config = ログ設定 (@logConfig.<key> 参照元、log level / sink / format)。dialog = ScreenItemEvent effects[].showDialog.target 参照先の dialog カタログ (@dialog.<name> 参照元)。message-area = ScreenItemEvent effects[].setMessage.target 参照先の画面横断 message area カタログ (prefix `@messageArea.<name>` で参照、log-event/log-config と同様に kind=kebab-case / prefix=camelCase の分離、#1318)。options = ScreenItemEvent effects[].setOptions の選択肢カタログ (@options.<name> 参照元)。"
+      "description": "Generic Definition Catalog の 18 kind (#1254 件 3.7 / #1263 Phase X2 で 14 種 / #1303 で 14→17 種に拡張、#1310 で 17→18 種に拡張 (global 追加)、spec §4.2)。data-contract = DTO/Form/Result/ViewModel 等の層間契約。domain-type = Entity/Model などドメイン型。exception-type = 例外種別・階層・semantic kind。application-rule = 認証認可/ログ/監査などの横断ルール。validation-rule = 業務検証ルール (条件 + メッセージ + severity)。ui-behavior = 画面横断振る舞い。runtime-policy = retry/timeout/circuit breaker/cache 等の横断適用ポリシー。component-definition = service/mapper/validator/formatter 等の責務。ui-fragment = 再利用 UI 断片。constants = ドメイン定数集 (@const.<key> 参照元)。message = メッセージカタログ (@msg.<key> 参照元、i18n source)。domain-event = ドメインイベント定義 (@event.<topic> 参照元)。log-event = ログイベント定義 (@logEvent.<key> 参照元、構造化ログ)。log-config = ログ設定 (@logConfig.<key> 参照元、log level / sink / format)。dialog = ScreenItemEvent effects[].showDialog.target 参照先の dialog カタログ (@dialog.<name> 参照元)。message-area = ScreenItemEvent effects[].setMessage.target 参照先の画面横断 message area カタログ (prefix `@messageArea.<name>` で参照、log-event/log-config と同様に kind=kebab-case / prefix=camelCase の分離、#1318)。options = ScreenItemEvent effects[].setOptions の選択肢カタログ (@options.<name> 参照元)。global = workspace/project 横断の mutable 設定 slot (@var.global.<key> 参照元、Spring @Value / @SessionScope 相当、#1310)。"
     },
-
     "GenericDefinitionName": {
       "type": "string",
       "pattern": "^[A-Za-z][A-Za-z0-9_]*$",
@@ -99,16 +118,22 @@
       "maxLength": 64,
       "description": "catalog 記録の identifier。ファイル名 (拡張子除く) と一致させる運用。慣例的に PascalCase (OrderForm / UserNotFoundException 等) を推奨するが、camelCase / snake-ish も許容。Identifier (lowerCamelCase 強制) は採用しない (例外クラス名等で PascalCase が業界標準のため)。"
     },
-
     "GenericDefinitionTarget": {
       "type": "string",
-      "enum": ["backend", "frontend", "shared", "runtime"],
+      "enum": [
+        "backend",
+        "frontend",
+        "shared",
+        "runtime"
+      ],
       "description": "適用領域。backend / frontend / shared (両方) / runtime (実行時横断ポリシー)。"
     },
-
     "GenericField": {
       "type": "object",
-      "required": ["name", "type"],
+      "required": [
+        "name",
+        "type"
+      ],
       "properties": {
         "name": {
           "type": "string",
@@ -123,7 +148,10 @@
         },
         "constraints": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
           "description": "field 単位の制約 (必須 / 桁数 / 値域等の自然言語記述)。"
         },
         "description": {
@@ -133,10 +161,11 @@
       },
       "unevaluatedProperties": false
     },
-
     "GenericOperation": {
       "type": "object",
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "properties": {
         "name": {
           "type": "string",
@@ -146,12 +175,16 @@
         },
         "inputs": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GenericField" },
+          "items": {
+            "$ref": "#/$defs/GenericField"
+          },
           "description": "入力パラメータ列。"
         },
         "outputs": {
           "type": "array",
-          "items": { "$ref": "#/$defs/GenericField" },
+          "items": {
+            "$ref": "#/$defs/GenericField"
+          },
           "description": "出力 (戻り値) 列。複数戻り値 / tuple を表現可能。"
         },
         "description": {
@@ -161,14 +194,23 @@
       },
       "unevaluatedProperties": false
     },
-
     "GenericRelation": {
       "type": "object",
-      "required": ["kind", "ref"],
+      "required": [
+        "kind",
+        "ref"
+      ],
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["extends", "implements", "uses", "transformsFrom", "transformsTo", "appliesTo"],
+          "enum": [
+            "extends",
+            "implements",
+            "uses",
+            "transformsFrom",
+            "transformsTo",
+            "appliesTo"
+          ],
           "description": "関係種別 (spec §4.1)。extends = 継承、implements = 契約実装、uses = 利用、transformsFrom/To = 変換源/先、appliesTo = 適用対象 (横断ポリシー → 適用先 component 等)。"
         },
         "ref": {

@@ -222,9 +222,9 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 - **`mappingHints` は完全 optional / advisory** (任意): 特定 techStack (Spring / Nest / Next 等) への codegen 時のヒント。設計書の本質ではなく **AI 生成側のチューニング材料**。本 spec の Spring/Nest/Next 例はあくまでサンプルで、Django / Rails / Vue 等への展開も自由
 - `mappingHints` が無くても **言語非依存の本体だけで設計意図は完結する** こと。逆に `mappingHints` だけで設計意図を表現するのは禁止 (本体に migrate する)
 
-### 4.2 17 種類の kind
+### 4.2 18 種類の kind
 
-初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張。#1318 で `messageArea` kind を `message-area` に kebab-case 統一 (prefix `@messageArea.<name>` は維持、kind=kebab/prefix=camelCase は log-event/logEvent と同じ分離パターン)。
+初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張 → #1310 で 18 種に拡張。#1318 で `messageArea` kind を `message-area` に kebab-case 統一 (prefix `@messageArea.<name>` は維持、kind=kebab/prefix=camelCase は log-event/logEvent と同じ分離パターン)。
 
 | kind | 用途 | 主な参照元 |
 |---|---|---|
@@ -245,6 +245,7 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 | `dialog` | confirm / alert / custom dialog の定義 (ScreenItemEvent.effects[].showDialog.target 参照先) | `@dialog.<name>` |
 | `message-area` | 画面横断 message area の定義 (ScreenItemEvent.effects[].setMessage.target 参照先、#1318 で `messageArea` → `message-area` kebab-case 統一、prefix は `@messageArea.` を維持 = log-event/logEvent 前例と同様の kind=kebab/prefix=camelCase 分離) | `@messageArea.<name>` |
 | `options` | 選択肢カタログ (ScreenItemEvent.effects[].setOptions 動的差し替え参照先) | `@options.<name>` |
+| `global` | workspace/project 横断の mutable 設定 slot (`@var.global.<key>` 参照元、Spring `@Value` / `@SessionScope` 相当、#1310)。read-only catalog として 1 instance = 1 設定群を定義、`fields[]` で field schema を記述。本 PR では catalog のみ、write semantics (step kind / lifetime) は将来 follow-up。 | `@var.global.<key>` |
 
 ### 4.3 既存仕様との関係
 

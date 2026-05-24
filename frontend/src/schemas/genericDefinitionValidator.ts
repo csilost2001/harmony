@@ -5,10 +5,12 @@
  * validateHarmony.ts のキャッシュパターンに倣い、singleton AJV + 初回呼び出し時 compile。
  *
  * #1263 Phase X2 (#1267 Opus Round 4 Should-fix #1): 全 17 kind に固有 schema が存在する。
+ * #1310: global kind 追加 (全 18 kind)。
  * 旧 8 kind (data-contract / domain-type / exception-type / application-rule / ui-behavior /
  *   runtime-policy / ui-fragment) + 新 7 kind (component-definition / validation-rule /
  *   constants / message / domain-event / log-event / log-config) すべて KIND_SCHEMAS に登録。
  * #1303: 新 3 kind (dialog / message-area / options) を追加 (全 17 kind)。
+ * #1310: global kind 追加 (全 18 kind)。
  * #1318: messageArea → message-area kebab-case 統一 (kind は kebab-case 統一規約、
  *   prefix `@messageArea.<name>` は log-event/logEvent 前例と同様に camelCase 維持)。
  */
@@ -37,6 +39,8 @@ import logConfigSchema from "../../../schemas/v3/generic-definitions/log-config.
 import dialogSchema from "../../../schemas/v3/generic-definitions/dialog.v3.schema.json";
 import messageAreaSchema from "../../../schemas/v3/generic-definitions/message-area.v3.schema.json";
 import optionsSchema from "../../../schemas/v3/generic-definitions/options.v3.schema.json";
+// #1310 — global kind
+import globalSchema from "../../../schemas/v3/generic-definitions/global.v3.schema.json";
 
 export interface GenericDefinitionIssue {
   kind: GenericDefinitionKind;
@@ -46,7 +50,7 @@ export interface GenericDefinitionIssue {
   severity: "error" | "warning";
 }
 
-// kind → 固有 schema の $id (#1263 Phase X2: 14 kind 全件 + #1303: 3 新規 kind = 全 17 kind)
+// kind → 固有 schema の $id (#1263 Phase X2: 14 kind 全件 + #1303: 3 新規 kind = 全 17 kind + #1310: global = 全 18 kind)
 const KIND_SCHEMAS: Partial<Record<GenericDefinitionKind, object>> = {
   "data-contract": dataContractSchema as object,
   "exception-type": exceptionTypeSchema as object,
@@ -67,6 +71,8 @@ const KIND_SCHEMAS: Partial<Record<GenericDefinitionKind, object>> = {
   dialog: dialogSchema as object,
   "message-area": messageAreaSchema as object,
   options: optionsSchema as object,
+  // #1310 — global
+  global: globalSchema as object,
 };
 
 type ValidateFn = ReturnType<InstanceType<typeof Ajv2020>["compile"]>;

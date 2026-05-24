@@ -211,13 +211,45 @@ describe("varScopeResolver", () => {
     expect(values.length).toBe(3);
   });
 
-  // Phase 2-bis: global scope (空候補)
-  it("@var.global. で空候補 (catalog 未確立、phase active のまま)", () => {
-    const value = "@var.global.";
-    const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase2bis });
-    expect(state?.phase).toBe("active");
-    if (state?.phase !== "active") return;
-    expect(state.candidates).toHaveLength(0);
+  // #1310: global scope (catalog 駆動)
+  describe("@var.global.<name> (catalog driven、#1310)", () => {
+    it("genericDefinitionsByKind 未渡しで空候補 (active mode 維持)", () => {
+      const value = "@var.global.";
+      const state = varScopeResolver.match(value, value.length, { flow: mockFlowPhase2bis });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      expect(state.candidates).toHaveLength(0);
+    });
+
+    it("global catalog 渡しで name 候補が返る", () => {
+      const value = "@var.global.";
+      const state = varScopeResolver.match(value, value.length, {
+        flow: mockFlowPhase2bis,
+        genericDefinitionsByKind: {
+          global: [{ name: "TenantContext" }, { name: "FeatureFlags" }],
+        },
+      });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      const values = state.candidates.map((c) => c.value);
+      expect(values).toContain("TenantContext");
+      expect(values).toContain("FeatureFlags");
+      expect(values.length).toBe(2);
+    });
+
+    it("@var.global.Ten で prefix フィルタが効く", () => {
+      const value = "@var.global.Ten";
+      const state = varScopeResolver.match(value, value.length, {
+        flow: mockFlowPhase2bis,
+        genericDefinitionsByKind: {
+          global: [{ name: "TenantContext" }, { name: "FeatureFlags" }],
+        },
+      });
+      expect(state?.phase).toBe("active");
+      if (state?.phase !== "active") return;
+      expect(state.candidates).toHaveLength(1);
+      expect(state.candidates[0].value).toBe("TenantContext");
+    });
   });
 
   // Phase 3 (#1316): step / tx 候補に trailing: "." 付与 (4-segment 文法連動)

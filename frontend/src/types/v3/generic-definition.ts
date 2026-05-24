@@ -2,11 +2,12 @@
  * Generic Definition Catalog 型定義 (v3 schema 準拠)
  *
  * schema: schemas/v3/generic-definition.v3.schema.json
- * 17 kind (#1254 件 3.7 / #1263 Phase X2 / #1303):
+ * 18 kind (#1254 件 3.7 / #1263 Phase X2 / #1303 / #1310):
  *   既存 8: data-contract / domain-type / exception-type / application-rule /
  *            ui-behavior / runtime-policy / component-definition / ui-fragment
  *   新規 6: validation-rule / constants / message / domain-event / log-event / log-config
  *   新規 3: dialog / message-area / options (#1303 で導入、#1318 で messageArea → message-area kebab-case 統一)
+ *   新規 1: global (#1310 で導入)
  *
  * 命名規約: 複合語 kind は kebab-case で統一。prefix は log-event/logEvent、log-config/logConfig、
  * message-area/messageArea のように camelCase 短縮形を取りうる (kind と prefix は別概念)。
@@ -29,7 +30,8 @@ export type GenericDefinitionKind =
   | "log-config"
   | "dialog"
   | "message-area"
-  | "options";
+  | "options"
+  | "global";
 
 export type GenericDefinitionTarget = "backend" | "frontend" | "shared" | "runtime";
 
@@ -101,6 +103,7 @@ export const GENERIC_DEFINITION_KINDS: GenericDefinitionKind[] = [
   "dialog",
   "message-area",
   "options",
+  "global",
 ];
 
 export const GENERIC_DEFINITION_KIND_LABELS: Record<GenericDefinitionKind, string> = {
@@ -121,6 +124,7 @@ export const GENERIC_DEFINITION_KIND_LABELS: Record<GenericDefinitionKind, strin
   dialog: "ダイアログ",
   "message-area": "メッセージエリア",
   options: "選択肢",
+  global: "グローバル設定",
 };
 
 export const GENERIC_DEFINITION_TARGETS: GenericDefinitionTarget[] = [
