@@ -56,8 +56,19 @@
  *   `@newScore.id` 参照 → 本 Check 32 が違反として報告。
  */
 import type { ProcessFlow, Step } from "../types/v3";
+import {
+  PROCESS_FLOW_META_FIELD_NAMES,
+  PROCESS_FLOW_THIS_TOPLEVEL_FIELD_NAMES,
+  SELF_STEP_FIELD_NAMES,
+} from "../utils/reference-completer/designerAliasFields";
 import type { ProjectCatalogIndex } from "./projectCatalogIndex";
 import { isBuiltinStep } from "./stepGuards";
+
+// #1322 Phase B-3a: @this / @self designer-time alias の validator-side allowed fields。
+// designerAliasFields.ts (resolver と共有) からの派生 Set。
+const THIS_PROCESS_FLOW_TOPLEVEL_FIELDS: ReadonlySet<string> = new Set(PROCESS_FLOW_THIS_TOPLEVEL_FIELD_NAMES);
+const THIS_PROCESS_FLOW_META_FIELDS: ReadonlySet<string> = new Set(PROCESS_FLOW_META_FIELD_NAMES);
+const SELF_STEP_FIELDS: ReadonlySet<string> = new Set(SELF_STEP_FIELD_NAMES);
 
 export interface AntipatternIssue {
   /** 検出した validator 名 */
@@ -393,6 +404,19 @@ interface BrokenRefContext {
    */
   txExposeMap: Map<string, Set<string>>;
   /**
+   * #1322 Phase B-3a: `@this.action.<actionId>` 検証用に flow.actions[].id を保持。
+   * `@this` は ProcessFlow editor / validator 双方で常に「現在 validate 中の flow」を指すため、
+   * projectIndex の有無に関わらず常に build される。
+   */
+  actionIds: Set<string>;
+  /**
+   * #1322 Phase B-3a: `@self.<field>` 検証用に **現在 walk 中の step** を保持。
+   * walkSteps visitor で各 step iteration 前に mutate する (`null` = step 外 context、検証 skip)。
+   * step kind に依らず共通 field (id / description / runIf / outputBinding / compensatesFor) のみ
+   * を検証対象とし、kind 固有 field は loose pass (silent)。
+   */
+  currentStep: { id?: string; kind?: string } | null;
+  /**
    * Project 全体の catalog index (#1269 提案 C)。**undefined の場合は当該 prefix を silent pass** にする
    * (Phase X2 互換)。渡されると 23 prefix dispatch (`@screen` / `@table` / `@view` / `@viewer` /
    * `@layout` / `@seq` / `@flow` / `@system` / `@conv` / `@ext` / 14 generic-definition kind 中 13 prefix)
@@ -449,10 +473,48 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): RefIssue[] {
     const segments = key.split(".");
     const head = segments[0];
 
-    // process-flow-prefix-system.md § 11 — designer-time alias
-    // runtime catalog では解決不可。standalone validate では silent pass (#1301)
-    if (prefix === "this" || prefix === "self") {
-      continue; // skip — designer-time alias、context 不在では検証不能
+    // process-flow-prefix-system.md § 11 — designer-time alias (#1301 / #1308 / #1322 Phase B-3a)
+    // ProcessFlow editor context では `@this` = 現在 flow、`@self` = 現在 step に常に bind されるため、
+    // validator も flow を walk 中は同じ context で pre-resolve 等価検証を行う。
+    if (prefix === "this") {
+      // @this.<top> : top が ProcessFlow editor 許可 field でなければ broken
+      if (!THIS_PROCESS_FLOW_TOPLEVEL_FIELDS.has(head)) {
+        issues.push({ kind: "broken", prefix, key });
+        continue;
+      }
+      if (head === "action") {
+        // @this.action.<actionId>.<...> : action-id を flow.actions[].id で検証
+        const actionId = segments[1];
+        // segments[1] 不在 (`@this.action` 単体) は補完中の placeholder と見做し silent pass
+        if (actionId && !ctx.actionIds.has(actionId)) {
+          issues.push({ kind: "broken", prefix, key });
+        }
+        // segments[2+] (action 内 step / outputBinding 等) は loose pass
+        continue;
+      }
+      if (head === "meta") {
+        // @this.meta.<field> : EntityMeta + ProcessFlow Meta 固有 field のみ許可
+        const field = segments[1];
+        if (field && !THIS_PROCESS_FLOW_META_FIELDS.has(field)) {
+          issues.push({ kind: "broken", prefix, key });
+        }
+        // segments[2+] (例: meta.sla.responseTime) は loose pass
+        continue;
+      }
+      // @this.context.<...> / @this.expressionLanguage はそれぞれ深い nested catalog / leaf
+      // 詳細検証はせず loose pass (Phase B-3a スコープ外、Phase B-3b runtime pre-resolve で再検証)
+      continue;
+    }
+    if (prefix === "self") {
+      // @self は currentStep が set されている時のみ検証 (= walkSteps 経由の文字列値スキャン中)。
+      // currentStep === null の場合は step context 外なので silent pass (action.inputs[] 等)。
+      if (!ctx.currentStep) continue;
+      // @self.<field>.<...> : step 共通 5 field のみ許可、unknown は broken
+      if (!SELF_STEP_FIELDS.has(head)) {
+        issues.push({ kind: "broken", prefix, key });
+      }
+      // segments[1+] (例: @self.outputBinding.name / @self.outputBinding.expose) は loose pass
+      continue;
     }
 
     if (prefix === "var") {
@@ -636,6 +698,7 @@ function buildBrokenRefContext(flow: unknown, projectIndex?: ProjectCatalogIndex
       ambientVariables?: Array<{ name: string }>;
     };
     actions?: Array<{
+      id?: string;
       inputs?: Array<{ name: string }>;
       steps?: Array<unknown>;
     }>;
@@ -725,7 +788,23 @@ function buildBrokenRefContext(flow: unknown, projectIndex?: ProjectCatalogIndex
 
   const eventKeys = new Set<string>(Object.keys(catalogs.events ?? {}));
 
-  return { varKeys, eventKeys, stepIds, txIds, txInnerVars, txExposeMap, projectIndex };
+  // #1322 Phase B-3a: actionIds — @this.action.<id> 検証用
+  const actionIds = new Set<string>();
+  (flowAny.actions ?? []).forEach((a) => {
+    if (a.id) actionIds.add(a.id);
+  });
+
+  return {
+    varKeys,
+    eventKeys,
+    stepIds,
+    txIds,
+    txInnerVars,
+    txExposeMap,
+    actionIds,
+    currentStep: null,
+    projectIndex,
+  };
 }
 
 // ─── walkSteps ──────────────────────────────────────────────────────────────
@@ -850,6 +929,10 @@ export function checkAntipatterns(
     const actionMaturity: string = actionAny.maturity ?? maturity;
 
     walkSteps(steps, `actions[${ai}].steps`, (step, stepPath, withinTx) => {
+      // #1322 Phase B-3a: refCtx.currentStep を @self.<field> 検証用に更新
+      const stepAny = step as { id?: string; kind?: string };
+      refCtx.currentStep = { id: stepAny.id, kind: stepAny.kind };
+
       // Check 16, 30, 31, 32: step 内の全文字列値を走査
       const stringValues: Array<{ path: string; value: string }> = [];
       collectStringValues(step, stepPath, stringValues);
@@ -937,7 +1020,9 @@ export function checkAntipatterns(
               path,
               // #1269 提案 C: project-level catalog index 渡し時は 24 prefix 全件 (entity + generic-definition +
               // catalog + project) を検証する。projectIndex 未渡し時は Phase X2 互換で @var / @event のみ。
-              message: `\`@${ref.prefix}.${ref.key}\` の参照先が ProcessFlow.context / 変数 scope / project catalog に存在しません (maturity=${maturity}、対象 prefix: @var / @event${refCtx.projectIndex ? " + project catalog 系" : " のみ"})。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
+              message: ref.prefix === "this" || ref.prefix === "self"
+                ? `\`@${ref.prefix}.${ref.key}\` は designer-time alias ですが、参照先 field が ${ref.prefix === "this" ? "ProcessFlow editor 許可 field (meta / context / action / expressionLanguage) / flow.actions[].id / EntityMeta field" : "step 共通 field (id / description / runIf / outputBinding / compensatesFor)"} に該当しません (maturity=${maturity}、#1322 Phase B-3a)。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`
+                : `\`@${ref.prefix}.${ref.key}\` の参照先が ProcessFlow.context / 変数 scope / project catalog に存在しません (maturity=${maturity}、対象 prefix: @var / @event / @this / @self${refCtx.projectIndex ? " + project catalog 系" : " のみ"})。${maturity === "committed" ? "committed では error として扱います" : "draft / provisional では warning として扱います"}`,
             });
           } else {
             // ref.kind === "txLeak" (Check 32):

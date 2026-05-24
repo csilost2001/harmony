@@ -680,6 +680,238 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
   });
 });
 
+// ─── Check 31 (#1322 Phase B-3a): designer-time alias @this / @self の context 注入 ─
+
+describe("Check 31 (#1322 Phase B-3a): @this / @self designer-time alias", () => {
+  it("negative: @this.action.<existing-id> は flow.actions[].id に一致 → no issue", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@this.action.action-1.outputBinding",
+    };
+    const flow: ProcessFlow = {
+      meta: {
+        id: "test-flow" as never,
+        name: "Test",
+        flowType: "screen",
+        maturity: "committed",
+        createdAt: "2026-01-01" as never,
+        updatedAt: "2026-01-01" as never,
+      },
+      actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter(
+      (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@this"),
+    );
+    expect(found).toHaveLength(0);
+  });
+
+  it("positive: @this.action.<unknown-id> は broken ref として検出", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@this.action.nonExistentAction.foo",
+    };
+    const flow: ProcessFlow = {
+      meta: {
+        id: "test-flow" as never,
+        name: "Test",
+        flowType: "screen",
+        maturity: "committed",
+        createdAt: "2026-01-01" as never,
+        updatedAt: "2026-01-01" as never,
+      },
+      actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter(
+      (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@this"),
+    );
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("error");
+  });
+
+  it("negative: @this.meta.<known-field> (id / name / flowType / sla 等) は no issue", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@this.meta.id + @this.meta.flowType + @this.meta.maturity + @this.meta.sla.responseTime",
+    };
+    const flow: ProcessFlow = {
+      meta: {
+        id: "test-flow" as never,
+        name: "Test",
+        flowType: "screen",
+        maturity: "draft",
+        createdAt: "2026-01-01" as never,
+        updatedAt: "2026-01-01" as never,
+      },
+      actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter(
+      (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@this"),
+    );
+    expect(found).toHaveLength(0);
+  });
+
+  it("positive: @this.meta.<unknown-field> は broken ref として検出", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@this.meta.unknownMetaField",
+    };
+    const flow: ProcessFlow = {
+      meta: {
+        id: "test-flow" as never,
+        name: "Test",
+        flowType: "screen",
+        maturity: "committed",
+        createdAt: "2026-01-01" as never,
+        updatedAt: "2026-01-01" as never,
+      },
+      actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter(
+      (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@this"),
+    );
+    expect(found.length).toBeGreaterThan(0);
+  });
+
+  it("positive: @this.<unknown-top-level> は broken ref として検出", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@this.unknownTopLevelField",
+    };
+    const flow: ProcessFlow = {
+      meta: {
+        id: "test-flow" as never,
+        name: "Test",
+        flowType: "screen",
+        maturity: "draft",
+        createdAt: "2026-01-01" as never,
+        updatedAt: "2026-01-01" as never,
+      },
+      actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter(
+      (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@this"),
+    );
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("warning");
+  });
+
+  it("negative: @this.context.<...> / @this.expressionLanguage は loose pass (catalog 深い nested)", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@this.context.catalogs.events + @this.expressionLanguage",
+    };
+    const flow: ProcessFlow = {
+      meta: {
+        id: "test-flow" as never,
+        name: "Test",
+        flowType: "screen",
+        maturity: "committed",
+        createdAt: "2026-01-01" as never,
+        updatedAt: "2026-01-01" as never,
+      },
+      actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter(
+      (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@this"),
+    );
+    expect(found).toHaveLength(0);
+  });
+
+  it("negative: @self.id / @self.runIf / @self.outputBinding.name は step 共通 5 field に該当 → no issue", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      // step body 内に @self.* を含む式
+      expression: "@self.id + @self.runIf + @self.outputBinding.name",
+    };
+    const flow: ProcessFlow = {
+      meta: {
+        id: "test-flow" as never,
+        name: "Test",
+        flowType: "screen",
+        maturity: "committed",
+        createdAt: "2026-01-01" as never,
+        updatedAt: "2026-01-01" as never,
+      },
+      actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter(
+      (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@self"),
+    );
+    expect(found).toHaveLength(0);
+  });
+
+  it("positive: @self.<unknown-field> は broken ref として検出", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@self.someUnknownField",
+    };
+    const flow: ProcessFlow = {
+      meta: {
+        id: "test-flow" as never,
+        name: "Test",
+        flowType: "screen",
+        maturity: "committed",
+        createdAt: "2026-01-01" as never,
+        updatedAt: "2026-01-01" as never,
+      },
+      actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter(
+      (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@self"),
+    );
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].severity).toBe("error");
+  });
+
+  it("draft maturity では @this / @self の broken ref は warning として検出", () => {
+    const step = {
+      kind: "compute",
+      id: "step-1",
+      expression: "@this.unknownTopLevel + @self.unknownField",
+    };
+    const flow: ProcessFlow = {
+      meta: {
+        id: "test-flow" as never,
+        name: "Test",
+        flowType: "screen",
+        maturity: "draft",
+        createdAt: "2026-01-01" as never,
+        updatedAt: "2026-01-01" as never,
+      },
+      actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
+    } as ProcessFlow;
+    const rawJson = JSON.stringify(flow, null, 2);
+    const issues = checkAntipatterns(flow, rawJson);
+    const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
+    expect(found.length).toBeGreaterThanOrEqual(2);
+    expect(found.every((i) => i.severity === "warning")).toBe(true);
+  });
+});
+
 // ─── Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5) ─────────
 
 describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", () => {
