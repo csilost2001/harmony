@@ -29,6 +29,7 @@ const KIND_ICONS: Record<GenericDefinitionKind, string> = {
   dialog: "bi-chat-square",
   "message-area": "bi-chat-left-text",
   options: "bi-list-ul",
+  global: "bi-globe2",
 };
 
 const KIND_DESCRIPTIONS: Record<GenericDefinitionKind, string> = {
@@ -49,6 +50,7 @@ const KIND_DESCRIPTIONS: Record<GenericDefinitionKind, string> = {
   dialog: "画面から呼び出すダイアログ定義 (`@dialog.<name>` 参照元、#1303)",
   "message-area": "画面内メッセージエリア定義 (`@messageArea.<name>` 参照元、#1303 / #1318 で messageArea → message-area kebab-case 統一)",
   options: "選択肢カタログ (selectbox / radio 等の選択肢セット) を定義します (`@options.<name>` 参照元、#1303)",
+  global: "アプリケーション横断の mutable 設定 slot (Spring `@Value` / `@SessionScope` 相当、`@var.global.<key>` 参照元、#1310)",
 };
 
 export function GenericDefinitionCatalogView() {
@@ -82,7 +84,7 @@ export function GenericDefinitionCatalogView() {
     <div style={{ padding: "24px" }}>
       <h2 style={{ marginBottom: "8px", fontSize: "1.3rem" }}>汎用定義カタログ</h2>
       <p style={{ color: "#666", marginBottom: "24px", fontSize: "0.9rem" }}>
-        Generic Definition Catalog — データ契約・ドメイン型・例外型など 17 種類の汎用設計定義を管理します。
+        Generic Definition Catalog — データ契約・ドメイン型・例外型など 18 種類の汎用設計定義を管理します。
       </p>
       <div style={{
         display: "grid",

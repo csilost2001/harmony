@@ -44,7 +44,7 @@ export interface ProjectCatalogIndex {
   /** `@system.<systemId>` (externalSystems catalog) */
   externalSystems: Set<string>;
 
-  // ─── Generic Definition Catalog (#1090 / #1267 Phase X2 14 kind + #1303 3 kind = 17 kind) ───
+  // ─── Generic Definition Catalog (#1090 / #1267 Phase X2 14 kind + #1303 3 kind = 17 kind + #1310 1 kind = 18 kind) ───
   /** `@contract.<name>` — data-contract */
   dataContracts: Set<string>;
   /** `@type.<name>` — domain-type */
@@ -69,6 +69,8 @@ export interface ProjectCatalogIndex {
   messageAreas: Set<string>;
   /** `@options.<name>` — options (#1303) */
   optionSets: Set<string>;
+  /** `@var.global.<key>` — global (#1310、workspace/project 横断 mutable 設定 slot) */
+  globals: Set<string>;
 
   /**
    * `@const.<key>` — constants catalog (#1267 Phase X2)。
@@ -121,6 +123,7 @@ export function createEmptyProjectCatalogIndex(): ProjectCatalogIndex {
     dialogs: new Set(),
     messageAreas: new Set(),
     optionSets: new Set(),
+    globals: new Set(),
     constants: new Set(),
     messages: new Set(),
     domainEvents: new Set(),
@@ -182,6 +185,8 @@ const GENERIC_KIND_TO_SET_KEY: Record<string, keyof ProjectCatalogIndex> = {
   dialog: "dialogs",
   "message-area": "messageAreas",
   options: "optionSets",
+  // #1310 — global
+  global: "globals",
 };
 
 /** conventions catalog の中で `@conv.<category>` として ref されない metadata field */

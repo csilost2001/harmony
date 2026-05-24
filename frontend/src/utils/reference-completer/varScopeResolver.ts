@@ -4,7 +4,7 @@
  * Phase 1: scope (flowParameter / action / step / tx / loop / global) の補完
  * Phase 2: flowParameter / action の name 補完
  * Phase 2-bis (#1302): step / tx / loop の id / name 補完を追加。
- *                      global は catalog spec 未確立のため空候補 (#1310 で対応予定)
+ *                      global は #1310 で catalog 駆動候補に対応
  * Phase 3 (#1316):
  *   - iterSteps が網羅する nested Step[] を 6 種追加 (branch.elseBranch /
  *     TX.onCommit / TX.onRollback / workflow.on{Approved,Rejected,Timeout} /
@@ -13,6 +13,7 @@
  *   - step / tx scope の候補に trailing: "." 付与 (4-segment 連動 UX)
  *
  * spec 出典: process-flow-variables.md §3.6 / §3.7
+ * #1310: @var.global.<name> を generic-definitions/global catalog 駆動の候補化に拡張
  */
 
 import type { CompletionContext, CompletionState, Resolver } from "./types";
@@ -137,9 +138,14 @@ export const varScopeResolver: Resolver = {
           }
         }
       } else if (scope === "global") {
-        // 候補 source 未確立 (#1310 follow-up で対応予定)
-        // project.json / harmony.json に globals catalog が未定義のため、空候補返却で OK
-        // (resolver は active mode、candidates: [] — ユーザーは自由入力可能)
+        // #1310: generic-definitions/global/*.json の name を候補化
+        // catalog 未渡し or 空 catalog の場合は空候補返却 (resolver は active mode、ユーザー自由入力可)
+        const globals = ctx.genericDefinitionsByKind?.["global"];
+        if (globals) {
+          for (const g of globals) {
+            if (typeof g?.name === "string") names.add(g.name);
+          }
+        }
       }
 
       // step / tx の場合は 4-segment 文法 (@var.step.<id>.<name>) なので

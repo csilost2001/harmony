@@ -47,7 +47,7 @@ export interface IdentifierIssue {
  * - ambient: @ambient.* 旧形式の ambient 参照
  *
  * **Generic Definition Catalog 参照** (docs/spec/process-flow-prefix-system.md §3、
- * #1285 で追加、14 kind 全件 + #1303 追加 3 kind = 17 kind): broken-ref 検証は
+ * #1285 で追加、14 kind 全件 + #1303 追加 3 kind + #1310 追加 1 kind (global) = 18 kind): broken-ref 検証は
  * processFlowAntipatternValidator Check 31 が担うため identifierScope は変数 scope 検査の対象外として skip する。
  * - msg        : @msg.<Name> generic-definitions/message
  * - validation : @validation.<Name> generic-definitions/validation-rule (inline boolean return)
@@ -92,7 +92,7 @@ const BUILTIN_AMBIENTS = new Set<string>([
   "secret",
   "conv",
   "ambient",
-  // Generic Definition Catalog refs (#1285 14 kind + #1303 3 kind = 17 kind)
+  // Generic Definition Catalog refs (#1285 14 kind + #1303 3 kind + #1310 1 kind = 18 kind)
   "msg",
   "validation",
   "rule",
@@ -370,7 +370,7 @@ function walkSteps(
  * - 明示 scope (path[0] が VAR_EXPLICIT_SCOPES の値):
  *   - flowParameter / action / loop: path[1] が対応 scope set に存在
  *   - step / tx: path[1]=stepId が stepIndex に存在 + path[2]=name が当該 step の binding と一致
- *   - global: silent pass (project-level、本 PR scope 外)
+ *   - global: silent pass (project-level、#1310 で generic-definitions/global catalog 化済、catalog 突合は別 PR で連動予定)
  * - shorthand (path[0] が 6 scope keyword 以外): path[0] を lexical chain (known + loopItems) で検索
  */
 function checkVarReference(

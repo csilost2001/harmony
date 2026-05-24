@@ -76,6 +76,22 @@ describe("validateGenericDefinition", () => {
       const issues = validateGenericDefinition(validComponentDef);
       expect(issues).toHaveLength(0);
     });
+
+    it("global が正しければ issues は空 (#1310)", () => {
+      const validGlobal: GenericDefinition = {
+        kind: "global",
+        name: "TenantContext",
+        purpose: "マルチテナント切替コンテキスト (@var.global.TenantContext)",
+        responsibilities: ["login 完了時に値を確定する", "全 ProcessFlow から参照される"],
+        targets: ["backend", "frontend", "shared"],
+        fields: [
+          { name: "tenantId", type: "string" },
+          { name: "tenantName", type: "string" },
+        ],
+      };
+      const issues = validateGenericDefinition(validGlobal);
+      expect(issues.filter((i) => i.severity === "error")).toHaveLength(0);
+    });
   });
 
   describe("必須フィールド欠落", () => {

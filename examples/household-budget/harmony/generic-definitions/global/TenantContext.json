@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../../schemas/v3/generic-definitions/global.v3.schema.json",
+  "kind": "global",
+  "name": "TenantContext",
+  "purpose": "マルチテナント切替コンテキスト (@var.global.TenantContext)。現在ログイン中ユーザーが扱うテナント識別子を保持。",
+  "responsibilities": [
+    "login 完了時に tenant resolver が値を確定する想定",
+    "全 ProcessFlow から @var.global.TenantContext で参照される",
+    "テナント切替 UI が値を書き換える (本 PR scope 外、将来 follow-up)"
+  ],
+  "targets": ["backend", "frontend", "shared"],
+  "fields": [
+    { "name": "tenantId", "type": "string", "description": "テナント識別子 (テナントごとに一意)" },
+    { "name": "tenantName", "type": "string", "description": "テナント表示名 (UI 表示用)" }
+  ],
+  "constraints": [
+    "tenantId は login 後 non-null",
+    "tenant 切替時は両 field を同時に更新する"
+  ],
+  "mappingHints": {
+    "defaultValue": null,
+    "setBy": ["login interceptor", "tenant switch action (follow-up)"],
+    "scope": "session"
+  }
+}
