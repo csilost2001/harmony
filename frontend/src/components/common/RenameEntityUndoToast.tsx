@@ -21,6 +21,18 @@ export interface RenameEntityUndoToastProps {
   onDismiss: () => void;
   /** TTL ms (default 5 分 = 300000) */
   ttlMs?: number;
+  /**
+   * undo RPC 完了後 `onUndo()` を呼ぶ前の小 delay (default 300ms)。
+   *
+   * S-3 (Opus 独立レビュー #1298): undo RPC 応答後に editor が即 navigate(oldUrl) すると、
+   * 同一 client 内の cache invalidation (broadcast event は backend が `excludeClientId` で
+   * originating client を除外するため受信不可) が完了する前に new→old URL の editor load が
+   * 走り、stale cache (newId 側) を読みに行く race リスクがある。300ms hard delay を挟むことで
+   * - backend の file IO (rename revert + ref restore) が settle する余地
+   * - editor の navigate trigger の reload が、復元済 oldId 側 file を fetch する
+   * 状態を担保する。test では `postUndoDelayMs={0}` で無効化可能。
+   */
+  postUndoDelayMs?: number;
 }
 
 export function RenameEntityUndoToast({
@@ -31,6 +43,7 @@ export function RenameEntityUndoToast({
   onUndo,
   onDismiss,
   ttlMs = 5 * 60 * 1000,
+  postUndoDelayMs = 300,
 }: RenameEntityUndoToastProps) {
   const [undoing, setUndoing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,12 +65,19 @@ export function RenameEntityUndoToast({
     setError(null);
     try {
       await mcpBridge.request("undoEntityRename", { operationId });
+      // S-3: RPC 応答後に小 delay を挟んでから navigate trigger を起こす (cache race 回避)。
+      // 300ms は人間 perception 上ほぼ無視できる範囲かつ、backend file IO + 同一 client 内の
+      // 各 store reload が settle するのに十分な余裕値 (renameEntity の rename/undo は同期 fs API
+      // を使っており、event loop 数 tick + flush で完了するため 300ms で過剰)
+      if (postUndoDelayMs > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, postUndoDelayMs));
+      }
       onUndo();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setUndoing(false);
     }
-  }, [undoing, operationId, onUndo]);
+  }, [undoing, operationId, onUndo, postUndoDelayMs]);
 
   return (
     <div className="rename-entity-undo-toast" role="status" aria-live="polite" data-testid="rename-entity-undo-toast">

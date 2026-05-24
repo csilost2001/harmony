@@ -942,7 +942,7 @@ export function ProcessFlowEditor() {
                   ? "未保存の変更があります。保存または破棄してから id を変更してください"
                   : "id を変更 (rename refactor)"
               }
-              data-testid="rename-entity-open-btn"
+              data-testid="rename-entity-open-btn-process-flow"
             >
               <i className="bi bi-tag" /> id 変更
             </button>

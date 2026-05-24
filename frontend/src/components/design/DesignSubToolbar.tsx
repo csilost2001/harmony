@@ -467,7 +467,7 @@ ${html}
                         ? "未保存の変更があります。保存または破棄してから id を変更してください"
                         : "画面 id を変更 (rename refactor)"
                     }
-                    data-testid="rename-entity-open-btn"
+                    data-testid="rename-entity-open-btn-screen"
                   >
                     <i className="bi bi-tag" />
                   </button>

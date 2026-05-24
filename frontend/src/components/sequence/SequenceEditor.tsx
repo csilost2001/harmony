@@ -372,7 +372,7 @@ export function SequenceEditor() {
                   ? "未保存の変更があります。保存または破棄してから id を変更してください"
                   : "id を変更 (rename refactor)"
               }
-              data-testid="rename-entity-open-btn"
+              data-testid="rename-entity-open-btn-sequence"
             >
               <i className="bi bi-tag" /> id 変更
             </button>

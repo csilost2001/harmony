@@ -72,7 +72,7 @@ test.describe.skip("Rename entity refactor — Table smoke (#1298 I-6)", { tag: 
     }
 
     // 2. 「id 変更」ボタンを押 → dialog 表示
-    const openBtn = page.getByTestId("rename-entity-open-btn");
+    const openBtn = page.getByTestId("rename-entity-open-btn-table");
     await expect(openBtn).toBeVisible({ timeout: 5000 });
     await expect(openBtn).toBeEnabled({ timeout: 5000 });
     await openBtn.click();

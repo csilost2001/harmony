@@ -361,7 +361,7 @@ export function TableEditor() {
                   ? "未保存の変更があります。保存または破棄してから id を変更してください"
                   : "id を変更 (rename refactor)"
               }
-              data-testid="rename-entity-open-btn"
+              data-testid="rename-entity-open-btn-table"
             >
               <i className="bi bi-tag" />
             </button>

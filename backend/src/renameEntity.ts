@@ -243,10 +243,12 @@ function walkAndReplace(value: unknown, pointer: string, opts: WalkOpts): unknow
       const inner = v as Record<string, unknown>;
       if (inner[composite.sub] === opts.oldId) {
         // ヒット: sub field を置換
+        // N-3 (Opus 独立レビュー #1298): 旧実装は composite ヒット後に `walkAndReplace(newInner, ...)`
+        // を呼んでいたが、sub field 値は既に newId に置換済で scalar match を再発火させる余地は無く
+        // (oldId とは一致しない)、他 field 走査は外側 entries loop で実施されないため再帰は redundant。
+        // 直接 `{ ...inner, [sub]: newId }` を結果に格納する。
         opts.onMatch(`${childPointer}/${escapeJsonPointerToken(composite.sub)}`, opts.oldId);
-        const newInner = { ...inner, [composite.sub]: opts.newId };
-        // composite parent 配下の他 field は再帰的に walk (multiple ref in same parent 対応は不要だが defensive)
-        result[key] = walkAndReplace(newInner, childPointer, opts);
+        result[key] = { ...inner, [composite.sub]: opts.newId };
         continue;
       }
     }
@@ -944,6 +946,10 @@ export async function undoEntityRename(
   const dataRoot = await resolveDataRoot(root);
   let restored = 0;
 
+  // N-4 (Opus 独立レビュー #1298) 前提: refUpdates の filePath と fileRenames の from/to は
+  // 同一 file を含まない (主ファイル = rename 対象自身は ref 側に出てこない / 参照側 entity は
+  // rename 対象 entity と別 file)。この不変条件のもとでは `restored++` の二重カウントは発生しない。
+  // 将来 same file が両方に出るような変更を入れる場合は Set<absPath> で重複排除すること。
   // (a) ref 側 file を snapshot の original で完全上書き
   for (const r of op.refUpdates) {
     const absPath = path.join(dataRoot, r.filePath);
