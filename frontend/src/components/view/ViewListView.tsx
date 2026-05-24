@@ -264,6 +264,9 @@ export function ViewListView() {
     updatedAt: "更新日",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: EntityIdInput に渡す既存 id 配列を memoize
+  const existingIds = useMemo(() => editor.items.map((v) => v.id), [editor.items]);
+
   const handleAdd = async () => {
     const physical = addPhysicalName.trim();
     const name = addName.trim();
@@ -625,7 +628,7 @@ export function ViewListView() {
                   value={addId}
                   onChange={setAddId}
                   name={addName}
-                  existingIds={editor.items.map((v) => v.id)}
+                  existingIds={existingIds}
                   entityLabel="DB ビュー"
                   inputId="view-id-input"
                   onEnter={handleAdd}

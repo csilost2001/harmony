@@ -408,6 +408,9 @@ export function ProcessFlowListView() {
     markerCount: "マーカー",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: EntityIdInput に渡す既存 id 配列を memoize
+  const existingIds = useMemo(() => editor.items.map((p) => p.id), [editor.items]);
+
   const handleAdd = async () => {
     const name = addName.trim();
     const id = addId.trim();
@@ -992,7 +995,7 @@ export function ProcessFlowListView() {
                 value={addId}
                 onChange={setAddId}
                 name={addName}
-                existingIds={editor.items.map((p) => p.id)}
+                existingIds={existingIds}
                 entityLabel="処理フロー"
                 inputId="process-flow-id-input"
                 onEnter={handleAdd}

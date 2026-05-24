@@ -73,8 +73,15 @@ export function ScreenEditModal({
     cssFramework: defaultCssFramework,
     ...initial,
   });
-  // RFC #1284 / #1297 I-5: 創成モードのみ id field の validation 状態を保持
-  const [idValidation, setIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
+  // RFC #1284 / #1297 I-5: 創成モードのみ id field の validation 状態を保持。
+  // S-3: edit モード (isCreate=false) では EntityIdInput を render しない → onValidationChange が
+  // 呼ばれない → 初期値が永続的に stale になる懸念があるため、isCreate に応じて初期値を分岐させる。
+  // edit 時は valid 扱い (= submit guard 通過) として固定し、create 時のみ厳格 validation を要求する。
+  const [idValidation, setIdValidation] = useState<EntityIdValidationState>(
+    isCreate
+      ? { isFormatValid: false, isUnique: true, isInvalid: true }
+      : { isFormatValid: true, isUnique: true, isInvalid: false },
+  );
 
   useEffect(() => {
     if (open) {
@@ -85,8 +92,15 @@ export function ScreenEditModal({
         cssFramework: defaultCssFramework,
         ...initial,
       });
+      // S-3: isCreate に応じて idValidation を初期化 (edit 時は valid 固定で submit guard 通過)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 同上、modal open に同期
+      setIdValidation(
+        isCreate
+          ? { isFormatValid: false, isUnique: true, isInvalid: true }
+          : { isFormatValid: true, isUnique: true, isInvalid: false },
+      );
     }
-  }, [open, initial, defaultEditorKind, defaultCssFramework]);
+  }, [open, initial, defaultEditorKind, defaultCssFramework, isCreate]);
 
   if (!open) return null;
 

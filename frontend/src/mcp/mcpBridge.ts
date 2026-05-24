@@ -1,6 +1,7 @@
 import type { Editor as GEditor, Component, Block } from "grapesjs";
 import html2canvas from "html2canvas";
 import { generateUUID } from "../utils/uuid";
+import { isValidEntityId } from "../utils/entityIdValidation";
 import { uiInfo, uiWarn } from "../utils/uiLog";
 import type { ScreenType, TransitionTrigger } from "../types/flow";
 import {
@@ -759,6 +760,14 @@ class McpBridgeImpl {
           };
           if (!name) {
             respondError("name は必須です");
+            break;
+          }
+          // RFC #1284 / #1297 I-5: AI agent が指定する id は kebab-case EntityId 形式必須。
+          // 空文字 / 未指定は addScreen 側で fallback (`scr-<8桁>`) が採番される。
+          if (reqId !== undefined && reqId !== "" && !isValidEntityId(reqId)) {
+            respondError(
+              `id 形式が不正です。kebab-case 英単語 (例: "today-sales") を指定してください: got ${JSON.stringify(reqId)}`,
+            );
             break;
           }
           const project = await loadProject();

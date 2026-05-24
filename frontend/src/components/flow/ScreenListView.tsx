@@ -319,6 +319,9 @@ export function ScreenListView() {
     updatedAt: "更新日時",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: ScreenEditModal の existingScreenIds に渡す既存 id 配列を memoize
+  const existingScreenIds = useMemo(() => editor.items.map((s) => s.id), [editor.items]);
+
   const handleAddNew = () => {
     setScreenModal({ open: true });
   };
@@ -716,7 +719,7 @@ export function ScreenListView() {
         defaultEditorKind={projectDefaultEditorKind}
         defaultCssFramework={projectDefaultCssFramework}
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
-        existingScreenIds={editor.items.map((s) => s.id)}
+        existingScreenIds={existingScreenIds}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />

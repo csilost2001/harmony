@@ -69,8 +69,12 @@ export function suggestUniqueIdSuffix(
     const candidate = `${base}${suffix}`;
     if (!set.has(candidate)) return candidate;
   }
-  // 衝突が 9999 件超 → UUID fallback (理論上ほぼ起きない)
-  return generateFallbackEntityId("entity");
+  // 衝突が 9999 件超 → baseId 由来 prefix + UUID8 桁の semantic fallback
+  // (N-2: baseId と意味的に無関係な "entity-xxx" 化を防ぐ)。
+  // 理論上ほぼ起きないが、起きた場合も diff readability を保つ。
+  // baseId の先頭 8 字 + `-` + hash 8 字 = 17 字に圧縮し、64 字制約内に収める。
+  const semanticPrefix = baseId.slice(0, 8).replace(/-+$/g, "") || "entity";
+  return generateFallbackEntityId(semanticPrefix);
 }
 
 /**

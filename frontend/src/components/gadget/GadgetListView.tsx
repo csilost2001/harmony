@@ -237,6 +237,9 @@ export function GadgetListView() {
     updatedAt: "更新日時",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: EntityIdInput に渡す既存 id 配列を memoize
+  const existingIds = useMemo(() => editor.items.map((s) => s.id), [editor.items]);
+
   const handleAddNew = () => {
     setAddName("");
     setAddKind("other");
@@ -597,7 +600,7 @@ export function GadgetListView() {
                     value={addId}
                     onChange={setAddId}
                     name={addName}
-                    existingIds={editor.items.map((s) => s.id)}
+                    existingIds={existingIds}
                     entityLabel="ガジェット"
                     inputId="gadget-id-input"
                     onEnter={() => handleAddSave().catch(console.error)}

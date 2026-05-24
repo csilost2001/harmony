@@ -231,6 +231,9 @@ export function PageLayoutListView() {
     updatedAt: "更新日",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: EntityIdInput に渡す既存 id 配列を memoize
+  const existingIds = useMemo(() => editor.items.map((pl) => String(pl.id)), [editor.items]);
+
   const resetAddForm = () => {
     setAddName("");
     setAddEditorKind("grapesjs");
@@ -641,7 +644,7 @@ export function PageLayoutListView() {
                   value={addId}
                   onChange={setAddId}
                   name={addName}
-                  existingIds={editor.items.map((pl) => String(pl.id))}
+                  existingIds={existingIds}
                   entityLabel="ページレイアウト"
                   inputId="page-layout-id-input"
                   onEnter={handleAdd}

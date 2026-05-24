@@ -68,6 +68,15 @@ describe("suggestUniqueIdSuffix", () => {
   it("空 existingIds で baseId をそのまま返す", () => {
     expect(suggestUniqueIdSuffix("foo", [])).toBe("foo");
   });
+
+  it("9999 件超の衝突で baseId 由来 prefix の semantic fallback を返す (N-2)", () => {
+    // baseId + -2..-9999 を全件 existingIds に詰める
+    const conflicts = ["today-sales", ...Array.from({ length: 9998 }, (_, i) => `today-sales-${i + 2}`)];
+    const result = suggestUniqueIdSuffix("today-sales", conflicts);
+    // semantic prefix (baseId 先頭 8 字) + `-<UUID8>` 形式
+    expect(result).toMatch(/^today-sa-[a-f0-9]{8}$/);
+    expect(isValidEntityId(result)).toBe(true);
+  });
 });
 
 describe("generateFallbackEntityId", () => {

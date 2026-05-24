@@ -303,6 +303,9 @@ export function ViewDefinitionListView() {
     updatedAt: "更新日",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: EntityIdInput に渡す既存 id 配列を memoize
+  const existingIds = useMemo(() => editor.items.map((vd) => String(vd.id)), [editor.items]);
+
   const resetAddForm = () => {
     setAddName("");
     setAddKind("list");
@@ -790,7 +793,7 @@ export function ViewDefinitionListView() {
                   value={addId}
                   onChange={setAddId}
                   name={addName}
-                  existingIds={editor.items.map((vd) => String(vd.id))}
+                  existingIds={existingIds}
                   entityLabel="ViewDefinition"
                   inputId="view-definition-id-input"
                   onEnter={handleAdd}
