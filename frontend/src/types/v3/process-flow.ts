@@ -1143,9 +1143,9 @@ export type Step =
 export type NonReturnStep = Exclude<Step, ReturnStep>;
 
 /**
- * Step.kind の union (#1186 Phase 2-B で追加)。
- * Step union から `kind` プロパティ型を抽出。25 variant + ExtensionStep の `namespace:StepName` pattern を含む。
- * ExtensionStep の kind は `string` のため最終的に `string` に decay する点に注意 (組み込み 24 + 任意の文字列)。
+ * Step.kind の union (#1186 Phase 2-B で追加、#1322 Phase B-3e で setGlobal 追加して 25 → 26 variant)。
+ * Step union から `kind` プロパティ型を抽出。26 variant + ExtensionStep の `namespace:StepName` pattern を含む。
+ * ExtensionStep の kind は `string` のため最終的に `string` に decay する点に注意 (組み込み 25 + 任意の文字列)。
  */
 export type StepKind = Step["kind"];
 

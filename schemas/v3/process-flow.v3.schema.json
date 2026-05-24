@@ -1542,8 +1542,7 @@
               "description": "書き込み対象 field 名 (省略時は globals 全体を value で上書き)。指定時は globals.fields[].name のいずれかと一致 (validator は generic-definitions/global/<globalName> の fields[] を参照して照合)。"
             },
             "value": {
-              "type": "string",
-              "minLength": 1,
+              "$ref": "common.v3.schema.json#/$defs/TemplateString",
               "description": "書き込む値 (TemplateString)。`@var.flowParameter.x` / `@var.step.<id>.y` / リテラル等を許容。field 省略時は object 全体 (DTO / record 等)、field 指定時は当該 field の primitive / object 値。"
             },
             "lifetime": {

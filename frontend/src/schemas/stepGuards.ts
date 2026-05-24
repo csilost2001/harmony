@@ -1,7 +1,8 @@
 /**
  * Step union 型 guard helper。
  *
- * v3 schema の `Step` union は組み込み 22 variant + ExtensionStep の計 23 variant。
+ * v3 schema の `Step` union は組み込み 25 variant + ExtensionStep の計 26 variant
+ * (#1322 Phase B-3e で setGlobal 追加、24 → 25)。
  * ExtensionStep は `kind: string` (namespace:Name 形式) のため、構造的サブタイピング下で
  * `Exclude<Step, ExtensionStep>` は never に潰れてしまう。
  * 代わりに、組み込み kind の literal union を `Extract<Step, { kind: BuiltinStepKind }>` で
@@ -39,6 +40,8 @@ export const BUILTIN_STEP_KINDS = [
   "eventSubscribe",
   "closing",
   "cdc",
+  "aiCall",
+  "aiAgent",
   "componentCall",
 ] as const;
 

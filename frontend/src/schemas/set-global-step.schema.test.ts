@@ -158,27 +158,48 @@ describe("SetGlobalStep core schema (#1322 Phase B-3e)", () => {
       const ok = validateProcessFlow(data);
       expect(ok, ok ? "" : dumpErrors()).toBe(true);
     });
-  });
 
-  describe("invalid fixtures", () => {
-    it("globalName が小文字始まり (lowerCamelCase) は invalid", () => {
+    it("globalName が小文字始まり (lowerCamelCase) も valid (PascalCase 強制しない)", () => {
+      // PascalCase-ish pattern (^[A-Za-z][A-Za-z0-9_]*$) は大文字小文字どちらも許容。
+      // generic-definition.v3.schema.json の GenericDefinitionName と同パターンで、
+      // catalog 命名規約上は PascalCase 推奨だが schema レベルでは強制しない (例外クラス名等は
+      // PascalCase 必須だが、global の場合は domain 慣習に従う余地を残す)。
       const data = envelope(
         baseAction([
           {
             id: "step-01",
             kind: "setGlobal",
-            description: "invalid globalName",
+            description: "lowerCamelCase globalName",
             globalName: "tenantContext",
             value: "x",
           },
         ]),
       );
-      // PascalCase-ish pattern を強制 (^[A-Za-z][A-Za-z0-9_]*$ なので小文字始まりは技術的に許容)
-      // → 実際は許容される (catalog name は camelCase / PascalCase 両方許容、generic-definition.v3.schema.json 同パターン)
       const ok = validateProcessFlow(data);
       expect(ok, ok ? "" : dumpErrors()).toBe(true);
     });
 
+    it("value が空文字も valid (TemplateString $ref は minLength 制約なし、意図的クリア操作を許可)", () => {
+      // value は common.v3.schema.json#/$defs/TemplateString への $ref。
+      // 他の TemplateString field (runIf / condition / payload 等) と同じく minLength 制約は持たない。
+      // 空文字は意図的な「global 値クリア」操作として valid。
+      const data = envelope(
+        baseAction([
+          {
+            id: "step-01",
+            kind: "setGlobal",
+            description: "explicit clear",
+            globalName: "Ctx",
+            value: "",
+          },
+        ]),
+      );
+      const ok = validateProcessFlow(data);
+      expect(ok, ok ? "" : dumpErrors()).toBe(true);
+    });
+  });
+
+  describe("invalid fixtures", () => {
     it("globalName が空文字は invalid", () => {
       const data = envelope(
         baseAction([
@@ -188,22 +209,6 @@ describe("SetGlobalStep core schema (#1322 Phase B-3e)", () => {
             description: "empty globalName",
             globalName: "",
             value: "x",
-          },
-        ]),
-      );
-      const ok = validateProcessFlow(data);
-      expect(ok).toBe(false);
-    });
-
-    it("value が空文字は invalid (minLength: 1)", () => {
-      const data = envelope(
-        baseAction([
-          {
-            id: "step-01",
-            kind: "setGlobal",
-            description: "empty value",
-            globalName: "Ctx",
-            value: "",
           },
         ]),
       );
