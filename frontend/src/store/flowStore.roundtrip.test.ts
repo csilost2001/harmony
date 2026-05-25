@@ -28,8 +28,9 @@ import type {
 } from "../types/v3";
 
 const TS = "2026-05-05T00:00:00.000Z" as Timestamp;
-const PROJ_ID = "5352b9ca-92d1-43c1-aed7-02a1fdbea85a" as ProjectId;
-const SCREEN_ID = "496e43f8-d243-48a1-b680-32d34d98cc2d" as ScreenId;
+const PROJ_ID = "english-learning-app" as ProjectId;
+const PROJ_UUID = "5352b9ca-92d1-43c1-aed7-02a1fdbea85a";
+const SCREEN_ID = "dashboard" as ScreenId;
 
 /** techStack / extensionsApplied / description / 画面の追加フィールド html を持つリッチな Harmony */
 function mkRichProject(): Harmony {
@@ -39,6 +40,7 @@ function mkRichProject(): Harmony {
     dataDir: "harmony",
     meta: {
       id: PROJ_ID,
+      uuid: PROJ_UUID,
       name: "英会話学習アプリ (Tailwind 版)",
       description: "テスト用説明文",
       createdAt: TS,
@@ -139,12 +141,14 @@ describe("decomposeFlowProject round-trip preservation (#835)", () => {
     // existingRaw を渡さない
     const { project: decomposed } = decomposeFlowProject(flow, mkLayout());
 
-    // UUID v4 形式であること
-    expect(decomposed.meta.id).toMatch(
+    // RFC #1284: id は kebab-case EntityId (decomposeFlowProject の default value)
+    expect(decomposed.meta.id).toMatch(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/);
+    // uuid は UUID v4 形式で発番されること
+    expect(decomposed.meta.uuid).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
     // ハードコード値ではないこと
-    expect(decomposed.meta.id).not.toBe("00000000-0000-4000-8000-000000000001");
+    expect(decomposed.meta.uuid).not.toBe("00000000-0000-4000-8000-000000000001");
   });
 
   it("existingRaw なしだと techStack は undefined になる", () => {
@@ -158,11 +162,11 @@ describe("decomposeFlowProject round-trip preservation (#835)", () => {
   it("existingRaw に entities.viewDefinitions があれば保持される", () => {
     const existing = mkRichProject();
     const vdEntry: ViewDefinitionEntry = {
-      id: "aaaaaaaa-1111-4111-8111-111111111111" as unknown as ViewDefinitionId,
+      id: "order-list" as unknown as ViewDefinitionId,
       no: 1,
       name: "受注一覧定義",
       kind: "list",
-      sourceTableId: "bbbbbbbb-2222-4222-8222-222222222222" as unknown as import("../types/v3").TableId,
+      sourceTableId: "orders" as unknown as import("../types/v3").TableId,
       columnCount: 3,
       updatedAt: TS,
     };
@@ -233,8 +237,8 @@ describe("saveProject round-trip preservation (backend mock)", () => {
   });
 });
 
-describe("legacyToProject UUID 発番 (#835 Should-fix 1)", () => {
-  it("ハードコード UUID ではなく generateUUID() で新採番される", () => {
+describe("legacyToProject UUID 発番 (#835 Should-fix 1 → RFC #1284 で uuid に移行)", () => {
+  it("meta.id は kebab-case EntityId、meta.uuid は新規 UUID v4 で発番される (RFC #1284)", () => {
     const legacy: LegacyFlowProject = {
       version: 1,
       name: "レガシープロジェクト",
@@ -245,18 +249,20 @@ describe("legacyToProject UUID 発番 (#835 Should-fix 1)", () => {
     };
     const project = legacyToProject(legacy);
 
-    // UUID v4 形式であること
-    expect(project.meta.id).toMatch(
+    // RFC #1284: id は kebab-case EntityId
+    expect(project.meta.id).toMatch(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/);
+    // uuid は UUID v4 形式で新採番される
+    expect(project.meta.uuid).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
     // ハードコード値ではないこと
-    expect(project.meta.id).not.toBe("00000000-0000-4000-8000-000000000001");
+    expect(project.meta.uuid).not.toBe("00000000-0000-4000-8000-000000000001");
   });
 });
 
 describe("decomposeFlowProject screen id mismatch (negative paths) (#836)", () => {
-  const OTHER_SCREEN_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee" as ScreenId;
-  const NEW_SCREEN_ID = "11111111-2222-4333-8444-555555555555" as ScreenId;
+  const OTHER_SCREEN_ID = "other-screen" as ScreenId;
+  const NEW_SCREEN_ID = "new-screen" as ScreenId;
 
   /** existingRaw に OTHER_SCREEN_ID 画面を追加した Harmony を返す */
   function mkRichProjectWith2Screens(): Harmony {

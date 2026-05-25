@@ -7,7 +7,7 @@ import type {
   Step,
   StepKind as StepType,
 } from "../types/v3";
-import type { ProcessFlowId, ScreenId, Timestamp } from "../types/v3";
+import type { ProcessFlowId, ScreenId, Timestamp, Uuid } from "../types/v3";
 import type { ProcessFlowMeta as FlowProcessFlowMeta } from "../types/flow";
 import { migrateProcessFlow, PROCESS_FLOW_V3_SCHEMA_REF } from "../utils/actionMigration";
 import { generateUUID } from "../utils/uuid";
@@ -75,6 +75,8 @@ export async function createProcessFlow(
     $schema: PROCESS_FLOW_V3_SCHEMA_REF,
     meta: {
       id,
+      // RFC #1284: uuid は不変識別子 (UUID v4)、創成時に生成
+      uuid: generateUUID() as Uuid,
       name,
       flowType: type,
       screenId: screenId as ScreenId | undefined,

@@ -267,8 +267,10 @@ export function decomposeFlowProject(
     // dataDir を既存から保持。存在しない場合は推奨デフォルト "harmony"
     dataDir: existingRaw?.dataDir ?? "harmony",
     meta: {
-      // existingRaw.meta.id を保持。新規プロジェクト or existing なし時は generateUUID()
-      id: (existingRaw?.meta?.id ?? generateUUID()) as ProjectId,
+      // RFC #1284: id は kebab-case EntityId (existingRaw から保持、なければ default)
+      id: (existingRaw?.meta?.id ?? "new-project") as ProjectId,
+      // RFC #1284: uuid は不変識別子 (UUID v4)、existingRaw から保持、なければ generate
+      uuid: (existingRaw?.meta?.uuid ?? generateUUID()) as Uuid,
       name: project.name,
       // existingRaw.meta.createdAt を保持。なければ現在時刻
       createdAt: existingRaw?.meta?.createdAt ?? ts,
@@ -458,7 +460,9 @@ export function legacyToProject(legacy: LegacyFlowProject): Harmony {
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      id: generateUUID() as ProjectId,
+      // RFC #1284: id は kebab-case default、uuid を別途 UUID v4 として生成
+      id: "legacy-project" as ProjectId,
+      uuid: generateUUID() as Uuid,
       name: legacy.name,
       createdAt: legacy.updatedAt,
       updatedAt: legacy.updatedAt,

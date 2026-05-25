@@ -114,14 +114,17 @@ describe("tableStore onTableChange subscription (#1001)", () => {
     return { flowBackend, tableBackend, screenFlowPositionsBackend };
   }
 
-  // schema 上 id は UUID v4 必須 (^[0-9a-f]{8}-[0-9a-f]{4}-4...)
-  const TABLE_UUID_1 = "11111111-aaaa-4bbb-8ccc-111111111111";
-  const TABLE_UUID_2 = "22222222-aaaa-4bbb-8ccc-222222222222";
+  // RFC #1284: id は kebab-case EntityId、uuid は UUID v4 (不変識別子)
+  const TABLE_UUID_1 = "table-one";
+  const TABLE_UUID_2 = "table-two";
+  const UUID_1 = "11111111-aaaa-4bbb-8ccc-111111111111";
+  const UUID_2 = "22222222-aaaa-4bbb-8ccc-222222222222";
 
   function makeTable(id: string, label: string): Table {
     return {
       $schema: "../../schemas/v3/table.v3.schema.json",
       id: id as TableId,
+      uuid: (id === TABLE_UUID_1 ? UUID_1 : UUID_2) as Table["uuid"],
       name: `table ${label}`,
       physicalName: `table_${label}` as Table["physicalName"],
       columns: [],

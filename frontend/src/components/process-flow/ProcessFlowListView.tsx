@@ -330,13 +330,16 @@ export function ProcessFlowListView() {
     if (!full) return null;
     // v3 ProcessFlow では id は meta.id にネスト、name も meta.name。
     // 旧仕様 (top-level id/name) のまま spread すると元 id のまま file 上書きされる bug 発生。
-    const newId = generateUUID();
+    // RFC #1284 (I-7): id は kebab-case (元 id に -copy 付与)、uuid は不変識別子なので新規 entity として新 UUID 生成。
+    const newId = `${full.meta.id}-copy-${Date.now()}`;
+    const newUuid = generateUUID();
     const nowTs = new Date().toISOString();
     const dup: ProcessFlow = {
       ...full,
       meta: {
         ...full.meta,
         id: newId as ProcessFlow["meta"]["id"],
+        uuid: newUuid as ProcessFlow["meta"]["uuid"],
         name: full.meta.name + " (コピー)",
         createdAt: nowTs as ProcessFlow["meta"]["createdAt"],
         updatedAt: nowTs as ProcessFlow["meta"]["updatedAt"],

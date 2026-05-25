@@ -25,12 +25,13 @@ import type {
 } from "../types/v3";
 
 const TS = "2026-04-28T00:00:00.000Z" as Timestamp;
-const PROJECT_ID = "11111111-1111-4111-8111-111111111111" as ProjectId;
-const SCREEN_ID = "22222222-2222-4222-8222-222222222222" as ScreenId;
-const SCREEN_ID_2 = "33333333-3333-4333-8333-333333333333" as ScreenId;
-const GROUP_ID = "44444444-4444-4444-8444-444444444444" as ScreenGroupId;
+const PROJECT_ID = "test-project" as ProjectId;
+const PROJECT_UUID = "11111111-1111-4111-8111-111111111111";
+const SCREEN_ID = "screen-one" as ScreenId;
+const SCREEN_ID_2 = "screen-two" as ScreenId;
+const GROUP_ID = "group-default" as ScreenGroupId;
 const EDGE_ID = "edge-01" as LocalId;
-const FLOW_ID = "55555555-5555-4555-8555-555555555555" as ProcessFlowId;
+const FLOW_ID = "flow-default" as ProcessFlowId;
 
 function mkEmptyProject(): FlowProject {
   return {
@@ -50,6 +51,7 @@ function mkPersistedProject(): Harmony {
     dataDir: "harmony",
     meta: {
       id: PROJECT_ID,
+      uuid: PROJECT_UUID,
       name: "実プロジェクト",
       createdAt: TS,
       updatedAt: TS,
