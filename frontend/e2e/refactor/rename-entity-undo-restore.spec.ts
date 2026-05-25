@@ -95,12 +95,19 @@ test.describe("Rename entity undo restore — page reload 後の TTL 内復元 (
     }, NEW_TABLE_ID);
     expect(sessionHasUndo).toBe(true);
 
-    // 3. page.reload() で editor を unmount → 再 mount (DOM toast が消える)
-    await page.reload();
-    await expect(page.locator(".table-editor-page")).toBeVisible({ timeout: 10000 });
+    // 3. editor を unmount → 再 mount (DOM toast が消える)
+    //
+    // 純粋な page.reload() だと backend per-session が前回 lastActive (e2e 文脈では
+    // 他テスト残骸) を active にする可能性があり、URL の wsId と不一致になって
+    // /workspace/select 飛ばし or 長い workspace.open 待ちになる。
+    // ws.gotoActive 経由で確実に正しい wsId を per-session に再設定してから新 id URL
+    // へ navigate する方が安定。同 domain 内 navigation のため sessionStorage は保持される
+    // = K-4 申し送りの「TTL 内 sessionStorage + bridge 再問合せ」復元シナリオを正確に再現。
+    await ws.gotoActive(page, `/table/edit/${NEW_TABLE_ID}`);
+    await expect(page.locator(".table-editor-page")).toBeVisible({ timeout: 15000 });
 
     // 4. useRenameEntityUndoToast hook が sessionStorage + bridge `listRecentUndoOperations`
-    //    経由で復元 (TTL 内なので生存)。reload 後に undo toast が再表示されることを assert。
+    //    経由で復元 (TTL 内なので生存)。再 mount 後に undo toast が再表示されることを assert。
     await expect(page.getByTestId("rename-entity-undo-toast")).toBeVisible({ timeout: 10000 });
 
     // 5. 復元された toast の「元に戻す」を押 → undo 実行
@@ -113,7 +120,8 @@ test.describe("Rename entity undo restore — page reload 後の TTL 内復元 (
     const tableAfterUndo = await page.evaluate(async (id) => {
       const bridge = (window as unknown as { __mcpBridge?: { request: (m: string, p: unknown) => Promise<unknown> } }).__mcpBridge;
       if (!bridge) return null;
-      return bridge.request("loadTable", { id }).catch(() => null);
+      // backend wsHandler signature: loadTable は { tableId } を期待 (id ではない)
+      return bridge.request("loadTable", { tableId: id }).catch(() => null);
     }, OLD_TABLE_ID);
     expect(tableAfterUndo).not.toBeNull();
   });
