@@ -55,6 +55,8 @@ export function ViewEditor() {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameUndoToast, setRenameUndoToast] = useState<{
     operationId: string; oldId: string; newId: string;
+    // Phase J Nit N-1 / SF-β
+    ttlExpiresAt?: number; workspaceRoot?: string;
   } | null>(null);
   const [allViewIds, setAllViewIds] = useState<string[]>([]);
   useEffect(() => {
@@ -672,8 +674,10 @@ export function ViewEditor() {
           currentId={viewId}
           currentName={view.physicalName || view.name || ""}
           existingIds={allViewIds}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => (await listViews()).map((v) => v.id)}
           onClose={() => setShowRenameDialog(false)}
-          onSuccess={(newId, operationId) => {
+          onSuccess={(newId, operationId, extra) => {
             setShowRenameDialog(false);
             handleRenameSuccess({
               entityType: "view",
@@ -683,7 +687,11 @@ export function ViewEditor() {
               navigate,
               wsPath,
             });
-            setRenameUndoToast({ operationId, oldId: viewId, newId });
+            setRenameUndoToast({
+              operationId, oldId: viewId, newId,
+              ttlExpiresAt: extra?.ttlExpiresAt,
+              workspaceRoot: extra?.workspaceRoot,
+            });
           }}
         />
       )}
@@ -693,6 +701,8 @@ export function ViewEditor() {
           operationId={renameUndoToast.operationId}
           oldId={renameUndoToast.oldId}
           newId={renameUndoToast.newId}
+          ttlExpiresAt={renameUndoToast.ttlExpiresAt}
+          workspaceRoot={renameUndoToast.workspaceRoot}
           entityLabel="ビュー"
           onUndo={() => {
             handleRenameSuccess({

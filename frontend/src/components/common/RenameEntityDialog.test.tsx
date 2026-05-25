@@ -157,7 +157,8 @@ describe("RenameEntityDialog", () => {
     await waitFor(() => expect(screen.getByTestId("rename-entity-execute-btn")).toBeTruthy());
     await act(async () => { fireEvent.click(screen.getByTestId("rename-entity-execute-btn")); });
 
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith("products-v2", "op-uuid-1234"));
+    // Phase J Nit N-1 / SF-β: onSuccess は 3rd arg `extra` も渡される (mock では ttlExpiresAt / workspaceRoot 未設定)
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith("products-v2", "op-uuid-1234", expect.any(Object)));
     expect(mcpBridge.request).toHaveBeenNthCalledWith(2, "renameEntityId", {
       entityType: "table",
       oldId: "products",

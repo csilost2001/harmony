@@ -69,6 +69,8 @@ export function PageLayoutEditor() {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameUndoToast, setRenameUndoToast] = useState<{
     operationId: string; oldId: string; newId: string;
+    // Phase J Nit N-1 / SF-β
+    ttlExpiresAt?: number; workspaceRoot?: string;
   } | null>(null);
   const [allPageLayoutIds, setAllPageLayoutIds] = useState<string[]>([]);
   useEffect(() => {
@@ -678,8 +680,10 @@ export function PageLayoutEditor() {
           currentId={pageLayoutId}
           currentName={pl.name || ""}
           existingIds={allPageLayoutIds}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => (await listPageLayouts()).map((p) => p.id)}
           onClose={() => setShowRenameDialog(false)}
-          onSuccess={(newId, operationId) => {
+          onSuccess={(newId, operationId, extra) => {
             setShowRenameDialog(false);
             handleRenameSuccess({
               entityType: "pageLayout",
@@ -689,7 +693,11 @@ export function PageLayoutEditor() {
               navigate,
               wsPath,
             });
-            setRenameUndoToast({ operationId, oldId: pageLayoutId, newId });
+            setRenameUndoToast({
+              operationId, oldId: pageLayoutId, newId,
+              ttlExpiresAt: extra?.ttlExpiresAt,
+              workspaceRoot: extra?.workspaceRoot,
+            });
           }}
         />
       )}
@@ -699,6 +707,8 @@ export function PageLayoutEditor() {
           operationId={renameUndoToast.operationId}
           oldId={renameUndoToast.oldId}
           newId={renameUndoToast.newId}
+          ttlExpiresAt={renameUndoToast.ttlExpiresAt}
+          workspaceRoot={renameUndoToast.workspaceRoot}
           entityLabel="ページレイアウト"
           onUndo={() => {
             handleRenameSuccess({

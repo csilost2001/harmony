@@ -87,6 +87,19 @@ function _emitTableChange(event: TableChangeEvent): void {
   });
 }
 
+/**
+ * Phase J Must-fix E (#1298 round 4 Antigravity M-7): rename / undo 経路から呼ばれる
+ * local pubsub 発火関数。handleRenameSuccess が同一 client 内の他コンポーネント
+ * (FlowEditor / Dashboard 等の Table cache を持つ panel) を即時 invalidate するために使用。
+ *
+ * 旧実装は backend broadcast (`tableChanged`) のみに依存していたが、これは backend → frontend
+ * の往復が必要で、同一 client 内の SPA 遷移先には届かないタイミング window があった。
+ * 本 export で同期的に他コンポーネントへ反映される。
+ */
+export function _emitTableChangeForRename(event: TableChangeEvent): void {
+  _emitTableChange(event);
+}
+
 /** テーブル一覧を取得 (harmony.json の TableEntry[]) */
 export async function listTables(): Promise<TableEntry[]> {
   const project = await loadProject();

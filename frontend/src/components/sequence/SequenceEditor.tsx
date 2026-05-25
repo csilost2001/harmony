@@ -57,6 +57,8 @@ export function SequenceEditor() {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameUndoToast, setRenameUndoToast] = useState<{
     operationId: string; oldId: string; newId: string;
+    // Phase J Nit N-1 / SF-β
+    ttlExpiresAt?: number; workspaceRoot?: string;
   } | null>(null);
   const [allSequenceIds, setAllSequenceIds] = useState<string[]>([]);
   useEffect(() => {
@@ -659,8 +661,10 @@ export function SequenceEditor() {
           currentId={sequenceId}
           currentName={seq.physicalName || seq.name || ""}
           existingIds={allSequenceIds}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => (await listSequences()).map((s) => s.id)}
           onClose={() => setShowRenameDialog(false)}
-          onSuccess={(newId, operationId) => {
+          onSuccess={(newId, operationId, extra) => {
             setShowRenameDialog(false);
             handleRenameSuccess({
               entityType: "sequence",
@@ -670,7 +674,11 @@ export function SequenceEditor() {
               navigate,
               wsPath,
             });
-            setRenameUndoToast({ operationId, oldId: sequenceId, newId });
+            setRenameUndoToast({
+              operationId, oldId: sequenceId, newId,
+              ttlExpiresAt: extra?.ttlExpiresAt,
+              workspaceRoot: extra?.workspaceRoot,
+            });
           }}
         />
       )}
@@ -680,6 +688,8 @@ export function SequenceEditor() {
           operationId={renameUndoToast.operationId}
           oldId={renameUndoToast.oldId}
           newId={renameUndoToast.newId}
+          ttlExpiresAt={renameUndoToast.ttlExpiresAt}
+          workspaceRoot={renameUndoToast.workspaceRoot}
           entityLabel="シーケンス"
           onUndo={() => {
             handleRenameSuccess({

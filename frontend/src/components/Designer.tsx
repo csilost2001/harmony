@@ -155,6 +155,8 @@ export function Designer({
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameUndoToast, setRenameUndoToast] = useState<{
     operationId: string; oldId: string; newId: string;
+    // Phase J Nit N-1 / SF-β
+    ttlExpiresAt?: number; workspaceRoot?: string;
   } | null>(null);
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
   useEffect(() => {
@@ -849,8 +851,13 @@ export function Designer({
           currentId={screenId}
           currentName={screenName ?? ""}
           existingIds={allScreenIds}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => {
+            const project = await loadProject();
+            return (project.screens ?? []).map((s) => s.id);
+          }}
           onClose={() => setShowRenameDialog(false)}
-          onSuccess={(newId, operationId) => {
+          onSuccess={(newId, operationId, extra) => {
             setShowRenameDialog(false);
             handleRenameSuccess({
               entityType: "screen",
@@ -860,7 +867,11 @@ export function Designer({
               navigate,
               wsPath,
             });
-            setRenameUndoToast({ operationId, oldId: screenId, newId });
+            setRenameUndoToast({
+              operationId, oldId: screenId, newId,
+              ttlExpiresAt: extra?.ttlExpiresAt,
+              workspaceRoot: extra?.workspaceRoot,
+            });
           }}
         />
       )}
@@ -870,6 +881,8 @@ export function Designer({
           operationId={renameUndoToast.operationId}
           oldId={renameUndoToast.oldId}
           newId={renameUndoToast.newId}
+          ttlExpiresAt={renameUndoToast.ttlExpiresAt}
+          workspaceRoot={renameUndoToast.workspaceRoot}
           entityLabel="画面"
           onUndo={() => {
             handleRenameSuccess({

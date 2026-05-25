@@ -145,6 +145,8 @@ export function ProcessFlowEditor() {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameUndoToast, setRenameUndoToast] = useState<{
     operationId: string; oldId: string; newId: string;
+    // Phase J Nit N-1 / SF-β
+    ttlExpiresAt?: number; workspaceRoot?: string;
   } | null>(null);
   const [allProcessFlowIds, setAllProcessFlowIds] = useState<string[]>([]);
   useEffect(() => {
@@ -1136,8 +1138,10 @@ export function ProcessFlowEditor() {
           currentId={processFlowId}
           currentName={group.meta?.name ?? ""}
           existingIds={allProcessFlowIds}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => (await listProcessFlows()).map((p) => p.id)}
           onClose={() => setShowRenameDialog(false)}
-          onSuccess={(newId, operationId) => {
+          onSuccess={(newId, operationId, extra) => {
             setShowRenameDialog(false);
             handleRenameSuccess({
               entityType: "processFlow",
@@ -1147,7 +1151,11 @@ export function ProcessFlowEditor() {
               navigate,
               wsPath,
             });
-            setRenameUndoToast({ operationId, oldId: processFlowId, newId });
+            setRenameUndoToast({
+              operationId, oldId: processFlowId, newId,
+              ttlExpiresAt: extra?.ttlExpiresAt,
+              workspaceRoot: extra?.workspaceRoot,
+            });
           }}
         />
       )}
@@ -1158,6 +1166,8 @@ export function ProcessFlowEditor() {
           operationId={renameUndoToast.operationId}
           oldId={renameUndoToast.oldId}
           newId={renameUndoToast.newId}
+          ttlExpiresAt={renameUndoToast.ttlExpiresAt}
+          workspaceRoot={renameUndoToast.workspaceRoot}
           entityLabel="処理フロー"
           onUndo={() => {
             handleRenameSuccess({

@@ -42,8 +42,18 @@ export interface RenameEntityDialogProps {
   fetchExistingIds?: () => Promise<readonly string[]>;
   /** dialog を閉じる (cancel / 成功後 共通) */
   onClose: () => void;
-  /** rename 成功時のコールバック (URL/tab migration + undo toast 表示は親の責務) */
-  onSuccess: (newId: string, operationId: string) => void;
+  /**
+   * rename 成功時のコールバック (URL/tab migration + undo toast 表示は親の責務)。
+   *
+   * Phase J Nit N-1 / SF-β: optional 第 3 引数で `{ttlExpiresAt, workspaceRoot}` を渡す。
+   * 親はこれを RenameEntityUndoToast の props に転送する。
+   * 既存呼出 (2 引数) は backward compat (旧 toast は client clock + 現 active root に fallback)。
+   */
+  onSuccess: (
+    newId: string,
+    operationId: string,
+    extra?: { ttlExpiresAt?: number; workspaceRoot?: string },
+  ) => void;
 }
 
 // backend `PreviewResult` 型と一致 (renameEntity.ts: PreviewResult interface)
@@ -86,6 +96,18 @@ interface RenameRpcResult {
     newId: string;
     uuid: string;
     ts: number;
+    /**
+     * Phase J Nit N-1 (#1298 round 5 Codex N-1): server-side TTL 期限 (絶対 timestamp、
+     * server clock 基準)。frontend toast はこの値を基準に auto-dismiss を計算することで
+     * client-server clock drift による誤差を回避できる。
+     */
+    ttlExpiresAt?: number;
+    /**
+     * Phase J SF-β (#1298 round 5 Opus SF-2): rename 実行時の workspace root path。
+     * user が workspace 切替後に undo を押した時、現 active root と乖離するため、
+     * toast props として保持し undo RPC params に明示渡しする。
+     */
+    workspaceRoot?: string;
   };
   preview: PreviewResult;
 }
@@ -162,7 +184,10 @@ export function RenameEntityDialog({
         oldId: currentId,
         newId: preview.newId,
       })) as RenameRpcResult;
-      onSuccess(preview.newId, result.operation.operationId);
+      onSuccess(preview.newId, result.operation.operationId, {
+        ttlExpiresAt: result.operation.ttlExpiresAt,
+        workspaceRoot: result.operation.workspaceRoot,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setStep("preview"); // executing は cancel 不能なので preview に戻す

@@ -19,15 +19,23 @@ vi.mock("../store/tabStore", () => ({
   makeTabId: (type: string, id: string) => `${type}:${id}`,
 }));
 
+// Phase J Must-fix E: tableStore local pubsub も mock 化 (table rename で emit されることを assert)
+vi.mock("../store/tableStore", () => ({
+  _emitTableChangeForRename: vi.fn(),
+}));
+
 import { closeTab, openTab } from "../store/tabStore";
+import { _emitTableChangeForRename } from "../store/tableStore";
 import { handleRenameSuccess } from "./handleRenameSuccess";
 
 const closeTabMock = vi.mocked(closeTab);
 const openTabMock = vi.mocked(openTab);
+const emitTableMock = vi.mocked(_emitTableChangeForRename);
 
 beforeEach(() => {
   closeTabMock.mockReset();
   openTabMock.mockReset();
+  emitTableMock.mockReset();
 });
 
 describe("handleRenameSuccess", () => {
@@ -159,5 +167,44 @@ describe("handleRenameSuccess", () => {
       resourceId: "products-v2",
       label: "products-v2",
     });
+  });
+
+  // Phase J Must-fix E (#1298 round 4 Antigravity M-7)
+  it("table rename 経路で _emitTableChangeForRename({tableId: newId}) が呼ばれる", () => {
+    handleRenameSuccess({
+      entityType: "table",
+      oldId: "old-tbl",
+      newId: "new-tbl",
+      label: "Tbl",
+      navigate: vi.fn(),
+      wsPath: (p) => p,
+    });
+    expect(emitTableMock).toHaveBeenCalledTimes(1);
+    expect(emitTableMock).toHaveBeenCalledWith({ tableId: "new-tbl" });
+  });
+
+  it("table 以外の entity type では _emitTableChangeForRename は呼ばれない", () => {
+    handleRenameSuccess({
+      entityType: "screen",
+      oldId: "old-scr",
+      newId: "new-scr",
+      label: "Scr",
+      navigate: vi.fn(),
+      wsPath: (p) => p,
+    });
+    expect(emitTableMock).not.toHaveBeenCalled();
+  });
+
+  it("undo 経路 (rename と oldId/newId 反転) でも table の場合 emit される (newId = 戻った後の id)", () => {
+    handleRenameSuccess({
+      entityType: "table",
+      oldId: "new-tbl",  // 直前 rename 後の id
+      newId: "old-tbl",  // 元に戻す id
+      label: "Tbl",
+      navigate: vi.fn(),
+      wsPath: (p) => p,
+    });
+    expect(emitTableMock).toHaveBeenCalledTimes(1);
+    expect(emitTableMock).toHaveBeenCalledWith({ tableId: "old-tbl" });
   });
 });

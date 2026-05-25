@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import {
@@ -25,6 +25,7 @@ import {
 } from "../../schemas/genericDefinitionValidator";
 import { ValidationBadge } from "../common/ValidationBadge";
 import { makeTabId, openTab } from "../../store/tabStore";
+import { mcpBridge } from "../../mcp/mcpBridge";
 
 function isValidKind(k: string): k is GenericDefinitionKind {
   return (GENERIC_DEFINITION_KINDS as string[]).includes(k);
@@ -59,6 +60,12 @@ export function GenericDefinitionEditor() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [issues, setIssues] = useState<GenericDefinitionIssue[]>([]);
+  // Phase J Must-fix B (#1298 round 5 Codex M-2): rename / undo で backend が ref を書き換えた
+  // 際に banner を出して user に再 load を促すフラグ。dirty (= 編集中) なら overwrite せず
+  // banner 表示、clean なら自動 reload。
+  const [reloadBanner, setReloadBanner] = useState(false);
+  // dirty 検出用: loaded 直後の serialized snapshot を保持し、現 def との diff で判定
+  const initialSnapshotRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!kind || !decodedName) return;
@@ -71,26 +78,58 @@ export function GenericDefinitionEditor() {
     });
   }, [kind, decodedName]);
 
-  useEffect(() => {
-    if (!kind || !decodedName) {
-      setError("不正な kind または name です");
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+  // 初回 + 強制 reload 用 loader
+  const reload = useCallback((opts?: { silent?: boolean }) => {
+    if (!kind || !decodedName) return;
+    if (!opts?.silent) setLoading(true);
     loadGenericDefinition(kind, decodedName)
       .then((loaded) => {
         if (!loaded) {
           setError(`${decodedName} が見つかりません`);
         } else {
           setDef(loaded);
+          initialSnapshotRef.current = JSON.stringify(loaded);
+          setReloadBanner(false);
         }
       })
       .catch((e: unknown) => {
         setError(e instanceof Error ? e.message : String(e));
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!opts?.silent) setLoading(false);
+      });
   }, [kind, decodedName]);
+
+  useEffect(() => {
+    if (!kind || !decodedName) {
+      setError("不正な kind または name です");
+      setLoading(false);
+      return;
+    }
+    reload();
+  }, [kind, decodedName, reload]);
+
+  // Phase J Must-fix B: backend からの genericDefinitionChanged broadcast を購読し、
+  // rename / undo 等の外部要因による更新を検出。
+  // - dirty (= initial snapshot から変化) なら banner 表示 + user 手動 reload
+  // - clean なら silent reload で stale state を自動更新
+  useEffect(() => {
+    if (!kind || !decodedName) return;
+    const unsub = mcpBridge.onBroadcast("genericDefinitionChanged", (data: unknown) => {
+      // reload フラグなしの save 通知は無視 (自分以外の編集者の変更は workspace 規約上想定外)
+      const d = data as { reload?: boolean } | null | undefined;
+      if (!d?.reload) return;
+      // dirty 判定
+      const current = def ? JSON.stringify(def) : null;
+      const dirty = initialSnapshotRef.current !== null && current !== initialSnapshotRef.current;
+      if (dirty) {
+        setReloadBanner(true);
+      } else {
+        reload({ silent: true });
+      }
+    });
+    return unsub;
+  }, [kind, decodedName, def, reload]);
 
   // def 変更時に AJV バリデーションを実行
   useEffect(() => {
@@ -124,6 +163,10 @@ export function GenericDefinitionEditor() {
     try {
       await saveGenericDefinition(def);
       setSaveSuccess(true);
+      // Phase J B: save 成功後は initial snapshot を現 def で update し、自分の save に
+      // 起因する broadcast (reload event) で reloadBanner が誤発火しないようにする。
+      initialSnapshotRef.current = JSON.stringify(def);
+      setReloadBanner(false);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : String(e));
@@ -199,6 +242,42 @@ export function GenericDefinitionEditor() {
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      {/*
+        Phase J Must-fix B (#1298 round 5 Codex M-2): rename / undo で backend が
+        generic-definition の path 形式 ref (例: `tables/<oldId>`) を書き換えた際の banner。
+        編集中 (dirty) なら overwrite せず user に再 load を促し、stale save を回避する。
+        EditSession 完全対応は別 ISSUE (#1298 follow-up) で実装。
+      */}
+      {reloadBanner && (
+        <div
+          data-testid="generic-definition-reload-banner"
+          style={{
+            padding: "8px 16px",
+            background: "#fef3c7",
+            borderBottom: "1px solid #fde68a",
+            color: "#92400e",
+            fontSize: "0.85rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+          }}
+        >
+          <i className="bi bi-exclamation-triangle-fill" />
+          <span>
+            別の操作 (rename / undo) で本定義の参照が更新された可能性があります。編集内容を確認後、
+            「再読み込み」で最新化してください (現在の編集を破棄します)。
+          </span>
+          <button
+            type="button"
+            style={{ marginLeft: "auto" }}
+            className="btn btn-sm btn-warning"
+            onClick={() => reload()}
+            data-testid="generic-definition-reload-btn"
+          >
+            <i className="bi bi-arrow-clockwise" /> 再読み込み
+          </button>
+        </div>
+      )}
       <div style={{ padding: "12px 24px", borderBottom: "1px solid #eee", display: "flex", alignItems: "center", gap: "12px" }}>
         <h2 style={{ margin: 0, fontSize: "1.1rem" }}>
           {GENERIC_DEFINITION_KIND_LABELS[kind]}編集
