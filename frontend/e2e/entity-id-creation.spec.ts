@@ -4,15 +4,13 @@
  * 7 entity 共通 component EntityIdInput を代表 Table 創成ダイアログで smoke する。
  * (各 entity の modal 自体は実装が大体同じ inline modal なので 1 代表で動作確認)
  *
- * 現状の制約 (I-7 #1299 で解消予定):
- *   - realWorkspace の `buildProject` fixture は I-1 schema 変更 (meta.uuid required +
- *     kebab-case id) に追従していないため、`setupTestWorkspace({ project })` は
- *     "harmony.json が不正" で reject される。本 spec は `fromExample: "retail"` で
- *     回避するが、別 e2e spec でも同問題が発生中 — I-7 で fixture 統一修正予定。
- *   - workspace 切替後の entities list load タイミングが test 環境で不安定。本 spec
- *     では「テーブル追加」ボタンが toolbar に常設 (empty 状態でも出る) を利用して
- *     data load を待たずに modal を開く。collision (cart など既存 id) を使う e2e は
- *     I-7 で test infra 安定化後に追加 (component test EntityIdInput.test.tsx で網羅済)。
+ * I-7 #1299 完了 (2026-05-25): workspace re-render loop infra bug (Phase D で
+ * 解消、root cause: useRef remount reset) + fixtures kebab-case+uuid 化 (Phase C)
+ * により skip 解除済み。本 spec は `fromExample: "retail"` で安定動作する。
+ *
+ * collision (cart など既存 id) を使う e2e は本 spec の scope 外 (component test
+ * `EntityIdInput.test.tsx` 10 ケース + `entityIdSuggestion.test.ts` 18 ケースで
+ * validation / uniqueness / AI suggest / format error 等の logic は網羅済)。
  */
 
 import { test, expect } from "@playwright/test";
@@ -24,27 +22,16 @@ import {
 } from "./helpers/realWorkspace";
 
 // NOTE: 本 spec は I-3 で kebab-case + meta.uuid に migration された examples/retail
-// を fromExample で使う。e2e fixtures `buildProject` 系は I-7 (#1299) で
-// v3 schema 互換に修正される予定 — それまでは custom seed では harmony.json
-// validation で reject される。
+// を fromExample で使う。e2e fixtures `buildProject` 系は I-7 (#1299) Phase C-3 で
+// kebab-case + uuid 出力に更新済。
 const WS_KEY = "issue-1297-entity-id-creation";
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
 
-// IMPORTANT (#1297 I-5 完了報告時に判明、follow-up #TBD で対応予定):
-// 本シリーズ `feat/id-naming-redesign-series` の I-4 (#1296 / commit d58595fd) 以降、
-// workspace state-change / urlsync が `[ui-log][flood] 1 秒に 25 回` レベルの
-// 無限 re-render loop を起こしており、Playwright 経由で /table/list を開くと
-// 「テーブル追加」ボタンが連続して detach/re-attach し、操作が成立しない。
-// この infra bug は本シリーズ全 e2e (table-list / screen-creation-editor-choice
-// 等) も同様に影響する pre-existing 問題で、I-7 #1299 (AJV test + e2e 更新) の
-// scope か別 follow-up ISSUE で root-cause fix が必要。
-// I-5 の本 spec は infra fix まで test.describe.skip で保留する (component test
-// `EntityIdInput.test.tsx` 10 ケース + `entityIdSuggestion.test.ts` 18 ケースで
-// validation / uniqueness / AI suggest / format error 等の logic は網羅済)。
-test.describe.configure({ mode: "serial" }); // N-3: 同 wsId を共有するため worker 並列を回避
+// N-3: 同 wsId を共有するため worker 並列を回避 (serial mode)
+test.describe.configure({ mode: "serial" });
 
-test.describe.skip("EntityIdInput — 創成ダイアログ kebab-case id 入力 (#1297 I-5)", { tag: ["@regression"] }, () => {
+test.describe("EntityIdInput — 創成ダイアログ kebab-case id 入力 (#1297 I-5)", { tag: ["@regression"] }, () => {
   test.beforeAll(async () => {
     mcpAvailable = await isMcpRunning();
     if (!mcpAvailable) return;
@@ -127,5 +114,5 @@ test.describe.skip("EntityIdInput — 創成ダイアログ kebab-case id 入力
 
   // NOTE: uniqueness collision / 「適用」ボタンの動作確認は component test
   // (EntityIdInput.test.tsx) で網羅済。e2e で既存 entity を使った衝突テストは
-  // realWorkspace の data load 安定化を待つ (I-7 #1299 で test infra 修正予定)。
+  // 本 spec の scope 外 (collision UI も同 component を使うため重複検証になる)。
 });
