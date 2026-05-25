@@ -15,6 +15,7 @@ import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
 import { renumber } from "../../utils/listOrder";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { DataList, type DataListColumn } from "../common/DataList";
 import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
@@ -244,11 +245,13 @@ export function ScreenListView() {
     const project = await loadProject();
     const s = project.screens.find((sc) => sc.id === src.id);
     if (!s) return null;
-    // RFC #1284 (I-7) / #1299 Codex review M-2:
-    // duplicate path も新規 entity 創成と同じく id は kebab-case (元 id + -copy-<ts>)、
+    // RFC #1284 (I-7) / #1299 Codex review M-2 / Round 3 G-1:
+    // duplicate path も新規 entity 創成と同じく id は kebab-case (`-copy[-N]`)、
     // uuid は不変識別子なので新規発番。Phase A で `assertEntityId` strict 化後、
     // UUID 形式の id を流すと handler が reject するため必須。
-    const newId = `${s.id}-copy-${Date.now()}` as ScreenId;
+    // existingIds で suffix collision avoidance + 64 字 schema 制約準拠 (G-1)。
+    const existingIds = new Set(project.screens.map((sc) => sc.id as string));
+    const newId = makeDuplicatedEntityId(s.id, existingIds) as ScreenId;
     const dup: ScreenNode = {
       ...s,
       id: newId,

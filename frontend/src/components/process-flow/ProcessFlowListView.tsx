@@ -42,6 +42,7 @@ import { useListEditor } from "../../hooks/useListEditor";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { generateUUID } from "../../utils/uuid";
 import { renumber } from "../../utils/listOrder";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import { EditSessionBadge } from "../editing/EditSessionBadge";
 import { DraftHistoryModal } from "../editing/DraftHistoryModal";
@@ -325,13 +326,19 @@ export function ProcessFlowListView() {
     }
   };
 
-  const duplicateGroup = async (src: ProcessFlowMeta): Promise<string | null> => {
+  const duplicateGroup = async (
+    src: ProcessFlowMeta,
+    existingIds: Set<string>,
+  ): Promise<string | null> => {
     const full = await loadProcessFlow(src.id);
     if (!full) return null;
     // v3 ProcessFlow では id は meta.id にネスト、name も meta.name。
     // 旧仕様 (top-level id/name) のまま spread すると元 id のまま file 上書きされる bug 発生。
-    // RFC #1284 (I-7): id は kebab-case (元 id に -copy 付与)、uuid は不変識別子なので新規 entity として新 UUID 生成。
-    const newId = `${full.meta.id}-copy-${Date.now()}`;
+    // RFC #1284 (I-7) / #1299 Round 3 G-1:
+    //   id は kebab-case (`-copy[-N]`)、uuid は不変識別子なので新規 entity として新 UUID 生成。
+    //   makeDuplicatedEntityId で 64 字 schema 制約 + uniqueness 担保 (Date.now() 連続複製 race 回避)。
+    const newId = makeDuplicatedEntityId(String(full.meta.id), existingIds);
+    existingIds.add(newId);
     const newUuid = generateUUID();
     const nowTs = new Date().toISOString();
     const dup: ProcessFlow = {
@@ -355,9 +362,11 @@ export function ProcessFlowListView() {
   };
 
   const handleDuplicate = async (items: ProcessFlowMeta[]) => {
+    // RFC #1284 (I-7) / #1299 Round 3 G-1: 既存 id 集合を確保し、複製 callsite で suffix collision 回避。
+    const idSet = new Set<string>(editor.items.map((g) => String(g.id)));
     const newIds: string[] = [];
     for (const g of items) {
-      const id = await duplicateGroup(g);
+      const id = await duplicateGroup(g, idSet);
       if (id) newIds.push(id);
     }
     await editor.reload();
@@ -389,9 +398,11 @@ export function ProcessFlowListView() {
       });
       selection.setSelectedIds(new Set(moved.map((g) => g.id)));
     } else {
+      // RFC #1284 (I-7) / #1299 Round 3 G-1: 既存 id 集合を確保し、複製 callsite で suffix collision 回避。
+      const idSet = new Set<string>(editor.items.map((g) => String(g.id)));
       const newIds: string[] = [];
       for (const g of clipItems) {
-        const id = await duplicateGroup(g);
+        const id = await duplicateGroup(g, idSet);
         if (id) newIds.push(id);
       }
       clipboard.consume();

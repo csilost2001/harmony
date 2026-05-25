@@ -78,30 +78,59 @@ export function suggestUniqueIdSuffix(
 }
 
 /**
- * 既存 entity の id から duplicate 用の kebab-case id を生成する (RFC #1284 / #1299 I-7 Round 2 F-2)。
+ * 既存 entity の id から duplicate 用の kebab-case id を生成する (RFC #1284 / #1299 I-7 Round 2 F-2 / Round 3 G-1)。
  *
- * 形式: `<srcId>-copy-<timestamp ms>`
+ * 形式: `<srcId>-copy[-<2..>]`
  *
  * 7 entity (Screen / Table / ProcessFlow / Sequence / View / ViewDefinition / PageLayout)
  * の duplicate / copy-paste 経路で使用する canonical pattern。Phase A で `assertEntityId`
  * strict 化された後、UUID 形式の id を流すと handler が reject するため、必ず kebab-case の
  * 派生 id を生成する必要がある。
  *
- * - srcId 長 + suffix が 64 字を超える場合は srcId 末尾を切り詰めて 64 字制約に収める。
- * - srcId が `^[a-z]...` (EntityId) でなくとも本関数は機械的に suffix を付けるのみ。
- *   呼び出し側は src が EntityId であることを前提とする (型システムで保証されるはず)。
- * - 末尾の `-` は切り詰め後に除去 (連続ハイフン回避)。
+ * 動作:
+ *   - 第 1 候補: `<srcId>-copy`
+ *   - 第 1 候補が `existingIds` と衝突する場合: `<srcId>-copy-2`, `<srcId>-copy-3`, ...
+ *   - srcId 長 + suffix が 64 字を超える場合は srcId 末尾を切り詰めて 64 字制約に収める。
+ *   - 末尾の `-` は切り詰め後に除去 (連続ハイフン回避)。
+ *
+ * Round 3 G-1 (Antigravity + Codex M-R2-1):
+ *   - Date.now() 採番は同一 ms 内連続複製で衝突する + 元 ID 46+ 字で 65 字超 (schema reject)。
+ *   - 既存 id 集合を渡して suffix collision avoidance する設計に変更。
  *
  * Codex review M-2 で指摘された 6 entity duplicate 経路の UUID-id surface bug を、
  * 1 関数に集約することで再発防止する。
  */
-export function makeDuplicatedEntityId(srcId: string, nowMs: number = Date.now()): string {
-  const suffix = `-copy-${nowMs}`;
-  const maxBaseLen = MAX_ENTITY_ID_LENGTH - suffix.length;
-  const base = srcId.length > maxBaseLen
+export function makeDuplicatedEntityId(
+  srcId: string,
+  existingIds: ReadonlySet<string> | readonly string[] = [],
+): string {
+  const set: ReadonlySet<string> = existingIds instanceof Set
+    ? existingIds
+    : new Set(existingIds);
+
+  // base = srcId を 64 - "-copy" 長 (= 59) 以内に切り詰めて末尾 hyphen を除去
+  const baseSuffix = "-copy";
+  const maxBaseLen = MAX_ENTITY_ID_LENGTH - baseSuffix.length;
+  const baseFromSrc = srcId.length > maxBaseLen
     ? srcId.slice(0, maxBaseLen).replace(/-+$/g, "")
     : srcId;
-  return `${base}${suffix}`;
+  const firstCandidate = `${baseFromSrc}${baseSuffix}`;
+  if (!set.has(firstCandidate)) return firstCandidate;
+
+  // 衝突時は `-2`, `-3`, ... を付与。各 n に対して `-copy-<n>` を確保するため maxBaseLen を再計算
+  for (let n = 2; n <= 9999; n++) {
+    const numSuffix = `-copy-${n}`;
+    const maxBaseLenN = MAX_ENTITY_ID_LENGTH - numSuffix.length;
+    const baseN = srcId.length > maxBaseLenN
+      ? srcId.slice(0, maxBaseLenN).replace(/-+$/g, "")
+      : srcId;
+    const candidate = `${baseN}${numSuffix}`;
+    if (!set.has(candidate)) return candidate;
+  }
+
+  // 9999 件超の衝突 (理論上ほぼ起きない) は semantic fallback で diff readability を保つ
+  const semanticPrefix = srcId.slice(0, 8).replace(/-+$/g, "") || "entity";
+  return generateFallbackEntityId(`${semanticPrefix}-copy`);
 }
 
 /**

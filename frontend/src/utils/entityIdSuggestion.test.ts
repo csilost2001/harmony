@@ -99,38 +99,60 @@ describe("generateFallbackEntityId", () => {
 });
 
 // I-7 Round 2 (#1299 Codex review M-2): duplicate 経路の id 生成 canonical pattern
+// I-7 Round 3 G-1 (Antigravity + Codex M-R2-1): existingIds 引数で suffix collision avoidance に変更
 describe("makeDuplicatedEntityId", () => {
-  it("`<srcId>-copy-<ts>` 形式を返す", () => {
-    const result = makeDuplicatedEntityId("order-form", 1700000000000);
-    expect(result).toBe("order-form-copy-1700000000000");
+  it("衝突しない場合は `<srcId>-copy` を返す", () => {
+    const result = makeDuplicatedEntityId("order-form");
+    expect(result).toBe("order-form-copy");
     expect(isValidEntityId(result)).toBe(true);
   });
 
-  it("nowMs を省略すると Date.now() を使う", () => {
-    const before = Date.now();
-    const result = makeDuplicatedEntityId("foo");
-    const after = Date.now();
-    const match = result.match(/^foo-copy-(\d+)$/);
-    expect(match).not.toBeNull();
-    const ts = Number(match![1]);
-    expect(ts).toBeGreaterThanOrEqual(before);
-    expect(ts).toBeLessThanOrEqual(after);
-    expect(isValidEntityId(result)).toBe(true);
+  it("`<srcId>-copy` が既に存在する場合は -2, -3, ... を付与", () => {
+    const ids = new Set(["order-form", "order-form-copy"]);
+    expect(makeDuplicatedEntityId("order-form", ids)).toBe("order-form-copy-2");
+
+    const ids2 = new Set(["order-form", "order-form-copy", "order-form-copy-2"]);
+    expect(makeDuplicatedEntityId("order-form", ids2)).toBe("order-form-copy-3");
+  });
+
+  it("array 形式の existingIds も受理する", () => {
+    const result = makeDuplicatedEntityId("foo", ["foo-copy"]);
+    expect(result).toBe("foo-copy-2");
   });
 
   it("srcId 由来 + suffix で 64 字超なら srcId 末尾を切り詰める", () => {
-    const longSrc = "a".repeat(60);
-    const result = makeDuplicatedEntityId(longSrc, 1700000000000);
+    const longSrc = "a".repeat(64);
+    const result = makeDuplicatedEntityId(longSrc);
     expect(result.length).toBeLessThanOrEqual(64);
-    expect(result.endsWith("-copy-1700000000000")).toBe(true);
+    expect(result.endsWith("-copy")).toBe(true);
     expect(isValidEntityId(result)).toBe(true);
+  });
+
+  it("46 字の srcId でも 64 字 schema 制約に収まる (Date.now 旧実装 bug の再発防止)", () => {
+    // 旧実装: `${src}-copy-${Date.now()}` で 46 + 6 + 13 = 65 字 → schema reject
+    const src = "a".repeat(46);
+    const result = makeDuplicatedEntityId(src);
+    expect(result.length).toBeLessThanOrEqual(64);
+    expect(isValidEntityId(result)).toBe(true);
+  });
+
+  it("連続複製で uniqueness が保証される (Date.now() ms 粒度 race 回避)", () => {
+    // 旧実装: 同一 ms 内連続複製で衝突する。新実装は existingIds を accumulate していけば確実に unique。
+    const accumulated = new Set<string>();
+    const src = "screen-x";
+    for (let i = 0; i < 5; i++) {
+      const id = makeDuplicatedEntityId(src, accumulated);
+      expect(accumulated.has(id)).toBe(false);
+      accumulated.add(id);
+    }
+    expect(accumulated.size).toBe(5);
   });
 
   it("truncate 後の srcId 末尾 hyphen を除去する (連続 hyphen 回避)", () => {
     // srcId が "a-bbbb...bb-" のような形状で truncate されると、末尾 hyphen + suffix 先頭 hyphen で
     // 連続 hyphen `--` が発生する。これを `replace(/-+$/g, "")` で除去する。
     const srcWithTrailingHyphenAfterTrunc = "a-bb-cc-" + "x".repeat(60); // 切り詰め点で末尾が `-` になるよう配置
-    const result = makeDuplicatedEntityId(srcWithTrailingHyphenAfterTrunc, 1700000000000);
+    const result = makeDuplicatedEntityId(srcWithTrailingHyphenAfterTrunc);
     expect(result).not.toMatch(/--/);
     expect(isValidEntityId(result)).toBe(true);
   });
@@ -147,7 +169,7 @@ describe("makeDuplicatedEntityId", () => {
       "pl-default",
     ];
     for (const src of samples) {
-      const result = makeDuplicatedEntityId(src, 1700000000000);
+      const result = makeDuplicatedEntityId(src);
       expect(isValidEntityId(result)).toBe(true);
     }
   });

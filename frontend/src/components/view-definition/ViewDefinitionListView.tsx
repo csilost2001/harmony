@@ -39,6 +39,7 @@ import { useListSort } from "../../hooks/useListSort";
 import { useListEditor } from "../../hooks/useListEditor";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { renumber } from "../../utils/listOrder";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import type { TableEntry } from "../../types/v3";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import { EditSessionBadge } from "../editing/EditSessionBadge";
@@ -207,15 +208,18 @@ export function ViewDefinitionListView() {
   };
 
   const handleDuplicate = async (items: ViewDefinitionEntry[]) => {
-    // RFC #1284 (I-7) / #1299 Codex review M-2:
-    // id は kebab-case (元 id + -copy-<ts>)、uuid は不変識別子なので新規発番。
+    // RFC #1284 (I-7) / #1299 Codex review M-2 / Round 3 G-1:
+    // id は kebab-case (`-copy[-N]`)、uuid は不変識別子なので新規発番。
     // 元 full の uuid を spread で流すと identity collision (同一 uuid の別 entity) 発生。
+    // existingIds で suffix collision avoidance + 64 字 schema 制約準拠 (G-1)。
+    const idSet = new Set<string>(editor.items.map((v) => String(v.id)));
     const newIds: string[] = [];
     for (const m of items) {
       const full = await loadViewDefinition(String(m.id));
       if (!full) continue;
       const ts = new Date().toISOString() as Timestamp;
-      const newId = `${full.id}-copy-${Date.now()}` as ViewDefinitionId;
+      const newId = makeDuplicatedEntityId(String(full.id), idSet) as ViewDefinitionId;
+      idSet.add(String(newId));
       const completed: ViewDefinition = {
         ...full,
         id: newId,

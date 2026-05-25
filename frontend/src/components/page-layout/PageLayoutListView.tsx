@@ -37,6 +37,7 @@ import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import { EditSessionBadge } from "../editing/EditSessionBadge";
 import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import { renumber } from "../../utils/listOrder";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { generateUUID } from "../../utils/uuid";
 import type { Timestamp } from "../../types/v3";
 import type { PageLayout } from "../../types/v3/page-layout";
@@ -137,20 +138,28 @@ export function PageLayoutListView() {
   };
 
   const handleDuplicate = async (items: PageLayoutEntry[]) => {
-    // RFC #1284 (I-7) / #1299 Codex review M-2:
-    // id は kebab-case (元 id + -copy-<ts>)、uuid は不変識別子なので新規発番。
+    // RFC #1284 (I-7) / #1299 Codex review M-2 / Round 3 G-1:
+    // id は kebab-case (`-copy[-N]`)、uuid は不変識別子なので新規発番。
     // 元 full の uuid を spread で流すと identity collision (同一 uuid の別 entity) 発生。
+    // existingIds で suffix collision avoidance + 64 字 schema 制約準拠 (G-1)。
+    const idSet = new Set<string>(editor.items.map((pl) => String(pl.id)));
     const newIds: string[] = [];
     for (const m of items) {
       const full = await loadPageLayout(String(m.id));
       if (!full) continue;
       const ts = new Date().toISOString() as Timestamp;
-      const newId = `${full.id}-copy-${Date.now()}` as PageLayout["id"];
+      const newId = makeDuplicatedEntityId(String(full.id), idSet) as PageLayout["id"];
+      idSet.add(String(newId));
+      // I-7 Round 3 G-2: pageLayoutStore.ts の local PageLayout は assignments を
+      // `Record<string, string>` で扱っており、types/v3/page-layout の正史 PageLayout
+      // (`Record<string, Uuid>`) と brand 不整合となるため、明示 cast で吸収。
+      // 別 ISSUE で 2 つの型定義を統合予定 (本 PR scope 外)。
       const copy: PageLayout = {
         ...full,
         id: newId,
         uuid: generateUUID() as PageLayout["uuid"],
         name: `${full.name} のコピー` as DisplayName,
+        assignments: full.assignments as PageLayout["assignments"],
         createdAt: ts,
         updatedAt: ts,
       };
