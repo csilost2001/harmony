@@ -405,9 +405,9 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.actionId !== "string" || typeof a.kind !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, actionId, kind は必須です");
       }
-      // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat)
+      // S-002 + #1299 I-7: processFlowId は EntityId、actionId は intra-entity LocalId (UUID v4 採番)
       assertEntityIdMcp(a.processFlowId, "processFlowId");
-      assertEntityIdMcp(a.actionId, "actionId");
+      try { assertUuid(a.actionId, "actionId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       // browser-first: ProcessFlowEditor が開いていれば in-memory に適用
       // browser 側 mutation handler (applyProcessFlowMutation) は #1149 で v3 化済 (kind を直接受容)。
       const addApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
