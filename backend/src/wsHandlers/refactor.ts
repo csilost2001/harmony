@@ -16,6 +16,7 @@ import {
   previewEntityRename,
   renameEntityId,
   undoEntityRename,
+  findUndoOperationWorkspaceRoot,
   entityTypeToResourceType,
   type RenameEntityType,
   type EditSessionLike,
@@ -168,17 +169,21 @@ const PRIMARY_RESOURCE_TYPES_BY_ENTITY: Record<RenameEntityType, EditSessionReso
 function makeMigrateEditSessions(
   bridge: WsBridge,
   wsId: string | null,
-): (resourceType: string, oldId: string, newId: string) => Promise<
-  Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>
-> {
-  return async (resourceType, oldId, newId) => {
-    if (!wsId) return [];
+): (
+  resourceType: string,
+  oldId: string,
+  newId: string,
+  targetEditSessionIds?: readonly string[],
+) => ReturnType<WsBridge["editSessionMigrateResourceId"]> {
+  return async (resourceType, oldId, newId, targetEditSessionIds) => {
+    if (!wsId) return { migrated: [], warnings: [] };
     return bridge.editSessionMigrateResourceId(
       wsId,
       resourceType as EditSessionResourceType,
       oldId,
       resourceType as EditSessionResourceType,
       newId,
+      targetEditSessionIds,
     );
   };
 }
@@ -269,43 +274,24 @@ export const refactorHandlers: RpcHandlerMap = {
         });
       }
 
-      // Phase J Nit N-5 (#1298 round 5 Opus N-5): operation 完了 broadcast を全 session に
-      // 流して、RPC client が途中で disconnect していたケースでも reconnect 後 toast を
-      // 復元可能にするための trace を残す。frontend 側は本 event を購読しない前提だが、
-      // 物理 log には operationId が記録される (audit log と併用)。
-      bridge.broadcast({
-        wsId: wid,
-        event: "renameOperationCompleted",
-        data: {
-          operationId: (result as { operation?: { operationId?: string } }).operation?.operationId,
-          entityType: et, oldId, newId,
-          ttlExpiresAt: (result as { operation?: { ttlExpiresAt?: number } }).operation?.ttlExpiresAt,
-        },
-      });
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));
     }
   },
 
-  undoEntityRename: async ({ params, root, wsId, clientId, respond, respondError, bridge }) => {
+  undoEntityRename: async ({ params, root, clientId, respond, respondError, bridge }) => {
     try {
-      const { operationId, workspaceRoot } = (params ?? {}) as {
+      const { operationId } = (params ?? {}) as {
         operationId: unknown;
-        workspaceRoot?: unknown;
       };
       // operationId は UUID v4 (uuid module で生成) — safeName 範囲内 ([A-Za-z0-9_-]{1,64}) でカバー
       assertSafeName(operationId, "operationId");
       const sessionId = clientId;
-      const wid = wsId();
-      // Phase J SF-β (#1298 round 5 Opus SF-2): undo は frontend toast から発行されるが、user が
-      // workspace 切替後に「元に戻す」を押すケースで現 active root と当該 operation の workspace
-      // root が乖離する。frontend が toast props で保持していた `workspaceRoot` を params 経由で
-      // 受け取り、優先的に使用する。未指定なら現 active root に fallback (旧挙動互換)。
-      const opRoot = typeof workspaceRoot === "string" && workspaceRoot.length > 0
-        ? workspaceRoot
-        : root();
+      // operation の workspace ownership は client-supplied path ではなく server-side
+      // undo store で解決する。workspace 切替後 undo と raw path injection を同時に塞ぐ。
+      const opRoot = findUndoOperationWorkspaceRoot(operationId as string) ?? root();
       // Phase J Must-fix C: live + persisted revert callback を inject
-      const migrateEditSessions = makeMigrateEditSessions(bridge, wid);
+      const migrateEditSessions = makeMigrateEditSessions(bridge, opRoot);
       const result = await undoEntityRename(operationId as string, opRoot, {
         sessionId, migrateEditSessions,
       });
@@ -326,7 +312,7 @@ export const refactorHandlers: RpcHandlerMap = {
       ];
       for (const ev of RELOAD_EVENTS) {
         bridge.broadcast({
-          wsId: wid, event: ev, data: { reload: true },
+          wsId: opRoot, event: ev, data: { reload: true },
           // Phase F S-1: undo は originating client を除外しない (cache 同期保証)
         });
       }

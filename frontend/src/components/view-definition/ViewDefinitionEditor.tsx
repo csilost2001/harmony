@@ -99,7 +99,7 @@ export function ViewDefinitionEditor() {
   const [renameUndoToast, setRenameUndoToast] = useState<{
     operationId: string; oldId: string; newId: string;
     // Phase J Nit N-1 / SF-β
-    ttlExpiresAt?: number; workspaceRoot?: string;
+    ttlMs?: number;
   } | null>(null);
   const [allViewDefIds, setAllViewDefIds] = useState<string[]>([]);
 
@@ -802,8 +802,7 @@ export function ViewDefinitionEditor() {
             });
             setRenameUndoToast({
               operationId, oldId: viewDefinitionId, newId,
-              ttlExpiresAt: extra?.ttlExpiresAt,
-              workspaceRoot: extra?.workspaceRoot,
+              ttlMs: extra?.ttlMs,
             });
           }}
         />
@@ -814,8 +813,7 @@ export function ViewDefinitionEditor() {
           operationId={renameUndoToast.operationId}
           oldId={renameUndoToast.oldId}
           newId={renameUndoToast.newId}
-          ttlExpiresAt={renameUndoToast.ttlExpiresAt}
-          workspaceRoot={renameUndoToast.workspaceRoot}
+          ttlMs={renameUndoToast.ttlMs}
           entityLabel="ビュー定義"
           onUndo={() => {
             handleRenameSuccess({

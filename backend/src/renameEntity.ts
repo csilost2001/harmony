@@ -146,11 +146,15 @@ export interface RenameOperation {
   /** TTL 計算用 (ms epoch) */
   ts: number;
   /**
-   * Phase I round 3+4 Nit N-4 (Opus round 4): TTL 期限の ms epoch (server clock 基準)。
-   * `ts + UNDO_TTL_MS` で計算済。frontend toast はこの timestamp を基準に自動 dismiss する
-   * ことで client/server clock drift による confusing UX を回避できる。
+   * TTL 期限の ms epoch (server 内の expiration 判定 / audit 用)。
+   * frontend には epoch を比較させず `undoTtlMs` duration を使わせる。
    */
   ttlExpiresAt: number;
+  /**
+   * frontend toast の countdown 用 duration。server/client の epoch clock を混在させず、
+   * response 受信時点から同じ TTL window を開始する。
+   */
+  undoTtlMs: number;
   /**
    * dataRoot 相対 path + 元 content (undo 時の restore 用)。
    *
@@ -204,14 +208,6 @@ export interface RenameOperation {
     newResourceId: string;
     resourceType?: string;
   }>;
-  /**
-   * Phase J Should-fix SF-β (#1298 round 5 Opus SF-2): undo は frontend toast から RPC で
-   * 呼ばれるが、user が workspace 切替後に toast の「元に戻す」を押すケースで現 active root と
-   * 当該 operation の workspace root が乖離する問題への対策。operation 自体に workspace root を
-   * 含めておき、undo handler は params 経由で workspaceRoot を受け取って正しい _undoStore から
-   * popUndo するように修正する (handler 側で実装)。
-   */
-  workspaceRoot?: string;
 }
 
 /** rename 中 lock 検査で参照する EditSession 抽象 (テスト容易性のため最小契約) */
@@ -266,7 +262,16 @@ export interface RenameOpts {
     resourceType: string,
     oldId: string,
     newId: string,
-  ) => Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>>;
+    targetEditSessionIds?: readonly string[],
+  ) => Promise<
+    Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }> |
+    EditSessionMigrationResult
+  >;
+}
+
+interface EditSessionMigrationResult {
+  migrated: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>;
+  warnings: string[];
 }
 
 // ── 内部定数 ────────────────────────────────────────────────────────────────
@@ -424,6 +429,14 @@ function popUndo(root: string, operationId: string): RenameOperation | null {
   }
   perWorkspace.delete(operationId);
   return op;
+}
+
+/** RPC handler 用: operationId の所有 workspace は server store のみから解決する。 */
+export function findUndoOperationWorkspaceRoot(operationId: string): string | null {
+  for (const [root, operations] of _undoStore.entries()) {
+    if (operations.has(operationId)) return root;
+  }
+  return null;
 }
 
 /** test-only: undo store を全 root についてクリア */
@@ -939,6 +952,69 @@ interface RefSourceFile {
   data: unknown;
 }
 
+async function assertReferenceJsonReadable(absPath: string): Promise<void> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(absPath, "utf-8");
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw new Error(`参照走査対象 JSON を読めません: ${absPath}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  try {
+    JSON.parse(raw);
+  } catch (e) {
+    throw new Error(`参照走査対象 JSON が不正です: ${absPath}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+async function assertJsonDirectoryReadable(
+  dir: string,
+  include: (fileName: string) => boolean = (fileName) => fileName.endsWith(".json"),
+): Promise<void> {
+  let entries: string[];
+  try {
+    entries = await fs.readdir(dir);
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw new Error(`参照走査対象 directory を読めません: ${dir}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  for (const entry of entries) {
+    if (include(entry)) await assertReferenceJsonReadable(path.join(dir, entry));
+  }
+}
+
+/**
+ * rename は参照更新漏れが orphan を作るため、scan source の parse/read error を
+ * 「参照なし」と扱わない。通常 reader の draft tolerant 挙動とは分離した preflight。
+ */
+async function assertReferenceSourcesReadable(root: string, dataRoot: string): Promise<void> {
+  await Promise.all([
+    assertJsonDirectoryReadable(path.join(dataRoot, "process-flows")),
+    assertJsonDirectoryReadable(path.join(dataRoot, "actions")),
+    assertJsonDirectoryReadable(path.join(dataRoot, "screens"), (f) => f.endsWith(".json") && !f.endsWith(".design.json")),
+    assertJsonDirectoryReadable(path.join(dataRoot, "views")),
+    assertJsonDirectoryReadable(path.join(dataRoot, "view-definitions")),
+    assertJsonDirectoryReadable(path.join(dataRoot, "page-layouts"), (f) => f.endsWith(".json") && !f.endsWith(".design.json")),
+    assertJsonDirectoryReadable(path.join(dataRoot, "tables")),
+    assertReferenceJsonReadable(path.join(root, "harmony.json")),
+    assertReferenceJsonReadable(path.join(dataRoot, "screen-flow-positions.json")),
+    assertReferenceJsonReadable(path.join(dataRoot, "er-layout.json")),
+  ]);
+
+  const genericDir = path.join(dataRoot, "generic-definitions");
+  let kinds: import("node:fs").Dirent[];
+  try {
+    kinds = await fs.readdir(genericDir, { withFileTypes: true });
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw new Error(`参照走査対象 directory を読めません: ${genericDir}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  await Promise.all(
+    kinds.filter((entry) => entry.isDirectory()).map((entry) =>
+      assertJsonDirectoryReadable(path.join(genericDir, entry.name))),
+  );
+}
+
 /**
  * 参照側 entity を全種類リストし、各 file 内の ref を scan + 置換 plan を作る。
  *
@@ -948,6 +1024,7 @@ async function scanAllRefs(
   entityType: RenameEntityType, oldId: string, newId: string, root: string,
 ): Promise<RefScanResult> {
   const dataRoot = await resolveDataRoot(root);
+  await assertReferenceSourcesReadable(root, dataRoot);
   const scalarFields = new Set(SCALAR_REF_FIELDS[entityType]);
   const compositeFields = COMPOSITE_REF_FIELDS[entityType];
   const arrayFields = new Set(ARRAY_REF_FIELDS[entityType]);
@@ -1642,25 +1719,46 @@ async function revertEditSessionsMigration(
     newResourceId: string;
     resourceType?: string;
   }>,
-): Promise<void> {
+): Promise<string[]> {
+  const warnings: string[] = [];
   // bridge 経由 (live + persisted): resourceType ごとに集約して 1 回ずつ revert (oldId と newId
   // を swap して同 API を再利用)
   if (opts?.migrateEditSessions) {
     // resourceType + oldResourceId をキーに集約
-    const byKey = new Map<string, { resourceType: string; oldResourceId: string; newResourceId: string }>();
+    const byKey = new Map<string, {
+      resourceType: string;
+      oldResourceId: string;
+      newResourceId: string;
+      editSessionIds: string[];
+    }>();
     for (const m of migrations) {
       const rt = m.resourceType ?? "";
       if (!rt) continue;
       const key = `${rt}:${m.oldResourceId}:${m.newResourceId}`;
-      byKey.set(key, { resourceType: rt, oldResourceId: m.oldResourceId, newResourceId: m.newResourceId });
+      const existing = byKey.get(key);
+      if (existing) {
+        existing.editSessionIds.push(m.editSessionId);
+      } else {
+        byKey.set(key, {
+          resourceType: rt,
+          oldResourceId: m.oldResourceId,
+          newResourceId: m.newResourceId,
+          editSessionIds: [m.editSessionId],
+        });
+      }
     }
-    for (const { resourceType, oldResourceId, newResourceId } of byKey.values()) {
+    for (const { resourceType, oldResourceId, newResourceId, editSessionIds } of byKey.values()) {
       // newResourceId → oldResourceId に戻す (swap)
       try {
-        await opts.migrateEditSessions(resourceType, newResourceId, oldResourceId);
-      } catch { /* best effort */ }
+        const result = normalizeMigrationResult(
+          await opts.migrateEditSessions(resourceType, newResourceId, oldResourceId, editSessionIds),
+        );
+        warnings.push(...result.warnings);
+      } catch (e) {
+        warnings.push(`edit-session reverse migration 失敗: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
-    return;
+    return warnings;
   }
   // fallback: 旧 raw fs (test path / standalone path)
   const dir = path.join(root, ".edit-sessions");
@@ -1675,6 +1773,13 @@ async function revertEditSessionsMigration(
       }
     } catch { /* best effort */ }
   }
+  return warnings;
+}
+
+function normalizeMigrationResult(
+  result: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }> | EditSessionMigrationResult,
+): EditSessionMigrationResult {
+  return Array.isArray(result) ? { migrated: result, warnings: [] } : result;
 }
 
 /**
@@ -1687,12 +1792,12 @@ async function migrateEditSessionsByBridge(
   oldId: string,
   newId: string,
   root: string,
-): Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>> {
+): Promise<EditSessionMigrationResult> {
   if (opts?.migrateEditSessions) {
-    return opts.migrateEditSessions(resourceType, oldId, newId);
+    return normalizeMigrationResult(await opts.migrateEditSessions(resourceType, oldId, newId));
   }
   // fallback: 旧 raw fs (test path / standalone path)
-  return migrateEditSessions(root, resourceType, oldId, newId);
+  return { migrated: await migrateEditSessions(root, resourceType, oldId, newId), warnings: [] };
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -2087,8 +2192,9 @@ async function _renameEntityIdImpl(
   let editSessionMigrations: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string; resourceType: string }> = [];
   for (const rt of sessionResourceTypes) {
     try {
-      const log = await migrateEditSessionsByBridge(opts, rt, oldId, newId, root);
-      for (const e of log) {
+      const result = await migrateEditSessionsByBridge(opts, rt, oldId, newId, root);
+      migrationWarnings.push(...result.warnings);
+      for (const e of result.migrated) {
         editSessionMigrations.push({ ...e, resourceType: rt });
       }
     } catch (e) {
@@ -2123,15 +2229,14 @@ async function _renameEntityIdImpl(
     entityType, oldId, newId,
     uuid: expectedUuid,
     ts,
-    // Phase I round 3+4 Nit N-4: TTL 期限の絶対 timestamp を含める (client clock drift 回避)
+    // Server-side expiration/audit 用の絶対 timestamp。UI は undoTtlMs duration を使う。
     ttlExpiresAt: ts + UNDO_TTL_MS,
+    undoTtlMs: UNDO_TTL_MS,
     fileRenames: fileRenameSnapshots,
     refUpdates: refUpdateSnapshots,
     // Phase J SF-ε: 配列形 (複数 resourceType 対応)。空なら field 自体を出さない
     ...(historyMigrations.length > 0 ? { historyMigrations } : {}),
     ...(editSessionMigrations.length > 0 ? { editSessionMigrations } : {}),
-    // Phase J SF-β (#1298 round 5 Opus SF-2): workspace 切替時の undo 解決のため root 同梱
-    workspaceRoot: root,
   };
   pushUndo(root, operation);
 
@@ -2222,9 +2327,12 @@ async function _undoEntityRenameImpl(
     currentRefContents.push({ absPath, content: await readFileContentOrNull(absPath) });
   }
   const currentNewPathContents: Array<{ absPath: string; content: string | null }> = [];
+  const currentOldPathContents: Array<{ absPath: string; content: string | null }> = [];
   for (const f of op.fileRenames) {
     const toAbs = path.join(dataRoot, f.to);
     currentNewPathContents.push({ absPath: toAbs, content: await readFileContentOrNull(toAbs) });
+    const fromAbs = path.join(dataRoot, f.from);
+    currentOldPathContents.push({ absPath: fromAbs, content: await readFileContentOrNull(fromAbs) });
   }
 
   // (ii) 事後編集検出: rename-time bytes と current bytes を比較
@@ -2268,10 +2376,25 @@ async function _undoEntityRenameImpl(
     if (!isContentEquivalent(actual, expected)) {
       editedFiles.push(fr.to);
     }
+    // rename 完了時は old path が存在しない。後から同 id が再利用されていれば
+    // undo restore で新規 entity を破壊するため、存在だけで block する。
+    if (fr.from !== fr.to && currentOldPathContents[i].content !== null) {
+      editedFiles.push(`${fr.from} (旧 ID が再作成されています)`);
+    }
   }
   if (editedFiles.length > 0) {
     // op を再 push して再試行可能に保ち、user 確認後の undo を許す
     pushUndo(root, op);
+    try {
+      logWarn("rename", "rename.undo.blocked", {
+        operationId,
+        entityType: op.entityType,
+        oldId: op.oldId,
+        newId: op.newId,
+        editedFiles,
+        workspaceRoot: root,
+      });
+    } catch { /* logger failure must not change block semantics */ }
     throw new Error(
       `Undo を block しました: rename 後に編集された (または削除された) file があります。\n` +
       editedFiles.map((f) => `  - ${f}`).join("\n") + "\n" +
@@ -2360,7 +2483,7 @@ async function _undoEntityRenameImpl(
   }
   if (op.editSessionMigrations && op.editSessionMigrations.length > 0) {
     try {
-      await revertEditSessionsMigration(root, opts, op.editSessionMigrations);
+      migrationRevertWarnings.push(...await revertEditSessionsMigration(root, opts, op.editSessionMigrations));
     } catch (e) {
       migrationRevertWarnings.push(
         `undo: edit-session revert 失敗: ${e instanceof Error ? e.message : String(e)}`,

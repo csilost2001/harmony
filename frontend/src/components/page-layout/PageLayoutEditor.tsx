@@ -70,7 +70,7 @@ export function PageLayoutEditor() {
   const [renameUndoToast, setRenameUndoToast] = useState<{
     operationId: string; oldId: string; newId: string;
     // Phase J Nit N-1 / SF-β
-    ttlExpiresAt?: number; workspaceRoot?: string;
+    ttlMs?: number;
   } | null>(null);
   const [allPageLayoutIds, setAllPageLayoutIds] = useState<string[]>([]);
   useEffect(() => {
@@ -695,8 +695,7 @@ export function PageLayoutEditor() {
             });
             setRenameUndoToast({
               operationId, oldId: pageLayoutId, newId,
-              ttlExpiresAt: extra?.ttlExpiresAt,
-              workspaceRoot: extra?.workspaceRoot,
+              ttlMs: extra?.ttlMs,
             });
           }}
         />
@@ -707,8 +706,7 @@ export function PageLayoutEditor() {
           operationId={renameUndoToast.operationId}
           oldId={renameUndoToast.oldId}
           newId={renameUndoToast.newId}
-          ttlExpiresAt={renameUndoToast.ttlExpiresAt}
-          workspaceRoot={renameUndoToast.workspaceRoot}
+          ttlMs={renameUndoToast.ttlMs}
           entityLabel="ページレイアウト"
           onUndo={() => {
             handleRenameSuccess({

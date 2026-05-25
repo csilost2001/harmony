@@ -147,6 +147,10 @@ export function GenericDefinitionEditor() {
   const handleSave = useCallback(async () => {
     if (!def) return;
     setSaveError("");
+    if (reloadBanner) {
+      setSaveError("外部更新を検出しました。再読み込みしてから保存してください");
+      return;
+    }
     if (!def.purpose.trim() || def.purpose.length > 200) {
       setSaveError("目的は 1〜200 文字で入力してください");
       return;
@@ -173,7 +177,7 @@ export function GenericDefinitionEditor() {
     } finally {
       setSaving(false);
     }
-  }, [def]);
+  }, [def, reloadBanner]);
 
   const handleDelete = useCallback(async () => {
     if (!kind || !decodedName) return;
@@ -305,7 +309,7 @@ export function GenericDefinitionEditor() {
           <button
             className="btn btn-primary btn-sm"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || reloadBanner}
           >
             {saving ? "保存中..." : "保存"}
           </button>

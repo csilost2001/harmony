@@ -14,6 +14,7 @@ import { killStaleProcessOnPort } from "./wsBridge/killStalePort.js";
 import { EditSessionService } from "./wsBridge/editSessionService.js";
 import {
   type DraftResourceType as EditSessionResourceType,
+  type EditSessionMigrationResult,
   type ParticipantInfo as EditSessionParticipantInfo,
   type SaveEvent as EditSessionSaveEvent,
 } from "./editSessionStore.js";
@@ -143,9 +144,10 @@ export class WsBridge extends EventEmitter {
     oldResourceId: string,
     newResourceType: EditSessionResourceType,
     newResourceId: string,
-  ): Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>> {
+    targetEditSessionIds?: readonly string[],
+  ): Promise<EditSessionMigrationResult> {
     return this.editSessionService.migrateResourceIdRaw(
-      wsId, oldResourceType, oldResourceId, newResourceType, newResourceId,
+      wsId, oldResourceType, oldResourceId, newResourceType, newResourceId, targetEditSessionIds,
     );
   }
 

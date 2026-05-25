@@ -156,7 +156,7 @@ export function Designer({
   const [renameUndoToast, setRenameUndoToast] = useState<{
     operationId: string; oldId: string; newId: string;
     // Phase J Nit N-1 / SF-β
-    ttlExpiresAt?: number; workspaceRoot?: string;
+    ttlMs?: number;
   } | null>(null);
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
   useEffect(() => {
@@ -869,8 +869,7 @@ export function Designer({
             });
             setRenameUndoToast({
               operationId, oldId: screenId, newId,
-              ttlExpiresAt: extra?.ttlExpiresAt,
-              workspaceRoot: extra?.workspaceRoot,
+              ttlMs: extra?.ttlMs,
             });
           }}
         />
@@ -881,8 +880,7 @@ export function Designer({
           operationId={renameUndoToast.operationId}
           oldId={renameUndoToast.oldId}
           newId={renameUndoToast.newId}
-          ttlExpiresAt={renameUndoToast.ttlExpiresAt}
-          workspaceRoot={renameUndoToast.workspaceRoot}
+          ttlMs={renameUndoToast.ttlMs}
           entityLabel="画面"
           onUndo={() => {
             handleRenameSuccess({

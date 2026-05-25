@@ -64,7 +64,7 @@ export function TableEditor() {
   const [renameUndoToast, setRenameUndoToast] = useState<{
     operationId: string; oldId: string; newId: string;
     // Phase J Nit N-1 / SF-β: backend operation の追加 metadata
-    ttlExpiresAt?: number; workspaceRoot?: string;
+    ttlMs?: number;
   } | null>(null);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/table/list"), { replace: true }), [navigate, wsPath]);
@@ -461,8 +461,7 @@ export function TableEditor() {
             });
             setRenameUndoToast({
               operationId, oldId: tableId, newId,
-              ttlExpiresAt: extra?.ttlExpiresAt,
-              workspaceRoot: extra?.workspaceRoot,
+              ttlMs: extra?.ttlMs,
             });
           }}
         />
@@ -474,8 +473,7 @@ export function TableEditor() {
           operationId={renameUndoToast.operationId}
           oldId={renameUndoToast.oldId}
           newId={renameUndoToast.newId}
-          ttlExpiresAt={renameUndoToast.ttlExpiresAt}
-          workspaceRoot={renameUndoToast.workspaceRoot}
+          ttlMs={renameUndoToast.ttlMs}
           entityLabel="テーブル定義"
           onUndo={() => {
             // undo 後、旧 id の編集ページに戻す

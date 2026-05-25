@@ -48,6 +48,29 @@ describe("RenameEntityUndoToast — Phase F S-1 (Codex 独立レビュー)", () 
     });
   });
 
+  it("workspace path は browser から undo RPC に送信しない", async () => {
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ restoredFiles: 1 });
+
+    render(
+      <RenameEntityUndoToast
+        operationId="op-owned-by-server"
+        oldId="old"
+        newId="new"
+        entityLabel="テーブル"
+        onUndo={() => {}}
+        onDismiss={() => {}}
+        {...({ workspaceRoot: "/tmp/untrusted-client-root" } as Record<string, unknown>)}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("rename-entity-undo-btn"));
+    await waitFor(() => {
+      expect(mcpBridge.request).toHaveBeenCalledWith("undoEntityRename", {
+        operationId: "op-owned-by-server",
+      });
+    });
+  });
+
   it("default postUndoDelayMs=0 で hard delay なしに onUndo が即座に呼ばれる (S-1)", async () => {
     const onUndo = vi.fn();
     (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ restoredFiles: 3 });

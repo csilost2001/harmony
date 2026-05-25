@@ -38,25 +38,6 @@ export interface RenameEntityUndoToastProps {
    *     originating client にも届ける handshake に変更したため delay 不要
    */
   postUndoDelayMs?: number;
-  /**
-   * Phase J SF-β (#1298 round 5 Opus SF-2): rename 実行時の workspace root path。
-   * user が workspace 切替後に「元に戻す」を押すと、現 active root と当該 operation の
-   * workspace root が乖離して "Undo 対象が見つかりません" になる。toast props として
-   * 保持し、undo RPC params に明示渡しすることで backend が正しい _undoStore から
-   * popUndo できるようにする。
-   *
-   * 旧 toast は workspace context を持たなかった。frontend は rename 成功時の onSuccess
-   * で current workspace root を取得して渡す (renameOperation には backend が含めている)。
-   * 未指定時は backend 側の root() fallback (旧挙動互換)。
-   */
-  workspaceRoot?: string;
-  /**
-   * Phase J Nit N-1 (#1298 round 5 Codex N-1): server からの絶対 expiry timestamp。
-   * 旧実装は ttlMs (client clock) でのみ auto-dismiss していたため、client-server
-   * clock drift で誤差が出ていた。本 prop が指定されていれば server timestamp 基準で
-   * 残り時間を計算する。未指定なら ttlMs に fallback。
-   */
-  ttlExpiresAt?: number;
 }
 
 export function RenameEntityUndoToast({
@@ -68,8 +49,6 @@ export function RenameEntityUndoToast({
   onDismiss,
   ttlMs = 5 * 60 * 1000,
   postUndoDelayMs = 0,
-  workspaceRoot,
-  ttlExpiresAt,
 }: RenameEntityUndoToastProps) {
   const [undoing, setUndoing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,30 +56,20 @@ export function RenameEntityUndoToast({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Phase J Nit N-1 (#1298 round 5 Codex N-1): server timestamp 基準で残り時間を計算。
-    // ttlExpiresAt が指定されていれば server clock 基準、未指定なら従来の ttlMs (client clock)
-    const remainingMs = ttlExpiresAt !== undefined
-      ? Math.max(0, ttlExpiresAt - Date.now())
-      : ttlMs;
     timerRef.current = setTimeout(() => {
       onDismiss();
-    }, remainingMs);
+    }, ttlMs);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [ttlMs, ttlExpiresAt, onDismiss]);
+  }, [ttlMs, onDismiss]);
 
   const handleUndo = useCallback(async () => {
     if (undoing) return;
     setUndoing(true);
     setError(null);
     try {
-      // Phase J SF-β (#1298 round 5 Opus SF-2): workspace 切替後でも正しく undo するため
-      // workspaceRoot を params に明示渡し。backend handler は root() でなく params.workspaceRoot
-      // で popUndo を引く (未指定時は backend 側で root() fallback、旧挙動互換)。
-      const params: Record<string, unknown> = { operationId };
-      if (workspaceRoot) params.workspaceRoot = workspaceRoot;
-      await mcpBridge.request("undoEntityRename", params);
+      await mcpBridge.request("undoEntityRename", { operationId });
       // Phase F S-1: backend handler が originating client にも reload broadcast を送るよう変更
       // (`wsHandlers/refactor.ts undoEntityRename` excludeClientId 廃止) されたため、
       // hard delay は default 0。test や特殊ケースで postUndoDelayMs を明示指定したい場合は適用。
@@ -112,7 +81,7 @@ export function RenameEntityUndoToast({
       setError(e instanceof Error ? e.message : String(e));
       setUndoing(false);
     }
-  }, [undoing, operationId, onUndo, postUndoDelayMs, workspaceRoot]);
+  }, [undoing, operationId, onUndo, postUndoDelayMs]);
 
   return (
     <div className="rename-entity-undo-toast" role="status" aria-live="polite" data-testid="rename-entity-undo-toast">

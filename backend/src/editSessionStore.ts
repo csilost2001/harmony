@@ -81,6 +81,11 @@ export interface CleanupResult {
   action: "discarded" | "deleted";
 }
 
+export interface EditSessionMigrationResult {
+  migrated: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>;
+  warnings: string[];
+}
+
 // ── エラークラス ──────────────────────────────────────────────────────────────
 
 export class EditSessionNotFoundError extends Error {
@@ -695,11 +700,18 @@ export class EditSessionStore {
     oldResourceId: string,
     newResourceType: DraftResourceType,
     newResourceId: string,
-  ): Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>> {
+    targetEditSessionIds?: readonly string[],
+  ): Promise<EditSessionMigrationResult> {
     const migrated: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }> = [];
+    const warnings: string[] = [];
+    const targets = targetEditSessionIds ? new Set(targetEditSessionIds) : null;
     const sessionsToWrite: EditSession[] = [];
     for (const session of this.store.values()) {
-      if (session.resourceType === oldResourceType && session.resourceId === oldResourceId) {
+      if (
+        session.resourceType === oldResourceType &&
+        session.resourceId === oldResourceId &&
+        (!targets || targets.has(session.id))
+      ) {
         session.resourceType = newResourceType;
         session.resourceId = newResourceId;
         sessionsToWrite.push(session);
@@ -716,10 +728,12 @@ export class EditSessionStore {
       try {
         await writeEditSessionToFs(this.workspaceRoot, session);
       } catch (e) {
-        console.error(`[editSessionStore] migrateResourceId persist error (${session.id}):`, e);
+        const warning = `edit-session persist 失敗 (${session.id}): ${e instanceof Error ? e.message : String(e)}`;
+        console.error(`[editSessionStore] ${warning}`);
+        warnings.push(warning);
       }
     }
-    return migrated;
+    return { migrated, warnings };
   }
 
   /**

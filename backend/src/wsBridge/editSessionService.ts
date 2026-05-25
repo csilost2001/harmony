@@ -25,6 +25,7 @@ import {
   EditSessionStateError,
   type DraftResourceType as EditSessionResourceType,
   type EditSession,
+  type EditSessionMigrationResult,
   type ParticipantInfo as EditSessionParticipantInfo,
   type SaveEvent as EditSessionSaveEvent,
 } from "../editSessionStore.js";
@@ -136,11 +137,12 @@ export class EditSessionService {
     oldResourceId: string,
     newResourceType: EditSessionResourceType,
     newResourceId: string,
-  ): Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>> {
+    targetEditSessionIds?: readonly string[],
+  ): Promise<EditSessionMigrationResult> {
     const store = this.editSessionStores.get(wsId);
-    if (!store) return [];
+    if (!store) return { migrated: [], warnings: [] };
     return store.migrateResourceId(
-      oldResourceType, oldResourceId, newResourceType, newResourceId,
+      oldResourceType, oldResourceId, newResourceType, newResourceId, targetEditSessionIds,
     );
   }
 

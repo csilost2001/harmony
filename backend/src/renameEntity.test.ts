@@ -2050,7 +2050,7 @@ describe("renameEntityId — Phase I Nit N-1: filename-id drift detection", () =
 });
 
 describe("renameEntityId — Phase I Nit N-4: operation.ttlExpiresAt", () => {
-  it("RenameOperation に ttlExpiresAt (絶対 timestamp) が含まれる", async () => {
+  it("RenameOperation に server expiry と client countdown duration が含まれる", async () => {
     const root = await makeWorkspace();
     await seedTable(root, "ttl-t");
 
@@ -2060,6 +2060,7 @@ describe("renameEntityId — Phase I Nit N-4: operation.ttlExpiresAt", () => {
 
     expect(operation.ttlExpiresAt).toBeGreaterThanOrEqual(before + 5 * 60 * 1000);
     expect(operation.ttlExpiresAt).toBeLessThanOrEqual(after + 5 * 60 * 1000 + 1000);
+    expect(operation.undoTtlMs).toBe(5 * 60 * 1000);
   });
 });
 
@@ -2277,5 +2278,98 @@ describe("renameEntityId — Phase J Nit N-3: trailing whitespace / BOM は undo
     // JSON parse 等価のため block されない
     const result = await undoEntityRename(operation.operationId, root);
     expect(result.restoredFiles).toBeGreaterThan(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase K (#1298 round 6): undo / scan / edit-session migration の data integrity regression
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase K: old ID 再作成後の undo は上書きを拒否する", () => {
+  it("rename 後に同じ old ID の別 entity が作成された場合は undo を block して保持する", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "reused-old");
+    const { operation } = await renameEntityId("table", "reused-old", "renamed", root);
+
+    await seedTable(root, "reused-old", { description: "created after rename" });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await expect(undoEntityRename(operation.operationId, root)).rejects.toThrow(/Undo を block|再作成/);
+    expect(warn).toHaveBeenCalledWith(
+      expect.any(String),
+      "rename.undo.blocked",
+      expect.objectContaining({ operationId: operation.operationId }),
+    );
+    const recreated = await readJsonFile<Record<string, unknown>>(dataPath(root, "tables", "reused-old.json"));
+    expect(recreated.description).toBe("created after rename");
+    await fs.access(dataPath(root, "tables", "renamed.json"));
+  });
+});
+
+describe("renameEntityId — Phase K: unreadable reference JSON は rename を中断する", () => {
+  it("参照 source の process-flow JSON が壊れていれば silent skip せず primary を維持する", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "scan-source");
+    await fs.mkdir(dataPath(root, "process-flows"), { recursive: true });
+    await fs.writeFile(dataPath(root, "process-flows", "broken.json"), "{ invalid-json", "utf-8");
+
+    await expect(renameEntityId("table", "scan-source", "scan-target", root)).rejects.toThrow(/JSON|参照走査/);
+    await fs.access(dataPath(root, "tables", "scan-source.json"));
+    await expect(fs.access(dataPath(root, "tables", "scan-target.json"))).rejects.toThrow();
+  });
+
+  it("generic-definition JSON が壊れていても silent skip しない", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "gd-source");
+    const genericDir = dataPath(root, "generic-definitions", "data-contract");
+    await fs.mkdir(genericDir, { recursive: true });
+    await fs.writeFile(path.join(genericDir, "broken.json"), "{\"relations\": [", "utf-8");
+
+    await expect(renameEntityId("table", "gd-source", "gd-target", root)).rejects.toThrow(/JSON|参照走査/);
+    await fs.access(dataPath(root, "tables", "gd-source.json"));
+  });
+});
+
+describe("renameEntityId — Phase K: undo は forward で移行した edit session だけを戻す", () => {
+  it("reverse callback に forward migration の editSessionId filter を渡す", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "session-old");
+    const calls: Array<{ oldId: string; newId: string; editSessionIds?: readonly string[] }> = [];
+    const migrateEditSessions = async (
+      _resourceType: string,
+      oldId: string,
+      newId: string,
+      editSessionIds?: readonly string[],
+    ) => {
+      calls.push({ oldId, newId, editSessionIds });
+      return oldId === "session-old"
+        ? [{ editSessionId: "es-forward", oldResourceId: oldId, newResourceId: newId }]
+        : [];
+    };
+
+    const { operation } = await renameEntityId("table", "session-old", "session-new", root, {
+      migrateEditSessions,
+    });
+    await undoEntityRename(operation.operationId, root, { migrateEditSessions });
+
+    expect(calls.at(-1)).toEqual({
+      oldId: "session-new",
+      newId: "session-old",
+      editSessionIds: ["es-forward"],
+    });
+  });
+
+  it("edit-session persist warning を rename preview warnings に伝播する", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "warning-old");
+
+    const { preview } = await renameEntityId("table", "warning-old", "warning-new", root, {
+      migrateEditSessions: async () => ({
+        migrated: [],
+        warnings: ["edit-session persist 失敗 (es-a): injected"],
+      }),
+    });
+
+    expect(preview.warnings).toContain("edit-session persist 失敗 (es-a): injected");
   });
 });

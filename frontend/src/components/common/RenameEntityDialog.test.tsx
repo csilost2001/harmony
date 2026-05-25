@@ -63,6 +63,7 @@ const RENAME_RESULT_FIXTURE = {
     uuid: "entity-uuid-1234",
     ts: 1714000000000,
     ttlExpiresAt: 1714000000000 + 5 * 60 * 1000,
+    undoTtlMs: 5 * 60 * 1000,
   },
   preview: PREVIEW_FIXTURE,
 };
@@ -157,8 +158,12 @@ describe("RenameEntityDialog", () => {
     await waitFor(() => expect(screen.getByTestId("rename-entity-execute-btn")).toBeTruthy());
     await act(async () => { fireEvent.click(screen.getByTestId("rename-entity-execute-btn")); });
 
-    // Phase J Nit N-1 / SF-β: onSuccess は 3rd arg `extra` も渡される (mock では ttlExpiresAt / workspaceRoot 未設定)
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith("products-v2", "op-uuid-1234", expect.any(Object)));
+    // Phase K: client clock / raw workspace path に依存せず server 提供の duration のみ保持する。
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(
+      "products-v2",
+      "op-uuid-1234",
+      { ttlMs: 5 * 60 * 1000 },
+    ));
     expect(mcpBridge.request).toHaveBeenNthCalledWith(2, "renameEntityId", {
       entityType: "table",
       oldId: "products",
