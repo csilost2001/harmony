@@ -444,8 +444,10 @@ function normalizeLegacyPersisted(raw: unknown): LegacyFlowProject {
     updatedAt: (g.updatedAt as Timestamp) ?? nowTs(),
   }));
   const edges: PersistedEdge[] = edgesRaw.map((e) => ({
-    // edge.id は LocalId 形式 (UUID も valid な permissive pattern) のため UUID 採番のまま
-    id: String(e.id ?? generateUUID()),
+    // edge.id は LocalId 形式。RFC #1284 strict 化方針に沿って kebab-case fallback (`edg-<8桁>`)
+    // で採番する (#1299 I-7 Round 3 G-8 / Opus fresh S2-N2)。UUID 採番のままでも LocalId pattern
+    // (permissive) には合致するが、新規発番経路の表記揺れ撲滅のため統一する。
+    id: String(e.id ?? generateFallbackEntityId("edg")),
     source: String(e.source ?? ""),
     target: String(e.target ?? ""),
     label: String(e.label ?? ""),

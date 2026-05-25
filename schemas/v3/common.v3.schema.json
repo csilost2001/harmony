@@ -16,7 +16,10 @@
       "type": "string",
       "allOf": [
         { "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$" },
-        { "not": { "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" } }
+        {
+          "description": "lowercase hex のみで構成された UUID v4 形式を除外する。大文字混在 UUID は先頭 allOf の lowercase-only EntityId pattern (`^[a-z]...`) で先に reject されるため、本 not pattern は lowercase だけを対象にすれば十分。validator (`backend/src/security/idValidator.ts:UUID_RE`) は /i flag 付きで内部使用しているが、ENTITY_ID_RE が `[a-z]` strict のため二重防御となっている (#1299 I-7 Round 3 G-7 / Opus fresh S2-N1)。",
+          "not": { "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" }
+        }
       ],
       "minLength": 1,
       "maxLength": 64

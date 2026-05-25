@@ -96,8 +96,12 @@ export function assertKind(s: unknown, label: string): string {
  */
 export function assertEntityId(s: unknown, label: string): string {
   if (!isValidEntityId(s)) {
+    // I-7 Round 3 G-9 (#1299 Codex N-R2-1): error message に non-UUID 条件を明示。
+    // alpha-leading UUID (例 `f81dd9e0-794c-...`) は EntityId pattern に偶然合致するが、
+    // I-7 Round 2 F-1 (Codex M-1) で strict 化された結果 reject されるため、
+    // ユーザーが「pattern には合うのに何故か reject される」と困惑しない error message にする。
     throw new Error(
-      `Invalid ${label}: must be kebab-case EntityId matching ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ with length 1..64 (got ${JSON.stringify(s)})`,
+      `Invalid ${label}: must be kebab-case EntityId matching ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ with length 1..64 and NOT UUID-like (got ${JSON.stringify(s)})`,
     );
   }
   return s;
