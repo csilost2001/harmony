@@ -59,6 +59,21 @@ test.describe("Regression — workspace re-render loop (#1299 I-7 Phase D)", () 
       `re-render loop regression: ${floods.length} flood warnings observed within 5s.\n` +
         `First 5:\n${floods.slice(0, 5).join("\n")}`,
     ).toEqual([]);
+
+    // I-7 Round 2 Should-fix S-5 (#1299 Codex review S-2): flood detector の
+    // msg key 名変更だけで loop を見落とすことを防ぐため、raw state-change 件数も
+    // 上限 assertion を追加する。5 秒間で 20 件未満が想定 (通常 5-10 件、loop 時は 100+)。
+    const dump = await page.evaluate(() => {
+      const w = window as unknown as { __uiLogDump?: () => unknown[] };
+      return typeof w.__uiLogDump === "function" ? w.__uiLogDump() : [];
+    });
+    const stateChangeCount = (dump as Array<{ msg: string }>).filter(
+      (e) => typeof e?.msg === "string" && e.msg.startsWith("workspace/state-change"),
+    ).length;
+    expect(
+      stateChangeCount,
+      `5s 内の raw workspace/state-change 総数: ${stateChangeCount} (上限 20、loop 時は 100+)`,
+    ).toBeLessThan(20);
   });
 
   test("workspace 切替 (新規 wsId) でも flood が発生しない", async ({ page }) => {

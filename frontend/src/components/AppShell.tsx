@@ -199,11 +199,6 @@ function __subscribeStatusClearOnce(): void {
       }
     });
 }
-/** @internal テスト専用: initial-restore done set + recovery-pending をリセット */
-export function __resetInitialRestoreDoneForTest(): void {
-  __initialRestoreDoneWsIds.clear();
-  __recoveryPendingWsId = null;
-}
 
 export function AppShell() {
   const location = useLocation();
