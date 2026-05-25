@@ -405,7 +405,16 @@ function createEmptyProject(): FlowProject {
   };
 }
 
-/** v1 → 内部 PersistedFlowProject へ最低限の field 補完。 */
+/** v1 → 内部 PersistedFlowProject へ最低限の field 補完。
+ *
+ * I-7 Round 2 F-4 (#1299 Codex review M-3): legacy v1 データ migration では
+ * `screen.id` / `group.id` が欠落していた場合に kebab-case の fallback id を
+ * 生成する (RFC #1284 / `assertEntityId` strict 化追従)。UUID 採番のままだと
+ * Phase A 後の handler 経路で reject される。
+ *
+ * edge.id は LocalId 形式 (UUID も valid な permissive pattern) のため UUID
+ * 採番を維持。
+ */
 function normalizeLegacyPersisted(raw: unknown): LegacyFlowProject {
   const obj = (raw ?? {}) as Record<string, unknown>;
   const screensRaw = (obj.screens as Array<Record<string, unknown>> | undefined) ?? [];
@@ -414,7 +423,8 @@ function normalizeLegacyPersisted(raw: unknown): LegacyFlowProject {
 
   // v1 互換: type → kind rename (まだ harmony.json に type が残っていた場合の救済)
   const screens: PersistedScreen[] = screensRaw.map((s, i) => ({
-    id: (s.id as ScreenId) ?? (generateUUID() as ScreenId),
+    // I-7 Round 2 F-4: 欠落時の id 補完は kebab-case `scr-<8桁>` (RFC #1284 strict 化追従)
+    id: (s.id as ScreenId) ?? (generateFallbackEntityId("scr") as ScreenId),
     no: typeof s.no === "number" ? s.no : i + 1,
     name: String(s.name ?? ""),
     kind: ((s.kind as ScreenKind) ?? (s.type as ScreenKind) ?? "other") as ScreenKind,
@@ -426,13 +436,15 @@ function normalizeLegacyPersisted(raw: unknown): LegacyFlowProject {
     updatedAt: (s.updatedAt as Timestamp) ?? nowTs(),
   }));
   const groups: PersistedGroup[] = groupsRaw.map((g) => ({
-    id: (g.id as ScreenGroupId) ?? (generateUUID() as ScreenGroupId),
+    // I-7 Round 2 F-4: 欠落時の id 補完は kebab-case `grp-<8桁>` (ScreenGroupId は EntityId)
+    id: (g.id as ScreenGroupId) ?? (generateFallbackEntityId("grp") as ScreenGroupId),
     name: String(g.name ?? ""),
     color: (g.color as string | undefined) ?? undefined,
     createdAt: (g.createdAt as Timestamp) ?? nowTs(),
     updatedAt: (g.updatedAt as Timestamp) ?? nowTs(),
   }));
   const edges: PersistedEdge[] = edgesRaw.map((e) => ({
+    // edge.id は LocalId 形式 (UUID も valid な permissive pattern) のため UUID 採番のまま
     id: String(e.id ?? generateUUID()),
     source: String(e.source ?? ""),
     target: String(e.target ?? ""),
@@ -529,11 +541,18 @@ function normalizePersisted(raw: unknown): PersistedFlowProject {
   return legacyToProject(normalizeLegacyPersisted(raw));
 }
 
-/** 旧 v1 (gjs-designer-project) → 新構造へマイグレーション。 */
+/** 旧 v1 (gjs-designer-project) → 新構造へマイグレーション。
+ *
+ * I-7 Round 2 F-4 (#1299 Codex review M-3): legacy localStorage migration の
+ * screen.id を kebab-case の fallback id に変更 (RFC #1284 / `assertEntityId`
+ * strict 化追従)。`SCREEN_DATA_PREFIX` 配下の design data key も新 id で書き直す。
+ * 完全な legacy 経路廃止は別 ISSUE (#923 シリーズ) で対応予定。
+ */
 function migrateLegacyLocalStorage(): PersistedFlowProject | null {
   const raw = localStorage.getItem(LEGACY_KEY);
   if (!raw) return null;
-  const screenId = generateUUID() as ScreenId;
+  // I-7 Round 2 F-4: kebab-case fallback id (`scr-<8桁>`) 採番
+  const screenId = generateFallbackEntityId("scr") as ScreenId;
   const screen: PersistedScreen = {
     id: screenId,
     no: 1,
@@ -942,14 +961,18 @@ export function screenExists(project: FlowProject, screenId: string): boolean {
 
 // ─── グループ操作 ──────────────────────────────────────────────────────
 
-/** グループを追加。 */
+/** グループを追加。
+ *
+ * I-7 Round 2 F-4 (#1299 Codex review M-3): ScreenGroupEntry.id schema は EntityId
+ * (kebab-case) のため、UUID 採番から `grp-<8桁>` の fallback 採番に変更。
+ */
 export async function addGroup(
   project: FlowProject,
   name: string,
   position: { x: number; y: number },
 ): Promise<ScreenGroup> {
   const group: ScreenGroup = {
-    id: generateUUID() as ScreenGroupId,
+    id: generateFallbackEntityId("grp") as ScreenGroupId,
     name,
     position,
     size: { width: 360, height: 280 },
