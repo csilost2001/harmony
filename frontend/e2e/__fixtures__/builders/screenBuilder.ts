@@ -16,8 +16,10 @@ import type {
   ScreenItem,
   ScreenKind,
   Timestamp,
+  Uuid,
 } from "../../../src/types/v3";
 import { normalizeId } from "../../helpers/realWorkspace";
+import { normalizeToKebabId } from "./projectBuilder";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
@@ -32,18 +34,23 @@ export interface BuildScreenOpts {
 }
 
 export function buildScreen(opts: BuildScreenOpts = {}): Screen {
+  // RFC #1284: id は kebab-case EntityId、uuid は不変識別子 (UUID v4)。
   const id = opts.id
-    ? (normalizeId(opts.id) as unknown as ScreenId)
-    : (crypto.randomUUID() as unknown as ScreenId);
+    ? (normalizeToKebabId(opts.id) as unknown as ScreenId)
+    : ("test-screen" as unknown as ScreenId);
+  const uuid = opts.id
+    ? (normalizeId(opts.id) as unknown as Uuid)
+    : (crypto.randomUUID() as unknown as Uuid);
 
   return {
     $schema: "../../schemas/v3/screen.v3.schema.json",
     id,
+    uuid,
     name: opts.name ?? "テスト画面",
     kind: opts.kind ?? "other",
     path: opts.path ?? "/test",
     groupId: opts.groupId
-      ? (normalizeId(opts.groupId) as unknown as ScreenGroupId)
+      ? (normalizeToKebabId(opts.groupId) as unknown as ScreenGroupId)
       : undefined,
     items: opts.items,
     maturity: opts.maturity ?? "draft",

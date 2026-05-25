@@ -17,8 +17,10 @@ import type {
   Table,
   TableId,
   Timestamp,
+  Uuid,
 } from "../../../src/types/v3";
 import { normalizeId } from "../../helpers/realWorkspace";
+import { normalizeToKebabId } from "./projectBuilder";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
@@ -45,13 +47,18 @@ function defaultColumn(): Column {
 }
 
 export function buildTable(opts: BuildTableOpts = {}): Table {
+  // RFC #1284: id は kebab-case EntityId、uuid は不変識別子 (UUID v4)。
   const id = opts.id
-    ? (normalizeId(opts.id) as unknown as TableId)
-    : (crypto.randomUUID() as unknown as TableId);
+    ? (normalizeToKebabId(opts.id) as unknown as TableId)
+    : ("test-table" as unknown as TableId);
+  const uuid = opts.id
+    ? (normalizeId(opts.id) as unknown as Uuid)
+    : (crypto.randomUUID() as unknown as Uuid);
 
   return {
     $schema: "../../schemas/v3/table.v3.schema.json",
     id,
+    uuid,
     name: opts.name ?? "テストテーブル",
     physicalName: (opts.physicalName ?? "test_table") as unknown as PhysicalName,
     category: opts.category,
