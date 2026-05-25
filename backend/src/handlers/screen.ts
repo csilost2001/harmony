@@ -14,7 +14,7 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { readProject } from "../projectStorage.js";
 import { wsBridge } from "../wsBridge.js";
 import { htmlToReact, toPascalCase } from "../reactExporter.js";
-import { assertEntityIdOrUuidMcp, type ToolHandler } from "../mcpHelpers.js";
+import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
 export const handleScreenTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
@@ -99,7 +99,7 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "screenId は必須です");
       }
       // S-002: ID validation
-      assertEntityIdOrUuidMcp(a.screenId, "screenId");
+      assertEntityIdMcp(a.screenId, "screenId");
       // RFC #1021 pl-6 (Codex B-2): purpose / pageLayoutId も update 可能に
       await wsBridge.sendCommand("updateScreenMeta", {
         screenId: a.screenId,
@@ -123,7 +123,7 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "screenId は必須です");
       }
       // S-002: ID validation
-      assertEntityIdOrUuidMcp(a.screenId, "screenId");
+      assertEntityIdMcp(a.screenId, "screenId");
       await wsBridge.sendCommand("removeScreenNode", { screenId: a.screenId });
       return {
         content: [
@@ -137,7 +137,7 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "screenId は必須です");
       }
       // S-002: ID validation
-      assertEntityIdOrUuidMcp(a.screenId, "screenId");
+      assertEntityIdMcp(a.screenId, "screenId");
 
       // ブラウザ側から HTML + 画面名を取得
       const result = (await wsBridge.sendCommand("exportScreen", {

@@ -22,7 +22,7 @@ import {
   type RenameEntityType,
   type EditSessionLike,
 } from "../renameEntity.js";
-import { assertEntityId, assertEntityIdOrUuid, assertSafeName } from "../security/idValidator.js";
+import { assertEntityId, assertSafeName } from "../security/idValidator.js";
 import type { DraftResourceType as EditSessionResourceType } from "../editSessionStore.js";
 import type { WsBridge } from "../wsBridge.js";
 import type { RpcHandlerMap } from "./types.js";
@@ -204,7 +204,7 @@ export const refactorHandlers: RpcHandlerMap = {
         entityType: unknown; oldId: unknown; newId: unknown;
       };
       const et = assertEntityType(entityType, "entityType");
-      assertEntityIdOrUuid(oldId, "oldId");
+      assertEntityId(oldId, "oldId");
       assertEntityId(newId, "newId");
       const sessionId = clientId;
       const wid = wsId();
@@ -225,7 +225,7 @@ export const refactorHandlers: RpcHandlerMap = {
         entityType: unknown; oldId: unknown; newId: unknown;
       };
       const et = assertEntityType(entityType, "entityType");
-      assertEntityIdOrUuid(oldId, "oldId");
+      assertEntityId(oldId, "oldId");
       assertEntityId(newId, "newId");
       const sessionId = clientId;
       const wid = wsId();

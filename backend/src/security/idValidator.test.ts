@@ -10,13 +10,11 @@ import {
   isValidKind,
   isValidHistoryId,
   isValidEntityId,
-  isValidEntityIdOrUuid,
   assertUuid,
   assertSafeName,
   assertKind,
   assertHistoryId,
   assertEntityId,
-  assertEntityIdOrUuid,
   assertPathContained,
 } from "./idValidator.js";
 
@@ -368,31 +366,6 @@ describe("isValidEntityId", () => {
   });
 });
 
-describe("isValidEntityIdOrUuid", () => {
-  it("正常: EntityId 形式を accept", () => {
-    expect(isValidEntityIdOrUuid("order-form")).toBe(true);
-    expect(isValidEntityIdOrUuid("flow-1")).toBe(true);
-  });
-
-  it("正常: UUID 形式を accept (移行期間 compat)", () => {
-    expect(isValidEntityIdOrUuid("267e94bf-0397-44b8-b665-d3c40c38935b")).toBe(true);
-    expect(isValidEntityIdOrUuid("00000000-0000-0000-0000-000000000000")).toBe(true);
-  });
-
-  it("異常: 不正な形式 (大文字 + 非 UUID)", () => {
-    expect(isValidEntityIdOrUuid("OrderForm")).toBe(false);
-    expect(isValidEntityIdOrUuid("order_form")).toBe(false);
-  });
-
-  it("異常: 空文字", () => {
-    expect(isValidEntityIdOrUuid("")).toBe(false);
-  });
-
-  it("異常: path traversal", () => {
-    expect(isValidEntityIdOrUuid("../etc/passwd")).toBe(false);
-  });
-});
-
 describe("assertEntityId", () => {
   it("正常: 有効な EntityId なら値を返す", () => {
     expect(assertEntityId("order-form", "screenId")).toBe("order-form");
@@ -412,29 +385,6 @@ describe("assertEntityId", () => {
 
   it("異常: null で throw", () => {
     expect(() => assertEntityId(null, "screenId")).toThrow("Invalid screenId");
-  });
-});
-
-describe("assertEntityIdOrUuid", () => {
-  it("正常: EntityId 形式を accept", () => {
-    expect(assertEntityIdOrUuid("order-form", "screenId")).toBe("order-form");
-  });
-
-  it("正常: UUID 形式を accept (移行期間 compat)", () => {
-    const uuid = "267e94bf-0397-44b8-b665-d3c40c38935b";
-    expect(assertEntityIdOrUuid(uuid, "screenId")).toBe(uuid);
-  });
-
-  it("異常: 大文字混じり (どちらの形式でもない) で throw", () => {
-    expect(() => assertEntityIdOrUuid("OrderForm", "screenId")).toThrow("Invalid screenId");
-  });
-
-  it("異常: 空文字で throw", () => {
-    expect(() => assertEntityIdOrUuid("", "screenId")).toThrow("Invalid screenId");
-  });
-
-  it("異常: path traversal で throw", () => {
-    expect(() => assertEntityIdOrUuid("../etc/passwd", "screenId")).toThrow("Invalid screenId");
   });
 });
 

@@ -51,17 +51,6 @@ export function isValidEntityId(s: unknown): s is string {
   return typeof s === "string" && s.length <= ENTITY_ID_MAX_LENGTH && ENTITY_ID_RE.test(s);
 }
 
-/**
- * EntityId | UUID v4 のどちらかを accept する (RFC #1284 移行期間 compat)。
- *
- * I-3 (examples migration) 完了前は既存 examples の `<UUID>.json` を読む必要があるため、
- * handler / wsHandler 入口は本 validator で両形式を accept する。
- * I-3 完了後の I-7 で `assertEntityIdOrUuid` → `assertEntityId` に締め切る (本 ISSUE スコープ外)。
- */
-export function isValidEntityIdOrUuid(s: unknown): s is string {
-  return isValidEntityId(s) || isValidUuid(s);
-}
-
 // ── assert 系 (throw on fail) ─────────────────────────────────────────────────
 
 export function assertUuid(s: unknown, label: string): string {
@@ -88,28 +77,16 @@ export function assertKind(s: unknown, label: string): string {
 /**
  * EntityId 形式 (kebab-case) を strict に強制する assert (RFC #1284)。
  *
- * 用途: write 関数の data 内部 (`root.id` or `meta.id`) で旧 UUID 形式の埋め込みを拒否し、
- * 新形式 (EntityId) に統一する。handler 入口は `assertEntityIdOrUuid` を使う。
+ * 用途: handler / wsHandler 入口 (MCP tool args / WS RPC params) および
+ * write 関数の data 内部 (`root.id` or `meta.id`) の id 検証。
+ *
+ * I-7 (#1299) で I-2 由来の `assertEntityIdOrUuid` compat shim を撤廃し、
+ * EntityId (kebab-case) のみを受ける strict モードに統一した。
  */
 export function assertEntityId(s: unknown, label: string): string {
   if (!isValidEntityId(s)) {
     throw new Error(
       `Invalid ${label}: must be kebab-case EntityId matching ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ with length 1..64 (got ${JSON.stringify(s)})`,
-    );
-  }
-  return s;
-}
-
-/**
- * EntityId | UUID v4 のどちらかを accept する assert (RFC #1284 移行期間 compat)。
- *
- * 用途: handler / wsHandler 入口 (MCP tool args / WS RPC params)。
- * I-3 完了前の examples (UUID 形式) と、I-2 以降に新規生成される data (EntityId) の両方を受ける。
- */
-export function assertEntityIdOrUuid(s: unknown, label: string): string {
-  if (!isValidEntityIdOrUuid(s)) {
-    throw new Error(
-      `Invalid ${label}: must be kebab-case EntityId or UUID v4 (got ${JSON.stringify(s)})`,
     );
   }
   return s;
