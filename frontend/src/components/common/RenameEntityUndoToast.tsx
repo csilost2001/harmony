@@ -8,7 +8,8 @@
  *
  * Phase M (#1298 round 8) で hook `useRenameEntityUndoToast` を別 file
  * (`./useRenameEntityUndoToast`) に分離。Vite Fast Refresh 警告解消 (Anti N-1)。
- * backward compat 用に re-export を残す。
+ * caller (Designer / TableEditor / ProcessFlowEditor / ...) は新 file から
+ * 直接 import する。本 file は component 単独 export (re-export なし)。
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { mcpBridge } from "../../mcp/mcpBridge";

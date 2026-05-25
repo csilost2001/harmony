@@ -65,6 +65,12 @@ export function useRenameEntityUndoToast(
   const computedKey = currentId ? renameUndoStorageKey(entityType, currentId, wsId) : null;
 
   // render phase での stale state reset (key 変化時、setState ループ防止のため一度のみ)
+  //
+  // Phase N N-R9-2 (#1298 round 9): React 公式 doc が推奨する "Storing information from
+  // previous renders" pattern (https://react.dev/reference/react/useState#storing-information-from-previous-renders)。
+  // 一部 ESLint plugin (`react-hooks/set-state-in-render` 等) は将来 enable された場合に
+  // 警告対象となる可能性がある。React 19+ migration 時には `use()` hook 等での書き直しを
+  // 検討候補とする (現状は React 公式推奨に沿うため維持)。
   if (computedKey !== prevKeyRef.current) {
     // 注: setState を直接呼ぶと無限ループのリスクがあるため、ref 比較で差分のときのみ
     //     setToast を呼ぶ。ref は次 render では既に新値で初期化されているため idempotent。

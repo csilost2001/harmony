@@ -2663,3 +2663,199 @@ describe("renameEntityId — Phase M SF-2: preflight cache は TTL 切れ entry 
     expect(afterSweep).toBe(0);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase N M-R9-1: draft-state View / ViewDefinition / PageLayout / Table を
+//   filename baseline で scan source 化する (Codex r8 M-1 を全 entity に横展開)
+//
+// 旧実装は View / VD / PL / Table の scan source を `listAllViews()` 等
+// (data.id baseline) で列挙していたため、`id` field 欠落の draft fixture や
+// `filename ≠ data.id` の drift fixture が scan から silent に除外され、
+// 関連 entity (Table / Screen) の rename 後に orphan ref が残る integrity
+// break が発生していた。Phase M で Sequence のみ対称な fix が当たっていた。
+// Phase N で同じ root cause を 4 entity に横展開し、`detectAmbiguousDependencies`
+// の同根 draft View 見逃し (SF-R9-1) も同 commit で吸収する。
+// ─────────────────────────────────────────────────────────────────────────
+describe("renameEntityId — Phase N M-R9-1: draft-state View / ViewDefinition / PageLayout / Table も filename baseline で scan される", () => {
+  it("M-R9-1a: draft View (id 欠落) の dependencies[] が Table rename で rewrite される", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "src-table");
+    // draft View = id field 欠落 (docs/spec/draft-state-policy.md §29-33 で許容)
+    await writeView("draft-view", {
+      // id field 意図的に欠落
+      baseTable: "src-table",
+      columns: [],
+      dependencies: ["src-table"],
+    }, root);
+
+    const { preview } = await renameEntityId("table", "src-table", "renamed-table", root);
+    expect(preview.refUpdates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        filePath: "views/draft-view.json",
+        jsonPointer: "/dependencies/0",
+      }),
+    ]));
+    const after = await readJsonFile<{ dependencies: string[] }>(
+      dataPath(root, "views", "draft-view.json"),
+    );
+    expect(after.dependencies[0]).toBe("renamed-table");
+  });
+
+  it("M-R9-1b: draft ViewDefinition (id 欠落) の sourceTableId が Table rename で rewrite される", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "src-table");
+    // draft ViewDefinition = id field 欠落
+    await writeViewDefinition("draft-vd", {
+      // id field 意図的に欠落
+      kind: "list",
+      sourceTableId: "src-table",
+    }, root);
+
+    const { preview } = await renameEntityId("table", "src-table", "renamed-table", root);
+    expect(preview.refUpdates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        filePath: "view-definitions/draft-vd.json",
+        jsonPointer: "/sourceTableId",
+      }),
+    ]));
+    const after = await readJsonFile<{ sourceTableId: string }>(
+      dataPath(root, "view-definitions", "draft-vd.json"),
+    );
+    expect(after.sourceTableId).toBe("renamed-table");
+  });
+
+  it("M-R9-1c: draft PageLayout (id 欠落) の assignments map value が Screen rename で rewrite される", async () => {
+    const root = await makeWorkspace();
+    // gadget Screen を seed (assignments の value が指す先)
+    await writeScreenEntity("widget-screen", {
+      id: "widget-screen",
+      name: "widget",
+      purpose: "gadget",
+      items: [],
+    }, root);
+    // draft PageLayout = id field 欠落
+    await writePageLayout("draft-pl", {
+      // id field 意図的に欠落
+      regions: [{ name: "side" }],
+      assignments: { side: "widget-screen" },
+      design: { kind: "puck", contentRef: "draft-pl.design.json" },
+    }, root);
+
+    const { preview } = await renameEntityId("screen", "widget-screen", "renamed-screen", root);
+    expect(preview.refUpdates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        filePath: "page-layouts/draft-pl.json",
+        jsonPointer: "/assignments/side",
+      }),
+    ]));
+    const after = await readJsonFile<{ assignments: Record<string, string> }>(
+      dataPath(root, "page-layouts", "draft-pl.json"),
+    );
+    expect(after.assignments.side).toBe("renamed-screen");
+  });
+
+  it("M-R9-1d: drift View (filename = drift-view, data.id = other-view) が filename baseline で scan される", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "src-table");
+    // filename = "drift-view", data.id = "other-view" (drift)
+    await writeView("drift-view", {
+      id: "other-view", // drift
+      baseTable: "src-table",
+      columns: [],
+      dependencies: ["src-table"],
+    }, root);
+
+    const { preview } = await renameEntityId("table", "src-table", "drift-fixed", root);
+    // preview の filePath は filename baseline で報告されること
+    expect(preview.refUpdates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        filePath: "views/drift-view.json",
+        jsonPointer: "/dependencies/0",
+      }),
+    ]));
+    // 実 file (drift-view.json) が rewrite され、drift baseline (other-view.json)
+    // が誤って書き込まれないこと
+    const after = await readJsonFile<{ dependencies: string[] }>(
+      dataPath(root, "views", "drift-view.json"),
+    );
+    expect(after.dependencies[0]).toBe("drift-fixed");
+    // other-view.json は作成されていないはず
+    await expect(fs.access(dataPath(root, "views", "other-view.json"))).rejects.toThrow();
+  });
+
+  it("M-R9-1e: draft Table (id 欠落) の foreignKeys[].referencedTableId が Table rename で rewrite される", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "primary-table");
+    // draft 子 Table = id field 欠落 + FK 制約で primary-table を参照
+    await writeTable("draft-child", {
+      // id field 意図的に欠落
+      name: "draft-child",
+      columns: [
+        { id: "fk-col", name: "primary_id", type: "string", primaryKey: false, nullable: true },
+      ],
+      constraints: [
+        {
+          id: "fk-1",
+          kind: "foreignKey",
+          columnIds: ["fk-col"],
+          referencedTableId: "primary-table",
+          referencedColumnIds: ["id"],
+        },
+      ],
+    }, root);
+
+    const { preview } = await renameEntityId("table", "primary-table", "renamed-primary", root);
+    expect(preview.refUpdates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        filePath: "tables/draft-child.json",
+        jsonPointer: "/constraints/0/referencedTableId",
+      }),
+    ]));
+    const after = await readJsonFile<{ constraints: Array<{ referencedTableId: string }> }>(
+      dataPath(root, "tables", "draft-child.json"),
+    );
+    expect(after.constraints[0].referencedTableId).toBe("renamed-primary");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase N SF-R9-1: detectAmbiguousDependencies も filename baseline で
+//   draft View を検知 (M-R9-1 と同根 anti-pattern、second-order safety)
+// ─────────────────────────────────────────────────────────────────────────
+describe("renameEntityId — Phase N SF-R9-1: detectAmbiguousDependencies は draft View も filename baseline で走査する", () => {
+  it("draft View の dependencies[] に Table/View 同名 ambiguous ref が含まれる場合、preview で警告が出る", async () => {
+    const root = await makeWorkspace();
+    // Table と同名 (filename baseline) の View を別 type に作成 → ambiguous 条件成立。
+    // detectAmbiguousDependencies は listExistingEntityIds (filename baseline) で
+    // 同名 entity を検知するため、View の filename を Table の id と一致させる。
+    await seedTable(root, "duplicate-id");
+    await writeView("duplicate-id", {
+      id: "duplicate-id",
+      baseTable: "duplicate-id",
+      columns: [],
+    }, root);
+    // draft View (id 欠落) が dependencies に "duplicate-id" を含む
+    await writeView("draft-consumer", {
+      // id field 意図的に欠落
+      baseTable: "x",
+      columns: [],
+      dependencies: ["duplicate-id"],
+    }, root);
+
+    // Table rename を試みると、draft-consumer の dependencies[] が
+    // 「Table を指すのか View を指すのか不明」となるため preview で
+    // ambiguous block が立つはず。
+    const preview = await previewEntityRename(
+      "table",
+      "duplicate-id",
+      "table-renamed",
+      root,
+    );
+    expect(preview.ambiguousDependencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        viewId: "draft-consumer",
+        filePath: "views/draft-consumer.json",
+      }),
+    ]));
+  });
+});

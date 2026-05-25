@@ -30,14 +30,10 @@ import {
   writeSequence,
   readView,
   writeView,
-  listAllViews,
   readViewDefinition,
   writeViewDefinition,
-  listAllViewDefinitions,
   readPageLayout,
   writePageLayout,
-  listAllPageLayouts,
-  listAllTables,
   readScreenFlowPositions,
   readErLayout,
   erLayoutFile,
@@ -1177,22 +1173,31 @@ async function scanAllRefs(
   }
 
   // 3. View
-  const views = (await listAllViews(root)) as Array<Record<string, unknown>>;
-  for (const v of views) {
-    const vid = typeof v.id === "string" ? v.id : null;
+  //
+  // Phase N M-R9-1 (#1298 round 9): Phase M Codex M-1 (Sequence) の対称修正を View にも適用。
+  // 旧実装 `listAllViews()` + `typeof v.id === "string"` filter は data.id baseline のため
+  // draft fixture (id 欠落) や drift fixture (filename ≠ data.id) を silent skip し、
+  // 関連 Table rename で orphan ref を残す silent integrity break が発生していた。
+  // ProcessFlow / Screen / Sequence と同じ filename baseline (`listExistingEntityIds("view")`)
+  // で id 列挙し、`readView(filenameId)` で source 化する。
+  const viewIds = await listExistingEntityIds("view", root);
+  for (const vid of viewIds) {
     if (!vid) continue;
+    const view = await readView(vid, root);
+    if (!view) continue;
     sources.push({
       entityKind: "view", entityId: vid,
       absPath: path.join(dataRoot, "views", `${vid}.json`),
-      data: v,
+      data: view,
     });
   }
 
-  // 4. ViewDefinition
-  const vds = (await listAllViewDefinitions(root)) as Array<Record<string, unknown>>;
-  for (const vd of vds) {
-    const vdid = typeof vd.id === "string" ? vd.id : null;
+  // 4. ViewDefinition (Phase N M-R9-1: filename baseline 化、View と同根)
+  const vdIds = await listExistingEntityIds("viewDefinition", root);
+  for (const vdid of vdIds) {
     if (!vdid) continue;
+    const vd = await readViewDefinition(vdid, root);
+    if (!vd) continue;
     sources.push({
       entityKind: "viewDefinition", entityId: vdid,
       absPath: path.join(dataRoot, "view-definitions", `${vdid}.json`),
@@ -1200,11 +1205,13 @@ async function scanAllRefs(
     });
   }
 
-  // 5. PageLayout (主 entity のみ、design.json は GrapesJS HTML 用なので skip)
-  const pls = (await listAllPageLayouts(root)) as Array<Record<string, unknown>>;
-  for (const pl of pls) {
-    const pid = typeof pl.id === "string" ? pl.id : null;
+  // 5. PageLayout (Phase N M-R9-1: filename baseline 化、View と同根)
+  //    主 entity のみ、design.json は GrapesJS HTML 用なので skip
+  const plIds = await listExistingEntityIds("pageLayout", root);
+  for (const pid of plIds) {
     if (!pid) continue;
+    const pl = await readPageLayout(pid, root);
+    if (!pl) continue;
     sources.push({
       entityKind: "pageLayout", entityId: pid,
       absPath: path.join(dataRoot, "page-layouts", `${pid}.json`),
@@ -1213,10 +1220,12 @@ async function scanAllRefs(
   }
 
   // 6. Table (column.references / 他 table 参照は scope 外だが、念のため全 table を走査)
-  const tables = (await listAllTables(root)) as Array<Record<string, unknown>>;
-  for (const t of tables) {
-    const tid = typeof t.id === "string" ? t.id : null;
+  //    Phase N M-R9-1: filename baseline 化、View と同根
+  const tableIds = await listExistingEntityIds("table", root);
+  for (const tid of tableIds) {
     if (!tid) continue;
+    const t = await readTable(tid, root);
+    if (!t) continue;
     sources.push({
       entityKind: "table", entityId: tid,
       absPath: path.join(dataRoot, "tables", `${tid}.json`),
@@ -1624,11 +1633,18 @@ async function detectAmbiguousDependencies(
   if (!otherIds.includes(oldId)) return []; // 同名 entity が他 type に無ければ ambiguous でない
 
   // 全 View を走査し、dependencies[] に oldId を含むものを探す
-  const views = (await listAllViews(root)) as Array<Record<string, unknown>>;
+  //
+  // Phase N SF-R9-1 (#1298 round 9): scanAllRefs と同根の draft-tolerance fix。
+  // 旧実装 `listAllViews()` + `typeof v.id === "string"` filter は data.id baseline で
+  // draft View (id 欠落) を silent skip するため、M-R9-1 修正後も ambiguous 検知から
+  // 漏れる second-order risk が残っていた。filename baseline (`listExistingEntityIds("view")`)
+  // + `readView(filenameId)` に揃え、draft View の dependencies[] も ambiguous 判定対象にする。
+  const viewIds = await listExistingEntityIds("view", root);
   const results: AmbiguousDependencyRef[] = [];
-  for (const v of views) {
-    const vid = typeof v.id === "string" ? v.id : null;
+  for (const vid of viewIds) {
     if (!vid) continue;
+    const v = (await readView(vid, root)) as Record<string, unknown> | null;
+    if (!v) continue;
     const deps = v.dependencies;
     if (!Array.isArray(deps)) continue;
     if (!deps.some((d) => typeof d === "string" && d === oldId)) continue;
