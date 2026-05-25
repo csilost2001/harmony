@@ -50,6 +50,12 @@ export interface UseResourceEditorOptions<T> {
    * 指定されない場合は旧 draft-update (resourceType/resourceId) でフィルタする。
    */
   viewerEditSessionId?: string;
+  /**
+   * I-7 Round 3 G-5 (#1299 Codex S-R2-1): rename-in-progress 判定の workspace scoping。
+   * `useWorkspacePath().wsId` を渡すと、`isRenameInProgressByTabType` の key に wsId を
+   * 含めて multi-workspace 跨ぎでの誤抑制を防ぐ。省略時は従来動作 (`_` placeholder)。
+   */
+  wsId?: string;
 }
 
 export interface UseResourceEditorResult<T> {
@@ -104,6 +110,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
     viewerMode,
     viewerResourceType,
     viewerEditSessionId,
+    wsId,
   } = opts;
 
   const [isDirty, setIsDirty] = useState(false);
@@ -175,7 +182,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
       // 登録しているため、現在の url id が in-flight 中なら redirect を skip する。
       // navigate は handleRenameSuccess 側で replace=true 実行済のため、ここで silent
       // skip しても新 url への遷移は別途確定する。
-      if (isRenameInProgressByTabType(tabType, id)) {
+      if (isRenameInProgressByTabType(tabType, id, wsId)) {
         return;
       }
       onNotFoundRef.current?.();
@@ -195,7 +202,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
       clearDraft(draftKind, id);
     }
     onLoadedRef.current?.(loaded);
-  }, [id, load, draftKind, tabType, resetState]);
+  }, [id, load, draftKind, tabType, wsId, resetState]);
 
   const handleSave = useCallback(async () => {
     if (!state || !id) return;
@@ -236,8 +243,8 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
     const loaded = await load(id);
     if (!loaded) {
       // I-7 Round 2 F-3 (#1299 Codex review M-4 / Opus review M-2): rename in-flight 中は
-      // redirect skip (reload と同パターン)
-      if (isRenameInProgressByTabType(tabType, id)) {
+      // redirect skip (reload と同パターン)。Round 3 G-5: wsId scoping (multi-workspace 跨ぎ誤抑制回避)。
+      if (isRenameInProgressByTabType(tabType, id, wsId)) {
         return;
       }
       onNotFoundRef.current?.();
@@ -250,7 +257,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
     setServerChanged(false);
     await acknowledgeServerMtime(mtimeKind, id);
     onLoadedRef.current?.(loaded);
-  }, [id, draftKind, load, tabType, mtimeKind, resetState]);
+  }, [id, draftKind, load, tabType, wsId, mtimeKind, resetState]);
 
   const dismissServerBanner = useCallback(() => {
     setServerChanged(false);

@@ -105,6 +105,8 @@ export function TableEditor() {
     viewerMode: mode.kind as "viewer" | "editing" | "readonly",
     viewerResourceType: "table",
     viewerEditSessionId: editSession?.id,
+    // I-7 Round 3 G-5 (#1299 Codex S-R2-1): rename-in-progress 判定の wsId scoping
+    wsId,
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -456,6 +458,7 @@ export function TableEditor() {
               label: table.physicalName || table.name || newId,
               navigate,
               wsPath,
+              wsId,
             });
             setRenameUndoToast({
               operationId, oldId: tableId, newId,
@@ -482,6 +485,7 @@ export function TableEditor() {
               label: table.physicalName || table.name || renameUndoToast.oldId,
               navigate,
               wsPath,
+              wsId,
             });
             setRenameUndoToast(null);
           }}

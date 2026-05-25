@@ -79,4 +79,38 @@ describe("renameInProgress", () => {
     expect(isRenameInProgressByTabType("table", "order")).toBe(false);
     expect(isRenameInProgressByTabType("view", "customer-summary")).toBe(false);
   });
+
+  // I-7 Round 3 G-5 (#1299 Codex S-R2-1): wsId scoping
+  describe("wsId scoping", () => {
+    it("wsId 指定なし (legacy) と未指定で同じ key として動く (back-compat)", () => {
+      markRenameInProgress("table", "order");
+      expect(isRenameInProgressByTabType("table", "order")).toBe(true);
+      // 引数 wsId 省略は `_` placeholder で同 key
+      expect(isRenameInProgressByTabType("table", "order", undefined)).toBe(true);
+    });
+
+    it("異なる wsId は独立 (workspace A の rename は workspace B の判定に影響しない)", () => {
+      markRenameInProgress("table", "order", "ws-A");
+      expect(isRenameInProgressByTabType("table", "order", "ws-A")).toBe(true);
+      // workspace B では false (multi-workspace 跨ぎ誤抑制 bug の再発防止)
+      expect(isRenameInProgressByTabType("table", "order", "ws-B")).toBe(false);
+      // wsId 未指定 (placeholder `_`) も別 key
+      expect(isRenameInProgressByTabType("table", "order")).toBe(false);
+    });
+
+    it("同 wsId + 同 entityType + 同 id は in-flight 判定 true", () => {
+      markRenameInProgress("processFlow", "order-checkout", "ws-retail");
+      expect(isRenameInProgressByTabType("process-flow", "order-checkout", "ws-retail")).toBe(true);
+      expect(isRenameInProgressByTabType("process-flow", "order-checkout", "ws-other")).toBe(false);
+    });
+
+    it("wsId scoping 下でも TTL は機能する", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-05-26T00:00:00.000Z"));
+      markRenameInProgress("table", "order", "ws-A");
+      expect(isRenameInProgressByTabType("table", "order", "ws-A")).toBe(true);
+      vi.setSystemTime(new Date("2026-05-26T00:00:03.001Z"));
+      expect(isRenameInProgressByTabType("table", "order", "ws-A")).toBe(false);
+    });
+  });
 });

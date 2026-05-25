@@ -864,6 +864,7 @@ export function Designer({
               label: screenName ?? newId,
               navigate,
               wsPath,
+              wsId,
             });
             setRenameUndoToast({
               operationId, oldId: screenId, newId,
@@ -888,6 +889,7 @@ export function Designer({
               label: screenName ?? renameUndoToast.oldId,
               navigate,
               wsPath,
+              wsId,
             });
             setRenameUndoToast(null);
           }}

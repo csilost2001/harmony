@@ -218,6 +218,8 @@ export function ProcessFlowEditor() {
     viewerMode: mode.kind as "viewer" | "editing" | "readonly" | undefined,
     viewerResourceType: "process-flow",
     viewerEditSessionId: editSession?.id,
+    // I-7 Round 3 G-5 (#1299 Codex S-R2-1): rename-in-progress 判定の wsId scoping
+    wsId,
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -1148,6 +1150,7 @@ export function ProcessFlowEditor() {
               label: group.meta?.name ?? newId,
               navigate,
               wsPath,
+              wsId,
             });
             setRenameUndoToast({
               operationId, oldId: processFlowId, newId,
@@ -1173,6 +1176,7 @@ export function ProcessFlowEditor() {
               label: group.meta?.name ?? renameUndoToast.oldId,
               navigate,
               wsPath,
+              wsId,
             });
             setRenameUndoToast(null);
           }}

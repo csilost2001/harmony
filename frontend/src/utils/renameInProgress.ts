@@ -11,10 +11,15 @@
  * → `/<entityType>/list` redirect。これは handleRenameSuccess 内の navigate(replace)
  * と race して、たまに list 経由に飛んでしまう。
  *
- * 対策: handleRenameSuccess の冒頭で `<entityType>:<id>` (oldId / newId 両方) を
+ * 対策: handleRenameSuccess の冒頭で `<wsId>:<entityType>:<id>` (oldId / newId 両方) を
  * suppress set に登録 + TTL 経過 (3000ms) で自動 expire。`useResourceEditor.reload()`
- * は load=null 時に `isRenameInProgress(entityType, id)` をチェックし、true なら
- * onNotFound を呼ばずに silent skip する。
+ * は load=null 時に `isRenameInProgressByTabType(tabType, id, wsId)` をチェックし、
+ * true なら onNotFound を呼ばずに silent skip する。
+ *
+ * I-7 Round 3 G-5 (#1299 Codex S-R2-1): key に `wsId` を含めるよう scoping を追加。
+ *   multi-workspace で wsA の rename 中に wsB の同名 id editor が broadcast を受けても
+ *   誤抑制しない (cross-workspace で entity 名衝突するケースで silent skip すると onNotFound
+ *   redirect 期待動作が壊れる)。wsId 未指定 path は `_` placeholder で従来動作。
  *
  * TTL は SPA 内 navigate 完了 + broadcast 配信 + reload load 完了が現実的に 3 秒で十分。
  * 漏れた場合 (例: backend 遅延) は通常通り `/<entityType>/list` に飛ぶ (degradation)。
@@ -27,12 +32,12 @@ import { getRenameEntityMeta, type RenameEntityType } from "./renameEntityMappin
 
 const RENAME_IN_PROGRESS_TTL_MS = 3000;
 
-// key=`${tabType}:${id}` の Set。tabType は useResourceEditor から渡されるため
-// editor 側で entityType → tabType の mapping を持たずに済む。
+// key=`${wsId ?? "_"}:${tabType}:${id}` の Map。
+// I-7 Round 3 G-5: wsId を key に含めて multi-workspace 跨ぎの誤抑制を防ぐ。
 const inFlight = new Map<string, number>(); // value=expireMs
 
-function makeKey(tabType: string, id: string): string {
-  return `${tabType}:${id}`;
+function makeKey(wsId: string | undefined, tabType: string, id: string): string {
+  return `${wsId ?? "_"}:${tabType}:${id}`;
 }
 
 function purgeExpired(now: number): void {
@@ -42,31 +47,44 @@ function purgeExpired(now: number): void {
 }
 
 /**
- * `<entityType>:<id>` を rename-in-progress set に登録する (TTL: 3000ms)。
+ * `<wsId>:<entityType>:<id>` を rename-in-progress set に登録する (TTL: 3000ms)。
  *
  * `handleRenameSuccess` / undo path から呼ぶ。oldId / newId 両方の登録を推奨
  * (どちらの URL がまだ navigate 未完了の editor に残っているか不明なため)。
  *
  * 内部 storage key は entityType → tabType に正規化する (useResourceEditor 側は
  * tabType しか持たないため)。
+ *
+ * @param wsId 現在の active workspace id。undefined の場合 `_` placeholder で従来動作。
+ *   Round 3 G-5 (#1299 Codex S-R2-1) で追加: multi-workspace 跨ぎの誤抑制を防ぐ。
  */
-export function markRenameInProgress(entityType: RenameEntityType, id: string): void {
+export function markRenameInProgress(
+  entityType: RenameEntityType,
+  id: string,
+  wsId?: string,
+): void {
   const tabType = getRenameEntityMeta(entityType).tabType;
   const now = Date.now();
   purgeExpired(now);
-  inFlight.set(makeKey(tabType, id), now + RENAME_IN_PROGRESS_TTL_MS);
+  inFlight.set(makeKey(wsId, tabType, id), now + RENAME_IN_PROGRESS_TTL_MS);
 }
 
 /**
- * `<tabType>:<id>` が rename-in-progress 中かを判定する (useResourceEditor 用)。
+ * `<wsId>:<tabType>:<id>` が rename-in-progress 中かを判定する (useResourceEditor 用)。
  *
  * `useResourceEditor.reload()` が `load(id)=null` の時に呼び、true なら
  * `onNotFound` の redirect を skip する。
+ *
+ * @param wsId 現在の active workspace id。undefined の場合 `_` placeholder で従来動作。
  */
-export function isRenameInProgressByTabType(tabType: string, id: string): boolean {
+export function isRenameInProgressByTabType(
+  tabType: string,
+  id: string,
+  wsId?: string,
+): boolean {
   const now = Date.now();
   purgeExpired(now);
-  return inFlight.has(makeKey(tabType, id));
+  return inFlight.has(makeKey(wsId, tabType, id));
 }
 
 /**

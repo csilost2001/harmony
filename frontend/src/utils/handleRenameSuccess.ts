@@ -34,6 +34,13 @@ export interface HandleRenameSuccessParams {
   navigate: (path: string, opts?: { replace?: boolean }) => void;
   /** `useWorkspacePath().wsPath` */
   wsPath: (path: string) => string;
+  /**
+   * 現在の active workspace id (`useWorkspacePath().wsId`)。
+   * I-7 Round 3 G-5 (#1299 Codex S-R2-1): multi-workspace 跨ぎでの
+   * `renameInProgress` 誤抑制を防ぐため key に wsId を含める。
+   * 省略時は従来動作 (`_` placeholder)。
+   */
+  wsId?: string;
 }
 
 /**
@@ -49,6 +56,7 @@ export function handleRenameSuccess({
   label,
   navigate,
   wsPath,
+  wsId,
 }: HandleRenameSuccessParams): void {
   const meta = getRenameEntityMeta(entityType);
   const oldTabId = makeTabId(meta.tabType, oldId);
@@ -60,8 +68,9 @@ export function handleRenameSuccess({
   // race を防ぐ。oldId / newId 双方を suppress set に登録し、editor が短窓内で stale
   // current-url-id の load 結果が null でも redirect しないようにする。
   // 旧 url の load (rename 前) は null になり、新 url への navigate が SPA 上で確定する。
-  markRenameInProgress(entityType, oldId);
-  markRenameInProgress(entityType, newId);
+  // Round 3 G-5: wsId を渡して multi-workspace 跨ぎの誤抑制を防ぐ。
+  markRenameInProgress(entityType, oldId, wsId);
+  markRenameInProgress(entityType, newId, wsId);
 
   // 旧 tab は force=true で閉じる (refactor 完了で dirty 警告は不要)
   closeTab(oldTabId, true);
