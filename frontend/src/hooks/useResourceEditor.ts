@@ -6,6 +6,7 @@ import { acknowledgeServerMtime, hasServerBeenUpdated, type MtimeKind } from "..
 import { setDirty as setTabDirty, makeTabId, type TabType } from "../store/tabStore";
 import { mcpBridge } from "../mcp/mcpBridge";
 import type { DraftResourceType } from "../types/draft";
+import { isRenameInProgressByTabType } from "../utils/renameInProgress";
 
 export interface UseResourceEditorOptions<T> {
   /** tabStore で使うタブ種別 */
@@ -167,6 +168,16 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
     if (!id) return;
     const loaded = await load(id);
     if (!loaded) {
+      // I-7 Round 2 F-3 (#1299 Codex review M-4 / Opus review M-2):
+      // rename / undo 完了直後の短窓 (3000ms) は、broadcast 受信→reload→load=null の
+      // sequence で onNotFound を呼んで /<entityType>/list に redirect する race が
+      // 発生する。handleRenameSuccess が markRenameInProgress で oldId/newId を
+      // 登録しているため、現在の url id が in-flight 中なら redirect を skip する。
+      // navigate は handleRenameSuccess 側で replace=true 実行済のため、ここで silent
+      // skip しても新 url への遷移は別途確定する。
+      if (isRenameInProgressByTabType(tabType, id)) {
+        return;
+      }
       onNotFoundRef.current?.();
       return;
     }
@@ -224,6 +235,11 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
     clearDraft(draftKind, id);
     const loaded = await load(id);
     if (!loaded) {
+      // I-7 Round 2 F-3 (#1299 Codex review M-4 / Opus review M-2): rename in-flight 中は
+      // redirect skip (reload と同パターン)
+      if (isRenameInProgressByTabType(tabType, id)) {
+        return;
+      }
       onNotFoundRef.current?.();
       return;
     }

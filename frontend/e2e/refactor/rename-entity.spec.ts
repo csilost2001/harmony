@@ -129,18 +129,14 @@ test.describe("Rename entity refactor — Table smoke (#1298 I-6)", { tag: ["@re
     const toast = page.getByTestId("rename-entity-undo-toast");
     await expect(toast).toBeVisible({ timeout: 5000 });
     await page.getByTestId("rename-entity-undo-btn").click();
-    // undo 成功で URL が遷移する。
-    // 期待 path は `/table/edit/${OLD_TABLE_ID}` (handleRenameSuccess の navigate 結果)。
-    // ただし race condition がある: undoEntityRename RPC 完了で backend が `tableChanged`
-    // broadcast を発火 → editor の onNotFound 経路 (`/table/list` へ replace) が
-    // handleRenameSuccess の navigate より先に成立するケースあり (editor は現 URL の
-    // NEW_TABLE_ID で reload → table が rename 戻されたので not found → /table/list)。
-    // この race は real user でも体感的に「list 経由 → old id 編集」と見えるため許容、
-    // file system 上の rename undo は step 7 (参照側 ProcessFlow JSON 確認) で別途検証する。
-    await expect(page).toHaveURL(
-      new RegExp(`/(table/edit/${OLD_TABLE_ID}(\\?|$)|table/list($|\\?))`),
-      { timeout: 10000 },
-    );
+    // undo 成功で URL が `/table/edit/${OLD_TABLE_ID}` に遷移する (handleRenameSuccess
+    // の navigate 結果)。I-7 Round 2 F-3 (#1299 Codex review M-4 / Opus review M-2):
+    // 旧版では undoEntityRename RPC 完了で backend が `tableChanged` broadcast を発火し
+    // editor の onNotFound 経路 (`/table/list` へ replace) が handleRenameSuccess の
+    // navigate より先に成立する race があったが、`utils/renameInProgress.ts` の
+    // suppress flag で broadcast 由来の load=null から onNotFound への redirect を
+    // skip するよう実装側で fix 済。e2e でも strict assertion に戻す。
+    await expect(page).toHaveURL(new RegExp(`/table/edit/${OLD_TABLE_ID}(\\?|$)`), { timeout: 10000 });
 
     // 7. undo 後、参照側 ProcessFlow の tableId が旧 id に rollback されていること
     await ws.gotoActive(page, `/process-flow/edit/${REFERENCING_FLOW_ID}`);

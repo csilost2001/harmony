@@ -22,6 +22,7 @@ import {
 import { _emitTableChangeForRename } from "../store/tableStore";
 import type { TableId } from "../types/v3/common";
 import { getRenameEntityMeta, type RenameEntityType } from "./renameEntityMapping";
+import { markRenameInProgress } from "./renameInProgress";
 
 export interface HandleRenameSuccessParams {
   entityType: RenameEntityType;
@@ -52,6 +53,15 @@ export function handleRenameSuccess({
   const meta = getRenameEntityMeta(entityType);
   const oldTabId = makeTabId(meta.tabType, oldId);
   const newTabId = makeTabId(meta.tabType, newId);
+
+  // I-7 Round 2 F-3 (#1299 Codex review M-4 / Opus review M-2):
+  // rename / undo 完了直後の窓 (broadcast 受信→reload→load(currentUrlId)=null) で
+  // useResourceEditor.reload() が onNotFound を呼んで /<entityType>/list に redirect する
+  // race を防ぐ。oldId / newId 双方を suppress set に登録し、editor が短窓内で stale
+  // current-url-id の load 結果が null でも redirect しないようにする。
+  // 旧 url の load (rename 前) は null になり、新 url への navigate が SPA 上で確定する。
+  markRenameInProgress(entityType, oldId);
+  markRenameInProgress(entityType, newId);
 
   // 旧 tab は force=true で閉じる (refactor 完了で dirty 警告は不要)
   closeTab(oldTabId, true);
