@@ -16,7 +16,8 @@ import type { Maturity } from "../../types/v3";
 import type { PageLayout, PageLayoutRegion } from "../../store/pageLayoutStore";
 import { loadPageLayout, savePageLayout, listPageLayouts } from "../../store/pageLayoutStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
-import { RenameEntityUndoToast, useRenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
@@ -59,7 +60,7 @@ export function PageLayoutEditor() {
   const { pageLayoutId: rawId } = useParams<{ pageLayoutId: string }>();
   const pageLayoutId = rawId ? decodeURIComponent(rawId) : rawId;
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
 
   const [gadgetScreens, setGadgetScreens] = useState<GadgetScreenOption[]>([]);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
@@ -67,7 +68,8 @@ export function PageLayoutEditor() {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   // #1298 I-6 (RFC #1284): id rename refactor 用 state
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("pageLayout", pageLayoutId);
+  // Phase M Codex SF-1 (#1298 round 8): wsId scoped key
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("pageLayout", pageLayoutId, wsId);
   const [allPageLayoutIds, setAllPageLayoutIds] = useState<string[]>([]);
   useEffect(() => {
     (async () => {

@@ -1,5 +1,4 @@
 import type { Sequence, SequenceEntry, SequenceId, PhysicalName, DisplayName, Timestamp } from "../types/v3";
-import { generateUUID } from "../utils/uuid";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { loadProject, saveProject } from "./flowStore";
 import { renumber, nextNo } from "../utils/listOrder";

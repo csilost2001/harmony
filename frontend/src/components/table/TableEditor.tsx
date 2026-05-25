@@ -25,7 +25,8 @@ import { useListKeyboard } from "../../hooks/useListKeyboard";
 import { useListSort } from "../../hooks/useListSort";
 import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
-import { RenameEntityUndoToast, useRenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { DataList, type DataListColumn } from "../common/DataList";
@@ -50,7 +51,7 @@ type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment";
 export function TableEditor() {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
   const [tab, setTab] = useState<TabId>("columns");
   const [ddlDialect, setDdlDialect] = useState<SqlDialect>("postgresql");
   const ddlOpen = window.innerWidth >= 2560;
@@ -61,7 +62,8 @@ export function TableEditor() {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   // #1298 I-6 (RFC #1284): id rename refactor 用 state
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("table", tableId);
+  // Phase M Codex SF-1 (#1298 round 8): wsId scoped key
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("table", tableId, wsId);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/table/list"), { replace: true }), [navigate, wsPath]);
 

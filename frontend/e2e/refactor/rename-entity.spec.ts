@@ -61,7 +61,7 @@ test.describe.skip("Rename entity refactor — Table smoke (#1298 I-6)", { tag: 
     if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
   });
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page: _page }) => {
     test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
   });
 

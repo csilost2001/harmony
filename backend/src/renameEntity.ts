@@ -28,7 +28,6 @@ import {
   writeProcessFlow,
   readSequence,
   writeSequence,
-  listAllSequences,
   readView,
   writeView,
   listAllViews,
@@ -1014,6 +1013,30 @@ export function _getReferencePreflightValidationCountForTest(): number {
   return _referencePreflightValidationCount;
 }
 
+/**
+ * test-only: cache に保持されている root 数 (Phase M SF-2 verification 用)。
+ */
+export function _getReferencePreflightCacheSizeForTest(): number {
+  return _referencePreflightCache.size;
+}
+
+/**
+ * Phase M Codex SF-2 (#1298 round 8): 期限切れ entry を eviction する。
+ * preflight 入口で時系列 sweep する + test から強制呼出も可能。
+ */
+function sweepExpiredReferencePreflightCache(nowMs: number = Date.now()): void {
+  for (const [key, entry] of _referencePreflightCache.entries()) {
+    if (entry.expiresAt <= nowMs) {
+      _referencePreflightCache.delete(key);
+    }
+  }
+}
+
+/** test-only: TTL sweep を強制呼出 (SF-2 verification 用)。 */
+export function _sweepReferencePreflightCacheForTest(nowMs: number): void {
+  sweepExpiredReferencePreflightCache(nowMs);
+}
+
 async function collectJsonDirectoryPaths(
   dir: string,
   include: (fileName: string) => boolean = (fileName) => fileName.endsWith(".json"),
@@ -1043,8 +1066,19 @@ async function sourceFingerprint(paths: readonly string[]): Promise<string> {
 /**
  * rename は参照更新漏れが orphan を作るため、scan source の parse/read error を
  * 「参照なし」と扱わない。通常 reader の draft tolerant 挙動とは分離した preflight。
+ *
+ * Phase M Codex M-2 (#1298 round 8): `enforceFresh=true` (execute path 限定) では
+ * cache を信用せず必ず実 parse する。preview path は `enforceFresh=false` で従来の
+ * cache hit 最適化を使う。これにより correctness boundary (rename commit 直前) は
+ * cache fingerprint collision の影響を受けない (size+mtime fingerprint で稀に同値を
+ * 取る external editor / sync / restore に対する safety net)。
  */
-async function assertReferenceSourcesReadable(root: string, dataRoot: string): Promise<void> {
+async function assertReferenceSourcesReadable(
+  root: string, dataRoot: string,
+  options: { enforceFresh?: boolean } = {},
+): Promise<void> {
+  // Phase M Codex SF-2: 入口で TTL sweep して memory retention を抑制
+  sweepExpiredReferencePreflightCache();
   const paths = (await Promise.all([
     collectJsonDirectoryPaths(path.join(dataRoot, "process-flows")),
     collectJsonDirectoryPaths(path.join(dataRoot, "actions")),
@@ -1078,7 +1112,9 @@ async function assertReferenceSourcesReadable(root: string, dataRoot: string): P
 
   const fingerprint = await sourceFingerprint(paths);
   const cached = _referencePreflightCache.get(root);
-  if (cached && cached.expiresAt > Date.now() && cached.fingerprint === fingerprint) {
+  // Phase M Codex M-2: execute path (enforceFresh=true) は cache を bypass。
+  // preview path (enforceFresh=false) のみ cache hit で skip 可。
+  if (!options.enforceFresh && cached && cached.expiresAt > Date.now() && cached.fingerprint === fingerprint) {
     return;
   }
   await Promise.all(paths.map((absPath) => assertReferenceJsonReadable(absPath)));
@@ -1095,9 +1131,10 @@ async function assertReferenceSourcesReadable(root: string, dataRoot: string): P
  */
 async function scanAllRefs(
   entityType: RenameEntityType, oldId: string, newId: string, root: string,
+  options: { enforceFresh?: boolean } = {},
 ): Promise<RefScanResult> {
   const dataRoot = await resolveDataRoot(root);
-  await assertReferenceSourcesReadable(root, dataRoot);
+  await assertReferenceSourcesReadable(root, dataRoot, { enforceFresh: options.enforceFresh });
   const scalarFields = new Set(SCALAR_REF_FIELDS[entityType]);
   const compositeFields = COMPOSITE_REF_FIELDS[entityType];
   const arrayFields = new Set(ARRAY_REF_FIELDS[entityType]);
@@ -1188,10 +1225,17 @@ async function scanAllRefs(
   }
 
   // 7. Sequence (usedBy[].tableId は TableColumnRef 経由の nested EntityId)
-  const sequences = (await listAllSequences(root)) as Array<Record<string, unknown>>;
-  for (const sequence of sequences) {
-    const sequenceId = typeof sequence.id === "string" ? sequence.id : null;
+  //
+  // Phase M Codex M-1 (#1298 round 8): draft-state-policy.md §29-33 で schema 違反
+  // (id field 欠落 / drift) でも保存可とされているため、ProcessFlow と同じく filename
+  // baseline (`listExistingEntityIds("sequence")`) で id 列挙し、`readSequence(filenameId)`
+  // を source 化する。`data.id` を信用すると draft fixture が source から除外され、
+  // Table rename が orphan ref を残す silent integrity break が発生する。
+  const seqIds = await listExistingEntityIds("sequence", root);
+  for (const sequenceId of seqIds) {
     if (!sequenceId) continue;
+    const sequence = await readSequence(sequenceId, root);
+    if (!sequence) continue;
     sources.push({
       entityKind: "sequence", entityId: sequenceId,
       absPath: path.join(dataRoot, "sequences", `${sequenceId}.json`),
@@ -2063,7 +2107,10 @@ async function _renameEntityIdImpl(
   if (filePlans.length === 0) {
     throw new Error(`${entityType} "${oldId}" の物理ファイルが見つかりません`);
   }
-  const refScan = await scanAllRefs(entityType, oldId, newId, root);
+  // Phase M Codex M-2 (#1298 round 8): execute path は cache を信用せず必ず strict re-parse する。
+  // size+mtime fingerprint は外部 editor / restore で稀に collision するため、correctness boundary
+  // である renameEntityId 経路は always fresh validation で safety を確保する。
+  const refScan = await scanAllRefs(entityType, oldId, newId, root, { enforceFresh: true });
 
   // Phase I round 3+4 Must-fix D: positions oldId+newId 同時存在は blocker。
   // screen-flow-positions / er-layout の座標 entry を migrate せず stale 残しで rename

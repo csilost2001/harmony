@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../hooks/useWorkspacePath";
 import { RenameEntityDialog } from "./common/RenameEntityDialog";
-import { RenameEntityUndoToast, useRenameEntityUndoToast } from "./common/RenameEntityUndoToast";
+import { RenameEntityUndoToast } from "./common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "./common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../utils/handleRenameSuccess";
 import { checkLegacyLocalStorage, executeRescue, clearLegacyLocalStorage } from "../grapes/legacyLocalStorageRescue";
 import { acknowledgeServerMtime } from "../utils/serverMtime";
@@ -151,9 +152,10 @@ export function Designer({
   const [showAiGenerateDialog, setShowAiGenerateDialog] = useState(false);
   // #1298 I-6 (RFC #1284): id rename refactor 用 state
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("screen", screenId);
+  // Phase M Codex SF-1 (#1298 round 8): wsId scoped key で workspace 切替時の metadata 混在を防ぐ
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("screen", screenId, wsId);
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
   useEffect(() => {
     (async () => {

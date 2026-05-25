@@ -9,7 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, renderHook, screen, fireEvent, waitFor } from "@testing-library/react";
-import * as UndoToastModule from "./RenameEntityUndoToast";
+import * as UndoToastModule from "./useRenameEntityUndoToast";
 import { RenameEntityUndoToast } from "./RenameEntityUndoToast";
 
 vi.mock("../../mcp/mcpBridge", () => ({
@@ -152,7 +152,8 @@ describe("RenameEntityUndoToast — Phase F S-1 (Codex 独立レビュー)", () 
 
 describe("useRenameEntityUndoToast — Phase L SF-R7-1 operation restoration", () => {
   it("sessionStorage metadata を server の TTL 内 operation と照合して mount 時に復元する", async () => {
-    sessionStorage.setItem("harmony-rename-undo:table:renamed", JSON.stringify({
+    // wsId が含まれる新 key 形式 (Phase M SF-1 — workspace scope)
+    sessionStorage.setItem("harmony-rename-undo:ws-1:table:renamed", JSON.stringify({
       operationId: "op-restored",
       oldId: "old",
       newId: "renamed",
@@ -167,7 +168,11 @@ describe("useRenameEntityUndoToast — Phase L SF-R7-1 operation restoration", (
     }]);
     const useRenameEntityUndoToast = (
       UndoToastModule as unknown as {
-        useRenameEntityUndoToast?: (entityType: string, currentId: string) => readonly [
+        useRenameEntityUndoToast?: (
+          entityType: string,
+          currentId: string,
+          wsId?: string,
+        ) => readonly [
           { operationId: string; ttlMs?: number } | null,
           (value: unknown) => void,
         ];
@@ -175,10 +180,51 @@ describe("useRenameEntityUndoToast — Phase L SF-R7-1 operation restoration", (
     ).useRenameEntityUndoToast;
 
     expect(useRenameEntityUndoToast).toBeTypeOf("function");
-    const { result } = renderHook(() => useRenameEntityUndoToast!("table", "renamed"));
+    const { result } = renderHook(() => useRenameEntityUndoToast!("table", "renamed", "ws-1"));
 
     await waitFor(() => expect(result.current[0]?.operationId).toBe("op-restored"));
     expect(result.current[0]?.ttlMs).toBe(245000);
     expect(mcpBridge.request).toHaveBeenCalledWith("listRecentUndoOperations", {});
+  });
+});
+
+describe("useRenameEntityUndoToast — Phase M SF-1 workspace scoping (Codex round 8)", () => {
+  it("wsId 別の同名 entity の sessionStorage key は混ざらず、別 workspace の hook mount が他 workspace の metadata を削除しない", async () => {
+    // ws-A で table:items を rename した状態の metadata を sessionStorage に格納 (wsId scoped key)
+    sessionStorage.setItem("harmony-rename-undo:ws-A:table:items", JSON.stringify({
+      operationId: "op-A",
+      oldId: "products",
+      newId: "items",
+      ttlMs: 300000,
+    }));
+
+    // ws-B で同名 entity "items" の editor を開く (B には rename operation がない → server は空配列)
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
+
+    const useRenameEntityUndoToast = (
+      UndoToastModule as unknown as {
+        useRenameEntityUndoToast?: (
+          entityType: string,
+          currentId: string,
+          wsId?: string,
+        ) => readonly [
+          { operationId: string; ttlMs?: number } | null,
+          (value: unknown) => void,
+        ];
+      }
+    ).useRenameEntityUndoToast;
+
+    expect(useRenameEntityUndoToast).toBeTypeOf("function");
+    const { result } = renderHook(() => useRenameEntityUndoToast!("table", "items", "ws-B"));
+
+    // ws-B の hook は ws-A の metadata を read / remove してはならない
+    // (key が wsId scoped であれば ws-B は "harmony-rename-undo:ws-B:table:items" を見るため、ws-A 側は無関係)
+    await waitFor(() => {
+      // hook が無事 settle する (timeout error がない)
+      expect(result.current[0]).toBeNull();
+    });
+
+    // ws-A 側 metadata は preserved
+    expect(sessionStorage.getItem("harmony-rename-undo:ws-A:table:items")).not.toBeNull();
   });
 });

@@ -93,7 +93,6 @@ export function ScreenEditModal({
         ...initial,
       });
       // S-3: isCreate に応じて idValidation を初期化 (edit 時は valid 固定で submit guard 通過)
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 同上、modal open に同期
       setIdValidation(
         isCreate
           ? { isFormatValid: false, isUnique: true, isInvalid: true }

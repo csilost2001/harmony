@@ -21,7 +21,6 @@ import type {
   Timestamp,
 } from "../types/v3";
 import { loadProject, saveProject } from "./flowStore";
-import { generateUUID } from "../utils/uuid";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { validateTable } from "../utils/tableValidation";
 import type { ValidationError } from "../utils/actionValidation";

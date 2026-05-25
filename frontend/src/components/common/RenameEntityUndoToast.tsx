@@ -5,106 +5,18 @@
  * - 5 分 TTL で auto-dismiss (backend in-memory undo store の TTL に合わせる)
  * - 「元に戻す」ボタンで `undoEntityRename` RPC 実行 → 親 `onUndo(restoredFiles)` callback
  * - close ボタンで明示 dismiss
+ *
+ * Phase M (#1298 round 8) で hook `useRenameEntityUndoToast` を別 file
+ * (`./useRenameEntityUndoToast`) に分離。Vite Fast Refresh 警告解消 (Anti N-1)。
+ * backward compat 用に re-export を残す。
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { mcpBridge } from "../../mcp/mcpBridge";
-import type { RenameEntityType } from "../../utils/renameEntityMapping";
 import "../../styles/renameEntityDialog.css";
 
-export interface RenameUndoToastState {
-  operationId: string;
-  oldId: string;
-  newId: string;
-  ttlMs?: number;
-}
-
-interface RecentUndoOperation {
-  operationId: string;
-  entityType: RenameEntityType;
-  oldId: string;
-  newId: string;
-  remainingTtlMs: number;
-}
-
-function renameUndoStorageKey(entityType: RenameEntityType, currentId: string): string {
-  return `harmony-rename-undo:${entityType}:${currentId}`;
-}
-
-/**
- * Rename 後の editor unmount / reload を跨いで undo capability を復元する。
- * sessionStorage は browser session の ownership を保持し、server query は TTL 内で
- * operation が実在することを再確認する。
- */
-export function useRenameEntityUndoToast(
-  entityType: RenameEntityType,
-  currentId: string | undefined,
-): readonly [RenameUndoToastState | null, (next: RenameUndoToastState | null) => void] {
-  const [toast, setToast] = useState<RenameUndoToastState | null>(null);
-
-  useEffect(() => {
-    if (!currentId) {
-      setToast(null);
-      return;
-    }
-    const key = renameUndoStorageKey(entityType, currentId);
-    const stored = sessionStorage.getItem(key);
-    if (!stored) {
-      setToast(null);
-      return;
-    }
-    let candidate: RenameUndoToastState;
-    try {
-      candidate = JSON.parse(stored) as RenameUndoToastState;
-    } catch {
-      sessionStorage.removeItem(key);
-      setToast(null);
-      return;
-    }
-
-    let cancelled = false;
-    const restore = () => {
-      void mcpBridge.request("listRecentUndoOperations", {}).then((value) => {
-        if (cancelled) return;
-        const recent = Array.isArray(value) ? value as RecentUndoOperation[] : [];
-        const active = recent.find((op) =>
-          op.operationId === candidate.operationId &&
-          op.entityType === entityType &&
-          op.newId === currentId,
-        );
-        if (!active || active.remainingTtlMs <= 0) {
-          sessionStorage.removeItem(key);
-          setToast(null);
-          return;
-        }
-        setToast({ ...candidate, ttlMs: active.remainingTtlMs });
-      }).catch(() => {
-        // 接続前の mount では status callback の connected 遷移で再試行する。
-        if (!cancelled) setToast(null);
-      });
-    };
-    const bridgeWithStatus = mcpBridge as typeof mcpBridge & {
-      onStatusChange?: (cb: (status: string) => void) => () => void;
-    };
-    const unsubscribe = typeof bridgeWithStatus.onStatusChange === "function"
-      ? bridgeWithStatus.onStatusChange((status) => { if (status === "connected") restore(); })
-      : (() => { restore(); return undefined; })();
-    return () => {
-      cancelled = true;
-      unsubscribe?.();
-    };
-  }, [entityType, currentId]);
-
-  const updateToast = useCallback((next: RenameUndoToastState | null) => {
-    if (next) {
-      sessionStorage.setItem(renameUndoStorageKey(entityType, next.newId), JSON.stringify(next));
-    } else if (currentId) {
-      sessionStorage.removeItem(renameUndoStorageKey(entityType, currentId));
-    }
-    setToast(next);
-  }, [entityType, currentId]);
-
-  return [toast, updateToast] as const;
-}
+// Phase M Anti N-1: hook / type 定義は別 file `./useRenameEntityUndoToast.ts` に分離。
+// Fast Refresh 警告解消のため、本 file は component のみを export する。
+// caller (Designer/TableEditor/...) は新 file から直接 import すること。
 
 export interface RenameEntityUndoToastProps {
   operationId: string;

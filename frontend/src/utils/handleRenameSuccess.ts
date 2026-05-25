@@ -20,7 +20,7 @@ import {
   makeTabId,
 } from "../store/tabStore";
 import { _emitTableChangeForRename } from "../store/tableStore";
-import type { TableId } from "../types/v3/table";
+import type { TableId } from "../types/v3/common";
 import { getRenameEntityMeta, type RenameEntityType } from "./renameEntityMapping";
 
 export interface HandleRenameSuccessParams {

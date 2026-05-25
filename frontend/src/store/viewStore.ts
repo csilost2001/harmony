@@ -1,5 +1,4 @@
 import type { View, ViewEntry, ViewId, PhysicalName, DisplayName, Timestamp } from "../types/v3";
-import { generateUUID } from "../utils/uuid";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { validateView } from "../utils/viewValidation";
 import type { ValidationError } from "../utils/actionValidation";

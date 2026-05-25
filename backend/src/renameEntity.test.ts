@@ -2467,8 +2467,10 @@ describe("renameEntityId — Phase L N-1: 全 reference source の malformed JSO
   });
 });
 
-describe("renameEntityId — Phase L SF-2: preview 直後の rename は unchanged preflight parse を再実行しない", () => {
-  it("同じ source fingerprint の strict validation は preview から reuse する", async () => {
+describe("renameEntityId — Phase L SF-2 (Phase M で execute 例外化): preview 連続呼出は unchanged preflight parse を再実行しない", () => {
+  // Phase M Codex M-2 修正で execute path は cache を信用せず必ず strict re-parse する。
+  // preview path のみ cache hit で skip するため、preview→preview reuse を assert する形に変更。
+  it("同じ source fingerprint の strict validation は preview→preview で reuse する", async () => {
     const root = await makeWorkspace();
     await seedTable(root, "cached-preflight");
     const mod = await import("./renameEntity.js") as unknown as {
@@ -2476,11 +2478,11 @@ describe("renameEntityId — Phase L SF-2: preview 直後の rename は unchange
     };
 
     await previewEntityRename("table", "cached-preflight", "cached-target", root);
-    const afterPreview = mod._getReferencePreflightValidationCountForTest?.();
-    await renameEntityId("table", "cached-preflight", "cached-target", root);
+    const afterFirstPreview = mod._getReferencePreflightValidationCountForTest?.();
+    await previewEntityRename("table", "cached-preflight", "cached-target", root);
 
-    expect(afterPreview).toBeTypeOf("number");
-    expect(mod._getReferencePreflightValidationCountForTest?.()).toBe(afterPreview);
+    expect(afterFirstPreview).toBeTypeOf("number");
+    expect(mod._getReferencePreflightValidationCountForTest?.()).toBe(afterFirstPreview);
   });
 
   it("preview 後に source fingerprint が変われば再検証して malformed JSON を block する", async () => {
@@ -2517,5 +2519,147 @@ describe("undoEntityRename — Phase L N-2: reverse migration failure を audit 
       "rename.undo.migration.error",
       expect.objectContaining({ operationId: operation.operationId }),
     );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase M Codex M-1: draft-state Sequence (id 欠落) も filename baseline で scan source 化
+// ─────────────────────────────────────────────────────────────────────────
+describe("renameEntityId — Phase M M-1: draft-state Sequence (id field 欠落) も Table rename に追従する", () => {
+  it("sequence.id が欠けていても usedBy[].tableId が rewrite され、undo で戻る (draft-state-policy 準拠)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "draft-table");
+    // draft 状態 = id field 不在 (docs/spec/draft-state-policy.md 第 29-33 行: schema 違反でも保存可)
+    await writeSequence("draft-seq", {
+      // id field を意図的に欠落
+      name: "draft",
+      physicalName: "ds",
+      usedBy: [{ tableId: "draft-table", columnId: "invoice-no" }],
+    }, root);
+
+    const { operation, preview } = await renameEntityId("table", "draft-table", "completed-table", root);
+    expect(preview.refUpdates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        filePath: "sequences/draft-seq.json",
+        jsonPointer: "/usedBy/0/tableId",
+      }),
+    ]));
+    const afterRename = await readJsonFile<{ usedBy: Array<{ tableId: string }> }>(
+      dataPath(root, "sequences", "draft-seq.json"),
+    );
+    expect(afterRename.usedBy[0].tableId).toBe("completed-table");
+
+    await undoEntityRename(operation.operationId, root);
+    const afterUndo = await readJsonFile<{ usedBy: Array<{ tableId: string }> }>(
+      dataPath(root, "sequences", "draft-seq.json"),
+    );
+    expect(afterUndo.usedBy[0].tableId).toBe("draft-table");
+  });
+
+  it("filename と data.id が drift していても (filename = draft-seq, data.id = different) filename baseline で scan される", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "drift-table");
+    // filename = "drift-seq", data.id = "other-seq" (drift)
+    await writeSequence("drift-seq", {
+      id: "other-seq", // drift
+      name: "drift",
+      physicalName: "drs",
+      usedBy: [{ tableId: "drift-table", columnId: "no" }],
+    }, root);
+
+    const { preview } = await renameEntityId("table", "drift-table", "drift-fixed", root);
+    expect(preview.refUpdates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        filePath: "sequences/drift-seq.json",
+        jsonPointer: "/usedBy/0/tableId",
+      }),
+    ]));
+    const after = await readJsonFile<{ usedBy: Array<{ tableId: string }> }>(
+      dataPath(root, "sequences", "drift-seq.json"),
+    );
+    expect(after.usedBy[0].tableId).toBe("drift-fixed");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase M Codex M-2: execute 経路の strict re-validation 保証 (cache を correctness
+// boundary から外し、execute (renameEntityId) は cache 状態に関わらず必ず実 parse する)
+// ─────────────────────────────────────────────────────────────────────────
+describe("renameEntityId — Phase M M-2: execute path は cache を信用せず必ず strict preflight を実行する (correctness boundary)", () => {
+  it("preview 直後の execute でも _referencePreflightValidationCount が増加する (cache hit で skip されない)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "execute-strict");
+
+    const mod = await import("./renameEntity.js") as unknown as {
+      _getReferencePreflightValidationCountForTest?: () => number;
+    };
+
+    // 1) preview で cache を温める
+    await previewEntityRename("table", "execute-strict", "execute-target", root);
+    const afterPreview = mod._getReferencePreflightValidationCountForTest?.();
+    expect(afterPreview).toBeTypeOf("number");
+    expect(afterPreview).toBeGreaterThan(0);
+
+    // 2) execute 経路は cache hit があっても、correctness boundary として必ず strict re-parse する
+    await renameEntityId("table", "execute-strict", "execute-target", root);
+    const afterExecute = mod._getReferencePreflightValidationCountForTest?.();
+    expect(afterExecute).toBeGreaterThan(afterPreview ?? 0);
+  });
+
+  it("preview 直後に source content を malformed に置換 (cache fingerprint collision を意図) しても、execute は strict re-parse で block する", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "cache-collision");
+    await writeSequence("collision-seq", {
+      id: "collision-seq",
+      name: "collision-seq",
+      usedBy: [{ tableId: "cache-collision", columnId: "no" }],
+    }, root);
+    const seqPath = dataPath(root, "sequences", "collision-seq.json");
+    const validBytes = await fs.readFile(seqPath);
+    const validSize = validBytes.length;
+    const validStat = await fs.stat(seqPath);
+
+    // preview で cache を温める
+    await previewEntityRename("table", "cache-collision", "cache-fixed", root);
+
+    // 同 byte size の malformed JSON で上書き、mtime を維持しようと試行
+    // (fs precision の影響で utimes 後の mtimeMs が元値と数 μs ずれる場合があるため、
+    // cache collision の成立有無は OS 依存。本 test は collision してもしなくても
+    // execute が strict re-parse で block することを assert する — execute path の
+    // cache を信頼しない設計の根拠。)
+    const malformed = "{ malformed".padEnd(validSize, " ");
+    expect(malformed.length).toBe(validSize);
+    await fs.writeFile(seqPath, malformed, "utf-8");
+    await fs.utimes(seqPath, validStat.atime, validStat.mtime);
+
+    // execute は strict re-parse で必ず throw する (cache 状態に依存しない)
+    await expect(
+      renameEntityId("table", "cache-collision", "cache-fixed", root),
+    ).rejects.toThrow(/JSON|参照走査/);
+    await fs.access(dataPath(root, "tables", "cache-collision.json"));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase M Codex SF-2: preflight cache eviction (TTL 切れ entry を expiry sweep する)
+// ─────────────────────────────────────────────────────────────────────────
+describe("renameEntityId — Phase M SF-2: preflight cache は TTL 切れ entry を sweep する", () => {
+  it("TTL 経過後に cache entry が evict される (root 別 cache が無限蓄積しない)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "evict-table");
+
+    const mod = await import("./renameEntity.js") as unknown as {
+      _getReferencePreflightCacheSizeForTest?: () => number;
+      _sweepReferencePreflightCacheForTest?: (nowMs: number) => void;
+    };
+
+    await previewEntityRename("table", "evict-table", "evict-target", root);
+    const beforeSweep = mod._getReferencePreflightCacheSizeForTest?.();
+    expect(beforeSweep).toBeGreaterThan(0);
+
+    // TTL 超過時刻で sweep を強制呼出
+    mod._sweepReferencePreflightCacheForTest?.(Date.now() + 60_000);
+    const afterSweep = mod._getReferencePreflightCacheSizeForTest?.();
+    expect(afterSweep).toBe(0);
   });
 });

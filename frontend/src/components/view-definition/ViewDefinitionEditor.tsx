@@ -36,7 +36,8 @@ import type { FieldTypePrimitive } from "../../types/v3";
 import type { TableId, LocalId, Identifier } from "../../types/v3/common";
 import { loadViewDefinition, saveViewDefinition, listViewDefinitions } from "../../store/viewDefinitionStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
-import { RenameEntityUndoToast, useRenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
@@ -82,7 +83,7 @@ export function ViewDefinitionEditor() {
   const { viewDefinitionId: rawId } = useParams<{ viewDefinitionId: string }>();
   const viewDefinitionId = rawId ? decodeURIComponent(rawId) : rawId;
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
 
   // テーブル選択 state (tableColumnRef 用カスケード)
   // key: column index → 選択中のテーブル ID (cascade step 1)
@@ -96,7 +97,8 @@ export function ViewDefinitionEditor() {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   // #1298 I-6 (RFC #1284): id rename refactor 用 state
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("viewDefinition", viewDefinitionId);
+  // Phase M Codex SF-1 (#1298 round 8): wsId scoped key
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("viewDefinition", viewDefinitionId, wsId);
   const [allViewDefIds, setAllViewDefIds] = useState<string[]>([]);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/view-definition/list"), { replace: true }), [navigate, wsPath]);

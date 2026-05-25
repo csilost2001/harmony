@@ -7,7 +7,6 @@ import type {
   ViewDefinitionId,
   ViewDefinitionKind,
 } from "../types/v3";
-import { generateUUID } from "../utils/uuid";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import {
   checkViewDefinitions,

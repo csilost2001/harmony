@@ -206,12 +206,20 @@ function extractEntityIdCandidate(text: string): string | null {
     .replace(/[`"'`]/g, "")
     .trim();
   // 行ごとに走査して、最初に EntityId pattern に合う行 / token を返す
-  const lines = stripped.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  // `.filter(Boolean)` だと TypeScript の制御フロー分析が `never` に絞り込んでしまうため、
+  // 明示的な type predicate で string narrowing する。
+  const lines = stripped
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l): l is string => l.length > 0);
   for (const line of lines) {
-    // 行全体が EntityId か?
-    if (isValidEntityId(line)) return line;
+    // 行全体が EntityId か? (note: `isValidEntityId` の `s is string` predicate に narrow
+    // されると TS 5.x が false branch を `never` 推論するため、predicate 結果を local 変数に
+    // 受けて narrow 拡張を遮断する)
+    const lineIsValid = isValidEntityId(line);
+    if (lineIsValid) return line;
     // 行内の最初の kebab-case token を抽出
-    const match = line.match(/[a-z][a-z0-9]*(?:-[a-z0-9]+)*/);
+    const match = (line as string).match(/[a-z][a-z0-9]*(?:-[a-z0-9]+)*/);
     if (match && isValidEntityId(match[0])) return match[0];
   }
   return null;
