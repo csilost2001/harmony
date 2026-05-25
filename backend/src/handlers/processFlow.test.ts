@@ -314,9 +314,11 @@ describe("writeProcessFlow AJV validation — #1141 F-2", () => {
 
   it("schema valid な ProcessFlow は marker を追加しない", async () => {
     // 最小限の valid な v3 ProcessFlow
+    // I-7 Round 2 F-1 (#1299): EntityId は alpha-leading UUID を reject するため、
+    // kebab-case fixture id に変更。
     const good = {
       meta: {
-        id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        id: "valid-flow-fixture",
         name: "valid-flow",
         flowType: "common",
         createdAt: "2026-01-01T00:00:00.000Z",
@@ -324,8 +326,8 @@ describe("writeProcessFlow AJV validation — #1141 F-2", () => {
       },
       actions: [],
     };
-    await writeProcessFlow("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", good, root);
-    const reloaded = await readProcessFlow("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", root) as Record<string, unknown>;
+    await writeProcessFlow("valid-flow-fixture", good, root);
+    const reloaded = await readProcessFlow("valid-flow-fixture", root) as Record<string, unknown>;
     // authoring が無いか markers が空
     const authoring = reloaded.authoring as Record<string, unknown> | undefined;
     if (authoring && authoring.markers) {
@@ -469,13 +471,15 @@ describe("designer__solution_unpack — #1229 F-1 path traversal 拒否", () => 
 
   it("inputPath が workspace 内の正常パスなら展開される", async () => {
     // _dataRoot = root/harmony なので inputPath 相対はそこから解決される
+    // I-7 Round 2 F-1 (#1299): EntityId は alpha-leading UUID を reject するため、
+    // kebab-case fixture id に変更。
     const zipDir = path.join(root, "harmony", "input");
     await fs.mkdir(zipDir, { recursive: true });
     const zipPath = path.join(zipDir, "pack.zip");
 
     const flowDoc = {
-      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-      meta: { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", name: "unpack-test", flowType: "common" },
+      id: "unpack-test-fixture",
+      meta: { id: "unpack-test-fixture", name: "unpack-test", flowType: "common" },
       context: {},
       actions: [],
       authoring: { markers: [] },
@@ -494,7 +498,7 @@ describe("designer__solution_unpack — #1229 F-1 path traversal 拒否", () => 
     expect(res).not.toBeNull();
     const text = res!.content[0].text as string;
     expect(text).toMatch(/展開完了/);
-    expect(text).toMatch(/OK: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/);
+    expect(text).toMatch(/OK: unpack-test-fixture/);
   });
 });
 
@@ -557,8 +561,10 @@ describe("designer__solution_unpack — #1229 I-001 ZIP 由来 id の UUID 検�
     expect(text).not.toMatch(/OK:/);
   });
 
-  it("ZIP 内 JSON の id が正規 UUID の場合は OK となる", async () => {
-    const validId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  it("ZIP 内 JSON の id が正規 EntityId (kebab-case) の場合は OK となる", async () => {
+    // I-7 Round 2 F-1 (#1299): EntityId は kebab-case のみ。alpha-leading UUID は
+    // assertEntityId で reject されるため、kebab-case fixture id を使う。
+    const validId = "ccc-unpack-test";
     const zipPath = await makeZipWithId(validId);
     const relPath = path.relative(path.join(root, "harmony"), zipPath);
     const res = await handleProcessFlowTool(
@@ -569,7 +575,26 @@ describe("designer__solution_unpack — #1229 I-001 ZIP 由来 id の UUID 検�
     );
     expect(res).not.toBeNull();
     const text = res!.content[0].text as string;
-    expect(text).toMatch(/OK: cccccccc-cccc-4ccc-8ccc-cccccccccccc/);
+    expect(text).toMatch(/OK: ccc-unpack-test/);
+  });
+
+  it("ZIP 内 JSON の id が alpha-leading UUID の場合は SKIP (invalid id) となる (#1299 F-1)", async () => {
+    // I-7 Round 2 F-1 (#1299 Codex review M-1): assertEntityId が alpha-leading UUID
+    // (例: 'f81dd9e0-...') を reject するようになったため、ZIP 由来 id でも同様に
+    // skip される。Phase A の compat shim 撤廃を ZIP 経路でも保証する regression test。
+    const alphaLeadingUuid = "f81dd9e0-794c-4539-a2a5-9cbcc0a75899";
+    const zipPath = await makeZipWithId(alphaLeadingUuid, "process-flows/alpha.json");
+    const relPath = path.relative(path.join(root, "harmony"), zipPath);
+    const res = await handleProcessFlowTool(
+      "designer__solution_unpack",
+      { inputPath: relPath },
+      root,
+      SESSION_ID,
+    );
+    expect(res).not.toBeNull();
+    const text = res!.content[0].text as string;
+    expect(text).toMatch(/SKIP \(invalid id\)/);
+    expect(text).not.toMatch(/OK:/);
   });
 });
 
