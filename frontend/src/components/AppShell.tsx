@@ -406,8 +406,16 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   // 経路で deadlock した regression 修正 — 外側 AppShell の useEffect に移動済。
 
   // workspace state 変化を log 化 (ループ追跡用)
+  //
+  // #1299 I-7 Phase E: msg を state summary 込みの一意 key にすることで、
+  // workspace 切替時の正当な連鎖 (loading=true → active 更新 → loading=false 等、
+  // 1 秒に 5 件以上の state-change 発火) が flood detector の同一 (category, msg)
+  // 集計に集約されて「loop 疑い」誤検出するのを回避。`uiLog.detectFlooding` は
+  // msg をそのまま dedupe key として使うため、loading / activeId / lockdown / error
+  // を含めることで「同じ意味の state-change」のみ集計される。
   useEffect(() => {
-    uiInfo("workspace", "state-change", {
+    const summary = `state-change loading=${workspaceState.loading} active=${workspaceState.active?.id ?? "null"} lockdown=${workspaceState.lockdown} error=${workspaceState.error ?? "null"}`;
+    uiInfo("workspace", summary, {
       loading: workspaceState.loading,
       activeId: workspaceState.active?.id ?? null,
       lockdown: workspaceState.lockdown,
