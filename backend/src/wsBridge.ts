@@ -131,6 +131,24 @@ export class WsBridge extends EventEmitter {
     return this.editSessionService.listByResourceRaw(wsId, resourceType, resourceId);
   }
 
+  /**
+   * Phase J Must-fix C (#1298 round 5 Codex M-3): live store + persisted file の
+   * resourceId / resourceType を移行する (rename module 専用 API)。
+   *
+   * 戻り値: 実際に更新した session の id 配列 (undo / audit 用)。
+   */
+  async editSessionMigrateResourceId(
+    wsId: string,
+    oldResourceType: EditSessionResourceType,
+    oldResourceId: string,
+    newResourceType: EditSessionResourceType,
+    newResourceId: string,
+  ): Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>> {
+    return this.editSessionService.migrateResourceIdRaw(
+      wsId, oldResourceType, oldResourceId, newResourceType, newResourceId,
+    );
+  }
+
   /** spec §5 step 1: 新規 EditSession を作成し initial Edit participant として登録 + broadcast */
   editSessionCreate(
     sessionId: string,

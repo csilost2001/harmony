@@ -159,6 +159,30 @@ const PRIMARY_RESOURCE_TYPES_BY_ENTITY: Record<RenameEntityType, EditSessionReso
   pageLayout: ["page-layout"],
 };
 
+/**
+ * Phase J Must-fix C (#1298 round 5 Codex M-3): live store + persisted file の
+ * resourceId 移行 callback を生成する。renameEntity 側に opts.migrateEditSessions として渡す。
+ *
+ * wsId が null (workspace 未選択) なら no-op (= 空配列を返す)。
+ */
+function makeMigrateEditSessions(
+  bridge: WsBridge,
+  wsId: string | null,
+): (resourceType: string, oldId: string, newId: string) => Promise<
+  Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>
+> {
+  return async (resourceType, oldId, newId) => {
+    if (!wsId) return [];
+    return bridge.editSessionMigrateResourceId(
+      wsId,
+      resourceType as EditSessionResourceType,
+      oldId,
+      resourceType as EditSessionResourceType,
+      newId,
+    );
+  };
+}
+
 export const refactorHandlers: RpcHandlerMap = {
   previewEntityRename: async ({ params, root, wsId, clientId, respond, respondError, bridge }) => {
     try {
@@ -193,8 +217,10 @@ export const refactorHandlers: RpcHandlerMap = {
       const wid = wsId();
       const editSessions = fetchEditSessions(bridge, wid, et, oldId as string);
       const fetchEditSessionsForRef = makeFetchEditSessionsForRef(bridge, wid);
+      // Phase J Must-fix C: live + persisted migration callback を inject
+      const migrateEditSessions = makeMigrateEditSessions(bridge, wid);
       const result = await renameEntityId(et, oldId as string, newId as string, root(), {
-        sessionId, editSessions, fetchEditSessionsForRef,
+        sessionId, editSessions, fetchEditSessionsForRef, migrateEditSessions,
       });
       respond(result);
 
@@ -225,10 +251,14 @@ export const refactorHandlers: RpcHandlerMap = {
         event: `${et}Changed`,
         data: { oldId, newId, renamed: true, reload: true },
       });
-      // 参照側 entity の cache を全 broadcast で reload させる (7 種全件)
+      // 参照側 entity の cache を全 broadcast で reload させる (7 種全件 + generic-definition)
+      // Phase J Must-fix B (#1298 round 5 Codex M-2): generic-definition の path 形式 ref も
+      // I 期で rewrite 対象に追加したため、開いている GenericDefinitionEditor の stale state
+      // overwrite を緩和するため `genericDefinitionChanged` も broadcast する。
       const RELOAD_EVENTS = [
         "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
         "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
+        "genericDefinitionChanged",
       ];
       for (const ev of RELOAD_EVENTS) {
         if (ev === `${et}Changed`) continue; // 自身の event は上で発行済
@@ -238,6 +268,20 @@ export const refactorHandlers: RpcHandlerMap = {
           // (excludeClientId を外す。primary broadcast と同じ理由)
         });
       }
+
+      // Phase J Nit N-5 (#1298 round 5 Opus N-5): operation 完了 broadcast を全 session に
+      // 流して、RPC client が途中で disconnect していたケースでも reconnect 後 toast を
+      // 復元可能にするための trace を残す。frontend 側は本 event を購読しない前提だが、
+      // 物理 log には operationId が記録される (audit log と併用)。
+      bridge.broadcast({
+        wsId: wid,
+        event: "renameOperationCompleted",
+        data: {
+          operationId: (result as { operation?: { operationId?: string } }).operation?.operationId,
+          entityType: et, oldId, newId,
+          ttlExpiresAt: (result as { operation?: { ttlExpiresAt?: number } }).operation?.ttlExpiresAt,
+        },
+      });
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));
     }
@@ -245,10 +289,26 @@ export const refactorHandlers: RpcHandlerMap = {
 
   undoEntityRename: async ({ params, root, wsId, clientId, respond, respondError, bridge }) => {
     try {
-      const { operationId } = (params ?? {}) as { operationId: unknown };
+      const { operationId, workspaceRoot } = (params ?? {}) as {
+        operationId: unknown;
+        workspaceRoot?: unknown;
+      };
       // operationId は UUID v4 (uuid module で生成) — safeName 範囲内 ([A-Za-z0-9_-]{1,64}) でカバー
       assertSafeName(operationId, "operationId");
-      const result = await undoEntityRename(operationId as string, root());
+      const sessionId = clientId;
+      const wid = wsId();
+      // Phase J SF-β (#1298 round 5 Opus SF-2): undo は frontend toast から発行されるが、user が
+      // workspace 切替後に「元に戻す」を押すケースで現 active root と当該 operation の workspace
+      // root が乖離する。frontend が toast props で保持していた `workspaceRoot` を params 経由で
+      // 受け取り、優先的に使用する。未指定なら現 active root に fallback (旧挙動互換)。
+      const opRoot = typeof workspaceRoot === "string" && workspaceRoot.length > 0
+        ? workspaceRoot
+        : root();
+      // Phase J Must-fix C: live + persisted revert callback を inject
+      const migrateEditSessions = makeMigrateEditSessions(bridge, wid);
+      const result = await undoEntityRename(operationId as string, opRoot, {
+        sessionId, migrateEditSessions,
+      });
       respond(result);
       // Phase F S-1 (Codex 独立レビュー): undo は originating client 自身の cache (newId 側 store
       // データ + ref 側 cache) も完全に無効化する必要がある。renameEntityId の broadcast は
@@ -258,10 +318,11 @@ export const refactorHandlers: RpcHandlerMap = {
       // あり、originating client を除外すると stale cache が残る (固定 300ms hard delay は決定的
       // でない緩和策、Codex 独立レビュー S-1 で指摘)。
       // → undo 経路では excludeClientId を渡さず、originating client にも reload event を届ける。
-      const wid = wsId();
+      // Phase J Must-fix B: undo 後も genericDefinition reload を必要 (rename の逆操作)
       const RELOAD_EVENTS = [
         "screenChanged", "tableChanged", "processFlowChanged", "viewChanged",
         "sequenceChanged", "viewDefinitionChanged", "pageLayoutChanged",
+        "genericDefinitionChanged",
       ];
       for (const ev of RELOAD_EVENTS) {
         bridge.broadcast({

@@ -902,6 +902,47 @@ export async function readScreenEntity(screenId: string, root: string): Promise<
   return migrateScreenIfNeeded(screenId, root);
 }
 
+/**
+ * Phase J Must-fix D (#1298 round 5 Codex M-4): Screen の effective editorKind を解決する。
+ *
+ * frontend の `resolveEditorKind` (frontend/src/utils/resolveEditorKind.ts) と同じ
+ * 優先順位を backend にも適用する:
+ *   1. `screen.design.editorKind` (画面個別指定)
+ *   2. `project.techStack.designer.editorKind` (project default)
+ *   3. `"grapesjs"` (最終 default)
+ *
+ * 旧 writeScreenEntity / planFileRenames は (1) のみを判定していたため、
+ * `screen.design.editorKind` を省略しつつ `project.techStack.designer.editorKind = "puck"`
+ * を指定した正当な project-default Puck screen を rename / save すると、
+ * 1. metadata は grapesjs として designFileRef を書き込む (Puck violation)
+ * 2. payload file (`puck-data.json`) は rename plan から脱落
+ * という data corruption を起こしていた。本 helper で 3 段 fallback を統一する。
+ */
+export async function resolveScreenEditorKind(
+  screenDesign: unknown,
+  root: string,
+): Promise<"grapesjs" | "puck"> {
+  // (1) screen.design.editorKind
+  if (isRecord(screenDesign)) {
+    const k = screenDesign.editorKind;
+    if (k === "puck" || k === "grapesjs") return k;
+  }
+  // (2) project.techStack.designer.editorKind
+  const project = await readProject(root);
+  if (isRecord(project)) {
+    const ts = project.techStack;
+    if (isRecord(ts)) {
+      const dg = ts.designer;
+      if (isRecord(dg)) {
+        const k = dg.editorKind;
+        if (k === "puck" || k === "grapesjs") return k;
+      }
+    }
+  }
+  // (3) default
+  return "grapesjs";
+}
+
 export async function writeScreenEntity(screenId: string, data: unknown, root: string): Promise<void> {
   const r = root;
   const dataRoot = await ensureDataDirFromRoot(r);
@@ -917,10 +958,12 @@ export async function writeScreenEntity(screenId: string, data: unknown, root: s
   // 旧 writeScreenEntity は常に designFileRef を付加しており、Puck screen で schema violation を
   // 引き起こしていた (#1185 提案 D 違反)。
   //
-  // 判定: current.design.editorKind === "puck" の場合は puckDataRef のみ、grapesjs (or 省略) は
-  // designFileRef のみを設定する。他 design field (cssFramework / thumbnailRef 等) は preserve する。
+  // Phase J Must-fix D (#1298 round 5 Codex M-4): editorKind 解決を 3 段 fallback 化。
+  // screen.design.editorKind 省略時は project.techStack.designer.editorKind を見る。
+  // 旧実装は (1) のみで判定し、project-default Puck screen を grapesjs として metadata に
+  // 書き直して puck payload を失っていた。
   const currentDesign = isRecord(current.design) ? current.design : {};
-  const editorKind = typeof currentDesign.editorKind === "string" ? currentDesign.editorKind : null;
+  const editorKind = await resolveScreenEditorKind(currentDesign, r);
   const designOut: Record<string, unknown> = { ...currentDesign };
   if (editorKind === "puck") {
     // puck: puckDataRef のみ。designFileRef を明示的に除去 (上書きから残らないように)。

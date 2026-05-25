@@ -669,6 +669,60 @@ export class EditSessionStore {
   }
 
   /**
+   * Phase J Must-fix C (#1298 round 5 Codex M-3): live store + persisted file の
+   * resource identity 移行 API。
+   *
+   * rename module は post-commit phase で本 API を呼び、active な EditSession の
+   * `resourceId` (および必要なら `resourceType`) を新 id に書き換える。
+   * 旧実装は persisted file (`<root>/.edit-sessions/*.json`) のみを raw fs で書き換えており、
+   * in-memory `store` Map の session object は old id を持ち続けるため、rename 後に
+   * 該当 session で save/take-over が走ると `editSessionService.save()` が in-memory の
+   * 旧 `resId` を使って old entity / Puck payload を再作成し、新 id 側 file を消失させる
+   * 等の data corruption を起こしていた。
+   *
+   * 本 API は同 transaction で:
+   *   1. live store の session object (`resourceId` / 必要なら `resourceType`) を更新
+   *   2. persisted file を atomic write で更新 (writeEditSessionToFs)
+   *
+   * 戻り値: 実際に更新した session の id 配列 (undo / audit log 用)。
+   *
+   * 注: state (Active / Discarded) や role (Edit / View) は問わず全件書換。
+   * Phase G M-4 detectConcurrentEditRefs は active Edit のみ block するため、
+   * Discarded 残骸 / View session も移行することで stale resourceId を残さない。
+   */
+  async migrateResourceId(
+    oldResourceType: DraftResourceType,
+    oldResourceId: string,
+    newResourceType: DraftResourceType,
+    newResourceId: string,
+  ): Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>> {
+    const migrated: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }> = [];
+    const sessionsToWrite: EditSession[] = [];
+    for (const session of this.store.values()) {
+      if (session.resourceType === oldResourceType && session.resourceId === oldResourceId) {
+        session.resourceType = newResourceType;
+        session.resourceId = newResourceId;
+        sessionsToWrite.push(session);
+        migrated.push({
+          editSessionId: session.id,
+          oldResourceId,
+          newResourceId,
+        });
+      }
+    }
+    // persisted file 書換は live update 後に行う (失敗時も in-memory は新 id 状態を維持し、
+    // 後続 save 時に再 persist される)。
+    for (const session of sessionsToWrite) {
+      try {
+        await writeEditSessionToFs(this.workspaceRoot, session);
+      } catch (e) {
+        console.error(`[editSessionStore] migrateResourceId persist error (${session.id}):`, e);
+      }
+    }
+    return migrated;
+  }
+
+  /**
    * テスト用: store を初期化する。
    */
   _resetForTest(): void {

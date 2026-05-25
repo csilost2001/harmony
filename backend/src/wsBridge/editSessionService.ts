@@ -122,6 +122,29 @@ export class EditSessionService {
   }
 
   /**
+   * Phase J Must-fix C (#1298 round 5 Codex M-3): rename module 用 live + persisted
+   * resource identity 移行。
+   *
+   * 該当 wsId の store が未生成 (= 全 session 未起動) なら no-op。
+   * lazy 生成しない (rename 経路の副作用を最小化)。
+   *
+   * 戻り値: 実際に更新した session の id 配列 (undo / audit 用)。
+   */
+  async migrateResourceIdRaw(
+    wsId: string,
+    oldResourceType: EditSessionResourceType,
+    oldResourceId: string,
+    newResourceType: EditSessionResourceType,
+    newResourceId: string,
+  ): Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>> {
+    const store = this.editSessionStores.get(wsId);
+    if (!store) return [];
+    return store.migrateResourceId(
+      oldResourceType, oldResourceId, newResourceType, newResourceId,
+    );
+  }
+
+  /**
    * sessionId から active workspace path (wsId) を解決する。未選択時は WorkspaceUnsetError を throw。
    * #917 review M-1: plain Error だと index.ts の catch ブロックで McpError(InvalidParams) に
    * 変換されず汎用 isError に落ちるため、他 workspace 依存 MCP tool と同じ requireActivePath を使う。

@@ -2062,3 +2062,220 @@ describe("renameEntityId — Phase I Nit N-4: operation.ttlExpiresAt", () => {
     expect(operation.ttlExpiresAt).toBeLessThanOrEqual(after + 5 * 60 * 1000 + 1000);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase J Must-fix A (#1298 round 5 Codex M-1): undo の post-update protection が
+//   primary / companion (.design.json / puck-data.json) にも拡張されている
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase J A: undo は primary entity の事後編集も byte 比較で block する", () => {
+  it("rename → primary entity ファイルを直接編集 → undo は block", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "primary-a");
+
+    const { operation } = await renameEntityId("table", "primary-a", "primary-renamed", root);
+
+    // rename 後の primary entity (新 path) を直接編集
+    const newPath = dataPath(root, "tables", "primary-renamed.json");
+    const data = await readJsonFile<Record<string, unknown>>(newPath);
+    data.description = "user-added after rename";
+    await fs.writeFile(newPath, JSON.stringify(data, null, 2), "utf-8");
+
+    // undo は block
+    await expect(undoEntityRename(operation.operationId, root)).rejects.toThrow(/Undo を block|rename 後に編集/);
+
+    // user の事後編集は保持 (新 path file がまだ存在し、editing 内容も維持)
+    const after = await readJsonFile<Record<string, unknown>>(newPath);
+    expect(after.description).toBe("user-added after rename");
+  });
+
+  it("rename → screen の .design.json (companion) を編集 → undo は block", async () => {
+    const root = await makeWorkspace();
+    // seed Screen + design
+    await writeScreenEntity("scr-a", { id: "scr-a", name: "scr-a", kind: "list", path: "/scr-a" }, root);
+    await fs.writeFile(
+      dataPath(root, "screens", "scr-a.design.json"),
+      JSON.stringify({ html: "<div>orig</div>" }, null, 2),
+      "utf-8",
+    );
+
+    const { operation } = await renameEntityId("screen", "scr-a", "scr-renamed", root);
+
+    // companion (.design.json) を直接編集
+    const designPath = dataPath(root, "screens", "scr-renamed.design.json");
+    await fs.writeFile(
+      designPath,
+      JSON.stringify({ html: "<div>user edit</div>" }, null, 2),
+      "utf-8",
+    );
+
+    await expect(undoEntityRename(operation.operationId, root)).rejects.toThrow(/Undo を block|rename 後に編集/);
+  });
+
+  it("rename → 事後編集なし → undo 成功 (新 path content も snapshot と一致)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "primary-b");
+    const { operation } = await renameEntityId("table", "primary-b", "primary-b-renamed", root);
+    const result = await undoEntityRename(operation.operationId, root);
+    expect(result.restoredFiles).toBeGreaterThan(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase J Must-fix D (#1298 round 5 Codex M-4): project-default Puck screen rename
+//   も puck-data.json 同伴 + designFileRef を付加せず puckDataRef 維持
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase J D: project default Puck screen も payload + 排他維持", () => {
+  it("screen.design.editorKind 省略 + project.techStack.designer.editorKind=puck で rename 時に puck-data.json 移動 + designFileRef 不在", async () => {
+    const root = await makeWorkspace();
+    // harmony.json に techStack.designer.editorKind = puck を設定
+    const harmony = await readJsonFile<Record<string, unknown>>(harmonyFile(root));
+    harmony.techStack = { designer: { editorKind: "puck" } };
+    await fs.writeFile(harmonyFile(root), JSON.stringify(harmony, null, 2), "utf-8");
+
+    // screen は editorKind 省略 + puck-data.json を準備
+    await writeScreenEntity(
+      "puck-default",
+      { id: "puck-default", name: "puck-default", kind: "form", path: "/puck-default", design: { cssFramework: "bootstrap" } },
+      root,
+    );
+    // puck-data.json を準備
+    const puckDir = dataPath(root, "screens", "puck-default");
+    await fs.mkdir(puckDir, { recursive: true });
+    await fs.writeFile(
+      path.join(puckDir, "puck-data.json"),
+      JSON.stringify({ content: [{ type: "Heading", props: { text: "hi" } }] }, null, 2),
+      "utf-8",
+    );
+
+    const { preview } = await renameEntityId("screen", "puck-default", "puck-renamed", root);
+
+    // puck-data.json も rename 対象に含まれている
+    expect(preview.fileRenames.some((r) => r.from.includes("puck-default/puck-data.json"))).toBe(true);
+    expect(preview.fileRenames.some((r) => r.to.includes("puck-renamed/puck-data.json"))).toBe(true);
+
+    // 新 path に puck-data.json が存在
+    const newPuckPath = dataPath(root, "screens", "puck-renamed", "puck-data.json");
+    await fs.access(newPuckPath); // 存在しなければ throw
+
+    // 新 screen entity は puckDataRef のみ (designFileRef 不在)
+    const newScreen = await readJsonFile<Record<string, unknown>>(dataPath(root, "screens", "puck-renamed.json"));
+    const design = newScreen.design as Record<string, unknown>;
+    expect(design.puckDataRef).toBe("puck-data.json");
+    expect(design.designFileRef).toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase J Must-fix C (#1298 round 5 Codex M-3): live store + persisted file の
+//   resourceId 移行 callback が Screen aux session も含めて呼ばれる
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase J C: migrateEditSessions callback は Screen aux も含む", () => {
+  it("Screen rename で migrateEditSessions が screen + screen-item + puck-data 3 resourceType で呼ばれる", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("scr-c", { id: "scr-c", name: "scr-c", kind: "list", path: "/scr-c" }, root);
+
+    const calls: Array<{ resourceType: string; oldId: string; newId: string }> = [];
+    const migrateEditSessions = async (resourceType: string, oldId: string, newId: string) => {
+      calls.push({ resourceType, oldId, newId });
+      return []; // empty migration log (test 内で session 未作成)
+    };
+
+    await renameEntityId("screen", "scr-c", "scr-c-renamed", root, { migrateEditSessions });
+
+    // 3 種類すべてで呼ばれている
+    const types = calls.map((c) => c.resourceType).sort();
+    expect(types).toEqual(["puck-data", "screen", "screen-item"]);
+    // oldId / newId が全 call で一致
+    expect(calls.every((c) => c.oldId === "scr-c" && c.newId === "scr-c-renamed")).toBe(true);
+  });
+
+  it("Table rename は 1 resourceType (table) のみで呼ばれる", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "tbl-c");
+
+    const calls: string[] = [];
+    const migrateEditSessions = async (resourceType: string, oldId: string, newId: string) => {
+      calls.push(resourceType);
+      void oldId; void newId;
+      return [];
+    };
+
+    await renameEntityId("table", "tbl-c", "tbl-c-renamed", root, { migrateEditSessions });
+    expect(calls).toEqual(["table"]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase J SF-ε (#1298 round 5 Codex S-1): Screen rename は aux history も移行 +
+//   失敗 / 衝突は warnings 経路に propagate
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase J SF-ε: history migration は Screen aux 含む + warnings propagation", () => {
+  it("Screen rename で screen-item / puck-data history も移行される", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("scr-h", { id: "scr-h", name: "scr-h", kind: "list", path: "/scr-h" }, root);
+
+    // 3 種類の history dir を seed
+    for (const rt of ["screen", "screen-item", "puck-data"]) {
+      const dir = path.join(root, ".edit-sessions-history", rt, "scr-h");
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(
+        path.join(dir, "entry1.json"),
+        JSON.stringify({ resourceId: "scr-h", payload: {} }, null, 2),
+        "utf-8",
+      );
+    }
+
+    await renameEntityId("screen", "scr-h", "scr-h-renamed", root);
+
+    // 3 種類すべてが新 id directory に rename されている
+    for (const rt of ["screen", "screen-item", "puck-data"]) {
+      const newDir = path.join(root, ".edit-sessions-history", rt, "scr-h-renamed");
+      await fs.access(newDir);
+      const oldDir = path.join(root, ".edit-sessions-history", rt, "scr-h");
+      await expect(fs.access(oldDir)).rejects.toThrow();
+    }
+  });
+
+  it("toDir 既存衝突は warnings に propagate される (silent skip 廃止)", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "warn-t");
+
+    // toDir 衝突を seed
+    const newDir = path.join(root, ".edit-sessions-history", "table", "warn-t-renamed");
+    await fs.mkdir(newDir, { recursive: true });
+    await fs.writeFile(path.join(newDir, "dummy.json"), "{}", "utf-8");
+    // fromDir も seed
+    const oldDir = path.join(root, ".edit-sessions-history", "table", "warn-t");
+    await fs.mkdir(oldDir, { recursive: true });
+
+    const { preview } = await renameEntityId("table", "warn-t", "warn-t-renamed", root);
+    expect(preview.warnings.some((w) => w.includes("history migration skip"))).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase J Nit N-3 (#1298 round 5 Opus N-3): byte-exact false positive 解消
+//   (JSON 等価なら trailing newline 等の cosmetic 差分で block しない)
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase J Nit N-3: trailing whitespace / BOM は undo block されない", () => {
+  it("rename 後 ref file に trailing newline 1 個追加されただけでは undo block しない", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "fz-t");
+    await seedProcessFlow(root, "fz-pf", { steps: [{ tableId: "fz-t" }] });
+    const { operation } = await renameEntityId("table", "fz-t", "fz-t-renamed", root);
+
+    // ref file に末尾改行を 1 個追加 (format-on-save 等で発生する典型)
+    const pfPath = dataPath(root, "process-flows", "fz-pf.json");
+    const orig = await fs.readFile(pfPath, "utf-8");
+    await fs.writeFile(pfPath, orig + "\n", "utf-8");
+
+    // JSON parse 等価のため block されない
+    const result = await undoEntityRename(operation.operationId, root);
+    expect(result.restoredFiles).toBeGreaterThan(0);
+  });
+});

@@ -41,8 +41,10 @@ import {
   readScreenFlowPositions,
   readErLayout,
   erLayoutFile,
+  resolveScreenEditorKind,
   type TopLevelEntityKind,
 } from "./projectStorage.js";
+import { logInfo, logWarn, logError } from "./serverLog.js";
 
 // ── Public types ────────────────────────────────────────────────────────────
 
@@ -149,22 +151,67 @@ export interface RenameOperation {
    * ことで client/server clock drift による confusing UX を回避できる。
    */
   ttlExpiresAt: number;
-  /** dataRoot 相対 path + 元 content (undo 時の restore 用) */
-  fileRenames: Array<{ from: string; to: string; originalContent: string }>;
+  /**
+   * dataRoot 相対 path + 元 content (undo 時の restore 用)。
+   *
+   * Phase J Must-fix A (#1298 round 5 Codex M-1): `newContent` (commit 直後 read-back の bytes) と
+   * `kind` を追加。旧実装は ref 側 (refUpdates) のみ byte 比較で post-update 編集を検出していたが、
+   * primary / companion (design.json / puck-data.json) の事後編集を「存在検査のみ」で見逃し、
+   * 「rename → 新 ID 編集 → undo」で正当な新編集を silent 破棄していた。本 phase で
+   * primary + companion も byte 比較対象に拡張する。
+   *
+   * `kind` の意味:
+   * - "primary": writeEntityById で書かれた主 entity ファイル
+   * - "companion": .design.json / puck-data.json 等の raw copy
+   * - "delete-only": from === to で削除のみ (legacy ProcessFlow 等、newContent は null)
+   *
+   * `newContent` の意味:
+   * - "primary" / "companion": commit 直後 read-back の content (byte 比較期待値)
+   * - "delete-only": null (期待値なし、検査 skip)
+   */
+  fileRenames: Array<{
+    from: string;
+    to: string;
+    originalContent: string;
+    kind: "primary" | "companion" | "delete-only";
+    newContent: string | null;
+  }>;
   /** ref 側 update の dataRoot 相対 path + 元 content + 新 content */
   refUpdates: Array<{ filePath: string; originalContent: string; newContent: string }>;
   /**
    * Phase I round 3+4 Should-fix SF-5 (Opus round 4): history directory rename。
    * `<root>/.edit-sessions-history/<resourceType>/<oldId>/` → `.../<newId>/` の
    * atomic rename を行った場合に記録 (undo で逆方向 rename)。
+   *
+   * Phase J Should-fix SF-ε (#1298 round 5 Codex S-1): Screen rename は primary + aux の
+   * 3 resource type すべてで history migration を行うため、複数 entry を持ち得る配列に拡張。
+   * 旧 single 形は backward compat 上 optional として残す (古い in-memory operation を undo
+   * しても動作するように)。
    */
   historyMigration?: { resourceType: string; oldId: string; newId: string };
+  historyMigrations?: Array<{ resourceType: string; oldId: string; newId: string }>;
   /**
    * Phase I round 3+4 Should-fix SF-4 / SF-6 (Codex S-3 / Opus SF-2): edit-sessions
    * file 内の `content.resourceId` が oldId のものを newId に書き換えた一覧。
    * undo で逆方向に書き戻すため `editSessionId` と元の `resourceId` を保持。
+   *
+   * Phase J Must-fix C (#1298 round 5 Codex M-3): Screen aux session も含めるため、各 entry に
+   * `resourceType` を追加 (旧 entry は backward compat 上 optional)。
    */
-  editSessionMigrations?: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>;
+  editSessionMigrations?: Array<{
+    editSessionId: string;
+    oldResourceId: string;
+    newResourceId: string;
+    resourceType?: string;
+  }>;
+  /**
+   * Phase J Should-fix SF-β (#1298 round 5 Opus SF-2): undo は frontend toast から RPC で
+   * 呼ばれるが、user が workspace 切替後に toast の「元に戻す」を押すケースで現 active root と
+   * 当該 operation の workspace root が乖離する問題への対策。operation 自体に workspace root を
+   * 含めておき、undo handler は params 経由で workspaceRoot を受け取って正しい _undoStore から
+   * popUndo するように修正する (handler 側で実装)。
+   */
+  workspaceRoot?: string;
 }
 
 /** rename 中 lock 検査で参照する EditSession 抽象 (テスト容易性のため最小契約) */
@@ -202,6 +249,24 @@ export interface RenameOpts {
     entityKind: string,
     entityId: string,
   ) => ReadonlyArray<EditSessionLike>;
+  /**
+   * Phase J Must-fix C (#1298 round 5 Codex M-3): edit-session の live store + persisted file
+   * 双方を移行する callback。
+   *
+   * 旧 `migrateEditSessions` は raw fs で persisted file のみを書き換えていたため、in-memory
+   * `EditSessionStore.store` の session object (`resourceId`) が old のまま残り、rename 後の
+   * save / take-over が old entity を再作成する data corruption を起こしていた。
+   *
+   * 本 callback は WsBridge.editSessionMigrateResourceId を呼び出す薄ラッパー。
+   * 戻り値: 実際に更新した session 情報の配列 (undo 時の逆方向 migration 用)。
+   *
+   * 未指定時 (test path / standalone path) は旧 raw fs 経路 (migrateEditSessionsRawFs) に fallback。
+   */
+  migrateEditSessions?: (
+    resourceType: string,
+    oldId: string,
+    newId: string,
+  ) => Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>>;
 }
 
 // ── 内部定数 ────────────────────────────────────────────────────────────────
@@ -516,6 +581,53 @@ async function readFileContentOrNull(absPath: string): Promise<string | null> {
   }
 }
 
+/**
+ * Phase J Nit N-3 (#1298 round 5 Opus N-3): byte-exact 比較は trailing newline / BOM /
+ * format-on-save 等の cosmetic 差分で false positive を起こすため、JSON parse 後の
+ * deep-equal で fuzzy match を行う。両方 parse 可なら structural equality、片方でも parse 不可なら
+ * 通常の文字列比較に fallback。
+ */
+function isContentEquivalent(a: string, b: string): boolean {
+  if (a === b) return true;
+  // 軽量 fallback: trailing whitespace / BOM strip + 再比較
+  const stripA = a.replace(/^﻿/, "").trim();
+  const stripB = b.replace(/^﻿/, "").trim();
+  if (stripA === stripB) return true;
+  // JSON parse 比較 (structural deep equal)
+  try {
+    const pa = JSON.parse(a);
+    const pb = JSON.parse(b);
+    return jsonDeepEqual(pa, pb);
+  } catch {
+    return false;
+  }
+}
+
+function jsonDeepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  if (typeof a !== typeof b) return false;
+  if (typeof a !== "object") return a === b;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!jsonDeepEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+  const aObj = a as Record<string, unknown>;
+  const bObj = b as Record<string, unknown>;
+  const ak = Object.keys(aObj).sort();
+  const bk = Object.keys(bObj).sort();
+  if (ak.length !== bk.length) return false;
+  for (let i = 0; i < ak.length; i++) {
+    if (ak[i] !== bk[i]) return false;
+    if (!jsonDeepEqual(aObj[ak[i]], bObj[ak[i]])) return false;
+  }
+  return true;
+}
+
 async function writeFileContent(absPath: string, content: string): Promise<void> {
   await fs.mkdir(path.dirname(absPath), { recursive: true });
   await fs.writeFile(absPath, content, "utf-8");
@@ -678,6 +790,15 @@ interface PrimaryFilePlan {
   /** dataRoot 配下の絶対 path (from / to) */
   from: string;
   to: string;
+  /**
+   * Phase J Should-fix SF-δ (#1298 round 4 Antigravity SF-3): plan の役割識別。
+   * - "primary": 主 entity ファイル (writeEntityById 経由で write 済、execute 部は touch しない)
+   * - "companion": 主 entity に随伴する raw ファイル (.design.json / puck-data.json 等)。
+   *   execute 部は本 kind のみを iterate して raw copy する。
+   *   将来 companion 追加時も `planFileRenames` 1 箇所変更すれば execute も追従する。
+   * - "delete-only": from === to で削除のみ (legacy ProcessFlow の actions/<id>.json 等)
+   */
+  kind: "primary" | "companion" | "delete-only";
 }
 
 /**
@@ -686,7 +807,7 @@ interface PrimaryFilePlan {
  * 注: ProcessFlow legacy actions/<id>.json も存在すれば rename 対象に含める。
  */
 async function planFileRenames(
-  entityType: RenameEntityType, oldId: string, newId: string, dataRoot: string,
+  entityType: RenameEntityType, oldId: string, newId: string, dataRoot: string, root: string,
 ): Promise<PrimaryFilePlan[]> {
   const plans: PrimaryFilePlan[] = [];
   const dir = path.join(dataRoot, ENTITY_PRIMARY_DIR[entityType]);
@@ -695,7 +816,7 @@ async function planFileRenames(
     // 主 (current): process-flows/<id>.json
     const currentFrom = path.join(dir, `${oldId}.json`);
     if (await fileExists(currentFrom)) {
-      plans.push({ from: currentFrom, to: path.join(dir, `${newId}.json`) });
+      plans.push({ from: currentFrom, to: path.join(dir, `${newId}.json`), kind: "primary" });
     }
     // legacy: actions/<id>.json
     //
@@ -719,10 +840,11 @@ async function planFileRenames(
       const canonicalTo = path.join(dir, `${newId}.json`);
       const alreadyPlanned = plans.some((p) => p.to === canonicalTo);
       if (!alreadyPlanned) {
-        plans.push({ from: legacyFrom, to: canonicalTo });
+        // 未 primary plan: legacy が primary になる (writeProcessFlow が canonical 側に書く)
+        plans.push({ from: legacyFrom, to: canonicalTo, kind: "primary" });
       } else {
         // Phase I N-2: delete-only plan として legacy を必ず削除する (orphan 防止)
-        plans.push({ from: legacyFrom, to: legacyFrom });
+        plans.push({ from: legacyFrom, to: legacyFrom, kind: "delete-only" });
       }
     }
     return plans;
@@ -731,27 +853,59 @@ async function planFileRenames(
   // 通常 entity: <dir>/<id>.json
   const primaryFrom = path.join(dir, `${oldId}.json`);
   if (await fileExists(primaryFrom)) {
-    plans.push({ from: primaryFrom, to: path.join(dir, `${newId}.json`) });
+    plans.push({ from: primaryFrom, to: path.join(dir, `${newId}.json`), kind: "primary" });
   }
-  // screen / pageLayout は <id>.design.json も rename 対象
+  // screen / pageLayout は <id>.design.json も rename 対象 (companion file)
   if (entityType === "screen" || entityType === "pageLayout") {
     const designFrom = path.join(dir, `${oldId}.design.json`);
     if (await fileExists(designFrom)) {
-      plans.push({ from: designFrom, to: path.join(dir, `${newId}.design.json`) });
+      plans.push({
+        from: designFrom,
+        to: path.join(dir, `${newId}.design.json`),
+        kind: "companion",
+      });
     }
   }
   // Phase I round 3+4 Must-fix F (Codex round 4 M-5): Puck screen は payload を
   // `screens/<screenId>/puck-data.json` (subdirectory) に持つ。旧実装はこれを rename plan に
   // 含めず、Puck screen を rename すると payload が old directory に残り新 id から不可視になる
-  // (data corruption)。schema 上 editorKind は固定なので screen entity の editorKind を判定して
-  // 該当 case のみ追加する。
+  // (data corruption)。
+  //
+  // Phase J Must-fix D (#1298 round 5 Codex M-4): file 存在判定では一意に決まらない
+  // (新規 Puck screen で puck-data.json が未生成の状態でも rename plan に含める必要があり、
+  // また grapesjs screen に偶々 puck-data.json が残っているケースを誤検知しないため)、
+  // resolveScreenEditorKind で project-default まで考慮して判定する。
   if (entityType === "screen") {
-    const puckFrom = path.join(dir, oldId, "puck-data.json");
-    if (await fileExists(puckFrom)) {
-      plans.push({ from: puckFrom, to: path.join(dir, newId, "puck-data.json") });
+    let isPuck = false;
+    try {
+      const screenEntity = await readScreenEntity(oldId, root);
+      if (isPlainObject(screenEntity)) {
+        const ek = await resolveScreenEditorKind(
+          (screenEntity as Record<string, unknown>).design,
+          root,
+        );
+        isPuck = ek === "puck";
+      }
+    } catch {
+      // best effort: 判定不能なら旧 fallback (file 存在ベース) に倒す
+      isPuck = await fileExists(path.join(dir, oldId, "puck-data.json"));
+    }
+    if (isPuck) {
+      const puckFrom = path.join(dir, oldId, "puck-data.json");
+      if (await fileExists(puckFrom)) {
+        plans.push({
+          from: puckFrom,
+          to: path.join(dir, newId, "puck-data.json"),
+          kind: "companion",
+        });
+      }
     }
   }
   return plans;
+}
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
 }
 
 // ── ref scan (preview 計算 + 実際の update に共通利用) ─────────────────────────
@@ -1386,20 +1540,33 @@ async function detectConcurrentEditRefs(
  * (Phase I round 3+4 Should-fix SF-5)
  *
  * entity の history continuity を rename 後も保つため。directory 不在は no-op。
- * 戻り値: 実際に rename したかどうか。
+ *
+ * Phase J Should-fix SF-ε / Nit N-4 (#1298 round 5 Codex S-1 / Opus N-4): 戻り値を
+ * `{migrated, warning?}` に拡張。toDir 既存衝突 / write 失敗を warnings 経路に乗せて
+ * 設計者へ通知する (旧実装は silent skip だった)。
  */
 async function migrateHistoryDirectory(
   root: string, resourceType: string, oldId: string, newId: string,
-): Promise<boolean> {
+): Promise<{ migrated: boolean; warning?: string }> {
   const fromDir = path.join(root, ".edit-sessions-history", resourceType, oldId);
   const toDir = path.join(root, ".edit-sessions-history", resourceType, newId);
-  if (!(await fileExists(fromDir))) return false;
+  if (!(await fileExists(fromDir))) return { migrated: false };
   if (await fileExists(toDir)) {
-    // 衝突: 既に新 id directory が存在 — merge は危険なので skip (warning にも上げない、稀)
-    return false;
+    // 衝突: 既に新 id directory が存在 — merge は危険なので skip (旧 silent skip → warning に propagation)
+    return {
+      migrated: false,
+      warning: `history migration skip (${resourceType}): toDir "${newId}" が既存のため orphan 化リスクあり。手動 merge / 削除を検討してください。`,
+    };
   }
-  await fs.mkdir(path.dirname(toDir), { recursive: true });
-  await fs.rename(fromDir, toDir);
+  try {
+    await fs.mkdir(path.dirname(toDir), { recursive: true });
+    await fs.rename(fromDir, toDir);
+  } catch (e) {
+    return {
+      migrated: false,
+      warning: `history migration 失敗 (${resourceType}/${oldId}): ${e instanceof Error ? e.message : String(e)}`,
+    };
+  }
 
   // history JSON 内の `resourceId` field も書き換える (entry が listHistory({resourceId: newId})
   // で検索可能になるよう)
@@ -1419,7 +1586,7 @@ async function migrateHistoryDirectory(
     }
   } catch { /* readdir 失敗は ignore */ }
 
-  return true;
+  return { migrated: true };
 }
 
 /**
@@ -1462,11 +1629,40 @@ async function migrateEditSessions(
 
 /**
  * undo 用: edit-sessions migration を逆方向に書き戻す。
+ *
+ * Phase J Must-fix C: bridge API 経由優先 (live store + persisted 同期更新)、
+ * opts.migrateEditSessions 未指定時のみ raw fs fallback。
  */
 async function revertEditSessionsMigration(
   root: string,
-  migrations: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>,
+  opts: RenameOpts | undefined,
+  migrations: Array<{
+    editSessionId: string;
+    oldResourceId: string;
+    newResourceId: string;
+    resourceType?: string;
+  }>,
 ): Promise<void> {
+  // bridge 経由 (live + persisted): resourceType ごとに集約して 1 回ずつ revert (oldId と newId
+  // を swap して同 API を再利用)
+  if (opts?.migrateEditSessions) {
+    // resourceType + oldResourceId をキーに集約
+    const byKey = new Map<string, { resourceType: string; oldResourceId: string; newResourceId: string }>();
+    for (const m of migrations) {
+      const rt = m.resourceType ?? "";
+      if (!rt) continue;
+      const key = `${rt}:${m.oldResourceId}:${m.newResourceId}`;
+      byKey.set(key, { resourceType: rt, oldResourceId: m.oldResourceId, newResourceId: m.newResourceId });
+    }
+    for (const { resourceType, oldResourceId, newResourceId } of byKey.values()) {
+      // newResourceId → oldResourceId に戻す (swap)
+      try {
+        await opts.migrateEditSessions(resourceType, newResourceId, oldResourceId);
+      } catch { /* best effort */ }
+    }
+    return;
+  }
+  // fallback: 旧 raw fs (test path / standalone path)
   const dir = path.join(root, ".edit-sessions");
   for (const m of migrations) {
     const filePath = path.join(dir, `${m.editSessionId}.json`);
@@ -1479,6 +1675,24 @@ async function revertEditSessionsMigration(
       }
     } catch { /* best effort */ }
   }
+}
+
+/**
+ * Phase J Must-fix C (#1298 round 5 Codex M-3): edit-session migration の bridge 経由実装。
+ * opts.migrateEditSessions が渡されていればそれを使い、未指定なら旧 raw fs 経路に fallback する。
+ */
+async function migrateEditSessionsByBridge(
+  opts: RenameOpts | undefined,
+  resourceType: string,
+  oldId: string,
+  newId: string,
+  root: string,
+): Promise<Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }>> {
+  if (opts?.migrateEditSessions) {
+    return opts.migrateEditSessions(resourceType, oldId, newId);
+  }
+  // fallback: 旧 raw fs (test path / standalone path)
+  return migrateEditSessions(root, resourceType, oldId, newId);
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -1498,13 +1712,22 @@ export async function previewEntityRename(
   root: string,
   opts?: RenameOpts,
 ): Promise<PreviewResult> {
-  // Phase I round 3+4 Should-fix SF-3: 同一 workspace への並行 preview / rename / undo は
-  // workspace mutex で直列化 (scan 中間状態露出 + TOCTOU の race を防止)
-  const release = await acquireWorkspaceLock(root);
+  // Phase J Nit N-1 (#1298 round 5 Opus N-1): preview は read-only 操作のため workspace lock を
+  // 取得しない。複数 tab から同時 preview しても直列化する必要なし。preview と rename 間の
+  // direct conflict は rename 側 mutex + scan 直前 re-check (TOCTOU 受容範囲) でカバー。
+  // 大規模 workspace (100+ entity) で preview 数百 ms かかるケースの UX 改善。
   try {
     return await _previewEntityRenameImpl(entityType, oldId, newId, root, opts);
-  } finally {
-    release();
+  } catch (e) {
+    try {
+      logWarn("rename", "rename.preview.error", {
+        entityType, oldId, newId,
+        sessionId: opts?.sessionId,
+        error: e instanceof Error ? e.message : String(e),
+        workspaceRoot: root,
+      });
+    } catch { /* ignore */ }
+    throw e;
   }
 }
 
@@ -1532,7 +1755,7 @@ async function _previewEntityRenameImpl(
   const lockedByOther = detectLockedByOther(opts?.editSessions, opts?.sessionId);
 
   // 主ファイル plan
-  const filePlans = await planFileRenames(entityType, oldId, newId, dataRoot);
+  const filePlans = await planFileRenames(entityType, oldId, newId, dataRoot, root);
   const fileRenames = filePlans.map((p) => ({
     from: toRel(p.from, dataRoot),
     to: toRel(p.to, dataRoot),
@@ -1646,7 +1869,7 @@ async function _renameEntityIdImpl(
   }
 
   // 主ファイル plan + ref 走査
-  const filePlans = await planFileRenames(entityType, oldId, newId, dataRoot);
+  const filePlans = await planFileRenames(entityType, oldId, newId, dataRoot, root);
   if (filePlans.length === 0) {
     throw new Error(`${entityType} "${oldId}" の物理ファイルが見つかりません`);
   }
@@ -1677,8 +1900,15 @@ async function _renameEntityIdImpl(
     );
   }
 
-  // snapshot 構築 (失敗時 restore 用)
-  const fileRenameSnapshots: Array<{ from: string; to: string; originalContent: string }> = [];
+  // snapshot 構築 (失敗時 restore 用)。
+  // Phase J Must-fix A: kind と newContent placeholder を含める (commit 後に newContent を埋める)
+  const fileRenameSnapshots: Array<{
+    from: string;
+    to: string;
+    originalContent: string;
+    kind: "primary" | "companion" | "delete-only";
+    newContent: string | null;
+  }> = [];
   for (const plan of filePlans) {
     const content = await readFileContentOrNull(plan.from);
     if (content === null) {
@@ -1688,6 +1918,8 @@ async function _renameEntityIdImpl(
       from: toRel(plan.from, dataRoot),
       to: toRel(plan.to, dataRoot),
       originalContent: content,
+      kind: plan.kind,
+      newContent: null, // commit 後に埋める
     });
   }
   const refUpdateSnapshots: Array<{ filePath: string; originalContent: string; newContent: string }> = [];
@@ -1731,32 +1963,17 @@ async function _renameEntityIdImpl(
     // 新規 file を作る挙動 (新 id 不在のため current path に新規) を取るため、ファイル位置確認
     // → writeProcessFlow は両 candidate を見て不在なら current path に書く実装なので OK (新規 = current 側)
 
-    // screen / pageLayout の design.json は writeX が触らないため、別途 raw copy で対応
-    if (entityType === "screen") {
-      const oldDesignAbs = path.join(dataRoot, "screens", `${oldId}.design.json`);
-      const newDesignAbs = path.join(dataRoot, "screens", `${newId}.design.json`);
-      const oldDesignContent = await readFileContentOrNull(oldDesignAbs);
-      if (oldDesignContent !== null) {
-        await writeFileContent(newDesignAbs, oldDesignContent);
-        writtenFiles.push(newDesignAbs);
-      }
-      // Phase I round 3+4 Must-fix F: Puck payload (`screens/<id>/puck-data.json`)
-      // も raw copy で新 directory に複製する。writeScreenEntity は puck-data には touch しない。
-      const oldPuckAbs = path.join(dataRoot, "screens", oldId, "puck-data.json");
-      const newPuckAbs = path.join(dataRoot, "screens", newId, "puck-data.json");
-      const oldPuckContent = await readFileContentOrNull(oldPuckAbs);
-      if (oldPuckContent !== null) {
-        await writeFileContent(newPuckAbs, oldPuckContent);
-        writtenFiles.push(newPuckAbs);
-      }
-    } else if (entityType === "pageLayout") {
-      const oldDesignAbs = path.join(dataRoot, "page-layouts", `${oldId}.design.json`);
-      const newDesignAbs = path.join(dataRoot, "page-layouts", `${newId}.design.json`);
-      const oldDesignContent = await readFileContentOrNull(oldDesignAbs);
-      if (oldDesignContent !== null) {
-        // writePageLayoutDesign は dir mkdir + writeJSON を行うが、ここでは raw content 保持優先
-        await writeFileContent(newDesignAbs, oldDesignContent);
-        writtenFiles.push(newDesignAbs);
+    // Phase J Should-fix SF-δ (#1298 round 4 Antigravity SF-3): companion file (design.json /
+    // puck-data.json 等) は plan.kind === "companion" を iterate して generic に raw copy する。
+    // 旧実装は `if (entityType === "screen") { ... raw copy 3 件 ... } else if (entityType === "pageLayout") { ... }`
+    // の hardcode で、planFileRenames に新 companion を追加しても execute 側の追従漏れで silent
+    // データロストする hazard だった。本 phase で plan iteration に統一する。
+    for (const plan of filePlans) {
+      if (plan.kind !== "companion") continue;
+      const oldContent = await readFileContentOrNull(plan.from);
+      if (oldContent !== null) {
+        await writeFileContent(plan.to, oldContent);
+        writtenFiles.push(plan.to);
       }
     }
 
@@ -1778,18 +1995,12 @@ async function _renameEntityIdImpl(
     for (const plan of filePlans) {
       await strictUnlink(plan.from);
     }
-    // screen / pageLayout の旧 design.json も削除 (存在すれば)
-    // 注: 旧 Puck payload (`screens/<oldId>/puck-data.json`) は planFileRenames に含まれている
-    // ため上の `strictUnlink(plan.from)` loop で削除済。ここでは追加で空 directory 化された
-    // `screens/<oldId>/` を rmdir で掃除する (best effort)。
+    // Phase I round 3+4 Must-fix F: Puck payload の親 directory が空ならまとめて掃除 (best effort)。
+    // Phase J SF-δ: companion file の旧 unlink は上の loop で実施済 (kind ≠ "primary" 含めて全 from を削除)。
     if (entityType === "screen") {
-      await strictUnlink(path.join(dataRoot, "screens", `${oldId}.design.json`));
-      // Phase I round 3+4 Must-fix F: Puck payload の親 directory が空ならまとめて掃除
       try {
         await fs.rmdir(path.join(dataRoot, "screens", oldId));
       } catch { /* directory が空でない、もしくは存在しない: ignore */ }
-    } else if (entityType === "pageLayout") {
-      await strictUnlink(path.join(dataRoot, "page-layouts", `${oldId}.design.json`));
     }
   } catch (err) {
     // rollback: 新規 write した file を消す + 参照側を元に戻す
@@ -1807,23 +2018,88 @@ async function _renameEntityIdImpl(
         await writeFileContent(path.join(dataRoot, snap.from), snap.originalContent);
       } catch { /* best effort */ }
     }
+    // Phase J SF-γ: rollback audit log
+    try {
+      logError("rename", "rename.execute.rollback", {
+        entityType, oldId, newId,
+        sessionId: opts?.sessionId,
+        error: err instanceof Error ? err.message : String(err),
+        workspaceRoot: root,
+      });
+    } catch { /* ignore */ }
     throw err;
+  }
+
+  // Phase J Must-fix A (#1298 round 5 Codex M-1): commit 直後の new path bytes を read-back
+  // して snapshot に格納する。undo で post-update edit (rename 後の新 id 編集) を byte 比較で
+  // 検出するための期待値 baseline。
+  //
+  // 注意: writeEntityById は annotateValidationWarnings 等で副作用 mutation する場合があるため、
+  // 「snapshot 構築時の oldContent」ではなく **commit 後の new path から実読** した bytes を
+  // expected として保持する。これにより以降の post-update detection は file system 上の真実と
+  // 一致した baseline で比較できる。
+  for (const snap of fileRenameSnapshots) {
+    if (snap.kind === "delete-only") {
+      // delete-only: 期待値なし (newContent null のまま)、undo 検査 skip
+      continue;
+    }
+    const toAbs = path.join(dataRoot, snap.to);
+    snap.newContent = await readFileContentOrNull(toAbs);
   }
 
   // Phase I round 3+4 Should-fix SF-4 / SF-5 / SF-6: rename 主処理成功後の post-commit
   // migration。失敗しても rename 自体は成功扱いとし、operation snapshot に書込状況を
   // 記録して undo で reversible に扱う。
+  //
+  // Phase J Should-fix SF-ε (#1298 round 5 Codex S-1): Screen rename は primary + aux
+  // (screen-item / puck-data) の 3 resource type すべてで history dir migration を行う。
+  // 旧実装は primary 1 種のみで auxiliary history (ScreenItemsView / Puck Designer の編集
+  // 履歴) を rename 後に新 id から不可視化していた。
   const kebabResourceType = entityTypeToResourceType(entityType);
-  let historyMigrated = false;
-  try {
-    historyMigrated = await migrateHistoryDirectory(root, kebabResourceType, oldId, newId);
-  } catch { /* best effort: history migration 失敗は rename を block しない */ }
-  let editSessionMigrations: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string }> = [];
-  try {
-    editSessionMigrations = await migrateEditSessions(root, kebabResourceType, oldId, newId);
-  } catch { /* best effort */ }
+  const historyResourceTypes = entityType === "screen"
+    ? ["screen", "screen-item", "puck-data"]
+    : [kebabResourceType];
+  const migrationWarnings: string[] = [];
+  const historyMigrations: Array<{ resourceType: string; oldId: string; newId: string }> = [];
+  for (const rt of historyResourceTypes) {
+    try {
+      const result = await migrateHistoryDirectory(root, rt, oldId, newId);
+      if (result.migrated) {
+        historyMigrations.push({ resourceType: rt, oldId, newId });
+      }
+      if (result.warning) {
+        migrationWarnings.push(result.warning);
+      }
+    } catch (e) {
+      // Phase J SF-ε / N-4: 失敗を silent skip しない。warning channel に乗せる。
+      migrationWarnings.push(
+        `history migration 失敗 (${rt}/${oldId} → ${newId}): ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+
+  // Phase J Must-fix C (#1298 round 5 Codex M-3): live store + persisted file の resourceId
+  // 移行を bridge API 経由で行う (旧 raw fs 操作を廃止)。Screen rename は 3 resource type
+  // すべてで migrate する (screen + screen-item + puck-data の auxiliary session も対象)。
+  const sessionResourceTypes = entityType === "screen"
+    ? (["screen", "screen-item", "puck-data"] as const)
+    : [kebabResourceType as string] as const;
+  let editSessionMigrations: Array<{ editSessionId: string; oldResourceId: string; newResourceId: string; resourceType: string }> = [];
+  for (const rt of sessionResourceTypes) {
+    try {
+      const log = await migrateEditSessionsByBridge(opts, rt, oldId, newId, root);
+      for (const e of log) {
+        editSessionMigrations.push({ ...e, resourceType: rt });
+      }
+    } catch (e) {
+      migrationWarnings.push(
+        `edit-session migration 失敗 (${rt}/${oldId} → ${newId}): ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
 
   // PreviewResult 再構築 (実行後の正常 case を返す)
+  // Phase J SF-ε: migration warnings (history skip / fail 等) も refScan.warnings に合流
   const preview: PreviewResult = {
     entityType, oldId, newId,
     uniqueOk: true, oldExists: true, lockedByOther: false,
@@ -1833,8 +2109,8 @@ async function _renameEntityIdImpl(
     // Phase G M-1/M-4: execute まで来た = ambiguous も concurrent もなかった
     ambiguousDependencies: [],
     concurrentEditRefs: [],
-    // Phase H N-2: scan warnings (将来拡張用) は実行成功後も UI に伝達
-    warnings: refScan.warnings,
+    // Phase H N-2 + Phase J SF-ε: scan warnings + migration warnings を UI に伝達
+    warnings: [...refScan.warnings, ...migrationWarnings],
     // Phase I round 3+4 Must-fix D: 実行成功時は positions 衝突なし (throw されているはず)
     positionsCollisions: [],
   };
@@ -1851,10 +2127,29 @@ async function _renameEntityIdImpl(
     ttlExpiresAt: ts + UNDO_TTL_MS,
     fileRenames: fileRenameSnapshots,
     refUpdates: refUpdateSnapshots,
-    ...(historyMigrated ? { historyMigration: { resourceType: kebabResourceType, oldId, newId } } : {}),
+    // Phase J SF-ε: 配列形 (複数 resourceType 対応)。空なら field 自体を出さない
+    ...(historyMigrations.length > 0 ? { historyMigrations } : {}),
     ...(editSessionMigrations.length > 0 ? { editSessionMigrations } : {}),
+    // Phase J SF-β (#1298 round 5 Opus SF-2): workspace 切替時の undo 解決のため root 同梱
+    workspaceRoot: root,
   };
   pushUndo(root, operation);
+
+  // Phase J SF-γ (#1298 round 5 Opus SF-3): rename audit log (structured)。
+  // incident 追跡 / compliance のため commit 成功時に必ず emit。
+  try {
+    logInfo("rename", "rename.execute.success", {
+      operationId: operation.operationId,
+      entityType, oldId, newId,
+      sessionId: opts?.sessionId,
+      refCount: refScan.locations.length,
+      fileRenameCount: filePlans.length,
+      historyMigrationCount: historyMigrations.length,
+      editSessionMigrationCount: editSessionMigrations.length,
+      warnings: migrationWarnings.length,
+      workspaceRoot: root,
+    });
+  } catch { /* logger 失敗で rename を block しない */ }
 
   return { operation, preview };
 }
@@ -1868,22 +2163,25 @@ async function _renameEntityIdImpl(
  * 戻り値: 復元した file 数 (主 + design + ref 側 合計)。
  */
 export async function undoEntityRename(
-  operationId: string, root: string,
+  operationId: string, root: string, opts?: RenameOpts,
 ): Promise<{ restoredFiles: number }> {
   // Phase I round 3+4 Should-fix SF-3: workspace mutex で直列化
   const release = await acquireWorkspaceLock(root);
   try {
-    return await _undoEntityRenameImpl(operationId, root);
+    return await _undoEntityRenameImpl(operationId, root, opts);
   } finally {
     release();
   }
 }
 
 async function _undoEntityRenameImpl(
-  operationId: string, root: string,
+  operationId: string, root: string, opts?: RenameOpts,
 ): Promise<{ restoredFiles: number }> {
   const op = popUndo(root, operationId);
   if (!op) {
+    try {
+      logWarn("rename", "rename.undo.notfound", { operationId, workspaceRoot: root });
+    } catch { /* ignore */ }
     throw new Error(`Undo 対象が見つかりません (operationId=${operationId})。TTL 5 分を超えた / 他 rename で上書きされた可能性。`);
   }
 
@@ -1930,22 +2228,45 @@ async function _undoEntityRenameImpl(
   }
 
   // (ii) 事後編集検出: rename-time bytes と current bytes を比較
+  //
+  // Phase J Nit N-3 (#1298 round 5 Opus N-3): byte-exact 比較で trailing newline / format on
+  // save / BOM 等の cosmetic 変更を false positive で block しないよう、JSON parse 後の
+  // deep-equal で fuzzy match を行う。両方とも JSON parse 可なら structural equality、
+  // 片方でも parse 不可なら byte 比較に fallback。
   const editedFiles: string[] = [];
   for (let i = 0; i < op.refUpdates.length; i++) {
     const expected = op.refUpdates[i].newContent;
     const actual = currentRefContents[i].content;
-    // 不在 (= 削除済 = drift)、もしくは bytes 差分 = post-update edit
-    if (actual === null || actual !== expected) {
+    if (actual === null) {
+      editedFiles.push(op.refUpdates[i].filePath);
+      continue;
+    }
+    if (!isContentEquivalent(actual, expected)) {
       editedFiles.push(op.refUpdates[i].filePath);
     }
   }
-  // 主ファイル new path も検査 (newContent の期待値は writeEntityById 経由で書かれた内容なので
-  // 厳密 byte 一致は難しい — annotateValidationWarnings 等の副作用がある。
-  // ここでは「new path file が存在するか」のみ最低限の検査とする。
-  // ref 側のみ厳密検査することで「rename 後に新 id 側を編集 → undo block」をカバーする)
+  // Phase J Must-fix A (#1298 round 5 Codex M-1): primary / companion の new path bytes も
+  // byte (or JSON-equivalent) 比較。旧実装は「存在検査のみ」だったため、
+  // 「rename → 新 ID 側 entity / design.json / puck-data.json を編集 → undo」シナリオで
+  // 正当な新 ID 編集を silent 破棄していた (data corruption)。
   for (let i = 0; i < op.fileRenames.length; i++) {
-    if (currentNewPathContents[i].content === null) {
-      editedFiles.push(`${op.fileRenames[i].to} (存在しません)`);
+    const fr = op.fileRenames[i];
+    if (fr.kind === "delete-only") {
+      // delete-only plan は to 側に新 file は存在しないので検査 skip
+      continue;
+    }
+    const actual = currentNewPathContents[i].content;
+    if (actual === null) {
+      editedFiles.push(`${fr.to} (存在しません)`);
+      continue;
+    }
+    const expected = fr.newContent;
+    if (expected === null) {
+      // 旧 operation snapshot (Phase I 以前) は newContent を持たないため互換のため skip
+      continue;
+    }
+    if (!isContentEquivalent(actual, expected)) {
+      editedFiles.push(fr.to);
     }
   }
   if (editedFiles.length > 0) {
@@ -2018,19 +2339,47 @@ async function _undoEntityRenameImpl(
   // Phase I round 3+4 Should-fix SF-4 / SF-5 / SF-6: post-undo migration revert
   // (rename 時の history dir 移行 / edit-sessions resourceId 書換えを逆方向に戻す)。
   // best effort: 失敗しても restored file 数には影響させない (undo 本体は成功)。
-  if (op.historyMigration) {
+  //
+  // Phase J SF-ε: historyMigrations (配列形) + 旧 historyMigration (single 形 backward compat)
+  // 両方を revert。
+  const migrationRevertWarnings: string[] = [];
+  const historyToRevert: Array<{ resourceType: string; oldId: string; newId: string }> = [];
+  if (op.historyMigration) historyToRevert.push(op.historyMigration);
+  if (op.historyMigrations) historyToRevert.push(...op.historyMigrations);
+  for (const hm of historyToRevert) {
     try {
-      await migrateHistoryDirectory(
-        root, op.historyMigration.resourceType,
-        op.historyMigration.newId, op.historyMigration.oldId,
+      const result = await migrateHistoryDirectory(root, hm.resourceType, hm.newId, hm.oldId);
+      if (result.warning) {
+        migrationRevertWarnings.push(`undo: ${result.warning}`);
+      }
+    } catch (e) {
+      migrationRevertWarnings.push(
+        `undo: history revert 失敗 (${hm.resourceType}/${hm.newId} → ${hm.oldId}): ${e instanceof Error ? e.message : String(e)}`,
       );
-    } catch { /* best effort */ }
+    }
   }
   if (op.editSessionMigrations && op.editSessionMigrations.length > 0) {
     try {
-      await revertEditSessionsMigration(root, op.editSessionMigrations);
-    } catch { /* best effort */ }
+      await revertEditSessionsMigration(root, opts, op.editSessionMigrations);
+    } catch (e) {
+      migrationRevertWarnings.push(
+        `undo: edit-session revert 失敗: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
   }
+
+  // Phase J SF-γ: undo audit log
+  try {
+    logInfo("rename", "rename.undo.success", {
+      operationId,
+      entityType: op.entityType, oldId: op.oldId, newId: op.newId,
+      restoredFiles: restored,
+      historyRevertCount: historyToRevert.length,
+      editSessionRevertCount: op.editSessionMigrations?.length ?? 0,
+      warnings: migrationRevertWarnings.length,
+      workspaceRoot: root,
+    });
+  } catch { /* ignore */ }
 
   return { restoredFiles: restored };
 }
