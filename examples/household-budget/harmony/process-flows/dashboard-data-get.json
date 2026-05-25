@@ -58,6 +58,7 @@
         {
           "name": "recentTransactionRows",
           "label": "直近 5 件取引 (JOIN 済 display 用 shape)",
+          "description": "SQL SELECT で transactions × categories × accounts を JOIN した display 用 shape。tableList<transactions> ではなく明示的 array<object> として宣言する理由: SQL 出力に categoryName / accountName / categoryColor 等 transactions table に存在しない JOIN 列を含むため、type 宣言と実 shape を一致させる (fetchMonthlyReport.report.categoryBreakdown と同設計)。",
           "type": {
             "kind": "array",
             "itemType": {
@@ -104,8 +105,7 @@
                   "label": "口座名"
                 }
               ]
-            },
-            "description": "SQL SELECT で transactions × categories × accounts を JOIN した display 用 shape。tableList<transactions> ではなく明示的 array<object> として宣言する理由: SQL 出力に categoryName / accountName / categoryColor 等 transactions table に存在しない JOIN 列を含むため、type 宣言と実 shape を一致させる (fetchMonthlyReport.report.categoryBreakdown と同設計)。"
+            }
           }
         }
       ],
