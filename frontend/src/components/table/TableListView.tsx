@@ -214,14 +214,19 @@ export function TableListView() {
 
   const handleDuplicate = async (items: TableEntry[]) => {
     // 複製は新規エンティティ生成 → 即永続化。Column.id (LocalId) は元のまま保持。
+    // RFC #1284 (I-7) / #1299 Codex review M-2:
+    // id は kebab-case (元 id + -copy-<ts>)、uuid は不変識別子なので新規発番。
+    // 元 full の uuid を spread で流すと identity collision (同一 uuid の別 entity) 発生。
     const newIds: string[] = [];
     for (const t of items) {
       const full = await loadTable(t.id);
       if (!full) continue;
       const ts = new Date().toISOString() as Timestamp;
+      const newId = `${full.id}-copy-${Date.now()}` as TableId;
       const dup: Table = {
         ...full,
-        id: generateUUID() as TableId,
+        id: newId,
+        uuid: generateUUID() as Table["uuid"],
         physicalName: (full.physicalName + "_copy") as PhysicalName,
         name: (full.name + " (コピー)") as DisplayName,
         // Column.id (LocalId) は内部参照に使われているので維持。新規 Table 内では再衝突しない
@@ -266,14 +271,18 @@ export function TableListView() {
       selection.setSelectedIds(new Set(moved.map((t) => t.id)));
     } else {
       // Copy → 新規エンティティ生成 (即永続化)
+      // RFC #1284 (I-7) / #1299 Codex review M-2: id は kebab-case (元 id + -copy-<ts>)、
+      // uuid は不変識別子なので新規発番 (handleDuplicate と同パターン)
       const newIds: string[] = [];
       for (const t of clipItems) {
         const full = await loadTable(t.id);
         if (!full) continue;
         const ts = new Date().toISOString() as Timestamp;
+        const newId = `${full.id}-copy-${Date.now()}` as TableId;
         const dup: Table = {
           ...full,
-          id: generateUUID() as TableId,
+          id: newId,
+          uuid: generateUUID() as Table["uuid"],
           physicalName: (full.physicalName + "_copy") as PhysicalName,
           name: (full.name + " (コピー)") as DisplayName,
           columns: full.columns.map((c) => ({ ...c })),

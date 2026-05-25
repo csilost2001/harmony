@@ -40,7 +40,9 @@ describe("buildViewDefinition", () => {
   });
 
   it("Level 2 (query) — AJV pass and sourceTableId absent", () => {
-    const tableId = "cccccccc-0001-4000-8000-000000000001";
+    // RFC #1284 (I-7 Round 2 F-1, #1299): EntityId schema は alpha-leading UUID を reject
+    // するようになったため、tableId は kebab-case の EntityId を使う。
+    const tableId = "customer-master";
     const vd = buildViewDefinition({
       query: {
         from: {

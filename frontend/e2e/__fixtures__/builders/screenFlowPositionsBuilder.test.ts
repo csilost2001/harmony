@@ -34,7 +34,8 @@ describe("buildScreenFlowPositions", () => {
   });
 
   it("respects overrides", () => {
-    const nodeId = "cccccccc-0000-4000-8000-000000000001";
+    // RFC #1284 (I-7 Round 2 F-1, #1299): positions key は EntityId (kebab-case)。
+    const nodeId = "login-screen";
     const sl = buildScreenFlowPositions({
       positions: { [nodeId]: { x: 100, y: 200 } },
     });

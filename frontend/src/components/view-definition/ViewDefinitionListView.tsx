@@ -207,15 +207,19 @@ export function ViewDefinitionListView() {
   };
 
   const handleDuplicate = async (items: ViewDefinitionEntry[]) => {
+    // RFC #1284 (I-7) / #1299 Codex review M-2:
+    // id は kebab-case (元 id + -copy-<ts>)、uuid は不変識別子なので新規発番。
+    // 元 full の uuid を spread で流すと identity collision (同一 uuid の別 entity) 発生。
     const newIds: string[] = [];
     for (const m of items) {
       const full = await loadViewDefinition(String(m.id));
       if (!full) continue;
       const ts = new Date().toISOString() as Timestamp;
-      const newId = generateUUID() as ViewDefinitionId;
+      const newId = `${full.id}-copy-${Date.now()}` as ViewDefinitionId;
       const completed: ViewDefinition = {
         ...full,
         id: newId,
+        uuid: generateUUID() as ViewDefinition["uuid"],
         name: `${full.name} のコピー` as DisplayName,
         createdAt: ts,
         updatedAt: ts,

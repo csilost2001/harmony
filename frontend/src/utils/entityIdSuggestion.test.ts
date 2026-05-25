@@ -7,6 +7,7 @@ import {
   slugifyToEntityId,
   suggestUniqueIdSuffix,
   generateFallbackEntityId,
+  makeDuplicatedEntityId,
   requestAiSuggestedEntityId,
 } from "./entityIdSuggestion";
 import { isValidEntityId } from "./entityIdValidation";
@@ -94,6 +95,61 @@ describe("generateFallbackEntityId", () => {
   it("空 / 不正 prefix は entity- に fallback", () => {
     expect(generateFallbackEntityId("").startsWith("entity-")).toBe(true);
     expect(generateFallbackEntityId("___").startsWith("entity-")).toBe(true);
+  });
+});
+
+// I-7 Round 2 (#1299 Codex review M-2): duplicate 経路の id 生成 canonical pattern
+describe("makeDuplicatedEntityId", () => {
+  it("`<srcId>-copy-<ts>` 形式を返す", () => {
+    const result = makeDuplicatedEntityId("order-form", 1700000000000);
+    expect(result).toBe("order-form-copy-1700000000000");
+    expect(isValidEntityId(result)).toBe(true);
+  });
+
+  it("nowMs を省略すると Date.now() を使う", () => {
+    const before = Date.now();
+    const result = makeDuplicatedEntityId("foo");
+    const after = Date.now();
+    const match = result.match(/^foo-copy-(\d+)$/);
+    expect(match).not.toBeNull();
+    const ts = Number(match![1]);
+    expect(ts).toBeGreaterThanOrEqual(before);
+    expect(ts).toBeLessThanOrEqual(after);
+    expect(isValidEntityId(result)).toBe(true);
+  });
+
+  it("srcId 由来 + suffix で 64 字超なら srcId 末尾を切り詰める", () => {
+    const longSrc = "a".repeat(60);
+    const result = makeDuplicatedEntityId(longSrc, 1700000000000);
+    expect(result.length).toBeLessThanOrEqual(64);
+    expect(result.endsWith("-copy-1700000000000")).toBe(true);
+    expect(isValidEntityId(result)).toBe(true);
+  });
+
+  it("truncate 後の srcId 末尾 hyphen を除去する (連続 hyphen 回避)", () => {
+    // srcId が "a-bbbb...bb-" のような形状で truncate されると、末尾 hyphen + suffix 先頭 hyphen で
+    // 連続 hyphen `--` が発生する。これを `replace(/-+$/g, "")` で除去する。
+    const srcWithTrailingHyphenAfterTrunc = "a-bb-cc-" + "x".repeat(60); // 切り詰め点で末尾が `-` になるよう配置
+    const result = makeDuplicatedEntityId(srcWithTrailingHyphenAfterTrunc, 1700000000000);
+    expect(result).not.toMatch(/--/);
+    expect(isValidEntityId(result)).toBe(true);
+  });
+
+  it("生成 id が `assertEntityId` strict 化された後の Phase A 規約を満たす (kebab-case)", () => {
+    // 7 entity 全種で代表的な srcId を回す
+    const samples = [
+      "user-form",
+      "order-master",
+      "process-flow-1",
+      "seq-order",
+      "v-customer-summary",
+      "vd-order-list",
+      "pl-default",
+    ];
+    for (const src of samples) {
+      const result = makeDuplicatedEntityId(src, 1700000000000);
+      expect(isValidEntityId(result)).toBe(true);
+    }
   });
 });
 

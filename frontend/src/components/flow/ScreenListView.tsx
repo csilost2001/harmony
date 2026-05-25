@@ -14,7 +14,6 @@ import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
-import { generateUUID } from "../../utils/uuid";
 import { renumber } from "../../utils/listOrder";
 import { DataList, type DataListColumn } from "../common/DataList";
 import { FilterBar } from "../common/FilterBar";
@@ -245,9 +244,14 @@ export function ScreenListView() {
     const project = await loadProject();
     const s = project.screens.find((sc) => sc.id === src.id);
     if (!s) return null;
+    // RFC #1284 (I-7) / #1299 Codex review M-2:
+    // duplicate path も新規 entity 創成と同じく id は kebab-case (元 id + -copy-<ts>)、
+    // uuid は不変識別子なので新規発番。Phase A で `assertEntityId` strict 化後、
+    // UUID 形式の id を流すと handler が reject するため必須。
+    const newId = `${s.id}-copy-${Date.now()}` as ScreenId;
     const dup: ScreenNode = {
       ...s,
-      id: generateUUID() as ScreenId,
+      id: newId,
       // no は renumber() で振り直されるため、...s 由来の値のままで良い (即上書き)
       name: s.name + " (コピー)",
       position: { x: s.position.x + 40, y: s.position.y + 40 },

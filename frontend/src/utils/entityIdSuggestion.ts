@@ -78,6 +78,33 @@ export function suggestUniqueIdSuffix(
 }
 
 /**
+ * 既存 entity の id から duplicate 用の kebab-case id を生成する (RFC #1284 / #1299 I-7 Round 2 F-2)。
+ *
+ * 形式: `<srcId>-copy-<timestamp ms>`
+ *
+ * 7 entity (Screen / Table / ProcessFlow / Sequence / View / ViewDefinition / PageLayout)
+ * の duplicate / copy-paste 経路で使用する canonical pattern。Phase A で `assertEntityId`
+ * strict 化された後、UUID 形式の id を流すと handler が reject するため、必ず kebab-case の
+ * 派生 id を生成する必要がある。
+ *
+ * - srcId 長 + suffix が 64 字を超える場合は srcId 末尾を切り詰めて 64 字制約に収める。
+ * - srcId が `^[a-z]...` (EntityId) でなくとも本関数は機械的に suffix を付けるのみ。
+ *   呼び出し側は src が EntityId であることを前提とする (型システムで保証されるはず)。
+ * - 末尾の `-` は切り詰め後に除去 (連続ハイフン回避)。
+ *
+ * Codex review M-2 で指摘された 6 entity duplicate 経路の UUID-id surface bug を、
+ * 1 関数に集約することで再発防止する。
+ */
+export function makeDuplicatedEntityId(srcId: string, nowMs: number = Date.now()): string {
+  const suffix = `-copy-${nowMs}`;
+  const maxBaseLen = MAX_ENTITY_ID_LENGTH - suffix.length;
+  const base = srcId.length > maxBaseLen
+    ? srcId.slice(0, maxBaseLen).replace(/-+$/g, "")
+    : srcId;
+  return `${base}${suffix}`;
+}
+
+/**
  * `<prefix>-<8桁>` 形式の kebab-case fallback id を生成する。
  * 名前が決まっていない programmatic create 経路 (mcpBridge / duplicate 等) で使う。
  */

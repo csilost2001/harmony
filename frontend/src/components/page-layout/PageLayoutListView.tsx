@@ -38,7 +38,8 @@ import { EditSessionBadge } from "../editing/EditSessionBadge";
 import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import { renumber } from "../../utils/listOrder";
 import { generateUUID } from "../../utils/uuid";
-import type { Uuid, Timestamp } from "../../types/v3";
+import type { Timestamp } from "../../types/v3";
+import type { PageLayout } from "../../types/v3/page-layout";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 
@@ -136,15 +137,19 @@ export function PageLayoutListView() {
   };
 
   const handleDuplicate = async (items: PageLayoutEntry[]) => {
+    // RFC #1284 (I-7) / #1299 Codex review M-2:
+    // id は kebab-case (元 id + -copy-<ts>)、uuid は不変識別子なので新規発番。
+    // 元 full の uuid を spread で流すと identity collision (同一 uuid の別 entity) 発生。
     const newIds: string[] = [];
     for (const m of items) {
       const full = await loadPageLayout(String(m.id));
       if (!full) continue;
       const ts = new Date().toISOString() as Timestamp;
-      const newId = generateUUID() as Uuid;
-      const copy = {
+      const newId = `${full.id}-copy-${Date.now()}` as PageLayout["id"];
+      const copy: PageLayout = {
         ...full,
         id: newId,
+        uuid: generateUUID() as PageLayout["uuid"],
         name: `${full.name} のコピー` as DisplayName,
         createdAt: ts,
         updatedAt: ts,

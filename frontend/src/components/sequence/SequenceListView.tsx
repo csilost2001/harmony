@@ -130,6 +130,9 @@ export function SequenceListView() {
   };
 
   const handleDuplicate = async (items: SequenceEntry[]) => {
+    // RFC #1284 (I-7) / #1299 Codex review M-2:
+    // id は kebab-case (元 id + -copy-<ts>)、uuid は不変識別子なので新規発番。
+    // 元 full の uuid を spread で流すと identity collision (同一 uuid の別 entity) 発生。
     const newIds: string[] = [];
     const existingPhysical = new Set<string>(editor.items.map((s) => s.physicalName ?? ""));
     for (const m of items) {
@@ -138,10 +141,11 @@ export function SequenceListView() {
       const newPhysical = makeCopyPhysicalName(full.physicalName ?? full.name, existingPhysical);
       existingPhysical.add(newPhysical);
       const ts = new Date().toISOString() as Timestamp;
-      const newId = generateUUID() as SequenceId;
+      const newId = `${full.id}-copy-${Date.now()}` as SequenceId;
       const completed: Sequence = {
         ...full,
         id: newId,
+        uuid: generateUUID() as Sequence["uuid"],
         physicalName: newPhysical as PhysicalName,
         createdAt: ts,
         updatedAt: ts,
