@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../hooks/useWorkspacePath";
 import { RenameEntityDialog } from "./common/RenameEntityDialog";
-import { RenameEntityUndoToast } from "./common/RenameEntityUndoToast";
+import { RenameEntityUndoToast, useRenameEntityUndoToast } from "./common/RenameEntityUndoToast";
 import { handleRenameSuccess } from "../utils/handleRenameSuccess";
 import { checkLegacyLocalStorage, executeRescue, clearLegacyLocalStorage } from "../grapes/legacyLocalStorageRescue";
 import { acknowledgeServerMtime } from "../utils/serverMtime";
@@ -153,11 +153,7 @@ export function Designer({
   const navigate = useNavigate();
   const { wsPath } = useWorkspacePath();
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [renameUndoToast, setRenameUndoToast] = useState<{
-    operationId: string; oldId: string; newId: string;
-    // Phase J Nit N-1 / SF-β
-    ttlMs?: number;
-  } | null>(null);
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("screen", screenId);
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
   useEffect(() => {
     (async () => {

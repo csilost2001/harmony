@@ -1316,6 +1316,24 @@ export async function deleteSequence(sequenceId: string, root: string): Promise<
   } catch { /* file not found is OK */ }
 }
 
+/** sequences/ ディレクトリ内の全シーケンス定義を読み込み (#1298 Phase L) */
+export async function listAllSequences(root: string): Promise<unknown[]> {
+  try {
+    const dataRoot = await ensureDataDirFromRoot(root);
+    const dir = sequencesDir(dataRoot);
+    const files = await fs.readdir(dir);
+    const results: unknown[] = [];
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+      const data = await readJSON<unknown>(path.join(dir, file));
+      if (data) results.push(data);
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
 /** views/ ディレクトリ内の全ビュー定義を読み込み (#587) */
 export async function listAllViews(root: string): Promise<unknown[]> {
   try {

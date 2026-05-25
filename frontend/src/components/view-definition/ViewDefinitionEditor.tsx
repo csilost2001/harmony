@@ -36,7 +36,7 @@ import type { FieldTypePrimitive } from "../../types/v3";
 import type { TableId, LocalId, Identifier } from "../../types/v3/common";
 import { loadViewDefinition, saveViewDefinition, listViewDefinitions } from "../../store/viewDefinitionStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
-import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { RenameEntityUndoToast, useRenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
@@ -96,11 +96,7 @@ export function ViewDefinitionEditor() {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   // #1298 I-6 (RFC #1284): id rename refactor 用 state
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [renameUndoToast, setRenameUndoToast] = useState<{
-    operationId: string; oldId: string; newId: string;
-    // Phase J Nit N-1 / SF-β
-    ttlMs?: number;
-  } | null>(null);
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("viewDefinition", viewDefinitionId);
   const [allViewDefIds, setAllViewDefIds] = useState<string[]>([]);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/view-definition/list"), { replace: true }), [navigate, wsPath]);

@@ -2373,3 +2373,149 @@ describe("renameEntityId — Phase K: undo は forward で移行した edit sess
     expect(preview.warnings).toContain("edit-session persist 失敗 (es-a): injected");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase L (#1298 round 7): source completeness / undo safety / preflight reuse
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("renameEntityId — Phase L M-R7-1: Sequence.usedBy TableColumnRef も table rename に追従する", () => {
+  it("Sequence.usedBy[].tableId を rewrite し、undo で元に戻す", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "sequence-table");
+    await writeSequence("invoice-seq", {
+      id: "invoice-seq",
+      name: "invoice-seq",
+      usedBy: [{ tableId: "sequence-table", columnId: "invoice-no" }],
+    }, root);
+
+    const { operation, preview } = await renameEntityId("table", "sequence-table", "orders-table", root);
+    expect(preview.refUpdates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        filePath: "sequences/invoice-seq.json",
+        jsonPointer: "/usedBy/0/tableId",
+      }),
+    ]));
+    const afterRename = await readJsonFile<{ usedBy: Array<{ tableId: string }> }>(
+      dataPath(root, "sequences", "invoice-seq.json"),
+    );
+    expect(afterRename.usedBy[0].tableId).toBe("orders-table");
+
+    await undoEntityRename(operation.operationId, root);
+    const afterUndo = await readJsonFile<{ usedBy: Array<{ tableId: string }> }>(
+      dataPath(root, "sequences", "invoice-seq.json"),
+    );
+    expect(afterUndo.usedBy[0].tableId).toBe("sequence-table");
+  });
+});
+
+describe("renameEntityId — Phase L SF-1: delete-only legacy file 再作成後の undo を拒否する", () => {
+  it("canonical + legacy ProcessFlow の legacy old path を再作成しても上書きしない", async () => {
+    const root = await makeWorkspace();
+    const canonical = {
+      meta: { id: "dual-pf", uuid: "aaaa1111-bbbb-2222-cccc-333333333333", name: "canonical" },
+      actions: [],
+    };
+    await writeProcessFlow("dual-pf", canonical, root);
+    await fs.mkdir(dataPath(root, "actions"), { recursive: true });
+    await fs.writeFile(
+      dataPath(root, "actions", "dual-pf.json"),
+      JSON.stringify({
+        meta: { id: "dual-pf", uuid: "dddd1111-eeee-2222-ffff-333333333333", name: "legacy" },
+        actions: [],
+      }, null, 2),
+      "utf-8",
+    );
+
+    const { operation } = await renameEntityId("processFlow", "dual-pf", "dual-pf-new", root);
+    await fs.writeFile(
+      dataPath(root, "actions", "dual-pf.json"),
+      JSON.stringify({
+        meta: { id: "dual-pf", uuid: "99991111-8888-2222-7777-333333333333", name: "recreated after rename" },
+        actions: [],
+      }, null, 2),
+      "utf-8",
+    );
+
+    await expect(undoEntityRename(operation.operationId, root)).rejects.toThrow(/Undo を block|再作成/);
+    const recreated = await readJsonFile<{ meta: { name: string } }>(dataPath(root, "actions", "dual-pf.json"));
+    expect(recreated.meta.name).toBe("recreated after rename");
+  });
+});
+
+describe("renameEntityId — Phase L N-1: 全 reference source の malformed JSON は strict preflight で block", () => {
+  const malformedSources: Array<[string, (...args: string[]) => string]> = [
+    ["tables", (root) => dataPath(root, "tables", "broken.json")],
+    ["views", (root) => dataPath(root, "views", "broken.json")],
+    ["view-definitions", (root) => dataPath(root, "view-definitions", "broken.json")],
+    ["page-layouts", (root) => dataPath(root, "page-layouts", "broken.json")],
+    ["screens", (root) => dataPath(root, "screens", "broken.json")],
+    ["harmony.json", (root) => path.join(root, "harmony.json")],
+    ["screen-flow-positions", (root) => dataPath(root, "screen-flow-positions.json")],
+    ["er-layout", (root) => dataPath(root, "er-layout.json")],
+    ["sequences", (root) => dataPath(root, "sequences", "broken.json")],
+  ];
+
+  it.each(malformedSources)("%s の broken JSON を silent skip しない", async (_label, fileForRoot) => {
+    const root = await makeWorkspace();
+    await seedTable(root, "strict-old");
+    const target = fileForRoot(root);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, "{ malformed", "utf-8");
+
+    await expect(renameEntityId("table", "strict-old", "strict-new", root)).rejects.toThrow(/JSON|参照走査/);
+    await fs.access(dataPath(root, "tables", "strict-old.json"));
+  });
+});
+
+describe("renameEntityId — Phase L SF-2: preview 直後の rename は unchanged preflight parse を再実行しない", () => {
+  it("同じ source fingerprint の strict validation は preview から reuse する", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "cached-preflight");
+    const mod = await import("./renameEntity.js") as unknown as {
+      _getReferencePreflightValidationCountForTest?: () => number;
+    };
+
+    await previewEntityRename("table", "cached-preflight", "cached-target", root);
+    const afterPreview = mod._getReferencePreflightValidationCountForTest?.();
+    await renameEntityId("table", "cached-preflight", "cached-target", root);
+
+    expect(afterPreview).toBeTypeOf("number");
+    expect(mod._getReferencePreflightValidationCountForTest?.()).toBe(afterPreview);
+  });
+
+  it("preview 後に source fingerprint が変われば再検証して malformed JSON を block する", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "changed-after-preview");
+    await previewEntityRename("table", "changed-after-preview", "changed-target", root);
+    await fs.mkdir(dataPath(root, "sequences"), { recursive: true });
+    await fs.writeFile(dataPath(root, "sequences", "introduced-broken.json"), "{ malformed", "utf-8");
+
+    await expect(
+      renameEntityId("table", "changed-after-preview", "changed-target", root),
+    ).rejects.toThrow(/JSON|参照走査/);
+    await fs.access(dataPath(root, "tables", "changed-after-preview.json"));
+  });
+});
+
+describe("undoEntityRename — Phase L N-2: reverse migration failure を audit log に残す", () => {
+  it("edit-session revert callback failure で rename.undo.migration.error warn を emit する", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "audit-old");
+    const { operation } = await renameEntityId("table", "audit-old", "audit-new", root, {
+      migrateEditSessions: async () => [
+        { editSessionId: "es-audit", oldResourceId: "audit-old", newResourceId: "audit-new" },
+      ],
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await undoEntityRename(operation.operationId, root, {
+      migrateEditSessions: async () => { throw new Error("reverse injected"); },
+    });
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.any(String),
+      "rename.undo.migration.error",
+      expect.objectContaining({ operationId: operation.operationId }),
+    );
+  });
+});

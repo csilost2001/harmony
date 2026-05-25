@@ -28,6 +28,7 @@ import {
   writeProcessFlow,
   readSequence,
   writeSequence,
+  listAllSequences,
   readView,
   writeView,
   listAllViews,
@@ -401,6 +402,14 @@ const UNDO_MAX_PER_WORKSPACE = 5;
 /** key = workspace root path, value = Map<operationId, RenameOperation> (LRU、insertion order) */
 const _undoStore = new Map<string, Map<string, RenameOperation>>();
 
+export interface RecentUndoOperation {
+  operationId: string;
+  entityType: RenameEntityType;
+  oldId: string;
+  newId: string;
+  remainingTtlMs: number;
+}
+
 function pushUndo(root: string, op: RenameOperation): void {
   let perWorkspace = _undoStore.get(root);
   if (!perWorkspace) {
@@ -439,9 +448,34 @@ export function findUndoOperationWorkspaceRoot(operationId: string): string | nu
   return null;
 }
 
+/** frontend reload 後の undo toast 復元用: current workspace の TTL 内 metadata のみ返す。 */
+export function listRecentUndoOperations(root: string): RecentUndoOperation[] {
+  const operations = _undoStore.get(root);
+  if (!operations) return [];
+  const now = Date.now();
+  const recent: RecentUndoOperation[] = [];
+  for (const [operationId, op] of operations) {
+    const remainingTtlMs = op.ttlExpiresAt - now;
+    if (remainingTtlMs <= 0) {
+      operations.delete(operationId);
+      continue;
+    }
+    recent.push({
+      operationId,
+      entityType: op.entityType,
+      oldId: op.oldId,
+      newId: op.newId,
+      remainingTtlMs,
+    });
+  }
+  return recent;
+}
+
 /** test-only: undo store を全 root についてクリア */
 export function _clearUndoStoreForTest(): void {
   _undoStore.clear();
+  _referencePreflightCache.clear();
+  _referencePreflightValidationCount = 0;
 }
 
 // ── Workspace mutex (Phase I round 3+4 Should-fix SF-3) ─────────────────────
@@ -961,26 +995,49 @@ async function assertReferenceJsonReadable(absPath: string): Promise<void> {
     throw new Error(`参照走査対象 JSON を読めません: ${absPath}: ${e instanceof Error ? e.message : String(e)}`);
   }
   try {
+    _referencePreflightValidationCount++;
     JSON.parse(raw);
   } catch (e) {
     throw new Error(`参照走査対象 JSON が不正です: ${absPath}: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
-async function assertJsonDirectoryReadable(
+const REFERENCE_PREFLIGHT_CACHE_TTL_MS = 10_000;
+const _referencePreflightCache = new Map<string, {
+  expiresAt: number;
+  fingerprint: string;
+}>();
+let _referencePreflightValidationCount = 0;
+
+/** test-only: strict preflight の実 parse 回数を取得する。 */
+export function _getReferencePreflightValidationCountForTest(): number {
+  return _referencePreflightValidationCount;
+}
+
+async function collectJsonDirectoryPaths(
   dir: string,
   include: (fileName: string) => boolean = (fileName) => fileName.endsWith(".json"),
-): Promise<void> {
-  let entries: string[];
+): Promise<string[]> {
   try {
-    entries = await fs.readdir(dir);
+    const entries = await fs.readdir(dir);
+    return entries.filter(include).map((entry) => path.join(dir, entry));
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return;
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw new Error(`参照走査対象 directory を読めません: ${dir}: ${e instanceof Error ? e.message : String(e)}`);
   }
-  for (const entry of entries) {
-    if (include(entry)) await assertReferenceJsonReadable(path.join(dir, entry));
-  }
+}
+
+async function sourceFingerprint(paths: readonly string[]): Promise<string> {
+  const parts = await Promise.all(paths.map(async (absPath) => {
+    try {
+      const stat = await fs.stat(absPath);
+      return `${absPath}:${stat.size}:${stat.mtimeMs}`;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return `${absPath}:missing`;
+      throw new Error(`参照走査対象 JSON を読めません: ${absPath}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }));
+  return parts.join("\n");
 }
 
 /**
@@ -988,31 +1045,47 @@ async function assertJsonDirectoryReadable(
  * 「参照なし」と扱わない。通常 reader の draft tolerant 挙動とは分離した preflight。
  */
 async function assertReferenceSourcesReadable(root: string, dataRoot: string): Promise<void> {
-  await Promise.all([
-    assertJsonDirectoryReadable(path.join(dataRoot, "process-flows")),
-    assertJsonDirectoryReadable(path.join(dataRoot, "actions")),
-    assertJsonDirectoryReadable(path.join(dataRoot, "screens"), (f) => f.endsWith(".json") && !f.endsWith(".design.json")),
-    assertJsonDirectoryReadable(path.join(dataRoot, "views")),
-    assertJsonDirectoryReadable(path.join(dataRoot, "view-definitions")),
-    assertJsonDirectoryReadable(path.join(dataRoot, "page-layouts"), (f) => f.endsWith(".json") && !f.endsWith(".design.json")),
-    assertJsonDirectoryReadable(path.join(dataRoot, "tables")),
-    assertReferenceJsonReadable(path.join(root, "harmony.json")),
-    assertReferenceJsonReadable(path.join(dataRoot, "screen-flow-positions.json")),
-    assertReferenceJsonReadable(path.join(dataRoot, "er-layout.json")),
-  ]);
-
+  const paths = (await Promise.all([
+    collectJsonDirectoryPaths(path.join(dataRoot, "process-flows")),
+    collectJsonDirectoryPaths(path.join(dataRoot, "actions")),
+    collectJsonDirectoryPaths(path.join(dataRoot, "screens"), (f) => f.endsWith(".json") && !f.endsWith(".design.json")),
+    collectJsonDirectoryPaths(path.join(dataRoot, "views")),
+    collectJsonDirectoryPaths(path.join(dataRoot, "view-definitions")),
+    collectJsonDirectoryPaths(path.join(dataRoot, "page-layouts"), (f) => f.endsWith(".json") && !f.endsWith(".design.json")),
+    collectJsonDirectoryPaths(path.join(dataRoot, "tables")),
+    collectJsonDirectoryPaths(path.join(dataRoot, "sequences")),
+  ])).flat();
+  paths.push(
+    path.join(root, "harmony.json"),
+    path.join(dataRoot, "screen-flow-positions.json"),
+    path.join(dataRoot, "er-layout.json"),
+  );
   const genericDir = path.join(dataRoot, "generic-definitions");
   let kinds: import("node:fs").Dirent[];
   try {
     kinds = await fs.readdir(genericDir, { withFileTypes: true });
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw new Error(`参照走査対象 directory を読めません: ${genericDir}: ${e instanceof Error ? e.message : String(e)}`);
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") kinds = [];
+    else {
+      throw new Error(`参照走査対象 directory を読めません: ${genericDir}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
-  await Promise.all(
+  paths.push(...(await Promise.all(
     kinds.filter((entry) => entry.isDirectory()).map((entry) =>
-      assertJsonDirectoryReadable(path.join(genericDir, entry.name))),
-  );
+      collectJsonDirectoryPaths(path.join(genericDir, entry.name))),
+  )).flat());
+  paths.sort();
+
+  const fingerprint = await sourceFingerprint(paths);
+  const cached = _referencePreflightCache.get(root);
+  if (cached && cached.expiresAt > Date.now() && cached.fingerprint === fingerprint) {
+    return;
+  }
+  await Promise.all(paths.map((absPath) => assertReferenceJsonReadable(absPath)));
+  _referencePreflightCache.set(root, {
+    expiresAt: Date.now() + REFERENCE_PREFLIGHT_CACHE_TTL_MS,
+    fingerprint,
+  });
 }
 
 /**
@@ -1114,7 +1187,19 @@ async function scanAllRefs(
     });
   }
 
-  // 7. harmony.json (screen rename で screenTransitions / entities.screens[].id 参照)
+  // 7. Sequence (usedBy[].tableId は TableColumnRef 経由の nested EntityId)
+  const sequences = (await listAllSequences(root)) as Array<Record<string, unknown>>;
+  for (const sequence of sequences) {
+    const sequenceId = typeof sequence.id === "string" ? sequence.id : null;
+    if (!sequenceId) continue;
+    sources.push({
+      entityKind: "sequence", entityId: sequenceId,
+      absPath: path.join(dataRoot, "sequences", `${sequenceId}.json`),
+      data: sequence,
+    });
+  }
+
+  // 8. harmony.json (screen rename で screenTransitions / entities.screens[].id 参照)
   const projectData = await readProject(root);
   if (projectData) {
     sources.push({
@@ -1124,7 +1209,7 @@ async function scanAllRefs(
     });
   }
 
-  // 8. screen-flow-positions.json (screen rename で node id 参照)
+  // 9. screen-flow-positions.json (screen rename で node id 参照)
   const sfp = await readScreenFlowPositions(root);
   if (sfp) {
     sources.push({
@@ -1134,7 +1219,7 @@ async function scanAllRefs(
     });
   }
 
-  // 9. er-layout.json (Phase F M-2): Table rename で positions[KEY] / logicalRelations 参照
+  // 10. er-layout.json (Phase F M-2): Table rename で positions[KEY] / logicalRelations 参照
   //    Codex 独立レビュー指摘: SCALAR_REF_FIELDS に targetTableId を追加しただけでは scan source
   //    に er-layout.json が含まれず実走査されない。logicalRelations の sourceTableId/targetTableId
   //    は汎用 walker で拾えるが、positions の object KEY は専用 handler が必要。
@@ -1147,7 +1232,7 @@ async function scanAllRefs(
     });
   }
 
-  // 10. generic-definitions/<kind>/*.json (Phase I round 3+4 Must-fix E、Antigravity M-6)
+  // 11. generic-definitions/<kind>/*.json (Phase I round 3+4 Must-fix E、Antigravity M-6)
   //     `relations[].ref` に top-level entity への path 形式 ref が記述される (例:
   //     "tables/transactions", "screens/dashboard", "process-flows/createTransaction" 等)。
   //     rename 時にこれを更新しないと orphan ref が永続化されるため、ここで scan source に含める。
@@ -2360,7 +2445,10 @@ async function _undoEntityRenameImpl(
   for (let i = 0; i < op.fileRenames.length; i++) {
     const fr = op.fileRenames[i];
     if (fr.kind === "delete-only") {
-      // delete-only plan は to 側に新 file は存在しないので検査 skip
+      // rename 時に削除した legacy path が再作成されていれば、restore で上書きしない。
+      if (currentOldPathContents[i].content !== null) {
+        editedFiles.push(`${fr.from} (旧 ID が再作成されています)`);
+      }
       continue;
     }
     const actual = currentNewPathContents[i].content;
@@ -2489,6 +2577,18 @@ async function _undoEntityRenameImpl(
         `undo: edit-session revert 失敗: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
+  }
+  for (const warning of migrationRevertWarnings) {
+    try {
+      logWarn("rename", "rename.undo.migration.error", {
+        operationId,
+        entityType: op.entityType,
+        oldId: op.oldId,
+        newId: op.newId,
+        warning,
+        workspaceRoot: root,
+      });
+    } catch { /* logger failure must not alter undo semantics */ }
   }
 
   // Phase J SF-γ: undo audit log

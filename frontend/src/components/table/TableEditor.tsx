@@ -25,7 +25,7 @@ import { useListKeyboard } from "../../hooks/useListKeyboard";
 import { useListSort } from "../../hooks/useListSort";
 import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
-import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { RenameEntityUndoToast, useRenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { DataList, type DataListColumn } from "../common/DataList";
@@ -61,11 +61,7 @@ export function TableEditor() {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   // #1298 I-6 (RFC #1284): id rename refactor 用 state
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [renameUndoToast, setRenameUndoToast] = useState<{
-    operationId: string; oldId: string; newId: string;
-    // Phase J Nit N-1 / SF-β: backend operation の追加 metadata
-    ttlMs?: number;
-  } | null>(null);
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("table", tableId);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/table/list"), { replace: true }), [navigate, wsPath]);
 

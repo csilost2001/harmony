@@ -8,7 +8,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, renderHook, screen, fireEvent, waitFor } from "@testing-library/react";
+import * as UndoToastModule from "./RenameEntityUndoToast";
 import { RenameEntityUndoToast } from "./RenameEntityUndoToast";
 
 vi.mock("../../mcp/mcpBridge", () => ({
@@ -21,6 +22,7 @@ import { mcpBridge } from "../../mcp/mcpBridge";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionStorage.clear();
 });
 
 describe("RenameEntityUndoToast — Phase F S-1 (Codex 独立レビュー)", () => {
@@ -145,5 +147,38 @@ describe("RenameEntityUndoToast — Phase F S-1 (Codex 独立レビュー)", () 
       expect(screen.getByText(/undo 失敗/)).toBeInTheDocument();
     });
     expect(onUndo).not.toHaveBeenCalled();
+  });
+});
+
+describe("useRenameEntityUndoToast — Phase L SF-R7-1 operation restoration", () => {
+  it("sessionStorage metadata を server の TTL 内 operation と照合して mount 時に復元する", async () => {
+    sessionStorage.setItem("harmony-rename-undo:table:renamed", JSON.stringify({
+      operationId: "op-restored",
+      oldId: "old",
+      newId: "renamed",
+      ttlMs: 300000,
+    }));
+    (mcpBridge.request as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{
+      operationId: "op-restored",
+      entityType: "table",
+      oldId: "old",
+      newId: "renamed",
+      remainingTtlMs: 245000,
+    }]);
+    const useRenameEntityUndoToast = (
+      UndoToastModule as unknown as {
+        useRenameEntityUndoToast?: (entityType: string, currentId: string) => readonly [
+          { operationId: string; ttlMs?: number } | null,
+          (value: unknown) => void,
+        ];
+      }
+    ).useRenameEntityUndoToast;
+
+    expect(useRenameEntityUndoToast).toBeTypeOf("function");
+    const { result } = renderHook(() => useRenameEntityUndoToast!("table", "renamed"));
+
+    await waitFor(() => expect(result.current[0]?.operationId).toBe("op-restored"));
+    expect(result.current[0]?.ttlMs).toBe(245000);
+    expect(mcpBridge.request).toHaveBeenCalledWith("listRecentUndoOperations", {});
   });
 });

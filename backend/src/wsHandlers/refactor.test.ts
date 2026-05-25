@@ -73,3 +73,35 @@ describe("undoEntityRename RPC — Phase K workspace ownership", () => {
     await fs.access(path.join(operationRoot, "harmony", "tables", "before.json"));
   });
 });
+
+describe("listRecentUndoOperations RPC — Phase L frontend restoration", () => {
+  it("reload 後に current workspace の TTL 内 operation metadata を問い合わせられる", async () => {
+    const root = await makeWorkspace();
+    await writeTable("before", { id: "before", name: "before", columns: [] }, root);
+    const { operation } = await renameEntityId("table", "before", "after", root);
+    const responses: unknown[] = [];
+    const errors: string[] = [];
+
+    expect(refactorHandlers.listRecentUndoOperations).toBeTypeOf("function");
+    await refactorHandlers.listRecentUndoOperations!({
+      params: {},
+      clientId: "client-a",
+      root: () => root,
+      wsId: () => root,
+      respond: (result) => responses.push(result),
+      respondError: (error) => errors.push(error),
+      bridge: {} as WsBridge,
+    });
+
+    expect(errors).toEqual([]);
+    expect(responses).toEqual([expect.arrayContaining([
+      expect.objectContaining({
+        operationId: operation.operationId,
+        entityType: "table",
+        oldId: "before",
+        newId: "after",
+        remainingTtlMs: expect.any(Number),
+      }),
+    ])]);
+  });
+});

@@ -63,7 +63,7 @@ import { useCodexStatus } from "../../codex/useCodexStatus";
 import { requestProcessFlowPartial, AiUnavailableError } from "../../codex/processFlowPartialRequest";
 import { EditorHeader } from "../common/EditorHeader";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
-import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { RenameEntityUndoToast, useRenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { listProcessFlows } from "../../store/processFlowStore";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
@@ -143,11 +143,7 @@ export function ProcessFlowEditor() {
   const [showAiReviewDialog, setShowAiReviewDialog] = useState(false);
   // #1298 I-6 (RFC #1284): id rename refactor 用 state
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [renameUndoToast, setRenameUndoToast] = useState<{
-    operationId: string; oldId: string; newId: string;
-    // Phase J Nit N-1 / SF-β
-    ttlMs?: number;
-  } | null>(null);
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("processFlow", processFlowId);
   const [allProcessFlowIds, setAllProcessFlowIds] = useState<string[]>([]);
   useEffect(() => {
     (async () => {

@@ -5,7 +5,7 @@ import type { View, OutputColumn, PhysicalName, Uuid, Maturity, SemVer } from ".
 import { loadView, saveView, listViews } from "../../store/viewStore";
 import { listTables } from "../../store/tableStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
-import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { RenameEntityUndoToast, useRenameEntityUndoToast } from "../common/RenameEntityUndoToast";
 import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
@@ -53,11 +53,7 @@ export function ViewEditor() {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   // #1298 I-6 (RFC #1284): id rename refactor 用 state
   const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [renameUndoToast, setRenameUndoToast] = useState<{
-    operationId: string; oldId: string; newId: string;
-    // Phase J Nit N-1 / SF-β
-    ttlMs?: number;
-  } | null>(null);
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("view", viewId);
   const [allViewIds, setAllViewIds] = useState<string[]>([]);
   useEffect(() => {
     (async () => {

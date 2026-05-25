@@ -17,6 +17,7 @@ import {
   renameEntityId,
   undoEntityRename,
   findUndoOperationWorkspaceRoot,
+  listRecentUndoOperations,
   entityTypeToResourceType,
   type RenameEntityType,
   type EditSessionLike,
@@ -189,6 +190,14 @@ function makeMigrateEditSessions(
 }
 
 export const refactorHandlers: RpcHandlerMap = {
+  listRecentUndoOperations: async ({ root, respond, respondError }) => {
+    try {
+      respond(listRecentUndoOperations(root()));
+    } catch (e) {
+      respondError(e instanceof Error ? e.message : String(e));
+    }
+  },
+
   previewEntityRename: async ({ params, root, wsId, clientId, respond, respondError, bridge }) => {
     try {
       const { entityType, oldId, newId } = (params ?? {}) as {
