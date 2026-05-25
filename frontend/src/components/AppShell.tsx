@@ -175,6 +175,36 @@ function ConnectionFailedView({ onRetry }: { onRetry: () => void }) {
 // ルートレベルの AppShell: /workspace/* と /w/:wsId/* に分岐
 const CONNECTION_TIMEOUT_MS = 5000; // backend 接続失敗エラー UI 表示までの待機時間 (#795-C)
 
+// ─── module-level guards (#1299 I-7 Phase D) ─────────────────────────────────
+// AppShellInner は workspaceState.loading=true で外側 AppShell が splash 描画する間
+// アンマウントされる。component-local な useRef は remount で初期化されるため、
+// initial-restore / recovery-pending の二重発行ガードが効かず無限ループになる。
+//
+// 対策: 2 つのガード状態を module-level に持ち、remount 越しでも持続させる。
+// mcpBridge disconnect 時にクリアして backend per-session 再構築の契約は維持する。
+//
+// - `__initialRestoreDoneWsIds`: 「どの wsId に対し initial-restore を実施済みか」
+// - `__recoveryPendingWsId`: 「現在 workspace.open RPC を発行中の wsId」(並行発行ガード)
+const __initialRestoreDoneWsIds = new Set<string>();
+let __recoveryPendingWsId: string | null = null;
+let __statusClearSubscribed = false;
+function __subscribeStatusClearOnce(): void {
+  if (__statusClearSubscribed) return;
+  __statusClearSubscribed = true;
+  (mcpBridge as { onStatusChange: (cb: (s: string) => void) => () => void })
+    .onStatusChange((s: string) => {
+      if (s === "disconnected" || s === "failed") {
+        __initialRestoreDoneWsIds.clear();
+        __recoveryPendingWsId = null;
+      }
+    });
+}
+/** @internal テスト専用: initial-restore done set + recovery-pending をリセット */
+export function __resetInitialRestoreDoneForTest(): void {
+  __initialRestoreDoneWsIds.clear();
+  __recoveryPendingWsId = null;
+}
+
 export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -445,15 +475,14 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   // ルーティングガード: wsId が active と異なる、または active===null の場合の処理
   // 並行発行ガード (#963): 同一 wsId に対する workspace.open の二重発行を抑止する。
   // useEffect は workspaceState 更新等で何度も再実行されるため、未完了 RPC があれば
-  // 同 wsId の再発行を skip する。RPC 完了 (success or fail) で ref をクリア。
-  const recoveryPendingRef = useRef<string | null>(null);
-
+  // 同 wsId の再発行を skip する。RPC 完了 (success or fail) でクリア。
+  //
   // backend offline 時の localStorage fallback は #923 シリーズで廃止 (spec D-8)。
   // 接続失敗は AppShell 上位の `connectionFailed` (`markFailed()` 経由) が
   // `ConnectionFailedView` で UI を切り替える。本ガードは正常接続時の URL 同期に専念する。
   //
   // 判定ロジックは pure 関数 `evaluateRoutingGuard` (routing/workspaceRouting.ts) に抽出 (#1145 Phase-7)。
-  // 副作用 (並行発行ガード recoveryPendingRef / mcpBridge.request / redirectGuard / navigate / loadWorkspaces) は
+  // 副作用 (並行発行ガード / mcpBridge.request / redirectGuard / navigate / loadWorkspaces) は
   // 本 useEffect 内で適用する。
   //
   // backend reconnect 時の per-session restore (#1145 Phase-2 #1165 wsBridge 分割で顕在化):
@@ -462,7 +491,14 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   //   workspace.open を再発行しない (routing guard で "none" になる)
   // - backend の per-session は空のまま → 各 RPC で「ワークスペースが選択されていません」reject
   // - 解決策: 初回 mount 時、active.id === wsId であっても 1 回 workspace.open を呼んで per-session を確立する
-  const initialRestoreDoneRef = useRef(false);
+  //
+  // 重要 (#1299 I-7 Phase D): 上記 2 種のガード状態は AppShellInner ローカルの useRef では NG。
+  //   AppShellInner は workspaceState.loading=true で外側 AppShell が splash 描画する間
+  //   アンマウントされ、後続の `.then(() => loadWorkspaces())` が `_setState({loading:true})`
+  //   を立てた瞬間に component が消える。再 mount 時 useRef は初期値に戻り、ガードが効かず
+  //   無限ループになる。よって module-level (__initialRestoreDoneWsIds / __recoveryPendingWsId)
+  //   に持ち、mcpBridge disconnect 時にクリアして backend per-session 再構築の契約は維持する。
+  __subscribeStatusClearOnce();
 
   useEffect(() => {
     // e2e テスト用 bypass (workspace-e2e-bypass=true) のみ guard スキップ。
@@ -476,24 +512,24 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     // 1 回だけ workspace.open を呼んで backend per-session を確立する。
     if (
       action.type === "none" &&
-      !initialRestoreDoneRef.current &&
+      wsId !== undefined &&
+      !__initialRestoreDoneWsIds.has(wsId) &&
       !workspaceState.loading &&
       !workspaceState.lockdown &&
       workspaceState.active !== null &&
-      wsId !== undefined &&
       wsId === workspaceState.active.id &&
-      recoveryPendingRef.current === null
+      __recoveryPendingWsId === null
     ) {
-      initialRestoreDoneRef.current = true;
+      __initialRestoreDoneWsIds.add(wsId);
       const activeId = workspaceState.active.id;
-      recoveryPendingRef.current = activeId;
+      __recoveryPendingWsId = activeId;
       mcpBridge.request("workspace.open", { id: activeId })
         .then(() => loadWorkspaces())
         .catch((err) => {
           console.error("[workspace] initial per-session restore failed:", err);
         })
         .finally(() => {
-          if (recoveryPendingRef.current === activeId) recoveryPendingRef.current = null;
+          if (__recoveryPendingWsId === activeId) __recoveryPendingWsId = null;
         });
       return;
     }
@@ -502,10 +538,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
 
     if (action.type === "openWorkspace") {
       // 並行発行ガード (#963): 同 wsId に対する未完了 workspace.open RPC があれば skip
-      if (recoveryPendingRef.current === action.id) {
+      if (__recoveryPendingWsId === action.id) {
         return;
       }
-      recoveryPendingRef.current = action.id;
+      __recoveryPendingWsId = action.id;
       mcpBridge.request("workspace.open", { id: action.id })
         // backend の workspace.changed broadcast は requester を除外する (wsBridge.ts excludeClientId)。
         // 自セッション側は broadcast を受けないため、明示的に loadWorkspaces で state.active を更新する。
@@ -517,7 +553,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
           if (guard.allow) navigate("/workspace/select", { replace: true });
         })
         .finally(() => {
-          if (recoveryPendingRef.current === action.id) recoveryPendingRef.current = null;
+          if (__recoveryPendingWsId === action.id) __recoveryPendingWsId = null;
         });
       return;
     }
