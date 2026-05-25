@@ -354,6 +354,30 @@ describe("isValidEntityId", () => {
     expect(isValidEntityId("267e94bf-0397-44b8-b665-d3c40c38935b")).toBe(false);
   });
 
+  // I-7 Round 2 (#1299 Codex review M-1) regression: alpha-leading UUID (先頭が a-f) は
+  // 旧 ENTITY_ID_RE に偶然合致するため、UUID_RE で明示的に除外する必要がある。
+  // compat shim (Phase A 撤廃) の意図を保ち、assertEntityId 経由で旧 UUID id が
+  // RPC 経路を通過しないことを保証する。
+  it("異常: alpha-leading UUID (Codex review M-1 regression)", () => {
+    // 先頭文字が a-f の RFC 4122 UUID v4 サンプル
+    expect(isValidEntityId("a0000000-0000-4000-8000-000000000000")).toBe(false);
+    expect(isValidEntityId("f81dd9e0-794c-4539-a2a5-9cbcc0a75899")).toBe(false);
+    expect(isValidEntityId("b1234567-89ab-4cde-9f01-23456789abcd")).toBe(false);
+    expect(isValidEntityId("c0ffeebe-1234-4567-89ab-cdef01234567")).toBe(false);
+    expect(isValidEntityId("deadbeef-1234-4abc-8def-1234567890ab")).toBe(false);
+    expect(isValidEntityId("e1f2a3b4-c5d6-4e7f-89a0-b1c2d3e4f506")).toBe(false);
+    // v4 以外 (version digit が 4 でない) loose UUID も EntityId としては reject
+    expect(isValidEntityId("a0000000-0000-1000-8000-000000000000")).toBe(false);
+  });
+
+  it("正常: UUID と prefix が似た kebab-case は受け入れる (false-positive 回避)", () => {
+    // UUID と segment 数が異なる kebab-case は引き続き valid
+    expect(isValidEntityId("abc-def")).toBe(true);
+    expect(isValidEntityId("a0-b1-c2")).toBe(true);
+    // 8-4-4-4-12 構造でも segment 数が違えば valid
+    expect(isValidEntityId("abc12345")).toBe(true);
+  });
+
   it("異常: path traversal (..)", () => {
     expect(isValidEntityId("..")).toBe(false);
     expect(isValidEntityId("../evil")).toBe(false);
@@ -377,6 +401,11 @@ describe("assertEntityId", () => {
 
   it("異常: UUID 形式は assertEntityId では reject (strict)", () => {
     expect(() => assertEntityId("267e94bf-0397-44b8-b665-d3c40c38935b", "screenId")).toThrow("Invalid screenId");
+  });
+
+  it("異常: alpha-leading UUID も assertEntityId では reject (#1299 Codex M-1 regression)", () => {
+    expect(() => assertEntityId("f81dd9e0-794c-4539-a2a5-9cbcc0a75899", "screenId")).toThrow("Invalid screenId");
+    expect(() => assertEntityId("a0000000-0000-4000-8000-000000000000", "tableId")).toThrow("Invalid tableId");
   });
 
   it("異常: 空文字で throw", () => {

@@ -56,6 +56,27 @@ describe("isValidEntityId", () => {
     expect(isValidEntityId("12345678-1234-4abc-89ab-1234567890ab")).toBe(false);
   });
 
+  // I-7 Round 2 (#1299 Codex review M-1) regression: alpha-leading UUID (先頭が a-f) は
+  // ENTITY_ID_RE に偶然合致するため、UUID_LOOSE_RE で明示的に除外している。
+  // compat shim 撤廃 (Phase A) の意図を保ち、frontend 創成 / rename ダイアログで
+  // 旧 UUID id を入力 / 提案させないことを保証する。
+  it("alpha-leading UUID も reject する (#1299 Codex M-1 regression)", () => {
+    expect(isValidEntityId("a0000000-0000-4000-8000-000000000000")).toBe(false);
+    expect(isValidEntityId("f81dd9e0-794c-4539-a2a5-9cbcc0a75899")).toBe(false);
+    expect(isValidEntityId("b1234567-89ab-4cde-9f01-23456789abcd")).toBe(false);
+    expect(isValidEntityId("c0ffeebe-1234-4567-89ab-cdef01234567")).toBe(false);
+    expect(isValidEntityId("deadbeef-1234-4abc-8def-1234567890ab")).toBe(false);
+    expect(isValidEntityId("e1f2a3b4-c5d6-4e7f-89a0-b1c2d3e4f506")).toBe(false);
+    // version digit が 4 でない loose UUID (v1/v3 等) も EntityId としては reject
+    expect(isValidEntityId("a0000000-0000-1000-8000-000000000000")).toBe(false);
+  });
+
+  it("UUID と segment 数が異なる kebab-case は accept する (false-positive 回避)", () => {
+    expect(isValidEntityId("abc-def")).toBe(true);
+    expect(isValidEntityId("a0-b1-c2")).toBe(true);
+    expect(isValidEntityId("abc12345")).toBe(true);
+  });
+
   it("大文字混じりは reject する", () => {
     expect(isValidEntityId("User-Form")).toBe(false);
     expect(isValidEntityId("USER")).toBe(false);

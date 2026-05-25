@@ -12,9 +12,12 @@
     },
 
     "EntityId": {
-      "description": "Top-level entity (Screen / Table / ProcessFlow / Sequence / View / ViewDefinition / PageLayout) の人間可読識別子。kebab-case 英単語、ファイル名 / URL / @参照 / JSON ref 値に使用。entity type 内 unique。設計者が明示的に rename refactor 操作で変更可 (uuid は不変)。RFC #1284 / メタ #1292 で導入。",
+      "description": "Top-level entity (Screen / Table / ProcessFlow / Sequence / View / ViewDefinition / PageLayout) の人間可読識別子。kebab-case 英単語、ファイル名 / URL / @参照 / JSON ref 値に使用。entity type 内 unique。設計者が明示的に rename refactor 操作で変更可 (uuid は不変)。RFC #1284 / メタ #1292 で導入。I-7 Round 2 (#1299 Codex review M-1) で alpha-leading UUID (例: 'f81dd9e0-794c-4539-...') が pattern に偶然合致してしまう問題を allOf の not で明示除外し、compat shim 撤廃後の strict 化を schema レベルで保証。",
       "type": "string",
-      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "allOf": [
+        { "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$" },
+        { "not": { "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" } }
+      ],
       "minLength": 1,
       "maxLength": 64
     },

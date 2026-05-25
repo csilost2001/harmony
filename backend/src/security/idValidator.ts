@@ -42,13 +42,24 @@ export function isValidKind(s: unknown): s is string {
  *   - pattern: ^[a-z][a-z0-9]*(-[a-z0-9]+)*$
  *   - minLength: 1
  *   - maxLength: 64
+ *   - AND NOT UUID v? 形式 (RFC 4122 UUID は a-f 始まりが本 regex に偶然合致するため明示除外)
  *
  * 用途: Screen / Table / ProcessFlow / Sequence / View / ViewDefinition / PageLayout の
  * top-level entity id (ファイル名 / URL / @参照 / JSON ref 値)。
  * step/edge/column 等の intra-entity local id (LocalId) は本 validator の対象外。
+ *
+ * I-7 Round 2 (#1299 Codex review M-1): `f81dd9e0-794c-4539-...` のように先頭が a-f の
+ * UUID v4 文字列は ENTITY_ID_RE に偶然合致するため、UUID_RE で明示的に除外する。
+ * これにより compat shim 撤廃 (Phase A) の意図が保たれ、`assertEntityId` 経由の handler は
+ * 旧 UUID 形式の id を一切受け付けなくなる。
  */
 export function isValidEntityId(s: unknown): s is string {
-  return typeof s === "string" && s.length <= ENTITY_ID_MAX_LENGTH && ENTITY_ID_RE.test(s);
+  return (
+    typeof s === "string" &&
+    s.length <= ENTITY_ID_MAX_LENGTH &&
+    ENTITY_ID_RE.test(s) &&
+    !UUID_RE.test(s)
+  );
 }
 
 // ── assert 系 (throw on fail) ─────────────────────────────────────────────────
