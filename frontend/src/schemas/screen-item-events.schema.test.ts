@@ -29,13 +29,15 @@ beforeAll(() => {
   validateProcessFlow = ajv.compile(loadJson(join(v3Dir, "process-flow.v3.schema.json")) as object);
 });
 
-// RFC 4122 v4 UUID 形式 (3 ブロック目 "4xxx"、4 ブロック目 "[89ab]xxx") を満たすテスト用 UUID
+// RFC #1284: EntityId は kebab-case、uuid は RFC 4122 v4 を別 field で保持
+const FLOW_ID = "fixture-flow";
 const FLOW_UUID = "11111111-1111-4111-8111-111111111111";
-const SCREEN_UUID = "22222222-2222-4222-8222-222222222222";
+const SCREEN_ID = "fixture-screen";
 
 function makeMeta(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    id: FLOW_UUID,
+    id: FLOW_ID,
+    uuid: FLOW_UUID,
     name: "test",
     version: "1.0.0",
     maturity: "draft",
@@ -61,7 +63,7 @@ describe("ScreenItem.events[] (#624)", () => {
         {
           id: "click",
           label: "クリック時",
-          handlerFlowId: FLOW_UUID,
+          handlerFlowId: FLOW_ID,
           argumentMapping: {
             userId: "@session.userId",
             amount: "@self.amountInput.value",
@@ -78,8 +80,8 @@ describe("ScreenItem.events[] (#624)", () => {
       label: "金額",
       type: "number",
       events: [
-        { id: "change", handlerFlowId: FLOW_UUID },
-        { id: "blur", handlerFlowId: FLOW_UUID },
+        { id: "change", handlerFlowId: FLOW_ID },
+        { id: "blur", handlerFlowId: FLOW_ID },
       ],
     };
     expect(validateScreenItem(item)).toBe(true);
@@ -90,7 +92,7 @@ describe("ScreenItem.events[] (#624)", () => {
       id: "submitBtn",
       label: "送信",
       type: "string",
-      events: [{ handlerFlowId: FLOW_UUID }],
+      events: [{ handlerFlowId: FLOW_ID }],
     };
     expect(validateScreenItem(item)).toBe(false);
   });
@@ -111,7 +113,7 @@ describe("ScreenItem.events[] (#624)", () => {
       label: "送信",
       type: "string",
       events: [
-        { id: "click", handlerFlowId: FLOW_UUID, unknownField: "rejected" },
+        { id: "click", handlerFlowId: FLOW_ID, unknownField: "rejected" },
       ],
     };
     expect(validateScreenItem(item)).toBe(false);
@@ -125,7 +127,7 @@ describe("ScreenItem.events[] (#624)", () => {
       events: [
         {
           id: "click",
-          handlerFlowId: FLOW_UUID,
+          handlerFlowId: FLOW_ID,
           argumentMapping: {
             "Invalid-Key": "@self.value",
           },
@@ -143,7 +145,7 @@ describe("ScreenItem.events[] (#624)", () => {
       events: [
         {
           id: "click",
-          handlerFlowId: FLOW_UUID,
+          handlerFlowId: FLOW_ID,
           argumentMapping: {
             userId: 12345,
           },
@@ -161,7 +163,7 @@ describe("ScreenItem.events[] (#624)", () => {
       events: [
         {
           id: "click",
-          handlerFlowId: FLOW_UUID,
+          handlerFlowId: FLOW_ID,
           handlerActionId: "act-create",
           argumentMapping: { userId: "@session.userId" },
         },
@@ -178,7 +180,7 @@ describe("ScreenItem.events[] (#624)", () => {
       events: [
         {
           id: "click",
-          handlerFlowId: FLOW_UUID,
+          handlerFlowId: FLOW_ID,
           handlerActionId: "-invalid-leading-hyphen",
         },
       ],
@@ -196,10 +198,10 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker (screen-item-event) を持つ正常系", () => {
     const flow = {
       meta: makeMeta({
-        flowType: "screen", screenId: "22222222-2222-4222-8222-222222222222",
+        flowType: "screen", screenId: "fixture-target-screen",
         primaryInvoker: {
           kind: "screen-item-event",
-          screenId: SCREEN_UUID,
+          screenId: SCREEN_ID,
           itemId: "submitBtn",
           eventId: "click",
         },
@@ -212,7 +214,7 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker.screenId を欠落させると fail", () => {
     const flow = {
       meta: makeMeta({
-        flowType: "screen", screenId: "22222222-2222-4222-8222-222222222222",
+        flowType: "screen", screenId: "fixture-target-screen",
         primaryInvoker: {
           kind: "screen-item-event",
           itemId: "submitBtn",
@@ -227,7 +229,7 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker.kind が未対応の値だと fail", () => {
     const flow = {
       meta: makeMeta({
-        flowType: "screen", screenId: "22222222-2222-4222-8222-222222222222",
+        flowType: "screen", screenId: "fixture-target-screen",
         primaryInvoker: { kind: "unknown-invoker" },
       }),
       actions: [],
@@ -238,10 +240,10 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker に未知のトップレベルプロパティを含むと fail (additionalProperties: false)", () => {
     const flow = {
       meta: makeMeta({
-        flowType: "screen", screenId: "22222222-2222-4222-8222-222222222222",
+        flowType: "screen", screenId: "fixture-target-screen",
         primaryInvoker: {
           kind: "screen-item-event",
-          screenId: SCREEN_UUID,
+          screenId: SCREEN_ID,
           itemId: "submitBtn",
           eventId: "click",
           unknownField: "rejected",
@@ -255,10 +257,10 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker.itemId が Identifier 形式 (lowerCamelCase) でないと fail", () => {
     const flow = {
       meta: makeMeta({
-        flowType: "screen", screenId: "22222222-2222-4222-8222-222222222222",
+        flowType: "screen", screenId: "fixture-target-screen",
         primaryInvoker: {
           kind: "screen-item-event",
-          screenId: SCREEN_UUID,
+          screenId: SCREEN_ID,
           itemId: "Submit-Btn",
           eventId: "click",
         },
@@ -271,10 +273,10 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker.actionId 付きで pass (#1019)", () => {
     const flow = {
       meta: makeMeta({
-        flowType: "screen", screenId: "22222222-2222-4222-8222-222222222222",
+        flowType: "screen", screenId: "fixture-target-screen",
         primaryInvoker: {
           kind: "screen-item-event",
-          screenId: SCREEN_UUID,
+          screenId: SCREEN_ID,
           itemId: "saveBtn",
           eventId: "click",
           actionId: "act-create",
@@ -288,10 +290,10 @@ describe("ProcessFlow.meta.primaryInvoker (#624)", () => {
   it("primaryInvoker.actionId が LocalId 形式を満たさないと fail (#1019)", () => {
     const flow = {
       meta: makeMeta({
-        flowType: "screen", screenId: "22222222-2222-4222-8222-222222222222",
+        flowType: "screen", screenId: "fixture-target-screen",
         primaryInvoker: {
           kind: "screen-item-event",
-          screenId: SCREEN_UUID,
+          screenId: SCREEN_ID,
           itemId: "saveBtn",
           eventId: "click",
           actionId: "-invalid",
@@ -313,7 +315,7 @@ function makeItemWithEffects(effects: unknown[]): Record<string, unknown> {
     events: [
       {
         id: "click",
-        handlerFlowId: FLOW_UUID,
+        handlerFlowId: FLOW_ID,
         effects,
       },
     ],
@@ -324,7 +326,7 @@ describe("ScreenItem.events[].effects[] (#1065 / #1283)", () => {
   // --- 正常系 ---
 
   it("effects 未指定で pass (後方互換)", () => {
-    const item = { id: "submitBtn", label: "送信", type: "string", events: [{ id: "click", handlerFlowId: FLOW_UUID }] };
+    const item = { id: "submitBtn", label: "送信", type: "string", events: [{ id: "click", handlerFlowId: FLOW_ID }] };
     expect(validateScreenItem(item)).toBe(true);
   });
 

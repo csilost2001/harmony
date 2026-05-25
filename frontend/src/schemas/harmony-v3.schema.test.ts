@@ -32,7 +32,8 @@ describe("harmony v3 schema (harmony.v3.schema.json)", () => {
       schemaVersion: "v3",
       dataDir: "harmony",
       meta: {
-        id: "11111111-1111-4111-8111-111111111111",
+        id: "new-project",
+        uuid: "11111111-1111-4111-8111-111111111111",
         name: "新規プロジェクト",
         createdAt: "2026-04-28T00:00:00.000Z",
         updatedAt: "2026-04-28T00:00:00.000Z",
