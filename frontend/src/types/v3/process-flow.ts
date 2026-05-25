@@ -32,6 +32,7 @@ import type {
   TableColumnRef,
   TableId,
   Timestamp,
+  Uuid,
 } from "./common";
 
 // ─── ProcessFlowKind ───────────────────────────────────────────────────────
@@ -62,6 +63,11 @@ export interface Sla {
 export interface ProcessFlowMeta {
   // EntityMeta inherited
   id: ProcessFlowId;
+  /**
+   * RFC #1284: entity 不変識別子 (UUID v4)。audit / 履歴追跡 / merge 衝突解決 / rename refactor の safety net。
+   * schema 上 required、TS 型では段階移行のため optional (EntityMeta と整合)。
+   */
+  uuid?: Uuid;
   name: DisplayName;
   description?: Description;
   version?: string;
