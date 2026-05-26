@@ -184,10 +184,10 @@ PageLayout + Gadget の code generation 対応 (RFC #1021 pl-7、Phase 2) は #1
 `/generate-code <flowId|screenId> [出力先]` スキル (`SKILL.md` 参照) が実行する手順:
 
 ```
-Step 0: 引数解析 — UUID 判定、出力先デフォルト (.tmp/generated-code/<UUID8桁>/)
+Step 0: 引数解析 — EntityId 判定、出力先デフォルト (.tmp/generated-code/<entity-id>/)
 Step 1: 入力読込
   1-1. active workspace の harmony.json から techStack 取得
-  1-2. UUID を processFlows / screens / pageLayouts で照合して入力種別判定
+  1-2. EntityId を processFlows / screens / pageLayouts で照合して入力種別判定
   1-3. 入力 JSON を Read で取得
   1-4. PageLayout 入力なら Step 3-D へ (#1028 pl-7)
   1-5. Screen 入力なら purpose を判定:

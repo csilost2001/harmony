@@ -56,9 +56,9 @@ v3 では step の `type` フィールドは `kind` に改称。以下のすべ�
 
 `CdcStep` は対象テーブルの変更捕捉と、その出力先を宣言する。Round 3 で実機検証済み。
 
-`destination.type` は以下 3 種が利用可能 (CdcDestination):
+`destination.kind` は以下 3 種が利用可能 (CdcDestination):
 
-| type | 説明 |
+| kind | 説明 |
 |---|---|
 | `auditLog` | 監査ログへ送信 |
 | `eventStream` | イベントストリームへ送信 |
@@ -69,19 +69,23 @@ v3 では step の `type` フィールドは `kind` に改称。以下のすべ�
   "id": "step-cdc",
   "kind": "cdc",
   "description": "在庫締め結果の変更履歴を監査ログへ送る",
-  "tables": ["11111111-1111-4111-8111-111111111111"],
+  "tableIds": ["inventory-monthly-close"],
   "captureMode": "incremental",
   "destination": {
-    "type": "auditLog",
-    "target": "inventory.monthly_close"
+    "kind": "auditLog",
+    "auditAction": "inventory.monthlyClose"
   },
-  "includeColumns": ["item_id", "closing_month", "closing_quantity"]
+  "includeColumns": [
+    { "tableId": "inventory-monthly-close", "columnId": "col-item-id" },
+    { "tableId": "inventory-monthly-close", "columnId": "col-closing-month" },
+    { "tableId": "inventory-monthly-close", "columnId": "col-closing-quantity" }
+  ]
 }
 ```
 
 **v3 変更点**:
-- `tables` の要素は物理テーブル名ではなく **テーブル UUID** を指定する
-- `destination.target` の EventTopic は snake_case + dot 規範 (`inventory.monthly_close` など)
+- `tableIds` の要素は物理テーブル名ではなく **Table の EntityId (kebab-case)** を指定する
+- `destination.kind: "auditLog"` は `auditAction` に監査アクション名を指定する
 
 ### CdcDestination 詳細
 
@@ -90,11 +94,8 @@ v3 では step の `type` フィールドは `kind` に改称。以下のすべ�
 ```json
 {
   "destination": {
-    "type": "eventStream",
-    "target": "inventory.stock_closed",
-    "streamConfig": {
-      "partitionKey": "store_id"
-    }
+    "kind": "eventStream",
+    "topic": "inventory.stock_closed"
   }
 }
 ```
@@ -104,14 +105,13 @@ v3 では step の `type` フィールドは `kind` に改称。以下のすべ�
 ```json
 {
   "destination": {
-    "type": "table",
-    "target": "22222222-2222-4222-8222-222222222222",
-    "upsertKey": ["item_id", "closing_month"]
+    "kind": "table",
+    "tableId": "inventory-close-history"
   }
 }
 ```
 
-`tables`、`captureMode`、`destination` は必須。
+`tableIds`、`captureMode`、`destination` は必須。
 
 ## C-4 Health / Readiness
 

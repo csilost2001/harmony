@@ -166,13 +166,14 @@ MD ファイルがどの archetype に属するかを最初に判定する。判
 
 #### ✅ After — 現行 schema 適合形 (今すぐ生成すべき)
 
-Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`id` / `name` / `createdAt` / `updatedAt` 必須) + `kind` 必須 + `path` (purpose='page' で必須)、`auth` は string enum (`required` / `optional` / `none`)。`code` や `route` という property は存在しない。`unevaluatedProperties: false` なので余計な field は AJV 落ち:
+Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`id` / `uuid` / `name` / `createdAt` / `updatedAt` 必須) + `kind` 必須 + `path` (purpose='page' で必須)、`auth` は string enum (`required` / `optional` / `none`)。`id` は業務識別子の kebab-case `EntityId`、`uuid` は不変識別子である。`code` や `route` という property は存在しない。`unevaluatedProperties: false` なので余計な field は AJV 落ち:
 
 ```jsonc
-// screens/00000000-1060-4000-8000-000000000001.json
+// screens/order-entry-screen.json
 {
   "$schema": "../../schemas/v3/screen.v3.schema.json",
-  "id": "00000000-1060-4000-8000-000000000001",
+  "id": "order-entry-screen",
+  "uuid": "00000000-1060-4000-8000-000000000001",
   "name": "注文画面",
   "description": "spec_SC000001_Controller.md を元に変換。コード: SC000001",
   "createdAt": "2026-05-13T00:00:00.000Z",
@@ -291,10 +292,11 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
 - select 系はデータ型 (`string` 等) + `options[]` 配列
 
 ```jsonc
-// screens/00000000-1060-4000-8000-000000000001.json (events 抜粋)
+// screens/address-entry-screen.json (events 抜粋)
 {
   "$schema": "../../schemas/v3/screen.v3.schema.json",
-  "id": "00000000-1060-4000-8000-000000000001",
+  "id": "address-entry-screen",
+  "uuid": "00000000-1060-4000-8000-000000000001",
   "name": "住所入力画面",
   "createdAt": "2026-05-13T00:00:00.000Z",
   "updatedAt": "2026-05-13T00:00:00.000Z",
@@ -316,7 +318,7 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
         {
           "id": "change",
           "label": "都道府県変更",
-          "handlerFlowId": "00000000-1060-4000-8000-000000000010",
+          "handlerFlowId": "load-cities-flow",
           "argumentMapping": {
             "prefectureCode": "@screen.<screenId>.item.prefecture"
           }
@@ -338,14 +340,15 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
 ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項目更新:
 
 ```jsonc
-// process-flows/00000000-1060-4000-8000-000000000010.json
+// process-flows/load-cities-flow.json
 {
   "$schema": "../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "00000000-1060-4000-8000-000000000010",
+    "id": "load-cities-flow",
+    "uuid": "00000000-1060-4000-8000-000000000010",
     "name": "市区町村プルダウン更新",
     "flowType": "screen",
-    "screenId": "00000000-1060-4000-8000-000000000001",
+    "screenId": "address-entry-screen",
     "createdAt": "2026-05-13T00:00:00.000Z",
     "updatedAt": "2026-05-13T00:00:00.000Z"
   },
@@ -366,7 +369,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
           "id": "step-01",
           "kind": "dbAccess",
           "description": "都道府県コードで市区町村マスタを引く",
-          "tableId": "00000000-1060-4000-8000-000000000020",
+          "tableId": "city-master-table",
           "operation": "SELECT",
           "sql": "SELECT city_code AS code, city_name AS name FROM cities c WHERE c.prefecture_code = @inputs.prefectureCode ORDER BY city_code",
           "outputBinding": { "name": "cities" }
@@ -394,7 +397,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 `ScreenItemEvent.effects[]` は **#1065 で追加済** (AJV gate 対象)。UI ローカル効果 (clear / setOptions / showDialog / setReadonly 等) を処理フロー起動 (handlerFlowId) と並存させて直接記述できる:
 
 ```jsonc
-// screens/<uuid>.json (items[].events[] 内)
+// screens/<entity-id>.json (items[].events[] 内)
 {
   "id": "prefecture",
   "label": "都道府県",
@@ -403,7 +406,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
   "events": [
     {
       "id": "change",
-      "handlerFlowId": "00000000-1060-4000-8000-000000000010",
+      "handlerFlowId": "prefecture-change-flow",
       "argumentMapping": { "prefectureCode": "@screen.<screenId>.item.prefecture" },
       "effects": [
         { "kind": "clear", "target": "city" },
@@ -480,6 +483,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
   "$schema": "../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
     "id": "order-receive",
+    "uuid": "00000000-1060-4000-8000-000000000030",
     "name": "注文受付",
     "description": "spec_OrderService.md placeOrder メソッドの変換。",
     "flowType": "common",
@@ -556,7 +560,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
               "id": "step-02-01",
               "kind": "dbAccess",
               "description": "在庫チェック",
-              "tableId": "00000000-1060-4000-8000-000000000040",
+              "tableId": "inventory-table",
               "operation": "SELECT",
               "sql": "SELECT quantity AS qty, price AS price FROM inventory inv WHERE inv.product_code = @inputs.productCode",
               "outputBinding": { "name": "stock" }
@@ -587,7 +591,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
               "id": "step-02-03",
               "kind": "dbAccess",
               "description": "注文登録",
-              "tableId": "00000000-1060-4000-8000-000000000041",
+              "tableId": "orders-table",
               "operation": "INSERT",
               "sql": "INSERT INTO orders (id, product_code, quantity) VALUES (NEXTVAL('SEQ_ORDER'), @inputs.productCode, @inputs.quantity) RETURNING id AS order_id",
               "outputBinding": { "name": "orderId" }
@@ -596,7 +600,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
               "id": "step-02-04",
               "kind": "dbAccess",
               "description": "在庫減算",
-              "tableId": "00000000-1060-4000-8000-000000000040",
+              "tableId": "inventory-table",
               "operation": "UPDATE",
               "sql": "UPDATE inventory inv SET quantity = quantity - @inputs.quantity WHERE inv.product_code = @inputs.productCode"
             }
@@ -606,7 +610,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
           "id": "step-03",
           "kind": "commonProcess",
           "description": "確認メール送信 (TX 外、失敗しても注文 TX は維持)",
-          "refId": "00000000-1060-4000-8000-000000000050",
+          "refId": "send-order-mail-flow",
           "argumentMapping": { "orderId": "@orderId" }
         },
         {

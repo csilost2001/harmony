@@ -189,7 +189,7 @@ Phase 4-β migration (#712) で **embed 形式に統一**。`data/screen-items/{
         "name": "email",
         "type": "string",
         "screenItemRef": {
-          "screenId": "3f378ca7-ad6f-44ad-8ebc-ab17fb806c2c",
+          "screenId": "member-registration-screen",
           "itemId": "email"
         }
       }

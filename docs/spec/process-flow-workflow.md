@@ -120,7 +120,7 @@ interface WorkflowApprover {
       "id": "step-approved",
       "kind": "dbAccess",
       "description": "承認済みに更新",
-      "tableId": "11111111-1111-4111-8111-111111111111",
+      "tableId": "expense-request-table",
       "operation": "UPDATE",
       "sql": "UPDATE expense_requests SET status = 'approved' WHERE id = @requestId"
     }
@@ -130,7 +130,7 @@ interface WorkflowApprover {
       "id": "step-rejected",
       "kind": "dbAccess",
       "description": "却下に更新",
-      "tableId": "11111111-1111-4111-8111-111111111111",
+      "tableId": "expense-request-table",
       "operation": "UPDATE",
       "sql": "UPDATE expense_requests SET status = 'rejected' WHERE id = @requestId"
     }

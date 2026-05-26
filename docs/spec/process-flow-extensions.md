@@ -402,7 +402,7 @@ interface DbAccessStep extends StepBase {
 ```json
 {
   "kind": "dbAccess",
-  "tableId": "11111111-1111-4111-8111-111111111111",
+  "tableId": "purchase-order-item-table",
   "operation": "INSERT",
   "bulkValues": "@poItemValues",
   "sql": "INSERT INTO purchase_order_items (...) SELECT ... FROM (VALUES @poItemValues) AS v(...)"
@@ -996,7 +996,7 @@ cache?: CacheHint;
 ```json
 {
   "kind": "dbAccess",
-  "tableId": "33333333-3333-4333-8333-333333333333",
+  "tableId": "customer-table",
   "operation": "SELECT",
   "cache": {
     "ttlSeconds": 300,

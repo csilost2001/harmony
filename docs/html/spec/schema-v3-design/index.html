@@ -48,7 +48,7 @@
 <h2 id="0-結論サマリ-5-行">§0 結論サマリ (5 行)</h2>
 <ol>
 <li><strong>共通 entity meta mix-in</strong> を導入し、全 top-level entity の id/name/createdAt/updatedAt/version/maturity を 1 箇所で定義</li>
-<li><strong>参照規範を 4 パターンに統一</strong> (UUID 単独 / 複合 Ref / catalog key string / 式言語) — 物理名で entity を指す anti-pattern を全廃</li>
+<li><strong>参照規範を 4 パターンに統一</strong> (EntityId 単独 / 複合 Ref / catalog key string / 式言語) — 物理名で entity を指す anti-pattern を全廃 (RFC #1284 反映)</li>
 <li><strong>FieldType / Marker / DecisionRecord / GlossaryEntry を <code>common.v2</code> に集約</strong> し全領域で再利用</li>
 <li><strong>ProcessFlow root を <code>meta / context / body / authoring</code> の 4 セクションに再編</strong> (現状 30+ 並列を整理)</li>
 <li><strong>拡張機構を 10 ファイル → 1 ファイル統合</strong>、namespace 単位で 1 ファイル運用 (<code>data/extensions/retail.json</code> 1 つで全種類の retail 拡張を完結)</li>

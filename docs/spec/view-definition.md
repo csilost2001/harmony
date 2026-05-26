@@ -156,11 +156,11 @@ interface FilterSpec {
 ```jsonc
 {
   "kind": "list",
-  "sourceTableId": "652cbbfe-...",  // products テーブル
+  "sourceTableId": "product-table",  // products テーブル
   "columns": [
     {
       "name": "productCode",
-      "tableColumnRef": { "tableId": "652cbbfe-...", "columnId": "col-product-code" },
+      "tableColumnRef": { "tableId": "product-table", "columnId": "col-product-code" },
       "displayName": "商品コード",
       "type": "string",
       "width": "120px",

@@ -18,8 +18,10 @@ v3 では `testScenarios` は `ProcessFlow.authoring.testScenarios` に配置す
 {
   "$schema": "../../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "11111111-1111-4111-8111-111111111111",
-    "name": "注文処理"
+    "id": "order-processing-flow",
+    "uuid": "11111111-1111-4111-8111-111111111111",
+    "name": "注文処理",
+    "flowType": "common"
   },
   "context": { "catalogs": {} },
   "actions": [],
@@ -54,7 +56,7 @@ v3 では `testScenarios` は `ProcessFlow.authoring.testScenarios` に配置す
 ### dbState
 
 `dbState` はテスト DB に投入するテーブル行を表す。
-`tableId` は対象テーブルの UUID (v3 では物理テーブル名でなく UUID 参照)。
+`tableId` は対象テーブルの EntityId (kebab-case。v3 では物理テーブル名でなく業務識別子参照)。
 `rows` は投入する行オブジェクトの配列である。
 既存データを暗黙に期待せず、テストに必要な最小行を明示する。
 論理削除や有効期間など、分岐に影響する列も省略しない。
@@ -64,7 +66,7 @@ v3 形式の dbState 例:
 ```json
 {
   "kind": "dbState",
-  "tableId": "11111111-1111-4111-8111-111111111111",
+  "tableId": "customer-orders",
   "rows": [
     { "id": 1, "status": "active", "expires_at": "2099-12-31T23:59:59Z" }
   ]
@@ -116,7 +118,7 @@ assertion は `kind` で種類を判別する。
 ### dbRow
 
 `dbRow` は特定テーブルに期待する行が存在することを検証する。
-`tableId` は対象テーブルの UUID (v3 では物理テーブル名でなく UUID 参照)。
+`tableId` は対象テーブルの EntityId (kebab-case。v3 では物理テーブル名でなく業務識別子参照)。
 `match` は一致条件または期待値の部分集合である。
 `count` を指定した場合は一致件数も検証する。
 INSERT、UPDATE、論理削除、履歴登録などの副作用確認に使う。

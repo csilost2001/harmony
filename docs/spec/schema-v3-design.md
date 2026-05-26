@@ -20,7 +20,7 @@
 ## §0 結論サマリ (5 行)
 
 1. **共通 entity meta mix-in** を導入し、全 top-level entity の id/name/createdAt/updatedAt/version/maturity を 1 箇所で定義
-2. **参照規範を 4 パターンに統一** (UUID 単独 / 複合 Ref / catalog key string / 式言語) — 物理名で entity を指す anti-pattern を全廃
+2. **参照規範を 4 パターンに統一** (EntityId 単独 / 複合 Ref / catalog key string / 式言語) — 物理名で entity を指す anti-pattern を全廃 (RFC #1284 反映)
 3. **FieldType / Marker / DecisionRecord / GlossaryEntry を `common.v2` に集約** し全領域で再利用
 4. **ProcessFlow root を `meta / context / body / authoring` の 4 セクションに再編** (現状 30+ 並列を整理)
 5. **拡張機構を 10 ファイル → 1 ファイル統合**、namespace 単位で 1 ファイル運用 (`data/extensions/retail.json` 1 つで全種類の retail 拡張を完結)
