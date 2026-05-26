@@ -7,7 +7,7 @@
  * 参考: schemas/v3/screen.v3.schema.json
  */
 
-import type { Authoring, EntityMeta, ScreenGroupId } from "./common";
+import type { Authoring, EntityMeta, ScreenGroupId, ScreenId } from "./common";
 import type { ScreenItem } from "./screen-item";
 
 /** 組み込み画面種別 (12 種)。 */
@@ -88,6 +88,7 @@ export interface ScreenDesign {
 /** Screen entity 本体。EntityMeta + 業務情報 + 画面項目集合 + authoring。 */
 export interface Screen extends EntityMeta {
   $schema?: string;
+  id: ScreenId;
   kind: ScreenKind;
   /** URL ルーティングパス。例: `/customers`, `/customers/:id`, `/orders/new` */
   path: string;

@@ -10,7 +10,6 @@
 
 import type {
   Authoring,
-  Brand,
   DisplayName,
   EntityMeta,
   TemplateString,
@@ -18,11 +17,12 @@ import type {
   Identifier,
   TableColumnRef,
   TableId,
-  Uuid,
+  ViewDefinitionId,
 } from "./common";
 
-/** ViewDefinition の永続識別子 (branded UUID)。 */
-export type ViewDefinitionId = Brand<Uuid, "ViewDefinitionId">;
+// ViewDefinitionId は common.ts に集約 (RFC #1284 / I-7-1)。
+// 既存 import 経路 (`from "./view-definition"`) を壊さないよう re-export する。
+export type { ViewDefinitionId };
 
 /** 組み込み viewer 種別 (4 種)。 */
 export type BuiltinViewDefinitionKind = "list" | "detail" | "kanban" | "calendar";
@@ -163,6 +163,7 @@ export type ViewQuery = ViewQueryStructured | ViewQueryRawSql;
  */
 export interface ViewDefinition extends EntityMeta {
   $schema?: string;
+  id: ViewDefinitionId;
   kind: ViewDefinitionKind;
   /** Level 1 (Simple) の主要ソーステーブル。Level 2/3 では使わない。 */
   sourceTableId?: TableId;

@@ -14,6 +14,7 @@ import type {
   LocalId,
   Maturity,
   Mode,
+  PageLayoutId,
   PhysicalName,
   ProcessFlowId,
   ProjectId,
@@ -23,9 +24,9 @@ import type {
   TableId,
   Timestamp,
   Uuid,
+  ViewDefinitionId,
   ViewId,
 } from "./common";
-import type { ViewDefinitionId } from "./view-definition";
 
 /** entities.* 配列要素の共通プロパティ。一覧 UI 表示用最小メタ。 */
 export interface EntryBase {
@@ -51,9 +52,9 @@ export interface ScreenEntry extends EntryBase {
   path?: string;
   /**
    * 本 Screen が使用する PageLayout の ID (purpose='page' のみ)。
-   * 逆参照表示用にキャッシュ。
+   * 逆参照表示用にキャッシュ。RFC #1284 / I-7-1: Uuid → PageLayoutId (kebab-case EntityId base)。
    */
-  pageLayoutId?: Uuid;
+  pageLayoutId?: PageLayoutId;
   groupId?: ScreenGroupId;
   hasDesign?: boolean;
 }
@@ -92,7 +93,7 @@ export interface ViewDefinitionEntry extends EntryBase {
 
 /** PageLayout entity entry (harmony.json 内のメタ情報)。schemas/v3/page-layout.v3.schema.json と対応 (#1021)。 */
 export interface PageLayoutEntry extends EntryBase {
-  id: Uuid;
+  id: PageLayoutId;
   /** region 数 (一覧 UI 表示用)。 */
   regionCount?: number;
   /** assignments 件数 (一覧 UI 表示用)。 */

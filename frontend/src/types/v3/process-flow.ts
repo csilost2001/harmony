@@ -65,9 +65,9 @@ export interface ProcessFlowMeta {
   id: ProcessFlowId;
   /**
    * RFC #1284: entity 不変識別子 (UUID v4)。audit / 履歴追跡 / merge 衝突解決 / rename refactor の safety net。
-   * schema 上 required、TS 型では段階移行のため optional (EntityMeta と整合)。
+   * I-7-1 で TS 型を schema と同期 (required)。新規 ProcessFlow 生成パスは必ず含めること。
    */
-  uuid?: Uuid;
+  uuid: Uuid;
   name: DisplayName;
   description?: Description;
   version?: string;

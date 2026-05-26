@@ -18,7 +18,7 @@
  * 参考: schemas/v3/page-layout.v3.schema.json
  */
 
-import type { Authoring, EntityMeta, ProcessFlowId, ScreenId } from "./common";
+import type { Authoring, EntityMeta, PageLayoutId, ProcessFlowId, ScreenId } from "./common";
 
 /**
  * PageLayout 内の region (slot) 宣言。
@@ -65,6 +65,7 @@ export interface PageLayoutDesign {
  */
 export interface PageLayout extends EntityMeta {
   $schema?: string;
+  id: PageLayoutId;
   /**
    * PageLayout が宣言する region 一覧。
    * 予約名 (header / sidebar / footer / main) を含むことを推奨。
