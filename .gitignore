@@ -36,6 +36,9 @@ tmp/
 # Codex CLI のプロジェクト固有設定 (ユーザー個人の sandbox 設定等、共有しない)
 .codex/
 
+# Antigravity CLI session state (workspace 宣言 / 内部状態、AI tool 別の作業ファイル、git tracked 不要)
+.antigravitycli/
+
 # Playwright / vitest 等のテスト実行結果
 test-results/
 
