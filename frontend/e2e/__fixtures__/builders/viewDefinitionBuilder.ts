@@ -18,7 +18,7 @@ import type {
   ViewDefinitionKind,
   ViewQuery,
 } from "../../../src/types/v3";
-import { normalizeId } from "../../helpers/realWorkspace";
+import { deterministicUuid } from "../../helpers/realWorkspace";
 import { normalizeToKebabId } from "./projectBuilder";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
@@ -46,7 +46,8 @@ export function buildViewDefinition(opts: BuildViewDefinitionOpts = {}): ViewDef
     ? (normalizeToKebabId(opts.id) as unknown as ViewDefinitionId)
     : ("test-view-def" as unknown as ViewDefinitionId);
   const uuid = opts.id
-    ? (normalizeId(opts.id) as unknown as Uuid)
+    // Round 6 Phase A: normalizeId → deterministicUuid に責務分離 (kebab-case 化 vs UUID v4 生成)
+    ? (deterministicUuid(opts.id) as unknown as Uuid)
     : (crypto.randomUUID() as unknown as Uuid);
 
   // schema の oneOf: sourceTableId か query のどちらか一方が必須 (排他)

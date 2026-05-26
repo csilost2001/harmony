@@ -19,7 +19,7 @@ import type {
   Timestamp,
   Uuid,
 } from "../../../src/types/v3";
-import { normalizeId } from "../../helpers/realWorkspace";
+import { deterministicUuid } from "../../helpers/realWorkspace";
 import { normalizeToKebabId } from "./projectBuilder";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
@@ -52,7 +52,8 @@ export function buildTable(opts: BuildTableOpts = {}): Table {
     ? (normalizeToKebabId(opts.id) as unknown as TableId)
     : ("test-table" as unknown as TableId);
   const uuid = opts.id
-    ? (normalizeId(opts.id) as unknown as Uuid)
+    // Round 6 Phase A: normalizeId → deterministicUuid に責務分離 (kebab-case 化 vs UUID v4 生成)
+    ? (deterministicUuid(opts.id) as unknown as Uuid)
     : (crypto.randomUUID() as unknown as Uuid);
 
   return {

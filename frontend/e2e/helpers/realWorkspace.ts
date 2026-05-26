@@ -401,6 +401,39 @@ export function normalizeId(input: string): string {
 }
 
 /**
+ * 任意 string から決定論的な UUID v4 を生成する (RFC #1284: EntityMeta.uuid 用)。
+ *
+ * Round 6 Phase A までは normalizeId が UUID 生成も兼ねていたが、I-7 で id 体系が
+ * kebab-case に変わったため normalizeId は kebab-case 変換に責務移譲。
+ * `uuid` field (UUID v4 必須、kebab-case ではない) を fixture 内で決定論的に発番する
+ * 用途では本関数を使う (例: projectBuilder.buildProject `meta.uuid` 派生)。
+ *
+ * 同じ入力 → 同じ UUID (cross-ref / re-run 比較の安定性確保)。
+ */
+export function deterministicUuid(input: string): string {
+  if (UUID_V4_RE.test(input)) return input;
+  // FNV-1a 32bit を 4 回チェインして 128 bit を作る (Round 6 までの旧 normalizeId と同ロジック)。
+  let h0 = 0x811c9dc5, h1 = 0xdeadbeef, h2 = 0xcafebabe, h3 = 0x12345678;
+  for (let i = 0; i < input.length; i++) {
+    const c = input.charCodeAt(i);
+    h0 = ((h0 ^ c) >>> 0); h0 = Math.imul(h0, 0x01000193) >>> 0;
+    h1 = ((h1 ^ c) >>> 0); h1 = Math.imul(h1, 0x01000193) >>> 0;
+    h2 = ((h2 ^ c) >>> 0); h2 = Math.imul(h2, 0x01000193) >>> 0;
+    h3 = ((h3 ^ c) >>> 0); h3 = Math.imul(h3, 0x01000193) >>> 0;
+  }
+  const hex = (n: number, len: number) => n.toString(16).padStart(8, "0").slice(-len);
+  // UUID v4: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx (y in 8/9/a/b)
+  const part1 = hex(h0, 8);
+  const part2 = hex(h1 >>> 16, 4);
+  const part3 = "4" + hex(h1, 3);
+  const yRaw = (h2 >>> 24) & 0x3;
+  const y = (8 + yRaw).toString(16);
+  const part4 = y + hex(h2, 3);
+  const part5 = hex(h2 >>> 8, 4) + hex(h3, 8);
+  return `${part1}-${part2}-${part3}-${part4}-${part5}`;
+}
+
+/**
  * project が省略されたとき用の最小 v3 Project を生成する。
  * #964 α: legacyToHarmony を削除し、v3 typed input をそのまま書き出す方針に変更。
  * branded type (Uuid / Timestamp 等) は実行時は plain string なので `as unknown as T` でキャスト。

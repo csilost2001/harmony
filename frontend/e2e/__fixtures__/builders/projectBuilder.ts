@@ -18,7 +18,7 @@ import type {
   Timestamp,
   Uuid,
 } from "../../../src/types/v3";
-import { normalizeId } from "../../helpers/realWorkspace";
+import { deterministicUuid, normalizeId } from "../../helpers/realWorkspace";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
@@ -88,7 +88,9 @@ export function buildProject(opts: BuildProjectOpts = {}): Project {
     ? (normalizeToKebabId(opts.id) as unknown as ProjectId)
     : ("test-project" as unknown as ProjectId);
   const uuid = opts.id
-    ? (normalizeId(opts.id) as unknown as Uuid) // opts.id から決定論的 UUID (cross-ref 用)
+    // Round 6 Phase A: normalizeId は kebab-case 変換に責務移譲したため、UUID v4 生成は
+    // deterministicUuid を使う (RFC #1284: EntityMeta.uuid 必須、cross-ref 用に決定論的)。
+    ? (deterministicUuid(opts.id) as unknown as Uuid)
     : (crypto.randomUUID() as unknown as Uuid);
 
   const entities = opts.entities ? normalizeEntityIds(opts.entities) : {};
