@@ -3,11 +3,12 @@ import type {
   ProcessFlow,
   HttpResponseSpec,
   ReturnStep,
-  Step,
+  ComputeStep,
   ExternalSystemStep,
   OtherStep,
   LocalId,
   Description,
+  Identifier,
   TemplateString,
 } from "../types/v3";
 import { STEP_TYPE_LABELS, STEP_TYPE_ICONS, STEP_TYPE_COLORS } from "../utils/processFlowMetadata";
@@ -38,24 +39,32 @@ describe("StepBase.runIf (#178)", () => {
     expect(step.runIf).toBeUndefined();
   });
 
-  it("全ステップタイプで runIf を付与できる", () => {
-    // 各 step kind が runIf (TemplateString) を accept することを smoke 検証。
-    // Step union discriminator は kind なので各 kind の最小 fixture を作る (型 narrow を bypass しない範囲で個別 cast)。
-    const buildStub = (kind: string): Step => {
-      return {
-        id: "s",
-        kind,
-        description: "",
-        runIf: "@x > 0",
-      } as unknown as Step;
+  it("全ステップタイプで runIf を付与できる (StepBaseProps 経由)", () => {
+    // #1355 Codex Round 2 Must-fix: 各 kind の Step 型に個別注釈し、runIf field 自体は
+    // StepBaseProps レベルで全 step 共通であることを smoke 検証する。
+    // 旧 buildStub() で as unknown as Step していた箇所は StepBaseProps 経由に変更。
+    const compute: ComputeStep = {
+      id: "s" as LocalId,
+      kind: "compute",
+      description: "" as Description,
+      expression: "1" as TemplateString,
+      runIf: "@x > 0" as TemplateString,
     };
-    const kinds = [
-      "validation", "dbAccess", "externalSystem", "commonProcess",
-      "screenTransition", "displayUpdate", "branch", "loop",
-      "loopBreak", "loopContinue", "jump", "compute", "return", "legacy:OtherStep",
-    ];
-    kinds.forEach((k) => {
-      const step = buildStub(k);
+    const externalSystem: ExternalSystemStep = {
+      id: "s" as LocalId,
+      kind: "externalSystem",
+      description: "" as Description,
+      systemRef: "x" as Identifier,
+      runIf: "@x > 0" as TemplateString,
+    };
+    const other: OtherStep = {
+      id: "s" as LocalId,
+      kind: "legacy:OtherStep",
+      description: "" as Description,
+      runIf: "@x > 0" as TemplateString,
+    };
+    // StepBaseProps を継承する全 step に runIf が付与可能であることを 3 種類の代表 step で確認
+    [compute, externalSystem, other].forEach((step) => {
       expect(step.runIf).toBe("@x > 0");
     });
   });
@@ -63,10 +72,11 @@ describe("StepBase.runIf (#178)", () => {
 
 describe("HttpResponseSpec.id (#178)", () => {
   it("id を付与して ReturnStep から参照可能にできる", () => {
+    // #1355 Codex Round 2 Must-fix: v3 BodySchema は `{ typeRef: string } | { schema: ... }` の union object
     const spec: HttpResponseSpec = {
       id: "409-stock-shortage" as LocalId,
       status: 409,
-      bodySchema: "ApiError" as unknown as NonNullable<HttpResponseSpec["bodySchema"]>,
+      bodySchema: { typeRef: "ApiError" },
       description: "在庫不足" as Description,
     };
     expect(spec.id).toBe("409-stock-shortage");

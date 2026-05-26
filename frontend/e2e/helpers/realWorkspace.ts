@@ -150,7 +150,13 @@ const TMP_ROOT = path.join(REPO_ROOT, ".tmp", "e2e-workspaces");
 
 /**
  * Playwright worker index — workers > 1 で同 key を別 directory に隔離するための prefix。
- * Playwright は worker process ごとに `TEST_WORKER_INDEX` env を設定する (0..workers-1)。
+ * Playwright は worker process ごとに `TEST_WORKER_INDEX` env を設定する。これは 0 始まり
+ * の **unique sequential index** で、retry 等で worker が再起動するたびに incremental に
+ * 増えるため、`workers` 数の上限を超える値も取り得る (実値範囲はおおよそ `0..2*workers-1`、
+ * 公式 docs: https://playwright.dev/docs/test-parallel#worker-index-and-parallel-index)。
+ * 完全な 0..workers-1 範囲が欲しい場合は別 env の `TEST_PARALLEL_INDEX` を使うが、本 helper では
+ * directory 衝突回避のみが目的のため unique index で十分。
+ *
  * Vitest 等 Playwright 外からこのモジュールが import された場合は worker prefix なし
  * (worker prefix 自体が `w${index}-` 形式なので、env 未設定時は `w0-` 固定で衝突は
  * 起こらない = 単一 process 扱いで十分)。
