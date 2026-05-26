@@ -872,7 +872,9 @@ export async function removeScreen(project: FlowProject, screenId: string): Prom
   return true;
 }
 
-/** エッジを追加。 */
+/** エッジを追加。
+ * RFC #1284 / #1332: ScreenTransitionEntry.id は schema (harmony.v3) で LocalId 規範。
+ * 実 sample (examples/retail) は 'tr-search-to-cart' 等の semantic naming だが、UI 自動生成では衝突回避の連番採番を使用。 */
 export async function addEdge(
   project: FlowProject,
   source: string,
@@ -882,8 +884,13 @@ export async function addEdge(
   sourceHandle?: string,
   targetHandle?: string,
 ): Promise<ScreenEdge> {
+  // schema 整合 (#1332): LocalId 採番 (tr-NN 2桁)、既存 edge.id を Set 化して衝突回避。
+  const existingEdgeIds = new Set<string>(project.edges.map((e) => String(e.id)));
+  let n = 1;
+  while (existingEdgeIds.has(`tr-${String(n).padStart(2, "0")}`)) n++;
+  const newEdgeId = `tr-${String(n).padStart(2, "0")}` as LocalId;
   const edge: ScreenEdge = {
-    id: generateUUID() as LocalId,
+    id: newEdgeId,
     source: source as ScreenId,
     target: target as ScreenId,
     sourceHandle,
