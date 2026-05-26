@@ -29,6 +29,7 @@ import type {
   Timestamp,
   ScreenTransitionEntry,
   Harmony,
+  PageLayoutId,
   ProjectId,
   LocalId,
   ProcessFlowId,
@@ -189,7 +190,7 @@ export function composeFlowProject(
       purpose: (s as { purpose?: "page" | "gadget" }).purpose,
       description: "",
       path: s.path ?? "",
-      pageLayoutId: (s as { pageLayoutId?: string }).pageLayoutId as (Uuid | undefined),
+      pageLayoutId: (s as { pageLayoutId?: string }).pageLayoutId as (PageLayoutId | undefined),
       maturity: (s as { maturity?: string }).maturity as (import('../types/v3').Maturity | undefined),
       position: { x: pos.x, y: pos.y },
       size: {

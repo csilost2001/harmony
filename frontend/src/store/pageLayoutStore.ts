@@ -5,7 +5,7 @@
  * backend WebSocket handlers: loadPageLayout / savePageLayout / deletePageLayout / listAllPageLayouts
  */
 
-import type { Uuid, Timestamp, DisplayName } from "../types/v3";
+import type { PageLayoutId, Uuid, Timestamp, DisplayName } from "../types/v3";
 import type { PageLayoutEntry } from "../types/v3/harmony";
 import type { PageLayout, PageLayoutDesign, Region } from "../types/v3/page-layout";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
@@ -84,7 +84,7 @@ export async function createPageLayout(
   const ts = nowTs();
   const pl: PageLayout = {
     $schema: PAGE_LAYOUT_SCHEMA_REF,
-    id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("pl")) as Uuid,
+    id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("pl")) as PageLayoutId,
     // RFC #1284 / Round 6 Phase B: uuid は不変識別子 (UUID v4)、創成時に発番。
     uuid: generateUUID() as Uuid,
     name,
@@ -157,7 +157,7 @@ async function syncPageLayoutMeta(pl: PageLayout): Promise<void> {
   // backend handler (index.ts) と同じロジックに揃える
   const design = pl.design ?? {};
   const meta: PageLayoutEntry = {
-    id: pl.id as Uuid,
+    id: pl.id,
     no: idx >= 0 ? entries[idx].no : nextNo(entries),
     name: pl.name,
     maturity: pl.maturity,
