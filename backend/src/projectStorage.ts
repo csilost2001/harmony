@@ -1523,6 +1523,10 @@ export async function listAllPageLayouts(root: string): Promise<unknown[]> {
     const results: unknown[] = [];
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
+      // #1332 Codex 再 review M1: companion file `<id>.design.json` (Puck / GrapesJS payload)
+      // を entity として読むと readEntityAndEnsureUuid が uuid 欠落と判定し
+      // writeJSON で design payload を破壊する。entity scan からは必ず除外する。
+      if (file.endsWith(".design.json")) continue;
       const data = await readEntityAndEnsureUuid("pageLayout", path.join(plDir, file));
       if (data) results.push(data);
     }
@@ -1589,7 +1593,14 @@ export async function deletePageLayoutFile(pageLayoutId: string, root: string): 
   } catch { /* not found is OK */ }
 }
 
-/** actions/ と process-flows/ ディレクトリ内の全処理フローを読み込み */
+/** actions/ と process-flows/ ディレクトリ内の全処理フローを読み込み
+ *
+ * #1332 Codex 再 review M2: 旧実装は `readJSON()` 直呼びで `readEntityAndEnsureUuid()`
+ * を bypass していたため、meta.uuid 欠落の legacy ProcessFlow は一覧読み込みでは uuid が
+ * persist されず、single read (`readProcessFlow`) と bulk read で契約が分裂していた。
+ * 本実装で legacy `actions/` と current `process-flows/` の両方を `readEntityAndEnsureUuid`
+ * 経由で読み、欠落時は uuid を採番して disk に persist する。
+ */
 export async function listProcessFlows(root: string): Promise<unknown[]> {
   try {
     const r = root;
@@ -1604,7 +1615,7 @@ export async function listProcessFlows(root: string): Promise<unknown[]> {
       }
       for (const file of files) {
         if (!file.endsWith(".json")) continue;
-        const data = await readJSON<unknown>(path.join(dir, file));
+        const data = await readEntityAndEnsureUuid("processFlow", path.join(dir, file));
         if (!data || typeof data !== "object") continue;
         const id = (data as { id?: unknown; meta?: { id?: unknown } }).id
           ?? (data as { meta?: { id?: unknown } }).meta?.id;
