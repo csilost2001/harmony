@@ -28,9 +28,10 @@ import type { Column, ProjectEntities, Timestamp, ViewDefinition } from "../src/
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
-const CUSTOMERS_ID = "605bbc9d-810a-4b9c-a83a-cc2e59bca37a";
-const ORDERS_ID = "10d555e2-8041-4192-86f3-9e2a3ac581ab";
-const VIEW_DEFINITION_ID = "4cef6340-2603-44b3-b92e-e85e4809a955";
+// RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
+const CUSTOMERS_ID = "table-edit-customers";
+const ORDERS_ID = "table-edit-orders";
+const VIEW_DEFINITION_ID = "table-edit-orders-list-vd";
 
 /** harmony.json に entities.tables + entities.viewDefinitions を含む project */
 const dummyProject = buildProject({

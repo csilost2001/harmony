@@ -16,7 +16,8 @@ import {
 import { buildProject } from "./__fixtures__/builders";
 import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
-const TABLE_ID = "eb574288-88f2-419f-ac5e-56a9948e8f46";
+// RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
+const TABLE_ID = "vd-spec-products-table";
 const CREATED_NAME = "E2E 商品ビュー";
 const UPDATED_NAME = "E2E 商品ビュー 更新";
 

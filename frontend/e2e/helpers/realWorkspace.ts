@@ -370,39 +370,34 @@ function uuid(): string {
     ?? `${Math.random().toString(36).slice(2)}-${Date.now()}`;
 }
 
+const ENTITY_ID_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 /**
- * 任意 id を UUID v4 形式に正規化する。既に UUID v4 ならそのまま、
- * そうでない時は文字列の SHA-1 ベースで決定論的な UUID v4 を生成する。
+ * 任意 id を kebab-case EntityId 形式に正規化する (RFC #1284 / Round 6 Phase A)。
  *
- * これにより既存テストコードが `screen-0001` 等の人間可読な id を渡しても
- * harmony.v3 schema (UUID v4 必須) を満たすファイルを生成できる。
+ * I-7 Phase A (#1299) で top-level entity の id 体系が UUID から kebab-case EntityId に
+ * 変更された (`schemas/v3/common.v3.schema.json:14` の EntityId pattern + UUID-like 排除)。
+ * 旧 normalizeId は UUID v4 を生成していたが、strict validator で reject されるため
+ * 「kebab-case ならそのまま、UUID 等それ以外は kebab-case 化」する実装に書き換えた。
  *
- * 同じ key + 同じ入力 id からは常に同じ UUID が出るため、テスト内で複数箇所
- * (project.screens の id と URL の id 等) が一致する。
+ * 既存テストコードが UUID v4 hardcode (`SCREEN_ID = "aaaaaaaa-..."`) を normalizeId 経由で
+ * URL / fixture に渡しても、本関数が自動的に kebab-case (例: `aaaaaaaa-0001-4000-...`) 形式へ
+ * 変換 (lowercase 維持 + `-` 整理) するため、caller 側の変更は不要 (interface 維持)。
+ *
+ * 同じ入力からは常に同じ kebab-case が出る決定論的変換。
  */
 export function normalizeId(input: string): string {
-  if (UUID_V4_RE.test(input)) return input;
-  // 単純な決定論的 hash (FNV-1a 32bit) を 4 回チェインして 128 bit を作る
-  let h0 = 0x811c9dc5, h1 = 0xdeadbeef, h2 = 0xcafebabe, h3 = 0x12345678;
-  for (let i = 0; i < input.length; i++) {
-    const c = input.charCodeAt(i);
-    h0 = ((h0 ^ c) >>> 0); h0 = Math.imul(h0, 0x01000193) >>> 0;
-    h1 = ((h1 ^ c) >>> 0); h1 = Math.imul(h1, 0x01000193) >>> 0;
-    h2 = ((h2 ^ c) >>> 0); h2 = Math.imul(h2, 0x01000193) >>> 0;
-    h3 = ((h3 ^ c) >>> 0); h3 = Math.imul(h3, 0x01000193) >>> 0;
-  }
-  const hex = (n: number, len: number) => n.toString(16).padStart(8, "0").slice(-len);
-  // UUID v4: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx (y in 8/9/a/b)
-  const part1 = hex(h0, 8);
-  const part2 = hex(h1 >>> 16, 4);
-  const part3 = "4" + hex(h1, 3);
-  const yRaw = (h2 >>> 24) & 0x3;
-  const y = (8 + yRaw).toString(16);
-  const part4 = y + hex(h2, 3);
-  const part5 = hex(h2 >>> 8, 4) + hex(h3, 8);
-  return `${part1}-${part2}-${part3}-${part4}-${part5}`;
+  if (ENTITY_ID_RE.test(input) && !UUID_V4_RE.test(input)) return input;
+  // UUID v4 等の任意 string を kebab-case に変換 (projectBuilder.normalizeToKebabId と同等)。
+  // lowercase、非英数を `-`、連続 / 末尾の `-` を整理。
+  const slug = input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (ENTITY_ID_RE.test(slug) && !UUID_V4_RE.test(slug)) return slug;
+  // 数字始まりや EntityId pattern 不一致は prefix を付ける。
+  return `id-${slug || "auto"}`;
 }
 
 /**

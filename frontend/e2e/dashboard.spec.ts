@@ -16,9 +16,10 @@ import {
 import { buildProject } from "./__fixtures__/builders";
 import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
-const SCREEN_ID = "aaaaaaaa-0001-4000-8000-000000000001";
-const TABLE_ID = "bbbbbbbb-0001-4000-8000-000000000001";
-const ACTION_ID = "cccccccc-0001-4000-8000-000000000001";
+// RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
+const SCREEN_ID = "dashboard-login-screen";
+const TABLE_ID = "dashboard-users-table";
+const ACTION_ID = "dashboard-login-flow";
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 const dummyProject = buildProject({
