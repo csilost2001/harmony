@@ -33,6 +33,8 @@ const GD_KIND = "data-contract";
 const GD_NAME = "OrderForm";
 const TARGET_TABLE_ID = "order"; // examples/retail/harmony/tables/order.json
 const NEW_TABLE_ID = "order-k3";
+const OLD_TABLE_REF = `tables/${TARGET_TABLE_ID}`;
+const NEW_TABLE_REF = `tables/${NEW_TABLE_ID}`;
 
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
@@ -53,6 +55,20 @@ test.describe(
       // 永続 WS を ws.workspacePath に open しておく
       // (sendPersistent 経由の rename が activePath を持つために必須、#958 と同じパターン)
       await openBrowserSessionWorkspace(ws.workspacePath);
+      const baseDefinition = await sendPersistent("loadGenericDefinition", {
+        kind: GD_KIND,
+        name: GD_NAME,
+      }) as Record<string, unknown>;
+      await sendPersistent("saveGenericDefinition", {
+        kind: GD_KIND,
+        name: GD_NAME,
+        data: {
+          ...baseDefinition,
+          relations: [
+            { kind: "uses", ref: OLD_TABLE_REF, description: "rename browser smoke target" },
+          ],
+        },
+      });
     });
 
     test.afterAll(async () => {
@@ -78,6 +94,10 @@ test.describe(
       //    するだけで initialSnapshotRef !== current となり dirty 判定される。
       const initialValue = await purposeField.inputValue();
       await purposeField.fill(`${initialValue}__DIRTY_K3`);
+      const relationRefField = page.locator(
+        'input[placeholder="generic-definitions/data-contract/OrderForm"]',
+      ).first();
+      await expect(relationRefField).toHaveValue(OLD_TABLE_REF);
 
       // 3. 外部から Table rename を発火 — backend が genericDefinitionChanged を
       //    { reload: true } で broadcast する (refactor.ts:272-284 参照)。
@@ -94,12 +114,19 @@ test.describe(
       const saveBtn = page.getByRole("button", { name: "保存" });
       await expect(saveBtn).toBeDisabled();
 
-      // 5. 「再読み込み」を押す → banner が消える + 編集内容が破棄されて initial value に戻る
+      // 5. 「再読み込み」を押す → banner が消える + dirty 編集は破棄され、rename 済み ref を読む
       await page.getByTestId("generic-definition-reload-btn").click();
       await expect(page.getByTestId("generic-definition-reload-banner")).toBeHidden({ timeout: 5000 });
       await expect(saveBtn).toBeEnabled({ timeout: 5000 });
       const reloadedValue = await purposeField.inputValue();
       expect(reloadedValue).toBe(initialValue);
+      await expect(relationRefField).toHaveValue(NEW_TABLE_REF);
+      const persistedDefinition = await sendPersistent("loadGenericDefinition", {
+        kind: GD_KIND,
+        name: GD_NAME,
+      }) as { relations?: Array<{ ref?: string }> };
+      expect(persistedDefinition.relations?.map((rel) => rel.ref)).toContain(NEW_TABLE_REF);
+      expect(persistedDefinition.relations?.map((rel) => rel.ref)).not.toContain(OLD_TABLE_REF);
 
       // cleanup: 後続テストへの影響回避は workspace cleanup (afterAll) で十分。
     });

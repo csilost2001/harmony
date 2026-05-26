@@ -346,6 +346,7 @@ export class EditSessionService {
 
     // 本体 resource file へ atomic write (P1-1, #907 regression 解消)
     const session = store.getById(editSessionId);
+    let resourceChange: { event: string; data: Record<string, string> } | null = null;
     if (session && session.payload !== null && session.payload !== undefined) {
       const root = resolveRoot(sessionId);
       const type = session.resourceType;
@@ -355,24 +356,31 @@ export class EditSessionService {
         switch (type) {
           case "screen":
             await writeScreen(resId, payload, root);
+            resourceChange = { event: "screenChanged", data: { screenId: resId } };
             break;
           case "puck-data":
             await writePuckData(resId, payload, root);
+            resourceChange = { event: "puckDataChanged", data: { screenId: resId } };
             break;
           case "table":
             await writeTable(resId, payload, root);
+            resourceChange = { event: "tableChanged", data: { tableId: resId } };
             break;
           case "process-flow":
             await writeProcessFlow(resId, payload, root);
+            resourceChange = { event: "processFlowChanged", data: { id: resId } };
             break;
           case "view":
             await writeView(resId, payload, root);
+            resourceChange = { event: "viewChanged", data: { viewId: resId } };
             break;
           case "view-definition":
             await writeViewDefinition(resId, payload, root);
+            resourceChange = { event: "viewDefinitionChanged", data: { viewDefinitionId: resId } };
             break;
           case "page-layout":
             await writePageLayout(resId, payload, root);
+            resourceChange = { event: "pageLayoutChanged", data: { pageLayoutId: resId } };
             break;
           case "screen-item": {
             const siPayload = payload as { screenId?: string } | null;
@@ -380,10 +388,12 @@ export class EditSessionService {
               ? siPayload.screenId
               : resId;
             await writeScreenItems(siScreenId, payload, root);
+            resourceChange = { event: "screenItemsChanged", data: { screenId: siScreenId } };
             break;
           }
           case "sequence":
             await writeSequence(resId, payload, root);
+            resourceChange = { event: "sequenceChanged", data: { sequenceId: resId } };
             break;
           case "flow":
           case "er-layout":
@@ -399,6 +409,12 @@ export class EditSessionService {
         console.error(`[editSession.save] resource file 書き込み失敗 (type=${type}, id=${resId}):`, writeErr);
         // 書き込み失敗でも saveHistory / broadcast は続行 (可用性優先)
       }
+    }
+
+    // Canonical save must invalidate all editors that consume this resource.
+    // editSession.saved only updates session metadata; it does not refresh table/view/etc caches.
+    if (resourceChange) {
+      this.broadcast({ wsId, event: resourceChange.event, data: resourceChange.data });
     }
 
     this.broadcast({

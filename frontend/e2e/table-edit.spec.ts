@@ -201,13 +201,6 @@ let ws: OpenedWorkspace;
 test.describe("テーブル編集 — column CRUD / 型変更 / PK / FK / index", { tag: ["@regression"] }, () => {
   test.beforeAll(async () => {
     mcpAvailable = await isMcpRunning();
-    if (!mcpAvailable) return;
-    ws = await setupTestWorkspace({
-      key: WS_KEY,
-      project: dummyProject,
-      tables: [customersTable, ordersTable] as Parameters<typeof setupTestWorkspace>[0]["tables"],
-      viewDefinitions: [ordersViewDefinition] as Parameters<typeof setupTestWorkspace>[0]["viewDefinitions"],
-    });
   });
 
   test.afterAll(async () => {
@@ -216,6 +209,14 @@ test.describe("テーブル編集 — column CRUD / 型変更 / PK / FK / index"
 
   test.beforeEach(async ({ page }) => {
     test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
+    // 各 CRUD は同一 baseline を前提に検証する。canonical data と保存済み
+    // edit-session を再 seed し、前 test の save/conflict を持ち込まない。
+    ws = await setupTestWorkspace({
+      key: WS_KEY,
+      project: dummyProject,
+      tables: [customersTable, ordersTable] as Parameters<typeof setupTestWorkspace>[0]["tables"],
+      viewDefinitions: [ordersViewDefinition] as Parameters<typeof setupTestWorkspace>[0]["viewDefinitions"],
+    });
     await ws.gotoActive(page, `/table/edit/${ORDERS_ID}`);
     await expect(page.locator(".table-editor-page")).toBeVisible({ timeout: 10000 });
   });
@@ -520,12 +521,9 @@ test.describe("テーブル編集 — column CRUD / 型変更 / PK / FK / index"
   // ────────────────────────────────────────────────────────────────────────────
   // 9. view-definition 連携 — orders に列追加 → view-definition 編集画面で参照カラムに新列が出現
   // ────────────────────────────────────────────────────────────────────────────
-  // #1339 (I-7 Round 8 由来): orders に追加・保存した新規列が ViewDefinitionEditor の
-  // 参照カラム候補に propagation されない実装側 bug。table persist 自体は成功 (L576 pass)
-  // するが、view-definition editor 側の column subscription / re-load が動かず候補に出ない。
-  // 本 PR scope を超える実装調査が必要なため #1339 で別途追跡 (`#1338` から分離)。
-  // skip 解禁条件: #1339 で ViewDefinitionEditor の参照カラム re-load 経路が修正されること。
-  test.skip("view-definition 連携 — orders 列追加が永続化され view-definition 編集画面で参照可能 (smoke)", async ({ page }) => {
+  // Round 9: 旧 assertion は option value に physicalName を期待していたが、
+  // 実際の value は column.id であるため、表示名を使って連携を検証する。
+  test("view-definition 連携 — orders 列追加が永続化され view-definition 編集画面で参照可能 (smoke)", async ({ page }) => {
     // beforeEach が /table/edit/${ORDERS_ID} に遷移済み
     if (!await startEditing(page)) return;
 
@@ -558,8 +556,42 @@ test.describe("テーブル編集 — column CRUD / 型変更 / PK / FK / index"
       await nameInput.fill("監査マーカ");
     }
 
+    // 保存前から別 page で ViewDefinition を開いておく。
+    // edit-session save 後の tableChanged broadcast が無いと、この consumer は旧候補のまま残る。
+    const consumerPage = await page.context().newPage();
+    await ws.gotoActive(consumerPage, `/view-definition/edit/${VIEW_DEFINITION_ID}`);
+    await expect(consumerPage.getByTestId("editor-header").getByText("注文一覧")).toBeVisible({ timeout: 10000 });
+    const mountedConsumerColumnSelect = consumerPage
+      .locator(".vd-editor-columns-table tbody tr")
+      .first()
+      .locator(".vd-col-select")
+      .nth(1);
+    await expect(mountedConsumerColumnSelect.locator("option", { hasText: "監査マーカ" })).toHaveCount(0);
+
     // ── 2) 保存 (M2: saveAndWait で saving 完了まで待機) ────────────────────────
     await saveAndWait(page);
+
+    // edit-session save の canonical write 完了を backend の保存内容で確認する。
+    // toolbar の disabled 解除だけでは async save 開始前に通過し得るため、連携検証の前提にしない。
+    await expect.poll(async () => page.evaluate(async (tableId) => {
+      const bridge = (window as unknown as {
+        __mcpBridge?: { request: (method: string, params: unknown) => Promise<unknown> };
+      }).__mcpBridge;
+      if (!bridge) return false;
+      const saved = await bridge.request("loadTable", { tableId }) as {
+        columns?: Array<{ physicalName?: string; name?: string }>;
+      } | null;
+      return saved?.columns?.some((c) =>
+        c.physicalName === "audit_marker" && c.name === "監査マーカ",
+      ) ?? false;
+    }, ORDERS_ID), {
+      message: "保存後の canonical table に追加列が反映されること",
+      timeout: 10000,
+    }).toBe(true);
+    await expect(
+      mountedConsumerColumnSelect.locator("option", { hasText: "監査マーカ" }),
+    ).toHaveCount(1, { timeout: 10000 });
+    await consumerPage.close();
 
     // 保存後 orders を再ロードし、audit_marker が永続化されたことを verify
     await ws.gotoActive(page, `/table/edit/${ORDERS_ID}`);
@@ -578,7 +610,7 @@ test.describe("テーブル編集 — column CRUD / 型変更 / PK / FK / index"
       .locator(".columns-data-list .data-list-row code.col-name-code")
       .allTextContents();
     // 列追加伝搬の前提として、saveAndWait 後に orders に新列が永続化されていること
-    expect(persistedNames.some((n) => /audit_marker|new_column/.test(n))).toBe(true);
+    expect(persistedNames).toContain("audit_marker");
 
     // ── 3) view-definition 「注文一覧」編集画面へ遷移 ───────────────────────
     await ws.gotoActive(page, `/view-definition/edit/${VIEW_DEFINITION_ID}`);
@@ -641,9 +673,8 @@ test.describe("テーブル編集 — column CRUD / 型変更 / PK / FK / index"
     // 元々誤った locator で、Round 6 で column.id 採番形式が顕在化したことで fail。
     // 修正: option text (column.name = "監査マーカ") で参照 (新規追加 column の name は
     // L553 で "監査マーカ" に設定済)。
-    await expect(
-      colSelect.locator("option", { hasText: "監査マーカ" }),
-    ).toHaveCount(1, { timeout: 10000 });
+    const columnOptionLabels = await colSelect.locator("option").allTextContents();
+    expect(columnOptionLabels, `参照カラム候補: ${columnOptionLabels.join(" | ")}`).toContain("監査マーカ");
   });
 });
 

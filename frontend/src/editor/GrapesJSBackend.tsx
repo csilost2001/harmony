@@ -54,6 +54,7 @@ import { loadCustomBlocks, injectCustomBlockCss } from "../store/customBlockStor
 import { clearItemsFromCache } from "../store/screenItemsStore";
 import { BlocksPanel } from "../components/BlocksPanel";
 import { RightPanel } from "../components/RightPanel";
+import { shouldNotifyScreenChanged } from "./reloadEvents";
 
 // -----------------------------------------------------------------------
 // CSS 注入用 URL (Designer.tsx から移植)
@@ -369,10 +370,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       // - `oldId === screenId` → 自身が rename された場合
       // - 通常の screenChanged → 旧 filter 条件
       const unsubScreenChanged = mcpBridge.onBroadcast("screenChanged", (data) => {
-        const d = data as { screenId?: string; oldId?: string; reload?: boolean; deleted?: boolean };
-        if (d.reload === true) { onServerChangedRef.current?.(); return; }
-        if (d.oldId === screenId) { onServerChangedRef.current?.(); return; }
-        if (d.screenId !== screenId || d.deleted) return;
+        if (!shouldNotifyScreenChanged(data, screenId)) return;
         onServerChangedRef.current?.();
       });
 

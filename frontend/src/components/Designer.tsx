@@ -35,6 +35,7 @@ import { ResumeOrDiscardDialog } from "./editing/ResumeOrDiscardDialog";
 import { PuckBackend } from "../editor/PuckBackend";
 import { GrapesJSBackend } from "../editor/GrapesJSBackend";
 import type { EditorApi, EditorState, GrapesJSRenderEditorProps, PuckRenderEditorProps } from "../editor/EditorBackend";
+import { DESIGNER_REFERENCE_RELOAD_EVENTS, isReloadBroadcast, shouldNotifyScreenChanged } from "../editor/reloadEvents";
 import "../styles/editMode.css";
 
 const PANEL_MODE_KEY = "designer-panel-left-mode";
@@ -741,10 +742,6 @@ export function Designer({
   // - 参照側 entity (table/processFlow/sequence/view/viewDefinition/pageLayout) の rename
   //   broadcast (reload:true 付き) も cache 無効化に使用 → editor 内で表示している
   //   table/flow 参照が rename されたら ServerChangeBanner で再読込促す
-  const RELOAD_EVENTS = [
-    "tableChanged", "processFlowChanged", "sequenceChanged",
-    "viewChanged", "viewDefinitionChanged", "pageLayoutChanged",
-  ] as const;
   useEffect(() => {
     if (editorKind !== "puck") return;
     const unsubPuckChanged = mcpBridge.onBroadcast("puckDataChanged", (data) => {
@@ -759,17 +756,13 @@ export function Designer({
     });
     // screenChanged は rename payload (oldId / reload) も Puck path で扱う
     const unsubScreenChanged = mcpBridge.onBroadcast("screenChanged", (data) => {
-      const d = data as { screenId?: string; oldId?: string; reload?: boolean; deleted?: boolean };
-      if (d.reload === true) { setServerChanged(true); return; }
-      if (d.oldId === screenId) { setServerChanged(true); return; }
-      if (d.screenId !== screenId || d.deleted) return;
+      if (!shouldNotifyScreenChanged(data, screenId)) return;
       setServerChanged(true);
     });
     // 参照側 entity の reload:true broadcast を購読 (cache 無効化のみ、id filter なし)
-    const unsubReloadEvents = RELOAD_EVENTS.map((ev) =>
+    const unsubReloadEvents = DESIGNER_REFERENCE_RELOAD_EVENTS.map((ev) =>
       mcpBridge.onBroadcast(ev, (data) => {
-        const d = data as { reload?: boolean };
-        if (d.reload === true) setServerChanged(true);
+        if (isReloadBroadcast(data)) setServerChanged(true);
       }),
     );
     return () => {

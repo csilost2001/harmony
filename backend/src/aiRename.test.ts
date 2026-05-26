@@ -5,14 +5,18 @@
  * 変更された regression test。RFC #1284 後の全 Screen で AI 再命名操作が動作する
  * ことを保証する。
  *
- * handlePropose は claude CLI を spawn するため、本テストでは
- * - input validation 層 (screenId format) のみ検証
- * - spawn には到達しないリクエスト (origin チェック失敗 or screenId 不正) のみで完結
+ * handlePropose は claude CLI を spawn するため、本テストでは認証確認を mock して
+ * input validation 層 (screenId format) のみを決定的に検証する。
  */
 
 import { describe, it, expect, vi } from "vitest";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { handlePropose } from "./aiRename.js";
+
+vi.mock("node:child_process", () => ({
+  execFileSync: vi.fn(() => { throw new Error("not authenticated in unit test"); }),
+  spawn: vi.fn(),
+}));
 
 /** ServerResponse mock */
 function makeRes(): ServerResponse & { _status?: number; _body?: string; _headers?: Record<string, string | string[]> } {
@@ -60,7 +64,7 @@ function makeReq(opts: { method?: string; body?: string; origin?: string; host?:
 }
 
 describe("handlePropose — screenId validation (I-7 Round 8 B)", () => {
-  it("kebab-case EntityId screenId は validation を通過する (auth-check 層で 503 or それ以前)", async () => {
+  it("kebab-case EntityId screenId は validation を通過し auth-check 層で 503 を返す", async () => {
     const req = makeReq({
       method: "POST",
       body: JSON.stringify({ screenId: "user-list", clientId: "c1" }),
@@ -68,9 +72,8 @@ describe("handlePropose — screenId validation (I-7 Round 8 B)", () => {
     });
     const res = makeRes();
     await handlePropose(req, res);
-    // EntityId validation は通過。後続の checkAuth / SKILL.md 読み込みで 503/500 になる想定。
-    // 400 (validation エラー) で止まらないことだけ確認すれば regression は検知できる。
-    expect(res._status).not.toBe(400);
+    expect(res._status).toBe(503);
+    expect(res._body).toContain("claude CLI が未認証です");
   });
 
   it("UUID 形式 screenId は I-7 後の strict validator で 400 を返す", async () => {
