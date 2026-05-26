@@ -44,7 +44,12 @@ export async function listViews(): Promise<ViewEntry[]> {
 
 /** ビュー定義を読み込み (per-entity ファイル) */
 export async function loadView(viewId: string): Promise<View | null> {
-  return (await requireBackend().loadView(viewId)) as View | null;
+  const raw = (await requireBackend().loadView(viewId)) as View | null;
+  if (raw && !raw.uuid) {
+    // RFC #1284 / I-7-2 (#1348): legacy data 防御。
+    raw.uuid = generateUUID() as Uuid;
+  }
+  return raw;
 }
 
 export async function loadViewValidationMap(): Promise<Map<ViewId, ValidationError[]>> {

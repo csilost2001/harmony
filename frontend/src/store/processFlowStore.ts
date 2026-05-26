@@ -46,7 +46,15 @@ export async function listProcessFlows(): Promise<FlowProcessFlowMeta[]> {
 
 export async function loadProcessFlow(id: string): Promise<ProcessFlow | null> {
   const data = await requireBackend().loadProcessFlow(id);
-  return data ? migrateProcessFlow(data) : null;
+  if (!data) return null;
+  const migrated = migrateProcessFlow(data);
+  // RFC #1284 / I-7-2 (#1348): legacy data 防御。ProcessFlowMeta.uuid 必須化に伴い、
+  // uuid 欠落の古い JSON を runtime fallback で補完 (AJV reject 回避)。
+  // migrateProcessFlow は v1/v2 → v3 移行時に uuid を補完しないため、明示的に防御する。
+  if (!migrated.meta.uuid) {
+    migrated.meta.uuid = generateUUID() as Uuid;
+  }
+  return migrated;
 }
 
 export async function saveProcessFlow(group: ProcessFlow): Promise<void> {

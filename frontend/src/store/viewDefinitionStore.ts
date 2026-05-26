@@ -59,7 +59,12 @@ export async function listViewDefinitions(): Promise<ViewDefinitionEntry[]> {
 export async function loadViewDefinition(
   viewDefinitionId: string,
 ): Promise<ViewDefinition | null> {
-  return (await requireBackend().loadViewDefinition(viewDefinitionId)) as ViewDefinition | null;
+  const raw = (await requireBackend().loadViewDefinition(viewDefinitionId)) as ViewDefinition | null;
+  if (raw && !raw.uuid) {
+    // RFC #1284 / I-7-2 (#1348): legacy data 防御。
+    raw.uuid = generateUUID() as Uuid;
+  }
+  return raw;
 }
 
 export async function loadViewDefinitionValidationMap(): Promise<

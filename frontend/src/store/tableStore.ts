@@ -111,6 +111,11 @@ export async function listTables(): Promise<TableEntry[]> {
 export async function loadTable(tableId: string): Promise<Table | null> {
   const raw = (await requireBackend().loadTable(tableId)) as Table | null;
   if (!raw) return null;
+  // RFC #1284 / I-7-2 (#1348): legacy data 防御。EntityMeta.uuid 必須化に伴い、
+  // uuid 欠落の古い JSON を runtime fallback で補完 (AJV reject 回避)。
+  if (!raw.uuid) {
+    raw.uuid = generateUUID() as Uuid;
+  }
   // docs/spec/list-common.md §3.10: 読み込み時に no を配列順で補完
   raw.columns = renumber(raw.columns ?? []);
   return raw;

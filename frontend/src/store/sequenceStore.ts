@@ -41,7 +41,12 @@ export async function listSequences(): Promise<SequenceEntry[]> {
 
 /** シーケンス定義を読み込み */
 export async function loadSequence(sequenceId: string): Promise<Sequence | null> {
-  return (await requireBackend().loadSequence(sequenceId)) as Sequence | null;
+  const raw = (await requireBackend().loadSequence(sequenceId)) as Sequence | null;
+  if (raw && !raw.uuid) {
+    // RFC #1284 / I-7-2 (#1348): legacy data 防御。
+    raw.uuid = generateUUID() as Uuid;
+  }
+  return raw;
 }
 
 /** シーケンス定義を保存（harmony.json のメタも同期） */

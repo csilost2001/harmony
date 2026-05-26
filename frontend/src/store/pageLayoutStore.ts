@@ -57,7 +57,12 @@ export async function listPageLayouts(): Promise<PageLayoutEntry[]> {
 }
 
 export async function loadPageLayout(pageLayoutId: string): Promise<PageLayout | null> {
-  return (await requireBackend().loadPageLayout(pageLayoutId)) as PageLayout | null;
+  const raw = (await requireBackend().loadPageLayout(pageLayoutId)) as PageLayout | null;
+  if (raw && !raw.uuid) {
+    // RFC #1284 / I-7-2 (#1348): legacy data 防御。
+    raw.uuid = generateUUID() as Uuid;
+  }
+  return raw;
 }
 
 export async function savePageLayout(pl: PageLayout): Promise<void> {
