@@ -25,6 +25,9 @@
   "include": [
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
-    "src/test"
+    "src/test",
+    "e2e/helpers/**/*.test.ts",
+    "e2e/__fixtures__/**/*.test.ts",
+    "e2e/__validation__/**/*.test.ts"
   ]
 }

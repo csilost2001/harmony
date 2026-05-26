@@ -1,25 +1,35 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, AffectedRowsCheck, DbAccessStep } from "../types/v3";
+import type {
+  ProcessFlow,
+  AffectedRowsCheck,
+  DbAccessStep,
+  LocalId,
+  Description,
+  TableId,
+  ErrorCode,
+} from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
+
+// #1355 Codex Must-fix: type 注釈で type shape を検証、brand のみ局所 cast。
 
 describe("DbAccessStep の affectedRowsCheck (#164)", () => {
   it("在庫引当の条件付き UPDATE + throw パターンを表現できる", () => {
-    const check = ({
+    const check: AffectedRowsCheck = {
       operator: ">",
       expected: 0,
       onViolation: "throw",
-      errorCode: "STOCK_SHORTAGE",
-      description: "在庫不足 (並行引当)",
-    } as unknown) as AffectedRowsCheck;
-    const step = ({
-      id: "s",
-      type: "dbAccess",
-      description: "在庫引当",
-      tableName: "inventory",
+      errorCode: "STOCK_SHORTAGE" as ErrorCode,
+      description: "在庫不足 (並行引当)" as Description,
+    };
+    const step: DbAccessStep = {
+      id: "s" as LocalId,
+      kind: "dbAccess",
+      description: "在庫引当" as Description,
+      tableId: "inventory" as TableId,
       operation: "UPDATE",
       fields: "SET stock = stock - @qty WHERE item_id = @id AND stock >= @qty",
       affectedRowsCheck: check,
-    } as unknown) as DbAccessStep;
+    };
     expect(step.affectedRowsCheck?.operator).toBe(">");
     expect(step.affectedRowsCheck?.expected).toBe(0);
     expect(step.affectedRowsCheck?.onViolation).toBe("throw");
@@ -33,11 +43,14 @@ describe("DbAccessStep の affectedRowsCheck (#164)", () => {
       onViolation: v,
     }));
     patterns.forEach((p) => {
-      const step = ({
-        id: "s", type: "dbAccess", description: "",
-        tableName: "x", operation: "DELETE",
+      const step: DbAccessStep = {
+        id: "s" as LocalId,
+        kind: "dbAccess",
+        description: "" as Description,
+        tableId: "x" as TableId,
+        operation: "DELETE",
         affectedRowsCheck: p,
-      } as unknown) as DbAccessStep;
+      };
       expect(step.affectedRowsCheck?.onViolation).toBe(p.onViolation);
     });
   });
@@ -45,27 +58,33 @@ describe("DbAccessStep の affectedRowsCheck (#164)", () => {
   it("operator の 5 値 (>, >=, =, <, <=) を許容", () => {
     const ops: AffectedRowsCheck["operator"][] = [">", ">=", "=", "<", "<="];
     ops.forEach((op) => {
-      const step = ({
-        id: "s", type: "dbAccess", description: "",
-        tableName: "x", operation: "UPDATE",
+      const step: DbAccessStep = {
+        id: "s" as LocalId,
+        kind: "dbAccess",
+        description: "" as Description,
+        tableId: "x" as TableId,
+        operation: "UPDATE",
         affectedRowsCheck: { operator: op, expected: 1, onViolation: "throw" },
-      } as unknown) as DbAccessStep;
+      };
       expect(step.affectedRowsCheck?.operator).toBe(op);
     });
   });
 
   it("省略可能 (既存データ互換)", () => {
-    const step = ({
-      id: "s", type: "dbAccess", description: "",
-      tableName: "x", operation: "SELECT",
-    } as unknown) as DbAccessStep;
+    const step: DbAccessStep = {
+      id: "s" as LocalId,
+      kind: "dbAccess",
+      description: "" as Description,
+      tableId: "x" as TableId,
+      operation: "SELECT",
+    };
     expect(step.affectedRowsCheck).toBeUndefined();
   });
 });
 
 describe("migrateProcessFlow — affectedRowsCheck 透過保持 (#164)", () => {
   it("新フィールドを持つ DbAccessStep を冪等にマイグレーションできる", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g", name: "x", type: "screen", description: "",
       actions: [{
         id: "a", name: "a", trigger: "submit",
@@ -89,7 +108,7 @@ describe("migrateProcessFlow — affectedRowsCheck 透過保持 (#164)", () => {
   });
 
   it("新フィールドなしの旧データでも破壊なし", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g", name: "x", type: "screen", description: "",
       actions: [{
         id: "a", name: "a", trigger: "click",

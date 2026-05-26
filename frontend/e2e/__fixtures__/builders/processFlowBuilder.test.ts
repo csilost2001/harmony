@@ -46,11 +46,11 @@ describe("buildProcessFlow", () => {
       authoring: {
         markers: [
           {
-            id: "m1",
+            id: "m1" as unknown as import("../../../src/types/v3").Uuid,
             kind: "todo",
             body: "x",
             author: "human",
-            createdAt: "2026-04-20T00:00:00Z",
+            createdAt: "2026-04-20T00:00:00Z" as unknown as import("../../../src/types/v3").Timestamp,
           },
         ],
       },

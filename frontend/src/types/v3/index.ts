@@ -120,3 +120,15 @@ export type ExternalCallOutcomeSpec = _AnyRecord;
 
 // ── OutputBinding (frontend 表示専用、v3 OutputBindingObject に近い概念) ──
 export type OutputBindingOperation = "assign" | "accumulate" | "push";
+
+// ─── Backward compat aliases (#1142 で Project → Harmony rename、e2e fixture が未追従) ───
+// #1355 で tsconfig.test.json の include を拡張した結果、e2e helpers / fixtures の旧
+// Project / ProjectEntities / ProjectTechStack 名参照が build gate で error 化したため、
+// 暫定的に type alias を export。将来 e2e 側を Harmony に完全 rename したら本 alias 群を削除予定。
+import type { Harmony as _Harmony, HarmonyEntities as _HarmonyEntities, HarmonyTechStack as _HarmonyTechStack } from "./harmony";
+/** @deprecated Use Harmony directly */
+export type Project = _Harmony;
+/** @deprecated Use HarmonyEntities directly */
+export type ProjectEntities = _HarmonyEntities;
+/** @deprecated Use HarmonyTechStack directly */
+export type ProjectTechStack = _HarmonyTechStack;

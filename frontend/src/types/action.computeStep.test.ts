@@ -1,42 +1,45 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, ComputeStep, Step } from "../types/v3";
+import type { ProcessFlow, ComputeStep, Step, LocalId, Description, TemplateString, Identifier } from "../types/v3";
 import { STEP_TYPE_LABELS, STEP_TYPE_ICONS, STEP_TYPE_COLORS } from "../utils/processFlowMetadata";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
+// #1355 Codex Must-fix: type 注釈で type shape を検証、brand のみ局所 cast。
+
 describe("ComputeStep (#174)", () => {
   it("税額計算の典型パターンを表現できる", () => {
-    const step = ({
-      id: "s-tax",
+    // v3: outputBinding は OutputBinding object (v1 では string、migration が変換)
+    const step: ComputeStep = {
+      id: "s-tax" as LocalId,
       kind: "compute",
-      description: "税額計算 (外税 10% 切り捨て)",
-      expression: "Math.floor(@subtotal * 0.10)",
-      outputBinding: "taxAmount",
-    } as unknown) as ComputeStep;
+      description: "税額計算 (外税 10% 切り捨て)" as Description,
+      expression: "Math.floor(@subtotal * 0.10)" as TemplateString,
+      outputBinding: { name: "taxAmount" as Identifier },
+    };
     expect(step.kind).toBe("compute");
     expect(step.expression).toBe("Math.floor(@subtotal * 0.10)");
-    expect(step.outputBinding).toBe("taxAmount");
+    expect(step.outputBinding?.name).toBe("taxAmount");
   });
 
   it("合計算出のパターン", () => {
-    const step = ({
-      id: "s-total",
-      type: "compute",
-      description: "合計金額",
-      expression: "@subtotal + @taxAmount",
-      outputBinding: "totalAmount",
-    } as unknown) as ComputeStep;
+    const step: ComputeStep = {
+      id: "s-total" as LocalId,
+      kind: "compute",
+      description: "合計金額" as Description,
+      expression: "@subtotal + @taxAmount" as TemplateString,
+      outputBinding: { name: "totalAmount" as Identifier },
+    };
     expect(step.expression).toContain("@subtotal");
     expect(step.expression).toContain("@taxAmount");
   });
 
   it("構造化 outputBinding と組合せできる", () => {
-    const step = ({
-      id: "s",
-      type: "compute",
-      description: "カウント",
-      expression: "@items.length",
-      outputBinding: { name: "itemCount", operation: "assign" },
-    } as unknown) as ComputeStep;
+    const step: ComputeStep = {
+      id: "s" as LocalId,
+      kind: "compute",
+      description: "カウント" as Description,
+      expression: "@items.length" as TemplateString,
+      outputBinding: { name: "itemCount" as Identifier, operation: "assign" },
+    };
     expect(step.outputBinding).toEqual({ name: "itemCount", operation: "assign" });
   });
 
@@ -49,7 +52,7 @@ describe("ComputeStep (#174)", () => {
 
 describe("migrateProcessFlow — ComputeStep 透過保持 (#174)", () => {
   it("ComputeStep を冪等にマイグレーションできる", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g",
       name: "x",
       type: "screen",
@@ -84,7 +87,7 @@ describe("migrateProcessFlow — ComputeStep 透過保持 (#174)", () => {
   });
 
   it("ComputeStep を branch の elseBranch に入れても再帰マイグレーションされる", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g",
       name: "x",
       type: "screen",

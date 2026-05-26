@@ -119,6 +119,7 @@ describe("v3 typed input → v3 output", () => {
       dataDir: "harmony",
       meta: {
         id: "realworkspace-test-project" as Project["meta"]["id"],
+        uuid: "11111111-1111-4111-8111-111111111111" as Project["meta"]["uuid"],
         name: "テスト用プロジェクト",
         maturity: "draft",
         createdAt: "2026-01-01T00:00:00.000Z" as Project["meta"]["createdAt"],
@@ -129,10 +130,10 @@ describe("v3 typed input → v3 output", () => {
       entities: {
         screens: [
           {
-            id: "realworkspace-test-screen" as Project["entities"]["screens"][0]["id"],
+            id: "realworkspace-test-screen" as NonNullable<NonNullable<Project["entities"]>["screens"]>[0]["id"],
             no: 1,
             name: "テスト画面",
-            updatedAt: "2026-01-01T00:00:00.000Z" as Project["entities"]["screens"][0]["updatedAt"],
+            updatedAt: "2026-01-01T00:00:00.000Z" as NonNullable<NonNullable<Project["entities"]>["screens"]>[0]["updatedAt"],
             maturity: "draft",
             kind: "list",
           },
@@ -159,6 +160,7 @@ describe("v3 typed input → v3 output", () => {
     const TABLE_ID = "realworkspace-test-users-table" as Table["id"];
     const table: Table = {
       id: TABLE_ID,
+      uuid: "22222222-2222-4222-8222-222222222222" as Table["uuid"],
       name: "ユーザー" as Table["name"],
       physicalName: "users" as Table["physicalName"],
       maturity: "draft",
@@ -172,6 +174,7 @@ describe("v3 typed input → v3 output", () => {
       dataDir: "harmony",
       meta: {
         id: "realworkspace-test-project" as Project["meta"]["id"],
+        uuid: "11111111-1111-4111-8111-111111111111" as Project["meta"]["uuid"],
         name: "テスト" as Project["meta"]["name"],
         maturity: "draft",
         createdAt: "2026-01-01T00:00:00.000Z" as Project["meta"]["createdAt"],

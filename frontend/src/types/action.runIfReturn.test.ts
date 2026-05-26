@@ -1,81 +1,109 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, HttpResponseSpec, ReturnStep, Step } from "../types/v3";
+import type {
+  ProcessFlow,
+  HttpResponseSpec,
+  ReturnStep,
+  Step,
+  ExternalSystemStep,
+  OtherStep,
+  LocalId,
+  Description,
+  TemplateString,
+} from "../types/v3";
 import { STEP_TYPE_LABELS, STEP_TYPE_ICONS, STEP_TYPE_COLORS } from "../utils/processFlowMetadata";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
+// #1355 Codex Must-fix: 各 Step literal は `const step: <Type> = {...}` で type 注釈し、
+// brand のみ局所 cast。`({...} as unknown) as <Type>` のような outer-wrapping cast は
+// excess property 検証を弱体化するため使わない。
+
 describe("StepBase.runIf (#178)", () => {
   it("ステップに runIf を付与できる", () => {
-    const step = ({
-      id: "s",
-      type: "externalSystem",
-      description: "決済 authorize",
-      systemName: "Stripe",
-      runIf: "@paymentMethod == 'credit_card'",
-    } as unknown) as Step;
+    const step: ExternalSystemStep = {
+      id: "s" as LocalId,
+      kind: "externalSystem",
+      description: "決済 authorize" as Description,
+      systemRef: "Stripe" as ExternalSystemStep["systemRef"],
+      runIf: "@paymentMethod == 'credit_card'" as TemplateString,
+    };
     expect(step.runIf).toBe("@paymentMethod == 'credit_card'");
   });
 
   it("runIf は任意 (省略可能)", () => {
-    const step = ({
-      id: "s",
-      type: "other",
-      description: "",
-    } as unknown) as Step;
+    const step: OtherStep = {
+      id: "s" as LocalId,
+      kind: "legacy:OtherStep",
+      description: "" as Description,
+    };
     expect(step.runIf).toBeUndefined();
   });
 
   it("全ステップタイプで runIf を付与できる", () => {
-    const types = [
+    // 各 step kind が runIf (TemplateString) を accept することを smoke 検証。
+    // Step union discriminator は kind なので各 kind の最小 fixture を作る (型 narrow を bypass しない範囲で個別 cast)。
+    const buildStub = (kind: string): Step => {
+      return {
+        id: "s",
+        kind,
+        description: "",
+        runIf: "@x > 0",
+      } as unknown as Step;
+    };
+    const kinds = [
       "validation", "dbAccess", "externalSystem", "commonProcess",
       "screenTransition", "displayUpdate", "branch", "loop",
-      "loopBreak", "loopContinue", "jump", "compute", "return", "other",
+      "loopBreak", "loopContinue", "jump", "compute", "return", "legacy:OtherStep",
     ];
-    // 型コンパイルできることを確認するだけの smoke test
-    types.forEach((t) => {
-      const _step = { id: "s", type: t, description: "", runIf: "@x > 0" } as unknown as Step;
-      expect((_step as { runIf: string }).runIf).toBe("@x > 0");
+    kinds.forEach((k) => {
+      const step = buildStub(k);
+      expect(step.runIf).toBe("@x > 0");
     });
   });
 });
 
 describe("HttpResponseSpec.id (#178)", () => {
   it("id を付与して ReturnStep から参照可能にできる", () => {
-    const spec = ({
-      id: "409-stock-shortage",
+    const spec: HttpResponseSpec = {
+      id: "409-stock-shortage" as LocalId,
       status: 409,
-      bodySchema: "ApiError",
-      description: "在庫不足",
-    } as unknown) as HttpResponseSpec;
+      bodySchema: "ApiError" as unknown as NonNullable<HttpResponseSpec["bodySchema"]>,
+      description: "在庫不足" as Description,
+    };
     expect(spec.id).toBe("409-stock-shortage");
   });
 
-  it("id は任意 (既存データ互換)", () => {
-    const spec = ({ status: 201 } as unknown) as HttpResponseSpec;
-    expect(spec.id).toBeUndefined();
+  it("v3: id は required field (v1 から rename、optional → required 化)", () => {
+    // v3 schema 上 HttpResponseSpec.id は required。v1 では optional だったが #178 で required 化。
+    const spec: HttpResponseSpec = {
+      id: "201" as LocalId,
+      status: 201,
+    };
+    expect(spec.id).toBe("201");
   });
 });
 
 describe("ReturnStep (#178)", () => {
-  it("responseRef + bodyExpression で返却を構造化できる", () => {
-    const step = ({
-      id: "s-ret",
+  it("responseId + bodyExpression で返却を構造化できる (v3: responseRef → responseId rename)", () => {
+    // #1355 Codex Must-fix: v3 schema 上 ReturnStep の field は `responseId` (旧 `responseRef`)
+    const step: ReturnStep = {
+      id: "s-ret" as LocalId,
       kind: "return",
-      description: "在庫不足レスポンス",
-      responseRef: "409-stock-shortage",
-      bodyExpression: "{ code: 'STOCK_SHORTAGE', detail: @shortageList }",
-    } as unknown) as ReturnStep;
+      description: "在庫不足レスポンス" as Description,
+      responseId: "409-stock-shortage" as LocalId,
+      bodyExpression: "{ code: 'STOCK_SHORTAGE', detail: @shortageList }" as TemplateString,
+    };
     expect(step.kind).toBe("return");
-    expect((step as unknown as { responseRef?: string }).responseRef).toBe("409-stock-shortage");
+    expect(step.responseId).toBe("409-stock-shortage");
     expect(step.bodyExpression).toContain("@shortageList");
   });
 
-  it("responseRef / bodyExpression は任意", () => {
-    const step = ({
-      id: "s",
-      type: "return",
-      description: "",
-    } as unknown) as ReturnStep;
-    expect((step as unknown as { responseRef?: string }).responseRef).toBeUndefined();
+  it("responseId / bodyExpression は任意", () => {
+    const step: ReturnStep = {
+      id: "s" as LocalId,
+      kind: "return",
+      description: "" as Description,
+    };
+    expect(step.responseId).toBeUndefined();
     expect(step.bodyExpression).toBeUndefined();
   });
 
@@ -88,7 +116,8 @@ describe("ReturnStep (#178)", () => {
 
 describe("migrateProcessFlow — runIf / ReturnStep / responses[].id 透過保持 (#178)", () => {
   it("runIf を持つステップを冪等にマイグレーションできる", () => {
-    const raw = {
+    // raw は v1 legacy shape (type 等)、migration が v3 に変換する
+    const raw: unknown = {
       id: "g",
       name: "x",
       type: "screen",
@@ -118,8 +147,10 @@ describe("migrateProcessFlow — runIf / ReturnStep / responses[].id 透過保�
     expect(once.actions[0].steps[0].runIf).toBe("@paymentMethod == 'credit_card'");
   });
 
-  it("ReturnStep を冪等にマイグレーションできる", () => {
-    const raw = {
+  it("ReturnStep を冪等にマイグレーションできる (v1 responseRef → v3 では legacy field 保持)", () => {
+    // raw は v1 legacy shape。migration は unknown field を保持するため、
+    // v1 の responseRef は v3 ReturnStep 型にはないが、runtime 値としては残る。
+    const raw: unknown = {
       id: "g",
       name: "x",
       type: "screen",
@@ -152,7 +183,10 @@ describe("migrateProcessFlow — runIf / ReturnStep / responses[].id 透過保�
 
     const step = once.actions[0].steps[0] as ReturnStep;
     expect(step.kind).toBe("return");
-    expect((step as unknown as { responseRef?: string }).responseRef).toBe("409-stock-shortage");
+    // v1 legacy field `responseRef` は v3 ReturnStep 型から削除済 (responseId に rename)、
+    // ただし migration は unknown 値を保持するため runtime では参照可能。
+    // 型 narrow を bypass して Record アクセス (legacy 専用)。
+    expect((step as unknown as Record<string, unknown>).responseRef).toBe("409-stock-shortage");
     expect(step.maturity).toBe("draft");
 
     expect(once.actions[0].responses?.[0].id).toBe("409-stock-shortage");

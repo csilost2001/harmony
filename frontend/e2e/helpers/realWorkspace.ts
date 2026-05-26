@@ -150,24 +150,30 @@ const TMP_ROOT = path.join(REPO_ROOT, ".tmp", "e2e-workspaces");
 
 /**
  * Playwright worker index — workers > 1 で同 key を別 directory に隔離するための prefix。
- * Playwright は worker process ごとに `TEST_WORKER_INDEX` env を設定する (0 origin)。
+ * Playwright は worker process ごとに `TEST_WORKER_INDEX` env を設定する (0..workers-1)。
  * Vitest 等 Playwright 外からこのモジュールが import された場合は worker prefix なし
  * (worker prefix 自体が `w${index}-` 形式なので、env 未設定時は `w0-` 固定で衝突は
  * 起こらない = 単一 process 扱いで十分)。
+ *
+ * **注**: env は `tempWorkspacePath` 呼び出し時に都度 read する (module load 時に
+ * const へキャプチャしない)。これにより test 中で `delete process.env.TEST_WORKER_INDEX`
+ * 等の動的変更も挙動に反映され、testability が向上する (#1355 Codex Must-fix 対応)。
  *
  * #1356: 旧来 `.tmp/e2e-workspaces/<key>/` 直下に書き出していたため Playwright workers > 1
  * で同一 key を複数 worker が同時に書き込むと storage 競合が発生していた。本 prefix で
  * 完全隔離した結果、`buildMinimalProject` の Project.meta.id は固定値のまま (storage が
  * worker 別 directory に分かれているため EntityId 重複は別 namespace 上の同名扱いとなり問題なし)。
  */
-const TEST_WORKER_INDEX: string = process.env.TEST_WORKER_INDEX ?? "0";
+function currentWorkerIndex(): string {
+  return process.env.TEST_WORKER_INDEX ?? "0";
+}
 
 export function repoPath(...segments: string[]): string {
   return path.join(REPO_ROOT, ...segments);
 }
 
 export function tempWorkspacePath(key: string): string {
-  return path.join(TMP_ROOT, `w${TEST_WORKER_INDEX}-${key}`);
+  return path.join(TMP_ROOT, `w${currentWorkerIndex()}-${key}`);
 }
 
 /** examples/<exampleName>/ を .tmp/e2e-workspaces/w<workerIndex>-<key>/ にコピー */
@@ -625,6 +631,7 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
       );
       const targetPath = buildPath(subPath);
       await page.evaluate(async ({ id, target }: { id: string; target: string }) => {
+        // @ts-expect-error - Vite browser URL import (page.evaluate context, not resolvable by tsc)
         const mod = await import("/src/store/workspaceStore.ts") as {
           openWorkspace: (idOrPath: string, useId?: boolean) => Promise<string>;
         };
