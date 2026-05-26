@@ -734,6 +734,17 @@ export function Designer({
   // Puck 画面の cross-tab 上書き保護 (Sh-1: puckDataChanged broadcast 購読)。
   // GrapesJS は screenChanged broadcast を購読して ServerChangeBanner を表示するのと同等。
   // Puck 画面でも他タブが puck-data.json を commit した際に ServerChangeBanner を表示する。
+  //
+  // I-7 Round 8 C (#1299 Codex M-R7-3): rename / undo 由来の全件 invalidation signal
+  // (`{ reload: true }`) も購読する。useResourceEditor.ts:299-307 と同等の処理パターン:
+  // - screenChanged with reload:true / oldId 一致 → 自身の reload
+  // - 参照側 entity (table/processFlow/sequence/view/viewDefinition/pageLayout) の rename
+  //   broadcast (reload:true 付き) も cache 無効化に使用 → editor 内で表示している
+  //   table/flow 参照が rename されたら ServerChangeBanner で再読込促す
+  const RELOAD_EVENTS = [
+    "tableChanged", "processFlowChanged", "sequenceChanged",
+    "viewChanged", "viewDefinitionChanged", "pageLayoutChanged",
+  ] as const;
   useEffect(() => {
     if (editorKind !== "puck") return;
     const unsubPuckChanged = mcpBridge.onBroadcast("puckDataChanged", (data) => {
@@ -746,7 +757,26 @@ export function Designer({
         setServerChanged(true);
       }
     });
-    return () => { unsubPuckChanged(); };
+    // screenChanged は rename payload (oldId / reload) も Puck path で扱う
+    const unsubScreenChanged = mcpBridge.onBroadcast("screenChanged", (data) => {
+      const d = data as { screenId?: string; oldId?: string; reload?: boolean; deleted?: boolean };
+      if (d.reload === true) { setServerChanged(true); return; }
+      if (d.oldId === screenId) { setServerChanged(true); return; }
+      if (d.screenId !== screenId || d.deleted) return;
+      setServerChanged(true);
+    });
+    // 参照側 entity の reload:true broadcast を購読 (cache 無効化のみ、id filter なし)
+    const unsubReloadEvents = RELOAD_EVENTS.map((ev) =>
+      mcpBridge.onBroadcast(ev, (data) => {
+        const d = data as { reload?: boolean };
+        if (d.reload === true) setServerChanged(true);
+      }),
+    );
+    return () => {
+      unsubPuckChanged();
+      unsubScreenChanged();
+      unsubReloadEvents.forEach((fn) => fn());
+    };
   }, [editorKind, screenId]);
 
   // ---------------------------------------------------------------------------
