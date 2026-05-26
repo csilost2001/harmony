@@ -416,6 +416,34 @@ async function writeJSON(filePath: string, data: unknown): Promise<void> {
   await fs.writeFile(filePath, json, "utf-8");
 }
 
+async function readEntityAndEnsureUuid(
+  kind: TopLevelEntityKind,
+  filePath: string,
+): Promise<unknown | null> {
+  const data = await readJSON<any>(filePath);
+  if (!data || typeof data !== "object") return data;
+
+  let hasUuid = false;
+  if (kind === "processFlow") {
+    hasUuid = !!(data.meta && typeof data.meta === "object" && data.meta.uuid);
+  } else {
+    hasUuid = !!data.uuid;
+  }
+
+  if (!hasUuid) {
+    const newUuid = crypto.randomUUID();
+    if (kind === "processFlow") {
+      if (!data.meta || typeof data.meta !== "object") data.meta = {};
+      data.meta.uuid = newUuid;
+    } else {
+      data.uuid = newUuid;
+    }
+    await writeJSON(filePath, data);
+  }
+
+  return data;
+}
+
 // ── EntityId uniqueness / uuid preserve helpers (#1294 I-2, RFC #1284) ──────
 // Screen / Table / ProcessFlow / Sequence / View / ViewDefinition / PageLayout の
 // top-level entity に対して、id (kebab-case EntityId) の集合と uuid の不変性を扱う。
@@ -780,7 +808,7 @@ async function _migrateScreenCore(screenId: string, root: string): Promise<Recor
   const entityPath = path.join(screensDir(dataRoot), `${screenId}.json`);
   const designPath = path.join(screensDir(dataRoot), `${screenId}.design.json`);
   const legacyItemsPath = path.join(screenItemsDir(dataRoot), `${screenId}.json`);
-  const current = await readJSON<unknown>(entityPath);
+  const current = await readEntityAndEnsureUuid("screen", entityPath);
 
   if (isScreenEntity(current) && !isLegacyGrapesScreen(current)) {
     return current as Record<string, unknown>;
@@ -1098,7 +1126,7 @@ export async function readTable(tableId: string, root: string): Promise<unknown 
   const dataRoot = await resolveDataRoot(r);
   const filePath = path.join(tablesDir(dataRoot), `${tableId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
-  return readJSON<unknown>(filePath);
+  return readEntityAndEnsureUuid("table", filePath);
 }
 
 /** tables/{tableId}.json を書き込み
@@ -1141,7 +1169,7 @@ export async function listAllTables(root: string): Promise<unknown[]> {
     const results: unknown[] = [];
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
-      const data = await readJSON<unknown>(path.join(tDir, file));
+      const data = await readEntityAndEnsureUuid("table", path.join(tDir, file));
       if (data) results.push(data);
     }
     return results;
@@ -1163,7 +1191,7 @@ export async function readProcessFlow(processFlowId: string, root: string): Prom
   const dataRoot = await resolveDataRoot(r);
   for (const filePath of processFlowFileCandidates(dataRoot, processFlowId)) {
     assertPathContained(filePath, dataRoot); // defense-in-depth
-    const data = await readJSON<unknown>(filePath);
+    const data = await readEntityAndEnsureUuid("processFlow", filePath);
     if (data) return data;
   }
   return null;
@@ -1288,7 +1316,7 @@ export async function readSequence(sequenceId: string, root: string): Promise<un
   const dataRoot = await resolveDataRoot(r);
   const filePath = path.join(sequencesDir(dataRoot), `${sequenceId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
-  return readJSON<unknown>(filePath);
+  return readEntityAndEnsureUuid("sequence", filePath);
 }
 
 /** sequences/{sequenceId}.json を書き込み (#374) */
@@ -1325,7 +1353,7 @@ export async function listAllSequences(root: string): Promise<unknown[]> {
     const results: unknown[] = [];
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
-      const data = await readJSON<unknown>(path.join(dir, file));
+      const data = await readEntityAndEnsureUuid("sequence", path.join(dir, file));
       if (data) results.push(data);
     }
     return results;
@@ -1344,7 +1372,7 @@ export async function listAllViews(root: string): Promise<unknown[]> {
     const results: unknown[] = [];
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
-      const data = await readJSON<unknown>(path.join(vDir, file));
+      const data = await readEntityAndEnsureUuid("view", path.join(vDir, file));
       if (data) results.push(data);
     }
     return results;
@@ -1359,7 +1387,7 @@ export async function readView(viewId: string, root: string): Promise<unknown | 
   const dataRoot = await resolveDataRoot(r);
   const filePath = path.join(viewsDir(dataRoot), `${viewId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
-  return readJSON<unknown>(filePath);
+  return readEntityAndEnsureUuid("view", filePath);
 }
 
 /** views/{viewId}.json を書き込み (v3 per-entity #549) */
@@ -1396,7 +1424,7 @@ export async function listAllViewDefinitions(root: string): Promise<unknown[]> {
     const results: unknown[] = [];
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
-      const data = await readJSON<unknown>(path.join(vdDir, file));
+      const data = await readEntityAndEnsureUuid("viewDefinition", path.join(vdDir, file));
       if (data) results.push(data);
     }
     return results;
@@ -1410,7 +1438,7 @@ export async function readViewDefinition(viewDefinitionId: string, root: string)
   const dataRoot = await resolveDataRoot(r);
   const filePath = path.join(viewDefsDir(dataRoot), `${viewDefinitionId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
-  return readJSON<unknown>(filePath);
+  return readEntityAndEnsureUuid("viewDefinition", filePath);
 }
 
 export async function writeViewDefinition(viewDefinitionId: string, data: unknown, root: string): Promise<void> {
@@ -1495,7 +1523,7 @@ export async function listAllPageLayouts(root: string): Promise<unknown[]> {
     const results: unknown[] = [];
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
-      const data = await readJSON<unknown>(path.join(plDir, file));
+      const data = await readEntityAndEnsureUuid("pageLayout", path.join(plDir, file));
       if (data) results.push(data);
     }
     return results;
@@ -1509,7 +1537,7 @@ export async function readPageLayout(pageLayoutId: string, root: string): Promis
   const dataRoot = await resolveDataRoot(r);
   const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
-  return readJSON<unknown>(filePath);
+  return readEntityAndEnsureUuid("pageLayout", filePath);
 }
 
 export async function writePageLayout(pageLayoutId: string, data: unknown, root: string): Promise<void> {

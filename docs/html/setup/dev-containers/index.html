@@ -56,7 +56,7 @@
 <li>Windows ブラウザで <code>http://localhost:5173</code> を開く (ポート 5173 / 5179 は Dev Containers が自動 forward)</li>
 </ol>
 <h2 id="初回起動で-wsl2-host-側に何が作られるか">初回起動で WSL2 host 側に何が作られるか</h2>
-<p>Reopen in Container を実行すると、以下が自動で WSL2 host 側に作られます。<strong>利用者の事前準備は不要</strong>です (Docker bind mount が missing path を自動 mkdir する仕様):</p>
+<p>Reopen in Container を実行すると、以下が自動で WSL2 host 側に作られます。<strong>利用者の事前準備は不要</strong>です (<code>devcontainer.json</code> の <code>initializeCommand</code> が container 起動「前」に host 側で <code>mkdir -p</code> を実行、#1340。Dev Containers は内部で docker <code>--mount type=bind</code> を使い、legacy <code>-v</code> と違って missing source path を自動作成しないため、明示 mkdir が必要):</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>~/.agent-containers/                       ← AI agent 用データ root</span></span>
 <span class="line"><span>└── harmony/                               ← project 名で自動分離 (${localWorkspaceFolderBasename})</span></span>
 <span class="line"><span>    ├── .claude/                           ← Claude Code: sessions / settings / memory / .credentials.json / .config.json</span></span>
@@ -79,6 +79,7 @@
 同様に <code>~/.agent-containers/&#x3C;project>/.codex/auth.json</code> に保存される。</li>
 <li><strong>GitHub Copilot CLI</strong>: 認証は <code>gh auth</code> (= <code>~/.config/gh/</code>) を共有するため、host で <code>gh auth login</code> 済みなら追加 OAuth 不要。Copilot CLI が初回起動時に必要な権限を付与するよう促す場合あり。session / memory / history は <code>~/.agent-containers/&#x3C;project>/.copilot/</code> に永続化される (#1114)。</li>
 <li><strong>(任意) 個人 alias (<code>ccd</code> / <code>cdx</code> 等)</strong>: VS Code user settings.json に dotfiles 3 行を追加。詳細は本書「個人 alias」節を参照。</li>
+<li><strong>(host 側で <code>git config --global user.email/user.name</code> 未設定の場合のみ)</strong> container 内で <code>git config --global user.email &#x3C;addr></code> / <code>user.name &#x3C;name></code> を 1 度実行 (bind mount で host <code>~/.gitconfig</code> に書き戻され、以降の rebuild で永続)。<code>initializeCommand</code> は host に <code>~/.gitconfig</code> が無い時に <code>touch</code> で空ファイルを作るため bind mount は通るが、内容が空だと container 内 <code>git commit</code> が <code>Author identity unknown</code> で失敗する — その回避手順。</li>
 </ol>
 <p>OAuth が必要なのは初回 + refreshToken expire 後 (60〜90 日) のみ。日々の rebuild では認証は維持されます。</p>
 <h2 id="過去-wsl2-native-だった人向け移行手順">過去 WSL2 native だった人向け移行手順</h2>
@@ -583,12 +584,12 @@ Phase 4 以前は公式 feature <code>ghcr.io/anthropics/devcontainer-features/c
 <p>Dev Containers の image を CI でも使うと、ローカル / CI 完全一致が達成できる。本リポジトリは現状 CI 未導入だが、将来的に検討する場合は <a href="https://github.com/devcontainers/cli"><code>@devcontainers/cli</code></a> を CI で使い、image build + 内部コマンド実行をスクリプト化できる。</p>
 <h2 id="generate-code-出力アプリへの同梱-1048"><code>/generate-code</code> 出力アプリへの同梱 (#1048)</h2>
 <p>本 doc は <strong>Harmony 本体</strong> (Harnize Harmony 自身の開発環境) の Dev Containers 設定について解説する。</p>
-<p><code>/generate-code</code> skill が出力する<strong>業務アプリ</strong>には、同じ思想 (pre-build しない、MS 公式 base image + features 構成) で <code>.devcontainer/devcontainer.json</code> + <code>Dockerfile</code> + <code>docker-compose.yml</code> を同梱する (#1048)。techStack 4 組合せ (spring-boot × thymeleaf / nextjs、nestjs × thymeleaf / nextjs) のテンプレが <code>ai-skills/generate-code/templates/devcontainer/</code> 配下に配置されており、<code>/generate-code</code> 実行時に techStack を判定して該当テンプレをコピー出力する。詳細は <a href="../../setup/SKILL/"><code>SKILL.md</code> Step 5.5</a> を参照。</p>
-<p><strong><code>&#x3C;出力先></code> の運用想定</strong>: <code>/generate-code &#x3C;id> &#x3C;出力先></code> の <code>&#x3C;出力先></code> は <strong>業務アプリ project root</strong> を指す (project-root model)。Harmony 利用者は意味のある folder 名 (例: <code>~/projects/retail-app/</code>) を独立した project root として作り、それを <code>&#x3C;出力先></code> に指定して VS Code / Dev Container で開く。<code>examples/&#x3C;id>/generated/&#x3C;techStack>/</code> は Harmony 同梱サンプル / dogfood 参照物であり、常用の project root として開く運用は想定しない (<code>${localWorkspaceFolderBasename}</code> が <code>generated</code> で衝突するため)。詳細は <a href="../../setup/SKILL/"><code>SKILL.md</code> Step 5.5</a> の「出力先の運用想定 (project-root model)」を参照。設定駆動 (<code>harmony.json</code> の <code>outputDir</code> 等) は <a href="https://github.com/csilost2001/harmony/issues/1116">#1116</a> で検討中。</p>
+<p><code>/generate-code</code> skill が出力する<strong>業務アプリ</strong>には、同じ思想 (pre-build しない、MS 公式 base image + features 構成) で <code>.devcontainer/devcontainer.json</code> + <code>Dockerfile</code> + <code>docker-compose.yml</code> を同梱する (#1048)。techStack 4 組合せ (spring-boot × thymeleaf / nextjs、nestjs × thymeleaf / nextjs) のテンプレが <code>ai-skills/generate-code/templates/devcontainer/</code> 配下に配置されており、<code>/generate-code</code> 実行時に techStack を判定して該当テンプレをコピー出力する。詳細は <a href="https://github.com/csilost2001/harmony/blob/main/ai-skills/generate-code/SKILL.md"><code>SKILL.md</code> Step 5.5</a> を参照。</p>
+<p><strong><code>&#x3C;出力先></code> の運用想定</strong>: <code>/generate-code &#x3C;id> &#x3C;出力先></code> の <code>&#x3C;出力先></code> は <strong>業務アプリ project root</strong> を指す (project-root model)。Harmony 利用者は意味のある folder 名 (例: <code>~/projects/retail-app/</code>) を独立した project root として作り、それを <code>&#x3C;出力先></code> に指定して VS Code / Dev Container で開く。<code>examples/&#x3C;id>/generated/&#x3C;techStack>/</code> は Harmony 同梱サンプル / dogfood 参照物であり、常用の project root として開く運用は想定しない (<code>${localWorkspaceFolderBasename}</code> が <code>generated</code> で衝突するため)。詳細は <a href="https://github.com/csilost2001/harmony/blob/main/ai-skills/generate-code/SKILL.md"><code>SKILL.md</code> Step 5.5</a> の「出力先の運用想定 (project-root model)」を参照。設定駆動 (<code>harmony.json</code> の <code>outputDir</code> 等) は <a href="https://github.com/csilost2001/harmony/issues/1116">#1116</a> で検討中。</p>
 <h2 id="関連ドキュメント">関連ドキュメント</h2>
 <ul>
-<li><a href="../../setup/AGENTS/"><code>AGENTS.md</code></a> — プロジェクト全般のガイダンス</li>
-<li><a href="../../setup/CLAUDE/"><code>CLAUDE.md</code></a> — Claude Code 固有</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/AGENTS.md"><code>AGENTS.md</code></a> — プロジェクト全般のガイダンス</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/CLAUDE.md"><code>CLAUDE.md</code></a> — Claude Code 固有</li>
 <li><a href="../../setup/wsl2-native/"><code>wsl2-native.md</code></a> — WSL2 native セットアップ手順 (代替パターン)</li>
 <li><a href="../../setup/distribution-roadmap/"><code>distribution-roadmap.md</code></a> — Harmony 本体の Docker image 配布構想 (#1055 L2/L3)</li>
 <li>ISSUE <a href="https://github.com/csilost2001/harmony/issues/847">#847</a> — Dev Containers 移行 roadmap</li>

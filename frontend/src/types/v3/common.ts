@@ -12,9 +12,13 @@
 // ─── Branded primitives ────────────────────────────────────────────────────
 
 declare const __brand: unique symbol;
+declare const __narrowBrand: unique symbol;
 
 /** Branded type: K に T のブランドを付ける (compile-time 型区別)。 */
 export type Brand<K, T> = K & { readonly [__brand]: T };
+
+/** Narrow brand type: Base brand に Narrowing tag を付与する (衝突回避用)。 */
+export type NarrowBrand<K, T> = K & { readonly [__narrowBrand]: T };
 
 /**
  * Top-level entity の永続識別子 (audit / 履歴追跡用)。RFC 4122 UUID v4 形式。
@@ -39,14 +43,14 @@ export type EntityId = Brand<string, "EntityId">;
  * 各 top-level entity 種別のブランド付き EntityId。schema レベルでは区別不可、TS でのみ強制。
  * 全て kebab-case 英単語の `EntityId` を base brand とする (RFC #1284 / I-7-1)。
  */
-export type ScreenId = Brand<EntityId, "Screen">;
-export type TableId = Brand<EntityId, "Table">;
-export type ProcessFlowId = Brand<EntityId, "ProcessFlow">;
-export type ViewId = Brand<EntityId, "View">;
-export type ViewDefinitionId = Brand<EntityId, "ViewDefinition">;
-export type SequenceId = Brand<EntityId, "Sequence">;
-export type PageLayoutId = Brand<EntityId, "PageLayout">;
-export type ProjectId = Brand<EntityId, "Project">;
+export type ScreenId = NarrowBrand<EntityId, "Screen">;
+export type TableId = NarrowBrand<EntityId, "Table">;
+export type ProcessFlowId = NarrowBrand<EntityId, "ProcessFlow">;
+export type ViewId = NarrowBrand<EntityId, "View">;
+export type ViewDefinitionId = NarrowBrand<EntityId, "ViewDefinition">;
+export type SequenceId = NarrowBrand<EntityId, "Sequence">;
+export type PageLayoutId = NarrowBrand<EntityId, "PageLayout">;
+export type ProjectId = NarrowBrand<EntityId, "Project">;
 
 /**
  * 非 top-level entity の生成識別子 (UUID base のまま保持)。

@@ -37,12 +37,12 @@
 
 | entity | id | name | description | createdAt | updatedAt | version | maturity |
 |---|---|---|---|---|---|---|---|
-| ProcessFlow | Uuid | string | Description | T | T | SemVer | Maturity |
-| TableDefinition | Uuid | DbTableName ★物理名 | string | T | T | × | × |
-| ScreenNode | Uuid | string | string | T | T | × | × |
+| ProcessFlow | EntityId | string | Description | T | T | SemVer | Maturity |
+| TableDefinition | EntityId | DbTableName ★物理名 | string | T | T | × | × |
+| ScreenNode | EntityId | string | string | T | T | × | × |
 | ScreenItemsFile | (screenId) | × | × | × | T | SemVer | × |
-| SequenceDefinition | Uuid | × ★name 無し | string? | T | T | × | × |
-| ViewDefinition | Uuid | × ★name 無し | string? | T | T | × | × |
+| SequenceDefinition | EntityId | × ★name 無し | string? | T | T | × | × |
+| ViewDefinition | EntityId | × ★name 無し | string? | T | T | × | × |
 | CustomBlock | Uuid | × ★label のみ | × | T | T | × | × |
 | Step (各 variant) | LocalId | × | string | × | × | × | Maturity |
 | Action | LocalId | string | string | × | × | × | Maturity |
@@ -193,23 +193,23 @@ UPPER (DataType / DbOperation / 等) と lowercase (SqlDialect / IndexMethod) �
 
 ### 2.2 参照規範を 4 パターンに統一
 
-#### Pattern A: `<entity>Id: Uuid` — top-level entity 単独参照
+#### Pattern A: `<entity>Id: EntityId` — top-level entity 単独参照
 
 ```jsonc
-"screenId": { "$ref": "common.v2.schema.json#/$defs/Uuid" }
-"tableId":  { "$ref": "common.v2.schema.json#/$defs/Uuid" }
-"processFlowId": { "$ref": "common.v2.schema.json#/$defs/Uuid" }
+"screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId" }
+"tableId":  { "$ref": "common.v3.schema.json#/$defs/EntityId" }
+"processFlowId": { "$ref": "common.v3.schema.json#/$defs/EntityId" }
 ```
 
 #### Pattern B: `<entity>Ref: { ... }` — 複合参照 (entity 内のサブ要素を指す)
 
 ```jsonc
-// common.v2 に追加
-"ScreenItemRef": { "type": "object", "properties": { "screenId": Uuid, "itemId": BusinessIdentifier } }
+// common.v3 に追加
+"ScreenItemRef": { "type": "object", "properties": { "screenId": EntityId, "itemId": BusinessIdentifier } }
 "TableColumnRef": { ... }
-"ActionRef": { "type": "object", "properties": { "processFlowId": Uuid, "actionId": LocalId } }
+"ActionRef": { "type": "object", "properties": { "processFlowId": EntityId, "actionId": LocalId } }
 "StepRef": { ... }
-"ResponseRef": { "type": "object", "properties": { "processFlowId": Uuid, "actionId": LocalId, "responseId": LocalId } }
+"ResponseRef": { "type": "object", "properties": { "processFlowId": EntityId, "actionId": LocalId, "responseId": LocalId } }
 ```
 
 #### Pattern C: catalog key 参照 — `string` (同一 entity 内 catalog のキー)

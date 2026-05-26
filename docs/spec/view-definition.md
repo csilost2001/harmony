@@ -29,8 +29,10 @@
 
 ```typescript
 interface ViewDefinition {
-  /** UUID。同プロジェクト内で一意。 */
-  id: Uuid;
+  /** 業務識別子 (kebab-case EntityId)。同プロジェクト内で一意。 */
+  id: ViewDefinitionId;
+  /** 不変識別子 (UUID v4)。 */
+  uuid: Uuid;
   /** 表示名 (DisplayName)。 */
   name: DisplayName;
   /** 説明。 */
@@ -45,7 +47,7 @@ interface ViewDefinition {
       | `${string}:${string}`;  // namespace:kindName
 
   /** Level 1 (Simple): 主要ソーステーブル ID。query と排他。 */
-  sourceTableId?: Uuid;
+  sourceTableId?: TableId;
 
   /** Level 2 / Level 3 の query 定義。sourceTableId と排他。 */
   query?: ViewQuery;
@@ -184,11 +186,11 @@ interface FilterSpec {
 {
   "kind": "list",
   "query": {
-    "from": { "tableId": "<orders-uuid>", "alias": "o" },
+    "from": { "tableId": "orders", "alias": "o" },
     "joins": [
       {
         "kind": "INNER",
-        "tableId": "<customers-uuid>",
+        "tableId": "customers",
         "alias": "c",
         "on": ["o.customer_id = c.id"]
       }
@@ -199,13 +201,13 @@ interface FilterSpec {
   "columns": [
     {
       "name": "orderNumber",
-      "tableColumnRef": { "tableId": "<orders-uuid>", "columnId": "col-order-number" },
+      "tableColumnRef": { "tableId": "orders", "columnId": "col-order-number" },
       "displayName": "注文番号",
       "type": "string"
     },
     {
       "name": "customerName",
-      "tableColumnRef": { "tableId": "<customers-uuid>", "columnId": "col-name" },
+      "tableColumnRef": { "tableId": "customers", "columnId": "col-name" },
       "displayName": "顧客名",
       "type": "string"
     }

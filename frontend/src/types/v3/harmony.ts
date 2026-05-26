@@ -9,6 +9,7 @@
 import type {
   Authoring,
   DisplayName,
+  EntityId,
   EntityMeta,
   ExtensionApplied,
   LocalId,
@@ -23,14 +24,13 @@ import type {
   SequenceId,
   TableId,
   Timestamp,
-  Uuid,
   ViewDefinitionId,
   ViewId,
 } from "./common";
 
 /** entities.* 配列要素の共通プロパティ。一覧 UI 表示用最小メタ。 */
 export interface EntryBase {
-  id: Uuid;
+  id: EntityId;
   /** 物理順 (1..N)。一覧の並び替え永続化に使用。 */
   no: number;
   name: DisplayName;

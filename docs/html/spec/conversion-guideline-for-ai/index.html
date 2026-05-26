@@ -403,7 +403,7 @@
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
 <p>ポイント:</p>
 <ul>
-<li>ファイル名 = <code>&#x3C;id>.json</code> (画面コード SC000001 は description に記録、ID は uuid v4)</li>
+<li>ファイル名 = <code>&#x3C;id>.json</code> (画面コード SC000001 は description に記録、ID は kebab-case EntityId)</li>
 <li>必須 root: <code>id</code> / <code>name</code> / <code>createdAt</code> / <code>updatedAt</code> (EntityMeta 由来) + <code>kind</code> (<code>form</code> / <code>list</code> / <code>detail</code> / <code>confirm</code> 等 12 種 enum)</li>
 <li>URL は <code>path</code> (<code>route</code> ではない)、認証は <code>auth: "required"|"optional"|"none"</code> (object ではない)</li>
 <li><code>purpose: "page"</code> 既定 (gadget 部品は <code>"gadget"</code>)</li>
@@ -421,7 +421,7 @@
 </ul>
 <h4 id="-alternative--structured-binding-1065-で-ajv-gate-対象化済">✅ Alternative — structured binding (#1065 で AJV gate 対象化済)</h4>
 <p><code>binding</code> サブオブジェクトは <strong>#1065 で ScreenItem に追加済</strong> (AJV gate 対象)。今すぐ生成できる:</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// screens/&#x3C;uuid>.json (items[] 内)</span></span>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// screens/&#x3C;id>.json (items[] 内)</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"productCode"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"商品コード"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
@@ -621,17 +621,17 @@
 </ul>
 <p><strong>マッピング</strong>:</p>
 <ul>
-<li>DB 操作 → <strong>すべて <code>kind: "dbAccess"</code></strong> + <code>operation: "SELECT|INSERT|UPDATE|DELETE|MERGE|LOCK"</code> + <code>tableId</code> (Uuid) + 完全 <code>sql</code></li>
-<li>共有内部処理呼び出し → <strong><code>kind: "commonProcess"</code> + <code>refId</code> (他 ProcessFlow の Uuid)</strong></li>
+<li>DB 操作 → <strong>すべて <code>kind: "dbAccess"</code></strong> + <code>operation: "SELECT|INSERT|UPDATE|DELETE|MERGE|LOCK"</code> + <code>tableId</code> (EntityId) + 完全 <code>sql</code></li>
+<li>共有内部処理呼び出し → <strong><code>kind: "commonProcess"</code> + <code>refId</code> (他 ProcessFlow の EntityId)</strong></li>
 <li>バリデーション + エラー応答 → <strong><code>kind: "validation"</code> step</strong> + <code>conditions</code> (人間向け概要) + <code>rules[]</code> ({field, type, severity, message, …}) + <code>fieldErrorsVar</code> + <code>inlineBranch.ng[]</code> に <code>kind: "return"</code> + <code>responseId</code>/<code>bodyExpression</code></li>
 <li>条件分岐 → <strong><code>kind: "branch"</code></strong> + <code>branches[]</code> ({id, code, label, condition: {kind: “expression”, expression}, steps[]})</li>
 <li>エラーコード → <code>context.catalogs.errors.&#x3C;CODE></code> ({httpStatus, defaultMessage, responseId, description})</li>
 </ul>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// process-flows/00000000-1060-4000-8000-000000000030.json</span></span>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390">// process-flows/order-receive.json</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">{</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"../../schemas/v3/process-flow.v3.schema.json"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "meta"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"00000000-1060-4000-8000-000000000030"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"order-receive"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"注文受付"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"spec_OrderService.md placeOrder メソッドの変換。"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "flowType"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"common"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>

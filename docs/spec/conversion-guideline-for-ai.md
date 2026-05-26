@@ -223,7 +223,7 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
 ```
 
 ポイント:
-- ファイル名 = `<id>.json` (画面コード SC000001 は description に記録、ID は uuid v4)
+- ファイル名 = `<id>.json` (画面コード SC000001 は description に記録、ID は kebab-case EntityId)
 - 必須 root: `id` / `name` / `createdAt` / `updatedAt` (EntityMeta 由来) + `kind` (`form` / `list` / `detail` / `confirm` 等 12 種 enum)
 - URL は `path` (`route` ではない)、認証は `auth: "required"|"optional"|"none"` (object ではない)
 - `purpose: "page"` 既定 (gadget 部品は `"gadget"`)
@@ -241,7 +241,7 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
 `binding` サブオブジェクトは **#1065 で ScreenItem に追加済** (AJV gate 対象)。今すぐ生成できる:
 
 ```jsonc
-// screens/<uuid>.json (items[] 内)
+// screens/<id>.json (items[] 内)
 {
   "id": "productCode",
   "label": "商品コード",
@@ -468,18 +468,18 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 - `dbQuery` / `dbInsert` / `dbUpdate` — 存在しない (DB 操作はすべて `dbAccess` + `operation` で表現する。細分化は本 ISSUE #1066 で採用しないと決定)
 
 **マッピング**:
-- DB 操作 → **すべて `kind: "dbAccess"`** + `operation: "SELECT|INSERT|UPDATE|DELETE|MERGE|LOCK"` + `tableId` (Uuid) + 完全 `sql`
-- 共有内部処理呼び出し → **`kind: "commonProcess"` + `refId` (他 ProcessFlow の Uuid)**
+- DB 操作 → **すべて `kind: "dbAccess"`** + `operation: "SELECT|INSERT|UPDATE|DELETE|MERGE|LOCK"` + `tableId` (EntityId) + 完全 `sql`
+- 共有内部処理呼び出し → **`kind: "commonProcess"` + `refId` (他 ProcessFlow の EntityId)**
 - バリデーション + エラー応答 → **`kind: "validation"` step** + `conditions` (人間向け概要) + `rules[]` ({field, type, severity, message, ...}) + `fieldErrorsVar` + `inlineBranch.ng[]` に `kind: "return"` + `responseId`/`bodyExpression`
 - 条件分岐 → **`kind: "branch"`** + `branches[]` ({id, code, label, condition: {kind: "expression", expression}, steps[]})
 - エラーコード → `context.catalogs.errors.<CODE>` ({httpStatus, defaultMessage, responseId, description})
 
 ```jsonc
-// process-flows/00000000-1060-4000-8000-000000000030.json
+// process-flows/order-receive.json
 {
   "$schema": "../../schemas/v3/process-flow.v3.schema.json",
   "meta": {
-    "id": "00000000-1060-4000-8000-000000000030",
+    "id": "order-receive",
     "name": "注文受付",
     "description": "spec_OrderService.md placeOrder メソッドの変換。",
     "flowType": "common",
