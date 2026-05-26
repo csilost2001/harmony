@@ -138,9 +138,11 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
   });
 
   it("harmony.json の entities.processFlows[] に upsert される (no / flowType / actionCount, #1263 Phase X1)", async () => {
+    // #1332 Codex 9 巡目 M2: screenId は top-level Screen EntityId として検証されるため、
+    // kebab-case EntityId を渡す (旧 UUID fixture は reject される)。
     await handleProcessFlowTool(
       "designer__add_process_flow",
-      { name: "entity-upsert-check", flowType: "screen", screenId: "11111111-1111-4111-8111-111111111110", description: "test desc" },
+      { name: "entity-upsert-check", flowType: "screen", screenId: "linked-screen-fixture", description: "test desc" },
       root,
       SESSION_ID,
     );
@@ -153,10 +155,22 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
     expect(entry!.flowType).toBe("screen");
     expect(entry).not.toHaveProperty("kind"); // #1263 Phase X1: 旧 kind は出現しない
     expect(entry!.actionCount).toBe(0);
-    expect(entry!.screenId).toBe("11111111-1111-4111-8111-111111111110");
+    expect(entry!.screenId).toBe("linked-screen-fixture");
     expect(typeof entry!.no).toBe("number");
     expect(entry!.no).toBeGreaterThanOrEqual(1);
     expect(entry!.maturity).toBe("draft");
+  });
+
+  // #1332 Codex 9 巡目 M2: screenId が UUID 形式なら reject される (EntityId strict 化)
+  it("designer__add_process_flow: screenId が UUID 形式なら reject される (#1332 M2)", async () => {
+    await expect(
+      handleProcessFlowTool(
+        "designer__add_process_flow",
+        { name: "uuid-screen-reject", flowType: "screen", screenId: "11111111-1111-4111-8111-111111111110" },
+        root,
+        SESSION_ID,
+      ),
+    ).rejects.toThrow(/Invalid screenId.*kebab-case EntityId/);
   });
 });
 
@@ -384,7 +398,7 @@ describe("designer__solution_pack — #1229 F-1 path traversal 拒否", () => {
       handleProcessFlowTool(
         "designer__solution_pack",
         {
-          processFlowIds: ["aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"],
+          processFlowIds: ["existing-flow-fixture"],
           publisherPrefix: "test",
           version: "1.0.0",
           outputPath: "../../evil.zip",
@@ -400,7 +414,7 @@ describe("designer__solution_pack — #1229 F-1 path traversal 拒否", () => {
       handleProcessFlowTool(
         "designer__solution_pack",
         {
-          processFlowIds: ["aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"],
+          processFlowIds: ["existing-flow-fixture"],
           publisherPrefix: "test",
           version: "1.0.0",
           outputPath: "/tmp/evil.zip",
@@ -440,6 +454,23 @@ describe("designer__solution_pack — #1229 F-1 path traversal 拒否", () => {
     // zip ファイルが workspace 内 (dataDir 配下) に作成されたことを確認
     // _dataRoot = root/harmony なので outputPath 相対はそこに展開される
     expect(fsSync.existsSync(path.join(root, "harmony", "output", "test.zip"))).toBe(true);
+  });
+
+  // #1332 Codex 9 巡目 M2: processFlowIds[] 要素が UUID なら reject される
+  it("processFlowIds が UUID 形式の要素を含むなら reject される (#1332 M2)", async () => {
+    await expect(
+      handleProcessFlowTool(
+        "designer__solution_pack",
+        {
+          processFlowIds: ["aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"],
+          publisherPrefix: "test",
+          version: "1.0.0",
+          outputPath: "output/uuid-reject.zip",
+        },
+        root,
+        SESSION_ID,
+      ),
+    ).rejects.toThrow(/Invalid processFlowIds.*kebab-case EntityId/);
   });
 });
 

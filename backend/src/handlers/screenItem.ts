@@ -21,7 +21,7 @@ import {
 } from "../renameContext.js";
 import { wsBridge } from "../wsBridge.js";
 import { workspaceContextManager } from "../workspaceState.js";
-import type { ToolHandler } from "../mcpHelpers.js";
+import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
 export const handleScreenItemTool: ToolHandler = async (name, args, root, sessionId) => {
   const a = args ?? {};
@@ -31,6 +31,9 @@ export const handleScreenItemTool: ToolHandler = async (name, args, root, sessio
       if (typeof a.screenId !== "string" || typeof a.oldId !== "string" || typeof a.newId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "screenId, oldId, newId は必須です");
       }
+      // #1332 Codex 9 巡目 M2: screenId は top-level EntityId。
+      // oldId / newId は intra-entity (画面項目 LocalId) なので EntityId 検証対象外。
+      assertEntityIdMcp(a.screenId, "screenId");
       const renameRes = await renameScreenItemId(a.screenId, a.oldId, a.newId, root);
       wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "screenItemsChanged", data: { screenId: a.screenId } });
       for (const agId of renameRes.processFlowsUpdated) {
@@ -55,6 +58,8 @@ export const handleScreenItemTool: ToolHandler = async (name, args, root, sessio
       if (typeof a.screenId !== "string" || typeof a.itemId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "screenId, itemId は必須です");
       }
+      // #1332 Codex 9 巡目 M2: screenId は top-level EntityId。itemId は LocalId なので対象外。
+      assertEntityIdMcp(a.screenId, "screenId");
       const checkRes = await checkScreenItemRefs(a.screenId, a.itemId, root);
       if (checkRes.totalRefs === 0) {
         return { content: [{ type: "text", text: `"${a.itemId}" を参照する処理フローはありません。` }] };
@@ -70,6 +75,8 @@ export const handleScreenItemTool: ToolHandler = async (name, args, root, sessio
       if (typeof a.screenId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "screenId は必須です");
       }
+      // #1332 Codex 9 巡目 M2: screenId は top-level EntityId。
+      assertEntityIdMcp(a.screenId, "screenId");
       const ctx = await getRenameContext(a.screenId, root);
       const summary = [
         `画面 ${a.screenId} の未命名項目: ${ctx.unnamedItems.length} 件 (命名済み: ${ctx.namedCount} 件)`,
@@ -89,6 +96,8 @@ export const handleScreenItemTool: ToolHandler = async (name, args, root, sessio
       if (!a.mapping || typeof a.mapping !== "object" || Array.isArray(a.mapping)) {
         throw new McpError(ErrorCode.InvalidParams, "mapping は {oldId: newId} オブジェクトが必須です");
       }
+      // #1332 Codex 9 巡目 M2: screenId は top-level EntityId。mapping の key/value は LocalId なので対象外。
+      assertEntityIdMcp(a.screenId, "screenId");
       const mapping = a.mapping as Record<string, string>;
 
       // browser-first: ブラウザで in-memory 適用を試みる

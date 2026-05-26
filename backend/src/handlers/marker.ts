@@ -18,7 +18,7 @@ import {
   removeMarker as editRemoveMarker,
   type ProcessFlowDoc,
 } from "../processFlowEdits.js";
-import { saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
+import { assertEntityIdMcp, saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
 
 export const handleMarkerTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
@@ -28,6 +28,8 @@ export const handleMarkerTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId は必須です");
       }
+      // #1332 Codex 9 巡目 M2: processFlowId は top-level EntityId (ProcessFlow)。
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       const ag = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!ag) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       const markers = editListMarkers(ag, {
@@ -56,6 +58,8 @@ export const handleMarkerTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.kind !== "string" || typeof a.body !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, kind, body は必須です");
       }
+      // #1332 Codex 9 巡目 M2: processFlowId は top-level EntityId (ProcessFlow)。
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       const ag = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!ag) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       const m = editAddMarker(ag, {
@@ -73,6 +77,8 @@ export const handleMarkerTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.markerId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, markerId は必須です");
       }
+      // #1332 Codex 9 巡目 M2: processFlowId は top-level EntityId。markerId は LocalId なので対象外。
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       const ag = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!ag) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {
@@ -88,6 +94,8 @@ export const handleMarkerTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.markerId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, markerId は必須です");
       }
+      // #1332 Codex 9 巡目 M2: processFlowId は top-level EntityId。markerId は LocalId なので対象外。
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       const ag = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!ag) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {

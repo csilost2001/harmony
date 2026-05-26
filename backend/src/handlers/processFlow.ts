@@ -274,6 +274,11 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.name !== "string" || typeof a.flowType !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "name, flowType は必須です");
       }
+      // #1332 Codex 9 巡目 M2: screenId は top-level Screen EntityId (schema: process-flow.v3 meta.screenId)。
+      // 省略 = undefined はそのまま許容、文字列が渡れば EntityId 検証する。
+      if (a.screenId !== undefined && a.screenId !== null) {
+        assertEntityIdMcp(a.screenId, "screenId");
+      }
       // #1294 I-2 / RFC #1284: id は kebab-case EntityId、uuid は別途 UUID v4 で採番
       const pfId = newProcessFlowEntityId();
       const pfUuid = crypto.randomUUID();
@@ -616,6 +621,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.catalog !== "string" || typeof a.key !== "string" || typeof a.value !== "object" || a.value === null) {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, catalog, key, value は必須です");
       }
+      // #1332 Codex 9 巡目 M2: processFlowId は top-level EntityId (ProcessFlow)。
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       if (a.catalog === "typeCatalog") {
         console.warn("[deprecation] add_catalog_entry catalogName=typeCatalog is forwarded to add_response_type_extension");
         const value = a.value as Record<string, unknown>;
@@ -637,6 +644,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.catalog !== "string" || typeof a.key !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, catalog, key は必須です");
       }
+      // #1332 Codex 9 巡目 M2: processFlowId は top-level EntityId (ProcessFlow)。
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       if (a.catalog === "typeCatalog") {
         console.warn("[deprecation] remove_catalog_entry catalogName=typeCatalog is forwarded to delete_response_type_extension");
         const file = await readResponseTypesFile(root);
@@ -659,6 +668,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId は必須です");
       }
+      // #1332 Codex 9 巡目 M2: processFlowId は top-level EntityId (ProcessFlow)。
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       const flow = await readProcessFlow(a.processFlowId, root) as Record<string, unknown> | null;
       if (!flow) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
 
@@ -681,6 +692,11 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       }
       if (typeof a.publisherPrefix !== "string" || typeof a.version !== "string" || typeof a.outputPath !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "publisherPrefix, version, outputPath は必須です");
+      }
+      // #1332 Codex 9 巡目 M2: processFlowIds[] の各要素は top-level EntityId (ProcessFlow)。
+      // 配列全要素を path 計算前に検証することで、不正 id 経路の入力を即時 reject する。
+      for (const id of ids) {
+        assertEntityIdMcp(id, "processFlowIds");
       }
 
       const _dataRoot = await resolveDataRoot(root);

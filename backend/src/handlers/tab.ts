@@ -13,7 +13,7 @@
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { wsBridge } from "../wsBridge.js";
-import type { ToolHandler } from "../mcpHelpers.js";
+import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
 export const handleTabTool: ToolHandler = async (name, args) => {
   const a = args ?? {};
@@ -22,6 +22,13 @@ export const handleTabTool: ToolHandler = async (name, args) => {
     case "designer__open_tab": {
       if (!a.screenId && !a.tableId) {
         throw new McpError(ErrorCode.InvalidParams, "screenId または tableId が必要です");
+      }
+      // #1332 Codex 9 巡目 M2: screenId / tableId は top-level EntityId。
+      if (a.screenId !== undefined && a.screenId !== null) {
+        assertEntityIdMcp(a.screenId, "screenId");
+      }
+      if (a.tableId !== undefined && a.tableId !== null) {
+        assertEntityIdMcp(a.tableId, "tableId");
       }
       await wsBridge.sendCommand("openTab", {
         screenId: a.screenId,
@@ -69,6 +76,8 @@ export const handleTabTool: ToolHandler = async (name, args) => {
       if (typeof a.screenId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "screenId は必須です");
       }
+      // #1332 Codex 9 巡目 M2: screenId は top-level EntityId。
+      assertEntityIdMcp(a.screenId, "screenId");
       await wsBridge.sendCommand("saveScreen", { screenId: a.screenId });
       return { content: [{ type: "text", text: `画面 ${a.screenId} を保存しました。` }] };
     }
