@@ -18,7 +18,7 @@
  * 参考: schemas/v3/page-layout.v3.schema.json
  */
 
-import type { Authoring, EntityMeta, ScreenId, Uuid } from "./common";
+import type { Authoring, EntityMeta, ProcessFlowId, ScreenId } from "./common";
 
 /**
  * PageLayout 内の region (slot) 宣言。
@@ -82,8 +82,9 @@ export interface PageLayout extends EntityMeta {
   /**
    * ガジェット間連携 orchestrator として紐付ける ProcessFlow ID (optional)。
    * MVP では schema 上は枠のみ用意、実装は Phase 2 (RFC #1021 Q2=a)。
+   * I-7 Round 8 S-R7-2: brand drift (`Uuid` → `ProcessFlowId`) 解消。
    */
-  processFlowId?: Uuid;
+  processFlowId?: ProcessFlowId;
   /**
    * PageLayout のビジュアル定義参照 (region 配置の Designer 編集対象)。
    * 生 HTML / Puck data は別ファイル参照。

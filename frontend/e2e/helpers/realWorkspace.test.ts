@@ -2,7 +2,9 @@
  * realWorkspace helper 単体テスト (#964 α)
  *
  * backend WebSocket が不要な部分のみテスト:
- * - normalizeId: UUID v4 正規化ロジック
+ * - normalizeId: kebab-case EntityId 正規化ロジック (Round 6 Phase A 以降。
+ *   旧版は UUID v4 を生成していたが、I-7 で strict EntityId validator が UUID を
+ *   reject するため kebab-case 変換に動作を切り替えた)
  * - v3 typed input が harmony.json / entity ファイルとしてそのまま書き出されること
  *   (setupTestWorkspace のファイル書き込みロジックを直接検証)
  *
