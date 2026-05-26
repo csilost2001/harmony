@@ -57,7 +57,7 @@ npm run dev
 
 ## 初回起動で WSL2 host 側に何が作られるか
 
-Reopen in Container を実行すると、以下が自動で WSL2 host 側に作られます。**利用者の事前準備は不要**です (`devcontainer.json` の `initializeCommand` が container 起動「前」に host 側で `mkdir -p` を実行、#1340。Docker の bind mount 自体は missing source path を自動作成しない仕様のため明示 mkdir が必要):
+Reopen in Container を実行すると、以下が自動で WSL2 host 側に作られます。**利用者の事前準備は不要**です (`devcontainer.json` の `initializeCommand` が container 起動「前」に host 側で `mkdir -p` を実行、#1340。Dev Containers は内部で docker `--mount type=bind` を使い、legacy `-v` と違って missing source path を自動作成しないため、明示 mkdir が必要):
 
 ```
 ~/.agent-containers/                       ← AI agent 用データ root
@@ -90,6 +90,7 @@ container 起動後、以下の認証作業を 1 度だけ行います (rebuild 
    同様に `~/.agent-containers/<project>/.codex/auth.json` に保存される。
 3. **GitHub Copilot CLI**: 認証は `gh auth` (= `~/.config/gh/`) を共有するため、host で `gh auth login` 済みなら追加 OAuth 不要。Copilot CLI が初回起動時に必要な権限を付与するよう促す場合あり。session / memory / history は `~/.agent-containers/<project>/.copilot/` に永続化される (#1114)。
 4. **(任意) 個人 alias (`ccd` / `cdx` 等)**: VS Code user settings.json に dotfiles 3 行を追加。詳細は本書「個人 alias」節を参照。
+5. **(host 側で `git config --global` 未実施の場合のみ)** container 内で `git config --global user.email <addr>` / `user.name <name>` を 1 度実行 (bind mount で host `~/.gitconfig` に書き戻される、以降の rebuild で永続)。`initializeCommand` は host に空 `~/.gitconfig` が無い時 `touch` で作るため、container 内 `git commit` が `Author identity unknown` で失敗するのを防ぐ初回手順。
 
 OAuth が必要なのは初回 + refreshToken expire 後 (60〜90 日) のみ。日々の rebuild では認証は維持されます。
 
