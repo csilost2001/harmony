@@ -107,7 +107,7 @@ test.describe("協調編集 一覧 SessionBadge 表示", { tag: ["@regression"] 
       // tab2: 一覧
       await seedTabsForWorkspace(pageB, ws.wsId, [dummyTab], dummyTab.id);
       await ws.gotoActive(pageB, "/process-flow/list");
-      await expect(pageB.getByText("一覧バッジテストフロー")).toBeVisible({ timeout: 10000 });
+      await expect(pageB.locator(".process-flow-card-name").getByText("一覧バッジテストフロー")).toBeVisible({ timeout: 10000 });
 
       // EditSessionBadge が表示される (broadcast 受信後)
       const badge = pageB.locator('[data-testid="edit-session-badge"]').first();

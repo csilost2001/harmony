@@ -112,7 +112,7 @@ test.describe("more-ui (#244)", { tag: ["@regression"] }, () => {
   });
 
   test.describe("ReturnStep 編集 (#214)", () => {
-    test("responseRef + bodyExpression が編集できる", async ({ page }) => {
+    test("responseId + bodyExpression が編集できる", async ({ page }) => {
       await gotoEditor(page, `/process-flow/edit/${normalizeId(groupId)}`);
       const card = await expandStep(page, 1);
       const refInput = card.locator('input[placeholder*="409-stock-shortage"]').first();
