@@ -24,13 +24,16 @@ const dummyGroup = {
   actions: [{ id: "act-1", name: "ボタン", trigger: "click", maturity: "draft", responses: [{id:"201-ok",status:201}], steps: [] }],
   markers: [
     // 既存 shape 付き marker (表示 + 消しゴムテスト用)
+    // v3 schema (#1263): marker.anchor.shape、shape.kind
     {
       id: "mk-pre",
       kind: "attention",
       body: "ここ危ない",
-      shape: { type: "path", d: "M 10 10 L 50 50 L 30 70" },
       author: "human",
       createdAt: "2026-04-21T00:00:00.000Z",
+      anchor: {
+        shape: { kind: "path", d: "M 10 10 L 50 50 L 30 70" },
+      },
     },
   ],
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),

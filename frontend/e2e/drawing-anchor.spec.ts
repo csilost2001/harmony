@@ -39,19 +39,20 @@ const dummyGroup = {
   }],
   markers: [
     // anchor 付き描画マーカー (step-sql-anchor の sql フィールドに紐付く)
+    // v3 schema (#1263): marker.anchor.{stepId, fieldPath, shape}、shape.kind
     {
       id: "mk-anchored",
       kind: "todo",
       body: "SQL を条件付き UPDATE に修正",
-      stepId: "step-sql-anchor",
-      fieldPath: "sql",
       author: "human",
       createdAt: "2026-04-21T00:00:00Z",
-      shape: {
-        type: "path",
-        d: "M 5 20 L 95 20 L 95 80 L 5 80 L 5 20",
-        anchorStepId: "step-sql-anchor",
-        anchorFieldPath: "sql",
+      anchor: {
+        stepId: "step-sql-anchor",
+        fieldPath: "sql",
+        shape: {
+          kind: "path",
+          d: "M 5 20 L 95 20 L 95 80 L 5 80 L 5 20",
+        },
       },
     },
     // anchor なしの旧形式マーカー (overlay 全体に描画される)
@@ -61,9 +62,8 @@ const dummyGroup = {
       body: "前方互換: overlay 相対",
       author: "human",
       createdAt: "2026-04-21T00:00:00Z",
-      shape: {
-        type: "path",
-        d: "M 10 10 L 30 30",
+      anchor: {
+        shape: { kind: "path", d: "M 10 10 L 30 30" },
       },
     },
     // orphan: 存在しない stepId にアンカー (オーファン表示テスト用)
@@ -71,13 +71,11 @@ const dummyGroup = {
       id: "mk-orphan",
       kind: "todo",
       body: "孤児になったマーカー",
-      stepId: "step-deleted",
       author: "human",
       createdAt: "2026-04-21T00:00:00Z",
-      shape: {
-        type: "path",
-        d: "M 5 5 L 95 95",
-        anchorStepId: "step-deleted",
+      anchor: {
+        stepId: "step-deleted",
+        shape: { kind: "path", d: "M 5 5 L 95 95" },
       },
     },
   ],
