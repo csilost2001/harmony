@@ -16,7 +16,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject, buildProcessFlow, buildTable } from "./__fixtures__/builders";
-import type { Column, LocalId, PhysicalName, ProjectEntities, Timestamp } from "../src/types/v3";
+import type { Column, LocalId, PhysicalName, HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const TABLE_ID = `tbl-e2e-dirty-mark-${Date.now()}`;
 const PF_ID = `pf-e2e-dirty-mark-${Date.now()}`;
@@ -43,7 +43,7 @@ const dummyProject = buildProject({
   entities: {
     tables: [{ id: TABLE_ID, no: 1, name: dummyTable.name, physicalName: dummyTable.physicalName, category: dummyTable.category, columnCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
     processFlows: [{ id: PF_ID, no: 1, name: "dirty マークテストフロー", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const TABLE_NORM = normalizeId(TABLE_ID);

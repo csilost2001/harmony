@@ -1,5 +1,5 @@
 /**
- * v3 Project builder — e2e テスト用 fixture 生成。
+ * v3 Harmony builder — e2e テスト用 fixture 生成。
  *
  * defaults:
  * - createdAt/updatedAt: 固定値 "2026-05-08T00:00:00.000Z" (再現性)
@@ -11,10 +11,10 @@ import type {
   ExtensionApplied,
   Maturity,
   Mode,
-  Project,
-  ProjectEntities,
+  Harmony,
+  HarmonyEntities,
   ProjectId,
-  ProjectTechStack,
+  HarmonyTechStack,
   Timestamp,
   Uuid,
 } from "../../../src/types/v3";
@@ -49,7 +49,7 @@ export function normalizeToKebabId(val: string): string {
   return ENTITY_ID_RE.test(slug) ? slug : `id-${slug || "auto"}`;
 }
 
-function normalizeEntityIds(entities: ProjectEntities): ProjectEntities {
+function normalizeEntityIds(entities: HarmonyEntities): HarmonyEntities {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(entities)) {
     if (!Array.isArray(value)) {
@@ -68,7 +68,7 @@ function normalizeEntityIds(entities: ProjectEntities): ProjectEntities {
       return normalized;
     });
   }
-  return result as ProjectEntities;
+  return result as HarmonyEntities;
 }
 
 export interface BuildProjectOpts {
@@ -77,12 +77,12 @@ export interface BuildProjectOpts {
   dataDir?: string;
   mode?: Mode;
   maturity?: Maturity;
-  entities?: ProjectEntities;
-  techStack?: ProjectTechStack;
+  entities?: HarmonyEntities;
+  techStack?: HarmonyTechStack;
   extensionsApplied?: ExtensionApplied[];
 }
 
-export function buildProject(opts: BuildProjectOpts = {}): Project {
+export function buildProject(opts: BuildProjectOpts = {}): Harmony {
   // RFC #1284: id は kebab-case EntityId、uuid は不変識別子 (UUID v4)。
   const id = opts.id
     ? (normalizeToKebabId(opts.id) as unknown as ProjectId)

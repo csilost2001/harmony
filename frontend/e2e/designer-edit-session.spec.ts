@@ -21,7 +21,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const SCREEN_ID = `scr-e2e-edit-session-${Date.now()}`;
 const SCREEN_NORM = normalizeId(SCREEN_ID);
@@ -31,7 +31,7 @@ const dummyProject = buildProject({
   name: "edit-session-test",
   entities: {
     screens: [{ id: SCREEN_ID, no: 1, name: "テスト画面", kind: "form", path: "/test", hasDesign: true, updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const screenDesign = {

@@ -14,7 +14,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 // RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
 const SCREEN_ID = "corrupt-data-screen";
@@ -25,7 +25,7 @@ const project = buildProject({
   name: "corrupt-data test",
   entities: {
     screens: [{ id: SCREEN_ID, no: 1, name: "破損テスト画面", path: "/corrupt", kind: "form", hasDesign: true, updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const dummyTab = {

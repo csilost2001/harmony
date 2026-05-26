@@ -12,7 +12,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const dummyTables = [
   { id: "tbl-0001", physicalName: "users", name: "ユーザーマスタ", category: "マスタ", columns: [], indexes: [], constraints: [] },
@@ -30,7 +30,7 @@ const dummyProject = buildProject({
       { id: "tbl-0002", no: 2, physicalName: "orders", name: "注文", category: "トランザクション", updatedAt: FIXED_TS },
       { id: "tbl-0003", no: 3, physicalName: "products", name: "商品マスタ", category: "マスタ", updatedAt: FIXED_TS },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-table-list";

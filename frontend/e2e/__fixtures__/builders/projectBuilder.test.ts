@@ -26,7 +26,7 @@ beforeAll(() => {
 });
 
 describe("buildProject", () => {
-  it("returns a v3-valid Project with defaults", () => {
+  it("returns a v3-valid Harmony with defaults", () => {
     const p = buildProject();
     const ok = validateProject(p);
     if (!ok) {

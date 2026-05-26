@@ -18,7 +18,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 
 const groupId = "ag-schema-ui-test";
@@ -91,7 +91,7 @@ const dummyProject = buildProject({
         updatedAt: FIXED_TS,
       },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 async function setupEditor(page: Page) {

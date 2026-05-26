@@ -23,7 +23,7 @@ import {
   type OpenedWorkspace,
 } from "../helpers/realWorkspace";
 import { buildProject, buildProcessFlow } from "../__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../../src/types/v3";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const PF_ID = `pf-collab-smoke-${Date.now()}`;
@@ -41,7 +41,7 @@ const dummyProject = buildProject({
   name: "collab-2tab-smoke-test",
   entities: {
     processFlows: [{ id: PF_ID, no: 1, name: "協調編集スモークテスト", flowType: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const dummyTab = { id: `process-flow:${PF_NORM}`, type: "process-flow", resourceId: PF_NORM, label: "協調編集スモークテスト", isDirty: false, isPinned: false };

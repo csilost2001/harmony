@@ -31,7 +31,7 @@ import {
   buildProcessFlow,
   buildScreen,
 } from "./__fixtures__/builders";
-import type { ProjectEntities, Screen, TableId, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Screen, TableId, Timestamp } from "../src/types/v3";
 
 // ────────────────────────────────────────────────────────────────────
 // 定数 / ヘルパー
@@ -191,7 +191,7 @@ const processFlowA = buildProcessFlow({
   ] as ReturnType<typeof buildProcessFlow>["actions"],
 });
 
-// --- Project ---
+// --- Harmony ---
 const dummyProject = buildProject({
   name: "draft-state-validation-test",
   entities: {
@@ -215,7 +215,7 @@ const dummyProject = buildProject({
     processFlows: [
       { id: FLOW_ID, no: 1, name: "意図的な未定義参照フロー", flowType: "screen", actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 // ────────────────────────────────────────────────────────────────────

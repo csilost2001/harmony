@@ -12,7 +12,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const groupId = "ag-catalog-all";
@@ -28,7 +28,7 @@ const dummyProject = buildProject({
   name: "catalog-ui",
   entities: {
     processFlows: [{ id: groupId, no: 1, name: "all catalog UI", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-catalog-panels";

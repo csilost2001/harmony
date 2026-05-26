@@ -13,7 +13,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { setupTestWorkspace, cleanupRealWorkspaces, isMcpRunning, normalizeId, type OpenedWorkspace } from "../helpers/realWorkspace";
 import { sendBrowserRequest, openBrowserSessionWorkspace, closeBrowserSession } from "./_helpers";
 import { buildProject } from "../__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../../src/types/v3";
 
 // RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
 const SCREEN_ID = "mcp-reconnect-screen";
@@ -54,7 +54,7 @@ const project = buildProject({
   name: "issue-578-designer-reconnect",
   entities: {
     screens: [{ id: SCREEN_ID, no: 1, name: "Issue 578 Designer", path: "/issue-578", kind: "form", hasDesign: true, updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const dummyTab = {

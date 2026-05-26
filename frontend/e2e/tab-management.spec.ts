@@ -12,7 +12,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 // RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
 const SCREEN_A = "scr-a";
@@ -39,7 +39,7 @@ const dummyProject = buildProject({
       { id: SCREEN_B, no: 2, name: "画面B", kind: "list", path: "/b", hasDesign: true, updatedAt: FIXED_TS },
       { id: SCREEN_C, no: 3, name: "画面C", kind: "list", path: "/c", hasDesign: true, updatedAt: FIXED_TS },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-tab-management";

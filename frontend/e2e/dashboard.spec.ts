@@ -14,7 +14,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 // RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
 const SCREEN_ID = "dashboard-login-screen";
@@ -28,7 +28,7 @@ const dummyProject = buildProject({
     screens: [{ id: SCREEN_ID, no: 1, name: "ログイン画面", kind: "form", path: "/login", hasDesign: true, updatedAt: FIXED_TS }],
     tables: [{ id: TABLE_ID, no: 1, physicalName: "users", name: "ユーザー", category: "マスタ", columnCount: 0, updatedAt: FIXED_TS }],
     processFlows: [{ id: ACTION_ID, no: 1, name: "ログイン処理", flowType: "screen", actionCount: 0, updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-dashboard";

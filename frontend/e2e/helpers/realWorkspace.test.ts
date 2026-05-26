@@ -18,7 +18,7 @@ import os from "node:os";
 
 import { normalizeId } from "./realWorkspace.ts";
 import type {
-  Project,
+  Harmony,
   Table,
   Screen,
   ProcessFlow,
@@ -72,7 +72,7 @@ describe("normalizeId (Round 6 Phase A: UUID v4 生成 → kebab-case EntityId �
  */
 async function writeV3Workspace(
   dir: string,
-  project: Project,
+  project: Harmony,
   extras: {
     tables?: Table[];
     screens?: Screen[];
@@ -110,30 +110,30 @@ describe("v3 typed input → v3 output", () => {
     }
   });
 
-  it("Project v3 が harmony.json として書き出され、schemaVersion が v3 になる", async () => {
+  it("Harmony v3 が harmony.json として書き出され、schemaVersion が v3 になる", async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "harmony-test-"));
 
-    const project: Project = {
+    const project: Harmony = {
       $schema: "../schemas/v3/harmony.v3.schema.json",
       schemaVersion: "v3",
       dataDir: "harmony",
       meta: {
-        id: "realworkspace-test-project" as Project["meta"]["id"],
-        uuid: "11111111-1111-4111-8111-111111111111" as Project["meta"]["uuid"],
+        id: "realworkspace-test-project" as Harmony["meta"]["id"],
+        uuid: "11111111-1111-4111-8111-111111111111" as Harmony["meta"]["uuid"],
         name: "テスト用プロジェクト",
         maturity: "draft",
-        createdAt: "2026-01-01T00:00:00.000Z" as Project["meta"]["createdAt"],
-        updatedAt: "2026-01-01T00:00:00.000Z" as Project["meta"]["updatedAt"],
+        createdAt: "2026-01-01T00:00:00.000Z" as Harmony["meta"]["createdAt"],
+        updatedAt: "2026-01-01T00:00:00.000Z" as Harmony["meta"]["updatedAt"],
         mode: "upstream",
       },
       extensionsApplied: [],
       entities: {
         screens: [
           {
-            id: "realworkspace-test-screen" as NonNullable<NonNullable<Project["entities"]>["screens"]>[0]["id"],
+            id: "realworkspace-test-screen" as NonNullable<NonNullable<Harmony["entities"]>["screens"]>[0]["id"],
             no: 1,
             name: "テスト画面",
-            updatedAt: "2026-01-01T00:00:00.000Z" as NonNullable<NonNullable<Project["entities"]>["screens"]>[0]["updatedAt"],
+            updatedAt: "2026-01-01T00:00:00.000Z" as NonNullable<NonNullable<Harmony["entities"]>["screens"]>[0]["updatedAt"],
             maturity: "draft",
             kind: "list",
           },
@@ -169,16 +169,16 @@ describe("v3 typed input → v3 output", () => {
       columns: [],
     };
 
-    const minimalProject: Project = {
+    const minimalProject: Harmony = {
       schemaVersion: "v3",
       dataDir: "harmony",
       meta: {
-        id: "realworkspace-test-project" as Project["meta"]["id"],
-        uuid: "11111111-1111-4111-8111-111111111111" as Project["meta"]["uuid"],
-        name: "テスト" as Project["meta"]["name"],
+        id: "realworkspace-test-project" as Harmony["meta"]["id"],
+        uuid: "11111111-1111-4111-8111-111111111111" as Harmony["meta"]["uuid"],
+        name: "テスト" as Harmony["meta"]["name"],
         maturity: "draft",
-        createdAt: "2026-01-01T00:00:00.000Z" as Project["meta"]["createdAt"],
-        updatedAt: "2026-01-01T00:00:00.000Z" as Project["meta"]["updatedAt"],
+        createdAt: "2026-01-01T00:00:00.000Z" as Harmony["meta"]["createdAt"],
+        updatedAt: "2026-01-01T00:00:00.000Z" as Harmony["meta"]["updatedAt"],
       },
     };
 

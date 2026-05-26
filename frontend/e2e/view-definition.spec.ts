@@ -14,7 +14,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 // RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
 const TABLE_ID = "vd-spec-products-table";
@@ -41,7 +41,7 @@ const dummyProject = buildProject({
   name: "view-definition-e2e",
   entities: {
     tables: [{ id: TABLE_ID, no: 1, name: sampleTable.name, physicalName: sampleTable.physicalName, category: sampleTable.category, columnCount: sampleTable.columns.length, maturity: "draft", updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const TABLE_NORM = normalizeId(TABLE_ID);

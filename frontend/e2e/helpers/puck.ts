@@ -7,7 +7,7 @@ import {
   type OpenedWorkspace,
 } from "./realWorkspace";
 import { buildProject, buildScreen } from "../__fixtures__/builders";
-import type { Project, ProjectEntities, Screen, ScreenEntry, Timestamp } from "../../src/types/v3";
+import type { Harmony, HarmonyEntities, Screen, ScreenEntry, Timestamp } from "../../src/types/v3";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -53,7 +53,7 @@ export const HEADING_PARAGRAPH_DATA = {
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
 /** Puck 画面を含む最小プロジェクト (v3 形式) */
-export function makeDummyProject(extraScreens: ScreenEntry[] = []): Project {
+export function makeDummyProject(extraScreens: ScreenEntry[] = []): Harmony {
   return buildProject({
     name: "Puck E2E テスト用プロジェクト",
     techStack: { designer: { cssFramework: "bootstrap", editorKind: "puck" } },
@@ -64,7 +64,7 @@ export function makeDummyProject(extraScreens: ScreenEntry[] = []): Project {
         { id: PUCK_TW_SCREEN_ID, no: 3, name: "Puck Tailwind テスト画面", kind: "other", path: "/puck-tw-test", hasDesign: true, updatedAt: FIXED_TS },
         ...extraScreens,
       ],
-    } as ProjectEntities,
+    } as HarmonyEntities,
   });
 }
 
