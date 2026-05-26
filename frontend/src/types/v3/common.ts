@@ -53,11 +53,26 @@ export type PageLayoutId = NarrowBrand<EntityId, "PageLayout">;
 export type ProjectId = NarrowBrand<EntityId, "Project">;
 
 /**
- * 非 top-level entity の生成識別子 (UUID base のまま保持)。
- * top-level entity ではないため EntityId 体系に含めない。
+ * CustomBlock の識別子。schema (`custom-block.v3.schema.json`) は UUID base を維持。
+ *
+ * #1332 Codex 再 review M4: 旧 `Brand<Uuid, "CustomBlockId">` は base の `Uuid`
+ * (= `Brand<string, "Uuid">`) と brand-key `__brand` の衝突を起こし intersection が
+ * `never` に潰れ subtype guarantee が失われていた。`NarrowBrand<Uuid, ...>` で
+ * 別 symbol を用いて narrow tag を付けることで型境界を回復する。
  */
-export type CustomBlockId = Brand<Uuid, "CustomBlockId">;
-export type ScreenGroupId = Brand<Uuid, "ScreenGroupId">;
+export type CustomBlockId = NarrowBrand<Uuid, "CustomBlock">;
+
+/**
+ * ScreenGroup の識別子。schema (`harmony.v3.schema.json` / `screen.v3.schema.json`)
+ * では `groupId` を `EntityId` (kebab-case) として定義しているため TS 型も
+ * `NarrowBrand<EntityId, "ScreenGroup">` に同期する。
+ *
+ * #1332 Codex 再 review M4: 旧 `Brand<Uuid, "ScreenGroupId">` は (1) schema との
+ * base 不一致 (Uuid vs EntityId)、(2) Uuid との brand-key 衝突で実質 `never` 化
+ * の 2 重 drift。flowStore は既に kebab-case (`group-default` / `grp-<8桁>`) 前提で
+ * 動作しており、schema 定義との同期で完全 EntityId 化する。
+ */
+export type ScreenGroupId = NarrowBrand<EntityId, "ScreenGroup">;
 
 /**
  * UuidLoose (deprecated): test/sample 用の擬似 UUID。a-z 含む。本番では Uuid を使う。

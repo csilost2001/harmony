@@ -35,6 +35,9 @@ import type {
   StructuredField,
   TemplateString,
   EntityMeta,
+  // #1332 Codex 再 review M4: ScreenGroupId / CustomBlockId brand 同期
+  ScreenGroupId,
+  CustomBlockId,
 } from "./common";
 
 // ─── Branded types compile-time check ─────────────────────────────────────
@@ -99,6 +102,39 @@ describe("v3 branded types", () => {
     // @ts-expect-error - Identifier と IdentifierPath は別 brand
     const wrongAssign: Identifier = path;
     void wrongAssign;
+  });
+
+  // #1332 Codex 再 review M4 regression assertions
+  it("ScreenGroupId は EntityId base (schema 同期、kebab-case 受理 / Uuid 拒否)", () => {
+    // kebab-case EntityId として代入できること (schema 上 group ID は EntityId)
+    const groupId = "group-default" as ScreenGroupId;
+    const asEntityId: EntityId = groupId;
+    expect(typeof asEntityId).toBe("string");
+
+    // @ts-expect-error - ScreenGroupId (EntityId base) を Uuid に直接代入不可
+    const wrongUuid: Uuid = groupId;
+    void wrongUuid;
+
+    // @ts-expect-error - ScreenGroupId と ScreenId は narrow brand discriminator が異なる
+    const wrongScreenId: ScreenId = groupId;
+    void wrongScreenId;
+  });
+
+  it("CustomBlockId は Uuid base かつ narrow brand で subtype guarantee あり", () => {
+    const blockUuid = "11111111-1111-4111-8111-111111111111" as Uuid;
+    const customBlockId = blockUuid as CustomBlockId;
+    // CustomBlockId は Uuid base → Uuid に代入可能 (subtype guarantee)
+    const asUuid: Uuid = customBlockId;
+    expect(typeof asUuid).toBe("string");
+
+    // @ts-expect-error - CustomBlockId (Uuid base) を EntityId に直接代入不可
+    const wrongEntityId: EntityId = customBlockId;
+    void wrongEntityId;
+
+    // @ts-expect-error - 同じ Uuid base でも narrow brand 違いの ScreenGroupId 等とは別物
+    //                    (CustomBlockId は Uuid 系、ScreenGroupId は EntityId 系で base ごと別)
+    const wrongScreenGroup: ScreenGroupId = customBlockId;
+    void wrongScreenGroup;
   });
 });
 
