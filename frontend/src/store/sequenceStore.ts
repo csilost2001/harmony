@@ -42,10 +42,7 @@ export async function listSequences(): Promise<SequenceEntry[]> {
 /** シーケンス定義を読み込み */
 export async function loadSequence(sequenceId: string): Promise<Sequence | null> {
   const raw = (await requireBackend().loadSequence(sequenceId)) as Sequence | null;
-  if (raw && !raw.uuid) {
-    // RFC #1284 / I-7-2 (#1348): legacy data 防御。
-    raw.uuid = generateUUID() as Uuid;
-  }
+  // uuid 補完は backend (readEntityAndEnsureUuid) 責務。frontend では補完しない。
   return raw;
 }
 
