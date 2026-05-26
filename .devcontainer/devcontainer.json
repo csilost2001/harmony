@@ -21,12 +21,17 @@
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.harmony,target=/home/node/.harmony,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.docker,target=/home/node/.docker,type=bind,consistency=cached",
     // WSLg (Windows + WSL2 + Docker Desktop 前提): on-demand headed browser を Windows desktop に表示
     // 他 OS (macOS / Linux native) ではこの mount を当該行 comment out 推奨
     "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
     "source=/mnt/wslg,target=/mnt/wslg,type=bind,consistency=cached"
   ],
+
+  // initializeCommand: container 起動「前」に host 側 bind mount source path を事前作成。
+  // Dev Containers は内部的に docker `--mount type=bind` を使い、`-v` と違い missing
+  // source は自動作成されない (`-v` は legacy 仕様で auto-create するが `--mount` は error)。
+  // host shell = bash 前提 (WSL2 / macOS / Linux); 既存 dir / file は no-op。 #1340
+  "initializeCommand": "bash -c 'mkdir -p ~/.agent-containers/${localWorkspaceFolderBasename}/{.claude,.codex,.copilot,.harmony} ~/.config/gh && touch ~/.gitconfig'",
 
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.harmony /home/node/.config/gh /home/node/.gitconfig",
 
