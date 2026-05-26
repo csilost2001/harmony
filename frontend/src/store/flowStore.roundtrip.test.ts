@@ -162,7 +162,7 @@ describe("decomposeFlowProject round-trip preservation (#835)", () => {
   it("existingRaw に entities.viewDefinitions があれば保持される", () => {
     const existing = mkRichProject();
     const vdEntry: ViewDefinitionEntry = {
-      id: "order-list" as unknown as ViewDefinitionId,
+      id: "order-list" as ViewDefinitionId,
       no: 1,
       name: "受注一覧定義",
       kind: "list",

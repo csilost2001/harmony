@@ -34,11 +34,11 @@ function emptyProject(): FlowProject {
 
 function viewDefinitionEntry(id: string, no: number): ViewDefinitionEntry {
   return {
-    id: id as unknown as ViewDefinitionId,
+    id: id as ViewDefinitionId,
     no,
     name: `vd ${id}`,
     kind: "list",
-    sourceTableId: "tbl-1" as unknown as TableId,
+    sourceTableId: "tbl-1" as TableId,
     columnCount: 0,
     updatedAt: TS,
   };

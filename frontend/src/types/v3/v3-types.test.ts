@@ -114,7 +114,7 @@ describe("v3 Step discriminated union", () => {
       id: "step-02" as DbAccessStep["id"],
       kind: "dbAccess",
       description: "select",
-      tableId: "11111111-1111-4111-8111-111111111111" as TableId,
+      tableId: "table-customer" as TableId,
       operation: "SELECT",
     };
     expect(dbStep.tableId).toBeDefined();
@@ -142,7 +142,7 @@ describe("v3 Step discriminated union", () => {
           id: "step-tx-1" as DbAccessStep["id"],
           kind: "dbAccess",
           description: "insert",
-          tableId: "11111111-1111-4111-8111-111111111111" as TableId,
+          tableId: "table-customer" as TableId,
           operation: "INSERT",
         },
       ],
@@ -161,7 +161,7 @@ describe("v3 Constraint discriminated union", () => {
       id: "fk-1" as ForeignKeyConstraint["id"],
       kind: "foreignKey",
       columnIds: ["col-1" as ForeignKeyConstraint["columnIds"][number]],
-      referencedTableId: "22222222-2222-4222-8222-222222222222" as TableId,
+      referencedTableId: "table-order" as TableId,
       referencedColumnIds: ["col-2" as ForeignKeyConstraint["referencedColumnIds"][number]],
     };
     const c: Constraint = fk;

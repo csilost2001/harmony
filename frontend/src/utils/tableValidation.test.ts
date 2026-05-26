@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Column, DisplayName, LocalId, PhysicalName, Table, TableId, Timestamp } from "../types/v3";
+import type { Column, DisplayName, LocalId, PhysicalName, Table, TableId, Timestamp, Uuid } from "../types/v3";
 import { validateTable } from "./tableValidation";
 
 const ts = "2026-04-29T00:00:00.000Z" as Timestamp;
@@ -18,7 +18,8 @@ function column(overrides: Partial<Column> = {}): Column {
 
 function table(overrides: Partial<Table> = {}): Table {
   return {
-    id: "11111111-1111-4111-8111-111111111111" as TableId,
+    id: "table-customers" as TableId,
+    uuid: "11111111-1111-4111-8111-111111111111" as Uuid,
     name: "顧客マスタ" as DisplayName,
     physicalName: "customers" as PhysicalName,
     columns: [column()],
@@ -63,7 +64,7 @@ describe("validateTable", () => {
   it("physicalName duplicate within same namespace -> error", () => {
     const target = table();
     const duplicate = table({
-      id: "22222222-2222-4222-8222-222222222222" as TableId,
+      id: "table-orders" as TableId,
       name: "別テーブル" as DisplayName,
     });
 
@@ -79,7 +80,7 @@ describe("validateTable", () => {
   it("physicalName same value in different namespace -> no error", () => {
     const ns1 = { ...table(), namespace: "sales" } as Table & { namespace: string };
     const ns2 = {
-      ...table({ id: "22222222-2222-4222-8222-222222222222" as TableId }),
+      ...table({ id: "table-orders" as TableId }),
       namespace: "marketing",
     } as Table & { namespace: string };
 

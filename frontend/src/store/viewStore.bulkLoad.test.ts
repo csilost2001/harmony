@@ -1,18 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Harmony, ProjectId, Timestamp, View, ViewId } from "../types/v3";
+import type { Harmony, ProjectId, Timestamp, Uuid, View, ViewId } from "../types/v3";
 import { setFlowStorageBackend } from "./flowStore";
 import { setScreenFlowPositionsStorageBackend } from "./screenFlowPositionsStore";
 import type { ViewStorageBackend } from "./viewStore";
 import { loadViewValidationMap, setViewStorageBackend } from "./viewStore";
 
 const TS = "2026-04-29T00:00:00.000Z" as Timestamp;
-const VIEW_ID_1 = "11111111-1111-4111-8111-111111111111" as ViewId;
-const VIEW_ID_2 = "22222222-2222-4222-8222-222222222222" as ViewId;
-const ORPHAN_VIEW_ID = "33333333-3333-4333-8333-333333333333" as ViewId;
+const VIEW_ID_1 = "view-summary" as ViewId;
+const VIEW_ID_2 = "view-detail" as ViewId;
+const ORPHAN_VIEW_ID = "view-orphan" as ViewId;
 
 function view(id: ViewId, name: string): View {
   return {
     id,
+    uuid: "11111111-1111-4111-8111-111111111111" as Uuid,
     name,
     physicalName: name.toLowerCase(),
     selectStatement: "select 1",
@@ -27,7 +28,7 @@ function project(viewIds: ViewId[]): Harmony {
   return {
     schemaVersion: "v3",
     meta: {
-      id: "00000000-0000-4000-8000-000000000001" as ProjectId,
+      id: "test-project" as ProjectId,
       name: "test",
       createdAt: TS,
       updatedAt: TS,

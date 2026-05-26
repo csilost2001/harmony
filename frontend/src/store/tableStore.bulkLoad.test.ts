@@ -1,18 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Harmony, ProjectId, Table, TableId, Timestamp } from "../types/v3";
+import type { Harmony, ProjectId, Table, TableId, Timestamp, Uuid } from "../types/v3";
 import { setFlowStorageBackend } from "./flowStore";
 import { setScreenFlowPositionsStorageBackend } from "./screenFlowPositionsStore";
 import type { TableStorageBackend } from "./tableStore";
 import { loadTableValidationMap, setTableStorageBackend } from "./tableStore";
 
 const TS = "2026-04-29T00:00:00.000Z" as Timestamp;
-const TABLE_ID_1 = "11111111-1111-4111-8111-111111111111" as TableId;
-const TABLE_ID_2 = "22222222-2222-4222-8222-222222222222" as TableId;
-const ORPHAN_TABLE_ID = "33333333-3333-4333-8333-333333333333" as TableId;
+const TABLE_ID_1 = "table-orders" as TableId;
+const TABLE_ID_2 = "table-customers" as TableId;
+const ORPHAN_TABLE_ID = "table-orphan" as TableId;
 
 function table(id: TableId, name: string): Table {
   return {
     id,
+    uuid: "11111111-1111-4111-8111-111111111111" as Uuid,
     name,
     physicalName: name.toLowerCase(),
     columns: [],
@@ -26,7 +27,7 @@ function project(tableIds: TableId[]): Harmony {
   return {
     schemaVersion: "v3",
     meta: {
-      id: "00000000-0000-4000-8000-000000000001" as ProjectId,
+      id: "test-project" as ProjectId,
       name: "test",
       createdAt: TS,
       updatedAt: TS,
