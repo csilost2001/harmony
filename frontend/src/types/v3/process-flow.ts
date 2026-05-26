@@ -17,6 +17,7 @@ import type {
   Authoring,
   Description,
   DisplayName,
+  EntityMeta,
   ErrorCode,
   EventTopic,
   TemplateString,
@@ -32,7 +33,6 @@ import type {
   TableColumnRef,
   TableId,
   Timestamp,
-  Uuid,
 } from "./common";
 
 // ─── ProcessFlowKind ───────────────────────────────────────────────────────
@@ -60,20 +60,10 @@ export interface Sla {
 // ─── Meta ─────────────────────────────────────────────────────────────────
 
 /** ProcessFlow の identity と運用設定。EntityMeta + ProcessFlow 固有。 */
-export interface ProcessFlowMeta {
-  // EntityMeta inherited
+export interface ProcessFlowMeta extends EntityMeta {
+  /** RFC #1284: ProcessFlow 業務識別子 (kebab-case)。EntityMeta.id の narrow brand override。 */
   id: ProcessFlowId;
-  /**
-   * RFC #1284: entity 不変識別子 (UUID v4)。audit / 履歴追跡 / merge 衝突解決 / rename refactor の safety net。
-   * I-7-1 で TS 型を schema と同期 (required)。新規 ProcessFlow 生成パスは必ず含めること。
-   */
-  uuid: Uuid;
-  name: DisplayName;
-  description?: Description;
-  version?: string;
-  maturity?: Maturity;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  // uuid / name / description / version / maturity / createdAt / updatedAt は EntityMeta から継承
   // ProcessFlow 固有 (#1263 Phase X1: kind → flowType に rename)
   flowType: ProcessFlowKind;
   /** flowType='screen' の場合に紐付く Screen の Uuid。 */

@@ -7,7 +7,7 @@ import type {
   Step,
   StepKind as StepType,
 } from "../types/v3";
-import type { ProcessFlowId, ScreenId, Timestamp, Uuid } from "../types/v3";
+import type { ProcessFlowId, ScreenId, SemVer, Timestamp, Uuid } from "../types/v3";
 import type { ProcessFlowMeta as FlowProcessFlowMeta } from "../types/flow";
 import { migrateProcessFlow, PROCESS_FLOW_V3_SCHEMA_REF } from "../utils/actionMigration";
 import { generateUUID } from "../utils/uuid";
@@ -89,7 +89,7 @@ export async function createProcessFlow(
       flowType: type,
       screenId: screenId as ScreenId | undefined,
       description: description ?? "",
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       maturity: "draft",
       mode: "upstream",
       createdAt: ts,

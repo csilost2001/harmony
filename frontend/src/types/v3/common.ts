@@ -164,7 +164,8 @@ export type Mode = "upstream" | "downstream";
  * の共通 meta。CustomBlock のような特殊形式 entity は EntityMeta を採用しない (個別型で定義)。
  *
  * RFC #1284 (I-7) で `id` を kebab-case の `EntityId` に変更、不変識別子 `uuid` (UUID v4) を required field として併記。
- * I-7-1 で TypeScript 型基盤を schema と同期 (`id: EntityId` / `uuid: Uuid` required)。
+ * I-7 シリーズ (I-7-1〜I-7-6) で TypeScript 型基盤を schema と完全同期完了
+ * (`id: EntityId` / `uuid: Uuid` required、ProcessFlowMeta も `extends EntityMeta` に統一)。
  *
  * - `id` (EntityId, kebab-case): 業務識別子。rename refactor の対象、entity 種別内で unique。
  * - `uuid` (Uuid v4): 不変識別子。audit / 履歴追跡 / merge 衝突解決 / rename refactor の safety net。

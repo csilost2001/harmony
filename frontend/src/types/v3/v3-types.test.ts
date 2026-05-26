@@ -41,38 +41,36 @@ import type {
 
 describe("v3 branded types", () => {
   it("EntityId 系 brand と Uuid は別 base (代入互換性なし)", () => {
-    // RFC #1284 / I-7-1: TableId は EntityId base (kebab-case)、Uuid 系ではない。
-    // 型レベル assertion (compile error 例):
-    //   const wrongUuid: Uuid = "table-customer" as TableId;  // ← Error: base brand 不一致
-    //   const wrongTableId: TableId = "11111111-..." as Uuid; // ← Error: base brand 不一致
     const tableId = "table-customer" as TableId;
     const asEntityId: EntityId = tableId; // TableId は EntityId base → 共通 base に代入可能
     expect(typeof asEntityId).toBe("string");
+
+    // @ts-expect-error - TableId (EntityId base) を Uuid に直接代入不可 (base brand 不一致)
+    const wrongUuid: Uuid = tableId;
+    void wrongUuid;
   });
 
   it("EntityId と Uuid は別 base brand (代入不可)", () => {
-    // I-7-1: EntityId (kebab-case) と Uuid (UUID v4) は別 base brand のため string レベルで区別される。
-    //   const wrongUuid: Uuid = "screen-list-page" as EntityId;  // ← compile error
     const eid = "screen-list-page" as EntityId;
     expect(typeof eid).toBe("string");
+
+    // @ts-expect-error - EntityId と Uuid は別 base brand のため代入不可
+    const wrongUuid: Uuid = eid;
+    void wrongUuid;
   });
 
   it("ScreenId と TableId は別 brand (代入互換性なし、同じ EntityId base でも区別される)", () => {
-    // I-7-1: 同じ EntityId base を共有していても、narrow brand discriminator (Screen / Table) で区別。
-    //   const wrongTableId: TableId = "screen-list-page" as ScreenId;  // ← compile error
     const screenId = "screen-list-page" as ScreenId;
     const asEntityId: EntityId = screenId; // OK (共通 base)
     expect(typeof asEntityId).toBe("string");
+
+    // @ts-expect-error - ScreenId と TableId は narrow brand discriminator が異なるため直接代入不可
+    const wrongTableId: TableId = screenId;
+    void wrongTableId;
   });
 
   it("EntityMeta.uuid は required field (RFC #1284 / I-7-1)", () => {
-    // 型レベル assertion: uuid を持たない object literal は EntityMeta を満たさない (compile error)。
-    //   const meta: EntityMeta = {
-    //     id: "x" as EntityId,
-    //     name: "test",
-    //     createdAt: "2026-01-01T00:00:00.000Z" as EntityMeta["createdAt"],
-    //     updatedAt: "2026-01-01T00:00:00.000Z" as EntityMeta["updatedAt"],
-    //   };  // ← Error: Property 'uuid' is missing
+    // 正常 case: uuid 含めた EntityMeta は受理される
     const meta: EntityMeta = {
       id: "screen-list-page" as EntityId,
       uuid: "11111111-1111-4111-8111-111111111111" as Uuid,
@@ -81,6 +79,15 @@ describe("v3 branded types", () => {
       updatedAt: "2026-01-01T00:00:00.000Z" as EntityMeta["updatedAt"],
     };
     expect(meta.uuid).toBeDefined();
+
+    // @ts-expect-error - uuid 欠落の object literal は EntityMeta を満たさない
+    const metaWithoutUuid: EntityMeta = {
+      id: "screen-list-page" as EntityId,
+      name: "test",
+      createdAt: "2026-01-01T00:00:00.000Z" as EntityMeta["createdAt"],
+      updatedAt: "2026-01-01T00:00:00.000Z" as EntityMeta["updatedAt"],
+    };
+    void metaWithoutUuid;
   });
 
   it("Identifier と IdentifierPath は別ブランド", () => {
@@ -88,7 +95,10 @@ describe("v3 branded types", () => {
     const path = "createdOrder.order_number" as IdentifierPath;
     expect(typeof id).toBe("string");
     expect(typeof path).toBe("string");
-    // const wrongAssign: Identifier = path;  // ← compile error (different brands)
+
+    // @ts-expect-error - Identifier と IdentifierPath は別 brand
+    const wrongAssign: Identifier = path;
+    void wrongAssign;
   });
 });
 
