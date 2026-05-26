@@ -92,7 +92,7 @@
 | 領域 | 採用機能 | 場所 |
 |---|---|---|
 | EntityMeta mix-in | allOf で全 entity 共通 meta | 全 entity JSON |
-| Pattern A 参照 | Uuid 直接参照 (`tableId`, `screenId`, `processFlowId`) | 全画面 / flow |
+| Pattern A 参照 | EntityId 直接参照 (`tableId`, `screenId`, `processFlowId`、kebab-case 例: `transactions-table`) | 全画面 / flow |
 | ConstraintDefinition | FK / UNIQUE / CHECK を kind discriminated | tables/*.json |
 | FieldType extension | array + object + tableList + tableRow | screen `categoryBreakdown` 等 |
 | ProcessFlow 4 セクション | meta / context / actions / authoring | process-flows/*.json |
