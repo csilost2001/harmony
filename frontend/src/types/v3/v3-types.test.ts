@@ -110,6 +110,7 @@ describe("v3 Step discriminated union", () => {
       id: "step-01" as Step["id"],
       kind: "validation",
       description: "test",
+      fieldErrorsVar: "fieldErrors" as Identifier,
     };
     if (step.kind === "validation") {
       // Narrowed to ValidationStep
