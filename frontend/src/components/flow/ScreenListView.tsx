@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { ScreenNode } from "../../types/flow";
 import { SCREEN_KIND_LABELS, SCREEN_KIND_ICONS } from "../../types/flow";
-import type { ScreenId, ScreenKind, Timestamp, Uuid } from "../../types/v3";
+import type { ScreenId, ScreenKind, Timestamp, PageLayoutId } from "../../types/v3";
 import type { PageLayoutEntry } from "../../types/v3/harmony";
 import { loadProject, loadRawProject, saveProject, addScreen, removeScreen, DEFAULT_NODE_SIZE } from "../../store/flowStore";
 import { buildDefaultScreen, loadPuckScreenValidationMap, saveScreenEntity } from "../../store/screenStore";
@@ -444,7 +444,7 @@ export function ScreenListView() {
         s.path = data.path;
         s.description = data.description;
         // pageLayoutId 更新 (purpose='page' のみ意味を持つ, pl-4, #1025)
-        s.pageLayoutId = (data.pageLayoutId || undefined) as (Uuid | undefined);
+        s.pageLayoutId = (data.pageLayoutId || undefined) as (PageLayoutId | undefined);
         s.updatedAt = new Date().toISOString() as Timestamp;
         await saveProject(project);
       }
