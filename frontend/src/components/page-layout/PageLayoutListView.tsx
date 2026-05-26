@@ -153,7 +153,7 @@ export function PageLayoutListView() {
       // I-7 Round 3 G-2: pageLayoutStore.ts の local PageLayout は assignments を
       // `Record<string, string>` で扱っており、types/v3/page-layout の正史 PageLayout
       // (`Record<string, Uuid>`) と brand 不整合となるため、明示 cast で吸収。
-      // 別 ISSUE で 2 つの型定義を統合予定 (本 PR scope 外)。
+      // 型契約 (schemas/types/store) の統一は follow-up ISSUE #1336 で対応 (本 PR scope 外)。
       const copy: PageLayout = {
         ...full,
         id: newId,
