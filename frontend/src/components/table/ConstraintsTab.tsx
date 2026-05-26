@@ -10,6 +10,7 @@ import type {
   TableId,
 } from "../../types/v3";
 import { addConstraint, removeConstraint } from "../../store/tableStore";
+import { isValidEntityId } from "../../utils/entityIdValidation";
 
 const FK_ACTIONS: FkAction[] = ["cascade", "setNull", "setDefault", "restrict", "noAction"];
 const FK_ACTION_LABELS: Record<FkAction, string> = {
@@ -54,16 +55,15 @@ export function ConstraintsTab({ table, update, allTables }: Props) {
    * 編集中の制約が schema 必須フィールドを満たしているか判定。
    * - unique: columnIds が 1 件以上
    * - check: expression が空でない
-   * - foreignKey: referencedTableId が UUID 形式 + columnIds / referencedColumnIds が 1 件以上
+   * - foreignKey: referencedTableId が EntityId 形式 (kebab-case) + columnIds / referencedColumnIds が 1 件以上
    */
   const isConstraintValid = (c: Constraint): boolean => {
     if (c.kind === "primaryKey") return c.columnIds.length > 0;
     if (c.kind === "unique") return c.columnIds.length > 0;
     if (c.kind === "check") return c.expression.trim().length > 0;
-    // foreignKey
-    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+    // foreignKey — referencedTableId は kebab-case EntityId 必須 (#1338 / I-7 Round 8)
     return c.columnIds.length > 0
-      && uuidRe.test(c.referencedTableId)
+      && isValidEntityId(c.referencedTableId)
       && c.referencedColumnIds.length > 0;
   };
 
