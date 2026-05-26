@@ -106,10 +106,15 @@ async function dragHandleToHandle(
   await page.waitForTimeout(300);
 }
 
+let _addScreenSeq = 0;
 async function addScreenViaModal(
   page: Page,
   name: string,
-  options?: { editorKind?: "grapesjs" | "puck"; cssFramework?: "bootstrap" | "tailwind" },
+  options?: {
+    editorKind?: "grapesjs" | "puck";
+    cssFramework?: "bootstrap" | "tailwind";
+    id?: string;
+  },
 ): Promise<void> {
   // 画面 0 件時は「最初の画面を追加」(empty state)、1件以上では「画面を追加」(toolbar)
   const addBtn = page.locator("button.flow-btn-primary").filter({ hasText: /画面を追加/ }).first();
@@ -121,6 +126,12 @@ async function addScreenViaModal(
   if (options?.cssFramework) {
     await page.locator(`input[name="screen-css-framework"][value="${options.cssFramework}"]`).click();
   }
+  // #1297 I-5 / RFC #1284: EntityIdInput 必須化。日本語 name から kebab-case 推論はできないので
+  // テストごとに一意な kebab-case ID を生成して入力する (assertion は name ベースのまま)。
+  _addScreenSeq += 1;
+  const screenId =
+    options?.id ?? `e2e-screen-${Date.now().toString(36)}-${_addScreenSeq}`;
+  await page.getByTestId("entity-id-input").fill(screenId);
   await page.locator('.flow-modal button[type="submit"]').click();
   // node が canvas に出現するまで待機
   await expect(page.locator(".react-flow__node-screenNode").filter({ hasText: name })).toBeVisible({
