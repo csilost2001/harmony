@@ -90,7 +90,7 @@ container 起動後、以下の認証作業を 1 度だけ行います (rebuild 
    同様に `~/.agent-containers/<project>/.codex/auth.json` に保存される。
 3. **GitHub Copilot CLI**: 認証は `gh auth` (= `~/.config/gh/`) を共有するため、host で `gh auth login` 済みなら追加 OAuth 不要。Copilot CLI が初回起動時に必要な権限を付与するよう促す場合あり。session / memory / history は `~/.agent-containers/<project>/.copilot/` に永続化される (#1114)。
 4. **(任意) 個人 alias (`ccd` / `cdx` 等)**: VS Code user settings.json に dotfiles 3 行を追加。詳細は本書「個人 alias」節を参照。
-5. **(host 側で `git config --global` 未実施の場合のみ)** container 内で `git config --global user.email <addr>` / `user.name <name>` を 1 度実行 (bind mount で host `~/.gitconfig` に書き戻される、以降の rebuild で永続)。`initializeCommand` は host に空 `~/.gitconfig` が無い時 `touch` で作るため、container 内 `git commit` が `Author identity unknown` で失敗するのを防ぐ初回手順。
+5. **(host 側で `git config --global user.email/user.name` 未設定の場合のみ)** container 内で `git config --global user.email <addr>` / `user.name <name>` を 1 度実行 (bind mount で host `~/.gitconfig` に書き戻され、以降の rebuild で永続)。`initializeCommand` は host に `~/.gitconfig` が無い時に `touch` で空ファイルを作るため bind mount は通るが、内容が空だと container 内 `git commit` が `Author identity unknown` で失敗する — その回避手順。
 
 OAuth が必要なのは初回 + refreshToken expire 後 (60〜90 日) のみ。日々の rebuild では認証は維持されます。
 
