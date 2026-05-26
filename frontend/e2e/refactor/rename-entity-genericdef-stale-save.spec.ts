@@ -19,10 +19,14 @@ import { test, expect } from "@playwright/test";
 import {
   setupTestWorkspace,
   cleanupRealWorkspaces,
-  isMcpRunning,
-  sendBrowserRequest,
   type OpenedWorkspace,
 } from "../helpers/realWorkspace";
+import {
+  isMcpRunning,
+  sendBrowserRequest as sendPersistent,
+  openBrowserSessionWorkspace,
+  closeBrowserSession,
+} from "../mcp/_helpers";
 
 const WS_KEY = "issue-1334-k3-genericdef-stale-save";
 const GD_KIND = "data-contract";
@@ -46,9 +50,13 @@ test.describe(
         key: WS_KEY,
         fromExample: "retail",
       });
+      // 永続 WS を ws.workspacePath に open しておく
+      // (sendPersistent 経由の rename が activePath を持つために必須、#958 と同じパターン)
+      await openBrowserSessionWorkspace(ws.workspacePath);
     });
 
     test.afterAll(async () => {
+      await closeBrowserSession();
       if (mcpAvailable) await cleanupRealWorkspaces([WS_KEY]);
     });
 
@@ -60,20 +68,22 @@ test.describe(
       // 1. GenericDefinitionEditor を開く
       await ws.gotoActive(page, `/generic-definition/${GD_KIND}/${GD_NAME}`);
 
-      // editor が読み込まれるまで待機 (purpose textarea / input が登場)
-      const purposeField = page.locator('textarea, input[type="text"]').first();
+      // editor が読み込まれるまで待機 (purpose textarea が登場)。
+      // 「名前」input は readOnly なので textarea 1 件目 (= purpose) を狙う。
+      const purposeField = page.locator('textarea').first();
       await expect(purposeField).toBeVisible({ timeout: 10000 });
 
-      // 2. dirty 化: purpose / responsibility 等のテキストを編集する。
-      //    GenericDefinitionEditor は state-controlled なので、任意の field を 1 文字
-      //    変更するだけで initialSnapshotRef !== current となり dirty 判定される。
+      // 2. dirty 化: purpose を編集する。
+      //    GenericDefinitionEditor は state-controlled なので、purpose に 1 文字追加
+      //    するだけで initialSnapshotRef !== current となり dirty 判定される。
       const initialValue = await purposeField.inputValue();
       await purposeField.fill(`${initialValue}__DIRTY_K3`);
 
       // 3. 外部から Table rename を発火 — backend が genericDefinitionChanged を
       //    { reload: true } で broadcast する (refactor.ts:272-284 参照)。
-      //    既存 page session の clientId は excludeClientId 対象外なので broadcast を受信する。
-      await sendBrowserRequest("renameEntityId", {
+      //    sendPersistent (mcp/_helpers) は workspace.open 済みの永続 WS を使うため、
+      //    rename handler が wid 取得に成功し broadcast が page session にも届く。
+      await sendPersistent("renameEntityId", {
         entityType: "table",
         oldId: TARGET_TABLE_ID,
         newId: NEW_TABLE_ID,
@@ -91,9 +101,7 @@ test.describe(
       const reloadedValue = await purposeField.inputValue();
       expect(reloadedValue).toBe(initialValue);
 
-      // cleanup: undo rename (test 独立性のため)
-      // undo は operationId 必須だが本 e2e の主目的は GD 側 banner 検証なので、
-      // workspace cleanup (afterAll) で workspace ごと破棄するため undo は不要。
+      // cleanup: 後続テストへの影響回避は workspace cleanup (afterAll) で十分。
     });
   },
 );
