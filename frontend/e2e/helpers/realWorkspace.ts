@@ -157,9 +157,9 @@ const TMP_ROOT = path.join(REPO_ROOT, ".tmp", "e2e-workspaces");
  * 完全な 0..workers-1 範囲が欲しい場合は別 env の `TEST_PARALLEL_INDEX` を使うが、本 helper では
  * directory 衝突回避のみが目的のため unique index で十分。
  *
- * Vitest 等 Playwright 外からこのモジュールが import された場合は worker prefix なし
- * (worker prefix 自体が `w${index}-` 形式なので、env 未設定時は `w0-` 固定で衝突は
- * 起こらない = 単一 process 扱いで十分)。
+ * Vitest 等 Playwright 外からこのモジュールが import された場合、env は未設定だが prefix の
+ * 仕組み自体は適用される (常に `w${index}-` 形式の prefix が付く、env 未設定時は `w0-` 固定)。
+ * 単一 process 環境では `w0-` 固定 prefix で全 path が解決され、衝突は起こらない。
  *
  * **注**: env は `tempWorkspacePath` 呼び出し時に都度 read する (module load 時に
  * const へキャプチャしない)。これにより test 中で `delete process.env.TEST_WORKER_INDEX`
@@ -169,6 +169,12 @@ const TMP_ROOT = path.join(REPO_ROOT, ".tmp", "e2e-workspaces");
  * で同一 key を複数 worker が同時に書き込むと storage 競合が発生していた。本 prefix で
  * 完全隔離した結果、`buildMinimalProject` の Project.meta.id は固定値のまま (storage が
  * worker 別 directory に分かれているため EntityId 重複は別 namespace 上の同名扱いとなり問題なし)。
+ *
+ * **本 helper のスコープ**: `tempWorkspacePath` 経由の fixture (`setupTestWorkspace` /
+ * `copyExampleWorkspace` で生成される workspace) のみ worker 並列化に対応。
+ * `LOCKDOWN_WORKSPACE` (lockdown-routing.spec.ts)、`FIXTURE_ROOT` (workspace-folder-picker.spec.ts)
+ * 等の本 helper を経由しない固定 path、および backend per-clientId activePath race は
+ * **本 helper のスコープ外**で、これらの workers > 1 対応は follow-up #1359 で別途対応する。
  */
 function currentWorkerIndex(): string {
   return process.env.TEST_WORKER_INDEX ?? "0";
