@@ -45,7 +45,7 @@
   "$defs": {
 
     "Meta": {
-      "description": "ProcessFlow の identity と運用設定。flowType='screen' は画面と直結した処理フローを表し、その場合は紐付く Screen の Uuid を `screenId` で必須宣言する (#1221)。画面に直結しない処理フロー (認証、共通 API、scheduled batch 等) は flowType を `system` / `common` / `scheduled` / `batch` に分類する (#1263 Phase X1: meta.kind → meta.flowType rename)。",
+      "description": "ProcessFlow の identity と運用設定。flowType='screen' は画面と直結した処理フローを表し、その場合は紐付く Screen の EntityId を `screenId` で必須宣言する (#1221、#1354 で旧 Uuid 表記を EntityId に同期)。画面に直結しない処理フロー (認証、共通 API、scheduled batch 等) は flowType を `system` / `common` / `scheduled` / `batch` に分類する (#1263 Phase X1: meta.kind → meta.flowType rename)。",
       "allOf": [
         { "$ref": "common.v3.schema.json#/$defs/EntityMeta" },
         {

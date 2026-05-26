@@ -177,7 +177,7 @@
     },
 
     "ForeignKeyConstraint": {
-      "description": "外部キー制約。単一カラム / 複合カラムを統一表現。referencedTableId は Uuid (物理名直書きは廃止)。columnIds と referencedColumnIds の件数一致は AJV 単体では表現困難 (件数比較は別 schema keyword 必要) のため frontend/src/utils/tableValidation.ts で runtime 検証 (#1185 追加#2)。",
+      "description": "外部キー制約。単一カラム / 複合カラムを統一表現。referencedTableId は EntityId (kebab-case、物理名直書きは廃止、#1354 で旧 Uuid 表記を同期)。columnIds と referencedColumnIds の件数一致は AJV 単体では表現困難 (件数比較は別 schema keyword 必要) のため frontend/src/utils/tableValidation.ts で runtime 検証 (#1185 追加#2)。",
       "type": "object",
       "required": ["id", "kind", "columnIds", "referencedTableId", "referencedColumnIds"],
       "additionalProperties": false,
