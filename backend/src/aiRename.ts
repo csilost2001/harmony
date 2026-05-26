@@ -15,13 +15,13 @@ import * as path from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { wsBridge } from "./wsBridge.js";
 import { checkRequestOrigin, getAllowedOriginHeader } from "./security/originCheck.js";
+import { isValidEntityId } from "./security/idValidator.js";
 
 // projectStorage.ts と同一パターン: src/aiRename.ts → src/ → backend/ → harmony/
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "../..");
 const SKILL_PATH = path.join(PROJECT_ROOT, "ai-skills/rename-screen-ids/SKILL.md");
 const MCP_CONFIG = path.join(PROJECT_ROOT, ".mcp.json");
 const TIMEOUT_MS = 60_000;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface AiRenameProgressEvent {
   stage: "auth-check" | "analyzing" | "inferring" | "proposed" | "applying" | "done" | "error";
@@ -119,12 +119,12 @@ export async function handlePropose(req: IncomingMessage, res: ServerResponse): 
 
   const { screenId, clientId, sessionId } = body;
 
-  if (typeof screenId !== "string" || !UUID_RE.test(screenId)) {
-    jsonBody(res, 400, { error: "screenId は UUID 形式で指定してください" }, req);
+  if (typeof screenId !== "string" || !isValidEntityId(screenId)) {
+    jsonBody(res, 400, { error: "screenId は kebab-case EntityId で指定してください" }, req);
     return;
   }
-  // S-012: defense-in-depth — UUID_RE 検証済だが念のため非 UUID 文字を除去 (CWE-78)
-  const safeScreenId = screenId.replace(/[^0-9a-f-]/gi, "");
+  // S-012: defense-in-depth — isValidEntityId 検証済だが念のため EntityId pattern (a-z, 0-9, -) 外の文字を除去 (CWE-78)
+  const safeScreenId = screenId.replace(/[^a-z0-9-]/g, "");
   if (safeScreenId !== screenId) {
     jsonBody(res, 400, { error: "screenId に不正な文字が含まれています" }, req);
     return;
