@@ -4,14 +4,14 @@ import { LogStepPanel } from "./LogStepPanel";
 // #1186 Phase 2-C: types/action → types/v3 移行 + 旧 `type:` field を schema 正規 `kind:` に
 import type { LogStep } from "../../types/v3";
 
-const baseStep: LogStep = {
+const baseStep = ({
   id: "test-step",
   kind: "log",
   description: "",
   level: "info",
   message: "test",
   maturity: "draft",
-};
+} as unknown) as LogStep;
 
 const getStructuredRows = (container: HTMLElement) => {
   const wrap = container.querySelector('[data-field-path="structuredData"]');
@@ -22,10 +22,10 @@ describe("LogStepPanel structuredData", () => {
   // Must-fix #2 (PR #410 review): key を全消去しても entry と value が消失しない
   it("既存 entry の key を全消去しても entry が消えず value が保持される", () => {
     const onChange = vi.fn();
-    const stepWithData: LogStep = {
+    const stepWithData = ({
       ...baseStep,
       structuredData: { orderId: "@orderId" },
-    };
+    } as unknown) as LogStep;
     const { container, rerender } = render(
       <LogStepPanel step={stepWithData} onChange={onChange} />,
     );
@@ -47,10 +47,10 @@ describe("LogStepPanel structuredData", () => {
 
   it("key を再入力すると normalize されて structuredData が再構築される", () => {
     const onChange = vi.fn();
-    const stepWithData: LogStep = {
+    const stepWithData = ({
       ...baseStep,
       structuredData: { orderId: "@orderId" },
-    };
+    } as unknown) as LogStep;
     const { container, rerender } = render(
       <LogStepPanel step={stepWithData} onChange={onChange} />,
     );
@@ -67,10 +67,10 @@ describe("LogStepPanel structuredData", () => {
   // Should-fix #3 (PR #410 review): 重複 key は is-invalid で警告
   it("同じ key を持つ 2 行があると両方に is-invalid が付与される", () => {
     const onChange = vi.fn();
-    const stepWithData: LogStep = {
+    const stepWithData = ({
       ...baseStep,
       structuredData: { orderId: "@orderId" },
-    };
+    } as unknown) as LogStep;
     const { container } = render(
       <LogStepPanel step={stepWithData} onChange={onChange} />,
     );
@@ -90,10 +90,10 @@ describe("LogStepPanel structuredData", () => {
 
   it("key 全消去 → 値編集 → key 再入力 で value が消えない (in-place edit)", () => {
     const onChange = vi.fn();
-    const stepWithData: LogStep = {
+    const stepWithData = ({
       ...baseStep,
       structuredData: { orderId: "@orderId" },
-    };
+    } as unknown) as LogStep;
     const { container, rerender } = render(
       <LogStepPanel step={stepWithData} onChange={onChange} />,
     );

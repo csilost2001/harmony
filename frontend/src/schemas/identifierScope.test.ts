@@ -2,12 +2,14 @@ import { describe, it, expect } from "vitest";
 import { checkIdentifierScopes } from "./identifierScope";
 import type { ProcessFlow } from "../types/v3";
 
-function makeGroup(partial: Partial<ProcessFlow>): ProcessFlow {
-  return {
-    meta: { id: "a", name: "x", kind: "screen", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" },
+// #1355: fixture builder の input を fixture-friendly な loose type に変更し、test author が
+// branded string (LocalId / Identifier 等) のキャストを書かなくても test 内 literal を渡せるようにする。
+function makeGroup(partial: Record<string, unknown>): ProcessFlow {
+  return ({
+    meta: { id: "a", uuid: "11111111-1111-4111-8111-111111111111", name: "x", flowType: "screen", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" },
     actions: [],
     ...partial,
-  } as ProcessFlow;
+  } as unknown) as ProcessFlow;
 }
 
 describe("checkIdentifierScopes — inputs / outputs", () => {

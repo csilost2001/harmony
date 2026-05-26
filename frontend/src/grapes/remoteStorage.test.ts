@@ -27,7 +27,7 @@ vi.mock("../utils/errorLog", () => {
 import { mcpBridge } from "../mcp/mcpBridge";
 import type { Editor as GEditor } from "grapesjs";
 
-const mockBridge = mcpBridge as {
+const mockBridge = mcpBridge as unknown as {
   request: ReturnType<typeof vi.fn>;
 };
 

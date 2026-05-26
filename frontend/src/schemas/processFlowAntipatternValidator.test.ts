@@ -5,9 +5,10 @@ import type { ProcessFlow } from "../types/v3";
 
 // ─── テスト用 fixture ヘルパー ────────────────────────────────────────────────
 
+// #1355: kind → flowType / uuid 必須化 (#1332 派生) に合わせて fixture を更新
 function makeFlow(steps: unknown[]): ProcessFlow {
-  return {
-    meta: { id: "test-flow", name: "Test Flow", kind: "screen", createdAt: "2026-01-01", updatedAt: "2026-01-01" },
+  return ({
+    meta: { id: "test-flow", uuid: "11111111-1111-4111-8111-111111111111", name: "Test Flow", flowType: "screen", createdAt: "2026-01-01", updatedAt: "2026-01-01" },
     context: {},
     actions: [
       {
@@ -17,7 +18,7 @@ function makeFlow(steps: unknown[]): ProcessFlow {
       },
     ],
     authoring: { createdAt: "2026-01-01", updatedAt: "2026-01-01" },
-  } as unknown as ProcessFlow;
+  } as unknown) as ProcessFlow;
 }
 
 // ─── Check 16: LITERAL_CONV_REFERENCE ───────────────────────────────────────
@@ -469,7 +470,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
     const flow: ProcessFlow = {
       meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
       actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
@@ -486,7 +487,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
     const flow: ProcessFlow = {
       meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "draft", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
       actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
@@ -509,7 +510,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
@@ -525,7 +526,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
     const flow: ProcessFlow = {
       meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
       actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
@@ -547,7 +548,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
     const flow: ProcessFlow = {
       meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
       actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter(
@@ -567,7 +568,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
     const flow: ProcessFlow = {
       meta: { id: "test-flow" as never, name: "Test", flowType: "screen", maturity: "committed", createdAt: "2026-01-01" as never, updatedAt: "2026-01-01" as never },
       actions: [{ id: "action-1" as never, name: "Action 1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE" && i.message.includes("@conv"));
@@ -586,7 +587,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
           steps: [{ kind: "compute", id: "step-1", expression: "@var.customerId", description: "use input" } as never],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
@@ -606,7 +607,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
@@ -628,7 +629,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
@@ -651,7 +652,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
@@ -672,7 +673,7 @@ describe("Check 31: BROKEN_REFERENCE_MATURITY_AWARE (#1263 Phase X2)", () => {
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
@@ -699,7 +700,7 @@ describe("Check 31 (#1322 Phase B-3a): @this / @self designer-time alias", () =>
         updatedAt: "2026-01-01" as never,
       },
       actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter(
@@ -724,7 +725,7 @@ describe("Check 31 (#1322 Phase B-3a): @this / @self designer-time alias", () =>
         updatedAt: "2026-01-01" as never,
       },
       actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter(
@@ -750,7 +751,7 @@ describe("Check 31 (#1322 Phase B-3a): @this / @self designer-time alias", () =>
         updatedAt: "2026-01-01" as never,
       },
       actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter(
@@ -775,7 +776,7 @@ describe("Check 31 (#1322 Phase B-3a): @this / @self designer-time alias", () =>
         updatedAt: "2026-01-01" as never,
       },
       actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter(
@@ -800,7 +801,7 @@ describe("Check 31 (#1322 Phase B-3a): @this / @self designer-time alias", () =>
         updatedAt: "2026-01-01" as never,
       },
       actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter(
@@ -826,7 +827,7 @@ describe("Check 31 (#1322 Phase B-3a): @this / @self designer-time alias", () =>
         updatedAt: "2026-01-01" as never,
       },
       actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter(
@@ -852,7 +853,7 @@ describe("Check 31 (#1322 Phase B-3a): @this / @self designer-time alias", () =>
         updatedAt: "2026-01-01" as never,
       },
       actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter(
@@ -877,7 +878,7 @@ describe("Check 31 (#1322 Phase B-3a): @this / @self designer-time alias", () =>
         updatedAt: "2026-01-01" as never,
       },
       actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter(
@@ -903,7 +904,7 @@ describe("Check 31 (#1322 Phase B-3a): @this / @self designer-time alias", () =>
         updatedAt: "2026-01-01" as never,
       },
       actions: [{ id: "action-1" as never, name: "A1", trigger: "click", steps: [step as never] }],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE");
@@ -945,7 +946,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -977,7 +978,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1008,7 +1009,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1037,7 +1038,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1065,7 +1066,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1096,7 +1097,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1126,7 +1127,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1156,7 +1157,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1186,7 +1187,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1228,7 +1229,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1258,7 +1259,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1280,7 +1281,7 @@ describe("Check 32: TX_INNER_VAR_LEAK_OUTSIDE_TX (#1267 Round 7 Must-fix 5)", ()
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "TX_INNER_VAR_LEAK_OUTSIDE_TX");
@@ -1313,7 +1314,7 @@ describe("Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3)", () =
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
@@ -1344,7 +1345,7 @@ describe("Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3)", () =
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
@@ -1373,7 +1374,7 @@ describe("Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3)", () =
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
@@ -1402,7 +1403,7 @@ describe("Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3)", () =
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
@@ -1422,7 +1423,7 @@ describe("Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3)", () =
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
@@ -1451,7 +1452,7 @@ describe("Check 33: DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED (#1263 Phase X3)", () =
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const rawJson = JSON.stringify(flow, null, 2);
     const issues = checkAntipatterns(flow, rawJson);
     const found = issues.filter((i) => i.code === "DB_ACCESS_SQL_REQUIRED_FOR_COMMITTED");
@@ -1506,18 +1507,19 @@ function buildRichIndex() {
 }
 
 function makeFlowWithExpr(expression: string, maturity = "committed") {
-  return {
+  return ({
     meta: {
-      id: "test-flow" as never,
+      id: "test-flow",
+      uuid: "11111111-1111-4111-8111-111111111111",
       name: "Test",
       flowType: "screen",
       maturity,
-      createdAt: "2026-01-01" as never,
-      updatedAt: "2026-01-01" as never,
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
     },
     actions: [
       {
-        id: "action-1" as never,
+        id: "action-1",
         name: "Action 1",
         trigger: "click",
         steps: [
@@ -1526,11 +1528,11 @@ function makeFlowWithExpr(expression: string, maturity = "committed") {
             id: "step-1",
             expression,
             description: "ref",
-          } as never,
+          },
         ],
       },
     ],
-  } as ProcessFlow;
+  } as unknown) as ProcessFlow;
 }
 
 describe("Check 31 (#1269 提案 C): projectIndex 渡し時の 24 prefix broken-ref 検証", () => {
@@ -1724,7 +1726,7 @@ describe("Check 31 (#1269 提案 C): projectIndex 渡し時の 24 prefix broken-
             ],
           },
         ],
-      } as ProcessFlow;
+      } as unknown as ProcessFlow;
       const idx = buildRichIndex();
       const found = checkAntipatterns(flow, JSON.stringify(flow), idx).filter(
         (i) => i.code === "BROKEN_REFERENCE_MATURITY_AWARE",

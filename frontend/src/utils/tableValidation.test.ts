@@ -78,11 +78,11 @@ describe("validateTable", () => {
   });
 
   it("physicalName same value in different namespace -> no error", () => {
-    const ns1 = { ...table(), namespace: "sales" } as Table & { namespace: string };
+    const ns1 = { ...table(), namespace: "sales" } as unknown as Table & { namespace: string };
     const ns2 = {
       ...table({ id: "table-orders" as TableId }),
       namespace: "marketing",
-    } as Table & { namespace: string };
+    } as unknown as Table & { namespace: string };
 
     const errors = validateTable(ns1, [ns1, ns2]);
 

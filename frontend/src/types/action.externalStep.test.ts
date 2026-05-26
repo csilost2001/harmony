@@ -1,24 +1,25 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, ExternalSystemStep } from "../types/v3";
+import type { ProcessFlow, ExternalSystemStep, LocalId, Description, Identifier } from "../types/v3";
 import { EXTERNAL_CALL_OUTCOME_VALUES } from "../utils/processFlowMetadata";
 import { migrateProcessFlow } from "../utils/actionMigration";
 
 // #1263 Phase X3: outcomes / retryPolicy / rollbackOn は errorHandling object に集約済。
-// 本 describe は元 #158 で導入された ExternalSystemStep のフィールド保持テスト。
+// #1355 Codex Must-fix: type 注釈で type shape を検証、brand のみ局所 cast。
+
 describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 errorHandling 経由)", () => {
   it("errorHandling.outcomes / timeoutMs / errorHandling.retryPolicy / fireAndForget をすべて保持できる", () => {
     const step: ExternalSystemStep = {
-      id: "s1",
+      id: "s1" as LocalId,
       kind: "externalSystem",
-      description: "決済呼出",
-      systemRef: "stripe",
+      description: "決済呼出" as Description,
+      systemRef: "stripe" as Identifier,
       timeoutMs: 10000,
       fireAndForget: false,
       errorHandling: {
         outcomes: {
           success: { action: "continue" },
-          failure: { action: "abort", description: "402 で返す" },
-          timeout: { action: "abort", description: "failure と同じ扱い" },
+          failure: { action: "abort", description: "402 で返す" as Description },
+          timeout: { action: "abort", description: "failure と同じ扱い" as Description },
         },
         retryPolicy: { maxAttempts: 2, backoff: "exponential", initialDelayMs: 500 },
       },
@@ -32,10 +33,10 @@ describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 error
 
   it("すべて省略可能 (既存コードの型互換)", () => {
     const step: ExternalSystemStep = {
-      id: "s2",
+      id: "s2" as LocalId,
       kind: "externalSystem",
-      description: "",
-      systemRef: "someService",
+      description: "" as Description,
+      systemRef: "someService" as Identifier,
     };
     expect(step.errorHandling).toBeUndefined();
     expect(step.timeoutMs).toBeUndefined();
@@ -48,13 +49,13 @@ describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 error
 
   it("outcomes の partial 指定 (success のみ) も可能", () => {
     const step: ExternalSystemStep = {
-      id: "s3",
+      id: "s3" as LocalId,
       kind: "externalSystem",
-      description: "",
-      systemRef: "x",
+      description: "" as Description,
+      systemRef: "x" as Identifier,
       errorHandling: {
         outcomes: {
-          success: { action: "continue", description: "ログ記録" },
+          success: { action: "continue", description: "ログ記録" as Description },
         },
       },
     };
@@ -64,15 +65,15 @@ describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 error
 
   it("fireAndForget=true の形式", () => {
     const step: ExternalSystemStep = {
-      id: "s4",
+      id: "s4" as LocalId,
       kind: "externalSystem",
-      description: "メール送信",
-      systemRef: "sendgrid",
+      description: "メール送信" as Description,
+      systemRef: "sendgrid" as Identifier,
       fireAndForget: true,
       errorHandling: {
         outcomes: {
-          failure: { action: "continue", description: "ログのみ、続行" },
-          timeout: { action: "continue", description: "同上" },
+          failure: { action: "continue", description: "ログのみ、続行" as Description },
+          timeout: { action: "continue", description: "同上" as Description },
         },
       },
     };
@@ -83,7 +84,7 @@ describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 error
 
 describe("migrateProcessFlow — ExternalSystemStep の新フィールド透過保持 (#158)", () => {
   it("新フィールドを持つ ExternalSystemStep を冪等にマイグレーションできる", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g",
       name: "x",
       type: "screen",
@@ -129,7 +130,7 @@ describe("migrateProcessFlow — ExternalSystemStep の新フィールド透過�
   });
 
   it("新フィールドなしの旧データでも破壊されない", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g",
       name: "x",
       type: "screen",
@@ -155,7 +156,8 @@ describe("migrateProcessFlow — ExternalSystemStep の新フィールド透過�
     const migrated = migrateProcessFlow(raw) as ProcessFlow;
     const step = migrated.actions[0].steps[0] as ExternalSystemStep;
     expect(step.systemRef).toBe("Legacy");
-    expect(step.outcomes).toBeUndefined();
+    // v1 outcomes は migrate で errorHandling.outcomes に移動するため、step 直下には残らない
+    expect((step as unknown as Record<string, unknown>).outcomes).toBeUndefined();
     expect(step.timeoutMs).toBeUndefined();
   });
 });

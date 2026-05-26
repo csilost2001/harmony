@@ -20,14 +20,15 @@ function table(id: TableId, name: string): Table {
     indexes: [],
     createdAt: TS,
     updatedAt: TS,
-  } as Table;
+  } as unknown as Table;
 }
 
 function project(tableIds: TableId[]): Harmony {
-  return {
+  return ({
     schemaVersion: "v3",
     meta: {
       id: "test-project" as ProjectId,
+      uuid: "11111111-1111-4111-8111-111111111111",
       name: "test",
       createdAt: TS,
       updatedAt: TS,
@@ -43,7 +44,7 @@ function project(tableIds: TableId[]): Harmony {
         updatedAt: TS,
       })),
     },
-  };
+  } as unknown) as Harmony;
 }
 
 function setProject(tableIds: TableId[]): void {

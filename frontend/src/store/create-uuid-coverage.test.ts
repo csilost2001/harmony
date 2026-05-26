@@ -74,7 +74,7 @@ function setupMockBackends() {
     loadProcessFlow: vi.fn().mockResolvedValue(null),
     saveProcessFlow: vi.fn().mockResolvedValue(undefined),
     deleteProcessFlow: vi.fn().mockResolvedValue(undefined),
-  });
+  } as unknown as Parameters<typeof setProcessFlowStorageBackend>[0]);
   setFlowDraftMode(false);
   localStorage.clear();
 }

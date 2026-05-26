@@ -22,11 +22,12 @@ import type {
   ScreenId,
   ScreenFlowPositions,
   Timestamp,
+  Uuid,
 } from "../types/v3";
 
 const TS = "2026-04-28T00:00:00.000Z" as Timestamp;
 const PROJECT_ID = "test-project" as ProjectId;
-const PROJECT_UUID = "11111111-1111-4111-8111-111111111111";
+const PROJECT_UUID = "11111111-1111-4111-8111-111111111111" as unknown as Uuid;
 const SCREEN_ID = "screen-one" as ScreenId;
 const SCREEN_ID_2 = "screen-two" as ScreenId;
 const GROUP_ID = "group-default" as ScreenGroupId;

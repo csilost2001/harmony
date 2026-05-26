@@ -37,7 +37,7 @@ describe("ExtensionsPanel", () => {
     bridgeMock.getExtensions.mockReset();
     bridgeMock.request.mockReset();
     bridgeMock.onExtensionsChanged.mockClear();
-    (bridgeMock.hasDraft as ReturnType<typeof vi.fn>).mockResolvedValue({ exists: false });
+    ((bridgeMock as unknown as { hasDraft: ReturnType<typeof vi.fn> }).hasDraft).mockResolvedValue({ exists: false });
     bridgeMock.getExtensions.mockResolvedValue({
       responseTypes: {
         namespace: "",

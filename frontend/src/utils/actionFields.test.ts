@@ -12,7 +12,7 @@ describe("isStructuredFields", () => {
   });
 
   it("配列の場合は true", () => {
-    const v: StructuredField[] = [{ name: "userId", type: "string" }];
+    const v = ([{ name: "userId", type: "string" }] as unknown) as StructuredField[];
     expect(isStructuredFields(v)).toBe(true);
   });
 
@@ -35,15 +35,15 @@ describe("fieldsToText", () => {
   });
 
   it("StructuredField[] は name を改行区切りで連結", () => {
-    const v: StructuredField[] = [
+    const v = ([
       { name: "userId", label: "ユーザーID", type: "string", required: true },
       { name: "password", type: "string" },
-    ];
+    ] as unknown) as StructuredField[];
     expect(fieldsToText(v)).toBe("userId\npassword");
   });
 
   it("空配列は空文字列", () => {
-    const v: StructuredField[] = [];
+    const v = ([] as unknown) as StructuredField[];
     expect(fieldsToText(v)).toBe("");
   });
 });
@@ -76,10 +76,10 @@ describe("textToStructuredFields", () => {
 
 describe("fieldsToText ↔ textToStructuredFields の往復", () => {
   it("StructuredField[] → text → StructuredField[] で name が保たれる (type は string リセット)", () => {
-    const original: StructuredField[] = [
+    const original = ([
       { name: "userId", label: "ユーザーID", type: "number", required: true, description: "ID" },
       { name: "role", type: { kind: "custom", label: "UserRole" } },
-    ];
+    ] as unknown) as StructuredField[];
     const text = fieldsToText(original);
     const roundTripped = textToStructuredFields(text);
     expect(roundTripped.map((f) => f.name)).toEqual(["userId", "role"]);
@@ -91,7 +91,7 @@ describe("fieldsToText ↔ textToStructuredFields の往復", () => {
 describe("ActionFields union の透過的扱い", () => {
   it("string と StructuredField[] のいずれも fieldsToText / isStructuredFields で判別可能", () => {
     const stringVal: ActionFields = "a\nb";
-    const arrayVal: ActionFields = [{ name: "a", type: "string" }];
+    const arrayVal: ActionFields = [{ name: "a", type: "string" }] as unknown as ActionFields;
     expect(isStructuredFields(stringVal)).toBe(false);
     expect(isStructuredFields(arrayVal)).toBe(true);
     expect(fieldsToText(stringVal)).toBe("a\nb");

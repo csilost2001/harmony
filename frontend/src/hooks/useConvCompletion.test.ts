@@ -3,7 +3,7 @@ import { computeCompletion, insertCandidate } from "./useConvCompletion";
 import type { ConventionsCatalog } from "../schemas/conventionsValidator";
 
 const catalog: ConventionsCatalog = {
-  version: "1.0.0",
+  version: "1.0.0" as unknown as import("../types/v3").SemVer,
   msg: { required: { template: "{label}は必須入力です" } },
   regex: { "email-simple": { pattern: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$" } },
   limit: { nameMax: { value: 100, unit: "char" } },

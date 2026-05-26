@@ -31,15 +31,16 @@ function makeScreenNode(id: string, name: string): ScreenNode {
 }
 
 function makeScreenEntity(id: string, name: string, markers: Marker[] = []): Screen {
-  return {
+  return ({
     id: id as Screen["id"],
+    uuid: "11111111-1111-4111-8111-111111111111",
     name,
     kind: "other",
     path: `/${id}`,
     createdAt: "2026-01-01T00:00:00.000Z" as Screen["createdAt"],
     updatedAt: "2026-01-01T00:00:00.000Z" as Screen["updatedAt"],
     authoring: markers.length > 0 ? { markers } : undefined,
-  };
+  } as unknown) as Screen;
 }
 
 function makeMarker(id: string, body: string, resolved = false): Marker {

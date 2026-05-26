@@ -4,11 +4,11 @@
 import { describe, it, expect } from "vitest";
 import { validateHarmony, assertValidHarmony } from "./validateHarmony";
 import type { Harmony } from "../types/v3/harmony";
-import type { ProjectId, Timestamp } from "../types/v3";
+import type { ProjectId, Timestamp, Uuid } from "../types/v3";
 
 const TS = "2026-05-05T00:00:00.000Z" as Timestamp;
 const ID = "test-project" as ProjectId;
-const UUID = "aaaabbbb-0000-4000-8000-000000000001";
+const UUID = "aaaabbbb-0000-4000-8000-000000000001" as unknown as Uuid;
 
 function validHarmony(): Harmony {
   return {

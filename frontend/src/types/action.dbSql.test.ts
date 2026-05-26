@@ -1,14 +1,16 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, DbAccessStep } from "../types/v3";
+import type { ProcessFlow, DbAccessStep, LocalId, Description, TableId } from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
+
+// #1355 Codex Must-fix: type 注釈で type shape を検証、brand のみ局所 cast。
 
 describe("DbAccessStep の sql フィールド (#170)", () => {
   it("sql に完全な SELECT 文を保持できる", () => {
     const step: DbAccessStep = {
-      id: "s1",
-      type: "dbAccess",
-      description: "JOIN つき検索",
-      tableName: "orders",
+      id: "s1" as LocalId,
+      kind: "dbAccess",
+      description: "JOIN つき検索" as Description,
+      tableId: "orders" as TableId,
       operation: "SELECT",
       sql: "SELECT o.id, o.order_number, c.name FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.order_date BETWEEN @from AND @to",
     };
@@ -17,10 +19,10 @@ describe("DbAccessStep の sql フィールド (#170)", () => {
 
   it("sql に INSERT ... RETURNING を保持できる", () => {
     const step: DbAccessStep = {
-      id: "s2",
-      type: "dbAccess",
-      description: "注文ヘッダ登録",
-      tableName: "orders",
+      id: "s2" as LocalId,
+      kind: "dbAccess",
+      description: "注文ヘッダ登録" as Description,
+      tableId: "orders" as TableId,
       operation: "INSERT",
       sql: "INSERT INTO orders (customer_id, subtotal, total_amount) VALUES (@customerId, @subtotal, @total) RETURNING id, order_number",
     };
@@ -29,10 +31,10 @@ describe("DbAccessStep の sql フィールド (#170)", () => {
 
   it("sql と fields は併用可能 (sql が優先する運用規約)", () => {
     const step: DbAccessStep = {
-      id: "s3",
-      type: "dbAccess",
-      description: "",
-      tableName: "customers",
+      id: "s3" as LocalId,
+      kind: "dbAccess",
+      description: "" as Description,
+      tableId: "customers" as TableId,
       operation: "SELECT",
       sql: "SELECT id FROM customers WHERE email = @email AND is_deleted = false LIMIT 1",
       fields: "id (email で検索)",
@@ -43,10 +45,10 @@ describe("DbAccessStep の sql フィールド (#170)", () => {
 
   it("sql なしの旧データも引き続き動作 (fields + operation のみ)", () => {
     const step: DbAccessStep = {
-      id: "s4",
-      type: "dbAccess",
-      description: "",
-      tableName: "customers",
+      id: "s4" as LocalId,
+      kind: "dbAccess",
+      description: "" as Description,
+      tableId: "customers" as TableId,
       operation: "SELECT",
       fields: "name, email",
     };
@@ -57,7 +59,7 @@ describe("DbAccessStep の sql フィールド (#170)", () => {
 
 describe("migrateProcessFlow — dbAccess.sql 透過保持 (#170)", () => {
   it("sql を持つ DbAccessStep を冪等マイグレーションできる", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g", name: "x", type: "screen", description: "",
       actions: [{
         id: "a", name: "a", trigger: "submit",
@@ -77,7 +79,7 @@ describe("migrateProcessFlow — dbAccess.sql 透過保持 (#170)", () => {
   });
 
   it("sql なしの旧データは破壊なし", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g", name: "x", type: "screen", description: "",
       actions: [{
         id: "a", name: "a", trigger: "click",

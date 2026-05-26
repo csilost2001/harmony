@@ -8,16 +8,18 @@ import {
   replaceProcessFlowContents,
 } from "./AiDiffPreviewDialogUtils";
 
-function flow(overrides: Partial<ProcessFlow> = {}): ProcessFlow {
-  return {
+// #1355: fixture builder の input を loose 型に変更
+function flow(overrides: Record<string, unknown> = {}): ProcessFlow {
+  return ({
     $schema: "../schemas/v3/process-flow.v3.schema.json",
     meta: {
-      id: "flow-1" as never,
+      id: "flow-1",
+      uuid: "11111111-1111-4111-8111-111111111111",
       name: "元フロー",
-      kind: "screen",
+      flowType: "screen",
       maturity: "draft",
-      createdAt: "2026-05-01T00:00:00.000Z" as never,
-      updatedAt: "2026-05-01T00:00:00.000Z" as never,
+      createdAt: "2026-05-01T00:00:00.000Z",
+      updatedAt: "2026-05-01T00:00:00.000Z",
     },
     context: { screenId: "screen-1" },
     actions: [
@@ -25,7 +27,7 @@ function flow(overrides: Partial<ProcessFlow> = {}): ProcessFlow {
       { id: "act-removed", name: "削除対象", trigger: "click", steps: [] },
     ],
     ...overrides,
-  } as ProcessFlow;
+  } as unknown) as ProcessFlow;
 }
 
 describe("AiDiffPreviewDialog diff helpers", () => {

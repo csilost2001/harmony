@@ -54,6 +54,7 @@ function rawProjectWithViewDefinitions(viewDefinitions: ViewDefinitionEntry[]): 
     dataDir: "harmony",
     meta: {
       id: "test-project-a" as ProjectId,
+      uuid: "11111111-1111-4111-8111-111111111111" as unknown as Harmony["meta"]["uuid"],
       name: "test",
       maturity: "draft",
       createdAt: ts,

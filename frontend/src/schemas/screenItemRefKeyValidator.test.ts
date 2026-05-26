@@ -19,32 +19,34 @@ import type { Conventions } from "../types/v3/conventions";
 
 // ─── ヘルパー ───────────────────────────────────────────────────────────────
 
-function makeItem(id: string, overrides: Partial<ScreenItem> = {}): ScreenItem {
-  return {
+// #1355: fixture builder の input を loose 型に変更
+function makeItem(id: string, overrides: Record<string, unknown> = {}): ScreenItem {
+  return ({
     id,
     label: id,
     type: "string",
     ...overrides,
-  } as ScreenItem;
+  } as unknown) as ScreenItem;
 }
 
 function makeScreen(id: string, items: ScreenItem[]): Screen {
-  return {
+  return ({
     id,
+    uuid: "11111111-1111-4111-8111-111111111111",
     name: `screen-${id}`,
     kind: "form",
     path: `/test/${id}`,
     createdAt: "2026-04-30T00:00:00.000Z",
     updatedAt: "2026-04-30T00:00:00.000Z",
     items,
-  } as unknown as Screen;
+  } as unknown) as Screen;
 }
 
 function makeConventions(fieldKeys: Record<string, unknown>): Conventions {
-  return {
-    version: "1.0.0",
+  return ({
+    version: "1.0.0" as unknown as import("../types/v3").SemVer,
     fieldKeys: fieldKeys as Conventions["fieldKeys"],
-  };
+  } as unknown) as Conventions;
 }
 
 // ─── 観点 1: UNDECLARED_REF_KEY ──────────────────────────────────────────────
@@ -75,7 +77,7 @@ describe("UNDECLARED_REF_KEY", () => {
     const screens = [
       makeScreen("s1", [makeItem("customerId", { refKey: "customerId" })]),
     ];
-    const conventions: Conventions = { version: "1.0.0" };
+    const conventions: Conventions = { version: "1.0.0" as unknown as import("../types/v3").SemVer };
     const issues = checkScreenItemRefKeyConsistency(screens, conventions);
     const undeclared = issues.filter((i) => i.code === "UNDECLARED_REF_KEY");
     expect(undeclared).toHaveLength(0);

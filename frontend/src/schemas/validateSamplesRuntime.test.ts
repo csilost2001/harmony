@@ -33,20 +33,22 @@ afterAll(() => {
 
 // ─── テスト用ヘルパー ────────────────────────────────────────────────────
 
-function makeScreen(id: string, partial: Partial<Screen> = {}): Screen {
-  return {
-    id: id as Screen["id"],
+// #1355: fixture builder の input を loose 型に変更
+function makeScreen(id: string, partial: Record<string, unknown> = {}): Screen {
+  return ({
+    id,
+    uuid: "11111111-1111-4111-8111-111111111111",
     name: `テスト画面 ${id}`,
     kind: "form",
     path: `/test/${id}`,
-    createdAt: "2026-01-01T00:00:00.000Z" as Screen["createdAt"],
-    updatedAt: "2026-01-01T00:00:00.000Z" as Screen["updatedAt"],
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
     ...partial,
-  } as Screen;
+  } as unknown) as Screen;
 }
 
 function makeProject(projectDir: string, screens: Screen[]) {
-  return {
+  return ({
     projectId: "test",
     displayName: "test",
     projectDir,
@@ -57,7 +59,11 @@ function makeProject(projectDir: string, screens: Screen[]) {
     viewDefinitions: [],
     screenTransitions: [],
     flowsDir: join(projectDir, "actions"),
-  };
+    externalCatalogs: null,
+    pageLayouts: [],
+    genericDefinitions: {},
+    extensionNamespaces: [],
+  } as unknown) as Parameters<typeof checkScreenItemsEmbedded>[0];
 }
 
 // ─── Case 1: 正常 case — issues 0 件 ────────────────────────────────────
@@ -266,7 +272,7 @@ describe("checkScreenItemsEmbedded — kind=list items に direction:viewer を 
           type: { kind: "array", itemType: "json" },
           direction: "viewer",
           viewDefinitionId: "44444444-0000-4000-8000-000000000099",
-        } as Screen["items"][number],
+        } as NonNullable<Screen["items"]>[number],
       ],
     })];
     const project = makeProject(dir, screens);

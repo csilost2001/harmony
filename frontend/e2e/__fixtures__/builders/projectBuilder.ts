@@ -100,7 +100,7 @@ export function buildProject(opts: BuildProjectOpts = {}): Project {
     schemaVersion: "v3",
     dataDir: opts.dataDir ?? "harmony",
     meta: {
-      id: id as unknown as Uuid,
+      id: id as unknown as ProjectId,
       uuid,
       name: opts.name ?? "テストプロジェクト",
       maturity: opts.maturity ?? "draft",

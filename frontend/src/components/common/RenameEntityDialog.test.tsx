@@ -27,6 +27,7 @@ vi.mock("../../utils/entityIdSuggestion", async (importOriginal) => {
 
 import { mcpBridge } from "../../mcp/mcpBridge";
 
+// #1355: 空配列のリテラル型を `never[]` 推論から逃すため明示型注釈
 const PREVIEW_FIXTURE = {
   entityType: "table" as const,
   oldId: "products",
@@ -48,10 +49,10 @@ const PREVIEW_FIXTURE = {
   ],
   totalRefs: 1,
   // Phase I round 3+4 SF-1: backend で追加された 4 field、空が通常 case
-  ambiguousDependencies: [],
-  concurrentEditRefs: [],
-  warnings: [],
-  positionsCollisions: [],
+  ambiguousDependencies: [] as Array<{ viewId: string; conflictingEntityType: string; filePath: string }>,
+  concurrentEditRefs: [] as Array<{ entityKind: string; entityId: string; sessionId: string }>,
+  warnings: [] as string[],
+  positionsCollisions: [] as string[],
 };
 
 const RENAME_RESULT_FIXTURE = {

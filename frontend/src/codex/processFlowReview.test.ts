@@ -15,7 +15,7 @@ function baseFlow(): ProcessFlow {
       updatedAt: "2026-05-01T00:00:00.000Z" as never,
     },
     actions: [],
-  } as ProcessFlow;
+  } as unknown as ProcessFlow;
 }
 
 function clientWithReview(text: string) {

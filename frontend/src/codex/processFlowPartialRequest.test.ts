@@ -29,7 +29,7 @@ function baseFlow(): ProcessFlow {
         createdAt: "2026-05-01T00:00:00.000Z",
       }],
     },
-  } as ProcessFlow;
+  } as unknown as ProcessFlow;
 }
 
 function authenticatedClientWithText(text: string) {
@@ -193,8 +193,8 @@ describe("requestProcessFlowPartial", () => {
       prompt: "S1 を詳細化",
     });
 
-    const turnStartCall = request.mock.calls.find((c) => c[0] === "codex.turn.start");
-    const inputText = (turnStartCall?.[1] as { input: Array<{ text: string }> })?.input?.[0]?.text;
+    const turnStartCall = request.mock.calls.find((c) => c[0] === "codex.turn.start") as unknown as [string, { input: Array<{ text: string }> }] | undefined;
+    const inputText = turnStartCall?.[1]?.input?.[0]?.text;
     expect(inputText).toContain("選択されたコンテキスト:");
     expect(inputText).toContain("## ステップ: S1");
   });

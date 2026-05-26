@@ -23,15 +23,15 @@ import type { TableOption } from "./useViewDefinitionTables";
 const noop = () => {};
 const noopGetIssues = () => [];
 
-function buildVd(overrides: Partial<ViewDefinition> = {}): ViewDefinition {
-  return {
+function buildVd(overrides: Record<string, unknown> = {}): ViewDefinition {
+  return ({
     id: "v1",
     name: "テストビュー",
     kind: "list",
     sourceTableId: "t1",
     columns: [],
     ...overrides,
-  } as ViewDefinition;
+  } as unknown) as ViewDefinition;
 }
 
 const tableOptions: TableOption[] = [
@@ -85,7 +85,7 @@ describe("IssueHints", () => {
   it("error severity の issue を描画する", () => {
     const { container } = render(
       <IssueHints
-        issues={[{ severity: "error", code: "TEST", path: "x", message: "テストエラー" }]}
+        issues={[{ severity: "error", code: "TEST", path: "x", message: "テストエラー" } as unknown as never]}
       />,
     );
     expect(container.querySelector(".vd-editor-issue--error")).not.toBeNull();

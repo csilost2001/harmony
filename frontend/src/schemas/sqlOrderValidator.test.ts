@@ -14,19 +14,22 @@ import type { ProcessFlow } from "../types/v3";
 
 // ─── テスト用ヘルパー ──────────────────────────────────────────────────────
 
-function makeFlow(overrides: Partial<ProcessFlow> = {}): ProcessFlow {
-  return {
-    id: "ffffffff-0001-4000-8000-000000000001",
-    name: "テストフロー",
-    version: "1.0.0",
-    maturity: "draft",
-    createdAt: "2026-04-30T00:00:00.000Z",
-    updatedAt: "2026-04-30T00:00:00.000Z",
-    kind: "screen",
+// #1355: fixture builder の overrides を loose 型に変更し、test 内 literal を直接渡せるようにする。
+function makeFlow(overrides: Record<string, unknown> = {}): ProcessFlow {
+  return ({
+    meta: {
+      id: "test-flow",
+      uuid: "ffffffff-0001-4000-8000-000000000001",
+      name: "テストフロー",
+      maturity: "draft",
+      createdAt: "2026-04-30T00:00:00.000Z",
+      updatedAt: "2026-04-30T00:00:00.000Z",
+      flowType: "screen",
+    },
     context: {},
     actions: [],
     ...overrides,
-  } as ProcessFlow;
+  } as unknown) as ProcessFlow;
 }
 
 /**

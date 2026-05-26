@@ -5,22 +5,22 @@ import type { Step, WorkflowStep } from "../../types/v3";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import { WORKFLOW_PATTERN_VALUES } from "../../utils/processFlowMetadata";
 
-const conventions: ConventionsCatalog = {
+const conventions = ({
   version: "1.0.0",
   role: {
     manager: { name: "上長" },
     financeManager: { name: "経理責任者" },
   },
-};
+} as unknown) as ConventionsCatalog;
 
-const baseStep: WorkflowStep = {
+const baseStep = ({
   id: "workflow-step" as WorkflowStep["id"],
   kind: "workflow",
   description: "承認",
   maturity: "draft",
   pattern: "approval-sequential",
   approvers: [],
-};
+} as unknown) as WorkflowStep;
 
 const renderPanel = (step: WorkflowStep, onChange = vi.fn()) => render(
   <WorkflowStepPanel
@@ -45,13 +45,13 @@ const firstSelect = (container: HTMLElement, path: string) =>
 describe("WorkflowStepPanel", () => {
   it("空文字は escalateTo.role / escalateTo.userExpression / label / deadlineExpression / escalateAfter で undefined に正規化される", () => {
     const onChange = vi.fn();
-    const step: WorkflowStep = {
+    const step = ({
       ...baseStep,
       approvers: [{ role: "manager", label: "上長", order: 1 }],
       deadlineExpression: "@submittedAt + duration('P1D')",
       escalateAfter: "duration('P1D')",
       escalateTo: { role: "financeManager", userExpression: "@approver" },
-    };
+    } as unknown) as WorkflowStep;
     const { container } = renderPanel(step, onChange);
 
     fireEvent.change(firstSelect(container, "escalateTo.role"), { target: { value: "" } });
@@ -81,10 +81,10 @@ describe("WorkflowStepPanel", () => {
       approvers: [{ role: "manager", order: 1 }],
     });
 
-    const stepWithApprover: WorkflowStep = {
+    const stepWithApprover = ({
       ...baseStep,
       approvers: [{ role: "manager", label: "上長", order: 1 }],
-    };
+    } as unknown) as WorkflowStep;
     const { container: updated } = renderPanel(stepWithApprover, onChange);
     fireEvent.change(firstSelect(updated, "approvers[0].role"), { target: { value: "financeManager" } });
     expect(onChange).toHaveBeenLastCalledWith({
@@ -137,14 +137,14 @@ describe("WorkflowStepPanel", () => {
       ]);
     }
 
-    const child: Step = {
+    const child = ({
       id: "child-step" as Step["id"],
       kind: "log",
       level: "info",
       message: "子ステップ",
       description: "子ステップ",
       maturity: "draft",
-    };
+    } as unknown) as Step;
     const { container: updated } = renderPanel({ ...baseStep, onApproved: [child] }, onChange);
     fireEvent.click(within(field(updated, "onApproved")).getByTitle("削除"));
     expect(onChange).toHaveBeenLastCalledWith({ onApproved: undefined });

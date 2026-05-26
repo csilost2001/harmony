@@ -21,9 +21,10 @@ import type {
 const TABLE_A_ID = "users" as TableId;
 const TABLE_B_ID = "orgs" as TableId;
 
-function makeTable(over: Partial<Table> = {}): Table {
-  return {
+function makeTable(over: Record<string, unknown> = {}): Table {
+  return ({
     id: TABLE_A_ID,
+    uuid: "11111111-1111-4111-8111-111111111111",
     name: "Users" as DisplayName,
     physicalName: "users" as PhysicalName,
     columns: [
@@ -33,7 +34,7 @@ function makeTable(over: Partial<Table> = {}): Table {
     createdAt: "2026-05-17T00:00:00.000Z" as Timestamp,
     updatedAt: "2026-05-17T00:00:00.000Z" as Timestamp,
     ...over,
-  };
+  } as unknown) as Table;
 }
 
 describe("ConstraintsTab", () => {
@@ -47,12 +48,12 @@ describe("ConstraintsTab", () => {
   });
 
   it("renders unique constraint summary", () => {
-    const uniqueConstraint: Constraint = {
+    const uniqueConstraint = ({
       id: "cn-1",
       kind: "unique",
       physicalName: "uq_users_email" as PhysicalName,
       columnIds: ["c2" as LocalId],
-    };
+    } as unknown) as Constraint;
     const table = makeTable({ constraints: [uniqueConstraint] });
     const { container } = render(
       <ConstraintsTab table={table} update={vi.fn()} allTables={[]} />,
@@ -63,12 +64,12 @@ describe("ConstraintsTab", () => {
   });
 
   it("renders check constraint with expression", () => {
-    const checkConstraint: Constraint = {
+    const checkConstraint = ({
       id: "cn-2",
       kind: "check",
       physicalName: "ck_users_id_positive" as PhysicalName,
       expression: "id > 0",
-    };
+    } as unknown) as Constraint;
     const table = makeTable({ constraints: [checkConstraint] });
     const { container } = render(
       <ConstraintsTab table={table} update={vi.fn()} allTables={[]} />,
@@ -79,14 +80,14 @@ describe("ConstraintsTab", () => {
   });
 
   it("renders foreignKey constraint with referenced table", () => {
-    const fkConstraint: Constraint = {
+    const fkConstraint = ({
       id: "cn-3",
       kind: "foreignKey",
       physicalName: "fk_users_org" as PhysicalName,
       columnIds: ["c2" as LocalId],
       referencedTableId: TABLE_B_ID,
       referencedColumnIds: ["c-other" as LocalId],
-    };
+    } as unknown) as Constraint;
     const refTable = makeTable({
       id: TABLE_B_ID,
       physicalName: "orgs" as PhysicalName,

@@ -4,7 +4,7 @@ import type { CompletionContext } from "./types";
 import type { ProcessFlow } from "../../types/v3";
 
 // テスト用 ProcessFlow モック
-const mockFlow: ProcessFlow = {
+const mockFlow = ({
   meta: {
     id: "pf-test" as Parameters<typeof stepResultResolver.match>[2]["flow"] extends ProcessFlow ? ProcessFlow["meta"]["id"] : never,
     name: "テストフロー",
@@ -53,7 +53,7 @@ const mockFlow: ProcessFlow = {
       ],
     },
   ],
-};
+} as unknown) as ProcessFlow;
 
 const ctx = (extra: Partial<CompletionContext> = {}): CompletionContext => ({
   flow: mockFlow,
@@ -114,7 +114,7 @@ describe("stepResultResolver", () => {
   });
 
   it("SQL ブロックコメント内の alias は補完候補に出ない (S-2 false positive 回避)", () => {
-    const flowWithComment: ProcessFlow = {
+    const flowWithComment = ({
       ...mockFlow,
       actions: [
         {
@@ -131,7 +131,7 @@ describe("stepResultResolver", () => {
           ],
         },
       ],
-    };
+    } as unknown) as ProcessFlow;
     const v = "@stepResult.commentTest.";
     const result = stepResultResolver.match(v, v.length, { flow: flowWithComment });
     expect(result?.phase).toBe("active");
@@ -143,7 +143,7 @@ describe("stepResultResolver", () => {
   });
 
   it("SQL 行末コメント内の alias は補完候補に出ない (S-2 false positive 回避)", () => {
-    const flowWithLineComment: ProcessFlow = {
+    const flowWithLineComment = ({
       ...mockFlow,
       actions: [
         {
@@ -160,7 +160,7 @@ describe("stepResultResolver", () => {
           ],
         },
       ],
-    };
+    } as unknown) as ProcessFlow;
     const v = "@stepResult.lineCommentTest.";
     const result = stepResultResolver.match(v, v.length, { flow: flowWithLineComment });
     expect(result?.phase).toBe("active");

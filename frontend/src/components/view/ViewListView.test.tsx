@@ -143,14 +143,14 @@ function renderList() {
   );
 }
 
-function entry(over: Partial<ViewEntry>): ViewEntry {
-  return {
+function entry(over: Record<string, unknown>): ViewEntry {
+  return ({
     id: "v1" as ViewId,
     name: "ビュー1" as DisplayName,
     physicalName: "v_users" as PhysicalName,
     updatedAt: "2026-05-17T00:00:00.000Z" as Timestamp,
     ...over,
-  };
+  } as unknown) as ViewEntry;
 }
 
 describe("ViewListView", () => {

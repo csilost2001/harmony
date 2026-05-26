@@ -7,14 +7,14 @@ import {
 } from "./conventionsValidator";
 import type { ProcessFlow } from "../types/v3";
 import type { ScreenItemsDocument } from "../store/screenItemsStore";
-import type { Identifier, ScreenId, Timestamp } from "../types/v3";
+import type { Identifier, ScreenId, SemVer, Timestamp } from "../types/v3";
 
 /**
  * テスト用インライン規約カタログ (v1 サンプルから抽出した最小有効インスタンス)。
  * v1/v2 スキーマファイル削除 (#774) に伴い、ファイル読み込みからインライン化。
  */
 const INLINE_CATALOG: ConventionsCatalog = {
-  version: "1.0.0",
+  version: "1.0.0" as SemVer,
   msg: {
     required: { template: "{label}は必須入力です", params: ["label"] },
     maxLength: { template: "{label}は{max}文字以内で入力してください", params: ["label", "max"] },
@@ -92,12 +92,13 @@ function loadCatalog(): ConventionsCatalog {
   return INLINE_CATALOG;
 }
 
-function makeGroup(partial: Partial<ProcessFlow>): ProcessFlow {
-  return {
-    meta: { id: "a", name: "x", kind: "screen", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" },
+// #1355: fixture builder の input を loose 型に変更
+function makeGroup(partial: Record<string, unknown>): ProcessFlow {
+  return ({
+    meta: { id: "a", uuid: "11111111-1111-4111-8111-111111111111", name: "x", flowType: "screen", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" },
     actions: [],
     ...partial,
-  } as ProcessFlow;
+  } as unknown) as ProcessFlow;
 }
 
 
@@ -434,7 +435,7 @@ describe("checkConventionReferences", () => {
   });
 
   it("@conv.scope.unknown は UNKNOWN_CONV_SCOPE (inline catalog)", () => {
-    const inlineCatalog: ConventionsCatalog = { version: "1.0.0", scope: { customerRegion: { value: "domestic" } } };
+    const inlineCatalog: ConventionsCatalog = { version: "1.0.0" as SemVer, scope: { customerRegion: { value: "domestic" } } };
     const issues = checkConventionReferences(makeGroupWithDesc("@conv.scope.unknown"), inlineCatalog);
     expect(issues).toHaveLength(1);
     expect(issues[0].code).toBe("UNKNOWN_CONV_SCOPE");
@@ -465,7 +466,7 @@ describe("checkConventionReferences", () => {
 describe("checkConventionsCatalogIntegrity - RBAC", () => {
   it("有効な role / permission カタログは検証を通過する", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       permission: {
         "order.create": { resource: "Order", action: "create" },
         "order.read": { resource: "Order", action: "read", scope: "own" },
@@ -489,7 +490,7 @@ describe("checkConventionsCatalogIntegrity - RBAC", () => {
 
   it("role.inherits の循環参照をエラーとして検出する", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       role: {
         roleA: { permissions: [], inherits: ["roleB"] },
         roleB: { permissions: [], inherits: ["roleA"] },
@@ -502,7 +503,7 @@ describe("checkConventionsCatalogIntegrity - RBAC", () => {
 
   it("role.permissions の存在しない permission 参照をエラーとして検出する", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       permission: {
         "order.read": { resource: "Order", action: "read" },
       },
@@ -519,7 +520,7 @@ describe("checkConventionsCatalogIntegrity - RBAC", () => {
 
   it("role.inherits の存在しない親 role 参照をエラーとして検出する", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       role: {
         orderApprover: { permissions: [], inherits: ["orderOperator"] },
       },
@@ -538,7 +539,7 @@ describe("checkConventionsCatalogIntegrity - RBAC", () => {
 describe("checkConventionsCatalogIntegrity - i18n", () => {
   it("valid i18n and msg.locales pass", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       i18n: {
         supportedLocales: ["ja-JP", "en-US"],
         defaultLocale: "ja-JP",
@@ -557,7 +558,7 @@ describe("checkConventionsCatalogIntegrity - i18n", () => {
 
   it("defaultLocale outside supportedLocales is INVALID_DEFAULT_LOCALE", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       i18n: {
         supportedLocales: ["ja-JP"],
         defaultLocale: "en-US",
@@ -570,7 +571,7 @@ describe("checkConventionsCatalogIntegrity - i18n", () => {
 
   it("msg.locales outside supportedLocales is UNKNOWN_MSG_LOCALE", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       i18n: {
         supportedLocales: ["ja-JP", "en-US"],
         defaultLocale: "ja-JP",
@@ -589,7 +590,7 @@ describe("checkConventionsCatalogIntegrity - i18n", () => {
 
   it("catalog without i18n block remains valid", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       msg: {
         required: {
           template: "{label}は必須入力です",
@@ -603,7 +604,7 @@ describe("checkConventionsCatalogIntegrity - i18n", () => {
 
   it("msg entry without locales remains valid (downward compatibility)", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       i18n: {
         supportedLocales: ["ja-JP", "en-US"],
         defaultLocale: "ja-JP",
@@ -620,13 +621,14 @@ describe("checkConventionsCatalogIntegrity - i18n", () => {
   });
 });
 
-function makeScreenItemsDocument(partial: Partial<ScreenItemsDocument>): ScreenItemsDocument {
-  return {
+// #1355: items 配列が test 内で literal で渡されるため loose 型に
+function makeScreenItemsDocument(partial: Record<string, unknown>): ScreenItemsDocument {
+  return ({
     screenId: "scr1" as ScreenId,
     updatedAt: "2026-01-01T00:00:00Z" as Timestamp,
     items: [],
     ...partial,
-  };
+  } as unknown) as ScreenItemsDocument;
 }
 
 const id = (s: string) => s as Identifier;
@@ -695,7 +697,7 @@ describe("checkScreenItemConventionReferences", () => {
 describe("#734 screen-item Ref フィールド検証", () => {
   // catalog に limit.cartItemMaxQuantity (value: 999) が存在することを前提とする inline catalog
   const catalog: ConventionsCatalog = {
-    version: "1.0.0",
+    version: "1.0.0" as SemVer,
     limit: {
       cartItemMaxQuantity: { value: 999, unit: "integer" },
       productCodeMaxLength: { value: 20, unit: "char" },
@@ -786,7 +788,7 @@ describe("#734 screen-item Ref フィールド検証", () => {
 describe("#734 checkStep — validation rules[].minRef/maxRef/lengthRef 検査", () => {
   // checkConventionReferences 経由で checkStep 内の rules Ref フィールドを検査する
   const catalog: ConventionsCatalog = {
-    version: "1.0.0",
+    version: "1.0.0" as SemVer,
     limit: {
       cartItemMaxQuantity: { value: 999, unit: "integer" },
     },
@@ -872,7 +874,7 @@ describe("#734 checkStep — validation rules[].minRef/maxRef/lengthRef 検査",
 
 describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => {
   const catalog: ConventionsCatalog = {
-    version: "1.0.0",
+    version: "1.0.0" as SemVer,
     regex: {
       productCode: { pattern: "^P-[0-9]{4,6}$" },
     },
@@ -893,7 +895,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
             },
           },
         },
-      } as Partial<ProcessFlow>),
+      } as unknown as Partial<ProcessFlow>),
       catalog,
     );
     expect(issues).toHaveLength(0);
@@ -914,7 +916,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
             },
           },
         },
-      } as Partial<ProcessFlow>),
+      } as unknown as Partial<ProcessFlow>),
       catalog,
     );
     expect(issues).toHaveLength(1);
@@ -925,7 +927,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
 
   it("domains.constraints[].message に @conv.msg.* がある場合も検証される", () => {
     const catalogWithMsg: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       regex: { productCode: { pattern: "^P-[0-9]{4,6}$" } },
       msg: { required: { template: "必須です", params: [] } },
     };
@@ -943,7 +945,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
             },
           },
         },
-      } as Partial<ProcessFlow>),
+      } as unknown as Partial<ProcessFlow>),
       catalogWithMsg,
     );
     expect(issues).toHaveLength(1);
@@ -958,7 +960,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
 
   it("domains.constraints[].minRef に存在しない @conv.limit.* を書くと UNKNOWN_CONV_LIMIT 検出", () => {
     const catalogWithLimit: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       limit: { quantityMin: { value: 1, unit: "integer" } },
     };
     const issues = checkConventionReferences(
@@ -975,7 +977,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
             },
           },
         },
-      } as Partial<ProcessFlow>),
+      } as unknown as Partial<ProcessFlow>),
       catalogWithLimit,
     );
     expect(issues.length).toBeGreaterThanOrEqual(1);
@@ -986,7 +988,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
 
   it("domains.constraints[].maxRef に存在しない @conv.limit.* を書くと UNKNOWN_CONV_LIMIT 検出", () => {
     const catalogWithLimit: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       limit: { quantityMax: { value: 9999, unit: "integer" } },
     };
     const issues = checkConventionReferences(
@@ -1003,7 +1005,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
             },
           },
         },
-      } as Partial<ProcessFlow>),
+      } as unknown as Partial<ProcessFlow>),
       catalogWithLimit,
     );
     expect(issues.length).toBeGreaterThanOrEqual(1);
@@ -1014,7 +1016,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
 
   it("domains.constraints[].lengthRef に存在しない @conv.limit.* を書くと UNKNOWN_CONV_LIMIT 検出", () => {
     const catalogWithLimit: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       limit: { nameMax: { value: 100, unit: "char" } },
     };
     const issues = checkConventionReferences(
@@ -1031,7 +1033,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
             },
           },
         },
-      } as Partial<ProcessFlow>),
+      } as unknown as Partial<ProcessFlow>),
       catalogWithLimit,
     );
     expect(issues.length).toBeGreaterThanOrEqual(1);
@@ -1044,7 +1046,7 @@ describe("#783 context.catalogs.domains.constraints[].patternRef 検証", () => 
 describe("conventionsValidator — @conv.<category>.<key> 統一仕様 + collision check (#1221)", () => {
   it("@conv.extensionCategories.<cat>.<key> 参照は INVALID_CONV_REFERENCE_FORM を発する", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       extensionCategories: {
         wordProgress: { masteryThreshold: 3 },
       },
@@ -1084,7 +1086,7 @@ describe("conventionsValidator — @conv.<category>.<key> 統一仕様 + collisi
 
   it("拡張 category への正規参照 @conv.<cat>.<key> は PASS する", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       extensionCategories: {
         wordProgress: { masteryThreshold: 3 },
       },
@@ -1121,7 +1123,7 @@ describe("conventionsValidator — @conv.<category>.<key> 統一仕様 + collisi
 
   it("built-in カテゴリと extensionCategories の同名衝突は CONV_CATEGORY_COLLISION", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       msg: { greeting: { template: "hello" } },
       extensionCategories: {
         msg: { greeting: "other" }, // built-in 'msg' と衝突
@@ -1136,7 +1138,7 @@ describe("conventionsValidator — @conv.<category>.<key> 統一仕様 + collisi
 
   it("built-in と異なる名前なら衝突なし", () => {
     const catalog: ConventionsCatalog = {
-      version: "1.0.0",
+      version: "1.0.0" as SemVer,
       extensionCategories: {
         wordProgress: { masteryThreshold: 3 },
         cefr: { passingThreshold: 60 },

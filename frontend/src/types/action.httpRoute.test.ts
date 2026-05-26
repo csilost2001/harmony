@@ -1,14 +1,26 @@
 import { describe, it, expect } from "vitest";
-import type { ActionDefinition, ProcessFlow, HttpRoute, HttpResponseSpec } from "../types/v3";
+import type {
+  ActionDefinition,
+  ProcessFlow,
+  HttpRoute,
+  HttpResponseSpec,
+  LocalId,
+  DisplayName,
+  Description,
+  Identifier,
+} from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
+
+// #1355 Codex Must-fix: 各 type literal は `const x: <Type> = {...}` で type 注釈し、
+// brand のみ局所 cast。`({...} as unknown) as <Type>` のような outer cast は使わない。
 
 describe("ActionDefinition の httpRoute / responses (#160)", () => {
   it("httpRoute を保持できる", () => {
     const route: HttpRoute = { method: "POST", path: "/api/customers", auth: "none" };
     const action: ActionDefinition = {
-      id: "a1",
-      name: "登録",
-      trigger: "submit",
+      id: "a1" as LocalId,
+      name: "登録" as DisplayName,
+      trigger: "submit" as Identifier,
       httpRoute: route,
       steps: [],
     };
@@ -19,14 +31,14 @@ describe("ActionDefinition の httpRoute / responses (#160)", () => {
 
   it("responses[] を保持できる (成功 + エラー複数)", () => {
     const responses: HttpResponseSpec[] = [
-      { status: 201, contentType: "application/json", bodySchema: "CustomerRegisterResponse", description: "登録成功" },
-      { status: 400, bodySchema: "ApiError", description: "バリデーションエラー", when: "fieldErrors 有" },
-      { status: 409, bodySchema: "ApiError", description: "メール重複", when: "@duplicateCustomer != null" },
+      { id: "resp-1" as LocalId, status: 201, contentType: "application/json", bodySchema: { typeRef: "CustomerRegisterResponse" }, description: "登録成功" as Description },
+      { id: "resp-2" as LocalId, status: 400, bodySchema: { typeRef: "ApiError" }, description: "バリデーションエラー" as Description, when: "fieldErrors 有" },
+      { id: "resp-3" as LocalId, status: 409, bodySchema: { typeRef: "ApiError" }, description: "メール重複" as Description, when: "@duplicateCustomer != null" },
     ];
     const action: ActionDefinition = {
-      id: "a2",
-      name: "登録",
-      trigger: "submit",
+      id: "a2" as LocalId,
+      name: "登録" as DisplayName,
+      trigger: "submit" as Identifier,
       responses,
       steps: [],
     };
@@ -38,9 +50,9 @@ describe("ActionDefinition の httpRoute / responses (#160)", () => {
 
   it("httpRoute / responses は省略可能", () => {
     const action: ActionDefinition = {
-      id: "a3",
-      name: "x",
-      trigger: "click",
+      id: "a3" as LocalId,
+      name: "x" as DisplayName,
+      trigger: "click" as Identifier,
       steps: [],
     };
     expect(action.httpRoute).toBeUndefined();
@@ -55,7 +67,8 @@ describe("ActionDefinition の httpRoute / responses (#160)", () => {
 
 describe("migrateProcessFlow — httpRoute / responses 透過保持 (#160)", () => {
   it("新フィールドを持つ action を冪等にマイグレーションできる", () => {
-    const raw = {
+    // raw は v1 legacy: bodySchema が string (v3 では {typeRef: string})
+    const raw: unknown = {
       id: "g",
       name: "x",
       type: "screen",
@@ -67,8 +80,8 @@ describe("migrateProcessFlow — httpRoute / responses 透過保持 (#160)", () 
           trigger: "submit",
           httpRoute: { method: "POST", path: "/api/x", auth: "required" },
           responses: [
-            { status: 201, bodySchema: "R" },
-            { status: 400, description: "VALIDATION" },
+            { id: "resp-4", status: 201, bodySchema: "R" },
+            { id: "resp-5", status: 400, description: "VALIDATION" },
           ],
           steps: [],
         },
@@ -87,7 +100,7 @@ describe("migrateProcessFlow — httpRoute / responses 透過保持 (#160)", () 
   });
 
   it("新フィールドなしの旧データでも破壊されない", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g",
       name: "x",
       type: "screen",

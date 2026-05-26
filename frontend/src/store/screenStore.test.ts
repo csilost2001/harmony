@@ -217,7 +217,7 @@ describe("screenStore — load/save round-trip 契約", () => {
       updatedAt: TIMESTAMP,
       items,
       design: { designFileRef: `${SCREEN_ID}.design.json`, editorKind: "grapesjs" },
-    } as Screen);
+    } as unknown as Screen);
 
     const loaded = await loadScreenEntity(SCREEN_ID);
     expect(loaded.items).toEqual(items);

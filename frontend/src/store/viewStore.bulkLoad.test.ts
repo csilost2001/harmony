@@ -21,14 +21,15 @@ function view(id: ViewId, name: string): View {
     dependencies: [],
     createdAt: TS,
     updatedAt: TS,
-  } as View;
+  } as unknown as View;
 }
 
 function project(viewIds: ViewId[]): Harmony {
-  return {
+  return ({
     schemaVersion: "v3",
     meta: {
       id: "test-project" as ProjectId,
+      uuid: "11111111-1111-4111-8111-111111111111",
       name: "test",
       createdAt: TS,
       updatedAt: TS,
@@ -44,7 +45,7 @@ function project(viewIds: ViewId[]): Harmony {
         updatedAt: TS,
       })),
     },
-  };
+  } as unknown) as Harmony;
 }
 
 function setProject(viewIds: ViewId[]): void {

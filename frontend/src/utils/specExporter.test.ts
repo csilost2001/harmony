@@ -23,11 +23,10 @@ import type {
   WorkflowStep,
 } from "../types/v3";
 // OtherStep は v3 に無い (extension で表現)、AnyRecord 互換のため action.ts 経由
-import type { OtherStep } from "../types/v3";
 
 function makeFlow(steps: Step[]): ProcessFlow {
-  return {
-    id: "pf1",
+  return ({
+    id: "pf1" as LocalId,
     name: "テストフロー",
     type: "screen",
     description: "テスト用",
@@ -35,7 +34,7 @@ function makeFlow(steps: Step[]): ProcessFlow {
     actions: [{ id: "a1", name: "アクション", trigger: "click", steps }],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  };
+  } as unknown) as ProcessFlow;
 }
 
 function getStep(stepDef: Step): SpecStep {
@@ -43,21 +42,21 @@ function getStep(stepDef: Step): SpecStep {
   return spec.processFlows![0].actions[0].steps[0];
 }
 
-const emptyProject: FlowProject = {
+const emptyProject = ({
   version: 1,
   name: "テストプロジェクト",
   screens: [],
   groups: [],
   edges: [],
   updatedAt: new Date().toISOString() as Timestamp,
-};
+} as unknown) as FlowProject;
 
-const emptyErLayout: ErLayout = {
+const emptyErLayout = ({
   positions: {},
   updatedAt: new Date().toISOString() as Timestamp,
-};
+} as unknown) as ErLayout;
 
-const customersTable: Table = {
+const customersTable = ({
   id: "t-customers" as TableId,
   name: "顧客" as DisplayName,
   physicalName: "customers" as PhysicalName,
@@ -70,11 +69,12 @@ const customersTable: Table = {
       dataType: "INTEGER", notNull: true, primaryKey: true, unique: false,
     },
   ],
-};
+} as unknown) as Table;
 
-function makeTable(overrides: Partial<Table> = {}): Table {
-  return {
+function makeTable(overrides: Record<string, unknown> = {}): Table {
+  return ({
     id: "t1" as TableId,
+    uuid: "11111111-1111-4111-8111-111111111111",
     name: "注文" as DisplayName,
     physicalName: "orders" as PhysicalName,
     description: "注文テーブル",
@@ -100,7 +100,7 @@ function makeTable(overrides: Partial<Table> = {}): Table {
     ],
     indexes: [],
     ...overrides,
-  };
+  } as unknown) as Table;
 }
 
 describe("generateSpecJson — SpecTable", () => {
@@ -212,7 +212,7 @@ describe("toSpecStep — step detail", () => {
       description: "入力検証",
       conditions: "@amount > 0",
       inlineBranch: { ok: "ok", ng: "ng", ngJumpTo: "input-error" },
-    } as ValidationStep);
+    } as unknown as ValidationStep);
 
     expect(withInlineBranch.detail.conditions).toBe("@amount > 0");
     expect(withInlineBranch.detail.inlineBranch).toEqual({
@@ -226,7 +226,7 @@ describe("toSpecStep — step detail", () => {
       kind: "validation",
       description: "入力検証",
       conditions: "@name != ''",
-    } as ValidationStep);
+    } as unknown as ValidationStep);
 
     expect(withoutInlineBranch.detail.conditions).toBe("@name != ''");
     expect(withoutInlineBranch.detail).not.toHaveProperty("inlineBranch");
@@ -253,7 +253,7 @@ describe("toSpecStep — step detail", () => {
       kind: "externalSystem",
       description: "外部決済",
       systemRef: "stripe",
-    } as Step);
+    } as unknown as Step);
 
     expect(step.detail.systemRef).toBe("stripe");
   });
@@ -264,7 +264,7 @@ describe("toSpecStep — step detail", () => {
       kind: "commonProcess",
       description: "共通処理",
       refId: "common-1",
-    } as Step);
+    } as unknown as Step);
 
     expect(step.detail.refId).toBe("common-1");
     expect(step.detail).not.toHaveProperty("refName");
@@ -276,7 +276,7 @@ describe("toSpecStep — step detail", () => {
       kind: "screenTransition",
       description: "完了画面へ遷移",
       targetScreenId: "scr-uuid-completion",
-    } as Step);
+    } as unknown as Step);
 
     expect(step.detail.targetScreenId).toBe("scr-uuid-completion");
   });
@@ -287,7 +287,7 @@ describe("toSpecStep — step detail", () => {
       kind: "displayUpdate",
       description: "表示更新",
       target: "明細一覧",
-    } as Step);
+    } as unknown as Step);
 
     expect(step.detail.target).toBe("明細一覧");
   });
@@ -306,7 +306,7 @@ describe("toSpecStep — step detail", () => {
           steps: [],
         },
       ],
-    } as Step);
+    } as unknown as Step);
 
     expect(step.detail.branches).toEqual([
       expect.objectContaining({ condition: "@status == 'approved'" }),
@@ -321,7 +321,7 @@ describe("toSpecStep — step detail", () => {
       loopKind: "count",
       countExpression: "3",
       steps: [],
-    } as Step);
+    } as unknown as Step);
 
     expect(step.detail.countExpression).toBe("3");
     expect(step.detail.steps).toHaveLength(0);
@@ -333,7 +333,7 @@ describe("toSpecStep — step detail", () => {
       kind: "jump",
       description: "終了へ移動",
       jumpTo: "done",
-    } as Step);
+    } as unknown as Step);
 
     expect(step.detail.jumpTo).toBe("done");
   });
@@ -354,7 +354,7 @@ describe("toSpecStep — step detail", () => {
           operation: "INSERT",
         } as DbAccessStep,
       ],
-    } as Step);
+    } as unknown as Step);
 
     expect(step.detail.steps).toHaveLength(1);
     expect((step.detail.steps as Array<{ kind: string }>)[0].kind).toBe("dbAccess");
@@ -519,7 +519,7 @@ describe("toSpecStep — step detail", () => {
       id: "oth1",
       kind: "legacy:OtherStep",
       description: "その他処理",
-    } as OtherStep);
+    } as unknown as Step);
     expect(step.type).toBe("legacy:OtherStep");
     expect(step.detail).toEqual({});
   });

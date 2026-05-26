@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { FlowProject } from "../types/flow";
-import type { Table, TableEntry, TableId, Timestamp } from "../types/v3";
+import type { PhysicalName, Table, TableEntry, TableId, Timestamp } from "../types/v3";
 import type { FlowStorageBackend } from "./flowStore";
 import { setFlowDraftMode, setFlowStorageBackend } from "./flowStore";
 import { setScreenFlowPositionsStorageBackend } from "./screenFlowPositionsStore";
@@ -14,7 +14,7 @@ function tableEntry(id: string, no: number): TableEntry {
     id: id as TableId,
     no,
     name: `table ${id}`,
-    physicalName: `table_${id}`,
+    physicalName: `table_${id}` as unknown as PhysicalName,
     columnCount: 0,
     updatedAt: TS,
   };

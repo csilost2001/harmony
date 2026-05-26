@@ -1,6 +1,15 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, ValidationRule, ValidationStep } from "../types/v3";
+import type {
+  ProcessFlow,
+  ValidationRule,
+  ValidationStep,
+  LocalId,
+  Description,
+  Identifier,
+} from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
+
+// #1355 Codex Must-fix: type 注釈で type shape を検証、brand のみ局所 cast。
 
 describe("ValidationStep の rules[] (#166)", () => {
   it("required / regex / maxLength を同一ステップで定義できる", () => {
@@ -12,8 +21,11 @@ describe("ValidationStep の rules[] (#166)", () => {
       { field: "phone", type: "regex", pattern: "@conv.regex.phone-jp" },
     ];
     const step: ValidationStep = {
-      id: "s", type: "validation", description: "",
+      id: "s" as LocalId,
+      kind: "validation",
+      description: "" as Description,
       conditions: "emailとphoneの検証",
+      fieldErrorsVar: "fieldErrors" as Identifier,
       rules,
     };
     expect(step.rules).toHaveLength(5);
@@ -36,8 +48,11 @@ describe("ValidationStep の rules[] (#166)", () => {
 
   it("conditions と rules[] は併用可能 (後方互換)", () => {
     const step: ValidationStep = {
-      id: "s", type: "validation", description: "",
+      id: "s" as LocalId,
+      kind: "validation",
+      description: "" as Description,
       conditions: "人間可読の自由記述",
+      fieldErrorsVar: "fieldErrors" as Identifier,
       rules: [{ field: "x", type: "required" }],
     };
     expect(step.conditions).toBe("人間可読の自由記述");
@@ -46,33 +61,40 @@ describe("ValidationStep の rules[] (#166)", () => {
 
   it("rules[] 省略時は conditions のみ (旧データ互換)", () => {
     const step: ValidationStep = {
-      id: "s", type: "validation", description: "",
+      id: "s" as LocalId,
+      kind: "validation",
+      description: "" as Description,
       conditions: "既存の自由記述のみ",
+      fieldErrorsVar: "fieldErrors" as Identifier,
     };
     expect(step.rules).toBeUndefined();
   });
 
   it("inlineBranch と併用できる", () => {
     const step: ValidationStep = {
-      id: "s", type: "validation", description: "",
+      id: "s" as LocalId,
+      kind: "validation",
+      description: "" as Description,
       conditions: "",
+      fieldErrorsVar: "fieldErrors" as Identifier,
       rules: [{ field: "a", type: "required" }],
-      inlineBranch: { ok: "続行", ng: "エラー表示" },
+      inlineBranch: { ok: [], ng: [] },
     };
-    expect(step.inlineBranch?.ok).toBe("続行");
+    expect(step.inlineBranch).toBeDefined();
     expect(step.rules).toHaveLength(1);
   });
 });
 
 describe("migrateProcessFlow — ValidationStep.rules[] 透過保持 (#166)", () => {
   it("rules[] を持つ ValidationStep を冪等にマイグレーションできる", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g", name: "x", type: "screen", description: "",
       actions: [{
         id: "a", name: "a", trigger: "submit",
         steps: [{
           id: "s", type: "validation", description: "",
           conditions: "旧 conditions",
+          fieldErrorsVar: "fieldErrors",
           rules: [
             { field: "email", type: "required" },
             { field: "email", type: "regex", pattern: "@conv.regex.email-simple" },
@@ -92,13 +114,14 @@ describe("migrateProcessFlow — ValidationStep.rules[] 透過保持 (#166)", ()
   });
 
   it("rules[] なしの旧 ValidationStep でも破壊なし", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g", name: "x", type: "screen", description: "",
       actions: [{
         id: "a", name: "a", trigger: "submit",
         steps: [{
           id: "s", type: "validation", description: "",
           conditions: "旧",
+          fieldErrorsVar: "fieldErrors",
           inlineBranch: { ok: "o", ng: "n" },
         }],
       }],

@@ -53,7 +53,8 @@ const TABLES: TableDefinitionForView[] = [
   },
 ];
 
-function makeViewDefinition(partial: Partial<ViewDefinition>): ViewDefinition {
+// #1355: fixture builder の input を loose 型に変更
+function makeViewDefinition(partial: Record<string, unknown>): ViewDefinition {
   return {
     meta: {
       id: "vvvvvvvv-0001-4000-8000-vvvvvvvvvvvv",
@@ -84,7 +85,7 @@ function makeViewDefinition(partial: Partial<ViewDefinition>): ViewDefinition {
       },
     ],
     ...partial,
-  } as ViewDefinition;
+  } as unknown as ViewDefinition;
 }
 
 // ─── 1. UNKNOWN_SOURCE_TABLE ─────────────────────────────────────────────────

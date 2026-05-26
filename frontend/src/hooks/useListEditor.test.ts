@@ -11,10 +11,10 @@ function makeItems(n: number): Item[] {
   return Array.from({ length: n }, (_, i) => ({ id: `id-${i + 1}`, name: `item-${i + 1}` }));
 }
 
-function setup(opts: { initial?: Item[]; commit?: ReturnType<typeof vi.fn> } = {}) {
+function setup(opts: { initial?: Item[]; commit?: ReturnType<typeof vi.fn<(opts: { itemsInOrder: Item[]; deletedIds: string[] }) => Promise<void>>> } = {}) {
   const items = opts.initial ?? makeItems(3);
-  const load = vi.fn(async () => items);
-  const commit = opts.commit ?? vi.fn(async () => undefined);
+  const load = vi.fn<() => Promise<Item[]>>(async () => items);
+  const commit = opts.commit ?? vi.fn<(opts: { itemsInOrder: Item[]; deletedIds: string[] }) => Promise<void>>(async () => undefined);
   const result = renderHook(() =>
     useListEditor<Item>({
       getId: (it) => it.id,
@@ -85,7 +85,7 @@ describe("useListEditor", () => {
     act(() => result.current.markDeleted(["id-3"]));
     await act(async () => { await result.current.save(); });
     expect(commit).toHaveBeenCalledOnce();
-    const [arg] = commit.mock.calls[0];
+    const [arg] = commit.mock.calls[0] as unknown as [{ itemsInOrder: Item[]; deletedIds: string[] }];
     expect(arg.deletedIds).toEqual(["id-3"]);
     expect(arg.itemsInOrder.map((x: Item) => x.id)).toEqual(["id-2", "id-1"]);
   });

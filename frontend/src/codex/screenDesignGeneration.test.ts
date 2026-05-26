@@ -122,9 +122,8 @@ describe("generateScreenDesignWithCodex", () => {
       requirement: "画面を作る",
     });
 
-    const turnStart = request.mock.calls.find(([method]) => method === "codex.turn.start")?.[1] as {
-      input: Array<{ text: string }>;
-    };
+    const turnStartCall = request.mock.calls.find(([method]) => method === "codex.turn.start") as unknown as [string, { input: Array<{ text: string }> }] | undefined;
+    const turnStart = turnStartCall?.[1] as { input: Array<{ text: string }> };
     const prompt = turnStart.input[0].text;
     expect(prompt).toContain("Link");
     expect(prompt).toContain("Image");

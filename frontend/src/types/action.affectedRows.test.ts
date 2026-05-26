@@ -1,6 +1,16 @@
 import { describe, it, expect } from "vitest";
-import type { ProcessFlow, AffectedRowsCheck, DbAccessStep } from "../types/v3";
+import type {
+  ProcessFlow,
+  AffectedRowsCheck,
+  DbAccessStep,
+  LocalId,
+  Description,
+  TableId,
+  ErrorCode,
+} from "../types/v3";
 import { migrateProcessFlow } from "../utils/actionMigration";
+
+// #1355 Codex Must-fix: type 注釈で type shape を検証、brand のみ局所 cast。
 
 describe("DbAccessStep の affectedRowsCheck (#164)", () => {
   it("在庫引当の条件付き UPDATE + throw パターンを表現できる", () => {
@@ -8,14 +18,14 @@ describe("DbAccessStep の affectedRowsCheck (#164)", () => {
       operator: ">",
       expected: 0,
       onViolation: "throw",
-      errorCode: "STOCK_SHORTAGE",
-      description: "在庫不足 (並行引当)",
+      errorCode: "STOCK_SHORTAGE" as ErrorCode,
+      description: "在庫不足 (並行引当)" as Description,
     };
     const step: DbAccessStep = {
-      id: "s",
-      type: "dbAccess",
-      description: "在庫引当",
-      tableName: "inventory",
+      id: "s" as LocalId,
+      kind: "dbAccess",
+      description: "在庫引当" as Description,
+      tableId: "inventory" as TableId,
       operation: "UPDATE",
       fields: "SET stock = stock - @qty WHERE item_id = @id AND stock >= @qty",
       affectedRowsCheck: check,
@@ -34,8 +44,11 @@ describe("DbAccessStep の affectedRowsCheck (#164)", () => {
     }));
     patterns.forEach((p) => {
       const step: DbAccessStep = {
-        id: "s", type: "dbAccess", description: "",
-        tableName: "x", operation: "DELETE",
+        id: "s" as LocalId,
+        kind: "dbAccess",
+        description: "" as Description,
+        tableId: "x" as TableId,
+        operation: "DELETE",
         affectedRowsCheck: p,
       };
       expect(step.affectedRowsCheck?.onViolation).toBe(p.onViolation);
@@ -46,8 +59,11 @@ describe("DbAccessStep の affectedRowsCheck (#164)", () => {
     const ops: AffectedRowsCheck["operator"][] = [">", ">=", "=", "<", "<="];
     ops.forEach((op) => {
       const step: DbAccessStep = {
-        id: "s", type: "dbAccess", description: "",
-        tableName: "x", operation: "UPDATE",
+        id: "s" as LocalId,
+        kind: "dbAccess",
+        description: "" as Description,
+        tableId: "x" as TableId,
+        operation: "UPDATE",
         affectedRowsCheck: { operator: op, expected: 1, onViolation: "throw" },
       };
       expect(step.affectedRowsCheck?.operator).toBe(op);
@@ -56,8 +72,11 @@ describe("DbAccessStep の affectedRowsCheck (#164)", () => {
 
   it("省略可能 (既存データ互換)", () => {
     const step: DbAccessStep = {
-      id: "s", type: "dbAccess", description: "",
-      tableName: "x", operation: "SELECT",
+      id: "s" as LocalId,
+      kind: "dbAccess",
+      description: "" as Description,
+      tableId: "x" as TableId,
+      operation: "SELECT",
     };
     expect(step.affectedRowsCheck).toBeUndefined();
   });
@@ -65,7 +84,7 @@ describe("DbAccessStep の affectedRowsCheck (#164)", () => {
 
 describe("migrateProcessFlow — affectedRowsCheck 透過保持 (#164)", () => {
   it("新フィールドを持つ DbAccessStep を冪等にマイグレーションできる", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g", name: "x", type: "screen", description: "",
       actions: [{
         id: "a", name: "a", trigger: "submit",
@@ -89,7 +108,7 @@ describe("migrateProcessFlow — affectedRowsCheck 透過保持 (#164)", () => {
   });
 
   it("新フィールドなしの旧データでも破壊なし", () => {
-    const raw = {
+    const raw: unknown = {
       id: "g", name: "x", type: "screen", description: "",
       actions: [{
         id: "a", name: "a", trigger: "click",

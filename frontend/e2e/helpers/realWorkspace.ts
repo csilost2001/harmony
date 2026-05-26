@@ -12,7 +12,7 @@
  *   - copyExampleWorkspace(exampleName, key): examples/<name>/ をコピー
  *   - setupTestWorkspace({ key, project, tables, processFlows, ... }): 任意 seed データから
  *     最小ワークスペースを作って backend に open し、wsId を返す
- *   - cleanupRealWorkspaces(keys): .tmp/e2e-workspaces/<key>/ を削除
+ *   - cleanupRealWorkspaces(keys): .tmp/e2e-workspaces/w<workerIndex>-<key>/ を削除
  *   - isMcpRunning(): port 5179 LISTEN チェック (test.skip 用)
  *   - sendBrowserRequest(method, params): wsBridge への RPC (workspace.open 等の操作)
  */
@@ -98,7 +98,10 @@ export interface PageLike {
  * 旧 LegacyProjectInput は削除済み。v1 形式のデータは β/γ で builder 経由で v3 に変換する。
  */
 export interface SetupTestWorkspaceOptions {
-  /** 一意キー (.tmp/e2e-workspaces/<key>/ になる) */
+  /**
+   * 一意キー (`.tmp/e2e-workspaces/w<workerIndex>-<key>/` に展開される)。
+   * #1356: Playwright `TEST_WORKER_INDEX` env を path に embed することで workers > 1 でも storage 衝突しない。
+   */
   key: string;
   /**
    * 予約フラグ (現在未使用)。
@@ -145,15 +148,47 @@ const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(THIS_DIR, "../../..");
 const TMP_ROOT = path.join(REPO_ROOT, ".tmp", "e2e-workspaces");
 
+/**
+ * Playwright worker index — workers > 1 で同 key を別 directory に隔離するための prefix。
+ * Playwright は worker process ごとに `TEST_WORKER_INDEX` env を設定する。これは 0 始まり
+ * の **unique sequential index** で、retry 等で worker が再起動するたびに incremental に
+ * 増えるため、`workers` 数の上限を超える値も取り得る (実値範囲はおおよそ `0..2*workers-1`、
+ * 公式 docs: https://playwright.dev/docs/test-parallel#worker-index-and-parallel-index)。
+ * 完全な 0..workers-1 範囲が欲しい場合は別 env の `TEST_PARALLEL_INDEX` を使うが、本 helper では
+ * directory 衝突回避のみが目的のため unique index で十分。
+ *
+ * Vitest 等 Playwright 外からこのモジュールが import された場合、env は未設定だが prefix の
+ * 仕組み自体は適用される (常に `w${index}-` 形式の prefix が付く、env 未設定時は `w0-` 固定)。
+ * 単一 process 環境では `w0-` 固定 prefix で全 path が解決され、衝突は起こらない。
+ *
+ * **注**: env は `tempWorkspacePath` 呼び出し時に都度 read する (module load 時に
+ * const へキャプチャしない)。これにより test 中で `delete process.env.TEST_WORKER_INDEX`
+ * 等の動的変更も挙動に反映され、testability が向上する (#1355 Codex Must-fix 対応)。
+ *
+ * #1356: 旧来 `.tmp/e2e-workspaces/<key>/` 直下に書き出していたため Playwright workers > 1
+ * で同一 key を複数 worker が同時に書き込むと storage 競合が発生していた。本 prefix で
+ * 完全隔離した結果、`buildMinimalProject` の Project.meta.id は固定値のまま (storage が
+ * worker 別 directory に分かれているため EntityId 重複は別 namespace 上の同名扱いとなり問題なし)。
+ *
+ * **本 helper のスコープ**: `tempWorkspacePath` 経由の fixture (`setupTestWorkspace` /
+ * `copyExampleWorkspace` で生成される workspace) のみ worker 並列化に対応。
+ * `LOCKDOWN_WORKSPACE` (lockdown-routing.spec.ts)、`FIXTURE_ROOT` (workspace-folder-picker.spec.ts)
+ * 等の本 helper を経由しない固定 path、および backend per-clientId activePath race は
+ * **本 helper のスコープ外**で、これらの workers > 1 対応は follow-up #1359 で別途対応する。
+ */
+function currentWorkerIndex(): string {
+  return process.env.TEST_WORKER_INDEX ?? "0";
+}
+
 export function repoPath(...segments: string[]): string {
   return path.join(REPO_ROOT, ...segments);
 }
 
 export function tempWorkspacePath(key: string): string {
-  return path.join(TMP_ROOT, key);
+  return path.join(TMP_ROOT, `w${currentWorkerIndex()}-${key}`);
 }
 
-/** examples/<exampleName>/ を .tmp/e2e-workspaces/<key>/ にコピー */
+/** examples/<exampleName>/ を .tmp/e2e-workspaces/w<workerIndex>-<key>/ にコピー */
 export async function copyExampleWorkspace(
   exampleName: string,
   key: string,
@@ -448,7 +483,8 @@ function buildMinimalProject(): Project {
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      // 注意: 現状 sequential e2e のみで衝突しない。worker 並列化時 (Playwright workers > 1) は deterministicUuid 化を検討。
+      // #1356: workspace path 自体に worker index を embed する (tempWorkspacePath) ことで
+      // workers > 1 でも storage 衝突しないため、Project.meta.id は固定 EntityId のまま運用可能。
       id: "e2e-test-project" as unknown as Project["meta"]["id"],
       uuid: uuid() as unknown as Project["meta"]["uuid"],
       name: "E2E テストプロジェクト",
@@ -607,6 +643,7 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
       );
       const targetPath = buildPath(subPath);
       await page.evaluate(async ({ id, target }: { id: string; target: string }) => {
+        // @ts-expect-error - Vite browser URL import (page.evaluate context, not resolvable by tsc)
         const mod = await import("/src/store/workspaceStore.ts") as {
           openWorkspace: (idOrPath: string, useId?: boolean) => Promise<string>;
         };

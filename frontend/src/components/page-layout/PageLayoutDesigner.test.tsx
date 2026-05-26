@@ -81,7 +81,7 @@ import { loadProject } from "../../store/flowStore";
 import { loadCustomPuckComponents } from "../../store/puckComponentsStore";
 import { PageLayoutDesigner } from "./PageLayoutDesigner";
 
-const defaultPageLayout: PageLayout = {
+const defaultPageLayout = ({
   id: "pl-design-001",
   name: "Main Layout",
   maturity: "draft",
@@ -94,7 +94,7 @@ const defaultPageLayout: PageLayout = {
   design: { editorKind: "puck", cssFramework: "bootstrap" },
   createdAt: "2026-05-12T00:00:00.000Z",
   updatedAt: "2026-05-12T00:00:00.000Z",
-};
+} as unknown) as PageLayout;
 
 function renderDesigner(id = "pl-design-001") {
   return render(
@@ -156,7 +156,7 @@ describe("PageLayoutDesigner", () => {
   it("caches screen name index across repeated GrapesJS region injections", async () => {
     mockState.pageLayout = {
       ...defaultPageLayout,
-      assignments: { main: "gadget-1" },
+      assignments: { main: "gadget-1" } as unknown as Record<string, never>,
       design: { editorKind: "grapesjs", cssFramework: "bootstrap" },
     };
 
@@ -186,7 +186,7 @@ describe("PageLayoutDesigner", () => {
       ...defaultPageLayout,
       assignments: Object.fromEntries(
         Array.from({ length: 20 }, (_, i) => [`region-${i}`, `gadget-${i}`]),
-      ),
+      ) as unknown as Record<string, never>,
       design: { editorKind: "grapesjs", cssFramework: "bootstrap" },
     };
     let active = 0;
@@ -228,7 +228,7 @@ describe("PageLayoutDesigner", () => {
       ...defaultPageLayout,
       assignments: Object.fromEntries(
         Array.from({ length: 20 }, (_, i) => [`region-${i}`, `gadget-${i}`]),
-      ),
+      ) as unknown as Record<string, never>,
     };
     let active = 0;
     let maxActive = 0;
