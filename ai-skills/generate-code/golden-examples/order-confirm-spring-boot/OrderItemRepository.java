@@ -13,7 +13,7 @@ import java.util.List;
  * 注文明細 Repository。
  *
  * テーブル: order_items
- * ProcessFlow 参照: f81dd9e0-794c-4539-a2a5-9cbcc0a75899 (step-06-03: loop INSERT)
+ * ProcessFlow 参照: order-confirm (step-06-03: loop INSERT)
  *
  * <p>{@link #insertOrderItem} は unit_price_snapshot * quantity を DB 側で計算して line_amount に格納する
  * ネイティブ INSERT を実行する。JPA {@code save()} を使わずネイティブ INSERT にしているのは、

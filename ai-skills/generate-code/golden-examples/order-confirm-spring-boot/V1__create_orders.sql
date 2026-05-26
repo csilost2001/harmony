@@ -1,5 +1,5 @@
 -- Flyway migration: V1__create_orders.sql
--- ProcessFlow: f81dd9e0-794c-4539-a2a5-9cbcc0a75899 (注文確定)
+-- ProcessFlow: order-confirm (注文確定)
 -- techStack.database.type: postgresql (version: 17)
 -- 生成: /generate-code スキルにより自動生成
 
@@ -56,7 +56,7 @@ CREATE INDEX idx_orders_status       ON orders(status);
 CREATE INDEX idx_orders_ordered_at   ON orders(ordered_at DESC);
 
 -- コメント
-COMMENT ON TABLE  orders                      IS '注文テーブル — ProcessFlow f81dd9e0 (注文確定)';
+COMMENT ON TABLE  orders                      IS '注文テーブル — ProcessFlow order-confirm (注文確定)';
 COMMENT ON COLUMN orders.order_number         IS '注文番号 (@conv.numbering.orderNumber: ORD-YYYY-NNNNNN)';
 COMMENT ON COLUMN orders.customer_id          IS '顧客 ID (customers.id FK)';
 COMMENT ON COLUMN orders.status               IS '注文ステータス: pending/confirmed/shipped/delivered/cancelled';
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 
-COMMENT ON TABLE  order_items                          IS '注文明細テーブル — ProcessFlow f81dd9e0 (注文確定) step-06-03';
+COMMENT ON TABLE  order_items                          IS '注文明細テーブル — ProcessFlow order-confirm (注文確定) step-06-03';
 COMMENT ON COLUMN order_items.store_code_snapshot      IS '在庫減算対象店舗コード (ADR-006 multi-store)';
 COMMENT ON COLUMN order_items.product_code_snapshot    IS '注文時商品コード (スナップショット)';
 COMMENT ON COLUMN order_items.product_name_snapshot    IS '注文時商品名 (スナップショット)';
