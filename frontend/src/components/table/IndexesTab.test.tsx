@@ -12,6 +12,7 @@ import type {
   Table,
   Index,
   TableId,
+  Uuid,
   LocalId,
   PhysicalName,
   DisplayName,
@@ -20,7 +21,8 @@ import type {
 
 function makeTable(over: Partial<Table> = {}): Table {
   return {
-    id: "00000000-0000-4000-8000-000000000001" as TableId,
+    id: "table-users" as TableId,
+    uuid: "11111111-1111-4111-8111-111111111111" as Uuid,
     name: "Users" as DisplayName,
     physicalName: "users" as PhysicalName,
     columns: [],

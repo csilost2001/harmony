@@ -22,6 +22,7 @@ import type {
   ProjectId,
   ScreenId,
   ScreenFlowPositions,
+  TableId,
   Timestamp,
   ViewDefinitionEntry,
   ViewDefinitionId,
@@ -166,7 +167,7 @@ describe("decomposeFlowProject round-trip preservation (#835)", () => {
       no: 1,
       name: "受注一覧定義",
       kind: "list",
-      sourceTableId: "orders" as unknown as import("../types/v3").TableId,
+      sourceTableId: "orders" as TableId,
       columnCount: 3,
       updatedAt: TS,
     };
