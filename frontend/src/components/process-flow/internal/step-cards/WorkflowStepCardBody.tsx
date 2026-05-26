@@ -28,6 +28,7 @@ export function WorkflowStepCardBody({
   commonGroups,
   validationErrors,
   conventions,
+  group,
   onChange,
   onCommit,
   onNavigateCommon,
@@ -53,6 +54,7 @@ export function WorkflowStepCardBody({
           onNavigateCommon={onNavigateCommon}
           validationErrors={validationErrors}
           conventions={conventions}
+          group={group}
           readOnly={readOnly}
         />
       )}

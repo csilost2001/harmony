@@ -10,9 +10,9 @@ import { secretRefResolver } from "../../../../utils/reference-completer/workspa
 import { ReferenceCompletionInput } from "../../../common/ReferenceCompletionInput";
 import { ExternalOutcomesPanel } from "../../ExternalOutcomesPanel";
 import { trimToUndefined } from "../stepCardConstants";
-import type { StepCardBodyBaseProps } from "./types";
+import type { StepCardBodyBaseProps, StepCardBodyCatalogProps } from "./types";
 
-export interface ExternalSystemStepCardBodyProps extends StepCardBodyBaseProps<ExternalSystemStep> {
+export interface ExternalSystemStepCardBodyProps extends StepCardBodyBaseProps<ExternalSystemStep>, StepCardBodyCatalogProps {
   workspace?: WorkspaceRefs;
 }
 
@@ -22,6 +22,7 @@ export function ExternalSystemStepCardBody({
   onCommit,
   readOnly,
   workspace,
+  group,
 }: ExternalSystemStepCardBodyProps) {
   const updateAuth = (patch: Partial<ExternalAuth>) => {
     const base: ExternalAuth = step.auth ?? { kind: "none" };
@@ -258,6 +259,7 @@ export function ExternalSystemStepCardBody({
       </div>
       <ExternalOutcomesPanel
         step={step}
+        group={group}
         onChange={(patch) => onChange(patch)}
         onCommit={onCommit}
       />

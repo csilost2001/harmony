@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { applyProcessFlowMutation } from "./processFlowMutation";
-import { setProcessFlowStorageBackend } from "../../store/processFlowStore";
+import { addSubStep, setProcessFlowStorageBackend } from "../../store/processFlowStore";
 import type { ProcessFlow, ActionDefinition } from "../../types/v3";
 
 // schema 規範: step-NN / step-NNN / step-NNNN (将来桁数増加にも追随)
@@ -81,6 +81,23 @@ describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => 
 
       expect(g.actions[0].steps).toHaveLength(3);
       expect(g.actions[0].steps.map((s) => s.id)).toEqual(["step-01", "step-02", "step-03"]);
+    });
+
+    it("nested step 追加は ProcessFlow 全体の既存 step-NN を見て採番する (#1332 Codex 11巡目 M1)", () => {
+      const parent = { id: "step-01", kind: "loop", description: "", steps: [] };
+      const workflow = {
+        id: "workflow-01",
+        kind: "workflow",
+        description: "",
+        onApproved: [{ id: "step-02", kind: "log", description: "" }],
+      };
+      const act = makeAction("act-001", [parent, workflow]);
+      const g = makeProcessFlow([act]);
+
+      const nested = addSubStep(parent as never, "log", g);
+
+      expect(nested.id).toBe("step-03");
+      expect((parent.steps as Array<{ id: string }>)[0].id).toBe("step-03");
     });
 
     it("v1/v2 旧 `type` field のみでは追加されない (kind 必須)", () => {

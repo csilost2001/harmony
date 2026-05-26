@@ -591,7 +591,7 @@ export function ProcessFlowEditor() {
       const act = g.actions.find((a) => a.id === activeActionId);
       if (!act) return;
       const parent = act.steps.find((s) => s.id === parentStepId);
-      if (parent) addSubStep(parent, kind);
+      if (parent) addSubStep(parent, kind, g);
     });
     closeContextMenu();
   };

@@ -616,6 +616,7 @@ export function StepCard({
                   onCommit={onCommit}
                   readOnly={readOnly}
                   workspace={workspace}
+                  group={group}
                 />
               )}
 
