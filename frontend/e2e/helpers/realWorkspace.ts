@@ -440,12 +440,16 @@ export function deterministicUuid(input: string): string {
  */
 function buildMinimalProject(): Project {
   const ts = nowIso() as unknown as Project["meta"]["createdAt"];
+  // RFC #1284 / I-7-1: id は kebab-case EntityId、uuid は UUID v4 (required)。
+  // setupTestWorkspace が project 省略時に呼ぶ最小 fixture なので、
+  // 決定論的ではなく毎回ユニークな値で OK (workspace key と独立)。
   return {
     $schema: "../schemas/v3/harmony.v3.schema.json",
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      id: uuid() as unknown as Project["meta"]["id"],
+      id: "e2e-test-project" as unknown as Project["meta"]["id"],
+      uuid: uuid() as unknown as Project["meta"]["uuid"],
       name: "E2E テストプロジェクト",
       maturity: "draft",
       createdAt: ts,
