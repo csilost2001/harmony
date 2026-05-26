@@ -12,8 +12,11 @@
 import { test, expect, type Page } from "@playwright/test";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { folderPickerFixtureRoot } from "./helpers/workspaceFixture.ts";
 
-const FIXTURE_ROOT = path.resolve(".tmp/e2e-folder-picker");
+// #1359: worker prefix 付き fixture root (`.tmp/e2e-folder-picker/w<idx>-root/`)。
+// workers > 1 で複数 worker が同 path に同時 write した時の race を回避する。
+const FIXTURE_ROOT = folderPickerFixtureRoot();
 const FIXTURE_WS_A = path.join(FIXTURE_ROOT, "ws-a");
 const FIXTURE_WS_B = path.join(FIXTURE_ROOT, "ws-b");
 const FIXTURE_NOT_WS = path.join(FIXTURE_ROOT, "not-a-workspace");

@@ -2,10 +2,14 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { lockdownWorkspacePath } from "./helpers/workspaceFixture.ts";
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(THIS_DIR, "../..");
-const LOCKDOWN_WORKSPACE = path.join(REPO_ROOT, ".tmp", "e2e-workspaces", "lockdown-routing");
+// #1359: workspaceFixture.ts:lockdownWorkspacePath() 経由で path を組み立てることで、
+// lockdown config (playwright.lockdown.config.ts) と本 spec の path 構築ロジックを統一する。
+// 現状 lockdown config は workers=1 固定のため worker index = "0" で常に解決される。
+const LOCKDOWN_WORKSPACE = lockdownWorkspacePath();
 
 test.describe("lockdown routing", { tag: ["@regression"] }, () => {
   test.beforeAll(async () => {

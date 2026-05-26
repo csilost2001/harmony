@@ -1,10 +1,14 @@
-import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
+import { lockdownWorkspacePath } from "./e2e/helpers/workspaceFixture.ts";
 
 const VITE_PORT = parseInt(process.env.VITE_PORT ?? "5183", 10);
 const MCP_PORT = parseInt(process.env.DESIGNER_MCP_PORT ?? "5189", 10);
 const BASE_URL = `http://localhost:${VITE_PORT}`;
-const LOCKDOWN_WORKSPACE = path.resolve("..", ".tmp", "e2e-workspaces", "lockdown-routing");
+// #1359: workspaceFixture.ts:lockdownWorkspacePath() を経由することで、本 config と
+// lockdown-routing.spec.ts の path 構築を 1 つの helper に集約する。webServer.env は
+// controller process 起動時に評価される (worker spawn 前) ため、worker index は常に
+// "0" で解決される (本 config は workers: 1 固定、line 15 参照)。
+const LOCKDOWN_WORKSPACE = lockdownWorkspacePath();
 
 export default defineConfig({
   testDir: "./e2e",
