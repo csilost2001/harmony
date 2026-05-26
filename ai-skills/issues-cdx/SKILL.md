@@ -6,6 +6,10 @@ disable-model-invocation: true
 ---
 
 <!--
+  本 skill は **Claude Code 専用** (Codex 側からは呼ばない、`.agents/skills/` symlink なし)。
+  AskUserQuestion / Monitor / run_in_background / TaskCreate 等の Claude Code harness 専用 tool に依存するため。
+  Codex 側で同等のワークフローが欲しい場合は別 skill (tool-agnostic な手順記述) を新設する。
+
   使い方:
     `/issues-cdx 1354 1355 1356` のように 1 件以上の ISSUE 番号を指定。
     必要に応じて自然言語の補足指示を続ける (例:「設計判断を先に確定してから私は寝る」等)。
@@ -33,7 +37,7 @@ ISSUE #$ARGUMENTS を Opus 直接実装 + cdx 反復レビュー方式で解決�
 
 ## Step 0: ISSUE 群を読む
 
-引数が複数 ISSUE 番号の場合は **並列で全件取得**:
+引数が複数 ISSUE 番号の場合は 1 コマンドで連結して取得 (Bash 内で `&&` 連結、各 ISSUE 間は `---SEP---` で区切る):
 
 ```bash
 gh issue view <N1> && echo "---SEP---" && gh issue view <N2> && echo "---SEP---" && gh issue view <N3>
