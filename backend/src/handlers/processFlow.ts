@@ -98,48 +98,83 @@ function nextLocalId(existingIds: Set<string>, prefix: string, padWidth: number)
   return `${prefix}-${String(candidateN).padStart(padWidth + 1, "0")}`;
 }
 
-/** ProcessFlow doc 内の全 action / step / response / branch / outcome の id を 1 つの Set に集める。 */
+/** ProcessFlow doc 内の全 action / step / response / branch / note / outcome の id を 1 つの Set に集める。 */
 function collectAllLocalIds(doc: ProcessFlowDoc): Set<string> {
   const ids = new Set<string>();
+  const collectNotes = (notes: unknown): void => {
+    if (!Array.isArray(notes)) return;
+    for (const nRaw of notes) {
+      if (!isRecord(nRaw)) continue;
+      if (typeof nRaw.id === "string") ids.add(nRaw.id);
+    }
+  };
+  const collectOutcomeSideEffects = (outcomes: unknown, collectFromSteps: (steps: unknown[]) => void): void => {
+    if (!outcomes || typeof outcomes !== "object") return;
+    for (const oc of Object.values(outcomes as Record<string, Record<string, unknown>>)) {
+      if (oc && typeof oc === "object") {
+        const sideEffects = (oc as { sideEffects?: unknown }).sideEffects;
+        if (Array.isArray(sideEffects)) collectFromSteps(sideEffects);
+      }
+    }
+  };
+  const collectFromSteps = (steps: unknown[]): void => {
+    if (!Array.isArray(steps)) return;
+    for (const sRaw of steps) {
+      if (!isRecord(sRaw)) continue;
+      const s = sRaw as Record<string, unknown>;
+      if (typeof s.id === "string") ids.add(s.id);
+      collectNotes(s.notes);
+      const branches = s.branches as Array<Record<string, unknown>> | undefined;
+      if (Array.isArray(branches)) {
+        for (const br of branches) {
+          if (!isRecord(br)) continue;
+          if (typeof br.id === "string") ids.add(br.id);
+          const subSteps = br.steps as unknown[] | undefined;
+          if (Array.isArray(subSteps)) collectFromSteps(subSteps);
+        }
+      }
+      const elseBranch = s.elseBranch as Record<string, unknown> | undefined;
+      if (isRecord(elseBranch)) {
+        if (typeof elseBranch.id === "string") ids.add(elseBranch.id);
+        const elseSteps = elseBranch.steps as unknown[] | undefined;
+        if (Array.isArray(elseSteps)) collectFromSteps(elseSteps);
+      }
+      const innerSteps = s.steps as unknown[] | undefined;
+      if (Array.isArray(innerSteps)) collectFromSteps(innerSteps);
+      const subSteps = s.subSteps as unknown[] | undefined;
+      if (Array.isArray(subSteps)) collectFromSteps(subSteps);
+      const onCommit = s.onCommit as unknown[] | undefined;
+      if (Array.isArray(onCommit)) collectFromSteps(onCommit);
+      const onRollback = s.onRollback as unknown[] | undefined;
+      if (Array.isArray(onRollback)) collectFromSteps(onRollback);
+      const onApproved = s.onApproved as unknown[] | undefined;
+      if (Array.isArray(onApproved)) collectFromSteps(onApproved);
+      const onRejected = s.onRejected as unknown[] | undefined;
+      if (Array.isArray(onRejected)) collectFromSteps(onRejected);
+      const onTimeout = s.onTimeout as unknown[] | undefined;
+      if (Array.isArray(onTimeout)) collectFromSteps(onTimeout);
+      collectOutcomeSideEffects(s.outcomes, collectFromSteps);
+      const errorHandling = s.errorHandling as Record<string, unknown> | undefined;
+      if (isRecord(errorHandling)) collectOutcomeSideEffects(errorHandling.outcomes, collectFromSteps);
+    }
+  };
   const actions = Array.isArray(doc.actions) ? doc.actions : [];
   for (const aRaw of actions) {
+    if (!isRecord(aRaw)) continue;
     const a = aRaw as Record<string, unknown>;
     if (typeof a.id === "string") ids.add(a.id);
+    collectNotes(a.notes);
     const responses = Array.isArray(a.responses) ? a.responses : [];
     for (const rRaw of responses) {
+      if (!isRecord(rRaw)) continue;
       const r = rRaw as Record<string, unknown>;
       if (typeof r.id === "string") ids.add(r.id);
     }
-    // step (再帰的に branch / loop / outcomes.sideEffects も walk)
-    const collectFromSteps = (steps: unknown[]): void => {
-      if (!Array.isArray(steps)) return;
-      for (const sRaw of steps) {
-        const s = sRaw as Record<string, unknown>;
-        if (typeof s.id === "string") ids.add(s.id);
-        const branches = s.branches as Array<Record<string, unknown>> | undefined;
-        if (Array.isArray(branches)) {
-          for (const br of branches) {
-            if (typeof br.id === "string") ids.add(br.id);
-            const subSteps = br.steps as unknown[] | undefined;
-            if (Array.isArray(subSteps)) collectFromSteps(subSteps);
-          }
-        }
-        const innerSteps = s.steps as unknown[] | undefined;
-        if (Array.isArray(innerSteps)) collectFromSteps(innerSteps);
-        const subSteps = s.subSteps as unknown[] | undefined;
-        if (Array.isArray(subSteps)) collectFromSteps(subSteps);
-        const outcomes = s.outcomes as Record<string, Record<string, unknown>> | undefined;
-        if (outcomes && typeof outcomes === "object") {
-          for (const oc of Object.values(outcomes)) {
-            const se = oc?.sideEffects as unknown[] | undefined;
-            if (Array.isArray(se)) collectFromSteps(se);
-          }
-        }
-      }
-    };
     const aSteps = a.steps as unknown[] | undefined;
     collectFromSteps(Array.isArray(aSteps) ? aSteps : []);
   }
+  const authoring = (doc as unknown as Record<string, unknown>).authoring as Record<string, unknown> | undefined;
+  if (isRecord(authoring)) collectNotes(authoring.notes);
   return ids;
 }
 
@@ -1111,6 +1146,14 @@ function collectNestedStepLists(s: Record<string, unknown>): Array<unknown[]> {
   if (s.outcomes && typeof s.outcomes === "object") {
     for (const oc of Object.values(s.outcomes as Record<string, { sideEffects?: unknown[] }>)) {
       if (oc && Array.isArray(oc.sideEffects)) lists.push(oc.sideEffects);
+    }
+  }
+  if (s.errorHandling && typeof s.errorHandling === "object") {
+    const outcomes = (s.errorHandling as { outcomes?: Record<string, { sideEffects?: unknown[] }> }).outcomes;
+    if (outcomes && typeof outcomes === "object") {
+      for (const oc of Object.values(outcomes)) {
+        if (oc && Array.isArray(oc.sideEffects)) lists.push(oc.sideEffects);
+      }
     }
   }
   return lists;

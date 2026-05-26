@@ -283,6 +283,60 @@ describe("designer__add_action + designer__add_step — #1141 F-4 + #1332 M3 Loc
     ).rejects.toThrow(/Invalid actionId.*LocalId/);
   });
 
+  it("designer__add_step: nested / workflow / errorHandling の既存 step-NN を含めて step-03 以降を採番する (#1332 Codex 11巡目 M3)", async () => {
+    const fixtureId = "nested-id-fixture";
+    await writeProcessFlow(fixtureId, {
+      $schema: "../../../../schemas/v3/process-flow.v3.schema.json",
+      meta: {
+        id: fixtureId,
+        uuid: "22222222-2222-4222-8222-222222222222",
+        name: "nested-id-fixture",
+        flowType: "common",
+        maturity: "draft",
+        createdAt: "2026-05-27T00:00:00.000Z",
+        updatedAt: "2026-05-27T00:00:00.000Z",
+      },
+      context: {},
+      actions: [{
+        id: "act-001",
+        name: "act",
+        trigger: "click",
+        steps: [
+          {
+            id: "step-01",
+            kind: "workflow",
+            description: "",
+            onApproved: [{ id: "step-02", kind: "log", description: "" }],
+            errorHandling: {
+              outcomes: {
+                failure: {
+                  action: "continue",
+                  sideEffects: [{ id: "step-04", kind: "log", description: "" }],
+                },
+              },
+            },
+          },
+        ],
+      }],
+      authoring: {
+        notes: [{ id: "note-01", kind: "assumption", body: "note" }],
+      },
+    }, root);
+
+    const res = await handleProcessFlowTool(
+      "designer__add_step",
+      { processFlowId: fixtureId, actionId: "act-001", kind: "compute", description: "new step" },
+      root,
+      SESSION_ID,
+    );
+
+    const idMatch = (res!.content[0].text as string).match(/ID: ([a-z][a-z0-9-]*)/);
+    expect(idMatch![1]).toBe("step-05");
+    const reloaded = await readProcessFlow(fixtureId, root) as Record<string, unknown>;
+    const steps = ((reloaded.actions as Array<Record<string, unknown>>)[0].steps) as Array<Record<string, unknown>>;
+    expect(steps.at(-1)?.id).toBe("step-05");
+  });
+
   // #1332 Codex 9 巡目 M3: 連続採番 (act-001 → act-002 → act-003) が衝突せず増えていく
   it("designer__add_action: 連続採番が act-002 / act-003 と inkrementiert される (#1332 M3)", async () => {
     const res2 = await handleProcessFlowTool(
