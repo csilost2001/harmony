@@ -64,7 +64,11 @@ export function DesignerTabHost({ screenId, screenName, isActive }: DesignerTabH
         } catch { /* ignore */ }
 
         // gadget design HTML 並列 pre-load
-        const gadgetIds = Object.values(pl.assignments ?? {}).filter((id): id is string => typeof id === "string");
+        // Round 6 Phase C: assignments value は ScreenId brand (canonical 統一)。
+        // string 受け渡しのため downcast。runtime guard も typeof string で維持。
+        const gadgetIds = Object.values(pl.assignments ?? {})
+          .filter((id) => typeof id === "string")
+          .map((id) => id as string);
         const nextMap = new Map<string, string>();
         await Promise.all(gadgetIds.map(async (gid) => {
           try {

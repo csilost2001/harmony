@@ -5,43 +5,19 @@
  * backend WebSocket handlers: loadPageLayout / savePageLayout / deletePageLayout / listAllPageLayouts
  */
 
-import type { Uuid, Timestamp, DisplayName, Maturity } from "../types/v3";
+import type { Uuid, Timestamp, DisplayName } from "../types/v3";
 import type { PageLayoutEntry } from "../types/v3/harmony";
+import type { PageLayout, PageLayoutDesign, Region } from "../types/v3/page-layout";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { loadRawProject, saveRawProject } from "./flowStore";
 import { renumber, nextNo } from "../utils/listOrder";
 
-// ─── PageLayout 型 (schema と 1:1) ───────────────────────────────────────────
-
-export type PageLayoutEditorKind = "grapesjs" | "puck";
-export type PageLayoutCssFramework = "bootstrap" | "tailwind";
-
-export interface PageLayoutDesign {
-  editorKind: PageLayoutEditorKind;
-  cssFramework: PageLayoutCssFramework;
-  designFileRef?: string;
-  puckDataRef?: string;
-  thumbnailRef?: string;
-}
-
-export interface PageLayoutRegion {
-  name: string;
-  description?: string;
-}
-
-export interface PageLayout {
-  $schema?: string;
-  id: Uuid;
-  name: DisplayName;
-  description?: string;
-  maturity?: Maturity;
-  regions: PageLayoutRegion[];
-  assignments: Record<string, string>;
-  processFlowId?: Uuid;
-  design: PageLayoutDesign;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
+// Round 6 Phase C: 型定義は canonical (`types/v3/page-layout`) を一次 source とし、
+// store 内では re-export のみ行う (#1336 / Round 5 Codex M-R5-3 解消)。
+export type PageLayoutEditorKind = PageLayoutDesign["editorKind"];
+export type PageLayoutCssFramework = PageLayoutDesign["cssFramework"];
+export type PageLayoutRegion = Region;
+export type { PageLayout, PageLayoutDesign };
 
 // ─── Storage backend interface ────────────────────────────────────────────────
 

@@ -150,16 +150,14 @@ export function PageLayoutListView() {
       const ts = new Date().toISOString() as Timestamp;
       const newId = makeDuplicatedEntityId(String(full.id), idSet) as PageLayout["id"];
       idSet.add(String(newId));
-      // I-7 Round 3 G-2: pageLayoutStore.ts の local PageLayout は assignments を
-      // `Record<string, string>` で扱っており、types/v3/page-layout の正史 PageLayout
-      // (`Record<string, Uuid>`) と brand 不整合となるため、明示 cast で吸収。
-      // 型契約 (schemas/types/store) の統一は follow-up ISSUE #1336 で対応 (本 PR scope 外)。
+      // I-7 Round 6 Phase C: pageLayoutStore は canonical `types/v3/page-layout` を
+      // re-export するようになり、`Record<string, ScreenId>` で統一済。cast 不要 (#1336 解消)。
       const copy: PageLayout = {
         ...full,
         id: newId,
         uuid: generateUUID() as PageLayout["uuid"],
         name: `${full.name} のコピー` as DisplayName,
-        assignments: full.assignments as PageLayout["assignments"],
+        assignments: full.assignments,
         createdAt: ts,
         updatedAt: ts,
       };

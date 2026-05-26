@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
-import type { Maturity } from "../../types/v3";
+import type { Maturity, ScreenId } from "../../types/v3";
 import type { PageLayout, PageLayoutRegion } from "../../store/pageLayoutStore";
 import { loadPageLayout, savePageLayout, listPageLayouts } from "../../store/pageLayoutStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
@@ -307,7 +307,9 @@ export function PageLayoutEditor() {
     updateWithDraft((s) => {
       const assignments = { ...(s.assignments ?? {}) };
       if (screenId) {
-        assignments[regionName] = screenId;
+        // Round 6 Phase C: assignments value は ScreenId brand 型 (canonical 統一)。
+        // UI input は plain string で受け取り、entity-typed brand に narrowing する。
+        assignments[regionName] = screenId as ScreenId;
       } else {
         delete assignments[regionName];
       }

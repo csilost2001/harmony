@@ -18,7 +18,7 @@
  * 参考: schemas/v3/page-layout.v3.schema.json
  */
 
-import type { Authoring, EntityMeta, Uuid } from "./common";
+import type { Authoring, EntityMeta, ScreenId, Uuid } from "./common";
 
 /**
  * PageLayout 内の region (slot) 宣言。
@@ -78,7 +78,7 @@ export interface PageLayout extends EntityMeta {
    * main region は content slot として page Screen が嵌まるため
    * assignments には通常含めない (含めても loader が無視)。
    */
-  assignments: Record<string, Uuid>;
+  assignments: Record<string, ScreenId>;
   /**
    * ガジェット間連携 orchestrator として紐付ける ProcessFlow ID (optional)。
    * MVP では schema 上は枠のみ用意、実装は Phase 2 (RFC #1021 Q2=a)。
