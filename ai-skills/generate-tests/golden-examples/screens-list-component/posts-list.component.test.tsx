@@ -1,12 +1,12 @@
 /**
  * コンポーネントテスト: 投稿一覧 (list)
  *
- * // ===HARMONY_GENERATED_SECTION_START screenId=31d56212-b654-46dc-b004-096c7382c404===
+ * // ===HARMONY_GENERATED_SECTION_START screenId=post-list-screen===
  * // このコメントブロックは /generate-tests スキル再実行時に overwrite される。
  * // anchor の外側 (人手追記 assertion) は保護される。
  * // ===HARMONY_GENERATED_SECTION_END===
  *
- * Screen: 31d56212-b654-46dc-b004-096c7382c404 (投稿一覧)
+ * Screen: post-list-screen (投稿一覧)
  * Screen kind: list
  * Screen path: /
  * Screen auth: required
@@ -26,7 +26,7 @@
  *   → input テスト: <select> 選択値変更 → state 更新
  *
  * [items[direction=output, id=posts], type=array]
- *   valueFrom.kind=flowVariable, processFlowId=e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b, variableName=posts
+ *   valueFrom.kind=flowVariable, processFlowId=post-search-flow, variableName=posts
  *   → flow httpRoute: GET /api/posts/search
  *   → msw で GET /api/posts/search をインターセプト → mock レスポンス → 投稿カード表示を assert
  *
@@ -35,19 +35,19 @@
  *   → render テスト: data-testid="availableTags" が DOM に存在
  *
  * [items[direction=output, id=totalCount], type=integer]
- *   valueFrom.kind=flowVariable, processFlowId=e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b, variableName=totalCount
+ *   valueFrom.kind=flowVariable, processFlowId=post-search-flow, variableName=totalCount
  *   → msw mock レスポンスの total 値が画面に表示されることを assert
  *
  * [events[] = 空配列]
  *   → events section: spec ↔ impl 乖離検出ノート + skip テストのみ
- *   → #864 (events[] 補完) 完了後に /generate-tests 31d56212-b654-46dc-b004-096c7382c404 を再実行
+ *   → #864 (events[] 補完) 完了後に /generate-tests post-list-screen を再実行
  *
  * === 申し送り事項 ===
  * EVENTS-1: events[] が空。#864 (events[] 補完) 完了後に再生成すること。
  *           FAB (新規投稿ボタン) の click → POST /api/posts フロー起動は
  *           events[] 補完後に Section 4 で自動生成される予定。
- * API-1: processFlowId=e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b の httpRoute は
- *        GET /api/posts/search (流 process-flows/e6f7a8b9...json より確認済み)。
+ * API-1: processFlowId=post-search-flow の httpRoute は
+ *        GET /api/posts/search (process-flows/post-search-flow.json より確認済み)。
  * COMPONENT-1: 実際のコンポーネントファイルパスは PLACEHOLDER。
  *              Next.js App Router 構成の場合 app/(dashboard)/page.tsx 等に配置想定。
  */
@@ -99,10 +99,10 @@ function renderWithProviders(ui: React.ReactElement) {
 // msw サーバー設定
 // ──────────────────────────────────────────────────────────────
 
-// ===HARMONY_GENERATED_SECTION_START screenId=31d56212-b654-46dc-b004-096c7382c404===
+// ===HARMONY_GENERATED_SECTION_START screenId=post-list-screen===
 // output items の valueFrom.kind=flowVariable 解決結果:
-//   item:posts       → processFlowId=e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b
-//   item:totalCount  → processFlowId=e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b
+//   item:posts       → processFlowId=post-search-flow
+//   item:totalCount  → processFlowId=post-search-flow
 //   flow httpRoute:  GET /api/posts/search (process-flows/e6f7a8b9...json actions[0].httpRoute)
 const mockPosts = [
   {
@@ -130,8 +130,8 @@ const mockPosts = [
 ];
 
 const handlers = [
-  // Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:posts
-  //   valueFrom.processFlowId=e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b
+  // Spec: Screen post-list-screen item:posts
+  //   valueFrom.processFlowId=post-search-flow
   //   flow httpRoute: GET /api/posts/search
   http.get('*/api/posts/search', () => {
     return HttpResponse.json({
@@ -177,7 +177,7 @@ const StubPostsListPage: React.FC = () => {
 
   return (
     <div>
-      {/* Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:searchQuery direction=input type=string */}
+      {/* Spec: Screen post-list-screen item:searchQuery direction=input type=string */}
       <input
         data-testid="searchQuery"
         type="text"
@@ -186,7 +186,7 @@ const StubPostsListPage: React.FC = () => {
         placeholder="投稿を検索…"
       />
 
-      {/* Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:selectedTagSlugs direction=input type=array */}
+      {/* Spec: Screen post-list-screen item:selectedTagSlugs direction=input type=array */}
       <div data-testid="selectedTagSlugs">
         {availableTags.map(tag => (
           <input
@@ -205,7 +205,7 @@ const StubPostsListPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:statusFilter direction=input type=enum options=[all,published,draft] */}
+      {/* Spec: Screen post-list-screen item:statusFilter direction=input type=enum options=[all,published,draft] */}
       <select
         data-testid="statusFilter"
         value={statusFilter}
@@ -216,21 +216,21 @@ const StubPostsListPage: React.FC = () => {
         <option value="draft">下書き</option>
       </select>
 
-      {/* Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:posts direction=output type=array valueFrom.kind=flowVariable */}
+      {/* Spec: Screen post-list-screen item:posts direction=output type=array valueFrom.kind=flowVariable */}
       <ul data-testid="posts">
         {posts.map(p => (
           <li key={p.postId} data-testid={`post-${p.postId}`}>{p.title}</li>
         ))}
       </ul>
 
-      {/* Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:availableTags direction=output type=array */}
+      {/* Spec: Screen post-list-screen item:availableTags direction=output type=array */}
       <div data-testid="availableTags">
         {availableTags.map(t => (
           <span key={t.id} data-testid={`tag-${t.slug}`}>{t.name}</span>
         ))}
       </div>
 
-      {/* Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:totalCount direction=output type=integer valueFrom.kind=flowVariable */}
+      {/* Spec: Screen post-list-screen item:totalCount direction=output type=integer valueFrom.kind=flowVariable */}
       <span data-testid="totalCount">{totalCount}</span>
     </div>
   );
@@ -244,7 +244,7 @@ describe('投稿一覧コンポーネント', () => {
   describe('Section 1: render — items が DOM に存在すること', () => {
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:searchQuery
+     * Spec: Screen post-list-screen item:searchQuery
      *   direction=input, type=string
      */
     it('#1 searchQuery (data-testid="searchQuery") が表示される', () => {
@@ -253,7 +253,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:selectedTagSlugs
+     * Spec: Screen post-list-screen item:selectedTagSlugs
      *   direction=input, type=array
      */
     it('#2 selectedTagSlugs (data-testid="selectedTagSlugs") が表示される', () => {
@@ -262,7 +262,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:statusFilter
+     * Spec: Screen post-list-screen item:statusFilter
      *   direction=input, type=enum, options=[all,published,draft]
      */
     it('#3 statusFilter (data-testid="statusFilter") が表示される', () => {
@@ -271,7 +271,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:posts
+     * Spec: Screen post-list-screen item:posts
      *   direction=output, type=array, valueFrom.kind=flowVariable
      */
     it('#4 posts (data-testid="posts") が表示される', () => {
@@ -280,7 +280,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:availableTags
+     * Spec: Screen post-list-screen item:availableTags
      *   direction=output, type=array (valueFrom なし)
      */
     it('#5 availableTags (data-testid="availableTags") が表示される', () => {
@@ -289,7 +289,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:totalCount
+     * Spec: Screen post-list-screen item:totalCount
      *   direction=output, type=integer, valueFrom.kind=flowVariable
      */
     it('#6 totalCount (data-testid="totalCount") が表示される', () => {
@@ -305,7 +305,7 @@ describe('投稿一覧コンポーネント', () => {
   describe('Section 2: input — state 更新テスト', () => {
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:searchQuery
+     * Spec: Screen post-list-screen item:searchQuery
      *   direction=input, type=string
      *   <input type="text"> に文字入力 → value が更新される
      */
@@ -321,7 +321,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:statusFilter
+     * Spec: Screen post-list-screen item:statusFilter
      *   direction=input, type=enum, options=[all,published,draft]
      *   <select> の選択値変更 → value が更新される
      */
@@ -336,7 +336,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:statusFilter
+     * Spec: Screen post-list-screen item:statusFilter
      *   direction=input, type=enum, options=[all,published,draft]
      *   defaultValue="all" が初期値になっている
      */
@@ -348,7 +348,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:selectedTagSlugs
+     * Spec: Screen post-list-screen item:selectedTagSlugs
      *   direction=input, type=array
      *   checkbox を click → 配列に slug が追加される
      */
@@ -364,7 +364,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:selectedTagSlugs
+     * Spec: Screen post-list-screen item:selectedTagSlugs
      *   direction=input, type=array
      *   選択済み checkbox を再 click → 配列から slug が除去される
      */
@@ -388,9 +388,9 @@ describe('投稿一覧コンポーネント', () => {
   describe('Section 3: output — API レスポンスが画面に反映されること', () => {
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:posts
+     * Spec: Screen post-list-screen item:posts
      *   direction=output, type=array
-     *   valueFrom.kind=flowVariable, processFlowId=e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b, variableName=posts
+     *   valueFrom.kind=flowVariable, processFlowId=post-search-flow, variableName=posts
      *
      * msw で GET /api/posts/search をインターセプト → mockPosts[0].title が表示される
      */
@@ -404,7 +404,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:posts
+     * Spec: Screen post-list-screen item:posts
      *   direction=output, type=array
      *   msw mock で 2 件返す → post カードが 2 件表示される
      */
@@ -418,7 +418,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:totalCount
+     * Spec: Screen post-list-screen item:totalCount
      *   direction=output, type=integer
      *   valueFrom.kind=flowVariable, processFlowId=e6f7a8b9-..., variableName=totalCount
      *
@@ -434,7 +434,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:availableTags
+     * Spec: Screen post-list-screen item:availableTags
      *   direction=output, type=array (valueFrom なし)
      *   コンポーネント内部で管理されるタグ一覧が表示される
      */
@@ -446,7 +446,7 @@ describe('投稿一覧コンポーネント', () => {
     });
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:posts
+     * Spec: Screen post-list-screen item:posts
      *   API エラー時の挙動 (msw で 500 を返す)
      */
     it('#16 GET /api/posts/search が 500 を返しても posts エリアは表示される', async () => {
@@ -472,10 +472,10 @@ describe('投稿一覧コンポーネント', () => {
   describe('Section 4: events — ボタンクリックで fetch が発火すること', () => {
 
     /**
-     * NOTICE: Screen 31d56212-b654-46dc-b004-096c7382c404 の events[] は現在空配列です。
+     * NOTICE: Screen post-list-screen の events[] は現在空配列です。
      *
      * events[] 補完 (#864) が完了したら再生成してください:
-     *   /generate-tests 31d56212-b654-46dc-b004-096c7382c404
+     *   /generate-tests post-list-screen
      *
      * 【spec ↔ impl 乖離検出ノート】
      * events 未定義の場合、コンポーネント側のボタン (例: FAB「新規投稿」) が
@@ -484,12 +484,12 @@ describe('投稿一覧コンポーネント', () => {
      *   1. FAB クリック → POST /api/posts (投稿作成フロー 0671b051-...) の起動
      *   2. タグフィルタ変更 → GET /api/posts/search の再呼び出し
      *   3. handlerFlowId → httpRoute → fetch URL のマッピングを確認する
-     *   4. /generate-tests 31d56212-b654-46dc-b004-096c7382c404 を再実行して
+     *   4. /generate-tests post-list-screen を再実行して
      *      Section 4 を自動更新する
      */
     it.skip('#17 events テストは events[] 補完 (#864) 完了後に生成予定', () => {
       // このテストは events[] が空のため skip している。
-      // #864 が close されたら /generate-tests 31d56212-b654-46dc-b004-096c7382c404 を再実行すること。
+      // #864 が close されたら /generate-tests post-list-screen を再実行すること。
     });
 
   });
