@@ -12,7 +12,7 @@
  *   - copyExampleWorkspace(exampleName, key): examples/<name>/ をコピー
  *   - setupTestWorkspace({ key, project, tables, processFlows, ... }): 任意 seed データから
  *     最小ワークスペースを作って backend に open し、wsId を返す
- *   - cleanupRealWorkspaces(keys): .tmp/e2e-workspaces/<key>/ を削除
+ *   - cleanupRealWorkspaces(keys): .tmp/e2e-workspaces/w<workerIndex>-<key>/ を削除
  *   - isMcpRunning(): port 5179 LISTEN チェック (test.skip 用)
  *   - sendBrowserRequest(method, params): wsBridge への RPC (workspace.open 等の操作)
  */
@@ -98,7 +98,10 @@ export interface PageLike {
  * 旧 LegacyProjectInput は削除済み。v1 形式のデータは β/γ で builder 経由で v3 に変換する。
  */
 export interface SetupTestWorkspaceOptions {
-  /** 一意キー (.tmp/e2e-workspaces/<key>/ になる) */
+  /**
+   * 一意キー (`.tmp/e2e-workspaces/w<workerIndex>-<key>/` に展開される)。
+   * #1356: Playwright `TEST_WORKER_INDEX` env を path に embed することで workers > 1 でも storage 衝突しない。
+   */
   key: string;
   /**
    * 予約フラグ (現在未使用)。
@@ -145,15 +148,29 @@ const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(THIS_DIR, "../../..");
 const TMP_ROOT = path.join(REPO_ROOT, ".tmp", "e2e-workspaces");
 
+/**
+ * Playwright worker index — workers > 1 で同 key を別 directory に隔離するための prefix。
+ * Playwright は worker process ごとに `TEST_WORKER_INDEX` env を設定する (0 origin)。
+ * Vitest 等 Playwright 外からこのモジュールが import された場合は worker prefix なし
+ * (worker prefix 自体が `w${index}-` 形式なので、env 未設定時は `w0-` 固定で衝突は
+ * 起こらない = 単一 process 扱いで十分)。
+ *
+ * #1356: 旧来 `.tmp/e2e-workspaces/<key>/` 直下に書き出していたため Playwright workers > 1
+ * で同一 key を複数 worker が同時に書き込むと storage 競合が発生していた。本 prefix で
+ * 完全隔離した結果、`buildMinimalProject` の Project.meta.id は固定値のまま (storage が
+ * worker 別 directory に分かれているため EntityId 重複は別 namespace 上の同名扱いとなり問題なし)。
+ */
+const TEST_WORKER_INDEX: string = process.env.TEST_WORKER_INDEX ?? "0";
+
 export function repoPath(...segments: string[]): string {
   return path.join(REPO_ROOT, ...segments);
 }
 
 export function tempWorkspacePath(key: string): string {
-  return path.join(TMP_ROOT, key);
+  return path.join(TMP_ROOT, `w${TEST_WORKER_INDEX}-${key}`);
 }
 
-/** examples/<exampleName>/ を .tmp/e2e-workspaces/<key>/ にコピー */
+/** examples/<exampleName>/ を .tmp/e2e-workspaces/w<workerIndex>-<key>/ にコピー */
 export async function copyExampleWorkspace(
   exampleName: string,
   key: string,
@@ -448,7 +465,8 @@ function buildMinimalProject(): Project {
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      // 注意: 現状 sequential e2e のみで衝突しない。worker 並列化時 (Playwright workers > 1) は deterministicUuid 化を検討。
+      // #1356: workspace path 自体に worker index を embed する (tempWorkspacePath) ことで
+      // workers > 1 でも storage 衝突しないため、Project.meta.id は固定 EntityId のまま運用可能。
       id: "e2e-test-project" as unknown as Project["meta"]["id"],
       uuid: uuid() as unknown as Project["meta"]["uuid"],
       name: "E2E テストプロジェクト",
