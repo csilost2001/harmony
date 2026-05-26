@@ -5,9 +5,10 @@
 // invoke する。ProcessFlowEditor が開いている間の in-memory mutation を担当し、
 // 保存で確定するまでファイルベース (processFlowEdits.ts) と独立に動く。
 //
-// v3 構造の主要点 (#1141 / PR #1148 完了済):
+// v3 構造の主要点 (#1141 / PR #1148 完了済 / #1332 Codex 10 巡目 M1 で id 採番訂正):
 // - discriminator は `kind` (旧 `type` field は全廃)
-// - id は RFC 4122 v4 UUID (legacy `ag-`/`act-`/`step-` prefix は受容しない)
+// - id は schema 規範: top-level entity → EntityId (kebab-case)、intra-entity → LocalId (`act-NNN` / `step-NN` / `br-NN`)
+//   (旧 RFC 4122 v4 UUID は schema/sample 違反だった、#1332 で修正)
 // - meta / context / actions / authoring の 4 並列構造
 //
 // backend handler は `params: a` (元の args) をそのまま送るので、
@@ -50,7 +51,8 @@ export function applyProcessFlowMutation(
         warnNoOp(type, "kind is missing (v3 requires `kind` discriminator)", p);
         return;
       }
-      const step = addStep(act, kind, pos);
+      // #1332 Codex 10 巡目 M1: group context を渡して LocalId 衝突回避
+      const step = addStep(act, kind, pos, g);
       if (p.description) step.description = p.description as string;
       Object.assign(step, (p.detail ?? {}) as object);
       break;

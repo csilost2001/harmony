@@ -12,6 +12,7 @@ import type { ProcessFlowMeta as FlowProcessFlowMeta } from "../types/flow";
 import { migrateProcessFlow, PROCESS_FLOW_V3_SCHEMA_REF } from "../utils/actionMigration";
 import { generateUUID } from "../utils/uuid";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
+import { nextLocalId, collectAllProcessFlowLocalIds } from "../utils/localIdGenerator";
 import { nextNo, renumber } from "../utils/listOrder";
 import { loadProject, saveProject } from "./flowStore";
 
@@ -118,9 +119,13 @@ export async function reorderProcessFlows(fromIndex: number, toIndex: number): P
   await saveProject(project);
 }
 
+// #1332 Codex 10 巡目 M1: Action.id は LocalId (schema 規範 `act-NNN`, 3 桁 padding) 採番。
+// 旧 UUID 採番は schema 違反 (Action.id: LocalId)。group context で既存 ID 集合を確保し、
+// kebab-case `act-001` / `act-002` ... を採番する。backend `nextLocalId` と semantics 整合。
 export function addAction(group: ProcessFlow, name: string, trigger: ActionTrigger): ActionDefinition {
+  const existingIds = collectAllProcessFlowLocalIds(group);
   const action: ActionDefinition = {
-    id: generateUUID() as never,
+    id: nextLocalId(existingIds, "act", 3) as never,
     name,
     trigger,
     steps: [],
@@ -136,8 +141,18 @@ export function removeAction(group: ProcessFlow, actionId: string): void {
 
 // #1145 Phase-3 N-4: 引数名を v3 統一規範 (`kind` discriminator) に合わせて
 // legacy `type` から `kind` にリネーム。createDefaultStep / addSubStep も同様。
-export function addStep(action: ActionDefinition, kind: StepType, insertIndex?: number): Step {
-  const step = createDefaultStep(kind);
+// #1332 Codex 10 巡目 M1: id 採番を LocalId (schema 規範 `step-NN`) に変更。
+// 衝突回避のため group (ProcessFlow) を任意で受ける。未指定時は action ローカル衝突のみ回避。
+export function addStep(
+  action: ActionDefinition,
+  kind: StepType,
+  insertIndex?: number,
+  group?: ProcessFlow,
+): Step {
+  const existingIds = group
+    ? collectAllProcessFlowLocalIds(group)
+    : collectStepIdsFromActionSubtree(action);
+  const step = createDefaultStep(kind, existingIds);
   if (insertIndex !== undefined && insertIndex >= 0 && insertIndex <= action.steps.length) {
     action.steps.splice(insertIndex, 0, step);
   } else {
@@ -158,8 +173,11 @@ export function moveStep(action: ActionDefinition, fromIndex: number, toIndex: n
   action.steps.splice(toIndex, 0, step);
 }
 
-export function addSubStep(parentStep: Step, kind: StepType): Step {
-  const step = createDefaultStep(kind);
+export function addSubStep(parentStep: Step, kind: StepType, group?: ProcessFlow): Step {
+  const existingIds = group
+    ? collectAllProcessFlowLocalIds(group)
+    : collectStepIdsFromActionSubtree({ id: "_tmp" as never, name: "", trigger: "click", steps: [parentStep] });
+  const step = createDefaultStep(kind, existingIds);
   const parent = parentStep as Step & { steps?: Step[] };
   if (!Array.isArray(parent.steps)) parent.steps = [];
   parent.steps.push(step);
@@ -173,8 +191,23 @@ export function removeSubStep(parentStep: Step, subStepId: string): void {
   if (idx >= 0) parent.steps.splice(idx, 1);
 }
 
-export function createDefaultStep(kind: StepType): Step {
-  const base = { id: generateUUID() as never, kind, description: "" };
+/**
+ * Action subtree (steps[]) から既存 LocalId を再帰収集する。
+ * group context が無い場合の fallback 用 (#1332 Codex 10 巡目 M1)。
+ */
+function collectStepIdsFromActionSubtree(action: ActionDefinition): Set<string> {
+  return collectAllProcessFlowLocalIds({ actions: [action] });
+}
+
+// #1332 Codex 10 巡目 M1: createDefaultStep は内部 step.id / branch.id を schema 規範
+// (Step.id / Branch.id: LocalId) で採番する。group 経由で全体衝突回避するため、
+// 既存 ID 集合を `existingIds` に渡す (省略時は空集合 = 単発初期化用)。
+export function createDefaultStep(kind: StepType, existingIds?: Set<string>): Step {
+  const ids = existingIds ?? new Set<string>();
+  const stepId = nextLocalId(ids, "step", 2);
+  // 採番された step.id を ids に登録して branch.id 衝突回避 (連番)
+  ids.add(stepId);
+  const base = { id: stepId as never, kind, description: "" };
   let step: Step;
   switch (kind) {
     case "validation":
@@ -191,15 +224,21 @@ export function createDefaultStep(kind: StepType): Step {
       step = { ...base, kind: "screenTransition", targetScreenId: "" as never }; break;
     case "displayUpdate":
       step = { ...base, kind: "displayUpdate", target: "" }; break;
-    case "branch":
+    case "branch": {
+      // #1332 Codex 10 巡目 M1: Branch.id は schema 規範 (LocalId, `br-NN`) で採番。
+      const brA = nextLocalId(ids, "br", 2);
+      ids.add(brA);
+      const brB = nextLocalId(ids, "br", 2);
+      ids.add(brB);
       step = {
         ...base,
         kind: "branch",
         branches: [
-          { id: generateUUID() as never, code: "A", condition: { kind: "expression", expression: "" }, steps: [] },
-          { id: generateUUID() as never, code: "B", condition: { kind: "expression", expression: "" }, steps: [] },
+          { id: brA as never, code: "A", condition: { kind: "expression", expression: "" }, steps: [] },
+          { id: brB as never, code: "B", condition: { kind: "expression", expression: "" }, steps: [] },
         ],
       }; break;
+    }
     case "loop":
       step = { ...base, kind: "loop", loopKind: "count", steps: [] }; break;
     case "loopBreak":

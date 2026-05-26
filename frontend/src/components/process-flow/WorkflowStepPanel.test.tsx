@@ -124,9 +124,10 @@ describe("WorkflowStepPanel", () => {
       const section = field(container, path);
       fireEvent.click(within(section).getByRole("button", { name: /ステップ追加/ }));
       const patch = onChange.mock.lastCall?.[0] as Partial<WorkflowStep>;
+      // #1332 Codex 10 巡目 M1: id は schema 規範 LocalId (`step-NN`)、UUID v4 ではない
       expect(patch[path]).toEqual([
         {
-          id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+          id: expect.stringMatching(/^step-\d{2,}$/),
           kind: "log",
           level: "info",
           message: "",

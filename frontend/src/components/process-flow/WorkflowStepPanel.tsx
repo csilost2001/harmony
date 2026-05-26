@@ -17,7 +17,8 @@ import {
 } from "../../utils/processFlowMetadata";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import { ConvCompletionInput } from "../common/ConvCompletionInput";
-import { generateUUID } from "../../utils/uuid";
+// #1332 Codex 10 巡目 M1: inner step.id は schema 規範 (LocalId) で採番
+import { nextLocalId } from "../../utils/localIdGenerator";
 
 interface Props {
   step: WorkflowStep;
@@ -144,10 +145,13 @@ export function WorkflowStepPanel({
         type="button"
         className="btn btn-sm btn-outline-secondary py-0"
         onClick={() => {
+          // #1332 Codex 10 巡目 M1: inner step.id は schema 規範 (LocalId) で採番。
+          // siblings (workflow inner steps) ローカルで衝突回避。
+          const ids = new Set<string>(steps.map((s) => String(s.id)));
           onStepsChange([
             ...steps,
             {
-              id: generateUUID() as LocalId,
+              id: nextLocalId(ids, "step", 2) as LocalId,
               kind: "log" as const,
               level: "info" as const,
               message: "",

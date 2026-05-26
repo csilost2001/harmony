@@ -10,7 +10,8 @@ import {
   EXTERNAL_CALL_OUTCOME_VALUES,
   type ExternalCallOutcome,
 } from "../../utils/processFlowMetadata";
-import { generateUUID } from "../../utils/uuid";
+// #1332 Codex 10 巡目 M1: side-effect step.id は schema 規範 (LocalId) で採番
+import { nextLocalId } from "../../utils/localIdGenerator";
 
 interface Props {
   step: ExternalSystemStep;
@@ -56,8 +57,11 @@ export function ExternalOutcomesPanel({ step, onChange, onCommit }: Props) {
     const spec = outcomes[key] ?? { action: "continue" as const };
     // S-7 fix: v3 では step 識別は `kind` (旧 `type` は非規範)。最小構成として kind="log" step を生成。
     // M-1 fix: LogStep 必須フィールド level / message を追加 (schema valid な状態で生成)
+    // #1332 Codex 10 巡目 M1: side-effect step.id は schema 規範 (LocalId) で採番。
+    // sideEffects[] スコープ内の siblings から衝突回避。
+    const ids = new Set<string>((spec.sideEffects ?? []).map((s) => String(s.id)));
     const newStep = {
-      id: generateUUID(),
+      id: nextLocalId(ids, "step", 2),
       kind: "log",
       description: "",
       level: "info",

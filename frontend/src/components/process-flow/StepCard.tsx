@@ -17,8 +17,9 @@ import {
 import type { ValidationError } from "../../utils/actionValidation";
 import { getBindingName, getBindingOperation } from "../../utils/outputBinding";
 import { isExtensionStep, type StepWithSubSteps } from "../../utils/actionUtils";
-import { generateUUID } from "../../utils/uuid";
 import { createDefaultStep } from "../../store/processFlowStore";
+// #1332 Codex 10 巡目 M1: sub step duplicate / 追加時の id 採番を LocalId に統一
+import { nextLocalId, collectAllProcessFlowLocalIds, collectStepSubtreeLocalIds } from "../../utils/localIdGenerator";
 import { MaturityBadge } from "./MaturityBadge";
 import { NotesPanel } from "./NotesPanel";
 import { StepAdvancedMetadataPanel } from "./StepAdvancedMetadataPanel";
@@ -153,7 +154,9 @@ export function StepCard({
   // ── サブステップ管理 ────────────────────────────────────────────────────────
 
   const handleSubAddSubStep = (parentSubIdx: number, type: StepType) => {
-    const newSub = createDefaultStep(type);
+    // #1332 Codex 10 巡目 M1: group context があれば全体衝突回避、無ければ subtree のみ。
+    const ids = group ? collectAllProcessFlowLocalIds(group) : collectStepSubtreeLocalIds(step);
+    const newSub = createDefaultStep(type, ids);
     const arr = subSteps.slice();
     const parentWithSubs = arr[parentSubIdx] as StepWithSubSteps;
     arr[parentSubIdx] = {
@@ -876,8 +879,11 @@ export function StepCard({
                   onCommit?.();
                 }}
                 onDuplicate={() => {
+                  // #1332 Codex 10 巡目 M1: subSteps の duplicate id 採番を LocalId に統一。
+                  // group context があれば全体衝突回避、無ければ siblings ローカル。
                   const clone = JSON.parse(JSON.stringify(sub)) as Step;
-                  clone.id = generateUUID() as LocalId;
+                  const ids = group ? collectAllProcessFlowLocalIds(group) : new Set<string>(subSteps.map((s: Step) => String(s.id)));
+                  clone.id = nextLocalId(ids, "step", 2) as LocalId;
                   const arr = subSteps.slice();
                   arr.splice(si + 1, 0, clone);
                   onChangeWithSubs({ subSteps: arr });
