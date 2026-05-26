@@ -1,0 +1,248 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "post-delete",
+    "uuid": "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f",
+    "name": "投稿削除",
+    "description": "既存投稿を削除する処理フロー。所有者検証後、photos / post_tags / posts を 1 TX 内で順に DELETE する (FK CASCADE 想定だが明示的に削除順序を記述)。TX 失敗時は全体をロールバックする。",
+    "flowType": "common",
+    "maturity": "draft",
+    "createdAt": "2026-05-06T14:00:00.000Z",
+    "updatedAt": "2026-05-22T00:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "UNAUTHORIZED": {
+          "httpStatus": 401,
+          "defaultMessage": "認証が必要です。",
+          "responseId": "401-unauthorized",
+          "description": "セッションユーザーが取得できない場合。"
+        },
+        "FORBIDDEN": {
+          "httpStatus": 403,
+          "defaultMessage": "この投稿を削除する権限がありません。",
+          "responseId": "403-forbidden",
+          "description": "投稿の所有者でない場合。"
+        },
+        "POST_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "投稿が見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定された postId の投稿が存在しない場合。"
+        },
+        "POST_DELETE_FAILED": {
+          "httpStatus": 422,
+          "defaultMessage": "投稿の削除に失敗しました。",
+          "responseId": "422-delete-failed",
+          "description": "TX ロールバックが発生した場合の catch-all エラー。photos / post_tags / posts のいずれかの DELETE が失敗した場合に TX 全体がロールバックされ 422 を返す。"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": true,
+        "description": "ログインユーザー ID (JWT から抽出)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "投稿削除",
+      "trigger": "submit",
+      "description": "postId で既存投稿を特定し、所有者検証後に photos / post_tags / posts を 1 TX 内で順に DELETE する。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "DELETE",
+        "path": "/api/posts/:id",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "postId",
+          "label": "投稿ID",
+          "type": "integer",
+          "required": true,
+          "description": "削除対象の投稿 ID (URL パスパラメータ)。"
+        }
+      ],
+      "outputs": [],
+      "responses": [
+        {
+          "id": "204-no-content",
+          "status": 204,
+          "description": "投稿削除成功。",
+          "when": "全 DELETE が正常完了し TX がコミットされた場合。"
+        },
+        {
+          "id": "401-unauthorized",
+          "status": 401,
+          "description": "認証エラー。",
+          "when": "JWT が無効の場合。"
+        },
+        {
+          "id": "403-forbidden",
+          "status": 403,
+          "description": "権限エラー。",
+          "when": "投稿の所有者でない場合。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "投稿が存在しない。",
+          "when": "指定 postId の投稿が見つからない場合。"
+        },
+        {
+          "id": "422-delete-failed",
+          "status": 422,
+          "description": "投稿削除 TX 失敗。TX はロールバック済み。",
+          "when": "photos / post_tags / posts のいずれかの DELETE が失敗し TX がロールバックされた場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "dbAccess",
+          "description": "投稿の存在確認と所有者情報の取得。",
+          "tableId": "post",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"postId\", user_id AS \"userId\" FROM posts WHERE id = @inputs.postId",
+          "outputBinding": {
+            "name": "existingPost"
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "branch",
+          "description": "投稿が存在しない場合は 404 を返す。",
+          "branches": [
+            {
+              "id": "br-02-a",
+              "code": "A",
+              "label": "投稿なし",
+              "condition": {
+                "kind": "expression",
+                "expression": "@existingPost == null"
+              },
+              "steps": [
+                {
+                  "id": "step-02-a-01",
+                  "kind": "return",
+                  "description": "404 投稿なしを返す。",
+                  "responseId": "404-not-found",
+                  "bodyExpression": "{ code: 'POST_NOT_FOUND', message: '指定された投稿が見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-02-else",
+            "code": "B",
+            "label": "投稿あり",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "所有者でない場合は 403 を返す。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "所有者でない",
+              "condition": {
+                "kind": "expression",
+                "expression": "@existingPost.userId != @sessionUserId"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "403 権限エラーを返す。",
+                  "responseId": "403-forbidden",
+                  "bodyExpression": "{ code: 'FORBIDDEN', message: 'この投稿を削除する権限がありません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "所有者",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "transactionScope",
+          "description": "photos / post_tags / posts の DELETE を 1 TX で原子的に実行する。TX 失敗時は全体をロールバックし @var.action.txResult に結果を expose する。POST_DELETE_FAILED はロールバックトリガーとして列挙する。",
+          "isolationLevel": "READ_COMMITTED",
+          "propagation": "REQUIRED",
+          "outputBinding": {
+            "name": "txResult",
+            "expose": [
+              "committed",
+              "error"
+            ]
+          },
+          "steps": [
+            {
+              "id": "step-04-01",
+              "kind": "dbAccess",
+              "description": "photos テーブルから該当投稿の写真を全削除する。",
+              "tableId": "photo",
+              "operation": "DELETE",
+              "sql": "DELETE FROM photos WHERE post_id = @inputs.postId"
+            },
+            {
+              "id": "step-04-02",
+              "kind": "dbAccess",
+              "description": "post_tags テーブルから該当投稿のタグ関連を全削除する。",
+              "tableId": "post-tag",
+              "operation": "DELETE",
+              "sql": "DELETE FROM post_tags WHERE post_id = @inputs.postId"
+            },
+            {
+              "id": "step-04-03",
+              "kind": "dbAccess",
+              "description": "posts テーブルから該当投稿を削除する。",
+              "tableId": "post",
+              "operation": "DELETE",
+              "sql": "DELETE FROM posts WHERE id = @inputs.postId",
+              "affectedRowsCheck": {
+                "operator": "=",
+                "expected": 1,
+                "onViolation": "throw",
+                "errorCode": "POST_DELETE_FAILED"
+              }
+            }
+          ],
+          "errorHandling": {
+            "rollbackOn": [
+              "POST_DELETE_FAILED"
+            ]
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "return",
+          "runIf": "@var.action.txResult.committed == true",
+          "description": "204 削除成功を返す。TX コミット後にのみ実行する。",
+          "responseId": "204-no-content"
+        },
+        {
+          "id": "step-08",
+          "kind": "return",
+          "runIf": "@var.action.txResult.committed != true",
+          "description": "422 投稿削除失敗を返す。TX ロールバック時にのみ実行する。",
+          "responseId": "422-delete-failed",
+          "bodyExpression": "{ code: 'POST_DELETE_FAILED', message: '投稿の削除に失敗しました。しばらく経ってから再度お試しください。' }"
+        }
+      ]
+    }
+  ]
+}

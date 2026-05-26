@@ -100,6 +100,8 @@ test.describe("画面作成ダイアログ — editorKind / cssFramework 選択 
     await setupFlowEditor(page);
     await openAddScreenModal(page);
     await page.locator("#screen-name").fill("Puck Tailwind 画面");
+    // RFC #1284 / #1297 I-5: 創成時 kebab-case id 必須
+    await page.locator("#screen-id").fill("puck-tailwind-screen");
     await page.locator('input[name="screen-editor-kind"][value="puck"]').click();
     await expect(page.locator('input[name="screen-editor-kind"][value="puck"]')).toBeChecked();
     await page.locator('input[name="screen-css-framework"][value="tailwind"]').click();
@@ -112,6 +114,8 @@ test.describe("画面作成ダイアログ — editorKind / cssFramework 選択 
     await setupFlowEditor(page);
     await openAddScreenModal(page);
     await page.locator("#screen-name").fill("GrapesJS Bootstrap 画面");
+    // RFC #1284 / #1297 I-5: 創成時 kebab-case id 必須
+    await page.locator("#screen-id").fill("grapesjs-bootstrap-screen");
     await page.locator('.flow-modal button[type="submit"]').click();
     await expect(page.locator('.flow-modal')).not.toBeVisible();
   });

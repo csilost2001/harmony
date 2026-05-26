@@ -19,8 +19,10 @@ import type {
   DisplayName,
   LocalId,
   Timestamp,
+  Uuid,
 } from "../types/v3";
 import { loadProject, saveProject } from "./flowStore";
+import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { generateUUID } from "../utils/uuid";
 import { validateTable } from "../utils/tableValidation";
 import type { ValidationError } from "../utils/actionValidation";
@@ -86,6 +88,19 @@ function _emitTableChange(event: TableChangeEvent): void {
   });
 }
 
+/**
+ * Phase J Must-fix E (#1298 round 4 Antigravity M-7): rename / undo 経路から呼ばれる
+ * local pubsub 発火関数。handleRenameSuccess が同一 client 内の他コンポーネント
+ * (FlowEditor / Dashboard 等の Table cache を持つ panel) を即時 invalidate するために使用。
+ *
+ * 旧実装は backend broadcast (`tableChanged`) のみに依存していたが、これは backend → frontend
+ * の往復が必要で、同一 client 内の SPA 遷移先には届かないタイミング window があった。
+ * 本 export で同期的に他コンポーネントへ反映される。
+ */
+export function _emitTableChangeForRename(event: TableChangeEvent): void {
+  _emitTableChange(event);
+}
+
 /** テーブル一覧を取得 (harmony.json の TableEntry[]) */
 export async function listTables(): Promise<TableEntry[]> {
   const project = await loadProject();
@@ -144,11 +159,17 @@ export async function createTable(
   name: DisplayName,
   description?: string,
   category?: string,
+  opts?: { id?: string },
 ): Promise<Table> {
+  // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
+  // 渡されない programmatic path (ErDiagram inline create / 旧 test 等) は fallback。
+  // 空文字 / whitespace-only も fallback に流す (S-1 defense-in-depth)。
   const ts = nowTs();
   const table: Table = {
     $schema: TABLE_SCHEMA_REF,
-    id: generateUUID() as TableId,
+    id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("tbl")) as TableId,
+    // RFC #1284 / Round 6 Phase B: uuid は不変識別子 (UUID v4)、創成時に発番。
+    uuid: generateUUID() as Uuid,
     name,
     description,
     physicalName,

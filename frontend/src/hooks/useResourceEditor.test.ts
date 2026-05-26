@@ -259,6 +259,33 @@ describe("useResourceEditor: broadcast", () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(hook.result.current.serverChanged).toBe(false);
   });
+
+  // Phase G S-1 (#1298 Codex round 2): rename / undo の `{ reload: true }` broadcast を
+  // id filter で reject せず全件 invalidation として処理する
+  it("Phase G S-1: { reload: true } broadcast は id filter を通過して reload を発火する (clean 時)", async () => {
+    let current = { id: "abc", name: "before-rename", count: 0 };
+    const load = vi.fn(async () => current);
+    const { hook } = setup({ load });
+    await waitFor(() => expect(hook.result.current.state?.name).toBe("before-rename"));
+
+    // rename event の broadcast を模す: payload は id field 無し、reload: true のみ
+    current = { id: "abc", name: "after-rename", count: 1 };
+    await act(async () => emitBroadcast("tableChanged", { reload: true }));
+    await waitFor(() => expect(hook.result.current.state?.name).toBe("after-rename"));
+    expect(hook.result.current.serverChanged).toBe(false);
+  });
+
+  it("Phase G S-1: { reload: true } broadcast は dirty 時に serverChanged=true を立てる", async () => {
+    const { hook } = setup();
+    await waitFor(() => expect(hook.result.current.state).not.toBeNull());
+    act(() => hook.result.current.update((d) => { d.name = "user-editing"; }));
+    expect(hook.result.current.isDirty).toBe(true);
+
+    await act(async () => emitBroadcast("tableChanged", { reload: true }));
+    await waitFor(() => expect(hook.result.current.serverChanged).toBe(true));
+    // dirty 中の自動 reload は走らないので state は維持
+    expect(hook.result.current.state?.name).toBe("user-editing");
+  });
 });
 
 // ── P1-B 順序回帰: actions.save (conflict check) → postSave (dirty クリア) (#908) ──────

@@ -13,6 +13,7 @@ function loadJson(path: string): unknown {
 }
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const ENTITY_ID = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 const FIXED_TS = "2026-05-08T00:00:00.000Z";
 
 let validateProject: ValidateFunction;
@@ -42,19 +43,22 @@ describe("buildProject", () => {
     expect(p.meta.mode).toBe("downstream");
   });
 
-  it("uses normalizeId for human-readable id", () => {
+  it("uses kebab-case id passthrough for human-readable id (RFC #1284)", () => {
     const p1 = buildProject({ id: "my-project" });
     const p2 = buildProject({ id: "my-project" });
-    // 同じ入力 id からは常に同じ UUID が生成される (決定論的)
+    // 同じ入力 id からは常に同じ EntityId / uuid が生成される (決定論的)
     expect(p1.meta.id).toBe(p2.meta.id);
-    // UUID v4 形式になっている
-    expect(p1.meta.id).toMatch(UUID_V4);
+    expect(p1.meta.uuid).toBe(p2.meta.uuid);
+    // id は kebab-case 形式
+    expect(p1.meta.id).toMatch(ENTITY_ID);
+    // uuid は UUID v4 形式
+    expect(p1.meta.uuid).toMatch(UUID_V4);
   });
 });
 
 describe("normalizeEntityIds (via buildProject)", () => {
-  it("UUID v4 既に正規な id は変換されない (passthrough)", () => {
-    const validId = "12345678-1234-4234-9234-123456789abc";
+  it("既に kebab-case の id は変換されない (passthrough)", () => {
+    const validId = "screen-one";
     const p = buildProject({
       entities: {
         screens: [{ id: validId as never, no: 1, name: "テスト画面", updatedAt: FIXED_TS as never }],
@@ -63,7 +67,7 @@ describe("normalizeEntityIds (via buildProject)", () => {
     expect((p.entities as { screens?: Array<{ id: string }> }).screens?.[0].id).toBe(validId);
   });
 
-  it("人間可読 id は決定論的に UUID v4 に変換される", () => {
+  it("人間可読 id は決定論的に kebab-case で保持される (RFC #1284)", () => {
     const p1 = buildProject({
       entities: {
         screens: [{ id: "scr-1" as never, no: 1, name: "テスト画面", updatedAt: FIXED_TS as never }],
@@ -77,10 +81,10 @@ describe("normalizeEntityIds (via buildProject)", () => {
     const id1 = (p1.entities as { screens?: Array<{ id: string }> }).screens?.[0].id ?? "";
     const id2 = (p2.entities as { screens?: Array<{ id: string }> }).screens?.[0].id ?? "";
     expect(id1).toBe(id2);
-    expect(id1).toMatch(UUID_V4);
+    expect(id1).toMatch(ENTITY_ID);
   });
 
-  it("cross-reference field (screenId 等) も同じ正規化 UUID になる", () => {
+  it("cross-reference field (screenId 等) も同じ正規化 kebab-case id になる", () => {
     const p = buildProject({
       entities: {
         screens: [{ id: "scr-1" as never, no: 1, name: "テスト画面", updatedAt: FIXED_TS as never }],
@@ -103,9 +107,9 @@ describe("normalizeEntityIds (via buildProject)", () => {
     const screens = (p.entities as { screens?: Array<{ id: string }> }).screens ?? [];
     const tables = (p.entities as { tables?: Array<{ id: string }> }).tables ?? [];
     const flows = (p.entities as { processFlows?: Array<{ id: string }> }).processFlows ?? [];
-    expect(screens[0].id).toMatch(UUID_V4);
-    expect(tables[0].id).toMatch(UUID_V4);
-    expect(flows[0].id).toMatch(UUID_V4);
+    expect(screens[0].id).toMatch(ENTITY_ID);
+    expect(tables[0].id).toMatch(ENTITY_ID);
+    expect(flows[0].id).toMatch(ENTITY_ID);
   });
 
   it("非 id field (name 等) は変換されない", () => {

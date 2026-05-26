@@ -1,0 +1,76 @@
+{
+  "$schema": "../../../../schemas/v3/table.v3.schema.json",
+  "id": "property-master",
+  "uuid": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c",
+  "name": "物件マスタ",
+  "description": "不動産物件の基本情報を管理するマスタテーブル。物件コード・種別・名称・所在地・面積・価格・掲載日を保持する。",
+  "physicalName": "properties",
+  "category": "マスタ",
+  "maturity": "committed",
+  "createdAt": "2026-05-03T00:00:00.000Z",
+  "updatedAt": "2026-05-03T00:00:00.000Z",
+  "columns": [
+    {
+      "id": "col-id",
+      "name": "ID",
+      "physicalName": "id",
+      "dataType": "INTEGER",
+      "notNull": true,
+      "primaryKey": true,
+      "autoIncrement": true,
+      "description": "物件の一意識別子 (auto increment)。"
+    },
+    {
+      "id": "col-property-code",
+      "name": "物件コード",
+      "physicalName": "property_code",
+      "dataType": "VARCHAR",
+      "length": 20,
+      "notNull": true,
+      "unique": true,
+      "description": "物件コード。RE-XXXXX 形式。"
+    },
+    {
+      "id": "col-name",
+      "name": "物件名",
+      "physicalName": "name",
+      "dataType": "VARCHAR",
+      "length": 200,
+      "notNull": true,
+      "description": "物件の名称。"
+    },
+    {
+      "id": "col-property-type",
+      "name": "物件種別",
+      "physicalName": "property_type",
+      "dataType": "VARCHAR",
+      "length": 50,
+      "notNull": true,
+      "description": "物件種別。'apartment' / 'house' / 'land' / 'office' 等。"
+    },
+    {
+      "id": "col-area-sqm",
+      "name": "面積 (m2)",
+      "physicalName": "area_sqm",
+      "dataType": "DECIMAL",
+      "length": 10,
+      "scale": 2,
+      "description": "物件の面積 (平方メートル)。土地の場合は敷地面積。"
+    },
+    {
+      "id": "col-price-10k-yen",
+      "name": "価格 (万円)",
+      "physicalName": "price_10k_yen",
+      "dataType": "INTEGER",
+      "description": "物件価格 (万円単位)。賃貸の場合は月額賃料。"
+    },
+    {
+      "id": "col-listed-at",
+      "name": "掲載日",
+      "physicalName": "listed_at",
+      "dataType": "DATE",
+      "notNull": true,
+      "description": "物件が掲載された日付。"
+    }
+  ]
+}

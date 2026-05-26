@@ -1,0 +1,73 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "dashboard",
+  "uuid": "3a000000-2000-4000-8000-000000000001",
+  "name": "ダッシュボード",
+  "description": "アプリ起動時の最初に表示される画面。当月の収入合計・支出合計・差引残高に加え、直近の取引 (5 件) と支出カテゴリ別ドーナツチャートを 1 画面に集約する。Tailwind の gradient hero + soft shadow card grid + rounded-2xl で先進的な見た目を実現する想定。",
+  "createdAt": "2026-05-24T00:00:00.000Z",
+  "updatedAt": "2026-05-24T00:00:00.000Z",
+  "maturity": "draft",
+  "kind": "dashboard",
+  "purpose": "page",
+  "path": "/",
+  "groupId": "household-budget",
+  "auth": "required",
+  "processFlowId": "dashboard-data-get",
+  "items": [
+    {
+      "id": "currentMonthIncome",
+      "label": "今月の収入",
+      "type": "number",
+      "direction": "output",
+      "displayFormat": "¥#,##0",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "summary.monthlyIncome"
+      },
+      "helperText": "当月 (1 日 〜 月末) の収入合計。fetchDashboardData flow が strftime('%Y-%m','now') で当月絞り込みして算出。"
+    },
+    {
+      "id": "currentMonthExpense",
+      "label": "今月の支出",
+      "type": "number",
+      "direction": "output",
+      "displayFormat": "¥#,##0",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "summary.monthlyExpense"
+      },
+      "helperText": "当月の支出合計。fetchDashboardData flow から取得。"
+    },
+    {
+      "id": "currentMonthBalance",
+      "label": "今月の収支",
+      "type": "number",
+      "direction": "output",
+      "displayFormat": "¥#,##0",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "summary.balance"
+      },
+      "helperText": "収入 - 支出 (fetchDashboardData flow の compute step で導出済)。正値=黒字、負値=赤字。"
+    },
+    {
+      "id": "recentTransactions",
+      "label": "直近の取引",
+      "type": {
+        "kind": "tableList",
+        "tableId": "transaction"
+      },
+      "direction": "viewer",
+      "viewDefinitionId": "transaction-list-viewer",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "recentTransactionRows"
+      },
+      "helperText": "occurred_on 降順で 5 件のみ表示。クリックで一覧画面へ遷移。"
+    }
+  ],
+  "design": {
+    "editorKind": "puck",
+    "cssFramework": "tailwind"
+  }
+}

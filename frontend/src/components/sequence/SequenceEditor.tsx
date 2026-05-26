@@ -11,6 +11,11 @@ import { useEditSession } from "../../hooks/useEditSession";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { useSessionUrlSync } from "../../hooks/useSessionUrlSync";
 import { EditorHeader, type EditorHeaderSaveReset, type EditorHeaderBackLink } from "../common/EditorHeader";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
+import { listSequences } from "../../store/sequenceStore";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
@@ -38,7 +43,7 @@ export function SequenceEditor() {
   const { sequenceId: rawId } = useParams<{ sequenceId: string }>();
   const sequenceId = rawId ? decodeURIComponent(rawId) : rawId;
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
 
   const [ddlOpen, setDdlOpen] = useState(false);
   const [numberingKeys, setNumberingKeys] = useState<Array<{ key: string; entry: NumberingEntry }>>([]);
@@ -49,6 +54,19 @@ export function SequenceEditor() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  // Phase M Codex SF-1 (#1298 round 8): wsId scoped key
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("sequence", sequenceId, wsId);
+  const [allSequenceIds, setAllSequenceIds] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await listSequences();
+        setAllSequenceIds(list.map((s) => s.id as unknown as string));
+      } catch { /* backend 未接続時は空配列のまま */ }
+    })();
+  }, [sequenceId]);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/sequence/list"), { replace: true }), [navigate, wsPath]);
 
@@ -89,6 +107,8 @@ export function SequenceEditor() {
     viewerMode: mode.kind as "viewer" | "editing" | "readonly",
     viewerResourceType: "sequence",
     viewerEditSessionId: editSession?.id,
+    // I-7 Round 3 G-5 (#1299 Codex S-R2-1): rename-in-progress 判定の wsId scoping
+    wsId,
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -330,16 +350,35 @@ export function SequenceEditor() {
           onClick: () => navigate(wsPath("/sequence/list")),
         } satisfies EditorHeaderBackLink}
         extraRight={
-          <EditSessionDropdown
-            resourceType="sequence"
-            resourceId={sequenceId ?? ""}
-            currentMode={mode}
-            currentSessionId={sessionId}
-            onStartEditing={() => { void actions.startEditing(); }}
-            onViewerAttached={syncSessionToUrl}
-            onAttachAsView={attach}
-            onTakeOver={takeOver}
-          />
+          <>
+            <EditSessionDropdown
+              resourceType="sequence"
+              resourceId={sequenceId ?? ""}
+              currentMode={mode}
+              currentSessionId={sessionId}
+              onStartEditing={() => { void actions.startEditing(); }}
+              onViewerAttached={syncSessionToUrl}
+              onAttachAsView={attach}
+              onTakeOver={takeOver}
+            />
+            {/* #1298 I-6 (RFC #1284): id rename refactor */}
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => setShowRenameDialog(true)}
+              disabled={isReadonly || isDirty}
+              title={
+                isReadonly
+                  ? "編集モードに切り替えてから id を変更できます"
+                  : isDirty
+                  ? "未保存の変更があります。保存または破棄してから id を変更してください"
+                  : "id を変更 (rename refactor)"
+              }
+              data-testid="rename-entity-open-btn-sequence"
+            >
+              <i className="bi bi-tag" /> id 変更
+            </button>
+          </>
         }
         saveReset={isReadonly ? undefined : {
           isDirty,
@@ -614,6 +653,58 @@ export function SequenceEditor() {
           )}
         </section>
       </div>
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && sequenceId && (
+        <RenameEntityDialog
+          entityType="sequence"
+          currentId={sequenceId}
+          currentName={seq.physicalName || seq.name || ""}
+          existingIds={allSequenceIds}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => (await listSequences()).map((s) => s.id)}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId, extra) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "sequence",
+              oldId: sequenceId,
+              newId,
+              label: seq.physicalName || seq.name || newId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast({
+              operationId, oldId: sequenceId, newId,
+              ttlMs: extra?.ttlMs,
+            });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          ttlMs={renameUndoToast.ttlMs}
+          entityLabel="シーケンス"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "sequence",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: seq.physicalName || seq.name || renameUndoToast.oldId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </div>
   );
 }

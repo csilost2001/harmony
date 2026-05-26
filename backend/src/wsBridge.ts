@@ -14,6 +14,7 @@ import { killStaleProcessOnPort } from "./wsBridge/killStalePort.js";
 import { EditSessionService } from "./wsBridge/editSessionService.js";
 import {
   type DraftResourceType as EditSessionResourceType,
+  type EditSessionMigrationResult,
   type ParticipantInfo as EditSessionParticipantInfo,
   type SaveEvent as EditSessionSaveEvent,
 } from "./editSessionStore.js";
@@ -111,6 +112,43 @@ export class WsBridge extends EventEmitter {
    */
   deleteEditSessionStoreForWorkspace(wsId: string): void {
     this.editSessionService.deleteStoreForWorkspace(wsId);
+  }
+
+  /**
+   * 指定 resource の EditSession 一覧を返す (#1298 I-6 refactor 用)。
+   * 自 wsId に対応する EditSessionStore が無ければ空配列 (= lock なし扱い)。
+   *
+   * 既存の `editSessionList` は sessionId 必須 (workspace 解決のため) だが、
+   * refactor handler は wsId を直接持っているため別 helper を提供する。
+   */
+  editSessionListByResource(
+    wsId: string,
+    resourceType: EditSessionResourceType,
+    resourceId: string,
+  ): Array<{
+    state: "Active" | "Discarded";
+    participants: Map<string, { sessionId: string; role: "Edit" | "View" }>;
+  }> {
+    return this.editSessionService.listByResourceRaw(wsId, resourceType, resourceId);
+  }
+
+  /**
+   * Phase J Must-fix C (#1298 round 5 Codex M-3): live store + persisted file の
+   * resourceId / resourceType を移行する (rename module 専用 API)。
+   *
+   * 戻り値: 実際に更新した session の id 配列 (undo / audit 用)。
+   */
+  async editSessionMigrateResourceId(
+    wsId: string,
+    oldResourceType: EditSessionResourceType,
+    oldResourceId: string,
+    newResourceType: EditSessionResourceType,
+    newResourceId: string,
+    targetEditSessionIds?: readonly string[],
+  ): Promise<EditSessionMigrationResult> {
+    return this.editSessionService.migrateResourceIdRaw(
+      wsId, oldResourceType, oldResourceId, newResourceType, newResourceId, targetEditSessionIds,
+    );
   }
 
   /** spec §5 step 1: 新規 EditSession を作成し initial Edit participant として登録 + broadcast */

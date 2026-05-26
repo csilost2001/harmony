@@ -1,0 +1,96 @@
+{
+  "$schema": "../../../../schemas/v3/view.v3.schema.json",
+  "id": "word-with-mastery-view",
+  "uuid": "c0474fbf-d0f4-4cfc-bbcd-0154431df9a2",
+  "name": "習熟度付き単語ビュー",
+  "description": "words テーブルに user_word_progress を LEFT JOIN し、単語帳画面 (S-4) で使用するビュー。ユーザー ID はアプリ層でフィルタする前提 (ビュー自体はユーザー横断)。単語の基本情報 (英語・訳・IPA・品詞・CEFR レベル) と習熟度 (status / correct_count / attempt_count / last_practiced_at) を結合する。view-definitions の単語帳 viewer から参照される。",
+  "maturity": "draft",
+  "createdAt": "2026-05-04T00:00:00.000Z",
+  "updatedAt": "2026-05-04T00:00:00.000Z",
+  "physicalName": "v_words_with_progress",
+  "selectStatement": "SELECT\n  w.id              AS word_id,\n  w.word            AS word_text,\n  w.translation,\n  w.ipa,\n  w.part_of_speech,\n  w.cefr_level,\n  w.example_sentence,\n  w.example_translation,\n  uwp.user_id,\n  COALESCE(uwp.status, 'new')              AS progress_status,\n  COALESCE(uwp.correct_count, 0)           AS correct_count,\n  COALESCE(uwp.attempt_count, 0)           AS attempt_count,\n  uwp.last_practiced_at\nFROM words AS w\nLEFT JOIN user_word_progress AS uwp ON uwp.word_id = w.id\nORDER BY w.cefr_level ASC, w.word ASC",
+  "outputColumns": [
+    {
+      "physicalName": "word_id",
+      "name": "単語ID",
+      "dataType": "INTEGER",
+      "description": "単語の一意 ID。"
+    },
+    {
+      "physicalName": "word_text",
+      "name": "単語",
+      "dataType": "VARCHAR",
+      "description": "英単語テキスト。"
+    },
+    {
+      "physicalName": "translation",
+      "name": "日本語訳",
+      "dataType": "VARCHAR",
+      "description": "単語の日本語訳。"
+    },
+    {
+      "physicalName": "ipa",
+      "name": "IPA 発音記号",
+      "dataType": "VARCHAR",
+      "description": "IPA 発音記号 (@conv.regex.ipa 準拠)。"
+    },
+    {
+      "physicalName": "part_of_speech",
+      "name": "品詞",
+      "dataType": "VARCHAR",
+      "description": "品詞 (noun / verb / adjective 等)。"
+    },
+    {
+      "physicalName": "cefr_level",
+      "name": "CEFR レベル",
+      "dataType": "VARCHAR",
+      "description": "単語の CEFR 難易度レベル (A1/A2/B1/B2/C1/C2)。"
+    },
+    {
+      "physicalName": "example_sentence",
+      "name": "例文",
+      "dataType": "TEXT",
+      "description": "単語を使った例文 (英文)。"
+    },
+    {
+      "physicalName": "example_translation",
+      "name": "例文訳",
+      "dataType": "TEXT",
+      "description": "例文の日本語訳。"
+    },
+    {
+      "physicalName": "user_id",
+      "name": "ユーザーID",
+      "dataType": "INTEGER",
+      "description": "習熟度データのユーザー ID。NULL の場合はそのユーザーの習熟度未記録。"
+    },
+    {
+      "physicalName": "progress_status",
+      "name": "習熟ステータス",
+      "dataType": "VARCHAR",
+      "description": "習熟度ステータス (new / learning / mastered)。未記録の場合は 'new' として COALESCE。"
+    },
+    {
+      "physicalName": "correct_count",
+      "name": "正解回数",
+      "dataType": "INTEGER",
+      "description": "累積正解回数。未記録の場合は 0。"
+    },
+    {
+      "physicalName": "attempt_count",
+      "name": "練習回数",
+      "dataType": "INTEGER",
+      "description": "累積練習回数。未記録の場合は 0。"
+    },
+    {
+      "physicalName": "last_practiced_at",
+      "name": "最終練習日時",
+      "dataType": "TIMESTAMP",
+      "description": "最後に練習した日時。未記録の場合は NULL。"
+    }
+  ],
+  "dependencies": [
+    "word",
+    "word-mastery"
+  ]
+}

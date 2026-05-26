@@ -1,0 +1,248 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "ai-summary-generate",
+    "uuid": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
+    "name": "AI要約生成",
+    "description": "投稿本文を AI モデルへ送信し、3-5 文の日本語要約を生成して posts.summary に書き戻す処理フロー。投稿作成/更新後に非同期で呼ぶ想定 (TX 外、idempotent)。AI 呼び出しは aiCall step + modelEndpoints.summarizeModel で表現。provider 切替は modelEndpoints の編集だけで完結する。",
+    "flowType": "common",
+    "maturity": "draft",
+    "createdAt": "2026-05-06T14:00:00.000Z",
+    "updatedAt": "2026-05-08T00:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "POST_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "投稿が見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定された postId の投稿が存在しない場合。"
+        },
+        "AI_API_ERROR": {
+          "httpStatus": 502,
+          "defaultMessage": "AI API の呼び出しに失敗しました。",
+          "responseId": "502-ai-error",
+          "description": "AI モデルへのリクエストが失敗した場合。"
+        },
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "入力値が不正です。",
+          "responseId": "400-validation",
+          "description": "postId / body がどちらも未指定の場合 (XOR 必須チェック)。"
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": false,
+        "description": "ログインユーザー ID (JWT から抽出)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "AI要約生成",
+      "trigger": "submit",
+      "description": "postId (または body 直接) を受け取り、Claude API で要約を生成して posts.summary を更新する。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/ai/summarize",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "postId",
+          "label": "投稿ID",
+          "type": "integer",
+          "required": false,
+          "description": "要約対象の投稿 ID。body が未指定の場合は必須。"
+        },
+        {
+          "name": "body",
+          "label": "本文",
+          "type": "string",
+          "required": false,
+          "description": "要約対象の本文テキスト。postId が未指定の場合は必須。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "summary",
+          "label": "要約",
+          "type": "string",
+          "description": "生成された日本語要約 (3-5 文)。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "400-validation",
+          "status": 400,
+          "description": "バリデーションエラー。",
+          "when": "postId / body がどちらも未指定の場合。"
+        },
+        {
+          "id": "200-ok",
+          "status": 200,
+          "description": "要約生成成功。",
+          "when": "Claude API の呼び出しと DB 更新が正常完了した場合。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "投稿が存在しない。",
+          "when": "postId を指定したが投稿が見つからない場合。"
+        },
+        {
+          "id": "502-ai-error",
+          "status": 502,
+          "description": "AI API エラー。",
+          "when": "Claude API の呼び出しが失敗した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-00",
+          "kind": "validation",
+          "description": "postId / body のどちらか必須チェック (XOR: 両方 null は NG)。",
+          "rules": [
+            {
+              "field": "postId",
+              "type": "custom",
+              "condition": "@inputs.postId == null && @inputs.body == null",
+              "severity": "error",
+              "message": "postId または body のいずれかを指定してください。"
+            }
+          ],
+          "fieldErrorsVar": "fieldErrors",
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-00-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-01",
+          "kind": "dbAccess",
+          "description": "postId が指定された場合、posts テーブルから本文を取得する。",
+          "tableId": "post",
+          "operation": "SELECT",
+          "sql": "SELECT id AS \"postId\", body FROM posts WHERE id = @inputs.postId",
+          "runIf": "@inputs.postId != null",
+          "outputBinding": {
+            "name": "postRow"
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "branch",
+          "description": "postId を指定したが投稿が見つからない場合は 404 を返す。",
+          "branches": [
+            {
+              "id": "br-02-a",
+              "code": "A",
+              "label": "投稿なし",
+              "condition": {
+                "kind": "expression",
+                "expression": "@inputs.postId != null && @postRow == null"
+              },
+              "steps": [
+                {
+                  "id": "step-02-a-01",
+                  "kind": "return",
+                  "description": "404 投稿なしを返す。",
+                  "responseId": "404-not-found",
+                  "bodyExpression": "{ code: 'POST_NOT_FOUND', message: '指定された投稿が見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-02-else",
+            "code": "B",
+            "label": "本文取得済",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "compute",
+          "description": "要約対象の本文を決定する: inputs.body > postRow.body の優先順。",
+          "expression": "@inputs.body ?? @postRow.body",
+          "outputBinding": {
+            "name": "targetBody"
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "aiCall",
+          "description": "AI モデルに要約プロンプトを送信し、3-5 文の日本語要約を取得する。",
+          "modelRef": "summarizeModel",
+          "messages": [
+            {
+              "role": "system",
+              "content": "あなたは日本語の文章要約の専門家です。与えられた日記本文を 3〜5 文で簡潔に日本語要約してください。要約のみを返し、前置きや補足は付けないでください。"
+            },
+            {
+              "role": "user",
+              "content": "@targetBody"
+            }
+          ],
+          "outputBinding": {
+            "name": "aiResponse"
+          },
+          "errorHandling": {
+            "outcomes": {
+              "failure": {
+                "action": "abort",
+                "description": "AI モデル呼び出し失敗時は 502 を返す。"
+              }
+            }
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "compute",
+          "description": "AI レスポンスから要約テキストを抽出する。aiCall は provider 中立な assistant メッセージテキストを返すため、後続 step では .text フィールドから取得する。",
+          "expression": "@aiResponse.text",
+          "outputBinding": {
+            "name": "summaryText"
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "dbAccess",
+          "description": "posts.summary を更新する (postId が指定された場合のみ)。 (0 行は対象が削除済のケースとして許容、複数行はあり得ない / pitfall #5 対応)",
+          "tableId": "post",
+          "operation": "UPDATE",
+          "sql": "UPDATE posts SET summary = @summaryText, updated_at = CURRENT_TIMESTAMP WHERE id = @inputs.postId",
+          "runIf": "@inputs.postId != null",
+          "affectedRowsCheck": {
+            "operator": "<=",
+            "expected": 1,
+            "onViolation": "log",
+            "description": "idempotent な AI フロー: 投稿/写真が削除済の場合 0 行は正常 (silent OK)。複数行は schema 違反なので log。"
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "return",
+          "description": "200 要約を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ summary: @summaryText }"
+        }
+      ]
+    }
+  ]
+}

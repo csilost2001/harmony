@@ -12,10 +12,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 // 元 spec で使用していた人間可読 id を維持。realWorkspace 経由では normalizeId で
-// UUID v4 に正規化される (harmony.v3 schema 準拠)。
-export const PUCK_SCREEN_ID = "puck-test-0001-4000-8000-aaaaaaaaaaaa";
-export const GJS_SCREEN_ID = "grapes-test-0002-4000-8000-bbbbbbbbbbbb";
-export const PUCK_TW_SCREEN_ID = "puck-tw-test-0003-4000-8000-cccccccccccc";
+// RFC #1284 / I-7 Round 6: top-level entity id は kebab-case EntityId、
+// UUID-like 形式 (`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+// は strict validator で reject されるため、被らない形に修正。
+export const PUCK_SCREEN_ID = "puck-test-bootstrap-screen";
+export const GJS_SCREEN_ID = "grapes-test-screen";
+export const PUCK_TW_SCREEN_ID = "puck-test-tailwind-screen";
 // 旧 spec が参照する FAKE_WS_ID は backend 経由ではダミー。互換のため export 維持。
 export const FAKE_WS_ID = "00000000-e2e1-4000-8000-000000000814";
 

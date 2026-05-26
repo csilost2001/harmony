@@ -1,0 +1,146 @@
+{
+  "$schema": "../../../../schemas/v3/table.v3.schema.json",
+  "id": "customer-master",
+  "uuid": "605bbc9d-810a-4b9c-a83a-cc2e59bca37a",
+  "name": "顧客マスタ",
+  "description": "EC・店舗 POS で利用する顧客情報を管理するマスタテーブル。メールアドレスで一意識別し、配送先・連絡先を保持する。カートおよび注文の所有者として参照される。",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-02T00:00:00.000Z",
+  "physicalName": "customers",
+  "category": "マスタ",
+  "comment": "顧客マスタ。email で一意識別する。",
+  "columns": [
+    {
+      "id": "col-id",
+      "no": 1,
+      "physicalName": "id",
+      "name": "顧客ID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "primaryKey": true,
+      "autoIncrement": true,
+      "comment": "サロゲートキー (自動採番)"
+    },
+    {
+      "id": "col-email",
+      "no": 2,
+      "physicalName": "email",
+      "name": "メールアドレス",
+      "dataType": "VARCHAR",
+      "length": 254,
+      "notNull": true,
+      "unique": true,
+      "comment": "RFC 5321 準拠メールアドレス。ログイン ID 兼用",
+      "description": "顧客の主識別子。注文確定メール・会員証の宛先として使用される。"
+    },
+    {
+      "id": "col-full-name",
+      "no": 3,
+      "physicalName": "full_name",
+      "name": "氏名",
+      "dataType": "VARCHAR",
+      "length": 100,
+      "notNull": true,
+      "comment": "顧客氏名 (姓名連結)"
+    },
+    {
+      "id": "col-phone",
+      "no": 4,
+      "physicalName": "phone",
+      "name": "電話番号",
+      "dataType": "VARCHAR",
+      "length": 20,
+      "notNull": false,
+      "comment": "配送連絡用電話番号"
+    },
+    {
+      "id": "col-postal-code",
+      "no": 5,
+      "physicalName": "postal_code",
+      "name": "郵便番号",
+      "dataType": "CHAR",
+      "length": 7,
+      "notNull": false,
+      "comment": "郵便番号 (ハイフンなし 7 桁)"
+    },
+    {
+      "id": "col-address",
+      "no": 6,
+      "physicalName": "address",
+      "name": "住所",
+      "dataType": "VARCHAR",
+      "length": 300,
+      "notNull": false,
+      "comment": "配送先住所 (都道府県+市区町村+番地)"
+    },
+    {
+      "id": "col-is-active",
+      "no": 7,
+      "physicalName": "is_active",
+      "name": "有効フラグ",
+      "dataType": "BOOLEAN",
+      "notNull": true,
+      "defaultValue": "TRUE",
+      "comment": "FALSE で退会済み (論理削除)"
+    },
+    {
+      "id": "col-created-at",
+      "no": 8,
+      "physicalName": "created_at",
+      "name": "登録日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP",
+      "comment": "レコード作成日時"
+    },
+    {
+      "id": "col-updated-at",
+      "no": 9,
+      "physicalName": "updated_at",
+      "name": "更新日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP",
+      "comment": "最終更新日時"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "uq-email",
+      "kind": "unique",
+      "physicalName": "uq_customers_email",
+      "columnIds": [
+        "col-email"
+      ],
+      "description": "メールアドレスの一意制約"
+    }
+  ],
+  "indexes": [
+    {
+      "id": "idx-email",
+      "physicalName": "idx_customers_email",
+      "columns": [
+        {
+          "columnId": "col-email",
+          "order": "asc"
+        }
+      ],
+      "unique": true,
+      "method": "btree",
+      "description": "メールアドレス検索インデックス"
+    },
+    {
+      "id": "idx-full-name",
+      "physicalName": "idx_customers_full_name",
+      "columns": [
+        {
+          "columnId": "col-full-name",
+          "order": "asc"
+        }
+      ],
+      "method": "btree",
+      "description": "氏名検索インデックス"
+    }
+  ]
+}

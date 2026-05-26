@@ -1,6 +1,7 @@
 import type { Editor as GEditor, Component, Block } from "grapesjs";
 import html2canvas from "html2canvas";
 import { generateUUID } from "../utils/uuid";
+import { isValidEntityId } from "../utils/entityIdValidation";
 import { uiInfo, uiWarn } from "../utils/uiLog";
 import type { ScreenType, TransitionTrigger } from "../types/flow";
 import {
@@ -746,7 +747,9 @@ class McpBridgeImpl {
         case "addScreen": {
           // RFC #1021 pl-6 (Codex 2nd review Must-fix): purpose を destructure + addScreen に渡す
           // (旧実装は purpose を捨てて undefined のまま追加していたので AI 経由で gadget が作れない bug)
-          const { name, type, path: screenPath, position, editorKind: reqEditorKind, cssFramework: reqCssFramework, purpose: reqPurpose } = (params ?? {}) as {
+          // RFC #1284 / #1297 I-5: id (kebab-case EntityId) を任意で受け取って addScreen に渡す
+          const { id: reqId, name, type, path: screenPath, position, editorKind: reqEditorKind, cssFramework: reqCssFramework, purpose: reqPurpose } = (params ?? {}) as {
+            id?: string;
             name: string;
             type?: ScreenType;
             path?: string;
@@ -759,6 +762,14 @@ class McpBridgeImpl {
             respondError("name は必須です");
             break;
           }
+          // RFC #1284 / #1297 I-5: AI agent が指定する id は kebab-case EntityId 形式必須。
+          // 空文字 / 未指定は addScreen 側で fallback (`scr-<8桁>`) が採番される。
+          if (reqId !== undefined && reqId !== "" && !isValidEntityId(reqId)) {
+            respondError(
+              `id 形式が不正です。kebab-case 英単語 (例: "today-sales") を指定してください: got ${JSON.stringify(reqId)}`,
+            );
+            break;
+          }
           const project = await loadProject();
           const screen = await addScreen(project, name, type ?? "other", {
             path: screenPath,
@@ -766,6 +777,7 @@ class McpBridgeImpl {
             editorKind: reqEditorKind,
             cssFramework: reqCssFramework,
             purpose: reqPurpose,
+            id: reqId,
           });
           // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
           // buildDefaultScreen は project.techStack.designer を参照して解決するので project default も反映される

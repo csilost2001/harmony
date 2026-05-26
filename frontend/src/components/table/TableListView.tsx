@@ -14,6 +14,7 @@ import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { ValidationBadge } from "../common/ValidationBadge";
 import { MaturityBadge } from "../process-flow/MaturityBadge";
 import { useListSelection } from "../../hooks/useListSelection";
@@ -25,6 +26,7 @@ import { useListEditor } from "../../hooks/useListEditor";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { generateUUID } from "../../utils/uuid";
 import { renumber } from "../../utils/listOrder";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import { EditSessionBadge } from "../editing/EditSessionBadge";
 import { DraftHistoryModal } from "../editing/DraftHistoryModal";
@@ -58,6 +60,9 @@ export function TableListView() {
   const [addName, setAddName] = useState("");
   const [addLogical, setAddLogical] = useState("");
   const [addCategory, setAddCategory] = useState("");
+  // RFC #1284 / #1297 I-5: kebab-case Table id + AI 提案ボタン + uniqueness 警告
+  const [addId, setAddId] = useState("");
+  const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [exportDialect, setExportDialect] = useState<SqlDialect>("postgresql");
   const [showExport, setShowExport] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
@@ -210,14 +215,22 @@ export function TableListView() {
 
   const handleDuplicate = async (items: TableEntry[]) => {
     // 複製は新規エンティティ生成 → 即永続化。Column.id (LocalId) は元のまま保持。
+    // RFC #1284 (I-7) / #1299 Codex review M-2 / Round 3 G-1:
+    // id は kebab-case (`-copy[-N]`)、uuid は不変識別子なので新規発番。
+    // 元 full の uuid を spread で流すと identity collision (同一 uuid の別 entity) 発生。
+    // existingIds で suffix collision avoidance + 64 字 schema 制約準拠 (G-1)。
+    const idSet = new Set<string>(editor.items.map((t) => String(t.id)));
     const newIds: string[] = [];
     for (const t of items) {
       const full = await loadTable(t.id);
       if (!full) continue;
       const ts = new Date().toISOString() as Timestamp;
+      const newId = makeDuplicatedEntityId(String(full.id), idSet) as TableId;
+      idSet.add(String(newId));
       const dup: Table = {
         ...full,
-        id: generateUUID() as TableId,
+        id: newId,
+        uuid: generateUUID() as Table["uuid"],
         physicalName: (full.physicalName + "_copy") as PhysicalName,
         name: (full.name + " (コピー)") as DisplayName,
         // Column.id (LocalId) は内部参照に使われているので維持。新規 Table 内では再衝突しない
@@ -262,14 +275,21 @@ export function TableListView() {
       selection.setSelectedIds(new Set(moved.map((t) => t.id)));
     } else {
       // Copy → 新規エンティティ生成 (即永続化)
+      // RFC #1284 (I-7) / #1299 Codex review M-2 / Round 3 G-1: id は kebab-case (`-copy[-N]`)、
+      // uuid は不変識別子なので新規発番 (handleDuplicate と同パターン)。
+      // existingIds で suffix collision avoidance + 64 字 schema 制約準拠 (G-1)。
+      const idSet = new Set<string>(editor.items.map((t) => String(t.id)));
       const newIds: string[] = [];
       for (const t of clipItems) {
         const full = await loadTable(t.id);
         if (!full) continue;
         const ts = new Date().toISOString() as Timestamp;
+        const newId = makeDuplicatedEntityId(String(full.id), idSet) as TableId;
+        idSet.add(String(newId));
         const dup: Table = {
           ...full,
-          id: generateUUID() as TableId,
+          id: newId,
+          uuid: generateUUID() as Table["uuid"],
           physicalName: (full.physicalName + "_copy") as PhysicalName,
           name: (full.name + " (コピー)") as DisplayName,
           columns: full.columns.map((c) => ({ ...c })),
@@ -296,15 +316,21 @@ export function TableListView() {
     updatedAt: "更新日",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: EntityIdInput に渡す既存 id 配列を memoize
+  const existingIds = useMemo(() => editor.items.map((t) => t.id), [editor.items]);
+
   const handleAdd = async () => {
     const physical = addName.trim();
     const display = addLogical.trim();
-    if (!physical || !display) return;
-    const table = await createTable(physical as PhysicalName, display as DisplayName, "", addCategory || undefined);
+    const id = addId.trim();
+    if (!physical || !display || addIdValidation.isInvalid) return;
+    // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って store に渡す
+    const table = await createTable(physical as PhysicalName, display as DisplayName, "", addCategory || undefined, { id });
     setShowAdd(false);
     setAddName("");
     setAddLogical("");
     setAddCategory("");
+    setAddId("");
     // #960: 「作成して編集」は auto-edit モードで Editor を開く (sessionStorage 経由)。
     sessionStorage.setItem(`harmony-auto-edit:table:${table.id}`, "1");
     navigate(wsPath(`/table/edit/${table.id}`));
@@ -733,14 +759,27 @@ export function TableListView() {
                   <option value="その他">その他</option>
                 </select>
               </label>
+              <label className="tbl-field">
+                <span>ID <small>(kebab-case)</small></span>
+                <EntityIdInput
+                  value={addId}
+                  onChange={setAddId}
+                  name={addLogical}
+                  existingIds={existingIds}
+                  entityLabel="テーブル"
+                  inputId="tbl-id-input"
+                  onEnter={handleAdd}
+                  onValidationChange={setAddIdValidation}
+                />
+              </label>
               <div className="tbl-modal-btns">
-                <button className="tbl-btn tbl-btn-ghost" onClick={() => setShowAdd(false)}>
+                <button className="tbl-btn tbl-btn-ghost" onClick={() => { setShowAdd(false); setAddId(""); }}>
                   キャンセル
                 </button>
                 <button
                   className="tbl-btn tbl-btn-primary"
                   onClick={handleAdd}
-                  disabled={!addName.trim() || !addLogical.trim()}
+                  disabled={!addName.trim() || !addLogical.trim() || addIdValidation.isInvalid}
                 >
                   作成して編集
                 </button>

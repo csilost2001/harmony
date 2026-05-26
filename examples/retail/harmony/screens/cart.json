@@ -1,0 +1,123 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "cart",
+  "uuid": "c73fa05c-4a71-4593-800d-b9814e97be83",
+  "name": "カート",
+  "description": "商品コード・店舗・数量を入力してカートに追加する (S-2/S-3)。multi-store inventory 整合のため店舗を必須選択する。カート明細テーブルで削除・数量変更ができ、合計金額を表示する。注文確認画面への導線を提供する。",
+  "purpose": "page",
+  "kind": "retail:cart",
+  "path": "/cart",
+  "auth": "required",
+  "groupId": "customer-facing",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-03T00:00:00.000Z",
+  "items": [
+    {
+      "id": "addProductCode",
+      "label": "商品コード",
+      "type": "string",
+      "direction": "input",
+      "required": true,
+      "maxLength": 20,
+      "pattern": "@conv.regex.productCode",
+      "placeholder": "例: P-0001",
+      "errorMessages": {
+        "required": "商品コードは必須です。",
+        "invalidFormat": "商品コードは P-XXXX〜P-XXXXXX 形式で入力してください。"
+      },
+      "description": "S-2 カート追加フォームの商品コード入力。"
+    },
+    {
+      "id": "addStoreCode",
+      "label": "店舗",
+      "type": "string",
+      "direction": "input",
+      "required": true,
+      "options": [
+        {
+          "value": "S-001",
+          "label": "東京本店"
+        },
+        {
+          "value": "S-002",
+          "label": "大阪支店"
+        },
+        {
+          "value": "S-003",
+          "label": "名古屋支店"
+        }
+      ],
+      "errorMessages": {
+        "required": "店舗を選択してください。"
+      },
+      "description": "S-2 カート追加フォームの店舗選択。multi-store inventory 整合のため、商品在庫を確保する店舗を必須指定する。同一商品でも別店舗から追加した場合は別行として cart_items に保持される。"
+    },
+    {
+      "id": "addQuantity",
+      "label": "数量",
+      "type": "integer",
+      "direction": "input",
+      "required": true,
+      "min": 1,
+      "maxRef": "@conv.limit.cartItemMaxQuantity",
+      "errorMessages": {
+        "required": "数量は必須です。",
+        "outOfRange": "数量は 1〜999 の範囲で入力してください。"
+      },
+      "description": "S-2 カート追加フォームの数量入力。maxRef で @conv.limit.cartItemMaxQuantity (999) を参照 (#734)。"
+    },
+    {
+      "id": "cartItemCount",
+      "label": "カート点数",
+      "type": "integer",
+      "direction": "output",
+      "displayFormat": "#,##0 点",
+      "description": "S-2 カート内の商品合計点数 (表示専用)。集計元はカート集計フロー (267e94bf) の itemCount。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "cart-summary",
+        "variableName": "itemCount"
+      }
+    },
+    {
+      "id": "cartTotalAmount",
+      "label": "小計 (税抜)",
+      "type": "integer",
+      "direction": "output",
+      "displayFormat": "¥#,##0",
+      "description": "S-2 カート内の税抜合計金額 (表示専用)。集計元はカート集計フロー (267e94bf) の totalAmount。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "cart-summary",
+        "variableName": "totalAmount"
+      }
+    },
+    {
+      "id": "addToCartButton",
+      "label": "カートに追加",
+      "type": {
+        "kind": "extension",
+        "extensionRef": "retail:button"
+      },
+      "direction": "output",
+      "readonly": true,
+      "events": [
+        {
+          "id": "submit",
+          "label": "カートに追加",
+          "handlerFlowId": "cart-add",
+          "argumentMapping": {
+            "productCode": "@screen.cart.item.addProductCode",
+            "storeCode": "@screen.cart.item.addStoreCode",
+            "quantity": "@screen.cart.item.addQuantity"
+          }
+        }
+      ],
+      "description": "S-2 カートに追加ボタン。クリック時にカート追加フロー (9515d6f6) を起動する。"
+    }
+  ],
+  "design": {
+    "designFileRef": "cart.design.json"
+  }
+}

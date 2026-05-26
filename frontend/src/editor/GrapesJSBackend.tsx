@@ -54,6 +54,7 @@ import { loadCustomBlocks, injectCustomBlockCss } from "../store/customBlockStor
 import { clearItemsFromCache } from "../store/screenItemsStore";
 import { BlocksPanel } from "../components/BlocksPanel";
 import { RightPanel } from "../components/RightPanel";
+import { shouldNotifyScreenChanged } from "./reloadEvents";
 
 // -----------------------------------------------------------------------
 // CSS 注入用 URL (Designer.tsx から移植)
@@ -361,9 +362,15 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       mcpBridge.start(editor);
 
       // 他タブ / 別クライアントの screenChanged broadcast 購読
+      //
+      // I-7 Round 8 C (#1299 Codex M-R7-3): rename 由来の broadcast は
+      // `{ oldId, newId, renamed: true, reload: true }` payload で発火されるため、
+      // useResourceEditor.ts:299-307 と同等の handler を採用する。
+      // - `reload: true` → 全件 invalidation シグナル (id filter より先に処理)
+      // - `oldId === screenId` → 自身が rename された場合
+      // - 通常の screenChanged → 旧 filter 条件
       const unsubScreenChanged = mcpBridge.onBroadcast("screenChanged", (data) => {
-        const d = data as { screenId?: string; deleted?: boolean };
-        if (d.screenId !== screenId || d.deleted) return;
+        if (!shouldNotifyScreenChanged(data, screenId)) return;
         onServerChangedRef.current?.();
       });
 

@@ -1,0 +1,403 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "cart-summary",
+    "uuid": "267e94bf-0397-44b8-b665-d3c40c38935b",
+    "name": "カート集計",
+    "description": "ログイン顧客のアクティブカートの明細件数 (itemCount) と税抜合計金額 (totalAmount) を 1 リクエストで集計する読取専用フロー。カート画面 (c73fa05c) のヘッダ表示と、カート確認画面 (cff4a398) の合計表示の双方から共通利用する。アクティブカートが無い / 明細 0 件の場合は (0, 0) を返す。明細表示用の rows は店舗情報 (storeCode/storeName) を含み multi-store inventory に整合する。",
+    "flowType": "common",
+    "maturity": "committed",
+    "createdAt": "2026-05-03T00:00:00.000Z",
+    "updatedAt": "2026-05-03T00:00:00.000Z"
+  },
+  "context": {
+    "ambientVariables": [
+      {
+        "name": "sessionCustomerId",
+        "type": "integer",
+        "required": true,
+        "description": "セッションから取得したログイン顧客 ID (@conv.auth.sessionCookie 経由)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "カート集計実行",
+      "trigger": "load",
+      "description": "カート画面 / カート確認画面のロード時に発火する読取専用 GET。アクティブカートに紐付く cart_items の件数と税抜合計を 1 SELECT で集計し、200 で返す。",
+      "maturity": "committed",
+      "httpRoute": {
+        "method": "GET",
+        "path": "/api/retail/cart/summary",
+        "auth": "required"
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "itemCount",
+          "label": "カート点数",
+          "type": "integer",
+          "description": "アクティブカート内の cart_items 行数。アクティブカート不在 / 明細 0 件の場合は 0。"
+        },
+        {
+          "name": "totalAmount",
+          "label": "カート小計 (税抜)",
+          "type": "integer",
+          "description": "アクティブカート内の cart_items の (unit_price_snapshot * quantity) 合算 (税抜)。0 件の場合は 0。"
+        },
+        {
+          "name": "rows",
+          "label": "カート明細一覧",
+          "type": {
+            "kind": "array",
+            "itemType": "json"
+          },
+          "description": "アクティブカートに紐付く cart_items 行 (productCode / productName / storeCode / storeName / quantity / unitPrice / subtotal) の配列。カート確認画面 (cff4a398) の viewer 項目 (cartSummary) の valueFrom.variableName='rows' で参照する (#771)。multi-store inventory 整合のため店舗情報を含む。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "bodySchema": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "itemCount",
+                "totalAmount"
+              ],
+              "properties": {
+                "itemCount": {
+                  "type": "integer"
+                },
+                "totalAmount": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "description": "カート集計成功。明細件数と税抜合計を返す。",
+          "when": "SELECT が正常完了した場合 (アクティブカート不在 / 明細 0 件含む — いずれも 0 を返す)。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "dbAccess",
+          "description": "ログイン顧客のアクティブカート (carts.status='active') に紐付く cart_items を集計する。LEFT JOIN + COALESCE で アクティブカート不在 / 明細 0 件の場合に (0, 0) を返すように正規化する。",
+          "tableId": "cart-item",
+          "operation": "SELECT",
+          "sql": "SELECT COALESCE(COUNT(ci.id), 0) AS \"itemCount\", COALESCE(SUM(ci.unit_price_snapshot * ci.quantity), 0) AS \"totalAmount\" FROM carts c LEFT JOIN cart_items ci ON ci.cart_id = c.id WHERE c.customer_id = @sessionCustomerId AND c.status = 'active'",
+          "outputBinding": {
+            "name": "summaryRows",
+            "transformations": [
+              {
+                "field": "itemCount",
+                "type": "integer"
+              },
+              {
+                "field": "totalAmount",
+                "type": "float"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "compute",
+          "description": "summaryRows[0] が無い場合のフォールバック (defensive guard、aggregate は常に 1 行返るため通常は dead path)。runtime や DB driver の挙動差異に備えた防御で、null 安全のため明示的に 0 に正規化する。AI 実装でも optional chaining / nullish coalescing を生成するヒントになる。",
+          "expression": "@summaryRows[0] != null ? @summaryRows[0].itemCount : 0",
+          "outputBinding": {
+            "name": "itemCount"
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "compute",
+          "description": "summaryRows[0] が無い場合の totalAmount フォールバック (step-02 と同じ defensive guard、aggregate は常に 1 行返るため通常は dead path)。",
+          "expression": "@summaryRows[0] != null ? @summaryRows[0].totalAmount : 0",
+          "outputBinding": {
+            "name": "totalAmount"
+          }
+        },
+        {
+          "id": "step-04a",
+          "kind": "dbAccess",
+          "description": "アクティブカートに紐付く cart_items を products + stores JOIN で取得し、viewer 表示用の行データを生成する。空 cart 時は 0 行が返る (#771)。multi-store inventory 整合のため店舗 (storeCode / storeName) を含める。",
+          "tableId": "cart-item",
+          "operation": "SELECT",
+          "sql": "SELECT ci.id, p.product_code AS \"productCode\", p.name AS \"productName\", s.store_code AS \"storeCode\", s.name AS \"storeName\", ci.quantity, ci.unit_price_snapshot AS \"unitPrice\", (ci.unit_price_snapshot * ci.quantity) AS subtotal FROM carts c JOIN cart_items ci ON ci.cart_id = c.id JOIN products p ON p.id = ci.product_id JOIN stores s ON s.id = ci.store_id WHERE c.customer_id = @sessionCustomerId AND c.status = 'active' ORDER BY s.store_code ASC, ci.added_at ASC",
+          "outputBinding": {
+            "name": "cartDetailRows"
+          }
+        },
+        {
+          "id": "step-04b",
+          "kind": "compute",
+          "description": "cartDetailRows を viewer 用 rows 変数に代入する (#771)。",
+          "expression": "@cartDetailRows",
+          "outputBinding": {
+            "name": "rows"
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "return",
+          "description": "200 OK — itemCount と totalAmount を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ itemCount: @itemCount, totalAmount: @totalAmount }"
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "decisions": [
+      {
+        "id": "ADR-001",
+        "title": "kind=\"common\" として 2 画面 (カート / カート確認) で共有",
+        "status": "accepted",
+        "context": "カート集計 (itemCount + totalAmount) は カート画面 (c73fa05c) のヘッダ表示と、カート確認画面 (cff4a398) の合計表示の双方で同じロジックが必要。kind=\"screen\" にして特定画面に紐付けると、もう一方の画面から呼ぶ時に Screen ↔ ProcessFlow の 1:1 紐付けが破れて semantic がぶれる。",
+        "decision": "kind=\"common\" を選択。screenId を持たず、httpRoute 経由の独立 GET API として両画面から呼ぶ。screen-item.valueFrom.flowVariable.processFlowId を明示する形で参照する (省略時のカレント画面解決には依存しない)。",
+        "consequences": "両画面から同じ集計ロジックを参照できる。将来 (例: ヘッダミニカート / wishlist サイドバー) で同じ集計が必要になっても新規フローを増やさず再利用できる。",
+        "date": "2026-05-03"
+      },
+      {
+        "id": "ADR-002",
+        "title": "LEFT JOIN + COALESCE でアクティブカート不在を 0 として正規化",
+        "status": "accepted",
+        "context": "アクティブカートが未生成の顧客 (新規ログイン直後 / 注文確定直後で carts.status='ordered' に遷移済み) では carts に該当行が無い、もしくは cart_items が 0 件のケースがある。",
+        "decision": "carts を起点に cart_items を LEFT JOIN し、COUNT(ci.id) と SUM(ci.unit_price_snapshot * ci.quantity) を COALESCE で 0 に正規化する。aggregate により 0 件でも 1 行が返り、summaryRows[0].item_count = 0 / total_amount = 0 になる。",
+        "consequences": "client (画面) は常に (itemCount, totalAmount) のペアを受け取れ、null 分岐が不要。カート未生成は 0 として扱われる。",
+        "date": "2026-05-03"
+      },
+      {
+        "id": "ADR-003",
+        "title": "totalAmount は税抜 (consumption tax 計算は呼び出し側で実施)",
+        "status": "accepted",
+        "context": "カート画面の cartTotalAmount (label='小計 (税抜)') と カート確認画面の confirmTotalAmount (label='注文合計 (税込)') で表記が異なる。",
+        "decision": "本フローは税抜合計のみ返す。確認画面で税込が必要な場合は呼び出し側で @conv.tax.standard.rate を掛けて計算する (将来は個別フローまたは ambient で税込変換 step を追加)。",
+        "consequences": "1 フローで両画面のニーズを満たす。税率改定時は呼び出し側の計算式だけ変える。",
+        "date": "2026-05-03"
+      }
+    ],
+    "glossary": {
+      "アクティブカート": {
+        "definition": "carts.status='active' な 1 顧客 1 行のカート。注文確定 TX (S-3) で 'ordered' に遷移すると次回注文用に新たに 'active' が作成される (運用前提)。",
+        "aliases": [
+          "activeCart"
+        ],
+        "domainRef": "carts.status"
+      },
+      "カート点数": {
+        "definition": "アクティブカートに紐付く cart_items の行数 (各行の quantity ではなく行数そのもの)。同一商品で数量を増やしても 1 点として数える。",
+        "aliases": [
+          "itemCount"
+        ],
+        "domainRef": "cart_items.id"
+      },
+      "カート小計": {
+        "definition": "アクティブカートに紐付く cart_items の (unit_price_snapshot * quantity) 合算 (税抜)。",
+        "aliases": [
+          "totalAmount",
+          "cartTotalAmount"
+        ],
+        "domainRef": "cart_items.unit_price_snapshot * cart_items.quantity"
+      }
+    },
+    "testScenarios": [
+      {
+        "id": "happy-path-cart-summary",
+        "name": "カート 2 行の集計が正常に返る",
+        "description": "アクティブカートに 2 商品 (商品A 単価 1000 × 2 @ S-001、商品B 単価 2000 × 1 @ S-001) が入っている場合、itemCount=2 / totalAmount=4000 が返る。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "store-master",
+            "rows": [
+              {
+                "id": 10,
+                "store_code": "S-001",
+                "name": "東京本店",
+                "is_active": true
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart",
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart-item",
+            "rows": [
+              {
+                "id": 200,
+                "cart_id": 50,
+                "product_id": 1,
+                "store_id": 10,
+                "unit_price_snapshot": 1000,
+                "quantity": 2
+              },
+              {
+                "id": 201,
+                "cart_id": 50,
+                "product_id": 2,
+                "store_id": 10,
+                "unit_price_snapshot": 2000,
+                "quantity": 1
+              }
+            ]
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {}
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.itemCount",
+            "matches": "^2$"
+          },
+          {
+            "kind": "output",
+            "path": "$.totalAmount",
+            "matches": "^4000$"
+          }
+        ],
+        "tags": [
+          "happy",
+          "cart",
+          "summary"
+        ]
+      },
+      {
+        "id": "empty-cart-zero",
+        "name": "アクティブカートはあるが明細 0 件で (0, 0) を返す",
+        "description": "carts に active 行があるが cart_items が 0 件。COALESCE で itemCount=0 / totalAmount=0 になる。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart",
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart-item",
+            "rows": []
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {}
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.itemCount",
+            "matches": "^0$"
+          },
+          {
+            "kind": "output",
+            "path": "$.totalAmount",
+            "matches": "^0$"
+          }
+        ],
+        "tags": [
+          "edge",
+          "empty-cart",
+          "summary"
+        ]
+      },
+      {
+        "id": "no-active-cart-zero",
+        "name": "アクティブカート自体が無い顧客で (0, 0) を返す",
+        "description": "carts に customer_id=100 / status='active' な行が存在しない。LEFT JOIN により aggregate は (0, 0) を返す。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart",
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "ordered"
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart-item",
+            "rows": []
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {}
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.itemCount",
+            "matches": "^0$"
+          },
+          {
+            "kind": "output",
+            "path": "$.totalAmount",
+            "matches": "^0$"
+          }
+        ],
+        "tags": [
+          "edge",
+          "no-active-cart",
+          "summary"
+        ]
+      }
+    ]
+  }
+}

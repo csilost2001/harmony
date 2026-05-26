@@ -2,7 +2,9 @@
  * realWorkspace helper 単体テスト (#964 α)
  *
  * backend WebSocket が不要な部分のみテスト:
- * - normalizeId: UUID v4 正規化ロジック
+ * - normalizeId: kebab-case EntityId 正規化ロジック (Round 6 Phase A 以降。
+ *   旧版は UUID v4 を生成していたが、I-7 で strict EntityId validator が UUID を
+ *   reject するため kebab-case 変換に動作を切り替えた)
  * - v3 typed input が harmony.json / entity ファイルとしてそのまま書き出されること
  *   (setupTestWorkspace のファイル書き込みロジックを直接検証)
  *
@@ -24,28 +26,41 @@ import type {
 
 // ─── normalizeId テスト ────────────────────────────────────────────────────
 
-describe("normalizeId", () => {
-  it("UUID v4 はそのまま返す", () => {
-    const uuid = "550e8400-e29b-41d4-a716-446655440000";
-    expect(normalizeId(uuid)).toBe(uuid);
+describe("normalizeId (Round 6 Phase A: UUID v4 生成 → kebab-case EntityId 変換)", () => {
+  // RFC #1284 / I-7 Phase A 以降、top-level entity の id は kebab-case EntityId に統一。
+  // UUID は strict validator で reject されるため、normalizeId は kebab-case 化に動作変更。
+  const ENTITY_ID_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+  const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+  it("既に kebab-case EntityId 形式ならそのまま返す", () => {
+    expect(normalizeId("screen-0001")).toBe("screen-0001");
+    expect(normalizeId("my-screen")).toBe("my-screen");
+    expect(normalizeId("scr-a")).toBe("scr-a");
   });
 
-  it("非 UUID 文字列は決定論的な UUID v4 に変換される", () => {
-    const result = normalizeId("screen-0001");
-    // UUID v4 形式チェック
-    expect(result).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  it("UUID v4 は kebab-case に正規化される (UUID-like reject 回避)", () => {
+    const result = normalizeId("550e8400-e29b-41d4-a716-446655440000");
+    // 出力は EntityId pattern を満たす かつ UUID-like ではない
+    expect(result).toMatch(ENTITY_ID_RE);
+    expect(result).not.toMatch(UUID_V4_RE);
   });
 
-  it("同じ入力からは常に同じ UUID が生成される (決定論的)", () => {
+  it("同じ入力からは常に同じ kebab-case が生成される (決定論的)", () => {
     const a = normalizeId("my-screen");
     const b = normalizeId("my-screen");
     expect(a).toBe(b);
   });
 
-  it("異なる入力からは異なる UUID が生成される", () => {
+  it("異なる入力からは異なる kebab-case が生成される", () => {
     const a = normalizeId("screen-a");
     const b = normalizeId("screen-b");
     expect(a).not.toBe(b);
+  });
+
+  it("数字始まり等の EntityId pattern 不一致は `id-` prefix を付ける", () => {
+    const result = normalizeId("0001-flow");
+    expect(result).toMatch(ENTITY_ID_RE);
+    expect(result.startsWith("id-")).toBe(true);
   });
 });
 
@@ -103,7 +118,7 @@ describe("v3 typed input → v3 output", () => {
       schemaVersion: "v3",
       dataDir: "harmony",
       meta: {
-        id: "550e8400-e29b-41d4-a716-446655440001" as Project["meta"]["id"],
+        id: "realworkspace-test-project" as Project["meta"]["id"],
         name: "テスト用プロジェクト",
         maturity: "draft",
         createdAt: "2026-01-01T00:00:00.000Z" as Project["meta"]["createdAt"],
@@ -114,7 +129,7 @@ describe("v3 typed input → v3 output", () => {
       entities: {
         screens: [
           {
-            id: "550e8400-e29b-41d4-a716-446655440010" as Project["entities"]["screens"][0]["id"],
+            id: "realworkspace-test-screen" as Project["entities"]["screens"][0]["id"],
             no: 1,
             name: "テスト画面",
             updatedAt: "2026-01-01T00:00:00.000Z" as Project["entities"]["screens"][0]["updatedAt"],
@@ -132,7 +147,7 @@ describe("v3 typed input → v3 output", () => {
 
     expect(written.schemaVersion).toBe("v3");
     expect(written.dataDir).toBe("harmony");
-    expect((written.meta as Record<string, unknown>).id).toBe("550e8400-e29b-41d4-a716-446655440001");
+    expect((written.meta as Record<string, unknown>).id).toBe("realworkspace-test-project");
     expect((written.meta as Record<string, unknown>).name).toBe("テスト用プロジェクト");
     // v1→v3 変換なし: entities.screens もそのまま存在する
     expect((written.entities as Record<string, unknown>).screens).toHaveLength(1);
@@ -141,7 +156,7 @@ describe("v3 typed input → v3 output", () => {
   it("Table v3 が harmony/tables/<id>.json として書き出される", async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "harmony-test-"));
 
-    const TABLE_ID = "550e8400-e29b-41d4-a716-446655440020" as Table["id"];
+    const TABLE_ID = "realworkspace-test-users-table" as Table["id"];
     const table: Table = {
       id: TABLE_ID,
       name: "ユーザー" as Table["name"],
@@ -156,7 +171,7 @@ describe("v3 typed input → v3 output", () => {
       schemaVersion: "v3",
       dataDir: "harmony",
       meta: {
-        id: "550e8400-e29b-41d4-a716-446655440001" as Project["meta"]["id"],
+        id: "realworkspace-test-project" as Project["meta"]["id"],
         name: "テスト" as Project["meta"]["name"],
         maturity: "draft",
         createdAt: "2026-01-01T00:00:00.000Z" as Project["meta"]["createdAt"],

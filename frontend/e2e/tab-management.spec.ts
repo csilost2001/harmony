@@ -14,10 +14,10 @@ import {
 import { buildProject } from "./__fixtures__/builders";
 import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
-// schema v3: id は UUID v4 必須 (common.v3.schema.json#/$defs/Uuid)
-const SCREEN_A = "aaaaaaaa-0001-4001-8001-000000000001";
-const SCREEN_B = "bbbbbbbb-0002-4002-8002-000000000002";
-const SCREEN_C = "cccccccc-0003-4003-8003-000000000003";
+// RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
+const SCREEN_A = "scr-a";
+const SCREEN_B = "scr-b";
+const SCREEN_C = "scr-c";
 
 const SCREEN_A_NORM = normalizeId(SCREEN_A);
 const SCREEN_B_NORM = normalizeId(SCREEN_B);

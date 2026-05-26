@@ -312,7 +312,7 @@ describe("v3 TS 型 と examples/ JSON の compatibility", () => {
 
   it("retail 在庫照会フローを ProcessFlow 型として parse できる + Step narrow", () => {
     const flow = loadJson<ProcessFlow>(
-      join(examplesDir, "retail/harmony/process-flows/267e94bf-0397-44b8-b665-d3c40c38935b.json"),
+      join(examplesDir, "retail/harmony/process-flows/cart-summary.json"),
     );
     expect(flow.meta.flowType).toBe("common"); // #1263 Phase X1: meta.kind → meta.flowType
     const firstStep: Step = flow.actions[0].steps[0];
@@ -355,7 +355,7 @@ describe("v3 TS 型 と examples/ JSON の compatibility", () => {
 
   it("realestate 処理フローを ProcessFlow 型として parse できる", () => {
     const flow = loadJson<ProcessFlow>(
-      join(examplesDir, "realestate/harmony/process-flows/d4b5c6e7-f809-4112-bc3d-4e5f6a7b8c9d.json"),
+      join(examplesDir, "realestate/harmony/process-flows/property-search.json"),
     );
     expect(flow.meta.flowType).toBeDefined(); // #1263 Phase X1: meta.kind → meta.flowType
   });

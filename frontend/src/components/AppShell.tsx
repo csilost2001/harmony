@@ -65,6 +65,7 @@ import { TabErrorFallback } from "./common/ErrorFallback";
 import { ResourceLoading } from "./common/ResourceLoading";
 import { useErrorDialog } from "./common/ErrorDialogProvider";
 import { recordError } from "../utils/errorLog";
+import { isValidUuid } from "../utils/entityIdValidation";
 import { checkRedirect, subscribeRedirectGuardTrip, isRedirectGuardTripped } from "../utils/redirectGuard";
 import { uiInfo, uiWarn, setupServerLogFlush } from "../utils/uiLog";
 import { evaluateRoutingGuard } from "../routing/workspaceRouting";
@@ -173,6 +174,31 @@ function ConnectionFailedView({ onRetry }: { onRetry: () => void }) {
 
 // ルートレベルの AppShell: /workspace/* と /w/:wsId/* に分岐
 const CONNECTION_TIMEOUT_MS = 5000; // backend 接続失敗エラー UI 表示までの待機時間 (#795-C)
+
+// ─── module-level guards (#1299 I-7 Phase D) ─────────────────────────────────
+// AppShellInner は workspaceState.loading=true で外側 AppShell が splash 描画する間
+// アンマウントされる。component-local な useRef は remount で初期化されるため、
+// initial-restore / recovery-pending の二重発行ガードが効かず無限ループになる。
+//
+// 対策: 2 つのガード状態を module-level に持ち、remount 越しでも持続させる。
+// mcpBridge disconnect 時にクリアして backend per-session 再構築の契約は維持する。
+//
+// - `__initialRestoreDoneWsIds`: 「どの wsId に対し initial-restore を実施済みか」
+// - `__recoveryPendingWsId`: 「現在 workspace.open RPC を発行中の wsId」(並行発行ガード)
+const __initialRestoreDoneWsIds = new Set<string>();
+let __recoveryPendingWsId: string | null = null;
+let __statusClearSubscribed = false;
+function __subscribeStatusClearOnce(): void {
+  if (__statusClearSubscribed) return;
+  __statusClearSubscribed = true;
+  (mcpBridge as { onStatusChange: (cb: (s: string) => void) => () => void })
+    .onStatusChange((s: string) => {
+      if (s === "disconnected" || s === "failed") {
+        __initialRestoreDoneWsIds.clear();
+        __recoveryPendingWsId = null;
+      }
+    });
+}
 
 export function AppShell() {
   const location = useLocation();
@@ -375,8 +401,16 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   // 経路で deadlock した regression 修正 — 外側 AppShell の useEffect に移動済。
 
   // workspace state 変化を log 化 (ループ追跡用)
+  //
+  // #1299 I-7 Phase E: msg を state summary 込みの一意 key にすることで、
+  // workspace 切替時の正当な連鎖 (loading=true → active 更新 → loading=false 等、
+  // 1 秒に 5 件以上の state-change 発火) が flood detector の同一 (category, msg)
+  // 集計に集約されて「loop 疑い」誤検出するのを回避。`uiLog.detectFlooding` は
+  // msg をそのまま dedupe key として使うため、loading / activeId / lockdown / error
+  // を含めることで「同じ意味の state-change」のみ集計される。
   useEffect(() => {
-    uiInfo("workspace", "state-change", {
+    const summary = `state-change loading=${workspaceState.loading} active=${workspaceState.active?.id ?? "null"} lockdown=${workspaceState.lockdown} error=${workspaceState.error ?? "null"}`;
+    uiInfo("workspace", summary, {
       loading: workspaceState.loading,
       activeId: workspaceState.active?.id ?? null,
       lockdown: workspaceState.lockdown,
@@ -444,15 +478,14 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   // ルーティングガード: wsId が active と異なる、または active===null の場合の処理
   // 並行発行ガード (#963): 同一 wsId に対する workspace.open の二重発行を抑止する。
   // useEffect は workspaceState 更新等で何度も再実行されるため、未完了 RPC があれば
-  // 同 wsId の再発行を skip する。RPC 完了 (success or fail) で ref をクリア。
-  const recoveryPendingRef = useRef<string | null>(null);
-
+  // 同 wsId の再発行を skip する。RPC 完了 (success or fail) でクリア。
+  //
   // backend offline 時の localStorage fallback は #923 シリーズで廃止 (spec D-8)。
   // 接続失敗は AppShell 上位の `connectionFailed` (`markFailed()` 経由) が
   // `ConnectionFailedView` で UI を切り替える。本ガードは正常接続時の URL 同期に専念する。
   //
   // 判定ロジックは pure 関数 `evaluateRoutingGuard` (routing/workspaceRouting.ts) に抽出 (#1145 Phase-7)。
-  // 副作用 (並行発行ガード recoveryPendingRef / mcpBridge.request / redirectGuard / navigate / loadWorkspaces) は
+  // 副作用 (並行発行ガード / mcpBridge.request / redirectGuard / navigate / loadWorkspaces) は
   // 本 useEffect 内で適用する。
   //
   // backend reconnect 時の per-session restore (#1145 Phase-2 #1165 wsBridge 分割で顕在化):
@@ -461,7 +494,14 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   //   workspace.open を再発行しない (routing guard で "none" になる)
   // - backend の per-session は空のまま → 各 RPC で「ワークスペースが選択されていません」reject
   // - 解決策: 初回 mount 時、active.id === wsId であっても 1 回 workspace.open を呼んで per-session を確立する
-  const initialRestoreDoneRef = useRef(false);
+  //
+  // 重要 (#1299 I-7 Phase D): 上記 2 種のガード状態は AppShellInner ローカルの useRef では NG。
+  //   AppShellInner は workspaceState.loading=true で外側 AppShell が splash 描画する間
+  //   アンマウントされ、後続の `.then(() => loadWorkspaces())` が `_setState({loading:true})`
+  //   を立てた瞬間に component が消える。再 mount 時 useRef は初期値に戻り、ガードが効かず
+  //   無限ループになる。よって module-level (__initialRestoreDoneWsIds / __recoveryPendingWsId)
+  //   に持ち、mcpBridge disconnect 時にクリアして backend per-session 再構築の契約は維持する。
+  __subscribeStatusClearOnce();
 
   useEffect(() => {
     // e2e テスト用 bypass (workspace-e2e-bypass=true) のみ guard スキップ。
@@ -475,24 +515,24 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     // 1 回だけ workspace.open を呼んで backend per-session を確立する。
     if (
       action.type === "none" &&
-      !initialRestoreDoneRef.current &&
+      wsId !== undefined &&
+      !__initialRestoreDoneWsIds.has(wsId) &&
       !workspaceState.loading &&
       !workspaceState.lockdown &&
       workspaceState.active !== null &&
-      wsId !== undefined &&
       wsId === workspaceState.active.id &&
-      recoveryPendingRef.current === null
+      __recoveryPendingWsId === null
     ) {
-      initialRestoreDoneRef.current = true;
+      __initialRestoreDoneWsIds.add(wsId);
       const activeId = workspaceState.active.id;
-      recoveryPendingRef.current = activeId;
+      __recoveryPendingWsId = activeId;
       mcpBridge.request("workspace.open", { id: activeId })
         .then(() => loadWorkspaces())
         .catch((err) => {
           console.error("[workspace] initial per-session restore failed:", err);
         })
         .finally(() => {
-          if (recoveryPendingRef.current === activeId) recoveryPendingRef.current = null;
+          if (__recoveryPendingWsId === activeId) __recoveryPendingWsId = null;
         });
       return;
     }
@@ -501,10 +541,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
 
     if (action.type === "openWorkspace") {
       // 並行発行ガード (#963): 同 wsId に対する未完了 workspace.open RPC があれば skip
-      if (recoveryPendingRef.current === action.id) {
+      if (__recoveryPendingWsId === action.id) {
         return;
       }
-      recoveryPendingRef.current = action.id;
+      __recoveryPendingWsId = action.id;
       mcpBridge.request("workspace.open", { id: action.id })
         // backend の workspace.changed broadcast は requester を除外する (wsBridge.ts excludeClientId)。
         // 自セッション側は broadcast を受けないため、明示的に loadWorkspaces で state.active を更新する。
@@ -516,7 +556,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
           if (guard.allow) navigate("/workspace/select", { replace: true });
         })
         .finally(() => {
-          if (recoveryPendingRef.current === action.id) recoveryPendingRef.current = null;
+          if (__recoveryPendingWsId === action.id) __recoveryPendingWsId = null;
         });
       return;
     }
@@ -539,18 +579,27 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
   // リソース詳細 URL で対象が見つからなかったときにダッシュボードへ戻す共通処理。
   // ブラウザが握っている URL を「存在しないリソース」のまま放置すると次回リロードで
   // また袋小路に入るため、URL 自体も / に書き換える。
-  const fallbackToDashboard = useCallback((kind: string, id: string) => {
-    const msg = `URL が指すリソース (${kind}: ${id}) が見つかりません。ダッシュボードへフォールバック。`;
-    uiWarn("urlsync", "resource not found → fallback", { kind, id, pathname: location.pathname });
+  // RFC #1284 (#1296 I-4): options.reason="uuid-url" の場合は旧 UUID 形式 URL 検出として
+  // 明示エラーメッセージを表示する (loadXxx を待たずに即 fallback)。
+  const fallbackToDashboard = useCallback((kind: string, id: string, options?: { reason?: "uuid-url" }) => {
+    const isUuidUrl = options?.reason === "uuid-url";
+    const msg = isUuidUrl
+      ? `URL に旧 UUID 形式の ${kind} id が含まれています (${id})。ダッシュボードへフォールバック。`
+      : `URL が指すリソース (${kind}: ${id}) が見つかりません。ダッシュボードへフォールバック。`;
+    uiWarn("urlsync", isUuidUrl ? "uuid url detected → fallback" : "resource not found → fallback", {
+      kind, id, pathname: location.pathname, reason: options?.reason,
+    });
     recordError({
       source: "manual",
       message: msg,
-      context: { kind, id, pathname: location.pathname },
+      context: { kind, id, pathname: location.pathname, reason: options?.reason },
     });
     showError({
-      title: `${kind}が見つかりません`,
-      message: `指定された${kind} (${id}) は存在しないか削除されています。ダッシュボードに戻ります。`,
-      context: { kind, id, pathname: location.pathname },
+      title: isUuidUrl ? `${kind}の URL 形式が古いです` : `${kind}が見つかりません`,
+      message: isUuidUrl
+        ? `URL に旧 UUID 形式が含まれています (${id})。最新の ID 体系では kebab-case を使用してください。ダッシュボードに戻ります。`
+        : `指定された${kind} (${id}) は存在しないか削除されています。ダッシュボードに戻ります。`,
+      context: { kind, id, pathname: location.pathname, reason: options?.reason },
       skipLogRecord: true, // 直前に recordError 済み
     });
     const dashPath = wsId ? `/w/${wsId}/` : "/";
@@ -577,9 +626,19 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     }
 
     uiInfo("urlsync", "pathname change", { pathname: location.pathname });
+
+    // RFC #1284 (#1296 I-4): URL param が旧 UUID 形式なら load を待たずに明示エラー fallback。
+    // 各 entity block で 1 行で呼び、true なら caller で return する。
+    const rejectIfUuidUrl = (id: string, kind: string): boolean => {
+      if (!isValidUuid(id)) return false;
+      fallbackToDashboard(kind, id, { reason: "uuid-url" });
+      return true;
+    };
+
     const designMatch = matchPath("/w/:wsId/screen/design/:screenId", location.pathname);
     if (designMatch?.params.screenId) {
       const screenId = designMatch.params.screenId;
+      if (rejectIfUuidUrl(screenId, "画面")) return;
       const tabId = makeTabId("design", screenId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -603,6 +662,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const tableMatch = matchPath("/w/:wsId/table/edit/:tableId", location.pathname);
     if (tableMatch?.params.tableId) {
       const tableId = tableMatch.params.tableId;
+      if (rejectIfUuidUrl(tableId, "テーブル")) return;
       const tabId = makeTabId("table", tableId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -625,6 +685,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const actionMatch = matchPath("/w/:wsId/process-flow/edit/:processFlowId", location.pathname);
     if (actionMatch?.params.processFlowId) {
       const processFlowId = actionMatch.params.processFlowId;
+      if (rejectIfUuidUrl(processFlowId, "処理フロー")) return;
       const tabId = makeTabId("process-flow", processFlowId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -648,6 +709,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const sequenceMatch = matchPath("/w/:wsId/sequence/edit/:sequenceId", location.pathname);
     if (sequenceMatch?.params.sequenceId) {
       const sequenceId = sequenceMatch.params.sequenceId;
+      if (rejectIfUuidUrl(sequenceId, "シーケンス")) return;
       const tabId = makeTabId("sequence", sequenceId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -670,6 +732,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const viewMatch = matchPath("/w/:wsId/view/edit/:viewId", location.pathname);
     if (viewMatch?.params.viewId) {
       const viewId = viewMatch.params.viewId;
+      if (rejectIfUuidUrl(viewId, "ビュー")) return;
       const tabId = makeTabId("view", viewId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -692,6 +755,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const viewDefinitionMatch = matchPath("/w/:wsId/view-definition/edit/:viewDefinitionId", location.pathname);
     if (viewDefinitionMatch?.params.viewDefinitionId) {
       const viewDefinitionId = decodeURIComponent(viewDefinitionMatch.params.viewDefinitionId);
+      if (rejectIfUuidUrl(viewDefinitionId, "ビュー定義")) return;
       const tabId = makeTabId("view-definition", viewDefinitionId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -716,6 +780,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const pageLayoutMatch = pageLayoutEditMatch ?? pageLayoutDesignMatch;
     if (pageLayoutMatch?.params.pageLayoutId) {
       const pageLayoutId = decodeURIComponent(pageLayoutMatch.params.pageLayoutId);
+      if (rejectIfUuidUrl(pageLayoutId, "ページレイアウト")) return;
       const tabId = makeTabId("page-layout", pageLayoutId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {
@@ -735,6 +800,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       return;
     }
 
+    // RFC #1284 (#1296 I-4) では generic-definition (`kind:name` 形式、本 RFC 範囲外) を
+    // UUID URL 検出対象に含めない。tabStore の RESOURCE_TAB_TYPES にも generic-definition は含まれない。
     const genericDefEditorMatch = matchPath("/w/:wsId/generic-definition/:kind/:name", location.pathname);
     if (genericDefEditorMatch?.params.kind && genericDefEditorMatch?.params.name) {
       const kind = decodeURIComponent(genericDefEditorMatch.params.kind);
@@ -780,6 +847,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     const screenItemsMatch = matchPath("/w/:wsId/screen/items/:screenId", location.pathname);
     if (screenItemsMatch?.params.screenId) {
       const screenId = screenItemsMatch.params.screenId;
+      if (rejectIfUuidUrl(screenId, "画面")) return;
       const tabId = makeTabId("screen-items", screenId);
       const existing = getTabs().find((t) => t.id === tabId);
       if (existing) {

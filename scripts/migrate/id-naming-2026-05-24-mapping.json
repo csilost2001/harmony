@@ -1,0 +1,259 @@
+{
+  "diary": {
+    "screen": [
+      { "uuid": "31d56212-b654-46dc-b004-096c7382c404", "name": "投稿一覧", "id": "post-list" },
+      { "uuid": "531619ae-0f5f-4f55-8043-03e5a9ef6670", "name": "投稿編集", "id": "post-edit" },
+      { "uuid": "a5088d22-4ad8-4615-a4c5-447ff9cdd280", "name": "ログイン", "id": "login" },
+      { "uuid": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2", "name": "タグ管理", "id": "tag-management" },
+      { "uuid": "ffec74d0-6c21-45f7-a387-167ac8819255", "name": "投稿詳細", "id": "post-detail" }
+    ],
+    "table": [
+      { "uuid": "07439e21-0743-48ca-af9e-763e4be2d094", "name": "タグ", "id": "tag" },
+      { "uuid": "1681eee2-39d9-4548-9044-5cedac68d41e", "name": "投稿タグ (中間)", "id": "post-tag" },
+      { "uuid": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa", "name": "ユーザー", "id": "user" },
+      { "uuid": "79d2c08c-7511-4d37-9051-e6f4587630e0", "name": "投稿", "id": "post" },
+      { "uuid": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f", "name": "写真", "id": "photo" }
+    ],
+    "processFlow": [
+      { "uuid": "0671b051-4acc-49cf-ba92-9fa29b47f671", "name": "投稿作成", "id": "post-create" },
+      { "uuid": "1ce956c5-7aa9-47b5-bb38-ca392ad73518", "name": "ログイン", "id": "login" },
+      { "uuid": "2fecbf99-6a4e-4c62-840c-59d96e48ecb6", "name": "写真アップロード", "id": "photo-upload" },
+      { "uuid": "46436b69-99f2-48b3-a5fa-07bf9fcd1478", "name": "ログアウト", "id": "logout" },
+      { "uuid": "803764e4-c27d-47fd-b3d9-924c1fa28bd8", "name": "タグ一覧取得", "id": "tag-list-get" },
+      { "uuid": "9537764e-3fe9-459d-8172-00d69a575c09", "name": "トークン更新", "id": "token-refresh" },
+      { "uuid": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d", "name": "AIタグ提案", "id": "ai-tag-suggest" },
+      { "uuid": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e", "name": "AI画像alt生成", "id": "ai-image-alt-generate" },
+      { "uuid": "b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", "name": "投稿更新", "id": "post-update" },
+      { "uuid": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f", "name": "AI文章校正", "id": "ai-text-proofread" },
+      { "uuid": "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f", "name": "投稿削除", "id": "post-delete" },
+      { "uuid": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f", "name": "タグ管理", "id": "tag-management" },
+      { "uuid": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a", "name": "投稿詳細取得", "id": "post-detail-get" },
+      { "uuid": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b", "name": "投稿検索", "id": "post-search" },
+      { "uuid": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c", "name": "AI要約生成", "id": "ai-summary-generate" }
+    ]
+  },
+  "english-learning": {
+    "screen": [
+      { "uuid": "046e1f83-bed3-4b13-a5ac-b0fa06744dfe", "name": "ストーリー詳細", "id": "story-detail" },
+      { "uuid": "0ede272d-a094-4651-b37e-b6f3747c4248", "name": "プロフィール/設定", "id": "profile-settings" },
+      { "uuid": "18bcc879-0b84-4e63-9317-37b94e799886", "name": "セッション結果", "id": "session-result" },
+      { "uuid": "297e9117-0982-4a40-9ce7-bced3bc6d2c5", "name": "学習履歴一覧", "id": "study-history-list" },
+      { "uuid": "496e43f8-d243-48a1-b680-32d34d98cc2d", "name": "ダッシュボード", "id": "dashboard" },
+      { "uuid": "4e728c10-dce1-4843-8634-a61a59d0ba0b", "name": "学習履歴詳細", "id": "study-history-detail" },
+      { "uuid": "5f411f06-8677-4fa8-a9b2-edc14a1d9ce1", "name": "ストーリー一覧", "id": "story-list" },
+      { "uuid": "6bfa682c-b18e-45bd-8daa-eb20cc1834bf", "name": "単語詳細", "id": "word-detail" },
+      { "uuid": "a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7", "name": "会話プレイ", "id": "conversation-play" },
+      { "uuid": "baddbabb-15e1-4f26-9f2b-0dc56b281019", "name": "コンテンツパック一覧", "id": "content-pack-list" },
+      { "uuid": "fbf3995f-487a-47a9-b5cd-9c48a632db8c", "name": "単語帳", "id": "word-book" }
+    ],
+    "table": [
+      { "uuid": "246a3f13-7888-4b14-ad6d-641b7437b09d", "name": "セリフ", "id": "dialogue-line" },
+      { "uuid": "4e126323-4ab7-4747-961b-23cbaf651314", "name": "会話ターンログ", "id": "conversation-turn-log" },
+      { "uuid": "517d50a3-960f-42ce-810f-3b126398d7b1", "name": "コンテンツパック", "id": "content-pack" },
+      { "uuid": "7ab2cf24-7b66-47aa-a808-7fffd8290480", "name": "単語習熟度", "id": "word-mastery" },
+      { "uuid": "8db75844-19ca-4e7d-8293-579e7631c5cc", "name": "単語", "id": "word" },
+      { "uuid": "992ac5db-54fa-4eb0-9509-66b3babbdef6", "name": "シーン", "id": "scene" },
+      { "uuid": "b5aa3e1b-b5e4-46dd-8373-75fea340844b", "name": "ストーリー", "id": "story" },
+      { "uuid": "c7e50462-bbc4-498f-a280-2ec40bda30b1", "name": "ユーザー", "id": "user" },
+      { "uuid": "d524cba6-0878-4cf5-ba70-deaa7b459103", "name": "学習セッション", "id": "study-session" },
+      { "uuid": "fefa79cf-4721-4956-86bb-595427bf6f81", "name": "発音スコア", "id": "pronunciation-score" }
+    ],
+    "processFlow": [
+      { "uuid": "21c25fb2-551a-483f-b32a-060db8f88aee", "name": "単語習熟度更新", "id": "word-mastery-update" },
+      { "uuid": "3c4d9bfd-f648-4875-a135-a04e709a87a7", "name": "連続学習日数リセット", "id": "streak-reset" },
+      { "uuid": "6a49b14b-eb90-45bd-9df0-df4b5986626b", "name": "発音採点", "id": "pronunciation-grade" },
+      { "uuid": "96118ae1-a0ab-401b-8584-dd645a45a81f", "name": "会話ターン進行", "id": "conversation-turn-progress" },
+      { "uuid": "cc173367-d92a-4525-acc9-689bad9a048e", "name": "学習セッション開始", "id": "study-session-start" }
+    ],
+    "sequence": [
+      { "uuid": "0d9b9b02-cc61-4b26-85c3-ef932bfbe5fd", "name": "セッションID採番", "id": "session-id-sequence" },
+      { "uuid": "d4160951-3cd6-42dc-b114-9f358ec59c0f", "name": "スコアID採番", "id": "score-id-sequence" }
+    ],
+    "view": [
+      { "uuid": "54917d0d-3162-43f5-8daf-77abdbbc2771", "name": "セッション別発音平均ビュー", "id": "session-pronunciation-avg-view" },
+      { "uuid": "af699800-b15f-4588-9d0d-6a76a3eb2e48", "name": "学習履歴とストーリー結合ビュー", "id": "study-history-with-story-view" },
+      { "uuid": "c0474fbf-d0f4-4cfc-bbcd-0154431df9a2", "name": "習熟度付き単語ビュー", "id": "word-with-mastery-view" }
+    ],
+    "viewDefinition": [
+      { "uuid": "090e9db0-ce45-4fc4-9fa6-5784f655ca07", "name": "単語帳 viewer", "id": "word-book-viewer" },
+      { "uuid": "4c9cdc85-2537-4ca8-a979-4de21a56e0fa", "name": "学習履歴一覧 viewer", "id": "study-history-list-viewer" },
+      { "uuid": "ba1c7d9d-5907-4535-99b9-f9fa170bb248", "name": "コンテンツパック一覧 viewer", "id": "content-pack-list-viewer" },
+      { "uuid": "cfdbf081-368d-4a33-8a36-1c7a0c535011", "name": "ストーリー一覧 viewer", "id": "story-list-viewer" },
+      { "uuid": "f06e103d-1eb5-4918-9a6d-67436095bfe7", "name": "発音スコア履歴 viewer", "id": "pronunciation-score-history-viewer" }
+    ],
+    "screenGroup": [
+      { "uuid": "07c52872-32cc-461c-ad81-2592e2305e15", "name": "コンテンツ管理", "id": "content-management" },
+      { "uuid": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3", "name": "学習者向け", "id": "learner" },
+      { "uuid": "de45f035-a895-48b9-ac10-e9ef5050c060", "name": "管理者", "id": "admin" }
+    ]
+  },
+  "english-learning-tailwind": {
+    "screen": [
+      { "uuid": "046e1f83-bed3-4b13-a5ac-b0fa06744dfe", "name": "ストーリー詳細", "id": "story-detail" },
+      { "uuid": "0ede272d-a094-4651-b37e-b6f3747c4248", "name": "プロフィール/設定", "id": "profile-settings" },
+      { "uuid": "18bcc879-0b84-4e63-9317-37b94e799886", "name": "セッション結果", "id": "session-result" },
+      { "uuid": "297e9117-0982-4a40-9ce7-bced3bc6d2c5", "name": "学習履歴一覧", "id": "study-history-list" },
+      { "uuid": "496e43f8-d243-48a1-b680-32d34d98cc2d", "name": "ダッシュボード", "id": "dashboard" },
+      { "uuid": "4e728c10-dce1-4843-8634-a61a59d0ba0b", "name": "学習履歴詳細", "id": "study-history-detail" },
+      { "uuid": "5f411f06-8677-4fa8-a9b2-edc14a1d9ce1", "name": "ストーリー一覧", "id": "story-list" },
+      { "uuid": "6bfa682c-b18e-45bd-8daa-eb20cc1834bf", "name": "単語詳細", "id": "word-detail" },
+      { "uuid": "a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7", "name": "会話プレイ", "id": "conversation-play" },
+      { "uuid": "baddbabb-15e1-4f26-9f2b-0dc56b281019", "name": "コンテンツパック一覧", "id": "content-pack-list" },
+      { "uuid": "fbf3995f-487a-47a9-b5cd-9c48a632db8c", "name": "単語帳", "id": "word-book" }
+    ],
+    "table": [
+      { "uuid": "246a3f13-7888-4b14-ad6d-641b7437b09d", "name": "セリフ", "id": "dialogue-line" },
+      { "uuid": "4e126323-4ab7-4747-961b-23cbaf651314", "name": "会話ターンログ", "id": "conversation-turn-log" },
+      { "uuid": "517d50a3-960f-42ce-810f-3b126398d7b1", "name": "コンテンツパック", "id": "content-pack" },
+      { "uuid": "7ab2cf24-7b66-47aa-a808-7fffd8290480", "name": "単語習熟度", "id": "word-mastery" },
+      { "uuid": "8db75844-19ca-4e7d-8293-579e7631c5cc", "name": "単語", "id": "word" },
+      { "uuid": "992ac5db-54fa-4eb0-9509-66b3babbdef6", "name": "シーン", "id": "scene" },
+      { "uuid": "b5aa3e1b-b5e4-46dd-8373-75fea340844b", "name": "ストーリー", "id": "story" },
+      { "uuid": "c7e50462-bbc4-498f-a280-2ec40bda30b1", "name": "ユーザー", "id": "user" },
+      { "uuid": "d524cba6-0878-4cf5-ba70-deaa7b459103", "name": "学習セッション", "id": "study-session" },
+      { "uuid": "fefa79cf-4721-4956-86bb-595427bf6f81", "name": "発音スコア", "id": "pronunciation-score" }
+    ],
+    "processFlow": [
+      { "uuid": "21c25fb2-551a-483f-b32a-060db8f88aee", "name": "単語習熟度更新", "id": "word-mastery-update" },
+      { "uuid": "3c4d9bfd-f648-4875-a135-a04e709a87a7", "name": "連続学習日数リセット", "id": "streak-reset" },
+      { "uuid": "6a49b14b-eb90-45bd-9df0-df4b5986626b", "name": "発音採点", "id": "pronunciation-grade" },
+      { "uuid": "96118ae1-a0ab-401b-8584-dd645a45a81f", "name": "会話ターン進行", "id": "conversation-turn-progress" },
+      { "uuid": "cc173367-d92a-4525-acc9-689bad9a048e", "name": "学習セッション開始", "id": "study-session-start" }
+    ],
+    "sequence": [
+      { "uuid": "0d9b9b02-cc61-4b26-85c3-ef932bfbe5fd", "name": "セッションID採番", "id": "session-id-sequence" },
+      { "uuid": "d4160951-3cd6-42dc-b114-9f358ec59c0f", "name": "スコアID採番", "id": "score-id-sequence" }
+    ],
+    "view": [
+      { "uuid": "54917d0d-3162-43f5-8daf-77abdbbc2771", "name": "セッション別発音平均ビュー", "id": "session-pronunciation-avg-view" },
+      { "uuid": "af699800-b15f-4588-9d0d-6a76a3eb2e48", "name": "学習履歴とストーリー結合ビュー", "id": "study-history-with-story-view" },
+      { "uuid": "c0474fbf-d0f4-4cfc-bbcd-0154431df9a2", "name": "習熟度付き単語ビュー", "id": "word-with-mastery-view" }
+    ],
+    "viewDefinition": [
+      { "uuid": "090e9db0-ce45-4fc4-9fa6-5784f655ca07", "name": "単語帳 viewer", "id": "word-book-viewer" },
+      { "uuid": "4c9cdc85-2537-4ca8-a979-4de21a56e0fa", "name": "学習履歴一覧 viewer", "id": "study-history-list-viewer" },
+      { "uuid": "ba1c7d9d-5907-4535-99b9-f9fa170bb248", "name": "コンテンツパック一覧 viewer", "id": "content-pack-list-viewer" },
+      { "uuid": "cfdbf081-368d-4a33-8a36-1c7a0c535011", "name": "ストーリー一覧 viewer", "id": "story-list-viewer" },
+      { "uuid": "f06e103d-1eb5-4918-9a6d-67436095bfe7", "name": "発音スコア履歴 viewer", "id": "pronunciation-score-history-viewer" }
+    ],
+    "screenGroup": [
+      { "uuid": "07c52872-32cc-461c-ad81-2592e2305e15", "name": "コンテンツ管理", "id": "content-management" },
+      { "uuid": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3", "name": "学習者向け", "id": "learner" },
+      { "uuid": "de45f035-a895-48b9-ac10-e9ef5050c060", "name": "管理者", "id": "admin" }
+    ]
+  },
+  "household-budget": {
+    "screen": [
+      { "uuid": "3a000000-2000-4000-8000-000000000001", "name": "ダッシュボード", "id": "dashboard" },
+      { "uuid": "3a000000-2000-4000-8000-000000000002", "name": "取引一覧", "id": "transaction-list" },
+      { "uuid": "3a000000-2000-4000-8000-000000000003", "name": "取引入力", "id": "transaction-create" },
+      { "uuid": "3a000000-2000-4000-8000-000000000004", "name": "カテゴリ管理", "id": "category-management" },
+      { "uuid": "3a000000-2000-4000-8000-000000000005", "name": "月次レポート", "id": "monthly-report" },
+      { "uuid": "3a000000-2000-4000-8000-000000000006", "name": "取引編集", "id": "transaction-edit" }
+    ],
+    "table": [
+      { "uuid": "3a000000-1000-4000-8000-000000000001", "name": "ユーザー", "id": "user" },
+      { "uuid": "3a000000-1000-4000-8000-000000000002", "name": "口座", "id": "account" },
+      { "uuid": "3a000000-1000-4000-8000-000000000003", "name": "カテゴリ", "id": "category" },
+      { "uuid": "3a000000-1000-4000-8000-000000000004", "name": "取引", "id": "transaction" }
+    ],
+    "processFlow": [
+      { "uuid": "3a000000-5000-4000-8000-000000000001", "name": "取引登録", "id": "transaction-create" },
+      { "uuid": "3a000000-5000-4000-8000-000000000002", "name": "取引削除", "id": "transaction-delete" },
+      { "uuid": "3a000000-5000-4000-8000-000000000003", "name": "月次レポート取得", "id": "monthly-report-get" },
+      { "uuid": "3a000000-5000-4000-8000-000000000004", "name": "取引更新", "id": "transaction-update" },
+      { "uuid": "3a000000-5000-4000-8000-000000000005", "name": "ダッシュボードデータ取得", "id": "dashboard-data-get" }
+    ],
+    "view": [
+      { "uuid": "3a000000-3000-4000-8000-000000000001", "name": "月次集計ビュー", "id": "monthly-summary-view" }
+    ],
+    "viewDefinition": [
+      { "uuid": "3a000000-4000-4000-8000-000000000001", "name": "取引一覧 viewer", "id": "transaction-list-viewer" },
+      { "uuid": "3a000000-4000-4000-8000-000000000002", "name": "カテゴリ一覧 viewer", "id": "category-list-viewer" }
+    ],
+    "screenGroup": [
+      { "uuid": "3a000000-6000-4000-8000-000000000001", "name": "家計簿", "id": "household-budget" },
+      { "uuid": "3a000000-6000-4000-8000-000000000002", "name": "マスタ管理", "id": "master-management" }
+    ]
+  },
+  "realestate": {
+    "screen": [
+      { "uuid": "b2f3a4c5-d6e7-4f80-9a1b-2c3d4e5f6a7b", "name": "物件検索", "id": "property-search" }
+    ],
+    "table": [
+      { "uuid": "c3a4b5d6-e7f8-4091-ab2c-3d4e5f6a7b8c", "name": "物件マスタ", "id": "property-master" }
+    ],
+    "processFlow": [
+      { "uuid": "d4b5c6e7-f809-4112-bc3d-4e5f6a7b8c9d", "name": "物件検索", "id": "property-search" }
+    ],
+    "viewDefinition": [
+      { "uuid": "e5c6d7f8-0912-4223-8d4e-5f6a7b8c9d0e", "name": "物件一覧", "id": "property-list-viewer" }
+    ]
+  },
+  "retail": {
+    "screen": [
+      { "uuid": "0739c454-45d6-4c99-962a-7b0b9e113a22", "name": "注文完了", "id": "order-complete" },
+      { "uuid": "2e23d129-1d53-4e30-b54c-97f90b910578", "name": "商品マスター", "id": "product-master" },
+      { "uuid": "4a9df651-e0cc-4523-a9bf-f3fb9d45c53f", "name": "在庫一覧", "id": "inventory-list" },
+      { "uuid": "68709449-c9e1-47db-a351-ac9c12a19046", "name": "グローバルヘッダ", "id": "global-header" },
+      { "uuid": "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0", "name": "ダッシュボード", "id": "dashboard" },
+      { "uuid": "c1cff7da-1057-4ba1-b780-2d021f6c8679", "name": "ナビゲーションサイドバー", "id": "navigation-sidebar" },
+      { "uuid": "c2254dd6-ab5d-4428-931f-d27c71e89951", "name": "配送指示", "id": "shipment-dispatch" },
+      { "uuid": "c73fa05c-4a71-4593-800d-b9814e97be83", "name": "カート", "id": "cart" },
+      { "uuid": "cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3", "name": "カート確認", "id": "cart-confirm" },
+      { "uuid": "e6147dc0-94b7-436d-ba87-d0080ac34f44", "name": "商品検索", "id": "product-search" },
+      { "uuid": "f05fd315-2c78-48e5-9968-2633255b286e", "name": "顧客マスター", "id": "customer-master" },
+      { "uuid": "f7daa764-4015-4ad7-8f0a-142944ea2038", "name": "グローバルフッタ", "id": "global-footer" },
+      { "uuid": "f9d57022-1dad-4c8f-a387-27e0a8576947", "name": "店舗マスター", "id": "store-master" },
+      { "uuid": "f9faa724-e080-4308-bc14-bb93631c9e78", "name": "注文一覧", "id": "order-list" }
+    ],
+    "table": [
+      { "uuid": "10d555e2-8041-4192-86f3-9e2a3ac581ab", "name": "注文", "id": "order" },
+      { "uuid": "57110336-a984-4d39-bb21-1e5d5bb4390b", "name": "カート明細", "id": "cart-item" },
+      { "uuid": "605bbc9d-810a-4b9c-a83a-cc2e59bca37a", "name": "顧客マスタ", "id": "customer-master" },
+      { "uuid": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0", "name": "商品マスタ", "id": "product-master" },
+      { "uuid": "834ede22-3cb0-4dcf-aa8a-7c046664774a", "name": "店舗別在庫", "id": "inventory-by-store" },
+      { "uuid": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6", "name": "カート", "id": "cart" },
+      { "uuid": "dddfb0c1-0fde-40ac-bcf0-5ed75a7f1edc", "name": "注文明細", "id": "order-item" },
+      { "uuid": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5", "name": "店舗マスタ", "id": "store-master" }
+    ],
+    "processFlow": [
+      { "uuid": "267e94bf-0397-44b8-b665-d3c40c38935b", "name": "カート集計", "id": "cart-summary" },
+      { "uuid": "60e08c25-3daa-41b4-a7bd-b8f5fb571349", "name": "ヘッダーガジェット処理", "id": "header-gadget-handler" },
+      { "uuid": "9515d6f6-8342-48cf-a045-9e9d8fab1cfa", "name": "カート追加", "id": "cart-add" },
+      { "uuid": "a3659922-3932-4857-a906-26dd605254fe", "name": "ダッシュボード KPI 集計", "id": "dashboard-kpi-summary" },
+      { "uuid": "d63c703c-26ed-4704-8b76-329c6bfae9c9", "name": "配送指示", "id": "shipment-dispatch" },
+      { "uuid": "efa7ac6e-e295-416e-b68d-17c4739b5097", "name": "店舗在庫照会", "id": "inventory-by-store-lookup" },
+      { "uuid": "f81dd9e0-794c-4539-a2a5-9cbcc0a75899", "name": "注文確定", "id": "order-confirm" }
+    ],
+    "sequence": [
+      { "uuid": "536a2528-8cde-4bd2-8884-e3e3c53c57dd", "name": "配送ID採番", "id": "shipment-id-sequence" },
+      { "uuid": "af8f14b0-b6d7-4661-ac4b-bdf0a196e0b2", "name": "顧客ID採番", "id": "customer-id-sequence" },
+      { "uuid": "e2fde820-35f8-4c39-a724-646e07580946", "name": "注文番号採番", "id": "order-number-sequence" }
+    ],
+    "view": [
+      { "uuid": "6e6a9612-85c8-4541-a497-8851cea28f56", "name": "商品付き在庫ビュー", "id": "inventory-with-product-view" },
+      { "uuid": "822d5a83-1c06-4650-97fa-35a62bca3d5e", "name": "カートサマリビュー", "id": "cart-summary-view" },
+      { "uuid": "ce75dd91-3e55-4e0b-ac2c-11108943a8cf", "name": "注文明細詳細ビュー", "id": "order-item-detail-view" },
+      { "uuid": "feb6d55d-33bc-4f25-adac-b5fa18b2a579", "name": "顧客付き注文ビュー", "id": "order-with-customer-view" }
+    ],
+    "viewDefinition": [
+      { "uuid": "37a3af9a-f240-4fbb-b33d-6937305b430b", "name": "カテゴリ別 売れ筋商品 上位 N (#745 Level 3 サンプル)", "id": "top-products-by-category" },
+      { "uuid": "4cef6340-2603-44b3-b92e-e85e4809a955", "name": "注文一覧", "id": "order-list-viewer" },
+      { "uuid": "7b01161a-d6bc-41d9-b60d-25ed33c8bf5d", "name": "顧客マスター一覧", "id": "customer-master-list-viewer" },
+      { "uuid": "97354753-765a-449e-85ad-d23acad53a76", "name": "店舗マスター一覧", "id": "store-master-list-viewer" },
+      { "uuid": "be4bece3-aa23-44fb-bed0-0699717e8738", "name": "在庫一覧 (商品検索結果)", "id": "inventory-list-search-result-viewer" },
+      { "uuid": "db10b1f4-459c-4bd3-bb27-76394209671d", "name": "商品マスター一覧", "id": "product-master-list-viewer" },
+      { "uuid": "f8b286e4-77c0-41b9-9c34-9291d00cabc3", "name": "カート明細", "id": "cart-item-viewer" },
+      { "uuid": "fbd95d09-4ac4-44e0-a6a7-44affff128a0", "name": "在庫一覧", "id": "inventory-list-viewer" }
+    ],
+    "pageLayout": [
+      { "uuid": "17595b62-fef1-4b22-9c25-16736c772567", "name": "Main Layout", "id": "main-layout" }
+    ],
+    "screenGroup": [
+      { "uuid": "8c592e1b-dfa4-4fc6-8a0c-e584996b0075", "name": "マスター管理", "id": "master-management" },
+      { "uuid": "a7285b88-9e12-4d2c-94c6-ef6bd788685d", "name": "バックオフィス", "id": "back-office" },
+      { "uuid": "c720b549-ecf4-4d20-9be4-c8d38f89a13e", "name": "顧客向け", "id": "customer-facing" }
+    ]
+  }
+}

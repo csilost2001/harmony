@@ -31,7 +31,8 @@ beforeAll(() => {
 
 const TABLE_BASE = {
   $schema: "../../../schemas/v3/table.v3.schema.json",
-  id: "11111111-1111-4111-8111-111111111111",
+  id: "fixture-table",
+  uuid: "11111111-1111-4111-8111-111111111111",
   name: "fixture table",
   physicalName: "fixtures",
   createdAt: "2026-05-19T00:00:00.000Z",

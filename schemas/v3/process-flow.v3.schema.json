@@ -57,7 +57,7 @@
       "required": ["flowType"],
       "properties": {
         "flowType": { "$ref": "#/$defs/ProcessFlowKind" },
-        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "flowType='screen' の場合に紐付く Screen の Uuid。flowType='screen' 時は必須 (#1221)。" },
+        "screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "flowType='screen' の場合に紐付く Screen の EntityId。flowType='screen' 時は必須 (#1221)。" },
         "apiVersion": { "type": "string", "description": "ProcessFlow が公開する API のバージョン (例: 'v1', '2026-04-25')。" },
         "mode": { "$ref": "common.v3.schema.json#/$defs/Mode" },
         "sla": { "$ref": "#/$defs/Sla" },
@@ -75,7 +75,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "screen-item-event", "description": "画面項目イベントから呼ばれる処理フロー。" },
-            "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "主たる呼び出し元の画面 Uuid。" },
+            "screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "主たる呼び出し元の画面 EntityId。" },
             "itemId": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "主たる呼び出し元の画面項目 id (Screen.items[].id)。" },
             "eventId": { "type": "string", "description": "主たる呼び出し元のイベント id (ScreenItem.events[].id)。" },
             "actionId": { "$ref": "common.v3.schema.json#/$defs/LocalId", "description": "主たる呼び出し対象の action id (#1019、actions[].id)。省略時は actions[0] (1-action 処理フロー前提)。" }
@@ -718,7 +718,7 @@
           "required": ["id", "kind", "description", "tableId", "operation"],
           "properties": {
             "kind": { "const": "dbAccess" },
-            "tableId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "対象 Table の Uuid (物理名直書きは v3 廃止)。" },
+            "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "対象 Table の EntityId (物理名直書きは v3 廃止)。" },
             "operation": { "$ref": "#/$defs/DbOperation" },
             "fields": { "type": "string", "description": "対象フィールド (人間向け簡易表記)。" },
             "sql": { "type": "string", "description": "完全 SQL 文 (式補間は @<var> / @conv.* / @env.* 等)。`maturity: \"committed\"` で必須、`draft` で省略可 (#1263 Phase X3)。" },
@@ -1190,7 +1190,7 @@
           "required": ["id", "kind", "description", "refId"],
           "properties": {
             "kind": { "const": "commonProcess" },
-            "refId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "呼び出し先 ProcessFlow の Uuid (kind='common' の他フロー)。" },
+            "refId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "呼び出し先 ProcessFlow の EntityId (kind='common' の他フロー)。" },
             "argumentMapping": {
               "type": "object",
               "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/TemplateString" },
@@ -1241,7 +1241,7 @@
           "required": ["id", "kind", "description", "targetScreenId"],
           "properties": {
             "kind": { "const": "screenTransition" },
-            "targetScreenId": { "$ref": "common.v3.schema.json#/$defs/Uuid" }
+            "targetScreenId": { "$ref": "common.v3.schema.json#/$defs/EntityId" }
           }
         }
       ],
@@ -1718,8 +1718,8 @@
             "tableIds": {
               "type": "array",
               "minItems": 1,
-              "items": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
-              "description": "対象 Table の Uuid 配列。"
+              "items": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
+              "description": "対象 Table の EntityId 配列。"
             },
             "captureMode": { "type": "string", "enum": ["full", "incremental"] },
             "destination": { "$ref": "#/$defs/CdcDestination" },
@@ -1766,7 +1766,7 @@
           "additionalProperties": false,
           "properties": {
             "kind": { "const": "table" },
-            "tableId": { "$ref": "common.v3.schema.json#/$defs/Uuid" }
+            "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" }
           }
         }
       ],

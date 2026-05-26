@@ -3,13 +3,14 @@
   "schemaVersion": "v3",
   "dataDir": "harmony",
   "meta": {
-    "id": "aa696474-b681-4400-aab7-b8e4eacea665",
+    "id": "english-learning",
+    "uuid": "aa696474-b681-4400-aab7-b8e4eacea665",
     "name": "英会話学習アプリ",
     "description": "B2C 英会話学習アプリ。ストーリー仕立ての会話練習と AI 採点 (LLM/TTS/STT) を組み合わせ、発音フィードバックと単語習熟度管理を提供する。分野別コンテンツパック (汎用 / IT エンジニア / ビジネス 等) を拡張 namespace で表現し、外部 AI 呼び出しを stepKind 拡張でモデル化する B2C + 外部 AI 連携サンプル (#787)。",
-    "createdAt": "2026-05-04T00:00:00.000Z",
-    "updatedAt": "2026-05-04T12:00:00.000Z",
     "mode": "upstream",
-    "maturity": "draft"
+    "maturity": "draft",
+    "createdAt": "2026-05-04T00:00:00.000Z",
+    "updatedAt": "2026-05-04T12:00:00.000Z"
   },
   "extensionsApplied": [
     {
@@ -43,129 +44,129 @@
   "entities": {
     "screens": [
       {
-        "id": "496e43f8-d243-48a1-b680-32d34d98cc2d",
+        "id": "dashboard",
         "no": 1,
         "name": "ダッシュボード",
         "kind": "dashboard",
         "path": "/",
-        "groupId": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "groupId": "learner",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "5f411f06-8677-4fa8-a9b2-edc14a1d9ce1",
+        "id": "story-list",
         "no": 2,
         "name": "ストーリー一覧",
         "kind": "list",
         "path": "/stories",
-        "groupId": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "groupId": "learner",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "046e1f83-bed3-4b13-a5ac-b0fa06744dfe",
+        "id": "story-detail",
         "no": 3,
         "name": "ストーリー詳細",
         "kind": "detail",
         "path": "/stories/:storyId",
-        "groupId": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "groupId": "learner",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7",
+        "id": "conversation-play",
         "no": 4,
         "name": "会話プレイ",
         "kind": "english-learning:conversationPlayer",
         "path": "/learn/:sessionId",
-        "groupId": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "groupId": "learner",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "18bcc879-0b84-4e63-9317-37b94e799886",
+        "id": "session-result",
         "no": 5,
         "name": "セッション結果",
         "kind": "complete",
         "path": "/learn/:sessionId/result",
-        "groupId": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "groupId": "learner",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "297e9117-0982-4a40-9ce7-bced3bc6d2c5",
+        "id": "study-history-list",
         "no": 6,
         "name": "学習履歴一覧",
         "kind": "list",
         "path": "/history",
-        "groupId": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "groupId": "learner",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "4e728c10-dce1-4843-8634-a61a59d0ba0b",
+        "id": "study-history-detail",
         "no": 7,
         "name": "学習履歴詳細",
         "kind": "detail",
         "path": "/history/:sessionId",
-        "groupId": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "groupId": "learner",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "fbf3995f-487a-47a9-b5cd-9c48a632db8c",
+        "id": "word-book",
         "no": 8,
         "name": "単語帳",
         "kind": "list",
         "path": "/vocabulary",
-        "groupId": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "groupId": "learner",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "6bfa682c-b18e-45bd-8daa-eb20cc1834bf",
+        "id": "word-detail",
         "no": 9,
         "name": "単語詳細",
         "kind": "detail",
         "path": "/vocabulary/:wordId",
-        "groupId": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "groupId": "learner",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "baddbabb-15e1-4f26-9f2b-0dc56b281019",
+        "id": "content-pack-list",
         "no": 10,
         "name": "コンテンツパック一覧",
         "kind": "list",
         "path": "/packs",
-        "groupId": "07c52872-32cc-461c-ad81-2592e2305e15",
+        "groupId": "content-management",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "0ede272d-a094-4651-b37e-b6f3747c4248",
+        "id": "profile-settings",
         "no": 11,
         "name": "プロフィール/設定",
         "kind": "form",
         "path": "/profile",
-        "groupId": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "groupId": "learner",
         "maturity": "draft",
         "updatedAt": "2026-05-04T00:00:00.000Z"
       }
     ],
     "screenGroups": [
       {
-        "id": "1c90d535-ffd5-4991-a5d2-28c918c1f5f3",
+        "id": "learner",
         "name": "学習者向け",
         "color": "#0d6efd"
       },
       {
-        "id": "07c52872-32cc-461c-ad81-2592e2305e15",
+        "id": "content-management",
         "name": "コンテンツ管理",
         "color": "#198754"
       },
       {
-        "id": "de45f035-a895-48b9-ac10-e9ef5050c060",
+        "id": "admin",
         "name": "管理者",
         "color": "#6c757d"
       }
@@ -173,136 +174,136 @@
     "screenTransitions": [
       {
         "id": "tr-dashboard-to-stories",
-        "sourceScreenId": "496e43f8-d243-48a1-b680-32d34d98cc2d",
-        "targetScreenId": "5f411f06-8677-4fa8-a9b2-edc14a1d9ce1",
+        "sourceScreenId": "dashboard",
+        "targetScreenId": "story-list",
         "label": "学習を始める (S-1)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-dashboard-to-history",
-        "sourceScreenId": "496e43f8-d243-48a1-b680-32d34d98cc2d",
-        "targetScreenId": "297e9117-0982-4a40-9ce7-bced3bc6d2c5",
+        "sourceScreenId": "dashboard",
+        "targetScreenId": "study-history-list",
         "label": "学習履歴 (S-4)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-dashboard-to-vocabulary",
-        "sourceScreenId": "496e43f8-d243-48a1-b680-32d34d98cc2d",
-        "targetScreenId": "fbf3995f-487a-47a9-b5cd-9c48a632db8c",
+        "sourceScreenId": "dashboard",
+        "targetScreenId": "word-book",
         "label": "単語帳 (S-4)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-dashboard-to-profile",
-        "sourceScreenId": "496e43f8-d243-48a1-b680-32d34d98cc2d",
-        "targetScreenId": "0ede272d-a094-4651-b37e-b6f3747c4248",
+        "sourceScreenId": "dashboard",
+        "targetScreenId": "profile-settings",
         "label": "プロフィール設定",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-dashboard-to-packs",
-        "sourceScreenId": "496e43f8-d243-48a1-b680-32d34d98cc2d",
-        "targetScreenId": "baddbabb-15e1-4f26-9f2b-0dc56b281019",
+        "sourceScreenId": "dashboard",
+        "targetScreenId": "content-pack-list",
         "label": "コンテンツパック",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-packs-to-dashboard",
-        "sourceScreenId": "baddbabb-15e1-4f26-9f2b-0dc56b281019",
-        "targetScreenId": "496e43f8-d243-48a1-b680-32d34d98cc2d",
+        "sourceScreenId": "content-pack-list",
+        "targetScreenId": "dashboard",
         "label": "ダッシュボードへ戻る",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-stories-to-detail",
-        "sourceScreenId": "5f411f06-8677-4fa8-a9b2-edc14a1d9ce1",
-        "targetScreenId": "046e1f83-bed3-4b13-a5ac-b0fa06744dfe",
+        "sourceScreenId": "story-list",
+        "targetScreenId": "story-detail",
         "label": "詳細を見る (S-1)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-detail-to-play",
-        "sourceScreenId": "046e1f83-bed3-4b13-a5ac-b0fa06744dfe",
-        "targetScreenId": "a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7",
+        "sourceScreenId": "story-detail",
+        "targetScreenId": "conversation-play",
         "label": "学習を開始する (S-1 セッション作成 → 会話プレイ遷移)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-play-to-result",
-        "sourceScreenId": "a9d8eb6f-065d-4af6-ac9a-cc1fcf10b2b7",
-        "targetScreenId": "18bcc879-0b84-4e63-9317-37b94e799886",
+        "sourceScreenId": "conversation-play",
+        "targetScreenId": "session-result",
         "label": "セッションを終了する (S-3 採点完了 → 結果画面遷移)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-result-to-stories",
-        "sourceScreenId": "18bcc879-0b84-4e63-9317-37b94e799886",
-        "targetScreenId": "5f411f06-8677-4fa8-a9b2-edc14a1d9ce1",
+        "sourceScreenId": "session-result",
+        "targetScreenId": "story-list",
         "label": "次へ進む",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-result-to-dashboard",
-        "sourceScreenId": "18bcc879-0b84-4e63-9317-37b94e799886",
-        "targetScreenId": "496e43f8-d243-48a1-b680-32d34d98cc2d",
+        "sourceScreenId": "session-result",
+        "targetScreenId": "dashboard",
         "label": "ホームへ",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-history-to-detail",
-        "sourceScreenId": "297e9117-0982-4a40-9ce7-bced3bc6d2c5",
-        "targetScreenId": "4e728c10-dce1-4843-8634-a61a59d0ba0b",
+        "sourceScreenId": "study-history-list",
+        "targetScreenId": "study-history-detail",
         "label": "詳細を見る (S-4)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-vocabulary-to-word-detail",
-        "sourceScreenId": "fbf3995f-487a-47a9-b5cd-9c48a632db8c",
-        "targetScreenId": "6bfa682c-b18e-45bd-8daa-eb20cc1834bf",
+        "sourceScreenId": "word-book",
+        "targetScreenId": "word-detail",
         "label": "単語詳細 (S-4)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-word-detail-to-vocabulary",
-        "sourceScreenId": "6bfa682c-b18e-45bd-8daa-eb20cc1834bf",
-        "targetScreenId": "fbf3995f-487a-47a9-b5cd-9c48a632db8c",
+        "sourceScreenId": "word-detail",
+        "targetScreenId": "word-book",
         "label": "単語帳へ戻る",
         "trigger": "back",
         "kind": "navigation"
       },
       {
         "id": "tr-history-detail-to-list",
-        "sourceScreenId": "4e728c10-dce1-4843-8634-a61a59d0ba0b",
-        "targetScreenId": "297e9117-0982-4a40-9ce7-bced3bc6d2c5",
+        "sourceScreenId": "study-history-detail",
+        "targetScreenId": "study-history-list",
         "label": "学習履歴一覧へ戻る",
         "trigger": "back",
         "kind": "navigation"
       },
       {
         "id": "tr-stories-to-dashboard",
-        "sourceScreenId": "5f411f06-8677-4fa8-a9b2-edc14a1d9ce1",
-        "targetScreenId": "496e43f8-d243-48a1-b680-32d34d98cc2d",
+        "sourceScreenId": "story-list",
+        "targetScreenId": "dashboard",
         "label": "ダッシュボードへ戻る",
         "trigger": "back",
         "kind": "navigation"
       },
       {
         "id": "tr-profile-to-dashboard",
-        "sourceScreenId": "0ede272d-a094-4651-b37e-b6f3747c4248",
-        "targetScreenId": "496e43f8-d243-48a1-b680-32d34d98cc2d",
+        "sourceScreenId": "profile-settings",
+        "targetScreenId": "dashboard",
         "label": "ダッシュボードへ戻る",
         "trigger": "back",
         "kind": "navigation"
@@ -310,7 +311,7 @@
     ],
     "tables": [
       {
-        "id": "c7e50462-bbc4-498f-a280-2ec40bda30b1",
+        "id": "user",
         "no": 1,
         "name": "ユーザー",
         "physicalName": "users",
@@ -320,7 +321,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "517d50a3-960f-42ce-810f-3b126398d7b1",
+        "id": "content-pack",
         "no": 2,
         "name": "コンテンツパック",
         "physicalName": "content_packs",
@@ -330,7 +331,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "b5aa3e1b-b5e4-46dd-8373-75fea340844b",
+        "id": "story",
         "no": 3,
         "name": "ストーリー",
         "physicalName": "stories",
@@ -340,7 +341,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "992ac5db-54fa-4eb0-9509-66b3babbdef6",
+        "id": "scene",
         "no": 4,
         "name": "シーン",
         "physicalName": "scenes",
@@ -350,7 +351,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "246a3f13-7888-4b14-ad6d-641b7437b09d",
+        "id": "dialogue-line",
         "no": 5,
         "name": "セリフ",
         "physicalName": "dialogue_lines",
@@ -360,7 +361,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "8db75844-19ca-4e7d-8293-579e7631c5cc",
+        "id": "word",
         "no": 6,
         "name": "単語",
         "physicalName": "words",
@@ -370,7 +371,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "d524cba6-0878-4cf5-ba70-deaa7b459103",
+        "id": "study-session",
         "no": 7,
         "name": "学習セッション",
         "physicalName": "learning_sessions",
@@ -380,7 +381,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "4e126323-4ab7-4747-961b-23cbaf651314",
+        "id": "conversation-turn-log",
         "no": 8,
         "name": "会話ターンログ",
         "physicalName": "turn_logs",
@@ -390,7 +391,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "fefa79cf-4721-4956-86bb-595427bf6f81",
+        "id": "pronunciation-score",
         "no": 9,
         "name": "発音スコア",
         "physicalName": "pronunciation_scores",
@@ -400,7 +401,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "7ab2cf24-7b66-47aa-a808-7fffd8290480",
+        "id": "word-mastery",
         "no": 10,
         "name": "単語習熟度",
         "physicalName": "user_word_progress",
@@ -412,7 +413,7 @@
     ],
     "processFlows": [
       {
-        "id": "cc173367-d92a-4525-acc9-689bad9a048e",
+        "id": "study-session-start",
         "no": 1,
         "name": "学習セッション開始",
         "flowType": "screen",
@@ -421,7 +422,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "96118ae1-a0ab-401b-8584-dd645a45a81f",
+        "id": "conversation-turn-progress",
         "no": 2,
         "name": "会話ターン進行",
         "flowType": "screen",
@@ -430,7 +431,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "6a49b14b-eb90-45bd-9df0-df4b5986626b",
+        "id": "pronunciation-grade",
         "no": 3,
         "name": "発音採点",
         "flowType": "screen",
@@ -439,7 +440,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "21c25fb2-551a-483f-b32a-060db8f88aee",
+        "id": "word-mastery-update",
         "no": 4,
         "name": "単語習熟度更新",
         "flowType": "common",
@@ -448,7 +449,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "3c4d9bfd-f648-4875-a135-a04e709a87a7",
+        "id": "streak-reset",
         "no": 5,
         "name": "連続学習日数リセット",
         "flowType": "scheduled",
@@ -459,7 +460,7 @@
     ],
     "views": [
       {
-        "id": "af699800-b15f-4588-9d0d-6a76a3eb2e48",
+        "id": "study-history-with-story-view",
         "no": 1,
         "name": "学習履歴とストーリー結合ビュー",
         "physicalName": "v_learning_history_with_story",
@@ -467,7 +468,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "c0474fbf-d0f4-4cfc-bbcd-0154431df9a2",
+        "id": "word-with-mastery-view",
         "no": 2,
         "name": "習熟度付き単語ビュー",
         "physicalName": "v_words_with_progress",
@@ -475,7 +476,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "54917d0d-3162-43f5-8daf-77abdbbc2771",
+        "id": "session-pronunciation-avg-view",
         "no": 3,
         "name": "セッション別発音平均ビュー",
         "physicalName": "v_session_pronunciation_avg",
@@ -485,7 +486,7 @@
     ],
     "viewDefinitions": [
       {
-        "id": "cfdbf081-368d-4a33-8a36-1c7a0c535011",
+        "id": "story-list-viewer",
         "no": 1,
         "name": "ストーリー一覧 viewer",
         "kind": "list",
@@ -493,7 +494,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "4c9cdc85-2537-4ca8-a979-4de21a56e0fa",
+        "id": "study-history-list-viewer",
         "no": 2,
         "name": "学習履歴一覧 viewer",
         "kind": "list",
@@ -501,7 +502,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "090e9db0-ce45-4fc4-9fa6-5784f655ca07",
+        "id": "word-book-viewer",
         "no": 3,
         "name": "単語帳 viewer",
         "kind": "list",
@@ -509,7 +510,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "ba1c7d9d-5907-4535-99b9-f9fa170bb248",
+        "id": "content-pack-list-viewer",
         "no": 4,
         "name": "コンテンツパック一覧 viewer",
         "kind": "list",
@@ -517,7 +518,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "f06e103d-1eb5-4918-9a6d-67436095bfe7",
+        "id": "pronunciation-score-history-viewer",
         "no": 5,
         "name": "発音スコア履歴 viewer",
         "kind": "list",
@@ -527,7 +528,7 @@
     ],
     "sequences": [
       {
-        "id": "0d9b9b02-cc61-4b26-85c3-ef932bfbe5fd",
+        "id": "session-id-sequence",
         "no": 1,
         "name": "セッションID採番",
         "physicalName": "seq_session_id",
@@ -535,7 +536,7 @@
         "updatedAt": "2026-05-04T00:00:00.000Z"
       },
       {
-        "id": "d4160951-3cd6-42dc-b114-9f358ec59c0f",
+        "id": "score-id-sequence",
         "no": 2,
         "name": "スコアID採番",
         "physicalName": "seq_score_id",

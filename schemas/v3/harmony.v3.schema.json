@@ -176,7 +176,7 @@
       "type": "object",
       "required": ["id", "no", "name", "updatedAt"],
       "properties": {
-        "id": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+        "id": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
         "no": { "type": "integer", "minimum": 1, "description": "物理順 (1..N)。一覧の並び替え永続化に使用。" },
         "name": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
         "updatedAt": { "$ref": "common.v3.schema.json#/$defs/Timestamp" },
@@ -197,10 +197,10 @@
         },
         "path": { "type": "string", "description": "URL ルーティングパス (purpose='page' のみ意味を持つ)。" },
         "pageLayoutId": {
-          "$ref": "common.v3.schema.json#/$defs/Uuid",
+          "$ref": "common.v3.schema.json#/$defs/EntityId",
           "description": "本 Screen が使用する PageLayout の ID (purpose='page' のみ)。逆参照表示用にキャッシュ。"
         },
-        "groupId": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+        "groupId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
         "hasDesign": { "type": "boolean" }
       },
       "unevaluatedProperties": false
@@ -222,7 +222,7 @@
       "type": "object",
       "properties": {
         "flowType": { "type": "string", "description": "ProcessFlowKind (screen/batch/scheduled/system/common/other、または 'retail:posTransaction' 等の拡張参照)。#1263 Phase X1 で kind → flowType に rename。" },
-        "screenId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "flowType='screen' の場合の関連画面 ID。" },
+        "screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "flowType='screen' の場合の関連画面 ID。" },
         "actionCount": { "type": "integer", "minimum": 0 },
         "notesCount": { "type": "integer", "minimum": 0 }
       },
@@ -244,7 +244,7 @@
       "type": "object",
       "properties": {
         "kind": { "type": "string", "description": "ViewDefinitionKind (list / detail / kanban / calendar、または 'retail:storefront' 等の拡張参照)。" },
-        "sourceTableId": { "$ref": "common.v3.schema.json#/$defs/Uuid", "description": "ベースとなる source table の Uuid (一覧 UI 表示用)。" },
+        "sourceTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "ベースとなる source table の EntityId (一覧 UI 表示用)。" },
         "columnCount": { "type": "integer", "minimum": 0 }
       },
       "unevaluatedProperties": false
@@ -278,7 +278,7 @@
       "required": ["id", "name"],
       "additionalProperties": false,
       "properties": {
-        "id": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+        "id": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
         "name": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
         "color": { "type": "string", "description": "UI 表示色 (#RRGGBB)。" }
       }
@@ -291,8 +291,8 @@
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
-        "sourceScreenId": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
-        "targetScreenId": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+        "sourceScreenId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
+        "targetScreenId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
         "label": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
         "trigger": {
           "type": "string",

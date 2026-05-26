@@ -31,10 +31,11 @@ const dummyGroup = {
     ],
   }],
   markers: [
-    { id: "m1", kind: "todo", body: "A を修正して", stepId: "s1", author: "human", createdAt: "2026-04-21T00:00:00Z" },
-    { id: "m2", kind: "attention", body: "B を確認", stepId: "s1", author: "human", createdAt: "2026-04-21T00:00:00Z" },
-    { id: "m3", kind: "question", body: "C?", stepId: "s2", author: "human", createdAt: "2026-04-21T00:00:00Z" },
-    { id: "m4", kind: "chat", body: "解決済み", stepId: "s1", author: "human", createdAt: "2026-04-21T00:00:00Z", resolvedAt: "2026-04-21T01:00:00Z" },
+    // v3 schema (#1263): stepId は marker.anchor.stepId へ移動
+    { id: "m1", kind: "todo", body: "A を修正して", author: "human", createdAt: "2026-04-21T00:00:00Z", anchor: { stepId: "s1" } },
+    { id: "m2", kind: "attention", body: "B を確認", author: "human", createdAt: "2026-04-21T00:00:00Z", anchor: { stepId: "s1" } },
+    { id: "m3", kind: "question", body: "C?", author: "human", createdAt: "2026-04-21T00:00:00Z", anchor: { stepId: "s2" } },
+    { id: "m4", kind: "chat", body: "解決済み", author: "human", createdAt: "2026-04-21T00:00:00Z", resolvedAt: "2026-04-21T01:00:00Z", anchor: { stepId: "s1" } },
     { id: "m5", kind: "chat", body: "グループ宛", author: "human", createdAt: "2026-04-21T00:00:00Z" },
   ],
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),

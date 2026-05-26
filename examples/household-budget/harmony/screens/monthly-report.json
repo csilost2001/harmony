@@ -1,0 +1,113 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "monthly-report",
+  "uuid": "3a000000-2000-4000-8000-000000000005",
+  "name": "月次レポート",
+  "description": "選択月の収支詳細レポート。カテゴリ別棒グラフ + 累積収支推移ライン + 前月比 KPI を表示する。年月セレクタを変更すると fetchMonthlyReport flow が再実行される。",
+  "createdAt": "2026-05-24T00:00:00.000Z",
+  "updatedAt": "2026-05-24T00:00:00.000Z",
+  "maturity": "draft",
+  "kind": "detail",
+  "purpose": "page",
+  "path": "/reports/monthly",
+  "groupId": "household-budget",
+  "auth": "required",
+  "processFlowId": "monthly-report-get",
+  "items": [
+    {
+      "id": "targetYearMonth",
+      "label": "対象月",
+      "type": "string",
+      "direction": "input",
+      "required": true,
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+      "placeholder": "2026-05",
+      "helperText": "YYYY-MM 形式。default は当月。",
+      "events": [
+        {
+          "id": "change",
+          "label": "対象月変更",
+          "handlerFlowId": "monthly-report-get",
+          "argumentMapping": {
+            "yearMonth": "@self.value"
+          }
+        }
+      ]
+    },
+    {
+      "id": "totalIncome",
+      "label": "収入合計",
+      "type": "number",
+      "direction": "output",
+      "displayFormat": "¥#,##0",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "report.totalIncome"
+      }
+    },
+    {
+      "id": "totalExpense",
+      "label": "支出合計",
+      "type": "number",
+      "direction": "output",
+      "displayFormat": "¥#,##0",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "report.totalExpense"
+      }
+    },
+    {
+      "id": "netBalance",
+      "label": "収支",
+      "type": "number",
+      "direction": "output",
+      "displayFormat": "¥#,##0",
+      "valueFrom": {
+        "kind": "expression",
+        "expression": "${report.totalIncome - report.totalExpense}"
+      }
+    },
+    {
+      "id": "categoryBreakdown",
+      "label": "カテゴリ別内訳",
+      "type": {
+        "kind": "array",
+        "itemType": {
+          "kind": "object",
+          "fields": [
+            {
+              "name": "categoryName",
+              "label": "カテゴリ",
+              "type": "string"
+            },
+            {
+              "name": "categoryType",
+              "label": "種別",
+              "type": "string"
+            },
+            {
+              "name": "color",
+              "label": "色",
+              "type": "string"
+            },
+            {
+              "name": "amount",
+              "label": "金額",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "direction": "output",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "variableName": "report.categoryBreakdown"
+      },
+      "helperText": "Tailwind の bar chart + ドーナツチャートで描画。"
+    }
+  ],
+  "design": {
+    "editorKind": "puck",
+    "cssFramework": "tailwind"
+  }
+}

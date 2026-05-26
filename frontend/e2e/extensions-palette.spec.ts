@@ -85,8 +85,8 @@ test.describe("カスタムステップカードパレット (#447)", { tag: ["@
     await page.getByTestId("edit-mode-start").click();
     await expect(page.getByTestId("edit-mode-save")).toBeVisible();
 
-    // カスタムセクションのラベル (.step-toolbar 内の小見出しを限定; div.small.text-muted)
-    await expect(page.locator(".step-toolbar div.small.text-muted").filter({ hasText: /^カスタム$/ })).toBeVisible();
+    // カスタムセクションのラベル (PalettePanel.tsx で .process-flow-palette-section クラス、Phase 2 refactor で命名変更)
+    await expect(page.locator(".process-flow-palette-section").filter({ hasText: /^カスタム$/ })).toBeVisible();
     const card = page.getByRole("button", { name: /テストカスタム/ }).first();
     await expect(card).toBeDisabled();
   });

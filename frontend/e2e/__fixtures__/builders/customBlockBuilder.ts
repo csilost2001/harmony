@@ -10,7 +10,7 @@ import type {
   CustomBlockId,
   Timestamp,
 } from "../../../src/types/v3";
-import { normalizeId } from "../../helpers/realWorkspace";
+import { deterministicUuid } from "../../helpers/realWorkspace";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
@@ -24,7 +24,9 @@ export interface BuildCustomBlockOpts {
 
 export function buildCustomBlock(opts: BuildCustomBlockOpts = {}): CustomBlock {
   const id = opts.id
-    ? (normalizeId(opts.id) as unknown as CustomBlockId)
+    // Round 6 Phase A: CustomBlock.id は schemas/v3/custom-block.v3#id で UUID v4 必須 (top-level
+    // entity 体系の RFC #1284 範囲外)。kebab-case 化する normalizeId ではなく deterministicUuid を使う。
+    ? (deterministicUuid(opts.id) as unknown as CustomBlockId)
     : (crypto.randomUUID() as unknown as CustomBlockId);
 
   return {

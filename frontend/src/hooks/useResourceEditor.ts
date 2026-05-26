@@ -6,6 +6,7 @@ import { acknowledgeServerMtime, hasServerBeenUpdated, type MtimeKind } from "..
 import { setDirty as setTabDirty, makeTabId, type TabType } from "../store/tabStore";
 import { mcpBridge } from "../mcp/mcpBridge";
 import type { DraftResourceType } from "../types/draft";
+import { isRenameInProgressByTabType } from "../utils/renameInProgress";
 
 export interface UseResourceEditorOptions<T> {
   /** tabStore で使うタブ種別 */
@@ -49,6 +50,12 @@ export interface UseResourceEditorOptions<T> {
    * 指定されない場合は旧 draft-update (resourceType/resourceId) でフィルタする。
    */
   viewerEditSessionId?: string;
+  /**
+   * I-7 Round 3 G-5 (#1299 Codex S-R2-1): rename-in-progress 判定の workspace scoping。
+   * `useWorkspacePath().wsId` を渡すと、`isRenameInProgressByTabType` の key に wsId を
+   * 含めて multi-workspace 跨ぎでの誤抑制を防ぐ。省略時は従来動作 (`_` placeholder)。
+   */
+  wsId?: string;
 }
 
 export interface UseResourceEditorResult<T> {
@@ -103,6 +110,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
     viewerMode,
     viewerResourceType,
     viewerEditSessionId,
+    wsId,
   } = opts;
 
   const [isDirty, setIsDirty] = useState(false);
@@ -167,6 +175,16 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
     if (!id) return;
     const loaded = await load(id);
     if (!loaded) {
+      // I-7 Round 2 F-3 (#1299 Codex review M-4 / Opus review M-2):
+      // rename / undo 完了直後の短窓 (3000ms) は、broadcast 受信→reload→load=null の
+      // sequence で onNotFound を呼んで /<entityType>/list に redirect する race が
+      // 発生する。handleRenameSuccess が markRenameInProgress で oldId/newId を
+      // 登録しているため、現在の url id が in-flight 中なら redirect を skip する。
+      // navigate は handleRenameSuccess 側で replace=true 実行済のため、ここで silent
+      // skip しても新 url への遷移は別途確定する。
+      if (isRenameInProgressByTabType(tabType, id, wsId)) {
+        return;
+      }
       onNotFoundRef.current?.();
       return;
     }
@@ -184,7 +202,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
       clearDraft(draftKind, id);
     }
     onLoadedRef.current?.(loaded);
-  }, [id, load, draftKind, tabType, resetState]);
+  }, [id, load, draftKind, tabType, wsId, resetState]);
 
   const handleSave = useCallback(async () => {
     if (!state || !id) return;
@@ -224,6 +242,11 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
     clearDraft(draftKind, id);
     const loaded = await load(id);
     if (!loaded) {
+      // I-7 Round 2 F-3 (#1299 Codex review M-4 / Opus review M-2): rename in-flight 中は
+      // redirect skip (reload と同パターン)。Round 3 G-5: wsId scoping (multi-workspace 跨ぎ誤抑制回避)。
+      if (isRenameInProgressByTabType(tabType, id, wsId)) {
+        return;
+      }
       onNotFoundRef.current?.();
       return;
     }
@@ -234,7 +257,7 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
     setServerChanged(false);
     await acknowledgeServerMtime(mtimeKind, id);
     onLoadedRef.current?.(loaded);
-  }, [id, draftKind, load, tabType, mtimeKind, resetState]);
+  }, [id, draftKind, load, tabType, wsId, mtimeKind, resetState]);
 
   const dismissServerBanner = useCallback(() => {
     setServerChanged(false);
@@ -259,10 +282,29 @@ export function useResourceEditor<T>(opts: UseResourceEditorOptions<T>): UseReso
   }, [id, draftKind, mtimeKind, reload]);
 
   // 外部 broadcast 受信: dirty ならバナー、clean なら自動リロード
+  //
+  // Phase G S-1 (Codex round 2 / Opus 独立レビュー confirm): rename / undo の broadcast は
+  // 参照側 entity 種別の reload event を `{ reload: true }` payload で発火するが、id field を
+  // 持たないため従来の `d[broadcastIdField] !== id` filter で reject されていた。これにより
+  // 別 tab で開いている参照側 editor (例: cart-add ProcessFlow が Table store-master を参照、
+  // 両方 open) は backend で disk 更新後も stale cache を保持 → dirty 状態で保存すると rename
+  // の ref 更新が overwrite されて silent data corruption する。
+  //
+  // 対策: `reload: true` を「全件 invalidation シグナル」として id filter より先に処理する。
+  // dirty なら serverChanged バナー、clean なら自動 reload (通常 event と同じ分岐)。
   useEffect(() => {
     if (!id) return;
     return mcpBridge.onBroadcast(broadcastName, (data) => {
       const d = data as Record<string, unknown>;
+      // Phase G S-1: rename/undo 由来の全件 invalidation signal を id filter より先に処理
+      if (d.reload === true) {
+        if (isDirtyRef.current || !autoReloadOnClean) {
+          setServerChanged(true);
+        } else {
+          reload().catch(console.error);
+        }
+        return;
+      }
       if (d[broadcastIdField] !== id) return;
       if (isDirtyRef.current || !autoReloadOnClean) {
         setServerChanged(true);

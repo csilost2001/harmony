@@ -1,0 +1,66 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "word-book",
+  "uuid": "fbf3995f-487a-47a9-b5cd-9c48a632db8c",
+  "name": "単語帳",
+  "description": "S-4 単語帳画面。ユーザーが学習した words を習熟度 (new/learning/mastered) 別に表示・フィルタし、単語詳細へ遷移できる。",
+  "kind": "list",
+  "path": "/vocabulary",
+  "auth": "required",
+  "groupId": "learner",
+  "maturity": "draft",
+  "createdAt": "2026-05-04T00:00:00.000Z",
+  "updatedAt": "2026-05-04T00:00:00.000Z",
+  "items": [
+    {
+      "id": "masteryFilter",
+      "label": "習熟度",
+      "type": "string",
+      "direction": "input",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "すべて"
+        },
+        {
+          "value": "new",
+          "label": "未学習"
+        },
+        {
+          "value": "learning",
+          "label": "学習中"
+        },
+        {
+          "value": "mastered",
+          "label": "習得済み"
+        }
+      ],
+      "description": "user_word_progress.status で絞り込む検索フィルタ。"
+    },
+    {
+      "id": "wordSearch",
+      "label": "単語検索",
+      "type": "string",
+      "direction": "input",
+      "required": false,
+      "maxLength": 100,
+      "placeholder": "英単語を入力",
+      "description": "words.word (英単語) に対する前方一致検索。"
+    },
+    {
+      "id": "wordList",
+      "label": "単語一覧",
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
+      "direction": "viewer",
+      "viewDefinitionId": "word-book-viewer",
+      "description": "フィルタ条件で絞り込んだ user_word_progress JOIN words の一覧。単語帳 viewer (090e9db0) の列定義に従い単語 / 訳 / IPA / 習熟度 / 最終学習日を表示する。"
+    }
+  ],
+  "design": {
+    "designFileRef": "word-book.design.json"
+  }
+}

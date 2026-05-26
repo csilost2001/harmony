@@ -39,9 +39,9 @@ import {
   type ProcessFlowDoc,
   type CatalogName,
 } from "../processFlowEdits.js";
-import { saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
+import { assertEntityIdMcp, saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
 import { wsBridge } from "../wsBridge.js";
-import { assertUuid, assertSafeName, assertPathContained } from "../security/idValidator.js";
+import { assertUuid, assertEntityId, assertPathContained } from "../security/idValidator.js";
 
 type ResponseTypeEntry = {
   description?: string;
@@ -60,31 +60,44 @@ const EXTENSION_PACKAGE_TYPES: ExtensionFileKind[] = ["steps", "fieldTypes", "tr
 /**
  * RFC 4122 v4 UUID を生成する (#1141 S-9)。
  * `crypto.randomUUID()` は Node.js 14.17+ で常用可能、Web Crypto も v19+ で global 化済み。
- * 旧 `ag-/act-/step- + Date.now()` (Uuid 規範違反) を全廃する。
+ * action/step の LocalId 採番では引き続き使用 (旧 `act-/step- + Date.now()` を全廃)。
  */
 function newId(): string {
   return crypto.randomUUID();
 }
 
 /**
- * v3 ProcessFlow entity の初期構造を生成する (#1141 F-4)。
+ * ProcessFlow の EntityId (kebab-case) を暫定採番する (#1294 I-2 / RFC #1284)。
+ * I-5 で UI 創成ダイアログから人間入力 + AI 提案に置き換える (本暫定形式は I-5 まで)。
+ *
+ * 形式: `flow-<8桁短縮>` (entity type 内 unique を担保するため `crypto.randomUUID().slice(0, 8)` を suffix)
+ */
+function newProcessFlowEntityId(): string {
+  return `flow-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+/**
+ * v3 ProcessFlow entity の初期構造を生成する (#1141 F-4 / #1294 I-2)。
  * schemas/v3/process-flow.v3.schema.json 規範:
  *   - root: { $schema, meta, context?, actions, authoring? }
- *   - meta: { id (Uuid), name, description?, flowType, maturity?, createdAt, updatedAt, screenId?, ... }
+ *   - meta: { id (EntityId), uuid (UUID v4), name, description?, flowType, maturity?, createdAt, updatedAt, screenId?, ... }
  *     - #1263 Phase X1: meta.kind → meta.flowType に rename
+ *     - #1294 I-2 / RFC #1284: id を kebab-case (EntityId) に変更、uuid を別 field として併記
  *   - actions: ActionDefinition[] (0 件許容)
  */
 function buildV3ProcessFlow(opts: {
   id: string;
+  uuid: string;
   name: string;
   flowType: string;
   screenId?: string;
   description?: string;
   now: string;
 }): Record<string, unknown> {
-  const { id, name, flowType, screenId, description, now } = opts;
+  const { id, uuid, name, flowType, screenId, description, now } = opts;
   const meta: Record<string, unknown> = {
     id,
+    uuid,
     name,
     flowType,
     maturity: "draft",
@@ -243,8 +256,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId は必須です");
       }
-      // S-002: ID validation
-      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       // browser-first: ProcessFlowEditor が開いていれば live 状態を取得
       const liveData = await wsBridge.tryCommand("getProcessFlow", { id: a.processFlowId });
       const pfData = liveData ?? await readProcessFlow(a.processFlowId, root);
@@ -261,10 +274,13 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.name !== "string" || typeof a.flowType !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "name, flowType は必須です");
       }
-      const pfId = newId(); // #1141 S-9: RFC 4122 v4 UUID (旧 `ag-${Date.now()}` を全廃)
+      // #1294 I-2 / RFC #1284: id は kebab-case EntityId、uuid は別途 UUID v4 で採番
+      const pfId = newProcessFlowEntityId();
+      const pfUuid = crypto.randomUUID();
       const pfNow = new Date().toISOString();
       const pfDef = buildV3ProcessFlow({
         id: pfId,
+        uuid: pfUuid,
         name: a.name,
         flowType: a.flowType,
         screenId: typeof a.screenId === "string" ? a.screenId : undefined,
@@ -296,12 +312,23 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || !a.definition) {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, definition は必須です");
       }
-      // S-002: ID validation
-      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       const pfDef = a.definition as Record<string, unknown>;
+      // #1294 I-2 review Should-fix #2: meta.id と URL/path 上の processFlowId の整合性 check
+      // rename は I-6 スコープのため、本 PR では「不一致 = エラー」で sealed する。
+      const pfMetaIn = isRecord(pfDef.meta) ? pfDef.meta : null;
+      const metaId = pfMetaIn && typeof pfMetaIn.id === "string" ? pfMetaIn.id : null;
+      if (metaId !== null && metaId !== a.processFlowId) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `processFlowId (${a.processFlowId}) と definition.meta.id (${metaId}) が不一致です。` +
+            `rename は本 ISSUE スコープ外 (I-6) のため、両者が一致する状態で update を送ってください。`,
+        );
+      }
       const pfNow = new Date().toISOString();
       // v3: meta.updatedAt を更新 (legacy 互換のため root.updatedAt も touch)
-      const pfMeta = isRecord(pfDef.meta) ? pfDef.meta : {};
+      const pfMeta = pfMetaIn ?? {};
       pfMeta.updatedAt = pfNow;
       pfDef.meta = pfMeta;
       await writeProcessFlow(a.processFlowId, pfDef, root);
@@ -333,8 +360,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId は必須です");
       }
-      // S-002: ID validation
-      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       await deleteProcessFlowFile(a.processFlowId, root);
       const pfProject = (await readProject(root) ?? {}) as Record<string, unknown>;
       removeProcessFlowEntry(pfProject, a.processFlowId);
@@ -349,8 +376,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.name !== "string" || typeof a.trigger !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, name, trigger は必須です");
       }
-      // S-002: ID validation
-      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       const pf = await readProcessFlow(a.processFlowId, root) as Record<string, unknown> | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       const actions = Array.isArray(pf.actions) ? pf.actions as Array<Record<string, unknown>> : [];
@@ -378,8 +405,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.actionId !== "string" || typeof a.kind !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, actionId, kind は必須です");
       }
-      // S-002: ID validation
-      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      // S-002 + #1299 I-7: processFlowId は EntityId、actionId は intra-entity LocalId (UUID v4 採番)
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       try { assertUuid(a.actionId, "actionId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       // browser-first: ProcessFlowEditor が開いていれば in-memory に適用
       // browser 側 mutation handler (applyProcessFlowMutation) は #1149 で v3 化済 (kind を直接受容)。
@@ -410,8 +437,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string" || typeof a.patch !== "object" || a.patch === null) {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, patch は必須です");
       }
-      // S-002: ID validation
-      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const updApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__update_step", params: a,
@@ -435,8 +462,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId は必須です");
       }
-      // S-002: ID validation
-      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const rmApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__remove_step", params: a,
@@ -460,8 +487,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string" || typeof a.newIndex !== "number") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, newIndex は必須です");
       }
-      // S-002: ID validation
-      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const mvApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__move_step", params: a,
@@ -485,8 +512,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.target !== "string" || typeof a.maturity !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, target, maturity は必須です");
       }
-      // S-002: ID validation
-      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      // S-002 + #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {
@@ -503,8 +530,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       if (typeof a.processFlowId !== "string" || typeof a.stepId !== "string" || typeof a.kind !== "string" || typeof a.body !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, stepId, kind, body は必須です");
       }
-      // S-002: ID validation
-      try { assertUuid(a.processFlowId, "processFlowId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
+      assertEntityIdMcp(a.processFlowId, "processFlowId");
       try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
       const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
@@ -713,8 +740,8 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
         const id = doc.id as string | undefined;
         if (!id) { results.push(`SKIP (no id): ${entry.entryName}`); continue; }
 
-        // ZIP 由来の id を UUID 形式で検証 (defense-in-depth, #1229 review-iter-1 I-001)
-        try { assertUuid(id, "id"); } catch { results.push(`SKIP (invalid id): ${entry.entryName}`); continue; }
+        // ZIP 由来の id を EntityId | UUID v4 形式で検証 (defense-in-depth, #1229 review-iter-1 I-001 / #1294 I-2)
+        try { assertEntityId(id, "id"); } catch { results.push(`SKIP (invalid id): ${entry.entryName}`); continue; }
 
         const destPath = path.join(actionsDir, `${id}.json`);
         const exists = fs.existsSync(destPath);

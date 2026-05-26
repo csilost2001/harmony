@@ -1,0 +1,117 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "word-detail",
+  "uuid": "6bfa682c-b18e-45bd-8daa-eb20cc1834bf",
+  "name": "単語詳細",
+  "description": "S-4 単語詳細画面。words テーブルの詳細情報 (英単語 / 品詞 / 訳 / IPA / 例文 / CEFR レベル) とユーザーの習熟度を表示する。\n\n[description 待避]\n- 単語タップ辞書: 会話プレイ画面からセリフ内の単語をタップすると本画面を modal で表示する。実装側 router で intercept する。",
+  "kind": "detail",
+  "path": "/vocabulary/:wordId",
+  "auth": "required",
+  "groupId": "learner",
+  "maturity": "draft",
+  "createdAt": "2026-05-04T00:00:00.000Z",
+  "updatedAt": "2026-05-04T00:00:00.000Z",
+  "items": [
+    {
+      "id": "wordText",
+      "label": "英単語",
+      "type": "string",
+      "direction": "output",
+      "valueFrom": {
+        "kind": "tableColumn",
+        "ref": {
+          "tableId": "word",
+          "columnId": "col-word"
+        }
+      },
+      "description": "words.word (英単語本体)。"
+    },
+    {
+      "id": "wordIpa",
+      "label": "IPA 発音記号",
+      "type": "string",
+      "direction": "output",
+      "valueFrom": {
+        "kind": "tableColumn",
+        "ref": {
+          "tableId": "word",
+          "columnId": "col-ipa"
+        }
+      },
+      "description": "words.ipa。拡張型 english-learning:ipa で IPA Unicode 範囲を制約。"
+    },
+    {
+      "id": "wordPartOfSpeech",
+      "label": "品詞",
+      "type": "string",
+      "direction": "output",
+      "valueFrom": {
+        "kind": "tableColumn",
+        "ref": {
+          "tableId": "word",
+          "columnId": "col-part-of-speech"
+        }
+      },
+      "description": "words.part_of_speech (noun/verb/adjective/adverb 等)。"
+    },
+    {
+      "id": "wordTranslation",
+      "label": "日本語訳",
+      "type": "string",
+      "direction": "output",
+      "valueFrom": {
+        "kind": "tableColumn",
+        "ref": {
+          "tableId": "word",
+          "columnId": "col-translation"
+        }
+      },
+      "description": "words.translation の表示。"
+    },
+    {
+      "id": "wordExampleSentence",
+      "label": "例文",
+      "type": "string",
+      "direction": "output",
+      "valueFrom": {
+        "kind": "tableColumn",
+        "ref": {
+          "tableId": "word",
+          "columnId": "col-example-sentence"
+        }
+      },
+      "description": "words.example_sentence (英文例文)。"
+    },
+    {
+      "id": "wordCefrLevel",
+      "label": "CEFR レベル",
+      "type": "string",
+      "direction": "output",
+      "valueFrom": {
+        "kind": "tableColumn",
+        "ref": {
+          "tableId": "word",
+          "columnId": "col-cefr-level"
+        }
+      },
+      "description": "words.cefr_level (A1-C2)。"
+    },
+    {
+      "id": "masteryStatus",
+      "label": "習熟度",
+      "type": "string",
+      "direction": "output",
+      "valueFrom": {
+        "kind": "tableColumn",
+        "ref": {
+          "tableId": "word-mastery",
+          "columnId": "col-status"
+        }
+      },
+      "description": "user_word_progress.status (new/learning/mastered)。"
+    }
+  ],
+  "design": {
+    "designFileRef": "word-detail.design.json"
+  }
+}

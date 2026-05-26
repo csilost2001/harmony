@@ -1,4 +1,10 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useWorkspacePath } from "../hooks/useWorkspacePath";
+import { RenameEntityDialog } from "./common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "./common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "./common/useRenameEntityUndoToast";
+import { handleRenameSuccess } from "../utils/handleRenameSuccess";
 import { checkLegacyLocalStorage, executeRescue, clearLegacyLocalStorage } from "../grapes/legacyLocalStorageRescue";
 import { acknowledgeServerMtime } from "../utils/serverMtime";
 import { recordError } from "../utils/errorLog";
@@ -29,6 +35,7 @@ import { ResumeOrDiscardDialog } from "./editing/ResumeOrDiscardDialog";
 import { PuckBackend } from "../editor/PuckBackend";
 import { GrapesJSBackend } from "../editor/GrapesJSBackend";
 import type { EditorApi, EditorState, GrapesJSRenderEditorProps, PuckRenderEditorProps } from "../editor/EditorBackend";
+import { DESIGNER_REFERENCE_RELOAD_EVENTS, isReloadBroadcast, shouldNotifyScreenChanged } from "../editor/reloadEvents";
 import "../styles/editMode.css";
 
 const PANEL_MODE_KEY = "designer-panel-left-mode";
@@ -144,6 +151,21 @@ export function Designer({
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [showAiGenerateDialog, setShowAiGenerateDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const navigate = useNavigate();
+  const { wsPath, wsId } = useWorkspacePath();
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  // Phase M Codex SF-1 (#1298 round 8): wsId scoped key で workspace 切替時の metadata 混在を防ぐ
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("screen", screenId, wsId);
+  const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const project = await loadProject();
+        setAllScreenIds((project.screens ?? []).map((s) => s.id));
+      } catch { /* backend 未接続時は空配列のまま */ }
+    })();
+  }, [screenId]);
   // localStorage 救済確認ダイアログ
   const [showLegacyRescueDialog, setShowLegacyRescueDialog] = useState(false);
   const legacyDataRef = useRef<unknown>(null);
@@ -713,6 +735,13 @@ export function Designer({
   // Puck 画面の cross-tab 上書き保護 (Sh-1: puckDataChanged broadcast 購読)。
   // GrapesJS は screenChanged broadcast を購読して ServerChangeBanner を表示するのと同等。
   // Puck 画面でも他タブが puck-data.json を commit した際に ServerChangeBanner を表示する。
+  //
+  // I-7 Round 8 C (#1299 Codex M-R7-3): rename / undo 由来の全件 invalidation signal
+  // (`{ reload: true }`) も購読する。useResourceEditor.ts:299-307 と同等の処理パターン:
+  // - screenChanged with reload:true / oldId 一致 → 自身の reload
+  // - 参照側 entity (table/processFlow/sequence/view/viewDefinition/pageLayout) の rename
+  //   broadcast (reload:true 付き) も cache 無効化に使用 → editor 内で表示している
+  //   table/flow 参照が rename されたら ServerChangeBanner で再読込促す
   useEffect(() => {
     if (editorKind !== "puck") return;
     const unsubPuckChanged = mcpBridge.onBroadcast("puckDataChanged", (data) => {
@@ -725,7 +754,22 @@ export function Designer({
         setServerChanged(true);
       }
     });
-    return () => { unsubPuckChanged(); };
+    // screenChanged は rename payload (oldId / reload) も Puck path で扱う
+    const unsubScreenChanged = mcpBridge.onBroadcast("screenChanged", (data) => {
+      if (!shouldNotifyScreenChanged(data, screenId)) return;
+      setServerChanged(true);
+    });
+    // 参照側 entity の reload:true broadcast を購読 (cache 無効化のみ、id filter なし)
+    const unsubReloadEvents = DESIGNER_REFERENCE_RELOAD_EVENTS.map((ev) =>
+      mcpBridge.onBroadcast(ev, (data) => {
+        if (isReloadBroadcast(data)) setServerChanged(true);
+      }),
+    );
+    return () => {
+      unsubPuckChanged();
+      unsubScreenChanged();
+      unsubReloadEvents.forEach((fn) => fn());
+    };
   }, [editorKind, screenId]);
 
   // ---------------------------------------------------------------------------
@@ -820,6 +864,61 @@ export function Designer({
           onClose={() => setShowAiGenerateDialog(false)}
         />
       )}
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && (
+        <RenameEntityDialog
+          entityType="screen"
+          currentId={screenId}
+          currentName={screenName ?? ""}
+          existingIds={allScreenIds}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => {
+            const project = await loadProject();
+            return (project.screens ?? []).map((s) => s.id);
+          }}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId, extra) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "screen",
+              oldId: screenId,
+              newId,
+              label: screenName ?? newId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast({
+              operationId, oldId: screenId, newId,
+              ttlMs: extra?.ttlMs,
+            });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          ttlMs={renameUndoToast.ttlMs}
+          entityLabel="画面"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "screen",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: screenName ?? renameUndoToast.oldId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </>
   );
 
@@ -861,6 +960,7 @@ export function Designer({
         onViewerAttached={syncSessionToUrl}
         onAttachAsView={editAttach}
         onTakeOver={editTakeOver}
+        onOpenRenameDialog={() => setShowRenameDialog(true)}
       />
     );
     const puckProps: PuckRenderEditorProps = {
@@ -919,6 +1019,7 @@ export function Designer({
       onViewerAttached={syncSessionToUrl}
       onAttachAsView={editAttach}
       onTakeOver={editTakeOver}
+      onOpenRenameDialog={() => setShowRenameDialog(true)}
     />
   );
   // GrapesJSRenderEditorProps で GrapesJS 固有 callback を型レベル required として渡す

@@ -279,12 +279,43 @@ function FlowEditorInner() {
     }
   }, [isLoading, nodes, fitView]);
 
-  const { serverChanged, dismissServerBanner } = useFlowProjectSync({
+  const { serverChanged, dismissServerBanner, markExternalChangeForBanner } = useFlowProjectSync({
     reload: reloadProject,
     isDirtyRef,
     setIsDirty,
     navigate,
   });
+
+  // Phase H SF-2 (Opus round 2 独立レビュー、#1298 I-6): rename / 関連 entity 変更の
+  // broadcast を購読し、画面フロー図を最新化する。`useFlowProjectSync` は projectChanged のみ
+  // 購読しているため、Screen / Table / ProcessFlow / PageLayout rename (entity 別 broadcast)
+  // を受信せず stale 表示になっていた。
+  //
+  // Phase I round 3+4 SF-2 (Codex round 3 S-2 / round 4 S-2): 旧実装は dirty 中は単に return
+  // していたため、ServerChangeBanner が立たず競合通知を見逃していた (useFlowProjectSync の
+  // banner は projectChanged のみ購読)。本 phase で dirty 中も serverChanged 経路を発火する
+  // 共通 handler を呼び出すように修正。
+  useEffect(() => {
+    const handleExternalChange = () => {
+      if (isDirtyRef.current) {
+        // dirty: banner で通知 (useFlowProjectSync 内の serverChanged 状態を立てる)
+        markExternalChangeForBanner();
+      } else {
+        // clean: 自動 reload
+        reloadProject().catch(console.error);
+      }
+    };
+    const unsubScreen = mcpBridge.onBroadcast("screenChanged", handleExternalChange);
+    const unsubTable = mcpBridge.onBroadcast("tableChanged", handleExternalChange);
+    const unsubProcessFlow = mcpBridge.onBroadcast("processFlowChanged", handleExternalChange);
+    const unsubPageLayout = mcpBridge.onBroadcast("pageLayoutChanged", handleExternalChange);
+    return () => {
+      unsubScreen();
+      unsubTable();
+      unsubProcessFlow();
+      unsubPageLayout();
+    };
+  }, [reloadProject, isDirtyRef, markExternalChangeForBanner]);
 
   // タブ dirty マーク
   useEffect(() => {
@@ -467,7 +498,8 @@ function FlowEditorInner() {
     } else {
       const editorKind = data.editorKind ?? projectDefaultEditorKind;
       const cssFramework = data.cssFramework ?? projectDefaultCssFramework;
-      const screen = await addScreen(projectRef.current, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework });
+      // RFC #1284 / #1297 I-5: kebab-case id を modal から受け取って addScreen に渡す
+      const screen = await addScreen(projectRef.current, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework, id: data.id });
       screen.description = data.description;
       await saveProject(projectRef.current);
       // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
@@ -1237,6 +1269,7 @@ function FlowEditorInner() {
         defaultEditorKind={projectDefaultEditorKind}
         defaultCssFramework={projectDefaultCssFramework}
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
+        existingScreenIds={projectRef.current?.screens.map((s) => s.id) ?? []}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />

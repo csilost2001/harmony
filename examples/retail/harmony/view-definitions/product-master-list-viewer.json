@@ -1,0 +1,95 @@
+{
+  "$schema": "../../../../schemas/v3/view-definition.v3.schema.json",
+  "id": "product-master-list-viewer",
+  "uuid": "db10b1f4-459c-4bd3-bb27-76394209671d",
+  "name": "商品マスター一覧",
+  "description": "商品マスター画面 (No.9) 向けの一覧 UI viewer 定義。商品コード・商品名・カテゴリ・単価・販売中フラグを表示し、商品コード/商品名/カテゴリでの絞り込みと単価昇順ソートをサポートする。",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-02T00:00:00.000Z",
+  "kind": "list",
+  "sourceTableId": "product-master",
+  "columns": [
+    {
+      "name": "productCode",
+      "tableColumnRef": {
+        "tableId": "product-master",
+        "columnId": "col-product-code"
+      },
+      "displayName": "商品コード",
+      "type": "string",
+      "width": "120px",
+      "align": "left",
+      "sortable": true,
+      "filterable": true,
+      "linkTo": "/master/products/:id"
+    },
+    {
+      "name": "name",
+      "tableColumnRef": {
+        "tableId": "product-master",
+        "columnId": "col-name"
+      },
+      "displayName": "商品名",
+      "type": "string",
+      "width": "auto",
+      "align": "left",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "categoryName",
+      "tableColumnRef": {
+        "tableId": "product-master",
+        "columnId": "col-category"
+      },
+      "displayName": "カテゴリ",
+      "type": "string",
+      "width": "120px",
+      "align": "left",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "unitPrice",
+      "tableColumnRef": {
+        "tableId": "product-master",
+        "columnId": "col-unit-price"
+      },
+      "displayName": "単価 (税抜)",
+      "type": "number",
+      "displayFormat": "#,##0",
+      "width": "100px",
+      "align": "right",
+      "sortable": true,
+      "filterable": false
+    },
+    {
+      "name": "isActive",
+      "tableColumnRef": {
+        "tableId": "product-master",
+        "columnId": "col-is-active"
+      },
+      "displayName": "販売中",
+      "type": "boolean",
+      "width": "80px",
+      "align": "center",
+      "sortable": true,
+      "filterable": true
+    }
+  ],
+  "sortDefaults": [
+    {
+      "columnName": "productCode",
+      "order": "asc"
+    }
+  ],
+  "filterDefaults": [
+    {
+      "columnName": "isActive",
+      "operator": "eq",
+      "value": true
+    }
+  ],
+  "pageSize": 50
+}

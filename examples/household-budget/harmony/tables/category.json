@@ -1,0 +1,133 @@
+{
+  "$schema": "../../../../schemas/v3/table.v3.schema.json",
+  "id": "category",
+  "uuid": "3a000000-1000-4000-8000-000000000003",
+  "name": "カテゴリ",
+  "description": "収入 / 支出のカテゴリ。ユーザーごとに独立して管理する (初期 seed で標準カテゴリを 8 件挿入想定)。",
+  "createdAt": "2026-05-24T00:00:00.000Z",
+  "updatedAt": "2026-05-24T00:00:00.000Z",
+  "maturity": "draft",
+  "physicalName": "categories",
+  "category": "マスタ",
+  "comment": "収支カテゴリのマスタ (例: 食費 / 交通費 / 給与)。",
+  "columns": [
+    {
+      "id": "col-id",
+      "no": 1,
+      "physicalName": "id",
+      "name": "ID",
+      "dataType": "INTEGER",
+      "notNull": true,
+      "primaryKey": true,
+      "autoIncrement": true
+    },
+    {
+      "id": "col-user-id",
+      "no": 2,
+      "physicalName": "user_id",
+      "name": "ユーザー ID",
+      "dataType": "INTEGER",
+      "notNull": true
+    },
+    {
+      "id": "col-name",
+      "no": 3,
+      "physicalName": "name",
+      "name": "カテゴリ名",
+      "dataType": "VARCHAR",
+      "length": 50,
+      "notNull": true
+    },
+    {
+      "id": "col-category-type",
+      "no": 4,
+      "physicalName": "category_type",
+      "name": "種別",
+      "dataType": "VARCHAR",
+      "length": 10,
+      "notNull": true,
+      "comment": "'income' (収入) または 'expense' (支出)。"
+    },
+    {
+      "id": "col-icon",
+      "no": 5,
+      "physicalName": "icon",
+      "name": "アイコン",
+      "dataType": "VARCHAR",
+      "length": 50,
+      "comment": "Lucide-React アイコン名 (例: 'utensils', 'train-front')。"
+    },
+    {
+      "id": "col-color",
+      "no": 6,
+      "physicalName": "color",
+      "name": "表示色",
+      "dataType": "CHAR",
+      "length": 7,
+      "notNull": true,
+      "defaultValue": "'#6366f1'",
+      "comment": "#RRGGBB 形式のカテゴリ色 (グラフ / バッジ用)。"
+    },
+    {
+      "id": "col-created-at",
+      "no": 7,
+      "physicalName": "created_at",
+      "name": "作成日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    },
+    {
+      "id": "col-updated-at",
+      "no": 8,
+      "physicalName": "updated_at",
+      "name": "更新日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "fk-categories-user",
+      "kind": "foreignKey",
+      "physicalName": "fk_categories_user",
+      "columnIds": [
+        "col-user-id"
+      ],
+      "referencedTableId": "user",
+      "referencedColumnIds": [
+        "col-id"
+      ],
+      "onDelete": "cascade",
+      "onUpdate": "cascade"
+    },
+    {
+      "id": "ck-categories-type",
+      "kind": "check",
+      "physicalName": "ck_categories_type",
+      "expression": "category_type IN ('income', 'expense')"
+    },
+    {
+      "id": "uq-categories-user-name",
+      "kind": "unique",
+      "physicalName": "uq_categories_user_name",
+      "columnIds": [
+        "col-user-id",
+        "col-name"
+      ],
+      "description": "同一ユーザー内でカテゴリ名は一意。"
+    }
+  ],
+  "indexes": [
+    {
+      "id": "idx-categories-user",
+      "physicalName": "idx_categories_user",
+      "columns": [
+        {
+          "columnId": "col-user-id"
+        }
+      ]
+    }
+  ]
+}

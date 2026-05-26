@@ -23,7 +23,7 @@
         "$schema": { "type": "string", "description": "instance JSON が参照する schema 文書への URL/相対パス。" },
         "kind": { "$ref": "#/$defs/ViewDefinitionKind" },
         "sourceTableId": {
-          "$ref": "common.v3.schema.json#/$defs/Uuid",
+          "$ref": "common.v3.schema.json#/$defs/EntityId",
           "description": "Level 1 (Simple) の主要ソーステーブル。1 ViewDefinition = 1 ベース table。Level 2/3 では query フィールドを使う (排他)。"
         },
         "query": {
@@ -122,7 +122,7 @@
       "required": ["tableId", "alias"],
       "additionalProperties": false,
       "properties": {
-        "tableId": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+        "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
         "alias": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9_]*$",
@@ -142,7 +142,7 @@
           "enum": ["INNER", "LEFT", "RIGHT", "FULL"],
           "description": "join 種別。"
         },
-        "tableId": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+        "tableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
         "alias": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9_]*$",

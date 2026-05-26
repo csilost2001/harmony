@@ -25,6 +25,7 @@ import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListClipboard } from "../../hooks/useListClipboard";
 import { useListKeyboard } from "../../hooks/useListKeyboard";
@@ -36,8 +37,10 @@ import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import { EditSessionBadge } from "../editing/EditSessionBadge";
 import { DraftHistoryModal } from "../editing/DraftHistoryModal";
 import { renumber } from "../../utils/listOrder";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { generateUUID } from "../../utils/uuid";
-import type { Uuid, Timestamp } from "../../types/v3";
+import type { Timestamp } from "../../types/v3";
+import type { PageLayout } from "../../types/v3/page-layout";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
 
@@ -64,6 +67,9 @@ export function PageLayoutListView() {
   const [addCssFramework, setAddCssFramework] = useState<PageLayoutCssFramework>("bootstrap");
   const [addDescription, setAddDescription] = useState("");
   const [addNameError, setAddNameError] = useState("");
+  // RFC #1284 / #1297 I-5: kebab-case PageLayout id + AI 提案ボタン + uniqueness 警告
+  const [addId, setAddId] = useState("");
+  const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [historyModal, setHistoryModal] = useState<{ resourceId: string } | null>(null);
 
@@ -132,16 +138,26 @@ export function PageLayoutListView() {
   };
 
   const handleDuplicate = async (items: PageLayoutEntry[]) => {
+    // RFC #1284 (I-7) / #1299 Codex review M-2 / Round 3 G-1:
+    // id は kebab-case (`-copy[-N]`)、uuid は不変識別子なので新規発番。
+    // 元 full の uuid を spread で流すと identity collision (同一 uuid の別 entity) 発生。
+    // existingIds で suffix collision avoidance + 64 字 schema 制約準拠 (G-1)。
+    const idSet = new Set<string>(editor.items.map((pl) => String(pl.id)));
     const newIds: string[] = [];
     for (const m of items) {
       const full = await loadPageLayout(String(m.id));
       if (!full) continue;
       const ts = new Date().toISOString() as Timestamp;
-      const newId = generateUUID() as Uuid;
-      const copy = {
+      const newId = makeDuplicatedEntityId(String(full.id), idSet) as PageLayout["id"];
+      idSet.add(String(newId));
+      // I-7 Round 6 Phase C: pageLayoutStore は canonical `types/v3/page-layout` を
+      // re-export するようになり、`Record<string, ScreenId>` で統一済。cast 不要 (#1336 解消)。
+      const copy: PageLayout = {
         ...full,
         id: newId,
+        uuid: generateUUID() as PageLayout["uuid"],
         name: `${full.name} のコピー` as DisplayName,
+        assignments: full.assignments,
         createdAt: ts,
         updatedAt: ts,
       };
@@ -227,26 +243,34 @@ export function PageLayoutListView() {
     updatedAt: "更新日",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: EntityIdInput に渡す既存 id 配列を memoize
+  const existingIds = useMemo(() => editor.items.map((pl) => String(pl.id)), [editor.items]);
+
   const resetAddForm = () => {
     setAddName("");
     setAddEditorKind("grapesjs");
     setAddCssFramework("bootstrap");
     setAddDescription("");
     setAddNameError("");
+    setAddId("");
   };
 
   const handleAdd = async () => {
     const name = addName.trim();
+    const id = addId.trim();
     if (!name) {
       setAddNameError("名前は必須です");
       return;
     }
+    if (addIdValidation.isInvalid) return;
 
+    // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って store に渡す
     const pl = await createPageLayout(
       name as DisplayName,
       addEditorKind,
       addCssFramework,
       addDescription.trim() || undefined,
+      { id },
     );
     setShowAdd(false);
     resetAddForm();
@@ -626,6 +650,19 @@ export function PageLayoutListView() {
                   rows={3}
                 />
               </label>
+              <label className="tbl-field">
+                <span>ID <small>(kebab-case)</small></span>
+                <EntityIdInput
+                  value={addId}
+                  onChange={setAddId}
+                  name={addName}
+                  existingIds={existingIds}
+                  entityLabel="ページレイアウト"
+                  inputId="page-layout-id-input"
+                  onEnter={handleAdd}
+                  onValidationChange={setAddIdValidation}
+                />
+              </label>
               <div className="tbl-modal-btns">
                 <button
                   className="tbl-btn tbl-btn-ghost"
@@ -636,7 +673,7 @@ export function PageLayoutListView() {
                 <button
                   className="tbl-btn tbl-btn-primary"
                   onClick={handleAdd}
-                  disabled={!addName.trim()}
+                  disabled={!addName.trim() || addIdValidation.isInvalid}
                 >
                   作成して編集
                 </button>

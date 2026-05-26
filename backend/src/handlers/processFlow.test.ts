@@ -28,17 +28,25 @@ import {
 
 const TMP_ROOT = path.join(os.tmpdir(), `processFlow-handler-test-${process.pid}-${Date.now()}`);
 const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+// #1294 I-2 / RFC #1284: processFlow id は kebab-case EntityId に変更 (旧 UUID v4 から)
+// 採番形式は backend が `flow-<8桁短縮>` を生成する暫定形式 (I-5 で UI から人間入力 + AI 提案に置き換え)
+const ENTITY_ID_PATTERN = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+const FLOW_ID_PATTERN = /^flow-[0-9a-f]{8}$/;
+// 「ID: <captured>」message capture 用の broader regex (kebab-case と UUID の両方に対応)
+const ID_CAPTURE_RE = /ID: ([a-z0-9][a-z0-9-]*)/;
 // handler は sessionId を引数に取るが、本テストでは wsBridge.tryCommand 経路 (browser-first) を
 // 通らない fallback path のみ検証するため、固定の dummy sessionId を渡す。
 const SESSION_ID = "test-session";
 
 async function makeWorkspace(root: string): Promise<void> {
   await fs.mkdir(root, { recursive: true });
+  // #1294 I-2: meta.id を kebab-case EntityId に、uuid を required で追加
   const harmony = {
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      id: "11111111-1111-4111-8111-111111111111",
+      id: "test-ws",
+      uuid: "11111111-1111-4111-8111-111111111111",
       name: "test-ws",
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
@@ -72,10 +80,11 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
 
     // 物理ファイルを確認
     const message = res!.content[0].text as string;
-    const idMatch = message.match(/ID: ([0-9a-f-]+)/);
+    const idMatch = message.match(ID_CAPTURE_RE);
     expect(idMatch).not.toBeNull();
     const pfId = idMatch![1];
-    expect(pfId).toMatch(UUID_V4_PATTERN);
+    // #1294 I-2 / RFC #1284: id は kebab-case EntityId (`flow-XXXXXXXX`)、uuid は別 field
+    expect(pfId).toMatch(FLOW_ID_PATTERN);
 
     const doc = await readProcessFlow(pfId, root) as Record<string, unknown>;
     expect(doc).not.toBeNull();
@@ -93,7 +102,9 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
     // (上記は meta 配下に移動済み)
     const meta = doc.meta as Record<string, unknown>;
     expect(meta.id).toBe(pfId);
-    expect(meta.id).toMatch(UUID_V4_PATTERN);
+    expect(meta.id).toMatch(ENTITY_ID_PATTERN);
+    // #1294 I-2 / RFC #1284: meta.uuid (UUID v4、不変) が新規採番される
+    expect(meta.uuid).toMatch(UUID_V4_PATTERN);
     expect(meta.name).toBe("テスト処理フロー");
     expect(meta.flowType).toBe("common"); // #8 / #1141 / #1263 Phase X1: discriminator は `flowType`
     expect(meta).not.toHaveProperty("kind"); // #1263 Phase X1: 旧 meta.kind は出現しない
@@ -103,16 +114,16 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
     expect(typeof meta.updatedAt).toBe("string");
   });
 
-  it("ProcessFlowId が RFC 4122 v4 UUID 形式である (旧 ag-${Date.now()} 全廃)", async () => {
+  it("ProcessFlowId が kebab-case EntityId (`flow-XXXXXXXX`) 形式である (#1294 I-2 / RFC #1284、旧 UUID 全廃)", async () => {
     const res = await handleProcessFlowTool(
       "designer__add_process_flow",
-      { name: "uuid-format-check", flowType: "batch" },
+      { name: "id-format-check", flowType: "batch" },
       root,
       SESSION_ID,
     );
-    const idMatch = (res!.content[0].text as string).match(/ID: ([0-9a-f-]+)/);
+    const idMatch = (res!.content[0].text as string).match(ID_CAPTURE_RE);
     expect(idMatch).not.toBeNull();
-    expect(idMatch![1]).toMatch(UUID_V4_PATTERN);
+    expect(idMatch![1]).toMatch(FLOW_ID_PATTERN);
     // 旧 prefix が含まれないこと
     expect(idMatch![1]).not.toMatch(/^ag-/);
   });
@@ -163,7 +174,7 @@ describe("designer__add_action + designer__add_step — #1141 F-4 + S-9", () => 
       root,
       SESSION_ID,
     );
-    const idMatch = (addRes!.content[0].text as string).match(/ID: ([0-9a-f-]+)/);
+    const idMatch = (addRes!.content[0].text as string).match(ID_CAPTURE_RE);
     pfId = idMatch![1];
   });
 
@@ -303,9 +314,11 @@ describe("writeProcessFlow AJV validation — #1141 F-2", () => {
 
   it("schema valid な ProcessFlow は marker を追加しない", async () => {
     // 最小限の valid な v3 ProcessFlow
+    // I-7 Round 2 F-1 (#1299): EntityId は alpha-leading UUID を reject するため、
+    // kebab-case fixture id に変更。
     const good = {
       meta: {
-        id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        id: "valid-flow-fixture",
         name: "valid-flow",
         flowType: "common",
         createdAt: "2026-01-01T00:00:00.000Z",
@@ -313,8 +326,8 @@ describe("writeProcessFlow AJV validation — #1141 F-2", () => {
       },
       actions: [],
     };
-    await writeProcessFlow("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", good, root);
-    const reloaded = await readProcessFlow("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", root) as Record<string, unknown>;
+    await writeProcessFlow("valid-flow-fixture", good, root);
+    const reloaded = await readProcessFlow("valid-flow-fixture", root) as Record<string, unknown>;
     // authoring が無いか markers が空
     const authoring = reloaded.authoring as Record<string, unknown> | undefined;
     if (authoring && authoring.markers) {
@@ -407,7 +420,7 @@ describe("designer__solution_pack — #1229 F-1 path traversal 拒否", () => {
       SESSION_ID,
     );
     const addText = addRes!.content[0].text as string;
-    const idMatch = addText.match(/ID: ([0-9a-f-]+)/);
+    const idMatch = addText.match(ID_CAPTURE_RE);
     const pfId = idMatch![1];
 
     const res = await handleProcessFlowTool(
@@ -458,13 +471,15 @@ describe("designer__solution_unpack — #1229 F-1 path traversal 拒否", () => 
 
   it("inputPath が workspace 内の正常パスなら展開される", async () => {
     // _dataRoot = root/harmony なので inputPath 相対はそこから解決される
+    // I-7 Round 2 F-1 (#1299): EntityId は alpha-leading UUID を reject するため、
+    // kebab-case fixture id に変更。
     const zipDir = path.join(root, "harmony", "input");
     await fs.mkdir(zipDir, { recursive: true });
     const zipPath = path.join(zipDir, "pack.zip");
 
     const flowDoc = {
-      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-      meta: { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", name: "unpack-test", flowType: "common" },
+      id: "unpack-test-fixture",
+      meta: { id: "unpack-test-fixture", name: "unpack-test", flowType: "common" },
       context: {},
       actions: [],
       authoring: { markers: [] },
@@ -483,7 +498,7 @@ describe("designer__solution_unpack — #1229 F-1 path traversal 拒否", () => 
     expect(res).not.toBeNull();
     const text = res!.content[0].text as string;
     expect(text).toMatch(/展開完了/);
-    expect(text).toMatch(/OK: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/);
+    expect(text).toMatch(/OK: unpack-test-fixture/);
   });
 });
 
@@ -546,8 +561,10 @@ describe("designer__solution_unpack — #1229 I-001 ZIP 由来 id の UUID 検�
     expect(text).not.toMatch(/OK:/);
   });
 
-  it("ZIP 内 JSON の id が正規 UUID の場合は OK となる", async () => {
-    const validId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  it("ZIP 内 JSON の id が正規 EntityId (kebab-case) の場合は OK となる", async () => {
+    // I-7 Round 2 F-1 (#1299): EntityId は kebab-case のみ。alpha-leading UUID は
+    // assertEntityId で reject されるため、kebab-case fixture id を使う。
+    const validId = "ccc-unpack-test";
     const zipPath = await makeZipWithId(validId);
     const relPath = path.relative(path.join(root, "harmony"), zipPath);
     const res = await handleProcessFlowTool(
@@ -558,6 +575,142 @@ describe("designer__solution_unpack — #1229 I-001 ZIP 由来 id の UUID 検�
     );
     expect(res).not.toBeNull();
     const text = res!.content[0].text as string;
-    expect(text).toMatch(/OK: cccccccc-cccc-4ccc-8ccc-cccccccccccc/);
+    expect(text).toMatch(/OK: ccc-unpack-test/);
+  });
+
+  it("ZIP 内 JSON の id が alpha-leading UUID の場合は SKIP (invalid id) となる (#1299 F-1)", async () => {
+    // I-7 Round 2 F-1 (#1299 Codex review M-1): assertEntityId が alpha-leading UUID
+    // (例: 'f81dd9e0-...') を reject するようになったため、ZIP 由来 id でも同様に
+    // skip される。Phase A の compat shim 撤廃を ZIP 経路でも保証する regression test。
+    const alphaLeadingUuid = "f81dd9e0-794c-4539-a2a5-9cbcc0a75899";
+    const zipPath = await makeZipWithId(alphaLeadingUuid, "process-flows/alpha.json");
+    const relPath = path.relative(path.join(root, "harmony"), zipPath);
+    const res = await handleProcessFlowTool(
+      "designer__solution_unpack",
+      { inputPath: relPath },
+      root,
+      SESSION_ID,
+    );
+    expect(res).not.toBeNull();
+    const text = res!.content[0].text as string;
+    expect(text).toMatch(/SKIP \(invalid id\)/);
+    expect(text).not.toMatch(/OK:/);
+  });
+});
+
+// ── 8. designer__update_process_flow meta.id 整合性 (#1294 I-2 review Should-fix #2) ─
+
+describe("designer__update_process_flow — meta.id 整合性 check (#1294 I-2)", () => {
+  const root = path.join(TMP_ROOT, "ws-update-pf-metaid");
+  beforeAll(async () => { await makeWorkspace(root); });
+
+  it("processFlowId と definition.meta.id が不一致なら InvalidParams で reject", async () => {
+    // 先に処理フローを 1 件作成して update 対象とする
+    const addRes = await handleProcessFlowTool(
+      "designer__add_process_flow",
+      { name: "meta-id-mismatch-test", flowType: "common" },
+      root,
+      SESSION_ID,
+    );
+    const message = addRes!.content[0].text as string;
+    const idMatch = message.match(ID_CAPTURE_RE);
+    const pfId = idMatch![1];
+
+    // 異なる meta.id を持つ definition で update を試みる
+    await expect(
+      handleProcessFlowTool(
+        "designer__update_process_flow",
+        {
+          processFlowId: pfId,
+          definition: {
+            meta: {
+              id: "different-id",
+              name: "renamed",
+              flowType: "common",
+              maturity: "draft",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-02T00:00:00.000Z",
+            },
+            context: {},
+            actions: [],
+            authoring: {},
+          },
+        },
+        root,
+        SESSION_ID,
+      ),
+    ).rejects.toThrow(/processFlowId.*definition\.meta\.id.*不一致/);
+  });
+
+  it("processFlowId と definition.meta.id が一致すれば update 成功", async () => {
+    const addRes = await handleProcessFlowTool(
+      "designer__add_process_flow",
+      { name: "meta-id-match-test", flowType: "common" },
+      root,
+      SESSION_ID,
+    );
+    const message = addRes!.content[0].text as string;
+    const idMatch = message.match(ID_CAPTURE_RE);
+    const pfId = idMatch![1];
+
+    await expect(
+      handleProcessFlowTool(
+        "designer__update_process_flow",
+        {
+          processFlowId: pfId,
+          definition: {
+            meta: {
+              id: pfId,
+              name: "renamed-but-id-same",
+              flowType: "common",
+              maturity: "draft",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-02T00:00:00.000Z",
+            },
+            context: {},
+            actions: [],
+            authoring: {},
+          },
+        },
+        root,
+        SESSION_ID,
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("definition.meta が未定義 / meta.id が無い場合は check skip (後方互換)", async () => {
+    const addRes = await handleProcessFlowTool(
+      "designer__add_process_flow",
+      { name: "no-meta-id-test", flowType: "common" },
+      root,
+      SESSION_ID,
+    );
+    const message = addRes!.content[0].text as string;
+    const idMatch = message.match(ID_CAPTURE_RE);
+    const pfId = idMatch![1];
+
+    // meta はあるが meta.id 無し
+    await expect(
+      handleProcessFlowTool(
+        "designer__update_process_flow",
+        {
+          processFlowId: pfId,
+          definition: {
+            meta: {
+              name: "no-meta-id",
+              flowType: "common",
+              maturity: "draft",
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-02T00:00:00.000Z",
+            },
+            context: {},
+            actions: [],
+            authoring: {},
+          },
+        },
+        root,
+        SESSION_ID,
+      ),
+    ).resolves.toBeDefined();
   });
 });

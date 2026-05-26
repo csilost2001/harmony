@@ -50,7 +50,8 @@ function envelope(action: object) {
   return {
     $schema: "../../../../schemas/v3/process-flow.v3.schema.json",
     meta: {
-      id: "00000000-0000-4000-8000-000000000001",
+      id: "ai-step-fixture",
+      uuid: "00000000-0000-4000-8000-000000000001",
       name: "Test",
       description: "test fixture for AI step kind",
       flowType: "common" as const, // #1263 Phase X1: meta.kind → meta.flowType

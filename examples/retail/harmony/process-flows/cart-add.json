@@ -1,0 +1,845 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "cart-add",
+    "uuid": "9515d6f6-8342-48cf-a045-9e9d8fab1cfa",
+    "name": "カート追加",
+    "description": "指定商品を、商品検索で在庫を確認した店舗から、ログイン顧客のカートに追加する。stores 存在確認 → products 存在確認 → carts UPSERT → cart_items UPSERT (retail:UPSERT_CART_ITEM) の順で実行し、(cart, product, store) の重複の場合は数量を加算する。multi-store inventory 整合のため storeCode 必須 (#780)。",
+    "flowType": "screen",
+    "maturity": "committed",
+    "screenId": "cart",
+    "createdAt": "2026-05-02T00:00:00.000Z",
+    "updatedAt": "2026-05-03T00:00:00.000Z"
+  },
+  "context": {
+    "catalogs": {
+      "errors": {
+        "VALIDATION_ERROR": {
+          "httpStatus": 400,
+          "defaultMessage": "入力値が不正です。",
+          "responseId": "400-validation",
+          "description": "productCode / storeCode 未指定、quantity 範囲外等のバリデーションエラー。"
+        },
+        "PRODUCT_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "指定の商品が見つかりません。",
+          "responseId": "404-product-not-found",
+          "description": "productCode に該当する販売中商品が存在しない。"
+        },
+        "STORE_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "指定の店舗が見つかりません。",
+          "responseId": "404-store-not-found",
+          "description": "storeCode に該当する営業中店舗が存在しない。"
+        },
+        "CART_ITEMS_LIMIT_EXCEEDED": {
+          "httpStatus": 422,
+          "defaultMessage": "カート内の商品点数が上限に達しています。",
+          "responseId": "422-cart-limit",
+          "description": "cart_items 件数が @conv.limit.cartMaxItems を超える場合に返す。"
+        },
+        "CART_ADD_FAILED": {
+          "httpStatus": 422,
+          "defaultMessage": "カートへの追加に失敗しました。",
+          "responseId": "422-cart-add-failed",
+          "description": "UPSERT_CART_ITEM が 0 行を返す等の予期しない内部失敗。"
+        }
+      },
+      "events": {
+        "retail.cart.item_added": {
+          "description": "カート追加が正常完了した時点で発行する。新規追加・数量加算いずれの場合も発行する。",
+          "payload": {
+            "type": "object",
+            "required": [
+              "cartId",
+              "productId",
+              "storeId",
+              "quantity"
+            ],
+            "properties": {
+              "cartId": {
+                "type": "number"
+              },
+              "productId": {
+                "type": "number"
+              },
+              "storeId": {
+                "type": "number"
+              },
+              "quantity": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ambientVariables": [
+      {
+        "name": "sessionCustomerId",
+        "type": "integer",
+        "required": true,
+        "description": "セッションから取得したログイン顧客 ID。未ログインの場合は 401 を先に返すこと (ゲートウェイ層で保証)。"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "カートへ商品追加",
+      "trigger": "submit",
+      "description": "productCode / storeCode / quantity を受け取り、顧客カートに商品を追加 (または数量加算) する。",
+      "maturity": "committed",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/retail/cart/items",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "productCode",
+          "label": "商品コード",
+          "type": "string",
+          "required": true,
+          "description": "追加する商品の商品コード。@conv.regex.productCode 準拠。"
+        },
+        {
+          "name": "storeCode",
+          "label": "店舗コード",
+          "type": "string",
+          "required": true,
+          "description": "商品在庫を確保する店舗コード。商品検索 (S-1) で在庫を見た店舗を引き継ぐ。注文確定 (S-3) の在庫減算もこの店舗に対して実行される。"
+        },
+        {
+          "name": "quantity",
+          "label": "数量",
+          "type": "integer",
+          "required": true,
+          "description": "追加数量。1 以上 @conv.limit.cartItemMaxQuantity 以下。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cartId",
+          "label": "カートID",
+          "type": "integer",
+          "description": "追加先のカート ID。"
+        },
+        {
+          "name": "cartItemId",
+          "label": "カート明細ID",
+          "type": "integer",
+          "description": "追加 (または更新) された cart_items の ID。"
+        },
+        {
+          "name": "productName",
+          "label": "商品名",
+          "type": "string",
+          "description": "追加した商品の表示名 (確認メッセージ用)。"
+        },
+        {
+          "name": "storeName",
+          "label": "店舗名",
+          "type": "string",
+          "description": "追加した店舗の表示名 (確認メッセージ用)。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "200-ok",
+          "status": 200,
+          "bodySchema": {
+            "typeRef": "retail:CartAddResponse"
+          },
+          "description": "カート追加成功。",
+          "when": "商品が正常にカートに追加 (または数量加算) された場合。"
+        },
+        {
+          "id": "400-validation",
+          "status": 400,
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
+          "description": "バリデーションエラー。",
+          "when": "productCode / storeCode / quantity が不正な場合。"
+        },
+        {
+          "id": "404-product-not-found",
+          "status": 404,
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
+          "description": "商品が存在しない。",
+          "when": "productCode に対応する販売中商品が products に存在しない場合。"
+        },
+        {
+          "id": "404-store-not-found",
+          "status": 404,
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
+          "description": "店舗が存在しない。",
+          "when": "storeCode に対応する営業中店舗が stores に存在しない場合。"
+        },
+        {
+          "id": "422-cart-limit",
+          "status": 422,
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
+          "description": "カート明細上限超過。",
+          "when": "追加後の cart_items 件数が @conv.limit.cartMaxItems を超える場合。"
+        },
+        {
+          "id": "422-cart-add-failed",
+          "status": 422,
+          "bodySchema": {
+            "typeRef": "retail:ApiError"
+          },
+          "description": "カート追加内部失敗。",
+          "when": "UPSERT_CART_ITEM が予期せず 0 行を返した場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "validation",
+          "description": "productCode / storeCode 必須チェック + パターン検証。quantity 範囲チェック (1 以上 @conv.limit.cartItemMaxQuantity 以下)。",
+          "conditions": "productCode は必須かつ @conv.regex.productCode 準拠。storeCode は必須。quantity は 1〜999 の整数。",
+          "rules": [
+            {
+              "field": "productCode",
+              "type": "required",
+              "severity": "error",
+              "message": "商品コードは必須です。"
+            },
+            {
+              "field": "productCode",
+              "type": "regex",
+              "patternRef": "@conv.regex.productCode",
+              "severity": "error",
+              "message": "商品コードの形式が不正です。"
+            },
+            {
+              "field": "storeCode",
+              "type": "required",
+              "severity": "error",
+              "message": "店舗コードは必須です。"
+            },
+            {
+              "field": "quantity",
+              "type": "required",
+              "severity": "error",
+              "message": "数量は必須です。"
+            },
+            {
+              "field": "quantity",
+              "type": "range",
+              "min": 1,
+              "maxRef": "@conv.limit.cartItemMaxQuantity",
+              "severity": "error",
+              "message": "数量は 1 以上 999 以下で指定してください。"
+            }
+          ],
+          "fieldErrorsVar": "fieldErrors",
+          "inlineBranch": {
+            "ok": [],
+            "ng": [
+              {
+                "id": "step-01-ng-01",
+                "kind": "return",
+                "description": "400 バリデーションエラーを返す。",
+                "responseId": "400-validation",
+                "bodyExpression": "{ code: 'VALIDATION_ERROR', message: '入力値が不正です。', details: @fieldErrors }"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "dbAccess",
+          "description": "stores テーブルで店舗の存在確認を行う。is_active=TRUE の営業中店舗のみ対象。",
+          "tableId": "store-master",
+          "operation": "SELECT",
+          "sql": "SELECT id, store_code AS \"storeCode\", name FROM stores WHERE store_code = @inputs.storeCode AND is_active = TRUE",
+          "outputBinding": {
+            "name": "store"
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "branch",
+          "description": "店舗が存在しない場合は 404 を返す。",
+          "branches": [
+            {
+              "id": "br-03-a",
+              "code": "A",
+              "label": "店舗なし",
+              "condition": {
+                "kind": "expression",
+                "expression": "@store == null"
+              },
+              "steps": [
+                {
+                  "id": "step-03-a-01",
+                  "kind": "return",
+                  "description": "404 店舗なしを返す。",
+                  "responseId": "404-store-not-found",
+                  "bodyExpression": "{ code: 'STORE_NOT_FOUND', message: '店舗コード ' + @inputs.storeCode + ' の店舗が見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-03-else",
+            "code": "B",
+            "label": "店舗あり",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-04",
+          "kind": "dbAccess",
+          "description": "products テーブルで商品の存在確認と単価取得を行う。is_active=TRUE の販売中商品のみ対象。",
+          "tableId": "product-master",
+          "operation": "SELECT",
+          "sql": "SELECT id, product_code AS \"productCode\", name, unit_price AS \"unitPrice\" FROM products WHERE product_code = @inputs.productCode AND is_active = TRUE",
+          "outputBinding": {
+            "name": "product"
+          }
+        },
+        {
+          "id": "step-05",
+          "kind": "branch",
+          "description": "商品が存在しない場合は 404 を返す。",
+          "branches": [
+            {
+              "id": "br-05-a",
+              "code": "A",
+              "label": "商品なし",
+              "condition": {
+                "kind": "expression",
+                "expression": "@product == null"
+              },
+              "steps": [
+                {
+                  "id": "step-05-a-01",
+                  "kind": "return",
+                  "description": "404 商品なしを返す。",
+                  "responseId": "404-product-not-found",
+                  "bodyExpression": "{ code: 'PRODUCT_NOT_FOUND', message: '商品コード ' + @inputs.productCode + ' の商品が見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-05-else",
+            "code": "B",
+            "label": "商品あり",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-06",
+          "kind": "dbAccess",
+          "description": "sessionCustomerId に紐づくカートを取得する。存在しない場合は null が返る。",
+          "tableId": "cart",
+          "operation": "SELECT",
+          "sql": "SELECT id, customer_id, status FROM carts WHERE customer_id = @sessionCustomerId AND status = 'active'",
+          "outputBinding": {
+            "name": "cart"
+          }
+        },
+        {
+          "id": "step-07",
+          "kind": "branch",
+          "description": "カートが存在しない場合は新規作成する。",
+          "branches": [
+            {
+              "id": "br-07-a",
+              "code": "A",
+              "label": "カートなし — 新規作成",
+              "condition": {
+                "kind": "expression",
+                "expression": "@cart == null"
+              },
+              "steps": [
+                {
+                  "id": "step-07-a-01",
+                  "kind": "dbAccess",
+                  "description": "新規カートを INSERT する。",
+                  "tableId": "cart",
+                  "operation": "INSERT",
+                  "sql": "INSERT INTO carts (customer_id, status) VALUES (@sessionCustomerId, 'active') RETURNING id, customer_id, status, created_at, updated_at",
+                  "outputBinding": {
+                    "name": "cart"
+                  }
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-07-else",
+            "code": "B",
+            "label": "カートあり — そのまま使用",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-08",
+          "kind": "dbAccess",
+          "description": "対象の (商品, 店舗) 組合せが既にカート内に存在するか確認する。同一商品でも別店舗の場合は別行として扱う。既存組合せの数量加算は cart_items の行数を増やさないため上限チェック対象外とする。",
+          "tableId": "cart-item",
+          "operation": "SELECT",
+          "sql": "SELECT id FROM cart_items WHERE cart_id = @cart.id AND product_id = @product.id AND store_id = @store.id LIMIT 1",
+          "outputBinding": {
+            "name": "existingItem"
+          }
+        },
+        {
+          "id": "step-09",
+          "kind": "dbAccess",
+          "description": "現在の cart_items 件数を取得して上限チェックに使用する。existingItem が null の場合 (新規追加) のみ意味を持つ。outputBinding.transformations で itemCount を integer 型に正規化し、step-10 の数値比較で文字列⇔数値の暗黙変換を排除する (PG COUNT(*) bigint→string 方言を runtime が吸収)。",
+          "tableId": "cart-item",
+          "operation": "SELECT",
+          "sql": "SELECT COUNT(*) AS \"itemCount\" FROM cart_items WHERE cart_id = @cart.id",
+          "outputBinding": {
+            "name": "cartItemCount",
+            "transformations": [
+              {
+                "field": "itemCount",
+                "type": "integer"
+              }
+            ]
+          }
+        },
+        {
+          "id": "step-10",
+          "kind": "branch",
+          "description": "新規追加で cart_items 件数が @conv.limit.cartMaxItems に達している場合は 422 を返す。既存 (商品, 店舗) 組合せの数量加算は上限カウント対象外。",
+          "branches": [
+            {
+              "id": "br-10-a",
+              "code": "A",
+              "label": "上限超過",
+              "condition": {
+                "kind": "expression",
+                "expression": "@existingItem == null && @cartItemCount.itemCount >= @conv.limit.cartMaxItems"
+              },
+              "steps": [
+                {
+                  "id": "step-10-a-01",
+                  "kind": "return",
+                  "description": "422 カート上限超過を返す。",
+                  "responseId": "422-cart-limit",
+                  "bodyExpression": "{ code: 'CART_ITEMS_LIMIT_EXCEEDED', message: 'カート内の商品点数が上限 (' + @conv.limit.cartMaxItems + ' 件) に達しています。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-10-else",
+            "code": "B",
+            "label": "上限未満 — 追加続行",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-11",
+          "kind": "dbAccess",
+          "description": "cart_items に (cart_id, product_id, store_id) で UPSERT する。重複の場合は quantity を加算し unit_price_snapshot を最新値で更新する。",
+          "tableId": "cart-item",
+          "operation": "retail:UPSERT_CART_ITEM",
+          "sql": "INSERT INTO cart_items (cart_id, product_id, store_id, unit_price_snapshot, quantity) VALUES (@cart.id, @product.id, @store.id, @product.unitPrice, @inputs.quantity) ON CONFLICT (cart_id, product_id, store_id) DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity, unit_price_snapshot = EXCLUDED.unit_price_snapshot, updated_at = CURRENT_TIMESTAMP RETURNING id",
+          "outputBinding": {
+            "name": "upsertedCartItem"
+          },
+          "affectedRowsCheck": {
+            "operator": "=",
+            "expected": 1,
+            "onViolation": "throw",
+            "errorCode": "CART_ADD_FAILED",
+            "description": "UPSERT_CART_ITEM は必ず 1 行を返す。0 行は内部異常 (CART_ADD_FAILED として 422)。"
+          }
+        },
+        {
+          "id": "step-12",
+          "kind": "eventPublish",
+          "description": "retail.cart.item_added イベントを発行する。",
+          "topic": "retail.cart.item_added",
+          "payload": "{ cartId: @cart.id, productId: @product.id, storeId: @store.id, quantity: @inputs.quantity }"
+        },
+        {
+          "id": "step-13",
+          "kind": "return",
+          "description": "200 OK — カート追加成功を返す。",
+          "responseId": "200-ok",
+          "bodyExpression": "{ cartId: @cart.id, cartItemId: @upsertedCartItem.id, productName: @product.name, storeName: @store.name, message: @product.name + ' (' + @store.name + ') をカートに追加しました。' }"
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "decisions": [
+      {
+        "id": "ADR-001",
+        "title": "UPSERT_CART_ITEM で重複排除を行う (店舗単位)",
+        "status": "accepted",
+        "context": "同一商品を同一店舗から複数回カートに追加した場合の挙動を決定する必要があった。multi-store inventory 整合のため、別店舗の同一商品は別行で保持する必要もあった。",
+        "decision": "(cart_id, product_id, store_id) を ON CONFLICT キーとして UPSERT する。同一店舗の重複追加は quantity を加算、別店舗の同一商品は別行として保持する。unit_price_snapshot は最新値で更新する。",
+        "consequences": "複数回追加しても同店舗の cart_items は 1 行に集約される。別店舗の同一商品はそれぞれ別行として保持され、注文確定時に各店舗の inventory を独立に減算できる。上限カウントは UPSERT 前に行うため、既存組合せの数量加算は上限対象外となる。",
+        "date": "2026-05-03"
+      },
+      {
+        "id": "ADR-002",
+        "title": "カート取得/作成は TX なし — ロスト更新はセッション 1:1 設計で防ぐ",
+        "status": "accepted",
+        "context": "カート取得と作成の間に別セッションが同時に INSERT する競合を検討した。",
+        "decision": "carts テーブルには customer_id UNIQUE 制約があるため、重複 INSERT は DB 側で弾かれる。エラー時は再取得して続行するのが実装容易で十分。",
+        "consequences": "同一顧客の並行リクエスト時に稀に DB エラーが発生するが、リトライで解決できる。",
+        "date": "2026-05-02"
+      },
+      {
+        "id": "ADR-003",
+        "title": "storeCode は必須化し、商品検索 (S-1) からの遷移で引き継ぐ",
+        "status": "accepted",
+        "context": "multi-store inventory を整合させるためには、カート明細がどの店舗から在庫を確保するかを保持する必要がある。",
+        "decision": "S-1 商品検索画面の検索条件 storeCode を、検索結果から「カートに追加」する際に引き継ぐ。inputs.storeCode は required: true とし、step-02 で stores 存在確認 (404) を行う。注文確定時 (S-3) は cart_items.store_id を直接使って当該店舗の inventory を減算する。",
+        "consequences": "顧客は「どの店舗から商品を確保するか」を意識してカートに入れる。倉庫一括出荷モデル (中央倉庫) には対応しないが、retail demo は店舗網羅 multi-store を前提とするため整合的。将来中央倉庫モデルが必要になれば 'CENTRAL' のような専用 storeCode を導入すればよい。",
+        "date": "2026-05-03"
+      }
+    ],
+    "glossary": {
+      "カート追加": {
+        "definition": "ログイン顧客のカートに、指定店舗の指定商品と数量を追加する操作。同一商品でも別店舗の場合は別行として保持する (multi-store inventory 整合)。",
+        "aliases": [
+          "AddToCart",
+          "カートへ追加"
+        ],
+        "domainRef": "cart_items"
+      },
+      "単価スナップショット": {
+        "definition": "カート追加時点の products.unit_price を cart_items.unit_price_snapshot に記録する値。注文確定時も同値を order_items にコピーするため、マスタ変更の影響を受けない。",
+        "aliases": [
+          "UnitPriceSnapshot"
+        ],
+        "domainRef": "cart_items.unit_price_snapshot"
+      }
+    },
+    "testScenarios": [
+      {
+        "id": "happy-path-new-item",
+        "name": "新規商品をカートに追加する",
+        "description": "S-001 (東京本店) でカートに存在しない商品を初回追加する正常系。カートも初回作成。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "store-master",
+            "rows": [
+              {
+                "id": 10,
+                "store_code": "S-001",
+                "name": "東京本店",
+                "is_active": true
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "product-master",
+            "rows": [
+              {
+                "id": 1,
+                "product_code": "P-0001",
+                "name": "サンプル商品A",
+                "unit_price": 1000,
+                "is_active": true
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart",
+            "rows": []
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart-item",
+            "rows": []
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "productCode": "P-0001",
+            "storeCode": "S-001",
+            "quantity": 2
+          }
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          },
+          {
+            "kind": "output",
+            "path": "$.productName",
+            "equals": "サンプル商品A"
+          },
+          {
+            "kind": "output",
+            "path": "$.storeName",
+            "equals": "東京本店"
+          }
+        ],
+        "tags": [
+          "happy",
+          "s2"
+        ]
+      },
+      {
+        "id": "duplicate-same-store-quantity-added",
+        "name": "同一商品の同一店舗での重複追加は数量加算になる",
+        "description": "S-001 で既にカートにある商品を同店舗で追加した場合、UPSERT で quantity が加算される。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "store-master",
+            "rows": [
+              {
+                "id": 10,
+                "store_code": "S-001",
+                "name": "東京本店",
+                "is_active": true
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "product-master",
+            "rows": [
+              {
+                "id": 1,
+                "product_code": "P-0001",
+                "name": "サンプル商品A",
+                "unit_price": 1000,
+                "is_active": true
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart",
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart-item",
+            "rows": [
+              {
+                "id": 200,
+                "cart_id": 50,
+                "product_id": 1,
+                "store_id": 10,
+                "unit_price_snapshot": 1000,
+                "quantity": 3
+              }
+            ]
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "productCode": "P-0001",
+            "storeCode": "S-001",
+            "quantity": 2
+          }
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          }
+        ],
+        "tags": [
+          "upsert",
+          "s2"
+        ]
+      },
+      {
+        "id": "duplicate-different-store-creates-new-row",
+        "name": "同一商品の別店舗追加は新規行になる",
+        "description": "S-001 で既にカートにある商品を S-002 から追加した場合、別行として INSERT される。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "store-master",
+            "rows": [
+              {
+                "id": 10,
+                "store_code": "S-001",
+                "name": "東京本店",
+                "is_active": true
+              },
+              {
+                "id": 11,
+                "store_code": "S-002",
+                "name": "大阪支店",
+                "is_active": true
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "product-master",
+            "rows": [
+              {
+                "id": 1,
+                "product_code": "P-0001",
+                "name": "サンプル商品A",
+                "unit_price": 1000,
+                "is_active": true
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart",
+            "rows": [
+              {
+                "id": 50,
+                "customer_id": 100,
+                "status": "active"
+              }
+            ]
+          },
+          {
+            "kind": "dbState",
+            "tableId": "cart-item",
+            "rows": [
+              {
+                "id": 200,
+                "cart_id": 50,
+                "product_id": 1,
+                "store_id": 10,
+                "unit_price_snapshot": 1000,
+                "quantity": 3
+              }
+            ]
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "productCode": "P-0001",
+            "storeCode": "S-002",
+            "quantity": 1
+          }
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "200-ok"
+          }
+        ],
+        "tags": [
+          "multi-store",
+          "s2"
+        ]
+      },
+      {
+        "id": "validation-error-invalid-quantity",
+        "name": "quantity=0 で 400",
+        "description": "数量 0 は range バリデーションで拒否される。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "productCode": "P-0001",
+            "storeCode": "S-001",
+            "quantity": 0
+          }
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "400-validation"
+          }
+        ],
+        "tags": [
+          "error",
+          "validation",
+          "s2"
+        ]
+      },
+      {
+        "id": "store-not-found-404",
+        "name": "存在しない店舗コードで 404",
+        "description": "stores に存在しない店舗コードを指定した場合は 404 を返す。",
+        "given": [
+          {
+            "kind": "sessionContext",
+            "context": {
+              "sessionCustomerId": 100
+            }
+          },
+          {
+            "kind": "dbState",
+            "tableId": "store-master",
+            "rows": []
+          }
+        ],
+        "when": {
+          "actionId": "act-001",
+          "input": {
+            "productCode": "P-0001",
+            "storeCode": "S-999",
+            "quantity": 1
+          }
+        },
+        "then": [
+          {
+            "kind": "outcome",
+            "expected": "404-store-not-found"
+          }
+        ],
+        "tags": [
+          "error",
+          "not-found",
+          "s2"
+        ]
+      }
+    ]
+  }
+}

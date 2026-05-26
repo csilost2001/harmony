@@ -3,13 +3,14 @@
   "schemaVersion": "v3",
   "dataDir": "harmony",
   "meta": {
-    "id": "b8894d2c-d0b5-4a14-8068-64b66011c29e",
+    "id": "retail",
+    "uuid": "b8894d2c-d0b5-4a14-8068-64b66011c29e",
     "name": "リテール総合 (EC + 店舗 POS + 在庫管理)",
     "description": "EC・店舗 POS・在庫管理のミックス業態の業務システムサンプル。商品検索、カート、注文確定、配送指示の 4 シナリオを軸に画面・処理フロー・テーブル・規約・拡張を完結させた **リリース時 examples 候補** (#680 / #706)。",
-    "createdAt": "2026-05-02T00:00:00.000Z",
-    "updatedAt": "2026-05-02T00:00:00.000Z",
     "mode": "upstream",
-    "maturity": "draft"
+    "maturity": "draft",
+    "createdAt": "2026-05-02T00:00:00.000Z",
+    "updatedAt": "2026-05-02T00:00:00.000Z"
   },
   "extensionsApplied": [
     {
@@ -43,119 +44,119 @@
   "entities": {
     "screens": [
       {
-        "id": "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0",
+        "id": "dashboard",
         "no": 1,
         "name": "ダッシュボード",
         "kind": "dashboard",
         "purpose": "page",
         "path": "/",
-        "pageLayoutId": "17595b62-fef1-4b22-9c25-16736c772567",
-        "groupId": "a7285b88-9e12-4d2c-94c6-ef6bd788685d",
+        "pageLayoutId": "main-layout",
+        "groupId": "back-office",
         "maturity": "committed",
         "updatedAt": "2026-05-12T00:00:00.000Z"
       },
       {
-        "id": "e6147dc0-94b7-436d-ba87-d0080ac34f44",
+        "id": "product-search",
         "no": 2,
         "name": "商品検索",
         "kind": "search",
         "path": "/products/search",
-        "groupId": "c720b549-ecf4-4d20-9be4-c8d38f89a13e",
+        "groupId": "customer-facing",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "4a9df651-e0cc-4523-a9bf-f3fb9d45c53f",
+        "id": "inventory-list",
         "no": 3,
         "name": "在庫一覧",
         "kind": "list",
         "path": "/inventory",
-        "groupId": "a7285b88-9e12-4d2c-94c6-ef6bd788685d",
+        "groupId": "back-office",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "c73fa05c-4a71-4593-800d-b9814e97be83",
+        "id": "cart",
         "no": 4,
         "name": "カート",
         "kind": "retail:cart",
         "path": "/cart",
-        "groupId": "c720b549-ecf4-4d20-9be4-c8d38f89a13e",
+        "groupId": "customer-facing",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3",
+        "id": "cart-confirm",
         "no": 5,
         "name": "カート確認",
         "kind": "confirm",
         "path": "/cart/confirm",
-        "groupId": "c720b549-ecf4-4d20-9be4-c8d38f89a13e",
+        "groupId": "customer-facing",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "0739c454-45d6-4c99-962a-7b0b9e113a22",
+        "id": "order-complete",
         "no": 6,
         "name": "注文完了",
         "kind": "complete",
         "path": "/order/complete",
-        "groupId": "c720b549-ecf4-4d20-9be4-c8d38f89a13e",
+        "groupId": "customer-facing",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "f9faa724-e080-4308-bc14-bb93631c9e78",
+        "id": "order-list",
         "no": 7,
         "name": "注文一覧",
         "kind": "list",
         "path": "/orders",
-        "groupId": "a7285b88-9e12-4d2c-94c6-ef6bd788685d",
+        "groupId": "back-office",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "c2254dd6-ab5d-4428-931f-d27c71e89951",
+        "id": "shipment-dispatch",
         "no": 8,
         "name": "配送指示",
         "kind": "form",
         "path": "/orders/:id/dispatch",
-        "groupId": "a7285b88-9e12-4d2c-94c6-ef6bd788685d",
+        "groupId": "back-office",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "2e23d129-1d53-4e30-b54c-97f90b910578",
+        "id": "product-master",
         "no": 9,
         "name": "商品マスター",
         "kind": "list",
         "path": "/master/products",
-        "groupId": "8c592e1b-dfa4-4fc6-8a0c-e584996b0075",
+        "groupId": "master-management",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "f05fd315-2c78-48e5-9968-2633255b286e",
+        "id": "customer-master",
         "no": 10,
         "name": "顧客マスター",
         "kind": "list",
         "path": "/master/customers",
-        "groupId": "8c592e1b-dfa4-4fc6-8a0c-e584996b0075",
+        "groupId": "master-management",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "f9d57022-1dad-4c8f-a387-27e0a8576947",
+        "id": "store-master",
         "no": 11,
         "name": "店舗マスター",
         "kind": "list",
         "path": "/master/stores",
-        "groupId": "8c592e1b-dfa4-4fc6-8a0c-e584996b0075",
+        "groupId": "master-management",
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "68709449-c9e1-47db-a351-ac9c12a19046",
+        "id": "global-header",
         "no": 12,
         "name": "グローバルヘッダ",
         "kind": "other",
@@ -165,7 +166,7 @@
         "updatedAt": "2026-05-12T00:00:00.000Z"
       },
       {
-        "id": "c1cff7da-1057-4ba1-b780-2d021f6c8679",
+        "id": "navigation-sidebar",
         "no": 13,
         "name": "ナビゲーションサイドバー",
         "kind": "other",
@@ -175,7 +176,7 @@
         "updatedAt": "2026-05-12T00:00:00.000Z"
       },
       {
-        "id": "f7daa764-4015-4ad7-8f0a-142944ea2038",
+        "id": "global-footer",
         "no": 14,
         "name": "グローバルフッタ",
         "kind": "other",
@@ -187,17 +188,17 @@
     ],
     "screenGroups": [
       {
-        "id": "c720b549-ecf4-4d20-9be4-c8d38f89a13e",
+        "id": "customer-facing",
         "name": "顧客向け",
         "color": "#0d6efd"
       },
       {
-        "id": "a7285b88-9e12-4d2c-94c6-ef6bd788685d",
+        "id": "back-office",
         "name": "バックオフィス",
         "color": "#198754"
       },
       {
-        "id": "8c592e1b-dfa4-4fc6-8a0c-e584996b0075",
+        "id": "master-management",
         "name": "マスター管理",
         "color": "#6c757d"
       }
@@ -205,96 +206,96 @@
     "screenTransitions": [
       {
         "id": "tr-search-to-cart",
-        "sourceScreenId": "e6147dc0-94b7-436d-ba87-d0080ac34f44",
-        "targetScreenId": "c73fa05c-4a71-4593-800d-b9814e97be83",
+        "sourceScreenId": "product-search",
+        "targetScreenId": "cart",
         "label": "カートに追加",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-cart-to-confirm",
-        "sourceScreenId": "c73fa05c-4a71-4593-800d-b9814e97be83",
-        "targetScreenId": "cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3",
+        "sourceScreenId": "cart",
+        "targetScreenId": "cart-confirm",
         "label": "注文確認へ",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-confirm-to-complete",
-        "sourceScreenId": "cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3",
-        "targetScreenId": "0739c454-45d6-4c99-962a-7b0b9e113a22",
+        "sourceScreenId": "cart-confirm",
+        "targetScreenId": "order-complete",
         "label": "注文確定",
         "trigger": "submit",
         "kind": "navigation"
       },
       {
         "id": "tr-orderlist-to-dispatch",
-        "sourceScreenId": "f9faa724-e080-4308-bc14-bb93631c9e78",
-        "targetScreenId": "c2254dd6-ab5d-4428-931f-d27c71e89951",
+        "sourceScreenId": "order-list",
+        "targetScreenId": "shipment-dispatch",
         "label": "配送指示",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-dashboard-to-search",
-        "sourceScreenId": "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0",
-        "targetScreenId": "e6147dc0-94b7-436d-ba87-d0080ac34f44",
+        "sourceScreenId": "dashboard",
+        "targetScreenId": "product-search",
         "label": "商品検索 (S-1)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-dashboard-to-cart",
-        "sourceScreenId": "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0",
-        "targetScreenId": "c73fa05c-4a71-4593-800d-b9814e97be83",
+        "sourceScreenId": "dashboard",
+        "targetScreenId": "cart",
         "label": "カート (S-2/S-3)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-dashboard-to-orderlist",
-        "sourceScreenId": "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0",
-        "targetScreenId": "f9faa724-e080-4308-bc14-bb93631c9e78",
+        "sourceScreenId": "dashboard",
+        "targetScreenId": "order-list",
         "label": "注文一覧 (S-4)",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-dashboard-to-inventory",
-        "sourceScreenId": "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0",
-        "targetScreenId": "4a9df651-e0cc-4523-a9bf-f3fb9d45c53f",
+        "sourceScreenId": "dashboard",
+        "targetScreenId": "inventory-list",
         "label": "在庫一覧",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-complete-to-dashboard",
-        "sourceScreenId": "0739c454-45d6-4c99-962a-7b0b9e113a22",
-        "targetScreenId": "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0",
+        "sourceScreenId": "order-complete",
+        "targetScreenId": "dashboard",
         "label": "ダッシュボードへ",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-complete-to-orderlist",
-        "sourceScreenId": "0739c454-45d6-4c99-962a-7b0b9e113a22",
-        "targetScreenId": "f9faa724-e080-4308-bc14-bb93631c9e78",
+        "sourceScreenId": "order-complete",
+        "targetScreenId": "order-list",
         "label": "注文履歴へ",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-inventory-to-dashboard",
-        "sourceScreenId": "4a9df651-e0cc-4523-a9bf-f3fb9d45c53f",
-        "targetScreenId": "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0",
+        "sourceScreenId": "inventory-list",
+        "targetScreenId": "dashboard",
         "label": "ダッシュボードへ",
         "trigger": "click",
         "kind": "navigation"
       },
       {
         "id": "tr-dispatch-to-orderlist",
-        "sourceScreenId": "c2254dd6-ab5d-4428-931f-d27c71e89951",
-        "targetScreenId": "f9faa724-e080-4308-bc14-bb93631c9e78",
+        "sourceScreenId": "shipment-dispatch",
+        "targetScreenId": "order-list",
         "label": "注文一覧へ",
         "trigger": "click",
         "kind": "navigation"
@@ -302,7 +303,7 @@
     ],
     "tables": [
       {
-        "id": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
+        "id": "product-master",
         "no": 1,
         "name": "商品マスタ",
         "physicalName": "products",
@@ -312,7 +313,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "605bbc9d-810a-4b9c-a83a-cc2e59bca37a",
+        "id": "customer-master",
         "no": 2,
         "name": "顧客マスタ",
         "physicalName": "customers",
@@ -322,7 +323,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
+        "id": "store-master",
         "no": 3,
         "name": "店舗マスタ",
         "physicalName": "stores",
@@ -332,7 +333,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
+        "id": "inventory-by-store",
         "no": 4,
         "name": "店舗別在庫",
         "physicalName": "inventory",
@@ -342,7 +343,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "a32e1a09-bcbc-467f-86b0-983cd7ee61c6",
+        "id": "cart",
         "no": 5,
         "name": "カート",
         "physicalName": "carts",
@@ -352,7 +353,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "57110336-a984-4d39-bb21-1e5d5bb4390b",
+        "id": "cart-item",
         "no": 6,
         "name": "カート明細",
         "physicalName": "cart_items",
@@ -362,7 +363,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
+        "id": "order",
         "no": 7,
         "name": "注文",
         "physicalName": "orders",
@@ -372,7 +373,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "dddfb0c1-0fde-40ac-bcf0-5ed75a7f1edc",
+        "id": "order-item",
         "no": 8,
         "name": "注文明細",
         "physicalName": "order_items",
@@ -384,7 +385,7 @@
     ],
     "processFlows": [
       {
-        "id": "efa7ac6e-e295-416e-b68d-17c4739b5097",
+        "id": "inventory-by-store-lookup",
         "no": 1,
         "name": "店舗在庫照会",
         "flowType": "screen",
@@ -393,7 +394,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "9515d6f6-8342-48cf-a045-9e9d8fab1cfa",
+        "id": "cart-add",
         "no": 2,
         "name": "カート追加",
         "flowType": "screen",
@@ -402,7 +403,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "f81dd9e0-794c-4539-a2a5-9cbcc0a75899",
+        "id": "order-confirm",
         "no": 3,
         "name": "注文確定",
         "flowType": "screen",
@@ -411,7 +412,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "d63c703c-26ed-4704-8b76-329c6bfae9c9",
+        "id": "shipment-dispatch",
         "no": 4,
         "name": "配送指示",
         "flowType": "screen",
@@ -420,7 +421,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "267e94bf-0397-44b8-b665-d3c40c38935b",
+        "id": "cart-summary",
         "no": 5,
         "name": "カート集計",
         "flowType": "common",
@@ -429,7 +430,7 @@
         "updatedAt": "2026-05-03T00:00:00.000Z"
       },
       {
-        "id": "60e08c25-3daa-41b4-a7bd-b8f5fb571349",
+        "id": "header-gadget-handler",
         "no": 6,
         "name": "ヘッダーガジェット処理",
         "flowType": "common",
@@ -440,7 +441,7 @@
     ],
     "views": [
       {
-        "id": "6e6a9612-85c8-4541-a497-8851cea28f56",
+        "id": "inventory-with-product-view",
         "no": 1,
         "name": "商品付き在庫ビュー",
         "physicalName": "v_inventory_with_product",
@@ -448,7 +449,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "feb6d55d-33bc-4f25-adac-b5fa18b2a579",
+        "id": "order-with-customer-view",
         "no": 2,
         "name": "顧客付き注文ビュー",
         "physicalName": "v_orders_with_customer",
@@ -456,7 +457,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "ce75dd91-3e55-4e0b-ac2c-11108943a8cf",
+        "id": "order-item-detail-view",
         "no": 3,
         "name": "注文明細詳細ビュー",
         "physicalName": "v_order_items_detail",
@@ -464,7 +465,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "822d5a83-1c06-4650-97fa-35a62bca3d5e",
+        "id": "cart-summary-view",
         "no": 4,
         "name": "カートサマリビュー",
         "physicalName": "v_cart_summary",
@@ -474,57 +475,57 @@
     ],
     "viewDefinitions": [
       {
-        "id": "db10b1f4-459c-4bd3-bb27-76394209671d",
+        "id": "product-master-list-viewer",
         "no": 1,
         "name": "商品マスター一覧",
         "kind": "list",
-        "sourceTableId": "652cbbfe-17e2-4f23-a0c9-4403e6b23bb0",
+        "sourceTableId": "product-master",
         "columnCount": 5,
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "7b01161a-d6bc-41d9-b60d-25ed33c8bf5d",
+        "id": "customer-master-list-viewer",
         "no": 2,
         "name": "顧客マスター一覧",
         "kind": "list",
-        "sourceTableId": "605bbc9d-810a-4b9c-a83a-cc2e59bca37a",
+        "sourceTableId": "customer-master",
         "columnCount": 4,
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "97354753-765a-449e-85ad-d23acad53a76",
+        "id": "store-master-list-viewer",
         "no": 3,
         "name": "店舗マスター一覧",
         "kind": "list",
-        "sourceTableId": "fdf00088-87d1-40e8-9eba-65ef58a9bfe5",
+        "sourceTableId": "store-master",
         "columnCount": 4,
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "fbd95d09-4ac4-44e0-a6a7-44affff128a0",
+        "id": "inventory-list-viewer",
         "no": 4,
         "name": "在庫一覧",
         "kind": "list",
-        "sourceTableId": "834ede22-3cb0-4dcf-aa8a-7c046664774a",
+        "sourceTableId": "inventory-by-store",
         "columnCount": 6,
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "4cef6340-2603-44b3-b92e-e85e4809a955",
+        "id": "order-list-viewer",
         "no": 5,
         "name": "注文一覧",
         "kind": "list",
-        "sourceTableId": "10d555e2-8041-4192-86f3-9e2a3ac581ab",
+        "sourceTableId": "order",
         "columnCount": 6,
         "maturity": "committed",
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "37a3af9a-f240-4fbb-b33d-6937305b430b",
+        "id": "top-products-by-category",
         "no": 6,
         "name": "カテゴリ別 売れ筋商品 上位 N (Level 3 サンプル)",
         "kind": "list",
@@ -535,7 +536,7 @@
     ],
     "sequences": [
       {
-        "id": "e2fde820-35f8-4c39-a724-646e07580946",
+        "id": "order-number-sequence",
         "no": 1,
         "name": "注文番号採番",
         "physicalName": "seq_order_number",
@@ -544,7 +545,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "af8f14b0-b6d7-4661-ac4b-bdf0a196e0b2",
+        "id": "customer-id-sequence",
         "no": 2,
         "name": "顧客ID採番",
         "physicalName": "seq_customer_id",
@@ -552,7 +553,7 @@
         "updatedAt": "2026-05-02T00:00:00.000Z"
       },
       {
-        "id": "536a2528-8cde-4bd2-8884-e3e3c53c57dd",
+        "id": "shipment-id-sequence",
         "no": 3,
         "name": "配送ID採番",
         "physicalName": "seq_shipment_id",
@@ -562,7 +563,7 @@
     ],
     "pageLayouts": [
       {
-        "id": "17595b62-fef1-4b22-9c25-16736c772567",
+        "id": "main-layout",
         "no": 1,
         "name": "Main Layout",
         "maturity": "committed",

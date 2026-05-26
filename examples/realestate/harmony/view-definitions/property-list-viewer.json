@@ -1,0 +1,102 @@
+{
+  "$schema": "../../../../schemas/v3/view-definition.v3.schema.json",
+  "id": "property-list-viewer",
+  "uuid": "e5c6d7f8-0912-4223-8d4e-5f6a7b8c9d0e",
+  "name": "物件一覧",
+  "description": "物件検索画面向けの一覧 viewer 定義。物件コード・物件名・種別・面積・価格・掲載日を表示し、価格昇順ソートをサポートする。viewer screen-item (#762) のデモ用サンプル。",
+  "maturity": "committed",
+  "createdAt": "2026-05-03T00:00:00.000Z",
+  "updatedAt": "2026-05-03T00:00:00.000Z",
+  "kind": "list",
+  "sourceTableId": "property-master",
+  "columns": [
+    {
+      "name": "propertyCode",
+      "tableColumnRef": {
+        "tableId": "property-master",
+        "columnId": "col-property-code"
+      },
+      "displayName": "物件コード",
+      "type": "string",
+      "width": "120px",
+      "align": "left",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "name",
+      "tableColumnRef": {
+        "tableId": "property-master",
+        "columnId": "col-name"
+      },
+      "displayName": "物件名",
+      "type": "string",
+      "width": "auto",
+      "align": "left",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "propertyType",
+      "tableColumnRef": {
+        "tableId": "property-master",
+        "columnId": "col-property-type"
+      },
+      "displayName": "種別",
+      "type": "string",
+      "width": "100px",
+      "align": "center",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "areaSqm",
+      "tableColumnRef": {
+        "tableId": "property-master",
+        "columnId": "col-area-sqm"
+      },
+      "displayName": "面積 (m2)",
+      "type": "number",
+      "displayFormat": "#,##0.00",
+      "width": "100px",
+      "align": "right",
+      "sortable": true,
+      "filterable": false
+    },
+    {
+      "name": "price10kYen",
+      "tableColumnRef": {
+        "tableId": "property-master",
+        "columnId": "col-price-10k-yen"
+      },
+      "displayName": "価格 (万円)",
+      "type": "integer",
+      "displayFormat": "#,##0",
+      "width": "120px",
+      "align": "right",
+      "sortable": true,
+      "filterable": false
+    },
+    {
+      "name": "listedAt",
+      "tableColumnRef": {
+        "tableId": "property-master",
+        "columnId": "col-listed-at"
+      },
+      "displayName": "掲載日",
+      "type": "date",
+      "displayFormat": "YYYY/MM/DD",
+      "width": "110px",
+      "align": "center",
+      "sortable": true,
+      "filterable": false
+    }
+  ],
+  "sortDefaults": [
+    {
+      "columnName": "price10kYen",
+      "order": "asc"
+    }
+  ],
+  "pageSize": 30
+}

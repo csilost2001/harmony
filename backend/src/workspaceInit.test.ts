@@ -42,12 +42,14 @@ afterAll(async () => {
 
 function makeValidHarmony(opts: { name?: string; dataDir?: string } = {}): object {
   const ts = new Date().toISOString();
+  // #1294 I-2 / RFC #1284: meta.id を kebab-case EntityId に、uuid (UUID v4) を required で追加
   return {
     $schema: "../schemas/v3/harmony.v3.schema.json",
     schemaVersion: "v3",
     dataDir: opts.dataDir ?? "harmony",
     meta: {
-      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      id: "test-project",
+      uuid: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       name: opts.name ?? "テスト",
       createdAt: ts,
       updatedAt: ts,
@@ -164,7 +166,8 @@ describe("initializeWorkspace", () => {
     const r = await initializeWorkspace(dir);
     expect(r.path).toBe(path.resolve(dir));
     expect(r.name).toBe("init-target");
-    expect(r.projectId).toMatch(/^[0-9a-f-]{36}$/);
+    // #1294 I-2 / RFC #1284: projectId は kebab-case EntityId (旧 UUID 形式から変更)
+    expect(r.projectId).toMatch(/^project-[0-9a-f]{8}$/);
     expect(r.dataDir).toBe("harmony");
 
     // harmony.json 存在 (root 直下)
@@ -173,6 +176,8 @@ describe("initializeWorkspace", () => {
     expect(harmony.schemaVersion).toBe("v3");
     expect(harmony.dataDir).toBe("harmony");
     expect(harmony.meta.id).toBe(r.projectId);
+    // #1294 I-2 / RFC #1284: meta.uuid (UUID v4、不変) が新規採番される
+    expect(harmony.meta.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(harmony.meta.name).toBe("init-target");
     expect(harmony.meta.createdAt).toMatch(/Z$/);
 
@@ -212,12 +217,14 @@ describe("initializeWorkspace", () => {
     const dir = path.join(TMP_ROOT, "existing");
     await fs.mkdir(dir);
     const ts = new Date().toISOString();
+    // #1294 I-2 / RFC #1284: meta.id を kebab-case EntityId に、uuid を required で追加
     const original = {
       $schema: "../schemas/v3/harmony.v3.schema.json",
       schemaVersion: "v3",
       dataDir: "harmony",
       meta: {
-        id: "11111111-1111-4111-8111-111111111111",
+        id: "existing-project",
+        uuid: "11111111-1111-4111-8111-111111111111",
         name: "Existing",
         createdAt: ts,
         updatedAt: ts,
@@ -236,9 +243,11 @@ describe("initializeWorkspace", () => {
     };
     await fs.writeFile(path.join(dir, "harmony.json"), JSON.stringify(original, null, 2));
     const r = await initializeWorkspace(dir);
-    expect(r.projectId).toBe("11111111-1111-4111-8111-111111111111");
+    expect(r.projectId).toBe("existing-project");
     const re = JSON.parse(await fs.readFile(path.join(dir, "harmony.json"), "utf-8"));
     expect(re.meta.name).toBe("Existing");
+    // uuid も保持されている (idempotent)
+    expect(re.meta.uuid).toBe("11111111-1111-4111-8111-111111111111");
   });
 
   it("生成された harmony.json は schemas/v3/harmony.v3.schema.json で検証 pass", async () => {

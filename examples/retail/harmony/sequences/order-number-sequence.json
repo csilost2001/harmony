@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/v3/sequence.v3.schema.json",
+  "id": "order-number-sequence",
+  "uuid": "e2fde820-35f8-4c39-a724-646e07580946",
+  "name": "注文番号採番",
+  "description": "注文確定フロー (S-3) で 1 トランザクションにつき 1 つの注文番号を発行するシーケンス。採番値はアプリ層で 'ORD-{YYYY}-{NNNNNN}' にフォーマットする。YYYY は注文確定年 (西暦 4 桁)、NNNNNN はシーケンス値をゼロ埋め 6 桁で表現する。年ごとにリセットはアプリ層制御 (DB シーケンス自体は CYCLE なし)。@conv.numbering.orderNumber 規約の実装シーケンス。",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-02T00:00:00.000Z",
+  "physicalName": "seq_order_number",
+  "startValue": 1,
+  "increment": 1,
+  "minValue": 1,
+  "maxValue": 999999,
+  "cycle": false,
+  "cache": 20,
+  "usedBy": [
+    {
+      "tableId": "order",
+      "columnId": "col-order-number"
+    }
+  ],
+  "conventionRef": "@conv.numbering.orderNumber"
+}

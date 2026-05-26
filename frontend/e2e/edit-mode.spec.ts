@@ -74,7 +74,7 @@ const dummySequence = buildSequence({ id: SEQUENCE_ID, name: "E2E シーケン�
 const dummyProject = buildProject({
   name: "edit-mode-test",
   entities: {
-    screens: [{ id: SCREEN_ID, no: 1, name: "編集モードテスト画面", flowType: "form", updatedAt: FIXED_TS }],
+    screens: [{ id: SCREEN_ID, no: 1, name: "編集モードテスト画面", kind: "form", updatedAt: FIXED_TS }],
     tables: [{ id: TABLE_ID, no: 1, name: dummyTable.name, physicalName: dummyTable.physicalName, category: "マスタ", columnCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
     processFlows: [{ id: PF_ID, no: 1, name: "編集モードテストフロー", flowType: "screen", actionCount: 1, maturity: "draft", updatedAt: FIXED_TS }],
     views: [{ id: VIEW_ID, no: 1, name: "E2E ビュー", maturity: "draft", updatedAt: FIXED_TS }],

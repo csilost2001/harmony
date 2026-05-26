@@ -30,12 +30,13 @@ const dummyGroup = {
   }],
   markers: [
     // s1 に 3 kind (todo ×2, question ×1, attention ×1)
-    { id: "m1", kind: "todo", body: "A", stepId: "s1", author: "human", createdAt: "2026-04-20T00:00:00Z" },
-    { id: "m2", kind: "todo", body: "B", stepId: "s1", author: "human", createdAt: "2026-04-20T00:00:00Z" },
-    { id: "m3", kind: "question", body: "?", stepId: "s1", author: "human", createdAt: "2026-04-20T00:00:00Z" },
-    { id: "m4", kind: "attention", body: "!", stepId: "s1", author: "human", createdAt: "2026-04-20T00:00:00Z" },
+    // v3 schema (#1263): stepId は marker.anchor.stepId へ移動
+    { id: "m1", kind: "todo", body: "A", author: "human", createdAt: "2026-04-20T00:00:00Z", anchor: { stepId: "s1" } },
+    { id: "m2", kind: "todo", body: "B", author: "human", createdAt: "2026-04-20T00:00:00Z", anchor: { stepId: "s1" } },
+    { id: "m3", kind: "question", body: "?", author: "human", createdAt: "2026-04-20T00:00:00Z", anchor: { stepId: "s1" } },
+    { id: "m4", kind: "attention", body: "!", author: "human", createdAt: "2026-04-20T00:00:00Z", anchor: { stepId: "s1" } },
     // resolved は除外される
-    { id: "m5", kind: "todo", body: "done", stepId: "s1", author: "human", createdAt: "2026-04-20T00:00:00Z", resolvedAt: "2026-04-20T01:00:00Z" },
+    { id: "m5", kind: "todo", body: "done", author: "human", createdAt: "2026-04-20T00:00:00Z", resolvedAt: "2026-04-20T01:00:00Z", anchor: { stepId: "s1" } },
     // s2 には未解決 marker なし (バッジなし)
   ],
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),

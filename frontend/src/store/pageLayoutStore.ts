@@ -5,43 +5,20 @@
  * backend WebSocket handlers: loadPageLayout / savePageLayout / deletePageLayout / listAllPageLayouts
  */
 
-import type { Uuid, Timestamp, DisplayName, Maturity } from "../types/v3";
+import type { Uuid, Timestamp, DisplayName } from "../types/v3";
 import type { PageLayoutEntry } from "../types/v3/harmony";
+import type { PageLayout, PageLayoutDesign, Region } from "../types/v3/page-layout";
+import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { generateUUID } from "../utils/uuid";
 import { loadRawProject, saveRawProject } from "./flowStore";
 import { renumber, nextNo } from "../utils/listOrder";
 
-// ─── PageLayout 型 (schema と 1:1) ───────────────────────────────────────────
-
-export type PageLayoutEditorKind = "grapesjs" | "puck";
-export type PageLayoutCssFramework = "bootstrap" | "tailwind";
-
-export interface PageLayoutDesign {
-  editorKind: PageLayoutEditorKind;
-  cssFramework: PageLayoutCssFramework;
-  designFileRef?: string;
-  puckDataRef?: string;
-  thumbnailRef?: string;
-}
-
-export interface PageLayoutRegion {
-  name: string;
-  description?: string;
-}
-
-export interface PageLayout {
-  $schema?: string;
-  id: Uuid;
-  name: DisplayName;
-  description?: string;
-  maturity?: Maturity;
-  regions: PageLayoutRegion[];
-  assignments: Record<string, string>;
-  processFlowId?: Uuid;
-  design: PageLayoutDesign;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
+// Round 6 Phase C: 型定義は canonical (`types/v3/page-layout`) を一次 source とし、
+// store 内では re-export のみ行う (#1336 / Round 5 Codex M-R5-3 解消)。
+export type PageLayoutEditorKind = PageLayoutDesign["editorKind"];
+export type PageLayoutCssFramework = PageLayoutDesign["cssFramework"];
+export type PageLayoutRegion = Region;
+export type { PageLayout, PageLayoutDesign };
 
 // ─── Storage backend interface ────────────────────────────────────────────────
 
@@ -100,11 +77,16 @@ export async function createPageLayout(
   editorKind: PageLayoutEditorKind,
   cssFramework: PageLayoutCssFramework,
   description?: string,
+  opts?: { id?: string },
 ): Promise<PageLayout> {
+  // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
+  // 空文字 / whitespace-only も fallback に流す (S-1 defense-in-depth)。
   const ts = nowTs();
   const pl: PageLayout = {
     $schema: PAGE_LAYOUT_SCHEMA_REF,
-    id: generateUUID() as Uuid,
+    id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("pl")) as Uuid,
+    // RFC #1284 / Round 6 Phase B: uuid は不変識別子 (UUID v4)、創成時に発番。
+    uuid: generateUUID() as Uuid,
     name,
     description,
     maturity: "draft",

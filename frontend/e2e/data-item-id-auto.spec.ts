@@ -15,7 +15,8 @@ import {
 import { buildProject } from "./__fixtures__/builders";
 import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
-const SCREEN_ID = "aaaaaaaa-0001-4000-8000-aaaaaaaaaaaa";
+// RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
+const SCREEN_ID = "data-item-id-auto-screen";
 const SCREEN_NORM = normalizeId(SCREEN_ID);
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 

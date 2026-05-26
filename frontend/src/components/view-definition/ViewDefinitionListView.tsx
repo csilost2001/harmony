@@ -29,6 +29,7 @@ import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { ValidationBadge } from "../common/ValidationBadge";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListClipboard } from "../../hooks/useListClipboard";
@@ -38,6 +39,7 @@ import { useListSort } from "../../hooks/useListSort";
 import { useListEditor } from "../../hooks/useListEditor";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { renumber } from "../../utils/listOrder";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import type { TableEntry } from "../../types/v3";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import { EditSessionBadge } from "../editing/EditSessionBadge";
@@ -81,6 +83,9 @@ export function ViewDefinitionListView() {
   const [addDescription, setAddDescription] = useState("");
   const [addNameError, setAddNameError] = useState("");
   const [addSourceTableError, setAddSourceTableError] = useState("");
+  // RFC #1284 / #1297 I-5: kebab-case ViewDefinition id + AI 提案ボタン + uniqueness 警告
+  const [addId, setAddId] = useState("");
+  const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [tableList, setTableList] = useState<TableEntry[]>([]);
   const [tableNameMap, setTableNameMap] = useState<Map<string, string>>(new Map());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
@@ -203,15 +208,22 @@ export function ViewDefinitionListView() {
   };
 
   const handleDuplicate = async (items: ViewDefinitionEntry[]) => {
+    // RFC #1284 (I-7) / #1299 Codex review M-2 / Round 3 G-1:
+    // id は kebab-case (`-copy[-N]`)、uuid は不変識別子なので新規発番。
+    // 元 full の uuid を spread で流すと identity collision (同一 uuid の別 entity) 発生。
+    // existingIds で suffix collision avoidance + 64 字 schema 制約準拠 (G-1)。
+    const idSet = new Set<string>(editor.items.map((v) => String(v.id)));
     const newIds: string[] = [];
     for (const m of items) {
       const full = await loadViewDefinition(String(m.id));
       if (!full) continue;
       const ts = new Date().toISOString() as Timestamp;
-      const newId = generateUUID() as ViewDefinitionId;
+      const newId = makeDuplicatedEntityId(String(full.id), idSet) as ViewDefinitionId;
+      idSet.add(String(newId));
       const completed: ViewDefinition = {
         ...full,
         id: newId,
+        uuid: generateUUID() as ViewDefinition["uuid"],
         name: `${full.name} のコピー` as DisplayName,
         createdAt: ts,
         updatedAt: ts,
@@ -299,6 +311,9 @@ export function ViewDefinitionListView() {
     updatedAt: "更新日",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: EntityIdInput に渡す既存 id 配列を memoize
+  const existingIds = useMemo(() => editor.items.map((vd) => String(vd.id)), [editor.items]);
+
   const resetAddForm = () => {
     setAddName("");
     setAddKind("list");
@@ -306,11 +321,13 @@ export function ViewDefinitionListView() {
     setAddDescription("");
     setAddNameError("");
     setAddSourceTableError("");
+    setAddId("");
   };
 
   const handleAdd = async () => {
     const name = addName.trim();
     const sourceTableId = addSourceTableId.trim();
+    const id = addId.trim();
     let hasError = false;
     if (!name) {
       setAddNameError("表示名は必須です");
@@ -320,13 +337,16 @@ export function ViewDefinitionListView() {
       setAddSourceTableError("ソーステーブルは必須です");
       hasError = true;
     }
+    if (addIdValidation.isInvalid) hasError = true;
     if (hasError) return;
 
+    // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って store に渡す
     const vd = await createViewDefinition(
       name as DisplayName,
       addKind as ViewDefinitionKind,
       sourceTableId as TableId,
       addDescription.trim() || undefined,
+      { id },
     );
     setShowAdd(false);
     resetAddForm();
@@ -775,6 +795,19 @@ export function ViewDefinitionListView() {
                   rows={3}
                 />
               </label>
+              <label className="tbl-field">
+                <span>ID <small>(kebab-case)</small></span>
+                <EntityIdInput
+                  value={addId}
+                  onChange={setAddId}
+                  name={addName}
+                  existingIds={existingIds}
+                  entityLabel="ViewDefinition"
+                  inputId="view-definition-id-input"
+                  onEnter={handleAdd}
+                  onValidationChange={setAddIdValidation}
+                />
+              </label>
               <div className="tbl-modal-btns">
                 <button
                   className="tbl-btn tbl-btn-ghost"
@@ -785,7 +818,7 @@ export function ViewDefinitionListView() {
                 <button
                   className="tbl-btn tbl-btn-primary"
                   onClick={handleAdd}
-                  disabled={!addName.trim() || !addSourceTableId.trim()}
+                  disabled={!addName.trim() || !addSourceTableId.trim() || addIdValidation.isInvalid}
                 >
                   作成して編集
                 </button>

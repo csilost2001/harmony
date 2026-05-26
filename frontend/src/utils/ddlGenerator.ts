@@ -96,7 +96,7 @@ function resolveColumnPhysical(table: Table, columnId: string): string {
   return table.columns.find((c) => c.id === columnId)?.physicalName ?? columnId;
 }
 
-/** TableId (UUID) を allTables から検索し、Table を返す。 */
+/** TableId (kebab-case EntityId) を allTables から検索し、Table を返す。 */
 function findTable(allTables: Table[], tableId: string): Table | undefined {
   return allTables.find((t) => t.id === tableId);
 }
@@ -105,7 +105,7 @@ function findTable(allTables: Table[], tableId: string): Table | undefined {
  * テーブル 1 件の DDL を生成。
  * @param table 対象テーブル
  * @param dialect SQL ダイアレクト
- * @param allTables FK 参照解決用の全テーブル一覧 (referencedTableId UUID から物理名を逆引きするのに使う)
+ * @param allTables FK 参照解決用の全テーブル一覧 (referencedTableId EntityId から物理名を逆引きするのに使う)
  */
 export function generateDdl(table: Table, dialect: SqlDialect, allTables: Table[] = []): string {
   const physical = quoteIdentifier(table.physicalName, dialect);

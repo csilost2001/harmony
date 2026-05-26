@@ -18,8 +18,8 @@ import type {
   Constraint,
 } from "../../types/v3";
 
-const TABLE_A_ID = "00000000-0000-4000-8000-00000000000a" as TableId;
-const TABLE_B_ID = "00000000-0000-4000-8000-00000000000b" as TableId;
+const TABLE_A_ID = "users" as TableId;
+const TABLE_B_ID = "orgs" as TableId;
 
 function makeTable(over: Partial<Table> = {}): Table {
   return {

@@ -122,6 +122,10 @@ describe("viewDefinitionStore", () => {
     expect(vd.kind).toBe("list");
     expect(vd.sourceTableId).toBe("table-orders");
     expect(vd.columns).toEqual([]);
+    // I-7 Round 8 S-R7-1: uuid field は不変識別子として常に発番される
+    expect(vd.uuid).toBeDefined();
+    expect(typeof vd.uuid).toBe("string");
+    expect(vd.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
   });
 
   it("commitViewDefinitions saves harmony.json once regardless of deletedIds count", async () => {

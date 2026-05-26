@@ -23,8 +23,8 @@
         },
         "dependencies": {
           "type": "array",
-          "description": "依存する Table / View entity の Uuid 一覧。",
-          "items": { "$ref": "common.v3.schema.json#/$defs/Uuid" }
+          "description": "依存する Table / View entity の EntityId 一覧。",
+          "items": { "$ref": "common.v3.schema.json#/$defs/EntityId" }
         },
         "materialized": {
           "type": "boolean",

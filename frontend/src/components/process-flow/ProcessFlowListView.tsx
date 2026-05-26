@@ -30,6 +30,7 @@ import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { ValidationBadge } from "../common/ValidationBadge";
 import { MaturityBadge } from "./MaturityBadge";
 import { useListSelection } from "../../hooks/useListSelection";
@@ -41,6 +42,7 @@ import { useListEditor } from "../../hooks/useListEditor";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { generateUUID } from "../../utils/uuid";
 import { renumber } from "../../utils/listOrder";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import { EditSessionBadge } from "../editing/EditSessionBadge";
 import { DraftHistoryModal } from "../editing/DraftHistoryModal";
@@ -86,6 +88,9 @@ export function ProcessFlowListView() {
   const [addType, setAddType] = useState<ProcessFlowType>("screen");
   const [addScreenId, setAddScreenId] = useState("");
   const [addDescription, setAddDescription] = useState("");
+  // RFC #1284 / #1297 I-5: kebab-case ProcessFlow id + AI 提案ボタン + uniqueness 警告
+  const [addId, setAddId] = useState("");
+  const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [screens, setScreens] = useState<{ id: string; name: string }[]>([]);
   const [tableDefs, setTableDefs] = useState<ValidatorTableDef[]>([]);
   const [conventions, setConventions] = useState<ConventionsCatalog | null>(null);
@@ -321,18 +326,27 @@ export function ProcessFlowListView() {
     }
   };
 
-  const duplicateGroup = async (src: ProcessFlowMeta): Promise<string | null> => {
+  const duplicateGroup = async (
+    src: ProcessFlowMeta,
+    existingIds: Set<string>,
+  ): Promise<string | null> => {
     const full = await loadProcessFlow(src.id);
     if (!full) return null;
     // v3 ProcessFlow では id は meta.id にネスト、name も meta.name。
     // 旧仕様 (top-level id/name) のまま spread すると元 id のまま file 上書きされる bug 発生。
-    const newId = generateUUID();
+    // RFC #1284 (I-7) / #1299 Round 3 G-1:
+    //   id は kebab-case (`-copy[-N]`)、uuid は不変識別子なので新規 entity として新 UUID 生成。
+    //   makeDuplicatedEntityId で 64 字 schema 制約 + uniqueness 担保 (Date.now() 連続複製 race 回避)。
+    const newId = makeDuplicatedEntityId(String(full.meta.id), existingIds);
+    existingIds.add(newId);
+    const newUuid = generateUUID();
     const nowTs = new Date().toISOString();
     const dup: ProcessFlow = {
       ...full,
       meta: {
         ...full.meta,
         id: newId as ProcessFlow["meta"]["id"],
+        uuid: newUuid as ProcessFlow["meta"]["uuid"],
         name: full.meta.name + " (コピー)",
         createdAt: nowTs as ProcessFlow["meta"]["createdAt"],
         updatedAt: nowTs as ProcessFlow["meta"]["updatedAt"],
@@ -348,9 +362,11 @@ export function ProcessFlowListView() {
   };
 
   const handleDuplicate = async (items: ProcessFlowMeta[]) => {
+    // RFC #1284 (I-7) / #1299 Round 3 G-1: 既存 id 集合を確保し、複製 callsite で suffix collision 回避。
+    const idSet = new Set<string>(editor.items.map((g) => String(g.id)));
     const newIds: string[] = [];
     for (const g of items) {
-      const id = await duplicateGroup(g);
+      const id = await duplicateGroup(g, idSet);
       if (id) newIds.push(id);
     }
     await editor.reload();
@@ -382,9 +398,11 @@ export function ProcessFlowListView() {
       });
       selection.setSelectedIds(new Set(moved.map((g) => g.id)));
     } else {
+      // RFC #1284 (I-7) / #1299 Round 3 G-1: 既存 id 集合を確保し、複製 callsite で suffix collision 回避。
+      const idSet = new Set<string>(editor.items.map((g) => String(g.id)));
       const newIds: string[] = [];
       for (const g of clipItems) {
-        const id = await duplicateGroup(g);
+        const id = await duplicateGroup(g, idSet);
         if (id) newIds.push(id);
       }
       clipboard.consume();
@@ -404,20 +422,27 @@ export function ProcessFlowListView() {
     markerCount: "マーカー",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: EntityIdInput に渡す既存 id 配列を memoize
+  const existingIds = useMemo(() => editor.items.map((p) => p.id), [editor.items]);
+
   const handleAdd = async () => {
     const name = addName.trim();
-    if (!name) return;
+    const id = addId.trim();
+    if (!name || addIdValidation.isInvalid) return;
+    // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って store に渡す
     const group = await createProcessFlow(
       name,
       addType,
       addType === "screen" && addScreenId ? addScreenId : undefined,
       addDescription.trim() || undefined,
+      { id },
     );
     setShowAdd(false);
     setAddName("");
     setAddType("screen");
     setAddScreenId("");
     setAddDescription("");
+    setAddId("");
     navigate(wsPath(`/process-flow/edit/${group.meta.id}`));
   };
 
@@ -978,11 +1003,24 @@ export function ProcessFlowListView() {
                 placeholder="処理フローの概要"
               />
             </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="process-flow-id-input">ID <small>(kebab-case)</small></label>
+              <EntityIdInput
+                value={addId}
+                onChange={setAddId}
+                name={addName}
+                existingIds={existingIds}
+                entityLabel="処理フロー"
+                inputId="process-flow-id-input"
+                onEnter={handleAdd}
+                onValidationChange={setAddIdValidation}
+              />
+            </div>
             <div className="process-flow-modal-footer">
-              <button className="btn btn-outline-secondary btn-sm" onClick={() => setShowAdd(false)}>
+              <button className="btn btn-outline-secondary btn-sm" onClick={() => { setShowAdd(false); setAddId(""); }}>
                 キャンセル
               </button>
-              <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={!addName.trim()}>
+              <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={!addName.trim() || addIdValidation.isInvalid}>
                 作成
               </button>
             </div>

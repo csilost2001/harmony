@@ -1,0 +1,68 @@
+{
+  "$schema": "../../../../schemas/v3/view-definition.v3.schema.json",
+  "id": "story-list-viewer",
+  "uuid": "cfdbf081-368d-4a33-8a36-1c7a0c535011",
+  "name": "ストーリー一覧 viewer",
+  "description": "ストーリー一覧画面 (No.2) 向けの一覧 UI viewer 定義。stories テーブルを主ソースとし、CEFR レベル / コンテンツパック / 推定学習時間でフィルタ可能にする。is_active=TRUE のストーリーのみデフォルト表示し、タイトルクリックで詳細画面 (/stories/:storyId) に遷移する。",
+  "maturity": "draft",
+  "createdAt": "2026-05-04T00:00:00.000Z",
+  "updatedAt": "2026-05-04T00:00:00.000Z",
+  "kind": "list",
+  "sourceTableId": "story",
+  "columns": [
+    {
+      "name": "title",
+      "tableColumnRef": {
+        "tableId": "story",
+        "columnId": "col-title"
+      },
+      "displayName": "タイトル",
+      "type": "string",
+      "width": "auto",
+      "align": "left",
+      "sortable": true,
+      "filterable": true,
+      "linkTo": "/stories/:id"
+    },
+    {
+      "name": "cefrLevel",
+      "tableColumnRef": {
+        "tableId": "story",
+        "columnId": "col-cefr-level"
+      },
+      "displayName": "CEFR",
+      "type": "string",
+      "width": "80px",
+      "align": "center",
+      "sortable": true,
+      "filterable": true
+    },
+    {
+      "name": "isActive",
+      "tableColumnRef": {
+        "tableId": "story",
+        "columnId": "col-is-active"
+      },
+      "displayName": "公開中",
+      "type": "boolean",
+      "width": "80px",
+      "align": "center",
+      "sortable": false,
+      "filterable": true
+    }
+  ],
+  "sortDefaults": [
+    {
+      "columnName": "cefrLevel",
+      "order": "asc"
+    }
+  ],
+  "filterDefaults": [
+    {
+      "columnName": "isActive",
+      "operator": "eq",
+      "value": true
+    }
+  ],
+  "pageSize": 20
+}

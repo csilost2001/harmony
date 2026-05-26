@@ -28,7 +28,8 @@ beforeAll(() => {
 
 const TABLE_BASE = {
   $schema: "../../../schemas/v3/table.v3.schema.json",
-  id: "11111111-1111-4111-8111-111111111111",
+  id: "fixture-table",
+  uuid: "11111111-1111-4111-8111-111111111111",
   name: "fixture table",
   physicalName: "fixtures",
   createdAt: "2026-05-19T00:00:00.000Z",
@@ -72,7 +73,7 @@ describe("ForeignKeyConstraint.columnIds + referencedColumnIds uniqueItems (#118
       id: "fk-01",
       kind: "foreignKey",
       columnIds: ["col-02", "col-03"],
-      referencedTableId: "22222222-2222-4222-8222-222222222222",
+      referencedTableId: "fixture-referenced-table",
       referencedColumnIds: ["other_id_1", "other_id_2"],
     }]));
     expect(ok, JSON.stringify(validateTable.errors)).toBe(true);
@@ -83,7 +84,7 @@ describe("ForeignKeyConstraint.columnIds + referencedColumnIds uniqueItems (#118
       id: "fk-02",
       kind: "foreignKey",
       columnIds: ["col-02", "col-02"],
-      referencedTableId: "22222222-2222-4222-8222-222222222222",
+      referencedTableId: "fixture-referenced-table",
       referencedColumnIds: ["other_id_1", "other_id_2"],
     }]));
     expect(ok).toBe(false);
@@ -95,7 +96,7 @@ describe("ForeignKeyConstraint.columnIds + referencedColumnIds uniqueItems (#118
       id: "fk-03",
       kind: "foreignKey",
       columnIds: ["col-02", "col-03"],
-      referencedTableId: "22222222-2222-4222-8222-222222222222",
+      referencedTableId: "fixture-referenced-table",
       referencedColumnIds: ["other_id_1", "other_id_1"],
     }]));
     expect(ok).toBe(false);

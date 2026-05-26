@@ -139,9 +139,18 @@ export type Mode = "upstream" | "downstream";
 /**
  * 全 top-level entity (Harmony / Screen / Table / ProcessFlow / View / Sequence 等) の共通 meta。
  * CustomBlock のような特殊形式 entity は EntityMeta を採用しない (個別型で定義)。
+ *
+ * RFC #1284 (I-7) で `id` を kebab-case EntityId に変更、不変識別子 `uuid` (UUID v4) を追加。
+ * TS 型レベルでは段階移行のため `uuid` は optional として宣言 (schema 上は required、AJV 検証で強制)。
+ * 新規 entity 生成パスは uuid を必ず含めること。
  */
 export interface EntityMeta {
   id: Uuid;
+  /**
+   * RFC #1284: entity 不変識別子 (UUID v4)。audit / 履歴追跡 / merge 衝突解決 / rename refactor の safety net。
+   * schema 上 required、TS 型では段階移行のため optional。
+   */
+  uuid?: Uuid;
   name: DisplayName;
   description?: Description;
   /** entity 単独のリビジョン。 */

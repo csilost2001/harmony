@@ -1,0 +1,155 @@
+{
+  "$schema": "../../../../schemas/v3/process-flow.v3.schema.json",
+  "meta": {
+    "id": "study-session-start",
+    "uuid": "cc173367-d92a-4525-acc9-689bad9a048e",
+    "name": "学習セッション開始",
+    "description": "ユーザーがストーリーを選択して学習セッションを開始するフロー (S-1)。learning_sessions に新規セッションを INSERT し、会話プレイ画面遷移用のセッション ID を返す。子 2 で先行実装済 (validate:samples が flows ≥1 を要求するため)。子 4 では本フローを残し、S-2 (会話ターン進行) / S-3 (発音採点) / S-4 (履歴 / 単語復習) / scheduled (連続日数リセット) フローを追加する。",
+    "flowType": "screen",
+    "maturity": "draft",
+    "screenId": "story-detail",
+    "createdAt": "2026-05-04T00:00:00.000Z",
+    "updatedAt": "2026-05-04T00:00:00.000Z"
+  },
+  "context": {
+    "ambientVariables": [
+      {
+        "name": "sessionUserId",
+        "type": "integer",
+        "required": true,
+        "description": "ログイン中のユーザー ID (JWT から取得)。"
+      }
+    ],
+    "catalogs": {
+      "errors": {
+        "STORY_NOT_FOUND": {
+          "httpStatus": 404,
+          "defaultMessage": "ストーリーが見つかりません。",
+          "responseId": "404-not-found",
+          "description": "指定された storyId のストーリーが存在しないか、is_active=FALSE の場合。"
+        }
+      }
+    }
+  },
+  "actions": [
+    {
+      "id": "act-001",
+      "name": "セッション開始",
+      "trigger": "submit",
+      "description": "ストーリー詳細画面の「学習開始」ボタン押下で発火。learning_sessions に新規レコードを INSERT し、採番したセッション ID と共に会話プレイ画面 (/learn/:sessionId) に遷移する。",
+      "maturity": "draft",
+      "httpRoute": {
+        "method": "POST",
+        "path": "/api/el/sessions",
+        "auth": "required"
+      },
+      "inputs": [
+        {
+          "name": "storyId",
+          "label": "ストーリーID",
+          "type": "integer",
+          "required": true,
+          "description": "学習対象ストーリー ID (stories.id)。"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "sessionId",
+          "label": "セッションID",
+          "type": "integer",
+          "description": "採番された学習セッション ID。会話プレイ画面の URL パラメータに使用する。"
+        }
+      ],
+      "responses": [
+        {
+          "id": "201-created",
+          "status": 201,
+          "bodySchema": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "sessionId"
+              ],
+              "properties": {
+                "sessionId": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "description": "セッション作成成功。sessionId を返し、呼び出し元画面が /learn/:sessionId に遷移する。",
+          "when": "learning_sessions INSERT が正常完了した場合。"
+        },
+        {
+          "id": "404-not-found",
+          "status": 404,
+          "description": "ストーリーが見つからない。",
+          "when": "storyId が存在しないか、is_active=FALSE の場合。"
+        }
+      ],
+      "steps": [
+        {
+          "id": "step-01",
+          "kind": "dbAccess",
+          "description": "stories テーブルからストーリー存在確認。is_active=TRUE のストーリーのみ学習開始可能。",
+          "tableId": "story",
+          "operation": "SELECT",
+          "sql": "SELECT id, title, cefr_level FROM stories WHERE id = @storyId AND is_active = TRUE",
+          "outputBinding": {
+            "name": "storyRow"
+          }
+        },
+        {
+          "id": "step-01b",
+          "kind": "branch",
+          "description": "step-01 でストーリーが見つからない場合は 404 を返す (insert before null guard)。",
+          "branches": [
+            {
+              "id": "br-01b-a",
+              "code": "A",
+              "label": "ストーリー不在",
+              "condition": {
+                "kind": "expression",
+                "expression": "@storyRow == null"
+              },
+              "steps": [
+                {
+                  "id": "step-01b-a-01",
+                  "kind": "return",
+                  "description": "404 ストーリーなしを返す。",
+                  "responseId": "404-not-found",
+                  "bodyExpression": "{ code: 'STORY_NOT_FOUND', message: 'ストーリーが見つかりません。' }"
+                }
+              ]
+            }
+          ],
+          "elseBranch": {
+            "id": "br-01b-else",
+            "code": "B",
+            "label": "ストーリー存在",
+            "steps": []
+          }
+        },
+        {
+          "id": "step-02",
+          "kind": "dbAccess",
+          "description": "learning_sessions に新規セッションを INSERT する。",
+          "tableId": "study-session",
+          "operation": "INSERT",
+          "sql": "INSERT INTO learning_sessions (user_id, story_id, status, started_at, updated_at) VALUES (@sessionUserId, @storyId, 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id",
+          "outputBinding": {
+            "name": "newSession"
+          }
+        },
+        {
+          "id": "step-03",
+          "kind": "return",
+          "description": "201 Created — 新規セッション ID を返す。",
+          "responseId": "201-created",
+          "bodyExpression": "{ sessionId: @newSession.id }"
+        }
+      ]
+    }
+  ]
+}

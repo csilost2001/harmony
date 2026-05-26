@@ -1,0 +1,204 @@
+{
+  "$schema": "../../../../schemas/v3/table.v3.schema.json",
+  "id": "cart-item",
+  "uuid": "57110336-a984-4d39-bb21-1e5d5bb4390b",
+  "name": "カート明細",
+  "description": "カートに追加された商品明細を管理するトランザクションテーブル。(cart_id, product_id, store_id) の複合 UNIQUE 制約で店舗単位の重複排除を行う。同一商品でも別店舗から購入する場合は別行として保持する (multi-store inventory 整合)。カート追加 (S-2) の中心テーブル。",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-03T00:00:00.000Z",
+  "physicalName": "cart_items",
+  "category": "トランザクション",
+  "comment": "カート明細。(cart_id, product_id, store_id) で重複排除し、quantity で数量を保持する。",
+  "columns": [
+    {
+      "id": "col-id",
+      "no": 1,
+      "physicalName": "id",
+      "name": "カート明細ID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "primaryKey": true,
+      "autoIncrement": true,
+      "comment": "サロゲートキー (自動採番)"
+    },
+    {
+      "id": "col-cart-id",
+      "no": 2,
+      "physicalName": "cart_id",
+      "name": "カートID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "comment": "FK → carts.id"
+    },
+    {
+      "id": "col-product-id",
+      "no": 3,
+      "physicalName": "product_id",
+      "name": "商品ID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "comment": "FK → products.id"
+    },
+    {
+      "id": "col-store-id",
+      "no": 4,
+      "physicalName": "store_id",
+      "name": "店舗ID",
+      "dataType": "BIGINT",
+      "notNull": true,
+      "comment": "FK → stores.id。商品検索 (S-1) で在庫を見た店舗を引き継ぐ",
+      "description": "顧客が商品検索画面 (e6147dc0) で在庫を確認した店舗 ID。注文確定時 (S-3) の在庫減算は本列で指定された店舗の inventory に対して実行される。"
+    },
+    {
+      "id": "col-quantity",
+      "no": 5,
+      "physicalName": "quantity",
+      "name": "数量",
+      "dataType": "INTEGER",
+      "notNull": true,
+      "defaultValue": "1",
+      "comment": "追加数量 (1 以上を CHECK 制約で保証)",
+      "description": "0 は許可しない。削除の場合は行ごと DELETE する (null/0 区別 S-2 要件)。"
+    },
+    {
+      "id": "col-unit-price-snapshot",
+      "no": 6,
+      "physicalName": "unit_price_snapshot",
+      "name": "単価スナップショット",
+      "dataType": "DECIMAL",
+      "length": 10,
+      "scale": 0,
+      "notNull": true,
+      "comment": "カート追加時点の単価。注文確定前に価格改定されても追加時点価格を維持",
+      "description": "products.unit_price のスナップショット。注文確定時は order_items にコピーされる。"
+    },
+    {
+      "id": "col-added-at",
+      "no": 7,
+      "physicalName": "added_at",
+      "name": "追加日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP",
+      "comment": "カートへの追加日時"
+    },
+    {
+      "id": "col-updated-at",
+      "no": 8,
+      "physicalName": "updated_at",
+      "name": "更新日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP",
+      "comment": "最終更新日時"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "uq-cart-product-store",
+      "kind": "unique",
+      "physicalName": "uq_cart_items_cart_product_store",
+      "columnIds": [
+        "col-cart-id",
+        "col-product-id",
+        "col-store-id"
+      ],
+      "description": "カート × 商品 × 店舗の重複排除制約。同一商品でも別店舗の場合は別行として保持"
+    },
+    {
+      "id": "chk-quantity",
+      "kind": "check",
+      "physicalName": "chk_cart_items_quantity",
+      "expression": "quantity >= 1",
+      "description": "数量は 1 以上。0 行は許可しない (S-2 null/0 区別)"
+    },
+    {
+      "id": "chk-unit-price-snapshot",
+      "kind": "check",
+      "physicalName": "chk_cart_items_unit_price_snapshot",
+      "expression": "unit_price_snapshot >= 0",
+      "description": "単価スナップショットは 0 以上"
+    },
+    {
+      "id": "fk-cart",
+      "kind": "foreignKey",
+      "physicalName": "fk_cart_items_cart",
+      "columnIds": [
+        "col-cart-id"
+      ],
+      "referencedTableId": "cart",
+      "referencedColumnIds": [
+        "col-id"
+      ],
+      "onDelete": "cascade",
+      "onUpdate": "cascade",
+      "description": "carts テーブルへの FK。カート削除時に明細も削除"
+    },
+    {
+      "id": "fk-product",
+      "kind": "foreignKey",
+      "physicalName": "fk_cart_items_product",
+      "columnIds": [
+        "col-product-id"
+      ],
+      "referencedTableId": "product-master",
+      "referencedColumnIds": [
+        "col-id"
+      ],
+      "onDelete": "restrict",
+      "onUpdate": "cascade",
+      "description": "products テーブルへの FK"
+    },
+    {
+      "id": "fk-store",
+      "kind": "foreignKey",
+      "physicalName": "fk_cart_items_store",
+      "columnIds": [
+        "col-store-id"
+      ],
+      "referencedTableId": "store-master",
+      "referencedColumnIds": [
+        "col-id"
+      ],
+      "onDelete": "restrict",
+      "onUpdate": "cascade",
+      "description": "stores テーブルへの FK。店舗削除時はカート明細が残る場合は削除を禁止"
+    }
+  ],
+  "indexes": [
+    {
+      "id": "idx-cart",
+      "physicalName": "idx_cart_items_cart_id",
+      "columns": [
+        {
+          "columnId": "col-cart-id",
+          "order": "asc"
+        }
+      ],
+      "method": "btree",
+      "description": "カート内明細一覧取得インデックス"
+    },
+    {
+      "id": "idx-cart-product-store",
+      "physicalName": "idx_cart_items_cart_product_store",
+      "columns": [
+        {
+          "columnId": "col-cart-id",
+          "order": "asc"
+        },
+        {
+          "columnId": "col-product-id",
+          "order": "asc"
+        },
+        {
+          "columnId": "col-store-id",
+          "order": "asc"
+        }
+      ],
+      "unique": true,
+      "method": "btree",
+      "description": "重複チェック用複合インデックス (cart_id × product_id × store_id)"
+    }
+  ]
+}

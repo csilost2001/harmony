@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../schemas/v3/sequence.v3.schema.json",
+  "id": "customer-id-sequence",
+  "uuid": "af8f14b0-b6d7-4661-ac4b-bdf0a196e0b2",
+  "name": "顧客ID採番",
+  "description": "顧客マスター登録時に発行する顧客 ID 採番シーケンス。採番値はアプリ層で 'CUST-{NNNNNNNN}' にフォーマットする (8 桁ゼロ埋め)。customers テーブルの id 列 (BIGINT サロゲートキー) とは別に、業務向け顧客識別子として使用する。年リセットなし、永続連番。",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-02T00:00:00.000Z",
+  "physicalName": "seq_customer_id",
+  "startValue": 1,
+  "increment": 1,
+  "minValue": 1,
+  "maxValue": 99999999,
+  "cycle": false,
+  "cache": 10,
+  "usedBy": [
+    {
+      "tableId": "customer-master",
+      "columnId": "col-id"
+    }
+  ]
+}

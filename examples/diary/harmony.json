@@ -3,13 +3,14 @@
   "schemaVersion": "v3",
   "dataDir": "harmony",
   "meta": {
-    "id": "2ad87c6d-1750-42c1-9796-16d15c559108",
+    "id": "diary",
+    "uuid": "2ad87c6d-1750-42c1-9796-16d15c559108",
     "name": "日記アプリ",
     "description": "Harmony フレームワーク dogfood — 個人向け日記/ブログアプリ。投稿 (タイトル / 本文 / 写真ギャラリー / タグ) + AI assist (要約 / タグ提案 / 文章校正 / 画像 alt 自動生成) + 全文検索。techStack: NestJS + Next.js + Prisma + SQLite + Tailwind。",
-    "createdAt": "2026-05-06T12:40:00.000Z",
-    "updatedAt": "2026-05-07T00:00:00.000Z",
     "mode": "upstream",
-    "maturity": "draft"
+    "maturity": "draft",
+    "createdAt": "2026-05-06T12:40:00.000Z",
+    "updatedAt": "2026-05-07T00:00:00.000Z"
   },
   "extensionsApplied": [],
   "techStack": {
@@ -39,7 +40,7 @@
   "entities": {
     "screens": [
       {
-        "id": "31d56212-b654-46dc-b004-096c7382c404",
+        "id": "post-list",
         "no": 1,
         "name": "投稿一覧",
         "kind": "list",
@@ -48,7 +49,7 @@
         "updatedAt": "2026-05-06T14:30:00.000Z"
       },
       {
-        "id": "ffec74d0-6c21-45f7-a387-167ac8819255",
+        "id": "post-detail",
         "no": 2,
         "name": "投稿詳細",
         "kind": "detail",
@@ -57,7 +58,7 @@
         "updatedAt": "2026-05-06T14:30:00.000Z"
       },
       {
-        "id": "531619ae-0f5f-4f55-8043-03e5a9ef6670",
+        "id": "post-edit",
         "no": 3,
         "name": "投稿編集",
         "kind": "form",
@@ -66,7 +67,7 @@
         "updatedAt": "2026-05-06T14:30:00.000Z"
       },
       {
-        "id": "c0bd613a-ab67-4f72-8e2d-775e827bf9b2",
+        "id": "tag-management",
         "no": 4,
         "name": "タグ管理",
         "kind": "list",
@@ -75,7 +76,7 @@
         "updatedAt": "2026-05-06T14:30:00.000Z"
       },
       {
-        "id": "a5088d22-4ad8-4615-a4c5-447ff9cdd280",
+        "id": "login",
         "no": 5,
         "name": "ログイン",
         "kind": "login",
@@ -86,7 +87,7 @@
     ],
     "tables": [
       {
-        "id": "695939b7-f3f7-473f-b0cf-a2ccfe5da8fa",
+        "id": "user",
         "no": 1,
         "name": "ユーザー",
         "physicalName": "users",
@@ -96,7 +97,7 @@
         "updatedAt": "2026-05-06T12:40:00.000Z"
       },
       {
-        "id": "79d2c08c-7511-4d37-9051-e6f4587630e0",
+        "id": "post",
         "no": 2,
         "name": "投稿",
         "physicalName": "posts",
@@ -106,7 +107,7 @@
         "updatedAt": "2026-05-06T12:40:00.000Z"
       },
       {
-        "id": "07439e21-0743-48ca-af9e-763e4be2d094",
+        "id": "tag",
         "no": 3,
         "name": "タグ",
         "physicalName": "tags",
@@ -116,7 +117,7 @@
         "updatedAt": "2026-05-06T12:40:00.000Z"
       },
       {
-        "id": "1681eee2-39d9-4548-9044-5cedac68d41e",
+        "id": "post-tag",
         "no": 4,
         "name": "投稿タグ (中間)",
         "physicalName": "post_tags",
@@ -126,7 +127,7 @@
         "updatedAt": "2026-05-06T12:40:00.000Z"
       },
       {
-        "id": "d8fc5f8a-9cd2-4e46-9f3d-03c337ae0e9f",
+        "id": "photo",
         "no": 5,
         "name": "写真",
         "physicalName": "photos",
@@ -138,7 +139,7 @@
     ],
     "processFlows": [
       {
-        "id": "0671b051-4acc-49cf-ba92-9fa29b47f671",
+        "id": "post-create",
         "no": 1,
         "name": "投稿作成",
         "flowType": "screen",
@@ -147,7 +148,7 @@
         "updatedAt": "2026-05-06T14:00:00.000Z"
       },
       {
-        "id": "b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "id": "post-update",
         "no": 2,
         "name": "投稿更新",
         "flowType": "screen",
@@ -156,7 +157,7 @@
         "updatedAt": "2026-05-06T14:00:00.000Z"
       },
       {
-        "id": "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f",
+        "id": "post-delete",
         "no": 3,
         "name": "投稿削除",
         "flowType": "screen",
@@ -165,7 +166,7 @@
         "updatedAt": "2026-05-06T14:00:00.000Z"
       },
       {
-        "id": "d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a",
+        "id": "post-detail-get",
         "no": 4,
         "name": "投稿詳細取得",
         "flowType": "screen",
@@ -174,7 +175,7 @@
         "updatedAt": "2026-05-06T14:00:00.000Z"
       },
       {
-        "id": "e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b",
+        "id": "post-search",
         "no": 5,
         "name": "投稿検索",
         "flowType": "screen",
@@ -183,7 +184,7 @@
         "updatedAt": "2026-05-06T14:00:00.000Z"
       },
       {
-        "id": "f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c",
+        "id": "ai-summary-generate",
         "no": 6,
         "name": "AI要約生成",
         "flowType": "common",
@@ -192,7 +193,7 @@
         "updatedAt": "2026-05-06T14:00:00.000Z"
       },
       {
-        "id": "a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d",
+        "id": "ai-tag-suggest",
         "no": 7,
         "name": "AIタグ提案",
         "flowType": "common",
@@ -201,7 +202,7 @@
         "updatedAt": "2026-05-06T14:00:00.000Z"
       },
       {
-        "id": "b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e",
+        "id": "ai-image-alt-generate",
         "no": 8,
         "name": "AI画像alt生成",
         "flowType": "common",
@@ -210,7 +211,7 @@
         "updatedAt": "2026-05-06T14:00:00.000Z"
       },
       {
-        "id": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+        "id": "ai-text-proofread",
         "no": 9,
         "name": "AI文章校正",
         "flowType": "common",
@@ -219,7 +220,7 @@
         "updatedAt": "2026-05-06T14:00:00.000Z"
       },
       {
-        "id": "1ce956c5-7aa9-47b5-bb38-ca392ad73518",
+        "id": "login",
         "no": 10,
         "name": "ログイン",
         "flowType": "screen",
@@ -228,7 +229,7 @@
         "updatedAt": "2026-05-07T00:00:00.000Z"
       },
       {
-        "id": "9537764e-3fe9-459d-8172-00d69a575c09",
+        "id": "token-refresh",
         "no": 11,
         "name": "トークン更新",
         "flowType": "screen",
@@ -237,7 +238,7 @@
         "updatedAt": "2026-05-07T00:00:00.000Z"
       },
       {
-        "id": "46436b69-99f2-48b3-a5fa-07bf9fcd1478",
+        "id": "logout",
         "no": 12,
         "name": "ログアウト",
         "flowType": "screen",
@@ -246,7 +247,7 @@
         "updatedAt": "2026-05-07T00:00:00.000Z"
       },
       {
-        "id": "2fecbf99-6a4e-4c62-840c-59d96e48ecb6",
+        "id": "photo-upload",
         "no": 13,
         "name": "写真アップロード",
         "flowType": "screen",
@@ -255,7 +256,7 @@
         "updatedAt": "2026-05-07T00:00:00.000Z"
       },
       {
-        "id": "803764e4-c27d-47fd-b3d9-924c1fa28bd8",
+        "id": "tag-list-get",
         "no": 14,
         "name": "タグ一覧取得",
         "flowType": "screen",
@@ -264,7 +265,7 @@
         "updatedAt": "2026-05-07T00:00:00.000Z"
       },
       {
-        "id": "c7ca8f6d-b983-4a64-8e70-a7ef7081198f",
+        "id": "tag-management",
         "no": 15,
         "name": "タグ管理",
         "flowType": "screen",

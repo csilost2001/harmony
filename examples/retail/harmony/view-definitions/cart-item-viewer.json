@@ -1,0 +1,115 @@
+{
+  "$schema": "../../../../schemas/v3/view-definition.v3.schema.json",
+  "id": "cart-item-viewer",
+  "uuid": "f8b286e4-77c0-41b9-9c34-9291d00cabc3",
+  "name": "カート明細",
+  "description": "カート確認画面 (cff4a398) の viewer 項目 (cartSummary) が参照する列定義。カート集計フロー (267e94bf) の出力変数 'rows' (cart_items × products × stores JOIN 行配列: productCode / productName / storeCode / storeName / quantity / unitPrice / subtotal) を表示する (#771)。multi-store inventory 整合のため店舗情報を含む。",
+  "maturity": "provisional",
+  "createdAt": "2026-05-03T00:00:00.000Z",
+  "updatedAt": "2026-05-03T00:00:00.000Z",
+  "kind": "list",
+  "query": {
+    "from": {
+      "tableId": "cart-item",
+      "alias": "ci"
+    },
+    "joins": [
+      {
+        "kind": "INNER",
+        "tableId": "product-master",
+        "alias": "p",
+        "on": [
+          "ci.product_id = p.id"
+        ]
+      },
+      {
+        "kind": "INNER",
+        "tableId": "store-master",
+        "alias": "s",
+        "on": [
+          "ci.store_id = s.id"
+        ]
+      }
+    ]
+  },
+  "columns": [
+    {
+      "name": "productCode",
+      "tableColumnRef": {
+        "tableId": "product-master",
+        "columnId": "col-product-code"
+      },
+      "displayName": "商品コード",
+      "type": "string",
+      "width": "120px",
+      "align": "left",
+      "sortable": false,
+      "filterable": false
+    },
+    {
+      "name": "productName",
+      "tableColumnRef": {
+        "tableId": "product-master",
+        "columnId": "col-name"
+      },
+      "displayName": "商品名",
+      "type": "string",
+      "width": "auto",
+      "align": "left",
+      "sortable": false,
+      "filterable": false
+    },
+    {
+      "name": "storeName",
+      "tableColumnRef": {
+        "tableId": "store-master",
+        "columnId": "col-name"
+      },
+      "displayName": "店舗",
+      "type": "string",
+      "width": "120px",
+      "align": "left",
+      "sortable": false,
+      "filterable": false
+    },
+    {
+      "name": "quantity",
+      "tableColumnRef": {
+        "tableId": "cart-item",
+        "columnId": "col-quantity"
+      },
+      "displayName": "数量",
+      "type": "integer",
+      "displayFormat": "#,##0",
+      "width": "70px",
+      "align": "right",
+      "sortable": false,
+      "filterable": false
+    },
+    {
+      "name": "unitPrice",
+      "tableColumnRef": {
+        "tableId": "cart-item",
+        "columnId": "col-unit-price-snapshot"
+      },
+      "displayName": "単価 (税抜)",
+      "type": "number",
+      "displayFormat": "#,##0",
+      "width": "100px",
+      "align": "right",
+      "sortable": false,
+      "filterable": false
+    },
+    {
+      "name": "subtotal",
+      "displayName": "小計 (税抜)",
+      "type": "number",
+      "displayFormat": "#,##0",
+      "width": "100px",
+      "align": "right",
+      "sortable": false,
+      "filterable": false
+    }
+  ],
+  "pageSize": 50
+}

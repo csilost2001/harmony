@@ -12,10 +12,12 @@ import type {
   OutputColumn,
   PhysicalName,
   Timestamp,
+  Uuid,
   View,
   ViewId,
 } from "../../../src/types/v3";
-import { normalizeId } from "../../helpers/realWorkspace";
+import { deterministicUuid } from "../../helpers/realWorkspace";
+import { normalizeToKebabId } from "./projectBuilder";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
@@ -36,13 +38,19 @@ function defaultOutputColumn(): OutputColumn {
 }
 
 export function buildView(opts: BuildViewOpts = {}): View {
+  // RFC #1284: id は kebab-case EntityId、uuid は不変識別子 (UUID v4)。
   const id = opts.id
-    ? (normalizeId(opts.id) as unknown as ViewId)
-    : (crypto.randomUUID() as unknown as ViewId);
+    ? (normalizeToKebabId(opts.id) as unknown as ViewId)
+    : ("test-view" as unknown as ViewId);
+  const uuid = opts.id
+    // Round 6 Phase A: normalizeId → deterministicUuid に責務分離 (kebab-case 化 vs UUID v4 生成)
+    ? (deterministicUuid(opts.id) as unknown as Uuid)
+    : (crypto.randomUUID() as unknown as Uuid);
 
   return {
     $schema: "../../schemas/v3/view.v3.schema.json",
     id,
+    uuid,
     name: opts.name ?? "テストビュー",
     physicalName: (opts.physicalName ?? "test_view") as unknown as PhysicalName,
     selectStatement: opts.selectStatement ?? "SELECT id FROM test_table",

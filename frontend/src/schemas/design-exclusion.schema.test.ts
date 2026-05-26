@@ -36,7 +36,8 @@ beforeAll(() => {
 
 const SCREEN_BASE = {
   $schema: "../../../schemas/v3/screen.v3.schema.json",
-  id: "11111111-1111-4111-8111-111111111111",
+  id: "fixture-screen",
+  uuid: "11111111-1111-4111-8111-111111111111",
   name: "fixture screen",
   kind: "form" as const,
   path: "/fixture",
@@ -49,7 +50,8 @@ const SCREEN_BASE = {
 
 const PL_BASE = {
   $schema: "../../../schemas/v3/page-layout.v3.schema.json",
-  id: "22222222-2222-4222-8222-222222222222",
+  id: "fixture-page-layout",
+  uuid: "22222222-2222-4222-8222-222222222222",
   name: "fixture layout",
   maturity: "draft" as const,
   createdAt: "2026-05-19T00:00:00.000Z",

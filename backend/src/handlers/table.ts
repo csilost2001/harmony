@@ -11,6 +11,7 @@
  * harmony.json `tables[]` メタと `tables/<id>.json` の双方を整合 update。
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
+import { randomUUID } from "node:crypto";
 import {
   readProject,
   writeProject,
@@ -18,8 +19,7 @@ import {
   writeTable,
   deleteTable as deleteTableFile,
 } from "../projectStorage.js";
-import type { ToolHandler } from "../mcpHelpers.js";
-import { assertSafeName } from "../security/idValidator.js";
+import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
 export const handleTableTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
@@ -42,7 +42,7 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "tableId は必須です");
       }
       // S-002: ID validation
-      try { assertSafeName(a.tableId, "tableId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdMcp(a.tableId, "tableId");
       const tableData = await readTable(a.tableId, root);
       if (!tableData) {
         throw new McpError(ErrorCode.InvalidParams, `テーブル ${a.tableId} が見つかりません`);
@@ -54,10 +54,14 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
       if (typeof a.name !== "string" || typeof a.logicalName !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "name, logicalName は必須です");
       }
-      const id = `table-${Date.now()}`;
+      // #1294 I-2: id は kebab-case EntityId (RFC #1284)、uuid は別途 randomUUID で採番
+      // 暫定採番形式 (I-5 で UI 創成ダイアログから人間入力 / AI 提案に置き換え)
+      const id = `table-${randomUUID().slice(0, 8)}`;
+      const uuid = randomUUID();
       const now = new Date().toISOString();
       const tableDef = {
         id,
+        uuid,
         name: a.name,
         logicalName: a.logicalName,
         description: typeof a.description === "string" ? a.description : "",
@@ -83,7 +87,7 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "tableId, definition は必須です");
       }
       // S-002: ID validation
-      try { assertSafeName(a.tableId, "tableId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdMcp(a.tableId, "tableId");
       const def = a.definition as Record<string, unknown>;
       def.updatedAt = new Date().toISOString();
       await writeTable(a.tableId, def, root);
@@ -105,7 +109,7 @@ export const handleTableTool: ToolHandler = async (name, args, root) => {
         throw new McpError(ErrorCode.InvalidParams, "tableId は必須です");
       }
       // S-002: ID validation
-      try { assertSafeName(a.tableId, "tableId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertEntityIdMcp(a.tableId, "tableId");
       await deleteTableFile(a.tableId, root);
       const project = (await readProject(root) ?? {}) as Record<string, unknown>;
       const tables = ((project.tables ?? []) as Array<Record<string, unknown>>).filter((t) => t.id !== a.tableId);

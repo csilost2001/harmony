@@ -10,8 +10,8 @@
     "$schema": { "type": "string" },
     "positions": {
       "type": "object",
-      "description": "Screen / ScreenGroup の UUID をキーとし、UI 座標を値とする。",
-      "propertyNames": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
+      "description": "Screen / ScreenGroup の EntityId をキーとし、UI 座標を値とする。",
+      "propertyNames": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
       "additionalProperties": { "$ref": "#/$defs/Position" }
     },
     "transitions": {

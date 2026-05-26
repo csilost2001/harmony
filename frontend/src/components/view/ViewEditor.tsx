@@ -2,8 +2,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { View, OutputColumn, PhysicalName, Uuid, Maturity, SemVer } from "../../types/v3";
-import { loadView, saveView } from "../../store/viewStore";
+import { loadView, saveView, listViews } from "../../store/viewStore";
 import { listTables } from "../../store/tableStore";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
@@ -35,7 +39,7 @@ export function ViewEditor() {
   const { viewId: rawId } = useParams<{ viewId: string }>();
   const viewId = rawId ? decodeURIComponent(rawId) : rawId;
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
 
   const [ddlOpen, setDdlOpen] = useState(false);
   const [tableOptions, setTableOptions] = useState<TableOption[]>([]);
@@ -48,6 +52,19 @@ export function ViewEditor() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  // Phase M Codex SF-1 (#1298 round 8): wsId scoped key
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("view", viewId, wsId);
+  const [allViewIds, setAllViewIds] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await listViews();
+        setAllViewIds(list.map((v) => v.id as unknown as string));
+      } catch { /* backend 未接続時は空配列のまま */ }
+    })();
+  }, [viewId]);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/view/list"), { replace: true }), [navigate, wsPath]);
 
@@ -88,6 +105,8 @@ export function ViewEditor() {
     viewerMode: mode.kind as "viewer" | "editing" | "readonly",
     viewerResourceType: "view",
     viewerEditSessionId: editSession?.id,
+    // I-7 Round 3 G-5 (#1299 Codex S-R2-1): rename-in-progress 判定の wsId scoping
+    wsId,
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -346,6 +365,25 @@ export function ViewEditor() {
           label: "ビュー一覧",
           onClick: () => navigate(wsPath("/view/list")),
         } satisfies EditorHeaderBackLink}
+        extraRight={
+          // #1298 I-6 (RFC #1284): id rename refactor
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={() => setShowRenameDialog(true)}
+            disabled={isReadonly || isDirty}
+            title={
+              isReadonly
+                ? "編集モードに切り替えてから id を変更できます"
+                : isDirty
+                ? "未保存の変更があります。保存または破棄してから id を変更してください"
+                : "id を変更 (rename refactor)"
+            }
+            data-testid="rename-entity-open-btn-view"
+          >
+            <i className="bi bi-tag" /> id 変更
+          </button>
+        }
         saveReset={isReadonly ? undefined : {
           isDirty,
           isSaving,
@@ -628,6 +666,58 @@ export function ViewEditor() {
           )}
         </section>
       </div>
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && viewId && (
+        <RenameEntityDialog
+          entityType="view"
+          currentId={viewId}
+          currentName={view.physicalName || view.name || ""}
+          existingIds={allViewIds}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => (await listViews()).map((v) => v.id)}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId, extra) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "view",
+              oldId: viewId,
+              newId,
+              label: view.physicalName || view.name || newId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast({
+              operationId, oldId: viewId, newId,
+              ttlMs: extra?.ttlMs,
+            });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          ttlMs={renameUndoToast.ttlMs}
+          entityLabel="ビュー"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "view",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: view.physicalName || view.name || renameUndoToast.oldId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </div>
   );
 }

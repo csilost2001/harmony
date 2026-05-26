@@ -13,6 +13,7 @@ import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
 import { ListContextMenu, type ContextMenuItem } from "../common/ListContextMenu";
 import { ViewModeToggle, type ViewMode } from "../common/ViewModeToggle";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { ValidationBadge } from "../common/ValidationBadge";
 import { useListSelection } from "../../hooks/useListSelection";
 import { useListClipboard } from "../../hooks/useListClipboard";
@@ -22,6 +23,7 @@ import { useListSort } from "../../hooks/useListSort";
 import { useListEditor } from "../../hooks/useListEditor";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { renumber } from "../../utils/listOrder";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
@@ -52,6 +54,9 @@ export function ViewListView() {
   const [addPhysicalName, setAddPhysicalName] = useState("");
   const [addName, setAddName] = useState("");
   const [addPhysicalNameError, setAddPhysicalNameError] = useState("");
+  // RFC #1284 / #1297 I-5: kebab-case View id + AI 提案ボタン + uniqueness 警告
+  const [addId, setAddId] = useState("");
+  const [addIdValidation, setAddIdValidation] = useState<EntityIdValidationState>({ isFormatValid: false, isUnique: true, isInvalid: true });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
 
@@ -163,18 +168,25 @@ export function ViewListView() {
   };
 
   const handleDuplicate = async (items: ViewEntry[]) => {
+    // RFC #1284 (I-7) / #1299 Codex review M-2 / Round 3 G-1:
+    // id は kebab-case (`-copy[-N]`)、uuid は不変識別子なので新規発番。
+    // 元 full の uuid を spread で流すと identity collision (同一 uuid の別 entity) 発生。
+    // existingIds で suffix collision avoidance + 64 字 schema 制約準拠 (G-1)。
     const newIds: string[] = [];
     const existingPhysical = new Set<string>(editor.items.map((v) => v.physicalName ?? ""));
+    const idSet = new Set<string>(editor.items.map((v) => String(v.id)));
     for (const m of items) {
       const full = await loadView(m.id);
       if (!full) continue;
       const newPhysical = makeCopyPhysicalName(full.physicalName ?? full.name, existingPhysical);
       existingPhysical.add(newPhysical);
       const ts = new Date().toISOString() as Timestamp;
-      const newId = generateUUID() as ViewId;
+      const newId = makeDuplicatedEntityId(String(full.id), idSet) as ViewId;
+      idSet.add(String(newId));
       const completed: View = {
         ...full,
         id: newId,
+        uuid: generateUUID() as View["uuid"],
         physicalName: newPhysical as PhysicalName,
         createdAt: ts,
         updatedAt: ts,
@@ -260,18 +272,24 @@ export function ViewListView() {
     updatedAt: "更新日",
   }), []);
 
+  // RFC #1284 / #1297 I-5 N-1: EntityIdInput に渡す既存 id 配列を memoize
+  const existingIds = useMemo(() => editor.items.map((v) => v.id), [editor.items]);
+
   const handleAdd = async () => {
     const physical = addPhysicalName.trim();
     const name = addName.trim();
-    if (!physical || !name) return;
+    const id = addId.trim();
+    if (!physical || !name || addIdValidation.isInvalid) return;
     if (editor.items.some((v) => v.physicalName === physical)) {
       setAddPhysicalNameError(`物理名 "${physical}" は既に存在します`);
       return;
     }
-    const v = await createView(physical as PhysicalName, name as DisplayName);
+    // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って store に渡す
+    const v = await createView(physical as PhysicalName, name as DisplayName, undefined, { id });
     setShowAdd(false);
     setAddPhysicalName("");
     setAddName("");
+    setAddId("");
     setAddPhysicalNameError("");
     // #960: 「作成して編集」は auto-edit モードで Editor を開く (sessionStorage 経由)。
     sessionStorage.setItem(`harmony-auto-edit:view:${v.id}`, "1");
@@ -612,14 +630,27 @@ export function ViewListView() {
                   onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
                 />
               </label>
+              <label className="tbl-field">
+                <span>ID <small>(kebab-case)</small></span>
+                <EntityIdInput
+                  value={addId}
+                  onChange={setAddId}
+                  name={addName}
+                  existingIds={existingIds}
+                  entityLabel="DB ビュー"
+                  inputId="view-id-input"
+                  onEnter={handleAdd}
+                  onValidationChange={setAddIdValidation}
+                />
+              </label>
               <div className="tbl-modal-btns">
-                <button className="tbl-btn tbl-btn-ghost" onClick={() => { setShowAdd(false); setAddPhysicalNameError(""); }}>
+                <button className="tbl-btn tbl-btn-ghost" onClick={() => { setShowAdd(false); setAddPhysicalNameError(""); setAddId(""); }}>
                   キャンセル
                 </button>
                 <button
                   className="tbl-btn tbl-btn-primary"
                   onClick={handleAdd}
-                  disabled={!addPhysicalName.trim() || !addName.trim()}
+                  disabled={!addPhysicalName.trim() || !addName.trim() || addIdValidation.isInvalid}
                 >
                   作成して編集
                 </button>

@@ -1,0 +1,130 @@
+{
+  "$schema": "../../../../schemas/v3/table.v3.schema.json",
+  "id": "account",
+  "uuid": "3a000000-1000-4000-8000-000000000002",
+  "name": "口座",
+  "description": "ユーザー所有の口座 (現金 / 銀行 / クレジット)。複数口座を横断して取引を集計するための起点エンティティ。",
+  "createdAt": "2026-05-24T00:00:00.000Z",
+  "updatedAt": "2026-05-24T00:00:00.000Z",
+  "maturity": "draft",
+  "physicalName": "accounts",
+  "category": "マスタ",
+  "comment": "ユーザー所有の家計簿口座 (財布・銀行口座・クレジットカード等)。",
+  "columns": [
+    {
+      "id": "col-id",
+      "no": 1,
+      "physicalName": "id",
+      "name": "ID",
+      "dataType": "INTEGER",
+      "notNull": true,
+      "primaryKey": true,
+      "autoIncrement": true
+    },
+    {
+      "id": "col-user-id",
+      "no": 2,
+      "physicalName": "user_id",
+      "name": "ユーザー ID",
+      "dataType": "INTEGER",
+      "notNull": true,
+      "comment": "所有ユーザー。users.id への FK。"
+    },
+    {
+      "id": "col-name",
+      "no": 3,
+      "physicalName": "name",
+      "name": "口座名",
+      "dataType": "VARCHAR",
+      "length": 50,
+      "notNull": true,
+      "comment": "ユーザーが命名する口座表示名 (例: '財布', 'みずほ銀行', '楽天カード')。"
+    },
+    {
+      "id": "col-account-type",
+      "no": 4,
+      "physicalName": "account_type",
+      "name": "口座種別",
+      "dataType": "VARCHAR",
+      "length": 20,
+      "notNull": true,
+      "comment": "'cash' / 'bank' / 'credit_card' のいずれか。"
+    },
+    {
+      "id": "col-initial-balance",
+      "no": 5,
+      "physicalName": "initial_balance",
+      "name": "初期残高",
+      "dataType": "DECIMAL",
+      "length": 12,
+      "scale": 2,
+      "notNull": true,
+      "defaultValue": "0",
+      "comment": "本口座の取引記録開始時点の残高。"
+    },
+    {
+      "id": "col-currency",
+      "no": 6,
+      "physicalName": "currency",
+      "name": "通貨",
+      "dataType": "CHAR",
+      "length": 3,
+      "notNull": true,
+      "defaultValue": "'JPY'",
+      "comment": "ISO 4217 通貨コード。"
+    },
+    {
+      "id": "col-created-at",
+      "no": 7,
+      "physicalName": "created_at",
+      "name": "作成日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    },
+    {
+      "id": "col-updated-at",
+      "no": 8,
+      "physicalName": "updated_at",
+      "name": "更新日時",
+      "dataType": "TIMESTAMP",
+      "notNull": true,
+      "defaultValue": "CURRENT_TIMESTAMP"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "fk-accounts-user",
+      "kind": "foreignKey",
+      "physicalName": "fk_accounts_user",
+      "columnIds": [
+        "col-user-id"
+      ],
+      "referencedTableId": "user",
+      "referencedColumnIds": [
+        "col-id"
+      ],
+      "onDelete": "cascade",
+      "onUpdate": "cascade",
+      "description": "ユーザー削除時に紐付く口座も連動削除。"
+    },
+    {
+      "id": "ck-accounts-account-type",
+      "kind": "check",
+      "physicalName": "ck_accounts_account_type",
+      "expression": "account_type IN ('cash', 'bank', 'credit_card')",
+      "description": "口座種別の値域制約。"
+    }
+  ],
+  "indexes": [
+    {
+      "id": "idx-accounts-user",
+      "physicalName": "idx_accounts_user",
+      "columns": [
+        {
+          "columnId": "col-user-id"
+        }
+      ]
+    }
+  ]
+}

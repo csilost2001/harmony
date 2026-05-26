@@ -21,7 +21,7 @@ import {
   deletePageLayoutFile,
   listAllPageLayouts,
 } from "../projectStorage.js";
-import type { ToolHandler } from "../mcpHelpers.js";
+import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
 export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
@@ -43,10 +43,14 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       if (typeof a.name !== "string" || typeof a.editorKind !== "string" || typeof a.cssFramework !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "name, editorKind, cssFramework は必須です");
       }
-      const id = randomUUID();
+      // #1294 I-2: id は kebab-case EntityId (RFC #1284)、uuid は別途 randomUUID で採番
+      // 暫定採番形式 (I-5 で UI 創成ダイアログから人間入力 / AI 提案に置き換え)
+      const id = `page-layout-${randomUUID().slice(0, 8)}`;
+      const uuid = randomUUID();
       const now = new Date().toISOString();
       const def = {
         id,
+        uuid,
         name: a.name,
         description: typeof a.description === "string" ? a.description : undefined,
         maturity: "draft",
@@ -90,6 +94,8 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       if (typeof a.pageLayoutId !== "string" || !a.definition) {
         throw new McpError(ErrorCode.InvalidParams, "pageLayoutId, definition は必須です");
       }
+      // #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
+      assertEntityIdMcp(a.pageLayoutId, "pageLayoutId");
       const existing = await readPageLayout(a.pageLayoutId, root);
       if (!existing) {
         throw new McpError(ErrorCode.InvalidParams, `PageLayout ${a.pageLayoutId} が見つかりません`);
@@ -130,6 +136,8 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       if (typeof a.pageLayoutId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "pageLayoutId は必須です");
       }
+      // #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
+      assertEntityIdMcp(a.pageLayoutId, "pageLayoutId");
       await deletePageLayoutFile(a.pageLayoutId, root);
       const project = (await readProject(root) ?? {}) as Record<string, unknown>;
       const entities = ((project.entities ?? {}) as Record<string, unknown>);
@@ -146,6 +154,8 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       if (typeof a.pageLayoutId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "pageLayoutId は必須です");
       }
+      // #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
+      assertEntityIdMcp(a.pageLayoutId, "pageLayoutId");
       const data = await readPageLayout(a.pageLayoutId, root);
       if (!data) {
         return { content: [{ type: "text", text: `PageLayout ${a.pageLayoutId} が見つかりません。` }] };
@@ -157,6 +167,8 @@ export const handlePageLayoutTool: ToolHandler = async (name, args, root) => {
       if (typeof a.pageLayoutId !== "string" || !a.data) {
         throw new McpError(ErrorCode.InvalidParams, "pageLayoutId と data は必須です");
       }
+      // #1294 I-2: ID validation (RFC #1284 移行期間 compat = EntityId | UUID v4)
+      assertEntityIdMcp(a.pageLayoutId, "pageLayoutId");
       await writePageLayout(a.pageLayoutId, a.data, root);
       return { content: [{ type: "text", text: `PageLayout ${a.pageLayoutId} を保存しました。` }] };
     }

@@ -1,0 +1,38 @@
+{
+  "$schema": "../../../../schemas/v3/page-layout.v3.schema.json",
+  "id": "main-layout",
+  "uuid": "17595b62-fef1-4b22-9c25-16736c772567",
+  "name": "Main Layout",
+  "description": "retail サンプルの標準 layout (ヘッダ + サイドバー + フッタ)",
+  "maturity": "committed",
+  "createdAt": "2026-05-12T00:00:00.000Z",
+  "updatedAt": "2026-05-12T00:00:00.000Z",
+  "regions": [
+    {
+      "name": "header",
+      "description": "グローバルヘッダ (店舗名 / ユーザー名 / ログアウト)"
+    },
+    {
+      "name": "sidebar",
+      "description": "ナビゲーションサイドバー"
+    },
+    {
+      "name": "footer",
+      "description": "フッタ (コピーライト / バージョン)"
+    },
+    {
+      "name": "main",
+      "description": "コンテンツ slot (page Screen 本文が嵌まる位置)"
+    }
+  ],
+  "assignments": {
+    "header": "global-header",
+    "sidebar": "navigation-sidebar",
+    "footer": "global-footer"
+  },
+  "design": {
+    "editorKind": "grapesjs",
+    "cssFramework": "bootstrap",
+    "designFileRef": "main-layout.design.json"
+  }
+}

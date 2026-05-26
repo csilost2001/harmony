@@ -7,9 +7,30 @@
  * #700 R-2: root (per-session active path) と sessionId を引数に追加。
  * LEGACY_CLIENT_ID / no-arg wrapper は削除済み。
  */
+import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { wsBridge } from "./wsBridge.js";
 import { writeProcessFlow } from "./projectStorage.js";
+import { assertEntityId } from "./security/idValidator.js";
 import type { ProcessFlowDoc } from "./processFlowEdits.js";
+
+/**
+ * MCP handler 用の `assertEntityId` ラッパ — validator が投げる Error を
+ * `McpError(InvalidParams)` に rethrow する。各 handler の try/catch boilerplate を
+ * 1 行化するために導入 (#1294 I-2 review Nit #1)。
+ *
+ * 用途は handler 入口の id 検証のみ。WebSocket handler 等 McpError を返したくない
+ * 経路では従来通り `assertEntityId` を直接使う。
+ *
+ * I-7 (#1299) で `assertEntityIdOrUuidMcp` → `assertEntityIdMcp` にリネーム
+ * (compat shim 撤廃により EntityId のみ accept)。
+ */
+export function assertEntityIdMcp(value: unknown, label: string): asserts value is string {
+  try {
+    assertEntityId(value, label);
+  } catch (e) {
+    throw new McpError(ErrorCode.InvalidParams, (e as Error).message);
+  }
+}
 
 /** ProcessFlow を保存してブラウザに変更通知 (#700 R-2: root 必須, #703 R-5: wsId=root で scope) */
 export async function saveAndBroadcast(agId: string, ag: ProcessFlowDoc, root: string): Promise<void> {

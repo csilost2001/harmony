@@ -1,20 +1,93 @@
 {
   "$schema": "../../../schemas/v3/screen-flow-positions.v3.schema.json",
   "positions": {
-    "765c3c23-8a0e-46b0-ae8b-ce84d10be0b0": { "x": 600, "y": 80, "width": 200, "height": 80 },
-    "e6147dc0-94b7-436d-ba87-d0080ac34f44": { "x": 100, "y": 280, "width": 200, "height": 80 },
-    "4a9df651-e0cc-4523-a9bf-f3fb9d45c53f": { "x": 800, "y": 280, "width": 200, "height": 80 },
-    "c73fa05c-4a71-4593-800d-b9814e97be83": { "x": 100, "y": 460, "width": 200, "height": 80 },
-    "cff4a398-99cd-4aa5-bfbd-c12d5e72c5f3": { "x": 100, "y": 640, "width": 200, "height": 80 },
-    "0739c454-45d6-4c99-962a-7b0b9e113a22": { "x": 100, "y": 820, "width": 200, "height": 80 },
-    "f9faa724-e080-4308-bc14-bb93631c9e78": { "x": 1100, "y": 280, "width": 200, "height": 80 },
-    "c2254dd6-ab5d-4428-931f-d27c71e89951": { "x": 1100, "y": 460, "width": 200, "height": 80 },
-    "2e23d129-1d53-4e30-b54c-97f90b910578": { "x": 1400, "y": 280, "width": 200, "height": 80 },
-    "f05fd315-2c78-48e5-9968-2633255b286e": { "x": 1400, "y": 460, "width": 200, "height": 80 },
-    "f9d57022-1dad-4c8f-a387-27e0a8576947": { "x": 1400, "y": 640, "width": 200, "height": 80 },
-    "c720b549-ecf4-4d20-9be4-c8d38f89a13e": { "x": 50, "y": 230, "width": 320, "height": 720, "color": "#0d6efd" },
-    "a7285b88-9e12-4d2c-94c6-ef6bd788685d": { "x": 750, "y": 230, "width": 320, "height": 360, "color": "#198754" },
-    "8c592e1b-dfa4-4fc6-8a0c-e584996b0075": { "x": 1350, "y": 230, "width": 320, "height": 540, "color": "#6c757d" }
+    "dashboard": {
+      "x": 600,
+      "y": 80,
+      "width": 200,
+      "height": 80
+    },
+    "product-search": {
+      "x": 100,
+      "y": 280,
+      "width": 200,
+      "height": 80
+    },
+    "inventory-list": {
+      "x": 800,
+      "y": 280,
+      "width": 200,
+      "height": 80
+    },
+    "cart": {
+      "x": 100,
+      "y": 460,
+      "width": 200,
+      "height": 80
+    },
+    "cart-confirm": {
+      "x": 100,
+      "y": 640,
+      "width": 200,
+      "height": 80
+    },
+    "order-complete": {
+      "x": 100,
+      "y": 820,
+      "width": 200,
+      "height": 80
+    },
+    "order-list": {
+      "x": 1100,
+      "y": 280,
+      "width": 200,
+      "height": 80
+    },
+    "shipment-dispatch": {
+      "x": 1100,
+      "y": 460,
+      "width": 200,
+      "height": 80
+    },
+    "product-master": {
+      "x": 1400,
+      "y": 280,
+      "width": 200,
+      "height": 80
+    },
+    "customer-master": {
+      "x": 1400,
+      "y": 460,
+      "width": 200,
+      "height": 80
+    },
+    "store-master": {
+      "x": 1400,
+      "y": 640,
+      "width": 200,
+      "height": 80
+    },
+    "customer-facing": {
+      "x": 50,
+      "y": 230,
+      "width": 320,
+      "height": 720,
+      "color": "#0d6efd"
+    },
+    "back-office": {
+      "x": 750,
+      "y": 230,
+      "width": 320,
+      "height": 360,
+      "color": "#198754"
+    },
+    "master-management": {
+      "x": 1350,
+      "y": 230,
+      "width": 320,
+      "height": 540,
+      "color": "#6c757d"
+    }
   },
   "transitions": {
     "tr-search-to-cart": {},

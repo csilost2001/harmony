@@ -14,8 +14,8 @@ import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
-import { generateUUID } from "../../utils/uuid";
 import { renumber } from "../../utils/listOrder";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { DataList, type DataListColumn } from "../common/DataList";
 import { FilterBar } from "../common/FilterBar";
 import { SortBar } from "../common/SortBar";
@@ -245,9 +245,16 @@ export function ScreenListView() {
     const project = await loadProject();
     const s = project.screens.find((sc) => sc.id === src.id);
     if (!s) return null;
+    // RFC #1284 (I-7) / #1299 Codex review M-2 / Round 3 G-1:
+    // duplicate path も新規 entity 創成と同じく id は kebab-case (`-copy[-N]`)、
+    // uuid は不変識別子なので新規発番。Phase A で `assertEntityId` strict 化後、
+    // UUID 形式の id を流すと handler が reject するため必須。
+    // existingIds で suffix collision avoidance + 64 字 schema 制約準拠 (G-1)。
+    const existingIds = new Set(project.screens.map((sc) => sc.id as string));
+    const newId = makeDuplicatedEntityId(s.id, existingIds) as ScreenId;
     const dup: ScreenNode = {
       ...s,
-      id: generateUUID() as ScreenId,
+      id: newId,
       // no は renumber() で振り直されるため、...s 由来の値のままで良い (即上書き)
       name: s.name + " (コピー)",
       position: { x: s.position.x + 40, y: s.position.y + 40 },
@@ -318,6 +325,9 @@ export function ScreenListView() {
     hasDesign: "デザイン",
     updatedAt: "更新日時",
   }), []);
+
+  // RFC #1284 / #1297 I-5 N-1: ScreenEditModal の existingScreenIds に渡す既存 id 配列を memoize
+  const existingScreenIds = useMemo(() => editor.items.map((s) => s.id), [editor.items]);
 
   const handleAddNew = () => {
     setScreenModal({ open: true });
@@ -441,7 +451,8 @@ export function ScreenListView() {
     } else {
       const editorKind = data.editorKind ?? projectDefaultEditorKind;
       const cssFramework = data.cssFramework ?? projectDefaultCssFramework;
-      const screen = await addScreen(project, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework });
+      // RFC #1284 / #1297 I-5: kebab-case id を modal から受け取って addScreen に渡す
+      const screen = await addScreen(project, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework, id: data.id });
       screen.description = data.description;
       await saveProject(project);
       // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
@@ -715,6 +726,7 @@ export function ScreenListView() {
         defaultEditorKind={projectDefaultEditorKind}
         defaultCssFramework={projectDefaultCssFramework}
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
+        existingScreenIds={existingScreenIds}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />

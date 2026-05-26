@@ -1,0 +1,58 @@
+{
+  "$schema": "../../../../schemas/v3/screen.v3.schema.json",
+  "id": "order-complete",
+  "uuid": "0739c454-45d6-4c99-962a-7b0b9e113a22",
+  "name": "注文完了",
+  "description": "注文確定後の完了画面 (S-3)。注文番号・注文サマリを表示し、ダッシュボードまたは注文履歴への導線を提供する。",
+  "purpose": "page",
+  "kind": "complete",
+  "path": "/order/complete",
+  "auth": "required",
+  "groupId": "customer-facing",
+  "maturity": "committed",
+  "createdAt": "2026-05-02T00:00:00.000Z",
+  "updatedAt": "2026-05-02T00:00:00.000Z",
+  "items": [
+    {
+      "id": "orderNumber",
+      "label": "注文番号",
+      "type": "string",
+      "direction": "output",
+      "description": "S-3 注文確定後に発行された注文番号 (ORD-YYYY-NNNNNN 形式)。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "order-confirm",
+        "variableName": "orderNumber"
+      }
+    },
+    {
+      "id": "confirmedTotalAmount",
+      "label": "確定合計金額 (税込)",
+      "type": "integer",
+      "direction": "output",
+      "displayFormat": "¥#,##0",
+      "description": "S-3 注文確定後の確定合計金額 (表示専用)。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "order-confirm",
+        "variableName": "totalAmount"
+      }
+    },
+    {
+      "id": "confirmedAt",
+      "label": "注文確定日時",
+      "type": "datetime",
+      "direction": "output",
+      "displayFormat": "YYYY/MM/DD HH:mm",
+      "description": "S-3 注文確定が完了した日時 (表示専用)。",
+      "valueFrom": {
+        "kind": "flowVariable",
+        "processFlowId": "order-confirm",
+        "variableName": "confirmedAt"
+      }
+    }
+  ],
+  "design": {
+    "designFileRef": "order-complete.design.json"
+  }
+}

@@ -12,9 +12,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
-import type { Maturity } from "../../types/v3";
+import type { Maturity, ScreenId } from "../../types/v3";
 import type { PageLayout, PageLayoutRegion } from "../../store/pageLayoutStore";
-import { loadPageLayout, savePageLayout } from "../../store/pageLayoutStore";
+import { loadPageLayout, savePageLayout, listPageLayouts } from "../../store/pageLayoutStore";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { useResourceEditor } from "../../hooks/useResourceEditor";
 import { useEditSession } from "../../hooks/useEditSession";
@@ -56,12 +60,25 @@ export function PageLayoutEditor() {
   const { pageLayoutId: rawId } = useParams<{ pageLayoutId: string }>();
   const pageLayoutId = rawId ? decodeURIComponent(rawId) : rawId;
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
 
   const [gadgetScreens, setGadgetScreens] = useState<GadgetScreenOption[]>([]);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  // Phase M Codex SF-1 (#1298 round 8): wsId scoped key
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("pageLayout", pageLayoutId, wsId);
+  const [allPageLayoutIds, setAllPageLayoutIds] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await listPageLayouts();
+        setAllPageLayoutIds(list.map((pl) => pl.id as unknown as string));
+      } catch { /* backend 未接続時は空配列のまま */ }
+    })();
+  }, [pageLayoutId]);
 
   const [regionNameError, setRegionNameError] = useState<string>("");
   const [newRegionName, setNewRegionName] = useState("");
@@ -108,6 +125,8 @@ export function PageLayoutEditor() {
     viewerMode: mode.kind as "viewer" | "editing" | "readonly",
     viewerResourceType: "page-layout",
     viewerEditSessionId: editSession?.id,
+    // I-7 Round 3 G-5 (#1299 Codex S-R2-1): rename-in-progress 判定の wsId scoping
+    wsId,
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -288,7 +307,9 @@ export function PageLayoutEditor() {
     updateWithDraft((s) => {
       const assignments = { ...(s.assignments ?? {}) };
       if (screenId) {
-        assignments[regionName] = screenId;
+        // Round 6 Phase C: assignments value は ScreenId brand 型 (canonical 統一)。
+        // UI input は plain string で受け取り、entity-typed brand に narrowing する。
+        assignments[regionName] = screenId as ScreenId;
       } else {
         delete assignments[regionName];
       }
@@ -368,16 +389,35 @@ export function PageLayoutEditor() {
         title={<><i className="bi bi-layout-wtf" /> ページレイアウト編集: <code>{pl.name}</code></>}
         backLink={backLink}
         extraRight={
-          <EditSessionDropdown
-            resourceType="page-layout"
-            resourceId={pageLayoutId ?? ""}
-            currentMode={mode}
-            currentSessionId={sessionId}
-            onStartEditing={() => { void actions.startEditing(); }}
-            onViewerAttached={syncSessionToUrl}
-            onAttachAsView={attach}
-            onTakeOver={takeOver}
-          />
+          <>
+            <EditSessionDropdown
+              resourceType="page-layout"
+              resourceId={pageLayoutId ?? ""}
+              currentMode={mode}
+              currentSessionId={sessionId}
+              onStartEditing={() => { void actions.startEditing(); }}
+              onViewerAttached={syncSessionToUrl}
+              onAttachAsView={attach}
+              onTakeOver={takeOver}
+            />
+            {/* #1298 I-6 (RFC #1284): id rename refactor */}
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => setShowRenameDialog(true)}
+              disabled={isReadonly || isDirty}
+              title={
+                isReadonly
+                  ? "編集モードに切り替えてから id を変更できます"
+                  : isDirty
+                  ? "未保存の変更があります。保存または破棄してから id を変更してください"
+                  : "id を変更 (rename refactor)"
+              }
+              data-testid="rename-entity-open-btn-page-layout"
+            >
+              <i className="bi bi-tag" /> id 変更
+            </button>
+          </>
         }
         saveReset={saveReset}
       />
@@ -634,6 +674,58 @@ export function PageLayoutEditor() {
       <div style={{ position: "fixed", bottom: 16, right: 16 }}>
         <MaturityBadge maturity={pl.maturity} />
       </div>
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && pageLayoutId && (
+        <RenameEntityDialog
+          entityType="pageLayout"
+          currentId={pageLayoutId}
+          currentName={pl.name || ""}
+          existingIds={allPageLayoutIds}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => (await listPageLayouts()).map((p) => p.id)}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId, extra) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "pageLayout",
+              oldId: pageLayoutId,
+              newId,
+              label: pl.name || newId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast({
+              operationId, oldId: pageLayoutId, newId,
+              ttlMs: extra?.ttlMs,
+            });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          ttlMs={renameUndoToast.ttlMs}
+          entityLabel="ページレイアウト"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "pageLayout",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: pl.name || renameUndoToast.oldId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </div>
   );
 }

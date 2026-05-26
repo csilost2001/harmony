@@ -17,6 +17,13 @@ interface UseFlowProjectSyncOptions {
 interface UseFlowProjectSyncResult {
   serverChanged: boolean;
   dismissServerBanner: () => void;
+  /**
+   * Phase I round 3+4 SF-2 (Codex round 3/4 S-2): 外部 source からも banner を立てられるよう、
+   * 同 hook 内の `handleExternalChange` 相当 effect を公開する。
+   * FlowEditor が entity 別 broadcast (screen/table/processFlow/pageLayoutChanged) を購読し、
+   * dirty 中は本 callback で serverChanged を立て、clean 時は別途 reload を実行する。
+   */
+  markExternalChangeForBanner: () => void;
 }
 
 export function useFlowProjectSync({
@@ -29,6 +36,14 @@ export function useFlowProjectSync({
 
   const dismissServerBanner = useCallback(() => {
     setServerChanged(false);
+  }, []);
+
+  /**
+   * Phase I round 3+4 SF-2: 外部 hook 経由で banner を立てる callback。
+   * isDirty に関係なく setServerChanged(true) を発火する (caller 側で dirty 判定する想定)。
+   */
+  const markExternalChangeForBanner = useCallback(() => {
+    setServerChanged(true);
   }, []);
 
   useEffect(() => {
@@ -88,5 +103,5 @@ export function useFlowProjectSync({
     };
   }, [isDirtyRef, navigate, reload, setIsDirty]);
 
-  return { serverChanged, dismissServerBanner };
+  return { serverChanged, dismissServerBanner, markExternalChangeForBanner };
 }

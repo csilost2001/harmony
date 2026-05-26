@@ -24,6 +24,10 @@ import { useListClipboard } from "../../hooks/useListClipboard";
 import { useListKeyboard } from "../../hooks/useListKeyboard";
 import { useListSort } from "../../hooks/useListSort";
 import { EditorHeader } from "../common/EditorHeader";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { ServerChangeBanner } from "../common/ServerChangeBanner";
 import { DataList, type DataListColumn } from "../common/DataList";
 import { SortBar } from "../common/SortBar";
@@ -47,7 +51,7 @@ type TabId = "columns" | "constraints" | "indexes" | "triggers" | "comment";
 export function TableEditor() {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
   const [tab, setTab] = useState<TabId>("columns");
   const [ddlDialect, setDdlDialect] = useState<SqlDialect>("postgresql");
   const ddlOpen = window.innerWidth >= 2560;
@@ -56,6 +60,10 @@ export function TableEditor() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  // Phase M Codex SF-1 (#1298 round 8): wsId scoped key
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("table", tableId, wsId);
 
   const handleNotFound = useCallback(() => navigate(wsPath("/table/list"), { replace: true }), [navigate, wsPath]);
 
@@ -97,6 +105,8 @@ export function TableEditor() {
     viewerMode: mode.kind as "viewer" | "editing" | "readonly",
     viewerResourceType: "table",
     viewerEditSessionId: editSession?.id,
+    // I-7 Round 3 G-5 (#1299 Codex S-R2-1): rename-in-progress 判定の wsId scoping
+    wsId,
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -341,6 +351,22 @@ export function TableEditor() {
               onAttachAsView={attach}
               onTakeOver={takeOver}
             />
+            {/* #1298 I-6 (RFC #1284): id rename refactor */}
+            <button
+              className="editor-header-undo-btn"
+              onClick={() => setShowRenameDialog(true)}
+              disabled={isReadonly || isDirty}
+              title={
+                isReadonly
+                  ? "編集モードに切り替えてから id を変更できます"
+                  : isDirty
+                  ? "未保存の変更があります。保存または破棄してから id を変更してください"
+                  : "id を変更 (rename refactor)"
+              }
+              data-testid="rename-entity-open-btn-table"
+            >
+              <i className="bi bi-tag" />
+            </button>
             <button
               className="editor-header-undo-btn"
               onClick={() => {
@@ -412,6 +438,60 @@ export function TableEditor() {
           defaultOpen={ddlOpen}
         />
       </div>
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && tableId && (
+        <RenameEntityDialog
+          entityType="table"
+          currentId={tableId}
+          currentName={table.physicalName || table.name || ""}
+          existingIds={allTables.map((t) => t.id)}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => (await listTables()).map((t) => t.id)}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId, extra) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "table",
+              oldId: tableId,
+              newId,
+              label: table.physicalName || table.name || newId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast({
+              operationId, oldId: tableId, newId,
+              ttlMs: extra?.ttlMs,
+            });
+          }}
+        />
+      )}
+
+      {/* rename 成功直後の undo toast (5 分 TTL) */}
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          ttlMs={renameUndoToast.ttlMs}
+          entityLabel="テーブル定義"
+          onUndo={() => {
+            // undo 後、旧 id の編集ページに戻す
+            handleRenameSuccess({
+              entityType: "table",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: table.physicalName || table.name || renameUndoToast.oldId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </div>
   );
 }

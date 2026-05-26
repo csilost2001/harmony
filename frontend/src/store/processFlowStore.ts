@@ -7,10 +7,11 @@ import type {
   Step,
   StepKind as StepType,
 } from "../types/v3";
-import type { ProcessFlowId, ScreenId, Timestamp } from "../types/v3";
+import type { ProcessFlowId, ScreenId, Timestamp, Uuid } from "../types/v3";
 import type { ProcessFlowMeta as FlowProcessFlowMeta } from "../types/flow";
 import { migrateProcessFlow, PROCESS_FLOW_V3_SCHEMA_REF } from "../utils/actionMigration";
 import { generateUUID } from "../utils/uuid";
+import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { nextNo, renumber } from "../utils/listOrder";
 import { loadProject, saveProject } from "./flowStore";
 
@@ -63,13 +64,19 @@ export async function createProcessFlow(
   type: ProcessFlowType,
   screenId?: string,
   description?: string,
+  opts?: { id?: string },
 ): Promise<ProcessFlow> {
-  const id = generateUUID() as ProcessFlowId;
+  // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
+  // 渡されない programmatic path (mcpBridge legacy / test 等) は fallback。
+  // 空文字 / whitespace-only も fallback に流す (S-1 defense-in-depth)。
+  const id = ((opts?.id && opts.id.trim()) || generateFallbackEntityId("flow")) as ProcessFlowId;
   const ts = now();
   const group: ProcessFlow = {
     $schema: PROCESS_FLOW_V3_SCHEMA_REF,
     meta: {
       id,
+      // RFC #1284: uuid は不変識別子 (UUID v4)、創成時に生成
+      uuid: generateUUID() as Uuid,
       name,
       flowType: type,
       screenId: screenId as ScreenId | undefined,

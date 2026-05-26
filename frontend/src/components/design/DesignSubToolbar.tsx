@@ -94,9 +94,15 @@ interface Props {
    * #980-A review 3: required prop。fallback 削除済。
    */
   onTakeOver: (editSessionId: string) => Promise<void>;
+  /**
+   * #1298 I-6 (RFC #1284): id 変更 (rename refactor) ボタン押下時 callback。
+   * 親 (Designer) が RenameEntityDialog を表示する責務。
+   * 省略時は button を出さない (Puck/GrapesJS 両 path の共通点)。
+   */
+  onOpenRenameDialog?: () => void;
 }
 
-export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeChange, mcpStatus, backLink, isDirty, isSaving, onSaveToFile, onReset, onAiGenerate, screenId, isReadonly, editor, sessionMode, sessionId, onStartEditing, onViewerAttached, onAttachAsView, onTakeOver }: Props) {
+export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeChange, mcpStatus, backLink, isDirty, isSaving, onSaveToFile, onReset, onAiGenerate, screenId, isReadonly, editor, sessionMode, sessionId, onStartEditing, onViewerAttached, onAttachAsView, onTakeOver, onOpenRenameDialog }: Props) {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
 
   // ── AI 命名 (#337) ───────────────────────────────────────────────────────
@@ -448,6 +454,24 @@ ${html}
                 >
                   <i className="bi bi-stars" />
                 </button>
+                {/* #1298 I-6 (RFC #1284): 画面 id 変更 (rename refactor) */}
+                {onOpenRenameDialog && (
+                  <button
+                    className="icon-btn"
+                    onClick={onOpenRenameDialog}
+                    disabled={isReadonly || !!isDirty}
+                    title={
+                      isReadonly
+                        ? "編集モードに切り替えてから id を変更できます"
+                        : isDirty
+                        ? "未保存の変更があります。保存または破棄してから id を変更してください"
+                        : "画面 id を変更 (rename refactor)"
+                    }
+                    data-testid="rename-entity-open-btn-screen"
+                  >
+                    <i className="bi bi-tag" />
+                  </button>
+                )}
                 <div className="divider" />
               </>
             )}

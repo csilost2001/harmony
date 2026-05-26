@@ -62,6 +62,11 @@ import { useAiContextChips } from "../../hooks/useAiContextChips";
 import { useCodexStatus } from "../../codex/useCodexStatus";
 import { requestProcessFlowPartial, AiUnavailableError } from "../../codex/processFlowPartialRequest";
 import { EditorHeader } from "../common/EditorHeader";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
+import { listProcessFlows } from "../../store/processFlowStore";
 import { EditModeToolbar } from "../editing/EditModeToolbar";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import "../../styles/editMode.css";
@@ -85,7 +90,7 @@ import { useWorkspaceReferences } from "../../hooks/useWorkspaceReferences";
 export function ProcessFlowEditor() {
   const { processFlowId } = useParams<{ processFlowId: string }>();
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
   const [showAddAction, setShowAddAction] = useState(false);
   // 画面項目ピッカー (#321) — Promise ベース: StructuredFieldsEditor に onPickScreenItem を渡す
@@ -137,6 +142,19 @@ export function ProcessFlowEditor() {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [showAiGenerateDialog, setShowAiGenerateDialog] = useState(false);
   const [showAiReviewDialog, setShowAiReviewDialog] = useState(false);
+  // #1298 I-6 (RFC #1284): id rename refactor 用 state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  // Phase M Codex SF-1 (#1298 round 8): wsId scoped key
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("processFlow", processFlowId, wsId);
+  const [allProcessFlowIds, setAllProcessFlowIds] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await listProcessFlows();
+        setAllProcessFlowIds(list.map((m) => m.id as unknown as string));
+      } catch { /* backend 未接続時は空配列のまま */ }
+    })();
+  }, [processFlowId]);
 
   // #1076 AI 依頼 UX
   const { editLevel, setEditLevel } = useEditLevel(processFlowId);
@@ -200,6 +218,8 @@ export function ProcessFlowEditor() {
     viewerMode: mode.kind as "viewer" | "editing" | "readonly" | undefined,
     viewerResourceType: "process-flow",
     viewerEditSessionId: editSession?.id,
+    // I-7 Round 3 G-5 (#1299 Codex S-R2-1): rename-in-progress 判定の wsId scoping
+    wsId,
   });
 
   const isReadonly = mode.kind !== "editing";
@@ -893,23 +913,42 @@ export function ProcessFlowEditor() {
         }
         undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo }}
         extraRight={
-          <EditorHeaderExtras
-            isReadonly={isReadonly}
-            drawingMode={drawingMode}
-            showWarningsPanel={showWarningsPanel}
-            validationErrors={validationErrors}
-            processFlowId={processFlowId ?? ""}
-            mode={mode}
-            sessionId={sessionId}
-            onOpenAiGenerate={() => setShowAiGenerateDialog(true)}
-            onOpenAiReview={() => setShowAiReviewDialog(true)}
-            onToggleDrawing={() => setDrawingMode((v) => !v)}
-            onToggleWarnings={() => setShowWarningsPanel((v) => !v)}
-            onStartEditing={() => { void editActions.startEditing(); }}
-            onViewerAttached={syncSessionToUrl}
-            onAttachAsView={editAttach}
-            onTakeOver={editTakeOver}
-          />
+          <>
+            <EditorHeaderExtras
+              isReadonly={isReadonly}
+              drawingMode={drawingMode}
+              showWarningsPanel={showWarningsPanel}
+              validationErrors={validationErrors}
+              processFlowId={processFlowId ?? ""}
+              mode={mode}
+              sessionId={sessionId}
+              onOpenAiGenerate={() => setShowAiGenerateDialog(true)}
+              onOpenAiReview={() => setShowAiReviewDialog(true)}
+              onToggleDrawing={() => setDrawingMode((v) => !v)}
+              onToggleWarnings={() => setShowWarningsPanel((v) => !v)}
+              onStartEditing={() => { void editActions.startEditing(); }}
+              onViewerAttached={syncSessionToUrl}
+              onAttachAsView={editAttach}
+              onTakeOver={editTakeOver}
+            />
+            {/* #1298 I-6 (RFC #1284): id rename refactor */}
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => setShowRenameDialog(true)}
+              disabled={isReadonly || isDirty}
+              title={
+                isReadonly
+                  ? "編集モードに切り替えてから id を変更できます"
+                  : isDirty
+                  ? "未保存の変更があります。保存または破棄してから id を変更してください"
+                  : "id を変更 (rename refactor)"
+              }
+              data-testid="rename-entity-open-btn-process-flow"
+            >
+              <i className="bi bi-tag" /> id 変更
+            </button>
+          </>
         }
         saveReset={isReadonly ? undefined : { isDirty, isSaving, onSave: handleSave, onReset: handleReset }}
       />
@@ -1091,6 +1130,59 @@ export function ProcessFlowEditor() {
         onPick={handlePickerPick}
       />
       {/* AI 差分プレビューダイアログ (Phase-3 で ProcessFlowDialogs に統合) */}
+
+      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
+      {showRenameDialog && processFlowId && (
+        <RenameEntityDialog
+          entityType="processFlow"
+          currentId={processFlowId}
+          currentName={group.meta?.name ?? ""}
+          existingIds={allProcessFlowIds}
+          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
+          fetchExistingIds={async () => (await listProcessFlows()).map((p) => p.id)}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId, extra) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "processFlow",
+              oldId: processFlowId,
+              newId,
+              label: group.meta?.name ?? newId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast({
+              operationId, oldId: processFlowId, newId,
+              ttlMs: extra?.ttlMs,
+            });
+          }}
+        />
+      )}
+
+      {/* rename 成功直後の undo toast (5 分 TTL) */}
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          ttlMs={renameUndoToast.ttlMs}
+          entityLabel="処理フロー"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "processFlow",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: group.meta?.name ?? renameUndoToast.oldId,
+              navigate,
+              wsPath,
+              wsId,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
+        />
+      )}
     </div>
   );
 }

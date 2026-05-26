@@ -391,3 +391,77 @@ describe("localStorage ロード時のバリデーション", () => {
     expect(getTabs()).toEqual([]);
   });
 });
+
+// ── RFC #1284 (#1296 I-4): 旧 UUID resourceId のタブを破棄 ────────────────────
+
+describe("UUID resourceId の per-resource タブ破棄 (RFC #1284 / #1296 I-4)", () => {
+  const UUID_V4 = "12345678-1234-4abc-89ab-1234567890ab";
+
+  it("per-resource タブで resourceId が UUID v4 形式なら破棄される", () => {
+    localStorage.setItem("harmony-open-tabs", JSON.stringify([
+      { id: `design:${UUID_V4}`, type: "design", resourceId: UUID_V4, label: "旧UUID画面" },
+      { id: "design:user-form", type: "design", resourceId: "user-form", label: "新id画面" },
+    ]));
+    _reloadFromStorageForTests();
+    const ids = getTabs().map((t) => t.id);
+    expect(ids).not.toContain(`design:${UUID_V4}`);
+    expect(ids).toContain("design:user-form");
+  });
+
+  it("全 per-resource タブ kind で UUID resourceId が破棄される", () => {
+    const types = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout"] as const;
+    localStorage.setItem("harmony-open-tabs", JSON.stringify(
+      types.map((t) => ({ id: `${t}:${UUID_V4}`, type: t, resourceId: UUID_V4, label: `${t} 旧UUID` })),
+    ));
+    _reloadFromStorageForTests();
+    expect(getTabs()).toEqual([]);
+  });
+
+  it("kebab-case resourceId は valid として残る", () => {
+    localStorage.setItem("harmony-open-tabs", JSON.stringify([
+      { id: "design:user-form", type: "design", resourceId: "user-form", label: "a" },
+      { id: "table:order-line-item", type: "table", resourceId: "order-line-item", label: "b" },
+      { id: "process-flow:checkout-flow", type: "process-flow", resourceId: "checkout-flow", label: "c" },
+    ]));
+    _reloadFromStorageForTests();
+    expect(getTabs()).toHaveLength(3);
+  });
+
+  it("シングルトンタブ (resourceId='main') は per-resource ではないため影響なし", () => {
+    localStorage.setItem("harmony-open-tabs", JSON.stringify([
+      { id: "dashboard:main", type: "dashboard", resourceId: "main", label: "ダッシュボード" },
+      { id: "table-list:main", type: "table-list", resourceId: "main", label: "テーブル一覧" },
+      { id: "screen-flow:main", type: "screen-flow", resourceId: "main", label: "画面フロー" },
+    ]));
+    _reloadFromStorageForTests();
+    expect(getTabs()).toHaveLength(3);
+  });
+
+  it("generic-definition タブ (resourceId='kind:name' 形式) は per-resource 集合外で影響なし", () => {
+    localStorage.setItem("harmony-open-tabs", JSON.stringify([
+      { id: "generic-definition:enum:status", type: "generic-definition", resourceId: "enum:status", label: "汎用定義" },
+    ]));
+    _reloadFromStorageForTests();
+    expect(getTabs()).toHaveLength(1);
+  });
+
+  it("activeTabId が破棄された UUID タブを指していたら空文字に reset される (S-3 follow-up)", () => {
+    localStorage.setItem("harmony-open-tabs", JSON.stringify([
+      { id: `design:${UUID_V4}`, type: "design", resourceId: UUID_V4, label: "破棄対象" },
+      { id: "design:user-form", type: "design", resourceId: "user-form", label: "残存" },
+    ]));
+    localStorage.setItem("harmony-active-tab", `design:${UUID_V4}`);
+    _reloadFromStorageForTests();
+    expect(getActiveTabId()).toBe("");
+    expect(getTabs().map((t) => t.id)).toEqual(["design:user-form"]);
+  });
+
+  it("activeTabId が残存タブを指していたら維持される (S-3 follow-up regression guard)", () => {
+    localStorage.setItem("harmony-open-tabs", JSON.stringify([
+      { id: "design:user-form", type: "design", resourceId: "user-form", label: "残存" },
+    ]));
+    localStorage.setItem("harmony-active-tab", "design:user-form");
+    _reloadFromStorageForTests();
+    expect(getActiveTabId()).toBe("design:user-form");
+  });
+});

@@ -2,11 +2,13 @@ import type {
   DisplayName,
   TableId,
   Timestamp,
+  Uuid,
   ViewDefinition,
   ViewDefinitionEntry,
   ViewDefinitionId,
   ViewDefinitionKind,
 } from "../types/v3";
+import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
 import { generateUUID } from "../utils/uuid";
 import {
   checkViewDefinitions,
@@ -109,11 +111,16 @@ export async function createViewDefinition(
   kind: ViewDefinitionKind,
   sourceTableId: TableId,
   description?: string,
+  opts?: { id?: string },
 ): Promise<ViewDefinition> {
+  // RFC #1284 / #1297 I-5: UI 創成ダイアログから kebab-case id が渡される。
+  // 空文字 / whitespace-only も fallback に流す (S-1 defense-in-depth)。
   const ts = nowTs();
   const viewDefinition: ViewDefinition = {
     $schema: VIEW_DEFINITION_SCHEMA_REF,
-    id: generateUUID() as ViewDefinitionId,
+    id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("vd")) as ViewDefinitionId,
+    // RFC #1284 / Round 6 Phase B: uuid は不変識別子 (UUID v4)、創成時に発番。
+    uuid: generateUUID() as Uuid,
     name,
     description,
     kind,

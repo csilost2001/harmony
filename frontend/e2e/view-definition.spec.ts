@@ -16,7 +16,8 @@ import {
 import { buildProject } from "./__fixtures__/builders";
 import type { ProjectEntities, Timestamp } from "../src/types/v3";
 
-const TABLE_ID = "eb574288-88f2-419f-ac5e-56a9948e8f46";
+// RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
+const TABLE_ID = "vd-spec-products-table";
 const CREATED_NAME = "E2E 商品ビュー";
 const UPDATED_NAME = "E2E 商品ビュー 更新";
 
@@ -96,6 +97,8 @@ test.describe("ビュー定義 E2E", { tag: ["@regression"] }, () => {
     await page.locator('.tbl-modal input[placeholder="顧客一覧"]').fill(CREATED_NAME);
     await page.locator('.tbl-modal select').nth(0).selectOption("list");
     await page.locator('.tbl-modal select').nth(1).selectOption(TABLE_NORM);
+    // Round 6 Phase A: RFC #1284 / #1297 I-5 で EntityIdInput が必須化、kebab-case id を明示入力
+    await page.locator("#view-definition-id-input").fill("vd-spec-products-list");
     await page.getByRole("button", { name: "作成して編集" }).click();
 
     await expect(page).toHaveURL(/\/w\/[^/]+\/view-definition\/edit\//);

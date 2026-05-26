@@ -7,7 +7,8 @@ import type { Harmony } from "../types/v3/harmony";
 import type { ProjectId, Timestamp } from "../types/v3";
 
 const TS = "2026-05-05T00:00:00.000Z" as Timestamp;
-const ID = "aaaabbbb-0000-4000-8000-000000000001" as ProjectId;
+const ID = "test-project" as ProjectId;
+const UUID = "aaaabbbb-0000-4000-8000-000000000001";
 
 function validHarmony(): Harmony {
   return {
@@ -16,6 +17,7 @@ function validHarmony(): Harmony {
     dataDir: "harmony",
     meta: {
       id: ID,
+      uuid: UUID,
       name: "テスト",
       createdAt: TS,
       updatedAt: TS,
@@ -45,12 +47,12 @@ describe("validateHarmony", () => {
     expect(r.errors.length).toBeGreaterThan(0);
   });
 
-  it("meta.id が UUID でない形式なら invalid", () => {
+  it("meta.id が EntityId (kebab-case) 形式でないと invalid (RFC #1284)", () => {
     const p: Harmony = {
       ...validHarmony(),
       meta: {
         ...validHarmony().meta,
-        id: "not-a-uuid" as ProjectId,
+        id: "INVALID_ID" as ProjectId, // 大文字 / underscore は kebab-case 違反
       },
     };
     const r = validateHarmony(p);

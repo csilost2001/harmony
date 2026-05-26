@@ -605,3 +605,42 @@ describe("DraftHistoryStore hook (#893)", () => {
     expect(call.ownerLabel).toBe("@alice");
   });
 });
+
+describe("migrateResourceId — Phase K rename integrity", () => {
+  it("reverse migration は指定された forward session だけを更新する", async () => {
+    const forward = store.create("session-A", "table", "new-id", "@alice");
+    const later = store.create("session-B", "table", "new-id", "@bob");
+
+    const migrate = store.migrateResourceId as unknown as (
+      oldType: "table",
+      oldId: string,
+      newType: "table",
+      newId: string,
+      targetEditSessionIds?: readonly string[],
+    ) => Promise<unknown>;
+    await migrate.call(store, "table", "new-id", "table", "old-id", [forward.id]);
+
+    expect(store.get(forward.id)?.resourceId).toBe("old-id");
+    expect(store.get(later.id)?.resourceId).toBe("new-id");
+  });
+
+  it("persist failure は migration warning として呼出元に返す", async () => {
+    const session = store.create("session-A", "table", "persist-old", "@alice");
+    vi.spyOn(fs, "rename").mockRejectedValueOnce(new Error("persist injected"));
+
+    const migrate = store.migrateResourceId as unknown as (
+      oldType: "table",
+      oldId: string,
+      newType: "table",
+      newId: string,
+    ) => Promise<{
+      migrated: Array<{ editSessionId: string }>;
+      warnings: string[];
+    }>;
+    const result = await migrate.call(store, "table", "persist-old", "table", "persist-new");
+
+    expect(result.migrated.map((entry) => entry.editSessionId)).toEqual([session.id]);
+    expect(result.warnings.join("\n")).toMatch(/persist injected/);
+    expect(store.get(session.id)?.resourceId).toBe("persist-new");
+  });
+});

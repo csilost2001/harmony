@@ -197,6 +197,23 @@ describe("MCP reconnect while clean - auto reloads", () => {
   });
 });
 
+// Phase I round 3+4 SF-2 (Codex round 3/4 S-2): FlowEditor が entity 別 broadcast
+// (screen/table/processFlow/pageLayoutChanged) 受信時に markExternalChangeForBanner を
+// 呼ぶことで serverChanged banner が立てられるよう、外部公開 callback の挙動を検証
+describe("Phase I SF-2: markExternalChangeForBanner で serverChanged が立つ", () => {
+  it("dirty 中でも markExternalChangeForBanner 呼び出しで serverChanged=true", async () => {
+    const { hook, reload, isDirtyRef } = setup({ current: true });
+    await waitForInitialLoad(reload);
+
+    expect(hook.result.current.serverChanged).toBe(false);
+    await act(async () => { hook.result.current.markExternalChangeForBanner(); });
+    expect(hook.result.current.serverChanged).toBe(true);
+    // reload は呼ばれていない (caller 側で dirty 判定の責務)
+    expect(reload).not.toHaveBeenCalled();
+    expect(isDirtyRef.current).toBe(true);
+  });
+});
+
 describe("delete operations mark dirty via flowDraft saves", () => {
   it("storeRemoveEdge flips isDirtyRef from false to true", async () => {
     const { reload, isDirtyRef } = setup({ current: false });

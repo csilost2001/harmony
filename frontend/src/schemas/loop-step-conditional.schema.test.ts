@@ -32,13 +32,14 @@ beforeAll(() => {
 });
 
 const META_BASE = {
-  id: "11111111-1111-4111-8111-111111111111",
+  id: "fixture-flow",
+  uuid: "11111111-1111-4111-8111-111111111111",
   name: "fixture flow",
   createdAt: "2026-05-19T00:00:00.000Z",
   updatedAt: "2026-05-19T00:00:00.000Z",
   flowType: "screen", // #1263 Phase X1: meta.kind → meta.flowType
   // #1221 で flowType="screen" の場合 screenId 必須
-  screenId: "22222222-2222-4222-8222-222222222222",
+  screenId: "fixture-screen",
 };
 
 function makeFlowWithLoopStep(loopStep: Record<string, unknown>) {
