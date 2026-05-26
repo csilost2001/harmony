@@ -2,12 +2,14 @@ import type {
   DisplayName,
   TableId,
   Timestamp,
+  Uuid,
   ViewDefinition,
   ViewDefinitionEntry,
   ViewDefinitionId,
   ViewDefinitionKind,
 } from "../types/v3";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
+import { generateUUID } from "../utils/uuid";
 import {
   checkViewDefinitions,
   type ViewDefinitionIssue,
@@ -117,6 +119,8 @@ export async function createViewDefinition(
   const viewDefinition: ViewDefinition = {
     $schema: VIEW_DEFINITION_SCHEMA_REF,
     id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("vd")) as ViewDefinitionId,
+    // RFC #1284 / Round 6 Phase B: uuid は不変識別子 (UUID v4)、創成時に発番。
+    uuid: generateUUID() as Uuid,
     name,
     description,
     kind,

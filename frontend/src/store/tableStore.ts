@@ -19,9 +19,11 @@ import type {
   DisplayName,
   LocalId,
   Timestamp,
+  Uuid,
 } from "../types/v3";
 import { loadProject, saveProject } from "./flowStore";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
+import { generateUUID } from "../utils/uuid";
 import { validateTable } from "../utils/tableValidation";
 import type { ValidationError } from "../utils/actionValidation";
 import { renumber, nextNo } from "../utils/listOrder";
@@ -166,6 +168,8 @@ export async function createTable(
   const table: Table = {
     $schema: TABLE_SCHEMA_REF,
     id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("tbl")) as TableId,
+    // RFC #1284 / Round 6 Phase B: uuid は不変識別子 (UUID v4)、創成時に発番。
+    uuid: generateUUID() as Uuid,
     name,
     description,
     physicalName,

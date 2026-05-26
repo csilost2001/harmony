@@ -3,7 +3,9 @@ import type {
   ScreenId,
   ScreenKind,
   Timestamp,
+  Uuid,
 } from "../types/v3";
+import { generateUUID } from "../utils/uuid";
 import { loadProject, loadRawProject } from "./flowStore";
 import { resolveEditorKind } from "../utils/resolveEditorKind";
 import { resolveCssFramework } from "../utils/resolveCssFramework";
@@ -56,6 +58,9 @@ export async function buildDefaultScreen(screenId: string): Promise<Screen> {
   return {
     $schema: SCREEN_SCHEMA_REF,
     id: screenId as ScreenId,
+    // RFC #1284 / Round 6 Phase B: uuid は不変識別子 (UUID v4)、創成時に発番。
+    // loadScreenEntity の spread merge で raw.uuid があれば優先される (保存済 entity 保護)。
+    uuid: generateUUID() as Uuid,
     name: meta?.name ?? screenId,
     createdAt: (meta?.createdAt ?? meta?.updatedAt ?? ts) as Timestamp,
     updatedAt: (meta?.updatedAt ?? ts) as Timestamp,

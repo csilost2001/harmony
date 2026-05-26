@@ -9,6 +9,7 @@ import type { Uuid, Timestamp, DisplayName } from "../types/v3";
 import type { PageLayoutEntry } from "../types/v3/harmony";
 import type { PageLayout, PageLayoutDesign, Region } from "../types/v3/page-layout";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
+import { generateUUID } from "../utils/uuid";
 import { loadRawProject, saveRawProject } from "./flowStore";
 import { renumber, nextNo } from "../utils/listOrder";
 
@@ -84,6 +85,8 @@ export async function createPageLayout(
   const pl: PageLayout = {
     $schema: PAGE_LAYOUT_SCHEMA_REF,
     id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("pl")) as Uuid,
+    // RFC #1284 / Round 6 Phase B: uuid は不変識別子 (UUID v4)、創成時に発番。
+    uuid: generateUUID() as Uuid,
     name,
     description,
     maturity: "draft",

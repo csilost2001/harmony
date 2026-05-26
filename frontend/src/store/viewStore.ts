@@ -1,5 +1,6 @@
-import type { View, ViewEntry, ViewId, PhysicalName, DisplayName, Timestamp } from "../types/v3";
+import type { View, ViewEntry, ViewId, PhysicalName, DisplayName, Timestamp, Uuid } from "../types/v3";
 import { generateFallbackEntityId } from "../utils/entityIdSuggestion";
+import { generateUUID } from "../utils/uuid";
 import { validateView } from "../utils/viewValidation";
 import type { ValidationError } from "../utils/actionValidation";
 import { loadProject, saveProject } from "./flowStore";
@@ -92,6 +93,8 @@ export async function createView(
   const view: View = {
     $schema: VIEW_SCHEMA_REF,
     id: ((opts?.id && opts.id.trim()) || generateFallbackEntityId("view")) as ViewId,
+    // RFC #1284 / Round 6 Phase B: uuid は不変識別子 (UUID v4)、創成時に発番。
+    uuid: generateUUID() as Uuid,
     name,
     description,
     physicalName,
