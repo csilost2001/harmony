@@ -20,14 +20,14 @@ import type { ProcessFlow, ActionDefinition } from "../../types/v3";
 const LOCAL_STEP_ID_RE = /^step-\d{2,}$/;
 
 function makeProcessFlow(actions: ActionDefinition[] = []): ProcessFlow {
-  return {
+  return ({
     $schema: "../../schemas/v3/process-flow.v3.schema.json",
     meta: {
       // RFC #1284: top-level entity id は EntityId (kebab-case)
       id: "test-flow",
       uuid: "11111111-1111-4111-8111-111111111111",
       name: "テストフロー",
-      kind: "screen",
+      flowType: "screen",
       version: "1.0.0",
       maturity: "draft",
       mode: "upstream",
@@ -35,11 +35,11 @@ function makeProcessFlow(actions: ActionDefinition[] = []): ProcessFlow {
       updatedAt: "2026-05-17T00:00:00.000Z",
     },
     actions,
-  };
+  } as unknown) as ProcessFlow;
 }
 
 function makeAction(id: string, steps: unknown[] = []): ActionDefinition {
-  return { id, name: "act1", trigger: "click", steps } as ActionDefinition;
+  return { id, name: "act1", trigger: "click", steps } as unknown as ActionDefinition;
 }
 
 describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => {
@@ -62,7 +62,7 @@ describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => 
       });
 
       expect(g.actions[0].steps).toHaveLength(1);
-      const step = g.actions[0].steps[0];
+      const step = g.actions[0].steps[0] as unknown as Record<string, unknown>;
       expect(step.kind).toBe("log");
       expect(step.type).toBeUndefined(); // v3: 旧 type field は生成されない
       expect(step.description).toBe("テストログ");
@@ -144,7 +144,7 @@ describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => 
         detail: { level: "warn", message: "テスト" },
       });
 
-      const step = g.actions[0].steps[0];
+      const step = g.actions[0].steps[0] as unknown as Record<string, unknown>;
       expect(step.kind).toBe("log");
       expect(step.level).toBe("warn");
       expect(step.message).toBe("テスト");
@@ -176,7 +176,7 @@ describe("applyProcessFlowMutation (browser-first v3, #1149 / #1332 M1)", () => 
         patch: { description: "新", level: "error" },
       });
 
-      const step = g.actions[0].steps[0];
+      const step = g.actions[0].steps[0] as unknown as Record<string, unknown>;
       expect(step.description).toBe("新");
       expect(step.level).toBe("error");
       expect(step.kind).toBe("log"); // 既存 field は維持

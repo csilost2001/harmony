@@ -5,7 +5,7 @@ import type { Candidate, CompletionContext } from "./types";
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 
 const catalog: ConventionsCatalog = {
-  version: "1.0.0",
+  version: "1.0.0" as unknown as import("../../types/v3").SemVer,
   msg: { required: { template: "{label}は必須入力です" } },
   regex: {},
   limit: {},

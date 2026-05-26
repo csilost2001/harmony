@@ -134,14 +134,14 @@ function renderList() {
   );
 }
 
-function entry(over: Partial<SequenceEntry>): SequenceEntry {
-  return {
+function entry(over: Record<string, unknown>): SequenceEntry {
+  return ({
     id: "s1" as SequenceId,
     name: "シーケンス1" as DisplayName,
     physicalName: "seq_orders" as PhysicalName,
     updatedAt: "2026-05-17T00:00:00.000Z" as Timestamp,
     ...over,
-  };
+  } as unknown) as SequenceEntry;
 }
 
 describe("SequenceListView", () => {

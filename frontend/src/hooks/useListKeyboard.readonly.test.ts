@@ -45,7 +45,7 @@ function setupSorted(cbs: Callbacks = {}) {
     // (@deprecated onCut/onCopy ではなく clipboard.mode を検証することで、
     //  将来 onCut/onCopy が削除されても偽陽性にならないようにする)
     const clip = useListClipboard<Item>((t) => t.id);
-    useListKeyboard({ items, getId: (t) => t.id, selection: sel, sort, clipboard: clip, ...cbs });
+    useListKeyboard({ items, getId: (t: Item) => t.id, selection: sel, sort, clipboard: clip, ...cbs } as unknown as Parameters<typeof useListKeyboard<Item>>[0]);
     return { sel, sort, clip };
   });
 }

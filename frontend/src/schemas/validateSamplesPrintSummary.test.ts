@@ -51,14 +51,14 @@ describe("printSummary — error = 0, warning = 0", () => {
   it("error も warning もないとき 'All validations passed.' を出力する", () => {
     const summary = makeSummary({ totalFlows: 3, passedFlows: 3, failedFlows: 0 });
     printSummary(summary);
-    const output = consoleSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).toContain("All validations passed.");
   });
 
   it("error も warning もないとき 'All errors resolved' や 'failed' を出力しない", () => {
     const summary = makeSummary({ totalFlows: 3, passedFlows: 3, failedFlows: 0 });
     printSummary(summary);
-    const output = consoleSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).not.toContain("All errors resolved");
     expect(output).not.toContain("failed");
   });
@@ -92,7 +92,7 @@ describe("printSummary — error = 0, warning > 0", () => {
       ],
     });
     printSummary(summary);
-    const output = consoleSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).toContain("All errors resolved (2 warnings remain):");
   });
 
@@ -113,7 +113,7 @@ describe("printSummary — error = 0, warning > 0", () => {
       ],
     });
     printSummary(summary);
-    const output = consoleSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).toContain("[runtimeContractValidator] 1 warning");
     expect(output).toContain("[sqlOrderValidator] 1 warning");
   });
@@ -135,7 +135,7 @@ describe("printSummary — error = 0, warning > 0", () => {
       ],
     });
     printSummary(summary);
-    const output = consoleSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).not.toContain("All validations passed.");
   });
 
@@ -155,7 +155,7 @@ describe("printSummary — error = 0, warning > 0", () => {
       ],
     });
     printSummary(summary);
-    const output = consoleSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).toContain("All errors resolved (1 warning remains):");
   });
 });
@@ -193,7 +193,7 @@ describe("printSummary — error > 0, warning > 0", () => {
       ],
     });
     printSummary(summary);
-    const output = consoleSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).toContain("1 flow failed with 1 error and 1 warning:");
   });
 
@@ -219,7 +219,7 @@ describe("printSummary — error > 0, warning > 0", () => {
       ],
     });
     printSummary(summary);
-    const output = consoleSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).toContain("[sqlColumnValidator] 1 error");
     expect(output).toContain("[runtimeContractValidator] 1 warning");
   });
@@ -246,7 +246,7 @@ describe("printSummary — error > 0, warning > 0", () => {
       ],
     });
     printSummary(summary);
-    const output = consoleSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).not.toContain("All validations passed.");
   });
 });
@@ -283,7 +283,7 @@ describe("printSummary — error > 0, warning = 0", () => {
       ],
     });
     printSummary(summary);
-    const output = consoleSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).toContain("2 flows failed with 2 errors:");
     expect(output).not.toContain("warning");
   });

@@ -13,10 +13,11 @@ import type { CustomPuckComponentDef } from "../store/puckComponentsStore";
 
 // ── ヘルパー ───────────────────────────────────────────────────────────────────
 
-function makeScreen(overrides?: Partial<Screen>): Screen {
-  return {
+function makeScreen(overrides?: Record<string, unknown>): Screen {
+  return ({
     $schema: "../schemas/v3/screen.v3.schema.json",
     id: "screen-1" as Screen["id"],
+    uuid: "11111111-1111-4111-8111-111111111111",
     name: "テスト画面",
     createdAt: "2026-01-01T00:00:00.000Z" as Screen["createdAt"],
     updatedAt: "2026-01-01T00:00:00.000Z" as Screen["updatedAt"],
@@ -25,7 +26,7 @@ function makeScreen(overrides?: Partial<Screen>): Screen {
     items: [],
     design: { editorKind: "puck", puckDataRef: "screen-1.puck.json" },
     ...overrides,
-  };
+  } as unknown) as Screen;
 }
 
 function makeValidPuckData() {

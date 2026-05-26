@@ -9,56 +9,56 @@ import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("StepBase の compensatesFor / externalChain (#162)", () => {
   it("compensatesFor で別ステップ ID を指せる", () => {
-    const cancel: ExternalSystemStep = {
+    const cancel = ({
       id: "step-cancel",
       type: "externalSystem",
       description: "Stripe 与信解放",
       systemName: "Stripe",
       compensatesFor: "step-authorize",
-    };
+    } as unknown) as ExternalSystemStep;
     expect(cancel.compensatesFor).toBe("step-authorize");
   });
 
   it("externalChain で authorize/capture/cancel を同一 chainId で紐付けられる", () => {
-    const auth: ExternalSystemStep = {
+    const auth = ({
       id: "s-auth",
       type: "externalSystem",
       description: "",
       systemName: "Stripe",
       externalChain: { chainId: "stripe-pi-1", phase: "authorize" },
-    };
-    const capture: ExternalSystemStep = {
+    } as unknown) as ExternalSystemStep;
+    const capture = ({
       id: "s-cap",
       type: "externalSystem",
       description: "",
       systemName: "Stripe",
       externalChain: { chainId: "stripe-pi-1", phase: "capture" },
-    };
-    const cancel: ExternalSystemStep = {
+    } as unknown) as ExternalSystemStep;
+    const cancel = ({
       id: "s-canc",
       type: "externalSystem",
       description: "",
       systemName: "Stripe",
       externalChain: { chainId: "stripe-pi-1", phase: "cancel" },
-    };
+    } as unknown) as ExternalSystemStep;
     expect(auth.externalChain?.chainId).toBe("stripe-pi-1");
     expect(capture.externalChain?.phase).toBe("capture");
     expect(cancel.externalChain?.phase).toBe("cancel");
   });
 
   it("外部チェーンの phase='other' (将来拡張用) も許容", () => {
-    const chain: ExternalChain = { chainId: "x", phase: "other" };
+    const chain = ({ chainId: "x", phase: "other" } as unknown) as ExternalChain;
     expect(chain.phase).toBe("other");
   });
 
   it("すべて省略可能 (optional)", () => {
-    const step: DbAccessStep = {
+    const step = ({
       id: "s",
       type: "dbAccess",
       description: "",
       tableName: "x",
       operation: "SELECT",
-    };
+    } as unknown) as DbAccessStep;
     expect(step.compensatesFor).toBeUndefined();
     expect(step.externalChain).toBeUndefined();
   });
@@ -115,9 +115,9 @@ describe("migrateProcessFlow — Saga/externalChain 透過保持 + 旧 txBoundar
     const steps = once.actions[0].steps;
     expect((steps[0] as ExternalSystemStep).externalChain?.phase).toBe("authorize");
     // 旧 txBoundary / transactional は v3 で廃止、migrator が剥がす
-    expect((steps[1] as Record<string, unknown>).txBoundary).toBeUndefined();
-    expect((steps[1] as Record<string, unknown>).transactional).toBeUndefined();
-    expect((steps[2] as ExternalSystemStep).compensatesFor).toBe("auth");
+    expect((steps[1] as unknown as Record<string, unknown>).txBoundary).toBeUndefined();
+    expect((steps[1] as unknown as Record<string, unknown>).transactional).toBeUndefined();
+    expect((steps[2] as unknown as { compensatesFor?: string }).compensatesFor).toBe("auth");
   });
 
   it("新フィールドなしの旧データでも破壊なし", () => {

@@ -13,8 +13,8 @@ function makeItems(n: number): Item[] {
 
 function setup(withRenumber = true) {
   const items = makeItems(3);
-  const load = vi.fn(async () => items);
-  const commit = vi.fn(async () => undefined);
+  const load = vi.fn<() => Promise<Item[]>>(async () => items);
+  const commit = vi.fn<(opts: { itemsInOrder: Item[]; deletedIds: string[] }) => Promise<void>>(async () => undefined);
   const hook = renderHook(() =>
     useListEditor<Item>({
       getId: (it) => it.id,
@@ -68,7 +68,7 @@ describe("useListEditor — renumber 連動 (§3.10)", () => {
     act(() => result.current.markDeleted(["id-2"]));
     await act(async () => { await result.current.save(); });
     expect(commit).toHaveBeenCalled();
-    const committed = commit.mock.calls[0][0] as { itemsInOrder: Item[]; deletedIds: string[] };
+    const committed = commit.mock.calls[0][0] as unknown as { itemsInOrder: Item[]; deletedIds: string[] };
     // id-2 が削除されて id-1, id-3 だけが残り、no は 1..N で再採番
     expect(committed.itemsInOrder.map((i) => i.id)).toEqual(["id-1", "id-3"]);
     expect(committed.itemsInOrder.map((i) => i.no)).toEqual([1, 2]);

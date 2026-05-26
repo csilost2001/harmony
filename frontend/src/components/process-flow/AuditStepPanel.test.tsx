@@ -4,13 +4,13 @@ import { AuditStepPanel } from "./AuditStepPanel";
 // #1186 Phase 2-C: types/action → types/v3 移行 + 旧 `type:` field を schema 正規 `kind:` に
 import type { AuditStep } from "../../types/v3";
 
-const baseStep: AuditStep = {
+const baseStep = ({
   id: "test-step",
   kind: "audit",
   description: "",
   action: "order.create",
   maturity: "draft",
-};
+} as unknown) as AuditStep;
 
 describe("AuditStepPanel", () => {
   // Must-fix #1 (PR #410 review): resource.type / resource.id の片方だけ入力時は
@@ -37,7 +37,7 @@ describe("AuditStepPanel", () => {
 
   it("resource.type と resource.id 両方揃った時のみ resource が出力される", () => {
     const onChange = vi.fn();
-    const stepWithType: AuditStep = { ...baseStep, resource: { type: "Order", id: "" } };
+    const stepWithType = ({ ...baseStep, resource: { type: "Order", id: "" } } as unknown) as AuditStep;
     const { container } = render(
       <AuditStepPanel step={stepWithType} onChange={onChange} />,
     );
@@ -48,7 +48,7 @@ describe("AuditStepPanel", () => {
 
   it("両方入っている state から id を空にすると resource が undefined", () => {
     const onChange = vi.fn();
-    const stepFull: AuditStep = { ...baseStep, resource: { type: "Order", id: "@orderId" } };
+    const stepFull = ({ ...baseStep, resource: { type: "Order", id: "@orderId" } } as unknown) as AuditStep;
     const { container } = render(
       <AuditStepPanel step={stepFull} onChange={onChange} />,
     );

@@ -31,7 +31,7 @@ const tableName = (id: string) => tableNameMap[id];
 
 describe("detectLevel", () => {
   it("sourceTableId だけなら Level 1", () => {
-    expect(detectLevel(baseVd({ sourceTableId: TBL_A } as Partial<ViewDefinition>))).toBe(1);
+    expect(detectLevel(baseVd({ sourceTableId: TBL_A } as unknown as Partial<ViewDefinition>))).toBe(1);
   });
 
   it("sourceTableId も query も無くても Level 1 (デフォルト)", () => {
@@ -39,12 +39,12 @@ describe("detectLevel", () => {
   });
 
   it("query.from があれば Level 2", () => {
-    const vd = baseVd({ query: { from: { tableId: TBL_A as never, alias: "o" } } } as Partial<ViewDefinition>);
+    const vd = baseVd({ query: { from: { tableId: TBL_A as never, alias: "o" } } } as unknown as Partial<ViewDefinition>);
     expect(detectLevel(vd)).toBe(2);
   });
 
   it("query.sql があれば Level 3", () => {
-    const vd = baseVd({ query: { sql: "SELECT 1", parameterRefs: [] } } as Partial<ViewDefinition>);
+    const vd = baseVd({ query: { sql: "SELECT 1", parameterRefs: [] } } as unknown as Partial<ViewDefinition>);
     expect(detectLevel(vd)).toBe(3);
   });
 });
@@ -72,7 +72,7 @@ describe("suggestAlias", () => {
 
 describe("migrateToLevel", () => {
   it("Level 1 → Level 2: sourceTableId を query.from に変換、alias 自動推定", () => {
-    const vd = baseVd({ sourceTableId: TBL_A } as Partial<ViewDefinition>);
+    const vd = baseVd({ sourceTableId: TBL_A } as unknown as Partial<ViewDefinition>);
     const next = migrateToLevel(vd, 2, tableName);
     expect(detectLevel(next)).toBe(2);
     expect(next.sourceTableId).toBeUndefined();
@@ -81,7 +81,7 @@ describe("migrateToLevel", () => {
   });
 
   it("Level 1 → Level 3: query.sql 雛形を生成、sourceTableId 解除", () => {
-    const vd = baseVd({ sourceTableId: TBL_A } as Partial<ViewDefinition>);
+    const vd = baseVd({ sourceTableId: TBL_A } as unknown as Partial<ViewDefinition>);
     const next = migrateToLevel(vd, 3, tableName);
     expect(detectLevel(next)).toBe(3);
     expect(next.sourceTableId).toBeUndefined();
@@ -91,7 +91,7 @@ describe("migrateToLevel", () => {
   it("Level 2 → Level 1: query.from.tableId を sourceTableId に変換", () => {
     const vd = baseVd({
       query: { from: { tableId: TBL_A as never, alias: "o" }, joins: [] },
-    } as Partial<ViewDefinition>);
+    } as unknown as Partial<ViewDefinition>);
     const next = migrateToLevel(vd, 1, tableName);
     expect(detectLevel(next)).toBe(1);
     expect(next.query).toBeUndefined();
@@ -108,7 +108,7 @@ describe("migrateToLevel", () => {
           tableColumnRef: { tableId: TBL_B, columnId: "col-1" },
         },
       ],
-    } as Partial<ViewDefinition>);
+    } as unknown as Partial<ViewDefinition>);
     const next = migrateToLevel(vd, 1, tableName);
     expect(detectLevel(next)).toBe(1);
     expect(next.sourceTableId).toBe(TBL_B);
@@ -116,7 +116,7 @@ describe("migrateToLevel", () => {
   });
 
   it("同じ Level への migrate は同オブジェクトを返す (no-op)", () => {
-    const vd = baseVd({ sourceTableId: TBL_A } as Partial<ViewDefinition>);
+    const vd = baseVd({ sourceTableId: TBL_A } as unknown as Partial<ViewDefinition>);
     expect(migrateToLevel(vd, 1, tableName)).toBe(vd);
   });
 
@@ -129,7 +129,7 @@ describe("migrateToLevel", () => {
       columns: cols,
       sortDefaults: [{ columnName: "x" as never, order: "asc" }],
       filterDefaults: [{ columnName: "x" as never, operator: "eq", value: "v" }],
-    } as Partial<ViewDefinition>);
+    } as unknown as Partial<ViewDefinition>);
     const next = migrateToLevel(vd, 2, tableName);
     expect(next.columns).toEqual(cols);
     expect(next.sortDefaults).toEqual(vd.sortDefaults);

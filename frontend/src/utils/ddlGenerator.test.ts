@@ -2,9 +2,10 @@ import { describe, it, expect } from "vitest";
 import { generateDdl, quoteIdentifier, escapeSqlString, sanitizeDefaultValue } from "./ddlGenerator";
 import type { Table, TableId, LocalId, PhysicalName, DisplayName, Timestamp } from "../types/v3";
 
-function baseTable(overrides: Partial<Table> = {}): Table {
-  return {
+function baseTable(overrides: Record<string, unknown> = {}): Table {
+  return ({
     id: "t1" as TableId,
+    uuid: "11111111-1111-4111-8111-111111111111",
     name: "受注" as DisplayName,
     physicalName: "orders" as PhysicalName,
     description: "",
@@ -34,13 +35,14 @@ function baseTable(overrides: Partial<Table> = {}): Table {
     ],
     indexes: [],
     ...overrides,
-  };
+  } as unknown) as Table;
 }
 
 // 参照先 suppliers テーブル (FK テスト用)
 function suppliersTable(): Table {
-  return {
+  return ({
     id: "t-suppliers" as TableId,
+    uuid: "22222222-2222-4222-8222-222222222222",
     name: "仕入先" as DisplayName,
     physicalName: "suppliers" as PhysicalName,
     description: "",
@@ -52,7 +54,7 @@ function suppliersTable(): Table {
         dataType: "INTEGER", notNull: true, primaryKey: true, unique: false,
       },
     ],
-  };
+  } as unknown) as Table;
 }
 
 describe("generateDdl — constraints (v3)", () => {

@@ -25,7 +25,7 @@ vi.mock("../store/flowStore", () => {
 
 import { mcpBridge } from "../mcp/mcpBridge";
 
-const mockBridge = mcpBridge as {
+const mockBridge = mcpBridge as unknown as {
   request: ReturnType<typeof vi.fn>;
 };
 

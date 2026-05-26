@@ -47,6 +47,7 @@ beforeEach(() => {
 
 import { DesignSubToolbar } from "./DesignSubToolbar";
 
+// #1355: 新規 required props onAttachAsView / onTakeOver を追加 (Props interface 更新による)
 const baseProps = {
   panelMode: "hidden" as const,
   onOpenPanel: vi.fn(),
@@ -54,6 +55,8 @@ const baseProps = {
   onThemeChange: vi.fn(),
   mcpStatus: "disconnected" as const,
   isReadonly: false,
+  onAttachAsView: vi.fn(),
+  onTakeOver: vi.fn() as unknown as () => Promise<void>,
 };
 
 describe("DesignSubToolbar — editor prop 化 refactor (#824)", () => {

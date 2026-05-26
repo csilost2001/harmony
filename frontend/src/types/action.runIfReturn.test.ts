@@ -5,27 +5,27 @@ import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("StepBase.runIf (#178)", () => {
   it("ステップに runIf を付与できる", () => {
-    const step: Step = {
+    const step = ({
       id: "s",
       type: "externalSystem",
       description: "決済 authorize",
       systemName: "Stripe",
       runIf: "@paymentMethod == 'credit_card'",
-    };
+    } as unknown) as Step;
     expect(step.runIf).toBe("@paymentMethod == 'credit_card'");
   });
 
   it("runIf は任意 (省略可能)", () => {
-    const step: Step = {
+    const step = ({
       id: "s",
       type: "other",
       description: "",
-    };
+    } as unknown) as Step;
     expect(step.runIf).toBeUndefined();
   });
 
   it("全ステップタイプで runIf を付与できる", () => {
-    const types: Array<Step["type"]> = [
+    const types = [
       "validation", "dbAccess", "externalSystem", "commonProcess",
       "screenTransition", "displayUpdate", "branch", "loop",
       "loopBreak", "loopContinue", "jump", "compute", "return", "other",
@@ -40,42 +40,42 @@ describe("StepBase.runIf (#178)", () => {
 
 describe("HttpResponseSpec.id (#178)", () => {
   it("id を付与して ReturnStep から参照可能にできる", () => {
-    const spec: HttpResponseSpec = {
+    const spec = ({
       id: "409-stock-shortage",
       status: 409,
       bodySchema: "ApiError",
       description: "在庫不足",
-    };
+    } as unknown) as HttpResponseSpec;
     expect(spec.id).toBe("409-stock-shortage");
   });
 
   it("id は任意 (既存データ互換)", () => {
-    const spec: HttpResponseSpec = { status: 201 };
+    const spec = ({ status: 201 } as unknown) as HttpResponseSpec;
     expect(spec.id).toBeUndefined();
   });
 });
 
 describe("ReturnStep (#178)", () => {
   it("responseRef + bodyExpression で返却を構造化できる", () => {
-    const step: ReturnStep = {
+    const step = ({
       id: "s-ret",
       kind: "return",
       description: "在庫不足レスポンス",
       responseRef: "409-stock-shortage",
       bodyExpression: "{ code: 'STOCK_SHORTAGE', detail: @shortageList }",
-    };
+    } as unknown) as ReturnStep;
     expect(step.kind).toBe("return");
-    expect(step.responseRef).toBe("409-stock-shortage");
+    expect((step as unknown as { responseRef?: string }).responseRef).toBe("409-stock-shortage");
     expect(step.bodyExpression).toContain("@shortageList");
   });
 
   it("responseRef / bodyExpression は任意", () => {
-    const step: ReturnStep = {
+    const step = ({
       id: "s",
       type: "return",
       description: "",
-    };
-    expect(step.responseRef).toBeUndefined();
+    } as unknown) as ReturnStep;
+    expect((step as unknown as { responseRef?: string }).responseRef).toBeUndefined();
     expect(step.bodyExpression).toBeUndefined();
   });
 
@@ -152,7 +152,7 @@ describe("migrateProcessFlow — runIf / ReturnStep / responses[].id 透過保�
 
     const step = once.actions[0].steps[0] as ReturnStep;
     expect(step.kind).toBe("return");
-    expect(step.responseRef).toBe("409-stock-shortage");
+    expect((step as unknown as { responseRef?: string }).responseRef).toBe("409-stock-shortage");
     expect(step.maturity).toBe("draft");
 
     expect(once.actions[0].responses?.[0].id).toBe("409-stock-shortage");

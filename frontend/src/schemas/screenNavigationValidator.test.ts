@@ -12,19 +12,24 @@ import type { ScreenTransitionEntry } from "../types/v3/harmony";
 
 // ─── テストヘルパー ────────────────────────────────────────────────────────
 
-function makeScreen(overrides: Partial<Screen> & { id: string }): Screen {
-  return {
-    id: overrides.id,
-    name: overrides.name ?? `screen-${overrides.id}`,
-    kind: overrides.kind ?? "list",
-    path: overrides.path ?? `/screens/${overrides.id}`,
-    auth: overrides.auth ?? "required",
+// #1355: fixture builder の overrides を loose 型に変更
+function makeScreen(overrides: Record<string, unknown> & { id: string }): Screen {
+  // 注意: ...overrides を最後に置くと id 重複警告が出るため、id を含む default を先に展開
+  const defaults = {
+    uuid: "11111111-1111-4111-8111-111111111111",
+    name: `screen-${overrides.id}`,
+    kind: "list",
+    path: `/screens/${overrides.id}`,
+    auth: "required",
     createdAt: "2026-04-30T00:00:00.000Z",
     updatedAt: "2026-04-30T00:00:00.000Z",
     maturity: "committed",
-    items: overrides.items ?? [],
+    items: [],
+  };
+  return ({
+    ...defaults,
     ...overrides,
-  } as unknown as Screen;
+  } as unknown) as Screen;
 }
 
 function makeFlowWithStep(
@@ -33,15 +38,16 @@ function makeFlowWithStep(
   targetScreenId: string,
   stepId = "step-nav-01",
 ): ProcessFlow {
-  return {
+  return ({
     meta: {
       id: flowId,
+      uuid: "11111111-1111-4111-8111-111111111111",
       name: `flow-${flowId}`,
-      kind: "screen",
+      flowType: "screen",
       screenId: sourceScreenId ?? undefined,
       createdAt: "2026-04-30T00:00:00.000Z",
       updatedAt: "2026-04-30T00:00:00.000Z",
-    } as ProcessFlow["meta"],
+    },
     actions: [
       {
         id: "act-1",
@@ -57,16 +63,16 @@ function makeFlowWithStep(
         ],
       },
     ],
-  } as ProcessFlow;
+  } as unknown) as ProcessFlow;
 }
 
 function makeEdge(id: string, src: string, tgt: string): ScreenTransitionEntry {
-  return {
+  return ({
     id,
     sourceScreenId: src as ScreenTransitionEntry["sourceScreenId"],
     targetScreenId: tgt as ScreenTransitionEntry["targetScreenId"],
     trigger: "click",
-  };
+  } as unknown) as ScreenTransitionEntry;
 }
 
 // ─── 観点 1: UNKNOWN_TARGET_SCREEN ────────────────────────────────────────
@@ -178,8 +184,8 @@ describe("DUPLICATE_SCREEN_PATH", () => {
     const screenA = makeScreen({ id: "screen-A" });
     const screenB = makeScreen({ id: "screen-B" });
     // path を undefined に
-    (screenA as Record<string, unknown>).path = undefined;
-    (screenB as Record<string, unknown>).path = undefined;
+    (screenA as unknown as Record<string, unknown>).path = undefined;
+    (screenB as unknown as Record<string, unknown>).path = undefined;
     const issues = checkScreenNavigation([], [screenA, screenB], []);
     const found = issues.filter((i) => i.code === "DUPLICATE_SCREEN_PATH");
     expect(found).toHaveLength(0);
@@ -356,7 +362,7 @@ describe("正常系 (issue なし)", () => {
         kind: "common",
         createdAt: "2026-04-30T00:00:00.000Z",
         updatedAt: "2026-04-30T00:00:00.000Z",
-      } as ProcessFlow["meta"],
+      } as unknown as ProcessFlow["meta"],
       actions: [
         {
           id: "act-1",
@@ -372,7 +378,7 @@ describe("正常系 (issue なし)", () => {
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
     const screens = [makeScreen({ id: "screen-B", path: "/b" })];
     const issues = checkScreenNavigation([flow], screens, []);
     // source 不明なので MISSING_FLOW_EDGE / AUTH_TRANSITION_VIOLATION はスキップ (観点 1, 4 のみ評価)
@@ -394,7 +400,7 @@ describe("複数フロー・複数 step の edge case", () => {
         screenId: "screen-A",
         createdAt: "2026-04-30T00:00:00.000Z",
         updatedAt: "2026-04-30T00:00:00.000Z",
-      } as ProcessFlow["meta"],
+      } as unknown as ProcessFlow["meta"],
       actions: [
         {
           id: "act-1",
@@ -426,7 +432,7 @@ describe("複数フロー・複数 step の edge case", () => {
           ],
         },
       ],
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
 
     const screens = [makeScreen({ id: "screen-A", path: "/a" })];
     const issues = checkScreenNavigation([flow], screens, []);

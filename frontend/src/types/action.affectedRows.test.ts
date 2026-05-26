@@ -4,14 +4,14 @@ import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("DbAccessStep の affectedRowsCheck (#164)", () => {
   it("在庫引当の条件付き UPDATE + throw パターンを表現できる", () => {
-    const check: AffectedRowsCheck = {
+    const check = ({
       operator: ">",
       expected: 0,
       onViolation: "throw",
       errorCode: "STOCK_SHORTAGE",
       description: "在庫不足 (並行引当)",
-    };
-    const step: DbAccessStep = {
+    } as unknown) as AffectedRowsCheck;
+    const step = ({
       id: "s",
       type: "dbAccess",
       description: "在庫引当",
@@ -19,7 +19,7 @@ describe("DbAccessStep の affectedRowsCheck (#164)", () => {
       operation: "UPDATE",
       fields: "SET stock = stock - @qty WHERE item_id = @id AND stock >= @qty",
       affectedRowsCheck: check,
-    };
+    } as unknown) as DbAccessStep;
     expect(step.affectedRowsCheck?.operator).toBe(">");
     expect(step.affectedRowsCheck?.expected).toBe(0);
     expect(step.affectedRowsCheck?.onViolation).toBe("throw");
@@ -33,11 +33,11 @@ describe("DbAccessStep の affectedRowsCheck (#164)", () => {
       onViolation: v,
     }));
     patterns.forEach((p) => {
-      const step: DbAccessStep = {
+      const step = ({
         id: "s", type: "dbAccess", description: "",
         tableName: "x", operation: "DELETE",
         affectedRowsCheck: p,
-      };
+      } as unknown) as DbAccessStep;
       expect(step.affectedRowsCheck?.onViolation).toBe(p.onViolation);
     });
   });
@@ -45,20 +45,20 @@ describe("DbAccessStep の affectedRowsCheck (#164)", () => {
   it("operator の 5 値 (>, >=, =, <, <=) を許容", () => {
     const ops: AffectedRowsCheck["operator"][] = [">", ">=", "=", "<", "<="];
     ops.forEach((op) => {
-      const step: DbAccessStep = {
+      const step = ({
         id: "s", type: "dbAccess", description: "",
         tableName: "x", operation: "UPDATE",
         affectedRowsCheck: { operator: op, expected: 1, onViolation: "throw" },
-      };
+      } as unknown) as DbAccessStep;
       expect(step.affectedRowsCheck?.operator).toBe(op);
     });
   });
 
   it("省略可能 (既存データ互換)", () => {
-    const step: DbAccessStep = {
+    const step = ({
       id: "s", type: "dbAccess", description: "",
       tableName: "x", operation: "SELECT",
-    };
+    } as unknown) as DbAccessStep;
     expect(step.affectedRowsCheck).toBeUndefined();
   });
 });

@@ -11,11 +11,11 @@ describe("ValidationStep の rules[] (#166)", () => {
       { field: "phone", type: "required" },
       { field: "phone", type: "regex", pattern: "@conv.regex.phone-jp" },
     ];
-    const step: ValidationStep = {
+    const step = ({
       id: "s", type: "validation", description: "",
       conditions: "emailとphoneの検証",
       rules,
-    };
+    } as unknown) as ValidationStep;
     expect(step.rules).toHaveLength(5);
     expect(step.rules![0]).toEqual({ field: "email", type: "required", message: "@conv.msg.required" });
     expect(step.rules![1].pattern).toBe("@conv.regex.email-simple");
@@ -35,30 +35,30 @@ describe("ValidationStep の rules[] (#166)", () => {
   });
 
   it("conditions と rules[] は併用可能 (後方互換)", () => {
-    const step: ValidationStep = {
+    const step = ({
       id: "s", type: "validation", description: "",
       conditions: "人間可読の自由記述",
       rules: [{ field: "x", type: "required" }],
-    };
+    } as unknown) as ValidationStep;
     expect(step.conditions).toBe("人間可読の自由記述");
     expect(step.rules).toHaveLength(1);
   });
 
   it("rules[] 省略時は conditions のみ (旧データ互換)", () => {
-    const step: ValidationStep = {
+    const step = ({
       id: "s", type: "validation", description: "",
       conditions: "既存の自由記述のみ",
-    };
+    } as unknown) as ValidationStep;
     expect(step.rules).toBeUndefined();
   });
 
   it("inlineBranch と併用できる", () => {
-    const step: ValidationStep = {
+    const step = ({
       id: "s", type: "validation", description: "",
       conditions: "",
       rules: [{ field: "a", type: "required" }],
       inlineBranch: { ok: "続行", ng: "エラー表示" },
-    };
+    } as unknown) as ValidationStep;
     expect(step.inlineBranch?.ok).toBe("続行");
     expect(step.rules).toHaveLength(1);
   });

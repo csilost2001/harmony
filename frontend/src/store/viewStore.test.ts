@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { FlowProject } from "../types/flow";
-import type { Timestamp, ViewEntry, ViewId } from "../types/v3";
+import type { PhysicalName, Timestamp, ViewEntry, ViewId } from "../types/v3";
 import type { FlowStorageBackend } from "./flowStore";
 import { setFlowDraftMode, setFlowStorageBackend } from "./flowStore";
 import type { ViewStorageBackend } from "./viewStore";
@@ -13,7 +13,7 @@ function viewEntry(id: string, no: number): ViewEntry {
     id: id as ViewId,
     no,
     name: `view ${id}`,
-    physicalName: `view_${id}`,
+    physicalName: `view_${id}` as unknown as PhysicalName,
     updatedAt: TS,
   };
 }

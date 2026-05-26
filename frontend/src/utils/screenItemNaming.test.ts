@@ -170,7 +170,7 @@ describe("getFieldTypePrefix", () => {
   });
 
   it("custom object → field", () => {
-    expect(getFieldTypePrefix({ kind: "custom", label: "カスタム型" })).toBe("field");
+    expect(getFieldTypePrefix({ kind: "custom", label: "カスタム型" } as unknown as Parameters<typeof getFieldTypePrefix>[0])).toBe("field");
   });
 
   it("array object → field", () => {

@@ -4,14 +4,14 @@ import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("ActionDefinition の httpRoute / responses (#160)", () => {
   it("httpRoute を保持できる", () => {
-    const route: HttpRoute = { method: "POST", path: "/api/customers", auth: "none" };
-    const action: ActionDefinition = {
+    const route = ({ method: "POST", path: "/api/customers", auth: "none" } as unknown) as HttpRoute;
+    const action = ({
       id: "a1",
       name: "登録",
       trigger: "submit",
       httpRoute: route,
       steps: [],
-    };
+    } as unknown) as ActionDefinition;
     expect(action.httpRoute?.method).toBe("POST");
     expect(action.httpRoute?.path).toBe("/api/customers");
     expect(action.httpRoute?.auth).toBe("none");
@@ -19,17 +19,17 @@ describe("ActionDefinition の httpRoute / responses (#160)", () => {
 
   it("responses[] を保持できる (成功 + エラー複数)", () => {
     const responses: HttpResponseSpec[] = [
-      { status: 201, contentType: "application/json", bodySchema: "CustomerRegisterResponse", description: "登録成功" },
-      { status: 400, bodySchema: "ApiError", description: "バリデーションエラー", when: "fieldErrors 有" },
-      { status: 409, bodySchema: "ApiError", description: "メール重複", when: "@duplicateCustomer != null" },
+      { id: "resp-1" as unknown as import("../types/v3").LocalId, status: 201, contentType: "application/json", bodySchema: "CustomerRegisterResponse" as unknown as import("../types/v3").BodySchema, description: "登録成功" },
+      { id: "resp-2" as unknown as import("../types/v3").LocalId, status: 400, bodySchema: "ApiError" as unknown as import("../types/v3").BodySchema, description: "バリデーションエラー", when: "fieldErrors 有" },
+      { id: "resp-3" as unknown as import("../types/v3").LocalId, status: 409, bodySchema: "ApiError" as unknown as import("../types/v3").BodySchema, description: "メール重複", when: "@duplicateCustomer != null" },
     ];
-    const action: ActionDefinition = {
+    const action = ({
       id: "a2",
       name: "登録",
       trigger: "submit",
       responses,
       steps: [],
-    };
+    } as unknown) as ActionDefinition;
     expect(action.responses).toHaveLength(3);
     expect(action.responses![0].status).toBe(201);
     expect(action.responses![1].status).toBe(400);
@@ -37,18 +37,18 @@ describe("ActionDefinition の httpRoute / responses (#160)", () => {
   });
 
   it("httpRoute / responses は省略可能", () => {
-    const action: ActionDefinition = {
+    const action = ({
       id: "a3",
       name: "x",
       trigger: "click",
       steps: [],
-    };
+    } as unknown) as ActionDefinition;
     expect(action.httpRoute).toBeUndefined();
     expect(action.responses).toBeUndefined();
   });
 
   it("auth 省略時も型上は許容 (既定 'required' を値として書かなくて良い)", () => {
-    const route: HttpRoute = { method: "GET", path: "/api/orders" };
+    const route = ({ method: "GET", path: "/api/orders" } as unknown) as HttpRoute;
     expect(route.auth).toBeUndefined();
   });
 });
@@ -67,8 +67,8 @@ describe("migrateProcessFlow — httpRoute / responses 透過保持 (#160)", () 
           trigger: "submit",
           httpRoute: { method: "POST", path: "/api/x", auth: "required" },
           responses: [
-            { status: 201, bodySchema: "R" },
-            { status: 400, description: "VALIDATION" },
+            { id: "resp-4" as unknown as import("../types/v3").LocalId, status: 201, bodySchema: "R" as unknown as import("../types/v3").BodySchema },
+            { id: "resp-5" as unknown as import("../types/v3").LocalId, status: 400, description: "VALIDATION" },
           ],
           steps: [],
         },

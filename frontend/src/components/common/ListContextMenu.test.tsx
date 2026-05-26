@@ -17,15 +17,15 @@ function sampleItems(onCopy: () => void, onDelete: () => void, disabledPaste = t
 }
 
 describe("ListContextMenu", () => {
-  let onClose: ReturnType<typeof vi.fn>;
+  let onClose: ReturnType<typeof vi.fn<() => void>>;
 
   beforeEach(() => {
-    onClose = vi.fn();
+    onClose = vi.fn<() => void>();
   });
 
   it("全項目が描画され、separator は分離線として出る", () => {
-    const onCopy = vi.fn();
-    const onDelete = vi.fn();
+    const onCopy = vi.fn<() => void>();
+    const onDelete = vi.fn<() => void>();
     render(<ListContextMenu x={50} y={50} items={sampleItems(onCopy, onDelete)} onClose={onClose} />);
     expect(screen.getByText("新規作成")).toBeTruthy();
     expect(screen.getByText("コピー")).toBeTruthy();
@@ -36,8 +36,8 @@ describe("ListContextMenu", () => {
   });
 
   it("有効項目クリックで onClick 実行 + onClose", () => {
-    const onCopy = vi.fn();
-    const onDelete = vi.fn();
+    const onCopy = vi.fn<() => void>();
+    const onDelete = vi.fn<() => void>();
     render(<ListContextMenu x={50} y={50} items={sampleItems(onCopy, onDelete)} onClose={onClose} />);
     act(() => screen.getByText("コピー").click());
     expect(onCopy).toHaveBeenCalled();
@@ -45,7 +45,7 @@ describe("ListContextMenu", () => {
   });
 
   it("disabled 項目はクリックしても onClick / onClose が呼ばれない", () => {
-    const onPaste = vi.fn();
+    const onPaste = vi.fn<() => void>();
     const items: ContextMenuItem[] = [
       { key: "paste", label: "貼り付け", disabled: true, disabledReason: "空", onClick: onPaste },
     ];
@@ -62,7 +62,7 @@ describe("ListContextMenu", () => {
 
   it("disabled 項目には disabledReason が title として付く", () => {
     const items: ContextMenuItem[] = [
-      { key: "paste", label: "貼り付け", disabled: true, disabledReason: "クリップボードが空", onClick: vi.fn() },
+      { key: "paste", label: "貼り付け", disabled: true, disabledReason: "クリップボードが空", onClick: vi.fn<() => void>() },
     ];
     render(<ListContextMenu x={50} y={50} items={items} onClose={onClose} />);
     const btn = screen.getByText("貼り付け").closest("button") as HTMLButtonElement;
@@ -70,14 +70,14 @@ describe("ListContextMenu", () => {
   });
 
   it("danger 項目には danger クラスが付く", () => {
-    const onDelete = vi.fn();
+    const onDelete = vi.fn<() => void>();
     render(<ListContextMenu x={50} y={50} items={sampleItems(() => {}, onDelete)} onClose={onClose} />);
     const btn = screen.getByText("削除").closest("button") as HTMLButtonElement;
     expect(btn.className).toContain("danger");
   });
 
   it("Esc キーで onClose が呼ばれる", () => {
-    const onDelete = vi.fn();
+    const onDelete = vi.fn<() => void>();
     render(<ListContextMenu x={50} y={50} items={sampleItems(() => {}, onDelete)} onClose={onClose} />);
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
@@ -86,7 +86,7 @@ describe("ListContextMenu", () => {
   });
 
   it("外クリックで onClose が呼ばれる", () => {
-    const onDelete = vi.fn();
+    const onDelete = vi.fn<() => void>();
     const outside = document.createElement("div");
     document.body.appendChild(outside);
     render(<ListContextMenu x={50} y={50} items={sampleItems(() => {}, onDelete)} onClose={onClose} />);
@@ -99,8 +99,8 @@ describe("ListContextMenu", () => {
   });
 
   it("Enter キーでフォーカス中項目の onClick が呼ばれる", () => {
-    const onCopy = vi.fn();
-    const onDelete = vi.fn();
+    const onCopy = vi.fn<() => void>();
+    const onDelete = vi.fn<() => void>();
     render(<ListContextMenu x={50} y={50} items={sampleItems(onCopy, onDelete)} onClose={onClose} />);
     // 初期フォーカスは最初の非 disabled 項目 (= 新規作成)
     // ArrowDown 1 回で コピー へ (新規作成 → separator スキップ → コピー)
@@ -117,8 +117,8 @@ describe("ListContextMenu", () => {
   it("ArrowDown は disabled 項目と separator をスキップする", () => {
     // 有効 → 無効(paste) → separator → danger(delete)
     // Enter で delete が実行される (ArrowDown 2 回で paste をスキップ → delete)
-    const onCopy = vi.fn();
-    const onDelete = vi.fn();
+    const onCopy = vi.fn<() => void>();
+    const onDelete = vi.fn<() => void>();
     render(<ListContextMenu x={50} y={50} items={sampleItems(onCopy, onDelete)} onClose={onClose} />);
     // 初期: 新規作成にフォーカス
     act(() => fireEvent.keyDown(window, { key: "ArrowDown" })); // → コピー
@@ -129,7 +129,7 @@ describe("ListContextMenu", () => {
   });
 
   it("shortcut 表示が出る (Ctrl+C / Delete 等)", () => {
-    const onDelete = vi.fn();
+    const onDelete = vi.fn<() => void>();
     render(<ListContextMenu x={50} y={50} items={sampleItems(() => {}, onDelete)} onClose={onClose} />);
     expect(screen.getByText("Ctrl+C")).toBeTruthy();
     expect(screen.getByText("Delete")).toBeTruthy();

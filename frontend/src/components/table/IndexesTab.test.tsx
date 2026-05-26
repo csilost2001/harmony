@@ -32,13 +32,13 @@ function makeTable(over: Partial<Table> = {}): Table {
   };
 }
 
-function makeIndex(over: Partial<Index> = {}): Index {
-  return {
+function makeIndex(over: Record<string, unknown> = {}): Index {
+  return ({
     id: "idx-1",
     physicalName: "idx_users_email" as PhysicalName,
     columns: [{ columnId: "c1" as LocalId, order: "asc" }],
     ...over,
-  };
+  } as unknown) as Index;
 }
 
 describe("IndexesTab", () => {

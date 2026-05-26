@@ -13,7 +13,7 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
-import type { ProcessFlow } from "../src/types/action.js";
+import type { ProcessFlow } from "../src/types/v3/index.js";
 import { checkSqlColumns, type TableDefinition } from "../src/schemas/sqlColumnValidator.js";
 import { checkSqlOrder, type OrderTableDefinition } from "../src/schemas/sqlOrderValidator.js";
 import { checkConventionReferences, type ConventionsCatalog } from "../src/schemas/conventionsValidator.js";
@@ -32,7 +32,7 @@ import { buildProjectCatalogIndex, type ProjectCatalogIndex } from "../src/schem
 import type { Screen } from "../src/types/v3/screen.js";
 import type { Conventions } from "../src/types/v3/conventions.js";
 import type { ViewDefinition } from "../src/types/v3/view-definition.js";
-import type { ScreenTransitionEntry } from "../src/types/v3/project.js";
+import type { ScreenTransitionEntry } from "../src/types/v3/harmony.js";
 
 /** PageLayout entity の最小型 (cross-entity validator 用) */
 interface PageLayoutForValidator {
@@ -644,7 +644,7 @@ export function checkPageLayoutAssignments(project: ProjectResources): Validatio
       }
 
       // purpose フィールドは Screen 型に未追加のため raw アクセス
-      const purpose = (screen as Record<string, unknown>).purpose;
+      const purpose = (screen as unknown as Record<string, unknown>).purpose;
       if (purpose !== "gadget") {
         issues.push({
           validator: "pageLayoutValidator",
@@ -680,8 +680,8 @@ export function checkPageLayoutIds(project: ProjectResources): ValidationIssue[]
 
   for (const screen of project.screens) {
     const id = screen.id ?? "unknown";
-    const purpose = (screen as Record<string, unknown>).purpose;
-    const pageLayoutId = (screen as Record<string, unknown>).pageLayoutId;
+    const purpose = (screen as unknown as Record<string, unknown>).purpose;
+    const pageLayoutId = (screen as unknown as Record<string, unknown>).pageLayoutId;
 
     // purpose='gadget' の Screen は pageLayoutId を持たないはず → skip
     if (purpose === "gadget") continue;

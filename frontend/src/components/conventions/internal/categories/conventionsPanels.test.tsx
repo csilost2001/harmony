@@ -164,7 +164,7 @@ describe("RolePanel", () => {
             path: "role.customer.permissions[0]",
             message: "unknown permission key: unknown.x",
             severity: "error",
-          },
+          } as unknown as never,
         ]}
         {...noopCallbacks()}
       />,

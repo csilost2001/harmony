@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { FlowProject } from "../types/flow";
-import type { SequenceEntry, SequenceId, Timestamp } from "../types/v3";
+import type { PhysicalName, SequenceEntry, SequenceId, Timestamp } from "../types/v3";
 import type { FlowStorageBackend } from "./flowStore";
 import { setFlowDraftMode, setFlowStorageBackend } from "./flowStore";
 import type { SequenceStorageBackend } from "./sequenceStore";
@@ -13,7 +13,7 @@ function sequenceEntry(id: string, no: number): SequenceEntry {
     id: id as SequenceId,
     no,
     name: `sequence ${id}`,
-    physicalName: `sequence_${id}`,
+    physicalName: `sequence_${id}` as unknown as PhysicalName,
     updatedAt: TS,
   };
 }

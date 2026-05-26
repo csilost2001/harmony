@@ -24,13 +24,14 @@ import type {
   ScreenFlowPositions,
   TableId,
   Timestamp,
+  Uuid,
   ViewDefinitionEntry,
   ViewDefinitionId,
 } from "../types/v3";
 
 const TS = "2026-05-05T00:00:00.000Z" as Timestamp;
 const PROJ_ID = "english-learning-app" as ProjectId;
-const PROJ_UUID = "5352b9ca-92d1-43c1-aed7-02a1fdbea85a";
+const PROJ_UUID = "5352b9ca-92d1-43c1-aed7-02a1fdbea85a" as unknown as Uuid;
 const SCREEN_ID = "dashboard" as ScreenId;
 
 /** techStack / extensionsApplied / description / 画面の追加フィールド html を持つリッチな Harmony */
@@ -49,7 +50,7 @@ function mkRichProject(): Harmony {
       mode: "upstream",
       maturity: "draft",
     },
-    extensionsApplied: [{ namespace: "english-learning", version: ">=1.0.0" }],
+    extensionsApplied: [{ namespace: "english-learning", version: ">=1.0.0" }] as unknown as Harmony["extensionsApplied"],
     techStack: {
       designer: { editorKind: "puck", cssFramework: "tailwind" },
       backend: { language: "typescript", framework: "nestjs" },
@@ -162,7 +163,7 @@ describe("decomposeFlowProject round-trip preservation (#835)", () => {
 
   it("existingRaw に entities.viewDefinitions があれば保持される", () => {
     const existing = mkRichProject();
-    const vdEntry: ViewDefinitionEntry = {
+    const vdEntry = ({
       id: "order-list" as ViewDefinitionId,
       no: 1,
       name: "受注一覧定義",
@@ -170,14 +171,14 @@ describe("decomposeFlowProject round-trip preservation (#835)", () => {
       sourceTableId: "orders" as TableId,
       columnCount: 3,
       updatedAt: TS,
-    };
-    const existingWithVd: Harmony = {
+    } as unknown) as ViewDefinitionEntry;
+    const existingWithVd = ({
       ...existing,
       entities: {
         ...existing.entities,
         viewDefinitions: [vdEntry],
       },
-    };
+    } as unknown) as Harmony;
     const flow = composeFlowProject(existingWithVd, mkLayout());
     const { project: decomposed } = decomposeFlowProject(flow, mkLayout(), existingWithVd);
 
@@ -201,7 +202,7 @@ describe("saveProject round-trip preservation (backend mock)", () => {
       saveScreenFlowPositions: vi.fn().mockResolvedValue(undefined),
     });
 
-    const backend: FlowStorageBackend = {
+    const backend = ({
       loadProject: vi.fn().mockImplementation(() => Promise.resolve(backendProject)),
       saveProject: vi.fn().mockImplementation((p: unknown) => {
         savedProject = p as Harmony;
@@ -209,7 +210,7 @@ describe("saveProject round-trip preservation (backend mock)", () => {
         return Promise.resolve();
       }),
       deleteScreenData: vi.fn().mockResolvedValue(undefined),
-    };
+    } as unknown) as FlowStorageBackend;
     setFlowStorageBackend(backend);
   });
 
@@ -240,14 +241,14 @@ describe("saveProject round-trip preservation (backend mock)", () => {
 
 describe("legacyToProject UUID 発番 (#835 Should-fix 1 → RFC #1284 で uuid に移行)", () => {
   it("meta.id は kebab-case EntityId、meta.uuid は新規 UUID v4 で発番される (RFC #1284)", () => {
-    const legacy: LegacyFlowProject = {
+    const legacy = ({
       version: 1,
       name: "レガシープロジェクト",
       screens: [],
       groups: [],
       edges: [],
       updatedAt: "2026-01-01T00:00:00.000Z" as import("../types/v3").Timestamp,
-    };
+    } as unknown) as LegacyFlowProject;
     const project = legacyToProject(legacy);
 
     // RFC #1284: id は kebab-case EntityId
@@ -283,7 +284,7 @@ describe("decomposeFlowProject screen id mismatch (negative paths) (#836)", () =
             hasDesign: false,
             updatedAt: TS,
             maturity: "committed",
-          } as (typeof base.entities.screens)[number],
+          } as unknown as NonNullable<NonNullable<typeof base.entities>["screens"]>[number],
         ],
       },
     };
@@ -308,7 +309,7 @@ describe("decomposeFlowProject screen id mismatch (negative paths) (#836)", () =
   it("FlowProject にあるが existingRaw にない new screen は追加される (existing フィールドなし)", () => {
     const existing = mkRichProject(); // SCREEN_ID のみ
     // FlowProject に NEW_SCREEN_ID を追加した Harmony を合成する
-    const existingWithNew: Harmony = {
+    const existingWithNew = ({
       ...existing,
       entities: {
         ...existing.entities,
@@ -325,7 +326,7 @@ describe("decomposeFlowProject screen id mismatch (negative paths) (#836)", () =
           },
         ],
       },
-    };
+    } as unknown) as Harmony;
     const flow = composeFlowProject(existingWithNew, {
       positions: {
         [SCREEN_ID]: { x: 100, y: 150, width: 200, height: 100 },
@@ -375,11 +376,11 @@ describe("saveTechStack AJV validation (#835 Should-fix 2)", () => {
   it("不正な techStack を渡すと assertValidHarmony が例外を投げ saveProject は呼ばれない", async () => {
     const richProject = mkRichProject();
     setFlowDraftMode(false);
-    const backend: FlowStorageBackend = {
+    const backend = ({
       loadProject: vi.fn().mockResolvedValue(richProject),
       saveProject: vi.fn().mockResolvedValue(undefined),
       deleteScreenData: vi.fn().mockResolvedValue(undefined),
-    };
+    } as unknown) as FlowStorageBackend;
     setFlowStorageBackend(backend);
 
     // editorKind に enum 違反値を渡す → assertValidHarmony が throw する
@@ -394,11 +395,11 @@ describe("saveTechStack AJV validation (#835 Should-fix 2)", () => {
   it("正常な techStack では saveProject が呼ばれる", async () => {
     const richProject = mkRichProject();
     setFlowDraftMode(false);
-    const backend: FlowStorageBackend = {
+    const backend = ({
       loadProject: vi.fn().mockResolvedValue(richProject),
       saveProject: vi.fn().mockResolvedValue(undefined),
       deleteScreenData: vi.fn().mockResolvedValue(undefined),
-    };
+    } as unknown) as FlowStorageBackend;
     setFlowStorageBackend(backend);
 
     await expect(saveTechStack({ designer: { editorKind: "puck", cssFramework: "tailwind" } })).resolves.not.toThrow();

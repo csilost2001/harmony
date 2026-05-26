@@ -103,13 +103,14 @@ vi.mock("../../store/screenItemsStore", () => ({
 }));
 
 // items 1 件 fixture (S-3 用: events toggle / fragments panel の render 条件を満たす)
-const FIXTURE_SCREEN_ITEMS_ONE_ITEM = {
+// #1355: branded type を bypass するため as unknown as でキャスト
+const FIXTURE_SCREEN_ITEMS_ONE_ITEM = ({
   screenId: "test-screen-id",
   updatedAt: "2026-01-01T00:00:00Z",
   items: [
     { id: "customerId", label: "顧客ID", type: "string" as const },
   ],
-};
+} as unknown) as Awaited<ReturnType<typeof import("../../store/screenItemsStore").loadScreenItems>>;
 
 // ---------------------------------------------------------------------------
 // schema / validator mocks (重い処理回避)
@@ -167,7 +168,7 @@ function renderWithRouter(screenId = "test-screen-id") {
 // ---------------------------------------------------------------------------
 
 /** argumentMapping 1 件付きイベントを持つ item */
-const FIXTURE_WITH_EVENT_ARGMAP = {
+const FIXTURE_WITH_EVENT_ARGMAP = (({
   screenId: "test-screen-id",
   updatedAt: "2026-01-01T00:00:00Z",
   items: [
@@ -184,10 +185,10 @@ const FIXTURE_WITH_EVENT_ARGMAP = {
       ],
     },
   ],
-};
+}) as unknown) as Awaited<ReturnType<typeof import("../../store/screenItemsStore").loadScreenItems>>;
 
 /** effects[] 1 件 (setReadonly, value:boolean) 付きイベントを持つ item */
-const FIXTURE_WITH_EVENT_EFFECT_BOOL = {
+const FIXTURE_WITH_EVENT_EFFECT_BOOL = (({
   screenId: "test-screen-id",
   updatedAt: "2026-01-01T00:00:00Z",
   items: [
@@ -204,10 +205,10 @@ const FIXTURE_WITH_EVENT_EFFECT_BOOL = {
       ],
     },
   ],
-};
+}) as unknown) as Awaited<ReturnType<typeof import("../../store/screenItemsStore").loadScreenItems>>;
 
 /** effects[] 1 件 (setReadonly, value:string 式) 付きイベントを持つ item */
-const FIXTURE_WITH_EVENT_EFFECT_EXPR = {
+const FIXTURE_WITH_EVENT_EFFECT_EXPR = (({
   screenId: "test-screen-id",
   updatedAt: "2026-01-01T00:00:00Z",
   items: [
@@ -224,17 +225,17 @@ const FIXTURE_WITH_EVENT_EFFECT_EXPR = {
       ],
     },
   ],
-};
+}) as unknown) as Awaited<ReturnType<typeof import("../../store/screenItemsStore").loadScreenItems>>;
 
 /** items 2 件 */
-const FIXTURE_WITH_TWO_ITEMS = {
+const FIXTURE_WITH_TWO_ITEMS = (({
   screenId: "test-screen-id",
   updatedAt: "2026-01-01T00:00:00Z",
   items: [
     { id: "customerId", label: "顧客ID", type: "string" as const },
     { id: "productId", label: "商品ID", type: "string" as const },
   ],
-};
+}) as unknown) as Awaited<ReturnType<typeof import("../../store/screenItemsStore").loadScreenItems>>;
 
 // ---------------------------------------------------------------------------
 // helper: 「編集開始」ボタンをクリックして editing モードに切り替える
@@ -493,12 +494,12 @@ describe("ScreenItemsView (Step 2: 編集動作)", () => {
     it("10. 「効果追加」ボタンで effect が +1 (0件 → 1件)", async () => {
       const { loadScreenItems } = await import("../../store/screenItemsStore");
       // argumentMapping のみのfixture (effects なし)
-      vi.mocked(loadScreenItems).mockResolvedValueOnce({
+      vi.mocked(loadScreenItems).mockResolvedValueOnce(({
         ...FIXTURE_WITH_EVENT_ARGMAP,
         items: [
           { ...FIXTURE_WITH_EVENT_ARGMAP.items[0], events: [{ id: "ev-1", handlerFlowId: "flow-1" }] },
         ],
-      });
+      } as unknown) as Awaited<ReturnType<typeof loadScreenItems>>);
 
       const { container } = renderWithRouter();
       await startEditingMode(container);

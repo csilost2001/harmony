@@ -4,7 +4,7 @@ import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("ExternalCallOutcomeSpec の sideEffects (#172)", () => {
   it("outcome.failure.sideEffects に副作用ステップ列を保持できる (capture 失敗時の例)", () => {
-    const failure: ExternalCallOutcomeSpec = {
+    const failure = ({
       action: "continue",
       description: "同期レスポンスは 201 維持、後段で手動対応",
       sideEffects: [
@@ -15,29 +15,29 @@ describe("ExternalCallOutcomeSpec の sideEffects (#172)", () => {
           tableName: "orders",
           operation: "UPDATE",
           sql: "UPDATE orders SET status='payment_failed', updated_at=CURRENT_TIMESTAMP WHERE id = @registeredOrder.id",
-        } as Step,
+        } as unknown as Step,
         {
           id: "se-2",
           type: "other",
           description: "Sentry error 記録 + 運用通知チャネルに送信",
-        } as Step,
+        } as unknown as Step,
       ],
-    };
+    } as unknown) as ExternalCallOutcomeSpec;
     expect(failure.sideEffects).toHaveLength(2);
     expect(failure.sideEffects?.[0].type).toBe("dbAccess");
     expect(failure.sideEffects?.[1].type).toBe("other");
   });
 
   it("sideEffects は空配列 / 省略どちらも許容", () => {
-    const spec1: ExternalCallOutcomeSpec = { action: "continue" };
-    const spec2: ExternalCallOutcomeSpec = { action: "abort", sideEffects: [] };
+    const spec1 = ({ action: "continue" } as unknown) as ExternalCallOutcomeSpec;
+    const spec2 = ({ action: "abort", sideEffects: [] } as unknown) as ExternalCallOutcomeSpec;
     expect(spec1.sideEffects).toBeUndefined();
     expect(spec2.sideEffects).toEqual([]);
   });
 
   it("sameAs で他 outcome の定義を流用できる (timeout=failure と同じ)", () => {
     // #1263 Phase X3: outcomes は errorHandling.outcomes に集約済
-    const step: ExternalSystemStep = {
+    const step = ({
       id: "s",
       kind: "externalSystem",
       description: "",
@@ -49,19 +49,19 @@ describe("ExternalCallOutcomeSpec の sideEffects (#172)", () => {
           timeout: { action: "abort", sameAs: "failure" },
         },
       },
-    };
+    } as unknown) as ExternalSystemStep;
     expect(step.errorHandling?.outcomes?.timeout?.sameAs).toBe("failure");
   });
 
   it("abort + sideEffects の組合せ (補償後に中断する Saga パターン)", () => {
-    const spec: ExternalCallOutcomeSpec = {
+    const spec = ({
       action: "abort",
       description: "HTTP 402 で return する前に補償を行う",
       sideEffects: [
-        { id: "comp-1", type: "other", description: "Stripe void_authorization 呼出" } as Step,
+        { id: "comp-1", type: "other", description: "Stripe void_authorization 呼出" } as unknown as Step,
       ],
       jumpTo: "end-of-action",
-    };
+    } as unknown) as ExternalCallOutcomeSpec;
     expect(spec.action).toBe("abort");
     expect(spec.sideEffects).toHaveLength(1);
     expect(spec.jumpTo).toBe("end-of-action");

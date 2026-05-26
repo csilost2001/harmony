@@ -29,7 +29,7 @@ function baseFlow(): ProcessFlow {
         createdAt: "2026-05-01T00:00:00.000Z",
       }],
     },
-  } as ProcessFlow;
+  } as unknown as ProcessFlow;
 }
 
 function clientWithGeneratedText(text: string) {
@@ -147,7 +147,7 @@ describe("generateProcessFlowWithCodex", () => {
       },
       actions: [{ id: "act-1", name: "登録", trigger: "click", steps: [] }],
       authoring: undefined,
-    } as ProcessFlow;
+    } as unknown as ProcessFlow;
 
     const merged = mergeGeneratedProcessFlow(current, generated);
 

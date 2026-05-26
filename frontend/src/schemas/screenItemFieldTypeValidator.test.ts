@@ -9,11 +9,11 @@ const UNKNOWN_FLOW_ID = "99999999-9999-4999-8999-999999999999";
 const SCREEN_ID = "22222222-2222-4222-8222-222222222222";
 
 function makeEvent(argumentMapping?: Record<string, string>, handlerFlowId = FLOW_ID): ScreenItemEvent {
-  return {
+  return ({
     id: "change",
     handlerFlowId,
     ...(argumentMapping === undefined ? {} : { argumentMapping }),
-  };
+  } as unknown) as ScreenItemEvent;
 }
 
 function makeItem(
@@ -22,33 +22,35 @@ function makeItem(
   overrides: Record<string, unknown> = {},
   events: ScreenItemEvent[] = [makeEvent({ value: `@self.${id}` })],
 ): ScreenItem {
-  return {
+  return ({
     id,
     label: id,
     type,
     events,
     ...overrides,
-  } as ScreenItem;
+  } as unknown) as ScreenItem;
 }
 
 function makeScreen(screenId: string, items: ScreenItem[]): Screen {
-  return {
+  return ({
     id: screenId,
+    uuid: "11111111-1111-4111-8111-111111111111",
     name: "test-screen",
     kind: "form",
     path: "/test",
     createdAt: "2026-04-30T00:00:00.000Z",
     updatedAt: "2026-04-30T00:00:00.000Z",
     items,
-  };
+  } as unknown) as Screen;
 }
 
 function makeFlow(flowId: string, inputs: StructuredField[]): ProcessFlow {
-  return {
+  return ({
     meta: {
       id: flowId,
+      uuid: "11111111-1111-4111-8111-111111111111",
       name: "test-flow",
-      kind: "screen",
+      flowType: "screen",
       createdAt: "2026-04-30T00:00:00.000Z",
       updatedAt: "2026-04-30T00:00:00.000Z",
     },
@@ -61,7 +63,7 @@ function makeFlow(flowId: string, inputs: StructuredField[]): ProcessFlow {
         steps: [],
       },
     ],
-  };
+  } as unknown) as ProcessFlow;
 }
 
 function field(type: unknown, extra: Record<string, unknown> = {}): StructuredField {

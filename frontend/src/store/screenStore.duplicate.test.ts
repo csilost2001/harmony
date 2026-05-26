@@ -20,7 +20,7 @@ vi.mock("../mcp/mcpBridge", () => ({
 import { mcpBridge } from "../mcp/mcpBridge";
 import { duplicateScreenDesignData } from "./duplicateScreen";
 
-const mockBridge = mcpBridge as {
+const mockBridge = mcpBridge as unknown as {
   loadPuckData: ReturnType<typeof vi.fn>;
   savePuckData: ReturnType<typeof vi.fn>;
   request: ReturnType<typeof vi.fn>;

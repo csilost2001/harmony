@@ -198,7 +198,7 @@ describe("migrateStep — BranchStep legacy → new", () => {
     };
     const migrated = migrateStep(other);
     expect(migrated.kind).toBe("dbAccess");
-    expect(migrated.tableId).toBe("users");
+    expect((migrated as unknown as { tableId?: string }).tableId).toBe("users");
     expect((migrated as unknown as { tableName?: string }).tableName).toBeUndefined();
     expect(migrated.maturity).toBe("draft");
     expect(migrated).not.toBe(other); // clone されている
@@ -646,9 +646,10 @@ describe("migrateProcessFlow — v3 root 4 セクション化 + maturity / mode 
     expect(migrated.kind).toBe("branch");
     expect(migrated.outputBinding).toEqual({ name: "branchResult" });
     if (migrated.kind !== "branch") throw new Error("not branch");
-    expect(migrated.branches[0].condition).toEqual({ kind: "expression", expression: "@ok" });
-    expect(migrated.branches[0].steps[0].kind).toBe("legacy:OtherStep");
-    expect(migrated.branches[1].steps[0].kind).toBe("jump");
+    const branchStep = migrated as unknown as { branches: Array<{ condition: unknown; steps: Array<{ kind: string }> }> };
+    expect(branchStep.branches[0].condition).toEqual({ kind: "expression", expression: "@ok" });
+    expect(branchStep.branches[0].steps[0].kind).toBe("legacy:OtherStep");
+    expect(branchStep.branches[1].steps[0].kind).toBe("jump");
   });
 });
 

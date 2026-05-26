@@ -5,38 +5,38 @@ import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("ComputeStep (#174)", () => {
   it("税額計算の典型パターンを表現できる", () => {
-    const step: ComputeStep = {
+    const step = ({
       id: "s-tax",
       kind: "compute",
       description: "税額計算 (外税 10% 切り捨て)",
       expression: "Math.floor(@subtotal * 0.10)",
       outputBinding: "taxAmount",
-    };
+    } as unknown) as ComputeStep;
     expect(step.kind).toBe("compute");
     expect(step.expression).toBe("Math.floor(@subtotal * 0.10)");
     expect(step.outputBinding).toBe("taxAmount");
   });
 
   it("合計算出のパターン", () => {
-    const step: ComputeStep = {
+    const step = ({
       id: "s-total",
       type: "compute",
       description: "合計金額",
       expression: "@subtotal + @taxAmount",
       outputBinding: "totalAmount",
-    };
+    } as unknown) as ComputeStep;
     expect(step.expression).toContain("@subtotal");
     expect(step.expression).toContain("@taxAmount");
   });
 
   it("構造化 outputBinding と組合せできる", () => {
-    const step: ComputeStep = {
+    const step = ({
       id: "s",
       type: "compute",
       description: "カウント",
       expression: "@items.length",
       outputBinding: { name: "itemCount", operation: "assign" },
-    };
+    } as unknown) as ComputeStep;
     expect(step.outputBinding).toEqual({ name: "itemCount", operation: "assign" });
   });
 

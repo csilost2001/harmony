@@ -20,7 +20,7 @@ function makeCatalog(limitEntries: Record<string, number>): Conventions {
   for (const [key, value] of Object.entries(limitEntries)) {
     limit[key] = { value };
   }
-  return { version: "1.0.0", limit } as Conventions;
+  return { version: "1.0.0", limit } as unknown as Conventions;
 }
 
 describe("resolveScreenItemRefs (#734)", () => {
@@ -136,7 +136,7 @@ describe("resolveScreenItemRefs (#734)", () => {
       const item = makeItem({ maxRef: "@conv.limit.cartItemMaxQuantity" });
       const catalog = makeCatalog({ cartItemMaxQuantity: 999 });
       resolveScreenItemRefs(item, catalog);
-      expect((item as Record<string, unknown>).max).toBeUndefined();
+      expect((item as unknown as Record<string, unknown>).max).toBeUndefined();
     });
   });
 });

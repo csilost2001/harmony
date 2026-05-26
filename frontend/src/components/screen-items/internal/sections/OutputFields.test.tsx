@@ -27,8 +27,8 @@ const tables: Table[] = [
     columns: [
       { id: "c1", physicalName: "order_id", name: "注文ID", type: "string" },
       { id: "c2", physicalName: "amount", name: "金額", type: "integer" },
-    ] as Table["columns"],
-  } as Table,
+    ] as unknown as Table["columns"],
+  } as unknown as Table,
 ];
 
 const views: View[] = [
@@ -39,7 +39,7 @@ const views: View[] = [
       { physicalName: "order_id", name: "注文ID" },
       { physicalName: "total_amount", name: "合計" },
     ],
-  } as View,
+  } as unknown as View,
 ];
 
 describe("OutputFields", () => {

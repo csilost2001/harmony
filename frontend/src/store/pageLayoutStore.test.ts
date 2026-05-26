@@ -50,6 +50,7 @@ function rawProjectWithPageLayouts(pageLayouts: PageLayoutEntry[]): Harmony {
     dataDir: "harmony",
     meta: {
       id: "test-project-a" as ProjectId,
+      uuid: "11111111-1111-4111-8111-111111111111" as unknown as Harmony["meta"]["uuid"],
       name: "test",
       maturity: "draft",
       createdAt: ts,
@@ -102,6 +103,7 @@ describe("pageLayoutStore", () => {
       dataDir: "harmony",
       meta: {
         id: "test-project-b" as ProjectId,
+        uuid: "22222222-2222-4222-8222-222222222222" as unknown as Harmony["meta"]["uuid"],
         name: "test",
         maturity: "draft",
         createdAt: TS as unknown as Harmony["meta"]["createdAt"],

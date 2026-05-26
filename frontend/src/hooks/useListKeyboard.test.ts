@@ -32,7 +32,7 @@ interface Callbacks {
 function setup(cbs: Callbacks = {}) {
   return renderHook(() => {
     const sel = useListSelection(items, (it) => it.id);
-    useListKeyboard({ items, getId: (it) => it.id, selection: sel, ...cbs });
+    useListKeyboard({ items, getId: (it: Item) => it.id, selection: sel, ...cbs } as unknown as Parameters<typeof useListKeyboard<Item>>[0]);
     return sel;
   });
 }

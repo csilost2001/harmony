@@ -144,14 +144,15 @@ function renderList() {
   );
 }
 
-function gadget(over: Partial<ScreenNode>): ScreenNode {
-  return {
+// #1355: fixture builder の input を loose 型に変更
+function gadget(over: Record<string, unknown>): ScreenNode {
+  return ({
     id: "g1",
     name: "ガジェット1",
     kind: "other",
     purpose: "gadget",
     ...over,
-  } as ScreenNode;
+  } as unknown) as ScreenNode;
 }
 
 describe("GadgetListView", () => {

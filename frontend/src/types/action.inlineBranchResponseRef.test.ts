@@ -4,7 +4,7 @@ import { migrateProcessFlow } from "../utils/actionMigration";
 
 describe("ValidationStep.inlineBranch.ngResponseRef (#180)", () => {
   it("NG 時のレスポンス参照と body 式を保持できる", () => {
-    const step: ValidationStep = {
+    const step = ({
       id: "s",
       type: "validation",
       description: "",
@@ -17,21 +17,21 @@ describe("ValidationStep.inlineBranch.ngResponseRef (#180)", () => {
         ngResponseRef: "400-validation",
         ngBodyExpression: "{ code: 'VALIDATION', fieldErrors: @fieldErrors }",
       },
-    };
-    expect(step.inlineBranch?.ngResponseRef).toBe("400-validation");
+    } as unknown) as ValidationStep;
+    expect((step.inlineBranch as unknown as { ngResponseRef?: string } | undefined)?.ngResponseRef).toBe("400-validation");
     expect(step.inlineBranch?.ngBodyExpression).toContain("fieldErrors");
   });
 
   it("ngResponseRef / ngBodyExpression は任意 (既存データ互換)", () => {
-    const step: ValidationStep = {
+    const step = ({
       id: "s",
       type: "validation",
       description: "",
       conditions: "",
       fieldErrorsVar: "fieldErrors",
       inlineBranch: { ok: "OK", ng: "NG" },
-    };
-    expect(step.inlineBranch?.ngResponseRef).toBeUndefined();
+    } as unknown) as ValidationStep;
+    expect((step.inlineBranch as unknown as { ngResponseRef?: string } | undefined)?.ngResponseRef).toBeUndefined();
     expect(step.inlineBranch?.ngBodyExpression).toBeUndefined();
   });
 
@@ -60,6 +60,6 @@ describe("ValidationStep.inlineBranch.ngResponseRef (#180)", () => {
     const twice = migrateProcessFlow(once);
     expect(JSON.stringify(twice)).toBe(JSON.stringify(once));
     const step = once.actions[0].steps[0] as ValidationStep;
-    expect(step.inlineBranch?.ngResponseRef).toBe("400-validation");
+    expect((step.inlineBranch as unknown as { ngResponseRef?: string } | undefined)?.ngResponseRef).toBe("400-validation");
   });
 });

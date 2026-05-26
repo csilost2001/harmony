@@ -7,7 +7,7 @@ import { migrateProcessFlow } from "../utils/actionMigration";
 // 本 describe は元 #158 で導入された ExternalSystemStep のフィールド保持テスト。
 describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 errorHandling 経由)", () => {
   it("errorHandling.outcomes / timeoutMs / errorHandling.retryPolicy / fireAndForget をすべて保持できる", () => {
-    const step: ExternalSystemStep = {
+    const step = ({
       id: "s1",
       kind: "externalSystem",
       description: "決済呼出",
@@ -22,7 +22,7 @@ describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 error
         },
         retryPolicy: { maxAttempts: 2, backoff: "exponential", initialDelayMs: 500 },
       },
-    };
+    } as unknown) as ExternalSystemStep;
     expect(step.errorHandling?.outcomes?.success?.action).toBe("continue");
     expect(step.errorHandling?.outcomes?.failure?.action).toBe("abort");
     expect(step.timeoutMs).toBe(10000);
@@ -31,12 +31,12 @@ describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 error
   });
 
   it("すべて省略可能 (既存コードの型互換)", () => {
-    const step: ExternalSystemStep = {
+    const step = ({
       id: "s2",
       kind: "externalSystem",
       description: "",
       systemRef: "someService",
-    };
+    } as unknown) as ExternalSystemStep;
     expect(step.errorHandling).toBeUndefined();
     expect(step.timeoutMs).toBeUndefined();
     expect(step.fireAndForget).toBeUndefined();
@@ -47,7 +47,7 @@ describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 error
   });
 
   it("outcomes の partial 指定 (success のみ) も可能", () => {
-    const step: ExternalSystemStep = {
+    const step = ({
       id: "s3",
       kind: "externalSystem",
       description: "",
@@ -57,13 +57,13 @@ describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 error
           success: { action: "continue", description: "ログ記録" },
         },
       },
-    };
+    } as unknown) as ExternalSystemStep;
     expect(step.errorHandling?.outcomes?.success).toBeDefined();
     expect(step.errorHandling?.outcomes?.failure).toBeUndefined();
   });
 
   it("fireAndForget=true の形式", () => {
-    const step: ExternalSystemStep = {
+    const step = ({
       id: "s4",
       kind: "externalSystem",
       description: "メール送信",
@@ -75,7 +75,7 @@ describe("ExternalSystemStep の新規フィールド (#158 / Phase X3 後 error
           timeout: { action: "continue", description: "同上" },
         },
       },
-    };
+    } as unknown) as ExternalSystemStep;
     expect(step.fireAndForget).toBe(true);
     expect(step.errorHandling?.outcomes?.failure?.action).toBe("continue");
   });
@@ -155,7 +155,7 @@ describe("migrateProcessFlow — ExternalSystemStep の新フィールド透過�
     const migrated = migrateProcessFlow(raw) as ProcessFlow;
     const step = migrated.actions[0].steps[0] as ExternalSystemStep;
     expect(step.systemRef).toBe("Legacy");
-    expect(step.outcomes).toBeUndefined();
+    expect((step as unknown as { outcomes?: unknown }).outcomes).toBeUndefined();
     expect(step.timeoutMs).toBeUndefined();
   });
 });
