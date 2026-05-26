@@ -61,10 +61,11 @@ ProcessFlow JSON に含めるべき要素 (5/5 達成サンプル準拠):
 
 | セクション | 要件 |
 |---|---|
-| `id` | UUID v4 |
+| `id` | EntityId (kebab-case 英単語、例: `order-entry-flow`、RFC #1284 / #1332) |
+| `uuid` | UUID v4 (不変識別子、RFC #1284 で `id` と分離、`meta.uuid` field に保持) |
 | `name` | 業務名 (日本語、業界文脈含む) |
 | `type` | `screen` / `system` / `batch` から選択 |
-| `screenId` | UUID (画面実体不要なら任意の UUID で可) |
+| `screenId` | EntityId (kebab-case、例: `order-entry-screen`、画面実体不要なら任意の kebab-case 値で可) |
 | `apiVersion` | `"v2"` 推奨 |
 | `mode` | `"upstream"` (UI 起点) / `"downstream"` (内部呼出) |
 | `maturity` | `"draft"` / `"provisional"` / `"committed"` |

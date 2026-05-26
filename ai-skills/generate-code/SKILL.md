@@ -120,9 +120,10 @@ project.techStack:
   deployment.target
 ```
 
-### 1-2. 入力 UUID の種別を harmony.json から判定
+### 1-2. 入力 ID (EntityId または legacy UUID) の種別を harmony.json から判定
 
 `harmony.json` の `entities.processFlows[].id` と `entities.screens[].id` を照合する。
+RFC #1284 / #1332 以降は EntityId (kebab-case) が canonical、legacy UUID 形式も移行期間 compat で受容。
 
 - `processFlows[].id` にマッチ → ProcessFlow → backend code 生成へ (Step 3-A)
 - `screens[].id` にマッチ → Screen → frontend code 生成へ (Step 3-B)
