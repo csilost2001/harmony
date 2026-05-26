@@ -74,10 +74,12 @@ RFC #1021 で追加された以下の 3 種類の入力に対して、code gener
 - `--workspace <wsId>`: 第 2 引数として workspace ID を受け取り、`workspaces/<wsId>/` (または `examples/<wsId>/`) を active 扱いで Step 1 以降を順次実行 (既存 active を変更しない)
 - 出力先 (default: `.tmp/generated-code/bulk-<UTC-yyyymmdd-hhmmss>/`) は entity 種別ごとにサブディレクトリで分離する:
   ```
-  <出力先>/process-flows/<flowId8桁>/   各 ProcessFlow の生成物
-  <出力先>/screens/<screenId8桁>/        各 Screen の生成物
-  <出力先>/page-layouts/<layoutId8桁>/   各 PageLayout の生成物
+  <出力先>/process-flows/<flowId>/    各 ProcessFlow の生成物 (例: process-flows/order-confirm/)
+  <出力先>/screens/<screenId>/        各 Screen の生成物 (例: screens/product-search/)
+  <出力先>/page-layouts/<layoutId>/   各 PageLayout の生成物 (例: page-layouts/admin-shell/)
   ```
+  - `<flowId>` / `<screenId>` / `<layoutId>` は **EntityId をそのまま使用** (RFC #1284 / #1332 で確定した kebab-case 英単語形式)。`[a-z0-9-]` のみ含むため sanitize 不要
+  - legacy UUID compat 入力 (`--workspace` 配下に旧 UUID id を含む sample が混在する場合) は **full UUID を使う** (prefix truncation 禁止)。EntityId / UUID いずれの場合も衝突回避のため値を切り詰めない (EntityId は先頭文字列が被りやすく、prefix-only では出力先衝突を誘発するため、full sanitized ID を必須とする)
 - bulk モード時の実行詳細は Step 5 「bulk モード時のループ動作」を参照
 
 ### effectiveWorkspace の解決 (CLI 指定優先、#1035 S-1 解消)

@@ -108,7 +108,8 @@ disable-model-invocation: true
 ```
 --scenario <screenId-from> <screenId-to>
   → P4 E2E シナリオ生成 (2 画面間)
-  → シナリオ ID: "scenario-<screenId-from の8桁>-<screenId-to の8桁>"
+  → シナリオ ID: "scenario-<screenId-from>-<screenId-to>" (EntityId をそのまま連結、例: scenario-post-list-screen-post-edit-screen)
+  → legacy UUID compat 入力時は full UUID を連結 (prefix truncation 禁止 — EntityId は先頭文字列が被りやすく、prefix-only では出力先衝突を誘発するため)
 
 --scenario-name "<name>" <screenId-1> ... <screenId-N>
   → P4 E2E シナリオ生成 (N 画面、名前付き)
@@ -136,7 +137,7 @@ disable-model-invocation: true
 
 | 起動形式 | デフォルト出力先 |
 |---|---|
-| `--scenario <from> <to>` | `.tmp/generated-tests/scenario-<8桁>-<8桁>/` |
+| `--scenario <from> <to>` | `.tmp/generated-tests/scenario-<from>-<to>/` (EntityId 連結、例: `scenario-post-list-screen-post-edit-screen/`。legacy UUID compat 入力時は full UUID を連結し、prefix truncation は行わない) |
 | `--scenario-name "<name>" ...` | `.tmp/generated-tests/<kebab-case-name>/` |
 | `<EntityId>` / `<legacy UUID>` (通常) | `.tmp/generated-tests/<入力ID>/` |
 
