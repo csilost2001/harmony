@@ -639,8 +639,8 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 このパターンは [`generic-definition-layer.md` §3.3](generic-definition-layer.md) に記載。`commonProcess` (他 ProcessFlow への参照) と混同しないこと。
 
 **落とし方 hints (✅ 現行)**:
-- 「共通処理: X.Y(...)」→ `kind: "commonProcess"` + `refId` (呼び先 ProcessFlow Uuid) + `argumentMapping`
-- 「X テーブル参照 / INSERT / UPDATE」→ **すべて `kind: "dbAccess"`** + `operation: "SELECT|INSERT|UPDATE|DELETE"` + `tableId` (Uuid) + 完全 `sql`
+- 「共通処理: X.Y(...)」→ `kind: "commonProcess"` + `refId` (呼び先 ProcessFlow EntityId) + `argumentMapping`
+- 「X テーブル参照 / INSERT / UPDATE」→ **すべて `kind: "dbAccess"`** + `operation: "SELECT|INSERT|UPDATE|DELETE"` + `tableId` (EntityId) + 完全 `sql`
 - 「不足なら / 失敗なら〜エラー応答」→ `kind: "validation"` (フィールドバリデーション + `inlineBranch.ng[]` に return) または `kind: "branch"` (任意条件分岐 + `branches[].condition.kind: "expression"` + `steps[]` に return)
 - 「採番」→ `sql` に `NEXTVAL('SEQ_NAME')` 等を直書き (DB 方言依存) or 別 step で取得
 - 「1〜N は 1 TX」「N+1 は別 TX」→ `kind: "transactionScope"` で `steps[]` 配列に囲い、別 TX 部分は scope の外に出す。旧 `txBoundary` (`{txId, role}`) は v3 で廃止
@@ -992,7 +992,7 @@ enum / コード値は `conventions/codeMaster` または `extensions/<namespace
 | `processflow_step_kind_undecided` | §3.3 で step kind 決定不能 | warning |
 | `exception_semantic_kind_undecided` | §3.4 で semanticKind 推測不能 | warning |
 | `data_contract_kind_undecided` | §3.5 で data-contract vs domain-type 判定不能 | warning |
-| `commonprocess_ref_unresolved` | §3.3 ✅ 現行形の `commonProcess` step の `refId` (呼び先 ProcessFlow Uuid) が未定義 | error |
+| `commonprocess_ref_unresolved` | §3.3 ✅ 現行形の `commonProcess` step の `refId` (呼び先 ProcessFlow EntityId) が未定義 | error |
 | `rfc_future_field_skipped` | RFC 将来 schema 案 (各 kind の固有 field — trigger / effects / rules / semanticKind 等、将来 RFC で kind 別 schema に追加予定) を生成しようとした際、現行 schema に未対応のため `description` 退避 or 別ディレクトリ書き出しに切り替えた。**binding / events.effects は #1065 で、componentCall / exceptionTypeRef / exception-type は #1066 で、ui-fragment / screen.fragments[] は #1067 で、application-rule / runtime-policy / ui-behavior は #1068 で導入済のため、これら kind 自体の生成は本 warning 対象外 (kind 内の固有 field 追加のみ対象)** | warning |
 
 ### 5.3 audit summary
@@ -1029,7 +1029,7 @@ MD が少数 (~数十ファイル) で更新もまれな場合の手順。
 4. **catalog 系から処理** — `pulldown-catalog` / `reference-catalog` を先に変換し、conventions を確立 (他 archetype の binding 解決に必要)
 5. **screen / processFlow / table** — §3.1-§3.3 の **✅ 現行 schema 適合形** で変換 (§0.5 参照)
 6. **generic-definitions** — §3.4-§3.7 の **✅ 現状適合形** で `examples/<project>/<dataDir>/generic-definitions/<kind>/*.json` に書き出し、AJV 検証必須 (親 schema + 7 kind 別 schema: data-contract / domain-type #1064、exception-type #1066、ui-fragment #1067、application-rule / runtime-policy / ui-behavior #1068 で対象化済)。各 kind の固有 field (✨ 将来 RFC で kind 別 schema に追加予定) は `description` 退避 + audit warning `rfc_future_field_skipped` で kind 別件数記録
-7. **ProcessFlow `commonProcess` / `componentCall` の link** — `commonProcess.refId` (呼び先 ProcessFlow Uuid) を解決、未解決は **error** `commonprocess_ref_unresolved` を audit に出す (§10 (A) hard gate 対象)。`componentCall.componentRef` は `generic-definitions/component-definition/<Name>` 形式で schema gate 対象化済 (#1066)
+7. **ProcessFlow `commonProcess` / `componentCall` の link** — `commonProcess.refId` (呼び先 ProcessFlow EntityId) を解決、未解決は **error** `commonprocess_ref_unresolved` を audit に出す (§10 (A) hard gate 対象)。`componentCall.componentRef` は `generic-definitions/component-definition/<Name>` 形式で schema gate 対象化済 (#1066)
 8. **AJV 検証 (現行 schema 範囲)** — `schemas/v3/*.json` 配下で生成した JSON を AJV で検証。`generic-definitions/<kind>/*.json` は親 schema (`generic-definition.v3.schema.json`) で共通メタモデル検証 + 7 kind 別 schema (data-contract / domain-type #1064、exception-type #1066、ui-fragment #1067、application-rule / runtime-policy / ui-behavior #1068) で strict 検証。残 1 kind (component-definition) の kind 別 schema は将来 RFC (§10 (A)/(B) 参照)
 9. **audit summary** — §5.3 形式で出力、PR description に貼る (`rfc_future_field_skipped` の kind 別件数を含む)
 10. **完了判定** — §10 (A) hard gate を全件パス、§10 (B) soft gate は warning として残す

@@ -197,7 +197,7 @@ v2 / v1 から v3 への命名・構造変更:
 |---|---|
 | `type: "workflow"` | `kind: "workflow"` |
 | step の `type: "dbAccess"` | step の `kind: "dbAccess"` |
-| `tableName: "users"` | `tableId: "<Uuid>"` (UUID 化) |
+| `tableName: "users"` | `tableId: "<EntityId>"` (RFC #1284 で kebab-case EntityId 化) |
 | quorum の `type: "n-of-m"` | quorum の `type: "nOfM"` (lowerCamelCase) |
 
 ## 関連

@@ -10,7 +10,7 @@ Issue: [RFC #1254](https://github.com/csilost2001/harmony/issues/1254) 件 3.7 /
 
 | prefix | 参照先 | inline 可否 (`${...}` 内) | catalog source |
 |---|---|---|---|
-| `@flow` | ProcessFlow entity (Uuid) | ❌ inline 禁止 (副作用 invocation) | `process-flows/<id>.json` |
+| `@flow` | ProcessFlow entity (EntityId) | ❌ inline 禁止 (副作用 invocation) | `process-flows/<id>.json` |
 | `@screen` | Screen entity / 画面項目 | ✅ pure ref のみ (例: `@screen.<id>.item.<id>.label`) | `screens/<id>.json` |
 | `@table` | Table entity / カラム | ✅ pure ref のみ (例: `@table.<id>.field.<id>.physicalName`) | `tables/<id>.json` |
 | `@view` | View entity (DB) | ✅ pure ref のみ | `views/<id>.json` |

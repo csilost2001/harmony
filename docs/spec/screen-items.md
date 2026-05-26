@@ -99,7 +99,7 @@ interface ScreenItem {
    *  valueFrom.flowVariable で flow 変数から配列データを bind する。
    *  valueFrom 省略時は ViewDefinition の query を画面 mount 時に自動発行する (静的マスター一覧)。
    *  direction='viewer' の時のみ required。 */
-  viewDefinitionId?: Uuid;
+  viewDefinitionId?: EntityId;
   /** 表示書式 (direction="output" 専用、例: "YYYY/MM/DD", "¥#,##0", "0.00%") — #377 */
   displayFormat?: string;
   /** バインド元 (direction="output" 専用) — #377、ValueSource は v3 で Pattern B 複合参照に変更。 */
@@ -119,9 +119,9 @@ type FieldType =
   | "string" | "number" | "integer" | "boolean" | "date" | "datetime" | "json"
   | { kind: "array"; itemType: FieldType }
   | { kind: "object"; fields: StructuredField[] }
-  | { kind: "tableRow"; tableId: Uuid }
-  | { kind: "tableList"; tableId: Uuid }
-  | { kind: "screenInput"; screenId: Uuid }
+  | { kind: "tableRow"; tableId: EntityId }
+  | { kind: "tableList"; tableId: EntityId }
+  | { kind: "screenInput"; screenId: EntityId }
   | { kind: "domain"; domainKey: string }              // PascalCase、context.catalogs.domains 参照
   | { kind: "file"; format?: string }
   | { kind: "extension"; extensionRef: string };       // namespace:fieldType 形式
@@ -134,11 +134,11 @@ type FieldType =
 type ValueSource =
   | {
       kind: "flowVariable";
-      processFlowId?: Uuid;            // 省略時はカレント画面に紐付く ProcessFlow を解決
+      processFlowId?: EntityId;        // 省略時はカレント画面に紐付く ProcessFlow を解決
       variableName: IdentifierPath;    // 例: 'inventoryRows' / 'createdOrder.order_number' (#533 R3-1)
     }
-  | { kind: "tableColumn"; ref: TableColumnRef }   // { tableId: Uuid, columnId: LocalId }
-  | { kind: "viewColumn"; ref: ViewColumnRef }     // { viewId: Uuid, columnPhysicalName: PhysicalName }
+  | { kind: "tableColumn"; ref: TableColumnRef }   // { tableId: EntityId, columnId: LocalId }
+  | { kind: "viewColumn"; ref: ViewColumnRef }     // { viewId: EntityId, columnPhysicalName: PhysicalName }
   | { kind: "expression"; expression: TemplateString }
   | {
       // 拡張 ValueSource (extensions.v3.valueSourceKinds で定義)
@@ -171,7 +171,7 @@ Phase 4-β migration (#712) で **embed 形式に統一**。`data/screen-items/{
 処理フローの `inputs: StructuredField[]` と画面項目定義は重複する可能性がある。どう整合するか。
 
 **✅ 採用: 案 B-1 処理フロー inputs が画面項目を参照** (PR #321 で実装、v3 で `ScreenItemRef` 型に確定):
-- `StructuredField.screenItemRef?: ScreenItemRef` を追加 (v3: `{ screenId: Uuid, itemId: Identifier }`、common.v3 $defs)
+- `StructuredField.screenItemRef?: ScreenItemRef` を追加 (v3: `{ screenId: EntityId, itemId: Identifier }`、common.v3 $defs)
 - ProcessFlowEditor の入出力テーブルに「画面項目から追加」ボタン + `ScreenItemPickerModal`
 - 参照時は ScreenItem から id/label/type/required/description を一回コピー (一方向)
 - 参照解除ボタンで `screenItemRef` のみ削除、フィールドは残る
@@ -483,10 +483,10 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
   "label": "物件一覧",
   "type": { "kind": "array", "itemType": "json" },
   "direction": "viewer",
-  "viewDefinitionId": "<ViewDefinition の UUID>",  // 列定義・ソート・kind を提供
+  "viewDefinitionId": "property-list-view",        // 列定義・ソート・kind を提供 (EntityId)
   "valueFrom": {
     "kind": "flowVariable",
-    "processFlowId": "<ProcessFlow の UUID>",       // 検索/取得フロー
+    "processFlowId": "property-search-flow",       // 検索/取得フロー (EntityId)
     "variableName": "rows"                         // フロー出力変数名
   }
 }
@@ -526,14 +526,14 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
       "events": [
         {
           "id": "click",
-          "handlerFlowId": "<物件検索フロー UUID>",
+          "handlerFlowId": "property-search-flow",
           // 1 画面 = 1 処理フロー + 複数アクション モデル (#1019) の場合、
           // どの action を実行するか handlerActionId で指定する。
           // 単一 action の処理フローでは省略可 (validator が actions[0] にフォールバック)。
           "handlerActionId": "act-search",
           "argumentMapping": {
-            "propertyType": "@screen.<screenId>.item.propertyType",
-            "maxPrice": "@screen.<screenId>.item.maxPrice"
+            "propertyType": "@screen.property-search-screen.item.propertyType",
+            "maxPrice": "@screen.property-search-screen.item.maxPrice"
           }
         }
       ]
@@ -543,10 +543,10 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
       "label": "物件一覧",
       "type": { "kind": "array", "itemType": "json" },
       "direction": "viewer",
-      "viewDefinitionId": "<物件一覧 VD UUID>",
+      "viewDefinitionId": "property-list-view",
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "<物件検索フロー UUID>",
+        "processFlowId": "property-search-flow",
         "variableName": "rows"   // フローが outputs[] で宣言した変数
       }
     }
@@ -565,7 +565,7 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
   "label": "マスター一覧",
   "type": { "kind": "array", "itemType": "json" },
   "direction": "viewer",
-  "viewDefinitionId": "<マスター一覧 VD UUID>"
+  "viewDefinitionId": "category-master-view"
   // valueFrom 省略 → VD の query を mount 時に自動実行
 }
 ```
@@ -578,10 +578,10 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
   "label": "カート明細",
   "type": { "kind": "array", "itemType": "json" },
   "direction": "viewer",
-  "viewDefinitionId": "<カート明細 VD UUID>",
+  "viewDefinitionId": "cart-items-view",
   "valueFrom": {
     "kind": "flowVariable",
-    "processFlowId": "<カート集計フロー UUID>",
+    "processFlowId": "cart-aggregation-flow",
     "variableName": "cartItems"
   }
 }

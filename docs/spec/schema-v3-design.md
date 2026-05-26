@@ -37,15 +37,17 @@
 
 | entity | id | name | description | createdAt | updatedAt | version | maturity |
 |---|---|---|---|---|---|---|---|
-| ProcessFlow | EntityId | string | Description | T | T | SemVer | Maturity |
-| TableDefinition | EntityId | DbTableName ★物理名 | string | T | T | × | × |
-| ScreenNode | EntityId | string | string | T | T | × | × |
+| ProcessFlow | Uuid | string | Description | T | T | SemVer | Maturity |
+| TableDefinition | Uuid | DbTableName ★物理名 | string | T | T | × | × |
+| ScreenNode | Uuid | string | string | T | T | × | × |
 | ScreenItemsFile | (screenId) | × | × | × | T | SemVer | × |
-| SequenceDefinition | EntityId | × ★name 無し | string? | T | T | × | × |
-| ViewDefinition | EntityId | × ★name 無し | string? | T | T | × | × |
+| SequenceDefinition | Uuid | × ★name 無し | string? | T | T | × | × |
+| ViewDefinition | Uuid | × ★name 無し | string? | T | T | × | × |
 | CustomBlock | Uuid | × ★label のみ | × | T | T | × | × |
 | Step (各 variant) | LocalId | × | string | × | × | × | Maturity |
 | Action | LocalId | string | string | × | × | × | Maturity |
+
+（注: 上記表は v2 当時の状態を記述したものであり、v3 では RFC #1284 により top-level entity の id は `EntityId` (kebab-case) + 不変識別子 `uuid: Uuid` の 2 fields 構成に再設計された。CustomBlock は top-level entity ではないため UUID base を維持。）
 
 **問題点**:
 - ScreenItemsFile に createdAt なし、name なし
@@ -157,11 +159,12 @@ UPPER (DataType / DbOperation / 等) と lowercase (SqlDialect / IndexMethod) �
     // 既存の Uuid / LocalId / Timestamp / SemVer / Description / MaturityLevel / ProcessMode 等
 
     "EntityMeta": {
-      "description": "全 top-level entity (Screen / Table / ProcessFlow / View / Sequence / CustomBlock 等) が共有する meta 構造。各 entity の root に展開する。",
+      "description": "全 top-level entity (Screen / Table / ProcessFlow / View / Sequence / PageLayout / ViewDefinition 等) が共有する meta 構造。各 entity の root に展開する。RFC #1284 で id を kebab-case (`EntityId`) に変更、不変識別子 `uuid: Uuid` を追加。CustomBlock のような top-level でない entity は EntityMeta を採用せず個別 schema で定義する。",
       "type": "object",
-      "required": ["id", "name", "createdAt", "updatedAt"],
+      "required": ["id", "uuid", "name", "createdAt", "updatedAt"],
       "properties": {
-        "id": { "$ref": "#/$defs/Uuid" },
+        "id": { "$ref": "#/$defs/EntityId" },
+        "uuid": { "$ref": "#/$defs/Uuid" },
         "name": { "type": "string", "description": "表示名 (人間向け)。物理名と異なる場合は physicalName で別管理。" },
         "description": { "$ref": "#/$defs/Description" },
         "version": { "$ref": "#/$defs/SemVer" },
@@ -236,8 +239,8 @@ $statusCode (Criterion 内のみ)
 
 | 廃止対象 | 修正先 |
 |---|---|
-| `ConstraintDefinition.referencedTable: "users"` (物理名) | `referencedTableId: Uuid` (Pattern A) |
-| `DbAccessStep.tableId + tableName` (id と物理名併記) | `tableId: Uuid` のみ。tableName は実装が tableId で table.v2 を引いて取得 |
+| `ConstraintDefinition.referencedTable: "users"` (物理名) | `referencedTableId: EntityId` (Pattern A) |
+| `DbAccessStep.tableId + tableName` (id と物理名併記) | `tableId: EntityId` のみ。tableName は実装が tableId で table.v3 を引いて取得 |
 | `ScreenTransitionStep.targetScreenId + targetScreenName` | `targetScreenId` のみ |
 | 「id と name の両方を持つ」全般 | id のみ。name は entity 側で取得 |
 
@@ -254,11 +257,11 @@ $statusCode (Criterion 内のみ)
     { "type": "object", "required": ["kind", "fields"], "additionalProperties": false,
       "properties": { "kind": { "const": "object" }, "fields": { "type": "array", "items": { "$ref": "#/$defs/StructuredField" } } } },
     { "type": "object", "required": ["kind", "tableId"], "additionalProperties": false,
-      "properties": { "kind": { "const": "tableRow" }, "tableId": { "$ref": "#/$defs/Uuid" } } },
+      "properties": { "kind": { "const": "tableRow" }, "tableId": { "$ref": "#/$defs/EntityId" } } },
     { "type": "object", "required": ["kind", "tableId"], "additionalProperties": false,
-      "properties": { "kind": { "const": "tableList" }, "tableId": { "$ref": "#/$defs/Uuid" } } },
+      "properties": { "kind": { "const": "tableList" }, "tableId": { "$ref": "#/$defs/EntityId" } } },
     { "type": "object", "required": ["kind", "screenId"], "additionalProperties": false,
-      "properties": { "kind": { "const": "screenInput" }, "screenId": { "$ref": "#/$defs/Uuid" } } },
+      "properties": { "kind": { "const": "screenInput" }, "screenId": { "$ref": "#/$defs/EntityId" } } },
     { "type": "object", "required": ["kind"], "additionalProperties": false,
       "properties": { "kind": { "const": "file" }, "format": { "type": "string" } } },
     { "type": "object", "required": ["kind", "extensionRef"], "additionalProperties": false,
@@ -281,15 +284,15 @@ $statusCode (Criterion 内のみ)
   "required": ["id", "kind", "columns", "referencedTableId", "referencedColumnIds"],
   "additionalProperties": false,
   "properties": {
-    "id": { "$ref": "common.v2.schema.json#/$defs/LocalId" },
+    "id": { "$ref": "common.v3.schema.json#/$defs/LocalId" },
     "kind": { "const": "foreignKey" },
-    "columns": { "type": "array", "items": { "$ref": "common.v2.schema.json#/$defs/LocalId" }, "description": "Column.id (LocalId) の配列" },
-    "referencedTableId": { "$ref": "common.v2.schema.json#/$defs/Uuid" },
-    "referencedColumnIds": { "type": "array", "items": { "$ref": "common.v2.schema.json#/$defs/LocalId" } },
+    "columns": { "type": "array", "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" }, "description": "Column.id (LocalId) の配列" },
+    "referencedTableId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
+    "referencedColumnIds": { "type": "array", "items": { "$ref": "common.v3.schema.json#/$defs/LocalId" } },
     "onDelete": { "$ref": "#/$defs/FkAction" },
     "onUpdate": { "$ref": "#/$defs/FkAction" },
     "noConstraint": { "type": "boolean", "description": "true なら DDL に FK 制約を出力しない (論理 FK のみ)" },
-    "description": { "$ref": "common.v2.schema.json#/$defs/Description" }
+    "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
   }
 }
 ```
@@ -309,23 +312,24 @@ $statusCode (Criterion 内のみ)
     "$schema": { "type": "string" },
 
     "meta": {
-      "description": "ProcessFlow の identity と運用設定。",
+      "description": "ProcessFlow の identity と運用設定。RFC #1284 により id は EntityId (kebab-case) + 不変識別子 uuid (Uuid) の 2 fields 構成。",
       "type": "object",
-      "required": ["id", "name", "flowType", "createdAt", "updatedAt"],
+      "required": ["id", "uuid", "name", "flowType", "createdAt", "updatedAt"],
       "additionalProperties": false,
       "properties": {
-        "id": { "$ref": "common.v2.schema.json#/$defs/Uuid" },
+        "id": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
+        "uuid": { "$ref": "common.v3.schema.json#/$defs/Uuid" },
         "name": { "type": "string" },
         "flowType": { "$ref": "#/$defs/ProcessFlowKind" },
-        "screenId": { "$ref": "common.v2.schema.json#/$defs/Uuid" },
-        "description": { "$ref": "common.v2.schema.json#/$defs/Description" },
-        "version": { "$ref": "common.v2.schema.json#/$defs/SemVer" },
+        "screenId": { "$ref": "common.v3.schema.json#/$defs/EntityId" },
+        "description": { "$ref": "common.v3.schema.json#/$defs/Description" },
+        "version": { "$ref": "common.v3.schema.json#/$defs/SemVer" },
         "apiVersion": { "type": "string" },
-        "maturity": { "$ref": "common.v2.schema.json#/$defs/MaturityLevel" },
-        "mode": { "$ref": "common.v2.schema.json#/$defs/ProcessMode" },
+        "maturity": { "$ref": "common.v3.schema.json#/$defs/MaturityLevel" },
+        "mode": { "$ref": "common.v3.schema.json#/$defs/ProcessMode" },
         "sla": { "$ref": "#/$defs/Sla" },
-        "createdAt": { "$ref": "common.v2.schema.json#/$defs/Timestamp" },
-        "updatedAt": { "$ref": "common.v2.schema.json#/$defs/Timestamp" }
+        "createdAt": { "$ref": "common.v3.schema.json#/$defs/Timestamp" },
+        "updatedAt": { "$ref": "common.v3.schema.json#/$defs/Timestamp" }
       }
     },
 
@@ -428,7 +432,7 @@ $statusCode (Criterion 内のみ)
 
 ```jsonc
 "ScreenNode": {
-  "allOf": [{ "$ref": "common.v2.schema.json#/$defs/EntityMeta" }],
+  "allOf": [{ "$ref": "common.v3.schema.json#/$defs/EntityMeta" }],
   "type": "object",
   "required": ["kind", "path"],
   "additionalProperties": false,
@@ -437,7 +441,7 @@ $statusCode (Criterion 内のみ)
     "kind": { "$ref": "#/$defs/ScreenKind" },
     "path": { "type": "string", "description": "URL ルーティングパス (例: /customers, /customers/:id)" },
     "hasDesign": { "type": "boolean" },
-    "groupId": { "$ref": "common.v2.schema.json#/$defs/Uuid" }
+    "groupId": { "$ref": "common.v3.schema.json#/$defs/EntityId" }
   }
 }
 ```
@@ -673,7 +677,7 @@ ScreenNode.path (URL パス: "/customers") ← physicalName 相当
 
 - physicalName と name (表示名) を分離
 - TableColumn.foreignKey 削除、ConstraintDefinition に集約
-- ConstraintDefinition.referencedTable → referencedTableId (Uuid)
+- ConstraintDefinition.referencedTable → referencedTableId (EntityId)
 - EntityMeta を allOf でマージ
 
 ### Step 5-4: screen.v3 + screen-flow-positions.v3 分離 (旧称: screen-layout.v3、#1029 でリネーム)

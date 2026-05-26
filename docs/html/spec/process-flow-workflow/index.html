@@ -363,7 +363,7 @@
 
 
 
-<table><thead><tr><th>v1/v2</th><th>v3</th></tr></thead><tbody><tr><td><code>type: "workflow"</code></td><td><code>kind: "workflow"</code></td></tr><tr><td>step の <code>type: "dbAccess"</code></td><td>step の <code>kind: "dbAccess"</code></td></tr><tr><td><code>tableName: "users"</code></td><td><code>tableId: "&#x3C;Uuid>"</code> (UUID 化)</td></tr><tr><td>quorum の <code>type: "n-of-m"</code></td><td>quorum の <code>type: "nOfM"</code> (lowerCamelCase)</td></tr></tbody></table>
+<table><thead><tr><th>v1/v2</th><th>v3</th></tr></thead><tbody><tr><td><code>type: "workflow"</code></td><td><code>kind: "workflow"</code></td></tr><tr><td>step の <code>type: "dbAccess"</code></td><td>step の <code>kind: "dbAccess"</code></td></tr><tr><td><code>tableName: "users"</code></td><td><code>tableId: "&#x3C;EntityId>"</code> (RFC #1284 で kebab-case EntityId 化)</td></tr><tr><td>quorum の <code>type: "n-of-m"</code></td><td>quorum の <code>type: "nOfM"</code> (lowerCamelCase)</td></tr></tbody></table>
 <h2 id="関連">関連</h2>
 <ul>
 <li>スキーマ: <a href="../../schemas/v3/process-flow.v3.schema.json"><code>schemas/v3/process-flow.v3.schema.json</code></a> <code>#/$defs/WorkflowStep</code></li>
