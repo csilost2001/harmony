@@ -120,4 +120,3 @@ export type ExternalCallOutcomeSpec = _AnyRecord;
 
 // ── OutputBinding (frontend 表示専用、v3 OutputBindingObject に近い概念) ──
 export type OutputBindingOperation = "assign" | "accumulate" | "push";
-
