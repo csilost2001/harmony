@@ -28,6 +28,13 @@
     "source=/mnt/wslg,target=/mnt/wslg,type=bind,consistency=cached"
   ],
 
+  // initializeCommand: host 側でコンテナ起動「前」に bind mount source path を事前作成。
+  // Docker は missing source path を自動 mkdir しないため、fresh clone 後の初回
+  // Reopen in Container がここで失敗するのを防ぐ。既存ディレクトリ/ファイルは no-op。
+  // (host shell = bash 前提: WSL2 / macOS / Linux。Windows native cmd では動かないが
+  //  既存 mount (/tmp/.X11-unix 等) の時点で WSL2/Unix 前提のため整合) #1340
+  "initializeCommand": "bash -c 'mkdir -p ~/.agent-containers/${localWorkspaceFolderBasename}/{.claude,.codex,.copilot,.harmony} ~/.config/gh ~/.docker && touch ~/.gitconfig'",
+
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.harmony /home/node/.config/gh /home/node/.gitconfig",
 
   "postCreateCommand": "npm install --prefix frontend && npm install --prefix backend && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",

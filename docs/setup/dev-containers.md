@@ -57,7 +57,7 @@ npm run dev
 
 ## 初回起動で WSL2 host 側に何が作られるか
 
-Reopen in Container を実行すると、以下が自動で WSL2 host 側に作られます。**利用者の事前準備は不要**です (Docker bind mount が missing path を自動 mkdir する仕様):
+Reopen in Container を実行すると、以下が自動で WSL2 host 側に作られます。**利用者の事前準備は不要**です (`devcontainer.json` の `initializeCommand` が container 起動「前」に host 側で `mkdir -p` を実行、#1340。Docker の bind mount 自体は missing source path を自動作成しない仕様のため明示 mkdir が必要):
 
 ```
 ~/.agent-containers/                       ← AI agent 用データ root

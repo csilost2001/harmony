@@ -43,7 +43,7 @@ VS Code 起動後:
 
 ### 初回起動時に作られるもの (利用者の事前準備は不要)
 
-Reopen in Container すると以下が WSL2 host 側に自動作成されます (Docker bind mount が自動 mkdir):
+Reopen in Container すると以下が WSL2 host 側に自動作成されます (`initializeCommand` が container 起動前に mkdir、#1340):
 
 ```
 ~/.agent-containers/harmony/
