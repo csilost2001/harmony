@@ -86,7 +86,7 @@ export interface ViewDefinitionEntry extends EntryBase {
   id: ViewDefinitionId;
   /** ViewDefinitionKind (list / detail / kanban / calendar、または `retail:storefront` 等の拡張参照)。 */
   kind?: string;
-  /** ベースとなる source table の Uuid (一覧 UI 表示用)。 */
+  /** ベースとなる source table の EntityId (kebab-case、一覧 UI 表示用)。 */
   sourceTableId?: TableId;
   columnCount?: number;
 }

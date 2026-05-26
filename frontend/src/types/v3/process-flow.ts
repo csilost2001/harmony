@@ -66,7 +66,7 @@ export interface ProcessFlowMeta extends EntityMeta {
   // uuid / name / description / version / maturity / createdAt / updatedAt は EntityMeta から継承
   // ProcessFlow 固有 (#1263 Phase X1: kind → flowType に rename)
   flowType: ProcessFlowKind;
-  /** flowType='screen' の場合に紐付く Screen の Uuid。 */
+  /** flowType='screen' の場合に紐付く Screen の EntityId (kebab-case)。 */
   screenId?: ScreenId;
   /** ProcessFlow が公開する API のバージョン (例: `v1`, `2026-04-25`)。 */
   apiVersion?: string;
@@ -554,7 +554,7 @@ export interface CacheHint {
 export interface DbAccessStep extends StepBaseProps {
   kind: "dbAccess";
   description: Description;
-  /** 対象 Table の Uuid (物理名直書きは v3 廃止)。 */
+  /** 対象 Table の EntityId (kebab-case。物理名直書きは v3 廃止)。 */
   tableId: TableId;
   operation: DbOperation;
   /** 対象フィールド (人間向け簡易表記)。 */
@@ -655,7 +655,7 @@ export interface ExternalSystemStep extends StepBaseProps {
 export interface CommonProcessStep extends StepBaseProps {
   kind: "commonProcess";
   description: Description;
-  /** 呼び出し先 ProcessFlow の Uuid (kind='common' の他フロー)。 */
+  /** 呼び出し先 ProcessFlow の EntityId (kebab-case。kind='common' の他フロー)。 */
   refId: ProcessFlowId;
   /** 呼び先 inputs 名 → 引数式の対応。 */
   argumentMapping?: Record<string, TemplateString>;
@@ -991,7 +991,7 @@ export type CdcDestination =
 export interface CdcStep extends StepBaseProps {
   kind: "cdc";
   description: Description;
-  /** 対象 Table の Uuid 配列。 */
+  /** 対象 Table の EntityId (kebab-case) 配列。 */
   tableIds: TableId[];
   captureMode: "full" | "incremental";
   destination: CdcDestination;

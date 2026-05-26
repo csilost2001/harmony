@@ -1,7 +1,7 @@
 /**
  * v3 schema 共通型定義 (`schemas/v3/common.v3.schema.json` と 1:1 対応)
  *
- * - 業務識別子 (Uuid / LocalId / Identifier / IdentifierPath / PhysicalName / EnvVarKey / ErrorCode / EventTopic)
+ * - 識別子 (EntityId / Uuid / LocalId / Identifier / IdentifierPath / PhysicalName / EnvVarKey / ErrorCode / EventTopic)
  * - branded types で誤代入をコンパイル時検出
  * - FieldType / StructuredField / Authoring / Marker / Note / DecisionRecord / GlossaryEntry / TestScenario
  * - ExtensionRoot / ExtensionApplied
@@ -25,7 +25,7 @@ export type NarrowBrand<K, T> = K & { readonly [__narrowBrand]: T };
  * pattern: `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`
  *
  * RFC #1284 (I-7) 以降、top-level entity の業務識別子は kebab-case の `EntityId` に変更。
- * `Uuid` は `EntityMeta.uuid` (不変識別子) と一部 internal entity (CustomBlock / ScreenGroup) に限定使用。
+ * `Uuid` は `EntityMeta.uuid` (不変識別子) と UUID base を維持する internal entity (現状 CustomBlock のみ) に限定使用。
  */
 export type Uuid = Brand<string, "Uuid">;
 

@@ -126,14 +126,14 @@ export interface CheckConstraint {
 /** FK 違反時のアクション。lowerCamelCase 統一 (v1 の `NO ACTION` / `SET NULL` のスペース含み廃止)。 */
 export type FkAction = "cascade" | "setNull" | "setDefault" | "restrict" | "noAction";
 
-/** 外部キー制約。単一カラム / 複合カラムを統一表現。referencedTableId は Uuid (物理名直書きは廃止)。 */
+/** 外部キー制約。単一カラム / 複合カラムを統一表現。referencedTableId は EntityId (物理名直書きは廃止)。 */
 export interface ForeignKeyConstraint {
   id: LocalId;
   kind: "foreignKey";
   physicalName?: PhysicalName;
   /** 本テーブルの Column.id 配列。 */
   columnIds: LocalId[];
-  /** 参照先 Table の Uuid。 */
+  /** 参照先 Table の EntityId (kebab-case)。 */
   referencedTableId: TableId;
   /** 参照先 Column.id 配列。 */
   referencedColumnIds: LocalId[];
@@ -181,7 +181,7 @@ export interface TriggerDefinition {
 
 /** Table entity 本体。EntityMeta + 物理名 + カラム + 制約 + インデックス + 等。 */
 export interface Table extends EntityMeta {
-  /** Sequence / View と同じく id を TableId に narrow (compile-time 識別)。schema 上は Uuid。 */
+  /** Sequence / View と同じく id を TableId に narrow (compile-time 識別)。schema 上は EntityId。 */
   id: TableId;
   $schema?: string;
   /** DB 物理名 (snake_case)。例: `users`, `order_items` */
