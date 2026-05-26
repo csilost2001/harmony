@@ -39,9 +39,9 @@ import {
   type ProcessFlowDoc,
   type CatalogName,
 } from "../processFlowEdits.js";
-import { assertEntityIdMcp, saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
+import { assertEntityIdMcp, assertLocalIdMcp, saveAndBroadcast, type ToolHandler } from "../mcpHelpers.js";
 import { wsBridge } from "../wsBridge.js";
-import { assertUuid, assertEntityId, assertPathContained } from "../security/idValidator.js";
+import { assertEntityId, assertPathContained } from "../security/idValidator.js";
 
 type ResponseTypeEntry = {
   description?: string;
@@ -55,15 +55,92 @@ type ResponseTypesFile = {
 
 const EXTENSION_PACKAGE_TYPES: ExtensionFileKind[] = ["steps", "fieldTypes", "triggers", "dbOperations", "responseTypes"];
 
-// ── v3 schema 規範ヘルパー (#1141 F-4 / S-9) ───────────────────────────────────
+// ── v3 schema 規範ヘルパー (#1141 F-4 / S-9 / #1332 Codex 9 巡目 M3) ───────────
 
 /**
- * RFC 4122 v4 UUID を生成する (#1141 S-9)。
- * `crypto.randomUUID()` は Node.js 14.17+ で常用可能、Web Crypto も v19+ で global 化済み。
- * action/step の LocalId 採番では引き続き使用 (旧 `act-/step- + Date.now()` を全廃)。
+ * Action / Step / Response / Branch 等の **LocalId** を採番する (#1332 M3)。
+ *
+ * 背景: 8 巡目までは `crypto.randomUUID()` で UUID v4 を生成していたが、
+ * schema (`schemas/v3/process-flow.v3.schema.json`) は `Action.id: LocalId` /
+ * `Step.id: LocalId` (`schemas/v3/common.v3.schema.json#LocalId`) と定義しており、
+ * 実 sample (`examples/retail/harmony/process-flows/*.json`) も `act-001` / `step-01`
+ * 等の kebab-case LocalId 形式。UUID 生成は schema/sample 違反の状態だった。
+ * (tools.ts:944-955 の description も既に LocalId 形式と謳っており、実装が乖離していた)。
+ *
+ * 採番ルール:
+ *   - 既存 ID 集合の中で同 prefix + 数字 suffix のものから最大値を抽出し +1
+ *   - 衝突回避: 上記 +1 値が既に使われていれば更に increment
+ *   - padding は呼び出し側で指定 (`act-` は 3 桁: `act-001`、`step-` は 2 桁: `step-01`)
+ *
+ * 階層命名 (`step-01-a-01` 等) は本 helper では扱わない (設計者が手動で組み直す)。
  */
-function newId(): string {
-  return crypto.randomUUID();
+function nextLocalId(existingIds: Set<string>, prefix: string, padWidth: number): string {
+  // 既存 ID から `<prefix>-<digits>` 形式を抽出して最大値を求める
+  const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`^${escapedPrefix}-(\\d+)$`);
+  let maxN = 0;
+  for (const id of existingIds) {
+    const m = id.match(re);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (Number.isFinite(n) && n > maxN) maxN = n;
+    }
+  }
+  // maxN + 1 から開始、衝突したら +1 ずつ (intra-entity 階層命名と被るケースを想定)
+  let candidateN = maxN + 1;
+  // 最大試行回数は existingIds.size + 1 (理論上の上限)
+  for (let attempt = 0; attempt <= existingIds.size; attempt++) {
+    const candidate = `${prefix}-${String(candidateN).padStart(padWidth, "0")}`;
+    if (!existingIds.has(candidate)) return candidate;
+    candidateN++;
+  }
+  // 万一全て衝突する場合は padding を伸ばす (実運用では到達しないが安全側に)
+  return `${prefix}-${String(candidateN).padStart(padWidth + 1, "0")}`;
+}
+
+/** ProcessFlow doc 内の全 action / step / response / branch / outcome の id を 1 つの Set に集める。 */
+function collectAllLocalIds(doc: ProcessFlowDoc): Set<string> {
+  const ids = new Set<string>();
+  const actions = Array.isArray(doc.actions) ? doc.actions : [];
+  for (const aRaw of actions) {
+    const a = aRaw as Record<string, unknown>;
+    if (typeof a.id === "string") ids.add(a.id);
+    const responses = Array.isArray(a.responses) ? a.responses : [];
+    for (const rRaw of responses) {
+      const r = rRaw as Record<string, unknown>;
+      if (typeof r.id === "string") ids.add(r.id);
+    }
+    // step (再帰的に branch / loop / outcomes.sideEffects も walk)
+    const collectFromSteps = (steps: unknown[]): void => {
+      if (!Array.isArray(steps)) return;
+      for (const sRaw of steps) {
+        const s = sRaw as Record<string, unknown>;
+        if (typeof s.id === "string") ids.add(s.id);
+        const branches = s.branches as Array<Record<string, unknown>> | undefined;
+        if (Array.isArray(branches)) {
+          for (const br of branches) {
+            if (typeof br.id === "string") ids.add(br.id);
+            const subSteps = br.steps as unknown[] | undefined;
+            if (Array.isArray(subSteps)) collectFromSteps(subSteps);
+          }
+        }
+        const innerSteps = s.steps as unknown[] | undefined;
+        if (Array.isArray(innerSteps)) collectFromSteps(innerSteps);
+        const subSteps = s.subSteps as unknown[] | undefined;
+        if (Array.isArray(subSteps)) collectFromSteps(subSteps);
+        const outcomes = s.outcomes as Record<string, Record<string, unknown>> | undefined;
+        if (outcomes && typeof outcomes === "object") {
+          for (const oc of Object.values(outcomes)) {
+            const se = oc?.sideEffects as unknown[] | undefined;
+            if (Array.isArray(se)) collectFromSteps(se);
+          }
+        }
+      }
+    };
+    const aSteps = a.steps as unknown[] | undefined;
+    collectFromSteps(Array.isArray(aSteps) ? aSteps : []);
+  }
+  return ids;
 }
 
 /**
@@ -386,7 +463,11 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       const pf = await readProcessFlow(a.processFlowId, root) as Record<string, unknown> | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       const actions = Array.isArray(pf.actions) ? pf.actions as Array<Record<string, unknown>> : [];
-      const actionId = newId(); // #1141 S-9: UUID v4 (旧 `act-${Date.now()}` 全廃)
+      // #1332 Codex 9 巡目 M3: action.id は schema (Action.id: LocalId) 規範に従い
+      // kebab-case LocalId で採番する (旧 UUID v4 は schema/sample 違反だった)。
+      // 例: `act-001`, `act-002`, ... — 3 桁 padding は examples/retail/harmony/process-flows/* に合わせる。
+      const existingIds = collectAllLocalIds(pf as unknown as ProcessFlowDoc);
+      const actionId = nextLocalId(existingIds, "act", 3);
       // v3 ActionDefinition の最小形 (description 必須 + maturity 推奨)
       actions.push({
         id: actionId,
@@ -406,13 +487,17 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
     }
 
     case "designer__add_step": {
-      // #1141 F-4: kind discriminator (旧 type) に統一 + RFC 4122 v4 UUID
+      // #1141 F-4: kind discriminator (旧 type) に統一
       if (typeof a.processFlowId !== "string" || typeof a.actionId !== "string" || typeof a.kind !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "processFlowId, actionId, kind は必須です");
       }
-      // S-002 + #1299 I-7: processFlowId は EntityId、actionId は intra-entity LocalId (UUID v4 採番)
+      // S-002 + #1299 I-7 + #1332 Codex 9 巡目 M3:
+      // - processFlowId は top-level Screen EntityId (kebab-case)
+      // - actionId は intra-entity LocalId (schema: Action.id: LocalId)。
+      //   8 巡目までは assertUuid を要求していたが、schema/sample が kebab-case (例: `act-001`)
+      //   であることから assertLocalIdMcp に修正した (tool description との整合)。
       assertEntityIdMcp(a.processFlowId, "processFlowId");
-      try { assertUuid(a.actionId, "actionId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertLocalIdMcp(a.actionId, "actionId");
       // browser-first: ProcessFlowEditor が開いていれば in-memory に適用
       // browser 側 mutation handler (applyProcessFlowMutation) は #1149 で v3 化済 (kind を直接受容)。
       const addApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
@@ -424,7 +509,11 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       // fallback: ファイル書き
       const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
-      const stepId = newId(); // #1141 S-9: UUID v4 (旧 `step-${Date.now()}` 全廃)
+      // #1332 Codex 9 巡目 M3: step.id は schema (Step.id: LocalId) 規範に従い
+      // kebab-case LocalId で採番する (旧 UUID v4 は schema/sample 違反だった)。
+      // 例: `step-01`, `step-02`, ... — 2 桁 padding は examples/retail/harmony/process-flows/* に合わせる。
+      const existingIds = collectAllLocalIds(pf);
+      const stepId = nextLocalId(existingIds, "step", 2);
       const detail = (a.detail ?? {}) as Record<string, unknown>;
       // v3: discriminator は `kind`。description は schema 上 required の variant が多いので必ず提供。
       const step = {
@@ -444,7 +533,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       }
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
       assertEntityIdMcp(a.processFlowId, "processFlowId");
-      try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertLocalIdMcp(a.stepId, "stepId"); // #1332 Codex 9 巡目 M3: stepId は schema (Step.id: LocalId) 規範
       const updApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__update_step", params: a,
       });
@@ -469,7 +558,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       }
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
       assertEntityIdMcp(a.processFlowId, "processFlowId");
-      try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertLocalIdMcp(a.stepId, "stepId"); // #1332 Codex 9 巡目 M3: stepId は schema (Step.id: LocalId) 規範
       const rmApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__remove_step", params: a,
       });
@@ -494,7 +583,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       }
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
       assertEntityIdMcp(a.processFlowId, "processFlowId");
-      try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertLocalIdMcp(a.stepId, "stepId"); // #1332 Codex 9 巡目 M3: stepId は schema (Step.id: LocalId) 規範
       const mvApplied = await wsBridge.tryCommand("applyProcessFlowMutation", {
         id: a.processFlowId, type: "designer__move_step", params: a,
       });
@@ -537,7 +626,7 @@ export const handleProcessFlowTool: ToolHandler = async (name, args, root) => {
       }
       // S-002 + #1294 I-2: ID validation (processFlowId は EntityId|UUID、stepId は LocalId なので維持)
       assertEntityIdMcp(a.processFlowId, "processFlowId");
-      try { assertUuid(a.stepId, "stepId"); } catch (e) { throw new McpError(ErrorCode.InvalidParams, (e as Error).message); }
+      assertLocalIdMcp(a.stepId, "stepId"); // #1332 Codex 9 巡目 M3: stepId は schema (Step.id: LocalId) 規範
       const pf = await readProcessFlow(a.processFlowId, root) as ProcessFlowDoc | null;
       if (!pf) throw new McpError(ErrorCode.InvalidParams, `処理フロー ${a.processFlowId} が見つかりません`);
       try {

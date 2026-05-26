@@ -918,13 +918,13 @@ export const tools = [
   {
     name: "designer__add_action",
     description:
-      "処理フローにアクション（ボタンクリック等のイベント）を追加します。",
+      "処理フローにアクション（ボタンクリック等のイベント）を追加します。生成される action ID は LocalId (kebab-case、例: 'act-001' / 'act-002')。#1332 Codex 9 巡目 M3 で UUID v4 採番から LocalId 採番に修正 (schema Action.id は LocalId 規範)。",
     inputSchema: {
       type: "object" as const,
       properties: {
         processFlowId: {
           type: "string",
-          description: "対象の処理フローID",
+          description: "対象の処理フローの EntityId (kebab-case、例: 'user-login-flow')。",
         },
         name: {
           type: "string",

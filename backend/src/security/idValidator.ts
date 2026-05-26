@@ -9,6 +9,12 @@ import * as path from "node:path";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SAFE_NAME_RE = /^[A-Za-z0-9_-]{1,64}$/;
+// LocalId: ネスト構造 (Step / Action / Branch / Response / Marker 等) の intra-entity 識別子。
+// schemas/v3/common.v3.schema.json#LocalId と一致させる:
+//   pattern: ^[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?$
+//   minLength: 1, maxLength: 不指定 (実運用は 64 で十分、過長を防ぐため backend で 128 制限)
+const LOCAL_ID_RE = /^[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?$/;
+const LOCAL_ID_MAX_LENGTH = 128;
 // kind: lowercase alpha 先頭、以降は lowercase alphanumeric / hyphen / colon (namespace:kind 形式許可)
 const SAFE_KIND_RE = /^[a-z][a-z0-9:-]{0,63}$/;
 // EntityId: kebab-case 英単語、ファイル名 / URL / @参照 / JSON ref 値に使用 (RFC #1284 / メタ #1292)
@@ -33,6 +39,23 @@ export function isValidSafeName(s: unknown): s is string {
 
 export function isValidKind(s: unknown): s is string {
   return typeof s === "string" && SAFE_KIND_RE.test(s);
+}
+
+/**
+ * LocalId 形式 (#1332 Codex 9 巡目 M3、ネスト構造の intra-entity 識別子) を判定する。
+ *
+ * 用途: Step / Action / Branch / Response / Marker 等の id 検証。
+ * 例: `step-01`, `act-001`, `br-03-a`, `200-ok`, `step-13b-a-01`。
+ *
+ * schemas/v3/common.v3.schema.json#LocalId と pattern を一致させる。
+ * 過長を防ぐため 128 文字上限を backend 側で追加する。
+ */
+export function isValidLocalId(s: unknown): s is string {
+  return (
+    typeof s === "string" &&
+    s.length <= LOCAL_ID_MAX_LENGTH &&
+    LOCAL_ID_RE.test(s)
+  );
 }
 
 /**
@@ -81,6 +104,21 @@ export function assertSafeName(s: unknown, label: string): string {
 export function assertKind(s: unknown, label: string): string {
   if (!isValidKind(s)) {
     throw new Error(`Invalid ${label}: must match [a-z][a-z0-9:-]{0,63} (got ${JSON.stringify(s)})`);
+  }
+  return s;
+}
+
+/**
+ * LocalId を strict に強制する assert (#1332 Codex 9 巡目 M3)。
+ *
+ * 用途: action/step 系 MCP handler 入口 (`designer__add_step.actionId` 等) で、
+ * schema が LocalId を要求する箇所の id 検証。schema 違反 (UUID v4 等) を reject する。
+ */
+export function assertLocalId(s: unknown, label: string): string {
+  if (!isValidLocalId(s)) {
+    throw new Error(
+      `Invalid ${label}: must be LocalId matching ^[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?$ with length 1..${LOCAL_ID_MAX_LENGTH} (got ${JSON.stringify(s)})`,
+    );
   }
   return s;
 }

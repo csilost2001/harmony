@@ -174,9 +174,16 @@ describe("designer__add_process_flow — #1141 F-4 + S-9", () => {
   });
 });
 
-// ── 2. designer__add_action / designer__add_step が UUID + kind で書く ──────────
+// ── 2. designer__add_action / designer__add_step が LocalId + kind で書く ──────
+// #1332 Codex 9 巡目 M3: schema (Action.id / Step.id: LocalId) 規範に合わせて、
+// 採番形式を UUID v4 → kebab-case LocalId に修正 (act-001 / step-01)。
+// tool description (tools.ts:944-955) も既に LocalId を案内していたが、実装が UUID
+// を生成して assertUuid 要求しており整合していなかった。本テストで LocalId 期待に反転。
 
-describe("designer__add_action + designer__add_step — #1141 F-4 + S-9", () => {
+const LOCAL_ID_ACT_PATTERN = /^act-\d{3,}$/;
+const LOCAL_ID_STEP_PATTERN = /^step-\d{2,}$/;
+
+describe("designer__add_action + designer__add_step — #1141 F-4 + #1332 M3 LocalId", () => {
   const root = path.join(TMP_ROOT, "ws-add-action-step");
   let pfId: string;
 
@@ -192,20 +199,22 @@ describe("designer__add_action + designer__add_step — #1141 F-4 + S-9", () => 
     pfId = idMatch![1];
   });
 
-  it("designer__add_action: actionId が UUID v4、description / maturity / trigger / steps が設定される", async () => {
+  it("designer__add_action: actionId が LocalId (act-001 形式)、description / maturity / trigger / steps が設定される", async () => {
     const res = await handleProcessFlowTool(
       "designer__add_action",
       { processFlowId: pfId, name: "登録ボタン", trigger: "click", description: "登録ボタン押下" },
       root,
       SESSION_ID,
     );
-    const idMatch = (res!.content[0].text as string).match(/ID: ([0-9a-f-]+)/);
-    expect(idMatch![1]).toMatch(UUID_V4_PATTERN);
+    const idMatch = (res!.content[0].text as string).match(/ID: ([a-z][a-z0-9-]*)/);
+    expect(idMatch![1]).toMatch(LOCAL_ID_ACT_PATTERN);
 
     const doc = await readProcessFlow(pfId, root) as Record<string, unknown>;
     const actions = doc.actions as Array<Record<string, unknown>>;
     expect(actions).toHaveLength(1);
-    expect(actions[0].id).toMatch(UUID_V4_PATTERN);
+    expect(actions[0].id).toBe("act-001");
+    expect(actions[0].id).toMatch(LOCAL_ID_ACT_PATTERN);
+    expect(actions[0].id).not.toMatch(UUID_V4_PATTERN); // #1332 M3: UUID v4 は撤廃
     expect(actions[0].name).toBe("登録ボタン");
     expect(actions[0].trigger).toBe("click");
     expect(actions[0].description).toBe("登録ボタン押下");
@@ -213,7 +222,7 @@ describe("designer__add_action + designer__add_step — #1141 F-4 + S-9", () => 
     expect(actions[0].steps).toEqual([]);
   });
 
-  it("designer__add_step: stepId が UUID v4 + discriminator は `kind` (旧 `type` 不在)", async () => {
+  it("designer__add_step: stepId が LocalId (step-01 形式) + discriminator は `kind` (旧 `type` 不在)", async () => {
     const doc = await readProcessFlow(pfId, root) as Record<string, unknown>;
     const actions = doc.actions as Array<Record<string, unknown>>;
     const actionId = actions[0].id as string;
@@ -231,14 +240,16 @@ describe("designer__add_action + designer__add_step — #1141 F-4 + S-9", () => 
       SESSION_ID,
     );
     expect(res).not.toBeNull();
-    const idMatch = (res!.content[0].text as string).match(/ID: ([0-9a-f-]+)/);
-    expect(idMatch![1]).toMatch(UUID_V4_PATTERN);
+    const idMatch = (res!.content[0].text as string).match(/ID: ([a-z][a-z0-9-]*)/);
+    expect(idMatch![1]).toMatch(LOCAL_ID_STEP_PATTERN);
 
     const reloaded = await readProcessFlow(pfId, root) as Record<string, unknown>;
     const reloadedActions = reloaded.actions as Array<Record<string, unknown>>;
     const steps = reloadedActions[0].steps as Array<Record<string, unknown>>;
     expect(steps).toHaveLength(1);
-    expect(steps[0].id).toMatch(UUID_V4_PATTERN);
+    expect(steps[0].id).toBe("step-01");
+    expect(steps[0].id).toMatch(LOCAL_ID_STEP_PATTERN);
+    expect(steps[0].id).not.toMatch(UUID_V4_PATTERN); // #1332 M3: UUID v4 は撤廃
     expect(steps[0].kind).toBe("compute"); // v3 discriminator
     expect(steps[0]).not.toHaveProperty("type"); // 旧 legacy field 不在
     expect(steps[0].description).toBe("compute step");
@@ -258,6 +269,38 @@ describe("designer__add_action + designer__add_step — #1141 F-4 + S-9", () => 
         SESSION_ID,
       ),
     ).rejects.toThrow(/processFlowId, actionId, kind は必須/);
+  });
+
+  // #1332 Codex 9 巡目 M3: actionId が LocalId 違反 (空 / path traversal / null) なら reject
+  it("designer__add_step: actionId が LocalId 違反なら reject される (#1332 M3)", async () => {
+    await expect(
+      handleProcessFlowTool(
+        "designer__add_step",
+        { processFlowId: pfId, actionId: "../evil", kind: "compute", description: "x" },
+        root,
+        SESSION_ID,
+      ),
+    ).rejects.toThrow(/Invalid actionId.*LocalId/);
+  });
+
+  // #1332 Codex 9 巡目 M3: 連続採番 (act-001 → act-002 → act-003) が衝突せず増えていく
+  it("designer__add_action: 連続採番が act-002 / act-003 と inkrementiert される (#1332 M3)", async () => {
+    const res2 = await handleProcessFlowTool(
+      "designer__add_action",
+      { processFlowId: pfId, name: "second", trigger: "click" },
+      root,
+      SESSION_ID,
+    );
+    const id2Match = (res2!.content[0].text as string).match(/ID: ([a-z][a-z0-9-]*)/);
+    expect(id2Match![1]).toBe("act-002");
+    const res3 = await handleProcessFlowTool(
+      "designer__add_action",
+      { processFlowId: pfId, name: "third", trigger: "click" },
+      root,
+      SESSION_ID,
+    );
+    const id3Match = (res3!.content[0].text as string).match(/ID: ([a-z][a-z0-9-]*)/);
+    expect(id3Match![1]).toBe("act-003");
   });
 });
 
