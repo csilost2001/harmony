@@ -25,7 +25,7 @@ const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const dummyProject = buildProject({
   name: "E2Eダッシュボードテスト",
   entities: {
-    screens: [{ id: SCREEN_ID, no: 1, name: "ログイン画面", flowType: "input", path: "/login", hasDesign: true, updatedAt: FIXED_TS }],
+    screens: [{ id: SCREEN_ID, no: 1, name: "ログイン画面", kind: "form", path: "/login", hasDesign: true, updatedAt: FIXED_TS }],
     tables: [{ id: TABLE_ID, no: 1, physicalName: "users", name: "ユーザー", category: "マスタ", columnCount: 0, updatedAt: FIXED_TS }],
     processFlows: [{ id: ACTION_ID, no: 1, name: "ログイン処理", flowType: "screen", actionCount: 0, updatedAt: FIXED_TS }],
   } as ProjectEntities,
