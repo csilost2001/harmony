@@ -1,9 +1,9 @@
 # golden-examples/screens-list-component
 
-Screen `31d56212-b654-46dc-b004-096c7382c404` (投稿一覧) を題材にした
+Screen `post-list-screen` (投稿一覧) を題材にした
 `/generate-tests` スキルの P3 ゴールデン出力。
 
-`examples/diary/harmony/screens/31d56212-b654-46dc-b004-096c7382c404.json` を入力として
+`examples/diary/harmony/screens/post-list-screen.json` を入力として
 `/generate-tests` スキルが SKILL.md の Screen 変換ルールに従い生成する
 vitest + @testing-library/react テストの見本。
 
@@ -26,11 +26,11 @@ vitest + @testing-library/react テストの見本。
 
 | PLACEHOLDER | 解決元 | diary での具体値 |
 |---|---|---|
-| `<screenId>` | Screen JSON の `id` | `31d56212-b654-46dc-b004-096c7382c404` |
+| `<screenId>` | Screen JSON の `id` | `post-list-screen` |
 | `<Screen.name>` | Screen JSON の `name` | `投稿一覧` |
 | `<Screen.kind>` | Screen JSON の `kind` | `list` |
 | `<COMPONENT_NAME>` | 実装コンポーネント名 (推測) | `PostsListPage` (PLACEHOLDER) |
-| `<PROCESS_FLOW_ID>` (posts/totalCount) | `items[].valueFrom.processFlowId` | `e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b` |
+| `<PROCESS_FLOW_ID>` (posts/totalCount) | `items[].valueFrom.processFlowId` | `post-search-flow` |
 | `<HTTP_METHOD>` | flow の `actions[0].httpRoute.method` | `GET` |
 | `<HTTP_PATH>` | flow の `actions[0].httpRoute.path` | `/api/posts/search` |
 | `<API_BASE>` | 環境変数 `NEXT_PUBLIC_API_BASE` 等 | `http://localhost:3001` (msw は `*` でマッチ) |
@@ -39,15 +39,15 @@ vitest + @testing-library/react テストの見本。
 
 ## processFlowId → httpRoute 解決ログ
 
-`items[id=posts].valueFrom.processFlowId = e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b`
+`items[id=posts].valueFrom.processFlowId = post-search-flow`
 
-Read: `examples/diary/harmony/process-flows/e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b.json`
+Read: `examples/diary/harmony/process-flows/post-search-flow.json`
 → `meta.name: "投稿検索"`
 → `actions[0].httpRoute.method: "GET"`
 → `actions[0].httpRoute.path: "/api/posts/search"`
 → `actions[0].httpRoute.auth: "optional"`
 
-`items[id=totalCount].valueFrom.processFlowId = e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b`
+`items[id=totalCount].valueFrom.processFlowId = post-search-flow`
 (同上フロー、同一 httpRoute)
 
 → msw handler: `http.get('*/api/posts/search', ...)` 1 個で両 output item をカバー
@@ -58,52 +58,52 @@ Read: `examples/diary/harmony/process-flows/e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b
 
 | # | テスト内容 | spec anchor | Section |
 |---|---|---|---|
-| 1 | searchQuery が DOM に存在 | Screen 31d56212 item:searchQuery | render |
-| 2 | selectedTagSlugs が DOM に存在 | Screen 31d56212 item:selectedTagSlugs | render |
-| 3 | statusFilter が DOM に存在 | Screen 31d56212 item:statusFilter | render |
-| 4 | posts が DOM に存在 | Screen 31d56212 item:posts | render |
-| 5 | availableTags が DOM に存在 | Screen 31d56212 item:availableTags | render |
-| 6 | totalCount が DOM に存在 | Screen 31d56212 item:totalCount | render |
-| 7 | searchQuery に入力 → state 更新 | Screen 31d56212 item:searchQuery direction=input type=string | input |
-| 8 | statusFilter を "published" に変更 → state 更新 | Screen 31d56212 item:statusFilter type=enum | input |
-| 9 | statusFilter 初期値が "all" | Screen 31d56212 item:statusFilter defaultValue=all | input |
-| 10 | selectedTagSlugs checkbox 選択 → 配列追加 | Screen 31d56212 item:selectedTagSlugs type=array | input |
-| 11 | selectedTagSlugs checkbox 再 click → 配列除去 | Screen 31d56212 item:selectedTagSlugs type=array | input |
-| 12 | posts が API レスポンスから表示 | Screen 31d56212 item:posts valueFrom.flowVariable | output |
-| 13 | posts が 2 件表示される | Screen 31d56212 item:posts (mock total=2) | output |
-| 14 | totalCount が API の total を表示 | Screen 31d56212 item:totalCount valueFrom.flowVariable | output |
-| 15 | availableTags がレンダリングされる | Screen 31d56212 item:availableTags | output |
-| 16 | API 500 エラー時も posts エリアが表示される | Screen 31d56212 item:posts エラー耐性 | output |
-| 17 (skip) | events テスト (#864 補完待ち) | Screen 31d56212 events[] 空配列 | events |
+| 1 | searchQuery が DOM に存在 | Screen post-list-screen item:searchQuery | render |
+| 2 | selectedTagSlugs が DOM に存在 | Screen post-list-screen item:selectedTagSlugs | render |
+| 3 | statusFilter が DOM に存在 | Screen post-list-screen item:statusFilter | render |
+| 4 | posts が DOM に存在 | Screen post-list-screen item:posts | render |
+| 5 | availableTags が DOM に存在 | Screen post-list-screen item:availableTags | render |
+| 6 | totalCount が DOM に存在 | Screen post-list-screen item:totalCount | render |
+| 7 | searchQuery に入力 → state 更新 | Screen post-list-screen item:searchQuery direction=input type=string | input |
+| 8 | statusFilter を "published" に変更 → state 更新 | Screen post-list-screen item:statusFilter type=enum | input |
+| 9 | statusFilter 初期値が "all" | Screen post-list-screen item:statusFilter defaultValue=all | input |
+| 10 | selectedTagSlugs checkbox 選択 → 配列追加 | Screen post-list-screen item:selectedTagSlugs type=array | input |
+| 11 | selectedTagSlugs checkbox 再 click → 配列除去 | Screen post-list-screen item:selectedTagSlugs type=array | input |
+| 12 | posts が API レスポンスから表示 | Screen post-list-screen item:posts valueFrom.flowVariable | output |
+| 13 | posts が 2 件表示される | Screen post-list-screen item:posts (mock total=2) | output |
+| 14 | totalCount が API の total を表示 | Screen post-list-screen item:totalCount valueFrom.flowVariable | output |
+| 15 | availableTags がレンダリングされる | Screen post-list-screen item:availableTags | output |
+| 16 | API 500 エラー時も posts エリアが表示される | Screen post-list-screen item:posts エラー耐性 | output |
+| 17 (skip) | events テスト (#864 補完待ち) | Screen post-list-screen events[] 空配列 | events |
 
 ---
 
 ## mental invocation 結果 (P3 確認)
 
-`/generate-tests 31d56212-b654-46dc-b004-096c7382c404` を実行した場合の想定動作:
+`/generate-tests post-list-screen` を実行した場合の想定動作:
 
-1. **引数解析**: `31d56212-b654-46dc-b004-096c7382c404` は UUID v4 形式 ✓
+1. **引数解析**: `post-list-screen` は EntityId (kebab-case) 形式 ✓
 2. **techStack 確認**: `frontend.library=react`, `frontend.framework=next` → P3 Screen test 生成ルートへ
-3. **Screen JSON 読込**: `examples/diary/harmony/screens/31d56212-...json`
+3. **Screen JSON 読込**: `examples/diary/harmony/screens/post-list-screen.json`
 4. **items index 構築**: 6 items (input: 3件 / output: 3件)
 5. **processFlowId 解決**:
-   - `posts` → `e6f7a8b9-...-4c5d6e7f8a9b` → GET /api/posts/search ✓
+   - `posts` → `post-search-flow` → GET /api/posts/search ✓
    - `totalCount` → 同上 ✓
    - `availableTags` → valueFrom なし → API 非依存として処理 ✓
 6. **events 確認**: `events[]` が空 → Section 4 は skip テスト + 乖離検出ノートのみ ✓
-7. **anchor 付与**: 全 items に `// Spec: Screen 31d56212-... item:<item.id>` ✓
+7. **anchor 付与**: 全 items に `// Spec: Screen post-list-screen item:<item.id>` ✓
 8. **生成ファイル**: `posts-list.component.test.tsx` (本 golden と構造一致)
 
 ### items 6 件の anchor 付与確認
 
 | item.id | anchor コメント | テストケース |
 |---|---|---|
-| searchQuery | `// Spec: Screen 31d56212-... item:searchQuery` | #1 render, #7 input |
-| selectedTagSlugs | `// Spec: Screen 31d56212-... item:selectedTagSlugs` | #2 render, #10-11 input |
-| statusFilter | `// Spec: Screen 31d56212-... item:statusFilter` | #3 render, #8-9 input |
-| posts | `// Spec: Screen 31d56212-... item:posts` | #4 render, #12-13 output |
-| availableTags | `// Spec: Screen 31d56212-... item:availableTags` | #5 render, #15 output |
-| totalCount | `// Spec: Screen 31d56212-... item:totalCount` | #6 render, #14 output |
+| searchQuery | `// Spec: Screen post-list-screen item:searchQuery` | #1 render, #7 input |
+| selectedTagSlugs | `// Spec: Screen post-list-screen item:selectedTagSlugs` | #2 render, #10-11 input |
+| statusFilter | `// Spec: Screen post-list-screen item:statusFilter` | #3 render, #8-9 input |
+| posts | `// Spec: Screen post-list-screen item:posts` | #4 render, #12-13 output |
+| availableTags | `// Spec: Screen post-list-screen item:availableTags` | #5 render, #15 output |
+| totalCount | `// Spec: Screen post-list-screen item:totalCount` | #6 render, #14 output |
 
 **全 6 items に anchor 付与済み。events なしのため events section は skip 済み (#864 補完待ち)。**
 
@@ -128,12 +128,12 @@ Read: `examples/diary/harmony/process-flows/e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b
 ```bash
 # #864 が close されたら:
 # 1. Screen JSON の events[] が補完されていることを確認
-cat examples/diary/harmony/screens/31d56212-b654-46dc-b004-096c7382c404.json | python3 -c "
+cat examples/diary/harmony/screens/post-list-screen.json | python3 -c "
 import json, sys; d = json.load(sys.stdin); print('events:', d.get('events', []))
 "
 
 # 2. /generate-tests で再生成
-# /generate-tests 31d56212-b654-46dc-b004-096c7382c404
+# /generate-tests post-list-screen
 # → Section 4 が自動更新される (anchor 外の人手 assertion は保護される)
 ```
 
@@ -159,7 +159,7 @@ npx vitest --reporter=verbose posts-list.component.test
 
 ## P4 (Playwright E2E) への申し送り
 
-- Screen ID: `31d56212-b654-46dc-b004-096c7382c404` が P4 の対象候補
+- Screen ID: `post-list-screen` が P4 の対象候補
 - Screen path: `/` (= トップページ)
 - auth: `required` (認証 mock が必要)
 - 投稿フィルタ操作 (statusFilter / selectedTagSlugs) → URL query params 変更 → API 再呼び出しの E2E 検証が P4 のスコープ

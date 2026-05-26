@@ -68,12 +68,12 @@ Gadget は PageLayout の各 region に配置されるため、region 別の Boo
 
 ## 完成テンプレート例 — グローバルヘッダ Gadget
 
-**対象**: `screens/68709449-c9e1-47db-a351-ac9c12a19046.json` (グローバルヘッダ)
+**対象**: `screens/global-header-gadget.json` (グローバルヘッダ)
 - items: storeName (output) / userName (output) / logoutButton (input, events=[click → act-logout])
-- processFlowId: `60e08c25-3daa-41b4-a7bd-b8f5fb571349` (ヘッダーガジェット処理)
+- processFlowId: `header-gadget-handler` (ヘッダーガジェット処理)
 - act-logout の httpRoute: POST /api/retail/auth/logout → redirectTo=/login
 
-### Fragment HTML: `templates/fragments/68709449-c9e1-47db-a351-ac9c12a19046.html`
+### Fragment HTML: `templates/fragments/global-header-gadget.html`
 
 ```html
 <!DOCTYPE html>
@@ -81,10 +81,10 @@ Gadget は PageLayout の各 region に配置されるため、region 別の Boo
 <head></head>
 <body>
   <!--
-    Gadget fragment: 68709449-c9e1-47db-a351-ac9c12a19046
+    Gadget fragment: global-header-gadget
     name: グローバルヘッダ
-    ProcessFlow: 60e08c25-3daa-41b4-a7bd-b8f5fb571349 (ヘッダーガジェット処理)
-    parent layout から th:replace="~{fragments/68709449-c9e1-47db-a351-ac9c12a19046 :: gadget}" で差し込まれる
+    ProcessFlow: header-gadget-handler (ヘッダーガジェット処理)
+    parent layout から th:replace="~{fragments/global-header-gadget :: gadget}" で差し込まれる
   -->
   <div th:fragment="gadget" class="d-flex align-items-center w-100 gap-3">
 
@@ -133,10 +133,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.ui.Model;
 
 /**
- * Gadget Controller: グローバルヘッダ (68709449-c9e1-47db-a351-ac9c12a19046)
- * ProcessFlow: 60e08c25-3daa-41b4-a7bd-b8f5fb571349 (ヘッダーガジェット処理)
+ * Gadget Controller: グローバルヘッダ (global-header-gadget)
+ * ProcessFlow: header-gadget-handler (ヘッダーガジェット処理)
  *
- * @see templates/fragments/68709449-c9e1-47db-a351-ac9c12a19046.html
+ * @see templates/fragments/global-header-gadget.html
  */
 @Controller
 @RequestMapping("/gadgets/global-header")
@@ -151,7 +151,7 @@ public class GlobalHeaderGadgetController {
         // セッション情報をモデルに設定 (本番は SessionScope Bean / @ModelAttribute で注入)
         model.addAttribute("storeName", "東京本店");
         model.addAttribute("userName", "管理者");
-        return "fragments/68709449-c9e1-47db-a351-ac9c12a19046";
+        return "fragments/global-header-gadget";
     }
 
     // ----------------------------------------------------------------------
@@ -197,11 +197,11 @@ public class GlobalHeaderGadgetController {
 
 ## 完成テンプレート例 — ナビゲーションサイドバー Gadget
 
-**対象**: `screens/c1cff7da-1057-4ba1-b780-2d021f6c8679.json` (ナビゲーションサイドバー)
+**対象**: `screens/navigation-sidebar-gadget.json` (ナビゲーションサイドバー)
 - items: navProductSearch / navOrderList / navCustomerList / navMasterManagement (全て input、events なし)
 - processFlowId: なし (design-only Gadget → Controller 生成しない)
 
-### Fragment HTML: `templates/fragments/c1cff7da-1057-4ba1-b780-2d021f6c8679.html`
+### Fragment HTML: `templates/fragments/navigation-sidebar-gadget.html`
 
 ```html
 <!DOCTYPE html>
@@ -209,7 +209,7 @@ public class GlobalHeaderGadgetController {
 <head></head>
 <body>
   <!--
-    Gadget fragment: c1cff7da-1057-4ba1-b780-2d021f6c8679
+    Gadget fragment: navigation-sidebar-gadget
     name: ナビゲーションサイドバー
     processFlowId: なし (design-only、Controller 不要)
     parent layout から th:replace で差し込まれる
@@ -257,11 +257,11 @@ Controller は生成しない (processFlowId なし)。
 
 ## 完成テンプレート例 — グローバルフッタ Gadget
 
-**対象**: `screens/f7daa764-4015-4ad7-8f0a-142944ea2038.json` (グローバルフッタ)
+**対象**: `screens/global-footer-gadget.json` (グローバルフッタ)
 - items: copyright (output) / version (output)
 - processFlowId: なし
 
-### Fragment HTML: `templates/fragments/f7daa764-4015-4ad7-8f0a-142944ea2038.html`
+### Fragment HTML: `templates/fragments/global-footer-gadget.html`
 
 ```html
 <!DOCTYPE html>
@@ -269,7 +269,7 @@ Controller は生成しない (processFlowId なし)。
 <head></head>
 <body>
   <!--
-    Gadget fragment: f7daa764-4015-4ad7-8f0a-142944ea2038
+    Gadget fragment: global-footer-gadget
     name: グローバルフッタ
     processFlowId: なし (design-only)
   -->
@@ -354,7 +354,7 @@ items[].description に `(/path/to/page)` パターンが含まれる場合は�
 | テンプレート記法 | 置換後の出力例 |
 |---|---|
 | `th:action="@{<<httpRoute.path>>}"` | `th:action="@{/api/retail/auth/logout}"` |
-| `fragments/<<gadgetId>> :: gadget` | `fragments/68709449-c9e1-47db-a351-ac9c12a19046 :: gadget` |
+| `fragments/<<gadgetId>> :: gadget` | `fragments/global-header-gadget :: gadget` |
 | `return "redirect:<<redirectTo>>"` | `return "redirect:/login"` |
 
 `<<...>>` のまま Thymeleaf テンプレートや Java ソースに出力してはならない。

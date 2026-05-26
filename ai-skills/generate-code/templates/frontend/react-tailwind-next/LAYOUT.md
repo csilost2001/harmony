@@ -71,36 +71,36 @@ main region は常に assignment なし (`assignments` にキーがあっても�
 
 ## 完成テンプレート TSX 例
 
-**対象**: `examples/retail/harmony/page-layouts/17595b62-fef1-4b22-9c25-16736c772567.json` (Main Layout)
+**対象**: `examples/retail/harmony/page-layouts/main-layout.json` (Main Layout)
 - regions: header / sidebar / footer / main
-- assignments: header → `68709449-c9e1-47db-a351-ac9c12a19046` (グローバルヘッダ) / sidebar → `c1cff7da-1057-4ba1-b780-2d021f6c8679` (ナビゲーションサイドバー) / footer → `f7daa764-4015-4ad7-8f0a-142944ea2038` (グローバルフッタ)
+- assignments: header → `global-header-gadget` (グローバルヘッダ) / sidebar → `navigation-sidebar-gadget` (ナビゲーションサイドバー) / footer → `global-footer-gadget` (グローバルフッタ)
 - main は assignment なし (各 page が children を inject)
 
-### `app/components/layouts/17595b62-fef1-4b22-9c25-16736c772567.tsx`
+### `app/components/layouts/main-layout.tsx`
 
 ```tsx
-// PageLayout: 17595b62-fef1-4b22-9c25-16736c772567
+// PageLayout: main-layout
 // name: Main Layout
 // regions: header, sidebar, footer, main
 // assignments:
-//   header → 68709449-c9e1-47db-a351-ac9c12a19046 (グローバルヘッダ)
-//   sidebar → c1cff7da-1057-4ba1-b780-2d021f6c8679 (ナビゲーションサイドバー)
-//   footer → f7daa764-4015-4ad7-8f0a-142944ea2038 (グローバルフッタ)
+//   header → global-header-gadget (グローバルヘッダ)
+//   sidebar → navigation-sidebar-gadget (ナビゲーションサイドバー)
+//   footer → global-footer-gadget (グローバルフッタ)
 //
-// 使い方 (page 側): import AppLayout from '@/app/components/layouts/17595b62-fef1-4b22-9c25-16736c772567';
+// 使い方 (page 側): import AppLayout from '@/app/components/layouts/main-layout';
 //                   return <AppLayout><YourPageBody /></AppLayout>;
 
 import type { ReactNode } from 'react';
-import GlobalHeaderGadget from '@/app/components/gadgets/68709449-c9e1-47db-a351-ac9c12a19046';
-import NavigationSidebarGadget from '@/app/components/gadgets/c1cff7da-1057-4ba1-b780-2d021f6c8679';
-import GlobalFooterGadget from '@/app/components/gadgets/f7daa764-4015-4ad7-8f0a-142944ea2038';
+import GlobalHeaderGadget from '@/app/components/gadgets/global-header-gadget';
+import NavigationSidebarGadget from '@/app/components/gadgets/navigation-sidebar-gadget';
+import GlobalFooterGadget from '@/app/components/gadgets/global-footer-gadget';
 
 interface AppLayoutProps {
   children: ReactNode;
 }
 
 /**
- * Main Layout (PageLayout: 17595b62-fef1-4b22-9c25-16736c772567)
+ * Main Layout (PageLayout: main-layout)
  *
  * retail サンプルの標準レイアウト (ヘッダ + サイドバー + フッタ)。
  * ヘッダ・サイドバー・フッタは Gadget コンポーネントを静的 import で配置。
@@ -112,7 +112,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen">
 
-      {/* region: header — グローバルヘッダ Gadget (68709449-c9e1-47db-a351-ac9c12a19046) */}
+      {/* region: header — グローバルヘッダ Gadget (global-header-gadget) */}
       <header className="flex items-center justify-between bg-blue-900 text-white px-4 py-3 shadow">
         <GlobalHeaderGadget />
       </header>
@@ -120,7 +120,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* main コンテンツエリア (sidebar + main を横並び) */}
       <div className="flex flex-1">
 
-        {/* region: sidebar — ナビゲーションサイドバー Gadget (c1cff7da-1057-4ba1-b780-2d021f6c8679) */}
+        {/* region: sidebar — ナビゲーションサイドバー Gadget (navigation-sidebar-gadget) */}
         <aside className="w-64 bg-gray-100 p-4 border-r">
           <NavigationSidebarGadget />
         </aside>
@@ -132,7 +132,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       </div>
 
-      {/* region: footer — グローバルフッタ Gadget (f7daa764-4015-4ad7-8f0a-142944ea2038) */}
+      {/* region: footer — グローバルフッタ Gadget (global-footer-gadget) */}
       <footer className="text-center bg-gray-50 py-4 border-t mt-auto">
         <GlobalFooterGadget />
       </footer>
@@ -201,6 +201,6 @@ main region の `{children}` は assignments に関わらず **常に出力**す
 
 | テンプレート記法 | 置換後の出力例 |
 |---|---|
-| `'@/app/components/gadgets/<<headerGadgetId>>'` | `'@/app/components/gadgets/68709449-c9e1-47db-a351-ac9c12a19046'` |
+| `'@/app/components/gadgets/<<headerGadgetId>>'` | `'@/app/components/gadgets/global-header-gadget'` |
 | `<<HeaderGadgetName>>` | `GlobalHeaderGadget` |
-| `// PageLayout: <<pageLayoutId>>` | `// PageLayout: 17595b62-fef1-4b22-9c25-16736c772567` |
+| `// PageLayout: <<pageLayoutId>>` | `// PageLayout: main-layout` |

@@ -279,14 +279,14 @@ Layout Dialect の依存・仕組みは `LAYOUT.md` を参照。
 ### 完成例 — kind=dashboard + Main Layout
 
 **対象**:
-- Screen: `kind=dashboard`, `purpose=page`, `pageLayoutId=17595b62-fef1-4b22-9c25-16736c772567`
-- PageLayout: `17595b62-fef1-4b22-9c25-16736c772567` (Main Layout)
+- Screen: `kind=dashboard`, `purpose=page`, `pageLayoutId=main-layout`
+- PageLayout: `main-layout` (Main Layout)
 
 ```html
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layouts/17595b62-fef1-4b22-9c25-16736c772567}"
+      layout:decorate="~{layouts/main-layout}"
       lang="ja">
 <head>
   <!-- title のみ上書き (Bootstrap/共通 CSS は layout 側が提供) -->
@@ -296,7 +296,7 @@ Layout Dialect の依存・仕組みは `LAYOUT.md` を参照。
   <th:block layout:fragment="layout-content">
     <!--
       Screen 本文: ダッシュボード (kind=dashboard)
-      Layout: 17595b62-fef1-4b22-9c25-16736c772567 (Main Layout)
+      Layout: main-layout (Main Layout)
       ヘッダ・サイドバー・フッタは Layout 側が提供する
     -->
 

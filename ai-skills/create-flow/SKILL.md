@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 <!--
   使い方:
-    - `/create-flow ffffffff-0001-4000-8000-ffffffffffff "受注処理 → 在庫引当 → 出荷指示" logistics`
+    - `/create-flow order-fulfillment-flow "受注処理 → 在庫引当 → 出荷指示" logistics`
     - `/create-flow <flowId> <業務概要>` (namespace なしでもよい)
 
   目的:
@@ -39,7 +39,7 @@ ProcessFlow `$ARGUMENTS` を品質ガード付きで作成します。
 
 `$ARGUMENTS` を以下のように解析:
 
-- 第1引数 `flowId` (必須): UUID v4 形式 (例: `ffffffff-0001-4000-8000-ffffffffffff`)
+- 第1引数 `flowId` (必須): EntityId 形式 (kebab-case、例: `order-entry-flow`)
 - 第2引数 `業務概要` (必須): 自然言語 (例: `"受注 → 在庫引当 → 出荷指示の業務フロー"`)
 - 第3引数 `namespace` (任意): 業界拡張定義の namespace (例: `securities`, `manufacturing`, `logistics`)
 
@@ -61,8 +61,8 @@ ProcessFlow JSON に含めるべき要素 (5/5 達成サンプル準拠):
 
 | セクション | 要件 |
 |---|---|
-| `id` | EntityId (kebab-case 英単語、例: `order-entry-flow`、RFC #1284 / #1332) |
-| `uuid` | UUID v4 (不変識別子、RFC #1284 で `id` と分離、`meta.uuid` field に保持) |
+| `meta.id` | EntityId (kebab-case 英単語、例: `order-entry-flow`、RFC #1284 / #1332) |
+| `meta.uuid` | UUID v4 (不変識別子、RFC #1284 で `id` と分離) |
 | `name` | 業務名 (日本語、業界文脈含む) |
 | `type` | `screen` / `system` / `batch` から選択 |
 | `screenId` | EntityId (kebab-case、例: `order-entry-screen`、画面実体不要なら任意の kebab-case 値で可) |

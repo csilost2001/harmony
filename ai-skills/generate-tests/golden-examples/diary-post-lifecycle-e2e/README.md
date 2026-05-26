@@ -15,11 +15,11 @@ diary アプリ (`examples/diary/harmony.json`) を題材にした
 
 | screen.id | name | kind | path |
 |---|---|---|---|
-| `a5088d22-4ad8-4615-a4c5-447ff9cdd280` | ログイン | login | /login |
-| `31d56212-b654-46dc-b004-096c7382c404` | 投稿一覧 | list | / |
-| `ffec74d0-6c21-45f7-a387-167ac8819255` | 投稿詳細 | detail | /post/:id |
-| `531619ae-0f5f-4f55-8043-03e5a9ef6670` | 投稿編集 | form | /post/edit/:id? |
-| `c0bd613a-ab67-4f72-8e2d-775e827bf9b2` | タグ管理 | list | /tags |
+| `login-screen` | ログイン | login | /login |
+| `post-list-screen` | 投稿一覧 | list | / |
+| `post-detail-screen` | 投稿詳細 | detail | /post/:id |
+| `post-edit-screen` | 投稿編集 | form | /post/edit/:id? |
+| `tag-management-screen` | タグ管理 | list | /tags |
 
 ## 遷移導出フロー
 
@@ -66,9 +66,9 @@ diary アプリ (`examples/diary/harmony.json`) を題材にした
 | `[data-testid="editButton"]` | 詳細画面の編集ボタン | 同上 |
 | `[data-testid="deleteButton"]` | 詳細画面の削除ボタン | 同上 |
 | `[data-testid="post-{id}"]` | 一覧の投稿 item | `apps/web/src/app/(dashboard)/page.tsx` を確認 |
-| `POST /api/posts` | 投稿作成 API | ProcessFlow `0671b051-...` の httpRoute を確認 |
-| `PATCH /api/posts/:id` | 投稿更新 API | ProcessFlow `b3a1c2d4-...` の httpRoute を確認 |
-| `DELETE /api/posts/:id` | 投稿削除 API | ProcessFlow `c4d5e6f7-...` の httpRoute を確認 |
+| `POST /api/posts` | 投稿作成 API | ProcessFlow `post-create-flow` の httpRoute を確認 |
+| `PATCH /api/posts/:id` | 投稿更新 API | ProcessFlow `post-update-flow` の httpRoute を確認 |
+| `DELETE /api/posts/:id` | 投稿削除 API | ProcessFlow `post-delete-flow` の httpRoute を確認 |
 | `POST /api/auth/login` | ログイン API | `apps/api/src/auth/auth.controller.ts` を確認 |
 | `accessToken` | JWT レスポンスキー | `apps/api/src/auth/auth.service.ts` を確認 |
 | `localStorage.setItem('accessToken', ...)` | フロントエンドの auth 保存方式 | `apps/web/src/lib/auth.ts` 等を確認 |
@@ -77,10 +77,10 @@ diary アプリ (`examples/diary/harmony.json`) を題材にした
 
 | ProcessFlow | id | 推定 httpRoute |
 |---|---|---|
-| 投稿作成 | `0671b051-4acc-49cf-ba92-9fa29b47f671` | POST /api/posts |
-| 投稿更新 | `b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d` | PATCH /api/posts/:id |
-| 投稿削除 | `c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f` | DELETE /api/posts/:id |
-| 投稿詳細取得 | `d5e6f7a8-b9c0-4d1e-8f2a-3b4c5d6e7f8a` | GET /api/posts/:id |
+| 投稿作成 | `post-create-flow` | POST /api/posts |
+| 投稿更新 | `post-update-flow` | PATCH /api/posts/:id |
+| 投稿削除 | `post-delete-flow` | DELETE /api/posts/:id |
+| 投稿詳細取得 | `post-detail-get-flow` | GET /api/posts/:id |
 
 **注意**: 上記は ProcessFlow の flowType/name から推定した値 (#1263 Phase X1: meta.kind → meta.flowType)。
 実際の httpRoute.path は各 ProcessFlow JSON を Read して確認すること。
@@ -105,8 +105,8 @@ diary-post-lifecycle-e2e/
 
 | # | テスト内容 | spec anchor | 遷移導出 |
 |---|---|---|---|
-| 1 | 投稿一覧画面が表示される | Scenario post-lifecycle step:2, Screen 31d56212 item:posts | 3次 path-based |
-| 2 | 新規投稿作成フォームを表示して投稿を作成できる | Scenario post-lifecycle step:3-4 via ProcessFlow 0671b051 | 3次 path-based |
+| 1 | 投稿一覧画面が表示される | Scenario post-lifecycle step:2, Screen post-list-screen item:posts | 3次 path-based |
+| 2 | 新規投稿作成フォームを表示して投稿を作成できる | Scenario post-lifecycle step:3-4 via ProcessFlow post-create-flow | 3次 path-based |
 | 3 | 投稿詳細画面が表示され入力した内容が確認できる | Scenario post-lifecycle step:5 | 3次 path-based |
 | 4 | 投稿編集フォームで内容を更新できる | Scenario post-lifecycle step:6-7 via ProcessFlow b3a1c2d4 | 3次 path-based |
 | 5 | 投稿を削除すると一覧から消える | Scenario post-lifecycle step:8-9 via ProcessFlow c4d5e6f7 | 3次 path-based |
@@ -122,16 +122,16 @@ diary-post-lifecycle-e2e/
 
 ```
 /generate-tests --scenario-name "タグ管理→新タグ付き投稿作成" \
-  c0bd613a-ab67-4f72-8e2d-775e827bf9b2 \
-  531619ae-0f5f-4f55-8043-03e5a9ef6670
+  tag-management-screen \
+  post-edit-screen
 ```
 
 または
 
 ```
 /generate-tests --scenario \
-  c0bd613a-ab67-4f72-8e2d-775e827bf9b2 \
-  531619ae-0f5f-4f55-8043-03e5a9ef6670
+  tag-management-screen \
+  post-edit-screen
 ```
 
 ### 想定シナリオ構成
@@ -153,7 +153,7 @@ step 4: 投稿作成フォームへ遷移
   → page.goto('/post/edit') または ナビゲーションリンク
 
 step 5: 新タグを選択して投稿作成
-  // Spec: Scenario tag-post-creation step:5 via ProcessFlow 投稿作成 (0671b051...)
+  // Spec: Scenario tag-post-creation step:5 via ProcessFlow 投稿作成 (post-create-flow...)
   → title / body 入力 → タグ選択で step 3 で作成したタグをチェック
   → POST /api/posts → { tags: [{ id: <newTagId> }] }
 
@@ -206,10 +206,10 @@ screenTransitions または events[] が補完された場合 (`#864` close 後)
 # /generate-tests スキルを再実行
 # (anchor 外の人手追記 assertion は保護される)
 /generate-tests --scenario-name "投稿ライフサイクル" \
-  a5088d22-4ad8-4615-a4c5-447ff9cdd280 \
-  31d56212-b654-46dc-b004-096c7382c404 \
-  531619ae-0f5f-4f55-8043-03e5a9ef6670 \
-  ffec74d0-6c21-45f7-a387-167ac8819255
+  login-screen \
+  post-list-screen \
+  post-edit-screen \
+  post-detail-screen
 ```
 
 再生成時は `===HARMONY_GENERATED_SECTION_START scenario=post-lifecycle===` から
@@ -224,10 +224,10 @@ screenTransitions または events[] が補完された場合 (`#864` close 後)
 1. **引数解析**: `--scenario-name` フラグあり → P4 E2E シナリオ生成ルートへ
 2. **harmony.json 読込**: techStack.frontend.framework=next, techStack.auth.method=jwt ✓
 3. **screen path index 構築**:
-   - `a5088d22-...` → path="/login" (kind=login) ✓
-   - `31d56212-...` → path="/" (kind=list) ✓
-   - `531619ae-...` → path="/post/edit/:id?" (kind=form) ✓
-   - `ffec74d0-...` → path="/post/:id" (kind=detail) ✓
+   - `login-screen` → path="/login" (kind=login) ✓
+   - `post-list-screen` → path="/" (kind=list) ✓
+   - `post-edit-screen` → path="/post/edit/:id?" (kind=form) ✓
+   - `post-detail-screen` → path="/post/:id" (kind=detail) ✓
 4. **遷移導出**: screenTransitions=[] → 3次 path-based fallback を選択 ✓
 5. **kind 慣習適用**:
    - login→list: ログイン → "/" ✓
