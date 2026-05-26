@@ -126,8 +126,8 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 /**
  * harmony.json の entities.processFlows[] 一覧を upsert する (#1141 F-4)。
  * schemas/v3/harmony.v3.schema.json#ProcessFlowEntry に従う:
- *   - 必須: id (Uuid), no (1..N), name, updatedAt
- *   - 任意: flowType, screenId, actionCount, notesCount, maturity
+ *   - 必須: id (EntityId、kebab-case、RFC #1284 / #1332)、no (1..N)、name、updatedAt
+ *   - 任意: flowType、screenId (EntityId)、actionCount、notesCount、maturity
  *   - #1263 Phase X1: kind → flowType に rename
  *
  * `no` は重複しない最大値 + 1 を採番する (sample harmony.json の運用に倣う)。

@@ -4,7 +4,7 @@
  *
  * v3 schema 整合:
  * - 物理 FK は Constraint.foreignKey から (Column.foreignKey は廃止)
- * - referencedTableId (Uuid) → physicalName 解決は allTables から逆引き
+ * - referencedTableId (EntityId、kebab-case) → physicalName 解決は allTables から逆引き
  * - LogicalRelation の sourceColumnId / targetColumnId (LocalId) → Column.physicalName 解決
  */
 import type {

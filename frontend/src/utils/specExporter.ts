@@ -6,7 +6,7 @@
  * - Table: physicalName / name (display) を使用
  * - Column: physicalName / name (display) を使用
  * - FK は Constraint.foreignKey から導出 (Column.foreignKey は廃止)
- * - referencedTableId (Uuid) は allTables から physicalName へ逆引き
+ * - referencedTableId (EntityId、kebab-case) は allTables から physicalName へ逆引き
  * - Index は IndexColumn.columnId → physicalName 解決
  *
  * 出力 JSON の SpecXXX 型は下流 (PG 工程 AI) との contract のためフィールド名は維持。

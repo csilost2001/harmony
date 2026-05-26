@@ -2,9 +2,10 @@
  * tableStore.ts (v3, #556)
  * テーブル設計書の永続化ストア。
  *
- * - data/tables/<UUID>.json (per-entity ファイル)
+ * - <workspace>/<dataDir>/tables/<EntityId>.json (per-entity ファイル、ファイル名は kebab-case の EntityId)
  * - $schema 属性で v3 schema 参照を保存
  * - harmony.json の entities.tables (互換的に project.tables[]) で v3 TableEntry を管理
+ * - RFC #1284 / #1332: id は EntityId (kebab-case)、不変識別子は別フィールド uuid (UUID v4) に保持
  */
 import type {
   Table,
