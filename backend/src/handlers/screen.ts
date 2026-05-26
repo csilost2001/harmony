@@ -100,6 +100,15 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
       }
       // S-002: ID validation
       assertEntityIdMcp(a.screenId, "screenId");
+      // #1332 Codex 9 巡目 M2: pageLayoutId は top-level EntityId (schema: harmony.v3 ScreenEntry.pageLayoutId)。
+      // 解除値 (空文字 / null) はそのまま許容、それ以外は EntityId 検証する。
+      const normalizedPageLayoutId =
+        a.pageLayoutId === "" || a.pageLayoutId === null || a.pageLayoutId === undefined
+          ? null
+          : a.pageLayoutId;
+      if (normalizedPageLayoutId !== null && normalizedPageLayoutId !== undefined) {
+        assertEntityIdMcp(normalizedPageLayoutId, "pageLayoutId");
+      }
       // RFC #1021 pl-6 (Codex B-2): purpose / pageLayoutId も update 可能に
       await wsBridge.sendCommand("updateScreenMeta", {
         screenId: a.screenId,
@@ -109,7 +118,7 @@ export const handleScreenTool: ToolHandler = async (name, args, root) => {
         path: a.path,
         purpose: a.purpose,
         // pageLayoutId は空文字または null で解除可能
-        pageLayoutId: a.pageLayoutId === "" || a.pageLayoutId === null ? null : a.pageLayoutId,
+        pageLayoutId: normalizedPageLayoutId,
       });
       return {
         content: [

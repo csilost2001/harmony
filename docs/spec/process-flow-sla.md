@@ -76,7 +76,8 @@ ProcessFlow レベルの sla 指定 (v3 形式):
 ```json
 {
   "meta": {
-    "id": "11111111-1111-4111-8111-111111111111",
+    "id": "order-processing-flow",
+    "uuid": "11111111-1111-4111-8111-111111111111",
     "name": "注文処理",
     "sla": {
       "timeoutMs": 30000,

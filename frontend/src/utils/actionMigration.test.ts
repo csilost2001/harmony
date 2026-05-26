@@ -29,9 +29,10 @@ describe("migrateStep — BranchStep legacy → new", () => {
     // v3: "other" → "legacy:OtherStep"
     expect((a.steps[0] as OtherStep).kind).toBe("legacy:OtherStep");
     expect((a.steps[0] as OtherStep).description).toBe("処理を続行");
-    expect(a.id).toMatch(/[0-9a-f-]{36}/);
+    expect(a.id).toBe("br-01");
 
     const b = migrated.branches[1];
+    expect(b.id).toBe("br-02");
     expect(b.code).toBe("B");
     expect(b.label).toBe("無効");
     // branchB の condition は空文字 → {kind: "expression", expression: ""}
@@ -57,13 +58,17 @@ describe("migrateStep — BranchStep legacy → new", () => {
 
     expect(migrated.branches[0].steps).toHaveLength(1);
     const jumpA = migrated.branches[0].steps[0] as JumpStep;
+    expect(migrated.branches[0].id).toBe("br-01");
+    expect(jumpA.id).toBe("step-01");
     expect(jumpA.kind).toBe("jump");
     expect(jumpA.jumpTo).toBe("target-a");
 
     // B は description と jumpTo 両方あり → legacy:OtherStep + jump の 2 ステップ
     expect(migrated.branches[1].steps).toHaveLength(2);
     expect((migrated.branches[1].steps[0] as OtherStep).description).toBe("処理");
+    expect(migrated.branches[1].steps[0].id).toBe("step-02");
     expect((migrated.branches[1].steps[1] as JumpStep).jumpTo).toBe("target-b");
+    expect(migrated.branches[1].steps[1].id).toBe("step-03");
   });
 
   it("description も jumpTo も空なら空の steps を持つ Branch を生成", () => {
@@ -306,6 +311,48 @@ describe("migrateProcessFlow — ProcessFlow 全体", () => {
     const twice = migrateProcessFlow(once);
     expect(JSON.stringify(twice)).toBe(JSON.stringify(once));
   });
+
+  it("legacy synthetic Note / Step / Branch は ProcessFlow 全体 ID 集合から LocalId 採番される (#1332 Codex 11巡目 M2)", () => {
+    const migrated = migrateProcessFlow({
+      id: "legacy-flow",
+      name: "legacy",
+      type: "common",
+      actions: [
+        {
+          id: "act-001",
+          name: "act",
+          trigger: "other",
+          steps: [
+            {
+              id: "step-01",
+              kind: "legacy:OtherStep",
+              description: "",
+              note: "legacy note",
+            },
+            {
+              id: "branch-host",
+              kind: "branch",
+              description: "",
+              condition: "@ok",
+              branchA: { label: "OK", description: "synthetic other" },
+              branchB: { label: "NG", jumpTo: "step-01" },
+            },
+          ],
+        },
+      ],
+    }) as ProcessFlow;
+
+    const noted = migrated.actions[0].steps[0] as unknown as { notes: Array<{ id: string }> };
+    const branch = migrated.actions[0].steps[1] as BranchStep;
+
+    expect(noted.notes[0].id).toBe("note-01");
+    expect(branch.branches.map((b) => b.id)).toEqual(["br-01", "br-02"]);
+    expect(branch.branches[0].steps[0].id).toBe("step-02");
+    expect(branch.branches[1].steps[0].id).toBe("step-03");
+    expect(branch.branches[0].id).not.toMatch(/[0-9a-f-]{36}/);
+    expect(branch.branches[0].steps[0].id).not.toMatch(/[0-9a-f-]{36}/);
+    expect(noted.notes[0].id).not.toMatch(/[0-9a-f-]{36}/);
+  });
 });
 
 // ─── migrateStep — 旧 note → notes[] / maturity 既定付与 (#154) ─────────────
@@ -324,7 +371,7 @@ describe("migrateStep — 旧 note → notes[] / maturity 既定付与 (#154)", 
     // v3: kind (not type)
     expect(s.notes![0].kind).toBe("assumption");
     expect(s.notes![0].body).toBe("想定: 共通処理は後ほど設計予定");
-    expect(s.notes![0].id).toMatch(/[0-9a-f-]{36}/);
+    expect(s.notes![0].id).toBe("note-01");
     expect(s.notes![0].createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     // 旧 note フィールドは削除される
     expect(s.note).toBeUndefined();

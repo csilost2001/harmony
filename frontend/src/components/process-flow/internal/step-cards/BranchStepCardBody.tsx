@@ -7,7 +7,8 @@
 
 import { useState } from "react";
 import type { BranchStep, Branch, ElseBranch, LocalId, ErrorCode, Identifier } from "../../../../types/v3";
-import { generateUUID } from "../../../../utils/uuid";
+// #1332 Codex 10 巡目 M1: Branch.id / ElseBranch.id の採番を LocalId (`br-NN`) に統一
+import { nextLocalId, collectAllProcessFlowLocalIds } from "../../../../utils/localIdGenerator";
 import { InlineStepList } from "../InlineStepList";
 import type {
   StepCardBodyBaseProps,
@@ -87,13 +88,18 @@ export function BranchStepCardBody({
 
   const addBranch = () => {
     const code = String.fromCharCode(65 + step.branches.length);
-    const newBranch: Branch = { id: generateUUID() as LocalId, code, condition: { kind: "expression", expression: "" }, steps: [] };
+    // #1332 Codex 10 巡目 M1: Branch.id は schema 規範 (LocalId, `br-NN`) で採番。
+    // group context があれば全体衝突回避、無ければ既存 branches ローカル。
+    const ids = group ? collectAllProcessFlowLocalIds(group) : new Set<string>(step.branches.map((b) => String(b.id)));
+    const newBranch: Branch = { id: nextLocalId(ids, "br", 2) as LocalId, code, condition: { kind: "expression", expression: "" }, steps: [] };
     onChange({ branches: [...step.branches, newBranch] });
     onCommit?.();
   };
 
   const addElseBranch = () => {
-    const elseBranch: ElseBranch = { id: generateUUID() as LocalId, code: "ELSE", steps: [] };
+    // #1332 Codex 10 巡目 M1: ElseBranch.id は schema 規範 (LocalId, `br-NN`) で採番。
+    const ids = group ? collectAllProcessFlowLocalIds(group) : new Set<string>(step.branches.map((b) => String(b.id)));
+    const elseBranch: ElseBranch = { id: nextLocalId(ids, "br", 2) as LocalId, code: "ELSE", steps: [] };
     onChange({ elseBranch });
     onCommit?.();
   };

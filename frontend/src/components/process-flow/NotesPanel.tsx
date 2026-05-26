@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { StepNote, StepNoteType } from "../../utils/processFlowMetadata";
 import { STEP_NOTE_TYPE_VALUES } from "../../utils/processFlowMetadata";
-import { generateUUID } from "../../utils/uuid";
+// #1332 Codex 10 巡目 M1: Note.id は schema 規範 (LocalId, `note-NN`) で採番
+import { nextLocalId } from "../../utils/localIdGenerator";
 
 interface Props {
   notes: StepNote[] | undefined;
@@ -38,8 +39,11 @@ export function NotesPanel({ notes, onChange }: Props) {
   const addNote = () => {
     const body = newBody.trim();
     if (!body) return;
+    // #1332 Codex 10 巡目 M1: Note.id は schema 規範 (LocalId) で採番。
+    // notes[] スコープ内の siblings から衝突回避。
+    const ids = new Set<string>(list.map((n) => String(n.id)));
     const note: StepNote = {
-      id: generateUUID(),
+      id: nextLocalId(ids, "note", 2),
       type: newType,
       body,
       createdAt: new Date().toISOString(),

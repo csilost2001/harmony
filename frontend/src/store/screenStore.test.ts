@@ -13,7 +13,7 @@ import {
   type ScreenStorageBackend,
 } from "./screenStore";
 import { setFlowStorageBackend, type FlowStorageBackend } from "./flowStore";
-import type { Screen, ScreenId, Timestamp } from "../types/v3";
+import type { Screen, ScreenId, Timestamp, Uuid } from "../types/v3";
 
 /**
  * In-memory mock backend — file system / mcpBridge を介さず frontend 側の round-trip を検証する。
@@ -234,6 +234,7 @@ describe("screenStore — load/save round-trip 契約", () => {
     const screen: Screen = {
       $schema: "../schemas/v3/screen.v3.schema.json",
       id: SCREEN_ID,
+      uuid: "11111111-1111-4111-8111-111111111111" as Uuid,
       name: "editor 選択テスト",
       kind: "list",
       path: "/test",
@@ -263,6 +264,7 @@ describe("screenStore — load/save round-trip 契約", () => {
     const screen: Screen = {
       $schema: "../schemas/v3/screen.v3.schema.json",
       id: SCREEN_ID,
+      uuid: "22222222-2222-4222-8222-222222222222" as Uuid,
       name: "GrapesJS Bootstrap テスト",
       kind: "form",
       path: "/form",

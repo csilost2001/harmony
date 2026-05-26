@@ -28,7 +28,7 @@ export interface TransitionLayout {
 /** 画面フロー UI 座標を集約。 */
 export interface ScreenFlowPositions {
   $schema?: string;
-  /** Screen / ScreenGroup の UUID をキーとし、UI 座標を値とする。 */
+  /** Screen / ScreenGroup の EntityId (kebab-case) をキーとし、UI 座標を値とする。 */
   positions: Record<string, Position>;
   /** ScreenTransition の LocalId をキーとし、UI 座標 (handle 位置等) を値とする。 */
   transitions?: Record<string, TransitionLayout>;

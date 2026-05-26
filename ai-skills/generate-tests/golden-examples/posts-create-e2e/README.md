@@ -1,8 +1,8 @@
 # golden-examples/posts-create-e2e
 
-> **golden 種別**: 本 golden は `${PLACEHOLDER}` 抽象スタイル — skill が任意の ProcessFlow に対して生成する **テンプレート参照** を意図。実 UUID 入りの golden は `golden-examples/diary-ai-tag-suggest/` (実 sample からの生成見本)。
+> **golden 種別**: 本 golden は `${PLACEHOLDER}` 抽象スタイル — skill が任意の ProcessFlow に対して生成する **テンプレート参照** を意図。実 EntityId (kebab-case canonical、RFC #1284 / #1332 形式) 入りの golden は `golden-examples/diary-ai-tag-suggest/` (実 sample からの生成見本) を参照。不変識別子 `meta.uuid` が必要なケースは spec コメント末尾に補助情報として併記する形式を取る。
 
-ProcessFlow `0671b051-4acc-49cf-ba92-9fa29b47f671` (投稿作成) を題材にした
+ProcessFlow `post-create-flow` (投稿作成) を題材にした
 `/generate-tests` スキルのゴールデン出力。
 
 実際の Spike テスト (`~/projects/diary/apps/api/test/posts.create.e2e-spec.ts`, 614 行 / 15 件 pass)
@@ -17,7 +17,7 @@ diary アプリ固有の具体値を `${PLACEHOLDER}` 形式で抽象化して�
 
 | PLACEHOLDER | 解決元 | diary での具体値 |
 |---|---|---|
-| `${FLOW_ID}` | ProcessFlow の `meta.id` | `0671b051-4acc-49cf-ba92-9fa29b47f671` |
+| `${FLOW_ID}` | ProcessFlow の `meta.id` | `post-create-flow` |
 | `${FLOW_NAME}` | ProcessFlow の `meta.name` | `投稿作成` |
 | `${ACTION_ID}` | `actions[].id` | `act-001` |
 | `${ACTION_NAME}` | `actions[].name` | `投稿作成` |

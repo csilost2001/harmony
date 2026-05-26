@@ -29,7 +29,7 @@ export interface LogicalRelation {
 /** ER 図 UI 座標 + 論理リレーション。 */
 export interface ErLayout {
   $schema?: string;
-  /** Table の Uuid をキーとし、UI 座標を値とする。 */
+  /** Table の EntityId (kebab-case) をキーとし、UI 座標を値とする。 */
   positions: Record<string, ErPosition>;
   logicalRelations?: LogicalRelation[];
   updatedAt: Timestamp;

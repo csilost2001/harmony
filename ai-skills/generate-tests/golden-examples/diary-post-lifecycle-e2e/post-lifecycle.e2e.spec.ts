@@ -8,12 +8,12 @@
  *
  * シナリオ: 投稿ライフサイクル
  * 対象画面:
- *   a5088d22-4ad8-4615-a4c5-447ff9cdd280 (ログイン, kind=login, path=/login)
- *   → 31d56212-b654-46dc-b004-096c7382c404 (投稿一覧, kind=list,   path=/)
- *   → 531619ae-0f5f-4f55-8043-03e5a9ef6670 (投稿編集, kind=form,   path=/post/edit/:id?)  ← 新規作成
- *   → ffec74d0-6c21-45f7-a387-167ac8819255 (投稿詳細, kind=detail, path=/post/:id)
- *   → 531619ae-0f5f-4f55-8043-03e5a9ef6670 (投稿編集, kind=form,   path=/post/edit/:id?)  ← 編集
- *   → 31d56212-b654-46dc-b004-096c7382c404 (投稿一覧, kind=list,   path=/)  ← 削除後
+ *   login-screen (ログイン, kind=login, path=/login)
+ *   → post-list-screen (投稿一覧, kind=list,   path=/)
+ *   → post-edit-screen (投稿編集, kind=form,   path=/post/edit/:id?)  ← 新規作成
+ *   → post-detail-screen (投稿詳細, kind=detail, path=/post/:id)
+ *   → post-edit-screen (投稿編集, kind=form,   path=/post/edit/:id?)  ← 編集
+ *   → post-list-screen (投稿一覧, kind=list,   path=/)  ← 削除後
  *
  * 遷移導出: 3次 path-based fallback
  *   diary の entities.screenTransitions[] = [] (空配列)
@@ -167,14 +167,14 @@ test.describe('投稿ライフサイクル E2E (login → 一覧 → 作成 → 
      * Spec: Scenario post-lifecycle step:2
      * TODO: screenTransitions 補完待ち
      *   遷移導出: path-based fallback (ログイン後 → list kind の "/" へ)
-     *   Screen: 31d56212-b654-46dc-b004-096c7382c404 (投稿一覧, kind=list, path=/)
+     *   Screen: post-list-screen (投稿一覧, kind=list, path=/)
      *   ⚠️ 推測で生成: screenTransitions[] または events[] を補完後に再生成すること
      */
     await page.goto('/');
     await expect(page).toHaveURL('/');
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:posts
+     * Spec: Screen post-list-screen item:posts
      *   direction=output, type=array
      *   data-testid="posts" (親コンテナ)
      */
@@ -191,14 +191,14 @@ test.describe('投稿ライフサイクル E2E (login → 一覧 → 作成 → 
      * Spec: Scenario post-lifecycle step:3
      * TODO: screenTransitions 補完待ち
      *   遷移導出: path-based fallback (list→form 慣習: 一覧の "新規作成" ボタン → /post/edit)
-     *   Screen: 531619ae-0f5f-4f55-8043-03e5a9ef6670 (投稿編集, kind=form, path=/post/edit/:id?)
+     *   Screen: post-edit-screen (投稿編集, kind=form, path=/post/edit/:id?)
      *   ⚠️ 推測で生成: :id? なしで新規作成ページとして扱う
      */
     await page.goto('/post/edit');
     await expect(page).toHaveURL(/\/post\/edit/);
 
     /**
-     * Spec: Screen 531619ae-0f5f-4f55-8043-03e5a9ef6670 item:title
+     * Spec: Screen post-edit-screen item:title
      *   direction=input, type=string
      *   data-testid="title"
      * PLACEHOLDER: data-testid 名を実装に合わせて変更
@@ -206,7 +206,7 @@ test.describe('投稿ライフサイクル E2E (login → 一覧 → 作成 → 
     await expect(page.getByTestId('title')).toBeVisible();
 
     /**
-     * Spec: Screen 531619ae-0f5f-4f55-8043-03e5a9ef6670 item:body
+     * Spec: Screen post-edit-screen item:body
      *   direction=input, type=text (長文)
      *   data-testid="body"
      * PLACEHOLDER: data-testid 名を実装に合わせて変更
@@ -214,7 +214,7 @@ test.describe('投稿ライフサイクル E2E (login → 一覧 → 作成 → 
     await expect(page.getByTestId('body')).toBeVisible();
 
     /**
-     * Spec: Scenario post-lifecycle step:4 via ProcessFlow 投稿作成 (0671b051-4acc-49cf-ba92-9fa29b47f671)
+     * Spec: Scenario post-lifecycle step:4 via ProcessFlow 投稿作成 (post-create-flow)
      *   ProcessFlow: 投稿作成 → httpRoute: POST /api/posts
      *   フォーム入力 → 送信 → API レスポンス → 詳細画面へ遷移
      */
@@ -260,7 +260,7 @@ test.describe('投稿ライフサイクル E2E (login → 一覧 → 作成 → 
      * Spec: Scenario post-lifecycle step:5
      * TODO: screenTransitions 補完待ち
      *   遷移導出: path-based fallback (form→detail: 作成後 → /post/:id へリダイレクト)
-     *   Screen: ffec74d0-6c21-45f7-a387-167ac8819255 (投稿詳細, kind=detail, path=/post/:id)
+     *   Screen: post-detail-screen (投稿詳細, kind=detail, path=/post/:id)
      *   ⚠️ 推測で生成: 作成後の自動リダイレクトを想定
      *
      * 前提: step 3-4 で投稿作成済みの場合、createdPostId が設定されている。
@@ -289,14 +289,14 @@ test.describe('投稿ライフサイクル E2E (login → 一覧 → 作成 → 
     await expect(page).toHaveURL(`/post/${postId}`);
 
     /**
-     * Spec: Screen ffec74d0-6c21-45f7-a387-167ac8819255 item:title
+     * Spec: Screen post-detail-screen item:title
      *   direction=output → 投稿タイトルの表示確認
      * PLACEHOLDER: data-testid="postTitle" は実装に合わせて変更
      */
     await expect(page.getByTestId('postTitle')).toContainText(NEW_POST.title);
 
     /**
-     * Spec: Screen ffec74d0-6c21-45f7-a387-167ac8819255 item:body
+     * Spec: Screen post-detail-screen item:body
      *   direction=output → 投稿本文の表示確認
      * PLACEHOLDER: data-testid="postBody" は実装に合わせて変更
      */
@@ -327,7 +327,7 @@ test.describe('投稿ライフサイクル E2E (login → 一覧 → 作成 → 
      * Spec: Scenario post-lifecycle step:6
      * TODO: screenTransitions 補完待ち
      *   遷移導出: path-based fallback (detail→form 慣習: 詳細の "編集" ボタン → /post/edit/:id)
-     *   Screen: 531619ae-0f5f-4f55-8043-03e5a9ef6670 (投稿編集, kind=form, path=/post/edit/:id?)
+     *   Screen: post-edit-screen (投稿編集, kind=form, path=/post/edit/:id?)
      *   ⚠️ 推測で生成: 詳細画面の "editButton" をクリックして編集画面へ遷移
      */
     // PLACEHOLDER: 編集ボタンの data-testid を実装に合わせて変更
@@ -335,13 +335,13 @@ test.describe('投稿ライフサイクル E2E (login → 一覧 → 作成 → 
     await page.waitForURL(`/post/edit/${postId}`);
 
     /**
-     * Spec: Screen 531619ae-0f5f-4f55-8043-03e5a9ef6670 item:title
+     * Spec: Screen post-edit-screen item:title
      *   direction=input — 既存の投稿タイトルがフォームに入っていること (pre-populate)
      */
     await expect(page.getByTestId('title')).toHaveValue(NEW_POST.title);
 
     /**
-     * Spec: Scenario post-lifecycle step:7 via ProcessFlow 投稿更新 (b3a1c2d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d)
+     * Spec: Scenario post-lifecycle step:7 via ProcessFlow 投稿更新 (post-update-flow)
      *   ProcessFlow: 投稿更新 → httpRoute: PATCH /api/posts/:id
      *   フォーム上書き → 保存 → API レスポンス → 詳細画面へ遷移
      */
@@ -393,7 +393,7 @@ test.describe('投稿ライフサイクル E2E (login → 一覧 → 作成 → 
     await expect(page).toHaveURL(`/post/${postId}`);
 
     /**
-     * Spec: Scenario post-lifecycle step:8 via ProcessFlow 投稿削除 (c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f)
+     * Spec: Scenario post-lifecycle step:8 via ProcessFlow 投稿削除 (post-delete-flow)
      *   ProcessFlow: 投稿削除 → httpRoute: DELETE /api/posts/:id
      *   削除ボタンクリック → DELETE API → 一覧画面へ遷移
      * TODO: screenTransitions 補完待ち
@@ -427,7 +427,7 @@ test.describe('投稿ライフサイクル E2E (login → 一覧 → 作成 → 
     await expect(page).toHaveURL('/');
 
     /**
-     * Spec: Screen 31d56212-b654-46dc-b004-096c7382c404 item:posts
+     * Spec: Screen post-list-screen item:posts
      *   削除した投稿が一覧に存在しないことを確認
      */
     // 削除した投稿のタイトルが一覧に表示されないことを確認

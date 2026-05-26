@@ -29,8 +29,10 @@
 
 ```typescript
 interface ViewDefinition {
-  /** UUID。同プロジェクト内で一意。 */
-  id: Uuid;
+  /** 業務識別子 (kebab-case EntityId)。同プロジェクト内で一意。 */
+  id: ViewDefinitionId;
+  /** 不変識別子 (UUID v4)。 */
+  uuid: Uuid;
   /** 表示名 (DisplayName)。 */
   name: DisplayName;
   /** 説明。 */
@@ -45,7 +47,7 @@ interface ViewDefinition {
       | `${string}:${string}`;  // namespace:kindName
 
   /** Level 1 (Simple): 主要ソーステーブル ID。query と排他。 */
-  sourceTableId?: Uuid;
+  sourceTableId?: TableId;
 
   /** Level 2 / Level 3 の query 定義。sourceTableId と排他。 */
   query?: ViewQuery;
@@ -154,11 +156,11 @@ interface FilterSpec {
 ```jsonc
 {
   "kind": "list",
-  "sourceTableId": "652cbbfe-...",  // products テーブル
+  "sourceTableId": "product-table",  // products テーブル
   "columns": [
     {
       "name": "productCode",
-      "tableColumnRef": { "tableId": "652cbbfe-...", "columnId": "col-product-code" },
+      "tableColumnRef": { "tableId": "product-table", "columnId": "col-product-code" },
       "displayName": "商品コード",
       "type": "string",
       "width": "120px",
@@ -184,11 +186,11 @@ interface FilterSpec {
 {
   "kind": "list",
   "query": {
-    "from": { "tableId": "<orders-uuid>", "alias": "o" },
+    "from": { "tableId": "orders", "alias": "o" },
     "joins": [
       {
         "kind": "INNER",
-        "tableId": "<customers-uuid>",
+        "tableId": "customers",
         "alias": "c",
         "on": ["o.customer_id = c.id"]
       }
@@ -199,13 +201,13 @@ interface FilterSpec {
   "columns": [
     {
       "name": "orderNumber",
-      "tableColumnRef": { "tableId": "<orders-uuid>", "columnId": "col-order-number" },
+      "tableColumnRef": { "tableId": "orders", "columnId": "col-order-number" },
       "displayName": "注文番号",
       "type": "string"
     },
     {
       "name": "customerName",
-      "tableColumnRef": { "tableId": "<customers-uuid>", "columnId": "col-name" },
+      "tableColumnRef": { "tableId": "customers", "columnId": "col-name" },
       "displayName": "顧客名",
       "type": "string"
     }
@@ -277,7 +279,8 @@ Screen は `items[]` の `direction: "viewer"` screen-item から `viewDefinitio
 ```jsonc
 // screens/<id>.json
 {
-  "id": "<screen-uuid>",
+  "id": "customer-list-screen",
+  "uuid": "11111111-1111-4111-8111-111111111111",
   "kind": "list",
   "items": [
     {
@@ -285,7 +288,7 @@ Screen は `items[]` の `direction: "viewer"` screen-item から `viewDefinitio
       "label": "一覧",
       "type": { "kind": "array", "itemType": "json" },
       "direction": "viewer",
-      "viewDefinitionId": "<view-definition-uuid>"
+      "viewDefinitionId": "customer-list-view"
     }
   ]
 }
@@ -379,7 +382,8 @@ ViewDefinition の列定義を使い ProcessFlow 出力を画面に表示する�
 ```jsonc
 // screens/<id>.json
 {
-  "id": "<screen-uuid>",
+  "id": "property-search-screen",
+  "uuid": "22222222-2222-4222-8222-222222222222",
   "items": [
     { "id": "keyword", "label": "キーワード", "type": "string", "direction": "input" },
     {
@@ -390,8 +394,8 @@ ViewDefinition の列定義を使い ProcessFlow 出力を画面に表示する�
       "events": [
         {
           "id": "click",
-          "handlerFlowId": "<検索フロー UUID>",
-          "argumentMapping": { "keyword": "@screen.<screenId>.item.keyword" }
+          "handlerFlowId": "property-search-flow",
+          "argumentMapping": { "keyword": "@screen.property-search-screen.item.keyword" }
         }
       ]
     },
@@ -400,10 +404,10 @@ ViewDefinition の列定義を使い ProcessFlow 出力を画面に表示する�
       "label": "検索結果",
       "type": { "kind": "array", "itemType": "json" },
       "direction": "viewer",
-      "viewDefinitionId": "<viewer VD UUID>",     // 列定義を提供
+      "viewDefinitionId": "property-list-view",   // 列定義を提供
       "valueFrom": {
         "kind": "flowVariable",
-        "processFlowId": "<検索フロー UUID>",
+        "processFlowId": "property-search-flow",
         "variableName": "rows"                    // フロー outputs[] で宣言した変数
       }
     }

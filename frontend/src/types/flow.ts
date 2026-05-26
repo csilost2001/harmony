@@ -10,13 +10,13 @@
 import type {
   LocalId,
   Maturity,
+  PageLayoutId,
   ProcessFlowEntry,
   ScreenGroupId,
   ScreenId,
   ScreenKind,
   ScreenTransitionEntry,
   Timestamp,
-  Uuid,
 } from "./v3";
 
 /** UI 用 ScreenNode: v3 Screen 業務情報 + UI 座標 (ScreenFlowPositions.positions[id])。 */
@@ -38,7 +38,7 @@ export interface ScreenNode {
   /**
    * 本 Screen が使用する PageLayout の ID (purpose='page' のみ意味を持つ)。
    */
-  pageLayoutId?: Uuid;
+  pageLayoutId?: PageLayoutId;
   maturity?: Maturity;
   position: { x: number; y: number };
   size: { width: number; height: number };

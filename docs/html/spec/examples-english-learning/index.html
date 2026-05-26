@@ -314,7 +314,7 @@
 <h2 id="3-設計判断">3. 設計判断</h2>
 <h3 id="31-id-規約-retail-と共通">3.1 ID 規約 (retail と共通)</h3>
 <ul>
-<li>top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence) は <strong><code>Uuid</code> 形式 (RFC 4122 v4)</strong>。<code>crypto.randomUUID()</code> 由来の値を埋め込む (非 secure context 環境で生成する場合は <code>frontend/src/utils/uuid.ts</code> の <code>generateUUID()</code> を使用)。</li>
+<li>top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence / PageLayout) は <strong><code>EntityId</code> 形式 (kebab-case)</strong> (例: <code>screen-list-page</code>, <code>table-customer</code>)。不変識別子 <code>uuid</code> は <strong><code>Uuid</code> 形式 (RFC 4122 v4)</strong> とし、各 entity ファイルの <code>uuid</code> プロパティに付与する。</li>
 <li>ネスト LocalId は kebab-case (例: <code>step-llm-call</code>, <code>col-cefr-level</code>)。</li>
 <li>業務識別子 (画面項目 ID / 処理フロー変数名) は lowerCamelCase (例: <code>sessionId</code>, <code>pronunciationScore</code>)。</li>
 <li>DB 物理名は snake_case (例: <code>learning_sessions</code>, <code>user_word_progress</code>)。</li>

@@ -8,12 +8,12 @@ disable-model-invocation: true
 <!--
   使い方:
     # ProcessFlow ID (backend E2E テスト生成 — P1/P2)
-    /generate-tests 0671b051-4acc-49cf-ba92-9fa29b47f671
-    /generate-tests 0671b051-4acc-49cf-ba92-9fa29b47f671 apps/api/test/generated
+    /generate-tests order-confirm
+    /generate-tests order-confirm apps/api/test/generated
 
     # Screen ID (frontend component テスト生成 — P3)
-    /generate-tests 31d56212-b654-46dc-b004-096c7382c404
-    /generate-tests 31d56212-b654-46dc-b004-096c7382c404 apps/web/src/__tests__
+    /generate-tests product-search
+    /generate-tests product-search apps/web/src/__tests__
 
   目的:
     ProcessFlow JSON / Screen JSON を読み取り、spec → test の体系的な変換ルールに従い
@@ -108,26 +108,27 @@ disable-model-invocation: true
 ```
 --scenario <screenId-from> <screenId-to>
   → P4 E2E シナリオ生成 (2 画面間)
-  → シナリオ ID: "scenario-<screenId-from の8桁>-<screenId-to の8桁>"
+  → シナリオ ID: "scenario-<screenId-from>-<screenId-to>" (EntityId をそのまま連結、例: scenario-post-list-screen-post-edit-screen)
+  → legacy UUID compat 入力時は full UUID を連結 (prefix truncation 禁止 — EntityId は先頭文字列が被りやすく、prefix-only では出力先衝突を誘発するため)
 
 --scenario-name "<name>" <screenId-1> ... <screenId-N>
   → P4 E2E シナリオ生成 (N 画面、名前付き)
   → シナリオ ID: "<name>" を kebab-case 化 (例: "投稿ライフサイクル" → "post-lifecycle")
 
-上記フラグが含まれる → Step P4 へ直接ジャンプ (Step 1-2 の UUID ルーティングをスキップ)
+上記フラグが含まれる → Step P4 へ直接ジャンプ (Step 1-2 の ID ルーティングをスキップ)
 ```
 
 ### 0-B. 通常引数解析 (P1/P2/P3)
 
 フラグなしの場合:
 
-- 第1引数 `<id>` (必須): UUID v4 形式
-  - UUID でない場合は「引数エラー: UUID v4 形式で指定してください」と報告して中止
-- 第2引数 `<出力先>` (任意): ディレクトリパス (default: `.tmp/generated-tests/<入力UUID8桁>/`)
+- 第1引数 `<id>` (必須): EntityId (kebab-case) が canonical。legacy UUID 形式は移行期間 compat として受容
+  - EntityId / legacy UUID のどちらにも見えない場合は「引数エラー: EntityId (kebab-case) または legacy UUID 形式で指定してください」と報告して中止
+- 第2引数 `<出力先>` (任意): ディレクトリパス (default: `.tmp/generated-tests/<入力ID>/`、必要なら filesystem-safe に sanitize)
 
 出力先ディレクトリが存在しない場合はテスト生成前に作成する。
 
-入力 UUID のルーティング (Step 1-2 で決定):
+入力 ID のルーティング (Step 1-2 で決定):
 - ProcessFlow ID にマッチ → backend E2E test 生成 (Step 1 → Step 3)
 - Screen ID にマッチ → frontend component test 生成 (Step 1 → Step P3)
 - どちらにもマッチしない → エラー報告して中止
@@ -136,9 +137,9 @@ disable-model-invocation: true
 
 | 起動形式 | デフォルト出力先 |
 |---|---|
-| `--scenario <from> <to>` | `.tmp/generated-tests/scenario-<8桁>-<8桁>/` |
+| `--scenario <from> <to>` | `.tmp/generated-tests/scenario-<from>-<to>/` (EntityId 連結、例: `scenario-post-list-screen-post-edit-screen/`。legacy UUID compat 入力時は full UUID を連結し、prefix truncation は行わない) |
 | `--scenario-name "<name>" ...` | `.tmp/generated-tests/<kebab-case-name>/` |
-| `<UUID>` (通常) | `.tmp/generated-tests/<UUID8桁>/` |
+| `<EntityId>` / `<legacy UUID>` (通常) | `.tmp/generated-tests/<入力ID>/` |
 
 ## Step 1: 入力読込
 
@@ -156,7 +157,7 @@ harmony.techStack:
   auth.method
 ```
 
-### 1-2. 入力 UUID のルーティング (ProcessFlow vs Screen)
+### 1-2. 入力 ID のルーティング (ProcessFlow vs Screen)
 
 `harmony.json` の `entities.processFlows[].id` と `entities.screens[].id` を照合する。
 
@@ -172,7 +173,7 @@ else:
   と報告して中止
 ```
 
-**重要**: 同じ UUID が ProcessFlow と Screen 両方に存在する可能性は実際にはないが、
+**重要**: 同じ ID が ProcessFlow と Screen 両方に存在する可能性は実際にはないが、
 processFlows を先にチェックし、マッチしない場合のみ screens をチェックする。
 
 ## Step 1.5: Screen purpose 別分岐 (pl-7 対応)
@@ -212,7 +213,7 @@ ProcessFlow に登場する tableId を収集し、各テーブルの physicalNa
 1. ProcessFlow JSON 全体から tableId 値をすべて収集 (steps の lineage.writes / lineage.reads)
 2. 各 tableId について harmony/tables/<tableId>.json を Read
 3. physicalName を取得して map 化: { "<tableId>": "<physicalName>" }
-   例: { "79d2c08c-...": "posts", "d8fc5f8a-...": "photos" }
+   例: { "post-table": "posts", "photo-table": "photos" }
 4. Prisma model 名は physicalName の snake_case → PascalCase 変換
    例: "posts" → Post, "post_tags" → PostTag, "photos" → Photo
 ```
@@ -899,7 +900,7 @@ ai-skills/generate-tests/templates/
 ```
 ai-skills/generate-tests/golden-examples/
   posts-create-e2e/
-    posts.create.e2e-spec.ts   — 投稿作成フロー (0671b051) のゴールデン (抽象化済)
+    posts.create.e2e-spec.ts   — 投稿作成フロー (post-create-flow) のゴールデン (抽象化済)
     jest-e2e.json              — jest 設定テンプレート
     README.md                  — golden の使い方、人手 section 保護方針
   screens-list-component/
@@ -1095,7 +1096,7 @@ broadcast する。Harmony 側は `presenceUnregisterAllForSession(clientId)` �
 ## /generate-tests 完了: <processFlow.meta.name>
 
 ### 入力
-- ProcessFlow ID: <uuid>
+- ProcessFlow ID: <entityId>
 - ProcessFlow 名: <name>
 - techStack: <backend.language>/<backend.framework>/<database.type>
 
@@ -1124,7 +1125,7 @@ broadcast する。Harmony 側は `presenceUnregisterAllForSession(clientId)` �
 ## /generate-tests 完了: <Screen.name> (component test)
 
 ### 入力
-- Screen ID: <uuid>
+- Screen ID: <entityId>
 - Screen 名: <name>
 - Screen kind: <kind>
 - techStack: <frontend.library>/<frontend.framework>
@@ -1137,8 +1138,8 @@ broadcast する。Harmony 側は `presenceUnregisterAllForSession(clientId)` �
 | item.id | direction | type | valueFrom | msw mock URL |
 |---|---|---|---|---|
 | searchQuery | input | string | なし | — |
-| posts | output | array | flowVariable (e6f7a8b9-...) | GET /api/posts/search |
-| totalCount | output | integer | flowVariable (e6f7a8b9-...) | GET /api/posts/search (同上) |
+| posts | output | array | flowVariable (`post-search-flow`) | GET /api/posts/search |
+| totalCount | output | integer | flowVariable (`post-search-flow`) | GET /api/posts/search (同上) |
 | ...
 
 ### 生成テストケース一覧
@@ -1838,7 +1839,7 @@ techStack.frontend.framework = "next":
 ## Step P4: E2E シナリオテスト生成 (Playwright, multi-screen) — #873
 
 Step 0 で `--scenario` / `--scenario-name` フラグが検出された場合、または
-フラグなし UUID が ProcessFlow / Screen どちらにもマッチしない場合にこのパスに入る。
+フラグなし ID が ProcessFlow / Screen どちらにもマッチしない場合にこのパスに入る。
 
 **D-6 確定**: E2E は常に Playwright (vitest / jest ではない)
 **D-7 確定**: SQLite 環境では `--workers=1` 必須 (playwright.config.ts で設定)
@@ -1867,11 +1868,11 @@ ai-skills/generate-tests/golden-examples/diary-post-lifecycle-e2e/
 ルーティング判定:
   --scenario あり      → P4 へ (2 画面間シナリオ)
   --scenario-name あり → P4 へ (N 画面シナリオ、名前付き)
-  フラグなし + UUID    → 既存の ProcessFlow / Screen 判定 (P1/P2/P3) へ
+  フラグなし + ID      → 既存の ProcessFlow / Screen 判定 (P1/P2/P3) へ
 ```
 
 シナリオ ID の生成: `--scenario-name` の値を kebab-case 化 (例: "投稿ライフサイクル" → "post-lifecycle")。
-フラグなしの場合は `scenario-<8桁UUID>` 形式で自動生成。
+フラグなしの場合は `scenario-<入力ID>` 形式で自動生成。
 
 ### P4-1. harmony.json 読込 + screen path index 構築
 

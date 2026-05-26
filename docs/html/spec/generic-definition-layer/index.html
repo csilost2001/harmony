@@ -387,7 +387,7 @@
 <p>本 layer の schema 追加は <strong><code>docs/spec/schema-governance.md</code></strong> の対象 (= 設計者承認必須)。本ドラフトは整理段階であり、schema 切り出しは別 ISSUE で段階的に実施する。</p>
 <h3 id="45-genericdefinition-と-entitymeta-の関係--maturity-不採用の理由">4.5 GenericDefinition と EntityMeta の関係 / maturity 不採用の理由</h3>
 <p>GenericDefinition は他リソース (ProcessFlow / Screen / Table) と性質が根本的に異なるため、
-EntityMeta (<code>id: uuid</code>, <code>created_at</code>, <code>updated_at</code>, <code>maturity</code>) を採用しない。
+EntityMeta (<code>id: EntityId</code>, <code>uuid: Uuid</code>, <code>createdAt</code>, <code>updatedAt</code>, <code>maturity</code>) を採用しない。
 <code>kind</code> + <code>name</code> を identifier とし、設計者が手で命名・参照する「定義語彙」として扱う。</p>
 
 
@@ -419,7 +419,7 @@ EntityMeta (<code>id: uuid</code>, <code>created_at</code>, <code>updated_at</co
 
 
 
-<table><thead><tr><th>観点</th><th>業務リソース実体 (ProcessFlow / Screen / Table)</th><th>GenericDefinition</th></tr></thead><tbody><tr><td>役割</td><td>業務システムの実体</td><td>定義語彙 / 参照カタログ</td></tr><tr><td>identifier</td><td>uuid (machine-generated)</td><td><code>kind + name</code> (human-readable)</td></tr><tr><td>EntityMeta</td><td>採用</td><td>不採用</td></tr><tr><td>自然な進化モデル</td><td>draft → provisional → committed (制作進行)</td><td>stable ↔ experimental ↔ deprecated (lifecycle)</td></tr></tbody></table>
+<table><thead><tr><th>観点</th><th>業務リソース実体 (ProcessFlow / Screen / Table)</th><th>GenericDefinition</th></tr></thead><tbody><tr><td>役割</td><td>業務システムの実体</td><td>定義語彙 / 参照カタログ</td></tr><tr><td>identifier</td><td><code>id: EntityId</code> (human-readable) + <code>uuid: Uuid</code> (immutable)</td><td><code>kind + name</code> (human-readable)</td></tr><tr><td>EntityMeta</td><td>採用</td><td>不採用</td></tr><tr><td>自然な進化モデル</td><td>draft → provisional → committed (制作進行)</td><td>stable ↔ experimental ↔ deprecated (lifecycle)</td></tr></tbody></table>
 <p>このため <code>draft-state-policy.md</code> §2.5 「成熟度表示は必須」は GenericDefinition には適用しない
 (§2.5 自体で例外化済)。</p>
 <p>将来 lifecycle 管理 (例: <code>status: stable / experimental / deprecated</code>) が業務上必要になった時点で、

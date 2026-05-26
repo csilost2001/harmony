@@ -17,6 +17,7 @@ import type {
   Authoring,
   Description,
   DisplayName,
+  EntityMeta,
   ErrorCode,
   EventTopic,
   TemplateString,
@@ -32,7 +33,6 @@ import type {
   TableColumnRef,
   TableId,
   Timestamp,
-  Uuid,
 } from "./common";
 
 // ─── ProcessFlowKind ───────────────────────────────────────────────────────
@@ -60,23 +60,13 @@ export interface Sla {
 // ─── Meta ─────────────────────────────────────────────────────────────────
 
 /** ProcessFlow の identity と運用設定。EntityMeta + ProcessFlow 固有。 */
-export interface ProcessFlowMeta {
-  // EntityMeta inherited
+export interface ProcessFlowMeta extends EntityMeta {
+  /** RFC #1284: ProcessFlow 業務識別子 (kebab-case)。EntityMeta.id の narrow brand override。 */
   id: ProcessFlowId;
-  /**
-   * RFC #1284: entity 不変識別子 (UUID v4)。audit / 履歴追跡 / merge 衝突解決 / rename refactor の safety net。
-   * schema 上 required、TS 型では段階移行のため optional (EntityMeta と整合)。
-   */
-  uuid?: Uuid;
-  name: DisplayName;
-  description?: Description;
-  version?: string;
-  maturity?: Maturity;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  // uuid / name / description / version / maturity / createdAt / updatedAt は EntityMeta から継承
   // ProcessFlow 固有 (#1263 Phase X1: kind → flowType に rename)
   flowType: ProcessFlowKind;
-  /** flowType='screen' の場合に紐付く Screen の Uuid。 */
+  /** flowType='screen' の場合に紐付く Screen の EntityId (kebab-case)。 */
   screenId?: ScreenId;
   /** ProcessFlow が公開する API のバージョン (例: `v1`, `2026-04-25`)。 */
   apiVersion?: string;
@@ -564,7 +554,7 @@ export interface CacheHint {
 export interface DbAccessStep extends StepBaseProps {
   kind: "dbAccess";
   description: Description;
-  /** 対象 Table の Uuid (物理名直書きは v3 廃止)。 */
+  /** 対象 Table の EntityId (kebab-case。物理名直書きは v3 廃止)。 */
   tableId: TableId;
   operation: DbOperation;
   /** 対象フィールド (人間向け簡易表記)。 */
@@ -665,7 +655,7 @@ export interface ExternalSystemStep extends StepBaseProps {
 export interface CommonProcessStep extends StepBaseProps {
   kind: "commonProcess";
   description: Description;
-  /** 呼び出し先 ProcessFlow の Uuid (kind='common' の他フロー)。 */
+  /** 呼び出し先 ProcessFlow の EntityId (kebab-case。kind='common' の他フロー)。 */
   refId: ProcessFlowId;
   /** 呼び先 inputs 名 → 引数式の対応。 */
   argumentMapping?: Record<string, TemplateString>;
@@ -1001,7 +991,7 @@ export type CdcDestination =
 export interface CdcStep extends StepBaseProps {
   kind: "cdc";
   description: Description;
-  /** 対象 Table の Uuid 配列。 */
+  /** 対象 Table の EntityId (kebab-case) 配列。 */
   tableIds: TableId[];
   captureMode: "full" | "incremental";
   destination: CdcDestination;

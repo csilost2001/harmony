@@ -127,9 +127,9 @@ implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:3.3.0'
 
 ## 完成テンプレート HTML 例
 
-**対象**: `examples/retail/harmony/page-layouts/17595b62-fef1-4b22-9c25-16736c772567.json` (Main Layout)
+**対象**: `examples/retail/harmony/page-layouts/main-layout.json` (Main Layout)
 - regions: header / sidebar / footer / main
-- assignments: header → `68709449-c9e1-47db-a351-ac9c12a19046` (グローバルヘッダ) / sidebar → `c1cff7da-1057-4ba1-b780-2d021f6c8679` (ナビゲーションサイドバー) / footer → `f7daa764-4015-4ad7-8f0a-142944ea2038` (グローバルフッタ)
+- assignments: header → `global-header-gadget` (グローバルヘッダ) / sidebar → `navigation-sidebar-gadget` (ナビゲーションサイドバー) / footer → `global-footer-gadget` (グローバルフッタ)
 - main は assignment なし (各 page が body-content を inject)
 
 ```html
@@ -149,14 +149,14 @@ implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:3.3.0'
 <body class="d-flex flex-column min-vh-100">
 
   <!--
-    PageLayout: 17595b62-fef1-4b22-9c25-16736c772567
+    PageLayout: main-layout
     name: Main Layout
     regions: header, sidebar, footer, main
   -->
 
   <!-- region: header (assignment → グローバルヘッダ gadget) -->
   <nav class="navbar navbar-expand bg-primary navbar-dark px-3">
-    <div th:replace="~{fragments/68709449-c9e1-47db-a351-ac9c12a19046 :: gadget}"></div>
+    <div th:replace="~{fragments/global-header-gadget :: gadget}"></div>
   </nav>
 
   <!-- main コンテンツエリア (sidebar + main を横並び) -->
@@ -165,7 +165,7 @@ implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:3.3.0'
 
       <!-- region: sidebar (assignment → ナビゲーションサイドバー gadget) -->
       <aside class="col-md-3 col-lg-2 bg-light p-3 border-end">
-        <div th:replace="~{fragments/c1cff7da-1057-4ba1-b780-2d021f6c8679 :: gadget}"></div>
+        <div th:replace="~{fragments/navigation-sidebar-gadget :: gadget}"></div>
       </aside>
 
       <!-- region: main (Layout Dialect の layout:fragment slot、page が layout:decorate で content を渡す) -->
@@ -178,7 +178,7 @@ implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:3.3.0'
 
   <!-- region: footer (assignment → グローバルフッタ gadget) -->
   <footer class="text-center bg-light py-3 border-top mt-auto">
-    <div th:replace="~{fragments/f7daa764-4015-4ad7-8f0a-142944ea2038 :: gadget}"></div>
+    <div th:replace="~{fragments/global-footer-gadget :: gadget}"></div>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -244,5 +244,5 @@ Thymeleaf の `th:replace="~{...}"` 式内の `<<...>>` は必ず実際の gadge
 
 | テンプレート記法 | 置換後の出力例 |
 |---|---|
-| `fragments/<<headerGadgetId>> :: gadget` | `fragments/68709449-c9e1-47db-a351-ac9c12a19046 :: gadget` |
-| `layouts/<<pageLayoutId>>` | `layouts/17595b62-fef1-4b22-9c25-16736c772567` |
+| `fragments/<<headerGadgetId>> :: gadget` | `fragments/global-header-gadget :: gadget` |
+| `layouts/<<pageLayoutId>>` | `layouts/main-layout` |

@@ -34,8 +34,8 @@ import { InventoryResultTable } from '@/components/products/inventory-result-tab
 /**
  * 商品検索ページ。
  *
- * Screen: e6147dc0-94b7-436d-ba87-d0080ac34f44
- * ProcessFlow: efa7ac6e-e295-416e-b68d-17c4739b5097 (店舗在庫照会)
+ * Screen: product-search
+ * ProcessFlow: inventory-by-store-lookup (店舗在庫照会)
  */
 export default async function ProductSearchPage({
   searchParams,
@@ -283,21 +283,21 @@ else:
 
 ### 完成例 (kind=dashboard + Main Layout の Layout Wrap モード)
 
-**対象**: kind=dashboard の page Screen で `pageLayoutId: "17595b62-fef1-4b22-9c25-16736c772567"` (Main Layout) を指定
+**対象**: kind=dashboard の page Screen で `pageLayoutId: "main-layout"` (Main Layout) を指定
 
 ```tsx
 // app/dashboard/page.tsx (Server Component)
 // Screen: <dashboardScreenId>
 // kind: dashboard
-// pageLayoutId: 17595b62-fef1-4b22-9c25-16736c772567 (Main Layout)
+// pageLayoutId: main-layout (Main Layout)
 // → Layout Wrap モード: <AppLayout> でラップ
 
-import AppLayout from '@/app/components/layouts/17595b62-fef1-4b22-9c25-16736c772567';
+import AppLayout from '@/app/components/layouts/main-layout';
 import { Suspense } from 'react';
 
 /**
  * ダッシュボードページ。
- * Main Layout (PageLayout: 17595b62-fef1-4b22-9c25-16736c772567) に wrapped。
+ * Main Layout (PageLayout: main-layout) に wrapped。
  * ヘッダ・サイドバー・フッタは AppLayout が担当し、このページは main region のコンテンツのみ記述する。
  */
 export default async function DashboardPage() {

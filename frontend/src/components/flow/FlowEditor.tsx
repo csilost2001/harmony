@@ -32,7 +32,7 @@ import type { Screen } from "../../types/v3/screen";
 import type { Marker } from "../../types/v3/common";
 import type { PageLayoutEntry } from "../../types/v3/harmony";
 import { TRIGGER_LABELS } from "../../types/flow";
-import type { ScreenGroupId, ScreenKind, ScreenFlowPositions, Timestamp, Uuid } from "../../types/v3";
+import type { ScreenGroupId, ScreenKind, ScreenFlowPositions, Timestamp, PageLayoutId } from "../../types/v3";
 import {
   loadProject,
   loadRawProject,
@@ -488,7 +488,7 @@ function FlowEditorInner() {
         path: data.path,
         description: data.description,
         // pageLayoutId 更新 (purpose='page' のみ意味を持つ, pl-4, #1025)
-        pageLayoutId: (data.pageLayoutId || undefined) as (Uuid | undefined),
+        pageLayoutId: (data.pageLayoutId || undefined) as (PageLayoutId | undefined),
       });
       setNodes((nds) => nds.map((n) => {
         if (n.id !== screenModal.editId || !projectRef.current) return n;

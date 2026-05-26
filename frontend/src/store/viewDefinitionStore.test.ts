@@ -3,6 +3,7 @@ import type { FlowProject } from "../types/flow";
 import type {
   DisplayName,
   Harmony,
+  ProjectId,
   TableId,
   Timestamp,
   ViewDefinitionEntry,
@@ -34,11 +35,11 @@ function emptyProject(): FlowProject {
 
 function viewDefinitionEntry(id: string, no: number): ViewDefinitionEntry {
   return {
-    id: id as unknown as ViewDefinitionId,
+    id: id as ViewDefinitionId,
     no,
     name: `vd ${id}`,
     kind: "list",
-    sourceTableId: "tbl-1" as unknown as TableId,
+    sourceTableId: "tbl-1" as TableId,
     columnCount: 0,
     updatedAt: TS,
   };
@@ -52,7 +53,7 @@ function rawProjectWithViewDefinitions(viewDefinitions: ViewDefinitionEntry[]): 
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      id: "11111111-2222-4333-8444-555555555555" as unknown as Harmony["meta"]["id"],
+      id: "test-project-a" as ProjectId,
       name: "test",
       maturity: "draft",
       createdAt: ts,

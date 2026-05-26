@@ -189,7 +189,7 @@ enum 値の命名は**対象ドメインの慣習** に従う。schema 全体で
 
 | 対象 | 形式 | 例 |
 |---|---|---|
-| ProcessFlow.id | UUID v4 風 (16 文字 group + ハイフン) | `gggggggg-0003-4000-8000-gggggggggggg` |
+| ProcessFlow.id | EntityId (kebab-case 英単語) | `order-entry-flow`、`monthly-batch` (RFC #1284 / #1332 で UUID から変更、不変識別子は別フィールド `meta.uuid: Uuid` に保持) |
 | ActionDefinition.id | `act-NNN` または `act-<slug>-NNN` | `act-001`, `act-orderreg-002`, `act-orderreg-003` |
 | Step.id | `step-NN` または `step-NN-NN`/`step-NNa-NN-NN` (階層) | `step-01`, `step-13-01`, `step-13b`, `step-13b-a-01` |
 | Branch.id | `br-NN-<code>` | `br-03-a`, `br-03-b`, `br-13b-else` |
@@ -204,7 +204,7 @@ enum 値の命名は**対象ドメインの慣習** に従う。schema 全体で
 #### 規範
 
 - ID は **kebab-case + 階層化 (ハイフン区切り)** が基本
-- ProcessFlow.id のみ UUID v4 風 (外部システムから一意に参照されるため)
+- RFC #1284 / #1332: 全 top-level entity (ProcessFlow / Screen / Table / Sequence / View / ViewDefinition / PageLayout) の `id` は kebab-case `EntityId` に統一。不変識別子は別フィールド `meta.uuid: Uuid` (UUID v4) に保持し、外部システムからの一意参照は uuid 側を使用する
 - 数字部分は ゼロパディング (`001`, `02`) を推奨 (ソート時の自然順を維持)
 - Step ID の階層 (`step-13-01` / `step-13b-a-01`) は parent step の ID に suffix を付ける形を推奨
 - schema 上は `type: "string"` のままで、**pattern は強制しない** (実装制約・参照整合性バリデータで担保)

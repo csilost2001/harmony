@@ -44,7 +44,9 @@ export async function listViews(): Promise<ViewEntry[]> {
 
 /** ビュー定義を読み込み (per-entity ファイル) */
 export async function loadView(viewId: string): Promise<View | null> {
-  return (await requireBackend().loadView(viewId)) as View | null;
+  const raw = (await requireBackend().loadView(viewId)) as View | null;
+  // uuid 補完は backend (readEntityAndEnsureUuid) 責務。frontend では補完しない。
+  return raw;
 }
 
 export async function loadViewValidationMap(): Promise<Map<ViewId, ValidationError[]>> {

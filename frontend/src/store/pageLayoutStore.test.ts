@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { FlowProject } from "../types/flow";
-import type { Harmony, Timestamp } from "../types/v3";
+import type { Harmony, ProjectId, Timestamp } from "../types/v3";
 import type { PageLayoutEntry } from "../types/v3/harmony";
 import type { FlowStorageBackend } from "./flowStore";
 import { setFlowDraftMode, setFlowStorageBackend } from "./flowStore";
@@ -49,7 +49,7 @@ function rawProjectWithPageLayouts(pageLayouts: PageLayoutEntry[]): Harmony {
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
-      id: "11111111-2222-4333-8444-555555555555" as unknown as Harmony["meta"]["id"],
+      id: "test-project-a" as ProjectId,
       name: "test",
       maturity: "draft",
       createdAt: ts,
@@ -101,7 +101,7 @@ describe("pageLayoutStore", () => {
       schemaVersion: "v3",
       dataDir: "harmony",
       meta: {
-        id: "22222222-3333-4444-8555-666666666666" as unknown as Harmony["meta"]["id"],
+        id: "test-project-b" as ProjectId,
         name: "test",
         maturity: "draft",
         createdAt: TS as unknown as Harmony["meta"]["createdAt"],

@@ -6,7 +6,7 @@
 
 ## 位置づけ
 
-`/generate-code <UUID> <出力先>` は **業務アプリ project root を作る (または更新する) コマンド** です。生成されるのは「Harmony という設計ツールから派生した独立した業務アプリ」であり、Harmony 本体 repo の一部ではありません。
+`/generate-code <EntityId> <出力先>` は **業務アプリ project root を作る (または更新する) コマンド** です (引数の `<EntityId>` は `<flowId>` / `<screenId>` / `<pageLayoutId>` 等、`[a-z0-9-]` のみの kebab-case)。生成されるのは「Harmony という設計ツールから派生した独立した業務アプリ」であり、Harmony 本体 repo の一部ではありません。
 
 ```
 Harmony (設計)                          業務アプリ (実装)
@@ -96,7 +96,7 @@ code ~/projects/retail-app/      # project root を VS Code で開く
 └──────────────────────────────────────────────────────────────┘
                             ↓
 ┌─ 3. /generate-code 実行 ─────────────────────────────────────┐
-│   /generate-code <UUID> ~/projects/retail-app/                   │
+│   /generate-code <EntityId> ~/projects/retail-app/                │
 │   または bulk: /generate-code --all ~/projects/retail-app/      │
 └──────────────────────────────────────────────────────────────┘
                             ↓
@@ -117,7 +117,7 @@ code ~/projects/retail-app/      # project root を VS Code で開く
 | 状況 | 推奨 `<出力先>` |
 |---|---|
 | 業務アプリ開発の本番 | `~/projects/<業務名>/` (Harmony repo の外) |
-| ad-hoc な smoke 確認 | `.tmp/generated-code/<入力 UUID 8 桁>/` (単発モード default) / `.tmp/generated-code/bulk-<UTC タイムスタンプ>/` (bulk モード default) |
+| ad-hoc な smoke 確認 | `.tmp/generated-code/<入力 EntityId>/` (単発モード default) / `.tmp/generated-code/bulk-<UTC タイムスタンプ>/` (bulk モード default) |
 | Harmony 同梱サンプル更新 (Harmony 本体開発者のみ) | `examples/<id>/generated/<techStack>/` (dogfood パターン) |
 
 業務アプリの本番開発では **Harmony repo の外** に project root を作るのが基本です。Harmony repo 内に出力すると以下の不利益があります:
@@ -164,16 +164,18 @@ active workspace の全 entity を一括生成する場合:
 
 ```
 ~/projects/retail-app/
-├── process-flows/<flowId8桁>/
-├── screens/<screenId8桁>/
-└── page-layouts/<layoutId8桁>/
+├── process-flows/<flowId>/
+├── screens/<screenId>/
+└── page-layouts/<layoutId>/
 ```
 
-bulk モードは初期立ち上げ・一括再生成向け。日常的な部分更新は単発モード (`/generate-code <UUID> <出力先>`) を推奨します。
+`<flowId>` / `<screenId>` / `<layoutId>` は EntityId (kebab-case 英単語、例: `order-confirm` / `product-search` / `admin-shell`) をそのまま使用します (RFC #1284 / #1332)。legacy UUID 形式の resource が残っている場合は full UUID を使い、prefix を切り詰めません。
+
+bulk モードは初期立ち上げ・一括再生成向け。日常的な部分更新は単発モード (`/generate-code <EntityId> <出力先>`) を推奨します。
 
 ## /generate-tests との対応
 
-`/generate-tests <UUID> <出力先>` は同じ `<出力先>` を指定することで、`src/test/` (Spring Boot) や `__tests__/` (NestJS / Next.js) など canonical なテスト配置に出力されます (`ai-skills/generate-tests/SKILL.md` 参照)。
+`/generate-tests <EntityId> <出力先>` は同じ `<出力先>` を指定することで、`src/test/` (Spring Boot) や `__tests__/` (NestJS / Next.js) など canonical なテスト配置に出力されます (`ai-skills/generate-tests/SKILL.md` 参照)。
 
 ## 関連ドキュメント
 

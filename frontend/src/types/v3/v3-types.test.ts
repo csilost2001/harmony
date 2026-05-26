@@ -26,24 +26,71 @@ import type { Screen } from "./screen";
 import type { ScreenItem, ScreenItemEvent, ScreenItemEventEffect, ValueSource } from "./screen-item";
 import type {
   Uuid,
+  EntityId,
+  ScreenId,
   TableId,
   Identifier,
   IdentifierPath,
   FieldType,
   StructuredField,
+  TemplateString,
+  EntityMeta,
+  // #1332 Codex 再 review M4: ScreenGroupId / CustomBlockId brand 同期
+  ScreenGroupId,
+  CustomBlockId,
 } from "./common";
 
 // ─── Branded types compile-time check ─────────────────────────────────────
 
 describe("v3 branded types", () => {
-  it("Uuid と TableId は別ブランド (代入互換性なし)", () => {
-    // 型レベルテスト — 以下は compile error にならないか確認するためのコメント例:
-    // const tableId: TableId = "..." as Uuid;  // ← Error: Uuid is not assignable to TableId
-    // const uuid: Uuid = "..." as TableId;     // ← OK (TableId extends Uuid)
-    // 実行時テストは代用として string 型互換性のみ確認
-    const tableId = "11111111-1111-4111-8111-111111111111" as TableId;
-    const asUuid: Uuid = tableId; // TableId is Uuid + brand → Uuid に代入可能
-    expect(typeof asUuid).toBe("string");
+  it("EntityId 系 brand と Uuid は別 base (代入互換性なし)", () => {
+    const tableId = "table-customer" as TableId;
+    const asEntityId: EntityId = tableId; // TableId は EntityId base → 共通 base に代入可能
+    expect(typeof asEntityId).toBe("string");
+
+    // @ts-expect-error - TableId (EntityId base) を Uuid に直接代入不可 (base brand 不一致)
+    const wrongUuid: Uuid = tableId;
+    void wrongUuid;
+  });
+
+  it("EntityId と Uuid は別 base brand (代入不可)", () => {
+    const eid = "screen-list-page" as EntityId;
+    expect(typeof eid).toBe("string");
+
+    // @ts-expect-error - EntityId と Uuid は別 base brand のため代入不可
+    const wrongUuid: Uuid = eid;
+    void wrongUuid;
+  });
+
+  it("ScreenId と TableId は別 brand (代入互換性なし、同じ EntityId base でも区別される)", () => {
+    const screenId = "screen-list-page" as ScreenId;
+    const asEntityId: EntityId = screenId; // OK (共通 base)
+    expect(typeof asEntityId).toBe("string");
+
+    // @ts-expect-error - ScreenId と TableId は narrow brand discriminator が異なるため直接代入不可
+    const wrongTableId: TableId = screenId;
+    void wrongTableId;
+  });
+
+  it("EntityMeta.uuid は required field (RFC #1284 / I-7-1)", () => {
+    // 正常 case: uuid 含めた EntityMeta は受理される
+    const meta: EntityMeta = {
+      id: "screen-list-page" as EntityId,
+      uuid: "11111111-1111-4111-8111-111111111111" as Uuid,
+      name: "test",
+      createdAt: "2026-01-01T00:00:00.000Z" as EntityMeta["createdAt"],
+      updatedAt: "2026-01-01T00:00:00.000Z" as EntityMeta["updatedAt"],
+    };
+    expect(meta.uuid).toBeDefined();
+
+    // @ts-expect-error - uuid 欠落の object literal は EntityMeta を満たさない
+    const metaWithoutUuid: EntityMeta = {
+      id: "screen-list-page" as EntityId,
+      name: "test",
+      createdAt: "2026-01-01T00:00:00.000Z" as EntityMeta["createdAt"],
+      updatedAt: "2026-01-01T00:00:00.000Z" as EntityMeta["updatedAt"],
+    };
+    void metaWithoutUuid;
   });
 
   it("Identifier と IdentifierPath は別ブランド", () => {
@@ -51,7 +98,43 @@ describe("v3 branded types", () => {
     const path = "createdOrder.order_number" as IdentifierPath;
     expect(typeof id).toBe("string");
     expect(typeof path).toBe("string");
-    // const wrongAssign: Identifier = path;  // ← compile error (different brands)
+
+    // @ts-expect-error - Identifier と IdentifierPath は別 brand
+    const wrongAssign: Identifier = path;
+    void wrongAssign;
+  });
+
+  // #1332 Codex 再 review M4 regression assertions
+  it("ScreenGroupId は EntityId base (schema 同期、kebab-case 受理 / Uuid 拒否)", () => {
+    // kebab-case EntityId として代入できること (schema 上 group ID は EntityId)
+    const groupId = "group-default" as ScreenGroupId;
+    const asEntityId: EntityId = groupId;
+    expect(typeof asEntityId).toBe("string");
+
+    // @ts-expect-error - ScreenGroupId (EntityId base) を Uuid に直接代入不可
+    const wrongUuid: Uuid = groupId;
+    void wrongUuid;
+
+    // @ts-expect-error - ScreenGroupId と ScreenId は narrow brand discriminator が異なる
+    const wrongScreenId: ScreenId = groupId;
+    void wrongScreenId;
+  });
+
+  it("CustomBlockId は Uuid base かつ narrow brand で subtype guarantee あり", () => {
+    const blockUuid = "11111111-1111-4111-8111-111111111111" as Uuid;
+    const customBlockId = blockUuid as CustomBlockId;
+    // CustomBlockId は Uuid base → Uuid に代入可能 (subtype guarantee)
+    const asUuid: Uuid = customBlockId;
+    expect(typeof asUuid).toBe("string");
+
+    // @ts-expect-error - CustomBlockId (Uuid base) を EntityId に直接代入不可
+    const wrongEntityId: EntityId = customBlockId;
+    void wrongEntityId;
+
+    // @ts-expect-error - 同じ Uuid base でも narrow brand 違いの ScreenGroupId 等とは別物
+    //                    (CustomBlockId は Uuid 系、ScreenGroupId は EntityId 系で base ごと別)
+    const wrongScreenGroup: ScreenGroupId = customBlockId;
+    void wrongScreenGroup;
   });
 });
 
@@ -63,6 +146,7 @@ describe("v3 Step discriminated union", () => {
       id: "step-01" as Step["id"],
       kind: "validation",
       description: "test",
+      fieldErrorsVar: "fieldErrors" as Identifier,
     };
     if (step.kind === "validation") {
       // Narrowed to ValidationStep
@@ -77,7 +161,7 @@ describe("v3 Step discriminated union", () => {
       id: "step-02" as DbAccessStep["id"],
       kind: "dbAccess",
       description: "select",
-      tableId: "11111111-1111-4111-8111-111111111111" as TableId,
+      tableId: "table-customer" as TableId,
       operation: "SELECT",
     };
     expect(dbStep.tableId).toBeDefined();
@@ -105,7 +189,7 @@ describe("v3 Step discriminated union", () => {
           id: "step-tx-1" as DbAccessStep["id"],
           kind: "dbAccess",
           description: "insert",
-          tableId: "11111111-1111-4111-8111-111111111111" as TableId,
+          tableId: "table-customer" as TableId,
           operation: "INSERT",
         },
       ],
@@ -124,7 +208,7 @@ describe("v3 Constraint discriminated union", () => {
       id: "fk-1" as ForeignKeyConstraint["id"],
       kind: "foreignKey",
       columnIds: ["col-1" as ForeignKeyConstraint["columnIds"][number]],
-      referencedTableId: "22222222-2222-4222-8222-222222222222" as TableId,
+      referencedTableId: "table-order" as TableId,
       referencedColumnIds: ["col-2" as ForeignKeyConstraint["referencedColumnIds"][number]],
     };
     const c: Constraint = fk;

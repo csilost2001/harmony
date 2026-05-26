@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { View, ViewId, PhysicalName, Timestamp } from "../types/v3";
+import type { View, ViewId, PhysicalName, Timestamp, Uuid } from "../types/v3";
 import { validateView } from "./viewValidation";
 
 const ts = "2026-04-29T00:00:00.000Z" as Timestamp;
 
 function view(overrides: Partial<View> = {}): View {
   return {
-    id: "11111111-1111-4111-8111-111111111111" as ViewId,
+    id: "view-customer" as ViewId,
+    uuid: "11111111-1111-4111-8111-111111111111" as Uuid,
     name: "顧客ビュー",
     physicalName: "v_customer" as PhysicalName,
     selectStatement: "SELECT customer_id FROM customers",
@@ -57,7 +58,7 @@ describe("validateView", () => {
   it("physicalName duplicate within same namespace → error", () => {
     const target = view();
     const duplicate = view({
-      id: "22222222-2222-4222-8222-222222222222" as ViewId,
+      id: "view-other" as ViewId,
       name: "別ビュー",
     });
 

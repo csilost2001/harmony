@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  * 注文確定コントローラ。
  *
- * <p>ProcessFlow ID: f81dd9e0-794c-4539-a2a5-9cbcc0a75899</p>
+ * <p>ProcessFlow ID: order-confirm</p>
  * <p>httpRoute: POST /api/retail/orders</p>
  * <p>auth: required (Spring Security でセッション認証)</p>
  *

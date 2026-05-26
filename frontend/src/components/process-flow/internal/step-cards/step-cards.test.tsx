@@ -134,6 +134,37 @@ describe("ExternalSystemStepCardBody", () => {
     );
     expect(container.textContent).not.toContain("backoff:");
   });
+
+  it("outcome sideEffect 追加は ProcessFlow 全体の step-NN を見て採番する (#1332 Codex 11巡目 M1)", () => {
+    const onChange = vi.fn();
+    const step = baseStep({
+      id: "external-01",
+      kind: "externalSystem",
+      systemRef: "stripe",
+      errorHandling: { outcomes: { success: { action: "continue" } } },
+    });
+    const group = {
+      actions: [{
+        id: "act-001",
+        name: "act",
+        trigger: "click",
+        steps: [
+          { id: "step-01", kind: "log", description: "" },
+          { id: "workflow-01", kind: "workflow", description: "", onApproved: [{ id: "step-02", kind: "log", description: "" }] },
+          step,
+        ],
+      }],
+    } as never;
+    const { container } = render(
+      <ExternalSystemStepCardBody step={step} allSteps={[]} onChange={onChange} group={group} />,
+    );
+
+    const addButtons = [...container.querySelectorAll("button")].filter((button) => button.textContent?.includes("追加"));
+    fireEvent.click(addButtons[0]);
+
+    const patch = onChange.mock.calls.at(-1)?.[0] as any;
+    expect(patch.errorHandling.outcomes.success.sideEffects[0].id).toBe("step-03");
+  });
 });
 
 // ── CommonProcessStepCardBody ───────────────────────────────────────

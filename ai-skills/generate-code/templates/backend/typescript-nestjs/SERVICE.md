@@ -172,7 +172,7 @@ Harmony spec の TX 表現は `step.kind = "transactionScope"` に一本化さ�
 
 `step.kind === "transactionScope"` の step を見つけたら、その `steps[]` 配下にあるすべての step を 1 TX で wrap する。`rollbackOn` 指定があれば、対応する errorCode の throw のみ rollback を引き起こす (それ以外の例外は default 挙動)。
 
-### Spec の例 (diary 投稿作成 `0671b051` 実物)
+### Spec の例 (diary 投稿作成 `post-create-flow` 実物)
 
 ```jsonc
 "steps": [

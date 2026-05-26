@@ -41,6 +41,8 @@ import { useListSort } from "../../hooks/useListSort";
 import { useListEditor } from "../../hooks/useListEditor";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { generateUUID } from "../../utils/uuid";
+// #1332 Codex 10 巡目 M1: duplicate 経路の Action/Step id 採番を LocalId に統一
+import { nextLocalId } from "../../utils/localIdGenerator";
 import { renumber } from "../../utils/listOrder";
 import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
@@ -351,11 +353,24 @@ export function ProcessFlowListView() {
         createdAt: nowTs as ProcessFlow["meta"]["createdAt"],
         updatedAt: nowTs as ProcessFlow["meta"]["updatedAt"],
       },
-      actions: full.actions.map((a) => ({
-        ...a,
-        id: generateUUID() as LocalId,
-        steps: a.steps.map((s) => ({ ...s, id: generateUUID() as LocalId })),
-      })),
+      // #1332 Codex 10 巡目 M1: duplicate 時の Action.id / Step.id は schema 規範 (LocalId) で採番。
+      // 同 doc 内 (= 新 dup 内) の連番衝突を回避するため existingIds を共有更新する。
+      actions: (() => {
+        const dupIds = new Set<string>();
+        return full.actions.map((a) => {
+          const aid = nextLocalId(dupIds, "act", 3);
+          dupIds.add(aid);
+          return {
+            ...a,
+            id: aid as LocalId,
+            steps: a.steps.map((s) => {
+              const sid = nextLocalId(dupIds, "step", 2);
+              dupIds.add(sid);
+              return { ...s, id: sid as LocalId };
+            }),
+          };
+        });
+      })(),
     };
     await saveProcessFlow(dup);
     return newId;

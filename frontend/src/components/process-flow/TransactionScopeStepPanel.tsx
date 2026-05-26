@@ -17,7 +17,8 @@ import {
 import type { ConventionsCatalog } from "../../schemas/conventionsValidator";
 import type { ValidationError } from "../../utils/actionValidation";
 import { createDefaultStep } from "../../store/processFlowStore";
-import { generateUUID } from "../../utils/uuid";
+// #1332 Codex 10 巡目 M1: 子 step duplicate / 追加時の id 採番を LocalId に統一
+import { nextLocalId, collectAllProcessFlowLocalIds } from "../../utils/localIdGenerator";
 import { StepCard } from "./StepCard";
 
 interface Props {
@@ -92,7 +93,9 @@ function InlineStepList({
   const [showTypePicker, setShowTypePicker] = useState(false);
 
   const addStep = (type: StepType) => {
-    const newStep = createDefaultStep(type);
+    // #1332 Codex 10 巡目 M1: group context があれば全体衝突回避、無ければ siblings ローカル。
+    const ids = group ? collectAllProcessFlowLocalIds(group) : new Set<string>(steps.map((s) => String(s.id)));
+    const newStep = createDefaultStep(type, ids);
     onChange([...steps, newStep]);
     onCommit?.();
     setShowTypePicker(false);
@@ -133,15 +136,19 @@ function InlineStepList({
               onCommit?.();
             }}
             onDuplicate={() => {
+              // #1332 Codex 10 巡目 M1: duplicate id 採番を LocalId に統一。
               const clone = JSON.parse(JSON.stringify(step)) as Step;
-              clone.id = generateUUID() as LocalId;
+              const ids = group ? collectAllProcessFlowLocalIds(group) : new Set<string>(steps.map((s) => String(s.id)));
+              clone.id = nextLocalId(ids, "step", 2) as LocalId;
               const arr = steps.slice();
               arr.splice(si + 1, 0, clone);
               onChange(arr);
               onCommit?.();
             }}
             onAddSubStep={(type) => {
-              const newSub = createDefaultStep(type);
+              // #1332 Codex 10 巡目 M1: subStep 追加時の id 採番を LocalId に統一。
+              const ids = group ? collectAllProcessFlowLocalIds(group) : new Set<string>(steps.map((s) => String(s.id)));
+              const newSub = createDefaultStep(type, ids);
               const arr = steps.slice();
               const cur = arr[si] as StepWithSubSteps;
               arr[si] = { ...cur, subSteps: [...(cur.subSteps ?? []), newSub] } as unknown as Step;

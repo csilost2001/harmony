@@ -71,7 +71,7 @@ EC + 店舗 POS + 在庫管理 のミックス。中規模 (画面 ~11、テー�
 
 ### 3.1 ID 規約
 
-- top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence) は **`Uuid` 形式 (RFC 4122 v4)** を使用。`crypto.randomUUID()` 由来の値を埋め込む。
+- top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence / ViewDefinition / PageLayout) は RFC #1284 により **`EntityId` 形式 (kebab-case)** を使用 (例: `screen-list-page`, `table-customer`)。不変識別子 `uuid` は **`Uuid` 形式 (RFC 4122 v4)** とし、各 entity ファイルの `uuid` プロパティに付与する (audit / 履歴追跡 / rename refactor の safety net)。
 - ネスト LocalId は kebab-case (例: `step-01`, `col-product-code`)。
 - 業務識別子 (画面項目 ID / 処理フロー変数名) は lowerCamelCase (例: `productCode`, `cartId`)。
 - DB 物理名は snake_case (例: `order_items`, `inventory`)。

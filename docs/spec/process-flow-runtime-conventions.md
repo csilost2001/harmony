@@ -323,7 +323,7 @@ httpRoute.auth == "required" ?
 ```json
 // data/process-flows/xxx.json (override が必要な場合のみ記述)
 {
-  "meta": { "id": "11111111-1111-4111-8111-111111111111", "name": "外貨精算" },
+  "meta": { "id": "foreign-currency-settlement-flow", "uuid": "11111111-1111-4111-8111-111111111111", "name": "外貨精算" },
   "context": {
     "ambientOverrides": {
       "currency": "@conv.currency.usd",

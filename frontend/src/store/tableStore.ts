@@ -2,9 +2,10 @@
  * tableStore.ts (v3, #556)
  * テーブル設計書の永続化ストア。
  *
- * - data/tables/<UUID>.json (per-entity ファイル)
+ * - <workspace>/<dataDir>/tables/<EntityId>.json (per-entity ファイル、ファイル名は kebab-case の EntityId)
  * - $schema 属性で v3 schema 参照を保存
  * - harmony.json の entities.tables (互換的に project.tables[]) で v3 TableEntry を管理
+ * - RFC #1284 / #1332: id は EntityId (kebab-case)、不変識別子は別フィールド uuid (UUID v4) に保持
  */
 import type {
   Table,
@@ -111,6 +112,7 @@ export async function listTables(): Promise<TableEntry[]> {
 export async function loadTable(tableId: string): Promise<Table | null> {
   const raw = (await requireBackend().loadTable(tableId)) as Table | null;
   if (!raw) return null;
+  // uuid 補完は backend (readEntityAndEnsureUuid) 責務。frontend では補完しない。
   // docs/spec/list-common.md §3.10: 読み込み時に no を配列順で補完
   raw.columns = renumber(raw.columns ?? []);
   return raw;

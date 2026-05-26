@@ -37,6 +37,8 @@ import { clearJumpReferences, type StepWithSubSteps } from "../../utils/actionUt
 import { hasBlockingErrors } from "../../utils/actionValidation";
 import { aggregateValidation } from "../../utils/aggregatedValidation";
 import { generateUUID } from "../../utils/uuid";
+// #1332 Codex 10 巡目 M1: clone / paste 系の id 採番を LocalId に統一
+import { nextLocalId, collectAllProcessFlowLocalIds } from "../../utils/localIdGenerator";
 import {
   DndContext,
   closestCenter,
@@ -478,8 +480,11 @@ export function ProcessFlowEditor() {
     updateGroupWithDraft((g) => {
       const act = g.actions.find((a) => a.id === activeActionId);
       if (!act) return;
+      // #1332 Codex 10 巡目 M1: template の step.id は LocalId (`step-NN`) で採番。
+      // template は固定 id を持たないため push 毎に group 全体から既存 id を取り直して衝突回避。
       for (const stepDef of (tpl.steps ?? [])) {
-        const step = { ...stepDef, id: generateUUID() } as Step;
+        const existingIds = collectAllProcessFlowLocalIds(g);
+        const step = { ...stepDef, id: nextLocalId(existingIds, "step", 2) } as Step;
         act.steps.push(step);
       }
     });
@@ -586,7 +591,7 @@ export function ProcessFlowEditor() {
       const act = g.actions.find((a) => a.id === activeActionId);
       if (!act) return;
       const parent = act.steps.find((s) => s.id === parentStepId);
-      if (parent) addSubStep(parent, kind);
+      if (parent) addSubStep(parent, kind, g);
     });
     closeContextMenu();
   };
@@ -598,10 +603,18 @@ export function ProcessFlowEditor() {
       const idx = act.steps.findIndex((s) => s.id === stepId);
       if (idx < 0) return;
       const clone = JSON.parse(JSON.stringify(act.steps[idx])) as Step;
-      clone.id = generateUUID() as LocalId;
+      // #1332 Codex 10 巡目 M1: clone 系の id 採番を LocalId (schema 規範) に統一。
+      // group 全体から既存 id を取得し、衝突を回避しながら段階的に採番する。
+      const existingIds = collectAllProcessFlowLocalIds(g);
+      clone.id = nextLocalId(existingIds, "step", 2) as LocalId;
+      existingIds.add(clone.id);
       const cloneWithSubs = clone as StepWithSubSteps;
       if (cloneWithSubs.subSteps) {
-        cloneWithSubs.subSteps = cloneWithSubs.subSteps.map((s) => ({ ...s, id: generateUUID() as LocalId }));
+        cloneWithSubs.subSteps = cloneWithSubs.subSteps.map((s) => {
+          const subId = nextLocalId(existingIds, "step", 2);
+          existingIds.add(subId);
+          return { ...s, id: subId as LocalId };
+        });
       }
       act.steps.splice(idx + 1, 0, clone);
     });
@@ -676,12 +689,21 @@ export function ProcessFlowEditor() {
     updateGroupWithDraft((g) => {
       const act = g.actions.find((a) => a.id === activeActionId);
       if (!act) return;
+      // #1332 Codex 10 巡目 M1: paste 系の id 採番を LocalId (schema 規範) に統一。
+      // 複数 step 同時 paste の衝突を避けるため existingIds を共有更新する。
+      const existingIds = collectAllProcessFlowLocalIds(g);
       const newSteps = clipboard.steps.map((s) => {
         const clone = JSON.parse(JSON.stringify(s)) as Step;
-        clone.id = generateUUID() as LocalId;
+        const newId = nextLocalId(existingIds, "step", 2);
+        existingIds.add(newId);
+        clone.id = newId as LocalId;
         const cloneWithSubs = clone as StepWithSubSteps;
         if (cloneWithSubs.subSteps) {
-          cloneWithSubs.subSteps = cloneWithSubs.subSteps.map((sub) => ({ ...sub, id: generateUUID() as LocalId }));
+          cloneWithSubs.subSteps = cloneWithSubs.subSteps.map((sub) => {
+            const subId = nextLocalId(existingIds, "step", 2);
+            existingIds.add(subId);
+            return { ...sub, id: subId as LocalId };
+          });
         }
         return clone;
       });
@@ -1190,5 +1212,5 @@ export function ProcessFlowEditor() {
 // ── browser-first 処理フロー変異ヘルパー ───────────────────────────────────
 // #1149 (PR #1148 follow-up) で `./processFlowMutation.ts` に切り出し済。
 // 切り出し理由: vitest unit test で巨大エディタ全体を巻き込まずに mutation
-// ロジックを単体検証するため。v3 構造 (`kind` discriminator / RFC 4122 v4
-// UUID) は同モジュール内で受容する。
+// ロジックを単体検証するため。v3 構造 (`kind` discriminator / LocalId 規範
+// `act-NNN` / `step-NN` / `br-NN`) は同モジュール内で受容する (#1332 M1)。

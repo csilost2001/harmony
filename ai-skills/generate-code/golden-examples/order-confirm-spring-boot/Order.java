@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
  * 注文エンティティ。
  *
  * テーブル: orders (physicalName: orders)
- * ProcessFlow 参照: f81dd9e0-794c-4539-a2a5-9cbcc0a75899
+ * ProcessFlow 参照: order-confirm
  *
  * <p>テーブル列:
  * <ul>

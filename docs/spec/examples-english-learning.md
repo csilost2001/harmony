@@ -111,7 +111,7 @@ LLM 会話呼び出しは **core stepKind `aiCall` + `context.catalogs.modelEndp
 
 ### 3.1 ID 規約 (retail と共通)
 
-- top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence) は **`Uuid` 形式 (RFC 4122 v4)**。`crypto.randomUUID()` 由来の値を埋め込む (非 secure context 環境で生成する場合は `frontend/src/utils/uuid.ts` の `generateUUID()` を使用)。
+- top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence / PageLayout) は **`EntityId` 形式 (kebab-case)** (例: `screen-list-page`, `table-customer`)。不変識別子 `uuid` は **`Uuid` 形式 (RFC 4122 v4)** とし、各 entity ファイルの `uuid` プロパティに付与する。
 - ネスト LocalId は kebab-case (例: `step-llm-call`, `col-cefr-level`)。
 - 業務識別子 (画面項目 ID / 処理フロー変数名) は lowerCamelCase (例: `sessionId`, `pronunciationScore`)。
 - DB 物理名は snake_case (例: `learning_sessions`, `user_word_progress`)。

@@ -1,10 +1,10 @@
 # golden-examples/diary-ai-tag-suggest
 
 diary アプリ (`examples/diary/harmony.json`) の AIタグ提案フロー
-(`examples/diary/harmony/process-flows/a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d.json`) を題材にした
+(`examples/diary/harmony/process-flows/ai-tag-suggest-flow.json`) を題材にした
 `/generate-tests` スキルの P5 (AI flow mock + 実 API 切替、Phase 2-B) ゴールデン出力。
 
-**対象 ProcessFlow**: `a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d` (AIタグ提案)
+**対象 ProcessFlow**: `ai-tag-suggest-flow` (AIタグ提案)
 
 **AI step kind**: `aiCall` + `responseFormat=structuredObject` (Phase 2-A 移行済、PR #937)
 
@@ -192,14 +192,14 @@ jobs:
 このゴールデン出力は以下の `/generate-tests` invocation に対応する:
 
 ```
-/generate-tests a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d
+/generate-tests ai-tag-suggest-flow
 ```
 
 ### invocation 時の AI の処理フロー (Phase 2-B)
 
-1. `harmony.json` から `entities.processFlows[]` を確認 → `a9b0c1d2-...` が ProcessFlow と判定
+1. `harmony.json` から `entities.processFlows[]` を確認 → `ai-tag-suggest-flow` が ProcessFlow と判定
 2. `techStack.backend.framework = "nestjs"` → P1/P2/P5 ルートへ
-3. `a9b0c1d2-....json` を Read → `step-03.kind = "aiCall"`, `modelRef = "tagSuggestModel"` を検出 → P5 起動
+3. `ai-tag-suggest-flow.json` を Read → `step-03.kind = "aiCall"`, `modelRef = "tagSuggestModel"` を検出 → P5 起動
 4. `examples/diary/harmony/catalogs/external.json` (project level) を読み、flow level catalog と merge
 5. `merged.modelEndpoints.tagSuggestModel` から provider / model / auth を抽出
 6. `step.responseFormat.kind = "structuredObject"` を検出 → mockAiStructured を選択
@@ -224,10 +224,10 @@ jobs:
 
 diary アプリには他に 3 つの AI flow がある。以下の invocation で同様のゴールデンを生成できる:
 
-### AI要約生成 (f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c)
+### AI要約生成 (ai-summary-flow)
 
 ```
-/generate-tests f7a8b9c0-d1e2-4f3a-8b4c-5d6e7f8a9b0c
+/generate-tests ai-summary-flow
 ```
 
 - step-04: `kind=aiCall`, `modelRef=summarizeModel`, **responseFormat=text** (default)
@@ -238,10 +238,10 @@ diary アプリには他に 3 つの AI flow がある。以下の invocation �
 - step-06: DB UPDATE (posts.summary) → P2 DB 副作用テストも追加
 - 差異: `TX 外 (idempotent)` → transactionScope に含まれない、modelEndpoint.defaults.maxTokens=512 (#1221 で旧 txBoundary 廃止)
 
-### AI画像alt生成 (b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e)
+### AI画像alt生成 (ai-image-alt-flow)
 
 ```
-/generate-tests b0c1d2e3-f4a5-4b6c-8d7e-8f9a0b1c2d3e
+/generate-tests ai-image-alt-flow
 ```
 
 - step-05: `kind=aiCall`, `modelRef=altTextModel`, **responseFormat=text**, **vision input**
@@ -253,10 +253,10 @@ diary アプリには他に 3 つの AI flow がある。以下の invocation �
 - step-07: DB UPDATE (photos.alt) → P2 DB 副作用テストも追加
 - 差異: vision input のため fixture 戦略が AiImageSource variant 別に分岐
 
-### AI文章校正 (c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f)
+### AI文章校正 (ai-proofread-flow)
 
 ```
-/generate-tests c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f
+/generate-tests ai-proofread-flow
 ```
 
 - step-03: `kind=aiCall`, `modelRef=proofreadModel`, **responseFormat=structuredObject**
@@ -271,11 +271,11 @@ diary アプリには他に 3 つの AI flow がある。以下の invocation �
 
 ## english-learning sample の参考 (会話ターン進行)
 
-english-learning project の `96118ae1-a0ab-401b-8584-dd645a45a81f.json` (会話ターン進行) は
+english-learning project の `conversation-turn-progress.json` (会話ターン進行) は
 `aiCall` + `AiMessageSpread` を使う唯一の sample。
 
 ```
-/generate-tests 96118ae1-a0ab-401b-8584-dd645a45a81f
+/generate-tests conversation-turn-progress
 ```
 
 - step-03: `kind=aiCall`, `modelRef=dialogModel`, responseFormat=text (default)

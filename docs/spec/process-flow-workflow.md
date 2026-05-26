@@ -120,7 +120,7 @@ interface WorkflowApprover {
       "id": "step-approved",
       "kind": "dbAccess",
       "description": "承認済みに更新",
-      "tableId": "11111111-1111-4111-8111-111111111111",
+      "tableId": "expense-request-table",
       "operation": "UPDATE",
       "sql": "UPDATE expense_requests SET status = 'approved' WHERE id = @requestId"
     }
@@ -130,7 +130,7 @@ interface WorkflowApprover {
       "id": "step-rejected",
       "kind": "dbAccess",
       "description": "却下に更新",
-      "tableId": "11111111-1111-4111-8111-111111111111",
+      "tableId": "expense-request-table",
       "operation": "UPDATE",
       "sql": "UPDATE expense_requests SET status = 'rejected' WHERE id = @requestId"
     }
@@ -197,7 +197,7 @@ v2 / v1 から v3 への命名・構造変更:
 |---|---|
 | `type: "workflow"` | `kind: "workflow"` |
 | step の `type: "dbAccess"` | step の `kind: "dbAccess"` |
-| `tableName: "users"` | `tableId: "<Uuid>"` (UUID 化) |
+| `tableName: "users"` | `tableId: "<EntityId>"` (RFC #1284 で kebab-case EntityId 化) |
 | quorum の `type: "n-of-m"` | quorum の `type: "nOfM"` (lowerCamelCase) |
 
 ## 関連

@@ -9,7 +9,7 @@
  * - FkAction lowerCamelCase ("cascade" 等) → DDL では UPPER 変換 ("CASCADE")
  * - DefaultDefinition.kind: "convention" (旧 "conventionRef" から rename)
  * - TriggerDefinition.physicalName 必須化、INSTEAD_OF / TRUNCATE 対応
- * - FK の参照先テーブル/カラムは UUID/LocalId のため、`allTables` 引数で物理名へ逆引き
+ * - FK の参照先テーブル (referencedTableId: EntityId、kebab-case) / カラム (referencedColumnIds: LocalId[]) のため、`allTables` 引数で物理名へ逆引き
  */
 import type {
   Table,

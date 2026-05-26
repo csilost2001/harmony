@@ -663,7 +663,7 @@ export function PageLayoutEditor() {
               value={pl.processFlowId ?? ""}
               onChange={(e) => updateWithDraft((s) => { s.processFlowId = (e.target.value || undefined) as typeof s.processFlowId; })}
               disabled={isReadonly}
-              placeholder="ProcessFlow UUID (任意)"
+              placeholder="ProcessFlow EntityId (kebab-case、例: order-entry-flow、任意)"
               className="tbl-input"
             />
           </label>

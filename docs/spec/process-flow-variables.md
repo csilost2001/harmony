@@ -56,9 +56,9 @@ type FieldType =
   | "string" | "number" | "integer" | "boolean" | "date" | "datetime" | "json"  // プリミティブ 7 種
   | { kind: "array"; itemType: FieldType }
   | { kind: "object"; fields: StructuredField[] }
-  | { kind: "tableRow"; tableId: Uuid }
-  | { kind: "tableList"; tableId: Uuid }
-  | { kind: "screenInput"; screenId: Uuid }
+  | { kind: "tableRow"; tableId: EntityId }
+  | { kind: "tableList"; tableId: EntityId }
+  | { kind: "screenInput"; screenId: EntityId }
   | { kind: "domain"; domainKey: string }              // PascalCase、context.catalogs.domains 参照
   | { kind: "file"; format?: string }                  // CSV/ZIP/PDF 等
   | { kind: "extension"; extensionRef: string };       // namespace:fieldType 形式 (例: 'retail:productCode')
@@ -209,7 +209,7 @@ ScreenItem.valueFrom.flowVariable.variableName は **IdentifierPath** ($defs in 
 interface CommonProcessStep extends StepBaseProps {
   kind: "commonProcess";
   description: string;
-  refId: Uuid;                                   // 呼び出し先 ProcessFlow の Uuid (flowType="common", #1263 Phase X1: kind → flowType)
+  refId: EntityId;                               // 呼び出し先 ProcessFlow の EntityId (flowType="common", #1263 Phase X1: kind → flowType)
   argumentMapping?: Record<string, TemplateString>;
   // キー: 呼び先 inputs.name (Identifier)
   // 値: 値表現 (TemplateString)

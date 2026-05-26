@@ -40,6 +40,8 @@ import {
   // #1294 I-2 / RFC #1284: kebab-case EntityId + uuid 構造の helper
   listExistingEntityIds,
   ensureUniqueEntityId,
+  // #1332 Codex 再 review M2: bulk listProcessFlows でも uuid persist が走ることの regression
+  listProcessFlows,
 } from "./projectStorage.js";
 
 const TMP_ROOT = path.join(os.tmpdir(), `proj-storage-r2-test-${process.pid}-${Date.now()}`);
@@ -612,5 +614,97 @@ describe("write* 内蔵 uniqueness check (#1294 I-2 review Must-fix #1)", () => 
     const migrated = await readScreenEntity(screenId, root) as Record<string, unknown>;
     expect(typeof migrated.uuid).toBe("string");
     expect(migrated.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+});
+
+// ── #1332 Codex 再 review M2: listProcessFlows bulk path も uuid persist 適用済 ──
+
+describe("listProcessFlows: bulk path も uuid persist 適用 (#1332 M2 regression)", () => {
+  const root = path.join(TMP_ROOT, "ws-list-pf-uuid-persist");
+
+  beforeAll(async () => {
+    await makeWorkspace(root, "harmony");
+  });
+
+  it("meta.uuid 欠落の legacy actions/<id>.json は listProcessFlows 経由で uuid が persist される", async () => {
+    const flowId = "legacy-actions-pf";
+    const dataRoot = path.join(root, "harmony");
+    const legacyDir = path.join(dataRoot, "actions");
+    await fs.mkdir(legacyDir, { recursive: true });
+    const legacyPath = path.join(legacyDir, `${flowId}.json`);
+    // meta.uuid を持たない legacy ProcessFlow を直書き
+    const legacyPayload = {
+      $schema: "../../../../schemas/v3/process-flow.v3.schema.json",
+      meta: {
+        id: flowId,
+        name: "legacy-no-uuid",
+        flowType: "common",
+        maturity: "draft",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      context: {},
+      actions: [],
+      authoring: {},
+    };
+    await fs.writeFile(legacyPath, JSON.stringify(legacyPayload, null, 2), "utf-8");
+
+    // listProcessFlows() 経由で読む → 旧実装 (readJSON 直呼び) では uuid は disk に persist されなかった
+    const list = await listProcessFlows(root);
+    const found = (list as Array<Record<string, unknown>>).find(
+      (p) => (p.meta as Record<string, unknown> | undefined)?.id === flowId,
+    );
+    expect(found).toBeDefined();
+    const meta1 = found?.meta as Record<string, unknown>;
+    expect(typeof meta1.uuid).toBe("string");
+    expect(meta1.uuid as string).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+
+    // disk 上にも persist されている (再読込で同じ uuid が返る = immutability)
+    const onDisk1 = JSON.parse(await fs.readFile(legacyPath, "utf-8")) as Record<string, unknown>;
+    const persistedUuid = (onDisk1.meta as Record<string, unknown>).uuid;
+    expect(persistedUuid).toBe(meta1.uuid);
+
+    // 2 回目の list でも同じ uuid (uuid immutability)
+    const list2 = await listProcessFlows(root);
+    const found2 = (list2 as Array<Record<string, unknown>>).find(
+      (p) => (p.meta as Record<string, unknown> | undefined)?.id === flowId,
+    );
+    const meta2 = found2?.meta as Record<string, unknown>;
+    expect(meta2.uuid).toBe(persistedUuid);
+  });
+
+  it("meta.uuid 欠落の current process-flows/<id>.json も listProcessFlows 経由で uuid が persist される", async () => {
+    const flowId = "current-pf-no-uuid";
+    const dataRoot = path.join(root, "harmony");
+    const currentDir = path.join(dataRoot, "process-flows");
+    await fs.mkdir(currentDir, { recursive: true });
+    const currentPath = path.join(currentDir, `${flowId}.json`);
+    const payload = {
+      $schema: "../../../../schemas/v3/process-flow.v3.schema.json",
+      meta: {
+        id: flowId,
+        name: "current-no-uuid",
+        flowType: "common",
+        maturity: "draft",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      context: {},
+      actions: [],
+      authoring: {},
+    };
+    await fs.writeFile(currentPath, JSON.stringify(payload, null, 2), "utf-8");
+
+    const list = await listProcessFlows(root);
+    const found = (list as Array<Record<string, unknown>>).find(
+      (p) => (p.meta as Record<string, unknown> | undefined)?.id === flowId,
+    );
+    expect(found).toBeDefined();
+    const meta = found?.meta as Record<string, unknown>;
+    expect(typeof meta.uuid).toBe("string");
+
+    // disk persist 確認
+    const onDisk = JSON.parse(await fs.readFile(currentPath, "utf-8")) as Record<string, unknown>;
+    expect((onDisk.meta as Record<string, unknown>).uuid).toBe(meta.uuid);
   });
 });

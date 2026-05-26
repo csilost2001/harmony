@@ -32,7 +32,7 @@ import java.util.Map;
  * proxy 経由で呼び出すことで TX 境界を正しく有効化している。
  * </p>
  *
- * ProcessFlow ID: f81dd9e0-794c-4539-a2a5-9cbcc0a75899
+ * ProcessFlow ID: order-confirm
  */
 @Service
 @RequiredArgsConstructor

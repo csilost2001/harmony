@@ -17,7 +17,7 @@ import {
 } from "../projectStorage.js";
 import { mcpTableToSpecEntry } from "../specExport.js";
 import { generateDdl } from "./ddl.js";
-import type { ToolHandler } from "../mcpHelpers.js";
+import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 
 export const handleExportTool: ToolHandler = async (name, args, root) => {
   const a = args ?? {};
@@ -25,6 +25,11 @@ export const handleExportTool: ToolHandler = async (name, args, root) => {
   switch (name) {
     case "designer__generate_ddl": {
       const dialect = (typeof a.dialect === "string" ? a.dialect : "standard") as string;
+      // #1332 Codex 10 巡目 M2: tableId が指定された場合は EntityId 検証 (top-level entity)。
+      // RFC #1284 / #1299 I-7: top-level entity (Table) は kebab-case EntityId 規範。
+      if (typeof a.tableId === "string") {
+        assertEntityIdMcp(a.tableId, "tableId");
+      }
       const project = (await readProject(root) ?? {}) as Record<string, unknown>;
       const tableMetas = ((project.tables ?? []) as Array<{ id: string; name: string }>);
       const tableIds = typeof a.tableId === "string" ? [a.tableId] : tableMetas.map((t) => t.id);

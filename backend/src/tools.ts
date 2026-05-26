@@ -856,7 +856,7 @@ export const tools = [
   {
     name: "designer__add_process_flow",
     description:
-      "新しい処理フロー定義（処理フロー）を作成します。生成される ID は RFC 4122 v4 UUID (例: f81dd9e0-794c-4539-a2a5-9cbcc0a75899)。v3 schema (#1141) に従って meta/context/actions/authoring の 4 並列構造で保存されます。#1263 Phase X1: kind 引数は flowType に rename。",
+      "新しい処理フロー定義（処理フロー）を作成します。生成される ID は kebab-case の EntityId (例: user-login-flow / monthly-batch)。不変識別子は別フィールド meta.uuid (UUID v4) に保持されます (RFC #1284 / #1332)。v3 schema (#1141) に従って meta/context/actions/authoring の 4 並列構造で保存されます。#1263 Phase X1: kind 引数は flowType に rename。",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -871,7 +871,7 @@ export const tools = [
         },
         screenId: {
           type: "string",
-          description: "紐付く Screen の UUID (RFC 4122 v4 形式)。flowType='screen' の場合に推奨。省略可。",
+          description: "紐付く Screen の EntityId (kebab-case、例: 'order-entry-screen')。flowType='screen' の場合に推奨。省略可。RFC #1284 / #1332 で UUID から EntityId 形式に変更。",
         },
         description: {
           type: "string",
@@ -918,13 +918,13 @@ export const tools = [
   {
     name: "designer__add_action",
     description:
-      "処理フローにアクション（ボタンクリック等のイベント）を追加します。",
+      "処理フローにアクション（ボタンクリック等のイベント）を追加します。生成される action ID は LocalId (kebab-case、例: 'act-001' / 'act-002')。#1332 Codex 9 巡目 M3 で UUID v4 採番から LocalId 採番に修正 (schema Action.id は LocalId 規範)。",
     inputSchema: {
       type: "object" as const,
       properties: {
         processFlowId: {
           type: "string",
-          description: "対象の処理フローID",
+          description: "対象の処理フローの EntityId (kebab-case、例: 'user-login-flow')。",
         },
         name: {
           type: "string",
@@ -942,17 +942,17 @@ export const tools = [
   {
     name: "designer__add_step",
     description:
-      "アクションにステップ（処理手順）を追加します。生成される step ID は RFC 4122 v4 UUID (例: f81dd9e0-794c-4539-a2a5-9cbcc0a75899)。v3 schema (#1141) では discriminator は `kind` (旧 `type`) に統一されました。",
+      "アクションにステップ（処理手順）を追加します。生成される step ID は LocalId (kebab-case の短い識別子、例: 'step-01' / 'step-13b-a-01')。v3 schema (#1141) では discriminator は `kind` (旧 `type`) に統一されました。",
     inputSchema: {
       type: "object" as const,
       properties: {
         processFlowId: {
           type: "string",
-          description: "対象の処理フローの UUID (RFC 4122 v4 形式)",
+          description: "対象の処理フローの EntityId (kebab-case、例: 'user-login-flow')。RFC #1284 / #1332 で UUID から EntityId 形式に変更。",
         },
         actionId: {
           type: "string",
-          description: "対象のアクションの UUID (RFC 4122 v4 形式)",
+          description: "対象のアクションの LocalId (kebab-case の短い識別子、例: 'act-001')",
         },
         kind: {
           type: "string",

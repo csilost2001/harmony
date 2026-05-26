@@ -35,7 +35,7 @@ import java.util.Map;
  * TX コミット後に orders を再取得して返す (ADR-002 準拠)。
  * </p>
  *
- * ProcessFlow ID: f81dd9e0-794c-4539-a2a5-9cbcc0a75899
+ * ProcessFlow ID: order-confirm
  * ProcessFlow step: step-06 (transactionScope, isolationLevel=READ_COMMITTED, timeoutMs=10000)
  */
 @Service

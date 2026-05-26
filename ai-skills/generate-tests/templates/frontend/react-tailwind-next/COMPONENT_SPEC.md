@@ -589,7 +589,7 @@ it('#N showIf=false: <条件説明> → <ITEM_LABEL> が表示されない', asy
 
 | PLACEHOLDER | 解決元 | 例 |
 |---|---|---|
-| `<screenId>` | Screen JSON の `id` | `31d56212-b654-46dc-b004-096c7382c404` |
+| `<screenId>` | Screen JSON の `id` | `post-list-screen` |
 | `<Screen.name>` | Screen JSON の `name` | `投稿一覧` |
 | `<Screen.kind>` | Screen JSON の `kind` | `list` |
 | `<ITEM_ID>` | `items[].id` | `searchQuery` |
@@ -597,13 +597,13 @@ it('#N showIf=false: <条件説明> → <ITEM_LABEL> が表示されない', asy
 | `<DIRECTION>` | `items[].direction` | `input` / `output` |
 | `<TYPE>` | `items[].type` | `string` / `enum` / `array` / `boolean` / `integer` |
 | `<OPTIONS>` | `items[].options[].value` | `["all","published","draft"]` |
-| `<PROCESS_FLOW_ID>` | `items[].valueFrom.processFlowId` | `e6f7a8b9-c0d1-4e2f-8a3b-4c5d6e7f8a9b` |
+| `<PROCESS_FLOW_ID>` | `items[].valueFrom.processFlowId` | `post-search-flow` |
 | `<VARIABLE_NAME>` | `items[].valueFrom.variableName` | `posts` |
 | `<HTTP_METHOD>` | flow の `actions[0].httpRoute.method` | `GET` |
 | `<HTTP_PATH>` | flow の `actions[0].httpRoute.path` | `/api/posts/search` |
 | `<COMPONENT_NAME>` | 実装コンポーネント名 (推測) | `PostsListPage` |
 | `<API_BASE>` | env var `NEXT_PUBLIC_API_BASE` 等 | `http://localhost:3001` |
 | `<EVENT_TRIGGER_ITEM_ID>` | `events[].trigger.itemId` (または FAB ボタン等) | `fab-new-post` |
-| `<HANDLER_FLOW_ID>` | `events[].handlerFlowId` | `0671b051-...` |
+| `<HANDLER_FLOW_ID>` | `events[].handlerFlowId` | `post-create-flow` |
 | `<HANDLER_FLOW_HTTP_METHOD>` | handler flow の `actions[0].httpRoute.method` | `POST` |
 | `<HANDLER_FLOW_PATH>` | handler flow の `actions[0].httpRoute.path` | `/api/posts` |

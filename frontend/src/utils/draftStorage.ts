@@ -31,7 +31,8 @@ export function listAllDrafts(): DraftMeta[] {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!key || !key.startsWith("draft-")) continue;
-      // "draft-<kind>-<id>" の id 部分は UUID でハイフンを含むため、最初のハイフンで split
+      // "draft-<kind>-<id>" の kind は単一セグメント (screen / table / processFlow 等、ハイフンなし)、
+      // id 部分は EntityId (kebab-case でハイフン含む、RFC #1284 / #1332) または historical UUID のため、最初のハイフンで split
       const rest = key.slice("draft-".length);
       const firstDash = rest.indexOf("-");
       if (firstDash < 0) continue;

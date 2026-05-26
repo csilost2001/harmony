@@ -59,7 +59,9 @@ export async function listViewDefinitions(): Promise<ViewDefinitionEntry[]> {
 export async function loadViewDefinition(
   viewDefinitionId: string,
 ): Promise<ViewDefinition | null> {
-  return (await requireBackend().loadViewDefinition(viewDefinitionId)) as ViewDefinition | null;
+  const raw = (await requireBackend().loadViewDefinition(viewDefinitionId)) as ViewDefinition | null;
+  // uuid 補完は backend (readEntityAndEnsureUuid) 責務。frontend では補完しない。
+  return raw;
 }
 
 export async function loadViewDefinitionValidationMap(): Promise<

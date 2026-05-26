@@ -264,13 +264,13 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 ### 4.5 GenericDefinition と EntityMeta の関係 / maturity 不採用の理由
 
 GenericDefinition は他リソース (ProcessFlow / Screen / Table) と性質が根本的に異なるため、
-EntityMeta (`id: uuid`, `created_at`, `updated_at`, `maturity`) を採用しない。
+EntityMeta (`id: EntityId`, `uuid: Uuid`, `createdAt`, `updatedAt`, `maturity`) を採用しない。
 `kind` + `name` を identifier とし、設計者が手で命名・参照する「定義語彙」として扱う。
 
 | 観点 | 業務リソース実体 (ProcessFlow / Screen / Table) | GenericDefinition |
 |---|---|---|
 | 役割 | 業務システムの実体 | 定義語彙 / 参照カタログ |
-| identifier | uuid (machine-generated) | `kind + name` (human-readable) |
+| identifier | `id: EntityId` (human-readable) + `uuid: Uuid` (immutable) | `kind + name` (human-readable) |
 | EntityMeta | 採用 | 不採用 |
 | 自然な進化モデル | draft → provisional → committed (制作進行) | stable ↔ experimental ↔ deprecated (lifecycle) |
 

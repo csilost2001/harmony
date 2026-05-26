@@ -17,7 +17,7 @@ v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念か
 
 | ファイル | 役割 |
 |---|---|
-| `common.v3.schema.json` | 全 schema が `$ref` で参照する共通 `$defs`。Uuid / UuidLoose / LocalId / Identifier / PhysicalName / EnvVarKey / ErrorCode / EventTopic / Timestamp / SemVer / SemVerRange / Description / DisplayName / Maturity / Mode / **TemplateString** (#1263 Phase X2、旧 ExpressionString は Round 7 で削除済 — pre-release policy) / **SelectorString** (JSONPath sublanguage、#1263 Phase X2) / **VariableScope** (`@var.<scope>.<name>` の 6 値 enum、#1264 verdict) / Namespace / EntityMeta / Authoring / Marker / MarkerShape / DecisionRecord / GlossaryEntry / Note / FieldType / StructuredField / 複合参照型 (ScreenItemRef / TableColumnRef / ViewColumnRef / ActionRef / StepRef / ResponseRef) / ExtensionApplied / ExtensionRoot / TestScenario / TestPrecondition / TestInvocation / TestAssertion を集約。Pattern A (top-level entity 単独参照) は素 Uuid を直接 `$ref` する方針のため named Ref 型 (旧 ScreenRef / TableRef 等) は設けない |
+| `common.v3.schema.json` | 全 schema が `$ref` で参照する共通 `$defs`。EntityId / Uuid / UuidLoose / LocalId / Identifier / PhysicalName / EnvVarKey / ErrorCode / EventTopic / Timestamp / SemVer / SemVerRange / Description / DisplayName / Maturity / Mode / **TemplateString** (#1263 Phase X2、旧 ExpressionString は Round 7 で削除済 — pre-release policy) / **SelectorString** (JSONPath sublanguage、#1263 Phase X2) / **VariableScope** (`@var.<scope>.<name>` の 6 値 enum、#1264 verdict) / Namespace / EntityMeta / Authoring / Marker / MarkerShape / DecisionRecord / GlossaryEntry / Note / FieldType / StructuredField / 複合参照型 (ScreenItemRef / TableColumnRef / ViewColumnRef / ActionRef / StepRef / ResponseRef) / ExtensionApplied / ExtensionRoot / TestScenario / TestPrecondition / TestInvocation / TestAssertion を集約。Pattern A (top-level entity 単独参照) は `EntityId` を直接 `$ref` する方針のため named Ref 型 (旧 ScreenRef / TableRef 等) は設けない |
 
 ### Workspace marker / entity 定義 (top-level)
 
@@ -68,18 +68,18 @@ GenericDefinitionKind enum は `generic-definition.v3.schema.json` (親) に 14 
 `common.v3#/$defs/EntityMeta` を**業務 top-level entity** が `allOf` でマージ:
 
 ```jsonc
-"id": Uuid, "name": DisplayName, "description"?: Description,
+"id": EntityId, "uuid": Uuid, "name": DisplayName, "description"?: Description,
 "version"?: SemVer, "maturity"?: Maturity,
 "createdAt": Timestamp, "updatedAt": Timestamp
 ```
 
-各 entity 側 `$defs` では variant 固有プロパティのみ宣言する (`id: true` 等の上書きは禁止)。`unevaluatedProperties: false` が allOf 全体を見て評価するため、EntityMeta の Uuid 制約等が効く。
+各 entity 側 `$defs` では variant 固有プロパティのみ宣言する (`id: true` 等の上書きは禁止)。`unevaluatedProperties: false` が allOf 全体を見て評価するため、EntityMeta の EntityId / Uuid / Timestamp 等の制約が効く。
 
 **例外**: `CustomBlock` は `label` ベースの GrapesJS 用構造で業務 entity ではないため EntityMeta を持たない。
 
 ### 2. 参照規範を 4 パターンに統一
 
-- **Pattern A**: `<entity>Id: Uuid` — top-level entity 単独参照。`common.v3#/$defs/Uuid` を直接 `$ref` する (named alias は schema レベルでは型区別ができないため設けない、実装言語側で **branded type** を定義することを推奨)
+- **Pattern A**: `<entity>Id: EntityId` — top-level entity 単独参照。`common.v3#/$defs/EntityId` を直接 `$ref` する (named alias は schema レベルでは entity 種別を区別できないため設けない、実装言語側で **branded type** を定義することを推奨)
 - **Pattern B**: `<entity>Ref: { ... }` — 複合参照 (ScreenItemRef / TableColumnRef / ViewColumnRef / ActionRef / StepRef / ResponseRef)
 - **Pattern C**: catalog key `string` — 同 entity 内 catalog のキー (各 catalog に `propertyNames` 制約で命名規範を schema 上強制)
 - **Pattern D**: 式言語 `@conv.* @secret.* @env.* @fn.* @<var> $...`
@@ -88,12 +88,15 @@ GenericDefinitionKind enum は `generic-definition.v3.schema.json` (親) に 14 
 
 ```ts
 type Brand<K, T> = K & { readonly __brand: T };
-type ScreenId = Brand<string, 'ScreenId'>;
-type TableId = Brand<string, 'TableId'>;
-type ProcessFlowId = Brand<string, 'ProcessFlowId'>;
+type NarrowBrand<Base, Tag extends string> =
+  Base & { readonly __entityBrand: Tag };
+type EntityId = Brand<string, 'EntityId'>;
+type ScreenId = NarrowBrand<EntityId, 'Screen'>;
+type TableId = NarrowBrand<EntityId, 'Table'>;
+type ProcessFlowId = NarrowBrand<EntityId, 'ProcessFlow'>;
 ```
 
-これにより `tableId: ScreenId` のような誤代入をコンパイル時に検出できる。schema レベルの Uuid では型区別できないため、本対応は実装言語側の責務とする。
+これにより `tableId: ScreenId` のような誤代入をコンパイル時に検出できる。schema レベルの EntityId では entity 種別を区別できないため、本対応は実装言語側の責務とする。
 
 **廃止 anti-pattern**: 物理名で entity 指定 (`referencedTable: "users"` 等) / id+name 重複併記 (`tableId + tableName` 等) / `eventRef + topic` の二重持ち
 
@@ -138,7 +141,7 @@ Step.kind / FieldType.kind / Constraint.kind / BranchCondition.kind / ValueSourc
 
 ### 9. unevaluatedProperties: false
 
-全 step variant + 主要 entity に適用。base + variant 合成型のドリフトを構造的に防止。EntityMeta の Uuid / Timestamp 等の制約が allOf 経由で効く。
+全 step variant + 主要 entity に適用。base + variant 合成型のドリフトを構造的に防止。EntityMeta の EntityId / Uuid / Timestamp 等の制約が allOf 経由で効く。
 
 ### 10. enum 命名規範を文書化
 
@@ -173,7 +176,7 @@ Step.kind / FieldType.kind / Constraint.kind / BranchCondition.kind / ValueSourc
 | `FieldType.custom` (deprecated) | 削除 |
 | `ExternalSystemStep.protocol` (deprecated) | 削除 (httpCall + operationRef のみ) |
 | `TableColumn.foreignKey` (inline FK) | ConstraintDefinition に集約 |
-| `ConstraintDefinition.referencedTable` (物理名) | `referencedTableId: Uuid` |
+| `ConstraintDefinition.referencedTable` (物理名) | `referencedTableId: EntityId` |
 | `tableId + tableName` 併記 / `targetScreenId + targetScreenName` 併記 | id のみ |
 | `EventPublishStep.eventRef + topic` 二重持ち | topic のみ (二重持ち anti-pattern 解消) |
 | ProcessFlow root 30+ 並列プロパティ | meta / context / actions / authoring の 4 並列 |
@@ -186,7 +189,7 @@ Step.kind / FieldType.kind / Constraint.kind / BranchCondition.kind / ValueSourc
 | `StepBaseProps` の二重列挙 | `unevaluatedProperties: false` で構造的解消 |
 | `StepBaseProps.transactional: boolean` 簡易 TX マーク + `StepBaseProps.txBoundary` 平坦モデル | 両者削除、TX 表現は `TransactionScopeStep` (#1221) に一本化 |
 | catalog key の命名規範が description のみ | `propertyNames` で schema 上強制 (errors → ErrorCode / externalSystems → Identifier / etc.) |
-| `DataLineage.reads / writes: Uuid[]` | `LineageEntry[]` (`{ tableId, purpose? }`) |
+| `DataLineage.reads / writes: Uuid[]` | `LineageEntry[]` (`{ tableId: EntityId, purpose? }`) |
 | `CdcStep.destination.target: string` | discriminated union (auditLog / eventStream / table) |
 | `ExtensionStep` の任意 top-level 属性 | `config: object` に閉じる + `unevaluatedProperties: false` |
 | 拡張 1 ファイル限定 | 単一/複数ファイル両対応 (loader が glob で merge) |
@@ -232,7 +235,7 @@ v3 EventTopic regex は `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$` (lowercase + und
 |---|---|
 | `step.type: "validation"` | `step.kind: "validation"` |
 | `outputBinding: "var"` (string 短縮形) | `outputBinding: { name: "var" }` (構造化、v3 短縮形廃止) |
-| `tableName: "products"` | `tableId: "<Uuid>"` (物理名直書き廃止) |
+| `tableName: "products"` | `tableId: "product-table"` (`EntityId`、物理名直書き廃止) |
 | `lineage.reads: ["products"]` | **#1263 Phase X3 で削除済** (schema 不在、`docs/spec/schema-deletions-record.md` §3 参照) |
 | `eventPublish.eventRef + topic` 二重持ち | `eventPublish.topic` のみ |
 | `validation.inlineBranch.ngEventPublish.eventRef + topic` | `topic` のみ |
@@ -255,8 +258,8 @@ v3 EventTopic regex は `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$` (lowercase + und
 |---|---|
 | `table.logicalName: "商品マスタ"` (display) | `table.name: "商品マスタ"` (DisplayName) + `table.physicalName: "products"` (PhysicalName) |
 | `column.name: "products"` (混在) | `column.name: "商品名"` (display) + `column.physicalName: "products"` (snake_case) |
-| `column.foreignKey: { tableName, columnName }` (inline) | `table.constraints[]: { kind: "foreignKey", referencedTableId: Uuid, referencedColumnIds: LocalId[] }` |
-| `referencedTable: "users"` (物理名) | `referencedTableId: "<Uuid>"` |
+| `column.foreignKey: { tableName, columnName }` (inline) | `table.constraints[]: { kind: "foreignKey", referencedTableId: EntityId, referencedColumnIds: LocalId[] }` |
+| `referencedTable: "users"` (物理名) | `referencedTableId: "user-table"` (`EntityId`) |
 | FK action: `"NO ACTION"` (空白含み) | `"noAction"` (lowerCamelCase) |
 | FK action: `"SET NULL"` | `"setNull"` |
 
@@ -272,14 +275,14 @@ v3 EventTopic regex は `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$` (lowercase + und
 
 | v1 | v3 |
 |---|---|
-| `given.dbState.table: "products"` (物理名) | `given.dbState.tableId: "<Uuid>"` |
+| `given.dbState.table: "products"` (物理名) | `given.dbState.tableId: "product-table"` (`EntityId`) |
 | `given.externalStub.externalRef: "..."` | `externalRef: Identifier (camelCase)` (catalog キー、catalogs.externalSystems と整合) |
 
-### Uuid 強化
+### EntityId / Uuid 分離
 
 | v1 | v3 |
 |---|---|
-| `id: "gggggggg-0001-4000-8000-gggggggggggg"` (UuidLoose、a-z 含む) | `id: "<RFC 4122 v4 strict UUID>"` (`UuidLoose` は deprecated、test/sample のみ受容) |
+| `id: "gggggggg-0001-4000-8000-gggggggggggg"` (UuidLoose、a-z 含む) | `id: "order-entry-flow"` (`EntityId`) + `uuid: "<RFC 4122 v4 strict UUID>"` (`UuidLoose` は deprecated、test/sample のみ受容) |
 | `CustomBlock.id: "custom-block-1776079074303"` (timestamp 形式) | `id: "<Uuid>"` (RFC 4122 v4 strict) |
 
 ### Catalog キー命名強制 (v3 で新規)
@@ -325,7 +328,8 @@ const validate = ajv.compile(processFlowV3);
 ```jsonc
 {
   "$schema": "../../../schemas/v3/table.v3.schema.json",
-  "id": "<Uuid>",
+  "id": "customer-table",
+  "uuid": "<Uuid>",
   "name": "...",
   ...
 }

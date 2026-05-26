@@ -12,7 +12,7 @@ import java.util.Optional;
  * 注文リポジトリ。
  *
  * テーブル: orders (physicalName: orders)
- * ProcessFlow 参照: f81dd9e0-794c-4539-a2a5-9cbcc0a75899 (注文確定)
+ * ProcessFlow 参照: order-confirm (注文確定)
  *   - step-05: 注文番号採番 (seq_order_number NEXTVAL)
  *   - step-06-02: orders INSERT
  *   - step-08: TX 後の orders 再取得

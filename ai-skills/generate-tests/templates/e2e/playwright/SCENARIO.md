@@ -657,7 +657,8 @@ fallback で生成したシナリオは README の PLACEHOLDER 解決表に記�
 ルーティング判定 (Step 0 追加):
 - `--scenario` フラグあり → P4 E2E シナリオ生成 (本テンプレート)
 - `--scenario-name` フラグあり → P4 E2E シナリオ生成 (シナリオ名付き)
-- フラグなし + UUID → 既存の ProcessFlow / Screen 判定 (P1/P2/P3) へ
+- フラグなし + EntityId (kebab-case canonical、RFC #1284 / #1332) → 既存の ProcessFlow / Screen 判定 (P1/P2/P3) へ
+- フラグなし + legacy UUID (compat 入力) → 同じく P1/P2/P3 へ (EntityId 解決後、内部表記は EntityId に統一)
 
 ---
 

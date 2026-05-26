@@ -10,7 +10,7 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { wsBridge } from "./wsBridge.js";
 import { writeProcessFlow } from "./projectStorage.js";
-import { assertEntityId } from "./security/idValidator.js";
+import { assertEntityId, assertLocalId } from "./security/idValidator.js";
 import type { ProcessFlowDoc } from "./processFlowEdits.js";
 
 /**
@@ -27,6 +27,23 @@ import type { ProcessFlowDoc } from "./processFlowEdits.js";
 export function assertEntityIdMcp(value: unknown, label: string): asserts value is string {
   try {
     assertEntityId(value, label);
+  } catch (e) {
+    throw new McpError(ErrorCode.InvalidParams, (e as Error).message);
+  }
+}
+
+/**
+ * MCP handler 用の `assertLocalId` ラッパ (#1332 Codex 9 巡目 M3)。
+ *
+ * 用途: action/step 系 handler 入口 (`designer__add_step.actionId` /
+ * `designer__update_step.stepId` 等) で schema 規範の LocalId を強制する。
+ * schema (`schemas/v3/common.v3.schema.json#LocalId`) は kebab-case を要求しているが、
+ * 8 巡目までは handler 側が `assertUuid` で UUID v4 を要求しており、tool description
+ * (LocalId 案内) と整合していなかった。本 helper で schema 規範に揃える。
+ */
+export function assertLocalIdMcp(value: unknown, label: string): asserts value is string {
+  try {
+    assertLocalId(value, label);
   } catch (e) {
     throw new McpError(ErrorCode.InvalidParams, (e as Error).message);
   }

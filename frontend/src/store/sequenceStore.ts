@@ -41,7 +41,9 @@ export async function listSequences(): Promise<SequenceEntry[]> {
 
 /** シーケンス定義を読み込み */
 export async function loadSequence(sequenceId: string): Promise<Sequence | null> {
-  return (await requireBackend().loadSequence(sequenceId)) as Sequence | null;
+  const raw = (await requireBackend().loadSequence(sequenceId)) as Sequence | null;
+  // uuid 補完は backend (readEntityAndEnsureUuid) 責務。frontend では補完しない。
+  return raw;
 }
 
 /** シーケンス定義を保存（harmony.json のメタも同期） */

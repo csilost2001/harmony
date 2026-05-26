@@ -8,9 +8,9 @@ import type {
   Authoring,
   Description,
   DisplayName,
+  EntityId,
   EntityMeta,
   PhysicalName,
-  Uuid,
   ViewId,
 } from "./common";
 import type { DataType } from "./table";
@@ -31,8 +31,12 @@ export interface View extends EntityMeta {
   /** ビューを定義する SELECT 文 (DB 方言依存)。 */
   selectStatement: string;
   outputColumns: OutputColumn[];
-  /** 依存する Table / View entity の Uuid 一覧。 */
-  dependencies?: Uuid[];
+  /**
+   * 依存する Table / View entity の EntityId 一覧 (RFC #1284)。
+   * schema: `items.$ref = common.v3.schema.json#/$defs/EntityId`
+   * TableId / ViewId 両方を受容する base brand EntityId[] として表現する。
+   */
+  dependencies?: EntityId[];
   /** true でマテリアライズドビュー。 */
   materialized?: boolean;
   authoring?: Authoring;

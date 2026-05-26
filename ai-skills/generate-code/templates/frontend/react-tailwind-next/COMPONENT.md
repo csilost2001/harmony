@@ -82,18 +82,18 @@ Gadget は PageLayout の各 region に配置されるため、region 別の Tai
 
 ## 完成テンプレート例 — グローバルヘッダ Gadget (events あり → 'use client')
 
-**対象**: `screens/68709449-c9e1-47db-a351-ac9c12a19046.json` (グローバルヘッダ)
+**対象**: `screens/global-header-gadget.json` (グローバルヘッダ)
 - items: storeName (output) / userName (output) / logoutButton (input, events=[click → act-logout])
-- processFlowId: `60e08c25-3daa-41b4-a7bd-b8f5fb571349` (ヘッダーガジェット処理)
+- processFlowId: `header-gadget-handler` (ヘッダーガジェット処理)
 - act-logout の httpRoute: POST /api/retail/auth/logout → redirectTo=/login
 
-### Component: `app/components/gadgets/68709449-c9e1-47db-a351-ac9c12a19046.tsx`
+### Component: `app/components/gadgets/global-header-gadget.tsx`
 
 ```tsx
 'use client';
-// Gadget: 68709449-c9e1-47db-a351-ac9c12a19046
+// Gadget: global-header-gadget
 // name: グローバルヘッダ
-// ProcessFlow: 60e08c25-3daa-41b4-a7bd-b8f5fb571349 (ヘッダーガジェット処理)
+// ProcessFlow: header-gadget-handler (ヘッダーガジェット処理)
 // parent AppLayout の header region から import される Gadget コンポーネント
 //
 // 'use client': logoutButton (events=[click → act-logout]) が存在するため付与
@@ -108,7 +108,7 @@ interface GlobalHeaderGadgetProps {
 }
 
 /**
- * グローバルヘッダ Gadget (68709449-c9e1-47db-a351-ac9c12a19046)
+ * グローバルヘッダ Gadget (global-header-gadget)
  *
  * 全画面共通のグローバルヘッダ。店舗名・ログインユーザー名を表示し、ログアウトボタンを提供する。
  * PageLayout (Main Layout) の header region に割り当てられる gadget。
@@ -125,7 +125,7 @@ export default function GlobalHeaderGadget({
   const handleLogout = async () => {
     // TODO: 認証チェック (auth: required)
     // TODO: CSRF 対策は別 issue で対応
-    const res = await fetch('/api/gadgets/68709449-c9e1-47db-a351-ac9c12a19046/act-logout', {
+    const res = await fetch('/api/gadgets/global-header-gadget/act-logout', {
       method: 'POST',
     });
     if (res.ok) {
@@ -172,12 +172,12 @@ export default function GlobalHeaderGadget({
 }
 ```
 
-### Route Handler: `app/api/gadgets/68709449-c9e1-47db-a351-ac9c12a19046/act-logout/route.ts`
+### Route Handler: `app/api/gadgets/global-header-gadget/act-logout/route.ts`
 
 ```ts
 // Route Handler: act-logout
-// Gadget: 68709449-c9e1-47db-a351-ac9c12a19046 (グローバルヘッダ)
-// ProcessFlow: 60e08c25-3daa-41b4-a7bd-b8f5fb571349 (ヘッダーガジェット処理)
+// Gadget: global-header-gadget (グローバルヘッダ)
+// ProcessFlow: header-gadget-handler (ヘッダーガジェット処理)
 // httpRoute: POST /api/retail/auth/logout (auth: required)
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // TODO: 認証チェック (auth: required) — ミドルウェアまたは NextAuth.js で実装推奨
   // TODO: CSRF 対策 — Next.js 13+ では Server Action 使用が推奨 (別 issue)
 
-  // ProcessFlow: ヘッダーガジェット処理 (60e08c25-3daa-41b4-a7bd-b8f5fb571349)
+  // ProcessFlow: ヘッダーガジェット処理 (header-gadget-handler)
   // step-01: セッション破棄後のリダイレクト先 URL を導出する
   // 具体的なセッション invalidate は framework 側 (NextAuth.js / NestJS Passport 等) に委ねる
   await globalHeaderGadgetService.executeAction('act-logout', {});
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 // --- Service スタブ (processFlowId 連携) ---
 const globalHeaderGadgetService = {
   async executeAction(actionId: string, payload: Record<string, unknown>): Promise<void> {
-    // TODO: ProcessFlow 60e08c25-3daa-41b4-a7bd-b8f5fb571349 の
+    // TODO: ProcessFlow header-gadget-handler の
     //       action "${actionId}" を実行するサービス層を実装する
     // 例: セッション破棄 / JWT 無効化 / ログアウトイベント発行
     console.log(`[GlobalHeaderGadget] executeAction: ${actionId}`, payload);
@@ -219,14 +219,14 @@ const globalHeaderGadgetService = {
 
 ## 完成テンプレート例 — ナビゲーションサイドバー Gadget (events なし → Server Component)
 
-**対象**: `screens/c1cff7da-1057-4ba1-b780-2d021f6c8679.json` (ナビゲーションサイドバー)
+**対象**: `screens/navigation-sidebar-gadget.json` (ナビゲーションサイドバー)
 - items: navProductSearch / navOrderList / navCustomerList / navMasterManagement (全て input、events なし)
 - processFlowId: なし (design-only Gadget → Route Handler 生成しない)
 
-### Component: `app/components/gadgets/c1cff7da-1057-4ba1-b780-2d021f6c8679.tsx`
+### Component: `app/components/gadgets/navigation-sidebar-gadget.tsx`
 
 ```tsx
-// Gadget: c1cff7da-1057-4ba1-b780-2d021f6c8679
+// Gadget: navigation-sidebar-gadget
 // name: ナビゲーションサイドバー
 // processFlowId: なし (design-only、Route Handler 不要)
 // 'use client' 不要 (events[] なし → Server Component)
@@ -234,7 +234,7 @@ const globalHeaderGadgetService = {
 import Link from 'next/link';
 
 /**
- * ナビゲーションサイドバー Gadget (c1cff7da-1057-4ba1-b780-2d021f6c8679)
+ * ナビゲーションサイドバー Gadget (navigation-sidebar-gadget)
  *
  * 全画面共通のナビゲーションサイドバー。
  * 商品一覧・注文一覧・顧客一覧・マスタ管理へのリンクメニューを提供する。
@@ -291,14 +291,14 @@ Route Handler は生成しない (processFlowId なし)。
 
 ## 完成テンプレート例 — グローバルフッタ Gadget (events なし → Server Component)
 
-**対象**: `screens/f7daa764-4015-4ad7-8f0a-142944ea2038.json` (グローバルフッタ)
+**対象**: `screens/global-footer-gadget.json` (グローバルフッタ)
 - items: copyright (output) / version (output)
 - processFlowId: なし
 
-### Component: `app/components/gadgets/f7daa764-4015-4ad7-8f0a-142944ea2038.tsx`
+### Component: `app/components/gadgets/global-footer-gadget.tsx`
 
 ```tsx
-// Gadget: f7daa764-4015-4ad7-8f0a-142944ea2038
+// Gadget: global-footer-gadget
 // name: グローバルフッタ
 // processFlowId: なし (design-only)
 // 'use client' 不要 (events[] なし → Server Component)
@@ -311,7 +311,7 @@ interface GlobalFooterGadgetProps {
 }
 
 /**
- * グローバルフッタ Gadget (f7daa764-4015-4ad7-8f0a-142944ea2038)
+ * グローバルフッタ Gadget (global-footer-gadget)
  *
  * 全画面共通のグローバルフッタ。コピーライト表記とアプリバージョンを表示する。
  * PageLayout (Main Layout) の footer region に割り当てられる gadget。
@@ -422,6 +422,6 @@ export async function <<HTTP_METHOD>>(request: NextRequest): Promise<NextRespons
 
 | テンプレート記法 | 置換後の出力例 |
 |---|---|
-| `'/api/gadgets/<<gadgetId>>/<<actionId>>'` | `'/api/gadgets/68709449-c9e1-47db-a351-ac9c12a19046/act-logout'` |
+| `'/api/gadgets/<<gadgetId>>/<<actionId>>'` | `'/api/gadgets/global-header-gadget/act-logout'` |
 | `<<GadgetComponentName>>` | `GlobalHeaderGadget` |
-| `// Gadget: <<gadgetId>>` | `// Gadget: 68709449-c9e1-47db-a351-ac9c12a19046` |
+| `// Gadget: <<gadgetId>>` | `// Gadget: global-header-gadget` |

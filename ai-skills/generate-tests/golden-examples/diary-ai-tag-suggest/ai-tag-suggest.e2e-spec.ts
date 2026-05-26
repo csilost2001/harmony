@@ -1,12 +1,12 @@
 /**
  * E2E テスト: POST /api/ai/tag-suggest (AIタグ提案)
  *
- * // ===HARMONY_GENERATED_SECTION_START flowId=a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d actionId=act-001===
+ * // ===HARMONY_GENERATED_SECTION_START flowId=ai-tag-suggest-flow actionId=act-001===
  * // このコメントブロックは /generate-tests スキル再実行時に overwrite される。
  * // anchor の外側 (人手追記 assertion) は保護される。
  * // ===HARMONY_GENERATED_SECTION_END===
  *
- * ProcessFlow: a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d (AIタグ提案)
+ * ProcessFlow: ai-tag-suggest-flow (AIタグ提案)
  *
  * === spec → test mapping ===
  *
@@ -155,7 +155,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
   // ──────────────────────────────────────────────────────────────
 
   /**
-   * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d step:step-01
+   * Spec: ProcessFlow ai-tag-suggest-flow step:step-01
    *   validation rule: field=title, type=required
    */
   it('#1 validation: title 欠落 → 400 VALIDATION_ERROR', async () => {
@@ -169,7 +169,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
   });
 
   /**
-   * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d step:step-01
+   * Spec: ProcessFlow ai-tag-suggest-flow step:step-01
    *   validation rule: field=body, type=required
    */
   it('#2 validation: body 欠落 → 400 VALIDATION_ERROR', async () => {
@@ -183,7 +183,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
   });
 
   /**
-   * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d
+   * Spec: ProcessFlow ai-tag-suggest-flow
    *   httpRoute.auth="required"
    */
   it('#3 auth: JWT なし → 401', async () => {
@@ -195,7 +195,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
   });
 
   /**
-   * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d step:step-03 [ai-mode:mock]
+   * Spec: ProcessFlow ai-tag-suggest-flow step:step-03 [ai-mode:mock]
    *   happy path: 全フィールド指定で 200 + candidates を返す
    */
   it('#4 happy path: title + body 指定で 200 + candidates 返却', async () => {
@@ -221,7 +221,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
   // ──────────────────────────────────────────────────────────────
 
   /**
-   * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d step:step-03 [ai-mode:mock]
+   * Spec: ProcessFlow ai-tag-suggest-flow step:step-03 [ai-mode:mock]
    *        step:step-04 kind=compute (threshold filter) [ai-mode:mock]
    *
    * AI-1-a: threshold (0.6) 未満のタグは candidates から除外される
@@ -259,7 +259,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
   });
 
   /**
-   * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d step:step-03 [ai-mode:mock]
+   * Spec: ProcessFlow ai-tag-suggest-flow step:step-03 [ai-mode:mock]
    *
    * AI-1-b: 全タグが threshold 未満の場合 → candidates = [] (空配列)
    */
@@ -282,7 +282,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
   });
 
   /**
-   * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d step:step-03 [ai-mode:mock]
+   * Spec: ProcessFlow ai-tag-suggest-flow step:step-03 [ai-mode:mock]
    *
    * AI-2: ANTHROPIC_API_KEY 未設定 → 503 Service Unavailable
    *
@@ -309,7 +309,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
   });
 
   /**
-   * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d step:step-03 [ai-mode:mock]
+   * Spec: ProcessFlow ai-tag-suggest-flow step:step-03 [ai-mode:mock]
    *
    * AI-3: AI 応答が responseFormat=structuredObject 不適合 → 502 (provider violation)
    *
@@ -328,7 +328,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
   });
 
   /**
-   * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d step:step-03 [ai-mode:mock]
+   * Spec: ProcessFlow ai-tag-suggest-flow step:step-03 [ai-mode:mock]
    *
    * AI-4: provider 呼び出し失敗 → 502 (AI_API_ERROR、outcomes.failure.action=abort)
    *
@@ -402,7 +402,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
     });
 
     /**
-     * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d step:step-03 [ai-mode:live]
+     * Spec: ProcessFlow ai-tag-suggest-flow step:step-03 [ai-mode:live]
      * AI-5: 実 anthropic API — happy path、basic な candidates 取得
      */
     it(
@@ -433,7 +433,7 @@ describe('POST /api/ai/tag-suggest (AIタグ提案 E2E) [mock mode]', () => {
     );
 
     /**
-     * Spec: ProcessFlow a9b0c1d2-e3f4-4a5b-8c6d-7e8f9a0b1c2d step:step-03 [ai-mode:live]
+     * Spec: ProcessFlow ai-tag-suggest-flow step:step-03 [ai-mode:live]
      *        step:step-04 kind=compute [ai-mode:live]
      *
      * AI-6: 実 API — isNew フィールドが付与されること

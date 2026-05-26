@@ -1,7 +1,7 @@
 /**
  * v3 schema 共通型定義 (`schemas/v3/common.v3.schema.json` と 1:1 対応)
  *
- * - 業務識別子 (Uuid / LocalId / Identifier / IdentifierPath / PhysicalName / EnvVarKey / ErrorCode / EventTopic)
+ * - 識別子 (EntityId / Uuid / LocalId / Identifier / IdentifierPath / PhysicalName / EnvVarKey / ErrorCode / EventTopic)
  * - branded types で誤代入をコンパイル時検出
  * - FieldType / StructuredField / Authoring / Marker / Note / DecisionRecord / GlossaryEntry / TestScenario
  * - ExtensionRoot / ExtensionApplied
@@ -12,25 +12,67 @@
 // ─── Branded primitives ────────────────────────────────────────────────────
 
 declare const __brand: unique symbol;
+declare const __narrowBrand: unique symbol;
 
 /** Branded type: K に T のブランドを付ける (compile-time 型区別)。 */
 export type Brand<K, T> = K & { readonly [__brand]: T };
 
+/** Narrow brand type: Base brand に Narrowing tag を付与する (衝突回避用)。 */
+export type NarrowBrand<K, T> = K & { readonly [__narrowBrand]: T };
+
 /**
- * Top-level entity の永続識別子。RFC 4122 UUID v4 形式。
+ * Top-level entity の永続識別子 (audit / 履歴追跡用)。RFC 4122 UUID v4 形式。
  * pattern: `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`
+ *
+ * RFC #1284 (I-7) 以降、top-level entity の業務識別子は kebab-case の `EntityId` に変更。
+ * `Uuid` は `EntityMeta.uuid` (不変識別子) と UUID base を維持する internal entity (現状 CustomBlock のみ) に限定使用。
  */
 export type Uuid = Brand<string, "Uuid">;
 
-/** 各 entity 種別のブランド付き Uuid。schema レベルでは区別不可、TS でのみ強制。 */
-export type ScreenId = Brand<Uuid, "ScreenId">;
-export type TableId = Brand<Uuid, "TableId">;
-export type ProcessFlowId = Brand<Uuid, "ProcessFlowId">;
-export type ViewId = Brand<Uuid, "ViewId">;
-export type SequenceId = Brand<Uuid, "SequenceId">;
-export type CustomBlockId = Brand<Uuid, "CustomBlockId">;
-export type ProjectId = Brand<Uuid, "ProjectId">;
-export type ScreenGroupId = Brand<Uuid, "ScreenGroupId">;
+/**
+ * Top-level entity の業務識別子 (RFC #1284)。kebab-case 英単語 1-64 文字。
+ * pattern: `^[a-z][a-z0-9]*(-[a-z0-9]+)*$`
+ * 例: `screen-list-page`, `table-customer`, `process-flow-checkout`
+ *
+ * 各 entity 種別のブランド付き EntityId (ScreenId / TableId / ...) を派生させる base brand。
+ * `Uuid` と異なる base のため、UUID 形式の文字列を EntityId として代入することは型レベルで禁止される。
+ */
+export type EntityId = Brand<string, "EntityId">;
+
+/**
+ * 各 top-level entity 種別のブランド付き EntityId。schema レベルでは区別不可、TS でのみ強制。
+ * 全て kebab-case 英単語の `EntityId` を base brand とする (RFC #1284 / I-7-1)。
+ */
+export type ScreenId = NarrowBrand<EntityId, "Screen">;
+export type TableId = NarrowBrand<EntityId, "Table">;
+export type ProcessFlowId = NarrowBrand<EntityId, "ProcessFlow">;
+export type ViewId = NarrowBrand<EntityId, "View">;
+export type ViewDefinitionId = NarrowBrand<EntityId, "ViewDefinition">;
+export type SequenceId = NarrowBrand<EntityId, "Sequence">;
+export type PageLayoutId = NarrowBrand<EntityId, "PageLayout">;
+export type ProjectId = NarrowBrand<EntityId, "Project">;
+
+/**
+ * CustomBlock の識別子。schema (`custom-block.v3.schema.json`) は UUID base を維持。
+ *
+ * #1332 Codex 再 review M4: 旧 `Brand<Uuid, "CustomBlockId">` は base の `Uuid`
+ * (= `Brand<string, "Uuid">`) と brand-key `__brand` の衝突を起こし intersection が
+ * `never` に潰れ subtype guarantee が失われていた。`NarrowBrand<Uuid, ...>` で
+ * 別 symbol を用いて narrow tag を付けることで型境界を回復する。
+ */
+export type CustomBlockId = NarrowBrand<Uuid, "CustomBlock">;
+
+/**
+ * ScreenGroup の識別子。schema (`harmony.v3.schema.json` / `screen.v3.schema.json`)
+ * では `groupId` を `EntityId` (kebab-case) として定義しているため TS 型も
+ * `NarrowBrand<EntityId, "ScreenGroup">` に同期する。
+ *
+ * #1332 Codex 再 review M4: 旧 `Brand<Uuid, "ScreenGroupId">` は (1) schema との
+ * base 不一致 (Uuid vs EntityId)、(2) Uuid との brand-key 衝突で実質 `never` 化
+ * の 2 重 drift。flowStore は既に kebab-case (`group-default` / `grp-<8桁>`) 前提で
+ * 動作しており、schema 定義との同期で完全 EntityId 化する。
+ */
+export type ScreenGroupId = NarrowBrand<EntityId, "ScreenGroup">;
 
 /**
  * UuidLoose (deprecated): test/sample 用の擬似 UUID。a-z 含む。本番では Uuid を使う。
@@ -137,20 +179,29 @@ export type Mode = "upstream" | "downstream";
 // ─── EntityMeta (全 top-level entity が allOf でマージ) ─────────────────
 
 /**
- * 全 top-level entity (Harmony / Screen / Table / ProcessFlow / View / Sequence 等) の共通 meta。
- * CustomBlock のような特殊形式 entity は EntityMeta を採用しない (個別型で定義)。
+ * 全 top-level entity (Harmony / Screen / Table / ProcessFlow / View / ViewDefinition / Sequence / PageLayout 等)
+ * の共通 meta。CustomBlock のような特殊形式 entity は EntityMeta を採用しない (個別型で定義)。
  *
- * RFC #1284 (I-7) で `id` を kebab-case EntityId に変更、不変識別子 `uuid` (UUID v4) を追加。
- * TS 型レベルでは段階移行のため `uuid` は optional として宣言 (schema 上は required、AJV 検証で強制)。
- * 新規 entity 生成パスは uuid を必ず含めること。
+ * RFC #1284 (I-7) で `id` を kebab-case の `EntityId` に変更、不変識別子 `uuid` (UUID v4) を required field として併記。
+ * I-7 シリーズ (I-7-1〜I-7-6) で TypeScript 型基盤を schema と完全同期完了
+ * (`id: EntityId` / `uuid: Uuid` required、ProcessFlowMeta も `extends EntityMeta` に統一)。
+ *
+ * - `id` (EntityId, kebab-case): 業務識別子。rename refactor の対象、entity 種別内で unique。
+ * - `uuid` (Uuid v4): 不変識別子。audit / 履歴追跡 / merge 衝突解決 / rename refactor の safety net。
+ *   新規 entity 生成パスは必ず含めること。
  */
 export interface EntityMeta {
-  id: Uuid;
+  /**
+   * RFC #1284: entity 業務識別子 (kebab-case EntityId)。
+   * 各 top-level entity の派生型 (Screen / Table / ProcessFlow / ...) は narrow brand で上書きする。
+   */
+  id: EntityId;
   /**
    * RFC #1284: entity 不変識別子 (UUID v4)。audit / 履歴追跡 / merge 衝突解決 / rename refactor の safety net。
-   * schema 上 required、TS 型では段階移行のため optional。
+   * schema 上 required、I-7-1 で TS 型も required に昇格。
+   * 新規 entity 生成パスは必ず含めること。
    */
-  uuid?: Uuid;
+  uuid: Uuid;
   name: DisplayName;
   description?: Description;
   /** entity 単独のリビジョン。 */

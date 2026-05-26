@@ -115,8 +115,8 @@ describe("tableStore onTableChange subscription (#1001)", () => {
   }
 
   // RFC #1284: id は kebab-case EntityId、uuid は UUID v4 (不変識別子)
-  const TABLE_UUID_1 = "table-one";
-  const TABLE_UUID_2 = "table-two";
+  const TABLE_ID_1 = "table-one";   // kebab-case EntityId
+  const TABLE_ID_2 = "table-two";   // kebab-case EntityId
   const UUID_1 = "11111111-aaaa-4bbb-8ccc-111111111111";
   const UUID_2 = "22222222-aaaa-4bbb-8ccc-222222222222";
 
@@ -124,7 +124,7 @@ describe("tableStore onTableChange subscription (#1001)", () => {
     return {
       $schema: "../../schemas/v3/table.v3.schema.json",
       id: id as TableId,
-      uuid: (id === TABLE_UUID_1 ? UUID_1 : UUID_2) as Table["uuid"],
+      uuid: (id === TABLE_ID_1 ? UUID_1 : UUID_2) as Table["uuid"],
       name: `table ${label}`,
       physicalName: `table_${label}` as Table["physicalName"],
       columns: [],
@@ -138,10 +138,10 @@ describe("tableStore onTableChange subscription (#1001)", () => {
     const listener = vi.fn();
     const unsub = onTableChange(listener);
 
-    await saveTable(makeTable(TABLE_UUID_1, "t1"));
+    await saveTable(makeTable(TABLE_ID_1, "t1"));
 
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith({ tableId: TABLE_UUID_1 });
+    expect(listener).toHaveBeenCalledWith({ tableId: TABLE_ID_1 });
 
     unsub();
   });
@@ -151,10 +151,10 @@ describe("tableStore onTableChange subscription (#1001)", () => {
     const listener = vi.fn();
     const unsub = onTableChange(listener);
 
-    await deleteTable(TABLE_UUID_1);
+    await deleteTable(TABLE_ID_1);
 
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith({ tableId: TABLE_UUID_1, deleted: true });
+    expect(listener).toHaveBeenCalledWith({ tableId: TABLE_ID_1, deleted: true });
 
     unsub();
   });
@@ -165,7 +165,7 @@ describe("tableStore onTableChange subscription (#1001)", () => {
     const unsub = onTableChange(listener);
 
     unsub();
-    await saveTable(makeTable(TABLE_UUID_2, "t2"));
+    await saveTable(makeTable(TABLE_ID_2, "t2"));
 
     expect(listener).not.toHaveBeenCalled();
   });
@@ -178,7 +178,7 @@ describe("tableStore onTableChange subscription (#1001)", () => {
     const unsubA = onTableChange(failing);
     const unsubB = onTableChange(ok);
 
-    await saveTable(makeTable(TABLE_UUID_1, "t1"));
+    await saveTable(makeTable(TABLE_ID_1, "t1"));
 
     expect(failing).toHaveBeenCalledTimes(1);
     expect(ok).toHaveBeenCalledTimes(1);

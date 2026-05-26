@@ -221,7 +221,7 @@
 <h2 id="3-設計判断">3. 設計判断</h2>
 <h3 id="31-id-規約">3.1 ID 規約</h3>
 <ul>
-<li>top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence) は <strong><code>Uuid</code> 形式 (RFC 4122 v4)</strong> を使用。<code>crypto.randomUUID()</code> 由来の値を埋め込む。</li>
+<li>top-level entity (Project / Screen / Table / ProcessFlow / View / Sequence / ViewDefinition / PageLayout) は RFC #1284 により <strong><code>EntityId</code> 形式 (kebab-case)</strong> を使用 (例: <code>screen-list-page</code>, <code>table-customer</code>)。不変識別子 <code>uuid</code> は <strong><code>Uuid</code> 形式 (RFC 4122 v4)</strong> とし、各 entity ファイルの <code>uuid</code> プロパティに付与する (audit / 履歴追跡 / rename refactor の safety net)。</li>
 <li>ネスト LocalId は kebab-case (例: <code>step-01</code>, <code>col-product-code</code>)。</li>
 <li>業務識別子 (画面項目 ID / 処理フロー変数名) は lowerCamelCase (例: <code>productCode</code>, <code>cartId</code>)。</li>
 <li>DB 物理名は snake_case (例: <code>order_items</code>, <code>inventory</code>)。</li>

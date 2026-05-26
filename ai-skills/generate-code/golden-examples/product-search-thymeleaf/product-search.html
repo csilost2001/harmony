@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!--
-    Screen: e6147dc0-94b7-436d-ba87-d0080ac34f44 (商品検索)
+    Screen: product-search (商品検索)
     path: /products/search
     kind: search
     auth: required
-    ProcessFlow (在庫照会): efa7ac6e-e295-416e-b68d-17c4739b5097
+    ProcessFlow (在庫照会): inventory-by-store-lookup
 
     techStack: java/spring-boot/postgresql/thymeleaf/session/docker
     生成: /generate-code スキルにより自動生成
@@ -112,8 +112,8 @@
 
   <!--/* ==========================================
        在庫一覧 (inventoryRows, direction=viewer)
-       viewDefinitionId: be4bece3-aa23-44fb-bed0-0699717e8738
-       valueFrom: flowVariable (processFlowId: efa7ac6e, variableName: rows)
+       viewDefinitionId: inventory-list-search-result-viewer
+       valueFrom: flowVariable (processFlowId: inventory-by-store-lookup, variableName: rows)
        ========================================== */-->
   <div th:if="${inventoryRows != null}" id="inventory-results">
 
@@ -127,7 +127,7 @@
       </h2>
     </div>
 
-    <!--/* 結果テーブル (ViewDefinition be4bece3 の列定義から展開) */-->
+    <!--/* 結果テーブル (ViewDefinition inventory-list-search-result-viewer の列定義から展開) */-->
     <div class="table-responsive">
       <table class="table table-striped table-hover align-middle">
         <caption class="visually-hidden">在庫検索結果一覧</caption>

@@ -6,11 +6,12 @@
   Step,
 } from "../types/v3";
 import type { LocalId, Maturity, Mode } from "../types/v3/common";
-import { generateUUID } from "./uuid";
+import { collectAllProcessFlowLocalIds, nextLocalId } from "./localIdGenerator";
 
 export const PROCESS_FLOW_V3_SCHEMA_REF = "../schemas/v3/process-flow.v3.schema.json";
 
 type Raw = Record<string, unknown>;
+type MigrationContext = { ids: Set<string> };
 
 function isRecord(v: unknown): v is Raw {
   return !!v && typeof v === "object" && !Array.isArray(v);
@@ -44,13 +45,19 @@ function noteKind(v: unknown): "assumption" | "prerequisite" | "todo" | "deferre
   return "assumption";
 }
 
-function normalizeNotes(step: Raw): void {
+function allocateLocalId(ctx: MigrationContext, prefix: string, padWidth: number): LocalId {
+  const id = nextLocalId(ctx.ids, prefix, padWidth);
+  ctx.ids.add(id);
+  return id;
+}
+
+function normalizeNotes(step: Raw, ctx: MigrationContext): void {
   const notes = Array.isArray(step.notes) ? (step.notes as Raw[]) : [];
   if (notes.length > 0) {
     step.notes = notes.map((n) => ({ ...n, kind: noteKind(n.kind ?? n.type) }));
   } else if (typeof step.note === "string" && step.note.trim()) {
     step.notes = [{
-      id: generateUUID(),
+      id: allocateLocalId(ctx, "note", 2),
       kind: "assumption",
       body: step.note,
       createdAt: nowIso(),
@@ -88,13 +95,13 @@ interface LegacyBranchFields {
   jumpTo?: string;
 }
 
-function legacyToBranch(code: string, condition: unknown, raw: LegacyBranchFields | undefined): Branch {
+function legacyToBranch(code: string, condition: unknown, raw: LegacyBranchFields | undefined, ctx: MigrationContext): Branch {
   const steps: Step[] = [];
   const description = raw?.description?.trim();
   const jumpTo = raw?.jumpTo?.trim();
   if (description) {
     steps.push({
-      id: generateUUID(),
+      id: allocateLocalId(ctx, "step", 2),
       kind: "legacy:OtherStep",
       description,
       maturity: "draft",
@@ -102,7 +109,7 @@ function legacyToBranch(code: string, condition: unknown, raw: LegacyBranchField
   }
   if (jumpTo) {
     steps.push({
-      id: generateUUID(),
+      id: allocateLocalId(ctx, "step", 2),
       kind: "jump",
       description: "",
       jumpTo,
@@ -111,7 +118,7 @@ function legacyToBranch(code: string, condition: unknown, raw: LegacyBranchField
   }
   const label = raw?.label?.trim();
   return {
-    id: generateUUID() as LocalId,
+    id: allocateLocalId(ctx, "br", 2),
     code,
     label: label || undefined,
     condition: normalizeBranchCondition(condition),
@@ -119,20 +126,20 @@ function legacyToBranch(code: string, condition: unknown, raw: LegacyBranchField
   };
 }
 
-function migrateBranch(raw: unknown): Branch {
+function migrateBranch(raw: unknown, ctx: MigrationContext): Branch {
   const branch = isRecord(raw) ? raw : {};
   return {
     ...branch,
     condition: normalizeBranchCondition(branch.condition),
-    steps: Array.isArray(branch.steps) ? branch.steps.map(migrateStepInPlace) : [],
+    steps: Array.isArray(branch.steps) ? branch.steps.map((step) => migrateStepInPlace(step, ctx)) : [],
   } as unknown as Branch;
 }
 
-function migrateStepArray(raw: unknown): Step[] {
-  return Array.isArray(raw) ? raw.map(migrateStepInPlace) : [];
+function migrateStepArray(raw: unknown, ctx: MigrationContext): Step[] {
+  return Array.isArray(raw) ? raw.map((step) => migrateStepInPlace(step, ctx)) : [];
 }
 
-function migrateStepInPlace(raw: unknown): Step {
+function migrateStepInPlace(raw: unknown, ctx: MigrationContext): Step {
   if (!isRecord(raw)) return raw as Step;
   const step = raw;
   const legacyType = typeof step.type === "string" ? step.type : undefined;
@@ -143,7 +150,7 @@ function migrateStepInPlace(raw: unknown): Step {
   delete step.transactional;
   // txBoundary は v3 で廃止 (transactionScope step に一本化、#1221 Pending S-003 解消)
   delete step.txBoundary;
-  normalizeNotes(step);
+  normalizeNotes(step, ctx);
   normalizeOutputBinding(step);
   if (!isValidMaturity(step.maturity)) step.maturity = "draft";
 
@@ -151,8 +158,8 @@ function migrateStepInPlace(raw: unknown): Step {
     normalizeValidationRules(step);
     if (isRecord(step.inlineBranch)) {
       const inline = step.inlineBranch as Raw;
-      inline.ok = migrateStepArray(inline.ok);
-      inline.ng = migrateStepArray(inline.ng);
+      inline.ok = migrateStepArray(inline.ok, ctx);
+      inline.ng = migrateStepArray(inline.ng, ctx);
     }
   }
 
@@ -177,33 +184,33 @@ function migrateStepInPlace(raw: unknown): Step {
 
   if (step.kind === "branch") {
     if (Array.isArray(step.branches)) {
-      step.branches = step.branches.map(migrateBranch);
+      step.branches = step.branches.map((branch) => migrateBranch(branch, ctx));
     } else {
       step.branches = [
-        legacyToBranch("A", step.condition, step.branchA as LegacyBranchFields | undefined),
-        legacyToBranch("B", "", step.branchB as LegacyBranchFields | undefined),
+        legacyToBranch("A", step.condition, step.branchA as LegacyBranchFields | undefined, ctx),
+        legacyToBranch("B", "", step.branchB as LegacyBranchFields | undefined, ctx),
       ];
     }
-    if (isRecord(step.elseBranch)) step.elseBranch = migrateBranch(step.elseBranch);
+    if (isRecord(step.elseBranch)) step.elseBranch = migrateBranch(step.elseBranch, ctx);
     delete step.condition;
     delete step.branchA;
     delete step.branchB;
   }
 
   if (step.kind === "loop") {
-    step.steps = migrateStepArray(step.steps);
+    step.steps = migrateStepArray(step.steps, ctx);
   }
 
   if (step.kind === "transactionScope") {
-    step.steps = migrateStepArray(step.steps);
-    if (Array.isArray(step.onCommit)) step.onCommit = step.onCommit.map(migrateStepInPlace);
-    if (Array.isArray(step.onRollback)) step.onRollback = step.onRollback.map(migrateStepInPlace);
+    step.steps = migrateStepArray(step.steps, ctx);
+    if (Array.isArray(step.onCommit)) step.onCommit = step.onCommit.map((child) => migrateStepInPlace(child, ctx));
+    if (Array.isArray(step.onRollback)) step.onRollback = step.onRollback.map((child) => migrateStepInPlace(child, ctx));
   }
 
   if (step.kind === "workflow") {
-    if (Array.isArray(step.onApproved)) step.onApproved = step.onApproved.map(migrateStepInPlace);
-    if (Array.isArray(step.onRejected)) step.onRejected = step.onRejected.map(migrateStepInPlace);
-    if (Array.isArray(step.onTimeout)) step.onTimeout = step.onTimeout.map(migrateStepInPlace);
+    if (Array.isArray(step.onApproved)) step.onApproved = step.onApproved.map((child) => migrateStepInPlace(child, ctx));
+    if (Array.isArray(step.onRejected)) step.onRejected = step.onRejected.map((child) => migrateStepInPlace(child, ctx));
+    if (Array.isArray(step.onTimeout)) step.onTimeout = step.onTimeout.map((child) => migrateStepInPlace(child, ctx));
     if (isRecord(step.quorum) && step.quorum.type === "n-of-m") step.quorum.type = "nOfM";
   }
 
@@ -233,7 +240,7 @@ function migrateStepInPlace(raw: unknown): Step {
   if (isRecord(step.errorHandling) && isRecord(step.errorHandling.outcomes)) {
     for (const outcome of Object.values(step.errorHandling.outcomes)) {
       if (isRecord(outcome) && Array.isArray(outcome.sideEffects)) {
-        outcome.sideEffects = outcome.sideEffects.map(migrateStepInPlace);
+        outcome.sideEffects = outcome.sideEffects.map((child) => migrateStepInPlace(child, ctx));
       }
     }
   }
@@ -255,10 +262,10 @@ function migrateStepInPlace(raw: unknown): Step {
   return step as unknown as Step;
 }
 
-function migrateAction(raw: unknown): ActionDefinition {
+function migrateAction(raw: unknown, ctx: MigrationContext): ActionDefinition {
   const action = isRecord(raw) ? raw : {};
   if (!isValidMaturity(action.maturity)) action.maturity = "draft";
-  action.steps = migrateStepArray(action.steps);
+  action.steps = migrateStepArray(action.steps, ctx);
   return action as unknown as ActionDefinition;
 }
 
@@ -272,12 +279,13 @@ function pickDefined(source: Raw, keys: string[]): Raw {
 
 function normalizeV3(raw: Raw): ProcessFlow {
   const next = clone(raw);
+  const ctx: MigrationContext = { ids: collectAllProcessFlowLocalIds(next) };
   next.$schema = PROCESS_FLOW_V3_SCHEMA_REF;
   const meta = (next.meta ?? {}) as Raw;
   if (!isValidMaturity(meta.maturity)) meta.maturity = "draft";
   if (!isValidMode(meta.mode)) meta.mode = "upstream";
   next.meta = meta;
-  next.actions = Array.isArray(next.actions) ? next.actions.map(migrateAction) : [];
+  next.actions = Array.isArray(next.actions) ? next.actions.map((action) => migrateAction(action, ctx)) : [];
   return next as unknown as ProcessFlow;
 }
 
@@ -286,6 +294,7 @@ export function migrateProcessFlow(raw: unknown): ProcessFlow {
   if (isV3ProcessFlow(raw)) return normalizeV3(raw);
 
   const source = clone(raw);
+  const ctx: MigrationContext = { ids: collectAllProcessFlowLocalIds(source) };
   const ts = nowIso();
   const catalogs = pickDefined(source, [
     "errorCatalog",
@@ -332,7 +341,7 @@ export function migrateProcessFlow(raw: unknown): ProcessFlow {
       ...(source.sla ? { sla: source.sla } : {}),
     },
     ...(Object.keys(context).length > 0 ? { context } : {}),
-    actions: Array.isArray(source.actions) ? source.actions.map(migrateAction) : [],
+    actions: Array.isArray(source.actions) ? source.actions.map((action) => migrateAction(action, ctx)) : [],
     ...(Object.keys(authoring).length > 0 ? { authoring } : {}),
   };
 
@@ -340,7 +349,9 @@ export function migrateProcessFlow(raw: unknown): ProcessFlow {
 }
 
 export function migrateStep(raw: unknown): Step {
-  return migrateStepInPlace(clone(raw));
+  const source = clone(raw);
+  const ctx: MigrationContext = { ids: collectAllProcessFlowLocalIds({ actions: [{ steps: [source] }] }) };
+  return migrateStepInPlace(source, ctx);
 }
 
 export function isV3ProcessFlowShape(raw: unknown): raw is ProcessFlow {

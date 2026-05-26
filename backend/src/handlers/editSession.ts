@@ -17,7 +17,46 @@
  */
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { wsBridge } from "../wsBridge.js";
-import type { ToolHandler } from "../mcpHelpers.js";
+import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
+
+/**
+ * #1332 Codex 10 巡目 M2: editSession__create / editSession__list の resourceId に
+ * top-level entity EntityId 検証を導入する。
+ *
+ * resourceType 別の resourceId 検証ポリシー (editSessionService.ts:352-407 の write*
+ * 経路と整合):
+ * - top-level entity (`screen` / `table` / `process-flow` / `view` /
+ *   `view-definition` / `page-layout` / `sequence`):
+ *   → 直接 write 経路 (writeScreen / writeTable / ...) で渡されるため
+ *     EntityId 検証必須 (RFC #1284 / S-002)。
+ * - 副次 resource (`screen-item` / `puck-data`): resourceId は screenId 相当
+ *   (EntityId)。`screen-item` は payload.screenId override 可能だが、
+ *   create 時の resourceId は EntityId 規範。
+ * - singleton / 別管理 (`flow` / `er-layout` / `extension` / `convention`):
+ *   id は識別子相当 (singleton には fixed "default" 等が来る)。EntityId 強制を
+ *   外し空文字のみ拒否。
+ */
+const TOP_LEVEL_RESOURCE_TYPES = new Set([
+  "screen", "table", "process-flow", "view", "view-definition", "page-layout", "sequence",
+]);
+
+/** screenId 相当 (EntityId for screen) を持つ副次 resource。 */
+const SCREEN_DERIVED_RESOURCE_TYPES = new Set(["screen-item", "puck-data"]);
+
+/**
+ * resourceType に応じた resourceId 検証。
+ * 検証失敗時は McpError を throw する (caller は catch しない設計)。
+ */
+function assertResourceIdForType(resourceType: string, resourceId: string): void {
+  if (TOP_LEVEL_RESOURCE_TYPES.has(resourceType) || SCREEN_DERIVED_RESOURCE_TYPES.has(resourceType)) {
+    assertEntityIdMcp(resourceId, "resourceId");
+    return;
+  }
+  // singleton / 別管理 resource type は空文字のみ拒否
+  if (resourceId.trim().length === 0) {
+    throw new McpError(ErrorCode.InvalidParams, "resourceId は空文字にできません");
+  }
+}
 
 export const handleEditSessionTool: ToolHandler = async (name, args, _root, sessionId) => {
   const a = args ?? {};
@@ -30,6 +69,8 @@ export const handleEditSessionTool: ToolHandler = async (name, args, _root, sess
       if (typeof a.resourceId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "resourceId は必須です");
       }
+      // #1332 Codex 10 巡目 M2: resourceType に応じた resourceId 検証
+      assertResourceIdForType(a.resourceType, a.resourceId);
       const result = wsBridge.editSessionCreate(
         sessionId,
         a.resourceType as Parameters<typeof wsBridge.editSessionCreate>[1],
@@ -114,6 +155,21 @@ export const handleEditSessionTool: ToolHandler = async (name, args, _root, sess
     }
 
     case "editSession__list": {
+      // #1332 Codex 10 巡目 M2: filter として resourceId が指定された場合は
+      // resourceType と整合する検証を行う (create と同じポリシー)。
+      // filter 用なので空文字は空 filter として弾かず undefined 化のみ。
+      if (typeof a.resourceId === "string" && a.resourceId.length > 0) {
+        if (typeof a.resourceType === "string" && a.resourceType.length > 0) {
+          assertResourceIdForType(a.resourceType, a.resourceId);
+        } else {
+          // resourceType 未指定で resourceId のみ filter は通常用法ではないが許容、空文字のみ拒否
+          // (resourceType 不明だと検証分岐できないため明示エラー)
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            "resourceId filter を使う場合は resourceType も指定してください",
+          );
+        }
+      }
       const result = wsBridge.editSessionList(sessionId, {
         resourceType: typeof a.resourceType === "string"
           ? (a.resourceType as Parameters<typeof wsBridge.editSessionList>[1] extends { resourceType?: infer R } ? R : never)
