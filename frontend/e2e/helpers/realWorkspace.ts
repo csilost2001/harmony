@@ -448,6 +448,7 @@ function buildMinimalProject(): Project {
     schemaVersion: "v3",
     dataDir: "harmony",
     meta: {
+      // 注意: 現状 sequential e2e のみで衝突しない。worker 並列化時 (Playwright workers > 1) は deterministicUuid 化を検討。
       id: "e2e-test-project" as unknown as Project["meta"]["id"],
       uuid: uuid() as unknown as Project["meta"]["uuid"],
       name: "E2E テストプロジェクト",

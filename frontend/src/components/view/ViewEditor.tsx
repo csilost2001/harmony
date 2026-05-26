@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
-import type { View, OutputColumn, PhysicalName, Uuid, Maturity, SemVer } from "../../types/v3";
+import type { View, OutputColumn, PhysicalName, EntityId, Maturity, SemVer } from "../../types/v3";
 import { loadView, saveView, listViews } from "../../store/viewStore";
 import { listTables } from "../../store/tableStore";
 import { RenameEntityDialog } from "../common/RenameEntityDialog";
@@ -225,14 +225,14 @@ export function ViewEditor() {
   const addDependency = () => {
     const dep = addDepId.trim();
     if (!dep) return;
-    if ((view.dependencies ?? []).includes(dep as Uuid)) return;
+    if ((view.dependencies ?? []).includes(dep as EntityId)) return;
     updateWithDraft((prev) => {
-      (prev as unknown as { dependencies: string[] }).dependencies = [...(prev.dependencies ?? []), dep as Uuid];
+      (prev as unknown as { dependencies: string[] }).dependencies = [...(prev.dependencies ?? []), dep as EntityId];
     });
     setAddDepId("");
   };
 
-  const removeDependency = (dep: Uuid) => {
+  const removeDependency = (dep: EntityId) => {
     updateWithDraft((prev) => {
       (prev as unknown as { dependencies: string[] }).dependencies = (prev.dependencies ?? []).filter((d) => d !== dep);
     });
@@ -526,7 +526,7 @@ export function ViewEditor() {
               >
                 <option value="">テーブルを選択...</option>
                 {tableOptions
-                  .filter((t) => !(view.dependencies ?? []).includes(t.id as Uuid))
+                  .filter((t) => !(view.dependencies ?? []).includes(t.id as EntityId))
                   .map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
