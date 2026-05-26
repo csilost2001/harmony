@@ -12,7 +12,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const dummyProject = buildProject({
   name: "Sort Readonly Test",
@@ -24,7 +24,7 @@ const dummyProject = buildProject({
       { id: "s-4", no: 4, name: "Bravo", kind: "other", path: "/b", updatedAt: "2024-02-02T00:00:00Z" as unknown as Timestamp },
       { id: "s-5", no: 5, name: "Delta", kind: "other", path: "/d", updatedAt: "2024-04-04T00:00:00Z" as unknown as Timestamp },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-sort-readonly";

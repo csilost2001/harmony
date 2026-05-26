@@ -22,7 +22,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject, buildViewDefinition } from "./__fixtures__/builders";
-import type { Column, ProjectEntities, Timestamp, ViewDefinition } from "../src/types/v3";
+import type { Column, HarmonyEntities, Timestamp, ViewDefinition } from "../src/types/v3";
 
 // ── Fixture データ ────────────────────────────────────────────────────────────
 
@@ -44,7 +44,7 @@ const dummyProject = buildProject({
     viewDefinitions: [
       { id: VIEW_DEFINITION_ID, no: 1, name: "注文一覧", kind: "list", maturity: "committed", updatedAt: FIXED_TS },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 /** customers テーブル (FK 参照先として必要) */

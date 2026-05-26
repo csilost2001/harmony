@@ -12,7 +12,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
@@ -24,7 +24,7 @@ const dummyProject = buildProject({
       { id: "screen-0002", no: 2, name: "ダッシュボード", kind: "dashboard", path: "/dashboard", hasDesign: true, updatedAt: FIXED_TS },
       { id: "screen-0003", no: 3, name: "ユーザー一覧", kind: "list", path: "/users", hasDesign: false, updatedAt: FIXED_TS },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-screen-list";

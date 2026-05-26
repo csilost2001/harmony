@@ -13,7 +13,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 
 // buildProject.normalizeEntityIds が entities.tables[0].id を UUID 化するため、
@@ -81,7 +81,7 @@ const project = buildProject({
   entities: {
     tables: [{ id: tableId, no: 1, physicalName: "customers", name: "顧客", columnCount: 2, updatedAt: FIXED_TS }],
     processFlows: [{ id: groupId, no: 1, name: group.name, flowType: group.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 async function setupEditor(page: Page) {

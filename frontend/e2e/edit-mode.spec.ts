@@ -24,7 +24,7 @@ import {
   buildViewDefinition,
   buildSequence,
 } from "./__fixtures__/builders";
-import type { Column, ProjectEntities, Timestamp } from "../src/types/v3";
+import type { Column, HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const TABLE_ID = `tbl-e2e-edit-mode-${Date.now()}`;
@@ -80,7 +80,7 @@ const dummyProject = buildProject({
     views: [{ id: VIEW_ID, no: 1, name: "E2E ビュー", maturity: "draft", updatedAt: FIXED_TS }],
     viewDefinitions: [{ id: VIEW_DEF_ID, no: 1, name: "E2E ビュー定義", maturity: "draft", updatedAt: FIXED_TS }],
     sequences: [{ id: SEQUENCE_ID, no: 1, name: "E2E シーケンス", maturity: "draft", updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-edit-mode";

@@ -14,7 +14,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 // "test-table" は hex でないため UUID_V4_RE に match せず normalizeId が deterministic
 // UUID を生成する。fixture file 名 / project meta の id / URL を全て同じ正規化済 UUID で
@@ -50,7 +50,7 @@ const dummyProject = buildProject({
     tables: [
       { id: TABLE_ID, no: 1, physicalName: "users", name: "ユーザーマスタ", category: "マスタ", columnCount: 1, updatedAt: FIXED_TS },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const TABLE_NORM = normalizeId(TABLE_ID);

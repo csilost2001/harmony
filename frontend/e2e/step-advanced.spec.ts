@@ -14,7 +14,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject, buildProcessFlow } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 
 const groupId = "ag-advanced";
@@ -52,7 +52,7 @@ const dummyProject = buildProject({
   name: "advanced",
   entities: {
     processFlows: [{ id: groupId, no: 1, name: dummyGroup.name, flowType: dummyGroup.type, actionCount: 1, updatedAt: FIXED_TS, maturity: "draft" }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 async function setupEditor(page: Page) {

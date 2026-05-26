@@ -12,7 +12,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
@@ -24,7 +24,7 @@ const dummyProject = buildProject({
       { id: "s-2", no: 2, name: "画面B", kind: "other", path: "/b", updatedAt: FIXED_TS },
       { id: "s-3", no: 3, name: "画面C", kind: "other", path: "/c", updatedAt: FIXED_TS },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-list-delete-ui";

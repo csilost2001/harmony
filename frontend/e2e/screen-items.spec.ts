@@ -18,7 +18,7 @@ import {
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const screenId1 = "scr-1";
 const screenId2 = "scr-2";
@@ -41,7 +41,7 @@ const dummyProject = buildProject({
       { id: screenId1, no: 1, name: "ログイン画面", kind: "form", updatedAt: FIXED_TS },
       { id: screenId2, no: 2, name: "顧客登録画面", kind: "form", updatedAt: FIXED_TS },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-screen-items";

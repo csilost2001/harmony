@@ -15,7 +15,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const SCREEN_A = "screen-aaaa-0001";
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
@@ -24,7 +24,7 @@ const projectWithScreen = buildProject({
   name: "E2E",
   entities: {
     screens: [{ id: SCREEN_A, no: 1, name: "画面A", kind: "form", path: "/a", hasDesign: true, updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-resource-url-sync";

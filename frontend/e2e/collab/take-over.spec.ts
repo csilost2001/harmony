@@ -24,7 +24,7 @@ import {
 } from "../helpers/realWorkspace";
 import { attachAsViewer, takeOver } from "../helpers/editSessionDropdown";
 import { buildProject, buildProcessFlow } from "../__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../../src/types/v3";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const PF_ID = `pf-collab-takeover-${Date.now()}`;
@@ -42,7 +42,7 @@ const dummyProject = buildProject({
   name: "collab-takeover-test",
   entities: {
     processFlows: [{ id: PF_ID, no: 1, name: "引継ぎテストフロー", flowType: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const dummyTab = { id: `process-flow:${PF_NORM}`, type: "process-flow", resourceId: PF_NORM, label: "引継ぎテストフロー", isDirty: false, isPinned: false };

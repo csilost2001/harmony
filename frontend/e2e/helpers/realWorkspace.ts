@@ -6,7 +6,7 @@
  * 方式に移行する必要がある (#926)。
  *
  * #964 α: helper を v3 typed only に改修。LegacyProjectInput / legacyToHarmony 削除済み。
- * 各フィールドは v3 schema 由来の TypeScript 型 (Project / Table / ProcessFlow 等) を受け取る。
+ * 各フィールドは v3 schema 由来の TypeScript 型 (Harmony / Table / ProcessFlow 等) を受け取る。
  *
  * 主な API:
  *   - copyExampleWorkspace(exampleName, key): examples/<name>/ をコピー
@@ -25,7 +25,7 @@ import type {
   Conventions,
   CustomBlock,
   ProcessFlow,
-  Project,
+  Harmony,
   Screen,
   ScreenFlowPositions,
   Sequence,
@@ -94,7 +94,7 @@ export interface PageLike {
  * setupTestWorkspace の引数。各フィールドは省略可。
  * 渡したフィールドは harmony.json + 個別ファイルとして書き出される。
  *
- * #964 α: 全フィールドを v3 schema 由来 TypeScript 型 (Project / Table / ProcessFlow 等) に統一。
+ * #964 α: 全フィールドを v3 schema 由来 TypeScript 型 (Harmony / Table / ProcessFlow 等) に統一。
  * 旧 LegacyProjectInput は削除済み。v1 形式のデータは β/γ で builder 経由で v3 に変換する。
  */
 export interface SetupTestWorkspaceOptions {
@@ -109,8 +109,8 @@ export interface SetupTestWorkspaceOptions {
    * 現在は `ws.resetRuntimeState()` を test.afterEach から手動で呼ぶことで同等効果が得られる。
    */
   resetEachTest?: boolean;
-  /** v3 Project — harmony.json として書き出される */
-  project?: Project;
+  /** v3 Harmony — harmony.json として書き出される */
+  project?: Harmony;
   /** v3 Table[] — 各 entry は harmony/tables/<meta.id>.json に書き出し */
   tables?: Table[];
   /** v3 ProcessFlow[] — harmony/process-flows/<meta.id>.json */
@@ -167,7 +167,7 @@ const TMP_ROOT = path.join(REPO_ROOT, ".tmp", "e2e-workspaces");
  *
  * #1356: 旧来 `.tmp/e2e-workspaces/<key>/` 直下に書き出していたため Playwright workers > 1
  * で同一 key を複数 worker が同時に書き込むと storage 競合が発生していた。本 prefix で
- * 完全隔離した結果、`buildMinimalProject` の Project.meta.id は固定値のまま (storage が
+ * 完全隔離した結果、`buildMinimalProject` の Harmony.meta.id は固定値のまま (storage が
  * worker 別 directory に分かれているため EntityId 重複は別 namespace 上の同名扱いとなり問題なし)。
  *
  * **本 helper のスコープ**: `tempWorkspacePath` 経由の fixture (`setupTestWorkspace` /
@@ -469,12 +469,12 @@ export function deterministicUuid(input: string): string {
 }
 
 /**
- * project が省略されたとき用の最小 v3 Project を生成する。
+ * project が省略されたとき用の最小 v3 Harmony を生成する。
  * #964 α: legacyToHarmony を削除し、v3 typed input をそのまま書き出す方針に変更。
  * branded type (Uuid / Timestamp 等) は実行時は plain string なので `as unknown as T` でキャスト。
  */
-function buildMinimalProject(): Project {
-  const ts = nowIso() as unknown as Project["meta"]["createdAt"];
+function buildMinimalProject(): Harmony {
+  const ts = nowIso() as unknown as Harmony["meta"]["createdAt"];
   // RFC #1284 / I-7-1: id は kebab-case EntityId、uuid は UUID v4 (required)。
   // setupTestWorkspace が project 省略時に呼ぶ最小 fixture なので、
   // 決定論的ではなく毎回ユニークな値で OK (workspace key と独立)。
@@ -484,9 +484,9 @@ function buildMinimalProject(): Project {
     dataDir: "harmony",
     meta: {
       // #1356: workspace path 自体に worker index を embed する (tempWorkspacePath) ことで
-      // workers > 1 でも storage 衝突しないため、Project.meta.id は固定 EntityId のまま運用可能。
-      id: "e2e-test-project" as unknown as Project["meta"]["id"],
-      uuid: uuid() as unknown as Project["meta"]["uuid"],
+      // workers > 1 でも storage 衝突しないため、Harmony.meta.id は固定 EntityId のまま運用可能。
+      id: "e2e-test-project" as unknown as Harmony["meta"]["id"],
+      uuid: uuid() as unknown as Harmony["meta"]["uuid"],
       name: "E2E テストプロジェクト",
       maturity: "draft",
       createdAt: ts,

@@ -28,7 +28,7 @@ import {
   type OpenedWorkspace,
 } from "../helpers/realWorkspace";
 import { buildProject, buildProcessFlow } from "../__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../../src/types/v3";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const PF_ID = `pf-edit-session-flow-${Date.now()}`;
@@ -46,7 +46,7 @@ const dummyProject = buildProject({
   name: "edit-session-1-6-step-test",
   entities: {
     processFlows: [{ id: PF_ID, no: 1, name: "1-6 step フロー検証テスト", flowType: "screen", actionCount: 0, maturity: "draft", updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const dummyTab = { id: `process-flow:${PF_NORM}`, type: "process-flow", resourceId: PF_NORM, label: "1-6 step フロー検証テスト", isDirty: false, isPinned: false };

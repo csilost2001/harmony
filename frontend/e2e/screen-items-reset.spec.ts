@@ -20,7 +20,7 @@ import {
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 const screenId = "scr-reset-1";
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
@@ -31,7 +31,7 @@ const dummyProject = buildProject({
     screens: [
       { id: screenId, no: 1, name: "リセットテスト画面", kind: "standard", updatedAt: FIXED_TS },
     ],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const WS_KEY = "issue-926-screen-items-reset";

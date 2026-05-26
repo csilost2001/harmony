@@ -13,7 +13,7 @@ import {
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
 import { buildProject } from "./__fixtures__/builders";
-import type { ProjectEntities, Timestamp } from "../src/types/v3";
+import type { HarmonyEntities, Timestamp } from "../src/types/v3";
 
 // RFC #1284 / I-7: top-level entity id は kebab-case EntityId (UUID-like reject)
 const SCREEN_ID = "data-item-id-auto-screen";
@@ -24,7 +24,7 @@ const dummyProject = buildProject({
   name: "data-item-id-auto-test",
   entities: {
     screens: [{ id: SCREEN_ID, no: 1, name: "テスト画面", kind: "form", path: "/test", hasDesign: true, updatedAt: FIXED_TS }],
-  } as ProjectEntities,
+  } as HarmonyEntities,
 });
 
 const emptyScreen = {
