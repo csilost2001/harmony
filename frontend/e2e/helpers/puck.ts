@@ -77,7 +77,7 @@ export function makeScreenEntity(
   editorKind: "puck" | "grapesjs",
   cssFramework: "bootstrap" | "tailwind",
 ): Screen {
-  const base = buildScreen({ id: screenId, name, kind: kind as Parameters<typeof buildScreen>[0]["kind"], path });
+  const base = buildScreen({ id: screenId, name, kind: kind as NonNullable<Parameters<typeof buildScreen>[0]>["kind"], path });
   return {
     ...base,
     items: [],
@@ -148,7 +148,7 @@ export async function setupPuckScreen(
     isPinned: false,
   });
 
-  await ws.gotoActive(page, `/screen/design/${screenIdNorm}`);
+  await ws.gotoActive(page as unknown as Parameters<typeof ws.gotoActive>[0], `/screen/design/${screenIdNorm}`);
 }
 
 /** test.afterAll() から呼んで puck テストの workspace を全件 cleanup */
