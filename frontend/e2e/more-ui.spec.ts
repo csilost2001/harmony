@@ -31,7 +31,7 @@ const dummyGroupBody = buildProcessFlow({
       responses: [{ id: "201-success", status: 201, bodySchema: "Result" }],
       steps: [
         { id: "step-compute", type: "compute", description: "税額計算", expression: "Math.floor(@subtotal * 0.10)", outputBinding: "taxAmount", maturity: "committed" },
-        { id: "step-return", type: "return", description: "成功レスポンス", responseRef: "201-success", bodyExpression: "{ ok: true }", maturity: "provisional" },
+        { id: "step-return", type: "return", description: "成功レスポンス", responseId: "201-success", bodyExpression: "{ ok: true }", maturity: "provisional" },
         { id: "step-external", type: "externalSystem", description: "外部呼出", systemName: "Stripe", outcomes: { success: { action: "continue" }, failure: { action: "abort", description: "エラー" } }, maturity: "draft" },
       ],
     },

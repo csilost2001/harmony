@@ -37,6 +37,16 @@ let ws: OpenedWorkspace;
 async function setup(page: Page) {
   await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
   await expect(page.locator(".step-editor, .process-flow-content").first()).toBeVisible({ timeout: 10000 });
+  // #1145 で MarkerPanel は ActionMetaTabBar (edit-only) に移動。readonly では描画されない。
+  await page.waitForTimeout(500);
+  for (let _i = 0; _i < 3; _i++) {
+    if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+      await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+      await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+    } else { break; }
+  }
+  await page.getByTestId("edit-mode-start").click();
+  await expect(page.getByTestId("edit-mode-save")).toBeVisible();
   await page.locator(".marker-panel .catalog-panel-toggle").click();
   await expect(page.locator(".marker-panel .catalog-panel-body")).toBeVisible();
 }
@@ -62,6 +72,16 @@ test.describe("MarkerPanel (#261)", { tag: ["@regression"] }, () => {
   test("パネル既定折りたたみ、展開後に 0 件メッセージ表示", async ({ page }) => {
     await ws.gotoActive(page, `/process-flow/edit/${normalizeId(groupId)}`);
     await expect(page.locator(".step-editor, .process-flow-content").first()).toBeVisible({ timeout: 10000 });
+    // #1145 で MarkerPanel は ActionMetaTabBar (edit-only) に移動。readonly では描画されない。
+    await page.waitForTimeout(500);
+    for (let _i = 0; _i < 3; _i++) {
+      if (await page.locator(".edit-mode-modal-backdrop").isVisible().catch(() => false)) {
+        await page.evaluate(() => (document.querySelector('[data-testid="resume-discard"]') as HTMLButtonElement | null)?.click());
+        await page.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
+      } else { break; }
+    }
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible();
     await expect(page.locator(".marker-panel").first()).toBeVisible();
     await expect(page.locator(".marker-panel .catalog-panel-toggle")).toContainText("0 未解決");
     await page.locator(".marker-panel .catalog-panel-toggle").click();

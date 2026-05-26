@@ -305,7 +305,8 @@ test.describe("@conv.* lint + 補完 + errorMessages 永続化 (#351 #352)", { t
     const patternInput = row.locator('input[placeholder="@conv.regex.email-simple"]');
     await patternInput.click();
     await patternInput.fill("@conv.");
-    await expect(page.locator('[role="listbox"]')).toBeVisible({ timeout: 3000 });
+    // 補完候補 listbox は 2 種 (一般 / @conv 専用) あるため aria-label で specify
+    await expect(page.getByRole("listbox", { name: /@conv 補完候補/ })).toBeVisible({ timeout: 3000 });
   });
 
   test("errorMessages.required を入力して保存すると localStorage に永続化される", async ({ page }) => {
