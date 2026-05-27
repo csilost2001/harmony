@@ -21,22 +21,44 @@ import { assertPathContained } from "./security/idValidator.js";
 /**
  * DraftResourceType — Phase 6 (#903): draftStore.ts 削除に伴い editSessionStore.ts に移管。
  * frontend/src/types/draft.ts と同一リスト (両方を編集同期すること)。
+ *
+ * #1374: 型 union / runtime allowlist / MCP tool schema enum の drift を防止するため、
+ * `as const` literal 配列を source of truth として型と Set を導出する形に変更。
+ * 新 resource type 追加時は本配列 1 箇所の更新で `DraftResourceType` (型) /
+ * `VALID_RESOURCE_TYPES` (runtime Set) / tools.ts の MCP enum (本配列を spread) が同期される。
+ *
+ *   DRAFT_RESOURCE_TYPES (source of truth, as const)
+ *     ↓ typeof[number]
+ *   DraftResourceType (型 union)
+ *     ↓ new Set(...)
+ *   VALID_RESOURCE_TYPES (runtime allowlist, WS / MCP 両 handler で共有)
  */
-export type DraftResourceType =
-  | "screen"
-  | "puck-data"
-  | "table"
-  | "process-flow"
-  | "view"
-  | "view-definition"
-  | "page-layout"
-  | "screen-item"
-  | "sequence"
-  | "extension"
-  | "convention"
-  | "flow"
-  | "er-layout"
-  | "generic-definition"; // #1331: GenericDefinition EditSession 化 (kind/name 複合 id)
+export const DRAFT_RESOURCE_TYPES = [
+  "screen",
+  "puck-data",
+  "table",
+  "process-flow",
+  "view",
+  "view-definition",
+  "page-layout",
+  "screen-item",
+  "sequence",
+  "extension",
+  "convention",
+  "flow",
+  "er-layout",
+  "generic-definition", // #1331: GenericDefinition EditSession 化 (kind/name 複合 id)
+] as const;
+
+export type DraftResourceType = typeof DRAFT_RESOURCE_TYPES[number];
+
+/**
+ * resourceType の runtime allowlist。
+ * #1374: 旧来 wsHandlers/editSession.ts に local 定義されていた `VALID_RESOURCE_TYPES` を集約し、
+ * WS handler と MCP handler (handlers/editSession.ts) の双方から import する。
+ * これで 4 表現 (型 / WS Set / MCP allowlist / MCP tool schema enum) の drift を構造的に防止する。
+ */
+export const VALID_RESOURCE_TYPES: ReadonlySet<DraftResourceType> = new Set(DRAFT_RESOURCE_TYPES);
 
 export interface ParticipantInfo {
   sessionId: string;
