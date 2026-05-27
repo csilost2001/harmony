@@ -1,6 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
   "id": "scr-contact-form",
+  "uuid": "d06f00d0-0001-4000-8000-000000000011",
   "name": "お問い合わせフォーム",
   "createdAt": "2026-05-05T00:00:00.000Z",
   "updatedAt": "2026-05-05T00:00:00.000Z",
