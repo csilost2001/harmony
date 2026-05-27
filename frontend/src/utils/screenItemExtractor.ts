@@ -41,14 +41,7 @@ const VOID_TAGS = new Set([
   "link","meta","param","source","track","wbr",
 ]);
 
-/** GrapesJS カスタムコンポーネントタイプ → HTML タグ名のマッピング。
- *  デザイナーで D&D したブロックは tagName を持たず type で識別される。 */
-const CUSTOM_TYPE_TO_TAG: Record<string, string> = {
-  "validation-input": "input",
-  "validation-select": "select",
-  "validation-textarea": "textarea",
-  "checkbox": "input",
-};
+import { CUSTOM_TYPE_TO_TAG } from "@harmony/shared";
 
 /** GrapesJS JSON から HTML を再構築して buf に追加。
  *  2 形式に対応:
