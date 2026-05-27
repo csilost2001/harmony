@@ -168,7 +168,18 @@ interface ContextMenu {
 function FlowEditorInner() {
   const navigate = useNavigate();
   const { wsPath, wsId } = useWorkspacePath();
-  const projectRef = useRef<FlowProject | null>(null);
+  // #1388 sub-section B (case A): projectRef を useState 化。JSX 中の `project` access が
+  // react-hooks/refs 警告 14 件を発生させていた根本原因 — render-time の ref read は React 19 /
+  // React Compiler / eslint-plugin-react-hooks 7.x で不正動作 (再 render trigger 漏れ) を起こすため。
+  //
+  // mutation pattern (`project.screens[i].field = X` 系) は immutable update に rewrite せず、
+  // structuredClone() で draft を作って store 関数 (in-place mutation) に渡し、新 reference を setProject
+  // で commit する pattern を採用 (一度の callback で「複製 → 操作 → コミット」を完結)。これにより
+  // 既存の store 関数 (updateScreen / addScreen / storeAddEdge etc) を refactor せずに済む。
+  //
+  // 全 callback の deps に `project` を加える代わり、closure capture 経路で読む (= 同 render の
+  // 値を読む)。useCallback re-create は cost 不問 (#1388 設計判断、user 承認済) で許容。
+  const [project, setProject] = useState<FlowProject | null>(null);
   const { fitView, zoomTo } = useReactFlow();
   const { showError } = useErrorDialog();
 
@@ -218,19 +229,19 @@ function FlowEditorInner() {
   const [canRedo, setCanRedo] = useState(false);
 
   const pushUndoSnapshot = useCallback(() => {
-    if (!projectRef.current) return;
-    undoStackRef.current = [...undoStackRef.current, JSON.parse(JSON.stringify(projectRef.current))].slice(-50);
+    if (!project) return;
+    undoStackRef.current = [...undoStackRef.current, JSON.parse(JSON.stringify(project))].slice(-50);
     redoStackRef.current = [];
     setCanUndo(true);
     setCanRedo(false);
-  }, []);
+  }, [project]);
 
   const handleUndo = useCallback(() => {
-    if (undoStackRef.current.length === 0 || !projectRef.current) return;
-    redoStackRef.current = [...redoStackRef.current, JSON.parse(JSON.stringify(projectRef.current))];
+    if (undoStackRef.current.length === 0 || !project) return;
+    redoStackRef.current = [...redoStackRef.current, JSON.parse(JSON.stringify(project))];
     const prev = undoStackRef.current[undoStackRef.current.length - 1];
     undoStackRef.current = undoStackRef.current.slice(0, -1);
-    projectRef.current = prev;
+    setProject(prev);
     // purpose='gadget' は画面遷移図に表示しない (pl-4, #1025)
     setNodes(toRFNodesWithGroups(prev.screens.filter((s) => s.purpose !== "gadget"), prev.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(prev.edges));
@@ -238,14 +249,14 @@ function FlowEditorInner() {
     saveProject(prev).catch(console.error);
     setCanUndo(undoStackRef.current.length > 0);
     setCanRedo(true);
-  }, [setNodes, setEdges]);
+  }, [project, setNodes, setEdges]);
 
   const handleRedo = useCallback(() => {
-    if (redoStackRef.current.length === 0 || !projectRef.current) return;
-    undoStackRef.current = [...undoStackRef.current, JSON.parse(JSON.stringify(projectRef.current))];
+    if (redoStackRef.current.length === 0 || !project) return;
+    undoStackRef.current = [...undoStackRef.current, JSON.parse(JSON.stringify(project))];
     const next = redoStackRef.current[redoStackRef.current.length - 1];
     redoStackRef.current = redoStackRef.current.slice(0, -1);
-    projectRef.current = next;
+    setProject(next);
     // purpose='gadget' は画面遷移図に表示しない (pl-4, #1025)
     setNodes(toRFNodesWithGroups(next.screens.filter((s) => s.purpose !== "gadget"), next.groups ?? [], screenEntitiesRef.current));
     setEdges(toRFEdges(next.edges));
@@ -253,7 +264,7 @@ function FlowEditorInner() {
     saveProject(next).catch(console.error);
     setCanUndo(true);
     setCanRedo(redoStackRef.current.length > 0);
-  }, [setNodes, setEdges]);
+  }, [project, setNodes, setEdges]);
 
   useUndoKeyboard(handleUndo, handleRedo, !isReadonly);
 
@@ -265,14 +276,15 @@ function FlowEditorInner() {
   const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
 
   // プロジェクトを読み込んで UI に反映
+  // #1388 case A: local var 名 `project` は state 名と衝突するため `loaded` に rename。
   const reloadProject = useCallback(async () => {
-    const [project, raw] = await Promise.all([loadProject(), loadRawProject()]);
-    projectRef.current = project;
+    const [loaded, raw] = await Promise.all([loadProject(), loadRawProject()]);
+    setProject(loaded);
     // purpose='gadget' は画面遷移図に表示しない (pl-4, #1025)
-    const pageScreens = project.screens.filter((s) => s.purpose !== "gadget");
-    setNodes(toRFNodesWithGroups(pageScreens, project.groups ?? [], screenEntitiesRef.current));
-    setEdges(toRFEdges(project.edges));
-    setProjectName(project.name);
+    const pageScreens = loaded.screens.filter((s) => s.purpose !== "gadget");
+    setNodes(toRFNodesWithGroups(pageScreens, loaded.groups ?? [], screenEntitiesRef.current));
+    setEdges(toRFEdges(loaded.edges));
+    setProjectName(loaded.name);
     setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.techStack));
     setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.techStack));
     needsFitViewRef.current = pageScreens.length > 0;
@@ -400,42 +412,42 @@ function FlowEditorInner() {
   // ノード位置変更時の保存デバウンス
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncAndSave = useCallback(() => {
-    if (!projectRef.current) return;
-    saveScreenFlowPositionsPreview(toScreenFlowPositionsPreview(projectRef.current));
+    if (!project) return;
+    saveScreenFlowPositionsPreview(toScreenFlowPositionsPreview(project));
     if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
-      if (projectRef.current) {
+      if (project) {
         if (!isReadonly) {
-          saveProject(projectRef.current).catch(console.error);
+          saveProject(project).catch(console.error);
           // ドラフト更新 (edit-session-draft)
           if (editSession?.id) {
-            mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: projectRef.current }).catch(console.error);
+            mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: project }).catch(console.error);
           }
         }
       }
     }, 300);
-  }, [isReadonly, editSession]);
+  }, [project, isReadonly, editSession]);
 
   const onNodeDragStop = useCallback((_: unknown, node: RFNode) => {
-    if (!projectRef.current) return;
-    const screen = projectRef.current.screens.find((s) => s.id === node.id);
+    if (!project) return;
+    const screen = project.screens.find((s) => s.id === node.id);
     if (screen) {
       screen.position = node.position;
       syncAndSave();
       return;
     }
-    const group = (projectRef.current.groups ?? []).find((g) => g.id === node.id);
+    const group = (project.groups ?? []).find((g) => g.id === node.id);
     if (group) {
       group.position = node.position;
       syncAndSave();
     }
-  }, [syncAndSave]);
+  }, [project, syncAndSave]);
 
   const onConnect = useCallback((connection: Connection) => {
-    if (isReadonly || !connection.source || !connection.target || !projectRef.current) return;
+    if (isReadonly || !connection.source || !connection.target || !project) return;
     pushUndoSnapshot();
     storeAddEdge(
-      projectRef.current,
+      project,
       connection.source,
       connection.target,
       "",
@@ -478,8 +490,8 @@ function FlowEditorInner() {
   }, []);
 
   const onEdgeDoubleClick = useCallback((_event: React.MouseEvent, edge: RFEdge) => {
-    if (!projectRef.current) return;
-    const storeEdge = projectRef.current.edges.find((e) => e.id === edge.id);
+    if (!project) return;
+    const storeEdge = project.edges.find((e) => e.id === edge.id);
     if (storeEdge) {
       setEdgeModal({
         open: true,
@@ -492,7 +504,7 @@ function FlowEditorInner() {
         },
       });
     }
-  }, []);
+  }, [project]);
 
   // ── Screen Modal Actions ──
 
@@ -502,10 +514,10 @@ function FlowEditorInner() {
   }, [isReadonly]);
 
   const handleScreenSave = useCallback(async (data: ScreenFormData) => {
-    if (!projectRef.current) return;
+    if (!project) return;
     pushUndoSnapshot();
     if (screenModal.editId) {
-      await updateScreen(projectRef.current, screenModal.editId, {
+      await updateScreen(project, screenModal.editId, {
         name: data.name,
         kind: data.type as ScreenKind,
         path: data.path,
@@ -514,17 +526,17 @@ function FlowEditorInner() {
         pageLayoutId: (data.pageLayoutId || undefined) as (PageLayoutId | undefined),
       });
       setNodes((nds) => nds.map((n) => {
-        if (n.id !== screenModal.editId || !projectRef.current) return n;
-        const screen = projectRef.current.screens.find((s) => s.id === n.id)!;
+        if (n.id !== screenModal.editId || !project) return n;
+        const screen = project.screens.find((s) => s.id === n.id)!;
         return { ...n, data: { ...screen } };
       }));
     } else {
       const editorKind = data.editorKind ?? projectDefaultEditorKind;
       const cssFramework = data.cssFramework ?? projectDefaultCssFramework;
       // RFC #1284 / #1297 I-5: kebab-case id を modal から受け取って addScreen に渡す
-      const screen = await addScreen(projectRef.current, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework, id: data.id });
+      const screen = await addScreen(project, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework, id: data.id });
       screen.description = data.description;
-      await saveProject(projectRef.current);
+      await saveProject(project);
       // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
       const entity = await buildDefaultScreen(screen.id);
       entity.design = { ...entity.design, editorKind, cssFramework };
@@ -537,14 +549,14 @@ function FlowEditorInner() {
       }]);
     }
     setScreenModal({ open: false });
-  }, [screenModal.editId, projectDefaultEditorKind, projectDefaultCssFramework, setNodes, pushUndoSnapshot]);
+  }, [project, screenModal.editId, projectDefaultEditorKind, projectDefaultCssFramework, setNodes, pushUndoSnapshot]);
 
   // ── Edge Modal Actions ──
 
   const handleEdgeSave = useCallback(async (data: EdgeFormData) => {
-    if (!edgeModal.editId || !projectRef.current) return;
+    if (!edgeModal.editId || !project) return;
     pushUndoSnapshot();
-    await storeUpdateEdge(projectRef.current, edgeModal.editId, {
+    await storeUpdateEdge(project, edgeModal.editId, {
       label: data.label,
       trigger: data.trigger,
       sourceHandle: data.sourceHandle,
@@ -560,20 +572,20 @@ function FlowEditorInner() {
       };
     }));
     setEdgeModal({ open: false });
-  }, [edgeModal.editId, setEdges, pushUndoSnapshot]);
+  }, [project, edgeModal.editId, setEdges, pushUndoSnapshot]);
 
   const handleEdgeDeleteFromModal = useCallback(async () => {
-    if (!edgeModal.editId || !projectRef.current) return;
-    await storeRemoveEdge(projectRef.current, edgeModal.editId);
+    if (!edgeModal.editId || !project) return;
+    await storeRemoveEdge(project, edgeModal.editId);
     setEdges((eds) => eds.filter((e) => e.id !== edgeModal.editId));
     setEdgeModal({ open: false });
-  }, [edgeModal.editId, setEdges]);
+  }, [project, edgeModal.editId, setEdges]);
 
   // ── Context Menu Actions ──
 
   const handleEditNode = useCallback(() => {
-    if (!contextMenu || !projectRef.current) return;
-    const screen = projectRef.current.screens.find((s) => s.id === contextMenu.targetId);
+    if (!contextMenu || !project) return;
+    const screen = project.screens.find((s) => s.id === contextMenu.targetId);
     if (screen) {
       setScreenModal({
         open: true,
@@ -588,12 +600,12 @@ function FlowEditorInner() {
       });
     }
     setContextMenu(null);
-  }, [contextMenu]);
+  }, [project, contextMenu]);
 
   const handleDuplicateNode = useCallback(async () => {
-    if (!contextMenu || !projectRef.current) return;
+    if (!contextMenu || !project) return;
     pushUndoSnapshot();
-    const screen = projectRef.current.screens.find((s) => s.id === contextMenu.targetId);
+    const screen = project.screens.find((s) => s.id === contextMenu.targetId);
     if (screen) {
       // コピー元の editorKind/cssFramework を継承する (spec § 2.5.2: 作成時固定)
       const srcEntity = await loadScreenEntity(screen.id);
@@ -601,10 +613,10 @@ function FlowEditorInner() {
       const srcCssFramework = resolveCssFramework(srcEntity.design, undefined);
       // RFC #1284 / #1329: duplicate 経路でも kebab-case id を発番する。
       // 元 id + `-copy[-N]` で uniqueness 衝突回避 (TableListView duplicate と同パターン)。
-      const existingIds = new Set<string>(projectRef.current.screens.map((s) => s.id));
+      const existingIds = new Set<string>(project.screens.map((s) => s.id));
       const newId = makeDuplicatedEntityId(screen.id, existingIds);
       const dup = await addScreen(
-        projectRef.current,
+        project,
         `${screen.name} (コピー)`,
         screen.kind,
         {
@@ -616,7 +628,7 @@ function FlowEditorInner() {
         },
       );
       dup.description = screen.description;
-      await saveProject(projectRef.current);
+      await saveProject(project);
       // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
       const dupEntity = await buildDefaultScreen(dup.id);
       dupEntity.design = { ...dupEntity.design, editorKind: srcEditorKind, cssFramework: srcCssFramework };
@@ -630,21 +642,21 @@ function FlowEditorInner() {
       }]);
     }
     setContextMenu(null);
-  }, [contextMenu, setNodes, pushUndoSnapshot]);
+  }, [project, contextMenu, setNodes, pushUndoSnapshot]);
 
   const handleDeleteNode = useCallback(async () => {
-    if (!contextMenu || !projectRef.current) return;
+    if (!contextMenu || !project) return;
     pushUndoSnapshot();
-    const screen = projectRef.current.screens.find((s) => s.id === contextMenu.targetId);
+    const screen = project.screens.find((s) => s.id === contextMenu.targetId);
     if (screen && confirm(`「${screen.name}」を削除しますか？\nデザインデータも削除されます。`)) {
-      await removeScreen(projectRef.current, contextMenu.targetId);
+      await removeScreen(project, contextMenu.targetId);
       setNodes((nds) => nds.filter((n) => n.id !== contextMenu.targetId));
       setEdges((eds) => eds.filter(
         (e) => e.source !== contextMenu.targetId && e.target !== contextMenu.targetId
       ));
     }
     setContextMenu(null);
-  }, [contextMenu, setNodes, setEdges, pushUndoSnapshot]);
+  }, [project, contextMenu, setNodes, setEdges, pushUndoSnapshot]);
 
   const handleDesignNode = useCallback(() => {
     if (!contextMenu) return;
@@ -659,13 +671,13 @@ function FlowEditorInner() {
 
   // #1330: ScreenFlow 起点 Screen rename refactor 起動 (context menu item)。
   const handleRenameNode = useCallback(() => {
-    if (!contextMenu || !projectRef.current) return;
-    const screen = projectRef.current.screens.find((s) => s.id === contextMenu.targetId);
+    if (!contextMenu || !project) return;
+    const screen = project.screens.find((s) => s.id === contextMenu.targetId);
     if (screen) {
       setRenameTarget({ id: screen.id, name: screen.name });
     }
     setContextMenu(null);
-  }, [contextMenu]);
+  }, [project, contextMenu]);
 
   // ── Marker Panel Actions ──
 
@@ -673,10 +685,10 @@ function FlowEditorInner() {
   const handleToggleMarkerPanel = useCallback(async () => {
     const opening = !markerPanelOpen;
     setMarkerPanelOpen(opening);
-    if (opening && projectRef.current) {
+    if (opening && project) {
       const map = new Map<string, Screen>();
       await Promise.all(
-        projectRef.current.screens.map(async (s) => {
+        project.screens.map(async (s) => {
           try {
             const entity = await loadScreenEntity(s.id);
             map.set(s.id, entity);
@@ -687,7 +699,7 @@ function FlowEditorInner() {
       );
       setScreenEntities(map);
     }
-  }, [markerPanelOpen]);
+  }, [project, markerPanelOpen]);
 
   /** marker 追加/解決/削除時に screen entity を更新して保存 */
   const handleMarkerChange = useCallback(
@@ -728,10 +740,10 @@ function FlowEditorInner() {
   // ── Group Actions ──
 
   const handleAddGroup = useCallback(async () => {
-    if (!projectRef.current) return;
+    if (!project) return;
     const name = prompt("グループ名を入力してください", "グループ");
     if (!name) return;
-    const group = await storeAddGroup(projectRef.current, name.trim(), { x: 80, y: 80 });
+    const group = await storeAddGroup(project, name.trim(), { x: 80, y: 80 });
     setNodes((nds) => [{
       id: group.id,
       type: "groupNode",
@@ -742,43 +754,43 @@ function FlowEditorInner() {
       selectable: true,
       draggable: true,
     }, ...nds]);
-  }, [setNodes]);
+  }, [project, setNodes]);
 
   const handleRenameGroup = useCallback(async () => {
-    if (!contextMenu || !projectRef.current) return;
-    const group = (projectRef.current.groups ?? []).find((g) => g.id === contextMenu.targetId);
+    if (!contextMenu || !project) return;
+    const group = (project.groups ?? []).find((g) => g.id === contextMenu.targetId);
     if (!group) return;
     const name = prompt("新しいグループ名を入力してください", group.name);
     if (!name || name.trim() === group.name) { setContextMenu(null); return; }
-    await storeUpdateGroup(projectRef.current, group.id, { name: name.trim() });
+    await storeUpdateGroup(project, group.id, { name: name.trim() });
     setNodes((nds) => nds.map((n) =>
       n.id === group.id ? { ...n, data: { ...n.data, name: name.trim() } } : n
     ));
     setContextMenu(null);
-  }, [contextMenu, setNodes]);
+  }, [project, contextMenu, setNodes]);
 
   const handleDeleteGroup = useCallback(async () => {
-    if (!contextMenu || !projectRef.current) return;
-    const group = (projectRef.current.groups ?? []).find((g) => g.id === contextMenu.targetId);
+    if (!contextMenu || !project) return;
+    const group = (project.groups ?? []).find((g) => g.id === contextMenu.targetId);
     if (!group) return;
     if (!confirm(`グループ「${group.name}」を削除しますか？\n（画面はグループから外れますが削除されません）`)) {
       setContextMenu(null);
       return;
     }
-    await storeRemoveGroup(projectRef.current, contextMenu.targetId);
-    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
+    await storeRemoveGroup(project, contextMenu.targetId);
+    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
-  }, [contextMenu, setNodes]);
+  }, [project, contextMenu, setNodes]);
 
   const handleAssignGroup = useCallback(async (groupId: ScreenGroupId) => {
-    if (!contextMenu || !projectRef.current) return;
-    const screen = projectRef.current.screens.find((s) => s.id === contextMenu.targetId);
-    const group = (projectRef.current.groups ?? []).find((g) => g.id === groupId);
+    if (!contextMenu || !project) return;
+    const screen = project.screens.find((s) => s.id === contextMenu.targetId);
+    const group = (project.groups ?? []).find((g) => g.id === groupId);
     if (!screen || !group) return;
     // Convert absolute position to relative within the group
     const absPos = screen.groupId
       ? (() => {
-          const cur = (projectRef.current!.groups ?? []).find((g) => g.id === screen.groupId);
+          const cur = (project!.groups ?? []).find((g) => g.id === screen.groupId);
           return cur
             ? { x: screen.position.x + cur.position.x, y: screen.position.y + cur.position.y }
             : screen.position;
@@ -790,16 +802,16 @@ function FlowEditorInner() {
     };
     screen.groupId = groupId;
     screen.updatedAt = new Date().toISOString() as Timestamp;
-    await saveProject(projectRef.current);
-    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
+    await saveProject(project);
+    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
-  }, [contextMenu, setNodes]);
+  }, [project, contextMenu, setNodes]);
 
   const handleUnassignGroup = useCallback(async () => {
-    if (!contextMenu || !projectRef.current) return;
-    const screen = projectRef.current.screens.find((s) => s.id === contextMenu.targetId);
+    if (!contextMenu || !project) return;
+    const screen = project.screens.find((s) => s.id === contextMenu.targetId);
     if (!screen || !screen.groupId) return;
-    const group = (projectRef.current.groups ?? []).find((g) => g.id === screen.groupId);
+    const group = (project.groups ?? []).find((g) => g.id === screen.groupId);
     if (group) {
       screen.position = {
         x: screen.position.x + group.position.x,
@@ -808,16 +820,16 @@ function FlowEditorInner() {
     }
     screen.groupId = undefined;
     screen.updatedAt = new Date().toISOString() as Timestamp;
-    await saveProject(projectRef.current);
-    setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
+    await saveProject(project);
+    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
-  }, [contextMenu, setNodes]);
+  }, [project, contextMenu, setNodes]);
 
   // ── Edge Context Menu Actions ──
 
   const handleEditEdge = useCallback(() => {
-    if (!contextMenu || contextMenu.type !== "edge" || !projectRef.current) return;
-    const storeEdge = projectRef.current.edges.find((e) => e.id === contextMenu.targetId);
+    if (!contextMenu || contextMenu.type !== "edge" || !project) return;
+    const storeEdge = project.edges.find((e) => e.id === contextMenu.targetId);
     if (storeEdge) {
       setEdgeModal({
         open: true,
@@ -831,91 +843,91 @@ function FlowEditorInner() {
       });
     }
     setContextMenu(null);
-  }, [contextMenu]);
+  }, [project, contextMenu]);
 
   const handleDeleteEdge = useCallback(async () => {
-    if (!contextMenu || contextMenu.type !== "edge" || !projectRef.current) return;
+    if (!contextMenu || contextMenu.type !== "edge" || !project) return;
     pushUndoSnapshot();
-    await storeRemoveEdge(projectRef.current, contextMenu.targetId);
+    await storeRemoveEdge(project, contextMenu.targetId);
     setEdges((eds) => eds.filter((e) => e.id !== contextMenu.targetId));
     setContextMenu(null);
-  }, [contextMenu, setEdges, pushUndoSnapshot]);
+  }, [project, contextMenu, setEdges, pushUndoSnapshot]);
 
   // ドラッグによるエッジ端点の付け替え
   const onReconnect = useCallback((oldEdge: RFEdge, newConnection: Connection) => {
     setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds));
-    if (!projectRef.current) return;
-    storeUpdateEdge(projectRef.current, oldEdge.id, {
+    if (!project) return;
+    storeUpdateEdge(project, oldEdge.id, {
       sourceHandle: (newConnection.sourceHandle ?? oldEdge.sourceHandle ?? "bottom") as HandlePosition,
       targetHandle: (newConnection.targetHandle ?? oldEdge.targetHandle ?? "top") as HandlePosition,
     }).catch(console.error);
-  }, [setEdges]);
+  }, [project, setEdges]);
 
   const onEdgesDelete = useCallback((deletedEdges: RFEdge[]) => {
-    if (!projectRef.current) return;
-    Promise.all(deletedEdges.map((e) => storeRemoveEdge(projectRef.current!, e.id)))
+    if (!project) return;
+    Promise.all(deletedEdges.map((e) => storeRemoveEdge(project!, e.id)))
       .catch(console.error);
-  }, []);
+  }, [project]);
 
   const onNodesDelete = useCallback((deletedNodes: RFNode[]) => {
-    if (!projectRef.current) return;
-    const project = projectRef.current;
+    if (!project) return;
     const promises = deletedNodes.map((n) => {
       if (project.screens.find((s) => s.id === n.id)) {
         return removeScreen(project, n.id);
       }
       if ((project.groups ?? []).find((g) => g.id === n.id)) {
         return storeRemoveGroup(project, n.id).then(() => {
-          // Rebuild nodes to reflect ungrouped screens
-          if (projectRef.current) {
-            setNodes(toRFNodesWithGroups(projectRef.current.screens, projectRef.current.groups ?? [], screenEntitiesRef.current));
-          }
+          // Rebuild nodes to reflect ungrouped screens (#1388 case A:
+          // project は state、store 関数の in-place mutation 後も同 reference のため再描画は setNodes で trigger)
+          setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
           return true;
         });
       }
       return Promise.resolve(false);
     });
     Promise.all(promises).catch(console.error);
-  }, [setNodes]);
+  }, [project, setNodes]);
 
   // ── Project-level Actions ──
 
   const handleRenameProject = useCallback(async (name: string) => {
-    if (!projectRef.current) return;
-    projectRef.current.name = name;
-    await saveProject(projectRef.current);
+    if (!project) return;
+    // #1388 case A: state を直接 mutation せず、immutable update + setProject で更新
+    const updated = { ...project, name };
+    setProject(updated);
+    await saveProject(updated);
     setProjectName(name);
-  }, []);
+  }, [project]);
 
   const handleClearAll = useCallback(async () => {
-    if (!projectRef.current) return;
+    if (!project) return;
     if (!confirm("すべての画面と遷移を削除しますか？\n各画面のデザインデータも削除されます。")) return;
     // スナップショットを取ってから削除（removeScreen が配列を変更するため）
-    for (const s of [...projectRef.current.screens]) {
-      await removeScreen(projectRef.current, s.id).catch(console.error);
+    for (const s of [...project.screens]) {
+      await removeScreen(project, s.id).catch(console.error);
     }
     setNodes([]);
     setEdges([]);
-  }, [setNodes, setEdges]);
+  }, [project, setNodes, setEdges]);
 
   // ── ファイル操作 ──
 
   const handleExportJSON = useCallback(() => {
-    if (!projectRef.current) return;
-    const json = exportProjectJSON(projectRef.current);
+    if (!project) return;
+    const json = exportProjectJSON(project);
     const blob = new Blob([json], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${projectRef.current.name || "flow-project"}.json`;
+    a.download = `${project.name || "flow-project"}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, []);
+  }, [project]);
 
   const handleImportJSON = useCallback(async (json: string) => {
     try {
       const imported = await importProjectJSON(json);
-      projectRef.current = imported;
+      setProject(imported);
       setNodes(toRFNodesWithGroups(imported.screens, imported.groups ?? [], screenEntitiesRef.current));
       setEdges(toRFEdges(imported.edges));
       setProjectName(imported.name);
@@ -938,8 +950,8 @@ function FlowEditorInner() {
   }, [fitView]);
 
   const handleCopyMermaid = useCallback(() => {
-    if (!projectRef.current) return;
-    const mermaid = generateMermaid(projectRef.current);
+    if (!project) return;
+    const mermaid = generateMermaid(project);
     navigator.clipboard.writeText(mermaid).then(
       () => alert("Mermaid 記法をクリップボードにコピーしました"),
       (e) => showError({
@@ -948,22 +960,22 @@ function FlowEditorInner() {
         message: e instanceof Error ? e.message : "ブラウザがクリップボードへのアクセスを拒否した可能性があります。",
       }),
     );
-  }, [showError]);
+  }, [project, showError]);
 
   const handleExportMarkdown = useCallback(() => {
-    if (!projectRef.current) return;
-    const md = generateFlowMarkdown(projectRef.current);
+    if (!project) return;
+    const md = generateFlowMarkdown(project);
     const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${projectRef.current.name || "flow-project"}.md`;
+    a.download = `${project.name || "flow-project"}.md`;
     a.click();
     URL.revokeObjectURL(url);
-  }, []);
+  }, [project]);
 
   const handleSave = useCallback(async () => {
-    if (!projectRef.current || isSaving || isReadonly) return;
+    if (!project || isSaving || isReadonly) return;
     // pending debounce があればキャンセルして即 flush
     // 編集開始直後に保存した場合 draft が空のまま commitDraft に到達してゾンビロックになるのを防ぐ
     if (saveDebounceRef.current) {
@@ -971,7 +983,7 @@ function FlowEditorInner() {
       saveDebounceRef.current = null;
     }
     if (editSession?.id) {
-      await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: projectRef.current });
+      await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: project });
     }
     setIsSaving(true);
     try {
@@ -980,7 +992,7 @@ function FlowEditorInner() {
       // saveHistory 記録が persist 失敗時に先行記録される問題を解消するため checkOnly → persist → commit の順で実行する。
       const checkResult = await saveCheckConflict();
       if (checkResult.conflicted || checkResult.failed) return;
-      await persistProject(projectRef.current);
+      await persistProject(project);
       const commitResult = await saveCommit();
       if (commitResult.failed) return;
       setIsDirty(false);
@@ -996,7 +1008,7 @@ function FlowEditorInner() {
     } finally {
       setIsSaving(false);
     }
-  }, [isSaving, isReadonly, saveCheckConflict, saveCommit, showError, dismissServerBanner, editSession]);
+  }, [project, isSaving, isReadonly, saveCheckConflict, saveCommit, showError, dismissServerBanner, editSession]);
 
   const handleDiscard = useCallback(async () => {
     setShowDiscardDialog(false);
@@ -1061,7 +1073,7 @@ function FlowEditorInner() {
   const isEmpty = !isLoading && nodes.filter((n) => n.type === "screenNode").length === 0;
   const screenCount = nodes.filter((n) => n.type === "screenNode").length;
   const flowScreenNodes = useMemo(
-    () => (projectRef.current?.screens ?? []),
+    () => (project?.screens ?? []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [nodes],
   );
@@ -1255,8 +1267,8 @@ function FlowEditorInner() {
                 <i className="bi bi-pencil-square" /> ID 変更…
               </button>
               {(() => {
-                const screen = projectRef.current?.screens.find((s) => s.id === contextMenu.targetId);
-                const groups = projectRef.current?.groups ?? [];
+                const screen = project?.screens.find((s) => s.id === contextMenu.targetId);
+                const groups = project?.groups ?? [];
                 if (!screen) return null;
                 if (screen.groupId) {
                   return (
@@ -1310,7 +1322,7 @@ function FlowEditorInner() {
         defaultEditorKind={projectDefaultEditorKind}
         defaultCssFramework={projectDefaultCssFramework}
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
-        existingScreenIds={projectRef.current?.screens.map((s) => s.id) ?? []}
+        existingScreenIds={project?.screens.map((s) => s.id) ?? []}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}
         onClose={() => setScreenModal({ open: false })}
       />
@@ -1331,13 +1343,13 @@ function FlowEditorInner() {
             // P2 fix (#912): flow は backend editSession.save で write skip されるため、
             // 上書き確認後に frontend で persistProject() を先に実行し、saveCommit() で saveHistory を記録する。
             // (persist 失敗時に saveHistory が先行記録される問題を解消)
-            // Should-fix (#916 review): projectRef.current が null なら persist 不能 — dialog を閉じて状態リセット。
-            if (!projectRef.current) {
+            // Should-fix (#916 review): project が null なら persist 不能 — dialog を閉じて状態リセット。
+            if (!project) {
               onSaveConflictCancel();
               return;
             }
             try {
-              await persistProject(projectRef.current);
+              await persistProject(project);
               const commitResult = await saveCommit();
               if (commitResult.failed) return;
               setIsDirty(false);
@@ -1358,7 +1370,7 @@ function FlowEditorInner() {
           entityType="screen"
           currentId={renameTarget.id}
           currentName={renameTarget.name}
-          existingIds={projectRef.current?.screens.map((s) => s.id) ?? []}
+          existingIds={project?.screens.map((s) => s.id) ?? []}
           fetchExistingIds={async () => {
             const project = await loadProject();
             return (project.screens ?? []).map((s) => s.id);
@@ -1383,7 +1395,7 @@ function FlowEditorInner() {
             });
             // node graph を新 id で reload
             loadProject().then((p) => {
-              projectRef.current = p;
+              setProject(p);
               setNodes((nds) => nds.map((n) => n.id === target.id
                 ? { ...n, id: newId, data: { ...n.data, id: newId } as RFNode["data"] }
                 : n));
@@ -1425,7 +1437,7 @@ function FlowEditorInner() {
               originRoute: () => "/screen/flow",
             });
             loadProject().then((p) => {
-              projectRef.current = p;
+              setProject(p);
               setNodes((nds) => nds.map((n) => n.id === oldId
                 ? { ...n, id: newId, data: { ...n.data, id: newId } as RFNode["data"] }
                 : n));
