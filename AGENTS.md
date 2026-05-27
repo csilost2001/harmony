@@ -184,6 +184,7 @@ npx playwright install chromium  # rehype-mermaid 用、初回のみ
 
 1. `docs/spec/*.md` 等の Markdown を編集 (canonical source)
 2. `cd docs-site && npm run build` で `docs/html/` を再生成
+   - `npm run build` は毎回 `.astro/` cache を clear してから build (Astro 5 cache stale state による link resolution 破壊を防止、ISSUE #1366)
 3. `git add docs/html/ docs-site/` で commit
 4. push / PR
 
