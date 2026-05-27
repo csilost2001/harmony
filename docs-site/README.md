@@ -22,6 +22,7 @@ npx playwright install chromium
 ```bash
 cd docs-site
 npm run build
+# → 毎回 .astro/ / dist/ / node_modules/.astro/ を clear してから build (Astro 5 cache の stale state 防止、ISSUE #1366)
 # → ../docs/html/ に出力
 # → ../docs/html/pagefind/ に検索 index 生成
 # → post-process (scripts/relativize-html-paths.mjs) で全 HTML/CSS/JS の

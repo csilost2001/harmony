@@ -6,7 +6,7 @@
   "description": "Harmony 仕様書・プレゼン HTML サイト (Astro + Tailwind + pagefind)",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/relativize-html-paths.mjs",
+    "build": "node scripts/clean-build-cache.mjs && astro build && node scripts/relativize-html-paths.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
