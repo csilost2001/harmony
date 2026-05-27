@@ -111,6 +111,7 @@ ISSUE が `docs/spec/` の追加・変更を伴う場合:
 - spec と実装が整合しているか (`/review-pr` の逐条突合と同じ粒度)
 - spec に書いてあって実装にない条項があれば指摘
 - 実装にあって spec にない機能があれば「spec 側の更新漏れ」として指摘
+- **id 体系違反 (RFC #1284 / #1332)**: ISSUE が top-level entity (ProcessFlow / Screen / Table / Sequence / View / ViewDefinition / PageLayout) の作成 / 変更を伴う場合、各 entity ファイル / fixture / spec example が `id: EntityId (kebab-case)` + `uuid: Uuid` + `name: string` の 3 fields 構成になっているか確認。UUID 形式の `id` value、`uuid` field 欠落、entity id を「slug」と呼称する記述は指摘。検出例: `grep -nE '"id":\s*"[0-9a-f]{8}-' <ISSUE 関連 file>` / `grep -nE 'slug' <docs>` (ただし Astro route placeholder / branch 命名 / `slugifyToEntityId` 等の関数名 / business 領域 field / npm package は対象外)
 
 ### Step 4.5: マルチエディタ対応 ISSUE の画面 editorKind 整合性確認 (#806)
 
