@@ -176,13 +176,24 @@ EOF
 
 ### 7-1: cdx review の起動
 
-**stdin 必須クローズ** (`</dev/null`) + **`timeout 1500` 必須** — これを忘れると codex が review 完了後も alive のまま hang し続け、Monitor の pgrep 検知が永久に効かなくなる事故が発生する (2026-05-27 PR #1377 Round 1 で実例):
+**stdin 必須クローズ** (`</dev/null`) + **`timeout 1500` 必須** — これを忘れると codex が review 完了後も alive のまま hang し続け、Monitor の pgrep 検知が永久に効かなくなる事故が発生する (2026-05-27 PR #1377 Round 1 で実例)。
+
+**重要 (2026-05-28 学習)**: `cdx` は **bash function (alias)** のため `timeout cdx ...` は `timeout: No such file or directory` で失敗する (timeout は external 実行ファイルしか見ない)。`timeout` を被せる場合は **`codex` 本体を直接呼ぶ** か **`bash -c` で wrap** する:
 
 ```bash
-source ~/dotfiles/.bash_aliases  # cdx 関数を読み込む
+# ❌ NG: timeout は bash function を見つけられない
+timeout 1500 cdx exec "..." </dev/null
 
-# timeout を必ず被せる (25 min hard limit、background hang 防止)
-timeout 1500 cdx exec "PR #<PR番号> (branch <branch>) Round <N> 独立レビュー。
+# ✅ OK: codex 直呼出し (cdx alias の定義と同等)
+timeout 1500 codex --dangerously-bypass-approvals-and-sandbox exec "..." </dev/null
+
+# ✅ OK: bash -c で wrap (cdx alias の source も含めて 1 process に)
+timeout 1500 bash -lc 'source ~/dotfiles/.bash_aliases && cdx exec "..." </dev/null'
+```
+
+```bash
+# 推奨パターン (codex 直呼出し):
+timeout 1500 codex --dangerously-bypass-approvals-and-sandbox exec "PR #<PR番号> (branch <branch>) Round <N> 独立レビュー。
 
 特に観点:
 - schema governance #511 (グローバル schema 変更は AI 権限外、description のみは例外)
@@ -196,6 +207,8 @@ cwd /workspaces/harmony/frontend (or backend) で npm run build / npx tsc --noEm
 ```
 
 実行は **必ず background** — codex は 5-30 分かかる。
+
+**Monitor は本 skill の 7-2 で 3 重検知するため、cdx 自体に timeout を付け忘れても Idle detection (mtime 90s 停止) が fail-safe として効く**。timeout は推奨だが、Idle detection が一次防衛線。
 
 ### 7-2: 完了監視 (Monitor で 3 重検知 — 2026-05-27 強化)
 
