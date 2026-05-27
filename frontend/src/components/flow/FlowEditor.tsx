@@ -168,17 +168,30 @@ interface ContextMenu {
 function FlowEditorInner() {
   const navigate = useNavigate();
   const { wsPath, wsId } = useWorkspacePath();
-  // #1388 sub-section B (case A): projectRef を useState 化。JSX 中の `project` access が
+  // #1388 sub-section B (case A): projectRef を useState 化。旧 `projectRef.current` JSX access が
   // react-hooks/refs 警告 14 件を発生させていた根本原因 — render-time の ref read は React 19 /
   // React Compiler / eslint-plugin-react-hooks 7.x で不正動作 (再 render trigger 漏れ) を起こすため。
   //
-  // mutation pattern (`project.screens[i].field = X` 系) は immutable update に rewrite せず、
-  // structuredClone() で draft を作って store 関数 (in-place mutation) に渡し、新 reference を setProject
-  // で commit する pattern を採用 (一度の callback で「複製 → 操作 → コミット」を完結)。これにより
-  // 既存の store 関数 (updateScreen / addScreen / storeAddEdge etc) を refactor せずに済む。
+  // **mutation pattern (実装の実態)**: store 関数 (`updateScreen` / `addScreen` / `storeAddEdge` 等) は
+  // in-place mutation API のまま保持し、各 callback で `await storeFunc(project, ...)` を call する形式を
+  // 継続する。これは React state を直接 mutation する pattern (anti-React-canonical) だが、以下の理由で
+  // 機能的には正しく動作する:
   //
-  // 全 callback の deps に `project` を加える代わり、closure capture 経路で読む (= 同 render の
-  // 値を読む)。useCallback re-create は cost 不問 (#1388 設計判断、user 承認済) で許容。
+  // 1. mutation 後の visible reads (setNodes 内の `project.screens.find(...)` 等) は同 reference 経由で
+  //    最新値を読める
+  // 2. 各 mutation callback は必ず setNodes / setEdges / setProjectName 等の併発 setState を伴うため、
+  //    React re-render が trigger され consumer JSX (`existingScreenIds={project.screens.map(...)}` 等) は
+  //    次 render で mutation を反映する
+  // 3. handleUndo / handleRedo / reloadProject / handleImportJSON / handleRenameProject は新 reference
+  //    で setProject() するため、これらは正規の React state 更新として動作する
+  //
+  // 完全に React-canonical な immutable update への移行は store 関数 API (~26 関数) の signature 変更を
+  // 要し、本 PR scope を超える別 refactor (本コメント時点では別 ISSUE 起票も予定なし、必要性が顕在化
+  // した時点で判断)。eslint の `react-hooks/immutability` rule は `state.field = X` 直接代入のみを検出
+  // するため、`handleRenameProject` (旧 `project.name = X`) のみは immutable update に rewrite して
+  // 警告解消済 (本 PR の commit 7e2bdc55)。
+  //
+  // 全 callback の deps に `project` を加える (= callback 再生成許容、cost 不問前提)。
   const [project, setProject] = useState<FlowProject | null>(null);
   const { fitView, zoomTo } = useReactFlow();
   const { showError } = useErrorDialog();
@@ -466,9 +479,11 @@ function FlowEditorInner() {
         labelBgBorderRadius: 4,
       }, eds));
     }).catch(console.error);
-  // isReadonly は useCallback の外側のスコープ変数なので deps に明示が必要
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setEdges, isReadonly]);
+    // #1388 Codex Round 1 Must-fix: project / pushUndoSnapshot を deps に追加し旧
+    // eslint suppression directive を削除した。useRef 時代は `projectRef.current` が常に最新値を
+    // 返すため deps から外せたが、useState 化後は closure capture pattern になるため deps 必須。
+    // 初回 render で project===null を捕捉すると以降の接続作成が常に no-op になる regression。
+  }, [project, isReadonly, setEdges, pushUndoSnapshot]);
 
   const onNodeDoubleClick: NodeMouseHandler = useCallback((_event, node) => {
     if (node.type === "screenNode") {
