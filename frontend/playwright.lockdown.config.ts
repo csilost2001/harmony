@@ -5,9 +5,13 @@ const VITE_PORT = parseInt(process.env.VITE_PORT ?? "5183", 10);
 const MCP_PORT = parseInt(process.env.DESIGNER_MCP_PORT ?? "5189", 10);
 const BASE_URL = `http://localhost:${VITE_PORT}`;
 // #1359: workspaceFixture.ts:lockdownWorkspacePath() を経由することで、本 config と
-// lockdown-routing.spec.ts の path 構築を 1 つの helper に集約する。webServer.env は
-// controller process 起動時に評価される (worker spawn 前) ため、worker index は常に
-// "0" で解決される (本 config は workers: 1 固定、line 15 参照)。
+// lockdown-routing.spec.ts の path 構築を 1 つの helper に集約する。
+// 本 helper は **worker index 非依存の stable path** を返す (Round 1 Must-fix M-1):
+// webServer.env は controller process (= worker spawn 前) で評価され `TEST_WORKER_INDEX`
+// 未設定だが、CI retry 後の spec worker は `TEST_WORKER_INDEX=1+` で起動し得るため、
+// worker prefix 経由にすると config と spec の path が retry 時のみ mismatch する。
+// 本 config の `workers: 1` 設定 (下の defineConfig 参照) で並行 write は発生しないため
+// worker prefix は不要 = stable path で一致を担保する。
 const LOCKDOWN_WORKSPACE = lockdownWorkspacePath();
 
 export default defineConfig({

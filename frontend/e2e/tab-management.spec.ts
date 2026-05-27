@@ -163,9 +163,15 @@ test.describe("タブ管理", { tag: ["@smoke"] }, () => {
     });
 
     test("× ボタンでタブを閉じる", async ({ page }) => {
+      // #1359 Codex Round 1 Must-fix M-2: 過去 workers > 1 で 1 回観測された偶発 flake への
+      // robust 化。タブ × ボタンが visible 状態に確実に landed してから click し、
+      // クローズ後の DOM 反映を default より長い timeout で確認する。
       const tabA = page.locator(".tabbar-tab").filter({ hasText: "画面A" });
-      await tabA.locator(".tabbar-tab-close").click({ force: true });
-      await expect(page.locator(".tabbar-tab")).toHaveCount(2);
+      await expect(tabA).toBeVisible({ timeout: 5000 });
+      const closeBtn = tabA.locator(".tabbar-tab-close");
+      await closeBtn.waitFor({ state: "visible", timeout: 5000 });
+      await closeBtn.click({ force: true });
+      await expect(page.locator(".tabbar-tab")).toHaveCount(2, { timeout: 5000 });
       await expect(page.locator(".tabbar-tab").filter({ hasText: "画面A" })).toHaveCount(0);
     });
 

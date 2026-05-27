@@ -10,8 +10,8 @@
  *   - workers=1 環境では `w0-` 固定 prefix で全 path が解決される (regression なし)
  *
  * 利用 spec:
- *   - workspace-folder-picker.spec.ts (`fixturePath` で fixture root を分離)
- *   - lockdown-routing.spec.ts (`lockdownWorkspacePath` で lockdown fixture を分離)
+ *   - workspace-folder-picker.spec.ts (`folderPickerFixtureRoot()` で fixture root を分離)
+ *   - lockdown-routing.spec.ts (`lockdownWorkspacePath()` で固定 path を共有、worker prefix 非依存)
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,15 +44,21 @@ export function folderPickerFixtureRoot(): string {
 /**
  * lockdown-routing.spec.ts 用の固定 workspace path を返す。
  *
- * **注意**: `playwright.lockdown.config.ts` は `webServer.env.DESIGNER_DATA_DIR` を
- * Playwright controller process の起動時 (= worker spawn 前) に評価するため、worker
- * 単位で path を変える設計には現状の architecture では対応不可。lockdown config は
- * `workers: 1` 固定で運用しており、worker index は常に `0` で解決される。
+ * **重要 (worker index 非依存)**:
+ * `playwright.lockdown.config.ts` の `webServer.env.DESIGNER_DATA_DIR` は Playwright
+ * controller process (worker spawn 前) で評価され `TEST_WORKER_INDEX` を持たない
+ * (常に `"0"` 解決) 一方、CI retry 等で spec worker は `TEST_WORKER_INDEX=1+` で
+ * 起動し得る (`realWorkspace.ts:152-157` の docstring 参照)。
+ * もし両者を `currentWorkerIndex()` 経由にすると config は `w0-*` を backend に渡し、
+ * spec は `w1-*` を seed する path mismatch regression が retry 時のみ発生する。
  *
- * 本 helper はあくまで `lockdown-routing.spec.ts` (spec 側) と config 側の path 構築
- * ロジックを単一 source of truth に揃える目的で導入した。両者が同じ helper を呼ぶ
- * ことで、将来 lockdown config を多 worker 化する際の整合性ハザードを回避できる。
+ * lockdown config は `workers: 1` 固定運用で複数 worker から同 path への並行 write は
+ * 発生しないため、worker prefix は不要。**stable な固定 path** を返すことで config /
+ * spec / retry 経路で常に一致させる。
+ *
+ * 本 helper はあくまで spec 側と config 側の path 構築を単一 source of truth に揃え、
+ * 将来パス命名を変える際に 1 箇所修正で済むようにする目的で導入。
  */
 export function lockdownWorkspacePath(): string {
-  return workerScopedPath("e2e-workspaces", "lockdown-routing");
+  return path.join(REPO_ROOT, ".tmp", "e2e-workspaces", "lockdown-routing");
 }
