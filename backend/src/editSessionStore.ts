@@ -16,47 +16,32 @@ import path from "path";
 import { randomBytes } from "node:crypto";
 import type { DraftHistoryStore } from "./draftHistoryStore.js";
 import { assertPathContained } from "./security/idValidator.js";
+import { DRAFT_RESOURCE_TYPES, type DraftResourceType } from "@harmony/shared";
+
 // ── 公開型定義 (spec §3.2 / §10.2) ──────────────────────────────────────────
 
 /**
- * DraftResourceType — Phase 6 (#903): draftStore.ts 削除に伴い editSessionStore.ts に移管。
- * frontend/src/types/draft.ts と同一リスト (両方を編集同期すること)。
+ * DraftResourceType / DRAFT_RESOURCE_TYPES — 単一定義は `@harmony/shared` package。
  *
- * #1374: 型 union / runtime allowlist / MCP tool schema enum の drift を防止するため、
- * `as const` literal 配列を source of truth として型と Set を導出する形に変更。
- * 新 resource type 追加時は本配列 1 箇所の更新で `DraftResourceType` (型) /
- * `VALID_RESOURCE_TYPES` (runtime Set) / tools.ts の MCP enum (本配列を spread) が同期される。
+ * #1375 で frontend / backend / MCP / WS handler の重複定義を `shared/src/draftResourceTypes.ts`
+ * に集約 (#1372 → #1376 で backend 内 4 表現の drift を解消した次段階)。
+ * 配列 1 箇所の更新で:
+ *   - `DraftResourceType` (型 union, frontend / backend 双方が `@harmony/shared` から取得)
+ *   - `VALID_RESOURCE_TYPES` (runtime allowlist, 本ファイル)
+ *   - MCP `editSession__*` tool schema の `resourceType.enum` (`backend/src/tools.ts` が `[...DRAFT_RESOURCE_TYPES]`)
+ * が自動追従する。
  *
- *   DRAFT_RESOURCE_TYPES (source of truth, as const)
- *     ↓ typeof[number]
- *   DraftResourceType (型 union)
- *     ↓ new Set(...)
- *   VALID_RESOURCE_TYPES (runtime allowlist, WS / MCP 両 handler で共有)
+ * backend 内部で `DraftResourceType` 型 / `DRAFT_RESOURCE_TYPES` 配列を参照していたコードは
+ * 本ファイル経由で re-export して import path を維持する。
  */
-export const DRAFT_RESOURCE_TYPES = [
-  "screen",
-  "puck-data",
-  "table",
-  "process-flow",
-  "view",
-  "view-definition",
-  "page-layout",
-  "screen-item",
-  "sequence",
-  "extension",
-  "convention",
-  "flow",
-  "er-layout",
-  "generic-definition", // #1331: GenericDefinition EditSession 化 (kind/name 複合 id)
-] as const;
-
-export type DraftResourceType = typeof DRAFT_RESOURCE_TYPES[number];
+export { DRAFT_RESOURCE_TYPES, type DraftResourceType };
 
 /**
  * resourceType の runtime allowlist。
  * #1374: 旧来 wsHandlers/editSession.ts に local 定義されていた `VALID_RESOURCE_TYPES` を集約し、
  * WS handler と MCP handler (handlers/editSession.ts) の双方から import する。
- * これで 4 表現 (型 / WS Set / MCP allowlist / MCP tool schema enum) の drift を構造的に防止する。
+ * #1375: backend 配列定義そのものは `@harmony/shared` に移動、Set は本ファイルで生成して runtime
+ * 用途 (WS / MCP 検証) として提供。
  */
 export const VALID_RESOURCE_TYPES: ReadonlySet<DraftResourceType> = new Set(DRAFT_RESOURCE_TYPES);
 
