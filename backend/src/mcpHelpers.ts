@@ -54,7 +54,7 @@ export async function saveAndBroadcast(agId: string, ag: ProcessFlowDoc, root: s
   ag.updatedAt = new Date().toISOString();
   await writeProcessFlow(agId, ag, root);
   // root が wsId = per-workspace scoping (#703 R-5 A-1)
-  wsBridge.broadcast({ wsId: root, event: "processFlowChanged", data: { id: agId } });
+  wsBridge.broadcast({ wsId: root, event: "processFlowChanged", data: { processFlowId: agId } });
 }
 
 /**

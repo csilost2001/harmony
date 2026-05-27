@@ -252,10 +252,10 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
         updatedAt: new Date().toISOString(),
       };
 
-      const saveResult = await sendBrowserRequest("saveProcessFlow", { id, data: testData });
+      const saveResult = await sendBrowserRequest("saveProcessFlow", { processFlowId: id, data: testData });
       expect((saveResult as { success: boolean }).success).toBe(true);
 
-      const loadResult = await sendBrowserRequest("loadProcessFlow", { id });
+      const loadResult = await sendBrowserRequest("loadProcessFlow", { processFlowId: id });
       expect(loadResult).toMatchObject(testData);
 
       // 後片付け
@@ -266,19 +266,24 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
     test("deleteProcessFlow でファイルが削除される", async () => {
       const id = "e2e-test-ag-del-001";
       await sendBrowserRequest("saveProcessFlow", {
-        id,
+        processFlowId: id,
         data: { id, name: "tmp", type: "screen", description: "", actions: [] },
       });
 
-      const deleteResult = await sendBrowserRequest("deleteProcessFlow", { id });
+      const deleteResult = await sendBrowserRequest("deleteProcessFlow", { processFlowId: id });
       expect((deleteResult as { success: boolean }).success).toBe(true);
 
-      const loadResult = await sendBrowserRequest("loadProcessFlow", { id });
+      const loadResult = await sendBrowserRequest("loadProcessFlow", { processFlowId: id });
       expect(loadResult).toBeNull();
     });
 
-    test("存在しない id の loadProcessFlow は null", async () => {
-      const loadResult = await sendBrowserRequest("loadProcessFlow", { id: "nonexistent-ag-xyz" });
+    test("存在しない processFlowId の loadProcessFlow は null", async () => {
+      const loadResult = await sendBrowserRequest("loadProcessFlow", { processFlowId: "nonexistent-ag-xyz" });
+      expect(loadResult).toBeNull();
+    });
+
+    test("loadProcessFlow は deprecated alias の id も受け付ける", async () => {
+      const loadResult = await sendBrowserRequest("loadProcessFlow", { id: "nonexistent-ag-alias-xyz" });
       expect(loadResult).toBeNull();
     });
   });

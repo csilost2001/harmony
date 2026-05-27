@@ -212,7 +212,7 @@ export function ProcessFlowEditor() {
     load: loadProcessFlow,
     save: saveProcessFlow,
     broadcastName: "processFlowChanged",
-    broadcastIdField: "id",
+    broadcastIdField: "processFlowId",
     onNotFound: handleNotFound,
     onLoaded: handleLoaded,
     // #891 fix: viewer mode で mid-edit broadcast を受信するため渡す

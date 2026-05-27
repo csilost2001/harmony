@@ -2,7 +2,7 @@
  * ProcessFlow の細粒度編集ヘルパー (#261 MCP リアルタイム編集対応)。
  *
  * 各関数は ProcessFlow を mutate して返す (同じ参照)。呼び出し側で writeProcessFlow し、
- * wsBridge.broadcast("processFlowChanged", { id }) してブラウザを再描画させる。
+ * wsBridge.broadcast("processFlowChanged", { processFlowId }) してブラウザを再描画させる。
  */
 
 type Step = {

@@ -81,7 +81,7 @@ export const miscHandlers: RpcHandlerMap = {
     respond(result);
     bridge.broadcast({ wsId: wsId(), event: "screenItemsChanged", data: { screenId }, excludeClientId: clientId });
     for (const agId of result.processFlowsUpdated) {
-      bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { id: agId }, excludeClientId: clientId });
+      bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { processFlowId: agId }, excludeClientId: clientId });
     }
     if (result.screenHtmlUpdated) {
       bridge.broadcast({ wsId: wsId(), event: "screenChanged", data: { screenId }, excludeClientId: clientId });
