@@ -454,6 +454,7 @@ Claude Code 利用時は `/test-strategy` スキルが自動起動 (詳細は `C
 ## Conventions
 
 - All UI text is in Japanese
+- **AI セッション中のユーザー宛テキスト出力もすべて日本語で書く** — 進捗報告 / status update / Monitor 起動報告 / PR 作成報告 / 完了報告 / `AskUserQuestion` の question + option labels + descriptions / 完了サマリ等。英語短文 (`PR created.` / `Monitor armed.` 等) の混入も禁止。**例外**: shell command 本体・URL・SHA・公式エラーメッセージ原文・固有名詞 (React Compiler / ESLint 等) はそのまま英語で残してよい (翻訳すると誤読を招くため)。プロジェクト全体が日本語環境 (ユーザー / UI / commit / PR / spec / ISSUE) であり、AI 側の言語切替コストを user に強いない
 - Commit messages use conventional commits in Japanese (e.g., `feat(flow):`, `fix(designer):`, `improve:`)
 - **Workflow: デフォルトは 1 ISSUE = 1 ブランチ = 1 PR**。ただし以下は複数 ISSUE を 1 PR に束ねる (ISSUE = 作業指示単位 / PR = 1 論理的変更単位、両者は 1:1 とは限らない):
   - UX / 機能として一体 (単独で動かない・ユーザー体験が完結しない)
