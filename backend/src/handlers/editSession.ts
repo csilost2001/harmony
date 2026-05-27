@@ -19,6 +19,33 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { wsBridge } from "../wsBridge.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
 import { isValidKind, isValidSafeName } from "../security/idValidator.js";
+import {
+  type DraftResourceType,
+  VALID_RESOURCE_TYPES,
+} from "../editSessionStore.js";
+
+/**
+ * #1374: resourceType allowlist 検証を WS handler と対称化する (#1372 派生)。
+ *
+ * 旧来 MCP handler は `typeof resourceType === "string"` だけで通過させており、tool schema
+ * enum を無視する MCP client (= AI が enum 外の任意文字列を送ってくる場合) からは
+ * 未知 resourceType + 非空 resourceId で invalid EditSession を作成できた。
+ * WS handler 側は `VALID_RESOURCE_TYPES` allowlist + `assertResourceType` で守られていたため、
+ * MCP 経路だけが抜け道になっていた。
+ *
+ * 本関数は WS handler (`backend/src/wsHandlers/editSession.ts:assertResourceType`) と
+ * 同一の allowlist (editSessionStore.ts から共有 import) を用い、MCP convention に従って
+ * `McpError(InvalidParams)` で reject する。
+ */
+function assertResourceTypeMcp(rt: unknown, label: string): DraftResourceType {
+  if (typeof rt !== "string" || !VALID_RESOURCE_TYPES.has(rt as DraftResourceType)) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      `${label} は許可された resource type のいずれかである必要があります (got: ${JSON.stringify(rt)})`,
+    );
+  }
+  return rt as DraftResourceType;
+}
 
 /**
  * #1332 Codex 10 巡目 M2: editSession__create / editSession__list の resourceId に
@@ -94,17 +121,17 @@ export const handleEditSessionTool: ToolHandler = async (name, args, _root, sess
 
   switch (name) {
     case "editSession__create": {
-      if (typeof a.resourceType !== "string") {
-        throw new McpError(ErrorCode.InvalidParams, "resourceType は必須です");
-      }
+      // #1374: resourceType allowlist 検証 (WS handler 対称化)。
+      // 未知 resourceType を許すと invalid EditSession を作成できる抜け道になる。
+      const validatedRt = assertResourceTypeMcp(a.resourceType, "resourceType");
       if (typeof a.resourceId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "resourceId は必須です");
       }
       // #1332 Codex 10 巡目 M2: resourceType に応じた resourceId 検証
-      assertResourceIdForType(a.resourceType, a.resourceId);
+      assertResourceIdForType(validatedRt, a.resourceId);
       const result = wsBridge.editSessionCreate(
         sessionId,
-        a.resourceType as Parameters<typeof wsBridge.editSessionCreate>[1],
+        validatedRt,
         a.resourceId,
         typeof a.displayLabel === "string" ? a.displayLabel : undefined,
       );
@@ -186,12 +213,18 @@ export const handleEditSessionTool: ToolHandler = async (name, args, _root, sess
     }
 
     case "editSession__list": {
+      // #1374: resourceType allowlist 検証 (WS handler 対称化)。
+      // filter 用なので resourceType 未指定 (undefined) は許容、指定時は allowlist 必須。
+      let validatedListRt: DraftResourceType | undefined;
+      if (a.resourceType !== undefined) {
+        validatedListRt = assertResourceTypeMcp(a.resourceType, "resourceType");
+      }
       // #1332 Codex 10 巡目 M2: filter として resourceId が指定された場合は
       // resourceType と整合する検証を行う (create と同じポリシー)。
       // filter 用なので空文字は空 filter として弾かず undefined 化のみ。
       if (typeof a.resourceId === "string" && a.resourceId.length > 0) {
-        if (typeof a.resourceType === "string" && a.resourceType.length > 0) {
-          assertResourceIdForType(a.resourceType, a.resourceId);
+        if (validatedListRt !== undefined) {
+          assertResourceIdForType(validatedListRt, a.resourceId);
         } else {
           // resourceType 未指定で resourceId のみ filter は通常用法ではないが許容、空文字のみ拒否
           // (resourceType 不明だと検証分岐できないため明示エラー)
@@ -202,9 +235,7 @@ export const handleEditSessionTool: ToolHandler = async (name, args, _root, sess
         }
       }
       const result = wsBridge.editSessionList(sessionId, {
-        resourceType: typeof a.resourceType === "string"
-          ? (a.resourceType as Parameters<typeof wsBridge.editSessionList>[1] extends { resourceType?: infer R } ? R : never)
-          : undefined,
+        resourceType: validatedListRt,
         resourceId: typeof a.resourceId === "string" ? a.resourceId : undefined,
       });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };

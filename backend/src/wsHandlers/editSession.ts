@@ -13,18 +13,16 @@
  * `generic-definition` の `${kind}__${name}` composite (最大 130 chars) を decode して
  * 個別検証する分岐を追加。それ以外の resource type は従来通り `assertSafeName` 適用。
  */
-import type { DraftResourceType as EditSessionResourceType } from "../editSessionStore.js";
+import {
+  type DraftResourceType as EditSessionResourceType,
+  VALID_RESOURCE_TYPES,
+} from "../editSessionStore.js";
 import { assertSafeName, assertHistoryId, assertKind } from "../security/idValidator.js";
 import type { RpcHandlerMap } from "./types.js";
 
-const VALID_RESOURCE_TYPES = new Set<EditSessionResourceType>([
-  "screen", "puck-data", "table", "process-flow", "view", "view-definition",
-  "page-layout", "screen-item", "sequence", "extension", "convention", "flow", "er-layout",
-  // #1368: GenericDefinition EditSession 統合 — frontend GenericDefinitionEditor が
-  // `editSession.create` に `resourceType: "generic-definition"` を送るため allowlist に追加。
-  // editSessionStore.ts DraftResourceType と同期 (#1331 で追加済)。
-  "generic-definition",
-]);
+// #1374: 旧 local `VALID_RESOURCE_TYPES` Set は editSessionStore.ts に集約され
+// import 経由で取得する。MCP handler (handlers/editSession.ts) も同じ Set を共有する
+// ことで、WS と MCP の resourceType 検証契約 (allowlist 範囲) を構造的に対称化する。
 
 function assertResourceType(rt: unknown, label: string): EditSessionResourceType {
   if (typeof rt !== "string" || !VALID_RESOURCE_TYPES.has(rt as EditSessionResourceType)) {

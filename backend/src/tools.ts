@@ -1,3 +1,10 @@
+// #1374: editSession__create / editSession__list の resourceType enum を、
+// editSessionStore.ts の source of truth (DRAFT_RESOURCE_TYPES) から導出する。
+// 旧来 inline 列挙していた enum 配列が drift しやすく、実際 editSession__list 側に
+// `page-layout` / `er-layout` / `generic-definition` が漏れて MCP enum と allowlist の
+// 範囲が不一致になっていた。本配列 1 箇所の更新で型 / Set / MCP enum が同期する。
+import { DRAFT_RESOURCE_TYPES } from "./editSessionStore.js";
+
 export const tools = [
   {
     name: "designer__get_html",
@@ -1516,16 +1523,10 @@ export const tools = [
       properties: {
         resourceType: {
           type: "string",
-          // #1368: editSessionStore.ts DraftResourceType と同期。WS handler の
-          // VALID_RESOURCE_TYPES とも一致させる (#1331 で `generic-definition` を、
-          // 先行 PR で `page-layout` / `er-layout` を DraftResourceType に追加済だが
-          // MCP enum が漏れていた)。AI/MCP 経路で editSession.create を叩けないと
-          // GenericDefinition / PageLayout / ER 系の AI 編集が機能しない。
-          enum: [
-            "screen", "puck-data", "table", "process-flow", "view", "view-definition",
-            "page-layout", "screen-item", "sequence", "extension", "convention", "flow",
-            "er-layout", "generic-definition",
-          ],
+          // #1374: editSessionStore.ts の DRAFT_RESOURCE_TYPES (source of truth) から
+          // 直接参照。旧 inline 列挙は #1368 で `generic-definition` 等の追加追従漏れが
+          // 発生していた (MCP enum と runtime allowlist の drift)。
+          enum: [...DRAFT_RESOURCE_TYPES],
           description: "編集対象 resource の種別",
         },
         resourceId: { type: "string", description: "編集対象 resource の ID (singleton resource は \"singleton\" 等)" },
@@ -1642,10 +1643,11 @@ export const tools = [
       properties: {
         resourceType: {
           type: "string",
-          enum: [
-            "screen", "puck-data", "table", "process-flow", "view", "view-definition",
-            "screen-item", "sequence", "extension", "convention", "flow",
-          ],
+          // #1374: editSessionStore.ts の DRAFT_RESOURCE_TYPES (source of truth) を共有。
+          // 旧 inline 列挙は editSession__create 側と drift しており、`page-layout` /
+          // `er-layout` / `generic-definition` の 3 type が漏れて MCP `editSession__list`
+          // から filter できなくなっていた。
+          enum: [...DRAFT_RESOURCE_TYPES],
           description: "絞り込み: resource 種別",
         },
         resourceId: { type: "string", description: "絞り込み: resource ID (resourceType と同時指定)" },
