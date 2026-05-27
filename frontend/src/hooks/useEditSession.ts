@@ -206,7 +206,12 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
   // sequence tracking for reorder detection (§14.1 / useResourceEditor のパターンと同様)
   const lastSeqRef = useRef(0);
   const editSessionRef = useRef<EditSessionData | null>(null);
-  editSessionRef.current = editSession;
+  // #1379: react-hooks/refs — render 中の ref mutation を useEffect 内に移動。
+  // editSessionRef.current の読み箇所は全て event handler (useCallback) / useEffect 内のため、
+  // 1 frame 遅延しても問題ない (initial attach フローは useState の editSession 経由で同期する)。
+  useEffect(() => {
+    editSessionRef.current = editSession;
+  }, [editSession]);
 
   // ── パーティシパント一覧を editSession から導出 ────────────────────────────
   const participants: ParticipantInfo[] = editSession

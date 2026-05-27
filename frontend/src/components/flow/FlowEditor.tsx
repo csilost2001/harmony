@@ -257,6 +257,13 @@ function FlowEditorInner() {
 
   useUndoKeyboard(handleUndo, handleRedo, !isReadonly);
 
+  // project.techStack.designer の project default (画面作成ダイアログのデフォルト選択値)
+  // #1379: react-hooks/immutability — `reloadProject` (後続 useCallback) が
+  // setProjectDefaultEditorKind / setProjectDefaultCssFramework を closure で参照するため、
+  // setter 宣言を `reloadProject` より物理的に前に移動する (TDZ forward reference 解消)。
+  const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
+  const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
+
   // プロジェクトを読み込んで UI に反映
   const reloadProject = useCallback(async () => {
     const [project, raw] = await Promise.all([loadProject(), loadRawProject()]);
@@ -346,9 +353,7 @@ function FlowEditorInner() {
     return () => { cancelled = true; };
   }, [sessionLoading, mode.kind]);
 
-  // project.techStack.designer の project default (画面作成ダイアログのデフォルト選択値)
-  const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
-  const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
+  // (projectDefaultEditorKind / projectDefaultCssFramework は #1379 の TDZ 解消で上方移動済み)
   // pageLayoutId 選択 dropdown 用 (pl-4, #1025)
   const [pageLayouts, setPageLayouts] = useState<PageLayoutEntry[]>([]);
 

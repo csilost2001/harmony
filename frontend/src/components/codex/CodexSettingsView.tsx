@@ -29,21 +29,31 @@ export function CodexSettingsView() {
   const [rateLimits, setRateLimits] = useState<GetAccountRateLimitsResponse | null>(null);
   const [rateLimitsError, setRateLimitsError] = useState<string | null>(null);
 
-  // 認証状態が変わったら pending login を解除
-  useEffect(() => {
+  // #1385 / PR #1386 Codex Round 1 Must-fix #1:
+  // status.kind 変化時に「state 自体」を破棄する (旧実装が effect 内 setState でやっていた挙動)。
+  // 旧の render-derive 化 (state を rename して `isAuthenticated ? null : actualState` で見せる) は
+  // state 自体が残るため、authenticated → unauthenticated に再遷移すると古い pending login の
+  // authUrl / loginId が復活する semantic regression があった。
+  // React 19 公式 "Storing information from previous renders" pattern (prev-key check) で
+  // 旧 effect の挙動を保ったまま react-hooks/set-state-in-effect rule を回避する。
+  const [prevStatusKind, setPrevStatusKind] = useState(status.kind);
+  if (prevStatusKind !== status.kind) {
+    setPrevStatusKind(status.kind);
     if (status.kind === "authenticated") {
+      // authenticated に遷移: pending login / login error を破棄 (旧実装と同 semantic)
       setPendingLogin(null);
       setLoginError(null);
-    }
-  }, [status.kind]);
-
-  // 認証済みになったら rate limits を読む
-  useEffect(() => {
-    if (status.kind !== "authenticated") {
+    } else {
+      // unauthenticated / no-cli / no-server / error に遷移: rate limits を破棄 (旧実装と同 semantic)
       setRateLimits(null);
       setRateLimitsError(null);
-      return;
     }
+  }
+
+  // 認証済みになったら rate limits を読む (fetch は副作用のため effect で実行)。
+  // setState は async callback 内のみで、effect body 内同期 setState は行わない。
+  useEffect(() => {
+    if (status.kind !== "authenticated") return;
     let alive = true;
     codexClient.account
       .rateLimits()

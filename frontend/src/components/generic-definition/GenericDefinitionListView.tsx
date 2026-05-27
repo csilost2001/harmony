@@ -67,6 +67,19 @@ export function GenericDefinitionListView() {
   const [addError, setAddError] = useState("");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; name: string } | null>(null);
 
+  // #1385 / PR #1386 Codex Round 1 Must-fix #2:
+  // kind 切替時に「新 kind 見出し + 旧 kind items 表示」「新 kind で旧 item.name を loadGenericDefinition」
+  // という旧 effect の即時 reset が失われていた問題を、React 19 公式 prev-key check pattern で復活。
+  // /generic-definition/dialog → /generic-definition/options のように同 component の param 変更だけで
+  // kind が変わる場合に旧 items が誤クリックで `newKind/oldName` 遷移を引き起こす regression を防ぐ。
+  const [prevKindForReset, setPrevKindForReset] = useState(kind);
+  if (prevKindForReset !== kind) {
+    setPrevKindForReset(kind);
+    setItems([]);
+    setValidationMap(new Map());
+    setLoading(true);
+  }
+
   useEffect(() => {
     if (!kind || !tabId) return;
     const existing = document.querySelector(`[data-tab-id="${tabId}"]`);
@@ -75,23 +88,39 @@ export function GenericDefinitionListView() {
     }
   }, [kind, tabId, label]);
 
-  const loadItems = useCallback(() => {
+  // loadItems は event handler / broadcast 経由の手動 reload 用 (effect body からは呼ばない)。
+  // react-hooks/set-state-in-effect 回避のため、effect body での load は下記 useEffect の
+  // async IIFE で実装する。
+  const loadItems = useCallback(async () => {
     if (!kind) return;
     setLoading(true);
-    listGenericDefinitions(kind)
-      .then(setItems)
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
+    try {
+      const list = await listGenericDefinitions(kind);
+      setItems(list);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }, [kind]);
 
+  // 初期ロード / kind 変更時のロードは async IIFE で実行 (setState は await 後のため安全)。
   useEffect(() => {
-    loadItems();
-  }, [loadItems]);
-
-  // S-1 fix: kind 切替時に旧 kind の validationMap を破棄 (タブ切替で同 name の別 kind 定義に
-  // 旧バッジが残るのを防ぐ)
-  useEffect(() => {
-    setValidationMap(new Map());
+    if (!kind) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await listGenericDefinitions(kind);
+        if (cancelled) return;
+        setItems(list);
+      } catch {
+        if (cancelled) return;
+        setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [kind]);
 
   useEffect(() => {
@@ -99,30 +128,38 @@ export function GenericDefinitionListView() {
     return mcpBridge.onBroadcast("genericDefinitionChanged", (data) => {
       const d = data as { kind?: string };
       if (d.kind === kind) {
-        setValidationMap(new Map());
-        loadItems();
+        // broadcast handler は effect body ではないので loadItems を直接呼んで OK
+        void loadItems();
       }
     });
   }, [kind, loadItems]);
 
-  // バックグラウンドで validation map を構築 (ProcessFlowListView のパターンに倣う)
+  // バックグラウンドで validation map を構築 (ProcessFlowListView のパターンに倣う)。
+  // S-1 fix (#1379 統合): kind 切替時の旧 validationMap 破棄もここに統合。
+  // 別 useEffect で setValidationMap(new Map()) を呼ぶと react-hooks/set-state-in-effect 違反になるため、
+  // この async effect 内で「kind / items が変わったらリセット → 再構築」をまとめて行う。
   useEffect(() => {
-    if (items.length === 0 || !kind) return;
+    if (!kind) return;
     let cancelled = false;
     (async () => {
+      // 入力変化時はゼロから組み直す (空 items でも空 Map で再初期化される)
+      const next = new Map<string, { errors: number; warnings: number }>();
       for (const item of items) {
         if (cancelled) break;
         const full = await loadGenericDefinition(kind, item.name);
         if (!full || cancelled) continue;
         const issues = validateGenericDefinition(full);
-        setValidationMap((prev) => {
-          const next = new Map(prev);
-          next.set(item.name, {
-            errors: issues.filter((i) => i.severity === "error").length,
-            warnings: issues.filter((i) => i.severity === "warning").length,
-          });
-          return next;
+        next.set(item.name, {
+          errors: issues.filter((i) => i.severity === "error").length,
+          warnings: issues.filter((i) => i.severity === "warning").length,
         });
+        if (cancelled) break;
+        // 都度反映: ユーザーには逐次バッジが点灯していく UX を維持
+        setValidationMap(new Map(next));
+      }
+      // items が空 → 旧 kind の残骸を確実にクリアするため、終端でも空 Map を反映
+      if (!cancelled && items.length === 0) {
+        setValidationMap(new Map());
       }
     })();
     return () => { cancelled = true; };

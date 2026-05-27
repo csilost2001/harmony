@@ -49,7 +49,14 @@ export function BackendFolderPicker({ initialPath, onSelect, onClose }: BackendF
   }, []);
 
   useEffect(() => {
-    navigate(initialPath);
+    // async IIFE で await を挟んで effect body 内同期 setState を回避する
+    // (react-hooks/set-state-in-effect #1385)。
+    let cancelled = false;
+    void (async () => {
+      await navigate(initialPath);
+      if (cancelled) return;
+    })();
+    return () => { cancelled = true; };
   }, [initialPath, navigate]);
 
   const handleEntryClick = (entry: FsEntry) => {

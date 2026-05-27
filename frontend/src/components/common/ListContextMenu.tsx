@@ -64,7 +64,6 @@ export function ListContextMenu({ items, x, y, onClose }: Props): ReactElement {
     if (top + rect.height > window.innerHeight - 4) {
       top = Math.max(4, y - rect.height);
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- position is measured after render from the menu DOM rect.
     setPos({ left, top });
   }, [x, y, items]);
 

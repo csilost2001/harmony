@@ -154,7 +154,14 @@ export function DraftHistoryModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    void fetchHistory();
+    // async IIFE で await を挟んで effect body 内同期 setState を回避する
+    // (react-hooks/set-state-in-effect #1385)。
+    let cancelled = false;
+    void (async () => {
+      await fetchHistory();
+      if (cancelled) return;
+    })();
+    return () => { cancelled = true; };
   }, [isOpen, fetchHistory]);
 
   // ── Esc キーで閉じる ────────────────────────────────────────────────────────

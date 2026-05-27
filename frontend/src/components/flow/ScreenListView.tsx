@@ -156,10 +156,9 @@ export function ScreenListView() {
 
   // 画面 validation map のロード (Puck data 検証 + cross-resource ref 検証 #1090 Phase 2)
   useEffect(() => {
-    if (screens.length === 0) {
-      setValidationMap(new Map());
-      return;
-    }
+    // react-hooks/set-state-in-effect 回避: 空入力時の同期 setState を削除し、
+    // 常に loader 経由 (.then 内 setState は許可される非同期 path)。
+    // loadPuckScreenValidationMap() は screens 空でも空 Map を返すため安全。
     let cancelled = false;
     loadPuckScreenValidationMap({ genericDefinitionNames: genericDefNames })
       .then((map) => {
