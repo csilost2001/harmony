@@ -5,11 +5,12 @@
  * 通常保存 handler は originating client を exclude する一方、editSession.save は
  * same-SPA consumer と originating editor の双方へ echo する。
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { EditSessionService } from "./editSessionService.js";
+import { WsBridge } from "../wsBridge.js";
 import { workspaceContextManager, _resetForTest as resetWorkspaceStateForTest } from "../workspaceState.js";
 
 type BroadcastCall = {
@@ -82,5 +83,47 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(deliveredClientIds).toContain("client-consumer");
     expect(deliveredClientIds).toContain("client-editor");
     expect(deliveredClientIds).not.toContain("client-other-workspace");
+  });
+
+  it("WsBridge adapter 経由でも originating editor と same-workspace consumer に tableChanged を送信する", async () => {
+    const bridge = new WsBridge();
+    const sentByClient = new Map<string, string[]>([
+      ["client-editor", []],
+      ["client-consumer", []],
+      ["client-other-workspace", []],
+    ]);
+    const clients = (bridge as unknown as { clients: Map<string, { readyState: number; send: (message: string, cb?: (err?: Error) => void) => void }> }).clients;
+
+    for (const [clientId, sent] of sentByClient.entries()) {
+      clients.set(clientId, {
+        readyState: 1,
+        send: vi.fn((message: string, cb?: (err?: Error) => void) => {
+          sent.push(message);
+          cb?.();
+        }),
+      });
+    }
+
+    const { editSession } = bridge.editSessionCreate("client-editor", "table", "orders", "受注");
+    const editSessionId = (editSession as { id: string }).id;
+    bridge.editSessionAttachAsView("client-consumer", editSessionId, "別ページ consumer");
+    bridge.editSessionUpdate("client-editor", editSessionId, {
+      id: "orders",
+      name: "受注",
+      columns: [],
+    });
+
+    const result = await bridge.editSessionSave("client-editor", editSessionId);
+
+    expect(result.ok).toBe(true);
+    const tableChangedMessage = JSON.stringify({
+      type: "broadcast",
+      event: "tableChanged",
+      data: { tableId: "orders" },
+    });
+
+    expect(sentByClient.get("client-editor")).toContain(tableChangedMessage);
+    expect(sentByClient.get("client-consumer")).toContain(tableChangedMessage);
+    expect(sentByClient.get("client-other-workspace")).not.toContain(tableChangedMessage);
   });
 });
