@@ -68,6 +68,20 @@
 - [ ] 保存直後の JSON が Git 差分で揺れない
 - [ ] 既存機能のリグレッションなし
 
+## regression trace gate (#1346, e2e 走らせた PR は必須)
+
+<!--
+  `npm run test:e2e:regression` を走らせた PR は、merge 前に
+  `scripts/verify/regression-trace-check.mjs` で全 fail が trace 済 / flake 確認済か
+  機械検証する (詳細: docs/conventions/completion-gate.md / AGENTS.md §「regression suite ↔ trace ISSUE 機械照合 gate」)。
+  E2E を走らせなかった PR (docs / schema / config 等) は「N/A (e2e 未実行)」と明記。
+-->
+
+- [ ] `node scripts/verify/regression-trace-check.mjs --auto-run` を実行し exit 0
+      (または `npm run --silent test:e2e:regression:json > .tmp/regression-results.json` で file 出力 → `regression-trace-check.mjs .tmp/regression-results.json` でも可。`--silent` を忘れると npm banner で JSON 壊れる)
+- [ ] flake 主張する spec があれば `--flake <path>` で渡し、`frontend/test-results/isolation-<sanitized>.json` に 3x pass 証跡あり
+- [ ] N/A (e2e 未実行 PR / docs / schema / config 専用) — 該当時のみ理由を 1 行明記
+
 ## spec 側の不足点 / 提案
 
 <!--

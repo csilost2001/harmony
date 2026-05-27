@@ -540,6 +540,42 @@ Claude Code 利用時は `/test-strategy` スキルが自動起動 (詳細は `C
 - レビュー結果が Must-fix を含む場合はマージしない。Should-fix は AI が判断し、対応 or スコープ外として別 ISSUE 化
 - **PR 単位 / 機能単位のユーザー確認は不要**。AI が build / test / UI smoke (chrome-devtools MCP / Playwright) / 独立レビュー / Must-fix 解決 / マージまで完遂する。ユーザー確認は**大規模改修一連の作業の最終リリース時のみ**
 
+### regression suite ↔ trace ISSUE 機械照合 gate (#1346 / 必須、全 AI)
+
+E2E regression (`npm run test:e2e:regression`) を走らせて failure が残った場合、**PR を merge する前**に `scripts/verify/regression-trace-check.mjs` で全 fail が「trace 済 OPEN ISSUE 参照あり」または「isolation 3x pass 証跡ありの flake」であることを機械検証する。
+
+背景: #1299 Round 12-14 で「full suite に 8 fail 残ったまま merge-ready 判定」「単一 spec の strict-mode 違反を isolation pass = flake と誤判定」の事故が連続再発したため、private memory ベースの完了判定ルールを repo tracked な script に昇格 (case A)。
+
+**呼び方** (一例 — orchestrator が必須で 1 回通す):
+
+```bash
+# 推奨: --auto-run (npm banner を介さず playwright を直接 spawn するため shell redirect の落とし穴を回避)
+node scripts/verify/regression-trace-check.mjs --auto-run \
+  --flake e2e/foo.spec.ts   # flake 主張する spec があれば明示
+
+# 別法: 既に regression を走らせて results.json を持っている場合は file 渡し
+#   注意: npm scripts は stdout 先頭に banner ("> harmony-workspace@... \n> playwright test ...") を出すため
+#   shell redirect で file 化するときは必ず `--silent` を付ける (付けないと JSON parse fail で exit 2)
+npm run --silent test:e2e:regression:json > .tmp/regression-results.json || true
+node scripts/verify/regression-trace-check.mjs .tmp/regression-results.json \
+  --flake e2e/foo.spec.ts
+# isolation 3x pass の証跡 (frontend/test-results/isolation-<sanitized>.json) を別途要求
+```
+
+**判定**:
+
+- exit 0 → 全 fail が OPEN ISSUE で trace 済 or flake 確認済 → merge gate 通過
+- exit 1 → trace なし fail が 1 件以上 → **merge 禁止**。不足分の OPEN ISSUE を起票 (鉄則 0) して再走、または fail を解消するまで merge しない
+- exit 2 → 入力エラー / gh 未配置等 → 設定不備、AI セッションでは原因究明して再走
+
+**flake 主張する場合の必須証跡**:
+
+isolation 再走 3 回連続 pass の JSON 証跡が `frontend/test-results/isolation-<sanitized>.json` に存在すること。`runs` の **末尾 3 件** が `{ "status": "passed", ... }` であれば flake 確定。前段に fail が混じっていても末尾 3 連続 pass なら OK。証跡 file は `--auto-isolation-rerun` flag で script に自動生成させることもできる。
+
+**注意 (memory `feedback_e2e_flake_isolation_vs_full_run.md` の補足)**: locator selector が `strict-mode violation` を起こしうる場合 (例: 同 name の要素が複数描画される画面で `getByText` を直 use)、isolation pass を flake 根拠にしてはならない。`.first()` / `.last()` / specific scope (`.locator(...).filter(...)`) を必ず付与する。strict-mode の場合は flake ではなく実バグなので OPEN ISSUE で trace する。
+
+詳細: `scripts/verify/regression-trace-check.mjs` の top コメント + `docs/conventions/completion-gate.md`。
+
 ## シリーズ PR (統合 PR) 運用
 
 ISSUE 本文の冒頭に `## 🔗 統合 PR 情報` セクションがある ISSUE は、**単独 PR ではなく統合 PR の一部** として実装する。実装者 (AI エージェント) は ISSUE 本文を読んだ時点で以下を自動実行する:
