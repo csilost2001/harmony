@@ -213,6 +213,36 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
     ? Object.values(editSession.participants)
     : [];
 
+  // ── helper: EditSession state を fetch して states を更新 ──────────────────
+  // broadcast listener の useEffect から参照されるため、宣言順を先にする
+  // (#1379: react-hooks/preserve-manual-memoization は forward reference を許容しない)
+
+  const refreshEditSessionState = useCallback(async (esId: string) => {
+    try {
+      const result = await mcpBridge.request("editSession.list", {
+        resourceType,
+        resourceId,
+      }) as { sessions: EditSessionData[] };
+      const found = result.sessions?.find((s) => s.id === esId) ?? null;
+      if (found) {
+        setEditSession(found);
+        // myRole を participants から再導出 (#980-A): take-over や transferEdit など
+        // 他 session 起点で自分の role が変わった場合に broadcast 経由で myRole を反映する。
+        // 自分の sessionId は mcpBridge.getSessionId() (= clientId) で取得可能。
+        const mySessionId = mcpBridge.getSessionId();
+        const myParticipant = found.participants[mySessionId];
+        if (myParticipant) {
+          setMyRole(myParticipant.role);
+        } else {
+          // 自分が participants から外された (例: detach 完了の broadcast) → null にリセット
+          setMyRole(null);
+        }
+      }
+    } catch (e) {
+      console.warn("[useEditSession] refreshEditSessionState failed:", e);
+    }
+  }, [resourceType, resourceId]);
+
   // ── broadcast listener ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -305,34 +335,6 @@ export function useEditSession(opts: UseEditSessionOptions): UseEditSessionResul
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editSession?.id]);
-
-  // ── helper: EditSession state を fetch して states を更新 ──────────────────
-
-  const refreshEditSessionState = useCallback(async (esId: string) => {
-    try {
-      const result = await mcpBridge.request("editSession.list", {
-        resourceType,
-        resourceId,
-      }) as { sessions: EditSessionData[] };
-      const found = result.sessions?.find((s) => s.id === esId) ?? null;
-      if (found) {
-        setEditSession(found);
-        // myRole を participants から再導出 (#980-A): take-over や transferEdit など
-        // 他 session 起点で自分の role が変わった場合に broadcast 経由で myRole を反映する。
-        // 自分の sessionId は mcpBridge.getSessionId() (= clientId) で取得可能。
-        const mySessionId = mcpBridge.getSessionId();
-        const myParticipant = found.participants[mySessionId];
-        if (myParticipant) {
-          setMyRole(myParticipant.role);
-        } else {
-          // 自分が participants から外された (例: detach 完了の broadcast) → null にリセット
-          setMyRole(null);
-        }
-      }
-    } catch (e) {
-      console.warn("[useEditSession] refreshEditSessionState failed:", e);
-    }
-  }, [resourceType, resourceId]);
 
   // ── startEditing ────────────────────────────────────────────────────────────
 

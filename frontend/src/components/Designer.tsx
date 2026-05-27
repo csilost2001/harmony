@@ -710,14 +710,15 @@ export function Designer({
     [],
   );
 
+  const editSessionId = editSession?.id;
   const applyGeneratedDesignPayload = useCallback(async (payload: unknown) => {
     const api = editorApiRef.current;
-    if (!api || !editSession?.id) {
+    if (!api || !editSessionId) {
       throw new Error("編集セッションが開始されていないため、AI 生成結果を反映できません");
     }
 
     const nextPayload = payload;
-    await mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: nextPayload });
+    await mcpBridge.request("editSession.update", { editSessionId, payload: nextPayload });
     api.setProjectData(nextPayload);
 
     if (editorKind === "puck") {
@@ -730,7 +731,7 @@ export function Designer({
     setIsDirtyState(true);
     isDirtyRef.current = true;
     setDirty(tabId, true);
-  }, [editSession?.id, editorKind, tabId]);
+  }, [editSessionId, editorKind, tabId]);
 
   // Puck 画面の cross-tab 上書き保護 (Sh-1: puckDataChanged broadcast 購読)。
   // GrapesJS は screenChanged broadcast を購読して ServerChangeBanner を表示するのと同等。
