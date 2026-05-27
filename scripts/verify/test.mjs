@@ -85,8 +85,28 @@ group("parseArgs", () => {
 
   let threwT3 = false;
   try { parseArgs(["dummy", "--traced", "e2e/foo.spec.ts:0"]); }
-  catch (e) { threwT3 = e.message.includes("positive integer"); }
+  catch (e) { threwT3 = e.message.includes("positive safe integer"); }
   assert("--traced zero issue throws", threwT3);
+
+  // unsafe integer rejection (#1346 Codex Round 2 Nit guard)
+  let threwT4 = false;
+  try { parseArgs(["dummy", "--traced", "e2e/foo.spec.ts:9007199254740993"]); }
+  catch (e) { threwT4 = e.message.includes("safe integer"); }
+  assert("--traced > MAX_SAFE_INTEGER throws", threwT4);
+
+  // ok-path: large but safe integer
+  const optLarge = parseArgs(["dummy", "--traced", "e2e/foo.spec.ts:9007199254740991"]);
+  assert(
+    "--traced MAX_SAFE_INTEGER accepted",
+    optLarge.tracedSpecs[0]?.issueNumber === Number.MAX_SAFE_INTEGER,
+  );
+
+  // Windows-style paths: regex takes last `:<digits>` so backslash paths work
+  const optWin = parseArgs(["dummy", "--traced", "e2e\\foo.spec.ts:42"]);
+  assert(
+    "--traced Windows path parsed (last :<digits> wins)",
+    optWin.tracedSpecs[0]?.spec === "e2e\\foo.spec.ts" && optWin.tracedSpecs[0]?.issueNumber === 42,
+  );
 });
 
 // ─────────────────────────────────────────────────────────────

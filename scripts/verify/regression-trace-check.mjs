@@ -140,9 +140,16 @@ export function parseArgs(argv) {
           `例: --traced e2e/foo.spec.ts:1342`,
         );
       }
+      // parseInt は 2^53 を超える値で silent precision loss を起こすため、
+      // Number.isSafeInteger で安全整数範囲内であることを明示的に保証する
+      // (将来 GitHub の issue 番号が JS safe integer 上限を越える可能性は実質ゼロだが
+      //  edge を明示することで anti-fuzzing 兼ねる)。
       const issueNumber = parseInt(m[2], 10);
-      if (!Number.isFinite(issueNumber) || issueNumber <= 0) {
-        throw new Error(`--traced issue number must be a positive integer (got: ${m[2]})`);
+      if (!Number.isSafeInteger(issueNumber) || issueNumber <= 0) {
+        throw new Error(
+          `--traced issue number must be a positive safe integer (got: ${m[2]}). ` +
+          `Number.MAX_SAFE_INTEGER = ${Number.MAX_SAFE_INTEGER}`,
+        );
       }
       opt.tracedSpecs.push({ spec: m[1], issueNumber });
       continue;
@@ -513,13 +520,11 @@ export function evaluate(ctx) {
   let report;
   if (options.autoRun) {
     report = runRegressionSuite();
-  } else if (options.resultsPath === "-" || options.resultsPath === "/dev/stdin") {
-    // stdin はラッパー側で読む方が安全。ここでは明示エラー化。
-    throw new Error("stdin reading is handled outside evaluate(); pass resultsPath = a temp file");
   } else {
     if (!options.resultsPath) {
       throw new Error("results path is required unless --auto-run is set");
     }
+    // stdin ("-" or "/dev/stdin") は loadReport 側で readFileSync(0, "utf8") で処理する
     report = loadReport(options.resultsPath);
   }
 
@@ -652,15 +657,16 @@ function printHelp() {
   cat results.json | node scripts/verify/regression-trace-check.mjs - [options]
 
 Options:
-  --flake <spec>            failed spec を flake 扱い (isolation 3x pass 証跡必須)
-  --auto-run                regression suite を JSON reporter で先に走らせる
-  --auto-isolation-rerun    --flake 指定 spec を自動 isolation 3 回再走
-  --isolation-evidence-dir  証跡 dir (default: frontend/test-results)
-  --no-gh                   gh CLI 呼び出し skip (test 用)
-  --traced <spec>           手動 trace mark (test 用)
-  --json                    JSON 出力
-  --verbose, -v             詳細出力
-  --help, -h                このヘルプ
+  --flake <spec>             failed spec を flake 扱い (isolation 3x pass 証跡必須)
+  --auto-run                 regression suite を JSON reporter で先に走らせる (推奨)
+  --auto-isolation-rerun     --flake 指定 spec を自動 isolation 3 回再走
+  --isolation-evidence-dir   証跡 dir (default: frontend/test-results)
+  --no-gh                    gh CLI 呼び出し skip (オフライン / test 用)
+  --traced <spec>:<issue#>   手動 trace mark (issue 番号必須 + useGh 時 OPEN 検証)
+                             例: --traced e2e/foo.spec.ts:1342
+  --json                     JSON 出力
+  --verbose, -v              詳細出力
+  --help, -h                 このヘルプ
 
 Exit codes:
   0  全 failure が trace 済 or flake 確認済
