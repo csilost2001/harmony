@@ -59,17 +59,27 @@ function setupLifecycle(): void {
     try { logError("lifecycle", "stderr error", { error: err.message, code: err.code }); } catch { /* ignore */ }
   });
 
-  const exitHandler = (reason: string) => {
+  // graceful shutdown を async で実行 (#1400)。
+  // wsBridge.stop() を await することで Codex 孫プロセス / HTTP 接続 / WebSocket 接続を
+  // 確実に閉じてから process.exit する。3 秒経っても完了しない場合は safeguard timer で
+  // 強制終了し、tsx watch の 5 秒 force-kill より前に自前で死ぬ。
+  // 二重 signal (Ctrl+C 連打) で handler が重複起動するのを防ぐため shuttingDown フラグで guard。
+  let shuttingDown = false;
+  const exitHandler = async (reason: string): Promise<void> => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    const forceKillTimer = setTimeout(() => process.exit(0), 3000);
+    forceKillTimer.unref();
     try {
       logInfo("lifecycle", `Exiting: ${reason}`);
-      wsBridge.stop();
+      await wsBridge.stop();
       shutdownServerLog();
     } catch { /* ignore shutdown errors */ }
     process.exit(0);
   };
-  process.on("SIGTERM", () => exitHandler("SIGTERM"));
-  process.on("SIGINT", () => exitHandler("SIGINT"));
-  process.on("disconnect", () => exitHandler("disconnected from parent"));
+  process.on("SIGTERM", () => { void exitHandler("SIGTERM"); });
+  process.on("SIGINT", () => { void exitHandler("SIGINT"); });
+  process.on("disconnect", () => { void exitHandler("disconnected from parent"); });
   process.on("uncaughtException", (err: NodeJS.ErrnoException) => {
     if (err.code === "EPIPE") return;
     try { logError("lifecycle", "uncaughtException", { error: err.message, stack: err.stack }); } catch { /* ignore */ }
