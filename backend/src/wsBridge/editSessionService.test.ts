@@ -85,6 +85,33 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(deliveredClientIds).not.toContain("client-other-workspace");
   });
 
+  it("#1368 Codex Round 1 Must-fix: 不正な decoded kind / name は store.save 前に reject される", async () => {
+    // 不正な kind ( `_` を含む = kind regex `[a-z][a-z0-9:-]{0,63}` 違反)
+    // resourceId 全体としては assertSafeName `[A-Za-z0-9_-]{1,64}` を通る (= editSession.create で reject されない)
+    // → 本 PR の pre-validation で reject されることを検証
+    const invalidResourceId = "data_contract__Order"; // `_` が kind 部に紛れている
+    const { editSession } = service.create("client-editor", "generic-definition", invalidResourceId, "編集者A");
+    const editSessionId = (editSession as { id: string }).id;
+    service.update("client-editor", editSessionId, { kind: "data_contract", name: "Order" });
+
+    await expect(service.save("client-editor", editSessionId)).rejects.toThrow(/decoded generic-definition kind/);
+
+    // store.save 前に reject されているため saveHistory には追加されていない
+    const gdChanged = broadcasts.find((call) => call.event === "genericDefinitionChanged");
+    expect(gdChanged).toBeUndefined();
+    const saved = broadcasts.find((call) => call.event === "editSession.saved");
+    expect(saved).toBeUndefined();
+  });
+
+  it("#1368 Codex Round 1 Must-fix: `__` separator 無しの resourceId は store.save 前に reject される", async () => {
+    const invalidResourceId = "no-separator-here";
+    const { editSession } = service.create("client-editor", "generic-definition", invalidResourceId, "編集者A");
+    const editSessionId = (editSession as { id: string }).id;
+    service.update("client-editor", editSessionId, { kind: "x", name: "Y" });
+
+    await expect(service.save("client-editor", editSessionId)).rejects.toThrow(/'__' separator not found/);
+  });
+
   it("#1368: generic-definition は resourceId を `${kind}__${name}` から分解して file 書込 + genericDefinitionChanged broadcast", async () => {
     // frontend は editSessionRawId = `${kind}/${name}` を `/` → `__` 置換した resourceId を渡す。
     // backend は `__` を delimiter として分割し、kind / name を復元して writeGenericDefinition で保存する。

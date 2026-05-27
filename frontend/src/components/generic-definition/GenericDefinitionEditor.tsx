@@ -392,10 +392,21 @@ export function GenericDefinitionEditor() {
   /**
    * #1368 SaveConflictDialog 「上書きする」 path。
    * editSession.save に force=true を渡して衝突無視 + 強制 commit (last-save-wins)。
+   *
+   * Codex Round 1 Should-fix: handleSave と同じく reloadBanner stale guard を入れる。
+   * conflict dialog 表示中に rename/undo 由来の `genericDefinitionChanged { reload: true }`
+   * が来ると、overwrite click が save-conflict だけでなく reload guard も迂回してしまう。
+   * stale な def を「上書き save」してしまうと、rename 後の正規 state を巻き戻すため block。
    */
   const handleSaveOverwrite = useCallback(async () => {
     if (!def) return;
     setSaveError("");
+    if (reloadBanner) {
+      setSaveError("外部更新を検出しました。再読み込みしてから保存してください");
+      // 衝突 dialog は閉じて user に reload UI へ誘導する
+      setSaveConflict(null);
+      return;
+    }
     setSaving(true);
     try {
       const sessionId = await ensureEditSession();
@@ -417,7 +428,7 @@ export function GenericDefinitionEditor() {
     } finally {
       setSaving(false);
     }
-  }, [def, ensureEditSession, postSaveSuccess]);
+  }, [def, reloadBanner, ensureEditSession, postSaveSuccess]);
 
   const handleDelete = useCallback(async () => {
     if (!kind || !decodedName) return;
