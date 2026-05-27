@@ -14,7 +14,7 @@
 ### dev server が起動しない
 
 - ポート 5173 が占有されていないか (`netstat -ano | grep :5173`)
-- `cd frontend && npm install` で依存解決済みか
+- repo root で `npm install` 済か (PR #1378 で npm workspaces 化、subdir 単独 install は不要)
 - `vite.config.ts` で `strictPort: true` にしているので、5173 が使えないと起動失敗
 
 ### backend が多重起動

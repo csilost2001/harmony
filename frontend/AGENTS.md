@@ -5,9 +5,13 @@
 ## Commands
 
 ```bash
-npm install        # Install dependencies
+# Install は repo root で 1 回 (npm workspaces、PR #1378 で導入)
+# subdir 単独 install は workspace 認識されず非推奨
+# cd <repo-root> && npm install
+
+# Frontend dev / build / lint は subdir で
 npm run dev        # Dev server (http://localhost:5173)
-npm run build      # TypeScript check + Vite build
+npm run build      # shared rebuild → TypeScript check → Vite build
 npm run lint       # ESLint
 ```
 

@@ -33,11 +33,16 @@ Claude Code (MCP client) ──(HTTP /mcp)──┐
 
 ## セットアップ
 
-### 1. 依存インストール + ビルド
+### 1. 依存インストール (repo root で 1 回) + ビルド
 
 ```bash
-cd backend
+# repo root で 1 回実行 — npm workspaces で shared / frontend / backend を一括解決
+# PR #1378 (#1375) で workspaces 化、subdir 単独 install は非推奨
+cd <repo-root>
 npm install
+
+# backend をビルドする場合
+cd backend
 npm run build
 ```
 

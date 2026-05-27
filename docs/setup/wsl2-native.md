@@ -181,23 +181,22 @@ cd ~/projects/harmony
 # .nvmrc があれば使用
 [ -f .nvmrc ] && nvm use
 
-# frontend
-cd frontend
+# root で 1 回実行 — npm workspaces (shared / frontend / backend) を一括解決
+# shared/package.json の `prepare` hook で shared/dist/ を build
 npm install
-cd ..
-
-# backend
-cd backend
-npm install
-cd ..
 ```
 
-**所要時間**: 各 1〜3 分 (WSL2 native なので速い)。Windows 側で同操作した時より大幅に速いはず。
+PR #1378 (#1375) で npm workspaces 化済み。`cd frontend && npm install` / `cd backend && npm install` の個別実行は **非推奨** (workspace 認識されず `@harmony/shared` の resolution で失敗する場合あり)。
+
+**所要時間**: 2〜5 分 (WSL2 native、Windows 側で同操作した時より大幅に速い)。
 
 #### 成功確認
-- [ ] `frontend/node_modules/` が存在
-- [ ] `backend/node_modules/` が存在
+- [ ] `node_modules/` (root) が存在
+- [ ] `node_modules/@harmony/shared` (workspace link、`ls -la node_modules/@harmony/` で確認) が `../../shared` 等を指す symlink として存在
+- [ ] `shared/dist/` が存在 (`prepare` hook で build 済、`ls shared/dist/index.js`)
 - [ ] `npm install` が exit code 0 で終了 (deprecation 警告は許容)
+
+> note: npm workspaces は依存を root `node_modules/` に hoist するため、`frontend/node_modules/` / `backend/node_modules/` / `shared/node_modules/` 自体は **必須ではなく、依存衝突がある場合にのみ作られる**。確認の主軸は root `node_modules/` と `@harmony/shared` の workspace link、`shared/dist/`。
 
 ---
 

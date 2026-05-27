@@ -144,22 +144,21 @@
 <span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># .nvmrc があれば使用</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">[ </span><span style="color:#D73A49;--shiki-dark:#F47067">-f</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> .nvmrc ] &#x26;&#x26; </span><span style="color:#6F42C1;--shiki-dark:#F69D50">nvm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> use</span></span>
 <span class="line"></span>
-<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># frontend</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> frontend</span></span>
-<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ..</span></span>
-<span class="line"></span>
-<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># backend</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span></span>
-<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ..</span></span></code></pre>
-<p><strong>所要時間</strong>: 各 1〜3 分 (WSL2 native なので速い)。Windows 側で同操作した時より大幅に速いはず。</p>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># root で 1 回実行 — npm workspaces (shared / frontend / backend) を一括解決</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># shared/package.json の `prepare` hook で shared/dist/ を build</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> install</span></span></code></pre>
+<p>PR #1378 (#1375) で npm workspaces 化済み。<code>cd frontend &#x26;&#x26; npm install</code> / <code>cd backend &#x26;&#x26; npm install</code> の個別実行は <strong>非推奨</strong> (workspace 認識されず <code>@harmony/shared</code> の resolution で失敗する場合あり)。</p>
+<p><strong>所要時間</strong>: 2〜5 分 (WSL2 native、Windows 側で同操作した時より大幅に速い)。</p>
 <h4 id="成功確認-3">成功確認</h4>
 <ul class="contains-task-list">
-<li class="task-list-item"><input type="checkbox" disabled> <code>frontend/node_modules/</code> が存在</li>
-<li class="task-list-item"><input type="checkbox" disabled> <code>backend/node_modules/</code> が存在</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>node_modules/</code> (root) が存在</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>node_modules/@harmony/shared</code> (workspace link、<code>ls -la node_modules/@harmony/</code> で確認) が <code>../../shared</code> 等を指す symlink として存在</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>shared/dist/</code> が存在 (<code>prepare</code> hook で build 済、<code>ls shared/dist/index.js</code>)</li>
 <li class="task-list-item"><input type="checkbox" disabled> <code>npm install</code> が exit code 0 で終了 (deprecation 警告は許容)</li>
 </ul>
+<blockquote>
+<p>note: npm workspaces は依存を root <code>node_modules/</code> に hoist するため、<code>frontend/node_modules/</code> / <code>backend/node_modules/</code> / <code>shared/node_modules/</code> 自体は <strong>必須ではなく、依存衝突がある場合にのみ作られる</strong>。確認の主軸は root <code>node_modules/</code> と <code>@harmony/shared</code> の workspace link、<code>shared/dist/</code>。</p>
+</blockquote>
 <hr>
 <h2 id="step-1-4-backend-起動確認">Step 1-4: backend 起動確認</h2>
 <p>WSL2 シェル (ターミナル 1) で:</p>

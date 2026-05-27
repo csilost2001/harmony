@@ -35,7 +35,12 @@
 
   "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.harmony /home/node/.config/gh /home/node/.gitconfig",
 
-  "postCreateCommand": "npm install --prefix frontend && npm install --prefix backend && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
+  // PR #1378 (#1375) で npm workspaces 化。root 1 回の `npm install` で
+  // shared / frontend / backend を一括解決し、shared/package.json の `prepare`
+  // hook で `shared/dist/` を build する。subdir 単独 install
+  // (`npm install --prefix frontend`) は workspace 認識されず @harmony/shared の
+  // registry lookup で 404 fail するため不可。 #1383
+  "postCreateCommand": "npm install && ([ -f ~/.claude/.config.json ] || echo '{}' > ~/.claude/.config.json)",
 
   "customizations": {
     "vscode": {

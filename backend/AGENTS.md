@@ -5,9 +5,13 @@ MCP サーバ + WebSocket ブリッジ。ブラウザと AI コーディング�
 ## Commands
 
 ```bash
-npm install
+# Install は repo root で 1 回 (npm workspaces、PR #1378 で導入)
+# subdir 単独 install は workspace 認識されず非推奨
+# cd <repo-root> && npm install
+
+# Backend dev / build は subdir で
 npm run dev        # Watch mode (tsx)
-npm run build      # Compile to dist/
+npm run build      # shared rebuild → Compile to dist/
 ```
 
 常駐サーバ (#302): `npm run dev` で 1 回起動すれば、ブラウザ・複数の AI エージェントセッション双方が接続できる。エージェント終了でも停止しないので、次回以降も使い回し可能。

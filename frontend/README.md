@@ -5,11 +5,19 @@ GrapesJS + React + Vite による業務システム向け WYSIWYG デザイン�
 
 ## 起動方法
 
+### 0. 依存インストール (初回のみ、repo root で)
+
+```bash
+# repo root で 1 回実行 — npm workspaces (shared / frontend / backend) を一括解決
+npm install
+```
+
+PR #1378 (#1375) で npm workspaces 化済み。subdir 単独 `npm install` は workspace 認識されず失敗する場合があるため、**root の 1 発が canonical**。
+
 ### 1. フロントエンド
 
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
@@ -22,7 +30,6 @@ MCP サーバーを起動すると、ファイルベースの永続化・マル�
 
 ```bash
 cd backend
-npm install
 npm run dev
 ```
 
@@ -43,7 +50,7 @@ node docs/sample-project/seed.mjs
 
 ## 動作環境
 
-- Node.js 18 以上
+- Node.js 20 以上 (setup docs `docs/setup/wsl2-native.md` / `docs/setup/dev-containers.md` も Node 20 前提)
 - モダンブラウザ（Chrome / Edge 推奨）
 - PC 向け（スマートフォン非対応）
 

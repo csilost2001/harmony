@@ -144,7 +144,7 @@ VSCode で:
 2. 右下に「Folder contains a Dev Container configuration file. Reopen folder to develop in a container.」のポップアップ
 3. **「Reopen in Container」** をクリック
    - ポップアップを見逃したら `Ctrl+Shift+P` → `Dev Containers: Reopen in Container`
-4. 初回は image pull (~1.3 GB、Phase 5 #1120 以降は AI CLI 3 個を base image 同梱、#1122 で docker CLI は host 実行運用に切替て除外) + npm install で **数分〜10 分** (playwright は base image 同梱、features install は Phase 5 で廃止)
+4. 初回は image pull (~1.3 GB、Phase 5 #1120 以降は **base image に gh / claude-code / copilot-cli + playwright chromium を inline**、overlay には codex CLI のみ、#1122 で docker CLI は host 実行運用に切替て除外) + npm install (root, workspaces) で **数分〜10 分** (features install は Phase 5 で廃止)
 5. 完了後、VSCode の左下が `Dev Container: Harmony Dev` 表示になる
 
 ### Step M-5: 動作確認
@@ -167,13 +167,13 @@ Windows ブラウザで `http://localhost:5173` がデザイナー UI を表示�
 ### Step M-6: 既存 `node_modules` の扱い
 
 - **基本: 残す**。WSL2 native へ戻る選択肢を保持
-- container 内では `/workspaces/harmony/frontend/node_modules` (bind mount された WSL2 native のもの) を上書きしないよう、container 内で `npm install` 済 (postCreateCommand)
+- container 内では root `npm install` 済 (postCreateCommand、PR #1378 で npm workspaces 化以降は root 1 発で shared / frontend / backend を一括解決)
 - 容量が気になるなら、安定運用 1 週間後に WSL2 native 側の `node_modules` を削除:
 
 ```bash
 # 移行を確定する時のみ
 cd ~/projects/harmony
-rm -rf frontend/node_modules backend/node_modules
+rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules
 ```
 
 ### Step M-7: WSL2 distro のクリーンアップ (任意 / 移行確定後)
@@ -364,7 +364,7 @@ docker run --rm -v harmony-state:/src:ro  -v ~/.agent-containers/harmony/.harmon
 
 ### Codex CLI
 
-公式 Dev Container Feature が存在しないため、引き続き `postCreateCommand` で `npm install -g @openai/codex` を実施。auth は `~/.codex/auth.json` (= host bind mount target `~/.agent-containers/<project>/.codex/auth.json`) に格納されるため、container 内で 1 度 `codex login` するだけで rebuild 跨ぎで保持される。codex は `~/.codex.json` のような `$HOME` 直下のファイルを持たないので claude のような `.config.json` workaround は不要。
+公式 Dev Container Feature が存在しないため、**overlay Dockerfile (`.devcontainer/Dockerfile`) で `npm install -g @openai/codex@<version>` を実施**。version bump はこのファイルを編集 + Rebuild Container で反映する (overlay は base 比で軽量・頻繁更新に最適)。auth は `~/.codex/auth.json` (= host bind mount target `~/.agent-containers/<project>/.codex/auth.json`) に格納されるため、container 内で 1 度 `codex login` するだけで rebuild 跨ぎで保持される。codex は `~/.codex.json` のような `$HOME` 直下のファイルを持たないので claude のような `.config.json` workaround は不要。
 
 ### 認証フロー全体図
 
@@ -406,7 +406,7 @@ host と container は **別 OAuth credential で独立**動作。それぞれ�
 ### バージョン更新
 
 - **Claude Code**: Phase 5 (#1120) 以降は base image inline (`.devcontainer/base/Dockerfile` の `npm install -g @anthropic-ai/claude-code`) で install。base image bump 時に最新版が pull される。`DISABLE_AUTOUPDATER: "1"` を入れているので **container 起動後の自動更新は止まる**。特定版に pin したい場合は base/Dockerfile の RUN 行を `npm install -g @anthropic-ai/claude-code@X.Y.Z` に変えて publish-dev-image で新版を push。
-- **Codex**: container 内で `npm install -g @openai/codex@<version>` で個別更新。
+- **Codex**: overlay Dockerfile (`.devcontainer/Dockerfile:28`) の `RUN npm install -g @openai/codex@<version>` を編集し、VSCode から `Dev Containers: Rebuild Container` を実行して反映。container 内で `npm install -g` を個別実行する必要はない (rebuild した時点で overlay 層から再 install される)。
 
 ## 仕組み解説: devcontainer.json の構造 (#1118 Phase 1+2 以降)
 
@@ -429,9 +429,14 @@ container 起動 → onCreate → postCreate (npm install + .config.json)
 | `build` | overlay Dockerfile を build | `.devcontainer/Dockerfile` (FROM = ghcr.io の base image) |
 | base image | 稀更新の重い install を内包 | `ghcr.io/csilost2001/harmony-devcontainer-base:<version>` (#1118 Phase 2、#1120 Phase 5 で features inline 追加) |
 | `features` | (Phase 5 で廃止) ツール後付け (宣言的)。Dev Containers の features は image build 後に apply されるため ghcr に含まれず cold start オーバーヘッド (~50-60 秒 on Note PC) を発生させていたため base image inline に移行。さらに features は user RUN の下流に置かれる仕様のため overlay 変更 (codex 月 bump 等) で全 feature が再 install される構造的不利あり (#1122 で計測確認、rebuild +35-40 秒) | (使用しない) |
-| `postCreateCommand` | プロジェクト固有 setup | `npm install` (frontend + backend) + `.claude/.config.json` 初期化のみ (軽量) |
+| `postCreateCommand` | プロジェクト固有 setup | `npm install` (root 1 発で shared / frontend / backend を npm workspaces で一括解決) + `.claude/.config.json` 初期化のみ (軽量) |
 
-「重い + 共通」→ base image (ghcr、Phase 5 以降は CLI 系も含む) / 「source 依存」→ postCreateCommand、という指針。Phase 4 まで使用していた features 機構は ghcr publish に含まれない制約で廃止 (Phase 5)。docker CLI は #1122 で構成比較した結果、Maintainer 専用機能 (publish-dev-image、年数回) のためだけに常時コストを払う設計を見直し、host 実行運用に切替て base image から除外 (P5b 採用)。
+配置指針:
+- **base image** (ghcr、稀更新): playwright chromium / gh / claude-code / copilot-cli (Phase 5 以降の CLI inline)
+- **overlay Dockerfile** (`.devcontainer/Dockerfile`、頻繁更新): codex CLI (月 bump 想定、base 再 build 回避目的で分離)
+- **postCreateCommand** (source 依存): root `npm install` (npm workspaces) + `.claude/.config.json` 初期化
+
+Phase 4 まで使用していた features 機構は ghcr publish に含まれない制約で廃止 (Phase 5)。docker CLI は #1122 で構成比較した結果、Maintainer 専用機能 (publish-dev-image、年数回) のためだけに常時コストを払う設計を見直し、host 実行運用に切替て base image から除外 (P5b 採用)。
 
 Phase 0 (postCreate やめて Dockerfile 化) で warm rebuild 56→15 秒 (Ryzen) / 94→21 秒 (Note PC)、Phase 1 (base + overlay 階層化) で codex 更新時の base 再 build 回避、Phase 2 (ghcr 配布) で新規開発者の cold start を大幅短縮 (Playwright DL 不要)。
 
@@ -506,8 +511,8 @@ bash .devcontainer/scripts/build-base.sh
 |---|---|
 | `Reopen in Container` ポップアップが出ない | `.devcontainer/devcontainer.json` がリポジトリ root にあるか確認。`Ctrl+Shift+P` → `Dev Containers: Reopen in Container` を手動実行 |
 | 初回 build が完了しない / network エラー | Docker Desktop が起動しているか / インターネット接続 / 社内 proxy 設定。`docker pull mcr.microsoft.com/devcontainers/typescript-node:20` を WSL2 シェルで先に試す |
-| `postCreateCommand` で `npm install` が失敗 | bind mount された `node_modules` (WSL2 native で install したもの) が container と互換性なく失敗するケースあり。一度 WSL2 側で `rm -rf frontend/node_modules backend/node_modules` してから rebuild container |
-| Playwright browsers の install が遅い / 失敗 | postCreateCommand の `playwright install --with-deps chromium` で 3-5 分。完全 offline 環境では失敗。スキップしたい時は `.devcontainer/devcontainer.json` の postCreateCommand から該当行を削除 |
+| `postCreateCommand` で `npm install` が失敗 | bind mount された `node_modules` (WSL2 native で install したもの) が container と互換性なく失敗するケースあり。一度 WSL2 側で `rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules` してから rebuild container |
+| Playwright browsers が見つからない / install が必要 | Phase 5 (#1118 / #1120) 以降 Playwright chromium は **base image (ghcr) に同梱済**。`postCreateCommand` での `playwright install` は廃止。base image の build (`/publish-dev-image`) で `npx playwright install` が走るため、container 起動後は `~/.cache/ms-playwright/` に既に存在する。version mismatch で再 install したい場合のみ container 内で `npx playwright install chromium` を手動実行 |
 | Vite HMR がブラウザに反映されない | bind mount + inotify の問題。`frontend/vite.config.ts` の watch options に `{ usePolling: true, interval: 100 }` を追加。または container 内で `export CHOKIDAR_USEPOLLING=1` |
 | port 5173 / 5179 が forward されない | VSCode 下部の `PORTS` パネルで forward 状態を確認。`portsAttributes` で auto-forward 設定済 |
 | `~/.gitconfig` / `~/.ssh/` が container 内で使えない | Dev Containers は通常ホストの `~/.gitconfig` / `~/.ssh/` を mount するが、必要なら `mounts` 設定追加。`gh auth login` を container 内で再実行する手もあり |
