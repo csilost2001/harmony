@@ -128,7 +128,12 @@ export function Designer({
     );
   }
   // Puck Backend (#815 PR-A: container 直マウントを廃止、React コンポーネントとして render)
-  const puckBackendRef = useRef<PuckBackend | null>(null);
+  //
+  // #1388: useRef → useState 化 (lazy initializer)。Backend instance は構造体的な method-bag
+  // (constructor で副作用なし、internal state なし — load/save/renderEditor のみ) のため
+  // mount 時に 1 度だけ生成しても無視できるコストで、editorKind が puck/grapesjs 間で切替わっても
+  // identity が安定する。render 中 access するため state 化が必須。
+  const [puckBackend] = useState<PuckBackend>(() => new PuckBackend());
   const [puckState, setPuckState] = useState<EditorState | null>(null);
   // Puck 用 debounce フラッシュコールバック (#806 M-1: "puck-data" draft 経由で保存)
   const puckFlushRef = useRef<(() => void) | null>(null);
@@ -136,7 +141,9 @@ export function Designer({
   const puckPendingPayloadRef = useRef<unknown>(null);
   const puckPendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // GrapesJS Backend (#815 PR-B: <GjsEditor> 直接マウントを廃止、Backend.renderEditor 経由)
-  const grapesBackendRef = useRef<GrapesJSBackend | null>(null);
+  //
+  // #1388: useRef → useState 化 (lazy initializer、puckBackend と同じ理由)。
+  const [grapesBackend] = useState<GrapesJSBackend>(() => new GrapesJSBackend());
   // 両 Backend (Puck / GrapesJS) 共通の EditorApi (#815 Codex Must-fix #2/#3 で統一)。
   // discard / serverChange reload / theme apply / captureThumbnail / getProjectData 等を
   // editorKind 非依存に呼ぶための窓口。両 Backend の onReady で expose される。
@@ -389,15 +396,14 @@ export function Designer({
 
   // GrapesJS の reloadPayload — discard / serverChange reload 時に最新 payload を取得する
   const grapesReloadPayload = useCallback(async (): Promise<unknown> => {
-    if (!grapesBackendRef.current) return null;
     try {
-      const state = await grapesBackendRef.current.load(screenId, grapesDraftRead);
+      const state = await grapesBackend.load(screenId, grapesDraftRead);
       return state.payload;
     } catch (e) {
       console.warn("[Designer] grapesReloadPayload failed", e);
       return null;
     }
-  }, [screenId, grapesDraftRead]);
+  }, [grapesBackend, screenId, grapesDraftRead]);
 
   // GrapesJS Backend.load() で初期 payload を pre-load する (#815 PR-C: 明示 load)。
   // editorKind === "grapesjs" のときのみ実行し、結果を grapesState に格納して renderEditor で使う。
@@ -406,8 +412,11 @@ export function Designer({
   //
   // React 19 `react-hooks/set-state-in-effect` 対応: effect 内の setGrapesState(null) は
   // 「prop 変化時 state リセット」pattern で render 中に derive する。React は同値 setState を
-  // skip するため無限ループにはならない。Backend lifecycle ref (grapesBackendRef.current) の
-  // 初期化は effect 内に残す (#1385 scope 外、副作用は effect が正)。
+  // skip するため無限ループにはならない。
+  //
+  // #1388: Backend lifecycle 管理を ref → state 化 (lazy useState initializer)。
+  // grapesBackend は mount 時に 1 度生成済 (identity 不変) なので、effect 内では
+  // 直接 load() を呼ぶ。再生成 / null-check は不要。
   const [grapesLoadKey, setGrapesLoadKey] = useState<string | null>(null);
   const currentGrapesLoadKey = editorKind === "grapesjs" ? `${screenId}` : null;
   if (currentGrapesLoadKey !== grapesLoadKey) {
@@ -420,9 +429,7 @@ export function Designer({
     if (editorKind !== "grapesjs") return;
     let cancelled = false;
     editorApiRef.current = null;
-    if (!grapesBackendRef.current) grapesBackendRef.current = new GrapesJSBackend();
-    const backend = grapesBackendRef.current;
-    backend.load(screenId, grapesDraftRead).then((state) => {
+    grapesBackend.load(screenId, grapesDraftRead).then((state) => {
       if (cancelled) return;
       setGrapesState(state);
     }).catch((e) => {
@@ -430,7 +437,7 @@ export function Designer({
       if (!cancelled) setGrapesState({ payload: null, ui: { screenId } });
     });
     return () => { cancelled = true; };
-  }, [editorKind, screenId, grapesDraftRead]);
+  }, [editorKind, screenId, grapesDraftRead, grapesBackend]);
 
   // GrapesJS Backend からの ready 通知 — EditorApi を保持し legacy localStorage 救済を実行
   const handleGrapesReady = useCallback((api: EditorApi) => {
@@ -655,15 +662,14 @@ export function Designer({
   // Puck の reloadPayload — discard / serverChange reload 時に Puck 側へ最新 payload を反映する
   // (#815 Codex Must-fix #2/#3: Puck も EditorApi.reload() で再ロードするための関数)
   const puckReloadPayload = useCallback(async (): Promise<unknown> => {
-    if (!puckBackendRef.current) return null;
     try {
-      const state = await puckBackendRef.current.load(screenId, puckDraftRead);
+      const state = await puckBackend.load(screenId, puckDraftRead);
       return state.payload;
     } catch (e) {
       console.warn("[Designer] puckReloadPayload failed", e);
       return null;
     }
-  }, [screenId, puckDraftRead]);
+  }, [puckBackend, screenId, puckDraftRead]);
 
   // Puck Backend からの ready 通知 — EditorApi を保持 (両 Backend 共通の窓口)
   const handlePuckReady = useCallback((api: EditorApi) => {
@@ -675,8 +681,9 @@ export function Designer({
   // editorKind === "puck" のときのみ実行する。
   //
   // React 19 `react-hooks/set-state-in-effect` 対応: effect 内の setPuckState(null) は
-  // 「prop 変化時 state リセット」pattern で render 中に derive する。Backend lifecycle ref
-  // (puckBackendRef.current) の初期化は effect 内に残す (#1385 scope 外)。
+  // 「prop 変化時 state リセット」pattern で render 中に derive する。
+  //
+  // #1388: Backend lifecycle 管理を ref → state 化 (grapesBackend と同じ pattern)。
   const [puckLoadKey, setPuckLoadKey] = useState<string | null>(null);
   const currentPuckLoadKey = editorKind === "puck" ? `${screenId}` : null;
   if (currentPuckLoadKey !== puckLoadKey) {
@@ -689,8 +696,7 @@ export function Designer({
     if (editorKind !== "puck") return;
     let cancelled = false;
     editorApiRef.current = null;
-    if (!puckBackendRef.current) puckBackendRef.current = new PuckBackend();
-    const backend = puckBackendRef.current;
+    const backend = puckBackend;
 
     // puckFlushRef にフラッシュ関数を登録 (handleSave が呼ぶ)。
     // pending payload + timer は ref 経由で保持し、handleSave / unmount から参照可能にする。
@@ -722,7 +728,7 @@ export function Designer({
       }
       puckPendingPayloadRef.current = null;
     };
-  }, [editorKind, screenId, puckDraftRead]);
+  }, [editorKind, screenId, puckDraftRead, puckBackend]);
 
   // Puck onChange handler — dirty 状態を更新する。autosave 廃止 (D-1) のため debounce updateDraft は行わない。
   const handlePuckChange = useCallback(
@@ -963,7 +969,7 @@ export function Designer({
   // GrapesJS 固有の GjsEditor / WithEditor / BlocksProvider は使用しない。
   // ---------------------------------------------------------------------------
   if (editorKind === "puck") {
-    if (!puckState || !puckBackendRef.current) {
+    if (!puckState) {
       return (
         <div className="loading-screen">
           <div className="spinner" />
@@ -1016,14 +1022,14 @@ export function Designer({
       // (#815 Codex Must-fix #2/#3: discard / serverChange reload を Puck/GrapesJS で統一)
       reloadPayload: puckReloadPayload,
     };
-    return puckBackendRef.current.renderEditor(puckProps);
+    return puckBackend.renderEditor(puckProps);
   }
 
   // ---------------------------------------------------------------------------
   // GrapesJS エディタ表示 (既存挙動を維持)
   // ---------------------------------------------------------------------------
   // GrapesJS Backend.load() の結果待ち (#815 PR-C: 明示 load — autoload 廃止)
-  if (!grapesState || !grapesBackendRef.current) {
+  if (!grapesState) {
     return (
       <div className="loading-screen">
         <div className="spinner" />
@@ -1097,7 +1103,7 @@ export function Designer({
           onPreviewClick={pageLayoutHtml ? () => setShowCompositionPreview(true) : undefined}
         />
       )}
-      {grapesBackendRef.current.renderEditor(grapesProps)}
+      {grapesBackend.renderEditor(grapesProps)}
       {/* RFC #1021 pl-6 (Codex C-1): composition preview modal */}
       {showCompositionPreview && pageLayoutHtml && (
         <CompositionPreviewModal
