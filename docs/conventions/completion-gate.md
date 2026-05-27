@@ -66,15 +66,17 @@ isolation pass を flake 根拠にすると次の round で必ず再現する (R
 PR を merge 可と判定する前に、orchestrator が必ず実行:
 
 ```bash
-# 1. regression suite を JSON reporter で実行
-npm run test:e2e:regression:json > .tmp/regression-results.json || true
-
-# 2. trace 照合 gate
-node scripts/verify/regression-trace-check.mjs .tmp/regression-results.json
-#   または scope 限定の flake 主張ありの場合:
-node scripts/verify/regression-trace-check.mjs .tmp/regression-results.json \
+# 推奨: --auto-run (npm banner を介さず playwright を直接 spawn するため shell redirect 不要)
+node scripts/verify/regression-trace-check.mjs --auto-run
+#   flake 主張ありの場合:
+node scripts/verify/regression-trace-check.mjs --auto-run \
   --flake e2e/folder-picker.spec.ts \
   --auto-isolation-rerun
+
+# 別法: 既に regression を走らせて results.json を持っている場合
+#   ※ `npm run` は banner を stdout に出す。shell redirect で file 化する時は `--silent` 必須
+npm run --silent test:e2e:regression:json > .tmp/regression-results.json || true
+node scripts/verify/regression-trace-check.mjs .tmp/regression-results.json
 ```
 
 - exit 0 → 全 fail trace 済 / flake 確認済 → merge 可

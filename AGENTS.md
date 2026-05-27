@@ -549,12 +549,16 @@ E2E regression (`npm run test:e2e:regression`) を走らせて failure が残っ
 **呼び方** (一例 — orchestrator が必須で 1 回通す):
 
 ```bash
-# 1. regression suite を JSON reporter で実行 (出力を tmp ファイルに保存)
-npm run test:e2e:regression:json > .tmp/regression-results.json || true   # fail 時も非 0 を許容
-
-# 2. trace 照合 gate を走らせる
-node scripts/verify/regression-trace-check.mjs .tmp/regression-results.json \
+# 推奨: --auto-run (npm banner を介さず playwright を直接 spawn するため shell redirect の落とし穴を回避)
+node scripts/verify/regression-trace-check.mjs --auto-run \
   --flake e2e/foo.spec.ts   # flake 主張する spec があれば明示
+
+# 別法: 既に regression を走らせて results.json を持っている場合は file 渡し
+#   注意: npm scripts は stdout 先頭に banner ("> harmony-workspace@... \n> playwright test ...") を出すため
+#   shell redirect で file 化するときは必ず `--silent` を付ける (付けないと JSON parse fail で exit 2)
+npm run --silent test:e2e:regression:json > .tmp/regression-results.json || true
+node scripts/verify/regression-trace-check.mjs .tmp/regression-results.json \
+  --flake e2e/foo.spec.ts
 # isolation 3x pass の証跡 (frontend/test-results/isolation-<sanitized>.json) を別途要求
 ```
 

@@ -39,8 +39,10 @@
 //                             frontend/test-results)。
 //   --no-gh                   gh CLI 呼び出しを skip (オフライン / test 用)。
 //                             この場合 trace 済判定は外部 input (--traced) に依存。
-//   --traced <spec>           trace 済として手動 mark (test 用、本来 gh で判定すべき)。
-//                             repeat 可能。
+//   --traced <spec>:<issue#>  trace 済として手動 mark (例: e2e/foo.spec.ts:1342)。
+//                             gate の意図を破らないように **issue 番号必須** + useGh 時は
+//                             `gh issue view <N> --json state` で OPEN を機械検証する
+//                             (CLOSED や存在しない番号は trace と認めない)。repeat 可能。
 //   --json                    machine-readable JSON で出力。
 //   --verbose, -v             詳細出力 (gh 呼出しの引数 / 反復ループ等)。
 //   --help, -h                このヘルプ。
@@ -80,10 +82,16 @@ const ISOLATION_REQUIRED_PASS_COUNT = 3;
 // ─────────────────────────────────────────────────────────────
 
 /**
+ * @typedef {Object} TracedRef
+ * @property {string} spec         spec の相対 path or basename (parseArgs で両方 set される)
+ * @property {number} issueNumber  trace 先 OPEN ISSUE 番号 (整数)
+ */
+
+/**
  * @typedef {Object} CliOptions
  * @property {string|null} resultsPath
  * @property {string[]} flakeSpecs
- * @property {string[]} tracedSpecs
+ * @property {TracedRef[]} tracedSpecs    manual trace (<spec>:<issue#> 形式必須)
  * @property {boolean} autoRun
  * @property {boolean} autoIsolationRerun
  * @property {string} isolationEvidenceDir
@@ -122,8 +130,21 @@ export function parseArgs(argv) {
     }
     if (a === "--traced") {
       const v = argv[++i];
-      if (!v) throw new Error("--traced requires a spec path");
-      opt.tracedSpecs.push(v);
+      if (!v) throw new Error("--traced requires <spec>:<issue#> (例: e2e/foo.spec.ts:1342)");
+      // spec path に `:` を含めない前提 (Playwright spec path には通常 colon は出現しない)。
+      // 末尾の `:<整数>` を issue 番号として切り出す。
+      const m = /^(.+):(\d+)$/.exec(v);
+      if (!m) {
+        throw new Error(
+          `--traced requires <spec>:<issue#> format with integer issue number (got: ${v}). ` +
+          `例: --traced e2e/foo.spec.ts:1342`,
+        );
+      }
+      const issueNumber = parseInt(m[2], 10);
+      if (!Number.isFinite(issueNumber) || issueNumber <= 0) {
+        throw new Error(`--traced issue number must be a positive integer (got: ${m[2]})`);
+      }
+      opt.tracedSpecs.push({ spec: m[1], issueNumber });
       continue;
     }
     if (a === "--auto-run") { opt.autoRun = true; continue; }
@@ -232,11 +253,13 @@ export function extractFailedTests(report) {
  */
 
 /**
- * gh issue list を spec basename で検索し、title / body / comments に
- * file path or "file:line" を含む OPEN ISSUE を返す。
+ * gh issue list を spec basename で検索し、title / body に
+ * file path or basename を含む OPEN ISSUE を返す。
  *
  * GitHub search はトークン化 (`/` で分割等) されるため、search で取得後
  * client side で `text.includes(name)` の precise filter を必ずかける。
+ * comment 内まで照合したい場合は別途 `gh issue view --comments` を呼ぶ必要があるが、
+ * 現状の規約 (docs/conventions/completion-gate.md §2) では title/body のみを trace 対象とする。
  *
  * @param {string} specFile             spec の相対 path (e.g., "e2e/foo.spec.ts")
  * @param {number} line                 spec の行番号 (0 なら無視)
@@ -270,6 +293,29 @@ export function findTracingIssues(specFile, line, runGh) {
     }
   }
   return matches;
+}
+
+/**
+ * gh issue view <N> --json state --jq .state を呼び、OPEN / CLOSED / null を返す。
+ * `--traced <spec>:<issue#>` の手動 trace 検証用 (gate の意図上 CLOSED は trace と認めない)。
+ *
+ * @param {number} issueNumber
+ * @param {(cmd: string, args: string[]) => string} runGh
+ * @returns {"OPEN"|"CLOSED"|null}
+ */
+export function checkIssueState(issueNumber, runGh) {
+  try {
+    const out = runGh("gh", [
+      "issue", "view", String(issueNumber),
+      "--json", "state",
+      "--jq", ".state",
+    ]);
+    const trimmed = (out || "").trim().toUpperCase();
+    if (trimmed === "OPEN" || trimmed === "CLOSED") return trimmed;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -401,6 +447,40 @@ export function runIsolationLoop(spec, dir, runProc, verbose) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// strict-mode 違反検出 (#1346 case C — flake 扱い禁止の機械化)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Playwright の strict-mode locator violation error pattern を検出する。
+ *
+ * 規約: locator selector が strict-mode に違反する可能性がある fail は
+ * 「先行 test の状態残留 + 並列 race」由来の flake ではなく **locator 設計バグ** に
+ * 由来する可能性が高く、isolation pass を flake 根拠にすると同じ事象が次の round で
+ * 必ず再現する (#1299 Round 12 の `presence-list:110` 事故そのもの)。
+ *
+ * 本関数が true を返す failure は、--flake + isolation 3x pass 証跡があっても
+ * flake-confirmed に降格してはならず、`.first()` / `.last()` / scope 限定の付与
+ * または別 ISSUE での実バグ trace を要求する。
+ *
+ * 検出パターン (Playwright の error message から抽出):
+ * - "strict mode violation"   (canonical message)
+ * - "resolved to N elements"  (英語 fallback)
+ * - "strict mode"             (緩めの match、誤検出より見逃し回避を優先)
+ *
+ * @param {string|null|undefined} errorMessage
+ * @returns {boolean}
+ */
+export function isStrictModeViolation(errorMessage) {
+  if (!errorMessage || typeof errorMessage !== "string") return false;
+  const lc = errorMessage.toLowerCase();
+  if (lc.includes("strict mode violation")) return true;
+  if (lc.includes("strict mode")) return true;
+  // Playwright の strict-mode error の構造化 message が変わった場合の fallback
+  if (/resolved to \d+ elements?/i.test(errorMessage)) return true;
+  return false;
+}
+
+// ─────────────────────────────────────────────────────────────
 // main pipeline
 // ─────────────────────────────────────────────────────────────
 
@@ -453,28 +533,68 @@ export function evaluate(ctx) {
     flakeSet.add(s);
     flakeSet.add(basename(s));
   }
-  const tracedManualSet = new Set();
-  for (const s of options.tracedSpecs) {
-    tracedManualSet.add(s);
-    tracedManualSet.add(basename(s));
+  /** manual traced: spec 名 (両形態) → issueNumber */
+  const tracedManualMap = new Map();
+  for (const t of options.tracedSpecs) {
+    tracedManualMap.set(t.spec, t.issueNumber);
+    tracedManualMap.set(basename(t.spec), t.issueNumber);
   }
 
   for (const f of failed) {
     const fileKeys = [f.file, basename(f.file)];
 
-    // 1. manual traced
-    if (fileKeys.some((k) => tracedManualSet.has(k))) {
-      evaluations.push({
-        failed: f,
-        verdict: "traced",
-        detail: "manually marked via --traced",
-        tracingIssues: [],
-      });
-      continue;
+    // 1. manual traced (要 issue 番号 + useGh=true 時は OPEN 検証)
+    {
+      let manualIssue = null;
+      for (const k of fileKeys) {
+        if (tracedManualMap.has(k)) {
+          manualIssue = tracedManualMap.get(k);
+          break;
+        }
+      }
+      if (manualIssue !== null) {
+        if (options.useGh) {
+          const state = checkIssueState(manualIssue, runGh);
+          if (state !== "OPEN") {
+            evaluations.push({
+              failed: f,
+              verdict: "untraced",
+              detail:
+                `--traced #${manualIssue} REJECTED: state=${state ?? "unknown"} (must be OPEN). ` +
+                `CLOSED ISSUE は trace と認めない (docs/conventions/completion-gate.md §2)`,
+              tracingIssues: [],
+            });
+            continue;
+          }
+        }
+        evaluations.push({
+          failed: f,
+          verdict: "traced",
+          detail: options.useGh
+            ? `manually traced via --traced (#${manualIssue} verified OPEN)`
+            : `manually traced via --traced (#${manualIssue}, --no-gh: OPEN unverified)`,
+          tracingIssues: [{ number: manualIssue, title: "(via --traced)", url: "" }],
+        });
+        continue;
+      }
     }
 
     // 2. flake (要証跡)
     if (fileKeys.some((k) => flakeSet.has(k))) {
+      // 2a. strict-mode violation は locator 設計バグ由来のため flake 扱いを拒否
+      //     (docs/conventions/completion-gate.md §3 — case C 機械化)
+      if (isStrictModeViolation(f.errorMessage)) {
+        evaluations.push({
+          failed: f,
+          verdict: "untraced",
+          detail:
+            "flake claim REJECTED: error indicates strict-mode locator violation — " +
+            "isolation pass cannot be used as flake evidence (see docs/conventions/completion-gate.md §3). " +
+            "Fix the locator (`.first()` / `.last()` / scope) and trace via OPEN ISSUE.",
+          tracingIssues: [],
+        });
+        continue;
+      }
       let result;
       if (options.autoIsolationRerun) {
         result = runIsolationLoop(f.file, options.isolationEvidenceDir, runProc, options.verbose);

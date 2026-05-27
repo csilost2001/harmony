@@ -18,6 +18,8 @@ import {
   sanitizeSpecName,
   checkIsolationEvidence,
   runIsolationLoop,
+  isStrictModeViolation,
+  checkIssueState,
   evaluate,
 } from "./regression-trace-check.mjs";
 
@@ -53,11 +55,14 @@ group("parseArgs", () => {
   assert("default useGh = true", opt.useGh === true);
   assert("default autoRun = false", opt.autoRun === false);
 
-  const opt2 = parseArgs(["--auto-run", "--no-gh", "--json", "--traced", "e2e/x.spec.ts"]);
+  const opt2 = parseArgs(["--auto-run", "--no-gh", "--json", "--traced", "e2e/x.spec.ts:1234"]);
   assert("autoRun without positional", opt2.autoRun === true && opt2.resultsPath === null);
   assert("--no-gh flips useGh", opt2.useGh === false);
   assert("--json flag", opt2.jsonOutput === true);
-  assert("--traced collected", opt2.tracedSpecs[0] === "e2e/x.spec.ts");
+  assert(
+    "--traced collected as TracedRef",
+    opt2.tracedSpecs[0]?.spec === "e2e/x.spec.ts" && opt2.tracedSpecs[0]?.issueNumber === 1234,
+  );
 
   let threw = false;
   try { parseArgs(["--flake"]); } catch (e) { threw = e.message.includes("requires a spec path"); }
@@ -66,6 +71,22 @@ group("parseArgs", () => {
   let threw2 = false;
   try { parseArgs(["--unknown-flag"]); } catch (e) { threw2 = e.message.includes("Unknown option"); }
   assert("unknown option throws", threw2);
+
+  // --traced format requirements
+  let threwT1 = false;
+  try { parseArgs(["dummy", "--traced", "e2e/foo.spec.ts"]); }
+  catch (e) { threwT1 = e.message.includes("<issue#>"); }
+  assert("--traced without issue# throws", threwT1);
+
+  let threwT2 = false;
+  try { parseArgs(["dummy", "--traced", "e2e/foo.spec.ts:abc"]); }
+  catch (e) { threwT2 = e.message.includes("<issue#>"); }
+  assert("--traced non-numeric issue throws", threwT2);
+
+  let threwT3 = false;
+  try { parseArgs(["dummy", "--traced", "e2e/foo.spec.ts:0"]); }
+  catch (e) { threwT3 = e.message.includes("positive integer"); }
+  assert("--traced zero issue throws", threwT3);
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -124,6 +145,51 @@ group("findTracingIssues with gh stub", () => {
   ]);
   const m3 = findTracingIssues("e2e/foo.spec.ts", 1, runGhBody);
   assert("body containing spec path → match", m3.length === 1 && m3[0].number === 555);
+});
+
+// ─────────────────────────────────────────────────────────────
+// isStrictModeViolation (#1346 case C 機械化)
+// ─────────────────────────────────────────────────────────────
+group("isStrictModeViolation", () => {
+  assert(
+    "canonical Playwright message detected",
+    isStrictModeViolation("Error: strict mode violation: locator('.btn') resolved to 3 elements"),
+  );
+  assert(
+    "loose match (just 'strict mode')",
+    isStrictModeViolation("got strict mode error from playwright"),
+  );
+  assert(
+    "resolved to N elements fallback",
+    isStrictModeViolation("Locator resolved to 2 elements: foo, bar"),
+  );
+  assert("regular timeout not strict-mode", isStrictModeViolation("Test timeout of 30000ms exceeded") === false);
+  assert("null / undefined safe", isStrictModeViolation(null) === false && isStrictModeViolation(undefined) === false);
+  assert("empty string safe", isStrictModeViolation("") === false);
+});
+
+// ─────────────────────────────────────────────────────────────
+// checkIssueState (gh issue view stub)
+// ─────────────────────────────────────────────────────────────
+group("checkIssueState", () => {
+  const ghOpen = () => "OPEN\n";
+  const ghClosed = () => "CLOSED\n";
+  const ghEmpty = () => "";
+  const ghThrow = () => { throw new Error("gh: issue not found"); };
+  const ghOther = () => "DRAFT\n";
+
+  assert("OPEN state", checkIssueState(1234, ghOpen) === "OPEN");
+  assert("CLOSED state", checkIssueState(1234, ghClosed) === "CLOSED");
+  assert("empty output → null", checkIssueState(1234, ghEmpty) === null);
+  assert("gh throws → null", checkIssueState(1234, ghThrow) === null);
+  assert("unknown state → null", checkIssueState(1234, ghOther) === null);
+
+  // Validate args
+  let captured;
+  const ghCapture = (cmd, args) => { captured = { cmd, args }; return "OPEN"; };
+  checkIssueState(1346, ghCapture);
+  assert("gh issue view called", captured?.args?.[0] === "issue" && captured?.args?.[1] === "view" && captured?.args?.[2] === "1346");
+  assert("gh --jq .state passed", captured?.args?.includes("--jq") && captured?.args?.includes(".state"));
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -308,8 +374,13 @@ group("evaluate end-to-end", () => {
   assert("D: gateOk = false (all untraced)", resD.gateOk === false);
   assert("D: every verdict = untraced", resD.evaluations.every((e) => e.verdict === "untraced"));
 
-  // Scenario E: --traced manual mark
-  const optE = parseArgs(["dummy", "--no-gh", "--traced", "e2e/presence-list.spec.ts", "--traced", "e2e/folder-picker.spec.ts", "--traced", "e2e/step-ops.spec.ts"]);
+  // Scenario E: --traced manual mark with issue numbers (--no-gh, skip OPEN check)
+  const optE = parseArgs([
+    "dummy", "--no-gh",
+    "--traced", "e2e/presence-list.spec.ts:1342",
+    "--traced", "e2e/folder-picker.spec.ts:9999",
+    "--traced", "e2e/step-ops.spec.ts:8888",
+  ]);
   const resE = evaluate({
     options: optE,
     loadReport,
@@ -317,7 +388,111 @@ group("evaluate end-to-end", () => {
     runGh: () => { throw new Error("should not call gh"); },
     runProc: () => ({ status: 0, stdout: "", stderr: "" }),
   });
-  assert("E: all traced manually → gateOk = true", resE.gateOk === true);
+  assert("E: all traced manually (no-gh) → gateOk = true", resE.gateOk === true);
+  const presenceE = resE.evaluations.find((ev) => ev.failed.file === "e2e/presence-list.spec.ts");
+  assert(
+    "E: tracingIssues contains #1342 from --traced",
+    presenceE?.tracingIssues?.[0]?.number === 1342,
+  );
+
+  // Scenario F: strict-mode violation + --flake + isolation evidence → still UNTRACED (case C)
+  const dirF = mkdtempSync(join(tmpdir(), "eval-scenarioF-"));
+  writeFileSync(
+    join(dirF, `isolation-${sanitizeSpecName("e2e/presence-list.spec.ts")}.json`),
+    JSON.stringify({
+      spec: "e2e/presence-list.spec.ts",
+      runs: [{ status: "passed" }, { status: "passed" }, { status: "passed" }],
+    }),
+  );
+  const optF = parseArgs([
+    "dummy", "--no-gh",
+    "--flake", "e2e/presence-list.spec.ts",
+    "--flake", "e2e/folder-picker.spec.ts",
+    "--flake", "e2e/step-ops.spec.ts",
+    "--isolation-evidence-dir", dirF,
+  ]);
+  // Also provide isolation evidence for folder-picker and step-ops (these are NOT strict-mode)
+  writeFileSync(
+    join(dirF, `isolation-${sanitizeSpecName("e2e/folder-picker.spec.ts")}.json`),
+    JSON.stringify({
+      spec: "e2e/folder-picker.spec.ts",
+      runs: [{ status: "passed" }, { status: "passed" }, { status: "passed" }],
+    }),
+  );
+  writeFileSync(
+    join(dirF, `isolation-${sanitizeSpecName("e2e/step-ops.spec.ts")}.json`),
+    JSON.stringify({
+      spec: "e2e/step-ops.spec.ts",
+      runs: [{ status: "passed" }, { status: "passed" }, { status: "passed" }],
+    }),
+  );
+  const resF = evaluate({
+    options: optF,
+    loadReport,
+    runRegressionSuite,
+    runGh: () => { throw new Error("should not call gh"); },
+    runProc: () => ({ status: 0, stdout: "", stderr: "" }),
+  });
+  const presenceF = resF.evaluations.find((ev) => ev.failed.file === "e2e/presence-list.spec.ts");
+  assert(
+    "F: strict-mode failure with isolation evidence → UNTRACED (case C guard)",
+    presenceF?.verdict === "untraced" && presenceF?.detail?.includes("strict-mode") === true,
+  );
+  const folderF = resF.evaluations.find((ev) => ev.failed.file === "e2e/folder-picker.spec.ts");
+  assert(
+    "F: non strict-mode timedOut + isolation 3x pass → flake-confirmed",
+    folderF?.verdict === "flake-confirmed",
+  );
+  assert(
+    "F: gateOk = false (strict-mode 1 件 untraced)",
+    resF.gateOk === false,
+  );
+
+  // Scenario G: --traced with gh validation (OPEN / CLOSED) — uses useGh path
+  const optG_open = parseArgs(["dummy", "--traced", "e2e/presence-list.spec.ts:1342"]);
+  // For this test, treat folder-picker / step-ops as gh-traced via title match (or via --traced too)
+  const optG_open2 = parseArgs([
+    "dummy",
+    "--traced", "e2e/presence-list.spec.ts:1342",
+    "--traced", "e2e/folder-picker.spec.ts:9999",
+    "--traced", "e2e/step-ops.spec.ts:8888",
+  ]);
+  // gh stub: 1342 = OPEN, 9999 / 8888 = OPEN as well
+  const ghAllOpen = (cmd, args) => {
+    if (args[1] === "view") return "OPEN";
+    return "[]";
+  };
+  const resG_open = evaluate({
+    options: optG_open2,
+    loadReport,
+    runRegressionSuite,
+    runGh: ghAllOpen,
+    runProc: () => ({ status: 0, stdout: "", stderr: "" }),
+  });
+  assert("G-open: all OPEN issue traces → gateOk = true", resG_open.gateOk === true);
+
+  // gh stub: 1342 = CLOSED
+  const ghClosedForPresence = (cmd, args) => {
+    if (args[1] === "view") {
+      const issueNum = args[2];
+      if (issueNum === "1342") return "CLOSED";
+      return "OPEN";
+    }
+    return "[]";
+  };
+  const resG_closed = evaluate({
+    options: optG_open2,
+    loadReport,
+    runRegressionSuite,
+    runGh: ghClosedForPresence,
+    runProc: () => ({ status: 0, stdout: "", stderr: "" }),
+  });
+  const presenceG = resG_closed.evaluations.find((ev) => ev.failed.file === "e2e/presence-list.spec.ts");
+  assert(
+    "G-closed: CLOSED issue rejected as traced",
+    presenceG?.verdict === "untraced" && presenceG?.detail?.includes("CLOSED"),
+  );
+  assert("G-closed: gateOk = false", resG_closed.gateOk === false);
 });
 
 // ─────────────────────────────────────────────────────────────

@@ -77,8 +77,8 @@
   E2E を走らせなかった PR (docs / schema / config 等) は「N/A (e2e 未実行)」と明記。
 -->
 
-- [ ] `npm run test:e2e:regression:json > .tmp/regression-results.json` を実行
-- [ ] `node scripts/verify/regression-trace-check.mjs .tmp/regression-results.json` を実行し exit 0
+- [ ] `node scripts/verify/regression-trace-check.mjs --auto-run` を実行し exit 0
+      (または `npm run --silent test:e2e:regression:json > .tmp/regression-results.json` で file 出力 → `regression-trace-check.mjs .tmp/regression-results.json` でも可。`--silent` を忘れると npm banner で JSON 壊れる)
 - [ ] flake 主張する spec があれば `--flake <path>` で渡し、`frontend/test-results/isolation-<sanitized>.json` に 3x pass 証跡あり
 - [ ] N/A (e2e 未実行 PR / docs / schema / config 専用) — 該当時のみ理由を 1 行明記
 
