@@ -11,7 +11,7 @@ import type Ajv2020 from "ajv/dist/2020";
 import type { Harmony } from "../types/v3/harmony";
 import commonSchema from "../../../schemas/v3/common.v3.schema.json";
 import harmonySchema from "../../../schemas/v3/harmony.v3.schema.json";
-import { buildHarmonyAjv } from "./buildHarmonyAjv";
+import { buildHarmonyAjv } from "@harmony/shared";
 
 let _validateFn: ReturnType<InstanceType<typeof Ajv2020>["compile"]> | null = null;
 

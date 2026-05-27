@@ -7,8 +7,11 @@
  * 参考実装: useDraftRegistry.ts (broadcast 購読 + Map 管理パターン)
  */
 import { useEffect, useRef, useState } from "react";
+import type { ActivityLevel } from "@harmony/shared";
 import { mcpBridge } from "../mcp/mcpBridge";
 import type { DraftResourceType } from "../types/draft";
+
+export type { ActivityLevel };
 
 // ── 型定義 (backend の PresenceEntry と同一 shape) ───────────────────────────
 
@@ -106,17 +109,14 @@ function getStore(): PresenceRegistryStore {
   return window.__presenceRegistryStore;
 }
 
-// ── Activity level 判定 (Phase 5 暫定実装、Phase 7 で env 化予定) ────────────────────
+// ── Activity level 判定 (型は @harmony/shared、関数は frontend 固有の hardcode threshold) ──
 
 /**
- * docs/spec/collab-presence.md § 9 (Activity taxonomy) の 5 段階 level。
- * Phase 7 (#885) で threshold を env config 化予定。Phase 5 では hardcode。
- */
-export type ActivityLevel = "live" | "active" | "idle" | "stale" | "abandoned";
-
-/**
- * PresenceEntry の activity level を判定する純粋関数。
- * Phase 7 で threshold を env から取得するよう変更予定。
+ * PresenceEntry の activity level を判定する純粋関数 (frontend 用)。
+ * `ActivityLevel` 型は frontend / backend で共有のため `@harmony/shared` に集約済 (#1380)。
+ *
+ * 本関数の threshold は Phase 5 暫定の hardcode。Phase 7 (#885) で env config 化予定
+ * (backend 側は既に `presenceConfig` 経由で env-aware、frontend 側は要追従)。
  */
 export function classifyActivity(entry: PresenceEntry, now: Date = new Date()): ActivityLevel {
   const wsAlive = entry.focusAt !== null;

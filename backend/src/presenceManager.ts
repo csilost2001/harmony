@@ -12,8 +12,11 @@
  * - heartbeat の return 型に levelChanged を追加 (broadcast 効率化)
  * - list() の return 型を PresenceEntryWithLevel に変更
  */
+import type { ActivityLevel } from "@harmony/shared";
 import type { DraftResourceType } from "./editSessionStore.js";
 import { presenceConfig } from "./presenceConfig.js";
+
+export type { ActivityLevel };
 
 export type PresenceRole = "editor" | "viewer";
 
@@ -32,13 +35,7 @@ export interface PresenceEntry {
   ownerLabel: string | null;
 }
 
-// ── Activity level 型 (frontend と同一定義) ──────────────────────────────────
-
-/**
- * docs/spec/collab-presence.md § 9 の 5 段階 activity level。
- * backend 側で server-compute して broadcast に attach する。
- */
-export type ActivityLevel = "live" | "active" | "idle" | "stale" | "abandoned";
+// ── Activity level (型は @harmony/shared 経由、classifyActivity は env-aware で backend 固有) ──
 
 /**
  * PresenceEntry に server-side computed activity level を付加した型。

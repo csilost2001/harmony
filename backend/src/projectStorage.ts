@@ -19,7 +19,7 @@ import fsSync from "fs";
 import path from "path";
 import crypto from "node:crypto";
 import type { ValidateFunction } from "ajv";
-import { buildHarmonyAjv } from "./buildHarmonyAjv.js";
+import { buildHarmonyAjv } from "@harmony/shared";
 import { workspaceContextManager } from "./workspaceState.js";
 import { assertPathContained } from "./security/idValidator.js";
 
