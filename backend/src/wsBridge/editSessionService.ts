@@ -40,8 +40,10 @@ import {
   writePageLayout,
   writeScreenItems,
   writeSequence,
+  writeGenericDefinition,
   resolveRoot,
 } from "../projectStorage.js";
+import { assertKind, assertSafeName } from "../security/idValidator.js";
 
 /**
  * broadcast callback (wsBridge.broadcast を inject)。
@@ -342,6 +344,28 @@ export class EditSessionService {
       return { ok: true };
     }
 
+    // #1368 Codex Round 1 Must-fix: commit 前に resource-specific resourceId 整合性を
+    // 検証する。`store.save()` を呼ぶと saveHistory に記録され冪等に戻せないため、
+    // 「保存成功扱いだが本体 file 未書込」になるケースを最終 reject 点として防ぐ。
+    //
+    // Round 3 以降 WS handler (`wsHandlers/editSession.ts:assertResourceId`) と MCP
+    // handler (`handlers/editSession.ts:assertResourceIdForType`) が generic-definition の
+    // composite `${kind}__${name}` を decode して個別検証するようになったため、通常経路で
+    // ここに無効な値は届かない。本 service 直呼びテスト / 将来の経路追加に対する
+    // defense-in-depth として `assertKind` / `assertSafeName` を二重適用する。
+    const sessionPreValidate = store.getById(editSessionId);
+    if (sessionPreValidate && sessionPreValidate.resourceType === "generic-definition") {
+      const resId = sessionPreValidate.resourceId;
+      const sep = resId.indexOf("__");
+      if (sep < 0) {
+        throw new Error(
+          `Invalid generic-definition resourceId: '__' separator not found (got: ${JSON.stringify(resId)})`,
+        );
+      }
+      assertKind(resId.slice(0, sep), "decoded generic-definition kind");
+      assertSafeName(resId.slice(sep + 2), "decoded generic-definition name");
+    }
+
     const saveEvent = await store.save(editSessionId, sessionId);
 
     // 本体 resource file へ atomic write (P1-1, #907 regression 解消)
@@ -395,6 +419,18 @@ export class EditSessionService {
             await writeSequence(resId, payload, root);
             resourceChange = { event: "sequenceChanged", data: { sequenceId: resId } };
             break;
+          case "generic-definition": {
+            // #1368: GenericDefinition の resourceId は frontend で `${kind}/${name}` の `/` を
+            // `__` に置換して `${kind}__${name}` 形式で渡される。pre-validation (save method
+            // 冒頭) で sep>=0 / kind format / name format は確認済のため、ここでは re-parse
+            // のみで安全に decode できる。
+            const sep = resId.indexOf("__");
+            const gdKind = resId.slice(0, sep);
+            const gdName = resId.slice(sep + 2);
+            await writeGenericDefinition(gdName, gdKind, payload, root);
+            resourceChange = { event: "genericDefinitionChanged", data: { kind: gdKind, name: gdName } };
+            break;
+          }
           case "flow":
           case "er-layout":
           case "extension":

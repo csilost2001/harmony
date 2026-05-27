@@ -16,7 +16,6 @@ import {
 } from "../../types/v3";
 import {
   loadGenericDefinition,
-  saveGenericDefinition,
   deleteGenericDefinition,
 } from "../../store/genericDefinitionStore";
 import {
@@ -26,6 +25,7 @@ import {
 import { ValidationBadge } from "../common/ValidationBadge";
 import { makeTabId, openTab } from "../../store/tabStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
+import { SaveConflictDialog, type ConflictInfo } from "../editing/SaveConflictDialog";
 
 function isValidKind(k: string): k is GenericDefinitionKind {
   return (GENERIC_DEFINITION_KINDS as string[]).includes(k);
@@ -60,6 +60,9 @@ export function GenericDefinitionEditor() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [issues, setIssues] = useState<GenericDefinitionIssue[]>([]);
+  // #1368: 他 session が save した際の衝突情報 (spec §9.3 last-save-wins)。
+  // null なら非表示。SaveConflictDialog が render される。
+  const [saveConflict, setSaveConflict] = useState<ConflictInfo | null>(null);
   // Phase J Must-fix B (#1298 round 5 Codex M-2): rename / undo で backend が ref を書き換えた
   // 際に banner を出して user に再 load を促すフラグ。dirty (= 編集中) なら overwrite せず
   // banner 表示、clean なら自動 reload。
@@ -307,6 +310,25 @@ export function GenericDefinitionEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * #1368: save 成功後の共通後処理。
+   * - saveSuccess banner 表示
+   * - initial snapshot 更新 (自分の save 起因の broadcast による reloadBanner 誤発火防止)
+   * - EditSession discard (他 session の rename block を解除)
+   * - saveConflict / reloadBanner state clear
+   */
+  const postSaveSuccess = useCallback((savedDef: GenericDefinition) => {
+    setSaveSuccess(true);
+    initialSnapshotRef.current = JSON.stringify(savedDef);
+    setReloadBanner(false);
+    setSaveConflict(null);
+    // #1331: save 成功後は EditSession を discard。target を snapshot して、await 中の
+    // resource 切替で誤って新 session を消さないようにする (Codex Round 4 Must-fix)。
+    const targetAtSave = currentResourceIdRef.current;
+    discardEditSession(targetAtSave).catch(() => { /* logged inside */ });
+    setTimeout(() => setSaveSuccess(false), 3000);
+  }, [discardEditSession]);
+
   const handleSave = useCallback(async () => {
     if (!def) return;
     setSaveError("");
@@ -328,24 +350,85 @@ export function GenericDefinitionEditor() {
     }
     setSaving(true);
     try {
-      await saveGenericDefinition(def);
-      setSaveSuccess(true);
-      // Phase J B: save 成功後は initial snapshot を現 def で update し、自分の save に
-      // 起因する broadcast (reload event) で reloadBanner が誤発火しないようにする。
-      initialSnapshotRef.current = JSON.stringify(def);
-      setReloadBanner(false);
-      // #1331: save 成功後は EditSession を discard し、他 session の rename block を解除する。
-      // 次の編集で再度 ensureEditSession が走る (lazy)。target を snapshot して、await 中の
-      // resource 切替で誤って新 session を消さないようにする (Codex Round 4 Must-fix)。
-      const targetAtSave = currentResourceIdRef.current;
-      discardEditSession(targetAtSave).catch(() => { /* logged inside */ });
-      setTimeout(() => setSaveSuccess(false), 3000);
+      // #1368: editSession.save 経路で conflict 検出付き save。直接 saveGenericDefinition RPC
+      // を呼ぶ旧 path から切替 (他 8 editor — View / PageLayout / Sequence / Table /
+      // ProcessFlow / Designer / Flow / ScreenItems — と整合)。conflict 時は
+      // SaveConflictDialog 表示で last-save-wins 確認を user に求める (spec §9.3)。
+      //
+      // Flow:
+      //   1. ensureEditSession: active session を取得 (lazy create)。未編集状態で
+      //      save (例: open 直後の force-save) も EditSession を起こす必要があるため
+      //      explicit に呼ぶ。
+      //   2. editSession.update: 現 def を payload として server に push (server payload は
+      //      lazy update 設計のため、save 直前に最新 def を流す必要がある)。
+      //   3. editSession.save: server が in-memory payload を canonical file へ atomic write、
+      //      他 session の save event と sequence 比較で衝突検出。
+      //      - { ok: false, conflict: { other } } 返却時は SaveConflictDialog 表示。
+      //      - 通常成功時は genericDefinitionChanged broadcast 発火 + saveHistory 記録。
+      const sessionId = await ensureEditSession();
+      if (!sessionId) {
+        setSaveError("EditSession を開始できませんでした");
+        return;
+      }
+      await mcpBridge.request("editSession.update", {
+        editSessionId: sessionId,
+        payload: def,
+      });
+      const res = await mcpBridge.request("editSession.save", {
+        editSessionId: sessionId,
+      }) as { ok?: boolean; conflict?: { other: ConflictInfo } } | undefined;
+      if (res && res.ok === false && res.conflict) {
+        setSaveConflict(res.conflict.other);
+        return;
+      }
+      postSaveSuccess(def);
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
-  }, [def, reloadBanner, discardEditSession]);
+  }, [def, reloadBanner, ensureEditSession, postSaveSuccess]);
+
+  /**
+   * #1368 SaveConflictDialog 「上書きする」 path。
+   * editSession.save に force=true を渡して衝突無視 + 強制 commit (last-save-wins)。
+   *
+   * Codex Round 1 Should-fix: handleSave と同じく reloadBanner stale guard を入れる。
+   * conflict dialog 表示中に rename/undo 由来の `genericDefinitionChanged { reload: true }`
+   * が来ると、overwrite click が save-conflict だけでなく reload guard も迂回してしまう。
+   * stale な def を「上書き save」してしまうと、rename 後の正規 state を巻き戻すため block。
+   */
+  const handleSaveOverwrite = useCallback(async () => {
+    if (!def) return;
+    setSaveError("");
+    if (reloadBanner) {
+      setSaveError("外部更新を検出しました。再読み込みしてから保存してください");
+      // 衝突 dialog は閉じて user に reload UI へ誘導する
+      setSaveConflict(null);
+      return;
+    }
+    setSaving(true);
+    try {
+      const sessionId = await ensureEditSession();
+      if (!sessionId) {
+        setSaveError("EditSession を開始できませんでした");
+        return;
+      }
+      await mcpBridge.request("editSession.update", {
+        editSessionId: sessionId,
+        payload: def,
+      });
+      await mcpBridge.request("editSession.save", {
+        editSessionId: sessionId,
+        force: true,
+      });
+      postSaveSuccess(def);
+    } catch (e: unknown) {
+      setSaveError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }, [def, reloadBanner, ensureEditSession, postSaveSuccess]);
 
   const handleDelete = useCallback(async () => {
     if (!kind || !decodedName) return;
@@ -907,6 +990,15 @@ export function GenericDefinitionEditor() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* #1368: 他 session save との衝突検出ダイアログ (spec §9.3 last-save-wins) */}
+      {saveConflict && (
+        <SaveConflictDialog
+          conflict={saveConflict}
+          onOverwrite={() => { handleSaveOverwrite().catch((e) => console.error("[GenericDefinitionEditor] overwrite failed:", e)); }}
+          onCancel={() => setSaveConflict(null)}
+        />
       )}
     </div>
   );

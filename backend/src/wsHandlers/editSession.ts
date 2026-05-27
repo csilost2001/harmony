@@ -8,15 +8,22 @@
  *
  * spec docs/spec/edit-session-protocol.md §14 / §15.1 に準拠。
  * 各 handler は wsBridge の公開 API (editSession*) を adapter として呼び出す。
- * 機能不変 — case body は一字一句変更なし。
+ *
+ * #1368 Round 3: resourceType 別の resourceId 検証 (`assertResourceId`) を新設し、
+ * `generic-definition` の `${kind}__${name}` composite (最大 130 chars) を decode して
+ * 個別検証する分岐を追加。それ以外の resource type は従来通り `assertSafeName` 適用。
  */
 import type { DraftResourceType as EditSessionResourceType } from "../editSessionStore.js";
-import { assertSafeName, assertHistoryId } from "../security/idValidator.js";
+import { assertSafeName, assertHistoryId, assertKind } from "../security/idValidator.js";
 import type { RpcHandlerMap } from "./types.js";
 
 const VALID_RESOURCE_TYPES = new Set<EditSessionResourceType>([
   "screen", "puck-data", "table", "process-flow", "view", "view-definition",
   "page-layout", "screen-item", "sequence", "extension", "convention", "flow", "er-layout",
+  // #1368: GenericDefinition EditSession 統合 — frontend GenericDefinitionEditor が
+  // `editSession.create` に `resourceType: "generic-definition"` を送るため allowlist に追加。
+  // editSessionStore.ts DraftResourceType と同期 (#1331 で追加済)。
+  "generic-definition",
 ]);
 
 function assertResourceType(rt: unknown, label: string): EditSessionResourceType {
@@ -24,6 +31,43 @@ function assertResourceType(rt: unknown, label: string): EditSessionResourceType
     throw new Error(`Invalid ${label}: unknown resource type (got ${JSON.stringify(rt)})`);
   }
   return rt as EditSessionResourceType;
+}
+
+/**
+ * #1368 Round 3: resourceType 別の resourceId validation。
+ *
+ * 多くの resource type (screen / table / process-flow / view 等) は resourceId が
+ * `[A-Za-z0-9_-]{1,64}` の単体 id なので `assertSafeName` で十分。
+ *
+ * 一方 `generic-definition` の resourceId は frontend で `${kind}/${name}` の `/` を
+ * `__` 置換した composite `${kind}__${name}` 形式 (assertSafeName が `/` を許容しないため)。
+ * 合計長は最大 64 (kind) + 2 (`__`) + 64 (name) = 130 chars に達し、assertSafeName の
+ * 64 char 上限を超えるため、合成 ID 全体に `assertSafeName` を掛けると schema-valid な
+ * 長い name が reject される (Codex Round 3 Must-fix)。
+ *
+ * `generic-definition` のみ `__` で分割して decoded kind / name を個別に
+ * `assertKind` / `assertSafeName` で検証する。
+ */
+function assertResourceId(
+  resourceType: EditSessionResourceType,
+  resourceId: unknown,
+  label: string,
+): string {
+  if (typeof resourceId !== "string") {
+    throw new Error(`Invalid ${label}: must be string (got ${typeof resourceId})`);
+  }
+  if (resourceType === "generic-definition") {
+    const sep = resourceId.indexOf("__");
+    if (sep < 0) {
+      throw new Error(
+        `Invalid ${label}: generic-definition resourceId must be '\${kind}__\${name}' (got ${JSON.stringify(resourceId)})`,
+      );
+    }
+    assertKind(resourceId.slice(0, sep), `${label} (decoded kind)`);
+    assertSafeName(resourceId.slice(sep + 2), `${label} (decoded name)`);
+    return resourceId;
+  }
+  return assertSafeName(resourceId, label);
 }
 
 export const editSessionHandlers: RpcHandlerMap = {
@@ -40,7 +84,7 @@ export const editSessionHandlers: RpcHandlerMap = {
     };
     try {
       const validatedRt = assertResourceType(esRt, "resourceType");
-      assertSafeName(esRid, "resourceId");
+      assertResourceId(validatedRt, esRid, "resourceId");
       const result = bridge.editSessionCreate(clientId, validatedRt, esRid, esLabel);
       respond(result);
     } catch (e) {
@@ -159,8 +203,16 @@ export const editSessionHandlers: RpcHandlerMap = {
       resourceId: esLstRid,
     } = (params ?? {}) as { resourceType?: EditSessionResourceType; resourceId?: string };
     try {
-      if (esLstRt !== undefined) assertResourceType(esLstRt, "resourceType");
-      if (esLstRid !== undefined) assertSafeName(esLstRid, "resourceId");
+      let validatedRt: EditSessionResourceType | undefined;
+      if (esLstRt !== undefined) validatedRt = assertResourceType(esLstRt, "resourceType");
+      if (esLstRid !== undefined) {
+        // #1368 Round 3: rt 既知なら resource-specific validation、未知なら safe-name fallback
+        if (validatedRt !== undefined) {
+          assertResourceId(validatedRt, esLstRid, "resourceId");
+        } else {
+          assertSafeName(esLstRid, "resourceId");
+        }
+      }
       const result = bridge.editSessionList(clientId, { resourceType: esLstRt, resourceId: esLstRid });
       respond(result);
     } catch (e) {
@@ -187,8 +239,9 @@ export const editSessionHandlers: RpcHandlerMap = {
       resourceId: esLhRid,
     } = (params ?? {}) as { resourceType: string; resourceId: string };
     try {
-      assertResourceType(esLhRt, "resourceType");
-      assertSafeName(esLhRid, "resourceId");
+      const validatedLhRt = assertResourceType(esLhRt, "resourceType");
+      // #1368 Round 3: resource-specific validation で long composite generic-definition も accept
+      assertResourceId(validatedLhRt, esLhRid, "resourceId");
       const result = await bridge.editSessionListHistory(clientId, esLhRt, esLhRid);
       respond(result);
     } catch (e) {
