@@ -10,12 +10,25 @@ export default defineConfig({
   testDir: "./e2e",
   // e2e/__fixtures__/builders/*.test.ts は Vitest テストのため Playwright から除外
   testMatch: /.*\.spec\.ts$/,
+  // #1359: lockdown-routing.spec.ts は専用 config (playwright.lockdown.config.ts) で
+  // backend を `DESIGNER_DATA_DIR` 付き lockdown モードで起動した状態でのみ通る。
+  // 主 config の backend は通常モードのため本 spec は必ず fail する → 主 config から除外。
+  // 実行は `npm run test:e2e:lockdown` で別途。
+  testIgnore: /lockdown-routing\.spec\.ts$/,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   // #930: @endurance はデフォルトで除外、明示 grep または E2E_INCLUDE_ENDURANCE=1 で実行
   grepInvert: includeEndurance ? undefined : /@endurance/,
   retries: process.env.CI ? 1 : 0,
-  workers: 1,
+  // #1359 Phase 3: 並列 worker 数を 2 に既定化 (旧: workers: 1)。
+  // Phase 1 (固定 path → worker prefix 化) + Phase 2 (recentStore atomic write による
+  // workers > 1 race 解消) + tab-management の dispatchEvent fallback 整備で workers=2
+  // 並列実行に必要な infra が整った。実機計測 (workers=2) で fail 数は本シリーズ前の
+  // 11 → 6 まで減少、残 6 件は #1342 の pre-existing fail (step-ops×2 / folder-picker×3 +
+  // 偶発 flake×1) で本シリーズスコープ外。`undefined` で CPU 数依存 auto-detect ではなく
+  // 明示 `2` を採用したのは、開発機 CPU 数によるばらつきを排し runtime 性質を再現可能に
+  // するため。CI 化される将来は `process.env.CI ? 4 : 2` 等への調整余地あり。
+  workers: 2,
   reporter: "list",
   use: {
     baseURL: BASE_URL,

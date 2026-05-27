@@ -170,13 +170,11 @@ const TMP_ROOT = path.join(REPO_ROOT, ".tmp", "e2e-workspaces");
  * 完全隔離した結果、`buildMinimalProject` の Harmony.meta.id は固定値のまま (storage が
  * worker 別 directory に分かれているため EntityId 重複は別 namespace 上の同名扱いとなり問題なし)。
  *
- * **本 helper のスコープ**: `tempWorkspacePath` 経由の fixture (`setupTestWorkspace` /
- * `copyExampleWorkspace` で生成される workspace) のみ worker 並列化に対応。
- * `LOCKDOWN_WORKSPACE` (lockdown-routing.spec.ts)、`FIXTURE_ROOT` (workspace-folder-picker.spec.ts)
- * 等の本 helper を経由しない固定 path、および backend per-clientId activePath race は
- * **本 helper のスコープ外**で、これらの workers > 1 対応は follow-up #1359 で別途対応する。
+ * #1359: 本 export を `workspaceFixture.ts` 経由で `workspace-folder-picker.spec.ts` 等の
+ * 本 helper 非経由 spec にも提供し、同種の prefix を任意 e2e fixture path に適用できるよう
+ * にした (workers > 1 で並列実行可能な範囲を拡大)。
  */
-function currentWorkerIndex(): string {
+export function currentWorkerIndex(): string {
   return process.env.TEST_WORKER_INDEX ?? "0";
 }
 

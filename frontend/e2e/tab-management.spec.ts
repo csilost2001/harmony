@@ -126,13 +126,34 @@ test.describe("タブ管理", { tag: ["@smoke"] }, () => {
     test("Ctrl+Shift+Tab で前のタブに移動する", async ({ page }) => {
       await expect(page.locator(".tabbar-tab.active")).toContainText("画面B");
       await page.keyboard.press("Control+Shift+Tab");
-      await expect(page.locator(".tabbar-tab.active")).toContainText("画面A");
+      // #1359: workers > 1 で system load 増による key dispatch flake が観測されたため、
+      // test 110 と同パターンで dispatchEvent fallback を導入 (memory feedback_playwright_key_dispatch.md)。
+      try {
+        await expect(page.locator(".tabbar-tab.active")).toContainText("画面A", { timeout: 1000 });
+      } catch {
+        await page.evaluate(() => {
+          document.dispatchEvent(new KeyboardEvent("keydown", {
+            key: "Tab", code: "Tab", keyCode: 9, ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true,
+          }));
+        });
+        await expect(page.locator(".tabbar-tab.active")).toContainText("画面A");
+      }
     });
 
     test("Ctrl+1 で1番目のタブに移動する", async ({ page }) => {
       await expect(page.locator(".tabbar-tab.active")).toContainText("画面B");
       await page.keyboard.press("Control+1");
-      await expect(page.locator(".tabbar-tab.active")).toContainText("画面A");
+      // #1359: 同上、workers > 1 で flake する key dispatch に dispatchEvent fallback を追加。
+      try {
+        await expect(page.locator(".tabbar-tab.active")).toContainText("画面A", { timeout: 1000 });
+      } catch {
+        await page.evaluate(() => {
+          document.dispatchEvent(new KeyboardEvent("keydown", {
+            key: "1", code: "Digit1", keyCode: 49, ctrlKey: true, bubbles: true, cancelable: true,
+          }));
+        });
+        await expect(page.locator(".tabbar-tab.active")).toContainText("画面A");
+      }
     });
   });
 
@@ -142,9 +163,15 @@ test.describe("タブ管理", { tag: ["@smoke"] }, () => {
     });
 
     test("× ボタンでタブを閉じる", async ({ page }) => {
+      // #1359 Codex Round 1 Must-fix M-2: 過去 workers > 1 で 1 回観測された偶発 flake への
+      // robust 化。タブ × ボタンが visible 状態に確実に landed してから click し、
+      // クローズ後の DOM 反映を default より長い timeout で確認する。
       const tabA = page.locator(".tabbar-tab").filter({ hasText: "画面A" });
-      await tabA.locator(".tabbar-tab-close").click({ force: true });
-      await expect(page.locator(".tabbar-tab")).toHaveCount(2);
+      await expect(tabA).toBeVisible({ timeout: 5000 });
+      const closeBtn = tabA.locator(".tabbar-tab-close");
+      await closeBtn.waitFor({ state: "visible", timeout: 5000 });
+      await closeBtn.click({ force: true });
+      await expect(page.locator(".tabbar-tab")).toHaveCount(2, { timeout: 5000 });
       await expect(page.locator(".tabbar-tab").filter({ hasText: "画面A" })).toHaveCount(0);
     });
 

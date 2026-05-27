@@ -2,10 +2,15 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { lockdownWorkspacePath } from "./helpers/workspaceFixture.ts";
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(THIS_DIR, "../..");
-const LOCKDOWN_WORKSPACE = path.join(REPO_ROOT, ".tmp", "e2e-workspaces", "lockdown-routing");
+// #1359 Round 1 M-1: workspaceFixture.ts:lockdownWorkspacePath() は **worker index 非依存
+// の stable path** を返す。lockdown config (playwright.lockdown.config.ts) と本 spec の
+// path 構築を単一 source of truth に集約しつつ、controller process (`TEST_WORKER_INDEX`
+// 未設定) と CI retry 後の spec worker (`TEST_WORKER_INDEX=1+`) の path mismatch を排除する。
+const LOCKDOWN_WORKSPACE = lockdownWorkspacePath();
 
 test.describe("lockdown routing", { tag: ["@regression"] }, () => {
   test.beforeAll(async () => {

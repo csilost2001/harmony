@@ -92,8 +92,24 @@ export async function readRecent(): Promise<RecentFile> {
 }
 
 async function writeRecent(file: RecentFile): Promise<void> {
+  // #1359: atomic write via tmp + rename。
+  // 旧実装 `fs.writeFile(target, ...)` は O_TRUNC で target を 0 bytes に切り詰めてから
+  // 書き戻すため、同一 backend に並行接続する複数 worker (Playwright workers > 1) の片方が
+  // 書き込み中に他方が `readRecent` (lock-less) で読むと、空ファイル / 部分 JSON を読み込み
+  // → JSON.parse 例外 → catch で emptyFile() を返す → `findById(wsId)` が null → e2e で
+  // "id <wsId> のワークスペースが見つかりません" エラーが頻発していた。
+  // tmp file への write 後 rename することで reader からは旧 file → 新 file の atomic 切替に
+  // 見え、part-write 読み出しを排除する (POSIX rename(2) は同 fs 内で atomic)。
   await fs.mkdir(recentDir(), { recursive: true });
-  await fs.writeFile(recentFile(), JSON.stringify(file, null, 2), "utf-8");
+  const target = recentFile();
+  const tmp = `${target}.tmp-${process.pid}-${Date.now()}-${randomUUID()}`;
+  try {
+    await fs.writeFile(tmp, JSON.stringify(file, null, 2), "utf-8");
+    await fs.rename(tmp, target);
+  } catch (err) {
+    await fs.unlink(tmp).catch(() => undefined);
+    throw err;
+  }
 }
 
 function normalizePath(p: string): string {
