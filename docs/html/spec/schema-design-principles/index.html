@@ -448,6 +448,7 @@
 <ul>
 <li>ID は <strong>kebab-case + 階層化 (ハイフン区切り)</strong> が基本</li>
 <li>RFC #1284 / #1332: 全 top-level entity (ProcessFlow / Screen / Table / Sequence / View / ViewDefinition / PageLayout) の <code>id</code> は kebab-case <code>EntityId</code> に統一。不変識別子は別フィールド <code>meta.uuid: Uuid</code> (UUID v4) に保持し、外部システムからの一意参照は uuid 側を使用する</li>
+<li>派生決定 #1327: <code>harmony.json</code> の <code>entries.*[]</code> (<code>EntryBase</code>) は entity 本体の表示用 projection。<strong>id のみ持ち、uuid は schema 上重複保持しない</strong> (uuid の source of truth は entity 本体ファイルの <code>root.uuid</code> / <code>meta.uuid</code> 単独)。entry に uuid を持たせない理由は単一 source of truth 維持 / I-6 rename refactor で entry.uuid 不要 / frontend で entry.uuid 参照 0 件 / AI 中心運用での冗長性回避。詳細根拠と将来再検討条件は <a href="../../spec/schema-v3-design/"><code>schema-v3-design.md</code></a> §2.1 / <code>schemas/v3/harmony.v3.schema.json</code> の <code>EntryBase</code> description を参照</li>
 <li>数字部分は ゼロパディング (<code>001</code>, <code>02</code>) を推奨 (ソート時の自然順を維持)</li>
 <li>Step ID の階層 (<code>step-13-01</code> / <code>step-13b-a-01</code>) は parent step の ID に suffix を付ける形を推奨</li>
 <li>schema 上は <code>type: "string"</code> のままで、<strong>pattern は強制しない</strong> (実装制約・参照整合性バリデータで担保)</li>
@@ -456,6 +457,7 @@
 <ul>
 <li>「全 ID を UUID に統一」: 人間可読性が失われ、レビュー時の認知負荷が大きい</li>
 <li>「step-id に pattern 制約を付ける」: 既存 sample が壊れる可能性、運用 convention で十分</li>
+<li>「entry レベル (<code>entries.*[]</code>) にも uuid required を追加」(#1327 で検討): entity 本体との二重定義 drift リスク / AI のコピペミス源 / I-6 rename refactor の現実装で不要 / 一覧 UI で参照 0 件 — メリットが冗長性コストを上回らないため不採用</li>
 </ul>
 <h3 id="25-discriminator-フィールド名-type-vs-kind">2.5 Discriminator フィールド名 (<code>type</code> vs <code>kind</code>)</h3>
 <p>union 型の variant を識別する <strong>discriminator フィールド</strong> は 2 つの命名が共存する:</p>
