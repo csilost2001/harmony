@@ -38,6 +38,18 @@ describe("checkRequestOrigin", () => {
     expect(checkRequestOrigin(req)).toBeNull();
   });
 
+  // #1342 Proposal A: lockdown e2e config (playwright.lockdown.config.ts) は
+  // 5183/5189 を使うため、5183 系 Origin も allowlist に含まれる。
+  it("正常: Origin あり + allowlist 内 (localhost:5183, lockdown e2e) → null", () => {
+    const req = makeReq({ origin: "http://localhost:5183", host: "localhost:5189" });
+    expect(checkRequestOrigin(req)).toBeNull();
+  });
+
+  it("正常: Origin あり + allowlist 内 (127.0.0.1:5183, lockdown e2e) → null", () => {
+    const req = makeReq({ origin: "http://127.0.0.1:5183", host: "localhost:5189" });
+    expect(checkRequestOrigin(req)).toBeNull();
+  });
+
   it("異常: Origin あり + allowlist 外 → 拒否文字列を返す", () => {
     const req = makeReq({ origin: "http://evil.com", host: "localhost:5179" });
     const result = checkRequestOrigin(req);
