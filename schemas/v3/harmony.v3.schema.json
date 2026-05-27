@@ -172,7 +172,7 @@
   "$defs": {
 
     "EntryBase": {
-      "description": "entities.* 配列要素の共通プロパティ。一覧 UI が表示する最小メタ。",
+      "description": "entities.* 配列要素の共通プロパティ。一覧 UI が表示する最小メタ (entity 本体ファイルの projection)。RFC #1284 / メタ #1292 派生決定 #1327 で **entry レベルに uuid を重複保持しない** ことを確定。理由: (1) entity 本体ファイル (`<dataDir>/<kind>/<id>.json` の root.uuid または meta.uuid) が uuid の単一 source of truth、(2) rename refactor (#1298 I-6) は entry の `.id` のみ書き換える実装で完了済 (`backend/src/renameEntity.ts:rewriteHarmonyEntitiesId`)、entry.uuid を必要としない、(3) frontend UI は id + name で完結し uuid 表示なし、(4) AI による JSON 編集 / コード生成のいずれも entry.uuid を参照しないため冗長性は AI のコピペミス源となるのみ。将来 audit / merge ツールが harmony.json 単独で uuid identity 追跡を必要とする場合は EntryBase に uuid を追加するか別途検討する (今は導入しない)。",
       "type": "object",
       "required": ["id", "no", "name", "updatedAt"],
       "properties": {

@@ -339,6 +339,16 @@
 <li>maturity が全 entity で持てる (現状は ProcessFlow / Action / Step のみ)</li>
 <li>AI 実装者は EntityMeta を 1 度学習すれば全 entity を読める</li>
 </ul>
+<h4 id="entry-レベル-harmonyjson-entities-に-uuid-を持たない理由-1327-派生決定">entry レベル (harmony.json <code>entities.*[]</code>) に uuid を持たない理由 (#1327 派生決定)</h4>
+<p><code>harmony.v3.schema.json</code> の <code>EntryBase</code> は <strong>entity 本体の表示用 projection</strong> であり、<code>id</code> のみで entity を参照する (uuid を重複保持しない)。これは RFC #1284 / メタ #1292 の派生決定 <a href="https://github.com/csilost2001/harmony/issues/1327">#1327</a> で確定。</p>
+<p>理由:</p>
+<ol>
+<li><strong>単一 source of truth</strong>: uuid は entity 本体ファイル (<code>&#x3C;dataDir>/&#x3C;kind>/&#x3C;id>.json</code> の <code>root.uuid</code> または ProcessFlow の <code>meta.uuid</code>) が唯一の source。entry に重複保持すると同期 invariant の維持コストが発生する。</li>
+<li><strong>rename refactor (#1298 I-6) で不要</strong>: <code>backend/src/renameEntity.ts:rewriteHarmonyEntitiesId</code> は entry の <code>.id</code> のみ書き換える実装で完了済。entry.uuid 無しで uuid 不変性保証 (entity 本体 file の root.uuid を rename 後に再読込して assert) が機能している。</li>
+<li><strong>UI で uuid 不使用</strong>: 一覧 UI は id + name で完結。frontend grep でも entry.uuid 参照は 0 件 (内部の immutability 保護として entity 本体読込時に扱うのみ)。</li>
+<li><strong>AI 中心運用での冗長性回避</strong>: AI が JSON を作成 / 編集 / コード生成する際に entry.uuid を参照する場面が無く、「同じ uuid を 2 箇所に書く」要件は AI のコピペミス源となる。</li>
+</ol>
+<p>将来 audit / merge ツールが harmony.json 単独で uuid identity 追跡を必要とする場合は <code>EntryBase</code> に uuid 追加を再検討する (現時点では導入しない)。</p>
 <h3 id="22-参照規範を-4-パターンに統一">2.2 参照規範を 4 パターンに統一</h3>
 <h4 id="pattern-a-entityid-entityid--top-level-entity-単独参照">Pattern A: <code>&#x3C;entity>Id: EntityId</code> — top-level entity 単独参照</h4>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"screenId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"$ref"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"common.v3.schema.json#/$defs/EntityId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> }</span></span>

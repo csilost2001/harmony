@@ -196,6 +196,19 @@ UPPER (DataType / DbOperation / 等) と lowercase (SqlDialect / IndexMethod) �
 - maturity が全 entity で持てる (現状は ProcessFlow / Action / Step のみ)
 - AI 実装者は EntityMeta を 1 度学習すれば全 entity を読める
 
+#### entry レベル (harmony.json `entities.*[]`) に uuid を持たない理由 (#1327 派生決定)
+
+`harmony.v3.schema.json` の `EntryBase` は **entity 本体の表示用 projection** であり、`id` のみで entity を参照する (uuid を重複保持しない)。これは RFC #1284 / メタ #1292 の派生決定 [#1327](https://github.com/csilost2001/harmony/issues/1327) で確定。
+
+理由:
+
+1. **単一 source of truth**: uuid は entity 本体ファイル (`<dataDir>/<kind>/<id>.json` の `root.uuid` または ProcessFlow の `meta.uuid`) が唯一の source。entry に重複保持すると同期 invariant の維持コストが発生する。
+2. **rename refactor (#1298 I-6) で不要**: `backend/src/renameEntity.ts:rewriteHarmonyEntitiesId` は entry の `.id` のみ書き換える実装で完了済。entry.uuid 無しで uuid 不変性保証 (entity 本体 file の root.uuid を rename 後に再読込して assert) が機能している。
+3. **UI で uuid 不使用**: 一覧 UI は id + name で完結。frontend grep でも entry.uuid 参照は 0 件 (内部の immutability 保護として entity 本体読込時に扱うのみ)。
+4. **AI 中心運用での冗長性回避**: AI が JSON を作成 / 編集 / コード生成する際に entry.uuid を参照する場面が無く、「同じ uuid を 2 箇所に書く」要件は AI のコピペミス源となる。
+
+将来 audit / merge ツールが harmony.json 単独で uuid identity 追跡を必要とする場合は `EntryBase` に uuid 追加を再検討する (現時点では導入しない)。
+
 ### 2.2 参照規範を 4 パターンに統一
 
 #### Pattern A: `<entity>Id: EntityId` — top-level entity 単独参照
