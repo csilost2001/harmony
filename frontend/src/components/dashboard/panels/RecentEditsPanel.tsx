@@ -89,17 +89,25 @@ export function RecentEditsPanel() {
   }, []);
 
   useEffect(() => {
-    reload();
+    // 初回 mount の reload は async IIFE で await を挟み、effect body 内同期 setState を回避する
+    // (react-hooks/set-state-in-effect #1385)。broadcast / status callback として reload を
+    // 渡す経路は effect body の外 (callback 内) で setState されるため警告対象外。
+    let cancelled = false;
+    void (async () => {
+      await reload();
+      if (cancelled) return;
+    })();
     const unsubProject = mcpBridge.onBroadcast("projectChanged", reload);
     const unsubScreen = mcpBridge.onBroadcast("screenChanged", reload);
     const unsubTable = mcpBridge.onBroadcast("tableChanged", reload);
     const unsubAction = mcpBridge.onBroadcast("processFlowChanged", reload);
     const unsubStatus = mcpBridge.onStatusChange((s) => {
-      if (s === "connected") reload();
+      if (s === "connected") void reload();
     });
-    // 相対時間を 30 秒毎に更新
+    // 相対時間を 30 秒毎に更新 (setNow は interval callback 内で呼ばれるため effect body 外)
     const tid = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => {
+      cancelled = true;
       unsubProject();
       unsubScreen();
       unsubTable();

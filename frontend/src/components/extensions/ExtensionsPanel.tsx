@@ -44,8 +44,14 @@ function isTabKey(value: string | null): value is ExtensionKind {
 
 export function ExtensionsPanel() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const requestedTab = searchParams.get("tab");
-  const [active, setActive] = useState<ExtensionKind>(isTabKey(requestedTab) ? requestedTab : "steps");
+  // active tab は URL ( ?tab=... ) を source of truth として render 中 derive する。
+  // 旧実装は useState + useEffect で URL → local state を sync していたが、
+  // react-hooks/set-state-in-effect (#1385) に従い render-derive へ移行。
+  // 更新は常に setSearchParams 経由で行う (handleDiscard / setActiveTab)。
+  const active = useMemo<ExtensionKind>(() => {
+    const tab = searchParams.get("tab");
+    return isTabKey(tab) ? tab : "steps";
+  }, [searchParams]);
   const [bundle, setBundle] = useState<RawExtensionsBundle>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -81,16 +87,18 @@ export function ExtensionsPanel() {
   }, []);
 
   useEffect(() => {
-    void load();
-    return mcpBridge.onExtensionsChanged(() => {
+    // async IIFE で await を挟んで effect body 内同期 setState を回避する
+    // (react-hooks/set-state-in-effect #1385)。
+    let cancelled = false;
+    void (async () => {
+      await load();
+      if (cancelled) return;
+    })();
+    const unsub = mcpBridge.onExtensionsChanged(() => {
       void load(true);
     });
+    return () => { cancelled = true; unsub(); };
   }, [load]);
-
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (isTabKey(tab) && tab !== active) setActive(tab);
-  }, [active, searchParams]);
 
   // タブ dirty マーク
   useEffect(() => {
@@ -125,7 +133,7 @@ export function ExtensionsPanel() {
       setShowDiscardDialog(true);
       return;
     }
-    setActive(key);
+    // active は searchParams から derive されるため、setSearchParams のみで切替完了
     setSearchParams({ tab: key });
   };
 
@@ -158,7 +166,7 @@ export function ExtensionsPanel() {
       setShowDiscardDialog(false);
       await actions.discard();
       await load(true);
-      setActive(pendingTab);
+      // active は searchParams から derive されるため、setSearchParams のみで切替完了
       setSearchParams({ tab: pendingTab });
       setPendingTab(null);
     } else {

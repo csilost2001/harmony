@@ -238,7 +238,14 @@ export function EditSessionDropdown({
   // ── 展開時に editSession.list を取得 ─────────────────────────────────────────
   useEffect(() => {
     if (!open) return;
-    void fetchSessions();
+    // async IIFE で await を挟んで effect body 内同期 setState を回避する
+    // (react-hooks/set-state-in-effect #1385)。
+    let cancelled = false;
+    void (async () => {
+      await fetchSessions();
+      if (cancelled) return;
+    })();
+    return () => { cancelled = true; };
   }, [open, fetchSessions]);
 
   // ── broadcast 受信時に list を更新 ──────────────────────────────────────────

@@ -23,27 +23,27 @@ interface PendingLogin {
 
 export function CodexSettingsView() {
   const { status, refresh } = useCodexStatus();
-  const [pendingLogin, setPendingLogin] = useState<PendingLogin | null>(null);
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const [pendingLoginState, setPendingLogin] = useState<PendingLogin | null>(null);
+  const [loginErrorState, setLoginError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [rateLimits, setRateLimits] = useState<GetAccountRateLimitsResponse | null>(null);
-  const [rateLimitsError, setRateLimitsError] = useState<string | null>(null);
+  const [rateLimitsState, setRateLimits] = useState<GetAccountRateLimitsResponse | null>(null);
+  const [rateLimitsErrorState, setRateLimitsError] = useState<string | null>(null);
 
-  // 認証状態が変わったら pending login を解除
-  useEffect(() => {
-    if (status.kind === "authenticated") {
-      setPendingLogin(null);
-      setLoginError(null);
-    }
-  }, [status.kind]);
+  // 認証済みのときは pending login / login error / rate limits を持たないものとして表示する。
+  // 旧実装は effect 内で setState して state 自体を clear していたが、
+  // react-hooks/set-state-in-effect (#1385) に従い render 中 derive へ移行。
+  // pending login / login error: authenticated になった時に画面表示上不要。
+  // rate limits: authenticated でない時は無意味なので null として扱う。
+  const isAuthenticated = status.kind === "authenticated";
+  const pendingLogin = isAuthenticated ? null : pendingLoginState;
+  const loginError = isAuthenticated ? null : loginErrorState;
+  const rateLimits = isAuthenticated ? rateLimitsState : null;
+  const rateLimitsError = isAuthenticated ? rateLimitsErrorState : null;
 
-  // 認証済みになったら rate limits を読む
+  // 認証済みになったら rate limits を読む (fetch は副作用のため effect で実行)。
+  // setState は async callback 内のみで、effect body 内同期 setState は行わない。
   useEffect(() => {
-    if (status.kind !== "authenticated") {
-      setRateLimits(null);
-      setRateLimitsError(null);
-      return;
-    }
+    if (status.kind !== "authenticated") return;
     let alive = true;
     codexClient.account
       .rateLimits()

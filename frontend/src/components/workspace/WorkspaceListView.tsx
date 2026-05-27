@@ -79,9 +79,13 @@ function buildPlaceholder(host: HostInfo | null): string {
 
 export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps) {
   const [path, setPath] = useState("");
-  const [status, setStatus] = useState<InspectStatus>("idle");
-  const [inspectName, setInspectName] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // status / inspectName / errorMsg は path が空のとき "idle" / null 扱いを render 中 derive で
+  // 強制し、effect 内同期 setState を回避する (react-hooks/set-state-in-effect #1385)。
+  // runInspect / handler は path 非空のときのみ意味のある値をセットするため、空時の clear は
+  // derive (`trimmedPath ? state : "idle"`) で表現できる。
+  const [statusState, setStatus] = useState<InspectStatus>("idle");
+  const [inspectNameState, setInspectName] = useState<string | null>(null);
+  const [errorMsgState, setErrorMsg] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [host, setHost] = useState<HostInfo | null>(null);
   const [showRecent, setShowRecent] = useState(false);
@@ -91,6 +95,12 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
   const inputRef = useRef<HTMLInputElement | null>(null);
   // 同一画面に複数 dialog が同時表示される将来拡張に備え、global ID 衝突を避けて useId で一意化
   const dropdownId = useId();
+
+  // path 空時は status を強制 idle にする render-derive (effect 内同期 setState 回避)
+  const trimmedPath = path.trim();
+  const status: InspectStatus = trimmedPath ? statusState : "idle";
+  const inspectName: string | null = trimmedPath ? inspectNameState : null;
+  const errorMsg: string | null = trimmedPath ? errorMsgState : null;
 
   // recent workspace 一覧 (store から取得、substring-match で suggest)
   const recentWorkspaces = getState().workspaces;
@@ -141,10 +151,9 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
     // 新 path の UI を上書きしないよう seq を bump して旧結果を破棄する。
     // 空入力 / 非空入力切替 / 非空 → 非空切替 すべての race window をカバー。
     inflightSeqRef.current++;
+    // path 空時の "idle" 強制表示は render-derive (status / inspectName / errorMsg) で行う
+    // ため、effect 内の同期 setState は不要 (react-hooks/set-state-in-effect #1385)。
     if (!path.trim()) {
-      setStatus("idle");
-      setInspectName(null);
-      setErrorMsg(null);
       return;
     }
     debounceRef.current = window.setTimeout(() => {
