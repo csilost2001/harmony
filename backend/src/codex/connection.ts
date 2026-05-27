@@ -1,4 +1,5 @@
 import { CodexClient, type CodexClientOptions } from "./client.js";
+import type { CloseOptions } from "./transport.js";
 import { AccountManager } from "./account.js";
 import { loadCodexConfig, type CodexConfig } from "./config.js";
 import { JsonRpcError } from "./jsonRpc.js";
@@ -210,13 +211,13 @@ export class CodexConnection {
 
   // ── Close ─────────────────────────────────────────────────────────────────
 
-  async close(): Promise<void> {
+  async close(opts?: CloseOptions): Promise<void> {
     const client = this._client;
     this._client = null;
     this._connecting = null;
     if (client) {
       try {
-        await client.close();
+        await client.close(opts);
       } catch { /* ignore close errors */ }
       this._broadcastConnectionState("disconnected");
     }

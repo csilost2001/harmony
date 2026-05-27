@@ -273,7 +273,7 @@ VITE vX.X.X  ready in XXX ms
 - `GitHub Copilot` (拡張機能パネルで「Install in WSL: Ubuntu」ボタン)
 - `Docker` (任意)
 
-VSCode 内蔵ターミナルが bash で開くようになる。`npm run dev` も VSCode 内ターミナルで起動可能。
+VSCode 内蔵ターミナルが bash で開くようになる。`npm run backend` / `npm run frontend` も VSCode 内ターミナルで起動可能 (#1400)。
 
 #### 成功確認
 - [ ] ステータスバー左下が `WSL: Ubuntu` 表示

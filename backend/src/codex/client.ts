@@ -1,6 +1,7 @@
 import { setTimeout as setTimeoutPromise } from "node:timers/promises";
 import { JsonRpcClient, JsonRpcError } from "./jsonRpc.js";
 import {
+  type CloseOptions,
   JsonRpcTransport,
   StdioTransport,
   WebSocketTransport,
@@ -103,8 +104,8 @@ export class CodexClient {
     this.rpc.notify(method, params);
   }
 
-  async close(): Promise<void> {
-    await this.rpc.close();
+  async close(opts?: CloseOptions): Promise<void> {
+    await this.rpc.close(opts);
   }
 }
 

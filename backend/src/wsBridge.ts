@@ -314,9 +314,12 @@ export class WsBridge extends EventEmitter {
     presenceStopCleanupInterval();
     this.stopEditSessionCleanup();
     // Close Codex connection if it was opened (#867)
-    // 孫プロセス (codex app-server) の終了を必ず待つ (#1400)
+    // 孫プロセス (codex app-server) の終了を必ず待つ (#1400)。
+    // shutdown context では graceful 5s/10s を待たず、短縮 timer で確実に kill する
+    // (親 safeguard 3 秒 + tsx watch 5 秒 force-kill より早く Codex 孫が確定的に死ぬよう、
+    // SIGTERM 500ms → SIGKILL 1500ms の積極的な timeline を渡す)。
     try {
-      await this.codex.close();
+      await this.codex.close({ sigtermDelayMs: 500, sigkillDelayMs: 1500 });
     } catch { /* ignore close errors */ }
     if (this.wss) {
       for (const client of this.wss.clients) {
