@@ -1,7 +1,7 @@
 ---
 name: release-review
-description: リリース前の徹底レビュー — 8 軸 × 複数巡で repo をしらみつぶしに自律監査し、findings を auto-fix / ISSUE 化 / spec-pending に分類して 24h 規模で進める。ユーザー睡眠中も自己再帰で稼働。
-argument-hint: [--branch <name>] [--max-issues <N>] [--exclude-axes <csv>] [--max-hours <N>] [--resume] [--restart] [--bypass <reason_key>]
+description: "リリース前の徹底レビュー — 8 軸 × 複数巡で repo をしらみつぶしに自律監査し、findings を auto-fix / ISSUE 化 / spec-pending に分類して 24h 規模で進める。ユーザー睡眠中も自己再帰で稼働。"
+argument-hint: "[--branch <name>] [--max-issues <N>] [--exclude-axes <csv>] [--max-hours <N>] [--resume] [--restart] [--bypass <reason_key>]"
 disable-model-invocation: true
 ---
 
