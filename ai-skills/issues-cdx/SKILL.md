@@ -176,12 +176,13 @@ EOF
 
 ### 7-1: cdx review の起動
 
-**stdin 必須クローズ** (`</dev/null`) — これを忘れると codex が stdin 待ちで永久 hang する (今回学んだ):
+**stdin 必須クローズ** (`</dev/null`) + **`timeout 1500` 必須** — これを忘れると codex が review 完了後も alive のまま hang し続け、Monitor の pgrep 検知が永久に効かなくなる事故が発生する (2026-05-27 PR #1377 Round 1 で実例):
 
 ```bash
 source ~/dotfiles/.bash_aliases  # cdx 関数を読み込む
 
-cdx exec "PR #<PR番号> (branch <branch>) Round <N> 独立レビュー。
+# timeout を必ず被せる (25 min hard limit、background hang 防止)
+timeout 1500 cdx exec "PR #<PR番号> (branch <branch>) Round <N> 独立レビュー。
 
 特に観点:
 - schema governance #511 (グローバル schema 変更は AI 権限外、description のみは例外)
@@ -191,27 +192,44 @@ cdx exec "PR #<PR番号> (branch <branch>) Round <N> 独立レビュー。
 
 cwd /workspaces/harmony/frontend (or backend) で npm run build / npx tsc --noEmit / npx vitest run 検証可能。
 
-出力 format: Must-fix / Should-fix / Nit 分類、file:line 明記、最後に approve/reject 判断。" </dev/null 2>&1 | tail -300
+出力 format: Must-fix / Should-fix / Nit 分類、file:line 明記、最後に approve/reject 判断。" </dev/null > <log-file> 2>&1 &
 ```
 
-実行は **必ず background** (`run_in_background: true`) — codex は 5-30 分かかる。
+実行は **必ず background** — codex は 5-30 分かかる。
 
-### 7-2: 完了監視 (Monitor で待機)
+### 7-2: 完了監視 (Monitor で 3 重検知 — 2026-05-27 強化)
+
+**過去の事故 (PR #1377)**: cdx が review 全文を 2 回出力し、token 行が末尾でなくなる + 出力後も process が alive で hang → `tail -1 | grep "tokens used"` と `pgrep` の両方が無力化。対策として **3 重検知** を必ず用意する:
 
 ```bash
-# Monitor で codex プロセス終了を待つ
-Monitor: while sleep 60; do
-  f=<output-file>
-  if [ -s "$f" ] && tail -1 "$f" 2>/dev/null | grep -q "tokens used"; then
-    echo "completed"; tail -5 "$f"; break
+# Monitor: 30 秒ポーリングで 3 つの完了 signal を確認
+f=<log-file>
+while sleep 30; do
+  if [ ! -f "$f" ]; then continue; fi
+  # 1) tail -50 で token/判定 marker 確認 (duplicate output 対策、tail -1 では弱い)
+  recent=$(tail -50 "$f" 2>/dev/null)
+  if echo "$recent" | grep -qE "tokens used|tokens consumed"; then
+    echo "cdx-completed-marker"; tail -15 "$f"; break
   fi
+  # 2) Idle detection: log mtime が 90 秒以上停止 → 完了とみなす (hang 検知の主力)
+  cur_mtime=$(stat -c '%Y' "$f" 2>/dev/null || echo 0)
+  now=$(date +%s)
+  if [ "$cur_mtime" -gt 0 ] && [ $((now - cur_mtime)) -gt 90 ]; then
+    echo "cdx-idle-90s"; tail -15 "$f"; break
+  fi
+  # 3) Process exited (timeout 1500 で kill されるはず)
   if ! pgrep -f "exec PR #<N>.*Round <R>" > /dev/null 2>&1; then
-    echo "process exited"; tail -3 "$f"; break
+    echo "cdx-process-exited"; tail -15 "$f" 2>/dev/null; break
   fi
-done; echo "---END---"
+done
 ```
 
-timeout は 2400000-2700000 ms (40-45 min) を目安に。
+Monitor の timeout は 2400000 ms (40 min) で OK (cdx 自体に `timeout 1500` 被せてあるため上限は 25 min)。
+
+**NG パターン (使わない)**:
+- ❌ `tail -1 | grep "tokens used"` — cdx の duplicate output で末尾が `Reject` 等になり token 行を見逃す
+- ❌ pgrep 単独 — review 出力完了後も process が alive のまま hang する事故あり
+- ❌ Idle detection なし — `timeout` を付け忘れた場合の fail-safe が無くなる
 
 ### 7-3: 結果分類
 
