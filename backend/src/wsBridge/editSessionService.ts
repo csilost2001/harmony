@@ -40,6 +40,7 @@ import {
   writePageLayout,
   writeScreenItems,
   writeSequence,
+  writeGenericDefinition,
   resolveRoot,
 } from "../projectStorage.js";
 
@@ -395,6 +396,22 @@ export class EditSessionService {
             await writeSequence(resId, payload, root);
             resourceChange = { event: "sequenceChanged", data: { sequenceId: resId } };
             break;
+          case "generic-definition": {
+            // #1368: GenericDefinition の resourceId は frontend で `${kind}/${name}` の `/` を
+            // `__` に置換して `${kind}__${name}` 形式で渡される (assertSafeName は `/` を
+            // 許容しないため)。kind 正規表現 `[a-z][a-z0-9:-]{0,63}` は `_` を含まないので、
+            // 最初の `__` で分割すれば kind / name に安全に復元できる (name は `_` を含み得る)。
+            const sep = resId.indexOf("__");
+            if (sep < 0) {
+              console.error(`[editSession.save] generic-definition resourceId 形式不正 (${resId} に '__' が無い)`);
+              break;
+            }
+            const gdKind = resId.slice(0, sep);
+            const gdName = resId.slice(sep + 2);
+            await writeGenericDefinition(gdName, gdKind, payload, root);
+            resourceChange = { event: "genericDefinitionChanged", data: { kind: gdKind, name: gdName } };
+            break;
+          }
           case "flow":
           case "er-layout":
           case "extension":

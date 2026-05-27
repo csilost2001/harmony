@@ -85,6 +85,44 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(deliveredClientIds).not.toContain("client-other-workspace");
   });
 
+  it("#1368: generic-definition は resourceId を `${kind}__${name}` から分解して file 書込 + genericDefinitionChanged broadcast", async () => {
+    // frontend は editSessionRawId = `${kind}/${name}` を `/` → `__` 置換した resourceId を渡す。
+    // backend は `__` を delimiter として分割し、kind / name を復元して writeGenericDefinition で保存する。
+    const kind = "data-contract";
+    const name = "OrderForm";
+    const resourceId = `${kind}__${name}`;
+    const payload = {
+      $schema: "../../../../schemas/v3/generic-definition.v3.schema.json",
+      name,
+      kind,
+      purpose: "受注フォームのデータ契約",
+      responsibilities: ["商品コード入力", "数量入力"],
+      targets: ["frontend"],
+    };
+
+    const { editSession } = service.create("client-editor", "generic-definition", resourceId, "編集者A");
+    const editSessionId = (editSession as { id: string }).id;
+    service.update("client-editor", editSessionId, payload);
+
+    const result = await service.save("client-editor", editSessionId);
+    expect(result.ok).toBe(true);
+
+    // broadcast event 確認
+    const gdChanged = broadcasts.find((call) => call.event === "genericDefinitionChanged");
+    expect(gdChanged).toEqual({
+      wsId: tmpDir,
+      event: "genericDefinitionChanged",
+      data: { kind, name },
+    });
+    expect(gdChanged?.excludeClientId).toBeUndefined();
+
+    // 実 file 書込確認 (workspace 直下 data/generic-definitions/<kind>/<name>.json)
+    const filePath = path.join(tmpDir, "data", "generic-definitions", kind, `${name}.json`);
+    const written = JSON.parse(await fs.readFile(filePath, "utf-8")) as { kind: string; name: string };
+    expect(written.kind).toBe(kind);
+    expect(written.name).toBe(name);
+  });
+
   it("WsBridge adapter 経由でも originating editor と same-workspace consumer に tableChanged を送信する", async () => {
     const bridge = new WsBridge();
     const sentByClient = new Map<string, string[]>([
