@@ -1,0 +1,35 @@
+{
+  "config": {
+    "testDir": "/workspaces/harmony/frontend/e2e"
+  },
+  "suites": [
+    {
+      "title": "e2e/foo.spec.ts",
+      "file": "/workspaces/harmony/frontend/e2e/foo.spec.ts",
+      "specs": [],
+      "suites": [
+        {
+          "title": "foo group",
+          "specs": [
+            {
+              "title": "passes happy path",
+              "ok": true,
+              "tags": ["@regression"],
+              "file": "e2e/foo.spec.ts",
+              "line": 12,
+              "tests": [
+                {
+                  "results": [
+                    { "status": "passed", "duration": 120 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "stats": { "expected": 1, "unexpected": 0, "flaky": 0, "skipped": 0, "duration": 120 },
+  "errors": []
+}

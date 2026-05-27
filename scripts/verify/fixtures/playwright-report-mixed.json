@@ -1,0 +1,85 @@
+{
+  "config": { "testDir": "/workspaces/harmony/frontend/e2e" },
+  "suites": [
+    {
+      "title": "e2e/presence-list.spec.ts",
+      "file": "/workspaces/harmony/frontend/e2e/presence-list.spec.ts",
+      "specs": [],
+      "suites": [
+        {
+          "title": "presence list",
+          "specs": [
+            {
+              "title": "strict mode locator (multi match)",
+              "ok": false,
+              "tags": ["@regression"],
+              "file": "e2e/presence-list.spec.ts",
+              "line": 110,
+              "tests": [
+                {
+                  "results": [
+                    {
+                      "status": "failed",
+                      "duration": 2200,
+                      "error": { "message": "strict mode violation: 2 elements" }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "happy path",
+              "ok": true,
+              "tags": ["@regression"],
+              "file": "e2e/presence-list.spec.ts",
+              "line": 30,
+              "tests": [
+                { "results": [{ "status": "passed", "duration": 50 }] }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "e2e/folder-picker.spec.ts",
+      "specs": [
+        {
+          "title": "folder picker open",
+          "ok": false,
+          "tags": ["@regression"],
+          "file": "e2e/folder-picker.spec.ts",
+          "line": 42,
+          "tests": [
+            {
+              "results": [
+                {
+                  "status": "timedOut",
+                  "duration": 30000,
+                  "errors": [{ "message": "Test timeout of 30000ms exceeded" }]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "e2e/step-ops.spec.ts",
+      "specs": [
+        {
+          "title": "step ops drag",
+          "ok": false,
+          "tags": ["@regression"],
+          "file": "e2e/step-ops.spec.ts",
+          "line": 88,
+          "tests": [
+            { "results": [{ "status": "failed", "duration": 1500, "error": { "message": "boom" } }] }
+          ]
+        }
+      ]
+    }
+  ],
+  "stats": { "expected": 1, "unexpected": 3, "flaky": 0, "skipped": 0, "duration": 36000 },
+  "errors": []
+}

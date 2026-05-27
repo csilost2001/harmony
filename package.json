@@ -16,7 +16,10 @@
     "build": "npm run build --workspace=@harmony/shared && concurrently -n frontend,backend -c cyan,magenta \"npm --prefix frontend run build\" \"npm --prefix backend run build\"",
     "test:unit": "npm --prefix frontend run test:unit",
     "test:e2e": "npm --prefix frontend run test:e2e",
+    "test:e2e:regression:json": "npm --prefix frontend run test:e2e:regression -- --reporter=json",
     "test:spec-check": "node scripts/spec-check/test.mjs && node scripts/spec-check/test-binding-grammar.mjs",
+    "test:verify": "node scripts/verify/test.mjs",
+    "verify:regression-trace": "node scripts/verify/regression-trace-check.mjs",
     "lint": "npm --prefix frontend run lint"
   },
   "devDependencies": {
