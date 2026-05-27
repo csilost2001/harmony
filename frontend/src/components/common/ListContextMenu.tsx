@@ -132,6 +132,7 @@ export function ListContextMenu({ items, x, y, onClose }: Props): ReactElement {
             key={item.key}
             type="button"
             data-menu-item
+            data-testid={`list-context-menu-item-${item.key}`}
             role="menuitem"
             className={`list-context-menu-item${item.disabled ? " disabled" : ""}${item.danger ? " danger" : ""}`}
             disabled={item.disabled}
