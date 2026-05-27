@@ -47,7 +47,6 @@ export function LogStepPanel({ step, onChange, onCommit, conventions }: Props) {
 
   useEffect(() => {
     if (step.structuredData === lastEmittedRef.current) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- local editor rows mirror externally changed structuredData.
     setEntries(toEntries(step.structuredData));
     lastEmittedRef.current = step.structuredData;
   }, [step.structuredData]);
