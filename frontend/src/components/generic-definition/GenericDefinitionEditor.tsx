@@ -150,15 +150,25 @@ export function GenericDefinitionEditor() {
     return promise;
   }, []);
 
-  // 破棄: pending start を await してから active session を discard。
-  // unmount cleanup + save 後 + 明示破棄から呼ばれる。
-  const discardEditSession = useCallback(async (): Promise<void> => {
+  // 破棄: target resource に紐付く active session を discard する。
+  // pending start (target と一致する場合のみ) を await した後、active session が target と
+  // 一致している場合だけ実際に discard する。これにより以下の race を防ぐ (Codex Round 4):
+  //   1) user 編集 A → P_A pending → user save → discardEditSession("A") 呼出 → await P_A
+  //   2) await 中に user が B へ navigate + 編集 → ensureEditSession(B) で P_B 起動
+  //   3) discardEditSession の await 完了時 editSessionIdRef は B_id を保持
+  //   4) target "A" !== sessionResourceIdRef "B" → skip (B session を誤って discard しない)
+  const discardEditSession = useCallback(async (targetResourceId: string): Promise<void> => {
+    if (!targetResourceId) return;
+    // pending start を await (target 一致時のみ。別 resource の pending は detach 済 or
+    // 自身の drift check で cleanup されるため await しない)
     const pending = startingRef.current;
-    if (pending) {
+    if (pending && pending.resourceId === targetResourceId) {
       try { await pending.promise; } catch { /* create failed = nothing to discard */ }
     }
+    // Active session が target と一致する場合のみ discard
     const id = editSessionIdRef.current;
     if (!id) return;
+    if (sessionResourceIdRef.current !== targetResourceId) return;
     editSessionIdRef.current = null;
     sessionResourceIdRef.current = "";
     try {
@@ -269,12 +279,14 @@ export function GenericDefinitionEditor() {
   }, [ensureEditSession]);
 
   // #1331: unmount 時に EditSession を discard (cleanup)。
-  // pending start (= mcpBridge.request 応答未到達) も await してから discard する。
-  // ref を closure に直接掴むため deps なし (eslint disable は意図的)。
+  // discardEditSession に target を渡し、await 中の resource 切替で誤って新 session を
+  // 消さないようにする (Codex Round 4 Must-fix)。currentResourceIdRef.current は最後の
+  // render 時の resourceId を保持する。
   useEffect(() => {
     return () => {
-      // fire-and-forget: discardEditSession 内で pending start を await + discard
-      discardEditSession().catch(() => { /* logged inside */ });
+      const targetAtUnmount = currentResourceIdRef.current;
+      // fire-and-forget: target 一致 session のみ discard (pending start 含めて await)
+      discardEditSession(targetAtUnmount).catch(() => { /* logged inside */ });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -307,8 +319,10 @@ export function GenericDefinitionEditor() {
       initialSnapshotRef.current = JSON.stringify(def);
       setReloadBanner(false);
       // #1331: save 成功後は EditSession を discard し、他 session の rename block を解除する。
-      // 次の編集で再度 ensureEditSession が走る (lazy)。
-      discardEditSession().catch(() => { /* logged inside */ });
+      // 次の編集で再度 ensureEditSession が走る (lazy)。target を snapshot して、await 中の
+      // resource 切替で誤って新 session を消さないようにする (Codex Round 4 Must-fix)。
+      const targetAtSave = currentResourceIdRef.current;
+      discardEditSession(targetAtSave).catch(() => { /* logged inside */ });
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : String(e));
