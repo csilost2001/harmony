@@ -67,6 +67,19 @@ export function GenericDefinitionListView() {
   const [addError, setAddError] = useState("");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; name: string } | null>(null);
 
+  // #1385 / PR #1386 Codex Round 1 Must-fix #2:
+  // kind 切替時に「新 kind 見出し + 旧 kind items 表示」「新 kind で旧 item.name を loadGenericDefinition」
+  // という旧 effect の即時 reset が失われていた問題を、React 19 公式 prev-key check pattern で復活。
+  // /generic-definition/dialog → /generic-definition/options のように同 component の param 変更だけで
+  // kind が変わる場合に旧 items が誤クリックで `newKind/oldName` 遷移を引き起こす regression を防ぐ。
+  const [prevKindForReset, setPrevKindForReset] = useState(kind);
+  if (prevKindForReset !== kind) {
+    setPrevKindForReset(kind);
+    setItems([]);
+    setValidationMap(new Map());
+    setLoading(true);
+  }
+
   useEffect(() => {
     if (!kind || !tabId) return;
     const existing = document.querySelector(`[data-tab-id="${tabId}"]`);

@@ -23,22 +23,32 @@ interface PendingLogin {
 
 export function CodexSettingsView() {
   const { status, refresh } = useCodexStatus();
-  const [pendingLoginState, setPendingLogin] = useState<PendingLogin | null>(null);
-  const [loginErrorState, setLoginError] = useState<string | null>(null);
+  const [pendingLogin, setPendingLogin] = useState<PendingLogin | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [rateLimitsState, setRateLimits] = useState<GetAccountRateLimitsResponse | null>(null);
-  const [rateLimitsErrorState, setRateLimitsError] = useState<string | null>(null);
+  const [rateLimits, setRateLimits] = useState<GetAccountRateLimitsResponse | null>(null);
+  const [rateLimitsError, setRateLimitsError] = useState<string | null>(null);
 
-  // 認証済みのときは pending login / login error / rate limits を持たないものとして表示する。
-  // 旧実装は effect 内で setState して state 自体を clear していたが、
-  // react-hooks/set-state-in-effect (#1385) に従い render 中 derive へ移行。
-  // pending login / login error: authenticated になった時に画面表示上不要。
-  // rate limits: authenticated でない時は無意味なので null として扱う。
-  const isAuthenticated = status.kind === "authenticated";
-  const pendingLogin = isAuthenticated ? null : pendingLoginState;
-  const loginError = isAuthenticated ? null : loginErrorState;
-  const rateLimits = isAuthenticated ? rateLimitsState : null;
-  const rateLimitsError = isAuthenticated ? rateLimitsErrorState : null;
+  // #1385 / PR #1386 Codex Round 1 Must-fix #1:
+  // status.kind 変化時に「state 自体」を破棄する (旧実装が effect 内 setState でやっていた挙動)。
+  // 旧の render-derive 化 (state を rename して `isAuthenticated ? null : actualState` で見せる) は
+  // state 自体が残るため、authenticated → unauthenticated に再遷移すると古い pending login の
+  // authUrl / loginId が復活する semantic regression があった。
+  // React 19 公式 "Storing information from previous renders" pattern (prev-key check) で
+  // 旧 effect の挙動を保ったまま react-hooks/set-state-in-effect rule を回避する。
+  const [prevStatusKind, setPrevStatusKind] = useState(status.kind);
+  if (prevStatusKind !== status.kind) {
+    setPrevStatusKind(status.kind);
+    if (status.kind === "authenticated") {
+      // authenticated に遷移: pending login / login error を破棄 (旧実装と同 semantic)
+      setPendingLogin(null);
+      setLoginError(null);
+    } else {
+      // unauthenticated / no-cli / no-server / error に遷移: rate limits を破棄 (旧実装と同 semantic)
+      setRateLimits(null);
+      setRateLimitsError(null);
+    }
+  }
 
   // 認証済みになったら rate limits を読む (fetch は副作用のため effect で実行)。
   // setState は async callback 内のみで、effect body 内同期 setState は行わない。
