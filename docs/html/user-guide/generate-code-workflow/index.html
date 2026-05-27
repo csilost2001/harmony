@@ -11,7 +11,7 @@
 <p><strong>目的</strong>: Harmony で設計した処理フロー / 画面 / ページレイアウトを、業務アプリ project root にコード生成し、Dev Container で開発を続ける。</p>
 <p>本書は <strong>Harmony の利用者</strong> (業務アプリ設計者・開発リーダー) 向け。<code>/generate-code</code> skill の内部仕様は <a href="https://github.com/csilost2001/harmony/blob/main/ai-skills/generate-code/SKILL.md"><code>ai-skills/generate-code/SKILL.md</code></a> (AI 実装者向け)、設計者承認が必要な拡張は <a href="../../spec/schema-governance/"><code>docs/spec/schema-governance.md</code></a> を参照。</p>
 <h2 id="位置づけ">位置づけ</h2>
-<p><code>/generate-code &#x3C;UUID> &#x3C;出力先></code> は <strong>業務アプリ project root を作る (または更新する) コマンド</strong> です。生成されるのは「Harmony という設計ツールから派生した独立した業務アプリ」であり、Harmony 本体 repo の一部ではありません。</p>
+<p><code>/generate-code &#x3C;EntityId> &#x3C;出力先></code> は <strong>業務アプリ project root を作る (または更新する) コマンド</strong> です (引数の <code>&#x3C;EntityId></code> は <code>&#x3C;flowId></code> / <code>&#x3C;screenId></code> / <code>&#x3C;pageLayoutId></code> 等、<code>[a-z0-9-]</code> のみの kebab-case)。生成されるのは「Harmony という設計ツールから派生した独立した業務アプリ」であり、Harmony 本体 repo の一部ではありません。</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Harmony (設計)                          業務アプリ (実装)</span></span>
 <span class="line"><span>─────────────────                       ─────────────────────────</span></span>
 <span class="line"><span>ProcessFlow / Screen / Table   ─────▶   ~/projects/&#x3C;業務名>/</span></span>
@@ -80,7 +80,7 @@
 <span class="line"><span>└──────────────────────────────────────────────────────────────┘</span></span>
 <span class="line"><span>                            ↓</span></span>
 <span class="line"><span>┌─ 3. /generate-code 実行 ─────────────────────────────────────┐</span></span>
-<span class="line"><span>│   /generate-code &#x3C;UUID> ~/projects/retail-app/                   │</span></span>
+<span class="line"><span>│   /generate-code &#x3C;EntityId> ~/projects/retail-app/                │</span></span>
 <span class="line"><span>│   または bulk: /generate-code --all ~/projects/retail-app/      │</span></span>
 <span class="line"><span>└──────────────────────────────────────────────────────────────┘</span></span>
 <span class="line"><span>                            ↓</span></span>
@@ -116,7 +116,7 @@
 
 
 
-<table><thead><tr><th>状況</th><th>推奨 <code>&#x3C;出力先></code></th></tr></thead><tbody><tr><td>業務アプリ開発の本番</td><td><code>~/projects/&#x3C;業務名>/</code> (Harmony repo の外)</td></tr><tr><td>ad-hoc な smoke 確認</td><td><code>.tmp/generated-code/&#x3C;入力 UUID 8 桁>/</code> (単発モード default) / <code>.tmp/generated-code/bulk-&#x3C;UTC タイムスタンプ>/</code> (bulk モード default)</td></tr><tr><td>Harmony 同梱サンプル更新 (Harmony 本体開発者のみ)</td><td><code>examples/&#x3C;id>/generated/&#x3C;techStack>/</code> (dogfood パターン)</td></tr></tbody></table>
+<table><thead><tr><th>状況</th><th>推奨 <code>&#x3C;出力先></code></th></tr></thead><tbody><tr><td>業務アプリ開発の本番</td><td><code>~/projects/&#x3C;業務名>/</code> (Harmony repo の外)</td></tr><tr><td>ad-hoc な smoke 確認</td><td><code>.tmp/generated-code/&#x3C;入力 EntityId>/</code> (単発モード default) / <code>.tmp/generated-code/bulk-&#x3C;UTC タイムスタンプ>/</code> (bulk モード default)</td></tr><tr><td>Harmony 同梱サンプル更新 (Harmony 本体開発者のみ)</td><td><code>examples/&#x3C;id>/generated/&#x3C;techStack>/</code> (dogfood パターン)</td></tr></tbody></table>
 <p>業務アプリの本番開発では <strong>Harmony repo の外</strong> に project root を作るのが基本です。Harmony repo 内に出力すると以下の不利益があります:</p>
 <ul>
 <li>Harmony の git 履歴と業務アプリの git 履歴が混在する</li>
@@ -141,12 +141,13 @@
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">/generate-code</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --all</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/retail-app/</span></span></code></pre>
 <p>出力構造は entity 種別ごとにサブディレクトリで分離されます:</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>~/projects/retail-app/</span></span>
-<span class="line"><span>├── process-flows/&#x3C;flowId8桁>/</span></span>
-<span class="line"><span>├── screens/&#x3C;screenId8桁>/</span></span>
-<span class="line"><span>└── page-layouts/&#x3C;layoutId8桁>/</span></span></code></pre>
-<p>bulk モードは初期立ち上げ・一括再生成向け。日常的な部分更新は単発モード (<code>/generate-code &#x3C;UUID> &#x3C;出力先></code>) を推奨します。</p>
+<span class="line"><span>├── process-flows/&#x3C;flowId>/</span></span>
+<span class="line"><span>├── screens/&#x3C;screenId>/</span></span>
+<span class="line"><span>└── page-layouts/&#x3C;layoutId>/</span></span></code></pre>
+<p><code>&#x3C;flowId></code> / <code>&#x3C;screenId></code> / <code>&#x3C;layoutId></code> は EntityId (kebab-case 英単語、例: <code>order-confirm</code> / <code>product-search</code> / <code>admin-shell</code>) をそのまま使用します (RFC #1284 / #1332)。legacy UUID 形式の resource が残っている場合は full UUID を使い、prefix を切り詰めません。</p>
+<p>bulk モードは初期立ち上げ・一括再生成向け。日常的な部分更新は単発モード (<code>/generate-code &#x3C;EntityId> &#x3C;出力先></code>) を推奨します。</p>
 <h2 id="generate-tests-との対応">/generate-tests との対応</h2>
-<p><code>/generate-tests &#x3C;UUID> &#x3C;出力先></code> は同じ <code>&#x3C;出力先></code> を指定することで、<code>src/test/</code> (Spring Boot) や <code>__tests__/</code> (NestJS / Next.js) など canonical なテスト配置に出力されます (<code>ai-skills/generate-tests/SKILL.md</code> 参照)。</p>
+<p><code>/generate-tests &#x3C;EntityId> &#x3C;出力先></code> は同じ <code>&#x3C;出力先></code> を指定することで、<code>src/test/</code> (Spring Boot) や <code>__tests__/</code> (NestJS / Next.js) など canonical なテスト配置に出力されます (<code>ai-skills/generate-tests/SKILL.md</code> 参照)。</p>
 <h2 id="関連ドキュメント">関連ドキュメント</h2>
 <ul>
 <li><a href="https://github.com/csilost2001/harmony/blob/main/ai-skills/generate-code/SKILL.md"><code>/generate-code</code> skill 仕様</a> — AI 実装者向け詳細</li>
