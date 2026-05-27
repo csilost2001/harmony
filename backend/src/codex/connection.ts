@@ -110,39 +110,60 @@ export class CodexConnection {
   }
 
   private async _doConnect(): Promise<CodexClient> {
-    // 接続中 shutdown を可能にする AbortController (#1400 Round 2)。
+    // 接続中 shutdown を可能にする AbortController (#1400 Round 2-3)。
     // close() で abort すると StdioTransport が即時 child を SIGKILL。
-    this._connectAbort = new AbortController();
-    const client = await this.clientFactory({
-      config: this.config,
-      clientInfo: this.clientInfo,
-      onNotification: (n) => this._handleNotification(n),
-      onServerRequest: (r) => this._handleServerRequest(r),
-      onError: (err) => {
-        console.error("[CodexConnection] transport error:", err.message);
-      },
-      signal: this._connectAbort.signal,
-    });
+    // ローカル controller を保持して late resolve 後の adopt 判定にも使う (Round 3 race 対策)。
+    const controller = new AbortController();
+    this._connectAbort = controller;
 
-    // Detect transport close so we can clear the reference (lazy reconnect on next call).
-    // CodexClient doesn't expose a close event directly; we hook it via the internal rpc
-    // by registering a request that immediately resolves — but that's not ideal. Instead,
-    // we watch the notification channel: when the client closes, in-flight requests reject
-    // but we still need to clear _client. We use a close probe via a Promise race.
-    // Simpler: wrap close detection at the transport level.
-    // Since CodexClient doesn't expose an "onClose" callback directly, we detect it
-    // indirectly: we call a no-op ping that the client will reject when closed; but that
-    // would be wasteful. Instead we rely on the fact that once the transport closes,
-    // `_client.request()` will throw, and in `request()` we clear `_client` on error.
-    // Additionally, we attach a cleanup via a hidden weak mechanism here:
-    this._attachCloseDetection(client);
+    let client: CodexClient | null = null;
+    try {
+      client = await this.clientFactory({
+        config: this.config,
+        clientInfo: this.clientInfo,
+        onNotification: (n) => this._handleNotification(n),
+        onServerRequest: (r) => this._handleServerRequest(r),
+        onError: (err) => {
+          console.error("[CodexConnection] transport error:", err.message);
+        },
+        signal: controller.signal,
+      });
 
-    this._client = client;
-    // 接続成功後は AbortController を破棄 (次回 connect で新規に作る)。
-    // close() が後で呼ばれた時は通常の client.close() 経路で kill される。
-    this._connectAbort = null;
-    this._broadcastConnectionState("connected");
-    return client;
+      // Round 3 race 対策: close() が先に走って 1.5s timeout 後 late resolve した場合、
+      // この controller は既に abort されている (close() が呼んだ) ため、
+      // 返ってきた client は close 後 adoption に該当 → 即時 close + adopt しない。
+      // また、別の connect が同時に走って _connectAbort を上書きした場合も
+      // 古い controller のままなら最新の connect 試行と整合しないため adopt しない。
+      if (controller.signal.aborted || this._connectAbort !== controller) {
+        // close 中の transport は signal abort 経由で既に SIGKILL 済だが、
+        // resource cleanup を確実にするため明示的に client.close() を呼ぶ。
+        try { await client.close({ sigtermDelayMs: 0, sigkillDelayMs: 0 }); } catch { /* ignore */ }
+        throw new Error("CodexConnection: connect aborted by close()");
+      }
+
+      // Detect transport close so we can clear the reference (lazy reconnect on next call).
+      // CodexClient doesn't expose a close event directly; we hook it via the internal rpc
+      // by registering a request that immediately resolves — but that's not ideal. Instead,
+      // we watch the notification channel: when the client closes, in-flight requests reject
+      // but we still need to clear _client. We use a close probe via a Promise race.
+      // Simpler: wrap close detection at the transport level.
+      // Since CodexClient doesn't expose an "onClose" callback directly, we detect it
+      // indirectly: we call a no-op ping that the client will reject when closed; but that
+      // would be wasteful. Instead we rely on the fact that once the transport closes,
+      // `_client.request()` will throw, and in `request()` we clear `_client` on error.
+      // Additionally, we attach a cleanup via a hidden weak mechanism here:
+      this._attachCloseDetection(client);
+
+      this._client = client;
+      this._broadcastConnectionState("connected");
+      return client;
+    } finally {
+      // 成功 / 失敗を問わず、自分が登録した controller のみ clear (Round 3 Should-fix)。
+      // 別の connect が並行で走って上書きした場合は触らない。
+      if (this._connectAbort === controller) {
+        this._connectAbort = null;
+      }
+    }
   }
 
   /**
