@@ -167,13 +167,13 @@ Windows ブラウザで `http://localhost:5173` がデザイナー UI を表示�
 ### Step M-6: 既存 `node_modules` の扱い
 
 - **基本: 残す**。WSL2 native へ戻る選択肢を保持
-- container 内では `/workspaces/harmony/frontend/node_modules` (bind mount された WSL2 native のもの) を上書きしないよう、container 内で `npm install` 済 (postCreateCommand)
+- container 内では root `npm install` 済 (postCreateCommand、PR #1378 で npm workspaces 化以降は root 1 発で shared / frontend / backend を一括解決)
 - 容量が気になるなら、安定運用 1 週間後に WSL2 native 側の `node_modules` を削除:
 
 ```bash
 # 移行を確定する時のみ
 cd ~/projects/harmony
-rm -rf frontend/node_modules backend/node_modules
+rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules
 ```
 
 ### Step M-7: WSL2 distro のクリーンアップ (任意 / 移行確定後)

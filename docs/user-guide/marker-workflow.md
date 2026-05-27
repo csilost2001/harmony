@@ -138,7 +138,7 @@ taskkill //F //PID <PID>   # Windows (Git Bash は //F の escape 必要)
 - `netstat -ano | grep :5179` で LISTENING プロセスが存在するか
 - `curl http://localhost:5179/` で `{"status":"ok",...}` が返るか
 - `.mcp.json` の backend エントリが URL 形式 (`"type": "http"`, `"url": "http://localhost:5179/mcp"`) か
-- `backend` の依存がインストール済みか (`cd backend && npm install`)
+- 依存がインストール済みか (repo root で `npm install`、PR #1378 で npm workspaces 化以降は root 1 発)
 
 ### 「marker 起票したのにブラウザに反映されない」
 
