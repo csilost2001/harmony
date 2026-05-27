@@ -35,6 +35,8 @@
 
 各領域の **identity (id/name/description) と timestamps (createdAt/updatedAt) と maturity** が領域ごとにバラバラに記述されている:
 
+> **⚠️ 履歴記述**: 下表は **v2 (PR #520) 当時の状態** の振り返り。v3 では [RFC #1284](https://github.com/csilost2001/harmony/issues/1284) により全 top-level entity (ProcessFlow / Screen / Table / Sequence / View / ViewDefinition / PageLayout) の `id` は `EntityId` (kebab-case 英単語) + 不変識別子 `uuid: Uuid` + 表示名 `name: string` の 3 fields 構成に再設計済。新仕様の正本は **§2.1 EntityMeta** および [`schema-design-principles.md`](schema-design-principles.md) §2.4 (ID 形式) を参照。CustomBlock は top-level entity ではないため UUID base を維持。
+
 | entity | id | name | description | createdAt | updatedAt | version | maturity |
 |---|---|---|---|---|---|---|---|
 | ProcessFlow | Uuid | string | Description | T | T | SemVer | Maturity |
@@ -47,8 +49,6 @@
 | Step (各 variant) | LocalId | × | string | × | × | × | Maturity |
 | Action | LocalId | string | string | × | × | × | Maturity |
 
-（注: 上記表は v2 当時の状態を記述したものであり、v3 では RFC #1284 により top-level entity の id は `EntityId` (kebab-case) + 不変識別子 `uuid: Uuid` の 2 fields 構成に再設計された。CustomBlock は top-level entity ではないため UUID base を維持。）
-
 **問題点**:
 - ScreenItemsFile に createdAt なし、name なし
 - TableDefinition.name が物理名 (snake_case)、表示名は logicalName (日本語) に分離 — 他 entity と整合しない
@@ -59,6 +59,8 @@
 ### 1.2 参照パターンの混乱
 
 参照を 7 種類見つけた:
+
+> **⚠️ 履歴記述**: 下表は v2 当時の参照パターン分析。v3 では RFC #1284 により Pattern A の `<entity>Id` 型は `EntityId` (kebab-case) に統一済 (UUID 単独参照ではなくなった)。詳細は §2.2 参照規範を参照。
 
 | # | パターン | 例 |
 |---|---|---|
@@ -312,7 +314,7 @@ $statusCode (Criterion 内のみ)
     "$schema": { "type": "string" },
 
     "meta": {
-      "description": "ProcessFlow の identity と運用設定。RFC #1284 により id は EntityId (kebab-case) + 不変識別子 uuid (Uuid) の 2 fields 構成。",
+      "description": "ProcessFlow の identity と運用設定。RFC #1284 により id は EntityId (kebab-case) + 不変識別子 uuid (Uuid) + 表示名 name の 3 fields 構成。",
       "type": "object",
       "required": ["id", "uuid", "name", "flowType", "createdAt", "updatedAt"],
       "additionalProperties": false,

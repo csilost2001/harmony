@@ -58,6 +58,9 @@
 <h2 id="1-現状-v2-pr-520-の構造的問題--opus-が横断視点で発見">§1 現状 v2 (PR #520) の構造的問題 — Opus が横断視点で発見</h2>
 <h3 id="11-entity-メタの揺れ">1.1 entity メタの揺れ</h3>
 <p>各領域の <strong>identity (id/name/description) と timestamps (createdAt/updatedAt) と maturity</strong> が領域ごとにバラバラに記述されている:</p>
+<blockquote>
+<p><strong>⚠️ 履歴記述</strong>: 下表は <strong>v2 (PR #520) 当時の状態</strong> の振り返り。v3 では <a href="https://github.com/csilost2001/harmony/issues/1284">RFC #1284</a> により全 top-level entity (ProcessFlow / Screen / Table / Sequence / View / ViewDefinition / PageLayout) の <code>id</code> は <code>EntityId</code> (kebab-case 英単語) + 不変識別子 <code>uuid: Uuid</code> + 表示名 <code>name: string</code> の 3 fields 構成に再設計済。新仕様の正本は <strong>§2.1 EntityMeta</strong> および <a href="../../spec/schema-design-principles/"><code>schema-design-principles.md</code></a> §2.4 (ID 形式) を参照。CustomBlock は top-level entity ではないため UUID base を維持。</p>
+</blockquote>
 
 
 
@@ -164,7 +167,6 @@
 
 
 <table><thead><tr><th>entity</th><th>id</th><th>name</th><th>description</th><th>createdAt</th><th>updatedAt</th><th>version</th><th>maturity</th></tr></thead><tbody><tr><td>ProcessFlow</td><td>Uuid</td><td>string</td><td>Description</td><td>T</td><td>T</td><td>SemVer</td><td>Maturity</td></tr><tr><td>TableDefinition</td><td>Uuid</td><td>DbTableName ★物理名</td><td>string</td><td>T</td><td>T</td><td>×</td><td>×</td></tr><tr><td>ScreenNode</td><td>Uuid</td><td>string</td><td>string</td><td>T</td><td>T</td><td>×</td><td>×</td></tr><tr><td>ScreenItemsFile</td><td>(screenId)</td><td>×</td><td>×</td><td>×</td><td>T</td><td>SemVer</td><td>×</td></tr><tr><td>SequenceDefinition</td><td>Uuid</td><td>× ★name 無し</td><td>string?</td><td>T</td><td>T</td><td>×</td><td>×</td></tr><tr><td>ViewDefinition</td><td>Uuid</td><td>× ★name 無し</td><td>string?</td><td>T</td><td>T</td><td>×</td><td>×</td></tr><tr><td>CustomBlock</td><td>Uuid</td><td>× ★label のみ</td><td>×</td><td>T</td><td>T</td><td>×</td><td>×</td></tr><tr><td>Step (各 variant)</td><td>LocalId</td><td>×</td><td>string</td><td>×</td><td>×</td><td>×</td><td>Maturity</td></tr><tr><td>Action</td><td>LocalId</td><td>string</td><td>string</td><td>×</td><td>×</td><td>×</td><td>Maturity</td></tr></tbody></table>
-<p>（注: 上記表は v2 当時の状態を記述したものであり、v3 では RFC #1284 により top-level entity の id は <code>EntityId</code> (kebab-case) + 不変識別子 <code>uuid: Uuid</code> の 2 fields 構成に再設計された。CustomBlock は top-level entity ではないため UUID base を維持。）</p>
 <p><strong>問題点</strong>:</p>
 <ul>
 <li>ScreenItemsFile に createdAt なし、name なし</li>
@@ -175,6 +177,9 @@
 </ul>
 <h3 id="12-参照パターンの混乱">1.2 参照パターンの混乱</h3>
 <p>参照を 7 種類見つけた:</p>
+<blockquote>
+<p><strong>⚠️ 履歴記述</strong>: 下表は v2 当時の参照パターン分析。v3 では RFC #1284 により Pattern A の <code>&#x3C;entity>Id</code> 型は <code>EntityId</code> (kebab-case) に統一済 (UUID 単独参照ではなくなった)。詳細は §2.2 参照規範を参照。</p>
+</blockquote>
 
 
 
@@ -441,7 +446,7 @@
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "$schema"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: { </span><span style="color:#005CC5;--shiki-dark:#8DDB8C">"type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"string"</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> },</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">    "meta"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"ProcessFlow の identity と運用設定。RFC #1284 により id は EntityId (kebab-case) + 不変識別子 uuid (Uuid) の 2 fields 構成。"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "description"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"ProcessFlow の identity と運用設定。RFC #1284 により id は EntityId (kebab-case) + 不変識別子 uuid (Uuid) + 表示名 name の 3 fields 構成。"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "type"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"object"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "required"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span><span style="color:#032F62;--shiki-dark:#96D0FF">"id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"uuid"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"name"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"flowType"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"createdAt"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#032F62;--shiki-dark:#96D0FF">"updatedAt"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">],</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "additionalProperties"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">false</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>

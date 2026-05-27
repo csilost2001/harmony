@@ -69,6 +69,7 @@ spec の**各条項について**、実装のどこがどのように満たし�
 - 同種の処理を呼ぶべき箇所で**呼ばれていない経路**がないか (今回の #148 例: `editor.setItems` 直打ち箇所の renumber 抜け)
 - 特定条件で無効化すべき操作で**ガードが抜けている UI 要素**がないか (ボタン・ショートカット・コンテキストメニュー・D&D 等)
 - データの不変条件が全ての書き込み経路で保たれているか
+- **id 体系違反 (RFC #1284 / #1332)**: top-level entity (ProcessFlow / Screen / Table / Sequence / View / ViewDefinition / PageLayout) の `id` field に UUID リテラルを書いていないか / `uuid` field を欠落させていないか / 「slug」用語で entity id を呼称していないか (`grep -nE '"id":\s*"[0-9a-f]{8}-' <変更ファイル>` / `grep -nE 'slug' <変更ファイル>` で確認、ただし Astro route placeholder / branch 命名 / `slugifyToEntityId` 等の関数名 / business 領域 field (`tag.slug` 等) / npm パッケージ (`github-slugger`) は対象外)
 
 grep ベースで経路を列挙し、各経路で期待処理の有無を表にする。
 

@@ -190,7 +190,7 @@ enum 値の命名は**対象ドメインの慣習** に従う。schema 全体で
 | 対象 | 形式 | 例 |
 |---|---|---|
 | ProcessFlow.id | EntityId (kebab-case 英単語) | `order-entry-flow`、`monthly-batch` (RFC #1284 / #1332 で UUID から変更、不変識別子は別フィールド `meta.uuid: Uuid` に保持) |
-| ActionDefinition.id | `act-NNN` または `act-<slug>-NNN` | `act-001`, `act-orderreg-002`, `act-orderreg-003` |
+| ActionDefinition.id | `act-NNN` または `act-<name>-NNN` (`<name>` = 業務名フラグメント、kebab-case) | `act-001`, `act-orderreg-002`, `act-orderreg-003` |
 | Step.id | `step-NN` または `step-NN-NN`/`step-NNa-NN-NN` (階層) | `step-01`, `step-13-01`, `step-13b`, `step-13b-a-01` |
 | Branch.id | `br-NN-<code>` | `br-03-a`, `br-03-b`, `br-13b-else` |
 | ElseBranch.id | `br-NN-else` | `br-03-else`, `br-05-else` |
@@ -198,7 +198,7 @@ enum 値の命名は**対象ドメインの慣習** に従う。schema 全体で
 | StepNote.id | `note-<UUID>` | (任意 stable ID) |
 | Marker.id | UUID v4 | (任意 stable ID) |
 | TestScenario.id | `kebab-case` 説明的 | `happy-path-order-confirm`, `insufficient-inventory-rollback` |
-| ResponseSpec.id | `<status>-<slug>` | `201-created`, `400-validation`, `422-cart-empty` |
+| ResponseSpec.id | `<status>-<name>` (`<name>` = 用途を表す kebab-case 識別子) | `201-created`, `400-validation`, `422-cart-empty` |
 | DecisionRecord.id | `ADR-NNN` | `ADR-001` |
 
 #### 規範

@@ -323,6 +323,9 @@
 
 
 <table><thead><tr><th>属性</th><th>値</th><th>条件</th></tr></thead><tbody><tr><td><code>data-item-id</code></td><td>新規 UUID</td><td>未設定の場合のみ</td></tr><tr><td><code>name</code></td><td>種別+連番形式 (<code>textInput1</code>, <code>select2</code> 等)</td><td>未設定の場合のみ。editor あり時 (#331 以降)</td></tr><tr><td><code>name</code></td><td><code>field_&#x3C;UUID先頭8文字></code></td><td>未設定の場合のみ。editor なし時 (フォールバック)</td></tr><tr><td><code>id</code></td><td>name と同じ値</td><td>未設定の場合のみ</td></tr></tbody></table>
+<blockquote>
+<p><strong>注 (RFC #1284)</strong>: <code>data-item-id</code> は GrapesJS component 単位の auto-generated 識別子 (1 画面内 ScreenItem の安定 ID) であり、RFC #1284 が再設計した <strong>top-level entity の <code>id</code></strong> (<code>EntityId</code> kebab-case) とは別概念。ScreenItem 単位 ID は component 寿命だけ意味を持ち、外部参照に使わないため UUID base を維持する。</p>
+</blockquote>
 <p><strong>実装</strong>: <code>frontend/src/grapes/dataItemId.ts</code> の <code>ensureFormFieldIdentity()</code> が <code>component:add</code> イベントで呼ばれる。<br>
 <strong>既存属性は絶対に上書きしない</strong> (ユーザーが手で付けた name を壊さない)。<br>
 <code>button</code> / <code>submit</code> / <code>reset</code> / <code>hidden</code> / <code>image</code> 型は対象外。<br>
