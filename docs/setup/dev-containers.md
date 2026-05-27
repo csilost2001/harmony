@@ -429,7 +429,7 @@ container 起動 → onCreate → postCreate (npm install + .config.json)
 | `build` | overlay Dockerfile を build | `.devcontainer/Dockerfile` (FROM = ghcr.io の base image) |
 | base image | 稀更新の重い install を内包 | `ghcr.io/csilost2001/harmony-devcontainer-base:<version>` (#1118 Phase 2、#1120 Phase 5 で features inline 追加) |
 | `features` | (Phase 5 で廃止) ツール後付け (宣言的)。Dev Containers の features は image build 後に apply されるため ghcr に含まれず cold start オーバーヘッド (~50-60 秒 on Note PC) を発生させていたため base image inline に移行。さらに features は user RUN の下流に置かれる仕様のため overlay 変更 (codex 月 bump 等) で全 feature が再 install される構造的不利あり (#1122 で計測確認、rebuild +35-40 秒) | (使用しない) |
-| `postCreateCommand` | プロジェクト固有 setup | `npm install` (frontend + backend) + `.claude/.config.json` 初期化のみ (軽量) |
+| `postCreateCommand` | プロジェクト固有 setup | `npm install` (root 1 発で shared / frontend / backend を npm workspaces で一括解決) + `.claude/.config.json` 初期化のみ (軽量) |
 
 「重い + 共通」→ base image (ghcr、Phase 5 以降は CLI 系も含む) / 「source 依存」→ postCreateCommand、という指針。Phase 4 まで使用していた features 機構は ghcr publish に含まれない制約で廃止 (Phase 5)。docker CLI は #1122 で構成比較した結果、Maintainer 専用機能 (publish-dev-image、年数回) のためだけに常時コストを払う設計を見直し、host 実行運用に切替て base image から除外 (P5b 採用)。
 
@@ -506,8 +506,8 @@ bash .devcontainer/scripts/build-base.sh
 |---|---|
 | `Reopen in Container` ポップアップが出ない | `.devcontainer/devcontainer.json` がリポジトリ root にあるか確認。`Ctrl+Shift+P` → `Dev Containers: Reopen in Container` を手動実行 |
 | 初回 build が完了しない / network エラー | Docker Desktop が起動しているか / インターネット接続 / 社内 proxy 設定。`docker pull mcr.microsoft.com/devcontainers/typescript-node:20` を WSL2 シェルで先に試す |
-| `postCreateCommand` で `npm install` が失敗 | bind mount された `node_modules` (WSL2 native で install したもの) が container と互換性なく失敗するケースあり。一度 WSL2 側で `rm -rf frontend/node_modules backend/node_modules` してから rebuild container |
-| Playwright browsers の install が遅い / 失敗 | postCreateCommand の `playwright install --with-deps chromium` で 3-5 分。完全 offline 環境では失敗。スキップしたい時は `.devcontainer/devcontainer.json` の postCreateCommand から該当行を削除 |
+| `postCreateCommand` で `npm install` が失敗 | bind mount された `node_modules` (WSL2 native で install したもの) が container と互換性なく失敗するケースあり。一度 WSL2 側で `rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules` してから rebuild container |
+| Playwright browsers が見つからない / install が必要 | Phase 5 (#1118 / #1120) 以降 Playwright chromium は **base image (ghcr) に同梱済**。`postCreateCommand` での `playwright install` は廃止。base image の build (`/publish-dev-image`) で `npx playwright install` が走るため、container 起動後は `~/.cache/ms-playwright/` に既に存在する。version mismatch で再 install したい場合のみ container 内で `npx playwright install chromium` を手動実行 |
 | Vite HMR がブラウザに反映されない | bind mount + inotify の問題。`frontend/vite.config.ts` の watch options に `{ usePolling: true, interval: 100 }` を追加。または container 内で `export CHOKIDAR_USEPOLLING=1` |
 | port 5173 / 5179 が forward されない | VSCode 下部の `PORTS` パネルで forward 状態を確認。`portsAttributes` で auto-forward 設定済 |
 | `~/.gitconfig` / `~/.ssh/` が container 内で使えない | Dev Containers は通常ホストの `~/.gitconfig` / `~/.ssh/` を mount するが、必要なら `mounts` 設定追加。`gh auth login` を container 内で再実行する手もあり |

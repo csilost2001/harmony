@@ -20,7 +20,7 @@
 <h3 id="dev-server-が起動しない">dev server が起動しない</h3>
 <ul>
 <li>ポート 5173 が占有されていないか (<code>netstat -ano | grep :5173</code>)</li>
-<li><code>cd frontend &#x26;&#x26; npm install</code> で依存解決済みか</li>
+<li>repo root で <code>npm install</code> 済か (PR #1378 で npm workspaces 化、subdir 単独 install は不要)</li>
 <li><code>vite.config.ts</code> で <code>strictPort: true</code> にしているので、5173 が使えないと起動失敗</li>
 </ul>
 <h3 id="backend-が多重起動">backend が多重起動</h3>

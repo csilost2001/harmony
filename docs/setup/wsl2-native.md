@@ -192,9 +192,11 @@ PR #1378 (#1375) で npm workspaces 化済み。`cd frontend && npm install` / `
 
 #### 成功確認
 - [ ] `node_modules/` (root) が存在
-- [ ] `frontend/node_modules/` / `backend/node_modules/` / `shared/node_modules/` が存在 (workspaces により hoist + 各 subdir に必要 link)
-- [ ] `shared/dist/` が存在 (`prepare` hook で build 済)
+- [ ] `node_modules/@harmony/shared` (workspace link、`ls -la node_modules/@harmony/` で確認) が `../../shared` 等を指す symlink として存在
+- [ ] `shared/dist/` が存在 (`prepare` hook で build 済、`ls shared/dist/index.js`)
 - [ ] `npm install` が exit code 0 で終了 (deprecation 警告は許容)
+
+> note: npm workspaces は依存を root `node_modules/` に hoist するため、`frontend/node_modules/` / `backend/node_modules/` / `shared/node_modules/` 自体は **必須ではなく、依存衝突がある場合にのみ作られる**。確認の主軸は root `node_modules/` と `@harmony/shared` の workspace link、`shared/dist/`。
 
 ---
 
