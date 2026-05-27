@@ -1,18 +1,16 @@
 /**
- * Rename entity → dirty GenericDefinition editor rename-block browser smoke
+ * Rename entity → GenericDefinition dirty ref-side edit block browser smoke
  * (#1334 K-3 Part A / I-7 Round 8 D, Round 7 Codex M-R7-4)
  *
  * 目的:
- *   GenericDefinitionEditor が dirty 状態の時、別ソースで entity rename が走り
- *   genericDefinitionChanged broadcast (reload: true) が届いた際に、Editor 上
- *   に reload banner が表示 + 保存ボタンが disabled になり、reload 後は最新
- *   def が editor に再ロードされることを browser lifecycle レベルで確認する。
+ *   GenericDefinitionEditor が dirty 状態の時、別ソースで entity rename が走ると、
+ *   server-side EditSession lock により rename が block され、編集中の GenericDefinition
+ *   が stale な参照更新で上書きされないことを browser lifecycle レベルで確認する。
  *
  * 既存の component test
- *   (frontend/src/components/generic-definition/GenericDefinitionEditor.test.tsx:52-72)
- * は mock broadcast でロジックを検証済。本 e2e は、実 backend を経由して broadcast
- * payload が wsBridge → mcpBridge → React subscription まで伝わることを保証する
- * (component test では拾えない通信レイヤの regression を検出)。
+ *   (frontend/src/components/generic-definition/GenericDefinitionEditor.test.tsx)
+ * で stale banner の mock broadcast 受信ロジックは検証済み。本 e2e は、実 backend
+ * を経由する rename path が dirty 参照側 editor を block することを保証する。
  */
 
 import { test, expect } from "@playwright/test";
@@ -28,21 +26,38 @@ import {
   closeBrowserSession,
 } from "../mcp/_helpers";
 
-const WS_KEY = "issue-1334-k3-genericdef-stale-save";
+const WS_KEY = "issue-1334-k3-genericdef-dirty-rename-block";
 const GD_KIND = "data-contract";
 const GD_NAME = "OrderForm";
 const TARGET_TABLE_ID = "order"; // examples/retail/harmony/tables/order.json
 const NEW_TABLE_ID = "order-k3";
 const OLD_TABLE_REF = `tables/${TARGET_TABLE_ID}`;
 const NEW_TABLE_REF = `tables/${NEW_TABLE_ID}`;
+const GD_EDIT_SESSION_RESOURCE_ID = `${GD_KIND}__${GD_NAME}`;
 
 let mcpAvailable = false;
 let ws: OpenedWorkspace;
 
+async function hasActiveGenericDefinitionEditorSession(): Promise<boolean> {
+  const result = await sendPersistent("editSession.list", {
+    resourceType: "generic-definition",
+    resourceId: GD_EDIT_SESSION_RESOURCE_ID,
+  }) as {
+    sessions?: Array<{
+      state?: string;
+      participants?: Record<string, { role?: string }>;
+    }>;
+  } | null;
+  return (result?.sessions ?? []).some((session) => (
+    session.state === "Active"
+    && Object.values(session.participants ?? {}).some((participant) => participant.role === "Edit")
+  ));
+}
+
 test.describe.configure({ mode: "serial" });
 
 test.describe(
-  "Rename entity → dirty GenericDefinition editor rename-block (#1334 K-3 / I-7 Round 8 D)",
+  "Rename entity → GenericDefinition dirty ref-side edit block (#1334 K-3 / I-7 Round 8 D)",
   { tag: ["@regression"] },
   () => {
     test.beforeAll(async () => {
@@ -80,7 +95,7 @@ test.describe(
       test.skip(!mcpAvailable, "backend (port 5179) が起動していません");
     });
 
-    test("dirty GD editor + 外部 table rename → banner 表示 + 保存 disabled + reload で復旧", async ({ page }) => {
+    test("dirty GD editor + 外部 table rename → rename block + dirty 編集保持", async ({ page }) => {
       // 1. GenericDefinitionEditor を開く
       await ws.gotoActive(page, `/generic-definition/${GD_KIND}/${GD_NAME}`);
 
@@ -99,34 +114,28 @@ test.describe(
       ).first();
       await expect(relationRefField).toHaveValue(OLD_TABLE_REF);
 
-      // 3. 外部から Table rename を発火 — backend が genericDefinitionChanged を
-      //    { reload: true } で broadcast する (refactor.ts:272-284 参照)。
-      //    sendPersistent (mcp/_helpers) は workspace.open 済みの永続 WS を使うため、
-      //    rename handler が wid 取得に成功し broadcast が page session にも届く。
-      await sendPersistent("renameEntityId", {
+      // 3. 外部から Table rename を発火 — 現行契約では参照側 GenericDefinition の
+      //    dirty EditSession があるため backend が rename を block する。
+      await expect.poll(
+        hasActiveGenericDefinitionEditorSession,
+        { timeout: 5000, message: "GenericDefinition dirty edit session should be active before rename" },
+      ).toBe(true);
+      await expect(sendPersistent("renameEntityId", {
         entityType: "table",
         oldId: TARGET_TABLE_ID,
         newId: NEW_TABLE_ID,
-      });
+      })).rejects.toThrow(/参照側 entity を編集中の他 session/);
 
-      // 4. reload banner が出る + 保存ボタンが disabled になる (dirty 編集を上書きしないよう rename-block)
-      await expect(page.getByTestId("generic-definition-reload-banner")).toBeVisible({ timeout: 8000 });
-      const saveBtn = page.getByRole("button", { name: "保存" });
-      await expect(saveBtn).toBeDisabled();
-
-      // 5. 「再読み込み」を押す → banner が消える + dirty 編集は破棄され、rename 済み ref を読む
-      await page.getByTestId("generic-definition-reload-btn").click();
-      await expect(page.getByTestId("generic-definition-reload-banner")).toBeHidden({ timeout: 5000 });
-      await expect(saveBtn).toBeEnabled({ timeout: 5000 });
-      const reloadedValue = await purposeField.inputValue();
-      expect(reloadedValue).toBe(initialValue);
-      await expect(relationRefField).toHaveValue(NEW_TABLE_REF);
+      // 4. rename は成立しないため reload banner は出ず、dirty 編集も保持される。
+      await expect(page.getByTestId("generic-definition-reload-banner")).toHaveCount(0);
+      expect(await purposeField.inputValue()).toBe(`${initialValue}__DIRTY_K3`);
+      await expect(relationRefField).toHaveValue(OLD_TABLE_REF);
       const persistedDefinition = await sendPersistent("loadGenericDefinition", {
         kind: GD_KIND,
         name: GD_NAME,
       }) as { relations?: Array<{ ref?: string }> };
-      expect(persistedDefinition.relations?.map((rel) => rel.ref)).toContain(NEW_TABLE_REF);
-      expect(persistedDefinition.relations?.map((rel) => rel.ref)).not.toContain(OLD_TABLE_REF);
+      expect(persistedDefinition.relations?.map((rel) => rel.ref)).toContain(OLD_TABLE_REF);
+      expect(persistedDefinition.relations?.map((rel) => rel.ref)).not.toContain(NEW_TABLE_REF);
 
       // cleanup: 後続テストへの影響回避は workspace cleanup (afterAll) で十分。
     });
