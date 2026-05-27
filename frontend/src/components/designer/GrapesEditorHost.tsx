@@ -12,10 +12,11 @@ import type {
   EditorApi,
   EditorState,
   GrapesJSRenderEditorProps,
+  PanelMode,
+  ThemeId,
 } from "../../editor/EditorBackend";
 import type { McpStatus } from "../../mcp/mcpBridge";
 import type { CssFramework } from "../../types/v3/harmony";
-import type { PanelMode, ThemeId } from "../Designer";
 import type { EditMode } from "../../hooks/useEditSession";
 import { composePreviewHtml } from "../../utils/pageLayoutCompositionPreview";
 

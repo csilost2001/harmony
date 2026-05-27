@@ -1,14 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../hooks/useWorkspacePath";
-import { RenameEntityDialog } from "./common/RenameEntityDialog";
-import { RenameEntityUndoToast } from "./common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "./common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../utils/handleRenameSuccess";
 import { checkLegacyLocalStorage, executeRescue, clearLegacyLocalStorage } from "../grapes/legacyLocalStorageRescue";
 import { acknowledgeServerMtime } from "../utils/serverMtime";
 import { recordError } from "../utils/errorLog";
-import { ServerChangeBanner } from "./common/ServerChangeBanner";
 import { useErrorDialog } from "./common/ErrorDialogProvider";
 import { mcpBridge, type McpStatus } from "../mcp/mcpBridge";
 import { loadProject, loadRawProject, updateScreenThumbnail } from "../store/flowStore";
@@ -20,24 +17,16 @@ import { resolveEditorKind } from "../utils/resolveEditorKind";
 import type { EditorKind } from "../utils/resolveEditorKind";
 import { useEditSession } from "../hooks/useEditSession";
 import { useSessionUrlSync } from "../hooks/useSessionUrlSync";
-import { EditModeToolbar } from "./editing/EditModeToolbar";
-import { ScreenDesignAiGenerateDialog } from "./design/ScreenDesignAiGenerateDialog";
-import {
-  DiscardConfirmDialog,
-  ForceReleaseConfirmDialog,
-  ForcedOutChoiceDialog,
-  AfterForceUnlockChoiceDialog,
-} from "./editing/ConfirmDialogs";
-import { SaveConflictDialog } from "./editing/SaveConflictDialog";
-import { ResumeOrDiscardDialog } from "./editing/ResumeOrDiscardDialog";
 import { PuckBackend } from "../editor/PuckBackend";
 import { GrapesJSBackend } from "../editor/GrapesJSBackend";
 import type { EditorApi, EditorState } from "../editor/EditorBackend";
 import { DESIGNER_REFERENCE_RELOAD_EVENTS, isReloadBroadcast, shouldNotifyScreenChanged } from "../editor/reloadEvents";
-// #1388 sub-section A 派生 2 件: renderEditor 呼び出しと props 構築を host に隔離して
+// #1388 sub-section A 派生 2 件 (Option 1): renderEditor 呼び出しと props 構築を host に隔離して
 // react-hooks/refs (Designer scope 内 ref 含む closure が props 経由で渡される) を解消。
 import { PuckEditorHost } from "./designer/PuckEditorHost";
 import { GrapesEditorHost } from "./designer/GrapesEditorHost";
+// #1388 sub-section A (Option 2): 共通ダイアログ群 (~145 行 JSX) を独立 component に抽出。
+import { DesignerDialogs } from "./designer/DesignerDialogs";
 import "../styles/editMode.css";
 
 const PANEL_MODE_KEY = "designer-panel-left-mode";
@@ -814,152 +803,93 @@ export function Designer({
 
   // ---------------------------------------------------------------------------
   // 共通ダイアログ群 (GrapesJS / Puck 両方で使う)
+  // #1388 sub-section A (Option 2): JSX 本体は designer/DesignerDialogs.tsx に抽出済、
+  // Designer.tsx は props 構築だけ残す (~145 行 → ~80 行)。
   // ---------------------------------------------------------------------------
   const commonDialogs = (
-    <>
-      {/* 編集モードツールバー */}
-      <EditModeToolbar
-        mode={mode}
-        onStartEditing={handleStartEditing}
-        onSave={handleSave}
-        onDiscardClick={() => setShowDiscardDialog(true)}
-        onForceReleaseClick={() => setShowForceReleaseDialog(true)}
-        saving={isSaving}
-        ownerLabel={lockedByOther?.ownerSessionId}
-      />
-
-      {/* 強制解除 / ForcedOut / AfterForceUnlock ダイアログ */}
-      {mode.kind === "force-released-pending" && (
-        <ForcedOutChoiceDialog
-          previousDraftExists={mode.previousDraftExists}
-          onChoice={(choice) => editActions.handleForcedOut(choice)}
-        />
-      )}
-      {mode.kind === "after-force-unlock" && (
-        <AfterForceUnlockChoiceDialog
-          previousOwner={mode.previousOwner}
-          onChoice={(choice) => editActions.handleAfterForceUnlock(choice)}
-        />
-      )}
-
-      {showResumeDialog && (
-        <ResumeOrDiscardDialog
-          onResume={handleResumeContinue}
-          onDiscard={handleResumeDiscard}
-          onCancel={() => setShowResumeDialog(false)}
-        />
-      )}
-
-      {showDiscardDialog && (
-        <DiscardConfirmDialog
-          onConfirm={handleDiscard}
-          onCancel={() => setShowDiscardDialog(false)}
-        />
-      )}
-
-      {showForceReleaseDialog && lockedByOther && (
-        <ForceReleaseConfirmDialog
-          ownerSessionId={lockedByOther.ownerSessionId}
-          onConfirm={handleForceRelease}
-          onCancel={() => setShowForceReleaseDialog(false)}
-        />
-      )}
-
-      {showLegacyRescueDialog && (
-        <LegacyRescueDialog
-          onAdopt={handleLegacyRescueAdopt}
-          onDiscard={handleLegacyRescueDiscard}
-        />
-      )}
-
-      {saveConflict && (
-        <SaveConflictDialog
-          conflict={saveConflict}
-          onOverwrite={async () => {
-            try {
-              await onSaveConflictOverwrite();
-              await commitAfterSave();
-            } catch (e) {
-              console.error("[Designer] save overwrite failed:", e);
-            }
-          }}
-          onCancel={onSaveConflictCancel}
-        />
-      )}
-
-      {serverChanged && (
-        <ServerChangeBanner
-          onReload={handleServerChangeReload}
-          onDismiss={() => setServerChanged(false)}
-        />
-      )}
-
-      {showAiGenerateDialog && (
-        <ScreenDesignAiGenerateDialog
-          current={aiDialogInitialPayload}
-          editorKind={editorKind}
-          cssFramework={cssFramework}
-          screenName={screenName}
-          onApply={applyGeneratedDesignPayload}
-          onClose={() => setShowAiGenerateDialog(false)}
-        />
-      )}
-
-      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
-      {showRenameDialog && (
-        <RenameEntityDialog
-          entityType="screen"
-          currentId={screenId}
-          currentName={screenName ?? ""}
-          existingIds={allScreenIds}
-          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
-          fetchExistingIds={async () => {
-            const project = await loadProject();
-            return (project.screens ?? []).map((s) => s.id);
-          }}
-          onClose={() => setShowRenameDialog(false)}
-          onSuccess={(newId, operationId, extra) => {
-            setShowRenameDialog(false);
-            handleRenameSuccess({
-              entityType: "screen",
-              oldId: screenId,
-              newId,
-              label: screenName ?? newId,
-              navigate,
-              wsPath,
-              wsId,
-            });
-            setRenameUndoToast({
-              operationId, oldId: screenId, newId,
-              ttlMs: extra?.ttlMs,
-            });
-          }}
-        />
-      )}
-
-      {renameUndoToast && (
-        <RenameEntityUndoToast
-          operationId={renameUndoToast.operationId}
-          oldId={renameUndoToast.oldId}
-          newId={renameUndoToast.newId}
-          ttlMs={renameUndoToast.ttlMs}
-          entityLabel="画面"
-          onUndo={() => {
-            handleRenameSuccess({
-              entityType: "screen",
-              oldId: renameUndoToast.newId,
-              newId: renameUndoToast.oldId,
-              label: screenName ?? renameUndoToast.oldId,
-              navigate,
-              wsPath,
-              wsId,
-            });
-            setRenameUndoToast(null);
-          }}
-          onDismiss={() => setRenameUndoToast(null)}
-        />
-      )}
-    </>
+    <DesignerDialogs
+      mode={mode}
+      isSaving={isSaving}
+      lockedByOther={lockedByOther}
+      onStartEditing={handleStartEditing}
+      onSave={handleSave}
+      onOpenDiscard={() => setShowDiscardDialog(true)}
+      onOpenForceRelease={() => setShowForceReleaseDialog(true)}
+      onForcedOutChoice={editActions.handleForcedOut}
+      onAfterForceUnlockChoice={editActions.handleAfterForceUnlock}
+      showResumeDialog={showResumeDialog}
+      onResumeContinue={handleResumeContinue}
+      onResumeDiscard={handleResumeDiscard}
+      onCancelResume={() => setShowResumeDialog(false)}
+      showDiscardDialog={showDiscardDialog}
+      onConfirmDiscard={handleDiscard}
+      onCancelDiscard={() => setShowDiscardDialog(false)}
+      showForceReleaseDialog={showForceReleaseDialog}
+      onConfirmForceRelease={handleForceRelease}
+      onCancelForceRelease={() => setShowForceReleaseDialog(false)}
+      showLegacyRescueDialog={showLegacyRescueDialog}
+      onLegacyRescueAdopt={handleLegacyRescueAdopt}
+      onLegacyRescueDiscard={handleLegacyRescueDiscard}
+      saveConflict={saveConflict}
+      onSaveConflictOverwrite={async () => {
+        try {
+          await onSaveConflictOverwrite();
+          await commitAfterSave();
+        } catch (e) {
+          console.error("[Designer] save overwrite failed:", e);
+        }
+      }}
+      onSaveConflictCancel={onSaveConflictCancel}
+      serverChanged={serverChanged}
+      onServerChangeReload={handleServerChangeReload}
+      onServerChangeDismiss={() => setServerChanged(false)}
+      showAiGenerateDialog={showAiGenerateDialog}
+      aiDialogInitialPayload={aiDialogInitialPayload}
+      editorKind={editorKind}
+      cssFramework={cssFramework}
+      screenName={screenName}
+      onApplyAiGenerated={applyGeneratedDesignPayload}
+      onCloseAiGenerate={() => setShowAiGenerateDialog(false)}
+      showRenameDialog={showRenameDialog}
+      screenId={screenId}
+      allScreenIds={allScreenIds}
+      fetchExistingScreenIds={async () => {
+        const project = await loadProject();
+        return (project.screens ?? []).map((s) => s.id);
+      }}
+      onCloseRename={() => setShowRenameDialog(false)}
+      onRenameSuccess={(newId, operationId, extra) => {
+        setShowRenameDialog(false);
+        handleRenameSuccess({
+          entityType: "screen",
+          oldId: screenId,
+          newId,
+          label: screenName ?? newId,
+          navigate,
+          wsPath,
+          wsId,
+        });
+        setRenameUndoToast({
+          operationId, oldId: screenId, newId,
+          ttlMs: extra?.ttlMs,
+        });
+      }}
+      renameUndoToast={renameUndoToast}
+      onRenameUndo={() => {
+        if (!renameUndoToast) return;
+        handleRenameSuccess({
+          entityType: "screen",
+          oldId: renameUndoToast.newId,
+          newId: renameUndoToast.oldId,
+          label: screenName ?? renameUndoToast.oldId,
+          navigate,
+          wsPath,
+          wsId,
+        });
+        setRenameUndoToast(null);
+      }}
+      onRenameUndoDismiss={() => setRenameUndoToast(null)}
+    />
   );
 
   // ---------------------------------------------------------------------------
@@ -1079,83 +1009,7 @@ export function Designer({
   );
 }
 
-// ---------------------------------------------------------------------------
-// LocalStorage 救済確認ダイアログ
-// ---------------------------------------------------------------------------
-
-interface LegacyRescueDialogProps {
-  onAdopt: () => void;
-  onDiscard: () => void;
-}
-
-// #1388 sub-section A 派生 2 件: EditorKindMismatchBanner / PageLayoutWireframeBanner /
-// CompositionPreviewModal は GrapesEditorHost.tsx に移動 (host のみで参照されるため)。
-
-function LegacyRescueDialog({ onAdopt, onDiscard }: LegacyRescueDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onDiscard();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onDiscard]);
-
-  useEffect(() => {
-    dialogRef.current?.focus();
-  }, []);
-
-  return (
-    <div
-      className="edit-mode-modal-backdrop"
-      onClick={(e) => { if (e.target === e.currentTarget) onDiscard(); }}
-      role="presentation"
-    >
-      <div
-        className="edit-mode-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="legacy-rescue-title"
-        tabIndex={-1}
-        ref={dialogRef}
-      >
-        <div className="edit-mode-modal-header">
-          <h5 id="legacy-rescue-title" className="edit-mode-modal-title">
-            未保存の旧データが見つかりました
-          </h5>
-          <button
-            type="button"
-            className="btn-close"
-            onClick={onDiscard}
-            aria-label="閉じる"
-          />
-        </div>
-        <div className="edit-mode-modal-body">
-          <p>
-            以前の編集セッションで保存されなかったデータ (localStorage) が残っています。
-            draft に変換して編集を継続しますか？
-          </p>
-          <div className="edit-mode-modal-footer">
-            <button
-              type="button"
-              className="btn btn-outline-danger btn-sm"
-              onClick={onDiscard}
-              data-testid="legacy-rescue-discard"
-            >
-              破棄する
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={onAdopt}
-              data-testid="legacy-rescue-adopt"
-            >
-              draft に変換して続ける
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// #1388 sub-section A (Option 2): LegacyRescueDialog (旧 inline 定義) は
+// designer/LegacyRescueDialog.tsx に move 済 (DesignerDialogs から import)。
+// EditorKindMismatchBanner / PageLayoutWireframeBanner / CompositionPreviewModal は
+// 同じく派生 2 件で GrapesEditorHost.tsx に移動済 (host 内のみ参照)。

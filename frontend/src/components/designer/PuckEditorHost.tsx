@@ -9,11 +9,12 @@ import type { PuckBackend } from "../../editor/PuckBackend";
 import type {
   EditorApi,
   EditorState,
+  PanelMode,
   PuckRenderEditorProps,
+  ThemeId,
 } from "../../editor/EditorBackend";
 import type { McpStatus } from "../../mcp/mcpBridge";
 import type { CssFramework } from "../../types/v3/harmony";
-import type { PanelMode, ThemeId } from "../Designer";
 import type { EditMode } from "../../hooks/useEditSession";
 
 export interface PuckEditorHostProps {
