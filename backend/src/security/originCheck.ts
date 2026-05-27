@@ -16,6 +16,11 @@ import type { IncomingMessage } from "node:http";
 const ALLOWED_ORIGINS = new Set([
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  // #1342 Proposal A: lockdown e2e config (playwright.lockdown.config.ts) は main
+  // config (5173/5179) と port 衝突回避のため frontend=5183 / backend=5189 で起動する。
+  // localhost に閉じた dev/test 用 port のため allowlist に追加する。
+  "http://localhost:5183",
+  "http://127.0.0.1:5183",
 ]);
 
 // ホスト名のみで DNS rebinding を防ぐ (ポートは問わない)。

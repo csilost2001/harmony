@@ -1,11 +1,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { lockdownWorkspacePath } from "./helpers/workspaceFixture.ts";
 
-const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(THIS_DIR, "../..");
 // #1359 Round 1 M-1: workspaceFixture.ts:lockdownWorkspacePath() は **worker index 非依存
 // の stable path** を返す。lockdown config (playwright.lockdown.config.ts) と本 spec の
 // path 構築を単一 source of truth に集約しつつ、controller process (`TEST_WORKER_INDEX`
@@ -13,11 +9,10 @@ const REPO_ROOT = path.resolve(THIS_DIR, "../..");
 const LOCKDOWN_WORKSPACE = lockdownWorkspacePath();
 
 test.describe("lockdown routing", { tag: ["@regression"] }, () => {
-  test.beforeAll(async () => {
-    await fs.rm(LOCKDOWN_WORKSPACE, { recursive: true, force: true });
-    await fs.mkdir(path.dirname(LOCKDOWN_WORKSPACE), { recursive: true });
-    await fs.cp(path.join(REPO_ROOT, "examples", "retail"), LOCKDOWN_WORKSPACE, { recursive: true });
-  });
+  // #1342 Proposal A: seed は playwright.lockdown.config.ts module 読込時の同期 fs
+  // API 呼び出しに集約 (webServer 起動前に backend が必要とする harmony.json を配置
+  // する必要があるため、spec.beforeAll や Playwright globalSetup では間に合わない)。
+  // 本 spec は seed 結果に依存して動くだけで、自身では seed しない。
 
   test.afterAll(async () => {
     await fs.rm(LOCKDOWN_WORKSPACE, { recursive: true, force: true });

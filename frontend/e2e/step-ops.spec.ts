@@ -133,13 +133,19 @@ test.describe("ステップツールバーから追加 (#246)", { tag: ["@regres
 });
 
 test.describe("ステップコンテキストメニュー (#246)", { tag: ["@regression"] }, () => {
+  // #1342: Playwright `.click()` が dnd-kit useSortable 環境下の menu item に対し React
+  // synthetic onClick を発火させない事象を確認 (実機調査: JS `(button).click()` /
+  // `.dispatchEvent('click')` は OK、Playwright pointer event 経路だけ silent fail)。
+  // 暫定対処として memory `feedback_playwright_key_dispatch.md` と同パターンの
+  // dispatchEvent fallback を採用。
   test("メニューから複製で 4 ステップに", async ({ page }) => {
     await setupEditor(page);
     // 1 つ目の card の ・・・ メニューを開く
     const firstCard = page.locator(".step-card").first();
     await firstCard.locator(".step-card-menu-btn").last().click();
-    // 複製 メニュー項目クリック
-    await page.getByRole("button", { name: /複製/ }).first().click();
+    await expect(page.locator(".step-context-menu")).toBeVisible();
+    // 複製 メニュー項目クリック (dispatchEvent fallback / 上記理由参照)
+    await page.getByRole("button", { name: /複製/ }).first().dispatchEvent("click");
     // 4 ステップに増える
     await expect(page.locator(".step-card")).toHaveCount(4);
   });
@@ -148,7 +154,8 @@ test.describe("ステップコンテキストメニュー (#246)", { tag: ["@reg
     await setupEditor(page);
     const firstCard = page.locator(".step-card").first();
     await firstCard.locator(".step-card-menu-btn").last().click();
-    await page.getByRole("button", { name: /削除/ }).first().click();
+    await expect(page.locator(".step-context-menu")).toBeVisible();
+    await page.getByRole("button", { name: /削除/ }).first().dispatchEvent("click");
     // ghost にはならず、即削除
     await expect(page.locator(".step-card")).toHaveCount(2);
   });
