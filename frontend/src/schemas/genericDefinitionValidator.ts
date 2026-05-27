@@ -17,7 +17,7 @@
 
 import type Ajv2020 from "ajv/dist/2020";
 import type { GenericDefinition, GenericDefinitionKind } from "../types/v3";
-import { buildHarmonyAjv } from "../utils/buildHarmonyAjv";
+import { buildHarmonyAjv } from "@harmony/shared";
 
 import parentSchema from "../../../schemas/v3/generic-definition.v3.schema.json";
 import dataContractSchema from "../../../schemas/v3/generic-definitions/data-contract.v3.schema.json";

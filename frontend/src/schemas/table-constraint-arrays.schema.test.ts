@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { buildHarmonyAjv } from "../utils/buildHarmonyAjv";
+import { buildHarmonyAjv } from "@harmony/shared";
 import type Ajv2020 from "ajv/dist/2020";
 
 const repoRoot = resolve(__dirname, "../../../");
