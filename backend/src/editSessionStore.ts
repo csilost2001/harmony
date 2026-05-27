@@ -35,7 +35,8 @@ export type DraftResourceType =
   | "extension"
   | "convention"
   | "flow"
-  | "er-layout";
+  | "er-layout"
+  | "generic-definition"; // #1331: GenericDefinition EditSession 化 (kind/name 複合 id)
 
 export interface ParticipantInfo {
   sessionId: string;

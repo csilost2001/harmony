@@ -11,4 +11,5 @@ export type DraftResourceType =
   | "extension"
   | "convention"
   | "flow"  // #690 PR-7: 画面遷移図用
-  | "er-layout";
+  | "er-layout"
+  | "generic-definition";  // #1331: GenericDefinition (kind/name 複合 id)

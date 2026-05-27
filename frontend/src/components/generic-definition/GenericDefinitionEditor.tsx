@@ -26,6 +26,9 @@ import {
 import { ValidationBadge } from "../common/ValidationBadge";
 import { makeTabId, openTab } from "../../store/tabStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
+// #1331: GenericDefinition EditSession 対応 — 編集中は EditSession を保持し、
+// 他 session の rename が detectConcurrentEditRefs 経由で本 editor を block できるようにする。
+import { useEditSession } from "../../hooks/useEditSession";
 
 function isValidKind(k: string): k is GenericDefinitionKind {
   return (GENERIC_DEFINITION_KINDS as string[]).includes(k);
@@ -66,6 +69,23 @@ export function GenericDefinitionEditor() {
   const [reloadBanner, setReloadBanner] = useState(false);
   // dirty 検出用: loaded 直後の serialized snapshot を保持し、現 def との diff で判定
   const initialSnapshotRef = useRef<string | null>(null);
+
+  // #1331: GenericDefinition EditSession 統合。
+  // resourceId は kind/name 複合 ID (renameEntity の location.entityId と同形式)。
+  // 編集 (= def 変更) があった時に lazily startEditing し、他 session の rename を block する。
+  // 完全な mtime/etag 衝突検出は follow-up ISSUE で実装 (本 ISSUE では rename block のみ対応)。
+  const sessionId = mcpBridge.getSessionId();
+  const editSessionResourceId = kind && decodedName ? `${kind}/${decodedName}` : "";
+  const { editSession, actions: editSessionActions } = useEditSession({
+    resourceType: "generic-definition",
+    resourceId: editSessionResourceId,
+    sessionId,
+  });
+  // 編集開始済みフラグ — 同一 mount 内で startEditing を 1 回だけ実行する。
+  const startedEditingRef = useRef(false);
+  // unmount 時の discard 用 ref (closure 経由で最新 actions/session を参照)
+  const editSessionRef = useRef(editSession);
+  useEffect(() => { editSessionRef.current = editSession; }, [editSession]);
 
   useEffect(() => {
     if (!kind || !decodedName) return;
@@ -142,6 +162,30 @@ export function GenericDefinitionEditor() {
 
   const updateDef = useCallback((updater: (prev: GenericDefinition) => GenericDefinition) => {
     setDef((prev) => prev ? updater(prev) : prev);
+    // #1331: 編集が初めて発生した時点で EditSession を作成 (lazy start)。
+    // 既に startEditing 済 / resourceId が未確定なら no-op。
+    if (!startedEditingRef.current && editSessionResourceId) {
+      startedEditingRef.current = true;
+      editSessionActions.startEditing().catch((e) => {
+        console.warn("[GenericDefinitionEditor] startEditing failed:", e);
+        startedEditingRef.current = false; // 失敗時は次回 update で再試行
+      });
+    }
+  }, [editSessionActions, editSessionResourceId]);
+
+  // #1331: unmount 時に EditSession を discard (cleanup)。
+  // closure に最新 editSession を保持するため editSessionRef を参照。
+  useEffect(() => {
+    return () => {
+      const es = editSessionRef.current;
+      if (es && startedEditingRef.current) {
+        editSessionActions.discard().catch((e) => {
+          console.warn("[GenericDefinitionEditor] discard on unmount failed:", e);
+        });
+      }
+    };
+    // unmount 時の cleanup のみが目的 — dependencies は意図的に空
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -171,13 +215,21 @@ export function GenericDefinitionEditor() {
       // 起因する broadcast (reload event) で reloadBanner が誤発火しないようにする。
       initialSnapshotRef.current = JSON.stringify(def);
       setReloadBanner(false);
+      // #1331: save 成功後は EditSession を discard し、他 session の rename block を解除する。
+      // 次の編集で再度 startEditing が走る (lazy)。
+      if (startedEditingRef.current) {
+        startedEditingRef.current = false;
+        editSessionActions.discard().catch((e) => {
+          console.warn("[GenericDefinitionEditor] discard after save failed:", e);
+        });
+      }
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
-  }, [def, reloadBanner]);
+  }, [def, reloadBanner, editSessionActions]);
 
   const handleDelete = useCallback(async () => {
     if (!kind || !decodedName) return;

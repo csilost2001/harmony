@@ -84,6 +84,11 @@ const INTERNAL_KIND_TO_RESOURCE_TYPE: Record<string, EditSessionResourceType> = 
   view: "view",
   viewDefinition: "view-definition",
   pageLayout: "page-layout",
+  // #1331: GenericDefinition (kind/name 複合 id) を rename block 対象に含める。
+  // renameEntity scan source は entityKind="genericDefinition" / entityId="<kind>/<name>" で
+  // 列挙される (renameEntity.ts L1318)。frontend GenericDefinitionEditor が同形式の
+  // resourceId で EditSession を作成するため、ここで kebab-case の resourceType に変換する。
+  genericDefinition: "generic-definition",
 };
 
 /**
