@@ -77,12 +77,10 @@ export function TableListView() {
     return await listTables();
   }, []);
 
-  const commitTableChanges = useCallback(commitTables, []);
-
   const editor = useListEditor<TableEntry>({
     getId: (t) => t.id,
     load: loadTables,
-    commit: commitTableChanges,
+    commit: commitTables,
     tabId: TAB_ID,
     renumber,
   });
