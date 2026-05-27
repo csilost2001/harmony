@@ -43,6 +43,12 @@ export class CodexConnection {
 
   private _client: CodexClient | null = null;
   private _connecting: Promise<CodexClient> | null = null;
+  /**
+   * 接続中 shutdown 経路用 (#1400 Round 2)。
+   * close() で abort すると StdioTransport が child を即時 SIGKILL。
+   * connect 完了後は次回 connect のために null に戻す。
+   */
+  private _connectAbort: AbortController | null = null;
 
   private readonly _listeners = new Set<NotificationListener>();
   private _serverRequestHandler: ServerRequestHandler = null;
@@ -104,6 +110,9 @@ export class CodexConnection {
   }
 
   private async _doConnect(): Promise<CodexClient> {
+    // 接続中 shutdown を可能にする AbortController (#1400 Round 2)。
+    // close() で abort すると StdioTransport が即時 child を SIGKILL。
+    this._connectAbort = new AbortController();
     const client = await this.clientFactory({
       config: this.config,
       clientInfo: this.clientInfo,
@@ -112,6 +121,7 @@ export class CodexConnection {
       onError: (err) => {
         console.error("[CodexConnection] transport error:", err.message);
       },
+      signal: this._connectAbort.signal,
     });
 
     // Detect transport close so we can clear the reference (lazy reconnect on next call).
@@ -128,6 +138,9 @@ export class CodexConnection {
     this._attachCloseDetection(client);
 
     this._client = client;
+    // 接続成功後は AbortController を破棄 (次回 connect で新規に作る)。
+    // close() が後で呼ばれた時は通常の client.close() 経路で kill される。
+    this._connectAbort = null;
     this._broadcastConnectionState("connected");
     return client;
   }
@@ -212,6 +225,23 @@ export class CodexConnection {
   // ── Close ─────────────────────────────────────────────────────────────────
 
   async close(opts?: CloseOptions): Promise<void> {
+    // 接続中 race 対策 (#1400 Round 2): in-flight connect があれば abort で子プロセスを即時 kill。
+    // connect 中 SIGINT が入った場合、AbortController が StdioTransport の child を SIGKILL する。
+    if (this._connectAbort) {
+      this._connectAbort.abort();
+      this._connectAbort = null;
+    }
+    // 接続中 Promise の reject / resolve を待つ (kill 後の cleanup を確実に走らせるため)。
+    // hang 防止に 1.5 秒で諦める — 親 safeguard 3 秒 + tsx force-kill 5 秒の範囲に収める。
+    const inFlight = this._connecting;
+    if (inFlight) {
+      try {
+        await Promise.race([
+          inFlight.catch(() => null),
+          new Promise<null>((resolve) => setTimeout(resolve, 1500)),
+        ]);
+      } catch { /* ignore */ }
+    }
     const client = this._client;
     this._client = null;
     this._connecting = null;

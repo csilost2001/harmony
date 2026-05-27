@@ -364,6 +364,44 @@ describe("CodexConnection", () => {
       await conn.close();
       await expect(conn.close()).resolves.toBeUndefined();
     });
+
+    // #1400 Round 2: 接続中 shutdown race の回帰防止。
+    // connect() in-flight 中に close() が呼ばれた場合、factory に渡された signal が
+    // abort される (StdioTransport が child を SIGKILL する経路)。
+    it("close() during in-flight connect aborts the factory signal", async () => {
+      let receivedSignal: AbortSignal | undefined;
+      let resolveFactory: ((client: CodexClient) => void) | null = null;
+      const factory = vi.fn(async (opts: CodexClientOptions): Promise<CodexClient> => {
+        receivedSignal = opts.signal;
+        return new Promise<CodexClient>((resolve) => {
+          resolveFactory = resolve;
+        });
+      });
+      const conn = new CodexConnection({ _clientFactory: factory });
+
+      // Start connect but don't await — factory hangs intentionally.
+      const connectP = conn.connect().catch(() => null);
+      // Yield so factory is entered.
+      await new Promise((r) => setImmediate(r));
+      expect(receivedSignal).toBeDefined();
+      expect(receivedSignal!.aborted).toBe(false);
+
+      // Trigger shutdown during in-flight connect.
+      const closeP = conn.close();
+      await new Promise((r) => setImmediate(r));
+      expect(receivedSignal!.aborted).toBe(true);
+
+      // Cleanup: resolve the factory with a minimal client so the connect promise can settle.
+      resolveFactory!({
+        request: async () => undefined,
+        notify: () => undefined,
+        close: async () => undefined,
+        getInitializeResponse: () =>
+          ({}) as import("./types/InitializeResponse.js").InitializeResponse,
+      } as unknown as CodexClient);
+      await connectP;
+      await closeP;
+    });
   });
 
   describe("connect() failure", () => {

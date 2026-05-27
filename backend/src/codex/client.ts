@@ -21,6 +21,12 @@ export interface CodexClientOptions {
   onNotification?: (notification: ServerNotification) => void;
   onServerRequest?: (request: ServerRequest) => Promise<unknown> | unknown;
   onError?: (err: Error) => void;
+  /**
+   * 接続中 shutdown 経路用 (#1400 Round 2)。
+   * abort されると StdioTransport が child を即時 SIGKILL。
+   * initialize 中に SIGINT を受けたケースで orphan を防ぐ。
+   */
+  signal?: AbortSignal;
 }
 
 const OVERLOAD_ERROR_CODE = -32001;
@@ -45,7 +51,7 @@ export class CodexClient {
 
   static async connect(options: CodexClientOptions): Promise<CodexClient> {
     const config = options.config ?? loadCodexConfig();
-    const transport = await createTransport(config);
+    const transport = await createTransport(config, options.signal);
     if (options.onError) transport.on("error", options.onError);
 
     const rpc = new JsonRpcClient({
@@ -132,16 +138,20 @@ async function requestWithOverloadRetry<T>(
   }
 }
 
-async function createTransport(config: CodexConfig): Promise<JsonRpcTransport> {
+async function createTransport(
+  config: CodexConfig,
+  signal?: AbortSignal,
+): Promise<JsonRpcTransport> {
   if (config.transport === "websocket") {
     if (!config.websocket) {
       throw new Error(
         "Codex transport=websocket but HARMONY_CODEX_WS_URL is unset. Configure URL or switch to spawn.",
       );
     }
+    // WebSocketTransport は network 接続を握るだけで child process 無し、abort 不要 (#1400)
     const ws = new WebSocketTransport(config.websocket);
     await ws.ready();
     return ws;
   }
-  return new StdioTransport(config.spawn);
+  return new StdioTransport({ ...config.spawn, signal });
 }
