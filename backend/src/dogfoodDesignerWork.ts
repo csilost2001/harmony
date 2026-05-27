@@ -35,7 +35,7 @@ async function broadcastSave(id: string, data: ProcessFlowDoc): Promise<void> {
     ws.on("open", () => {
       ws.send(JSON.stringify({ type: "register", clientId }));
       setTimeout(() => {
-        ws.send(JSON.stringify({ type: "request", id: reqId, method: "saveProcessFlow", params: { id, data } }));
+        ws.send(JSON.stringify({ type: "request", id: reqId, method: "saveProcessFlow", params: { processFlowId: id, data } }));
       }, 100);
     });
     ws.on("message", (raw) => {

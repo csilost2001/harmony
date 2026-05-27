@@ -122,3 +122,45 @@ export async function closeBrowserSession(): Promise<void> {
     ws.close();
   }
 }
+
+export async function observeBroadcastDuring<T>(
+  workspacePath: string,
+  event: string,
+  action: () => Promise<T>,
+): Promise<{ result: T; broadcast: unknown }> {
+  const observer = new WebSocketImpl("ws://localhost:5179");
+  const observerClientId = `observer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const openReqId = `observer-open-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  await new Promise<void>((resolve, reject) => {
+    observer.on("open", () => {
+      observer.send(JSON.stringify({ type: "register", clientId: observerClientId }));
+      observer.send(JSON.stringify({ type: "request", id: openReqId, method: "workspace.open", params: { path: workspacePath } }));
+    });
+    observer.on("message", (data) => {
+      const msg = JSON.parse(data.toString()) as { type?: string; id?: string; error?: string };
+      if (msg.type === "response" && msg.id === openReqId) {
+        if (msg.error) reject(new Error(msg.error));
+        else resolve();
+      }
+    });
+    observer.on("error", (err) => reject(new Error(`Observer WebSocket error: ${err.message}`)));
+  });
+
+  try {
+    const broadcastPromise = new Promise<unknown>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(`Timeout waiting for broadcast ${event}`)), 10000);
+      observer.on("message", (data) => {
+        const msg = JSON.parse(data.toString()) as { type?: string; event?: string; data?: unknown };
+        if (msg.type === "broadcast" && msg.event === event) {
+          clearTimeout(timer);
+          resolve(msg.data);
+        }
+      });
+    });
+    const [result, broadcast] = await Promise.all([action(), broadcastPromise]);
+    return { result, broadcast };
+  } finally {
+    observer.close();
+  }
+}

@@ -392,7 +392,7 @@ export class EditSessionService {
             break;
           case "process-flow":
             await writeProcessFlow(resId, payload, root);
-            resourceChange = { event: "processFlowChanged", data: { processFlowId: resId } };
+            resourceChange = { event: "processFlowChanged", data: { processFlowId: resId, id: resId } };
             break;
           case "view":
             await writeView(resId, payload, root);

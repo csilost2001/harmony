@@ -37,7 +37,7 @@ export const handleScreenItemTool: ToolHandler = async (name, args, root, sessio
       const renameRes = await renameScreenItemId(a.screenId, a.oldId, a.newId, root);
       wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "screenItemsChanged", data: { screenId: a.screenId } });
       for (const agId of renameRes.processFlowsUpdated) {
-        wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "processFlowChanged", data: { processFlowId: agId } });
+        wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "processFlowChanged", data: { processFlowId: agId, id: agId } });
       }
       if (renameRes.screenHtmlUpdated) {
         wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "screenChanged", data: { screenId: a.screenId } });
@@ -110,7 +110,7 @@ export const handleScreenItemTool: ToolHandler = async (name, args, root, sessio
         // ブラウザ側で適用済み → process flow refs のみファイル更新
         const { processFlowsUpdated } = await updateProcessFlowRefs(a.screenId, mapping, root);
         for (const agId of processFlowsUpdated) {
-          wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "processFlowChanged", data: { processFlowId: agId } });
+          wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "processFlowChanged", data: { processFlowId: agId, id: agId } });
         }
         // screenChanged / screenItemsChanged は broadcast しない (browser dirty、ファイルは古いまま)
 
@@ -134,7 +134,7 @@ export const handleScreenItemTool: ToolHandler = async (name, args, root, sessio
         wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "screenItemsChanged", data: { screenId: a.screenId } });
         const allAgs = new Set(result.succeeded.flatMap((s) => s.processFlowsUpdated));
         for (const agId of allAgs) {
-          wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "processFlowChanged", data: { processFlowId: agId } });
+          wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "processFlowChanged", data: { processFlowId: agId, id: agId } });
         }
         if (result.succeeded.some((s) => s.screenHtmlUpdated)) {
           wsBridge.broadcast({ wsId: workspaceContextManager.getActivePath(sessionId), event: "screenChanged", data: { screenId: a.screenId } });
