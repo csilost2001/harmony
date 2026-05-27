@@ -1,11 +1,11 @@
 /**
- * Rename entity → GenericDefinition stale-save banner browser smoke
+ * Rename entity → dirty GenericDefinition editor rename-block browser smoke
  * (#1334 K-3 Part A / I-7 Round 8 D, Round 7 Codex M-R7-4)
  *
  * 目的:
  *   GenericDefinitionEditor が dirty 状態の時、別ソースで entity rename が走り
  *   genericDefinitionChanged broadcast (reload: true) が届いた際に、Editor 上
- *   に stale-save banner が表示 + 保存ボタンが disabled になり、reload 後は最新
+ *   に reload banner が表示 + 保存ボタンが disabled になり、reload 後は最新
  *   def が editor に再ロードされることを browser lifecycle レベルで確認する。
  *
  * 既存の component test
@@ -42,7 +42,7 @@ let ws: OpenedWorkspace;
 test.describe.configure({ mode: "serial" });
 
 test.describe(
-  "Rename entity → GenericDefinition stale-save banner (#1334 K-3 / I-7 Round 8 D)",
+  "Rename entity → dirty GenericDefinition editor rename-block (#1334 K-3 / I-7 Round 8 D)",
   { tag: ["@regression"] },
   () => {
     test.beforeAll(async () => {
@@ -109,7 +109,7 @@ test.describe(
         newId: NEW_TABLE_ID,
       });
 
-      // 4. stale-save banner が出る + 保存ボタンが disabled になる
+      // 4. reload banner が出る + 保存ボタンが disabled になる (dirty 編集を上書きしないよう rename-block)
       await expect(page.getByTestId("generic-definition-reload-banner")).toBeVisible({ timeout: 8000 });
       const saveBtn = page.getByRole("button", { name: "保存" });
       await expect(saveBtn).toBeDisabled();
