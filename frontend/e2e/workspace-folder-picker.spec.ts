@@ -95,9 +95,10 @@ test.describe("AddWorkspaceDialog — BackendFolderPicker (#1056)", { tag: ["@re
     // Playwright が backend を起動する経路では env で渡しているため通過する。
     test.skip(
       !folderPickerAllowed,
-      "backend `HARMONY_ALLOWED_BROWSE_ROOTS` に .tmp/* が含まれていません。" +
-      "Playwright config の webServer env を反映するため backend を再起動するか、" +
-      "手動起動時は `HARMONY_ALLOWED_BROWSE_ROOTS=/workspaces/harmony:/tmp` を付けて起動してください。",
+      "backend `HARMONY_ALLOWED_BROWSE_ROOTS` に repo root の .tmp/* が含まれていません。" +
+      "Playwright config の webServer env (動的算出: repo root + /tmp) を反映するため " +
+      "backend を再起動するか、手動起動時は環境に合わせて " +
+      "`HARMONY_ALLOWED_BROWSE_ROOTS=<repo root>:/tmp` を付けて起動してください。",
     );
     await ensureFixture();
   });

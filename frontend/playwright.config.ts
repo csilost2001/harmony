@@ -1,3 +1,5 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
 
 // worktree 環境では VITE_PORT で別 port を指定可能 (#703 R-5 D-2 port 競合解決)
@@ -5,6 +7,14 @@ const VITE_PORT = parseInt(process.env.VITE_PORT ?? "5173", 10);
 const BASE_URL = `http://localhost:${VITE_PORT}`;
 const cliIncludesEndurance = process.argv.some((arg) => arg.includes("@endurance"));
 const includeEndurance = process.env.E2E_INCLUDE_ENDURANCE === "1" || cliIncludesEndurance;
+
+// #1342 Proposal C (Codex Round 1 Should-fix): repo root を `import.meta.url` から
+// 動的算出することで dev container (`/workspaces/harmony`) / WSL2 native
+// (`/home/<user>/projects/harmony` 等) / 別 clone path のいずれでも env が機能する。
+// `HARMONY_ALLOWED_BROWSE_ROOTS` は repo root + `/tmp` を `path.delimiter` で連結。
+const PLAYWRIGHT_CONFIG_DIR = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(PLAYWRIGHT_CONFIG_DIR, "..");
+const ALLOWED_BROWSE_ROOTS = `${REPO_ROOT}${path.delimiter}/tmp`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -51,12 +61,15 @@ export default defineConfig({
     },
     {
       // #1342 Proposal C: workspace-folder-picker.spec.ts は backend `fsBrowse` の
-      // allowlist (HARMONY_ALLOWED_BROWSE_ROOTS) に test fixture root (.tmp/*) が
-      // 含まれていないと「アクセスが許可されていないパスです」で fail する。
+      // allowlist (HARMONY_ALLOWED_BROWSE_ROOTS) に test fixture root (`<repo>/.tmp/*`)
+      // が含まれていないと「アクセスが許可されていないパスです」で fail する。
       // 既定値 (os.homedir() のみ) を repo root + tmp に拡張する env を渡す。
       // 既存 backend reuse 時は env が引き継がれないため、test 側に probe による
       // skipIf gate を用意 (workspace-folder-picker.spec.ts の beforeEach 参照)。
-      command: "cd ../backend && HARMONY_E2E_NO_AUTO_ACTIVATE=1 HARMONY_ALLOWED_BROWSE_ROOTS=/workspaces/harmony:/tmp npm run dev",
+      // Codex Round 1 Should-fix: repo root は `import.meta.url` から動的算出する
+      // (上の `ALLOWED_BROWSE_ROOTS` 参照) ことで dev container / WSL2 native / 別 clone
+      // path の全環境で機能させる。
+      command: `cd ../backend && HARMONY_E2E_NO_AUTO_ACTIVATE=1 HARMONY_ALLOWED_BROWSE_ROOTS=${ALLOWED_BROWSE_ROOTS} npm run dev`,
       url: "http://localhost:5179",
       reuseExistingServer: true, // 既存 backend があれば再利用 (常駐 backend に接続)
       timeout: 30000,
@@ -67,7 +80,7 @@ export default defineConfig({
       //       recent.lastActiveId の暗黙引き継ぎを断つ (spec が明示的 workspace.open で制御)
       env: {
         HARMONY_E2E_NO_AUTO_ACTIVATE: "1",
-        HARMONY_ALLOWED_BROWSE_ROOTS: "/workspaces/harmony:/tmp",
+        HARMONY_ALLOWED_BROWSE_ROOTS: ALLOWED_BROWSE_ROOTS,
       },
     },
   ],
