@@ -274,6 +274,8 @@ GrapesJS で `input` / `select` / `textarea` ブロックを **drop したとき
 | `name` | `field_<UUID先頭8文字>` | 未設定の場合のみ。editor なし時 (フォールバック) |
 | `id` | name と同じ値 | 未設定の場合のみ |
 
+> **注 (RFC #1284)**: `data-item-id` は GrapesJS component 単位の auto-generated 識別子 (1 画面内 ScreenItem の安定 ID) であり、RFC #1284 が再設計した **top-level entity の `id`** (`EntityId` kebab-case) とは別概念。ScreenItem 単位 ID は component 寿命だけ意味を持ち、外部参照に使わないため UUID base を維持する。
+
 **実装**: `frontend/src/grapes/dataItemId.ts` の `ensureFormFieldIdentity()` が `component:add` イベントで呼ばれる。  
 **既存属性は絶対に上書きしない** (ユーザーが手で付けた name を壊さない)。  
 `button` / `submit` / `reset` / `hidden` / `image` 型は対象外。  
