@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import {
@@ -20,7 +20,6 @@ import {
 } from "../../store/genericDefinitionStore";
 import {
   validateGenericDefinition,
-  type GenericDefinitionIssue,
 } from "../../schemas/genericDefinitionValidator";
 import { ValidationBadge } from "../common/ValidationBadge";
 import { makeTabId, openTab } from "../../store/tabStore";
@@ -59,7 +58,8 @@ export function GenericDefinitionEditor() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [issues, setIssues] = useState<GenericDefinitionIssue[]>([]);
+  // issues は def から純粋に派生する値のため useMemo で derive する
+  // (React 19 `react-hooks/set-state-in-effect` 対応、宣言は L290 付近)。
   // #1368: 他 session が save した際の衝突情報 (spec §9.3 last-save-wins)。
   // null なら非表示。SaveConflictDialog が render される。
   const [saveConflict, setSaveConflict] = useState<ConflictInfo | null>(null);
@@ -100,11 +100,16 @@ export function GenericDefinitionEditor() {
     promise: Promise<string | null>;
   } | null>(null);
   const generationRef = useRef(0);
-  // currentResourceIdRef: 最新 editSessionSafeResourceId を常に保持 (render phase で同期更新)。
+  // currentResourceIdRef: 最新 editSessionSafeResourceId を保持。
   // create 中の Promise body は closure capture により stale な target を持つため、
   // drift check は ref 経由で最新値を参照する必要がある。
+  // React 19 `react-hooks/refs` 対応: render 中の ref.current 代入は禁止のため
+  // useEffect で commit 後に更新する。ensureEditSession は user 編集イベント起因で
+  // 呼ばれるため、効果実行後 (= 次の interaction 時点) に最新値が反映されていれば十分。
   const currentResourceIdRef = useRef<string>("");
-  currentResourceIdRef.current = editSessionSafeResourceId;
+  useEffect(() => {
+    currentResourceIdRef.current = editSessionSafeResourceId;
+  }, [editSessionSafeResourceId]);
 
   // ensureEditSession: 現 resource に対する active session を返す。なければ create。
   // pending start の resourceId 一致時のみ再利用、不一致なら新規 create を並行起動
@@ -251,13 +256,19 @@ export function GenericDefinitionEditor() {
       });
   }, [kind, decodedName]);
 
+  // kind / decodedName が valid な場合のみ reload を起動する。
+  // 不正な場合は render 中の derived guard (kind null 早期 return + 下の `invalidParams` 分岐)
+  // でエラー表示するため、effect 内の同期 setState は行わない (React 19 `react-hooks/set-state-in-effect`)。
+  // reload は内部で setLoading(true) 等の同期 setState を行うため、microtask に defer して
+  // effect body から synchronous setState chain を切り離す。
   useEffect(() => {
-    if (!kind || !decodedName) {
-      setError("不正な kind または name です");
-      setLoading(false);
-      return;
-    }
-    reload();
+    if (!kind || !decodedName) return;
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      reload();
+    });
+    return () => { cancelled = true; };
   }, [kind, decodedName, reload]);
 
   // Phase J Must-fix B: backend からの genericDefinitionChanged broadcast を購読し、
@@ -282,14 +293,11 @@ export function GenericDefinitionEditor() {
     return unsub;
   }, [kind, decodedName, def, reload]);
 
-  // def 変更時に AJV バリデーションを実行
-  useEffect(() => {
-    if (!def) {
-      setIssues([]);
-      return;
-    }
-    setIssues(validateGenericDefinition(def));
-  }, [def]);
+  // def 変更時に AJV バリデーションを実行 — useMemo で derive (React 19 `react-hooks/set-state-in-effect` 対応)
+  const issues = useMemo(
+    () => (def ? validateGenericDefinition(def) : []),
+    [def],
+  );
 
   const updateDef = useCallback((updater: (prev: GenericDefinition) => GenericDefinition) => {
     setDef((prev) => prev ? updater(prev) : prev);
@@ -438,6 +446,10 @@ export function GenericDefinitionEditor() {
 
   if (!kind) {
     return <div style={{ padding: "24px", color: "#c00" }}>不正な kind です</div>;
+  }
+
+  if (!decodedName) {
+    return <div style={{ padding: "24px", color: "#c00" }}>不正な kind または name です</div>;
   }
 
   if (loading) {

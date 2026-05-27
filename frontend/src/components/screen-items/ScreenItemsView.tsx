@@ -128,7 +128,8 @@ export function ScreenItemsView() {
   const [screens, setScreens] = useState<ScreenMeta[]>([]);
   const [candidatesModalOpen, setCandidatesModalOpen] = useState(false);
   const [conventions, setConventions] = useState<ConventionsCatalog | null>(null);
-  const [lintIssues, setLintIssues] = useState<ConventionIssue[]>([]);
+  // lintIssues は file / conventions から純粋に派生するため useMemo で derive
+  // (React 19 `react-hooks/set-state-in-effect` 対応、宣言は L702 付近)
   const [expandedErrorRows, setExpandedErrorRows] = useState<Set<number>>(new Set());
   const [expandedDetailRows, setExpandedDetailRows] = useState<Set<number>>(new Set());
   const [expandedEventRows, setExpandedEventRows] = useState<Set<number>>(new Set());
@@ -697,11 +698,12 @@ export function ScreenItemsView() {
     setPendingRename(null);
   }, [pendingRename, updateSilentWithDraft, commit]);
 
-  // @conv.* lint (file または conventions 更新時)
-  useEffect(() => {
-    if (!file || !conventions) { setLintIssues([]); return; }
-    setLintIssues(checkScreenItemConventionReferences(file, conventions));
-  }, [file, conventions]);
+  // @conv.* lint — useMemo で file / conventions から derive
+  // (React 19 `react-hooks/set-state-in-effect` 対応)
+  const lintIssues = useMemo<ConventionIssue[]>(
+    () => (file && conventions ? checkScreenItemConventionReferences(file, conventions) : []),
+    [file, conventions],
+  );
 
   // 行インデックスごとの lint issues (行ハイライト用)
   const lintByRow = useMemo(() => {
@@ -810,13 +812,18 @@ export function ScreenItemsView() {
     commit();
   }, [commit]);
 
-  // ファイル切替時に選択・展開状態をリセット
-  useEffect(() => {
+  // ファイル切替時に選択・展開状態をリセット (React 19 公式 pattern:
+  // "Storing information from previous renders" — prev !== current で render 中に setState、
+  // 同値なら React は重複 update を skip するため無限ループにならない)。
+  // useEffect から render 中の derive に移すことで `react-hooks/set-state-in-effect` 警告を解消。
+  const [prevScreenIdForReset, setPrevScreenIdForReset] = useState(screenId);
+  if (prevScreenIdForReset !== screenId) {
+    setPrevScreenIdForReset(screenId);
     setSelectedIndices(new Set());
     setExpandedErrorRows(new Set());
     setExpandedDetailRows(new Set());
     setExpandedEventRows(new Set());
-  }, [screenId]);
+  }
 
   const selectedScreenName = screens.find((s) => s.id === screenId)?.name;
 

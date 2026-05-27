@@ -403,10 +403,22 @@ export function Designer({
   // editorKind === "grapesjs" のときのみ実行し、結果を grapesState に格納して renderEditor で使う。
   // screenId 変更時 (タブ切替) は最初に grapesState を null にクリアし、新 payload が来るまで
   // ローディング画面を表示することで stale payload で render しない (#815 Codex Must-fix #1)。
+  //
+  // React 19 `react-hooks/set-state-in-effect` 対応: effect 内の setGrapesState(null) は
+  // 「prop 変化時 state リセット」pattern で render 中に derive する。React は同値 setState を
+  // skip するため無限ループにはならない。Backend lifecycle ref (grapesBackendRef.current) の
+  // 初期化は effect 内に残す (#1385 scope 外、副作用は effect が正)。
+  const [grapesLoadKey, setGrapesLoadKey] = useState<string | null>(null);
+  const currentGrapesLoadKey = editorKind === "grapesjs" ? `${screenId}` : null;
+  if (currentGrapesLoadKey !== grapesLoadKey) {
+    setGrapesLoadKey(currentGrapesLoadKey);
+    if (currentGrapesLoadKey !== null) {
+      setGrapesState(null);
+    }
+  }
   useEffect(() => {
     if (editorKind !== "grapesjs") return;
     let cancelled = false;
-    setGrapesState(null);
     editorApiRef.current = null;
     if (!grapesBackendRef.current) grapesBackendRef.current = new GrapesJSBackend();
     const backend = grapesBackendRef.current;
@@ -661,10 +673,21 @@ export function Designer({
   // Puck Backend の load — payload を取得して puckState にセット。
   // 描画は React render 時に backend.renderEditor() の戻り値 (ReactNode) を使う (#815)。
   // editorKind === "puck" のときのみ実行する。
+  //
+  // React 19 `react-hooks/set-state-in-effect` 対応: effect 内の setPuckState(null) は
+  // 「prop 変化時 state リセット」pattern で render 中に derive する。Backend lifecycle ref
+  // (puckBackendRef.current) の初期化は effect 内に残す (#1385 scope 外)。
+  const [puckLoadKey, setPuckLoadKey] = useState<string | null>(null);
+  const currentPuckLoadKey = editorKind === "puck" ? `${screenId}` : null;
+  if (currentPuckLoadKey !== puckLoadKey) {
+    setPuckLoadKey(currentPuckLoadKey);
+    if (currentPuckLoadKey !== null) {
+      setPuckState(null);
+    }
+  }
   useEffect(() => {
     if (editorKind !== "puck") return;
     let cancelled = false;
-    setPuckState(null);
     editorApiRef.current = null;
     if (!puckBackendRef.current) puckBackendRef.current = new PuckBackend();
     const backend = puckBackendRef.current;

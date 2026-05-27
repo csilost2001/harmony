@@ -888,13 +888,13 @@ function ColumnsTab({
     return () => window.removeEventListener("keydown", handler, { capture: true });
   }, [activeColId]);
 
-  useEffect(() => {
-    if (activeColId && !table.columns.some((c) => c.id === activeColId)) {
-      setActiveColId(null);
-    }
-  }, [activeColId, table.columns]);
-
+  // activeColId が table.columns 内に存在しないなら render 中に null 化 (React 19 公式 pattern:
+  // "Adjusting state while rendering" — setActiveColId が same value なら React は re-render を
+  // skip するので無限ループにはならない)。
   const detailCol = activeColId ? table.columns.find((c) => c.id === activeColId) ?? null : null;
+  if (activeColId && !detailCol) {
+    setActiveColId(null);
+  }
 
   const columns = useMemo<DataListColumn<Column>[]>(() => [
     {
