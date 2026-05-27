@@ -132,7 +132,13 @@ function makeFetchEditSessionsForRef(
     // 通常 entity (Table/Screen/ProcessFlow 等): entityId を直接使用
     const resourceType = INTERNAL_KIND_TO_RESOURCE_TYPE[entityKind];
     if (resourceType) {
-      return bridge.editSessionListByResource(wsId, resourceType, entityId);
+      // #1331: genericDefinition の entityId は "<kind>/<name>" 形式だが、
+      // editSession.create の assertSafeName は `/` を許容しないため frontend は
+      // `/` → `__` に encode して create する。lookup 時にも同じ変換を適用する。
+      const resourceId = entityKind === "genericDefinition"
+        ? entityId.replace(/\//g, "__")
+        : entityId;
+      return bridge.editSessionListByResource(wsId, resourceType, resourceId);
     }
     // 副次 file (project/screenFlowPositions/erLayout): singleton EditSession を引く
     const singletonRT = INTERNAL_KIND_TO_SINGLETON_RESOURCE_TYPE[entityKind];

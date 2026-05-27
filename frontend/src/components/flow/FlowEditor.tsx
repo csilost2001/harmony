@@ -370,9 +370,13 @@ function FlowEditorInner() {
   // #1330: ScreenFlow node 右クリック起点の Screen rename refactor。
   // 完了後は ScreenFlow に留まる (singleton 起動)。
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  // Codex Round 1 Should-fix: rename 成功時 setRenameTarget(null) で `currentId` が空文字に
+  // なり useRenameEntityUndoToast の key 切替で toast が即時 clear される race を回避するため、
+  // toast 用に新 id (= rename 後 id) を保持する独立 state を用意する。
+  const [renamedToastNewId, setRenamedToastNewId] = useState<string>("");
   const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast(
     "screen",
-    renameTarget?.id ?? "",
+    renamedToastNewId,
     wsId,
   );
 
@@ -1357,6 +1361,8 @@ function FlowEditorInner() {
           onClose={() => setRenameTarget(null)}
           onSuccess={(newId, operationId, extra) => {
             const target = renameTarget;
+            // Codex Round 1 Should-fix: toast key 用に newId を先に固定
+            setRenamedToastNewId(newId);
             setRenameTarget(null);
             handleRenameSuccess({
               entityType: "screen",
@@ -1400,6 +1406,8 @@ function FlowEditorInner() {
           onUndo={() => {
             const oldId = renameUndoToast.newId;
             const newId = renameUndoToast.oldId;
+            // undo: newId(=元 oldId) を toast key に切替
+            setRenamedToastNewId(newId);
             handleRenameSuccess({
               entityType: "screen",
               oldId,
@@ -1423,8 +1431,9 @@ function FlowEditorInner() {
               })));
             }).catch(console.error);
             setRenameUndoToast(null);
+            setRenamedToastNewId("");
           }}
-          onDismiss={() => setRenameUndoToast(null)}
+          onDismiss={() => { setRenameUndoToast(null); setRenamedToastNewId(""); }}
         />
       )}
     </div>

@@ -69,9 +69,13 @@ export function ScreenListView() {
   const { hasDraft } = useDraftRegistry();
   // #1330: ScreenListView 起点の Screen rename refactor。完了後は一覧に留まる (singleton 起動)。
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  // Codex Round 1 Should-fix: rename 成功時 setRenameTarget(null) で `currentId` が空文字に
+  // なり useRenameEntityUndoToast の key 切替で toast が即時 clear される race を回避するため、
+  // toast 用に新 id (= rename 後 id) を保持する独立 state を用意する。
+  const [renamedToastNewId, setRenamedToastNewId] = useState<string>("");
   const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast(
     "screen",
-    renameTarget?.id ?? "",
+    renamedToastNewId,
     wsId,
   );
   // project.techStack.designer の project default (画面作成ダイアログのデフォルト選択値)
@@ -778,6 +782,9 @@ export function ScreenListView() {
           onClose={() => setRenameTarget(null)}
           onSuccess={(newId, operationId, extra) => {
             const target = renameTarget;
+            // Codex Round 1 Should-fix: toast key を newId に固定するため
+            // setRenameUndoToast より先に setRenamedToastNewId を呼ぶ
+            setRenamedToastNewId(newId);
             setRenameTarget(null);
             handleRenameSuccess({
               entityType: "screen",
@@ -809,6 +816,8 @@ export function ScreenListView() {
           ttlMs={renameUndoToast.ttlMs}
           entityLabel="画面"
           onUndo={() => {
+            // undo: newId → oldId に戻す。toast key は oldId に切替える前に setRenamedToastNewId。
+            setRenamedToastNewId(renameUndoToast.oldId);
             handleRenameSuccess({
               entityType: "screen",
               oldId: renameUndoToast.newId,
@@ -822,8 +831,9 @@ export function ScreenListView() {
             });
             editor.reload().catch(console.error);
             setRenameUndoToast(null);
+            setRenamedToastNewId("");
           }}
-          onDismiss={() => setRenameUndoToast(null)}
+          onDismiss={() => { setRenameUndoToast(null); setRenamedToastNewId(""); }}
         />
       )}
     </div>

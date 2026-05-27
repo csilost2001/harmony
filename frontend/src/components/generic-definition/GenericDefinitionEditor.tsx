@@ -26,9 +26,6 @@ import {
 import { ValidationBadge } from "../common/ValidationBadge";
 import { makeTabId, openTab } from "../../store/tabStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
-// #1331: GenericDefinition EditSession 対応 — 編集中は EditSession を保持し、
-// 他 session の rename が detectConcurrentEditRefs 経由で本 editor を block できるようにする。
-import { useEditSession } from "../../hooks/useEditSession";
 
 function isValidKind(k: string): k is GenericDefinitionKind {
   return (GENERIC_DEFINITION_KINDS as string[]).includes(k);
@@ -70,22 +67,66 @@ export function GenericDefinitionEditor() {
   // dirty 検出用: loaded 直後の serialized snapshot を保持し、現 def との diff で判定
   const initialSnapshotRef = useRef<string | null>(null);
 
-  // #1331: GenericDefinition EditSession 統合。
-  // resourceId は kind/name 複合 ID (renameEntity の location.entityId と同形式)。
-  // 編集 (= def 変更) があった時に lazily startEditing し、他 session の rename を block する。
-  // 完全な mtime/etag 衝突検出は follow-up ISSUE で実装 (本 ISSUE では rename block のみ対応)。
-  const sessionId = mcpBridge.getSessionId();
-  const editSessionResourceId = kind && decodedName ? `${kind}/${decodedName}` : "";
-  const { editSession, actions: editSessionActions } = useEditSession({
-    resourceType: "generic-definition",
-    resourceId: editSessionResourceId,
-    sessionId,
-  });
-  // 編集開始済みフラグ — 同一 mount 内で startEditing を 1 回だけ実行する。
-  const startedEditingRef = useRef(false);
-  // unmount 時の discard 用 ref (closure 経由で最新 actions/session を参照)
-  const editSessionRef = useRef(editSession);
-  useEffect(() => { editSessionRef.current = editSession; }, [editSession]);
+  // #1331: GenericDefinition EditSession 統合 (mcpBridge 直接呼出版)。
+  // 編集 (= def 変更) があった時に lazily editSession.create し、他 session の rename を
+  // detectConcurrentEditRefs 経由で block する。
+  //
+  // 設計理由 (Codex Round 1 Must-fix 2 解消):
+  //   useEditSession hook 経由は startEditing() 解決前 unmount で race 発生 (cleanup 時点で
+  //   editSession state が null のため discard skip → orphan session)。mcpBridge.request を
+  //   直接呼ぶことで create response の editSessionId を即座に ref に保持し、unmount cleanup
+  //   が pending Promise を await してから discard 可能になる。
+  //
+  // resourceId encoding:
+  //   renameEntity location は entityId="<kind>/<name>" (例: "data-contract/Foo") を使うが、
+  //   editSession.create の assertSafeName は `/` を許容しない。frontend では `/` → `__` に
+  //   encode し、backend wsHandlers/refactor.ts の makeFetchEditSessionsForRef で逆変換する。
+  const editSessionRawId = kind && decodedName ? `${kind}/${decodedName}` : "";
+  const editSessionSafeResourceId = editSessionRawId.replace(/\//g, "__");
+  const editSessionIdRef = useRef<string | null>(null);
+  const startingPromiseRef = useRef<Promise<string | null> | null>(null);
+
+  // 編集開始: 同 mount 内で重複 create を防ぐため startingPromiseRef を await。
+  // 失敗時は次の updateDef で再試行可能 (idRef / promiseRef を null に戻す)。
+  const ensureEditSession = useCallback(async (): Promise<string | null> => {
+    if (editSessionIdRef.current) return editSessionIdRef.current;
+    if (startingPromiseRef.current) return startingPromiseRef.current;
+    if (!editSessionSafeResourceId) return null;
+    const promise = (async (): Promise<string | null> => {
+      try {
+        const result = await mcpBridge.request("editSession.create", {
+          resourceType: "generic-definition",
+          resourceId: editSessionSafeResourceId,
+        }) as { editSession?: { id?: string } } | null;
+        const id = result?.editSession?.id ?? null;
+        editSessionIdRef.current = id;
+        return id;
+      } catch (e) {
+        console.warn("[GenericDefinitionEditor] editSession.create failed:", e);
+        return null;
+      } finally {
+        startingPromiseRef.current = null;
+      }
+    })();
+    startingPromiseRef.current = promise;
+    return promise;
+  }, [editSessionSafeResourceId]);
+
+  // 破棄: pending startEditing があれば先に解決を待ち、その後 editSessionId が確定したら discard。
+  // unmount + save 後の両方で呼ぶ。
+  const discardEditSession = useCallback(async (): Promise<void> => {
+    if (startingPromiseRef.current) {
+      try { await startingPromiseRef.current; } catch { /* create failed = nothing to discard */ }
+    }
+    const id = editSessionIdRef.current;
+    if (!id) return;
+    editSessionIdRef.current = null;
+    try {
+      await mcpBridge.request("editSession.discard", { editSessionId: id });
+    } catch (e) {
+      console.warn("[GenericDefinitionEditor] editSession.discard failed:", e);
+    }
+  }, []);
 
   useEffect(() => {
     if (!kind || !decodedName) return;
@@ -162,29 +203,18 @@ export function GenericDefinitionEditor() {
 
   const updateDef = useCallback((updater: (prev: GenericDefinition) => GenericDefinition) => {
     setDef((prev) => prev ? updater(prev) : prev);
-    // #1331: 編集が初めて発生した時点で EditSession を作成 (lazy start)。
-    // 既に startEditing 済 / resourceId が未確定なら no-op。
-    if (!startedEditingRef.current && editSessionResourceId) {
-      startedEditingRef.current = true;
-      editSessionActions.startEditing().catch((e) => {
-        console.warn("[GenericDefinitionEditor] startEditing failed:", e);
-        startedEditingRef.current = false; // 失敗時は次回 update で再試行
-      });
-    }
-  }, [editSessionActions, editSessionResourceId]);
+    // #1331: 編集が発生したら EditSession を作成 (lazy)。重複 create は ensureEditSession 内で抑制。
+    ensureEditSession().catch(() => { /* logged inside */ });
+  }, [ensureEditSession]);
 
   // #1331: unmount 時に EditSession を discard (cleanup)。
-  // closure に最新 editSession を保持するため editSessionRef を参照。
+  // pending start (= mcpBridge.request 応答未到達) も await してから discard する。
+  // ref を closure に直接掴むため deps なし (eslint disable は意図的)。
   useEffect(() => {
     return () => {
-      const es = editSessionRef.current;
-      if (es && startedEditingRef.current) {
-        editSessionActions.discard().catch((e) => {
-          console.warn("[GenericDefinitionEditor] discard on unmount failed:", e);
-        });
-      }
+      // fire-and-forget: discardEditSession 内で pending start を await + discard
+      discardEditSession().catch(() => { /* logged inside */ });
     };
-    // unmount 時の cleanup のみが目的 — dependencies は意図的に空
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -216,20 +246,15 @@ export function GenericDefinitionEditor() {
       initialSnapshotRef.current = JSON.stringify(def);
       setReloadBanner(false);
       // #1331: save 成功後は EditSession を discard し、他 session の rename block を解除する。
-      // 次の編集で再度 startEditing が走る (lazy)。
-      if (startedEditingRef.current) {
-        startedEditingRef.current = false;
-        editSessionActions.discard().catch((e) => {
-          console.warn("[GenericDefinitionEditor] discard after save failed:", e);
-        });
-      }
+      // 次の編集で再度 ensureEditSession が走る (lazy)。
+      discardEditSession().catch(() => { /* logged inside */ });
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
-  }, [def, reloadBanner, editSessionActions]);
+  }, [def, reloadBanner, discardEditSession]);
 
   const handleDelete = useCallback(async () => {
     if (!kind || !decodedName) return;
