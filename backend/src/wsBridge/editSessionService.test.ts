@@ -85,6 +85,76 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(deliveredClientIds).not.toContain("client-other-workspace");
   });
 
+  it("#1368 Codex Round 3 Must-fix: long composite generic-definition resourceId (>64 chars) も WS handler が accept する", async () => {
+    // assertSafeName は max 64 chars だが、`${kind}__${name}` 形式は最大 64 + 2 + 64 = 130 chars
+    // schema-valid な長い name で 64 chars を超える事例を捕捉する (Round 3 で観測):
+    //   kind = "data-contract" (13 chars), name = 52-char schema-valid name → 13+2+52 = 67 chars
+    const { editSessionHandlers } = await import("../wsHandlers/editSession.js");
+    const createHandler = editSessionHandlers["editSession.create"];
+    const longName = "A_very_long_but_schema_valid_generic_def_name_OrderForm";
+    expect(longName.length).toBe(55);
+    const longResourceId = `data-contract__${longName}`;
+    expect(longResourceId.length).toBeGreaterThan(64); // assertSafeName max 64 を超える
+
+    let respondedResult: unknown = undefined;
+    let respondedError: string | undefined;
+    const captures: Array<{ rid: string }> = [];
+    const stubBridge = {
+      editSessionCreate: (_clientId: string, _rt: string, rid: string) => {
+        captures.push({ rid });
+        return { editSession: { id: "stub-long-es", resourceId: rid } };
+      },
+    };
+
+    await createHandler({
+      params: {
+        resourceType: "generic-definition",
+        resourceId: longResourceId,
+        displayLabel: "tester",
+      },
+      clientId: "client-test",
+      root: () => tmpDir,
+      wsId: () => tmpDir,
+      respond: (r) => { respondedResult = r; },
+      respondError: (e) => { respondedError = e; },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bridge: stubBridge as any,
+    });
+
+    expect(respondedError).toBeUndefined();
+    expect(respondedResult).toEqual({ editSession: { id: "stub-long-es", resourceId: longResourceId } });
+    expect(captures[0].rid).toBe(longResourceId);
+  });
+
+  it("#1368 Codex Round 3 Must-fix: WS handler が generic-definition resourceId の decoded kind / name を別個に検証する (invalid は reject)", async () => {
+    const { editSessionHandlers } = await import("../wsHandlers/editSession.js");
+    const createHandler = editSessionHandlers["editSession.create"];
+
+    // ケース 1: `__` separator 無し → reject
+    let errFromMissingSep: string | undefined;
+    await createHandler({
+      params: { resourceType: "generic-definition", resourceId: "no-separator-here" },
+      clientId: "c1", root: () => tmpDir, wsId: () => tmpDir,
+      respond: () => undefined,
+      respondError: (e) => { errFromMissingSep = e; },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bridge: {} as any,
+    });
+    expect(errFromMissingSep).toMatch(/generic-definition resourceId.*'\${kind}__\${name}'/);
+
+    // ケース 2: 不正な decoded kind (`_` を含む = kind regex 違反) → reject
+    let errFromBadKind: string | undefined;
+    await createHandler({
+      params: { resourceType: "generic-definition", resourceId: "data_contract__Order" },
+      clientId: "c2", root: () => tmpDir, wsId: () => tmpDir,
+      respond: () => undefined,
+      respondError: (e) => { errFromBadKind = e; },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bridge: {} as any,
+    });
+    expect(errFromBadKind).toMatch(/decoded kind/);
+  });
+
   it("#1368 Codex Round 2 Must-fix: WS handler editSession.create が resourceType=\"generic-definition\" を accept する (VALID_RESOURCE_TYPES allowlist)", async () => {
     // backend/src/wsHandlers/editSession.ts の VALID_RESOURCE_TYPES に "generic-definition"
     // が含まれていないと、frontend GenericDefinitionEditor の `editSession.create` が
