@@ -894,6 +894,7 @@ export function ScreenItemsView() {
                 className="btn btn-sm btn-outline-secondary me-2"
                 onClick={() => setShowRenameDialog(true)}
                 title="この画面の ID を変更します (参照を一括更新)"
+                data-testid="screen-items-rename-open-btn"
               >
                 <i className="bi bi-pencil-square me-1" />
                 ID 変更

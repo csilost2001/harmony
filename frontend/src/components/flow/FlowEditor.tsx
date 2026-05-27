@@ -1246,7 +1246,7 @@ function FlowEditorInner() {
               <button className="flow-context-menu-item" onClick={() => { handleDuplicateNode().catch(console.error); }}>
                 <i className="bi bi-copy" /> 複製
               </button>
-              <button className="flow-context-menu-item" onClick={handleRenameNode}>
+              <button className="flow-context-menu-item" onClick={handleRenameNode} data-testid="flow-node-rename-id-btn">
                 <i className="bi bi-pencil-square" /> ID 変更…
               </button>
               {(() => {
