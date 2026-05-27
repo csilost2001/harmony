@@ -15,7 +15,13 @@
 import { test, expect } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
-import { isMcpRunning, sendBrowserRequest, openBrowserSessionWorkspace, closeBrowserSession } from "./_helpers";
+import {
+  isMcpRunning,
+  sendBrowserRequest,
+  openBrowserSessionWorkspace,
+  closeBrowserSession,
+  observeBroadcastDuring,
+} from "./_helpers";
 import { setupTestWorkspace, cleanupRealWorkspaces } from "../helpers/realWorkspace";
 import { buildProject } from "../__fixtures__/builders";
 
@@ -241,6 +247,7 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
 
   test.describe("processFlow ファイル操作", () => {
     test("saveProcessFlow / loadProcessFlow でデータが往復する", async () => {
+      if (!workspacePath) throw new Error("workspacePath is not initialized");
       const id = "e2e-test-ag-001";
       const testData = {
         id,
@@ -252,10 +259,15 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
         updatedAt: new Date().toISOString(),
       };
 
-      const saveResult = await sendBrowserRequest("saveProcessFlow", { id, data: testData });
+      const { result: saveResult, broadcast } = await observeBroadcastDuring(
+        workspacePath,
+        "processFlowChanged",
+        () => sendBrowserRequest("saveProcessFlow", { processFlowId: id, data: testData }),
+      );
       expect((saveResult as { success: boolean }).success).toBe(true);
+      expect(broadcast).toMatchObject({ processFlowId: id, id });
 
-      const loadResult = await sendBrowserRequest("loadProcessFlow", { id });
+      const loadResult = await sendBrowserRequest("loadProcessFlow", { processFlowId: id });
       expect(loadResult).toMatchObject(testData);
 
       // 後片付け
@@ -264,22 +276,45 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
     });
 
     test("deleteProcessFlow でファイルが削除される", async () => {
+      if (!workspacePath) throw new Error("workspacePath is not initialized");
       const id = "e2e-test-ag-del-001";
       await sendBrowserRequest("saveProcessFlow", {
-        id,
+        processFlowId: id,
         data: { id, name: "tmp", type: "screen", description: "", actions: [] },
       });
 
-      const deleteResult = await sendBrowserRequest("deleteProcessFlow", { id });
+      const { result: deleteResult, broadcast } = await observeBroadcastDuring(
+        workspacePath,
+        "processFlowChanged",
+        () => sendBrowserRequest("deleteProcessFlow", { processFlowId: id }),
+      );
       expect((deleteResult as { success: boolean }).success).toBe(true);
+      expect(broadcast).toMatchObject({ processFlowId: id, id, deleted: true });
 
-      const loadResult = await sendBrowserRequest("loadProcessFlow", { id });
+      const loadResult = await sendBrowserRequest("loadProcessFlow", { processFlowId: id });
       expect(loadResult).toBeNull();
     });
 
-    test("存在しない id の loadProcessFlow は null", async () => {
-      const loadResult = await sendBrowserRequest("loadProcessFlow", { id: "nonexistent-ag-xyz" });
+    test("存在しない processFlowId の loadProcessFlow は null", async () => {
+      const loadResult = await sendBrowserRequest("loadProcessFlow", { processFlowId: "nonexistent-ag-xyz" });
       expect(loadResult).toBeNull();
+    });
+
+    test("loadProcessFlow は deprecated alias の id も受け付ける", async () => {
+      const loadResult = await sendBrowserRequest("loadProcessFlow", { id: "nonexistent-ag-alias-xyz" });
+      expect(loadResult).toBeNull();
+    });
+
+    test("saveProcessFlow / deleteProcessFlow は deprecated alias の id も受け付ける", async () => {
+      const id = "e2e-test-ag-alias-001";
+      const saveResult = await sendBrowserRequest("saveProcessFlow", {
+        id,
+        data: { id, name: "alias", type: "screen", description: "", actions: [] },
+      });
+      expect((saveResult as { success: boolean }).success).toBe(true);
+
+      const deleteResult = await sendBrowserRequest("deleteProcessFlow", { id });
+      expect((deleteResult as { success: boolean }).success).toBe(true);
     });
   });
 });

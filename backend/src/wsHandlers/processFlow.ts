@@ -43,29 +43,29 @@ import { assertSafeName, assertKind, assertEntityId } from "../security/idValida
 
 export const processFlowHandlers: RpcHandlerMap = {
   loadProcessFlow: async ({ params, root, respond }) => {
-    const { id: agId } = (params ?? {}) as { id: string };
+    const { processFlowId, id } = (params ?? {}) as { processFlowId?: string; id?: string };
+    const agId = assertEntityId(processFlowId ?? id, "processFlowId");
     // S-002: ID validation
-    assertEntityId(agId, "id");
     const agData = await readProcessFlow(agId, root());
     respond(agData);
   },
 
   saveProcessFlow: async ({ params, root, wsId, clientId, respond, bridge }) => {
-    const { id: agId, data: agData } = (params ?? {}) as { id: string; data: unknown };
+    const { processFlowId, id, data: agData } = (params ?? {}) as { processFlowId?: string; id?: string; data: unknown };
+    const agId = assertEntityId(processFlowId ?? id, "processFlowId");
     // S-002: ID validation
-    assertEntityId(agId, "id");
     await writeProcessFlow(agId, agData, root());
     respond({ success: true });
-    bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { id: agId }, excludeClientId: clientId });
+    bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { processFlowId: agId, id: agId }, excludeClientId: clientId });
   },
 
   deleteProcessFlow: async ({ params, root, wsId, clientId, respond, bridge }) => {
-    const { id: agId } = (params ?? {}) as { id: string };
+    const { processFlowId, id } = (params ?? {}) as { processFlowId?: string; id?: string };
+    const agId = assertEntityId(processFlowId ?? id, "processFlowId");
     // S-002: ID validation
-    assertEntityId(agId, "id");
     await deleteProcessFlowFile(agId, root());
     respond({ success: true });
-    bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { id: agId, deleted: true }, excludeClientId: clientId });
+    bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { processFlowId: agId, id: agId, deleted: true }, excludeClientId: clientId });
   },
 
   listProcessFlows: async ({ root, respond }) => {

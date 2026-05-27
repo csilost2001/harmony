@@ -419,9 +419,9 @@ class McpBridgeImpl {
     setScreenFlowPositionsStorageBackend(screenFlowPositionsBackend);
 
     const actionBackend: ProcessFlowStorageBackend = {
-      loadProcessFlow: (id) => this.request("loadProcessFlow", { id }),
-      saveProcessFlow: (id, data) => this.request("saveProcessFlow", { id, data }).then(() => undefined),
-      deleteProcessFlow: (id) => this.request("deleteProcessFlow", { id }).then(() => undefined),
+      loadProcessFlow: (processFlowId) => this.request("loadProcessFlow", { processFlowId }),
+      saveProcessFlow: (processFlowId, data) => this.request("saveProcessFlow", { processFlowId, data }).then(() => undefined),
+      deleteProcessFlow: (processFlowId) => this.request("deleteProcessFlow", { processFlowId }).then(() => undefined),
       listProcessFlows: () => this.request("listProcessFlows"),
     };
     setProcessFlowStorageBackend(actionBackend);

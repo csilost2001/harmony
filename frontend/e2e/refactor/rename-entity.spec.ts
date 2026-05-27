@@ -113,7 +113,7 @@ test.describe("Rename entity refactor — Table smoke (#1298 I-6)", { tag: ["@re
       // を使う。`designer__get_flow` は screen-flow (全 screen + edges) 用で別物。
       const bridge = (window as unknown as { __mcpBridge?: { request: (m: string, p: unknown) => Promise<unknown> } }).__mcpBridge;
       if (!bridge) return "";
-      const pf = await bridge.request("loadProcessFlow", { id }).catch(() => null);
+      const pf = await bridge.request("loadProcessFlow", { processFlowId: id }).catch(() => null);
       return pf ? JSON.stringify(pf) : "";
     }, REFERENCING_FLOW_ID);
     expect(pfTextAfterRename.length).toBeGreaterThan(0);
@@ -144,7 +144,7 @@ test.describe("Rename entity refactor — Table smoke (#1298 I-6)", { tag: ["@re
     const pfTextAfterUndo = await page.evaluate(async (id) => {
       const bridge = (window as unknown as { __mcpBridge?: { request: (m: string, p: unknown) => Promise<unknown> } }).__mcpBridge;
       if (!bridge) return "";
-      const pf = await bridge.request("loadProcessFlow", { id }).catch(() => null);
+      const pf = await bridge.request("loadProcessFlow", { processFlowId: id }).catch(() => null);
       return pf ? JSON.stringify(pf) : "";
     }, REFERENCING_FLOW_ID);
     expect(pfTextAfterUndo.length).toBeGreaterThan(0);
