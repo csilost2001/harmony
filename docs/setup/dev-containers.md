@@ -406,7 +406,7 @@ host と container は **別 OAuth credential で独立**動作。それぞれ�
 ### バージョン更新
 
 - **Claude Code**: Phase 5 (#1120) 以降は base image inline (`.devcontainer/base/Dockerfile` の `npm install -g @anthropic-ai/claude-code`) で install。base image bump 時に最新版が pull される。`DISABLE_AUTOUPDATER: "1"` を入れているので **container 起動後の自動更新は止まる**。特定版に pin したい場合は base/Dockerfile の RUN 行を `npm install -g @anthropic-ai/claude-code@X.Y.Z` に変えて publish-dev-image で新版を push。
-- **Codex**: container 内で `npm install -g @openai/codex@<version>` で個別更新。
+- **Codex**: overlay Dockerfile (`.devcontainer/Dockerfile:28`) の `RUN npm install -g @openai/codex@<version>` を編集し、VSCode から `Dev Containers: Rebuild Container` を実行して反映。container 内で `npm install -g` を個別実行する必要はない (rebuild した時点で overlay 層から再 install される)。
 
 ## 仕組み解説: devcontainer.json の構造 (#1118 Phase 1+2 以降)
 

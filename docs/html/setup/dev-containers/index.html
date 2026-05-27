@@ -404,7 +404,7 @@ Phase 4 以前は公式 feature <code>ghcr.io/anthropics/devcontainer-features/c
 <h3 id="バージョン更新">バージョン更新</h3>
 <ul>
 <li><strong>Claude Code</strong>: Phase 5 (#1120) 以降は base image inline (<code>.devcontainer/base/Dockerfile</code> の <code>npm install -g @anthropic-ai/claude-code</code>) で install。base image bump 時に最新版が pull される。<code>DISABLE_AUTOUPDATER: "1"</code> を入れているので <strong>container 起動後の自動更新は止まる</strong>。特定版に pin したい場合は base/Dockerfile の RUN 行を <code>npm install -g @anthropic-ai/claude-code@X.Y.Z</code> に変えて publish-dev-image で新版を push。</li>
-<li><strong>Codex</strong>: container 内で <code>npm install -g @openai/codex@&#x3C;version></code> で個別更新。</li>
+<li><strong>Codex</strong>: overlay Dockerfile (<code>.devcontainer/Dockerfile:28</code>) の <code>RUN npm install -g @openai/codex@&#x3C;version></code> を編集し、VSCode から <code>Dev Containers: Rebuild Container</code> を実行して反映。container 内で <code>npm install -g</code> を個別実行する必要はない (rebuild した時点で overlay 層から再 install される)。</li>
 </ul>
 <h2 id="仕組み解説-devcontainerjson-の構造-1118-phase-12-以降">仕組み解説: devcontainer.json の構造 (#1118 Phase 1+2 以降)</h2>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>ghcr.io/csilost2001/harmony-devcontainer-base:&#x3C;version>  ← Phase 2 で確立した base</span></span>
