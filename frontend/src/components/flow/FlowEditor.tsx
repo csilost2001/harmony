@@ -172,24 +172,18 @@ function FlowEditorInner() {
   // react-hooks/refs 警告 14 件を発生させていた根本原因 — render-time の ref read は React 19 /
   // React Compiler / eslint-plugin-react-hooks 7.x で不正動作 (再 render trigger 漏れ) を起こすため。
   //
-  // **mutation pattern (実装の実態)**: store 関数 (`updateScreen` / `addScreen` / `storeAddEdge` 等) は
-  // in-place mutation API のまま保持し、各 callback で `await storeFunc(project, ...)` を call する形式を
-  // 継続する。これは React state を直接 mutation する pattern (anti-React-canonical) だが、以下の理由で
-  // 機能的には正しく動作する:
+  // **mutation pattern (#1388 follow-up で immutable 化)**: 各 mutation callback では
+  // `const draft = structuredClone(project)` で draft を作成し、store 関数 (`updateScreen` / `addScreen` /
+  // `storeAddEdge` 等、in-place mutation API のまま) に draft を渡して mutation させ、最後に
+  // `setProject(draft)` で commit する pattern を採用する。これにより state を直接 mutation しない
+  // React-canonical な実装になる。
   //
-  // 1. mutation 後の visible reads (setNodes 内の `project.screens.find(...)` 等) は同 reference 経由で
-  //    最新値を読める
-  // 2. 各 mutation callback は必ず setNodes / setEdges / setProjectName 等の併発 setState を伴うため、
-  //    React re-render が trigger され consumer JSX (`existingScreenIds={project.screens.map(...)}` 等) は
-  //    次 render で mutation を反映する
-  // 3. handleUndo / handleRedo / reloadProject / handleImportJSON / handleRenameProject は新 reference
-  //    で setProject() するため、これらは正規の React state 更新として動作する
-  //
-  // 完全に React-canonical な immutable update への移行は store 関数 API (~26 関数) の signature 変更を
-  // 要し、本 PR scope を超える別 refactor (本コメント時点では別 ISSUE 起票も予定なし、必要性が顕在化
-  // した時点で判断)。eslint の `react-hooks/immutability` rule は `state.field = X` 直接代入のみを検出
-  // するため、`handleRenameProject` (旧 `project.name = X`) のみは immutable update に rewrite して
-  // 警告解消済 (本 PR の commit 7e2bdc55)。
+  // - syncAndSave は optional `target` 引数を受け取り、caller が draft を passing できる
+  //   (省略時は closure-captured project state)
+  // - setProject(draft) と setNodes/setEdges を組み合わせて、ReactFlow visualization と project state を
+  //   同 callback で同期更新する
+  // - handleUndo / handleRedo / reloadProject / handleImportJSON / handleRenameProject も
+  //   それぞれ新 reference で setProject() する正規 React state 更新
   //
   // 全 callback の deps に `project` を加える (= callback 再生成許容、cost 不問前提)。
   const [project, setProject] = useState<FlowProject | null>(null);
@@ -422,20 +416,22 @@ function FlowEditorInner() {
     listPageLayouts().then(setPageLayouts).catch(console.error);
   }, []);
 
-  // ノード位置変更時の保存デバウンス
+  // ノード位置変更時の保存デバウンス。
+  // #1388 follow-up: caller が immutable update した draft を渡せるよう、optional 引数 `target` を受け取る。
+  // 省略時は closure-captured project (= 現在 render の state) を使う。caller が setProject(draft) する直前に
+  // 同 draft を渡せば、setState の非同期性を回避して即時に「最新値」を persist できる。
   const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const syncAndSave = useCallback(() => {
-    if (!project) return;
-    saveScreenFlowPositionsPreview(toScreenFlowPositionsPreview(project));
+  const syncAndSave = useCallback((target?: FlowProject) => {
+    const effective = target ?? project;
+    if (!effective) return;
+    saveScreenFlowPositionsPreview(toScreenFlowPositionsPreview(effective));
     if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
-      if (project) {
-        if (!isReadonly) {
-          saveProject(project).catch(console.error);
-          // ドラフト更新 (edit-session-draft)
-          if (editSession?.id) {
-            mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: project }).catch(console.error);
-          }
+      if (!isReadonly) {
+        saveProject(effective).catch(console.error);
+        // ドラフト更新 (edit-session-draft)
+        if (editSession?.id) {
+          mcpBridge.request("editSession.update", { editSessionId: editSession.id, payload: effective }).catch(console.error);
         }
       }
     }, 300);
@@ -443,24 +439,30 @@ function FlowEditorInner() {
 
   const onNodeDragStop = useCallback((_: unknown, node: RFNode) => {
     if (!project) return;
-    const screen = project.screens.find((s) => s.id === node.id);
+    // #1388 follow-up: in-place mutation を排し、draft (structuredClone) で位置更新 → setProject(draft) で commit。
+    const draft = structuredClone(project);
+    const screen = draft.screens.find((s) => s.id === node.id);
     if (screen) {
       screen.position = node.position;
-      syncAndSave();
+      setProject(draft);
+      syncAndSave(draft);
       return;
     }
-    const group = (project.groups ?? []).find((g) => g.id === node.id);
+    const group = (draft.groups ?? []).find((g) => g.id === node.id);
     if (group) {
       group.position = node.position;
-      syncAndSave();
+      setProject(draft);
+      syncAndSave(draft);
     }
   }, [project, syncAndSave]);
 
   const onConnect = useCallback((connection: Connection) => {
     if (isReadonly || !connection.source || !connection.target || !project) return;
     pushUndoSnapshot();
+    // #1388 follow-up: in-place mutation を排し、draft (structuredClone) で edge 追加 → setProject(draft) で commit。
+    const draft = structuredClone(project);
     storeAddEdge(
-      project,
+      draft,
       connection.source,
       connection.target,
       "",
@@ -468,6 +470,7 @@ function FlowEditorInner() {
       connection.sourceHandle ?? undefined,
       connection.targetHandle ?? undefined,
     ).then((edge) => {
+      setProject(draft);
       setEdges((eds) => rfAddEdge({
         ...connection,
         id: edge.id,
@@ -531,8 +534,10 @@ function FlowEditorInner() {
   const handleScreenSave = useCallback(async (data: ScreenFormData) => {
     if (!project) return;
     pushUndoSnapshot();
+    // #1388 follow-up: in-place mutation を排し、draft (structuredClone) に対して store 関数を call → setProject(draft) で commit。
+    const draft = structuredClone(project);
     if (screenModal.editId) {
-      await updateScreen(project, screenModal.editId, {
+      await updateScreen(draft, screenModal.editId, {
         name: data.name,
         kind: data.type as ScreenKind,
         path: data.path,
@@ -541,17 +546,17 @@ function FlowEditorInner() {
         pageLayoutId: (data.pageLayoutId || undefined) as (PageLayoutId | undefined),
       });
       setNodes((nds) => nds.map((n) => {
-        if (n.id !== screenModal.editId || !project) return n;
-        const screen = project.screens.find((s) => s.id === n.id)!;
+        if (n.id !== screenModal.editId) return n;
+        const screen = draft.screens.find((s) => s.id === n.id)!;
         return { ...n, data: { ...screen } };
       }));
     } else {
       const editorKind = data.editorKind ?? projectDefaultEditorKind;
       const cssFramework = data.cssFramework ?? projectDefaultCssFramework;
       // RFC #1284 / #1297 I-5: kebab-case id を modal から受け取って addScreen に渡す
-      const screen = await addScreen(project, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework, id: data.id });
+      const screen = await addScreen(draft, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework, id: data.id });
       screen.description = data.description;
-      await saveProject(project);
+      await saveProject(draft);
       // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
       const entity = await buildDefaultScreen(screen.id);
       entity.design = { ...entity.design, editorKind, cssFramework };
@@ -563,6 +568,7 @@ function FlowEditorInner() {
         data: { ...screen },
       }]);
     }
+    setProject(draft);
     setScreenModal({ open: false });
   }, [project, screenModal.editId, projectDefaultEditorKind, projectDefaultCssFramework, setNodes, pushUndoSnapshot]);
 
@@ -571,12 +577,14 @@ function FlowEditorInner() {
   const handleEdgeSave = useCallback(async (data: EdgeFormData) => {
     if (!edgeModal.editId || !project) return;
     pushUndoSnapshot();
-    await storeUpdateEdge(project, edgeModal.editId, {
+    const draft = structuredClone(project);
+    await storeUpdateEdge(draft, edgeModal.editId, {
       label: data.label,
       trigger: data.trigger,
       sourceHandle: data.sourceHandle,
       targetHandle: data.targetHandle,
     });
+    setProject(draft);
     setEdges((eds) => eds.map((e) => {
       if (e.id !== edgeModal.editId) return e;
       return {
@@ -591,7 +599,9 @@ function FlowEditorInner() {
 
   const handleEdgeDeleteFromModal = useCallback(async () => {
     if (!edgeModal.editId || !project) return;
-    await storeRemoveEdge(project, edgeModal.editId);
+    const draft = structuredClone(project);
+    await storeRemoveEdge(draft, edgeModal.editId);
+    setProject(draft);
     setEdges((eds) => eds.filter((e) => e.id !== edgeModal.editId));
     setEdgeModal({ open: false });
   }, [project, edgeModal.editId, setEdges]);
@@ -630,8 +640,9 @@ function FlowEditorInner() {
       // 元 id + `-copy[-N]` で uniqueness 衝突回避 (TableListView duplicate と同パターン)。
       const existingIds = new Set<string>(project.screens.map((s) => s.id));
       const newId = makeDuplicatedEntityId(screen.id, existingIds);
+      const draft = structuredClone(project);
       const dup = await addScreen(
-        project,
+        draft,
         `${screen.name} (コピー)`,
         screen.kind,
         {
@@ -643,12 +654,13 @@ function FlowEditorInner() {
         },
       );
       dup.description = screen.description;
-      await saveProject(project);
+      await saveProject(draft);
       // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
       const dupEntity = await buildDefaultScreen(dup.id);
       dupEntity.design = { ...dupEntity.design, editorKind: srcEditorKind, cssFramework: srcCssFramework };
       await saveScreenEntity(dupEntity);
       await duplicateScreenDesignData(screen.id, dup.id, srcEditorKind);
+      setProject(draft);
       setNodes((nds) => [...nds, {
         id: dup.id,
         type: "screenNode" as const,
@@ -664,7 +676,9 @@ function FlowEditorInner() {
     pushUndoSnapshot();
     const screen = project.screens.find((s) => s.id === contextMenu.targetId);
     if (screen && confirm(`「${screen.name}」を削除しますか？\nデザインデータも削除されます。`)) {
-      await removeScreen(project, contextMenu.targetId);
+      const draft = structuredClone(project);
+      await removeScreen(draft, contextMenu.targetId);
+      setProject(draft);
       setNodes((nds) => nds.filter((n) => n.id !== contextMenu.targetId));
       setEdges((eds) => eds.filter(
         (e) => e.source !== contextMenu.targetId && e.target !== contextMenu.targetId
@@ -758,7 +772,9 @@ function FlowEditorInner() {
     if (!project) return;
     const name = prompt("グループ名を入力してください", "グループ");
     if (!name) return;
-    const group = await storeAddGroup(project, name.trim(), { x: 80, y: 80 });
+    const draft = structuredClone(project);
+    const group = await storeAddGroup(draft, name.trim(), { x: 80, y: 80 });
+    setProject(draft);
     setNodes((nds) => [{
       id: group.id,
       type: "groupNode",
@@ -777,7 +793,9 @@ function FlowEditorInner() {
     if (!group) return;
     const name = prompt("新しいグループ名を入力してください", group.name);
     if (!name || name.trim() === group.name) { setContextMenu(null); return; }
-    await storeUpdateGroup(project, group.id, { name: name.trim() });
+    const draft = structuredClone(project);
+    await storeUpdateGroup(draft, group.id, { name: name.trim() });
+    setProject(draft);
     setNodes((nds) => nds.map((n) =>
       n.id === group.id ? { ...n, data: { ...n.data, name: name.trim() } } : n
     ));
@@ -792,20 +810,23 @@ function FlowEditorInner() {
       setContextMenu(null);
       return;
     }
-    await storeRemoveGroup(project, contextMenu.targetId);
-    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
+    const draft = structuredClone(project);
+    await storeRemoveGroup(draft, contextMenu.targetId);
+    setProject(draft);
+    setNodes(toRFNodesWithGroups(draft.screens, draft.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
   }, [project, contextMenu, setNodes]);
 
   const handleAssignGroup = useCallback(async (groupId: ScreenGroupId) => {
     if (!contextMenu || !project) return;
-    const screen = project.screens.find((s) => s.id === contextMenu.targetId);
-    const group = (project.groups ?? []).find((g) => g.id === groupId);
+    const draft = structuredClone(project);
+    const screen = draft.screens.find((s) => s.id === contextMenu.targetId);
+    const group = (draft.groups ?? []).find((g) => g.id === groupId);
     if (!screen || !group) return;
     // Convert absolute position to relative within the group
     const absPos = screen.groupId
       ? (() => {
-          const cur = (project!.groups ?? []).find((g) => g.id === screen.groupId);
+          const cur = (draft.groups ?? []).find((g) => g.id === screen.groupId);
           return cur
             ? { x: screen.position.x + cur.position.x, y: screen.position.y + cur.position.y }
             : screen.position;
@@ -817,16 +838,18 @@ function FlowEditorInner() {
     };
     screen.groupId = groupId;
     screen.updatedAt = new Date().toISOString() as Timestamp;
-    await saveProject(project);
-    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
+    await saveProject(draft);
+    setProject(draft);
+    setNodes(toRFNodesWithGroups(draft.screens, draft.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
   }, [project, contextMenu, setNodes]);
 
   const handleUnassignGroup = useCallback(async () => {
     if (!contextMenu || !project) return;
-    const screen = project.screens.find((s) => s.id === contextMenu.targetId);
+    const draft = structuredClone(project);
+    const screen = draft.screens.find((s) => s.id === contextMenu.targetId);
     if (!screen || !screen.groupId) return;
-    const group = (project.groups ?? []).find((g) => g.id === screen.groupId);
+    const group = (draft.groups ?? []).find((g) => g.id === screen.groupId);
     if (group) {
       screen.position = {
         x: screen.position.x + group.position.x,
@@ -835,8 +858,9 @@ function FlowEditorInner() {
     }
     screen.groupId = undefined;
     screen.updatedAt = new Date().toISOString() as Timestamp;
-    await saveProject(project);
-    setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
+    await saveProject(draft);
+    setProject(draft);
+    setNodes(toRFNodesWithGroups(draft.screens, draft.groups ?? [], screenEntitiesRef.current));
     setContextMenu(null);
   }, [project, contextMenu, setNodes]);
 
@@ -863,7 +887,9 @@ function FlowEditorInner() {
   const handleDeleteEdge = useCallback(async () => {
     if (!contextMenu || contextMenu.type !== "edge" || !project) return;
     pushUndoSnapshot();
-    await storeRemoveEdge(project, contextMenu.targetId);
+    const draft = structuredClone(project);
+    await storeRemoveEdge(draft, contextMenu.targetId);
+    setProject(draft);
     setEdges((eds) => eds.filter((e) => e.id !== contextMenu.targetId));
     setContextMenu(null);
   }, [project, contextMenu, setEdges, pushUndoSnapshot]);
@@ -872,35 +898,38 @@ function FlowEditorInner() {
   const onReconnect = useCallback((oldEdge: RFEdge, newConnection: Connection) => {
     setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds));
     if (!project) return;
-    storeUpdateEdge(project, oldEdge.id, {
+    const draft = structuredClone(project);
+    storeUpdateEdge(draft, oldEdge.id, {
       sourceHandle: (newConnection.sourceHandle ?? oldEdge.sourceHandle ?? "bottom") as HandlePosition,
       targetHandle: (newConnection.targetHandle ?? oldEdge.targetHandle ?? "top") as HandlePosition,
-    }).catch(console.error);
+    }).then(() => setProject(draft)).catch(console.error);
   }, [project, setEdges]);
 
   const onEdgesDelete = useCallback((deletedEdges: RFEdge[]) => {
     if (!project) return;
-    Promise.all(deletedEdges.map((e) => storeRemoveEdge(project!, e.id)))
+    const draft = structuredClone(project);
+    Promise.all(deletedEdges.map((e) => storeRemoveEdge(draft, e.id)))
+      .then(() => setProject(draft))
       .catch(console.error);
   }, [project]);
 
   const onNodesDelete = useCallback((deletedNodes: RFNode[]) => {
     if (!project) return;
+    const draft = structuredClone(project);
     const promises = deletedNodes.map((n) => {
-      if (project.screens.find((s) => s.id === n.id)) {
-        return removeScreen(project, n.id);
+      if (draft.screens.find((s) => s.id === n.id)) {
+        return removeScreen(draft, n.id);
       }
-      if ((project.groups ?? []).find((g) => g.id === n.id)) {
-        return storeRemoveGroup(project, n.id).then(() => {
-          // Rebuild nodes to reflect ungrouped screens (#1388 case A:
-          // project は state、store 関数の in-place mutation 後も同 reference のため再描画は setNodes で trigger)
-          setNodes(toRFNodesWithGroups(project.screens, project.groups ?? [], screenEntitiesRef.current));
+      if ((draft.groups ?? []).find((g) => g.id === n.id)) {
+        return storeRemoveGroup(draft, n.id).then(() => {
+          // Rebuild nodes to reflect ungrouped screens (draft の更新を即時反映)
+          setNodes(toRFNodesWithGroups(draft.screens, draft.groups ?? [], screenEntitiesRef.current));
           return true;
         });
       }
       return Promise.resolve(false);
     });
-    Promise.all(promises).catch(console.error);
+    Promise.all(promises).then(() => setProject(draft)).catch(console.error);
   }, [project, setNodes]);
 
   // ── Project-level Actions ──
@@ -917,10 +946,12 @@ function FlowEditorInner() {
   const handleClearAll = useCallback(async () => {
     if (!project) return;
     if (!confirm("すべての画面と遷移を削除しますか？\n各画面のデザインデータも削除されます。")) return;
+    const draft = structuredClone(project);
     // スナップショットを取ってから削除（removeScreen が配列を変更するため）
-    for (const s of [...project.screens]) {
-      await removeScreen(project, s.id).catch(console.error);
+    for (const s of [...draft.screens]) {
+      await removeScreen(draft, s.id).catch(console.error);
     }
+    setProject(draft);
     setNodes([]);
     setEdges([]);
   }, [project, setNodes, setEdges]);
