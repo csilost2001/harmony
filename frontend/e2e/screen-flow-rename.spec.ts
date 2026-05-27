@@ -53,18 +53,23 @@ test.describe("Screen rename smoke (ScreenFlow 起点) — #1370", { tag: ["@reg
     await ws.gotoActive(page, "/screen/flow");
     await expect(page.locator(".flow-root, .react-flow").first()).toBeVisible({ timeout: 10000 });
 
+    // ターゲット node が ReactFlow に render されるまで待つ (workers=2 並列下では
+    // FlowEditor の lazy project load + ReactFlow fitView がやや遅い)。
+    const targetNode = page.locator(`.react-flow__node[data-id="${OLD_SCREEN_ID}"]`);
+    await expect(targetNode).toBeVisible({ timeout: 15000 });
+
     // 編集モードに切替 (rename は !isReadonly 必須 — readonly モードでは ReactFlow の
     // `onNodeContextMenu` が undefined のため context menu 自体が起動しない)。
     //
     // FlowEditor は edit-mode-start ボタンではなく EditSessionDropdown 経由で editing 開始する
     // 設計のため、e2e helper `startNewDraft(page)` を使う (#980-A の `.esd-root` intercept
     // 回避が必須、`locator.click()` 直接呼出しは禁止)。
+    //
+    // workers=2 並列下で edit-mode-save の表示が 5s を超える事例を Codex Round 1 で観測。
+    // FlowEditor は editSession.create + payload fetch + ReactFlow mode 切替 + EditSessionDropdown
+    // 内部 re-render の 4 段で role=Edit 反映に時間を要するため 15s 余裕を取る。
     await startNewDraft(page);
-    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
-
-    // ターゲット node が render されるまで待つ (ReactFlow が `data-id="<screenId>"` 属性付きで render)
-    const targetNode = page.locator(`.react-flow__node[data-id="${OLD_SCREEN_ID}"]`);
-    await expect(targetNode).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
 
     // 2. node を右クリック → context menu 表示
     //

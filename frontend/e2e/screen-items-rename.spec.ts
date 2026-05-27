@@ -54,15 +54,17 @@ test.describe("Screen rename smoke (ScreenItemsView 起点) — #1370", { tag: [
     await ws.gotoActive(page, `/screen/items/${OLD_SCREEN_ID}`);
     await expect(page.locator(".screen-items-page, .screen-items-content").first()).toBeVisible({ timeout: 10000 });
 
-    // 編集モードに切替 (rename button 自体は readonly でも render されるが、readonly では
-    // editing 関連の effect が走り続けて re-render が止まらず Playwright fill が
-    // 「element detached」を繰り返すケースが観測されたため、editing mode に切替えて
-    // 状態を安定化させる。editor が editing mode に入ると EditSession 起動 + dirty 監視が
-    // 走るが、本テストは rename 後即離脱するため副作用は許容。)
+    // 編集モードに切替 (rename button 自体は readonly でも render されるが、readonly 状態
+    // では rename button の onClick が dispatch しても showRenameDialog が反映されない事例を
+    // 観測。editing mode で state を安定化させる)。
+    //
+    // workers=2 並列実行下では `edit-mode-save` の表示が 5s を超える事例を Codex Round 1 で
+    // 観測したため 15s 余裕を取る。click 自体は Playwright `editBtn.click()` を使う
+    // (evaluate-based だと state 反映の wait が無く後段の rename click が早すぎる事例あり)。
     const editBtn = page.getByTestId("edit-mode-start");
     if (await editBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await editBtn.click();
-      await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
+      await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
     }
 
     // 2. header の「ID 変更」 button を押下
@@ -93,15 +95,23 @@ test.describe("Screen rename smoke (ScreenItemsView 起点) — #1370", { tag: [
       setter?.call(input, val);
       input.dispatchEvent(new Event("input", { bubbles: true }));
     }, NEW_SCREEN_ID);
+    // RenameEntityDialog 内の button click は `page.evaluate` 経由で direct DOM click。
+    // 親 `fetchExistingIds` inline arrow による useEffect 再 fire で dialog 内容が頻繁に
+    // re-render し、Playwright actionability check が「element detached」を繰り返して
+    // timeout する事例を workers=2 並列下で観測。
     const previewBtn = page.getByTestId("rename-entity-preview-btn");
-    await expect(previewBtn).toBeEnabled({ timeout: 3000 });
-    await previewBtn.click();
+    await expect(previewBtn).toBeEnabled({ timeout: 5000 });
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="rename-entity-preview-btn"]') as HTMLButtonElement | null)?.click();
+    });
     await expect(page.getByTestId("rename-entity-preview-summary")).toBeVisible({ timeout: 5000 });
 
     // 4. 「実行」 → URL が `/screen/items/<newId>` に遷移 (起動点維持、#1330 の核)
     const execBtn = page.getByTestId("rename-entity-execute-btn");
     await expect(execBtn).toBeEnabled();
-    await execBtn.click();
+    await page.evaluate(() => {
+      (document.querySelector('[data-testid="rename-entity-execute-btn"]') as HTMLButtonElement | null)?.click();
+    });
     await expect(page).toHaveURL(new RegExp(`/screen/items/${NEW_SCREEN_ID}(\\?|$)`), { timeout: 10000 });
 
     // 5. reload 後も新 id で開ける (永続化確認)
