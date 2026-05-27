@@ -151,6 +151,8 @@ export function Designer({
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [showAiGenerateDialog, setShowAiGenerateDialog] = useState(false);
+  // #1385: AI 生成ダイアログを開いた瞬間の payload を snapshot (render 中の ref 参照を回避)
+  const [aiDialogInitialPayload, setAiDialogInitialPayload] = useState<unknown>(null);
   // #1298 I-6 (RFC #1284): id rename refactor 用 state
   const navigate = useNavigate();
   const { wsPath, wsId } = useWorkspacePath();
@@ -733,6 +735,15 @@ export function Designer({
     setDirty(tabId, true);
   }, [editSessionId, editorKind, tabId]);
 
+  // #1385: AI 生成ダイアログ open trigger — render 中に editorApiRef.current を読まないため
+  // ダイアログを開く瞬間 (event handler 内) に payload snapshot を取得して state に保存する。
+  const handleOpenAiDialog = useCallback(() => {
+    const fromEditor = editorApiRef.current?.getProjectData();
+    const fromState = editorKind === "puck" ? puckState?.payload : grapesState?.payload;
+    setAiDialogInitialPayload(fromEditor ?? fromState);
+    setShowAiGenerateDialog(true);
+  }, [editorKind, puckState?.payload, grapesState?.payload]);
+
   // Puck 画面の cross-tab 上書き保護 (Sh-1: puckDataChanged broadcast 購読)。
   // GrapesJS は screenChanged broadcast を購読して ServerChangeBanner を表示するのと同等。
   // Puck 画面でも他タブが puck-data.json を commit した際に ServerChangeBanner を表示する。
@@ -857,7 +868,7 @@ export function Designer({
 
       {showAiGenerateDialog && (
         <ScreenDesignAiGenerateDialog
-          current={editorApiRef.current?.getProjectData() ?? (editorKind === "puck" ? puckState?.payload : grapesState?.payload)}
+          current={aiDialogInitialPayload}
           editorKind={editorKind}
           cssFramework={cssFramework}
           screenName={screenName}
@@ -950,7 +961,7 @@ export function Designer({
         isSaving={isSaving}
         onSaveToFile={handleSave}
         onReset={async () => setShowDiscardDialog(true)}
-        onAiGenerate={() => setShowAiGenerateDialog(true)}
+        onAiGenerate={handleOpenAiDialog}
         backLink={onBack ? { label: screenName ?? "画面デザイン", onClick: onBack } : undefined}
         screenId={screenId}
         isReadonly={isReadonly}
@@ -1010,7 +1021,7 @@ export function Designer({
       isSaving={isSaving}
       onSaveToFile={handleSave}
       onReset={async () => setShowDiscardDialog(true)}
-      onAiGenerate={() => setShowAiGenerateDialog(true)}
+      onAiGenerate={handleOpenAiDialog}
       backLink={onBack ? { label: screenName ?? "画面デザイン", onClick: onBack } : undefined}
       screenId={screenId}
       isReadonly={isReadonly}
