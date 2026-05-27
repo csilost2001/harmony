@@ -17,6 +17,10 @@ import type { RpcHandlerMap } from "./types.js";
 const VALID_RESOURCE_TYPES = new Set<EditSessionResourceType>([
   "screen", "puck-data", "table", "process-flow", "view", "view-definition",
   "page-layout", "screen-item", "sequence", "extension", "convention", "flow", "er-layout",
+  // #1368: GenericDefinition EditSession 統合 — frontend GenericDefinitionEditor が
+  // `editSession.create` に `resourceType: "generic-definition"` を送るため allowlist に追加。
+  // editSessionStore.ts DraftResourceType と同期 (#1331 で追加済)。
+  "generic-definition",
 ]);
 
 function assertResourceType(rt: unknown, label: string): EditSessionResourceType {

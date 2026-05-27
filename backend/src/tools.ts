@@ -1516,9 +1516,15 @@ export const tools = [
       properties: {
         resourceType: {
           type: "string",
+          // #1368: editSessionStore.ts DraftResourceType と同期。WS handler の
+          // VALID_RESOURCE_TYPES とも一致させる (#1331 で `generic-definition` を、
+          // 先行 PR で `page-layout` / `er-layout` を DraftResourceType に追加済だが
+          // MCP enum が漏れていた)。AI/MCP 経路で editSession.create を叩けないと
+          // GenericDefinition / PageLayout / ER 系の AI 編集が機能しない。
           enum: [
             "screen", "puck-data", "table", "process-flow", "view", "view-definition",
-            "screen-item", "sequence", "extension", "convention", "flow",
+            "page-layout", "screen-item", "sequence", "extension", "convention", "flow",
+            "er-layout", "generic-definition",
           ],
           description: "編集対象 resource の種別",
         },

@@ -85,6 +85,50 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(deliveredClientIds).not.toContain("client-other-workspace");
   });
 
+  it("#1368 Codex Round 2 Must-fix: WS handler editSession.create が resourceType=\"generic-definition\" を accept する (VALID_RESOURCE_TYPES allowlist)", async () => {
+    // backend/src/wsHandlers/editSession.ts の VALID_RESOURCE_TYPES に "generic-definition"
+    // が含まれていないと、frontend GenericDefinitionEditor の `editSession.create` が
+    // assertResourceType で reject される (Round 2 で観測 — 実 browser 経路で動作不能だった)。
+    //
+    // editSessionHandlers["editSession.create"] を直接呼出し、stub bridge で
+    // editSessionCreate を caputure する。
+    const { editSessionHandlers } = await import("../wsHandlers/editSession.js");
+    const createHandler = editSessionHandlers["editSession.create"];
+    expect(createHandler).toBeDefined();
+
+    let respondedResult: unknown = undefined;
+    let respondedError: string | undefined;
+    const captures: Array<{ clientId: string; rt: string; rid: string }> = [];
+    const stubBridge = {
+      editSessionCreate: (clientId: string, rt: string, rid: string, _label?: string) => {
+        captures.push({ clientId, rt, rid });
+        return { editSession: { id: "stub-es-id", resourceType: rt, resourceId: rid } };
+      },
+    };
+
+    await createHandler({
+      params: {
+        resourceType: "generic-definition",
+        resourceId: "data-contract__OrderForm",
+        displayLabel: "tester",
+      },
+      clientId: "client-test",
+      root: () => tmpDir,
+      wsId: () => tmpDir,
+      respond: (r) => { respondedResult = r; },
+      respondError: (e) => { respondedError = e; },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bridge: stubBridge as any,
+    });
+
+    expect(respondedError).toBeUndefined();
+    expect(respondedResult).toEqual({
+      editSession: { id: "stub-es-id", resourceType: "generic-definition", resourceId: "data-contract__OrderForm" },
+    });
+    expect(captures).toHaveLength(1);
+    expect(captures[0]).toMatchObject({ rt: "generic-definition", rid: "data-contract__OrderForm" });
+  });
+
   it("#1368 Codex Round 1 Must-fix: 不正な decoded kind / name は store.save 前に reject される", async () => {
     // 不正な kind ( `_` を含む = kind regex `[a-z][a-z0-9:-]{0,63}` 違反)
     // resourceId 全体としては assertSafeName `[A-Za-z0-9_-]{1,64}` を通る (= editSession.create で reject されない)
