@@ -1,0 +1,23 @@
+{
+  "name": "@harmony/shared",
+  "version": "0.1.0",
+  "description": "Harmony frontend / backend 間で共有する型・定数の単一定義 source-of-truth (#1375)",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build"
+  }
+}

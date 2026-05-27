@@ -2,9 +2,14 @@
   "name": "harmony-workspace",
   "private": true,
   "version": "1.0.0",
-  "description": "Harnize Harmony — AI 協業前提の業務システム設計ツール (frontend + backend)",
+  "description": "Harnize Harmony — AI 協業前提の業務システム設計ツール (frontend + backend + shared)",
+  "workspaces": [
+    "shared",
+    "frontend",
+    "backend"
+  ],
   "scripts": {
-    "install:all": "npm install --prefix frontend && npm install --prefix backend",
+    "install:all": "npm install",
     "dev": "node scripts/check-ports.mjs && concurrently -n frontend,backend -c cyan,magenta --kill-others-on-fail \"npm --prefix frontend run dev\" \"npm --prefix backend run dev\"",
     "kill": "node scripts/kill-ports.mjs",
     "restart": "node scripts/kill-ports.mjs && node scripts/check-ports.mjs && concurrently -n frontend,backend -c cyan,magenta --kill-others-on-fail \"npm --prefix frontend run dev\" \"npm --prefix backend run dev\"",

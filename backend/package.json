@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@harmony/shared": "*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "adm-zip": "^0.5.17",
     "ajv": "^8.20.0",
