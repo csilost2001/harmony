@@ -1,19 +1,14 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../hooks/useWorkspacePath";
-import { RenameEntityDialog } from "./common/RenameEntityDialog";
-import { RenameEntityUndoToast } from "./common/RenameEntityUndoToast";
 import { useRenameEntityUndoToast } from "./common/useRenameEntityUndoToast";
 import { handleRenameSuccess } from "../utils/handleRenameSuccess";
 import { checkLegacyLocalStorage, executeRescue, clearLegacyLocalStorage } from "../grapes/legacyLocalStorageRescue";
 import { acknowledgeServerMtime } from "../utils/serverMtime";
 import { recordError } from "../utils/errorLog";
-import { DesignSubToolbar, DesignSubToolbarGrapesJSBridge } from "./design/DesignSubToolbar";
-import { ServerChangeBanner } from "./common/ServerChangeBanner";
 import { useErrorDialog } from "./common/ErrorDialogProvider";
 import { mcpBridge, type McpStatus } from "../mcp/mcpBridge";
 import { loadProject, loadRawProject, updateScreenThumbnail } from "../store/flowStore";
-import { composePreviewHtml } from "../utils/pageLayoutCompositionPreview";
 import { loadScreenEntity } from "../store/screenStore";
 import { makeTabId, setDirty } from "../store/tabStore";
 import type { CssFramework } from "../types/v3/harmony";
@@ -22,20 +17,16 @@ import { resolveEditorKind } from "../utils/resolveEditorKind";
 import type { EditorKind } from "../utils/resolveEditorKind";
 import { useEditSession } from "../hooks/useEditSession";
 import { useSessionUrlSync } from "../hooks/useSessionUrlSync";
-import { EditModeToolbar } from "./editing/EditModeToolbar";
-import { ScreenDesignAiGenerateDialog } from "./design/ScreenDesignAiGenerateDialog";
-import {
-  DiscardConfirmDialog,
-  ForceReleaseConfirmDialog,
-  ForcedOutChoiceDialog,
-  AfterForceUnlockChoiceDialog,
-} from "./editing/ConfirmDialogs";
-import { SaveConflictDialog } from "./editing/SaveConflictDialog";
-import { ResumeOrDiscardDialog } from "./editing/ResumeOrDiscardDialog";
 import { PuckBackend } from "../editor/PuckBackend";
 import { GrapesJSBackend } from "../editor/GrapesJSBackend";
-import type { EditorApi, EditorState, GrapesJSRenderEditorProps, PuckRenderEditorProps } from "../editor/EditorBackend";
+import type { EditorApi, EditorState } from "../editor/EditorBackend";
 import { DESIGNER_REFERENCE_RELOAD_EVENTS, isReloadBroadcast, shouldNotifyScreenChanged } from "../editor/reloadEvents";
+// #1388 sub-section A 派生 2 件 (Option 1): renderEditor 呼び出しと props 構築を host に隔離して
+// react-hooks/refs (Designer scope 内 ref 含む closure が props 経由で渡される) を解消。
+import { PuckEditorHost } from "./designer/PuckEditorHost";
+import { GrapesEditorHost } from "./designer/GrapesEditorHost";
+// #1388 sub-section A (Option 2): 共通ダイアログ群 (~145 行 JSX) を独立 component に抽出。
+import { DesignerDialogs } from "./designer/DesignerDialogs";
 import "../styles/editMode.css";
 
 const PANEL_MODE_KEY = "designer-panel-left-mode";
@@ -95,11 +86,8 @@ export function Designer({
   gadgetHtmlMap,
 }: DesignerProps) {
   const [isDirty, setIsDirtyState] = useState(false);
-  // RFC #1021 pl-6 (Codex C-1): composition preview modal の表示状態
-  const [showCompositionPreview, setShowCompositionPreview] = useState(false);
-  // RFC #1021 pl-6 (Codex C-1): GrapesJS editor の生インスタンスを ref で保持
-  // (composition preview modal で現在の Screen content HTML を取得するため)
-  const grapesEditorInstanceRef = useRef<import("grapesjs").Editor | null>(null);
+  // RFC #1021 pl-6 (Codex C-1): GrapesJS editor の生インスタンス参照 / composition preview modal の表示状態は
+  // #1388 sub-section A 派生 2 件で GrapesEditorHost 内に移動。Designer scope では保持しない。
   const [isSaving, setIsSaving] = useState(false);
   const [serverChanged, setServerChanged] = useState(false);
   const isDirtyRef = useRef(false);
@@ -815,152 +803,93 @@ export function Designer({
 
   // ---------------------------------------------------------------------------
   // 共通ダイアログ群 (GrapesJS / Puck 両方で使う)
+  // #1388 sub-section A (Option 2): JSX 本体は designer/DesignerDialogs.tsx に抽出済、
+  // Designer.tsx は props 構築だけ残す (~145 行 → ~80 行)。
   // ---------------------------------------------------------------------------
   const commonDialogs = (
-    <>
-      {/* 編集モードツールバー */}
-      <EditModeToolbar
-        mode={mode}
-        onStartEditing={handleStartEditing}
-        onSave={handleSave}
-        onDiscardClick={() => setShowDiscardDialog(true)}
-        onForceReleaseClick={() => setShowForceReleaseDialog(true)}
-        saving={isSaving}
-        ownerLabel={lockedByOther?.ownerSessionId}
-      />
-
-      {/* 強制解除 / ForcedOut / AfterForceUnlock ダイアログ */}
-      {mode.kind === "force-released-pending" && (
-        <ForcedOutChoiceDialog
-          previousDraftExists={mode.previousDraftExists}
-          onChoice={(choice) => editActions.handleForcedOut(choice)}
-        />
-      )}
-      {mode.kind === "after-force-unlock" && (
-        <AfterForceUnlockChoiceDialog
-          previousOwner={mode.previousOwner}
-          onChoice={(choice) => editActions.handleAfterForceUnlock(choice)}
-        />
-      )}
-
-      {showResumeDialog && (
-        <ResumeOrDiscardDialog
-          onResume={handleResumeContinue}
-          onDiscard={handleResumeDiscard}
-          onCancel={() => setShowResumeDialog(false)}
-        />
-      )}
-
-      {showDiscardDialog && (
-        <DiscardConfirmDialog
-          onConfirm={handleDiscard}
-          onCancel={() => setShowDiscardDialog(false)}
-        />
-      )}
-
-      {showForceReleaseDialog && lockedByOther && (
-        <ForceReleaseConfirmDialog
-          ownerSessionId={lockedByOther.ownerSessionId}
-          onConfirm={handleForceRelease}
-          onCancel={() => setShowForceReleaseDialog(false)}
-        />
-      )}
-
-      {showLegacyRescueDialog && (
-        <LegacyRescueDialog
-          onAdopt={handleLegacyRescueAdopt}
-          onDiscard={handleLegacyRescueDiscard}
-        />
-      )}
-
-      {saveConflict && (
-        <SaveConflictDialog
-          conflict={saveConflict}
-          onOverwrite={async () => {
-            try {
-              await onSaveConflictOverwrite();
-              await commitAfterSave();
-            } catch (e) {
-              console.error("[Designer] save overwrite failed:", e);
-            }
-          }}
-          onCancel={onSaveConflictCancel}
-        />
-      )}
-
-      {serverChanged && (
-        <ServerChangeBanner
-          onReload={handleServerChangeReload}
-          onDismiss={() => setServerChanged(false)}
-        />
-      )}
-
-      {showAiGenerateDialog && (
-        <ScreenDesignAiGenerateDialog
-          current={aiDialogInitialPayload}
-          editorKind={editorKind}
-          cssFramework={cssFramework}
-          screenName={screenName}
-          onApply={applyGeneratedDesignPayload}
-          onClose={() => setShowAiGenerateDialog(false)}
-        />
-      )}
-
-      {/* #1298 I-6 (RFC #1284): id rename refactor dialog */}
-      {showRenameDialog && (
-        <RenameEntityDialog
-          entityType="screen"
-          currentId={screenId}
-          currentName={screenName ?? ""}
-          existingIds={allScreenIds}
-          // Phase J SF-α (#1298 round 5 Opus SF-1): dialog open 時の existingIds rehydration
-          fetchExistingIds={async () => {
-            const project = await loadProject();
-            return (project.screens ?? []).map((s) => s.id);
-          }}
-          onClose={() => setShowRenameDialog(false)}
-          onSuccess={(newId, operationId, extra) => {
-            setShowRenameDialog(false);
-            handleRenameSuccess({
-              entityType: "screen",
-              oldId: screenId,
-              newId,
-              label: screenName ?? newId,
-              navigate,
-              wsPath,
-              wsId,
-            });
-            setRenameUndoToast({
-              operationId, oldId: screenId, newId,
-              ttlMs: extra?.ttlMs,
-            });
-          }}
-        />
-      )}
-
-      {renameUndoToast && (
-        <RenameEntityUndoToast
-          operationId={renameUndoToast.operationId}
-          oldId={renameUndoToast.oldId}
-          newId={renameUndoToast.newId}
-          ttlMs={renameUndoToast.ttlMs}
-          entityLabel="画面"
-          onUndo={() => {
-            handleRenameSuccess({
-              entityType: "screen",
-              oldId: renameUndoToast.newId,
-              newId: renameUndoToast.oldId,
-              label: screenName ?? renameUndoToast.oldId,
-              navigate,
-              wsPath,
-              wsId,
-            });
-            setRenameUndoToast(null);
-          }}
-          onDismiss={() => setRenameUndoToast(null)}
-        />
-      )}
-    </>
+    <DesignerDialogs
+      mode={mode}
+      isSaving={isSaving}
+      lockedByOther={lockedByOther}
+      onStartEditing={handleStartEditing}
+      onSave={handleSave}
+      onOpenDiscard={() => setShowDiscardDialog(true)}
+      onOpenForceRelease={() => setShowForceReleaseDialog(true)}
+      onForcedOutChoice={editActions.handleForcedOut}
+      onAfterForceUnlockChoice={editActions.handleAfterForceUnlock}
+      showResumeDialog={showResumeDialog}
+      onResumeContinue={handleResumeContinue}
+      onResumeDiscard={handleResumeDiscard}
+      onCancelResume={() => setShowResumeDialog(false)}
+      showDiscardDialog={showDiscardDialog}
+      onConfirmDiscard={handleDiscard}
+      onCancelDiscard={() => setShowDiscardDialog(false)}
+      showForceReleaseDialog={showForceReleaseDialog}
+      onConfirmForceRelease={handleForceRelease}
+      onCancelForceRelease={() => setShowForceReleaseDialog(false)}
+      showLegacyRescueDialog={showLegacyRescueDialog}
+      onLegacyRescueAdopt={handleLegacyRescueAdopt}
+      onLegacyRescueDiscard={handleLegacyRescueDiscard}
+      saveConflict={saveConflict}
+      onSaveConflictOverwrite={async () => {
+        try {
+          await onSaveConflictOverwrite();
+          await commitAfterSave();
+        } catch (e) {
+          console.error("[Designer] save overwrite failed:", e);
+        }
+      }}
+      onSaveConflictCancel={onSaveConflictCancel}
+      serverChanged={serverChanged}
+      onServerChangeReload={handleServerChangeReload}
+      onServerChangeDismiss={() => setServerChanged(false)}
+      showAiGenerateDialog={showAiGenerateDialog}
+      aiDialogInitialPayload={aiDialogInitialPayload}
+      editorKind={editorKind}
+      cssFramework={cssFramework}
+      screenName={screenName}
+      onApplyAiGenerated={applyGeneratedDesignPayload}
+      onCloseAiGenerate={() => setShowAiGenerateDialog(false)}
+      showRenameDialog={showRenameDialog}
+      screenId={screenId}
+      allScreenIds={allScreenIds}
+      fetchExistingScreenIds={async () => {
+        const project = await loadProject();
+        return (project.screens ?? []).map((s) => s.id);
+      }}
+      onCloseRename={() => setShowRenameDialog(false)}
+      onRenameSuccess={(newId, operationId, extra) => {
+        setShowRenameDialog(false);
+        handleRenameSuccess({
+          entityType: "screen",
+          oldId: screenId,
+          newId,
+          label: screenName ?? newId,
+          navigate,
+          wsPath,
+          wsId,
+        });
+        setRenameUndoToast({
+          operationId, oldId: screenId, newId,
+          ttlMs: extra?.ttlMs,
+        });
+      }}
+      renameUndoToast={renameUndoToast}
+      onRenameUndo={() => {
+        if (!renameUndoToast) return;
+        handleRenameSuccess({
+          entityType: "screen",
+          oldId: renameUndoToast.newId,
+          newId: renameUndoToast.oldId,
+          label: screenName ?? renameUndoToast.oldId,
+          navigate,
+          wsPath,
+          wsId,
+        });
+        setRenameUndoToast(null);
+      }}
+      onRenameUndoDismiss={() => setRenameUndoToast(null)}
+    />
   );
 
   // ---------------------------------------------------------------------------
@@ -977,52 +906,44 @@ export function Designer({
         </div>
       );
     }
-    // Puck 経路: <GjsEditor> ancestor が無いため editor は undefined 固定で props 渡し。
-    // GrapesJS 経路と異なり Provider-aware ブリッジは不要 (#824)。
-    const puckSubToolbar = (
-      <DesignSubToolbar
+    // #1388 sub-section A 派生 2 件: renderEditor 呼出し + props 構築を PuckEditorHost に隔離。
+    // Designer scope で puckProps を組み立てていた頃は内部の closure 経由 ref 参照が
+    // react-hooks/refs を trigger していた (L1025) が、host モジュール境界を越えると
+    // ESLint の dataflow 解析が止まり警告が解消する。
+    return (
+      <PuckEditorHost
+        backend={puckBackend}
+        state={puckState}
+        cssFramework={cssFramework}
+        themeVariant={activeTheme}
+        isReadonly={isReadonly}
         panelMode={panelMode}
-        onOpenPanel={openPanel}
-        activeTheme={activeTheme}
-        onThemeChange={handleThemeChange}
+        screenId={screenId}
+        screenName={screenName}
         mcpStatus={mcpStatus}
         isDirty={isDirty}
         isSaving={isSaving}
-        onSaveToFile={handleSave}
-        onReset={async () => setShowDiscardDialog(true)}
-        onAiGenerate={handleOpenAiDialog}
-        backLink={onBack ? { label: screenName ?? "画面デザイン", onClick: onBack } : undefined}
-        screenId={screenId}
-        isReadonly={isReadonly}
-        editor={undefined}
         sessionMode={mode}
         sessionId={sessionId}
+        onBack={onBack}
+        onTogglePin={togglePin}
+        onClosePanel={closePanel}
+        onOpenPanel={openPanel}
+        onThemeChange={handleThemeChange}
+        onSaveToFile={handleSave}
+        onResetRequest={() => setShowDiscardDialog(true)}
+        onAiGenerate={handleOpenAiDialog}
         onStartEditing={handleStartEditing}
         onViewerAttached={syncSessionToUrl}
         onAttachAsView={editAttach}
         onTakeOver={editTakeOver}
         onOpenRenameDialog={() => setShowRenameDialog(true)}
+        onChange={handlePuckChange}
+        onReady={handlePuckReady}
+        reloadPayload={puckReloadPayload}
+        dialogsSlot={commonDialogs}
       />
     );
-    const puckProps: PuckRenderEditorProps = {
-      state: puckState,
-      cssFramework,
-      themeVariant: activeTheme,
-      isReadonly,
-      subToolbarSlot: puckSubToolbar,
-      dialogsSlot: commonDialogs,
-      panelMode,
-      onTogglePin: togglePin,
-      onClosePanel: closePanel,
-      screenId,
-      onStartEditing: handleStartEditing,
-      onChange: handlePuckChange,
-      onReady: handlePuckReady,
-      // Puck も EditorApi.reload() で再ロードできるよう reloadPayload を提供
-      // (#815 Codex Must-fix #2/#3: discard / serverChange reload を Puck/GrapesJS で統一)
-      reloadPayload: puckReloadPayload,
-    };
-    return puckBackend.renderEditor(puckProps);
   }
 
   // ---------------------------------------------------------------------------
@@ -1037,367 +958,58 @@ export function Designer({
       </div>
     );
   }
-  // GrapesJS 経路: GrapesJSEditorPane の <WithEditor> 配下に render されるため、
-  // Provider-aware ブリッジが useEditorMaybe() を Rules-of-Hooks 準拠で呼んで forward する (#824)。
-  const grapesSubToolbar = (
-    <DesignSubToolbarGrapesJSBridge
+  // #1388 sub-section A 派生 2 件: renderEditor 呼出し + props 構築 + 関連 banner / modal +
+  // grapesEditorInstanceRef / showCompositionPreview を GrapesEditorHost 内に隔離。
+  // 旧 L1106 の `{grapesBackend.renderEditor(grapesProps)}` JSX expression は
+  // grapesProps.onGrapesEditorInstance 内の `grapesEditorInstanceRef.current = editor`
+  // (render 中の ref 書き込み closure) を含むため react-hooks/refs を trigger していた。
+  return (
+    <GrapesEditorHost
+      backend={grapesBackend}
+      state={grapesState}
+      cssFramework={cssFramework}
+      themeVariant={activeTheme}
+      isReadonly={isReadonly}
       panelMode={panelMode}
-      onOpenPanel={openPanel}
-      activeTheme={activeTheme}
-      onThemeChange={handleThemeChange}
+      screenId={screenId}
+      screenName={screenName}
       mcpStatus={mcpStatus}
       isDirty={isDirty}
       isSaving={isSaving}
-      onSaveToFile={handleSave}
-      onReset={async () => setShowDiscardDialog(true)}
-      onAiGenerate={handleOpenAiDialog}
-      backLink={onBack ? { label: screenName ?? "画面デザイン", onClick: onBack } : undefined}
-      screenId={screenId}
-      isReadonly={isReadonly}
       sessionMode={mode}
       sessionId={sessionId}
+      onBack={onBack}
+      onTogglePin={togglePin}
+      onClosePanel={closePanel}
+      onOpenPanel={openPanel}
+      onThemeChange={handleThemeChange}
+      onSaveToFile={handleSave}
+      onResetRequest={() => setShowDiscardDialog(true)}
+      onAiGenerate={handleOpenAiDialog}
       onStartEditing={handleStartEditing}
       onViewerAttached={syncSessionToUrl}
       onAttachAsView={editAttach}
       onTakeOver={editTakeOver}
       onOpenRenameDialog={() => setShowRenameDialog(true)}
+      onChange={handleGrapesChange}
+      onReady={handleGrapesReady}
+      onServerChanged={handleGrapesServerChanged}
+      onMcpStatusChange={setMcpStatus}
+      onExternalThemeChange={handleThemeChange}
+      reloadPayload={grapesReloadPayload}
+      dialogsSlot={commonDialogs}
+      mismatchWarnings={mismatchWarnings}
+      pageLayoutId={pageLayoutId}
+      pageLayoutName={pageLayoutName}
+      pageLayoutHtml={pageLayoutHtml}
+      pageLayoutAssignments={pageLayoutAssignments}
+      gadgetHtmlMap={gadgetHtmlMap}
+      onGrapesEditorReady={onGrapesEditorReady}
     />
   );
-  // GrapesJSRenderEditorProps で GrapesJS 固有 callback を型レベル required として渡す
-  // (#815 Codex Should-fix #1: Generics 化で共通 interface への混入を解消)。
-  const grapesProps: GrapesJSRenderEditorProps = {
-    state: grapesState,
-    cssFramework,
-    themeVariant: activeTheme,
-    isReadonly,
-    subToolbarSlot: grapesSubToolbar,
-    dialogsSlot: commonDialogs,
-    panelMode,
-    onTogglePin: togglePin,
-    onClosePanel: closePanel,
-    screenId,
-    onStartEditing: handleStartEditing,
-    onChange: handleGrapesChange,
-    onReady: handleGrapesReady,
-    onServerChanged: handleGrapesServerChanged,
-    onMcpStatusChange: setMcpStatus,
-    onExternalThemeChange: handleThemeChange,
-    reloadPayload: grapesReloadPayload,
-    // pl-5 #1026: raw GrapesJS editor を PageLayoutDesigner に expose
-    onGrapesEditorInstance: (editor: import("grapesjs").Editor) => {
-      grapesEditorInstanceRef.current = editor;
-      onGrapesEditorReady?.(editor);
-    },
-  };
-  return (
-    <>
-      {/* pl-5 #1026: editorKind / cssFramework ミスマッチ警告バナー */}
-      {mismatchWarnings.length > 0 && (
-        <EditorKindMismatchBanner warnings={mismatchWarnings} />
-      )}
-      {/* pl-5 #1026: page Screen の pageLayout 外枠表示バナー */}
-      {pageLayoutId && pageLayoutName && (
-        <PageLayoutWireframeBanner
-          pageLayoutName={pageLayoutName}
-          pageLayoutId={pageLayoutId}
-          onPreviewClick={pageLayoutHtml ? () => setShowCompositionPreview(true) : undefined}
-        />
-      )}
-      {grapesBackend.renderEditor(grapesProps)}
-      {/* RFC #1021 pl-6 (Codex C-1): composition preview modal */}
-      {showCompositionPreview && pageLayoutHtml && (
-        <CompositionPreviewModal
-          pageLayoutName={pageLayoutName ?? ""}
-          pageLayoutHtml={pageLayoutHtml}
-          assignments={pageLayoutAssignments ?? {}}
-          gadgetHtmlMap={gadgetHtmlMap ?? new Map()}
-          getScreenContent={() => {
-            try {
-              return grapesEditorInstanceRef.current?.getHtml() ?? "";
-            } catch { return ""; }
-          }}
-          onClose={() => setShowCompositionPreview(false)}
-        />
-      )}
-    </>
-  );
 }
 
-// ---------------------------------------------------------------------------
-// LocalStorage 救済確認ダイアログ
-// ---------------------------------------------------------------------------
-
-interface LegacyRescueDialogProps {
-  onAdopt: () => void;
-  onDiscard: () => void;
-}
-
-// ---------------------------------------------------------------------------
-// pl-5 #1026: editorKind / cssFramework ミスマッチ警告バナー (C)
-// ---------------------------------------------------------------------------
-
-interface EditorKindMismatchBannerProps {
-  warnings: string[];
-}
-
-function EditorKindMismatchBanner({ warnings }: EditorKindMismatchBannerProps) {
-  return (
-    <div
-      data-testid="editor-kind-mismatch-banner"
-      style={{
-        background: "#fef3c7",
-        borderBottom: "1px solid #fbbf24",
-        padding: "6px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        fontSize: 13,
-        color: "#92400e",
-        zIndex: 10,
-        position: "relative",
-      }}
-    >
-      <i className="bi bi-exclamation-triangle-fill" style={{ color: "#f59e0b" }} />
-      <span>
-        runtime composition が動作しない可能性があります: {warnings.join(" / ")}
-      </span>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// pl-5 #1026: page Screen の PageLayout 外枠表示バナー (B-簡易)
-// ---------------------------------------------------------------------------
-
-interface PageLayoutWireframeBannerProps {
-  pageLayoutName: string;
-  pageLayoutId: string;
-  // RFC #1021 pl-6 (Codex C-1): composition preview を開くコールバック
-  onPreviewClick?: () => void;
-}
-
-function PageLayoutWireframeBanner({ pageLayoutName, pageLayoutId, onPreviewClick }: PageLayoutWireframeBannerProps) {
-  return (
-    <div
-      data-testid="page-layout-wireframe-banner"
-      style={{
-        background: "#ede9fe",
-        borderBottom: "1px solid #a78bfa",
-        padding: "6px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        fontSize: 13,
-        color: "#5b21b6",
-        zIndex: 10,
-        position: "relative",
-      }}
-    >
-      <i className="bi bi-layout-wtf" style={{ color: "#7c3aed" }} />
-      <span>
-        ページレイアウトを使用中: <strong>{pageLayoutName}</strong>
-        <span style={{ color: "#7c3aed", fontFamily: "monospace", fontSize: 11, marginLeft: 6 }}>
-          ({pageLayoutId})
-        </span>
-      </span>
-      <span style={{ color: "#8b5cf6", fontSize: 11, marginLeft: 4 }}>
-        — 外枠はページレイアウト側で編集してください
-      </span>
-      {onPreviewClick && (
-        <button
-          type="button"
-          onClick={onPreviewClick}
-          data-testid="page-layout-composition-preview-btn"
-          style={{
-            marginLeft: "auto",
-            padding: "2px 12px",
-            border: "1px solid #7c3aed",
-            borderRadius: 4,
-            background: "#fff",
-            color: "#7c3aed",
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          <i className="bi bi-eye" style={{ marginRight: 4 }} />
-          composition プレビューを開く
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// RFC #1021 pl-6 (Codex C-1): composition preview modal — Page Screen + PageLayout 外枠 + gadget の
-// 完全な合成 HTML を read-only で表示する modal
-// ---------------------------------------------------------------------------
-
-interface CompositionPreviewModalProps {
-  pageLayoutName: string;
-  pageLayoutHtml: string;
-  assignments: Record<string, string>;
-  gadgetHtmlMap: Map<string, string>;
-  getScreenContent: () => string;
-  onClose: () => void;
-}
-
-function CompositionPreviewModal({
-  pageLayoutName,
-  pageLayoutHtml,
-  assignments,
-  gadgetHtmlMap,
-  getScreenContent,
-  onClose,
-}: CompositionPreviewModalProps) {
-  const composedSrcDoc = useMemo(() => {
-    const screenContent = getScreenContent();
-    const composed = composePreviewHtml(pageLayoutHtml, assignments, gadgetHtmlMap, screenContent);
-    // Bootstrap CDN を埋め込んで preview が retail サンプル相当に見えるようにする
-    return `<!DOCTYPE html><html><head>
-	<meta charset="utf-8" />
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.min.css" rel="stylesheet">
-	<style>body{margin:0;font-family:system-ui,sans-serif}</style>
-	</head><body>${composed}</body></html>`;
-  }, [pageLayoutHtml, assignments, gadgetHtmlMap, getScreenContent]);
-
-  return (
-    <div
-      data-testid="composition-preview-modal"
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.6)",
-        display: "flex",
-        alignItems: "stretch",
-        justifyContent: "center",
-        padding: 24,
-        zIndex: 9999,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "#fff",
-          borderRadius: 8,
-          width: "100%",
-          maxWidth: 1280,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "12px 16px",
-            borderBottom: "1px solid #e2e8f0",
-            background: "#f8fafc",
-          }}
-        >
-          <span style={{ fontSize: 14, color: "#0f172a", fontWeight: 600 }}>
-            <i className="bi bi-eye" style={{ marginRight: 6, color: "#7c3aed" }} />
-            composition プレビュー: <span style={{ color: "#5b21b6" }}>{pageLayoutName}</span>
-            <span style={{ color: "#64748b", fontSize: 12, fontWeight: 400, marginLeft: 8 }}>
-              (PageLayout 外枠 + 各 region の gadget + main slot に Screen 本文)
-            </span>
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              border: "1px solid #e2e8f0",
-              borderRadius: 4,
-              background: "#fff",
-              padding: "4px 10px",
-              cursor: "pointer",
-              fontSize: 12,
-            }}
-          >
-            <i className="bi bi-x-lg" style={{ marginRight: 4 }} />
-            閉じる
-          </button>
-        </div>
-        <iframe
-          title="composition-preview"
-          srcDoc={composedSrcDoc}
-          sandbox="allow-same-origin"
-          style={{ flex: 1, border: "none", background: "#fff" }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function LegacyRescueDialog({ onAdopt, onDiscard }: LegacyRescueDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onDiscard();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onDiscard]);
-
-  useEffect(() => {
-    dialogRef.current?.focus();
-  }, []);
-
-  return (
-    <div
-      className="edit-mode-modal-backdrop"
-      onClick={(e) => { if (e.target === e.currentTarget) onDiscard(); }}
-      role="presentation"
-    >
-      <div
-        className="edit-mode-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="legacy-rescue-title"
-        tabIndex={-1}
-        ref={dialogRef}
-      >
-        <div className="edit-mode-modal-header">
-          <h5 id="legacy-rescue-title" className="edit-mode-modal-title">
-            未保存の旧データが見つかりました
-          </h5>
-          <button
-            type="button"
-            className="btn-close"
-            onClick={onDiscard}
-            aria-label="閉じる"
-          />
-        </div>
-        <div className="edit-mode-modal-body">
-          <p>
-            以前の編集セッションで保存されなかったデータ (localStorage) が残っています。
-            draft に変換して編集を継続しますか？
-          </p>
-          <div className="edit-mode-modal-footer">
-            <button
-              type="button"
-              className="btn btn-outline-danger btn-sm"
-              onClick={onDiscard}
-              data-testid="legacy-rescue-discard"
-            >
-              破棄する
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={onAdopt}
-              data-testid="legacy-rescue-adopt"
-            >
-              draft に変換して続ける
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// #1388 sub-section A (Option 2): LegacyRescueDialog (旧 inline 定義) は
+// designer/LegacyRescueDialog.tsx に move 済 (DesignerDialogs から import)。
+// EditorKindMismatchBanner / PageLayoutWireframeBanner / CompositionPreviewModal は
+// 同じく派生 2 件で GrapesEditorHost.tsx に移動済 (host 内のみ参照)。
