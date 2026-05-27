@@ -205,8 +205,9 @@ PR #1378 (#1375) で npm workspaces 化済み。`cd frontend && npm install` / `
 WSL2 シェル (ターミナル 1) で:
 
 ```bash
-cd ~/projects/harmony/backend
-npm run dev
+cd ~/projects/harmony
+npm run backend     # = npm run dev --workspace=backend (#1400)
+# subdir 派は cd ~/projects/harmony/backend && npm run dev でも等価
 ```
 
 **期待される出力例**:
@@ -235,8 +236,9 @@ curl -s http://localhost:5179/mcp -o /dev/null -w "%{http_code}\n"
 別の WSL2 タブ (ターミナル 2) で。Step 1-4 のターミナルは残したまま。
 
 ```bash
-cd ~/projects/harmony/frontend
-npm run dev
+cd ~/projects/harmony
+npm run frontend     # = npm run dev --workspace=frontend (#1400)
+# subdir 派は cd ~/projects/harmony/frontend && npm run dev でも等価
 ```
 
 **期待される出力**:
@@ -337,8 +339,8 @@ ls ~/.claude/projects/-home-csilo-projects-harmony/memory/
 以下が全て動作することを確認:
 
 - [ ] WSL2 シェルで `cd ~/projects/harmony` できる
-- [ ] `cd backend && npm run dev` が起動継続
-- [ ] `cd frontend && npm run dev` が起動継続 (別タブ)
+- [ ] `npm run backend` (または `cd backend && npm run dev`) が起動継続
+- [ ] `npm run frontend` (または `cd frontend && npm run dev`) が起動継続 (別タブ)
 - [ ] Windows ブラウザで `http://localhost:5173` でデザイナー操作可
 - [ ] backend 経由で `workspaces/` に JSON ファイルが書き込まれる
 - [ ] WSL2 内の Claude Code が起動して MCP tool を呼べる

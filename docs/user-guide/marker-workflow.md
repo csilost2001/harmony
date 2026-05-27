@@ -114,8 +114,11 @@ Claude Code は内部で以下を順次実行:
 backend は HTTP + WebSocket を port 5179 で listen する常駐サーバ。以下の方法で起動:
 
 ```bash
-cd backend
-npm run dev    # 端末を 1 つ占有して常駐、Ctrl+C で終了
+# 推奨 (root から、#1400)
+npm run backend     # 端末を 1 つ占有して常駐、Ctrl+C で終了
+
+# 等価 (subdir 派)
+cd backend && npm run dev
 ```
 
 同 port に HTTP MCP endpoint (`/mcp`) とブラウザ向け WebSocket を同居。`.mcp.json` の URL エントリ経由で Claude Code が接続、複数 Claude Code セッション同時接続 OK。
@@ -134,7 +137,7 @@ taskkill //F //PID <PID>   # Windows (Git Bash は //F の escape 必要)
 
 ### 「backend に接続できない / MCP FAIL」
 
-- `cd backend && npm run dev` で **常駐サーバを起動済みか** 確認 (#302 以降は自動 spawn しない)
+- `npm run backend` (または `cd backend && npm run dev`) で **常駐サーバを起動済みか** 確認 (#302 以降は自動 spawn しない)
 - `netstat -ano | grep :5179` で LISTENING プロセスが存在するか
 - `curl http://localhost:5179/` で `{"status":"ok",...}` が返るか
 - `.mcp.json` の backend エントリが URL 形式 (`"type": "http"`, `"url": "http://localhost:5179/mcp"`) か

@@ -34,10 +34,10 @@ VS Code 起動後:
 
 1. 右下のポップアップで **「Reopen in Container」** をクリック (見逃したら `Ctrl+Shift+P` → `Dev Containers: Reopen in Container`)
 2. 初回は image pull + `postCreateCommand` で **数分〜10 分** (Phase 5 #1120 以降は features install 廃止、cold start 短縮)
-3. 完了したら container 内ターミナルで:
+3. 完了したら container 内ターミナルで (どちらも root から実行可、#1400):
    ```bash
-   cd backend && npm run dev    # タブ 1
-   cd frontend && npm run dev   # タブ 2
+   npm run backend     # タブ 1 (常駐)
+   npm run frontend    # タブ 2 (Ctrl+C で頻繁に再起動)
    ```
 4. Windows ブラウザで `http://localhost:5173` を開く (ポート自動 forward)
 

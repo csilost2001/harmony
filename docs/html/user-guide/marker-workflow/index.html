@@ -135,8 +135,11 @@
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
 <h3 id="ポート-5179-の扱い-302-以降">ポート 5179 の扱い (#302 以降)</h3>
 <p>backend は HTTP + WebSocket を port 5179 で listen する常駐サーバ。以下の方法で起動:</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span></span>
-<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span><span style="color:#6A737D;--shiki-dark:#768390">    # 端末を 1 つ占有して常駐、Ctrl+C で終了</span></span></code></pre>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 推奨 (root から、#1400)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span><span style="color:#6A737D;--shiki-dark:#768390">     # 端末を 1 つ占有して常駐、Ctrl+C で終了</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 等価 (subdir 派)</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> &#x26;&#x26; </span><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span></span></code></pre>
 <p>同 port に HTTP MCP endpoint (<code>/mcp</code>) とブラウザ向け WebSocket を同居。<code>.mcp.json</code> の URL エントリ経由で Claude Code が接続、複数 Claude Code セッション同時接続 OK。</p>
 <p>旧仕様 (#302 以前): <code>.mcp.json</code> の command エントリで <code>npx tsx backend/src/index.ts</code> を自動 spawn していた → port 競合・orphan 発生で廃止。</p>
 <p>古い orphan プロセスが残っていた場合は kill:</p>
@@ -146,7 +149,7 @@
 <h2 id="トラブル例">トラブル例</h2>
 <h3 id="backend-に接続できない--mcp-fail">「backend に接続できない / MCP FAIL」</h3>
 <ul>
-<li><code>cd backend &#x26;&#x26; npm run dev</code> で <strong>常駐サーバを起動済みか</strong> 確認 (#302 以降は自動 spawn しない)</li>
+<li><code>npm run backend</code> (または <code>cd backend &#x26;&#x26; npm run dev</code>) で <strong>常駐サーバを起動済みか</strong> 確認 (#302 以降は自動 spawn しない)</li>
 <li><code>netstat -ano | grep :5179</code> で LISTENING プロセスが存在するか</li>
 <li><code>curl http://localhost:5179/</code> で <code>{"status":"ok",...}</code> が返るか</li>
 <li><code>.mcp.json</code> の backend エントリが URL 形式 (<code>"type": "http"</code>, <code>"url": "http://localhost:5179/mcp"</code>) か</li>
