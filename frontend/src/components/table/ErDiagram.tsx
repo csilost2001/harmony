@@ -34,6 +34,7 @@ import { generateUUID } from "../../utils/uuid";
 import { useUndoKeyboard } from "../../hooks/useUndoKeyboard";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { useEditSession } from "../../hooks/useEditSession";
+import { EntityIdInput, type EntityIdValidationState } from "../common/EntityIdInput";
 import { EditSessionDropdown } from "../editing/EditSessionDropdown";
 import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import html2canvas from "html2canvas";
@@ -317,9 +318,10 @@ function ErDiagramInner() {
   }, [isReadonly, persistLayoutChange, pushLayoutUndo]);
 
   // Add table from ER diagram
-  const handleAddTable = useCallback(async (physicalName: string, displayName: string, category?: string) => {
+  // RFC #1284 / #1329: kebab-case id を modal で受け取って createTable に渡す (UUID 形式禁止)。
+  const handleAddTable = useCallback(async (physicalName: string, displayName: string, id: string, category?: string) => {
     if (isReadonly) return;
-    const table = await createTable(physicalName as PhysicalName, displayName as DisplayName, "", category);
+    const table = await createTable(physicalName as PhysicalName, displayName as DisplayName, "", category, { id });
     const newTable = await loadTable(table.id);
     if (newTable) {
       setTables((prev) => [...prev, newTable]);
@@ -541,6 +543,7 @@ function ErDiagramInner() {
       {/* Add Table Modal */}
       {showAddTable && (
         <AddTableFromErModal
+          existingIds={tables.map((t) => t.id)}
           onAdd={handleAddTable}
           onClose={() => setShowAddTable(false)}
         />
@@ -717,14 +720,28 @@ function AddRelationModal({
 // ── ER図からテーブル追加モーダル ──────────────────────────────────────────
 
 function AddTableFromErModal({
-  onAdd, onClose,
+  existingIds, onAdd, onClose,
 }: {
-  onAdd: (physicalName: string, displayName: string, category?: string) => void;
+  existingIds: readonly string[];
+  onAdd: (physicalName: string, displayName: string, id: string, category?: string) => void;
   onClose: () => void;
 }) {
   const [physicalName, setPhysicalName] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [category, setCategory] = useState("");
+  // RFC #1284 / #1329: kebab-case id 入力欄 (EntityIdInput) を ER 図 inline create にも追加。
+  // TableListView add dialog と同パターン (全創成経路で EntityIdInput 経由化が RFC 目標)。
+  const [id, setId] = useState("");
+  const [idValidation, setIdValidation] = useState<EntityIdValidationState>({
+    isFormatValid: false,
+    isUnique: true,
+    isInvalid: true,
+  });
+  const canSubmit = !!physicalName.trim() && !!displayName.trim() && !idValidation.isInvalid;
+  const submit = () => {
+    if (!canSubmit) return;
+    onAdd(physicalName.trim(), displayName.trim(), id.trim(), category || undefined);
+  };
 
   return (
     <div className="tbl-modal-overlay" onClick={onClose}>
@@ -740,7 +757,7 @@ function AddTableFromErModal({
             onChange={(e) => setPhysicalName(e.target.value)}
             placeholder="customers"
             autoFocus
-            onKeyDown={(e) => { if (e.key === "Enter" && physicalName.trim() && displayName.trim()) onAdd(physicalName.trim(), displayName.trim(), category || undefined); }}
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           />
         </label>
         <label className="tbl-field">
@@ -750,7 +767,19 @@ function AddTableFromErModal({
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="顧客マスタ"
-            onKeyDown={(e) => { if (e.key === "Enter" && physicalName.trim() && displayName.trim()) onAdd(physicalName.trim(), displayName.trim(), category || undefined); }}
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+          />
+        </label>
+        <label className="tbl-field">
+          <span>ID <small>(kebab-case)</small></span>
+          <EntityIdInput
+            value={id}
+            onChange={setId}
+            name={displayName}
+            existingIds={existingIds}
+            entityLabel="テーブル定義"
+            onEnter={submit}
+            onValidationChange={setIdValidation}
           />
         </label>
         <label className="tbl-field">
@@ -769,8 +798,8 @@ function AddTableFromErModal({
           <button className="tbl-btn tbl-btn-ghost" onClick={onClose}>キャンセル</button>
           <button
             className="tbl-btn tbl-btn-primary"
-            onClick={() => onAdd(physicalName.trim(), displayName.trim(), category || undefined)}
-            disabled={!physicalName.trim() || !displayName.trim()}
+            onClick={submit}
+            disabled={!canSubmit}
           >
             追加
           </button>

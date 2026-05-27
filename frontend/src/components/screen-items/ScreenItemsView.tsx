@@ -29,6 +29,10 @@ import {
 import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import {
   loadScreenItems,
   saveScreenItems,
@@ -120,7 +124,7 @@ function defaultEffectFor(kind: ScreenItemEventEffect["kind"]): ScreenItemEventE
 export function ScreenItemsView() {
   const { screenId } = useParams<{ screenId: string }>();
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
   const [screens, setScreens] = useState<ScreenMeta[]>([]);
   const [candidatesModalOpen, setCandidatesModalOpen] = useState(false);
   const [conventions, setConventions] = useState<ConventionsCatalog | null>(null);
@@ -136,6 +140,15 @@ export function ScreenItemsView() {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
+
+  // #1330: ScreenItemsView 起点の Screen rename refactor。完了後は Items 画面に留まる。
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast(
+    "screen",
+    screenId ?? "",
+    wsId,
+  );
 
   const sessionId = mcpBridge.getSessionId();
 
@@ -226,6 +239,7 @@ export function ScreenItemsView() {
   }, []);
 
   // 画面一覧をロード (初回 + MCP 接続復帰時)。onNotFound ハンドリング用に画面一覧も保持。
+  // #1330: rename dialog 用に allScreenIds (全 Screen.id 配列) も同時更新する。
   useEffect(() => {
     let mounted = true;
     const doLoad = () => {
@@ -233,6 +247,7 @@ export function ScreenItemsView() {
         if (!mounted) return;
         const metas = p.screens.map((s) => ({ id: s.id, name: s.name }));
         setScreens(metas);
+        setAllScreenIds(p.screens.map((s) => s.id));
         // screenId が存在しない場合は画面一覧へ遷移
         if (screenId && !metas.some((m) => m.id === screenId)) {
           navigate(wsPath("/screen/list"), { replace: true });
@@ -871,16 +886,30 @@ export function ScreenItemsView() {
         }
         undoRedo={{ onUndo: undo, onRedo: redo, canUndo, canRedo }}
         extraRight={
-          <EditSessionDropdown
-            resourceType="screen-item"
-            resourceId={screenId ?? ""}
-            currentMode={mode}
-            currentSessionId={sessionId}
-            onStartEditing={() => { void actions.startEditing(); }}
-            onViewerAttached={syncSessionToUrl}
-            onAttachAsView={attach}
-            onTakeOver={takeOver}
-          />
+          <>
+            {/* #1330: Screen rename refactor を ScreenItemsView 起点でも起動可能にする */}
+            {screenId && (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary me-2"
+                onClick={() => setShowRenameDialog(true)}
+                title="この画面の ID を変更します (参照を一括更新)"
+              >
+                <i className="bi bi-pencil-square me-1" />
+                ID 変更
+              </button>
+            )}
+            <EditSessionDropdown
+              resourceType="screen-item"
+              resourceId={screenId ?? ""}
+              currentMode={mode}
+              currentSessionId={sessionId}
+              onStartEditing={() => { void actions.startEditing(); }}
+              onViewerAttached={syncSessionToUrl}
+              onAttachAsView={attach}
+              onTakeOver={takeOver}
+            />
+          </>
         }
         saveReset={isReadonly ? undefined : { isDirty, isSaving, onSave: handleSave, onReset: () => setShowDiscardDialog(true) }}
       />
@@ -1923,6 +1952,65 @@ export function ScreenItemsView() {
             }
           }}
           onCancel={onSaveConflictCancel}
+        />
+      )}
+
+      {/* #1330: ScreenItemsView 起点の Screen rename refactor dialog */}
+      {showRenameDialog && screenId && (
+        <RenameEntityDialog
+          entityType="screen"
+          currentId={screenId}
+          currentName={selectedScreenName ?? ""}
+          existingIds={allScreenIds}
+          fetchExistingIds={async () => {
+            const project = await loadProject();
+            return (project.screens ?? []).map((s) => s.id);
+          }}
+          onClose={() => setShowRenameDialog(false)}
+          onSuccess={(newId, operationId, extra) => {
+            setShowRenameDialog(false);
+            handleRenameSuccess({
+              entityType: "screen",
+              oldId: screenId,
+              newId,
+              label: selectedScreenName ?? newId,
+              navigate,
+              wsPath,
+              wsId,
+              // #1330: ItemsView 起点 → screen-items tab + /screen/items/<newId> へ navigate
+              originTabType: "screen-items",
+              originRoute: (id) => `/screen/items/${id}`,
+            });
+            setRenameUndoToast({
+              operationId, oldId: screenId, newId,
+              ttlMs: extra?.ttlMs,
+            });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          ttlMs={renameUndoToast.ttlMs}
+          entityLabel="画面"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "screen",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: selectedScreenName ?? renameUndoToast.oldId,
+              navigate,
+              wsPath,
+              wsId,
+              originTabType: "screen-items",
+              originRoute: (id) => `/screen/items/${id}`,
+            });
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
         />
       )}
     </div>

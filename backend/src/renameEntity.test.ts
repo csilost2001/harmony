@@ -1779,6 +1779,63 @@ describe("renameEntityId — Phase I E: generic-definitions の path 形式 ref 
     const updated = JSON.parse(await fs.readFile(gdPath, "utf-8")) as Record<string, unknown>;
     expect((updated.relations as Array<Record<string, unknown>>)[0].ref).toBe("process-flows/createTransaction");
   });
+
+  // #1331: GenericDefinition EditSession active 時の rename block 検証
+  it("GenericDefinition 編集中の Edit session が存在する場合、参照先 entity の rename は preview で報告 + execute で throw", async () => {
+    const root = await makeWorkspace();
+    await seedTable(root, "ref-tbl");
+
+    // generic-definitions/data-contract/Foo.json が `tables/ref-tbl` を参照
+    const gdDir = dataPath(root, "generic-definitions", "data-contract");
+    await fs.mkdir(gdDir, { recursive: true });
+    const gd = {
+      kind: "data-contract",
+      name: "Foo",
+      relations: [{ kind: "uses", ref: "tables/ref-tbl" }],
+    };
+    const gdPath = path.join(gdDir, "Foo.json");
+    await fs.writeFile(gdPath, JSON.stringify(gd, null, 2), "utf-8");
+
+    // fetchEditSessionsForRef を inject: GenericDefinition "data-contract/Foo" を別 session が Edit 中
+    // (frontend GenericDefinitionEditor が startEditing 済の状態を模倣)
+    const fetchEditSessionsForRef = (
+      entityKind: string,
+      entityId: string,
+    ): ReadonlyArray<EditSessionLike> => {
+      if (entityKind === "genericDefinition" && entityId === "data-contract/Foo") {
+        return [{
+          state: "Active",
+          participants: new Map([
+            ["other-sess", { sessionId: "other-sess", role: "Edit" }],
+          ]),
+        }];
+      }
+      return [];
+    };
+
+    // preview は concurrentEditRefs に genericDefinition を含む
+    const preview = await previewEntityRename("table", "ref-tbl", "new-tbl", root, {
+      sessionId: "self", fetchEditSessionsForRef,
+    });
+    const gdRefs = preview.concurrentEditRefs.filter((r) => r.entityKind === "genericDefinition");
+    expect(gdRefs.length).toBeGreaterThan(0);
+    expect(gdRefs[0].entityId).toBe("data-contract/Foo");
+    expect(gdRefs[0].sessionId).toBe("other-sess");
+
+    // execute は throw
+    await expect(
+      renameEntityId("table", "ref-tbl", "new-tbl", root, {
+        sessionId: "self", fetchEditSessionsForRef,
+      }),
+    ).rejects.toThrow(/参照側.*編集中/);
+
+    // ファイル状態は変化なし
+    await fs.access(dataPath(root, "tables", "ref-tbl.json"));
+    await expect(fs.access(dataPath(root, "tables", "new-tbl.json"))).rejects.toThrow();
+    // generic-definition の ref も rewrite されていない
+    const gdAfter = JSON.parse(await fs.readFile(gdPath, "utf-8")) as Record<string, unknown>;
+    expect((gdAfter.relations as Array<Record<string, unknown>>)[0].ref).toBe("tables/ref-tbl");
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────

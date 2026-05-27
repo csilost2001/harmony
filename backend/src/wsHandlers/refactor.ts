@@ -84,6 +84,11 @@ const INTERNAL_KIND_TO_RESOURCE_TYPE: Record<string, EditSessionResourceType> = 
   view: "view",
   viewDefinition: "view-definition",
   pageLayout: "page-layout",
+  // #1331: GenericDefinition (kind/name 複合 id) を rename block 対象に含める。
+  // renameEntity scan source は entityKind="genericDefinition" / entityId="<kind>/<name>" で
+  // 列挙される (renameEntity.ts L1318)。frontend GenericDefinitionEditor が同形式の
+  // resourceId で EditSession を作成するため、ここで kebab-case の resourceType に変換する。
+  genericDefinition: "generic-definition",
 };
 
 /**
@@ -127,7 +132,13 @@ function makeFetchEditSessionsForRef(
     // 通常 entity (Table/Screen/ProcessFlow 等): entityId を直接使用
     const resourceType = INTERNAL_KIND_TO_RESOURCE_TYPE[entityKind];
     if (resourceType) {
-      return bridge.editSessionListByResource(wsId, resourceType, entityId);
+      // #1331: genericDefinition の entityId は "<kind>/<name>" 形式だが、
+      // editSession.create の assertSafeName は `/` を許容しないため frontend は
+      // `/` → `__` に encode して create する。lookup 時にも同じ変換を適用する。
+      const resourceId = entityKind === "genericDefinition"
+        ? entityId.replace(/\//g, "__")
+        : entityId;
+      return bridge.editSessionListByResource(wsId, resourceType, resourceId);
     }
     // 副次 file (project/screenFlowPositions/erLayout): singleton EditSession を引く
     const singletonRT = INTERNAL_KIND_TO_SINGLETON_RESOURCE_TYPE[entityKind];
