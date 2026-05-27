@@ -80,11 +80,16 @@ export function GenericDefinitionEditor() {
   // resourceId encoding:
   //   renameEntity location は entityId="<kind>/<name>" (例: "data-contract/Foo") を使うが、
   //   editSession.create の assertSafeName は `/` を許容しない。frontend では `/` → `__` に
-  //   encode し、backend wsHandlers/refactor.ts の makeFetchEditSessionsForRef で逆変換する。
+  //   encode し、backend wsHandlers/refactor.ts の makeFetchEditSessionsForRef でも同じ
+  //   encoding (`/` → `__`) を適用して stored resourceId と突合する。
   const editSessionRawId = kind && decodedName ? `${kind}/${decodedName}` : "";
   const editSessionSafeResourceId = editSessionRawId.replace(/\//g, "__");
   const editSessionIdRef = useRef<string | null>(null);
   const startingPromiseRef = useRef<Promise<string | null> | null>(null);
+  // どの resourceId に対して current editSessionIdRef が紐付くか追跡 (Codex Round 2 Must-fix)。
+  // 同 component が router 経由で `:kind/:name` 変更 (Tab A → B 遷移) で stay-mounted する場合、
+  // 旧 resource の session が新 resource にずれ込むのを防ぐ。
+  const sessionResourceIdRef = useRef<string>("");
 
   // 編集開始: 同 mount 内で重複 create を防ぐため startingPromiseRef を await。
   // 失敗時は次の updateDef で再試行可能 (idRef / promiseRef を null に戻す)。
@@ -92,14 +97,16 @@ export function GenericDefinitionEditor() {
     if (editSessionIdRef.current) return editSessionIdRef.current;
     if (startingPromiseRef.current) return startingPromiseRef.current;
     if (!editSessionSafeResourceId) return null;
+    const targetResourceId = editSessionSafeResourceId;
     const promise = (async (): Promise<string | null> => {
       try {
         const result = await mcpBridge.request("editSession.create", {
           resourceType: "generic-definition",
-          resourceId: editSessionSafeResourceId,
+          resourceId: targetResourceId,
         }) as { editSession?: { id?: string } } | null;
         const id = result?.editSession?.id ?? null;
         editSessionIdRef.current = id;
+        sessionResourceIdRef.current = targetResourceId;
         return id;
       } catch (e) {
         console.warn("[GenericDefinitionEditor] editSession.create failed:", e);
@@ -113,7 +120,7 @@ export function GenericDefinitionEditor() {
   }, [editSessionSafeResourceId]);
 
   // 破棄: pending startEditing があれば先に解決を待ち、その後 editSessionId が確定したら discard。
-  // unmount + save 後の両方で呼ぶ。
+  // unmount + save 後 + resourceId 変更時の 3 経路で呼ぶ。
   const discardEditSession = useCallback(async (): Promise<void> => {
     if (startingPromiseRef.current) {
       try { await startingPromiseRef.current; } catch { /* create failed = nothing to discard */ }
@@ -121,12 +128,25 @@ export function GenericDefinitionEditor() {
     const id = editSessionIdRef.current;
     if (!id) return;
     editSessionIdRef.current = null;
+    sessionResourceIdRef.current = "";
     try {
       await mcpBridge.request("editSession.discard", { editSessionId: id });
     } catch (e) {
       console.warn("[GenericDefinitionEditor] editSession.discard failed:", e);
     }
   }, []);
+
+  // Codex Round 2 Must-fix: route param 変更 (例: GenericDefinition A → B へ遷移) で
+  // editSessionSafeResourceId が変わったら、旧 resource の active session を discard する。
+  // sessionResourceIdRef が空 (= まだ create していない) なら no-op。
+  useEffect(() => {
+    if (sessionResourceIdRef.current && sessionResourceIdRef.current !== editSessionSafeResourceId) {
+      // discard 内で pending start を await + idRef / sessionResourceIdRef を reset。
+      // 旧 session の create が pending 中でも、await pending → 完了後に discard が走るため
+      // orphan は残らない (新 resource 用 ensureEditSession は次の updateDef で再起動)。
+      discardEditSession().catch(() => { /* logged inside */ });
+    }
+  }, [editSessionSafeResourceId, discardEditSession]);
 
   useEffect(() => {
     if (!kind || !decodedName) return;
