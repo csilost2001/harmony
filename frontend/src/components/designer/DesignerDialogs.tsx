@@ -2,7 +2,7 @@
 // 独立 component に抽出し、Designer.tsx の責務を縮小する。
 // 機能変更なし — JSX 構造 + 依存関係 (props) は元の commonDialogs と完全に等価。
 //
-// #1388 follow-up (PR #1394 sequel): Codex Round 1 Should-fix #2 (33-prop flat interface) を
+// #1388 residual cleanup (PR #1395): Codex Round 1 Should-fix #2 (33-prop flat interface) を
 // 解消するため、props を概念単位の grouped object に再構成。
 // editMode / resume / discard / forceRelease / legacyRescue / saveConflict / serverChange /
 // ai / rename の 9 グループに分解。
