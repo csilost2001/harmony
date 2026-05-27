@@ -348,10 +348,11 @@ export class EditSessionService {
     // 検証する。`store.save()` を呼ぶと saveHistory に記録され冪等に戻せないため、
     // 「保存成功扱いだが本体 file 未書込」になるケースを最終 reject 点として防ぐ。
     //
-    // generic-definition の resourceId は frontend で `${kind}/${name}` の `/` を `__` に
-    // 置換した encoded 形式で、create 時の `assertSafeName` は encoded 全体を検証するに
-    // 留まる (`data_contract__Order` のような偽 encoded もすり抜ける)。dispatcher 直前に
-    // decode 後の kind / name に `assertKind` / `assertSafeName` を適用する。
+    // Round 3 以降 WS handler (`wsHandlers/editSession.ts:assertResourceId`) と MCP
+    // handler (`handlers/editSession.ts:assertResourceIdForType`) が generic-definition の
+    // composite `${kind}__${name}` を decode して個別検証するようになったため、通常経路で
+    // ここに無効な値は届かない。本 service 直呼びテスト / 将来の経路追加に対する
+    // defense-in-depth として `assertKind` / `assertSafeName` を二重適用する。
     const sessionPreValidate = store.getById(editSessionId);
     if (sessionPreValidate && sessionPreValidate.resourceType === "generic-definition") {
       const resId = sessionPreValidate.resourceId;

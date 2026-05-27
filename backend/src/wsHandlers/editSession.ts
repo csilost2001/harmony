@@ -8,7 +8,10 @@
  *
  * spec docs/spec/edit-session-protocol.md §14 / §15.1 に準拠。
  * 各 handler は wsBridge の公開 API (editSession*) を adapter として呼び出す。
- * 機能不変 — case body は一字一句変更なし。
+ *
+ * #1368 Round 3: resourceType 別の resourceId 検証 (`assertResourceId`) を新設し、
+ * `generic-definition` の `${kind}__${name}` composite (最大 130 chars) を decode して
+ * 個別検証する分岐を追加。それ以外の resource type は従来通り `assertSafeName` 適用。
  */
 import type { DraftResourceType as EditSessionResourceType } from "../editSessionStore.js";
 import { assertSafeName, assertHistoryId, assertKind } from "../security/idValidator.js";

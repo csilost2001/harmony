@@ -18,6 +18,7 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { wsBridge } from "../wsBridge.js";
 import { assertEntityIdMcp, type ToolHandler } from "../mcpHelpers.js";
+import { isValidKind, isValidSafeName } from "../security/idValidator.js";
 
 /**
  * #1332 Codex 10 巡目 M2: editSession__create / editSession__list の resourceId に
@@ -46,10 +47,40 @@ const SCREEN_DERIVED_RESOURCE_TYPES = new Set(["screen-item", "puck-data"]);
 /**
  * resourceType に応じた resourceId 検証。
  * 検証失敗時は McpError を throw する (caller は catch しない設計)。
+ *
+ * #1368 Codex Round 4 Should-fix: `generic-definition` は WS handler
+ * (`backend/src/wsHandlers/editSession.ts:assertResourceId`) と同じ
+ * `${kind}__${name}` composite 形式の decoded 検証を行い、AI/MCP 経路と
+ * browser/WS 経路で validation 契約を揃える。
  */
 function assertResourceIdForType(resourceType: string, resourceId: string): void {
   if (TOP_LEVEL_RESOURCE_TYPES.has(resourceType) || SCREEN_DERIVED_RESOURCE_TYPES.has(resourceType)) {
     assertEntityIdMcp(resourceId, "resourceId");
+    return;
+  }
+  if (resourceType === "generic-definition") {
+    // composite `${kind}__${name}` を decode して個別検証 (WS handler と同一契約)
+    const sep = resourceId.indexOf("__");
+    if (sep < 0) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `generic-definition resourceId は '\${kind}__\${name}' 形式である必要があります (got: ${JSON.stringify(resourceId)})`,
+      );
+    }
+    const decodedKind = resourceId.slice(0, sep);
+    const decodedName = resourceId.slice(sep + 2);
+    if (!isValidKind(decodedKind)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `generic-definition resourceId の decoded kind が不正です: must match [a-z][a-z0-9:-]{0,63} (got: ${JSON.stringify(decodedKind)})`,
+      );
+    }
+    if (!isValidSafeName(decodedName)) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `generic-definition resourceId の decoded name が不正です: must match [A-Za-z0-9_-]{1,64} (got: ${JSON.stringify(decodedName)})`,
+      );
+    }
     return;
   }
   // singleton / 別管理 resource type は空文字のみ拒否
