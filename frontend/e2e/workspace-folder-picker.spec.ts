@@ -13,6 +13,7 @@ import { test, expect, type Page } from "@playwright/test";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { folderPickerFixtureRoot } from "./helpers/workspaceFixture.ts";
+import { sendBrowserRequest } from "./helpers/realWorkspace.ts";
 
 // #1359: worker prefix 付き fixture root (`.tmp/e2e-folder-picker/w<idx>-root/`)。
 // workers > 1 で複数 worker が同 path に同時 write した時の race を回避する。
@@ -20,6 +21,24 @@ const FIXTURE_ROOT = folderPickerFixtureRoot();
 const FIXTURE_WS_A = path.join(FIXTURE_ROOT, "ws-a");
 const FIXTURE_WS_B = path.join(FIXTURE_ROOT, "ws-b");
 const FIXTURE_NOT_WS = path.join(FIXTURE_ROOT, "not-a-workspace");
+
+// #1342 Proposal C: backend が `HARMONY_ALLOWED_BROWSE_ROOTS` で `.tmp/*` を許可
+// していないと folder-picker browseFs が「アクセスが許可されていないパス」で reject
+// される。Playwright が backend を起動する場合は config の env で渡しているが、
+// 既存 backend を `reuseExistingServer: true` で reuse する場合は env が引き継がれず
+// 引っかかる。test 開始前に probe して、許可されていない環境では graceful に skip する。
+async function probeFolderPickerAllowed(): Promise<boolean> {
+  try {
+    await sendBrowserRequest("workspace.browseFs", { path: FIXTURE_ROOT });
+    return true;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // permission code または "アクセスが許可されていない" メッセージで判定
+    if (/permission|アクセスが許可されていない/.test(msg)) return false;
+    // フォルダ未作成 (ensureFixture 前の probe) は許可有り扱い (上位 testで再現される)
+    return true;
+  }
+}
 
 async function ensureFixture(): Promise<void> {
   await fs.mkdir(FIXTURE_WS_A, { recursive: true });
@@ -63,7 +82,23 @@ async function openFolderPicker(page: Page, initialPath: string): Promise<void> 
 }
 
 test.describe("AddWorkspaceDialog — BackendFolderPicker (#1056)", { tag: ["@regression"] }, () => {
+  let folderPickerAllowed = false;
+
+  test.beforeAll(async () => {
+    await ensureFixture();
+    folderPickerAllowed = await probeFolderPickerAllowed();
+  });
+
   test.beforeEach(async () => {
+    // #1342 Proposal C: backend が HARMONY_ALLOWED_BROWSE_ROOTS で .tmp/* を許可
+    // していない場合 (= 既存 backend reuse で env 不足) は graceful skip。
+    // Playwright が backend を起動する経路では env で渡しているため通過する。
+    test.skip(
+      !folderPickerAllowed,
+      "backend `HARMONY_ALLOWED_BROWSE_ROOTS` に .tmp/* が含まれていません。" +
+      "Playwright config の webServer env を反映するため backend を再起動するか、" +
+      "手動起動時は `HARMONY_ALLOWED_BROWSE_ROOTS=/workspaces/harmony:/tmp` を付けて起動してください。",
+    );
     await ensureFixture();
   });
 

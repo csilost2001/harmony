@@ -50,7 +50,13 @@ export default defineConfig({
       timeout: 30000,
     },
     {
-      command: "cd ../backend && HARMONY_E2E_NO_AUTO_ACTIVATE=1 npm run dev",
+      // #1342 Proposal C: workspace-folder-picker.spec.ts は backend `fsBrowse` の
+      // allowlist (HARMONY_ALLOWED_BROWSE_ROOTS) に test fixture root (.tmp/*) が
+      // 含まれていないと「アクセスが許可されていないパスです」で fail する。
+      // 既定値 (os.homedir() のみ) を repo root + tmp に拡張する env を渡す。
+      // 既存 backend reuse 時は env が引き継がれないため、test 側に probe による
+      // skipIf gate を用意 (workspace-folder-picker.spec.ts の beforeEach 参照)。
+      command: "cd ../backend && HARMONY_E2E_NO_AUTO_ACTIVATE=1 HARMONY_ALLOWED_BROWSE_ROOTS=/workspaces/harmony:/tmp npm run dev",
       url: "http://localhost:5179",
       reuseExistingServer: true, // 既存 backend があれば再利用 (常駐 backend に接続)
       timeout: 30000,
@@ -59,7 +65,10 @@ export default defineConfig({
       // 未接続の場合は test.skip() で graceful skip される
       // #959: HARMONY_E2E_NO_AUTO_ACTIVATE=1 で autoActivateOnStartup を skip し
       //       recent.lastActiveId の暗黙引き継ぎを断つ (spec が明示的 workspace.open で制御)
-      env: { HARMONY_E2E_NO_AUTO_ACTIVATE: "1" },
+      env: {
+        HARMONY_E2E_NO_AUTO_ACTIVATE: "1",
+        HARMONY_ALLOWED_BROWSE_ROOTS: "/workspaces/harmony:/tmp",
+      },
     },
   ],
 });
