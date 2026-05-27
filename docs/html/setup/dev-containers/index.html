@@ -122,7 +122,7 @@
 <li>ポップアップを見逃したら <code>Ctrl+Shift+P</code> → <code>Dev Containers: Reopen in Container</code></li>
 </ul>
 </li>
-<li>初回は image pull (~1.3 GB、Phase 5 #1120 以降は AI CLI 3 個を base image 同梱、#1122 で docker CLI は host 実行運用に切替て除外) + npm install で <strong>数分〜10 分</strong> (playwright は base image 同梱、features install は Phase 5 で廃止)</li>
+<li>初回は image pull (~1.3 GB、Phase 5 #1120 以降は <strong>base image に gh / claude-code / copilot-cli + playwright chromium を inline</strong>、overlay には codex CLI のみ、#1122 で docker CLI は host 実行運用に切替て除外) + npm install (root, workspaces) で <strong>数分〜10 分</strong> (features install は Phase 5 で廃止)</li>
 <li>完了後、VSCode の左下が <code>Dev Container: Harmony Dev</code> 表示になる</li>
 </ol>
 <h3 id="step-m-5-動作確認">Step M-5: 動作確認</h3>
@@ -374,7 +374,7 @@ Phase 4 以前は公式 feature <code>ghcr.io/anthropics/devcontainer-features/c
 <li>WSL2 host の <code>~/.claude/</code> とは独立 (memory / sessions は WSL2 native claude と container claude で別々に育つ。公式が明確に「machine-local、cross-machine 共有非対応」と宣言: <a href="https://code.claude.com/docs/en/memory">Memory docs</a>)</li>
 </ul>
 <h3 id="codex-cli">Codex CLI</h3>
-<p>公式 Dev Container Feature が存在しないため、引き続き <code>postCreateCommand</code> で <code>npm install -g @openai/codex</code> を実施。auth は <code>~/.codex/auth.json</code> (= host bind mount target <code>~/.agent-containers/&#x3C;project>/.codex/auth.json</code>) に格納されるため、container 内で 1 度 <code>codex login</code> するだけで rebuild 跨ぎで保持される。codex は <code>~/.codex.json</code> のような <code>$HOME</code> 直下のファイルを持たないので claude のような <code>.config.json</code> workaround は不要。</p>
+<p>公式 Dev Container Feature が存在しないため、<strong>overlay Dockerfile (<code>.devcontainer/Dockerfile</code>) で <code>npm install -g @openai/codex@&#x3C;version></code> を実施</strong>。version bump はこのファイルを編集 + Rebuild Container で反映する (overlay は base 比で軽量・頻繁更新に最適)。auth は <code>~/.codex/auth.json</code> (= host bind mount target <code>~/.agent-containers/&#x3C;project>/.codex/auth.json</code>) に格納されるため、container 内で 1 度 <code>codex login</code> するだけで rebuild 跨ぎで保持される。codex は <code>~/.codex.json</code> のような <code>$HOME</code> 直下のファイルを持たないので claude のような <code>.config.json</code> workaround は不要。</p>
 <h3 id="認証フロー全体図">認証フロー全体図</h3>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>host (WSL2)                              container (Dev Container)</span></span>
 <span class="line"><span>─────────────────────────                ──────────────────────────</span></span>
@@ -449,7 +449,13 @@ Phase 4 以前は公式 feature <code>ghcr.io/anthropics/devcontainer-features/c
 
 
 <table><thead><tr><th>要素</th><th>役割</th><th>Harmony での設定</th></tr></thead><tbody><tr><td><code>build</code></td><td>overlay Dockerfile を build</td><td><code>.devcontainer/Dockerfile</code> (FROM = ghcr.io の base image)</td></tr><tr><td>base image</td><td>稀更新の重い install を内包</td><td><code>ghcr.io/csilost2001/harmony-devcontainer-base:&#x3C;version></code> (#1118 Phase 2、#1120 Phase 5 で features inline 追加)</td></tr><tr><td><code>features</code></td><td>(Phase 5 で廃止) ツール後付け (宣言的)。Dev Containers の features は image build 後に apply されるため ghcr に含まれず cold start オーバーヘッド (~50-60 秒 on Note PC) を発生させていたため base image inline に移行。さらに features は user RUN の下流に置かれる仕様のため overlay 変更 (codex 月 bump 等) で全 feature が再 install される構造的不利あり (#1122 で計測確認、rebuild +35-40 秒)</td><td>(使用しない)</td></tr><tr><td><code>postCreateCommand</code></td><td>プロジェクト固有 setup</td><td><code>npm install</code> (root 1 発で shared / frontend / backend を npm workspaces で一括解決) + <code>.claude/.config.json</code> 初期化のみ (軽量)</td></tr></tbody></table>
-<p>「重い + 共通」→ base image (ghcr、Phase 5 以降は CLI 系も含む) / 「source 依存」→ postCreateCommand、という指針。Phase 4 まで使用していた features 機構は ghcr publish に含まれない制約で廃止 (Phase 5)。docker CLI は #1122 で構成比較した結果、Maintainer 専用機能 (publish-dev-image、年数回) のためだけに常時コストを払う設計を見直し、host 実行運用に切替て base image から除外 (P5b 採用)。</p>
+<p>配置指針:</p>
+<ul>
+<li><strong>base image</strong> (ghcr、稀更新): playwright chromium / gh / claude-code / copilot-cli (Phase 5 以降の CLI inline)</li>
+<li><strong>overlay Dockerfile</strong> (<code>.devcontainer/Dockerfile</code>、頻繁更新): codex CLI (月 bump 想定、base 再 build 回避目的で分離)</li>
+<li><strong>postCreateCommand</strong> (source 依存): root <code>npm install</code> (npm workspaces) + <code>.claude/.config.json</code> 初期化</li>
+</ul>
+<p>Phase 4 まで使用していた features 機構は ghcr publish に含まれない制約で廃止 (Phase 5)。docker CLI は #1122 で構成比較した結果、Maintainer 専用機能 (publish-dev-image、年数回) のためだけに常時コストを払う設計を見直し、host 実行運用に切替て base image から除外 (P5b 採用)。</p>
 <p>Phase 0 (postCreate やめて Dockerfile 化) で warm rebuild 56→15 秒 (Ryzen) / 94→21 秒 (Note PC)、Phase 1 (base + overlay 階層化) で codex 更新時の base 再 build 回避、Phase 2 (ghcr 配布) で新規開発者の cold start を大幅短縮 (Playwright DL 不要)。</p>
 <p>詳細: ISSUE <a href="https://github.com/csilost2001/harmony/issues/1118">#1118</a> / <a href="../../setup/distribution-roadmap/"><code>distribution-roadmap.md</code></a>。</p>
 <h2 id="maintainer-base-image-の更新と-publish-1118-phase-2">Maintainer: base image の更新と publish (#1118 Phase 2)</h2>

@@ -144,7 +144,7 @@ VSCode で:
 2. 右下に「Folder contains a Dev Container configuration file. Reopen folder to develop in a container.」のポップアップ
 3. **「Reopen in Container」** をクリック
    - ポップアップを見逃したら `Ctrl+Shift+P` → `Dev Containers: Reopen in Container`
-4. 初回は image pull (~1.3 GB、Phase 5 #1120 以降は AI CLI 3 個を base image 同梱、#1122 で docker CLI は host 実行運用に切替て除外) + npm install で **数分〜10 分** (playwright は base image 同梱、features install は Phase 5 で廃止)
+4. 初回は image pull (~1.3 GB、Phase 5 #1120 以降は **base image に gh / claude-code / copilot-cli + playwright chromium を inline**、overlay には codex CLI のみ、#1122 で docker CLI は host 実行運用に切替て除外) + npm install (root, workspaces) で **数分〜10 分** (features install は Phase 5 で廃止)
 5. 完了後、VSCode の左下が `Dev Container: Harmony Dev` 表示になる
 
 ### Step M-5: 動作確認
@@ -364,7 +364,7 @@ docker run --rm -v harmony-state:/src:ro  -v ~/.agent-containers/harmony/.harmon
 
 ### Codex CLI
 
-公式 Dev Container Feature が存在しないため、引き続き `postCreateCommand` で `npm install -g @openai/codex` を実施。auth は `~/.codex/auth.json` (= host bind mount target `~/.agent-containers/<project>/.codex/auth.json`) に格納されるため、container 内で 1 度 `codex login` するだけで rebuild 跨ぎで保持される。codex は `~/.codex.json` のような `$HOME` 直下のファイルを持たないので claude のような `.config.json` workaround は不要。
+公式 Dev Container Feature が存在しないため、**overlay Dockerfile (`.devcontainer/Dockerfile`) で `npm install -g @openai/codex@<version>` を実施**。version bump はこのファイルを編集 + Rebuild Container で反映する (overlay は base 比で軽量・頻繁更新に最適)。auth は `~/.codex/auth.json` (= host bind mount target `~/.agent-containers/<project>/.codex/auth.json`) に格納されるため、container 内で 1 度 `codex login` するだけで rebuild 跨ぎで保持される。codex は `~/.codex.json` のような `$HOME` 直下のファイルを持たないので claude のような `.config.json` workaround は不要。
 
 ### 認証フロー全体図
 
@@ -431,7 +431,12 @@ container 起動 → onCreate → postCreate (npm install + .config.json)
 | `features` | (Phase 5 で廃止) ツール後付け (宣言的)。Dev Containers の features は image build 後に apply されるため ghcr に含まれず cold start オーバーヘッド (~50-60 秒 on Note PC) を発生させていたため base image inline に移行。さらに features は user RUN の下流に置かれる仕様のため overlay 変更 (codex 月 bump 等) で全 feature が再 install される構造的不利あり (#1122 で計測確認、rebuild +35-40 秒) | (使用しない) |
 | `postCreateCommand` | プロジェクト固有 setup | `npm install` (root 1 発で shared / frontend / backend を npm workspaces で一括解決) + `.claude/.config.json` 初期化のみ (軽量) |
 
-「重い + 共通」→ base image (ghcr、Phase 5 以降は CLI 系も含む) / 「source 依存」→ postCreateCommand、という指針。Phase 4 まで使用していた features 機構は ghcr publish に含まれない制約で廃止 (Phase 5)。docker CLI は #1122 で構成比較した結果、Maintainer 専用機能 (publish-dev-image、年数回) のためだけに常時コストを払う設計を見直し、host 実行運用に切替て base image から除外 (P5b 採用)。
+配置指針:
+- **base image** (ghcr、稀更新): playwright chromium / gh / claude-code / copilot-cli (Phase 5 以降の CLI inline)
+- **overlay Dockerfile** (`.devcontainer/Dockerfile`、頻繁更新): codex CLI (月 bump 想定、base 再 build 回避目的で分離)
+- **postCreateCommand** (source 依存): root `npm install` (npm workspaces) + `.claude/.config.json` 初期化
+
+Phase 4 まで使用していた features 機構は ghcr publish に含まれない制約で廃止 (Phase 5)。docker CLI は #1122 で構成比較した結果、Maintainer 専用機能 (publish-dev-image、年数回) のためだけに常時コストを払う設計を見直し、host 実行運用に切替て base image から除外 (P5b 採用)。
 
 Phase 0 (postCreate やめて Dockerfile 化) で warm rebuild 56→15 秒 (Ryzen) / 94→21 秒 (Note PC)、Phase 1 (base + overlay 階層化) で codex 更新時の base 再 build 回避、Phase 2 (ghcr 配布) で新規開発者の cold start を大幅短縮 (Playwright DL 不要)。
 
