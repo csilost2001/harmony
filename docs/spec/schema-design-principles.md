@@ -205,6 +205,7 @@ enum 値の命名は**対象ドメインの慣習** に従う。schema 全体で
 
 - ID は **kebab-case + 階層化 (ハイフン区切り)** が基本
 - RFC #1284 / #1332: 全 top-level entity (ProcessFlow / Screen / Table / Sequence / View / ViewDefinition / PageLayout) の `id` は kebab-case `EntityId` に統一。不変識別子は別フィールド `meta.uuid: Uuid` (UUID v4) に保持し、外部システムからの一意参照は uuid 側を使用する
+- 派生決定 #1327: `harmony.json` の `entries.*[]` (`EntryBase`) は entity 本体の表示用 projection。**id のみ持ち、uuid は schema 上重複保持しない** (uuid の source of truth は entity 本体ファイルの `root.uuid` / `meta.uuid` 単独)。entry に uuid を持たせない理由は単一 source of truth 維持 / I-6 rename refactor で entry.uuid 不要 / frontend で entry.uuid 参照 0 件 / AI 中心運用での冗長性回避。詳細根拠と将来再検討条件は [`schema-v3-design.md`](schema-v3-design.md) §2.1 / `schemas/v3/harmony.v3.schema.json` の `EntryBase` description を参照
 - 数字部分は ゼロパディング (`001`, `02`) を推奨 (ソート時の自然順を維持)
 - Step ID の階層 (`step-13-01` / `step-13b-a-01`) は parent step の ID に suffix を付ける形を推奨
 - schema 上は `type: "string"` のままで、**pattern は強制しない** (実装制約・参照整合性バリデータで担保)
@@ -213,6 +214,7 @@ enum 値の命名は**対象ドメインの慣習** に従う。schema 全体で
 
 - 「全 ID を UUID に統一」: 人間可読性が失われ、レビュー時の認知負荷が大きい
 - 「step-id に pattern 制約を付ける」: 既存 sample が壊れる可能性、運用 convention で十分
+- 「entry レベル (`entries.*[]`) にも uuid required を追加」(#1327 で検討): entity 本体との二重定義 drift リスク / AI のコピペミス源 / I-6 rename refactor の現実装で不要 / 一覧 UI で参照 0 件 — メリットが冗長性コストを上回らないため不採用
 
 ### 2.5 Discriminator フィールド名 (`type` vs `kind`)
 
