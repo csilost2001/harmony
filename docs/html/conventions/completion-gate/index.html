@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>completion gate</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.DpmzT9nP.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> 規約カタログ </div> <ul class="space-y-0.5"> <li> <a href="../../conventions/expressions/" class="sidebar-link"> 式言語規約 (@conv/@env/@secret) </a> </li><li> <a href="../../conventions/product-scope/" class="sidebar-link"> プロダクトスコープ </a> </li><li> <a href="../../conventions/validation-rules/" class="sidebar-link"> バリデーション規約 </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="完了判定--merge-gate-規約">完了判定 / merge gate 規約</h1>
+<p>#1299 Round 12-14 で発生した「full regression に 8 fail 残ったまま merge-ready 判定」
+「単一 spec の strict-mode 違反を isolation pass = flake と誤判定」事故を受け、
+private memory ベースの判定ルールを repo tracked な規約に昇格したもの (#1346 case A/B)。</p>
+<p>全 AI orchestrator (Claude Code / Codex / Antigravity) は本規約に従う。</p>
+<h2 id="1-原則--full-suite-に-failure-が残ったまま完了報告しない">1. 原則 — 「full suite に failure が残ったまま完了報告しない」</h2>
+<p>PR を merge 可と判定する前に、以下のいずれかを満たさなければならない:</p>
+<ul>
+<li>(a) <code>npm run test:e2e:regression</code> が <strong>全 pass</strong></li>
+<li>(b) 残 fail が <code>scripts/verify/regression-trace-check.mjs</code> で <strong>全件 trace 済または flake 確認済</strong> と判定される (exit 0)</li>
+</ul>
+<p>(a)(b) のどちらでもないまま「merge-ready」と申告するのは禁止。第 3 の選択肢
+(「次セッションで対応」「memory にメモ」「PR description に将来課題として記録」等)
+は鉄則 0 違反であり、本規約でも明示的に禁止する。</p>
+<h2 id="2-trace-済の定義">2. trace 済の定義</h2>
+<p>failed spec を「trace 済」と判定するには、以下のいずれか:</p>
+<ul>
+<li><strong>OPEN ISSUE が title または body に spec path (or basename) を含んでいる</strong>
+<ul>
+<li>例: ISSUE #1342 が <code>e2e/presence-list.spec.ts:110</code> の trace を引き受けている</li>
+<li>機械検証は <code>gh issue list --state open --search "&#x3C;spec-basename>"</code> + client side で
+title/body に spec path を実際含むものへ絞り込む (search index の noisy match を除去)</li>
+</ul>
+</li>
+<li><strong>本 PR で実装される fix で同時に該当 fail が解消される</strong> (= 本 PR description に
+<code>Closes #N</code> で trace されている)</li>
+</ul>
+<p>CLOSED ISSUE は trace と認めない。<strong>鉄則 0 違反防止</strong> で、closed ISSUE への
+申し送りコメントは誰も読まないため (memory <code>feedback_closed_issue_note_not_trace.md</code>)。</p>
+<h2 id="3-flake-判定の厳格化--isolation-3x-pass-証跡必須-1346-case-c">3. flake 判定の厳格化 — isolation 3x pass 証跡必須 (#1346 case C)</h2>
+<p>「isolation pass = flake」と判定するには、以下を満たすこと:</p>
+<ol>
+<li>spec を <strong>isolation で 3 回連続 pass</strong> させた証跡 JSON が
+<code>frontend/test-results/isolation-&#x3C;sanitized>.json</code> に存在</li>
+<li>証跡の <code>runs</code> 配列の <strong>末尾 3 件</strong> が <code>{ "status": "passed", ... }</code> である</li>
+<li>その間に locator が <strong>strict-mode violation</strong> を起こす可能性が無いことを human
+または別 AI が確認済 (本規約 §4 参照)</li>
+</ol>
+<p><code>runs</code> は累積記録 (前段に failed run があっても末尾 3 連続 pass で確定 OK)。証跡は
+<code>--auto-isolation-rerun</code> flag で <code>regression-trace-check.mjs</code> に自動生成させても良い。</p>
+<h3 id="strict-mode-違反は-flake-扱い禁止">Strict-mode 違反は flake 扱い禁止</h3>
+<p>以下に該当する spec は、<strong>isolation で何度 pass しても flake と判定しない</strong>:</p>
+<ul>
+<li><code>getByText</code> / <code>getByRole</code> / <code>getByLabel</code> 等で <strong>同名要素が複数描画され得る画面</strong> を
+scope 指定なしで叩いている</li>
+<li><code>.first()</code> / <code>.last()</code> / <code>.locator(...).filter(...)</code> / scope 限定の <code>getByTestId</code>
+のいずれも付与されていない</li>
+</ul>
+<p>このような spec は <strong>isolation pass / full-run fail のばらつき</strong> が「先行 test の状態
+残留 + 並列実行 race」ではなく <strong>locator 設計バグ</strong> に由来する可能性が高く、
+isolation pass を flake 根拠にすると次の round で必ず再現する (Round 12 の
+<code>presence-list:110</code> 事故そのもの)。<code>.first()</code> 等の付与または scope 修正を行い、
+別 ISSUE で trace する。</p>
+<p>参考 memory: <code>feedback_e2e_flake_isolation_vs_full_run.md</code> の補強事項。</p>
+<h2 id="4-orchestrator-の機械チェック手順">4. orchestrator の機械チェック手順</h2>
+<p>PR を merge 可と判定する前に、orchestrator が必ず実行:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 推奨: --auto-run (npm banner を介さず playwright を直接 spawn するため shell redirect 不要)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">node</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/verify/regression-trace-check.mjs</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --auto-run</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">#   flake 主張ありの場合:</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">node</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/verify/regression-trace-check.mjs</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --auto-run</span><span style="color:#005CC5;--shiki-dark:#F47067"> \</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">  --flake</span><span style="color:#032F62;--shiki-dark:#96D0FF"> e2e/folder-picker.spec.ts</span><span style="color:#005CC5;--shiki-dark:#F47067"> \</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">  --auto-isolation-rerun</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 別法: 既に regression を走らせて results.json を持っている場合</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">#   ※ `npm run` は banner を stdout に出す。shell redirect で file 化する時は `--silent` 必須</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --silent</span><span style="color:#032F62;--shiki-dark:#96D0FF"> test:e2e:regression:json</span><span style="color:#D73A49;--shiki-dark:#F47067"> ></span><span style="color:#032F62;--shiki-dark:#96D0FF"> .tmp/regression-results.json</span><span style="color:#D73A49;--shiki-dark:#F47067"> ||</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> true</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">node</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/verify/regression-trace-check.mjs</span><span style="color:#032F62;--shiki-dark:#96D0FF"> .tmp/regression-results.json</span></span></code></pre>
+<ul>
+<li>exit 0 → 全 fail trace 済 / flake 確認済 → merge 可</li>
+<li>exit 1 → trace なし fail 残存 → <strong>merge 不可</strong>。trace ISSUE を起票するか、本 PR で fail を解消する</li>
+<li>exit 2 → 入力 / 設定エラー → 原因究明して再走、未解消で merge 不可</li>
+</ul>
+<h2 id="5-private-memory-との関係">5. private memory との関係</h2>
+<p>本規約は以下の 3 件の private memory を repo tracked 化したもの:</p>
+<ul>
+<li><code>feedback_orchestrator_completion_gate.md</code> (HEAD 実走 / 自己申告で完了判定しない)</li>
+<li><code>feedback_completion_blocker_weak_assertions.md</code> (skip 追加 / 弱 assertion を解消と数えない)</li>
+<li><code>feedback_derived_issue_state_cross_check.md</code> (派生 ISSUE state の機械照合)</li>
+</ul>
+<p>private memory は per-user / per-machine のため、Codex / Antigravity / 他セッションから
+強制不能。本規約 + <code>scripts/verify/regression-trace-check.mjs</code> が共通の機械化された
+gate として機能する。</p>
+<h2 id="6-関連">6. 関連</h2>
+<ul>
+<li>親 ISSUE: #1346 (本規約の起源)</li>
+<li>元 review: <a href="https://github.com/csilost2001/harmony/issues/1299#issuecomment-4540425126">https://github.com/csilost2001/harmony/issues/1299#issuecomment-4540425126</a></li>
+<li>script: <code>scripts/verify/regression-trace-check.mjs</code></li>
+<li>script test: <code>scripts/verify/test.mjs</code></li>
+<li>AGENTS.md §「regression suite ↔ trace ISSUE 機械照合 gate (#1346)」</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>
