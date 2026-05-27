@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../schemas/v3/screen.v3.schema.json",
-  "id": "d06f00d0-0002-4000-8000-000000000022",
-  "name": "お問い合わせフォーム (Bootstrap 版)",
+  "id": "scr-contact-form",
+  "name": "お問い合わせフォーム",
   "createdAt": "2026-05-05T00:00:00.000Z",
   "updatedAt": "2026-05-05T00:00:00.000Z",
   "kind": "form",
@@ -9,7 +9,7 @@
   "items": [],
   "design": {
     "editorKind": "puck",
-    "cssFramework": "bootstrap",
+    "cssFramework": "tailwind",
     "puckDataRef": "puck-data.json"
   }
 }

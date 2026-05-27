@@ -2,7 +2,8 @@
   "$schema": "../../schemas/v3/harmony.v3.schema.json",
   "schemaVersion": "v3",
   "meta": {
-    "id": "d06f00d0-0002-4000-8000-000000000002",
+    "id": "dogfood-puck-bootstrap",
+    "uuid": "d06f00d0-0002-4000-8000-000000000002",
     "name": "Puck × Bootstrap dogfood サンプル (2026-05-05)",
     "description": "#806 子 6 dogfood。Puck エディタ + Bootstrap CSS の組み合わせを検証するサンプルプロジェクト。Tailwind 版と同じお問い合わせフォーム画面を Bootstrap utility class で再現し、cssFramework 非依存の Puck Data (semantic props) から異なる class が生成されることを実証する。",
     "createdAt": "2026-05-05T00:00:00.000Z",
@@ -21,7 +22,7 @@
   "entities": {
     "screens": [
       {
-        "id": "d06f00d0-0002-4000-8000-000000000022",
+        "id": "scr-contact-form",
         "no": 1,
         "name": "お問い合わせフォーム (Bootstrap 版)",
         "kind": "form",
