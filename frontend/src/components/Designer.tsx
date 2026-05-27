@@ -808,87 +808,106 @@ export function Designer({
   // ---------------------------------------------------------------------------
   const commonDialogs = (
     <DesignerDialogs
-      mode={mode}
-      isSaving={isSaving}
-      lockedByOther={lockedByOther}
-      onStartEditing={handleStartEditing}
-      onSave={handleSave}
-      onOpenDiscard={() => setShowDiscardDialog(true)}
-      onOpenForceRelease={() => setShowForceReleaseDialog(true)}
-      onForcedOutChoice={editActions.handleForcedOut}
-      onAfterForceUnlockChoice={editActions.handleAfterForceUnlock}
-      showResumeDialog={showResumeDialog}
-      onResumeContinue={handleResumeContinue}
-      onResumeDiscard={handleResumeDiscard}
-      onCancelResume={() => setShowResumeDialog(false)}
-      showDiscardDialog={showDiscardDialog}
-      onConfirmDiscard={handleDiscard}
-      onCancelDiscard={() => setShowDiscardDialog(false)}
-      showForceReleaseDialog={showForceReleaseDialog}
-      onConfirmForceRelease={handleForceRelease}
-      onCancelForceRelease={() => setShowForceReleaseDialog(false)}
-      showLegacyRescueDialog={showLegacyRescueDialog}
-      onLegacyRescueAdopt={handleLegacyRescueAdopt}
-      onLegacyRescueDiscard={handleLegacyRescueDiscard}
-      saveConflict={saveConflict}
-      onSaveConflictOverwrite={async () => {
-        try {
-          await onSaveConflictOverwrite();
-          await commitAfterSave();
-        } catch (e) {
-          console.error("[Designer] save overwrite failed:", e);
-        }
+      editMode={{
+        mode,
+        isSaving,
+        lockedByOther,
+        onStartEditing: handleStartEditing,
+        onSave: handleSave,
+        onOpenDiscard: () => setShowDiscardDialog(true),
+        onOpenForceRelease: () => setShowForceReleaseDialog(true),
+        onForcedOutChoice: editActions.handleForcedOut,
+        onAfterForceUnlockChoice: editActions.handleAfterForceUnlock,
       }}
-      onSaveConflictCancel={onSaveConflictCancel}
-      serverChanged={serverChanged}
-      onServerChangeReload={handleServerChangeReload}
-      onServerChangeDismiss={() => setServerChanged(false)}
-      showAiGenerateDialog={showAiGenerateDialog}
-      aiDialogInitialPayload={aiDialogInitialPayload}
-      editorKind={editorKind}
-      cssFramework={cssFramework}
-      screenName={screenName}
-      onApplyAiGenerated={applyGeneratedDesignPayload}
-      onCloseAiGenerate={() => setShowAiGenerateDialog(false)}
-      showRenameDialog={showRenameDialog}
-      screenId={screenId}
-      allScreenIds={allScreenIds}
-      fetchExistingScreenIds={async () => {
-        const project = await loadProject();
-        return (project.screens ?? []).map((s) => s.id);
+      resume={{
+        show: showResumeDialog,
+        onContinue: handleResumeContinue,
+        onDiscard: handleResumeDiscard,
+        onCancel: () => setShowResumeDialog(false),
       }}
-      onCloseRename={() => setShowRenameDialog(false)}
-      onRenameSuccess={(newId, operationId, extra) => {
-        setShowRenameDialog(false);
-        handleRenameSuccess({
-          entityType: "screen",
-          oldId: screenId,
-          newId,
-          label: screenName ?? newId,
-          navigate,
-          wsPath,
-          wsId,
-        });
-        setRenameUndoToast({
-          operationId, oldId: screenId, newId,
-          ttlMs: extra?.ttlMs,
-        });
+      discard={{
+        show: showDiscardDialog,
+        onConfirm: handleDiscard,
+        onCancel: () => setShowDiscardDialog(false),
       }}
-      renameUndoToast={renameUndoToast}
-      onRenameUndo={() => {
-        if (!renameUndoToast) return;
-        handleRenameSuccess({
-          entityType: "screen",
-          oldId: renameUndoToast.newId,
-          newId: renameUndoToast.oldId,
-          label: screenName ?? renameUndoToast.oldId,
-          navigate,
-          wsPath,
-          wsId,
-        });
-        setRenameUndoToast(null);
+      forceRelease={{
+        show: showForceReleaseDialog,
+        onConfirm: handleForceRelease,
+        onCancel: () => setShowForceReleaseDialog(false),
       }}
-      onRenameUndoDismiss={() => setRenameUndoToast(null)}
+      legacyRescue={{
+        show: showLegacyRescueDialog,
+        onAdopt: handleLegacyRescueAdopt,
+        onDiscard: handleLegacyRescueDiscard,
+      }}
+      saveConflict={{
+        conflict: saveConflict,
+        onOverwrite: async () => {
+          try {
+            await onSaveConflictOverwrite();
+            await commitAfterSave();
+          } catch (e) {
+            console.error("[Designer] save overwrite failed:", e);
+          }
+        },
+        onCancel: onSaveConflictCancel,
+      }}
+      serverChange={{
+        changed: serverChanged,
+        onReload: handleServerChangeReload,
+        onDismiss: () => setServerChanged(false),
+      }}
+      ai={{
+        show: showAiGenerateDialog,
+        initialPayload: aiDialogInitialPayload,
+        editorKind,
+        cssFramework,
+        screenName,
+        onApply: applyGeneratedDesignPayload,
+        onClose: () => setShowAiGenerateDialog(false),
+      }}
+      rename={{
+        show: showRenameDialog,
+        screenId,
+        screenName,
+        allScreenIds,
+        fetchExistingScreenIds: async () => {
+          const project = await loadProject();
+          return (project.screens ?? []).map((s) => s.id);
+        },
+        onClose: () => setShowRenameDialog(false),
+        onSuccess: (newId, operationId, extra) => {
+          setShowRenameDialog(false);
+          handleRenameSuccess({
+            entityType: "screen",
+            oldId: screenId,
+            newId,
+            label: screenName ?? newId,
+            navigate,
+            wsPath,
+            wsId,
+          });
+          setRenameUndoToast({
+            operationId, oldId: screenId, newId,
+            ttlMs: extra?.ttlMs,
+          });
+        },
+        undoToast: renameUndoToast,
+        onUndo: () => {
+          if (!renameUndoToast) return;
+          handleRenameSuccess({
+            entityType: "screen",
+            oldId: renameUndoToast.newId,
+            newId: renameUndoToast.oldId,
+            label: screenName ?? renameUndoToast.oldId,
+            navigate,
+            wsPath,
+            wsId,
+          });
+          setRenameUndoToast(null);
+        },
+        onUndoDismiss: () => setRenameUndoToast(null),
+      }}
     />
   );
 

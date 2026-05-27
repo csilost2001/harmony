@@ -665,7 +665,7 @@ function FlowEditorInner() {
         id: dup.id,
         type: "screenNode" as const,
         position: dup.position,
-        data: dup as unknown as RFNode["data"],
+        data: { ...dup },
       }]);
     }
     setContextMenu(null);
