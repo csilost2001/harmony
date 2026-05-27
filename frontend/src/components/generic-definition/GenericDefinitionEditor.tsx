@@ -88,10 +88,15 @@ export function GenericDefinitionEditor() {
   const editSessionIdRef = useRef<string | null>(null);
   // どの resourceId に対して current editSessionIdRef が紐付くか追跡。
   const sessionResourceIdRef = useRef<string>("");
-  // 進行中の create を resourceId 付きで追跡 (Codex Round 3 Must-fix)。
-  // pending start 中の resource A → B 遷移時、後続 ensureEditSession(B) が
-  // A の pending を誤って再利用するのを防ぐ。
-  const startingRef = useRef<{ resourceId: string; promise: Promise<string | null> } | null>(null);
+  // 進行中の create を resourceId + generation 付きで追跡 (Codex Round 5 Must-fix)。
+  // generation は ensureEditSession 呼出ごとに +1 し、pending の drift check / discardEditSession
+  // の同 resource 再編集 race を解消する。
+  const startingRef = useRef<{
+    resourceId: string;
+    generation: number;
+    promise: Promise<string | null>;
+  } | null>(null);
+  const generationRef = useRef(0);
   // currentResourceIdRef: 最新 editSessionSafeResourceId を常に保持 (render phase で同期更新)。
   // create 中の Promise body は closure capture により stale な target を持つため、
   // drift check は ref 経由で最新値を参照する必要がある。
@@ -100,7 +105,7 @@ export function GenericDefinitionEditor() {
 
   // ensureEditSession: 現 resource に対する active session を返す。なければ create。
   // pending start の resourceId 一致時のみ再利用、不一致なら新規 create を並行起動
-  // (古い pending は自身の drift check で created session を即 discard する)。
+  // (古い pending は自身の generation drift check で created session を即 discard する)。
   const ensureEditSession = useCallback(async (): Promise<string | null> => {
     const target = currentResourceIdRef.current;
     if (!target) return null;
@@ -112,7 +117,9 @@ export function GenericDefinitionEditor() {
     if (startingRef.current && startingRef.current.resourceId === target) {
       return startingRef.current.promise;
     }
-    // 新規 create (mismatched pending slot は上書き、その pending は自身の drift check で cleanup)
+    // 新規 create — generation を進める (古い pending を superseded 化)
+    generationRef.current += 1;
+    const myGen = generationRef.current;
     const promise = (async (): Promise<string | null> => {
       let createdId: string | null = null;
       try {
@@ -126,10 +133,9 @@ export function GenericDefinitionEditor() {
         return null;
       }
       if (!createdId) return null;
-      // Drift check: create 完了時点で current resource が変わっていれば即 discard。
-      // unmount 後も currentResourceIdRef は最後の値を保持するため、unmount → 別 resource
-      // でない場合は drift しない (= 通常 unmount cleanup 経路は discardEditSession 経由)。
-      if (currentResourceIdRef.current !== target) {
+      // Drift / superseded check: generation が進んでいる、または target resource が変わっていれば
+      // この create は捨てる (subsequent create / discard が先行)。
+      if (generationRef.current !== myGen || currentResourceIdRef.current !== target) {
         mcpBridge.request("editSession.discard", { editSessionId: createdId }).catch((e) => {
           console.warn("[GenericDefinitionEditor] drift discard failed:", e);
         });
@@ -139,7 +145,7 @@ export function GenericDefinitionEditor() {
       sessionResourceIdRef.current = target;
       return createdId;
     })();
-    const slot = { resourceId: target, promise };
+    const slot = { resourceId: target, generation: myGen, promise };
     startingRef.current = slot;
     // Settle 後、slot がまだ自分なら clear (別 create が overwrite していなければ)
     void promise.finally(() => {
@@ -151,26 +157,38 @@ export function GenericDefinitionEditor() {
   }, []);
 
   // 破棄: target resource に紐付く active session を discard する。
-  // pending start (target と一致する場合のみ) を await した後、active session が target と
-  // 一致している場合だけ実際に discard する。これにより以下の race を防ぐ (Codex Round 4):
-  //   1) user 編集 A → P_A pending → user save → discardEditSession("A") 呼出 → await P_A
-  //   2) await 中に user が B へ navigate + 編集 → ensureEditSession(B) で P_B 起動
-  //   3) discardEditSession の await 完了時 editSessionIdRef は B_id を保持
-  //   4) target "A" !== sessionResourceIdRef "B" → skip (B session を誤って discard しない)
+  // Generation tracking で以下 race を防ぐ (Codex Round 4 / Round 5):
+  //   - Round 4: save 後 discard の await 中に B へ遷移 → B session を誤 discard
+  //   - Round 5-1: A → B → A 戻り時 古い P_A が active 採用され重複 session
+  //   - Round 5-2: save 後 discard の await 中に同 resource 再編集 → P_A reuse + discard で
+  //                user 編集が EditSession なしになる
+  //
+  // 戦略:
+  //   1. pending start が target に一致するなら detach (startingRef.current = null) + generation +1。
+  //      これで subsequent ensureEditSession は fresh な pending を起動する。
+  //   2. detach 済 pending を await (drift check で自動 discard される)。
+  //   3. await 後、generation が我々の myGen から動いていれば (= 別 create が起動済) skip。
+  //   4. active session が target と一致する場合のみ discard + generation +1。
   const discardEditSession = useCallback(async (targetResourceId: string): Promise<void> => {
     if (!targetResourceId) return;
-    // pending start を await (target 一致時のみ。別 resource の pending は detach 済 or
-    // 自身の drift check で cleanup されるため await しない)
+    let myGen: number;
     const pending = startingRef.current;
     if (pending && pending.resourceId === targetResourceId) {
-      try { await pending.promise; } catch { /* create failed = nothing to discard */ }
+      // detach + bump generation (pending の drift check で created session を自動 discard)
+      startingRef.current = null;
+      generationRef.current += 1;
+      myGen = generationRef.current;
+      try { await pending.promise; } catch { /* ignore */ }
+    } else {
+      myGen = generationRef.current;
     }
-    // Active session が target と一致する場合のみ discard
+    // await 中に新 create が起動済なら skip (subsequent edit のセッションを誤って消さない)
+    if (generationRef.current !== myGen) return;
     const id = editSessionIdRef.current;
-    if (!id) return;
-    if (sessionResourceIdRef.current !== targetResourceId) return;
+    if (!id || sessionResourceIdRef.current !== targetResourceId) return;
     editSessionIdRef.current = null;
     sessionResourceIdRef.current = "";
+    generationRef.current += 1; // discard 後に何らかの pending が残っていても superseded 化
     try {
       await mcpBridge.request("editSession.discard", { editSessionId: id });
     } catch (e) {
@@ -178,10 +196,9 @@ export function GenericDefinitionEditor() {
     }
   }, []);
 
-  // Resource 変更時の cleanup (Codex Round 3 Must-fix):
+  // Resource 変更時の cleanup:
   //   - 旧 resource の active session を discard
-  //   - 旧 resource の pending start を slot detach (= 自身の drift check で created session 廃棄)
-  //   - editSessionSafeResourceId === "" 遷移 (kind/name 未定義化) も同等に処理
+  //   - 旧 resource の pending start を slot detach + generation +1 (drift check で auto-cleanup)
   useEffect(() => {
     const target = editSessionSafeResourceId;
     if (editSessionIdRef.current && sessionResourceIdRef.current !== target) {
@@ -193,9 +210,8 @@ export function GenericDefinitionEditor() {
       });
     }
     if (startingRef.current && startingRef.current.resourceId !== target) {
-      // detach: 古い pending は currentResourceIdRef が変わっているため drift check で
-      // 自動 discard される。slot を空けて新 ensureEditSession が即起動できるようにする。
       startingRef.current = null;
+      generationRef.current += 1; // 古い pending を superseded 化
     }
   }, [editSessionSafeResourceId]);
 
