@@ -24,10 +24,10 @@ state.json から以下を取得:
 前回 wake で dispatch した axis Agent が完了して `findings.jsonl` に書き込んでいる可能性。差分を分類:
 
 ```bash
-node ai-skills/release-review/scripts/orchestrator.mjs aggregate \
-  --branch "${BRANCH}" \
-  --since-last-wake
+node ai-skills/release-review/scripts/orchestrator.mjs aggregate --branch "${BRANCH}"
 ```
+
+aggregate は state.json の `last_processed_index` (per-axis) を参照して既処理 finding を skip する。「前回 wake 以降」の概念は内部 index で自動管理されるため、明示フラグは不要。
 
 aggregate は各 finding を以下に振り分け:
 
@@ -54,6 +54,7 @@ apply-fix は内部で:
 3. tsc + vitest で smoke 確認 (失敗時は rollback + issue 降格)
 4. `git commit -m "fix(<axis>): <title> (release-review auto-fix)"`
 5. auto-fixes.log に追記
+6. `node scripts/orchestrator.mjs increment-count --branch ${BRANCH} --field auto_fix_count` で state に反映
 
 ### 4. ISSUE 起票
 
@@ -76,6 +77,15 @@ gh issue create --title "spec-pending: <title> (release-review)" \
   --label "release-review,spec-pending,blocked" \
   --body "<schema 変更 or 振る舞い変更の必要性 + 影響範囲>"
 ```
+
+ISSUE 起票後 (集約 ISSUE の新規作成 / spec-pending 個別起票どちらも) は必ず:
+
+```bash
+node ai-skills/release-review/scripts/orchestrator.mjs increment-count \
+  --branch "${BRANCH}" --field issued_count
+```
+
+を実行して state.issued_count を反映。`--max-issues` cap (safety-rails) はこの値で評価される。集約 ISSUE への sub-section 追記は新規 ISSUE ではないため increment しない。
 
 ### 5. 停止条件チェック
 

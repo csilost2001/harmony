@@ -15,6 +15,9 @@
  *   node orchestrator.mjs finalize --branch <name>         # STOPPED.md 生成 + 統計出力
  *   node orchestrator.mjs ingest-finding --branch <name> --json '<finding json>'
  *                                                          # Agent からの追加 finding を手動 push (主に test 用)
+ *   node orchestrator.mjs increment-count --branch <name> --field <issued_count|auto_fix_count> [--by N]
+ *                                                          # state.json の counter を atomic に increment
+ *                                                          # (ISSUE 起票後 / auto-fix commit 後に呼ぶ、max-issues cap で必要)
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync, readdirSync } from "node:fs";
@@ -93,12 +96,13 @@ function cmdInit(args) {
     stop_flag: false,
     stop_reason: null,
     axes: {},
-    consecutive_global_zero_rounds: 0,
     issued_count: 0,
     auto_fix_count: 0,
     last_wake_at: null,
     last_dispatched_axes: [],
   };
+  // 注: issued_count / auto_fix_count は AI が gh issue create / git commit を実行した直後に
+  // `increment-count --field <name>` で更新する。`--max-issues` cap はこの値を参照する。
 
   for (const axis of AXES) {
     if (excludeAxes.includes(axis)) {
@@ -418,6 +422,19 @@ ${recentActions.length ? recentActions.join("\n") : "(none yet)"}
   console.log(JSON.stringify({ ok: true, path: join(artDir(args.branch), "STATUS.md") }));
 }
 
+function cmdIncrementCount(args) {
+  const branch = args.branch;
+  const field = args.field;
+  const by = parseInt(args.by || 1, 10);
+  if (!["issued_count", "auto_fix_count"].includes(field)) {
+    throw new Error(`field must be one of: issued_count, auto_fix_count`);
+  }
+  const state = loadState(branch);
+  state[field] = (state[field] || 0) + by;
+  saveState(branch, state);
+  console.log(JSON.stringify({ ok: true, field, new_value: state[field] }));
+}
+
 function cmdIngestFinding(args) {
   // 主に dry-run test 用、Agent 側は直接 findings.jsonl に append する想定
   const branch = args.branch;
@@ -441,8 +458,9 @@ switch (cmd) {
   case "check-stop": cmdCheckStop(args); break;
   case "finalize": cmdFinalize(args); break;
   case "ingest-finding": cmdIngestFinding(args); break;
+  case "increment-count": cmdIncrementCount(args); break;
   default:
     console.error(`Unknown command: ${cmd}`);
-    console.error(`Usage: node orchestrator.mjs <init|status|status-md|aggregate|next|check-stop|finalize|ingest-finding> [--args]`);
+    console.error(`Usage: node orchestrator.mjs <init|status|status-md|aggregate|next|check-stop|finalize|ingest-finding|increment-count> [--args]`);
     process.exit(1);
 }
