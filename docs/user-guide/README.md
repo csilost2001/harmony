@@ -11,6 +11,12 @@
 - [`/generate-code` ワークフロー](generate-code-workflow.md) — 設計した処理フロー / 画面を業務アプリ project root にコード生成して Dev Container で開発する流れ
 - [トラブルシューティング](troubleshooting.md) — よくある詰まりと回避策
 
+## UI 操作リファレンス
+
+各画面 (Dashboard / 一覧 / Editor 等) の目的・到達経路・主要操作・データ前提を screenshot 付きで解説:
+
+- [`ui-reference/`](ui-reference/README.md) — 全 27 画面のリファレンス (`/document-ui` skill で生成 / 更新)
+
 ## 前提ツール
 
 - **designer (フロントエンド)** — `http://localhost:5173` で起動する React アプリ
