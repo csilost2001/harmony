@@ -10,6 +10,11 @@ export default defineConfig({
   testDir: "./e2e",
   // e2e/__fixtures__/builders/*.test.ts は Vitest テストのため Playwright から除外
   testMatch: /.*\.spec\.ts$/,
+  // #1359: lockdown-routing.spec.ts は専用 config (playwright.lockdown.config.ts) で
+  // backend を `DESIGNER_DATA_DIR` 付き lockdown モードで起動した状態でのみ通る。
+  // 主 config の backend は通常モードのため本 spec は必ず fail する → 主 config から除外。
+  // 実行は `npm run test:e2e:lockdown` で別途。
+  testIgnore: /lockdown-routing\.spec\.ts$/,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   // #930: @endurance はデフォルトで除外、明示 grep または E2E_INCLUDE_ENDURANCE=1 で実行
