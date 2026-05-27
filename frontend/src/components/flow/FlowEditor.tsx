@@ -56,6 +56,7 @@ import { buildDefaultScreen, loadScreenEntity, saveScreenEntity } from "../../st
 import { listPageLayouts } from "../../store/pageLayoutStore";
 import { clearScreenFlowPositionsPreview, saveScreenFlowPositionsPreview } from "../../store/screenFlowPositionsStore";
 import { duplicateScreenDesignData } from "../../store/duplicateScreen";
+import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { useUndoKeyboard } from "../../hooks/useUndoKeyboard";
@@ -576,11 +577,16 @@ function FlowEditorInner() {
       const srcEntity = await loadScreenEntity(screen.id);
       const srcEditorKind = resolveEditorKind(srcEntity.design, undefined);
       const srcCssFramework = resolveCssFramework(srcEntity.design, undefined);
+      // RFC #1284 / #1329: duplicate 経路でも kebab-case id を発番する。
+      // 元 id + `-copy[-N]` で uniqueness 衝突回避 (TableListView duplicate と同パターン)。
+      const existingIds = new Set<string>(projectRef.current.screens.map((s) => s.id));
+      const newId = makeDuplicatedEntityId(screen.id, existingIds);
       const dup = await addScreen(
         projectRef.current,
         `${screen.name} (コピー)`,
         screen.kind,
         {
+          id: newId,
           path: screen.path,
           position: { x: screen.position.x + 30, y: screen.position.y + 30 },
           editorKind: srcEditorKind,
