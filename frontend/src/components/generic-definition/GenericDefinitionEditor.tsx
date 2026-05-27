@@ -84,46 +84,78 @@ export function GenericDefinitionEditor() {
   //   encoding (`/` → `__`) を適用して stored resourceId と突合する。
   const editSessionRawId = kind && decodedName ? `${kind}/${decodedName}` : "";
   const editSessionSafeResourceId = editSessionRawId.replace(/\//g, "__");
+  // active editSession の id (= 既に create が完了して紐付け済)
   const editSessionIdRef = useRef<string | null>(null);
-  const startingPromiseRef = useRef<Promise<string | null> | null>(null);
-  // どの resourceId に対して current editSessionIdRef が紐付くか追跡 (Codex Round 2 Must-fix)。
-  // 同 component が router 経由で `:kind/:name` 変更 (Tab A → B 遷移) で stay-mounted する場合、
-  // 旧 resource の session が新 resource にずれ込むのを防ぐ。
+  // どの resourceId に対して current editSessionIdRef が紐付くか追跡。
   const sessionResourceIdRef = useRef<string>("");
+  // 進行中の create を resourceId 付きで追跡 (Codex Round 3 Must-fix)。
+  // pending start 中の resource A → B 遷移時、後続 ensureEditSession(B) が
+  // A の pending を誤って再利用するのを防ぐ。
+  const startingRef = useRef<{ resourceId: string; promise: Promise<string | null> } | null>(null);
+  // currentResourceIdRef: 最新 editSessionSafeResourceId を常に保持 (render phase で同期更新)。
+  // create 中の Promise body は closure capture により stale な target を持つため、
+  // drift check は ref 経由で最新値を参照する必要がある。
+  const currentResourceIdRef = useRef<string>("");
+  currentResourceIdRef.current = editSessionSafeResourceId;
 
-  // 編集開始: 同 mount 内で重複 create を防ぐため startingPromiseRef を await。
-  // 失敗時は次の updateDef で再試行可能 (idRef / promiseRef を null に戻す)。
+  // ensureEditSession: 現 resource に対する active session を返す。なければ create。
+  // pending start の resourceId 一致時のみ再利用、不一致なら新規 create を並行起動
+  // (古い pending は自身の drift check で created session を即 discard する)。
   const ensureEditSession = useCallback(async (): Promise<string | null> => {
-    if (editSessionIdRef.current) return editSessionIdRef.current;
-    if (startingPromiseRef.current) return startingPromiseRef.current;
-    if (!editSessionSafeResourceId) return null;
-    const targetResourceId = editSessionSafeResourceId;
+    const target = currentResourceIdRef.current;
+    if (!target) return null;
+    // active session を再利用 (current target と一致時のみ)
+    if (editSessionIdRef.current && sessionResourceIdRef.current === target) {
+      return editSessionIdRef.current;
+    }
+    // pending start を再利用 (current target と一致時のみ)
+    if (startingRef.current && startingRef.current.resourceId === target) {
+      return startingRef.current.promise;
+    }
+    // 新規 create (mismatched pending slot は上書き、その pending は自身の drift check で cleanup)
     const promise = (async (): Promise<string | null> => {
+      let createdId: string | null = null;
       try {
         const result = await mcpBridge.request("editSession.create", {
           resourceType: "generic-definition",
-          resourceId: targetResourceId,
+          resourceId: target,
         }) as { editSession?: { id?: string } } | null;
-        const id = result?.editSession?.id ?? null;
-        editSessionIdRef.current = id;
-        sessionResourceIdRef.current = targetResourceId;
-        return id;
+        createdId = result?.editSession?.id ?? null;
       } catch (e) {
         console.warn("[GenericDefinitionEditor] editSession.create failed:", e);
         return null;
-      } finally {
-        startingPromiseRef.current = null;
       }
+      if (!createdId) return null;
+      // Drift check: create 完了時点で current resource が変わっていれば即 discard。
+      // unmount 後も currentResourceIdRef は最後の値を保持するため、unmount → 別 resource
+      // でない場合は drift しない (= 通常 unmount cleanup 経路は discardEditSession 経由)。
+      if (currentResourceIdRef.current !== target) {
+        mcpBridge.request("editSession.discard", { editSessionId: createdId }).catch((e) => {
+          console.warn("[GenericDefinitionEditor] drift discard failed:", e);
+        });
+        return null;
+      }
+      editSessionIdRef.current = createdId;
+      sessionResourceIdRef.current = target;
+      return createdId;
     })();
-    startingPromiseRef.current = promise;
+    const slot = { resourceId: target, promise };
+    startingRef.current = slot;
+    // Settle 後、slot がまだ自分なら clear (別 create が overwrite していなければ)
+    void promise.finally(() => {
+      if (startingRef.current === slot) {
+        startingRef.current = null;
+      }
+    });
     return promise;
-  }, [editSessionSafeResourceId]);
+  }, []);
 
-  // 破棄: pending startEditing があれば先に解決を待ち、その後 editSessionId が確定したら discard。
-  // unmount + save 後 + resourceId 変更時の 3 経路で呼ぶ。
+  // 破棄: pending start を await してから active session を discard。
+  // unmount cleanup + save 後 + 明示破棄から呼ばれる。
   const discardEditSession = useCallback(async (): Promise<void> => {
-    if (startingPromiseRef.current) {
-      try { await startingPromiseRef.current; } catch { /* create failed = nothing to discard */ }
+    const pending = startingRef.current;
+    if (pending) {
+      try { await pending.promise; } catch { /* create failed = nothing to discard */ }
     }
     const id = editSessionIdRef.current;
     if (!id) return;
@@ -136,17 +168,26 @@ export function GenericDefinitionEditor() {
     }
   }, []);
 
-  // Codex Round 2 Must-fix: route param 変更 (例: GenericDefinition A → B へ遷移) で
-  // editSessionSafeResourceId が変わったら、旧 resource の active session を discard する。
-  // sessionResourceIdRef が空 (= まだ create していない) なら no-op。
+  // Resource 変更時の cleanup (Codex Round 3 Must-fix):
+  //   - 旧 resource の active session を discard
+  //   - 旧 resource の pending start を slot detach (= 自身の drift check で created session 廃棄)
+  //   - editSessionSafeResourceId === "" 遷移 (kind/name 未定義化) も同等に処理
   useEffect(() => {
-    if (sessionResourceIdRef.current && sessionResourceIdRef.current !== editSessionSafeResourceId) {
-      // discard 内で pending start を await + idRef / sessionResourceIdRef を reset。
-      // 旧 session の create が pending 中でも、await pending → 完了後に discard が走るため
-      // orphan は残らない (新 resource 用 ensureEditSession は次の updateDef で再起動)。
-      discardEditSession().catch(() => { /* logged inside */ });
+    const target = editSessionSafeResourceId;
+    if (editSessionIdRef.current && sessionResourceIdRef.current !== target) {
+      const oldId = editSessionIdRef.current;
+      editSessionIdRef.current = null;
+      sessionResourceIdRef.current = "";
+      mcpBridge.request("editSession.discard", { editSessionId: oldId }).catch((e) => {
+        console.warn("[GenericDefinitionEditor] resource-change discard failed:", e);
+      });
     }
-  }, [editSessionSafeResourceId, discardEditSession]);
+    if (startingRef.current && startingRef.current.resourceId !== target) {
+      // detach: 古い pending は currentResourceIdRef が変わっているため drift check で
+      // 自動 discard される。slot を空けて新 ensureEditSession が即起動できるようにする。
+      startingRef.current = null;
+    }
+  }, [editSessionSafeResourceId]);
 
   useEffect(() => {
     if (!kind || !decodedName) return;
