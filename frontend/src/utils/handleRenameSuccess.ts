@@ -18,6 +18,7 @@ import {
   closeTab,
   openTab,
   makeTabId,
+  type TabType,
 } from "../store/tabStore";
 import { _emitTableChangeForRename } from "../store/tableStore";
 import type { TableId } from "../types/v3/common";
@@ -41,6 +42,26 @@ export interface HandleRenameSuccessParams {
    * 省略時は従来動作 (`_` placeholder)。
    */
   wsId?: string;
+  /**
+   * #1330: rename 起動点が Designer / 各 entity 既定の editor 以外の場合に
+   * tab / navigate 先を override する。
+   *
+   * - `originTabType`: rename 完了後に open する tab type (省略時は `meta.tabType`)。
+   *   - Designer 起動 = undefined (default)
+   *   - ScreenItemsView 起動 = "screen-items"
+   *   - ScreenListView / ScreenFlow 起動 = undefined (per-resource tab を open しない)
+   * - `originRoute`: rename 完了後の navigate 先 path (省略時は `meta.editRoute(newId)`)。
+   *   - Items 起動 = `(id) => /screen/items/${id}`
+   *   - List 起動 = `() => /screen/list`
+   *   - Flow 起動 = `() => /screen/flow`
+   * - `skipOpenNewTab`: true なら新 tab を開かず navigate のみ。List / Flow singleton 起動用。
+   *
+   * 注: oldId の meta.tabType tab は常に close する (stale design tab 防止)。
+   *     originTabType が meta.tabType と異なる場合、追加で originTabType:oldId も close する。
+   */
+  originTabType?: TabType;
+  originRoute?: (newId: string) => string;
+  skipOpenNewTab?: boolean;
 }
 
 /**
@@ -57,10 +78,12 @@ export function handleRenameSuccess({
   navigate,
   wsPath,
   wsId,
+  originTabType,
+  originRoute,
+  skipOpenNewTab,
 }: HandleRenameSuccessParams): void {
   const meta = getRenameEntityMeta(entityType);
-  const oldTabId = makeTabId(meta.tabType, oldId);
-  const newTabId = makeTabId(meta.tabType, newId);
+  const effectiveTabType: TabType = originTabType ?? meta.tabType;
 
   // I-7 Round 2 F-3 (#1299 Codex review M-4 / Opus review M-2):
   // rename / undo 完了直後の窓 (broadcast 受信→reload→load(currentUrlId)=null) で
@@ -72,19 +95,28 @@ export function handleRenameSuccess({
   markRenameInProgress(entityType, oldId, wsId);
   markRenameInProgress(entityType, newId, wsId);
 
-  // 旧 tab は force=true で閉じる (refactor 完了で dirty 警告は不要)
-  closeTab(oldTabId, true);
+  // 旧 meta tab は常に close (stale 防止; Screen の場合 design:oldId が stale になる)。
+  // #1330: ItemsView 起動など originTabType が meta.tabType と異なる場合、追加で
+  //        originTabType:oldId も close (両方の stale tab を一度に掃除)。
+  closeTab(makeTabId(meta.tabType, oldId), true);
+  if (originTabType && originTabType !== meta.tabType) {
+    closeTab(makeTabId(originTabType, oldId), true);
+  }
 
-  // 新 tab を開く (既存なら label 更新 + active)
-  openTab({
-    id: newTabId,
-    type: meta.tabType,
-    resourceId: newId,
-    label: label && label.length > 0 ? label : newId,
-  });
+  // 新 tab を開く (#1330: skipOpenNewTab=true なら open せず navigate のみ。
+  // List / Flow singleton 起動はその場 (一覧/フロー画面) に留まる)。
+  if (!skipOpenNewTab) {
+    openTab({
+      id: makeTabId(effectiveTabType, newId),
+      type: effectiveTabType,
+      resourceId: newId,
+      label: label && label.length > 0 ? label : newId,
+    });
+  }
 
-  // URL を新 id に hard redirect (replace=true で履歴汚染を防ぐ)
-  navigate(wsPath(meta.editRoute(newId)), { replace: true });
+  // URL を navigate (#1330: originRoute 優先、無ければ meta.editRoute)
+  const targetPath = originRoute ? originRoute(newId) : meta.editRoute(newId);
+  navigate(wsPath(targetPath), { replace: true });
 
   // Phase J Must-fix E (#1298 round 4 Antigravity M-7): 同一 client 内 local pubsub に
   // rename 通知を発行。backend broadcast (`<entityType>Changed`) は network round trip が

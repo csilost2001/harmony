@@ -32,6 +32,10 @@ import { useListEditor } from "../../hooks/useListEditor";
 import { usePersistentState } from "../../hooks/usePersistentState";
 import { ScreenEditModal, type ScreenFormData } from "./ScreenEditModal";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import "../../styles/flow.css";
 import "../../styles/screenList.css";
 import "../../styles/editMode.css";
@@ -57,12 +61,19 @@ function formatDate(iso: string): string {
 
 export function ScreenListView() {
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [screenModal, setScreenModal] = useState<{ open: boolean; editId?: string; initial?: Partial<ScreenFormData> }>({ open: false });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const { hasDraft } = useDraftRegistry();
+  // #1330: ScreenListView 起点の Screen rename refactor。完了後は一覧に留まる (singleton 起動)。
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast(
+    "screen",
+    renameTarget?.id ?? "",
+    wsId,
+  );
   // project.techStack.designer の project default (画面作成ダイアログのデフォルト選択値)
   const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
   const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
@@ -390,6 +401,19 @@ export function ScreenListView() {
         disabled: !hasSelection || sortActive,
         disabledReason: sortActive ? sortReason : undefined,
         onClick: () => { if (items.length > 0) handleDuplicate(items).catch(console.error); },
+      },
+      {
+        // #1330: ScreenListView 起点 Screen rename (単一選択のみ有効)
+        key: "rename-id",
+        label: "ID 変更…",
+        icon: "bi-pencil-square",
+        disabled: items.length !== 1 || sortActive,
+        disabledReason: items.length !== 1
+          ? "ID 変更は 1 件選択時のみ"
+          : sortActive ? sortReason : undefined,
+        onClick: () => {
+          if (items.length === 1) setRenameTarget({ id: items[0].id, name: items[0].name });
+        },
       },
       { key: "sep3", separator: true },
       {
@@ -737,6 +761,69 @@ export function ScreenListView() {
           y={contextMenu.y}
           items={contextMenu.items}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {/* #1330: ScreenListView 起点の Screen rename refactor dialog */}
+      {renameTarget && (
+        <RenameEntityDialog
+          entityType="screen"
+          currentId={renameTarget.id}
+          currentName={renameTarget.name}
+          existingIds={editor.items.map((s) => s.id as string)}
+          fetchExistingIds={async () => {
+            const project = await loadProject();
+            return (project.screens ?? []).map((s) => s.id);
+          }}
+          onClose={() => setRenameTarget(null)}
+          onSuccess={(newId, operationId, extra) => {
+            const target = renameTarget;
+            setRenameTarget(null);
+            handleRenameSuccess({
+              entityType: "screen",
+              oldId: target.id,
+              newId,
+              label: target.name || newId,
+              navigate,
+              wsPath,
+              wsId,
+              // #1330: List 起点 → 新 design tab を開かず一覧画面に留まる
+              skipOpenNewTab: true,
+              originRoute: () => "/screen/list",
+            });
+            // 一覧の reflect は backend の screenChanged broadcast で reload される
+            editor.reload().catch(console.error);
+            setRenameUndoToast({
+              operationId, oldId: target.id, newId,
+              ttlMs: extra?.ttlMs,
+            });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          ttlMs={renameUndoToast.ttlMs}
+          entityLabel="画面"
+          onUndo={() => {
+            handleRenameSuccess({
+              entityType: "screen",
+              oldId: renameUndoToast.newId,
+              newId: renameUndoToast.oldId,
+              label: renameUndoToast.oldId,
+              navigate,
+              wsPath,
+              wsId,
+              skipOpenNewTab: true,
+              originRoute: () => "/screen/list",
+            });
+            editor.reload().catch(console.error);
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
         />
       )}
     </div>

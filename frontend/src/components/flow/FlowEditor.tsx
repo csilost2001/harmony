@@ -59,6 +59,10 @@ import { duplicateScreenDesignData } from "../../store/duplicateScreen";
 import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { resolveCssFramework } from "../../utils/resolveCssFramework";
+import { RenameEntityDialog } from "../common/RenameEntityDialog";
+import { RenameEntityUndoToast } from "../common/RenameEntityUndoToast";
+import { useRenameEntityUndoToast } from "../common/useRenameEntityUndoToast";
+import { handleRenameSuccess } from "../../utils/handleRenameSuccess";
 import { useUndoKeyboard } from "../../hooks/useUndoKeyboard";
 import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { useFlowProjectSync } from "../../hooks/useFlowProjectSync";
@@ -163,7 +167,7 @@ interface ContextMenu {
 
 function FlowEditorInner() {
   const navigate = useNavigate();
-  const { wsPath } = useWorkspacePath();
+  const { wsPath, wsId } = useWorkspacePath();
   const projectRef = useRef<FlowProject | null>(null);
   const { fitView, zoomTo } = useReactFlow();
   const { showError } = useErrorDialog();
@@ -362,6 +366,15 @@ function FlowEditorInner() {
 
   // Context menu
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+
+  // #1330: ScreenFlow node 右クリック起点の Screen rename refactor。
+  // 完了後は ScreenFlow に留まる (singleton 起動)。
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast(
+    "screen",
+    renameTarget?.id ?? "",
+    wsId,
+  );
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -634,6 +647,16 @@ function FlowEditorInner() {
     navigate(wsPath(`/screen/design/${screenId}`));
     setContextMenu(null);
   }, [contextMenu, navigate, nodes, wsPath]);
+
+  // #1330: ScreenFlow 起点 Screen rename refactor 起動 (context menu item)。
+  const handleRenameNode = useCallback(() => {
+    if (!contextMenu || !projectRef.current) return;
+    const screen = projectRef.current.screens.find((s) => s.id === contextMenu.targetId);
+    if (screen) {
+      setRenameTarget({ id: screen.id, name: screen.name });
+    }
+    setContextMenu(null);
+  }, [contextMenu]);
 
   // ── Marker Panel Actions ──
 
@@ -1219,6 +1242,9 @@ function FlowEditorInner() {
               <button className="flow-context-menu-item" onClick={() => { handleDuplicateNode().catch(console.error); }}>
                 <i className="bi bi-copy" /> 複製
               </button>
+              <button className="flow-context-menu-item" onClick={handleRenameNode}>
+                <i className="bi bi-pencil-square" /> ID 変更…
+              </button>
               {(() => {
                 const screen = projectRef.current?.screens.find((s) => s.id === contextMenu.targetId);
                 const groups = projectRef.current?.groups ?? [];
@@ -1314,6 +1340,91 @@ function FlowEditorInner() {
             }
           }}
           onCancel={onSaveConflictCancel}
+        />
+      )}
+
+      {/* #1330: ScreenFlow 起点の Screen rename refactor dialog */}
+      {renameTarget && (
+        <RenameEntityDialog
+          entityType="screen"
+          currentId={renameTarget.id}
+          currentName={renameTarget.name}
+          existingIds={projectRef.current?.screens.map((s) => s.id) ?? []}
+          fetchExistingIds={async () => {
+            const project = await loadProject();
+            return (project.screens ?? []).map((s) => s.id);
+          }}
+          onClose={() => setRenameTarget(null)}
+          onSuccess={(newId, operationId, extra) => {
+            const target = renameTarget;
+            setRenameTarget(null);
+            handleRenameSuccess({
+              entityType: "screen",
+              oldId: target.id,
+              newId,
+              label: target.name || newId,
+              navigate,
+              wsPath,
+              wsId,
+              // #1330: Flow 起点 → 新 design tab を開かず ScreenFlow 画面に留まる
+              skipOpenNewTab: true,
+              originRoute: () => "/screen/flow",
+            });
+            // node graph を新 id で reload
+            loadProject().then((p) => {
+              projectRef.current = p;
+              setNodes((nds) => nds.map((n) => n.id === target.id
+                ? { ...n, id: newId, data: { ...n.data, id: newId } as RFNode["data"] }
+                : n));
+              setEdges((eds) => eds.map((e) => ({
+                ...e,
+                source: e.source === target.id ? newId : e.source,
+                target: e.target === target.id ? newId : e.target,
+              })));
+            }).catch(console.error);
+            setRenameUndoToast({
+              operationId, oldId: target.id, newId,
+              ttlMs: extra?.ttlMs,
+            });
+          }}
+        />
+      )}
+
+      {renameUndoToast && (
+        <RenameEntityUndoToast
+          operationId={renameUndoToast.operationId}
+          oldId={renameUndoToast.oldId}
+          newId={renameUndoToast.newId}
+          ttlMs={renameUndoToast.ttlMs}
+          entityLabel="画面"
+          onUndo={() => {
+            const oldId = renameUndoToast.newId;
+            const newId = renameUndoToast.oldId;
+            handleRenameSuccess({
+              entityType: "screen",
+              oldId,
+              newId,
+              label: newId,
+              navigate,
+              wsPath,
+              wsId,
+              skipOpenNewTab: true,
+              originRoute: () => "/screen/flow",
+            });
+            loadProject().then((p) => {
+              projectRef.current = p;
+              setNodes((nds) => nds.map((n) => n.id === oldId
+                ? { ...n, id: newId, data: { ...n.data, id: newId } as RFNode["data"] }
+                : n));
+              setEdges((eds) => eds.map((e) => ({
+                ...e,
+                source: e.source === oldId ? newId : e.source,
+                target: e.target === oldId ? newId : e.target,
+              })));
+            }).catch(console.error);
+            setRenameUndoToast(null);
+          }}
+          onDismiss={() => setRenameUndoToast(null)}
         />
       )}
     </div>
