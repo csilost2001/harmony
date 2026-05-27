@@ -549,8 +549,12 @@ function normalizePersisted(raw: unknown): PersistedFlowProject {
  * I-7 Round 2 F-4 (#1299 Codex review M-3): legacy localStorage migration の
  * screen.id を kebab-case の fallback id に変更 (RFC #1284 / `assertEntityId`
  * strict 化追従)。`SCREEN_DATA_PREFIX` 配下の design data key も新 id で書き直す。
- * 既存 UUID 形式 id を持つ legacy data を kebab-case に変換する compat 経路は
- * 別 ISSUE (#1333、I-7 Round 3 起票) で対応予定。
+ *
+ * #1333 (2026-05-27): 既存 UUID 形式 id を含む legacy data の compat 経路は
+ * **追加しない** ことを確定 (pre-release 方針、後方互換性不要)。UUID 形式 id を
+ * 含む harmony.json / localStorage data は AJV (`assertValidHarmony`) で reject
+ * される。手元 dev 環境に UUID-id data が残っている場合は手動で kebab-case 化
+ * (`<prefix>-<short hash>` 等) して再保存する。
  */
 function migrateLegacyLocalStorage(): PersistedFlowProject | null {
   const raw = localStorage.getItem(LEGACY_KEY);

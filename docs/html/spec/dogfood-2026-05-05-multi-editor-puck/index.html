@@ -364,7 +364,10 @@ Puck Data (<code>puck-data.json</code>) は <code>"align": "right"</code> とい
 
 
 
-<table><thead><tr><th>ファイル</th><th>内容</th></tr></thead><tbody><tr><td><code>workspaces/dogfood-puck-tailwind-2026-05-05/screens/d06f00d0-0001-4000-8000-000000000011/screen.json</code></td><td><code>editorKind: "puck"</code>, <code>cssFramework: "tailwind"</code>, <code>puckDataRef: "puck-data.json"</code></td></tr><tr><td><code>workspaces/dogfood-puck-bootstrap-2026-05-05/screens/d06f00d0-0002-4000-8000-000000000022/screen.json</code></td><td><code>editorKind: "puck"</code>, <code>cssFramework: "bootstrap"</code>, <code>puckDataRef: "puck-data.json"</code></td></tr></tbody></table>
+<table><thead><tr><th>ファイル</th><th>内容</th></tr></thead><tbody><tr><td><code>workspaces/dogfood-puck-tailwind-2026-05-05/harmony/screens/scr-contact-form/screen.json</code></td><td><code>editorKind: "puck"</code>, <code>cssFramework: "tailwind"</code>, <code>puckDataRef: "puck-data.json"</code></td></tr><tr><td><code>workspaces/dogfood-puck-bootstrap-2026-05-05/harmony/screens/scr-contact-form/screen.json</code></td><td><code>editorKind: "puck"</code>, <code>cssFramework: "bootstrap"</code>, <code>puckDataRef: "puck-data.json"</code></td></tr></tbody></table>
+<blockquote>
+<p><strong>注記</strong>: id は RFC #1284 / #1299 / #1333 (2026-05-27) の方針確定により UUID から kebab-case に rename 済 (元 UUID は <code>meta.uuid</code> / <code>screen.json</code> root の <code>uuid</code> field に保持、<code>EntityMeta</code> schema 契約遵守)。</p>
+</blockquote>
 <p>これにより <code>validatePuckScreen()</code> が <code>puckDataRef</code> 不在エラーを発火しなくなる。</p>
 <hr>
 <h2 id="視覚検証-wysiwyg-リアルタイム反映-について">視覚検証 (WYSIWYG リアルタイム反映) について</h2>

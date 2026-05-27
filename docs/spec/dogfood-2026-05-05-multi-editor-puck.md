@@ -150,8 +150,10 @@ Puck Data (`puck-data.json`) は `"align": "right"` という semantic 値を保
 
 | ファイル | 内容 |
 |---------|------|
-| `workspaces/dogfood-puck-tailwind-2026-05-05/screens/d06f00d0-0001-4000-8000-000000000011/screen.json` | `editorKind: "puck"`, `cssFramework: "tailwind"`, `puckDataRef: "puck-data.json"` |
-| `workspaces/dogfood-puck-bootstrap-2026-05-05/screens/d06f00d0-0002-4000-8000-000000000022/screen.json` | `editorKind: "puck"`, `cssFramework: "bootstrap"`, `puckDataRef: "puck-data.json"` |
+| `workspaces/dogfood-puck-tailwind-2026-05-05/harmony/screens/scr-contact-form/screen.json` | `editorKind: "puck"`, `cssFramework: "tailwind"`, `puckDataRef: "puck-data.json"` |
+| `workspaces/dogfood-puck-bootstrap-2026-05-05/harmony/screens/scr-contact-form/screen.json` | `editorKind: "puck"`, `cssFramework: "bootstrap"`, `puckDataRef: "puck-data.json"` |
+
+> **注記**: id は RFC #1284 / #1299 / #1333 (2026-05-27) の方針確定により UUID から kebab-case に rename 済 (元 UUID は `meta.uuid` / `screen.json` root の `uuid` field に保持、`EntityMeta` schema 契約遵守)。
 
 これにより `validatePuckScreen()` が `puckDataRef` 不在エラーを発火しなくなる。
 

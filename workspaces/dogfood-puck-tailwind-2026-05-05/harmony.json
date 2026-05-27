@@ -2,7 +2,8 @@
   "$schema": "../../schemas/v3/harmony.v3.schema.json",
   "schemaVersion": "v3",
   "meta": {
-    "id": "d06f00d0-0001-4000-8000-000000000001",
+    "id": "dogfood-puck-tailwind",
+    "uuid": "d06f00d0-0001-4000-8000-000000000001",
     "name": "Puck × Tailwind dogfood サンプル (2026-05-05)",
     "description": "#806 子 6 dogfood。Puck エディタ + Tailwind CSS の組み合わせを検証するサンプルプロジェクト。お問い合わせフォーム画面で共通レイアウト props の WYSIWYG 操作を実証する。",
     "createdAt": "2026-05-05T00:00:00.000Z",
@@ -21,7 +22,7 @@
   "entities": {
     "screens": [
       {
-        "id": "d06f00d0-0001-4000-8000-000000000011",
+        "id": "scr-contact-form",
         "no": 1,
         "name": "お問い合わせフォーム",
         "kind": "form",
