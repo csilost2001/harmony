@@ -129,7 +129,7 @@ export function Designer({
   }
   // Puck Backend (#815 PR-A: container 直マウントを廃止、React コンポーネントとして render)
   //
-  // #1379: useRef → useState 化 (lazy initializer)。Backend instance は構造体的な method-bag
+  // #1388: useRef → useState 化 (lazy initializer)。Backend instance は構造体的な method-bag
   // (constructor で副作用なし、internal state なし — load/save/renderEditor のみ) のため
   // mount 時に 1 度だけ生成しても無視できるコストで、editorKind が puck/grapesjs 間で切替わっても
   // identity が安定する。render 中 access するため state 化が必須。
@@ -142,7 +142,7 @@ export function Designer({
   const puckPendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // GrapesJS Backend (#815 PR-B: <GjsEditor> 直接マウントを廃止、Backend.renderEditor 経由)
   //
-  // #1379: useRef → useState 化 (lazy initializer、puckBackend と同じ理由)。
+  // #1388: useRef → useState 化 (lazy initializer、puckBackend と同じ理由)。
   const [grapesBackend] = useState<GrapesJSBackend>(() => new GrapesJSBackend());
   // 両 Backend (Puck / GrapesJS) 共通の EditorApi (#815 Codex Must-fix #2/#3 で統一)。
   // discard / serverChange reload / theme apply / captureThumbnail / getProjectData 等を
@@ -414,7 +414,7 @@ export function Designer({
   // 「prop 変化時 state リセット」pattern で render 中に derive する。React は同値 setState を
   // skip するため無限ループにはならない。
   //
-  // #1379: Backend lifecycle 管理を ref → state 化 (lazy useState initializer)。
+  // #1388: Backend lifecycle 管理を ref → state 化 (lazy useState initializer)。
   // grapesBackend は mount 時に 1 度生成済 (identity 不変) なので、effect 内では
   // 直接 load() を呼ぶ。再生成 / null-check は不要。
   const [grapesLoadKey, setGrapesLoadKey] = useState<string | null>(null);
@@ -683,7 +683,7 @@ export function Designer({
   // React 19 `react-hooks/set-state-in-effect` 対応: effect 内の setPuckState(null) は
   // 「prop 変化時 state リセット」pattern で render 中に derive する。
   //
-  // #1379: Backend lifecycle 管理を ref → state 化 (grapesBackend と同じ pattern)。
+  // #1388: Backend lifecycle 管理を ref → state 化 (grapesBackend と同じ pattern)。
   const [puckLoadKey, setPuckLoadKey] = useState<string | null>(null);
   const currentPuckLoadKey = editorKind === "puck" ? `${screenId}` : null;
   if (currentPuckLoadKey !== puckLoadKey) {
