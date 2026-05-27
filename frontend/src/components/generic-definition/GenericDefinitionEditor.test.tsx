@@ -41,6 +41,12 @@ vi.mock("../../mcp/mcpBridge", () => ({
       broadcastHandler = handler;
       return () => undefined;
     }),
+    // #1331: useEditSession 依存 — test では EditSession 連携は no-op で良い
+    getSessionId: vi.fn(() => "test-session"),
+    request: vi.fn(async () => ({})),
+    onStatusChange: vi.fn(() => () => undefined),
+    getStatus: vi.fn(() => "connected"),
+    startWithoutEditor: vi.fn(),
   },
 }));
 
