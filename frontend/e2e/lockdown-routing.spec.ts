@@ -9,9 +9,9 @@ import { lockdownWorkspacePath } from "./helpers/workspaceFixture.ts";
 const LOCKDOWN_WORKSPACE = lockdownWorkspacePath();
 
 test.describe("lockdown routing", { tag: ["@regression"] }, () => {
-  // #1342 Proposal A: seed は playwright.lockdown.config.ts の globalSetup
-  // (helpers/lockdownGlobalSetup.ts) に集約 (webServer 起動前に backend が必要とする
-  // harmony.json を配置する必要があるため、spec.beforeAll では間に合わない)。
+  // #1342 Proposal A: seed は playwright.lockdown.config.ts module 読込時の同期 fs
+  // API 呼び出しに集約 (webServer 起動前に backend が必要とする harmony.json を配置
+  // する必要があるため、spec.beforeAll や Playwright globalSetup では間に合わない)。
   // 本 spec は seed 結果に依存して動くだけで、自身では seed しない。
 
   test.afterAll(async () => {
