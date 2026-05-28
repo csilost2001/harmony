@@ -18,8 +18,6 @@
 
 ![ダッシュボード (default)](../../ui-screenshots/ui-reference/dashboard/01-default.png)
 
-<!-- TODO: /document-ui dashboard 実行時に上記 png を生成 -->
-
 ### 主要エリア
 
 1. **ヘッダー** — タイトル「ダッシュボード」+ 副題「プロジェクト全体の状況を俯瞰 (パネルはドラッグ/リサイズ可能)」

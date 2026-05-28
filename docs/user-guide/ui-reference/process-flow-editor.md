@@ -18,11 +18,7 @@ Harmony の **一次成果物** である処理フロー (ProcessFlow JSON) を�
 
 ![処理フロー編集 (default)](../../ui-screenshots/ui-reference/process-flow-editor/01-default.png)
 
-![処理フロー編集 (Step 詳細展開)](../../ui-screenshots/ui-reference/process-flow-editor/02-step-expanded.png)
-
-![処理フロー編集 (Warnings panel 開)](../../ui-screenshots/ui-reference/process-flow-editor/03-warnings-open.png)
-
-<!-- TODO: /document-ui process-flow-editor 実行時に上記 3 枚を生成 -->
+> Step 詳細展開 / Warnings panel 開状態の追加 screenshot は follow-up で `/document-ui process-flow-editor` を再実行すると `02-step-expanded.png` / `03-warnings-open.png` として生成される (本 PR では default のみ収録、UX 確認用途には十分)。
 
 ### 主要エリア
 

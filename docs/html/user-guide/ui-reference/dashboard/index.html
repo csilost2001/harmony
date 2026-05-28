@@ -1,0 +1,124 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../../favicon.svg" type="image/svg+xml"><title>ui reference/dashboard</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../../_astro/_slug_.DpmzT9nP.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="../../../user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="../../../user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="../../../user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="../../../user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="../../../user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="../../../user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="ダッシュボード">ダッシュボード</h1>
+<blockquote>
+<p><strong>対象画面</strong>: <code>DashboardView</code> (<code>frontend/src/components/dashboard/DashboardView.tsx</code>)
+<strong>ルート</strong>: <code>/w/:wsId/</code> (workspace 配下のトップ)
+<strong>種別</strong>: シングルトンタブ</p>
+</blockquote>
+<h2 id="概要">概要</h2>
+<p>プロジェクト全体の状況を一目で俯瞰するパネル集合体。機能別定義数 / 処理フロー成熟度 / AI 依頼マーカー / 未保存ドラフト / 最近編集したもの の 5 パネルを <code>react-grid-layout</code> でドラッグ・リサイズ可能に配置できる。レイアウトはブラウザの localStorage (<code>dashboard-layout-v1</code>) に永続化されるため、各利用者の好みでカスタマイズ可。</p>
+<h2 id="到達経路">到達経路</h2>
+<ul>
+<li>ワークスペースを選択した直後に最初に表示される (ホーム位置)</li>
+<li>HeaderMenu → 左端のロゴ / 「ダッシュボード」アイコン</li>
+<li>直接 URL: <code>/w/&#x3C;wsId>/</code></li>
+</ul>
+<h2 id="画面構成">画面構成</h2>
+<p><img alt="ダッシュボード (default)" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="720" src="../../../_astro/01-default.RzvokhP8_1lpb73.webp" ></p>
+<h3 id="主要エリア">主要エリア</h3>
+<ol>
+<li><strong>ヘッダー</strong> — タイトル「ダッシュボード」+ 副題「プロジェクト全体の状況を俯瞰 (パネルはドラッグ/リサイズ可能)」</li>
+<li><strong>パネルグリッド</strong> — 5 つの情報パネル (順序・サイズは利用者がカスタマイズ可)
+<ol>
+<li><strong>機能別定義数</strong> (<code>function-counts</code>) — 画面 / テーブル / 処理フロー等の件数</li>
+<li><strong>処理フロー成熟度</strong> (<code>process-flow-maturity</code>) — draft / committed の比率を可視化</li>
+<li><strong>AI 依頼マーカー</strong> (<code>markers-summary</code>) — 未解決のマーカー (指示・質問・TODO) 件数</li>
+<li><strong>未保存ドラフト</strong> (<code>unsaved-drafts</code>) — <code>data/.drafts/&#x3C;wsId>/</code> に残っているドラフト一覧</li>
+<li><strong>最近編集したもの</strong> (<code>recent-edits</code>) — 直近編集リソースのジャンプ用リンク</li>
+</ol>
+</li>
+</ol>
+<h2 id="主要操作">主要操作</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>パネル位置を変更</td><td>パネルヘッダ (タイトル部分) をドラッグ</td><td>レイアウト保存、次回起動時も復元</td></tr><tr><td>パネルサイズを変更</td><td>パネル右下のリサイズハンドルをドラッグ</td><td>サイズ保存</td></tr><tr><td>パネルから別画面へ遷移</td><td>各パネル内のリンク / ボタンをクリック</td><td>対応する一覧 / Editor が新タブで開く</td></tr><tr><td>レイアウトをリセット</td><td>localStorage の <code>dashboard-layout-v1</code> を削除 → ブラウザリロード</td><td>デフォルト配置に戻る</td></tr></tbody></table>
+<h2 id="データ前提">データ前提</h2>
+<ul>
+<li><strong>空状態</strong>: ワークスペース直後は全パネルが「0 件」表示。<code>function-counts</code> 以外は意味のあるデータが無い</li>
+<li><strong>意味のある状態</strong>: 何らかのリソース (画面 / テーブル / 処理フロー) が登録されると各パネルに値が入る</li>
+<li><strong>AI 依頼マーカー</strong>を活かすには、designer 画面で右クリック → マーカー追加で課題を書き込んでおく必要がある (<code>/designer-work</code> skill 参照)</li>
+</ul>
+<h2 id="関連仕様書">関連仕様書</h2>
+<ul>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/workspace.md"><code>docs/spec/workspace.md</code></a> — ワークスペースと dataDir の関係 (<code>recent-edits</code> の対象範囲)</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/draft-state-policy.md"><code>docs/spec/draft-state-policy.md</code></a> — <code>unsaved-drafts</code> の severity 判定基準</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/process-flow-maturity.md"><code>docs/spec/process-flow-maturity.md</code></a> — <code>process-flow-maturity</code> パネルが表示する成熟度</li>
+</ul>
+<h2 id="関連-skill">関連 skill</h2>
+<ul>
+<li><code>/designer-work</code> — designer 画面で書いたマーカーを Claude Code に処理させる (<code>markers-summary</code> パネルに反映)</li>
+<li><code>/create-flow</code> — 処理フローを作成 (作成すると <code>process-flow-maturity</code> / <code>function-counts</code> に反映)</li>
+</ul>
+<h2 id="既知の制約注意">既知の制約・注意</h2>
+<ul>
+<li><code>react-grid-layout</code> の WidthProvider はマウント時の親要素幅で col 数を決定する。サイドバー開閉直後の遅延 mount で誤判定する場合あり (リロードで解消)</li>
+<li>レイアウトの永続化は <strong>localStorage 単位 (ブラウザ単位)</strong>。別 PC / 別ブラウザでは別のレイアウトになる</li>
+<li>パネルが未登録の workspace では「パネルが未登録です (Issue #86 PR-5 以降で追加予定)」のプレースホルダが表示される (歴史的経緯による文言)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

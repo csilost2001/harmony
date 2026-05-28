@@ -22,8 +22,6 @@
 
 ![画面一覧 (table view)](../../ui-screenshots/ui-reference/screen-list/02-table.png)
 
-<!-- TODO: /document-ui screen-list 実行時に上記 2 枚を生成 -->
-
 ### 主要エリア
 
 1. **ヘッダー** — タイトル「画面一覧」+ 「新規作成」ボタン

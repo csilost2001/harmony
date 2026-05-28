@@ -1,0 +1,183 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../../favicon.svg" type="image/svg+xml"><title>ui reference/process flow editor</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../../_astro/_slug_.DpmzT9nP.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="../../../user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="../../../user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="../../../user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="../../../user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="../../../user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="../../../user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="処理フロー編集">処理フロー編集</h1>
+<blockquote>
+<p><strong>対象画面</strong>: <code>ProcessFlowEditor</code> (<code>frontend/src/components/process-flow/ProcessFlowEditor.tsx</code>)
+<strong>ルート</strong>: <code>/w/:wsId/process-flow/edit/:processFlowId</code>
+<strong>種別</strong>: マルチインスタンスタブ (リソース ID 毎)</p>
+</blockquote>
+<h2 id="概要">概要</h2>
+<p>Harmony の <strong>一次成果物</strong> である処理フロー (ProcessFlow JSON) を、Step / SubStep / Action / Trigger を組み合わせて編集する画面。本プロジェクトは「AI 読み取りが主、JSON Schema が一次」(<code>feedback_schema_first.md</code>) の方針で、UI は JSON 表現を可視化・編集する役割。<code>/create-flow</code> / <code>/review-flow</code> skill とセットで使う。</p>
+<h2 id="到達経路">到達経路</h2>
+<ul>
+<li>処理フロー一覧 (<code>/process-flow/list</code>) → 行をクリック / 「編集」アクション</li>
+<li>ダッシュボード「処理フロー成熟度」パネル → 個別の flow をクリック</li>
+<li>直接 URL: <code>/w/&#x3C;wsId>/process-flow/edit/&#x3C;flowId></code></li>
+</ul>
+<h2 id="画面構成">画面構成</h2>
+<p><img alt="処理フロー編集 (default)" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="720" src="../../../_astro/01-default.DQAJQodm_VWaqO.webp" ></p>
+<blockquote>
+<p>Step 詳細展開 / Warnings panel 開状態の追加 screenshot は follow-up で <code>/document-ui process-flow-editor</code> を再実行すると <code>02-step-expanded.png</code> / <code>03-warnings-open.png</code> として生成される (本 PR では default のみ収録、UX 確認用途には十分)。</p>
+</blockquote>
+<h3 id="主要エリア">主要エリア</h3>
+<ol>
+<li><strong>TableSubToolbar</strong> — 上端の補助ツールバー (workspace 切替・ヘルプ等)</li>
+<li><strong>EditModeToolbar</strong> — 編集モード切替 (閲覧 / 編集 / コンテキスト) と save / reset</li>
+<li><strong>EditorHeader</strong> — タイトル / id 表示 / id 変更ボタン / Codex 連携 / AI コンテキストチップ</li>
+<li><strong>メインキャンバス</strong> — Step (<code>StepCard</code>) を縦に並べた flow 本体
+<ul>
+<li>各 Step は <strong>Action</strong> (<code>add</code> / <code>update</code> / <code>compute</code> / <code>screenTransition</code> / <code>httpRoute</code> / <code>ai</code> 等) と <strong>Trigger</strong> (<code>onClick</code> / <code>onChange</code> 等) を内包</li>
+<li>SubStep (loop / branch / try 内の sub flow) を展開できる</li>
+<li><strong>D&#x26;D による Step 順序入れ替え</strong> (<code>@dnd-kit</code>)</li>
+</ul>
+</li>
+<li><strong>PaletteButtons</strong> — Step 種別パレット (画面上部または右側、<code>ToolbarStepButton</code>)</li>
+<li><strong>WarningsPanel</strong> — 検証結果一覧 (右側折りたたみ式)</li>
+<li><strong>AddActionModal</strong> — 「Action 追加」モーダル (Step 内で Action を新規作成)</li>
+<li><strong>DrawingOverlay</strong> — Step に紐付くマーカー / 注釈の描画レイヤ (<code>/designer-work</code> skill 連携)</li>
+<li><strong>ScreenItemPickerModal</strong> — 画面項目を式言語で参照する際の picker</li>
+</ol>
+<h2 id="主要操作">主要操作</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>Step 追加</td><td>上部パレットの種別ボタンをクリック or Step 間の <code>StepInsertZone</code> をクリック</td><td><code>STEP_TEMPLATES</code> のテンプレで Step が挿入される</td></tr><tr><td>Step 削除</td><td>Step 右クリック → 「削除」 or <code>Delete</code> キー</td><td><code>clearJumpReferences</code> で参照を解除して削除</td></tr><tr><td>Step 並び替え</td><td>Step ヘッダをドラッグ</td><td><code>@dnd-kit</code> で並び順変更、保存後に永続化</td></tr><tr><td>Step 複製</td><td>右クリック → 「複製」or <code>Ctrl+D</code></td><td>LocalId を採番して clone</td></tr><tr><td>Action 追加</td><td>Step 内「+」ボタン → <code>AddActionModal</code></td><td>trigger / type / outputName 等を入力</td></tr><tr><td>SubStep 追加</td><td>loop / branch / try 系 Step 内「+」</td><td>内側 Step を追加</td></tr><tr><td>id 変更 (rename refactor)</td><td>EditorHeader の「id 変更」</td><td><code>RenameEntityDialog</code> で kebab-case 新 id を入力、全 ref 自動更新</td></tr><tr><td>編集破棄</td><td>EditModeToolbar の「破棄」</td><td>確認後サーバ状態に戻す</td></tr><tr><td>保存</td><td><code>Ctrl+S</code> or 「保存」</td><td>edit-session 経由でサーバへ commit</td></tr><tr><td>AI 部分生成</td><td>EditorHeader の AI ボタン (Codex 連携)</td><td><code>requestProcessFlowPartial</code> で Codex に部分生成を依頼</td></tr><tr><td>検証結果を開く</td><td>右側 WarningsPanel ヘッダクリック</td><td>エラー / 警告一覧、Step / Action にジャンプ可</td></tr><tr><td>マーカー追加</td><td>Step 上で右クリック → マーカー追加</td><td><code>/designer-work</code> で Claude Code が処理する指示を残す</td></tr></tbody></table>
+<h2 id="データ前提">データ前提</h2>
+<ul>
+<li><strong>空フロー</strong>: Step が 0 件の場合 <code>EmptyFlowDropZone</code> が中央に表示され、ここに Step テンプレをドラッグ or パレットから追加</li>
+<li><strong>典型フロー</strong>: retail サンプルの <code>process-flows/order-checkout.json</code> 等は <strong>15-25 Step</strong>、<code>add</code> / <code>update</code> / <code>compute</code> / <code>screenTransition</code> / <code>httpRoute</code> を含む実用ボリューム</li>
+<li><strong>検証エラーがある状態</strong>: WarningsPanel に件数表示、Step に warning / error バッジ表示</li>
+<li><strong>draft 中状態</strong>: edit-session 経由の作業コピーが <code>data/.drafts/&#x3C;wsId>/process-flow/&#x3C;id>.json</code> に保持される</li>
+</ul>
+<h2 id="関連仕様書">関連仕様書</h2>
+<ul>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/process-flow-workflow.md"><code>docs/spec/process-flow-workflow.md</code></a> — 処理フロー設計の業務フロー</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/process-flow-variables.md"><code>docs/spec/process-flow-variables.md</code></a> — 変数ライフサイクル</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/process-flow-transaction.md"><code>docs/spec/process-flow-transaction.md</code></a> — TX 境界</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/process-flow-expression-language.md"><code>docs/spec/process-flow-expression-language.md</code></a> — 式言語</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/process-flow-extensions.md"><code>docs/spec/process-flow-extensions.md</code></a> — Step / Action 拡張</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/process-flow-criterion.md"><code>docs/spec/process-flow-criterion.md</code></a> — runIf / criterion</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/process-flow-runtime-conventions.md"><code>docs/spec/process-flow-runtime-conventions.md</code></a> — runtime 契約</li>
+<li><a href="https://github.com/csilost2001/harmony/blob/main/spec/edit-session-draft.md"><code>docs/spec/edit-session-draft.md</code></a> — 明示保存式 + サーバ側 draft 管理</li>
+</ul>
+<h2 id="関連-skill">関連 skill</h2>
+<ul>
+<li><code>/create-flow &#x3C;flowId> &#x3C;業務概要></code> — 処理フロー JSON を AI に新規作成させる (本画面で開いて編集 → 確定)</li>
+<li><code>/review-flow &#x3C;flowId></code> — 変数ライフサイクル / TX / runIf / 補償 / event 双方向の 10 観点を専門レビュー</li>
+<li><code>/designer-work</code> — Step マーカー (指示 / 質問 / TODO) を Claude Code に処理させる</li>
+<li><code>/generate-code &#x3C;flowId></code> — 処理フロー → backend code 生成 (techStack に基づき Spring Boot / NestJS 系を選択)</li>
+<li><code>/generate-tests &#x3C;flowId></code> — 処理フロー → backend e2e test 生成 (jest+supertest)</li>
+</ul>
+<h2 id="既知の制約注意">既知の制約・注意</h2>
+<ul>
+<li>一次成果物は <strong>JSON Schema</strong> (<code>schemas/v3/process-flow.v3.schema.json</code>)。UI は JSON 表現を編集する派生物に過ぎないため、UI で表現できる範囲は schema 制約に従う</li>
+<li>Schema 拡張は <a href="https://github.com/csilost2001/harmony/blob/main/spec/schema-governance.md"><code>docs/spec/schema-governance.md</code></a> に従い設計者承認必須。UI に「足りない field」を見つけても AI が勝手に schema を変更してはならない</li>
+<li>ProcessFlow の <strong><code>ProcessFlow</code> リネーム</strong>が進行中 (2026-04-25 決定)。当面表記が混在する可能性あり</li>
+<li>AI 部分生成 (Codex 連携) を使うには <code>.codex/config.toml</code> の設定 + <code>/codex:setup</code> が必要</li>
+<li>大規模フロー (Step 50+) での D&#x26;D は performance に注意。<code>processFlowMutation</code> の immutable update で最適化済 (PR #1394)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>
