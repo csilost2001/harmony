@@ -11,4 +11,4 @@ Claude Code 向け補足。プロジェクト全般のルールは [../AGENTS.md
 ### MCP 接続
 
 - `.mcp.json` の URL エントリ (`http://localhost:5179/mcp`) で本サーバに接続
-- 起動前提: このディレクトリで `npm run dev` により常駐済みであること
+- 起動前提: repo root で `npm run backend` (または本ディレクトリで `npm run dev`) により常駐済みであること (#1400)

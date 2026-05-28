@@ -168,26 +168,46 @@ npm install        # root で実行: shared / frontend / backend を npm workspa
 
 PR #1378 (#1375) で npm workspaces 化済み。`cd frontend && npm install` / `cd backend && npm install` は **非推奨** — workspace 認識されず `@harmony/shared` の resolution で失敗する場合がある。**root の `npm install` 1 発が canonical**。
 
-### Frontend (dev / build / lint は subdir で実行可)
+### 開発サーバ (frontend / backend は別ターミナルで個別起動、#1400)
+
+```bash
+# ターミナル A (常駐、起動しっぱなしで OK)
+npm run backend     # = npm run dev --workspace=backend (tsx watch、port 5179)
+
+# ターミナル B (開発中、Ctrl+C で頻繁に再起動)
+npm run frontend    # = npm run dev --workspace=frontend (vite、port 5173)
+```
+
+両者は npm workspaces ネイティブで root から起動できる。subdir に `cd` して `npm run dev` を直接叩いても等価 (`cd backend && npm run dev` / `cd frontend && npm run dev`)。
+
+**旧 `npm run dev` / `npm run restart` は #1400 で撤去** — concurrently で frontend + backend を束ねると Ctrl+C で backend が tsx watch の signal forwarding 問題により停止できない事象があったため。新コマンドは独立 terminal で各サーバを管理する。実行すると deprecation 通知が出る (`scripts/dev-deprecated.mjs`)。
+
+### Frontend のサブコマンド (subdir 実行可)
 
 ```bash
 cd frontend
-npm run dev        # Dev server (http://localhost:5173)
 npm run build      # shared rebuild → TypeScript check → Vite build
 npm run lint       # ESLint
 ```
 
-### Backend
+### Backend のサブコマンド
 
 ```bash
 cd backend
-npm run dev        # Watch mode (tsx)
 npm run build      # shared rebuild → Compile to dist/
 ```
 
 Both servers must run simultaneously for file-based persistence. Without backend, the frontend falls back to localStorage.
 
-`backend` は常駐サーバ (#302): `cd backend && npm run dev` で 1 回起動すれば、ブラウザ・複数の AI エージェントセッション双方が接続できる。エージェント終了でも停止しないので、次回以降も使い回し可能。
+`backend` は常駐サーバ (#302): `npm run backend` (root) または `cd backend && npm run dev` で 1 回起動すれば、ブラウザ・複数の AI エージェントセッション双方が接続できる。エージェント終了でも停止しないので、次回以降も使い回し可能。
+
+### 個別 port の kill / restart
+
+```bash
+npm run kill                 # 5173 / 5179 両方
+npm run restart:backend      # 5179 を kill → backend 再起動
+npm run restart:frontend     # 5173 を kill → frontend 再起動
+```
 
 ### 開発環境 (推奨: Dev Containers / 代替: WSL2 native)
 
@@ -388,7 +408,7 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 
 ### 起動
 
-- **通常の開発フロー**: `cd backend && npm run dev` で常駐起動 (任意のタイミングで 1 回)。AI エージェントは同プロジェクトで開けば MCP 設定経由で自動接続。
+- **通常の開発フロー**: `npm run backend` (root、または `cd backend && npm run dev`) で常駐起動 (任意のタイミングで 1 回)。AI エージェントは同プロジェクトで開けば MCP 設定経由で自動接続。
 - **自動 spawn はしない** (URL mode): エージェント起動時に既存サーバが無いと MCP 不接続状態になるため、backend が上がっているか先に確認すること。
 
 ### Routing

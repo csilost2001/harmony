@@ -1,4 +1,5 @@
 import { CodexClient, type CodexClientOptions } from "./client.js";
+import type { CloseOptions } from "./transport.js";
 import { AccountManager } from "./account.js";
 import { loadCodexConfig, type CodexConfig } from "./config.js";
 import { JsonRpcError } from "./jsonRpc.js";
@@ -42,6 +43,12 @@ export class CodexConnection {
 
   private _client: CodexClient | null = null;
   private _connecting: Promise<CodexClient> | null = null;
+  /**
+   * 接続中 shutdown 経路用 (#1400 Round 2)。
+   * close() で abort すると StdioTransport が child を即時 SIGKILL。
+   * connect 完了後は次回 connect のために null に戻す。
+   */
+  private _connectAbort: AbortController | null = null;
 
   private readonly _listeners = new Set<NotificationListener>();
   private _serverRequestHandler: ServerRequestHandler = null;
@@ -103,32 +110,60 @@ export class CodexConnection {
   }
 
   private async _doConnect(): Promise<CodexClient> {
-    const client = await this.clientFactory({
-      config: this.config,
-      clientInfo: this.clientInfo,
-      onNotification: (n) => this._handleNotification(n),
-      onServerRequest: (r) => this._handleServerRequest(r),
-      onError: (err) => {
-        console.error("[CodexConnection] transport error:", err.message);
-      },
-    });
+    // 接続中 shutdown を可能にする AbortController (#1400 Round 2-3)。
+    // close() で abort すると StdioTransport が即時 child を SIGKILL。
+    // ローカル controller を保持して late resolve 後の adopt 判定にも使う (Round 3 race 対策)。
+    const controller = new AbortController();
+    this._connectAbort = controller;
 
-    // Detect transport close so we can clear the reference (lazy reconnect on next call).
-    // CodexClient doesn't expose a close event directly; we hook it via the internal rpc
-    // by registering a request that immediately resolves — but that's not ideal. Instead,
-    // we watch the notification channel: when the client closes, in-flight requests reject
-    // but we still need to clear _client. We use a close probe via a Promise race.
-    // Simpler: wrap close detection at the transport level.
-    // Since CodexClient doesn't expose an "onClose" callback directly, we detect it
-    // indirectly: we call a no-op ping that the client will reject when closed; but that
-    // would be wasteful. Instead we rely on the fact that once the transport closes,
-    // `_client.request()` will throw, and in `request()` we clear `_client` on error.
-    // Additionally, we attach a cleanup via a hidden weak mechanism here:
-    this._attachCloseDetection(client);
+    let client: CodexClient | null = null;
+    try {
+      client = await this.clientFactory({
+        config: this.config,
+        clientInfo: this.clientInfo,
+        onNotification: (n) => this._handleNotification(n),
+        onServerRequest: (r) => this._handleServerRequest(r),
+        onError: (err) => {
+          console.error("[CodexConnection] transport error:", err.message);
+        },
+        signal: controller.signal,
+      });
 
-    this._client = client;
-    this._broadcastConnectionState("connected");
-    return client;
+      // Round 3 race 対策: close() が先に走って 1.5s timeout 後 late resolve した場合、
+      // この controller は既に abort されている (close() が呼んだ) ため、
+      // 返ってきた client は close 後 adoption に該当 → 即時 close + adopt しない。
+      // また、別の connect が同時に走って _connectAbort を上書きした場合も
+      // 古い controller のままなら最新の connect 試行と整合しないため adopt しない。
+      if (controller.signal.aborted || this._connectAbort !== controller) {
+        // close 中の transport は signal abort 経由で既に SIGKILL 済だが、
+        // resource cleanup を確実にするため明示的に client.close() を呼ぶ。
+        try { await client.close({ sigtermDelayMs: 0, sigkillDelayMs: 0 }); } catch { /* ignore */ }
+        throw new Error("CodexConnection: connect aborted by close()");
+      }
+
+      // Detect transport close so we can clear the reference (lazy reconnect on next call).
+      // CodexClient doesn't expose a close event directly; we hook it via the internal rpc
+      // by registering a request that immediately resolves — but that's not ideal. Instead,
+      // we watch the notification channel: when the client closes, in-flight requests reject
+      // but we still need to clear _client. We use a close probe via a Promise race.
+      // Simpler: wrap close detection at the transport level.
+      // Since CodexClient doesn't expose an "onClose" callback directly, we detect it
+      // indirectly: we call a no-op ping that the client will reject when closed; but that
+      // would be wasteful. Instead we rely on the fact that once the transport closes,
+      // `_client.request()` will throw, and in `request()` we clear `_client` on error.
+      // Additionally, we attach a cleanup via a hidden weak mechanism here:
+      this._attachCloseDetection(client);
+
+      this._client = client;
+      this._broadcastConnectionState("connected");
+      return client;
+    } finally {
+      // 成功 / 失敗を問わず、自分が登録した controller のみ clear (Round 3 Should-fix)。
+      // 別の connect が並行で走って上書きした場合は触らない。
+      if (this._connectAbort === controller) {
+        this._connectAbort = null;
+      }
+    }
   }
 
   /**
@@ -210,13 +245,30 @@ export class CodexConnection {
 
   // ── Close ─────────────────────────────────────────────────────────────────
 
-  async close(): Promise<void> {
+  async close(opts?: CloseOptions): Promise<void> {
+    // 接続中 race 対策 (#1400 Round 2): in-flight connect があれば abort で子プロセスを即時 kill。
+    // connect 中 SIGINT が入った場合、AbortController が StdioTransport の child を SIGKILL する。
+    if (this._connectAbort) {
+      this._connectAbort.abort();
+      this._connectAbort = null;
+    }
+    // 接続中 Promise の reject / resolve を待つ (kill 後の cleanup を確実に走らせるため)。
+    // hang 防止に 1.5 秒で諦める — 親 safeguard 3 秒 + tsx force-kill 5 秒の範囲に収める。
+    const inFlight = this._connecting;
+    if (inFlight) {
+      try {
+        await Promise.race([
+          inFlight.catch(() => null),
+          new Promise<null>((resolve) => setTimeout(resolve, 1500)),
+        ]);
+      } catch { /* ignore */ }
+    }
     const client = this._client;
     this._client = null;
     this._connecting = null;
     if (client) {
       try {
-        await client.close();
+        await client.close(opts);
       } catch { /* ignore close errors */ }
       this._broadcastConnectionState("disconnected");
     }
