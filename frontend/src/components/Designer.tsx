@@ -69,6 +69,11 @@ export interface DesignerProps {
   pageLayoutAssignments?: Record<string, string>;
   /** gadget screenId → design HTML (event load 済の map) */
   gadgetHtmlMap?: Map<string, string>;
+  // #1406: composition preview に project CSS を合成するための CSS データ
+  /** PageLayout 自身の project CSS (GrapesJS styles を直列化したもの) */
+  pageLayoutCss?: string;
+  /** gadget screenId → project CSS */
+  gadgetCssMap?: Map<string, string>;
 }
 
 export function Designer({
@@ -84,6 +89,8 @@ export function Designer({
   pageLayoutHtml,
   pageLayoutAssignments,
   gadgetHtmlMap,
+  pageLayoutCss,
+  gadgetCssMap,
 }: DesignerProps) {
   const [isDirty, setIsDirtyState] = useState(false);
   // RFC #1021 pl-6 (Codex C-1): GrapesJS editor の生インスタンス参照 / composition preview modal の表示状態は
@@ -1023,6 +1030,8 @@ export function Designer({
       pageLayoutHtml={pageLayoutHtml}
       pageLayoutAssignments={pageLayoutAssignments}
       gadgetHtmlMap={gadgetHtmlMap}
+      pageLayoutCss={pageLayoutCss}
+      gadgetCssMap={gadgetCssMap}
       onGrapesEditorReady={onGrapesEditorReady}
     />
   );

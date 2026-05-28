@@ -37,6 +37,99 @@ export function extractGrapesHtml(design: unknown): string | null {
   return typeof components === "string" ? components : null;
 }
 
+// ---------------------------------------------------------------------------
+// #1406: GrapesJS design data の `styles` (CssRule[] JSON) を CSS string に直列化する。
+//
+// 背景: composition preview は HTML だけを合成し、PageLayout / gadget design に紐づく
+// project CSS (GrapesJS Style Manager で付与された規則) を反映できていなかった。
+// canvas は live editor の `editor.getCss()` で project CSS を持つが、preview は raw
+// design JSON しか持たないため、ここで JSON → CSS の serializer を用意する。
+//
+// GrapesJS の永続化形式 (CssRuleJSON):
+//   { selectors: (string|{name,type?})[], selectorsAdd?, style?, state?,
+//     atRuleType?, mediaText?, singleAtRule? }
+// セレクタ type: 1=class (.foo) / 2=id (#foo) / 省略時は class 扱い。
+// ---------------------------------------------------------------------------
+
+/** GrapesJS selector JSON の最小型 */
+interface GrapesSelectorJson {
+  name: string;
+  type?: number;
+}
+
+/** GrapesJS CssRule JSON の最小型 */
+interface GrapesCssRuleJson {
+  selectors?: Array<string | GrapesSelectorJson>;
+  selectorsAdd?: string;
+  style?: Record<string, unknown>;
+  state?: string;
+  atRuleType?: string;
+  mediaText?: string;
+  singleAtRule?: boolean;
+}
+
+/** 単一 selector JSON を CSS セレクタ文字列に変換する (type 1=class / 2=id)。 */
+function _selectorToCss(sel: string | GrapesSelectorJson): string {
+  if (typeof sel === "string") {
+    // 文字列形式は素の class 名 (prefix なし) を想定。既に . / # 付きならそのまま使う。
+    return /^[.#]/.test(sel) ? sel : `.${sel}`;
+  }
+  const name = sel?.name ?? "";
+  if (!name) return "";
+  if (sel.type === 2) return `#${name}`;
+  return `.${name}`;
+}
+
+/** style オブジェクトを `prop: value;` 宣言ブロックに変換する。 */
+function _styleToDeclarations(style: Record<string, unknown> | undefined): string {
+  if (!style || typeof style !== "object") return "";
+  return Object.entries(style)
+    .filter(([, v]) => v !== undefined && v !== null && v !== "")
+    .map(([prop, value]) => `${prop}:${String(value)};`)
+    .join("");
+}
+
+/** 単一 CssRule JSON を CSS 規則文字列に変換する (media at-rule 対応)。 */
+function _ruleToCss(rule: GrapesCssRuleJson): string {
+  const decls = _styleToDeclarations(rule.style);
+  if (!decls) return "";
+
+  // セレクタ組み立て: selectors[] を連結 (例: .a.b) + state (例: :hover) + selectorsAdd
+  const selectorPart = (rule.selectors ?? [])
+    .map(_selectorToCss)
+    .filter(Boolean)
+    .join("");
+  const statePart = rule.state ? `:${rule.state}` : "";
+  let selector = `${selectorPart}${statePart}`;
+  if (rule.selectorsAdd) {
+    // selectorsAdd は追加セレクタ (例: タグ名や複合)。selector が空ならそのまま使う。
+    selector = selector ? `${selector}, ${rule.selectorsAdd}` : rule.selectorsAdd;
+  }
+  if (!selector) return "";
+
+  const body = `${selector}{${decls}}`;
+
+  // media クエリ等の at-rule をラップ
+  if (rule.atRuleType === "media" && rule.mediaText) {
+    return `@media ${rule.mediaText}{${body}}`;
+  }
+  return body;
+}
+
+/**
+ * #1406: GrapesJS design data の `styles` 配列を CSS string に直列化する。
+ * design が styles を持たない / 空配列の場合は空文字を返す。
+ */
+export function extractGrapesCss(design: unknown): string {
+  if (!design || typeof design !== "object") return "";
+  const d = design as { styles?: unknown };
+  if (!Array.isArray(d.styles) || d.styles.length === 0) return "";
+  return (d.styles as GrapesCssRuleJson[])
+    .map(_ruleToCss)
+    .filter(Boolean)
+    .join("\n");
+}
+
 /**
  * RFC #1021 pl-6 (Codex C-1): Page Screen の composition preview HTML を組み立てる。
  *
@@ -81,6 +174,51 @@ export function composePreviewHtml(
   } catch {
     return pageLayoutHtml;
   }
+}
+
+/**
+ * #1406: composition preview iframe の srcDoc (完全な HTML document) を組み立てる。
+ *
+ * canvas と同一の CSS スタックを再現するため、以下を `<head>` に注入する:
+ *   1. styleHrefs — grapesCanvasAssets.buildPreviewStyleHrefs() が返す framework + variant の
+ *      `<link>` (Bootstrap CDN / theme-bootstrap・tailwind / variant override / common.css)
+ *   2. projectCssBlocks — PageLayout / gadget / 編集中 Screen の GrapesJS project CSS を
+ *      `<style>` ブロックとして後から注入 (link より後勝ちで、設計者が付けた規則が優先される)
+ *
+ * セキュリティ (S-003 / CWE-79): bodyHtml は composePreviewHtml() 内で DOMPurify 済。
+ * projectCssBlocks は CSS 文字列であり HTML サニタイズ対象外だが、`<style>` ブロックからの
+ * 脱出 (`</style>` 注入による HTML injection) を防ぐため `_sanitizeCssBlock()` で
+ * `</style` シーケンスを無害化する。
+ */
+export function buildCompositionPreviewSrcDoc(
+  bodyHtml: string,
+  styleHrefs: string[],
+  projectCssBlocks: string[] = [],
+): string {
+  const links = styleHrefs
+    .filter((href) => typeof href === "string" && href.length > 0)
+    .map((href) => `<link href="${_escapeAttr(href)}" rel="stylesheet">`)
+    .join("\n");
+  const styleBlocks = projectCssBlocks
+    .filter((css) => typeof css === "string" && css.trim().length > 0)
+    .map((css) => `<style>${_sanitizeCssBlock(css)}</style>`)
+    .join("\n");
+  return `<!DOCTYPE html><html><head>
+<meta charset="utf-8" />
+${links}
+<style>body{margin:0;font-family:system-ui,sans-serif}</style>
+${styleBlocks}
+</head><body>${bodyHtml}</body></html>`;
+}
+
+/** `<style>` ブロック脱出防止: `</style` を無害化する (case-insensitive)。 */
+function _sanitizeCssBlock(css: string): string {
+  return css.replace(/<\/style/gi, "<\\/style");
+}
+
+/** href 属性値の最低限エスケープ (" と < を除去) — CDN/asset URL 想定。 */
+function _escapeAttr(value: string): string {
+  return value.replace(/["<>]/g, "");
 }
 
 /**

@@ -18,7 +18,11 @@ import type {
 import type { McpStatus } from "../../mcp/mcpBridge";
 import type { CssFramework } from "../../types/v3/harmony";
 import type { EditMode } from "../../hooks/useEditSession";
-import { composePreviewHtml } from "../../utils/pageLayoutCompositionPreview";
+import {
+  composePreviewHtml,
+  buildCompositionPreviewSrcDoc,
+} from "../../utils/pageLayoutCompositionPreview";
+import { buildPreviewStyleHrefs } from "../../editor/grapesCanvasAssets";
 
 export interface GrapesEditorHostProps {
   backend: GrapesJSBackend;
@@ -71,6 +75,9 @@ export interface GrapesEditorHostProps {
   pageLayoutHtml?: string;
   pageLayoutAssignments?: Record<string, string>;
   gadgetHtmlMap?: Map<string, string>;
+  // #1406: composition preview に project CSS を合成するための CSS データ
+  pageLayoutCss?: string;
+  gadgetCssMap?: Map<string, string>;
   onGrapesEditorReady?: (editor: import("grapesjs").Editor) => void;
 }
 
@@ -146,6 +153,16 @@ export function GrapesEditorHost(props: GrapesEditorHostProps) {
     }
   }, [grapesEditor]);
 
+  // #1406: 編集中 Screen の project CSS (GrapesJS Style Manager で付与された規則) を
+  // composition preview に合成するため live editor から取得する。
+  const getScreenCss = useCallback(() => {
+    try {
+      return grapesEditor?.getCss?.() ?? "";
+    } catch {
+      return "";
+    }
+  }, [grapesEditor]);
+
   const handlePreviewClick = useCallback(() => {
     setShowCompositionPreview(true);
   }, []);
@@ -177,6 +194,11 @@ export function GrapesEditorHost(props: GrapesEditorHostProps) {
           assignments={props.pageLayoutAssignments ?? {}}
           gadgetHtmlMap={props.gadgetHtmlMap ?? new Map()}
           getScreenContent={getScreenContent}
+          getScreenCss={getScreenCss}
+          cssFramework={props.cssFramework}
+          themeVariant={props.themeVariant}
+          pageLayoutCss={props.pageLayoutCss}
+          gadgetCssMap={props.gadgetCssMap}
           onClose={handleClosePreview}
         />
       )}
@@ -290,6 +312,12 @@ interface CompositionPreviewModalProps {
   assignments: Record<string, string>;
   gadgetHtmlMap: Map<string, string>;
   getScreenContent: () => string;
+  // #1406: canvas と同一の CSS スタックを再現するための framework / variant / project CSS
+  getScreenCss: () => string;
+  cssFramework: CssFramework;
+  themeVariant: ThemeId;
+  pageLayoutCss?: string;
+  gadgetCssMap?: Map<string, string>;
   onClose: () => void;
 }
 
@@ -299,18 +327,46 @@ function CompositionPreviewModal({
   assignments,
   gadgetHtmlMap,
   getScreenContent,
+  getScreenCss,
+  cssFramework,
+  themeVariant,
+  pageLayoutCss,
+  gadgetCssMap,
   onClose,
 }: CompositionPreviewModalProps) {
   const composedSrcDoc = useMemo(() => {
     const screenContent = getScreenContent();
     const composed = composePreviewHtml(pageLayoutHtml, assignments, gadgetHtmlMap, screenContent);
-    return `<!DOCTYPE html><html><head>
-	<meta charset="utf-8" />
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.min.css" rel="stylesheet">
-	<style>body{margin:0;font-family:system-ui,sans-serif}</style>
-	</head><body>${composed}</body></html>`;
-  }, [pageLayoutHtml, assignments, gadgetHtmlMap, getScreenContent]);
+
+    // #1406: canvas (GrapesJSBackend) と同一の framework + variant CSS スタックを再現する。
+    // grapesCanvasAssets が canvas / preview 双方の単一 source of truth。
+    const styleHrefs = buildPreviewStyleHrefs(cssFramework, themeVariant);
+
+    // #1406: PageLayout / gadget / 編集中 Screen の project CSS を `<style>` で注入。
+    // gadget CSS は assignments で実際に使われているもののみ収集する。
+    const projectCssBlocks: string[] = [];
+    if (pageLayoutCss) projectCssBlocks.push(pageLayoutCss);
+    if (gadgetCssMap) {
+      for (const gadgetId of Object.values(assignments)) {
+        const css = gadgetCssMap.get(gadgetId);
+        if (css) projectCssBlocks.push(css);
+      }
+    }
+    const screenCss = getScreenCss();
+    if (screenCss) projectCssBlocks.push(screenCss);
+
+    return buildCompositionPreviewSrcDoc(composed, styleHrefs, projectCssBlocks);
+  }, [
+    pageLayoutHtml,
+    assignments,
+    gadgetHtmlMap,
+    getScreenContent,
+    getScreenCss,
+    cssFramework,
+    themeVariant,
+    pageLayoutCss,
+    gadgetCssMap,
+  ]);
 
   return (
     <div
