@@ -92,7 +92,7 @@ Claude Code セッションを開かずにブラウザだけで AI 命名を実�
 
 ### 前提
 
-- `backend` が稼働していること (`cd backend && npm run dev`)
+- `backend` が稼働していること (`npm run backend` または `cd backend && npm run dev`)
 - `backend` が稼働するマシンで `claude login` 済みであること
 
 認証確認コマンド:

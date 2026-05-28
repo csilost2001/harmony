@@ -9,12 +9,17 @@ MCP サーバ + WebSocket ブリッジ。ブラウザと AI コーディング�
 # subdir 単独 install は workspace 認識されず非推奨
 # cd <repo-root> && npm install
 
-# Backend dev / build は subdir で
-npm run dev        # Watch mode (tsx)
+# Backend dev は root から workspace script で (#1400)
+# (subdir に cd して `npm run dev` でも等価)
+npm run backend            # root: Watch mode (tsx)
+npm run restart:backend    # root: port 5179 を kill → 再起動
+
+# Build は subdir で
+cd backend
 npm run build      # shared rebuild → Compile to dist/
 ```
 
-常駐サーバ (#302): `npm run dev` で 1 回起動すれば、ブラウザ・複数の AI エージェントセッション双方が接続できる。エージェント終了でも停止しないので、次回以降も使い回し可能。
+常駐サーバ (#302): `npm run backend` で 1 回起動すれば、ブラウザ・複数の AI エージェントセッション双方が接続できる。エージェント終了でも停止しないので、次回以降も使い回し可能。
 
 ## Key Files
 

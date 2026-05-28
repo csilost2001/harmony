@@ -162,8 +162,9 @@
 <hr>
 <h2 id="step-1-4-backend-起動確認">Step 1-4: backend 起動確認</h2>
 <p>WSL2 シェル (ターミナル 1) で:</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony/backend</span></span>
-<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span></span></code></pre>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span><span style="color:#6A737D;--shiki-dark:#768390">     # = npm run dev --workspace=backend (#1400)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># subdir 派は cd ~/projects/harmony/backend &#x26;&#x26; npm run dev でも等価</span></span></code></pre>
 <p><strong>期待される出力例</strong>:</p>
 <ul>
 <li><code>MCP server</code> のような起動メッセージ</li>
@@ -183,8 +184,9 @@
 <hr>
 <h2 id="step-1-5-frontend-起動確認">Step 1-5: frontend 起動確認</h2>
 <p>別の WSL2 タブ (ターミナル 2) で。Step 1-4 のターミナルは残したまま。</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony/frontend</span></span>
-<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span></span></code></pre>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> frontend</span><span style="color:#6A737D;--shiki-dark:#768390">     # = npm run dev --workspace=frontend (#1400)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># subdir 派は cd ~/projects/harmony/frontend &#x26;&#x26; npm run dev でも等価</span></span></code></pre>
 <p><strong>期待される出力</strong>:</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>VITE vX.X.X  ready in XXX ms</span></span>
 <span class="line"><span>➜  Local:   http://localhost:5173/</span></span></code></pre>
@@ -216,7 +218,7 @@
 <li><code>GitHub Copilot</code> (拡張機能パネルで「Install in WSL: Ubuntu」ボタン)</li>
 <li><code>Docker</code> (任意)</li>
 </ul>
-<p>VSCode 内蔵ターミナルが bash で開くようになる。<code>npm run dev</code> も VSCode 内ターミナルで起動可能。</p>
+<p>VSCode 内蔵ターミナルが bash で開くようになる。<code>npm run backend</code> / <code>npm run frontend</code> も VSCode 内ターミナルで起動可能 (#1400)。</p>
 <h4 id="成功確認-6">成功確認</h4>
 <ul class="contains-task-list">
 <li class="task-list-item"><input type="checkbox" disabled> ステータスバー左下が <code>WSL: Ubuntu</code> 表示</li>
@@ -269,8 +271,8 @@
 <p>以下が全て動作することを確認:</p>
 <ul class="contains-task-list">
 <li class="task-list-item"><input type="checkbox" disabled> WSL2 シェルで <code>cd ~/projects/harmony</code> できる</li>
-<li class="task-list-item"><input type="checkbox" disabled> <code>cd backend &#x26;&#x26; npm run dev</code> が起動継続</li>
-<li class="task-list-item"><input type="checkbox" disabled> <code>cd frontend &#x26;&#x26; npm run dev</code> が起動継続 (別タブ)</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>npm run backend</code> (または <code>cd backend &#x26;&#x26; npm run dev</code>) が起動継続</li>
+<li class="task-list-item"><input type="checkbox" disabled> <code>npm run frontend</code> (または <code>cd frontend &#x26;&#x26; npm run dev</code>) が起動継続 (別タブ)</li>
 <li class="task-list-item"><input type="checkbox" disabled> Windows ブラウザで <code>http://localhost:5173</code> でデザイナー操作可</li>
 <li class="task-list-item"><input type="checkbox" disabled> backend 経由で <code>workspaces/</code> に JSON ファイルが書き込まれる</li>
 <li class="task-list-item"><input type="checkbox" disabled> WSL2 内の Claude Code が起動して MCP tool を呼べる</li>

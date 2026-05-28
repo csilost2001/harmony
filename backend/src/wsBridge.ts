@@ -302,22 +302,37 @@ export class WsBridge extends EventEmitter {
     presenceStopCleanupInterval();
   }
 
-  /** HTTP + WebSocket サーバを停止し全接続を切断する。shutdown hook 用。 */
-  stop(): void {
+  /**
+   * HTTP + WebSocket サーバを停止し全接続を切断する。shutdown hook 用。
+   *
+   * #1400: async 化して Codex 子プロセス / WebSocket / HTTP server の close を
+   * すべて await する。fire-and-forget だった旧実装では codex app-server (孫)
+   * の SIGTERM/SIGKILL タイマーが発火する前に親 Node が process.exit() で
+   * 死ぬため孫が orphan 化し、Ctrl+C 後も socket が解放されない事象があった。
+   */
+  async stop(): Promise<void> {
     presenceStopCleanupInterval();
     this.stopEditSessionCleanup();
     // Close Codex connection if it was opened (#867)
-    void this.codex.close();
+    // 孫プロセス (codex app-server) の終了を必ず待つ (#1400)。
+    // shutdown context では graceful 5s/10s を待たず、短縮 timer で確実に kill する
+    // (親 safeguard 3 秒 + tsx watch 5 秒 force-kill より早く Codex 孫が確定的に死ぬよう、
+    // SIGTERM 500ms → SIGKILL 1500ms の積極的な timeline を渡す)。
+    try {
+      await this.codex.close({ sigtermDelayMs: 500, sigkillDelayMs: 1500 });
+    } catch { /* ignore close errors */ }
     if (this.wss) {
       for (const client of this.wss.clients) {
         client.terminate();
       }
-      this.wss.close();
+      const wss = this.wss;
+      await new Promise<void>((resolve) => wss.close(() => resolve()));
       this.wss = null;
     }
     if (this.httpServer) {
       this.httpServer.closeAllConnections?.();
-      this.httpServer.close();
+      const httpServer = this.httpServer;
+      await new Promise<void>((resolve) => httpServer.close(() => resolve()));
       this.httpServer = null;
     }
   }

@@ -12,6 +12,7 @@
  * `wsHandlers/codex.ts` 側で `bridge.codex` 経由で本インスタンスを取得して使用する。
  */
 import { CodexConnection } from "./connection.js";
+import type { CloseOptions } from "./transport.js";
 import type { ServerNotification } from "./types/ServerNotification.js";
 import type { ServerRequest } from "./types/ServerRequest.js";
 
@@ -114,12 +115,12 @@ export class CodexBroadcastBridge {
     }
   }
 
-  /** Close CodexConnection on shutdown. */
-  async close(): Promise<void> {
+  /** Close CodexConnection on shutdown. opts は transport の SIGTERM/SIGKILL timer 短縮用 (#1400) */
+  async close(opts?: CloseOptions): Promise<void> {
     if (this._conn) {
       const conn = this._conn;
       this._conn = null;
-      await conn.close();
+      await conn.close(opts);
     }
   }
 }

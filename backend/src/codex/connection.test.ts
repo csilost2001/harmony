@@ -364,6 +364,136 @@ describe("CodexConnection", () => {
       await conn.close();
       await expect(conn.close()).resolves.toBeUndefined();
     });
+
+    // #1400 Round 2: 接続中 shutdown race の回帰防止。
+    // connect() in-flight 中に close() が呼ばれた場合、factory に渡された signal が
+    // abort される (StdioTransport が child を SIGKILL する経路)。
+    it("close() during in-flight connect aborts the factory signal", async () => {
+      let receivedSignal: AbortSignal | undefined;
+      let resolveFactory: ((client: CodexClient) => void) | null = null;
+      const factory = vi.fn(async (opts: CodexClientOptions): Promise<CodexClient> => {
+        receivedSignal = opts.signal;
+        return new Promise<CodexClient>((resolve) => {
+          resolveFactory = resolve;
+        });
+      });
+      const conn = new CodexConnection({ _clientFactory: factory });
+
+      // Start connect but don't await — factory hangs intentionally.
+      const connectP = conn.connect().catch(() => null);
+      // Yield so factory is entered.
+      await new Promise((r) => setImmediate(r));
+      expect(receivedSignal).toBeDefined();
+      expect(receivedSignal!.aborted).toBe(false);
+
+      // Trigger shutdown during in-flight connect.
+      const closeP = conn.close();
+      await new Promise((r) => setImmediate(r));
+      expect(receivedSignal!.aborted).toBe(true);
+
+      // Cleanup: resolve the factory with a minimal client so the connect promise can settle.
+      resolveFactory!({
+        request: async () => undefined,
+        notify: () => undefined,
+        close: async () => undefined,
+        getInitializeResponse: () =>
+          ({}) as import("./types/InitializeResponse.js").InitializeResponse,
+      } as unknown as CodexClient);
+      await connectP;
+      await closeP;
+    });
+
+    // #1400 Round 3: in-flight close 中の late adoption rejection。
+    // close() が `_connecting` を await 中の状態で factory が resolve した場合、
+    // controller.signal.aborted check で adopt 拒否されることを検証。
+    it("close() during in-flight connect rejects late factory resolve (in-flight close)", async () => {
+      let resolveFactory: ((client: CodexClient) => void) | null = null;
+      let lateClientCloseCalled = false;
+      const factory = vi.fn(async (_opts: CodexClientOptions): Promise<CodexClient> => {
+        return new Promise<CodexClient>((resolve) => {
+          resolveFactory = resolve;
+        });
+      });
+      const conn = new CodexConnection({ _clientFactory: factory });
+
+      const connectP = conn.connect().catch(() => null);
+      await new Promise((r) => setImmediate(r));
+
+      // close() — aborts signal immediately, but factory is still hanging.
+      const closeP = conn.close();
+      await new Promise((r) => setImmediate(r));
+      // close() is still awaiting _connecting (with 1.5s race), so it has not returned yet.
+
+      // Late resolve from factory — should NOT be adopted because controller is aborted.
+      const lateClient = {
+        request: async () => undefined,
+        notify: () => undefined,
+        close: async () => { lateClientCloseCalled = true; },
+        getInitializeResponse: () =>
+          ({}) as import("./types/InitializeResponse.js").InitializeResponse,
+      } as unknown as CodexClient;
+      resolveFactory!(lateClient);
+
+      await connectP;
+      await closeP;
+
+      // After both promises settle: _client must remain null, late client must have been closed.
+      expect(conn.isConnected()).toBe(false);
+      expect(lateClientCloseCalled).toBe(true);
+    });
+
+    // #1400 Round 3-4: 「close() が 1.5s timeout で *先に return* した後」の late resolve race。
+    // Codex Round 4 Should-fix 指摘で補強。前述の test では closeP が in-flight (まだ
+    // _connecting を待っている状態) で resolve していたため、本来 Round 3 で本丸だった
+    // 「1.5s timeout 後に close() が諦めて返ったあとの late resolve」を再現できていなかった。
+    // fake timer で 1.5s race を fire させて closeP を先に settle させ、その後に late
+    // resolve して late adoption が正しく拒否されることを検証する。
+    it("close() returns first via 1.5s timeout, then late factory resolve must NOT adopt", async () => {
+      vi.useFakeTimers();
+      try {
+        let resolveFactory: ((client: CodexClient) => void) | null = null;
+        let lateClientCloseCalled = false;
+        const factory = vi.fn(async (_opts: CodexClientOptions): Promise<CodexClient> => {
+          return new Promise<CodexClient>((resolve) => {
+            resolveFactory = resolve;
+          });
+        });
+        const conn = new CodexConnection({ _clientFactory: factory });
+
+        // 接続中 (factory hangs)
+        const connectP = conn.connect().catch(() => null);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        // close() を呼ぶ。abort signal を fire してから 1.5s race を開始。
+        const closeP = conn.close();
+        // 1.5s race の setTimeout を発火させて close() を return させる。
+        await vi.advanceTimersByTimeAsync(1600);
+        await closeP;
+        expect(conn.isConnected()).toBe(false);
+
+        // ここから先は close() が return した *後* の世界。
+        // late resolve しても _doConnect() は controller.signal.aborted 経由で adopt 拒否する。
+        const lateClient = {
+          request: async () => undefined,
+          notify: () => undefined,
+          close: async () => { lateClientCloseCalled = true; },
+          getInitializeResponse: () =>
+            ({}) as import("./types/InitializeResponse.js").InitializeResponse,
+        } as unknown as CodexClient;
+        resolveFactory!(lateClient);
+
+        // _doConnect() の adopt 拒否 path が走るまで待つ。
+        await connectP;
+        await vi.advanceTimersByTimeAsync(0);
+
+        // 検証: _client は null のまま (late adoption 拒否)、late client は明示 close 済み。
+        expect(conn.isConnected()).toBe(false);
+        expect(lateClientCloseCalled).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   describe("connect() failure", () => {

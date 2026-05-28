@@ -44,14 +44,15 @@ VSCode 起動後:
 4. ターミナルで以下を実行:
 
 ```bash
-# backend を起動 (タブ 1)
-cd backend
-npm run dev
+# backend を起動 (タブ 1、常駐)
+npm run backend
 
 # frontend を起動 (タブ 2 — ターミナル分割 or 新規)
-cd frontend
-npm run dev
+npm run frontend
 ```
+
+> root で `npm run backend` / `npm run frontend` (#1400)。subdir で `cd backend && npm run dev` も等価。
+> 旧 `npm run dev` (frontend + backend を concurrently で束ねる) は Ctrl+C 不能問題 (#1400) で撤去済み。
 
 5. Windows ブラウザで `http://localhost:5173` を開く (ポート 5173 / 5179 は Dev Containers が自動 forward)
 
@@ -157,9 +158,9 @@ node --version    # v20.x.x
 npm --version
 gh --version
 
-# 起動
-cd backend && npm run dev    # タブ 1
-cd frontend && npm run dev   # タブ 2
+# 起動 (root から、#1400)
+npm run backend     # タブ 1 (常駐、port 5179)
+npm run frontend    # タブ 2 (port 5173、Ctrl+C で頻繁に再起動)
 ```
 
 Windows ブラウザで `http://localhost:5173` がデザイナー UI を表示すれば OK。
@@ -201,7 +202,7 @@ WSL2 native 開発に即戻る。`.devcontainer/` は repo に残っているが
 
 `.devcontainer/` が repo にあっても、WSL2 native セットアップは引き続き動作します。以下のように使い分けることも可能:
 
-- WSL2 native の `cd backend && npm run dev` は引き続き動く
+- WSL2 native の `npm run backend` (root) / `cd backend && npm run dev` は引き続き動く
 - `~/.claude/`, `~/.gitconfig`, `~/.ssh/` は WSL2 native のものをそのまま使う (Remote-WSL モード時)
 - VSCode で開く時に **WSL モードか Container モードを選択** できる
 
@@ -518,7 +519,7 @@ bash .devcontainer/scripts/build-base.sh
 | `~/.gitconfig` / `~/.ssh/` が container 内で使えない | Dev Containers は通常ホストの `~/.gitconfig` / `~/.ssh/` を mount するが、必要なら `mounts` 設定追加。`gh auth login` を container 内で再実行する手もあり |
 | `codex login` / `claude` 起動で `Permission denied (os error 13)` | Named volume mount target (`/home/node/.claude` / `.codex`) の所有権が root になっている。`devcontainer.json` の `onCreateCommand` で `sudo chown -R node:node` を実行する仕組みあり (container 新規作成時 1 回だけ走る)。手動で直す場合: `sudo chown -R node:node ~/.claude ~/.codex` |
 | backend 起動時に `port 5179 already in use` | WSL2 native 側で backend が動いている。`pkill -f tsx` で WSL2 native プロセスを停止してから container 内で起動 |
-| Claude Code が container 内で MCP に繋がらない | `.mcp.json` の `http://localhost:5179/mcp` は container 内では localhost = container 自身。backend が container 内で `npm run dev` 起動中であることを確認 |
+| Claude Code が container 内で MCP に繋がらない | `.mcp.json` の `http://localhost:5179/mcp` は container 内では localhost = container 自身。backend が container 内で `npm run backend` 起動中であることを確認 |
 | container が起動するが永続化が消える | host subdir bind mount が正しく動いていない。`ls ~/.agent-containers/<project>/.claude/` で host 側にファイルがあるか確認。空なら旧 Named Volume からの migration 未完了の可能性 — 本 doc「Named Volume からの migration」節参照。VSCode `Dev Containers: Show Container Log` で mount エラーも確認 |
 | rebuild の度に Claude が wizard を要求する | `~/.agent-containers/<project>/.claude/.config.json` が host に無い (postCreateCommand 未実行/失敗) → 本 doc「3. データ永続化」節を参照 |
 | Claude が `/login` を要求する (`.credentials.json` あるのに) | refreshToken が expire (典型 60〜90 日) → container 内で `claude /login` を再実行してブラウザ OAuth |

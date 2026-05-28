@@ -34,12 +34,26 @@ VS Code 起動後:
 
 1. 右下のポップアップで **「Reopen in Container」** をクリック (見逃したら `Ctrl+Shift+P` → `Dev Containers: Reopen in Container`)
 2. 初回は image pull + `postCreateCommand` で **数分〜10 分** (Phase 5 #1120 以降は features install 廃止、cold start 短縮)
-3. 完了したら container 内ターミナルで:
+3. 完了したら container 内ターミナルで (どちらも root から実行可、#1400):
    ```bash
-   cd backend && npm run dev    # タブ 1
-   cd frontend && npm run dev   # タブ 2
+   npm run backend     # タブ 1 (常駐)
+   npm run frontend    # タブ 2 (Ctrl+C で頻繁に再起動)
    ```
 4. Windows ブラウザで `http://localhost:5173` を開く (ポート自動 forward)
+
+### 開発サーバの操作 (#1400)
+
+各サーバは別ターミナルで個別起動・管理する運用です (旧 `npm run dev` で frontend + backend を concurrently で束ねる方式は #1400 で撤去)。
+
+| やりたいこと | コマンド |
+|---|---|
+| backend 起動 (常駐) | `npm run backend` |
+| frontend 起動 | `npm run frontend` |
+| backend 再起動 | `npm run restart:backend` |
+| frontend 再起動 | `npm run restart:frontend` |
+| port 5173 / 5179 を握るプロセスを強制 kill | `npm run kill` |
+
+`Ctrl+C` で各サーバは 3 秒以内に graceful shutdown します (Codex 孫プロセスも確実に kill、port 即時解放)。詳細・トラブルシューティングは [`AGENTS.md`](AGENTS.md) §「開発サーバ」を参照。
 
 ### 初回起動時に作られるもの (利用者の事前準備は不要)
 

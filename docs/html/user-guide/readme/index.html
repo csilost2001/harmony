@@ -26,13 +26,14 @@
 <h2 id="前提ツール">前提ツール</h2>
 <ul>
 <li><strong>designer (フロントエンド)</strong> — <code>http://localhost:5173</code> で起動する React アプリ</li>
-<li><strong>backend (バックエンド + MCP)</strong> — <code>npm run dev</code> で stdio + WebSocket (5179) を起動</li>
-<li><strong>Claude Code</strong> — Anthropic の AI エージェント CLI。本プロジェクトを開く前に <code>cd backend &#x26;&#x26; npm run dev</code> で backend を常駐起動する (<code>.mcp.json</code> は URL mode、自動 spawn しない、#302 以降)</li>
+<li><strong>backend (バックエンド + MCP)</strong> — <code>npm run backend</code> (root、#1400) で HTTP + WebSocket (5179) を起動</li>
+<li><strong>Claude Code</strong> — Anthropic の AI エージェント CLI。本プロジェクトを開く前に <code>npm run backend</code> で backend を常駐起動する (<code>.mcp.json</code> は URL mode、自動 spawn しない、#302 以降)</li>
 </ul>
-<p>起動:</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> frontend</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> &#x26;&#x26; </span><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span><span style="color:#6A737D;--shiki-dark:#768390">       # ブラウザ向けフロント</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> &#x26;&#x26; </span><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> dev</span><span style="color:#6A737D;--shiki-dark:#768390">        # バックエンド (一度起動すれば AI セッション切替時も使い回し可)</span></span>
-<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># Claude Code は claude コマンドで起動 (backend は `cd backend &#x26;&#x26; npm run dev` で手動常駐起動)</span></span></code></pre>
+<p>起動 (root から、#1400):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> frontend</span><span style="color:#6A737D;--shiki-dark:#768390">     # ブラウザ向けフロント (port 5173)</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="color:#032F62;--shiki-dark:#96D0FF"> run</span><span style="color:#032F62;--shiki-dark:#96D0FF"> backend</span><span style="color:#6A737D;--shiki-dark:#768390">      # バックエンド (port 5179、一度起動すれば AI セッション切替時も使い回し可)</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># Claude Code は claude コマンドで起動 (backend は `npm run backend` で手動常駐起動)</span></span></code></pre>
+<p>subdir に <code>cd</code> して <code>npm run dev</code> を直接叩いても等価。</p>
 <h2 id="スクリーンショット索引">スクリーンショット索引</h2>
 <p>代表的な画面は <a href="https://github.com/csilost2001/harmony/blob/main/docs/ui-screenshots/README.md"><code>docs/ui-screenshots/</code></a> 参照。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)

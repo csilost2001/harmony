@@ -12,9 +12,23 @@ export interface TransportEventMap {
   error: [Error];
 }
 
+/**
+ * close() 呼出し時の動作オプション (#1400)。
+ *
+ * shutdown context (Ctrl+C 等) では graceful 5s/10s を待つ余裕がないため、
+ * 短縮 timer を渡して即時 SIGTERM → SIGKILL する。通常 close は default 値で
+ * graceful 終了。
+ */
+export interface CloseOptions {
+  /** SIGTERM を撃つまでの遅延 ms (default: 5000) */
+  sigtermDelayMs?: number;
+  /** SIGKILL を撃つまでの遅延 ms (default: 10000) */
+  sigkillDelayMs?: number;
+}
+
 export abstract class JsonRpcTransport extends EventEmitter<TransportEventMap> {
   abstract send(message: string): void;
-  abstract close(): Promise<void>;
+  abstract close(opts?: CloseOptions): Promise<void>;
 }
 
 export interface StdioTransportOptions {
@@ -22,6 +36,12 @@ export interface StdioTransportOptions {
   args?: string[];
   env?: NodeJS.ProcessEnv;
   cwd?: string;
+  /**
+   * abort signal (#1400 Round 2)。
+   * fire 時に即時 SIGKILL を子プロセスに撃って orphan を防ぐ。
+   * 接続中 shutdown 経路 (initialize 中に SIGINT を受けたケース) で必要。
+   */
+  signal?: AbortSignal;
 }
 
 export class StdioTransport extends JsonRpcTransport {
@@ -53,6 +73,22 @@ export class StdioTransport extends JsonRpcTransport {
     this.child.on("error", (err) => {
       this.emit("error", err);
     });
+
+    // signal が abort されたら即時 SIGKILL で child を kill (#1400 Round 2)。
+    // initialize 中に SIGINT を受けた場合の orphan 防止。
+    if (options.signal) {
+      const sig = options.signal;
+      const abortHandler = () => {
+        if (this.didClose) return;
+        if (this.child.exitCode === null) this.child.kill("SIGKILL");
+      };
+      if (sig.aborted) {
+        // constructor 内で既に aborted の場合は即時 kill (spawn と abort の同期 race 対策)
+        abortHandler();
+      } else {
+        sig.addEventListener("abort", abortHandler, { once: true });
+      }
+    }
   }
 
   send(message: string): void {
@@ -61,18 +97,20 @@ export class StdioTransport extends JsonRpcTransport {
     this.child.stdin.write(message + "\n");
   }
 
-  async close(): Promise<void> {
+  async close(opts?: CloseOptions): Promise<void> {
     if (this.didClose) return;
     this.didClose = true;
+    const sigtermMs = opts?.sigtermDelayMs ?? 5000;
+    const sigkillMs = opts?.sigkillDelayMs ?? 10000;
     return new Promise<void>((resolve) => {
       this.child.once("exit", () => resolve());
       this.child.stdin.end();
       setTimeout(() => {
         if (this.child.exitCode === null) this.child.kill("SIGTERM");
-      }, 5000).unref();
+      }, sigtermMs).unref();
       setTimeout(() => {
         if (this.child.exitCode === null) this.child.kill("SIGKILL");
-      }, 10000).unref();
+      }, sigkillMs).unref();
       this.emit("close", { kind: "local" });
     });
   }
@@ -128,7 +166,8 @@ export class WebSocketTransport extends JsonRpcTransport {
     this.ws.send(message);
   }
 
-  async close(): Promise<void> {
+  async close(_opts?: CloseOptions): Promise<void> {
+    // WebSocketTransport は child process を持たないため CloseOptions は無視 (受け取りのみ、interface 準拠)
     if (this.didClose) return;
     this.didClose = true;
     return new Promise<void>((resolve) => {

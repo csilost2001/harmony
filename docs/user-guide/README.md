@@ -20,16 +20,18 @@
 ## 前提ツール
 
 - **designer (フロントエンド)** — `http://localhost:5173` で起動する React アプリ
-- **backend (バックエンド + MCP)** — `npm run dev` で stdio + WebSocket (5179) を起動
-- **Claude Code** — Anthropic の AI エージェント CLI。本プロジェクトを開く前に `cd backend && npm run dev` で backend を常駐起動する (`.mcp.json` は URL mode、自動 spawn しない、#302 以降)
+- **backend (バックエンド + MCP)** — `npm run backend` (root、#1400) で HTTP + WebSocket (5179) を起動
+- **Claude Code** — Anthropic の AI エージェント CLI。本プロジェクトを開く前に `npm run backend` で backend を常駐起動する (`.mcp.json` は URL mode、自動 spawn しない、#302 以降)
 
-起動:
+起動 (root から、#1400):
 
 ```bash
-cd frontend && npm run dev       # ブラウザ向けフロント
-cd backend && npm run dev        # バックエンド (一度起動すれば AI セッション切替時も使い回し可)
-# Claude Code は claude コマンドで起動 (backend は `cd backend && npm run dev` で手動常駐起動)
+npm run frontend     # ブラウザ向けフロント (port 5173)
+npm run backend      # バックエンド (port 5179、一度起動すれば AI セッション切替時も使い回し可)
+# Claude Code は claude コマンドで起動 (backend は `npm run backend` で手動常駐起動)
 ```
+
+subdir に `cd` して `npm run dev` を直接叩いても等価。
 
 ## スクリーンショット索引
 

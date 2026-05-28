@@ -13,7 +13,7 @@ Claude Code 向けの補足ガイダンス。
 ### MCP 接続
 
 - `.mcp.json` の URL エントリ経由で `backend` に自動接続 (port 5179)
-- 起動前提: `cd backend && npm run dev` で常駐済みであること
+- 起動前提: `npm run backend` (root、または `cd backend && npm run dev`) で常駐済みであること (#1400 で root script 整備)
 - 接続先: `http://localhost:5179/mcp`
 
 ### 開発環境 (推奨: Dev Containers / 代替: WSL2 native)
@@ -21,7 +21,7 @@ Claude Code 向けの補足ガイダンス。
 本プロジェクトの推奨開発環境は **Dev Containers** (`.devcontainer/devcontainer.json` 同梱、git tracked、#847)。WSL2 native セットアップも引き続きサポート対象 — 利用者の選好で選んでよい。Quick Start は [`README.md`](README.md) を参照。
 
 - Claude Code (CLI 版) は **container 内でも** `.mcp.json` の `http://localhost:5179/mcp` で backend に繋がる (`localhost` = container 自身)
-- 起動前提は両環境とも同じ: ターミナルで `cd backend && npm run dev` 常駐
+- 起動前提は両環境とも同じ: ターミナルで `npm run backend` (または `cd backend && npm run dev`) 常駐
 - Dev Containers ↔ WSL2 native の切替は `Dev Containers: Reopen Folder Locally` / `Reopen in Container` で随時可
 - 詳細: [`docs/setup/dev-containers.md`](docs/setup/dev-containers.md) (推奨) / [`docs/setup/wsl2-native.md`](docs/setup/wsl2-native.md) (代替) / [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) (将来の image 配布構想)
 

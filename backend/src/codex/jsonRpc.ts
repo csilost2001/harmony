@@ -1,4 +1,4 @@
-import type { JsonRpcTransport } from "./transport.js";
+import type { CloseOptions, JsonRpcTransport } from "./transport.js";
 
 export type RequestId = string | number;
 
@@ -131,7 +131,7 @@ export class JsonRpcClient {
     this.transport.send(JSON.stringify(message));
   }
 
-  async close(): Promise<void> {
+  async close(opts?: CloseOptions): Promise<void> {
     if (this.didClose) return;
     this.didClose = true;
     const closeError = new Error("JsonRpcClient: closed");
@@ -140,7 +140,7 @@ export class JsonRpcClient {
       p.reject(closeError);
     }
     this.pending.clear();
-    await this.transport.close();
+    await this.transport.close(opts);
   }
 
   private handleMessage = (raw: string): void => {
