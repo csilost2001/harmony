@@ -1,6 +1,6 @@
 # 画面項目編集
 
-> **対象画面**: `ScreenItemsView` (`frontend/src/components/screen/ScreenItemsView.tsx`)
+> **対象画面**: `ScreenItemsView` (`frontend/src/components/screen-items/ScreenItemsView.tsx`)
 > **ルート**: `/w/:wsId/screen/items/:screenId`
 > **種別**: マルチインスタンスタブ
 

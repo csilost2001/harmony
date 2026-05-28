@@ -1,6 +1,6 @@
 # 技術スタック選定
 
-> **対象画面**: `TechStackView` (`frontend/src/components/tech-stack/TechStackView.tsx`)
+> **対象画面**: `TechStackView` (`frontend/src/components/project/TechStackView.tsx`)
 > **ルート**: `/w/:wsId/project/tech-stack`
 > **種別**: シングルトンタブ
 
