@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../../favicon.svg" type="image/svg+xml"><title>ui reference/process flow list</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="../../../user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="../../../user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="../../../user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="../../../user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="../../../user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="../../../user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="処理フロー一覧">処理フロー一覧</h1>
+<blockquote>
+<p><strong>対象画面</strong>: <code>ProcessFlowListView</code> (<code>frontend/src/components/process-flow/ProcessFlowListView.tsx</code>)
+<strong>ルート</strong>: <code>/w/:wsId/process-flow/list</code>
+<strong>種別</strong>: シングルトンタブ</p>
+</blockquote>
+<h2 id="概要">概要</h2>
+<p>プロジェクトの全処理フロー (ProcessFlow リソース) を一覧する。本プロジェクトの <strong>一次成果物 (JSON Schema)</strong> にあたる処理フローを俯瞰でき、各フローの成熟度 / Step 数 / 検証警告件数 などをカード or 表で確認。<code>/create-flow</code> / <code>/review-flow</code> / <code>/generate-code</code> / <code>/generate-tests</code> スキルへの起点となる中央 hub 的画面。</p>
+<h2 id="到達経路">到達経路</h2>
+<ul>
+<li>HeaderMenu → 「処理フロー」 → 「一覧」</li>
+<li>ダッシュボード「処理フロー成熟度」パネル → 「一覧へ」</li>
+<li>直接 URL: <code>/w/&#x3C;wsId>/process-flow/list</code></li>
+</ul>
+<h2 id="画面構成">画面構成</h2>
+<p><img alt="処理フロー一覧" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="720" src="../../../_astro/01-default.BSq_X-rm_gHRtG.webp" ></p>
+<h3 id="主要エリア">主要エリア</h3>
+<ol>
+<li><strong>ヘッダー</strong> — タイトル「処理フロー一覧」 + 件数 + 「処理フローを追加」</li>
+<li><strong>フィルタ</strong> — 名前 / namespace / kind (entrypoint / sub / handler) で絞込み</li>
+<li><strong>ソート</strong> — 名前 / 成熟度 / Step 数 / 更新日時</li>
+<li><strong>一覧</strong> — 各カード/行に成熟度バッジ + 警告件数バッジ + draft マーク (●)</li>
+</ol>
+<h2 id="主要操作">主要操作</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>新規作成</td><td>「処理フローを追加」</td><td><code>ProcessFlowEditor</code> (<code>/process-flow/edit/&#x3C;新規></code>) が新タブで開く</td></tr><tr><td>AI 作成</td><td>(上記後) <code>/create-flow &#x3C;flowId> &#x3C;業務概要></code> skill を呼ぶ</td><td>AI が品質ガード付きで初期 JSON を生成</td></tr><tr><td>フロー編集</td><td>カード / 行クリック</td><td><code>/process-flow/edit/:id</code> 新タブ</td></tr><tr><td>AI レビュー</td><td>右クリック → 「レビュー…」</td><td><code>/review-flow &#x3C;flowId></code> skill のヒント表示</td></tr><tr><td>削除</td><td>右クリック → 「削除」 / <code>Delete</code></td><td>参照ありの場合は警告</td></tr><tr><td>rename</td><td>右クリック → 「ID 変更…」 / <code>F2</code></td><td>RenameEntityDialog</td></tr><tr><td>並び替え</td><td>カード / 行ドラッグ</td><td>renumber 後保存</td></tr></tbody></table>
+<h2 id="データ前提">データ前提</h2>
+<ul>
+<li><strong>空状態</strong>: 「処理フローが未登録です」+ <code>/create-flow</code> skill 案内</li>
+<li><strong>意味のある状態</strong>: retail で <code>cart-add</code> / <code>order-confirm</code> / <code>shipment-dispatch</code> 等 7 フロー</li>
+<li>draft 中マーク (●) : <code>data/.drafts/&#x3C;wsId>/process-flow/&#x3C;id>.json</code> 検知時</li>
+</ul>
+<h2 id="関連仕様書">関連仕様書</h2>
+<ul>
+<li><a href="../../../spec/list-common/"><code>docs/spec/list-common.md</code></a></li>
+<li><a href="../../../spec/process-flow-workflow/"><code>docs/spec/process-flow-workflow.md</code></a> — フロー設計の業務手順</li>
+<li><a href="../../../spec/process-flow-maturity/"><code>docs/spec/process-flow-maturity.md</code></a> — 成熟度バッジ判定</li>
+</ul>
+<h2 id="関連-skill">関連 skill</h2>
+<ul>
+<li><code>/create-flow &#x3C;flowId> &#x3C;業務概要> [namespace]</code> — 新規作成</li>
+<li><code>/review-flow &#x3C;flowId></code> — 10 観点専門レビュー</li>
+<li><code>/generate-code &#x3C;flowId></code> / <code>/generate-tests &#x3C;flowId></code> — code / test 生成</li>
+</ul>
+<h2 id="既知の制約注意">既知の制約・注意</h2>
+<ul>
+<li>フロー一覧から <strong>直接 trigger 構造を可視化はしない</strong> (Step 詳細は Editor で確認)</li>
+<li>成熟度フィルタを活用して draft フローと committed フローを切り分けると review しやすい</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

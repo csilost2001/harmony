@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../../favicon.svg" type="image/svg+xml"><title>ui reference/screen items</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="../../../user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="../../../user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="../../../user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="../../../user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="../../../user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="../../../user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="画面項目編集">画面項目編集</h1>
+<blockquote>
+<p><strong>対象画面</strong>: <code>ScreenItemsView</code> (<code>frontend/src/components/screen/ScreenItemsView.tsx</code>)
+<strong>ルート</strong>: <code>/w/:wsId/screen/items/:screenId</code>
+<strong>種別</strong>: マルチインスタンスタブ</p>
+</blockquote>
+<h2 id="概要">概要</h2>
+<p>Screen 内の各 <strong>項目 (input / button / link / display 等)</strong> を構造的に編集する。Designer で配置した要素を「画面項目」という業務レベルで扱い、ID / ラベル / 種別 / 入力検証 / 表示条件 / イベント (trigger) などを定義する。<code>/process-flow/edit/:id</code> で参照される <code>screen.item.{id}</code> の発生源。</p>
+<h2 id="到達経路">到達経路</h2>
+<ul>
+<li>画面一覧 (<code>/screen/list</code>) → カード上の「項目定義」アイコン</li>
+<li>Designer (<code>/screen/design/:id</code>) → 「項目定義へ」ボタン</li>
+<li>直接 URL: <code>/w/&#x3C;wsId>/screen/items/&#x3C;screenId></code></li>
+</ul>
+<h2 id="画面構成">画面構成</h2>
+<p><img alt="画面項目編集" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="720" src="../../../_astro/01-default.BfEOIbR__Z5gU89.webp" ></p>
+<h3 id="主要エリア">主要エリア</h3>
+<ol>
+<li><strong>EditorHeader</strong> — 「画面項目: &#x3C;Screen 名>」+ 保存 / 破棄 / id 変更</li>
+<li><strong>項目一覧表</strong> — 列: 順番 / ID / 表示名 / 種別 (input/button/display/select/checkbox/link/file 等) / 必須 / 検証ルール / 説明</li>
+<li><strong>編集パネル</strong> — 行選択で詳細編集 (initial value / placeholder / event trigger 等)</li>
+<li><strong>検証状態</strong> — 共通規約違反 / 未参照項目 のサマリ</li>
+</ol>
+<h2 id="主要操作">主要操作</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>項目追加</td><td>「項目を追加」 / 表内のリネームから</td><td>行追加</td></tr><tr><td>ID 自動命名</td><td>「AI で命名」 (項目選択後)</td><td><code>/rename-screen-ids</code> skill 連携で AI 推論名を提案</td></tr><tr><td>編集</td><td>行クリック</td><td>右パネルで詳細編集</td></tr><tr><td>並び替え</td><td>行ドラッグ</td><td>表示順 = 業務順 (Tab key 移動順に影響)</td></tr><tr><td>削除</td><td>右クリック → 「削除」 / <code>Delete</code></td><td>process-flow 参照ありは警告</td></tr><tr><td>rename refactor</td><td>行右クリック → 「ID 変更…」</td><td>RenameEntityDialog (画面内のみ unique)</td></tr><tr><td>検証</td><td>autosave 後</td><td>warning / error バッジ表示</td></tr></tbody></table>
+<h2 id="データ前提">データ前提</h2>
+<ul>
+<li><strong>空状態</strong>: 「項目が未定義」プレースホルダ。Designer で配置した部品から自動採番 (<code>item-1</code> 等) で初期化される場合あり</li>
+<li><strong>意味のある状態</strong>: retail の <code>cart</code> は商品行 / 数量 / 削除ボタン / 小計 / 「注文へ進む」ボタン 等の項目で構成</li>
+</ul>
+<h2 id="関連仕様書">関連仕様書</h2>
+<ul>
+<li><a href="../../../spec/screen-items/"><code>docs/spec/screen-items.md</code></a> — 画面項目の責務 / 種別一覧 / 検証ルール</li>
+<li><a href="../../../spec/list-common/"><code>docs/spec/list-common.md</code></a></li>
+</ul>
+<h2 id="関連-skill">関連 skill</h2>
+<ul>
+<li><code>/rename-screen-ids</code> — 自動採番 ID を業務名に一括リネーム</li>
+</ul>
+<h2 id="既知の制約注意">既知の制約・注意</h2>
+<ul>
+<li><strong>Designer (canvas) と本画面で項目集合が一致するとは限らない</strong> — Designer 側で要素を追加しただけだと項目定義が未生成のことあり (今後 sync 改善検討)</li>
+<li>画面項目 ID は <strong>画面内で unique</strong>、process-flow からは <code>screen.item.&#x3C;id></code> で参照</li>
+<li>検証ルール変更時は process-flow 側の条件分岐への影響を必ず確認</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

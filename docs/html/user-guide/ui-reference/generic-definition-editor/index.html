@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../../favicon.svg" type="image/svg+xml"><title>ui reference/generic definition editor</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="../../../user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="../../../user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="../../../user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="../../../user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="../../../user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="../../../user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="汎用定義編集">汎用定義編集</h1>
+<blockquote>
+<p><strong>対象画面</strong>: <code>GenericDefinitionEditor</code> (<code>frontend/src/components/generic-definition/GenericDefinitionEditor.tsx</code>)
+<strong>ルート</strong>: <code>/w/:wsId/generic-definition/:kind/:name</code>
+<strong>種別</strong>: マルチインスタンスタブ</p>
+</blockquote>
+<h2 id="概要">概要</h2>
+<p>汎用定義 (Generic Definition) 1 件を編集する画面。kind に応じた form を出し分け、<code>component-definition</code> ならコンポーネント仕様 / <code>constants</code> なら定数集合 / <code>data-contract</code> ならフィールド契約 / <code>glossary-term</code> なら用語集エントリ などを編集する。</p>
+<h2 id="到達経路">到達経路</h2>
+<ul>
+<li>汎用定義一覧 (kind 別) (<code>/generic-definition/:kind</code>) → 行クリック</li>
+<li>汎用定義カタログ (<code>/generic-definition</code>) のエントリプレビューリンク</li>
+<li>直接 URL: <code>/w/&#x3C;wsId>/generic-definition/&#x3C;kind>/&#x3C;name></code> (例: <code>/generic-definition/component-definition/OrderValidator</code>)</li>
+</ul>
+<h2 id="画面構成">画面構成</h2>
+<p><img alt="汎用定義編集" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="792" src="../../../_astro/01-default.BIfq6YOK_1kTeRo.webp" ></p>
+<h3 id="主要エリア">主要エリア</h3>
+<ol>
+<li><strong>EditorHeader</strong> — 「&#x3C;kind 表示名>: <name>」 + id 変更 + 保存</name></li>
+<li><strong>メタ情報</strong> — 名前 / 論理名 / 説明 / source / 成熟度</li>
+<li><strong>kind 固有 form</strong> — kind ごとに動的に出し分け
+<ul>
+<li><code>component-definition</code>: props / lifecycle / responsibilities / examples</li>
+<li><code>constants</code>: key-value 表</li>
+<li><code>data-contract</code>: fields (name / type / required / description) 表</li>
+<li><code>domain-event</code>: payload / triggers / consumers</li>
+<li><code>application-rule</code>: condition / action</li>
+<li><code>policy</code>: scope / criteria / consequence</li>
+<li><code>glossary-term</code>: term / definition / aliases / examples</li>
+<li><code>rfc</code>: status / authors / decision / rationale</li>
+</ul>
+</li>
+<li><strong>JSON プレビュー</strong> (折りたたみ) — schema 準拠の生 JSON</li>
+</ol>
+<h2 id="主要操作">主要操作</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>フィールド編集</td><td>各 form 要素</td><td>inline 編集</td></tr><tr><td>表型フィールド (data-contract / constants)</td><td>「行追加」 / 行ドラッグ / 「削除」</td><td>表編集 (<code>DataList</code> 共通 UI)</td></tr><tr><td>保存 / 破棄</td><td><code>Ctrl+S</code> / 「破棄」</td><td>edit-session 経由</td></tr><tr><td>rename</td><td>EditorHeader の id 変更</td><td>RenameEntityDialog (kind 内で unique)</td></tr></tbody></table>
+<h2 id="データ前提">データ前提</h2>
+<ul>
+<li><strong>新規</strong>: 空フォーム、kind の必須フィールドを入れた時点で意味</li>
+<li><strong>意味のある状態</strong>: retail の <code>OrderValidator</code> (component-definition) は注文確定時のバリデーション仕様</li>
+</ul>
+<h2 id="関連仕様書">関連仕様書</h2>
+<ul>
+<li><a href="../../../spec/generic-definition-layer/"><code>docs/spec/generic-definition-layer.md</code></a> — kind 毎の必須スキーマ</li>
+<li><a href="../../../spec/draft-state-policy/"><code>docs/spec/draft-state-policy.md</code></a> — schema 違反保存可 + warning 可視化</li>
+</ul>
+<h2 id="関連-skill">関連 skill</h2>
+<ul>
+<li><code>/import-md</code> — 既存 markdown を data-contract / glossary-term に変換</li>
+</ul>
+<h2 id="既知の制約注意">既知の制約・注意</h2>
+<ul>
+<li>kind 変更は <strong>想定外</strong> (kind は新規作成時に固定、変更したい場合は別 kind で新規作成 + 旧を delete)</li>
+<li>表型フィールドは <code>DataList</code> 共通 UI なので、画面項目編集等と同様の操作 (rename / コピペ / 並び替え)</li>
+<li>source <code>framework</code> / <code>extension</code> の定義は read-only</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

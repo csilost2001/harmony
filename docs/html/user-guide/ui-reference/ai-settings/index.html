@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../../favicon.svg" type="image/svg+xml"><title>ui reference/ai settings</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="../../../user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="../../../user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="../../../user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="../../../user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="../../../user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="../../../user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="ai-設定">AI 設定</h1>
+<blockquote>
+<p><strong>対象画面</strong>: <code>CodexSettingsView</code> (<code>frontend/src/components/codex/CodexSettingsView.tsx</code>)
+<strong>ルート</strong>: <code>/ai-settings</code> (top-level)
+<strong>種別</strong>: シングルトンタブ</p>
+</blockquote>
+<h2 id="概要">概要</h2>
+<p>AI 連携 (Codex CLI / Claude Code) の設定画面。Codex の availability 確認、API endpoint / model 選択、stop-time review gate の有効化、プロジェクト固有の prompt template などを編集する。<code>/codex:setup</code> skill と同等の設定を UI から行える top-level 画面。</p>
+<h2 id="到達経路">到達経路</h2>
+<ul>
+<li>ヘッダー右の AI ステータスインジケータ → 「AI 設定」</li>
+<li>HeaderMenu → 「AI 設定」</li>
+<li>直接 URL: <code>/ai-settings</code> (workspace 不要、top-level route)</li>
+</ul>
+<h2 id="画面構成">画面構成</h2>
+<p><img alt="AI 設定" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="720" src="../../../_astro/01-default.D3Dkn_U__1ylQrq.webp" ></p>
+<h3 id="主要エリア">主要エリア</h3>
+<ol>
+<li><strong>ヘッダー</strong> — タイトル「AI 設定」</li>
+<li><strong>Codex availability</strong> — ローカル <code>codex</code> CLI の検出 / version / login 状態</li>
+<li><strong>モデル選択</strong> — Codex / Claude のモデル / reasoning effort</li>
+<li><strong>review gate</strong> — <code>/codex:setup</code> で toggle する stop-time review の有効化チェック</li>
+<li><strong>prompt 設定</strong> — project 固有の system prompt 追記 / 出力 token 上限 / temperature</li>
+</ol>
+<h2 id="主要操作">主要操作</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>Codex availability 確認</td><td>「再確認」ボタン</td><td>CLI / config を再 scan</td></tr><tr><td>Codex login</td><td>「ログイン」ボタン</td><td><code>codex login</code> 起動 (ターミナルで対話)</td></tr><tr><td>review gate 切替</td><td>チェックボックス</td><td><code>.codex/config.toml</code> に反映</td></tr><tr><td>モデル変更</td><td>dropdown</td><td>即時保存</td></tr><tr><td>reset to defaults</td><td>「デフォルトに戻す」</td><td>プロジェクト設定を framework default に戻す</td></tr></tbody></table>
+<h2 id="データ前提">データ前提</h2>
+<ul>
+<li><strong>Codex 未インストール</strong>: availability セクションで warning + install 案内 link</li>
+<li><strong>意味のある状態</strong>: Codex CLI install 済 + login 済 + <code>.codex/config.toml</code> あり</li>
+</ul>
+<h2 id="関連仕様書">関連仕様書</h2>
+<ul>
+<li>なし (本機能は <code>.codex/config.toml</code> schema のみ、spec は memory <code>project_framework_research_2026_04_25.md</code> 参照)</li>
+<li><a href="../../../user-guide/troubleshooting/"><code>docs/user-guide/troubleshooting.md</code></a> — AI 接続トラブル</li>
+</ul>
+<h2 id="関連-skill">関連 skill</h2>
+<ul>
+<li><code>/codex:setup</code> — Codex CLI 準備確認 / stop-time review toggle</li>
+<li><code>/codex:rescue</code> — タスク委譲 (Codex に複雑なタスクを依頼)</li>
+</ul>
+<h2 id="既知の制約注意">既知の制約・注意</h2>
+<ul>
+<li><strong>top-level route</strong> (<code>/ai-settings</code>、<code>/workspace/</code> prefix なし) — workspace 不要で開ける</li>
+<li>Codex の API key 等は <strong><code>.codex/config.toml</code></strong> で管理、本 UI ではトグルのみ</li>
+<li>Claude Code (CLI) 側の認証は本画面では扱わない (Claude Code 側の <code>claude login</code> 等)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>
