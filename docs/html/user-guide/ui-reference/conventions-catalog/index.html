@@ -1,0 +1,124 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../../favicon.svg" type="image/svg+xml"><title>ui reference/conventions catalog</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="../../../user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="../../../user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="../../../user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="../../../user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="../../../user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="../../../user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="横断規約カタログ">横断規約カタログ</h1>
+<blockquote>
+<p><strong>対象画面</strong>: <code>ConventionsCatalogView</code> (<code>frontend/src/components/conventions/ConventionsCatalogView.tsx</code>)
+<strong>ルート</strong>: <code>/w/:wsId/conventions/catalog</code>
+<strong>種別</strong>: シングルトンタブ</p>
+</blockquote>
+<h2 id="概要">概要</h2>
+<p>プロジェクト横断の規約 (Conventions) を kind 別にカタログ表示する画面。<code>naming-rule</code> / <code>validation-rule</code> / <code>lifecycle-rule</code> / <code>error-handling-rule</code> / <code>expression-evaluation</code> 等のフレームワーク横断ルールを一覧し、各規約の参照箇所 (どの table / screen / process-flow で使われているか) を確認できる。</p>
+<h2 id="到達経路">到達経路</h2>
+<ul>
+<li>HeaderMenu → 「規約」 → 「規約カタログ」</li>
+<li>直接 URL: <code>/w/&#x3C;wsId>/conventions/catalog</code></li>
+</ul>
+<h2 id="画面構成">画面構成</h2>
+<p><img alt="横断規約カタログ" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="720" src="../../../_astro/01-default.w0ersJZV_Z1wamjD.webp" ></p>
+<h3 id="主要エリア">主要エリア</h3>
+<ol>
+<li><strong>ヘッダー</strong> — タイトル「横断規約カタログ」 + 新規追加ボタン</li>
+<li><strong>規約一覧</strong> (kind 別グループ)
+<ul>
+<li>各規約: 名前 + 適用範囲 (scope) + 適用件数 + 「編集」「参照箇所」ボタン</li>
+<li>source: project / extension / framework の 3 階層別バッジ</li>
+</ul>
+</li>
+<li><strong>検索 / フィルタ</strong> — 名前部分一致、scope / source / kind での絞込み</li>
+</ol>
+<h2 id="主要操作">主要操作</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>新規規約追加</td><td>「規約追加」</td><td>kind 選択モーダル → 規約定義入力</td></tr><tr><td>規約編集</td><td>行の「編集」</td><td>inline / modal で名前 / scope / pattern / 説明を更新</td></tr><tr><td>参照箇所表示</td><td>行の「参照箇所」</td><td>この規約が適用される table / screen / process-flow 一覧</td></tr><tr><td>適用範囲フィルタ</td><td>scope フィルタ</td><td>global / per-table / per-screen 等で絞込み</td></tr><tr><td>削除</td><td>行の右クリック → 「削除」</td><td>参照ありの場合は警告ダイアログ</td></tr></tbody></table>
+<h2 id="データ前提">データ前提</h2>
+<ul>
+<li><strong>空状態</strong>: 「規約が未登録です」プレースホルダ</li>
+<li><strong>意味のある状態</strong>: framework 組込み規約 (例: <code>validation-rule:require-not-empty</code>) + project 固有規約 (例: retail の <code>naming-rule:table-snake-case</code>)</li>
+<li><strong>複数 source 混在</strong>: 同名の規約が <code>framework</code> と <code>project</code> で重複する場合、project が優先</li>
+</ul>
+<h2 id="関連仕様書">関連仕様書</h2>
+<ul>
+<li><a href="../../../conventions/validation-rules/"><code>docs/conventions/validation-rules.md</code></a> — validation-rule kind の仕様</li>
+<li><a href="../../../conventions/expressions/"><code>docs/conventions/expressions.md</code></a> — expression-evaluation kind の仕様</li>
+<li><a href="../../../conventions/product-scope/"><code>docs/conventions/product-scope.md</code></a> — scope (project / extension / framework) の階層</li>
+</ul>
+<h2 id="関連-skill">関連 skill</h2>
+<ul>
+<li>なし (新規 skill 未整備、追加時はカタログから手動)</li>
+</ul>
+<h2 id="既知の制約注意">既知の制約・注意</h2>
+<ul>
+<li><strong>規約変更の波及範囲は手動確認</strong>。validation-rule を変更しても自動再検証されないため、関連 table / screen を個別に開き直す必要あり (将来 reactive 検証検討余地)</li>
+<li>framework / extension 由来の規約は <strong>read-only</strong> (該当の拡張パッケージで変更)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

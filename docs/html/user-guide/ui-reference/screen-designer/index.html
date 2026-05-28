@@ -1,0 +1,139 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../../favicon.svg" type="image/svg+xml"><title>ui reference/screen designer</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> ユーザーガイド </div> <ul class="space-y-0.5"> <li> <a href="../../../user-guide/readme/" class="sidebar-link"> Overview </a> </li><li> <a href="../../../user-guide/process-flow-workflow/" class="sidebar-link"> ProcessFlow ワークフロー </a> </li><li> <a href="../../../user-guide/marker-workflow/" class="sidebar-link"> Marker ワークフロー </a> </li><li> <a href="../../../user-guide/rename-screen-ids-workflow/" class="sidebar-link"> 画面 ID リネーム </a> </li><li> <a href="../../../user-guide/multi-editor-puck-guide/" class="sidebar-link"> マルチエディタ利用 </a> </li><li> <a href="../../../user-guide/troubleshooting/" class="sidebar-link"> トラブルシューティング </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="画面デザイナー">画面デザイナー</h1>
+<blockquote>
+<p><strong>対象画面</strong>: <code>Designer</code> (<code>frontend/src/components/Designer.tsx</code>、<code>ResourceLoading</code> でラップ)
+<strong>ルート</strong>: <code>/w/:wsId/screen/design/:screenId</code>
+<strong>種別</strong>: マルチインスタンスタブ (リソース ID 毎)</p>
+</blockquote>
+<h2 id="概要">概要</h2>
+<p>Screen の <strong>ビジュアル編集</strong> を行う画面。GrapesJS (デフォルト) または Puck の 2 エディタを使い分け、画面の HTML 構造 + Bootstrap / Tailwind スタイルを WYSIWYG で組み立てる。60+ pre-built block (<code>frontend/src/grapes/blocks.ts</code>) + プロジェクト固有のカスタムブロックを使える。</p>
+<h2 id="到達経路">到達経路</h2>
+<ul>
+<li>画面一覧 (<code>/screen/list</code>) → カード / 行 ダブルクリック</li>
+<li>画面フロー (<code>/screen/flow</code>) → node ダブルクリック</li>
+<li>直接 URL: <code>/w/&#x3C;wsId>/screen/design/&#x3C;screenId></code></li>
+</ul>
+<h2 id="画面構成">画面構成</h2>
+<p><img alt="画面デザイナー" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="720" src="../../../_astro/01-default.BPhzrtBS_ZqWj06.webp" ></p>
+<h3 id="主要エリア">主要エリア</h3>
+<ol>
+<li><strong>EditorHeader</strong> — Screen 名 / 編集モード切替 / 保存 / id 変更 / theme 切替 / Puck⇔GrapesJS 切替</li>
+<li><strong>左サイドバー (Block Manager)</strong> — Bootstrap / 業務 / カスタムブロックのパレット</li>
+<li><strong>中央 Canvas</strong> (iframe) — WYSIWYG プレビュー、ドラッグ&#x26;ドロップで配置</li>
+<li><strong>右サイドバー (Style Manager / Settings)</strong> — 選択中要素の CSS / 属性 / コンポーネント設定</li>
+<li><strong>下部 Layer Tree</strong> — 配置済要素の階層構造、選択 / 再順序</li>
+</ol>
+<h2 id="主要操作">主要操作</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>Block 配置</td><td>左パレット → Canvas にドラッグ</td><td>要素挿入、autosave で workspace の <code>screens/{id}.design.json</code> に永続化</td></tr><tr><td>要素選択</td><td>Canvas または Layer Tree でクリック</td><td>右サイドバーが該当要素の設定に切替</td></tr><tr><td>スタイル変更</td><td>右 Style Manager で CSS 編集</td><td>inline style として書込み</td></tr><tr><td>theme 切替</td><td>EditorHeader → Theme dropdown</td><td>standard / card / compact / dark の CSS 切替</td></tr><tr><td>editor 切替</td><td>EditorHeader → editorKind dropdown</td><td>GrapesJS ⇔ Puck (同 Screen を両エディタで開ける、選択値が project default 上書き)</td></tr><tr><td>マーカー追加</td><td>Canvas 上で右クリック → 「マーカー」</td><td><code>/designer-work</code> で AI 指示として処理可</td></tr><tr><td>カスタムブロック保存</td><td>左パレット → 選択要素を「Block にコピー」</td><td><code>custom-blocks.json</code> に保存、再利用可</td></tr><tr><td>保存</td><td><code>Ctrl+S</code> or autosave</td><td>edit-session 経由でサーバ反映</td></tr></tbody></table>
+<h2 id="データ前提">データ前提</h2>
+<ul>
+<li><strong>空画面</strong>: Canvas が真っ白、左の Block Manager から要素をドラッグして組み立て</li>
+<li><strong>意味のある画面</strong>: retail の <code>cart</code> 等は Bootstrap ベースの商品カート画面が既に配置されている</li>
+</ul>
+<h2 id="関連仕様書">関連仕様書</h2>
+<ul>
+<li><a href="../../../spec/multi-editor-puck/"><code>docs/spec/multi-editor-puck.md</code></a> — Puck/GrapesJS 共存仕様 (#806)</li>
+<li><a href="../../../user-guide/multi-editor-puck-guide/"><code>docs/user-guide/multi-editor-puck-guide.md</code></a> — Puck/GrapesJS 使い分けガイド</li>
+<li><a href="../../../spec/css-framework-switching/"><code>docs/spec/css-framework-switching.md</code></a> — Bootstrap/Tailwind 切替</li>
+</ul>
+<h2 id="関連-skill">関連 skill</h2>
+<ul>
+<li><code>/designer-work &#x3C;processFlowId></code> — マーカー (Canvas 上の指示書き) を Claude Code が読んで処理フローを編集</li>
+<li><code>/rename-screen-ids</code> — Canvas 内 input/button の自動採番 id を業務名にリネーム</li>
+</ul>
+<h2 id="既知の制約注意">既知の制約・注意</h2>
+<ul>
+<li><strong>iframe Canvas は a11y tree に出ない</strong> — 本マニュアルの screenshot だけでは内部要素を読めない、実機で操作必須</li>
+<li>WebSocket 切断時は <strong>localStorage fallback</strong> (<code>gjs-screen-{id}</code>)、復帰後 sync (<code>docs/spec/workspace.md</code> 参照)</li>
+<li>GrapesJS / Puck の切替時は <strong>未保存変更があると確認ダイアログ</strong></li>
+<li><code>purpose='gadget'</code> のガジェット編集も同 Designer を使う (viewport だけ小さくなる)</li>
+</ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

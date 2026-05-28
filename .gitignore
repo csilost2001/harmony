@@ -12,8 +12,9 @@ output/
 .playwright-mcp/
 screenshots/
 *.png
-# 仕様書に紐づく UI スクリーンショットは追跡する
+# 仕様書に紐づく UI スクリーンショットは追跡する (直下 + サブディレクトリ両方)
 !docs/ui-screenshots/*.png
+!docs/ui-screenshots/**/*.png
 # プレゼン資料に埋め込む確定・ドラフト画像は追跡する
 !docs/presentation/images/*.png
 # プレゼン版別アーカイブ (out-YYYYMMDD/) の埋め込み画像も追跡する
