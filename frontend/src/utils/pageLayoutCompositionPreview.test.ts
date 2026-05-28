@@ -5,7 +5,12 @@
  *   1. extractGrapesCss — GrapesJS design の styles 配列を CSS string に直列化する
  *   2. composePreviewHtml — region 差し替え (既存挙動の回帰)
  *   3. buildCompositionPreviewSrcDoc — link href + project CSS を iframe srcDoc に合成する
- *      + `</style>` 注入の無害化 (S-003 / CWE-79 の延長)
+ *      + href の HTML 属性エスケープ (Must-fix 1)
+ *      + `<style>` break-out の中和 (S-003 / CWE-79 の延長、Must-fix 2 / Should-fix 5)
+ *
+ * 注意 (Should-fix 5): `_neutralizeStyleClose` は CSS 全般の sanitize ではなく
+ * `<style>` 要素の break-out (`</style>` 注入) 中和に限定。body HTML 側の XSS 対策は
+ * composePreviewHtml() 内の DOMPurify が担う。
  */
 
 import { describe, it, expect } from "vitest";
@@ -71,6 +76,43 @@ describe("extractGrapesCss (#1406)", () => {
     const design = { styles: [{ selectors: [{ name: "empty", type: 1 }], style: {} }] };
     expect(extractGrapesCss(design)).toBe("");
   });
+
+  // Should-fix 4 (#1406 Codex review): singleAtRule (@font-face / @keyframes 等) は
+  // selector を持たず宣言ブロックのみを at-rule で包む。GrapesJS の永続化形式で
+  // atRuleType + singleAtRule:true として保持される。
+  it("@font-face (singleAtRule) は selector なしで宣言ブロックを包む", () => {
+    const design = {
+      styles: [
+        {
+          atRuleType: "font-face",
+          singleAtRule: true,
+          style: { "font-family": "MyFont", src: "url(/f.woff2)" },
+        },
+      ],
+    };
+    const css = extractGrapesCss(design);
+    expect(css).toContain("@font-face{");
+    expect(css).toContain("font-family:MyFont;");
+    expect(css).toContain("src:url(/f.woff2);");
+    // selector wrapper (.xxx{ や {{ ) が付いていないこと
+    expect(css).not.toContain("{{");
+  });
+
+  it("@keyframes (singleAtRule) を atRuleType で包む", () => {
+    const design = {
+      styles: [
+        {
+          atRuleType: "keyframes my-anim",
+          singleAtRule: true,
+          style: { from: "x", to: "y" },
+        },
+      ],
+    };
+    const css = extractGrapesCss(design);
+    expect(css).toContain("@keyframes my-anim{");
+    expect(css).toContain("from:x;");
+    expect(css).toContain("to:y;");
+  });
 });
 
 describe("composePreviewHtml — region 差し替え (回帰)", () => {
@@ -122,17 +164,52 @@ describe("buildCompositionPreviewSrcDoc (#1406)", () => {
     expect(doc).toContain(".x{color:blue;}");
   });
 
-  it("project CSS 内の </style> 注入を無害化する (S-003 / HTML injection 防止)", () => {
-    const malicious = ".a{}</style><script>alert(1)</script><style>.b{}";
+  // Must-fix 2 (#1406 Codex review): projectCssBlocks 由来の <style> ブロックだけを抽出し、
+  // その中身に「生の </style> で閉じられていない」「script が style 外に漏れない」ことを assert する。
+  // doc 全体に対する toContain は偽陽性 (body reset の <style> 等を拾う) になりうるため使わない。
+  //
+  // projectCssBlocks 由来の <style> は body reset (`<style>body{...}</style>`) の **後** に
+  // 連結されるため、最後の <style>...</style> ブロックを抽出して検証する。
+  const extractLastStyleBlock = (doc: string): string => {
+    const matches = [...doc.matchAll(/<style>([\s\S]*?)<\/style>/g)];
+    expect(matches.length).toBeGreaterThan(0);
+    return matches[matches.length - 1][1];
+  };
+
+  it.each([
+    [".a{}</style><script>alert(1)</script><style>.b{}", "小文字 </style>"],
+    [".a{}</STYLE><script>alert(1)</script>", "大文字 </STYLE>"],
+    ["x</style><script>alert(1)</script>", "script 混入"],
+    [".a{}</style ><script>alert(1)</script>", "末尾空白 </style >"],
+  ])("project CSS の %s 注入を無害化し style ブロックから漏れない (S-003)", (malicious) => {
     const doc = buildCompositionPreviewSrcDoc("<div></div>", [], [malicious]);
-    // 生の </style> でブロックが閉じられていないこと (= script タグが style 外に漏れない)
-    expect(doc).not.toContain("</style><script>");
-    expect(doc).toContain("<\\/style");
+    const block = extractLastStyleBlock(doc);
+    // style ブロック内に生の </style (= 閉じタグ) が残っていないこと
+    expect(block).not.toMatch(/<\/style/i);
+    // 中和された形 (<\/style) になっていること
+    expect(block).toContain("<\\/style");
+    // script タグが style ブロック内に閉じ込められている (= style 外に漏れていない)
+    expect(block).toContain("<script>");
   });
 
-  it("link href の \" や < はエスケープ除去される", () => {
+  // Must-fix 1 (#1406 Codex review): href は HTML 属性エスケープする (除去ではなく実体参照化)。
+  it('link href は HTML 属性エスケープされる ("/\'/<>/& を実体参照化)', () => {
     const doc = buildCompositionPreviewSrcDoc("<div></div>", ['/a.css" onload="x']);
+    // onload を実行できる生の属性境界 (") は残らない
     expect(doc).not.toContain('onload="x"');
-    expect(doc).toContain('href="/a.css onload=x"');
+    // " は &quot; にエスケープされる
+    expect(doc).toContain('href="/a.css&quot; onload=&quot;x"');
+  });
+
+  it("href の & は二重エスケープされない (& を最初に処理)", () => {
+    const doc = buildCompositionPreviewSrcDoc("<div></div>", ["/a.css?x=1&y=2"]);
+    expect(doc).toContain('href="/a.css?x=1&amp;y=2"');
+    // &amp; が &amp;amp; に二重エスケープされていないこと
+    expect(doc).not.toContain("&amp;amp;");
+  });
+
+  it("href の < > ' もエスケープされる", () => {
+    const doc = buildCompositionPreviewSrcDoc("<div></div>", ["/a<b>'c.css"]);
+    expect(doc).toContain('href="/a&lt;b&gt;&#39;c.css"');
   });
 });

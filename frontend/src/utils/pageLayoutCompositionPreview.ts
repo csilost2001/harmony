@@ -89,10 +89,48 @@ function _styleToDeclarations(style: Record<string, unknown> | undefined): strin
     .join("");
 }
 
-/** 単一 CssRule JSON を CSS 規則文字列に変換する (media at-rule 対応)。 */
+/**
+ * GrapesJS の `getAtRuleFromProps` 相当: atRuleType / mediaText から `@media (...)` /
+ * `@font-face` 等の at-rule prelude を組み立てる。
+ *   - atRuleType あり → `@<atRuleType>` (+ mediaText あれば ` <mediaText>`)
+ *   - atRuleType なし & mediaText あり → `@media <mediaText>`
+ *   - どちらも無し → "" (at-rule なし)
+ * (grapesjs/dist/grapes.mjs CssRule.getAtRuleFromProps と同じ規則)
+ */
+function _atRulePrelude(rule: GrapesCssRuleJson): string {
+  const type = rule.atRuleType;
+  const condition = rule.mediaText;
+  const typeStr = type ? `@${type}` : condition ? "@media" : "";
+  if (!typeStr) return "";
+  return condition ? `${typeStr} ${condition}` : typeStr;
+}
+
+/**
+ * 単一 CssRule JSON を CSS 規則文字列に変換する。
+ *
+ * GrapesJS の永続化形式 (CssRuleJSON) を、live editor の `editor.getCss()` 相当の出力に
+ * 揃えるための serializer。以下を再現する (grapesjs CssRule.toCSS / getDeclaration 準拠):
+ *   - selectors[] 連結 + state (`:hover` 等) + `, selectorsAdd`
+ *   - media 系 at-rule: `@media (...){selector{decls}}`
+ *   - singleAtRule (`@font-face` / `@keyframes` / `@page` 等、宣言ブロックのみ持つ at-rule):
+ *     selector を付けず `@<atRuleType>{decls}` 形式で出力する
+ *
+ * selectorsAdd に state を付けない理由: GrapesJS の `selectorsToString` は state を主セレクタ群
+ * (`selectors[] + state`) にのみ付与し、selectorsAdd は別グループとして `, ` で連結する。
+ * 本実装もその契約に合わせる (state は selectorPart 側のみ)。
+ */
 function _ruleToCss(rule: GrapesCssRuleJson): string {
   const decls = _styleToDeclarations(rule.style);
   if (!decls) return "";
+
+  const atRule = _atRulePrelude(rule);
+
+  // singleAtRule (@font-face / @keyframes 等) は selector を持たず、宣言ブロックのみを at-rule で包む。
+  // GrapesJS: getDeclaration() は singleAtRule のとき style 文字列をそのまま返し、
+  // toCSS() が `@<type>{style}` で包む。
+  if (rule.singleAtRule && atRule) {
+    return `${atRule}{${decls}}`;
+  }
 
   // セレクタ組み立て: selectors[] を連結 (例: .a.b) + state (例: :hover) + selectorsAdd
   const selectorPart = (rule.selectors ?? [])
@@ -109,9 +147,9 @@ function _ruleToCss(rule: GrapesCssRuleJson): string {
 
   const body = `${selector}{${decls}}`;
 
-  // media クエリ等の at-rule をラップ
-  if (rule.atRuleType === "media" && rule.mediaText) {
-    return `@media ${rule.mediaText}{${body}}`;
+  // media クエリ等の at-rule をラップ (@media / @supports 等、selector を内側に持つ at-rule)
+  if (atRule) {
+    return `${atRule}{${body}}`;
   }
   return body;
 }
@@ -187,8 +225,10 @@ export function composePreviewHtml(
  *
  * セキュリティ (S-003 / CWE-79): bodyHtml は composePreviewHtml() 内で DOMPurify 済。
  * projectCssBlocks は CSS 文字列であり HTML サニタイズ対象外だが、`<style>` ブロックからの
- * 脱出 (`</style>` 注入による HTML injection) を防ぐため `_sanitizeCssBlock()` で
+ * 脱出 (`</style>` 注入による HTML injection) を防ぐため `_neutralizeStyleClose()` で
  * `</style` シーケンスを無害化する。
+ * styleHrefs は信頼できる asset URL (自前定数 / import.meta.url 解決) だが、防御として
+ * `_escapeAttr()` で HTML 属性エスケープを通してから埋め込む。
  */
 export function buildCompositionPreviewSrcDoc(
   bodyHtml: string,
@@ -201,7 +241,7 @@ export function buildCompositionPreviewSrcDoc(
     .join("\n");
   const styleBlocks = projectCssBlocks
     .filter((css) => typeof css === "string" && css.trim().length > 0)
-    .map((css) => `<style>${_sanitizeCssBlock(css)}</style>`)
+    .map((css) => `<style>${_neutralizeStyleClose(css)}</style>`)
     .join("\n");
   return `<!DOCTYPE html><html><head>
 <meta charset="utf-8" />
@@ -211,14 +251,34 @@ ${styleBlocks}
 </head><body>${bodyHtml}</body></html>`;
 }
 
-/** `<style>` ブロック脱出防止: `</style` を無害化する (case-insensitive)。 */
-function _sanitizeCssBlock(css: string): string {
+/**
+ * `<style>` 要素 break-out 中和専用ヘルパ。
+ *
+ * 責務は限定的: CSS 文字列中の `</style` シーケンス (case-insensitive、`</STYLE>` /
+ * `</style >` 含む) を `<\/style` に置換し、`<style>...</style>` ブロックを途中で閉じて
+ * その後ろに任意 HTML (`<script>` 等) を注入する break-out を防ぐ。CSS 構文として
+ * `<\/style` は無害な (適用されない) 宣言として扱われ、要素は閉じない。
+ *
+ * これは CSS 全般のサニタイズ **ではない** (CSS expression / url() 等は対象外)。
+ * preview body 側の HTML サニタイズは composePreviewHtml() 内の DOMPurify が担当しており、
+ * 本関数は `<style>` への CSS 注入経路に限った break-out 中和のみを担う。
+ */
+function _neutralizeStyleClose(css: string): string {
   return css.replace(/<\/style/gi, "<\\/style");
 }
 
-/** href 属性値の最低限エスケープ (" と < を除去) — CDN/asset URL 想定。 */
+/**
+ * HTML 属性値エスケープ。href は信頼できる asset URL 想定だが、防御として
+ * `&` / `"` / `'` / `<` / `>` を文字実体参照に変換する。
+ * `&` を最初に処理し、後続のエスケープ結果を二重エスケープしないようにする。
+ */
 function _escapeAttr(value: string): string {
-  return value.replace(/["<>]/g, "");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 /**
