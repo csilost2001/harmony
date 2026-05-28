@@ -41,6 +41,20 @@ VS Code 起動後:
    ```
 4. Windows ブラウザで `http://localhost:5173` を開く (ポート自動 forward)
 
+### 開発サーバの操作 (#1400)
+
+各サーバは別ターミナルで個別起動・管理する運用です (旧 `npm run dev` で frontend + backend を concurrently で束ねる方式は #1400 で撤去)。
+
+| やりたいこと | コマンド |
+|---|---|
+| backend 起動 (常駐) | `npm run backend` |
+| frontend 起動 | `npm run frontend` |
+| backend 再起動 | `npm run restart:backend` |
+| frontend 再起動 | `npm run restart:frontend` |
+| port 5173 / 5179 を握るプロセスを強制 kill | `npm run kill` |
+
+`Ctrl+C` で各サーバは 3 秒以内に graceful shutdown します (Codex 孫プロセスも確実に kill、port 即時解放)。詳細・トラブルシューティングは [`AGENTS.md`](AGENTS.md) §「開発サーバ」を参照。
+
 ### 初回起動時に作られるもの (利用者の事前準備は不要)
 
 Reopen in Container すると以下が WSL2 host 側に自動作成されます (`initializeCommand` が container 起動前に mkdir、#1340):
