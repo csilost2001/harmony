@@ -3,7 +3,7 @@
       if (localStorage.getItem('theme') === 'light') {
         document.documentElement.classList.remove('dark');
       }
-    </script><link rel="stylesheet" href="../../../_astro/_slug_.DpmzT9nP.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+    </script><link rel="stylesheet" href="../../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
 🔍 検索
 </button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
 🌓
@@ -17,58 +17,65 @@
 <li><strong>生成 / 更新スキル</strong>: <code>/document-ui</code> (<code>ai-skills/document-ui/SKILL.md</code>)</li>
 </ul>
 <p>仕様書 (<code>docs/spec/</code>) は設計者・実装者向けで、本ディレクトリは <strong>画面の使い方</strong> にフォーカス。両者で重複する内容 (例: ProcessFlow の variable lifecycle) は spec を canonical とし、本書からはリンクのみ張る。</p>
+<h2 id="ステータス凡例">ステータス凡例</h2>
+<p>各画面の項目には以下のいずれかが付く:</p>
+<ul>
+<li><strong>✅ 完備</strong>: md + screenshot 揃い、リンク有効</li>
+<li><strong>⏳ 準備中</strong>: 未生成、follow-up で <code>/document-ui &#x3C;screen-key></code> 実行予定 (本 PR の PoC スコープ外)</li>
+</ul>
 <h2 id="画面カテゴリ">画面カテゴリ</h2>
 <p>ルーティングは AGENTS.md の “Routing” 表 が canonical。</p>
 <h3 id="a-ダッシュボード全体俯瞰">A. ダッシュボード・全体俯瞰</h3>
 <p>プロジェクト全体の状態を俯瞰する画面群。最初に開く / 全体把握用。</p>
 <ul>
-<li><a href="../../../user-guide/dashboard/"><code>dashboard</code></a> — Dashboard (<code>/</code>): プロジェクト全体俯瞰</li>
-<li><a href="../../../user-guide/screen-flow/"><code>screen-flow</code></a> — 画面フロー図 (<code>/screen/flow</code>): ReactFlow キャンバスで画面遷移を表示</li>
-<li><a href="../../../user-guide/er-diagram/"><code>er-diagram</code></a> — ER 図 (<code>/table/er</code>): テーブル関連を mermaid で可視化</li>
-<li><a href="../../../user-guide/generic-definition-catalog/"><code>generic-definition-catalog</code></a> — 汎用定義カタログ (<code>/generic-definition</code>)</li>
-<li><a href="../../../user-guide/conventions-catalog/"><code>conventions-catalog</code></a> — 横断規約カタログ (<code>/conventions/catalog</code>)</li>
+<li>✅ <a href="../../../user-guide/ui-reference/dashboard/"><code>dashboard</code></a> — Dashboard (<code>/</code>): プロジェクト全体俯瞰</li>
+<li>⏳ <code>screen-flow</code> — 画面フロー図 (<code>/screen/flow</code>): ReactFlow キャンバスで画面遷移を表示</li>
+<li>⏳ <code>er-diagram</code> — ER 図 (<code>/table/er</code>): テーブル関連を mermaid で可視化</li>
+<li>⏳ <code>generic-definition-catalog</code> — 汎用定義カタログ (<code>/generic-definition</code>)</li>
+<li>⏳ <code>conventions-catalog</code> — 横断規約カタログ (<code>/conventions/catalog</code>)</li>
 </ul>
 <h3 id="b-リソース一覧">B. リソース一覧</h3>
-<p>各リソース種別の一覧画面。共通仕様は <a href="https://github.com/csilost2001/harmony/blob/main/spec/list-common.md"><code>docs/spec/list-common.md</code></a> 参照。</p>
+<p>各リソース種別の一覧画面。共通仕様は <a href="../../../spec/list-common/"><code>docs/spec/list-common.md</code></a> 参照。</p>
 <ul>
-<li><a href="../../../user-guide/screen-list/"><code>screen-list</code></a> — 画面一覧 (<code>/screen/list</code>)</li>
-<li><a href="../../../user-guide/table-list/"><code>table-list</code></a> — テーブル一覧 (<code>/table/list</code>)</li>
-<li><a href="../../../user-guide/process-flow-list/"><code>process-flow-list</code></a> — 処理フロー一覧 (<code>/process-flow/list</code>)</li>
-<li><a href="../../../user-guide/sequence-list/"><code>sequence-list</code></a> — シーケンス一覧 (<code>/sequence/list</code>)</li>
-<li><a href="../../../user-guide/view-list/"><code>view-list</code></a> — DB ビュー一覧 (<code>/view/list</code>)</li>
-<li><a href="../../../user-guide/view-definition-list/"><code>view-definition-list</code></a> — ViewDefinition 一覧 (<code>/view-definition/list</code>)</li>
-<li><a href="../../../user-guide/page-layout-list/"><code>page-layout-list</code></a> — ページレイアウト一覧 (<code>/page-layout/list</code>)</li>
-<li><a href="../../../user-guide/gadget-list/"><code>gadget-list</code></a> — ガジェット一覧 (<code>/gadget/list</code>)</li>
+<li>✅ <a href="../../../user-guide/ui-reference/screen-list/"><code>screen-list</code></a> — 画面一覧 (<code>/screen/list</code>)</li>
+<li>⏳ <code>table-list</code> — テーブル一覧 (<code>/table/list</code>)</li>
+<li>⏳ <code>process-flow-list</code> — 処理フロー一覧 (<code>/process-flow/list</code>)</li>
+<li>⏳ <code>sequence-list</code> — シーケンス一覧 (<code>/sequence/list</code>)</li>
+<li>⏳ <code>view-list</code> — DB ビュー一覧 (<code>/view/list</code>)</li>
+<li>⏳ <code>view-definition-list</code> — ViewDefinition 一覧 (<code>/view-definition/list</code>)</li>
+<li>⏳ <code>page-layout-list</code> — ページレイアウト一覧 (<code>/page-layout/list</code>)</li>
+<li>⏳ <code>gadget-list</code> — ガジェット一覧 (<code>/gadget/list</code>)</li>
 </ul>
 <h3 id="c-リソース個別エディタ">C. リソース個別エディタ</h3>
 <p>各リソースを編集する画面。リソース ID 単位でタブが開く (per-resource)。</p>
 <ul>
-<li><a href="../../../user-guide/screen-designer/"><code>screen-designer</code></a> — 画面デザイナー (GrapesJS) (<code>/screen/design/:id</code>)</li>
-<li><a href="../../../user-guide/screen-items/"><code>screen-items</code></a> — 画面項目編集 (<code>/screen/items/:id</code>)</li>
-<li><a href="../../../user-guide/table-editor/"><code>table-editor</code></a> — テーブル定義編集 (<code>/table/edit/:id</code>)</li>
-<li><a href="../../../user-guide/process-flow-editor/"><code>process-flow-editor</code></a> — 処理フロー編集 (<code>/process-flow/edit/:id</code>)</li>
-<li><a href="../../../user-guide/sequence-editor/"><code>sequence-editor</code></a> — シーケンス編集 (<code>/sequence/edit/:id</code>)</li>
-<li><a href="../../../user-guide/view-editor/"><code>view-editor</code></a> — DB ビュー編集 (<code>/view/edit/:id</code>)</li>
-<li><a href="../../../user-guide/view-definition-editor/"><code>view-definition-editor</code></a> — ViewDefinition 編集 (<code>/view-definition/edit/:id</code>)</li>
-<li><a href="../../../user-guide/page-layout-editor/"><code>page-layout-editor</code></a> — ページレイアウト編集 (<code>/page-layout/edit/:id</code>)</li>
-<li><a href="../../../user-guide/page-layout-designer/"><code>page-layout-designer</code></a> — ページレイアウト Designer (<code>/page-layout/design/:id</code>)</li>
-<li><a href="../../../user-guide/generic-definition-editor/"><code>generic-definition-editor</code></a> — 汎用定義編集 (<code>/generic-definition/:kind/:name</code>)</li>
+<li>⏳ <code>screen-designer</code> — 画面デザイナー (GrapesJS) (<code>/screen/design/:id</code>)</li>
+<li>⏳ <code>screen-items</code> — 画面項目編集 (<code>/screen/items/:id</code>)</li>
+<li>⏳ <code>table-editor</code> — テーブル定義編集 (<code>/table/edit/:id</code>)</li>
+<li>✅ <a href="../../../user-guide/ui-reference/process-flow-editor/"><code>process-flow-editor</code></a> — 処理フロー編集 (<code>/process-flow/edit/:id</code>)</li>
+<li>⏳ <code>sequence-editor</code> — シーケンス編集 (<code>/sequence/edit/:id</code>)</li>
+<li>⏳ <code>view-editor</code> — DB ビュー編集 (<code>/view/edit/:id</code>)</li>
+<li>⏳ <code>view-definition-editor</code> — ViewDefinition 編集 (<code>/view-definition/edit/:id</code>)</li>
+<li>⏳ <code>page-layout-editor</code> — ページレイアウト編集 (<code>/page-layout/edit/:id</code>)</li>
+<li>⏳ <code>page-layout-designer</code> — ページレイアウト Designer (<code>/page-layout/design/:id</code>)</li>
+<li>⏳ <code>generic-definition-list</code> — 汎用定義一覧 (kind 単位) (<code>/generic-definition/:kind</code>)</li>
+<li>⏳ <code>generic-definition-editor</code> — 汎用定義編集 (<code>/generic-definition/:kind/:name</code>)</li>
 </ul>
 <h3 id="d-設定管理">D. 設定・管理</h3>
 <p>プロジェクト全体の設定 / 拡張管理画面。</p>
 <ul>
-<li><a href="../../../user-guide/extensions/"><code>extensions</code></a> — 拡張管理 (<code>/extensions</code>)</li>
-<li><a href="../../../user-guide/tech-stack/"><code>tech-stack</code></a> — 技術スタック選定 (<code>/project/tech-stack</code>)</li>
-<li><a href="../../../user-guide/workspace-list/"><code>workspace-list</code></a> — ワークスペース一覧 (<code>/workspace/list</code>)</li>
-<li><a href="../../../user-guide/ai-settings/"><code>ai-settings</code></a> — AI 設定 (<code>/ai-settings</code>)</li>
+<li>⏳ <code>extensions</code> — 拡張管理 (<code>/extensions</code>)</li>
+<li>⏳ <code>tech-stack</code> — 技術スタック選定 (<code>/project/tech-stack</code>)</li>
+<li>⏳ <code>workspace-list</code> — ワークスペース一覧 (<code>/workspace/list</code>)</li>
+<li>⏳ <code>ai-settings</code> — AI 設定 (<code>/ai-settings</code>)</li>
 </ul>
 <h2 id="メンテナンス">メンテナンス</h2>
 <h3 id="新しい画面-route-を追加したら">新しい画面 (route) を追加したら</h3>
 <ol>
 <li>AGENTS.md の “Routing” 表に追記</li>
 <li><code>ai-skills/document-ui/SKILL.md</code> の画面カテゴリ表に screen-key を追加</li>
-<li>本 README の対応カテゴリにエントリ追加</li>
-<li><code>/document-ui &#x3C;screen-key></code> で md + screenshot を生成</li>
+<li>本 README の対応カテゴリにエントリ追加 (初期は ⏳ 準備中)</li>
+<li><code>/document-ui &#x3C;screen-key></code> で md + screenshot を生成 (生成後 ✅ に切替)</li>
 <li><code>cd docs-site &#x26;&#x26; npm run build</code> で HTML 反映</li>
 </ol>
 <h3 id="画面の-ui-を変更したら">画面の UI を変更したら</h3>
@@ -80,14 +87,14 @@
 </ol>
 <h3 id="全画面の-screenshot-を最新化したい時">全画面の screenshot を最新化したい時</h3>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>/document-ui</span></span></code></pre>
-<p>(全 27 画面を順次撮影 + md 再生成、所要時間: 30-60 分目安)</p>
+<p>(全 28 画面を順次撮影 + md 再生成、所要時間: 14-28 時間目安。実機 dev server 起動 + dogfood-uidoc-* workspace 前提)</p>
 <h2 id="関連">関連</h2>
 <ul>
 <li>生成スキル: <a href="https://github.com/csilost2001/harmony/blob/main/ai-skills/document-ui/SKILL.md"><code>ai-skills/document-ui/SKILL.md</code></a></li>
 <li>ルーティング正本: <a href="https://github.com/csilost2001/harmony/blob/main/AGENTS.md">AGENTS.md</a> の “Routing” セクション</li>
-<li>一覧 UI 共通仕様: <a href="https://github.com/csilost2001/harmony/blob/main/spec/list-common.md"><code>docs/spec/list-common.md</code></a></li>
-<li>画面デザイナー仕様: <a href="https://github.com/csilost2001/harmony/blob/main/spec/multi-editor-puck.md"><code>docs/spec/multi-editor-puck.md</code></a></li>
-<li>ページレイアウト仕様: <a href="https://github.com/csilost2001/harmony/blob/main/spec/page-layout.md"><code>docs/spec/page-layout.md</code></a></li>
+<li>一覧 UI 共通仕様: <a href="../../../spec/list-common/"><code>docs/spec/list-common.md</code></a></li>
+<li>画面デザイナー仕様: <a href="../../../spec/multi-editor-puck/"><code>docs/spec/multi-editor-puck.md</code></a></li>
+<li>ページレイアウト仕様: <a href="../../../spec/page-layout/"><code>docs/spec/page-layout.md</code></a></li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {

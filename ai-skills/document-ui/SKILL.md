@@ -6,7 +6,7 @@ argument-hint: "[<screen-key>] (省略時は全画面、例: /document-ui dashbo
 
 <!--
   使い方:
-    - `/document-ui` で全画面 (routing 表の 25 ページ) を網羅
+    - `/document-ui` で全画面 (routing 表のタブ対象 28 画面) を網羅
     - `/document-ui <screen-key>` で 1 画面のみ更新 (例: dashboard / process-flow-editor)
     - 出力: docs/user-guide/ui-reference/<screen-key>.md + docs/ui-screenshots/ui-reference/<screen-key>/*.png
     - 配布: docs-site rebuild で docs/html/user-guide/ui-reference/ に HTML 生成
@@ -42,9 +42,11 @@ curl -sf -o /dev/null -w '%{http_code}' http://localhost:5179 || echo "backend n
 ユーザーへの依頼文 (定型):
 
 ```
-UI ドキュメント生成には dev server が必要です。以下のコマンドを実行して起動してください:
-  1. ターミナル A: `cd backend && npm run dev`
-  2. ターミナル B: `cd frontend && npm run dev`
+UI ドキュメント生成には dev server が必要です。以下のコマンドを実行して起動してください
+(canonical: root から npm workspaces で起動、PR #1400):
+  1. ターミナル A (backend): `npm run backend`
+  2. ターミナル B (frontend): `npm run frontend`
+subdir で `cd backend && npm run dev` / `cd frontend && npm run dev` も等価です。
 起動完了後 ("ready in XXX ms" 表示後) に再度本コマンドを呼んでください。
 ```
 
@@ -88,6 +90,7 @@ UI ドキュメント生成には dev server が必要です。以下のコマ�
 | `view-definition-editor` | `/view-definition/edit/:id` | ViewDefinitionEditor | retail の主要 view-definition |
 | `page-layout-editor` | `/page-layout/edit/:id` | PageLayoutEditor | retail の主要 page-layout |
 | `page-layout-designer` | `/page-layout/design/:id` | PageLayoutDesigner | 同上 |
+| `generic-definition-list` | `/generic-definition/:kind` | GenericDefinitionListView | kind 単位 (1 件目) |
 | `generic-definition-editor` | `/generic-definition/:kind/:name` | GenericDefinitionEditor | retail の主要 generic-def |
 
 ### D. 設定・管理 (シングルトン)
@@ -99,7 +102,7 @@ UI ドキュメント生成には dev server が必要です。以下のコマ�
 | `workspace-list` | `/workspace/list` (top-level) | WorkspaceListView |
 | `ai-settings` | `/ai-settings` (top-level) | CodexSettingsView |
 
-合計: 27 画面 (実 routing 表より 2 件多いのは A の追加 + screen-key の網羅性向上のため)。
+合計: 28 画面 (AGENTS.md Routing 表のタブ対象 = 28 件と一致、route only の `/workspace/select` は対象外)。
 
 ## 手順
 
