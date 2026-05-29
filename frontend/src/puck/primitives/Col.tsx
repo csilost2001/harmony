@@ -79,6 +79,10 @@ export const ColConfig: ComponentConfig<ColProps> = {
         ? (BOOTSTRAP_COL[span] ?? "col")
         : (TAILWIND_COL[span] ?? "w-6/12");
     const combinedClass = [colClass, layoutClass].filter(Boolean).join(" ");
+    // #1404: 列幅 class (w-N/12 / col-N) は Col 自身の最外殻 div に乗せる。
+    // この div は Row が DropZone へ付与した flex/grid context の「直接の子」
+    // (flex item) として並ぶため、ここで幅指定すれば横並びの列幅が反映される。
+    // Col 内部の DropZone は子を縦積みする通常コンテナ (block) のままで良い。
     return (
       <div data-testid="puck-primitive-col" className={combinedClass}>
         <DropZone zone="content" />

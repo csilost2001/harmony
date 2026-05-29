@@ -37,9 +37,13 @@ export const ContainerConfig: ComponentConfig<ContainerProps> = {
     const layoutClass = mapper(props);
     const flexClass = props.direction === "row" ? "flex flex-row" : "flex flex-col";
     const combinedClass = [flexClass, layoutClass].filter(Boolean).join(" ");
+    // #1404: Puck の <DropZone> は外側コンテナと子要素の間に自前の wrapper div
+    // を挟むため、direction (flex-row / flex-col) を効かせる対象は「子の直接の
+    // 親」= DropZone wrapper である。flex class は外側ではなく DropZone の
+    // className に渡す (Row と同根)。
     return (
-      <div data-testid="puck-primitive-container" className={combinedClass}>
-        <DropZone zone="content" />
+      <div data-testid="puck-primitive-container">
+        <DropZone zone="content" className={combinedClass} />
       </div>
     );
   },
