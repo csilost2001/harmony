@@ -45,6 +45,7 @@ import {
   mergeExternalComponents,
   mergeCompositeComponents,
   compositeErrorTypeName,
+  BUILTIN_PRIMITIVE_TYPE_NAMES,
 } from "../puck/buildConfig";
 import {
   loadExternalComponents,
@@ -74,6 +75,12 @@ const EMPTY_PUCK_DATA: Data = {
   root: { props: {} },
   content: [],
 };
+
+/**
+ * built-in primitive の Puck config type 名集合 (S-3)。
+ * collectDependencies に渡すと外部 component を「built-in 扱いしない」→ 依存として正しく記録される。
+ */
+const BUILTIN_PRIMITIVE_TYPE_SET = new Set<string>(BUILTIN_PRIMITIVE_TYPE_NAMES);
 
 /** unknown を Puck Data に安全にキャストする。失敗したら EMPTY_PUCK_DATA を返す。 */
 function toPuckData(payload: unknown): Data {
@@ -295,11 +302,20 @@ function PuckEditorPane({
   const handleRequestSaveComposite = useCallback(
     (data: Data, rootItemId: string) => {
       const tree = extractSubtree(data, rootItemId);
-      if (!tree) return;
-      const dependencies = collectDependencies(tree, availableTypes);
+      if (!tree) {
+        // S-2: 完全無音失敗を避ける (zones 探索後も見つからない異常系のみここに来る)。
+        console.warn(
+          `[PuckBackend] 複合部品化: rootItemId '${rootItemId}' のノードが content・zones いずれにも見つかりません`,
+        );
+        return;
+      }
+      // S-3: 依存メタは built-in primitive 型のみを「built-in 扱い」にする。
+      // availableTypes (= 全 config 型、外部 component 込み) を渡すと外部 component が
+      // dependencies[] から除外され不完全になるため、BUILTIN_PRIMITIVE_NAMES から集合を作る。
+      const dependencies = collectDependencies(tree, BUILTIN_PRIMITIVE_TYPE_SET);
       setCompositeToSave({ tree, dependencies });
     },
-    [availableTypes],
+    [],
   );
 
   // overrides.headerActions に複合部品化ボタンを差し込む (<Puck> context 内で usePuck 利用可)。

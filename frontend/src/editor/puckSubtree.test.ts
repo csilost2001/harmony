@@ -104,6 +104,45 @@ describe("extractSubtree", () => {
     const d = data({ root: { props: {} }, content: [] });
     expect(extractSubtree(d, "missing")).toBeNull();
   });
+
+  it("zones 内のみに存在する rootItemId を切り出せる (S-2)", () => {
+    // DropZone 内のノードを選択して複合部品化するケース。content 直下には無い。
+    const d = data({
+      root: { props: {} },
+      content: [{ type: "Container", props: { id: "container-1" } }],
+      zones: {
+        "container-1:content": [
+          { type: "Card", props: { id: "card-in-zone" } },
+          { type: "Heading", props: { id: "h-sibling" } }, // subtree 外
+        ],
+        "card-in-zone:content": [{ type: "Paragraph", props: { id: "p-1" } }],
+        "h-sibling:content": [{ type: "Text", props: { id: "t-other" } }], // 切り出さない
+      },
+    });
+
+    const sub = extractSubtree(d, "card-in-zone");
+    expect(sub).not.toBeNull();
+    expect(sub!.content).toHaveLength(1);
+    expect((sub!.content[0] as { props: { id: string } }).props.id).toBe(
+      "card-in-zone",
+    );
+    // card-in-zone 配下の zone は収集する。
+    expect(sub!.zones).toHaveProperty("card-in-zone:content");
+    // root 自身が属していた zone (container-1:content) や兄弟の zone は含めない。
+    expect(sub!.zones).not.toHaveProperty("container-1:content");
+    expect(sub!.zones).not.toHaveProperty("h-sibling:content");
+  });
+
+  it("content・zones いずれにも存在しない rootItemId は null を返す (S-2)", () => {
+    const d = data({
+      root: { props: {} },
+      content: [{ type: "Container", props: { id: "container-1" } }],
+      zones: {
+        "container-1:content": [{ type: "Card", props: { id: "card-1" } }],
+      },
+    });
+    expect(extractSubtree(d, "missing")).toBeNull();
+  });
 });
 
 describe("collectSubtreeTypes / collectDependencies", () => {

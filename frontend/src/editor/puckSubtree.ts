@@ -55,7 +55,10 @@ function itemId(item: ComponentData): string | undefined {
 /**
  * 指定 itemId をルートとする subtree (ルートノード + 全子孫) を自己完結 Data 断片に切り出す。
  *
- * - ルートノードは data.content から探す (現状の保存 UI は content 直下選択を前提)。
+ * - ルートノードは data.content と **全 data.zones の各配列** から探す (S-2)。
+ *   展開 (expandCompositePlaceholders) が zones 内対応済なので、保存 (切出し) も対称に
+ *   DropZone 内ノードの選択を受け付ける。content 直下のみ探すと zone 内ノード選択で
+ *   無音 null になり保存が失敗する。
  * - legacy DropZone 系: `<itemId>:zone` キーを再帰的に辿り、subtree 内ノードに紐づく zones
  *   サブセットのみ収集する。
  * - slot 系: 子は props 同居なのでルートノードを含めれば自然に取り込まれる (追加収集不要)。
@@ -63,10 +66,19 @@ function itemId(item: ComponentData): string | undefined {
  * 見つからない場合は null を返す。
  */
 export function extractSubtree(data: Data, rootItemId: string): Subtree | null {
-  const root = data.content.find((item) => itemId(item) === rootItemId);
+  const allZones: Zones = data.zones ?? {};
+  // root を content 直下 → 全 zones の各配列の順で探す (S-2)。
+  let root: ComponentData | undefined = data.content.find(
+    (item) => itemId(item) === rootItemId,
+  );
+  if (!root) {
+    for (const zoneContent of Object.values(allZones)) {
+      root = zoneContent.find((item) => itemId(item) === rootItemId);
+      if (root) break;
+    }
+  }
   if (!root) return null;
 
-  const allZones: Zones = data.zones ?? {};
   const collectedZones: Zones = {};
 
   // BFS で subtree 内の全 itemId を辿りつつ、紐づく zones サブセットを収集する。
@@ -122,7 +134,11 @@ export function collectSubtreeTypes(tree: Subtree): string[] {
  *
  * built-in primitive は常に config に存在するため依存ではない。それ以外の type
  * (外部 component の entry.id 等) を dependencies として記録し、capability 6 判定に使う。
- * `builtinTypes` には config の built-in primitive type 名集合を渡す。
+ *
+ * `builtinTypes` には **built-in primitive 型のみ** の集合を渡すこと (S-3)。
+ * config 全 type (= 外部 component 込みの availableTypes) を渡すと外部 component が
+ * dependencies[] から除外され不完全になる。呼出側は buildConfig の
+ * `BUILTIN_PRIMITIVE_TYPE_NAMES` から作った集合を渡す。
  */
 export function collectDependencies(
   tree: Subtree,

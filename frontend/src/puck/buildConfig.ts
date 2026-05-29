@@ -603,8 +603,11 @@ export function mergeExternalComponents(
  * カテゴリは `projectComposite` (title「複合部品」)。既存 `composite` (業務複合 primitive) とは
  * 別物なので名前衝突を避けて projectComposite を使う。
  *
- * 衝突安全性: mergeExternalComponents と同じく base.components の既存 key は絶対に上書きせず、
- * usedKeys / uniqueKey で新規 key の非衝突を保証する。
+ * 衝突安全性 (S-1): placeholder / error-card の type 名は `compositeTypeName(def.id)` /
+ * `compositeErrorTypeName(def.id)` を **そのまま** config キーに使う (uniqueKey で採番しない)。
+ * PuckBackend / expandCompositePlaceholders が同じ名前を直接生成して参照するため、3 者が
+ * 決定論的に一致する必要があるため。`__composite__<uuid>` 構造上、実用上衝突しないが、
+ * 万一の衝突は console.warn で検知し黙って上書きしない (base.components の既存 key は不変)。
  */
 export function mergeCompositeComponents(
   base: Config,
@@ -620,9 +623,27 @@ export function mergeCompositeComponents(
 
   for (let i = 0; i < composites.length; i++) {
     const def = composites[i];
-    const placeholderType = uniqueKey(compositeTypeName(def.id), usedKeys);
+    // S-1: placeholder / error-card の type 名は uniqueKey で採番しない。
+    // PuckBackend (expandableComposites) と expandCompositePlaceholders が
+    // `compositeTypeName(def.id)` / `compositeErrorTypeName(def.id)` を直接生成して
+    // 参照するため、config 登録キーも同じ決定論的な名前である必要がある
+    // (uniqueKey で suffix が付くと参照型と登録型が乖離する)。
+    // `__composite__<uuid>` prefix + UUID 構造上、実用上は衝突しない。
+    // 万一の衝突 (同名キーが既に base.components に存在) は黙って上書きせず
+    // console.warn で検知ログのみ残す。
+    const placeholderType = compositeTypeName(def.id);
+    if (usedKeys.has(placeholderType)) {
+      console.warn(
+        `[mergeCompositeComponents] composite placeholder type '${placeholderType}' は既存 component と衝突 (上書きしません)`,
+      );
+    }
     usedKeys.add(placeholderType);
-    const errorType = uniqueKey(compositeErrorTypeName(def.id), usedKeys);
+    const errorType = compositeErrorTypeName(def.id);
+    if (usedKeys.has(errorType)) {
+      console.warn(
+        `[mergeCompositeComponents] composite error-card type '${errorType}' は既存 component と衝突 (上書きしません)`,
+      );
+    }
     usedKeys.add(errorType);
 
     // placeholder component (drop 直後に展開され消える、render は最小ラベル)。
@@ -634,6 +655,10 @@ export function mergeCompositeComponents(
         createElement(
           "div",
           {
+            // N-2: placeholder の DOM anchor。drop 直後に expandCompositePlaceholders で
+            // subtree に置換され消える transient ノードのため通常は DOM に残らないが、
+            // 展開前の一瞬を E2E / 手動デバッグで掴むための selector hook として付与する
+            // (def.id を埋めることで「どの複合部品の placeholder か」を識別可能)。
             "data-composite-placeholder": def.id,
             style: { padding: 8, color: "#666", fontSize: 13 },
           },
@@ -757,3 +782,23 @@ export const BUILTIN_PRIMITIVE_NAMES = [
 ] as const;
 
 export type BuiltinPrimitiveName = (typeof BUILTIN_PRIMITIVE_NAMES)[number];
+
+/** kebab-case primitive 名を Puck config component type 名 (PascalCase) に変換する。 */
+function toBuiltinTypeName(name: string): string {
+  return name
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+}
+
+/**
+ * built-in primitive の **Puck config component type 名** (PascalCase) 一覧。
+ *
+ * `BUILTIN_PRIMITIVE_NAMES` は kebab-case (UI 表示・primitive 識別子用) だが、
+ * buildPuckConfig() が config.components に登録する実 type 名は PascalCase
+ * ("Container" / "InputGroup" / "DataList" / "RegionHeader" 等)。
+ * 依存判定 (collectDependencies) は subtree ノードの type (= config キー) と
+ * 突合するため、PascalCase に揃えた集合が必要 (S-3)。
+ */
+export const BUILTIN_PRIMITIVE_TYPE_NAMES: readonly string[] =
+  BUILTIN_PRIMITIVE_NAMES.map(toBuiltinTypeName);
