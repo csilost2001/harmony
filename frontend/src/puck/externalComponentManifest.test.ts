@@ -132,4 +132,76 @@ describe("validateExternalComponentManifest", () => {
     expect(validateExternalComponentManifest("x").ok).toBe(false);
     expect(validateExternalComponentManifest([]).ok).toBe(false);
   });
+
+  // --- slot 検証 (#1411 P-3) ---
+
+  it("slot あり (prop と非衝突) の正常 manifest を受理する", () => {
+    const result = validateExternalComponentManifest({
+      schemaVersion: "1",
+      components: [
+        {
+          id: "foo",
+          label: "Foo",
+          module: "./foo.mjs",
+          version: "1.0",
+          props: [{ name: "title", type: "string" }],
+          slots: [
+            { name: "header", label: "ヘッダ" },
+            { name: "content", label: "本文" },
+          ],
+        },
+      ],
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("slot 名重複を検出する", () => {
+    const result = validateExternalComponentManifest({
+      schemaVersion: "1",
+      components: [
+        {
+          id: "foo",
+          label: "Foo",
+          module: "./foo.mjs",
+          version: "1.0",
+          slots: [
+            { name: "content", label: "A" },
+            { name: "content", label: "B" },
+          ],
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(
+        result.errors.some(
+          (e) => e.includes("content") && e.includes("重複"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("slot 名と prop 名の衝突を検出する", () => {
+    const result = validateExternalComponentManifest({
+      schemaVersion: "1",
+      components: [
+        {
+          id: "foo",
+          label: "Foo",
+          module: "./foo.mjs",
+          version: "1.0",
+          props: [{ name: "content", type: "string" }],
+          slots: [{ name: "content", label: "本文" }],
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(
+        result.errors.some(
+          (e) => e.includes("content") && e.includes("衝突"),
+        ),
+      ).toBe(true);
+    }
+  });
 });

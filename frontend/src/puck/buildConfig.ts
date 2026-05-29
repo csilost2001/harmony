@@ -41,6 +41,7 @@ import type {
   LoadedExternalComponent,
   ExternalComponentErrorKind,
 } from "./externalComponents";
+import type { ExternalSlotDecl } from "./externalComponentManifest";
 import { ExternalComponentErrorCard } from "../components/puck/ExternalComponentErrorCard";
 
 // ---------------------------------------------------------------------------
@@ -195,6 +196,30 @@ function buildFieldsFromPropDecls(
         label: decl.label ?? decl.name,
       };
     }
+  }
+  return fields;
+}
+
+/**
+ * 外部 component の slot 宣言を Puck の slot field に変換する (#1411 P-3)。
+ *
+ * Puck v0.20 の `{ type: "slot" }` field を宣言すると、Puck は render 時に当該 prop を
+ * SlotComponent (= render-prop) に変換して props 経由で注入する。slot 中身は
+ * 当該 component の props に co-located で保存されるため、save/load (PuckBackend が
+ * Puck Data JSON をそのまま draftWrite/draftRead) を無改修で素通りする。
+ *
+ * prop field 生成 (buildFieldsFromPropDecls) とは別ヘルパー。マージ側で
+ * `{ ...propFields, ...slotFields }` の順で合流させる。
+ */
+function buildSlotFields(
+  slots: ExternalSlotDecl[],
+): NonNullable<Config["components"][string]["fields"]> {
+  const fields: NonNullable<Config["components"][string]["fields"]> = {};
+  for (const slot of slots) {
+    fields[slot.name] = {
+      type: "slot" as const,
+      label: slot.label ?? slot.name,
+    };
   }
   return fields;
 }
@@ -487,18 +512,27 @@ export function mergeExternalComponents(
           defaultProps[prop.name] = prop.default;
         }
       }
+      // slot は空の editable region として初期化する (#1411 P-3)。
+      // Puck は defaultProps の slot 値 (= Content 配列) を起点に DropZone を描画する。
+      for (const slot of entry.slots ?? []) {
+        defaultProps[slot.name] = [];
+      }
+      // props field を先に作り、slot field を後ろにマージする (#1411 P-3)。
+      const propFields = buildFieldsFromPropDecls(
+        (entry.props ?? []).map((p) => ({
+          name: p.name,
+          type: p.type,
+          label: p.label,
+          enum: p.enum,
+        })),
+      );
+      const slotFields = buildSlotFields(entry.slots ?? []);
       const Component = item.Component;
       extraComponents[entry.id] = {
         label: `(外部) ${entry.label}`,
         // props → Puck fields 変換 (#1410 P-2、custom 経路と共有ヘルパー)。
-        fields: buildFieldsFromPropDecls(
-          (entry.props ?? []).map((p) => ({
-            name: p.name,
-            type: p.type,
-            label: p.label,
-            enum: p.enum,
-          })),
-        ),
+        // slot field (#1411 P-3) を後ろにマージ (Puck が render-prop に変換して注入する)。
+        fields: { ...propFields, ...slotFields },
         defaultProps,
         render: (props: Record<string, unknown>) =>
           createElement(Component, props),

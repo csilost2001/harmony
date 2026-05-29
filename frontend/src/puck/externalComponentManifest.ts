@@ -109,6 +109,8 @@ function validateSlotDecl(
   slot: unknown,
   path: string,
   errors: string[],
+  seenSlotNames: Set<string>,
+  propNames: Set<string>,
 ): void {
   if (!isPlainObject(slot)) {
     errors.push(`${path}: slot はオブジェクトである必要があります`);
@@ -116,6 +118,16 @@ function validateSlotDecl(
   }
   if (typeof slot.name !== "string" || slot.name.length === 0) {
     errors.push(`${path}.name: 必須の文字列です`);
+  } else {
+    // slot 名は同 entry 内で unique であること。
+    if (seenSlotNames.has(slot.name)) {
+      errors.push(`${path}.name: slot 名 "${slot.name}" が重複しています`);
+    }
+    // slot 名は Puck props 名前空間を prop と共有するため、prop 名と衝突してはならない。
+    if (propNames.has(slot.name)) {
+      errors.push(`${path}.name: prop 名 "${slot.name}" と衝突しています`);
+    }
+    seenSlotNames.add(slot.name);
   }
   if (slot.label !== undefined && typeof slot.label !== "string") {
     errors.push(`${path}.label: 文字列である必要があります`);
@@ -173,6 +185,8 @@ function validateEntry(
   if (entry.engine !== undefined) {
     validateEngineDecl(entry.engine, `${path}.engine`, errors);
   }
+  // prop 名集合は slot 名衝突検証で参照するため先に収集する。
+  const propNames = new Set<string>();
   if (entry.props !== undefined) {
     if (!Array.isArray(entry.props)) {
       errors.push(`${path}.props: 配列である必要があります`);
@@ -180,14 +194,20 @@ function validateEntry(
       entry.props.forEach((p, i) =>
         validatePropDecl(p, `${path}.props[${i}]`, errors),
       );
+      for (const p of entry.props) {
+        if (isPlainObject(p) && typeof p.name === "string" && p.name.length > 0) {
+          propNames.add(p.name);
+        }
+      }
     }
   }
   if (entry.slots !== undefined) {
     if (!Array.isArray(entry.slots)) {
       errors.push(`${path}.slots: 配列である必要があります`);
     } else {
+      const seenSlotNames = new Set<string>();
       entry.slots.forEach((s, i) =>
-        validateSlotDecl(s, `${path}.slots[${i}]`, errors),
+        validateSlotDecl(s, `${path}.slots[${i}]`, errors, seenSlotNames, propNames),
       );
     }
   }

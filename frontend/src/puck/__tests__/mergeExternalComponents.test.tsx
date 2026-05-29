@@ -294,6 +294,90 @@ describe("mergeExternalComponents props→fields (#1410 P-2)", () => {
   });
 });
 
+describe("mergeExternalComponents slot fields (#1411 P-3)", () => {
+  const slotEntry: ExternalComponentEntry = {
+    id: "ext-slot",
+    label: "外部Slot",
+    module: "./dist/slot.mjs",
+    version: "1.0.0",
+    slots: [{ name: "content", label: "本文スロット" }],
+  };
+
+  it("slots 宣言された ok entry は当該 slot 名で slot field を生成する", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry: slotEntry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const fields = merged.components["ext-slot"].fields!;
+    expect(fields.content.type).toBe("slot");
+    expect((fields.content as { label?: string }).label).toBe("本文スロット");
+  });
+
+  it("slot label 省略時は slot 名を label に使う", () => {
+    const noLabel: ExternalComponentEntry = {
+      ...slotEntry,
+      slots: [{ name: "content" }],
+    };
+    const loaded: LoadedExternalComponent[] = [
+      { entry: noLabel, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const f = merged.components["ext-slot"].fields!.content as {
+      type: string;
+      label?: string;
+    };
+    expect(f.type).toBe("slot");
+    expect(f.label).toBe("content");
+  });
+
+  it("defaultProps[slotName] は空配列で初期化される", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry: slotEntry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    expect(merged.components["ext-slot"].defaultProps!.content).toEqual([]);
+  });
+
+  it("slot + prop 併存時、両方が fields に乗り prop field 型は従来通り", () => {
+    const mixed: ExternalComponentEntry = {
+      id: "ext-mixed",
+      label: "外部Mixed",
+      module: "./dist/mixed.mjs",
+      version: "1.0.0",
+      props: [
+        { name: "title", type: "string", label: "タイトル", default: "T" },
+        { name: "count", type: "number", label: "件数" },
+      ],
+      slots: [{ name: "body", label: "本体" }],
+    };
+    const loaded: LoadedExternalComponent[] = [
+      { entry: mixed, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const fields = merged.components["ext-mixed"].fields!;
+    expect(fields.title.type).toBe("text");
+    expect(fields.count.type).toBe("number");
+    expect(fields.body.type).toBe("slot");
+    // prop default は維持、slot は空配列で初期化
+    expect(merged.components["ext-mixed"].defaultProps).toEqual({
+      title: "T",
+      body: [],
+    });
+  });
+
+  it("slot 無し entry は slot field を追加しない (回帰なし)", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const fields = merged.components["ext-foo"].fields!;
+    const slotFieldKeys = Object.entries(fields).filter(
+      ([, def]) => (def as { type: string }).type === "slot",
+    );
+    expect(slotFieldKeys.length).toBe(0);
+  });
+});
+
 describe("mergeExternalComponents categories (#1410 P-2)", () => {
   it("外部 0 件 (loaded=[]) のとき categories は base と同一 (projectExternal 無し)", () => {
     const base = buildPuckConfig();

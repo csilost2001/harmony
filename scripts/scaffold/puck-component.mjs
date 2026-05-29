@@ -186,7 +186,7 @@ ${original
 }
 
 function buildComponentSample(pascal) {
-  return `// ${pascal}.tsx — 外部 Puck Component サンプル (#1409 P-1)。
+  return `// ${pascal}.tsx — 外部 Puck Component サンプル (#1409 P-1 / slot 対応 #1411 P-3)。
 //
 // props は manifest.json の props 宣言と対応させてください。
 // React は host と共有されるため、必ず "react" から import します (import map で解決)。
@@ -197,9 +197,20 @@ export interface ${pascal}Props {
   title?: string;
   /** 本文 */
   message?: string;
+  /**
+   * named slot (editable region) の render-prop。manifest の slots 宣言と対応します。
+   * host (Harmony) が Puck の slot field を render-prop に変換して注入するため、
+   * 外部部品側で DropZone を import する必要はありません。呼び出すと、設計者が
+   * その領域に Puck で配置した部品が描画されます (#1411 P-3)。
+   */
+  content?: (props?: Record<string, unknown>) => React.ReactNode;
 }
 
-export default function ${pascal}({ title = "サンプル外部部品", message = "" }: ${pascal}Props) {
+export default function ${pascal}({
+  title = "サンプル外部部品",
+  message = "",
+  content,
+}: ${pascal}Props) {
   return (
     <div
       data-external-component="${pascal}"
@@ -212,6 +223,8 @@ export default function ${pascal}({ title = "サンプル外部部品", message 
     >
       <strong>{title}</strong>
       {message ? <p style={{ margin: "6px 0 0" }}>{message}</p> : null}
+      {/* editable region: host 注入 slot。設計者が Puck で内部に部品を配置できる。 */}
+      {content ? content() : null}
     </div>
   );
 }
@@ -234,6 +247,7 @@ function buildManifest(name, pascal) {
             { name: "title", type: "string", label: "見出し", default: pascal },
             { name: "message", type: "string", label: "本文" },
           ],
+          slots: [{ name: "content", label: "本文スロット" }],
         },
       ],
     },
@@ -288,7 +302,29 @@ npm run build          # → dist/${name}.mjs を生成
 | \`version\` | ✅ | 部品バージョン |
 | \`engine\` | | \`{ react, puck }\` の互換 major。host (react 19 / puck 0.20) と不一致なら読込エラー |
 | \`props\` | | prop 宣言 (P-1 では default 集約のみ反映、fields 本格化は P-2) |
-| \`slots\` | | DropZone 相当 (P-3 で活用) |
+| \`slots\` | | named slot (editable region)。設計者が内部に部品を配置できる (P-3) |
+
+## slot 契約 (editable region、#1411 P-3)
+
+manifest の \`slots\` で named slot を宣言すると、host (Harmony) はその slot を Puck の
+slot field として登録します。Puck は render 時に **対応する \`props.<slotName>\` を
+render-prop (関数) に変換して注入** するため、component はその関数を呼んで描画するだけです。
+
+- component は対応する \`props.<slotName>\` を **描画** する (例: \`content ? content() : null\`)。
+- 設計者は Puck デザイナー上でその領域 (editable region) に他の部品を **ドラッグ配置** できる。
+- 配置内容は当該 component の props に co-located で保存され、通常の保存/読込で素通りします。
+- **\`@measured/puck\` の DropZone を自分で import する必要はありません** (host が注入)。
+
+\`\`\`tsx
+export interface SampleProps {
+  content?: (props?: Record<string, unknown>) => React.ReactNode;
+}
+export default function Sample({ content }: SampleProps) {
+  return <div>{content ? content() : null}</div>;
+}
+\`\`\`
+
+slot 名は同 entry 内で unique かつ prop 名と衝突しないこと (manifest validator が検出します)。
 
 ## エラー時の挙動
 
