@@ -7,8 +7,10 @@ import type { CustomPuckComponentDef } from "../src/store/puckComponentsStore";
 import type { HarmonyEntities, ScreenEntry, Timestamp } from "../src/types/v3";
 import { buildProject } from "./__fixtures__/builders";
 import {
+  dragPaletteItemToCanvas,
   getPuckContainer,
   makeScreenEntity,
+  puckRootDropzone,
   seedExternalPuckComponentFixture,
   writePuckDataFile,
 } from "./helpers/puck";
@@ -20,6 +22,7 @@ import {
   setupTestWorkspace,
   type OpenedWorkspace,
 } from "./helpers/realWorkspace";
+import { startNewDraft } from "./helpers/editSessionDropdown";
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 const FIXTURE_MANIFEST = repoPath(
@@ -116,8 +119,8 @@ async function openPuckScreen(page: Page, ws: OpenedWorkspace, screenId: string)
 }
 
 async function startEditing(page: Page): Promise<void> {
-  await page.locator("[data-testid='esd-toggle-btn']").click();
-  await page.locator("[data-testid='esd-new-draft-btn']").click();
+  // esd-* ボタンは helper 経由で click する (#980-A: locator.click() は .esd-root を拾って 180s timeout)
+  await startNewDraft(page);
   await expect(page.locator("[data-testid='edit-session-dropdown']")).toContainText("編集中", { timeout: 10000 });
 }
 
@@ -261,5 +264,28 @@ test.describe("Puck 外部部品 E2E", { tag: ["@regression"] }, () => {
     await expect(page.getByRole("button", { name: "(外部·エラー) 承認ステータス帯", exact: true })).toBeVisible({ timeout: 20000 });
     await expect(canvas(page).locator("[data-testid='external-component-error-card']")).toBeVisible();
     await expect(canvas(page).locator("[data-testid='external-component-error-card']")).toHaveAttribute("data-error-kind", "version-mismatch");
+  });
+
+  // #1421: palette → iframe canvas への実 drag/drop。seed ではなく実操作で配置を検証する。
+  test("7. 外部部品を palette から実 drag で canvas に配置できる", async ({ page }) => {
+    const { ws, screenId } = await createWorkspace(
+      "issue-1420-external-drag",
+      { root: { props: {} }, content: [] },
+    );
+    await openPuckScreen(page, ws, screenId);
+    await startEditing(page);
+
+    // 配置前は外部部品ノードなし
+    await expect(puckRootDropzone(page).locator('[data-external-component="ApprovalStatusBar"]')).toHaveCount(0);
+
+    await dragPaletteItemToCanvas(page, "(外部) 承認ステータス帯");
+
+    // 実 drag 後に canvas へ外部部品が配置・描画される
+    await expect(
+      puckRootDropzone(page).locator('[data-external-component="ApprovalStatusBar"]'),
+    ).toHaveCount(1, { timeout: 10000 });
+    await expect(
+      canvas(page).locator('[data-puck-component^="approval-status-bar"]'),
+    ).toBeVisible();
   });
 });

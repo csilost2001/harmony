@@ -214,67 +214,65 @@ export function getPaletteItem(page: Page, label: string): Locator {
   return page.getByRole("button", { name: label, exact: true }).first();
 }
 
-export async function dragPrimitiveTo(
-  page: Page,
-  paletteLabel: string,
-  targetSelector: string,
-): Promise<void> {
-  const paletteItem = getPaletteItem(page, paletteLabel);
-  const target = page.locator(targetSelector).first();
-  await paletteItem.waitFor({ state: "visible", timeout: 10000 });
-  await target.waitFor({ state: "visible", timeout: 10000 });
+/** Puck canvas iframe (#preview-frame) の contentFrame を返す。 */
+export function puckCanvasFrame(page: Page): ReturnType<Locator["contentFrame"]> {
+  return page.locator("iframe#preview-frame").last().contentFrame();
+}
 
-  const sourceBox = await paletteItem.boundingBox();
-  const targetBox = await target.boundingBox();
-  if (!sourceBox || !targetBox) {
-    throw new Error(`DnD target not measurable: ${paletteLabel} -> ${targetSelector}`);
-  }
-
-  const sourceX = sourceBox.x + sourceBox.width / 2;
-  const sourceY = sourceBox.y + sourceBox.height / 2;
-  const targetX = targetBox.x + targetBox.width / 2;
-  const targetY = targetBox.y + Math.min(targetBox.height / 2, 260);
-
-  await page.mouse.move(sourceX, sourceY);
-  await page.mouse.down();
-  for (let i = 1; i <= 10; i += 1) {
-    await page.mouse.move(
-      sourceX + ((targetX - sourceX) * i) / 10,
-      sourceY + ((targetY - sourceY) * i) / 10,
-    );
-    await page.waitForTimeout(20);
-  }
-  await page.waitForTimeout(100);
-  await page.mouse.up();
-  await page.waitForTimeout(300);
+/** Puck root dropzone (iframe 内) の Locator。 */
+export function puckRootDropzone(page: Page): Locator {
+  return puckCanvasFrame(page).locator("[data-testid='dropzone:root:default-zone']");
 }
 
 /**
- * dnd-kit の KeyboardSensor 経路で primitive を palette から canvas に配置する。
- * mouse-based の dragPrimitiveTo は MouseEvent しか発火せず PointerSensor を活性化できない。
- * KeyboardSensor は dnd-kit のデフォルト sensor (accessibility 機能):
- *   - paletteItem に focus
- *   - Space で pickup
- *   - 矢印キーで移動
- *   - Space で drop
+ * palette item を実 drag で iframe canvas の root dropzone に配置する (#1421)。
+ *
+ * Puck 0.20 は新 `@dnd-kit/dom` (pointer-based) を使い、canvas は `#preview-frame` iframe に
+ * 描画される。成立に必要な要素:
+ *   1. 編集モード (drawer item は編集中のみ draggable)
+ *   2. palette item を `scrollIntoViewIfNeeded` で viewport 内に入れる
+ *      (外部部品カテゴリは palette 下方にあり、画面外座標へ mouse.move しても drag 起動しない)
+ *   3. `page.mouse` (CDP input) は iframe 境界を越えて hit-test されるため drop が成立する
+ *   4. mousedown 後に >5px の初期 jiggle で dnd-kit の activation を満たし、多段 move で
+ *      iframe dropzone の viewport 相対座標 (frame locator の boundingBox) へ運ぶ
+ *
+ * 注意: KeyboardSensor / 単純な mouse.move 一発では activation せず配置されない。
  */
-export async function dragPrimitiveByKeyboard(
+export async function dragPaletteItemToCanvas(
   page: Page,
   paletteLabel: string,
-  moveSteps: number = 5,
 ): Promise<void> {
   const paletteItem = getPaletteItem(page, paletteLabel);
   await paletteItem.waitFor({ state: "visible", timeout: 10000 });
-  await paletteItem.focus();
-  await page.waitForTimeout(100);
-  await page.keyboard.press("Space");
-  await page.waitForTimeout(150);
-  for (let i = 0; i < moveSteps; i += 1) {
-    await page.keyboard.press("ArrowDown");
-    await page.waitForTimeout(80);
+  await paletteItem.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(200);
+
+  const dropzone = puckRootDropzone(page);
+  await dropzone.waitFor({ state: "visible", timeout: 10000 });
+
+  const sourceBox = await paletteItem.boundingBox();
+  const targetBox = await dropzone.boundingBox();
+  if (!sourceBox || !targetBox) {
+    throw new Error(`DnD target not measurable: ${paletteLabel}`);
   }
-  await page.keyboard.press("Space");
-  await page.waitForTimeout(300);
+
+  const sx = sourceBox.x + sourceBox.width / 2;
+  const sy = sourceBox.y + sourceBox.height / 2;
+  const tx = targetBox.x + targetBox.width / 2;
+  // dropzone 上端付近に落とす (既存ノードがあっても末尾に積まれるよう中央寄り上部)
+  const ty = targetBox.y + Math.min(targetBox.height - 20, 80);
+
+  await page.mouse.move(sx, sy);
+  await page.mouse.down();
+  await page.mouse.move(sx + 8, sy + 8); // distance > 5px で activation
+  await page.waitForTimeout(60);
+  for (let i = 1; i <= 24; i += 1) {
+    await page.mouse.move(sx + ((tx - sx) * i) / 24, sy + ((ty - sy) * i) / 24);
+    await page.waitForTimeout(25);
+  }
+  await page.waitForTimeout(150);
+  await page.mouse.up();
+  await page.waitForTimeout(400);
 }
 
 export async function selectPlacedPrimitive(page: Page, name: string): Promise<void> {
