@@ -342,8 +342,15 @@ export function buildConfigWithCustomComponents(customComponents: CustomPuckComp
  *   defaultProps は manifest props の default 集約。
  *   fields は P-1 では最小 (空)。props→fields の本格化は P-2。
  * - status="error": ExternalComponentErrorCard を render するエラーカードを登録。
- * - id 衝突 (built-in / 既存 custom と同じ id): 既存を上書きせず、id-collision の
- *   エラーカードに差し替える。意図しない built-in 部品の置換を防ぐ。
+ * - id 衝突 (built-in / 既存 custom / 先行 external と同じ id): 既存を上書きせず、
+ *   id-collision のエラーカードに差し替える。意図しない built-in 部品の置換を防ぐ。
+ *
+ * 衝突安全性 (defense-in-depth、validator で弾く前提でも merge 層で保証):
+ *   1. base.components の既存 key は **絶対に上書きしない**。
+ *   2. extraComponents の key はすべて usedKeys 採番済 (uniqueKey helper) で、
+ *      base.components とも extraComponents 内でも非衝突であることを保証する。
+ *   3. 同一 manifest 内で id が重複した entry は 2 件目以降が id-collision 扱いになり、
+ *      silent overwrite を防ぐ。
  *
  * 既存 JSON-only custom component 経路 (buildConfigWithCustomComponents) とは別ソースとして
  * 統合する。両者を併用する場合は buildConfigWithCustomComponents の戻り値を base に渡せる。
@@ -355,20 +362,27 @@ export function mergeExternalComponents(
   if (loaded.length === 0) return base;
 
   const extraComponents: Config["components"] = {};
+  // base の全 key を起点にした「使用済み key」集合。
+  // 以降に登録する key (実 component / エラーカード / 衝突カード) はすべてこの集合に
+  // add していき、新規 key 採番時の衝突判定に使う。base の key は不変。
+  const usedKeys = new Set<string>(Object.keys(base.components));
 
-  for (const item of loaded) {
+  for (let i = 0; i < loaded.length; i++) {
+    const item = loaded[i];
     const { entry } = item;
 
-    // id 衝突チェック: base (built-in / 既存 custom) に同じ id があれば上書きせず、
-    // 衝突 entry 専用の別 key (__ext_collision__<id>) でエラーカードを登録する。
-    // これにより既存 built-in / custom 部品は保持したまま、衝突を可視化できる。
-    if (base.components[entry.id] !== undefined) {
-      extraComponents[`__ext_collision__${entry.id}`] = makeErrorCardConfig(
+    // id 衝突チェック: entry.id が built-in / 既存 custom / 先行 external のいずれかと
+    // 既出なら衝突扱い。base を上書きせず、usedKeys に無い一意 key を採番して
+    // id-collision エラーカードを登録する。
+    if (usedKeys.has(entry.id)) {
+      const collisionKey = uniqueKey(`__ext_error__${entry.id}__${i}`, usedKeys);
+      extraComponents[collisionKey] = makeErrorCardConfig(
         entry.label,
         entry.id,
         "id-collision",
         `ID '${entry.id}' は既存 component と衝突`,
       );
+      usedKeys.add(collisionKey);
       continue;
     }
 
@@ -398,6 +412,7 @@ export function mergeExternalComponents(
         detail,
       );
     }
+    usedKeys.add(entry.id);
   }
 
   return {
@@ -407,6 +422,23 @@ export function mergeExternalComponents(
       ...extraComponents,
     },
   };
+}
+
+/**
+ * usedKeys に存在しない一意な key を返す。
+ * preferred がそのまま空いていればそれを返し、衝突する場合は suffix
+ * (`__2`, `__3`, ...) を付与して必ず空き key を得る。
+ * これにより、衝突カード用の key 自体が既存 literal key と衝突する事故を防ぐ。
+ */
+function uniqueKey(preferred: string, usedKeys: Set<string>): string {
+  if (!usedKeys.has(preferred)) return preferred;
+  let n = 2;
+  let candidate = `${preferred}__${n}`;
+  while (usedKeys.has(candidate)) {
+    n += 1;
+    candidate = `${preferred}__${n}`;
+  }
+  return candidate;
 }
 
 /** ExternalComponentErrorCard を render する Puck component config を生成する。 */

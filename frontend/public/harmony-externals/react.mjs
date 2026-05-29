@@ -35,6 +35,8 @@ export const {
   useDeferredValue,
   useDebugValue,
   use,
+  useActionState,
+  useOptimistic,
   // element / ref API
   createElement,
   cloneElement,

@@ -13,6 +13,7 @@ export default m;
 export const {
   createPortal,
   flushSync,
+  useFormStatus,
   version,
   preload,
   preconnect,

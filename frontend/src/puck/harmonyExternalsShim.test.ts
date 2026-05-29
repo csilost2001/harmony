@@ -84,6 +84,15 @@ describe("harmony-externals shim mjs", () => {
     // React 19 安定 surface (use)。host に存在することを確認。
     expect(ex.use).toBe((ReactNS as Record<string, unknown>).use);
     expect(typeof ex.use).toBe("function");
+    // React 19 安定 surface (useActionState / useOptimistic)。
+    // host 実体と一致すること (host に存在すれば function、無ければ undefined だが
+    // いずれにせよ shim の named export 宣言は host 実体に解決される)。
+    expect(ex.useActionState).toBe(
+      (ReactNS as Record<string, unknown>).useActionState,
+    );
+    expect(ex.useOptimistic).toBe(
+      (ReactNS as Record<string, unknown>).useOptimistic,
+    );
     // default は React namespace 全体
     expect(ex.default).toBe(ReactNS);
   });
@@ -94,6 +103,10 @@ describe("harmony-externals shim mjs", () => {
       (ReactDOMNS as Record<string, unknown>).createPortal,
     );
     expect(typeof ex.createPortal).toBe("function");
+    // React 19 安定 surface (useFormStatus、react-dom に存在)。host 実体と一致。
+    expect(ex.useFormStatus).toBe(
+      (ReactDOMNS as Record<string, unknown>).useFormStatus,
+    );
     expect(ex.default).toBe(ReactDOMNS);
   });
 
