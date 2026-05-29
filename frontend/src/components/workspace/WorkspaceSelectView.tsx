@@ -48,6 +48,7 @@ export function WorkspaceSelectView() {
   const { workspaces, lockdown } = state;
   const recentWorkspaces = workspaces.slice(0, 5);
   const hiddenCount = workspaces.length - 5;
+  const visibleError = actionError ?? (state.error === "e2e bypass" ? null : state.error);
 
   const handleOpenById = async (id: string) => {
     setActionError(null);
@@ -89,7 +90,7 @@ export function WorkspaceSelectView() {
           </p>
         </div>
 
-        {actionError && (
+        {visibleError && (
           <div style={{
             padding: "8px 12px",
             background: "rgba(248,113,113,0.15)",
@@ -99,7 +100,7 @@ export function WorkspaceSelectView() {
             fontSize: "0.85rem",
             marginBottom: "20px",
           }}>
-            <i className="bi bi-exclamation-circle" /> {actionError}
+            <i className="bi bi-exclamation-circle" /> {visibleError}
           </div>
         )}
 

@@ -512,6 +512,7 @@ export function WorkspaceListView() {
   }, []);
 
   const { workspaces, active, lockdown } = storeState;
+  const visibleError = actionError ?? (storeState.error === "e2e bypass" ? null : storeState.error);
 
   const sortAccessor = useCallback((w: WorkspaceEntry, key: string): string | number => {
     switch (key) {
@@ -744,7 +745,7 @@ export function WorkspaceListView() {
           </div>
         </div>
 
-        {actionError && (
+        {visibleError && (
           <div style={{
             padding: "6px 12px",
             background: "var(--danger-bg, #f8d7da)",
@@ -753,7 +754,7 @@ export function WorkspaceListView() {
             marginBottom: "8px",
             fontSize: "0.85rem",
           }}>
-            <i className="bi bi-exclamation-circle" /> {actionError}
+            <i className="bi bi-exclamation-circle" /> {visibleError}
           </div>
         )}
 

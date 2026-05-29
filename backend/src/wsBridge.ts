@@ -665,6 +665,11 @@ export class WsBridge extends EventEmitter {
       }
     };
     const respondError = (error: string): void => {
+      logWarn("ws-bridge", "Browser request returned error", {
+        method,
+        clientId: clientId.substring(0, 8),
+        error,
+      });
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "response", id, error }));
       }
