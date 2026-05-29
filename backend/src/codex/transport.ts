@@ -58,6 +58,10 @@ export class StdioTransport extends JsonRpcTransport {
       env: options.env ?? process.env,
       cwd: options.cwd,
     });
+    // codex 子プロセスが親 (backend) の event loop を保持しないようにする (#1414)。
+    // 子が D 状態 / ゾンビ等で exit イベントを発火しないケースでも、親プロセスが
+    // 子の handle 参照だけで生き残るのを防ぎ、shutdown 時の hang を緩和する。
+    this.child.unref();
 
     this.child.stdout.setEncoding("utf8");
     this.child.stdout.on("data", (chunk: string) => this.handleStdout(chunk));
@@ -103,13 +107,25 @@ export class StdioTransport extends JsonRpcTransport {
     const sigtermMs = opts?.sigtermDelayMs ?? 5000;
     const sigkillMs = opts?.sigkillDelayMs ?? 10000;
     return new Promise<void>((resolve) => {
-      this.child.once("exit", () => resolve());
+      // exit イベントと SIGKILL 後の fallback timer の両方から呼ばれるため
+      // idempotent にして二重 resolve を防ぐ (#1414)。
+      let resolved = false;
+      const done = () => {
+        if (resolved) return;
+        resolved = true;
+        resolve();
+      };
+      this.child.once("exit", done);
       this.child.stdin.end();
       setTimeout(() => {
         if (this.child.exitCode === null) this.child.kill("SIGTERM");
       }, sigtermMs).unref();
       setTimeout(() => {
         if (this.child.exitCode === null) this.child.kill("SIGKILL");
+        // SIGKILL 後 200ms 経っても exit イベントが来なければ強制 resolve (#1414)。
+        // 子が D 状態 / ゾンビ等で exit を発火しないと Promise が永久 hang し、
+        // shutdown シーケンス全体 (wsBridge.stop → exitHandler) が止まるため。
+        setTimeout(done, 200).unref();
       }, sigkillMs).unref();
       this.emit("close", { kind: "local" });
     });
