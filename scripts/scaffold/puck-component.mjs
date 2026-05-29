@@ -99,6 +99,8 @@ import react from "@vitejs/plugin-react";
 // 外部 Puck Component の build 設定 (#1409 P-1)。
 // react / react-dom / @measured/puck は host (Harmony) と共有するため external 化し、
 // bundle に含めない。host は index.html の import map + window bridge でこれらを供給する。
+// predicate 形式で subpath (react-dom/client, react/jsx-runtime, @measured/puck/* 等) も
+// 漏れなく external 化する。
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -108,7 +110,7 @@ export default defineConfig({
       fileName: () => "${name}.mjs",
     },
     rollupOptions: {
-      external: ["react", "react-dom", "react/jsx-runtime", "@measured/puck"],
+      external: (id) => /^(react|react-dom|@measured\\/puck)(\\/.*)?$/.test(id),
     },
   },
 });

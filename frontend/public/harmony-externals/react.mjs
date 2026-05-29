@@ -13,7 +13,12 @@ if (!m) {
   );
 }
 export default m;
+// React 19 の安定 public surface を網羅する。
+// host 実体に存在しない名前は undefined になるが、named export 宣言自体は通るため
+// 外部 component の静的 import 解決は成功する (実体は host 19 が供給)。
+// 除外: act (test 専用) / unstable_* / experimental_*。
 export const {
+  // hooks
   useState,
   useEffect,
   useRef,
@@ -28,9 +33,13 @@ export const {
   useInsertionEffect,
   useTransition,
   useDeferredValue,
+  useDebugValue,
+  use,
+  // element / ref API
   createElement,
   cloneElement,
   isValidElement,
+  createRef,
   Children,
   Fragment,
   forwardRef,
@@ -38,9 +47,13 @@ export const {
   createContext,
   lazy,
   Suspense,
+  Profiler,
   startTransition,
+  // class API
   Component,
   PureComponent,
   StrictMode,
+  // misc
+  cache,
   version,
 } = m;

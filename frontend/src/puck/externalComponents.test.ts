@@ -24,6 +24,26 @@ function fetch404(): typeof fetch {
   ) as unknown as typeof fetch;
 }
 
+/** ok=false の任意 HTTP status を返す fetch (403/500 等)。 */
+function fetchHttpError(status: number): typeof fetch {
+  return vi.fn(async () =>
+    ({ ok: false, status, json: async () => ({}) }) as unknown as Response,
+  ) as unknown as typeof fetch;
+}
+
+/** ok=true だが res.json() が throw する fetch (JSON parse 失敗)。 */
+function fetchJsonThrows(): typeof fetch {
+  return vi.fn(async () =>
+    ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError("Unexpected token < in JSON");
+      },
+    }) as unknown as Response,
+  ) as unknown as typeof fetch;
+}
+
 const validEntry = {
   id: "foo",
   label: "Foo",
@@ -175,5 +195,141 @@ describe("loadExternalComponents", () => {
     expect(importSpy).toHaveBeenCalledWith(
       `${ORIGIN}/workspace-assets/puck-components/dist/foo.mjs`,
     );
+  });
+
+  // --- SF2: manifest fetch の HTTP / parse error を握り潰さない ---
+  it("manifest が 500 等の HTTP error なら manifest-invalid を返す", async () => {
+    const result = await loadExternalComponents({
+      backendOrigin: ORIGIN,
+      fetchImpl: fetchHttpError(500),
+      importImpl: async () => ({}),
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("manifest-invalid");
+      expect(result[0].detail).toContain("HTTP 500");
+    }
+  });
+
+  it("manifest が 403 でも manifest-invalid を返す (404 のみ空配列)", async () => {
+    const result = await loadExternalComponents({
+      backendOrigin: ORIGIN,
+      fetchImpl: fetchHttpError(403),
+      importImpl: async () => ({}),
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("manifest-invalid");
+      expect(result[0].detail).toContain("HTTP 403");
+    }
+  });
+
+  it("manifest の JSON parse 失敗なら manifest-invalid を返す", async () => {
+    const result = await loadExternalComponents({
+      backendOrigin: ORIGIN,
+      fetchImpl: fetchJsonThrows(),
+      importImpl: async () => ({}),
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("manifest-invalid");
+    }
+  });
+
+  it("network throw (backend down) は空配列 (エラーカードを出さない)", async () => {
+    const result = await loadExternalComponents({
+      backendOrigin: ORIGIN,
+      fetchImpl: vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }) as unknown as typeof fetch,
+      importImpl: async () => ({}),
+    });
+    expect(result).toEqual([]);
+  });
+
+  // --- MF1: loader の任意 origin import を塞ぐ (SSRF 防止) ---
+  it("module が他 origin (https://evil) なら import せず load-error", async () => {
+    const importSpy = vi.fn(async () => ({ default: () => null }));
+    const result = await loadExternalComponents({
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({
+        schemaVersion: "1",
+        components: [{ ...validEntry, module: "https://evil.example.com/x.mjs" }],
+      }),
+      importImpl: importSpy,
+    });
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("load-error");
+      expect(result[0].detail).toContain("配信範囲外");
+    }
+    expect(importSpy).not.toHaveBeenCalled();
+  });
+
+  it("module が ../ で配信範囲外へ脱出するなら import せず load-error", async () => {
+    const importSpy = vi.fn(async () => ({ default: () => null }));
+    const result = await loadExternalComponents({
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({
+        schemaVersion: "1",
+        components: [{ ...validEntry, module: "../../etc/secret.mjs" }],
+      }),
+      importImpl: importSpy,
+    });
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("load-error");
+      expect(result[0].detail).toContain("配信範囲外");
+    }
+    expect(importSpy).not.toHaveBeenCalled();
+  });
+
+  it("module が protocol-relative (//host) なら import せず load-error", async () => {
+    const importSpy = vi.fn(async () => ({ default: () => null }));
+    const result = await loadExternalComponents({
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({
+        schemaVersion: "1",
+        components: [{ ...validEntry, module: "//evil.example.com/x.mjs" }],
+      }),
+      importImpl: importSpy,
+    });
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("load-error");
+    }
+    expect(importSpy).not.toHaveBeenCalled();
+  });
+
+  it("module の拡張子が allowlist 外 (.json 等) なら import せず load-error", async () => {
+    const importSpy = vi.fn(async () => ({ default: () => null }));
+    const result = await loadExternalComponents({
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({
+        schemaVersion: "1",
+        components: [{ ...validEntry, module: "./dist/foo.json" }],
+      }),
+      importImpl: importSpy,
+    });
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("load-error");
+      expect(result[0].detail).toContain("拡張子");
+    }
+    expect(importSpy).not.toHaveBeenCalled();
+  });
+
+  it("正常な ./dist/foo.mjs は import して ok", async () => {
+    const importSpy = vi.fn(async () => ({ default: () => null }));
+    const result = await loadExternalComponents({
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
+      importImpl: importSpy,
+    });
+    expect(result[0].status).toBe("ok");
+    expect(importSpy).toHaveBeenCalledOnce();
   });
 });

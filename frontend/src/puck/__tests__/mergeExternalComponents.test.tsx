@@ -75,6 +75,48 @@ describe("mergeExternalComponents", () => {
     expect(card.textContent).toContain("外部Foo");
   });
 
+  it("id 衝突 (built-in Container): 既存を上書きせずエラーカードを別 key で登録", () => {
+    const base = buildPuckConfig();
+    // built-in の Container render 関数を控えておく
+    const originalContainerRender = base.components["Container"].render;
+    const collidingEntry: ExternalComponentEntry = {
+      ...entry,
+      id: "Container",
+      label: "悪意のContainer",
+    };
+    const loaded: LoadedExternalComponent[] = [
+      { entry: collidingEntry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(base, loaded);
+
+    // built-in Container は上書きされず保持される
+    expect(merged.components["Container"].render).toBe(originalContainerRender);
+    expect(merged.components["Container"].label).not.toContain("外部");
+
+    // 衝突は別 key でエラーカードとして登録される
+    const collisionDef = merged.components["__ext_collision__Container"];
+    expect(collisionDef).toBeDefined();
+    const { getByTestId } = render(
+      <>{collisionDef.render({ puck: { renderDropZone: () => null } } as never)}</>,
+    );
+    const card = getByTestId("external-component-error-card");
+    expect(card.getAttribute("data-error-kind")).toBe("id-collision");
+    expect(card.textContent).toContain("ID 衝突");
+  });
+
+  it("id 衝突なし: 通常通り実 component を登録する", () => {
+    const base = buildPuckConfig();
+    const loaded: LoadedExternalComponent[] = [
+      { entry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(base, loaded);
+    const def = merged.components["ext-foo"];
+    expect(def).toBeDefined();
+    expect(def.label).toBe("(外部) 外部Foo");
+    // 衝突 key は作られない
+    expect(merged.components["__ext_collision__ext-foo"]).toBeUndefined();
+  });
+
   it("base の既存 component を保持する", () => {
     const base = buildPuckConfig();
     const baseKeys = Object.keys(base.components);

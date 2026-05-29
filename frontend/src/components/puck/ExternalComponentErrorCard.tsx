@@ -16,6 +16,7 @@ const ERROR_KIND_MESSAGES: Record<ExternalComponentErrorKind, string> = {
   "missing-export": "export が見つかりません",
   "version-mismatch": "バージョン不一致",
   "manifest-invalid": "manifest 不正",
+  "id-collision": "ID 衝突",
 };
 
 export interface ExternalComponentErrorCardProps {

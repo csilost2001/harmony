@@ -8,4 +8,15 @@ if (!m) {
   );
 }
 export default m;
-export const { DropZone, Puck, Render } = m;
+// @measured/puck の主要 public export を網羅する。
+// host 実体に無い名前は undefined になるが named export 宣言は通る (静的 import 解決のため)。
+// DropZone は P-3 の slot 連携で必須。
+export const {
+  DropZone,
+  Puck,
+  Render,
+  FieldLabel,
+  usePuck,
+  Drawer,
+  AutoField,
+} = m;

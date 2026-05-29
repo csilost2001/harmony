@@ -8,4 +8,17 @@ if (!m) {
   );
 }
 export default m;
-export const { createPortal, flushSync, version } = m;
+// react-dom の安定 public surface を網羅する。
+// host 実体に無い名前は undefined になるが named export 宣言は通る (静的 import 解決のため)。
+export const {
+  createPortal,
+  flushSync,
+  version,
+  preload,
+  preconnect,
+  prefetchDNS,
+  preinit,
+  preinitModule,
+  preloadModule,
+  requestFormReset,
+} = m;

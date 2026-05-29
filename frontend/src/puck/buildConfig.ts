@@ -37,7 +37,10 @@ import { RegionSidebarConfig } from "./primitives/RegionSidebar";
 import { RegionFooterConfig } from "./primitives/RegionFooter";
 import { RegionMainConfig } from "./primitives/RegionMain";
 import type { CustomPuckComponentDef } from "../store/puckComponentsStore";
-import type { LoadedExternalComponent } from "./externalComponents";
+import type {
+  LoadedExternalComponent,
+  ExternalComponentErrorKind,
+} from "./externalComponents";
 import { ExternalComponentErrorCard } from "../components/puck/ExternalComponentErrorCard";
 
 // ---------------------------------------------------------------------------
@@ -339,6 +342,8 @@ export function buildConfigWithCustomComponents(customComponents: CustomPuckComp
  *   defaultProps は manifest props の default 集約。
  *   fields は P-1 では最小 (空)。props→fields の本格化は P-2。
  * - status="error": ExternalComponentErrorCard を render するエラーカードを登録。
+ * - id 衝突 (built-in / 既存 custom と同じ id): 既存を上書きせず、id-collision の
+ *   エラーカードに差し替える。意図しない built-in 部品の置換を防ぐ。
  *
  * 既存 JSON-only custom component 経路 (buildConfigWithCustomComponents) とは別ソースとして
  * 統合する。両者を併用する場合は buildConfigWithCustomComponents の戻り値を base に渡せる。
@@ -353,6 +358,19 @@ export function mergeExternalComponents(
 
   for (const item of loaded) {
     const { entry } = item;
+
+    // id 衝突チェック: base (built-in / 既存 custom) に同じ id があれば上書きせず、
+    // 衝突 entry 専用の別 key (__ext_collision__<id>) でエラーカードを登録する。
+    // これにより既存 built-in / custom 部品は保持したまま、衝突を可視化できる。
+    if (base.components[entry.id] !== undefined) {
+      extraComponents[`__ext_collision__${entry.id}`] = makeErrorCardConfig(
+        entry.label,
+        entry.id,
+        "id-collision",
+        `ID '${entry.id}' は既存 component と衝突`,
+      );
+      continue;
+    }
 
     if (item.status === "ok") {
       const defaultProps: Record<string, unknown> = {};
@@ -373,18 +391,12 @@ export function mergeExternalComponents(
     } else {
       // エラー entry はエラーカードを描画する component として登録する。
       const { errorKind, detail } = item;
-      extraComponents[entry.id] = {
-        label: `(外部·エラー) ${entry.label}`,
-        fields: {},
-        defaultProps: {},
-        render: () =>
-          createElement(ExternalComponentErrorCard, {
-            errorKind,
-            label: entry.label,
-            id: entry.id,
-            detail,
-          }),
-      };
+      extraComponents[entry.id] = makeErrorCardConfig(
+        entry.label,
+        entry.id,
+        errorKind,
+        detail,
+      );
     }
   }
 
@@ -394,6 +406,27 @@ export function mergeExternalComponents(
       ...base.components,
       ...extraComponents,
     },
+  };
+}
+
+/** ExternalComponentErrorCard を render する Puck component config を生成する。 */
+function makeErrorCardConfig(
+  label: string,
+  id: string,
+  errorKind: ExternalComponentErrorKind,
+  detail?: string,
+): Config["components"][string] {
+  return {
+    label: `(外部·エラー) ${label}`,
+    fields: {},
+    defaultProps: {},
+    render: () =>
+      createElement(ExternalComponentErrorCard, {
+        errorKind,
+        label,
+        id,
+        detail,
+      }),
   };
 }
 
