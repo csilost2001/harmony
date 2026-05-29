@@ -7,7 +7,7 @@
  * #806 子 4
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   buildPuckConfig,
   buildConfigWithCustomComponents,
@@ -361,5 +361,42 @@ describe("mergeCompositeComponents (#1412 P-4)", () => {
     const comp = config.components[placeholderType];
     expect(comp.label).toBe("複合部品: 保存フォーム");
     expect(typeof comp.render).toBe("function");
+  });
+
+  it("placeholder type が base.components と衝突する composite は登録を skip し既存を保持する (#1415 P3)", () => {
+    const placeholderType = compositeTypeName("saved-form");
+    // base.components に同名 type の既存 component を予め置く (型整合のため
+    // 既存 Card component config を流用し、参照同一性で「保持」を検証する)。
+    const base = buildPuckConfig();
+    const sentinel = { ...base.components.Card, label: "既存コンポーネント" };
+    base.components = {
+      ...base.components,
+      [placeholderType]: sentinel,
+    };
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const config = mergeCompositeComponents(base, [compositeDef]);
+
+      // base 側の既存 component が保持され、composite placeholder で上書きされていない。
+      expect(config.components[placeholderType]).toBe(sentinel);
+      expect(config.components[placeholderType].label).toBe("既存コンポーネント");
+      // skip された def の error-card / categories も登録されない。
+      const errorType = compositeErrorTypeName("saved-form");
+      expect(config.components).not.toHaveProperty(errorType);
+      expect(config.categories?.projectComposite).toBeUndefined();
+      expect(warnSpy).toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("衝突しない通常 composite は従来どおり登録される (skip 導入後も回帰なし)", () => {
+    const config = mergeCompositeComponents(buildPuckConfig(), [compositeDef]);
+    const placeholderType = compositeTypeName("saved-form");
+    const errorType = compositeErrorTypeName("saved-form");
+    expect(config.components).toHaveProperty(placeholderType);
+    expect(config.components).toHaveProperty(errorType);
+    expect(config.categories!.projectComposite!.components).toContain(placeholderType);
   });
 });

@@ -665,7 +665,8 @@ export function mergeExternalComponents(
  * `compositeErrorTypeName(def.id)` を **そのまま** config キーに使う (uniqueKey で採番しない)。
  * PuckBackend / expandCompositePlaceholders が同じ名前を直接生成して参照するため、3 者が
  * 決定論的に一致する必要があるため。`__composite__<uuid>` 構造上、実用上衝突しないが、
- * 万一の衝突は console.warn で検知し黙って上書きしない (base.components の既存 key は不変)。
+ * 万一の衝突は console.warn で検知し、当該 def の登録を skip する (base.components の
+ * 既存 key を上書きしない、#1415 P3)。
  */
 export function mergeCompositeComponents(
   base: Config,
@@ -690,18 +691,24 @@ export function mergeCompositeComponents(
     // 万一の衝突 (同名キーが既に base.components に存在) は黙って上書きせず
     // console.warn で検知ログのみ残す。
     const placeholderType = compositeTypeName(def.id);
+    const errorType = compositeErrorTypeName(def.id);
+    // placeholder / error-card のどちらかが既存 (built-in / custom / external /
+    // 先行 composite) と衝突する場合、この def の登録を skip する。既存 component を
+    // 上書きすると palette item / render 定義が失われるため (mergeExternalComponents の
+    // id 衝突防御と同方針)。skip する def の key は usedKeys に足さない (既存を消さない)。
     if (usedKeys.has(placeholderType)) {
       console.warn(
-        `[mergeCompositeComponents] composite placeholder type '${placeholderType}' は既存 component と衝突 (上書きしません)`,
+        `[mergeCompositeComponents] composite placeholder type '${placeholderType}' は既存 component と衝突 (この複合部品の登録を skip)`,
       );
+      continue;
     }
-    usedKeys.add(placeholderType);
-    const errorType = compositeErrorTypeName(def.id);
     if (usedKeys.has(errorType)) {
       console.warn(
-        `[mergeCompositeComponents] composite error-card type '${errorType}' は既存 component と衝突 (上書きしません)`,
+        `[mergeCompositeComponents] composite error-card type '${errorType}' は既存 component と衝突 (この複合部品の登録を skip)`,
       );
+      continue;
     }
+    usedKeys.add(placeholderType);
     usedKeys.add(errorType);
 
     // placeholder component (drop 直後に展開され消える、render は最小ラベル)。
