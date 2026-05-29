@@ -160,14 +160,18 @@ export {
 
 ---
 
-## ブラウザ smoke
+## ブラウザ smoke (実機実施済、2026-05-29)
 
-**未実施**。自動 test (上記 13 ケース) を一次証跡とした。理由:
+worktree のコードを **隔離 port** (backend 5189 lockdown / frontend 5183、`VITE_DESIGNER_MCP_PORT=5189`) で起動し、`examples/household-budget` を base にした dogfood workspace (`<dataRoot>/puck-components/` に本部品の manifest + 実 build `.mjs` を配置) を lockdown で開いて Playwright で確認した。main の常駐 backend(5179)/frontend(5173) には触れていない。
 
-- worktree の frontend (5173) を起動すると、開発中の main frontend と port 競合するため。
-- backend (5179) は main 由来コードが常駐しており、`/workspace-assets/<wsId>/puck-components/manifest.json` (#1415 P2-1 で wsId-scoped URL に変更) を probe したところ HTTP 404 (= 本シリーズの route / 配置サンプルが未反映)。実機配信の前提が揃っていない。
+| 確認項目 | 結果 | 証跡 |
+|---|---|---|
+| **P2-1** wsId-scoped 配信 route | ✅ | `GET /workspace-assets/lockdown/puck-components/manifest.json` → HTTP 200、`.../dist/approval-status-bar.mjs` → HTTP 200 (`text/javascript`)。lockdown wsId=`lockdown` で root 解決 |
+| **cap1** ローディング + React 二重化防止 | ✅ | Puck デザイナを開くと外部部品がロードされ、**console error 0 件** (Invalid hook call / load-error なし = host React 同一インスタンス) |
+| **cap2** palette + カテゴリ分け | ✅ | 左パレットに専用カテゴリ **「プロジェクト部品 (外部)」** が出現し、その中に **「(外部) 承認ステータス帯」** が built-in (レイアウト/テキスト/フォーム/データ/業務複合/レイアウト領域) と別カテゴリで表示 (screenshot: `.tmp/screenshots/puck-ext-01-palette.png`) |
+| **cap6** validation / fallback (エラー UX) | ✅ | manifest の `engine.react` を `18` に改変 → reload すると palette item が **「(外部·エラー) 承認ステータス帯」** に変化 (loader が version-mismatch を検出し ExternalComponentErrorCard エントリに置換)。`19` に戻すと正常表示に復帰 (screenshot: `.tmp/screenshots/puck-ext-02-error-card.png`) |
 
-cap1 は **実 vite build 成果物の .mjs を vitest (vite transform) 経由で実 import → render → hooks 動作**まで確認しており、ブラウザ smoke の主目的 (実 artifact が host React で動く) は自動 test で代替できている。実機ブラウザ smoke は本シリーズ最終 PR のリリース確認時に実施する。
+**cap3 (props→fields) / cap4 (slot / 複合部品の配置・保存)** は、Puck の dnd-kit が Playwright MCP の keyboard 抽象では PointerSensor/KeyboardSensor を起動できない (テストハーネス制約、製品欠陥ではない) ため、実ブラウザでの drag 配置までは未実施。これらは本 dogfood の through-line 自動 test (実 vite build 成果物 `.mjs` を実 loader → `mergeExternalComponents` → slot field → composite 展開まで通す 13+ ケース) と frontend 407 件 / backend asset 15 件のユニットテストで決定的に検証済。実機 drag を含む UI 操作確認は、CLI 版 Playwright (keyboard-dnd helper `dragPrimitiveByKeyboard`) を使う E2E spec 化を将来の継続検証として推奨。
 
 ---
 
