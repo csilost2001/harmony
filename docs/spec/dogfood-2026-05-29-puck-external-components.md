@@ -11,7 +11,7 @@
   - props: `title` (string) / `status` (enum: pending / approved / rejected)
   - slot: `content` (editable region)
   - 内部で `React.useState` を使用 (host React と同一インスタンスでないと "Invalid hook call" で落ちる → React 二重化防止の証跡に利用)
-- **検証手段**: 1 ファイルの通し vitest (`frontend/src/puck/__tests__/dogfoodExternalComponents.test.tsx`、12 ケース全 green)。fixture は実 build 成果物 (.mjs) を commit して hermetic 化。
+- **検証手段**: 1 ファイルの通し vitest (`frontend/src/puck/__tests__/dogfoodExternalComponents.test.tsx`、13 ケース全 green。うち 1 件は #1415 P2-2 で追加した slot props 内 nested 依存の error-card 化検証)。fixture は実 build 成果物 (.mjs) を commit して hermetic 化。
 
 ---
 
@@ -26,8 +26,9 @@
 | **cap3** props→fields 変換 | 同上 (test:124) | ✅ | `title` (string)→`text` field、`status` (enum)→`select` field で enum options 透過。`defaultProps` に title/status の default 集約 |
 | **cap4** slot field + render-prop | `cap4(slot): content slot が slot field…` (test:163) | ✅ | `fields.content.type==="slot"`、`defaultProps.content===[]`、render-prop 注入で `content()` 内部 (`SLOT_INNER_BODY`) が描画される |
 | **cap4** 複合部品 (#1412) ロード済展開 | `cap4(composite): approval-status-bar を内包する複合部品をロード済…` (test:198) | ✅ | `mergeCompositeComponents` で placeholder が `projectComposite` に登録。`expandCompositePlaceholders` で展開し、内部の `approval-status-bar` が error-card にならず残る。`collectDependencies` が `["approval-status-bar"]` を返す |
-| **cap4** 複合部品 未ロード依存 | `cap4(composite): 未ロードの外部 type を内包…` (test:258) | ✅ | 外部 component を load しない config で展開すると、依存ノードが `compositeErrorTypeName` の error-card 型に差し替わり `missingType==="approval-status-bar"` |
-| **cap5** project scoping | `cap5: 別 workspace の manifest を別 fetchImpl で解決…` (test:316) | ✅ | workspace A (approval-status-bar) と B (billing-summary) を別 fetchImpl で解決。互いの component が混入しない (`projectExternal.components` が各 1 件) |
+| **cap4** 複合部品 未ロード依存 (zones) | `cap4(composite): 未ロードの外部 type を内包…` (test:258) | ✅ | 外部 component を load しない config で展開すると、依存ノードが `compositeErrorTypeName` の error-card 型に差し替わり `missingType==="approval-status-bar"` |
+| **cap4** 複合部品 未ロード依存 (slot props) #1415 P2-2 | `cap4(composite, #1415 P2-2): slot 内 (props 配列) に外部部品を内包…` | ✅ | slot field の子は zones ではなく **props.<slot> の Puck node 配列** に格納される。`collectDependencies` が slot 内 nested `approval-status-bar` を依存として返し、未ロード時の `expandCompositePlaceholders` で当該 nested ノードが error-card 型に差し替わる (`missingType==="approval-status-bar"`) |
+| **cap5** project scoping (#1415 P2-1 per-session) | `cap5: 別 workspace の manifest を別 fetchImpl で解決…` (test:316) | ✅ | asset URL は wsId-scoped (`/workspace-assets/<wsId>/puck-components/`)。workspace A (approval-status-bar) と B (billing-summary) を別 wsId / 別 fetchImpl で解決し互いの component が混入しない (`projectExternal.components` が各 1 件)。backend は要求ごとに wsId → `recentStore.findById(wsId)` で root を解決し process-global state に依存しない |
 | **cap5** id 衝突防御 | `cap5: 既存 built-in id と衝突する外部 component…` (test:355) | ✅ | `id:"Container"` の外部 component は built-in Container を上書きせず、別 key の `id-collision` エラーカードに落ちる |
 | **cap6** manifest-invalid | `cap6: manifest-invalid (schemaVersion 不正)…` (test:395) | ✅ | `schemaVersion:"999"` → `errorKind:"manifest-invalid"` |
 | **cap6** version-mismatch | `cap6: version-mismatch (engine.react=18)…` (test:407) | ✅ | `engine.react:"18"` → `version-mismatch`、import 未実行 (importSpy 未 call) |
@@ -161,10 +162,10 @@ export {
 
 ## ブラウザ smoke
 
-**未実施**。自動 test (上記 12 ケース) を一次証跡とした。理由:
+**未実施**。自動 test (上記 13 ケース) を一次証跡とした。理由:
 
 - worktree の frontend (5173) を起動すると、開発中の main frontend と port 競合するため。
-- backend (5179) は main 由来コードが常駐しており、`/workspace-assets/puck-components/manifest.json` を probe したところ HTTP 404 (= 本シリーズの route / 配置サンプルが未反映)。実機配信の前提が揃っていない。
+- backend (5179) は main 由来コードが常駐しており、`/workspace-assets/<wsId>/puck-components/manifest.json` (#1415 P2-1 で wsId-scoped URL に変更) を probe したところ HTTP 404 (= 本シリーズの route / 配置サンプルが未反映)。実機配信の前提が揃っていない。
 
 cap1 は **実 vite build 成果物の .mjs を vitest (vite transform) 経由で実 import → render → hooks 動作**まで確認しており、ブラウザ smoke の主目的 (実 artifact が host React で動く) は自動 test で代替できている。実機ブラウザ smoke は本シリーズ最終 PR のリリース確認時に実施する。
 

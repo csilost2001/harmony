@@ -165,6 +165,67 @@ describe("collectSubtreeTypes / collectDependencies", () => {
     const builtins = new Set(["Card", "Heading"]);
     expect(collectDependencies(tree, builtins)).toEqual(["ExtWidget"]);
   });
+
+  // --- #1415 P2-2: slot content (props 内 node 配列) を走査する ---
+  it("slot content (props.<slot> の node 配列) 内の nested type も収集する", () => {
+    const slotTree: Subtree = {
+      content: [
+        {
+          type: "ExtCard", // 外部 slot 部品 (root)
+          props: {
+            id: "ext-1",
+            // slot field の子は props.<slotName> の Puck node 配列に co-located。
+            body: [
+              { type: "Heading", props: { id: "h-1" } },
+              { type: "InnerExtWidget", props: { id: "iw-1" } }, // nested 外部部品
+            ],
+          },
+        },
+      ],
+    };
+    expect(collectSubtreeTypes(slotTree).sort()).toEqual([
+      "ExtCard",
+      "Heading",
+      "InnerExtWidget",
+    ]);
+  });
+
+  it("slot content 内の nested 外部部品が dependencies に含まれる (#1415 P2-2)", () => {
+    const slotTree: Subtree = {
+      content: [
+        {
+          type: "ExtCard",
+          props: {
+            id: "ext-1",
+            body: [{ type: "InnerExtWidget", props: { id: "iw-1" } }],
+          },
+        },
+      ],
+    };
+    const builtins = new Set(["Heading", "Card"]);
+    // ExtCard と nested InnerExtWidget の両方が依存として上がる。
+    expect(collectDependencies(slotTree, builtins).sort()).toEqual([
+      "ExtCard",
+      "InnerExtWidget",
+    ]);
+  });
+
+  it("業務 props がたまたま配列でも Puck node 形でなければ slot content とみなさない (誤検出回避)", () => {
+    const tricky: Subtree = {
+      content: [
+        {
+          type: "Widget",
+          props: {
+            id: "w-1",
+            // type / props を持たない普通の配列 → slot content ではない。
+            tags: ["a", "b"],
+            rows: [{ value: 1 }, { value: 2 }],
+          },
+        },
+      ],
+    };
+    expect(collectSubtreeTypes(tricky)).toEqual(["Widget"]);
+  });
 });
 
 describe("expandCompositePlaceholders", () => {
@@ -376,5 +437,48 @@ describe("expandCompositePlaceholders", () => {
     expect(
       (errorNode as { props: { missingType?: string } }).props.missingType,
     ).toBe("ExtWidget");
+  });
+
+  // --- #1415 P2-2: slot content 内の未ロード依存も error-card 化する ---
+  it("missing-dependency: slot content (props 内 node 配列) 内の未ロード type も error-card 型に差し替える", () => {
+    const compositeSlot: ExpandableComposite = {
+      id: "comp-slot",
+      label: "slot 内外部依存複合",
+      tree: {
+        // root は available な ExtCard。その slot (props.body) に未ロード InnerExtWidget を内包。
+        content: [
+          {
+            type: "ExtCard",
+            props: {
+              id: "card-slot",
+              body: [{ type: "InnerExtWidget", props: { id: "iw-1" } }],
+            },
+          },
+        ],
+      },
+      errorType: "__composite_error__comp-slot",
+    };
+    // ExtCard は available、InnerExtWidget は available に無い (= 未ロード)。
+    const availableNoInner = new Set([
+      "ExtCard",
+      compositeTypeName("comp-slot"),
+      "__composite_error__comp-slot",
+    ]);
+    const d = data({
+      root: { props: {} },
+      content: [{ type: compositeTypeName("comp-slot"), props: { id: "ph" } }],
+    });
+
+    const result = expandCompositePlaceholders(d, [compositeSlot], availableNoInner);
+
+    // 展開後 content の root ノード (ExtCard) は残り、その props.body 内 InnerExtWidget が
+    // error-card 型に差し替わっている。
+    const root = result.content.find(
+      (i) => (i as { type: string }).type === "ExtCard",
+    ) as { props: { body: { type: string; props: { missingType?: string } }[] } };
+    expect(root).toBeDefined();
+    const inner = root.props.body[0];
+    expect(inner.type).toBe("__composite_error__comp-slot");
+    expect(inner.props.missingType).toBe("InnerExtWidget");
   });
 });

@@ -7,7 +7,11 @@
  *   - built-in primitive (Container/Row/Col/Card 等) は legacy `<DropZone zone="content">`
  *     → 子は `data.zones["<itemId>:<zoneName>"]` map に格納される。
  *   - 外部 component (#1411 P-3) は `{ type: "slot" }` field
- *     → 子は当該ノードの props に co-located で格納される (ノードごと自然に含まれる)。
+ *     → 子は当該ノードの props (`props.<slotName>` の Puck node 配列) に co-located で格納される。
+ *
+ * #1415 P2-2: 依存収集 (collectSubtreeTypes) と展開 (guardNode) は、slot 系の props 内 node 配列を
+ * 再帰的に走査する。これにより slot 内に外部 component を含む複合部品でも、その nested 部品が
+ * dependencies 収集に乗り、未ロード時の展開で missing-dependency error-card に差し替わる。
  *
  * 設計方針: expand-on-drop "pattern" 方式 (GrapesJS customBlock 哲学)。
  * 複合部品を drop すると subtree がその場で展開挿入され、各ノードが個別編集可能になる。
@@ -50,6 +54,48 @@ export function compositeIdFromType(type: string): string {
 function itemId(item: ComponentData): string | undefined {
   const id = (item as { props?: { id?: unknown } }).props?.id;
   return typeof id === "string" ? id : undefined;
+}
+
+/**
+ * value が Puck node (= `{ type: string, props: object }`) かどうか (#1415 P2-2)。
+ *
+ * slot field (#1411 P-3) の子ノードは props.<slotName> の **配列** に co-located で格納される
+ * (buildConfig.ts: `defaultProps[slot.name] = []`)。slot 名は manifest 依存でハードコードできない
+ * ため、「props value が Puck node を要素に持つ配列」を generic に slot content とみなす。
+ *
+ * 誤検出 (業務 props がたまたま type/props を持つ) を避けるため、判定は puckIdRegeneration の
+ * node 判定と同一形 (`type:string` かつ `props` が object) に揃える。
+ */
+function isPuckNode(value: unknown): value is ComponentData {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    typeof (value as { type?: unknown }).type === "string" &&
+    typeof (value as { props?: unknown }).props === "object" &&
+    (value as { props?: unknown }).props !== null
+  );
+}
+
+/** value が「Puck node を要素に持つ配列」(= slot content) かどうか。 */
+function isSlotContentArray(value: unknown): value is ComponentData[] {
+  return Array.isArray(value) && value.length > 0 && value.every(isPuckNode);
+}
+
+/**
+ * 1 ノードの props 内 slot content (= Puck node 配列) を列挙する (#1415 P2-2)。
+ * 戻り値は [propName, childNode[]] のペア配列。
+ */
+function slotContentEntries(item: ComponentData): [string, ComponentData[]][] {
+  const props = (item as { props?: Record<string, unknown> }).props;
+  if (!props || typeof props !== "object") return [];
+  const result: [string, ComponentData[]][] = [];
+  for (const [key, value] of Object.entries(props)) {
+    if (isSlotContentArray(value)) {
+      result.push([key, value]);
+    }
+  }
+  return result;
 }
 
 /**
@@ -110,19 +156,33 @@ export function extractSubtree(data: Data, rootItemId: string): Subtree | null {
 }
 
 /**
- * subtree に含まれる全ノードの type を列挙する (content + 全 zones)。
+ * 1 ノードの type と、その props 内 slot content (#1411 P-3) を再帰的に types に収集する
+ * (#1415 P2-2)。slot 内に外部 component を含む複合部品で、nested 部品が dependencies 収集から
+ * 漏れるのを防ぐ。
+ */
+function collectNodeTypes(item: ComponentData, types: Set<string>): void {
+  const t = (item as { type?: unknown }).type;
+  if (typeof t === "string") types.add(t);
+  // props 内 slot content (Puck node 配列) を再帰的に辿る。
+  for (const [, children] of slotContentEntries(item)) {
+    for (const child of children) {
+      collectNodeTypes(child, types);
+    }
+  }
+}
+
+/**
+ * subtree に含まれる全ノードの type を列挙する (content + 全 zones + props 内 slot content)。
  */
 export function collectSubtreeTypes(tree: Subtree): string[] {
   const types = new Set<string>();
   for (const item of tree.content) {
-    const t = (item as { type?: unknown }).type;
-    if (typeof t === "string") types.add(t);
+    collectNodeTypes(item, types);
   }
   if (tree.zones) {
     for (const zoneContent of Object.values(tree.zones)) {
       for (const item of zoneContent) {
-        const t = (item as { type?: unknown }).type;
-        if (typeof t === "string") types.add(t);
+        collectNodeTypes(item, types);
       }
     }
   }
@@ -183,6 +243,10 @@ function expandOne(
  * subtree 内ノードの type が config に無ければ missing-dependency error-card 型に差し替える。
  * error-card 型 (= `makeErrorCardConfig` が config に登録するキー) は別途 mergeComposite 側で
  * 登録される前提。ここでは type / props を error-card 用に書き換えるのみ。
+ *
+ * #1415 P2-2: ノード自身の type が available な場合でも、props 内 slot content
+ * (#1411 P-3、= Puck node 配列) を再帰的に guard する。slot 内に未ロード外部 component を
+ * 含む複合部品が、その nested ノードを error-card 化せず素通りするのを防ぐ。
  */
 function guardNode(
   item: ComponentData,
@@ -200,7 +264,16 @@ function guardNode(
       },
     } as ComponentData;
   }
-  return item;
+  // ノード自身は OK。props 内 slot content を再帰的に guard する。
+  const slotEntries = slotContentEntries(item);
+  if (slotEntries.length === 0) return item;
+  const props = { ...(item as { props: Record<string, unknown> }).props };
+  for (const [propName, children] of slotEntries) {
+    props[propName] = children.map((child) =>
+      guardNode(child, composite, availableTypes),
+    );
+  }
+  return { ...item, props } as ComponentData;
 }
 
 /**

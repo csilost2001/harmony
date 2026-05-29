@@ -44,7 +44,9 @@ import {
 import type { CompositePuckComponentDef } from "../../store/puckComponentsStore";
 
 const ORIGIN = "http://localhost:5179";
-const ASSET_PREFIX = "/workspace-assets/puck-components/";
+// #1415 P2-1: asset URL は wsId-scoped (`/workspace-assets/<wsId>/puck-components/`)。
+const WS_ID = "dogfood-ws";
+const ASSET_PREFIX = `/workspace-assets/${WS_ID}/puck-components/`;
 // 実 vite build 成果物 (.mjs)。loader が解決する moduleUrl はこの fixture へ向ける。
 const FIXTURE_MJS_URL = `${ORIGIN}${ASSET_PREFIX}dist/approval-status-bar.mjs`;
 
@@ -95,6 +97,7 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
   // -----------------------------------------------------------------------
   it("cap1: 実 build した .mjs を loader で読み込み status=ok、render すると hooks が動く (React 同一インスタンス)", async () => {
     const loaded = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch(),
       importImpl: realFixtureImport,
@@ -123,6 +126,7 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
   // -----------------------------------------------------------------------
   it("cap2+cap3: mergeExternalComponents で projectExternal カテゴリ登録 + props が Puck fields に変換される", async () => {
     const loaded = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch(),
       importImpl: realFixtureImport,
@@ -162,6 +166,7 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
   // -----------------------------------------------------------------------
   it("cap4(slot): content slot が slot field + defaultProps[content]=[] で初期化され、render-prop 注入で内部が描画される", async () => {
     const loaded = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch(),
       importImpl: realFixtureImport,
@@ -197,6 +202,7 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
   // -----------------------------------------------------------------------
   it("cap4(composite): approval-status-bar を内包する複合部品をロード済 config で展開すると成功する", async () => {
     const loaded = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch(),
       importImpl: realFixtureImport,
@@ -310,12 +316,86 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
     expect(config.components[compositeErrorTypeName("approval-card")]).toBeDefined();
   });
 
+  it("cap4(composite, #1415 P2-2): slot 内 (props 配列) に外部部品を内包する複合部品の未ロード依存も missing-dependency error-card に落ちる", () => {
+    // approval-status-bar をロードしない config (= built-in のみ)。
+    const config = mergeCompositeComponents(buildPuckConfig(), [
+      {
+        id: "slot-card",
+        kind: "composite",
+        label: "スロット内承認帯カード",
+        tree: {
+          // Card の中に Container を置き、Container の slot field (props.content) に
+          // 外部部品 approval-status-bar を内包する (= zones ではなく props 同居 slot)。
+          content: [
+            {
+              type: "Card",
+              props: {
+                id: "card-root",
+                content: [
+                  { type: "approval-status-bar", props: { id: "asb-1" } },
+                ],
+              },
+            },
+          ],
+        },
+        dependencies: ["approval-status-bar"],
+      } satisfies CompositePuckComponentDef,
+    ]);
+
+    const tree: Subtree = {
+      content: [
+        {
+          type: "Card",
+          props: {
+            id: "card-root",
+            content: [{ type: "approval-status-bar", props: { id: "asb-1" } }],
+          },
+        },
+      ],
+    };
+
+    // cap6 依存収集: slot 内 nested 外部部品が dependencies に上がる (#1415 P2-2)。
+    const builtinTypes = new Set(BUILTIN_PRIMITIVE_TYPE_NAMES);
+    expect(collectDependencies(tree, builtinTypes)).toEqual([
+      "approval-status-bar",
+    ]);
+
+    const expandable: ExpandableComposite = {
+      id: "slot-card",
+      label: "スロット内承認帯カード",
+      tree,
+      errorType: compositeErrorTypeName("slot-card"),
+    };
+    // availableTypes に approval-status-bar が無い (= 未ロード)。
+    const availableTypes = new Set(Object.keys(config.components));
+    expect(availableTypes.has("approval-status-bar")).toBe(false);
+
+    const data = {
+      root: { props: {} },
+      content: [{ type: compositeTypeName("slot-card"), props: { id: "ph" } }],
+    } as Data;
+    const result = expandCompositePlaceholders(data, [expandable], availableTypes);
+
+    // 展開後、Card は残り、その props.content (slot) 内の approval-status-bar が error-card 型に
+    // 差し替わっている (slot content の依存欠落も検出される)。
+    const card = result.content.find(
+      (i) => (i as { type: string }).type === "Card",
+    ) as { props: { content: { type: string; props: { missingType?: string } }[] } };
+    expect(card).toBeDefined();
+    const inner = card.props.content[0];
+    expect(inner.type).toBe(compositeErrorTypeName("slot-card"));
+    expect(inner.props.missingType).toBe("approval-status-bar");
+    // error-card 型は config に登録済 → 描画可能。
+    expect(config.components[compositeErrorTypeName("slot-card")]).toBeDefined();
+  });
+
   // -----------------------------------------------------------------------
   // cap5: project scoping
   // -----------------------------------------------------------------------
   it("cap5: 別 workspace の manifest を別 fetchImpl で解決すると互いに混入しない", async () => {
     // workspace A = fixture (approval-status-bar)
     const loadedA = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch(),
       importImpl: realFixtureImport,
@@ -333,6 +413,7 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
       ],
     };
     const loadedB = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch(manifestB),
       importImpl: async () => ({ default: () => null }),
@@ -365,6 +446,7 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
       ],
     };
     const loaded = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch(collidingManifest),
       importImpl: async () => ({ default: () => null }),
@@ -394,6 +476,7 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
   // -----------------------------------------------------------------------
   it("cap6: manifest-invalid (schemaVersion 不正) は manifest-invalid", async () => {
     const loaded = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch({ schemaVersion: "999", components: [] }),
       importImpl: realFixtureImport,
@@ -411,6 +494,7 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
       components: [{ ...manifestJson.components[0], engine: { react: "18", puck: "0.20" } }],
     };
     const loaded = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch(badEngine),
       importImpl: importSpy,
@@ -428,6 +512,7 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
       components: [{ ...manifestJson.components[0], export: "NotExist" }],
     };
     const loaded = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch(wrongExport),
       importImpl: realFixtureImport, // default だけ export する実 .mjs
@@ -447,6 +532,7 @@ describe("dogfood: 外部 component 通し検証 (#1413 P-5)", () => {
       ],
     };
     const loaded = await loadExternalComponents({
+      wsId: WS_ID,
       backendOrigin: ORIGIN,
       fetchImpl: fixtureFetch(evilModule),
       importImpl: importSpy,
