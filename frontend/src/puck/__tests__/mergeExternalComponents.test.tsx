@@ -225,3 +225,148 @@ describe("mergeExternalComponents", () => {
     expect(merged.components["ext-foo"]).toBeDefined();
   });
 });
+
+describe("mergeExternalComponents props→fields (#1410 P-2)", () => {
+  const fieldEntry: ExternalComponentEntry = {
+    id: "ext-fields",
+    label: "外部Fields",
+    module: "./dist/fields.mjs",
+    version: "1.0.0",
+    props: [
+      { name: "title", type: "string", label: "タイトル" },
+      { name: "count", type: "number", label: "件数" },
+      { name: "enabled", type: "boolean", label: "有効" },
+      {
+        name: "mode",
+        type: "enum",
+        label: "モード",
+        enum: [
+          { label: "標準", value: "normal" },
+          { label: "高速", value: "fast" },
+        ],
+      },
+    ],
+  };
+
+  it("status=ok の props が正しい Puck field 型に変換される", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry: fieldEntry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const fields = merged.components["ext-fields"].fields!;
+
+    expect(fields.title.type).toBe("text");
+    expect(fields.count.type).toBe("number");
+    expect(fields.enabled.type).toBe("radio");
+    expect(fields.mode.type).toBe("select");
+  });
+
+  it("boolean は はい/いいえ の radio options", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry: fieldEntry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const f = merged.components["ext-fields"].fields!.enabled as {
+      type: string;
+      options: { label: string; value: string }[];
+    };
+    expect(f.type).toBe("radio");
+    expect(f.options).toEqual([
+      { label: "はい", value: "true" },
+      { label: "いいえ", value: "false" },
+    ]);
+  });
+
+  it("enum は options を反映した select", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry: fieldEntry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const f = merged.components["ext-fields"].fields!.mode as {
+      type: string;
+      options: { label: string; value: string }[];
+    };
+    expect(f.type).toBe("select");
+    expect(f.options).toEqual([
+      { label: "標準", value: "normal" },
+      { label: "高速", value: "fast" },
+    ]);
+  });
+});
+
+describe("mergeExternalComponents categories (#1410 P-2)", () => {
+  it("外部 0 件 (loaded=[]) のとき categories は base と同一 (projectExternal 無し)", () => {
+    const base = buildPuckConfig();
+    const merged = mergeExternalComponents(base, []);
+    expect(merged.categories?.projectExternal).toBeUndefined();
+    // early return で base そのものが返る
+    expect(merged.categories).toBe(base.categories);
+  });
+
+  it("projectExternal カテゴリに ok 外部 id が入る", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    expect(merged.categories?.projectExternal).toBeDefined();
+    expect(merged.categories!.projectExternal!.title).toBe("プロジェクト部品 (外部)");
+    expect(merged.categories!.projectExternal!.components).toContain("ext-foo");
+    // base カテゴリは不変
+    expect(merged.categories?.layout?.components).toContain("Container");
+  });
+
+  it("status=error の entry の key も projectExternal.components に含まれる", () => {
+    const errEntry: ExternalComponentEntry = {
+      ...entry,
+      id: "ext-err",
+      label: "エラーext",
+    };
+    const loaded: LoadedExternalComponent[] = [
+      {
+        entry: errEntry,
+        status: "error",
+        errorKind: "load-error",
+        detail: "boom",
+      },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    expect(merged.categories!.projectExternal!.components).toContain("ext-err");
+  });
+
+  it("id 衝突カードの採番 key も projectExternal.components に含まれる", () => {
+    const base = buildPuckConfig();
+    const collidingEntry: ExternalComponentEntry = {
+      ...entry,
+      id: "Container",
+      label: "悪意のContainer",
+    };
+    const loaded: LoadedExternalComponent[] = [
+      { entry: collidingEntry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(base, loaded);
+
+    const ext = merged.categories!.projectExternal!.components as string[];
+    expect(ext.length).toBe(1);
+    const collisionKey = ext[0];
+    // Container 本体ではなく採番された衝突カード key
+    expect(collisionKey).not.toBe("Container");
+    expect(base.components[collisionKey]).toBeUndefined();
+    expect(merged.components[collisionKey]).toBeDefined();
+  });
+
+  it("base が projectCustom を持つ場合も保持しつつ projectExternal を追加する", () => {
+    const base: ReturnType<typeof buildPuckConfig> = {
+      ...buildPuckConfig(),
+      categories: {
+        ...buildPuckConfig().categories,
+        projectCustom: { title: "プロジェクト部品 (カスタム)", components: ["c1"] },
+      },
+    };
+    const loaded: LoadedExternalComponent[] = [
+      { entry, status: "ok", Component: () => null },
+    ];
+    const merged = mergeExternalComponents(base, loaded);
+    expect(merged.categories?.projectCustom?.components).toContain("c1");
+    expect(merged.categories?.projectExternal?.components).toContain("ext-foo");
+  });
+});

@@ -110,6 +110,96 @@ const SHADOW_OPTIONS = [
   { label: "大", value: "lg" },
 ];
 
+// ---------------------------------------------------------------------------
+// palette カテゴリ定義 (#1410 P-2)
+// ---------------------------------------------------------------------------
+
+/**
+ * buildPuckConfig の戻り値に乗せる静的カテゴリ定義。
+ *
+ * 重要: Puck は categories を定義すると、どのカテゴリにも未割当の component を
+ * `other` カテゴリへ落とす。そのためビルトイン 24 個を必ず全て割り当てる。
+ * (各カテゴリの意味区分は従来 buildPuckConfig 内コメントの区分を踏襲)
+ */
+const BUILTIN_CATEGORIES: NonNullable<Config["categories"]> = {
+  layout: { title: "レイアウト", components: ["Container", "Row", "Col", "Section"] },
+  text: { title: "テキスト", components: ["Heading", "Paragraph", "Link"] },
+  form: {
+    title: "フォーム",
+    components: ["Input", "Select", "Textarea", "Checkbox", "Radio", "Button"],
+  },
+  data: { title: "データ", components: ["Table", "Image", "Icon"] },
+  composite: {
+    title: "業務複合",
+    components: ["InputGroup", "Card", "DataList", "Pagination"],
+  },
+  regions: {
+    title: "レイアウト領域",
+    components: ["RegionHeader", "RegionSidebar", "RegionFooter", "RegionMain"],
+  },
+};
+
+// ---------------------------------------------------------------------------
+// props → Puck fields 変換ヘルパー (#1410 P-2)
+// custom 経路と external 経路の両方が使う共有ロジック (divergence 防止)。
+// ---------------------------------------------------------------------------
+
+/**
+ * props → fields 変換の正規化入力。
+ * custom (PropSchemaField) と external (ExternalPropDecl) の両方を
+ * この形に揃えてから buildFieldsFromPropDecls に渡す。
+ */
+interface NormalizedPropDecl {
+  name: string;
+  type: "string" | "number" | "boolean" | "enum";
+  label?: string;
+  default?: unknown;
+  enum?: { label: string; value: string }[];
+}
+
+/**
+ * 正規化済み prop 宣言の配列を Puck Fields に変換する。
+ *
+ * - enum (非空) → select
+ * - number → number (P-2 で追加した分岐)
+ * - boolean → radio (はい/いいえ、value は string で既存 custom 挙動を厳密保持)
+ * - その他 (string 含む) → text
+ */
+function buildFieldsFromPropDecls(
+  decls: NormalizedPropDecl[],
+): NonNullable<Config["components"][string]["fields"]> {
+  const fields: NonNullable<Config["components"][string]["fields"]> = {};
+  for (const decl of decls) {
+    if (decl.type === "enum" && decl.enum && decl.enum.length > 0) {
+      fields[decl.name] = {
+        type: "select" as const,
+        label: decl.label ?? decl.name,
+        options: decl.enum.map((opt) => ({ label: opt.label, value: opt.value })),
+      };
+    } else if (decl.type === "number") {
+      fields[decl.name] = {
+        type: "number" as const,
+        label: decl.label ?? decl.name,
+      };
+    } else if (decl.type === "boolean") {
+      fields[decl.name] = {
+        type: "radio" as const,
+        label: decl.label ?? decl.name,
+        options: [
+          { label: "はい", value: "true" },
+          { label: "いいえ", value: "false" },
+        ],
+      };
+    } else {
+      fields[decl.name] = {
+        type: "text" as const,
+        label: decl.label ?? decl.name,
+      };
+    }
+  }
+  return fields;
+}
+
 /**
  * 全 primitive に共通追加するレイアウト props の Puck Fields 定義。
  * escape hatch の rawClass は隠し扱い (custom フィールドは Puck v0.20 では type:"custom" が必要だが、
@@ -143,6 +233,7 @@ export const LAYOUT_FIELDS: Fields<Record<string, unknown>> = {
  */
 export function buildPuckConfig(): Config {
   return {
+    categories: { ...BUILTIN_CATEGORIES },
     components: {
       // --- レイアウト ---
       Container: {
@@ -260,37 +351,24 @@ export function buildConfigWithCustomComponents(customComponents: CustomPuckComp
   if (customComponents.length === 0) return base;
 
   const extraComponents: Config["components"] = {};
+  const customIds: string[] = [];
 
   for (const def of customComponents) {
+    customIds.push(def.id);
     const primitiveKey = Object.keys(base.components).find(
       (k) => k.toLowerCase() === def.primitive.toLowerCase().replace(/-/g, ""),
     );
     const baseComponentConfig = primitiveKey ? base.components[primitiveKey] : undefined;
 
-    const customFields: Config["components"][string]["fields"] = {};
-    for (const [fieldName, fieldDef] of Object.entries(def.propsSchema)) {
-      if (fieldDef.type === "enum" && fieldDef.enum && fieldDef.enum.length > 0) {
-        customFields[fieldName] = {
-          type: "select" as const,
-          label: fieldDef.label ?? fieldName,
-          options: fieldDef.enum.map((opt) => ({ label: opt.label, value: opt.value })),
-        };
-      } else if (fieldDef.type === "boolean") {
-        customFields[fieldName] = {
-          type: "radio" as const,
-          label: fieldDef.label ?? fieldName,
-          options: [
-            { label: "はい", value: "true" },
-            { label: "いいえ", value: "false" },
-          ],
-        };
-      } else {
-        customFields[fieldName] = {
-          type: "text" as const,
-          label: fieldDef.label ?? fieldName,
-        };
-      }
-    }
+    const customFields = buildFieldsFromPropDecls(
+      Object.entries(def.propsSchema).map(([name, f]) => ({
+        name,
+        type: f.type,
+        label: f.label,
+        default: f.default,
+        enum: f.enum,
+      })),
+    );
 
     const defaultProps: Record<string, unknown> = {};
     for (const [fieldName, fieldDef] of Object.entries(def.propsSchema)) {
@@ -326,8 +404,23 @@ export function buildConfigWithCustomComponents(customComponents: CustomPuckComp
     }
   }
 
+  // categories は base を immutable に複製。custom が 1 件以上あるときのみ
+  // projectCustom を追加する (0 件なら空カテゴリを作らない)。base の既存カテゴリは不変。
+  const categories: Config["categories"] = {
+    ...(base.categories ?? {}),
+    ...(customIds.length > 0
+      ? {
+          projectCustom: {
+            title: "プロジェクト部品 (カスタム)",
+            components: customIds,
+          },
+        }
+      : {}),
+  };
+
   return {
     ...base,
+    categories,
     components: {
       ...base.components,
       ...extraComponents,
@@ -340,7 +433,7 @@ export function buildConfigWithCustomComponents(customComponents: CustomPuckComp
  *
  * - status="ok": entry.Component を render する component を登録。
  *   defaultProps は manifest props の default 集約。
- *   fields は P-1 では最小 (空)。props→fields の本格化は P-2。
+ *   fields は manifest props を buildFieldsFromPropDecls で変換 (#1410 P-2)。
  * - status="error": ExternalComponentErrorCard を render するエラーカードを登録。
  * - id 衝突 (built-in / 既存 custom / 先行 external と同じ id): 既存を上書きせず、
  *   id-collision のエラーカードに差し替える。意図しない built-in 部品の置換を防ぐ。
@@ -366,6 +459,8 @@ export function mergeExternalComponents(
   // 以降に登録する key (実 component / エラーカード / 衝突カード) はすべてこの集合に
   // add していき、新規 key 採番時の衝突判定に使う。base の key は不変。
   const usedKeys = new Set<string>(Object.keys(base.components));
+  // projectExternal カテゴリに割り当てる外部由来の key (ok / error / 衝突カード) を全て収集。
+  const externalKeys: string[] = [];
 
   for (let i = 0; i < loaded.length; i++) {
     const item = loaded[i];
@@ -383,6 +478,7 @@ export function mergeExternalComponents(
         `ID '${entry.id}' は既存 component と衝突`,
       );
       usedKeys.add(collisionKey);
+      externalKeys.push(collisionKey);
       continue;
     }
 
@@ -396,8 +492,16 @@ export function mergeExternalComponents(
       const Component = item.Component;
       extraComponents[entry.id] = {
         label: `(外部) ${entry.label}`,
-        // P-1 では fields は最小 (空)。props→fields 本格化は P-2。
-        fields: {},
+        // props → Puck fields 変換 (#1410 P-2、custom 経路と共有ヘルパー)。
+        fields: buildFieldsFromPropDecls(
+          (entry.props ?? []).map((p) => ({
+            name: p.name,
+            type: p.type,
+            label: p.label,
+            default: p.default,
+            enum: p.enum,
+          })),
+        ),
         defaultProps,
         render: (props: Record<string, unknown>) =>
           createElement(Component, props),
@@ -413,10 +517,27 @@ export function mergeExternalComponents(
       );
     }
     usedKeys.add(entry.id);
+    externalKeys.push(entry.id);
   }
+
+  // categories は受け取った base を immutable に複製。外部が 1 件以上あるときのみ
+  // projectExternal を追加する (0 件なら追加しない)。base の既存カテゴリ
+  // (projectCustom 含む) は不変。なお loaded.length === 0 は冒頭で early return 済。
+  const categories: Config["categories"] = {
+    ...(base.categories ?? {}),
+    ...(externalKeys.length > 0
+      ? {
+          projectExternal: {
+            title: "プロジェクト部品 (外部)",
+            components: externalKeys,
+          },
+        }
+      : {}),
+  };
 
   return {
     ...base,
+    categories,
     components: {
       ...base.components,
       ...extraComponents,
