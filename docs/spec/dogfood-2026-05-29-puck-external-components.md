@@ -21,20 +21,20 @@
 
 | capability | 検証手段 (test 名 + file:line) | 結果 | 証跡 |
 |---|---|---|---|
-| **cap1** ローディング + React 二重化防止 | `cap1: 実 build した .mjs を loader で読み込み status=ok…` (test:96) | ✅ | 実 vite build した `.mjs` を `loadExternalComponents({ importImpl })` で実 import → `status:"ok"`。`createElement` で render し、内部 `useState` が throw せず動作 (= host React 同一インスタンス)。status バッジ「承認済み」が描画される |
-| **cap2** palette カテゴリ登録 | `cap2+cap3: mergeExternalComponents で projectExternal…` (test:124) | ✅ | `config.components["approval-status-bar"]` 存在 + label「(外部) 承認ステータス帯」+ `categories.projectExternal.components` に id。base カテゴリ (layout/Container) 不変 |
-| **cap3** props→fields 変換 | 同上 (test:124) | ✅ | `title` (string)→`text` field、`status` (enum)→`select` field で enum options 透過。`defaultProps` に title/status の default 集約 |
-| **cap4** slot field + render-prop | `cap4(slot): content slot が slot field…` (test:163) | ✅ | `fields.content.type==="slot"`、`defaultProps.content===[]`、render-prop 注入で `content()` 内部 (`SLOT_INNER_BODY`) が描画される |
-| **cap4** 複合部品 (#1412) ロード済展開 | `cap4(composite): approval-status-bar を内包する複合部品をロード済…` (test:198) | ✅ | `mergeCompositeComponents` で placeholder が `projectComposite` に登録。`expandCompositePlaceholders` で展開し、内部の `approval-status-bar` が error-card にならず残る。`collectDependencies` が `["approval-status-bar"]` を返す |
-| **cap4** 複合部品 未ロード依存 (zones) | `cap4(composite): 未ロードの外部 type を内包…` (test:258) | ✅ | 外部 component を load しない config で展開すると、依存ノードが `compositeErrorTypeName` の error-card 型に差し替わり `missingType==="approval-status-bar"` |
+| **cap1** ローディング + React 二重化防止 | `cap1: 実 build した .mjs を loader で読み込み status=ok…` | ✅ | 実 vite build した `.mjs` を `loadExternalComponents({ importImpl })` で実 import → `status:"ok"`。`createElement` で render し、内部 `useState` が throw せず動作 (= host React 同一インスタンス)。status バッジ「承認済み」が描画される |
+| **cap2** palette カテゴリ登録 | `cap2+cap3: mergeExternalComponents で projectExternal…` | ✅ | `config.components["approval-status-bar"]` 存在 + label「(外部) 承認ステータス帯」+ `categories.projectExternal.components` に id。base カテゴリ (layout/Container) 不変 |
+| **cap3** props→fields 変換 | 同上 | ✅ | `title` (string)→`text` field、`status` (enum)→`select` field で enum options 透過。`defaultProps` に title/status の default 集約 |
+| **cap4** slot field + render-prop | `cap4(slot): content slot が slot field…` | ✅ | `fields.content.type==="slot"`、`defaultProps.content===[]`、render-prop 注入で `content()` 内部 (`SLOT_INNER_BODY`) が描画される |
+| **cap4** 複合部品 (#1412) ロード済展開 | `cap4(composite): approval-status-bar を内包する複合部品をロード済…` | ✅ | `mergeCompositeComponents` で placeholder が `projectComposite` に登録。`expandCompositePlaceholders` で展開し、内部の `approval-status-bar` が error-card にならず残る。`collectDependencies` が `["approval-status-bar"]` を返す |
+| **cap4** 複合部品 未ロード依存 (zones) | `cap4(composite): 未ロードの外部 type を内包…` | ✅ | 外部 component を load しない config で展開すると、依存ノードが `compositeErrorTypeName` の error-card 型に差し替わり `missingType==="approval-status-bar"` |
 | **cap4** 複合部品 未ロード依存 (slot props) #1415 P2-2 | `cap4(composite, #1415 P2-2): slot 内 (props 配列) に外部部品を内包…` | ✅ | slot field の子は zones ではなく **props.<slot> の Puck node 配列** に格納される。`collectDependencies` が slot 内 nested `approval-status-bar` を依存として返し、未ロード時の `expandCompositePlaceholders` で当該 nested ノードが error-card 型に差し替わる (`missingType==="approval-status-bar"`) |
-| **cap5** project scoping (#1415 P2-1 per-session) | `cap5: 別 workspace の manifest を別 fetchImpl で解決…` (test:316) | ✅ | asset URL は wsId-scoped (`/workspace-assets/<wsId>/puck-components/`)。workspace A (approval-status-bar) と B (billing-summary) を別 wsId / 別 fetchImpl で解決し互いの component が混入しない (`projectExternal.components` が各 1 件)。backend は要求ごとに wsId → `recentStore.findById(wsId)` で root を解決し process-global state に依存しない |
-| **cap5** id 衝突防御 | `cap5: 既存 built-in id と衝突する外部 component…` (test:355) | ✅ | `id:"Container"` の外部 component は built-in Container を上書きせず、別 key の `id-collision` エラーカードに落ちる |
-| **cap6** manifest-invalid | `cap6: manifest-invalid (schemaVersion 不正)…` (test:395) | ✅ | `schemaVersion:"999"` → `errorKind:"manifest-invalid"` |
-| **cap6** version-mismatch | `cap6: version-mismatch (engine.react=18)…` (test:407) | ✅ | `engine.react:"18"` → `version-mismatch`、import 未実行 (importSpy 未 call) |
-| **cap6** missing-export | `cap6: missing-export (export 名不在)…` (test:425) | ✅ | `export:"NotExist"` を実 .mjs (default のみ export) に向ける → `missing-export` |
-| **cap6** load-error (SSRF) | `cap6: load-error (module が配信範囲外 = SSRF)…` (test:441) | ✅ | `module:"https://evil.example.com/x.mjs"` → import せず `load-error`、detail に「配信範囲外」 |
-| **cap6** エラーカード UX | `cap6: 各 errorKind の entry は…エラーカード化…` (test:462) | ✅ | `mergeExternalComponents` がエラー entry を `ExternalComponentErrorCard` 化、`data-error-kind` + 日本語文言「バージョン不一致」+ 部品名が表示される |
+| **cap5** project scoping (#1415 P2-1 per-session) | `cap5: 別 workspace の manifest を別 fetchImpl で解決…` | ✅ | asset URL は wsId-scoped (`/workspace-assets/<wsId>/puck-components/`)。workspace A (approval-status-bar) と B (billing-summary) を別 wsId / 別 fetchImpl で解決し互いの component が混入しない (`projectExternal.components` が各 1 件)。backend は要求ごとに wsId → `recentStore.findById(wsId)` で root を解決し process-global state に依存しない |
+| **cap5** id 衝突防御 | `cap5: 既存 built-in id と衝突する外部 component…` | ✅ | `id:"Container"` の外部 component は built-in Container を上書きせず、別 key の `id-collision` エラーカードに落ちる |
+| **cap6** manifest-invalid | `cap6: manifest-invalid (schemaVersion 不正)…` | ✅ | `schemaVersion:"999"` → `errorKind:"manifest-invalid"` |
+| **cap6** version-mismatch | `cap6: version-mismatch (engine.react=18)…` | ✅ | `engine.react:"18"` → `version-mismatch`、import 未実行 (importSpy 未 call) |
+| **cap6** missing-export | `cap6: missing-export (export 名不在)…` | ✅ | `export:"NotExist"` を実 .mjs (default のみ export) に向ける → `missing-export` |
+| **cap6** load-error (SSRF) | `cap6: load-error (module が配信範囲外 = SSRF)…` | ✅ | `module:"https://evil.example.com/x.mjs"` → import せず `load-error`、detail に「配信範囲外」 |
+| **cap6** エラーカード UX | `cap6: 各 errorKind の entry は…エラーカード化…` | ✅ | `mergeExternalComponents` がエラー entry を `ExternalComponentErrorCard` 化、`data-error-kind` + 日本語文言「バージョン不一致」+ 部品名が表示される |
 
 注: errorKind 網羅の細目 (404→空配列 / network throw→空配列 / `../` 脱出 / protocol-relative / 拡張子 allowlist 等) は既存 `frontend/src/puck/externalComponents.test.ts` が網羅済のため、本 dogfood は代表 4 種 (manifest-invalid / version-mismatch / missing-export / load-error(SSRF)) のみを通し検証している。
 
@@ -151,7 +151,7 @@ export {
 |---|---|---|
 | `manifest-invalid` | manifest 不正 | `schemaVersion: "1" である必要があります (got "999")` |
 | `version-mismatch` | バージョン不一致 | `react major 18 != host 19` |
-| `missing-export` | export が見つかりません | `export "NotExist" が関数ではありません` |
+| `missing-export` | export が見つかりません | `export "NotExist" が妥当な React component ではありません` |
 | `load-error` | モジュール読込失敗 | `module パスが配信範囲外です (origin 不一致): https://evil.example.com/x.mjs` |
 | `id-collision` | ID 衝突 | `ID 'Container' は既存 component と衝突` |
 | `missing-dependency` | 依存部品が未ロード | `部品 type 'approval-status-bar' が読み込めません (未ロードの外部 component の可能性)` |
