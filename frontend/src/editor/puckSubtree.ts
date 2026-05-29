@@ -229,9 +229,11 @@ export function collectDependencies(
  */
 function expandOne(
   composite: ExpandableComposite,
+  byType: Map<string, ExpandableComposite>,
   availableTypes: Set<string>,
 ): { content: Content; zones: Zones } {
-  // subtree を Data 形に整形 → id 再生成 (props.id + zones キー itemId 同期)。
+  // subtree を Data 形に整形 → id 再生成 (props.id + zones キー itemId 同期、props 内 slot
+  // ノードの id も regeneratePuckDataIds が props 再帰処理で再生成する)。
   const dataFragment: Data = {
     root: { props: {} },
     content: composite.tree.content,
@@ -239,16 +241,33 @@ function expandOne(
   };
   const regenerated = regeneratePuckDataIds(dataFragment);
 
-  const content = regenerated.content.map((item) =>
+  // 1. まず本 subtree の直接ノードを guardNode で未ロード依存 error-card 化する
+  //    (props 内 slot content も再帰 guard、#1415 P2-2)。複合部品 placeholder type 自体は
+  //    config 登録済 (availableTypes 内) なので guard では落ちず、次段の展開に回る。
+  const guardedContent = regenerated.content.map((item) =>
     guardNode(item, composite, availableTypes),
   );
-  const zones: Zones = {};
+  const guardedZones: Zones = {};
   if (regenerated.zones) {
     for (const [zoneKey, zoneContent] of Object.entries(regenerated.zones)) {
-      zones[zoneKey] = zoneContent.map((item) =>
+      guardedZones[zoneKey] = zoneContent.map((item) =>
         guardNode(item, composite, availableTypes),
       );
     }
+  }
+
+  // 2. subtree 自身が nested 複合部品 placeholder を内包する場合に備え、content / zones を
+  //    expandContentArray で再帰展開する (slot props 内 placeholder もここで展開、#1415 P2-4)。
+  //    nested 展開は各 nested composite 自身の expandOne→guardNode が依存解決するため、
+  //    ここで再 guard はしない (outer errorType で二重ラップしないため)。
+  const zones: Zones = {};
+  const expandedContent = expandContentArray(guardedContent, byType, availableTypes);
+  Object.assign(zones, expandedContent.zones);
+  const content = expandedContent.content;
+  for (const [zoneKey, zoneContent] of Object.entries(guardedZones)) {
+    const expandedZone = expandContentArray(zoneContent, byType, availableTypes);
+    Object.assign(zones, expandedZone.zones);
+    zones[zoneKey] = expandedZone.content;
   }
   return { content, zones };
 }
@@ -308,7 +327,10 @@ export interface ExpandableComposite {
  * merge すべき zones サブセットを返す内部ヘルパ。
  *
  * placeholder は該当 index に subtree (id 再生成済) を flat 挿入する。
- * placeholder でないノードはそのまま保持する。
+ * placeholder でないノードはそのまま保持する。ただし非 placeholder ノードでも、その
+ * **props 内 slot content** (#1411 P-3、= Puck node 配列) に placeholder が drop されている
+ * 場合はその slot 配列も再帰的に展開し、展開後の配列を props に書き戻す (#1415 P2-4)。
+ * slot 内展開で生まれる nested zones も呼出側に伝播するよう zones に集約する。
  */
 function expandContentArray(
   content: Content,
@@ -320,16 +342,40 @@ function expandContentArray(
   for (const item of content) {
     const type = (item as { type?: unknown }).type;
     const composite = typeof type === "string" ? byType.get(type) : undefined;
-    if (!composite) {
-      newContent.push(item);
+    if (composite) {
+      // placeholder を subtree に展開 (その場 flat 挿入)。
+      const expanded = expandOne(composite, byType, availableTypes);
+      newContent.push(...expanded.content);
+      Object.assign(zones, expanded.zones);
       continue;
     }
-    // placeholder を subtree に展開 (その場 flat 挿入)。
-    const expanded = expandOne(composite, availableTypes);
-    newContent.push(...expanded.content);
-    Object.assign(zones, expanded.zones);
+    // 非 placeholder ノード。props 内 slot content に placeholder があれば再帰展開する。
+    newContent.push(expandNodeSlots(item, byType, availableTypes, zones));
   }
   return { content: newContent, zones };
+}
+
+/**
+ * 1 ノードの props 内 slot content (#1411 P-3) 内の複合部品 placeholder を再帰展開する
+ * (#1415 P2-4)。各 slot 配列を expandContentArray に通し、展開後の配列を props に書き戻した
+ * ノードを返す。slot が無ければ参照透過に同一ノードを返す (冪等)。slot 展開で生まれる nested
+ * zones は引数 zones (= 親が集約する Zones) に Object.assign する。
+ */
+function expandNodeSlots(
+  item: ComponentData,
+  byType: Map<string, ExpandableComposite>,
+  availableTypes: Set<string>,
+  zones: Zones,
+): ComponentData {
+  const slotEntries = slotContentEntries(item);
+  if (slotEntries.length === 0) return item;
+  const props = { ...(item as { props: Record<string, unknown> }).props };
+  for (const [propName, children] of slotEntries) {
+    const expanded = expandContentArray(children as Content, byType, availableTypes);
+    props[propName] = expanded.content;
+    Object.assign(zones, expanded.zones);
+  }
+  return { ...item, props } as ComponentData;
 }
 
 /**
@@ -343,8 +389,11 @@ function expandContentArray(
  * - 展開した subtree が自身の zones サブセット (nested DropZone) を持つ場合、それらも
  *   data.zones に merge する。展開ノードの id は regeneratePuckDataIds で UUID 再生成済のため
  *   新規 zones キーは既存キーと衝突しない。
+ * - 外部 component の slot props (`props.<slotName>` 配列、#1411 P-3) に drop された placeholder も
+ *   再帰的に展開する (#1415 P2-4)。展開後の配列を props に書き戻し、slot 内 placeholder が生む
+ *   nested zones も data.zones に merge する。slot 内 slot のさらなるネストも辿る。
  * - 依存 type が `availableTypes` に無い subtree 内ノードは error-card 型に差し替える (capability 6)。
- * - placeholder が content・zones いずれにも無ければ参照透過に同一構造を返す
+ * - placeholder が content・zones・slot props いずれにも無ければ参照透過に同一構造を返す
  *   (冪等、controlled mode の onChange→展開→setData 無限ループ防止)。
  */
 export function expandCompositePlaceholders(
@@ -362,11 +411,21 @@ export function expandCompositePlaceholders(
     return typeof type === "string" && byType.has(type);
   };
 
-  // content 直下・zones いずれかに placeholder があるか判定 (冪等性のため早期 return)。
+  // ノード自身が placeholder か、または props 内 slot content (#1411 P-3) のいずれかの
+  // 階層に placeholder を内包するか (再帰、slot 内 slot も考慮) を判定する (#1415 P2-4)。
+  const nodeContainsPlaceholder = (item: ComponentData): boolean => {
+    if (isPlaceholder(item)) return true;
+    for (const [, children] of slotContentEntries(item)) {
+      if (children.some(nodeContainsPlaceholder)) return true;
+    }
+    return false;
+  };
+
+  // content 直下・zones・slot props いずれかに placeholder があるか判定 (冪等性のため早期 return)。
   const dataZones: Zones = data.zones ?? {};
-  const hasContentPlaceholder = data.content.some(isPlaceholder);
+  const hasContentPlaceholder = data.content.some(nodeContainsPlaceholder);
   const hasZonePlaceholder = Object.values(dataZones).some((zc) =>
-    zc.some(isPlaceholder),
+    zc.some(nodeContainsPlaceholder),
   );
   if (!hasContentPlaceholder && !hasZonePlaceholder) return data;
 

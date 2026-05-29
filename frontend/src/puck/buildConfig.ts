@@ -230,6 +230,45 @@ function buildSlotFields(
 }
 
 /**
+ * boolean prop の値を実 boolean に正規化する (#1415 P2-5)。
+ *
+ * Puck の boolean field は radio で文字列 "true"/"false" を保持する (既存 custom 挙動を
+ * 厳密保持するため、buildFieldsFromPropDecls 参照)。外部 React component の render 境界では
+ * 文字列 "false" が truthy 評価される事故を防ぐため、実 boolean に coerce する。
+ *
+ * - 文字列 "true" → true / "false" → false (大文字小文字無視、前後空白許容)
+ * - 既に boolean → そのまま
+ * - それ以外 (undefined / 数値等) → Boolean() で評価 (manifest default が boolean 以外の
+ *   不正値でも render が落ちないようにする保険)
+ */
+function coerceBoolean(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return Boolean(value);
+}
+
+/**
+ * props のうち booleanPropNames に含まれるキーのみ coerceBoolean を適用した新オブジェクトを返す
+ * (#1415 P2-5)。元 props は破壊しない。boolean prop が無ければ呼出側で props 透過する。
+ */
+function coerceBooleanProps(
+  props: Record<string, unknown>,
+  booleanPropNames: Set<string>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...props };
+  for (const name of booleanPropNames) {
+    if (name in result) {
+      result[name] = coerceBoolean(result[name]);
+    }
+  }
+  return result;
+}
+
+/**
  * 全 primitive に共通追加するレイアウト props の Puck Fields 定義。
  * escape hatch の rawClass は隠し扱い (custom フィールドは Puck v0.20 では type:"custom" が必要だが、
  * 簡易実装として text 型で提供し、UI 上末尾に配置する)。
@@ -516,10 +555,21 @@ export function mergeExternalComponents(
     }
 
     if (item.status === "ok") {
+      // boolean prop の名前集合 (#1415 P2-5)。boolean field は radio の文字列
+      // "true"/"false" で保持されるため (既存 custom 挙動の厳密保持)、外部 component の
+      // render 境界でのみ実 boolean に coerce する。
+      const booleanPropNames = new Set(
+        (entry.props ?? [])
+          .filter((p) => p.type === "boolean")
+          .map((p) => p.name),
+      );
       const defaultProps: Record<string, unknown> = {};
       for (const prop of entry.props ?? []) {
         if (prop.default !== undefined) {
-          defaultProps[prop.name] = prop.default;
+          // defaultProps も coerce 対象に含め、render と一貫させる (#1415 P2-5)。
+          defaultProps[prop.name] = booleanPropNames.has(prop.name)
+            ? coerceBoolean(prop.default)
+            : prop.default;
         }
       }
       // slot は空の editable region として初期化する (#1411 P-3)。
@@ -544,8 +594,16 @@ export function mergeExternalComponents(
         // slot field (#1411 P-3) を後ろにマージ (Puck が render-prop に変換して注入する)。
         fields: { ...propFields, ...slotFields },
         defaultProps,
+        // render 境界で boolean prop の文字列 "true"/"false" を実 boolean に coerce してから
+        // 外部 Component に渡す (#1415 P2-5)。custom (JSON-only) 経路や field 定義 (radio の
+        // string value 表示) は変更せず、external render のみに適用する。
         render: (props: Record<string, unknown>) =>
-          createElement(Component, props),
+          createElement(
+            Component,
+            booleanPropNames.size > 0
+              ? coerceBooleanProps(props, booleanPropNames)
+              : props,
+          ),
       };
     } else {
       // エラー entry はエラーカードを描画する component として登録する。

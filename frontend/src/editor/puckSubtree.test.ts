@@ -602,4 +602,83 @@ describe("expandCompositePlaceholders", () => {
     expect(inner.type).toBe("__composite_error__comp-slot");
     expect(inner.props.missingType).toBe("InnerExtWidget");
   });
+
+  // --- #1415 P2-4: slot props に drop された複合部品 placeholder も展開する ---
+  it("slot props 内に drop された複合部品 placeholder が subtree に展開され transient placeholder が残らない", () => {
+    // 外部 component ExtCard の slot (props.body) に comp-a の placeholder を drop した状態の data。
+    const d = data({
+      root: { props: {} },
+      content: [
+        {
+          type: "ExtCard",
+          props: {
+            id: "card-host",
+            body: [
+              { type: "Paragraph", props: { id: "p-keep" } },
+              { type: compositeTypeName("comp-a"), props: { id: "ph-in-slot" } },
+            ],
+          },
+        },
+      ],
+    });
+    const availableWithExt = new Set([
+      "ExtCard",
+      "Card",
+      "Heading",
+      "Paragraph",
+      compositeTypeName("comp-a"),
+    ]);
+
+    const result = expandCompositePlaceholders(d, [composite], availableWithExt);
+
+    // host ノード (ExtCard) は残る。
+    const host = result.content.find(
+      (i) => (i as { type: string }).type === "ExtCard",
+    ) as { props: { body: { type: string; props: { id: string } }[] } };
+    expect(host).toBeDefined();
+    const slotTypes = host.props.body.map((n) => n.type);
+    // slot 内の placeholder は展開され Card に置き換わり、transient placeholder は消える。
+    expect(slotTypes).toContain("Card");
+    expect(slotTypes).not.toContain(compositeTypeName("comp-a"));
+    // slot 内の既存ノードは保持。
+    expect(slotTypes).toContain("Paragraph");
+    // 展開された subtree の nested zones (Card:content の Heading) が merge される。
+    const zoneKeys = Object.keys(result.zones ?? {});
+    expect(zoneKeys.some((k) => k.endsWith(":content"))).toBe(true);
+    // 元の subtree id は再生成され残らない & 全 id 一意。
+    const slotIds = host.props.body.map((n) => n.props.id);
+    expect(slotIds).not.toContain("card-orig");
+    const allResultIds = [...allIds(result), ...slotIds];
+    expect(new Set(allResultIds).size).toBe(allResultIds.length);
+  });
+
+  it("slot props のみに placeholder がある場合でも早期 return せず展開される (再適用で冪等)", () => {
+    const d = data({
+      root: { props: {} },
+      content: [
+        {
+          type: "ExtCard",
+          props: {
+            id: "card-host",
+            body: [{ type: compositeTypeName("comp-a"), props: { id: "ph-in-slot" } }],
+          },
+        },
+      ],
+    });
+    const availableWithExt = new Set([
+      "ExtCard",
+      "Card",
+      "Heading",
+      compositeTypeName("comp-a"),
+    ]);
+
+    const first = expandCompositePlaceholders(d, [composite], availableWithExt);
+    const firstHost = first.content[0] as { props: { body: { type: string }[] } };
+    expect(firstHost.props.body.map((n) => n.type)).not.toContain(
+      compositeTypeName("comp-a"),
+    );
+    // 再適用すると placeholder が無いため参照透過に同一構造を返す (冪等)。
+    const second = expandCompositePlaceholders(first, [composite], availableWithExt);
+    expect(second).toBe(first);
+  });
 });

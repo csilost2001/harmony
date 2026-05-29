@@ -409,6 +409,113 @@ describe("mergeExternalComponents slot fields (#1411 P-3)", () => {
   });
 });
 
+describe("mergeExternalComponents boolean prop coerce (#1415 P2-5)", () => {
+  const boolEntry: ExternalComponentEntry = {
+    id: "ext-bool",
+    label: "外部Bool",
+    module: "./dist/bool.mjs",
+    version: "1.0.0",
+    props: [
+      { name: "title", type: "string", label: "タイトル" },
+      { name: "enabled", type: "boolean", label: "有効", default: false },
+    ],
+  };
+
+  // 受け取った enabled prop の実型を data 属性で曝露する probe component。
+  const BoolProbe = (props: { enabled?: unknown; title?: string }) => (
+    <div
+      data-testid="bool-probe"
+      data-enabled-type={typeof props.enabled}
+      data-enabled-value={String(props.enabled)}
+    >
+      {props.title}
+    </div>
+  );
+
+  it("文字列 \"false\" は render 境界で実 boolean false に coerce される", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry: boolEntry, status: "ok", Component: BoolProbe },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const def = merged.components["ext-bool"];
+
+    const { getByTestId } = render(
+      <>
+        {def.render({
+          enabled: "false",
+          title: "T",
+          puck: { renderDropZone: () => null },
+        } as never)}
+      </>,
+    );
+    const probe = getByTestId("bool-probe");
+    expect(probe.getAttribute("data-enabled-type")).toBe("boolean");
+    expect(probe.getAttribute("data-enabled-value")).toBe("false");
+  });
+
+  it("文字列 \"true\" は実 boolean true に coerce される", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry: boolEntry, status: "ok", Component: BoolProbe },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const def = merged.components["ext-bool"];
+
+    const { getByTestId } = render(
+      <>
+        {def.render({
+          enabled: "true",
+          puck: { renderDropZone: () => null },
+        } as never)}
+      </>,
+    );
+    const probe = getByTestId("bool-probe");
+    expect(probe.getAttribute("data-enabled-type")).toBe("boolean");
+    expect(probe.getAttribute("data-enabled-value")).toBe("true");
+  });
+
+  it("defaultProps の boolean default も実 boolean に正規化される (field 型は radio のまま)", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry: boolEntry, status: "ok", Component: BoolProbe },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const def = merged.components["ext-bool"];
+    // defaultProps は実 boolean (default: false → false)。
+    expect(def.defaultProps!.enabled).toBe(false);
+    expect(typeof def.defaultProps!.enabled).toBe("boolean");
+    // field 定義は従来通り radio + string value (custom 挙動の厳密保持)。
+    const f = def.fields!.enabled as {
+      type: string;
+      options: { label: string; value: string }[];
+    };
+    expect(f.type).toBe("radio");
+    expect(f.options).toEqual([
+      { label: "はい", value: "true" },
+      { label: "いいえ", value: "false" },
+    ]);
+  });
+
+  it("非 boolean prop は coerce されず素通りする", () => {
+    const loaded: LoadedExternalComponent[] = [
+      { entry: boolEntry, status: "ok", Component: BoolProbe },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const def = merged.components["ext-bool"];
+
+    const { getByTestId } = render(
+      <>
+        {def.render({
+          enabled: true,
+          title: "見出しテキスト",
+          puck: { renderDropZone: () => null },
+        } as never)}
+      </>,
+    );
+    const probe = getByTestId("bool-probe");
+    // title は string のまま透過。
+    expect(probe.textContent).toBe("見出しテキスト");
+  });
+});
+
 describe("mergeExternalComponents categories (#1410 P-2)", () => {
   it("外部 0 件 (loaded=[]) のとき categories は base と同一 (projectExternal 無し)", () => {
     const base = buildPuckConfig();
