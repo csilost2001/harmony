@@ -135,7 +135,6 @@ export function GrapesEditorHost(props: GrapesEditorHostProps) {
     onTogglePin: props.onTogglePin,
     onClosePanel: props.onClosePanel,
     screenId: props.screenId,
-    onStartEditing: props.onStartEditing,
     onChange: props.onChange,
     onReady: props.onReady,
     onServerChanged: props.onServerChanged,

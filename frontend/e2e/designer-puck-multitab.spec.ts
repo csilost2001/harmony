@@ -77,14 +77,10 @@ test.describe("Designer (Puck) multi-tab ResumeOrDiscardDialog filter (#980-A)",
       }
       // Puck editor が表示されるまで待つ → editing mode 開始
       await expect(pageA.locator("[data-testid='puck-editor-container']")).toBeVisible({ timeout: 20000 });
-      // edit-mode-start (header) または canvas-readonly-start のいずれかをクリックして editing mode へ
-      const editStartBtn = pageA.getByTestId("edit-mode-start");
-      const editStartVisible = await editStartBtn.isVisible({ timeout: 5000 }).catch(() => false);
-      if (editStartVisible) {
-        await editStartBtn.click();
-      } else {
-        await pageA.getByTestId("canvas-readonly-start").click();
-      }
+      // ツールバーの edit-mode-start をクリックして editing mode へ
+      // (#1423: canvas 中央の readonly オーバーレイは廃止済)
+      await expect(pageA.getByTestId("edit-mode-start")).toBeVisible({ timeout: 5000 });
+      await pageA.getByTestId("edit-mode-start").click();
       await expect(pageA.getByTestId("edit-mode-save")).toBeVisible({ timeout: 15000 });
 
       // bob: 同 resource を開く → Puck 経路の filter で Resume dialog 非表示

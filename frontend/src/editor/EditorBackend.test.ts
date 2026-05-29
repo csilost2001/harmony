@@ -51,7 +51,6 @@ const baseRenderProps: Omit<RenderEditorBaseProps, "state"> = {
   onTogglePin: () => { /* no-op */ },
   onClosePanel: () => { /* no-op */ },
   screenId: "screen-001",
-  onStartEditing: () => { /* no-op */ },
   reloadPayload: async () => null,
 };
 

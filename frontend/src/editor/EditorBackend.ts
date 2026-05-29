@@ -96,9 +96,6 @@ export interface RenderEditorBaseProps {
   /** 編集対象 screenId (RightPanel 等で利用) */
   screenId: string;
 
-  /** readonly overlay の「編集開始」ボタン用 */
-  onStartEditing: () => void;
-
   /** 編集中変更通知 — Backend は user 編集を検出したら呼ぶ */
   onChange?: (newState: EditorState) => void;
 
