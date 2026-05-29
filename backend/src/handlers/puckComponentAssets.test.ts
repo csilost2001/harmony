@@ -1,19 +1,24 @@
 /**
- * puckComponentAssets.test.ts — 外部 component 静的配信ハンドラのテスト (#1409 P-1)。
+ * puckComponentAssets.test.ts — 外部 component 静的配信ハンドラのテスト (#1409 P-1 / #1415 P2-1)。
  *
- * - active workspace 未設定 → 404
+ * URL 契約: GET /workspace-assets/<wsId>/puck-components/<relpath>
+ *
+ * - wsId 不正 / 未登録 → 404
  * - 許可拡張子の Content-Type + CORS header
  * - path traversal → 403
  * - 拡張子非許可 → 404
  * - OPTIONS preflight → 204
+ * - per-session scoping: 別 wsId は別 root が解決される (#1415 P2-1)
+ * - lockdown モード: recent を使わず lockdown path に固定する (#1415 P2-1)
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { handlePuckComponentAsset } from "./puckComponentAssets.js";
-import { setGlobalDefaultPath, _resetForTest } from "../workspaceState.js";
+import { _resetForTest, initWorkspaceState } from "../workspaceState.js";
+import { upsertWorkspace } from "../recentStore.js";
 
 interface MockRes extends ServerResponse {
   _status?: number;
@@ -53,19 +58,14 @@ function makeReq(url: string, method = "GET"): IncomingMessage {
   } as any;
 }
 
-let tmpRoot: string;
-let dataRoot: string;
-
-beforeEach(() => {
-  _resetForTest();
-  tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "puck-assets-test-"));
-  // harmony.json で dataDir を指定
+/** <root>/data/puck-components/ に manifest + dist/foo.mjs を作る fixture を仕込む。 */
+function seedWorkspace(root: string): string {
   fs.writeFileSync(
-    path.join(tmpRoot, "harmony.json"),
+    path.join(root, "harmony.json"),
     JSON.stringify({ dataDir: "data" }),
     "utf-8",
   );
-  dataRoot = path.join(tmpRoot, "data");
+  const dataRoot = path.join(root, "data");
   const puckDir = path.join(dataRoot, "puck-components", "dist");
   fs.mkdirSync(puckDir, { recursive: true });
   fs.writeFileSync(
@@ -78,9 +78,32 @@ beforeEach(() => {
     "export default function Foo(){return null;}",
     "utf-8",
   );
+  return dataRoot;
+}
+
+let tmpRoot: string;
+let recentFile: string;
+let wsId: string;
+
+/** prefix builder: `/workspace-assets/<wsId>/puck-components/`。 */
+function prefix(id = wsId): string {
+  return `/workspace-assets/${encodeURIComponent(id)}/puck-components/`;
+}
+
+beforeEach(async () => {
+  _resetForTest();
+  tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "puck-assets-test-"));
+  seedWorkspace(tmpRoot);
+  // recent-workspaces.json を独立 tmp file に向ける → findById がここを読む。
+  recentFile = path.join(tmpRoot, "recent-workspaces.json");
+  vi.stubEnv("DESIGNER_RECENT_FILE", recentFile);
+  vi.stubEnv("DESIGNER_DATA_DIR", "");
+  const entry = await upsertWorkspace(tmpRoot, "test-ws");
+  wsId = entry.id;
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   _resetForTest();
   try {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
@@ -89,20 +112,19 @@ afterEach(() => {
   }
 });
 
-const PREFIX = "/workspace-assets/puck-components/";
-
 describe("handlePuckComponentAsset", () => {
-  it("active workspace 未設定なら 404", async () => {
-    // setGlobalDefaultPath を呼ばない → resolveActiveRoot() = null
+  it("未登録 wsId なら 404", async () => {
     const res = makeRes();
-    await handlePuckComponentAsset(makeReq(`${PREFIX}manifest.json`), res);
+    await handlePuckComponentAsset(
+      makeReq(`${prefix("does-not-exist")}manifest.json`),
+      res,
+    );
     expect(res._status).toBe(404);
   });
 
   it("manifest.json を application/json + CORS header で配信する", async () => {
-    setGlobalDefaultPath(tmpRoot);
     const res = makeRes();
-    await handlePuckComponentAsset(makeReq(`${PREFIX}manifest.json`), res);
+    await handlePuckComponentAsset(makeReq(`${prefix()}manifest.json`), res);
     expect(res._status).toBe(200);
     expect(res._headers["Content-Type"]).toContain("application/json");
     expect(res._headers["Access-Control-Allow-Origin"]).toBe(
@@ -112,44 +134,39 @@ describe("handlePuckComponentAsset", () => {
   });
 
   it(".mjs を text/javascript で配信する", async () => {
-    setGlobalDefaultPath(tmpRoot);
     const res = makeRes();
-    await handlePuckComponentAsset(makeReq(`${PREFIX}dist/foo.mjs`), res);
+    await handlePuckComponentAsset(makeReq(`${prefix()}dist/foo.mjs`), res);
     expect(res._status).toBe(200);
     expect(res._headers["Content-Type"]).toContain("text/javascript");
     expect(String(res._body)).toContain("export default");
   });
 
   it("存在しないファイルは 404", async () => {
-    setGlobalDefaultPath(tmpRoot);
     const res = makeRes();
-    await handlePuckComponentAsset(makeReq(`${PREFIX}dist/missing.mjs`), res);
+    await handlePuckComponentAsset(makeReq(`${prefix()}dist/missing.mjs`), res);
     expect(res._status).toBe(404);
   });
 
   it("許可されない拡張子は 404", async () => {
-    setGlobalDefaultPath(tmpRoot);
     const res = makeRes();
-    await handlePuckComponentAsset(makeReq(`${PREFIX}secret.env`), res);
+    await handlePuckComponentAsset(makeReq(`${prefix()}secret.env`), res);
     expect(res._status).toBe(404);
   });
 
   it("path traversal (..) は 403", async () => {
-    setGlobalDefaultPath(tmpRoot);
     const res = makeRes();
     // ../../harmony.json を狙う (decode 後に .. を含む) → base 外なので 403
     await handlePuckComponentAsset(
-      makeReq(`${PREFIX}..%2f..%2fharmony.json`),
+      makeReq(`${prefix()}..%2f..%2fharmony.json`),
       res,
     );
     expect(res._status).toBe(403);
   });
 
   it("OPTIONS preflight は 204 + CORS header", async () => {
-    setGlobalDefaultPath(tmpRoot);
     const res = makeRes();
     await handlePuckComponentAsset(
-      makeReq(`${PREFIX}manifest.json`, "OPTIONS"),
+      makeReq(`${prefix()}manifest.json`, "OPTIONS"),
       res,
     );
     expect(res._status).toBe(204);
@@ -157,22 +174,90 @@ describe("handlePuckComponentAsset", () => {
   });
 
   it("GET / OPTIONS 以外は 405", async () => {
-    setGlobalDefaultPath(tmpRoot);
     const res = makeRes();
     await handlePuckComponentAsset(
-      makeReq(`${PREFIX}manifest.json`, "POST"),
+      makeReq(`${prefix()}manifest.json`, "POST"),
       res,
     );
     expect(res._status).toBe(405);
   });
 
   it("query 付き URL でも relpath を正しく解決する", async () => {
-    setGlobalDefaultPath(tmpRoot);
+    const res = makeRes();
+    await handlePuckComponentAsset(makeReq(`${prefix()}dist/foo.mjs?v=123`), res);
+    expect(res._status).toBe(200);
+  });
+
+  it("wsId segment が無い URL は 404", async () => {
+    const res = makeRes();
+    // 旧形式 (/workspace-assets/puck-components/...) は wsId が無いので 404。
+    await handlePuckComponentAsset(
+      makeReq(`/workspace-assets/puck-components/manifest.json`),
+      res,
+    );
+    expect(res._status).toBe(404);
+  });
+
+  // --- #1415 P2-1: per-session workspace scoping ---
+  it("別 wsId は別 root を解決する (workspace 間で混入しない)", async () => {
+    // 2 つ目の workspace を別 root + 別 manifest 内容で登録する。
+    const otherRoot = fs.mkdtempSync(path.join(os.tmpdir(), "puck-assets-other-"));
+    try {
+      fs.writeFileSync(
+        path.join(otherRoot, "harmony.json"),
+        JSON.stringify({ dataDir: "data" }),
+        "utf-8",
+      );
+      const otherData = path.join(otherRoot, "data", "puck-components");
+      fs.mkdirSync(otherData, { recursive: true });
+      fs.writeFileSync(
+        path.join(otherData, "manifest.json"),
+        JSON.stringify({ schemaVersion: "1", marker: "OTHER" }),
+        "utf-8",
+      );
+      const otherEntry = await upsertWorkspace(otherRoot, "other-ws");
+
+      // wsId=A の manifest には marker 無し。
+      const resA = makeRes();
+      await handlePuckComponentAsset(makeReq(`${prefix(wsId)}manifest.json`), resA);
+      expect(resA._status).toBe(200);
+      expect(String(resA._body)).not.toContain("OTHER");
+
+      // wsId=B (otherEntry) は marker:"OTHER" を返す。
+      const resB = makeRes();
+      await handlePuckComponentAsset(
+        makeReq(`${prefix(otherEntry.id)}manifest.json`),
+        resB,
+      );
+      expect(resB._status).toBe(200);
+      expect(String(resB._body)).toContain("OTHER");
+    } finally {
+      fs.rmSync(otherRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("lockdown モード: wsId='lockdown' は lockdown path を解決し、recent は使わない", async () => {
+    // DESIGNER_DATA_DIR を tmpRoot に向けて lockdown を有効化する。
+    vi.stubEnv("DESIGNER_DATA_DIR", tmpRoot);
+    // VITEST=true のため initWorkspaceState は harmony.json 存在検証を skip する。
+    initWorkspaceState();
+
     const res = makeRes();
     await handlePuckComponentAsset(
-      makeReq(`${PREFIX}dist/foo.mjs?v=123`),
+      makeReq(`/workspace-assets/lockdown/puck-components/manifest.json`),
       res,
     );
     expect(res._status).toBe(200);
+    expect(String(res._body)).toContain("schemaVersion");
+  });
+
+  it("lockdown モード: 'lockdown' 以外の wsId は 404 (recent を引かない)", async () => {
+    vi.stubEnv("DESIGNER_DATA_DIR", tmpRoot);
+    initWorkspaceState();
+
+    // recent に登録済の wsId であっても lockdown 中は拒否する。
+    const res = makeRes();
+    await handlePuckComponentAsset(makeReq(`${prefix(wsId)}manifest.json`), res);
+    expect(res._status).toBe(404);
   });
 });

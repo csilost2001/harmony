@@ -2,8 +2,8 @@
  * externalComponents.ts — 外部 React Component の runtime ESM ローダ (#1409 P-1)。
  *
  * 案 B (runtime ESM import) + import map による React/Puck 共有方式。
- * backend の `/workspace-assets/puck-components/` 静的配信から manifest.json と
- * 各 component の `.mjs` を取得し、`import()` で読み込む。
+ * backend の `/workspace-assets/<wsId>/puck-components/` 静的配信 (wsId-scoped、#1415 P2-1) から
+ * manifest.json と各 component の `.mjs` を取得し、`import()` で読み込む。
  *
  * - manifest が無い (404) / fetch 到達不可 (backend down) → 空配列 (正常系)
  * - manifest HTTP error (403/500 等) / JSON parse 失敗 / manifest 不正 → errorKind="manifest-invalid"
@@ -63,9 +63,21 @@ export function defaultBackendOrigin(): string {
   return `http://${hostname}:${port}`;
 }
 
-const ASSET_PREFIX = "/workspace-assets/puck-components/";
+/**
+ * wsId を含む asset 配信 base prefix を組む (#1415 P2-1)。
+ * `/workspace-assets/<wsId>/puck-components/` 形式。wsId は encode して path segment に埋める。
+ */
+export function assetPrefixFor(wsId: string): string {
+  return `/workspace-assets/${encodeURIComponent(wsId)}/puck-components/`;
+}
 
 export interface LoadExternalComponentsOptions {
+  /**
+   * 現在の active workspace の wsId (#1415 P2-1)。
+   * asset URL を `/workspace-assets/<wsId>/puck-components/` に scope するため必須。
+   * 省略 / 空文字なら配信不可とみなし空配列を返す (= 外部部品なし扱い)。
+   */
+  wsId?: string;
   /** backend origin。省略時は defaultBackendOrigin()。 */
   backendOrigin?: string;
   /** fetch 差し替え (テスト用)。 */
@@ -131,7 +143,12 @@ export async function loadExternalComponents(
   const fetchImpl = opts.fetchImpl ?? fetch;
   const importImpl = opts.importImpl ?? defaultImport;
 
-  const manifestUrl = `${backendOrigin}${ASSET_PREFIX}manifest.json`;
+  // wsId が無ければ配信先 workspace を特定できない → 外部部品なし扱い (空配列、正常系)。
+  const wsId = opts.wsId?.trim();
+  if (!wsId) return [];
+  const assetPrefix = assetPrefixFor(wsId);
+
+  const manifestUrl = `${backendOrigin}${assetPrefix}manifest.json`;
 
   // 1. manifest fetch
   let raw: unknown;
@@ -194,7 +211,7 @@ export async function loadExternalComponents(
     // 4. module URL を解決し、配信範囲内であることを検証する (SSRF 防止)。
     //    entry.module に "https://evil/..." / "//host/..." / "../../" などが書かれていても
     //    backend の asset 配信範囲外へ import が飛ばないようにする。
-    const resolved = resolveSafeModuleUrl(backendOrigin, entry.module);
+    const resolved = resolveSafeModuleUrl(backendOrigin, assetPrefix, entry.module);
     if (!resolved.ok) {
       results.push({
         entry,
@@ -255,16 +272,18 @@ type SafeUrlResult =
  * entry.module を backend asset 配信範囲内の URL に解決する (SSRF 防止)。
  *
  * - 解決後 URL の origin が backend origin と一致すること
- * - 解決後 pathname が ASSET_PREFIX 配下に収まること (../ での配信外脱出を拒否)
+ * - 解決後 pathname が assetPrefix (wsId-scoped、#1415 P2-1) 配下に収まること
+ *   (../ での配信外脱出 / 別 wsId 配信範囲への横移動を拒否)
  * - 拡張子が allowlist (.mjs / .js) であること
  *
  * いずれか満たさない場合は import せず load-error として扱う。
  */
 function resolveSafeModuleUrl(
   backendOrigin: string,
+  assetPrefix: string,
   moduleRel: string,
 ): SafeUrlResult {
-  const base = `${backendOrigin}${ASSET_PREFIX}`;
+  const base = `${backendOrigin}${assetPrefix}`;
   let resolved: URL;
   let expectedOrigin: string;
   try {
@@ -283,7 +302,7 @@ function resolveSafeModuleUrl(
       detail: `module パスが配信範囲外です (origin 不一致): ${moduleRel}`,
     };
   }
-  if (!resolved.pathname.startsWith(ASSET_PREFIX)) {
+  if (!resolved.pathname.startsWith(assetPrefix)) {
     return {
       ok: false,
       detail: `module パスが配信範囲外です: ${moduleRel}`,

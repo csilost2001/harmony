@@ -1,30 +1,52 @@
 /**
- * puckComponentAssets.ts — 外部 React Component 静的配信ハンドラ (#1409 P-1)。
+ * puckComponentAssets.ts — 外部 React Component 静的配信ハンドラ (#1409 P-1 / #1415 P2-1)。
  *
- * GET /workspace-assets/puck-components/<relpath>
- *   active workspace の <dataRoot>/puck-components/ 配下の `.mjs` / `.js` / `.json` / `.map`
- *   を配信する。manifest.json と各 component の ESM bundle (dist/*.mjs) を frontend ローダ
- *   (externalComponents.ts) が fetch / import() で読み込む経路。
+ * GET /workspace-assets/<wsId>/puck-components/<relpath>
+ *   URL 内の <wsId> で **要求ごとに** workspace を解決し、その <dataRoot>/puck-components/
+ *   配下の `.mjs` / `.js` / `.json` / `.map` を配信する。manifest.json と各 component の
+ *   ESM bundle (dist/*.mjs) を frontend ローダ (externalComponents.ts) が fetch / import()
+ *   で読み込む経路。
+ *
+ * #1415 P2-1 (per-session workspace scoping):
+ *   旧実装は process-global な resolveActiveRoot() (lockdown ?? globalDefault) を使っていたが、
+ *   backend のデータ層は #679 (v2) で per-session active workspace (workspaceContextManager) に
+ *   なっており、HTTP の静的 asset GET はセッション文脈を持たないため、複数タブが別 workspace を
+ *   active にしていると別 workspace の外部 component を読みうる cap5 violation があった。
+ *   asset URL に wsId を埋め込み、recentStore.findById(wsId) で当該 workspace root を解決する
+ *   ことで要求ごとに scope する。lockdown モード時は recent を使わず lockdown path に固定する。
  *
  * セキュリティ:
  * - origin / host 検証は wsBridge._handleHttp が全 route に強制済 (追加不要)。
+ * - wsId は recentStore に登録済 (= 既知) の workspace のみ解決、未登録 / 不正なら 404 (SSRF 防止)。
  * - path traversal は assertPathContained で防御 (resolved target が base 配下のみ許可)。
  * - 拡張子 allowlist で配信対象を限定 (任意ファイル露出を防ぐ)。
  * - エラー本文は最小 (内部情報を漏らさない、既存 S-013 方針)。
  *
- * RFC #1405 シリーズ P-1。
+ * RFC #1405 シリーズ P-1 / #1415 P2-1。
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { getLockdownPath, getGlobalDefaultPath } from "../workspaceState.js";
+import {
+  getLockdownPath,
+  isLockdown,
+  LOCKDOWN_WORKSPACE_ID,
+} from "../workspaceState.js";
+import { findById } from "../recentStore.js";
 import { resolveDataRoot } from "../projectStorage.js";
 import { assertPathContained } from "../security/idValidator.js";
 import { getAllowedOriginHeader } from "../security/originCheck.js";
 import { logWarn, logError } from "../serverLog.js";
 
-const ROUTE_PREFIX = "/workspace-assets/puck-components/";
+/**
+ * route prefix。wsBridge は url === prefix / startsWith(prefix + "/") でマッチするため、
+ * wsId を URL path segment に含める本 handler は親 prefix `/workspace-assets` で登録する。
+ * handler 内で `/workspace-assets/<wsId>/puck-components/<relpath>` を parse する。
+ */
+const ROUTE_PREFIX = "/workspace-assets";
+/** wsId の後ろに来る固定 segment。 */
+const PUCK_SEGMENT = "puck-components";
 
 /** 拡張子 → Content-Type の allowlist。これ以外は 404。 */
 const CONTENT_TYPES: Record<string, string> = {
@@ -60,9 +82,53 @@ function sendStatus(
   res.end(body);
 }
 
-/** active workspace root を解決する。lockdown 優先、なければ global default。null なら未選択。 */
-function resolveActiveRoot(): string | null {
-  return getLockdownPath() ?? getGlobalDefaultPath();
+/**
+ * URL から `/workspace-assets/<wsId>/puck-components/<relpath>` を parse する。
+ * 失敗時は null (= 404 扱い)。relpath は decode 済。
+ */
+function parseAssetUrl(
+  rawUrl: string,
+): { wsId: string; relpath: string } | null {
+  const pathPart = rawUrl.split("?")[0];
+  // ROUTE_PREFIX (`/workspace-assets`) で登録されているため必ず prefix で始まる前提だが、
+  // 念のため確認し、`/workspace-assets/` の後ろを segment 分解する。
+  if (pathPart !== ROUTE_PREFIX && !pathPart.startsWith(ROUTE_PREFIX + "/")) {
+    return null;
+  }
+  const rest = pathPart.slice(ROUTE_PREFIX.length).replace(/^\//, "");
+  // rest = "<wsId>/puck-components/<relpath...>"
+  const firstSlash = rest.indexOf("/");
+  if (firstSlash < 0) return null;
+  const wsIdRaw = rest.slice(0, firstSlash);
+  const afterWsId = rest.slice(firstSlash + 1);
+  if (!afterWsId.startsWith(PUCK_SEGMENT + "/")) return null;
+  const relpathRaw = afterWsId.slice(PUCK_SEGMENT.length + 1);
+  let wsId: string;
+  let relpath: string;
+  try {
+    wsId = decodeURIComponent(wsIdRaw);
+    relpath = decodeURIComponent(relpathRaw);
+  } catch {
+    return null;
+  }
+  if (wsId.length === 0 || relpath.length === 0) return null;
+  return { wsId, relpath };
+}
+
+/**
+ * wsId から workspace root を解決する。
+ * - lockdown モード時は wsId に関わらず lockdown path に固定する (recent は読み書きしない仕様)。
+ *   ただし frontend は lockdown 時 wsId="lockdown" を送るため、それ以外の wsId は不正として拒否。
+ * - 通常モードは recentStore.findById(wsId) で既知の workspace のみ解決する (SSRF 防止)。
+ * 解決できなければ null。
+ */
+async function resolveRootForWsId(wsId: string): Promise<string | null> {
+  if (isLockdown()) {
+    if (wsId !== LOCKDOWN_WORKSPACE_ID) return null;
+    return getLockdownPath();
+  }
+  const entry = await findById(wsId);
+  return entry ? entry.path : null;
 }
 
 export async function handlePuckComponentAsset(
@@ -81,28 +147,18 @@ export async function handlePuckComponentAsset(
     return;
   }
 
-  const activeRoot = resolveActiveRoot();
-  if (!activeRoot) {
-    sendStatus(res, req, 404, "No active workspace");
+  // URL から wsId / relpath を parse する。
+  const parsed = parseAssetUrl(req.url ?? "");
+  if (!parsed) {
+    sendStatus(res, req, 404, "Not Found");
     return;
   }
+  const { wsId, relpath } = parsed;
 
-  // URL から prefix と query を除いた relpath を decode する
-  const rawUrl = req.url ?? "";
-  const pathPart = rawUrl.split("?")[0];
-  if (!pathPart.startsWith(ROUTE_PREFIX)) {
-    sendStatus(res, req, 404, "Not Found");
-    return;
-  }
-  let relpath: string;
-  try {
-    relpath = decodeURIComponent(pathPart.slice(ROUTE_PREFIX.length));
-  } catch {
-    sendStatus(res, req, 400, "Bad Request");
-    return;
-  }
-  if (relpath.length === 0) {
-    sendStatus(res, req, 404, "Not Found");
+  // wsId → workspace root を要求ごとに解決 (per-session scoping、#1415 P2-1)。
+  const root = await resolveRootForWsId(wsId);
+  if (!root) {
+    sendStatus(res, req, 404, "No such workspace");
     return;
   }
 
@@ -117,7 +173,7 @@ export async function handlePuckComponentAsset(
   // dataRoot 解決 → base = <dataRoot>/puck-components/
   let base: string;
   try {
-    const dataRoot = await resolveDataRoot(activeRoot);
+    const dataRoot = await resolveDataRoot(root);
     base = path.join(dataRoot, "puck-components");
   } catch (e) {
     logWarn("puck-assets", "Failed to resolve dataRoot", {

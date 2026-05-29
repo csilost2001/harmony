@@ -250,9 +250,11 @@ async function main() {
   wsBridge.registerHttpHandler("/ai/rename-screen-ids/auth-check", handleAuthCheck);
   wsBridge.registerHttpHandler("/ai/rename-screen-ids/propose", handlePropose);
 
-  // 外部 React Component 静的配信 (#1409 P-1): active workspace の
-  // <dataRoot>/puck-components/ 配下の manifest.json / *.mjs を GET 配信する。
-  wsBridge.registerHttpHandler("/workspace-assets/puck-components", handlePuckComponentAsset);
+  // 外部 React Component 静的配信 (#1409 P-1 / #1415 P2-1): URL 内の wsId で要求ごとに
+  // workspace を解決し、その <dataRoot>/puck-components/ 配下の manifest.json / *.mjs を
+  // GET 配信する。`/workspace-assets/<wsId>/puck-components/<relpath>` 形式を handler 内で
+  // parse するため、親 prefix `/workspace-assets` で登録する。
+  wsBridge.registerHttpHandler("/workspace-assets", handlePuckComponentAsset);
 
   console.error(`[MCP] harmony-mcp HTTP transport mounted at http://localhost:${process.env.DESIGNER_MCP_PORT ?? 5179}/mcp`);
 }

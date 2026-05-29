@@ -4,9 +4,11 @@
  * fetch / import は DI で差し替えてエラー分類を網羅する。
  */
 import { describe, it, expect, vi } from "vitest";
-import { loadExternalComponents } from "./externalComponents";
+import { loadExternalComponents, assetPrefixFor } from "./externalComponents";
 
 const ORIGIN = "http://localhost:5179";
+const WS = "ws-A";
+const PREFIX = assetPrefixFor(WS); // "/workspace-assets/ws-A/puck-components/"
 
 function makeFetch(manifest: unknown, ok = true, status = 200): typeof fetch {
   return vi.fn(async () =>
@@ -54,6 +56,7 @@ const validEntry = {
 describe("loadExternalComponents", () => {
   it("manifest が 404 なら空配列を返す (正常系)", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: fetch404(),
       importImpl: async () => ({}),
@@ -63,6 +66,7 @@ describe("loadExternalComponents", () => {
 
   it("fetch が例外を投げたら空配列を返す", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: vi.fn(async () => {
         throw new Error("network");
@@ -74,6 +78,7 @@ describe("loadExternalComponents", () => {
 
   it("manifest 不正なら manifest-invalid を返す", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({ schemaVersion: "1", components: [{ id: "x" }] }),
       importImpl: async () => ({}),
@@ -88,6 +93,7 @@ describe("loadExternalComponents", () => {
   it("ok: export が関数なら status=ok で Component を返す", async () => {
     const Component = () => null;
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
       importImpl: async () => ({ default: Component }),
@@ -102,6 +108,7 @@ describe("loadExternalComponents", () => {
   it("カスタム export 名を解決する", async () => {
     const Component = () => null;
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({
         schemaVersion: "1",
@@ -114,6 +121,7 @@ describe("loadExternalComponents", () => {
 
   it("missing-export: export が関数でないなら missing-export", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
       importImpl: async () => ({ default: 42 }),
@@ -126,6 +134,7 @@ describe("loadExternalComponents", () => {
 
   it("load-error: import が例外を投げたら load-error", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
       importImpl: async () => {
@@ -142,6 +151,7 @@ describe("loadExternalComponents", () => {
   it("version-mismatch: react major 不一致なら version-mismatch (import せず)", async () => {
     const importSpy = vi.fn(async () => ({ default: () => null }));
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({
         schemaVersion: "1",
@@ -158,6 +168,7 @@ describe("loadExternalComponents", () => {
 
   it("version-mismatch: puck minor 不一致なら version-mismatch", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({
         schemaVersion: "1",
@@ -173,6 +184,7 @@ describe("loadExternalComponents", () => {
 
   it("engine が host と一致 (react 19 / puck 0.20) なら ok", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({
         schemaVersion: "1",
@@ -185,21 +197,23 @@ describe("loadExternalComponents", () => {
     expect(result[0].status).toBe("ok");
   });
 
-  it("module URL を backend origin + asset prefix で解決して import する", async () => {
+  it("module URL を backend origin + wsId-scoped asset prefix で解決して import する", async () => {
     const importSpy = vi.fn(async () => ({ default: () => null }));
     await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
       importImpl: importSpy,
     });
     expect(importSpy).toHaveBeenCalledWith(
-      `${ORIGIN}/workspace-assets/puck-components/dist/foo.mjs`,
+      `${ORIGIN}${PREFIX}dist/foo.mjs`,
     );
   });
 
   // --- SF2: manifest fetch の HTTP / parse error を握り潰さない ---
   it("manifest が 500 等の HTTP error なら manifest-invalid を返す", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: fetchHttpError(500),
       importImpl: async () => ({}),
@@ -214,6 +228,7 @@ describe("loadExternalComponents", () => {
 
   it("manifest が 403 でも manifest-invalid を返す (404 のみ空配列)", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: fetchHttpError(403),
       importImpl: async () => ({}),
@@ -228,6 +243,7 @@ describe("loadExternalComponents", () => {
 
   it("manifest の JSON parse 失敗なら manifest-invalid を返す", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: fetchJsonThrows(),
       importImpl: async () => ({}),
@@ -241,6 +257,7 @@ describe("loadExternalComponents", () => {
 
   it("network throw (backend down) は空配列 (エラーカードを出さない)", async () => {
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: vi.fn(async () => {
         throw new TypeError("Failed to fetch");
@@ -254,6 +271,7 @@ describe("loadExternalComponents", () => {
   it("module が他 origin (https://evil) なら import せず load-error", async () => {
     const importSpy = vi.fn(async () => ({ default: () => null }));
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({
         schemaVersion: "1",
@@ -272,6 +290,7 @@ describe("loadExternalComponents", () => {
   it("module が ../ で配信範囲外へ脱出するなら import せず load-error", async () => {
     const importSpy = vi.fn(async () => ({ default: () => null }));
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({
         schemaVersion: "1",
@@ -290,6 +309,7 @@ describe("loadExternalComponents", () => {
   it("module が protocol-relative (//host) なら import せず load-error", async () => {
     const importSpy = vi.fn(async () => ({ default: () => null }));
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({
         schemaVersion: "1",
@@ -307,6 +327,7 @@ describe("loadExternalComponents", () => {
   it("module の拡張子が allowlist 外 (.json 等) なら import せず load-error", async () => {
     const importSpy = vi.fn(async () => ({ default: () => null }));
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({
         schemaVersion: "1",
@@ -325,11 +346,84 @@ describe("loadExternalComponents", () => {
   it("正常な ./dist/foo.mjs は import して ok", async () => {
     const importSpy = vi.fn(async () => ({ default: () => null }));
     const result = await loadExternalComponents({
+      wsId: WS,
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
       importImpl: importSpy,
     });
     expect(result[0].status).toBe("ok");
     expect(importSpy).toHaveBeenCalledOnce();
+  });
+
+  // --- #1415 P2-1: per-session workspace scoping ---
+  it("wsId 未指定なら fetch せず空配列を返す (配信先 workspace 不明)", async () => {
+    const fetchSpy = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }) as unknown as Response);
+    const result = await loadExternalComponents({
+      backendOrigin: ORIGIN,
+      fetchImpl: fetchSpy as unknown as typeof fetch,
+      importImpl: async () => ({}),
+    });
+    expect(result).toEqual([]);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("wsId が空文字なら空配列を返す", async () => {
+    const result = await loadExternalComponents({
+      wsId: "   ",
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
+      importImpl: async () => ({}),
+    });
+    expect(result).toEqual([]);
+  });
+
+  it("manifest URL が wsId-scoped prefix で組まれる", async () => {
+    const fetchSpy = vi.fn(async () =>
+      ({ ok: true, status: 200, json: async () => ({ schemaVersion: "1", components: [] }) }) as unknown as Response,
+    );
+    await loadExternalComponents({
+      wsId: WS,
+      backendOrigin: ORIGIN,
+      fetchImpl: fetchSpy as unknown as typeof fetch,
+      importImpl: async () => ({}),
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(`${ORIGIN}${PREFIX}manifest.json`);
+  });
+
+  it("別 wsId は別 prefix の URL を組む (workspace 間で混入しない)", async () => {
+    const fetchB = vi.fn(async () =>
+      ({ ok: true, status: 200, json: async () => ({ schemaVersion: "1", components: [] }) }) as unknown as Response,
+    );
+    await loadExternalComponents({
+      wsId: "ws-B",
+      backendOrigin: ORIGIN,
+      fetchImpl: fetchB as unknown as typeof fetch,
+      importImpl: async () => ({}),
+    });
+    expect(fetchB).toHaveBeenCalledWith(
+      `${ORIGIN}/workspace-assets/ws-B/puck-components/manifest.json`,
+    );
+  });
+
+  it("module が別 wsId の配信範囲を指すと load-error (横移動拒否)", async () => {
+    const importSpy = vi.fn(async () => ({ default: () => null }));
+    // wsId=ws-A の prefix を base に、../../ws-B/puck-components/x.mjs で横移動を狙う。
+    const result = await loadExternalComponents({
+      wsId: WS,
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({
+        schemaVersion: "1",
+        components: [
+          { ...validEntry, module: "../../ws-B/puck-components/dist/x.mjs" },
+        ],
+      }),
+      importImpl: importSpy,
+    });
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("load-error");
+      expect(result[0].detail).toContain("配信範囲外");
+    }
+    expect(importSpy).not.toHaveBeenCalled();
   });
 });

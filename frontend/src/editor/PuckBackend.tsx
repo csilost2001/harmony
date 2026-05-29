@@ -65,6 +65,7 @@ import {
 import { RegisterComponentDialog } from "../components/puck/RegisterComponentDialog";
 import { SaveCompositeDialog } from "../components/puck/SaveCompositeDialog";
 import { mcpBridge } from "../mcp/mcpBridge";
+import { useWorkspacePath } from "../hooks/useWorkspacePath";
 
 // -----------------------------------------------------------------------
 // 空の Puck Data (新規画面のデフォルト)
@@ -117,6 +118,10 @@ function PuckEditorPane({
   onReady,
   reloadPayload,
 }: PuckEditorPaneProps) {
+  // 現在の active workspace の wsId (#1415 P2-1)。外部 component asset URL を当該 workspace に
+  // scope するために loadExternalComponents に渡す。Designer は /w/:wsId/screen/design/:id 配下で
+  // マウントされるため useParams 経由で取得できる。
+  const { wsId } = useWorkspacePath();
   const [customComponents, setCustomComponents] = useState<CustomPuckComponentDef[]>([]);
   // 複合部品 (#1412 P-4): subtree 再利用部品。同じ puck-components.json に相乗りで永続化。
   const [composites, setComposites] = useState<CompositePuckComponentDef[]>([]);
@@ -185,13 +190,14 @@ function PuckEditorPane({
   // manifest 無し → 空配列 (正常系)。失敗 entry はエラーカードとして config に統合される。
   const reloadExternalComponents = useCallback(async () => {
     try {
-      const loaded = await loadExternalComponents();
+      // wsId scope (#1415 P2-1)。wsId が取れない場合は loader が空配列を返す (外部部品なし扱い)。
+      const loaded = await loadExternalComponents({ wsId });
       setExternalComponents(loaded);
       setRemountKey((k) => k + 1);
     } catch (e) {
       console.warn("[PuckBackend] Failed to load external components:", e);
     }
-  }, []);
+  }, [wsId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
