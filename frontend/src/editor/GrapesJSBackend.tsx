@@ -204,7 +204,6 @@ interface GrapesJSEditorPaneProps {
 
   onTogglePin: () => void;
   onClosePanel: () => void;
-  onStartEditing: () => void;
 
   /** Backend.load() で pre-load 済みの payload。GrapesJS init 時の projectData として渡す (#815 PR-C) */
   initialPayload: unknown;
@@ -236,7 +235,6 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
     dialogsSlot,
     onTogglePin,
     onClosePanel,
-    onStartEditing,
     initialPayload,
     reloadPayload,
     onChange,
@@ -544,20 +542,9 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
 
           <main className="panel-canvas">
             <Canvas className="designer-canvas" />
-            {/* read-only オーバーレイ: 編集中でないときに canvas 中央に「編集開始」ボタンを表示 */}
-            {isReadonly && ready && (
-              <div className="canvas-readonly-overlay" data-testid="canvas-readonly-overlay">
-                <button
-                  type="button"
-                  className="canvas-readonly-start-btn"
-                  onClick={onStartEditing}
-                  data-testid="canvas-readonly-start"
-                >
-                  <i className="bi bi-pencil-fill" />
-                  編集開始
-                </button>
-              </div>
-            )}
+            {/* #1423: 画面デザインは画面仕様書なので readonly でもデザインを完全に閲覧できるよう、
+                canvas 中央の「編集開始」オーバーレイは廃止した。編集開始はツールバーの
+                EditModeToolbar (data-testid="edit-mode-start") から行う (Puck の UX と統一)。 */}
             {canvasEmpty && ready && !isReadonly && (
               <div className="canvas-empty-hint">
                 <i className="bi bi-grid-1x2" />
@@ -646,7 +633,6 @@ export class GrapesJSBackend implements EditorBackend<GrapesJSRenderEditorProps>
         dialogsSlot={props.dialogsSlot}
         onTogglePin={props.onTogglePin}
         onClosePanel={props.onClosePanel}
-        onStartEditing={props.onStartEditing}
         initialPayload={props.state.payload}
         reloadPayload={props.reloadPayload}
         onChange={props.onChange}

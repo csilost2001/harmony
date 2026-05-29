@@ -61,7 +61,10 @@ test.describe("画面デザイナー edit-session — シナリオ 1: 編集開�
     });
   });
 
-  test("readonly オーバーレイが表示 → 編集開始 → 保存 → save 後も editing 継続 → discard で readonly", async ({ page }) => {
+  // #1423: canvas 中央の readonly オーバーレイは廃止。編集開始はツールバーの
+  // edit-mode-start ボタンから行う (Puck デザイナー UX と統一)。readonly でも
+  // canvas は暗転せずデザインを完全に閲覧できる。
+  test("ツールバーから編集開始 → 保存 → save 後も editing 継続 → discard で readonly に戻る", async ({ page }) => {
     await ws.gotoActive(page, `/screen/design/${SCREEN_NORM}`);
 
     // 過去 test 残骸の draft が ResumeOrDiscardDialog として出る場合があるので dismiss
@@ -73,12 +76,12 @@ test.describe("画面デザイナー edit-session — シナリオ 1: 編集開�
       } else { break; }
     }
 
-    const overlay = page.getByTestId("canvas-readonly-overlay");
-    await expect(overlay).toBeVisible({ timeout: 10000 });
+    // 廃止された canvas オーバーレイは描画されない
+    await expect(page.getByTestId("canvas-readonly-overlay")).toHaveCount(0);
 
-    const canvasStartBtn = page.getByTestId("canvas-readonly-start");
-    await expect(canvasStartBtn).toBeVisible();
-    await canvasStartBtn.click();
+    const editStartBtn = page.getByTestId("edit-mode-start");
+    await expect(editStartBtn).toBeVisible({ timeout: 10000 });
+    await editStartBtn.click();
 
     await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
     await page.getByTestId("edit-mode-save").click();
@@ -93,7 +96,6 @@ test.describe("画面デザイナー edit-session — シナリオ 1: 編集開�
     await expect(page.getByTestId("discard-confirm")).toBeVisible({ timeout: 3000 });
     await page.getByTestId("discard-confirm").click();
     await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId("canvas-readonly-overlay")).toBeVisible();
   });
 });
 
@@ -128,7 +130,6 @@ test.describe("画面デザイナー edit-session — シナリオ 2: 編集中 
     await expect(page.getByTestId("discard-confirm")).toBeVisible({ timeout: 3000 });
     await page.getByTestId("discard-confirm").click();
     await expect(page.getByTestId("edit-mode-start")).toBeVisible({ timeout: 8000 });
-    await expect(page.getByTestId("canvas-readonly-overlay")).toBeVisible();
   });
 });
 
@@ -219,9 +220,9 @@ test.describe("画面デザイナー edit-session — multi-tab ResumeOrDiscardD
           await pageA.locator(".edit-mode-modal-backdrop").waitFor({ state: "hidden", timeout: 5000 }).catch(() => undefined);
         } else { break; }
       }
-      const canvasStartBtn = pageA.getByTestId("canvas-readonly-start");
-      await expect(canvasStartBtn).toBeVisible({ timeout: 10000 });
-      await canvasStartBtn.click();
+      const editStartBtn = pageA.getByTestId("edit-mode-start");
+      await expect(editStartBtn).toBeVisible({ timeout: 10000 });
+      await editStartBtn.click();
       await expect(pageA.getByTestId("edit-mode-save")).toBeVisible({ timeout: 5000 });
 
       // bob: 同 resource を開く → 5s 待っても ResumeOrDiscardDialog が出ないことを確認

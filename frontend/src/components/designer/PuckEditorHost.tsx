@@ -97,7 +97,6 @@ export function PuckEditorHost(props: PuckEditorHostProps) {
     onTogglePin: props.onTogglePin,
     onClosePanel: props.onClosePanel,
     screenId: props.screenId,
-    onStartEditing: props.onStartEditing,
     onChange: props.onChange,
     onReady: props.onReady,
     reloadPayload: props.reloadPayload,
