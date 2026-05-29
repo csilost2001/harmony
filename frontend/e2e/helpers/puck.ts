@@ -184,22 +184,7 @@ export async function setupPuckScreen(
   });
   _wsCache = ws;
   _wsKeysToCleanup.add(_wsKey);
-  // Puck data は harmony/screens/<id>.design.json に書き出す
-  const file = path.join(ws.workspacePath, "harmony", "screens", `${screenIdNorm}.design.json`);
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  await fs.writeFile(file, JSON.stringify(puckData, null, 2), "utf-8");
-
-  await page.addInitScript((tabData) => {
-    localStorage.setItem("harmony-open-tabs", JSON.stringify([tabData]));
-    localStorage.setItem("harmony-active-tab", tabData.id);
-  }, {
-    id: `design:${screenIdNorm}`,
-    type: "design",
-    resourceId: screenIdNorm,
-    label: cssFramework === "tailwind" ? "Puck Tailwind テスト" : "Puck テスト",
-    isDirty: false,
-    isPinned: false,
-  });
+  await writePuckDataFile(ws, screenIdNorm, puckData);
 
   await ws.gotoActive(page as unknown as Parameters<typeof ws.gotoActive>[0], `/screen/design/${screenIdNorm}`);
 }
