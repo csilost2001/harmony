@@ -203,6 +203,105 @@ describe("expandCompositePlaceholders", () => {
     expect(result).toBe(d); // 参照透過 (早期 return)
   });
 
+  it("DropZone 内 drop: zone content 配列内の placeholder も展開される", () => {
+    const d = data({
+      root: { props: {} },
+      content: [{ type: "Container", props: { id: "container-1" } }],
+      zones: {
+        "container-1:content": [
+          { type: "Paragraph", props: { id: "p-keep" } },
+          { type: compositeTypeName("comp-a"), props: { id: "ph-in-zone" } },
+        ],
+      },
+    });
+
+    const result = expandCompositePlaceholders(d, [composite], available);
+
+    const zone = result.zones!["container-1:content"];
+    const zoneTypes = zone.map((i) => (i as { type: string }).type);
+    // placeholder は消え、subtree の Card が zone 内に展開挿入される。
+    expect(zoneTypes).toContain("Card");
+    expect(zoneTypes).not.toContain(compositeTypeName("comp-a"));
+    // 既存 zone ノードは保持。
+    expect(zoneTypes).toContain("Paragraph");
+    // 展開された subtree の nested zones (id 再生成済) も merge される。
+    const zoneKeys = Object.keys(result.zones ?? {});
+    expect(zoneKeys).toContain("container-1:content");
+    // subtree 内 Card の :content zone が新規キー (UUID) で追加されている。
+    expect(zoneKeys.filter((k) => k.endsWith(":content")).length).toBeGreaterThan(1);
+  });
+
+  it("DropZone 内 drop: nested zones を持つ複合部品を zone 内に展開 → merge & id 一意", () => {
+    const d = data({
+      root: { props: {} },
+      content: [{ type: "Container", props: { id: "container-1" } }],
+      zones: {
+        "container-1:content": [
+          { type: compositeTypeName("comp-a"), props: { id: "ph-in-zone" } },
+        ],
+      },
+    });
+
+    const result = expandCompositePlaceholders(d, [composite], available);
+    const ids = allIds(result);
+    // 元の subtree id は残っていない (再生成済)。
+    expect(ids).not.toContain("card-orig");
+    expect(ids).not.toContain("head-orig");
+    // 全 id が一意。
+    expect(new Set(ids).size).toBe(ids.length);
+    // 展開された Card の :content zone が新規キーで追加され、その中に Heading がある。
+    const headingZone = Object.entries(result.zones ?? {}).find(
+      ([k, zc]) =>
+        k !== "container-1:content" &&
+        zc.some((n) => (n as { type: string }).type === "Heading"),
+    );
+    expect(headingZone).toBeDefined();
+  });
+
+  it("content + zones 両方に placeholder がある場合に両方展開される", () => {
+    const d = data({
+      root: { props: {} },
+      content: [
+        { type: compositeTypeName("comp-a"), props: { id: "ph-top" } },
+        { type: "Container", props: { id: "container-1" } },
+      ],
+      zones: {
+        "container-1:content": [
+          { type: compositeTypeName("comp-a"), props: { id: "ph-in-zone" } },
+        ],
+      },
+    });
+
+    const result = expandCompositePlaceholders(d, [composite], available);
+
+    // content 直下の placeholder は消え Card に展開。
+    const contentTypes = result.content.map((i) => (i as { type: string }).type);
+    expect(contentTypes).toContain("Card");
+    expect(contentTypes).not.toContain(compositeTypeName("comp-a"));
+    // zone 内の placeholder も消え Card に展開。
+    const zoneTypes = result.zones!["container-1:content"].map(
+      (i) => (i as { type: string }).type,
+    );
+    expect(zoneTypes).toContain("Card");
+    expect(zoneTypes).not.toContain(compositeTypeName("comp-a"));
+    // 全 id が一意 (2 回の展開で衝突しない)。
+    const ids = allIds(result);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("冪等: placeholder が content・zones いずれにも無ければ同一構造をそのまま返す", () => {
+    const d = data({
+      root: { props: {} },
+      content: [{ type: "Container", props: { id: "container-1" } }],
+      zones: {
+        "container-1:content": [{ type: "Paragraph", props: { id: "p-1" } }],
+      },
+    });
+
+    const result = expandCompositePlaceholders(d, [composite], available);
+    expect(result).toBe(d); // 参照透過 (早期 return)
+  });
+
   it("missing-dependency: 依存 type が availableTypes に無いノードは error-card 型に差し替える", () => {
     const compositeWithExt: ExpandableComposite = {
       id: "comp-ext",

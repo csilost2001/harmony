@@ -201,15 +201,48 @@ export interface ExpandableComposite {
 }
 
 /**
+ * 1 つの Content 配列内の複合部品 placeholder を展開し、展開後の配列と
+ * merge すべき zones サブセットを返す内部ヘルパ。
+ *
+ * placeholder は該当 index に subtree (id 再生成済) を flat 挿入する。
+ * placeholder でないノードはそのまま保持する。
+ */
+function expandContentArray(
+  content: Content,
+  byType: Map<string, ExpandableComposite>,
+  availableTypes: Set<string>,
+): { content: Content; zones: Zones } {
+  const newContent: Content = [];
+  const zones: Zones = {};
+  for (const item of content) {
+    const type = (item as { type?: unknown }).type;
+    const composite = typeof type === "string" ? byType.get(type) : undefined;
+    if (!composite) {
+      newContent.push(item);
+      continue;
+    }
+    // placeholder を subtree に展開 (その場 flat 挿入)。
+    const expanded = expandOne(composite, availableTypes);
+    newContent.push(...expanded.content);
+    Object.assign(zones, expanded.zones);
+  }
+  return { content: newContent, zones };
+}
+
+/**
  * data 内の複合部品 placeholder ノードを subtree に展開する純粋・冪等関数 (#1412 P-4)。
  *
  * - content 直下の placeholder ノードを検出 → 該当 index に subtree (id 再生成済) を展開。
  *   zones サブセットは data.zones に merge する。
+ * - data.zones の各 zone content 配列内 (= Container/Row/Col/Card の DropZone に drop された
+ *   placeholder) も同じロジックで展開する。zone key (`<itemId>:<zoneName>`) は保持し、中身の
+ *   配列のみ書き換える。
+ * - 展開した subtree が自身の zones サブセット (nested DropZone) を持つ場合、それらも
+ *   data.zones に merge する。展開ノードの id は regeneratePuckDataIds で UUID 再生成済のため
+ *   新規 zones キーは既存キーと衝突しない。
  * - 依存 type が `availableTypes` に無い subtree 内ノードは error-card 型に差し替える (capability 6)。
- * - placeholder が無ければ参照透過に同一構造を返す (冪等、無限ループ防止)。
- *
- * 注意: placeholder は content 直下にのみ現れる想定 (パレットからの drop は content 直下 or
- * DropZone 内だが、本実装では content 直下のみ展開する。DropZone 内 drop の展開は将来対応)。
+ * - placeholder が content・zones いずれにも無ければ参照透過に同一構造を返す
+ *   (冪等、controlled mode の onChange→展開→setData 無限ループ防止)。
  */
 export function expandCompositePlaceholders(
   data: Data,
@@ -221,27 +254,33 @@ export function expandCompositePlaceholders(
     byType.set(compositeTypeName(c.id), c);
   }
 
-  // content 直下に placeholder があるか判定 (冪等性のため早期 return)。
-  const hasPlaceholder = data.content.some((item) => {
+  const isPlaceholder = (item: unknown): boolean => {
     const type = (item as { type?: unknown }).type;
     return typeof type === "string" && byType.has(type);
-  });
-  if (!hasPlaceholder) return data;
+  };
 
-  const newContent: Content = [];
-  const mergedZones: Zones = { ...(data.zones ?? {}) };
+  // content 直下・zones いずれかに placeholder があるか判定 (冪等性のため早期 return)。
+  const dataZones: Zones = data.zones ?? {};
+  const hasContentPlaceholder = data.content.some(isPlaceholder);
+  const hasZonePlaceholder = Object.values(dataZones).some((zc) =>
+    zc.some(isPlaceholder),
+  );
+  if (!hasContentPlaceholder && !hasZonePlaceholder) return data;
 
-  for (const item of data.content) {
-    const type = (item as { type?: unknown }).type;
-    const composite = typeof type === "string" ? byType.get(type) : undefined;
-    if (!composite) {
-      newContent.push(item);
-      continue;
-    }
-    // placeholder を subtree に展開 (その場挿入)。
-    const expanded = expandOne(composite, availableTypes);
-    newContent.push(...expanded.content);
-    Object.assign(mergedZones, expanded.zones);
+  // 既存 zones を起点に merge していく (展開で増える nested zones を Object.assign で追加)。
+  const mergedZones: Zones = {};
+
+  // content 直下の placeholder を展開。
+  const expandedContent = expandContentArray(data.content, byType, availableTypes);
+  const newContent = expandedContent.content;
+  Object.assign(mergedZones, expandedContent.zones);
+
+  // 既存 zones の各 zone content 配列内 placeholder を展開 (zone key は保持、中身のみ書換)。
+  // 展開で増える nested zones は別キー (UUID) なので Object.assign の順序で既存を壊さない。
+  for (const [zoneKey, zoneContent] of Object.entries(dataZones)) {
+    const expandedZone = expandContentArray(zoneContent, byType, availableTypes);
+    mergedZones[zoneKey] = expandedZone.content;
+    Object.assign(mergedZones, expandedZone.zones);
   }
 
   return {
