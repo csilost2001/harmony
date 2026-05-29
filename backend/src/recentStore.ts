@@ -200,6 +200,24 @@ export async function findByPath(workspacePath: string): Promise<WorkspaceEntry 
   return file.workspaces.find((w) => normalizePath(w.path) === norm) ?? null;
 }
 
+async function hasWorkspaceManifest(workspacePath: string): Promise<boolean> {
+  try {
+    const stat = await fs.stat(path.join(workspacePath, "harmony.json"));
+    return stat.isFile();
+  } catch {
+    return false;
+  }
+}
+
+function isE2eWorkspacePath(workspacePath: string): boolean {
+  const normalized = normalizePath(workspacePath);
+  const parts = normalized.split(path.sep);
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (parts[i] === ".tmp" && parts[i + 1] === "e2e-workspaces") return true;
+  }
+  return false;
+}
+
 export async function listWorkspaces(): Promise<{
   workspaces: WorkspaceEntry[];
   lastActiveId: string | null;
@@ -208,10 +226,54 @@ export async function listWorkspaces(): Promise<{
   return { workspaces: file.workspaces, lastActiveId: file.lastActiveId };
 }
 
+export async function listDisplayWorkspaces(): Promise<{
+  workspaces: WorkspaceEntry[];
+  lastActiveId: string | null;
+  prunedCount: number;
+  hiddenCount: number;
+}> {
+  return withWriteLock(async () => {
+    const file = await readRecent();
+    const kept: WorkspaceEntry[] = [];
+    const visible: WorkspaceEntry[] = [];
+    let prunedCount = 0;
+    let hiddenCount = 0;
+
+    for (const entry of file.workspaces) {
+      if (!(await hasWorkspaceManifest(entry.path))) {
+        prunedCount += 1;
+        continue;
+      }
+      kept.push(entry);
+      if (isE2eWorkspacePath(entry.path)) {
+        hiddenCount += 1;
+        continue;
+      }
+      visible.push(entry);
+    }
+
+    let lastActiveId = file.lastActiveId;
+    if (lastActiveId && !kept.some((entry) => entry.id === lastActiveId)) {
+      lastActiveId = null;
+    }
+
+    if (prunedCount > 0 || lastActiveId !== file.lastActiveId) {
+      await writeRecent({
+        ...file,
+        workspaces: kept,
+        lastActiveId,
+      });
+    }
+
+    return { workspaces: visible, lastActiveId, prunedCount, hiddenCount };
+  });
+}
+
 /** test-only */
 export const _internals = {
   recentFile,
   recentDir,
   emptyFile,
   isRecentFile,
+  isE2eWorkspacePath,
 };

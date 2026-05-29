@@ -25,7 +25,7 @@ import {
   LOCKDOWN_WORKSPACE_ID,
 } from "../workspaceState.js";
 import {
-  listWorkspaces,
+  listDisplayWorkspaces,
   upsertWorkspace,
   removeWorkspace,
   findById,
@@ -44,7 +44,7 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
       const lockdown = isLockdown();
       const { workspaces, lastActiveId } = lockdown
         ? { workspaces: [], lastActiveId: null }
-        : await listWorkspaces();
+        : await listDisplayWorkspaces();
       const activePath = getActivePath(sessionId);
       const activeEntry = activePath ? await findByPath(activePath) : null;
       const lockdownPath = getLockdownPath();

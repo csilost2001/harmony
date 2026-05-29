@@ -19,7 +19,7 @@ import {
   workspaceContextManager,
 } from "../workspaceState.js";
 import {
-  listWorkspaces as listWorkspacesEntries,
+  listDisplayWorkspaces as listWorkspacesEntries,
   upsertWorkspace as upsertWorkspaceEntry,
   removeWorkspace as removeWorkspaceEntry,
   findById as findWorkspaceById,
