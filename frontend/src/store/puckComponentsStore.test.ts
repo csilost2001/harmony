@@ -13,6 +13,8 @@ import {
   saveCustomPuckComponents,
   setPuckComponentsBackend,
   type CustomPuckComponentDef,
+  type PrimitivePuckComponentDef,
+  type CompositePuckComponentDef,
   type PuckComponentsStorageBackend,
 } from "./puckComponentsStore";
 
@@ -35,8 +37,11 @@ Object.defineProperty(globalThis, "localStorage", {
 
 // ── テスト用フィクスチャ ───────────────────────────────────────────────────────
 
-function makeComponent(overrides?: Partial<CustomPuckComponentDef>): CustomPuckComponentDef {
+function makeComponent(
+  overrides?: Partial<PrimitivePuckComponentDef>,
+): PrimitivePuckComponentDef {
   return {
+    kind: "primitive",
     id: "test-comp-1",
     label: "テストコンポーネント",
     primitive: "card",
@@ -44,6 +49,22 @@ function makeComponent(overrides?: Partial<CustomPuckComponentDef>): CustomPuckC
       title: { type: "string", default: "タイトル" },
       count: { type: "number" },
     },
+    ...overrides,
+  };
+}
+
+function makeComposite(
+  overrides?: Partial<CompositePuckComponentDef>,
+): CompositePuckComponentDef {
+  return {
+    kind: "composite",
+    id: "composite-1",
+    label: "複合部品テスト",
+    tree: {
+      content: [{ type: "Card", props: { id: "card-1" } }],
+      zones: { "card-1:content": [{ type: "Heading", props: { id: "h-1" } }] },
+    },
+    dependencies: [],
     ...overrides,
   };
 }
@@ -88,7 +109,7 @@ describe("puckComponentsStore — with storage backend", () => {
     await addCustomPuckComponent(makeComponent());
     const result = await loadCustomPuckComponents();
     expect(result).toHaveLength(1);
-    expect(result[0].primitive).toBe("card");
+    expect((result[0] as PrimitivePuckComponentDef).primitive).toBe("card");
   });
 
   it("バックエンド経由で remove が動く", async () => {
@@ -177,7 +198,68 @@ describe("puckComponentsStore — with storage backend", () => {
     });
     await addCustomPuckComponent(def);
     const result = await loadCustomPuckComponents();
-    expect(result[0].propsSchema.color.type).toBe("enum");
-    expect(result[0].propsSchema.color.enum).toHaveLength(2);
+    const restored = result[0] as PrimitivePuckComponentDef;
+    expect(restored.propsSchema.color.type).toBe("enum");
+    expect(restored.propsSchema.color.enum).toHaveLength(2);
+  });
+
+  // ── 複合部品 (composite) CRUD + kind normalize (#1412 P-4) ────────────────
+
+  it("composite レコードを add → load で復元できる", async () => {
+    await addCustomPuckComponent(makeComposite());
+    const result = await loadCustomPuckComponents();
+    expect(result).toHaveLength(1);
+    expect(result[0].kind).toBe("composite");
+    const comp = result[0] as CompositePuckComponentDef;
+    expect(comp.tree.content).toHaveLength(1);
+    expect(comp.tree.zones?.["card-1:content"]).toHaveLength(1);
+  });
+
+  it("primitive と composite を混在保存・load で両方復元できる", async () => {
+    await addCustomPuckComponent(makeComponent({ id: "prim" }));
+    await addCustomPuckComponent(makeComposite({ id: "comp" }));
+    const result = await loadCustomPuckComponents();
+    expect(result).toHaveLength(2);
+    expect(result.find((c) => c.id === "prim")?.kind).toBe("primitive");
+    expect(result.find((c) => c.id === "comp")?.kind).toBe("composite");
+  });
+
+  it("composite を dependencies 付きで保存・復元できる", async () => {
+    await addCustomPuckComponent(
+      makeComposite({ id: "with-deps", dependencies: ["ext-widget-a"] }),
+    );
+    const result = await loadCustomPuckComponents();
+    expect((result[0] as CompositePuckComponentDef).dependencies).toEqual([
+      "ext-widget-a",
+    ]);
+  });
+
+  it("composite を remove できる", async () => {
+    await addCustomPuckComponent(makeComposite({ id: "c-del" }));
+    await removeCustomPuckComponent("c-del");
+    const result = await loadCustomPuckComponents();
+    expect(result).toHaveLength(0);
+  });
+
+  it("kind 無しの旧レコードは load 時に kind:'primitive' に normalize される", async () => {
+    // kind を持たない旧形式レコードを直接 backend に書き込む。
+    const legacyRecord = {
+      id: "legacy-prim",
+      label: "旧レコード",
+      primitive: "card",
+      propsSchema: {},
+    };
+    await saveCustomPuckComponents([legacyRecord as unknown as CustomPuckComponentDef]);
+    const result = await loadCustomPuckComponents();
+    expect(result[0].kind).toBe("primitive");
+    expect((result[0] as PrimitivePuckComponentDef).primitive).toBe("card");
+  });
+
+  it("update は kind を変更しない", async () => {
+    await addCustomPuckComponent(makeComposite({ id: "c-upd" }));
+    await updateCustomPuckComponent("c-upd", { label: "更新後" });
+    const result = await loadCustomPuckComponents();
+    expect(result[0].kind).toBe("composite");
+    expect(result[0].label).toBe("更新後");
   });
 });

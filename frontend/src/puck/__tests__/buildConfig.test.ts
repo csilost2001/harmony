@@ -11,10 +11,16 @@ import { describe, it, expect } from "vitest";
 import {
   buildPuckConfig,
   buildConfigWithCustomComponents,
+  mergeCompositeComponents,
+  compositeErrorTypeName,
   BUILTIN_PRIMITIVE_NAMES,
 } from "../buildConfig";
 import { LAYOUT_FIELDS } from "../buildConfig";
-import type { CustomPuckComponentDef } from "../../store/puckComponentsStore";
+import { compositeTypeName } from "../../editor/puckSubtree";
+import type {
+  CustomPuckComponentDef,
+  CompositePuckComponentDef,
+} from "../../store/puckComponentsStore";
 
 const LAYOUT_FIELD_KEYS = Object.keys(LAYOUT_FIELDS);
 
@@ -171,6 +177,7 @@ describe("buildPuckConfig categories (#1410 P-2)", () => {
 
 describe("buildConfigWithCustomComponents categories + fields (#1410 P-2)", () => {
   const customDef: CustomPuckComponentDef = {
+    kind: "primitive",
     id: "my-widget",
     label: "マイウィジェット",
     primitive: "container",
@@ -270,5 +277,69 @@ describe("BUILTIN_PRIMITIVE_NAMES", () => {
 
   it("region-main を含む", () => {
     expect(BUILTIN_PRIMITIVE_NAMES).toContain("region-main");
+  });
+});
+
+describe("mergeCompositeComponents (#1412 P-4)", () => {
+  const compositeDef: CompositePuckComponentDef = {
+    kind: "composite",
+    id: "saved-form",
+    label: "保存フォーム",
+    tree: {
+      content: [{ type: "Card", props: { id: "card-1" } }],
+      zones: { "card-1:content": [{ type: "Heading", props: { id: "h-1" } }] },
+    },
+  };
+
+  it("composite 0 件なら projectComposite カテゴリは無く base を返す", () => {
+    const base = buildConfigWithCustomComponents([]);
+    const result = mergeCompositeComponents(base, []);
+    expect(result).toBe(base);
+    expect(result.categories?.projectComposite).toBeUndefined();
+  });
+
+  it("composite を渡すと projectComposite カテゴリ (title「複合部品」) ができる", () => {
+    const config = mergeCompositeComponents(buildPuckConfig(), [compositeDef]);
+    expect(config.categories?.projectComposite).toBeDefined();
+    expect(config.categories!.projectComposite!.title).toBe("複合部品");
+  });
+
+  it("placeholder type (__composite__<id>) が components に登録されパレットに並ぶ", () => {
+    const config = mergeCompositeComponents(buildPuckConfig(), [compositeDef]);
+    const placeholderType = compositeTypeName("saved-form");
+    expect(config.components).toHaveProperty(placeholderType);
+    expect(config.categories!.projectComposite!.components).toContain(placeholderType);
+  });
+
+  it("missing-dependency error-card type も登録されるがパレットには出さない", () => {
+    const config = mergeCompositeComponents(buildPuckConfig(), [compositeDef]);
+    const errorType = compositeErrorTypeName("saved-form");
+    expect(config.components).toHaveProperty(errorType);
+    // パレット (projectComposite) には error type は含めない。
+    expect(config.categories!.projectComposite!.components).not.toContain(errorType);
+  });
+
+  it("projectComposite は既存カテゴリ (composite = 業務複合) と別物で衝突しない", () => {
+    const config = mergeCompositeComponents(buildPuckConfig(), [compositeDef]);
+    // 業務複合 primitive の composite カテゴリは不変。
+    expect(config.categories?.composite?.title).toBe("業務複合");
+    expect(config.categories?.composite?.components).toContain("Card");
+    // 複合部品は別カテゴリ。
+    expect(config.categories?.projectComposite).toBeDefined();
+  });
+
+  it("base.components の既存 key は上書きしない (衝突安全)", () => {
+    const base = buildPuckConfig();
+    const cardRender = base.components.Card.render;
+    const config = mergeCompositeComponents(base, [compositeDef]);
+    expect(config.components.Card.render).toBe(cardRender);
+  });
+
+  it("placeholder の render は最小ラベルを返す (実体は drop 後に展開される)", () => {
+    const config = mergeCompositeComponents(buildPuckConfig(), [compositeDef]);
+    const placeholderType = compositeTypeName("saved-form");
+    const comp = config.components[placeholderType];
+    expect(comp.label).toBe("複合部品: 保存フォーム");
+    expect(typeof comp.render).toBe("function");
   });
 });

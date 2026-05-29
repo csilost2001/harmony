@@ -36,13 +36,18 @@ import { RegionHeaderConfig } from "./primitives/RegionHeader";
 import { RegionSidebarConfig } from "./primitives/RegionSidebar";
 import { RegionFooterConfig } from "./primitives/RegionFooter";
 import { RegionMainConfig } from "./primitives/RegionMain";
-import type { CustomPuckComponentDef } from "../store/puckComponentsStore";
+import type {
+  CustomPuckComponentDef,
+  CompositePuckComponentDef,
+  PrimitivePuckComponentDef,
+} from "../store/puckComponentsStore";
 import type {
   LoadedExternalComponent,
   ExternalComponentErrorKind,
 } from "./externalComponents";
 import type { ExternalSlotDecl } from "./externalComponentManifest";
 import { ExternalComponentErrorCard } from "../components/puck/ExternalComponentErrorCard";
+import { compositeTypeName } from "../editor/puckSubtree";
 
 // ---------------------------------------------------------------------------
 // 共通レイアウト props の Fields 定義
@@ -372,12 +377,17 @@ export function buildPuckConfig(): Config {
 export function buildConfigWithCustomComponents(customComponents: CustomPuckComponentDef[]): Config {
   const base = buildPuckConfig();
 
-  if (customComponents.length === 0) return base;
+  // primitive 経路のみ対象 (composite は mergeCompositeComponents が別途扱う、#1412 P-4)。
+  const primitiveComponents = customComponents.filter(
+    (c): c is PrimitivePuckComponentDef => c.kind === "primitive",
+  );
+
+  if (primitiveComponents.length === 0) return base;
 
   const extraComponents: Config["components"] = {};
   const customIds: string[] = [];
 
-  for (const def of customComponents) {
+  for (const def of primitiveComponents) {
     customIds.push(def.id);
     const primitiveKey = Object.keys(base.components).find(
       (k) => k.toLowerCase() === def.primitive.toLowerCase().replace(/-/g, ""),
@@ -574,6 +584,110 @@ export function mergeExternalComponents(
       ...extraComponents,
     },
   };
+}
+
+/**
+ * 複合部品 (composite / subtree 再利用、#1412 P-4) を Puck config に統合する。
+ *
+ * 設計方針: expand-on-drop。複合部品は **placeholder component** として登録され、
+ * drop されると PuckBackend の handleChange → expandCompositePlaceholders で
+ * その場で subtree に展開され、placeholder 自体は消える。
+ *
+ * 登録する key 2 種:
+ *   1. placeholder: `compositeTypeName(def.id)` (= `__composite__<id>`)
+ *      パレットに「複合部品: <label>」として並ぶ。render は最小ラベル。
+ *   2. missing-dependency error-card: `compositeErrorTypeName(def.id)`
+ *      展開時、subtree 内に config 未登録 type (= 未ロードの外部 component 等) があった
+ *      ノードを差し替える先 (capability 6)。expandCompositePlaceholders が参照する。
+ *
+ * カテゴリは `projectComposite` (title「複合部品」)。既存 `composite` (業務複合 primitive) とは
+ * 別物なので名前衝突を避けて projectComposite を使う。
+ *
+ * 衝突安全性: mergeExternalComponents と同じく base.components の既存 key は絶対に上書きせず、
+ * usedKeys / uniqueKey で新規 key の非衝突を保証する。
+ */
+export function mergeCompositeComponents(
+  base: Config,
+  composites: CompositePuckComponentDef[],
+): Config {
+  if (composites.length === 0) return base;
+
+  const extraComponents: Config["components"] = {};
+  const usedKeys = new Set<string>(Object.keys(base.components));
+  // パレット (projectComposite カテゴリ) に並べる placeholder key のみ収集する。
+  // error-card key はパレットに出さない (展開時の差し替え先専用)。
+  const placeholderKeys: string[] = [];
+
+  for (let i = 0; i < composites.length; i++) {
+    const def = composites[i];
+    const placeholderType = uniqueKey(compositeTypeName(def.id), usedKeys);
+    usedKeys.add(placeholderType);
+    const errorType = uniqueKey(compositeErrorTypeName(def.id), usedKeys);
+    usedKeys.add(errorType);
+
+    // placeholder component (drop 直後に展開され消える、render は最小ラベル)。
+    extraComponents[placeholderType] = {
+      label: `複合部品: ${def.label}`,
+      fields: {},
+      defaultProps: {},
+      render: () =>
+        createElement(
+          "div",
+          {
+            "data-composite-placeholder": def.id,
+            style: { padding: 8, color: "#666", fontSize: 13 },
+          },
+          `複合部品: ${def.label}`,
+        ),
+    };
+    placeholderKeys.push(placeholderType);
+
+    // missing-dependency error-card (展開時の依存欠落ノード差し替え先、capability 6)。
+    extraComponents[errorType] = {
+      label: `(複合部品·依存エラー) ${def.label}`,
+      fields: {},
+      defaultProps: {},
+      render: (props: Record<string, unknown>) =>
+        createElement(ExternalComponentErrorCard, {
+          errorKind: "missing-dependency",
+          label:
+            typeof props.compositeLabel === "string"
+              ? props.compositeLabel
+              : def.label,
+          id: typeof props.missingType === "string" ? props.missingType : def.id,
+          detail:
+            typeof props.missingType === "string"
+              ? `部品 type '${props.missingType}' が読み込めません (未ロードの外部 component の可能性)`
+              : undefined,
+        }),
+    };
+  }
+
+  const categories: Config["categories"] = {
+    ...(base.categories ?? {}),
+    ...(placeholderKeys.length > 0
+      ? {
+          projectComposite: {
+            title: "複合部品",
+            components: placeholderKeys,
+          },
+        }
+      : {}),
+  };
+
+  return {
+    ...base,
+    categories,
+    components: {
+      ...base.components,
+      ...extraComponents,
+    },
+  };
+}
+
+/** entry.id から複合部品 missing-dependency error-card の Puck component type 名を作る。 */
+export function compositeErrorTypeName(id: string): string {
+  return `__composite_error__${id}`;
 }
 
 /**

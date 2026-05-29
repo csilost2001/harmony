@@ -17,6 +17,7 @@ const ERROR_KIND_MESSAGES: Record<ExternalComponentErrorKind, string> = {
   "version-mismatch": "バージョン不一致",
   "manifest-invalid": "manifest 不正",
   "id-collision": "ID 衝突",
+  "missing-dependency": "依存部品が未ロード",
 };
 
 export interface ExternalComponentErrorCardProps {

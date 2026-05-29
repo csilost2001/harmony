@@ -163,6 +163,7 @@ export function RegisterComponentDialog({ onClose, onSaved }: Props) {
     }
 
     const def: CustomPuckComponentDef = {
+      kind: "primitive",
       id: generateUUID(),
       label: label.trim(),
       primitive,

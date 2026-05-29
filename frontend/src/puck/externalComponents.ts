@@ -35,7 +35,10 @@ export type ExternalComponentErrorKind =
   | "version-mismatch"
   | "load-error"
   | "missing-export"
-  | "id-collision";
+  | "id-collision"
+  // 複合部品 (#1412 P-4) 展開時、subtree 内ノードの type が config に存在しない場合。
+  // 主に未ロードの外部 component (#1409 P-1) を内包する複合部品で発生する。
+  | "missing-dependency";
 
 export type LoadedExternalComponent =
   | {
