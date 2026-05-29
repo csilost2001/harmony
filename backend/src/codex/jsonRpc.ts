@@ -35,6 +35,12 @@ export interface JsonRpcNotification {
 
 export type JsonRpcMessage = JsonRpcRequest | JsonRpcResponse | JsonRpcNotification;
 
+type IncomingJsonRpcMessage =
+  | JsonRpcMessage
+  | Omit<JsonRpcRequest, "jsonrpc">
+  | Omit<JsonRpcResponse, "jsonrpc">
+  | Omit<JsonRpcNotification, "jsonrpc">;
+
 export class JsonRpcError extends Error {
   constructor(
     public readonly code: number,
@@ -144,15 +150,22 @@ export class JsonRpcClient {
   }
 
   private handleMessage = (raw: string): void => {
-    let msg: JsonRpcMessage;
+    let msg: IncomingJsonRpcMessage;
     try {
-      msg = JSON.parse(raw) as JsonRpcMessage;
+      msg = JSON.parse(raw) as IncomingJsonRpcMessage;
     } catch (err) {
       this.onParseError?.(raw, err as Error);
       return;
     }
-    if (typeof msg !== "object" || msg === null || (msg as { jsonrpc?: string }).jsonrpc !== "2.0") {
-      this.onParseError?.(raw, new Error("Missing jsonrpc:2.0 field"));
+    if (typeof msg !== "object" || msg === null) {
+      this.onParseError?.(raw, new Error("Unrecognized JSON-RPC frame"));
+      return;
+    }
+    if (
+      (msg as { jsonrpc?: string }).jsonrpc !== undefined &&
+      (msg as { jsonrpc?: string }).jsonrpc !== "2.0"
+    ) {
+      this.onParseError?.(raw, new Error("Invalid jsonrpc field"));
       return;
     }
     const hasId = "id" in msg && msg.id !== undefined && msg.id !== null;

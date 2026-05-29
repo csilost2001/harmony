@@ -63,6 +63,63 @@ describe("JsonRpcClient", () => {
     });
   });
 
+  it("accepts Codex app-server notifications without jsonrpc field", () => {
+    const transport = new MockTransport();
+    const onNotification = vi.fn();
+    new JsonRpcClient({ transport, onNotification });
+    transport.inject({
+      method: "configWarning",
+      params: { summary: "Codex warning" },
+    });
+    expect(onNotification).toHaveBeenCalledWith({
+      method: "configWarning",
+      params: { summary: "Codex warning" },
+    });
+  });
+
+  it("accepts Codex app-server responses without jsonrpc field", async () => {
+    const transport = new MockTransport();
+    const client = new JsonRpcClient({ transport });
+    const promise = client.request<{ userAgent: string }>("initialize", {});
+    const sent = JSON.parse(transport.sent[0]!);
+
+    transport.inject({ id: sent.id, result: { userAgent: "Harnize Harmony/test" } });
+
+    await expect(promise).resolves.toEqual({ userAgent: "Harnize Harmony/test" });
+    await client.close();
+  });
+
+  it("accepts Codex app-server requests without jsonrpc field", async () => {
+    const transport = new MockTransport();
+    const onServerRequest = vi.fn().mockResolvedValue({ approved: true });
+    new JsonRpcClient({ transport, onServerRequest });
+
+    transport.inject({
+      id: 100,
+      method: "item/commandExecution/requestApproval",
+      params: {},
+    });
+
+    await new Promise((r) => setImmediate(r));
+    expect(onServerRequest).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(transport.sent[0]!)).toEqual({
+      jsonrpc: "2.0",
+      id: 100,
+      result: { approved: true },
+    });
+  });
+
+  it("rejects frames with an invalid jsonrpc field", () => {
+    const transport = new MockTransport();
+    const onParseError = vi.fn();
+    new JsonRpcClient({ transport, onParseError });
+
+    transport.inject({ jsonrpc: "1.0", method: "warning", params: {} });
+
+    expect(onParseError).toHaveBeenCalledTimes(1);
+    expect(onParseError.mock.calls[0]![1].message).toBe("Invalid jsonrpc field");
+  });
+
   it("answers server-initiated requests via onServerRequest", async () => {
     const transport = new MockTransport();
     const onServerRequest = vi.fn().mockResolvedValue({ approved: true });
