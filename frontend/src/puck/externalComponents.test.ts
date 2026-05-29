@@ -4,6 +4,7 @@
  * fetch / import は DI で差し替えてエラー分類を網羅する。
  */
 import { describe, it, expect, vi } from "vitest";
+import { memo, forwardRef, lazy } from "react";
 import { loadExternalComponents, assetPrefixFor } from "./externalComponents";
 
 const ORIGIN = "http://localhost:5179";
@@ -125,6 +126,85 @@ describe("loadExternalComponents", () => {
       backendOrigin: ORIGIN,
       fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
       importImpl: async () => ({ default: 42 }),
+    });
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("missing-export");
+    }
+  });
+
+  // --- P2-6: memo / forwardRef / lazy も妥当な component として ok ---
+  it("ok: React.memo() で作った component は status=ok", async () => {
+    const Component = memo(() => null);
+    const result = await loadExternalComponents({
+      wsId: WS,
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
+      importImpl: async () => ({ default: Component }),
+    });
+    expect(result[0].status).toBe("ok");
+    if (result[0].status === "ok") {
+      expect(result[0].Component).toBe(Component);
+    }
+  });
+
+  it("ok: React.forwardRef() で作った component は status=ok", async () => {
+    const Component = forwardRef<HTMLDivElement>((_props, _ref) => null);
+    const result = await loadExternalComponents({
+      wsId: WS,
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
+      importImpl: async () => ({ default: Component }),
+    });
+    expect(result[0].status).toBe("ok");
+    if (result[0].status === "ok") {
+      expect(result[0].Component).toBe(Component);
+    }
+  });
+
+  it("ok: React.lazy() で作った component は status=ok", async () => {
+    const Component = lazy(async () => ({ default: () => null }));
+    const result = await loadExternalComponents({
+      wsId: WS,
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
+      importImpl: async () => ({ default: Component }),
+    });
+    expect(result[0].status).toBe("ok");
+  });
+
+  it("missing-export: 文字列 export は missing-export (component でない)", async () => {
+    const result = await loadExternalComponents({
+      wsId: WS,
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
+      importImpl: async () => ({ default: "div" }),
+    });
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("missing-export");
+    }
+  });
+
+  it("missing-export: null export は missing-export", async () => {
+    const result = await loadExternalComponents({
+      wsId: WS,
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
+      importImpl: async () => ({ default: null }),
+    });
+    expect(result[0].status).toBe("error");
+    if (result[0].status === "error") {
+      expect(result[0].errorKind).toBe("missing-export");
+    }
+  });
+
+  it("missing-export: $$typeof を持たない plain object は missing-export", async () => {
+    const result = await loadExternalComponents({
+      wsId: WS,
+      backendOrigin: ORIGIN,
+      fetchImpl: makeFetch({ schemaVersion: "1", components: [validEntry] }),
+      importImpl: async () => ({ default: { foo: "bar" } }),
     });
     expect(result[0].status).toBe("error");
     if (result[0].status === "error") {

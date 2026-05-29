@@ -10,7 +10,8 @@
  * - engine major 不一致 → errorKind="version-mismatch"
  * - module パスが配信範囲外 (任意 origin / 配信外脱出 / 拡張子不正) → errorKind="load-error" (SSRF 防止)
  * - import 失敗 → errorKind="load-error"
- * - export が関数でない → errorKind="missing-export"
+ * - export が妥当な React element type でない → errorKind="missing-export"
+ *   (通常関数/クラス component に加え、React.memo / React.forwardRef / React.lazy も許容する)
  *
  * fetch / import は引数で差し替え可能 (DI) にしてテスト容易化している。
  * JSX は持ち込まない (frontend/AGENTS.md: src/puck/ はロジックのみ)。
@@ -240,12 +241,12 @@ export async function loadExternalComponents(
     // 5. export 取得
     const exportName = entry.export ?? "default";
     const candidate = mod[exportName];
-    if (typeof candidate !== "function") {
+    if (!isValidComponentType(candidate)) {
       results.push({
         entry,
         status: "error",
         errorKind: "missing-export",
-        detail: `export "${exportName}" が関数ではありません`,
+        detail: `export "${exportName}" が妥当な React component ではありません`,
       });
       continue;
     }
@@ -259,6 +260,44 @@ export async function loadExternalComponents(
   }
 
   return results;
+}
+
+/**
+ * React element type として妥当な `$$typeof` Symbol の集合 (P2-6)。
+ * React.memo / React.forwardRef で作られた component は **関数ではなく object** で、
+ * これらの `$$typeof` を持つ。react-is が無い環境向けの最小実装。
+ *
+ * - `react.memo` — React.memo(Component)
+ * - `react.forward_ref` — React.forwardRef(render)
+ * - `react.lazy` — React.lazy(() => import(...))
+ *
+ * Symbol.for は global registry を共有するため、外部 component が別 React copy で
+ * memo/forwardRef を生成していても (案 B の import map で host React 共有が原則だが)
+ * 同一 Symbol になり判定できる。
+ */
+const VALID_COMPONENT_SYMBOL_KEYS = new Set([
+  "react.memo",
+  "react.forward_ref",
+  "react.lazy",
+]);
+
+/**
+ * candidate が React element type (= Puck の render 対象) として妥当かを判定する (P2-6)。
+ *
+ * - `typeof === "function"` — 通常の関数 component / クラス component
+ * - object かつ `$$typeof` が memo / forwardRef / lazy 等の妥当な element type Symbol
+ *
+ * 文字列 tag ("div" 等) / number / null / 通常の object は拒否する。
+ * react-is があれば isValidElementType がより堅牢だが、本プロジェクトには未導入のため
+ * `$$typeof` ベースの最小実装で memo / forwardRef / lazy をカバーする。
+ */
+function isValidComponentType(candidate: unknown): boolean {
+  if (typeof candidate === "function") return true;
+  if (typeof candidate !== "object" || candidate === null) return false;
+  const tag = (candidate as { $$typeof?: unknown }).$$typeof;
+  if (typeof tag !== "symbol") return false;
+  const key = Symbol.keyFor(tag);
+  return key !== undefined && VALID_COMPONENT_SYMBOL_KEYS.has(key);
 }
 
 /** frontend 側で import を許可する module 拡張子 allowlist。 */

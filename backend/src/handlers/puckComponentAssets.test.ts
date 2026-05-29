@@ -251,6 +251,37 @@ describe("handlePuckComponentAsset", () => {
     expect(String(res._body)).toContain("schemaVersion");
   });
 
+  // --- P2-7: symlink escape 防御 ---
+  it("base 外を指す symlink (allowed 拡張子) は実体を返さず 403", async () => {
+    // base 外に秘密ファイルを置く。
+    const secretDir = fs.mkdtempSync(path.join(os.tmpdir(), "puck-assets-secret-"));
+    try {
+      const secretFile = path.join(secretDir, "secret.txt");
+      fs.writeFileSync(secretFile, "TOP-SECRET-CONTENT", "utf-8");
+
+      // puck-components 配下に allowed 拡張子 (.mjs) の symlink を作り、base 外の secret を指す。
+      const puckRoot = path.join(tmpRoot, "data", "puck-components");
+      const linkPath = path.join(puckRoot, "evil.mjs");
+      fs.symlinkSync(secretFile, linkPath);
+
+      const res = makeRes();
+      await handlePuckComponentAsset(makeReq(`${prefix()}evil.mjs`), res);
+      // 字句 path check は通過するが realpath 検証で base 外と判定 → 403。
+      expect(res._status).toBe(403);
+      expect(String(res._body ?? "")).not.toContain("TOP-SECRET-CONTENT");
+    } finally {
+      fs.rmSync(secretDir, { recursive: true, force: true });
+    }
+  });
+
+  it("通常ファイル (symlink でない) は従来どおり 200 で配信する", async () => {
+    // P2-7 の realpath 検証導入後も通常 file 配信が壊れないことの回帰確認。
+    const res = makeRes();
+    await handlePuckComponentAsset(makeReq(`${prefix()}dist/foo.mjs`), res);
+    expect(res._status).toBe(200);
+    expect(String(res._body)).toContain("export default");
+  });
+
   it("lockdown モード: 'lockdown' 以外の wsId は 404 (recent を引かない)", async () => {
     vi.stubEnv("DESIGNER_DATA_DIR", tmpRoot);
     initWorkspaceState();

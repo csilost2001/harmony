@@ -18,7 +18,10 @@
  * セキュリティ:
  * - origin / host 検証は wsBridge._handleHttp が全 route に強制済 (追加不要)。
  * - wsId は recentStore に登録済 (= 既知) の workspace のみ解決、未登録 / 不正なら 404 (SSRF 防止)。
- * - path traversal は assertPathContained で防御 (resolved target が base 配下のみ許可)。
+ * - path traversal は assertPathContained で防御 (resolved target が base 配下のみ許可、字句的)。
+ * - symlink escape は fs.realpath で実体パスを解決し、base の realpath 配下に収まるか
+ *   再検証することで防御 (P2-7、多層防御)。allowed 拡張子の symlink で base 外の任意ファイル
+ *   (例 /etc/passwd) を指しても字句 check を通過し fs.readFile が follow する穴を塞ぐ。
  * - 拡張子 allowlist で配信対象を限定 (任意ファイル露出を防ぐ)。
  * - エラー本文は最小 (内部情報を漏らさない、既存 S-013 方針)。
  *
@@ -131,6 +134,20 @@ async function resolveRootForWsId(wsId: string): Promise<string | null> {
   return entry ? entry.path : null;
 }
 
+/**
+ * child が parent ディレクトリ配下に収まるか判定する (realpath 同士の比較を想定、P2-7)。
+ * path separator を付与して prefix 比較することで、`/a/bc` が `/a/b` 配下と誤判定されるのを防ぐ。
+ */
+function isWithin(parent: string, child: string): boolean {
+  if (child === parent) return true;
+  const rel = path.relative(parent, child);
+  return (
+    rel.length > 0 &&
+    !rel.startsWith("..") &&
+    !path.isAbsolute(rel)
+  );
+}
+
 export async function handlePuckComponentAsset(
   req: IncomingMessage,
   res: ServerResponse,
@@ -183,13 +200,40 @@ export async function handlePuckComponentAsset(
     return;
   }
 
-  // path traversal 防御
+  // path traversal 防御 (字句的)
   const target = path.join(base, relpath);
   try {
     assertPathContained(target, base);
   } catch {
     logWarn("puck-assets", "Path traversal blocked", { relpath });
     sendStatus(res, req, 403, "Forbidden");
+    return;
+  }
+
+  // symlink escape 防御 (P2-7、多層防御): 実体パスを realpath で解決し、
+  // base の realpath 配下に収まることを再検証する。allowed 拡張子の symlink で
+  // base 外 (例 /etc/passwd) を指しても、字句 check を通過した後ここで弾く。
+  // base 自体も realpath 化して比較する (base が symlink 経由のケースも正しく扱う)。
+  try {
+    const realBase = await fs.realpath(base);
+    const realTarget = await fs.realpath(target);
+    if (!isWithin(realBase, realTarget)) {
+      logWarn("puck-assets", "Symlink escape blocked", { relpath });
+      sendStatus(res, req, 403, "Forbidden");
+      return;
+    }
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException)?.code;
+    // 実体が存在しない / 中間 component が file 等は 404 扱い (ENOENT / ENOTDIR)。
+    if (code === "ENOENT" || code === "ENOTDIR") {
+      sendStatus(res, req, 404, "Not Found");
+      return;
+    }
+    logError("puck-assets", "Failed to realpath asset", {
+      relpath,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    sendStatus(res, req, 500, "Internal Server Error");
     return;
   }
 
