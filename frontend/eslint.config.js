@@ -60,17 +60,19 @@ export default defineConfig([
     },
   },
   {
-    // #1420/#1421: Puck (0.20 / @dnd-kit/dom) の palette→iframe canvas drag は
-    // 高レベルの locator.dragTo() では起動しない (固定の粗い操作で dnd-kit の
-    // pointer sensor が activate されない)。e2e で dragTo を書くと「動いたつもりで
-    // 0 件配置」の沈黙バグになるため機械的に禁止し、page.mouse(CDP) レシピを封じ込めた
-    // helper へ誘導する。別ウィジェットで dragTo が本当に有効なら、その行に
-    // eslint-disable-next-line + 理由コメントで意図的に通すこと (無意識の誤用のみ弾く)。
-    files: ['e2e/**/*.ts'],
+    // #1420/#1421: Puck (0.20 / @dnd-kit/dom = pointer-based DnD) の palette→iframe canvas
+    // drag は 高レベルの locator.dragTo() では起動しない (固定の粗い操作で pointer sensor が
+    // activate されない)。dragTo を書くと「動いたつもりで 0 件配置」の沈黙バグになる。
+    //
+    // スコープは Puck 系 spec + helper のみ。アプリには HTML5 native DnD (BlocksPanel /
+    // DataList 並び替え / ScreenNode / ProcessFlowEditor の draggable+dataTransfer) もあり、
+    // そちらは dragTo の方が正しい (page.mouse は HTML5 drag イベントを発火できず逆に失敗する)。
+    // よって dragTo を e2e 全体で禁止すると正当な用途まで弾くため、pointer-based の Puck に限定する。
+    files: ['e2e/puck-*.spec.ts', 'e2e/helpers/puck.ts'],
     rules: {
       'no-restricted-syntax': ['error', {
         selector: "CallExpression[callee.property.name='dragTo']",
-        message: 'locator.dragTo() は Puck/dnd-kit の drag を起動できない (沈黙して 0 件配置)。e2e/helpers/puck.ts の dragPaletteItemToCanvas (page.mouse/CDP レシピ) を使うこと。詳細: ai-skills/test-strategy/SKILL.md「Puck の palette→canvas drag/drop を検証する唯一の方法」。別ウィジェットで dragTo が確実に動く場合のみ eslint-disable + 理由コメントで通す。',
+        message: 'Puck (dnd-kit, pointer-based) の drag は locator.dragTo() では起動できない (沈黙して 0 件配置)。e2e/helpers/puck.ts の dragPaletteItemToCanvas (page.mouse/CDP レシピ) を使うこと。詳細: ai-skills/test-strategy/SKILL.md「Puck の palette→canvas drag/drop を検証する唯一の方法」。',
       }],
     },
   },
