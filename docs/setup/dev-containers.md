@@ -91,7 +91,10 @@ container 起動後、以下の認証作業を 1 度だけ行います (rebuild 
    同様に `~/.agent-containers/<project>/.codex/auth.json` に保存される。
 3. **GitHub Copilot CLI**: 認証は `gh auth` (= `~/.config/gh/`) を共有するため、host で `gh auth login` 済みなら追加 OAuth 不要。Copilot CLI が初回起動時に必要な権限を付与するよう促す場合あり。session / memory / history は `~/.agent-containers/<project>/.copilot/` に永続化される (#1114)。
 4. **(任意) 個人 alias (`ccd` / `cdx` 等)**: VS Code user settings.json に dotfiles 3 行を追加。詳細は本書「個人 alias」節を参照。
-5. **(host 側で `git config --global user.email/user.name` 未設定の場合のみ)** container 内で `git config --global user.email <addr>` / `user.name <name>` を 1 度実行 (bind mount で host `~/.gitconfig` に書き戻され、以降の rebuild で永続)。`initializeCommand` は host に `~/.gitconfig` が無い時に `touch` で空ファイルを作るため bind mount は通るが、内容が空だと container 内 `git commit` が `Author identity unknown` で失敗する — その回避手順。
+5. **(git の author identity が必要な場合のみ)** `~/.gitconfig` は optional 扱いで、host からの bind mount はしない (#1417 — 空ファイルの touch + Dev Containers の git config copy が二重処理になり起動失敗する事象を回避)。identity は次のいずれかで設定する:
+   - **repo local config (推奨・永続)**: リポジトリ内で `git config user.email <addr>` / `git config user.name <name>`。`.git/config` に保存され rebuild を跨いで残る
+   - **container global (rebuild で揮発)**: container 内で `git config --global ...`。`/home/node/.gitconfig` に書かれるが host へは戻らず rebuild で消えるため、毎回設定する人向け
+   - 未設定でも clone / status / diff 等の読み取り系は動作する。困るのは commit 時の `Author identity unknown` のみ
 
 OAuth が必要なのは初回 + refreshToken expire 後 (60〜90 日) のみ。日々の rebuild では認証は維持されます。
 
@@ -420,6 +423,7 @@ ghcr.io/csilost2001/harmony-devcontainer-base:<version>  ← Phase 2 で確立�
       #1122 で docker-outside-of-docker は host 実行運用に切替て除外
                   ↓ FROM
 .devcontainer/Dockerfile (overlay)
+  ├── ripgrep (rg) — apt、codex 行の上に置き cache 安定 (#1416)
   └── @openai/codex@<version> (頻繁更新、月単位)
                   ↓
 container 起動 → onCreate → postCreate (npm install + .config.json)
@@ -434,7 +438,7 @@ container 起動 → onCreate → postCreate (npm install + .config.json)
 
 配置指針:
 - **base image** (ghcr、稀更新): playwright chromium / gh / claude-code / copilot-cli (Phase 5 以降の CLI inline)
-- **overlay Dockerfile** (`.devcontainer/Dockerfile`、頻繁更新): codex CLI (月 bump 想定、base 再 build 回避目的で分離)
+- **overlay Dockerfile** (`.devcontainer/Dockerfile`、頻繁更新): codex CLI (月 bump 想定、base 再 build 回避目的で分離) + ripgrep (#1416 — ghcr publish なしで rg を即配布、codex 行の上に置き cache 安定)
 - **postCreateCommand** (source 依存): root `npm install` (npm workspaces) + `.claude/.config.json` 初期化
 
 Phase 4 まで使用していた features 機構は ghcr publish に含まれない制約で廃止 (Phase 5)。docker CLI は #1122 で構成比較した結果、Maintainer 専用機能 (publish-dev-image、年数回) のためだけに常時コストを払う設計を見直し、host 実行運用に切替て base image から除外 (P5b 採用)。
@@ -516,7 +520,7 @@ bash .devcontainer/scripts/build-base.sh
 | Playwright browsers が見つからない / install が必要 | Phase 5 (#1118 / #1120) 以降 Playwright chromium は **base image (ghcr) に同梱済**。`postCreateCommand` での `playwright install` は廃止。base image の build (`/publish-dev-image`) で `npx playwright install` が走るため、container 起動後は `~/.cache/ms-playwright/` に既に存在する。version mismatch で再 install したい場合のみ container 内で `npx playwright install chromium` を手動実行 |
 | Vite HMR がブラウザに反映されない | bind mount + inotify の問題。`frontend/vite.config.ts` の watch options に `{ usePolling: true, interval: 100 }` を追加。または container 内で `export CHOKIDAR_USEPOLLING=1` |
 | port 5173 / 5179 が forward されない | VSCode 下部の `PORTS` パネルで forward 状態を確認。`portsAttributes` で auto-forward 設定済 |
-| `~/.gitconfig` / `~/.ssh/` が container 内で使えない | Dev Containers は通常ホストの `~/.gitconfig` / `~/.ssh/` を mount するが、必要なら `mounts` 設定追加。`gh auth login` を container 内で再実行する手もあり |
+| `~/.gitconfig` / `~/.ssh/` が container 内で使えない | `~/.gitconfig` は #1417 で **意図的に bind mount しない** (起動失敗回避)。git identity は repo local config (`git config user.email/.name`) か container 内 `git config --global` で設定 (本書「初回起動時に必要な手作業」item 5 参照)。どうしても host の `~/.gitconfig` を共有したい場合のみ `devcontainer.json` の `mounts` に明示追加。`~/.ssh/` も同様に必要なら `mounts` 追加 |
 | `codex login` / `claude` 起動で `Permission denied (os error 13)` | Named volume mount target (`/home/node/.claude` / `.codex`) の所有権が root になっている。`devcontainer.json` の `onCreateCommand` で `sudo chown -R node:node` を実行する仕組みあり (container 新規作成時 1 回だけ走る)。手動で直す場合: `sudo chown -R node:node ~/.claude ~/.codex` |
 | backend 起動時に `port 5179 already in use` | WSL2 native 側で backend が動いている。`pkill -f tsx` で WSL2 native プロセスを停止してから container 内で起動 |
 | Claude Code が container 内で MCP に繋がらない | `.mcp.json` の `http://localhost:5179/mcp` は container 内では localhost = container 自身。backend が container 内で `npm run backend` 起動中であることを確認 |

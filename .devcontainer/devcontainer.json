@@ -20,7 +20,10 @@
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.copilot,target=/home/node/.copilot,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.agent-containers/${localWorkspaceFolderBasename}/.harmony,target=/home/node/.harmony,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,consistency=cached",
+    // ~/.gitconfig は optional な host 設定であり、AI / gh の永続化ディレクトリとは性質が異なる (#1417)。
+    // 空ファイルを touch して bind mount すると Dev Containers の git config copy 段階と二重処理になり
+    // "unexpected end of parent stream" で起動失敗することがあるため explicit bind mount しない。
+    // git identity は repo local config か、container 内 `git config --global` で必要な人だけ設定する。
     // WSLg (Windows + WSL2 + Docker Desktop 前提): on-demand headed browser を Windows desktop に表示
     // 他 OS (macOS / Linux native) ではこの mount を当該行 comment out 推奨
     "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
@@ -31,9 +34,10 @@
   // Dev Containers は内部的に docker `--mount type=bind` を使い、`-v` と違い missing
   // source は自動作成されない (`-v` は legacy 仕様で auto-create するが `--mount` は error)。
   // host shell = bash 前提 (WSL2 / macOS / Linux); 既存 dir / file は no-op。 #1340
-  "initializeCommand": "bash -c 'mkdir -p ~/.agent-containers/${localWorkspaceFolderBasename}/{.claude,.codex,.copilot,.harmony} ~/.config/gh && touch ~/.gitconfig'",
+  // ~/.gitconfig は optional なので touch しない (#1417)。AI / gh の永続化 dir のみ事前作成する。
+  "initializeCommand": "bash -c 'mkdir -p ~/.agent-containers/${localWorkspaceFolderBasename}/{.claude,.codex,.copilot,.harmony} ~/.config/gh'",
 
-  "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.harmony /home/node/.config/gh /home/node/.gitconfig",
+  "onCreateCommand": "sudo chown -R node:node /home/node/.claude /home/node/.codex /home/node/.copilot /home/node/.harmony /home/node/.config/gh",
 
   // PR #1378 (#1375) で npm workspaces 化。root 1 回の `npm install` で
   // shared / frontend / backend を一括解決し、shared/package.json の `prepare`

@@ -24,6 +24,16 @@ FROM ghcr.io/csilost2001/harmony-devcontainer-base:0.3
 
 USER root
 
+# ripgrep (rg) — AI エージェント (Claude Code / Copilot CLI) が内部的にコード検索で
+# 使うため同梱 (#1416)。Debian trixie main の apt パッケージ。codex 行の「上」に置くことで
+# layer cache が効き、月次の codex version bump では再 install されない (再実行は base image
+# bump / 本行編集 / cache クリア時のみ)。base image (#1120 Phase 5 inline) ではなく overlay に
+# 置くのは、ghcr publish なしで次の Rebuild Container に即反映させるため (cold start の差は
+# 数 MB の apt 1 パッケージ分で軽微)。
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ripgrep \
+  && rm -rf /var/lib/apt/lists/*
+
 # @openai/codex (頻繁更新ツール、本 overlay 層に閉じ込め)
 RUN npm install -g @openai/codex@0.130.0
 
