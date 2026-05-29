@@ -153,7 +153,6 @@ interface NormalizedPropDecl {
   name: string;
   type: "string" | "number" | "boolean" | "enum";
   label?: string;
-  default?: unknown;
   enum?: { label: string; value: string }[];
 }
 
@@ -365,7 +364,6 @@ export function buildConfigWithCustomComponents(customComponents: CustomPuckComp
         name,
         type: f.type,
         label: f.label,
-        default: f.default,
         enum: f.enum,
       })),
     );
@@ -382,8 +380,8 @@ export function buildConfigWithCustomComponents(customComponents: CustomPuckComp
         ...baseComponentConfig,
         label: `(カスタム) ${def.label}`,
         fields: {
-          ...customFields,
           ...(baseComponentConfig.fields ?? {}),
+          ...customFields,
         },
         defaultProps: {
           ...(baseComponentConfig.defaultProps ?? {}),
@@ -498,7 +496,6 @@ export function mergeExternalComponents(
             name: p.name,
             type: p.type,
             label: p.label,
-            default: p.default,
             enum: p.enum,
           })),
         ),

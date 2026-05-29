@@ -158,6 +158,15 @@ describe("buildPuckConfig categories (#1410 P-2)", () => {
       expect(assigned.has(key)).toBe(true);
     }
   });
+
+  it("categories に列挙された component 名はすべて config.components に実在する", () => {
+    const componentKeys = new Set(Object.keys(config.components));
+    for (const cat of Object.values(config.categories!)) {
+      for (const name of cat?.components ?? []) {
+        expect(componentKeys.has(name)).toBe(true);
+      }
+    }
+  });
 });
 
 describe("buildConfigWithCustomComponents categories + fields (#1410 P-2)", () => {
