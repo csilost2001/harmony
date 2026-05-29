@@ -224,3 +224,39 @@ button の onClick に届かない。`page.evaluate(() => btn.click())` で **DO
 - 「他人の Active session があれば ResumeOrDiscardDialog が出る」は **誤動作**:
   `participants[mcpBridge.getSessionId()]` がいる Active session のみが「自分の draft」。
   全エディタで filter 適用済 (#980-A)。新エディタを追加する際は同じ filter を踏襲すること
+
+## Puck の palette→canvas drag/drop を検証する唯一の方法 (#1420/#1421 教訓)
+
+Puck 0.20 は新 `@dnd-kit/dom` (pointer-based、`setPointerCapture`) を使い、canvas は
+`iframe#preview-frame` 内に描画される。palette item は `[data-puck-drawer-item]`、root dropzone は
+iframe 内 `[data-testid='dropzone:root:default-zone']`。**drag を成立させられる手段は 1 つだけ** で、
+2026-05-30 に実測で全パターンを切り分けた。
+
+### ✅ 効く: raw Playwright `page.mouse` (CDP input)
+
+自動 E2E では **`frontend/e2e/helpers/puck.ts` の `dragPaletteItemToCanvas` を使う** (これが正式経路、
+`repeat-each=3` 安定実証済)。手順の本質:
+
+1. 編集モードに入る (drawer item は編集中のみ draggable。`startNewDraft` helper 経由)
+2. palette item を `scrollIntoViewIfNeeded()` — **外部部品カテゴリ等は palette 下方 = viewport 外**
+   にあり、画面外座標へ `mouse.move` しても drag は起動しない (これを忘れると 0 件配置)
+3. `page.mouse.move(src)` → `down()` → 初期 jiggle `move(+8,+8)` (**>5px で dnd-kit activation**)
+   → 多段 `move` で iframe dropzone の **viewport 相対座標** (`frame.locator(dropzone).boundingBox()`
+   は viewport 相対を返す) へ → settle → `up()`
+- なぜ動くか: `page.mouse.*` は CDP `Input.dispatchMouseEvent` を発行し、ブラウザの入力パイプラインが
+  実マウス同様に hit-test するため **iframe 境界を越えて** dropzone に届く。
+
+### ❌ 失敗する (使うな)
+
+- **`locator.dragTo()` / Playwright MCP の `browser_drag` ツール** (高レベル) → scripted DOM event 列で
+  dnd-kit の pointer sensor を起動できず **0 件配置**。MCP 手動スモークでも `browser_drag` は使わず、
+  `browser_run_code_unsafe` で上記 `page.mouse` を直書きすること。
+- **`page.keyboard` (Space pickup + Arrow)** → 0 件配置、**かつ Space pickup が dangling drag 状態を残し
+  後続の page.mouse drag を二重ノード化する (積極的に有害、絶対に混ぜるな)**。
+
+### 切り分けの要点
+
+- **Harmony MCP (`mcp__harmony-mcp__designer__*`) は本件と無関係** — あれは設計データ API で
+  ブラウザ UI を操作しない。drag 検証は実ブラウザの入力なので CDP 経由の `page.mouse` が要る。
+- 手動 MCP スモークは timing 感度があるので settling wait (`scrollIntoViewIfNeeded` + `hover` + dwell)
+  を厚めに。自動 E2E (`dragPaletteItemToCanvas`) は settling 込みなので素直に呼ぶだけでよい。
