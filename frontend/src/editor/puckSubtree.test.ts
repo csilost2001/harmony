@@ -105,6 +105,127 @@ describe("extractSubtree", () => {
     expect(extractSubtree(d, "missing")).toBeNull();
   });
 
+  // --- #1415 P2-3: slot 子孫ノードが持つ legacy DropZone zones も収集する ---
+  it("slot 系: slot 内の built-in が持つ legacy DropZone zones も subtree に保持する", () => {
+    // root (外部 slot 部品) の props.body に、自前 DropZone (zones) を持つ built-in Card を
+    // 内包するケース。slot 子ノード自体は props 同居で取り込まれるが、その Card が所有する
+    // "inner-card:content" は zones map に別格納されるため別途収集が必要。
+    const d = data({
+      root: { props: {} },
+      content: [
+        {
+          type: "ExtSection",
+          props: {
+            id: "sec-1",
+            body: [{ type: "Card", props: { id: "inner-card" } }], // slot prop 内 built-in
+          },
+        },
+        { type: "Heading", props: { id: "other" } }, // subtree 外
+      ],
+      zones: {
+        // slot 子 (inner-card) が所有する legacy DropZone。
+        "inner-card:content": [{ type: "Paragraph", props: { id: "p-inner" } }],
+        "other:content": [{ type: "Text", props: { id: "t-other" } }], // 切り出さない
+      },
+    });
+
+    const sub = extractSubtree(d, "sec-1");
+    expect(sub).not.toBeNull();
+    expect(sub!.content).toHaveLength(1);
+    // slot 子孫の zones が脱落せず収集されている。
+    expect(sub!.zones).toHaveProperty("inner-card:content");
+    // subtree 外の zones は含めない。
+    expect(sub!.zones).not.toHaveProperty("other:content");
+  });
+
+  it("slot 系: slot 子孫の DropZone がさらに slot 部品を含む場合も再帰収集する", () => {
+    // ExtSection (root) → slot body 内 Card → Card の DropZone 内 ExtWidget → その slot 内 Card
+    // という多段ネストでも全 zones が漏れず収集されることを検証。
+    const d = data({
+      root: { props: {} },
+      content: [
+        {
+          type: "ExtSection",
+          props: {
+            id: "sec-1",
+            body: [{ type: "Card", props: { id: "card-a" } }],
+          },
+        },
+      ],
+      zones: {
+        "card-a:content": [
+          {
+            type: "ExtWidget",
+            props: {
+              id: "w-1",
+              // slot 内にさらに legacy DropZone を持つ Card。
+              slot: [{ type: "Card", props: { id: "card-b" } }],
+            },
+          },
+        ],
+        "card-b:content": [{ type: "Text", props: { id: "leaf" } }],
+      },
+    });
+
+    const sub = extractSubtree(d, "sec-1");
+    expect(sub!.zones).toHaveProperty("card-a:content");
+    // slot 子孫 (card-b) の DropZone も収集される (zone 子の slot 走査経由)。
+    expect(sub!.zones).toHaveProperty("card-b:content");
+  });
+
+  it("slot 系: save (extract) → expand round-trip で slot 子孫の nested 内容が保持される (#1415 P2-3)", () => {
+    const d = data({
+      root: { props: {} },
+      content: [
+        {
+          type: "ExtSection",
+          props: {
+            id: "sec-1",
+            body: [{ type: "Card", props: { id: "inner-card" } }],
+          },
+        },
+      ],
+      zones: {
+        "inner-card:content": [{ type: "Paragraph", props: { id: "p-inner" } }],
+      },
+    });
+
+    const sub = extractSubtree(d, "sec-1");
+    expect(sub!.zones).toHaveProperty("inner-card:content");
+
+    // この subtree を複合部品として展開する。
+    const composite: ExpandableComposite = {
+      id: "comp-sec",
+      label: "セクション複合",
+      tree: sub!,
+      errorType: "__composite_error__comp-sec",
+    };
+    const available = new Set([
+      "ExtSection",
+      "Card",
+      "Paragraph",
+      compositeTypeName("comp-sec"),
+    ]);
+    const placeholder = data({
+      root: { props: {} },
+      content: [{ type: compositeTypeName("comp-sec"), props: { id: "ph" } }],
+    });
+
+    const result = expandCompositePlaceholders(placeholder, [composite], available);
+
+    // root (ExtSection) が展開され、その slot 子 Card が保持されている。
+    const root = result.content.find(
+      (i) => (i as { type: string }).type === "ExtSection",
+    ) as { props: { body: { type: string }[] } };
+    expect(root).toBeDefined();
+    expect(root.props.body[0].type).toBe("Card");
+    // Card の nested DropZone (id 再生成済) の中身 Paragraph が脱落していない。
+    const paragraphZone = Object.values(result.zones ?? {}).find((zc) =>
+      zc.some((n) => (n as { type: string }).type === "Paragraph"),
+    );
+    expect(paragraphZone).toBeDefined();
+  });
+
   it("zones 内のみに存在する rootItemId を切り出せる (S-2)", () => {
     // DropZone 内のノードを選択して複合部品化するケース。content 直下には無い。
     const d = data({

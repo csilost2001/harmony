@@ -107,7 +107,10 @@ function slotContentEntries(item: ComponentData): [string, ComponentData[]][] {
  *   無音 null になり保存が失敗する。
  * - legacy DropZone 系: `<itemId>:zone` キーを再帰的に辿り、subtree 内ノードに紐づく zones
  *   サブセットのみ収集する。
- * - slot 系: 子は props 同居なのでルートノードを含めれば自然に取り込まれる (追加収集不要)。
+ * - slot 系 (#1411 P-3): slot 直下の子ノード自体は props 同居なのでルートノードを含めれば
+ *   自然に取り込まれる。ただし **その子が legacy DropZone (zones) を持つ場合** は、その
+ *   `<childId>:zone` も別途収集しないと nested DropZone 内容が subtree から脱落する
+ *   (#1415 P2-3)。slot 子孫ノードも走査対象に含めて zones を漏れなく収集する。
  *
  * 見つからない場合は null を返す。
  */
@@ -127,24 +130,35 @@ export function extractSubtree(data: Data, rootItemId: string): Subtree | null {
 
   const collectedZones: Zones = {};
 
-  // BFS で subtree 内の全 itemId を辿りつつ、紐づく zones サブセットを収集する。
-  const queue: string[] = [rootItemId];
-  const seen = new Set<string>();
+  // BFS で subtree 内の全ノードを辿りつつ、紐づく zones サブセットを収集する。
+  // id だけでなく **node** を queue に積むことで、zone 由来の子ノード・slot props 由来の
+  // 子ノード双方について「自身が持つ zones / slot」を漏れなく走査できる (#1415 P2-3)。
+  const queue: ComponentData[] = [root];
+  const seenIds = new Set<string>();
   while (queue.length > 0) {
-    const id = queue.shift()!;
-    if (seen.has(id)) continue;
-    seen.add(id);
-    // この id を親 itemId に持つ zone キーをすべて収集する。
-    for (const [zoneKey, zoneContent] of Object.entries(allZones)) {
-      const sepIdx = zoneKey.indexOf(":");
-      if (sepIdx < 0) continue;
-      const parentId = zoneKey.slice(0, sepIdx);
-      if (parentId !== id) continue;
-      collectedZones[zoneKey] = zoneContent;
-      // zone 内の子ノードを辿る (ネストした DropZone のため)。
-      for (const child of zoneContent) {
-        const childId = itemId(child);
-        if (childId) queue.push(childId);
+    const node = queue.shift()!;
+    const id = itemId(node);
+    if (id) {
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
+      // この id を親 itemId に持つ legacy DropZone zone キーをすべて収集する。
+      for (const [zoneKey, zoneContent] of Object.entries(allZones)) {
+        const sepIdx = zoneKey.indexOf(":");
+        if (sepIdx < 0) continue;
+        const parentId = zoneKey.slice(0, sepIdx);
+        if (parentId !== id) continue;
+        collectedZones[zoneKey] = zoneContent;
+        // zone 内の子ノードを辿る (ネストした DropZone のため)。zone 子も slot を持ちうる。
+        for (const child of zoneContent) {
+          queue.push(child);
+        }
+      }
+    }
+    // slot props 内の子ノードを辿る (#1415 P2-3)。slot 直下の子は subtree に co-located で
+    // 含まれるが、その子が legacy zones を持つ場合の収集はここで queue に積むことで賄う。
+    for (const [, children] of slotContentEntries(node)) {
+      for (const child of children) {
+        queue.push(child);
       }
     }
   }
