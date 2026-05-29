@@ -204,4 +204,34 @@ describe("validateExternalComponentManifest", () => {
       ).toBe(true);
     }
   });
+
+  it("slot 名 unique 検証は per-entry scope: 別 entry 間で同名 slot は許容する", () => {
+    // slot 名の一意性は entry ごとに閉じている。別 component が同名 slot を
+    // 持っていても衝突ではない (各 component の props 名前空間が独立しているため)。
+    const result = validateExternalComponentManifest({
+      schemaVersion: "1",
+      components: [
+        {
+          id: "panel-a",
+          label: "Panel A",
+          module: "./a.mjs",
+          version: "1.0",
+          slots: [{ name: "content", label: "本文" }],
+        },
+        {
+          id: "panel-b",
+          label: "Panel B",
+          module: "./b.mjs",
+          version: "1.0",
+          slots: [{ name: "content", label: "本文" }],
+        },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.manifest.components).toHaveLength(2);
+      expect(result.manifest.components[0].slots?.[0].name).toBe("content");
+      expect(result.manifest.components[1].slots?.[0].name).toBe("content");
+    }
+  });
 });

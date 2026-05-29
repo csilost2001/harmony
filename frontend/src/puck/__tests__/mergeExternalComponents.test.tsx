@@ -4,6 +4,7 @@
  * - status="ok": 実 component を render する render 関数になる
  * - status="error": ExternalComponentErrorCard を render する render 関数になる
  */
+import type { ReactNode } from "react";
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import { buildPuckConfig, mergeExternalComponents } from "../buildConfig";
@@ -375,6 +376,36 @@ describe("mergeExternalComponents slot fields (#1411 P-3)", () => {
       ([, def]) => (def as { type: string }).type === "slot",
     );
     expect(slotFieldKeys.length).toBe(0);
+  });
+
+  it("render path: slot prop (render-prop) が外部 Component に forward され中身が描画される", () => {
+    // Puck は render 時に slot prop を SlotComponent (render-prop) に変換して props
+    // 経由で注入する。mergeExternalComponents が生成する render 関数は
+    // createElement(Component, props) で props をそのまま透過するため、外部 Component が
+    // props.content() を呼べば slot 内に配置された中身が描画される。
+    const SlotConsumer = (props: {
+      content?: () => ReactNode;
+    }) => (
+      <div data-testid="slot-consumer">{props.content ? props.content() : null}</div>
+    );
+    const loaded: LoadedExternalComponent[] = [
+      { entry: slotEntry, status: "ok", Component: SlotConsumer },
+    ];
+    const merged = mergeExternalComponents(buildPuckConfig(), loaded);
+    const def = merged.components["ext-slot"];
+
+    const { getByTestId } = render(
+      <>
+        {def.render({
+          // Puck が注入する slot render-prop を模擬。設計者が slot に配置した中身を
+          // 描画する関数を渡す。
+          content: () => <span>SLOT_CONTENT</span>,
+          puck: { renderDropZone: () => null },
+        } as never)}
+      </>,
+    );
+    const consumer = getByTestId("slot-consumer");
+    expect(consumer.textContent).toBe("SLOT_CONTENT");
   });
 });
 

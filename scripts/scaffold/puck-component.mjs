@@ -202,6 +202,11 @@ export interface ${pascal}Props {
    * host (Harmony) が Puck の slot field を render-prop に変換して注入するため、
    * 外部部品側で DropZone を import する必要はありません。呼び出すと、設計者が
    * その領域に Puck で配置した部品が描画されます (#1411 P-3)。
+   *
+   * 型は意図的にゆるく \`(props?: ...) => React.ReactNode\` としています。実体は host が
+   * 注入する Puck の SlotComponent (render-prop) ですが、外部部品は host の
+   * \`@measured/puck\` 型に依存しない設計のため、その型を import せず最小の関数シグネチャ
+   * で受け取ります (依存非依存方針)。呼び出し方 (\`content()\`) は変わりません。
    */
   content?: (props?: Record<string, unknown>) => React.ReactNode;
 }
