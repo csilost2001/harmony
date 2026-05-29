@@ -148,7 +148,9 @@ const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(THIS_DIR, "../../..");
 const TMP_ROOT = path.join(REPO_ROOT, ".tmp", "e2e-workspaces");
 // worktree 隔離実行では HARMONY_E2E_BACKEND_PORT で backend port を override する。
-const BACKEND_PORT = Number(process.env.HARMONY_E2E_BACKEND_PORT ?? 5179);
+const _rawPort = Number(process.env.HARMONY_E2E_BACKEND_PORT ?? 5179);
+const BACKEND_PORT =
+  Number.isInteger(_rawPort) && _rawPort >= 1 && _rawPort <= 65535 ? _rawPort : 5179;
 
 /**
  * Playwright worker index — workers > 1 で同 key を別 directory に隔離するための prefix。

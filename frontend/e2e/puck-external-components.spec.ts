@@ -178,7 +178,10 @@ test.describe("Puck 外部部品 E2E", { tag: ["@regression"] }, () => {
 
     await expect(canvas(page).locator('[data-external-component="ApprovalStatusBar"]')).toBeVisible({ timeout: 20000 });
     await expect(canvas(page).getByText("稟議ステータス")).toBeVisible();
-    expect(consoleErrors.join("\n")).not.toContain("pages が欠落");
+    const errText = consoleErrors.join("\n");
+    expect(errText).not.toContain("pages が欠落");
+    expect(errText).not.toContain("Invalid hook call");
+    expect(errText).not.toContain("version-mismatch");
   });
 
   test("3. props は title text / status select 編集で描画に反映される", async ({ page }) => {
