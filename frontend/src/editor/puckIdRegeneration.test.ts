@@ -127,6 +127,84 @@ describe("regeneratePuckDataIds", () => {
     expect((result.content[0] as any).props.id).toBeUndefined();
   });
 
+  // ── zones キーの itemId 同期 (#1412 P-4) ──────────────────────────────────
+
+  it("content の親ノード id 再生成と zones キーの itemId が同期する", () => {
+    // 親ノードが content にあり、その DropZone (`<親id>:content`) に子がある構成。
+    const data = puckData({
+      root: { props: {} },
+      content: [{ type: "Card", props: { id: "card-old" } }],
+      zones: {
+        "card-old:content": [{ type: "Heading", props: { id: "head-old" } }],
+      },
+    });
+
+    const result = regeneratePuckDataIds(data);
+
+    const newCardId = result.content[0].props.id;
+    expect(newCardId).toBe("uuid-1");
+    // zones キーの itemId 部分が新 card id に書き換わっている (zoneName は保持)。
+    expect(result.zones).toHaveProperty(`${newCardId}:content`);
+    expect(result.zones).not.toHaveProperty("card-old:content");
+    // 子ノードの props.id も再生成されている。
+    expect(result.zones?.[`${newCardId}:content`][0].props.id).toBe("uuid-2");
+  });
+
+  it("ネストした DropZone の itemId も再帰的に同期する", () => {
+    const data = puckData({
+      root: { props: {} },
+      content: [{ type: "Card", props: { id: "outer" } }],
+      zones: {
+        "outer:content": [{ type: "Row", props: { id: "inner" } }],
+        "inner:content": [{ type: "Text", props: { id: "leaf" } }],
+      },
+    });
+
+    const result = regeneratePuckDataIds(data);
+
+    const outerNew = result.content[0].props.id;
+    const innerNew = result.zones?.[`${outerNew}:content`][0].props.id;
+    expect(typeof innerNew).toBe("string");
+    // inner の DropZone キーも新 inner id に同期している。
+    expect(result.zones).toHaveProperty(`${innerNew}:content`);
+    expect(result.zones).not.toHaveProperty("inner:content");
+  });
+
+  it("idMap に無い itemId の zones キー (orphan / リテラル) はそのまま保持される", () => {
+    // content / zones value に "main" / "aside" を props.id とするノードが無いため、
+    // これらのリテラルキーは idMap に載らず不変のまま (後方互換)。
+    const data = puckData({
+      root: { props: {} },
+      content: [],
+      zones: {
+        "main:zone": [{ type: "Card", props: { id: "x" } }],
+        aside: [{ type: "Field", props: { id: "y" } }],
+      },
+    });
+
+    const result = regeneratePuckDataIds(data);
+
+    expect(result.zones).toHaveProperty("main:zone");
+    expect(result.zones).toHaveProperty("aside");
+    // value 内ノードの props.id は再生成される。
+    expect(result.zones?.["main:zone"][0].props.id).not.toBe("x");
+  });
+
+  it("zoneName に ':' が含まれても最初の ':' でのみ分割しキーを保持する", () => {
+    const data = puckData({
+      root: { props: {} },
+      content: [{ type: "Card", props: { id: "p" } }],
+      zones: {
+        "p:zone:weird": [{ type: "Text", props: { id: "c" } }],
+      },
+    });
+
+    const result = regeneratePuckDataIds(data);
+
+    const newP = result.content[0].props.id;
+    expect(result.zones).toHaveProperty(`${newP}:zone:weird`);
+  });
+
   it("props.id が数値型等 string 以外でも content 直下なら UUID に置換される (regenerateItem は id キーを無条件置換)", () => {
     // regenerateContent は regenerateItem を直接呼ぶため isComponentItem ガードを経由しない。
     // regenerateItem は key === "id" を無条件で nextId() に渡すので、数値 id も UUID に置換される。

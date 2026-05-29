@@ -305,6 +305,48 @@ export interface EditorBackend {
 
 定義後、即座に Puck パレットに反映される (再起動不要)。
 
+### 4.5 複合部品 (composite / 再利用部品) — #1412 P-4
+
+設計者が Puck 上で組み合わせた subtree (① built-in primitive / ② JSON カスタム / ③ 外部コード部品の任意混在) を **「複合部品」として保存** し、パレットから再配置できる no-code WYSIWYG authoring 機能。RFC #1405 シリーズ P-4。
+
+#### 方式: expand-on-drop "pattern"
+
+複合部品 = 保存済み Puck subtree。パレットから drop すると subtree が **その場で展開挿入** され、各ノードが個別に WYSIWYG 編集可能になる。複合部品ノードは永続ラッパーとして残さない。これは GrapesJS customBlock の哲学 (HTML 貼付 → 自由編集) と同一であり、「no-code・完全 WYSIWYG」「①②③ を自由に内包可」「再配置」の要件に合致する。
+
+- パレット上は **placeholder component** (`__composite__<id>` 型、カテゴリ「複合部品」= `projectComposite`) として並ぶ。
+- drop 後、`PuckBackend` の `onChange` で複合部品 placeholder を検出 → subtree に展開 → placeholder 自体は消える。
+- 展開処理は **冪等** (placeholder 無し → 同一構造を返す) なので、controlled mode の data prop 更新で無限ループしない。
+
+#### 保存形式 (`puck-components.json` 相乗り)
+
+カスタムコンポーネント定義は `kind` で判別する discriminated union:
+
+- `{ kind: "primitive", id, label, primitive, propsSchema }` — 従来の単発 primitive 派生部品 (§4.4)。
+- `{ kind: "composite", id, label, tree: { content, zones? }, dependencies? }` — 複合部品。
+  - `tree` = 自己完結した Puck Data 断片 (`content` + legacy DropZone 用 `zones` サブセット)。`root` は持たない (展開時はホスト Data の content に merge されるため)。
+  - `dependencies` = subtree が内包する外部 component (#1409 P-1) の type 一覧 (built-in primitive 以外)。capability 6 判定に使う。
+
+`kind` 無しの旧レコードは load 時に `kind: "primitive"` へ正規化する (後方安全)。backend handler / `projectStorage.ts` / broadcast (`puckComponentsChanged`) は無改修。
+
+#### subtree 切出し / 展開の 2 系統
+
+- **legacy DropZone 系** (built-in primitive: Container / Row / Col / Card 等): 子は `data.zones["<itemId>:<zoneName>"]` map に格納される。`extractSubtree` は `<itemId>:zone` キーを再帰的に辿り subtree 内の zones サブセットのみ収集する。
+- **slot 系** (外部 component #1411 P-3 の `{ type: "slot" }` field): 子は当該ノードの props に co-located で格納されるため、ノードごと自然に取り込まれる (追加収集不要)。
+
+#### id 再生成 (核心)
+
+複合部品の再配置・複製では id 衝突を防ぐため、展開時に subtree 全ノードの `props.id` を再生成する。`regeneratePuckDataIds` は `props.id` に加えて **zones map のキー (`<itemId>:<zoneName>`) の itemId 部分も同一 idMap で書き換える** (#1412 P-4 で拡張)。idMap に無い itemId (subtree 外 orphan / リテラルキー) のキーは不変のまま保持する。
+
+#### 依存解決エラー (capability 6)
+
+展開時、subtree 内ノードの type が現在の config に存在しない (= 未ロードの外部 component を内包する複合部品を、その部品が無いワークスペースで配置した) 場合、該当ノードを **`missing-dependency` エラーカード** (`ExternalComponentErrorCard`、日本語「依存部品が未ロード」) に差し替える。展開自体は継続し、設計者に欠落を可視化する。
+
+#### 保存 UI
+
+`<Puck>` の `overrides.headerActions` に「+ 選択を複合部品化」ボタンを差し込む (Puck の `usePuck` は `<Puck>` context 内でのみ利用可のため)。選択中ノードを `usePuck((s) => s.selectedItem)` で取得 → `extractSubtree` → 名前入力ダイアログ (`SaveCompositeDialog`) → `addCustomPuckComponent({ kind: "composite", ... })`。選択無しのときボタンは無効化される。
+
+配置規約 (frontend/AGENTS.md): 切出し / 展開ロジックは `src/editor/puckSubtree.ts` (純粋関数)、保存ダイアログ UI は `src/components/puck/SaveCompositeDialog.tsx`。
+
 ---
 
 ## 5. CSS マッピング層

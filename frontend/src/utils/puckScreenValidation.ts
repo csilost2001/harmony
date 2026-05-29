@@ -175,7 +175,8 @@ export function validatePuckScreen(
 
           // カスタムコンポーネントの primitive 存在検証
           const customDef = customComponents.find((c) => c.id === item.type);
-          if (customDef) {
+          // primitive 経路のみ primitive 存在検証する (composite は subtree のため対象外、#1412 P-4)。
+          if (customDef && customDef.kind === "primitive") {
             if (!(BUILTIN_PRIMITIVE_NAMES as readonly string[]).includes(customDef.primitive)) {
               errors.push({
                 severity: "error",
@@ -210,6 +211,8 @@ export function validatePuckScreen(
 
   // ── カスタムコンポーネント定義の primitive 存在検証 ───────────────────────
   for (const def of customComponents) {
+    // composite は primitive を持たないため検証対象外 (#1412 P-4)。
+    if (def.kind !== "primitive") continue;
     if (!(BUILTIN_PRIMITIVE_NAMES as readonly string[]).includes(def.primitive)) {
       errors.push({
         severity: "error",

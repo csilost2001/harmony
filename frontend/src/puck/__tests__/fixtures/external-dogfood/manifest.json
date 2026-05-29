@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1",
+  "components": [
+    {
+      "id": "approval-status-bar",
+      "label": "承認ステータス帯",
+      "module": "./dist/approval-status-bar.mjs",
+      "export": "default",
+      "version": "0.1.0",
+      "engine": {
+        "react": "19",
+        "puck": "0.20"
+      },
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "label": "見出し",
+          "default": "承認ステータス"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "label": "承認状態",
+          "default": "pending",
+          "enum": [
+            { "label": "承認待ち", "value": "pending" },
+            { "label": "承認済み", "value": "approved" },
+            { "label": "却下", "value": "rejected" }
+          ]
+        }
+      ],
+      "slots": [
+        {
+          "name": "content",
+          "label": "本文スロット"
+        }
+      ]
+    }
+  ]
+}

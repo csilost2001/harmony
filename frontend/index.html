@@ -5,6 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Harmony</title>
+    <!--
+      外部 React Component 読込基盤 (#1409 P-1): runtime ESM import される業務 component
+      の bare specifier (react / react-dom / @measured/puck 等) を host 共有 shim にマップする。
+      host 自身 (/src/main.tsx) の import は Vite が build / pre-bundle 段階で具体 path に
+      解決済みのため bare specifier として browser に届かず、import map の影響を受けない
+      (import map は bare specifier にのみ作用する)。これにより React 二重化を防ぐ。
+      import map は main.tsx の bridge 設置と shim (/harmony-externals/*.mjs) と対で機能する。
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "/harmony-externals/react.mjs",
+          "react/jsx-runtime": "/harmony-externals/react-jsx-runtime.mjs",
+          "react-dom": "/harmony-externals/react-dom.mjs",
+          "react-dom/client": "/harmony-externals/react-dom-client.mjs",
+          "@measured/puck": "/harmony-externals/puck.mjs"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

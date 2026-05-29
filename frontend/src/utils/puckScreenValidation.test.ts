@@ -149,6 +149,7 @@ describe("validatePuckScreen — カスタムコンポーネント定義の prim
   it("有効な primitive のカスタムコンポーネントは error なし", () => {
     const customComponents: CustomPuckComponentDef[] = [
       {
+        kind: "primitive",
         id: "my-card",
         label: "マイカード",
         primitive: "card",
@@ -164,6 +165,7 @@ describe("validatePuckScreen — カスタムコンポーネント定義の prim
   it("存在しない primitive のカスタムコンポーネントは error", () => {
     const customComponents: CustomPuckComponentDef[] = [
       {
+        kind: "primitive",
         id: "invalid-comp",
         label: "不正コンポーネント",
         primitive: "non-existent-primitive",
