@@ -4,6 +4,7 @@ import {
   cleanupRealWorkspaces,
   isMcpRunning,
   normalizeId,
+  repoPath,
   type OpenedWorkspace,
 } from "./realWorkspace";
 import { buildProject, buildScreen } from "../__fixtures__/builders";
@@ -49,6 +50,15 @@ export const HEADING_PARAGRAPH_DATA = {
     },
   ],
 };
+
+const EXTERNAL_DOGFOOD_FIXTURE_DIR = repoPath(
+  "frontend",
+  "src",
+  "puck",
+  "__tests__",
+  "fixtures",
+  "external-dogfood",
+);
 
 const FIXED_TS = "2026-05-08T00:00:00.000Z" as unknown as Timestamp;
 
@@ -101,6 +111,49 @@ export interface SetupPuckOptions {
   cssFramework?: "bootstrap" | "tailwind";
   /** 内部使用: backend 起動済かどうか (test.skip 用) */
   _wsKey?: string;
+}
+
+/** Puck data を backend canonical path (`harmony/screens/<id>/puck-data.json`) に seed する。 */
+export async function writePuckDataFile(
+  ws: OpenedWorkspace,
+  screenId: string,
+  puckData: object,
+): Promise<void> {
+  const screenIdNorm = normalizeId(screenId);
+  const file = path.join(ws.workspacePath, "harmony", "screens", screenIdNorm, "puck-data.json");
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, JSON.stringify(puckData, null, 2), "utf-8");
+}
+
+/**
+ * 外部 Puck Component dogfood fixture を workspace asset 配信 path に seed する。
+ * backend は `<dataRoot>/puck-components/` を `/workspace-assets/<wsId>/puck-components/` として配信する。
+ */
+export async function seedExternalPuckComponentFixture(
+  ws: OpenedWorkspace,
+  opts: { manifest?: object } = {},
+): Promise<void> {
+  const targetDir = path.join(ws.workspacePath, "harmony", "puck-components");
+  const distDir = path.join(targetDir, "dist");
+  await fs.mkdir(distDir, { recursive: true });
+
+  if (opts.manifest) {
+    await fs.writeFile(
+      path.join(targetDir, "manifest.json"),
+      JSON.stringify(opts.manifest, null, 2),
+      "utf-8",
+    );
+  } else {
+    await fs.copyFile(
+      path.join(EXTERNAL_DOGFOOD_FIXTURE_DIR, "manifest.json"),
+      path.join(targetDir, "manifest.json"),
+    );
+  }
+
+  await fs.copyFile(
+    path.join(EXTERNAL_DOGFOOD_FIXTURE_DIR, "approval-status-bar.mjs"),
+    path.join(distDir, "approval-status-bar.mjs"),
+  );
 }
 
 let _wsCache: OpenedWorkspace | null = null;
