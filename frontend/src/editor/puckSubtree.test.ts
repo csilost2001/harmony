@@ -173,6 +173,96 @@ describe("extractSubtree", () => {
     expect(sub!.zones).toHaveProperty("card-b:content");
   });
 
+  // --- #1415 P2: root 探索が slot props 内ノードも deep-search する ---
+  it("slot 系: slot props 内ノードを root に extract できる (deep-search、#1415 P2)", () => {
+    // 外部 component の slot (props.body) 内ノードを選択して複合部品化するケース。
+    // content / zones の浅い探索では見つからないため deep-search が必須。
+    const d = data({
+      root: { props: {} },
+      content: [
+        {
+          type: "ExtSection",
+          props: {
+            id: "sec-1",
+            body: [
+              { type: "Card", props: { id: "card-in-slot" } }, // slot 内 root 候補
+              { type: "Heading", props: { id: "h-sibling" } }, // subtree 外
+            ],
+          },
+        },
+      ],
+    });
+
+    const sub = extractSubtree(d, "card-in-slot");
+    expect(sub).not.toBeNull();
+    expect(sub!.content).toHaveLength(1);
+    expect((sub!.content[0] as { props: { id: string } }).props.id).toBe(
+      "card-in-slot",
+    );
+    // root が DropZone を持たないので zones は付かない。
+    expect(sub!.zones).toBeUndefined();
+  });
+
+  it("slot 系: slot props 内 root が自前 legacy zones を持つ場合その zones も収集する (deep-search root + BFS、#1415 P2)", () => {
+    // slot 内ノードを root に選択 → その root が legacy DropZone を所有しているケース。
+    // root 探索が slot を deep-search できないと null になり、できても BFS が root 配下の
+    // zones を収集できる必要がある。
+    const d = data({
+      root: { props: {} },
+      content: [
+        {
+          type: "ExtSection",
+          props: {
+            id: "sec-1",
+            body: [{ type: "Card", props: { id: "card-in-slot" } }],
+          },
+        },
+      ],
+      zones: {
+        // slot 内 root (card-in-slot) が所有する legacy DropZone。
+        "card-in-slot:content": [{ type: "Paragraph", props: { id: "p-leaf" } }],
+        // 別系統 (subtree 外) の zone。
+        "other:content": [{ type: "Text", props: { id: "t-other" } }],
+      },
+    });
+
+    const sub = extractSubtree(d, "card-in-slot");
+    expect(sub).not.toBeNull();
+    expect((sub!.content[0] as { props: { id: string } }).props.id).toBe(
+      "card-in-slot",
+    );
+    // slot 内 root の zones が BFS で収集される。
+    expect(sub!.zones).toHaveProperty("card-in-slot:content");
+    // subtree 外の zone は含めない。
+    expect(sub!.zones).not.toHaveProperty("other:content");
+  });
+
+  it("slot 系: zones 内ノードの slot props に置かれた root も deep-search できる (#1415 P2)", () => {
+    // zone 直下の外部 component の slot 内ノードを root に選択するケース。
+    // 「全 zones の各配列 → 各ノードの slot props を再帰」の探索経路を検証。
+    const d = data({
+      root: { props: {} },
+      content: [{ type: "Container", props: { id: "container-1" } }],
+      zones: {
+        "container-1:content": [
+          {
+            type: "ExtSection",
+            props: {
+              id: "sec-in-zone",
+              body: [{ type: "Card", props: { id: "card-deep" } }],
+            },
+          },
+        ],
+      },
+    });
+
+    const sub = extractSubtree(d, "card-deep");
+    expect(sub).not.toBeNull();
+    expect((sub!.content[0] as { props: { id: string } }).props.id).toBe(
+      "card-deep",
+    );
+  });
+
   it("slot 系: save (extract) → expand round-trip で slot 子孫の nested 内容が保持される (#1415 P2-3)", () => {
     const d = data({
       root: { props: {} },

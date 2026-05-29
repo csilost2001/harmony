@@ -99,12 +99,33 @@ function slotContentEntries(item: ComponentData): [string, ComponentData[]][] {
 }
 
 /**
+ * ノード配列 (とその各ノードの props 内 slot content) を深さ優先で辿り、itemId 一致ノードを返す
+ * (#1415 P2)。slot field (#1411 P-3) 内ノードは `props.<slotName>` 配列に co-located で格納される
+ * ため、content / zones の浅い探索では見つからない。各ノードについて itemId 一致を確認し、無ければ
+ * `slotContentEntries(node)` の各子配列を再帰探索する。
+ */
+function findNodeDeep(
+  nodes: ComponentData[],
+  id: string,
+): ComponentData | undefined {
+  for (const node of nodes) {
+    if (itemId(node) === id) return node;
+    for (const [, children] of slotContentEntries(node)) {
+      const found = findNodeDeep(children, id);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+/**
  * 指定 itemId をルートとする subtree (ルートノード + 全子孫) を自己完結 Data 断片に切り出す。
  *
- * - ルートノードは data.content と **全 data.zones の各配列** から探す (S-2)。
- *   展開 (expandCompositePlaceholders) が zones 内対応済なので、保存 (切出し) も対称に
- *   DropZone 内ノードの選択を受け付ける。content 直下のみ探すと zone 内ノード選択で
- *   無音 null になり保存が失敗する。
+ * - ルートノードは data.content・**全 data.zones の各配列**・各ノードの props 内 slot content
+ *   (#1411 P-3) を再帰的に deep-search して探す (S-2 / #1415 P2)。展開
+ *   (expandCompositePlaceholders) が content / zones / slot props すべてに対応済なので、保存
+ *   (切出し) も対称にいずれの階層のノード選択も受け付ける。content / zone 直下のみ探すと
+ *   slot 内ノード選択で無音 null になり保存が失敗する。
  * - legacy DropZone 系: `<itemId>:zone` キーを再帰的に辿り、subtree 内ノードに紐づく zones
  *   サブセットのみ収集する。
  * - slot 系 (#1411 P-3): slot 直下の子ノード自体は props 同居なのでルートノードを含めれば
@@ -116,13 +137,12 @@ function slotContentEntries(item: ComponentData): [string, ComponentData[]][] {
  */
 export function extractSubtree(data: Data, rootItemId: string): Subtree | null {
   const allZones: Zones = data.zones ?? {};
-  // root を content 直下 → 全 zones の各配列の順で探す (S-2)。
-  let root: ComponentData | undefined = data.content.find(
-    (item) => itemId(item) === rootItemId,
-  );
+  // root を content 直下 → 全 zones の各配列 → (各ノードの slot props を再帰) の順で deep-search
+  // する (S-2 / #1415 P2)。content / zones 内ノードの slot props も探索対象にする。
+  let root: ComponentData | undefined = findNodeDeep(data.content, rootItemId);
   if (!root) {
     for (const zoneContent of Object.values(allZones)) {
-      root = zoneContent.find((item) => itemId(item) === rootItemId);
+      root = findNodeDeep(zoneContent, rootItemId);
       if (root) break;
     }
   }
