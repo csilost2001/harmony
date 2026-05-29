@@ -16,7 +16,7 @@ import { loadProject } from "../store/flowStore";
 import { loadPageLayout } from "../store/pageLayoutStore";
 import type { PageLayout } from "../store/pageLayoutStore";
 import { mcpBridge } from "../mcp/mcpBridge";
-import { extractGrapesHtml } from "../utils/pageLayoutCompositionPreview";
+import { extractGrapesHtml, extractGrapesCss } from "../utils/pageLayoutCompositionPreview";
 
 export interface DesignerTabHostProps {
   screenId: string;
@@ -29,6 +29,9 @@ export function DesignerTabHost({ screenId, screenName, isActive }: DesignerTabH
   const [pageLayoutId, setPageLayoutId] = useState<string | undefined>(undefined);
   const [pageLayoutHtml, setPageLayoutHtml] = useState<string | undefined>(undefined);
   const [gadgetHtmlMap, setGadgetHtmlMap] = useState<Map<string, string>>(new Map());
+  // #1406: composition preview に PageLayout / gadget の project CSS も合成する
+  const [pageLayoutCss, setPageLayoutCss] = useState<string | undefined>(undefined);
+  const [gadgetCssMap, setGadgetCssMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!screenId) return;
@@ -46,6 +49,8 @@ export function DesignerTabHost({ screenId, screenName, isActive }: DesignerTabH
           setPageLayout(null);
           setPageLayoutHtml(undefined);
           setGadgetHtmlMap(new Map());
+          setPageLayoutCss(undefined);
+          setGadgetCssMap(new Map());
           return;
         }
         setPageLayoutId(node.pageLayoutId);
@@ -56,11 +61,14 @@ export function DesignerTabHost({ screenId, screenName, isActive }: DesignerTabH
         setPageLayout(pl);
         if (!pl) return;
 
-        // PageLayout design HTML (composition preview 用) — dedicated handler
+        // PageLayout design HTML + CSS (composition preview 用) — dedicated handler
         try {
           const plDesign = await mcpBridge.request("loadPageLayoutDesign", { pageLayoutId: pl.id });
           const html = extractGrapesHtml(plDesign);
           if (mounted && html) setPageLayoutHtml(html);
+          // #1406: PageLayout の project CSS も抽出して preview に合成
+          const css = extractGrapesCss(plDesign);
+          if (mounted && css) setPageLayoutCss(css);
         } catch { /* ignore */ }
 
         // gadget design HTML 並列 pre-load
@@ -70,14 +78,21 @@ export function DesignerTabHost({ screenId, screenName, isActive }: DesignerTabH
           .filter((id) => typeof id === "string")
           .map((id) => id as string);
         const nextMap = new Map<string, string>();
+        const nextCssMap = new Map<string, string>();
         await Promise.all(gadgetIds.map(async (gid) => {
           try {
             const gd = await mcpBridge.request("loadScreen", { screenId: gid });
             const html = extractGrapesHtml(gd);
             if (html) nextMap.set(gid, html);
+            // #1406: gadget の project CSS も抽出
+            const css = extractGrapesCss(gd);
+            if (css) nextCssMap.set(gid, css);
           } catch { /* skip */ }
         }));
-        if (mounted) setGadgetHtmlMap(nextMap);
+        if (mounted) {
+          setGadgetHtmlMap(nextMap);
+          setGadgetCssMap(nextCssMap);
+        }
       } catch (e) {
         console.warn("[DesignerTabHost] pageLayout pre-load failed:", e);
       }
@@ -103,6 +118,8 @@ export function DesignerTabHost({ screenId, screenName, isActive }: DesignerTabH
       pageLayoutHtml={pageLayoutHtml}
       pageLayoutAssignments={pageLayout?.assignments}
       gadgetHtmlMap={gadgetHtmlMap.size > 0 ? gadgetHtmlMap : undefined}
+      pageLayoutCss={pageLayoutCss}
+      gadgetCssMap={gadgetCssMap.size > 0 ? gadgetCssMap : undefined}
     />
   );
 }

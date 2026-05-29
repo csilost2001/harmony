@@ -55,22 +55,17 @@ import { clearItemsFromCache } from "../store/screenItemsStore";
 import { BlocksPanel } from "../components/BlocksPanel";
 import { RightPanel } from "../components/RightPanel";
 import { shouldNotifyScreenChanged } from "./reloadEvents";
+import {
+  FRAMEWORK_URLS,
+  VARIANT_URLS,
+  buildCanvasBaseAssets,
+} from "./grapesCanvasAssets";
 
 // -----------------------------------------------------------------------
-// CSS 注入用 URL (Designer.tsx から移植)
+// CSS 注入用 URL は grapesCanvasAssets.ts に集約済 (#1406)。
+// canvas (本 backend) と composition preview iframe (GrapesEditorHost.tsx) が
+// 同一の asset 定義を参照することで CSS source of truth を一本化する。
 // -----------------------------------------------------------------------
-
-const FRAMEWORK_URLS: Record<CssFramework, string> = {
-  bootstrap: new URL("../styles/themes/theme-bootstrap.css", import.meta.url).href,
-  tailwind: new URL("../styles/themes/theme-tailwind.css", import.meta.url).href,
-};
-
-const VARIANT_URLS: Record<ThemeId, string | null> = {
-  standard: null,
-  card: new URL("../styles/theme-card.css", import.meta.url).href,
-  compact: new URL("../styles/theme-compact.css", import.meta.url).href,
-  dark: new URL("../styles/theme-dark.css", import.meta.url).href,
-};
 
 /**
  * canvas iframe に framework × variant の 2 軸 CSS を注入する (#793 子 5)。
@@ -119,16 +114,8 @@ function buildGjsOptions(): object {
     width: "auto",
     storageManager: { type: "none" },
     undoManager: { trackSelection: false },
-    canvas: {
-      styles: [
-        "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
-        "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css",
-        new URL("../styles/common.css", import.meta.url).href,
-      ],
-      scripts: [
-        "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js",
-      ],
-    },
+    // canvas base CSS / script は grapesCanvasAssets.ts に集約 (#1406)。
+    canvas: buildCanvasBaseAssets(),
     blockManager: { blocks: [] },
     deviceManager: {
       default: "desktop",
