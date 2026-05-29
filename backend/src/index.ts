@@ -11,6 +11,7 @@ import {
 import { wsBridge } from "./wsBridge.js";
 import { tools } from "./tools.js";
 import { handleAuthCheck, handlePropose } from "./aiRename.js";
+import { handlePuckComponentAsset } from "./handlers/puckComponentAssets.js";
 import {
   initWorkspaceState,
   connect as wsConnect,
@@ -248,6 +249,10 @@ async function main() {
   // AI 命名 endpoints (#337)
   wsBridge.registerHttpHandler("/ai/rename-screen-ids/auth-check", handleAuthCheck);
   wsBridge.registerHttpHandler("/ai/rename-screen-ids/propose", handlePropose);
+
+  // 外部 React Component 静的配信 (#1409 P-1): active workspace の
+  // <dataRoot>/puck-components/ 配下の manifest.json / *.mjs を GET 配信する。
+  wsBridge.registerHttpHandler("/workspace-assets/puck-components", handlePuckComponentAsset);
 
   console.error(`[MCP] harmony-mcp HTTP transport mounted at http://localhost:${process.env.DESIGNER_MCP_PORT ?? 5179}/mcp`);
 }
