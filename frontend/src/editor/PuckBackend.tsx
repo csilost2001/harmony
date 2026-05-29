@@ -414,10 +414,15 @@ function CompositeSaveButton({ onRequestSave }: CompositeSaveButtonProps) {
   const selectedItem = usePuck((s) => s.selectedItem);
   const data = usePuck((s) => s.appState.data);
 
+  const topLevelId = selectedItem
+    ? (selectedItem as { id?: unknown }).id
+    : undefined;
   const selectedId =
     selectedItem && typeof selectedItem.props?.id === "string"
       ? selectedItem.props.id
-      : null;
+      : typeof topLevelId === "string"
+        ? topLevelId
+        : null;
   const disabled = !selectedId;
 
   return (

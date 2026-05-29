@@ -413,7 +413,7 @@ export function Designer({
   // grapesBackend は mount 時に 1 度生成済 (identity 不変) なので、effect 内では
   // 直接 load() を呼ぶ。再生成 / null-check は不要。
   const [grapesLoadKey, setGrapesLoadKey] = useState<string | null>(null);
-  const currentGrapesLoadKey = editorKind === "grapesjs" ? `${screenId}` : null;
+  const currentGrapesLoadKey = editorKindResolved && editorKind === "grapesjs" ? `${screenId}` : null;
   if (currentGrapesLoadKey !== grapesLoadKey) {
     setGrapesLoadKey(currentGrapesLoadKey);
     if (currentGrapesLoadKey !== null) {
@@ -421,7 +421,7 @@ export function Designer({
     }
   }
   useEffect(() => {
-    if (editorKind !== "grapesjs") return;
+    if (!editorKindResolved || editorKind !== "grapesjs") return;
     let cancelled = false;
     editorApiRef.current = null;
     grapesBackend.load(screenId, grapesDraftRead).then((state) => {
@@ -432,7 +432,7 @@ export function Designer({
       if (!cancelled) setGrapesState({ payload: null, ui: { screenId } });
     });
     return () => { cancelled = true; };
-  }, [editorKind, screenId, grapesDraftRead, grapesBackend]);
+  }, [editorKindResolved, editorKind, screenId, grapesDraftRead, grapesBackend]);
 
   // GrapesJS Backend からの ready 通知 — EditorApi を保持し legacy localStorage 救済を実行
   const handleGrapesReady = useCallback((api: EditorApi) => {

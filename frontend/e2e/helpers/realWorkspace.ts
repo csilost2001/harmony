@@ -147,6 +147,10 @@ export interface ScreenDesignInput {
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(THIS_DIR, "../../..");
 const TMP_ROOT = path.join(REPO_ROOT, ".tmp", "e2e-workspaces");
+// worktree 隔離実行では HARMONY_E2E_BACKEND_PORT で backend port を override する。
+const _rawPort = Number(process.env.HARMONY_E2E_BACKEND_PORT ?? 5179);
+const BACKEND_PORT =
+  Number.isInteger(_rawPort) && _rawPort >= 1 && _rawPort <= 65535 ? _rawPort : 5179;
 
 /**
  * Playwright worker index — workers > 1 で同 key を別 directory に隔離するための prefix。
@@ -205,24 +209,24 @@ export async function cleanupRealWorkspaces(keys: string[]): Promise<void> {
   );
 }
 
-/** backend サーバが port 5179 で起動しているか */
+/** backend サーバが起動しているか */
 export async function isMcpRunning(): Promise<boolean> {
   return new Promise((resolve) => {
     const socket = new net.Socket();
     socket.setTimeout(500);
-    socket.connect(5179, "127.0.0.1", () => { socket.destroy(); resolve(true); });
+    socket.connect(BACKEND_PORT, "127.0.0.1", () => { socket.destroy(); resolve(true); });
     socket.on("error", () => resolve(false));
     socket.on("timeout", () => resolve(false));
   });
 }
 
 /**
- * `ws://localhost:5179` に register → request → response を送る RPC ヘルパー。
+ * backend WS に register → request → response を送る RPC ヘルパー。
  * `workspace.open` 等を呼び出し結果を取得するのに使う。10 秒タイムアウト。
  */
 export function sendBrowserRequest(method: string, params: unknown = {}): Promise<unknown> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocketImpl("ws://localhost:5179");
+    const ws = new WebSocketImpl(`ws://localhost:${BACKEND_PORT}`);
     const clientId = `e2e-real-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const reqId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const timeout = setTimeout(() => {
@@ -256,7 +260,7 @@ export async function withBrowserSession<T>(
   fn: (call: (method: string, params?: unknown) => Promise<unknown>) => Promise<T>,
 ): Promise<T> {
   return new Promise<T>((resolveOuter, rejectOuter) => {
-    const ws = new WebSocketImpl("ws://localhost:5179");
+    const ws = new WebSocketImpl(`ws://localhost:${BACKEND_PORT}`);
     const clientId = `e2e-session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>();
     let registered = false;

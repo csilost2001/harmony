@@ -1,12 +1,5 @@
-/**
- * TODO(#926 follow-up): realWorkspace 移植が未完。本 spec は既存の addInitScript-based
- * localStorage seed パターンを使っているが、#924 で fallback 経路が削除されたため
- * data が backend に渡らず動作しない。realWorkspace.setupTestWorkspace + ws.gotoActive
- * への移植を follow-up ISSUE で対応する。
- */
 import { test, expect, errors as pwErrors } from "@playwright/test";
 import * as path from "path";
-import * as fs from "node:fs/promises";
 
 import {
   EMPTY_PUCK_DATA,
@@ -17,6 +10,7 @@ import {
   makeDummyProject,
   makeScreenEntity,
   setupPuckScreen,
+  writePuckDataFile,
 } from "./helpers/puck";
 import { setupTestWorkspace, normalizeId } from "./helpers/realWorkspace";
 
@@ -92,10 +86,7 @@ test.describe("GrapesJS と Puck の混在", { tag: ["@regression"] }, () => {
       project: makeDummyProject(),
       screenEntities: [puckEntity, gjsEntity],
     });
-    // Puck data を backend file に書く
-    const puckFile = path.join(ws.workspacePath, "harmony", "screens", `${PUCK_NORM}.design.json`);
-    await fs.mkdir(path.dirname(puckFile), { recursive: true });
-    await fs.writeFile(puckFile, JSON.stringify(EMPTY_PUCK_DATA, null, 2), "utf-8");
+    await writePuckDataFile(ws, PUCK_NORM, EMPTY_PUCK_DATA);
 
     await ws.gotoActive(page, `/screen/design/${PUCK_NORM}`);
     const puckEl = page.locator("[data-testid='puck-editor-container']");
