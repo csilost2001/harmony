@@ -1,0 +1,11 @@
+// harmony-externals/react-dom.mjs — 外部 component 用 react-dom shim (#1409 P-1)
+//
+// host 共有の react-dom namespace を re-export。createPortal / flushSync 等。
+const m = (window.__HARMONY_SHARED_DEPS__ ?? {})["react-dom"];
+if (!m) {
+  throw new Error(
+    "[harmony-externals] react-dom bridge 未設置。main.tsx の bridge 設置を確認してください。",
+  );
+}
+export default m;
+export const { createPortal, flushSync, version } = m;

@@ -36,7 +36,11 @@ import type {
   PuckRenderEditorProps,
 } from "./EditorBackend";
 import { CssFrameworkProvider } from "../puck/CssFrameworkContext";
-import { buildConfigWithCustomComponents } from "../puck/buildConfig";
+import { buildConfigWithCustomComponents, mergeExternalComponents } from "../puck/buildConfig";
+import {
+  loadExternalComponents,
+  type LoadedExternalComponent,
+} from "../puck/externalComponents";
 import {
   loadCustomPuckComponents,
   type CustomPuckComponentDef,
@@ -90,6 +94,9 @@ function PuckEditorPane({
   reloadPayload,
 }: PuckEditorPaneProps) {
   const [customComponents, setCustomComponents] = useState<CustomPuckComponentDef[]>([]);
+  // 外部 React Component (#1409 P-1): manifest 経由で runtime 読込される業務 component。
+  // 初期は空配列、解決後に反映 (ロード中も既存 UI を阻害しない)。
+  const [externalComponents, setExternalComponents] = useState<LoadedExternalComponent[]>([]);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   // 編集中の Puck Data を state として保持 (カスタムコンポーネント変更による Puck 再マウント時に
   // 未保存編集を保持するため Puck の data prop に渡す値を持続させる)。
@@ -136,6 +143,23 @@ function PuckEditorPane({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void reloadCustomComponents();
   }, [reloadCustomComponents]);
+
+  // 外部 React Component (#1409 P-1) を manifest 経由で読み込む。
+  // manifest 無し → 空配列 (正常系)。失敗 entry はエラーカードとして config に統合される。
+  const reloadExternalComponents = useCallback(async () => {
+    try {
+      const loaded = await loadExternalComponents();
+      setExternalComponents(loaded);
+      setRemountKey((k) => k + 1);
+    } catch (e) {
+      console.warn("[PuckBackend] Failed to load external components:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void reloadExternalComponents();
+  }, [reloadExternalComponents]);
 
   // mcpBridge broadcast: 別タブでカスタムコンポーネントが変わったら再ロード
   useEffect(() => {
@@ -186,8 +210,12 @@ function PuckEditorPane({
   }, [onReady]);
 
   const config = useMemo(
-    () => buildConfigWithCustomComponents(customComponents),
-    [customComponents],
+    () =>
+      mergeExternalComponents(
+        buildConfigWithCustomComponents(customComponents),
+        externalComponents,
+      ),
+    [customComponents, externalComponents],
   );
 
   const handleChange = useCallback(

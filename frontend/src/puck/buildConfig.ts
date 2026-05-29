@@ -37,6 +37,8 @@ import { RegionSidebarConfig } from "./primitives/RegionSidebar";
 import { RegionFooterConfig } from "./primitives/RegionFooter";
 import { RegionMainConfig } from "./primitives/RegionMain";
 import type { CustomPuckComponentDef } from "../store/puckComponentsStore";
+import type { LoadedExternalComponent } from "./externalComponents";
+import { ExternalComponentErrorCard } from "../components/puck/ExternalComponentErrorCard";
 
 // ---------------------------------------------------------------------------
 // 共通レイアウト props の Fields 定義
@@ -317,6 +319,71 @@ export function buildConfigWithCustomComponents(customComponents: CustomPuckComp
           { "data-custom-component": def.id, "data-primitive": def.primitive },
           JSON.stringify(props),
         ),
+      };
+    }
+  }
+
+  return {
+    ...base,
+    components: {
+      ...base.components,
+      ...extraComponents,
+    },
+  };
+}
+
+/**
+ * 外部 React Component (#1409 P-1) を Puck config に統合する。
+ *
+ * - status="ok": entry.Component を render する component を登録。
+ *   defaultProps は manifest props の default 集約。
+ *   fields は P-1 では最小 (空)。props→fields の本格化は P-2。
+ * - status="error": ExternalComponentErrorCard を render するエラーカードを登録。
+ *
+ * 既存 JSON-only custom component 経路 (buildConfigWithCustomComponents) とは別ソースとして
+ * 統合する。両者を併用する場合は buildConfigWithCustomComponents の戻り値を base に渡せる。
+ */
+export function mergeExternalComponents(
+  base: Config,
+  loaded: LoadedExternalComponent[],
+): Config {
+  if (loaded.length === 0) return base;
+
+  const extraComponents: Config["components"] = {};
+
+  for (const item of loaded) {
+    const { entry } = item;
+
+    if (item.status === "ok") {
+      const defaultProps: Record<string, unknown> = {};
+      for (const prop of entry.props ?? []) {
+        if (prop.default !== undefined) {
+          defaultProps[prop.name] = prop.default;
+        }
+      }
+      const Component = item.Component;
+      extraComponents[entry.id] = {
+        label: `(外部) ${entry.label}`,
+        // P-1 では fields は最小 (空)。props→fields 本格化は P-2。
+        fields: {},
+        defaultProps,
+        render: (props: Record<string, unknown>) =>
+          createElement(Component, props),
+      };
+    } else {
+      // エラー entry はエラーカードを描画する component として登録する。
+      const { errorKind, detail } = item;
+      extraComponents[entry.id] = {
+        label: `(外部·エラー) ${entry.label}`,
+        fields: {},
+        defaultProps: {},
+        render: () =>
+          createElement(ExternalComponentErrorCard, {
+            errorKind,
+            label: entry.label,
+            id: entry.id,
+            detail,
+          }),
       };
     }
   }
