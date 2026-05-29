@@ -171,7 +171,9 @@ worktree のコードを **隔離 port** (backend 5189 lockdown / frontend 5183�
 | **cap2** palette + カテゴリ分け | ✅ | 左パレットに専用カテゴリ **「プロジェクト部品 (外部)」** が出現し、その中に **「(外部) 承認ステータス帯」** が built-in (レイアウト/テキスト/フォーム/データ/業務複合/レイアウト領域) と別カテゴリで表示 (screenshot: `.tmp/screenshots/puck-ext-01-palette.png`) |
 | **cap6** validation / fallback (エラー UX) | ✅ | manifest の `engine.react` を `18` に改変 → reload すると palette item が **「(外部·エラー) 承認ステータス帯」** に変化 (loader が version-mismatch を検出し ExternalComponentErrorCard エントリに置換)。`19` に戻すと正常表示に復帰 (screenshot: `.tmp/screenshots/puck-ext-02-error-card.png`) |
 
-**cap3 (props→fields) / cap4 (slot / 複合部品の配置・保存)** は、Puck の dnd-kit が Playwright MCP の keyboard 抽象では PointerSensor/KeyboardSensor を起動できない (テストハーネス制約、製品欠陥ではない) ため、実ブラウザでの drag 配置までは未実施。これらは本 dogfood の through-line 自動 test (実 vite build 成果物 `.mjs` を実 loader → `mergeExternalComponents` → slot field → composite 展開まで通す 13+ ケース) と frontend 407 件 / backend asset 15 件のユニットテストで決定的に検証済。実機 drag を含む UI 操作確認は、CLI 版 Playwright (keyboard-dnd helper `dragPrimitiveByKeyboard`) を使う E2E spec 化を将来の継続検証として推奨。
+**cap3 (props→fields) / cap4 (slot / 複合部品の配置・保存)** は、Puck の dnd-kit が Playwright MCP の keyboard 抽象では PointerSensor/KeyboardSensor を起動できない (テストハーネス制約、製品欠陥ではない) ため、実ブラウザでの drag 配置までは未実施。これらは本 dogfood の through-line 自動 test (実 vite build 成果物 `.mjs` を実 loader → `mergeExternalComponents` → slot field → composite 展開まで通す 13+ ケース) と frontend 407 件 / backend asset 15 件のユニットテストで決定的に検証済。
+
+**実機 drag を含む UI 操作の自動検証は #1420 に分離**: 本リポの Puck E2E ハーネスが未完成 (`dragPrimitiveByKeyboard` 等の drag helper がどの spec からも未使用 / GrapesJS 系 `remoteStorage` normalizer が editorKind=puck 画面でも走り生 Puck データを `{pages}` 既定構造で破壊 / `realWorkspace.ts` の backend port 5179 固定で worktree 隔離実行不可 / closed #926 の `puck-editor`・`puck-visual-regression` 移植積み残し) のため、配置→props→slot→複合の実ブラウザ E2E は成立しなかった。これは外部部品機能とは別レイヤのテスト基盤課題のため #1420 で修復し、その後「使用」フローを実機 E2E で再検証する。詳細な状況・root cause・実装設計は #1420 を参照。
 
 ---
 
