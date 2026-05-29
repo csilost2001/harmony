@@ -117,6 +117,17 @@ beforeEach(() => {
 });
 
 describe("WorkspaceListView navigation", () => {
+  it("shows workspace store errors after openWorkspace failure remounts the view", () => {
+    state = {
+      ...state,
+      error: "ワークスペースの harmony.json が不正です",
+    };
+
+    render(<WorkspaceListView />);
+
+    expect(screen.getByText(/harmony\.json が不正/)).toBeVisible();
+  });
+
   it("open button navigates to the opened workspace root", async () => {
     const { container } = render(<WorkspaceListView />);
 
