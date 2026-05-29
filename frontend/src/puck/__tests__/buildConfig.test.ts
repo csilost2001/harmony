@@ -14,6 +14,7 @@ import {
   mergeCompositeComponents,
   compositeErrorTypeName,
   BUILTIN_PRIMITIVE_NAMES,
+  BUILTIN_PRIMITIVE_TYPE_NAMES,
 } from "../buildConfig";
 import { LAYOUT_FIELDS } from "../buildConfig";
 import { compositeTypeName } from "../../editor/puckSubtree";
@@ -277,6 +278,25 @@ describe("BUILTIN_PRIMITIVE_NAMES", () => {
 
   it("region-main を含む", () => {
     expect(BUILTIN_PRIMITIVE_NAMES).toContain("region-main");
+  });
+});
+
+describe("BUILTIN_PRIMITIVE_TYPE_NAMES drift guard (#1412 P-4 S-3 hardening)", () => {
+  it("派生 type 名集合 (BUILTIN_PRIMITIVE_TYPE_NAMES) と base config の実 component キー集合が双方向完全一致する", () => {
+    // base = カスタム / 外部 / 複合を一切渡さずに生成した config。
+    // この config.components には built-in primitive の実登録キーのみが入り、
+    // error-card / 動的キーは混じらない (それらは merge* 経路でのみ追加される)。
+    const base = buildPuckConfig();
+    const actualKeys = new Set(Object.keys(base.components));
+    const derivedNames = new Set(BUILTIN_PRIMITIVE_TYPE_NAMES);
+
+    // 派生名にあって実 config に無いもの (= 派生規則が config 登録キーとズレた / primitive 削除漏れ)。
+    const missingFromConfig = [...derivedNames].filter((n) => !actualKeys.has(n));
+    // 実 config にあって派生名に無いもの (= primitive 追加時に BUILTIN_PRIMITIVE_NAMES へ反映漏れ)。
+    const extraInConfig = [...actualKeys].filter((n) => !derivedNames.has(n));
+
+    expect(missingFromConfig).toEqual([]);
+    expect(extraInConfig).toEqual([]);
   });
 });
 
