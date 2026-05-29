@@ -23,6 +23,7 @@ const {
   findById,
   findByPath,
   listWorkspaces,
+  listDisplayWorkspaces,
   setLastActive,
   readRecent,
   _internals,
@@ -123,6 +124,47 @@ describe("recentStore", () => {
     const { workspaces, lastActiveId } = await listWorkspaces();
     expect(workspaces.length).toBe(2);
     expect(lastActiveId).toBe(e1.id);
+  });
+
+  it("listDisplayWorkspaces: 存在しない path / harmony.json 不在 entry を recent から prune する", async () => {
+    const readyDir = path.join(TMP_DIR, "ready-ws");
+    const noManifestDir = path.join(TMP_DIR, "no-manifest-ws");
+    await fs.mkdir(readyDir, { recursive: true });
+    await fs.mkdir(noManifestDir, { recursive: true });
+    await fs.writeFile(path.join(readyDir, "harmony.json"), "{}", "utf-8");
+
+    const ready = await upsertWorkspace(readyDir, "Ready");
+    const missing = await upsertWorkspace(path.join(TMP_DIR, "missing-ws"), "Missing");
+    await upsertWorkspace(noManifestDir, "NoManifest");
+    await setLastActive(missing.id);
+
+    const listed = await listDisplayWorkspaces();
+
+    expect(listed.workspaces.map((w) => w.id)).toEqual([ready.id]);
+    expect(listed.lastActiveId).toBeNull();
+    expect(listed.prunedCount).toBe(2);
+
+    const persisted = await readRecent();
+    expect(persisted.workspaces.map((w) => w.id)).toEqual([ready.id]);
+    expect(persisted.lastActiveId).toBeNull();
+  });
+
+  it("listDisplayWorkspaces: .tmp/e2e-workspaces 配下は recent に保持しつつ通常一覧から隠す", async () => {
+    const readyDir = path.join(TMP_DIR, "normal-ws");
+    const e2eDir = path.join(TMP_DIR, ".tmp", "e2e-workspaces", "w0-smoke");
+    await fs.mkdir(readyDir, { recursive: true });
+    await fs.mkdir(e2eDir, { recursive: true });
+    await fs.writeFile(path.join(readyDir, "harmony.json"), "{}", "utf-8");
+    await fs.writeFile(path.join(e2eDir, "harmony.json"), "{}", "utf-8");
+
+    const ready = await upsertWorkspace(readyDir, "Ready");
+    const e2e = await upsertWorkspace(e2eDir, "E2E");
+
+    const listed = await listDisplayWorkspaces();
+
+    expect(listed.workspaces.map((w) => w.id)).toEqual([ready.id]);
+    expect(listed.hiddenCount).toBe(1);
+    expect(await findById(e2e.id)).not.toBeNull();
   });
 
   it("recentFile() は env DESIGNER_RECENT_FILE を尊重 (現在値が TMP_FILE)", () => {
