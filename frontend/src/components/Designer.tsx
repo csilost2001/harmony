@@ -27,6 +27,12 @@ import { PuckEditorHost } from "./designer/PuckEditorHost";
 import { GrapesEditorHost } from "./designer/GrapesEditorHost";
 // #1388 sub-section A (Option 2): 共通ダイアログ群 (~145 行 JSX) を独立 component に抽出。
 import { DesignerDialogs } from "./designer/DesignerDialogs";
+import {
+  getDesignerDraftResourceType,
+  hasActiveParticipantSession,
+  type DesignerDraftResourceType,
+  type EditSessionListResult,
+} from "./designer/resumeDraft";
 import "../styles/editMode.css";
 
 const PANEL_MODE_KEY = "designer-panel-left-mode";
@@ -207,7 +213,7 @@ export function Designer({
   // 注意: useEditSession の resourceType が変わっても hook 内部 state (editSession/myRole) は
   // 自動リセットされない。startEditing は "編集開始" ボタン押下時に呼ばれるため、
   // editorKind 解決完了フラグ (editorKindResolved) で未解決中の startEditing をガードする。
-  const [resolvedEditSessionResourceType, setResolvedEditSessionResourceType] = useState<"screen" | "puck-data">("screen");
+  const [resolvedEditSessionResourceType, setResolvedEditSessionResourceType] = useState<DesignerDraftResourceType>("screen");
   const [editorKindResolved, setEditorKindResolved] = useState(false);
 
   // URL ?session= 同期 (spec §11.2) — initialEditSessionId を useEditSession に渡すため先に呼ぶ
@@ -235,37 +241,26 @@ export function Designer({
     setDirty(tabId, isDirtyForTab || isDirty);
   }, [tabId, isDirtyForTab, isDirty]);
 
-  // resume ダイアログ: readonly + sessionLoading 解除後に draft があれば表示
-  // Puck 画面は "puck-data" draft を確認し、GrapesJS 画面は "screen" draft を確認する
-  // (editorKind は解決後に設定されるため、両方確認して OR で判定)
+  // resume ダイアログ: readonly + sessionLoading 解除後に current editorKind の draft があれば表示
+  // GrapesJS は "screen"、Puck は "puck-data" のみを見る。別 resourceType の stale draft は対象外。
   useEffect(() => {
-    if (!screenId || sessionLoading) return;
+    if (!screenId || sessionLoading || !editorKindResolved) return;
     if (mode.kind !== "readonly") return;
     let cancelled = false;
+    const resourceType = resolvedEditSessionResourceType;
     (async () => {
-      // editorKind が puck なら puck-data draft を確認、それ以外 or 未解決なら screen draft も確認
       // workspace context が未確立の場合 WorkspaceUnsetError が返ることがあるため最大 25 回 retry する (200ms × 25 = 5s)
       for (let attempt = 0; attempt < 25 && !cancelled; attempt++) {
         try {
-          const [screenSessions, puckSessions] = await Promise.all([
-            mcpBridge.request("editSession.list", { resourceType: "screen", resourceId: screenId }) as Promise<{ sessions: Array<{ state?: string; participants?: Record<string, unknown> }> } | null>,
-            mcpBridge.request("editSession.list", { resourceType: "puck-data", resourceId: screenId }) as Promise<{ sessions: Array<{ state?: string; participants?: Record<string, unknown> }> } | null>,
-          ]);
+          const sessionsResult = await mcpBridge.request("editSession.list", { resourceType, resourceId: screenId }) as EditSessionListResult | null;
           if (cancelled) return;
           // #980-A: 自分が participant として参加していた Active session のみ対象。
           // 他人の Active session で自分が unparticipated の場合は ResumeOrDiscardDialog を出さない。
-          // GrapesJS / Puck 両経路 (resourceType: "screen" / "puck-data") で同 filter を適用。
           // 注: clientId 変化を伴う navigation flow で「自分の draft」 が resume できない問題は
           //   別途検出 (legacy localStorage rescue 経路や session restore で別途対処)、本 dialog の
           //   主旨「自分の未保存編集を復元」は participant filter で正しい意味を保つ。
           const mySessionId = mcpBridge.getSessionId();
-          const screenHasDraft = (screenSessions?.sessions ?? []).some((s) =>
-            s.state === "Active" && !!s.participants?.[mySessionId],
-          );
-          const puckHasDraft = (puckSessions?.sessions ?? []).some((s) =>
-            s.state === "Active" && !!s.participants?.[mySessionId],
-          );
-          if (screenHasDraft || puckHasDraft) setShowResumeDialog(true);
+          setShowResumeDialog(hasActiveParticipantSession(sessionsResult, mySessionId));
           return;
         } catch (err) {
           if (cancelled) return;
@@ -279,7 +274,7 @@ export function Designer({
       }
     })();
     return () => { cancelled = true; };
-  }, [screenId, sessionLoading, mode.kind]);
+  }, [screenId, sessionLoading, mode.kind, editorKindResolved, resolvedEditSessionResourceType]);
 
   // cssFramework と editorKind を画面 + プロジェクトから読み込む (screenId が変わるたびに再解決)。
   // 解決順序 (multi-editor-puck.md § 2.3 / css-framework-switching.md § 1.3.1 / #806 子 2/3):
@@ -300,7 +295,7 @@ export function Designer({
       const ek = resolveEditorKind(screen.design, raw.techStack);
       setEditorKind(ek);
       // P1-A: Puck 画面の editSession は "puck-data" branch を通すよう resourceType を更新する
-      setResolvedEditSessionResourceType(ek === "puck" ? "puck-data" : "screen");
+      setResolvedEditSessionResourceType(getDesignerDraftResourceType(ek));
       setEditorKindResolved(true);
     }).catch((e) => {
       console.warn("[Designer] cssFramework/editorKind resolve failed, using defaults", e);
