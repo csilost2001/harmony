@@ -102,6 +102,35 @@ function applyThemeToCanvas(editor: GEditor, variant: ThemeId, framework: CssFra
   }
 }
 
+/**
+ * Designer 表示専用のスクロール終端余白。
+ *
+ * #1432 で canvas iframe 自体の viewport 突き抜けは解消したが、iframe 内の最終要素が
+ * スクロール終端で下端に張り付くと、手動操作では「少し見切れている」ように見える。
+ * 保存される project CSS / preview 共通 CSS には混ぜず、編集 iframe にだけ余白を足す。
+ */
+function injectDesignerCanvasScrollPadding(editor: GEditor) {
+  try {
+    const canvasDoc = editor.Canvas.getDocument();
+    if (!canvasDoc) return;
+    if (canvasDoc.getElementById("harmony-designer-canvas-scroll-padding")) return;
+
+    const style = canvasDoc.createElement("style");
+    style.id = "harmony-designer-canvas-scroll-padding";
+    style.textContent = `
+body::after {
+  content: "";
+  display: block;
+  height: 32px;
+  flex: 0 0 32px;
+}
+`;
+    canvasDoc.head.appendChild(style);
+  } catch {
+    // canvas not ready
+  }
+}
+
 /** GrapesJS options を構築する。
  *
  * #815 PR-C で `storageManager.type: "none"` に変更。明示 load (editor.loadProjectData) +
@@ -403,6 +432,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
 
       // framework × variant の 2 軸 CSS を注入 (#793 子 5)
       applyThemeToCanvas(editorRef.current, themeVariantRef.current, cssFrameworkRef.current);
+      injectDesignerCanvasScrollPadding(editorRef.current);
       // カスタムブロック CSS をキャンバスに注入 (await の間に unmount された場合は editor を触らない)
       try {
         const customBlocks = await loadCustomBlocks();
