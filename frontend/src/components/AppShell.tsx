@@ -1039,22 +1039,30 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
           子 Route は外側 AppShell の <Route path="/w/:wsId"> の children として
           宣言されている。 */}
       {!activeIsDesign && (
-        <ErrorBoundary
-          resetKey={activeTabId}
-          context={{ tabId: activeTabId, type: activeTab?.type, pathname: location.pathname }}
-          fallback={(error, reset) => (
-            <TabErrorFallback
-              error={error}
-              tabLabel={activeTab?.label ?? "コンテンツ"}
-              onRetry={reset}
-              onClose={() => {
-                if (activeTabId) handleCloseCrashedTab(activeTabId);
-              }}
-            />
-          )}
+        <div
+          style={{
+            height: "calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px))",
+            minHeight: 0,
+            overflow: "hidden",
+          }}
         >
-          <Outlet />
-        </ErrorBoundary>
+          <ErrorBoundary
+            resetKey={activeTabId}
+            context={{ tabId: activeTabId, type: activeTab?.type, pathname: location.pathname }}
+            fallback={(error, reset) => (
+              <TabErrorFallback
+                error={error}
+                tabLabel={activeTab?.label ?? "コンテンツ"}
+                onRetry={reset}
+                onClose={() => {
+                  if (activeTabId) handleCloseCrashedTab(activeTabId);
+                }}
+              />
+            )}
+          >
+            <Outlet />
+          </ErrorBoundary>
+        </div>
       )}
     </>
   );
