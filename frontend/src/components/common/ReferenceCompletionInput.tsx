@@ -36,7 +36,7 @@ export function ReferenceCompletionInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const [cursorPos, setCursorPos] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [suppressed, setSuppressed] = useState(false);
+  const [suppressed, setSuppressed] = useState(true);
 
   const state = suppressed
     ? ({ phase: "idle" } as const)

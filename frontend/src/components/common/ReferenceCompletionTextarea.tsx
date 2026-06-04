@@ -36,7 +36,7 @@ export function ReferenceCompletionTextarea({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursorPos, setCursorPos] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [suppressed, setSuppressed] = useState(false);
+  const [suppressed, setSuppressed] = useState(true);
 
   const state = suppressed
     ? ({ phase: "idle" } as const)
