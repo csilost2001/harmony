@@ -4,6 +4,7 @@ import type { BlocksResultProps } from "@grapesjs/react";
 import { useEditorMaybe } from "@grapesjs/react";
 import type { Block } from "grapesjs";
 import { CUSTOM_BLOCK_CATEGORY } from "./design/DesignSubToolbar";
+import { GADGET_BLOCK_CATEGORY } from "../grapes/blocks";
 import { deleteCustomBlock } from "../store/customBlockStore";
 import { SharedBlockSyncModal } from "./SharedBlockSyncModal";
 
@@ -85,6 +86,7 @@ export function BlocksPanel({ mapCategoryBlocks, dragStart, dragStop }: BlocksRe
         {filtered.map(([cat, blocks]) => {
           const isCollapsed = query.trim() ? false : !!collapsed[cat];
           const isCustomCategory = cat === CUSTOM_BLOCK_CATEGORY;
+          const isGadgetCategory = cat === GADGET_BLOCK_CATEGORY;
           return (
             <section key={cat} className="blocks-category">
               <header
@@ -104,7 +106,7 @@ export function BlocksPanel({ mapCategoryBlocks, dragStart, dragStop }: BlocksRe
                     return (
                       <div
                         key={block.getId()}
-                        className={`block-item${isCustomCategory ? " custom-block" : ""}${isShared ? " shared-block" : ""}`}
+                        className={`block-item${isCustomCategory ? " custom-block" : ""}${isGadgetCategory ? " gadget-block" : ""}${isShared ? " shared-block" : ""}`}
                         draggable
                         onDragStart={(ev) => dragStart(block, ev.nativeEvent)}
                         onDragEnd={() => dragStop(false)}

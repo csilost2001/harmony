@@ -403,6 +403,16 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
   border-color: var(--dz-accent);
   transform: translateY(-1px);
 }
+.block-item.gadget-block {
+  border-color: rgba(20, 184, 166, 0.45);
+  background: rgba(20, 184, 166, 0.08);
+}
+.block-item.gadget-block .block-icon {
+  color: #0f766e;
+}
+.block-item.gadget-block:hover {
+  border-color: #0f766e;
+}
 .block-item:active {
   cursor: grabbing;
 }

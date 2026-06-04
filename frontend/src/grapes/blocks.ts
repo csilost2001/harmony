@@ -1,4 +1,4 @@
-import type { Editor, BlockProperties } from "grapesjs";
+import type { Editor, Block, BlockProperties } from "grapesjs";
 
 /* ==========================================================================
    ブロックカタログ — 業務システム向け標準部品 (semantic class 版 #793)
@@ -14,6 +14,13 @@ const CAT_FIELD  = "フィールド";
 const CAT_LIST   = "検索・一覧";
 const CAT_COMMON = "共通パーツ";
 const CAT_REGIONS = "Layout Regions";
+export const GADGET_BLOCK_CATEGORY = "ガジェット";
+const GADGET_BLOCK_ID_PREFIX = "gadget:";
+
+export interface GadgetBlockScreen {
+  id: string;
+  name: string;
+}
 
 // ---- HTML テンプレートヘルパ ----
 // form-field / field-label / field-value は common.css 独自 semantic class
@@ -50,6 +57,32 @@ const selectInput = () => `
 // ---- アイコン（Bootstrap Icons） ----
 const icon = (name: string) =>
   `<i class="bi bi-${name}" style="font-size:20px"></i>`;
+
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+const buildGadgetBlockContent = (gadget: GadgetBlockScreen) => {
+  const id = escapeHtml(gadget.id);
+  const name = escapeHtml(gadget.name || gadget.id);
+  return `
+    <div
+      class="harmony-gadget-instance"
+      data-harmony-component="gadget-instance"
+      data-gadget-screen-id="${id}"
+      data-gadget-screen-name="${name}"
+      contenteditable="false"
+    >
+      <div class="harmony-gadget-instance__badge">Gadget</div>
+      <div class="harmony-gadget-instance__title">${name}</div>
+      <div class="harmony-gadget-instance__id">${id}</div>
+    </div>
+  `.trim();
+};
 
 // ---- ブロック定義 ----
 export const appBlocks: (BlockProperties & { id: string })[] = [
@@ -409,3 +442,39 @@ export function registerBlocks(editor: Editor) {
   const bm = editor.BlockManager;
   appBlocks.forEach(({ id, ...props }) => bm.add(id, props));
 }
+
+export function registerGadgetBlocks(
+  editor: Editor,
+  gadgets: GadgetBlockScreen[],
+  currentScreenId: string,
+) {
+  const bm = editor.BlockManager;
+  const nextGadgets = gadgets
+    .filter((gadget) => gadget.id && gadget.id !== currentScreenId)
+    .map((gadget) => ({ ...gadget, blockId: `${GADGET_BLOCK_ID_PREFIX}${gadget.id}` }));
+  const nextBlockIds = new Set(nextGadgets.map((gadget) => gadget.blockId));
+
+  const existingBlocks = bm.getAll();
+  existingBlocks.forEach((block: Block) => {
+    const id = block.getId();
+    if (id.startsWith(GADGET_BLOCK_ID_PREFIX) && !nextBlockIds.has(id)) {
+      bm.remove(id);
+    }
+  });
+
+  nextGadgets.forEach((gadget) => {
+    if (bm.get(gadget.blockId)) {
+      bm.remove(gadget.blockId);
+    }
+    bm.add(gadget.blockId, {
+      label: gadget.name || gadget.id,
+      category: GADGET_BLOCK_CATEGORY,
+      media: icon("puzzle-fill"),
+      content: buildGadgetBlockContent(gadget),
+    });
+  });
+}
+
+export const __testExports = {
+  buildGadgetBlockContent,
+};

@@ -18,6 +18,7 @@ import type {
 import type { McpStatus } from "../../mcp/mcpBridge";
 import type { CssFramework } from "../../types/v3/harmony";
 import type { EditMode } from "../../hooks/useEditSession";
+import type { GadgetBlockScreen } from "../../grapes/blocks";
 import {
   composePreviewHtml,
   buildCompositionPreviewSrcDoc,
@@ -79,6 +80,7 @@ export interface GrapesEditorHostProps {
   pageLayoutCss?: string;
   gadgetCssMap?: Map<string, string>;
   onGrapesEditorReady?: (editor: import("grapesjs").Editor) => void;
+  gadgetBlocks?: GadgetBlockScreen[];
 }
 
 export function GrapesEditorHost(props: GrapesEditorHostProps) {
@@ -141,6 +143,7 @@ export function GrapesEditorHost(props: GrapesEditorHostProps) {
     onMcpStatusChange: props.onMcpStatusChange,
     onExternalThemeChange: props.onExternalThemeChange,
     reloadPayload: props.reloadPayload,
+    gadgetBlocks: props.gadgetBlocks,
     onGrapesEditorInstance: handleGrapesEditorInstance,
   };
 

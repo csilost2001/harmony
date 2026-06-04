@@ -44,7 +44,8 @@ import type {
   ThemeId,
 } from "./EditorBackend";
 import type { CssFramework } from "../types/v3/harmony";
-import { registerBlocks } from "../grapes/blocks";
+import { registerBlocks, registerGadgetBlocks } from "../grapes/blocks";
+import { syncGadgetInstancePreviews } from "../grapes/gadgetInstancePreview";
 import { registerValidationTraits } from "../grapes/validationTraits";
 import { attachDataItemIdAutoAssign } from "../grapes/dataItemId";
 import { attachScreenItemsSync, reconcileScreenItems } from "../grapes/screenItemsSync";
@@ -123,6 +124,77 @@ body::after {
   display: block;
   height: 32px;
   flex: 0 0 32px;
+}
+`;
+    canvasDoc.head.appendChild(style);
+  } catch {
+    // canvas not ready
+  }
+}
+
+function injectGadgetInstanceCss(editor: GEditor) {
+  try {
+    const canvasDoc = editor.Canvas.getDocument();
+    if (!canvasDoc) return;
+    if (canvasDoc.getElementById("harmony-gadget-instance-css")) return;
+
+    const style = canvasDoc.createElement("style");
+    style.id = "harmony-gadget-instance-css";
+    style.textContent = `
+.harmony-gadget-instance {
+  position: relative;
+  min-height: 88px;
+  padding: 30px 14px 14px;
+  border: 2px dashed #0f766e;
+  background: rgba(20, 184, 166, 0.08);
+  color: #0f172a;
+  box-sizing: border-box;
+}
+.harmony-gadget-instance.gjs-selected {
+  border-style: solid;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.18);
+}
+.harmony-gadget-instance::after {
+  content: "read-only gadget preview";
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  color: #0f766e;
+  font: 600 10px/1 system-ui, sans-serif;
+}
+.harmony-gadget-instance__badge {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 4px;
+  background: #0f766e;
+  color: #fff;
+  font: 700 11px/1 system-ui, sans-serif;
+}
+.harmony-gadget-instance__title {
+  font: 700 14px/1.4 system-ui, sans-serif;
+}
+.harmony-gadget-instance__id {
+  margin-top: 4px;
+  color: #475569;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.harmony-gadget-instance__preview {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.72);
+  pointer-events: none;
+  user-select: none;
+}
+.harmony-gadget-instance__preview.is-empty {
+  color: #64748b;
+  font: 12px/1.4 system-ui, sans-serif;
 }
 `;
     canvasDoc.head.appendChild(style);
@@ -251,6 +323,8 @@ interface GrapesJSEditorPaneProps {
   onExternalThemeChange?: (themeId: ThemeId) => void;
   /** raw GrapesJS Editor インスタンスを受け取る (pl-5 #1026、optional) */
   onGrapesEditorInstance?: (editor: GEditor) => void;
+  /** purpose="gadget" の Screen を block palette に登録するための metadata */
+  gadgetBlocks?: GrapesJSRenderEditorProps["gadgetBlocks"];
 }
 
 function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
@@ -272,15 +346,20 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
     onMcpStatusChange,
     onExternalThemeChange,
     onGrapesEditorInstance,
+    gadgetBlocks = [],
   } = props;
 
   const editorRef = useRef<GEditor | null>(null);
+  const gadgetBlocksRef = useRef(gadgetBlocks);
   // 初期 load 中および discard 中は markDirty を抑制 (component:* 内部発火を user 編集と区別)
   const isInternalLoadRef = useRef(true);
   const isReadonlyRef = useRef(isReadonly);
   useEffect(() => {
     isReadonlyRef.current = isReadonly;
   }, [isReadonly]);
+  useEffect(() => {
+    gadgetBlocksRef.current = gadgetBlocks;
+  }, [gadgetBlocks]);
 
   // canvas 状態
   const [ready, setReady] = useState(false);
@@ -359,6 +438,16 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       };
       editor.on("component:add component:remove component:update style:change", markDirty);
 
+      let previewTimer: ReturnType<typeof setTimeout> | null = null;
+      const scheduleGadgetPreviewSync = () => {
+        if (previewTimer) clearTimeout(previewTimer);
+        previewTimer = setTimeout(() => {
+          previewTimer = null;
+          syncGadgetInstancePreviews(editor, gadgetBlocksRef.current).catch(console.error);
+        }, 50);
+      };
+      editor.on("component:add component:update", scheduleGadgetPreviewSync);
+
       // #322: input/select/textarea ブロック drop 時に data-item-id を自動発番
       const unsubDataItemId = attachDataItemIdAutoAssign(editor);
 
@@ -384,19 +473,26 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       // - `oldId === screenId` → 自身が rename された場合
       // - 通常の screenChanged → 旧 filter 条件
       const unsubScreenChanged = mcpBridge.onBroadcast("screenChanged", (data) => {
-        if (!shouldNotifyScreenChanged(data, screenId)) return;
-        onServerChangedRef.current?.();
+        if (shouldNotifyScreenChanged(data, screenId)) {
+          onServerChangedRef.current?.();
+          return;
+        }
+        scheduleGadgetPreviewSync();
       });
+      const unsubProjectChanged = mcpBridge.onBroadcast("projectChanged", scheduleGadgetPreviewSync);
 
       return () => {
         unmounted = true;
+        if (previewTimer) clearTimeout(previewTimer);
         editor.off("component:add component:remove component:update style:change", markDirty);
+        editor.off("component:add component:update", scheduleGadgetPreviewSync);
         editor.off("block:drag:start", handleDragStart);
         editor.off("block:drag:stop", handleDragStop);
         unsubDataItemId();
         unsubScreenItemsSync();
         unsubStatus();
         unsubScreenChanged();
+        unsubProjectChanged();
         mcpBridge.setThemeHandler(null);
         mcpBridge.setCurrentScreenId(null);
         clearItemsFromCache(screenId);
@@ -404,6 +500,12 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
     },
     [screenId],
   );
+
+  useEffect(() => {
+    if (!ready || !editorRef.current) return;
+    registerGadgetBlocks(editorRef.current, gadgetBlocks, screenId);
+    syncGadgetInstancePreviews(editorRef.current, gadgetBlocks).catch(console.error);
+  }, [ready, gadgetBlocks, screenId]);
 
   /** GrapesJS init 完了時 — initialPayload を loadProjectData で適用 / theme 適用 /
    * カスタムブロック CSS 注入 / EditorApi expose。
@@ -433,6 +535,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       // framework × variant の 2 軸 CSS を注入 (#793 子 5)
       applyThemeToCanvas(editorRef.current, themeVariantRef.current, cssFrameworkRef.current);
       injectDesignerCanvasScrollPadding(editorRef.current);
+      injectGadgetInstanceCss(editorRef.current);
       // カスタムブロック CSS をキャンバスに注入 (await の間に unmount された場合は editor を触らない)
       try {
         const customBlocks = await loadCustomBlocks();
@@ -464,6 +567,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
             );
             editor.loadProjectData(safePayload);
             editor.UndoManager.clear();
+            await syncGadgetInstancePreviews(editor, gadgetBlocksRef.current);
           } finally {
             setTimeout(() => {
               isInternalLoadRef.current = false;
@@ -486,6 +590,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
               "external-set",
             );
             editor.loadProjectData(safePayload);
+            syncGadgetInstancePreviews(editor, gadgetBlocksRef.current).catch(console.error);
           } finally {
             setTimeout(() => {
               isInternalLoadRef.current = false;
@@ -670,6 +775,7 @@ export class GrapesJSBackend implements EditorBackend<GrapesJSRenderEditorProps>
         onServerChanged={props.onServerChanged}
         onMcpStatusChange={props.onMcpStatusChange}
         onExternalThemeChange={props.onExternalThemeChange}
+        gadgetBlocks={props.gadgetBlocks}
         onGrapesEditorInstance={props.onGrapesEditorInstance}
       />
     );
