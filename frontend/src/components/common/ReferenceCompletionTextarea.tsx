@@ -36,6 +36,7 @@ export function ReferenceCompletionTextarea({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [cursorPos, setCursorPos] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  // マウント直後はフォーカスされていないため抑制状態で開始 (#1438)
   const [suppressed, setSuppressed] = useState(true);
 
   const state = suppressed
