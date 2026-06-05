@@ -12,8 +12,9 @@
 
 .screen-items-content {
   flex: 1;
-  overflow-y: auto;
+  overflow: auto;
   padding: 8px 14px;
+  min-width: 0;
 }
 
 .screen-items-empty {
@@ -27,25 +28,27 @@
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   padding: 8px;
+  overflow-x: auto;
 }
 
 .screen-items-table {
   width: 100%;
+  min-width: 1280px;
   table-layout: fixed;
   border-collapse: collapse;
 }
 
 .screen-items-table thead th {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: #64748b;
-  padding: 4px 6px;
+  padding: 7px 8px;
   border-bottom: 1px solid #cbd5e1;
   text-align: left;
 }
 
 .screen-items-table tbody td {
-  padding: 3px 6px;
+  padding: 6px 8px;
   vertical-align: middle;
   border-bottom: 1px solid #f1f5f9;
 }
@@ -56,11 +59,10 @@
 
 .screen-items-table input.form-control {
   width: 100%;
-  padding: 2px 6px;
-  font-size: 0.8rem;
+  padding: 4px 8px;
+  font-size: 0.82rem;
   min-width: 0;
-  min-height: 26px;
-  height: 28px;
+  min-height: 30px;
 }
 
 .screen-items-no {
@@ -77,7 +79,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
+}
+
+.screen-items-actions-cell .btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
 }
 
 .screen-items-empty-row {
@@ -93,9 +104,11 @@
   gap: 8px;
   margin-top: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 .screen-items-add {
   font-size: 0.82rem;
+  white-space: nowrap;
 }
 .screen-items-screen-select {
   min-width: 14em;
@@ -178,7 +191,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 13em;
+  min-width: min(100%, 16em);
   flex: 1;
 }
 .screen-items-detail-label {
@@ -214,7 +227,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 14em;
+  min-width: min(100%, 16em);
   flex: 1;
 }
 .screen-items-event-label {

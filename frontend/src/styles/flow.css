@@ -663,6 +663,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .screen-table-search {
@@ -675,6 +677,7 @@
   gap: 6px;
   flex: 1;
   max-width: 400px;
+  min-width: 180px;
 }
 
 .screen-table-search i {
@@ -842,6 +845,27 @@
 .screen-table-actions {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .screen-table-view {
+    padding: 12px;
+  }
+
+  .screen-table-toolbar {
+    align-items: stretch;
+  }
+
+  .screen-table-search {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .screen-table-count {
+    order: 3;
+  }
 }
 
 .screen-table-btn {

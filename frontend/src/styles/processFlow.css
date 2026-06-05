@@ -23,6 +23,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .process-flow-list-header h5 {
@@ -35,11 +37,13 @@
   gap: 8px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .process-flow-list-filters .btn {
   font-size: 0.82rem;
   padding: 4px 12px;
+  white-space: nowrap;
 }
 
 .process-flow-list-filters .btn.active {
@@ -51,6 +55,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 /* ─── 種別バッジ (list/table 共通) ────────────────────────────────── */
@@ -155,6 +162,7 @@
   color: #475569;
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
 }
 
 /* ─── 処理フロー編集 ─────────────────────────────────────────────── */
@@ -720,7 +728,6 @@
 }
 
 .process-flow-page .editor-header .btn,
-.process-flow-page .edit-mode-toolbar .btn,
 .process-flow-page .save-reset-buttons .btn,
 .process-flow-page .edit-session-dropdown-toggle {
   min-height: 30px;
@@ -740,7 +747,6 @@
 }
 
 .process-flow-page .editor-header .btn:hover,
-.process-flow-page .edit-mode-toolbar .btn:hover,
 .process-flow-page .save-reset-buttons .btn:hover,
 .process-flow-page .edit-session-dropdown-toggle:hover {
   border-color: #2563eb;
@@ -749,14 +755,12 @@
 }
 
 .process-flow-page .editor-header .btn-primary,
-.process-flow-page .edit-mode-toolbar .btn-primary,
 .process-flow-page .save-reset-buttons .btn-primary {
   border-color: #2563eb;
   background: #2563eb;
   color: #fff;
 }
 
-.process-flow-page .edit-mode-toolbar .btn-success,
 .process-flow-page .save-reset-buttons .btn-success {
   border-color: #16a34a;
   background: #16a34a;
@@ -764,12 +768,30 @@
 }
 
 .process-flow-page .editor-header .btn-primary:hover,
-.process-flow-page .edit-mode-toolbar .btn-primary:hover,
 .process-flow-page .save-reset-buttons .btn-primary:hover,
-.process-flow-page .edit-mode-toolbar .btn-success:hover,
 .process-flow-page .save-reset-buttons .btn-success:hover {
   filter: brightness(0.96);
   color: #fff;
+}
+
+@media (max-width: 640px) {
+  .process-flow-content {
+    padding: 12px;
+  }
+
+  .process-flow-list-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .process-flow-list-header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .process-flow-list-filter-sep {
+    display: none;
+  }
 }
 
 .process-flow-page .edit-mode-toolbar--editing::before {

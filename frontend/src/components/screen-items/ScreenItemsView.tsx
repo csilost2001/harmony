@@ -961,7 +961,7 @@ export function ScreenItemsView() {
                 <col style={{ width: "5em" }} />
                 <col style={{ width: "12em" }} />
                 <col />
-                <col style={{ width: 76 }} />
+                <col style={{ width: 164 }} />
               </colgroup>
               <thead>
                 <tr>

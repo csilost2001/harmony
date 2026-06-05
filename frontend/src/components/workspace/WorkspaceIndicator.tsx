@@ -73,10 +73,12 @@ export function WorkspaceIndicator() {
 
   return (
     <div
+      className="workspace-indicator"
       ref={dropdownRef}
       style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
     >
       <button
+        className="workspace-indicator-toggle"
         onClick={() => setOpen((v) => !v)}
         title={
           lockdown
@@ -108,6 +110,7 @@ export function WorkspaceIndicator() {
           <i className="bi bi-folder2" style={{ color: "#4dabf7" }} />
         )}
         <span
+          className="workspace-indicator-name"
           data-testid="workspace-indicator-name"
           style={{
             overflow: "hidden",

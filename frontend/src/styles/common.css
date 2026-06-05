@@ -345,8 +345,33 @@ body:has(.form-footer) {
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--app-border);
+  min-width: 0;
+  flex-wrap: wrap;
 }
-.data-table-toolbar .spacer { flex: 1 1 auto; }
+.data-table-toolbar .spacer { flex: 1 1 auto; min-width: 16px; }
+.data-table-toolbar :where(.btn, button, input, select) {
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .data-table-toolbar {
+    align-items: stretch;
+  }
+
+  .data-table-toolbar .spacer {
+    display: none;
+  }
+
+  .data-table-toolbar :where(.btn, button) {
+    min-width: max-content;
+    white-space: nowrap;
+  }
+
+  .search-area .search-buttons {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
 .data-table {
   width: 100%;
   border-collapse: collapse;
