@@ -16,7 +16,11 @@ import path from "path";
 import { randomBytes } from "node:crypto";
 import type { DraftHistoryStore } from "./draftHistoryStore.js";
 import { assertPathContained } from "./security/idValidator.js";
-import { DRAFT_RESOURCE_TYPES, type DraftResourceType } from "@harmony/shared";
+import {
+  DRAFT_RESOURCE_TYPES,
+  EDIT_SESSION_TTL_DAYS,
+  type DraftResourceType,
+} from "@harmony/shared";
 
 // ── 公開型定義 (spec §3.2 / §10.2) ──────────────────────────────────────────
 
@@ -227,7 +231,7 @@ export class EditSessionStore {
     },
   ): EditSession {
     const now = new Date();
-    const ttlDays = opts?.ttlDays ?? 7;
+    const ttlDays = opts?.ttlDays ?? EDIT_SESSION_TTL_DAYS;
     const expiresAt = new Date(now.getTime() + ttlDays * 24 * 60 * 60 * 1000).toISOString();
     const id = generateEditSessionId();
     const nowIso = now.toISOString();

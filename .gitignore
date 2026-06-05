@@ -79,6 +79,7 @@ data/.drafts/
 
 # 編集セッション履歴 FS (#897)
 .edit-sessions/
+.edit-sessions-history/
 
 # Playwright test artifacts
 frontend/test-results/

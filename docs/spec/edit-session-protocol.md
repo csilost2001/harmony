@@ -167,7 +167,7 @@ EditSession は 3 つの **state** を持つ:
                 │
                 ├──→ (明示 discard) ──→ Discarded ──→ (retention 経過 / 明示 delete) ──→ [Deleted]
                 │
-                └──→ (TTL 7 日経過) ──→ Discarded ──→ (retention 30 日経過 / 明示 delete) ──→ [Deleted]
+                └──→ (TTL 2 日経過) ──→ Discarded ──→ (retention 7 日経過 / 明示 delete) ──→ [Deleted]
 ```
 
 注: 削除は **2 段階**:
@@ -187,9 +187,9 @@ EditSession は 3 つの **state** を持つ:
 | **3** | B が編集取得 (take-over) | **atomic**: A.role: Edit → View、B.role: View → Edit (順序: View 先 / Edit 後)、editSessionId 不変、payload 不変 |
 | **4** | B が編集終了 (release) | B.role: Edit → View、participants = `{ A: View, B: View }` (= editor 不在状態) |
 | **5** | 誰かが save | payload を本体ファイルに書く、saveHistory に追加、state 不変 (Active 継続) |
-| **6a** | 明示 discard / TTL (7 日) 経過 | state: Active → Discarded、retention 期間中は復元可能 |
-| **6b** | 明示 delete / retention (30 日) 経過 | EditSession 完全削除 (memory + history FS から消去)、復元不能 |
-| **6** | 7 日経過 / 明示 delete | EditSession 完全終了、memory + history FS から削除 |
+| **6a** | 明示 discard / `ttlDays` 経過 | state: Active → Discarded、retention 期間中は復元可能 |
+| **6b** | 明示 delete / `discardedRetentionDays` 経過 | EditSession 完全削除 (memory + history FS から消去)、復元不能 |
+| **6** | `ttlDays + discardedRetentionDays` 経過 / 明示 delete | EditSession 完全終了、memory + history FS から削除 |
 
 ### 5.1 step 4 の意味 (Q1 合意)
 
@@ -449,16 +449,20 @@ AI が Edit role の場合も自動削除対象外。詳細は § 12.2。
 ```json
 {
   "editSession": {
-    "ttlDays": 7,
-    "discardedRetentionDays": 30
+    "ttlDays": 2,
+    "discardedRetentionDays": 7,
+    "draftHistoryRetentionDays": 7
   }
 }
 ```
 
 | 設定 | デフォルト | 意味 |
 |---|---|---|
-| `editSession.ttlDays` | 7 | Active からの最終操作経過時間 (これを超えると Discarded に自動遷移) |
-| `editSession.discardedRetentionDays` | 30 | Discarded からの追加保持期間 (これを超えると完全削除) |
+| `editSession.ttlDays` | 2 | Active からの最終操作経過時間 (これを超えると Discarded に自動遷移) |
+| `editSession.discardedRetentionDays` | 7 | Discarded からの追加保持期間 (これを超えると完全削除) |
+| `editSession.draftHistoryRetentionDays` | 7 | save / discard / transferEdit 時の payload snapshot 保持期間 |
+
+現行実装の実効値は `@harmony/shared` の `EDIT_SESSION_TTL_DAYS` / `EDIT_SESSION_DISCARDED_RETENTION_DAYS` / `DRAFT_HISTORY_RETENTION_DAYS` を単一 source-of-truth とする。UI 文言は固定日数を書かず、これらの実効値または将来の workspace 設定値から表示する。
 
 ### 12.2 自動削除規則 (Q4 合意)
 
@@ -500,7 +504,7 @@ EditSession 単位で判定:
 
 UI:
 - EditSessionDropdown または一覧画面のコンテキストメニューに「破棄」/「完全削除」 の 2 操作を提供
-- 「破棄」の confirm: 「この編集セッションを破棄しますか? 30 日間は復元可能です」
+- 「破棄」の confirm: 「この編集セッションを破棄しますか? {discardedRetentionDays} 日間は復元可能です」
 - 「完全削除」の confirm: 「履歴から完全に削除しますか? 復元不能です」
 - 「完全削除」は Discarded 状態の EditSession にのみ提供 (Active からの直接 delete は禁止、安全策)
 
@@ -605,7 +609,7 @@ draft history snapshot は以下のパスに保存する:
 
 snapshot 取得契機は EditSession の `discard` / `transferEdit` / `save` 時。fire-and-forget で記録され、本処理を阻害しない。
 
-7 日経過した snapshot は `cleanupExpired({ olderThanDays: 7 })` で自動削除される。削除は `setInterval` 1 時間周期の cleanup に組み込む (§ 12.4 参照)。
+`draftHistoryRetentionDays` を経過した snapshot は `cleanupExpired({ olderThanDays })` で自動削除される。削除は `setInterval` 1 時間周期の cleanup に組み込む (§ 12.4 参照)。
 
 なお `.edit-sessions-history/` は § 13.4 表の `.edit-sessions/` (EditSession 本体 history FS) とは別ディレクトリである。前者は **payload snapshot** の保持、後者は **EditSession 自体 (metadata + saveHistory)** の保持と責務が分かれる。
 

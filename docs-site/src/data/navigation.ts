@@ -42,6 +42,7 @@ export const navigation: Record<string, NavGroup[]> = {
       title: 'Screen / Layout / View',
       items: [
         { id: 'screen-items', title: '画面項目定義' },
+        { id: 'design-payload-storage', title: 'Design payload storage' },
         { id: 'page-layout', title: 'PageLayout' },
         { id: 'view-definition', title: 'ViewDefinition' },
         { id: 'list-common', title: '一覧共通仕様' },
