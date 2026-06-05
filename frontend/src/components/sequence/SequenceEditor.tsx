@@ -30,6 +30,7 @@ import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { generateSequenceDdl } from "./generateSequenceDdl";
 import type { Table, NumberingEntry } from "../../types/v3";
+import "../../styles/table.css";
 import "../../styles/editMode.css";
 
 interface TableColumnOption {
