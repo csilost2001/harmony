@@ -14,6 +14,7 @@ import fs from "fs/promises";
 import path from "path";
 import { assertPathContained, assertHistoryId } from "./security/idValidator.js";
 import { DRAFT_HISTORY_RETENTION_DAYS } from "@harmony/shared";
+import { deflateDesignComponents, inflateDesignComponents } from "./designPayloadStorage.js";
 
 // ── 公開型定義 ────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,10 @@ function historyFilePath(
  */
 function timestampToFileSegment(isoString: string): string {
   return isoString.replace(/:/g, "-");
+}
+
+function isDesignPayloadResource(resourceType: string): boolean {
+  return resourceType === "screen" || resourceType === "page-layout-design";
 }
 
 /**
@@ -120,6 +125,14 @@ export class DraftHistoryStore {
     const dir = historyDir(this.workspaceRoot, resourceType, resourceId);
     await fs.mkdir(dir, { recursive: true });
     const filePath = historyFilePath(this.workspaceRoot, resourceType, resourceId, historyId);
+    if (isDesignPayloadResource(resourceType)) {
+      const payloadDir = path.join(dir, historyId);
+      assertPathContained(payloadDir, this.workspaceRoot);
+      await fs.mkdir(payloadDir, { recursive: true });
+      const designPayload = await deflateDesignComponents({ data: snapshot, baseDir: payloadDir, baseName: "payload" });
+      await fs.writeFile(path.join(payloadDir, "payload.design.json"), JSON.stringify(designPayload, null, 2), "utf-8");
+      entry.snapshot = { payloadRef: `${historyId}/payload.design.json` };
+    }
 
     await fs.writeFile(filePath, JSON.stringify(entry, null, 2), "utf-8");
     return entry;
@@ -151,6 +164,9 @@ export class DraftHistoryStore {
       try {
         const content = await fs.readFile(filePath, "utf-8");
         const entry = JSON.parse(content) as DraftHistoryEntry;
+        if (isDesignPayloadResource(entry.resourceType)) {
+          entry.snapshot = await this.inflateHistorySnapshot(entry, dir);
+        }
         results.push(entry);
       } catch {
         // 破損ファイルは無視
@@ -203,7 +219,11 @@ export class DraftHistoryStore {
         assertPathContained(filePath, this.workspaceRoot);
         try {
           const content = await fs.readFile(filePath, "utf-8");
-          return JSON.parse(content) as DraftHistoryEntry;
+          const entry = JSON.parse(content) as DraftHistoryEntry;
+          if (isDesignPayloadResource(entry.resourceType)) {
+            entry.snapshot = await this.inflateHistorySnapshot(entry, path.dirname(filePath));
+          }
+          return entry;
         } catch {
           // ファイルが存在しない場合は次へ
         }
@@ -256,6 +276,7 @@ export class DraftHistoryStore {
             if (stat.mtimeMs < cutoff) {
               await fs.unlink(filePath);
               const historyId = file.replace(/\.json$/, "");
+              await fs.rm(path.join(ridDir, historyId), { recursive: true, force: true });
               deleted.push(historyId);
             }
           } catch {
@@ -274,5 +295,15 @@ export class DraftHistoryStore {
     }
 
     return deleted;
+  }
+
+  private async inflateHistorySnapshot(entry: DraftHistoryEntry, dir: string): Promise<unknown> {
+    const payloadRef = typeof (entry.snapshot as { payloadRef?: unknown } | null)?.payloadRef === "string"
+      ? (entry.snapshot as { payloadRef: string }).payloadRef
+      : `${entry.historyId}/payload.design.json`;
+    const payloadPath = path.join(dir, payloadRef);
+    assertPathContained(payloadPath, this.workspaceRoot);
+    const designPayload = JSON.parse(await fs.readFile(payloadPath, "utf-8"));
+    return inflateDesignComponents(designPayload, path.dirname(payloadPath));
   }
 }

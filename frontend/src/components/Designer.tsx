@@ -50,6 +50,11 @@ export type ThemeId = "standard" | "card" | "compact" | "dark";
 export interface DesignerProps {
   screenId: string;
   screenName?: string;
+  editSessionResourceType?: DesignerDraftResourceType;
+  editSessionResourceId?: string;
+  designEditorKind?: EditorKind;
+  designCssFramework?: CssFramework;
+  loadCommittedDesign?: () => Promise<unknown>;
   onBack?: () => void;
   isActive?: boolean;
   /**
@@ -86,6 +91,11 @@ export interface DesignerProps {
 export function Designer({
   screenId,
   screenName,
+  editSessionResourceType,
+  editSessionResourceId,
+  designEditorKind,
+  designCssFramework,
+  loadCommittedDesign,
   onBack,
   isActive,
   onGrapesEditorReady,
@@ -233,6 +243,7 @@ export function Designer({
 
   // useEditSession — TableEditor:77 と同型
   const sessionId = mcpBridge.getSessionId();
+  const effectiveEditSessionResourceId = editSessionResourceId ?? screenId;
 
   // P1-A fix (#908): editorKind が "puck" の場合は resourceType を "puck-data" にする。
   // editorKind 解決は非同期 (useEffect) のため、解決前は "screen" を仮置きし、
@@ -240,13 +251,13 @@ export function Designer({
   // 注意: useEditSession の resourceType が変わっても hook 内部 state (editSession/myRole) は
   // 自動リセットされない。startEditing は "編集開始" ボタン押下時に呼ばれるため、
   // editorKind 解決完了フラグ (editorKindResolved) で未解決中の startEditing をガードする。
-  const [resolvedEditSessionResourceType, setResolvedEditSessionResourceType] = useState<DesignerDraftResourceType>("screen");
+  const [resolvedEditSessionResourceType, setResolvedEditSessionResourceType] = useState<DesignerDraftResourceType>(editSessionResourceType ?? "screen");
   const [editorKindResolved, setEditorKindResolved] = useState(false);
 
   // URL ?session= 同期 (spec §11.2) — initialEditSessionId を useEditSession に渡すため先に呼ぶ
   const { syncSessionToUrl, initialEditSessionId: initialDesignSessionId } = useSessionUrlSync({
     resourceType: resolvedEditSessionResourceType,
-    resourceId: screenId,
+    resourceId: effectiveEditSessionResourceId,
   });
 
   // P2-2 fix (#907): URL ?session= から復元した initialEditSessionId を渡す (URL 招待 attach 復活)
@@ -255,7 +266,7 @@ export function Designer({
   // hook 内部 state は不整合のまま残る。resolved 後に正しい resourceType で attach する。
   const { editSession, mode, loading: sessionLoading, isDirtyForTab, actions: editActions, attach: editAttach, takeOver: editTakeOver, saveConflict, onSaveConflictOverwrite, onSaveConflictCancel } = useEditSession({
     resourceType: resolvedEditSessionResourceType,
-    resourceId: screenId,
+    resourceId: effectiveEditSessionResourceId,
     sessionId,
     editSessionId: editorKindResolved ? initialDesignSessionId : undefined,
   });
@@ -279,7 +290,7 @@ export function Designer({
       // workspace context が未確立の場合 WorkspaceUnsetError が返ることがあるため最大 25 回 retry する (200ms × 25 = 5s)
       for (let attempt = 0; attempt < 25 && !cancelled; attempt++) {
         try {
-          const sessionsResult = await mcpBridge.request("editSession.list", { resourceType, resourceId: screenId }) as EditSessionListResult | null;
+          const sessionsResult = await mcpBridge.request("editSession.list", { resourceType, resourceId: effectiveEditSessionResourceId }) as EditSessionListResult | null;
           if (cancelled) return;
           // #980-A: 自分が participant として参加していた Active session のみ対象。
           // 他人の Active session で自分が unparticipated の場合は ResumeOrDiscardDialog を出さない。
@@ -301,7 +312,7 @@ export function Designer({
       }
     })();
     return () => { cancelled = true; };
-  }, [screenId, sessionLoading, mode.kind, editorKindResolved, resolvedEditSessionResourceType]);
+  }, [effectiveEditSessionResourceId, screenId, sessionLoading, mode.kind, editorKindResolved, resolvedEditSessionResourceType]);
 
   // cssFramework と editorKind を画面 + プロジェクトから読み込む (screenId が変わるたびに再解決)。
   // 解決順序 (multi-editor-puck.md § 2.3 / css-framework-switching.md § 1.3.1 / #806 子 2/3):
@@ -311,6 +322,15 @@ export function Designer({
   // P1-A fix (#908): editorKind が決まったら resolvedEditSessionResourceType を更新する。
   useEffect(() => {
     let cancelled = false;
+    if (designEditorKind) {
+      const fw = designCssFramework ?? "bootstrap";
+      setCssFramework(fw);
+      cssFrameworkRef.current = fw;
+      setEditorKind(designEditorKind);
+      setResolvedEditSessionResourceType(editSessionResourceType ?? getDesignerDraftResourceType(designEditorKind));
+      setEditorKindResolved(true);
+      return () => { cancelled = true; };
+    }
     Promise.all([
       loadRawProject(),
       loadScreenEntity(screenId),
@@ -322,7 +342,7 @@ export function Designer({
       const ek = resolveEditorKind(screen.design, raw.techStack);
       setEditorKind(ek);
       // P1-A: Puck 画面の editSession は "puck-data" branch を通すよう resourceType を更新する
-      setResolvedEditSessionResourceType(getDesignerDraftResourceType(ek));
+      setResolvedEditSessionResourceType(editSessionResourceType ?? getDesignerDraftResourceType(ek));
       setEditorKindResolved(true);
     }).catch((e) => {
       console.warn("[Designer] cssFramework/editorKind resolve failed, using defaults", e);
@@ -332,7 +352,7 @@ export function Designer({
       if (!cancelled) setEditorKindResolved(true);
     });
     return () => { cancelled = true; };
-  }, [screenId]);
+  }, [designCssFramework, designEditorKind, editSessionResourceType, screenId]);
 
   // cssFrameworkRef を cssFramework state と同期 (onReady closure から参照するため)
   useEffect(() => {
@@ -370,7 +390,7 @@ export function Designer({
   // 後の UI 表示 (edit-mode-start visible) より遅い。本関数で早期検知する。
   const grapesDraftRead = useCallback(async (): Promise<unknown> => {
     try {
-      const sessionsResult = await mcpBridge.request("editSession.list", { resourceType: "screen", resourceId: screenId }) as { sessions: Array<{ id: string }> } | null;
+      const sessionsResult = await mcpBridge.request("editSession.list", { resourceType: resolvedEditSessionResourceType, resourceId: effectiveEditSessionResourceId }) as { sessions: Array<{ id: string }> } | null;
       if (sessionsResult && sessionsResult.sessions.length > 0) {
         const esId = sessionsResult.sessions[0].id;
         const payloadResult = await mcpBridge.request("editSession.fetchPayload", { editSessionId: esId }) as { payload: unknown } | null;
@@ -382,7 +402,9 @@ export function Designer({
       // MCP 未接続等で draft check 失敗 → 本体 fallback
     }
     try {
-      const data = await mcpBridge.request("loadScreen", { screenId }) as Record<string, unknown> | null;
+      const data = (loadCommittedDesign
+        ? await loadCommittedDesign()
+        : await mcpBridge.request("loadScreen", { screenId })) as Record<string, unknown> | null;
       if (data && typeof data === "object") {
         const keys = Object.keys(data);
         if (keys.length === 0) {
@@ -409,7 +431,7 @@ export function Designer({
       // MCP error → null を返す (GrapesJSEditorPane で ensureValidProject 適用)
     }
     return null;
-  }, [screenId]);
+  }, [effectiveEditSessionResourceId, loadCommittedDesign, resolvedEditSessionResourceType, screenId]);
 
   // GrapesJS の reloadPayload — discard / serverChange reload 時に最新 payload を取得する
   const grapesReloadPayload = useCallback(async (): Promise<unknown> => {
@@ -660,7 +682,7 @@ export function Designer({
   const puckDraftRead = useCallback(async (): Promise<unknown> => {
     // M-2: 2 段フォールバック — EditSession draft → committed puck-data.json → EMPTY (#806)
     try {
-      const sessionsResult = await mcpBridge.request("editSession.list", { resourceType: "puck-data", resourceId: screenId }) as { sessions: Array<{ id: string }> } | null;
+      const sessionsResult = await mcpBridge.request("editSession.list", { resourceType: resolvedEditSessionResourceType, resourceId: effectiveEditSessionResourceId }) as { sessions: Array<{ id: string }> } | null;
       if (sessionsResult && sessionsResult.sessions.length > 0) {
         const esId = sessionsResult.sessions[0].id;
         const payloadResult = await mcpBridge.request("editSession.fetchPayload", { editSessionId: esId }) as { payload: unknown } | null;
@@ -671,10 +693,12 @@ export function Designer({
     } catch {
       // MCP 未接続等 → fallback
     }
-    const committedData = await mcpBridge.loadPuckData(screenId);
+    const committedData = loadCommittedDesign
+      ? await loadCommittedDesign()
+      : await mcpBridge.loadPuckData(screenId);
     if (committedData !== null) return committedData;
     return null;
-  }, [screenId]);
+  }, [effectiveEditSessionResourceId, loadCommittedDesign, resolvedEditSessionResourceType, screenId]);
 
   // Puck の reloadPayload — discard / serverChange reload 時に Puck 側へ最新 payload を反映する
   // (#815 Codex Must-fix #2/#3: Puck も EditorApi.reload() で再ロードするための関数)

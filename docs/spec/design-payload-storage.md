@@ -1,6 +1,6 @@
 # Design Payload Storage
 
-**Status**: RFC implementation policy for #1448
+**Status**: Implemented for #1448 (GrapesJS `componentsRef` + `.components.html`)
 **Created**: 2026-06-05
 **Related**: #1448, edit-session-protocol.md, page-layout.md, screen-items.md
 
@@ -24,7 +24,7 @@ HTML.
 
 ## 2. Canonical Format
 
-For GrapesJS payloads, `.design.json` may reference an external HTML companion
+For GrapesJS payloads, `.design.json` references an external HTML companion
 file:
 
 ```json
@@ -52,7 +52,7 @@ The companion file contains raw HTML:
 </main>
 ```
 
-CSS can follow the same pattern later with `stylesRef`, but #1448 starts with
+CSS can follow the same pattern later with `stylesRef`, but #1448 implements
 HTML because that is where the current diff and editing cost is highest.
 
 ## 3. Paths
@@ -68,8 +68,10 @@ Draft and history artifacts are not Git-tracked:
 
 | Kind | Path |
 |---|---|
-| Active draft | `<workspaceRoot>/.edit-sessions/<editSessionId>/payload.design.json` + `payload.components.html` |
-| Draft history | `<workspaceRoot>/.edit-sessions-history/<resourceType>/<resourceId>/<historyId>/payload.design.json` + `payload.components.html` |
+| Active draft metadata | `<workspaceRoot>/.edit-sessions/<editSessionId>.json` |
+| Active draft design payload | `<workspaceRoot>/.edit-sessions/<editSessionId>/payload.design.json` + `payload.components.html` |
+| Draft history metadata | `<workspaceRoot>/.edit-sessions-history/<resourceType>/<resourceId>/<historyId>.json` |
+| Draft history design payload | `<workspaceRoot>/.edit-sessions-history/<resourceType>/<resourceId>/<historyId>/payload.design.json` + `payload.components.html` |
 
 These paths are intentionally workspace-local cache/state. They must remain
 outside Git-managed canonical samples unless explicitly exported.
@@ -95,7 +97,9 @@ Save:
 Legacy compatibility:
 
 - Existing `.design.json` files with inline `components` remain readable.
-- New writes should prefer `componentsRef` once the adapter is implemented.
+- New writes use `componentsRef`.
+- If a later write no longer contains inline `components`, stale companion files for
+  the same base name are removed.
 - Utilities should call an "effective GrapesJS HTML" resolver instead of reading
   `component.components` directly.
 

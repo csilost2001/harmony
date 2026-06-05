@@ -53,7 +53,7 @@ function assertResourceTypeMcp(rt: unknown, label: string): DraftResourceType {
  *
  * resourceType 別の resourceId 検証ポリシー (editSessionService.ts:352-407 の write*
  * 経路と整合):
- * - top-level entity (`screen` / `table` / `process-flow` / `view` /
+ * - top-level entity (`screen` / `page-layout-design` / `table` / `process-flow` / `view` /
  *   `view-definition` / `page-layout` / `sequence`):
  *   → 直接 write 経路 (writeScreen / writeTable / ...) で渡されるため
  *     EntityId 検証必須 (RFC #1284 / S-002)。
@@ -65,7 +65,7 @@ function assertResourceTypeMcp(rt: unknown, label: string): DraftResourceType {
  *   外し空文字のみ拒否。
  */
 const TOP_LEVEL_RESOURCE_TYPES = new Set([
-  "screen", "table", "process-flow", "view", "view-definition", "page-layout", "sequence",
+  "screen", "page-layout-design", "table", "process-flow", "view", "view-definition", "page-layout", "sequence",
 ]);
 
 /** screenId 相当 (EntityId for screen) を持つ副次 resource。 */
@@ -245,7 +245,7 @@ export const handleEditSessionTool: ToolHandler = async (name, args, _root, sess
       if (typeof a.editSessionId !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "editSessionId は必須です");
       }
-      const result = wsBridge.editSessionFetchPayload(sessionId, a.editSessionId);
+      const result = await wsBridge.editSessionFetchPayload(sessionId, a.editSessionId);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
 

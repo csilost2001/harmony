@@ -1,6 +1,6 @@
 import type { EditorKind } from "../../utils/resolveEditorKind";
 
-export type DesignerDraftResourceType = "screen" | "puck-data";
+export type DesignerDraftResourceType = "screen" | "page-layout-design" | "puck-data";
 
 export interface EditSessionListResult {
   sessions: Array<{

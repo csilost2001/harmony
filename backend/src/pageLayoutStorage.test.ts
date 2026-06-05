@@ -20,6 +20,8 @@ import {
   writePageLayout,
   deletePageLayoutFile,
   listAllPageLayouts,
+  readPageLayoutDesign,
+  writePageLayoutDesign,
 } from "./projectStorage.js";
 
 const TMP_ROOT = path.join(os.tmpdir(), `page-layout-storage-test-${process.pid}-${Date.now()}`);
@@ -171,6 +173,40 @@ describe("PageLayout CRUD (projectStorage)", () => {
     const data = await readPageLayout("pl-update", root) as Record<string, unknown>;
     expect(data.name).toBe("New Name");
     expect(data.updatedAt).toBe("2026-06-01T00:00:00.000Z");
+  });
+
+  it("writePageLayoutDesign は GrapesJS components string を .components.html に分離し、readPageLayoutDesign で復元する (#1448)", async () => {
+    const payload = {
+      assets: [],
+      styles: [],
+      pages: [
+        {
+          frames: [
+            {
+              component: {
+                type: "wrapper",
+                components: "<section data-region-name=\"main\"></section>\n",
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    await writePageLayoutDesign("pl-components-ref", payload, root);
+    const designPath = path.join(root, "harmony", "page-layouts", "pl-components-ref.design.json");
+    const htmlPath = path.join(root, "harmony", "page-layouts", "pl-components-ref.components.html");
+    const storedDesign = JSON.parse(await fs.readFile(designPath, "utf-8"));
+
+    expect(storedDesign.pages[0].frames[0].component).toMatchObject({
+      type: "wrapper",
+      componentsRef: "pl-components-ref.components.html",
+    });
+    expect(storedDesign.pages[0].frames[0].component).not.toHaveProperty("components");
+    expect(await fs.readFile(htmlPath, "utf-8")).toBe("<section data-region-name=\"main\"></section>\n");
+
+    const inflated = await readPageLayoutDesign("pl-components-ref", root) as any;
+    expect(inflated.pages[0].frames[0].component.components).toBe("<section data-region-name=\"main\"></section>\n");
   });
 });
 

@@ -223,7 +223,7 @@ export const editSessionHandlers: RpcHandlerMap = {
     const { editSessionId: esFpId } = (params ?? {}) as { editSessionId: string };
     try {
       assertSafeName(esFpId, "editSessionId");
-      const result = bridge.editSessionFetchPayload(clientId, esFpId);
+      const result = await bridge.editSessionFetchPayload(clientId, esFpId);
       respond(result);
     } catch (e) {
       respondError(e instanceof Error ? e.message : String(e));

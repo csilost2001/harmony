@@ -77,6 +77,11 @@ export function PageLayoutDesigner() {
     }
   }, []);
 
+  const loadCommittedPageLayoutDesign = useCallback(async () => {
+    if (!pageLayoutId) return null;
+    return await mcpBridge.request("loadPageLayoutDesign", { pageLayoutId });
+  }, [pageLayoutId]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- server-side custom Puck components are external state.
     void reloadPuckConfig();
@@ -219,6 +224,7 @@ export function PageLayoutDesigner() {
   }
 
   const editorKind = pl.design?.editorKind ?? "grapesjs";
+  const cssFramework = pl.design?.cssFramework ?? "bootstrap";
 
   // editorKind='grapesjs': GrapesJS Designer に region drop slot ブロックを追加済み
   // (frontend/src/grapes/blocks.ts の CAT_REGIONS カテゴリ)
@@ -228,6 +234,11 @@ export function PageLayoutDesigner() {
       <Designer
         screenId={`page-layout:${pageLayoutId}`}
         screenName={pl.name}
+        editSessionResourceType="page-layout-design"
+        editSessionResourceId={pageLayoutId}
+        designEditorKind={editorKind}
+        designCssFramework={cssFramework}
+        loadCommittedDesign={loadCommittedPageLayoutDesign}
         onBack={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
         onGrapesEditorReady={handleGrapesEditorReady}
       />
@@ -241,6 +252,11 @@ export function PageLayoutDesigner() {
       <Designer
         screenId={`page-layout:${pageLayoutId}`}
         screenName={pl.name}
+        editSessionResourceType="page-layout-design"
+        editSessionResourceId={pageLayoutId}
+        designEditorKind={editorKind}
+        designCssFramework={cssFramework}
+        loadCommittedDesign={loadCommittedPageLayoutDesign}
         onBack={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
       />
     </RegionProvider>

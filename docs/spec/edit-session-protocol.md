@@ -576,22 +576,23 @@ PR #888 で議論した B.5 (案 2 / 案 3 のどちらか) は本 spec で **�
 |---|---|---|
 | EditSession 自体 (active) | acquire 時 | in-memory `EditSessionStore` のみ |
 | EditSession 自体 (history) | save 時 + Discarded 遷移時 | FS `<workspace-root>/.edit-sessions/<editSessionId>.json` (#856 dataDir 分離仕様: workspace root 直下、`<dataDir>` 配下ではない — 編集セッション管理は workspace 全体のメタデータ扱い) |
-| 中間 payload (mid-edit) | update 毎 | in-memory `EditSession.payload` のみ (FS write しない) |
+| 中間 payload (mid-edit) | update 毎 | in-memory `EditSession.payload` + FS `<workspace-root>/.edit-sessions/<editSessionId>.json` |
+| design payload companion | update 毎 (screen / page-layout-design のみ) | `<workspace-root>/.edit-sessions/<editSessionId>/payload.design.json` + `payload.components.html` |
 | save の payload | save 操作時 | 本体ファイル + EditSession.saveHistory |
 
-**FS 即時書き込みは不要**: 別 session が attach した時に memory から fetch できるため、「初回 FS 書き込みで cross-session 互換」が必要だった理由が消失する。
+**active draft は file-backed**: 別 session が attach した時は memory から fetch できるが、backend restart 後の復元にも耐えるため update 毎に active draft を FS に永続化する。永続化 write は editSessionId ごとの queue で直列化し、古い update が新しい update を上書きしないようにする。
 
-→ B.5 は **案 2 (snapshot only) に純粋化** が可能になる。理由は本プロトコルが提供する「memory 共有」によって、PR #888 で必要だった「初回 FS 即時書き込み」の保守判断が不要になるため。
+→ B.5 は **案 3 (active draft file-backed)** を採用する。PR #888 時点の「初回 FS 書き込み」ではなく、edit-session payload 全体を active draft として扱う。
 
 ### 13.5 backend crash 耐性
 
-Active EditSession の中間状態は in-memory のみ。crash 時:
+Active EditSession の中間状態は update 毎に FS に永続化される。crash / backend restart 時:
 
-- 中間状態は失われる (= save していない部分は消える)
-- これは PR #888 と同等の挙動 (PR #888 でも shadow store のみ in-memory)
-- 改善の余地: WS 切断検出時に明示 flush、定期的な snapshot を JSON dump 等
+- `.edit-sessions/<editSessionId>.json` から metadata / sequence を復元できる
+- screen / page-layout-design の HTML body は `payload.design.json` + `payload.components.html` から inflate して復元できる
+- 最後の update 永続化前に process が落ちた場合のみ、直前の debounce window 分は失われる可能性がある
 
-→ Phase 2 以降の最適化対象。Phase 1 では crash 時消失を許容。
+→ UX 上は「ブラウザ再起動・backend restart 後も active draft を復元できる」契約とする。
 
 ### 13.6 history snapshot 永続化パス
 
@@ -608,6 +609,13 @@ draft history snapshot は以下のパスに保存する:
 例: `2026-05-07T18-30-00.000Z--es01hxabc-f3a9.json`
 
 snapshot 取得契機は EditSession の `discard` / `transferEdit` / `save` 時。fire-and-forget で記録され、本処理を阻害しない。
+
+screen / page-layout-design の snapshot は metadata JSON とは別に以下の design payload companion を持つ:
+
+```
+<workspaceRoot>/.edit-sessions-history/<resourceType>/<resourceId>/<historyId>/payload.design.json
+<workspaceRoot>/.edit-sessions-history/<resourceType>/<resourceId>/<historyId>/payload.components.html
+```
 
 `draftHistoryRetentionDays` を経過した snapshot は `cleanupExpired({ olderThanDays })` で自動削除される。削除は `setInterval` 1 時間周期の cleanup に組み込む (§ 12.4 参照)。
 
