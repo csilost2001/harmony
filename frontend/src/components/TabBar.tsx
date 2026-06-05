@@ -86,6 +86,7 @@ function TabItem({
   return (
     <div
       ref={setNodeRef}
+      data-tab-id={tab.id}
       style={style}
       {...attributes}
       {...listeners}
@@ -119,7 +120,10 @@ function TabItem({
 export function TabBar() {
   const { tabs, activeTabId } = useTabs();
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -158,19 +162,77 @@ export function TabBar() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [contextMenu]);
 
+  const updateScrollAffordance = useCallback(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const maxScrollLeft = list.scrollWidth - list.clientWidth;
+    setCanScrollLeft(list.scrollLeft > 1);
+    setCanScrollRight(list.scrollLeft < maxScrollLeft - 1);
+  }, []);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    updateScrollAffordance();
+    list.addEventListener("scroll", updateScrollAffordance, { passive: true });
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateScrollAffordance);
+    resizeObserver?.observe(list);
+    return () => {
+      list.removeEventListener("scroll", updateScrollAffordance);
+      resizeObserver?.disconnect();
+    };
+  }, [tabs.length, updateScrollAffordance]);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || !activeTabId) return;
+    const active = Array.from(list.querySelectorAll<HTMLElement>(".tabbar-tab"))
+      .find((el) => el.dataset.tabId === activeTabId);
+    active?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    requestAnimationFrame(updateScrollAffordance);
+  }, [activeTabId, updateScrollAffordance]);
+
+  const handleScrollTabs = (direction: "left" | "right") => {
+    const list = listRef.current;
+    if (!list) return;
+    list.scrollBy({
+      left: direction === "left" ? -Math.max(160, list.clientWidth * 0.6) : Math.max(160, list.clientWidth * 0.6),
+      behavior: "smooth",
+    });
+  };
+
   if (tabs.length === 0) return null;
 
   const ctxTab = contextMenu ? tabs.find((t) => t.id === contextMenu.tabId) : null;
 
   return (
     <>
-      <div className="tabbar">
+      <div
+        className={[
+          "tabbar",
+          canScrollLeft ? "tabbar-can-scroll-left" : "",
+          canScrollRight ? "tabbar-can-scroll-right" : "",
+        ].filter(Boolean).join(" ")}
+      >
+        {canScrollLeft && (
+          <button
+            type="button"
+            className="tabbar-scroll-btn tabbar-scroll-btn-left"
+            onClick={() => handleScrollTabs("left")}
+            title="左のタブへスクロール"
+            aria-label="左のタブへスクロール"
+          >
+            <i className="bi bi-chevron-left" />
+          </button>
+        )}
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <SortableContext
             items={tabs.map((t) => t.id)}
             strategy={horizontalListSortingStrategy}
           >
-            <div className="tabbar-list">
+            <div ref={listRef} className="tabbar-list">
               {tabs.map((tab) => (
                 <TabItem
                   key={tab.id}
@@ -183,6 +245,17 @@ export function TabBar() {
             </div>
           </SortableContext>
         </DndContext>
+        {canScrollRight && (
+          <button
+            type="button"
+            className="tabbar-scroll-btn tabbar-scroll-btn-right"
+            onClick={() => handleScrollTabs("right")}
+            title="右のタブへスクロール"
+            aria-label="右のタブへスクロール"
+          >
+            <i className="bi bi-chevron-right" />
+          </button>
+        )}
       </div>
 
       {contextMenu && ctxTab && (

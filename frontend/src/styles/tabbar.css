@@ -15,6 +15,8 @@
   overflow: hidden;
   flex-shrink: 0;
   user-select: none;
+  min-width: 0;
+  position: relative;
 }
 
 .tabbar-list {
@@ -23,7 +25,9 @@
   flex: 1 1 auto;
   overflow-x: auto;
   overflow-y: hidden;
+  min-width: 0;
   scrollbar-width: none;
+  scroll-behavior: smooth;
 }
 .tabbar-list::-webkit-scrollbar {
   display: none;
@@ -136,6 +140,45 @@
 .tabbar-overflow-btn:hover {
   background-color: var(--dz-bg-2);
   color: var(--dz-text);
+}
+
+.tabbar-scroll-btn {
+  width: 28px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 0;
+  background: var(--dz-bg-2);
+  color: var(--dz-text);
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.24);
+  z-index: 1;
+}
+
+.tabbar-scroll-btn:hover {
+  background: var(--dz-bg-3);
+}
+
+.tabbar-scroll-btn-left {
+  border-right: 1px solid var(--dz-border);
+}
+
+.tabbar-scroll-btn-right {
+  border-left: 1px solid var(--dz-border);
+}
+
+.tabbar-can-scroll-left .tabbar-list {
+  mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 100%);
+}
+
+.tabbar-can-scroll-right .tabbar-list {
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
+}
+
+.tabbar-can-scroll-left.tabbar-can-scroll-right .tabbar-list {
+  mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
 }
 
 /* Drag ghost */

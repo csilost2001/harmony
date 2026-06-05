@@ -62,6 +62,8 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .table-list-title {
@@ -87,6 +89,9 @@
 .table-list-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 /* ── テーブル一覧 検索ボックス ───────────────────────────────────── */
@@ -95,6 +100,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 .table-list-search > i {
@@ -118,6 +124,28 @@
 
 .table-list-search input:focus {
   border-color: #7c6bff;
+}
+
+@media (max-width: 640px) {
+  .table-list-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .table-list-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .table-list-search {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .table-list-search input {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 .table-list-search .clear-btn {

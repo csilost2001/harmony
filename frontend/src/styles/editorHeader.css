@@ -11,6 +11,7 @@
   min-height: 48px;
   padding: 0 16px;
   gap: 16px;
+  min-width: 0;
   flex-shrink: 0;
   border-bottom: 1px solid;
   box-sizing: border-box;
@@ -47,6 +48,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.editor-header :where(.btn, button) {
+  white-space: nowrap;
 }
 
 /* ── Back button ─────────────────────────── */
@@ -155,4 +161,34 @@
 .editor-header-dark .editor-header-undo-btn:hover:not(:disabled) {
   background: var(--dz-bg-3, #30334a);
   border-color: var(--dz-border, #3b3e55);
+}
+
+@media (max-width: 640px) {
+  .editor-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    height: auto;
+    padding: 8px 12px;
+  }
+
+  .editor-header-left {
+    flex: 1 1 100%;
+  }
+
+  .editor-header-right {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .editor-header-center {
+    order: 3;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+
+  .editor-header-extra {
+    flex-wrap: wrap;
+  }
 }

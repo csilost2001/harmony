@@ -25,7 +25,7 @@ export function EditModeToolbar({
       <div className="edit-mode-toolbar edit-mode-toolbar--readonly">
         <button
           type="button"
-          className="btn btn-primary btn-sm"
+          className="edit-mode-btn edit-mode-btn-primary"
           onClick={onStartEditing}
           data-testid="edit-mode-start"
         >
@@ -41,7 +41,7 @@ export function EditModeToolbar({
       <div className="edit-mode-toolbar edit-mode-toolbar--editing">
         <button
           type="button"
-          className="btn btn-success btn-sm"
+          className="edit-mode-btn edit-mode-btn-success"
           onClick={onSave}
           disabled={saving}
           data-testid="edit-mode-save"
@@ -60,7 +60,7 @@ export function EditModeToolbar({
         </button>
         <button
           type="button"
-          className="btn btn-outline-secondary btn-sm"
+          className="edit-mode-btn edit-mode-btn-secondary"
           onClick={onDiscardClick}
           disabled={saving}
           data-testid="edit-mode-discard"
@@ -82,7 +82,7 @@ export function EditModeToolbar({
         </span>
         <button
           type="button"
-          className="btn btn-warning btn-sm"
+          className="edit-mode-btn edit-mode-btn-warning"
           onClick={onForceReleaseClick}
           data-testid="edit-mode-force-release"
         >
