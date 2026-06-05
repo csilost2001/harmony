@@ -1,0 +1,233 @@
+.extensions-panel {
+  height: calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f8f9fa;
+  color: #1f2937;
+}
+
+.extensions-session-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 14px 4px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.extensions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.extensions-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 2px;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.extensions-title .bi {
+  color: #2563eb;
+}
+
+.extensions-description {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.extensions-tabs {
+  display: flex;
+  gap: 0;
+  margin: 0;
+  padding: 0 14px;
+  overflow-x: auto;
+  list-style: none;
+  background: #fff;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.extensions-tab-item {
+  flex: 0 0 auto;
+}
+
+.extensions-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.extensions-tab:hover {
+  color: #1f2937;
+  background: #f8fafc;
+}
+
+.extensions-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background: #fff;
+}
+
+.extensions-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 14px 20px;
+}
+
+.extensions-tab-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.extensions-namespace-field {
+  flex: 1 1 280px;
+  max-width: 420px;
+}
+
+.extensions-namespace-field .form-label {
+  margin-bottom: 4px;
+  color: #475569;
+}
+
+.extensions-toolbar-actions,
+.extensions-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.extensions-entry-card {
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.extensions-step-grid,
+.extensions-response-grid {
+  display: grid;
+  gap: 8px;
+  align-items: start;
+}
+
+.extensions-step-grid {
+  grid-template-columns: minmax(10rem, 1.1fr) minmax(10rem, 1fr) minmax(9rem, 0.8fr) minmax(16rem, 2fr) auto;
+}
+
+.extensions-response-grid {
+  grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 2fr) auto;
+}
+
+.extensions-json-editor {
+  grid-column: 1 / -1;
+  min-height: 132px;
+  resize: vertical;
+  line-height: 1.45;
+  background: #0f172a;
+  color: #e5e7eb;
+  border-color: #1e293b;
+  tab-size: 2;
+}
+
+.extensions-json-editor:focus {
+  background: #0f172a;
+  color: #fff;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 0.15rem rgba(37, 99, 235, 0.2);
+}
+
+.extensions-simple-tab {
+  max-width: 980px;
+}
+
+.extensions-simple-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 1.6fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.extensions-mono-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.extensions-delete-button {
+  min-width: 4.5rem;
+}
+
+.extensions-empty {
+  margin-bottom: 10px;
+  padding: 18px;
+  color: #64748b;
+  text-align: center;
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.86rem;
+}
+
+.extensions-content .alert {
+  border-radius: 6px;
+}
+
+.extensions-content .form-control-sm {
+  min-height: 30px;
+  font-size: 0.84rem;
+}
+
+@media (max-width: 900px) {
+  .extensions-header,
+  .extensions-tab-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .extensions-toolbar-actions,
+  .extensions-header > .btn {
+    justify-content: flex-start;
+  }
+
+  .extensions-step-grid,
+  .extensions-response-grid,
+  .extensions-simple-row {
+    grid-template-columns: 1fr;
+  }
+
+  .extensions-delete-button {
+    justify-self: start;
+  }
+}
