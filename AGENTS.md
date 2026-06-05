@@ -300,7 +300,7 @@ AI セッション内で `docs/html/` を実機 browser で smoke test する手
 - **デフォルト = headless**: ユーザーから明示要望がない限り `mcp__playwright__*` (headless) を使う
 - **headed 切替条件**: ユーザーが以下のような発話をした時 **のみ** `mcp__playwright-headed__*` / `mcp__chrome-devtools-headed__*` を使う:
   - 「動作を見たい」「画面を見せて」「目視確認したい」「headed で」「window で開いて」等
-- headed mode 中もユーザーが操作・観察できる (Windows desktop に window が立ち上がる、WSLg 経由)
+- headed mode 中もユーザーが操作・観察できる (Windows desktop に window が立ち上がる、Dev Container では WSLg の X11 fallback 経由)
 - headed task 完了後は **次の自動 smoke から headless に戻す** (永続切替しない)
 
 ##### 基本手順
@@ -323,13 +323,13 @@ AI セッション内で `docs/html/` を実機 browser で smoke test する手
 
 | OS / 環境 | headed 動作 |
 |---|---|
-| Windows 11 + WSL2 + Docker Desktop (Dev Container) | ✅ WSLg 経由で Windows desktop に自動表示 (推奨環境) |
+| Windows 11 + WSL2 + Docker Desktop (Dev Container) | ✅ WSLg の X11 fallback 経由で Windows desktop に自動表示 (推奨環境)。`/run/user/<uid>/wayland-0` の bind mount エラーが出る環境では VS Code user settings で `dev.containers.mountWaylandSocket=false` を設定する (#1451) |
 | Windows 11 + WSL2 native (Dev Container なし) | ✅ WSLg 直接利用 |
 | Windows 10 + WSL2 + Docker Desktop | ⚠️ VcXsrv / X410 等の X server 別途必要 (未対応) |
 | macOS | ⚠️ XQuartz install + `xhost +localhost` + `DISPLAY=host.docker.internal:0` (未対応) |
 | Linux native | ⚠️ X11 forwarding 手動 setup (未対応) |
 
-未対応環境では `.devcontainer/devcontainer.json` の WSLg 関連 mount (`/tmp/.X11-unix`, `/mnt/wslg`) を comment out + headed mode 利用断念。
+未対応環境では `.devcontainer/devcontainer.json` の WSLg 関連 mount (`/tmp/.X11-unix`, `/mnt/wslg`) を comment out + headed mode 利用断念。Wayland socket の自動 mount は repo から強制停止できないため、`/run/user/<uid>/wayland-0` の bind mount エラーが出る環境では VS Code user settings に `"dev.containers.mountWaylandSocket": false` を設定する。
 
 ##### 注意事項
 

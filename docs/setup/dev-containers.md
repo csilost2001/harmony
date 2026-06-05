@@ -516,6 +516,7 @@ bash .devcontainer/scripts/build-base.sh
 |---|---|
 | `Reopen in Container` ポップアップが出ない | `.devcontainer/devcontainer.json` がリポジトリ root にあるか確認。`Ctrl+Shift+P` → `Dev Containers: Reopen in Container` を手動実行 |
 | 初回 build が完了しない / network エラー | Docker Desktop が起動しているか / インターネット接続 / 社内 proxy 設定。`docker pull mcr.microsoft.com/devcontainers/typescript-node:20` を WSL2 シェルで先に試す |
+| `invalid mount config ... /run/user/1000/wayland-0` で container start に失敗 | WSLg の Wayland socket が broken symlink になっている状態で、Dev Containers 拡張が Wayland socket を自動 bind mount すると発生する。この自動 mount は VS Code user setting 側の挙動なので、VS Code user settings に `"dev.containers.mountWaylandSocket": false` を追加してから `Dev Containers: Rebuild Container` を実行する。Harmony の devcontainer は `WAYLAND_DISPLAY` / `XDG_RUNTIME_DIR` を設定せず、headed browser は X11 fallback (`DISPLAY=:0`) に寄せている |
 | `postCreateCommand` で `npm install` が失敗 | bind mount された `node_modules` (WSL2 native で install したもの) が container と互換性なく失敗するケースあり。一度 WSL2 側で `rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules` してから rebuild container |
 | Playwright browsers が見つからない / install が必要 | Phase 5 (#1118 / #1120) 以降 Playwright chromium は **base image (ghcr) に同梱済**。`postCreateCommand` での `playwright install` は廃止。base image の build (`/publish-dev-image`) で `npx playwright install` が走るため、container 起動後は `~/.cache/ms-playwright/` に既に存在する。version mismatch で再 install したい場合のみ container 内で `npx playwright install chromium` を手動実行 |
 | Vite HMR がブラウザに反映されない | bind mount + inotify の問題。`frontend/vite.config.ts` の watch options に `{ usePolling: true, interval: 100 }` を追加。または container 内で `export CHOKIDAR_USEPOLLING=1` |
@@ -530,6 +531,16 @@ bash .devcontainer/scripts/build-base.sh
 | Remote Control failed to connect: Session creation failed | 過去の構成で `CLAUDE_CODE_OAUTH_TOKEN` env var が残っているか確認: `echo $CLAUDE_CODE_OAUTH_TOKEN` (container 内)。本構成では `devcontainer.json` の `containerEnv` から削除済みだが、user 個人の `.bashrc` 等で設定していると container にも漏れる可能性。env var はクリアして rebuild |
 | rebuild の度に `ccd` / `cdx` 等の個人 alias が消える | VS Code user settings.json に `dotfiles.repository` / `dotfiles.installCommand` の 3 行が未設定。本 doc「個人 alias: VS Code 公式 dotfiles 機能」節を参照 |
 | Docker Desktop ライセンスを使いたくない | rootless Docker (`apt install docker.io` を WSL2 内) でも動作。ただし Windows ホストからの port forward に追加設定要 |
+
+### Headed browser と WSLg
+
+Dev Container 内の headed browser は、既定では WSLg の X11 socket (`/tmp/.X11-unix`) と `DISPLAY=:0` を使う。Wayland 専用 env (`WAYLAND_DISPLAY`, `XDG_RUNTIME_DIR`) は設定しない。
+
+理由: Windows 11 + WSL2 + Docker Desktop 環境では、`/run/user/<uid>/wayland-0` が `/mnt/wslg/runtime-dir/wayland-0` への broken symlink になることがある。この状態で VS Code Dev Containers 拡張の `dev.containers.mountWaylandSocket=true` が働くと、Docker の bind mount source 解決で container start 前に失敗する。
+
+このエラー自体は container start 前の VS Code / Docker 側で発生するため、repo の `containerEnv` だけでは無効化できない。`/run/user/<uid>/wayland-0` の bind mount エラーが出た環境では、VS Code user settings で `dev.containers.mountWaylandSocket=false` を明示する。
+
+headed 動作が不要な場合はこのまま headless browser を使う。headed 動作が必要で X11 も使えない環境では、必要に応じて `.devcontainer/devcontainer.json` の WSLg mount (`/tmp/.X11-unix`, `/mnt/wslg`) をローカルで comment out する。
 
 ## CI 連携 (将来)
 
