@@ -19,6 +19,7 @@ import {
 import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { SaveConflictDialog } from "../editing/SaveConflictDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
+import "../../styles/extensions.css";
 import "../../styles/editMode.css";
 
 export type ExtensionKind = "steps" | "fieldTypes" | "triggers" | "dbOperations" | "responseTypes";
@@ -202,7 +203,7 @@ export function ExtensionsPanel() {
   const tabProps: ExtensionTabProps = { bundle, saving, onSave: handleSave, isReadonly };
 
   return (
-    <div className={`container-fluid py-3 extensions-panel${isReadonly ? " readonly-mode" : ""}`}>
+    <div className={`extensions-panel${isReadonly ? " readonly-mode" : ""}`}>
       {showDiscardDialog && (
         <DiscardConfirmDialog
           onConfirm={() => { void handleDiscard(); }}
@@ -274,7 +275,7 @@ export function ExtensionsPanel() {
       />
 
       {/* #994: collab UX 整合 — Viewer attach / take-over / 新規 draft / 履歴 */}
-      <div className="d-flex justify-content-end" style={{ padding: "4px 8px" }}>
+      <div className="extensions-session-row">
         <EditSessionDropdown
           resourceType="extension"
           resourceId={active}
@@ -286,10 +287,13 @@ export function ExtensionsPanel() {
         />
       </div>
 
-      <div className="d-flex align-items-center justify-content-between mb-3">
+      <div className="extensions-header">
         <div>
-          <h1 className="h5 mb-1">拡張管理</h1>
-          <div className="text-muted small">
+          <h1 className="extensions-title">
+            <i className="bi bi-puzzle" aria-hidden="true" />
+            拡張管理
+          </h1>
+          <div className="extensions-description">
             data/extensions のステップ型・フィールド型・トリガー・DB 操作・レスポンス型を管理します。
           </div>
         </div>
@@ -308,12 +312,12 @@ export function ExtensionsPanel() {
         </div>
       ) : null}
 
-      <ul className="nav nav-tabs" role="tablist">
+      <ul className="extensions-tabs" role="tablist">
         {TABS.map((tab) => (
-          <li className="nav-item" role="presentation" key={tab.key}>
+          <li className="extensions-tab-item" role="presentation" key={tab.key}>
             <button
               type="button"
-              className={`nav-link${active === tab.key ? " active" : ""}`}
+              className={`extensions-tab${active === tab.key ? " active" : ""}`}
               role="tab"
               aria-selected={active === tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -325,7 +329,7 @@ export function ExtensionsPanel() {
         ))}
       </ul>
 
-      <div className="border border-top-0 p-3 bg-white">
+      <div className="extensions-content">
         {loading ? (
           <div className="text-muted">読み込み中...</div>
         ) : (
