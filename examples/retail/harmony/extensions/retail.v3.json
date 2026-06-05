@@ -49,7 +49,7 @@
       "kind": "button",
       "label": "ボタン",
       "baseType": "string",
-      "description": "クリック操作を発火する button-like 要素。直接のデータ binding は持たず、events[] で handlerFlow を起動する。typically direction='output' + readonly=true で使い、value はラベル文字列を流用する。"
+      "description": "クリック操作を発火する button-like 要素。直接のデータ binding は持たず、events[] で handlerFlow を起動する。typically direction='out' + readonly=true で使い、value はラベル文字列を流用する。"
     }
   ],
   "screenKinds": [

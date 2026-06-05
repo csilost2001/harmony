@@ -114,9 +114,9 @@
   },
   "bindingRules": {
     "attributeKinds": {
-      "th:field": "formField",
-      "th:value": "viewModel",
-      "th:text": "viewModel",
+      "th:field": "form",
+      "th:value": "dto",
+      "th:text": "dto",
       "th:each": "catalogLoop",
       "th:fragment": "fragmentRef",
       "gm:date": "formattedInput",

@@ -292,13 +292,13 @@ Screen JSON の `kind` フィールドとテンプレート分岐。詳細は `a
 
 ### screen.items[] → UI 要素マッピング
 
-| direction | type | Thymeleaf | React |
+| direction / presentation | type | Thymeleaf | React |
 |---|---|---|---|
-| `input` | `string` (no options) | `<input type="text" th:value="${param.X}">` | `<input type="text" value={X} onChange={...}>` |
-| `input` | `string` + options[] | `<select><option th:each="opt : ${options}">` | `<select>` + options map |
-| `input` | `datetime` | `<input type="datetime-local">` | `<input type="datetime-local">` |
-| `output` | any | `<span th:text="${X}">` | `<span>{x}</span>` |
-| `viewer` | array + viewDefinitionId | `<table th:each="row : ${rows}"><tr><td th:text>` | データテーブルコンポーネント |
+| `in` | `string` (no options) | `<input type="text" th:value="${param.X}">` | `<input type="text" value={X} onChange={...}>` |
+| `in` | `string` + options[] | `<select><option th:each="opt : ${options}">` | `<select>` + options map |
+| `in` | `datetime` | `<input type="datetime-local">` | `<input type="datetime-local">` |
+| `out` / `both` | scalar | `<span th:text="${X}">` | `<span>{x}</span>` |
+| `out` / `both` + `presentation.kind=table` | array + `presentation.viewDefinitionId` | `<table th:each="row : ${rows}"><tr><td th:text>` | TanStack Table / データテーブルコンポーネント |
 
 ### editorKind 解決順序 (multi-editor-puck.md § 2.3)
 

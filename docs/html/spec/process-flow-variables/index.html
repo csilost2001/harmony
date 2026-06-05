@@ -248,10 +248,10 @@
 <span class="line"><span>@env.STRIPE_API_BASE    # envVars catalog 参照</span></span>
 <span class="line"><span>@fn.calculateTotal(@a, @b) # functions catalog 参照</span></span></code></pre>
 <p>対象フィールド (v3): 詳細は <a href="../../spec/process-flow-expression-language/"><code>process-flow-expression-language.md</code></a> §6 を参照。</p>
-<p>ScreenItem.valueFrom.flowVariable.variableName は <strong>IdentifierPath</strong> ($defs in common.v3) で field 参照可:</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"valueFrom"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
+<p>ScreenItem.binding.path は <strong>IdentifierPath</strong> 相当の field path として使用できる:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="jsonc"><code><span class="line"><span style="color:#032F62;--shiki-dark:#96D0FF">"binding"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: {</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "kind"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"flowVariable"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
-<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "variableName"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"createdOrder.order_number"</span><span style="color:#6A737D;--shiki-dark:#768390">  // ← #533 R3-1 fix で許容</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "path"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"createdOrder.order_number"</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
 <p>動作:</p>
 <ul>
@@ -684,13 +684,13 @@
 
 
 
-<table><thead><tr><th>型</th><th>フィールド</th><th>確定</th></tr></thead><tbody><tr><td><code>ActionDefinition.inputs</code></td><td>—</td><td><code>StructuredField[]</code> のみ (string 短縮形廃止)</td></tr><tr><td><code>ActionDefinition.outputs</code></td><td>—</td><td>同上</td></tr><tr><td><code>StepBaseProps</code></td><td><code>outputBinding?: OutputBinding</code></td><td>object 形式のみ (string 短縮形廃止)</td></tr><tr><td><code>StepBaseProps</code></td><td><code>errorHandling?: ErrorHandling</code></td><td><strong>#1263 Phase X3 で集約 (outcomes / rollbackOn / retryPolicy / onTimeout を集約、案 D)</strong>、旧 <code>lineage?: DataLineage</code> は同 phase で削除 (SQL AST 復元可能、<code>schema-deletions-record.md</code> §3)</td></tr><tr><td><code>CommonProcessStep</code></td><td><code>argumentMapping?: Record&#x3C;string,TemplateString></code></td><td>確定</td></tr><tr><td><code>ProcessFlow.context.ambientVariables</code></td><td><code>StructuredField[]</code></td><td><strong>#525 R3 fix で context 配下に統一</strong> (v1/v2 では root 直下)</td></tr><tr><td><code>ScreenItem.valueFrom.flowVariable.variableName</code></td><td><code>IdentifierPath</code></td><td><strong>#533 R3-1 fix で IdentifierPath (camelCase + snake_case + dot path) に変更</strong></td></tr></tbody></table>
+<table><thead><tr><th>型</th><th>フィールド</th><th>確定</th></tr></thead><tbody><tr><td><code>ActionDefinition.inputs</code></td><td>—</td><td><code>StructuredField[]</code> のみ (string 短縮形廃止)</td></tr><tr><td><code>ActionDefinition.outputs</code></td><td>—</td><td>同上</td></tr><tr><td><code>StepBaseProps</code></td><td><code>outputBinding?: OutputBinding</code></td><td>object 形式のみ (string 短縮形廃止)</td></tr><tr><td><code>StepBaseProps</code></td><td><code>errorHandling?: ErrorHandling</code></td><td><strong>#1263 Phase X3 で集約 (outcomes / rollbackOn / retryPolicy / onTimeout を集約、案 D)</strong>、旧 <code>lineage?: DataLineage</code> は同 phase で削除 (SQL AST 復元可能、<code>schema-deletions-record.md</code> §3)</td></tr><tr><td><code>CommonProcessStep</code></td><td><code>argumentMapping?: Record&#x3C;string,TemplateString></code></td><td>確定</td></tr><tr><td><code>ProcessFlow.context.ambientVariables</code></td><td><code>StructuredField[]</code></td><td><strong>#525 R3 fix で context 配下に統一</strong> (v1/v2 では root 直下)</td></tr><tr><td><code>ScreenItem.binding.path</code></td><td>string path</td><td>camelCase + snake_case + dot path を許容</td></tr></tbody></table>
 <h3 id="52-v1v2--v3-マッピング-機械変換不能人手必須">5.2 v1/v2 → v3 マッピング (機械変換不能、人手必須)</h3>
 <p>詳細は <code>schemas/v3/README.md</code> の v1→v3 マッピング表参照。主な変更:</p>
 <ul>
 <li><code>inputs: "name1\nname2"</code> (改行区切り) → <code>inputs: [{ name: "name1", type: "string" }, ...]</code></li>
 <li><code>outputBinding: "users"</code> (string) → <code>outputBinding: { name: "users" }</code> (object)</li>
-<li><code>valueFrom: { kind: "flowVariable", variableName: "users" }</code> (Identifier 単独) はそのまま、object field 参照 (<code>createdOrder.order_number</code>) を新規許容</li>
+<li><code>binding: { kind: "flowVariable", path: "users" }</code> は配列全体、object field 参照 (<code>createdOrder.order_number</code>) も許容</li>
 </ul>
 <h2 id="6-型システム-v1-の範囲">6. 型システム (v1 の範囲)</h2>
 <p>v1 は<strong>構文レベルのみ</strong>:</p>
@@ -773,7 +773,7 @@
 <ul>
 <li><code>schemas/v3/process-flow.v3.schema.json</code> — 一次成果物 (v3.0.2 確定)</li>
 <li><code>schemas/v3/common.v3.schema.json</code> — <code>StructuredField</code> / <code>FieldType</code> / <code>Identifier</code> / <code>IdentifierPath</code> / <code>OutputBinding</code> の $defs</li>
-<li><code>schemas/v3/screen-item.v3.schema.json</code> — <code>ScreenItem.valueFrom</code> (R3-1 IdentifierPath 化)</li>
+<li><code>schemas/v3/screen-item.v3.schema.json</code> — <code>ScreenItem.binding.path</code></li>
 <li><code>docs/spec/process-flow-expression-language.md</code> — <code>@</code> 記法・式言語仕様</li>
 <li><code>docs/spec/process-flow-maturity.md</code> — 成熟度・曖昧さ管理</li>
 <li><code>docs/spec/process-flow-extensions.md</code> — schema 拡張機構</li>
@@ -783,7 +783,8 @@
 <ul>
 <li>2026-04-20: 初版ドラフト</li>
 <li>2026-04-24: v1.0 凍結 (#253)</li>
-<li><strong>2026-04-28: v3 反映 (#539)</strong> — FieldType を v3 確定形に、OutputBinding を構造化のみに、ambientVariables を context 配下に移動、IdentifierPath (#533 R3-1) を valueFrom.flowVariable で許容、StepBaseProps.lineage 透過 (#525 R3 fix) を反映</li>
+<li><strong>2026-04-28: v3 反映 (#539)</strong> — FieldType を v3 確定形に、OutputBinding を構造化のみに、ambientVariables を context 配下に移動、StepBaseProps.lineage 透過 (#525 R3 fix) を反映</li>
+<li><strong>2026-06-05: #1445 反映</strong> — ScreenItem の flow variable 参照を <code>binding.kind="flowVariable"</code> + <code>binding.path</code> に統一</li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {

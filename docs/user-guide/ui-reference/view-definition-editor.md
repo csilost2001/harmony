@@ -11,7 +11,7 @@ ViewDefinition (画面表示用 projection) を 1 件編集する。一覧画面
 ## 到達経路
 
 - ViewDefinition 一覧 (`/view-definition/list`) → 行クリック
-- 画面項目編集 (`/screen/items/:id`) で項目の `viewDefinitionId` を選んだ際の編集ジャンプ
+- 画面項目編集 (`/screen/items/:id`) で項目の `presentation.viewDefinitionId` を選んだ際の編集ジャンプ
 - 直接 URL: `/w/<wsId>/view-definition/edit/<viewDefinitionId>`
 
 ## 画面構成

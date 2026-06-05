@@ -27,12 +27,20 @@ export const DISPLAY_FORMAT_PRESETS = [
   "0.00%",
 ];
 
-/** valueFrom kind 選択肢 (出力バインド種別) */
-export const VALUE_SOURCE_KINDS = [
+/** binding kind 選択肢 */
+export const BINDING_KINDS = [
+  { value: "form", label: "Form" },
+  { value: "dto", label: "DTO" },
+  { value: "json", label: "JSON" },
   { value: "flowVariable", label: "処理フロー変数" },
   { value: "tableColumn", label: "テーブル列" },
   { value: "viewColumn", label: "ビュー列" },
   { value: "expression", label: "計算式" },
+  { value: "catalog", label: "カタログ" },
+  { value: "routeParam", label: "Route Param" },
+  { value: "queryParam", label: "Query Param" },
+  { value: "session", label: "Session" },
+  { value: "fragmentParam", label: "Fragment Param" },
 ] as const;
 
 /** ID フィールドの validation 用 RE (JS identifier) */

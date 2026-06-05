@@ -17,7 +17,7 @@
       "id": "orderNumberFilter",
       "label": "注文番号",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 20,
       "placeholder": "例: ORD-2026-000001",
@@ -27,7 +27,7 @@
       "id": "statusFilter",
       "label": "ステータス",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "options": [
         {
@@ -53,7 +53,7 @@
       "id": "dateFromFilter",
       "label": "注文日 (From)",
       "type": "date",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "description": "S-4 注文一覧の注文日範囲フィルタ (開始日)。"
     },
@@ -61,7 +61,7 @@
       "id": "dateToFilter",
       "label": "注文日 (To)",
       "type": "date",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "description": "S-4 注文一覧の注文日範囲フィルタ (終了日)。"
     }

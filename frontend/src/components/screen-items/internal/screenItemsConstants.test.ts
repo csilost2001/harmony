@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 import {
   PRIMITIVE_TYPES,
   DISPLAY_FORMAT_PRESETS,
-  VALUE_SOURCE_KINDS,
+  BINDING_KINDS,
   JS_IDENTIFIER_RE,
 } from "./screenItemsConstants";
 
@@ -33,15 +33,31 @@ describe("DISPLAY_FORMAT_PRESETS", () => {
   });
 });
 
-describe("VALUE_SOURCE_KINDS", () => {
-  it("4 種類の valueFrom kind を持つ (flowVariable / tableColumn / viewColumn / expression)", () => {
-    const values = VALUE_SOURCE_KINDS.map((k) => k.value);
-    expect(values).toEqual(["flowVariable", "tableColumn", "viewColumn", "expression"]);
+describe("BINDING_KINDS", () => {
+  it("Form / DTO / JSON / Flow / DB / context 系 binding kind を持つ", () => {
+    const values = BINDING_KINDS.map((k) => k.value);
+    expect(values).toEqual([
+      "form",
+      "dto",
+      "json",
+      "flowVariable",
+      "tableColumn",
+      "viewColumn",
+      "expression",
+      "catalog",
+      "routeParam",
+      "queryParam",
+      "session",
+      "fragmentParam",
+    ]);
   });
 
-  it("各 kind に label が日本語で設定されている", () => {
-    const labels = VALUE_SOURCE_KINDS.map((k) => k.label);
-    expect(labels).toEqual(["処理フロー変数", "テーブル列", "ビュー列", "計算式"]);
+  it("主要 kind に label が設定されている", () => {
+    const labels = BINDING_KINDS.map((k) => k.label);
+    expect(labels).toContain("Form");
+    expect(labels).toContain("DTO");
+    expect(labels).toContain("処理フロー変数");
+    expect(labels).toContain("テーブル列");
   });
 });
 

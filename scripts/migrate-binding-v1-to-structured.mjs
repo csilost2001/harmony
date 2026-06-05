@@ -16,19 +16,19 @@
  *   - sentinel のない description は無変更
  *   - 2 回目以降の実行は何もしないで終わる (冪等)
  *
- * sentinel 形式 (legacy):
+ * sentinel 形式:
  *   description: "[binding.v1] binding.attr=th:field; binding.path=form.productCode; source=spec.md#sec"
  *
- * 移行後の structured 形式 (#1065):
- *   binding: { kind: "formField", path: "form.productCode", sourceNote: "spec.md#sec" }
+ * 移行後の structured 形式 (#1065 / #1445):
+ *   binding: { kind: "form", path: "form.productCode", sourceNote: "spec.md#sec" }
  *
  * binding.attr → kind マッピング:
- *   th:field, th:value → formField
- *   th:text            → viewModel
+ *   th:field, th:value → form
+ *   th:text            → dto
  *   th:each            → catalog
- *   その他             → item.direction から推定 (input→formField / output/viewer→viewModel / 未定義→formField)
+ *   その他             → item.direction から推定 (in→form / out→dto / both→form / 未定義→form)
  *
- * 詳細設計: docs/spec/generic-definition-layer.md §3.1 / ISSUE #1065
+ * 詳細設計: docs/spec/screen-items.md / ISSUE #1065 / #1445
  */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
@@ -48,21 +48,18 @@ const SENTINEL_LEN = SENTINEL.length;
 
 // binding.attr → kind mapping
 const ATTR_TO_KIND = {
-  "th:field": "formField",
-  "th:value": "formField",
-  "th:text": "viewModel",
+  "th:field": "form",
+  "th:value": "form",
+  "th:text": "dto",
   "th:each": "catalog",
 };
 
 // direction → default kind fallback
 const DIRECTION_TO_KIND = {
-  input: "formField",
-  output: "viewModel",
-  viewer: "viewModel",
+  in: "form",
+  out: "dto",
+  both: "form",
 };
-
-// 有効な role 値
-const VALID_ROLES = new Set(["display", "input", "both"]);
 
 // 統計
 let scannedFiles = 0;
@@ -146,7 +143,7 @@ function migrateItem(item, fileLabel) {
   }
 
   // 未知 key の検出
-  const knownKeys = new Set(["binding.attr", "binding.path", "binding.role", "binding.formatHint", "source"]);
+  const knownKeys = new Set(["binding.attr", "binding.path", "binding.formatHint", "source"]);
   const unknownKeys = Object.keys(pairs).filter((k) => !knownKeys.has(k));
   if (unknownKeys.length > 0) {
     warnings.push(`unknown keys (kept in description): ${unknownKeys.join(", ")}`);
@@ -159,12 +156,12 @@ function migrateItem(item, fileLabel) {
     kind = ATTR_TO_KIND[attrValue];
     if (kind === undefined) {
       // 未知 attr → direction から推定
-      kind = DIRECTION_TO_KIND[item.direction] ?? "formField";
+      kind = DIRECTION_TO_KIND[item.direction] ?? "form";
       warnings.push(`unknown binding.attr="${attrValue}", kind inferred from direction as "${kind}"`);
     }
   } else {
     // binding.attr なし → direction から推定
-    kind = DIRECTION_TO_KIND[item.direction] ?? "formField";
+    kind = DIRECTION_TO_KIND[item.direction] ?? "form";
   }
 
   // binding object を構築
@@ -172,15 +169,6 @@ function migrateItem(item, fileLabel) {
 
   if (pairs["binding.path"] !== undefined) {
     binding.path = pairs["binding.path"];
-  }
-
-  if (pairs["binding.role"] !== undefined) {
-    const role = pairs["binding.role"];
-    if (VALID_ROLES.has(role)) {
-      binding.role = role;
-    } else {
-      warnings.push(`invalid binding.role="${role}" (allowed: display/input/both) — skipped`);
-    }
   }
 
   if (pairs["binding.formatHint"] !== undefined) {

@@ -157,7 +157,7 @@
         {
           "id": "step-04-return",
           "kind": "return",
-          "description": "summary + recentTransactionRows を返却。dashboard 画面 items が valueFrom.flowVariable で参照する。",
+          "description": "summary + recentTransactionRows を返却。dashboard 画面 items が binding.kind='flowVariable' で参照する。",
           "responseId": "200-ok",
           "bodyExpression": "${ { summary: @summary, recentTransactionRows: @recentTransactionRows } }"
         }

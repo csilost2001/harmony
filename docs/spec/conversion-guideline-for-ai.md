@@ -160,7 +160,7 @@ MD ファイルがどの archetype に属するかを最初に判定する。判
 |---|---|---|---|
 | 商品コード | th:field | form.productCode | 必須 |
 | 数量 | th:field | form.quantity | 1以上 |
-| 合計金額 | th:text | viewModel.totalPrice | 整形: 円 |
+| 合計金額 | th:text | dto.totalPrice | 整形: 円 |
 | カテゴリ | th:each | catalog.categories | 選択肢 |
 ```
 
@@ -187,37 +187,41 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
       "id": "productCode",
       "label": "商品コード",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
-      "description": "[binding.v1] binding.attr=th:field; binding.path=form.productCode; source=spec_SC000001_Controller.md#コントロールマッピング"
+      "binding": {
+        "kind": "form",
+        "path": "form.productCode",
+        "sourceNote": "spec_SC000001_Controller.md#コントロールマッピング"
+      }
     },
     {
       "id": "quantity",
       "label": "数量",
       "type": "integer",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "min": 1,
-      "description": "[binding.v1] binding.attr=th:field; binding.path=form.quantity"
+      "binding": { "kind": "form", "path": "form.quantity" }
     },
     {
       "id": "totalPrice",
       "label": "合計金額",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
-      "description": "[binding.v1] binding.attr=th:text; binding.path=viewModel.totalPrice"
+      "binding": { "kind": "dto", "path": "dto.totalPrice" }
     },
     {
       "id": "category",
       "label": "カテゴリ",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "options": [
         { "value": "food", "label": "食品" },
         { "value": "drink", "label": "飲料" }
       ],
-      "description": "[binding.v1] binding.attr=th:each; binding.path=catalog.categories"
+      "binding": { "kind": "catalog", "path": "catalog.categories" }
     }
   ]
 }
@@ -229,13 +233,7 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
 - URL は `path` (`route` ではない)、認証は `auth: "required"|"optional"|"none"` (object ではない)
 - `purpose: "page"` 既定 (gadget 部品は `"gadget"`)
 - ScreenItem の `type` は **データ型のみ** (FieldType: `string` / `number` / `integer` / `boolean` / `date` / `datetime` / `json` / `{kind: "array"/object/domain/file/extension}`)。**`select` / `button` / `submit` / `text` は無効** — select は `string` + `options[]`、ボタンは `{ "kind": "extension", "extensionRef": "<namespace>:button" }` で project ごとに extension
-- **binding grammar v1** (description 埋め込みの厳密形式):
-  - 先頭に sentinel `[binding.v1] ` (末尾半角スペース込み、計 13 文字) を必ず付ける (将来別形式と区別するため)
-  - その後ろは `<key>=<value>; <key>=<value>; ...` の **セミコロン+空白区切り**
-  - 標準 key は `binding.attr` (HTML 属性、コロン許容) / `binding.path` (bind 先) / `binding.role` (input/output/display) / `binding.formatHint` / `source` (出典)
-  - `value` 内に `=` / `;` を含めない (含む場合は別フィールドに分割)
-  - 例: `[binding.v1] binding.attr=th:field; binding.path=form.productCode; source=spec.md#section`
-  - **`[binding.v1] ` sentinel 形式から structured `binding` への migration**: `scripts/migrate-binding-v1-to-structured.mjs --apply` で既存 description sentinel を `binding` field に自動移行 (冪等)
+- ScreenItem の binding は `binding` object に直接記録する。`description` に mapping を埋め込まない。
 
 #### ✅ Alternative — structured binding (#1065 で AJV gate 対象化済)
 
@@ -247,12 +245,11 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
   "id": "productCode",
   "label": "商品コード",
   "type": "string",
-  "direction": "input",
+  "direction": "in",
   "required": true,
   "binding": {
-    "kind": "formField",
+    "kind": "form",
     "path": "form.productCode",
-    "role": "input",
     "sourceNote": "spec_SC000001_Controller.md#コントロールマッピング"
   }
 }
@@ -261,7 +258,7 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
 このパターンは [`generic-definition-layer.md` §3.1](generic-definition-layer.md) で確定、**#1065 (本子 ISSUE) で AJV gate 対象化済**。AI は本形式で直接生成可能。`optionSource` / `parseHint` は本 #1065 では追加せず将来 ISSUE 想定。
 
 **落とし方 hints**:
-- `th:field` / `th:value` / `th:text` / `th:each` 等の属性 → ✅ 現行は **structured `binding.kind`** (formField / viewModel / catalog / expression / fragmentParam / session / routeParam / queryParam、#1065 で導入済) で記録。legacy `[binding.v1]` description sentinel 形式は `scripts/migrate-binding-v1-to-structured.mjs --apply` で structured `binding` へ自動移行
+- `th:field` / `th:value` / `th:text` / `th:each` 等の属性 → ✅ 現行は **structured `binding.kind`** (`form` / `dto` / `json` / `catalog` / `expression` / `fragmentParam` / `session` / `routeParam` / `queryParam` など) で記録。
 - 「必須」「N 以上」等の備考 → `required` (boolean) / `min` / `max`
 - 整形指示 (「円」「%」「日付」等) → `displayFormat` ('¥#,##0' / '0.00%' / 'YYYY/MM/DD')
 - 出典 (表内に書かれた要件) → `description` に `source=...` で記録
@@ -308,7 +305,7 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
       "id": "prefecture",
       "label": "都道府県",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "options": [
         { "value": "13", "label": "東京都" },
@@ -324,14 +321,15 @@ Screen v3 schema (`schemas/v3/screen.v3.schema.json`) の root は EntityMeta (`
           }
         }
       ],
-      "description": "[binding.v1] binding.attr=th:field; binding.path=form.prefecture"
+      "binding": { "kind": "form", "path": "form.prefecture" }
     },
     {
       "id": "city",
       "label": "市区町村",
       "type": "string",
-      "direction": "input",
-      "description": "[binding.v1] binding.attr=th:field; binding.path=form.city; note=都道府県 change 時に options 再生成"
+      "direction": "in",
+      "binding": { "kind": "form", "path": "form.city" },
+      "description": "都道府県 change 時に options 再生成"
     }
   ]
 }
@@ -402,7 +400,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
   "id": "prefecture",
   "label": "都道府県",
   "type": "string",
-  "direction": "input",
+  "direction": "in",
   "events": [
     {
       "id": "change",
@@ -462,8 +460,8 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 ```
 (完全な動作する例は本節末尾 §3.3 ✅ After を参照)
 
-**Step union (25 variants)** ([schema:529](../../schemas/v3/process-flow.v3.schema.json)):
-`validation` / `dbAccess` / `externalSystem` / `commonProcess` / `componentCall` / `screenTransition` / `displayUpdate` / `branch` / `loop` / `loopBreak` / `loopContinue` / `jump` / `compute` / `return` / `log` / `audit` / `workflow` / `transactionScope` / `eventPublish` / `eventSubscribe` / `closing` / `cdc` / `aiCall` / `aiAgent` / `extension`
+**Step union (26 variants)** ([schema:529](../../schemas/v3/process-flow.v3.schema.json)):
+`validation` / `dbAccess` / `externalSystem` / `commonProcess` / `componentCall` / `screenTransition` / `displayUpdate` / `branch` / `loop` / `loopBreak` / `loopContinue` / `jump` / `compute` / `return` / `log` / `audit` / `setGlobal` / `workflow` / `transactionScope` / `eventPublish` / `eventSubscribe` / `closing` / `cdc` / `aiCall` / `aiAgent` / `extension`
 
 **Step kind ではない** (混同しやすい — 別の場所で使う kind):
 - `expression` / `tryCatch` / `affectedRowsZero` / `externalOutcome` — **BranchCondition の kind** (`branch.branches[].condition.kind`)
@@ -680,6 +678,7 @@ ProcessFlow 側 (`pf-load-cities`) で API 呼び出し + `displayUpdate` で項
 | `return` | (なし、`responseId` / `bodyExpression` は任意) | 応答返却 |
 | `log` | `level`, `message` | ログ出力 |
 | `audit` | `action` | 監査ログ |
+| `setGlobal` | `globalName`, `value` | globals catalog instance の mutable 値更新 |
 | `workflow` | `pattern`, `approvers` (各 WorkflowApprover: `role` 必須。+ variant により `quorum.type` / `escalateAfter` / `escalateTo` 等が追加) | 承認パターン |
 | `transactionScope` | `steps` | TX 境界明示 |
 | `eventPublish` | `topic` | イベント発行 |
@@ -977,7 +976,7 @@ enum / コード値は `conventions/codeMaster` または `extensions/<namespace
   "section": "コントロールマッピング / 商品コード",
   "kind": "missing_binding_source",
   "severity": "warning",
-  "humanReadable": "商品コードの binding source 列が空欄。binding.kind が決定不能、formField 仮置きしました。",
+  "humanReadable": "商品コードの binding source 列が空欄。binding.kind が決定不能、form 仮置きしました。",
   "suggestedFix": "MD 側で binding 属性 (th:field 等) を追記、または project profile の bindingRules.attributeKinds で別名追加"
 }
 ```
@@ -1370,22 +1369,20 @@ export async function applyAIFeedback(profile: any, aiDecisions: AIDecision[]) {
 - ✅ **#1065 で `binding` サブ field 導入済 (§3.1)** — **新規生成は structured `binding` を使う**。binding 情報を持つ screen-item は以下の形式で直接生成する:
   ```jsonc
   {
-    // kind: formField / viewModel / catalog / expression /
+    // kind: form / dto / json / catalog / expression /
     //       fragmentParam / session / routeParam / queryParam
-    // role: input / output / display (optional)
     "binding": {
-      "kind": "formField",
+      "kind": "form",
       "path": "form.productCode",
-      "role": "input",
       "formatHint": "YYYY/MM/DD"
     }
   }
   ```
   `optionSource` / `parseHint` は本 #1065 では追加せず将来 ISSUE 想定。
-- ⚠️ **legacy 形式 `[binding.v1]` description sentinel** (旧 MD import 互換のため保持) — 既存 JSON ファイルまたは抽出曖昧な MD import 時のみ使用。grammar 仕様 (parser 実装 + 18 ケース pass 確認済、edge case 含む):
+- ⚠️ **旧 `[binding.v1]` description sentinel** — 既存 JSON ファイルの migration 専用。新規生成では使わない。grammar 仕様 (parser 実装 + 18 ケース pass 確認済、edge case 含む):
   - **sentinel** `[binding.v1] ` (末尾 1 半角スペース込) を **必ず先頭に持つ**
   - 続けて `<key>=<value>; <key>=<value>; ...` の **セミコロン + 半角スペース区切り** (`/;\s+/`)
-  - **標準 key** (全 optional): `binding.attr` (HTML 属性名、`:` 許容) / `binding.path` (bind 先パス) / `binding.role` (input / output / display) / `binding.formatHint` / `source` (出典) / `note` (補足)
+  - **標準 key** (全 optional): `binding.attr` (HTML 属性名、`:` 許容) / `binding.path` (bind 先パス) / `binding.formatHint` / `source` (出典) / `note` (補足)
   - key/value 区切りは **最初の `=`** のみ。value 内の `=` はリテラル扱い
   - 区切り `; ` (セミコロン+空白) を含まない `;` は value 内リテラル扱い
   - 空 key は parse error、空 value は許容
@@ -1524,7 +1521,7 @@ MD が ~30 ファイル以下 ?
    ```
 - [ ] coverage (project ごとの基準、未指定なら screen-controller / service-flow-spec / reference-catalog の 95% 以上)
 - [ ] ScreenItem binding metadata は **structured `binding` 優先 (#1065)**、`missing_binding_source` 0 件。legacy `[binding.v1]` description sentinel は migration script (`scripts/migrate-binding-v1-to-structured.mjs --apply`) で変換推奨
-- [ ] ProcessFlow step kind が `schemas/v3/process-flow.v3.schema.json#/$defs/Step` oneOf の 25 variant (`validation` / `dbAccess` / `externalSystem` / `commonProcess` / `componentCall` / `screenTransition` / `displayUpdate` / `branch` / `loop` / `loopBreak` / `loopContinue` / `jump` / `compute` / `return` / `log` / `audit` / `workflow` / `transactionScope` / `eventPublish` / `eventSubscribe` / `closing` / `cdc` / `aiCall` / `aiAgent` / `extension`) のみ。`expression` / `tryCatch` (BranchCondition kind) / `auditLog` (CDC 出力先 kind) を Step として使っていないこと
+- [ ] ProcessFlow step kind が `schemas/v3/process-flow.v3.schema.json#/$defs/Step` oneOf の 26 variant (`validation` / `dbAccess` / `externalSystem` / `commonProcess` / `componentCall` / `screenTransition` / `displayUpdate` / `branch` / `loop` / `loopBreak` / `loopContinue` / `jump` / `compute` / `return` / `log` / `audit` / `setGlobal` / `workflow` / `transactionScope` / `eventPublish` / `eventSubscribe` / `closing` / `cdc` / `aiCall` / `aiAgent` / `extension`) のみ。`expression` / `tryCatch` (BranchCondition kind) / `auditLog` (CDC 出力先 kind) を Step として使っていないこと
 - [ ] ProcessFlow `commonProcess` step の `refId` が全件解決済 (生成した ProcessFlow と一致)
 - [ ] ProcessFlow `validation` step の `inlineBranch.ng[]` 内 `return` の `responseId` が Action.responses[].id と一致、対応する error code が `context.catalogs.errors.<CODE>` に登録済
 - [ ] `unknown` archetype 0 件 (もしくは設計者承認済)

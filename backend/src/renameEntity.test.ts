@@ -849,7 +849,7 @@ describe("renameEntityId — Phase F M-1: ProcessFlow rename → handlerFlowId /
           id: "btn",
           label: "ボタン",
           type: "boolean",
-          direction: "input",
+          direction: "in",
           events: [
             { id: "click", handlerFlowId: "header-handler", argumentMapping: {} },
           ],
@@ -909,7 +909,7 @@ describe("renameEntityId — Phase F M-1: ProcessFlow rename → handlerFlowId /
           id: "logout",
           label: "ログアウト",
           type: "boolean",
-          direction: "input",
+          direction: "in",
           events: [{ id: "click", handlerFlowId: "hdr-pf", argumentMapping: {} }],
         },
       ],

@@ -16,44 +16,44 @@
       "id": "storyName",
       "label": "ストーリー名",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "当該セッションの stories.title。"
     },
     {
       "id": "startedAt",
       "label": "学習開始日時",
       "type": "datetime",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "YYYY/MM/DD HH:mm",
-      "valueFrom": {
+      "description": "learning_sessions.started_at の表示。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "study-session",
           "columnId": "col-started-at"
         }
-      },
-      "description": "learning_sessions.started_at の表示。"
+      }
     },
     {
       "id": "completedAt",
       "label": "学習完了日時",
       "type": "datetime",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "YYYY/MM/DD HH:mm",
-      "valueFrom": {
+      "description": "learning_sessions.completed_at の表示。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "study-session",
           "columnId": "col-completed-at"
         }
-      },
-      "description": "learning_sessions.completed_at の表示。"
+      }
     },
     {
       "id": "avgPronunciationScore",
       "label": "平均発音スコア",
       "type": "number",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "0.0",
       "description": "当該セッションの pronunciation_scores.score の平均値。"
     },
@@ -61,14 +61,14 @@
       "id": "turnLogList",
       "label": "ターンログ一覧",
       "type": "json",
-      "direction": "output",
+      "direction": "out",
       "description": "当該セッションの turn_logs 一覧 (JSON 配列)。user_utterance / ai_response / pronunciation_score を行ごとに含む。"
     },
     {
       "id": "learnedWordList",
       "label": "今回習得単語",
       "type": "json",
-      "direction": "output",
+      "direction": "out",
       "description": "当該セッションで user_word_progress が更新された words の一覧 (JSON 配列、単語 / 訳 / 習熟度)。"
     }
   ],

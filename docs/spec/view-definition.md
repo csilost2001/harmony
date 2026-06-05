@@ -1,18 +1,18 @@
-# ViewDefinition (画面 一覧 UI viewer)
+# ViewDefinition (画面 一覧 UI 表示定義)
 
 **ステータス**: v3 整合 (schema v3、3 レベル DSL #745 反映済)
 **初版日**: 2026-05-03
 **関連 issue**: #649 (Phase 4 子 1 — schema / type / validator 新設) / #666 (UI 編集機能 — ListView / Editor / store) / #745 (Level 2 Structured / Level 3 Raw SQL の 3 レベル DSL 化) / #761 (本 spec docs 整備)
 
-本書は `ViewDefinition` (画面側の一覧 UI viewer 設定) の仕様を定める。`schemas/v3/view-definition.v3.schema.json` の機械可読仕様を補完し、設計者および AI 実装者が「どのレベルで書くか」「Screen とどう連携するか」「どの validator が何を検出するか」を判断できるよう情報を集約する。
+本書は `ViewDefinition` (画面側の一覧 UI 表示設定) の仕様を定める。`schemas/v3/view-definition.v3.schema.json` の機械可読仕様を補完し、設計者および AI 実装者が「どのレベルで書くか」「Screen とどう連携するか」「どの validator が何を検出するか」を判断できるよう情報を集約する。
 
 ## 位置づけ
 
-`ViewDefinition` は画面 UI 上で配列データを「表 / カード / カンバン / カレンダー」として表現する **viewer 設定** である。同じ「View」という単語が DB にも存在するため軸を明確にする:
+`ViewDefinition` は画面 UI 上で配列データを「表 / カード / カンバン / カレンダー」として表現する **表示設定** である。同じ「View」という単語が DB にも存在するため軸を明確にする:
 
 | 概念 | 場所 | axis | 役割 |
 |---|---|---|---|
-| **ViewDefinition** (本書) | `view-definitions/<id>.json` | 画面 (UI viewer) | 1 viewer = 1 source、列を画面表示型 (FieldType) で表現。Screen は items[] の `direction: "viewer"` screen-item から `viewDefinitionId` で 1:N 参照される |
+| **ViewDefinition** (本書) | `view-definitions/<id>.json` | 画面 UI | 列を画面表示型 (FieldType) で表現。Screen は items[] の `presentation.viewDefinitionId` から 1:N 参照する |
 | DB View | `views/<id>.json` (`schemas/v3/view.v3.schema.json`) | DB (永続化層 SELECT) | SQL VIEW / Materialized View の物理定義。複数アクションから共通の SELECT として参照される |
 
 両者は名前が似ているが axis が異なるため独立 schema として分離されている (#649 設計判断)。ViewDefinition は ViewColumn の値を「画面で見せる時の型 (FieldType)」で記述し、DB View は永続化された SELECT 結果のスキーマ (DataType) を持つ。ViewDefinition の Level 2 / Level 3 は DB View を介さず query を直接記述する (DB View の薄い置換ではなく、画面ごとに固有の集計が必要な場合の primary な手段)。
@@ -256,9 +256,8 @@ interface FilterSpec {
 - `@param.<name>` — `parameterRefs[]` で宣言した外部パラメータ (画面 filter / Screen binding 等から)
 
 **注意**: parameterRefs は静的な型宣言のみ。画面の input 項目から動的に filter パラメータを渡す場合は、
-D 案 (D-案: viewer screen-item、#762 確定) に従い **Screen.items[] に `direction='viewer'` の screen-item を追加**し、
-`valueFrom.flowVariable` でフロー変数を binding する方式を採用する。
-`@param.*` への直接 binding は廃止予定。詳細は [screen-items.md#F-viewer-項目](screen-items.md) を参照。
+ScreenItem の `binding` でフロー変数や JSON state へ結線し、一覧 UI は `presentation.viewDefinitionId` で ViewDefinition を参照する。
+`@param.*` への直接 binding は廃止予定。詳細は [screen-items.md#F-一覧-presentation-配列データ表示の宣言方式-762--1445](screen-items.md) を参照。
 
 ## kind 別の典型レイアウト
 
@@ -274,7 +273,7 @@ D 案 (D-案: viewer screen-item、#762 確定) に従い **Screen.items[] に `
 
 ## Screen との連携
 
-Screen は `items[]` の `direction: "viewer"` screen-item から `viewDefinitionId` で 1:N 参照する。
+Screen は `items[]` の `presentation.viewDefinitionId` で ViewDefinition を 1:N 参照する。
 
 ```jsonc
 // screens/<id>.json
@@ -287,18 +286,22 @@ Screen は `items[]` の `direction: "viewer"` screen-item から `viewDefinitio
       "id": "myList",
       "label": "一覧",
       "type": { "kind": "array", "itemType": "json" },
-      "direction": "viewer",
-      "viewDefinitionId": "customer-list-view"
+      "direction": "out",
+      "binding": { "kind": "json", "path": "customerRows" },
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "customer-list-view"
+      }
     }
   ]
 }
 ```
 
-**1:N で複数 viewer を使う典型**: `kind="list"` の画面で、タブ切替や絞込パネル切替で複数 viewer を提示する場合 (例: 「全件 / アクティブのみ / 廃番含む」をそれぞれ別 ViewDefinition に分け、画面が切替制御を持つ) は、`direction: "viewer"` の screen-item を複数定義する。
+**1:N で複数一覧を使う典型**: `kind="list"` の画面で、タブ切替や絞込パネル切替で複数一覧を提示する場合 (例: 「全件 / アクティブのみ / 廃番含む」をそれぞれ別 ViewDefinition に分け、画面が切替制御を持つ) は、`presentation.kind="table"` の screen-item を複数定義する。
 
-**画面項目 (items[]) との関係**: items[] の input / output / viewer 項目がすべて同一配列に共存する。同じ画面内で input × N + viewer × M を同居させる構成が一般的 (検索画面 / 一覧画面の組合せ)。
+**画面項目 (items[]) との関係**: items[] の `direction: in/out/both` 項目がすべて同一配列に共存する。同じ画面内で検索条件 (`in`) × N + 一覧 (`out` + table presentation) × M を同居させる構成が一般的。
 
-`kind="list"` の Screen で `items[]` 内に `direction: "viewer"` の screen-item が 0 件の場合、`runtimeContractValidator [EMPTY_SCREEN_ITEMS]` が warning を発報する (画面が空白なため、空白意図ならコメントを残すか、設計途中なら maturity=draft で許容)。
+`kind="list"` の Screen で `items[]` 内に一覧 presentation の screen-item が 0 件の場合、`runtimeContractValidator [EMPTY_SCREEN_ITEMS]` が warning を発報する (画面が空白なため、空白意図ならコメントを残すか、設計途中なら maturity=draft で許容)。
 
 ## 設計上の決定事項
 
@@ -325,7 +328,7 @@ Screen は `items[]` の `direction: "viewer"` screen-item から `viewDefinitio
 
 ### (D-5) SQL SELECT 句の列は `AS "<camelCase>"` alias 必須 (#775)
 
-ProcessFlow の `dbAccess.sql` で SELECT した列が ViewDefinition の `columns[].name` (camelCase Identifier) へ直接バインドされる場合 (viewer screen-item の `valueFrom.flowVariable` 経由) は、**SQL 内で明示 alias により名前を一致させる**。
+ProcessFlow の `dbAccess.sql` で SELECT した列が ViewDefinition の `columns[].name` (camelCase Identifier) へ直接バインドされる場合 (`binding.kind="flowVariable"` 経由) は、**SQL 内で明示 alias により名前を一致させる**。
 
 > **規約**: SQL SELECT 句で DB 物理名 (snake_case) と `columns[].name` (camelCase) が異なる列は `AS "<camelCase>"` で alias 必須。
 >
@@ -368,15 +371,15 @@ ViewDefinition は通常リソース同様に maturity を持ち、`schema 違�
 
 ## 関連仕様
 
-- [`screen-items.md`](screen-items.md) — 画面項目定義 (`Screen.items[]` の input / output / viewer 項目)
+- [`screen-items.md`](screen-items.md) — 画面項目定義 (`Screen.items[]` の direction / binding / presentation)
 - [`schema-governance.md`](schema-governance.md) — `schemas/v3/view-definition.v3.schema.json` 等のグローバル schema 変更ガバナンス
 - [`schema-design-principles.md`](schema-design-principles.md) — schema をどう書くかの規範 (本 schema は Pattern B 複合参照を採用)
 - [`draft-state-policy.md`](draft-state-policy.md) — maturity による設計途中許容
 - [`sample-project-structure.md`](sample-project-structure.md) — `view-definitions/<id>.json` のディレクトリ配置
 
-## Screen との連携 — viewer screen-item パターン (#762)
+## Screen との連携 — presentation パターン (#762 / #1445)
 
-`Screen.items[]` に `direction: "viewer"` の screen-item を追加することで、
+`Screen.items[]` に `presentation.kind="table"` の screen-item を追加することで、
 ViewDefinition の列定義を使い ProcessFlow 出力を画面に表示する。
 
 ```jsonc
@@ -385,12 +388,12 @@ ViewDefinition の列定義を使い ProcessFlow 出力を画面に表示する�
   "id": "property-search-screen",
   "uuid": "22222222-2222-4222-8222-222222222222",
   "items": [
-    { "id": "keyword", "label": "キーワード", "type": "string", "direction": "input" },
+    { "id": "keyword", "label": "キーワード", "type": "string", "direction": "in", "binding": { "kind": "form", "path": "search.keyword" } },
     {
       "id": "searchButton",
       "label": "検索",
       "type": { "kind": "extension", "extensionRef": "realestate:button" },
-      "direction": "output",
+      "direction": "out",
       "events": [
         {
           "id": "click",
@@ -403,12 +406,15 @@ ViewDefinition の列定義を使い ProcessFlow 出力を画面に表示する�
       "id": "resultRows",
       "label": "検索結果",
       "type": { "kind": "array", "itemType": "json" },
-      "direction": "viewer",
-      "viewDefinitionId": "property-list-view",   // 列定義を提供
-      "valueFrom": {
+      "direction": "out",
+      "binding": {
         "kind": "flowVariable",
         "processFlowId": "property-search-flow",
-        "variableName": "rows"                    // フロー outputs[] で宣言した変数
+        "path": "rows"
+      },
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "property-list-view"
       }
     }
   ]
@@ -416,7 +422,7 @@ ViewDefinition の列定義を使い ProcessFlow 出力を画面に表示する�
 ```
 
 **設計方針**: ViewDefinition は「列定義・ソート・kind」専任、データ取得は ProcessFlow が担い、
-viewer screen-item が両者を仲介する。ViewDefinition 側に filter/parameter binding ロジックは持たせない。
+ScreenItem の `binding` と `presentation` が両者を仲介する。ViewDefinition 側に filter/parameter binding ロジックは持たせない。
 
 詳細は [`screen-items.md#F-viewer-項目`](screen-items.md) を参照。
 

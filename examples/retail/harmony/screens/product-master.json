@@ -17,7 +17,7 @@
       "id": "productCodeSearch",
       "label": "商品コード",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 20,
       "pattern": "@conv.regex.productCode",
@@ -28,7 +28,7 @@
       "id": "productNameSearch",
       "label": "商品名",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 100,
       "placeholder": "商品名を入力",
@@ -38,7 +38,7 @@
       "id": "activeOnlyFilter",
       "label": "有効商品のみ表示",
       "type": "boolean",
-      "direction": "input",
+      "direction": "in",
       "defaultValue": true,
       "description": "商品マスター一覧の有効フラグフィルタ。"
     }

@@ -76,8 +76,8 @@ describe("screenItemViewerValidator — UNKNOWN_VIEWER_VIEW_DEFINITION", () => {
         id: "rows",
         label: "一覧",
         type: { kind: "array", itemType: "json" },
-        direction: "viewer",
-        viewDefinitionId: "99999999-9999-4999-8999-999999999999", // 存在しない
+        direction: "out",
+        presentation: { kind: "table", viewDefinitionId: "99999999-9999-4999-8999-999999999999" }, // 存在しない
       },
     ]);
     const issues = checkScreenItemViewer([screen], [], []);
@@ -92,8 +92,8 @@ describe("screenItemViewerValidator — UNKNOWN_VIEWER_VIEW_DEFINITION", () => {
         id: "rows",
         label: "一覧",
         type: { kind: "array", itemType: "json" },
-        direction: "viewer",
-        viewDefinitionId: VD_ID,
+        direction: "out",
+        presentation: { kind: "table", viewDefinitionId: VD_ID },
       },
     ]);
     const vd = makeVD();
@@ -106,14 +106,14 @@ describe("screenItemViewerValidator — UNKNOWN_VIEWER_VIEW_DEFINITION", () => {
 // ─── 観点 2: MISSING_VIEWER_VIEW_DEFINITION ─────────────────────────────────
 
 describe("screenItemViewerValidator — MISSING_VIEWER_VIEW_DEFINITION", () => {
-  it("positive: direction=viewer で viewDefinitionId 欠落 → error 検出", () => {
+  it("positive: table presentation で viewDefinitionId/columns 欠落 → error 検出", () => {
     const screen = makeScreen([
       {
         id: "rows",
         label: "一覧",
         type: { kind: "array", itemType: "json" },
-        direction: "viewer",
-        // viewDefinitionId 省略
+        direction: "out",
+        presentation: { kind: "table" },
       },
     ]);
     const issues = checkScreenItemViewer([screen], [], []);
@@ -122,13 +122,13 @@ describe("screenItemViewerValidator — MISSING_VIEWER_VIEW_DEFINITION", () => {
     expect(found?.severity).toBe("error");
   });
 
-  it("negative: direction=input は viewDefinitionId なくても検出なし", () => {
+  it("negative: direction=in は viewDefinitionId なくても検出なし", () => {
     const screen = makeScreen([
       {
         id: "keyword",
         label: "キーワード",
         type: "string",
-        direction: "input",
+        direction: "in",
       },
     ]);
     const issues = checkScreenItemViewer([screen], [], []);
@@ -146,12 +146,12 @@ describe("screenItemViewerValidator — VIEWER_FLOW_VARIABLE_NOT_DECLARED", () =
         id: "propertyRows",
         label: "物件一覧",
         type: { kind: "array", itemType: "json" },
-        direction: "viewer",
-        viewDefinitionId: VD_ID,
-        valueFrom: {
+        direction: "out",
+        presentation: { kind: "table", viewDefinitionId: VD_ID },
+        binding: {
           kind: "flowVariable",
           processFlowId: FLOW_ID,
-          variableName: "rows",
+          path: "rows",
         },
       },
     ]);
@@ -169,12 +169,12 @@ describe("screenItemViewerValidator — VIEWER_FLOW_VARIABLE_NOT_DECLARED", () =
         id: "propertyRows",
         label: "物件一覧",
         type: { kind: "array", itemType: "json" },
-        direction: "viewer",
-        viewDefinitionId: VD_ID,
-        valueFrom: {
+        direction: "out",
+        presentation: { kind: "table", viewDefinitionId: VD_ID },
+        binding: {
           kind: "flowVariable",
           processFlowId: FLOW_ID,
-          variableName: "rows",
+          path: "rows",
         },
       },
     ]);

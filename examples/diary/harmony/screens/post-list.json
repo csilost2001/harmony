@@ -15,7 +15,7 @@
       "id": "searchQuery",
       "label": "検索キーワード",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "投稿タイトル・本文の全文検索キーワード。入力値を投稿検索フローに渡す。",
       "placeholder": "投稿を検索…",
       "required": false,
@@ -39,7 +39,7 @@
         "kind": "array",
         "itemType": "string"
       },
-      "direction": "input",
+      "direction": "in",
       "description": "絞り込むタグのスラッグ一覧。複数選択可。投稿検索フローの tagSlug パラメータにカンマ区切り文字列として渡す (実装側で配列→string 変換)。",
       "required": false,
       "events": [
@@ -59,7 +59,7 @@
       "id": "statusFilter",
       "label": "公開状態フィルタ",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "表示する投稿の公開状態。all=全部 / published=公開 / draft=下書き。",
       "options": [
         {
@@ -170,12 +170,12 @@
           ]
         }
       },
-      "direction": "output",
+      "direction": "out",
       "description": "投稿検索フローから返却された投稿オブジェクト配列。id / title / summary / thumbnailUrl / mood / weather / location / tags / status / publishedAt を含む。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-search",
-        "variableName": "items"
+        "path": "items",
+        "processFlowId": "post-search"
       }
     },
     {
@@ -208,32 +208,32 @@
           ]
         }
       },
-      "direction": "output",
+      "direction": "out",
       "description": "タグフィルタのチップ一覧として表示するタグ配列。id / name / slug / color を含む。タグ一覧取得 ProcessFlow の tags 出力から。",
       "required": false,
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "tag-list-get",
-        "variableName": "tags"
+        "path": "tags",
+        "processFlowId": "tag-list-get"
       }
     },
     {
       "id": "totalCount",
       "label": "総件数",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "description": "フィルタ条件に合致する投稿の総件数。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-search",
-        "variableName": "total"
+        "path": "total",
+        "processFlowId": "post-search"
       }
     },
     {
       "id": "logoutButton",
       "label": "ログアウト",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "ヘッダー右上のログアウトボタン。クリックで ログアウト ProcessFlow を起動し、成功時に localStorage の access/refresh トークンを破棄して /login に画面遷移する想定。",
       "required": false,
       "events": [

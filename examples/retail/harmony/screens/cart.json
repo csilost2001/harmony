@@ -17,7 +17,7 @@
       "id": "addProductCode",
       "label": "商品コード",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "maxLength": 20,
       "pattern": "@conv.regex.productCode",
@@ -32,7 +32,7 @@
       "id": "addStoreCode",
       "label": "店舗",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "options": [
         {
@@ -57,7 +57,7 @@
       "id": "addQuantity",
       "label": "数量",
       "type": "integer",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "min": 1,
       "maxRef": "@conv.limit.cartItemMaxQuantity",
@@ -71,26 +71,26 @@
       "id": "cartItemCount",
       "label": "カート点数",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "#,##0 点",
       "description": "S-2 カート内の商品合計点数 (表示専用)。集計元はカート集計フロー (267e94bf) の itemCount。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "cart-summary",
-        "variableName": "itemCount"
+        "path": "itemCount",
+        "processFlowId": "cart-summary"
       }
     },
     {
       "id": "cartTotalAmount",
       "label": "小計 (税抜)",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
       "description": "S-2 カート内の税抜合計金額 (表示専用)。集計元はカート集計フロー (267e94bf) の totalAmount。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "cart-summary",
-        "variableName": "totalAmount"
+        "path": "totalAmount",
+        "processFlowId": "cart-summary"
       }
     },
     {
@@ -100,7 +100,7 @@
         "kind": "extension",
         "extensionRef": "retail:button"
       },
-      "direction": "output",
+      "direction": "out",
       "readonly": true,
       "events": [
         {

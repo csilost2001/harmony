@@ -151,16 +151,16 @@ designer の実運用は **1 プロジェクト = 1 業務アプリ** 単位。
 
 | 適用例 | 説明 |
 |---|---|
-| `<tbody data-item-id="xxx" data-preview-only="true">` | 一覧 viewer の hardcoded `<tr>` 行 (実データ一覧で置換) |
+| `<tbody data-item-id="xxx" data-preview-only="true">` | 一覧 presentation の hardcoded `<tr>` 行 (実データ一覧で置換) |
 | `<select data-preview-only="true">` | 動的 options bind 時の hardcoded `<option>` (API 取得オプションで置換) |
 | `<div data-preview-only="true">` | フロー出力で書き換わる文言を包む表示専用領域 |
 
-**`direction: "viewer"` の screen-item との関係**: viewer screen-item を持つ画面では、対応する viewer DOM 要素 (= `data-item-id="<viewerId>"` を持つ `<tbody>` / `<ul>` / `<div>` 等の包含要素) 自体に `data-preview-only="true"` を付与することで「この一覧は実データで置換される、配下の hardcoded 行は preview のみ」と明示できる。
+**一覧 presentation の screen-item との関係**: `presentation.kind="table"` / `"list"` の screen-item を持つ画面では、対応する DOM 要素 (= `data-item-id="<itemId>"` を持つ `<tbody>` / `<ul>` / `<div>` 等の包含要素) 自体に `data-preview-only="true"` を付与することで「この一覧は実データで置換される、配下の hardcoded 行は preview のみ」と明示できる。
 
 ### AI コード生成器の解釈ルール
 
 - `data-preview-only="true"` が付いた要素 → 子要素の中身は無視し、要素自体を対応する screen-item の binding で置換実装する
-- 親要素に `data-item-id="<id>"` がある場合、対応する screen-item の `valueFrom: flowVariable` 等に従って実装する
+- 親要素に `data-item-id="<id>"` がある場合、対応する screen-item の `binding` / `presentation` に従って実装する
 - `data-preview-only` は **子要素を包含する** (親に付いていれば配下の中身全体が preview 対象)。兄弟要素・親の外側には影響しない。子要素を単独で preview-only にしたい場合は子要素に直接付与する
 
 ### 業務設計者向けの記述ルール

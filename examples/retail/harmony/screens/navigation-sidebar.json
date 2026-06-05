@@ -14,28 +14,28 @@
       "id": "navProductSearch",
       "label": "商品検索",
       "type": "boolean",
-      "direction": "input",
+      "direction": "in",
       "description": "商品検索画面 (/products/search) へのナビゲーションリンク。"
     },
     {
       "id": "navOrderList",
       "label": "注文一覧",
       "type": "boolean",
-      "direction": "input",
+      "direction": "in",
       "description": "注文一覧画面 (/orders) へのナビゲーションリンク。"
     },
     {
       "id": "navCustomerList",
       "label": "顧客一覧",
       "type": "boolean",
-      "direction": "input",
+      "direction": "in",
       "description": "顧客マスター画面 (/master/customers) へのナビゲーションリンク。"
     },
     {
       "id": "navMasterManagement",
       "label": "マスタ管理",
       "type": "boolean",
-      "direction": "input",
+      "direction": "in",
       "description": "マスタ管理トップ (商品マスター /master/products) へのナビゲーションリンク。"
     }
   ],

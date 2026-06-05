@@ -15,7 +15,7 @@
       "id": "postTitle",
       "label": "タイトル",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "投稿のタイトル。",
       "required": true,
       "maxLength": 200,
@@ -25,7 +25,7 @@
       "id": "postBody",
       "label": "本文",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "投稿本文 (Markdown形式)。Markdownエディタ + プレビュー切り替え。",
       "required": true,
       "placeholder": "今日のことを書いてみましょう…"
@@ -34,7 +34,7 @@
       "id": "mood",
       "label": "気分",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "投稿時の気分を表す絵文字。",
       "options": [
         {
@@ -76,7 +76,7 @@
       "id": "weather",
       "label": "天気",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "投稿時の天気を表す絵文字。",
       "options": [
         {
@@ -110,7 +110,7 @@
       "id": "location",
       "label": "場所",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "投稿に記録する場所名。フリーテキスト入力。",
       "maxLength": 100,
       "placeholder": "場所を入力 (例: 東京・渋谷)",
@@ -123,7 +123,7 @@
         "kind": "array",
         "itemType": "integer"
       },
-      "direction": "input",
+      "direction": "in",
       "description": "投稿に付与するタグのID配列。タグ候補一覧からマルチセレクト。",
       "required": false
     },
@@ -187,7 +187,7 @@
           ]
         }
       },
-      "direction": "input",
+      "direction": "in",
       "description": "添付写真ファイル一覧。D&Dまたはクリックでアップロード。AI画像alt生成フローに渡すことができる。",
       "required": false
     },
@@ -195,7 +195,7 @@
       "id": "status",
       "label": "公開状態",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "投稿の公開状態。published=公開 / draft=下書き。",
       "options": [
         {
@@ -214,12 +214,12 @@
       "id": "aiSummary",
       "label": "AI要約",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "AI要約生成フローから返却された要約テキスト。サイドパネルに表示。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "ai-summary-generate",
-        "variableName": "summary"
+        "path": "summary",
+        "processFlowId": "ai-summary-generate"
       }
     },
     {
@@ -253,55 +253,55 @@
           ]
         }
       },
-      "direction": "output",
+      "direction": "out",
       "description": "AIタグ提案フローから返却されたタグ候補配列。サイドパネルに表示し、1クリックで適用可。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "ai-tag-suggest",
-        "variableName": "suggestedTags"
+        "path": "suggestedTags",
+        "processFlowId": "ai-tag-suggest"
       }
     },
     {
       "id": "aiProofreadResult",
       "label": "AI校正結果",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "AI文章校正フローから返却された校正済みテキストまたは指摘コメント。サイドパネルに表示。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "ai-text-proofread",
-        "variableName": "proofreadResult"
+        "path": "proofreadResult",
+        "processFlowId": "ai-text-proofread"
       }
     },
     {
       "id": "aiImageAlt",
       "label": "AI画像alt",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "AI画像alt生成フローから返却されたalt文字列。写真カードに適用可。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "ai-image-alt-generate",
-        "variableName": "altText"
+        "path": "altText",
+        "processFlowId": "ai-image-alt-generate"
       }
     },
     {
       "id": "postId",
       "label": "投稿ID",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "description": "URL :id? が指定されている場合の編集対象 postId。新規モードでは null。投稿詳細取得 ProcessFlow の outputs.post.postId を IdentifierPath (post.postId) で参照する。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "post.postId"
+        "path": "post.postId",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "selectedPhotoId",
       "label": "AI alt 対象写真ID",
       "type": "integer",
-      "direction": "input",
+      "direction": "in",
       "description": "AI画像alt生成 button 押下時に対象となる photos[] の id を保持する画面 state。photo クリック時に実装側で update する。",
       "required": false
     },
@@ -312,7 +312,7 @@
         "kind": "file",
         "format": "image/*"
       },
-      "direction": "input",
+      "direction": "in",
       "description": "写真 D&D ゾーン / file picker。ファイル選択 (submit event) で 写真アップロード ProcessFlow を起動し、photos[] に追加する。",
       "required": false,
       "events": [
@@ -331,7 +331,7 @@
       "id": "saveButton",
       "label": "保存",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "保存ボタン (公開 / 下書きは status item の値で決まる)。新規モード (postId=null) では 投稿作成 を、更新モード (postId 有) では 投稿更新 を起動する。UI 側で URL :id? の有無により click-create / click-update を選択する。",
       "required": false,
       "events": [
@@ -372,7 +372,7 @@
       "id": "aiSummarizeButton",
       "label": "AI 要約",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "AI assist サイドパネルの「要約」ボタン。クリックで AI要約生成 ProcessFlow を起動し、結果を aiSummary に表示する。",
       "required": false,
       "events": [
@@ -391,7 +391,7 @@
       "id": "aiTagSuggestButton",
       "label": "AI タグ提案",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "AI assist サイドパネルの「タグ提案」ボタン。クリックで AIタグ提案 ProcessFlow を起動し、結果を aiSuggestedTags に表示する。",
       "required": false,
       "events": [
@@ -410,7 +410,7 @@
       "id": "aiProofreadButton",
       "label": "AI 校正",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "AI assist サイドパネルの「校正」ボタン。クリックで AI文章校正 ProcessFlow を起動し、結果を aiProofreadResult に表示する。style は conventions.msg.proofreadStyle (default: 'casual-diary') を採用。",
       "required": false,
       "events": [
@@ -429,7 +429,7 @@
       "id": "aiImageAltButton",
       "label": "AI 画像 alt",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "写真カードのインライン「AI alt」ボタン。クリック時に対象 photo の id を selectedPhotoId にセットしてから AI画像alt生成 ProcessFlow を起動し、結果を aiImageAlt に表示する。",
       "required": false,
       "events": [

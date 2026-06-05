@@ -15,109 +15,109 @@
       "id": "postId",
       "label": "投稿ID",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "description": "URL :id パラメータから取得した投稿ID。投稿詳細取得フローの outputs.post.postId を IdentifierPath (post.postId) で参照、deleteConfirm.events で 投稿削除 (postId integer) に渡す。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "post.postId"
+        "path": "post.postId",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "postTitle",
       "label": "タイトル",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "投稿タイトル。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "title"
+        "path": "title",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "postBody",
       "label": "本文",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "投稿本文 (Markdown形式)。prose-lg スタイルでレンダリングする。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "body"
+        "path": "body",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "heroImageUrl",
       "label": "ヒーロー画像URL",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "投稿のヒーロー画像URL。null の場合はグラデーション背景で代替。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "heroImageUrl"
+        "path": "heroImageUrl",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "publishedAt",
       "label": "公開日",
       "type": "datetime",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "YYYY年MM月DD日",
       "description": "投稿公開日時。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "publishedAt"
+        "path": "publishedAt",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "authorName",
       "label": "著者名",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "投稿者の表示名。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "authorName"
+        "path": "authorName",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "mood",
       "label": "気分",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "投稿時の気分を表す絵文字または文字列。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "mood"
+        "path": "mood",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "weather",
       "label": "天気",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "投稿時の天気を表す絵文字または文字列。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "weather"
+        "path": "weather",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "location",
       "label": "場所",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "投稿に記録された場所名。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "location"
+        "path": "location",
+        "processFlowId": "post-detail-get"
       }
     },
     {
@@ -150,12 +150,12 @@
           ]
         }
       },
-      "direction": "output",
+      "direction": "out",
       "description": "この投稿に付与されたタグ配列 (id / name / slug / color を含む)。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "tags"
+        "path": "tags",
+        "processFlowId": "post-detail-get"
       }
     },
     {
@@ -187,31 +187,31 @@
           ]
         }
       },
-      "direction": "output",
+      "direction": "out",
       "description": "この投稿に添付された写真配列 (id / url / alt / orderIndex を含む)。lightbox 対応。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "photos"
+        "path": "photos",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "isOwner",
       "label": "所有者フラグ",
       "type": "boolean",
-      "direction": "output",
+      "direction": "out",
       "description": "ログインユーザーが投稿者本人かどうか。true の場合に編集/削除ボタンを表示。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "post-detail-get",
-        "variableName": "isOwner"
+        "path": "isOwner",
+        "processFlowId": "post-detail-get"
       }
     },
     {
       "id": "deleteConfirm",
       "label": "削除実行",
       "type": "boolean",
-      "direction": "input",
+      "direction": "in",
       "description": "削除確認ダイアログでOKを押した際に投稿削除フローを呼び出すトリガー。",
       "required": false,
       "events": [

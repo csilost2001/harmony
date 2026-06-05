@@ -63,7 +63,7 @@ describe('ダッシュボード コンポーネント', () => {
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:streakDays
-     *   direction=output, type=integer, label=連続学習日数
+     *   direction=out, type=integer, label=連続学習日数
      */
     it('#1 連続学習日数 (data-testid="streakDays") が表示される', async () => {
       renderWithProviders(<DashboardPage />);
@@ -74,7 +74,7 @@ describe('ダッシュボード コンポーネント', () => {
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:cefrLevel
-     *   direction=output, type=string, label=現在の CEFR レベル
+     *   direction=out, type=string, label=現在の CEFR レベル
      */
     it('#2 現在の CEFR レベル (data-testid="cefrLevel") が表示される', async () => {
       renderWithProviders(<DashboardPage />);
@@ -85,7 +85,7 @@ describe('ダッシュボード コンポーネント', () => {
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:todayGoal
-     *   direction=output, type=integer, label=本日の学習目標 (セッション数)
+     *   direction=out, type=integer, label=本日の学習目標 (セッション数)
      */
     it('#3 本日の学習目標セッション数 (data-testid="todayGoal") が表示される', async () => {
       renderWithProviders(<DashboardPage />);
@@ -96,7 +96,7 @@ describe('ダッシュボード コンポーネント', () => {
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:todayDone
-     *   direction=output, type=integer, label=本日完了セッション数
+     *   direction=out, type=integer, label=本日完了セッション数
      */
     it('#4 本日完了セッション数 (data-testid="todayDone") が表示される', async () => {
       renderWithProviders(<DashboardPage />);
@@ -107,7 +107,7 @@ describe('ダッシュボード コンポーネント', () => {
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:recentStoryList
-     *   direction=output, type=json, label=最近のストーリー
+     *   direction=out, type=json, label=最近のストーリー
      */
     it('#5 最近のストーリー (data-testid="recentStoryList") が DOM に存在する', async () => {
       renderWithProviders(<DashboardPage />);
@@ -121,10 +121,10 @@ describe('ダッシュボード コンポーネント', () => {
   describe('Section 2: input (input items なし)', () => {
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d items
-     *   ダッシュボードは全 items が direction=output のため、input テストは不要
+     *   ダッシュボードは全 items が direction=out のため、input テストは不要
      */
     it('#6 input items が存在しないことを確認 (ダッシュボードは全 output)', () => {
-      // Spec: Screen 496e43f8 の items は全て direction=output
+      // Spec: Screen 496e43f8 の items は全て direction=out
       // input 型の UI 要素は仕様上ない
       expect(true).toBe(true); // 仕様確認済み
     });
@@ -134,8 +134,8 @@ describe('ダッシュボード コンポーネント', () => {
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:streakDays
-     *   direction=output, type=integer
-     *   valueFrom: コンポーネント内部 state (users.streak_days)
+     *   direction=out, type=integer
+     *   binding: コンポーネント内部 state (users.streak_days)
      */
     it('#7 連続学習日数が API レスポンスから表示される', async () => {
       renderWithProviders(<DashboardPage />);
@@ -146,8 +146,8 @@ describe('ダッシュボード コンポーネント', () => {
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:cefrLevel
-     *   direction=output, type=string
-     *   valueFrom: コンポーネント内部 state (users.cefr_level)
+     *   direction=out, type=string
+     *   binding: コンポーネント内部 state (users.cefr_level)
      */
     it('#8 CEFR レベルが API レスポンスから表示される', async () => {
       renderWithProviders(<DashboardPage />);
@@ -158,7 +158,7 @@ describe('ダッシュボード コンポーネント', () => {
 
     /**
      * Spec: Screen 496e43f8-d243-48a1-b680-32d34d98cc2d item:recentStoryList
-     *   direction=output, type=json
+     *   direction=out, type=json
      *   直近 3 件のストーリーがリスト表示されること
      */
     it('#9 最近のストーリーリストが表示される (直近 3 件まで)', async () => {

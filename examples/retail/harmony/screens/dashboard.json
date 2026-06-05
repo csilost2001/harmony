@@ -18,52 +18,52 @@
       "id": "todaySales",
       "label": "今日の売上",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
       "description": "ダッシュボード KPI: 本日の累計売上金額 (税込)。集計元はダッシュボード KPI 集計フロー (dashboard-kpi-summary) の todaySales 出力。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "dashboard-kpi-summary",
-        "variableName": "todaySales"
+        "path": "todaySales",
+        "processFlowId": "dashboard-kpi-summary"
       }
     },
     {
       "id": "ordersToday",
       "label": "本日の注文件数",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "#,##0 件",
       "description": "ダッシュボード KPI: 本日の受注件数。集計元はダッシュボード KPI 集計フロー (dashboard-kpi-summary) の ordersToday 出力。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "dashboard-kpi-summary",
-        "variableName": "ordersToday"
+        "path": "ordersToday",
+        "processFlowId": "dashboard-kpi-summary"
       }
     },
     {
       "id": "lowStockCount",
       "label": "低在庫商品数",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "#,##0 件",
       "description": "ダッシュボード KPI: 低在庫しきい値以下 (@conv.limit.lowStockThreshold) の商品件数。集計元はダッシュボード KPI 集計フロー (dashboard-kpi-summary) の lowStockCount 出力。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "dashboard-kpi-summary",
-        "variableName": "lowStockCount"
+        "path": "lowStockCount",
+        "processFlowId": "dashboard-kpi-summary"
       }
     },
     {
       "id": "dispatchPending",
       "label": "配送指示待ち",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "#,##0 件",
       "description": "ダッシュボード KPI: 配送指示待ちの注文件数 (status IN ('pending', 'confirmed'))。集計元はダッシュボード KPI 集計フロー (dashboard-kpi-summary) の dispatchPending 出力。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "dashboard-kpi-summary",
-        "variableName": "dispatchPending"
+        "path": "dispatchPending",
+        "processFlowId": "dashboard-kpi-summary"
       }
     }
   ],

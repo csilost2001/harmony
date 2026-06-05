@@ -26,20 +26,23 @@
         "kind": "array",
         "itemType": "json"
       },
-      "direction": "viewer",
-      "viewDefinitionId": "cart-item-viewer",
-      "valueFrom": {
+      "direction": "out",
+      "description": "S-3 カート明細一覧の表示。presentation=table (#762/#771): カート集計フロー (267e94bf) の出力変数 'rows' を カート明細 ViewDefinition (f8b286e4) の列定義で表示する。id='cartSummary' は design.json の data-item-id='cartSummary' と一致する (#331 規約)。",
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "cart-summary",
-        "variableName": "rows"
+        "path": "rows",
+        "processFlowId": "cart-summary"
       },
-      "description": "S-3 カート明細一覧の表示。direction=viewer (#762/#771): カート集計フロー (267e94bf) の出力変数 'rows' を カート明細 ViewDefinition (f8b286e4) の列定義で表示する。id='cartSummary' は design.json の data-item-id='cartSummary' と一致する (#331 規約)。"
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "cart-item-viewer"
+      }
     },
     {
       "id": "shippingPostalCode",
       "label": "郵便番号",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "maxLength": 7,
       "pattern": "@conv.regex.postalCode",
@@ -54,7 +57,7 @@
       "id": "shippingAddress",
       "label": "配送先住所",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "maxLength": 300,
       "errorMessages": {
@@ -67,7 +70,7 @@
       "id": "note",
       "label": "備考",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 500,
       "placeholder": "配送時の注意事項など",
@@ -77,7 +80,7 @@
       "id": "paymentMethod",
       "label": "支払方法",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "options": [
         {
@@ -102,14 +105,14 @@
       "id": "confirmTotalAmount",
       "label": "注文合計 (税抜)",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
       "readonly": true,
       "description": "S-3 注文確定確認画面の注文合計金額 (税抜、表示専用)。集計元はカート集計フロー (267e94bf) の totalAmount。税込表示が必要な場合は呼び出し側で @conv.tax.standard.rate を適用する。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "cart-summary",
-        "variableName": "totalAmount"
+        "path": "totalAmount",
+        "processFlowId": "cart-summary"
       }
     },
     {
@@ -119,7 +122,7 @@
         "kind": "extension",
         "extensionRef": "retail:button"
       },
-      "direction": "output",
+      "direction": "out",
       "readonly": true,
       "events": [
         {

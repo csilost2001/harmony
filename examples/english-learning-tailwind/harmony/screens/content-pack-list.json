@@ -19,15 +19,18 @@
         "kind": "array",
         "itemType": "json"
       },
-      "direction": "viewer",
-      "viewDefinitionId": "content-pack-list-viewer",
-      "description": "content_packs 一覧。コンテンツパック一覧 viewer (ba1c7d9d) の列定義に従い pack_name / namespace_ref / story_count / is_active を表示する。"
+      "direction": "out",
+      "description": "content_packs 一覧。コンテンツパック一覧 viewer (ba1c7d9d) の列定義に従い pack_name / namespace_ref / story_count / is_active を表示する。",
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "content-pack-list-viewer"
+      }
     },
     {
       "id": "activatePackId",
       "label": "適用するパック ID",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "選択したパックを users.active_pack_ids に追加するためのパック ID 入力。適用ボタンクリックで処理フローに渡す。"
     }
   ],

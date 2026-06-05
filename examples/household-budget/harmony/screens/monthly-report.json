@@ -18,7 +18,7 @@
       "id": "targetYearMonth",
       "label": "対象月",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
       "placeholder": "2026-05",
@@ -38,33 +38,33 @@
       "id": "totalIncome",
       "label": "収入合計",
       "type": "number",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "variableName": "report.totalIncome"
+        "path": "report.totalIncome"
       }
     },
     {
       "id": "totalExpense",
       "label": "支出合計",
       "type": "number",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "variableName": "report.totalExpense"
+        "path": "report.totalExpense"
       }
     },
     {
       "id": "netBalance",
       "label": "収支",
       "type": "number",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
-      "valueFrom": {
+      "binding": {
         "kind": "expression",
-        "expression": "${report.totalIncome - report.totalExpense}"
+        "path": "${report.totalIncome - report.totalExpense}"
       }
     },
     {
@@ -98,12 +98,12 @@
           ]
         }
       },
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "helperText": "Tailwind の bar chart + ドーナツチャートで描画。",
+      "binding": {
         "kind": "flowVariable",
-        "variableName": "report.categoryBreakdown"
-      },
-      "helperText": "Tailwind の bar chart + ドーナツチャートで描画。"
+        "path": "report.categoryBreakdown"
+      }
     }
   ],
   "design": {

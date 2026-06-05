@@ -28,7 +28,7 @@ v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念か
 | `screen.v3.schema.json` | Screen entity。EntityMeta + 業務情報のみ (kind / path / items / auth / permissions / design 参照)、UI 座標は分離。hasDesign は harmony.v3 の ScreenEntry 側で一覧表示用に保持 (Screen 本体には不在)。配置: `<dataDir>/screens/<id>.json` |
 | `screen-flow-positions.v3.schema.json` | 画面フロー UI 座標 (Designer 専用、業務実装には不要)。配置: `<dataDir>/screen-flow-positions.json` |
 | `page-layout.v3.schema.json` | PageLayout (共通レイアウト entity、RFC #1021)。regions + assignments + design + optional processFlowId。配置: `<dataDir>/page-layouts/<id>.json` |
-| `screen-item.v3.schema.json` | ScreenItem (画面項目)。id は Identifier (camelCase 強制)、ValueSource discriminated union (組み込み 4 種 + 拡張) |
+| `screen-item.v3.schema.json` | ScreenItem (画面項目)。id は Identifier (camelCase 強制)、direction は in/out/both、binding は Form/DTO/JSON/table/view/flow 等、presentation は table/list 等の表示形態 |
 | `table.v3.schema.json` | Table (DB テーブル)。EntityMeta + physicalName + columns + indexes + constraints (discriminated union: **primaryKey** / unique / check / foreignKey、PrimaryKeyConstraint は composite PK 対応、#1185 提案 C で追加) + defaults + triggers。配置: `<dataDir>/tables/<id>.json`。Column.primaryKey と PrimaryKeyConstraint の併用は禁止 (tableValidation.ts で runtime mutual exclusion 検証、1 table = 1 PK)。 |
 | `er-layout.v3.schema.json` | ER 図 UI 座標 + 論理リレーション。配置: `<dataDir>/er-layout.json` |
 | `sequence.v3.schema.json` | Sequence (DB シーケンス)。usedBy は common.v3#/$defs/TableColumnRef に統一。配置: `<dataDir>/sequences/<id>.json` |
@@ -37,7 +37,7 @@ v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念か
 | `custom-block.v3.schema.json` | カスタムブロック集合 (id は Uuid 強制、v1 timestamp 形式廃止)。**注意: CustomBlock は EntityMeta を持たない例外** (label ベースの独自構造、業務 entity ではないため) |
 | `process-flow.v3.schema.json` | ProcessFlow (処理フロー)。**root を meta / context / actions / authoring の 4 並列に再編** (旧 v2 の root 並列肥大化を解消、ただし `body` セクションを設けず actions を root 直接持ちにすることで認知負荷を最小化)。catalogs を context.catalogs.<kind> に階層化 (modelEndpoints 含む)、25 種 Step variant (組み込み 24 + ExtensionStep)。配置: `<dataDir>/process-flows/<id>.json` |
 | `conventions.v3.schema.json` | 横断規約 catalog (i18n / msg / regex / limit / scope / currency / tax / auth / role / permission / db / numbering / tx / externalOutcomeDefaults + extensionCategories) |
-| `extensions.v3.schema.json` | **統合拡張定義** — 1 namespace = 1 ファイルで全種類 (fieldTypes / dataTypes / screenKinds / processFlowKinds / actionTriggers / dbOperations / stepKinds / responseTypes / valueSourceKinds / columnTemplates / constraintPatterns / conventionCategories) を集約。配置: `<dataDir>/extensions/<namespace>.v3.json` または `<dataDir>/extensions/<namespace>/*.v3.json` |
+| `extensions.v3.schema.json` | **統合拡張定義** — 1 namespace = 1 ファイルで全種類 (fieldTypes / dataTypes / screenKinds / processFlowKinds / actionTriggers / dbOperations / stepKinds / responseTypes / columnTemplates / constraintPatterns / conventionCategories) を集約。配置: `<dataDir>/extensions/<namespace>.v3.json` または `<dataDir>/extensions/<namespace>/*.v3.json` |
 | `generic-definition.v3.schema.json` | Generic Definition Catalog の親 schema (#1069)。catalog ファイル 1 件 = 1 GenericDefinition (kind 別)。実 catalog エントリ schema は `generic-definitions/<kind>.v3.schema.json` に分割 |
 
 ### `generic-definitions/` サブディレクトリ (Generic Definition Catalog の kind 別 schema、#1063 / #1064 / #1066 / #1067 / #1263 Phase X2)
@@ -137,7 +137,7 @@ loader が glob で読み込み、同 namespace の複数ファイルをマー�
 
 ### 8. discriminator を `kind` で全領域統一
 
-Step.kind / FieldType.kind / Constraint.kind / BranchCondition.kind / ValueSource.kind / TestPrecondition.kind / TestAssertion.kind / Marker.kind / CdcDestination.kind 全部 `kind`。
+Step.kind / FieldType.kind / Constraint.kind / BranchCondition.kind / ScreenItem.binding.kind / ScreenItem.presentation.kind / TestPrecondition.kind / TestAssertion.kind / Marker.kind / CdcDestination.kind 全部 `kind`。
 
 ### 9. unevaluatedProperties: false
 
@@ -269,7 +269,7 @@ v3 EventTopic regex は `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$` (lowercase + und
 |---|---|
 | `screenItems[].name: "user_id"` (混在) | `screenItem.id: "userId"` (Identifier / camelCase 強制) + `screenItem.label: "ユーザーID"` |
 | Screen に `position` / `size` / `thumbnail` (UI 座標) | `screen-flow-positions.v3.schema.json` に分離 (`<dataDir>/screen-flow-positions.json`) |
-| `valueFrom: "@var"` (string) | `valueFrom: { kind: "flowVariable", variableName: "var" }` (構造化) |
+| `source: "@var"` (string) | `binding: { kind: "flowVariable", path: "var" }` (構造化) |
 
 ### TestScenario 構造変更
 

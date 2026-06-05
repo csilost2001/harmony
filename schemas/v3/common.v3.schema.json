@@ -56,7 +56,7 @@
     },
 
     "IdentifierPath": {
-      "description": "識別子のドット区切りパス。object 型変数の特定 field を参照する箇所 (例: ScreenItem.valueFrom.flowVariable.variableName で 'createdOrder.order_number' のように object の field を指す) で使用。各セグメントは camelCase または snake_case (連続 underscore / 末尾 underscore は禁止、Identifier / PhysicalName と一貫)。array index は非対応 (response.data[0].name 等は expression 形式を使う)。例: userId, createdOrder.order_number, response.data.items。#533 R3-1 で追加。",
+      "description": "識別子のドット区切りパス。object 型変数の特定 field を参照する箇所 (例: ScreenItem.binding.path で 'createdOrder.order_number' のように object の field を指す) で使用。各セグメントは camelCase または snake_case (連続 underscore / 末尾 underscore は禁止、Identifier / PhysicalName と一貫)。array index は非対応 (response.data[0].name 等は expression 形式を使う)。例: userId, createdOrder.order_number, response.data.items。#533 R3-1 で追加。",
       "type": "string",
       "pattern": "^[a-z][a-zA-Z0-9]*(_[a-zA-Z0-9]+)*(\\.[a-z][a-zA-Z0-9]*(_[a-zA-Z0-9]+)*)*$",
       "minLength": 1,

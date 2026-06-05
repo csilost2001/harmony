@@ -17,7 +17,7 @@
       "id": "storeFilter",
       "label": "店舗",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "options": [
         {
@@ -50,7 +50,7 @@
       "id": "productCodeFilter",
       "label": "商品コード",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 20,
       "pattern": "@conv.regex.productCode",
@@ -64,7 +64,7 @@
       "id": "lowStockOnly",
       "label": "低在庫のみ表示",
       "type": "boolean",
-      "direction": "input",
+      "direction": "in",
       "defaultValue": false,
       "description": "S-1 在庫一覧の低在庫フィルタトグル。"
     }

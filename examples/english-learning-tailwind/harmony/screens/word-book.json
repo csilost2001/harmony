@@ -16,7 +16,7 @@
       "id": "masteryFilter",
       "label": "習熟度",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "options": [
         {
@@ -42,7 +42,7 @@
       "id": "wordSearch",
       "label": "単語検索",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 100,
       "placeholder": "英単語を入力",
@@ -55,9 +55,12 @@
         "kind": "array",
         "itemType": "json"
       },
-      "direction": "viewer",
-      "viewDefinitionId": "word-book-viewer",
-      "description": "フィルタ条件で絞り込んだ user_word_progress JOIN words の一覧。単語帳 viewer (090e9db0) の列定義に従い単語 / 訳 / IPA / 習熟度 / 最終学習日を表示する。"
+      "direction": "out",
+      "description": "フィルタ条件で絞り込んだ user_word_progress JOIN words の一覧。単語帳 viewer (090e9db0) の列定義に従い単語 / 訳 / IPA / 習熟度 / 最終学習日を表示する。",
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "word-book-viewer"
+      }
     }
   ],
   "design": {
