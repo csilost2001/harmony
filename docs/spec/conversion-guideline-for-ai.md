@@ -36,14 +36,14 @@
 | 印 | 種別 | 実体 | AJV 検証 |
 |---|---|---|---|
 | ✅ | **現行 schema 適合形** | `schemas/v3/*.json` に既存 (`generic-definition.v3.schema.json` 含む、#1063)。今すぐ使える | **必須通過** (§10 完了判定の対象) |
-| ✨ | **RFC 将来 schema 案** | ISSUE #1060 系の **kind 別固有 schema** (data-contract / domain-type は #1064、exception-type は #1066、ui-fragment は #1067、application-rule / runtime-policy / ui-behavior は #1068 で AJV gate 対象化済、残 1 kind = component-definition のみ将来 RFC)。**binding / events.effects** は #1065 で AJV gate 対象化済 (✅ 側)。**componentCall / exceptionTypeRef** は **#1066 で AJV gate 対象化済 (✅ 側)**。**screen.fragments[]** は **#1067 で AJV gate 対象化済 (✅ 側)**。kind 固有 field (trigger / effects / rules / semanticKind 等) は **まだ schema が無い** | **検証対象外** (生成すると親 schema `unevaluatedProperties: false` で AJV 失敗、`description` 退避 + audit warning) |
+| ✨ | **RFC 将来 schema 案** | ISSUE #1060 系の **kind 別固有 schema** (data-contract / domain-type は #1064、exception-type は #1066、application-rule / runtime-policy / ui-behavior は #1068 で AJV gate 対象化済、残 1 kind = component-definition のみ将来 RFC)。**binding / events.effects** は #1065 で AJV gate 対象化済 (✅ 側)。**componentCall / exceptionTypeRef** は **#1066 で AJV gate 対象化済 (✅ 側)**。kind 固有 field (trigger / effects / rules / semanticKind 等) は **まだ schema が無い** | **検証対象外** (生成すると親 schema `unevaluatedProperties: false` で AJV 失敗、`description` 退避 + audit warning) |
 
 ### 何が ✨ RFC 将来案か
 
 - `screenItem.binding.{kind,path,role,formatHint,sourceNote}` — **#1065 で導入済 (AJV gate 対象)**。spec §3.1 の `optionSource` / `parseHint` は本 #1065 では追加せず将来 ISSUE 想定
 - `screenItemEvent.effects[]` — **#1065 で導入済 (AJV gate 対象)**。`event.trigger` / `event.target` (top-level) は #1065 範囲外、将来 ISSUE 想定。`event.id` 自体が trigger 名 (click/submit/change/blur) を兼ねる現行設計を本 PR 後も維持
 - `dbQuery` / `dbInsert` / `dbUpdate` — DB 操作はすべて `dbAccess` + `operation` で表現する (細分化は #1066 で採用しないと決定)
-- `generic-definitions/<kind>/*.json` の **kind 固有 field** — 親 schema (`schemas/v3/generic-definition.v3.schema.json`、#1063 で導入済) は確定し、共通メタモデル (kind / name / purpose / responsibilities / targets / fields / operations / relations / constraints / mappingHints) は AJV 検証対象。**kind 別の固有 schema** は 7 kind 完了 (data-contract / domain-type は #1064、exception-type は #1066、ui-fragment は #1067、application-rule / runtime-policy / ui-behavior は #1068)。残 1 kind (component-definition) のみ将来 RFC
+- `generic-definitions/<kind>/*.json` の **kind 固有 field** — 親 schema (`schemas/v3/generic-definition.v3.schema.json`、#1063 で導入済) は確定し、共通メタモデル (kind / name / purpose / responsibilities / targets / fields / operations / relations / constraints / mappingHints) は AJV 検証対象。**kind 別の固有 schema** は 6 kind 完了 (data-contract / domain-type は #1064、exception-type は #1066、application-rule / runtime-policy / ui-behavior は #1068、#1436 で ui-fragment 廃止)。残 1 kind (component-definition) のみ将来 RFC
 - `step.outputBinding: "stock"` の string 短縮形 — v3 で廃止、`{ name: "stock" }` のみ
 
 ### AI が今すべきこと
@@ -105,12 +105,10 @@ AJV / loader / `JSON.parse` は **標準 JSON のみ** 受け付ける。jsonc �
 | `ui-behavior` | 画面横断振る舞い (dirty check / dialog / datepicker) | dirtyCheck / messageDialog |
 | `runtime-policy` | retry / timeout / circuit breaker / cache (横断ポリシー) | externalRetryPolicy |
 | `component-definition` | service / mapper / repository / validator / formatter の責務 | OrderService / OrderMapper |
-| `ui-fragment` | 再利用 UI 断片 (ヘッダー / フッター / メッセージ領域) | commonHeader / messageArea |
 
 詳細スキーマと共通メタモデルは [`generic-definition-layer.md` §4.1](generic-definition-layer.md) 参照。
 
 **配置上の注意**:
-- `ui-fragment` と PageLayout の境界: PageLayout = ページ全体の骨格 (header / sidebar / content slot / footer)、`ui-fragment` = ページ内 or 複数画面で使い回す部品。詳細は [`generic-definition-layer.md` §3.6](generic-definition-layer.md)。
 - `process-flow-extensions` ([`process-flow-extensions.md`](process-flow-extensions.md)) と Generic Definition Catalog は独立。process-flow-extensions = ProcessFlow 内側のステップ拡張、generic-definitions = project 全体の再利用資産。ProcessFlow からは `$ref` で generic-definitions を参照する。
 
 ---
@@ -709,19 +707,19 @@ spec 編集者の記憶に頼って書き換えない。不確実な場合は必
 
 ### ✨ §3.4 〜 §3.7 についての注記 (必読)
 
-以下 §3.4 (exception-model) / §3.5 (class-definition) / §3.6 (frontend-script) / §3.7 (configuration-class) はすべて **`generic-definitions/<kind>/*.json` 配下への出力**。親 schema (#1063) で AJV 検証対象。data-contract / domain-type の kind 別 schema は #1064、exception-type は #1066、ui-fragment は #1067、application-rule / runtime-policy / ui-behavior は #1068 で導入済 (7 kind すべて AJV gate 対象化済)。残 1 kind (component-definition) は将来 RFC。各 kind-specific schema は親 schema 継承 + `kind` const に限定する最小構造で、kind 固有 field (trigger / effects / rules / semanticKind 等) は将来 RFC で追加予定。
+以下 §3.4 (exception-model) / §3.5 (class-definition) / §3.6 (frontend-script) / §3.7 (configuration-class) はすべて **`generic-definitions/<kind>/*.json` 配下への出力**。親 schema (#1063) で AJV 検証対象。data-contract / domain-type の kind 別 schema は #1064、exception-type は #1066、application-rule / runtime-policy / ui-behavior は #1068 で導入済 (6 kind の AJV gate 対象化済、#1436 で ui-fragment 廃止)。残 1 kind (component-definition) は将来 RFC。各 kind-specific schema は親 schema 継承 + `kind` const に限定する最小構造で、kind 固有 field (trigger / effects / rules / semanticKind 等) は将来 RFC で追加予定。
 
 **例の読み方 — 2 fence split 契約**:
 
 各 §3.4-§3.7 は **2 種類の fence** を提示する:
 
 1. **✅ 現状 (#1063 適合形)** — 親 schema (`kind` / `name` / `purpose` / `responsibilities` / `targets` + 任意の `relations` / `fields` / `operations` / `constraints` / `mappingHints`) のみで構成。親 schema は `unevaluatedProperties: false` のため **kind 固有 field を含めると AJV reject される**。AI は本形式で **そのまま `generic-definitions/<kind>/<Name>.json` に保存** する。
-2. **✨ kind 固有 field の signal (将来 RFC)** — `semanticKind` / `recoverable` / `trigger` / `effects` / `rules` 等の kind 固有 field のシグナル (application-rule / ui-behavior / runtime-policy / exception-type / component-definition / ui-fragment 等)。**現状はどの kind-specific schema も親 schema 継承 + `kind` const のみで、これら field は AJV reject 対象**。AI は元 MD から抽出した情報を **`description` 内に構造化文字列として退避** (§0.5 (a))、audit に warning `rfc_future_field_skipped` を kind 別件数で記録する。kind-specific schema が拡張されたら、これら field が AJV validation 対象に追加される。(7 kind の親+const schema は #1064 / #1066 / #1067 / #1068 で導入済)
+2. **✨ kind 固有 field の signal (将来 RFC)** — `semanticKind` / `recoverable` / `trigger` / `effects` / `rules` 等の kind 固有 field のシグナル (application-rule / ui-behavior / runtime-policy / exception-type / component-definition 等)。**現状はどの kind-specific schema も親 schema 継承 + `kind` const のみで、これら field は AJV reject 対象**。AI は元 MD から抽出した情報を **`description` 内に構造化文字列として退避** (§0.5 (a))、audit に warning `rfc_future_field_skipped` を kind 別件数で記録する。kind-specific schema が拡張されたら、これら field が AJV validation 対象に追加される。(6 kind の親+const schema は #1064 / #1066 / #1068 で導入済、#1436 で ui-fragment 廃止)
 
 **現状の扱い**:
 - `examples/<project>/<dataDir>/generic-definitions/<kind>/<name>.json` ファイルに書き出す (実例: `examples/retail/harmony/generic-definitions/data-contract/OrderForm.json` 等、#1063 で 3 件配置済)
 - 現行 loader はまだ読まない (UI 統合は #1069 で順次対応、それまでは設計資産として保存のみ)
-- **AJV 検証**: 親 schema の共通メタモデルは検証対象 (`scripts/spec-check/test.mjs` § 3b)。data-contract / domain-type は #1064、exception-type は #1066、ui-fragment は #1067、application-rule / runtime-policy / ui-behavior は #1068 で AJV gate 対象化済 (test.mjs § 3c で kind 別 dispatch)。残 1 kind (component-definition) は将来 RFC
+- **AJV 検証**: 親 schema の共通メタモデルは検証対象 (`scripts/spec-check/test.mjs` § 3b)。data-contract / domain-type は #1064、exception-type は #1066、application-rule / runtime-policy / ui-behavior は #1068 で AJV gate 対象化済 (test.mjs § 3c で kind 別 dispatch、#1436 で ui-fragment 廃止)。残 1 kind (component-definition) は将来 RFC
 - 物理配置 (path ↔ kind 一致) は `scripts/spec-check/lint-generic-definitions.mjs` で soft lint
 - 親 schema にマッチしない kind 固有 field を生成しようとした場合は audit に **warning `rfc_future_field_skipped`** を kind 別件数で残す
 
@@ -912,7 +910,7 @@ enum / コード値は `conventions/codeMaster` または `extensions/<namespace
   $id:              "generic-definitions/<kind>/<name>",
   kind:             "data-contract" | "domain-type" | "exception-type"
                     | "application-rule" | "ui-behavior" | "runtime-policy"
-                    | "component-definition" | "ui-fragment",
+                    | "component-definition",
   name:             string (lowerCamelOrPascalCase),
   purpose:          string (1-2 行の目的),
   responsibilities: string[],
@@ -996,7 +994,7 @@ enum / コード値は `conventions/codeMaster` または `extensions/<namespace
 | `exception_semantic_kind_undecided` | §3.4 で semanticKind 推測不能 | warning |
 | `data_contract_kind_undecided` | §3.5 で data-contract vs domain-type 判定不能 | warning |
 | `commonprocess_ref_unresolved` | §3.3 ✅ 現行形の `commonProcess` step の `refId` (呼び先 ProcessFlow EntityId) が未定義 | error |
-| `rfc_future_field_skipped` | RFC 将来 schema 案 (各 kind の固有 field — trigger / effects / rules / semanticKind 等、将来 RFC で kind 別 schema に追加予定) を生成しようとした際、現行 schema に未対応のため `description` 退避 or 別ディレクトリ書き出しに切り替えた。**binding / events.effects は #1065 で、componentCall / exceptionTypeRef / exception-type は #1066 で、ui-fragment / screen.fragments[] は #1067 で、application-rule / runtime-policy / ui-behavior は #1068 で導入済のため、これら kind 自体の生成は本 warning 対象外 (kind 内の固有 field 追加のみ対象)** | warning |
+| `rfc_future_field_skipped` | RFC 将来 schema 案 (各 kind の固有 field — trigger / effects / rules / semanticKind 等、将来 RFC で kind 別 schema に追加予定) を生成しようとした際、現行 schema に未対応のため `description` 退避 or 別ディレクトリ書き出しに切り替えた。**binding / events.effects は #1065 で、componentCall / exceptionTypeRef / exception-type は #1066 で、application-rule / runtime-policy / ui-behavior は #1068 で導入済のため、これら kind 自体の生成は本 warning 対象外 (kind 内の固有 field 追加のみ対象)。ui-fragment は #1436 で廃止** | warning |
 
 ### 5.3 audit summary
 
@@ -1031,9 +1029,9 @@ MD が少数 (~数十ファイル) で更新もまれな場合の手順。
 3. **archetype 分類** — §2 アルゴリズムで各ファイルを分類、`unknown` は warning ログ
 4. **catalog 系から処理** — `pulldown-catalog` / `reference-catalog` を先に変換し、conventions を確立 (他 archetype の binding 解決に必要)
 5. **screen / processFlow / table** — §3.1-§3.3 の **✅ 現行 schema 適合形** で変換 (§0.5 参照)
-6. **generic-definitions** — §3.4-§3.7 の **✅ 現状適合形** で `examples/<project>/<dataDir>/generic-definitions/<kind>/*.json` に書き出し、AJV 検証必須 (親 schema + 7 kind 別 schema: data-contract / domain-type #1064、exception-type #1066、ui-fragment #1067、application-rule / runtime-policy / ui-behavior #1068 で対象化済)。各 kind の固有 field (✨ 将来 RFC で kind 別 schema に追加予定) は `description` 退避 + audit warning `rfc_future_field_skipped` で kind 別件数記録
+6. **generic-definitions** — §3.4-§3.7 の **✅ 現状適合形** で `examples/<project>/<dataDir>/generic-definitions/<kind>/*.json` に書き出し、AJV 検証必須 (親 schema + 6 kind 別 schema: data-contract / domain-type #1064、exception-type #1066、application-rule / runtime-policy / ui-behavior #1068 で対象化済、#1436 で ui-fragment 廃止)。各 kind の固有 field (✨ 将来 RFC で kind 別 schema に追加予定) は `description` 退避 + audit warning `rfc_future_field_skipped` で kind 別件数記録
 7. **ProcessFlow `commonProcess` / `componentCall` の link** — `commonProcess.refId` (呼び先 ProcessFlow EntityId) を解決、未解決は **error** `commonprocess_ref_unresolved` を audit に出す (§10 (A) hard gate 対象)。`componentCall.componentRef` は `generic-definitions/component-definition/<Name>` 形式で schema gate 対象化済 (#1066)
-8. **AJV 検証 (現行 schema 範囲)** — `schemas/v3/*.json` 配下で生成した JSON を AJV で検証。`generic-definitions/<kind>/*.json` は親 schema (`generic-definition.v3.schema.json`) で共通メタモデル検証 + 7 kind 別 schema (data-contract / domain-type #1064、exception-type #1066、ui-fragment #1067、application-rule / runtime-policy / ui-behavior #1068) で strict 検証。残 1 kind (component-definition) の kind 別 schema は将来 RFC (§10 (A)/(B) 参照)
+8. **AJV 検証 (現行 schema 範囲)** — `schemas/v3/*.json` 配下で生成した JSON を AJV で検証。`generic-definitions/<kind>/*.json` は親 schema (`generic-definition.v3.schema.json`) で共通メタモデル検証 + 6 kind 別 schema (data-contract / domain-type #1064、exception-type #1066、application-rule / runtime-policy / ui-behavior #1068、#1436 で ui-fragment 廃止) で strict 検証。残 1 kind (component-definition) の kind 別 schema は将来 RFC (§10 (A)/(B) 参照)
 9. **audit summary** — §5.3 形式で出力、PR description に貼る (`rfc_future_field_skipped` の kind 別件数を含む)
 10. **完了判定** — §10 (A) hard gate を全件パス、§10 (B) soft gate は warning として残す
 
@@ -1570,7 +1568,7 @@ node scripts/spec-check/test.mjs
 - [`draft-state-policy.md`](draft-state-policy.md) — warning 残存保存の規範
 - [`sample-project-structure.md`](sample-project-structure.md) — `examples/<project-id>/` 配置規約
 - [`process-flow-extensions.md`](process-flow-extensions.md) — ProcessFlow step 拡張型 (本 catalog とは独立)
-- [`page-layout.md`](page-layout.md) — PageLayout (#1021)、本 catalog の `ui-fragment` と区別
+- [`page-layout.md`](page-layout.md) — PageLayout (#1021)
 - [`workspace.md`](workspace.md) — active workspace / dataDir 解決
 
 ### 関連 memory
