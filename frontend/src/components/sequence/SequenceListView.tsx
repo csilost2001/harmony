@@ -23,6 +23,7 @@ import { usePersistentState } from "../../hooks/usePersistentState";
 import { renumber } from "../../utils/listOrder";
 import { makeDuplicatedEntityId } from "../../utils/entityIdSuggestion";
 import { useDraftRegistry } from "../../hooks/useDraftRegistry";
+import "../../styles/table.css";
 import "../../styles/editMode.css";
 
 const STORAGE_KEY = "list-view-mode:sequence-list";
