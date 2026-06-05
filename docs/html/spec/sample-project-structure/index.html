@@ -274,12 +274,12 @@
 
 
 
-<table><thead><tr><th>適用例</th><th>説明</th></tr></thead><tbody><tr><td><code>&#x3C;tbody data-item-id="xxx" data-preview-only="true"></code></td><td>一覧 viewer の hardcoded <code>&#x3C;tr></code> 行 (実データ一覧で置換)</td></tr><tr><td><code>&#x3C;select data-preview-only="true"></code></td><td>動的 options bind 時の hardcoded <code>&#x3C;option></code> (API 取得オプションで置換)</td></tr><tr><td><code>&#x3C;div data-preview-only="true"></code></td><td>フロー出力で書き換わる文言を包む表示専用領域</td></tr></tbody></table>
-<p><strong><code>direction: "viewer"</code> の screen-item との関係</strong>: viewer screen-item を持つ画面では、対応する viewer DOM 要素 (= <code>data-item-id="&#x3C;viewerId>"</code> を持つ <code>&#x3C;tbody></code> / <code>&#x3C;ul></code> / <code>&#x3C;div></code> 等の包含要素) 自体に <code>data-preview-only="true"</code> を付与することで「この一覧は実データで置換される、配下の hardcoded 行は preview のみ」と明示できる。</p>
+<table><thead><tr><th>適用例</th><th>説明</th></tr></thead><tbody><tr><td><code>&#x3C;tbody data-item-id="xxx" data-preview-only="true"></code></td><td>一覧 presentation の hardcoded <code>&#x3C;tr></code> 行 (実データ一覧で置換)</td></tr><tr><td><code>&#x3C;select data-preview-only="true"></code></td><td>動的 options bind 時の hardcoded <code>&#x3C;option></code> (API 取得オプションで置換)</td></tr><tr><td><code>&#x3C;div data-preview-only="true"></code></td><td>フロー出力で書き換わる文言を包む表示専用領域</td></tr></tbody></table>
+<p><strong>一覧 presentation の screen-item との関係</strong>: <code>presentation.kind="table"</code> / <code>"list"</code> の screen-item を持つ画面では、対応する DOM 要素 (= <code>data-item-id="&#x3C;itemId>"</code> を持つ <code>&#x3C;tbody></code> / <code>&#x3C;ul></code> / <code>&#x3C;div></code> 等の包含要素) 自体に <code>data-preview-only="true"</code> を付与することで「この一覧は実データで置換される、配下の hardcoded 行は preview のみ」と明示できる。</p>
 <h3 id="ai-コード生成器の解釈ルール">AI コード生成器の解釈ルール</h3>
 <ul>
 <li><code>data-preview-only="true"</code> が付いた要素 → 子要素の中身は無視し、要素自体を対応する screen-item の binding で置換実装する</li>
-<li>親要素に <code>data-item-id="&#x3C;id>"</code> がある場合、対応する screen-item の <code>valueFrom: flowVariable</code> 等に従って実装する</li>
+<li>親要素に <code>data-item-id="&#x3C;id>"</code> がある場合、対応する screen-item の <code>binding</code> / <code>presentation</code> に従って実装する</li>
 <li><code>data-preview-only</code> は <strong>子要素を包含する</strong> (親に付いていれば配下の中身全体が preview 対象)。兄弟要素・親の外側には影響しない。子要素を単独で preview-only にしたい場合は子要素に直接付与する</li>
 </ul>
 <h3 id="業務設計者向けの記述ルール">業務設計者向けの記述ルール</h3>

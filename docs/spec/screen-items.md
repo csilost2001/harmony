@@ -3,10 +3,11 @@
 **ステータス**: v3 整合 (schema v3.0.2 確定済)
 **策定開始**: 2026-04-22
 **凍結日 v1.0**: 2026-04-23
-**更新 v1.1**: 2026-04-24 — 出力項目の `displayFormat` / `valueFrom` 追加 (#377)
-**改訂日: 2026-04-28 (v3 反映)**: schema を `schemas/v3/screen-item.v3.schema.json` に整合、`FieldType` を v3 確定形 (custom 廃止 / integer / datetime / json / domain / file / extension 追加)、`ValueSource.flowVariable.variableName` を `IdentifierPath` (#533 R3-1)、`tableColumn` / `viewColumn` を `TableColumnRef` / `ViewColumnRef` (Pattern B 複合参照、物理名直書き廃止)
+**更新 v1.1**: 2026-04-24 — 出力項目の `displayFormat` 追加 (#377)
+**改訂日: 2026-04-28 (v3 反映)**: schema を `schemas/v3/screen-item.v3.schema.json` に整合、`FieldType` を v3 確定形 (custom 廃止 / integer / datetime / json / domain / file / extension 追加)
 **改訂日: 2026-05-03 (Phase 4-β reversal 反映)**: A-1 独立ファイル方式 (`screen-items/<screenId>.json`) を **廃止**、`screens/<screenId>.json` の `items[]` への **embed のみ** に統一 (#712)。runtime (`backend`) は `screen-items/` を読まず、新規 workspace 作成時にも生成しない。validator (`runtimeContractValidator [LEGACY_SCREEN_ITEMS_DIR]`, #714) が legacy 配置を検出する
-**関連 issue**: #318 #354 #377 #533 (R3-1) #539 (spec v3 反映) #712 (Phase 4-β embed 統一) #714 (runtime 契約 validator)
+**改訂日: 2026-06-05 (#1445)**: `direction` を `in/out/both` に整理し、データソースは `binding`、一覧・表などの表示形態は `presentation` へ分離
+**関連 issue**: #318 #354 #377 #533 (R3-1) #539 (spec v3 反映) #712 (Phase 4-β embed 統一) #714 (runtime 契約 validator) #1445
 
 本書は画面項目定義 (画面 UI のフォーム項目に宣言的にバリデーション・ラベル・表示制御を紐付ける設計書) の仕様を定める。
 
@@ -88,23 +89,18 @@ interface ScreenItem {
   /** 表示制御 (式言語、`docs/spec/process-flow-expression-language.md` と共有)。 */
   visibleWhen?: TemplateString;
   enabledWhen?: TemplateString;
-  /** 画面上での役割 (デフォルト: "input")。
-   *  - "input"  = フォーム入力項目
-   *  - "output" = 表示専用項目 (スカラー)
-   *  - "viewer" = ViewDefinition の列定義を参照し、valueFrom で flow 変数から配列データを
-   *               bind する配列データ表示項目 (#762)。viewDefinitionId が必須になる。 */
-  direction?: "input" | "output" | "viewer";
-  /** viewer 項目が参照する ViewDefinition の ID (#762)。
-   *  direction='viewer' の場合のみ使用し、列定義・ソート・kind 等の viewer 設定を提供する。
-   *  valueFrom.flowVariable で flow 変数から配列データを bind する。
-   *  valueFrom 省略時は ViewDefinition の query を画面 mount 時に自動発行する (静的マスター一覧)。
-   *  direction='viewer' の時のみ required。 */
-  viewDefinitionId?: EntityId;
-  /** 表示書式 (direction="output" 専用、例: "YYYY/MM/DD", "¥#,##0", "0.00%") — #377 */
+  /** データ方向。
+   *  - "in"   = 画面から Form / DTO / JSON / 処理へ渡す
+   *  - "out"  = Form / DTO / JSON / 処理 / DB から画面へ表示する
+   *  - "both" = 初期表示・入力・再表示・検索条件復元など双方向に使う */
+  direction?: "in" | "out" | "both";
+  /** 表示書式 (out / both 項目向け、例: "YYYY/MM/DD", "¥#,##0", "0.00%") — #377 */
   displayFormat?: string;
-  /** バインド元 (direction="output" 専用) — #377、ValueSource は v3 で Pattern B 複合参照に変更。 */
-  valueFrom?: ValueSource;
-  /** 派生計算式 (= で始まる)。output 項目用。 */
+  /** Form / DTO / JSON / table / view / flow 等への binding。direction とは別軸。 */
+  binding?: ScreenItemBinding;
+  /** table / list / kanban / calendar 等の表示形態。 */
+  presentation?: ScreenItemPresentation;
+  /** 派生計算式 (= で始まる)。out / both 項目用。 */
   formula?: TemplateString;
   /** 備考。 */
   description?: Description;
@@ -126,25 +122,40 @@ type FieldType =
   | { kind: "file"; format?: string }
   | { kind: "extension"; extensionRef: string };       // namespace:fieldType 形式
 
-/**
- * 出力項目のバインド元 (組み込み 4 種 + 拡張 1) — v3 で Pattern B 複合参照に変更。
- * - flowVariable.variableName は **IdentifierPath** (#533 R3-1) でドット区切り object field 参照可
- * - tableColumn / viewColumn は **TableColumnRef / ViewColumnRef** (Pattern B、物理名直書き廃止)
- */
-type ValueSource =
-  | {
-      kind: "flowVariable";
-      processFlowId?: EntityId;        // 省略時はカレント画面に紐付く ProcessFlow を解決
-      variableName: IdentifierPath;    // 例: 'inventoryRows' / 'createdOrder.order_number' (#533 R3-1)
-    }
-  | { kind: "tableColumn"; ref: TableColumnRef }   // { tableId: EntityId, columnId: LocalId }
-  | { kind: "viewColumn"; ref: ViewColumnRef }     // { viewId: EntityId, columnPhysicalName: PhysicalName }
-  | { kind: "expression"; expression: TemplateString }
-  | {
-      // 拡張 ValueSource (extensions.v3.valueSourceKinds で定義)
-      kind: string;                    // namespace:identifier 形式 (例: 'retail:cartCalculation')
-      config?: Record<string, unknown>;
-    };
+type ScreenItemBindingKind =
+  | "form" | "dto" | "json"
+  | "tableColumn" | "viewColumn" | "flowVariable"
+  | "catalog" | "expression" | "fragmentParam"
+  | "session" | "routeParam" | "queryParam";
+
+interface ScreenItemBinding {
+  kind: ScreenItemBindingKind;
+  /** bind 対象 path。例: orderForm.productCode / response.total / rows / customer.name */
+  path?: string;
+  /** tableColumn / viewColumn の構造化参照。 */
+  ref?: TableColumnRef | ViewColumnRef;
+  /** flowVariable の参照先 ProcessFlow。省略時はカレント画面に紐付く ProcessFlow を解決する。 */
+  processFlowId?: EntityId;
+  formatHint?: string;
+  sourceNote?: string;
+}
+
+interface ScreenItemPresentation {
+  kind: "field" | "table" | "list" | "kanban" | "calendar";
+  /** 外部 ViewDefinition の列・sort・pageSize・layout を再利用する場合の参照。 */
+  viewDefinitionId?: EntityId;
+  /** インライン列定義。binding.path が rows 配列、columns[].path が 1 row 内 accessor path。 */
+  columns?: ScreenItemPresentationColumn[];
+}
+
+interface ScreenItemPresentationColumn {
+  id: Identifier;
+  label: DisplayName;
+  path: string;
+  type: FieldType;
+  format?: string;
+  width?: string | number;
+}
 ```
 
 **v3 ファイル配置**:
@@ -160,9 +171,10 @@ Phase 4-β migration (#712) で **embed 形式に統一**。`data/screen-items/{
 
 **v3 で確定** (#525 / #533 / #539):
 - `id` は **`Identifier`** (camelCase 強制、common.v3) としてブランド型化
-- `valueFrom.flowVariable.variableName` は **`IdentifierPath`** (#533 R3-1) で object field 参照 (`createdOrder.order_number` 等) を schema 上許容
-- `valueFrom.tableColumn` / `viewColumn` は **Pattern B 複合参照** に統一 (物理名直書き廃止)、`TableColumnRef` / `ViewColumnRef` ($defs in common.v3)
+- `binding.path` は object field 参照 (`createdOrder.order_number` 等) を schema 上許容
+- `binding.ref` の `tableColumn` / `viewColumn` は **Pattern B 複合参照** に統一 (物理名直書き廃止)、`TableColumnRef` / `ViewColumnRef` ($defs in common.v3)
 - `FieldType` の `kind: "custom"` は v3 で廃止、`extension` (namespace:identifier) で代替
+- `direction` は **データ方向のみ**を表す (`in` / `out` / `both`)。一覧・表などの UI 形態は `presentation`、Form / DTO / JSON / flow 等のデータソースは `binding` で表す (#1445)
 
 ---
 
@@ -443,11 +455,12 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
 ### (A) データモデル
 - **A-1** (v1.0 当初): 独立ファイル方式 (`data/screen-items/{screenId}.json`) を採用
 - **A-1 (2026-05-03 reversal、#712)**: 独立ファイル方式を廃止し、`Screen entity` への embed (`screens/<id>.json#items[]`) のみに統一。runtime / validator / 新規 workspace 生成すべて embed 前提
-- **A-2**: `ScreenItem` スキーマは上記の通り。一次成果物は `schemas/v3/screen-item.v3.schema.json`。`direction?: "input" | "output" | "viewer"` を追加 (#359 連動、#762 で "viewer" 追加)
-- **A-3 (v1.1)**: `displayFormat?: string` / `valueFrom?: ValueSource` を追加 (#377)。`direction="output"` のときのみ使用。
+- **A-2**: `ScreenItem` スキーマは上記の通り。一次成果物は `schemas/v3/screen-item.v3.schema.json`。`direction?: "in" | "out" | "both"` を採用 (#1445)
+- **A-3 (v1.1 / #1445 整理)**: `displayFormat?: string` / `binding?: ScreenItemBinding` / `presentation?: ScreenItemPresentation` を採用。
   - `displayFormat`: 自由記述 + datalist 補完 (日付 / 数値 / 金額 / パーセント プリセット)
-  - `valueFrom`: `flowVariable` / `tableColumn` / `viewColumn` / `expression` の組み込み 4 種 + 拡張 1 (`namespace:identifier`)。入力項目 (`direction="input"` または未設定) ではエディタに表示されない
-- **A-4 (v3 反映)**: `id` を `Identifier` (camelCase) ブランド型化、`valueFrom.flowVariable.variableName` を `IdentifierPath` (#533 R3-1) で object field 参照可、`tableColumn` / `viewColumn` を Pattern B 複合参照 (`TableColumnRef` / `ViewColumnRef`) に統一、`FieldType.kind: "custom"` 廃止 → `extension` (namespace:identifier) で代替
+  - `binding`: `form` / `dto` / `json` / `flowVariable` / `tableColumn` / `viewColumn` / `catalog` / `expression` / `fragmentParam` / `session` / `routeParam` / `queryParam`
+  - `presentation`: `field` / `table` / `list` / `kanban` / `calendar`
+- **A-4 (v3 反映)**: `id` を `Identifier` (camelCase) ブランド型化、`binding.ref` の `tableColumn` / `viewColumn` を Pattern B 複合参照 (`TableColumnRef` / `ViewColumnRef`) に統一、`FieldType.kind: "custom"` 廃止 → `extension` (namespace:identifier) で代替
 - `name` は廃止、`id` が業務識別子を兼ねる (#330)
 
 ### (B) 処理フローとの関係
@@ -471,11 +484,11 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
 
 ---
 
-## (F) viewer 項目 — 配列データ表示の宣言方式 (#762)
+## (F) 一覧 presentation — 配列データ表示の宣言方式 (#762 / #1445)
 
-`direction: "viewer"` は、ViewDefinition の列定義を参照し、ProcessFlow の出力変数から配列データを
-受け取って一覧表示するための screen-item 種別。検索結果一覧・マスター一覧・カート明細など
-「配列を表で並べる」共通パターンをすべて同型で表現する。
+検索結果一覧・マスター一覧・カート明細など「配列を表で並べる」項目は、`direction` ではなく
+`presentation` で UI 形態を表す。`direction` はデータ方向 (`out` / `both`) のみ、データ取得元は
+`binding` で表す。
 
 ### 基本構造
 
@@ -484,12 +497,15 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
   "id": "propertyRows",
   "label": "物件一覧",
   "type": { "kind": "array", "itemType": "json" },
-  "direction": "viewer",
-  "viewDefinitionId": "property-list-view",        // 列定義・ソート・kind を提供 (EntityId)
-  "valueFrom": {
+  "direction": "out",
+  "binding": {
     "kind": "flowVariable",
-    "processFlowId": "property-search-flow",       // 検索/取得フロー (EntityId)
-    "variableName": "rows"                         // フロー出力変数名
+    "processFlowId": "property-search-flow",
+    "path": "rows"
+  },
+  "presentation": {
+    "kind": "table",
+    "viewDefinitionId": "property-list-view"
   }
 }
 ```
@@ -508,7 +524,8 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
       "id": "propertyType",
       "label": "物件種別",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
+      "binding": { "kind": "form", "path": "propertySearch.propertyType" },
       "options": [
         { "value": "apartment", "label": "マンション" },
         { "value": "house", "label": "一戸建て" }
@@ -518,13 +535,14 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
       "id": "maxPrice",
       "label": "上限価格 (万円)",
       "type": "integer",
-      "direction": "input"
+      "direction": "in",
+      "binding": { "kind": "form", "path": "propertySearch.maxPrice" }
     },
     {
       "id": "searchButton",
       "label": "検索",
       "type": { "kind": "extension", "extensionRef": "realestate:button" },
-      "direction": "output",
+      "direction": "out",
       "events": [
         {
           "id": "click",
@@ -544,31 +562,37 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
       "id": "propertyRows",
       "label": "物件一覧",
       "type": { "kind": "array", "itemType": "json" },
-      "direction": "viewer",
-      "viewDefinitionId": "property-list-view",
-      "valueFrom": {
+      "direction": "out",
+      "binding": {
         "kind": "flowVariable",
         "processFlowId": "property-search-flow",
-        "variableName": "rows"   // フローが outputs[] で宣言した変数
+        "path": "rows"   // フローが outputs[] で宣言した配列
+      },
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "property-list-view"
       }
     }
   ]
 }
 ```
 
-#### 2. マスター一覧 (静的、valueFrom 省略)
+#### 2. マスター一覧 (ViewDefinition query)
 
-`valueFrom` を省略すると、画面 mount 時に ViewDefinition の query が自動実行され、
-結果を viewer に表示する (静的マスター一覧)。
+静的マスター一覧など、ViewDefinition 側の query を runtime が実行する場合も `presentation.viewDefinitionId`
+で ViewDefinition を参照する。query 実行結果を画面内 state に保持する場合は `binding.path` に rows path を置く。
 
 ```jsonc
 {
   "id": "masterRows",
   "label": "マスター一覧",
   "type": { "kind": "array", "itemType": "json" },
-  "direction": "viewer",
-  "viewDefinitionId": "category-master-view"
-  // valueFrom 省略 → VD の query を mount 時に自動実行
+  "direction": "out",
+  "binding": { "kind": "json", "path": "categoryRows" },
+  "presentation": {
+    "kind": "table",
+    "viewDefinitionId": "category-master-view"
+  }
 }
 ```
 
@@ -579,12 +603,15 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
   "id": "cartItems",
   "label": "カート明細",
   "type": { "kind": "array", "itemType": "json" },
-  "direction": "viewer",
-  "viewDefinitionId": "cart-items-view",
-  "valueFrom": {
+  "direction": "out",
+  "binding": {
     "kind": "flowVariable",
     "processFlowId": "cart-aggregation-flow",
-    "variableName": "cartItems"
+    "path": "cartItems"
+  },
+  "presentation": {
+    "kind": "table",
+    "viewDefinitionId": "cart-items-view"
   }
 }
 ```
@@ -594,15 +621,15 @@ MVP は 1-2-3 まで。4-5-6 は段階的に。
 | 要素 | 責務 |
 |---|---|
 | `ProcessFlow` | データ取得・業務ロジック (純粋関数性) |
-| `ViewDefinition` | viewer 設定 (列・ソート・kind)、データ源は関心外 |
-| `Screen.items[]` 内の viewer | 画面項目集合体 (input + output + viewer) の宣言 |
+| `ViewDefinition` | 一覧表示設定 (列・ソート・kind)、データ源は関心外 |
+| `Screen.items[]` | 画面項目集合体 (`direction` + `binding` + `presentation`) の宣言 |
 
 ### validator 観点
 
-`screenItemViewerValidator.ts` が次の観点を検出する (#762)。`validate:samples` で検出される (`npm run validate:samples -- <projectDir>`)。
+`screenItemViewerValidator.ts` が次の観点を検出する (#762 / #1445)。`validate:samples` で検出される (`npm run validate:samples -- <projectDir>`)。
 
 | issue code | severity | 検出内容 |
 |---|---|---|
-| `MISSING_VIEWER_VIEW_DEFINITION` | error | `direction='viewer'` だが `viewDefinitionId` が無い |
-| `UNKNOWN_VIEWER_VIEW_DEFINITION` | error | `viewDefinitionId` が同プロジェクト内の ViewDefinition に存在しない |
-| `VIEWER_FLOW_VARIABLE_NOT_DECLARED` | warning | `valueFrom.variableName` が ProcessFlow の outputs / inputs / steps 出力に宣言されていない |
+| `MISSING_VIEWER_VIEW_DEFINITION` | error | 一覧 `presentation` だが `presentation.viewDefinitionId` が無い |
+| `UNKNOWN_VIEWER_VIEW_DEFINITION` | error | `presentation.viewDefinitionId` が同プロジェクト内の ViewDefinition に存在しない |
+| `VIEWER_FLOW_VARIABLE_NOT_DECLARED` | warning | `binding.kind="flowVariable"` の `binding.path` が ProcessFlow の outputs / inputs / steps 出力に宣言されていない |

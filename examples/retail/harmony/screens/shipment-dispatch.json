@@ -17,18 +17,18 @@
       "id": "orderId",
       "label": "対象注文 ID",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "description": "S-4 配送指示対象の注文 ID (URL :id パラメータから取得、表示専用)。",
-      "valueFrom": {
+      "binding": {
         "kind": "expression",
-        "expression": "@route.id"
+        "path": "@route.id"
       }
     },
     {
       "id": "carrierId",
       "label": "配送会社",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "options": [
         {
@@ -53,7 +53,7 @@
       "id": "preferredDate",
       "label": "希望配送日",
       "type": "date",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "description": "S-4 配送指示の希望配送日 (任意)。"
     },
@@ -61,7 +61,7 @@
       "id": "timeSlot",
       "label": "希望時間帯",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "options": [
         {
@@ -87,12 +87,12 @@
       "id": "trackingNumber",
       "label": "追跡番号",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "S-4 配送指示登録後に発行された追跡番号 (表示専用)。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "shipment-dispatch",
-        "variableName": "trackingNumber"
+        "path": "trackingNumber",
+        "processFlowId": "shipment-dispatch"
       }
     },
     {
@@ -102,7 +102,7 @@
         "kind": "extension",
         "extensionRef": "retail:button"
       },
-      "direction": "output",
+      "direction": "out",
       "readonly": true,
       "events": [
         {

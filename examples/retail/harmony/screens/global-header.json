@@ -15,21 +15,21 @@
       "id": "storeName",
       "label": "店舗名",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "ログイン中の店舗名。セッションから取得。"
     },
     {
       "id": "userName",
       "label": "ユーザー名",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "ログイン中のユーザー氏名。セッションから取得。"
     },
     {
       "id": "logoutButton",
       "label": "ログアウト",
       "type": "boolean",
-      "direction": "input",
+      "direction": "in",
       "description": "ログアウトボタン。クリックでセッションを破棄してログイン画面へ遷移。",
       "events": [
         {

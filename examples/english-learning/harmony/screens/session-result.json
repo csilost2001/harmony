@@ -16,35 +16,35 @@
       "id": "totalScore",
       "label": "総合発音スコア",
       "type": "number",
-      "direction": "output",
+      "direction": "out",
       "description": "セッション全ターンの pronunciation_scores.score の平均値。"
     },
     {
       "id": "turnCount",
       "label": "完了ターン数",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "description": "今回セッションで完了した turn_logs の件数。"
     },
     {
       "id": "newWordsCount",
       "label": "新規習得単語数",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "description": "今回セッションで user_word_progress.status が new → learning に更新された単語数。"
     },
     {
       "id": "pronunciationFeedback",
       "label": "発音フィードバック",
       "type": "json",
-      "direction": "output",
+      "direction": "out",
       "description": "今回セッションの pronunciation_scores 一覧 (JSON 配列)。diff フィールド (PhoneDiff[]) は音素単位の正誤判定リストで、実装側で IPA テーブル + 色分け表示を行う。"
     },
     {
       "id": "recommendedStory",
       "label": "次に推奨するストーリー",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "ユーザーの CEFR レベルと学習履歴から次に推奨するストーリー名。"
     }
   ],

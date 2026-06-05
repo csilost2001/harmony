@@ -222,7 +222,7 @@ export function ScreenItemsView() {
     });
   }, [wsPath]);
 
-  // 処理フロー・テーブル・ビュー一覧をロード (valueFrom セレクタ用、列まで含む完全形)
+  // 処理フロー・テーブル・ビュー一覧をロード (binding セレクタ用、列まで含む完全形)
   useEffect(() => {
     listProcessFlows().then(setProcessFlows).catch(console.error);
     (async () => {
@@ -466,7 +466,7 @@ export function ScreenItemsView() {
 
     return indices.map((idx) => {
       const item = file.items[idx];
-      const prefix = item.direction === "output" ? "textDisplay" : getFieldTypePrefix(item.type);
+      const prefix = item.direction === "out" ? "textDisplay" : getFieldTypePrefix(item.type);
       const newId = generateAutoId(prefix, pool);
       pool.push(newId);
       return { idx, oldId: item.id as string, newId };
@@ -1065,14 +1065,15 @@ export function ScreenItemsView() {
                     <td>
                       <select
                         className="form-select form-select-sm"
-                        value={item.direction ?? "input"}
-                        onChange={(e) => handleUpdateItem(i, { direction: e.target.value === "output" ? "output" : undefined })}
+                        value={item.direction ?? "in"}
+                        onChange={(e) => handleUpdateItem(i, { direction: e.target.value as "in" | "out" | "both" })}
                         onBlur={commit}
                         aria-label="方向"
                         disabled={isReadonly}
                       >
-                        <option value="input">入力</option>
-                        <option value="output">出力</option>
+                        <option value="in">In</option>
+                        <option value="out">Out</option>
+                        <option value="both">Both</option>
                       </select>
                     </td>
                     <td className="text-center">
@@ -1286,7 +1287,7 @@ export function ScreenItemsView() {
                             />
                           </label>
                         </div>
-                        {item.direction === "output" && (
+                        {(item.direction === "out" || item.direction === "both") && (
                           <OutputFields
                             item={item}
                             idx={i}

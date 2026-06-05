@@ -16,7 +16,7 @@
       "id": "dateFromFilter",
       "label": "開始日 (From)",
       "type": "date",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "description": "learning_sessions.started_at の範囲フィルタ (開始日)。"
     },
@@ -24,7 +24,7 @@
       "id": "dateToFilter",
       "label": "開始日 (To)",
       "type": "date",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "description": "learning_sessions.started_at の範囲フィルタ (終了日)。"
     },
@@ -35,9 +35,12 @@
         "kind": "array",
         "itemType": "json"
       },
-      "direction": "viewer",
-      "viewDefinitionId": "study-history-list-viewer",
-      "description": "フィルタ条件で絞り込んだ learning_sessions 一覧。学習履歴一覧 viewer (4c9cdc85) の列定義に従い story_title / started_at / status / 総合スコアを表示する。"
+      "direction": "out",
+      "description": "フィルタ条件で絞り込んだ learning_sessions 一覧。学習履歴一覧 viewer (4c9cdc85) の列定義に従い story_title / started_at / status / 総合スコアを表示する。",
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "study-history-list-viewer"
+      }
     }
   ],
   "design": {

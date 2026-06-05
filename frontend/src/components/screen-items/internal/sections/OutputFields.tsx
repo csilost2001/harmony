@@ -1,15 +1,12 @@
 /**
- * OutputFields — 画面項目の「出力設定」(表示フォーマット + valueFrom kind 別 binder)
- * (#1145 Phase-6)
+ * OutputFields — 画面項目の表示書式 + binding 設定。
  *
- * 1 行の screen item に対する出力設定 sub-form。valueFrom の kind に応じて 4 種類の
- * UI (flowVariable / tableColumn / viewColumn / expression) を切替える。
- * Phase-6 前は ScreenItemsView.tsx 内に inline 定義 (~227 行)。
+ * #1445: ScreenItem.binding を編集する。
  */
 import type {
   ScreenItem,
-  ValueSource,
-  IdentifierPath,
+  ScreenItemBinding,
+  ScreenItemBindingKind,
   TableId,
   ViewId,
   LocalId,
@@ -20,7 +17,7 @@ import type {
   Table,
   View,
 } from "../../../../types/v3";
-import { VALUE_SOURCE_KINDS } from "../screenItemsConstants";
+import { BINDING_KINDS } from "../screenItemsConstants";
 
 export type OutputFieldsProps = {
   item: ScreenItem;
@@ -32,44 +29,39 @@ export type OutputFieldsProps = {
   isReadonly?: boolean;
 };
 
+function bindingWith(kind: ScreenItemBindingKind): ScreenItemBinding {
+  if (kind === "tableColumn") {
+    return { kind, ref: { tableId: "" as TableId, columnId: "" as LocalId } };
+  }
+  if (kind === "viewColumn") {
+    return { kind, ref: { viewId: "" as ViewId, columnPhysicalName: "" as PhysicalName } };
+  }
+  return { kind, path: "" };
+}
+
 export function OutputFields({
   item, idx, onUpdate, onCommit, tables, views, isReadonly,
 }: OutputFieldsProps) {
-  const kind = item.valueFrom?.kind ?? "";
+  const binding = item.binding;
+  const kind = binding?.kind ?? "";
 
   const handleKindChange = (newKind: string) => {
     if (!newKind) {
-      onUpdate(idx, { valueFrom: undefined });
-    } else if (newKind === "flowVariable") {
-      onUpdate(idx, { valueFrom: { kind: "flowVariable", variableName: "" as IdentifierPath } });
-    } else if (newKind === "tableColumn") {
-      onUpdate(idx, {
-        valueFrom: {
-          kind: "tableColumn",
-          ref: { tableId: "" as TableId, columnId: "" as LocalId },
-        },
-      });
-    } else if (newKind === "viewColumn") {
-      onUpdate(idx, {
-        valueFrom: {
-          kind: "viewColumn",
-          ref: { viewId: "" as ViewId, columnPhysicalName: "" as PhysicalName },
-        },
-      });
-    } else if (newKind === "expression") {
-      onUpdate(idx, { valueFrom: { kind: "expression", expression: "" } });
+      onUpdate(idx, { binding: undefined });
+    } else {
+      onUpdate(idx, { binding: bindingWith(newKind as ScreenItemBindingKind) });
     }
     onCommit();
   };
 
-  const handleValueFromPatch = (patch: Partial<ValueSource>) => {
-    if (!item.valueFrom) return;
-    onUpdate(idx, { valueFrom: { ...item.valueFrom, ...patch } as ValueSource });
+  const handleBindingPatch = (patch: Partial<ScreenItemBinding>) => {
+    if (!binding) return;
+    onUpdate(idx, { binding: { ...binding, ...patch } as ScreenItemBinding });
   };
 
   return (
     <div className="screen-items-output-section">
-      <div className="screen-items-output-title">出力設定</div>
+      <div className="screen-items-output-title">Binding 設定</div>
       <div className="screen-items-output-fields">
         <label className="screen-items-detail-field" style={{ minWidth: "14em", maxWidth: "20em" }}>
           <span className="screen-items-detail-label">表示フォーマット</span>
@@ -84,9 +76,9 @@ export function OutputFields({
             disabled={isReadonly}
           />
         </label>
-        <div className="screen-items-valuefrom">
+        <div className="screen-items-binding">
           <label className="screen-items-detail-field" style={{ minWidth: "10em", maxWidth: "14em" }}>
-            <span className="screen-items-detail-label">バインド元 (種別)</span>
+            <span className="screen-items-detail-label">Binding 種別</span>
             <select
               className="form-select form-select-sm"
               value={kind}
@@ -94,67 +86,60 @@ export function OutputFields({
               disabled={isReadonly}
             >
               <option value="">— 未設定 —</option>
-              {VALUE_SOURCE_KINDS.map((k) => (
+              {BINDING_KINDS.map((k) => (
                 <option key={k.value} value={k.value}>{k.label}</option>
               ))}
             </select>
           </label>
-          {kind === "flowVariable" && (() => {
-            const vf = item.valueFrom as Extract<ValueSource, { kind: "flowVariable" }>;
-            return (
-              <>
-                <label className="screen-items-detail-field" style={{ minWidth: "12em" }}>
-                  <span className="screen-items-detail-label">処理フロー</span>
-                  <input
-                    type="text"
-                    list="screen-items-process-flow-list"
-                    className="form-control form-control-sm"
-                    value={vf.processFlowId ?? ""}
-                    onChange={(e) =>
-                      handleValueFromPatch({
-                        processFlowId: (e.target.value || undefined) as ProcessFlowId | undefined,
-                      } as Partial<ValueSource>)
-                    }
-                    onBlur={onCommit}
-                    placeholder="省略可"
-                    disabled={isReadonly}
-                  />
-                </label>
-                <label className="screen-items-detail-field" style={{ minWidth: "12em" }}>
-                  <span className="screen-items-detail-label">変数名</span>
-                  <input
-                    className="form-control form-control-sm"
-                    value={vf.variableName as string}
-                    onChange={(e) =>
-                      handleValueFromPatch({
-                        variableName: e.target.value as IdentifierPath,
-                      } as Partial<ValueSource>)
-                    }
-                    onBlur={onCommit}
-                    placeholder="createdOrder.order_number"
-                    disabled={isReadonly}
-                  />
-                </label>
-              </>
-            );
-          })()}
+
+          {kind === "flowVariable" && (
+            <>
+              <label className="screen-items-detail-field" style={{ minWidth: "12em" }}>
+                <span className="screen-items-detail-label">処理フロー</span>
+                <input
+                  type="text"
+                  list="screen-items-process-flow-list"
+                  className="form-control form-control-sm"
+                  value={binding?.processFlowId ?? ""}
+                  onChange={(e) =>
+                    handleBindingPatch({ processFlowId: (e.target.value || undefined) as ProcessFlowId | undefined })
+                  }
+                  onBlur={onCommit}
+                  placeholder="省略可"
+                  disabled={isReadonly}
+                />
+              </label>
+              <label className="screen-items-detail-field" style={{ minWidth: "12em" }}>
+                <span className="screen-items-detail-label">Path</span>
+                <input
+                  className="form-control form-control-sm"
+                  value={binding?.path ?? ""}
+                  onChange={(e) => handleBindingPatch({ path: e.target.value })}
+                  onBlur={onCommit}
+                  placeholder="createdOrder.order_number"
+                  disabled={isReadonly}
+                />
+              </label>
+            </>
+          )}
+
           {kind === "tableColumn" && (() => {
-            const vf = item.valueFrom as Extract<ValueSource, { kind: "tableColumn" }>;
-            const selectedTable = tables.find((t) => t.id === vf.ref.tableId);
+            const ref = binding?.ref as TableColumnRef | undefined;
+            const selectedTable = tables.find((t) => t.id === ref?.tableId);
             return (
               <>
                 <label className="screen-items-detail-field" style={{ minWidth: "12em" }}>
                   <span className="screen-items-detail-label">テーブル</span>
                   <select
                     className="form-select form-select-sm"
-                    value={vf.ref.tableId as string}
+                    value={(ref?.tableId as string | undefined) ?? ""}
                     onChange={(e) =>
-                      handleValueFromPatch({
+                      handleBindingPatch({
                         ref: {
                           tableId: e.target.value as TableId,
                           columnId: "" as LocalId,
                         } as TableColumnRef,
-                      } as Partial<ValueSource>)
+                      })
                     }
                     onBlur={onCommit}
                     disabled={isReadonly}
@@ -169,14 +154,14 @@ export function OutputFields({
                   <span className="screen-items-detail-label">列</span>
                   <select
                     className="form-select form-select-sm"
-                    value={vf.ref.columnId as string}
+                    value={(ref?.columnId as string | undefined) ?? ""}
                     onChange={(e) =>
-                      handleValueFromPatch({
+                      handleBindingPatch({
                         ref: {
-                          tableId: vf.ref.tableId,
+                          tableId: ref?.tableId ?? ("" as TableId),
                           columnId: e.target.value as LocalId,
                         } as TableColumnRef,
-                      } as Partial<ValueSource>)
+                      })
                     }
                     onBlur={onCommit}
                     disabled={isReadonly || !selectedTable}
@@ -190,23 +175,24 @@ export function OutputFields({
               </>
             );
           })()}
+
           {kind === "viewColumn" && (() => {
-            const vf = item.valueFrom as Extract<ValueSource, { kind: "viewColumn" }>;
-            const selectedView = views.find((v) => v.id === vf.ref.viewId);
+            const ref = binding?.ref as ViewColumnRef | undefined;
+            const selectedView = views.find((v) => v.id === ref?.viewId);
             return (
               <>
                 <label className="screen-items-detail-field" style={{ minWidth: "12em" }}>
                   <span className="screen-items-detail-label">ビュー</span>
                   <select
                     className="form-select form-select-sm"
-                    value={vf.ref.viewId as string}
+                    value={(ref?.viewId as string | undefined) ?? ""}
                     onChange={(e) =>
-                      handleValueFromPatch({
+                      handleBindingPatch({
                         ref: {
                           viewId: e.target.value as ViewId,
                           columnPhysicalName: "" as PhysicalName,
                         } as ViewColumnRef,
-                      } as Partial<ValueSource>)
+                      })
                     }
                     onBlur={onCommit}
                     disabled={isReadonly}
@@ -221,14 +207,14 @@ export function OutputFields({
                   <span className="screen-items-detail-label">列 (物理名)</span>
                   <select
                     className="form-select form-select-sm"
-                    value={vf.ref.columnPhysicalName as string}
+                    value={(ref?.columnPhysicalName as string | undefined) ?? ""}
                     onChange={(e) =>
-                      handleValueFromPatch({
+                      handleBindingPatch({
                         ref: {
-                          viewId: vf.ref.viewId,
+                          viewId: ref?.viewId ?? ("" as ViewId),
                           columnPhysicalName: e.target.value as PhysicalName,
                         } as ViewColumnRef,
-                      } as Partial<ValueSource>)
+                      })
                     }
                     onBlur={onCommit}
                     disabled={isReadonly || !selectedView}
@@ -244,15 +230,16 @@ export function OutputFields({
               </>
             );
           })()}
-          {kind === "expression" && (
+
+          {kind && !["flowVariable", "tableColumn", "viewColumn"].includes(kind) && (
             <label className="screen-items-detail-field" style={{ minWidth: "18em", flex: 2 }}>
-              <span className="screen-items-detail-label">計算式</span>
+              <span className="screen-items-detail-label">Path</span>
               <input
                 className="form-control form-control-sm"
-                value={(item.valueFrom as Extract<ValueSource, { kind: "expression" }>).expression}
-                onChange={(e) => handleValueFromPatch({ expression: e.target.value } as Partial<ValueSource>)}
+                value={binding?.path ?? ""}
+                onChange={(e) => handleBindingPatch({ path: e.target.value })}
                 onBlur={onCommit}
-                placeholder="@inputs.price * @inputs.qty"
+                placeholder={kind === "expression" ? "@inputs.price * @inputs.qty" : "orderForm.fieldName"}
                 disabled={isReadonly}
               />
             </label>

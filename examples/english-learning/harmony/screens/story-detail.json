@@ -16,56 +16,56 @@
       "id": "storyTitle",
       "label": "ストーリー名",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "stories.title の表示。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "story",
           "columnId": "col-title"
         }
-      },
-      "description": "stories.title の表示。"
+      }
     },
     {
       "id": "storyDescription",
       "label": "概要",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "stories.description の表示。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "story",
           "columnId": "col-description"
         }
-      },
-      "description": "stories.description の表示。"
+      }
     },
     {
       "id": "storyCefrLevel",
       "label": "CEFR レベル",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "stories.cefr_level の表示 (A1-C2)。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "story",
           "columnId": "col-cefr-level"
         }
-      },
-      "description": "stories.cefr_level の表示 (A1-C2)。"
+      }
     },
     {
       "id": "sceneList",
       "label": "シーン一覧",
       "type": "json",
-      "direction": "output",
+      "direction": "out",
       "description": "stories に紐付く scenes の順序付きリスト (JSON 配列)。scene_title / sort_order / 完了フラグを含む。"
     },
     {
       "id": "startSession",
       "label": "学習を開始する",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "クリック時に start-session 処理フローを実行し、learning_sessions レコードを作成してから会話プレイ画面 (/learn/:sessionId) へ遷移する。",
       "events": [
         {

@@ -22,6 +22,7 @@ import { checkIdentifierScopes } from "../src/schemas/identifierScope.js";
 import { checkScreenItemFlowConsistency } from "../src/schemas/screenItemFlowValidator.js";
 import { checkScreenItemFieldTypeConsistency } from "../src/schemas/screenItemFieldTypeValidator.js";
 import { checkScreenItemRefKeyConsistency } from "../src/schemas/screenItemRefKeyValidator.js";
+import { checkScreenItemViewer } from "../src/schemas/screenItemViewerValidator.js";
 import { checkViewDefinitions } from "../src/schemas/viewDefinitionValidator.js";
 import { checkScreenNavigation } from "../src/schemas/screenNavigationValidator.js";
 import { resolveScreenItemRefs } from "../src/schemas/screenItemRefResolver.js";
@@ -451,7 +452,7 @@ function issue(
  *
  * 除外理由:
  * - dashboard / complete / error / login: 通常 items を持たない (固定表示やナビゲーションのみ)
- * - list: items が空でも direction:viewer の screen-item があれば OK (ITEMS_OR_VIEWER_KINDS で別扱い)
+ * - list: items が空でも table/list presentation の screen-item があれば OK (ITEMS_OR_VIEWER_KINDS で別扱い)
  * - modal: 一般的に簡易ダイアログで items を持たないことが多い (持つ場合は kind: form 等で別画面化が望ましい)
  * - other: 用途不明、判定不能のため安全側
  */
@@ -463,7 +464,7 @@ const ITEMS_REQUIRED_KINDS: ReadonlySet<string> = new Set([
   "wizard",
 ]);
 
-/** items に direction:viewer を持てる kind (viewer screen-item が 1 件以上あれば items 空でも OK) */
+/** items に table/list presentation を持てる kind */
 const ITEMS_OR_VIEWER_KINDS: ReadonlySet<string> = new Set([
   "list",
 ]);
@@ -474,7 +475,7 @@ const ITEMS_OR_VIEWER_KINDS: ReadonlySet<string> = new Set([
  * - screens/<id>.json の items が空または未定義 → warning (EMPTY_SCREEN_ITEMS)
  *   ただし kind に応じた条件付き発報 (#723):
  *   - ITEMS_REQUIRED_KINDS (form/detail/search/confirm/wizard): items 空なら発報
- *   - ITEMS_OR_VIEWER_KINDS (list): items 空 かつ direction:viewer を含む screen-item もなければ発報
+   *   - ITEMS_OR_VIEWER_KINDS (list): items 空 かつ table/list presentation を含む screen-item もなければ発報
  *   - 拡張 kind (<ns>:<name>): 判定不能のため warning スキップ (安全側)
  *   - その他の kind (dashboard/complete/error 等): warning スキップ
  * - screen-items/ ディレクトリに .json ファイルが存在 → error (LEGACY_SCREEN_ITEMS_DIR)
@@ -496,10 +497,8 @@ export function checkScreenItemsEmbedded(project: ProjectResources): ValidationI
     // kind が空文字列 (= undefined/null を "" に正規化した場合) もここで skip される —
     // 種別不明の画面で false positive を出すより安全側に倒す意図。
     // 注: ITEMS_OR_VIEWER_KINDS (list 等) も含めて items が空のまま到達する場合は
-    // direction:viewer の screen-item も存在しないと確定している (items が非空なら L302 で
-    // continue 済のため)。viewer を含む items も `items.length > 0` で抑制されており、
-    // kind=list で EMPTY_SCREEN_ITEMS 不要となるのは items に direction:viewer の
-    // screen-item を 1 件以上定義した場合に限られる。
+    // table/list presentation の screen-item も存在しないと確定している (items が非空なら
+    // L302 で continue 済のため)。
     if (!ITEMS_REQUIRED_KINDS.has(kind) && !ITEMS_OR_VIEWER_KINDS.has(kind)) {
       continue;
     }
@@ -512,7 +511,7 @@ export function checkScreenItemsEmbedded(project: ProjectResources): ValidationI
       code: "EMPTY_SCREEN_ITEMS",
       path: `screens/${id}.json`,
       message: isViewerKind
-        ? `Screen.items が空です (kind=${kind})。direction:viewer の screen-item も未定義のため UI で表示する内容がありません。\`items\` に \`direction: "viewer"\` の screen-item を定義してください`
+        ? `Screen.items が空です (kind=${kind})。table/list presentation の screen-item も未定義のため UI で表示する内容がありません。\`items\` に \`direction: "out"\` + \`presentation.kind: "table"\` の screen-item を定義してください`
         : `Screen.items が空です (kind=${kind || "<undefined>"})。runtime は別ファイル \`screen-items/${id}.json\` を読まないため UI で空フォームになります。\`screens/${id}.json#items\` 配列に画面項目を embed してください`,
     });
   }
@@ -876,6 +875,10 @@ export async function runValidation(projectDirArg: string): Promise<ValidationSu
     projectIssues.push(issue("screenItemRefKeyValidator", i.code, i.path, i.message, i.severity));
   }
 
+  for (const i of checkScreenItemViewer(project.screens, flows.map((f) => f.flow), project.viewDefinitions)) {
+    projectIssues.push(issue("screenItemViewerValidator", i.code, i.path, i.message, i.severity));
+  }
+
   for (const i of checkViewDefinitions(
     project.viewDefinitions,
     project.tables as unknown as import("../src/schemas/viewDefinitionValidator.js").TableDefinitionForView[],
@@ -939,6 +942,7 @@ const validatorDisplayOrder = [
   "screenItemFlowValidator",
   "screenItemFieldTypeValidator",
   "screenItemRefKeyValidator",
+  "screenItemViewerValidator",
   "viewDefinitionValidator",
   "screenNavigationValidator",
   "runtimeContractValidator",

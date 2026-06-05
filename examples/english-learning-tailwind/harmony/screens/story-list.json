@@ -16,7 +16,7 @@
       "id": "cefrFilter",
       "label": "CEFR レベル",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "options": [
         {
@@ -54,7 +54,7 @@
       "id": "packFilter",
       "label": "コンテンツパック",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "description": "content_packs.id で絞り込む検索フィルタ。パック名一覧は API から動的取得。"
     },
@@ -62,7 +62,7 @@
       "id": "keywordFilter",
       "label": "キーワード",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 100,
       "placeholder": "ストーリー名を入力",
@@ -75,9 +75,12 @@
         "kind": "array",
         "itemType": "json"
       },
-      "direction": "viewer",
-      "viewDefinitionId": "story-list-viewer",
-      "description": "フィルタ条件で絞り込んだ stories 一覧。ストーリー一覧 viewer (cfdbf081) の列定義に従い title / cefr_level / scene_count を表示する。"
+      "direction": "out",
+      "description": "フィルタ条件で絞り込んだ stories 一覧。ストーリー一覧 viewer (cfdbf081) の列定義に従い title / cefr_level / scene_count を表示する。",
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "story-list-viewer"
+      }
     }
   ],
   "design": {

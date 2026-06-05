@@ -4,7 +4,7 @@
     "id": "property-search",
     "uuid": "d4b5c6e7-f809-4112-bc3d-4e5f6a7b8c9d",
     "name": "物件検索",
-    "description": "物件種別・上限価格・最小面積を条件に properties テーブルを検索し、条件に合う物件一覧を返す。読取専用フロー (TX 不要)。viewer screen-item (#762) の動的 binding デモ用。",
+    "description": "物件種別・上限価格・最小面積を条件に properties テーブルを検索し、条件に合う物件一覧を返す。読取専用フロー (TX 不要)。一覧 screen-item (#762) の動的 binding デモ用。",
     "flowType": "screen",
     "maturity": "committed",
     "screenId": "property-search",
@@ -85,7 +85,7 @@
             "kind": "array",
             "itemType": "json"
           },
-          "description": "検索条件に合致した物件行の配列。viewer screen-item の valueFrom.variableName='rows' で参照される (#762)。"
+          "description": "検索条件に合致した物件行の配列。一覧 screen-item の binding.path='rows' で参照される (#762)。"
         },
         {
           "name": "totalCount",
@@ -173,7 +173,7 @@
         {
           "id": "step-04",
           "kind": "return",
-          "description": "200 OK — 物件一覧を返す。rows は viewer screen-item で直接参照される (#762)。",
+          "description": "200 OK — 物件一覧を返す。rows は 一覧 screen-item で直接参照される (#762)。",
           "responseId": "200-ok",
           "bodyExpression": "{ rows: @rows == null ? [] : @rows, totalCount: @rows == null ? 0 : @rows.length }"
         }
@@ -193,10 +193,10 @@
       },
       {
         "id": "ADR-002",
-        "title": "rows 変数名を viewer screen-item と一致させる",
+        "title": "rows 変数名を 一覧 screen-item と一致させる",
         "status": "accepted",
-        "context": "viewer screen-item (propertyRows) は valueFrom.variableName='rows' でこのフロー出力を参照する (#762)。",
-        "decision": "outputs[].name を 'rows' とし、viewer screen-item の valueFrom.variableName と明示的に一致させる。",
+        "context": "一覧 screen-item (propertyRows) は binding.path='rows' でこのフロー出力を参照する (#762)。",
+        "decision": "outputs[].name を 'rows' とし、一覧 screen-item の binding.path と明示的に一致させる。",
         "consequences": "screenItemViewerValidator が variableName='rows' の宣言を発見でき、VIEWER_FLOW_VARIABLE_NOT_DECLARED warning が発報されない。",
         "date": "2026-05-03"
       }

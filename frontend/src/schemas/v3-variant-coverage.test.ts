@@ -523,89 +523,71 @@ beforeAll(() => {
   validateScreenItem = ajv2.compile(loadJson(join(v3Dir, "screen-item.v3.schema.json")) as object);
 });
 
-describe("v3 schema fix #533 R3-1: IdentifierPath で object field 参照 (#533)", () => {
-  it("variableName='createdOrder.order_number' (ドット区切り) は pass する", () => {
+describe("v3 schema #1445: ScreenItem.binding", () => {
+  it("binding.kind=flowVariable + path は pass する", () => {
     const item = {
       id: "orderNumber",
       label: "指示番号",
       type: "string",
-      direction: "output",
-      valueFrom: { kind: "flowVariable", variableName: "createdOrder.order_number" },
+      direction: "out",
+      binding: { kind: "flowVariable", path: "createdOrder.order_number" },
     };
     const ok = validateScreenItem(item);
     expect(ok, ok ? "" : (validateScreenItem.errors ?? []).map((e) => e.message).join("\n")).toBe(true);
   });
 
-  it("variableName='inventoryRows' (Identifier 単独) も依然 pass する", () => {
+  it("direction=both + binding.kind=form は pass する", () => {
     const item = {
-      id: "items",
-      label: "items",
-      type: "string",
-      direction: "output",
-      valueFrom: { kind: "flowVariable", variableName: "inventoryRows" },
+      id: "quantity",
+      label: "数量",
+      type: "integer",
+      direction: "both",
+      binding: { kind: "form", path: "orderForm.quantity" },
     };
     const ok = validateScreenItem(item);
-    expect(ok).toBe(true);
+    expect(ok, ok ? "" : (validateScreenItem.errors ?? []).map((e) => e.message).join("\n")).toBe(true);
   });
 
-  it("variableName='Foo.bar' (大文字始まり) は依然 reject (IdentifierPath 規範: 各セグメント小文字始まり)", () => {
+  it("binding.kind=tableColumn + ref は pass する", () => {
     const item = {
-      id: "x",
-      label: "x",
+      id: "orderNo",
+      label: "注文番号",
       type: "string",
-      direction: "output",
-      valueFrom: { kind: "flowVariable", variableName: "Foo.bar" },
+      direction: "out",
+      binding: {
+        kind: "tableColumn",
+        ref: { tableId: "orders", columnId: "orderNo" },
+      },
+    };
+    const ok = validateScreenItem(item);
+    expect(ok, ok ? "" : (validateScreenItem.errors ?? []).map((e) => e.message).join("\n")).toBe(true);
+  });
+
+  it("binding.kind=tableColumn で ref 欠落は reject する", () => {
+    const item = {
+      id: "orderNo",
+      label: "注文番号",
+      type: "string",
+      direction: "out",
+      binding: { kind: "tableColumn" },
     };
     const ok = validateScreenItem(item);
     expect(ok).toBe(false);
   });
 
-  it("variableName='response.data[0].name' (array index 含む) は reject (expression 形式を使う)", () => {
+  it("binding.kind=tableColumn に ViewColumnRef を指定すると reject する", () => {
     const item = {
-      id: "x",
-      label: "x",
+      id: "orderNo",
+      label: "注文番号",
       type: "string",
-      direction: "output",
-      valueFrom: { kind: "flowVariable", variableName: "response.data[0].name" },
+      direction: "out",
+      binding: {
+        kind: "tableColumn",
+        ref: { viewId: "order-view", columnPhysicalName: "order_no" },
+      },
     };
     const ok = validateScreenItem(item);
     expect(ok).toBe(false);
-  });
-
-  it("variableName='test_' (末尾 underscore) は reject (PR #534 N-1 で厳格化)", () => {
-    const item = {
-      id: "x",
-      label: "x",
-      type: "string",
-      direction: "output",
-      valueFrom: { kind: "flowVariable", variableName: "test_" },
-    };
-    const ok = validateScreenItem(item);
-    expect(ok).toBe(false);
-  });
-
-  it("variableName='user__name' (連続 underscore) は reject (PR #534 N-1 で厳格化)", () => {
-    const item = {
-      id: "x",
-      label: "x",
-      type: "string",
-      direction: "output",
-      valueFrom: { kind: "flowVariable", variableName: "user__name" },
-    };
-    const ok = validateScreenItem(item);
-    expect(ok).toBe(false);
-  });
-
-  it("variableName='user_id' (snake_case 1 セグメント) は pass", () => {
-    const item = {
-      id: "x",
-      label: "x",
-      type: "string",
-      direction: "output",
-      valueFrom: { kind: "flowVariable", variableName: "user_id" },
-    };
-    const ok = validateScreenItem(item);
-    expect(ok).toBe(true);
   });
 });
 
@@ -685,46 +667,52 @@ describe("v3 schema fix #533 R3-3: scheduled + httpRoute 不整合 reject (#533,
   });
 });
 
-// ─── #762 viewer screen-item AJV テスト ────────────────────────────────────
+// ─── #762 / #1445 table presentation AJV テスト ───────────────────────────
 
-describe("v3 schema #762: direction='viewer' の AJV 検証", () => {
-  it("正常系: direction=viewer + viewDefinitionId + valueFrom.flowVariable は pass", () => {
+describe("v3 schema #1445: table presentation の AJV 検証", () => {
+  it("正常系: direction=out + presentation.viewDefinitionId + binding.flowVariable は pass", () => {
     const item = {
       id: "propertyRows",
       label: "物件一覧",
       type: { kind: "array", itemType: "json" },
-      direction: "viewer",
-      viewDefinitionId: "fixture-view-definition",
-      valueFrom: {
+      direction: "out",
+      presentation: { kind: "table", viewDefinitionId: "fixture-view-definition" },
+      binding: {
         kind: "flowVariable",
-        variableName: "rows",
+        path: "rows",
       },
     };
     const ok = validateScreenItem(item);
     expect(ok, ok ? "" : (validateScreenItem.errors ?? []).map((e) => e.message).join("\n")).toBe(true);
   });
 
-  it("正常系: direction=viewer + viewDefinitionId のみ (valueFrom 省略 = VD query 自動実行) は pass", () => {
+  it("正常系: inline columns の table presentation は pass", () => {
     const item = {
       id: "propertyRows",
       label: "物件一覧",
       type: { kind: "array", itemType: "json" },
-      direction: "viewer",
-      viewDefinitionId: "fixture-view-definition",
+      direction: "out",
+      binding: { kind: "dto", path: "searchResult.rows" },
+      presentation: {
+        kind: "table",
+        columns: [
+          { id: "propertyName", label: "物件名", path: "property.name", type: "string" },
+        ],
+      },
     };
     const ok = validateScreenItem(item);
     expect(ok, ok ? "" : (validateScreenItem.errors ?? []).map((e) => e.message).join("\n")).toBe(true);
   });
 
-  it("異常系: direction=viewer で viewDefinitionId 欠落は AJV reject", () => {
+  it("異常系: presentation は direction=in を reject", () => {
     const item = {
       id: "propertyRows",
       label: "物件一覧",
       type: { kind: "array", itemType: "json" },
-      direction: "viewer",
-      // viewDefinitionId を意図的に省略
+      direction: "in",
+      presentation: { kind: "table", viewDefinitionId: "fixture-view-definition" },
     };
     const ok = validateScreenItem(item);
-    expect(ok, ok ? "direction=viewer で viewDefinitionId 欠落が pass してしまった" : "").toBe(false);
+    expect(ok, ok ? "presentation + direction=in が pass してしまった" : "").toBe(false);
   });
 });

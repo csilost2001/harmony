@@ -17,7 +17,7 @@
       "id": "productCode",
       "label": "商品コード",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 20,
       "pattern": "@conv.regex.productCode",
@@ -32,7 +32,7 @@
       "id": "storeCode",
       "label": "店舗",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "options": [
         {
@@ -57,12 +57,12 @@
       "id": "inquiredAt",
       "label": "照会日時",
       "type": "datetime",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "YYYY/MM/DD HH:mm",
       "description": "S-1 在庫照会を実行した日時 (表示専用)。",
-      "valueFrom": {
+      "binding": {
         "kind": "expression",
-        "expression": "@now"
+        "path": "@now"
       }
     },
     {
@@ -72,7 +72,7 @@
         "kind": "extension",
         "extensionRef": "retail:button"
       },
-      "direction": "output",
+      "direction": "out",
       "readonly": true,
       "events": [
         {
@@ -94,14 +94,17 @@
         "kind": "array",
         "itemType": "json"
       },
-      "direction": "viewer",
-      "viewDefinitionId": "inventory-list-search-result-viewer",
-      "valueFrom": {
+      "direction": "out",
+      "description": "S-1 商品検索結果の在庫一覧表示。presentation=table (#762/#771): 在庫照会フロー (efa7ac6e) の出力変数 'rows' を 在庫一覧 (商品検索結果) ViewDefinition (be4bece3) の列定義で表示する。検索ボタン押下後にフロー完了時点でバインドされる。",
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "inventory-by-store-lookup",
-        "variableName": "rows"
+        "path": "rows",
+        "processFlowId": "inventory-by-store-lookup"
       },
-      "description": "S-1 商品検索結果の在庫一覧表示。direction=viewer (#762/#771): 在庫照会フロー (efa7ac6e) の出力変数 'rows' を 在庫一覧 (商品検索結果) ViewDefinition (be4bece3) の列定義で表示する。検索ボタン押下後にフロー完了時点でバインドされる。"
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "inventory-list-search-result-viewer"
+      }
     }
   ],
   "design": {

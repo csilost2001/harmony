@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/screen-item.v3.schema.json",
   "title": "ScreenItem (v3 画面項目定義)",
-  "description": "画面項目 1 件の正規定義。screen.v3.schema.json#/$defs/Screen.items[] から参照される。フォーム入力項目 (direction='input') と表示項目 (direction='output') の双方を表現。",
+  "description": "画面項目 1 件の正規定義。screen.v3.schema.json#/$defs/Screen.items[] から参照される。direction はデータ方向 (in/out/both)、binding は Form/DTO/JSON/DB/flow への紐付け、presentation は table/list 等の表示形態を表現する。",
   "type": "object",
   "$ref": "#/$defs/ScreenItem",
   "$defs": {
@@ -22,12 +22,8 @@
         },
         "direction": {
           "type": "string",
-          "enum": ["input", "output", "viewer"],
-          "description": "input = フォーム入力項目 (既定) / output = 表示専用項目 (スカラー) / viewer = ViewDefinition の列定義を参照し、`valueFrom` で flow 変数から配列データを bind する配列データ表示項目 (#762)。"
-        },
-        "viewDefinitionId": {
-          "$ref": "common.v3.schema.json#/$defs/EntityId",
-          "description": "viewer 項目が参照する ViewDefinition の ID (#762)。direction='viewer' の場合のみ使用し、列定義・ソート・kind 等の viewer 設定を提供する ViewDefinition を指定する。`valueFrom` で flow 変数から配列データを bind する。`valueFrom` 省略時は ViewDefinition の query を画面 mount 時に自動発行する (静的マスター一覧)。"
+          "enum": ["in", "out", "both"],
+          "description": "データ方向。in = 画面から Form/DTO/JSON/処理へ渡す / out = Form/DTO/JSON/処理/DB から画面へ表示する / both = 初期表示・入力・再表示・検索条件復元等で双方向に使う。"
         },
         "required": { "type": "boolean" },
         "readonly": { "type": "boolean" },
@@ -70,15 +66,17 @@
         "enabledWhen": { "$ref": "common.v3.schema.json#/$defs/TemplateString", "description": "活性条件式。" },
         "displayFormat": {
           "type": "string",
-          "description": "表示書式 (output 専用)。例: 'YYYY/MM/DD', '¥#,##0', '0.00%'"
+          "description": "表示書式 (out/both 項目向け)。例: 'YYYY/MM/DD', '¥#,##0', '0.00%'"
         },
-        "valueFrom": { "$ref": "#/$defs/ValueSource" },
         "formula": {
           "$ref": "common.v3.schema.json#/$defs/TemplateString",
-          "description": "派生計算式 (= で始まる)。output 項目用。"
+          "description": "派生計算式 (= で始まる)。out/both 項目用。"
         },
         "binding": {
           "$ref": "#/$defs/ScreenItemBinding"
+        },
+        "presentation": {
+          "$ref": "#/$defs/ScreenItemPresentation"
         },
         "events": {
           "type": "array",
@@ -87,14 +85,24 @@
         },
         "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
       },
-      "if": {
-        "properties": { "direction": { "const": "viewer" } },
-        "required": ["direction"]
-      },
-      "then": {
-        "required": ["viewDefinitionId"],
-        "description": "direction='viewer' の場合は viewDefinitionId が必須 (#762)。"
-      }
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "presentation": {
+                "type": "object",
+                "properties": { "kind": { "enum": ["table", "list", "kanban", "calendar"] } },
+                "required": ["kind"]
+              }
+            },
+            "required": ["presentation"]
+          },
+          "then": {
+            "properties": { "direction": { "enum": ["out", "both"] } },
+            "description": "table/list 等の presentation は画面表示を伴うため direction は out/both のみ。"
+          }
+        }
+      ]
     },
 
     "ScreenItemEvent": {
@@ -134,24 +142,30 @@
     },
 
     "ScreenItemBinding": {
-      "description": "画面項目の binding metadata (#1065 / spec generic-definition-layer.md §3.1)。description 自由記述で埋め込んでいた binding 情報を formal に構造化する。kind は入出力種別の正式分類で、path は bind 対象、role は表示専用/入力/両用の区別、formatHint は表示整形 hint、sourceNote は元 MD 文書上の出典メモ。spec §3.1 の `optionSource` / `parseHint` は本 ISSUE では追加せず将来 ISSUE で対応 (ISSUE 受け入れ条件は 5 field のみ列挙)。",
+      "description": "画面項目の binding metadata (#1065 / #1445)。Form/DTO/JSON/table/view/flow 等の bind 先を表す。データ方向は ScreenItem.direction で表す。",
       "type": "object",
       "additionalProperties": false,
       "required": ["kind"],
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["formField", "viewModel", "catalog", "expression", "fragmentParam", "session", "routeParam", "queryParam"],
-          "description": "入出力種別の正式分類。formField=フォーム入力 / viewModel=表示専用 / catalog=列挙体参照 / expression=計算式 / fragmentParam=fragment パラメータ / session=セッション値 / routeParam=URL path param / queryParam=URL query param。"
+          "enum": ["form", "dto", "json", "tableColumn", "viewColumn", "flowVariable", "catalog", "expression", "fragmentParam", "session", "routeParam", "queryParam"],
+          "description": "bind 先の分類。form/dto/json は Form・DTO・任意 JSON、tableColumn/viewColumn は DB 列、flowVariable は ProcessFlow 変数、routeParam/queryParam/session/expression/catalog は周辺 context。"
         },
         "path": {
           "type": "string",
-          "description": "bind 対象 (式または plain path)。例: 'form.productCode' / 'viewModel.totalPrice' / 'catalog.categories'。kind 別の具体的書式解釈は AI コード生成側に委ねる。"
+          "description": "bind 対象 path。例: 'orderForm.productCode' / 'response.order.totalPrice' / 'rows' / 'customer.name'。table/list presentation では rows 配列への path、columns[].path は 1 row 内 accessor path。"
         },
-        "role": {
-          "type": "string",
-          "enum": ["display", "input", "both"],
-          "description": "ScreenItem.direction とは独立した、binding 視点での表示専用/入力/両用の区別 (#1065)。"
+        "ref": {
+          "oneOf": [
+            { "$ref": "common.v3.schema.json#/$defs/TableColumnRef" },
+            { "$ref": "common.v3.schema.json#/$defs/ViewColumnRef" }
+          ],
+          "description": "tableColumn / viewColumn の構造化参照。path と併用可。"
+        },
+        "processFlowId": {
+          "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "description": "flowVariable の参照先 ProcessFlow。省略時はカレント画面に紐付く ProcessFlow を解決する。"
         },
         "formatHint": {
           "type": "string",
@@ -161,6 +175,72 @@
           "type": "string",
           "description": "元文書上の出典メモ (例: 'spec_SC000001_Controller.md#コントロールマッピング')。MD import 経由の trace 用。"
         }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "kind": { "const": "tableColumn" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "required": ["ref"],
+            "properties": {
+              "ref": { "$ref": "common.v3.schema.json#/$defs/TableColumnRef" }
+            },
+            "description": "tableColumn binding は TableColumnRef を必須とする。"
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "viewColumn" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "required": ["ref"],
+            "properties": {
+              "ref": { "$ref": "common.v3.schema.json#/$defs/ViewColumnRef" }
+            },
+            "description": "viewColumn binding は ViewColumnRef を必須とする。"
+          }
+        }
+      ]
+    },
+
+    "ScreenItemPresentation": {
+      "description": "画面項目の表示形態。データ方向ではなく、table/list 等の UI 表現を定義する。React Table / TanStack Table の data rows + column definitions に寄せる。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["field", "table", "list", "kanban", "calendar"],
+          "description": "表示形態。field は通常 scalar、table/list は rows + columns、kanban/calendar は ViewDefinition kind と対応する表示。"
+        },
+        "viewDefinitionId": {
+          "$ref": "common.v3.schema.json#/$defs/EntityId",
+          "description": "列定義・sort/pageSize/layout を外部 ViewDefinition として再利用する場合の参照。"
+        },
+        "columns": {
+          "type": "array",
+          "description": "インライン列定義。binding.path が rows 配列、columns[].path が 1 row 内 accessor path。viewDefinitionId と併用する場合は inline columns を局所 override として扱う。",
+          "items": { "$ref": "#/$defs/ScreenItemPresentationColumn" }
+        }
+      }
+    },
+
+    "ScreenItemPresentationColumn": {
+      "description": "table/list presentation の列定義。React Table / TanStack Table の accessorKey 相当を path で表す。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "path", "type"],
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
+        "label": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
+        "path": { "type": "string", "description": "1 row 内の accessor path。例: 'orderNo' / 'customer.name' / 'totalAmount'。" },
+        "type": { "$ref": "common.v3.schema.json#/$defs/FieldType" },
+        "format": { "type": "string", "description": "列表示書式。例: '¥#,##0' / 'YYYY/MM/DD'。" },
+        "width": { "type": ["string", "number"], "description": "任意の列幅 hint。" }
       }
     },
 
@@ -242,67 +322,6 @@
               "description": "response path (キー、例: 'data.cities') → ScreenItem.id (値) の対応",
               "propertyNames": { "type": "string" },
               "additionalProperties": { "$ref": "common.v3.schema.json#/$defs/Identifier" }
-            }
-          }
-        }
-      ]
-    },
-
-    "ValueSource": {
-      "description": "output 項目のバインド元。discriminated union (kind)。組み込み 4 種 + 拡張 (extensions.v3.valueSourceKinds で定義)。tableColumn / viewColumn は common.v3 の Ref 型を流用。",
-      "oneOf": [
-        {
-          "type": "object",
-          "required": ["kind", "variableName"],
-          "additionalProperties": false,
-          "properties": {
-            "kind": { "const": "flowVariable" },
-            "processFlowId": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "省略時はカレント画面に紐付く ProcessFlow を解決する。" },
-            "variableName": { "$ref": "common.v3.schema.json#/$defs/IdentifierPath", "description": "ProcessFlow 変数名。Identifier 単独 (例: 'inventoryRows') または ドット区切りで object の field 参照 (例: 'createdOrder.order_number')。#533 R3-1 で IdentifierPath に変更し object field 参照を許容。" }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["kind", "ref"],
-          "additionalProperties": false,
-          "properties": {
-            "kind": { "const": "tableColumn" },
-            "ref": { "$ref": "common.v3.schema.json#/$defs/TableColumnRef" }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["kind", "ref"],
-          "additionalProperties": false,
-          "properties": {
-            "kind": { "const": "viewColumn" },
-            "ref": { "$ref": "common.v3.schema.json#/$defs/ViewColumnRef" }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["kind", "expression"],
-          "additionalProperties": false,
-          "properties": {
-            "kind": { "const": "expression" },
-            "expression": { "$ref": "common.v3.schema.json#/$defs/TemplateString" }
-          }
-        },
-        {
-          "description": "拡張 ValueSource。kind は namespace:identifier 形式。固有プロパティは config object に閉じる (loader が extensions.v3.valueSourceKinds[<kind>].schema で検証)。",
-          "type": "object",
-          "required": ["kind"],
-          "additionalProperties": false,
-          "properties": {
-            "kind": {
-              "type": "string",
-              "pattern": "^[a-z][a-z0-9_-]*:[a-z][a-zA-Z0-9]*$",
-              "description": "namespace:kindName 形式 (例: 'retail:cartCalculation')"
-            },
-            "config": {
-              "type": "object",
-              "additionalProperties": true,
-              "description": "拡張固有設定。loader が extensions.v3.valueSourceKinds[<kind>].schema で構造を検証。"
             }
           }
         }

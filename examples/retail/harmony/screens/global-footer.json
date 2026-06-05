@@ -14,14 +14,14 @@
       "id": "copyright",
       "label": "コピーライト",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "著作権表記。例: © 2026 Harmony Retail Inc."
     },
     {
       "id": "version",
       "label": "バージョン",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "アプリケーションバージョン文字列。例: v1.0.0"
     }
   ],

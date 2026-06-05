@@ -49,9 +49,9 @@ class GlobalHeaderGadgetFragmentTest {
 
     /**
      * Spec: Screen 68709449-c9e1-47db-a351-ac9c12a19046 (purpose=gadget) items render
-     *   item: storeName  — direction=output, type=string
-     *   item: userName   — direction=output, type=string
-     *   item: logoutButton — direction=input, type=boolean
+     *   item: storeName  — direction=out, type=string
+     *   item: userName   — direction=out, type=string
+     *   item: logoutButton — direction=in, type=boolean
      *
      * Gadget は fragment 単体では URL なし — layout 経由で描画される。
      * layout 込みのダッシュボード画面 (path=/、pageLayoutId=17595b62) 経由で確認。

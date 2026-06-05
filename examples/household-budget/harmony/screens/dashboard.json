@@ -18,37 +18,37 @@
       "id": "currentMonthIncome",
       "label": "今月の収入",
       "type": "number",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
-      "valueFrom": {
+      "helperText": "当月 (1 日 〜 月末) の収入合計。fetchDashboardData flow が strftime('%Y-%m','now') で当月絞り込みして算出。",
+      "binding": {
         "kind": "flowVariable",
-        "variableName": "summary.monthlyIncome"
-      },
-      "helperText": "当月 (1 日 〜 月末) の収入合計。fetchDashboardData flow が strftime('%Y-%m','now') で当月絞り込みして算出。"
+        "path": "summary.monthlyIncome"
+      }
     },
     {
       "id": "currentMonthExpense",
       "label": "今月の支出",
       "type": "number",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
-      "valueFrom": {
+      "helperText": "当月の支出合計。fetchDashboardData flow から取得。",
+      "binding": {
         "kind": "flowVariable",
-        "variableName": "summary.monthlyExpense"
-      },
-      "helperText": "当月の支出合計。fetchDashboardData flow から取得。"
+        "path": "summary.monthlyExpense"
+      }
     },
     {
       "id": "currentMonthBalance",
       "label": "今月の収支",
       "type": "number",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
-      "valueFrom": {
+      "helperText": "収入 - 支出 (fetchDashboardData flow の compute step で導出済)。正値=黒字、負値=赤字。",
+      "binding": {
         "kind": "flowVariable",
-        "variableName": "summary.balance"
-      },
-      "helperText": "収入 - 支出 (fetchDashboardData flow の compute step で導出済)。正値=黒字、負値=赤字。"
+        "path": "summary.balance"
+      }
     },
     {
       "id": "recentTransactions",
@@ -57,13 +57,16 @@
         "kind": "tableList",
         "tableId": "transaction"
       },
-      "direction": "viewer",
-      "viewDefinitionId": "transaction-list-viewer",
-      "valueFrom": {
+      "direction": "out",
+      "helperText": "occurred_on 降順で 5 件のみ表示。クリックで一覧画面へ遷移。",
+      "binding": {
         "kind": "flowVariable",
-        "variableName": "recentTransactionRows"
+        "path": "recentTransactionRows"
       },
-      "helperText": "occurred_on 降順で 5 件のみ表示。クリックで一覧画面へ遷移。"
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "transaction-list-viewer"
+      }
     }
   ],
   "design": {

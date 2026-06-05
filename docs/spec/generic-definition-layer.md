@@ -77,12 +77,11 @@
 
 | フィールド | 値域 (案) | 役割 |
 |---|---|---|
-| `binding.kind` | `formField` / `viewModel` / `catalog` / `expression` / `fragmentParam` / `session` / `routeParam` / `queryParam` | 入出力種別の正式分類 |
+| `binding.kind` | `form` / `dto` / `json` / `tableColumn` / `viewColumn` / `flowVariable` / `catalog` / `expression` / `fragmentParam` / `session` / `routeParam` / `queryParam` | bind 先の正式分類 |
 | `binding.path` | string (式または plain path) | bind 対象 |
 | `binding.optionSource` | catalog ref | options 出所 |
 | `binding.formatHint` | string | 表示整形 hint |
 | `binding.parseHint` | string | 入力 parse hint |
-| `binding.role` | `display` / `input` / `both` | 表示専用か入力か |
 | `binding.sourceNote` | string | 元文書上の出典メモ |
 
 **判断**: ScreenItem 側に `binding` サブオブジェクトを追加。`description` 埋め込みからの移行は draft-state policy (`docs/spec/draft-state-policy.md`) の warning で誘導。

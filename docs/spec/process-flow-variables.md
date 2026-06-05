@@ -185,12 +185,12 @@ TemplateString 内で **`@` プレフィックス**を使った補完可能参�
 
 対象フィールド (v3): 詳細は [`process-flow-expression-language.md`](process-flow-expression-language.md) §6 を参照。
 
-ScreenItem.valueFrom.flowVariable.variableName は **IdentifierPath** ($defs in common.v3) で field 参照可:
+ScreenItem.binding.path は **IdentifierPath** 相当の field path として使用できる:
 
 ```jsonc
-"valueFrom": {
+"binding": {
   "kind": "flowVariable",
-  "variableName": "createdOrder.order_number"  // ← #533 R3-1 fix で許容
+  "path": "createdOrder.order_number"
 }
 ```
 
@@ -523,7 +523,7 @@ v3 で string 短縮形は全廃止。v1/v2 サンプルから v3 への移行�
 | `StepBaseProps` | `errorHandling?: ErrorHandling` | **#1263 Phase X3 で集約 (outcomes / rollbackOn / retryPolicy / onTimeout を集約、案 D)**、旧 `lineage?: DataLineage` は同 phase で削除 (SQL AST 復元可能、`schema-deletions-record.md` §3) |
 | `CommonProcessStep` | `argumentMapping?: Record<string,TemplateString>` | 確定 |
 | `ProcessFlow.context.ambientVariables` | `StructuredField[]` | **#525 R3 fix で context 配下に統一** (v1/v2 では root 直下) |
-| `ScreenItem.valueFrom.flowVariable.variableName` | `IdentifierPath` | **#533 R3-1 fix で IdentifierPath (camelCase + snake_case + dot path) に変更** |
+| `ScreenItem.binding.path` | string path | camelCase + snake_case + dot path を許容 |
 
 ### 5.2 v1/v2 → v3 マッピング (機械変換不能、人手必須)
 
@@ -531,7 +531,7 @@ v3 で string 短縮形は全廃止。v1/v2 サンプルから v3 への移行�
 
 - `inputs: "name1\nname2"` (改行区切り) → `inputs: [{ name: "name1", type: "string" }, ...]`
 - `outputBinding: "users"` (string) → `outputBinding: { name: "users" }` (object)
-- `valueFrom: { kind: "flowVariable", variableName: "users" }` (Identifier 単独) はそのまま、object field 参照 (`createdOrder.order_number`) を新規許容
+- `binding: { kind: "flowVariable", path: "users" }` は配列全体、object field 参照 (`createdOrder.order_number`) も許容
 
 ## 6. 型システム (v1 の範囲)
 
@@ -582,7 +582,7 @@ Phase 1 から段階投入可能。Phase 2〜4 は独立に進められる。`pr
 
 - `schemas/v3/process-flow.v3.schema.json` — 一次成果物 (v3.0.2 確定)
 - `schemas/v3/common.v3.schema.json` — `StructuredField` / `FieldType` / `Identifier` / `IdentifierPath` / `OutputBinding` の $defs
-- `schemas/v3/screen-item.v3.schema.json` — `ScreenItem.valueFrom` (R3-1 IdentifierPath 化)
+- `schemas/v3/screen-item.v3.schema.json` — `ScreenItem.binding.path`
 - `docs/spec/process-flow-expression-language.md` — `@` 記法・式言語仕様
 - `docs/spec/process-flow-maturity.md` — 成熟度・曖昧さ管理
 - `docs/spec/process-flow-extensions.md` — schema 拡張機構
@@ -592,4 +592,5 @@ Phase 1 から段階投入可能。Phase 2〜4 は独立に進められる。`pr
 
 - 2026-04-20: 初版ドラフト
 - 2026-04-24: v1.0 凍結 (#253)
-- **2026-04-28: v3 反映 (#539)** — FieldType を v3 確定形に、OutputBinding を構造化のみに、ambientVariables を context 配下に移動、IdentifierPath (#533 R3-1) を valueFrom.flowVariable で許容、StepBaseProps.lineage 透過 (#525 R3 fix) を反映
+- **2026-04-28: v3 反映 (#539)** — FieldType を v3 確定形に、OutputBinding を構造化のみに、ambientVariables を context 配下に移動、StepBaseProps.lineage 透過 (#525 R3 fix) を反映
+- **2026-06-05: #1445 反映** — ScreenItem の flow variable 参照を `binding.kind="flowVariable"` + `binding.path` に統一

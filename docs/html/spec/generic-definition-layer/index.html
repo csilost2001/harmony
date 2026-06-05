@@ -105,12 +105,7 @@
 
 
 
-
-
-
-
-
-<table><thead><tr><th>フィールド</th><th>値域 (案)</th><th>役割</th></tr></thead><tbody><tr><td><code>binding.kind</code></td><td><code>formField</code> / <code>viewModel</code> / <code>catalog</code> / <code>expression</code> / <code>fragmentParam</code> / <code>session</code> / <code>routeParam</code> / <code>queryParam</code></td><td>入出力種別の正式分類</td></tr><tr><td><code>binding.path</code></td><td>string (式または plain path)</td><td>bind 対象</td></tr><tr><td><code>binding.optionSource</code></td><td>catalog ref</td><td>options 出所</td></tr><tr><td><code>binding.formatHint</code></td><td>string</td><td>表示整形 hint</td></tr><tr><td><code>binding.parseHint</code></td><td>string</td><td>入力 parse hint</td></tr><tr><td><code>binding.role</code></td><td><code>display</code> / <code>input</code> / <code>both</code></td><td>表示専用か入力か</td></tr><tr><td><code>binding.sourceNote</code></td><td>string</td><td>元文書上の出典メモ</td></tr></tbody></table>
+<table><thead><tr><th>フィールド</th><th>値域 (案)</th><th>役割</th></tr></thead><tbody><tr><td><code>binding.kind</code></td><td><code>form</code> / <code>dto</code> / <code>json</code> / <code>tableColumn</code> / <code>viewColumn</code> / <code>flowVariable</code> / <code>catalog</code> / <code>expression</code> / <code>fragmentParam</code> / <code>session</code> / <code>routeParam</code> / <code>queryParam</code></td><td>bind 先の正式分類</td></tr><tr><td><code>binding.path</code></td><td>string (式または plain path)</td><td>bind 対象</td></tr><tr><td><code>binding.optionSource</code></td><td>catalog ref</td><td>options 出所</td></tr><tr><td><code>binding.formatHint</code></td><td>string</td><td>表示整形 hint</td></tr><tr><td><code>binding.parseHint</code></td><td>string</td><td>入力 parse hint</td></tr><tr><td><code>binding.sourceNote</code></td><td>string</td><td>元文書上の出典メモ</td></tr></tbody></table>
 <p><strong>判断</strong>: ScreenItem 側に <code>binding</code> サブオブジェクトを追加。<code>description</code> 埋め込みからの移行は draft-state policy (<code>docs/spec/draft-state-policy.md</code>) の warning で誘導。</p>
 <h3 id="32-screenitemevent-の-ui-効果-ui-effects-formal-化">3.2 ScreenItemEvent の UI 効果 (UI effects) formal 化</h3>
 <p><strong>現状の不足</strong>: event は <code>handlerFlowId</code> (=処理起動) に偏っていて、画面側の純粋な UI 効果が弱い。設計書に頻出するのは:</p>

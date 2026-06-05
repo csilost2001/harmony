@@ -16,51 +16,51 @@
       "id": "displayName",
       "label": "表示名",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "maxLength": 50,
-      "valueFrom": {
+      "description": "users.display_name の編集フィールド。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "user",
           "columnId": "col-display-name"
         }
-      },
-      "description": "users.display_name の編集フィールド。"
+      }
     },
     {
       "id": "email",
       "label": "メールアドレス",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "users.email の読み取り専用表示。変更は別途メール確認フローが必要なため読み取り専用とする。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "user",
           "columnId": "col-email"
         }
-      },
-      "description": "users.email の読み取り専用表示。変更は別途メール確認フローが必要なため読み取り専用とする。"
+      }
     },
     {
       "id": "cefrLevelDisplay",
       "label": "現在の CEFR レベル",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "users.cefr_level の読み取り専用表示。自動昇格のため手動変更不可。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "user",
           "columnId": "col-cefr-level"
         }
-      },
-      "description": "users.cefr_level の読み取り専用表示。自動昇格のため手動変更不可。"
+      }
     },
     {
       "id": "targetCefrLevel",
       "label": "目標 CEFR レベル",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "options": [
         {
@@ -88,34 +88,34 @@
           "label": "C2 最上級"
         }
       ],
-      "valueFrom": {
+      "description": "users.target_cefr_level の編集フィールド。プロフィール設定画面で変更可能。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "user",
           "columnId": "col-target-cefr-level"
         }
-      },
-      "description": "users.target_cefr_level の編集フィールド。プロフィール設定画面で変更可能。"
+      }
     },
     {
       "id": "interests",
       "label": "興味分野",
       "type": "json",
-      "direction": "input",
-      "valueFrom": {
+      "direction": "in",
+      "description": "users.interests の編集フィールド (JSON 配列)。IT / ビジネス / 旅行等の興味分野を複数選択。コンテンツパック選択のレコメンドに使用する。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "user",
           "columnId": "col-interests"
         }
-      },
-      "description": "users.interests の編集フィールド (JSON 配列)。IT / ビジネス / 旅行等の興味分野を複数選択。コンテンツパック選択のレコメンドに使用する。"
+      }
     },
     {
       "id": "saveProfile",
       "label": "設定を保存する",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "description": "送信ボタン。users テーブルの display_name / target_cefr_level / interests を更新する処理フローを実行する。"
     }
   ],

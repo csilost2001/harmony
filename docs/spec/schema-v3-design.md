@@ -519,7 +519,6 @@ UI 座標は新規 `schemas/v2/screen-layout.v2.schema.json` に分離:
     "screenTypes": { "type": "array", "items": { "$ref": "#/$defs/CustomScreenType" } },
     "steps": { "type": "object", "additionalProperties": { "$ref": "#/$defs/CustomStepDef" } },
     "responseTypes": { "type": "object", "additionalProperties": { "$ref": "#/$defs/CustomResponseTypeDef" } },
-    "valueSources": { "type": "array", "items": { "$ref": "#/$defs/CustomValueSourceKind" } },
     "columnTemplates": { "type": "array", "items": { "$ref": "#/$defs/CustomColumnTemplate" } },
     "constraintPatterns": { "type": "array", "items": { "$ref": "#/$defs/CustomConstraintPattern" } },
     "conventionCategories": { "type": "array", "items": { "$ref": "#/$defs/CustomConventionCategory" } }

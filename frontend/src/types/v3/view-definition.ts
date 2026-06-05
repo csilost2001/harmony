@@ -1,9 +1,9 @@
 /**
  * v3 ViewDefinition 型定義 (`schemas/v3/view-definition.v3.schema.json` と 1:1 対応)
  *
- * - 画面側の一覧 UI viewer 設定 (list / detail / kanban / calendar 等)
- * - DB View (view.ts) とは axis が異なる: viewer は画面コンポーネント内 render
- * - Screen は items[] の `direction: "viewer"` screen-item から `viewDefinitionId` で参照される
+ * - 画面側の一覧 UI 表示設定 (list / detail / kanban / calendar 等)
+ * - DB View (view.ts) とは axis が異なる: ViewDefinition は画面コンポーネント内 render を定義する
+ * - Screen は items[] の `presentation.viewDefinitionId` から参照する
  *
  * 参考: schemas/v3/view-definition.v3.schema.json
  */

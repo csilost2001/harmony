@@ -7,7 +7,7 @@ import { describe, it, expect, afterAll } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { checkScreenItemsEmbedded, checkDesignFilePresence } from "../../scripts/validate-samples";
+import { checkScreenItemsEmbedded, checkDesignFilePresence, runValidation } from "../../scripts/validate-samples";
 import type { Screen } from "../types/v3/screen";
 
 // ─── テスト用一時ディレクトリ管理 ──────────────────────────────────────────
@@ -72,7 +72,7 @@ describe("checkScreenItemsEmbedded — 正常ケース", () => {
   it("items が 1 件以上あり screen-items/ なし → issue なし", () => {
     const dir = makeTempProject();
     const id = "aaaaaaaa-0000-4000-8000-000000000001";
-    const screens = [makeScreen(id, { items: [{ id: "field1" as Screen["id"], label: "フィールド1", type: "string", direction: "input" }] })];
+    const screens = [makeScreen(id, { items: [{ id: "field1" as Screen["id"], label: "フィールド1", type: "string", direction: "in" }] })];
     const project = makeProject(dir, screens);
     const issues = checkScreenItemsEmbedded(project);
     expect(issues).toHaveLength(0);
@@ -138,7 +138,7 @@ describe("checkScreenItemsEmbedded — legacy screen-items/ ディレクトリ",
     }
     // items も持つ screen で Check 1a は出ないようにする
     const id = "cccccccc-0000-4000-8000-000000000003";
-    const screens = [makeScreen(id, { items: [{ id: "f1" as Screen["id"], label: "F1", type: "string", direction: "input" }] })];
+    const screens = [makeScreen(id, { items: [{ id: "f1" as Screen["id"], label: "F1", type: "string", direction: "in" }] })];
     const project = makeProject(dir, screens);
     const issues = checkScreenItemsEmbedded(project);
     const legacyIssues = issues.filter((i) => i.code === "LEGACY_SCREEN_ITEMS_DIR");
@@ -219,6 +219,73 @@ describe("checkDesignFilePresence — designFileRef 未指定", () => {
   });
 });
 
+describe("runValidation — screenItemViewerValidator 接続", () => {
+  it("不正な presentation.viewDefinitionId を project-level validation で error にする", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "wt1445-validation-"));
+    tempDirs.push(dir);
+    const dataDir = join(dir, "harmony");
+    mkdirSync(join(dataDir, "conventions"), { recursive: true });
+    mkdirSync(join(dataDir, "process-flows"), { recursive: true });
+    mkdirSync(join(dataDir, "screens"), { recursive: true });
+    mkdirSync(join(dataDir, "tables"), { recursive: true });
+    mkdirSync(join(dataDir, "view-definitions"), { recursive: true });
+
+    writeFileSync(join(dir, "harmony.json"), JSON.stringify({
+      id: "test-project",
+      dataDir: "harmony",
+    }, null, 2));
+    writeFileSync(join(dataDir, "conventions", "catalog.json"), JSON.stringify({ id: "catalog" }, null, 2));
+    writeFileSync(join(dataDir, "process-flows", "search-flow.json"), JSON.stringify({
+      meta: {
+        id: "search-flow",
+        uuid: "22222222-2222-4222-8222-222222222222",
+        name: "検索フロー",
+        flowType: "screen",
+        screenId: "search-screen",
+        createdAt: "2026-06-05T00:00:00.000Z",
+        updatedAt: "2026-06-05T00:00:00.000Z",
+      },
+      actions: [
+        {
+          id: "act-search",
+          name: "検索",
+          trigger: "submit",
+          inputs: [],
+          outputs: [{ name: "rows", type: { kind: "array", itemType: "json" } }],
+          steps: [],
+        },
+      ],
+    }, null, 2));
+    writeFileSync(join(dataDir, "screens", "search-screen.json"), JSON.stringify({
+      id: "search-screen",
+      uuid: "11111111-1111-4111-8111-111111111111",
+      name: "検索画面",
+      kind: "search",
+      path: "/search",
+      createdAt: "2026-06-05T00:00:00.000Z",
+      updatedAt: "2026-06-05T00:00:00.000Z",
+      items: [
+        {
+          id: "rows",
+          label: "一覧",
+          type: { kind: "array", itemType: "json" },
+          direction: "out",
+          binding: { kind: "flowVariable", processFlowId: "search-flow", path: "rows" },
+          presentation: { kind: "table", viewDefinitionId: "missing-view-definition" },
+        },
+      ],
+    }, null, 2));
+
+    const summary = await runValidation(dir);
+    const issue = summary.projectResults
+      .flatMap((result) => result.issues)
+      .find((candidate) => candidate.validator === "screenItemViewerValidator" && candidate.code === "UNKNOWN_VIEWER_VIEW_DEFINITION");
+
+    expect(issue).toBeDefined();
+    expect(issue?.severity).toBe("error");
+  });
+});
+
 // ─── Case 9 以降: kind 別の条件付き発報 (#723) ────────────────────────────
 
 describe("checkScreenItemsEmbedded — kind=form items 空 → 発報", () => {
@@ -259,8 +326,8 @@ describe("checkScreenItemsEmbedded — kind=complete items 空 → 発報なし"
   });
 });
 
-describe("checkScreenItemsEmbedded — kind=list items に direction:viewer を 1 件含む → 発報なし", () => {
-  it("kind が 'list' かつ items に direction:viewer の screen-item あり → EMPTY_SCREEN_ITEMS は出ない", () => {
+describe("checkScreenItemsEmbedded — kind=list items に table presentation を 1 件含む → 発報なし", () => {
+  it("kind が 'list' かつ items に table presentation の screen-item あり → EMPTY_SCREEN_ITEMS は出ない", () => {
     const dir = makeTempProject();
     const id = "44444444-0000-4000-8000-000000000001";
     const screens = [makeScreen(id, {
@@ -270,8 +337,8 @@ describe("checkScreenItemsEmbedded — kind=list items に direction:viewer を 
           id: "myList",
           label: "一覧",
           type: { kind: "array", itemType: "json" },
-          direction: "viewer",
-          viewDefinitionId: "44444444-0000-4000-8000-000000000099",
+          direction: "out",
+          presentation: { kind: "table", viewDefinitionId: "44444444-0000-4000-8000-000000000099" },
         } as NonNullable<Screen["items"]>[number],
       ],
     })];
@@ -295,7 +362,7 @@ describe("checkScreenItemsEmbedded — kind=list items 空 → 発報", () => {
     const emptyIssues = issues.filter((i) => i.code === "EMPTY_SCREEN_ITEMS");
     expect(emptyIssues).toHaveLength(1);
     expect(emptyIssues[0].severity).toBe("warning");
-    expect(emptyIssues[0].message).toContain("direction");
+    expect(emptyIssues[0].message).toContain("presentation");
     expect(emptyIssues[0].message).toContain("kind=list");
   });
 });

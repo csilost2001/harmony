@@ -81,10 +81,10 @@ class DashboardPageLayoutTest {
 
     /**
      * Spec: Screen 765c3c23-8a0e-46b0-ae8b-ce84d10be0b0 items (KPI cards)
-     *   item: todaySales   — direction=output, type=integer
-     *   item: ordersToday  — direction=output, type=integer
-     *   item: lowStockCount — direction=output, type=integer
-     *   item: dispatchPending — direction=output, type=integer
+     *   item: todaySales   — direction=out, type=integer
+     *   item: ordersToday  — direction=out, type=integer
+     *   item: lowStockCount — direction=out, type=integer
+     *   item: dispatchPending — direction=out, type=integer
      */
     @Test
     void KPIカードの表示領域が存在する() throws Exception {

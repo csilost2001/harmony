@@ -17,38 +17,38 @@
       "id": "orderNumber",
       "label": "注文番号",
       "type": "string",
-      "direction": "output",
+      "direction": "out",
       "description": "S-3 注文確定後に発行された注文番号 (ORD-YYYY-NNNNNN 形式)。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "order-confirm",
-        "variableName": "orderNumber"
+        "path": "orderNumber",
+        "processFlowId": "order-confirm"
       }
     },
     {
       "id": "confirmedTotalAmount",
       "label": "確定合計金額 (税込)",
       "type": "integer",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "¥#,##0",
       "description": "S-3 注文確定後の確定合計金額 (表示専用)。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "order-confirm",
-        "variableName": "totalAmount"
+        "path": "totalAmount",
+        "processFlowId": "order-confirm"
       }
     },
     {
       "id": "confirmedAt",
       "label": "注文確定日時",
       "type": "datetime",
-      "direction": "output",
+      "direction": "out",
       "displayFormat": "YYYY/MM/DD HH:mm",
       "description": "S-3 注文確定が完了した日時 (表示専用)。",
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "processFlowId": "order-confirm",
-        "variableName": "confirmedAt"
+        "path": "confirmedAt",
+        "processFlowId": "order-confirm"
       }
     }
   ],

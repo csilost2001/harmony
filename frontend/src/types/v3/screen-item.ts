@@ -2,8 +2,9 @@
  * v3 ScreenItem 型定義 (`schemas/v3/screen-item.v3.schema.json` と 1:1 対応)
  *
  * - id は Identifier (camelCase 強制)
- * - ValueSource は discriminated union (組み込み 4 種 + 拡張)
- * - flowVariable.variableName は IdentifierPath (#533 R3-1) で object field 参照可
+ * - direction はデータ方向 (in / out / both)
+ * - binding は Form / DTO / JSON / DB / flow への紐付け
+ * - presentation は table/list 等の表示形態
  *
  * 参考: schemas/v3/screen-item.v3.schema.json
  */
@@ -14,7 +15,6 @@ import type {
   TemplateString,
   FieldType,
   Identifier,
-  IdentifierPath,
   LocalId,
   ProcessFlowId,
   TableColumnRef,
@@ -78,33 +78,56 @@ export interface ScreenItemOption {
   label: DisplayName;
 }
 
-/**
- * output 項目のバインド元。discriminated union (kind)。
- * 組み込み 4 種 + 拡張 (extensions.v3.valueSourceKinds で定義)。
- */
-export type ValueSource =
-  | {
-      kind: "flowVariable";
-      /** 省略時はカレント画面に紐付く ProcessFlow を解決する。 */
-      processFlowId?: ProcessFlowId;
-      /**
-       * ProcessFlow 変数名。Identifier 単独 (例: `inventoryRows`) または
-       * IdentifierPath (#533 R3-1) で object field 参照可能 (例: `createdOrder.order_number`)。
-       */
-      variableName: IdentifierPath;
-    }
-  | { kind: "tableColumn"; ref: TableColumnRef }
-  | { kind: "viewColumn"; ref: ViewColumnRef }
-  | { kind: "expression"; expression: TemplateString }
-  | {
-      /** 拡張 ValueSource。kind は `namespace:identifier` 形式。例: `retail:cartCalculation` */
-      kind: string;
-      config?: Record<string, unknown>;
-      ref?: never;
-      expression?: never;
-      variableName?: never;
-      processFlowId?: never;
-    };
+export type ScreenItemDirection = "in" | "out" | "both";
+
+export type ScreenItemBindingKind =
+  | "form"
+  | "dto"
+  | "json"
+  | "tableColumn"
+  | "viewColumn"
+  | "flowVariable"
+  | "catalog"
+  | "expression"
+  | "fragmentParam"
+  | "session"
+  | "routeParam"
+  | "queryParam";
+
+export interface ScreenItemBinding {
+  /** bind 先の分類。 */
+  kind: ScreenItemBindingKind;
+  /** bind 対象 path。例: orderForm.productCode / response.rows / customer.name。 */
+  path?: string;
+  /** tableColumn / viewColumn の構造化参照。 */
+  ref?: TableColumnRef | ViewColumnRef;
+  /** flowVariable の参照先 ProcessFlow。省略時はカレント画面に紐付く flow を解決する。 */
+  processFlowId?: ProcessFlowId;
+  /** 表示整形 hint。 */
+  formatHint?: string;
+  /** 元文書上の出典メモ。 */
+  sourceNote?: string;
+}
+
+export type ScreenItemPresentationKind = "field" | "table" | "list" | "kanban" | "calendar";
+
+export interface ScreenItemPresentationColumn {
+  id: Identifier;
+  label: DisplayName;
+  /** 1 row 内の accessor path。React Table / TanStack Table の accessorKey 相当。 */
+  path: string;
+  type: FieldType;
+  format?: string;
+  width?: string | number;
+}
+
+export interface ScreenItemPresentation {
+  kind: ScreenItemPresentationKind;
+  /** 一覧・表・カレンダー等の表示設定。 */
+  viewDefinitionId?: ViewDefinitionId;
+  /** インライン列定義。binding.path が rows 配列、columns[].path が row 内 accessor。 */
+  columns?: ScreenItemPresentationColumn[];
+}
 
 /**
  * ScreenItem (画面項目) 1 件。
@@ -123,20 +146,8 @@ export interface ScreenItem {
    * id (画面内ユニーク) と独立。
    */
   refKey?: Identifier;
-  /**
-   * input = フォーム入力項目 (既定) / output = 表示専用項目 (スカラー) /
-   * viewer = ViewDefinition の列定義を参照し、`valueFrom` で flow 変数から配列データを bind する
-   * 配列データ表示項目 (#762)。
-   */
-  direction?: "input" | "output" | "viewer";
-  /**
-   * viewer 項目が参照する ViewDefinition の ID (#762)。
-   * `direction='viewer'` の場合のみ使用し、列定義・ソート・kind 等の viewer 設定を提供する。
-   * `valueFrom` で flow 変数から配列データを bind する。
-   * `valueFrom` 省略時は ViewDefinition の query を画面 mount 時に自動発行する (静的マスター一覧)。
-   * `direction='viewer'` の時のみ required。
-   */
-  viewDefinitionId?: ViewDefinitionId;
+  /** データ方向。in = 画面→外部 / out = 外部→画面 / both = 双方向。 */
+  direction?: ScreenItemDirection;
   required?: boolean;
   readonly?: boolean;
   disabled?: boolean;
@@ -167,10 +178,13 @@ export interface ScreenItem {
   visibleWhen?: TemplateString;
   /** 活性条件式。 */
   enabledWhen?: TemplateString;
-  /** 表示書式 (output 専用)。例: `YYYY/MM/DD`, `¥#,##0`, `0.00%` */
+  /** 表示書式 (out/both 項目向け)。例: `YYYY/MM/DD`, `¥#,##0`, `0.00%` */
   displayFormat?: string;
-  valueFrom?: ValueSource;
-  /** 派生計算式 (= で始まる)。output 項目用。 */
+  /** Form / DTO / JSON / DB / flow 等への bind 情報。 */
+  binding?: ScreenItemBinding;
+  /** table/list 等の表示形態。 */
+  presentation?: ScreenItemPresentation;
+  /** 派生計算式 (= で始まる)。out/both 項目用。 */
   formula?: TemplateString;
   /** 本画面項目で発火するイベントと処理フロー連携 (#624)。 */
   events?: ScreenItemEvent[];

@@ -112,17 +112,6 @@ export interface CustomResponseType {
   schema: Record<string, unknown>;
 }
 
-/**
- * 拡張 ValueSource。ScreenItem.valueFrom の `namespace:kindName` で参照される。
- * schema は ValueSource.config の構造を縛る。
- */
-export interface CustomValueSourceKind {
-  kind: Identifier;
-  label: DisplayName;
-  schema: DynamicFormSchema;
-  description?: Description;
-}
-
 /** Table.columns 用カラム雛形 (一括追加用)。 */
 export interface CustomColumnTemplate {
   id: LocalId;
@@ -170,7 +159,6 @@ export interface ExtensionDefinition extends ExtensionRoot {
   stepKinds?: Record<string, CustomStepKind>;
   /** Response 型の拡張。キー = TypeName (PascalCase)。 */
   responseTypes?: Record<string, CustomResponseType>;
-  valueSourceKinds?: CustomValueSourceKind[];
   columnTemplates?: CustomColumnTemplate[];
   constraintPatterns?: CustomConstraintPattern[];
   conventionCategories?: CustomConventionCategory[];

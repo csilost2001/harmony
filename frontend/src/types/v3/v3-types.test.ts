@@ -23,7 +23,7 @@ import type {
 import type { Harmony } from "./harmony";
 import type { Table, Constraint, ForeignKeyConstraint } from "./table";
 import type { Screen } from "./screen";
-import type { ScreenItem, ScreenItemEvent, ScreenItemEventEffect, ValueSource } from "./screen-item";
+import type { ScreenItem, ScreenItemEvent, ScreenItemEventEffect, ScreenItemBinding } from "./screen-item";
 import type {
   Uuid,
   EntityId,
@@ -247,26 +247,38 @@ describe("v3 FieldType", () => {
   });
 });
 
-// ─── ValueSource discriminated union ────────────────────────────────────
+// ─── ScreenItem binding / presentation ────────────────────────────────────
 
-describe("v3 ScreenItem.valueFrom", () => {
-  it("flowVariable は IdentifierPath で object field 参照可", () => {
+describe("v3 ScreenItem.binding", () => {
+  it("flowVariable binding は path で object field 参照可", () => {
     const item: ScreenItem = {
       id: "orderNumber" as Identifier,
       label: "指示番号",
       type: "string",
-      direction: "output",
-      valueFrom: {
+      direction: "out",
+      binding: {
         kind: "flowVariable",
-        variableName: "createdOrder.order_number" as IdentifierPath,
+        path: "createdOrder.order_number",
       },
     };
-    expect(item.valueFrom?.kind).toBe("flowVariable");
+    expect(item.binding?.kind).toBe("flowVariable");
   });
 
-  it("expression variant", () => {
-    const v: ValueSource = { kind: "expression", expression: "@x + @y" };
-    expect(v.kind).toBe("expression");
+  it("expression binding variant", () => {
+    const b: ScreenItemBinding = { kind: "expression", path: "@x + @y" };
+    expect(b.kind).toBe("expression");
+  });
+
+  it("table presentation can reference ViewDefinition columns", () => {
+    const item: ScreenItem = {
+      id: "orderRows" as Identifier,
+      label: "注文一覧",
+      type: { kind: "array", itemType: "json" },
+      direction: "out",
+      binding: { kind: "dto", path: "searchResult.orders" },
+      presentation: { kind: "table", viewDefinitionId: "order-list" as never },
+    };
+    expect(item.presentation?.kind).toBe("table");
   });
 });
 

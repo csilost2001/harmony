@@ -21,9 +21,12 @@
         "kind": "tableList",
         "tableId": "transaction"
       },
-      "direction": "viewer",
-      "viewDefinitionId": "transaction-list-viewer",
-      "helperText": "viewDefinition で kind=list、occurred_on 降順、ページサイズ 50。"
+      "direction": "out",
+      "helperText": "viewDefinition で kind=list、occurred_on 降順、ページサイズ 50。",
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "transaction-list-viewer"
+      }
     }
   ],
   "design": {

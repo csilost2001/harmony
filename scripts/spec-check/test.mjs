@@ -58,7 +58,7 @@ console.log("\n## extract-step-required.mjs (full snapshot)");
   if (error) console.log(`  (spawn error: ${error.message})`);
   if (signal) console.log(`  (signal: ${signal})`);
   assert("exits 0", status === 0);
-  assert("Total: 25 step kinds output", /Total: 25 step kinds/.test(stdout));
+  assert("Total: 26 step kinds output", /Total: 26 step kinds/.test(stdout));
   assert("no `?` placeholder", !/^- `\?`/m.test(stdout), "kind 未解決の variant が残存");
 
   // schema から動的に 24 step variant の (kind, required - [id,kind,description]) を抽出
@@ -1082,7 +1082,7 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     id: "productCode",
     label: "商品コード",
     type: "string",
-    binding: { kind: "formField" },
+    binding: { kind: "form" },
   }, true);
 
   // positive full: 5 field すべて有り
@@ -1091,9 +1091,8 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     label: "商品コード",
     type: "string",
     binding: {
-      kind: "viewModel",
-      path: "viewModel.productCode",
-      role: "display",
+      kind: "dto",
+      path: "dto.productCode",
       formatHint: "0.00%",
       sourceNote: "spec_SC000001.md#mapping",
     },
@@ -1107,12 +1106,12 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     binding: { kind: "unknown" },
   }, false);
 
-  // negative: role unknown enum
-  assertItem("binding role=weird rejected", {
+  // negative: role is no longer canonical (#1445)
+  assertItem("binding role rejected as additionalProperty", {
     id: "x",
     label: "X",
     type: "string",
-    binding: { kind: "formField", role: "weird" },
+    binding: { kind: "form", role: "display" },
   }, false);
 
   // negative: additionalProperty on binding
@@ -1120,7 +1119,7 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     id: "x",
     label: "X",
     type: "string",
-    binding: { kind: "formField", bogus: "x" },
+    binding: { kind: "form", bogus: "x" },
   }, false);
 
   // ── ScreenItemEvent.effects[] cases ──────────────────────────────────
@@ -1132,7 +1131,7 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     events: [
       {
         id: "change",
-        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        handlerFlowId: "region-change-flow",
         effects: [
           { kind: "clear", target: "cityCode" },
           { kind: "setReadonly", target: "cityCode", value: true },
@@ -1159,7 +1158,7 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     events: [
       {
         id: "click",
-        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        handlerFlowId: "region-change-flow",
         effects: [{ kind: "clear", target: "someField", value: "extra" }],
       },
     ],
@@ -1173,7 +1172,7 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     events: [
       {
         id: "click",
-        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        handlerFlowId: "region-change-flow",
         effects: [{ kind: "setReadonly", target: "someField" }],
       },
     ],
@@ -1188,7 +1187,7 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     events: [
       {
         id: "click",
-        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        handlerFlowId: "region-change-flow",
         effects: [{ kind: "setReadonly", target: "someField", value: 42 }],
       },
     ],
@@ -1202,7 +1201,7 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     events: [
       {
         id: "click",
-        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        handlerFlowId: "region-change-flow",
         effects: [{ kind: "setOptions", target: "someField" }],
       },
     ],
@@ -1216,7 +1215,7 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     events: [
       {
         id: "click",
-        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        handlerFlowId: "region-change-flow",
         effects: [{ kind: "applyAjaxResult" }],
       },
     ],
@@ -1230,7 +1229,7 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     events: [
       {
         id: "click",
-        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        handlerFlowId: "region-change-flow",
         effects: [{ kind: "weird", target: "someField" }],
       },
     ],
@@ -1244,7 +1243,7 @@ console.log("\n## screen-item.v3.schema.json binding / effects strict (#1065)");
     events: [
       {
         id: "click",
-        handlerFlowId: "aaaaaaaa-0001-4000-8000-000000000001",
+        handlerFlowId: "region-change-flow",
         effects: [{ kind: "applyAjaxResult", mapping: { "data.field": "with-hyphen" } }],
       },
     ],
@@ -1271,7 +1270,8 @@ console.log("\n## screen.v3.schema.json fragments[] strict (#1067)");
 
   function makeScreen(extra) {
     return {
-      id: "aaaaaaaa-0001-4000-8000-000000000001",
+      id: "order-entry-screen",
+      uuid: "11111111-1111-4111-8111-111111111111",
       name: "注文新規",
       createdAt: "2026-05-13T00:00:00.000Z",
       updatedAt: "2026-05-13T00:00:00.000Z",
@@ -1398,24 +1398,24 @@ console.log("\n## migrate-binding-v1-to-structured.mjs fixture test (#1065)");
         id: "productCode",
         label: "商品コード",
         type: "string",
-        direction: "input",
+        direction: "in",
         description: "[binding.v1] binding.attr=th:field; binding.path=form.productCode; source=spec.md#sec",
       },
-      // fixture 2: viewModel kind
+      // fixture 2: dto kind
       {
         id: "totalPrice",
         label: "合計金額",
         type: "number",
-        direction: "output",
-        description: "[binding.v1] binding.attr=th:text; binding.path=viewModel.total",
+        direction: "out",
+        description: "[binding.v1] binding.attr=th:text; binding.path=dto.total",
       },
       // fixture 3: 既に binding あり → idempotent skip
       {
         id: "existingBound",
         label: "既存バインド",
         type: "string",
-        binding: { kind: "viewModel" },
-        description: "[binding.v1] binding.attr=th:text; binding.path=viewModel.foo",
+        binding: { kind: "dto" },
+        description: "[binding.v1] binding.attr=th:text; binding.path=dto.foo",
       },
       // fixture 4: sentinel なし → 無変更
       {
@@ -1452,21 +1452,21 @@ console.log("\n## migrate-binding-v1-to-structured.mjs fixture test (#1065)");
 
   const afterApply = JSON.parse(readFileSync(screenFilePath, "utf8"));
 
-  // fixture 1: productCode → formField
+  // fixture 1: productCode → form
   const item1 = afterApply.items.find((i) => i.id === "productCode");
-  assert("fixture 1: binding.kind=formField", item1?.binding?.kind === "formField", JSON.stringify(item1?.binding));
+  assert("fixture 1: binding.kind=form", item1?.binding?.kind === "form", JSON.stringify(item1?.binding));
   assert("fixture 1: binding.path=form.productCode", item1?.binding?.path === "form.productCode");
   assert("fixture 1: binding.sourceNote contains spec.md#sec", item1?.binding?.sourceNote?.includes("spec.md#sec"));
   assert("fixture 1: description removed (free text empty)", item1?.description === undefined);
 
-  // fixture 2: totalPrice → viewModel
+  // fixture 2: totalPrice → dto
   const item2 = afterApply.items.find((i) => i.id === "totalPrice");
-  assert("fixture 2: binding.kind=viewModel", item2?.binding?.kind === "viewModel", JSON.stringify(item2?.binding));
-  assert("fixture 2: binding.path=viewModel.total", item2?.binding?.path === "viewModel.total");
+  assert("fixture 2: binding.kind=dto", item2?.binding?.kind === "dto", JSON.stringify(item2?.binding));
+  assert("fixture 2: binding.path=dto.total", item2?.binding?.path === "dto.total");
 
   // fixture 3: existingBound → idempotent (no change)
   const item3 = afterApply.items.find((i) => i.id === "existingBound");
-  assert("fixture 3: idempotent (binding unchanged)", item3?.binding?.kind === "viewModel");
+  assert("fixture 3: idempotent (binding unchanged)", item3?.binding?.kind === "dto");
   assert("fixture 3: description still present (not migrated)", typeof item3?.description === "string");
 
   // fixture 4: normalField → unchanged
@@ -1517,7 +1517,8 @@ console.log("\n## process-flow.v3.schema.json componentCall / exceptionTypeRef s
     return {
       $schema: "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/process-flow.v3.schema.json",
       meta: {
-        id: "ffffffff-0001-4000-8000-000000000001",
+        id: "component-call-test-flow",
+        uuid: "ffffffff-0001-4000-8000-000000000001",
         name: "テストフロー",
         flowType: "system",
         createdAt: "2026-01-01T00:00:00.000Z",
@@ -1603,7 +1604,8 @@ console.log("\n## process-flow.v3.schema.json componentCall / exceptionTypeRef s
     return {
       $schema: "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/process-flow.v3.schema.json",
       meta: {
-        id: "ffffffff-0001-4000-8000-000000000002",
+        id: "error-catalog-test-flow",
+        uuid: "ffffffff-0001-4000-8000-000000000002",
         name: "エラーカタログテスト",
         flowType: "system",
         createdAt: "2026-01-01T00:00:00.000Z",
@@ -1750,7 +1752,7 @@ console.log("\n## ✅ 例 AJV validation against schemas/v3/");
 console.log("\n## §3.3 cheatsheet rows vs schema required (drift gate)");
 {
   const cheatsheet = parseStepCheatsheet(specDoc);
-  assert("cheatsheet has 25 step kind rows", cheatsheet.size === 25, `actual=${cheatsheet.size}`);
+  assert("cheatsheet has 26 step kind rows", cheatsheet.size === 26, `actual=${cheatsheet.size}`);
 
   const BASE = new Set(["id", "kind", "description"]);
   const stepUnion = $defs.Step.oneOf.map((r) => r.$ref.replace("#/$defs/", ""));

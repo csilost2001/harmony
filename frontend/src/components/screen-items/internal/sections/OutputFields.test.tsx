@@ -1,14 +1,17 @@
 /**
  * OutputFields — rendering / kind 切替テスト (#1145 Phase-6)
  *
- * 出力設定 sub-form の 4 種 valueFrom kind 切替と各 binder 表示を検証。
+ * 出力設定 sub-form の binding kind 切替と各 binder 表示を検証。
  * Phase-6 で `internal/sections/OutputFields.tsx` に抽出 (screen-items/ test 0 件領域の補強)。
  */
-import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { OutputFields } from "./OutputFields";
 import type { ScreenItem, Table, View, FieldType } from "../../../../types/v3";
+
+afterEach(() => cleanup());
 
 function makeItem(over: Partial<ScreenItem> = {}): ScreenItem {
   return {
@@ -55,14 +58,14 @@ describe("OutputFields", () => {
       />,
     );
     expect(screen.getByText("表示フォーマット")).toBeInTheDocument();
-    expect(screen.getByText("バインド元 (種別)")).toBeInTheDocument();
+    expect(screen.getByText("Binding 種別")).toBeInTheDocument();
   });
 
   it("flowVariable kind 選択で 処理フロー + 変数名 fields が出る", () => {
     render(
       <OutputFields
         item={makeItem({
-          valueFrom: { kind: "flowVariable", variableName: "x" as never } as never,
+          binding: { kind: "flowVariable", path: "x" },
         })}
         idx={0}
         onUpdate={vi.fn()}
@@ -72,17 +75,17 @@ describe("OutputFields", () => {
       />,
     );
     expect(screen.getByText("処理フロー")).toBeInTheDocument();
-    expect(screen.getByText("変数名")).toBeInTheDocument();
+    expect(screen.getByText("Path")).toBeInTheDocument();
   });
 
   it("tableColumn kind 選択で テーブル / 列 select が出る + テーブル名が option に列挙", () => {
     render(
       <OutputFields
         item={makeItem({
-          valueFrom: {
+          binding: {
             kind: "tableColumn",
             ref: { tableId: "tbl1" as never, columnId: "c1" as never },
-          } as never,
+          },
         })}
         idx={0}
         onUpdate={vi.fn()}
@@ -102,13 +105,13 @@ describe("OutputFields", () => {
     render(
       <OutputFields
         item={makeItem({
-          valueFrom: {
+          binding: {
             kind: "viewColumn",
             ref: {
               viewId: "view1" as never,
               columnPhysicalName: "order_id" as never,
             },
-          } as never,
+          },
         })}
         idx={0}
         onUpdate={vi.fn()}
@@ -126,7 +129,7 @@ describe("OutputFields", () => {
     render(
       <OutputFields
         item={makeItem({
-          valueFrom: { kind: "expression", expression: "@inputs.x" } as never,
+          binding: { kind: "expression", path: "@inputs.x" },
         })}
         idx={0}
         onUpdate={vi.fn()}
@@ -156,7 +159,7 @@ describe("OutputFields", () => {
     const select = screen.getByDisplayValue("— 未設定 —");
     fireEvent.change(select, { target: { value: "expression" } });
     expect(onUpdate).toHaveBeenCalledWith(3, expect.objectContaining({
-      valueFrom: expect.objectContaining({ kind: "expression" }),
+      binding: expect.objectContaining({ kind: "expression" }),
     }));
     expect(onCommit).toHaveBeenCalled();
   });

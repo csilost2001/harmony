@@ -61,7 +61,7 @@
 
 各画面に対応する `<screen-id>.design.json` (GrapesJS shape + Tailwind HTML) を同梱しているため、designer で開いた瞬間からビジュアル付きで表示される (空キャンバスにならない)。
 
-**注意**: design.json 内の表示値 (¥320,000 等の KPI 数値、6/14 等の日付、店名 / 用途のメモ等) は **demo 用のハードコード値**。実 runtime ではダッシュボード画面が `fetchDashboardData` flow を mount 時に実行し、`@summary.monthlyIncome` 等の flow variable で動的に上書きされる (各 item の `valueFrom.flowVariable` 参照)。design.json は Tailwind aesthetic のプレビュー目的で seed データ相当の現実値を埋めてあるだけで、業務 logic 上の意味は持たない。
+**注意**: design.json 内の表示値 (¥320,000 等の KPI 数値、6/14 等の日付、店名 / 用途のメモ等) は **demo 用のハードコード値**。実 runtime ではダッシュボード画面が `fetchDashboardData` flow を mount 時に実行し、`@summary.monthlyIncome` 等の flow variable で動的に上書きされる (各 item の `binding.kind="flowVariable"` 参照)。design.json は Tailwind aesthetic のプレビュー目的で seed データ相当の現実値を埋めてあるだけで、業務 logic 上の意味は持たない。
 
 ### ViewDefinitions (2 個)
 
@@ -78,7 +78,7 @@
 | 取引削除 | `screen` | `/transactions/:transactionId/edit` | snapshot SELECT → DELETE (user_id 一致 WHERE) → event publish → 204 (削除 UX は編集画面 deleteButton から発火) |
 | 月次レポート取得 | `screen` | `/reports/monthly` | validation → category 別 SELECT → 合計 SELECT → compose → 200 |
 | 取引更新 | `screen` | `/transactions/:transactionId/edit` | 2 アクション: load (GET, mount 時 pre-fill) + update (PUT, submit 時 UPDATE) |
-| ダッシュボードデータ取得 | `screen` | `/` | mount 時 (trigger=load) に当月収支サマリ + 直近 5 件取引を取得、画面 items の `valueFrom.flowVariable` 経由で bind |
+| ダッシュボードデータ取得 | `screen` | `/` | mount 時 (trigger=load) に当月収支サマリ + 直近 5 件取引を取得、画面 items の `binding.kind="flowVariable"` 経由で bind |
 
 ## 設計判断 (主なもの)
 

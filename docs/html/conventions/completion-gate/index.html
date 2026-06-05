@@ -64,8 +64,8 @@ isolation pass を flake 根拠にすると次の round で必ず再現する (R
 <h2 id="4-orchestrator-の機械チェック手順">4. orchestrator の機械チェック手順</h2>
 <p>PR を merge 可と判定する前に、orchestrator が必ず実行:</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># 推奨: --auto-run (npm banner を介さず playwright を直接 spawn するため shell redirect 不要)</span></span>
-<span class="line"><span style="color:#24292E;--shiki-dark:#F69D50">node</span><span style="color:#24292E;--shiki-dark:#96D0FF"> scripts/verify/regression-trace-check.mjs</span><span style="color:#24292E;--shiki-dark:#6CB6FF"> --auto-run</span></span>
-<span class="line"><span style="color:#032F62;--shiki-dark:#768390">#</span><span style="color:#032F62;--shiki-dark:#768390">   flake</span><span style="color:#032F62;--shiki-dark:#768390"> 主張ありの場合:</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">node</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/verify/regression-trace-check.mjs</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --auto-run</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">#   flake 主張ありの場合:</span></span>
 <span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">node</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/verify/regression-trace-check.mjs</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> --auto-run</span><span style="color:#005CC5;--shiki-dark:#F47067"> \</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">  --flake</span><span style="color:#032F62;--shiki-dark:#96D0FF"> e2e/folder-picker.spec.ts</span><span style="color:#005CC5;--shiki-dark:#F47067"> \</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">  --auto-isolation-rerun</span></span>

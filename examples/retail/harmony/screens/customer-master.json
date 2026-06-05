@@ -17,7 +17,7 @@
       "id": "emailSearch",
       "label": "メールアドレス",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 254,
       "placeholder": "例: customer@example.com",
@@ -27,7 +27,7 @@
       "id": "customerNameSearch",
       "label": "顧客名",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 100,
       "placeholder": "顧客名を入力",
@@ -37,7 +37,7 @@
       "id": "activeOnlyFilter",
       "label": "有効顧客のみ表示",
       "type": "boolean",
-      "direction": "input",
+      "direction": "in",
       "defaultValue": true,
       "description": "顧客マスター一覧の有効フラグフィルタ。"
     }

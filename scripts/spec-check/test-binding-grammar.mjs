@@ -45,7 +45,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       },
     },
     { name: "spec §3.1 example 2", input: "[binding.v1] binding.attr=th:field; binding.path=form.quantity", expect: { "binding.attr": "th:field", "binding.path": "form.quantity" } },
-    { name: "output role", input: "[binding.v1] binding.attr=th:text; binding.path=viewModel.totalPrice", expect: { "binding.attr": "th:text", "binding.path": "viewModel.totalPrice" } },
+    { name: "dto text binding", input: "[binding.v1] binding.attr=th:text; binding.path=dto.totalPrice", expect: { "binding.attr": "th:text", "binding.path": "dto.totalPrice" } },
     { name: "each loop", input: "[binding.v1] binding.attr=th:each; binding.path=catalog.categories", expect: { "binding.attr": "th:each", "binding.path": "catalog.categories" } },
     { name: "example with note", input: "[binding.v1] binding.attr=th:field; binding.path=form.city; note=都道府県 change 時に options 再生成", expect: { "binding.attr": "th:field", "binding.path": "form.city", note: "都道府県 change 時に options 再生成" } },
     { name: "no sentinel (free text description)", input: "ここは普通の説明文です。", expect: null },

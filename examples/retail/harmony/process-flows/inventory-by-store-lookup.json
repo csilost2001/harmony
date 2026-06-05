@@ -165,12 +165,12 @@
         },
         {
           "name": "rows",
-          "label": "在庫一覧 (viewer 用)",
+          "label": "在庫一覧 (一覧用)",
           "type": {
             "kind": "array",
             "itemType": "json"
           },
-          "description": "isLowStock フラグ付き在庫行の配列。画面 viewer 項目 (inventoryRows) の valueFrom.variableName='rows' で参照する (#771)。内容は items と同一 (inventoryItems 変数の alias)。"
+          "description": "isLowStock フラグ付き在庫行の配列。画面 一覧項目 (inventoryRows) の binding.path='rows' で参照する (#771)。内容は items と同一 (inventoryItems 変数の alias)。"
         }
       ],
       "responses": [
@@ -316,7 +316,7 @@
                 {
                   "id": "step-05-a-02",
                   "kind": "compute",
-                  "description": "viewer 用 rows 変数を空配列で bind する。0 件 path でも viewer (inventoryRows screen-item) が undefined 参照にならないようにする (#780)。",
+                  "description": "一覧用 rows 変数を空配列で bind する。0 件 path でも viewer (inventoryRows screen-item) が undefined 参照にならないようにする (#780)。",
                   "expression": "[]",
                   "outputBinding": {
                     "name": "rows"
@@ -398,7 +398,7 @@
         {
           "id": "step-09",
           "kind": "compute",
-          "description": "viewer 用 rows 変数に inventoryItems を代入する。画面 viewer 項目 (inventoryRows) の valueFrom.variableName='rows' から参照される (#771)。",
+          "description": "一覧用 rows 変数に inventoryItems を代入する。画面 一覧項目 (inventoryRows) の binding.path='rows' から参照される (#771)。",
           "expression": "@inventoryItems",
           "outputBinding": {
             "name": "rows"

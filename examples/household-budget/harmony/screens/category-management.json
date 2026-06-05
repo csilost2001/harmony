@@ -20,9 +20,12 @@
         "kind": "tableList",
         "tableId": "category"
       },
-      "direction": "viewer",
-      "viewDefinitionId": "category-list-viewer",
-      "helperText": "viewDefinition で kind=list、type ごとにバッジ色を変える。"
+      "direction": "out",
+      "helperText": "viewDefinition で kind=list、type ごとにバッジ色を変える。",
+      "presentation": {
+        "kind": "table",
+        "viewDefinitionId": "category-list-viewer"
+      }
     }
   ],
   "design": {

@@ -50,11 +50,6 @@
           "propertyNames": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$" },
           "additionalProperties": { "$ref": "#/$defs/CustomResponseType" }
         },
-        "valueSourceKinds": {
-          "type": "array",
-          "description": "ScreenItem.valueFrom.kind の拡張。",
-          "items": { "$ref": "#/$defs/CustomValueSourceKind" }
-        },
         "columnTemplates": {
           "type": "array",
           "description": "Table.columns 用カラム雛形 (一括追加用)。",
@@ -191,19 +186,6 @@
           "description": "JSON Schema draft 2020-12 (response body 構造)。",
           "additionalProperties": true
         }
-      }
-    },
-
-    "CustomValueSourceKind": {
-      "description": "拡張 ValueSource。ScreenItem.valueFrom の namespace:kindName で参照される。schema は ValueSource.config の構造を縛る。",
-      "type": "object",
-      "required": ["kind", "label", "schema"],
-      "additionalProperties": false,
-      "properties": {
-        "kind": { "$ref": "common.v3.schema.json#/$defs/Identifier" },
-        "label": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
-        "schema": { "$ref": "#/$defs/DynamicFormSchema", "description": "ValueSource.config の構造を縛る subset schema。" },
-        "description": { "$ref": "common.v3.schema.json#/$defs/Description" }
       }
     },
 

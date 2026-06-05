@@ -53,7 +53,7 @@
             "kind": "array",
             "itemType": "json"
           },
-          "description": "アクティブカートに紐付く cart_items 行 (productCode / productName / storeCode / storeName / quantity / unitPrice / subtotal) の配列。カート確認画面 (cff4a398) の viewer 項目 (cartSummary) の valueFrom.variableName='rows' で参照する (#771)。multi-store inventory 整合のため店舗情報を含む。"
+          "description": "アクティブカートに紐付く cart_items 行 (productCode / productName / storeCode / storeName / quantity / unitPrice / subtotal) の配列。カート確認画面 (cff4a398) の 一覧項目 (cartSummary) の binding.path='rows' で参照する (#771)。multi-store inventory 整合のため店舗情報を含む。"
         }
       ],
       "responses": [
@@ -136,7 +136,7 @@
         {
           "id": "step-04b",
           "kind": "compute",
-          "description": "cartDetailRows を viewer 用 rows 変数に代入する (#771)。",
+          "description": "cartDetailRows を 一覧用 rows 変数に代入する (#771)。",
           "expression": "@cartDetailRows",
           "outputBinding": {
             "name": "rows"
@@ -159,7 +159,7 @@
         "title": "kind=\"common\" として 2 画面 (カート / カート確認) で共有",
         "status": "accepted",
         "context": "カート集計 (itemCount + totalAmount) は カート画面 (c73fa05c) のヘッダ表示と、カート確認画面 (cff4a398) の合計表示の双方で同じロジックが必要。kind=\"screen\" にして特定画面に紐付けると、もう一方の画面から呼ぶ時に Screen ↔ ProcessFlow の 1:1 紐付けが破れて semantic がぶれる。",
-        "decision": "kind=\"common\" を選択。screenId を持たず、httpRoute 経由の独立 GET API として両画面から呼ぶ。screen-item.valueFrom.flowVariable.processFlowId を明示する形で参照する (省略時のカレント画面解決には依存しない)。",
+        "decision": "kind=\"common\" を選択。screenId を持たず、httpRoute 経由の独立 GET API として両画面から呼ぶ。screen-item.binding.processFlowId を明示する形で参照する (省略時のカレント画面解決には依存しない)。",
         "consequences": "両画面から同じ集計ロジックを参照できる。将来 (例: ヘッダミニカート / wishlist サイドバー) で同じ集計が必要になっても新規フローを増やさず再利用できる。",
         "date": "2026-05-03"
       },

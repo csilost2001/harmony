@@ -16,99 +16,99 @@
       "id": "wordText",
       "label": "英単語",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "words.word (英単語本体)。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "word",
           "columnId": "col-word"
         }
-      },
-      "description": "words.word (英単語本体)。"
+      }
     },
     {
       "id": "wordIpa",
       "label": "IPA 発音記号",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "words.ipa。拡張型 english-learning:ipa で IPA Unicode 範囲を制約。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "word",
           "columnId": "col-ipa"
         }
-      },
-      "description": "words.ipa。拡張型 english-learning:ipa で IPA Unicode 範囲を制約。"
+      }
     },
     {
       "id": "wordPartOfSpeech",
       "label": "品詞",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "words.part_of_speech (noun/verb/adjective/adverb 等)。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "word",
           "columnId": "col-part-of-speech"
         }
-      },
-      "description": "words.part_of_speech (noun/verb/adjective/adverb 等)。"
+      }
     },
     {
       "id": "wordTranslation",
       "label": "日本語訳",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "words.translation の表示。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "word",
           "columnId": "col-translation"
         }
-      },
-      "description": "words.translation の表示。"
+      }
     },
     {
       "id": "wordExampleSentence",
       "label": "例文",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "words.example_sentence (英文例文)。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "word",
           "columnId": "col-example-sentence"
         }
-      },
-      "description": "words.example_sentence (英文例文)。"
+      }
     },
     {
       "id": "wordCefrLevel",
       "label": "CEFR レベル",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "words.cefr_level (A1-C2)。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "word",
           "columnId": "col-cefr-level"
         }
-      },
-      "description": "words.cefr_level (A1-C2)。"
+      }
     },
     {
       "id": "masteryStatus",
       "label": "習熟度",
       "type": "string",
-      "direction": "output",
-      "valueFrom": {
+      "direction": "out",
+      "description": "user_word_progress.status (new/learning/mastered)。",
+      "binding": {
         "kind": "tableColumn",
         "ref": {
           "tableId": "word-mastery",
           "columnId": "col-status"
         }
-      },
-      "description": "user_word_progress.status (new/learning/mastered)。"
+      }
     }
   ],
   "design": {

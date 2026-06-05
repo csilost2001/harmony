@@ -18,79 +18,79 @@
       "id": "occurredOn",
       "label": "取引日",
       "type": "date",
-      "direction": "input",
+      "direction": "in",
       "required": true,
-      "valueFrom": {
-        "kind": "flowVariable",
-        "variableName": "loadedTransaction.occurred_on"
-      },
       "errorMessages": {
         "required": "取引日は必須です。"
+      },
+      "binding": {
+        "kind": "flowVariable",
+        "path": "loadedTransaction.occurred_on"
       }
     },
     {
       "id": "accountId",
       "label": "口座",
       "type": "integer",
-      "direction": "input",
+      "direction": "in",
       "required": true,
-      "valueFrom": {
-        "kind": "flowVariable",
-        "variableName": "loadedTransaction.account_id"
-      },
       "errorMessages": {
         "required": "口座を選択してください。"
+      },
+      "binding": {
+        "kind": "flowVariable",
+        "path": "loadedTransaction.account_id"
       }
     },
     {
       "id": "categoryId",
       "label": "カテゴリ",
       "type": "integer",
-      "direction": "input",
+      "direction": "in",
       "required": true,
-      "valueFrom": {
-        "kind": "flowVariable",
-        "variableName": "loadedTransaction.category_id"
-      },
       "errorMessages": {
         "required": "カテゴリを選択してください。"
+      },
+      "binding": {
+        "kind": "flowVariable",
+        "path": "loadedTransaction.category_id"
       }
     },
     {
       "id": "amount",
       "label": "金額",
       "type": "number",
-      "direction": "input",
+      "direction": "in",
       "required": true,
       "min": 1,
       "max": 100000000,
       "displayFormat": "¥#,##0",
-      "valueFrom": {
-        "kind": "flowVariable",
-        "variableName": "loadedTransaction.amount"
-      },
       "errorMessages": {
         "required": "金額は必須です。",
         "outOfRange": "1 円以上 1 億円以下で入力してください。"
+      },
+      "binding": {
+        "kind": "flowVariable",
+        "path": "loadedTransaction.amount"
       }
     },
     {
       "id": "memo",
       "label": "メモ",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "required": false,
       "maxLength": 200,
-      "valueFrom": {
+      "binding": {
         "kind": "flowVariable",
-        "variableName": "loadedTransaction.memo"
+        "path": "loadedTransaction.memo"
       }
     },
     {
       "id": "submitButton",
       "label": "更新",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "events": [
         {
           "id": "click",
@@ -112,7 +112,7 @@
       "id": "deleteButton",
       "label": "削除",
       "type": "string",
-      "direction": "input",
+      "direction": "in",
       "events": [
         {
           "id": "click",

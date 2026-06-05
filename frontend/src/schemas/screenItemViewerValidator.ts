@@ -1,12 +1,11 @@
 /**
- * viewer screen-item 整合検証 (#762)
+ * table/list presentation screen-item 整合検証 (#762 / #1445)
  *
  * 検査観点 (3 件):
- * 1. UNKNOWN_VIEWER_VIEW_DEFINITION (error)  — direction='viewer' の viewDefinitionId が
+ * 1. UNKNOWN_VIEWER_VIEW_DEFINITION (error)  — presentation.viewDefinitionId が
  *    プロジェクト内の ViewDefinition に存在しない
- * 2. MISSING_VIEWER_VIEW_DEFINITION (error)  — direction='viewer' だが viewDefinitionId が無い
- *    (schema レベルで弾かれるが、partial JSON 編集中も検出する保険)
- * 3. VIEWER_FLOW_VARIABLE_NOT_DECLARED (warning) — valueFrom.kind='flowVariable' の variableName が
+ * 2. MISSING_VIEWER_VIEW_DEFINITION (error)  — table/list presentation だが viewDefinitionId も columns も無い
+ * 3. VIEWER_FLOW_VARIABLE_NOT_DECLARED (warning) — binding.kind='flowVariable' の path が
  *    参照先 ProcessFlow の variables / outputs / inputs のいずれにも宣言されていない
  */
 
@@ -85,7 +84,7 @@ function collectFlowVariableNames(flow: ProcessFlow): Set<string> {
 
 /**
  * 全プロジェクトの ProcessFlow / Screen / ViewDefinition を入力に、
- * viewer screen-item の整合を検証する。空配列なら問題なし。
+ * table/list presentation screen-item の整合を検証する。空配列なら問題なし。
  */
 export function checkScreenItemViewer(
   screens: Screen[],
@@ -113,26 +112,34 @@ export function checkScreenItemViewer(
     const items = (screen.items ?? []) as ScreenItem[];
 
     items.forEach((item: ScreenItem, ii) => {
-      if (item.direction !== "viewer") return;
+      const presentation = item.presentation as Record<string, unknown> | undefined;
+      const presentationKind = presentation?.kind;
+      const isCollectionPresentation =
+        presentationKind === "table" ||
+        presentationKind === "list" ||
+        presentationKind === "kanban" ||
+        presentationKind === "calendar";
+      if (!isCollectionPresentation) return;
 
       const itemPath = `${screenLabel}.items[${ii}=${item.id}]`;
-      const vdId = item.viewDefinitionId as string | undefined;
+      const vdId = presentation?.viewDefinitionId as string | undefined;
+      const columns = presentation?.columns as unknown[] | undefined;
 
       // 2. MISSING_VIEWER_VIEW_DEFINITION
-      if (!vdId) {
+      if (!vdId && (!Array.isArray(columns) || columns.length === 0)) {
         issues.push({
           path: itemPath,
           code: "MISSING_VIEWER_VIEW_DEFINITION",
           severity: "error",
-          message: `direction='viewer' の画面項目 '${item.id}' に viewDefinitionId がありません。viewer には viewDefinitionId が必須です。`,
+          message: `table/list presentation の画面項目 '${item.id}' に viewDefinitionId または columns がありません。`,
         });
         return;
       }
 
       // 1. UNKNOWN_VIEWER_VIEW_DEFINITION
-      if (!vdById.has(vdId)) {
+      if (vdId && !vdById.has(vdId)) {
         issues.push({
-          path: `${itemPath}.viewDefinitionId`,
+          path: `${itemPath}.presentation.viewDefinitionId`,
           code: "UNKNOWN_VIEWER_VIEW_DEFINITION",
           severity: "error",
           message: `viewDefinitionId '${vdId}' が指す ViewDefinition が同プロジェクト内に存在しません。`,
@@ -140,10 +147,10 @@ export function checkScreenItemViewer(
       }
 
       // 3. VIEWER_FLOW_VARIABLE_NOT_DECLARED
-      const valueFrom = item.valueFrom as Record<string, unknown> | undefined;
-      if (valueFrom?.kind === "flowVariable") {
-        const processFlowId = valueFrom.processFlowId as string | undefined;
-        const variableName = valueFrom.variableName as string | undefined;
+      const binding = item.binding as Record<string, unknown> | undefined;
+      if (binding?.kind === "flowVariable") {
+        const processFlowId = binding.processFlowId as string | undefined;
+        const variableName = binding.path as string | undefined;
 
         if (variableName) {
           // processFlowId が省略されている場合は全フローを対象とする (簡易実装: 1 フローでも宣言があれば OK)
@@ -170,10 +177,10 @@ export function checkScreenItemViewer(
 
           if (!declared) {
             issues.push({
-              path: `${itemPath}.valueFrom`,
+              path: `${itemPath}.binding`,
               code: "VIEWER_FLOW_VARIABLE_NOT_DECLARED",
               severity: "warning",
-              message: `valueFrom.variableName '${variableName}' が${processFlowId ? ` ProcessFlow '${processFlowId}' の` : "プロジェクト内いずれの ProcessFlow の"} variables / outputs / inputs に宣言されていません。`,
+              message: `binding.path '${variableName}' が${processFlowId ? ` ProcessFlow '${processFlowId}' の` : "プロジェクト内いずれの ProcessFlow の"} variables / outputs / inputs に宣言されていません。`,
             });
           }
         }
