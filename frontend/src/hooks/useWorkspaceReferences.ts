@@ -2,7 +2,7 @@
  * ワークスペース全体の参照情報を一括ロードする hook (Phase 2 / #1255)。
  *
  * useProcessFlowCatalogs.ts のパターンを参考に、補完用に必要な
- * screens / tables / viewDefinitions / processFlows / fragments /
+ * screens / tables / viewDefinitions / processFlows /
  * components / exceptionTypes / modelEndpoints / secrets / events
  * を取得する。
  */
@@ -25,7 +25,6 @@ function emptyRefs(): WorkspaceRefs {
     tables: [],
     viewDefinitions: [],
     processFlows: [],
-    fragments: [],
     components: [],
     exceptionTypes: [],
     modelEndpoints: [],
@@ -43,12 +42,11 @@ export function useWorkspaceReferences(): WorkspaceRefs {
 
   const load = useCallback(() => {
     (async () => {
-      const [projectResult, tablesResult, viewDefsResult, fragmentsResult, componentsResult, exceptionsResult, catalogsResult] =
+      const [projectResult, tablesResult, viewDefsResult, componentsResult, exceptionsResult, catalogsResult] =
         await Promise.allSettled([
           loadProject(),
           listTables(),
           listViewDefinitions(),
-          listGenericDefinitions("ui-fragment"),
           listGenericDefinitions("component-definition"),
           listGenericDefinitions("exception-type"),
           mcpBridge.request("loadProjectCatalogs").catch(() => null),
@@ -57,7 +55,6 @@ export function useWorkspaceReferences(): WorkspaceRefs {
       const projectData = projectResult.status === "fulfilled" ? projectResult.value : null;
       const tablesData = tablesResult.status === "fulfilled" ? tablesResult.value : [];
       const viewDefsData = viewDefsResult.status === "fulfilled" ? viewDefsResult.value : [];
-      const fragmentsData = fragmentsResult.status === "fulfilled" ? fragmentsResult.value : [];
       const componentsData = componentsResult.status === "fulfilled" ? componentsResult.value : [];
       const exceptionsData = exceptionsResult.status === "fulfilled" ? exceptionsResult.value : [];
       const projectCatalogs = (catalogsResult.status === "fulfilled" ? catalogsResult.value : null) as ProjectCatalogs | null;
@@ -99,7 +96,6 @@ export function useWorkspaceReferences(): WorkspaceRefs {
             actions: loaded?.actions?.map((a) => ({ id: a.id as unknown as string, name: a.name })),
           };
         }),
-        fragments: fragmentsData.map((d) => ({ name: d.name })),
         components: componentsData.map((d) => ({ name: d.name })),
         exceptionTypes: exceptionsData.map((d) => ({ name: d.name })),
         modelEndpoints: Object.keys(projectCatalogs?.modelEndpoints ?? {}).map((id) => ({

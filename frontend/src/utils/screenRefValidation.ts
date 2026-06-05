@@ -1,35 +1,31 @@
 /**
- * screenRefValidation.ts — Screen entity の cross-resource ref 整合性検証 (#1090 Phase 2、#1318 で 3 prefix 拡張)
+ * screenRefValidation.ts — Screen entity の cross-resource ref 整合性検証 (#1318)
  *
  * 検証対象:
- *  1. Screen.fragments[].fragmentRef が Generic Definition Catalog の ui-fragment に存在するか (#1090 Phase 2)
- *  2. ScreenItem.events[].effects[] の TemplateString 内 `@dialog.<n>` / `@messageArea.<n>` /
- *     `@options.<n>` 参照が対応 catalog (dialog / message-area / options) に存在するか (#1318)
+ *  - ScreenItem.events[].effects[] の TemplateString 内 `@dialog.<n>` / `@messageArea.<n>` /
+ *    `@options.<n>` 参照が対応 catalog (dialog / message-area / options) に存在するか (#1318)
  *
- * AJV pattern (`generic-definitions/ui-fragment/<Name>` 形式) は schema layer で gate 済みだが、
- * `<Name>` 部の実在検証は AJV では行えない。effects[] の TemplateString 内 prefix 参照も同様。
+ * effects[] の TemplateString 内 prefix 参照は AJV では実在検証できないため、ここで担う。
  *
  * 設計方針:
  * - ProcessFlow 側の `referentialIntegrity.ts` (#1090 Phase 1) と同じ責務分離パターン
  * - Puck data 検証 (`puckScreenValidation.ts`) とは別ファイル / 別関数 (editor-agnostic)
  * - severity は既存 referentialIntegrity 慣行に合わせて warning 統一
  * - **prefix を扱う**: kind は `message-area` (kebab) だが prefix は `@messageArea.` (camelCase、
- *   log-event/logEvent と同じ分離パターン、#1318)。`genericDefinitionNames` の key は **prefix-keyed**
- *   ではなく **kind-keyed** とする (ui-fragment と統一)。caller は kind 名で渡し、内部で prefix
- *   regex と突合する。
+ *   log-event/logEvent と同じ分離パターン、#1318)。`genericDefinitionNames` の key は **kind-keyed**。
+ *   caller は kind 名で渡し、内部で prefix regex と突合する。
  *
- * 仕様: docs/spec/generic-definition-layer.md §3.6 / §4.2
+ * 仕様: docs/spec/generic-definition-layer.md §4.2
  */
 
 import type { Screen } from "../types/v3/screen";
 
 /**
- * Screen 検証で参照する Generic Definition Catalog の name set (#1090 Phase 2 / #1318)。
+ * Screen 検証で参照する Generic Definition Catalog の name set (#1318)。
  * 各 kind が undefined の場合は当該検証を silent pass (catalog ロード失敗時の互換性維持)。
  * key は **kind 名** (`message-area` 等、kebab-case)、prefix (`messageArea` 等) ではないことに注意。
  */
 export interface ScreenGenericDefinitionNames {
-  "ui-fragment"?: Set<string>;
   /** dialog catalog name set (#1318)。`@dialog.<name>` の <name> 部の存在検証に使用 */
   dialog?: Set<string>;
   /** message-area catalog name set (#1318)。`@messageArea.<name>` の <name> 部の存在検証に使用 */
@@ -41,24 +37,13 @@ export interface ScreenGenericDefinitionNames {
 export interface ScreenRefIssue {
   severity: "error" | "warning";
   message: string;
-  /** ドットパス (例: "fragments[0].fragmentRef" / "items[0].events[1].effects[2].target") */
+  /** ドットパス (例: "items[0].events[1].effects[2].target") */
   field: string;
   /** 識別子 */
   code:
-    | "UNKNOWN_FRAGMENT_REF"
     | "UNKNOWN_DIALOG_REF"
     | "UNKNOWN_MESSAGE_AREA_REF"
     | "UNKNOWN_OPTIONS_REF";
-}
-
-/**
- * `generic-definitions/ui-fragment/<Name>` 形式の参照から <Name> を抽出する。
- * AJV pattern gate で形式は担保される前提だが、防御的に regex 一致を確認する。
- * 形式不一致の場合は null (= AJV 側で error 報告される領域なので本検証は skip)。
- */
-function extractUiFragmentName(ref: string): string | null {
-  const m = ref.match(/^generic-definitions\/ui-fragment\/([A-Za-z][A-Za-z0-9_]*)$/);
-  return m ? m[1] : null;
 }
 
 /**
@@ -83,7 +68,6 @@ function extractPrefixNames(value: string, prefix: string): string[] {
 
 /**
  * Screen 単体の cross-resource ref 整合性を検証する。
- * - fragments[].fragmentRef → ui-fragment catalog 突合 (#1090 Phase 2)
  * - items[].events[].effects[] の dialog/messageArea/options 参照 → 対応 catalog 突合 (#1318)
  */
 export function validateScreenRefs(
@@ -92,28 +76,9 @@ export function validateScreenRefs(
 ): ScreenRefIssue[] {
   const issues: ScreenRefIssue[] = [];
   const gdNames = options?.genericDefinitionNames;
-  const fragmentNames = gdNames?.["ui-fragment"];
   const dialogNames = gdNames?.dialog;
   const messageAreaNames = gdNames?.["message-area"];
   const optionsNames = gdNames?.options;
-
-  // ─── ui-fragment 参照 (#1090 Phase 2) ─────────────────────────────────────
-  if (fragmentNames) {
-    const fragments = screen.fragments ?? [];
-    fragments.forEach((f, i) => {
-      const ref = f?.fragmentRef;
-      if (!ref) return; // schema 側で required 担保
-      const name = extractUiFragmentName(ref);
-      if (name && !fragmentNames.has(name)) {
-        issues.push({
-          severity: "warning",
-          message: `screen.fragments[${i}].fragmentRef "${ref}" の <Name> が generic-definitions/ui-fragment catalog に存在しません`,
-          field: `fragments[${i}].fragmentRef`,
-          code: "UNKNOWN_FRAGMENT_REF",
-        });
-      }
-    });
-  }
 
   // ─── effects[] の dialog/messageArea/options 参照 (#1318) ──────────────────
   // 検証対象 prefix と effect field のマッピング:

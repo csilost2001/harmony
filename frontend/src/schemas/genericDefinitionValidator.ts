@@ -26,7 +26,6 @@ import domainTypeSchema from "../../../schemas/v3/generic-definitions/domain-typ
 import applicationRuleSchema from "../../../schemas/v3/generic-definitions/application-rule.v3.schema.json";
 import uiBehaviorSchema from "../../../schemas/v3/generic-definitions/ui-behavior.v3.schema.json";
 import runtimePolicySchema from "../../../schemas/v3/generic-definitions/runtime-policy.v3.schema.json";
-import uiFragmentSchema from "../../../schemas/v3/generic-definitions/ui-fragment.v3.schema.json";
 // #1263 Phase X2 — 7 新規 sub-schema
 import componentDefinitionSchema from "../../../schemas/v3/generic-definitions/component-definition.v3.schema.json";
 import validationRuleSchema from "../../../schemas/v3/generic-definitions/validation-rule.v3.schema.json";
@@ -50,7 +49,7 @@ export interface GenericDefinitionIssue {
   severity: "error" | "warning";
 }
 
-// kind → 固有 schema の $id (#1263 Phase X2: 14 kind 全件 + #1303: 3 新規 kind = 全 17 kind + #1310: global = 全 18 kind)
+// kind → 固有 schema の $id (#1263 Phase X2: 14 kind 全件 + #1303: 3 新規 kind = 全 17 kind + #1310: global = 全 18 kind、#1436: ui-fragment 廃止 = 全 17 kind)
 const KIND_SCHEMAS: Partial<Record<GenericDefinitionKind, object>> = {
   "data-contract": dataContractSchema as object,
   "exception-type": exceptionTypeSchema as object,
@@ -58,7 +57,6 @@ const KIND_SCHEMAS: Partial<Record<GenericDefinitionKind, object>> = {
   "application-rule": applicationRuleSchema as object,
   "ui-behavior": uiBehaviorSchema as object,
   "runtime-policy": runtimePolicySchema as object,
-  "ui-fragment": uiFragmentSchema as object,
   // #1263 Phase X2 — 7 新規 kind
   "component-definition": componentDefinitionSchema as object,
   "validation-rule": validationRuleSchema as object,

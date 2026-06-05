@@ -1489,7 +1489,6 @@ function buildRichIndex() {
       { kind: "ui-behavior", name: "DebounceInput" },
       { kind: "runtime-policy", name: "RetryPolicy" },
       { kind: "component-definition", name: "OrderValidator" },
-      { kind: "ui-fragment", name: "OrderSummary" },
       {
         kind: "constants",
         name: "OrderConstants",
@@ -1680,8 +1679,6 @@ describe("Check 31 (#1269 提案 C): projectIndex 渡し時の 24 prefix broken-
       ["@policy.UnknownPolicy", false],
       ["@component.OrderValidator", true],
       ["@component.UnknownComponent", false],
-      ["@fragment.OrderSummary", true],
-      ["@fragment.UnknownFragment", false],
       ["@logConfig.Default", true],
       ["@logConfig.UnknownLogConfig", false],
     ])("`%s` → expectedValid=%s", (ref, expectedValid) => {

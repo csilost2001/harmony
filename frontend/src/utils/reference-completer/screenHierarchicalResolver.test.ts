@@ -14,7 +14,6 @@ const ctx: CompletionContext = {
     tables: [],
     viewDefinitions: [],
     processFlows: [],
-    fragments: [],
     components: [],
     exceptionTypes: [],
     modelEndpoints: [],

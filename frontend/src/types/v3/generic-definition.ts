@@ -2,9 +2,9 @@
  * Generic Definition Catalog 型定義 (v3 schema 準拠)
  *
  * schema: schemas/v3/generic-definition.v3.schema.json
- * 18 kind (#1254 件 3.7 / #1263 Phase X2 / #1303 / #1310):
- *   既存 8: data-contract / domain-type / exception-type / application-rule /
- *            ui-behavior / runtime-policy / component-definition / ui-fragment
+ * 17 kind (#1254 件 3.7 / #1263 Phase X2 / #1303 / #1310 / #1436 で ui-fragment 廃止):
+ *   既存 7: data-contract / domain-type / exception-type / application-rule /
+ *            ui-behavior / runtime-policy / component-definition
  *   新規 6: validation-rule / constants / message / domain-event / log-event / log-config
  *   新規 3: dialog / message-area / options (#1303 で導入、#1318 で messageArea → message-area kebab-case 統一)
  *   新規 1: global (#1310 で導入)
@@ -22,7 +22,6 @@ export type GenericDefinitionKind =
   | "ui-behavior"
   | "runtime-policy"
   | "component-definition"
-  | "ui-fragment"
   | "constants"
   | "message"
   | "domain-event"
@@ -94,7 +93,6 @@ export const GENERIC_DEFINITION_KINDS: GenericDefinitionKind[] = [
   "ui-behavior",
   "runtime-policy",
   "component-definition",
-  "ui-fragment",
   "constants",
   "message",
   "domain-event",
@@ -115,7 +113,6 @@ export const GENERIC_DEFINITION_KIND_LABELS: Record<GenericDefinitionKind, strin
   "ui-behavior": "UI ビヘイビア",
   "runtime-policy": "ランタイムポリシー",
   "component-definition": "コンポーネント定義",
-  "ui-fragment": "UI フラグメント",
   constants: "定数集",
   message: "メッセージ",
   "domain-event": "ドメインイベント",

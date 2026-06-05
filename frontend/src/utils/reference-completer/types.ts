@@ -49,7 +49,6 @@ export interface WorkspaceRefs {
     maturity?: string;
     actions?: { id: string; name?: string }[];
   }[];
-  fragments: { name: string }[];
   components: { name: string }[];
   exceptionTypes: { name: string }[];
   modelEndpoints: { id: string; name?: string }[];

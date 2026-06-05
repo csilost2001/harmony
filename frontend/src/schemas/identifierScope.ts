@@ -47,7 +47,7 @@ export interface IdentifierIssue {
  * - ambient: @ambient.* 旧形式の ambient 参照
  *
  * **Generic Definition Catalog 参照** (docs/spec/process-flow-prefix-system.md §3、
- * #1285 で追加、14 kind 全件 + #1303 追加 3 kind + #1310 追加 1 kind (global) = 18 kind): broken-ref 検証は
+ * #1285 で追加、14 kind 全件 + #1303 追加 3 kind + #1310 追加 1 kind (global) = 18 kind → #1436 ui-fragment 廃止で 17 kind): broken-ref 検証は
  * processFlowAntipatternValidator Check 31 が担うため identifierScope は変数 scope 検査の対象外として skip する。
  * - msg        : @msg.<Name> generic-definitions/message
  * - validation : @validation.<Name> generic-definitions/validation-rule (inline boolean return)
@@ -56,7 +56,6 @@ export interface IdentifierIssue {
  * - event      : @event.<topic> generic-definitions/domain-event (catalogs.events と兼用)
  * - logEvent   : @logEvent.<Name> generic-definitions/log-event
  * - logConfig  : @logConfig.<Name> generic-definitions/log-config
- * - fragment   : @fragment.<Name> generic-definitions/ui-fragment
  * - behavior   : @behavior.<Name> generic-definitions/ui-behavior
  * - contract   : @contract.<Name> generic-definitions/data-contract
  * - type       : @type.<Name> generic-definitions/domain-type
@@ -92,7 +91,7 @@ const BUILTIN_AMBIENTS = new Set<string>([
   "secret",
   "conv",
   "ambient",
-  // Generic Definition Catalog refs (#1285 14 kind + #1303 3 kind + #1310 1 kind = 18 kind)
+  // Generic Definition Catalog refs (#1285 14 kind + #1303 3 kind + #1310 1 kind = 18 kind → #1436 ui-fragment 廃止で 17 kind)
   "msg",
   "validation",
   "rule",
@@ -100,7 +99,6 @@ const BUILTIN_AMBIENTS = new Set<string>([
   "event",
   "logEvent",
   "logConfig",
-  "fragment",
   "behavior",
   "contract",
   "type",

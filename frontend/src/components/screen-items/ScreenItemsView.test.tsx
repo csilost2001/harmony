@@ -1,8 +1,7 @@
 /**
  * ScreenItemsView 統合 component test (#1304 scaffold + #1314 interaction)
  *
- * ScreenItemsView.tsx (約 1900 行、events panel / items table / fragments panel /
- * lintIssues 等) の統合 render baseline と編集動作を担保する。
+ * ScreenItemsView.tsx (events panel / items table / lintIssues 等) の統合 render baseline と編集動作を担保する。
  *
  * mock 戦略:
  *   - 末端モジュール (mcpBridge / store 群 / schema) を vi.mock で固定
@@ -332,17 +331,7 @@ describe("ScreenItemsView (統合 scaffold)", () => {
     }, { timeout: 3000 });
   });
 
-  it("5. fragments panel が常に render される (.fragments-panel className 確認)", async () => {
-    const { container } = renderWithRouter();
-    // S-3: FragmentsPanel は items 数に関わらず常時 render (collapsible toggle UI)
-    // .fragments-panel className は FragmentsPanel のルート div で必ず付与される
-    await waitFor(() => {
-      const fragmentsPanel = container.querySelector(".fragments-panel");
-      expect(fragmentsPanel).not.toBeNull();
-    }, { timeout: 3000 });
-  });
-
-  it("6. screen-items-toolbar と「項目追加」ボタンが render される", async () => {
+  it("5. screen-items-toolbar と「項目追加」ボタンが render される", async () => {
     const { container } = renderWithRouter();
     // S-1: items 0 件でもツールバーは必ず render される
     // screen-items-toolbar div の存在と、その中の「項目追加」ボタンを具体的に確認

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/generic-definition.v3.schema.json",
   "title": "Generic Definition (v3 汎用設計定義 親 schema)",
-  "description": "Layer 2 Generic Definition Catalog の 18 kind 共通メタモデル (#1263 Phase X2 / RFC #1254 件 3.7 で 8 → 14 kind に拡張、#1303 で 14 → 17 kind に拡張、#1310 で 17 → 18 kind に拡張)。<project>/<dataDir>/generic-definitions/<kind>/<Name>.json に対応。仕様: docs/spec/generic-definition-layer.md §4.1。本 schema は kind / name / purpose / responsibilities / targets を必須とする共通親で、kind 別の固有 schema (旧 7: data-contract / domain-type / exception-type / application-rule / ui-behavior / runtime-policy / ui-fragment は #1064-#1068 で導入、新 7: component-definition / validation-rule / constants / message / domain-event / log-event / log-config は #1263 Phase X2 で導入、追加 3: dialog / message-area / options は #1303 で導入、#1318 で messageArea → message-area kebab-case 統一、#1310 で global 追加) は allOf で本定義を継承する。catalog 記録のため EntityMeta (`id: EntityId` + `uuid: Uuid` + `createdAt/updatedAt`) は採用せず、`name` field が catalog identifier を兼ねる (ファイル名と一致させる運用、#1354 で旧表記を同期)。",
+  "description": "Layer 2 Generic Definition Catalog の 17 kind 共通メタモデル (#1263 Phase X2 / RFC #1254 件 3.7 で 8 → 14 kind に拡張、#1303 で 14 → 17 kind に拡張、#1310 で 17 → 18 kind に拡張、#1436 で ui-fragment 廃止 → 17 kind)。<project>/<dataDir>/generic-definitions/<kind>/<Name>.json に対応。仕様: docs/spec/generic-definition-layer.md §4.1。本 schema は kind / name / purpose / responsibilities / targets を必須とする共通親で、kind 別の固有 schema (旧 6: data-contract / domain-type / exception-type / application-rule / ui-behavior / runtime-policy は #1064-#1068 で導入、新 7: component-definition / validation-rule / constants / message / domain-event / log-event / log-config は #1263 Phase X2 で導入、追加 3: dialog / message-area / options は #1303 で導入、#1318 で messageArea → message-area kebab-case 統一、#1310 で global 追加) は allOf で本定義を継承する。catalog 記録のため EntityMeta (`id: EntityId` + `uuid: Uuid` + `createdAt/updatedAt`) は採用せず、`name` field が catalog identifier を兼ねる (ファイル名と一致させる運用、#1354 で旧表記を同期)。",
   "type": "object",
   "$ref": "#/$defs/GenericDefinition",
   "$defs": {
@@ -98,7 +98,6 @@
         "ui-behavior",
         "runtime-policy",
         "component-definition",
-        "ui-fragment",
         "constants",
         "message",
         "domain-event",
@@ -109,7 +108,7 @@
         "options",
         "global"
       ],
-      "description": "Generic Definition Catalog の 18 kind (#1254 件 3.7 / #1263 Phase X2 で 14 種 / #1303 で 14→17 種に拡張、#1310 で 17→18 種に拡張 (global 追加)、spec §4.2)。data-contract = DTO/Form/Result/ViewModel 等の層間契約。domain-type = Entity/Model などドメイン型。exception-type = 例外種別・階層・semantic kind。application-rule = 認証認可/ログ/監査などの横断ルール。validation-rule = 業務検証ルール (条件 + メッセージ + severity)。ui-behavior = 画面横断振る舞い。runtime-policy = retry/timeout/circuit breaker/cache 等の横断適用ポリシー。component-definition = service/mapper/validator/formatter 等の責務。ui-fragment = 再利用 UI 断片。constants = ドメイン定数集 (@const.<key> 参照元)。message = メッセージカタログ (@msg.<key> 参照元、i18n source)。domain-event = ドメインイベント定義 (@event.<topic> 参照元)。log-event = ログイベント定義 (@logEvent.<key> 参照元、構造化ログ)。log-config = ログ設定 (@logConfig.<key> 参照元、log level / sink / format)。dialog = ScreenItemEvent effects[].showDialog.target 参照先の dialog カタログ (@dialog.<name> 参照元)。message-area = ScreenItemEvent effects[].setMessage.target 参照先の画面横断 message area カタログ (prefix `@messageArea.<name>` で参照、log-event/log-config と同様に kind=kebab-case / prefix=camelCase の分離、#1318)。options = ScreenItemEvent effects[].setOptions の選択肢カタログ (@options.<name> 参照元)。global = workspace/project 横断の mutable 設定 slot (@var.global.<key> 参照元、Spring @Value / @SessionScope 相当、#1310)。"
+      "description": "Generic Definition Catalog の 18 kind (#1254 件 3.7 / #1263 Phase X2 で 14 種 / #1303 で 14→17 種に拡張、#1310 で 17→18 種に拡張 (global 追加)、spec §4.2)。data-contract = DTO/Form/Result/ViewModel 等の層間契約。domain-type = Entity/Model などドメイン型。exception-type = 例外種別・階層・semantic kind。application-rule = 認証認可/ログ/監査などの横断ルール。validation-rule = 業務検証ルール (条件 + メッセージ + severity)。ui-behavior = 画面横断振る舞い。runtime-policy = retry/timeout/circuit breaker/cache 等の横断適用ポリシー。component-definition = service/mapper/validator/formatter 等の責務。constants = ドメイン定数集 (@const.<key> 参照元)。message = メッセージカタログ (@msg.<key> 参照元、i18n source)。domain-event = ドメインイベント定義 (@event.<topic> 参照元)。log-event = ログイベント定義 (@logEvent.<key> 参照元、構造化ログ)。log-config = ログ設定 (@logConfig.<key> 参照元、log level / sink / format)。dialog = ScreenItemEvent effects[].showDialog.target 参照先の dialog カタログ (@dialog.<name> 参照元)。message-area = ScreenItemEvent effects[].setMessage.target 参照先の画面横断 message area カタログ (prefix `@messageArea.<name>` で参照、log-event/log-config と同様に kind=kebab-case / prefix=camelCase の分離、#1318)。options = ScreenItemEvent effects[].setOptions の選択肢カタログ (@options.<name> 参照元)。global = workspace/project 横断の mutable 設定 slot (@var.global.<key> 参照元、Spring @Value / @SessionScope 相当、#1310)。"
     },
     "GenericDefinitionName": {
       "type": "string",

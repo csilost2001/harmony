@@ -98,22 +98,12 @@ export const handlerActionIdResolver = makeIdResolver("handlerActionId", (ctx) =
 });
 
 // schema (process-flow.v3.schema.json / screen.v3.schema.json) は full path 形式必須:
-//   fragmentRef:      ^generic-definitions/ui-fragment/<Name>$
 //   componentRef:     ^generic-definitions/component-definition/<Name>$
 //   exceptionTypeRef: ^generic-definitions/exception-type/<Name>$
 // 補完 dropdown 選択時に short name のみ挿入すると schema 違反になるため、
 // value は full path、label は短縮表示用に name のみを保持する。
-export const FRAGMENT_REF_PREFIX = "generic-definitions/ui-fragment/";
 const COMPONENT_REF_PREFIX = "generic-definitions/component-definition/";
 const EXCEPTION_TYPE_REF_PREFIX = "generic-definitions/exception-type/";
-
-/** fragmentRef 補完: ui-fragment 汎用定義 (value=full path, label=name)。 */
-export const fragmentRefResolver = makeIdResolver("fragmentRef", (ctx) =>
-  (ctx.workspace?.fragments ?? []).map((d) => ({
-    value: `${FRAGMENT_REF_PREFIX}${d.name}`,
-    label: d.name,
-  })),
-);
 
 /** componentRef 補完: component-definition 汎用定義 (value=full path, label=name)。 */
 export const componentRefResolver = makeIdResolver("componentRef", (ctx) =>
@@ -162,7 +152,6 @@ export const ALL_WORKSPACE_RESOLVERS: Resolver[] = [
   viewDefinitionIdResolver,
   handlerFlowIdResolver,
   handlerActionIdResolver,
-  fragmentRefResolver,
   componentRefResolver,
   exceptionTypeRefResolver,
   modelRefResolver,

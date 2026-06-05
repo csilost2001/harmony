@@ -656,7 +656,6 @@ function checkProjectScopedRef(
     behavior: idx.uiBehaviors,
     policy: idx.runtimePolicies,
     component: idx.componentDefinitions,
-    fragment: idx.uiFragments,
     const: idx.constants,
     msg: idx.messages,
     logEvent: idx.logEvents,

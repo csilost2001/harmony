@@ -1,12 +1,10 @@
-import type { ScreenItem, ScreenFragmentInstance, ScreenId, Timestamp } from "../types/v3";
+import type { ScreenItem, ScreenId, Timestamp } from "../types/v3";
 import { loadScreenEntity, saveScreenEntity } from "./screenStore";
 
 export interface ScreenItemsDocument {
   screenId: ScreenId;
   updatedAt: Timestamp;
   items: ScreenItem[];
-  /** 本画面が使用する ui-fragment instance 一覧 (#1067 / #1281)。 */
-  fragments?: ScreenFragmentInstance[];
 }
 
 const _cache = new Map<string, ScreenItemsDocument>();
@@ -27,6 +25,7 @@ export function setItemsInCache(file: ScreenItemsDocument): void {
   _cache.set(file.screenId, { ...file, items: [...file.items] });
 }
 
+
 export function clearItemsFromCache(screenId: string): void {
   _cache.delete(screenId);
 }
@@ -36,7 +35,6 @@ export async function loadScreenItems(screenId: string): Promise<ScreenItemsDocu
   if (cached) return {
     ...cached,
     items: [...cached.items],
-    fragments: cached.fragments ? [...cached.fragments] : undefined,
   };
 
   const screen = await loadScreenEntity(screenId);
@@ -44,7 +42,6 @@ export async function loadScreenItems(screenId: string): Promise<ScreenItemsDocu
     screenId: screen.id as ScreenId,
     updatedAt: screen.updatedAt,
     items: [...(screen.items ?? [])],
-    fragments: screen.fragments ? [...screen.fragments] : undefined,
   };
 }
 
@@ -53,8 +50,6 @@ export async function saveScreenItems(file: ScreenItemsDocument): Promise<void> 
   await saveScreenEntity({
     ...screen,
     items: [...file.items],
-    // 空 array は entity に書き込まない (undefined 化)
-    fragments: file.fragments && file.fragments.length > 0 ? [...file.fragments] : undefined,
     updatedAt: nowTs(),
   });
   _cache.delete(file.screenId);
