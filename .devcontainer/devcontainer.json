@@ -24,8 +24,11 @@
     // 空ファイルを touch して bind mount すると Dev Containers の git config copy 段階と二重処理になり
     // "unexpected end of parent stream" で起動失敗することがあるため explicit bind mount しない。
     // git identity は repo local config か、container 内 `git config --global` で必要な人だけ設定する。
-    // WSLg (Windows + WSL2 + Docker Desktop 前提): on-demand headed browser を Windows desktop に表示
-    // 他 OS (macOS / Linux native) ではこの mount を当該行 comment out 推奨
+    // WSLg (Windows + WSL2 + Docker Desktop 前提): on-demand headed browser は X11 経由で表示する。
+    // WAYLAND_DISPLAY / XDG_RUNTIME_DIR は設定しない。Dev Containers 拡張の Wayland socket
+    // 自動 mount は repo から強制停止できないため、/run/user/<uid>/wayland-0 の bind mount
+    // エラーが出る環境では VS Code user settings で dev.containers.mountWaylandSocket=false を設定する。 #1451
+    // 他 OS (macOS / Linux native) ではこの mount を当該行 comment out 推奨。
     "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
     "source=/mnt/wslg,target=/mnt/wslg,type=bind,consistency=cached"
   ],
@@ -69,10 +72,9 @@
     "PLAYWRIGHT_BROWSERS_PATH": "/home/node/.cache/ms-playwright",
     // タイムゾーン (harmony は日本向けプロダクト、log/date を JST 表示)
     "TZ": "Asia/Tokyo",
-    // WSLg 経由 headed browser 用 (Windows + WSL2 + Docker Desktop)
-    // headless mode 時は無視される、他 OS では設定値そのまま入るが mount なしのため使われない
-    "DISPLAY": ":0",
-    "WAYLAND_DISPLAY": "wayland-0",
-    "XDG_RUNTIME_DIR": "/mnt/wslg/runtime-dir"
+    // WSLg 経由 headed browser 用 (Windows + WSL2 + Docker Desktop)。
+    // Wayland env は設定せず、headed browser は X11 fallback に寄せる。
+    // headless mode 時は無視される、他 OS では設定値そのまま入るが mount なしのため使われない。
+    "DISPLAY": ":0"
   }
 }
