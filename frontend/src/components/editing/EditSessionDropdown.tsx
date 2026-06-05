@@ -13,6 +13,7 @@
  * 後方互換: currentMode (旧 EditMode) は引き続き受け付ける (Phase 6 で削除予定)
  */
 import { useEffect, useRef, useState, useCallback } from "react";
+import { EDIT_SESSION_DISCARDED_RETENTION_DAYS } from "@harmony/shared";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import type { DraftResourceType } from "../../types/draft";
 import type { EditMode } from "../../hooks/useEditSession";
@@ -322,7 +323,7 @@ export function EditSessionDropdown({
   const handleDiscard = useCallback(
     async (editSessionId: string) => {
       const confirmed = window.confirm(
-        "この編集セッションを破棄しますか? 30 日間は復元可能です。",
+        `この編集セッションを破棄しますか? ${EDIT_SESSION_DISCARDED_RETENTION_DAYS} 日間は復元可能です。`,
       );
       if (!confirmed) return;
       try {

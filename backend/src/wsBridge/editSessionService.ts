@@ -44,6 +44,11 @@ import {
   resolveRoot,
 } from "../projectStorage.js";
 import { assertKind, assertSafeName } from "../security/idValidator.js";
+import {
+  EDIT_SESSION_TTL_DAYS,
+  EDIT_SESSION_DISCARDED_RETENTION_DAYS,
+  DRAFT_HISTORY_RETENTION_DAYS,
+} from "@harmony/shared";
 
 /**
  * broadcast callback (wsBridge.broadcast を inject)。
@@ -568,7 +573,11 @@ export class EditSessionService {
       const now = new Date();
       for (const [wsId, store] of this.editSessionStores.entries()) {
         try {
-          const results = await store.cleanupExpired(now, 2 /* ttlDays */, 7 /* retentionDays */);
+          const results = await store.cleanupExpired(
+            now,
+            EDIT_SESSION_TTL_DAYS,
+            EDIT_SESSION_DISCARDED_RETENTION_DAYS,
+          );
           for (const { editSession, action } of results) {
             // #917 review S-1: spec §12.4 / §14.1 準拠の broadcast event 名に修正
             //   - "discarded" (TTL 経過 Active → Discarded): editSession.discarded (reason: "ttl")
@@ -592,10 +601,10 @@ export class EditSessionService {
         }
       }
 
-      // #893: DraftHistory の 7 日 TTL cleanup を EditSession cleanup と同周期で実行
+      // #893: DraftHistory の TTL cleanup を EditSession cleanup と同周期で実行
       for (const [wsId, historyStore] of this.draftHistoryStores.entries()) {
         try {
-          const deleted = await historyStore.cleanupExpired({ olderThanDays: 7 });
+          const deleted = await historyStore.cleanupExpired({ olderThanDays: DRAFT_HISTORY_RETENTION_DAYS });
           if (deleted.length > 0) {
             console.info(`[WsBridge] DraftHistory cleanup (wsId=${wsId}): ${deleted.length} entries deleted`);
           }

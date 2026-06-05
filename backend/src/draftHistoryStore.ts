@@ -2,7 +2,7 @@
  * draftHistoryStore.ts (#893)
  *
  * EditSession の discard / transferEdit / save 時の payload スナップショットを
- * 7 日間ファイル保持する履歴ストア。
+ * configured retention 期間だけファイル保持する履歴ストア。
  *
  * FS パス: <workspaceRoot>/.edit-sessions-history/<resourceType>/<resourceId>/<historyId>.json
  *
@@ -13,6 +13,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { assertPathContained, assertHistoryId } from "./security/idValidator.js";
+import { DRAFT_HISTORY_RETENTION_DAYS } from "@harmony/shared";
 
 // ── 公開型定義 ────────────────────────────────────────────────────────────────
 
@@ -213,11 +214,11 @@ export class DraftHistoryStore {
   }
 
   /**
-   * olderThanDays 日より古い履歴ファイルを削除する (7 日 TTL)。
+   * olderThanDays 日より古い履歴ファイルを削除する。
    * 削除した historyId の配列を返す。
    */
   async cleanupExpired(params: { olderThanDays?: number } = {}): Promise<string[]> {
-    const { olderThanDays = 7 } = params;
+    const { olderThanDays = DRAFT_HISTORY_RETENTION_DAYS } = params;
     const cutoff = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
     const baseDir = path.join(this.workspaceRoot, HISTORY_DIR);
     const deleted: string[] = [];

@@ -14,6 +14,7 @@
  * z-index は 1055 (edit-mode-modal-backdrop の 1050 より上) を使用 (#890 で揃えた階層)。
  */
 import { useEffect, useState, useCallback, useRef } from "react";
+import { DRAFT_HISTORY_RETENTION_DAYS } from "@harmony/shared";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import type { DraftResourceType } from "../../types/draft";
 import "../../styles/editMode.css";
@@ -229,7 +230,7 @@ export function DraftHistoryModal({
         <div className="edit-mode-modal-header">
           <h5 id="draft-history-modal-title" className="edit-mode-modal-title">
             <i className="bi bi-clock-history me-2" />
-            draft 履歴 (過去 7 日間)
+            draft 履歴 (過去 {DRAFT_HISTORY_RETENTION_DAYS} 日間)
           </h5>
           <button
             type="button"
