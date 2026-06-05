@@ -5,7 +5,6 @@ import {
   viewDefinitionIdResolver,
   handlerFlowIdResolver,
   handlerActionIdResolver,
-  fragmentRefResolver,
   componentRefResolver,
   exceptionTypeRefResolver,
   modelRefResolver,
@@ -44,10 +43,6 @@ const mockWorkspace: WorkspaceRefs = {
       kind: "screen",
       actions: [{ id: "act-order", name: "注文処理" }],
     },
-  ],
-  fragments: [
-    { name: "HeaderFragment" },
-    { name: "FooterFragment" },
   ],
   components: [
     { name: "SearchBox" },
@@ -171,27 +166,6 @@ describe("handlerActionIdResolver", () => {
     if (s?.phase === "active") {
       // pf-001 の 2 件 + pf-002 の 1 件 = 3 件
       expect(s.candidates).toHaveLength(3);
-    }
-  });
-});
-
-describe("fragmentRefResolver", () => {
-  it("fieldKind='fragmentRef' → 全 fragment を full path 形式の value で返す", () => {
-    const s = fragmentRefResolver.match("", 0, ctx("fragmentRef"));
-    expect(s?.phase).toBe("active");
-    if (s?.phase === "active") {
-      expect(s.candidates).toHaveLength(2);
-      // schema: ^generic-definitions/ui-fragment/<Name>$ (補完 dropdown 選択時の schema 違反防止)
-      expect(s.candidates.map((c) => c.value)).toContain("generic-definitions/ui-fragment/HeaderFragment");
-      // label は短縮 name (表示用)
-      expect(s.candidates.map((c) => c.label)).toContain("HeaderFragment");
-    }
-  });
-  it("short name 入力 → label match で hit する", () => {
-    const s = fragmentRefResolver.match("Header", 0, ctx("fragmentRef"));
-    if (s?.phase === "active") {
-      expect(s.candidates.length).toBeGreaterThan(0);
-      expect(s.candidates[0].value).toMatch(/^generic-definitions\/ui-fragment\//);
     }
   });
 });

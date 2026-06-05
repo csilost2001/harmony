@@ -8,8 +8,6 @@ import type { PageLayoutEntry } from "../../types/v3/harmony";
 import { loadProject, loadRawProject, saveProject, addScreen, removeScreen, DEFAULT_NODE_SIZE } from "../../store/flowStore";
 import { buildDefaultScreen, loadPuckScreenValidationMap, saveScreenEntity } from "../../store/screenStore";
 import { listPageLayouts } from "../../store/pageLayoutStore";
-import { listGenericDefinitions } from "../../store/genericDefinitionStore";
-import type { ScreenGenericDefinitionNames } from "../../utils/screenRefValidation";
 import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { mcpBridge } from "../../mcp/mcpBridge";
@@ -84,8 +82,6 @@ export function ScreenListView() {
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
   // pageLayoutId 選択 dropdown 用 (pl-4, #1025)
   const [pageLayouts, setPageLayouts] = useState<PageLayoutEntry[]>([]);
-  // #1090 Phase 2: ui-fragment catalog name set (fragmentRef 検証用)
-  const [genericDefNames, setGenericDefNames] = useState<ScreenGenericDefinitionNames>({});
 
   const loadScreens = useCallback(async (): Promise<ScreenNode[]> => {
     mcpBridge.startWithoutEditor();
@@ -140,27 +136,13 @@ export function ScreenListView() {
     listPageLayouts().then(setPageLayouts).catch(console.error);
   }, []);
 
-  // #1090 Phase 2: ui-fragment catalog name set をロード
-  useEffect(() => {
-    let cancelled = false;
-    listGenericDefinitions("ui-fragment")
-      .then((items) => {
-        if (cancelled) return;
-        setGenericDefNames({ "ui-fragment": new Set(items.map((i) => i.name)) });
-      })
-      .catch(() => {
-        if (!cancelled) setGenericDefNames({});
-      });
-    return () => { cancelled = true; };
-  }, []);
-
   // 画面 validation map のロード (Puck data 検証 + cross-resource ref 検証 #1090 Phase 2)
   useEffect(() => {
     // react-hooks/set-state-in-effect 回避: 空入力時の同期 setState を削除し、
     // 常に loader 経由 (.then 内 setState は許可される非同期 path)。
     // loadPuckScreenValidationMap() は screens 空でも空 Map を返すため安全。
     let cancelled = false;
-    loadPuckScreenValidationMap({ genericDefinitionNames: genericDefNames })
+    loadPuckScreenValidationMap()
       .then((map) => {
         if (cancelled) return;
         const next = new Map<string, ValidationSummary>();
@@ -174,7 +156,7 @@ export function ScreenListView() {
       })
       .catch(console.error);
     return () => { cancelled = true; };
-  }, [screens, genericDefNames]);
+  }, [screens]);
 
   const filter = useListFilter(screens);
 

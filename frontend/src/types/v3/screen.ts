@@ -32,26 +32,6 @@ export type BuiltinScreenKind =
 export type ScreenKind = BuiltinScreenKind | string;
 
 /**
- * Screen 内で使用する ui-fragment の instance (#1067)。
- * fragmentRef が Generic Definition Catalog の ui-fragment を指す。
- * 同じ fragment を同一画面で複数 instance 使う場合は instanceId で区別する。
- *
- * 参考: schemas/v3/screen.v3.schema.json#/$defs/ScreenFragmentInstance
- *       docs/spec/generic-definition-layer.md §3.6
- */
-export interface ScreenFragmentInstance {
-  /**
-   * Generic Definition Catalog の ui-fragment への参照。
-   * 形式: `generic-definitions/ui-fragment/<Name>`。
-   */
-  fragmentRef: string;
-  /**
-   * 同一画面内で同じ fragment を複数 instance 使う場合の識別子 (任意、lowerCamelCase)。
-   */
-  instanceId?: string;
-}
-
-/**
  * 画面デザインの参照情報。
  * 生 HTML/CSS/component tree は別ファイルで管理し、本型は参照のみ持つ。
  *
@@ -98,11 +78,6 @@ export interface Screen extends EntityMeta {
   groupId?: ScreenGroupId;
   /** 画面項目定義一覧 (フォーム要素・表示要素)。 */
   items?: ScreenItem[];
-  /**
-   * 本画面が内部で使用する ui-fragment instance 一覧 (#1067)。
-   * Generic Definition Catalog の ui-fragment への参照と instance 識別子を保持する。
-   */
-  fragments?: ScreenFragmentInstance[];
   /** 本画面表示に必要な permission キー (`@conv.permission.<key>`)。 */
   permissions?: string[];
   /** 画面デザイン (GrapesJS 生 HTML への参照)。 */

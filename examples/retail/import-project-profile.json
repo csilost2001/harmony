@@ -118,7 +118,6 @@
       "th:value": "dto",
       "th:text": "dto",
       "th:each": "catalogLoop",
-      "th:fragment": "fragmentRef",
       "gm:date": "formattedInput",
       "gm:price": "formattedInput",
       "gm:storeId": "formattedInput"

@@ -12,7 +12,6 @@ vi.mock("../../hooks/useWorkspaceReferences", () => ({
     tables: [],
     viewDefinitions: [],
     processFlows: [],
-    fragments: [],
     components: [],
     exceptionTypes: [],
     modelEndpoints: [],

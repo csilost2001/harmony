@@ -46,7 +46,6 @@ const mockWorkspace: WorkspaceRefs = {
   tables: [],
   viewDefinitions: [],
   processFlows: [],
-  fragments: [],
   components: [],
   exceptionTypes: [],
   modelEndpoints: [],

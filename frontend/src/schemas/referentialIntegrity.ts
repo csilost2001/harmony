@@ -31,7 +31,6 @@ import { isBuiltinStep } from "./stepGuards";
 export interface GenericDefinitionNames {
   "component-definition"?: Set<string>;
   "exception-type"?: Set<string>;
-  // ui-fragment は Screen 側で扱うため本ファイルには含めない (#1090 Phase 2 で追加予定)
 }
 
 export interface IntegrityIssue {

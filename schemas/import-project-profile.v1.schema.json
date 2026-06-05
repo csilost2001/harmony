@@ -393,8 +393,7 @@
         "application-rule",
         "ui-behavior",
         "runtime-policy",
-        "component-definition",
-        "ui-fragment"
+        "component-definition"
       ]
     }
   }

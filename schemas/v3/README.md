@@ -56,10 +56,9 @@ v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念か
 | `generic-definitions/message.v3.schema.json` | Message (メッセージカタログ / i18n source、`@msg.<key>` 参照元、#1263 Phase X2) |
 | `generic-definitions/runtime-policy.v3.schema.json` | RuntimePolicy (runtime 動作ポリシー catalog エントリ、#1067) |
 | `generic-definitions/ui-behavior.v3.schema.json` | UiBehavior (UI 振る舞い catalog エントリ、#1067) |
-| `generic-definitions/ui-fragment.v3.schema.json` | UiFragment (UI 断片 catalog エントリ、#1067) |
 | `generic-definitions/validation-rule.v3.schema.json` | ValidationRule (業務検証ルール、`@validation.<name>` 参照元、#1263 Phase X2) |
 
-GenericDefinitionKind enum は `generic-definition.v3.schema.json` (親) に 14 値で集約定義。詳細: [docs/spec/process-flow-prefix-system.md](../../docs/spec/process-flow-prefix-system.md) (24 prefix system)。
+GenericDefinitionKind enum は `generic-definition.v3.schema.json` (親) に 13 値で集約定義 (#1436 で ui-fragment 廃止)。詳細: [docs/spec/process-flow-prefix-system.md](../../docs/spec/process-flow-prefix-system.md) (23 catalog prefix + 1 runtime)。
 
 ## v3 で導入した主要設計
 

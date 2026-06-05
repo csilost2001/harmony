@@ -113,8 +113,8 @@ export async function loadScreenEntity(screenId: string): Promise<Screen> {
  * 全画面の validation エラーマップを返す (puck 検証 + cross-resource ref 整合性検証)。
  *
  * - **Puck 検証** (`validatePuckScreen`): editorKind=puck の画面のみ
- * - **Cross-resource ref 検証** (`validateScreenRefs`, #1090 Phase 2): editorKind 不問
- *   - fragments[].fragmentRef → generic-definitions/ui-fragment catalog の実在検証
+ * - **Cross-resource ref 検証** (`validateScreenRefs`, #1318): editorKind 不問
+ *   - dialog/messageArea/options 参照の実在検証
  *   - genericDefinitionNames が未指定の場合は ref 検査は silent pass
  *
  * 関数名は loadPuckScreenValidationMap のままだが、Phase 2 で screen 全体の validation

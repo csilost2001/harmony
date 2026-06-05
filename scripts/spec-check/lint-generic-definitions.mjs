@@ -30,7 +30,6 @@ const VALID_KINDS = new Set([
   "ui-behavior",
   "runtime-policy",
   "component-definition",
-  "ui-fragment",
 ]);
 
 const REQUIRED_FIELDS = ["kind", "name", "purpose", "responsibilities", "targets"];

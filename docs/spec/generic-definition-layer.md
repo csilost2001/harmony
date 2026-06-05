@@ -60,7 +60,6 @@
 ### 配置決定 (Q1-Q3 確定)
 
 - **Generic Definition Catalog**: 独立ディレクトリ `examples/<project>/<dataDir>/generic-definitions/<kind>/*.json` を切る (Q1)。`extensions/` 機構には載せない (extensions = opt-in 拡張 / generic-definitions = project 全体の再利用資産、性格が異なる)
-- **`ui-fragment` と PageLayout (#1021)**: page-level vs component-level で切る (Q2)。PageLayout = ページ全体の骨格 (header / sidebar / content slot / footer)、`ui-fragment` = ページ内 or 複数画面で使い回す部品 (メッセージ領域 / アップロード行 / ダイアログ本体)
 - **`process-flow-extensions.md` と Generic Definition Catalog**: 両者独立、ProcessFlow から `$ref` で generic-definitions を参照 (Q3)。process-flow-extensions = ProcessFlow 内側の step 拡張型、generic-definitions = project 全体の再利用資産
 
 ---
@@ -148,42 +147,13 @@
 
 **判断**: 既存 inline 形式は維持 (移行を強制しない)。`$ref` を opt-in で許容するのが最小変更。
 
-### 3.6 再利用 UI fragment / common component の参照
+### 3.6 再利用 UI 部品 (廃止: ui-fragment → Gadget / custom block へ移行)
 
-**現状の不足**: 共通ヘッダー、共通メッセージ領域、アップロード行など、再利用 UI 断片を formal に保持しにくい。
+**#1436 で廃止**: `ui-fragment` kind は Gadget (Screen.purpose="gadget") または GrapesJS custom block に置き換えられた。
+- **Gadget**: API/Controller 等の処理定義を持つ再利用 UI 部品 → Screen.purpose="gadget" で管理
+- **custom block**: インライン要素など小規模 HTML スニペット → GrapesJS カスタムブロックで管理
 
-**追加候補**: Generic Definition Catalog の `ui-fragment` を導入し、`screen.fragments[].fragmentRef` で参照する。
-
-**判断 (Q2 確定 + #1067 で実装完了)**: PageLayout (#1021) と `ui-fragment` は **page-level vs component-level で切る**:
-- **PageLayout**: ページ全体の骨格 (header slot / sidebar slot / content slot / footer slot)。1 page = 1 PageLayout 適用
-- **`ui-fragment`**: ページ内 or 複数画面で使い回す部品 (メッセージ領域 / アップロード行 / ダイアログ本体 / 共通ヘッダー部品)。PageLayout の slot を埋める要素にもなり得る
-
-具体例:
-```
-PageLayout "admin-layout"  ←  ページ全体の枠
-  ├─ header slot   ←  ui-fragment "common-header" を埋める
-  ├─ sidebar slot  ←  ui-fragment "admin-nav" を埋める
-  ├─ content slot  ←  screen が入る
-  │                   screen は内部に ui-fragment "message-area" / "upload-row" 等を持つ
-  └─ footer slot   ←  ui-fragment "common-footer" を埋める
-```
-
-**Screen での参照形式 (#1067)**: `screen.fragments[]` は `{ fragmentRef, instanceId? }` の配列。fragmentRef は `generic-definitions/ui-fragment/<Name>` pattern で AJV gate 対象。同一画面で同一 fragment を複数 instance 使う場合は instanceId で区別する。例:
-
-```jsonc
-{
-  "id": "...", "name": "注文新規", "kind": "form", "path": "/orders/new",
-  "fragments": [
-    { "fragmentRef": "generic-definitions/ui-fragment/messageArea", "instanceId": "errorArea" },
-    { "fragmentRef": "generic-definitions/ui-fragment/messageArea", "instanceId": "infoArea" },
-    { "fragmentRef": "generic-definitions/ui-fragment/uploadRow" }
-  ]
-}
-```
-
-`exceptionTypeRef` pattern (#1066) と同様、kind-specific schema (`schemas/v3/generic-definitions/ui-fragment.v3.schema.json`) は親 schema (`generic-definition.v3.schema.json`) を `allOf` 継承し `kind` を const に固定する最小構造。slot binding / region 等の fragment 固有 field は将来 RFC で追加予定。
-
-`fragmentRef` pattern は `^generic-definitions/ui-fragment/[A-Za-z][A-Za-z0-9_]*$` で AJV gate 対象化済 (= **形式 pattern のみ**)。`<Name>` 部の **実在検証** は `frontend/src/utils/screenRefValidation.ts` の `validateScreenRefs` で `UNKNOWN_FRAGMENT_REF` として検出する (#1090 Phase 2、severity=warning)。`screenStore.loadPuckScreenValidationMap` がオーケストレータとなり、Puck data 検証 (`validatePuckScreen`) と cross-resource ref 検証 (`validateScreenRefs`) を統合して ScreenListView のバッジに表示する。検証は editor-agnostic (Puck / GrapesJS の双方の screen で動作)。
+`screen.fragments[]` フィールドおよび `ui-fragment` kind は削除済み。
 
 ---
 
@@ -198,7 +168,7 @@ PageLayout "admin-layout"  ←  ページ全体の枠
   "$id": "generic-definitions/<kind>/<name>",
   "kind": "data-contract" | "domain-type" | "exception-type"
         | "application-rule" | "ui-behavior" | "runtime-policy"
-        | "component-definition" | "ui-fragment",
+        | "component-definition",
   "name": "string",
   "purpose": "string (1-2 行)",
   "responsibilities": ["..."],
@@ -223,7 +193,7 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 
 ### 4.2 18 種類の kind
 
-初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張 → #1310 で 18 種に拡張。#1318 で `messageArea` kind を `message-area` に kebab-case 統一 (prefix `@messageArea.<name>` は維持、kind=kebab/prefix=camelCase は log-event/logEvent と同じ分離パターン)。
+初期 7 種 (#1064-#1068) → Phase X2 で 14 種 (#1263) → #1303 で 17 種に拡張 → #1310 で 18 種に拡張 → #1436 で `ui-fragment` 廃止 (17 種)。#1318 で `messageArea` kind を `message-area` に kebab-case 統一 (prefix `@messageArea.<name>` は維持、kind=kebab/prefix=camelCase は log-event/logEvent と同じ分離パターン)。
 
 | kind | 用途 | 主な参照元 |
 |---|---|---|
@@ -235,7 +205,6 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 | `ui-behavior` | 画面横断振る舞い (dirty check / dialog / datepicker / 二重送信防止) | ScreenItem.event.effects[] / screen.commonBehaviors[] |
 | `runtime-policy` | retry / timeout / circuit breaker / cache (横断適用ポリシー) | ProcessFlow step / external system |
 | `component-definition` | service / mapper / repository / validator / formatter / facade / adapter / helper 等の責務 | ProcessFlow.componentCall |
-| `ui-fragment` | 再利用 UI 断片 (ヘッダー / フッター / メッセージ領域等) | screen.fragments[] |
 | `constants` | ドメイン定数集 | `@const.<key>` |
 | `message` | メッセージカタログ (i18n source) | `@msg.<key>` |
 | `domain-event` | ドメインイベント定義 | `@event.<topic>` |
@@ -251,7 +220,7 @@ PageLayout "admin-layout"  ←  ページ全体の枠
 | 既存 spec | 関係 |
 |---|---|
 | `docs/spec/process-flow-extensions.md` | extensions namespace を catalog 種別の格納先として使う検討余地あり |
-| `docs/spec/page-layout.md` | `ui-fragment` と PageLayout は分離 (§3.6 参照) |
+| `docs/spec/page-layout.md` | PageLayout = ページ全体の骨格、再利用 UI 部品は Gadget (§3.6 参照) |
 | `docs/spec/process-flow-sla.md` | SLA / Timeout 宣言は `runtime-policy` の subset として位置付け可能 |
 | `docs/spec/process-flow-tier-c.md` | circuitBreaker / bulkhead / health / readiness も `runtime-policy` 系 |
 | `docs/spec/process-flow-workflow.md` | WorkflowPattern は `component-definition` ではなく既存 first-class 維持 |
@@ -355,7 +324,7 @@ AI が生成する project 専用 importer は `<project>/scripts/import/*.ts` �
 | `data-contract` (DTO / Form / Result / ViewModel) | (なし、Domain は近い) | **新規**。GeneXus の Domain は型+制約だが、本提案の data-contract は契約 (層間 IO) を含む |
 | `domain-type` | Priority 2-#4 Domain 概念 (GeneXus) | **重複** — 統合して 1 つの Catalog kind とする |
 | `ui-behavior` Catalog | (なし) | **新規**。設計書に頻出する dirty check / dialog / datepicker 等の formal 化 |
-| `ui-fragment` | (なし、PageLayout は別) | **新規**。PageLayout (#1021) と切り分け |
+| `ui-fragment` | (なし、PageLayout は別) | **#1436 で廃止**。Gadget / custom block に移行 |
 | `component-definition` | (なし) | **新規**。共有 service / mapper / validator の責務分離 |
 | ScreenItem binding 構造化 | Tier D-#18 ScreenItem 派生値 (Formula) | 別観点 — binding 構造化と Formula は併存可 |
 | ScreenItemEvent UI effects | (なし) | **新規** |

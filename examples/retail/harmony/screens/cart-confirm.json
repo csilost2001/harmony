@@ -10,12 +10,6 @@
   "auth": "required",
   "groupId": "customer-facing",
   "maturity": "committed",
-  "fragments": [
-    {
-      "fragmentRef": "generic-definitions/ui-fragment/messageArea",
-      "instanceId": "errorArea"
-    }
-  ],
   "createdAt": "2026-05-02T00:00:00.000Z",
   "updatedAt": "2026-05-02T00:00:00.000Z",
   "items": [

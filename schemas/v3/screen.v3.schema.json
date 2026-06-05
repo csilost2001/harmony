@@ -48,11 +48,6 @@
           "items": { "$ref": "screen-item.v3.schema.json#/$defs/ScreenItem" },
           "description": "画面項目定義一覧 (フォーム要素・表示要素)。"
         },
-        "fragments": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/ScreenFragmentInstance" },
-          "description": "本画面が内部で使用する ui-fragment instance 一覧 (#1067)。Generic Definition Catalog の ui-fragment への参照 (`fragmentRef`) と、複数 instance を区別するための `instanceId` を保持する。PageLayout (#1021) と ui-fragment の境界: PageLayout = ページ全体の骨格 (header / sidebar / content slot / footer)、ui-fragment = ページ内 or 複数画面で使い回す部品 (メッセージ領域 / アップロード行 / ダイアログ本体)。詳細: docs/spec/generic-definition-layer.md §3.6。"
-        },
         "permissions": {
           "type": "array",
           "items": { "type": "string" },
@@ -92,27 +87,6 @@
           "description": "拡張 ScreenKind 参照。namespace:kindName 形式 (例: 'retail:storefront')。"
         }
       ]
-    },
-
-    "ScreenFragmentInstance": {
-      "description": "Screen 内で使用する ui-fragment の instance (#1067)。fragmentRef が Generic Definition Catalog の ui-fragment を指す。同じ fragment を同一画面で複数 instance 使う場合は instanceId で区別する (例: メッセージ領域 を error / info の 2 箇所で使う等)。",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["fragmentRef"],
-      "properties": {
-        "fragmentRef": {
-          "type": "string",
-          "pattern": "^generic-definitions/ui-fragment/[A-Za-z][A-Za-z0-9_]*$",
-          "description": "Generic Definition Catalog の ui-fragment への参照。形式: 'generic-definitions/ui-fragment/<Name>'。<Name> は ui-fragment.json の `name` field と一致 (PascalCase / camelCase 慣例)。"
-        },
-        "instanceId": {
-          "type": "string",
-          "pattern": "^[a-z][a-zA-Z0-9]*$",
-          "minLength": 1,
-          "maxLength": 64,
-          "description": "同一画面内で同じ fragment を複数 instance 使う場合の識別子 (任意)。lowerCamelCase。省略時は 1 fragment = 1 instance を意味する。"
-        }
-      }
     },
 
     "ScreenDesign": {

@@ -61,8 +61,6 @@ export interface ProjectCatalogIndex {
   runtimePolicies: Set<string>;
   /** `@component.<name>` — component-definition */
   componentDefinitions: Set<string>;
-  /** `@fragment.<name>` — ui-fragment */
-  uiFragments: Set<string>;
   /** `@dialog.<name>` — dialog (#1303) */
   dialogs: Set<string>;
   /** `@messageArea.<name>` — message-area (#1303、#1318 で kind=kebab `message-area` / prefix=camelCase `messageArea` に分離) */
@@ -119,7 +117,6 @@ export function createEmptyProjectCatalogIndex(): ProjectCatalogIndex {
     uiBehaviors: new Set(),
     runtimePolicies: new Set(),
     componentDefinitions: new Set(),
-    uiFragments: new Set(),
     dialogs: new Set(),
     messageAreas: new Set(),
     optionSets: new Set(),
@@ -175,7 +172,6 @@ const GENERIC_KIND_TO_SET_KEY: Record<string, keyof ProjectCatalogIndex> = {
   "ui-behavior": "uiBehaviors",
   "runtime-policy": "runtimePolicies",
   "component-definition": "componentDefinitions",
-  "ui-fragment": "uiFragments",
   constants: "constants",
   message: "messages",
   "domain-event": "domainEvents",

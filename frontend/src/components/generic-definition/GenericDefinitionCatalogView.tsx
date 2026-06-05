@@ -20,7 +20,6 @@ const KIND_ICONS: Record<GenericDefinitionKind, string> = {
   "ui-behavior": "bi-hand-index",
   "runtime-policy": "bi-clock-history",
   "component-definition": "bi-box",
-  "ui-fragment": "bi-puzzle",
   constants: "bi-hash",
   message: "bi-chat-text",
   "domain-event": "bi-broadcast",
@@ -41,7 +40,6 @@ const KIND_DESCRIPTIONS: Record<GenericDefinitionKind, string> = {
   "ui-behavior": "画面横断の UI 振る舞いを定義します",
   "runtime-policy": "リトライ / タイムアウト / サーキットブレーカー等の横断ポリシーを定義します",
   "component-definition": "サービス / マッパー / バリデータなどの責務を定義します",
-  "ui-fragment": "再利用可能な UI 断片を定義します",
   constants: "ドメイン定数集 (税率 / 最大件数等) を定義します (`@const.<key>` 参照元、#1263 Phase X2)",
   message: "メッセージカタログ (i18n source) を定義します (`@msg.<key>` 参照元、#1263 Phase X2)",
   "domain-event": "業務イベント (発生条件 / payload / publisher) を定義します (`@event.<topic>` 参照元、#1263 Phase X2)",
@@ -84,7 +82,7 @@ export function GenericDefinitionCatalogView() {
     <div style={{ padding: "24px" }}>
       <h2 style={{ marginBottom: "8px", fontSize: "1.3rem" }}>汎用定義カタログ</h2>
       <p style={{ color: "#666", marginBottom: "24px", fontSize: "0.9rem" }}>
-        Generic Definition Catalog — データ契約・ドメイン型・例外型など 18 種類の汎用設計定義を管理します。
+        Generic Definition Catalog — データ契約・ドメイン型・例外型など 17 種類の汎用設計定義を管理します。
       </p>
       <div style={{
         display: "grid",

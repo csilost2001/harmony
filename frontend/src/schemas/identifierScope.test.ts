@@ -402,7 +402,6 @@ describe("checkIdentifierScopes — 組み込み関数 BUILTIN_AMBIENTS", () => 
     ["event",      "@event.transaction.created"],
     ["logEvent",   "@logEvent.TransactionAuditCreated"],
     ["logConfig",  "@logConfig.DefaultLogConfig"],
-    ["fragment",   "@fragment.CategoryBadge"],
     ["behavior",   "@behavior.FormDirtyConfirmExit"],
     ["contract",   "@contract.TransactionCreateRequest"],
     ["type",       "@type.Money"],

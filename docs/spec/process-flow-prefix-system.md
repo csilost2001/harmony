@@ -29,14 +29,13 @@ Issue: [RFC #1254](https://github.com/csilost2001/harmony/issues/1254) 件 3.7 /
 | `@behavior` | ui-behavior | ✅ pure ref | `generic-definitions/ui-behavior/*.json` |
 | `@policy` | runtime-policy (retry / timeout / cache) | ✅ pure ref | `generic-definitions/runtime-policy/*.json` |
 | `@component` | component-definition | ❌ inline 禁止 (副作用 invocation) | `generic-definitions/component-definition/*.json` |
-| `@fragment` | ui-fragment | ✅ pure ref | `generic-definitions/ui-fragment/*.json` |
 | `@const` | constants catalog | ✅ pure ref (JS keyword 衝突回避で `@const` 採用) | `generic-definitions/constants/*.json` |
 | `@msg` | message catalog (i18n) | ✅ pure ref + label override | `generic-definitions/message/*.json` |
 | `@event` | domain-event | ✅ pure ref | `generic-definitions/domain-event/*.json` |
 | `@logEvent` | log-event (構造化ログ) | ✅ pure ref | `generic-definitions/log-event/*.json` |
 | `@logConfig` | log-config (log level / sink) | ✅ pure ref | `generic-definitions/log-config/*.json` |
 
-(計 25 — `@var` は runtime scope 専用なので catalog 24 + runtime 1)。designer-time alias (`@this` / `@self`) は別表で §11 参照、含めると計 27。
+(計 24 — `@var` は runtime scope 専用なので catalog 23 + runtime 1、#1436 で `@fragment` 廃止)。designer-time alias (`@this` / `@self`) は別表で §11 参照、含めると計 26。
 
 ## 2. 副作用 inline 禁止 (validator dispatch rule)
 
@@ -155,7 +154,7 @@ JSON Schema 2020-12 では `x-*` keyword は未定義扱い (warning が出る�
 | `@var` / `@event` | flow context のみで検証 (project index 不要) | runtime scope / `context.catalogs.events` |
 | `@screen` / `@table` / `@view` / `@viewer` | 2 段 ref で id 検証、4 段以上 (`<id>.<container>.<child>`) で child id 検証 | `screens/` / `tables/` / `views/` / `view-definitions/` |
 | `@layout` / `@seq` / `@flow` / `@system` | head id 単純 lookup | `page-layouts/` / `sequences/` / `process-flows/` / `external.json#/externalSystems` |
-| `@contract` / `@type` / `@exception` / `@rule` / `@validation` / `@behavior` / `@policy` / `@component` / `@fragment` | name lookup | `generic-definitions/<kind>/<Name>.json` |
+| `@contract` / `@type` / `@exception` / `@rule` / `@validation` / `@behavior` / `@policy` / `@component` | name lookup | `generic-definitions/<kind>/<Name>.json` |
 | `@const` / `@msg` / `@logEvent` / `@logConfig` | catalog instance 名 + 全 catalog の fields[].name の union | 同上 (kind 別) |
 | `@conv` | conventions top-level key + `extensionCategories.<name>` | `conventions/catalog.json` |
 | `@ext` | extension namespace lookup | `extensions/<ns>.v3.json#/namespace` |
