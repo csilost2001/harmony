@@ -45,8 +45,10 @@ ProcessFlow (既存、無変更)
 |---------|------|
 | `<dataDir>/page-layouts/<id>.json` | PageLayout entity 本体 (regions / assignments / design 参照) |
 | `<dataDir>/page-layouts/<id>.design.json` | PageLayout 自身の GrapesJS / Puck design payload (任意) |
+| `<dataDir>/page-layouts/<id>.components.html` | GrapesJS design payload が `componentsRef` を使う場合の HTML companion (#1448) |
 | `<dataDir>/screens/<id>.json` | Screen entity (purpose / pageLayoutId / processFlowId / items 等) |
 | `<dataDir>/screens/<id>.design.json` | Screen の GrapesJS / Puck design payload |
+| `<dataDir>/screens/<id>.components.html` | GrapesJS design payload が `componentsRef` を使う場合の HTML companion (#1448) |
 | `harmony.json` | `entities.pageLayouts[]` + `entities.screens[]` (ScreenEntry に purpose / pageLayoutId / hasDesign を含む) |
 
 ## 4. region 命名規約

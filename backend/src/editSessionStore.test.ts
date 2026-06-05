@@ -24,6 +24,7 @@ import {
   EditSessionParticipantError,
 } from "./editSessionStore.js";
 import type { DraftHistoryStore } from "./draftHistoryStore.js";
+import { EDIT_SESSION_TTL_DAYS } from "@harmony/shared";
 
 // ── テスト共通セットアップ ──────────────────────────────────────────────────────
 
@@ -64,6 +65,17 @@ describe("create", () => {
     expect(participants[0].sessionId).toBe("session-A");
     expect(participants[0].role).toBe("Edit");
     expect(participants[0].displayLabel).toBe("@alice");
+  });
+
+  it("expiresAt は既定 TTL と一致する", () => {
+    const before = Date.now();
+    const session = store.create("session-A", "process-flow", "pf-ttl", "@alice");
+    const after = Date.now();
+
+    const expiresAt = new Date(session.expiresAt).getTime();
+    const ttlMs = EDIT_SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
+    expect(expiresAt).toBeGreaterThanOrEqual(before + ttlMs);
+    expect(expiresAt).toBeLessThanOrEqual(after + ttlMs);
   });
 
   it("get() で取得できる", () => {

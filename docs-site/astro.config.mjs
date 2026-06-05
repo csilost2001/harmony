@@ -17,7 +17,18 @@ export default defineConfig({
       excludeLangs: ['mermaid'],
     },
     rehypePlugins: [
-      [rehypeMermaid, { strategy: 'inline-svg' }],
+      [
+        rehypeMermaid,
+        {
+          strategy: 'inline-svg',
+          mermaidConfig: {
+            look: 'classic',
+            deterministicIds: true,
+            deterministicIDSeed: 'harmony-docs',
+            handDrawnSeed: 1,
+          },
+        },
+      ],
       rehypeRewriteMdLinks,
     ],
     shikiConfig: {
