@@ -506,6 +506,10 @@
   overflow: hidden;
 }
 
+.process-flow-workbench-scroll-end {
+  display: none;
+}
+
 .process-flow-palette-pane,
 .process-flow-canvas-pane,
 .process-flow-inspector-pane {
@@ -1599,20 +1603,39 @@
   .process-flow-workbench-grid {
     grid-template-columns: 1fr;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding-bottom: max(40px, env(safe-area-inset-bottom));
+    scroll-padding-bottom: max(40px, env(safe-area-inset-bottom));
+  }
+
+  .process-flow-workbench-scroll-end {
+    display: block;
+    grid-column: 1 / -1;
+    height: max(56px, env(safe-area-inset-bottom));
+    pointer-events: none;
   }
 
   .process-flow-palette-pane,
   .process-flow-inspector-pane {
-    min-height: 220px;
+    min-height: min(360px, 58vh);
     border-right: 0;
     border-left: 0;
     border-bottom: 1px solid #d8dee7;
+  }
+
+  .process-flow-inspector-scroll {
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
   }
 
   .step-toolbar {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
     max-height: 260px;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
   }
 
   .process-flow-palette-section,

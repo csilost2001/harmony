@@ -155,6 +155,7 @@ export function BlocksPanel({ mapCategoryBlocks, dragStart, dragStop }: BlocksRe
             </section>
           );
         })}
+        <div className="blocks-list-scroll-end" aria-hidden="true" />
       </div>
 
       <SharedBlockSyncModal

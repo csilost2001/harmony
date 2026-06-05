@@ -1088,6 +1088,7 @@ export function ProcessFlowEditor() {
               handlePickScreenItem={handlePickScreenItem}
             />
             {/* InspectorPanel (#1145 Phase-3 で抽出): AI 依頼 / Meta / HTTP contract / SLA / I/O */}
+            <div className="process-flow-workbench-scroll-end" aria-hidden="true" />
           </div>
         </DndContext>
       </div>
