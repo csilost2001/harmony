@@ -13,6 +13,7 @@
 import type { ReactNode } from "react";
 import type { CssFramework } from "../types/v3/harmony";
 import type { McpStatus } from "../mcp/mcpBridge";
+import type { GadgetBlockScreen } from "../grapes/blocks";
 
 export type ThemeId = "standard" | "card" | "compact" | "dark";
 export type PanelMode = "pinned" | "autohide" | "hidden";
@@ -127,6 +128,8 @@ export interface GrapesJSRenderEditorProps extends RenderEditorBaseProps {
   onServerChanged: () => void;
   onMcpStatusChange: (status: McpStatus) => void;
   onExternalThemeChange: (themeId: ThemeId) => void;
+  /** purpose="gadget" の Screen を block palette に参照型 block として登録する */
+  gadgetBlocks?: GadgetBlockScreen[];
   /** raw GrapesJS Editor インスタンスを受け取る (pl-5 #1026、optional) */
   onGrapesEditorInstance?: (editor: import("grapesjs").Editor) => void;
 }

@@ -25,6 +25,7 @@ import { DESIGNER_REFERENCE_RELOAD_EVENTS, isReloadBroadcast, shouldNotifyScreen
 // react-hooks/refs (Designer scope 内 ref 含む closure が props 経由で渡される) を解消。
 import { PuckEditorHost } from "./designer/PuckEditorHost";
 import { GrapesEditorHost } from "./designer/GrapesEditorHost";
+import type { GadgetBlockScreen } from "../grapes/blocks";
 // #1388 sub-section A (Option 2): 共通ダイアログ群 (~145 行 JSX) を独立 component に抽出。
 import { DesignerDialogs } from "./designer/DesignerDialogs";
 import {
@@ -168,14 +169,40 @@ export function Designer({
   // Phase M Codex SF-1 (#1298 round 8): wsId scoped key で workspace 切替時の metadata 混在を防ぐ
   const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("screen", screenId, wsId);
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
+  const [gadgetBlocks, setGadgetBlocks] = useState<GadgetBlockScreen[]>([]);
+  const reloadDesignerProjectMetadata = useCallback(async () => {
+    const project = await loadProject();
+    setAllScreenIds((project.screens ?? []).map((s) => s.id));
+    setGadgetBlocks(
+      (project.screens ?? [])
+        .filter((s) => s.purpose === "gadget")
+        .map((s) => ({ id: s.id, name: s.name || s.id })),
+    );
+  }, []);
   useEffect(() => {
-    (async () => {
-      try {
-        const project = await loadProject();
-        setAllScreenIds((project.screens ?? []).map((s) => s.id));
-      } catch { /* backend 未接続時は空配列のまま */ }
-    })();
-  }, [screenId]);
+    let cancelled = false;
+    void Promise.resolve()
+      .then(() => reloadDesignerProjectMetadata())
+      .catch(() => {
+        if (!cancelled) {
+          setAllScreenIds([]);
+          setGadgetBlocks([]);
+        }
+      });
+    const unsubStatus = mcpBridge.onStatusChange((status) => {
+      if (status === "connected" && !cancelled) {
+        reloadDesignerProjectMetadata().catch(console.error);
+      }
+    });
+    const unsubProject = mcpBridge.onBroadcast("projectChanged", () => {
+      if (!cancelled) reloadDesignerProjectMetadata().catch(console.error);
+    });
+    return () => {
+      cancelled = true;
+      unsubStatus();
+      unsubProject();
+    };
+  }, [reloadDesignerProjectMetadata]);
   // localStorage 救済確認ダイアログ
   const [showLegacyRescueDialog, setShowLegacyRescueDialog] = useState(false);
   const legacyDataRef = useRef<unknown>(null);
@@ -1020,6 +1047,7 @@ export function Designer({
       reloadPayload={grapesReloadPayload}
       dialogsSlot={commonDialogs}
       mismatchWarnings={mismatchWarnings}
+      gadgetBlocks={gadgetBlocks}
       pageLayoutId={pageLayoutId}
       pageLayoutName={pageLayoutName}
       pageLayoutHtml={pageLayoutHtml}
