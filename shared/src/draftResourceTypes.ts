@@ -21,6 +21,7 @@
  */
 export const DRAFT_RESOURCE_TYPES = [
   "screen",
+  "page-layout-design", // #1448: PageLayout Designer の GrapesJS/Puck design payload
   "puck-data",
   "table",
   "process-flow",

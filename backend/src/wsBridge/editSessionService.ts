@@ -38,6 +38,7 @@ import {
   writeView,
   writeViewDefinition,
   writePageLayout,
+  writePageLayoutDesign,
   writeScreenItems,
   writeSequence,
   writeGenericDefinition,
@@ -387,6 +388,10 @@ export class EditSessionService {
             await writeScreen(resId, payload, root);
             resourceChange = { event: "screenChanged", data: { screenId: resId } };
             break;
+          case "page-layout-design":
+            await writePageLayoutDesign(resId, payload, root);
+            resourceChange = { event: "pageLayoutChanged", data: { pageLayoutId: resId } };
+            break;
           case "puck-data":
             await writePuckData(resId, payload, root);
             resourceChange = { event: "puckDataChanged", data: { screenId: resId } };
@@ -498,13 +503,13 @@ export class EditSessionService {
   }
 
   /** spec §13.3: 現在の payload + sequence を取得 (broadcast 待ちなし) */
-  fetchPayload(
+  async fetchPayload(
     sessionId: string,
     editSessionId: string,
-  ): { payload: unknown; sequence: number } {
+  ): Promise<{ payload: unknown; sequence: number }> {
     const wsId = this._resolveActiveWsId(sessionId);
     const store = this.getOrCreateEditSessionStore(wsId);
-    const result = store.fetchCurrentPayload(editSessionId);
+    const result = await store.fetchCurrentPayloadFromFs(editSessionId);
     if (!result) {
       throw new EditSessionNotFoundError(editSessionId);
     }

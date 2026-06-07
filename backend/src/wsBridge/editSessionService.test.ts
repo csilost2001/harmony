@@ -85,6 +85,31 @@ describe("EditSessionService.save resource change broadcast", () => {
     expect(deliveredClientIds).not.toContain("client-other-workspace");
   });
 
+  it("page-layout-design は PageLayout design storage に保存し pageLayoutChanged を broadcast する (#1448)", async () => {
+    const { editSession } = service.create("client-editor", "page-layout-design", "main-layout", "レイアウト");
+    const editSessionId = (editSession as { id: string }).id;
+    service.update("client-editor", editSessionId, {
+      pages: [{ frames: [{ component: { type: "wrapper", components: "<main data-region-name=\"main\"></main>" } }] }],
+    });
+
+    const result = await service.save("client-editor", editSessionId);
+    expect(result.ok).toBe(true);
+
+    const designPath = path.join(tmpDir, "data", "page-layouts", "main-layout.design.json");
+    const htmlPath = path.join(tmpDir, "data", "page-layouts", "main-layout.components.html");
+    const design = JSON.parse(await fs.readFile(designPath, "utf-8"));
+    expect(design.pages[0].frames[0].component.componentsRef).toBe("main-layout.components.html");
+    expect(await fs.readFile(htmlPath, "utf-8")).toBe("<main data-region-name=\"main\"></main>");
+    await expect(fs.access(path.join(tmpDir, "data", "screens", "page-layout:main-layout.design.json"))).rejects.toThrow();
+
+    const changed = broadcasts.find((call) => call.event === "pageLayoutChanged");
+    expect(changed).toEqual({
+      wsId: tmpDir,
+      event: "pageLayoutChanged",
+      data: { pageLayoutId: "main-layout" },
+    });
+  });
+
   it("#1368 Codex Round 3 Must-fix: long composite generic-definition resourceId (>64 chars) も WS handler が accept する", async () => {
     // assertSafeName は max 64 chars だが、`${kind}__${name}` 形式は最大 64 + 2 + 64 = 130 chars
     // schema-valid な長い name で 64 chars を超える事例を捕捉する (Round 3 で観測):

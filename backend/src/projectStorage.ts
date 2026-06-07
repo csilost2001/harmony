@@ -22,6 +22,11 @@ import type { ValidateFunction } from "ajv";
 import { buildHarmonyAjv } from "@harmony/shared";
 import { workspaceContextManager } from "./workspaceState.js";
 import { assertPathContained } from "./security/idValidator.js";
+import {
+  deflateDesignComponents,
+  deleteDesignComponentCompanions,
+  inflateDesignComponents,
+} from "./designPayloadStorage.js";
 
 // ── path 解決ヘルパー (#671 + #700 R-2) ─────────────────────────────────────
 // workspace 切替に追従するため、絶対パス constant を廃止し getter 関数化。
@@ -890,7 +895,9 @@ export async function readScreen(screenId: string, root: string): Promise<unknow
   const filePath = path.join(screensDir(dataRoot), `${screenId}.design.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
   await migrateScreenIfNeeded(screenId, r);
-  return readJSON<unknown>(filePath);
+  const data = await readJSON<unknown>(filePath);
+  if (data === null) return null;
+  return inflateDesignComponents(data, screensDir(dataRoot));
 }
 
 /** screens/{screenId}.json を書き込み
@@ -923,7 +930,8 @@ export async function writeScreen(screenId: string, data: unknown, root: string)
   await annotateValidationWarnings("screen", entity);
   const sDir = screensDir(dataRoot);
   await writeJSON(path.join(sDir, `${screenId}.json`), entity);
-  await writeJSON(path.join(sDir, `${screenId}.design.json`), data);
+  const designPayload = await deflateDesignComponents({ data, baseDir: sDir, baseName: screenId });
+  await writeJSON(path.join(sDir, `${screenId}.design.json`), designPayload);
 }
 
 export async function readScreenEntity(screenId: string, root: string): Promise<unknown | null> {
@@ -1030,6 +1038,7 @@ export async function deleteScreen(screenId: string, root: string): Promise<void
   try {
     await fs.unlink(path.join(sDir, `${screenId}.design.json`));
   } catch { /* file not found is OK */ }
+  await deleteDesignComponentCompanions(sDir, screenId);
   try {
     await fs.unlink(path.join(siDir, `${screenId}.json`));
   } catch { /* file not found is OK */ }
@@ -1568,7 +1577,9 @@ export async function readPageLayoutDesign(pageLayoutId: string, root: string): 
   const dataRoot = await resolveDataRoot(root);
   const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
-  return readJSON<unknown>(filePath);
+  const data = await readJSON<unknown>(filePath);
+  if (data === null) return null;
+  return inflateDesignComponents(data, pageLayoutsDir(dataRoot));
 }
 
 export async function writePageLayoutDesign(pageLayoutId: string, data: unknown, root: string): Promise<void> {
@@ -1576,7 +1587,12 @@ export async function writePageLayoutDesign(pageLayoutId: string, data: unknown,
   const filePath = path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`);
   assertPathContained(filePath, dataRoot); // defense-in-depth
   await fs.mkdir(pageLayoutsDir(dataRoot), { recursive: true });
-  await writeJSON(filePath, data);
+  const designPayload = await deflateDesignComponents({
+    data,
+    baseDir: pageLayoutsDir(dataRoot),
+    baseName: pageLayoutId,
+  });
+  await writeJSON(filePath, designPayload);
 }
 
 export async function deletePageLayoutFile(pageLayoutId: string, root: string): Promise<void> {
@@ -1591,6 +1607,7 @@ export async function deletePageLayoutFile(pageLayoutId: string, root: string): 
   try {
     await fs.unlink(path.join(pageLayoutsDir(dataRoot), `${pageLayoutId}.design.json`));
   } catch { /* not found is OK */ }
+  await deleteDesignComponentCompanions(pageLayoutsDir(dataRoot), pageLayoutId);
 }
 
 /** actions/ と process-flows/ ディレクトリ内の全処理フローを読み込み

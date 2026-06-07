@@ -6,7 +6,7 @@
  * 設計方針:
  * - memory の隔離単位を session → editSessionId に変更 (§1.1 根本欠陥の解消)
  * - payload は opaque envelope として扱い、server は中身を解釈しない (Forward-Compat 原則 ①)
- * - mid-edit (update) 時は FS write しない、save / discard 時のみ write (Forward-Compat 原則 ④)
+ * - mid-edit (update) 時も active draft を FS に永続化し、同一 editSessionId 内で write を直列化する
  * - take-over は同一 critical section 内で atomic に実行 (§7)
  * - history FS: <workspace-root>/.edit-sessions/<editSessionId>.json
  */
@@ -16,6 +16,7 @@ import path from "path";
 import { randomBytes } from "node:crypto";
 import type { DraftHistoryStore } from "./draftHistoryStore.js";
 import { assertPathContained } from "./security/idValidator.js";
+import { deflateDesignComponents, inflateDesignComponents } from "./designPayloadStorage.js";
 import {
   DRAFT_RESOURCE_TYPES,
   EDIT_SESSION_TTL_DAYS,
@@ -159,6 +160,32 @@ function editSessionFilePath(workspaceRoot: string, editSessionId: string): stri
   return filePath;
 }
 
+function isDesignPayloadResource(resourceType: string): boolean {
+  return resourceType === "screen" || resourceType === "page-layout-design";
+}
+
+function editSessionPayloadDir(workspaceRoot: string, editSessionId: string): string {
+  const dir = path.join(editSessionsDir(workspaceRoot), editSessionId);
+  assertPathContained(dir, workspaceRoot);
+  return dir;
+}
+
+function clonePayload(payload: unknown): unknown {
+  if (payload === undefined || payload === null) return payload;
+  return JSON.parse(JSON.stringify(payload));
+}
+
+function cloneEditSession(session: EditSession): EditSession {
+  return {
+    ...session,
+    participants: new Map(
+      Array.from(session.participants.entries()).map(([sid, participant]) => [sid, { ...participant }]),
+    ),
+    payload: clonePayload(session.payload),
+    saveHistory: session.saveHistory.map((event) => ({ ...event })),
+  };
+}
+
 /**
  * EditSession を FS に atomic write する。
  * Map を object に変換して JSON シリアライズ可能にする。
@@ -171,9 +198,29 @@ async function writeEditSessionToFs(workspaceRoot: string, session: EditSession)
   const rand = randomBytes(4).toString("hex");
   const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}-${rand}`;
 
+  const payload = isDesignPayloadResource(session.resourceType)
+    ? { payloadRef: `${session.id}/payload.design.json` }
+    : session.payload;
+  if (isDesignPayloadResource(session.resourceType)) {
+    const payloadDir = editSessionPayloadDir(workspaceRoot, session.id);
+    await fs.mkdir(payloadDir, { recursive: true });
+    const designPayload = await deflateDesignComponents({ data: session.payload, baseDir: payloadDir, baseName: "payload" });
+    await fs.writeFile(path.join(payloadDir, "payload.design.json"), JSON.stringify(designPayload, null, 2), "utf-8");
+  }
+
   // Map を object に変換して JSON シリアライズ
   const serializable = {
-    ...session,
+    id: session.id,
+    resourceType: session.resourceType,
+    resourceId: session.resourceId,
+    state: session.state,
+    sequence: session.sequence,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+    discardedAt: session.discardedAt,
+    saveHistory: session.saveHistory,
+    lastActivityAt: session.lastActivityAt,
+    payload,
     participants: Object.fromEntries(session.participants.entries()),
   };
 
@@ -196,6 +243,36 @@ async function deleteEditSessionFromFs(workspaceRoot: string, editSessionId: str
   } catch {
     // ファイルが存在しない場合は無視
   }
+  await fs.rm(editSessionPayloadDir(workspaceRoot, editSessionId), { recursive: true, force: true }).catch(() => {});
+}
+
+async function readEditSessionFromFs(workspaceRoot: string, editSessionId: string): Promise<EditSession | null> {
+  const dir = editSessionsDir(workspaceRoot);
+  const filePath = editSessionFilePath(workspaceRoot, editSessionId);
+  let raw: string;
+  try {
+    raw = await fs.readFile(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+  const parsed = JSON.parse(raw) as Omit<EditSession, "participants"> & {
+    participants?: Record<string, ParticipantInfo>;
+  };
+  let payload = parsed.payload;
+  if (isDesignPayloadResource(parsed.resourceType)) {
+    const payloadRef = typeof (parsed.payload as { payloadRef?: unknown } | null)?.payloadRef === "string"
+      ? (parsed.payload as { payloadRef: string }).payloadRef
+      : `${parsed.id}/payload.design.json`;
+    const payloadPath = path.join(dir, payloadRef);
+    assertPathContained(payloadPath, dir);
+    const designPayload = JSON.parse(await fs.readFile(payloadPath, "utf-8"));
+    payload = await inflateDesignComponents(designPayload, path.dirname(payloadPath));
+  }
+  return {
+    ...parsed,
+    payload,
+    participants: new Map(Object.entries(parsed.participants ?? {})),
+  };
 }
 
 // ── EditSessionStore ──────────────────────────────────────────────────────────
@@ -208,6 +285,7 @@ async function deleteEditSessionFromFs(workspaceRoot: string, editSessionId: str
 export class EditSessionStore {
   /** key = editSessionId */
   private store = new Map<string, EditSession>();
+  private persistQueues = new Map<string, Promise<void>>();
 
   constructor(
     private readonly workspaceRoot: string,
@@ -279,8 +357,7 @@ export class EditSessionStore {
    */
   delete(editSessionId: string): void {
     this.store.delete(editSessionId);
-    // FS 削除は非同期で実行 (await しない — fire and forget)
-    deleteEditSessionFromFs(this.workspaceRoot, editSessionId).catch((e) => {
+    this.enqueueDelete(editSessionId).catch((e) => {
       console.error(`[editSessionStore] delete FS error (${editSessionId}):`, e);
     });
   }
@@ -291,7 +368,7 @@ export class EditSessionStore {
    */
   async completeDelete(editSessionId: string): Promise<void> {
     this.store.delete(editSessionId);
-    await deleteEditSessionFromFs(this.workspaceRoot, editSessionId);
+    await this.enqueueDelete(editSessionId);
   }
 
   // ── participant 管理 ─────────────────────────────────────────────────────────
@@ -379,9 +456,8 @@ export class EditSessionStore {
   // ── edit ────────────────────────────────────────────────────────────────────
 
   /**
-   * payload を更新する (spec §13.2 update)。
-   * sequence を increment し lastActivityAt を更新する。
-   * FS write はしない (Forward-Compat 原則 ④: snapshot only)。
+ * payload を更新する (spec §13.2 update)。
+ * sequence を increment し lastActivityAt を更新したうえで、active draft を FS に非同期永続化する。
    */
   update(
     editSessionId: string,
@@ -406,6 +482,9 @@ export class EditSessionStore {
     const now = new Date().toISOString();
     participant.lastActivityAt = now;
     session.lastActivityAt = now;
+    this.enqueuePersist(session).catch((e) => {
+      console.error(`[editSessionStore.update] persist FS error (${editSessionId}):`, e);
+    });
 
     return { sequence: session.sequence };
   }
@@ -419,6 +498,15 @@ export class EditSessionStore {
     const session = this.store.get(editSessionId);
     if (!session) return null;
     return { payload: session.payload, sequence: session.sequence };
+  }
+
+  async fetchCurrentPayloadFromFs(editSessionId: string): Promise<{ payload: unknown; sequence: number } | null> {
+    const live = this.fetchCurrentPayload(editSessionId);
+    if (live) return live;
+    const restored = await readEditSessionFromFs(this.workspaceRoot, editSessionId);
+    if (!restored) return null;
+    this.store.set(restored.id, restored);
+    return { payload: restored.payload, sequence: restored.sequence };
   }
 
   // ── save ────────────────────────────────────────────────────────────────────
@@ -480,7 +568,7 @@ export class EditSessionStore {
     session.lastActivityAt = now;
 
     // history FS に書き込む (spec §13.4)
-    await writeEditSessionToFs(this.workspaceRoot, session);
+    await this.enqueuePersist(session);
 
     return event;
   }
@@ -597,7 +685,7 @@ export class EditSessionStore {
     session.lastActivityAt = now;
 
     // history FS に Discarded 状態を書き込む (spec §13.4)
-    await writeEditSessionToFs(this.workspaceRoot, session);
+    await this.enqueuePersist(session);
 
     void reason; // broadcast は Phase 2 で wsBridge が実施
   }
@@ -635,7 +723,7 @@ export class EditSessionStore {
           session.state = "Discarded";
           session.discardedAt = nowIso;
           session.lastActivityAt = nowIso;
-          await writeEditSessionToFs(this.workspaceRoot, session);
+          await this.enqueuePersist(session);
           results.push({ editSession: session, action: "discarded" });
         }
       } else if (session.state === "Discarded") {
@@ -644,7 +732,7 @@ export class EditSessionStore {
           : new Date(session.lastActivityAt).getTime();
         if (now.getTime() - discardedAt >= retentionMs) {
           // Discarded → 完全削除
-          await deleteEditSessionFromFs(this.workspaceRoot, id);
+          await this.enqueueDelete(id);
           this.store.delete(id);
           results.push({ editSession: session, action: "deleted" });
         }
@@ -738,7 +826,7 @@ export class EditSessionStore {
     // 後続 save 時に再 persist される)。
     for (const session of sessionsToWrite) {
       try {
-        await writeEditSessionToFs(this.workspaceRoot, session);
+        await this.enqueuePersist(session);
       } catch (e) {
         const warning = `edit-session persist 失敗 (${session.id}): ${e instanceof Error ? e.message : String(e)}`;
         console.error(`[editSessionStore] ${warning}`);
@@ -777,5 +865,34 @@ export class EditSessionStore {
       if (p.role === "Edit") return true;
     }
     return false;
+  }
+
+  private enqueuePersist(session: EditSession): Promise<void> {
+    const snapshot = cloneEditSession(session);
+    const previous = this.persistQueues.get(snapshot.id) ?? Promise.resolve();
+    const next = previous
+      .catch(() => undefined)
+      .then(() => writeEditSessionToFs(this.workspaceRoot, snapshot));
+    this.persistQueues.set(snapshot.id, next);
+    next.finally(() => {
+      if (this.persistQueues.get(snapshot.id) === next) {
+        this.persistQueues.delete(snapshot.id);
+      }
+    }).catch(() => undefined);
+    return next;
+  }
+
+  private enqueueDelete(editSessionId: string): Promise<void> {
+    const previous = this.persistQueues.get(editSessionId) ?? Promise.resolve();
+    const next = previous
+      .catch(() => undefined)
+      .then(() => deleteEditSessionFromFs(this.workspaceRoot, editSessionId));
+    this.persistQueues.set(editSessionId, next);
+    next.finally(() => {
+      if (this.persistQueues.get(editSessionId) === next) {
+        this.persistQueues.delete(editSessionId);
+      }
+    }).catch(() => undefined);
+    return next;
   }
 }

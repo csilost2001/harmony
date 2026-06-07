@@ -232,10 +232,10 @@ export class WsBridge extends EventEmitter {
   }
 
   /** spec §13.3: 現在の payload + sequence を取得 (broadcast 待ちなし) */
-  editSessionFetchPayload(
+  async editSessionFetchPayload(
     sessionId: string,
     editSessionId: string,
-  ): { payload: unknown; sequence: number } {
+  ): Promise<{ payload: unknown; sequence: number }> {
     return this.editSessionService.fetchPayload(sessionId, editSessionId);
   }
 

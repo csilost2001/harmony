@@ -715,6 +715,10 @@ async function fileExists(absPath: string): Promise<boolean> {
   try { await fs.access(absPath); return true; } catch { return false; }
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /** dataRoot 相対 path 表示用 (snapshot/preview の filePath カラム表記) */
 function toRel(absPath: string, dataRoot: string): string {
   return path.relative(dataRoot, absPath).replace(/\\/g, "/");
@@ -906,6 +910,30 @@ async function planFileRenames(
         to: path.join(dir, `${newId}.design.json`),
         kind: "companion",
       });
+    }
+    const componentsFrom = path.join(dir, `${oldId}.components.html`);
+    if (await fileExists(componentsFrom)) {
+      plans.push({
+        from: componentsFrom,
+        to: path.join(dir, `${newId}.components.html`),
+        kind: "companion",
+      });
+    }
+    const prefix = `${oldId}.`;
+    try {
+      const files = await fs.readdir(dir);
+      for (const file of files) {
+        if (!file.startsWith(prefix) || !file.endsWith(".components.html")) continue;
+        if (file === `${oldId}.components.html`) continue;
+        const suffix = file.slice(oldId.length);
+        plans.push({
+          from: path.join(dir, file),
+          to: path.join(dir, `${newId}${suffix}`),
+          kind: "companion",
+        });
+      }
+    } catch {
+      // dir missing is handled by primary plan absence
     }
   }
   // Phase I round 3+4 Must-fix F (Codex round 4 M-5): Puck screen は payload を
@@ -2225,7 +2253,12 @@ async function _renameEntityIdImpl(
       if (plan.kind !== "companion") continue;
       const oldContent = await readFileContentOrNull(plan.from);
       if (oldContent !== null) {
-        await writeFileContent(plan.to, oldContent);
+        const content = plan.from.endsWith(".design.json")
+          ? oldContent
+            .replaceAll(`${oldId}.components.html`, `${newId}.components.html`)
+            .replace(new RegExp(`${escapeRegExp(oldId)}\\.(\\d+)\\.components\\.html`, "g"), `${newId}.$1.components.html`)
+          : oldContent;
+        await writeFileContent(plan.to, content);
         writtenFiles.push(plan.to);
       }
     }

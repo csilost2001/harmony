@@ -98,6 +98,50 @@ describe("saveSnapshot", () => {
     expect(parsed.historyId).toBe(entry.historyId);
     expect(parsed.snapshot).toEqual({ id: "tbl-1", columns: [] });
   });
+
+  it("screen snapshot は components string を history companion HTML に分離し、list/restore で復元する (#1448)", async () => {
+    const snapshot = {
+      pages: [
+        {
+          frames: [
+            {
+              component: {
+                type: "wrapper",
+                components: "<main>draft</main>\n",
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const entry = await store.saveSnapshot({
+      resourceType: "screen",
+      resourceId: "scr-history",
+      editSessionId: "es-history-001",
+      ownerSessionId: "session-A",
+      ownerLabel: "@alice",
+      reason: "discard",
+      snapshot,
+    });
+
+    const dir = path.join(tmpDir, ".edit-sessions-history", "screen", "scr-history");
+    const jsonPath = path.join(dir, `${entry.historyId}.json`);
+    const designPath = path.join(dir, entry.historyId, "payload.design.json");
+    const htmlPath = path.join(dir, entry.historyId, "payload.components.html");
+    const storedEntry = JSON.parse(await fs.readFile(jsonPath, "utf-8"));
+    expect(storedEntry.snapshot).toEqual({ payloadRef: `${entry.historyId}/payload.design.json` });
+    const designPayload = JSON.parse(await fs.readFile(designPath, "utf-8"));
+    expect(designPayload.pages[0].frames[0].component.componentsRef).toBe("payload.components.html");
+    expect(designPayload.pages[0].frames[0].component).not.toHaveProperty("components");
+    expect(await fs.readFile(htmlPath, "utf-8")).toBe("<main>draft</main>\n");
+
+    const listed = await store.listHistory({ resourceType: "screen", resourceId: "scr-history" });
+    expect((listed[0].snapshot as any).pages[0].frames[0].component.components).toBe("<main>draft</main>\n");
+
+    const restored = await store.restoreFromHistory({ historyId: entry.historyId });
+    expect((restored!.snapshot as any).pages[0].frames[0].component.components).toBe("<main>draft</main>\n");
+  });
 });
 
 // ── listHistory ───────────────────────────────────────────────────────────────
@@ -241,6 +285,33 @@ describe("cleanupExpired", () => {
     await expect(fs.access(oldFilePath)).rejects.toThrow();
 
     void files; // suppress unused warning
+  });
+
+  it("期限切れ history の components companion も削除する (#1448)", async () => {
+    const entry = await store.saveSnapshot({
+      resourceType: "screen",
+      resourceId: "scr-cleanup-components",
+      editSessionId: "es-old-components",
+      ownerSessionId: "session-A",
+      ownerLabel: "@alice",
+      reason: "discard",
+      snapshot: {
+        pages: [{ frames: [{ component: { type: "wrapper", components: "<main>old</main>" } }] }],
+      },
+    });
+
+    const historyDir = path.join(tmpDir, ".edit-sessions-history", "screen", "scr-cleanup-components");
+    const jsonPath = path.join(historyDir, `${entry.historyId}.json`);
+    const payloadDir = path.join(historyDir, entry.historyId);
+    const htmlPath = path.join(payloadDir, "payload.components.html");
+    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+    await fs.utimes(jsonPath, eightDaysAgo, eightDaysAgo);
+
+    const deleted = await store.cleanupExpired({ olderThanDays: 7 });
+    expect(deleted).toContain(entry.historyId);
+    await expect(fs.access(jsonPath)).rejects.toThrow();
+    await expect(fs.access(payloadDir)).rejects.toThrow();
+    await expect(fs.access(htmlPath)).rejects.toThrow();
   });
 
   it("ディレクトリが存在しない場合は空配列を返す", async () => {

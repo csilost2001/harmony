@@ -174,6 +174,53 @@ describe("dataDir = 'harmony' (デフォルト)", () => {
     await fs.access(path.join(root, "harmony", "screens", "scr-001.json"));
   });
 
+  it("writeScreen は GrapesJS components string を .components.html に分離し、readScreen で復元する (#1448)", async () => {
+    const payload = {
+      assets: [],
+      styles: [],
+      pages: [
+        {
+          frames: [
+            {
+              component: {
+                type: "wrapper",
+                components: "<main>\n  <h1>Dashboard</h1>\n</main>\n",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    await writeScreen("scr-components-ref", payload, root);
+
+    const designPath = path.join(root, "harmony", "screens", "scr-components-ref.design.json");
+    const htmlPath = path.join(root, "harmony", "screens", "scr-components-ref.components.html");
+    const storedDesign = JSON.parse(await fs.readFile(designPath, "utf-8"));
+    expect(storedDesign.pages[0].frames[0].component).toMatchObject({
+      type: "wrapper",
+      componentsRef: "scr-components-ref.components.html",
+    });
+    expect(storedDesign.pages[0].frames[0].component).not.toHaveProperty("components");
+    expect(await fs.readFile(htmlPath, "utf-8")).toBe("<main>\n  <h1>Dashboard</h1>\n</main>\n");
+
+    const inflated = await readScreen("scr-components-ref", root) as any;
+    expect(inflated.pages[0].frames[0].component.components).toBe("<main>\n  <h1>Dashboard</h1>\n</main>\n");
+  });
+
+  it("writeScreen は components string が無くなった場合に stale .components.html を削除する (#1448)", async () => {
+    await writeScreen("scr-components-cleanup", {
+      pages: [{ frames: [{ component: { type: "wrapper", components: "<main>old</main>" } }] }],
+    }, root);
+    const htmlPath = path.join(root, "harmony", "screens", "scr-components-cleanup.components.html");
+    await fs.access(htmlPath);
+
+    await writeScreen("scr-components-cleanup", {
+      pages: [{ frames: [{ component: { type: "wrapper" } }] }],
+    }, root);
+
+    await expect(fs.access(htmlPath)).rejects.toThrow();
+  });
+
   it("writeConventions → readConventions で <dataDir>/conventions/ に書き込まれる", async () => {
     await writeConventions({ version: 1, rules: [] }, root);
     const data = await readConventions(root);

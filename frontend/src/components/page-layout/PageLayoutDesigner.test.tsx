@@ -27,6 +27,7 @@ const mockState = vi.hoisted(() => {
     broadcastHandlers,
     editor,
     pageLayout: null as PageLayout | null,
+    designerProps: null as Record<string, unknown> | null,
   };
 });
 
@@ -70,7 +71,9 @@ vi.mock("../../store/puckComponentsStore", () => ({
 
 // Designer is a complex component — mock it for unit test
 vi.mock("../Designer", () => ({
-  Designer: ({ screenId, onGrapesEditorReady }: { screenId: string; onGrapesEditorReady?: (editor: unknown) => void }) => {
+  Designer: (props: { screenId: string; onGrapesEditorReady?: (editor: unknown) => void }) => {
+    const { screenId, onGrapesEditorReady } = props;
+    mockState.designerProps = props as unknown as Record<string, unknown>;
     onGrapesEditorReady?.(mockState.editor);
     return <div data-testid="designer-mock">Designer for {screenId}</div>;
   },
@@ -112,6 +115,7 @@ describe("PageLayoutDesigner", () => {
     mockState.componentAddHandlers.clear();
     mockState.broadcastHandlers.clear();
     mockState.pageLayout = defaultPageLayout;
+    mockState.designerProps = null;
     vi.mocked(mcpBridge.request).mockResolvedValue({ sessions: [] });
     vi.mocked(mcpBridge.loadPuckData).mockResolvedValue(null);
     vi.mocked(loadCustomPuckComponents).mockResolvedValue([]);
@@ -138,6 +142,32 @@ describe("PageLayoutDesigner", () => {
         expect(body).toContain("Main Layout");
       }
     }, { timeout: 3000 });
+  });
+
+  it("passes PageLayout design metadata and dedicated committed loader to Designer", async () => {
+    const committed = { root: { props: {} }, content: [{ type: "RegionMain", props: {} }] };
+    vi.mocked(mcpBridge.request).mockImplementation(async (method) => {
+      if (method === "loadPageLayoutDesign") return committed;
+      if (method === "editSession.list") return { sessions: [] };
+      return null;
+    });
+
+    renderDesigner();
+
+    await waitFor(() => {
+      expect(mockState.designerProps).toMatchObject({
+        screenId: "page-layout:pl-design-001",
+        editSessionResourceType: "page-layout-design",
+        editSessionResourceId: "pl-design-001",
+        designEditorKind: "puck",
+        designCssFramework: "bootstrap",
+      });
+    });
+
+    const loadCommittedDesign = mockState.designerProps?.loadCommittedDesign as (() => Promise<unknown>) | undefined;
+    await expect(loadCommittedDesign?.()).resolves.toBe(committed);
+    expect(mcpBridge.request).toHaveBeenCalledWith("loadPageLayoutDesign", { pageLayoutId: "pl-design-001" });
+    expect(mcpBridge.loadPuckData).not.toHaveBeenCalledWith("page-layout:pl-design-001");
   });
 
   it("loads custom Puck components for composition preview config", async () => {
