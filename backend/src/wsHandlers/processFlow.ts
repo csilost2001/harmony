@@ -56,7 +56,7 @@ export const processFlowHandlers: RpcHandlerMap = {
     // S-002: ID validation
     await writeProcessFlow(agId, agData, root());
     respond({ success: true });
-    bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { processFlowId: agId, id: agId }, excludeClientId: clientId });
+    bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { processFlowId: agId }, excludeClientId: clientId });
   },
 
   deleteProcessFlow: async ({ params, root, wsId, clientId, respond, bridge }) => {
@@ -65,7 +65,7 @@ export const processFlowHandlers: RpcHandlerMap = {
     // S-002: ID validation
     await deleteProcessFlowFile(agId, root());
     respond({ success: true });
-    bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { processFlowId: agId, id: agId, deleted: true }, excludeClientId: clientId });
+    bridge.broadcast({ wsId: wsId(), event: "processFlowChanged", data: { processFlowId: agId, deleted: true }, excludeClientId: clientId });
   },
 
   listProcessFlows: async ({ root, respond }) => {

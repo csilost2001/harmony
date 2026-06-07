@@ -265,7 +265,8 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
         () => sendBrowserRequest("saveProcessFlow", { processFlowId: id, data: testData }),
       );
       expect((saveResult as { success: boolean }).success).toBe(true);
-      expect(broadcast).toMatchObject({ processFlowId: id, id });
+      expect(broadcast).toMatchObject({ processFlowId: id });
+      expect(broadcast).not.toHaveProperty("id");
 
       const loadResult = await sendBrowserRequest("loadProcessFlow", { processFlowId: id });
       expect(loadResult).toMatchObject(testData);
@@ -289,7 +290,8 @@ test.describe("wsBridge ファイル操作 (#958)", { tag: ["@regression"] }, ()
         () => sendBrowserRequest("deleteProcessFlow", { processFlowId: id }),
       );
       expect((deleteResult as { success: boolean }).success).toBe(true);
-      expect(broadcast).toMatchObject({ processFlowId: id, id, deleted: true });
+      expect(broadcast).toMatchObject({ processFlowId: id, deleted: true });
+      expect(broadcast).not.toHaveProperty("id");
 
       const loadResult = await sendBrowserRequest("loadProcessFlow", { processFlowId: id });
       expect(loadResult).toBeNull();
