@@ -64,6 +64,8 @@ interface Props {
   onReset?: () => Promise<void>;
   onAiGenerate?: () => void;
   screenId?: string;
+  /** screen 専用の AI rename / id rename UI を有効にする。PageLayout Designer では false。 */
+  enableScreenRename?: boolean;
   /** 読み取り専用モードの場合 true — 保存/リセットボタンを非表示にする */
   isReadonly?: boolean;
   /**
@@ -102,7 +104,7 @@ interface Props {
   onOpenRenameDialog?: () => void;
 }
 
-export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeChange, mcpStatus, backLink, isDirty, isSaving, onSaveToFile, onReset, onAiGenerate, screenId, isReadonly, editor, sessionMode, sessionId, onStartEditing, onViewerAttached, onAttachAsView, onTakeOver, onOpenRenameDialog }: Props) {
+export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeChange, mcpStatus, backLink, isDirty, isSaving, onSaveToFile, onReset, onAiGenerate, screenId, enableScreenRename = true, isReadonly, editor, sessionMode, sessionId, onStartEditing, onViewerAttached, onAttachAsView, onTakeOver, onOpenRenameDialog }: Props) {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
 
   // ── AI 命名 (#337) ───────────────────────────────────────────────────────
@@ -116,15 +118,16 @@ export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeC
 
   // auth-check: MCP 接続時に 1 回だけ実行
   useEffect(() => {
-    if (mcpStatus !== "connected" || !screenId) return;
+    if (!enableScreenRename || mcpStatus !== "connected" || !screenId) return;
     fetch(`${MCP_HTTP_BASE}/ai/rename-screen-ids/auth-check`)
       .then((r) => r.json())
       .then((d: unknown) => { setAiRenameAuthOk((d as { authenticated: boolean }).authenticated); })
       .catch(() => { setAiRenameAuthOk(false); });
-  }, [mcpStatus, screenId]);
+  }, [enableScreenRename, mcpStatus, screenId]);
 
   // aiRenameProgress イベントを購読（セッション ID が一致するイベントのみ処理）
   useEffect(() => {
+    if (!enableScreenRename) return;
     const unsub = mcpBridge.onBroadcast("aiRenameProgress", (data) => {
       const ev = data as AiRenameProgress & { sessionId?: string };
       if (ev.sessionId && ev.sessionId !== aiRenameSessionRef.current) return;
@@ -134,7 +137,7 @@ export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeC
       }
     });
     return unsub;
-  }, []);
+  }, [enableScreenRename]);
 
   useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
 
@@ -145,7 +148,7 @@ export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeC
   }, []);
 
   const handleAiRename = useCallback(async () => {
-    if (!screenId) return;
+    if (!enableScreenRename || !screenId) return;
     const sessionId = generateUUID();
     aiRenameSessionRef.current = sessionId;
     const abort = new AbortController();
@@ -168,7 +171,7 @@ export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeC
         setAiRenameProgress({ stage: "error", message: "通信エラー", error: String(e) });
       }
     }
-  }, [screenId]);
+  }, [enableScreenRename, screenId]);
 
   const handleAiRenameCancel = useCallback(() => {
     aiRenameSessionRef.current = null;
@@ -178,7 +181,7 @@ export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeC
   }, []);
 
   const handleAiRenameApply = useCallback(async () => {
-    if (!screenId || !aiRenameMapping) return;
+    if (!enableScreenRename || !screenId || !aiRenameMapping) return;
     const entries = Object.entries(aiRenameMapping);
     if (entries.length === 0) {
       setAiRenameProgress(null);
@@ -201,7 +204,7 @@ export function DesignSubToolbar({ panelMode, onOpenPanel, activeTheme, onThemeC
     setAiRenameMapping(null);
     setTimeout(() => setAiRenameProgress(null), 800);
     showToast(`リネーム完了: 成功 ${succeeded} 件、失敗 ${failed} 件`, failed > 0);
-  }, [screenId, aiRenameMapping, showToast]);
+  }, [enableScreenRename, screenId, aiRenameMapping, showToast]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -440,22 +443,24 @@ ${html}
                     <i className="bi bi-magic" />
                   </button>
                 )}
-                <button
-                  className="icon-btn"
-                  onClick={() => { void handleAiRename(); }}
-                  disabled={!aiRenameAuthOk || aiRenameProgress !== null}
-                  title={
-                    aiRenameAuthOk === false
-                      ? "claude CLI が未認証です (claude login を実行してください)"
-                      : aiRenameAuthOk === null
-                      ? "認証を確認中..."
-                      : "ID を AI で再命名"
-                  }
-                >
-                  <i className="bi bi-stars" />
-                </button>
+                {enableScreenRename && (
+                  <button
+                    className="icon-btn"
+                    onClick={() => { void handleAiRename(); }}
+                    disabled={!aiRenameAuthOk || aiRenameProgress !== null}
+                    title={
+                      aiRenameAuthOk === false
+                        ? "claude CLI が未認証です (claude login を実行してください)"
+                        : aiRenameAuthOk === null
+                        ? "認証を確認中..."
+                        : "ID を AI で再命名"
+                    }
+                  >
+                    <i className="bi bi-stars" />
+                  </button>
+                )}
                 {/* #1298 I-6 (RFC #1284): 画面 id 変更 (rename refactor) */}
-                {onOpenRenameDialog && (
+                {enableScreenRename && onOpenRenameDialog && (
                   <button
                     className="icon-btn"
                     onClick={onOpenRenameDialog}

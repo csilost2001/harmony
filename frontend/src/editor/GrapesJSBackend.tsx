@@ -36,6 +36,7 @@ import GjsEditor, {
 import html2canvas from "html2canvas";
 
 import type {
+  DesignerResourceKind,
   EditorApi,
   EditorBackend,
   EditorState,
@@ -295,6 +296,7 @@ async function captureThumbnail(editor: GEditor): Promise<string | null> {
  */
 interface GrapesJSEditorPaneProps {
   screenId: string;
+  resourceKind?: DesignerResourceKind;
   isReadonly: boolean;
   panelMode: PanelMode;
   cssFramework: CssFramework;
@@ -330,6 +332,7 @@ interface GrapesJSEditorPaneProps {
 function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
   const {
     screenId,
+    resourceKind = "screen",
     isReadonly,
     panelMode,
     cssFramework,
@@ -348,6 +351,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
     onGrapesEditorInstance,
     gadgetBlocks = [],
   } = props;
+  const isScreenResource = resourceKind === "screen";
 
   const editorRef = useRef<GEditor | null>(null);
   const gadgetBlocksRef = useRef(gadgetBlocks);
@@ -452,7 +456,9 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       const unsubDataItemId = attachDataItemIdAutoAssign(editor);
 
       // #358: canvas ↔ screen-items 双方向同期
-      const unsubScreenItemsSync = attachScreenItemsSync(editor, screenId, isInternalLoadRef);
+      const unsubScreenItemsSync = isScreenResource
+        ? attachScreenItemsSync(editor, screenId, isInternalLoadRef)
+        : (() => undefined);
 
       // mcpBridge 起動
       const unsubStatus = mcpBridge.onStatusChange((status) => {
@@ -461,7 +467,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       mcpBridge.setThemeHandler((themeId) => {
         onExternalThemeChangeRef.current?.(themeId as ThemeId);
       });
-      mcpBridge.setCurrentScreenId(screenId);
+      if (isScreenResource) mcpBridge.setCurrentScreenId(screenId);
       mcpBridge.start(editor);
 
       // 他タブ / 別クライアントの screenChanged broadcast 購読
@@ -472,13 +478,15 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       // - `reload: true` → 全件 invalidation シグナル (id filter より先に処理)
       // - `oldId === screenId` → 自身が rename された場合
       // - 通常の screenChanged → 旧 filter 条件
-      const unsubScreenChanged = mcpBridge.onBroadcast("screenChanged", (data) => {
-        if (shouldNotifyScreenChanged(data, screenId)) {
-          onServerChangedRef.current?.();
-          return;
-        }
-        scheduleGadgetPreviewSync();
-      });
+      const unsubScreenChanged = isScreenResource
+        ? mcpBridge.onBroadcast("screenChanged", (data) => {
+            if (shouldNotifyScreenChanged(data, screenId)) {
+              onServerChangedRef.current?.();
+              return;
+            }
+            scheduleGadgetPreviewSync();
+          })
+        : (() => undefined);
       const unsubProjectChanged = mcpBridge.onBroadcast("projectChanged", scheduleGadgetPreviewSync);
 
       return () => {
@@ -494,11 +502,11 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
         unsubScreenChanged();
         unsubProjectChanged();
         mcpBridge.setThemeHandler(null);
-        mcpBridge.setCurrentScreenId(null);
-        clearItemsFromCache(screenId);
+        if (isScreenResource) mcpBridge.setCurrentScreenId(null);
+        if (isScreenResource) clearItemsFromCache(screenId);
       };
     },
-    [screenId],
+    [isScreenResource, screenId],
   );
 
   useEffect(() => {
@@ -529,7 +537,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       // 次のマクロタスクでガードを下げる (#131)。同タイミングで canvas ↔ screen-items 初回突合 (#358)。
       setTimeout(() => {
         isInternalLoadRef.current = false;
-        if (editorRef.current) reconcileScreenItems(editorRef.current, screenId);
+        if (isScreenResource && editorRef.current) reconcileScreenItems(editorRef.current, screenId);
       }, 0);
 
       // framework × variant の 2 軸 CSS を注入 (#793 子 5)
@@ -571,7 +579,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
           } finally {
             setTimeout(() => {
               isInternalLoadRef.current = false;
-              if (editorRef.current) reconcileScreenItems(editorRef.current, screenId);
+              if (isScreenResource && editorRef.current) reconcileScreenItems(editorRef.current, screenId);
             }, 0);
           }
         },
@@ -594,7 +602,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
           } finally {
             setTimeout(() => {
               isInternalLoadRef.current = false;
-              if (editorRef.current) reconcileScreenItems(editorRef.current, screenId);
+              if (isScreenResource && editorRef.current) reconcileScreenItems(editorRef.current, screenId);
             }, 0);
           }
         },
@@ -606,7 +614,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
     }
   // initialPayload は mount 時点の値を使う (再 mount しないため依存に含めない)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screenId]);
+  }, [isScreenResource, screenId]);
 
   // canvas-empty 状態を追跡
   useEffect(() => {

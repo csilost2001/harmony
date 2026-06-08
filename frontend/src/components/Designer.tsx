@@ -19,7 +19,7 @@ import { useEditSession } from "../hooks/useEditSession";
 import { useSessionUrlSync } from "../hooks/useSessionUrlSync";
 import { PuckBackend } from "../editor/PuckBackend";
 import { GrapesJSBackend } from "../editor/GrapesJSBackend";
-import type { EditorApi, EditorState } from "../editor/EditorBackend";
+import type { DesignerResourceKind, EditorApi, EditorState } from "../editor/EditorBackend";
 import { DESIGNER_REFERENCE_RELOAD_EVENTS, isReloadBroadcast, shouldNotifyScreenChanged } from "../editor/reloadEvents";
 // #1388 sub-section A 派生 2 件 (Option 1): renderEditor 呼び出しと props 構築を host に隔離して
 // react-hooks/refs (Designer scope 内 ref 含む closure が props 経由で渡される) を解消。
@@ -49,6 +49,7 @@ export type ThemeId = "standard" | "card" | "compact" | "dark";
 
 export interface DesignerProps {
   screenId: string;
+  resourceKind?: DesignerResourceKind;
   screenName?: string;
   editSessionResourceType?: DesignerDraftResourceType;
   editSessionResourceId?: string;
@@ -90,6 +91,7 @@ export interface DesignerProps {
 
 export function Designer({
   screenId,
+  resourceKind = "screen",
   screenName,
   editSessionResourceType,
   editSessionResourceId,
@@ -109,6 +111,7 @@ export function Designer({
   pageLayoutCss,
   gadgetCssMap,
 }: DesignerProps) {
+  const isScreenResource = resourceKind === "screen";
   const [isDirty, setIsDirtyState] = useState(false);
   // RFC #1021 pl-6 (Codex C-1): GrapesJS editor の生インスタンス参照 / composition preview modal の表示状態は
   // #1388 sub-section A 派生 2 件で GrapesEditorHost 内に移動。Designer scope では保持しない。
@@ -177,7 +180,7 @@ export function Designer({
   const { wsPath, wsId } = useWorkspacePath();
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   // Phase M Codex SF-1 (#1298 round 8): wsId scoped key で workspace 切替時の metadata 混在を防ぐ
-  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("screen", screenId, wsId);
+  const [renameUndoToast, setRenameUndoToast] = useRenameEntityUndoToast("screen", isScreenResource ? screenId : undefined, wsId);
   const [allScreenIds, setAllScreenIds] = useState<string[]>([]);
   const [gadgetBlocks, setGadgetBlocks] = useState<GadgetBlockScreen[]>([]);
   const reloadDesignerProjectMetadata = useCallback(async () => {
@@ -333,7 +336,7 @@ export function Designer({
     }
     Promise.all([
       loadRawProject(),
-      loadScreenEntity(screenId),
+      isScreenResource ? loadScreenEntity(screenId) : Promise.resolve({ design: undefined }),
     ]).then(([raw, screen]) => {
       if (cancelled) return;
       const fw = resolveCssFramework(screen.design, raw.techStack);
@@ -352,7 +355,7 @@ export function Designer({
       if (!cancelled) setEditorKindResolved(true);
     });
     return () => { cancelled = true; };
-  }, [designCssFramework, designEditorKind, editSessionResourceType, screenId]);
+  }, [designCssFramework, designEditorKind, editSessionResourceType, isScreenResource, screenId]);
 
   // cssFrameworkRef を cssFramework state と同期 (onReady closure から参照するため)
   useEffect(() => {
@@ -483,8 +486,8 @@ export function Designer({
     editorApiRef.current = api;
     // 初期 theme 適用 (multi-editor-puck.md § 3 — Backend onReady 後に Designer.tsx が theme を当てる)
     api.applyTheme(activeTheme, cssFrameworkRef.current);
-    // localStorage 救済チェック (mount 1 回のみ)
-    if (!legacyRescueCheckedRef.current) {
+    // localStorage 救済チェック (mount 1 回のみ、screen resource のみ)
+    if (isScreenResource && !legacyRescueCheckedRef.current) {
       legacyRescueCheckedRef.current = true;
       checkLegacyLocalStorage(screenId).then((result) => {
         if (result.hasLegacy) {
@@ -493,7 +496,7 @@ export function Designer({
         }
       }).catch(console.error);
     }
-  }, [activeTheme, screenId]);
+  }, [activeTheme, isScreenResource, screenId]);
 
   // GrapesJS の screenChanged broadcast 受信通知 — dirty 中はバナー、clean なら即時 reload
   const handleGrapesServerChanged = useCallback(() => {
@@ -538,10 +541,10 @@ export function Designer({
     isDirtyRef.current = false;
     setDirty(tabId, false);
     setServerChanged(false);
-    await acknowledgeServerMtime("screen", screenId);
+    if (isScreenResource) await acknowledgeServerMtime("screen", screenId);
     // サムネイル生成 (GrapesJS のみ — Puck は API.captureThumbnail() が null を返す)
     const api = editorApiRef.current;
-    if (api && !api.isCanvasEmpty()) {
+    if (isScreenResource && api && !api.isCanvasEmpty()) {
       api.captureThumbnail().then(async (thumbnail) => {
         if (!thumbnail) return;
         try {
@@ -552,7 +555,7 @@ export function Designer({
         }
       });
     }
-  }, [screenId, tabId]);
+  }, [isScreenResource, screenId, tabId]);
 
   /** 保存: 保留中の debounce を flush してから editSession.save */
   const handleSave = useCallback(async () => {
@@ -613,7 +616,7 @@ export function Designer({
       isDirtyRef.current = false;
       setDirty(tabId, false);
       setServerChanged(false);
-      await acknowledgeServerMtime("screen", screenId);
+      if (isScreenResource) await acknowledgeServerMtime("screen", screenId);
     } catch (e) {
       console.error("[Designer] discard failed:", e);
       showError({
@@ -622,7 +625,7 @@ export function Designer({
         context: { screenId, tabId },
       });
     }
-  }, [screenId, tabId, editActions, showError]);
+  }, [isScreenResource, screenId, tabId, editActions, showError]);
 
   const handleForceRelease = useCallback(async () => {
     setShowForceReleaseDialog(false);
@@ -650,11 +653,11 @@ export function Designer({
       isDirtyRef.current = false;
       setDirty(tabId, false);
       setServerChanged(false);
-      await acknowledgeServerMtime("screen", screenId);
+      if (isScreenResource) await acknowledgeServerMtime("screen", screenId);
     } catch (e) {
       console.error("[Designer] server change reload failed:", e);
     }
-  }, [screenId, tabId]);
+  }, [isScreenResource, screenId, tabId]);
 
   // localStorage 救済: 採用
   const handleLegacyRescueAdopt = useCallback(async () => {
@@ -852,7 +855,7 @@ export function Designer({
       unsubScreenChanged();
       unsubReloadEvents.forEach((fn) => fn());
     };
-  }, [editorKind, screenId]);
+  }, [editorKind, isScreenResource, screenId]);
 
   // ---------------------------------------------------------------------------
   // 共通ダイアログ群 (GrapesJS / Puck 両方で使う)
@@ -920,7 +923,7 @@ export function Designer({
         onClose: () => setShowAiGenerateDialog(false),
       }}
       rename={{
-        show: showRenameDialog,
+        show: isScreenResource && showRenameDialog,
         screenId,
         screenName,
         allScreenIds,
@@ -991,6 +994,7 @@ export function Designer({
         isReadonly={isReadonly}
         panelMode={panelMode}
         screenId={screenId}
+        resourceKind={resourceKind}
         screenName={screenName}
         mcpStatus={mcpStatus}
         isDirty={isDirty}
@@ -1009,7 +1013,7 @@ export function Designer({
         onViewerAttached={syncSessionToUrl}
         onAttachAsView={editAttach}
         onTakeOver={editTakeOver}
-        onOpenRenameDialog={() => setShowRenameDialog(true)}
+        onOpenRenameDialog={isScreenResource ? () => setShowRenameDialog(true) : undefined}
         onChange={handlePuckChange}
         onReady={handlePuckReady}
         reloadPayload={puckReloadPayload}
@@ -1044,6 +1048,7 @@ export function Designer({
       isReadonly={isReadonly}
       panelMode={panelMode}
       screenId={screenId}
+      resourceKind={resourceKind}
       screenName={screenName}
       mcpStatus={mcpStatus}
       isDirty={isDirty}
@@ -1062,7 +1067,7 @@ export function Designer({
       onViewerAttached={syncSessionToUrl}
       onAttachAsView={editAttach}
       onTakeOver={editTakeOver}
-      onOpenRenameDialog={() => setShowRenameDialog(true)}
+      onOpenRenameDialog={isScreenResource ? () => setShowRenameDialog(true) : undefined}
       onChange={handleGrapesChange}
       onReady={handleGrapesReady}
       onServerChanged={handleGrapesServerChanged}
