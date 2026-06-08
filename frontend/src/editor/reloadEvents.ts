@@ -20,6 +20,14 @@ export function shouldNotifyScreenChanged(data: unknown, screenId: string): bool
   return d.screenId === screenId && !d.deleted;
 }
 
+export function shouldNotifyDesignerScreenChanged(
+  resourceKind: "screen" | "pageLayout",
+  data: unknown,
+  screenId: string,
+): boolean {
+  return resourceKind === "screen" && shouldNotifyScreenChanged(data, screenId);
+}
+
 export function isReloadBroadcast(data: unknown): boolean {
   return ((data ?? {}) as { reload?: boolean }).reload === true;
 }
