@@ -83,10 +83,43 @@
   background: #d97706;
 }
 
+.extensions-panel .btn-danger {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+.extensions-panel .btn-danger:hover:not(:disabled) {
+  border-color: #b91c1c;
+  background: #b91c1c;
+}
+
 .extensions-panel .btn-secondary {
   border-color: #64748b;
   background: #64748b;
   color: #fff;
+}
+
+.extensions-panel .btn-secondary:hover:not(:disabled) {
+  border-color: #475569;
+  background: #475569;
+  color: #fff;
+}
+
+.extensions-panel .btn-link {
+  min-height: 0;
+  padding-right: 0;
+  padding-left: 0;
+  border-color: transparent;
+  background: transparent;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.extensions-panel .btn-link:hover:not(:disabled) {
+  background: transparent;
+  color: #1d4ed8;
+  text-decoration: underline;
 }
 
 .extensions-panel .btn-outline-primary {
@@ -108,6 +141,16 @@
   background: #f8fafc;
 }
 
+.extensions-panel .btn-outline-warning {
+  border-color: #fcd34d;
+  color: #b45309;
+}
+
+.extensions-panel .btn-outline-warning:hover:not(:disabled) {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
 .extensions-panel .btn-outline-danger {
   border-color: #fecaca;
   color: #dc2626;
@@ -116,6 +159,27 @@
 .extensions-panel .btn-outline-danger:hover:not(:disabled) {
   border-color: #fca5a5;
   background: #fef2f2;
+}
+
+.extensions-panel .btn-close {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.extensions-panel .btn-close::before {
+  content: "x";
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.extensions-panel .btn-close:hover {
+  background: #f1f5f9;
+  color: #1f2937;
 }
 
 .extensions-panel .form-label {
@@ -178,6 +242,22 @@
   color: #991b1b;
 }
 
+.extensions-panel .badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.extensions-panel .bg-secondary {
+  background: #64748b;
+  color: #fff;
+}
+
 .extensions-panel .text-muted {
   color: #64748b;
 }
@@ -194,8 +274,34 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+.extensions-panel .w-100 {
+  width: 100%;
+}
+
+.extensions-panel .text-start {
+  text-align: left;
+}
+
+.extensions-panel .ms-1 {
+  margin-left: 4px;
+}
+
+.extensions-panel .ms-auto {
+  margin-left: auto;
+}
+
 .extensions-panel .me-1 {
   margin-right: 4px;
+}
+
+.extensions-panel .px-2 {
+  padding-right: 8px;
+  padding-left: 8px;
+}
+
+.extensions-panel .py-1 {
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 .extensions-panel .py-2 {
