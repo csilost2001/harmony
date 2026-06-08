@@ -38,11 +38,13 @@ class FakeWebSocket extends EventTarget {
   static CONNECTING = 0;
   static CLOSING = 2;
   static CLOSED = 3;
+  static instances: FakeWebSocket[] = [];
 
   readyState: number = FakeWebSocket.CONNECTING;
 
   constructor(_url: string) {
     super();
+    FakeWebSocket.instances.push(this);
   }
 
   send(_data: string): void {}
@@ -57,6 +59,7 @@ class FakeWebSocket extends EventTarget {
 const originalWebSocket = globalThis.WebSocket;
 
 beforeEach(() => {
+  FakeWebSocket.instances = [];
   // @ts-expect-error test stub
   globalThis.WebSocket = FakeWebSocket;
 
@@ -146,5 +149,36 @@ describe("McpStatus 状態遷移ロジック (#795-C)", () => {
     bridge.startWithoutEditor(); // no-op
     expect(bridge.getConnectAttempts()).toBe(countAfterFirst);
     expect(bridge.getStatus()).toBe("connecting");
+  });
+
+  it("connecting 中に start(editor) を再呼び出ししても connectAttempts は増えない", async () => {
+    const bridge = await getFreshBridge();
+    const editor = {} as Parameters<typeof bridge.start>[0];
+
+    bridge.start(editor);
+    const countAfterFirst = bridge.getConnectAttempts();
+
+    bridge.start({} as Parameters<typeof bridge.start>[0]);
+
+    expect(bridge.getConnectAttempts()).toBe(countAfterFirst);
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    expect(bridge.getStatus()).toBe("connecting");
+  });
+
+  it("open 済みの start(editor) 再呼び出しでも connectAttempts は増えない", async () => {
+    const bridge = await getFreshBridge();
+    const editor = {} as Parameters<typeof bridge.start>[0];
+
+    bridge.start(editor);
+    const ws = FakeWebSocket.instances[0];
+    ws.readyState = FakeWebSocket.OPEN;
+    ws.dispatchEvent(new Event("open"));
+    const countAfterOpen = bridge.getConnectAttempts();
+
+    bridge.start({} as Parameters<typeof bridge.start>[0]);
+
+    expect(bridge.getConnectAttempts()).toBe(countAfterOpen);
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    expect(bridge.getStatus()).toBe("connected");
   });
 });

@@ -247,12 +247,11 @@ class McpBridgeImpl {
   start(editor: GEditor): void {
     this.editor = editor;
     this.stopped = false;
-    uiInfo("ws-broadcast", "mcpBridge starting...");
-    // 既存の接続が生きていればそのまま再利用（FlowEditor からの遷移時にエディターだけ差し替え）
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      uiInfo("ws-broadcast", "mcpBridge reusing existing connection");
+    // 既存接続が生きていれば editor 参照の差し替えだけ行う。
+    if (this._hasActiveConnection()) {
       return;
     }
+    uiInfo("ws-broadcast", "mcpBridge starting...");
     this._connect();
   }
 
@@ -328,8 +327,13 @@ class McpBridgeImpl {
     this.statusCallbacks.forEach((cb) => cb(s));
   }
 
+  private _hasActiveConnection(): boolean {
+    return this.ws?.readyState === WebSocket.OPEN || this.ws?.readyState === WebSocket.CONNECTING;
+  }
+
   private _connect(): void {
     if (this.stopped) return;
+    if (this._hasActiveConnection()) return;
     this.connectAttempts++;
     this._setStatus("connecting");
     uiInfo("ws-broadcast", `mcpBridge connecting to ${WS_URL} (attempt ${this.connectAttempts})`);
