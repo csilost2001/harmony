@@ -258,6 +258,29 @@
   color: #fff;
 }
 
+.extensions-panel .spinner-border {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  vertical-align: -0.125em;
+  border: 0.16em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: extensions-spinner-border 0.75s linear infinite;
+}
+
+.extensions-panel .spinner-border-sm {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-width: 0.14em;
+}
+
+@keyframes extensions-spinner-border {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .extensions-panel .text-muted {
   color: #64748b;
 }
