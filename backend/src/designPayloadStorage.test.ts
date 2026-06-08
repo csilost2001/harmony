@@ -65,6 +65,34 @@ describe("design payload component companion storage", () => {
     await expect(fs.readFile(path.join(tmpDir, "simple-screen.components.html"), "utf-8")).resolves.toBe("<span>Total</span>");
   });
 
+  it("does not format whitespace-sensitive HTML content", async () => {
+    const html = "<div><pre>a  b  c</pre><span>Hello</span></div>";
+
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: html } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "pre-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "pre-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
+  it("does not format mixed text and element content", async () => {
+    const html = "<p>Hello <strong>customer</strong>, welcome back.</p>";
+
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: html } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "mixed-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "mixed-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
   it("inflates formatted companion HTML without changing the componentsRef round-trip", async () => {
     const stored = await deflateDesignComponents({
       data: {

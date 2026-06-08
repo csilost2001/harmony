@@ -16,6 +16,8 @@ const VOID_ELEMENTS = new Set([
   "link", "meta", "param", "source", "track", "wbr",
 ]);
 
+const WHITESPACE_SENSITIVE_ELEMENTS = new Set(["pre", "script", "style", "textarea"]);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -66,10 +68,27 @@ function hasNestedElement(node: HtmlNode): boolean {
   return (node.children ?? []).some((child) => isElementNode(child) || hasNestedElement(child));
 }
 
+function hasWhitespaceSensitiveElement(node: HtmlNode): boolean {
+  if (isElementNode(node) && WHITESPACE_SENSITIVE_ELEMENTS.has((node.name ?? "").toLowerCase())) {
+    return true;
+  }
+  return (node.children ?? []).some(hasWhitespaceSensitiveElement);
+}
+
+function hasMixedTextAndElementChildren(node: HtmlNode): boolean {
+  const children = node.children ?? [];
+  const hasText = children.some((child) => child.type === "text" && (child.data ?? "").length > 0);
+  const hasElement = children.some(isElementNode);
+  return (hasText && hasElement) || children.some(hasMixedTextAndElementChildren);
+}
+
 function shouldFormatHtmlFragment(nodes: HtmlNode[]): boolean {
   const meaningfulNodes = nodes.filter(isMeaningfulNode);
   const elementNodes = meaningfulNodes.filter(isElementNode);
   if (elementNodes.length === 0) return false;
+  if (elementNodes.some((node) => hasWhitespaceSensitiveElement(node) || hasMixedTextAndElementChildren(node))) {
+    return false;
+  }
   if (meaningfulNodes.length > 1) return true;
   return hasNestedElement(elementNodes[0]);
 }
@@ -82,8 +101,8 @@ function formatHtmlNode(node: HtmlNode, depth: number): string[] {
   }
 
   if (!isElementNode(node)) {
-    const text = node.data?.replace(/\s+/g, " ").trim();
-    return text ? [`${indent}${text}`] : [];
+    if (!node.data || !node.data.trim()) return [];
+    return [`${indent}${node.data}`];
   }
 
   const tagName = node.name ?? "";
@@ -97,8 +116,9 @@ function formatHtmlNode(node: HtmlNode, depth: number): string[] {
     return [`${indent}${openTag}</${tagName}>`];
   }
 
-  if (childLines.length === 1 && !isElementNode((node.children ?? []).find(isMeaningfulNode) ?? { type: "text" })) {
-    return [`${indent}${openTag}${childLines[0].trim()}</${tagName}>`];
+  const meaningfulChildren = (node.children ?? []).filter(isMeaningfulNode);
+  if (meaningfulChildren.length === 1 && meaningfulChildren[0].type === "text") {
+    return [`${indent}${openTag}${meaningfulChildren[0].data ?? ""}</${tagName}>`];
   }
 
   return [
