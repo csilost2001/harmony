@@ -74,7 +74,7 @@ export async function syncGadgetInstancePreviews(
   editor: GEditor,
   gadgets: GadgetBlockScreen[],
 ): Promise<void> {
-  const canvasDoc = editor.Canvas.getDocument();
+  const canvasDoc = editor.Canvas?.getDocument?.();
   if (!canvasDoc) return;
 
   const instances = Array.from(canvasDoc.querySelectorAll<HTMLElement>(GADGET_INSTANCE_SELECTOR));
