@@ -17,6 +17,7 @@ import type { GadgetBlockScreen } from "../grapes/blocks";
 
 export type ThemeId = "standard" | "card" | "compact" | "dark";
 export type PanelMode = "pinned" | "autohide" | "hidden";
+export type DesignerResourceKind = "screen" | "pageLayout";
 
 /**
  * エディタの永続化状態。Backend 実装ごとの payload を保持する。
@@ -96,6 +97,8 @@ export interface RenderEditorBaseProps {
 
   /** 編集対象 screenId (RightPanel 等で利用) */
   screenId: string;
+  /** Designer の対象 resource 種別。screen 専用同期や rename UI の境界に使う。 */
+  resourceKind?: DesignerResourceKind;
 
   /** 編集中変更通知 — Backend は user 編集を検出したら呼ぶ */
   onChange?: (newState: EditorState) => void;

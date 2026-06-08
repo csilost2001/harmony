@@ -11,7 +11,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { handlePropose } from "./aiRename.js";
+import { handleAuthCheck, handlePropose } from "./aiRename.js";
 
 vi.mock("node:child_process", () => ({
   execFileSync: vi.fn(() => { throw new Error("not authenticated in unit test"); }),
@@ -122,5 +122,18 @@ describe("handlePropose — screenId validation (I-7 Round 8 B)", () => {
     const res = makeRes();
     await handlePropose(req, res);
     expect(res._status).toBe(403);
+  });
+});
+
+describe("handleAuthCheck — status endpoint semantics (#1459)", () => {
+  it("未認証でも 200 + authenticated:false を返す", async () => {
+    const req = makeReq({
+      method: "GET",
+      origin: "http://localhost:5173",
+    });
+    const res = makeRes();
+    await handleAuthCheck(req, res);
+    expect(res._status).toBe(200);
+    expect(JSON.parse(res._body ?? "{}")).toMatchObject({ authenticated: false });
   });
 });

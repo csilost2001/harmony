@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { DesignSubToolbarGrapesJSBridge } from "../design/DesignSubToolbar";
 import type { GrapesJSBackend } from "../../editor/GrapesJSBackend";
 import type {
+  DesignerResourceKind,
   EditorApi,
   EditorState,
   GrapesJSRenderEditorProps,
@@ -34,6 +35,7 @@ export interface GrapesEditorHostProps {
   isReadonly: boolean;
   panelMode: PanelMode;
   screenId: string;
+  resourceKind?: DesignerResourceKind;
   screenName?: string;
 
   mcpStatus: McpStatus;
@@ -58,7 +60,7 @@ export interface GrapesEditorHostProps {
   onViewerAttached: (editSessionId: string) => void;
   onAttachAsView: (editSessionId: string) => Promise<void>;
   onTakeOver: (editSessionId: string) => Promise<void>;
-  onOpenRenameDialog: () => void;
+  onOpenRenameDialog?: () => void;
 
   onChange: GrapesJSRenderEditorProps["onChange"];
   onReady: (api: EditorApi) => void;
@@ -115,6 +117,7 @@ export function GrapesEditorHost(props: GrapesEditorHostProps) {
       onAiGenerate={props.onAiGenerate}
       backLink={props.onBack ? { label: props.screenName ?? "画面デザイン", onClick: props.onBack } : undefined}
       screenId={props.screenId}
+      enableScreenRename={props.resourceKind !== "pageLayout"}
       isReadonly={props.isReadonly}
       sessionMode={props.sessionMode}
       sessionId={props.sessionId}
@@ -137,6 +140,7 @@ export function GrapesEditorHost(props: GrapesEditorHostProps) {
     onTogglePin: props.onTogglePin,
     onClosePanel: props.onClosePanel,
     screenId: props.screenId,
+    resourceKind: props.resourceKind,
     onChange: props.onChange,
     onReady: props.onReady,
     onServerChanged: props.onServerChanged,

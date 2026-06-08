@@ -60,6 +60,22 @@ const baseProps = {
 };
 
 describe("DesignSubToolbar — editor prop 化 refactor (#824)", () => {
+  it("enableScreenRename=false では auth-check を呼ばず AI rename UI も出さない", () => {
+    render(
+      <DesignSubToolbar
+        {...baseProps}
+        mcpStatus="connected"
+        screenId="page-layout:main-layout"
+        enableScreenRename={false}
+        editor={undefined}
+      />,
+    );
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(screen.queryByTitle("ID を AI で再命名")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("rename-entity-open-btn-screen")).not.toBeInTheDocument();
+  });
+
   it("editor=undefined (Puck 経路) — Provider 不在環境で crash せず render される", () => {
     // 旧実装は <GjsEditor> ancestor 不在で useEditorMaybe が throw → useEditorOptional が catch
     // 新実装は editor prop で受けるので Provider 不要、かつ try/catch 不要

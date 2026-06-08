@@ -233,6 +233,7 @@ export function PageLayoutDesigner() {
     return (
       <Designer
         screenId={`page-layout:${pageLayoutId}`}
+        resourceKind="pageLayout"
         screenName={pl.name}
         editSessionResourceType="page-layout-design"
         editSessionResourceId={pageLayoutId}
@@ -251,6 +252,7 @@ export function PageLayoutDesigner() {
     <RegionProvider value={regionContextValue}>
       <Designer
         screenId={`page-layout:${pageLayoutId}`}
+        resourceKind="pageLayout"
         screenName={pl.name}
         editSessionResourceType="page-layout-design"
         editSessionResourceId={pageLayoutId}

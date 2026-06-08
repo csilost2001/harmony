@@ -155,9 +155,10 @@ describe("PageLayoutDesigner", () => {
     renderDesigner();
 
     await waitFor(() => {
-      expect(mockState.designerProps).toMatchObject({
-        screenId: "page-layout:pl-design-001",
-        editSessionResourceType: "page-layout-design",
+	      expect(mockState.designerProps).toMatchObject({
+	        screenId: "page-layout:pl-design-001",
+	        resourceKind: "pageLayout",
+	        editSessionResourceType: "page-layout-design",
         editSessionResourceId: "pl-design-001",
         designEditorKind: "puck",
         designCssFramework: "bootstrap",

@@ -88,7 +88,7 @@ export async function handleAuthCheck(req: IncomingMessage, res: ServerResponse)
   }
 
   const authenticated = checkAuth();
-  jsonBody(res, authenticated ? 200 : 503, {
+  jsonBody(res, 200, {
     authenticated,
     message: authenticated
       ? "claude CLI に認証されています"

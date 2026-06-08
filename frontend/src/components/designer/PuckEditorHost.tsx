@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { DesignSubToolbar } from "../design/DesignSubToolbar";
 import type { PuckBackend } from "../../editor/PuckBackend";
 import type {
+  DesignerResourceKind,
   EditorApi,
   EditorState,
   PanelMode,
@@ -26,6 +27,7 @@ export interface PuckEditorHostProps {
   isReadonly: boolean;
   panelMode: PanelMode;
   screenId: string;
+  resourceKind?: DesignerResourceKind;
   screenName?: string;
 
   mcpStatus: McpStatus;
@@ -50,7 +52,7 @@ export interface PuckEditorHostProps {
   onViewerAttached: (editSessionId: string) => void;
   onAttachAsView: (editSessionId: string) => Promise<void>;
   onTakeOver: (editSessionId: string) => Promise<void>;
-  onOpenRenameDialog: () => void;
+  onOpenRenameDialog?: () => void;
 
   onChange: PuckRenderEditorProps["onChange"];
   onReady: (api: EditorApi) => void;
@@ -74,6 +76,7 @@ export function PuckEditorHost(props: PuckEditorHostProps) {
       onAiGenerate={props.onAiGenerate}
       backLink={props.onBack ? { label: props.screenName ?? "画面デザイン", onClick: props.onBack } : undefined}
       screenId={props.screenId}
+      enableScreenRename={props.resourceKind !== "pageLayout"}
       isReadonly={props.isReadonly}
       editor={undefined}
       sessionMode={props.sessionMode}
@@ -97,6 +100,7 @@ export function PuckEditorHost(props: PuckEditorHostProps) {
     onTogglePin: props.onTogglePin,
     onClosePanel: props.onClosePanel,
     screenId: props.screenId,
+    resourceKind: props.resourceKind,
     onChange: props.onChange,
     onReady: props.onReady,
     reloadPayload: props.reloadPayload,
