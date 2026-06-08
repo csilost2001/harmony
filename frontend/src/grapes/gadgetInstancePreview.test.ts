@@ -23,6 +23,18 @@ describe("syncGadgetInstancePreviews", () => {
     vi.mocked(mcpBridge.request).mockReset();
   });
 
+  it("no-ops while the GrapesJS canvas document is not initialized yet", async () => {
+    const editor = {
+      Canvas: {
+        getDocument: () => null,
+      },
+    } as unknown as Editor;
+
+    await expect(syncGadgetInstancePreviews(editor, [{ id: "message-area", name: "Message Area" }])).resolves.toBeUndefined();
+
+    expect(mcpBridge.request).not.toHaveBeenCalled();
+  });
+
   it("expands placed gadget references with the referenced gadget design HTML", async () => {
     vi.mocked(mcpBridge.request).mockResolvedValue({
       pages: [{ frames: [{ component: { components: '<section class="message-card"><strong>Gadget Body</strong></section>' } }] }],
