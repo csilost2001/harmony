@@ -1563,7 +1563,7 @@ node scripts/spec-check/test.mjs
 ## 11. 関連 spec / memory リンク
 
 ### 関連 spec
-- [`generic-definition-layer.md`](generic-definition-layer.md) — 親 spec / catalog 8 kind / 共通メタモデル
+- [`generic-definition-layer.md`](generic-definition-layer.md) — 親 spec / 現行 17 kind catalog / 共通メタモデル
 - [`schema-governance.md`](schema-governance.md) — schema 拡張時の権限 (AI 単独禁止)
 - [`draft-state-policy.md`](draft-state-policy.md) — warning 残存保存の規範
 - [`sample-project-structure.md`](sample-project-structure.md) — `examples/<project-id>/` 配置規約

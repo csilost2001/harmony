@@ -9,9 +9,9 @@
 
 v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念から一から再設計した版。
 
-## ファイル構成 (31 ファイル)
+## ファイル構成 (34 ファイル)
 
-合計 31 ファイル: top-level **17 ファイル** + `generic-definitions/` サブディレクトリ **14 ファイル** (#1263 Phase X2 で 7 → 14 kind に拡張、RFC #1254 件 3.7 verdict)。
+合計 34 ファイル: top-level **17 ファイル** + `generic-definitions/` サブディレクトリ **17 ファイル** (#1263 Phase X2 で 7 → 14 kind に拡張、#1303 で 17 kind、#1310 で global 追加、#1436 で ui-fragment 廃止)。
 
 ### 共通基盤
 
@@ -48,17 +48,21 @@ v1 (機械変換前) / v2 (機械変換版) を base にせず、業務概念か
 | `generic-definitions/component-definition.v3.schema.json` | ComponentDefinition (service / mapper / validator / formatter 等、#1066 / #1263 Phase X2 で schema ファイル追加) |
 | `generic-definitions/constants.v3.schema.json` | Constants (ドメイン定数集、`@const.<key>` 参照元、#1263 Phase X2) |
 | `generic-definitions/data-contract.v3.schema.json` | DataContract (データ契約 catalog エントリ、#1064) |
+| `generic-definitions/dialog.v3.schema.json` | Dialog (ScreenItemEvent effects[].showDialog.target 参照先、`@dialog.<name>` 参照元、#1303) |
 | `generic-definitions/domain-event.v3.schema.json` | DomainEvent (業務イベント定義、`@event.<topic>` 参照元、#1263 Phase X2) |
 | `generic-definitions/domain-type.v3.schema.json` | DomainType (ドメイン型 catalog エントリ、#1064) |
 | `generic-definitions/exception-type.v3.schema.json` | ExceptionType (業務例外型 catalog エントリ、#1066) |
+| `generic-definitions/global.v3.schema.json` | Global (workspace/project 横断の mutable 設定 slot、`@var.global.<key>` 参照元、#1310) |
 | `generic-definitions/log-config.v3.schema.json` | LogConfig (log level / sink / format 設定、`@logConfig.<key>` 参照元、#1263 Phase X2) |
 | `generic-definitions/log-event.v3.schema.json` | LogEvent (構造化ログイベント、`@logEvent.<key>` 参照元、#1263 Phase X2) |
 | `generic-definitions/message.v3.schema.json` | Message (メッセージカタログ / i18n source、`@msg.<key>` 参照元、#1263 Phase X2) |
+| `generic-definitions/message-area.v3.schema.json` | MessageArea (ScreenItemEvent effects[].setMessage.target 参照先、`@messageArea.<name>` 参照元、#1303 / #1318) |
+| `generic-definitions/options.v3.schema.json` | Options (ScreenItemEvent effects[].setOptions の選択肢 catalog、`@options.<name>` 参照元、#1303) |
 | `generic-definitions/runtime-policy.v3.schema.json` | RuntimePolicy (runtime 動作ポリシー catalog エントリ、#1067) |
 | `generic-definitions/ui-behavior.v3.schema.json` | UiBehavior (UI 振る舞い catalog エントリ、#1067) |
 | `generic-definitions/validation-rule.v3.schema.json` | ValidationRule (業務検証ルール、`@validation.<name>` 参照元、#1263 Phase X2) |
 
-GenericDefinitionKind enum は `generic-definition.v3.schema.json` (親) に 13 値で集約定義 (#1436 で ui-fragment 廃止)。詳細: [docs/spec/process-flow-prefix-system.md](../../docs/spec/process-flow-prefix-system.md) (23 catalog prefix + 1 runtime)。
+GenericDefinitionKind enum は `generic-definition.v3.schema.json` (親) に 17 値で集約定義 (#1436 で ui-fragment 廃止)。詳細: [docs/spec/process-flow-prefix-system.md](../../docs/spec/process-flow-prefix-system.md) (23 catalog prefix + 1 runtime)。
 
 ## v3 で導入した主要設計
 

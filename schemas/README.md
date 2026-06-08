@@ -6,7 +6,7 @@
 
 ```
 schemas/
-├── v3/                                          ← v3 (現行) 17 top-level + 7 generic-definitions/ = 24 file
+├── v3/                                          ← v3 (現行) 17 top-level + 17 generic-definitions/ = 34 file
 │   ├── common.v3.schema.json                    ← 共通 $defs (全 v3 schema が参照)
 │   ├── harmony.v3.schema.json
 │   ├── process-flow.v3.schema.json
@@ -26,12 +26,22 @@ schemas/
 │   ├── generic-definition.v3.schema.json
 │   ├── generic-definitions/                     ← Generic Definition Catalog kind 別 schema (#1063-)
 │   │   ├── application-rule.v3.schema.json
+│   │   ├── component-definition.v3.schema.json
+│   │   ├── constants.v3.schema.json
 │   │   ├── data-contract.v3.schema.json
+│   │   ├── dialog.v3.schema.json
+│   │   ├── domain-event.v3.schema.json
 │   │   ├── domain-type.v3.schema.json
 │   │   ├── exception-type.v3.schema.json
+│   │   ├── global.v3.schema.json
+│   │   ├── log-config.v3.schema.json
+│   │   ├── log-event.v3.schema.json
+│   │   ├── message.v3.schema.json
+│   │   ├── message-area.v3.schema.json
+│   │   ├── options.v3.schema.json
 │   │   ├── runtime-policy.v3.schema.json
 │   │   ├── ui-behavior.v3.schema.json
-│   │   └── ui-fragment.v3.schema.json
+│   │   └── validation-rule.v3.schema.json
 │   └── README.md                                ← schema 別の役割 / 配置 / 設計詳細はこちら
 └── README.md (本ファイル)
 ```
