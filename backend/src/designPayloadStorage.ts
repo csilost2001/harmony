@@ -1,6 +1,20 @@
 import fs from "fs/promises";
 import path from "path";
+import { parseDocument } from "htmlparser2";
 import { assertPathContained } from "./security/idValidator.js";
+
+interface HtmlNode {
+  type: string;
+  name?: string;
+  attribs?: Record<string, string>;
+  children?: HtmlNode[];
+  data?: string;
+}
+
+const VOID_ELEMENTS = new Set([
+  "area", "base", "br", "col", "embed", "hr", "img", "input",
+  "link", "meta", "param", "source", "track", "wbr",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -26,6 +40,83 @@ async function readTextIfExists(filePath: string): Promise<string | null> {
 
 function componentRefName(baseName: string, index: number): string {
   return index === 0 ? `${baseName}.components.html` : `${baseName}.${index + 1}.components.html`;
+}
+
+function isElementNode(node: HtmlNode): boolean {
+  return node.type === "tag" || node.type === "script" || node.type === "style";
+}
+
+function isMeaningfulNode(node: HtmlNode): boolean {
+  return isElementNode(node) || node.type === "comment" || Boolean(node.data?.trim());
+}
+
+function escapeAttribute(value: string): string {
+  return value.replace(/"/g, "&quot;");
+}
+
+function attributeText(attribs: Record<string, string> | undefined): string {
+  if (!attribs || Object.keys(attribs).length === 0) return "";
+  const parts = Object.entries(attribs).map(([name, value]) => (
+    value === "" ? name : `${name}="${escapeAttribute(value)}"`
+  ));
+  return ` ${parts.join(" ")}`;
+}
+
+function hasNestedElement(node: HtmlNode): boolean {
+  return (node.children ?? []).some((child) => isElementNode(child) || hasNestedElement(child));
+}
+
+function shouldFormatHtmlFragment(nodes: HtmlNode[]): boolean {
+  const meaningfulNodes = nodes.filter(isMeaningfulNode);
+  const elementNodes = meaningfulNodes.filter(isElementNode);
+  if (elementNodes.length === 0) return false;
+  if (meaningfulNodes.length > 1) return true;
+  return hasNestedElement(elementNodes[0]);
+}
+
+function formatHtmlNode(node: HtmlNode, depth: number): string[] {
+  const indent = "  ".repeat(depth);
+
+  if (node.type === "comment") {
+    return [`${indent}<!--${node.data ?? ""}-->`];
+  }
+
+  if (!isElementNode(node)) {
+    const text = node.data?.replace(/\s+/g, " ").trim();
+    return text ? [`${indent}${text}`] : [];
+  }
+
+  const tagName = node.name ?? "";
+  const openTag = `<${tagName}${attributeText(node.attribs)}>`;
+  if (VOID_ELEMENTS.has(tagName.toLowerCase())) {
+    return [`${indent}${openTag}`];
+  }
+
+  const childLines = (node.children ?? []).flatMap((child) => formatHtmlNode(child, depth + 1));
+  if (childLines.length === 0) {
+    return [`${indent}${openTag}</${tagName}>`];
+  }
+
+  if (childLines.length === 1 && !isElementNode((node.children ?? []).find(isMeaningfulNode) ?? { type: "text" })) {
+    return [`${indent}${openTag}${childLines[0].trim()}</${tagName}>`];
+  }
+
+  return [
+    `${indent}${openTag}`,
+    ...childLines,
+    `${indent}</${tagName}>`,
+  ];
+}
+
+function formatComponentHtml(html: string): string {
+  if (html.includes("\n")) return html;
+  const doc = parseDocument(html, {
+    decodeEntities: false,
+    lowerCaseAttributeNames: false,
+  }) as unknown as { children: HtmlNode[] };
+  const nodes = doc.children ?? [];
+  if (!shouldFormatHtmlFragment(nodes)) return html;
+  return `${nodes.flatMap((node) => formatHtmlNode(node, 0)).join("\n")}\n`;
 }
 
 async function cleanupComponentCompanions(baseDir: string, baseName: string): Promise<void> {
@@ -115,7 +206,7 @@ export async function deflateDesignComponents(params: {
     const ref = componentRefName(baseName, i);
     const filePath = path.join(baseDir, ref);
     assertPathContained(filePath, baseDir);
-    await fs.writeFile(filePath, html, "utf-8");
+    await fs.writeFile(filePath, formatComponentHtml(html), "utf-8");
     delete target.components;
     target.componentsRef = ref;
   }

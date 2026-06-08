@@ -1,0 +1,88 @@
+import fs from "fs/promises";
+import os from "os";
+import path from "path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { deflateDesignComponents, inflateDesignComponents } from "./designPayloadStorage.js";
+
+let tmpDir: string;
+
+beforeEach(async () => {
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "harmony-design-payload-"));
+});
+
+afterEach(async () => {
+  await fs.rm(tmpDir, { recursive: true, force: true });
+});
+
+describe("design payload component companion storage", () => {
+  it("formats complex single-line HTML fragments before writing componentsRef companions", async () => {
+    const data = {
+      pages: [{
+        frames: [{
+          component: {
+            type: "wrapper",
+            components: "<div class=\"container\"><section><h1>Title</h1><div class=\"row\"><label for=\"name\">Name</label><input id=\"name\" class=\"form-control\"></div></section></div>",
+          },
+        }],
+      }],
+    };
+
+    const stored = await deflateDesignComponents({
+      data,
+      baseDir: tmpDir,
+      baseName: "complex-screen",
+    }) as any;
+
+    expect(stored.pages[0].frames[0].component).toMatchObject({
+      type: "wrapper",
+      componentsRef: "complex-screen.components.html",
+    });
+    expect(stored.pages[0].frames[0].component).not.toHaveProperty("components");
+
+    await expect(fs.readFile(path.join(tmpDir, "complex-screen.components.html"), "utf-8")).resolves.toBe(
+      `<div class="container">
+  <section>
+    <h1>Title</h1>
+    <div class="row">
+      <label for="name">Name</label>
+      <input id="name" class="form-control">
+    </div>
+  </section>
+</div>
+`,
+    );
+  });
+
+  it("keeps simple single-element text fragments on one line", async () => {
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: "<span>Total</span>" } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "simple-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "simple-screen.components.html"), "utf-8")).resolves.toBe("<span>Total</span>");
+  });
+
+  it("inflates formatted companion HTML without changing the componentsRef round-trip", async () => {
+    const stored = await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: "<main><h1>Dashboard</h1><p>Ready</p></main>" } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "round-trip",
+    }) as any;
+
+    const inflated = await inflateDesignComponents(stored, tmpDir) as any;
+
+    expect(inflated.pages[0].frames[0].component.componentsRef).toBe("round-trip.components.html");
+    expect(inflated.pages[0].frames[0].component.components).toBe(
+      `<main>
+  <h1>Dashboard</h1>
+  <p>Ready</p>
+</main>
+`,
+    );
+  });
+});
