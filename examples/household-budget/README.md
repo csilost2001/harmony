@@ -115,20 +115,19 @@ examples だから最初から多様なデータを入れている。`seed/` デ
 
 詳細は `seed/README.md` 参照。NestJS の起動時 seed として読み込む想定 (`INSERT OR IGNORE` で idempotent)。
 
-## Generic Definition Catalog (14 kind, 37 entries)
+## Generic Definition Catalog (14 kind, 38 entries)
 
-`harmony/generic-definitions/<kind>/<Name>.json` 配下に v3 schema の 14 kind を **全て dogfood** している。conventions catalog がフラット辞書を提供するのに対し、こちらは「kind ごとの構造化された再利用ピース」として 1 ファイル 1 エントリで管理。
+`harmony/generic-definitions/<kind>/<Name>.json` 配下に v3 schema の有効 kind のうち 14 kind を dogfood している。conventions catalog がフラット辞書を提供するのに対し、こちらは「kind ごとの構造化された再利用ピース」として 1 ファイル 1 エントリで管理。
 
 | kind | 件数 | 例 |
 |---|---:|---|
-| `message` | 8 | TransactionCreated / DeleteConfirm / AmountRequired / InvalidYearMonthFormat 等 (i18n source、`@msg.<Name>` 参照元) |
+| `message` | 10 | TransactionCreated / DeleteConfirm / AmountRequired / InvalidYearMonthFormat 等 (i18n source、`@msg.<Name>` 参照元) |
 | `validation-rule` | 4 | AmountPositiveRange / AmountRequired / MemoMaxLength / YearMonthFormat (`@validation.<Name>`) |
 | `domain-type` | 3 | Money (通貨単位付き) / YearMonth / AccountType (`@<scope>.<Name>` で参照) |
 | `exception-type` | 3 | TransactionNotFoundException / ValidationException / ForeignKeyViolationException — `errorCatalog.exceptionTypeRef` で参照 |
 | `domain-event` | 3 | TransactionCreated / Updated / Deleted — `context.catalogs.events` に登録 + `EventPublishStep` から発火 |
 | `constants` | 2 | TransactionLimits (minAmount / maxAmount / memoMaxLength) / UndoWindow (`@const.<Name>` 参照元) |
 | `data-contract` | 2 | TransactionCreateRequest / MonthlyReportResponse (API I/O 契約) |
-| `ui-fragment` | 2 | CategoryBadge (色+アイコン+名前) / AmountDisplay (¥ + 符号 + 桁揃え) |
 | `application-rule` | 2 | DeficitWarning (赤字バナー) / HighExpenseAlert (10 万円超 confirm) |
 | `component-definition` | 2 | BalanceCalculator (NestJS service) / CurrencyFormatter (純粋関数) |
 | `ui-behavior` | 1 | FormDirtyConfirmExit (未保存離脱の確認) |
@@ -167,15 +166,14 @@ examples/household-budget/
     ├── screens/<uuid>.json          × 6
     ├── screens/<uuid>.design.json   × 6  (Tailwind HTML)
     ├── process-flows/<uuid>.json    × 5
-    └── generic-definitions/         # 14 kind 全 dogfood (37 ファイル)
-        ├── message/                 × 8
+    └── generic-definitions/         # 14 kind dogfood (38 ファイル)
+        ├── message/                 × 10
         ├── validation-rule/         × 4
         ├── domain-type/             × 3
         ├── exception-type/          × 3
         ├── domain-event/            × 3
         ├── constants/               × 2
         ├── data-contract/           × 2
-        ├── ui-fragment/             × 2
         ├── application-rule/        × 2
         ├── component-definition/    × 2
         ├── ui-behavior/             × 1

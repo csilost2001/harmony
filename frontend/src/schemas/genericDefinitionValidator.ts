@@ -4,13 +4,13 @@
  * draft-state-policy §6 に基づき、AJV で schema 検証 + kind 固有 semantic warning を提供する。
  * validateHarmony.ts のキャッシュパターンに倣い、singleton AJV + 初回呼び出し時 compile。
  *
- * #1263 Phase X2 (#1267 Opus Round 4 Should-fix #1): 全 17 kind に固有 schema が存在する (→ #1310 で global 追加、全 18 kind)。
- * #1310: global kind 追加 (全 18 kind)。
- * 旧 8 kind (data-contract / domain-type / exception-type / application-rule / ui-behavior /
- *   runtime-policy / ui-fragment) + 新 7 kind (component-definition / validation-rule /
+ * #1263 Phase X2 (#1267 Opus Round 4 Should-fix #1): 全 17 kind に固有 schema が存在する。
+ * 旧 6 kind (data-contract / domain-type / exception-type / application-rule / ui-behavior /
+ *   runtime-policy) + 新 7 kind (component-definition / validation-rule /
  *   constants / message / domain-event / log-event / log-config) すべて KIND_SCHEMAS に登録。
  * #1303: 新 3 kind (dialog / message-area / options) を追加 (計 17 kind)。
  * #1310: global kind 追加 (全 18 kind)。
+ * #1436: ui-fragment 廃止 (全 17 kind)。
  * #1318: messageArea → message-area kebab-case 統一 (kind は kebab-case 統一規約、
  *   prefix `@messageArea.<name>` は log-event/logEvent 前例と同様に camelCase 維持)。
  */

@@ -38,9 +38,9 @@
  *   - entity (projectIndex.screens/tables/views/viewers/layouts/sequences/flows/externalSystems):
  *     `@screen` / `@table` / `@view` / `@viewer` (2 段は id 検証、4 段は id + child 検証)
  *     `@layout` / `@seq` / `@flow` / `@system` (id 単純 lookup)
- *   - generic-definition (18 kind × 1 prefix, #1303 追加: dialog/message-area/options、#1310 追加: global、#1318 で kind=kebab/prefix=camelCase 分離):
+ *   - generic-definition (17 kind、#1303 追加: dialog/message-area/options、#1310 追加: global、#1436 で ui-fragment 廃止、#1318 で kind=kebab/prefix=camelCase 分離):
  *     `@contract` / `@type` / `@exception` / `@rule` / `@validation` / `@behavior` /
- *     `@policy` / `@component` / `@fragment` / `@const` / `@msg` / `@logEvent` / `@logConfig`
+ *     `@policy` / `@component` / `@const` / `@msg` / `@logEvent` / `@logConfig`
  *     (`@event` は flow-level context と generic-definition/domain-event の両方が candidate)
  *   - project-level: `@conv` (conventionCategories) / `@ext` (extension namespaces)
  *
@@ -586,7 +586,7 @@ function collectBrokenRefs(value: string, ctx: BrokenRefContext): RefIssue[] {
  * 検証対象 prefix (27 prefix の内 @var / @event は別 path、#1303 追加: @dialog/@messageArea/@options):
  *   - Entity: @screen / @table / @view / @viewer / @layout / @seq / @flow / @system
  *   - Generic Definition: @contract / @type / @exception / @rule / @validation / @behavior /
- *                          @policy / @component / @fragment
+ *                          @policy / @component
  *   - Catalog: @const / @msg / @logEvent / @logConfig
  *   - Project: @conv / @ext
  *

@@ -20,17 +20,19 @@
 // Exit code: 0 = OK, 1 = error, 2 = nothing to lint
 
 import { readFileSync, statSync, readdirSync, existsSync } from "node:fs";
-import { join, resolve, basename, relative, sep } from "node:path";
+import { dirname, join, resolve, basename, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const VALID_KINDS = new Set([
-  "data-contract",
-  "domain-type",
-  "exception-type",
-  "application-rule",
-  "ui-behavior",
-  "runtime-policy",
-  "component-definition",
-]);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const genericDefinitionSchema = JSON.parse(
+  readFileSync(resolve(__dirname, "../../schemas/v3/generic-definition.v3.schema.json"), "utf8"),
+);
+const genericDefinitionKindEnum = genericDefinitionSchema.$defs?.GenericDefinitionKind?.enum;
+if (!Array.isArray(genericDefinitionKindEnum)) {
+  console.error("Error: schemas/v3/generic-definition.v3.schema.json has no GenericDefinitionKind enum.");
+  process.exit(1);
+}
+const VALID_KINDS = new Set(genericDefinitionKindEnum);
 
 const REQUIRED_FIELDS = ["kind", "name", "purpose", "responsibilities", "targets"];
 
