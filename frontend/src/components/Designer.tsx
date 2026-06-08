@@ -20,7 +20,7 @@ import { useSessionUrlSync } from "../hooks/useSessionUrlSync";
 import { PuckBackend } from "../editor/PuckBackend";
 import { GrapesJSBackend } from "../editor/GrapesJSBackend";
 import type { DesignerResourceKind, EditorApi, EditorState } from "../editor/EditorBackend";
-import { DESIGNER_REFERENCE_RELOAD_EVENTS, isReloadBroadcast, shouldNotifyScreenChanged } from "../editor/reloadEvents";
+import { DESIGNER_REFERENCE_RELOAD_EVENTS, isReloadBroadcast, shouldNotifyDesignerScreenChanged } from "../editor/reloadEvents";
 // #1388 sub-section A 派生 2 件 (Option 1): renderEditor 呼び出しと props 構築を host に隔離して
 // react-hooks/refs (Designer scope 内 ref 含む closure が props 経由で渡される) を解消。
 import { PuckEditorHost } from "./designer/PuckEditorHost";
@@ -839,11 +839,13 @@ export function Designer({
         setServerChanged(true);
       }
     });
-    // screenChanged は rename payload (oldId / reload) も Puck path で扱う
-    const unsubScreenChanged = mcpBridge.onBroadcast("screenChanged", (data) => {
-      if (!shouldNotifyScreenChanged(data, screenId)) return;
-      setServerChanged(true);
-    });
+    // screenChanged は screen resource の rename / reload payload のみ Puck path で扱う。
+    const unsubScreenChanged = isScreenResource
+      ? mcpBridge.onBroadcast("screenChanged", (data) => {
+          if (!shouldNotifyDesignerScreenChanged(resourceKind, data, screenId)) return;
+          setServerChanged(true);
+        })
+      : (() => undefined);
     // 参照側 entity の reload:true broadcast を購読 (cache 無効化のみ、id filter なし)
     const unsubReloadEvents = DESIGNER_REFERENCE_RELOAD_EVENTS.map((ev) =>
       mcpBridge.onBroadcast(ev, (data) => {
@@ -855,7 +857,7 @@ export function Designer({
       unsubScreenChanged();
       unsubReloadEvents.forEach((fn) => fn());
     };
-  }, [editorKind, isScreenResource, screenId]);
+  }, [editorKind, isScreenResource, resourceKind, screenId]);
 
   // ---------------------------------------------------------------------------
   // 共通ダイアログ群 (GrapesJS / Puck 両方で使う)

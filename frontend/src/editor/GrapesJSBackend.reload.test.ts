@@ -10,6 +10,7 @@ import { describe, it, expect } from "vitest";
 import {
   DESIGNER_REFERENCE_RELOAD_EVENTS,
   isReloadBroadcast,
+  shouldNotifyDesignerScreenChanged,
   shouldNotifyScreenChanged,
 } from "./reloadEvents";
 
@@ -65,5 +66,13 @@ describe("Designer Puck RELOAD_EVENTS filter (I-7 Round 8 C)", () => {
     expect(isReloadBroadcast({})).toBe(false);
     expect(isReloadBroadcast({ reload: false })).toBe(false);
     expect(isReloadBroadcast(undefined)).toBe(false);
+  });
+
+  it("PageLayout resource では screenChanged reload:true を無視する (#1459 review follow-up)", () => {
+    expect(shouldNotifyDesignerScreenChanged("pageLayout", { reload: true }, "page-layout:main-layout")).toBe(false);
+  });
+
+  it("Screen resource では screenChanged reload:true を扱う", () => {
+    expect(shouldNotifyDesignerScreenChanged("screen", { reload: true }, "user-list")).toBe(true);
   });
 });
