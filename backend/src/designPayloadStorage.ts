@@ -96,16 +96,12 @@ function hasMixedTopLevelTextAndElement(nodes: HtmlNode[]): boolean {
   return hasText && hasElement;
 }
 
-function isInlineElementNode(node: HtmlNode): boolean {
-  return isElementNode(node) && !BLOCK_ELEMENTS.has((node.name ?? "").toLowerCase());
+function isKnownBlockElementNode(node: HtmlNode): boolean {
+  return isElementNode(node) && BLOCK_ELEMENTS.has((node.name ?? "").toLowerCase());
 }
 
-function containsOnlyInlineElements(nodes: HtmlNode[]): boolean {
-  return nodes.length > 0 && nodes.every(isInlineElementNode);
-}
-
-function containsAnyInlineElement(nodes: HtmlNode[]): boolean {
-  return nodes.some(isInlineElementNode);
+function containsOnlyKnownBlockElements(nodes: HtmlNode[]): boolean {
+  return nodes.length > 0 && nodes.every(isKnownBlockElementNode);
 }
 
 function shouldFormatHtmlFragment(nodes: HtmlNode[]): boolean {
@@ -113,7 +109,7 @@ function shouldFormatHtmlFragment(nodes: HtmlNode[]): boolean {
   const elementNodes = meaningfulNodes.filter(isElementNode);
   if (elementNodes.length === 0) return false;
   if (hasMixedTopLevelTextAndElement(meaningfulNodes)) return false;
-  if (containsAnyInlineElement(meaningfulNodes)) return false;
+  if (!containsOnlyKnownBlockElements(meaningfulNodes)) return false;
   if (elementNodes.some((node) => hasWhitespaceSensitiveElement(node) || hasMixedTextAndElementChildren(node))) {
     return false;
   }
@@ -158,7 +154,7 @@ function formatHtmlNode(node: HtmlNode, depth: number): string[] {
   if (meaningfulChildren.length === 1 && meaningfulChildren[0].type === "text") {
     return [`${indent}${openTag}${meaningfulChildren[0].data ?? ""}</${tagName}>`];
   }
-  if (containsAnyInlineElement(meaningfulChildren)) {
+  if (!containsOnlyKnownBlockElements(meaningfulChildren)) {
     return [`${indent}${openTag}${meaningfulChildren.map(compactHtmlNode).join("")}</${tagName}>`];
   }
 

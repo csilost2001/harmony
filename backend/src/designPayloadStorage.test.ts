@@ -186,6 +186,82 @@ describe("design payload component companion storage", () => {
     await expect(fs.readFile(path.join(tmpDir, "inline-canvas-screen.components.html"), "utf-8")).resolves.toBe(html);
   });
 
+  it("does not format top-level adjacent embedded media fragments", async () => {
+    const html = "<audio controls></audio><span>Label</span>";
+
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: html } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "inline-audio-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "inline-audio-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
+  it("does not format top-level inline fragments separated by comments", async () => {
+    const html = "<span>A</span><!--c--><span>B</span>";
+
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: html } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "inline-comment-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "inline-comment-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
+  it("keeps nested inline fragments separated by comments on the same line", async () => {
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: "<div><p><span>A</span><!--c--><span>B</span></p><section><h2>Next</h2></section></div>" } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "nested-inline-comment-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "nested-inline-comment-screen.components.html"), "utf-8")).resolves.toBe(
+      `<div>
+  <p><span>A</span><!--c--><span>B</span></p>
+  <section>
+    <h2>Next</h2>
+  </section>
+</div>
+`,
+    );
+  });
+
+  it("does not format top-level adjacent custom element fragments", async () => {
+    const html = "<my-icon></my-icon><span>Label</span>";
+
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: html } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "custom-element-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "custom-element-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
+  it("does not format top-level adjacent MathML fragments", async () => {
+    const html = "<math><mi>x</mi></math><span>Label</span>";
+
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: html } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "mathml-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "mathml-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
   it("keeps nested adjacent inline replaced elements on the same line", async () => {
     await deflateDesignComponents({
       data: {
