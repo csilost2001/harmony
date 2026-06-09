@@ -43,10 +43,7 @@ describe("design payload component companion storage", () => {
       `<div class="container">
   <section>
     <h1>Title</h1>
-    <div class="row">
-      <label for="name">Name</label>
-      <input id="name" class="form-control">
-    </div>
+    <div class="row"><label for="name">Name</label><input id="name" class="form-control"></div>
   </section>
 </div>
 `,
@@ -105,6 +102,40 @@ describe("design payload component companion storage", () => {
     });
 
     await expect(fs.readFile(path.join(tmpDir, "top-level-mixed-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
+  it("does not format top-level adjacent inline element fragments", async () => {
+    const html = "<span>Hello</span><span>world</span>";
+
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: html } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "inline-siblings-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "inline-siblings-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
+  it("keeps nested adjacent inline elements on the same line while formatting their parent", async () => {
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: "<div><p><span>Hello</span><span>world</span></p><section><h2>Next</h2></section></div>" } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "nested-inline-siblings-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "nested-inline-siblings-screen.components.html"), "utf-8")).resolves.toBe(
+      `<div>
+  <p><span>Hello</span><span>world</span></p>
+  <section>
+    <h2>Next</h2>
+  </section>
+</div>
+`,
+    );
   });
 
   it("inflates formatted companion HTML without changing the componentsRef round-trip", async () => {

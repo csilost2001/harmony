@@ -18,6 +18,12 @@ const VOID_ELEMENTS = new Set([
 
 const WHITESPACE_SENSITIVE_ELEMENTS = new Set(["pre", "script", "style", "textarea"]);
 
+const INLINE_ELEMENTS = new Set([
+  "a", "abbr", "b", "bdi", "bdo", "br", "button", "cite", "code", "data", "dfn", "em",
+  "i", "img", "input", "kbd", "label", "mark", "output", "q", "s", "samp", "select",
+  "small", "span", "strong", "sub", "sup", "textarea", "time", "u", "var",
+]);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -88,16 +94,35 @@ function hasMixedTopLevelTextAndElement(nodes: HtmlNode[]): boolean {
   return hasText && hasElement;
 }
 
+function isInlineElementNode(node: HtmlNode): boolean {
+  return isElementNode(node) && INLINE_ELEMENTS.has((node.name ?? "").toLowerCase());
+}
+
+function containsOnlyInlineElements(nodes: HtmlNode[]): boolean {
+  return nodes.length > 0 && nodes.every(isInlineElementNode);
+}
+
 function shouldFormatHtmlFragment(nodes: HtmlNode[]): boolean {
   const meaningfulNodes = nodes.filter(isMeaningfulNode);
   const elementNodes = meaningfulNodes.filter(isElementNode);
   if (elementNodes.length === 0) return false;
   if (hasMixedTopLevelTextAndElement(meaningfulNodes)) return false;
+  if (containsOnlyInlineElements(meaningfulNodes)) return false;
   if (elementNodes.some((node) => hasWhitespaceSensitiveElement(node) || hasMixedTextAndElementChildren(node))) {
     return false;
   }
   if (meaningfulNodes.length > 1) return true;
   return hasNestedElement(elementNodes[0]);
+}
+
+function compactHtmlNode(node: HtmlNode): string {
+  if (node.type === "comment") return `<!--${node.data ?? ""}-->`;
+  if (!isElementNode(node)) return node.data ?? "";
+
+  const tagName = node.name ?? "";
+  const openTag = `<${tagName}${attributeText(node.attribs)}>`;
+  if (VOID_ELEMENTS.has(tagName.toLowerCase())) return openTag;
+  return `${openTag}${(node.children ?? []).map(compactHtmlNode).join("")}</${tagName}>`;
 }
 
 function formatHtmlNode(node: HtmlNode, depth: number): string[] {
@@ -126,6 +151,9 @@ function formatHtmlNode(node: HtmlNode, depth: number): string[] {
   const meaningfulChildren = (node.children ?? []).filter(isMeaningfulNode);
   if (meaningfulChildren.length === 1 && meaningfulChildren[0].type === "text") {
     return [`${indent}${openTag}${meaningfulChildren[0].data ?? ""}</${tagName}>`];
+  }
+  if (containsOnlyInlineElements(meaningfulChildren)) {
+    return [`${indent}${openTag}${meaningfulChildren.map(compactHtmlNode).join("")}</${tagName}>`];
   }
 
   return [
