@@ -172,6 +172,40 @@ describe("design payload component companion storage", () => {
     );
   });
 
+  it("does not format top-level adjacent inline replaced element fragments", async () => {
+    const html = "<canvas width=\"10\" height=\"10\"></canvas><span>Label</span>";
+
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: html } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "inline-canvas-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "inline-canvas-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
+  it("keeps nested adjacent inline replaced elements on the same line", async () => {
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: "<div><p><canvas width=\"10\" height=\"10\"></canvas><span>Label</span></p><section><h2>Next</h2></section></div>" } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "nested-inline-canvas-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "nested-inline-canvas-screen.components.html"), "utf-8")).resolves.toBe(
+      `<div>
+  <p><canvas width="10" height="10"></canvas><span>Label</span></p>
+  <section>
+    <h2>Next</h2>
+  </section>
+</div>
+`,
+    );
+  });
+
   it("inflates formatted companion HTML without changing the componentsRef round-trip", async () => {
     const stored = await deflateDesignComponents({
       data: {

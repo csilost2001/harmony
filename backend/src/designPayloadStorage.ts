@@ -18,10 +18,12 @@ const VOID_ELEMENTS = new Set([
 
 const WHITESPACE_SENSITIVE_ELEMENTS = new Set(["pre", "script", "style", "textarea"]);
 
-const INLINE_ELEMENTS = new Set([
-  "a", "abbr", "b", "bdi", "bdo", "br", "button", "cite", "code", "data", "dfn", "em",
-  "i", "img", "input", "kbd", "label", "mark", "output", "q", "s", "samp", "select",
-  "small", "span", "strong", "sub", "sup", "svg", "text", "textarea", "time", "tspan", "u", "var",
+const BLOCK_ELEMENTS = new Set([
+  "address", "article", "aside", "blockquote", "body", "caption", "colgroup", "dd", "details",
+  "dialog", "div", "dl", "dt", "fieldset", "figcaption", "figure", "footer", "form", "h1",
+  "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "legend", "li",
+  "main", "menu", "nav", "ol", "optgroup", "option", "p", "pre", "section", "summary", "table",
+  "tbody", "td", "tfoot", "th", "thead", "tr", "ul",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -95,11 +97,15 @@ function hasMixedTopLevelTextAndElement(nodes: HtmlNode[]): boolean {
 }
 
 function isInlineElementNode(node: HtmlNode): boolean {
-  return isElementNode(node) && INLINE_ELEMENTS.has((node.name ?? "").toLowerCase());
+  return isElementNode(node) && !BLOCK_ELEMENTS.has((node.name ?? "").toLowerCase());
 }
 
 function containsOnlyInlineElements(nodes: HtmlNode[]): boolean {
   return nodes.length > 0 && nodes.every(isInlineElementNode);
+}
+
+function containsAnyInlineElement(nodes: HtmlNode[]): boolean {
+  return nodes.some(isInlineElementNode);
 }
 
 function shouldFormatHtmlFragment(nodes: HtmlNode[]): boolean {
@@ -107,7 +113,7 @@ function shouldFormatHtmlFragment(nodes: HtmlNode[]): boolean {
   const elementNodes = meaningfulNodes.filter(isElementNode);
   if (elementNodes.length === 0) return false;
   if (hasMixedTopLevelTextAndElement(meaningfulNodes)) return false;
-  if (containsOnlyInlineElements(meaningfulNodes)) return false;
+  if (containsAnyInlineElement(meaningfulNodes)) return false;
   if (elementNodes.some((node) => hasWhitespaceSensitiveElement(node) || hasMixedTextAndElementChildren(node))) {
     return false;
   }
@@ -152,7 +158,7 @@ function formatHtmlNode(node: HtmlNode, depth: number): string[] {
   if (meaningfulChildren.length === 1 && meaningfulChildren[0].type === "text") {
     return [`${indent}${openTag}${meaningfulChildren[0].data ?? ""}</${tagName}>`];
   }
-  if (containsOnlyInlineElements(meaningfulChildren)) {
+  if (containsAnyInlineElement(meaningfulChildren)) {
     return [`${indent}${openTag}${meaningfulChildren.map(compactHtmlNode).join("")}</${tagName}>`];
   }
 
