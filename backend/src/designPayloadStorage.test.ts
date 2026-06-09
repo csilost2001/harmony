@@ -138,6 +138,40 @@ describe("design payload component companion storage", () => {
     );
   });
 
+  it("does not format top-level adjacent inline SVG fragments", async () => {
+    const html = "<svg viewBox=\"0 0 10 10\"><path d=\"M0 0h10v10H0z\"></path></svg><span>Label</span>";
+
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: html } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "inline-svg-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "inline-svg-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
+  it("keeps nested adjacent inline SVG elements on the same line", async () => {
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: "<div><p><svg viewBox=\"0 0 10 10\"><path d=\"M0 0h10v10H0z\"></path></svg><span>Label</span></p><section><h2>Next</h2></section></div>" } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "nested-inline-svg-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "nested-inline-svg-screen.components.html"), "utf-8")).resolves.toBe(
+      `<div>
+  <p><svg viewBox="0 0 10 10"><path d="M0 0h10v10H0z"></path></svg><span>Label</span></p>
+  <section>
+    <h2>Next</h2>
+  </section>
+</div>
+`,
+    );
+  });
+
   it("inflates formatted companion HTML without changing the componentsRef round-trip", async () => {
     const stored = await deflateDesignComponents({
       data: {

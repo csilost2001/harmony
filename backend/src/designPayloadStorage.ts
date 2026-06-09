@@ -21,7 +21,7 @@ const WHITESPACE_SENSITIVE_ELEMENTS = new Set(["pre", "script", "style", "textar
 const INLINE_ELEMENTS = new Set([
   "a", "abbr", "b", "bdi", "bdo", "br", "button", "cite", "code", "data", "dfn", "em",
   "i", "img", "input", "kbd", "label", "mark", "output", "q", "s", "samp", "select",
-  "small", "span", "strong", "sub", "sup", "textarea", "time", "u", "var",
+  "small", "span", "strong", "sub", "sup", "svg", "text", "textarea", "time", "tspan", "u", "var",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
