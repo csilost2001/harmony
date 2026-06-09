@@ -82,10 +82,17 @@ function hasMixedTextAndElementChildren(node: HtmlNode): boolean {
   return (hasText && hasElement) || children.some(hasMixedTextAndElementChildren);
 }
 
+function hasMixedTopLevelTextAndElement(nodes: HtmlNode[]): boolean {
+  const hasText = nodes.some((node) => node.type === "text" && (node.data ?? "").length > 0);
+  const hasElement = nodes.some(isElementNode);
+  return hasText && hasElement;
+}
+
 function shouldFormatHtmlFragment(nodes: HtmlNode[]): boolean {
   const meaningfulNodes = nodes.filter(isMeaningfulNode);
   const elementNodes = meaningfulNodes.filter(isElementNode);
   if (elementNodes.length === 0) return false;
+  if (hasMixedTopLevelTextAndElement(meaningfulNodes)) return false;
   if (elementNodes.some((node) => hasWhitespaceSensitiveElement(node) || hasMixedTextAndElementChildren(node))) {
     return false;
   }

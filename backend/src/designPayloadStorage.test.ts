@@ -93,6 +93,20 @@ describe("design payload component companion storage", () => {
     await expect(fs.readFile(path.join(tmpDir, "mixed-screen.components.html"), "utf-8")).resolves.toBe(html);
   });
 
+  it("does not format top-level mixed text and element fragments", async () => {
+    const html = "<span>Hello</span>, <span>world</span>";
+
+    await deflateDesignComponents({
+      data: {
+        pages: [{ frames: [{ component: { components: html } }] }],
+      },
+      baseDir: tmpDir,
+      baseName: "top-level-mixed-screen",
+    });
+
+    await expect(fs.readFile(path.join(tmpDir, "top-level-mixed-screen.components.html"), "utf-8")).resolves.toBe(html);
+  });
+
   it("inflates formatted companion HTML without changing the componentsRef round-trip", async () => {
     const stored = await deflateDesignComponents({
       data: {
