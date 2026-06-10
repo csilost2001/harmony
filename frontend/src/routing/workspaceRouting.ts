@@ -103,3 +103,29 @@ export function evaluateRoutingGuard(
 
   return { type: "none" };
 }
+
+/**
+ * workspace-scoped child route を mount してよいかを判定する。
+ *
+ * AppShell の routing guard は useEffect で workspace.open / per-session restore を
+ * 発行するため、render 時点では active workspace と backend session の同期が
+ * まだ完了していない場合がある。その間に child route を mount すると、
+ * loadProject / editSession.list 等が workspace 未選択 session に向けて発火する。
+ */
+export function isWorkspaceChildRouteReady(
+  state: RoutingGuardWorkspaceState,
+  wsId: string | undefined,
+  restoredWsIds: ReadonlySet<string>,
+  recoveryPendingWsId: string | null,
+): boolean {
+  if (state.loading) return false;
+  if (state.lockdown) return true;
+  if (state.error !== null) return true;
+
+  const activeId = state.active?.id;
+  if (activeId === undefined) return false;
+  if (wsId && activeId !== wsId) return false;
+  if (!wsId) return true;
+
+  return restoredWsIds.has(wsId) && recoveryPendingWsId !== wsId;
+}
