@@ -1,10 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { workspaceHandlers } from "./workspace.js";
 import { upsertWorkspaceRoot } from "../recentStore.js";
-import { initWorkspaceState, _resetForTest as resetWorkspaceState } from "../workspaceState.js";
+import {
+  initWorkspaceState,
+  workspaceContextManager,
+  _resetForTest as resetWorkspaceState,
+} from "../workspaceState.js";
 import type { RpcContext } from "./types.js";
 
 const TMP_ROOT = path.join(os.tmpdir(), `workspace-handler-test-${process.pid}-${Date.now()}`);
@@ -38,6 +42,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   resetWorkspaceState();
   await fs.rm(TMP_ROOT, { recursive: true, force: true });
   if (ORIGINAL_RECENT_FILE === undefined) {
@@ -53,27 +58,70 @@ afterEach(async () => {
 });
 
 describe("workspace root RPC lockdown behavior", () => {
-  it("workspace.roots returns empty roots in lockdown even when roots are registered", async () => {
-    await upsertWorkspaceRoot(path.join(TMP_ROOT, "projects"), "Projects");
+  function enterLockdown(): void {
     process.env.DESIGNER_DATA_DIR = path.join(TMP_ROOT, "locked");
     initWorkspaceState();
+    workspaceContextManager.connect("test-client");
+  }
+
+  it("workspace.roots returns empty roots in lockdown without reading recent", async () => {
+    await upsertWorkspaceRoot(path.join(TMP_ROOT, "projects"), "Projects");
+    enterLockdown();
+    const readSpy = vi.spyOn(fs, "readFile");
 
     const { ctx, getResponse, getError } = makeContext();
     await workspaceHandlers["workspace.roots"](ctx);
 
     expect(getError()).toBeNull();
     expect(getResponse()).toEqual({ roots: [] });
+    expect(readSpy).not.toHaveBeenCalled();
+    readSpy.mockRestore();
   });
 
-  it("workspace.root.discover is rejected before rootId lookup in lockdown", async () => {
+  it("workspace.root.discover is rejected before rootId lookup in lockdown without reading recent", async () => {
     const root = await upsertWorkspaceRoot(path.join(TMP_ROOT, "projects"), "Projects");
-    process.env.DESIGNER_DATA_DIR = path.join(TMP_ROOT, "locked");
-    initWorkspaceState();
+    enterLockdown();
+    const readSpy = vi.spyOn(fs, "readFile");
 
     const { ctx, getResponse, getError } = makeContext({ rootId: root.id });
     await workspaceHandlers["workspace.root.discover"](ctx);
 
     expect(getResponse()).toBeUndefined();
     expect(getError()).toMatch(/lockdown/);
+    expect(readSpy).not.toHaveBeenCalled();
+    readSpy.mockRestore();
+  });
+
+  it("workspace.list/status use lockdown active payload without reading recent", async () => {
+    await upsertWorkspaceRoot(path.join(TMP_ROOT, "projects"), "Projects");
+    enterLockdown();
+    const readSpy = vi.spyOn(fs, "readFile");
+
+    const list = makeContext();
+    await workspaceHandlers["workspace.list"](list.ctx);
+    expect(list.getResponse()).toEqual({
+      workspaces: [],
+      lastActiveId: null,
+      active: {
+        id: "lockdown",
+        path: path.resolve(process.env.DESIGNER_DATA_DIR!),
+        name: null,
+      },
+      lockdown: true,
+      lockdownPath: path.resolve(process.env.DESIGNER_DATA_DIR!),
+    });
+
+    const status = makeContext();
+    await workspaceHandlers["workspace.status"](status.ctx);
+    expect(status.getResponse()).toEqual({
+      active: {
+        path: path.resolve(process.env.DESIGNER_DATA_DIR!),
+        name: null,
+      },
+      lockdown: true,
+      lockdownPath: path.resolve(process.env.DESIGNER_DATA_DIR!),
+    });
+    expect(readSpy).not.toHaveBeenCalled();
+    readSpy.mockRestore();
   });
 });

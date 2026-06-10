@@ -46,7 +46,7 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
         ? { workspaces: [], lastActiveId: null }
         : await listDisplayWorkspaces();
       const activePath = getActivePath(sessionId);
-      const activeEntry = activePath ? await findByPath(activePath) : null;
+      const activeEntry = activePath && !lockdown ? await findByPath(activePath) : null;
       const lockdownPath = getLockdownPath();
       const payload = {
         workspaces,
@@ -61,21 +61,28 @@ export const handleWorkspaceTool: ToolHandler = async (name, args, _root, sessio
     }
 
     case "designer__workspace_status": {
+      const lockdown = isLockdown();
       const activePath = getActivePath(sessionId);
       let activeName: string | null = null;
-      if (activePath) {
+      if (activePath && !lockdown) {
         const entry = await findByPath(activePath);
         activeName = entry?.name ?? null;
       }
       const payload = {
         active: activePath ? { path: activePath, name: activeName } : null,
-        lockdown: isLockdown(),
+        lockdown,
         lockdownPath: getLockdownPath(),
       };
       return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
     }
 
     case "designer__workspace_open": {
+      if (isLockdown()) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          "DESIGNER_DATA_DIR で固定モード中のため、ワークスペースを切り替えできません",
+        );
+      }
       const initFlag = a.init === true;
       if (typeof a.path !== "string" && typeof a.id !== "string") {
         throw new McpError(ErrorCode.InvalidParams, "path または id のいずれかが必要です");

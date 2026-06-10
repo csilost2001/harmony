@@ -47,7 +47,7 @@ export const workspaceHandlers: RpcHandlerMap = {
       ? { workspaces: [], lastActiveId: null }
       : await listWorkspacesEntries();
     const activePath = workspaceContextManager.getActivePath(clientId);
-    const activeEntry = activePath ? await findWorkspaceByPath(activePath) : null;
+    const activeEntry = activePath && !lockdown ? await findWorkspaceByPath(activePath) : null;
     respond({
       workspaces,
       lastActiveId,
@@ -60,15 +60,16 @@ export const workspaceHandlers: RpcHandlerMap = {
   },
 
   "workspace.status": async ({ clientId, respond }) => {
+    const lockdown = isWorkspaceLockdown();
     const activePath = workspaceContextManager.getActivePath(clientId);
     let activeName: string | null = null;
-    if (activePath) {
+    if (activePath && !lockdown) {
       const entry = await findWorkspaceByPath(activePath);
       activeName = entry?.name ?? null;
     }
     respond({
       active: activePath ? { path: activePath, name: activeName } : null,
-      lockdown: isWorkspaceLockdown(),
+      lockdown,
       lockdownPath: getWorkspaceLockdownPath(),
     });
   },
