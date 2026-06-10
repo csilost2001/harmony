@@ -46,6 +46,7 @@ export class WsBridge extends EventEmitter {
   private wss: WebSocketServer | null = null;
   private httpServer: HttpServer | null = null;
   private httpRoutes: Array<{ pathPrefix: string; handler: HttpRequestHandler }> = [];
+  private httpFallbackHandler: HttpRequestHandler | null = null;
   /** clientId → WebSocket（登録済みクライアント） */
   private clients = new Map<string, WebSocket>();
   /** 接続順（最後が最新）。MCP コマンドの送信先選択に使用 */
@@ -384,22 +385,26 @@ export class WsBridge extends EventEmitter {
     this.httpRoutes.push({ pathPrefix, handler });
   }
 
+  /**
+   * 通常 route にマッチしなかった HTTP request を処理する fallback。
+   * L2 配布 image では frontend/dist の SPA static serving に使う。
+   */
+  registerHttpFallbackHandler(handler: HttpRequestHandler): void {
+    this.httpFallbackHandler = handler;
+  }
+
   private async _handleHttp(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = req.url ?? "/";
 
-    // S-001: Origin / loopback 検証 (health check エンドポイントは除外)
-    if (url !== "/" && url !== "/health") {
-      const originError = checkRequestOrigin(req);
-      if (originError) {
-        logWarn("ws-bridge", "HTTP request rejected: origin check failed", { url, reason: originError });
-        res.writeHead(403, { "Content-Type": "text/plain" });
-        res.end("Forbidden");
-        return;
-      }
-    }
-
     for (const route of this.httpRoutes) {
       if (url === route.pathPrefix || url.startsWith(route.pathPrefix + "/") || url.startsWith(route.pathPrefix + "?")) {
+        const originError = checkRequestOrigin(req);
+        if (originError) {
+          logWarn("ws-bridge", "HTTP request rejected: origin check failed", { url, reason: originError });
+          res.writeHead(403, { "Content-Type": "text/plain" });
+          res.end("Forbidden");
+          return;
+        }
         try {
           await route.handler(req, res);
         } catch (e) {
@@ -418,7 +423,7 @@ export class WsBridge extends EventEmitter {
       }
     }
     // Health check endpoint (#795-A): half-dead 検知情報を含む
-    if (url === "/" || url === "/health") {
+    if (url === "/health" || (url === "/" && !this.httpFallbackHandler)) {
       // S-014: 詳細な稼働状況は loopback (127.0.0.1/::1) のみに公開する (CWE-200)
       const remoteAddr = (req.socket?.remoteAddress ?? "").replace(/^::ffff:/, "");
       const isLoopback = remoteAddr === "127.0.0.1" || remoteAddr === "::1" || remoteAddr === "localhost";
@@ -437,6 +442,21 @@ export class WsBridge extends EventEmitter {
         wsConnections: health.wsConnections,
         uptimeMs: health.uptimeMs,
       }));
+      return;
+    }
+    if (this.httpFallbackHandler) {
+      try {
+        await this.httpFallbackHandler(req, res);
+      } catch (e) {
+        logError("ws-bridge", "HTTP fallback handler error", {
+          error: e instanceof Error ? e.message : String(e),
+          stack: e instanceof Error ? e.stack : undefined,
+        });
+        if (!res.writableEnded) {
+          res.writeHead(500, { "Content-Type": "text/plain" });
+          res.end("Internal Server Error");
+        }
+      }
       return;
     }
     res.writeHead(404, { "Content-Type": "text/plain" });

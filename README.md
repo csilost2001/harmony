@@ -90,7 +90,7 @@ codex login      # ChatGPT Plus 利用時
 
 WSL2 native セットアップも引き続きサポート対象です: [`docs/setup/wsl2-native.md`](docs/setup/wsl2-native.md)
 
-将来的に `docker compose up` だけで Harmony を起動できる image 配布構想は [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) (現状未実装、#1055 L2/L3 で着手予定)。
+Docker image 配布方針と maintainer 向け build / smoke 手順は [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) を参照してください。通常の本体開発は引き続き Dev Containers が推奨です。
 
 ---
 
@@ -114,7 +114,19 @@ Harmony を起動して GUI と `/generate-code` で業務アプリを設計・�
 - 上の Quick Start でセットアップ (現状は (1) と同じ経路)
 - 業務設計者向けワークフロー: [`docs/user-guide/`](docs/user-guide/)
 - 業界別サンプルプロジェクト: [`examples/`](examples/)
-- 将来的に Docker image 配布が整備されれば `docker compose up` だけで起動可能になる予定 ([`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md))
+- Docker image 配布が有効な環境では、Harmony 本体 repo を編集対象にせず `docker compose up` で起動する運用を選べます ([`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md))
+
+### Docker image をローカルで確認する maintainer 向け手順
+
+Docker build / smoke は Dev Container 内ではなく、Docker Desktop / Docker Engine に接続できる WSL2 host などで実行します。
+
+```bash
+cd ~/projects/harmony
+bash scripts/build-harmony-image.sh local
+HARMONY_IMAGE=ghcr.io/csilost2001/harmony:local bash scripts/smoke-harmony-image.sh local
+```
+
+配布 image は port 5179 で SPA / HTTP MCP / WebSocket をまとめて提供します。
 
 ### (3) 業務アプリのエンドユーザ
 

@@ -1,25 +1,91 @@
-# Harmony 配布形態ロードマップ — Docker image 化構想
+# Harmony 配布形態ロードマップ — Docker image 配布
 
-Harmony 本体 (frontend + backend) を Docker image として配布し、利用者が `git clone` せずに `docker compose up` だけで起動できるようにする構想。
+Harmony 本体 (frontend + backend) を Docker image として配布し、利用者が `git clone` せずに `docker compose up` だけで起動できるようにする方針。
 
-> ⚠️ **本書は構想 / ロードマップであり、現状未実装です** (2026-05-15 時点)。
+> ✅ **現在の採用方針は 1-container 構成です** (#1472)。
 >
-> - 着手は #1055 の L2 / L3 で本格化予定 (近日着手予定、本書を起点に書き直す前提)
-> - 関連: [#1055 L1 production Dockerfile 雛形](https://github.com/csilost2001/harmony/issues/1055) (closed、本書記載の前段 path 規約と L2/L3 方針あり)
+> - `Dockerfile` は frontend build 成果物を backend image に同梱する
+> - backend が `frontend/dist/` を静的配信し、port 5179 で SPA / HTTP MCP / WebSocket をまとめて提供する
+> - `scripts/build-harmony-image.sh` と `scripts/smoke-harmony-image.sh` は host WSL2/Linux で実行する
+> - Dev Container 内から Docker daemon access を前提にしない
 >
-> ⚠️ **本書記載の 2-container 案は #1055 L2 方針 (backend-static-serve で 1 container 統合) と矛盾しています**。L2 着手時には **1-container 案** (backend が `express.static()` で `frontend/dist/` を配信、5179 ポートで HTTP MCP / WebSocket / SPA 全部) で書き直す前提で、本書の compose 構成 (frontend + backend 2 サービス) は**そのまま採用しないでください**。
->
-> ✅ ただし **本書の構造 (Step 2-1 〜 2-8) と方針は historical reference として保持しています**。ghcr.io への push 手順 / GitHub Actions / volume mount 設計 / トラブルシューティング等は 1-container 案でもそのまま使えるため、L2/L3 着手者の出発点として読む価値があります。
+> ⚠️ Appendix の 2-container 案は historical reference です。新規実装では採用しません。
 
 開発環境セットアップ手順は本書の対象外です。Harmony 本体を開発したい場合は [`dev-containers.md`](./dev-containers.md) (推奨) または [`wsl2-native.md`](./wsl2-native.md) (代替) を参照してください。
 
 ---
 
-## L2 着手前の必須設計判断 (バトン情報)
+## 採用構成
 
-#1055 L2 着手者はまず本節を読んでから書き直しに入ること。Step 2-1〜2-8 (後述) はこの設計判断に従って再構成する必要がある。
+### 1. 1-container 統合
 
-### 1. AI mount は optional + Codex は optional
+配布 image は 1 container で動作する。
+
+| 機能 | 提供元 |
+|---|---|
+| SPA | backend HTTP fallback が `frontend/dist/` を静的配信 |
+| HTTP MCP | `/mcp` |
+| WebSocket bridge | 同一 port の upgrade |
+| Health check | `/health` |
+
+配布 image の既定 port は 5179。開発時の `npm run frontend` (Vite, 5173) と `npm run backend` (5179) の 2-process 運用は引き続き canonical。
+
+### 2. 永続化 mount
+
+`docs/spec/path-conventions.md` の 3 カテゴリを採用する。
+
+| カテゴリ | 配置 | 配布時の推奨 mount |
+|---|---|---|
+| Harmony state | `/home/node/.harmony` | named volume |
+| workspace 成果物 | `/data/workspaces` | host bind mount |
+| built-in リソース | image 内 `data/extensions/` | mount 不要 |
+
+### 3. host 実行 script
+
+Docker build / smoke は Dev Container 内ではなく、Docker Desktop / Docker Engine に接続できる host WSL2/Linux で実行する。
+
+```bash
+# host WSL2 bash
+cd ~/projects/harmony
+bash scripts/build-harmony-image.sh 0.1.0
+bash scripts/smoke-harmony-image.sh 0.1.0
+```
+
+既定 image tag:
+
+```text
+ghcr.io/csilost2001/harmony:<version>
+```
+
+local tag で試す場合:
+
+```bash
+HARMONY_IMAGE=harmony:local bash scripts/build-harmony-image.sh local
+HARMONY_IMAGE=harmony:local bash scripts/smoke-harmony-image.sh local
+```
+
+### 4. docker compose 例
+
+```yaml
+services:
+  harmony:
+    image: ghcr.io/csilost2001/harmony:1.0.0
+    ports:
+      - "5179:5179"
+    volumes:
+      - harmony-state:/home/node/.harmony
+      - ./workspaces:/data/workspaces
+      # Codex 機能を使う場合のみ uncomment
+      # - ${HOME}/.codex:/home/node/.codex:ro
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+
+volumes:
+  harmony-state:
+```
+
+### 5. AI mount は optional + Codex は optional
 
 Harmony backend は **Codex App Server を lazy 接続** (`wsBridge.ts:247` `_codexConn: CodexConnection | null = null`)。backend 起動時に codex は spawn されず、利用者が「処理フローの `kind: "ai"` step 実行」または「UI の Codex 統合タブ操作」をして初めて接続を試みる。
 
@@ -38,7 +104,7 @@ Harmony backend は **Codex App Server を lazy 接続** (`wsBridge.ts:247` `_co
 - backend image に codex CLI を install するかは選択 (推奨: install しておく + mount で auth 渡す。L2 着手時に image サイズ実測して判断)
 - Codex 機能を使わない利用者層は `.codex` mount 無しで完全に Harmony を使える
 
-### 2. 利用者層を 3 区分で想定する
+### 6. 利用者層を 3 区分で想定する
 
 | 利用者層 | サブスク状況 | 必要な構成 |
 |---|---|---|
@@ -48,7 +114,7 @@ Harmony backend は **Codex App Server を lazy 接続** (`wsBridge.ts:247` `_co
 
 (2a) を排除しない compose 設計が重要 (= mount は default で **無し**、欲しい人だけ追加)。
 
-### 3. Codex 通信は stdio 一択 (WebSocket は公式 unsupported)
+### 7. Codex 通信は stdio 一択 (WebSocket は公式 unsupported)
 
 Codex App Server の公式 transport ([OpenAI Developers](https://developers.openai.com/codex/app-server) / [GitHub openai/codex codex-rs/app-server/README.md](https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md)):
 
@@ -63,48 +129,24 @@ Codex App Server の公式 transport ([OpenAI Developers](https://developers.ope
 
 Harmony backend は両方を実装済 (`backend/src/codex/config.ts` の `HARMONY_CODEX_TRANSPORT` env)。L2 では **default = stdio (container 内 spawn)** で進める。`HARMONY_CODEX_TRANSPORT=websocket` 経路は上級ユーザ向け escape hatch として残すが、配布 compose のサンプルでは推奨しない。
 
-### 4. Codex 統合の compose スニペット (推奨形、L2 着手者が起点に使う)
+### 8. publish skill
 
-1-container 統合案 + Codex optional mount のサンプル:
+AI に publish 作業を依頼する場合は `ai-skills/publish-harmony-image/SKILL.md` を使う。これは実行本体ではなく、host script / smoke / ghcr push を正しい順序で扱うための maintainer 手順。
 
-```yaml
-services:
-  harmony:
-    image: ghcr.io/csilost2001/harmony:1.0.0
-    ports:
-      - "5179:5179"               # HTTP MCP + WebSocket + SPA (express.static で statically serve)
-    volumes:
-      - ./workspaces:/data/workspaces                      # 利用者の作業データ (必須)
-      - harmony-state:/home/node/.harmony                  # recent-workspaces.json (必須、named volume)
-      # ↓ Codex 機能を使う場合のみ uncomment (= 利用者層 (2b))
-      # - ${HOME}/.codex:/home/node/.codex:ro              # ChatGPT Plus OAuth credential (host で `codex login` 必要)
-    environment:
-      NODE_ENV: production
-      # HARMONY_CODEX_TRANSPORT: spawn                     # default
-    restart: unless-stopped
+### 9. 旧 Step 2-1 〜 2-8 の扱い
 
-volumes:
-  harmony-state:
-```
+旧案は Appendix に historical reference として残す。新規作業では以下の読み替えを行う。
 
-- `.codex` は **read-only mount** (container 内で書き換えない、host の credential を読むだけ)
-- `:ro` を付けることで container 内の AI step が誤って credential を上書きするリスクを排除
-- 利用者層 (2a) はこの mount をコメントアウトのままで OK
-- 利用者層 (2b) は uncomment + host で 1 度 `codex login` 完了させる
-- 利用者層 (2c) は Harmony image を使わず、自分の手元の Claude Code Desktop 等から MCP 接続のみ
-
-### 5. Step 2-1 〜 2-8 の書き直し方針 (要約)
-
-| Step | 旧案 (本書) | L2 で書き直す方向 |
+| Step | 旧案 | 現在の扱い |
 |---|---|---|
 | 2-1 | frontend/Dockerfile | **削除** (1-container 案では不要、backend Dockerfile に統合) |
-| 2-2 | backend/Dockerfile | **frontend を multi-stage で同梱**、backend が `express.static()` で `frontend/dist/` を配信 |
-| 2-3 | docker-compose.yml (2 services) | **1 service** (上記スニペット参照)、Codex mount は optional |
+| 2-2 | backend/Dockerfile | root `Dockerfile` が frontend/backend/shared を multi-stage build |
+| 2-3 | docker-compose.yml (2 services) | 1 service、Codex mount は optional |
 | 2-4 | docker-compose.dev.yml | L2 では不要 (開発は `.devcontainer/` で完結)。最低限必要なら別ファイルで |
-| 2-5 | ローカルビルド + 統合テスト | 1 image / 1 container のテストフローに置き換え |
-| 2-6 | ghcr.io push | そのまま使える (tag 付け / login / push 手順は変わらず) |
+| 2-5 | ローカルビルド + 統合テスト | `scripts/build-harmony-image.sh` / `scripts/smoke-harmony-image.sh` |
+| 2-6 | ghcr.io push | host または GitHub Actions で実施 |
 | 2-7 | README に手順追加 | top-level README.md (#1109 で新設済) に「`docker compose up` で起動」セクションを追記する形に修正 |
-| 2-8 | GitHub Actions release | そのまま使える (1 image build に簡略化される分むしろ簡単) |
+| 2-8 | GitHub Actions release | tag push → 1 image build/push に簡略化 |
 
 ---
 

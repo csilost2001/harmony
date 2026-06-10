@@ -138,19 +138,21 @@ file system による state 管理は行わず、DB の users / workspaces テ�
 
 L1 (本 ISSUE #1055): path 規約 + 最小 Dockerfile (backend のみ) + devcontainer 永続化。**配布の約束はしない**。
 
-L2 (将来): frontend 同梱、backend が静的配信、healthcheck 追加、self-host できる image。利用者が「1 container で全部動く」状態。
+L2 (#1472): frontend 同梱、backend が静的配信、healthcheck 追加、self-host できる image。利用者が「1 container で全部動く」状態。Docker build / smoke は Dev Container 内ではなく host WSL2/Linux の `scripts/build-harmony-image.sh` / `scripts/smoke-harmony-image.sh` で行う。
 
 L3 (将来): 公開配布。multi-arch (amd64/arm64) build、image tag 戦略、SBOM、脆弱性スキャン、リリースノート連携。
 
-### L1 image の同梱範囲 (現状)
+### L2 image の同梱範囲
 
-§1 の表で (c) built-in リソース (`data/extensions/`) を「image 内に焼き込み」と分類しているが、**L1 Dockerfile では `backend/` のみ COPY** しており、`data/extensions/` は同梱されていない。理由:
+root `Dockerfile` は以下を image 内へ同梱する:
 
-- L1 は path 規約確定が目的で、配布前提ではない
-- `backend/` 起動時は `data/extensions/` が無くても起動可能 (拡張定義が空の状態で動作)
-- L2 で frontend + extensions を同梱するタイミングで一括対応する
+- `backend/dist/`
+- `frontend/dist/`
+- `shared/dist/`
+- production `node_modules`
+- `data/extensions/`
 
-**L1 image を実機で動かす場合の workaround**: ホストの `data/extensions/` を bind mount するか、`backend/` 内に default extensions を埋め込む shim を別途用意する。L2 完了までは Dev Container での開発用途に留めるのが妥当。
+runtime は `HARMONY_STATIC_DIR=/app/frontend/dist` を設定し、backend の HTTP fallback が SPA を静的配信する。`data/extensions/` は built-in リソースとして image に焼き込むため、配布利用者は別途 mount しない。
 
 ## 8. 既知の課題 / 設計判断
 

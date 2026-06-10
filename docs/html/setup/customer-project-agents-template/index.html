@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>customer project agents template</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> セットアップ </div> <ul class="space-y-0.5"> <li> <a href="../../setup/dev-containers/" class="sidebar-link"> Dev Containers (推奨) </a> </li><li> <a href="../../setup/wsl2-native/" class="sidebar-link"> WSL2 native (代替) </a> </li><li> <a href="../../setup/distribution-roadmap/" class="sidebar-link"> Docker image 配布 </a> </li><li> <a href="../../setup/customer-project-agents-template/" class="sidebar-link active"> Customer AGENTS template </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="customer-project-agentsmd-template">Customer Project AGENTS.md Template</h1>
+<p>Harmony を Docker image / readonly spec package として利用し、業務 project 側だけを AI の writable scope にするための <code>AGENTS.md</code> テンプレート。</p>
+<h2 id="template">Template</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="markdown"><code><span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#6CB6FF;--shiki-dark-font-weight:bold"># AGENTS.md</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">このリポジトリは Harmony で設計・生成する業務アプリ project です。</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#6CB6FF;--shiki-dark-font-weight:bold">## 編集してよい領域</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">-</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> `harmony-design/`</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — Harmony workspace。</span><span style="color:#005CC5;--shiki-dark:#6CB6FF">`harmony.json`</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> と </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">`&#x3C;dataDir>/`</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> 配下の設計 JSON を含む</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">-</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> `app/`</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> — 生成・実装する業務アプリ本体</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">-</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> この project の README / tests / docs</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#6CB6FF;--shiki-dark-font-weight:bold">## readonly reference</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">-</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> `node_modules/@harmony/spec/`</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> または別途配置された </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">`@harmony/spec`</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">-</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> Harmony schemas / docs / examples の readonly copy</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#6CB6FF;--shiki-dark-font-weight:bold">## 編集禁止</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">-</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> Harmony 本体 repo</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">-</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> Harmony 本体の </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">`frontend/`</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">`backend/`</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">`shared/`</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">`schemas/`</span><span style="color:#24292E;--shiki-dark:#ADBAC7">, </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">`docs/`</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">-</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> Docker image 内の Harmony 配布物</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#6CB6FF;--shiki-dark-font-weight:bold">## Harmony 本体に問題を見つけた場合</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">この業務 project 作業中に Harmony 本体 source を直接修正しない。</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">1.</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> 既存 schema / extension / project-level convention で回避できるか確認する</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">2.</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> 回避できない場合は Harmony 本体側の issue / PR として扱う</span></span>
+<span class="line"><span style="color:#E36209;--shiki-dark:#F69D50">3.</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> 業務 project 側には必要最小限の workaround だけを残す</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark:#6CB6FF;--shiki-dark-font-weight:bold">## Schema governance</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">グローバル schema の変更は Harmony framework maintainer の責務です。業務 project の AI agent は </span><span style="color:#005CC5;--shiki-dark:#6CB6FF">`schemas/v3/*.json`</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> を変更しません。</span></span></code></pre>
+<h2 id="推奨-project-layout">推奨 project layout</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="text"><code><span class="line"><span>customer-system/</span></span>
+<span class="line"><span>  AGENTS.md</span></span>
+<span class="line"><span>  harmony-design/</span></span>
+<span class="line"><span>    harmony.json</span></span>
+<span class="line"><span>    harmony/</span></span>
+<span class="line"><span>      screens/</span></span>
+<span class="line"><span>      tables/</span></span>
+<span class="line"><span>      process-flows/</span></span>
+<span class="line"><span>  app/</span></span></code></pre>
+<p>Harmony は Docker image として起動し、<code>customer-system/harmony-design</code> を workspace として開く。AI coding agent は <code>customer-system/</code> を作業ディレクトリにし、Harmony 本体 repo を writable scope に含めない。</p>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

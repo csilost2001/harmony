@@ -13,9 +13,13 @@
 
 import type { IncomingMessage } from "node:http";
 
+const BACKEND_PORT = process.env.DESIGNER_MCP_PORT ?? "5179";
+
 const ALLOWED_ORIGINS = new Set([
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  `http://localhost:${BACKEND_PORT}`,
+  `http://127.0.0.1:${BACKEND_PORT}`,
   // #1342 Proposal A: lockdown e2e config (playwright.lockdown.config.ts) は main
   // config (5173/5179) と port 衝突回避のため frontend=5183 / backend=5189 で起動する。
   // localhost に閉じた dev/test 用 port のため allowlist に追加する。
