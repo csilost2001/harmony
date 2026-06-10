@@ -532,6 +532,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
         })
         .catch((err) => {
           console.error("[workspace] initial per-session restore failed:", err);
+          const guard = checkRedirect("/workspace/select");
+          if (guard.allow) navigate("/workspace/select", { replace: true });
         })
         .finally(() => {
           if (__recoveryPendingWsId === activeId) __recoveryPendingWsId = null;
@@ -551,7 +553,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
         // backend の workspace.changed broadcast は requester を除外する (wsBridge.ts excludeClientId)。
         // 自セッション側は broadcast を受けないため、明示的に loadWorkspaces で state.active を更新する。
         // (#956 / puck-editor:67 reload 復元 race の真因対応)
-        .then(() => loadWorkspaces())
+        .then(() => {
+          __initialRestoreDoneWsIds.add(action.id);
+          return loadWorkspaces();
+        })
         .catch((err) => {
           console.error("[workspace] workspace.open from routing guard failed:", err);
           const guard = checkRedirect("/workspace/select");
