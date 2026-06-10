@@ -100,12 +100,15 @@ services:
   harmony:
     image: harnize/harmony:1.0
     ports:
-      - "5179:5179"
+      - "127.0.0.1:5179:5179"
     volumes:
       - harmony-state:/home/node/.harmony   # (a) state は named volume
       - ~/projects:/data/workspaces          # (b) 成果物は host の ~/projects に bind
     environment:
       HARMONY_HOME: /home/node/.harmony
+      # no-Origin MCP client を Docker published port 経由で使う場合のみ有効化。
+      # ports は必ず 127.0.0.1 bind にして LAN へ公開しない。
+      HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT: "1"
 volumes:
   harmony-state:
 ```
@@ -119,10 +122,14 @@ services:
   harmony:
     image: harnize/harmony:1.0
     ports:
-      - "5179:5179"
+      - "127.0.0.1:5179:5179"
     volumes:
       - harmony-state:/home/node/.harmony
       - harmony-workspaces:/data/workspaces   # (b) も named volume にする
+    environment:
+      # no-Origin MCP client を Docker published port 経由で使う場合のみ有効化。
+      # ports は必ず 127.0.0.1 bind にして LAN へ公開しない。
+      HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT: "1"
 volumes:
   harmony-state:
   harmony-workspaces:

@@ -69,6 +69,18 @@ function hostnameFromOrigin(origin: string): string | null {
   }
 }
 
+function hostFromOrigin(origin: string): string | null {
+  try {
+    return new URL(origin).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function normalizeHostHeader(host: string | undefined): string | null {
+  return host ? host.toLowerCase() : null;
+}
+
 function isAllowedHost(hostname: string | null): boolean {
   return hostname !== null && ALLOWED_HOSTNAMES.has(hostname);
 }
@@ -79,8 +91,7 @@ function trustsLocalhostPublishedPort(): boolean {
 
 function isSameAllowedHostOrigin(origin: string, host: string | undefined): boolean {
   const originHost = hostnameFromOrigin(origin);
-  const requestHost = hostnameFromHostHeader(host);
-  return isAllowedHost(originHost) && originHost === requestHost;
+  return isAllowedHost(originHost) && hostFromOrigin(origin) === normalizeHostHeader(host);
 }
 
 /**

@@ -67,6 +67,13 @@ describe("checkRequestOrigin", () => {
     expect(checkRequestOrigin(req)).toBeNull();
   });
 
+  it("異常: Origin あり + localhost だが Host と port 不一致 → 拒否文字列を返す", () => {
+    const req = makeReq({ origin: "http://localhost:3000", host: "localhost:5179" });
+    const result = checkRequestOrigin(req);
+    expect(result).not.toBeNull();
+    expect(result).toContain("Origin not allowed");
+  });
+
   it("正常: Origin あり + 127.0.0.1 same-host の任意 port → null (Docker host port remap)", () => {
     const req = makeReq({ origin: "http://127.0.0.1:8080", host: "127.0.0.1:8080" });
     expect(checkRequestOrigin(req)).toBeNull();
@@ -196,6 +203,11 @@ describe("getAllowedOriginHeader", () => {
   it("正常: localhost same-host の任意 port Origin → echo する", () => {
     const req = makeReq({ origin: "http://localhost:5180", host: "localhost:5180" });
     expect(getAllowedOriginHeader(req)).toBe("http://localhost:5180");
+  });
+
+  it("異常: localhost だが Host と port 不一致の Origin → null (省略)", () => {
+    const req = makeReq({ origin: "http://localhost:3000", host: "localhost:5179" });
+    expect(getAllowedOriginHeader(req)).toBeNull();
   });
 
   it("正常: Origin なし → null", () => {

@@ -142,12 +142,15 @@
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">harnize/harmony:1.0</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5179:5179"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"127.0.0.1:5179:5179"</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony-state:/home/node/.harmony</span><span style="color:#6A737D;--shiki-dark:#768390">   # (a) state は named volume</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">~/projects:/data/workspaces</span><span style="color:#6A737D;--shiki-dark:#768390">          # (b) 成果物は host の ~/projects に bind</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    environment</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      HARMONY_HOME</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">/home/node/.harmony</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # no-Origin MCP client を Docker published port 経由で使う場合のみ有効化。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # ports は必ず 127.0.0.1 bind にして LAN へ公開しない。</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"1"</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony-state</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span></code></pre>
 <p>利用者は <code>~/projects/&#x3C;任意名>/</code> 配下に harmony.json を含むワークスペースを置く。Harmony UI から <code>/data/workspaces/&#x3C;任意名></code> を絶対パスで「追加」する。</p>
@@ -156,10 +159,14 @@
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">harnize/harmony:1.0</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5179:5179"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"127.0.0.1:5179:5179"</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony-state:/home/node/.harmony</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony-workspaces:/data/workspaces</span><span style="color:#6A737D;--shiki-dark:#768390">   # (b) も named volume にする</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    environment</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # no-Origin MCP client を Docker published port 経由で使う場合のみ有効化。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # ports は必ず 127.0.0.1 bind にして LAN へ公開しない。</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"1"</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony-state</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony-workspaces</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span></code></pre>
