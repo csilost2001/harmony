@@ -173,11 +173,11 @@ region → CSS class マッピング: [`css-framework-switching.md § 8`](css-fr
 
 ## 14. AGENTS.md Routing 表への反映
 
-`AGENTS.md` § Routing の URL 規約表に追加 (`feat/page-layout-series` で更新):
+`AGENTS.md` § Routing の URL 規約表に追加。#1477 で PageLayout Designer は正規編集画面ではなく互換 redirect に縮退し、PageLayoutEditor がレイアウトマネージャとして定義・割当・preview を担う。
 
 ```
 | `/page-layout/list` | PageLayoutListView | ページレイアウト一覧 | ✅ singleton |
-| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 | ✅ per-resource |
-| `/page-layout/design/:pageLayoutId` | PageLayoutDesigner | ページレイアウト Designer | ✅ per-resource |
+| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 (レイアウトマネージャ) | ✅ per-resource |
+| `/page-layout/design/:pageLayoutId` | 互換 redirect → `/page-layout/edit/:pageLayoutId` | ❌ route only |
 | `/gadget/list` | GadgetListView | ガジェット一覧 (purpose=gadget filter) | ✅ singleton |
 ```

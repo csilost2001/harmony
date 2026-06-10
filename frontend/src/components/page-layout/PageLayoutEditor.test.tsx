@@ -9,6 +9,10 @@ import { MemoryRouter, Routes, Route } from "react-router-dom";
 
 // ─── mock heavy deps ─────────────────────────────────────────────────────────
 
+const editSessionMock = vi.hoisted(() => ({
+  modeKind: "readonly" as "readonly" | "editing",
+}));
+
 vi.mock("../../mcp/mcpBridge", () => ({
   mcpBridge: {
     getSessionId: () => "test-session-id",
@@ -45,7 +49,7 @@ vi.mock("../../store/pageLayoutStore", async () => {
         { name: "main", description: "メイン" },
         { name: "footer", description: "フッタ" },
       ],
-      assignments: { header: "global-header" },
+      assignments: { header: "global-header", main: "global-header" },
       design: { editorKind: "grapesjs", cssFramework: "bootstrap" },
       createdAt: "2026-05-12T00:00:00.000Z",
       updatedAt: "2026-05-12T00:00:00.000Z",
@@ -76,7 +80,7 @@ vi.mock("../../store/flowStore", async () => {
 vi.mock("../../hooks/useEditSession", () => ({
   useEditSession: () => ({
     editSession: null,
-    mode: { kind: "readonly" },
+    mode: { kind: editSessionMock.modeKind },
     loading: false,
     isDirtyForTab: false,
     actions: {
@@ -119,6 +123,7 @@ function renderEditor(id = "pl-test-001") {
 describe("PageLayoutEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    editSessionMock.modeKind = "readonly";
     localStorage.clear();
   });
 
@@ -203,5 +208,21 @@ describe("PageLayoutEditor", () => {
     for (const select of assignmentSelects) {
       expect([...select.options].map((option) => option.value)).not.toContain("normal-page");
     }
+  });
+
+  it("updates regions from a pattern and drops content-slot assignments in editing mode", async () => {
+    editSessionMock.modeKind = "editing";
+    renderEditor();
+
+    expect(await screen.findByTestId("page-layout-orphan-assignments")).toHaveTextContent("main");
+
+    fireEvent.change(screen.getByTestId("page-layout-pattern-select"), {
+      target: { value: "header-sidebar-main-footer" },
+    });
+
+    expect(await screen.findByTestId("page-layout-slot-sidebar")).toHaveTextContent("sidebar");
+    expect(screen.getByTestId("page-layout-gadget-preview-header")).toHaveTextContent("Global Header");
+    expect(screen.queryByTestId("page-layout-orphan-assignments")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-layout-gadget-preview-main")).not.toBeInTheDocument();
   });
 });

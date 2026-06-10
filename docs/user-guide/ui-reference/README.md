@@ -50,7 +50,7 @@ Harmony の各 UI 画面の操作マニュアル。**エンドユーザー (業�
 - [`view-editor`](./view-editor.md) — DB ビュー編集 (`/view/edit/:id`)
 - [`view-definition-editor`](./view-definition-editor.md) — ViewDefinition 編集 (`/view-definition/edit/:id`)
 - [`page-layout-editor`](./page-layout-editor.md) — ページレイアウト編集 (`/page-layout/edit/:id`)
-- [`page-layout-designer`](./page-layout-designer.md) — ページレイアウト Designer (`/page-layout/design/:id`)
+- [`page-layout-designer`](./page-layout-designer.md) — 互換 redirect (`/page-layout/design/:id` → `/page-layout/edit/:id`)
 - [`generic-definition-list`](./generic-definition-list.md) — 汎用定義一覧 (kind 単位) (`/generic-definition/:kind`)
 - [`generic-definition-editor`](./generic-definition-editor.md) — 汎用定義編集 (`/generic-definition/:kind/:name`)
 

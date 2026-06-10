@@ -436,8 +436,8 @@ URL 規約: **`/category/feature[/:id]`** 形式（Java 風階層）。ルート
 | `/view-definition/list` | ViewDefinitionListView | ViewDefinition (viewer) 一覧 | ✅ singleton |
 | `/view-definition/edit/:viewDefinitionId` | ViewDefinitionEditor | ViewDefinition 編集 | ✅ per-resource |
 | `/page-layout/list` | PageLayoutListView | ページレイアウト一覧 (RFC #1021) | ✅ singleton |
-| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 | ✅ per-resource |
-| `/page-layout/design/:pageLayoutId` | PageLayoutDesigner | ページレイアウト Designer | ✅ per-resource |
+| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 (レイアウトマネージャ) | ✅ per-resource |
+| `/page-layout/design/:pageLayoutId` | 互換 redirect → `/page-layout/edit/:pageLayoutId` | ❌ route only |
 | `/gadget/list` | GadgetListView | ガジェット一覧 (Screen.purpose=gadget filter) | ✅ singleton |
 | `/generic-definition` | GenericDefinitionCatalogView | 汎用定義カタログ | ✅ singleton |
 | `/generic-definition/:kind` | GenericDefinitionListView | 汎用定義一覧 (kind 別) | ✅ per-resource (kind 単位) |
@@ -460,7 +460,7 @@ URL 規約: **`/category/feature[/:id]`** 形式（Java 風階層）。ルート
 | 種別 | 対象 | 性質 |
 |------|------|------|
 | シングルトンタブ | Dashboard / 画面フロー / 画面一覧 / テーブル一覧 / ER 図 / 処理フロー一覧 / シーケンス一覧 / DB ビュー一覧 / ViewDefinition 一覧 / ページレイアウト一覧 / ガジェット一覧 / 汎用定義カタログ / 拡張管理 / 横断規約カタログ / 技術スタック / ワークスペース一覧 / AI 設定 | 1 インスタンス固定、再オープン時は既存を再利用 |
-| マルチインスタンスタブ | Designer / ScreenItemsView / TableEditor / ProcessFlowEditor / SequenceEditor / ViewEditor / ViewDefinitionEditor / PageLayoutEditor / PageLayoutDesigner / GenericDefinitionListView (kind 別) / GenericDefinitionEditor | リソース ID 毎に独立タブ |
+| マルチインスタンスタブ | Designer / ScreenItemsView / TableEditor / ProcessFlowEditor / SequenceEditor / ViewEditor / ViewDefinitionEditor / PageLayoutEditor / GenericDefinitionListView (kind 別) / GenericDefinitionEditor | リソース ID 毎に独立タブ |
 | route only | `/workspace/select` (フルスクリーン welcome、ヘッダー・タブバーなし) | タブ管理対象外 |
 
 **理由**: 一覧画面は全機能の俯瞰・順序変更・検索・帳票出力等の中心機能で、**詳細より頻繁に開かれる**。タブ化しないと毎回 HeaderMenu から辿り直しで UX 劣化する。VS Code も Welcome / Settings / Source Control などシングルトンをタブで開く。

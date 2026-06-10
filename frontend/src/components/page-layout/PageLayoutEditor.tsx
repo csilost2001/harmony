@@ -657,7 +657,12 @@ export function PageLayoutEditor() {
               const assignedHtml = assignedId ? previewHtmlByScreenId[String(assignedId)] : "";
               const samplePageHtml = samplePageId ? previewHtmlByScreenId[samplePageId] : "";
               return (
-                <div key={region.name} className={`plm-region plm-region-${role}`} data-region={region.name}>
+                <div
+                  key={region.name}
+                  className={`plm-region plm-region-${role}`}
+                  data-region={region.name}
+                  data-testid={`page-layout-slot-${region.name}`}
+                >
                   <div className="plm-region-label">
                     <code>{region.name}</code>
                     {isContentSlotRegion(region.name) && <span>content slot</span>}

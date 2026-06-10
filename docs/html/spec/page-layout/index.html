@@ -278,10 +278,10 @@ region → CSS class マッピング: <a href="../../spec/css-framework-switchin
 <li>全画面の code generation 自動回し (現在は 1 entity ずつ skill 起動) — 別 ISSUE 候補</li>
 </ul>
 <h2 id="14-agentsmd-routing-表への反映">14. AGENTS.md Routing 表への反映</h2>
-<p><code>AGENTS.md</code> § Routing の URL 規約表に追加 (<code>feat/page-layout-series</code> で更新):</p>
+<p><code>AGENTS.md</code> § Routing の URL 規約表に追加。#1477 で PageLayout Designer は正規編集画面ではなく互換 redirect に縮退し、PageLayoutEditor がレイアウトマネージャとして定義・割当・preview を担う。</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>| `/page-layout/list` | PageLayoutListView | ページレイアウト一覧 | ✅ singleton |</span></span>
-<span class="line"><span>| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 | ✅ per-resource |</span></span>
-<span class="line"><span>| `/page-layout/design/:pageLayoutId` | PageLayoutDesigner | ページレイアウト Designer | ✅ per-resource |</span></span>
+<span class="line"><span>| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 (レイアウトマネージャ) | ✅ per-resource |</span></span>
+<span class="line"><span>| `/page-layout/design/:pageLayoutId` | 互換 redirect → `/page-layout/edit/:pageLayoutId` | ❌ route only |</span></span>
 <span class="line"><span>| `/gadget/list` | GadgetListView | ガジェット一覧 (purpose=gadget filter) | ✅ singleton |</span></span></code></pre>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {
