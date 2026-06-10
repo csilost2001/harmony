@@ -10,6 +10,9 @@
  *   "workspaces": [
  *     { "id": "<uuid>", "path": "<absolute>", "name": "<display>", "lastOpenedAt": "<iso>" }
  *   ],
+ *   "workspaceRoots": [
+ *     { "id": "<uuid>", "path": "<absolute>", "label": "<display>", "registeredAt": "<iso>" }
+ *   ],
  *   "lastActiveId": "<uuid|null>"
  * }
  *
@@ -28,10 +31,26 @@ export type WorkspaceEntry = {
   lastOpenedAt: string;
 };
 
+export type WorkspaceRootEntry = {
+  id: string;
+  path: string;
+  label: string;
+  registeredAt: string;
+};
+
+export type WorkspaceCandidate = {
+  path: string;
+  name: string | null;
+  status: "ready" | "invalid";
+  reason?: string;
+  alreadyRecent: boolean;
+};
+
 type RecentFile = {
   $schema: string;
   version: 1;
   workspaces: WorkspaceEntry[];
+  workspaceRoots: WorkspaceRootEntry[];
   lastActiveId: string | null;
 };
 
@@ -61,7 +80,7 @@ function recentDir(): string {
 }
 
 function emptyFile(): RecentFile {
-  return { $schema: SCHEMA_TAG, version: 1, workspaces: [], lastActiveId: null };
+  return { $schema: SCHEMA_TAG, version: 1, workspaces: [], workspaceRoots: [], lastActiveId: null };
 }
 
 function isRecentFile(value: unknown): value is RecentFile {
@@ -69,8 +88,9 @@ function isRecentFile(value: unknown): value is RecentFile {
   const v = value as Record<string, unknown>;
   if (v.version !== 1) return false;
   if (!Array.isArray(v.workspaces)) return false;
+  if (v.workspaceRoots !== undefined && !Array.isArray(v.workspaceRoots)) return false;
   if (v.lastActiveId !== null && typeof v.lastActiveId !== "string") return false;
-  return v.workspaces.every((w) => {
+  const workspacesValid = v.workspaces.every((w) => {
     if (typeof w !== "object" || w === null) return false;
     const e = w as Record<string, unknown>;
     return typeof e.id === "string"
@@ -78,13 +98,28 @@ function isRecentFile(value: unknown): value is RecentFile {
       && typeof e.name === "string"
       && typeof e.lastOpenedAt === "string";
   });
+  if (!workspacesValid) return false;
+  const roots = Array.isArray(v.workspaceRoots) ? v.workspaceRoots : [];
+  return roots.every((r) => {
+    if (typeof r !== "object" || r === null) return false;
+    const e = r as Record<string, unknown>;
+    return typeof e.id === "string"
+      && typeof e.path === "string"
+      && typeof e.label === "string"
+      && typeof e.registeredAt === "string";
+  });
 }
 
 export async function readRecent(): Promise<RecentFile> {
   try {
     const raw = await fs.readFile(recentFile(), "utf-8");
     const parsed = JSON.parse(raw);
-    if (isRecentFile(parsed)) return parsed;
+    if (isRecentFile(parsed)) {
+      return {
+        ...parsed,
+        workspaceRoots: parsed.workspaceRoots ?? [],
+      };
+    }
   } catch {
     /* not found or malformed → return empty */
   }
@@ -184,6 +219,47 @@ export function removeWorkspace(id: string): Promise<boolean> {
     file.workspaces = file.workspaces.filter((w) => w.id !== id);
     if (file.lastActiveId === id) file.lastActiveId = null;
     if (file.workspaces.length === before) return false;
+    await writeRecent(file);
+    return true;
+  });
+}
+
+export function listWorkspaceRoots(): Promise<WorkspaceRootEntry[]> {
+  return withWriteLock(async () => {
+    const file = await readRecent();
+    return file.workspaceRoots;
+  });
+}
+
+export function upsertWorkspaceRoot(rootPath: string, label?: string): Promise<WorkspaceRootEntry> {
+  return withWriteLock(async () => {
+    const file = await readRecent();
+    const norm = normalizePath(rootPath);
+    const existing = file.workspaceRoots.find((r) => normalizePath(r.path) === norm);
+    if (existing) {
+      existing.path = norm;
+      existing.label = label?.trim() || existing.label || path.basename(norm) || norm;
+      await writeRecent(file);
+      return existing;
+    }
+    const entry: WorkspaceRootEntry = {
+      id: randomUUID(),
+      path: norm,
+      label: label?.trim() || path.basename(norm) || norm,
+      registeredAt: new Date().toISOString(),
+    };
+    file.workspaceRoots.push(entry);
+    await writeRecent(file);
+    return entry;
+  });
+}
+
+export function removeWorkspaceRoot(id: string): Promise<boolean> {
+  return withWriteLock(async () => {
+    const file = await readRecent();
+    const before = file.workspaceRoots.length;
+    file.workspaceRoots = file.workspaceRoots.filter((r) => r.id !== id);
+    if (file.workspaceRoots.length === before) return false;
     await writeRecent(file);
     return true;
   });

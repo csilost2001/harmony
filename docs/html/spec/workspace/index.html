@@ -44,8 +44,12 @@
 
 
 
-<table><thead><tr><th>用語</th><th>説明</th></tr></thead><tbody><tr><td>ワークスペース</td><td><code>harmony.json</code> を含むフォルダ 1 つ。UI 表記は「ワークスペース」(カタカナ)、実装識別子・JSON key は <code>workspace</code> を用いる。</td></tr><tr><td><code>harmony.json</code></td><td>ワークスペースフォルダの root に配置する marker ファイル。<code>schemas/v3/harmony.v3.schema.json</code> 準拠。<code>dataDir</code> フィールドで設計データ格納先のサブディレクトリを指定する。</td></tr><tr><td><code>dataDir</code></td><td>設計データ (<code>screens/</code> / <code>tables/</code> / <code>process-flows/</code> 等) を格納するサブディレクトリのパス (ワークスペースルートからの相対パス)。推奨慣習は <code>"harmony"</code>。</td></tr><tr><td>active ワークスペース</td><td><code>backend</code> が現在 read/write 対象とする 1 つのワークスペース。1 サーバ = 1 active が原則。env <code>DESIGNER_DATA_DIR</code> 指定時は lockdown 固定。</td></tr><tr><td>recent</td><td>最近開いたワークスペースの履歴リスト (<code>~/.harmony/recent-workspaces.json</code>)。表示順は <code>lastOpenedAt</code> 降順。</td></tr><tr><td>lockdown モード</td><td>env <code>DESIGNER_DATA_DIR</code> が設定されている場合に起動する動作モード。active は env 値に固定され、切替操作は全て <code>LockdownError</code> となる。</td></tr></tbody></table>
-<p><code>data/</code> ディレクトリはデザイナー本体の組み込み拡張定義 (<code>data/extensions/</code>) 専用。ユーザープロジェクトは <code>workspaces/</code> 配下または任意フォルダに置く (#754)。</p>
+
+
+
+
+<table><thead><tr><th>用語</th><th>説明</th></tr></thead><tbody><tr><td>ワークスペース</td><td><code>harmony.json</code> を含むフォルダ 1 つ。UI 表記は「ワークスペース」(カタカナ)、実装識別子・JSON key は <code>workspace</code> を用いる。</td></tr><tr><td><code>harmony.json</code></td><td>ワークスペースフォルダの root に配置する marker ファイル。<code>schemas/v3/harmony.v3.schema.json</code> 準拠。<code>dataDir</code> フィールドで設計データ格納先のサブディレクトリを指定する。</td></tr><tr><td><code>dataDir</code></td><td>設計データ (<code>screens/</code> / <code>tables/</code> / <code>process-flows/</code> 等) を格納するサブディレクトリのパス (ワークスペースルートからの相対パス)。推奨慣習は <code>"harmony"</code>。</td></tr><tr><td>active ワークスペース</td><td><code>backend</code> が現在 read/write 対象とする 1 つのワークスペース。1 サーバ = 1 active が原則。env <code>DESIGNER_DATA_DIR</code> 指定時は lockdown 固定。</td></tr><tr><td>recent</td><td>最近開いたワークスペースの履歴リスト (<code>~/.harmony/recent-workspaces.json</code>)。表示順は <code>lastOpenedAt</code> 降順。</td></tr><tr><td>workspace root</td><td>Harmony project 候補を探すためにユーザーが明示登録する探索基点。root 配下の project は候補表示のみ行い、自動 import / active 化しない。</td></tr><tr><td>lockdown モード</td><td>env <code>DESIGNER_DATA_DIR</code> が設定されている場合に起動する動作モード。active は env 値に固定され、切替操作は全て <code>LockdownError</code> となる。</td></tr></tbody></table>
+<p><code>data/</code> ディレクトリはデザイナー本体の組み込み拡張定義 (<code>data/extensions/</code>) 専用。ユーザープロジェクトは Harmony 本体 repo の外にある任意フォルダへ置くことを推奨する。<code>harmony/workspaces/</code> は dogfood / sample / temporary 用の互換領域であり、通常実プロジェクトの標準保存先にはしない (#1473)。</p>
 <p><strong>実装</strong>: <code>backend/src/workspaceState.ts:1-97</code></p>
 <hr>
 <h2 id="2-物理レイアウト">2. 物理レイアウト</h2>
@@ -63,17 +67,26 @@
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "lastOpenedAt"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;ISO 8601>"</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "workspaceRoots"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: [</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    {</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "id"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;uuid>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "path"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;絶対パス>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "label"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;表示名>"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">,</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">      "registeredAt"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;ISO 8601>"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">    }</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">  ],</span></span>
 <span class="line"><span style="color:#005CC5;--shiki-dark:#8DDB8C">  "lastActiveId"</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"&#x3C;uuid | null>"</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">}</span></span></code></pre>
 <ul>
 <li><code>version</code>: 常に <code>1</code></li>
 <li><code>workspaces[]</code>: <code>WorkspaceEntry</code> の配列。順序は追加順 (UI 側で <code>lastOpenedAt</code> 降順にソートして表示)</li>
+<li><code>workspaceRoots[]</code>: 探索基点の配列。配下 project は候補表示のみ行い、自動 import しない</li>
 <li><code>lastActiveId</code>: 前回 active だったエントリの id。null = 前回も未選択</li>
 </ul>
 <p><strong>実装</strong>: <code>backend/src/recentStore.ts:1-193</code></p>
 <h3 id="22-ワークスペース内ディレクトリ構造">2.2 ワークスペース内ディレクトリ構造</h3>
-<p>ワークスペースルートは <code>workspaces/&#x3C;wsId>/</code> または任意の絶対パス。どちらも同じ構造を持つ。</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>&#x3C;workspace-root>/                       # workspaces/&#x3C;id>/ または任意フォルダ</span></span>
+<p>ワークスペースルートは任意の絶対パス。既存互換として相対パスも受け付けるが、通常利用では Harmony 本体 repo 外の project フォルダを絶対パスで指定する。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>&#x3C;workspace-root>/                       # 例: /path/to/projects/customer-a/harmony-design</span></span>
 <span class="line"><span>  harmony.json                          # 必須 — schemas/v3/harmony.v3.schema.json 準拠 (marker file)</span></span>
 <span class="line"><span>  &#x3C;dataDir>/                            # harmony.json の dataDir 値 (推奨慣習: "harmony")</span></span>
 <span class="line"><span>    screens/                            # 画面定義 (*.json / *.design.json)</span></span>
@@ -91,6 +104,7 @@
 <span class="line"><span>    custom-blocks.json                  # 任意 — カスタムブロック</span></span>
 <span class="line"><span>    screen-flow-positions.json          # 任意 — 画面フロー UI 座標</span></span></code></pre>
 <p><code>harmony.json</code> はワークスペースフォルダの <strong>root に固定</strong>で配置する。設計データは <code>&#x3C;dataDir>/</code> 配下に格納され、他ツール (Git / IDE 等) の管理対象ファイルと混在しない。</p>
+<p><code>harmony/workspaces/</code> は Harmony 開発 repo 内の dogfood / sample / temporary 用として扱う。ユーザーの業務 project を長期配置する標準ディレクトリにはしない。</p>
 <p><code>screen-items/</code> ディレクトリは Phase 4-β migration 後に廃止。<code>ensureDataDir</code> では再作成しない。</p>
 <p><strong>実装</strong>: <code>backend/src/workspaceInit.ts:119-175</code> (initializeWorkspace) / <code>backend/src/projectStorage.ts:92-104</code> (ensureDataDir)</p>
 <hr>
@@ -112,7 +126,7 @@
 <li><code>init=true</code>: 対象フォルダを作成し <code>harmony.json</code> + <code>&#x3C;dataDir>/</code> 配下のサブディレクトリ群を初期化してから active 化 (lockdown 時は error)。<code>dataDir</code> のデフォルト値は <code>"harmony"</code></li>
 <li>成功すると <code>recent</code> に <code>upsert</code> し <code>lastActiveId</code> を更新、<code>workspace.changed</code> を broadcast</li>
 </ul>
-<p><strong>実装</strong>: <code>backend/src/wsBridge.ts:710-778</code></p>
+<p><strong>実装</strong>: <code>backend/src/wsHandlers/workspace.ts</code> (<code>workspace.open</code>)</p>
 <h3 id="33-workspaceclose">3.3 workspace.close</h3>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>workspace.close()</span></span></code></pre>
 <ul>
@@ -120,15 +134,48 @@
 <li>lockdown 時は <code>LockdownError</code> を返す</li>
 <li><code>workspace.changed</code> を broadcast (<code>activeId: null</code>)</li>
 </ul>
-<p><strong>実装</strong>: <code>backend/src/wsBridge.ts:780-793</code></p>
+<p><strong>実装</strong>: <code>backend/src/wsHandlers/workspace.ts</code> (<code>workspace.close</code>)</p>
 <h3 id="34-workspaceremove">3.4 workspace.remove</h3>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>workspace.remove(id)</span></span></code></pre>
 <ul>
 <li>recent からエントリを除外する (ファイルシステムは変更しない)</li>
 <li>lockdown 時は error を返す</li>
 </ul>
-<p><strong>実装</strong>: <code>backend/src/wsBridge.ts:794-800</code></p>
-<h3 id="35-workspaceinspect">3.5 workspace.inspect</h3>
+<p><strong>実装</strong>: <code>backend/src/wsHandlers/workspace.ts</code> (<code>workspace.remove</code>)</p>
+<h3 id="35-workspace-root-と-candidate-discovery">3.5 workspace root と candidate discovery</h3>
+<p>workspace root は project 候補を探すための探索基点であり、active workspace ではない。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>workspace.root.add(path)</span></span>
+<span class="line"><span>workspace.root.discover(rootId | path)</span></span>
+<span class="line"><span>workspace.root.remove(id)</span></span></code></pre>
+<ul>
+<li><code>workspace.root.add</code>: root path を登録する。フォルダが存在しない場合は error</li>
+<li><code>workspace.root.discover</code>: root 配下を浅く探索し、<code>harmony.json</code> を含む project 候補を返す</li>
+<li>candidate は UI に表示するだけで、recent への追加や active 化はしない</li>
+<li>ユーザーが candidate の <code>Open</code> を明示した場合のみ <code>workspace.open(path)</code> を呼び、recent / active に反映する</li>
+<li>root 外 project も <code>workspace.open(path)</code> で明示的に開ける。workspace root はアクセス制限ではない</li>
+<li>lockdown 時は <code>workspace.roots</code> が空配列を返し、<code>workspace.root.add/remove/discover</code> は error を返す。recent file は読まない</li>
+</ul>
+<h3 id="36-ai-エージェント編集境界">3.6 AI エージェント編集境界</h3>
+<p>AI エージェントを業務 project 開発に使う場合、Harmony 本体 repo と project 成果物を同じ writable scope にしない。</p>
+<p>推奨境界:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>AI writable:</span></span>
+<span class="line"><span>  /path/to/customer-system/</span></span>
+<span class="line"><span>    harmony-design/</span></span>
+<span class="line"><span>    app/</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>AI readonly reference:</span></span>
+<span class="line"><span>  @harmony/spec</span></span>
+<span class="line"><span>  Harmony schemas/docs/examples</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>AI prohibited:</span></span>
+<span class="line"><span>  Harmony 本体 repo</span></span>
+<span class="line"><span>    frontend/</span></span>
+<span class="line"><span>    backend/</span></span>
+<span class="line"><span>    shared/</span></span>
+<span class="line"><span>    schemas/</span></span>
+<span class="line"><span>    docs/</span></span></code></pre>
+<p>Harmony 本体の不備を見つけた場合は、業務 project 内で回避するか、Harmony 本体側の別タスクとして扱う。業務 project 作業中に Harmony 本体 source を直接修正しない。</p>
+<h3 id="37-workspaceinspect">3.7 workspace.inspect</h3>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>workspace.inspect(path) → { status, path, name? }</span></span></code></pre>
 <p>3 状態を返す:</p>
 
@@ -154,7 +201,7 @@
 
 <table><thead><tr><th>status</th><th>意味</th></tr></thead><tbody><tr><td><code>ready</code></td><td><code>harmony.json</code> が存在する</td></tr><tr><td><code>needsInit</code></td><td>フォルダは存在するが <code>harmony.json</code> がない (空フォルダ含む)</td></tr><tr><td><code>notFound</code></td><td>path 自体が存在しない、またはフォルダでない</td></tr></tbody></table>
 <p><strong>実装</strong>: <code>backend/src/workspaceInit.ts:87-101</code></p>
-<h3 id="36-workspacehostinfo">3.6 workspace.hostInfo</h3>
+<h3 id="38-workspacehostinfo">3.8 workspace.hostInfo</h3>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>workspace.hostInfo() → { platform, isWSL, homeDir }</span></span></code></pre>
 <p>backend が動作しているホスト OS 情報を返す。<code>AddWorkspaceDialog</code> が path 入力欄の placeholder / WSL 検出ヒント表示に使う (#858)。</p>
 
@@ -188,7 +235,7 @@
 <li><code>inspectWorkspacePath</code> のような厳密判定ではなく<strong>情報提供 API</strong>。frontend は描画切替の hint として使うのみで、認可判断には使わない</li>
 </ul>
 <p><strong>実装</strong>: <code>backend/src/hostInfo.ts:32-49</code> / <code>backend/src/wsBridge.ts:1373-1376</code></p>
-<h3 id="37-inittrue-時の初期化内容">3.7 init=true 時の初期化内容</h3>
+<h3 id="39-inittrue-時の初期化内容">3.9 init=true 時の初期化内容</h3>
 <p><code>initializeWorkspace(path)</code> が実行する処理:</p>
 <ol>
 <li>フォルダを <code>mkdir -p</code> で作成 (既存なら無視)</li>
@@ -242,8 +289,8 @@
 <h3 id="43-ui-での表示">4.3 UI での表示</h3>
 <ul>
 <li><code>WorkspaceIndicator</code>: ボタンに鍵アイコン (<code>bi-lock-fill</code>, 色 <code>#fbbf24</code>) を表示し、tooltip に <code>DESIGNER_DATA_DIR</code> の値を表示</li>
-<li><code>WorkspaceListView</code>: lockdown バナー (黄色) を表示し、追加・開く・リストから外すボタンを disabled 化</li>
-<li><code>WorkspaceSelectView</code>: lockdown バナーを表示し、新しくワークスペースを追加ボタンを非表示化</li>
+<li><code>WorkspaceListView</code>: lockdown バナー (黄色) を表示し、追加・開く・リストから外すボタンを disabled 化。workspace root panel は表示しない</li>
+<li><code>WorkspaceSelectView</code>: lockdown バナーを表示し、project open/create 導線を非表示化</li>
 </ul>
 <p><strong>実装</strong>: <code>frontend/src/components/workspace/WorkspaceIndicator.tsx:96-101</code> / <code>frontend/src/components/workspace/WorkspaceListView.tsx:436-452</code> / <code>frontend/src/components/workspace/WorkspaceSelectView.tsx:191-206</code></p>
 <h3 id="44-主な用途">4.4 主な用途</h3>
@@ -356,8 +403,28 @@
 
 
 
-<table><thead><tr><th>method</th><th>params</th><th>レスポンス</th></tr></thead><tbody><tr><td><code>workspace.list</code></td><td>(なし)</td><td><code>{ workspaces: WorkspaceEntry[], lastActiveId, active: { id, path, name } | null, lockdown, lockdownPath }</code></td></tr><tr><td><code>workspace.status</code></td><td>(なし)</td><td><code>{ active: { path, name } | null, lockdown, lockdownPath }</code></td></tr><tr><td><code>workspace.inspect</code></td><td><code>{ path: string }</code></td><td><code>{ status: "ready" | "needsInit" | "notFound", path, name? }</code></td></tr><tr><td><code>workspace.open</code></td><td><code>{ path?: string, id?: string, init?: boolean }</code></td><td><code>{ active: { id, path, name } }</code> または error</td></tr><tr><td><code>workspace.close</code></td><td>(なし)</td><td><code>{ success: true }</code> または error</td></tr><tr><td><code>workspace.remove</code></td><td><code>{ id: string }</code></td><td><code>{ removed: boolean }</code> または error</td></tr></tbody></table>
-<p><strong>実装</strong>: <code>backend/src/wsBridge.ts:671-801</code></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>method</th><th>params</th><th>レスポンス</th></tr></thead><tbody><tr><td><code>workspace.list</code></td><td>(なし)</td><td><code>{ workspaces: WorkspaceEntry[], lastActiveId, active: { id, path, name } | null, lockdown, lockdownPath }</code></td></tr><tr><td><code>workspace.status</code></td><td>(なし)</td><td><code>{ active: { path, name } | null, lockdown, lockdownPath }</code></td></tr><tr><td><code>workspace.inspect</code></td><td><code>{ path: string }</code></td><td><code>{ status: "ready" | "needsInit" | "notFound", path, name? }</code></td></tr><tr><td><code>workspace.roots</code></td><td>(なし)</td><td><code>{ roots: WorkspaceRootEntry[] }</code></td></tr><tr><td><code>workspace.root.add</code></td><td><code>{ path: string, label?: string }</code></td><td><code>{ root: WorkspaceRootEntry }</code> または error</td></tr><tr><td><code>workspace.root.remove</code></td><td><code>{ id: string }</code></td><td><code>{ removed: boolean }</code> または error</td></tr><tr><td><code>workspace.root.discover</code></td><td><code>{ rootId?: string, path?: string, maxDepth?: number, limit?: number }</code></td><td><code>{ rootPath: string, candidates: WorkspaceCandidate[] }</code> または error</td></tr><tr><td><code>workspace.open</code></td><td><code>{ path?: string, id?: string, init?: boolean }</code></td><td><code>{ active: { id, path, name } }</code> または error</td></tr><tr><td><code>workspace.close</code></td><td>(なし)</td><td><code>{ success: true }</code> または error</td></tr><tr><td><code>workspace.remove</code></td><td><code>{ id: string }</code></td><td><code>{ removed: boolean }</code> または error</td></tr></tbody></table>
+<p><strong>実装</strong>: <code>backend/src/wsHandlers/workspace.ts</code></p>
 <h3 id="62-broadcast-イベント-backend--全ブラウザ">6.2 broadcast イベント (backend → 全ブラウザ)</h3>
 
 
@@ -514,7 +581,7 @@ UI 側は <code>workspaceStore.subscribeWorkspaceChanges()</code> で subscribe 
 
 
 
-<table><thead><tr><th>spec 節</th><th>実装ファイル</th></tr></thead><tbody><tr><td>用語定義 / lockdown state</td><td><code>backend/src/workspaceState.ts:1-97</code></td></tr><tr><td>recent 永続化 / write lock</td><td><code>backend/src/recentStore.ts:1-193</code></td></tr><tr><td>inspect / initializeWorkspace / autoActivate</td><td><code>backend/src/workspaceInit.ts:1-240</code></td></tr><tr><td>WS リクエストハンドラ</td><td><code>backend/src/wsBridge.ts:671-801</code></td></tr><tr><td>MCP tools 定義</td><td><code>backend/src/tools.ts:1233-1284</code></td></tr><tr><td>root スナップショット規約</td><td><code>backend/src/projectStorage.ts:14-104</code></td></tr><tr><td>フロントエンドストア</td><td><code>frontend/src/store/workspaceStore.ts:1-190</code></td></tr><tr><td>WorkspaceIndicator</td><td><code>frontend/src/components/workspace/WorkspaceIndicator.tsx:1-204</code></td></tr><tr><td>WorkspaceListView</td><td><code>frontend/src/components/workspace/WorkspaceListView.tsx:1-586</code></td></tr><tr><td>WorkspaceSelectView</td><td><code>frontend/src/components/workspace/WorkspaceSelectView.tsx:1-217</code></td></tr><tr><td>redirect / cleanup / splash</td><td><code>frontend/src/components/AppShell.tsx:76-423</code></td></tr><tr><td>CommonHeader への配置</td><td><code>frontend/src/components/CommonHeader.tsx:1-30</code></td></tr></tbody></table>
+<table><thead><tr><th>spec 節</th><th>実装ファイル</th></tr></thead><tbody><tr><td>用語定義 / lockdown state</td><td><code>backend/src/workspaceState.ts:1-97</code></td></tr><tr><td>recent 永続化 / write lock</td><td><code>backend/src/recentStore.ts:1-193</code></td></tr><tr><td>inspect / initializeWorkspace / autoActivate</td><td><code>backend/src/workspaceInit.ts:1-240</code></td></tr><tr><td>WS リクエストハンドラ</td><td><code>backend/src/wsHandlers/workspace.ts</code></td></tr><tr><td>MCP tools 定義</td><td><code>backend/src/tools.ts:1233-1284</code></td></tr><tr><td>root スナップショット規約</td><td><code>backend/src/projectStorage.ts:14-104</code></td></tr><tr><td>フロントエンドストア</td><td><code>frontend/src/store/workspaceStore.ts:1-190</code></td></tr><tr><td>WorkspaceIndicator</td><td><code>frontend/src/components/workspace/WorkspaceIndicator.tsx:1-204</code></td></tr><tr><td>WorkspaceListView</td><td><code>frontend/src/components/workspace/WorkspaceListView.tsx:1-586</code></td></tr><tr><td>WorkspaceSelectView</td><td><code>frontend/src/components/workspace/WorkspaceSelectView.tsx:1-217</code></td></tr><tr><td>redirect / cleanup / splash</td><td><code>frontend/src/components/AppShell.tsx:76-423</code></td></tr><tr><td>CommonHeader への配置</td><td><code>frontend/src/components/CommonHeader.tsx:1-30</code></td></tr></tbody></table>
 <h2 id="改訂履歴">改訂履歴</h2>
 <ul>
 <li>2026-05-06: workspace folder 構造を root + dataDir に分離。<code>project.json</code> → <code>harmony.json</code> rename。<code>harmony.v3.schema.json</code> スキーマ新設。シリーズ #849-#854 (PR #856) で統合実施。</li>

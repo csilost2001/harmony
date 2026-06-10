@@ -4,6 +4,7 @@
  * 旧 wsBridge.ts `_handleBrowserRequest` switch から以下 8 RPC method を分離:
  * - workspace.list / workspace.status / workspace.inspect / workspace.hostInfo
  * - workspace.browseFs / workspace.open / workspace.close / workspace.remove
+ * - workspace.roots / workspace.root.add / workspace.root.remove / workspace.root.discover
  *
  * 機能不変 — case body は一字一句変更なし。
  *
@@ -25,8 +26,12 @@ import {
   findById as findWorkspaceById,
   findByPath as findWorkspaceByPath,
   setLastActive as setLastActiveWorkspace,
+  listWorkspaceRoots,
+  upsertWorkspaceRoot,
+  removeWorkspaceRoot,
 } from "../recentStore.js";
 import {
+  discoverWorkspaceCandidates,
   inspectWorkspacePath,
   initializeWorkspace as initializeWorkspaceFolder,
 } from "../workspaceInit.js";
@@ -42,7 +47,7 @@ export const workspaceHandlers: RpcHandlerMap = {
       ? { workspaces: [], lastActiveId: null }
       : await listWorkspacesEntries();
     const activePath = workspaceContextManager.getActivePath(clientId);
-    const activeEntry = activePath ? await findWorkspaceByPath(activePath) : null;
+    const activeEntry = activePath && !lockdown ? await findWorkspaceByPath(activePath) : null;
     respond({
       workspaces,
       lastActiveId,
@@ -55,15 +60,16 @@ export const workspaceHandlers: RpcHandlerMap = {
   },
 
   "workspace.status": async ({ clientId, respond }) => {
+    const lockdown = isWorkspaceLockdown();
     const activePath = workspaceContextManager.getActivePath(clientId);
     let activeName: string | null = null;
-    if (activePath) {
+    if (activePath && !lockdown) {
       const entry = await findWorkspaceByPath(activePath);
       activeName = entry?.name ?? null;
     }
     respond({
       active: activePath ? { path: activePath, name: activeName } : null,
-      lockdown: isWorkspaceLockdown(),
+      lockdown,
       lockdownPath: getWorkspaceLockdownPath(),
     });
   },
@@ -97,7 +103,70 @@ export const workspaceHandlers: RpcHandlerMap = {
     }
   },
 
+  "workspace.roots": async ({ respond }) => {
+    if (isWorkspaceLockdown()) {
+      respond({ roots: [] });
+      return;
+    }
+    respond({ roots: await listWorkspaceRoots() });
+  },
+
+  "workspace.root.add": async ({ params, respond, respondError }) => {
+    if (isWorkspaceLockdown()) { respondError("lockdown モード中は workspace root を追加できません"); return; }
+    const { path: rootPath, label } = (params ?? {}) as { path?: string; label?: string };
+    if (typeof rootPath !== "string" || rootPath.trim().length === 0) {
+      respondError("path は必須です");
+      return;
+    }
+    const inspect = await inspectWorkspacePath(rootPath);
+    if (inspect.status === "notFound") {
+      respondError(`フォルダが見つかりません: ${rootPath}`);
+      return;
+    }
+    const root = await upsertWorkspaceRoot(rootPath, label);
+    respond({ root });
+  },
+
+  "workspace.root.remove": async ({ params, respond, respondError }) => {
+    if (isWorkspaceLockdown()) { respondError("lockdown モード中は workspace root を除外できません"); return; }
+    const { id } = (params ?? {}) as { id?: string };
+    if (typeof id !== "string") { respondError("id は必須です"); return; }
+    respond({ removed: await removeWorkspaceRoot(id) });
+  },
+
+  "workspace.root.discover": async ({ params, respond, respondError }) => {
+    if (isWorkspaceLockdown()) {
+      respondError("lockdown モード中は workspace root を探索できません");
+      return;
+    }
+    const { path: rootPath, rootId, maxDepth, limit } = (params ?? {}) as {
+      path?: string; rootId?: string; maxDepth?: number; limit?: number
+    };
+    let resolved = typeof rootPath === "string" ? rootPath : null;
+    if (!resolved && typeof rootId === "string") {
+      const roots = await listWorkspaceRoots();
+      const root = roots.find((r) => r.id === rootId);
+      if (!root) { respondError(`id ${rootId} の workspace root が見つかりません`); return; }
+      resolved = root.path;
+    }
+    if (!resolved) { respondError("path または rootId のいずれかが必要です"); return; }
+    const inspect = await inspectWorkspacePath(resolved);
+    if (inspect.status === "notFound") {
+      respondError(`フォルダが見つかりません: ${resolved}`);
+      return;
+    }
+    const result = await discoverWorkspaceCandidates(resolved, {
+      maxDepth: typeof maxDepth === "number" ? maxDepth : undefined,
+      limit: typeof limit === "number" ? limit : undefined,
+    });
+    respond(result);
+  },
+
   "workspace.open": async ({ params, clientId, respond, respondError, bridge }) => {
+    if (isWorkspaceLockdown()) {
+      respondError("DESIGNER_DATA_DIR で固定モード中のため、ワークスペースを切り替えできません");
+      return;
+    }
     const { path: targetPath, id, init, dataDir: initDataDir } = (params ?? {}) as {
       path?: string; id?: string; init?: boolean; dataDir?: string
     };
@@ -112,21 +181,13 @@ export const workspaceHandlers: RpcHandlerMap = {
     }
     let resolved = typeof targetPath === "string" ? targetPath : null;
     if (!resolved && typeof id === "string") {
-      // S-010: lockdown モード中は recent.json を読まず、lockdown パスのみを返す (CWE-863)
-      if (isWorkspaceLockdown()) {
-        const lockdownPath = getWorkspaceLockdownPath();
-        if (!lockdownPath) { respondError("lockdown パスが未設定です"); return; }
-        resolved = lockdownPath;
-      } else {
-        const entry = await findWorkspaceById(id);
-        if (!entry) { respondError(`id ${id} のワークスペースが見つかりません`); return; }
-        resolved = entry.path;
-      }
+      const entry = await findWorkspaceById(id);
+      if (!entry) { respondError(`id ${id} のワークスペースが見つかりません`); return; }
+      resolved = entry.path;
     }
     if (!resolved) { respondError("path 解決に失敗しました"); return; }
     let initName: string | null = null;
     if (initFlag) {
-      if (isWorkspaceLockdown()) { respondError("lockdown モード中は新規ワークスペース初期化はできません"); return; }
       try {
         const initOpts = typeof initDataDir === "string" ? { dataDir: initDataDir } : undefined;
         const initRes = await initializeWorkspaceFolder(resolved, initOpts);

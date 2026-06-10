@@ -10,7 +10,13 @@ import {
   initAndOpen,
   removeWorkspace,
   getHostInfo,
+  listWorkspaceRoots,
+  addWorkspaceRoot,
+  removeWorkspaceRoot,
+  discoverWorkspaceCandidates,
   type WorkspaceEntry,
+  type WorkspaceRootEntry,
+  type WorkspaceCandidate,
   type HostInfo,
   type WorkspaceInspectResult,
 } from "../../store/workspaceStore";
@@ -48,6 +54,7 @@ function formatDate(iso: string | null): string {
 interface AddWorkspaceDialogProps {
   onClose: () => void;
   onAdded: () => void;
+  initialPath?: string;
 }
 
 type InspectStatus = "idle" | "inspecting" | "ready" | "needsInit" | "notFound" | "invalid" | "error";
@@ -65,20 +72,25 @@ type InspectStatus = "idle" | "inspecting" | "ready" | "needsInit" | "notFound" 
  */
 function buildOsAwareExamplePath(host: HostInfo | null): string {
   // host info 取得前のフォールバック
-  if (!host) return "workspaces/my-app";
+  if (!host) return "/path/to/projects/my-app/harmony-design";
   const sep = host.platform === "win32" ? "\\" : "/";
   const home = host.homeDir.replace(/[\\/]+$/, "");
-  return `${home}${sep}projects${sep}my-app`;
+  return `${home}${sep}projects${sep}my-app${sep}harmony-design`;
 }
 
-/** placeholder 用の短い例 (workspaces/ プレフィクスを必ず含むこと: #755 e2e regression 防止) */
 function buildPlaceholder(host: HostInfo | null): string {
-  const example = buildOsAwareExamplePath(host);
-  return `${example} または workspaces/my-app`;
+  return buildOsAwareExamplePath(host);
 }
 
-export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps) {
-  const [path, setPath] = useState("");
+function buildWorkspaceRootExamplePath(host: HostInfo | null): string {
+  if (!host) return "/path/to/projects";
+  const sep = host.platform === "win32" ? "\\" : "/";
+  const home = host.homeDir.replace(/[\\/]+$/, "");
+  return `${home}${sep}projects`;
+}
+
+export function AddWorkspaceDialog({ onClose, onAdded, initialPath = "" }: AddWorkspaceDialogProps) {
+  const [path, setPath] = useState(initialPath);
   // status / inspectName / errorMsg は path が空のとき "idle" / null 扱いを render 中 derive で
   // 強制し、effect 内同期 setState を回避する (react-hooks/set-state-in-effect #1385)。
   // runInspect / handler は path 非空のときのみ意味のある値をセットするため、空時の clear は
@@ -248,7 +260,7 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
   return (
     <div className="tbl-modal-overlay" onClick={onClose}>
       <div className="tbl-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "520px" }}>
-        <div className="tbl-modal-title">ワークスペースを追加</div>
+        <div className="tbl-modal-title">プロジェクトを開く / 作成</div>
 
         <label className="tbl-field">
           <span>フォルダの絶対パス</span>
@@ -339,8 +351,9 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
         </label>
 
         <p style={{ fontSize: "0.78rem", color: "var(--muted-text, #888)", margin: "0 0 6px" }}>
-          推奨: 絶対パスで指定 (例: <code style={{ fontFamily: "monospace" }}>{exampleAbs}</code>)。
-          リポジトリ直下の <code>workspaces/my-app</code> 形式の相対パスも使用できます。
+          推奨: Harmony 本体 repo の外にある project フォルダを絶対パスで指定
+          (例: <code style={{ fontFamily: "monospace" }}>{exampleAbs}</code>)。
+          既存互換として相対パスも使用できます。
         </p>
 
         <p style={{ fontSize: "0.78rem", color: "var(--muted-text, #888)", margin: "0 0 8px" }}>
@@ -443,7 +456,7 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
 
           {status === "needsInit" && (
             <button className="tbl-btn tbl-btn-primary" onClick={handleInit} disabled={processing}>
-              {processing ? "初期化中..." : "初期化して開く"}
+              {processing ? "作成中..." : "作成して開く"}
             </button>
           )}
 
@@ -466,6 +479,256 @@ export function AddWorkspaceDialog({ onClose, onAdded }: AddWorkspaceDialogProps
         )}
       </div>
     </div>
+  );
+}
+
+type WorkspaceRootPanelProps = {
+  lockdown: boolean;
+  onOpenProject: (path: string) => void;
+};
+
+function WorkspaceRootPanel({ lockdown, onOpenProject }: WorkspaceRootPanelProps) {
+  const [roots, setRoots] = useState<WorkspaceRootEntry[]>([]);
+  const [rootPath, setRootPath] = useState("");
+  const [host, setHost] = useState<HostInfo | null>(null);
+  const [candidatesByRoot, setCandidatesByRoot] = useState<Record<string, WorkspaceCandidate[]>>({});
+  const [loadingRootId, setLoadingRootId] = useState<string | null>(null);
+  const [showRootPicker, setShowRootPicker] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadRoots = useCallback(async () => {
+    if (lockdown) {
+      setRoots([]);
+      return;
+    }
+    try {
+      setRoots(await listWorkspaceRoots());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [lockdown]);
+
+  useEffect(() => {
+    if (lockdown) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [rootEntries, hostInfo] = await Promise.all([
+          listWorkspaceRoots(),
+          getHostInfo().catch(() => null),
+        ]);
+        if (cancelled) return;
+        setRoots(rootEntries);
+        setHost(hostInfo);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lockdown]);
+
+  const handleAddRoot = async () => {
+    const trimmed = rootPath.trim();
+    if (!trimmed) return;
+    setError(null);
+    try {
+      const root = await addWorkspaceRoot(trimmed);
+      setRootPath("");
+      await loadRoots();
+      await handleDiscover(root.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleRemoveRoot = async (id: string) => {
+    setError(null);
+    try {
+      await removeWorkspaceRoot(id);
+      setCandidatesByRoot((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      await loadRoots();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleDiscover = async (rootId: string) => {
+    if (lockdown) return;
+    setError(null);
+    setLoadingRootId(rootId);
+    try {
+      const result = await discoverWorkspaceCandidates({ rootId, maxDepth: 2, limit: 100 });
+      setCandidatesByRoot((prev) => ({ ...prev, [rootId]: result.candidates }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoadingRootId(null);
+    }
+  };
+
+  const rootPlaceholder = buildWorkspaceRootExamplePath(host);
+
+  return (
+    <section
+      style={{
+        border: "1px solid var(--border, #334)",
+        borderRadius: "6px",
+        padding: "12px",
+        marginBottom: "14px",
+        background: "var(--panel-bg, rgba(255,255,255,0.02))",
+      }}
+      aria-label="workspace roots"
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "10px" }}>
+        <div>
+          <div style={{ fontWeight: 700 }}>プロジェクト探索ルート</div>
+          <div style={{ fontSize: "0.82rem", color: "var(--muted-text, #888)" }}>
+            候補表示の基点です。候補は自動 import されず、明示的に開いたものだけ recent に入ります。
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ color: "var(--danger-text, #f88)", fontSize: "0.85rem", marginBottom: "8px" }}>
+          <i className="bi bi-exclamation-circle" /> {error}
+        </div>
+      )}
+
+      {!lockdown && (
+        <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+          <input
+            type="text"
+            value={rootPath}
+            onChange={(e) => setRootPath(e.target.value)}
+            placeholder={rootPlaceholder}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            style={{ flex: 1, fontFamily: "monospace" }}
+            data-testid="workspace-root-path-input"
+          />
+          <button
+            type="button"
+            className="tbl-btn tbl-btn-ghost"
+            onClick={() => setShowRootPicker(true)}
+            title="backend のフォルダをブラウズして探索ルートを選択"
+          >
+            <i className="bi bi-folder2-open" /> 参照
+          </button>
+          <button
+            type="button"
+            className="tbl-btn tbl-btn-primary"
+            onClick={handleAddRoot}
+            disabled={!rootPath.trim()}
+          >
+            <i className="bi bi-plus-lg" /> ルート追加
+          </button>
+        </div>
+      )}
+
+      {showRootPicker && (
+        <BackendFolderPicker
+          initialPath={rootPath.trim() || undefined}
+          onSelect={(absolutePath) => {
+            setRootPath(absolutePath);
+            setShowRootPicker(false);
+          }}
+          onClose={() => setShowRootPicker(false)}
+        />
+      )}
+
+      {roots.length === 0 ? (
+        <div style={{ fontSize: "0.85rem", color: "var(--muted-text, #888)" }}>
+          探索ルートは未登録です。root 外の project も「プロジェクトを開く」から直接開けます。
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {roots.map((root) => {
+            const candidates = candidatesByRoot[root.id] ?? [];
+            return (
+              <div key={root.id} style={{ borderTop: "1px solid var(--border-faint, #2a2d3a)", paddingTop: "8px" }}>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <i className="bi bi-folder2" style={{ color: "var(--accent, #4dabf7)" }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600 }}>{root.label}</div>
+                    <div title={root.path} style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "var(--muted-text, #888)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {root.path}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="tbl-btn tbl-btn-ghost"
+                    onClick={() => handleDiscover(root.id)}
+                    disabled={loadingRootId === root.id}
+                  >
+                    <i className="bi bi-search" /> {loadingRootId === root.id ? "探索中..." : "候補を表示"}
+                  </button>
+                  {!lockdown && (
+                    <button
+                      type="button"
+                      className="tbl-btn tbl-btn-ghost danger"
+                      onClick={() => handleRemoveRoot(root.id)}
+                      title="探索ルート登録だけを外します。project は削除しません。"
+                    >
+                      <i className="bi bi-x-lg" />
+                    </button>
+                  )}
+                </div>
+
+                {candidates.length > 0 && (
+                  <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                    {candidates.map((candidate) => (
+                      <div
+                        key={candidate.path}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "6px 8px",
+                          border: "1px solid var(--border-faint, #2a2d3a)",
+                          borderRadius: "4px",
+                          background: candidate.status === "ready" ? "transparent" : "var(--danger-bg, rgba(248,113,113,0.12))",
+                        }}
+                      >
+                        <i className={candidate.status === "ready" ? "bi bi-folder-check" : "bi bi-exclamation-triangle"} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+                            {candidate.name ?? "不正な Harmony project"}
+                            {candidate.alreadyRecent && (
+                              <span style={{ marginLeft: "6px", fontSize: "0.72rem", color: "var(--muted-text, #888)" }}>
+                                recent 登録済み
+                              </span>
+                            )}
+                          </div>
+                          <div title={candidate.path} style={{ fontFamily: "monospace", fontSize: "0.76rem", color: "var(--muted-text, #888)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {candidate.path}
+                          </div>
+                          {candidate.reason && (
+                            <div style={{ fontSize: "0.75rem", color: "var(--danger-text, #f88)" }}>{candidate.reason}</div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="tbl-btn tbl-btn-ghost"
+                          onClick={() => onOpenProject(candidate.path)}
+                          disabled={candidate.status !== "ready" || lockdown}
+                        >
+                          開く
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -664,6 +927,16 @@ export function WorkspaceListView() {
       });
   }, [lockdown, navigate]);
 
+  const handleOpenProjectPath = useCallback((projectPath: string) => {
+    if (lockdown) return;
+    setActionError(null);
+    openWorkspace(projectPath, false)
+      .then(() => navigate("/", { replace: true }))
+      .catch((e) => {
+        setActionError(e instanceof Error ? e.message : String(e));
+      });
+  }, [lockdown, navigate]);
+
   const selectedCount = selection.selectedIds.size;
   const selectedItem = selection.selectedItems[0] ?? null;
 
@@ -757,6 +1030,8 @@ export function WorkspaceListView() {
             <i className="bi bi-exclamation-circle" /> {visibleError}
           </div>
         )}
+
+        {!lockdown && <WorkspaceRootPanel lockdown={lockdown} onOpenProject={handleOpenProjectPath} />}
 
         <FilterBar
           isActive={filter.isActive}

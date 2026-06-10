@@ -28,7 +28,9 @@ import {
 import {
   readRecent,
   findById,
+  findByPath,
   type WorkspaceEntry,
+  type WorkspaceCandidate,
 } from "./recentStore.js";
 // projectStorage の関数群は active workspace 必須なので本モジュールでは使わず、
 // ローカル fs API で harmony.json/サブディレクトリを直接生成する。
@@ -130,6 +132,82 @@ export async function inspectWorkspacePath(folderPath: string): Promise<Workspac
     return { status: "invalid", path: abs, reason };
   }
   return { status: "ready", path: abs, name: extractName(harmonyResult.data, path.basename(abs)) };
+}
+
+const DISCOVER_SKIP_DIRS = new Set([
+  ".git",
+  ".hg",
+  ".svn",
+  "node_modules",
+  "dist",
+  "build",
+  ".next",
+  ".vite",
+  ".turbo",
+  ".cache",
+]);
+
+async function hasHarmonyManifest(folderPath: string): Promise<boolean> {
+  try {
+    const stat = await fs.stat(path.join(folderPath, "harmony.json"));
+    return stat.isFile();
+  } catch {
+    return false;
+  }
+}
+
+async function listChildDirectories(folderPath: string): Promise<string[]> {
+  let entries: import("node:fs").Dirent[];
+  try {
+    entries = await fs.readdir(folderPath, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  return entries
+    .filter((entry) => entry.isDirectory() && !DISCOVER_SKIP_DIRS.has(entry.name))
+    .map((entry) => path.join(folderPath, entry.name));
+}
+
+export async function discoverWorkspaceCandidates(
+  rootPath: string,
+  opts?: { maxDepth?: number; limit?: number },
+): Promise<{ rootPath: string; candidates: WorkspaceCandidate[] }> {
+  const root = path.resolve(rootPath);
+  const maxDepth = Math.max(0, Math.min(opts?.maxDepth ?? 2, 4));
+  const limit = Math.max(1, Math.min(opts?.limit ?? 100, 500));
+  const candidates: WorkspaceCandidate[] = [];
+  const queue: Array<{ path: string; depth: number }> = [{ path: root, depth: 0 }];
+  const seen = new Set<string>();
+
+  while (queue.length > 0 && candidates.length < limit) {
+    const current = queue.shift()!;
+    const resolved = path.resolve(current.path);
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+
+    if (await hasHarmonyManifest(resolved)) {
+      const inspect = await inspectWorkspacePath(resolved);
+      if (inspect.status === "ready" || inspect.status === "invalid") {
+        const recent = await findByPath(resolved);
+        candidates.push({
+          path: inspect.path,
+          name: inspect.status === "ready" ? inspect.name : null,
+          status: inspect.status,
+          reason: inspect.status === "invalid" ? inspect.reason : undefined,
+          alreadyRecent: recent !== null,
+        });
+      }
+      continue;
+    }
+
+    if (current.depth >= maxDepth) continue;
+    const children = await listChildDirectories(resolved);
+    for (const child of children) {
+      queue.push({ path: child, depth: current.depth + 1 });
+    }
+  }
+
+  return { rootPath: root, candidates };
 }
 
 function isoTimestampZ(): string {

@@ -5,6 +5,7 @@ import type { WorkspaceEntry, WorkspaceState } from "../../store/workspaceStore"
 const navigateMock = vi.fn();
 const openWorkspaceMock = vi.fn();
 const loadWorkspacesMock = vi.fn(() => Promise.resolve());
+const listWorkspaceRootsMock = vi.fn(() => Promise.resolve([]));
 
 const workspace: WorkspaceEntry = {
   id: "ws-source",
@@ -38,8 +39,17 @@ vi.mock("../../store/workspaceStore", async () => {
     inspectWorkspace: vi.fn(),
     initAndOpen: vi.fn(),
     removeWorkspace: vi.fn(),
+    getHostInfo: vi.fn(() => Promise.resolve({ platform: "linux", isWSL: false, homeDir: "/home/user" })),
+    listWorkspaceRoots: listWorkspaceRootsMock,
+    addWorkspaceRoot: vi.fn(),
+    removeWorkspaceRoot: vi.fn(),
+    discoverWorkspaceCandidates: vi.fn(),
   };
 });
+
+vi.mock("./BackendFolderPicker", () => ({
+  BackendFolderPicker: () => null,
+}));
 
 vi.mock("../common/DataList", () => ({
   DataList: ({ items, onActivate }: { items: WorkspaceEntry[]; onActivate: (item: WorkspaceEntry) => void }) => (
@@ -104,6 +114,7 @@ beforeEach(() => {
   openWorkspaceMock.mockReset();
   openWorkspaceMock.mockResolvedValue("ws-target");
   loadWorkspacesMock.mockClear();
+  listWorkspaceRootsMock.mockClear();
   onStatusChangeMock.mockReset();
   onStatusChangeMock.mockImplementation(() => () => {});
   state = {
@@ -150,6 +161,19 @@ describe("WorkspaceListView navigation", () => {
       expect(openWorkspaceMock).toHaveBeenCalledWith("ws-source", true);
       expect(navigateMock).toHaveBeenCalledWith("/", { replace: true });
     });
+  });
+
+  it("does not mount workspace root panel in lockdown", () => {
+    state = {
+      ...state,
+      lockdown: true,
+      lockdownPath: "/locked/project",
+    };
+
+    render(<WorkspaceListView />);
+
+    expect(screen.queryByText("プロジェクト探索ルート")).toBeNull();
+    expect(listWorkspaceRootsMock).not.toHaveBeenCalled();
   });
 });
 

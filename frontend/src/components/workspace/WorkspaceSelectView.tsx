@@ -83,10 +83,10 @@ export function WorkspaceSelectView() {
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <i className="bi bi-folder2-open" style={{ fontSize: "3rem", color: "#4dabf7", display: "block", marginBottom: "12px" }} />
           <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#e4e6f0", margin: 0 }}>
-            ワークスペースを開いてください
+            Harmony プロジェクトを開いてください
           </h2>
           <p style={{ color: "#9a9db5", fontSize: "0.9rem", marginTop: "8px" }}>
-            プロジェクトデータを管理するフォルダを選択してください
+            Harmony 本体 repo の外にある project フォルダを明示的に選択してください
           </p>
         </div>
 
@@ -104,33 +104,35 @@ export function WorkspaceSelectView() {
           </div>
         )}
 
-        {/* ワークスペース一覧へ */}
-        <button
-          onClick={() => navigate("/workspace/list")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            width: "100%",
-            padding: "12px 16px",
-            background: "#4dabf7",
-            border: "none",
-            borderRadius: "6px",
-            color: "#fff",
-            fontWeight: 600,
-            fontSize: "0.95rem",
-            cursor: "pointer",
-            marginBottom: "16px",
-          }}
-        >
-          <i className="bi bi-list-ul" />
-          ワークスペース一覧へ
-        </button>
-
-        {/* 新しくワークスペースを追加 */}
+        {/* プロジェクトを開く / 作成 */}
         {!lockdown && (
           <button
             onClick={() => setShowAdd(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+              padding: "12px 16px",
+              background: "#4dabf7",
+              border: "none",
+              borderRadius: "6px",
+              color: "#fff",
+              fontWeight: 600,
+              fontSize: "0.95rem",
+              cursor: "pointer",
+              marginBottom: "16px",
+            }}
+          >
+            <i className="bi bi-folder2-open" />
+            プロジェクトを開く / 作成
+          </button>
+        )}
+
+        {/* 探索ルートと最近使った project */}
+        {!lockdown && (
+          <button
+            onClick={() => navigate("/workspace/list")}
             style={{
               display: "flex",
               alignItems: "center",
@@ -147,8 +149,8 @@ export function WorkspaceSelectView() {
               marginBottom: "16px",
             }}
           >
-            <i className="bi bi-plus-lg" style={{ color: "#4dabf7" }} />
-            新しくワークスペースを追加
+            <i className="bi bi-list-ul" style={{ color: "#4dabf7" }} />
+            探索ルート / 最近使った project
           </button>
         )}
 
