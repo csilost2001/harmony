@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
+import DOMPurify from "dompurify";
 import type { Maturity, ScreenId } from "../../types/v3";
 import type { PageLayout, PageLayoutRegion } from "../../store/pageLayoutStore";
 import { loadPageLayout, savePageLayout, listPageLayouts } from "../../store/pageLayoutStore";
@@ -39,6 +40,7 @@ import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { MaturityBadge } from "../process-flow/MaturityBadge";
 import { loadProject } from "../../store/flowStore";
+import { extractGrapesHtml } from "../../utils/pageLayoutCompositionPreview";
 import {
   PAGE_LAYOUT_PATTERNS,
   buildPatternRegions,
@@ -79,6 +81,8 @@ export function PageLayoutEditor() {
   const [gadgetScreens, setGadgetScreens] = useState<GadgetScreenOption[]>([]);
   const [pageScreens, setPageScreens] = useState<PageScreenOption[]>([]);
   const [samplePageId, setSamplePageId] = useState("");
+  const [previewHtmlByScreenId, setPreviewHtmlByScreenId] = useState<Record<string, string>>({});
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
@@ -267,6 +271,41 @@ export function PageLayoutEditor() {
     if (!pageLayoutId || sessionLoading) return;
     syncSessionToUrl(editSession?.id ?? "");
   }, [pageLayoutId, sessionLoading, editSession?.id, syncSessionToUrl]);
+
+  useEffect(() => {
+    if (!pl) return;
+    const previewScreenIds = [
+      ...Object.entries(pl.assignments ?? {})
+        .filter(([regionName]) => !isContentSlotRegion(regionName))
+        .map(([, screenId]) => String(screenId))
+        .filter(Boolean),
+      samplePageId,
+    ].filter(Boolean);
+
+    const uniqueIds = [...new Set(previewScreenIds)];
+    if (uniqueIds.length === 0) {
+      setPreviewHtmlByScreenId({});
+      return;
+    }
+
+    let cancelled = false;
+    setPreviewLoading(true);
+    Promise.all(uniqueIds.map(async (screenId) => {
+      try {
+        const design = await mcpBridge.request("loadScreen", { screenId });
+        return [screenId, extractGrapesHtml(design) ?? ""] as const;
+      } catch {
+        return [screenId, ""] as const;
+      }
+    })).then((entries) => {
+      if (cancelled) return;
+      setPreviewHtmlByScreenId(Object.fromEntries(entries.filter(([, html]) => html)));
+    }).finally(() => {
+      if (!cancelled) setPreviewLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [pl, samplePageId]);
 
   if (!pl || sessionLoading) {
     return <div className="table-editor-loading"><i className="bi bi-hourglass-split" /> 読み込み中...</div>;
@@ -606,10 +645,17 @@ export function PageLayoutEditor() {
             className={`plm-preview ${currentPattern.previewClassName}`}
             data-testid="page-layout-composition-preview"
           >
+            {previewLoading && (
+              <div className="plm-preview-loading">
+                <i className="bi bi-hourglass-split" /> プレビューを読み込み中...
+              </div>
+            )}
             {(pl.regions ?? []).map((region) => {
               const role = getRegionRole(region.name);
               const assignedId = (pl.assignments ?? {})[region.name];
               const assignedName = assignedId ? gadgetNameById.get(String(assignedId)) ?? String(assignedId) : "";
+              const assignedHtml = assignedId ? previewHtmlByScreenId[String(assignedId)] : "";
+              const samplePageHtml = samplePageId ? previewHtmlByScreenId[samplePageId] : "";
               return (
                 <div key={region.name} className={`plm-region plm-region-${role}`} data-region={region.name}>
                   <div className="plm-region-label">
@@ -618,15 +664,39 @@ export function PageLayoutEditor() {
                   </div>
                   {isContentSlotRegion(region.name) ? (
                     <div className="plm-content-preview" data-testid="page-layout-content-slot-preview">
-                      <i className="bi bi-window" />
-                      <strong>{selectedSamplePage?.name ?? "コンテンツがここに表示されます"}</strong>
-                      {selectedSamplePage && <small>{selectedSamplePage.id}</small>}
+                      {samplePageHtml ? (
+                        <>
+                          <div className="plm-readonly-tag">page: {selectedSamplePage?.name ?? samplePageId}</div>
+                          <div
+                            className="plm-design-body"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(samplePageHtml) }}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-window" />
+                          <strong>{selectedSamplePage?.name ?? "コンテンツがここに表示されます"}</strong>
+                          {selectedSamplePage && <small>{selectedSamplePage.id}</small>}
+                        </>
+                      )}
                     </div>
                   ) : assignedId ? (
                     <div className="plm-gadget-preview" data-testid={`page-layout-gadget-preview-${region.name}`}>
-                      <i className="bi bi-puzzle-fill" />
-                      <strong>{assignedName}</strong>
-                      <small>{String(assignedId)}</small>
+                      {assignedHtml ? (
+                        <>
+                          <div className="plm-readonly-tag">gadget: {assignedName}</div>
+                          <div
+                            className="plm-design-body"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(assignedHtml) }}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-puzzle-fill" />
+                          <strong>{assignedName}</strong>
+                          <small>{String(assignedId)}</small>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="plm-empty-preview">

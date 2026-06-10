@@ -14,20 +14,25 @@
 <strong>種別</strong>: マルチインスタンスタブ</p>
 </blockquote>
 <h2 id="概要">概要</h2>
-<p>PageLayout (画面の枠組み) のメタ情報 + スロット (gadget 配置位置) を <strong>構造的に編集</strong>する画面。ビジュアル編集は <code>PageLayoutDesigner</code> (<code>/page-layout/design/:id</code>) が担当し、本画面はメタデータ + slot 構成の table 編集に特化。</p>
+<p>PageLayout をレイアウトマネージャとして編集する画面。共通ヘッダー、サイドバー、フッターなどの固定 region に Gadget を割り当て、<code>main</code> content slot に page Screen 本文が動的に入る構造を定義する。</p>
+<p>PageLayout 画面では Gadget や page Screen 本体を編集しない。中身の編集は各 Screen Designer で行い、本画面では read-only 合成プレビューで配置結果を確認する。</p>
 <h2 id="到達経路">到達経路</h2>
 <ul>
-<li>ページレイアウト一覧 (<code>/page-layout/list</code>) → 行 → 「編集」</li>
+<li>ページレイアウト一覧 (<code>/page-layout/list</code>) → 行を開く</li>
 <li>直接 URL: <code>/w/&#x3C;wsId>/page-layout/edit/&#x3C;pageLayoutId></code></li>
+<li>旧 URL <code>/page-layout/design/:id</code> からの互換 redirect</li>
 </ul>
 <h2 id="画面構成">画面構成</h2>
 <p><img alt="ページレイアウト編集" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="1199" src="../../../_astro/01-default.BuDQX3-m_1P2iQr.webp" ></p>
 <h3 id="主要エリア">主要エリア</h3>
 <ol>
-<li><strong>EditorHeader</strong> — レイアウト名 + id 変更 + 保存 + 「デザインへ」ボタン</li>
-<li><strong>メタ情報</strong> — 名前 / 論理名 / 説明 / 適用 Screen 数 / 成熟度</li>
-<li><strong>slot 一覧</strong> — slot 名 (header / sidebar / footer / dashboard 等) / 配置可能ガジェット数 / デフォルトガジェット / 制約 (1 件のみ / 複数可 等)</li>
-<li><strong>適用 Screen 一覧</strong> (read-only) — この PageLayout を使う Screen 一覧 (削除前の影響確認)</li>
+<li><strong>EditorHeader</strong> — レイアウト名、編集セッション、id 変更、保存、破棄</li>
+<li><strong>基本情報</strong> — 名前、説明、成熟度、editorKind / cssFramework の参照表示</li>
+<li><strong>レイアウトパターン</strong> — <code>header-main-footer</code> / <code>header-sidebar-main-footer</code> などの定型分割を選択</li>
+<li><strong>合成プレビュー</strong> — region に割り当てた Gadget と sample page を read-only で合成表示</li>
+<li><strong>Regions</strong> — region 名、説明、並び順の詳細調整</li>
+<li><strong>Assignments</strong> — content slot 以外の region に Gadget を割り当てる</li>
+<li><strong>ProcessFlow 連携</strong> — ガジェット間連携 orchestrator の任意指定</li>
 </ol>
 <h2 id="主要操作">主要操作</h2>
 
@@ -70,26 +75,29 @@
 
 
 
-<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>slot 追加</td><td>「slot を追加」</td><td>slot 名 + 制約を指定</td></tr><tr><td>slot 編集</td><td>行クリック</td><td>inline でガジェット制約等を編集</td></tr><tr><td>デフォルトガジェット設定</td><td>行のドロップダウン</td><td>gadget 一覧 (<code>/gadget/list</code>) から選択</td></tr><tr><td>ビジュアル編集へ</td><td>「デザインへ」</td><td><code>/page-layout/design/:id</code> を新タブで開く (<code>PageLayoutDesigner</code>)</td></tr><tr><td>保存 / 破棄</td><td><code>Ctrl+S</code> / 「破棄」</td><td>edit-session 経由</td></tr><tr><td>rename</td><td>EditorHeader の id 変更</td><td>RenameEntityDialog</td></tr></tbody></table>
+
+
+
+
+
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>レイアウト分割を選ぶ</td><td>レイアウトパターン selector</td><td><code>regions[]</code> を定型構成に更新</td></tr><tr><td>Gadget を配置</td><td>Assignments の selector</td><td><code>assignments[region]</code> に gadget Screen ID を保存</td></tr><tr><td>content slot を確認</td><td>合成プレビューの <code>main</code> 領域</td><td>page Screen 本文の差し込み位置を確認</td></tr><tr><td>sample page 表示</td><td>サンプル表示画面 selector</td><td>preview 専用に page Screen 本文を read-only 表示</td></tr><tr><td>region 詳細調整</td><td>Regions table</td><td>region 説明、順序、追加 region を編集</td></tr><tr><td>保存 / 破棄</td><td><code>Ctrl+S</code> / 「破棄」</td><td>edit-session 経由で保存・破棄</td></tr><tr><td>rename</td><td>EditorHeader の id 変更</td><td>RenameEntityDialog</td></tr></tbody></table>
 <h2 id="データ前提">データ前提</h2>
 <ul>
-<li><strong>新規</strong>: slot 0 件、最低 1 slot (例: main-content) を入れた時点で使い物になる</li>
-<li><strong>意味のある状態</strong>: retail の <code>main-layout</code> は header (ロゴ + ナビ) + sidebar (メニュー) + main-content + footer の 4 slot</li>
+<li>固定 region に配置できるのは <code>Screen{purpose:"gadget"}</code> のみ</li>
+<li><code>main</code> は content slot の canonical 予約名で、PageLayout 側に具体 page Screen ID は保存しない</li>
+<li><code>content</code> は既存データ互換 alias として UI 上 content slot 扱いにする</li>
+<li>sample page selector は preview 専用で、PageLayout entity には保存しない</li>
 </ul>
 <h2 id="関連仕様書">関連仕様書</h2>
 <ul>
-<li><a href="../../../spec/page-layout/"><code>docs/spec/page-layout.md</code></a> — PageLayout / gadget / slot 仕様</li>
+<li><a href="../../../spec/page-layout/"><code>docs/spec/page-layout.md</code></a> — PageLayout / gadget / content slot 仕様</li>
 <li><a href="../../../spec/list-common/"><code>docs/spec/list-common.md</code></a></li>
-</ul>
-<h2 id="関連-skill">関連 skill</h2>
-<ul>
-<li>なし (構造編集中心、AI 生成 skill は将来検討)</li>
 </ul>
 <h2 id="既知の制約注意">既知の制約・注意</h2>
 <ul>
-<li><strong>構造編集 (本画面) と ビジュアル編集 (<code>page-layout-designer</code>) は別画面</strong> — 業務的な slot 設計は本画面、見た目の調整は Designer</li>
-<li>gadget 自体の編集は <code>/gadget/list</code> → 個別の Designer</li>
-<li>適用 Screen が 100+ の場合、変更影響範囲が大きいので確認ダイアログ慎重に</li>
+<li>Gadget / page Screen 本体の編集は Screen Designer で行う</li>
+<li>preview は read-only 合成表示であり、Gadget 内のボタンや入力操作は編集対象外</li>
+<li>design HTML を取得できない Screen は名前 / ID の fallback 表示になる</li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {

@@ -28,8 +28,7 @@
 | 操作 | 手段 | 結果 |
 |---|---|---|
 | 新規作成 | 「ページレイアウトを追加」 | `PageLayoutEditor` 新タブ |
-| 構造編集 | 行クリック → 「編集」 | `/page-layout/edit/:id` (メタ情報 + gadget slot) |
-| ビジュアル編集 | 行クリック → 「デザイン」 | `/page-layout/design/:id` (`PageLayoutDesigner`) |
+| レイアウト編集 | 行クリック → 「編集」 | `/page-layout/edit/:id` (レイアウトパターン + gadget assignment + preview) |
 | 削除 | 右クリック → 「削除」 / `Delete` | 利用 Screen ありは警告 |
 | rename | 右クリック → 「ID 変更…」 / `F2` | RenameEntityDialog |
 

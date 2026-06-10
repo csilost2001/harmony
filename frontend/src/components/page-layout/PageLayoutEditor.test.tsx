@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 
 // ─── mock heavy deps ─────────────────────────────────────────────────────────
@@ -15,7 +15,19 @@ vi.mock("../../mcp/mcpBridge", () => ({
     startWithoutEditor: vi.fn(),
     onStatusChange: vi.fn(() => () => {}),
     onBroadcast: vi.fn(() => () => {}),
-    request: vi.fn().mockResolvedValue({ sessions: [] }),
+    request: vi.fn((method: string, params?: { screenId?: string }) => {
+      if (method === "loadScreen" && params?.screenId === "global-header") {
+        return Promise.resolve({
+          pages: [{ frames: [{ component: { components: "<header>Header Body</header>" } }] }],
+        });
+      }
+      if (method === "loadScreen" && params?.screenId === "dashboard") {
+        return Promise.resolve({
+          pages: [{ frames: [{ component: { components: "<main>Dashboard Body</main>" } }] }],
+        });
+      }
+      return Promise.resolve({ sessions: [] });
+    }),
   },
 }));
 
@@ -33,7 +45,7 @@ vi.mock("../../store/pageLayoutStore", async () => {
         { name: "main", description: "メイン" },
         { name: "footer", description: "フッタ" },
       ],
-      assignments: {},
+      assignments: { header: "global-header" },
       design: { editorKind: "grapesjs", cssFramework: "bootstrap" },
       createdAt: "2026-05-12T00:00:00.000Z",
       updatedAt: "2026-05-12T00:00:00.000Z",
@@ -51,6 +63,7 @@ vi.mock("../../store/flowStore", async () => {
       name: "test",
       screens: [
         { id: "global-header", name: "Global Header", purpose: "gadget" },
+        { id: "normal-page", name: "Normal Page", purpose: "page" },
         { id: "dashboard", name: "Dashboard", purpose: "page" },
       ],
       groups: [],
@@ -159,5 +172,36 @@ describe("PageLayoutEditor", () => {
     expect(screen.queryByDisplayValue("main")).not.toBeInTheDocument();
     expect(document.querySelectorAll("select.tbl-select-sm")).toHaveLength(2);
     expect(screen.getAllByText("Global Header").length).toBeGreaterThan(0);
+  });
+
+  it("renders assigned gadget design body in the read-only preview", async () => {
+    renderEditor();
+
+    const headerPreview = await screen.findByTestId("page-layout-gadget-preview-header");
+    await waitFor(() => {
+      expect(within(headerPreview).getByText("Header Body")).toBeInTheDocument();
+    });
+  });
+
+  it("renders selected sample page design body in the content slot", async () => {
+    renderEditor();
+
+    fireEvent.change(await screen.findByTestId("page-layout-sample-page-select"), { target: { value: "dashboard" } });
+
+    const contentPreview = await screen.findByTestId("page-layout-content-slot-preview");
+    await waitFor(() => {
+      expect(within(contentPreview).getByText("Dashboard Body")).toBeInTheDocument();
+    });
+  });
+
+  it("does not list page screens in gadget assignment selectors", async () => {
+    renderEditor();
+
+    await screen.findByText("Assignments");
+    const assignmentSelects = [...document.querySelectorAll<HTMLSelectElement>("select.tbl-select-sm")];
+    expect(assignmentSelects.length).toBeGreaterThan(0);
+    for (const select of assignmentSelects) {
+      expect([...select.options].map((option) => option.value)).not.toContain("normal-page");
+    }
   });
 });

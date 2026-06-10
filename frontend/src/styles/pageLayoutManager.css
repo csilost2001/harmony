@@ -43,6 +43,15 @@
   overflow: auto;
 }
 
+.plm-preview-loading {
+  grid-column: 1 / -1;
+  color: #94a3b8;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .plm-preview-layout-hmf {
   grid-template:
     "header" minmax(64px, auto)
@@ -142,6 +151,7 @@
   color: #1f2937;
   align-items: center;
   text-align: center;
+  overflow: hidden;
 }
 
 .plm-empty-preview {
@@ -164,6 +174,33 @@
   opacity: 0.72;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
+}
+
+.plm-readonly-tag {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15,23,42,0.86);
+  color: #e2e8f0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.plm-design-body {
+  width: 100%;
+  min-height: 32px;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.92);
+  color: #1f2937;
+  padding: 8px;
+  pointer-events: none;
+  user-select: none;
+  text-align: left;
+  overflow: hidden;
+}
+
+.plm-design-body * {
+  max-width: 100%;
 }
 
 @media (max-width: 900px) {
