@@ -4,9 +4,13 @@ set -euo pipefail
 VERSION="${1:-local}"
 IMAGE="${HARMONY_IMAGE:-ghcr.io/csilost2001/harmony:${VERSION}}"
 PORT="${HARMONY_PORT:-5179}"
+WORKSPACES="${HARMONY_WORKSPACES:-.tmp/harmony-compose-smoke-workspaces}"
 ENGINE="${CONTAINER_ENGINE:-docker}"
 PROJECT_NAME="${HARMONY_COMPOSE_PROJECT:-harmony-smoke-compose}"
 export HARMONY_IMAGE="${IMAGE}"
+export HARMONY_PORT="${PORT}"
+export HARMONY_WORKSPACES="${WORKSPACES}"
+export HARMONY_WORKSPACES_MOUNT_OPTIONS="${HARMONY_WORKSPACES_MOUNT_OPTIONS:-}"
 
 if ! command -v "${ENGINE}" >/dev/null 2>&1; then
   echo "${ENGINE} command not found. Set CONTAINER_ENGINE=docker or CONTAINER_ENGINE=podman and run this on the host." >&2
@@ -17,6 +21,8 @@ if ! command -v node >/dev/null 2>&1; then
   echo "node command not found. Run this script from the Harmony host checkout after npm install." >&2
   exit 1
 fi
+
+mkdir -p "${WORKSPACES}"
 
 compose() {
   if "${ENGINE}" compose version >/dev/null 2>&1; then
