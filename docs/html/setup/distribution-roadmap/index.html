@@ -7,22 +7,111 @@
 🔍 検索
 </button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
 🌓
-</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> セットアップ </div> <ul class="space-y-0.5"> <li> <a href="../../setup/dev-containers/" class="sidebar-link"> Dev Containers (推奨) </a> </li><li> <a href="../../setup/wsl2-native/" class="sidebar-link"> WSL2 native (代替) </a> </li><li> <a href="../../setup/distribution-roadmap/" class="sidebar-link active"> 配布構想 (将来) </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="harmony-配布形態ロードマップ--docker-image-化構想">Harmony 配布形態ロードマップ — Docker image 化構想</h1>
-<p>Harmony 本体 (frontend + backend) を Docker image として配布し、利用者が <code>git clone</code> せずに <code>docker compose up</code> だけで起動できるようにする構想。</p>
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> セットアップ </div> <ul class="space-y-0.5"> <li> <a href="../../setup/dev-containers/" class="sidebar-link"> Dev Containers (推奨) </a> </li><li> <a href="../../setup/wsl2-native/" class="sidebar-link"> WSL2 native (代替) </a> </li><li> <a href="../../setup/distribution-roadmap/" class="sidebar-link active"> Docker image 配布 </a> </li><li> <a href="../../setup/customer-project-agents-template/" class="sidebar-link"> Customer AGENTS template </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="harmony-配布形態ロードマップ--docker-image-配布">Harmony 配布形態ロードマップ — Docker image 配布</h1>
+<p>Harmony 本体 (frontend + backend) を Docker image として配布し、利用者が <code>git clone</code> せずに <code>docker compose up</code> だけで起動できるようにする方針。</p>
 <blockquote>
-<p>⚠️ <strong>本書は構想 / ロードマップであり、現状未実装です</strong> (2026-05-15 時点)。</p>
+<p>✅ <strong>現在の採用方針は 1-container 構成です</strong> (#1472)。</p>
 <ul>
-<li>着手は #1055 の L2 / L3 で本格化予定 (近日着手予定、本書を起点に書き直す前提)</li>
-<li>関連: <a href="https://github.com/csilost2001/harmony/issues/1055">#1055 L1 production Dockerfile 雛形</a> (closed、本書記載の前段 path 規約と L2/L3 方針あり)</li>
+<li><code>Dockerfile</code> は frontend build 成果物を backend image に同梱する</li>
+<li>backend が <code>frontend/dist/</code> を静的配信し、port 5179 で SPA / HTTP MCP / WebSocket をまとめて提供する</li>
+<li><code>scripts/build-harmony-image.sh</code> と <code>scripts/smoke-harmony-image.sh</code> は host WSL2/Linux で実行する</li>
+<li>Dev Container 内から Docker daemon access を前提にしない</li>
 </ul>
-<p>⚠️ <strong>本書記載の 2-container 案は #1055 L2 方針 (backend-static-serve で 1 container 統合) と矛盾しています</strong>。L2 着手時には <strong>1-container 案</strong> (backend が <code>express.static()</code> で <code>frontend/dist/</code> を配信、5179 ポートで HTTP MCP / WebSocket / SPA 全部) で書き直す前提で、本書の compose 構成 (frontend + backend 2 サービス) は<strong>そのまま採用しないでください</strong>。</p>
-<p>✅ ただし <strong>本書の構造 (Step 2-1 〜 2-8) と方針は historical reference として保持しています</strong>。ghcr.io への push 手順 / GitHub Actions / volume mount 設計 / トラブルシューティング等は 1-container 案でもそのまま使えるため、L2/L3 着手者の出発点として読む価値があります。</p>
+<p>⚠️ Appendix の 2-container 案は historical reference です。新規実装では採用しません。</p>
 </blockquote>
 <p>開発環境セットアップ手順は本書の対象外です。Harmony 本体を開発したい場合は <a href="../../setup/dev-containers/"><code>dev-containers.md</code></a> (推奨) または <a href="../../setup/wsl2-native/"><code>wsl2-native.md</code></a> (代替) を参照してください。</p>
 <hr>
-<h2 id="l2-着手前の必須設計判断-バトン情報">L2 着手前の必須設計判断 (バトン情報)</h2>
-<p>#1055 L2 着手者はまず本節を読んでから書き直しに入ること。Step 2-1〜2-8 (後述) はこの設計判断に従って再構成する必要がある。</p>
-<h3 id="1-ai-mount-は-optional--codex-は-optional">1. AI mount は optional + Codex は optional</h3>
+<h2 id="採用構成">採用構成</h2>
+<h3 id="1-1-container-統合">1. 1-container 統合</h3>
+<p>配布 image は 1 container で動作する。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>機能</th><th>提供元</th></tr></thead><tbody><tr><td>SPA</td><td>backend HTTP fallback が <code>frontend/dist/</code> を静的配信</td></tr><tr><td>HTTP MCP</td><td><code>/mcp</code></td></tr><tr><td>WebSocket bridge</td><td>同一 port の upgrade</td></tr><tr><td>Health check</td><td><code>/health</code></td></tr></tbody></table>
+<p>配布 image の container port は 5179。host 側公開 port は <code>127.0.0.1:5179:5179</code> 以外も許容する。Docker build は <code>VITE_HARMONY_SAME_PORT=1</code> を指定して packaged SPA を生成するため、<code>127.0.0.1:8080:5179</code> のような remap でも WebSocket / API は同じ host port へ接続する。開発時の <code>npm run frontend</code> (Vite, 5173) と <code>npm run backend</code> (5179) の 2-process 運用は引き続き canonical で、未設定時の frontend 接続先は 5179 のまま維持する。</p>
+<h3 id="2-永続化-mount">2. 永続化 mount</h3>
+<p><code>docs/spec/path-conventions.md</code> の 3 カテゴリを採用する。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>カテゴリ</th><th>配置</th><th>配布時の推奨 mount</th></tr></thead><tbody><tr><td>Harmony state</td><td><code>/home/node/.harmony</code></td><td>named volume</td></tr><tr><td>workspace 成果物</td><td><code>/data/workspaces</code></td><td>host bind mount</td></tr><tr><td>built-in リソース</td><td>image 内 <code>data/extensions/</code></td><td>mount 不要</td></tr></tbody></table>
+<h3 id="3-host-実行-script">3. host 実行 script</h3>
+<p>Docker build / smoke は Dev Container 内ではなく、Docker Desktop / Docker Engine に接続できる host WSL2/Linux で実行する。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># host WSL2 bash</span></span>
+<span class="line"><span style="color:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="color:#032F62;--shiki-dark:#96D0FF"> ~/projects/harmony</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/build-harmony-image.sh</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> 0.1.0</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/smoke-harmony-image.sh</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> 0.1.0</span></span></code></pre>
+<p>既定 image tag:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="text"><code><span class="line"><span>ghcr.io/csilost2001/harmony:&#x3C;version></span></span></code></pre>
+<p>local tag で試す場合:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">HARMONY_IMAGE</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony:local</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/build-harmony-image.sh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> local</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">HARMONY_IMAGE</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony:local</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> HARMONY_SMOKE_PORT</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">5180</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/smoke-harmony-image.sh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> local</span></span></code></pre>
+<p>smoke は <code>/health</code>、SPA HTML、<code>/mcp</code> initialize、host 側からの WebSocket handshake を確認する。<code>HARMONY_SMOKE_PORT</code> を変えることで host port remap 時の Origin / Host policy も検出する。no-Origin MCP は Docker published port では container から Docker bridge gateway に見えるため、smoke container では <code>HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT=1</code> を明示する。この env は <code>127.0.0.1:&#x3C;host-port>:5179</code> の local-only publish とセットで使う。</p>
+<h3 id="4-docker-compose-例">4. docker compose 例</h3>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">services</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">ghcr.io/csilost2001/harmony:1.0.0</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"127.0.0.1:5179:5179"</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony-state:/home/node/.harmony</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./workspaces:/data/workspaces</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # Codex 機能を使う場合のみ uncomment</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # - ${HOME}/.codex:/home/node/.codex:ro</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    environment</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      NODE_ENV</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">production</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # no-Origin MCP client を Docker published port 経由で使う場合のみ有効化。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # ports は必ず 127.0.0.1 bind にして LAN へ公開しない。</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"1"</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    restart</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">unless-stopped</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony-state</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span></code></pre>
+<h3 id="5-ai-mount-は-optional--codex-は-optional">5. AI mount は optional + Codex は optional</h3>
 <p>Harmony backend は <strong>Codex App Server を lazy 接続</strong> (<code>wsBridge.ts:247</code> <code>_codexConn: CodexConnection | null = null</code>)。backend 起動時に codex は spawn されず、利用者が「処理フローの <code>kind: "ai"</code> step 実行」または「UI の Codex 統合タブ操作」をして初めて接続を試みる。</p>
 <p>つまり <strong>Codex 未インストール / 未認証でも Harmony 設計ツールは動作する</strong>:</p>
 
@@ -57,7 +146,7 @@
 <li>backend image に codex CLI を install するかは選択 (推奨: install しておく + mount で auth 渡す。L2 着手時に image サイズ実測して判断)</li>
 <li>Codex 機能を使わない利用者層は <code>.codex</code> mount 無しで完全に Harmony を使える</li>
 </ul>
-<h3 id="2-利用者層を-3-区分で想定する">2. 利用者層を 3 区分で想定する</h3>
+<h3 id="6-利用者層を-3-区分で想定する">6. 利用者層を 3 区分で想定する</h3>
 
 
 
@@ -85,7 +174,7 @@
 
 <table><thead><tr><th>利用者層</th><th>サブスク状況</th><th>必要な構成</th></tr></thead><tbody><tr><td><strong>(2a) 設計のみ利用</strong></td><td>Codex / Claude サブスクなし</td><td><code>.codex</code> mount 不要、AI 機能未利用、GUI で JSON 出力まで完結</td></tr><tr><td><strong>(2b) Codex 利用</strong></td><td>ChatGPT Plus 契約あり</td><td><code>.codex</code> mount + container 内 codex CLI で AI step / Codex タブ動作</td></tr><tr><td><strong>(2c) Claude 利用</strong></td><td>Anthropic Pro/Max 契約あり</td><td>Harmony image 内では使わない。Harmony 外 (Desktop の Claude Code 等) から MCP 経由で port 5179 に接続</td></tr></tbody></table>
 <p>(2a) を排除しない compose 設計が重要 (= mount は default で <strong>無し</strong>、欲しい人だけ追加)。</p>
-<h3 id="3-codex-通信は-stdio-一択-websocket-は公式-unsupported">3. Codex 通信は stdio 一択 (WebSocket は公式 unsupported)</h3>
+<h3 id="7-codex-通信は-stdio-一択-websocket-は公式-unsupported">7. Codex 通信は stdio 一択 (WebSocket は公式 unsupported)</h3>
 <p>Codex App Server の公式 transport (<a href="https://developers.openai.com/codex/app-server">OpenAI Developers</a> / <a href="https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md">GitHub openai/codex codex-rs/app-server/README.md</a>):</p>
 
 
@@ -125,33 +214,10 @@
 <table><thead><tr><th>Transport</th><th>フラグ</th><th>状態</th><th>配布利用</th></tr></thead><tbody><tr><td><strong>stdio</strong> (default)</td><td><code>--listen stdio://</code></td><td>✅ supported</td><td><strong>採用</strong></td></tr><tr><td><strong>WebSocket</strong></td><td><code>--listen ws://IP:PORT</code></td><td>⚠️ experimental and unsupported</td><td><strong>採用しない</strong></td></tr><tr><td><strong>unix socket</strong></td><td><code>--listen unix://</code></td><td>local control-plane only</td><td>非該当</td></tr><tr><td><strong>off</strong></td><td><code>--listen off</code></td><td>(disable)</td><td>非該当</td></tr></tbody></table>
 <p>公式 README 明記: <em>“Websocket transport is currently experimental and unsupported. Do not rely on it for production workloads.”</em></p>
 <p>Harmony backend は両方を実装済 (<code>backend/src/codex/config.ts</code> の <code>HARMONY_CODEX_TRANSPORT</code> env)。L2 では <strong>default = stdio (container 内 spawn)</strong> で進める。<code>HARMONY_CODEX_TRANSPORT=websocket</code> 経路は上級ユーザ向け escape hatch として残すが、配布 compose のサンプルでは推奨しない。</p>
-<h3 id="4-codex-統合の-compose-スニペット-推奨形l2-着手者が起点に使う">4. Codex 統合の compose スニペット (推奨形、L2 着手者が起点に使う)</h3>
-<p>1-container 統合案 + Codex optional mount のサンプル:</p>
-<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">services</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">ghcr.io/csilost2001/harmony:1.0.0</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5179:5179"</span><span style="color:#6A737D;--shiki-dark:#768390">               # HTTP MCP + WebSocket + SPA (express.static で statically serve)</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./workspaces:/data/workspaces</span><span style="color:#6A737D;--shiki-dark:#768390">                      # 利用者の作業データ (必須)</span></span>
-<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony-state:/home/node/.harmony</span><span style="color:#6A737D;--shiki-dark:#768390">                  # recent-workspaces.json (必須、named volume)</span></span>
-<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # ↓ Codex 機能を使う場合のみ uncomment (= 利用者層 (2b))</span></span>
-<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # - ${HOME}/.codex:/home/node/.codex:ro              # ChatGPT Plus OAuth credential (host で `codex login` 必要)</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    environment</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      NODE_ENV</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">production</span></span>
-<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # HARMONY_CODEX_TRANSPORT: spawn                     # default</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    restart</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">unless-stopped</span></span>
-<span class="line"></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony-state</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span></code></pre>
-<ul>
-<li><code>.codex</code> は <strong>read-only mount</strong> (container 内で書き換えない、host の credential を読むだけ)</li>
-<li><code>:ro</code> を付けることで container 内の AI step が誤って credential を上書きするリスクを排除</li>
-<li>利用者層 (2a) はこの mount をコメントアウトのままで OK</li>
-<li>利用者層 (2b) は uncomment + host で 1 度 <code>codex login</code> 完了させる</li>
-<li>利用者層 (2c) は Harmony image を使わず、自分の手元の Claude Code Desktop 等から MCP 接続のみ</li>
-</ul>
-<h3 id="5-step-2-1--2-8-の書き直し方針-要約">5. Step 2-1 〜 2-8 の書き直し方針 (要約)</h3>
+<h3 id="8-publish-skill">8. publish skill</h3>
+<p>AI に publish 作業を依頼する場合は <code>ai-skills/publish-harmony-image/SKILL.md</code> を使う。これは実行本体ではなく、host script / smoke / ghcr push を正しい順序で扱うための maintainer 手順。</p>
+<h3 id="9-旧-step-2-1--2-8-の扱い">9. 旧 Step 2-1 〜 2-8 の扱い</h3>
+<p>旧案は Appendix に historical reference として残す。新規作業では以下の読み替えを行う。</p>
 
 
 
@@ -202,7 +268,7 @@
 
 
 
-<table><thead><tr><th>Step</th><th>旧案 (本書)</th><th>L2 で書き直す方向</th></tr></thead><tbody><tr><td>2-1</td><td>frontend/Dockerfile</td><td><strong>削除</strong> (1-container 案では不要、backend Dockerfile に統合)</td></tr><tr><td>2-2</td><td>backend/Dockerfile</td><td><strong>frontend を multi-stage で同梱</strong>、backend が <code>express.static()</code> で <code>frontend/dist/</code> を配信</td></tr><tr><td>2-3</td><td>docker-compose.yml (2 services)</td><td><strong>1 service</strong> (上記スニペット参照)、Codex mount は optional</td></tr><tr><td>2-4</td><td>docker-compose.dev.yml</td><td>L2 では不要 (開発は <code>.devcontainer/</code> で完結)。最低限必要なら別ファイルで</td></tr><tr><td>2-5</td><td>ローカルビルド + 統合テスト</td><td>1 image / 1 container のテストフローに置き換え</td></tr><tr><td>2-6</td><td>ghcr.io push</td><td>そのまま使える (tag 付け / login / push 手順は変わらず)</td></tr><tr><td>2-7</td><td>README に手順追加</td><td>top-level README.md (#1109 で新設済) に「<code>docker compose up</code> で起動」セクションを追記する形に修正</td></tr><tr><td>2-8</td><td>GitHub Actions release</td><td>そのまま使える (1 image build に簡略化される分むしろ簡単)</td></tr></tbody></table>
+<table><thead><tr><th>Step</th><th>旧案</th><th>現在の扱い</th></tr></thead><tbody><tr><td>2-1</td><td>frontend/Dockerfile</td><td><strong>削除</strong> (1-container 案では不要、backend Dockerfile に統合)</td></tr><tr><td>2-2</td><td>backend/Dockerfile</td><td>root <code>Dockerfile</code> が frontend/backend/shared を multi-stage build</td></tr><tr><td>2-3</td><td>docker-compose.yml (2 services)</td><td>1 service、Codex mount は optional</td></tr><tr><td>2-4</td><td>docker-compose.dev.yml</td><td>L2 では不要 (開発は <code>.devcontainer/</code> で完結)。最低限必要なら別ファイルで</td></tr><tr><td>2-5</td><td>ローカルビルド + 統合テスト</td><td><code>scripts/build-harmony-image.sh</code> / <code>scripts/smoke-harmony-image.sh</code></td></tr><tr><td>2-6</td><td>ghcr.io push</td><td>host または GitHub Actions で実施</td></tr><tr><td>2-7</td><td>README に手順追加</td><td>top-level README.md (#1109 で新設済) に「<code>docker compose up</code> で起動」セクションを追記する形に修正</td></tr><tr><td>2-8</td><td>GitHub Actions release</td><td>tag push → 1 image build/push に簡略化</td></tr></tbody></table>
 <hr>
 <h2 id="目的">目的</h2>
 <p>Harmony 本体の利用者 (= 業務アプリ設計者、AGENTS.md の (2)) のうち、コードを触らず GUI と <code>/generate-code</code> だけ使いたい層向けに「<strong><code>docker compose up</code> だけで起動</strong>」の経路を用意する。</p>

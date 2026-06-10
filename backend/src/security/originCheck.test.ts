@@ -2,7 +2,7 @@
  * originCheck.ts のユニットテスト (S-001, #1225)
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import type { IncomingMessage } from "node:http";
 import { checkRequestOrigin, getAllowedOriginHeader } from "./originCheck.js";
 
@@ -22,8 +22,12 @@ function makeReq(opts: {
     socket: {
       remoteAddress: opts.remoteAddress,
     },
-  } as unknown as IncomingMessage;
+} as unknown as IncomingMessage;
 }
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 // ── checkRequestOrigin ────────────────────────────────────────────────────────
 
@@ -58,6 +62,30 @@ describe("checkRequestOrigin", () => {
     expect(result).toContain("http://evil.com");
   });
 
+  it("正常: Origin あり + localhost same-host の任意 port → null (Docker host port remap)", () => {
+    const req = makeReq({ origin: "http://localhost:5180", host: "localhost:5180" });
+    expect(checkRequestOrigin(req)).toBeNull();
+  });
+
+  it("異常: Origin あり + localhost だが Host と port 不一致 → 拒否文字列を返す", () => {
+    const req = makeReq({ origin: "http://localhost:3000", host: "localhost:5179" });
+    const result = checkRequestOrigin(req);
+    expect(result).not.toBeNull();
+    expect(result).toContain("Origin not allowed");
+  });
+
+  it("正常: Origin あり + 127.0.0.1 same-host の任意 port → null (Docker host port remap)", () => {
+    const req = makeReq({ origin: "http://127.0.0.1:8080", host: "127.0.0.1:8080" });
+    expect(checkRequestOrigin(req)).toBeNull();
+  });
+
+  it("異常: Origin あり + localhost だが Host と hostname 不一致 → 拒否文字列を返す", () => {
+    const req = makeReq({ origin: "http://127.0.0.1:8080", host: "localhost:8080" });
+    const result = checkRequestOrigin(req);
+    expect(result).not.toBeNull();
+    expect(result).toContain("Origin not allowed");
+  });
+
   it("正常: Origin なし + remoteAddress=127.0.0.1 → null (loopback)", () => {
     const req = makeReq({ remoteAddress: "127.0.0.1", host: "localhost:5179" });
     expect(checkRequestOrigin(req)).toBeNull();
@@ -80,6 +108,28 @@ describe("checkRequestOrigin", () => {
 
   it("異常: Origin なし + remoteAddress=192.168.1.5 → 拒否文字列を返す", () => {
     const req = makeReq({ remoteAddress: "192.168.1.5", host: "localhost:5179" });
+    const result = checkRequestOrigin(req);
+    expect(result).not.toBeNull();
+    expect(result).toContain("not loopback");
+    expect(result).toContain("192.168.1.5");
+  });
+
+  it("異常: Origin なし + Docker bridge remoteAddress + localhost Host + opt-in なし → 拒否文字列を返す", () => {
+    const req = makeReq({ remoteAddress: "172.17.0.1", host: "localhost:5179" });
+    const result = checkRequestOrigin(req);
+    expect(result).not.toBeNull();
+    expect(result).toContain("not loopback");
+    expect(result).toContain("172.17.0.1");
+  });
+
+  it("正常: Origin なし + Docker bridge remoteAddress + localhost Host + opt-in → null", () => {
+    vi.stubEnv("HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT", "1");
+    const req = makeReq({ remoteAddress: "172.17.0.1", host: "localhost:5179" });
+    expect(checkRequestOrigin(req)).toBeNull();
+  });
+
+  it("異常: Origin なし + non-loopback remoteAddress + Host なし → 拒否文字列を返す", () => {
+    const req = makeReq({ remoteAddress: "192.168.1.5" });
     const result = checkRequestOrigin(req);
     expect(result).not.toBeNull();
     expect(result).toContain("not loopback");
@@ -147,6 +197,16 @@ describe("getAllowedOriginHeader", () => {
 
   it("異常: allowlist 外の Origin → null (省略)", () => {
     const req = makeReq({ origin: "http://evil.com" });
+    expect(getAllowedOriginHeader(req)).toBeNull();
+  });
+
+  it("正常: localhost same-host の任意 port Origin → echo する", () => {
+    const req = makeReq({ origin: "http://localhost:5180", host: "localhost:5180" });
+    expect(getAllowedOriginHeader(req)).toBe("http://localhost:5180");
+  });
+
+  it("異常: localhost だが Host と port 不一致の Origin → null (省略)", () => {
+    const req = makeReq({ origin: "http://localhost:3000", host: "localhost:5179" });
     expect(getAllowedOriginHeader(req)).toBeNull();
   });
 

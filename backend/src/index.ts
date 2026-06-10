@@ -12,6 +12,7 @@ import { wsBridge } from "./wsBridge.js";
 import { tools } from "./tools.js";
 import { handleAuthCheck, handlePropose } from "./aiRename.js";
 import { handlePuckComponentAsset } from "./handlers/puckComponentAssets.js";
+import { createStaticAssetHandler } from "./staticAssets.js";
 import {
   initWorkspaceState,
   connect as wsConnect,
@@ -255,6 +256,11 @@ async function main() {
   // GET 配信する。`/workspace-assets/<wsId>/puck-components/<relpath>` 形式を handler 内で
   // parse するため、親 prefix `/workspace-assets` で登録する。
   wsBridge.registerHttpHandler("/workspace-assets", handlePuckComponentAsset);
+
+  if (process.env.HARMONY_STATIC_DIR) {
+    wsBridge.registerHttpFallbackHandler(createStaticAssetHandler(process.env.HARMONY_STATIC_DIR));
+    logInfo("http", "SPA static assets enabled", { staticDir: process.env.HARMONY_STATIC_DIR });
+  }
 
   console.error(`[MCP] harmony-mcp HTTP transport mounted at http://localhost:${process.env.DESIGNER_MCP_PORT ?? 5179}/mcp`);
 }

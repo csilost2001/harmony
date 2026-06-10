@@ -35,6 +35,7 @@ export const navigation: Record<string, NavGroup[]> = {
         { id: 'schema-governance', title: 'Governance (最重要)' },
         { id: 'schema-design-principles', title: '設計原則' },
         { id: 'schema-v3-design', title: 'V3 設計記録' },
+        { id: 'spec-package', title: '@harmony/spec package' },
         { id: 'schema-audit-2026-04-27', title: '監査記録 (2026-04-27)' },
       ],
     },
@@ -143,7 +144,8 @@ export const navigation: Record<string, NavGroup[]> = {
       items: [
         { id: 'dev-containers', title: 'Dev Containers (推奨)' },
         { id: 'wsl2-native', title: 'WSL2 native (代替)' },
-        { id: 'distribution-roadmap', title: '配布構想 (将来)' },
+        { id: 'distribution-roadmap', title: 'Docker image 配布' },
+        { id: 'customer-project-agents-template', title: 'Customer AGENTS template' },
       ],
     },
   ],

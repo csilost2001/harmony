@@ -6,16 +6,21 @@
  *
  * 設計方針:
  * - bind は 0.0.0.0 維持 (WSL2 cross-OS 経路維持、CLAUDE.md / AGENTS.md 前提)
- * - Origin ヘッダーあり → allowlist と照合
+ * - Origin ヘッダーあり → allowlist、または localhost/127.0.0.1 の same-host と照合
  * - Origin ヘッダーなし (CLI クライアント) → remote IP が loopback なら許可
+ * - Docker published port 経由の no-Origin CLI は env opt-in 時のみ Host localhost/127.0.0.1 を許可
  * - Host ヘッダー → allowlist で DNS rebinding 対策
  */
 
 import type { IncomingMessage } from "node:http";
 
+const BACKEND_PORT = process.env.DESIGNER_MCP_PORT ?? "5179";
+
 const ALLOWED_ORIGINS = new Set([
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  `http://localhost:${BACKEND_PORT}`,
+  `http://127.0.0.1:${BACKEND_PORT}`,
   // #1342 Proposal A: lockdown e2e config (playwright.lockdown.config.ts) は main
   // config (5173/5179) と port 衝突回避のため frontend=5183 / backend=5189 で起動する。
   // localhost に閉じた dev/test 用 port のため allowlist に追加する。
@@ -47,6 +52,48 @@ function isLoopback(remoteAddr: string | undefined): boolean {
   return false;
 }
 
+function hostnameFromHostHeader(host: string | undefined): string | null {
+  if (!host) return null;
+  if (host.startsWith("[")) {
+    const end = host.indexOf("]");
+    return end >= 0 ? host.slice(1, end) : null;
+  }
+  return host.split(":")[0] || null;
+}
+
+function hostnameFromOrigin(origin: string): string | null {
+  try {
+    return new URL(origin).hostname;
+  } catch {
+    return null;
+  }
+}
+
+function hostFromOrigin(origin: string): string | null {
+  try {
+    return new URL(origin).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function normalizeHostHeader(host: string | undefined): string | null {
+  return host ? host.toLowerCase() : null;
+}
+
+function isAllowedHost(hostname: string | null): boolean {
+  return hostname !== null && ALLOWED_HOSTNAMES.has(hostname);
+}
+
+function trustsLocalhostPublishedPort(): boolean {
+  return process.env.HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT === "1";
+}
+
+function isSameAllowedHostOrigin(origin: string, host: string | undefined): boolean {
+  const originHost = hostnameFromOrigin(origin);
+  return isAllowedHost(originHost) && hostFromOrigin(origin) === normalizeHostHeader(host);
+}
+
 /**
  * WS connection / HTTP request の受信時に呼ぶ。
  * OK なら null、NG なら拒否理由文字列を返す。
@@ -59,22 +106,28 @@ export function checkRequestOrigin(req: IncomingMessage): string | null {
   // Host header allowlist (DNS rebinding 対策)
   // ポートは問わず、ホスト名のみで照合する
   if (host) {
-    const hostname = host.split(":")[0];
-    if (!ALLOWED_HOSTNAMES.has(hostname)) {
+    const hostname = hostnameFromHostHeader(host);
+    if (!isAllowedHost(hostname)) {
       return `Host header not allowed: ${host}`;
     }
   }
 
   if (typeof origin === "string") {
-    // Origin あり → allowlist チェック
-    if (!ALLOWED_ORIGINS.has(origin)) {
+    // Origin あり → dev fixed ports または packaged same-host port remap を許可
+    if (!ALLOWED_ORIGINS.has(origin) && !isSameAllowedHostOrigin(origin, host)) {
       return `Origin not allowed: ${origin}`;
     }
     return null;
   }
 
-  // Origin なし → loopback のみ許可 (CLI クライアント想定)
-  if (!isLoopback(remoteAddr)) {
+  // Origin なし → CLI クライアント想定。Docker published port 経由では remoteAddress が
+  // bridge gateway (172.x 等) になりうるため、local-only port publish と組み合わせた
+  // 明示 opt-in 時だけ Host localhost/127.0.0.1 を許可する。
+  const isTrustedDockerPublishedPort =
+    trustsLocalhostPublishedPort() &&
+    remoteAddr !== undefined &&
+    isAllowedHost(hostnameFromHostHeader(host));
+  if (!isLoopback(remoteAddr) && !isTrustedDockerPublishedPort) {
     return `Origin missing and remote is not loopback: ${remoteAddr ?? "unknown"}`;
   }
 
@@ -86,7 +139,7 @@ export function checkRequestOrigin(req: IncomingMessage): string | null {
  */
 export function getAllowedOriginHeader(req: IncomingMessage): string | null {
   const origin = req.headers.origin;
-  if (typeof origin === "string" && ALLOWED_ORIGINS.has(origin)) {
+  if (typeof origin === "string" && (ALLOWED_ORIGINS.has(origin) || isSameAllowedHostOrigin(origin, req.headers.host))) {
     return origin;
   }
   return null;
