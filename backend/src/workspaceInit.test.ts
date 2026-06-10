@@ -11,16 +11,20 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import {
+  discoverWorkspaceCandidates,
   inspectWorkspacePath,
   initializeWorkspace,
   autoActivateOnStartup,
   _internals,
 } from "./workspaceInit.js";
 import { _resetForTest as resetWorkspaceState, initWorkspaceState } from "./workspaceState.js";
+import { upsertWorkspace } from "./recentStore.js";
 
 const TMP_ROOT = path.join(os.tmpdir(), `workspace-init-test-${process.pid}-${Date.now()}`);
+const ORIGINAL_RECENT_FILE = process.env.DESIGNER_RECENT_FILE;
 
 beforeEach(async () => {
+  process.env.DESIGNER_RECENT_FILE = path.join(TMP_ROOT, "recent-workspaces.json");
   await fs.mkdir(TMP_ROOT, { recursive: true });
   resetWorkspaceState();
 });
@@ -36,6 +40,11 @@ afterAll(async () => {
   try {
     await fs.rm(TMP_ROOT, { recursive: true, force: true });
   } catch { /* ignore */ }
+  if (ORIGINAL_RECENT_FILE === undefined) {
+    delete process.env.DESIGNER_RECENT_FILE;
+  } else {
+    process.env.DESIGNER_RECENT_FILE = ORIGINAL_RECENT_FILE;
+  }
 });
 
 // ── harmony.json fixture helper ─────────────────────────────────────────────
@@ -313,6 +322,29 @@ describe("initializeWorkspace", () => {
     expect(harmony.dataDir).toBe("docs/spec");
     // dataDir 配下にサブディレクトリが作られていること
     await expect(fs.access(path.join(dir, "docs", "spec", "screens"))).resolves.toBeUndefined();
+  });
+});
+
+// ── discoverWorkspaceCandidates ─────────────────────────────────────────────
+
+describe("discoverWorkspaceCandidates", () => {
+  it("root 配下の Harmony project 候補を表示するが recent には自動追加しない", async () => {
+    const root = path.join(TMP_ROOT, "projects");
+    const customerA = path.join(root, "customer-a", "harmony-design");
+    const customerB = path.join(root, "customer-b", "harmony-design");
+    await initializeWorkspace(customerA);
+    await initializeWorkspace(customerB);
+    await upsertWorkspace(customerA, "customer-a");
+
+    const result = await discoverWorkspaceCandidates(root);
+
+    expect(result.rootPath).toBe(path.resolve(root));
+    expect(result.candidates.map((c) => c.path).sort()).toEqual([
+      path.resolve(customerA),
+      path.resolve(customerB),
+    ].sort());
+    expect(result.candidates.find((c) => c.path === path.resolve(customerA))?.alreadyRecent).toBe(true);
+    expect(result.candidates.find((c) => c.path === path.resolve(customerB))?.alreadyRecent).toBe(false);
   });
 });
 

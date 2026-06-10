@@ -11,6 +11,21 @@ export interface WorkspaceEntry {
   lastOpenedAt: string | null;
 }
 
+export interface WorkspaceRootEntry {
+  id: string;
+  path: string;
+  label: string;
+  registeredAt: string;
+}
+
+export interface WorkspaceCandidate {
+  path: string;
+  name: string | null;
+  status: "ready" | "invalid";
+  reason?: string;
+  alreadyRecent: boolean;
+}
+
 export interface WorkspaceActive {
   id?: string;
   path: string;
@@ -193,6 +208,34 @@ export async function browseFs(path?: string): Promise<BrowseFsResult> {
   const params = path !== undefined ? { path } : {};
   const result = (await mcpBridge.request("workspace.browseFs", params)) as BrowseFsResult;
   return result;
+}
+
+export async function listWorkspaceRoots(): Promise<WorkspaceRootEntry[]> {
+  const result = (await mcpBridge.request("workspace.roots")) as { roots: WorkspaceRootEntry[] };
+  return result.roots ?? [];
+}
+
+export async function addWorkspaceRoot(path: string, label?: string): Promise<WorkspaceRootEntry> {
+  const result = (await mcpBridge.request("workspace.root.add", { path, label })) as { root: WorkspaceRootEntry };
+  return result.root;
+}
+
+export async function removeWorkspaceRoot(id: string): Promise<boolean> {
+  const result = (await mcpBridge.request("workspace.root.remove", { id })) as { removed: boolean };
+  return result.removed;
+}
+
+export async function discoverWorkspaceCandidates(params: {
+  rootId?: string;
+  path?: string;
+  maxDepth?: number;
+  limit?: number;
+}): Promise<{ rootPath: string; candidates: WorkspaceCandidate[] }> {
+  const result = (await mcpBridge.request("workspace.root.discover", params)) as {
+    rootPath: string;
+    candidates: WorkspaceCandidate[];
+  };
+  return { rootPath: result.rootPath, candidates: result.candidates ?? [] };
 }
 
 let _hostInfoCache: HostInfo | null = null;

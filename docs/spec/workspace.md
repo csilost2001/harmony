@@ -13,9 +13,10 @@ PR #676 で導入した「複数ワークスペース管理機能」の正規仕
 | `dataDir` | 設計データ (`screens/` / `tables/` / `process-flows/` 等) を格納するサブディレクトリのパス (ワークスペースルートからの相対パス)。推奨慣習は `"harmony"`。 |
 | active ワークスペース | `backend` が現在 read/write 対象とする 1 つのワークスペース。1 サーバ = 1 active が原則。env `DESIGNER_DATA_DIR` 指定時は lockdown 固定。 |
 | recent | 最近開いたワークスペースの履歴リスト (`~/.harmony/recent-workspaces.json`)。表示順は `lastOpenedAt` 降順。 |
+| workspace root | Harmony project 候補を探すためにユーザーが明示登録する探索基点。root 配下の project は候補表示のみ行い、自動 import / active 化しない。 |
 | lockdown モード | env `DESIGNER_DATA_DIR` が設定されている場合に起動する動作モード。active は env 値に固定され、切替操作は全て `LockdownError` となる。 |
 
-`data/` ディレクトリはデザイナー本体の組み込み拡張定義 (`data/extensions/`) 専用。ユーザープロジェクトは `workspaces/` 配下または任意フォルダに置く (#754)。
+`data/` ディレクトリはデザイナー本体の組み込み拡張定義 (`data/extensions/`) 専用。ユーザープロジェクトは Harmony 本体 repo の外にある任意フォルダへ置くことを推奨する。`harmony/workspaces/` は dogfood / sample / temporary 用の互換領域であり、通常実プロジェクトの標準保存先にはしない (#1473)。
 
 **実装**: `backend/src/workspaceState.ts:1-97`
 
@@ -40,22 +41,31 @@ PR #676 で導入した「複数ワークスペース管理機能」の正規仕
       "lastOpenedAt": "<ISO 8601>"
     }
   ],
+  "workspaceRoots": [
+    {
+      "id": "<uuid>",
+      "path": "<絶対パス>",
+      "label": "<表示名>",
+      "registeredAt": "<ISO 8601>"
+    }
+  ],
   "lastActiveId": "<uuid | null>"
 }
 ```
 
 - `version`: 常に `1`
 - `workspaces[]`: `WorkspaceEntry` の配列。順序は追加順 (UI 側で `lastOpenedAt` 降順にソートして表示)
+- `workspaceRoots[]`: 探索基点の配列。配下 project は候補表示のみ行い、自動 import しない
 - `lastActiveId`: 前回 active だったエントリの id。null = 前回も未選択
 
 **実装**: `backend/src/recentStore.ts:1-193`
 
 ### 2.2 ワークスペース内ディレクトリ構造
 
-ワークスペースルートは `workspaces/<wsId>/` または任意の絶対パス。どちらも同じ構造を持つ。
+ワークスペースルートは任意の絶対パス。既存互換として相対パスも受け付けるが、通常利用では Harmony 本体 repo 外の project フォルダを絶対パスで指定する。
 
 ```
-<workspace-root>/                       # workspaces/<id>/ または任意フォルダ
+<workspace-root>/                       # 例: /path/to/projects/customer-a/harmony-design
   harmony.json                          # 必須 — schemas/v3/harmony.v3.schema.json 準拠 (marker file)
   <dataDir>/                            # harmony.json の dataDir 値 (推奨慣習: "harmony")
     screens/                            # 画面定義 (*.json / *.design.json)
@@ -75,6 +85,8 @@ PR #676 で導入した「複数ワークスペース管理機能」の正規仕
 ```
 
 `harmony.json` はワークスペースフォルダの **root に固定**で配置する。設計データは `<dataDir>/` 配下に格納され、他ツール (Git / IDE 等) の管理対象ファイルと混在しない。
+
+`harmony/workspaces/` は Harmony 開発 repo 内の dogfood / sample / temporary 用として扱う。ユーザーの業務 project を長期配置する標準ディレクトリにはしない。
 
 `screen-items/` ディレクトリは Phase 4-β migration 後に廃止。`ensureDataDir` では再作成しない。
 
@@ -132,7 +144,50 @@ workspace.remove(id)
 
 **実装**: `backend/src/wsBridge.ts:794-800`
 
-### 3.5 workspace.inspect
+### 3.5 workspace root と candidate discovery
+
+workspace root は project 候補を探すための探索基点であり、active workspace ではない。
+
+```
+workspace.root.add(path)
+workspace.root.discover(rootId | path)
+workspace.root.remove(id)
+```
+
+- `workspace.root.add`: root path を登録する。フォルダが存在しない場合は error
+- `workspace.root.discover`: root 配下を浅く探索し、`harmony.json` を含む project 候補を返す
+- candidate は UI に表示するだけで、recent への追加や active 化はしない
+- ユーザーが candidate の `Open` を明示した場合のみ `workspace.open(path)` を呼び、recent / active に反映する
+- root 外 project も `workspace.open(path)` で明示的に開ける。workspace root はアクセス制限ではない
+
+### 3.6 AI エージェント編集境界
+
+AI エージェントを業務 project 開発に使う場合、Harmony 本体 repo と project 成果物を同じ writable scope にしない。
+
+推奨境界:
+
+```
+AI writable:
+  /path/to/customer-system/
+    harmony-design/
+    app/
+
+AI readonly reference:
+  @harmony/spec
+  Harmony schemas/docs/examples
+
+AI prohibited:
+  Harmony 本体 repo
+    frontend/
+    backend/
+    shared/
+    schemas/
+    docs/
+```
+
+Harmony 本体の不備を見つけた場合は、業務 project 内で回避するか、Harmony 本体側の別タスクとして扱う。業務 project 作業中に Harmony 本体 source を直接修正しない。
+
+### 3.7 workspace.inspect
 
 ```
 workspace.inspect(path) → { status, path, name? }
@@ -148,7 +203,7 @@ workspace.inspect(path) → { status, path, name? }
 
 **実装**: `backend/src/workspaceInit.ts:87-101`
 
-### 3.6 workspace.hostInfo
+### 3.8 workspace.hostInfo
 
 ```
 workspace.hostInfo() → { platform, isWSL, homeDir }
@@ -167,7 +222,7 @@ backend が動作しているホスト OS 情報を返す。`AddWorkspaceDialog`
 
 **実装**: `backend/src/hostInfo.ts:32-49` / `backend/src/wsBridge.ts:1373-1376`
 
-### 3.7 init=true 時の初期化内容
+### 3.9 init=true 時の初期化内容
 
 `initializeWorkspace(path)` が実行する処理:
 
@@ -287,6 +342,10 @@ backend offline 時 (port 5179 未接続) は `connectionFailed` が立ち、App
 | `workspace.list` | (なし) | `{ workspaces: WorkspaceEntry[], lastActiveId, active: { id, path, name } \| null, lockdown, lockdownPath }` |
 | `workspace.status` | (なし) | `{ active: { path, name } \| null, lockdown, lockdownPath }` |
 | `workspace.inspect` | `{ path: string }` | `{ status: "ready" \| "needsInit" \| "notFound", path, name? }` |
+| `workspace.roots` | (なし) | `{ roots: WorkspaceRootEntry[] }` |
+| `workspace.root.add` | `{ path: string, label?: string }` | `{ root: WorkspaceRootEntry }` または error |
+| `workspace.root.remove` | `{ id: string }` | `{ removed: boolean }` または error |
+| `workspace.root.discover` | `{ rootId?: string, path?: string, maxDepth?: number, limit?: number }` | `{ rootPath: string, candidates: WorkspaceCandidate[] }` または error |
 | `workspace.open` | `{ path?: string, id?: string, init?: boolean }` | `{ active: { id, path, name } }` または error |
 | `workspace.close` | (なし) | `{ success: true }` または error |
 | `workspace.remove` | `{ id: string }` | `{ removed: boolean }` または error |

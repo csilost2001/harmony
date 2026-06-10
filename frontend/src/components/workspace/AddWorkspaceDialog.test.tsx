@@ -93,7 +93,7 @@ describe("AddWorkspaceDialog (#858)", () => {
     };
   }
 
-  it("placeholder に workspaces/ ヒントを含む (#755 e2e regression 防止)", async () => {
+  it("placeholder は Harmony 本体 repo 外の project path 例を出す", async () => {
     getHostInfoMock.mockResolvedValue(makeHost());
     inspectWorkspaceMock.mockResolvedValue({ status: "notFound", path: "" } satisfies WorkspaceInspectResult);
 
@@ -101,7 +101,8 @@ describe("AddWorkspaceDialog (#858)", () => {
 
     const input = await screen.findByTestId("workspace-path-input");
     const placeholder = input.getAttribute("placeholder") ?? "";
-    expect(placeholder).toContain("workspaces/my-app");
+    expect(placeholder).toContain("/home/user/projects/my-app/harmony-design");
+    expect(placeholder).not.toContain("workspaces/my-app");
   });
 
   it("WSL 環境では Linux 形式の絶対パスを placeholder に出す (#1056 で WSL 専用ヒント文は削除)", async () => {
@@ -116,7 +117,7 @@ describe("AddWorkspaceDialog (#858)", () => {
     const input = await screen.findByTestId("workspace-path-input");
     await waitFor(() => {
       const placeholder = input.getAttribute("placeholder") ?? "";
-      expect(placeholder).toContain("/home/wsluser/projects/my-app");
+      expect(placeholder).toContain("/home/wsluser/projects/my-app/harmony-design");
     });
     // 旧ヒント文が消えていることを negative assert で固定 (#1056 regression 防止)
     expect(screen.queryByText(/WSL2 環境を検出しました/)).toBeNull();

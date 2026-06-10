@@ -24,6 +24,9 @@ const {
   findByPath,
   listWorkspaces,
   listDisplayWorkspaces,
+  listWorkspaceRoots,
+  upsertWorkspaceRoot,
+  removeWorkspaceRoot,
   setLastActive,
   readRecent,
   _internals,
@@ -165,6 +168,24 @@ describe("recentStore", () => {
     expect(listed.workspaces.map((w) => w.id)).toEqual([ready.id]);
     expect(listed.hiddenCount).toBe(1);
     expect(await findById(e2e.id)).not.toBeNull();
+  });
+
+  it("workspaceRoots: root 登録は recent workspace と独立して保持する", async () => {
+    const root = await upsertWorkspaceRoot(path.join(TMP_DIR, "projects"), "Projects");
+
+    expect(root.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(root.path).toBe(path.join(TMP_DIR, "projects"));
+    expect(root.label).toBe("Projects");
+
+    const listed = await listWorkspaceRoots();
+    expect(listed).toEqual([root]);
+
+    const updated = await upsertWorkspaceRoot(path.join(TMP_DIR, "projects"), "Renamed");
+    expect(updated.id).toBe(root.id);
+    expect(updated.label).toBe("Renamed");
+
+    expect(await removeWorkspaceRoot(root.id)).toBe(true);
+    expect(await listWorkspaceRoots()).toEqual([]);
   });
 
   it("recentFile() は env DESIGNER_RECENT_FILE を尊重 (現在値が TMP_FILE)", () => {

@@ -14,7 +14,7 @@
 <strong>種別</strong>: マルチインスタンスタブ</p>
 </blockquote>
 <h2 id="概要">概要</h2>
-<p>PageLayout の <strong>ビジュアル編集</strong>画面。WYSIWYG で header / sidebar / footer / main-content 等の slot を配置し、各 slot にデフォルトガジェットをドラッグして埋め込む。Screen Designer (GrapesJS / Puck) に似た UX で、レイアウト本体を編集する。</p>
+<p>PageLayout の <strong>ビジュアル編集</strong>画面。上部の PageLayout Manager で header / sidebar / footer / main-content 等の slot を俯瞰し、各 slot の gadget 割り当てを変更する。下部には既存の GrapesJS / Puck Designer があり、PageLayout 自体の visual design payload を編集できる。</p>
 <h2 id="到達経路">到達経路</h2>
 <ul>
 <li>ページレイアウト一覧 (<code>/page-layout/list</code>) → 行 → 「デザイン」</li>
@@ -25,10 +25,10 @@
 <p><img alt="ページレイアウト Designer" loading="lazy" decoding="async" fetchpriority="auto" width="1280" height="792" src="../../../_astro/01-default.Cpfyz0jV_1GRw1t.webp" ></p>
 <h3 id="主要エリア">主要エリア</h3>
 <ol>
-<li><strong>EditorHeader</strong> — レイアウト名 + 保存 + 「構造編集へ」</li>
-<li><strong>左サイドバー</strong> — Gadget Manager (利用可能なガジェット一覧、ドラッグ元)</li>
-<li><strong>中央 Canvas</strong> — レイアウトプレビュー (header / sidebar / main / footer 領域を区分表示)</li>
-<li><strong>右サイドバー</strong> — 選択中 slot / gadget の設定 (サイズ / position / class 等)</li>
+<li><strong>PageLayout Manager header</strong> — レイアウト名 / slot 数 / assignment 数 / editorKind / cssFramework / 「構造編集」 / 「割り当て保存」</li>
+<li><strong>Slot Canvas</strong> — <code>regions</code> に基づく header / sidebar / main / footer / custom slot の俯瞰表示</li>
+<li><strong>Slot assignments</strong> — <code>main</code> 以外の region に gadget Screen を割り当てる selector</li>
+<li><strong>Design editor</strong> — GrapesJS / Puck による PageLayout design payload 編集</li>
 </ol>
 <h2 id="主要操作">主要操作</h2>
 
@@ -66,7 +66,7 @@
 
 
 
-<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>gadget 配置</td><td>左パレットから Canvas の slot にドラッグ</td><td>デフォルトガジェットとして保存</td></tr><tr><td>slot サイズ調整</td><td>slot 境界をドラッグ</td><td>レスポンシブ breakpoint 毎に保存</td></tr><tr><td>gadget 設定</td><td>gadget クリック → 右パネル</td><td>props / 表示条件 / class を編集</td></tr><tr><td>構造編集へ</td><td>「構造編集へ」</td><td><code>/page-layout/edit/:id</code> (<code>PageLayoutEditor</code>) を新タブ</td></tr><tr><td>保存 / 破棄</td><td><code>Ctrl+S</code> / 「破棄」</td><td>edit-session 経由</td></tr></tbody></table>
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>gadget 割り当て</td><td>Slot assignments の selector</td><td>region → gadget Screen の割り当てを変更</td></tr><tr><td>割り当て保存</td><td>「割り当て保存」</td><td>PageLayout 本体 (<code>assignments</code>) を保存</td></tr><tr><td>slot 構成変更</td><td>「構造編集」</td><td><code>PageLayoutEditor</code> で <code>regions</code> を追加 / 削除 / 並び替え</td></tr><tr><td>外部更新から復帰</td><td>conflict banner の「再読み込み」</td><td>最新 PageLayout を読み直し、未保存 assignment draft を破棄</td></tr><tr><td>保存 / 破棄</td><td><code>Ctrl+S</code> / 「破棄」</td><td>edit-session 経由</td></tr></tbody></table>
 <h2 id="データ前提">データ前提</h2>
 <ul>
 <li><strong>空状態</strong>: 何も slot が無いキャンバス → <code>PageLayoutEditor</code> で slot を先に定義することを推奨</li>
@@ -83,9 +83,9 @@
 </ul>
 <h2 id="既知の制約注意">既知の制約・注意</h2>
 <ul>
-<li><strong>構造 (slot 定義) は <code>PageLayoutEditor</code> で先に作る</strong>のが推奨。本 Designer は配置 + 見た目の調整に特化</li>
+<li><strong>構造 (slot 定義) は <code>PageLayoutEditor</code> で先に作る</strong>のが推奨。本 Designer は slot の俯瞰 + gadget 割り当て + visual design payload 編集に特化</li>
 <li>gadget は事前に <code>/gadget/list</code> で定義済みのもののみ配置可</li>
-<li>レスポンシブ breakpoint (xs/sm/md/lg/xl) 毎に layout が分かれる場合、breakpoint 切替を必ず確認</li>
+<li><code>main</code> は page Screen 本文が入る content slot のため、gadget assignment selector は表示されない</li>
 </ul>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {

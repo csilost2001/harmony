@@ -4,6 +4,7 @@
  * 旧 wsBridge.ts `_handleBrowserRequest` switch から以下 8 RPC method を分離:
  * - workspace.list / workspace.status / workspace.inspect / workspace.hostInfo
  * - workspace.browseFs / workspace.open / workspace.close / workspace.remove
+ * - workspace.roots / workspace.root.add / workspace.root.remove / workspace.root.discover
  *
  * 機能不変 — case body は一字一句変更なし。
  *
@@ -25,8 +26,12 @@ import {
   findById as findWorkspaceById,
   findByPath as findWorkspaceByPath,
   setLastActive as setLastActiveWorkspace,
+  listWorkspaceRoots,
+  upsertWorkspaceRoot,
+  removeWorkspaceRoot,
 } from "../recentStore.js";
 import {
+  discoverWorkspaceCandidates,
   inspectWorkspacePath,
   initializeWorkspace as initializeWorkspaceFolder,
 } from "../workspaceInit.js";
@@ -95,6 +100,57 @@ export const workspaceHandlers: RpcHandlerMap = {
         throw e;
       }
     }
+  },
+
+  "workspace.roots": async ({ respond }) => {
+    respond({ roots: await listWorkspaceRoots() });
+  },
+
+  "workspace.root.add": async ({ params, respond, respondError }) => {
+    if (isWorkspaceLockdown()) { respondError("lockdown モード中は workspace root を追加できません"); return; }
+    const { path: rootPath, label } = (params ?? {}) as { path?: string; label?: string };
+    if (typeof rootPath !== "string" || rootPath.trim().length === 0) {
+      respondError("path は必須です");
+      return;
+    }
+    const inspect = await inspectWorkspacePath(rootPath);
+    if (inspect.status === "notFound") {
+      respondError(`フォルダが見つかりません: ${rootPath}`);
+      return;
+    }
+    const root = await upsertWorkspaceRoot(rootPath, label);
+    respond({ root });
+  },
+
+  "workspace.root.remove": async ({ params, respond, respondError }) => {
+    if (isWorkspaceLockdown()) { respondError("lockdown モード中は workspace root を除外できません"); return; }
+    const { id } = (params ?? {}) as { id?: string };
+    if (typeof id !== "string") { respondError("id は必須です"); return; }
+    respond({ removed: await removeWorkspaceRoot(id) });
+  },
+
+  "workspace.root.discover": async ({ params, respond, respondError }) => {
+    const { path: rootPath, rootId, maxDepth, limit } = (params ?? {}) as {
+      path?: string; rootId?: string; maxDepth?: number; limit?: number
+    };
+    let resolved = typeof rootPath === "string" ? rootPath : null;
+    if (!resolved && typeof rootId === "string") {
+      const roots = await listWorkspaceRoots();
+      const root = roots.find((r) => r.id === rootId);
+      if (!root) { respondError(`id ${rootId} の workspace root が見つかりません`); return; }
+      resolved = root.path;
+    }
+    if (!resolved) { respondError("path または rootId のいずれかが必要です"); return; }
+    const inspect = await inspectWorkspacePath(resolved);
+    if (inspect.status === "notFound") {
+      respondError(`フォルダが見つかりません: ${resolved}`);
+      return;
+    }
+    const result = await discoverWorkspaceCandidates(resolved, {
+      maxDepth: typeof maxDepth === "number" ? maxDepth : undefined,
+      limit: typeof limit === "number" ? limit : undefined,
+    });
+    respond(result);
   },
 
   "workspace.open": async ({ params, clientId, respond, respondError, bridge }) => {
