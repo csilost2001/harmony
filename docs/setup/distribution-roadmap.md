@@ -28,7 +28,7 @@ Harmony 本体 (frontend + backend) を Docker image として配布し、利用
 | WebSocket bridge | 同一 port の upgrade |
 | Health check | `/health` |
 
-配布 image の既定 port は 5179。開発時の `npm run frontend` (Vite, 5173) と `npm run backend` (5179) の 2-process 運用は引き続き canonical。
+配布 image の container port は 5179。host 側公開 port は `5179:5179` 以外も許容する。packaged SPA は `VITE_DESIGNER_MCP_PORT` 未指定時に現在の page port を使うため、`8080:5179` のような remap でも WebSocket / API は同じ host port へ接続する。開発時の `npm run frontend` (Vite, 5173) と `npm run backend` (5179) の 2-process 運用は引き続き canonical。
 
 ### 2. 永続化 mount
 
@@ -61,8 +61,10 @@ local tag で試す場合:
 
 ```bash
 HARMONY_IMAGE=harmony:local bash scripts/build-harmony-image.sh local
-HARMONY_IMAGE=harmony:local bash scripts/smoke-harmony-image.sh local
+HARMONY_IMAGE=harmony:local HARMONY_SMOKE_PORT=5180 bash scripts/smoke-harmony-image.sh local
 ```
+
+smoke は `/health`、SPA HTML、`/mcp` initialize、WebSocket handshake を確認する。`HARMONY_SMOKE_PORT` を変えることで host port remap 時の Origin / Host policy も検出する。
 
 ### 4. docker compose 例
 

@@ -92,6 +92,7 @@ import {
 } from "../store/genericDefinitionStore";
 import type { GenericDefinitionKind } from "../types/v3";
 import type { RawExtensionsBundle } from "../schemas/loadExtensions";
+import { backendWebSocketUrl } from "./backendEndpoint";
 
 export type McpStatus = "disconnected" | "connecting" | "connected" | "failed";
 export type ThemeIdLike = "standard" | "card" | "compact" | "dark";
@@ -110,8 +111,7 @@ type ProcessFlowHandler = {
   mutate: (type: string, params: unknown) => void;
 };
 
-const MCP_PORT = import.meta.env.VITE_DESIGNER_MCP_PORT ?? "5179";
-const WS_URL = `ws://${window.location.hostname}:${MCP_PORT}`;
+const WS_URL = backendWebSocketUrl();
 const RETRY_DELAY_MS = 5000;
 const REQUEST_TIMEOUT_MS = 15000;
 

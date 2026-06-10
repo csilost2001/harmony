@@ -30,6 +30,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HARMONY_HOME=/home/node/.harmony
 ENV HARMONY_STATIC_DIR=/app/frontend/dist
+ENV DESIGNER_LOG_DIR=/app
 
 COPY --from=build /app/package.json /app/package-lock.json ./
 COPY --from=build /app/node_modules ./node_modules

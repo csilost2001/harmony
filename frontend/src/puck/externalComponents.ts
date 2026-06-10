@@ -24,6 +24,7 @@ import {
   validateExternalComponentManifest,
   type ExternalComponentEntry,
 } from "./externalComponentManifest";
+import { backendOrigin } from "../mcp/backendEndpoint";
 
 /** host が提供する依存の major version。version-mismatch 判定の基準。 */
 export const HOST_REACT_MAJOR = 19;
@@ -57,11 +58,7 @@ export type LoadedExternalComponent =
 
 /** mcpBridge と同一ロジックで backend origin を算出する。 */
 export function defaultBackendOrigin(): string {
-  const port =
-    (import.meta.env?.VITE_DESIGNER_MCP_PORT as string | undefined) ?? "5179";
-  const hostname =
-    typeof window !== "undefined" ? window.location.hostname : "localhost";
-  return `http://${hostname}:${port}`;
+  return backendOrigin();
 }
 
 /**
