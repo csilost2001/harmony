@@ -9,6 +9,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
+ARG VITE_HARMONY_SAME_PORT=1
+ENV VITE_HARMONY_SAME_PORT=${VITE_HARMONY_SAME_PORT}
+
 COPY package.json package-lock.json ./
 COPY shared/package.json ./shared/
 COPY frontend/package.json ./frontend/

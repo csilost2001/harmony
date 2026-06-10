@@ -126,7 +126,7 @@ bash scripts/build-harmony-image.sh local
 HARMONY_IMAGE=ghcr.io/csilost2001/harmony:local bash scripts/smoke-harmony-image.sh local
 ```
 
-配布 image は container port 5179 で SPA / HTTP MCP / WebSocket をまとめて提供します。`HARMONY_SMOKE_PORT=5180` のように host 側 port を変えると、host port remap も smoke できます。
+配布 image は container port 5179 で SPA / HTTP MCP / WebSocket をまとめて提供します。smoke script は `127.0.0.1:${HARMONY_SMOKE_PORT}:5179` で local-only publish し、`HARMONY_SMOKE_PORT=5180` のように host 側 port を変えると host port remap も smoke できます。
 
 ### (3) 業務アプリのエンドユーザ
 

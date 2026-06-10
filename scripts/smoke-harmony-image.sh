@@ -11,6 +11,11 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v node >/dev/null 2>&1; then
+  echo "node command not found. Run this script from the Harmony host checkout after npm install." >&2
+  exit 1
+fi
+
 cleanup() {
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 }
@@ -19,7 +24,8 @@ trap cleanup EXIT
 cleanup
 docker run -d \
   --name "${CONTAINER_NAME}" \
-  -p "${PORT}:5179" \
+  -p "127.0.0.1:${PORT}:5179" \
+  -e HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT=1 \
   -v "harmony-smoke-state:/home/node/.harmony" \
   -v "harmony-smoke-workspaces:/data/workspaces" \
   "${IMAGE}" >/dev/null
@@ -39,10 +45,10 @@ curl -fsS \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"harmony-smoke","version":"1"}}}' \
   "http://127.0.0.1:${PORT}/mcp" | grep -q 'harmony-mcp'
 
-docker exec -e HARMONY_SMOKE_PORT="${PORT}" "${CONTAINER_NAME}" node -e '
+HARMONY_SMOKE_PORT="${PORT}" node -e '
 const WebSocket = require("ws");
 const port = process.env.HARMONY_SMOKE_PORT;
-const ws = new WebSocket("ws://127.0.0.1:5179", {
+const ws = new WebSocket(`ws://127.0.0.1:${port}`, {
   headers: {
     Origin: `http://127.0.0.1:${port}`,
     Host: `127.0.0.1:${port}`,

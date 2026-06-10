@@ -71,7 +71,10 @@ bash scripts/smoke-harmony-image.sh <version>
 
 - `/health` が 200
 - `/` が frontend の HTML を返す
+- `/mcp` initialize が成功する
+- host 側から `ws://127.0.0.1:<port>` への WebSocket handshake が成功する
 - container が `/home/node/.harmony` と `/data/workspaces` volume 付きで起動できる
+- smoke container は `127.0.0.1:<port>:5179` で local-only publish し、no-Origin MCP 確認用に `HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT=1` を明示する
 
 ### Step 4: push
 

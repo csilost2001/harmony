@@ -28,7 +28,7 @@ Harmony 本体 (frontend + backend) を Docker image として配布し、利用
 | WebSocket bridge | 同一 port の upgrade |
 | Health check | `/health` |
 
-配布 image の container port は 5179。host 側公開 port は `5179:5179` 以外も許容する。packaged SPA は `VITE_DESIGNER_MCP_PORT` 未指定時に現在の page port を使うため、`8080:5179` のような remap でも WebSocket / API は同じ host port へ接続する。開発時の `npm run frontend` (Vite, 5173) と `npm run backend` (5179) の 2-process 運用は引き続き canonical。
+配布 image の container port は 5179。host 側公開 port は `127.0.0.1:5179:5179` 以外も許容する。Docker build は `VITE_HARMONY_SAME_PORT=1` を指定して packaged SPA を生成するため、`127.0.0.1:8080:5179` のような remap でも WebSocket / API は同じ host port へ接続する。開発時の `npm run frontend` (Vite, 5173) と `npm run backend` (5179) の 2-process 運用は引き続き canonical で、未設定時の frontend 接続先は 5179 のまま維持する。
 
 ### 2. 永続化 mount
 
@@ -64,7 +64,7 @@ HARMONY_IMAGE=harmony:local bash scripts/build-harmony-image.sh local
 HARMONY_IMAGE=harmony:local HARMONY_SMOKE_PORT=5180 bash scripts/smoke-harmony-image.sh local
 ```
 
-smoke は `/health`、SPA HTML、`/mcp` initialize、WebSocket handshake を確認する。`HARMONY_SMOKE_PORT` を変えることで host port remap 時の Origin / Host policy も検出する。
+smoke は `/health`、SPA HTML、`/mcp` initialize、host 側からの WebSocket handshake を確認する。`HARMONY_SMOKE_PORT` を変えることで host port remap 時の Origin / Host policy も検出する。no-Origin MCP は Docker published port では container から Docker bridge gateway に見えるため、smoke container では `HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT=1` を明示する。この env は `127.0.0.1:<host-port>:5179` の local-only publish とセットで使う。
 
 ### 4. docker compose 例
 
@@ -73,7 +73,7 @@ services:
   harmony:
     image: ghcr.io/csilost2001/harmony:1.0.0
     ports:
-      - "5179:5179"
+      - "127.0.0.1:5179:5179"
     volumes:
       - harmony-state:/home/node/.harmony
       - ./workspaces:/data/workspaces
@@ -81,6 +81,9 @@ services:
       # - ${HOME}/.codex:/home/node/.codex:ro
     environment:
       NODE_ENV: production
+      # no-Origin MCP client を Docker published port 経由で使う場合のみ有効化。
+      # ports は必ず 127.0.0.1 bind にして LAN へ公開しない。
+      HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT: "1"
     restart: unless-stopped
 
 volumes:

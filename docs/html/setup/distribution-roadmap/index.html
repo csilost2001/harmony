@@ -50,7 +50,7 @@
 
 
 <table><thead><tr><th>機能</th><th>提供元</th></tr></thead><tbody><tr><td>SPA</td><td>backend HTTP fallback が <code>frontend/dist/</code> を静的配信</td></tr><tr><td>HTTP MCP</td><td><code>/mcp</code></td></tr><tr><td>WebSocket bridge</td><td>同一 port の upgrade</td></tr><tr><td>Health check</td><td><code>/health</code></td></tr></tbody></table>
-<p>配布 image の container port は 5179。host 側公開 port は <code>5179:5179</code> 以外も許容する。packaged SPA は <code>VITE_DESIGNER_MCP_PORT</code> 未指定時に現在の page port を使うため、<code>8080:5179</code> のような remap でも WebSocket / API は同じ host port へ接続する。開発時の <code>npm run frontend</code> (Vite, 5173) と <code>npm run backend</code> (5179) の 2-process 運用は引き続き canonical。</p>
+<p>配布 image の container port は 5179。host 側公開 port は <code>127.0.0.1:5179:5179</code> 以外も許容する。Docker build は <code>VITE_HARMONY_SAME_PORT=1</code> を指定して packaged SPA を生成するため、<code>127.0.0.1:8080:5179</code> のような remap でも WebSocket / API は同じ host port へ接続する。開発時の <code>npm run frontend</code> (Vite, 5173) と <code>npm run backend</code> (5179) の 2-process 運用は引き続き canonical で、未設定時の frontend 接続先は 5179 のまま維持する。</p>
 <h3 id="2-永続化-mount">2. 永続化 mount</h3>
 <p><code>docs/spec/path-conventions.md</code> の 3 カテゴリを採用する。</p>
 
@@ -90,13 +90,13 @@
 <p>local tag で試す場合:</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">HARMONY_IMAGE</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony:local</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/build-harmony-image.sh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> local</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">HARMONY_IMAGE</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony:local</span><span style="color:#24292E;--shiki-dark:#ADBAC7"> HARMONY_SMOKE_PORT</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">5180</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/smoke-harmony-image.sh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> local</span></span></code></pre>
-<p>smoke は <code>/health</code>、SPA HTML、<code>/mcp</code> initialize、WebSocket handshake を確認する。<code>HARMONY_SMOKE_PORT</code> を変えることで host port remap 時の Origin / Host policy も検出する。</p>
+<p>smoke は <code>/health</code>、SPA HTML、<code>/mcp</code> initialize、host 側からの WebSocket handshake を確認する。<code>HARMONY_SMOKE_PORT</code> を変えることで host port remap 時の Origin / Host policy も検出する。no-Origin MCP は Docker published port では container から Docker bridge gateway に見えるため、smoke container では <code>HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT=1</code> を明示する。この env は <code>127.0.0.1:&#x3C;host-port>:5179</code> の local-only publish とセットで使う。</p>
 <h3 id="4-docker-compose-例">4. docker compose 例</h3>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">services</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">  harmony</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    image</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">ghcr.io/csilost2001/harmony:1.0.0</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    ports</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
-<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"5179:5179"</span></span>
+<span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">"127.0.0.1:5179:5179"</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">harmony-state:/home/node/.harmony</span></span>
 <span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">      - </span><span style="color:#032F62;--shiki-dark:#96D0FF">./workspaces:/data/workspaces</span></span>
@@ -104,6 +104,9 @@
 <span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # - ${HOME}/.codex:/home/node/.codex:ro</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    environment</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      NODE_ENV</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">production</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # no-Origin MCP client を Docker published port 経由で使う場合のみ有効化。</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390">      # ports は必ず 127.0.0.1 bind にして LAN へ公開しない。</span></span>
+<span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">      HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">"1"</span></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">    restart</span><span style="color:#24292E;--shiki-dark:#ADBAC7">: </span><span style="color:#032F62;--shiki-dark:#96D0FF">unless-stopped</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#22863A;--shiki-dark:#8DDB8C">volumes</span><span style="color:#24292E;--shiki-dark:#ADBAC7">:</span></span>

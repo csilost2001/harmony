@@ -7,7 +7,8 @@
  * 設計方針:
  * - bind は 0.0.0.0 維持 (WSL2 cross-OS 経路維持、CLAUDE.md / AGENTS.md 前提)
  * - Origin ヘッダーあり → allowlist、または localhost/127.0.0.1 の same-host と照合
- * - Origin ヘッダーなし (CLI クライアント) → remote IP が loopback、または Host が localhost/127.0.0.1 なら許可
+ * - Origin ヘッダーなし (CLI クライアント) → remote IP が loopback なら許可
+ * - Docker published port 経由の no-Origin CLI は env opt-in 時のみ Host localhost/127.0.0.1 を許可
  * - Host ヘッダー → allowlist で DNS rebinding 対策
  */
 
@@ -72,6 +73,10 @@ function isAllowedHost(hostname: string | null): boolean {
   return hostname !== null && ALLOWED_HOSTNAMES.has(hostname);
 }
 
+function trustsLocalhostPublishedPort(): boolean {
+  return process.env.HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT === "1";
+}
+
 function isSameAllowedHostOrigin(origin: string, host: string | undefined): boolean {
   const originHost = hostnameFromOrigin(origin);
   const requestHost = hostnameFromHostHeader(host);
@@ -105,8 +110,12 @@ export function checkRequestOrigin(req: IncomingMessage): string | null {
   }
 
   // Origin なし → CLI クライアント想定。Docker published port 経由では remoteAddress が
-  // bridge gateway (172.x 等) になりうるため、Host が localhost/127.0.0.1 なら許可する。
-  const isTrustedDockerPublishedPort = remoteAddr !== undefined && isAllowedHost(hostnameFromHostHeader(host));
+  // bridge gateway (172.x 等) になりうるため、local-only port publish と組み合わせた
+  // 明示 opt-in 時だけ Host localhost/127.0.0.1 を許可する。
+  const isTrustedDockerPublishedPort =
+    trustsLocalhostPublishedPort() &&
+    remoteAddr !== undefined &&
+    isAllowedHost(hostnameFromHostHeader(host));
   if (!isLoopback(remoteAddr) && !isTrustedDockerPublishedPort) {
     return `Origin missing and remote is not loopback: ${remoteAddr ?? "unknown"}`;
   }

@@ -2,7 +2,7 @@
  * originCheck.ts のユニットテスト (S-001, #1225)
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import type { IncomingMessage } from "node:http";
 import { checkRequestOrigin, getAllowedOriginHeader } from "./originCheck.js";
 
@@ -22,8 +22,12 @@ function makeReq(opts: {
     socket: {
       remoteAddress: opts.remoteAddress,
     },
-  } as unknown as IncomingMessage;
+} as unknown as IncomingMessage;
 }
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 // ── checkRequestOrigin ────────────────────────────────────────────────────────
 
@@ -97,10 +101,22 @@ describe("checkRequestOrigin", () => {
 
   it("異常: Origin なし + remoteAddress=192.168.1.5 → 拒否文字列を返す", () => {
     const req = makeReq({ remoteAddress: "192.168.1.5", host: "localhost:5179" });
-    expect(checkRequestOrigin(req)).toBeNull();
+    const result = checkRequestOrigin(req);
+    expect(result).not.toBeNull();
+    expect(result).toContain("not loopback");
+    expect(result).toContain("192.168.1.5");
   });
 
-  it("正常: Origin なし + Docker bridge remoteAddress + localhost Host → null", () => {
+  it("異常: Origin なし + Docker bridge remoteAddress + localhost Host + opt-in なし → 拒否文字列を返す", () => {
+    const req = makeReq({ remoteAddress: "172.17.0.1", host: "localhost:5179" });
+    const result = checkRequestOrigin(req);
+    expect(result).not.toBeNull();
+    expect(result).toContain("not loopback");
+    expect(result).toContain("172.17.0.1");
+  });
+
+  it("正常: Origin なし + Docker bridge remoteAddress + localhost Host + opt-in → null", () => {
+    vi.stubEnv("HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT", "1");
     const req = makeReq({ remoteAddress: "172.17.0.1", host: "localhost:5179" });
     expect(checkRequestOrigin(req)).toBeNull();
   });
