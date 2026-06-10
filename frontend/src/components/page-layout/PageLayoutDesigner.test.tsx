@@ -4,13 +4,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import type { PageLayout } from "../../store/pageLayoutStore";
 
 const mockState = vi.hoisted(() => {
   const componentAddHandlers = new Set<() => void>();
   const broadcastHandlers = new Map<string, Set<(data: unknown) => void>>();
+  const statusHandlers = new Set<(status: string) => void>();
   const editor = {
     Canvas: {
       getDocument: () => document,
@@ -25,9 +26,11 @@ const mockState = vi.hoisted(() => {
   return {
     componentAddHandlers,
     broadcastHandlers,
+    statusHandlers,
     editor,
     pageLayout: null as PageLayout | null,
     designerProps: null as Record<string, unknown> | null,
+    savePageLayout: vi.fn(),
   };
 });
 
@@ -35,7 +38,10 @@ vi.mock("../../mcp/mcpBridge", () => ({
   mcpBridge: {
     getSessionId: () => "test-session-id",
     startWithoutEditor: vi.fn(),
-    onStatusChange: vi.fn(() => () => {}),
+    onStatusChange: vi.fn((handler: (status: string) => void) => {
+      mockState.statusHandlers.add(handler);
+      return () => mockState.statusHandlers.delete(handler);
+    }),
     onBroadcast: vi.fn((event: string, handler: (data: unknown) => void) => {
       if (!mockState.broadcastHandlers.has(event)) {
         mockState.broadcastHandlers.set(event, new Set());
@@ -53,14 +59,15 @@ vi.mock("../../store/pageLayoutStore", async () => {
   return {
     ...actual,
     loadPageLayout: vi.fn().mockImplementation(() => Promise.resolve(mockState.pageLayout)),
+    savePageLayout: mockState.savePageLayout,
   };
 });
 
 vi.mock("../../store/flowStore", () => ({
   loadProject: vi.fn().mockResolvedValue({
     screens: [
-      { id: "gadget-1", name: "Gadget 1" },
-      { id: "gadget-2", name: "Gadget 2" },
+      { id: "gadget-1", name: "Gadget 1", purpose: "gadget" },
+      { id: "gadget-2", name: "Gadget 2", purpose: "gadget" },
     ],
   }),
 }));
@@ -82,6 +89,7 @@ vi.mock("../Designer", () => ({
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadProject } from "../../store/flowStore";
 import { loadCustomPuckComponents } from "../../store/puckComponentsStore";
+import { loadPageLayout, savePageLayout } from "../../store/pageLayoutStore";
 import { PageLayoutDesigner } from "./PageLayoutDesigner";
 
 const defaultPageLayout = ({
@@ -114,10 +122,18 @@ describe("PageLayoutDesigner", () => {
     vi.clearAllMocks();
     mockState.componentAddHandlers.clear();
     mockState.broadcastHandlers.clear();
+    mockState.statusHandlers.clear();
     mockState.pageLayout = defaultPageLayout;
     mockState.designerProps = null;
+    mockState.savePageLayout.mockResolvedValue(undefined);
     vi.mocked(mcpBridge.request).mockResolvedValue({ sessions: [] });
     vi.mocked(mcpBridge.loadPuckData).mockResolvedValue(null);
+    vi.mocked(loadProject).mockResolvedValue({
+      screens: [
+        { id: "gadget-1", name: "Gadget 1", purpose: "gadget" },
+        { id: "gadget-2", name: "Gadget 2", purpose: "gadget" },
+      ],
+    } as never);
     vi.mocked(loadCustomPuckComponents).mockResolvedValue([]);
     localStorage.clear();
   });
@@ -142,6 +158,141 @@ describe("PageLayoutDesigner", () => {
         expect(body).toContain("Main Layout");
       }
     }, { timeout: 3000 });
+  });
+
+  it("renders visual slots and treats main as the content slot", async () => {
+    renderDesigner();
+
+    expect(await screen.findByTestId("page-layout-manager-canvas")).toBeInTheDocument();
+    expect(screen.getByTestId("page-layout-slot-header")).toHaveTextContent("Header");
+    expect(screen.getByTestId("page-layout-slot-main")).toHaveTextContent("page Screen content");
+    expect(screen.getByTestId("page-layout-slot-footer")).toHaveTextContent("Footer");
+    expect(screen.queryByTestId("page-layout-assignment-main")).not.toBeInTheDocument();
+  });
+
+  it("saves gadget assignments from the visual manager", async () => {
+    renderDesigner();
+
+    const headerSelect = await screen.findByTestId("page-layout-assignment-header");
+    fireEvent.change(headerSelect, { target: { value: "gadget-1" } });
+    fireEvent.click(screen.getByRole("button", { name: /割り当て保存/ }));
+
+    await waitFor(() => {
+      expect(savePageLayout).toHaveBeenCalledWith(expect.objectContaining({
+        id: "pl-design-001",
+        assignments: { header: "gadget-1" },
+      }));
+    });
+  });
+
+  it("merges assignments into the latest PageLayout before saving", async () => {
+    renderDesigner();
+    await screen.findByTestId("page-layout-assignment-header");
+
+    mockState.pageLayout = {
+      ...defaultPageLayout,
+      name: "Renamed Layout",
+      maturity: "committed",
+      processFlowId: "layout-orchestrator",
+    } as unknown as PageLayout;
+
+    fireEvent.change(screen.getByTestId("page-layout-assignment-header"), { target: { value: "gadget-2" } });
+    fireEvent.click(screen.getByRole("button", { name: /割り当て保存/ }));
+
+    await waitFor(() => {
+      expect(savePageLayout).toHaveBeenCalledWith(expect.objectContaining({
+        id: "pl-design-001",
+        name: "Renamed Layout",
+        maturity: "committed",
+        processFlowId: "layout-orchestrator",
+        assignments: { header: "gadget-2" },
+      }));
+    });
+    expect(loadPageLayout).toHaveBeenCalledTimes(2);
+  });
+
+  it("reloads PageLayout manager on pageLayoutChanged when clean", async () => {
+    renderDesigner();
+    expect(await screen.findByRole("heading", { name: "Main Layout" })).toBeInTheDocument();
+
+    mockState.pageLayout = {
+      ...defaultPageLayout,
+      name: "Updated Layout",
+      assignments: { footer: "gadget-1" } as unknown as Record<string, never>,
+    };
+    mockState.broadcastHandlers.get("pageLayoutChanged")?.forEach((handler) => handler({ pageLayoutId: "pl-design-001" }));
+
+    expect(await screen.findByRole("heading", { name: "Updated Layout" })).toBeInTheDocument();
+    expect(screen.getByTestId("page-layout-slot-footer")).toHaveTextContent("Gadget 1");
+  });
+
+  it("blocks assignment save after external pageLayoutChanged while dirty", async () => {
+    renderDesigner();
+
+    fireEvent.change(await screen.findByTestId("page-layout-assignment-header"), { target: { value: "gadget-1" } });
+    mockState.broadcastHandlers.get("pageLayoutChanged")?.forEach((handler) => handler({ pageLayoutId: "pl-design-001" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("別セッションで更新");
+    expect(screen.getByRole("button", { name: /割り当て保存/ })).toBeDisabled();
+    expect(savePageLayout).not.toHaveBeenCalled();
+  });
+
+  it("keeps the external update banner visible after selector changes and reloads from it", async () => {
+    renderDesigner();
+
+    fireEvent.change(await screen.findByTestId("page-layout-assignment-header"), { target: { value: "gadget-1" } });
+    mockState.broadcastHandlers.get("pageLayoutChanged")?.forEach((handler) => handler({ pageLayoutId: "pl-design-001" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("再読み込み");
+
+    fireEvent.change(screen.getByTestId("page-layout-assignment-header"), { target: { value: "gadget-2" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("再読み込み");
+    expect(screen.getByRole("button", { name: /割り当て保存/ })).toBeDisabled();
+
+    mockState.pageLayout = {
+      ...defaultPageLayout,
+      name: "Reloaded Layout",
+      assignments: { header: "gadget-2" } as unknown as Record<string, never>,
+    };
+    fireEvent.click(screen.getByRole("button", { name: /再読み込み/ }));
+
+    expect(await screen.findByRole("heading", { name: "Reloaded Layout" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /割り当て保存/ })).toBeDisabled();
+  });
+
+  it("keeps dirty assignment draft on reconnect and asks the user to reload", async () => {
+    renderDesigner();
+
+    const headerSelect = await screen.findByTestId("page-layout-assignment-header");
+    fireEvent.change(headerSelect, { target: { value: "gadget-1" } });
+    mockState.pageLayout = {
+      ...defaultPageLayout,
+      name: "Server Reload Would Replace Draft",
+      assignments: {},
+    } as unknown as PageLayout;
+
+    mockState.statusHandlers.forEach((handler) => handler("connected"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("接続が復旧");
+    expect(screen.getByRole("heading", { name: "Main Layout" })).toBeInTheDocument();
+    expect(screen.getByTestId("page-layout-assignment-header")).toHaveValue("gadget-1");
+    expect(screen.getByRole("button", { name: /割り当て保存/ })).toBeDisabled();
+  });
+
+  it("reloads gadget options on projectChanged", async () => {
+    renderDesigner();
+    expect(await screen.findByTestId("page-layout-assignment-header")).toBeInTheDocument();
+
+    vi.mocked(loadProject).mockResolvedValue({
+      screens: [
+        { id: "gadget-3", name: "Gadget 3", purpose: "gadget" },
+      ],
+    } as never);
+    mockState.broadcastHandlers.get("projectChanged")?.forEach((handler) => handler({}));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("page-layout-assignment-header")).toHaveTextContent("Gadget 3");
+    });
   });
 
   it("passes PageLayout design metadata and dedicated committed loader to Designer", async () => {
@@ -194,7 +345,7 @@ describe("PageLayoutDesigner", () => {
     renderDesigner();
 
     await waitFor(() => {
-      expect(loadProject).toHaveBeenCalledTimes(1);
+      expect(loadProject).toHaveBeenCalledTimes(2);
     });
 
     for (let i = 0; i < 100; i += 1) {
@@ -204,11 +355,11 @@ describe("PageLayoutDesigner", () => {
     await waitFor(() => {
       expect(mcpBridge.request).toHaveBeenCalledTimes(101);
     });
-    expect(loadProject).toHaveBeenCalledTimes(1);
+    expect(loadProject).toHaveBeenCalledTimes(2);
 
     mockState.broadcastHandlers.get("projectChanged")?.forEach((handler) => handler({}));
     await waitFor(() => {
-      expect(loadProject).toHaveBeenCalledTimes(2);
+      expect(loadProject).toHaveBeenCalledTimes(4);
     });
   });
 
@@ -223,7 +374,8 @@ describe("PageLayoutDesigner", () => {
     let active = 0;
     let maxActive = 0;
     const resolvers: Array<() => void> = [];
-    vi.mocked(mcpBridge.request).mockImplementation(() => {
+    vi.mocked(mcpBridge.request).mockImplementation((method) => {
+      if (method !== "loadScreen") return Promise.resolve(null);
       active += 1;
       maxActive = Math.max(maxActive, active);
       return new Promise((resolve) => {

@@ -9,8 +9,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { loadPageLayout } from "../../store/pageLayoutStore";
+import { loadPageLayout, savePageLayout } from "../../store/pageLayoutStore";
 import type { PageLayout } from "../../store/pageLayoutStore";
+import type { ScreenId } from "../../types/v3";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadProject } from "../../store/flowStore";
 import { Designer } from "../Designer";
@@ -20,11 +21,15 @@ import { RegionProvider } from "../../puck/primitives/RegionContext";
 import { buildConfigWithCustomComponents } from "../../puck/buildConfig";
 import { loadCustomPuckComponents } from "../../store/puckComponentsStore";
 import type { RegionContextValue } from "../../puck/primitives/RegionContext";
+import "../../styles/pageLayoutDesigner.css";
 
 const GADGET_DATA_LOAD_CONCURRENCY = 4;
 
 type ScreenNameIndex = Array<{ id: string; name: string }>;
 type ScreenNameIndexLoader = () => Promise<ScreenNameIndex>;
+type GadgetOption = { id: string; name: string };
+
+const RESERVED_REGION_ORDER = ["header", "sidebar", "main", "footer"];
 
 export function PageLayoutDesigner() {
   const { pageLayoutId } = useParams<{ pageLayoutId: string }>();
@@ -32,10 +37,17 @@ export function PageLayoutDesigner() {
   const { wsPath } = useWorkspacePath();
 
   const [pl, setPl] = useState<PageLayout | null | undefined>(undefined); // undefined = loading
+  const [gadgetOptions, setGadgetOptions] = useState<GadgetOption[]>([]);
+  const [assignmentDraft, setAssignmentDraft] = useState<Record<string, string>>({});
+  const [assignmentDirty, setAssignmentDirty] = useState(false);
+  const [assignmentSaving, setAssignmentSaving] = useState(false);
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
+  const [externalPageLayoutChanged, setExternalPageLayoutChanged] = useState(false);
 
   // GrapesJS editor ref (region injection 用、pl-5)
   const grapesEditorRef = useRef<GEditor | null>(null);
   const plRef = useRef<PageLayout | null>(null);
+  const assignmentDirtyRef = useRef(false);
   const screenNameIndexPromiseRef = useRef<Promise<ScreenNameIndex> | null>(null);
   // RFC #1021 pl-6 (Codex B-5): component:add listener cleanup ref
   const componentAddCleanupRef = useRef<(() => void) | null>(null);
@@ -67,6 +79,21 @@ export function PageLayoutDesigner() {
     puckConfig,
   });
 
+  const refreshCompositionPreview = useCallback((data: PageLayout) => {
+    plRef.current = data;
+    if (grapesEditorRef.current) {
+      clearGadgetPreviews(grapesEditorRef.current);
+      _injectWithEditor(grapesEditorRef.current, data, getScreenNameIndex);
+    }
+    _loadGadgetData(data.assignments ?? {}).then((gadgetData) => {
+      setRegionContextValue((prev) => ({
+        ...prev,
+        assignments: data.assignments ?? {},
+        gadgetData,
+      }));
+    }).catch(console.warn);
+  }, [getScreenNameIndex]);
+
   const reloadPuckConfig = useCallback(async () => {
     try {
       const customComponents = await loadCustomPuckComponents();
@@ -81,6 +108,33 @@ export function PageLayoutDesigner() {
     if (!pageLayoutId) return null;
     return await mcpBridge.request("loadPageLayoutDesign", { pageLayoutId });
   }, [pageLayoutId]);
+
+  useEffect(() => {
+    assignmentDirtyRef.current = assignmentDirty;
+  }, [assignmentDirty]);
+
+  const reloadGadgetOptions = useCallback(async () => {
+    setGadgetOptions(await loadGadgetOptions());
+  }, []);
+
+  const reloadPageLayout = useCallback(async () => {
+    if (!pageLayoutId) {
+      setPl(null);
+      return;
+    }
+    const data = await loadPageLayout(pageLayoutId);
+    if (!data) {
+      setPl(null);
+      plRef.current = null;
+      return;
+    }
+    setPl(data);
+    setAssignmentDraft(data.assignments ?? {});
+    setAssignmentDirty(false);
+    setAssignmentError(null);
+    setExternalPageLayoutChanged(false);
+    refreshCompositionPreview(data);
+  }, [pageLayoutId, refreshCompositionPreview]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- server-side custom Puck components are external state.
@@ -100,60 +154,66 @@ export function PageLayoutDesigner() {
 
     let mounted = true;
 
-    const doLoad = () => {
-      loadPageLayout(pageLayoutId).then((data) => {
-        if (!mounted) return;
-        setPl(data ?? null);
-        plRef.current = data ?? null;
-        // assignments が変わったら再 inject (GrapesJS)
-        if (grapesEditorRef.current && data) {
-          _injectWithEditor(grapesEditorRef.current, data, getScreenNameIndex);
-        }
-        // Puck composition preview: assignments が変わったら gadget data を再ロード
-        // RFC #1021 pl-6 (Codex 2nd review Should-fix): setRegionContextValue で
-        // assignments/gadgetData を入れ替える際、puckConfig も保持する (旧実装は puckConfig を omit して
-        // 上書きしていたため H-2 nested Render が assignments load 後に壊れていた)
-        if (data?.assignments) {
-          _loadGadgetData(data.assignments).then((gadgetData) => {
-            if (!mounted) return;
-            setRegionContextValue((prev) => ({
-              ...prev,
-              assignments: data.assignments ?? {},
-              gadgetData,
-            }));
-          }).catch(console.warn);
-        }
-      }).catch(() => { if (mounted) setPl(null); });
-    };
-
     const unsubStatus = mcpBridge.onStatusChange((status) => {
-      if (status === "connected" && mounted) doLoad();
+      if (status === "connected" && mounted) {
+        if (assignmentDirtyRef.current) {
+          setExternalPageLayoutChanged(true);
+          setAssignmentError("接続が復旧しました。未保存の割り当てがあります。再読み込みして最新 PageLayout を確認してください。");
+        } else {
+          void reloadPageLayout();
+        }
+        void reloadGadgetOptions();
+      }
     });
 
     mcpBridge.startWithoutEditor();
-    doLoad();
+    reloadPageLayout().catch(() => { if (mounted) setPl(null); });
 
     return () => {
       mounted = false;
       unsubStatus();
     };
-  }, [getScreenNameIndex, pageLayoutId]);
+  }, [pageLayoutId, reloadGadgetOptions, reloadPageLayout]);
+
+  useEffect(() => {
+    let mounted = true;
+    loadGadgetOptions().then((options) => {
+      if (!mounted) return;
+      setGadgetOptions(options);
+    }).catch(console.warn);
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     const unsubProjectChanged = mcpBridge.onBroadcast("projectChanged", () => {
       screenNameIndexPromiseRef.current = null;
+      void reloadGadgetOptions();
       if (grapesEditorRef.current && plRef.current) {
         _injectWithEditor(grapesEditorRef.current, plRef.current, getScreenNameIndex);
       }
     });
     return () => unsubProjectChanged();
-  }, [getScreenNameIndex]);
+  }, [getScreenNameIndex, reloadGadgetOptions]);
+
+  useEffect(() => {
+    const unsubPageLayoutChanged = mcpBridge.onBroadcast("pageLayoutChanged", (data) => {
+      if (!isTargetPageLayoutBroadcast(data, pageLayoutId)) return;
+      if (assignmentDirty) {
+        setExternalPageLayoutChanged(true);
+        setAssignmentError("ページレイアウトが別セッションで更新されました。再読み込みしてから割り当てを保存してください。");
+        return;
+      }
+      void reloadPageLayout();
+    });
+    return () => unsubPageLayoutChanged();
+  }, [assignmentDirty, pageLayoutId, reloadPageLayout]);
 
   /**
    * GrapesJS editor ready 後に region injection を実行する。
    * component:add イベントで region が後から追加された場合にも再 inject する。
    */
   const handleGrapesEditorReady = useCallback((editor: GEditor) => {
+    if (grapesEditorRef.current === editor) return;
     grapesEditorRef.current = editor;
     if (plRef.current) {
       // canvas 初期 load 完了を待ってから inject (component 描画が settleするまで少し待つ)
@@ -225,44 +285,256 @@ export function PageLayoutDesigner() {
 
   const editorKind = pl.design?.editorKind ?? "grapesjs";
   const cssFramework = pl.design?.cssFramework ?? "bootstrap";
+  const visualRegions = buildVisualRegions(pl);
+  const assignedGadgetIds = new Set(Object.values(assignmentDraft).filter(Boolean));
+  const gadgetOptionMap = new Map(gadgetOptions.map((gadget) => [gadget.id, gadget.name]));
+  const selectOptions = [
+    ...gadgetOptions,
+    ...[...assignedGadgetIds]
+      .filter((id) => !gadgetOptionMap.has(id))
+      .map((id) => ({ id, name: `不明な gadget (${id})` })),
+  ];
 
-  // editorKind='grapesjs': GrapesJS Designer に region drop slot ブロックを追加済み
-  // (frontend/src/grapes/blocks.ts の CAT_REGIONS カテゴリ)
-  // pl-5: onGrapesEditorReady で gadget injection を実行
-  if (editorKind === "grapesjs") {
-    return (
-      <Designer
-        screenId={`page-layout:${pageLayoutId}`}
-        resourceKind="pageLayout"
-        screenName={pl.name}
-        editSessionResourceType="page-layout-design"
-        editSessionResourceId={pageLayoutId}
-        designEditorKind={editorKind}
-        designCssFramework={cssFramework}
-        loadCommittedDesign={loadCommittedPageLayoutDesign}
-        onBack={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
-        onGrapesEditorReady={handleGrapesEditorReady}
-      />
-    );
-  }
+  const handleAssignmentChange = (regionName: string, screenId: string) => {
+    if (regionName === "main") return;
+    setAssignmentDraft((prev) => {
+      const next = { ...prev };
+      if (screenId) {
+        next[regionName] = screenId;
+      } else {
+        delete next[regionName];
+      }
+      return next;
+    });
+    setAssignmentDirty(true);
+    if (!externalPageLayoutChanged) {
+      setAssignmentError(null);
+    }
+  };
 
-  // editorKind='puck': Puck Editor + composition preview (pl-5 follow-up: feature parity)
-  // RegionProvider で Designer を wrap し、Region primitives が assignments + gadget data を参照できるようにする。
-  return (
-    <RegionProvider value={regionContextValue}>
-      <Designer
-        screenId={`page-layout:${pageLayoutId}`}
-        resourceKind="pageLayout"
-        screenName={pl.name}
-        editSessionResourceType="page-layout-design"
-        editSessionResourceId={pageLayoutId}
-        designEditorKind={editorKind}
-        designCssFramework={cssFramework}
-        loadCommittedDesign={loadCommittedPageLayoutDesign}
-        onBack={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
-      />
-    </RegionProvider>
+  const handleReloadPageLayout = () => {
+    void reloadPageLayout();
+  };
+
+  const handleSaveAssignments = async () => {
+    if (!assignmentDirty || assignmentSaving) return;
+    if (externalPageLayoutChanged) {
+      setAssignmentError("ページレイアウトが別セッションで更新されています。再読み込みしてから割り当てを保存してください。");
+      return;
+    }
+    setAssignmentSaving(true);
+    setAssignmentError(null);
+    try {
+      const latest = await loadPageLayout(pageLayoutId);
+      if (!latest) throw new Error(`PageLayout not found: ${pageLayoutId}`);
+      const next: PageLayout = {
+        ...latest,
+        assignments: assignmentDraft as Record<string, ScreenId>,
+      };
+      await savePageLayout(next);
+      setPl(next);
+      setAssignmentDirty(false);
+      refreshCompositionPreview(next);
+    } catch (e) {
+      console.error("[PageLayoutDesigner] assignment save failed:", e);
+      setAssignmentError("割り当てを保存できませんでした");
+    } finally {
+      setAssignmentSaving(false);
+    }
+  };
+
+  const editor = (
+    editorKind === "grapesjs"
+      ? (
+        <Designer
+          screenId={`page-layout:${pageLayoutId}`}
+          resourceKind="pageLayout"
+          screenName={pl.name}
+          editSessionResourceType="page-layout-design"
+          editSessionResourceId={pageLayoutId}
+          designEditorKind={editorKind}
+          designCssFramework={cssFramework}
+          loadCommittedDesign={loadCommittedPageLayoutDesign}
+          onBack={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
+          onGrapesEditorReady={handleGrapesEditorReady}
+        />
+      )
+      : (
+        <RegionProvider value={regionContextValue}>
+          <Designer
+            screenId={`page-layout:${pageLayoutId}`}
+            resourceKind="pageLayout"
+            screenName={pl.name}
+            editSessionResourceType="page-layout-design"
+            editSessionResourceId={pageLayoutId}
+            designEditorKind={editorKind}
+            designCssFramework={cssFramework}
+            loadCommittedDesign={loadCommittedPageLayoutDesign}
+            onBack={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
+          />
+        </RegionProvider>
+      )
   );
+
+  return (
+    <div className="pld-page">
+      <section className="pld-manager" aria-label="ページレイアウトマネージャ">
+        <div className="pld-manager-header">
+          <div>
+            <div className="pld-kicker">PageLayout Manager</div>
+            <h1>{pl.name}</h1>
+            <div className="pld-meta">
+              <span><i className="bi bi-layout-wtf" /> {visualRegions.length} slots</span>
+              <span><i className="bi bi-puzzle" /> {Object.keys(assignmentDraft).length} assignments</span>
+              <span><i className="bi bi-brush" /> {editorKind} / {cssFramework}</span>
+            </div>
+          </div>
+          <div className="pld-manager-actions">
+            <button
+              type="button"
+              className="pld-btn pld-btn-secondary"
+              onClick={() => navigate(wsPath(`/page-layout/edit/${encodeURIComponent(pageLayoutId)}`))}
+            >
+              <i className="bi bi-diagram-3" /> 構造編集
+            </button>
+            <button
+              type="button"
+              className="pld-btn pld-btn-primary"
+              onClick={handleSaveAssignments}
+              disabled={!assignmentDirty || assignmentSaving || externalPageLayoutChanged}
+            >
+              <i className="bi bi-save" /> {assignmentSaving ? "保存中..." : "割り当て保存"}
+            </button>
+          </div>
+        </div>
+
+        {assignmentError && (
+          <div className="pld-alert" role="alert">
+            <span>
+              <i className="bi bi-exclamation-triangle" /> {assignmentError}
+            </span>
+            {externalPageLayoutChanged && (
+              <button type="button" className="pld-alert-action" onClick={handleReloadPageLayout}>
+                <i className="bi bi-arrow-clockwise" /> 再読み込み
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="pld-manager-grid">
+          <div className="pld-canvas" data-testid="page-layout-manager-canvas">
+            {visualRegions.map((region) => {
+              const assignedId = assignmentDraft[region.name];
+              const assignedName = assignedId ? gadgetOptionMap.get(assignedId) ?? assignedId : "";
+              return (
+                <section
+                  key={region.name}
+                  className={`pld-slot pld-slot-${region.role}`}
+                  data-testid={`page-layout-slot-${region.name}`}
+                >
+                  <div className="pld-slot-head">
+                    <span className="pld-slot-label">{region.label}</span>
+                    <code>{region.name}</code>
+                  </div>
+                  {region.description && <p>{region.description}</p>}
+                  {region.name === "main" ? (
+                    <div className="pld-content-slot">
+                      <i className="bi bi-window" />
+                      <span>page Screen content</span>
+                    </div>
+                  ) : (
+                    <div className={assignedId ? "pld-gadget-chip assigned" : "pld-gadget-chip"}>
+                      <i className={assignedId ? "bi bi-puzzle-fill" : "bi bi-plus-square-dotted"} />
+                      <span>{assignedName || "未割り当て"}</span>
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+
+          <aside className="pld-side-panel" aria-label="slot assignments">
+            <div className="pld-side-title">
+              <i className="bi bi-ui-checks-grid" />
+              <span>Slot assignments</span>
+            </div>
+            <div className="pld-assignment-list">
+              {visualRegions.map((region) => (
+                <label key={region.name} className="pld-assignment-row">
+                  <span>
+                    <code>{region.name}</code>
+                    <small>{region.label}</small>
+                  </span>
+                  {region.name === "main" ? (
+                    <span className="pld-main-lock">
+                      <i className="bi bi-lock" /> content slot
+                    </span>
+                  ) : (
+                    <select
+                      value={assignmentDraft[region.name] ?? ""}
+                      onChange={(e) => handleAssignmentChange(region.name, e.target.value)}
+                      data-testid={`page-layout-assignment-${region.name}`}
+                    >
+                      <option value="">未割り当て</option>
+                      {selectOptions.map((gadget) => (
+                        <option key={gadget.id} value={gadget.id}>{gadget.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </label>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="pld-designer-shell" aria-label="ページレイアウトデザイン詳細">
+        {editor}
+      </section>
+    </div>
+  );
+}
+
+function buildVisualRegions(pl: PageLayout) {
+  const regions = pl.regions ?? [];
+  return [...regions].sort((a, b) => {
+    const ai = RESERVED_REGION_ORDER.indexOf(a.name);
+    const bi = RESERVED_REGION_ORDER.indexOf(b.name);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  }).map((region) => {
+    const role = RESERVED_REGION_ORDER.includes(region.name) ? region.name : "custom";
+    return {
+      ...region,
+      role,
+      label: role === "header"
+        ? "Header"
+        : role === "sidebar"
+        ? "Sidebar"
+        : role === "main"
+        ? "Main content"
+        : role === "footer"
+        ? "Footer"
+        : "Custom slot",
+    };
+  });
+}
+
+function isTargetPageLayoutBroadcast(data: unknown, pageLayoutId: string | undefined): boolean {
+  if (!pageLayoutId) return false;
+  if (!data || typeof data !== "object") return true;
+  const payload = data as { pageLayoutId?: unknown; id?: unknown };
+  const broadcastId = payload.pageLayoutId ?? payload.id;
+  return broadcastId === undefined || String(broadcastId) === pageLayoutId;
+}
+
+async function loadGadgetOptions(): Promise<GadgetOption[]> {
+  const project = await loadProject();
+  return (project.screens ?? [])
+    .filter((screen) => screen.purpose === "gadget")
+    .map((screen) => ({ id: screen.id, name: screen.name }));
 }
 
 // ---------------------------------------------------------------------------
