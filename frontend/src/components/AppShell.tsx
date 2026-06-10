@@ -68,7 +68,7 @@ import { recordError } from "../utils/errorLog";
 import { isValidUuid } from "../utils/entityIdValidation";
 import { checkRedirect, subscribeRedirectGuardTrip, isRedirectGuardTripped } from "../utils/redirectGuard";
 import { uiInfo, uiWarn, setupServerLogFlush } from "../utils/uiLog";
-import { evaluateRoutingGuard } from "../routing/workspaceRouting";
+import { evaluateRoutingGuard, isWorkspaceChildRouteReady } from "../routing/workspaceRouting";
 
 function useTabs() {
   const [tabs, setTabs] = useState<readonly TabItem[]>(getTabs);
@@ -523,13 +523,17 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       wsId === workspaceState.active.id &&
       __recoveryPendingWsId === null
     ) {
-      __initialRestoreDoneWsIds.add(wsId);
       const activeId = workspaceState.active.id;
       __recoveryPendingWsId = activeId;
       mcpBridge.request("workspace.open", { id: activeId })
-        .then(() => loadWorkspaces())
+        .then(() => {
+          __initialRestoreDoneWsIds.add(wsId);
+          return loadWorkspaces();
+        })
         .catch((err) => {
           console.error("[workspace] initial per-session restore failed:", err);
+          const guard = checkRedirect("/workspace/select");
+          if (guard.allow) navigate("/workspace/select", { replace: true });
         })
         .finally(() => {
           if (__recoveryPendingWsId === activeId) __recoveryPendingWsId = null;
@@ -549,7 +553,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
         // backend の workspace.changed broadcast は requester を除外する (wsBridge.ts excludeClientId)。
         // 自セッション側は broadcast を受けないため、明示的に loadWorkspaces で state.active を更新する。
         // (#956 / puck-editor:67 reload 復元 race の真因対応)
-        .then(() => loadWorkspaces())
+        .then(() => {
+          __initialRestoreDoneWsIds.add(action.id);
+          return loadWorkspaces();
+        })
         .catch((err) => {
           console.error("[workspace] workspace.open from routing guard failed:", err);
           const guard = checkRedirect("/workspace/select");
@@ -998,6 +1005,23 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       }}>
         <i className="bi bi-hourglass-split" style={{ fontSize: "1.5rem" }} />
         <p style={{ margin: 0 }}>ワークスペース情報を読み込み中...</p>
+      </div>
+    );
+  }
+
+  // routing guard の workspace.open / per-session restore は effect で走るため、
+  // その完了前に子 Route を描画すると loadProject / editSession.list 等が
+  // workspace 未選択の backend session に向けて発火する。URL の wsId と
+  // active workspace が一致し、必要な restore が完了するまで child mount を遅延する。
+  if (!isWorkspaceChildRouteReady(workspaceState, wsId, __initialRestoreDoneWsIds, __recoveryPendingWsId)) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        height: "100vh", flexDirection: "column", gap: "8px",
+        color: "var(--muted-text, #888)",
+      }}>
+        <i className="bi bi-hourglass-split" style={{ fontSize: "1.5rem" }} />
+        <p style={{ margin: 0 }}>ワークスペースを開いています...</p>
       </div>
     );
   }

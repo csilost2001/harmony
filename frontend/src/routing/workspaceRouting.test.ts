@@ -17,6 +17,7 @@ import { describe, it, expect } from "vitest";
 import {
   wsPath,
   evaluateRoutingGuard,
+  isWorkspaceChildRouteReady,
   type RoutingGuardWorkspaceState,
 } from "./workspaceRouting";
 
@@ -114,6 +115,53 @@ describe("evaluateRoutingGuard (AppShellInner)", () => {
   it("wsId が undefined のとき何もしない (active あり)", () => {
     const result = evaluateRoutingGuard(baseState, undefined);
     expect(result).toEqual({ type: "none" });
+  });
+});
+
+// ─── child route mount readiness ─────────────────────────────────────────────
+
+describe("isWorkspaceChildRouteReady (AppShellInner child mount gate)", () => {
+  const baseState: RoutingGuardWorkspaceState = {
+    active: { id: "ws-aaa", path: "/data/ws-aaa", name: "テストWS" },
+    workspaces: [
+      { id: "ws-aaa", path: "/data/ws-aaa", name: "テストWS" },
+    ],
+    loading: false,
+    lockdown: false,
+    error: null,
+  };
+
+  it("workspace.open pending 中は child route を mount しない", () => {
+    expect(
+      isWorkspaceChildRouteReady(baseState, "ws-aaa", new Set(), "ws-aaa"),
+    ).toBe(false);
+  });
+
+  it("workspace.open 成功後のみ child route を mount する", () => {
+    expect(
+      isWorkspaceChildRouteReady(baseState, "ws-aaa", new Set(["ws-aaa"]), null),
+    ).toBe(true);
+  });
+
+  it("workspace.open 失敗後は success set 未登録なので child route を mount しない", () => {
+    expect(
+      isWorkspaceChildRouteReady(baseState, "ws-aaa", new Set(), null),
+    ).toBe(false);
+  });
+
+  it("URL wsId と active workspace が未同期なら child route を mount しない", () => {
+    expect(
+      isWorkspaceChildRouteReady(baseState, "ws-bbb", new Set(["ws-bbb"]), null),
+    ).toBe(false);
+  });
+
+  it("lockdown / error 状態は既存 routing 側に委ねるため mount gate で止めない", () => {
+    expect(
+      isWorkspaceChildRouteReady({ ...baseState, lockdown: true }, "ws-aaa", new Set(), null),
+    ).toBe(true);
+    expect(
+      isWorkspaceChildRouteReady({ ...baseState, error: "e2e bypass" }, "ws-aaa", new Set(), null),
+    ).toBe(true);
   });
 });
 
