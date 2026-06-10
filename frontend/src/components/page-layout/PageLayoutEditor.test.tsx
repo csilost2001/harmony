@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 
 // ─── mock heavy deps ─────────────────────────────────────────────────────────
@@ -46,7 +46,17 @@ vi.mock("../../store/flowStore", async () => {
   const actual = await vi.importActual<typeof import("../../store/flowStore")>("../../store/flowStore");
   return {
     ...actual,
-    loadProject: vi.fn().mockResolvedValue({ version: 1, name: "test", screens: [], groups: [], edges: [], updatedAt: "2026-05-12T00:00:00.000Z" }),
+    loadProject: vi.fn().mockResolvedValue({
+      version: 1,
+      name: "test",
+      screens: [
+        { id: "global-header", name: "Global Header", purpose: "gadget" },
+        { id: "dashboard", name: "Dashboard", purpose: "page" },
+      ],
+      groups: [],
+      edges: [],
+      updatedAt: "2026-05-12T00:00:00.000Z",
+    }),
   };
 });
 
@@ -132,5 +142,22 @@ describe("PageLayoutEditor", () => {
         expect(page.textContent).toContain("footer");
       }
     }, { timeout: 3000 });
+  });
+
+  it("shows layout manager preview with content slot placeholder", async () => {
+    renderEditor();
+
+    expect(await screen.findByTestId("page-layout-composition-preview")).toBeInTheDocument();
+    expect(screen.getByTestId("page-layout-content-slot-preview")).toHaveTextContent("コンテンツがここに表示されます");
+    expect(screen.getByTestId("page-layout-pattern-select")).toHaveValue("header-main-footer");
+  });
+
+  it("does not expose assignment dropdown for the content slot", async () => {
+    renderEditor();
+
+    await screen.findByText("Assignments");
+    expect(screen.queryByDisplayValue("main")).not.toBeInTheDocument();
+    expect(document.querySelectorAll("select.tbl-select-sm")).toHaveLength(2);
+    expect(screen.getAllByText("Global Header").length).toBeGreaterThan(0);
   });
 });

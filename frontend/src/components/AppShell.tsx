@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Routes, Route, useLocation, useNavigate, matchPath, useParams, Outlet } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate, matchPath, useParams, Outlet, Navigate } from "react-router-dom";
 import { FlowEditor } from "./flow/FlowEditor";
 import { ScreenListView } from "./flow/ScreenListView";
 import { TableListView } from "./table/TableListView";
@@ -18,7 +18,6 @@ import { ViewDefinitionListView } from "./view-definition/ViewDefinitionListView
 import { ViewDefinitionEditor } from "./view-definition/ViewDefinitionEditor";
 import { PageLayoutListView } from "./page-layout/PageLayoutListView";
 import { PageLayoutEditor } from "./page-layout/PageLayoutEditor";
-import { PageLayoutDesigner } from "./page-layout/PageLayoutDesigner";
 import { GadgetListView } from "./gadget/GadgetListView";
 import { GenericDefinitionCatalogView } from "./generic-definition/GenericDefinitionCatalogView";
 import { GenericDefinitionListView } from "./generic-definition/GenericDefinitionListView";
@@ -95,6 +94,12 @@ function useTabs() {
 function WorkspaceScopedShell() {
   const { wsId } = useParams<{ wsId: string }>();
   return <AppShellInner wsId={wsId} />;
+}
+
+function PageLayoutDesignRedirect() {
+  const { pageLayoutId } = useParams<{ pageLayoutId: string }>();
+  const targetId = pageLayoutId ? encodeURIComponent(decodeURIComponent(pageLayoutId)) : "";
+  return <Navigate to={`../edit/${targetId}`} replace relative="path" />;
 }
 
 // redirectGuard が trip した時、画面全体に被せる赤バナー (#750 review S-2)。
@@ -356,7 +361,7 @@ export function AppShell() {
         <Route path="view-definition/edit/:viewDefinitionId" element={<ViewDefinitionEditor />} />
         <Route path="page-layout/list" element={<PageLayoutListView />} />
         <Route path="page-layout/edit/:pageLayoutId" element={<PageLayoutEditor />} />
-        <Route path="page-layout/design/:pageLayoutId" element={<PageLayoutDesigner />} />
+        <Route path="page-layout/design/:pageLayoutId" element={<PageLayoutDesignRedirect />} />
         <Route path="gadget/list" element={<GadgetListView />} />
         <Route path="generic-definition" element={<GenericDefinitionCatalogView />} />
         <Route path="generic-definition/:kind" element={<GenericDefinitionListView />} />
