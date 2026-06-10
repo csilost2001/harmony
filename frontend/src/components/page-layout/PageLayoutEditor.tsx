@@ -285,6 +285,7 @@ export function PageLayoutEditor() {
     const uniqueIds = [...new Set(previewScreenIds)];
     if (uniqueIds.length === 0) {
       setPreviewHtmlByScreenId({});
+      setPreviewLoading(false);
       return;
     }
 
@@ -320,6 +321,10 @@ export function PageLayoutEditor() {
     if (!name) return;
     if (!/^[a-z][a-zA-Z0-9_-]*$/.test(name)) {
       setRegionNameError("region 名は英小文字で始まり、英数字・_ ・- のみ使用できます");
+      return;
+    }
+    if (name === "content") {
+      setRegionNameError("content は既存データ互換 alias です。新規 content slot は canonical 名 main を使用してください");
       return;
     }
     if (regionNames.has(name)) {

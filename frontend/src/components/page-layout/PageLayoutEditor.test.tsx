@@ -13,6 +13,33 @@ const editSessionMock = vi.hoisted(() => ({
   modeKind: "readonly" as "readonly" | "editing",
 }));
 
+const pageLayoutMock = vi.hoisted(() => {
+  const makeDefaultLayout = () => ({
+    id: "pl-test-001",
+    name: "Test Layout",
+    description: "テスト用レイアウト",
+    maturity: "draft",
+    regions: [
+      { name: "header", description: "ヘッダ" },
+      { name: "main", description: "メイン" },
+      { name: "footer", description: "フッタ" },
+    ],
+    assignments: { header: "global-header", main: "global-header" },
+    design: { editorKind: "grapesjs", cssFramework: "bootstrap" },
+    createdAt: "2026-05-12T00:00:00.000Z",
+    updatedAt: "2026-05-12T00:00:00.000Z",
+  });
+  return {
+    makeDefaultLayout,
+    layout: makeDefaultLayout() as any,
+  };
+});
+
+const previewMock = vi.hoisted(() => ({
+  defer: false,
+  pending: [] as Array<() => void>,
+}));
+
 vi.mock("../../mcp/mcpBridge", () => ({
   mcpBridge: {
     getSessionId: () => "test-session-id",
@@ -20,13 +47,19 @@ vi.mock("../../mcp/mcpBridge", () => ({
     onStatusChange: vi.fn(() => () => {}),
     onBroadcast: vi.fn(() => () => {}),
     request: vi.fn((method: string, params?: { screenId?: string }) => {
+      const resolveLoadScreen = (payload: unknown) => {
+        if (!previewMock.defer) return Promise.resolve(payload);
+        return new Promise((resolve) => {
+          previewMock.pending.push(() => resolve(payload));
+        });
+      };
       if (method === "loadScreen" && params?.screenId === "global-header") {
-        return Promise.resolve({
+        return resolveLoadScreen({
           pages: [{ frames: [{ component: { components: "<header>Header Body</header>" } }] }],
         });
       }
       if (method === "loadScreen" && params?.screenId === "dashboard") {
-        return Promise.resolve({
+        return resolveLoadScreen({
           pages: [{ frames: [{ component: { components: "<main>Dashboard Body</main>" } }] }],
         });
       }
@@ -39,21 +72,7 @@ vi.mock("../../store/pageLayoutStore", async () => {
   const actual = await vi.importActual<typeof import("../../store/pageLayoutStore")>("../../store/pageLayoutStore");
   return {
     ...actual,
-    loadPageLayout: vi.fn().mockResolvedValue({
-      id: "pl-test-001",
-      name: "Test Layout",
-      description: "テスト用レイアウト",
-      maturity: "draft",
-      regions: [
-        { name: "header", description: "ヘッダ" },
-        { name: "main", description: "メイン" },
-        { name: "footer", description: "フッタ" },
-      ],
-      assignments: { header: "global-header", main: "global-header" },
-      design: { editorKind: "grapesjs", cssFramework: "bootstrap" },
-      createdAt: "2026-05-12T00:00:00.000Z",
-      updatedAt: "2026-05-12T00:00:00.000Z",
-    }),
+    loadPageLayout: vi.fn().mockImplementation(() => Promise.resolve(pageLayoutMock.layout)),
     savePageLayout: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -122,6 +141,9 @@ function renderEditor(id = "pl-test-001") {
 
 describe("PageLayoutEditor", () => {
   beforeEach(() => {
+    previewMock.pending.splice(0).forEach((resolve) => resolve());
+    previewMock.defer = false;
+    pageLayoutMock.layout = pageLayoutMock.makeDefaultLayout();
     vi.clearAllMocks();
     editSessionMock.modeKind = "readonly";
     localStorage.clear();
@@ -199,6 +221,25 @@ describe("PageLayoutEditor", () => {
     });
   });
 
+  it("clears preview loading when selected preview ids become empty", async () => {
+    pageLayoutMock.layout = {
+      ...pageLayoutMock.makeDefaultLayout(),
+      regions: [{ name: "main", description: "メイン" }],
+      assignments: {},
+    };
+    previewMock.defer = true;
+    renderEditor();
+
+    await screen.findByTestId("page-layout-content-slot-preview");
+    fireEvent.change(screen.getByTestId("page-layout-sample-page-select"), { target: { value: "dashboard" } });
+    expect(await screen.findByText(/プレビューを読み込み中/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("page-layout-sample-page-select"), { target: { value: "" } });
+    await waitFor(() => {
+      expect(screen.queryByText(/プレビューを読み込み中/)).not.toBeInTheDocument();
+    });
+  });
+
   it("does not list page screens in gadget assignment selectors", async () => {
     renderEditor();
 
@@ -224,5 +265,18 @@ describe("PageLayoutEditor", () => {
     expect(screen.getByTestId("page-layout-gadget-preview-header")).toHaveTextContent("Global Header");
     expect(screen.queryByTestId("page-layout-orphan-assignments")).not.toBeInTheDocument();
     expect(screen.queryByTestId("page-layout-gadget-preview-main")).not.toBeInTheDocument();
+  });
+
+  it("rejects the legacy content alias as a newly added region in editing mode", async () => {
+    editSessionMock.modeKind = "editing";
+    renderEditor();
+
+    fireEvent.change(await screen.findByPlaceholderText("region 名 (例: breadcrumb)"), {
+      target: { value: "content" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /追加/ }));
+
+    expect(await screen.findByText(/content は既存データ互換 alias/)).toBeInTheDocument();
+    expect(screen.queryByTestId("page-layout-slot-content")).not.toBeInTheDocument();
   });
 });
