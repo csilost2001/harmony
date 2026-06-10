@@ -105,27 +105,29 @@ export function WorkspaceSelectView() {
         )}
 
         {/* プロジェクトを開く / 作成 */}
-        <button
-          onClick={() => setShowAdd(true)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            width: "100%",
-            padding: "12px 16px",
-            background: "#4dabf7",
-            border: "none",
-            borderRadius: "6px",
-            color: "#fff",
-            fontWeight: 600,
-            fontSize: "0.95rem",
-            cursor: "pointer",
-            marginBottom: "16px",
-          }}
-        >
-          <i className="bi bi-folder2-open" />
-          プロジェクトを開く / 作成
-        </button>
+        {!lockdown && (
+          <button
+            onClick={() => setShowAdd(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+              padding: "12px 16px",
+              background: "#4dabf7",
+              border: "none",
+              borderRadius: "6px",
+              color: "#fff",
+              fontWeight: 600,
+              fontSize: "0.95rem",
+              cursor: "pointer",
+              marginBottom: "16px",
+            }}
+          >
+            <i className="bi bi-folder2-open" />
+            プロジェクトを開く / 作成
+          </button>
+        )}
 
         {/* 探索ルートと最近使った project */}
         {!lockdown && (

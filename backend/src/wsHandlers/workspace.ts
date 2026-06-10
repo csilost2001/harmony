@@ -103,6 +103,10 @@ export const workspaceHandlers: RpcHandlerMap = {
   },
 
   "workspace.roots": async ({ respond }) => {
+    if (isWorkspaceLockdown()) {
+      respond({ roots: [] });
+      return;
+    }
     respond({ roots: await listWorkspaceRoots() });
   },
 
@@ -130,6 +134,10 @@ export const workspaceHandlers: RpcHandlerMap = {
   },
 
   "workspace.root.discover": async ({ params, respond, respondError }) => {
+    if (isWorkspaceLockdown()) {
+      respondError("lockdown モード中は workspace root を探索できません");
+      return;
+    }
     const { path: rootPath, rootId, maxDepth, limit } = (params ?? {}) as {
       path?: string; rootId?: string; maxDepth?: number; limit?: number
     };

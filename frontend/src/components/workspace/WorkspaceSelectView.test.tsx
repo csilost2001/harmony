@@ -67,4 +67,17 @@ describe("WorkspaceSelectView", () => {
 
     expect(screen.queryByText("e2e bypass")).toBeNull();
   });
+
+  it("hides open/create action in lockdown", () => {
+    state = {
+      ...state,
+      lockdown: true,
+      lockdownPath: "/locked/project",
+    };
+
+    render(<WorkspaceSelectView />);
+
+    expect(screen.queryByText("プロジェクトを開く / 作成")).toBeNull();
+    expect(screen.getByText(/固定中のため/)).toBeVisible();
+  });
 });

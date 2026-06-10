@@ -119,7 +119,7 @@ workspace.open(path, init?)
 - `init=true`: 対象フォルダを作成し `harmony.json` + `<dataDir>/` 配下のサブディレクトリ群を初期化してから active 化 (lockdown 時は error)。`dataDir` のデフォルト値は `"harmony"`
 - 成功すると `recent` に `upsert` し `lastActiveId` を更新、`workspace.changed` を broadcast
 
-**実装**: `backend/src/wsBridge.ts:710-778`
+**実装**: `backend/src/wsHandlers/workspace.ts` (`workspace.open`)
 
 ### 3.3 workspace.close
 
@@ -131,7 +131,7 @@ workspace.close()
 - lockdown 時は `LockdownError` を返す
 - `workspace.changed` を broadcast (`activeId: null`)
 
-**実装**: `backend/src/wsBridge.ts:780-793`
+**実装**: `backend/src/wsHandlers/workspace.ts` (`workspace.close`)
 
 ### 3.4 workspace.remove
 
@@ -142,7 +142,7 @@ workspace.remove(id)
 - recent からエントリを除外する (ファイルシステムは変更しない)
 - lockdown 時は error を返す
 
-**実装**: `backend/src/wsBridge.ts:794-800`
+**実装**: `backend/src/wsHandlers/workspace.ts` (`workspace.remove`)
 
 ### 3.5 workspace root と candidate discovery
 
@@ -159,6 +159,7 @@ workspace.root.remove(id)
 - candidate は UI に表示するだけで、recent への追加や active 化はしない
 - ユーザーが candidate の `Open` を明示した場合のみ `workspace.open(path)` を呼び、recent / active に反映する
 - root 外 project も `workspace.open(path)` で明示的に開ける。workspace root はアクセス制限ではない
+- lockdown 時は `workspace.roots` が空配列を返し、`workspace.root.add/remove/discover` は error を返す。recent file は読まない
 
 ### 3.6 AI エージェント編集境界
 
@@ -260,8 +261,8 @@ backend が動作しているホスト OS 情報を返す。`AddWorkspaceDialog`
 ### 4.3 UI での表示
 
 - `WorkspaceIndicator`: ボタンに鍵アイコン (`bi-lock-fill`, 色 `#fbbf24`) を表示し、tooltip に `DESIGNER_DATA_DIR` の値を表示
-- `WorkspaceListView`: lockdown バナー (黄色) を表示し、追加・開く・リストから外すボタンを disabled 化
-- `WorkspaceSelectView`: lockdown バナーを表示し、新しくワークスペースを追加ボタンを非表示化
+- `WorkspaceListView`: lockdown バナー (黄色) を表示し、追加・開く・リストから外すボタンを disabled 化。workspace root panel は表示しない
+- `WorkspaceSelectView`: lockdown バナーを表示し、project open/create 導線を非表示化
 
 **実装**: `frontend/src/components/workspace/WorkspaceIndicator.tsx:96-101` / `frontend/src/components/workspace/WorkspaceListView.tsx:436-452` / `frontend/src/components/workspace/WorkspaceSelectView.tsx:191-206`
 
@@ -350,7 +351,7 @@ backend offline 時 (port 5179 未接続) は `connectionFailed` が立ち、App
 | `workspace.close` | (なし) | `{ success: true }` または error |
 | `workspace.remove` | `{ id: string }` | `{ removed: boolean }` または error |
 
-**実装**: `backend/src/wsBridge.ts:671-801`
+**実装**: `backend/src/wsHandlers/workspace.ts`
 
 ### 6.2 broadcast イベント (backend → 全ブラウザ)
 
@@ -443,7 +444,7 @@ v1 では「1 サーバ = 1 active」が原則だったが、v2 (#679 シリー�
 | 用語定義 / lockdown state | `backend/src/workspaceState.ts:1-97` |
 | recent 永続化 / write lock | `backend/src/recentStore.ts:1-193` |
 | inspect / initializeWorkspace / autoActivate | `backend/src/workspaceInit.ts:1-240` |
-| WS リクエストハンドラ | `backend/src/wsBridge.ts:671-801` |
+| WS リクエストハンドラ | `backend/src/wsHandlers/workspace.ts` |
 | MCP tools 定義 | `backend/src/tools.ts:1233-1284` |
 | root スナップショット規約 | `backend/src/projectStorage.ts:14-104` |
 | フロントエンドストア | `frontend/src/store/workspaceStore.ts:1-190` |

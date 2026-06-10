@@ -497,14 +497,19 @@ function WorkspaceRootPanel({ lockdown, onOpenProject }: WorkspaceRootPanelProps
   const [error, setError] = useState<string | null>(null);
 
   const loadRoots = useCallback(async () => {
+    if (lockdown) {
+      setRoots([]);
+      return;
+    }
     try {
       setRoots(await listWorkspaceRoots());
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, []);
+  }, [lockdown]);
 
   useEffect(() => {
+    if (lockdown) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -520,7 +525,7 @@ function WorkspaceRootPanel({ lockdown, onOpenProject }: WorkspaceRootPanelProps
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [lockdown]);
 
   const handleAddRoot = async () => {
     const trimmed = rootPath.trim();
@@ -552,6 +557,7 @@ function WorkspaceRootPanel({ lockdown, onOpenProject }: WorkspaceRootPanelProps
   };
 
   const handleDiscover = async (rootId: string) => {
+    if (lockdown) return;
     setError(null);
     setLoadingRootId(rootId);
     try {
@@ -1025,7 +1031,7 @@ export function WorkspaceListView() {
           </div>
         )}
 
-        <WorkspaceRootPanel lockdown={lockdown} onOpenProject={handleOpenProjectPath} />
+        {!lockdown && <WorkspaceRootPanel lockdown={lockdown} onOpenProject={handleOpenProjectPath} />}
 
         <FilterBar
           isActive={filter.isActive}

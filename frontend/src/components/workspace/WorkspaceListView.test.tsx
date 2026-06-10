@@ -162,6 +162,19 @@ describe("WorkspaceListView navigation", () => {
       expect(navigateMock).toHaveBeenCalledWith("/", { replace: true });
     });
   });
+
+  it("does not mount workspace root panel in lockdown", () => {
+    state = {
+      ...state,
+      lockdown: true,
+      lockdownPath: "/locked/project",
+    };
+
+    render(<WorkspaceListView />);
+
+    expect(screen.queryByText("プロジェクト探索ルート")).toBeNull();
+    expect(listWorkspaceRootsMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("WorkspaceListView reload guard", () => {
