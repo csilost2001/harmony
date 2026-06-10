@@ -1,0 +1,17 @@
+services:
+  harmony:
+    image: ${HARMONY_IMAGE:-ghcr.io/csilost2001/harmony:local}
+    ports:
+      - "127.0.0.1:${HARMONY_PORT:-5179}:5179"
+    environment:
+      NODE_ENV: production
+      # Required for no-Origin MCP clients through a localhost-only published port.
+      # Keep the port binding on 127.0.0.1; do not publish this service to the LAN.
+      HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT: "1"
+    volumes:
+      - harmony-state:/home/node/.harmony
+      - ${HARMONY_WORKSPACES:-./workspaces}:/data/workspaces${HARMONY_WORKSPACES_MOUNT_OPTIONS:-}
+    restart: unless-stopped
+
+volumes:
+  harmony-state:

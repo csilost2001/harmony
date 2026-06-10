@@ -6,12 +6,13 @@ Harmony 本体 (frontend + backend) を Docker image として配布し、利用
 >
 > - `Dockerfile` は frontend build 成果物を backend image に同梱する
 > - backend が `frontend/dist/` を静的配信し、port 5179 で SPA / HTTP MCP / WebSocket をまとめて提供する
+> - `compose.yml` は利用者向け runtime entrypoint (`docker compose up` / `podman compose up`)
 > - `scripts/build-harmony-image.sh` と `scripts/smoke-harmony-image.sh` は host WSL2/Linux で実行する
 > - Dev Container 内から Docker daemon access を前提にしない
 >
 > ⚠️ Appendix の 2-container 案は historical reference です。新規実装では採用しません。
 
-開発環境セットアップ手順は本書の対象外です。Harmony 本体を開発したい場合は [`dev-containers.md`](./dev-containers.md) (推奨) または [`wsl2-native.md`](./wsl2-native.md) (代替) を参照してください。
+開発環境セットアップ手順は本書の対象外です。Harmony 本体を開発したい場合は [`dev-containers.md`](./dev-containers.md) (推奨) または [`wsl2-native.md`](./wsl2-native.md) (代替) を参照してください。Harmony を起動して使うだけの場合は [`compose-runtime.md`](./compose-runtime.md) を参照してください。
 
 ---
 
@@ -66,17 +67,37 @@ HARMONY_IMAGE=harmony:local HARMONY_SMOKE_PORT=5180 bash scripts/smoke-harmony-i
 
 smoke は `/health`、SPA HTML、`/mcp` initialize、host 側からの WebSocket handshake を確認する。`HARMONY_SMOKE_PORT` を変えることで host port remap 時の Origin / Host policy も検出する。no-Origin MCP は Docker published port では container から Docker bridge gateway に見えるため、smoke container では `HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT=1` を明示する。この env は `127.0.0.1:<host-port>:5179` の local-only publish とセットで使う。
 
-### 4. docker compose 例
+### 4. compose.yml
+
+repo root の [`compose.yml`](../../compose.yml) を利用者向け runtime entrypoint とする。利用者は原則として長い `docker run` を打たず、以下で起動する。
+
+```bash
+docker compose up
+```
+
+Podman 環境では以下を使う。
+
+```bash
+podman compose up
+```
+
+設定値を変える場合は `.env.example` を `.env` にコピーして編集する。
+
+```bash
+cp .env.example .env
+```
+
+構成の要点:
 
 ```yaml
 services:
   harmony:
-    image: ghcr.io/csilost2001/harmony:1.0.0
+    image: ${HARMONY_IMAGE:-ghcr.io/csilost2001/harmony:local}
     ports:
-      - "127.0.0.1:5179:5179"
+      - "127.0.0.1:${HARMONY_PORT:-5179}:5179"
     volumes:
       - harmony-state:/home/node/.harmony
-      - ./workspaces:/data/workspaces
+      - ${HARMONY_WORKSPACES:-./workspaces}:/data/workspaces${HARMONY_WORKSPACES_MOUNT_OPTIONS:-}
       # Codex 機能を使う場合のみ uncomment
       # - ${HOME}/.codex:/home/node/.codex:ro
     environment:
