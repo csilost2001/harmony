@@ -16,12 +16,15 @@
  * 使用法:
  *   tsx scripts/migrate/id-naming-2026-05-24.ts --prepare
  *   tsx scripts/migrate/id-naming-2026-05-24.ts [--dry-run] [<projectId>]
+ *   tsx scripts/migrate/id-naming-2026-05-24.ts [--dry-run] --project-dir <workspaceDir> [--mapping-key <projectId>]
  *
  * 引数:
  *   --prepare         mapping JSON を生成 (既存 file は上書きしない、--prepare-force で上書き)
  *   --prepare-force   既存 mapping を上書き
  *   --dry-run         apply モードで実書き込みしない (差分のみ表示)
  *   <projectId>       例: retail / diary。省略時は全 project
+ *   --project-dir     examples/ 以外の workspace root (harmony.json があるディレクトリ)
+ *   --mapping-key     --project-dir 適用時に流用する mapping key (例: retail)
  */
 
 import {
@@ -128,8 +131,59 @@ const args = process.argv.slice(2);
 const prepareMode = args.includes("--prepare") || args.includes("--prepare-force");
 const prepareForce = args.includes("--prepare-force");
 const dryRun = args.includes("--dry-run");
-const positional = args.filter((a) => !a.startsWith("--"));
+const KNOWN_FLAGS = new Set(["--prepare", "--prepare-force", "--dry-run", "--project-dir", "--mapping-key"]);
+const VALUE_FLAGS = new Set(["--project-dir", "--mapping-key"]);
+
+function failUsage(message: string): never {
+  console.error(`usage error: ${message}`);
+  process.exit(1);
+}
+
+function readFlagValue(name: string): string | undefined {
+  const eq = args.find((a) => a.startsWith(`${name}=`));
+  if (eq) {
+    const value = eq.slice(name.length + 1);
+    if (!value || value.startsWith("--")) failUsage(`${name} requires a value`);
+    return value;
+  }
+  const idx = args.indexOf(name);
+  if (idx >= 0) {
+    const value = args[idx + 1];
+    if (!value || value.startsWith("--")) failUsage(`${name} requires a value`);
+    return value;
+  }
+  return undefined;
+}
+
+for (const arg of args) {
+  if (!arg.startsWith("--")) continue;
+  const flagName = arg.includes("=") ? arg.slice(0, arg.indexOf("=")) : arg;
+  if (!KNOWN_FLAGS.has(flagName)) failUsage(`unknown flag: ${flagName}`);
+  if (arg.includes("=") && !VALUE_FLAGS.has(flagName)) {
+    failUsage(`${flagName} does not accept a value`);
+  }
+}
+
+const projectDirArg = readFlagValue("--project-dir");
+const mappingKeyArg = readFlagValue("--mapping-key");
+if (mappingKeyArg && !projectDirArg) {
+  failUsage("--mapping-key can only be used with --project-dir");
+}
+
+const positional = args.filter((a, idx) => {
+  if (a.startsWith("--")) return false;
+  const prev = args[idx - 1];
+  return prev !== "--project-dir" && prev !== "--mapping-key";
+});
+if (positional.length > 1) failUsage(`too many positional arguments: ${positional.join(" ")}`);
+if (projectDirArg && positional.length > 0) {
+  failUsage("--project-dir cannot be combined with positional <projectId>");
+}
+
 const targetProject = positional[0];
+const targetProjectRoot = projectDirArg ? resolve(projectDirArg) : undefined;
+const targetProjectId = targetProjectRoot ? basename(targetProjectRoot) : targetProject;
+const targetMappingKey = mappingKeyArg ?? targetProjectId;
 
 // ─── 型定義 ───────────────────────────────────────────────────────────────────
 
@@ -176,7 +230,15 @@ function listProjectDirs(): string[] {
 }
 
 function projectHarmonyDir(projectId: string): string {
+  if (targetProjectRoot && projectId === targetProjectId) {
+    return join(targetProjectRoot, "harmony");
+  }
   return join(examplesDir, projectId, "harmony");
+}
+
+function projectRootDir(projectId: string): string {
+  if (targetProjectRoot && projectId === targetProjectId) return targetProjectRoot;
+  return join(examplesDir, projectId);
 }
 
 /** entity file (xxx.json、ただし xxx.design.json は除く) を列挙 */
@@ -191,6 +253,10 @@ function listEntityFiles(harmonyDir: string, kindDir: string): string[] {
 // ─── Phase 1: prepare ─────────────────────────────────────────────────────────
 
 function preparePhase(): void {
+  if (targetProjectRoot) {
+    console.error("--project-dir は apply mode 専用です。prepare は examples/<projectId> を対象にしてください。");
+    process.exit(1);
+  }
   if (existsSync(mappingPath) && !prepareForce) {
     console.error(
       `mapping file already exists: ${mappingPath}\n` +
@@ -283,7 +349,7 @@ function validateMapping(mapping: Mapping): void {
   let hasError = false;
 
   for (const [projectId, projMap] of Object.entries(mapping)) {
-    if (targetProject && projectId !== targetProject) continue;
+    if (targetMappingKey && projectId !== targetMappingKey) continue;
 
     for (const [kindStr, recs] of Object.entries(projMap)) {
       const kind = kindStr as EntityKind;
@@ -640,10 +706,11 @@ function reorderEntity(obj: Record<string, unknown>, kind: EntityKind): Record<s
 /** harmony.json の entities + workspace meta を更新 */
 function migrateHarmonyJson(
   projectId: string,
+  mapKey: string,
   projLookup: LookupTable,
   unknownUuids: Set<string>,
 ): void {
-  const harmonyPath = join(examplesDir, projectId, "harmony.json");
+  const harmonyPath = join(projectRootDir(projectId), "harmony.json");
   if (!existsSync(harmonyPath)) return;
   const data = readJson<Record<string, unknown>>(harmonyPath);
 
@@ -661,9 +728,13 @@ function migrateHarmonyJson(
         ([, v]) => v === kindKeyStr,
       )?.[0] ?? null) as EntityKind | null;
       if (!kind) continue;
-      const m = projLookup[kind];
-      if (!m) continue;
       for (const entry of arr as Array<Record<string, unknown>>) {
+        if (kind === "processFlow" && typeof entry["kind"] === "string") {
+          if (typeof entry["flowType"] !== "string") entry["flowType"] = entry["kind"];
+          delete entry["kind"];
+        }
+        const m = projLookup[kind];
+        if (!m) continue;
         const oldId = typeof entry["id"] === "string" ? (entry["id"] as string) : "";
         if (UUID_PATTERN.test(oldId)) {
           const newId = m.get(oldId);
@@ -684,6 +755,8 @@ function migrateHarmonyJson(
     const metaId = typeof meta["id"] === "string" ? (meta["id"] as string) : "";
     if (UUID_PATTERN.test(metaId)) {
       meta["uuid"] = metaId;
+      meta["id"] = projectId;
+    } else if (projectId !== mapKey && metaId === mapKey) {
       meta["id"] = projectId;
     }
     const orderedMeta: Record<string, unknown> = {};
@@ -707,7 +780,7 @@ function migrateScreenFlowPositions(
   projLookup: LookupTable,
   unknownUuids: Set<string>,
 ): void {
-  const flowPath = join(examplesDir, projectId, "harmony", "screen-flow-positions.json");
+  const flowPath = join(projectRootDir(projectId), "harmony", "screen-flow-positions.json");
   if (!existsSync(flowPath)) return;
   const data = readJson<Record<string, unknown>>(flowPath);
   const positions = isPlainObject(data["positions"]) ? data["positions"] : null;
@@ -743,19 +816,23 @@ function applyPhase(): void {
   const mapping = readJson<Mapping>(mappingPath);
   validateMapping(mapping);
 
-  const projects = targetProject ? [targetProject] : Object.keys(mapping);
+  const projects = targetProjectRoot
+    ? [{ projectId: targetProjectId!, mapKey: targetMappingKey! }]
+    : targetProject
+      ? [{ projectId: targetProject, mapKey: targetProject }]
+      : Object.keys(mapping).map((projectId) => ({ projectId, mapKey: projectId }));
 
-  for (const projectId of projects) {
-    const projMap = mapping[projectId];
+  for (const { projectId, mapKey } of projects) {
+    const projMap = mapping[mapKey];
     if (!projMap) {
-      console.warn(`(skip) ${projectId}: mapping にエントリ無し`);
+      console.warn(`(skip) ${projectId}: mapping key "${mapKey}" にエントリ無し`);
       continue;
     }
     const projLookup = buildProjectLookup(projMap);
     const unknownUuids = new Set<string>();
     const harmonyDir = projectHarmonyDir(projectId);
 
-    console.log(`\n=== ${projectId} ===`);
+    console.log(`\n=== ${projectId} (mapping: ${mapKey}) ===`);
 
     // 1) 各 entity file (7 kind、screenGroup は file 無し)
     let renamedCount = 0;
@@ -787,7 +864,7 @@ function applyPhase(): void {
     }
 
     // 2) harmony.json
-    migrateHarmonyJson(projectId, projLookup, unknownUuids);
+    migrateHarmonyJson(projectId, mapKey, projLookup, unknownUuids);
 
     // 3) screen-flow-positions.json
     migrateScreenFlowPositions(projectId, projLookup, unknownUuids);
