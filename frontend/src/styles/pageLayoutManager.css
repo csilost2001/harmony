@@ -1,0 +1,228 @@
+.plm-pattern-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 360px) 1fr;
+  gap: 16px;
+  align-items: end;
+}
+
+.plm-pattern-select {
+  margin: 0;
+}
+
+.plm-pattern-description {
+  color: #b8bdd6;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+}
+
+.plm-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.plm-sample-select {
+  width: min(320px, 100%);
+  margin: 0;
+}
+
+.plm-preview {
+  min-height: 360px;
+  border: 1px solid #3f4563;
+  border-radius: 8px;
+  background: #111827;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  overflow: auto;
+}
+
+.plm-preview-loading {
+  grid-column: 1 / -1;
+  color: #94a3b8;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plm-preview-layout-hmf {
+  grid-template:
+    "header" minmax(64px, auto)
+    "main" minmax(180px, 1fr)
+    "footer" minmax(56px, auto)
+    / 1fr;
+}
+
+.plm-preview-layout-hsmf {
+  grid-template:
+    "header header" minmax(64px, auto)
+    "sidebar main" minmax(190px, 1fr)
+    "footer footer" minmax(56px, auto)
+    / minmax(180px, 240px) minmax(280px, 1fr);
+}
+
+.plm-preview-layout-top-main {
+  grid-template:
+    "header" minmax(64px, auto)
+    "main" minmax(230px, 1fr)
+    / 1fr;
+}
+
+.plm-preview-layout-two-column {
+  grid-template:
+    "sidebar main" minmax(260px, 1fr)
+    / minmax(180px, 240px) minmax(280px, 1fr);
+}
+
+.plm-preview-layout-custom {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.plm-region {
+  min-height: 72px;
+  border: 1px solid rgba(148,163,184,0.32);
+  border-radius: 6px;
+  background: rgba(15,23,42,0.82);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.plm-region-header { grid-area: header; }
+.plm-region-sidebar { grid-area: sidebar; }
+.plm-region-main { grid-area: main; }
+.plm-region-footer { grid-area: footer; }
+
+.plm-preview-layout-custom .plm-region {
+  grid-area: auto;
+}
+
+.plm-region-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.plm-region-label code {
+  color: #dbeafe;
+}
+
+.plm-region-label span {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(245,158,11,0.16);
+  color: #fbbf24;
+  font-size: 11px;
+}
+
+.plm-gadget-preview,
+.plm-content-preview,
+.plm-empty-preview {
+  flex: 1;
+  min-height: 46px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.plm-gadget-preview {
+  border: 1px dashed rgba(99,102,241,0.6);
+  background: rgba(99,102,241,0.12);
+  color: #e0e7ff;
+}
+
+.plm-content-preview {
+  border: 1px dashed rgba(245,158,11,0.7);
+  background: #f8fafc;
+  color: #1f2937;
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+.plm-empty-preview {
+  border: 1px dashed rgba(148,163,184,0.5);
+  background: rgba(148,163,184,0.08);
+  color: #94a3b8;
+  align-items: center;
+  text-align: center;
+}
+
+.plm-gadget-preview i,
+.plm-content-preview i,
+.plm-empty-preview i {
+  font-size: 18px;
+}
+
+.plm-gadget-preview small,
+.plm-content-preview small {
+  color: inherit;
+  opacity: 0.72;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+}
+
+.plm-readonly-tag {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15,23,42,0.86);
+  color: #e2e8f0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.plm-design-body {
+  width: 100%;
+  min-height: 32px;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.92);
+  color: #1f2937;
+  padding: 8px;
+  pointer-events: none;
+  user-select: none;
+  text-align: left;
+  overflow: hidden;
+}
+
+.plm-design-body * {
+  max-width: 100%;
+}
+
+@media (max-width: 900px) {
+  .plm-pattern-row,
+  .plm-preview-header {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .plm-preview-layout-hsmf {
+    grid-template:
+      "header" minmax(56px, auto)
+      "sidebar" minmax(80px, auto)
+      "main" minmax(180px, 1fr)
+      "footer" minmax(56px, auto)
+      / 1fr;
+  }
+
+  .plm-preview-layout-two-column {
+    grid-template:
+      "sidebar" minmax(80px, auto)
+      "main" minmax(180px, 1fr)
+      / 1fr;
+  }
+}

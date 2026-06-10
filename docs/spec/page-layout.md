@@ -59,6 +59,8 @@ ProcessFlow (既存、無変更)
 - `footer` — 最下部、コピーライト等
 - `main` — content slot、page Screen 本文が嵌まる位置
 
+UI では既存データ互換の alias として `content` も content slot 扱いにする。ただし schema / spec 上の canonical 予約名は `main` とし、新規 PageLayout pattern は `main` を生成する。
+
 任意追加名も許容 (例: `breadcrumb` / `notification` / `subHeader`)。pattern: `^[a-z][a-zA-Z0-9_-]*$`
 
 ## 5. Routing (frontend)
@@ -66,8 +68,8 @@ ProcessFlow (既存、無変更)
 | URL | コンポーネント | tab |
 |-----|----------------|-----|
 | `/page-layout/list` | `PageLayoutListView` | singleton |
-| `/page-layout/edit/:pageLayoutId` | `PageLayoutEditor` | per-resource |
-| `/page-layout/design/:pageLayoutId` | `PageLayoutDesigner` | per-resource |
+| `/page-layout/edit/:pageLayoutId` | `PageLayoutEditor` (レイアウトマネージャ) | per-resource |
+| `/page-layout/design/:pageLayoutId` | 互換 redirect → `/page-layout/edit/:pageLayoutId` | なし |
 | `/gadget/list` | `GadgetListView` (Screen filter for purpose=gadget) | singleton |
 | `/screen/list` | 改修: purpose=page のみ表示 | singleton |
 | `/screen/flow` | 改修: purpose=page のみ ReactFlow に描画 | singleton |
@@ -95,16 +97,20 @@ ProcessFlow (既存、無変更)
 - `loadPageLayout` / `savePageLayout` / `deletePageLayout` / `listAllPageLayouts`
 - broadcast: `pageLayoutChanged` (data: { pageLayoutId } or { pageLayoutId, deleted: true })
 
-**design payload routing** (Codex A-2 対応):
-- `loadScreen` / `saveScreen` で `screenId.startsWith("page-layout:")` を検出した場合、`<dataDir>/page-layouts/<id>.design.json` に routing する。これは PageLayoutDesigner が Designer の synthetic id を流用するための bridge。
+**design payload routing** (legacy):
+- `loadScreen` / `saveScreen` で `screenId.startsWith("page-layout:")` を検出した場合、`<dataDir>/page-layouts/<id>.design.json` に routing する互換経路が残る。
+- 新しい PageLayout UI は PageLayout 自身の design payload を primary source とせず、`regions[]` / `assignments` とレイアウトパターンから read-only 合成プレビューを表示する。
 
 ## 8. Designer 連携
 
-### 8.1 PageLayout Designer (`/page-layout/design/:id`)
+### 8.1 PageLayout Manager (`/page-layout/edit/:id`)
 
-- GrapesJS の場合: `frontend/src/grapes/blocks.ts` の "Layout Regions" カテゴリで `region-header` / `region-sidebar` / `region-footer` / `region-main` の 4 ブロック (各 `data-region-name` 属性付き) を canvas に drag
-- Puck の場合: Region primitive (`frontend/src/puck/primitives/Region{Header,Sidebar,Footer,Main}.tsx`) を Puck Config に register
-- runtime composition preview: 各 region に assignments で指定された gadget の design HTML / Puck data を read-only inject
+- PageLayout は GrapesJS / Puck の自由編集対象ではなく、レイアウトマネージャで定義する。
+- レイアウトパターン (`header-main-footer` / `header-sidebar-main-footer` 等) を選び、`regions[]` を生成・調整する。
+- `main` は content slot として固定し、PageLayout 側では具体的な page Screen ID を保存しない。
+- `header` / `sidebar` / `footer` 等の固定 region には `Screen{purpose:"gadget"}` のみ割り当てる。
+- 合成プレビューでは assignments で指定された gadget design HTML と、任意に選択した sample page Screen の design HTML を read-only 表示する。design HTML を取得できない場合は Screen 名 / ID の fallback 表示にする。
+- Gadget / page Screen 本体の編集は `/screen/design/:screenId` で行う。
 
 ### 8.2 Page Screen Designer (`/screen/design/:id`、purpose=page)
 
@@ -167,11 +173,11 @@ region → CSS class マッピング: [`css-framework-switching.md § 8`](css-fr
 
 ## 14. AGENTS.md Routing 表への反映
 
-`AGENTS.md` § Routing の URL 規約表に追加 (`feat/page-layout-series` で更新):
+`AGENTS.md` § Routing の URL 規約表に追加。#1477 で PageLayout Designer は正規編集画面ではなく互換 redirect に縮退し、PageLayoutEditor がレイアウトマネージャとして定義・割当・preview を担う。
 
 ```
 | `/page-layout/list` | PageLayoutListView | ページレイアウト一覧 | ✅ singleton |
-| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 | ✅ per-resource |
-| `/page-layout/design/:pageLayoutId` | PageLayoutDesigner | ページレイアウト Designer | ✅ per-resource |
+| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 (レイアウトマネージャ) | ✅ per-resource |
+| `/page-layout/design/:pageLayoutId` | 互換 redirect → `/page-layout/edit/:pageLayoutId` | ❌ route only |
 | `/gadget/list` | GadgetListView | ガジェット一覧 (purpose=gadget filter) | ✅ singleton |
 ```

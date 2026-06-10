@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
+import DOMPurify from "dompurify";
 import type { Maturity, ScreenId } from "../../types/v3";
 import type { PageLayout, PageLayoutRegion } from "../../store/pageLayoutStore";
 import { loadPageLayout, savePageLayout, listPageLayouts } from "../../store/pageLayoutStore";
@@ -39,8 +40,18 @@ import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { MaturityBadge } from "../process-flow/MaturityBadge";
 import { loadProject } from "../../store/flowStore";
+import { extractGrapesHtml } from "../../utils/pageLayoutCompositionPreview";
+import {
+  PAGE_LAYOUT_PATTERNS,
+  buildPatternRegions,
+  getPatternById,
+  getRegionRole,
+  inferPageLayoutPattern,
+  isContentSlotRegion,
+} from "./layoutPatterns";
 import "../../styles/table.css";
 import "../../styles/editMode.css";
+import "../../styles/pageLayoutManager.css";
 
 const MATURITY_OPTIONS: Maturity[] = ["draft", "provisional", "committed"];
 const MATURITY_LABELS: Record<Maturity, string> = {
@@ -56,6 +67,11 @@ interface GadgetScreenOption {
   name: string;
 }
 
+interface PageScreenOption {
+  id: string;
+  name: string;
+}
+
 export function PageLayoutEditor() {
   const { pageLayoutId: rawId } = useParams<{ pageLayoutId: string }>();
   const pageLayoutId = rawId ? decodeURIComponent(rawId) : rawId;
@@ -63,6 +79,10 @@ export function PageLayoutEditor() {
   const { wsPath, wsId } = useWorkspacePath();
 
   const [gadgetScreens, setGadgetScreens] = useState<GadgetScreenOption[]>([]);
+  const [pageScreens, setPageScreens] = useState<PageScreenOption[]>([]);
+  const [samplePageId, setSamplePageId] = useState("");
+  const [previewHtmlByScreenId, setPreviewHtmlByScreenId] = useState<Record<string, string>>({});
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showForceReleaseDialog, setShowForceReleaseDialog] = useState(false);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
@@ -237,10 +257,13 @@ export function PageLayoutEditor() {
   useEffect(() => {
     mcpBridge.startWithoutEditor();
     loadProject().then((project) => {
-      const gadgets = (project.screens ?? [])
+      const screens = project.screens ?? [];
+      setGadgetScreens(screens
         .filter((s) => s.purpose === "gadget")
-        .map((s) => ({ id: s.id, name: s.name }));
-      setGadgetScreens(gadgets);
+        .map((s) => ({ id: String(s.id), name: String(s.name) })));
+      setPageScreens(screens
+        .filter((s) => (s.purpose ?? "page") === "page")
+        .map((s) => ({ id: String(s.id), name: String(s.name) })));
     }).catch(console.error);
   }, []);
 
@@ -248,6 +271,42 @@ export function PageLayoutEditor() {
     if (!pageLayoutId || sessionLoading) return;
     syncSessionToUrl(editSession?.id ?? "");
   }, [pageLayoutId, sessionLoading, editSession?.id, syncSessionToUrl]);
+
+  useEffect(() => {
+    if (!pl) return;
+    const previewScreenIds = [
+      ...Object.entries(pl.assignments ?? {})
+        .filter(([regionName]) => !isContentSlotRegion(regionName))
+        .map(([, screenId]) => String(screenId))
+        .filter(Boolean),
+      samplePageId,
+    ].filter(Boolean);
+
+    const uniqueIds = [...new Set(previewScreenIds)];
+    if (uniqueIds.length === 0) {
+      setPreviewHtmlByScreenId({});
+      setPreviewLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setPreviewLoading(true);
+    Promise.all(uniqueIds.map(async (screenId) => {
+      try {
+        const design = await mcpBridge.request("loadScreen", { screenId });
+        return [screenId, extractGrapesHtml(design) ?? ""] as const;
+      } catch {
+        return [screenId, ""] as const;
+      }
+    })).then((entries) => {
+      if (cancelled) return;
+      setPreviewHtmlByScreenId(Object.fromEntries(entries.filter(([, html]) => html)));
+    }).finally(() => {
+      if (!cancelled) setPreviewLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [pl, samplePageId]);
 
   if (!pl || sessionLoading) {
     return <div className="table-editor-loading"><i className="bi bi-hourglass-split" /> 読み込み中...</div>;
@@ -262,6 +321,10 @@ export function PageLayoutEditor() {
     if (!name) return;
     if (!/^[a-z][a-zA-Z0-9_-]*$/.test(name)) {
       setRegionNameError("region 名は英小文字で始まり、英数字・_ ・- のみ使用できます");
+      return;
+    }
+    if (name === "content") {
+      setRegionNameError("content は既存データ互換 alias です。新規 content slot は canonical 名 main を使用してください");
       return;
     }
     if (regionNames.has(name)) {
@@ -314,6 +377,31 @@ export function PageLayoutEditor() {
         delete assignments[regionName];
       }
       s.assignments = assignments;
+    });
+  };
+
+  const currentPattern = inferPageLayoutPattern(pl.regions);
+  const selectedSamplePage = pageScreens.find((screen) => screen.id === samplePageId) ?? null;
+  const gadgetNameById = new Map(gadgetScreens.map((screen) => [screen.id, screen.name]));
+  const orphanAssignments = Object.entries(pl.assignments ?? {})
+    .filter(([regionName]) => !regionNames.has(regionName) || isContentSlotRegion(regionName));
+
+  const handlePatternChange = (patternId: string) => {
+    const pattern = getPatternById(patternId);
+    if (pattern.id === "custom") return;
+    updateWithDraft((s) => {
+      const nextRegions = buildPatternRegions(pattern);
+      const assignableRegionNames = new Set(nextRegions
+        .filter((region) => !isContentSlotRegion(region.name))
+        .map((region) => region.name));
+      const nextAssignments: PageLayout["assignments"] = {};
+      for (const [regionName, screenId] of Object.entries(s.assignments ?? {})) {
+        if (assignableRegionNames.has(regionName)) {
+          nextAssignments[regionName] = screenId;
+        }
+      }
+      s.regions = nextRegions;
+      s.assignments = nextAssignments;
     });
   };
 
@@ -386,7 +474,7 @@ export function PageLayoutEditor() {
 
       {/* ─── Header ───────────────────────────────────────────────────── */}
       <EditorHeader
-        title={<><i className="bi bi-layout-wtf" /> ページレイアウト編集: <code>{pl.name}</code></>}
+        title={<><i className="bi bi-layout-wtf" /> レイアウトマネージャ: <code>{pl.name}</code></>}
         backLink={backLink}
         extraRight={
           <>
@@ -495,6 +583,143 @@ export function PageLayoutEditor() {
           </div>
         </section>
 
+        {/* ─── Layout Manager ───────────────────────────────────────── */}
+        <section className="tbl-editor-section">
+          <h3 className="tbl-editor-section-title">
+            レイアウトパターン <span className="tbl-editor-badge">{currentPattern.label}</span>
+          </h3>
+          <p className="tbl-editor-section-desc">
+            PageLayout は共通枠だけを定義します。ヘッダーやフッターなどの固定枠には Gadget を割り当て、
+            <code>main</code> は各 page Screen の本文が動的に表示される content slot として扱います。
+          </p>
+          <div className="plm-pattern-row">
+            <label className="tbl-field plm-pattern-select">
+              <span>パターン</span>
+              <select
+                value={currentPattern.id}
+                onChange={(e) => handlePatternChange(e.target.value)}
+                disabled={isReadonly}
+                className="tbl-select"
+                data-testid="page-layout-pattern-select"
+              >
+                {PAGE_LAYOUT_PATTERNS.map((pattern) => (
+                  <option key={pattern.id} value={pattern.id}>{pattern.label}</option>
+                ))}
+                {currentPattern.id === "custom" && <option value="custom">カスタム</option>}
+              </select>
+            </label>
+            <div className="plm-pattern-description">
+              {currentPattern.description}
+            </div>
+          </div>
+        </section>
+
+        <section className="tbl-editor-section">
+          <div className="plm-preview-header">
+            <div>
+              <h3 className="tbl-editor-section-title">合成プレビュー</h3>
+              <p className="tbl-editor-section-desc">
+                Gadget とサンプル画面を読み取り専用で合成します。ここでは Gadget や画面本文は編集しません。
+              </p>
+            </div>
+            <label className="tbl-field plm-sample-select">
+              <span>サンプル表示画面</span>
+              <select
+                value={samplePageId}
+                onChange={(e) => setSamplePageId(e.target.value)}
+                className="tbl-select"
+                data-testid="page-layout-sample-page-select"
+              >
+                <option value="">未選択</option>
+                {pageScreens.map((screen) => (
+                  <option key={screen.id} value={screen.id}>{screen.name}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {orphanAssignments.length > 0 && (
+            <div className="tbl-editor-hint warning" data-testid="page-layout-orphan-assignments">
+              <i className="bi bi-exclamation-triangle" />
+              {" "}存在しない region または content slot への assignment があります:
+              {" "}{orphanAssignments.map(([regionName]) => regionName).join(", ")}
+            </div>
+          )}
+
+          <div
+            className={`plm-preview ${currentPattern.previewClassName}`}
+            data-testid="page-layout-composition-preview"
+          >
+            {previewLoading && (
+              <div className="plm-preview-loading">
+                <i className="bi bi-hourglass-split" /> プレビューを読み込み中...
+              </div>
+            )}
+            {(pl.regions ?? []).map((region) => {
+              const role = getRegionRole(region.name);
+              const assignedId = (pl.assignments ?? {})[region.name];
+              const assignedName = assignedId ? gadgetNameById.get(String(assignedId)) ?? String(assignedId) : "";
+              const assignedHtml = assignedId ? previewHtmlByScreenId[String(assignedId)] : "";
+              const samplePageHtml = samplePageId ? previewHtmlByScreenId[samplePageId] : "";
+              return (
+                <div
+                  key={region.name}
+                  className={`plm-region plm-region-${role}`}
+                  data-region={region.name}
+                  data-testid={`page-layout-slot-${region.name}`}
+                >
+                  <div className="plm-region-label">
+                    <code>{region.name}</code>
+                    {isContentSlotRegion(region.name) && <span>content slot</span>}
+                  </div>
+                  {isContentSlotRegion(region.name) ? (
+                    <div className="plm-content-preview" data-testid="page-layout-content-slot-preview">
+                      {samplePageHtml ? (
+                        <>
+                          <div className="plm-readonly-tag">page: {selectedSamplePage?.name ?? samplePageId}</div>
+                          <div
+                            className="plm-design-body"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(samplePageHtml) }}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-window" />
+                          <strong>{selectedSamplePage?.name ?? "コンテンツがここに表示されます"}</strong>
+                          {selectedSamplePage && <small>{selectedSamplePage.id}</small>}
+                        </>
+                      )}
+                    </div>
+                  ) : assignedId ? (
+                    <div className="plm-gadget-preview" data-testid={`page-layout-gadget-preview-${region.name}`}>
+                      {assignedHtml ? (
+                        <>
+                          <div className="plm-readonly-tag">gadget: {assignedName}</div>
+                          <div
+                            className="plm-design-body"
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(assignedHtml) }}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-puzzle-fill" />
+                          <strong>{assignedName}</strong>
+                          <small>{String(assignedId)}</small>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="plm-empty-preview">
+                      <i className="bi bi-plus-square-dotted" />
+                      <span>Gadget 未割り当て</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         {/* ─── Regions ──────────────────────────────────────────────── */}
         <section className="tbl-editor-section">
           <h3 className="tbl-editor-section-title">
@@ -502,7 +727,7 @@ export function PageLayoutEditor() {
           </h3>
           <p className="tbl-editor-section-desc">
             予約名: <code>header</code> / <code>sidebar</code> / <code>footer</code> / <code>main</code>。
-            <code>main</code> は page Screen 本文が嵌まる content slot。
+            <code>main</code> / <code>content</code> は page Screen 本文が嵌まる content slot。
           </p>
           <table className="tbl-inline-table">
             <thead>
@@ -556,8 +781,8 @@ export function PageLayoutEditor() {
                     <button
                       className="tbl-icon-btn danger"
                       onClick={() => handleRemoveRegion(region.name)}
-                      disabled={isReadonly || region.name === "main"}
-                      title={region.name === "main" ? "main region は削除できません" : "削除"}
+                      disabled={isReadonly || isContentSlotRegion(region.name)}
+                      title={isContentSlotRegion(region.name) ? "content slot は削除できません" : "削除"}
                     >
                       <i className="bi bi-trash" />
                     </button>
@@ -607,7 +832,7 @@ export function PageLayoutEditor() {
           </h3>
           <p className="tbl-editor-section-desc">
             各 region に割り当てる gadget Screen を指定します。
-            <code>main</code> は page Screen 本文が嵌まるため通常割り当て不要。
+            content slot は page Screen 本文が嵌まるため割り当て対象外です。
           </p>
           {gadgetScreens.length === 0 && (
             <div className="tbl-editor-hint">
@@ -625,7 +850,7 @@ export function PageLayoutEditor() {
             </thead>
             <tbody>
               {(pl.regions ?? [])
-                .filter((r) => r.name !== "main")
+                .filter((r) => !isContentSlotRegion(r.name))
                 .map((region) => (
                   <tr key={region.name}>
                     <td>

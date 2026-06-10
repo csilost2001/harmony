@@ -59,12 +59,7 @@
 
 
 
-
-
-
-
-
-<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>新規作成</td><td>「ページレイアウトを追加」</td><td><code>PageLayoutEditor</code> 新タブ</td></tr><tr><td>構造編集</td><td>行クリック → 「編集」</td><td><code>/page-layout/edit/:id</code> (メタ情報 + gadget slot)</td></tr><tr><td>ビジュアル編集</td><td>行クリック → 「デザイン」</td><td><code>/page-layout/design/:id</code> (<code>PageLayoutDesigner</code>)</td></tr><tr><td>削除</td><td>右クリック → 「削除」 / <code>Delete</code></td><td>利用 Screen ありは警告</td></tr><tr><td>rename</td><td>右クリック → 「ID 変更…」 / <code>F2</code></td><td>RenameEntityDialog</td></tr></tbody></table>
+<table><thead><tr><th>操作</th><th>手段</th><th>結果</th></tr></thead><tbody><tr><td>新規作成</td><td>「ページレイアウトを追加」</td><td><code>PageLayoutEditor</code> 新タブ</td></tr><tr><td>レイアウト編集</td><td>行クリック → 「編集」</td><td><code>/page-layout/edit/:id</code> (レイアウトパターン + gadget assignment + preview)</td></tr><tr><td>削除</td><td>右クリック → 「削除」 / <code>Delete</code></td><td>利用 Screen ありは警告</td></tr><tr><td>rename</td><td>右クリック → 「ID 変更…」 / <code>F2</code></td><td>RenameEntityDialog</td></tr></tbody></table>
 <h2 id="データ前提">データ前提</h2>
 <ul>
 <li><strong>空状態</strong>: 「ページレイアウトが未登録です」</li>

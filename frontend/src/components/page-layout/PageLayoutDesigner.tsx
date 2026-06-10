@@ -4,6 +4,9 @@
  * DesignerTabHost.tsx と同等の wrap で editorKind ごとに GrapesJS / Puck を分岐。
  * pl-5 (#1026): GrapesJS 経路に region gadget injection (composition プレビュー) を追加。
  * pl-5 follow-up (#1026): Puck 経路に composition preview (RegionContext + Puck Editor) を追加。
+ *
+ * #1477 以降、通常導線の `/page-layout/design/:id` は PageLayoutEditor へ redirect する。
+ * この component は旧 design payload / `page-layout:` synthetic storage path の互換層として残す。
  */
 
 import { useParams, useNavigate } from "react-router-dom";

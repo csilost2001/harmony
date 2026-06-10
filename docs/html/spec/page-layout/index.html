@@ -86,6 +86,7 @@
 <li><code>footer</code> — 最下部、コピーライト等</li>
 <li><code>main</code> — content slot、page Screen 本文が嵌まる位置</li>
 </ul>
+<p>UI では既存データ互換の alias として <code>content</code> も content slot 扱いにする。ただし schema / spec 上の canonical 予約名は <code>main</code> とし、新規 PageLayout pattern は <code>main</code> を生成する。</p>
 <p>任意追加名も許容 (例: <code>breadcrumb</code> / <code>notification</code> / <code>subHeader</code>)。pattern: <code>^[a-z][a-zA-Z0-9_-]*$</code></p>
 <h2 id="5-routing-frontend">5. Routing (frontend)</h2>
 
@@ -138,7 +139,7 @@
 
 
 
-<table><thead><tr><th>URL</th><th>コンポーネント</th><th>tab</th></tr></thead><tbody><tr><td><code>/page-layout/list</code></td><td><code>PageLayoutListView</code></td><td>singleton</td></tr><tr><td><code>/page-layout/edit/:pageLayoutId</code></td><td><code>PageLayoutEditor</code></td><td>per-resource</td></tr><tr><td><code>/page-layout/design/:pageLayoutId</code></td><td><code>PageLayoutDesigner</code></td><td>per-resource</td></tr><tr><td><code>/gadget/list</code></td><td><code>GadgetListView</code> (Screen filter for purpose=gadget)</td><td>singleton</td></tr><tr><td><code>/screen/list</code></td><td>改修: purpose=page のみ表示</td><td>singleton</td></tr><tr><td><code>/screen/flow</code></td><td>改修: purpose=page のみ ReactFlow に描画</td><td>singleton</td></tr><tr><td><code>/screen/edit/:screenId</code></td><td>改修: purpose=page の場合に pageLayoutId 選択フィールド表示</td><td>per-resource</td></tr><tr><td><code>/screen/design/:screenId</code></td><td>改修: pageLayoutId 設定時に composition preview modal</td><td>per-resource</td></tr></tbody></table>
+<table><thead><tr><th>URL</th><th>コンポーネント</th><th>tab</th></tr></thead><tbody><tr><td><code>/page-layout/list</code></td><td><code>PageLayoutListView</code></td><td>singleton</td></tr><tr><td><code>/page-layout/edit/:pageLayoutId</code></td><td><code>PageLayoutEditor</code> (レイアウトマネージャ)</td><td>per-resource</td></tr><tr><td><code>/page-layout/design/:pageLayoutId</code></td><td>互換 redirect → <code>/page-layout/edit/:pageLayoutId</code></td><td>なし</td></tr><tr><td><code>/gadget/list</code></td><td><code>GadgetListView</code> (Screen filter for purpose=gadget)</td><td>singleton</td></tr><tr><td><code>/screen/list</code></td><td>改修: purpose=page のみ表示</td><td>singleton</td></tr><tr><td><code>/screen/flow</code></td><td>改修: purpose=page のみ ReactFlow に描画</td><td>singleton</td></tr><tr><td><code>/screen/edit/:screenId</code></td><td>改修: purpose=page の場合に pageLayoutId 選択フィールド表示</td><td>per-resource</td></tr><tr><td><code>/screen/design/:screenId</code></td><td>改修: pageLayoutId 設定時に composition preview modal</td><td>per-resource</td></tr></tbody></table>
 <h2 id="6-backend-mcp-tools-6-種完備">6. Backend MCP tools (6 種完備)</h2>
 
 
@@ -185,16 +186,20 @@
 <li><code>loadPageLayout</code> / <code>savePageLayout</code> / <code>deletePageLayout</code> / <code>listAllPageLayouts</code></li>
 <li>broadcast: <code>pageLayoutChanged</code> (data: { pageLayoutId } or { pageLayoutId, deleted: true })</li>
 </ul>
-<p><strong>design payload routing</strong> (Codex A-2 対応):</p>
+<p><strong>design payload routing</strong> (legacy):</p>
 <ul>
-<li><code>loadScreen</code> / <code>saveScreen</code> で <code>screenId.startsWith("page-layout:")</code> を検出した場合、<code>&#x3C;dataDir>/page-layouts/&#x3C;id>.design.json</code> に routing する。これは PageLayoutDesigner が Designer の synthetic id を流用するための bridge。</li>
+<li><code>loadScreen</code> / <code>saveScreen</code> で <code>screenId.startsWith("page-layout:")</code> を検出した場合、<code>&#x3C;dataDir>/page-layouts/&#x3C;id>.design.json</code> に routing する互換経路が残る。</li>
+<li>新しい PageLayout UI は PageLayout 自身の design payload を primary source とせず、<code>regions[]</code> / <code>assignments</code> とレイアウトパターンから read-only 合成プレビューを表示する。</li>
 </ul>
 <h2 id="8-designer-連携">8. Designer 連携</h2>
-<h3 id="81-pagelayout-designer-page-layoutdesignid">8.1 PageLayout Designer (<code>/page-layout/design/:id</code>)</h3>
+<h3 id="81-pagelayout-manager-page-layouteditid">8.1 PageLayout Manager (<code>/page-layout/edit/:id</code>)</h3>
 <ul>
-<li>GrapesJS の場合: <code>frontend/src/grapes/blocks.ts</code> の “Layout Regions” カテゴリで <code>region-header</code> / <code>region-sidebar</code> / <code>region-footer</code> / <code>region-main</code> の 4 ブロック (各 <code>data-region-name</code> 属性付き) を canvas に drag</li>
-<li>Puck の場合: Region primitive (<code>frontend/src/puck/primitives/Region{Header,Sidebar,Footer,Main}.tsx</code>) を Puck Config に register</li>
-<li>runtime composition preview: 各 region に assignments で指定された gadget の design HTML / Puck data を read-only inject</li>
+<li>PageLayout は GrapesJS / Puck の自由編集対象ではなく、レイアウトマネージャで定義する。</li>
+<li>レイアウトパターン (<code>header-main-footer</code> / <code>header-sidebar-main-footer</code> 等) を選び、<code>regions[]</code> を生成・調整する。</li>
+<li><code>main</code> は content slot として固定し、PageLayout 側では具体的な page Screen ID を保存しない。</li>
+<li><code>header</code> / <code>sidebar</code> / <code>footer</code> 等の固定 region には <code>Screen{purpose:"gadget"}</code> のみ割り当てる。</li>
+<li>合成プレビューでは assignments で指定された gadget design HTML と、任意に選択した sample page Screen の design HTML を read-only 表示する。design HTML を取得できない場合は Screen 名 / ID の fallback 表示にする。</li>
+<li>Gadget / page Screen 本体の編集は <code>/screen/design/:screenId</code> で行う。</li>
 </ul>
 <h3 id="82-page-screen-designer-screendesignidpurposepage">8.2 Page Screen Designer (<code>/screen/design/:id</code>、purpose=page)</h3>
 <ul>
@@ -273,10 +278,10 @@ region → CSS class マッピング: <a href="../../spec/css-framework-switchin
 <li>全画面の code generation 自動回し (現在は 1 entity ずつ skill 起動) — 別 ISSUE 候補</li>
 </ul>
 <h2 id="14-agentsmd-routing-表への反映">14. AGENTS.md Routing 表への反映</h2>
-<p><code>AGENTS.md</code> § Routing の URL 規約表に追加 (<code>feat/page-layout-series</code> で更新):</p>
+<p><code>AGENTS.md</code> § Routing の URL 規約表に追加。#1477 で PageLayout Designer は正規編集画面ではなく互換 redirect に縮退し、PageLayoutEditor がレイアウトマネージャとして定義・割当・preview を担う。</p>
 <pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>| `/page-layout/list` | PageLayoutListView | ページレイアウト一覧 | ✅ singleton |</span></span>
-<span class="line"><span>| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 | ✅ per-resource |</span></span>
-<span class="line"><span>| `/page-layout/design/:pageLayoutId` | PageLayoutDesigner | ページレイアウト Designer | ✅ per-resource |</span></span>
+<span class="line"><span>| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 (レイアウトマネージャ) | ✅ per-resource |</span></span>
+<span class="line"><span>| `/page-layout/design/:pageLayoutId` | 互換 redirect → `/page-layout/edit/:pageLayoutId` | ❌ route only |</span></span>
 <span class="line"><span>| `/gadget/list` | GadgetListView | ガジェット一覧 (purpose=gadget filter) | ✅ singleton |</span></span></code></pre>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
       // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
       document.getElementById('theme-toggle')?.addEventListener('click', () => {
