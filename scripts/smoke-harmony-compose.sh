@@ -3,9 +3,14 @@ set -euo pipefail
 
 VERSION="${1:-local}"
 IMAGE="${HARMONY_IMAGE:-ghcr.io/csilost2001/harmony:${VERSION}}"
-PORT="${HARMONY_SMOKE_PORT:-5179}"
-CONTAINER_NAME="harmony-smoke-${PORT}"
+PORT="${HARMONY_PORT:-5179}"
+WORKSPACES="${HARMONY_WORKSPACES:-.tmp/harmony-compose-smoke-workspaces}"
 ENGINE="${CONTAINER_ENGINE:-docker}"
+PROJECT_NAME="${HARMONY_COMPOSE_PROJECT:-harmony-smoke-compose}"
+export HARMONY_IMAGE="${IMAGE}"
+export HARMONY_PORT="${PORT}"
+export HARMONY_WORKSPACES="${WORKSPACES}"
+export HARMONY_WORKSPACES_MOUNT_OPTIONS="${HARMONY_WORKSPACES_MOUNT_OPTIONS:-}"
 
 if ! command -v "${ENGINE}" >/dev/null 2>&1; then
   echo "${ENGINE} command not found. Set CONTAINER_ENGINE=docker or CONTAINER_ENGINE=podman and run this on the host." >&2
@@ -17,19 +22,29 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
+mkdir -p "${WORKSPACES}"
+
+compose() {
+  if "${ENGINE}" compose version >/dev/null 2>&1; then
+    "${ENGINE}" compose -p "${PROJECT_NAME}" "$@"
+    return
+  fi
+
+  if [ "${ENGINE}" = "podman" ] && command -v podman-compose >/dev/null 2>&1; then
+    podman-compose -p "${PROJECT_NAME}" "$@"
+    return
+  fi
+
+  echo "${ENGINE} compose is not available. Install Docker Compose v2, Podman Compose, or podman-compose." >&2
+  exit 1
+}
+
 cleanup() {
-  "${ENGINE}" rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+  compose down >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-cleanup
-"${ENGINE}" run -d \
-  --name "${CONTAINER_NAME}" \
-  -p "127.0.0.1:${PORT}:5179" \
-  -e HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT=1 \
-  -v "harmony-smoke-state:/home/node/.harmony" \
-  -v "harmony-smoke-workspaces:/data/workspaces" \
-  "${IMAGE}" >/dev/null
+compose up -d
 
 for _ in $(seq 1 30); do
   if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null; then
@@ -43,7 +58,7 @@ curl -fsS "http://127.0.0.1:${PORT}/" | grep -qi '<!doctype html'
 curl -fsS \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"harmony-smoke","version":"1"}}}' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"harmony-compose-smoke","version":"1"}}}' \
   "http://127.0.0.1:${PORT}/mcp" | grep -q 'harmony-mcp'
 
 HARMONY_SMOKE_PORT="${PORT}" node -e '
@@ -56,7 +71,7 @@ const ws = new WebSocket(`ws://127.0.0.1:${port}`, {
   },
 });
 const timer = setTimeout(() => {
-  console.error("WebSocket smoke timeout");
+  console.error("WebSocket compose smoke timeout");
   process.exit(1);
 }, 3000);
 ws.once("open", () => {
@@ -70,4 +85,4 @@ ws.once("error", (err) => {
 });
 '
 
-echo "Smoke passed for ${IMAGE} on port ${PORT}"
+echo "Compose smoke passed for ${HARMONY_IMAGE} on port ${PORT}"

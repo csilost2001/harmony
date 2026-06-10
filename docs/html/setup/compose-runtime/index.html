@@ -1,0 +1,209 @@
+<!DOCTYPE html><html lang="ja" class="dark"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="../../favicon.svg" type="image/svg+xml"><title>compose runtime</title><meta name="description" content><pagefind-config bundle-path="/pagefind/"></pagefind-config> <script type="module" src="../../_astro/PagefindConfig.astro_astro_type_script_index_0_lang.Cea9gCkK.js"></script><script>
+      // FOUC 回避: テーマ復元を <head> 内で実行 (paint 前)
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    </script><link rel="stylesheet" href="../../_astro/_slug_.XtJAgJeQ.css"></head> <body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen"> <header class="border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/85 dark:bg-slate-950/85 backdrop-blur z-20"> <div class="max-w-screen-2xl mx-auto px-4 py-3 flex items-center gap-4"> <a href="../../" class="font-bold text-lg tracking-tight">Harmony Docs</a> <nav class="hidden md:flex gap-3 text-sm text-slate-600 dark:text-slate-400"> <a href="../../spec/" class="hover:text-slate-900 dark:hover:text-slate-100">仕様書</a> <a href="../../user-guide/" class="hover:text-slate-900 dark:hover:text-slate-100">ユーザーガイド</a> <a href="../../conventions/" class="hover:text-slate-900 dark:hover:text-slate-100">規約</a> <a href="../../setup/" class="hover:text-slate-900 dark:hover:text-slate-100">セットアップ</a> <a href="../../presentation/" class="hover:text-slate-900 dark:hover:text-slate-100">プレゼン</a> </nav> <div class="flex-1"></div> <pagefind-modal-trigger> <button type="button" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+🔍 検索
+</button> </pagefind-modal-trigger> <button type="button" id="theme-toggle" class="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Toggle theme">
+🌓
+</button> </div> </header> <div class="max-w-screen-2xl mx-auto px-4 py-6 flex gap-6"> <aside class="w-60 shrink-0 hidden lg:block" data-pagefind-ignore> <nav class="sticky top-20 space-y-3 text-sm"> <div> <div class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-3 mb-1.5"> セットアップ </div> <ul class="space-y-0.5"> <li> <a href="../../setup/dev-containers/" class="sidebar-link"> Dev Containers (推奨) </a> </li><li> <a href="../../setup/compose-runtime/" class="sidebar-link active"> Compose runtime </a> </li><li> <a href="../../setup/wsl2-native/" class="sidebar-link"> WSL2 native (代替) </a> </li><li> <a href="../../setup/distribution-roadmap/" class="sidebar-link"> Docker image 配布 </a> </li><li> <a href="../../setup/customer-project-agents-template/" class="sidebar-link"> Customer AGENTS template </a> </li> </ul> </div> </nav> </aside> <main class="flex-1 min-w-0"> <article class="prose dark:prose-invert max-w-none">   <h1 id="harmony-を-compose-で起動する">Harmony を Compose で起動する</h1>
+<p>Harmony を <strong>開発せず、設計ツールとして起動して使う</strong> 場合の手順。Harmony 本体のコードを編集する開発者は <a href="../../setup/dev-containers/"><code>dev-containers.md</code></a> を使う。</p>
+<h2 id="判断表">判断表</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>目的</th><th>使うもの</th><th>コマンド</th></tr></thead><tbody><tr><td>Harmony 本体を開発する</td><td>VS Code Dev Containers</td><td><code>npm run backend</code> + <code>npm run frontend</code></td></tr><tr><td>Harmony を GUI ツールとして使う</td><td>Docker Compose</td><td><code>docker compose up</code></td></tr><tr><td>Docker ではなく Podman で使う</td><td>Podman Compose</td><td><code>podman compose up</code></td></tr><tr><td>image を作る maintainer 作業</td><td>host の Docker / Podman</td><td><code>bash scripts/build-harmony-image.sh local</code></td></tr></tbody></table>
+<p>Compose は複数コンテナ専用ではなく、単一コンテナの起動設定をファイル化する用途にも使う。Harmony の配布 runtime は 1 container なので、<code>compose.yml</code> は長い <code>docker run</code> を利用者に打たせないための起動レシピ。</p>
+<h2 id="前提">前提</h2>
+<ul>
+<li>Docker Compose v2 (<code>docker compose</code>) または Podman Compose (<code>podman compose</code> / <code>podman-compose</code>)</li>
+<li>起動する image が pull 済み、または local build 済み</li>
+<li>host 側 workspace directory</li>
+</ul>
+<p>checked-in default の <code>HARMONY_IMAGE</code> は <code>ghcr.io/csilost2001/harmony:local</code> なので、公開済み tag を指定しない場合は先に local image を作る。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/build-harmony-image.sh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> local</span></span></code></pre>
+<p>Podman で build する場合:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">CONTAINER_ENGINE</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">podman</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/build-harmony-image.sh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> local</span></span></code></pre>
+<h2 id="起動">起動</h2>
+<p>local default のまま起動する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/build-harmony-image.sh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> local</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="color:#032F62;--shiki-dark:#96D0FF"> up</span></span></code></pre>
+<p>公開済み image tag を使う場合は <code>.env</code> に tag を指定してから起動する。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">cp</span><span style="color:#032F62;--shiki-dark:#96D0FF"> .env.example</span><span style="color:#032F62;--shiki-dark:#96D0FF"> .env</span></span>
+<span class="line"><span style="color:#6A737D;--shiki-dark:#768390"># .env の HARMONY_IMAGE を ghcr.io/csilost2001/harmony:&#x3C;version> に変更</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="color:#032F62;--shiki-dark:#96D0FF"> up</span></span></code></pre>
+<p>ブラウザで開く:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="text"><code><span class="line"><span>http://127.0.0.1:5179/</span></span></code></pre>
+<p>background 起動:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="color:#032F62;--shiki-dark:#96D0FF"> up</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -d</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="color:#032F62;--shiki-dark:#96D0FF"> logs</span><span style="color:#005CC5;--shiki-dark:#6CB6FF"> -f</span><span style="color:#032F62;--shiki-dark:#96D0FF"> harmony</span></span>
+<span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="color:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="color:#032F62;--shiki-dark:#96D0FF"> down</span></span></code></pre>
+<p>Podman の場合:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">podman</span><span style="color:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="color:#032F62;--shiki-dark:#96D0FF"> up</span></span></code></pre>
+<p>環境によって <code>podman compose</code> ではなく <code>podman-compose</code> の場合がある。</p>
+<h2 id="設定変更">設定変更</h2>
+<p>必要な場合だけ <code>.env.example</code> を <code>.env</code> にコピーして編集する。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">cp</span><span style="color:#032F62;--shiki-dark:#96D0FF"> .env.example</span><span style="color:#032F62;--shiki-dark:#96D0FF"> .env</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>変数</th><th>既定値</th><th>用途</th></tr></thead><tbody><tr><td><code>HARMONY_IMAGE</code></td><td><code>ghcr.io/csilost2001/harmony:local</code></td><td>起動する image。local default は事前 build 必須</td></tr><tr><td><code>HARMONY_PORT</code></td><td><code>5179</code></td><td>host 側公開 port</td></tr><tr><td><code>HARMONY_WORKSPACES</code></td><td><code>./workspaces</code></td><td>host 側 workspace directory</td></tr><tr><td><code>HARMONY_WORKSPACES_MOUNT_OPTIONS</code></td><td>empty</td><td>Podman + SELinux 用 mount option</td></tr></tbody></table>
+<p>host 側 port を変える例:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="text"><code><span class="line"><span>HARMONY_PORT=5180</span></span></code></pre>
+<p>起動 URL は <code>http://127.0.0.1:5180/</code> になる。</p>
+<p>workspace directory を変える例:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="text"><code><span class="line"><span>HARMONY_WORKSPACES=/home/me/harmony-workspaces</span></span></code></pre>
+<h2 id="セキュリティ境界">セキュリティ境界</h2>
+<p><code>compose.yml</code> は port を <code>127.0.0.1:${HARMONY_PORT}:5179</code> に bind する。LAN へ公開しないこと。</p>
+<p><code>HARMONY_TRUST_LOCALHOST_PUBLISHED_PORT=1</code> は no-Origin MCP client を Docker / Podman の published port 経由で使うための opt-in。これは <code>127.0.0.1</code> bind とセットで使う前提で、<code>0.0.0.0:5179:5179</code> のような公開 bind とは組み合わせない。</p>
+<h2 id="podman-補足">Podman 補足</h2>
+<p>Image は Docker 専用機能に依存していないため、Podman でも動作する想定。ただし会社環境の Podman 構成差があるため、以下を確認する。</p>
+<ul>
+<li><code>podman compose version</code> が通るか</li>
+<li>通らない場合は <code>podman-compose</code> が使えるか</li>
+<li>SELinux 有効 host では bind mount に <code>:Z</code> が必要か</li>
+</ul>
+<p>SELinux で workspace bind mount が permission denied になる場合:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="text"><code><span class="line"><span>HARMONY_WORKSPACES_MOUNT_OPTIONS=:Z</span></span></code></pre>
+<h2 id="smoke">Smoke</h2>
+<p>Compose 起動経路を smoke する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/smoke-harmony-compose.sh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> local</span></span></code></pre>
+<p>Podman で smoke する:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#24292E;--shiki-dark:#ADBAC7">CONTAINER_ENGINE</span><span style="color:#D73A49;--shiki-dark:#F47067">=</span><span style="color:#032F62;--shiki-dark:#96D0FF">podman</span><span style="color:#6F42C1;--shiki-dark:#F69D50"> bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/smoke-harmony-compose.sh</span><span style="color:#032F62;--shiki-dark:#96D0FF"> local</span></span></code></pre>
+<p>公開済み tag を smoke する場合は <code>&#x3C;version></code> を渡す。</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="background-color:#fff;--shiki-dark-bg:#22272e;color:#24292e;--shiki-dark:#adbac7; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6F42C1;--shiki-dark:#F69D50">bash</span><span style="color:#032F62;--shiki-dark:#96D0FF"> scripts/smoke-harmony-compose.sh</span><span style="color:#D73A49;--shiki-dark:#F47067"> &#x3C;</span><span style="color:#032F62;--shiki-dark:#96D0FF">versio</span><span style="color:#24292E;--shiki-dark:#ADBAC7">n</span><span style="color:#D73A49;--shiki-dark:#F47067">></span></span></code></pre>
+<p>確認内容:</p>
+<ul>
+<li><code>/health</code></li>
+<li>SPA HTML</li>
+<li><code>/mcp</code> initialize</li>
+<li>host 側からの WebSocket handshake</li>
+</ul>
+<h2 id="dev-containers-との違い">Dev Containers との違い</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>項目</th><th>Dev Containers</th><th>Compose runtime</th></tr></thead><tbody><tr><td>目的</td><td>Harmony 本体を開発する</td><td>Harmony を起動して使う</td></tr><tr><td>対象者</td><td>contributor / AI coding agent</td><td>業務アプリ設計者</td></tr><tr><td>起動</td><td>VS Code 拡張が Docker を裏で操作</td><td>利用者が <code>docker compose up</code></td></tr><tr><td>frontend</td><td>Vite dev server port 5173</td><td>backend が static SPA を port 5179 で配信</td></tr><tr><td>backend</td><td><code>npm run backend</code></td><td>image 内 <code>node backend/dist/index.js</code></td></tr><tr><td>repo clone</td><td>必須</td><td>公開済み image と compose file があれば不要。local build / smoke では checkout が必要</td></tr></tbody></table>  </article> </main> </div> <pagefind-modal reset-on-close="true"></pagefind-modal> <script>
+      // Theme toggle (restore は <head> で先行実行済、FOUC 回避)
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem(
+          'theme',
+          document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+        );
+      });
+
+      // Copy buttons on <pre>
+      (function () {
+        document.querySelectorAll('pre').forEach((pre) => {
+          if (pre.querySelector('.copy-btn')) return;
+          const btn = document.createElement('button');
+          btn.textContent = 'Copy';
+          btn.className = 'copy-btn';
+          btn.type = 'button';
+          btn.addEventListener('click', async () => {
+            const code = pre.querySelector('code')?.textContent ?? '';
+            try {
+              await navigator.clipboard.writeText(code);
+              btn.textContent = 'Copied!';
+              setTimeout(() => (btn.textContent = 'Copy'), 2000);
+            } catch {
+              btn.textContent = 'Failed';
+            }
+          });
+          pre.appendChild(btn);
+        });
+      })();
+    </script> </body> </html>

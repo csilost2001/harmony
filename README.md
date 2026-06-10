@@ -8,6 +8,19 @@
 
 ---
 
+## 使い分け
+
+| 目的 | 推奨入口 | 起動コマンド |
+|---|---|---|
+| Harmony 本体を開発する | Dev Containers | `npm run backend` + `npm run frontend` |
+| Harmony を起動して設計ツールとして使う | Compose | `docker compose up` |
+| 配布 image を build / smoke する | host WSL2/Linux | `bash scripts/build-harmony-image.sh local` |
+| Docker ではなく Podman を使う | Compose + Podman | `podman compose up` |
+
+Dev Containers は **開発者向け**、Compose は **利用者向け**です。VS Code Dev Containers は内部で Docker を使いますが、開発者が `docker run` を直接打たない運用です。Compose は長い `docker run` の起動設定を `compose.yml` に固定し、利用者が短いコマンドで Harmony を起動するために使います。
+
+---
+
 ## Quick Start (Dev Containers)
 
 本プロジェクトの**推奨開発環境**は Dev Containers です。`.devcontainer/devcontainer.json` はリポジトリに含まれており (git tracked)、`git clone` した時点で自動的に手元に届きます。
@@ -90,13 +103,13 @@ codex login      # ChatGPT Plus 利用時
 
 WSL2 native セットアップも引き続きサポート対象です: [`docs/setup/wsl2-native.md`](docs/setup/wsl2-native.md)
 
-Docker image 配布方針と maintainer 向け build / smoke 手順は [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) を参照してください。通常の本体開発は引き続き Dev Containers が推奨です。
+Docker / Podman Compose で Harmony を「使うだけ」の場合は [`docs/setup/compose-runtime.md`](docs/setup/compose-runtime.md) を参照してください。Docker image 配布方針と maintainer 向け build / smoke 手順は [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) を参照してください。通常の本体開発は引き続き Dev Containers が推奨です。
 
 ---
 
 ## 利用者別ガイド
 
-本プロジェクトには性質の異なる 3 種類の利用者がいます。**(1) と (2) は本リポジトリで開発環境を構築**します。**(3) は別レイヤー**で、本リポジトリの開発環境は不要です。
+本プロジェクトには性質の異なる 3 種類の利用者がいます。**(1) は本リポジトリで開発環境を構築**します。**(2) は Compose runtime で利用し、Harmony 本体を改造する場合だけ本リポジトリを checkout** します。**(3) は別レイヤー**で、本リポジトリの開発環境は不要です。
 
 ### (1) Harmony 本体開発者 (本リポジトリの contributor)
 
@@ -111,19 +124,40 @@ Harmony 自体のコードを改造する開発者。
 
 Harmony を起動して GUI と `/generate-code` で業務アプリを設計・生成する人。
 
-- 上の Quick Start でセットアップ (現状は (1) と同じ経路)
+- Docker / Podman が使える環境では `compose.yml` で起動: [`docs/setup/compose-runtime.md`](docs/setup/compose-runtime.md)
+- Harmony 本体 repo を編集する必要がある場合のみ上の Dev Containers Quick Start を使う
 - 業務設計者向けワークフロー: [`docs/user-guide/`](docs/user-guide/)
 - 業界別サンプルプロジェクト: [`examples/`](examples/)
-- Docker image 配布が有効な環境では、Harmony 本体 repo を編集対象にせず `docker compose up` で起動する運用を選べます ([`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md))
 
-### Docker image をローカルで確認する maintainer 向け手順
+### Compose で Harmony を起動する利用者向け手順
 
-Docker build / smoke は Dev Container 内ではなく、Docker Desktop / Docker Engine に接続できる WSL2 host などで実行します。
+現時点の checked-in default は local preview 用の `ghcr.io/csilost2001/harmony:local` です。公開済み image tag を使う場合は `.env` の `HARMONY_IMAGE` を `ghcr.io/csilost2001/harmony:<version>` に変更してください。local default のまま使う場合は先に image を build します。
+
+```bash
+bash scripts/build-harmony-image.sh local
+cp .env.example .env   # 必要な場合だけ編集
+docker compose up
+```
+
+ブラウザで `http://127.0.0.1:5179/` を開きます。Podman 環境では `podman compose up` を使います。詳細は [`docs/setup/compose-runtime.md`](docs/setup/compose-runtime.md) を参照してください。
+
+### Docker / Podman image をローカルで確認する maintainer 向け手順
+
+Image build / smoke は Dev Container 内ではなく、Docker Desktop / Docker Engine / Podman に接続できる WSL2 host などで実行します。
 
 ```bash
 cd ~/projects/harmony
 bash scripts/build-harmony-image.sh local
 HARMONY_IMAGE=ghcr.io/csilost2001/harmony:local bash scripts/smoke-harmony-image.sh local
+bash scripts/smoke-harmony-compose.sh local
+```
+
+Podman の場合:
+
+```bash
+CONTAINER_ENGINE=podman bash scripts/build-harmony-image.sh local
+CONTAINER_ENGINE=podman HARMONY_IMAGE=ghcr.io/csilost2001/harmony:local bash scripts/smoke-harmony-image.sh local
+CONTAINER_ENGINE=podman bash scripts/smoke-harmony-compose.sh local
 ```
 
 配布 image は container port 5179 で SPA / HTTP MCP / WebSocket をまとめて提供します。smoke script は `127.0.0.1:${HARMONY_SMOKE_PORT}:5179` で local-only publish し、`HARMONY_SMOKE_PORT=5180` のように host 側 port を変えると host port remap も smoke できます。
