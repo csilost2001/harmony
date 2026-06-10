@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+VERSION="${1:-local}"
+IMAGE="${HARMONY_IMAGE:-ghcr.io/csilost2001/harmony:${VERSION}}"
 PORT="${HARMONY_PORT:-5179}"
 ENGINE="${CONTAINER_ENGINE:-docker}"
 PROJECT_NAME="${HARMONY_COMPOSE_PROJECT:-harmony-smoke-compose}"
+export HARMONY_IMAGE="${IMAGE}"
 
 if ! command -v "${ENGINE}" >/dev/null 2>&1; then
   echo "${ENGINE} command not found. Set CONTAINER_ENGINE=docker or CONTAINER_ENGINE=podman and run this on the host." >&2
@@ -76,4 +79,4 @@ ws.once("error", (err) => {
 });
 '
 
-echo "Compose smoke passed for ${HARMONY_IMAGE:-ghcr.io/csilost2001/harmony:local} on port ${PORT}"
+echo "Compose smoke passed for ${HARMONY_IMAGE} on port ${PORT}"

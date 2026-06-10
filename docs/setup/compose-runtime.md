@@ -19,7 +19,7 @@ Compose は複数コンテナ専用ではなく、単一コンテナの起動設
 - 起動する image が pull 済み、または local build 済み
 - host 側 workspace directory
 
-maintainer が local image を作る場合:
+checked-in default の `HARMONY_IMAGE` は `ghcr.io/csilost2001/harmony:local` なので、公開済み tag を指定しない場合は先に local image を作る。
 
 ```bash
 bash scripts/build-harmony-image.sh local
@@ -33,9 +33,18 @@ CONTAINER_ENGINE=podman bash scripts/build-harmony-image.sh local
 
 ## 起動
 
-既定値のまま起動する:
+local default のまま起動する:
 
 ```bash
+bash scripts/build-harmony-image.sh local
+docker compose up
+```
+
+公開済み image tag を使う場合は `.env` に tag を指定してから起動する。
+
+```bash
+cp .env.example .env
+# .env の HARMONY_IMAGE を ghcr.io/csilost2001/harmony:<version> に変更
 docker compose up
 ```
 
@@ -71,7 +80,7 @@ cp .env.example .env
 
 | 変数 | 既定値 | 用途 |
 |---|---|---|
-| `HARMONY_IMAGE` | `ghcr.io/csilost2001/harmony:local` | 起動する image |
+| `HARMONY_IMAGE` | `ghcr.io/csilost2001/harmony:local` | 起動する image。local default は事前 build 必須 |
 | `HARMONY_PORT` | `5179` | host 側公開 port |
 | `HARMONY_WORKSPACES` | `./workspaces` | host 側 workspace directory |
 | `HARMONY_WORKSPACES_MOUNT_OPTIONS` | empty | Podman + SELinux 用 mount option |
@@ -115,13 +124,19 @@ HARMONY_WORKSPACES_MOUNT_OPTIONS=:Z
 Compose 起動経路を smoke する:
 
 ```bash
-bash scripts/smoke-harmony-compose.sh
+bash scripts/smoke-harmony-compose.sh local
 ```
 
 Podman で smoke する:
 
 ```bash
-CONTAINER_ENGINE=podman bash scripts/smoke-harmony-compose.sh
+CONTAINER_ENGINE=podman bash scripts/smoke-harmony-compose.sh local
+```
+
+公開済み tag を smoke する場合は `<version>` を渡す。
+
+```bash
+bash scripts/smoke-harmony-compose.sh <version>
 ```
 
 確認内容:
@@ -140,4 +155,4 @@ CONTAINER_ENGINE=podman bash scripts/smoke-harmony-compose.sh
 | 起動 | VS Code 拡張が Docker を裏で操作 | 利用者が `docker compose up` |
 | frontend | Vite dev server port 5173 | backend が static SPA を port 5179 で配信 |
 | backend | `npm run backend` | image 内 `node backend/dist/index.js` |
-| repo clone | 必須 | compose file と image があれば不要 |
+| repo clone | 必須 | 公開済み image と compose file があれば不要。local build / smoke では checkout が必要 |

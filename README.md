@@ -131,7 +131,10 @@ Harmony を起動して GUI と `/generate-code` で業務アプリを設計・�
 
 ### Compose で Harmony を起動する利用者向け手順
 
+現時点の checked-in default は local preview 用の `ghcr.io/csilost2001/harmony:local` です。公開済み image tag を使う場合は `.env` の `HARMONY_IMAGE` を `ghcr.io/csilost2001/harmony:<version>` に変更してください。local default のまま使う場合は先に image を build します。
+
 ```bash
+bash scripts/build-harmony-image.sh local
 cp .env.example .env   # 必要な場合だけ編集
 docker compose up
 ```
@@ -146,6 +149,7 @@ Image build / smoke は Dev Container 内ではなく、Docker Desktop / Docker 
 cd ~/projects/harmony
 bash scripts/build-harmony-image.sh local
 HARMONY_IMAGE=ghcr.io/csilost2001/harmony:local bash scripts/smoke-harmony-image.sh local
+bash scripts/smoke-harmony-compose.sh local
 ```
 
 Podman の場合:
@@ -153,6 +157,7 @@ Podman の場合:
 ```bash
 CONTAINER_ENGINE=podman bash scripts/build-harmony-image.sh local
 CONTAINER_ENGINE=podman HARMONY_IMAGE=ghcr.io/csilost2001/harmony:local bash scripts/smoke-harmony-image.sh local
+CONTAINER_ENGINE=podman bash scripts/smoke-harmony-compose.sh local
 ```
 
 配布 image は container port 5179 で SPA / HTTP MCP / WebSocket をまとめて提供します。smoke script は `127.0.0.1:${HARMONY_SMOKE_PORT}:5179` で local-only publish し、`HARMONY_SMOKE_PORT=5180` のように host 側 port を変えると host port remap も smoke できます。

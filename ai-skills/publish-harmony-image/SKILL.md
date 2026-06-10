@@ -27,7 +27,7 @@ Dev Container 内から依頼された場合は、利用者に host 側で以下
 cd ~/projects/harmony
 bash scripts/build-harmony-image.sh <version>
 bash scripts/smoke-harmony-image.sh <version>
-bash scripts/smoke-harmony-compose.sh
+bash scripts/smoke-harmony-compose.sh <version>
 docker push ghcr.io/csilost2001/harmony:<version>
 ```
 
@@ -36,7 +36,7 @@ Podman の場合:
 ```bash
 CONTAINER_ENGINE=podman bash scripts/build-harmony-image.sh <version>
 CONTAINER_ENGINE=podman bash scripts/smoke-harmony-image.sh <version>
-CONTAINER_ENGINE=podman bash scripts/smoke-harmony-compose.sh
+CONTAINER_ENGINE=podman bash scripts/smoke-harmony-compose.sh <version>
 podman push ghcr.io/csilost2001/harmony:<version>
 ```
 
@@ -45,7 +45,7 @@ podman push ghcr.io/csilost2001/harmony:<version>
 1. `docker info` または `podman info` が成功する
 2. ghcr.io push 時は `docker login ghcr.io -u <github-user>` または `podman login ghcr.io -u <github-user>` 済み
 3. PAT には `write:packages` scope がある
-4. tag 衝突確認: `docker manifest inspect ghcr.io/csilost2001/harmony:<version>` が失敗すること
+4. tag 衝突確認: Docker では `docker manifest inspect ghcr.io/csilost2001/harmony:<version>`、Podman では `podman manifest inspect ghcr.io/csilost2001/harmony:<version>` が失敗すること
 
 ## 手順
 
@@ -75,7 +75,7 @@ HARMONY_IMAGE=harmony:local bash scripts/build-harmony-image.sh local
 
 ```bash
 bash scripts/smoke-harmony-image.sh <version>
-bash scripts/smoke-harmony-compose.sh
+bash scripts/smoke-harmony-compose.sh <version>
 ```
 
 確認内容:

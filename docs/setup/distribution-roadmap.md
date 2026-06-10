@@ -71,7 +71,10 @@ smoke は `/health`、SPA HTML、`/mcp` initialize、host 側からの WebSocket
 
 repo root の [`compose.yml`](../../compose.yml) を利用者向け runtime entrypoint とする。利用者は原則として長い `docker run` を打たず、以下で起動する。
 
+checked-in default の image は local preview 用の `ghcr.io/csilost2001/harmony:local`。公開済み image tag がある場合は `.env` の `HARMONY_IMAGE` を `ghcr.io/csilost2001/harmony:<version>` に変更する。local default のまま使う場合は先に `bash scripts/build-harmony-image.sh local` を実行する。
+
 ```bash
+bash scripts/build-harmony-image.sh local
 docker compose up
 ```
 

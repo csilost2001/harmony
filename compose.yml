@@ -1,5 +1,8 @@
 services:
   harmony:
+    # The default :local tag is for repo-local preview and must be built first:
+    #   bash scripts/build-harmony-image.sh local
+    # Set HARMONY_IMAGE=ghcr.io/csilost2001/harmony:<version> for published images.
     image: ${HARMONY_IMAGE:-ghcr.io/csilost2001/harmony:local}
     ports:
       - "127.0.0.1:${HARMONY_PORT:-5179}:5179"
