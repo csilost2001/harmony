@@ -163,6 +163,10 @@ export const workspaceHandlers: RpcHandlerMap = {
   },
 
   "workspace.open": async ({ params, clientId, respond, respondError, bridge }) => {
+    if (isWorkspaceLockdown()) {
+      respondError("DESIGNER_DATA_DIR で固定モード中のため、ワークスペースを切り替えできません");
+      return;
+    }
     const { path: targetPath, id, init, dataDir: initDataDir } = (params ?? {}) as {
       path?: string; id?: string; init?: boolean; dataDir?: string
     };
@@ -177,21 +181,13 @@ export const workspaceHandlers: RpcHandlerMap = {
     }
     let resolved = typeof targetPath === "string" ? targetPath : null;
     if (!resolved && typeof id === "string") {
-      // S-010: lockdown モード中は recent.json を読まず、lockdown パスのみを返す (CWE-863)
-      if (isWorkspaceLockdown()) {
-        const lockdownPath = getWorkspaceLockdownPath();
-        if (!lockdownPath) { respondError("lockdown パスが未設定です"); return; }
-        resolved = lockdownPath;
-      } else {
-        const entry = await findWorkspaceById(id);
-        if (!entry) { respondError(`id ${id} のワークスペースが見つかりません`); return; }
-        resolved = entry.path;
-      }
+      const entry = await findWorkspaceById(id);
+      if (!entry) { respondError(`id ${id} のワークスペースが見つかりません`); return; }
+      resolved = entry.path;
     }
     if (!resolved) { respondError("path 解決に失敗しました"); return; }
     let initName: string | null = null;
     if (initFlag) {
-      if (isWorkspaceLockdown()) { respondError("lockdown モード中は新規ワークスペース初期化はできません"); return; }
       try {
         const initOpts = typeof initDataDir === "string" ? { dataDir: initDataDir } : undefined;
         const initRes = await initializeWorkspaceFolder(resolved, initOpts);

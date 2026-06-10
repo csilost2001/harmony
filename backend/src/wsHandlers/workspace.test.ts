@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { workspaceHandlers } from "./workspace.js";
-import { upsertWorkspaceRoot } from "../recentStore.js";
+import { upsertWorkspace, upsertWorkspaceRoot } from "../recentStore.js";
 import {
   initWorkspaceState,
   workspaceContextManager,
@@ -88,6 +88,34 @@ describe("workspace root RPC lockdown behavior", () => {
 
     expect(getResponse()).toBeUndefined();
     expect(getError()).toMatch(/lockdown/);
+    expect(readSpy).not.toHaveBeenCalled();
+    readSpy.mockRestore();
+  });
+
+  it("workspace.open rejects path before filesystem inspect in lockdown", async () => {
+    enterLockdown();
+    const accessSpy = vi.spyOn(fs, "access");
+
+    const { ctx, getResponse, getError } = makeContext({ path: path.join(TMP_ROOT, "missing-project") });
+    await workspaceHandlers["workspace.open"](ctx);
+
+    expect(getResponse()).toBeUndefined();
+    expect(getError()).toMatch(/固定モード.*切り替え/);
+    expect(getError()).not.toMatch(/フォルダが見つかりません/);
+    expect(accessSpy).not.toHaveBeenCalled();
+    accessSpy.mockRestore();
+  });
+
+  it("workspace.open rejects id before recent lookup in lockdown", async () => {
+    const entry = await upsertWorkspace(path.join(TMP_ROOT, "existing-project"), "Existing");
+    enterLockdown();
+    const readSpy = vi.spyOn(fs, "readFile");
+
+    const { ctx, getResponse, getError } = makeContext({ id: entry.id });
+    await workspaceHandlers["workspace.open"](ctx);
+
+    expect(getResponse()).toBeUndefined();
+    expect(getError()).toMatch(/固定モード.*切り替え/);
     expect(readSpy).not.toHaveBeenCalled();
     readSpy.mockRestore();
   });
