@@ -284,13 +284,19 @@ export function PageLayoutEditor() {
 
     const uniqueIds = [...new Set(previewScreenIds)];
     if (uniqueIds.length === 0) {
-      setPreviewHtmlByScreenId({});
-      setPreviewLoading(false);
-      return;
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setPreviewHtmlByScreenId({});
+        setPreviewLoading(false);
+      });
+      return () => { cancelled = true; };
     }
 
     let cancelled = false;
-    setPreviewLoading(true);
+    queueMicrotask(() => {
+      if (!cancelled) setPreviewLoading(true);
+    });
     Promise.all(uniqueIds.map(async (screenId) => {
       try {
         const design = await mcpBridge.request("loadScreen", { screenId });
@@ -524,11 +530,11 @@ export function PageLayoutEditor() {
         ownerLabel={lockedByOther?.ownerSessionId}
       />
 
-      <div className="table-editor-content">
+      <div className="table-editor-content page-layout-editor-content">
         {/* ─── 基本情報 ─────────────────────────────────────────────── */}
-        <section className="tbl-editor-section">
+        <section className="tbl-editor-section plm-compact-section">
           <h3 className="tbl-editor-section-title">基本情報</h3>
-          <div className="tbl-field-group">
+          <div className="plm-basic-grid">
             <label className="tbl-field">
               <span>名前</span>
               <input
@@ -536,16 +542,6 @@ export function PageLayoutEditor() {
                 value={pl.name}
                 onChange={(e) => updateWithDraft((s) => { s.name = e.target.value as typeof s.name; })}
                 disabled={isReadonly}
-                className="tbl-input"
-              />
-            </label>
-            <label className="tbl-field">
-              <span>説明</span>
-              <textarea
-                value={pl.description ?? ""}
-                onChange={(e) => updateWithDraft((s) => { s.description = e.target.value || undefined; })}
-                disabled={isReadonly}
-                rows={2}
                 className="tbl-input"
               />
             </label>
@@ -562,36 +558,60 @@ export function PageLayoutEditor() {
                 ))}
               </select>
             </label>
-            <label className="tbl-field">
-              <span>エディタ種別 <small className="tbl-field-hint">(作成後変更不可)</small></span>
-              <input
-                type="text"
-                value={pl.design?.editorKind ?? "—"}
-                disabled
-                className="tbl-input"
-              />
-            </label>
-            <label className="tbl-field">
-              <span>CSS フレームワーク <small className="tbl-field-hint">(作成後変更不可)</small></span>
-              <input
-                type="text"
-                value={pl.design?.cssFramework ?? "—"}
-                disabled
-                className="tbl-input"
-              />
-            </label>
           </div>
+          <details className="plm-details">
+            <summary>
+              <i className="bi bi-sliders" /> 詳細設定
+            </summary>
+            <div className="plm-details-grid">
+              <label className="tbl-field plm-details-wide">
+                <span>説明</span>
+                <textarea
+                  value={pl.description ?? ""}
+                  onChange={(e) => updateWithDraft((s) => { s.description = e.target.value || undefined; })}
+                  disabled={isReadonly}
+                  rows={2}
+                  className="tbl-input"
+                />
+              </label>
+              <label className="tbl-field">
+                <span>エディタ種別 <small className="tbl-field-hint">(作成後変更不可)</small></span>
+                <input
+                  type="text"
+                  value={pl.design?.editorKind ?? "—"}
+                  disabled
+                  className="tbl-input"
+                />
+              </label>
+              <label className="tbl-field">
+                <span>CSS フレームワーク <small className="tbl-field-hint">(作成後変更不可)</small></span>
+                <input
+                  type="text"
+                  value={pl.design?.cssFramework ?? "—"}
+                  disabled
+                  className="tbl-input"
+                />
+              </label>
+              <label className="tbl-field plm-details-wide">
+                <span>processFlowId <small className="tbl-field-hint">(任意)</small></span>
+                <input
+                  type="text"
+                  value={pl.processFlowId ?? ""}
+                  onChange={(e) => updateWithDraft((s) => { s.processFlowId = (e.target.value || undefined) as typeof s.processFlowId; })}
+                  disabled={isReadonly}
+                  placeholder="ProcessFlow EntityId (kebab-case、例: order-entry-flow、任意)"
+                  className="tbl-input"
+                />
+              </label>
+            </div>
+          </details>
         </section>
 
         {/* ─── Layout Manager ───────────────────────────────────────── */}
-        <section className="tbl-editor-section">
+        <section className="tbl-editor-section plm-compact-section">
           <h3 className="tbl-editor-section-title">
             レイアウトパターン <span className="tbl-editor-badge">{currentPattern.label}</span>
           </h3>
-          <p className="tbl-editor-section-desc">
-            PageLayout は共通枠だけを定義します。ヘッダーやフッターなどの固定枠には Gadget を割り当て、
-            <code>main</code> は各 page Screen の本文が動的に表示される content slot として扱います。
-          </p>
           <div className="plm-pattern-row">
             <label className="tbl-field plm-pattern-select">
               <span>パターン</span>
@@ -609,7 +629,10 @@ export function PageLayoutEditor() {
               </select>
             </label>
             <div className="plm-pattern-description">
-              {currentPattern.description}
+              <span>{currentPattern.description}</span>
+              <small>
+                <code>main</code> は各 page Screen の本文が入る content slot です。
+              </small>
             </div>
           </div>
         </section>
@@ -875,24 +898,6 @@ export function PageLayoutEditor() {
           </table>
         </section>
 
-        {/* ─── ProcessFlow (任意) ───────────────────────────────────── */}
-        <section className="tbl-editor-section">
-          <h3 className="tbl-editor-section-title">ProcessFlow 連携 <small className="tbl-field-hint">(任意)</small></h3>
-          <p className="tbl-editor-section-desc">
-            ガジェット間連携 orchestrator として紐付ける ProcessFlow を指定します (RFC #1021)。
-          </p>
-          <label className="tbl-field">
-            <span>processFlowId</span>
-            <input
-              type="text"
-              value={pl.processFlowId ?? ""}
-              onChange={(e) => updateWithDraft((s) => { s.processFlowId = (e.target.value || undefined) as typeof s.processFlowId; })}
-              disabled={isReadonly}
-              placeholder="ProcessFlow EntityId (kebab-case、例: order-entry-flow、任意)"
-              className="tbl-input"
-            />
-          </label>
-        </section>
       </div>
 
       {/* ─── maturity badge (bottom corner) ──────────────────────────── */}

@@ -1,7 +1,103 @@
+.page-layout-editor-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 18px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page-layout-editor-content .tbl-editor-section {
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.035);
+}
+
+.page-layout-editor-content .tbl-editor-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: #f8fafc;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.page-layout-editor-content .tbl-editor-section-desc {
+  margin: -4px 0 12px;
+  color: #a9afc6;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.page-layout-editor-content .tbl-editor-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(124,107,255,0.18);
+  color: #c4baff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.page-layout-editor-content .tbl-field {
+  margin-bottom: 0;
+}
+
+.plm-compact-section {
+  padding-block: 12px;
+}
+
+.plm-basic-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(200px, 280px);
+  gap: 12px;
+  align-items: end;
+}
+
+.plm-details {
+  margin-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  color: #d8dcef;
+}
+
+.plm-details summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  margin-top: 8px;
+  color: #aeb5cc;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.plm-details summary::marker,
+.plm-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.plm-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.plm-details-wide {
+  grid-column: 1 / -1;
+}
+
 .plm-pattern-row {
   display: grid;
-  grid-template-columns: minmax(240px, 360px) 1fr;
-  gap: 16px;
+  grid-template-columns: minmax(220px, 340px) 1fr;
+  gap: 12px;
   align-items: end;
 }
 
@@ -10,13 +106,21 @@
 }
 
 .plm-pattern-description {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   color: #b8bdd6;
-  font-size: 13px;
-  line-height: 1.6;
-  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 8px 10px;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 6px;
   background: rgba(255,255,255,0.03);
+}
+
+.plm-pattern-description small {
+  color: #8f97b1;
+  font-size: 11px;
 }
 
 .plm-preview-header {
@@ -33,7 +137,7 @@
 }
 
 .plm-preview {
-  min-height: 360px;
+  min-height: min(430px, calc(100vh - 300px));
   border: 1px solid #3f4563;
   border-radius: 8px;
   background: #111827;
@@ -189,6 +293,7 @@
 .plm-design-body {
   width: 100%;
   min-height: 32px;
+  max-height: min(560px, 72vh);
   border-radius: 5px;
   background: rgba(255,255,255,0.92);
   color: #1f2937;
@@ -196,7 +301,7 @@
   pointer-events: none;
   user-select: none;
   text-align: left;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .plm-design-body * {
@@ -204,6 +309,12 @@
 }
 
 @media (max-width: 900px) {
+  .page-layout-editor-content {
+    padding: 10px 12px 56px;
+  }
+
+  .plm-basic-grid,
+  .plm-details-grid,
   .plm-pattern-row,
   .plm-preview-header {
     grid-template-columns: 1fr;

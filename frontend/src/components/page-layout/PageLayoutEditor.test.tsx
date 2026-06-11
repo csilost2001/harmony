@@ -192,6 +192,16 @@ describe("PageLayoutEditor", () => {
     expect(screen.getByTestId("page-layout-pattern-select")).toHaveValue("header-main-footer");
   });
 
+  it("uses a scrollable editor body and keeps low-frequency metadata collapsed", async () => {
+    renderEditor();
+
+    await waitFor(() => {
+      expect(document.querySelector(".page-layout-editor-content")).toBeTruthy();
+    });
+    expect(screen.getByText("詳細設定").closest("details")).not.toHaveAttribute("open");
+    expect(screen.queryByText("ProcessFlow 連携")).not.toBeInTheDocument();
+  });
+
   it("does not expose assignment dropdown for the content slot", async () => {
     renderEditor();
 
