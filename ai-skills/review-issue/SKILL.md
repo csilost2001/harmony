@@ -137,7 +137,7 @@ ISSUE が画面デザイン / デザイナー / cssFramework / editorKind に関
 - `docs/spec/` を勝手に書き換えない (不備は指摘のみ)
 - `gh issue close` / `gh issue edit` 等の書き込み系は**コメント投稿以外禁止**
 - テスト実行は read-only の範囲 (`--update-snapshots` 等は不可)
-- ファイル編集は `tmp/review-cache/` 配下の一時ファイルのみ可 (`tmp/` は `.gitignore` 済)
+- ファイル編集は `.tmp/review-cache/` 配下の一時ファイルのみ可 (`.tmp/` は `.gitignore` 済)
 
 ## 報告フォーマット
 
@@ -145,7 +145,7 @@ ISSUE が画面デザイン / デザイナー / cssFramework / editorKind に関
 
 ### 1. 一時ファイルに書き出し
 
-事前に `mkdir -p tmp/review-cache` でディレクトリを確保してから、`tmp/review-cache/review-issue-$ARGUMENTS.md` に以下の構造で書き出す:
+事前に `mkdir -p .tmp/review-cache` でディレクトリを確保してから、`.tmp/review-cache/review-issue-$ARGUMENTS.md` に以下の構造で書き出す:
 
 ```markdown
 ## Claude Review (ISSUE 完了監査) — <YYYY-MM-DD>
@@ -226,10 +226,10 @@ ISSUE が画面デザイン / デザイナー / cssFramework / editorKind に関
 ### 2. ISSUE にコメント投稿
 
 ```bash
-gh issue comment $ARGUMENTS --body-file tmp/review-cache/review-issue-$ARGUMENTS.md
+gh issue comment $ARGUMENTS --body-file .tmp/review-cache/review-issue-$ARGUMENTS.md
 ```
 
-投稿前にユーザーの許可を得るフローになる (権限設定による)。拒否された場合でも `tmp/review-cache/review-issue-$ARGUMENTS.md` に結果が残っているので、ユーザーが内容を確認してから手動で投稿できる。
+投稿前にユーザーの許可を得るフローになる (権限設定による)。拒否された場合でも `.tmp/review-cache/review-issue-$ARGUMENTS.md` に結果が残っているので、ユーザーが内容を確認してから手動で投稿できる。
 
 ### 3. 完了報告
 

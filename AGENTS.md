@@ -367,7 +367,7 @@ Copy-Item -Recurse -Force examples\retail\* workspaces\retail\
 |------|--------|
 | MCP スクリーンショット (Playwright / chrome-devtools) | `.tmp/screenshots/` |
 | AI 中間作業ファイル (handoff notes / dogfood レポート等) | `.tmp/` |
-| スキル出力 (`/review-pr` / `/review-issue` 等) | `tmp/review-cache/` |
+| スキル出力 (`/review-pr` / `/review-issue` 等) | `.tmp/review-cache/` |
 | ログファイル | `logs/` |
 | Playwright / Vitest テスト成果物 | `test-results/` または `frontend/test-results/` |
 
@@ -375,7 +375,7 @@ Copy-Item -Recurse -Force examples\retail\* workspaces\retail\
 
 - ❌ プロジェクトルートへの `.png` / `.log` / `.md` 一時ファイル直置き
 - ❌ `screenshots/` をルート直下に作成する (`.tmp/screenshots/` を使う)
-- ❌ 新規ファイルを `tmp/` に作成する — 新規は `.tmp/` に統一、`tmp/review-cache/` のみ既存例外
+- ❌ 新規ファイルを `tmp/` に作成する — 新規は `.tmp/` 配下に統一する
 
 ### スクリーンショット取得時の手順
 

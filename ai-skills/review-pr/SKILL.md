@@ -166,17 +166,17 @@ gh pr diff <PR番号> --name-only | grep -E "(useEditSession|EditSessionDropdown
 - `docs/spec/` を勝手に書き換えない (spec 不備は指摘のみ)
 - 追加の実装コミットを作らない (`git commit` / `git push` 禁止)
 - テスト実行は read-only の範囲 (`npx vitest run` / `npx playwright test` は可、ただし `--update-snapshots` 等の書き込みオプションは不可)
-- ファイル編集は `tmp/review-cache/` 配下の一時ファイルのみ可 (レビュー結果書き出し用。`tmp/` は `.gitignore` 済)
+- ファイル編集は `.tmp/review-cache/` 配下の一時ファイルのみ可 (レビュー結果書き出し用。`.tmp/` は `.gitignore` 済)
 
 ## 報告フォーマット
 
 結果を一時ファイルに書き出してから `gh pr comment` で投稿する。
 
-一時ファイルの保存先は **プロジェクト直下の `tmp/review-cache/` 配下** にする (OS 非依存・`.gitignore` 済で commit 事故なし・`gh` から絶対パスで参照可能・`.claude/` 配下の保護対象外なので書き込み確認が不要)。Unix の `/tmp/` や Windows の `%TEMP%` はツール間で path 解決が揺れるため使わない。
+一時ファイルの保存先は **プロジェクト直下の `.tmp/review-cache/` 配下** にする (OS 非依存・`.gitignore` 済で commit 事故なし・`gh` から絶対パスで参照可能・`.claude/` 配下の保護対象外なので書き込み確認が不要)。Unix の `/tmp/` や Windows の `%TEMP%` はツール間で path 解決が揺れるため使わない。
 
 ### 1. 一時ファイルに書き出し
 
-事前に `mkdir -p tmp/review-cache` でディレクトリを確保してから、`tmp/review-cache/review-pr-$ARGUMENTS.md` に以下の構造で書き出す:
+事前に `mkdir -p .tmp/review-cache` でディレクトリを確保してから、`.tmp/review-cache/review-pr-$ARGUMENTS.md` に以下の構造で書き出す:
 
 ```markdown
 ## Claude Review (別セッション) — <YYYY-MM-DD>
@@ -232,10 +232,10 @@ UI 影響のある PR ならマージ判断はユーザー。レビューは判�
 ### 2. PR にコメント投稿
 
 ```bash
-gh pr comment $ARGUMENTS --body-file tmp/review-cache/review-pr-$ARGUMENTS.md
+gh pr comment $ARGUMENTS --body-file .tmp/review-cache/review-pr-$ARGUMENTS.md
 ```
 
-投稿前にユーザーの許可を得るフローになる (権限設定による)。拒否された場合でも `tmp/review-cache/review-pr-$ARGUMENTS.md` に結果が残っているので、ユーザーが内容を確認してから手動で投稿できる。
+投稿前にユーザーの許可を得るフローになる (権限設定による)。拒否された場合でも `.tmp/review-cache/review-pr-$ARGUMENTS.md` に結果が残っているので、ユーザーが内容を確認してから手動で投稿できる。
 
 ### 3. 完了報告
 
