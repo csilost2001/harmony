@@ -298,14 +298,18 @@
   background: rgba(255,255,255,0.92);
   color: #1f2937;
   padding: 8px;
-  pointer-events: none;
   user-select: none;
   text-align: left;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 .plm-design-body * {
   max-width: 100%;
+}
+
+.plm-design-body :is(a, button, input, select, textarea, summary, [role="button"], [tabindex]) {
+  pointer-events: none;
 }
 
 @media (max-width: 900px) {
