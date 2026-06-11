@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { readFileSync } from "node:fs";
 
 // ─── mock heavy deps ─────────────────────────────────────────────────────────
 
@@ -125,6 +126,8 @@ vi.mock("../../hooks/useSessionUrlSync", () => ({
 
 import { PageLayoutEditor } from "./PageLayoutEditor";
 
+const pageLayoutManagerCss = readFileSync("src/styles/pageLayoutManager.css", "utf8");
+
 // ─── helper ─────────────────────────────────────────────────────────────────
 
 function renderEditor(id = "pl-test-001") {
@@ -147,6 +150,11 @@ describe("PageLayoutEditor", () => {
     vi.clearAllMocks();
     editSessionMock.modeKind = "readonly";
     localStorage.clear();
+    document.querySelectorAll('style[data-test-style="page-layout-manager"]').forEach((el) => el.remove());
+    const style = document.createElement("style");
+    style.dataset.testStyle = "page-layout-manager";
+    style.textContent = pageLayoutManagerCss;
+    document.head.appendChild(style);
   });
 
   it("renders without crash and shows loading then editor", async () => {
@@ -192,6 +200,16 @@ describe("PageLayoutEditor", () => {
     expect(screen.getByTestId("page-layout-pattern-select")).toHaveValue("header-main-footer");
   });
 
+  it("uses a scrollable editor body and keeps low-frequency metadata collapsed", async () => {
+    renderEditor();
+
+    await waitFor(() => {
+      expect(document.querySelector(".page-layout-editor-content")).toBeTruthy();
+    });
+    expect(screen.getByText("詳細設定").closest("details")).not.toHaveAttribute("open");
+    expect(screen.queryByText("ProcessFlow 連携")).not.toBeInTheDocument();
+  });
+
   it("does not expose assignment dropdown for the content slot", async () => {
     renderEditor();
 
@@ -208,6 +226,25 @@ describe("PageLayoutEditor", () => {
     await waitFor(() => {
       expect(within(headerPreview).getByText("Header Body")).toBeInTheDocument();
     });
+  });
+
+  it("keeps injected design preview bodies scrollable", async () => {
+    renderEditor();
+
+    const headerPreview = await screen.findByTestId("page-layout-gadget-preview-header");
+    await waitFor(() => {
+      expect(within(headerPreview).getByText("Header Body")).toBeInTheDocument();
+    });
+    const designBody = headerPreview.querySelector<HTMLElement>(".plm-design-body");
+    expect(designBody).toBeTruthy();
+    expect(getComputedStyle(designBody!).overflowY).toMatch(/auto|scroll/);
+    expect(getComputedStyle(designBody!).pointerEvents).not.toBe("none");
+
+    designBody!.innerHTML = `<div style="height: 2000px;">Tall preview</div>`;
+    Object.defineProperty(designBody, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(designBody, "scrollHeight", { configurable: true, value: 2000 });
+    designBody!.scrollTop = 120;
+    expect(designBody!.scrollTop).toBe(120);
   });
 
   it("renders selected sample page design body in the content slot", async () => {
