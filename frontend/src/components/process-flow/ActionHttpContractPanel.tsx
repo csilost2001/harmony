@@ -42,7 +42,7 @@ export function ActionHttpContractPanel({ action, onChange }: Props) {
   };
 
   return (
-    <div className="action-http-contract-panel" style={{ margin: "8px 0", borderTop: "1px dashed #e2e8f0", paddingTop: 8 }}>
+    <div className="action-http-contract-panel" style={{ margin: "8px 0", borderTop: "1px dashed var(--hm-border)", paddingTop: 8 }}>
       <button
         type="button"
         className="btn btn-sm btn-link p-0 text-dark"

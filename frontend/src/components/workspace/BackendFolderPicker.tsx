@@ -194,7 +194,7 @@ export function BackendFolderPicker({ initialPath, onSelect, onClose }: BackendF
                         style={{
                           fontSize: "0.7rem",
                           background: "var(--accent, #4dabf7)",
-                          color: "#fff",
+                          color: "var(--hm-on-solid)",
                           borderRadius: "3px",
                           padding: "1px 5px",
                         }}

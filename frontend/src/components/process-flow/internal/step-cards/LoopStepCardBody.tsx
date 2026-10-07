@@ -154,7 +154,7 @@ export function LoopStepCardBody({
           ループ本体
           <i
             className={`bi bi-chevron-${loopBodyCollapsed ? "right" : "down"} ms-auto`}
-            style={{ color: "#94a3b8" }}
+            style={{ color: "var(--hm-fg-faint)" }}
           />
         </div>
         {!loopBodyCollapsed && (

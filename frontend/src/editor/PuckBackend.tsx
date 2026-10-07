@@ -354,7 +354,7 @@ function PuckEditorPane({
           style={{
             padding: "6px 12px",
             background: "#0070f3",
-            color: "#fff",
+            color: "var(--hm-on-solid)",
             border: "none",
             borderRadius: 4,
             cursor: "pointer",
@@ -442,7 +442,7 @@ function CompositeSaveButton({ onRequestSave }: CompositeSaveButtonProps) {
       style={{
         padding: "6px 12px",
         background: disabled ? "#9bb7e0" : "#0070f3",
-        color: "#fff",
+        color: "var(--hm-fg)",
         border: "none",
         borderRadius: 4,
         cursor: disabled ? "not-allowed" : "pointer",

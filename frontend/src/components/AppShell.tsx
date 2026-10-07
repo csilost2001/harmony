@@ -108,9 +108,9 @@ function RedirectGuardBanner({ summary }: { summary: readonly string[] }) {
   return (
     <div style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-      background: "#b71c1c", color: "#fff",
+      background: "#b71c1c", color: "var(--hm-on-solid)",
       padding: "12px 16px", fontSize: 13,
-      borderBottom: "2px solid #7f0000",
+      borderBottom: "2px solid color-mix(in srgb, #ff0a0a 45%, var(--hm-surface))",
       boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
     }}>
       <strong><i className="bi bi-exclamation-octagon-fill" /> リダイレクトループ検出 — 遷移を停止しました</strong>
@@ -140,7 +140,7 @@ function ConnectionFailedView({ onRetry }: { onRetry: () => void }) {
       color: "var(--muted-text, #ccc)",
       backgroundColor: "var(--bg-color, #1a1a1a)",
     }}>
-      <div style={{ fontSize: "3rem", color: "#dc3545" }}>
+      <div style={{ fontSize: "3rem", color: "color-mix(in srgb, #db2e3f 80%, var(--hm-fg))" }}>
         <i className="bi bi-plug-fill" />
       </div>
       <h2 style={{ margin: 0, fontSize: "1.25rem", color: "var(--text-color, #fff)" }}>
@@ -154,7 +154,7 @@ function ConnectionFailedView({ onRetry }: { onRetry: () => void }) {
           backend サーバ (port 5179) が起動しているか確認してください。
         </p>
         <pre style={{
-          background: "rgba(255,255,255,0.05)", padding: "12px 16px", borderRadius: 6,
+          background: "var(--hm-surface-2)", padding: "12px 16px", borderRadius: 6,
           fontSize: "0.8125rem", textAlign: "left", margin: "12px auto",
         }}>cd backend{"\n"}npm run dev</pre>
         <p style={{ margin: "12px 0 0" }}>
@@ -166,7 +166,7 @@ function ConnectionFailedView({ onRetry }: { onRetry: () => void }) {
         onClick={onRetry}
         style={{
           padding: "8px 24px", fontSize: "0.9375rem",
-          background: "#0d6efd", color: "#fff", border: "none", borderRadius: 6,
+          background: "#0d6efd", color: "var(--hm-on-solid)", border: "none", borderRadius: 6,
           cursor: "pointer", marginTop: 8,
         }}
       >

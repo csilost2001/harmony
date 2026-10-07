@@ -55,7 +55,7 @@ export function SaveBlockModal({ open, defaultName, onSave, onClose }: Props) {
               checked={shared}
               onChange={(e) => setShared(e.target.checked)}
             />
-            <i className="bi bi-share-fill" style={{ color: "#6366f1", fontSize: 12 }} />
+            <i className="bi bi-share-fill" style={{ color: "color-mix(in srgb, #1e23eb 80%, var(--hm-fg))", fontSize: 12 }} />
             <span>共有ブロックとして登録</span>
             <span className="save-block-shared-hint">（複数画面に一括反映できます）</span>
           </label>

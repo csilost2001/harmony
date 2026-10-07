@@ -8,8 +8,8 @@
   height: calc(100vh - var(--common-header-h, 0px) - var(--tabbar-h, 0px));
   display: flex;
   flex-direction: column;
-  background: #1a1a2e;
-  color: #e0e0e0;
+  background: var(--hm-surface);
+  color: var(--hm-fg);
 }
 
 .er-diagram-canvas {
@@ -19,7 +19,7 @@
 
 /* ReactFlow 背景を暗くする */
 .er-diagram-canvas .react-flow__background {
-  background: #1a1a2e;
+  background: var(--hm-surface);
 }
 
 /* ── ツールバー ────────────────────────────────────────────────────────── */
@@ -29,8 +29,8 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: #222240;
-  border-top: 1px solid #333;
+  background: var(--hm-surface);
+  border-top: 1px solid var(--hm-border);
 }
 
 .er-toolbar-group {
@@ -42,21 +42,21 @@
 .er-toolbar-sep {
   width: 1px;
   height: 20px;
-  background: #444;
+  background: var(--hm-surface-3);
   margin: 0 8px;
 }
 
 .er-toolbar-info {
   font-size: 12px;
-  color: #888;
+  color: var(--hm-fg-muted);
   margin-left: auto;
 }
 
 /* ── テーブルノード ────────────────────────────────────────────────────── */
 
 .er-table-node {
-  background: #fff;
-  border: 2px solid #e2e8f0;
+  background: var(--hm-surface);
+  border: 2px solid var(--hm-border);
   border-radius: 8px;
   min-width: 200px;
   max-width: 280px;
@@ -84,13 +84,13 @@
   justify-content: space-between;
   gap: 6px;
   padding: 8px 10px 2px;
-  background: #f8fafc;
+  background: var(--hm-surface-2);
 }
 
 .er-node-name {
   font-weight: 700;
   font-size: 13px;
-  color: #1e293b;
+  color: var(--hm-fg);
   font-family: "Consolas", "Monaco", monospace;
 }
 
@@ -98,17 +98,17 @@
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 3px;
-  background: rgba(124,107,255,0.1);
-  color: #7c6bff;
+  background: color-mix(in srgb, #260aff 10%, transparent);
+  color: color-mix(in srgb, #260aff 80%, var(--hm-fg));
   white-space: nowrap;
 }
 
 .er-node-logical {
   padding: 0 10px 6px;
   font-size: 11px;
-  color: #94a3b8;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  color: var(--hm-fg-faint);
+  background: var(--hm-surface-2);
+  border-bottom: 1px solid var(--hm-border);
 }
 
 /* カラム一覧 */
@@ -125,23 +125,23 @@
 }
 
 .er-col:hover {
-  background: #f1f5f9;
+  background: var(--hm-surface-2);
 }
 
 .er-col.pk {
-  background: #fefce8;
+  background: var(--hm-surface-2);
 }
 
 .er-col.pk:hover {
-  background: #fef9c3;
+  background: color-mix(in srgb, #fbe70e 7%, var(--hm-surface));
 }
 
 .er-col.fk {
-  background: #eff6ff;
+  background: var(--hm-surface-2);
 }
 
 .er-col.fk:hover {
-  background: #dbeafe;
+  background: var(--hm-surface-3);
 }
 
 .er-col-icon {
@@ -152,11 +152,11 @@
 }
 
 .pk-icon {
-  color: #ca8a04;
+  color: color-mix(in srgb, #faae0f 80%, var(--hm-fg));
 }
 
 .fk-icon {
-  color: #3b82f6;
+  color: color-mix(in srgb, #156af4 80%, var(--hm-fg));
 }
 
 .er-col-icon-space {
@@ -167,7 +167,7 @@
 .er-col-name {
   flex: 1;
   font-family: "Consolas", "Monaco", monospace;
-  color: #334155;
+  color: var(--hm-fg-2);
   font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -176,7 +176,7 @@
 
 .er-col-type {
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
   font-family: "Consolas", "Monaco", monospace;
   white-space: nowrap;
 }
@@ -188,15 +188,15 @@
   gap: 4px;
   padding: 4px 10px;
   font-size: 10px;
-  color: #7c6bff;
+  color: color-mix(in srgb, #260aff 80%, var(--hm-fg));
   cursor: pointer;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--hm-border);
   margin-top: 2px;
   transition: background 0.1s;
 }
 
 .er-col-toggle:hover {
-  background: #f1f5f9;
+  background: var(--hm-surface-2);
 }
 
 /* ── ハンドル ──────────────────────────────────────────────────────────── */
@@ -204,8 +204,8 @@
 .er-handle {
   width: 8px !important;
   height: 8px !important;
-  background: #cbd5e1 !important;
-  border: 2px solid #fff !important;
+  background: var(--hm-surface-4) !important;
+  border: 2px solid var(--hm-border) !important;
   transition: background 0.15s !important;
 }
 
@@ -216,7 +216,7 @@
 /* ── エッジ（リレーション線） ──────────────────────────────────────────── */
 
 .er-edge-physical {
-  stroke: #64748b;
+  stroke: var(--hm-border-strong);
   stroke-width: 2;
 }
 
@@ -229,31 +229,31 @@
 /* ── IE記法（Crow's foot）マーカー ─────────────────────────────────────── */
 
 .er-marker-one line {
-  stroke: #64748b;
+  stroke: var(--hm-border-strong);
   stroke-width: 2;
 }
 
 .er-marker-many line {
-  stroke: #64748b;
+  stroke: var(--hm-border-strong);
   stroke-width: 2;
 }
 
 /* ── 論理リレーション追加モーダル ──────────────────────────────────────── */
 
 .er-relation-modal {
-  background: #2a2a4a;
+  background: var(--hm-surface-2);
   border-radius: 10px;
   padding: 24px;
   min-width: 420px;
   max-width: 520px;
-  border: 1px solid #444;
+  border: 1px solid var(--hm-border);
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 
 .er-relation-modal .tbl-modal-title {
   font-size: 16px;
   font-weight: 600;
-  color: #fff;
+  color: var(--hm-fg);
   margin-bottom: 16px;
 }
 
@@ -265,7 +265,7 @@
 }
 
 .er-relation-arrow {
-  color: #7c6bff;
+  color: color-mix(in srgb, #260aff 80%, var(--hm-fg));
   font-size: 18px;
   flex-shrink: 0;
 }
@@ -278,7 +278,7 @@
   padding: 1px 6px;
   border-radius: 3px;
   background: rgba(100,116,139,0.15);
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
 }
 
 .er-badge-logical {
@@ -288,8 +288,8 @@
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 3px;
-  background: rgba(124,107,255,0.15);
-  color: #a99bff;
+  background: color-mix(in srgb, #260aff 15%, transparent);
+  color: color-mix(in srgb, #2c0aff 80%, var(--hm-fg));
 }
 
 /* ── エクスポートメニュー ──────────────────────────────────────────────── */
@@ -299,8 +299,8 @@
   bottom: 100%;
   right: 0;
   margin-bottom: 4px;
-  background: #2a2a4a;
-  border: 1px solid #444;
+  background: var(--hm-surface-2);
+  border: 1px solid var(--hm-border);
   border-radius: 8px;
   padding: 4px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
@@ -315,7 +315,7 @@
   padding: 8px 12px;
   border: none;
   background: none;
-  color: #ddd;
+  color: var(--hm-fg);
   font-size: 13px;
   cursor: pointer;
   border-radius: 4px;

@@ -12,11 +12,11 @@ interface Props {
 // #1186 Phase 1: common.v3 Note.kind 規範に揃え 5 値のみ表示 (assumption / prerequisite / todo / deferred / question)。
 // 旧 enum の "decision" / "risk" 値は actionMigration.ts:noteKind で "deferred" に正規化される (read 時 fallback)。
 const TYPE_META: Record<StepNoteType, { icon: string; label: string; color: string }> = {
-  assumption: { icon: "bi-lightbulb", label: "想定", color: "#64748b" },
-  prerequisite: { icon: "bi-list-check", label: "前提", color: "#475569" },
-  todo: { icon: "bi-check2-square", label: "TODO", color: "#a855f7" },
-  deferred: { icon: "bi-pause-circle", label: "保留", color: "#94a3b8" },
-  question: { icon: "bi-question-circle", label: "質問", color: "#ef4444" },
+  assumption: { icon: "bi-lightbulb", label: "想定", color: "var(--hm-fg-muted)" },
+  prerequisite: { icon: "bi-list-check", label: "前提", color: "var(--hm-fg-2)" },
+  todo: { icon: "bi-check2-square", label: "TODO", color: "color-mix(in srgb, #8715f4 80%, var(--hm-fg))" },
+  deferred: { icon: "bi-pause-circle", label: "保留", color: "var(--hm-fg-faint)" },
+  question: { icon: "bi-question-circle", label: "質問", color: "color-mix(in srgb, #ec1d1d 80%, var(--hm-fg))" },
 };
 
 // defensive lookup — `type` が未定義 / 不明値の場合は `kind` (旧フィールド) も試し、

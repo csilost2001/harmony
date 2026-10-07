@@ -2,7 +2,7 @@
   font-family: "Yu Gothic UI", "Meiryo", "Segoe UI", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
-  color: #212529;
+  color: var(--hm-fg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -20,7 +20,7 @@ body,
 }
 
 body {
-  background-color: #f8f9fa;
+  background-color: var(--hm-surface-2);
   overflow: hidden;
 }
 
@@ -32,4 +32,12 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* プレースホルダ (例示) は入力済みの値と見分けられるよう、淡色 + 斜体にする */
+input::placeholder,
+textarea::placeholder {
+  color: var(--hm-fg-faint);
+  font-style: italic;
+  opacity: 1;
 }

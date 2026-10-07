@@ -5,7 +5,7 @@
   justify-content: center;
   padding: 2rem;
   min-height: 60vh;
-  background: #fafbfc;
+  background: var(--hm-surface-2);
 }
 
 .app-error-fallback-panel,
@@ -13,9 +13,9 @@
   max-width: 820px;
   width: 100%;
   padding: 2rem 2.25rem;
-  border: 1px solid #e0e3e8;
+  border: 1px solid var(--hm-border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--hm-surface);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
@@ -23,7 +23,7 @@
 .tab-error-fallback-panel h2 {
   margin: 0 0 0.75rem;
   font-size: 1.25rem;
-  color: #b02a37;
+  color: color-mix(in srgb, #d03948 80%, var(--hm-fg));
 }
 
 .app-error-fallback-panel h1 i,
@@ -33,7 +33,7 @@
 
 .app-error-fallback-panel p,
 .tab-error-fallback-panel p {
-  color: #495057;
+  color: var(--hm-fg-2);
   margin: 0 0 1rem;
 }
 
@@ -52,12 +52,12 @@
 }
 
 .error-details-message {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--hm-surface-2);
+  border: 1px solid var(--hm-border);
   border-radius: 4px;
   padding: 0.75rem;
   font-size: 0.9rem;
-  color: #343a40;
+  color: var(--hm-fg-2);
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 180px;
@@ -67,9 +67,9 @@
 
 .error-details-block {
   margin-bottom: 0.5rem;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--hm-border);
   border-radius: 4px;
-  background: #fff;
+  background: var(--hm-surface);
 }
 
 .error-details-block > summary {
@@ -77,20 +77,20 @@
   user-select: none;
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
-  color: #495057;
+  color: var(--hm-fg-2);
   list-style: revert;
 }
 
 .error-details-block[open] > summary {
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--hm-border);
 }
 
 .error-details-pre {
   margin: 0;
   padding: 0.75rem;
   font-size: 0.78rem;
-  color: #212529;
-  background: #f8f9fa;
+  color: var(--hm-fg);
+  background: var(--hm-surface-2);
   border-radius: 0 0 4px 4px;
   white-space: pre-wrap;
   word-break: break-word;
@@ -102,7 +102,7 @@
   margin: 0;
   padding: 0.75rem;
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--hm-fg-muted);
 }
 
 .error-details-actions {
@@ -126,7 +126,7 @@
 }
 
 .error-dialog-panel {
-  background: #fff;
+  background: var(--hm-surface);
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   max-width: 820px;
@@ -142,14 +142,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.9rem 1.25rem;
-  border-bottom: 1px solid #e9ecef;
-  background: #fff5f5;
+  border-bottom: 1px solid var(--hm-border);
+  background: var(--hm-surface-2);
 }
 
 .error-dialog-header h2 {
   margin: 0;
   font-size: 1.05rem;
-  color: #b02a37;
+  color: color-mix(in srgb, #d03948 80%, var(--hm-fg));
 }
 
 .error-dialog-header h2 i {
@@ -160,14 +160,14 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #495057;
+  color: var(--hm-fg-2);
   font-size: 1rem;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
 }
 
 .error-dialog-close:hover {
-  background: #e9ecef;
+  background: var(--hm-surface-3);
 }
 
 .error-dialog-body {
@@ -177,9 +177,9 @@
 
 .error-dialog-footer {
   padding: 0.75rem 1.25rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--hm-border);
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  background: #fafbfc;
+  background: var(--hm-surface-2);
 }

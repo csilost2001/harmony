@@ -255,7 +255,7 @@ export function PageLayoutDesigner() {
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "center",
         height: "100vh", flexDirection: "column", gap: 16,
-        fontFamily: "system-ui, sans-serif", color: "#64748b",
+        fontFamily: "system-ui, sans-serif", color: "var(--hm-fg-muted)",
       }}>
         <div className="spinner" />
         <p>読み込み中...</p>
@@ -268,16 +268,16 @@ export function PageLayoutDesigner() {
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "center",
         height: "100vh", flexDirection: "column", gap: 16,
-        fontFamily: "system-ui, sans-serif", color: "#64748b",
+        fontFamily: "system-ui, sans-serif", color: "var(--hm-fg-muted)",
       }}>
-        <i className="bi bi-exclamation-triangle" style={{ fontSize: 48, color: "#f59e0b" }} />
-        <h2 style={{ margin: 0, color: "#334155" }}>ページレイアウトが見つかりません</h2>
+        <i className="bi bi-exclamation-triangle" style={{ fontSize: 48, color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))" }} />
+        <h2 style={{ margin: 0, color: "var(--hm-fg-2)" }}>ページレイアウトが見つかりません</h2>
         <p>指定された ID のページレイアウトは存在しないか、削除されています。</p>
         <button
           onClick={() => navigate(wsPath("/page-layout/list"))}
           style={{
             padding: "8px 20px", border: "none", borderRadius: 6,
-            background: "#6366f1", color: "#fff", cursor: "pointer", fontSize: 14,
+            background: "#6366f1", color: "var(--hm-on-solid)", cursor: "pointer", fontSize: 14,
           }}
         >
           <i className="bi bi-arrow-left" /> 一覧に戻る

@@ -230,7 +230,7 @@ export function BranchStepCardBody({
               )}
               <i
                 className={`bi bi-chevron-${isCollapsed ? "right" : "down"}`}
-                style={{ color: "#94a3b8", flexShrink: 0 }}
+                style={{ color: "var(--hm-fg-faint)", flexShrink: 0 }}
               />
             </div>
             {!isCollapsed && (
@@ -267,7 +267,7 @@ export function BranchStepCardBody({
               onClick={() => toggleBranchCollapse(el.id)}
             >
               <span className="branch-code-badge">ELSE</span>
-              <span style={{ flex: 1, fontSize: "0.78rem", color: "#64748b" }}>
+              <span style={{ flex: 1, fontSize: "0.78rem", color: "var(--hm-fg-muted)" }}>
                 その他の場合
               </span>
               {!readOnly && <button
@@ -283,7 +283,7 @@ export function BranchStepCardBody({
               </button>}
               <i
                 className={`bi bi-chevron-${isCollapsed ? "right" : "down"}`}
-                style={{ color: "#94a3b8", flexShrink: 0 }}
+                style={{ color: "var(--hm-fg-faint)", flexShrink: 0 }}
               />
             </div>
             {!isCollapsed && (

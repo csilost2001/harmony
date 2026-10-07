@@ -6,15 +6,7 @@
   --common-header-h: 40px;
   --panel-left-w: 280px;
   --panel-right-w: 300px;
-  --dz-bg: #1e1e2e;
-  --dz-bg-2: #27293a;
-  --dz-bg-3: #30334a;
-  --dz-border: #3b3e55;
-  --dz-text: #e4e6f0;
-  --dz-text-dim: #9a9db5;
-  --dz-accent: #6366f1;
-  --dz-accent-hover: #7c7ff1;
-  --dz-danger: #ef4444;
+  /* --dz-* (designer 配色) は styles/tokens.css でトークンに結び付けている */
 }
 
 .designer-root {
@@ -67,7 +59,7 @@
   cursor: not-allowed;
 }
 .icon-btn.danger:hover {
-  background-color: rgba(239, 68, 68, 0.15);
+  background-color: color-mix(in srgb, #ec1d1d 15%, transparent);
   color: var(--dz-danger);
 }
 
@@ -81,10 +73,10 @@
   justify-content: flex-end;
 }
 .save-indicator.saving {
-  color: #fbbf24;
+  color: color-mix(in srgb, #fbb90f 80%, var(--hm-fg));
 }
 .save-indicator.saved {
-  color: #10b981;
+  color: color-mix(in srgb, #1eeca7 80%, var(--hm-fg));
 }
 .spin {
   display: inline-block;
@@ -98,7 +90,7 @@
 
 .btn-primary-sm {
   background-color: var(--dz-accent);
-  color: #fff;
+  color: var(--hm-fg);
   border: none;
   padding: 6px 14px;
   border-radius: 6px;
@@ -183,14 +175,14 @@
 }
 .theme-menu-item.active {
   background: var(--dz-accent);
-  color: #fff;
+  color: var(--hm-fg);
 }
 .theme-swatch {
   display: inline-block;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid var(--hm-border);
   flex-shrink: 0;
 }
 
@@ -365,12 +357,12 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
   background: var(--dz-bg-2);
 }
 .blocks-list::-webkit-scrollbar-thumb {
-  background: #4b4f6c;
+  background: var(--hm-surface-4);
   border-radius: 999px;
   border: 2px solid var(--dz-bg-2);
 }
 .blocks-list::-webkit-scrollbar-thumb:hover {
-  background: #646888;
+  background: var(--hm-surface-4);
 }
 
 .blocks-list-scroll-end {
@@ -432,10 +424,10 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 }
 .block-item.gadget-block {
   border-color: rgba(20, 184, 166, 0.45);
-  background: rgba(20, 184, 166, 0.08);
+  background: color-mix(in srgb, #22e7d1 8%, transparent);
 }
 .block-item.gadget-block .block-icon {
-  color: #0f766e;
+  color: color-mix(in srgb, #26e3d5 80%, var(--hm-fg));
 }
 .block-item.gadget-block:hover {
   border-color: #0f766e;
@@ -479,7 +471,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background-color: #13141f;
+  background-color: var(--hm-bg);
   padding: 16px;
   overflow: hidden;
   position: relative;
@@ -507,7 +499,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 
 .designer-canvas {
   flex: 1;
-  background-color: #ffffff;
+  background-color: var(--hm-surface);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   overflow: hidden;
@@ -515,7 +507,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 
 /* GrapesJS内部の背景調整 */
 .gjs-cv-canvas {
-  background-color: #ffffff !important;
+  background-color: var(--hm-surface) !important;
 }
 
 /* #1423: 画面デザインは画面仕様書なので、readonly でもデザイン・レイヤー・トレイト
@@ -675,17 +667,17 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
   box-shadow: 0 0 4px #22c55e99;
 }
 .mcp-connected {
-  color: #86efac;
+  color: color-mix(in srgb, #27e26b 80%, var(--hm-fg));
 }
 .mcp-connecting .mcp-dot {
   background: #f59e0b;
   animation: mcp-blink 1s ease-in-out infinite;
 }
 .mcp-connecting {
-  color: #fcd34d;
+  color: color-mix(in srgb, #fbc30e 80%, var(--hm-fg));
 }
 .mcp-disconnected .mcp-dot {
-  background: #6b7280;
+  background: var(--hm-surface-4);
 }
 @keyframes mcp-blink {
   0%, 100% { opacity: 1; }
@@ -789,8 +781,8 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
   margin-bottom: 8px;
   border-radius: 6px;
   font-size: 12px;
-  color: #fca5a5;
-  background: rgba(239, 68, 68, 0.15);
+  color: color-mix(in srgb, #f71212 80%, var(--hm-fg));
+  background: color-mix(in srgb, #ec1d1d 15%, transparent);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 .code-modal-error i {
@@ -833,7 +825,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 
 .code-btn-primary {
   background: var(--dz-accent);
-  color: #fff;
+  color: var(--hm-fg);
 }
 .code-btn-primary:hover {
   background: var(--dz-accent-hover);
@@ -976,7 +968,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 
 .device-btn.active {
   background: var(--dz-accent);
-  color: #fff;
+  color: var(--hm-fg);
 }
 
 /* ==========================================================================
@@ -1065,7 +1057,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
   right: 2px;
   background: rgba(239, 68, 68, 0.85);
   border: none;
-  color: #fff;
+  color: var(--hm-on-solid);
   border-radius: 4px;
   width: 20px;
   height: 20px;
@@ -1095,7 +1087,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
   top: 2px;
   left: 2px;
   background: rgba(99, 102, 241, 0.9);
-  color: #fff;
+  color: var(--hm-on-solid);
   border-radius: 4px;
   width: 18px;
   height: 18px;
@@ -1131,7 +1123,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 .block-propagate-btn {
   background: rgba(99, 102, 241, 0.85);
   border: none;
-  color: #fff;
+  color: var(--hm-on-solid);
   border-radius: 4px;
   width: 20px;
   height: 20px;
@@ -1195,7 +1187,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 }
 
 .shared-sync-header i {
-  color: #6366f1;
+  color: color-mix(in srgb, #1e23eb 80%, var(--hm-fg));
   font-size: 16px;
 }
 
@@ -1260,28 +1252,28 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 }
 
 .shared-sync-screen-item i.bi-check-circle-fill {
-  color: #22c55e;
+  color: color-mix(in srgb, #2edb6e 80%, var(--hm-fg));
 }
 
 .shared-sync-screen-item i.bi-x-circle-fill {
-  color: #ef4444;
+  color: color-mix(in srgb, #ec1d1d 80%, var(--hm-fg));
 }
 
 .shared-sync-screen-item.has-error {
-  background: rgba(239, 68, 68, 0.08);
+  background: color-mix(in srgb, #ec1d1d 8%, transparent);
 }
 
 .shared-sync-count {
   margin-left: auto;
   font-size: 11px;
-  color: #22c55e;
+  color: color-mix(in srgb, #2edb6e 80%, var(--hm-fg));
   font-weight: 600;
 }
 
 .shared-sync-error-text {
   margin-left: auto;
   font-size: 11px;
-  color: #ef4444;
+  color: color-mix(in srgb, #ec1d1d 80%, var(--hm-fg));
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1317,23 +1309,23 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 }
 
 .shared-sync-summary.ok {
-  background: rgba(34, 197, 94, 0.1);
-  color: #16a34a;
+  background: color-mix(in srgb, #2edb6e 10%, transparent);
+  color: color-mix(in srgb, #27e26c 80%, var(--hm-fg));
 }
 
 .shared-sync-summary.warn {
-  background: rgba(234, 179, 8, 0.1);
-  color: #b45309;
+  background: color-mix(in srgb, #f7bf12 10%, transparent);
+  color: color-mix(in srgb, #f37616 80%, var(--hm-fg));
 }
 
 .shared-sync-error {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  background: rgba(239, 68, 68, 0.08);
+  background: color-mix(in srgb, #ec1d1d 8%, transparent);
   border-radius: 6px;
   padding: 12px;
-  color: #ef4444;
+  color: color-mix(in srgb, #ec1d1d 80%, var(--hm-fg));
   font-size: 13px;
 }
 
@@ -1491,12 +1483,12 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 }
 
 .a11y-wcag-cell.pass {
-  background: rgba(34, 197, 94, 0.1);
+  background: color-mix(in srgb, #2edb6e 10%, transparent);
   border: 1px solid rgba(34, 197, 94, 0.25);
 }
 
 .a11y-wcag-cell.fail {
-  background: rgba(239, 68, 68, 0.08);
+  background: color-mix(in srgb, #ec1d1d 8%, transparent);
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
@@ -1522,8 +1514,8 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
   text-align: right;
 }
 
-.a11y-wcag-cell.pass .a11y-wcag-status { color: #22c55e; }
-.a11y-wcag-cell.fail .a11y-wcag-status { color: #ef4444; }
+.a11y-wcag-cell.pass .a11y-wcag-status { color: color-mix(in srgb, #2edb6e 80%, var(--hm-fg)); }
+.a11y-wcag-cell.fail .a11y-wcag-status { color: color-mix(in srgb, #ec1d1d 80%, var(--hm-fg)); }
 
 .a11y-wcag-req {
   font-size: 10px;
@@ -1663,7 +1655,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 }
 .a11y-add-ok {
   background: var(--dz-accent);
-  color: #fff;
+  color: var(--hm-fg);
 }
 .a11y-add-ok:hover { background: var(--dz-accent-hover); }
 
@@ -1726,7 +1718,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 }
 .a11y-suggest-btn:not(:disabled):hover {
   background: var(--dz-accent);
-  color: #fff;
+  color: var(--hm-fg);
   border-color: var(--dz-accent);
 }
 .a11y-suggest-btn:disabled {
@@ -1796,7 +1788,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 }
 
 .ai-rename-stage.is-error i {
-  color: #dc3545;
+  color: color-mix(in srgb, #db2e3f 80%, var(--hm-fg));
   animation: none;
 }
 
@@ -1812,8 +1804,8 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
 
 .ai-rename-error-detail {
   font-size: 12px;
-  color: #dc3545;
-  background: rgba(220, 53, 69, 0.1);
+  color: color-mix(in srgb, #db2e3f 80%, var(--hm-fg));
+  background: color-mix(in srgb, #db2e3f 10%, transparent);
   border-radius: 6px;
   padding: 8px 12px;
   margin-top: 8px;
@@ -1867,7 +1859,7 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
   bottom: 24px;
   right: 24px;
   background: #198754;
-  color: #fff;
+  color: var(--hm-on-solid);
   padding: 10px 16px;
   border-radius: 8px;
   font-size: 13px;
@@ -1887,3 +1879,29 @@ body[data-gjs-dragging] .panel-left-wrapper.is-autohide .panel-left {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* GrapesJS 標準パネル (スタイル / 属性 / レイヤー等) の配色をアプリのテーマに合わせる。
+   GrapesJS は既定で暗色の --gjs-* 変数を持つため、ここでトークンに置き換える。 */
+.designer-root {
+  --gjs-primary-color: var(--hm-surface);
+  --gjs-secondary-color: var(--hm-fg-2);
+  --gjs-tertiary-color: var(--hm-accent);
+  --gjs-quaternary-color: var(--hm-accent);
+  --gjs-main-color: var(--hm-surface);
+  --gjs-font-color: var(--hm-fg-2);
+  --gjs-font-color-active: var(--hm-fg);
+  --gjs-main-dark-color: var(--hm-surface-3);
+  --gjs-secondary-dark-color: var(--hm-surface-3);
+  --gjs-main-light-color: var(--hm-surface-2);
+  --gjs-secondary-light-color: var(--hm-surface-2);
+  --gjs-soft-light-color: var(--hm-hover);
+  --gjs-color-highlight: var(--hm-accent);
+  --gjs-light-border: var(--hm-border);
+  --gjs-arrow-color: var(--hm-fg-muted);
+  --gjs-dark-text-shadow: transparent;
+}
+.designer-root .gjs-one-bg { background-color: var(--hm-surface); }
+.designer-root .gjs-two-color { color: var(--hm-fg-2); }
+.designer-root .gjs-three-bg { background-color: var(--hm-accent-solid); color: var(--hm-on-solid); }
+.designer-root .gjs-four-color,
+.designer-root .gjs-four-color-h:hover { color: var(--hm-accent); }

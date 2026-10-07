@@ -95,14 +95,14 @@ test.describe("画面項目 ID リセット (#334)", { tag: ["@regression"] }, (
   test("空 ID の行をリセットすると textInput1 が入力される", async ({ page }) => {
     await setup(page, [{ id: "", label: "名前", type: "string" }]);
     await page.locator('button[aria-label="IDをリセット"]').first().click();
-    const idInput = page.locator('.screen-items-table input[placeholder="email"]').first();
+    const idInput = page.locator('.screen-items-table input[placeholder="例: email"]').first();
     await expect(idInput).toHaveValue("textInput1", { timeout: 3000 });
   });
 
   test("number 型の空 ID をリセットすると numberInput1 になる", async ({ page }) => {
     await setup(page, [{ id: "", label: "年齢", type: "number" }]);
     await page.locator('button[aria-label="IDをリセット"]').first().click();
-    const idInput = page.locator('.screen-items-table input[placeholder="email"]').first();
+    const idInput = page.locator('.screen-items-table input[placeholder="例: email"]').first();
     await expect(idInput).toHaveValue("numberInput1", { timeout: 3000 });
   });
 
@@ -113,7 +113,7 @@ test.describe("画面項目 ID リセット (#334)", { tag: ["@regression"] }, (
     ]);
     const resetBtns = page.locator('button[aria-label="IDをリセット"]');
     await resetBtns.nth(1).click();
-    const idInputs = page.locator('.screen-items-table input[placeholder="email"]');
+    const idInputs = page.locator('.screen-items-table input[placeholder="例: email"]');
     await expect(idInputs.nth(1)).toHaveValue("textInput2", { timeout: 3000 });
   });
 
@@ -145,7 +145,7 @@ test.describe("画面項目 ID リセット (#334)", { tag: ["@regression"] }, (
     ]);
     await page.locator('.screen-items-table thead input[type="checkbox"]').check();
     await page.locator('button:has-text("選択行のIDをリセット")').click();
-    const idInputs = page.locator('.screen-items-table input[placeholder="email"]');
+    const idInputs = page.locator('.screen-items-table input[placeholder="例: email"]');
     await expect(idInputs.nth(0)).toHaveValue("textInput1", { timeout: 3000 });
     await expect(idInputs.nth(1)).toHaveValue("textInput2", { timeout: 3000 });
   });

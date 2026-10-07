@@ -24,29 +24,29 @@
 
 .srb-btn-reset {
   background: transparent;
-  color: #9a9db5;
-  border-color: #3b3e55;
+  color: var(--hm-fg-muted);
+  border-color: var(--hm-border);
 }
 
 .srb-btn-reset:hover:not(:disabled) {
-  background: #2d2d44;
-  color: #e4e6f0;
+  background: var(--hm-surface-2);
+  color: var(--hm-fg);
 }
 
 .srb-btn-save {
-  background: #2d2d44;
-  color: #9a9db5;
-  border-color: #3b3e55;
+  background: var(--hm-surface-2);
+  color: var(--hm-fg-muted);
+  border-color: var(--hm-border);
 }
 
 .srb-btn-save.dirty {
-  background: #1d3461;
-  color: #60a5fa;
+  background: var(--hm-surface-2);
+  color: color-mix(in srgb, #1279f8 70%, var(--hm-fg));
   border-color: #2563eb;
 }
 
 .srb-btn-save:hover:not(:disabled) {
   background: #2563eb;
-  color: #fff;
+  color: var(--hm-on-solid);
   border-color: #2563eb;
 }

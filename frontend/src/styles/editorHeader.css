@@ -109,7 +109,7 @@
 }
 
 .editor-header-light .divider {
-  background: #e2e8f0;
+  background: var(--hm-surface-3);
 }
 
 .editor-header-dark .divider {
@@ -118,26 +118,26 @@
 
 /* ── Light variant (Flow / Table / Action 想定) ───────────────── */
 .editor-header-light {
-  background: #ffffff;
-  border-bottom-color: #e2e8f0;
-  color: #1e293b;
+  background: var(--hm-surface);
+  border-bottom-color: var(--hm-border);
+  color: var(--hm-fg);
 }
 
 .editor-header-light .editor-header-back {
-  color: #475569;
+  color: var(--hm-fg-2);
 }
 .editor-header-light .editor-header-back:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: var(--hm-surface-2);
+  color: var(--hm-fg);
 }
 
 .editor-header-light .editor-header-undo-btn {
-  color: #475569;
+  color: var(--hm-fg-2);
 }
 .editor-header-light .editor-header-undo-btn:hover:not(:disabled) {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
-  color: #1e293b;
+  background: var(--hm-surface-2);
+  border-color: var(--hm-border);
+  color: var(--hm-fg);
 }
 
 /* ── Dark variant (Designer 想定) ────────────────────────────── */

@@ -201,7 +201,7 @@ export function RegisterComponentDialog({ onClose, onSaved }: Props) {
     >
       <div
         style={{
-          background: "#fff",
+          background: "var(--hm-surface)",
           borderRadius: 8,
           padding: 24,
           minWidth: 480,
@@ -266,7 +266,7 @@ export function RegisterComponentDialog({ onClose, onSaved }: Props) {
                 padding: "4px 10px",
                 cursor: "pointer",
                 background: "#0070f3",
-                color: "#fff",
+                color: "var(--hm-on-solid)",
                 border: "none",
                 borderRadius: 4,
               }}
@@ -276,7 +276,7 @@ export function RegisterComponentDialog({ onClose, onSaved }: Props) {
           </div>
 
           {propRows.length === 0 && (
-            <p style={{ color: "#888", fontSize: 13, margin: 0 }}>
+            <p style={{ color: "var(--hm-fg-muted)", fontSize: 13, margin: 0 }}>
               プロパティを追加するには「+ 追加」をクリックしてください。
             </p>
           )}
@@ -319,7 +319,7 @@ export function RegisterComponentDialog({ onClose, onSaved }: Props) {
               padding: "8px 16px",
               cursor: saving ? "not-allowed" : "pointer",
               background: "#0070f3",
-              color: "#fff",
+              color: "var(--hm-on-solid)",
               border: "none",
               borderRadius: 4,
             }}
@@ -354,11 +354,11 @@ function PropRowEditor({
   return (
     <div
       style={{
-        border: "1px solid #ddd",
+        border: "1px solid var(--hm-border-strong)",
         borderRadius: 6,
         padding: 12,
         marginBottom: 8,
-        background: "#f9f9f9",
+        background: "var(--hm-surface-2)",
       }}
     >
       <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-end" }}>
@@ -412,7 +412,7 @@ function PropRowEditor({
           style={{
             background: "transparent",
             border: "none",
-            color: "#c00",
+            color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))",
             fontSize: 16,
             cursor: "pointer",
             padding: "4px 6px",
@@ -455,8 +455,8 @@ function PropRowEditor({
                 fontSize: 11,
                 padding: "2px 8px",
                 cursor: "pointer",
-                background: "#555",
-                color: "#fff",
+                background: "var(--hm-surface-4)",
+                color: "var(--hm-fg)",
                 border: "none",
                 borderRadius: 3,
               }}
@@ -476,7 +476,7 @@ function PropRowEditor({
                 placeholder="ラベル"
                 style={{ flex: 1, padding: "3px 5px" }}
               />
-              <span style={{ fontSize: 11, color: "#888" }}>=</span>
+              <span style={{ fontSize: 11, color: "var(--hm-fg-muted)" }}>=</span>
               <input
                 type="text"
                 value={opt.value}
@@ -490,7 +490,7 @@ function PropRowEditor({
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: "#c00",
+                  color: "color-mix(in srgb, #ff0a0a 80%, var(--hm-fg))",
                   cursor: "pointer",
                   fontSize: 13,
                 }}

@@ -40,10 +40,10 @@ function addSharedBlockId(html: string, blockId: string): string {
 }
 
 const THEMES: { id: ThemeId; label: string; icon: string; color: string }[] = [
-  { id: "standard", label: "標準",      icon: "bi-grid-3x3",   color: "#6c757d" },
-  { id: "card",     label: "カード型",   icon: "bi-layers",     color: "#6366f1" },
-  { id: "compact",  label: "コンパクト", icon: "bi-table",      color: "#0284c7" },
-  { id: "dark",     label: "ダーク",     icon: "bi-moon-stars", color: "#0f172a" },
+  { id: "standard", label: "標準",      icon: "bi-grid-3x3",   color: "var(--hm-fg-muted)" },
+  { id: "card",     label: "カード型",   icon: "bi-layers",     color: "color-mix(in srgb, #1e23eb 80%, var(--hm-fg))" },
+  { id: "compact",  label: "コンパクト", icon: "bi-table",      color: "color-mix(in srgb, #0dabfd 80%, var(--hm-fg))" },
+  { id: "dark",     label: "ダーク",     icon: "bi-moon-stars", color: "var(--hm-fg)" },
 ];
 
 interface BackLink {

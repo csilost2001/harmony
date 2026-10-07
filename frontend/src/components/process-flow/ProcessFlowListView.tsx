@@ -790,13 +790,13 @@ export function ProcessFlowListView() {
             return (
               <div className="d-flex align-items-center gap-2 ms-3" style={{ fontSize: "0.8rem" }}>
                 <span className="text-muted">全体:</span>
-                <span title="確定" style={{ color: "#22c55e" }}>
+                <span title="確定" style={{ color: "color-mix(in srgb, #2edb6e 80%, var(--hm-fg))" }}>
                   <i className="bi bi-circle-fill" /> {summary.committed}
                 </span>
-                <span title="暫定" style={{ color: "#f97316" }}>
+                <span title="暫定" style={{ color: "color-mix(in srgb, #f97010 80%, var(--hm-fg))" }}>
                   <i className="bi bi-circle-fill" /> {summary.provisional}
                 </span>
-                <span title="下書き" style={{ color: "#f59e0b" }}>
+                <span title="下書き" style={{ color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))" }}>
                   <i className="bi bi-circle-fill" /> {summary.draft}
                 </span>
                 {summary.notes > 0 && (

@@ -83,7 +83,7 @@ export function SaveCompositeDialog({ tree, dependencies, onClose, onSaved }: Pr
     >
       <div
         style={{
-          background: "#fff",
+          background: "var(--hm-surface)",
           borderRadius: 8,
           padding: 24,
           minWidth: 420,
@@ -110,19 +110,19 @@ export function SaveCompositeDialog({ tree, dependencies, onClose, onSaved }: Pr
           />
         </div>
 
-        <p style={{ fontSize: 13, color: "#555", marginBottom: 8 }}>
+        <p style={{ fontSize: 13, color: "var(--hm-fg-2)", marginBottom: 8 }}>
           含まれるノード数: {nodeCount}
         </p>
 
         {dependencies.length > 0 && (
           <div style={{ marginBottom: 12 }}>
             <span style={{ fontSize: 13, fontWeight: "bold" }}>依存部品:</span>
-            <ul style={{ margin: "4px 0 0", paddingLeft: 20, fontSize: 12, color: "#555" }}>
+            <ul style={{ margin: "4px 0 0", paddingLeft: 20, fontSize: 12, color: "var(--hm-fg-2)" }}>
               {dependencies.map((dep) => (
                 <li key={dep}>{dep}</li>
               ))}
             </ul>
-            <p style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
+            <p style={{ fontSize: 11, color: "var(--hm-fg-muted)", marginTop: 4 }}>
               これらの部品が未ロードのワークスペースで配置すると、依存エラーとして表示されます。
             </p>
           </div>
@@ -149,7 +149,7 @@ export function SaveCompositeDialog({ tree, dependencies, onClose, onSaved }: Pr
               padding: "8px 16px",
               cursor: saving ? "not-allowed" : "pointer",
               background: "#0070f3",
-              color: "#fff",
+              color: "var(--hm-on-solid)",
               border: "none",
               borderRadius: 4,
             }}

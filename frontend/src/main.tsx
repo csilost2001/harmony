@@ -2,12 +2,14 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import "./styles/tokens.css";
 import "./index.css";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { AppErrorFallback } from "./components/common/ErrorFallback";
 import { ErrorDialogProvider } from "./components/common/ErrorDialogProvider";
 import { installGlobalErrorHandlers } from "./utils/errorLog";
+import { initAppTheme } from "./theme/appTheme";
 
 // 外部 React Component 読込基盤 (#1409 P-1): host の React / ReactDOM / Puck インスタンスを
 // window bridge に公開する。frontend/public/harmony-externals/*.mjs (import map で bare
@@ -35,6 +37,7 @@ window.__HARMONY_SHARED_DEPS__ = {
 };
 
 installGlobalErrorHandlers();
+initAppTheme();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -1002,7 +1002,7 @@ export function ScreenItemsView() {
                         onChange={(e) => handleUpdateItem(i, { id: e.target.value as Identifier })}
                         onFocus={(e) => idFocusVals.current.set(i, e.target.value)}
                         onBlur={(e) => handleIdBlur(i, e)}
-                        placeholder="email"
+                        placeholder="例: email"
                         disabled={isReadonly}
                       />
                     </td>
@@ -1012,7 +1012,7 @@ export function ScreenItemsView() {
                         value={item.label}
                         onChange={(e) => handleUpdateItem(i, { label: e.target.value })}
                         onBlur={commit}
-                        placeholder="メールアドレス"
+                        placeholder="例: メールアドレス"
                         disabled={isReadonly}
                       />
                     </td>
@@ -1093,7 +1093,7 @@ export function ScreenItemsView() {
                         onCommit={commit}
                         conventions={conventions}
                         className="form-control form-control-sm"
-                        placeholder="@conv.regex.email-simple"
+                        placeholder="例: @conv.regex.email-simple"
                         disabled={isReadonly}
                       />
                     </td>

@@ -3,31 +3,50 @@
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background: var(--hm-surface-2);
+  border-bottom: 1px solid var(--hm-border);
   min-width: 0;
   flex-wrap: wrap;
 }
 
+.edit-mode-toolbar--editing {
+  background: var(--hm-accent-soft);
+  border-bottom-color: color-mix(in srgb, var(--hm-accent) 35%, var(--hm-surface));
+}
+
+/* 現在のモード表示 (閲覧中 / 編集中) */
+.edit-mode-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hm-fg-muted);
+  padding-right: 4px;
+}
+.edit-mode-state--editing {
+  color: var(--hm-accent);
+}
+
 .edit-mode-toolbar--locked {
-  background: #fff3cd;
-  border-bottom-color: #ffc107;
+  background: color-mix(in srgb, #ffc40a 9%, var(--hm-surface));
+  border-bottom-color: color-mix(in srgb, #ffc20a 38%, var(--hm-surface));
 }
 
 .edit-mode-toolbar--force-released {
-  background: #f8d7da;
+  background: var(--hm-surface-4);
   border-bottom-color: #dc3545;
 }
 
 .edit-mode-lock-info {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: var(--hm-fg-muted);
   flex: 1;
 }
 
 .edit-mode-alert {
   font-size: 0.875rem;
-  color: #842029;
+  color: color-mix(in srgb, #cf3a47 80%, var(--hm-fg));
   font-weight: 500;
 }
 
@@ -37,10 +56,10 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--hm-border-strong);
   border-radius: 7px;
-  background: #fff;
-  color: #334155;
+  background: var(--hm-surface);
+  color: var(--hm-fg-2);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   font-size: 0.8rem;
   font-weight: 650;
@@ -53,8 +72,8 @@
 
 .edit-mode-btn:hover:not(:disabled) {
   border-color: #2563eb;
-  background: #eaf1ff;
-  color: #1d4ed8;
+  background: var(--hm-surface-3);
+  color: color-mix(in srgb, #2758e2 80%, var(--hm-fg));
 }
 
 .edit-mode-btn:disabled {
@@ -65,38 +84,38 @@
 .edit-mode-btn-primary {
   border-color: #2563eb;
   background: #2563eb;
-  color: #fff;
+  color: var(--hm-on-solid);
 }
 
 .edit-mode-btn-success {
   border-color: #16a34a;
   background: #16a34a;
-  color: #fff;
+  color: var(--hm-on-solid);
 }
 
 .edit-mode-btn-warning {
   border-color: #d97706;
   background: #f59e0b;
-  color: #111827;
+  color: var(--hm-fg);
 }
 
 .edit-mode-btn-primary:hover:not(:disabled),
 .edit-mode-btn-success:hover:not(:disabled) {
   filter: brightness(0.96);
-  color: #fff;
+  color: var(--hm-fg);
 }
 
 .edit-mode-btn-warning:hover:not(:disabled) {
   border-color: #b45309;
-  background: #fbbf24;
-  color: #111827;
+  background: color-mix(in srgb, #fbb90f 32%, var(--hm-surface));
+  color: var(--hm-fg);
 }
 
 .readonly-mode input,
 .readonly-mode textarea,
 .readonly-mode select {
-  background-color: #f8f9fa;
-  color: #6c757d;
+  background-color: var(--hm-surface-2);
+  color: var(--hm-fg-muted);
   pointer-events: none;
   cursor: default;
 }
@@ -117,7 +136,7 @@
 }
 
 .edit-mode-modal {
-  background: #fff;
+  background: var(--hm-surface);
   border-radius: 8px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
   min-width: 320px;
@@ -131,7 +150,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px 12px;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--hm-border);
 }
 
 .edit-mode-modal-title {
@@ -156,7 +175,7 @@
 }
 
 .list-item-draft-mark {
-  color: #dc3545;
+  color: color-mix(in srgb, #db2e3f 80%, var(--hm-fg));
   font-size: 0.625rem;
   vertical-align: middle;
   margin-left: 4px;

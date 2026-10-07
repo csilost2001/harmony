@@ -264,7 +264,7 @@ async function captureThumbnail(editor: GEditor): Promise<string | null> {
     const canvasDoc = editor.Canvas.getDocument();
     if (!canvasDoc?.body) return null;
     const canvasEl = await html2canvas(canvasDoc.body, {
-      backgroundColor: "#ffffff",
+      backgroundColor: "var(--hm-surface)",
       scale: 0.5,
       logging: false,
       useCORS: true,

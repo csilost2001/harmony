@@ -45,10 +45,10 @@ export function ExternalComponentErrorCard({
       data-error-kind={errorKind}
       style={{
         border: "1px solid #dc3545",
-        background: "#fff5f5",
+        background: "var(--hm-surface-2)",
         borderRadius: 6,
         padding: "12px 14px",
-        color: "#842029",
+        color: "color-mix(in srgb, #cf3a47 80%, var(--hm-fg))",
         fontSize: 13,
         lineHeight: 1.5,
         margin: 4,
@@ -60,7 +60,7 @@ export function ExternalComponentErrorCard({
         </span>
         外部コンポーネント読込エラー: {headline}
       </div>
-      <div style={{ fontSize: 12, color: "#6c2127" }}>
+      <div style={{ fontSize: 12, color: "color-mix(in srgb, #c8414c 80%, var(--hm-fg))" }}>
         {label ? `部品: ${label}` : null}
         {id ? ` (id: ${id})` : null}
       </div>
@@ -72,7 +72,7 @@ export function ExternalComponentErrorCard({
             style={{
               background: "transparent",
               border: "1px solid #dc3545",
-              color: "#842029",
+              color: "color-mix(in srgb, #cf3a47 80%, var(--hm-fg))",
               borderRadius: 4,
               padding: "2px 8px",
               fontSize: 11,
@@ -88,12 +88,12 @@ export function ExternalComponentErrorCard({
                 marginBottom: 0,
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
-                background: "#fff",
-                border: "1px solid #f1c0c4",
+                background: "var(--hm-surface)",
+                border: "1px solid color-mix(in srgb, #d23743 38%, var(--hm-surface))",
                 borderRadius: 4,
                 padding: 8,
                 fontSize: 11,
-                color: "#6c2127",
+                color: "color-mix(in srgb, #c8414c 80%, var(--hm-fg))",
               }}
             >
               {detail}

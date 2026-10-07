@@ -11,7 +11,7 @@
 }
 
 .rename-entity-modal {
-  background: #fff;
+  background: var(--hm-surface);
   border-radius: 6px;
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.25);
   min-width: 480px;
@@ -23,7 +23,7 @@
 
 .rename-entity-modal__header {
   padding: 12px 16px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--hm-border);
   font-weight: 600;
   font-size: 1rem;
   display: flex;
@@ -39,7 +39,7 @@
 
 .rename-entity-modal__footer {
   padding: 10px 16px;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--hm-border);
   display: flex;
   justify-content: flex-end;
   gap: 8px;
@@ -48,11 +48,11 @@
 .rename-entity-current {
   margin-bottom: 12px;
   font-size: 0.85rem;
-  color: #6c757d;
+  color: var(--hm-fg-muted);
 }
 
 .rename-entity-current code {
-  background: #f5f5f5;
+  background: var(--hm-surface-2);
   padding: 0 5px;
   border-radius: 3px;
   font-size: 0.95em;
@@ -61,8 +61,8 @@
 .rename-entity-error {
   margin-top: 10px;
   padding: 8px 10px;
-  background: #f8d7da;
-  color: #842029;
+  background: var(--hm-surface-4);
+  color: color-mix(in srgb, #cf3a47 80%, var(--hm-fg));
   border-radius: 4px;
   font-size: 0.85rem;
 }
@@ -70,7 +70,7 @@
 .rename-entity-preview-summary {
   margin-bottom: 12px;
   padding: 8px 10px;
-  background: #e7f3fe;
+  background: var(--hm-surface-3);
   border-radius: 4px;
   font-size: 0.9rem;
 }
@@ -82,8 +82,8 @@
 .rename-entity-preview-warning {
   margin-bottom: 12px;
   padding: 8px 10px;
-  background: #fff3cd;
-  color: #856404;
+  background: color-mix(in srgb, #ffc40a 9%, var(--hm-surface));
+  color: color-mix(in srgb, #f8bd11 80%, var(--hm-fg));
   border-radius: 4px;
   font-size: 0.85rem;
 }
@@ -96,7 +96,7 @@
   font-size: 0.85rem;
   font-weight: 600;
   margin: 0 0 6px;
-  color: #495057;
+  color: var(--hm-fg-2);
 }
 
 .rename-entity-preview-table {
@@ -108,19 +108,19 @@
 .rename-entity-preview-table th,
 .rename-entity-preview-table td {
   padding: 4px 8px;
-  border-bottom: 1px solid #f1f3f5;
+  border-bottom: 1px solid var(--hm-border);
   text-align: left;
   vertical-align: top;
 }
 
 .rename-entity-preview-table th {
-  background: #f8f9fa;
+  background: var(--hm-surface-2);
   font-weight: 500;
-  color: #495057;
+  color: var(--hm-fg-2);
 }
 
 .rename-entity-preview-table code {
-  background: #f5f5f5;
+  background: var(--hm-surface-2);
   padding: 0 4px;
   border-radius: 3px;
   font-size: 0.92em;
@@ -134,22 +134,22 @@
   cursor: pointer;
   padding: 4px 0;
   font-size: 0.85rem;
-  color: #495057;
+  color: var(--hm-fg-2);
 }
 
 .rename-entity-ref-group summary:hover {
-  color: #0d6efd;
+  color: color-mix(in srgb, #0c6efd 80%, var(--hm-fg));
 }
 
 .rename-entity-ref-group ul {
   margin: 4px 0 4px 18px;
   padding-left: 12px;
   font-size: 0.78rem;
-  color: #6c757d;
+  color: var(--hm-fg-muted);
 }
 
 .rename-entity-ref-group ul li code {
-  background: #f5f5f5;
+  background: var(--hm-surface-2);
   padding: 0 4px;
   border-radius: 3px;
 }
@@ -157,7 +157,7 @@
 .rename-entity-executing {
   text-align: center;
   padding: 32px 16px;
-  color: #6c757d;
+  color: var(--hm-fg-muted);
 }
 
 .rename-entity-executing .spinner-border {
@@ -172,8 +172,8 @@
   bottom: 24px;
   right: 24px;
   z-index: 1100;
-  background: #212529;
-  color: #fff;
+  background: var(--hm-surface);
+  color: var(--hm-fg);
   border-radius: 6px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
   padding: 12px 16px;
@@ -203,7 +203,7 @@
 .rename-entity-undo-toast__undo {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  color: #fff;
+  color: var(--hm-fg);
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 0.82rem;
@@ -229,5 +229,5 @@
 }
 
 .rename-entity-undo-toast__close:hover {
-  color: #fff;
+  color: var(--hm-fg);
 }

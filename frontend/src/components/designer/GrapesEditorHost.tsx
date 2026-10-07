@@ -225,19 +225,19 @@ function EditorKindMismatchBanner({ warnings }: EditorKindMismatchBannerProps) {
     <div
       data-testid="editor-kind-mismatch-banner"
       style={{
-        background: "#fef3c7",
-        borderBottom: "1px solid #fbbf24",
+        background: "color-mix(in srgb, #fbcb0e 9%, var(--hm-surface))",
+        borderBottom: "1px solid color-mix(in srgb, #fbb90f 38%, var(--hm-surface))",
         padding: "6px 16px",
         display: "flex",
         alignItems: "center",
         gap: 8,
         fontSize: 13,
-        color: "#92400e",
+        color: "color-mix(in srgb, #ea6c20 80%, var(--hm-fg))",
         zIndex: 10,
         position: "relative",
       }}
     >
-      <i className="bi bi-exclamation-triangle-fill" style={{ color: "#f59e0b" }} />
+      <i className="bi bi-exclamation-triangle-fill" style={{ color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))" }} />
       <span>
         runtime composition が動作しない可能性があります: {warnings.join(" / ")}
       </span>
@@ -260,26 +260,26 @@ function PageLayoutWireframeBanner({ pageLayoutName, pageLayoutId, onPreviewClic
     <div
       data-testid="page-layout-wireframe-banner"
       style={{
-        background: "#ede9fe",
+        background: "var(--hm-surface-3)",
         borderBottom: "1px solid #a78bfa",
         padding: "6px 16px",
         display: "flex",
         alignItems: "center",
         gap: 8,
         fontSize: 13,
-        color: "#5b21b6",
+        color: "color-mix(in srgb, #7230d9 80%, var(--hm-fg))",
         zIndex: 10,
         position: "relative",
       }}
     >
-      <i className="bi bi-layout-wtf" style={{ color: "#7c3aed" }} />
+      <i className="bi bi-layout-wtf" style={{ color: "color-mix(in srgb, #6a1feb 80%, var(--hm-fg))" }} />
       <span>
         ページレイアウトを使用中: <strong>{pageLayoutName}</strong>
-        <span style={{ color: "#7c3aed", fontFamily: "monospace", fontSize: 11, marginLeft: 6 }}>
+        <span style={{ color: "color-mix(in srgb, #6a1feb 80%, var(--hm-fg))", fontFamily: "monospace", fontSize: 11, marginLeft: 6 }}>
           ({pageLayoutId})
         </span>
       </span>
-      <span style={{ color: "#8b5cf6", fontSize: 11, marginLeft: 4 }}>
+      <span style={{ color: "color-mix(in srgb, #5a17f2 80%, var(--hm-fg))", fontSize: 11, marginLeft: 4 }}>
         — 外枠はページレイアウト側で編集してください
       </span>
       {onPreviewClick && (
@@ -292,8 +292,8 @@ function PageLayoutWireframeBanner({ pageLayoutName, pageLayoutId, onPreviewClic
             padding: "2px 12px",
             border: "1px solid #7c3aed",
             borderRadius: 4,
-            background: "#fff",
-            color: "#7c3aed",
+            background: "var(--hm-surface)",
+            color: "color-mix(in srgb, #6a1feb 80%, var(--hm-fg))",
             fontSize: 12,
             fontWeight: 600,
             cursor: "pointer",
@@ -392,7 +392,7 @@ function CompositionPreviewModal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "#fff",
+          background: "var(--hm-surface)",
           borderRadius: 8,
           width: "100%",
           maxWidth: 1280,
@@ -407,14 +407,14 @@ function CompositionPreviewModal({
             alignItems: "center",
             justifyContent: "space-between",
             padding: "12px 16px",
-            borderBottom: "1px solid #e2e8f0",
-            background: "#f8fafc",
+            borderBottom: "1px solid var(--hm-border)",
+            background: "var(--hm-surface-2)",
           }}
         >
-          <span style={{ fontSize: 14, color: "#0f172a", fontWeight: 600 }}>
-            <i className="bi bi-eye" style={{ marginRight: 6, color: "#7c3aed" }} />
-            composition プレビュー: <span style={{ color: "#5b21b6" }}>{pageLayoutName}</span>
-            <span style={{ color: "#64748b", fontSize: 12, fontWeight: 400, marginLeft: 8 }}>
+          <span style={{ fontSize: 14, color: "var(--hm-fg)", fontWeight: 600 }}>
+            <i className="bi bi-eye" style={{ marginRight: 6, color: "color-mix(in srgb, #6a1feb 80%, var(--hm-fg))" }} />
+            composition プレビュー: <span style={{ color: "color-mix(in srgb, #7230d9 80%, var(--hm-fg))" }}>{pageLayoutName}</span>
+            <span style={{ color: "var(--hm-fg-muted)", fontSize: 12, fontWeight: 400, marginLeft: 8 }}>
               (PageLayout 外枠 + 各 region の gadget + main slot に Screen 本文)
             </span>
           </span>
@@ -422,9 +422,9 @@ function CompositionPreviewModal({
             type="button"
             onClick={onClose}
             style={{
-              border: "1px solid #e2e8f0",
+              border: "1px solid var(--hm-border)",
               borderRadius: 4,
-              background: "#fff",
+              background: "var(--hm-surface)",
               padding: "4px 10px",
               cursor: "pointer",
               fontSize: 12,
@@ -438,7 +438,7 @@ function CompositionPreviewModal({
           title="composition-preview"
           srcDoc={composedSrcDoc}
           sandbox="allow-same-origin"
-          style={{ flex: 1, border: "none", background: "#fff" }}
+          style={{ flex: 1, border: "none", background: "var(--hm-surface)" }}
         />
       </div>
     </div>

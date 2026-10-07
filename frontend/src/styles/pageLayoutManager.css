@@ -10,7 +10,7 @@
 
 .page-layout-editor-content .tbl-editor-section {
   padding: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--hm-border);
   border-radius: 8px;
   background: rgba(255,255,255,0.035);
 }
@@ -20,14 +20,14 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 10px;
-  color: #f8fafc;
+  color: var(--hm-fg);
   font-size: 15px;
   line-height: 1.25;
 }
 
 .page-layout-editor-content .tbl-editor-section-desc {
   margin: -4px 0 12px;
-  color: #a9afc6;
+  color: var(--hm-fg-faint);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -38,8 +38,8 @@
   min-height: 20px;
   padding: 2px 7px;
   border-radius: 999px;
-  background: rgba(124,107,255,0.18);
-  color: #c4baff;
+  background: color-mix(in srgb, #260aff 18%, transparent);
+  color: color-mix(in srgb, #2e0aff 80%, var(--hm-fg));
   font-size: 11px;
   font-weight: 600;
 }
@@ -61,8 +61,8 @@
 
 .plm-details {
   margin-top: 10px;
-  border-top: 1px solid rgba(255,255,255,0.08);
-  color: #d8dcef;
+  border-top: 1px solid var(--hm-border);
+  color: var(--hm-fg);
 }
 
 .plm-details summary {
@@ -71,7 +71,7 @@
   gap: 6px;
   min-height: 28px;
   margin-top: 8px;
-  color: #aeb5cc;
+  color: var(--hm-fg-faint);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -109,17 +109,17 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  color: #b8bdd6;
+  color: var(--hm-fg-faint);
   font-size: 12px;
   line-height: 1.35;
   padding: 8px 10px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--hm-border);
   border-radius: 6px;
   background: rgba(255,255,255,0.03);
 }
 
 .plm-pattern-description small {
-  color: #8f97b1;
+  color: var(--hm-fg-muted);
   font-size: 11px;
 }
 
@@ -138,9 +138,9 @@
 
 .plm-preview {
   min-height: min(430px, calc(100vh - 300px));
-  border: 1px solid #3f4563;
+  border: 1px solid var(--hm-border);
   border-radius: 8px;
-  background: #111827;
+  background: var(--hm-surface);
   padding: 12px;
   display: grid;
   gap: 10px;
@@ -149,7 +149,7 @@
 
 .plm-preview-loading {
   grid-column: 1 / -1;
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
   font-size: 12px;
   display: flex;
   align-items: center;
@@ -191,9 +191,9 @@
 
 .plm-region {
   min-height: 72px;
-  border: 1px solid rgba(148,163,184,0.32);
+  border: 1px solid var(--hm-border-strong);
   border-radius: 6px;
-  background: rgba(15,23,42,0.82);
+  background: var(--hm-surface-2);
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -214,19 +214,19 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: #cbd5e1;
+  color: var(--hm-fg-faint);
   font-size: 12px;
 }
 
 .plm-region-label code {
-  color: #dbeafe;
+  color: var(--hm-fg);
 }
 
 .plm-region-label span {
   padding: 2px 7px;
   border-radius: 999px;
-  background: rgba(245,158,11,0.16);
-  color: #fbbf24;
+  background: color-mix(in srgb, #f5a214 16%, transparent);
+  color: color-mix(in srgb, #fbb90f 80%, var(--hm-fg));
   font-size: 11px;
 }
 
@@ -245,14 +245,14 @@
 
 .plm-gadget-preview {
   border: 1px dashed rgba(99,102,241,0.6);
-  background: rgba(99,102,241,0.12);
-  color: #e0e7ff;
+  background: color-mix(in srgb, #1e23eb 12%, transparent);
+  color: var(--hm-fg);
 }
 
 .plm-content-preview {
   border: 1px dashed rgba(245,158,11,0.7);
-  background: #f8fafc;
-  color: #1f2937;
+  background: var(--hm-surface-2);
+  color: var(--hm-fg);
   align-items: center;
   text-align: center;
   overflow: hidden;
@@ -261,7 +261,7 @@
 .plm-empty-preview {
   border: 1px dashed rgba(148,163,184,0.5);
   background: rgba(148,163,184,0.08);
-  color: #94a3b8;
+  color: var(--hm-fg-faint);
   align-items: center;
   text-align: center;
 }
@@ -284,8 +284,8 @@
   align-self: flex-start;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(15,23,42,0.86);
-  color: #e2e8f0;
+  background: var(--hm-surface);
+  color: var(--hm-fg);
   font-size: 11px;
   line-height: 1.4;
 }
@@ -295,8 +295,8 @@
   min-height: 32px;
   max-height: min(560px, 72vh);
   border-radius: 5px;
-  background: rgba(255,255,255,0.92);
-  color: #1f2937;
+  background: var(--hm-surface);
+  color: var(--hm-fg);
   padding: 8px;
   user-select: none;
   text-align: left;

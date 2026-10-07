@@ -139,9 +139,9 @@ function toRFEdges(edges: ScreenEdge[]): RFEdge[] {
     label: e.label || (TRIGGER_LABELS[e.trigger] ?? ""),
     reconnectable: true,
     markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-    style: { strokeWidth: 2, stroke: "#94a3b8" },
-    labelStyle: { fontSize: 11, fill: "#475569" },
-    labelBgStyle: { fill: "#fff", fillOpacity: 0.9 },
+    style: { strokeWidth: 2, stroke: "var(--hm-border-strong)" },
+    labelStyle: { fontSize: 11, fill: "var(--hm-fg-2)" },
+    labelBgStyle: { fill: "var(--hm-surface)", fillOpacity: 0.95 },
     labelBgPadding: [6, 4] as [number, number],
     labelBgBorderRadius: 4,
   }));
@@ -475,9 +475,9 @@ function FlowEditorInner() {
         ...connection,
         id: edge.id,
         markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-        style: { strokeWidth: 2, stroke: "#94a3b8" },
-        labelStyle: { fontSize: 11, fill: "#475569" },
-        labelBgStyle: { fill: "#fff", fillOpacity: 0.9 },
+        style: { strokeWidth: 2, stroke: "var(--hm-border-strong)" },
+        labelStyle: { fontSize: 11, fill: "var(--hm-fg-2)" },
+        labelBgStyle: { fill: "var(--hm-surface)", fillOpacity: 0.95 },
         labelBgPadding: [6, 4] as [number, number],
         labelBgBorderRadius: 4,
       }, eds));
@@ -1258,13 +1258,13 @@ function FlowEditorInner() {
             deleteKeyCode={isReadonly ? null : ["Backspace", "Delete"]}
             defaultEdgeOptions={{
               markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-              style: { strokeWidth: 2, stroke: "#94a3b8" },
+              style: { strokeWidth: 2, stroke: "var(--hm-border-strong)" },
             }}
           >
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#cbd5e1" />
+            <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
             <MiniMap
-              nodeColor="#6366f1"
-              maskColor="rgba(241,245,249,0.7)"
+              nodeColor="var(--hm-accent)"
+              maskColor="color-mix(in srgb, var(--hm-bg) 70%, transparent)"
               style={{ borderRadius: 8 }}
             />
           </ReactFlow>

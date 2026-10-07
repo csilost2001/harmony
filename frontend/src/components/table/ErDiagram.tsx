@@ -201,8 +201,8 @@ function ErDiagramInner() {
         stroke: rel.physical ? "#64748b" : "#7c6bff",
         strokeDasharray: rel.physical ? undefined : "6 4",
       },
-      labelStyle: { fontSize: 11, fill: rel.physical ? "#475569" : "#7c6bff" },
-      labelBgStyle: { fill: "#fff", fillOpacity: 0.9 },
+      labelStyle: { fontSize: 11, fill: rel.physical ? "var(--hm-fg-muted)" : "var(--hm-accent)" },
+      labelBgStyle: { fill: "var(--hm-surface)", fillOpacity: 0.95 },
       labelBgPadding: [6, 4] as [number, number],
       labelBgBorderRadius: 4,
       data: { physical: rel.physical, cardinality: rel.cardinality },
@@ -389,7 +389,7 @@ function ErDiagramInner() {
     setShowExport(false);
     const el = canvasRef.current?.querySelector(".react-flow__viewport") as HTMLElement | null;
     if (!el) return;
-    const canvas = await html2canvas(el, { backgroundColor: "#1a1a2e", scale: 2, logging: false, useCORS: true });
+    const canvas = await html2canvas(el, { backgroundColor: "var(--hm-surface)", scale: 2, logging: false, useCORS: true });
     const url = canvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
@@ -401,7 +401,7 @@ function ErDiagramInner() {
     return (
       <div className="er-diagram-page">
         <TableSubToolbar />
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#888" }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--hm-fg-muted)" }}>
           <i className="bi bi-hourglass-split" /> 読み込み中...
         </div>
       </div>
@@ -436,8 +436,8 @@ function ErDiagramInner() {
 
       <div className="er-diagram-canvas" ref={canvasRef}>
         {tables.length === 0 ? (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "#777", height: "100%" }}>
-            <i className="bi bi-diagram-3" style={{ fontSize: 48, color: "#555" }} />
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--hm-fg-faint)", height: "100%" }}>
+            <i className="bi bi-diagram-3" style={{ fontSize: 48, color: "var(--hm-fg-faint)" }} />
             <p>テーブル定義がまだありません</p>
             <button className="tbl-btn tbl-btn-primary" onClick={() => navigate(wsPath("/table/list"))}>
               <i className="bi bi-table" /> テーブル設計へ
@@ -469,10 +469,10 @@ function ErDiagramInner() {
             fitViewOptions={{ padding: 0.3, maxZoom: 1 }}
             defaultEdgeOptions={{
               markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-              style: { strokeWidth: 2, stroke: "#64748b" },
+              style: { strokeWidth: 2, stroke: "var(--hm-border-strong)" },
             }}
           >
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#334155" />
+            <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
             <MiniMap
               nodeColor="#7c6bff"
               maskColor="rgba(26,26,46,0.7)"
@@ -536,7 +536,7 @@ function ErDiagramInner() {
         </div>
         <span className="er-toolbar-info">
           {tables.length} テーブル / {edges.length} リレーション
-          <span style={{ marginLeft: 8, fontSize: 11, color: "#666" }}>ダブルクリックでテーブル編集</span>
+          <span style={{ marginLeft: 8, fontSize: 11, color: "var(--hm-fg-faint)" }}>ダブルクリックでテーブル編集</span>
         </span>
       </div>
 
@@ -633,7 +633,7 @@ function AddRelationModal({
         <div className="tbl-modal-title">
           <i className="bi bi-link-45deg" /> リレーション追加
         </div>
-        <p style={{ fontSize: 12, color: "#999", marginBottom: 16 }}>
+        <p style={{ fontSize: 12, color: "var(--hm-fg-muted)", marginBottom: 16 }}>
           テーブル間の関連をER図に追加します（点線で表示）。カラムは後から設定できます。
         </p>
 
@@ -661,7 +661,7 @@ function AddRelationModal({
             </label>
             {hasColumns && (
               <label className="tbl-field">
-                <span>参照元カラム <small style={{ color: "#666" }}>（任意）</small></span>
+                <span>参照元カラム <small style={{ color: "var(--hm-fg-faint)" }}>（任意）</small></span>
                 <select value={srcColId} onChange={(e) => setSrcColId(e.target.value)}>
                   <option value="">（未定）</option>
                   {srcTable?.columns.map((c) => <option key={c.id} value={c.id}>{c.physicalName}（{c.name}）</option>)}
@@ -680,7 +680,7 @@ function AddRelationModal({
             </label>
             {hasColumns && (
               <label className="tbl-field">
-                <span>参照先カラム <small style={{ color: "#666" }}>（任意）</small></span>
+                <span>参照先カラム <small style={{ color: "var(--hm-fg-faint)" }}>（任意）</small></span>
                 <select value={tgtColId} onChange={(e) => setTgtColId(e.target.value)}>
                   <option value="">（未定）</option>
                   {tgtTable?.columns.map((c) => {

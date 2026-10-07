@@ -52,8 +52,8 @@
   z-index: 1040;
   min-width: 280px;
   max-width: 400px;
-  background: #fff;
-  border: 1px solid #dee2e6;
+  background: var(--hm-surface);
+  border: 1px solid var(--hm-border);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   padding: 6px 0;
@@ -62,7 +62,7 @@
 /* ── 区切り線 ──────────────────────────────────────────────────────────────── */
 .esd-divider {
   margin: 4px 0;
-  border-color: #dee2e6;
+  border-color: var(--hm-border);
   opacity: 0.5;
 }
 
@@ -76,7 +76,7 @@
 }
 
 .esd-current-row {
-  color: #495057;
+  color: var(--hm-fg-2);
 }
 
 .esd-current-badge {
@@ -94,15 +94,15 @@
 }
 
 .esd-entry-row:hover {
-  background: #f8f9fa;
+  background: var(--hm-surface-2);
 }
 
 .esd-entry-me {
-  background: #f0f4ff;
+  background: var(--hm-surface-2);
 }
 
 .esd-entry-me:hover {
-  background: #e8efff;
+  background: var(--hm-surface-3);
 }
 
 /* ── ステータスドット ───────────────────────────────────────────────────────── */
@@ -122,11 +122,11 @@
 }
 
 .esd-dot-viewer {
-  background: #ffc107;
+  background: color-mix(in srgb, #ffc20a 32%, var(--hm-surface));
 }
 
 .esd-dot-self {
-  background: #6c757d;
+  background: var(--hm-surface-4);
 }
 
 /* ── role アイコン ──────────────────────────────────────────────────────────── */
@@ -182,11 +182,11 @@
 .esd-new-draft-btn {
   font-size: 12px;
   padding: 5px 12px;
-  color: #0d6efd;
+  color: color-mix(in srgb, #0c6efd 80%, var(--hm-fg));
   text-decoration: none;
 }
 
 .esd-new-draft-btn:hover {
-  background: #f0f4ff;
-  color: #0a58ca;
+  background: var(--hm-surface-2);
+  color: color-mix(in srgb, #1670f3 80%, var(--hm-fg));
 }

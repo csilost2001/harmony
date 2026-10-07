@@ -23,6 +23,10 @@ export function EditModeToolbar({
   if (mode.kind === "readonly") {
     return (
       <div className="edit-mode-toolbar edit-mode-toolbar--readonly">
+        <span className="edit-mode-state" data-testid="edit-mode-state">
+          <i className="bi bi-eye" />
+          閲覧中
+        </span>
         <button
           type="button"
           className="edit-mode-btn edit-mode-btn-primary"
@@ -39,6 +43,10 @@ export function EditModeToolbar({
   if (mode.kind === "editing") {
     return (
       <div className="edit-mode-toolbar edit-mode-toolbar--editing">
+        <span className="edit-mode-state edit-mode-state--editing" data-testid="edit-mode-state">
+          <i className="bi bi-pencil-square" />
+          編集中
+        </span>
         <button
           type="button"
           className="edit-mode-btn edit-mode-btn-success"

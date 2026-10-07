@@ -450,7 +450,7 @@ export function PageLayoutListView() {
       width: "90px",
       align: "center",
       render: (v) => v.hasProcessFlow
-        ? <i className="bi bi-lightning-charge-fill" title="ProcessFlow あり" style={{ color: "#f59e0b" }} />
+        ? <i className="bi bi-lightning-charge-fill" title="ProcessFlow あり" style={{ color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))" }} />
         : null,
     },
     {
@@ -485,7 +485,7 @@ export function PageLayoutListView() {
         )}
         <EditSessionBadge resourceType="page-layout" resourceId={String(v.id)} />
         {v.hasProcessFlow && (
-          <i className="bi bi-lightning-charge-fill" title="ProcessFlow あり" style={{ color: "#f59e0b", fontSize: "0.75rem" }} />
+          <i className="bi bi-lightning-charge-fill" title="ProcessFlow あり" style={{ color: "color-mix(in srgb, #f5a214 80%, var(--hm-fg))", fontSize: "0.75rem" }} />
         )}
       </div>
       <div className="seq-card-description">

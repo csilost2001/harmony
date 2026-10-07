@@ -380,10 +380,10 @@ export function TransactionScopeStepPanel({
 
       <div className="mb-2" data-field-path="steps">
         <label className="form-label small">
-          <i className="bi bi-shield-fill me-1" style={{ color: "#dc2626" }} />
+          <i className="bi bi-shield-fill me-1" style={{ color: "color-mix(in srgb, #dd2c2c 80%, var(--hm-fg))" }} />
           TX 内のステップ (steps) — atomic 単位で実行
         </label>
-        <div className="border rounded p-2" style={{ background: "rgba(220, 38, 38, 0.04)" }}>
+        <div className="border rounded p-2" style={{ background: "color-mix(in srgb, #dd2c2c 4%, transparent)" }}>
           <InlineStepList
             steps={step.steps}
             parentLabel="TX"
@@ -410,7 +410,7 @@ export function TransactionScopeStepPanel({
           style={{ fontSize: "0.85rem", textDecoration: "none" }}
         >
           <i className={`bi bi-chevron-${onCommitOpen ? "down" : "right"}`} />
-          <i className="bi bi-check2-circle" style={{ color: "#22c55e" }} />
+          <i className="bi bi-check2-circle" style={{ color: "color-mix(in srgb, #2edb6e 80%, var(--hm-fg))" }} />
           onCommit (commit 成功後の追加処理、任意)
           {(step.onCommit ?? []).length > 0 && (
             <span className="badge bg-success ms-1" style={{ fontSize: "0.7rem" }}>
@@ -419,7 +419,7 @@ export function TransactionScopeStepPanel({
           )}
         </button>
         {onCommitOpen && (
-          <div className="border rounded p-2 mt-1" style={{ background: "rgba(34, 197, 94, 0.04)" }}>
+          <div className="border rounded p-2 mt-1" style={{ background: "color-mix(in srgb, #2edb6e 4%, transparent)" }}>
             <InlineStepList
               steps={step.onCommit ?? []}
               parentLabel="C"
@@ -449,7 +449,7 @@ export function TransactionScopeStepPanel({
           style={{ fontSize: "0.85rem", textDecoration: "none" }}
         >
           <i className={`bi bi-chevron-${onRollbackOpen ? "down" : "right"}`} />
-          <i className="bi bi-arrow-counterclockwise" style={{ color: "#ef4444" }} />
+          <i className="bi bi-arrow-counterclockwise" style={{ color: "color-mix(in srgb, #ec1d1d 80%, var(--hm-fg))" }} />
           onRollback (rollback 後の補償処理、任意)
           {(step.onRollback ?? []).length > 0 && (
             <span className="badge bg-danger ms-1" style={{ fontSize: "0.7rem" }}>
@@ -458,7 +458,7 @@ export function TransactionScopeStepPanel({
           )}
         </button>
         {onRollbackOpen && (
-          <div className="border rounded p-2 mt-1" style={{ background: "rgba(239, 68, 68, 0.04)" }}>
+          <div className="border rounded p-2 mt-1" style={{ background: "color-mix(in srgb, #ec1d1d 4%, transparent)" }}>
             <InlineStepList
               steps={step.onRollback ?? []}
               parentLabel="R"

@@ -67,25 +67,25 @@ export function WorkspaceSelectView() {
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      background: "#0f1117",
-      color: "#e4e6f0",
+      background: "var(--hm-bg)",
+      color: "var(--hm-fg)",
       padding: "32px",
     }}>
       <div style={{
         width: "100%",
         maxWidth: "520px",
-        background: "#1a1a2e",
+        background: "var(--hm-surface)",
         borderRadius: "12px",
         padding: "40px",
-        border: "1px solid #2d2d44",
+        border: "1px solid var(--hm-border)",
         boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
       }}>
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <i className="bi bi-folder2-open" style={{ fontSize: "3rem", color: "#4dabf7", display: "block", marginBottom: "12px" }} />
-          <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#e4e6f0", margin: 0 }}>
+          <i className="bi bi-folder2-open" style={{ fontSize: "3rem", color: "color-mix(in srgb, #1590f4 70%, var(--hm-fg))", display: "block", marginBottom: "12px" }} />
+          <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--hm-fg)", margin: 0 }}>
             Harmony プロジェクトを開いてください
           </h2>
-          <p style={{ color: "#9a9db5", fontSize: "0.9rem", marginTop: "8px" }}>
+          <p style={{ color: "var(--hm-fg-muted)", fontSize: "0.9rem", marginTop: "8px" }}>
             Harmony 本体 repo の外にある project フォルダを明示的に選択してください
           </p>
         </div>
@@ -93,10 +93,10 @@ export function WorkspaceSelectView() {
         {visibleError && (
           <div style={{
             padding: "8px 12px",
-            background: "rgba(248,113,113,0.15)",
+            background: "color-mix(in srgb, #f31616 15%, transparent)",
             border: "1px solid rgba(248,113,113,0.4)",
             borderRadius: "6px",
-            color: "#f87171",
+            color: "color-mix(in srgb, #f31616 70%, var(--hm-fg))",
             fontSize: "0.85rem",
             marginBottom: "20px",
           }}>
@@ -117,7 +117,7 @@ export function WorkspaceSelectView() {
               background: "#4dabf7",
               border: "none",
               borderRadius: "6px",
-              color: "#fff",
+              color: "var(--hm-on-solid)",
               fontWeight: 600,
               fontSize: "0.95rem",
               cursor: "pointer",
@@ -140,16 +140,16 @@ export function WorkspaceSelectView() {
               width: "100%",
               padding: "12px 16px",
               background: "transparent",
-              border: "1px solid #3b3e55",
+              border: "1px solid var(--hm-border)",
               borderRadius: "6px",
-              color: "#e4e6f0",
+              color: "var(--hm-fg)",
               fontWeight: 500,
               fontSize: "0.95rem",
               cursor: "pointer",
               marginBottom: "16px",
             }}
           >
-            <i className="bi bi-list-ul" style={{ color: "#4dabf7" }} />
+            <i className="bi bi-list-ul" style={{ color: "color-mix(in srgb, #1590f4 70%, var(--hm-fg))" }} />
             探索ルート / 最近使った project
           </button>
         )}
@@ -159,7 +159,7 @@ export function WorkspaceSelectView() {
           <div>
             <div style={{
               fontSize: "0.78rem",
-              color: "#9a9db5",
+              color: "var(--hm-fg-muted)",
               textTransform: "uppercase",
               letterSpacing: "0.05em",
               marginBottom: "8px",
@@ -179,22 +179,22 @@ export function WorkspaceSelectView() {
                     width: "100%",
                     padding: "9px 12px",
                     background: "transparent",
-                    border: "1px solid #2d2d44",
+                    border: "1px solid var(--hm-border)",
                     borderRadius: "5px",
-                    color: "#e4e6f0",
+                    color: "var(--hm-fg)",
                     fontSize: "0.88rem",
                     cursor: "pointer",
                     textAlign: "left",
                   }}
                 >
-                  <i className="bi bi-folder2" style={{ color: "#4dabf7", flexShrink: 0 }} />
+                  <i className="bi bi-folder2" style={{ color: "color-mix(in srgb, #1590f4 70%, var(--hm-fg))", flexShrink: 0 }} />
                   <div style={{ overflow: "hidden", flex: 1 }}>
                     <div style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {w.name}
                     </div>
                     <div style={{
                       fontSize: "0.76rem",
-                      color: "#9a9db5",
+                      color: "var(--hm-fg-muted)",
                       fontFamily: "monospace",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -214,7 +214,7 @@ export function WorkspaceSelectView() {
                   marginTop: "8px",
                   background: "none",
                   border: "none",
-                  color: "#4dabf7",
+                  color: "color-mix(in srgb, #1590f4 70%, var(--hm-fg))",
                   fontSize: "0.82rem",
                   cursor: "pointer",
                   padding: "2px 0",
@@ -231,10 +231,10 @@ export function WorkspaceSelectView() {
         {lockdown && (
           <div style={{
             padding: "10px 14px",
-            background: "rgba(251,191,36,0.12)",
+            background: "color-mix(in srgb, #fbb90f 12%, transparent)",
             border: "1px solid rgba(251,191,36,0.4)",
             borderRadius: "6px",
-            color: "#fbbf24",
+            color: "color-mix(in srgb, #fbb90f 70%, var(--hm-fg))",
             fontSize: "0.85rem",
             display: "flex",
             alignItems: "center",

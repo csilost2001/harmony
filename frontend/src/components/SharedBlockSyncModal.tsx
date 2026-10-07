@@ -78,7 +78,7 @@ export function SharedBlockSyncModal({ open, blockId, blockLabel, content, onClo
         {/* Body */}
         <div className="shared-sync-body">
           <div className="shared-sync-block-name">
-            <i className="bi bi-bookmark-fill" style={{ color: "#6366f1" }} />
+            <i className="bi bi-bookmark-fill" style={{ color: "color-mix(in srgb, #1e23eb 80%, var(--hm-fg))" }} />
             <span>{blockLabel}</span>
           </div>
 

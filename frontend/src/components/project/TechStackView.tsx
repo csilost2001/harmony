@@ -66,8 +66,8 @@ function RadioGroup({ name, options, value, onChange }: RadioGroupProps) {
           style={{
             display: "flex", alignItems: "flex-start", gap: 8,
             padding: "10px 12px", borderRadius: 6, cursor: "pointer",
-            background: value === opt.value ? "rgba(13,110,253,0.12)" : "rgba(255,255,255,0.04)",
-            border: `1px solid ${value === opt.value ? "#0d6efd" : "rgba(255,255,255,0.1)"}`,
+            background: value === opt.value ? "var(--hm-accent-soft)" : "var(--hm-surface)",
+            border: `1px solid ${value === opt.value ? "var(--hm-accent)" : "var(--hm-border)"}`,
           }}
         >
           <input
@@ -81,7 +81,7 @@ function RadioGroup({ name, options, value, onChange }: RadioGroupProps) {
           <div>
             <div style={{ fontWeight: 500, fontSize: 13 }}>{opt.label}</div>
             {opt.description && (
-              <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{opt.description}</div>
+              <div style={{ fontSize: 11, color: "var(--hm-fg-muted)", marginTop: 2 }}>{opt.description}</div>
             )}
           </div>
         </label>
@@ -102,7 +102,7 @@ function DesignerPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           エディタ種別
         </h4>
         <RadioGroup
@@ -116,7 +116,7 @@ function DesignerPanel({
         />
       </div>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           CSS フレームワーク
         </h4>
         <RadioGroup
@@ -143,7 +143,7 @@ function BackendPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           言語
         </h4>
         <RadioGroup
@@ -160,7 +160,7 @@ function BackendPanel({
         />
       </div>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           フレームワーク
         </h4>
         <RadioGroup
@@ -190,7 +190,7 @@ function DatabasePanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           データベース種別
         </h4>
         <RadioGroup
@@ -207,7 +207,7 @@ function DatabasePanel({
         />
       </div>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           バージョン (省略可)
         </h4>
         <input
@@ -216,10 +216,10 @@ function DatabasePanel({
           value={value.version ?? ""}
           onChange={(e) => onChange({ ...value, version: e.target.value || undefined })}
           style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.15)",
+            background: "var(--hm-hover)",
+            border: "1px solid var(--hm-border)",
             borderRadius: 6, padding: "8px 12px",
-            color: "#fff", fontSize: 13, width: "100%",
+            color: "var(--hm-fg)", fontSize: 13, width: "100%",
             boxSizing: "border-box" as const,
           }}
         />
@@ -238,7 +238,7 @@ function FrontendPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           ライブラリ / テンプレート
         </h4>
         <RadioGroup
@@ -255,7 +255,7 @@ function FrontendPanel({
         />
       </div>
       <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           フレームワーク (省略可)
         </h4>
         <RadioGroup
@@ -283,7 +283,7 @@ function AuthPanel({
 }) {
   return (
     <div>
-      <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+      <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
         認証方式
       </h4>
       <RadioGroup
@@ -311,7 +311,7 @@ function DeploymentPanel({
 }) {
   return (
     <div>
-      <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+      <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
         デプロイターゲット
       </h4>
       <RadioGroup
@@ -336,14 +336,14 @@ function SummarySection({ label, lines }: { label: string; lines: string[] }) {
   const nonEmpty = lines.filter(Boolean);
   return (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 11, color: "#777", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>
+      <div style={{ fontSize: 11, color: "var(--hm-fg-faint)", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>
         {label}
       </div>
       {nonEmpty.length === 0 ? (
-        <div style={{ fontSize: 12, color: "#666", fontStyle: "italic" }}>(未設定)</div>
+        <div style={{ fontSize: 12, color: "var(--hm-fg-faint)", fontStyle: "italic" }}>(未設定)</div>
       ) : (
         nonEmpty.map((line, i) => (
-          <div key={i} style={{ fontSize: 12, color: "#ccc" }}>{line}</div>
+          <div key={i} style={{ fontSize: 12, color: "var(--hm-fg-2)" }}>{line}</div>
         ))
       )}
     </div>
@@ -401,7 +401,7 @@ export function TechStackView() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#888" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--hm-fg-muted)" }}>
         <i className="bi bi-hourglass-split" style={{ marginRight: 8 }} />
         読み込み中...
       </div>
@@ -418,11 +418,11 @@ export function TechStackView() {
       {/* 左ペイン: カテゴリツリー */}
       <div style={{
         width: 220, flexShrink: 0,
-        borderRight: "1px solid rgba(255,255,255,0.1)",
-        background: "rgba(0,0,0,0.25)",
+        borderRight: "1px solid var(--hm-border)",
+        background: "var(--hm-surface-2)",
         display: "flex", flexDirection: "column", paddingTop: 8,
       }}>
-        <div style={{ padding: "8px 16px", fontSize: 11, color: "#666", textTransform: "uppercase" as const, letterSpacing: 1 }}>
+        <div style={{ padding: "8px 16px", fontSize: 11, color: "var(--hm-fg-faint)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           カテゴリ
         </div>
         {CATEGORIES.map((cat) => (
@@ -434,9 +434,9 @@ export function TechStackView() {
               display: "flex", alignItems: "center", gap: 10,
               padding: "10px 16px",
               border: "none",
-              borderLeft: `3px solid ${activeCategory === cat.id ? "#0d6efd" : "transparent"}`,
-              background: activeCategory === cat.id ? "rgba(13,110,253,0.18)" : "transparent",
-              color: activeCategory === cat.id ? "#fff" : "#aaa",
+              borderLeft: `3px solid ${activeCategory === cat.id ? "var(--hm-accent)" : "transparent"}`,
+              background: activeCategory === cat.id ? "var(--hm-accent-soft)" : "transparent",
+              color: activeCategory === cat.id ? "var(--hm-fg)" : "var(--hm-fg-muted)",
               cursor: "pointer", fontSize: 13, textAlign: "left" as const,
               transition: "background 0.15s, color 0.15s",
             }}
@@ -468,8 +468,8 @@ export function TechStackView() {
             disabled={hasViolations || saving}
             style={{
               padding: "8px 20px", borderRadius: 6, border: "none",
-              background: (hasViolations || saving) ? "#3a3a3a" : "#0d6efd",
-              color: (hasViolations || saving) ? "#666" : "#fff",
+              background: (hasViolations || saving) ? "var(--hm-surface-4)" : "var(--hm-accent-solid)",
+              color: (hasViolations || saving) ? "var(--hm-fg-faint)" : "var(--hm-on-solid)",
               cursor: (hasViolations || saving) ? "not-allowed" : "pointer",
               fontSize: 13, fontWeight: 500, transition: "background 0.15s",
             }}
@@ -479,12 +479,12 @@ export function TechStackView() {
               : <><i className="bi bi-save" style={{ marginRight: 6 }} />保存</>}
           </button>
           {saveSuccess && (
-            <span style={{ color: "#28a745", fontSize: 13 }}>
+            <span style={{ color: "color-mix(in srgb, #3ad05c 80%, var(--hm-fg))", fontSize: 13 }}>
               <i className="bi bi-check-circle" style={{ marginRight: 4 }} />保存しました
             </span>
           )}
           {hasViolations && (
-            <span style={{ color: "#dc3545", fontSize: 13 }}>
+            <span style={{ color: "color-mix(in srgb, #db2e3f 80%, var(--hm-fg))", fontSize: 13 }}>
               <i className="bi bi-exclamation-triangle" style={{ marginRight: 4 }} />
               制約違反があるため保存できません
             </span>
@@ -495,11 +495,11 @@ export function TechStackView() {
       {/* 右ペイン: 選択サマリ + 制約違反 */}
       <div style={{
         width: 260, flexShrink: 0,
-        borderLeft: "1px solid rgba(255,255,255,0.1)",
+        borderLeft: "1px solid var(--hm-border)",
         padding: 16, overflow: "auto",
-        background: "rgba(0,0,0,0.18)",
+        background: "var(--hm-surface-2)",
       }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#888", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 14 }}>
           現在の選択
         </div>
         <SummarySection label="デザイナー" lines={[
@@ -528,7 +528,7 @@ export function TechStackView() {
         {/* 制約違反 */}
         {hasViolations && (
           <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#dc3545", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "color-mix(in srgb, #db2e3f 80%, var(--hm-fg))", textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 8 }}>
               <i className="bi bi-exclamation-triangle" style={{ marginRight: 4 }} />
               制約違反
             </div>
@@ -536,13 +536,13 @@ export function TechStackView() {
               <div
                 key={i}
                 style={{
-                  background: "rgba(220,53,69,0.1)",
+                  background: "color-mix(in srgb, #db2e3f 10%, transparent)",
                   border: "1px solid rgba(220,53,69,0.3)",
                   borderRadius: 4, padding: "8px 10px", marginBottom: 8, fontSize: 12,
                 }}
               >
-                <div style={{ color: "#ff8080", fontWeight: 500, marginBottom: 2 }}>{v.field}</div>
-                <div style={{ color: "#ccc" }}>{v.message}</div>
+                <div style={{ color: "color-mix(in srgb, #ff0a0a 70%, var(--hm-fg))", fontWeight: 500, marginBottom: 2 }}>{v.field}</div>
+                <div style={{ color: "var(--hm-fg-2)" }}>{v.message}</div>
               </div>
             ))}
           </div>

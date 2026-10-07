@@ -121,8 +121,8 @@ export function ReferenceCompletionInput({
             top: "100%",
             left: 0,
             zIndex: 9999,
-            background: "#fff",
-            border: "1px solid #cbd5e1",
+            background: "var(--hm-surface)",
+            border: "1px solid var(--hm-border-strong)",
             borderRadius: 6,
             boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
             margin: "2px 0 0",
@@ -145,8 +145,8 @@ export function ReferenceCompletionInput({
               style={{
                 padding: "4px 12px",
                 cursor: "pointer",
-                background: i === safeIndex ? "#6366f1" : "transparent",
-                color: i === safeIndex ? "#fff" : "#1e293b",
+                background: i === safeIndex ? "var(--hm-accent-solid)" : "transparent",
+                color: i === safeIndex ? "var(--hm-on-solid)" : "var(--hm-fg)",
                 borderRadius: i === safeIndex ? 3 : 0,
                 margin: "0 4px",
               }}
