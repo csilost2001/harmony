@@ -126,8 +126,13 @@ export function ensureFormFieldIdentity(cmp: Component, editor?: GEditor): boole
  * GrapesJS editor にフックを張って新規要素に data-item-id / name を発番する。
  * @returns unsubscribe 関数
  */
-export function attachDataItemIdAutoAssign(editor: GEditor): () => void {
+export function attachDataItemIdAutoAssign(
+  editor: GEditor,
+  isInternalLoadRef?: { current: boolean },
+): () => void {
   const onAdd = (cmp: Component) => {
+    // ロード・再読込中に発番すると、開いただけで原本が変わってしまうため無視する
+    if (isInternalLoadRef?.current) return;
     walk(cmp, (c) => { ensureFormFieldIdentity(c, editor); });
   };
   editor.on("component:add", onAdd);

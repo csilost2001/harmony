@@ -3,14 +3,16 @@
  *
  * - component:add → screen-items に自動登録 (重複 no-op)
  * - component:remove → screen-items から自動削除
- * - reconcileScreenItems → ロード後の canvas 全件 ↔ screen-items 差分適用 (追加のみ)
+ *
+ * 項目 ID として採用するのは設計者 (または追加時の自動発番) が明示した
+ * `data-item-id` / `name` のみ。GrapesJS が内部で付与する `id` (例: `imyus6`) は採用しない。
+ * ロード・再読込では原本を書き換えない (明示保存モデル)。過去に存在した
+ * ロード時の自動突合 (reconcile) は、開くだけで項目定義を汚染したため廃止した。
  *
  * ロード中ガード: isInternalLoadRef.current === true の間は add/remove を無視する。
  * 操作シリアライズ: per-screen の Promise チェーンで read→modify→write を直列化し
  * 競合を防ぐ。
  *
- * reconcile は canvas に存在する items を screen-items に追加するのみ。
- * canvas にない items は削除しない (entity.items[] の定義はユーザーの権限)。
  */
 import type { Editor as GEditor, Component } from "grapesjs";
 import type { FieldType, Identifier } from "../types/v3";
@@ -47,16 +49,16 @@ function inferScreenItemType(cmp: Component): FieldType {
   return "string";
 }
 
-// ── ID 収集 ─────────────────────────────────────────────────────────────────
+// ── ID 判定 ─────────────────────────────────────────────────────────────────
 
-function collectIds(root: Component): Map<string, Component> {
-  const ids = new Map<string, Component>();
-  walk(root, (c) => {
-    if (!isNamableElement(c)) return;
-    const id = String(c.getAttributes()["id"] ?? c.getAttributes()["name"] ?? "");
-    if (id) ids.set(id, c);
-  });
-  return ids;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** 明示された項目 ID を返す。data-item-id (UUID 以外) → name の順。GrapesJS 内部 id は使わない。 */
+export function explicitItemId(cmp: Component): string {
+  const attrs = cmp.getAttributes() ?? {};
+  const dataItemId = String(attrs["data-item-id"] ?? "");
+  if (dataItemId && !UUID_PATTERN.test(dataItemId)) return dataItemId;
+  return String(attrs["name"] ?? "");
 }
 
 // ── 公開 API ────────────────────────────────────────────────────────────────
@@ -66,7 +68,7 @@ function syncAddComponent(screenId: string, cmp: Component): void {
   const toAdd: Array<{ id: string; cmp: Component }> = [];
   walk(cmp, (c) => {
     if (!isNamableElement(c)) return;
-    const id = String(c.getAttributes()["id"] ?? c.getAttributes()["name"] ?? "");
+    const id = explicitItemId(c);
     if (id) toAdd.push({ id, cmp: c });
   });
   if (toAdd.length === 0) return;
@@ -88,7 +90,7 @@ function syncRemoveComponent(screenId: string, cmp: Component): void {
   const toRemove = new Set<string>();
   walk(cmp, (c) => {
     if (!isNamableElement(c)) return;
-    const id = String(c.getAttributes()["id"] ?? c.getAttributes()["name"] ?? "");
+    const id = explicitItemId(c);
     if (id) toRemove.add(id);
   });
   if (toRemove.size === 0) return;
@@ -98,33 +100,6 @@ function syncRemoveComponent(screenId: string, cmp: Component): void {
     const before = file.items.length;
     file.items = file.items.filter((i) => !toRemove.has(i.id));
     if (file.items.length !== before) await saveScreenItems(file);
-  });
-}
-
-/**
- * ロード後の canvas ↔ screen-items 突合。
- * isInternalLoadRef が false になった直後 (onReady の setTimeout 内) に呼ぶ。
- * canvas にある items を screen-items に追加するのみ (削除しない)。
- */
-export function reconcileScreenItems(editor: GEditor, screenId: string): void {
-  const wrapper = editor.getWrapper();
-  if (!wrapper) return;
-
-  const canvasIds = collectIds(wrapper);
-
-  enqueue(screenId, async () => {
-    const file = await loadScreenItems(screenId);
-    let changed = false;
-
-    // canvas にあって screen-items にない → 追加のみ
-    for (const [id, cmp] of canvasIds) {
-      if (!file.items.some((i) => i.id === id)) {
-        file.items.push({ id: id as Identifier, label: "", type: inferScreenItemType(cmp) });
-        changed = true;
-      }
-    }
-
-    if (changed) await saveScreenItems(file);
   });
 }
 

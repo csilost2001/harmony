@@ -49,7 +49,7 @@ import { registerBlocks, registerGadgetBlocks } from "../grapes/blocks";
 import { syncGadgetInstancePreviews } from "../grapes/gadgetInstancePreview";
 import { registerValidationTraits } from "../grapes/validationTraits";
 import { attachDataItemIdAutoAssign } from "../grapes/dataItemId";
-import { attachScreenItemsSync, reconcileScreenItems } from "../grapes/screenItemsSync";
+import { attachScreenItemsSync } from "../grapes/screenItemsSync";
 import { ensureValidProject } from "../grapes/remoteStorage";
 import { mcpBridge, type McpStatus } from "../mcp/mcpBridge";
 import { loadCustomBlocks, injectCustomBlockCss } from "../store/customBlockStore";
@@ -453,7 +453,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       editor.on("component:add component:update", scheduleGadgetPreviewSync);
 
       // #322: input/select/textarea ブロック drop 時に data-item-id を自動発番
-      const unsubDataItemId = attachDataItemIdAutoAssign(editor);
+      const unsubDataItemId = attachDataItemIdAutoAssign(editor, isInternalLoadRef);
 
       // #358: canvas ↔ screen-items 双方向同期
       const unsubScreenItemsSync = isScreenResource
@@ -534,10 +534,9 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
       editorRef.current.loadProjectData(safePayload);
 
       // GrapesJS が ensureValidProject 経由で空データから component:add を 1 回発火するため、
-      // 次のマクロタスクでガードを下げる (#131)。同タイミングで canvas ↔ screen-items 初回突合 (#358)。
+      // 次のマクロタスクでガードを下げる (#131)。
       setTimeout(() => {
         isInternalLoadRef.current = false;
-        if (isScreenResource && editorRef.current) reconcileScreenItems(editorRef.current, screenId);
       }, 0);
 
       // framework × variant の 2 軸 CSS を注入 (#793 子 5)
@@ -579,8 +578,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
           } finally {
             setTimeout(() => {
               isInternalLoadRef.current = false;
-              if (isScreenResource && editorRef.current) reconcileScreenItems(editorRef.current, screenId);
-            }, 0);
+                  }, 0);
           }
         },
         refreshCanvas: () => {
@@ -602,8 +600,7 @@ function GrapesJSEditorPane(props: GrapesJSEditorPaneProps) {
           } finally {
             setTimeout(() => {
               isInternalLoadRef.current = false;
-              if (isScreenResource && editorRef.current) reconcileScreenItems(editorRef.current, screenId);
-            }, 0);
+                  }, 0);
           }
         },
         clearUndo: () => editor.UndoManager.clear(),
