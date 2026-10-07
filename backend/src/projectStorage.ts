@@ -1296,9 +1296,13 @@ export async function writeScreenItems(screenId: string, data: unknown, root: st
   const current = (await migrateScreenIfNeeded(screenId, r)) as Record<string, unknown> | null;
   const project = await readProject(r);
   const items = extractItems(data);
+  // 業務部品デザイナは items と layout を同じ編集セッションで保存する。layout を持たない
+  // payload (画面項目画面からの保存) では既存の layout をそのまま残す。
+  const layout = data && typeof data === "object" && "layout" in data ? (data as { layout?: unknown }).layout : undefined;
   const next = {
     ...(current ?? buildDefaultScreenEntity(screenId, getScreenEntry(project, screenId), [], dataRoot)),
     items,
+    ...(layout && typeof layout === "object" ? { layout } : {}),
     updatedAt: new Date().toISOString(),
   };
   await writeScreenEntity(screenId, next, r);
