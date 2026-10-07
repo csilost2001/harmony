@@ -50,5 +50,200 @@
   ],
   "design": {
     "designFileRef": "dashboard.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "columns",
+        "type": "columns",
+        "children": [
+          {
+            "id": "column",
+            "type": "column",
+            "props": {
+              "span": 6
+            },
+            "children": [
+              {
+                "id": "section",
+                "type": "section",
+                "props": {
+                  "variant": "card"
+                },
+                "children": [
+                  {
+                    "id": "streakDays",
+                    "type": "field",
+                    "itemRef": "streakDays"
+                  },
+                  {
+                    "id": "text",
+                    "type": "text",
+                    "props": {
+                      "text": "連続学習日数",
+                      "tone": "muted"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "column2",
+            "type": "column",
+            "props": {
+              "span": 6
+            },
+            "children": [
+              {
+                "id": "section2",
+                "type": "section",
+                "props": {
+                  "variant": "card"
+                },
+                "children": [
+                  {
+                    "id": "cefrLevel",
+                    "type": "field",
+                    "itemRef": "cefrLevel"
+                  },
+                  {
+                    "id": "text2",
+                    "type": "text",
+                    "props": {
+                      "text": "CEFR レベル",
+                      "tone": "muted"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section3",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "heading",
+            "type": "heading",
+            "props": {
+              "text": "本日の目標",
+              "level": 2
+            }
+          },
+          {
+            "id": "todayDone",
+            "type": "field",
+            "itemRef": "todayDone"
+          },
+          {
+            "id": "text3",
+            "type": "text",
+            "props": {
+              "text": "/"
+            }
+          },
+          {
+            "id": "todayGoal",
+            "type": "field",
+            "itemRef": "todayGoal"
+          },
+          {
+            "id": "text4",
+            "type": "text",
+            "props": {
+              "text": "セッション"
+            }
+          }
+        ]
+      },
+      {
+        "id": "button",
+        "type": "button",
+        "props": {
+          "label": "今すぐ学習を始める",
+          "variant": "primary",
+          "screenRef": "story-list"
+        }
+      },
+      {
+        "id": "heading2",
+        "type": "heading",
+        "props": {
+          "text": "最近のストーリー",
+          "level": 2
+        }
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "link",
+            "type": "link",
+            "props": {
+              "label": "すべて見る",
+              "screenRef": "story-list"
+            }
+          }
+        ],
+        "props": {
+          "align": "between"
+        }
+      },
+      {
+        "id": "recentStoryList",
+        "type": "field",
+        "itemRef": "recentStoryList"
+      },
+      {
+        "id": "columns2",
+        "type": "columns",
+        "children": [
+          {
+            "id": "column3",
+            "type": "column",
+            "props": {
+              "span": 6
+            },
+            "children": [
+              {
+                "id": "button2",
+                "type": "button",
+                "props": {
+                  "label": "学習履歴",
+                  "variant": "secondary",
+                  "screenRef": "study-history-list"
+                }
+              }
+            ]
+          },
+          {
+            "id": "column4",
+            "type": "column",
+            "props": {
+              "span": 6
+            },
+            "children": [
+              {
+                "id": "button3",
+                "type": "button",
+                "props": {
+                  "label": "単語帳",
+                  "variant": "secondary",
+                  "screenRef": "word-book"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

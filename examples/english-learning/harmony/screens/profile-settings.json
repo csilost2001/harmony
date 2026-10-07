@@ -121,5 +121,65 @@
   ],
   "design": {
     "designFileRef": "profile-settings.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "form",
+        "type": "form",
+        "children": [
+          {
+            "id": "displayName",
+            "type": "field",
+            "itemRef": "displayName"
+          },
+          {
+            "id": "section",
+            "type": "section",
+            "props": {
+              "title": "学習設定",
+              "variant": "card"
+            },
+            "children": [
+              {
+                "id": "targetCefrLevel",
+                "type": "field",
+                "itemRef": "targetCefrLevel"
+              },
+              {
+                "id": "text",
+                "type": "text",
+                "props": {
+                  "text": "興味分野 (複数選択可)"
+                }
+              },
+              {
+                "id": "interests",
+                "type": "field",
+                "itemRef": "interests"
+              },
+              {
+                "id": "text2",
+                "type": "text",
+                "props": {
+                  "text": "コンテンツパック選択のレコメンドに使用します。",
+                  "tone": "muted"
+                }
+              }
+            ]
+          },
+          {
+            "id": "saveProfile",
+            "type": "button",
+            "itemRef": "saveProfile",
+            "props": {
+              "label": "設定を保存する",
+              "variant": "primary"
+            }
+          }
+        ]
+      }
+    ]
   }
 }

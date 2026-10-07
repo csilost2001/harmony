@@ -67,9 +67,193 @@
       "direction": "in",
       "defaultValue": false,
       "description": "S-1 在庫一覧の低在庫フィルタトグル。"
+    },
+    {
+      "id": "inventoryListRows",
+      "label": "リテール総合システム 一覧",
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
+      "direction": "out",
+      "presentation": {
+        "kind": "table",
+        "columns": [
+          {
+            "id": "col1",
+            "label": "商品コード",
+            "path": "col1",
+            "type": "string"
+          },
+          {
+            "id": "col2",
+            "label": "商品名",
+            "path": "col2",
+            "type": "string"
+          },
+          {
+            "id": "col3",
+            "label": "カテゴリ",
+            "path": "col3",
+            "type": "string"
+          },
+          {
+            "id": "col4",
+            "label": "在庫数",
+            "path": "col4",
+            "type": "string"
+          },
+          {
+            "id": "col5",
+            "label": "状態",
+            "path": "col5",
+            "type": "string"
+          },
+          {
+            "id": "col6",
+            "label": "最終更新",
+            "path": "col6",
+            "type": "string"
+          },
+          {
+            "id": "col7",
+            "label": "操作",
+            "path": "col7",
+            "type": "string"
+          }
+        ]
+      }
     }
   ],
   "design": {
     "designFileRef": "inventory-list.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "在庫一覧",
+          "level": 1
+        }
+      },
+      {
+        "id": "searchPanel",
+        "type": "search-panel",
+        "props": {
+          "columns": 3
+        },
+        "children": [
+          {
+            "id": "storeFilter",
+            "type": "field",
+            "itemRef": "storeFilter"
+          },
+          {
+            "id": "productCodeFilter",
+            "type": "field",
+            "itemRef": "productCodeFilter"
+          },
+          {
+            "id": "lowStockOnly",
+            "type": "field",
+            "itemRef": "lowStockOnly"
+          },
+          {
+            "id": "buttons",
+            "type": "button-bar",
+            "children": [
+              {
+                "id": "clearButton",
+                "type": "button",
+                "props": {
+                  "label": "クリア",
+                  "variant": "secondary"
+                }
+              },
+              {
+                "id": "button",
+                "type": "button",
+                "props": {
+                  "label": "絞り込み",
+                  "variant": "primary"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "messageArea",
+        "type": "message-area"
+      },
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "text",
+            "type": "text",
+            "props": {
+              "text": "表示中:"
+            }
+          },
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "38"
+            }
+          },
+          {
+            "id": "text3",
+            "type": "text",
+            "props": {
+              "text": "件"
+            }
+          },
+          {
+            "id": "csvButton",
+            "type": "button",
+            "props": {
+              "label": "CSV 出力",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "inventoryListRows",
+            "type": "table",
+            "itemRef": "inventoryListRows"
+          },
+          {
+            "id": "text4",
+            "type": "text",
+            "props": {
+              "text": "1 - 10 / 38 件"
+            }
+          },
+          {
+            "id": "html",
+            "type": "html",
+            "props": {
+              "html": "<ul class=\"pagination pagination-sm mb-0\">\n              <li class=\"page-item disabled\"><a class=\"page-link\" href=\"#\">«</a></li>\n              <li class=\"page-item active\"><a class=\"page-link\" href=\"#\">1</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">2</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">3</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">4</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">»</a></li>\n            </ul>"
+            }
+          }
+        ]
+      },
+      {
+        "id": "text5",
+        "type": "text",
+        "props": {
+          "text": "低在庫閾値: 在庫 10 個以下で警告を表示します。",
+          "tone": "muted"
+        }
+      }
+    ]
   }
 }

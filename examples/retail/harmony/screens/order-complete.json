@@ -50,9 +50,140 @@
         "path": "confirmedAt",
         "processFlowId": "order-confirm"
       }
+    },
+    {
+      "id": "orderItems",
+      "label": "リテール総合システム 一覧",
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
+      "direction": "out",
+      "presentation": {
+        "kind": "table",
+        "columns": [
+          {
+            "id": "col1",
+            "label": "商品コード",
+            "path": "col1",
+            "type": "string"
+          },
+          {
+            "id": "col2",
+            "label": "商品名",
+            "path": "col2",
+            "type": "string"
+          },
+          {
+            "id": "col3",
+            "label": "数量",
+            "path": "col3",
+            "type": "string"
+          },
+          {
+            "id": "col4",
+            "label": "小計",
+            "path": "col4",
+            "type": "string"
+          }
+        ]
+      }
     }
   ],
   "design": {
     "designFileRef": "order-complete.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "1. カート 2. 注文確認 3. 注文完了"
+        }
+      },
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "注文が確定しました",
+          "level": 1
+        }
+      },
+      {
+        "id": "text2",
+        "type": "text",
+        "props": {
+          "text": "ご注文ありがとうございます。以下の注文番号でお問い合わせいただけます。",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "text3",
+        "type": "text",
+        "props": {
+          "text": "注文番号",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "orderNumber",
+        "type": "field",
+        "itemRef": "orderNumber"
+      },
+      {
+        "id": "orderItems",
+        "type": "table",
+        "itemRef": "orderItems",
+        "props": {
+          "title": "注文内容"
+        }
+      },
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "title": "配送情報",
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "html",
+            "type": "html",
+            "props": {
+              "html": "<dl class=\"row mb-0\">\n                <dt class=\"col-sm-4 text-muted\">配送先住所</dt>\n                <dd class=\"col-sm-8\" id=\"shippingAddressDisplay\" data-item-id=\"shippingAddressDisplay\">\n                  東京都新宿区新宿 X-X-X\n                </dd>\n                <dt class=\"col-sm-4 text-muted\">配送状況</dt>\n                <dd class=\"col-sm-8\">\n                  <span class=\"badge bg-warning text-dark\">配送指示待ち</span>\n                </dd>\n              </dl>"
+            }
+          }
+        ]
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "ダッシュボードへ",
+              "variant": "secondary",
+              "screenRef": "dashboard"
+            }
+          },
+          {
+            "id": "checkOrderButton",
+            "type": "button",
+            "props": {
+              "label": "注文履歴を確認する",
+              "variant": "primary",
+              "screenRef": "order-list"
+            }
+          }
+        ],
+        "props": {
+          "align": "center"
+        }
+      }
+    ]
   }
 }

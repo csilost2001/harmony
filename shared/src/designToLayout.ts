@@ -170,6 +170,15 @@ export function designToLayout(roots: SimpleNode[], existingItems: readonly Exis
     return null;
   };
 
+  /** 項目 ID を持たない要素を、表示名が同じ未使用の既存項目に結び付ける */
+  const itemByLabel = (label: string): string | null => {
+    const norm = (v: string) => v.replace(/\s+/g, "").replace(/[*＊:：]$/, "");
+    const key = norm(label);
+    if (!key) return null;
+    const hit = [...items.values()].find((i) => !usedItems.has(i.id) && i.label && norm(i.label) === key);
+    return hit ? hit.id : null;
+  };
+
   const ensureItem = (id: string, make: () => ConvertedItem): string => {
     if (!items.has(id) && !newItems.some((n) => n.id === id)) {
       const it = make();
@@ -180,10 +189,12 @@ export function designToLayout(roots: SimpleNode[], existingItems: readonly Exis
   };
 
   const fieldFromControl = (ctl: SimpleEl, ctx: SimpleEl | null): LayoutNode | null => {
-    const id = itemIdOf(ctl);
-    if (!id) return null;
     const t = (ctl.attrs.type ?? "text").toLowerCase();
-    const label = labelFor.get(ctl.attrs.id ?? "") || (ctx ? clean(text(find(ctx, (e) => e.tag === "label") ?? ctx)) : "") || ctl.attrs["aria-label"] || ctl.attrs.placeholder || id;
+    const rawLabel = labelFor.get(ctl.attrs.id ?? "") || (ctx ? clean(text(find(ctx, (e) => e.tag === "label") ?? ctx)) : "") || ctl.attrs["aria-label"] || ctl.attrs.placeholder || "";
+    const bound = itemIdOf(ctl);
+    const id = (bound && items.has(bound) ? bound : null) ?? itemByLabel(rawLabel) ?? bound;
+    if (!id) return null;
+    const label = rawLabel || id;
     ensureItem(id, () => {
       const it: ConvertedItem = { id, label: label.replace(/\s*\*\s*$/, ""), type: "string", direction: "in" };
       if (ctl.tag === "select") {
@@ -235,12 +246,12 @@ export function designToLayout(roots: SimpleNode[], existingItems: readonly Exis
   };
 
   const buttonNode = (b: SimpleEl): LayoutNode => {
-    const label = clean(text(b)) || b.attrs.value || b.attrs["aria-label"] || "ボタン";
+    const label = clean(text(b)) || b.attrs.value || b.attrs["aria-label"] || b.attrs.title || "ボタン";
     const c = cls(b);
     const variant: LayoutNodeProps["variant"] = /btn-(outline-)?danger/.test(c) ? "danger"
       : /btn-primary|btn-success/.test(c) && !/outline/.test(c) ? "primary"
       : b.tag === "a" && /btn-link/.test(c) ? "link" : "secondary";
-    const bound = b.attrs["data-item-id"] ?? (b.attrs.id && items.has(b.attrs.id) ? b.attrs.id : undefined);
+    const bound = b.attrs["data-item-id"] ?? (b.attrs.id && items.has(b.attrs.id) ? b.attrs.id : undefined) ?? itemByLabel(label) ?? undefined;
     stats.buttons++;
     const screenRef = b.tag === "a" ? screenRefOf(b.attrs.href) : undefined;
     if (bound && !GRAPES_AUTO_ID.test(bound) && (items.has(bound) || IDENT.test(bound))) {

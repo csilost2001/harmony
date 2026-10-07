@@ -97,7 +97,7 @@ export function canContain(parentType: LayoutNodeType | null, childType: LayoutN
     case "button-bar": return childType === "button" || childType === "link";
     case "form":
     case "search-panel":
-      return ["field", "button", "text", "divider", "html", "columns", "button-bar", "heading", "message-area", "table"].includes(childType);
+      return ["field", "button", "text", "divider", "html", "columns", "button-bar", "heading", "message-area", "table", "section"].includes(childType);
     default:
       return true;
   }

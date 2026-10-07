@@ -105,5 +105,78 @@
   ],
   "design": {
     "designFileRef": "conversation-play.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "currentDialogueLine",
+        "type": "field",
+        "itemRef": "currentDialogueLine"
+      },
+      {
+        "id": "currentDialogueTranslation",
+        "type": "field",
+        "itemRef": "currentDialogueTranslation"
+      },
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "発音スコア:"
+        }
+      },
+      {
+        "id": "pronunciationScore",
+        "type": "field",
+        "itemRef": "pronunciationScore"
+      },
+      {
+        "id": "text2",
+        "type": "text",
+        "props": {
+          "text": "78 点"
+        }
+      },
+      {
+        "id": "aiResponseText",
+        "type": "field",
+        "itemRef": "aiResponseText"
+      },
+      {
+        "id": "turnHistory",
+        "type": "field",
+        "itemRef": "turnHistory"
+      },
+      {
+        "id": "userTextInput",
+        "type": "field",
+        "itemRef": "userTextInput"
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "recordButton",
+            "type": "button",
+            "itemRef": "recordButton",
+            "props": {
+              "label": "録音して送信",
+              "variant": "danger"
+            }
+          },
+          {
+            "id": "finishSession",
+            "type": "button",
+            "itemRef": "finishSession",
+            "props": {
+              "label": "セッションを終了して結果を確認する",
+              "variant": "secondary"
+            }
+          }
+        ]
+      }
+    ]
   }
 }

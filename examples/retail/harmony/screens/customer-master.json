@@ -40,9 +40,208 @@
       "direction": "in",
       "defaultValue": true,
       "description": "顧客マスター一覧の有効フラグフィルタ。"
+    },
+    {
+      "id": "isActiveFilter",
+      "label": "有効/無効",
+      "type": "string",
+      "direction": "in",
+      "options": [
+        {
+          "value": "true",
+          "label": "有効"
+        },
+        {
+          "value": "false",
+          "label": "無効"
+        }
+      ]
+    },
+    {
+      "id": "registeredFrom",
+      "label": "登録日 (開始)",
+      "type": "date",
+      "direction": "in"
+    },
+    {
+      "id": "customerMasterRows",
+      "label": "リテール総合システム 一覧",
+      "type": {
+        "kind": "array",
+        "itemType": "json"
+      },
+      "direction": "out",
+      "presentation": {
+        "kind": "table",
+        "columns": [
+          {
+            "id": "col1",
+            "label": "顧客 ID",
+            "path": "col1",
+            "type": "string"
+          },
+          {
+            "id": "col2",
+            "label": "顧客名",
+            "path": "col2",
+            "type": "string"
+          },
+          {
+            "id": "col3",
+            "label": "メールアドレス",
+            "path": "col3",
+            "type": "string"
+          },
+          {
+            "id": "col4",
+            "label": "注文回数",
+            "path": "col4",
+            "type": "string"
+          },
+          {
+            "id": "col5",
+            "label": "有効",
+            "path": "col5",
+            "type": "string"
+          },
+          {
+            "id": "col6",
+            "label": "登録日",
+            "path": "col6",
+            "type": "string"
+          },
+          {
+            "id": "col7",
+            "label": "操作",
+            "path": "col7",
+            "type": "string"
+          }
+        ]
+      }
     }
   ],
   "design": {
     "designFileRef": "customer-master.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "顧客マスター",
+          "level": 1
+        }
+      },
+      {
+        "id": "searchPanel",
+        "type": "search-panel",
+        "props": {
+          "columns": 3
+        },
+        "children": [
+          {
+            "id": "emailSearch",
+            "type": "field",
+            "itemRef": "emailSearch"
+          },
+          {
+            "id": "customerNameSearch",
+            "type": "field",
+            "itemRef": "customerNameSearch"
+          },
+          {
+            "id": "isActiveFilter",
+            "type": "field",
+            "itemRef": "isActiveFilter"
+          },
+          {
+            "id": "registeredFrom",
+            "type": "field",
+            "itemRef": "registeredFrom"
+          },
+          {
+            "id": "buttons",
+            "type": "button-bar",
+            "children": [
+              {
+                "id": "clearButton",
+                "type": "button",
+                "props": {
+                  "label": "クリア",
+                  "variant": "secondary"
+                }
+              },
+              {
+                "id": "searchButton",
+                "type": "button",
+                "props": {
+                  "label": "検索",
+                  "variant": "primary"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "text",
+            "type": "text",
+            "props": {
+              "text": "表示中:"
+            }
+          },
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "3,142"
+            }
+          },
+          {
+            "id": "text3",
+            "type": "text",
+            "props": {
+              "text": "件"
+            }
+          },
+          {
+            "id": "csvButton",
+            "type": "button",
+            "props": {
+              "label": "CSV 出力",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "customerMasterRows",
+            "type": "table",
+            "itemRef": "customerMasterRows"
+          },
+          {
+            "id": "text4",
+            "type": "text",
+            "props": {
+              "text": "1 - 10 / 3,142 件"
+            }
+          },
+          {
+            "id": "html",
+            "type": "html",
+            "props": {
+              "html": "<ul class=\"pagination pagination-sm mb-0\">\n              <li class=\"page-item disabled\"><a class=\"page-link\" href=\"#\">«</a></li>\n              <li class=\"page-item active\"><a class=\"page-link\" href=\"#\">1</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">2</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">3</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">315</a></li>\n              <li class=\"page-item\"><a class=\"page-link\" href=\"#\">»</a></li>\n            </ul>"
+            }
+          }
+        ]
+      }
+    ]
   }
 }

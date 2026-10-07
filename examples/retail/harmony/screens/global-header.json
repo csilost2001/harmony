@@ -45,5 +45,40 @@
   "design": {
     "editorKind": "grapesjs",
     "cssFramework": "bootstrap"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "店舗 A"
+        }
+      },
+      {
+        "id": "userName",
+        "type": "field",
+        "itemRef": "userName"
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "logoutButton",
+            "type": "button",
+            "itemRef": "logoutButton",
+            "props": {
+              "label": "ログアウト",
+              "variant": "secondary"
+            }
+          }
+        ],
+        "props": {
+          "align": "between"
+        }
+      }
+    ]
   }
 }

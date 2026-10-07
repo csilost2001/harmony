@@ -85,5 +85,63 @@
   ],
   "design": {
     "designFileRef": "story-list.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "columns",
+            "type": "columns",
+            "children": [
+              {
+                "id": "column",
+                "type": "column",
+                "props": {
+                  "span": 6
+                },
+                "children": [
+                  {
+                    "id": "cefrFilter",
+                    "type": "field",
+                    "itemRef": "cefrFilter"
+                  }
+                ]
+              },
+              {
+                "id": "column2",
+                "type": "column",
+                "props": {
+                  "span": 6
+                },
+                "children": [
+                  {
+                    "id": "packFilter",
+                    "type": "field",
+                    "itemRef": "packFilter"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "keywordFilter",
+            "type": "field",
+            "itemRef": "keywordFilter"
+          }
+        ]
+      },
+      {
+        "id": "storyList",
+        "type": "table",
+        "itemRef": "storyList"
+      }
+    ]
   }
 }

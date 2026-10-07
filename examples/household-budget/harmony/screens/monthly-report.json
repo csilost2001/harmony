@@ -109,5 +109,126 @@
   "design": {
     "editorKind": "puck",
     "cssFramework": "tailwind"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "link",
+        "type": "link",
+        "props": {
+          "label": "←",
+          "screenRef": "dashboard"
+        }
+      },
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "月次レポート",
+          "level": 1
+        }
+      },
+      {
+        "id": "button",
+        "type": "button",
+        "props": {
+          "label": "‹",
+          "variant": "secondary"
+        }
+      },
+      {
+        "id": "targetYearMonth",
+        "type": "field",
+        "itemRef": "targetYearMonth"
+      },
+      {
+        "id": "button2",
+        "type": "button",
+        "props": {
+          "label": "›",
+          "variant": "secondary"
+        }
+      },
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "収入合計",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "totalIncome",
+        "type": "field",
+        "itemRef": "totalIncome"
+      },
+      {
+        "id": "text2",
+        "type": "text",
+        "props": {
+          "text": "📈"
+        }
+      },
+      {
+        "id": "text3",
+        "type": "text",
+        "props": {
+          "text": "支出合計",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "totalExpense",
+        "type": "field",
+        "itemRef": "totalExpense"
+      },
+      {
+        "id": "text4",
+        "type": "text",
+        "props": {
+          "text": "📉"
+        }
+      },
+      {
+        "id": "text5",
+        "type": "text",
+        "props": {
+          "text": "差引収支"
+        }
+      },
+      {
+        "id": "netBalance",
+        "type": "field",
+        "itemRef": "netBalance"
+      },
+      {
+        "id": "text6",
+        "type": "text",
+        "props": {
+          "text": "前月比 +¥12,300"
+        }
+      },
+      {
+        "id": "text7",
+        "type": "text",
+        "props": {
+          "text": "💰"
+        }
+      },
+      {
+        "id": "heading2",
+        "type": "heading",
+        "props": {
+          "text": "カテゴリ別内訳",
+          "level": 2
+        }
+      },
+      {
+        "id": "categoryBreakdown",
+        "type": "field",
+        "itemRef": "categoryBreakdown"
+      }
+    ]
   }
 }

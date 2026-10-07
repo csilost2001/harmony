@@ -85,5 +85,47 @@
   ],
   "design": {
     "designFileRef": "story-list.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "heading",
+            "type": "heading",
+            "props": {
+              "text": "フィルター",
+              "level": 2
+            }
+          },
+          {
+            "id": "cefrFilter",
+            "type": "field",
+            "itemRef": "cefrFilter"
+          },
+          {
+            "id": "packFilter",
+            "type": "field",
+            "itemRef": "packFilter"
+          },
+          {
+            "id": "keywordFilter",
+            "type": "field",
+            "itemRef": "keywordFilter"
+          }
+        ]
+      },
+      {
+        "id": "storyList",
+        "type": "table",
+        "itemRef": "storyList"
+      }
+    ]
   }
 }

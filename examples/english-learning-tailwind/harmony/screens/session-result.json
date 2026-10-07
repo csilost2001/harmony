@@ -50,5 +50,182 @@
   ],
   "design": {
     "designFileRef": "session-result.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "セッション完了！",
+          "level": 1
+        }
+      },
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "お疲れ様でした。今日もよく頑張りました",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "section",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "text2",
+            "type": "text",
+            "props": {
+              "text": "総合発音スコア"
+            }
+          },
+          {
+            "id": "totalScore",
+            "type": "field",
+            "itemRef": "totalScore"
+          },
+          {
+            "id": "text3",
+            "type": "text",
+            "props": {
+              "text": "/100"
+            }
+          }
+        ]
+      },
+      {
+        "id": "section2",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "turnCount",
+            "type": "field",
+            "itemRef": "turnCount"
+          },
+          {
+            "id": "text4",
+            "type": "text",
+            "props": {
+              "text": "完了ターン数",
+              "tone": "muted"
+            }
+          }
+        ]
+      },
+      {
+        "id": "section3",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "newWordsCount",
+            "type": "field",
+            "itemRef": "newWordsCount"
+          },
+          {
+            "id": "text5",
+            "type": "text",
+            "props": {
+              "text": "新規習得単語",
+              "tone": "muted"
+            }
+          }
+        ]
+      },
+      {
+        "id": "section4",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "text6",
+            "type": "text",
+            "props": {
+              "text": "次のおすすめ",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "recommendedStory",
+            "type": "field",
+            "itemRef": "recommendedStory"
+          },
+          {
+            "id": "text7",
+            "type": "text",
+            "props": {
+              "text": "B1 中級 • 18 シーン",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "挑戦する",
+              "variant": "secondary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "section5",
+        "type": "section",
+        "props": {
+          "variant": "card"
+        },
+        "children": [
+          {
+            "id": "text8",
+            "type": "text",
+            "props": {
+              "text": "発音フィードバック",
+              "tone": "muted"
+            }
+          },
+          {
+            "id": "pronunciationFeedback",
+            "type": "field",
+            "itemRef": "pronunciationFeedback"
+          }
+        ]
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button2",
+            "type": "button",
+            "props": {
+              "label": "別のストーリーへ",
+              "variant": "primary",
+              "screenRef": "story-list"
+            }
+          },
+          {
+            "id": "backButton",
+            "type": "button",
+            "props": {
+              "label": "ダッシュボードへ戻る",
+              "variant": "secondary",
+              "screenRef": "dashboard"
+            }
+          }
+        ]
+      }
+    ]
   }
 }

@@ -228,5 +228,101 @@
   ],
   "design": {
     "designFileRef": "post-detail.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "buttons2",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "backListLink",
+            "type": "link",
+            "props": {
+              "label": "一覧に戻る",
+              "screenRef": "post-list"
+            }
+          }
+        ],
+        "props": {
+          "align": "between"
+        }
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "editLink",
+            "type": "link",
+            "props": {
+              "label": "編集"
+            }
+          },
+          {
+            "id": "deleteConfirm",
+            "type": "button",
+            "itemRef": "deleteConfirm",
+            "props": {
+              "label": "削除",
+              "variant": "secondary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "heroImageUrl",
+        "type": "field",
+        "itemRef": "heroImageUrl"
+      },
+      {
+        "id": "authorName",
+        "type": "field",
+        "itemRef": "authorName"
+      },
+      {
+        "id": "publishedAt",
+        "type": "field",
+        "itemRef": "publishedAt"
+      },
+      {
+        "id": "buttons3",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "共有",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button2",
+            "type": "button",
+            "props": {
+              "label": "12",
+              "variant": "secondary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "postBody",
+        "type": "field",
+        "itemRef": "postBody"
+      },
+      {
+        "id": "photos",
+        "type": "field",
+        "itemRef": "photos"
+      },
+      {
+        "id": "tags",
+        "type": "field",
+        "itemRef": "tags"
+      }
+    ]
   }
 }

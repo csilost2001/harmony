@@ -128,5 +128,91 @@
   "design": {
     "editorKind": "puck",
     "cssFramework": "tailwind"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "link",
+        "type": "link",
+        "props": {
+          "label": "×",
+          "screenRef": "transaction-list"
+        }
+      },
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "取引を編集",
+          "level": 1
+        }
+      },
+      {
+        "id": "deleteButton",
+        "type": "button",
+        "itemRef": "deleteButton",
+        "props": {
+          "label": "削除",
+          "variant": "secondary"
+        }
+      },
+      {
+        "id": "amount",
+        "type": "field",
+        "itemRef": "amount"
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "button",
+            "type": "button",
+            "props": {
+              "label": "支出",
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "button2",
+            "type": "button",
+            "props": {
+              "label": "収入",
+              "variant": "secondary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "occurredOn",
+        "type": "field",
+        "itemRef": "occurredOn"
+      },
+      {
+        "id": "categoryId",
+        "type": "field",
+        "itemRef": "categoryId"
+      },
+      {
+        "id": "accountId",
+        "type": "field",
+        "itemRef": "accountId"
+      },
+      {
+        "id": "memo",
+        "type": "field",
+        "itemRef": "memo"
+      },
+      {
+        "id": "submitButton",
+        "type": "button",
+        "itemRef": "submitButton",
+        "props": {
+          "label": "更新を保存",
+          "variant": "secondary"
+        }
+      }
+    ]
   }
 }

@@ -247,5 +247,75 @@
   ],
   "design": {
     "designFileRef": "post-list.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "My Diary"
+        }
+      },
+      {
+        "id": "link",
+        "type": "link",
+        "props": {
+          "label": "タグ管理",
+          "screenRef": "tag-management"
+        }
+      },
+      {
+        "id": "text2",
+        "type": "text",
+        "props": {
+          "text": "2026年5月"
+        }
+      },
+      {
+        "id": "heading",
+        "type": "heading",
+        "props": {
+          "text": "My Journal",
+          "level": 1
+        }
+      },
+      {
+        "id": "text3",
+        "type": "text",
+        "props": {
+          "text": "あなたの毎日を記録しましょう",
+          "tone": "muted"
+        }
+      },
+      {
+        "id": "searchQuery",
+        "type": "field",
+        "itemRef": "searchQuery"
+      },
+      {
+        "id": "statusFilter",
+        "type": "field",
+        "itemRef": "statusFilter"
+      },
+      {
+        "id": "selectedTagSlugs",
+        "type": "field",
+        "itemRef": "selectedTagSlugs"
+      },
+      {
+        "id": "posts",
+        "type": "field",
+        "itemRef": "posts"
+      },
+      {
+        "id": "link2",
+        "type": "link",
+        "props": {
+          "label": "新しい投稿"
+        }
+      }
+    ]
   }
 }

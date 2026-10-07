@@ -105,5 +105,49 @@
   ],
   "design": {
     "designFileRef": "conversation-play.design.json"
+  },
+  "layout": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "text",
+        "type": "text",
+        "props": {
+          "text": "Session #42"
+        }
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "children": [
+          {
+            "id": "finishSession",
+            "type": "button",
+            "itemRef": "finishSession",
+            "props": {
+              "label": "終了",
+              "variant": "secondary"
+            }
+          }
+        ],
+        "props": {
+          "align": "between"
+        }
+      },
+      {
+        "id": "userTextInput",
+        "type": "field",
+        "itemRef": "userTextInput"
+      },
+      {
+        "id": "recordButton",
+        "type": "button",
+        "itemRef": "recordButton",
+        "props": {
+          "label": "録音して送信",
+          "variant": "danger"
+        }
+      }
+    ]
   }
 }
