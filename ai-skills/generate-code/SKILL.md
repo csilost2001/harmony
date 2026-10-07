@@ -1159,6 +1159,33 @@ generated code に `@this/@self` の文字列を **残さない**。展開ルー
 | `dashboard` | ダッシュボード (固定セクション) | ダッシュボードページ |
 | `retail:cart` 等の業界拡張 kind | extensions/ 配下の定義を参照してフォールバック (なければ `list` 扱い) | 同左 |
 
+### layout (業務部品の木) → 画面構造 (layout がある画面ではこちらが一次情報)
+
+Screen JSON に `layout` がある場合、画面の構造はこれに従う。仕様: [docs/spec/screen-layout.md](../../docs/spec/screen-layout.md)。
+`layout` がある画面では `design` (GrapesJS HTML / Puck Data) を参照しない。テンプレートは `techStack.frontend` だけで選び、
+`editorKind` / `cssFramework` の制約 (Step 2 制約 1・3、Step 2.5) は layout の無い旧形式の画面にだけ適用する。
+
+`layout.nodes` を上から順に、入れ子のまま次のように出力する。部品が参照する項目 (`itemRef`) の定義は `items[]` から取る。
+
+| 部品 | Thymeleaf (Bootstrap) | React (Tailwind) |
+|---|---|---|
+| `heading` (level 1–3) | `<h1>`〜`<h3>` | `<h1>`〜`<h3>` |
+| `text` | `<p>` (tone=muted は `text-muted small`) | `<p>` (muted は `text-slate-500 text-sm`) |
+| `section` | `<section class="card">` + `card-header` (title) | `<section>` + 見出し |
+| `form` | `<form method="post">` + `row` / `col-md-{12/columns}` で columns 列 | `<form>` + `grid grid-cols-{columns}` |
+| `search-panel` | `<form method="get">` (検索条件)。結果一覧は同じ画面の table | `<form>` + 検索 handler |
+| `columns` / `column` | `row` / `col-md-{span}` | `grid grid-cols-12` / `col-span-{span}` |
+| `tabs` / `tab` | nav-tabs + tab-pane | タブ切替 state |
+| `button-bar` | `d-flex gap-2 justify-content-{align}` | `flex gap-2 justify-{align}` |
+| `field` | items マッピング (下表) で入力 / 表示要素 | 同左 |
+| `table` | `<table th:each>`。列は `presentation.columns` または `viewDefinitionId` のビュー定義 | テーブルコンポーネント |
+| `button` | `itemRef` の項目の `events[]` から送信先 (処理フロー action の httpRoute) を決める。`screenRef` は画面遷移リンク | 同左 |
+| `link` | `<a th:href="@{<遷移先画面の path>}">` | `<Link href>` |
+| `message-area` | 処理結果・エラー表示領域 (flash / BindingResult) | エラー / 通知表示領域 |
+| `html` | `props.html` をそのまま出力 (旧形式から変換できなかった部分) | JSX に変換して出力 |
+
+`note` (設計メモ) は生成時の補足指示として扱い、コードコメントとして必要な箇所に残す。
+
 ### items[] → UI 要素マッピング
 
 | item.direction | item.type | Thymeleaf 生成 | React 生成 |
