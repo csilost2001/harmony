@@ -70,7 +70,7 @@
     },
     {
       "id": "inventoryListRows",
-      "label": "リテール総合システム 一覧",
+      "label": "在庫一覧",
       "type": {
         "kind": "array",
         "itemType": "json"

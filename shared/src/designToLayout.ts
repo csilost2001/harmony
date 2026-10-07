@@ -149,6 +149,36 @@ export function designToLayout(roots: SimpleNode[], existingItems: readonly Exis
     }
     return "";
   };
+  // <main> があればその中身だけを対象にする (アプリ共通の枠を除く)
+  const mainEl = opts.keepShell ? null : find(rootEl, (e) => e.tag === "main" || hasCls(e, /\b(app-main|main-content)\b/));
+  /** 表などの直前 (祖先を遡って) にある見出しの文字列 */
+  const isHeadingEl = (x: SimpleNode): boolean => x.kind === "el" && (/^h[1-6]$/.test(x.tag) || x.tag === "legend" || hasCls(x, /\b(card-header|section-title|panel-heading)\b/));
+  /** 見出しの文字 (見出し行内のリンク・ボタン・件数表示は除く) */
+  const headingText = (h: SimpleNode): string => {
+    const strip = (n: SimpleNode): string => (n.kind === "text" ? n.text : n.tag === "a" || n.tag === "button" || hasCls(n, /\bbadge\b/) ? "" : n.children.map(strip).join(""));
+    return clean(strip(h))
+      .replace(/\s*[(（][^)）]*\d+\s*(件|点)[^)）]*[)）]\s*$/, "")
+      .replace(/\s*\d+\s*(件|点)$/, "");
+  };
+  const nearestHeading = (el: SimpleEl): string => {
+    let cur: SimpleEl | undefined = el;
+    for (let depth = 0; cur && depth < 6; depth++) {
+      const p = parentOf.get(cur);
+      if (!p) break;
+      const idx = p.children.indexOf(cur);
+      for (let i = idx - 1; i >= 0; i--) {
+        const sib = p.children[i];
+        if (isHeadingEl(sib)) return headingText(sib);
+        if (sib.kind === "el") {
+          const inner = find(sib, (x) => isHeadingEl(x));
+          if (inner) return headingText(inner);
+        }
+      }
+      cur = p;
+    }
+    return "";
+  };
+  const listLabel = (base: string): string => (!base ? "一覧" : /一覧$|明細$|リスト$/.test(base) ? base : `${base} 一覧`);
   /** 直前に viewer 差し込み位置として置いた一覧項目 (直後のダミー表はその見本) */
   let pendingPreviewTable: string | null = null;
   for (const l of findAll(rootEl, (e) => e.tag === "label" && !!e.attrs.for)) labelFor.set(l.attrs.for, clean(text(l)));
@@ -224,10 +254,10 @@ export function designToLayout(roots: SimpleNode[], existingItems: readonly Exis
     }
     if (!id) id = nextItemId(toIdentifier(tbl.attrs.id ?? "", "") || (opts.screenId ? `${toIdentifier(opts.screenId, "list")}Rows` : "rows"));
     const caption = clean(text(find(tbl, (e) => e.tag === "caption") ?? { kind: "text", text: "" }));
-    const pageTitle = clean(text(find(rootEl, (e) => e.tag === "h1" || hasCls(e, /\bpage-title\b/)) ?? { kind: "text", text: "" }));
+    const pageTitle = clean(text(find(mainEl ?? rootEl, (e) => e.tag === "h1" || hasCls(e, /\bpage-title\b/)) ?? { kind: "text", text: "" }));
     ensureItem(id, () => ({
       id,
-      label: caption || (pageTitle ? `${pageTitle.replace(/\s*[/／].*$/, "")} 一覧` : "一覧"),
+      label: listLabel(caption || nearestHeading(tbl) || pageTitle.replace(/\s*[/／].*$/, "")),
       type: { kind: "array", itemType: "json" },
       direction: "out",
       presentation: {
@@ -429,8 +459,6 @@ export function designToLayout(roots: SimpleNode[], existingItems: readonly Exis
     return flat;
   };
 
-  // <main> があればその中身だけを対象にする (アプリ共通の枠を除く)
-  const main = opts.keepShell ? null : find(rootEl, (e) => e.tag === "main" || hasCls(e, /\b(app-main|main-content)\b/));
-  const nodes = groupButtons((main ? main.children : roots).flatMap(convert));
+  const nodes = groupButtons((mainEl ? mainEl.children : roots).flatMap(convert));
   return { layout: { version: 1, nodes }, newItems, stats };
 }

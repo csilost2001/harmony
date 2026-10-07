@@ -44,17 +44,30 @@ test.describe("業務部品デザイナ", () => {
   test.beforeAll(async () => {
     test.skip(!(await isMcpRunning()), "backend 未起動");
     ws = await setupTestWorkspace({ key: KEY, fromExample: "retail" });
+    // 未移行 (旧デザインのみ) の画面を再現するため、一部の画面から layout を外す
+    for (const id of ["cart", "order-complete", "store-master"]) {
+      const p = path.join(ws.workspacePath, "harmony", "screens", `${id}.json`);
+      const s = JSON.parse(await fs.readFile(p, "utf-8"));
+      delete s.layout;
+      await fs.writeFile(p, JSON.stringify(s, null, 2));
+    }
   });
   test.afterAll(async () => { await cleanupRealWorkspaces([KEY]); });
   test.afterEach(async () => { await ws?.resetRuntimeState(); });
 
-  test("画面を開いただけでは原本が変わらない @regression", async ({ page }) => {
-    const before = await fs.readFile(path.join(ws.workspacePath, "harmony", "screens", "cart.json"), "utf-8");
+  test("画面を開いただけでは原本 (設計内容) が変わらない @regression", async ({ page }) => {
+    // backend は初回アクセス時に $schema の相対パスを補正し updatedAt を更新することがあるため、
+    // それ以外の設計内容 (項目・レイアウト・メタ情報) を比較する
+    const semantic = async () => {
+      const { $schema: _s, updatedAt: _u, ...rest } = await readScreen("cart") as unknown as Record<string, unknown>;
+      void _s; void _u;
+      return rest;
+    };
+    const before = await semantic();
     await openDesigner(page, "cart");
     await expect(page.getByTestId("layout-start")).toBeVisible();
     await page.waitForTimeout(1000);
-    const after = await fs.readFile(path.join(ws.workspacePath, "harmony", "screens", "cart.json"), "utf-8");
-    expect(after).toBe(before);
+    expect(await semantic()).toEqual(before);
   });
 
   test("空の画面から作り、部品を置いて項目を定義し保存する @regression", async ({ page }) => {
@@ -82,6 +95,19 @@ test.describe("業務部品デザイナ", () => {
     expect(form.children[0]).toMatchObject({ type: "field" });
     const item = s.items.find((i) => i.id === form.children[0].itemRef);
     expect(item).toMatchObject({ label: "顧客名", maxLength: 40, required: true, type: "string" });
+  });
+
+  test("移行済みの画面は業務部品デザイナで開き、部品を移動して保存できる @regression", async ({ page }) => {
+    await openDesigner(page, "product-search");
+    await expect(page.getByTestId("layout-canvas")).toBeVisible();
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });
+    // 最上位の見出しを選択し、Alt+↓ で 1 つ後ろへ移動
+    const before = (await readScreen("product-search")).layout!.nodes.map((n) => n.id as string);
+    await page.getByTestId(`layout-node-${before[0]}`).click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press("Alt+ArrowDown");
+    await save(page, "product-search", (s) => s.layout!.nodes[1]?.id === before[0]);
+    expect((await readScreen("product-search")).layout!.nodes[0].id).toBe(before[1]);
   });
 
   test("旧デザインから自動変換して保存する @regression", async ({ page }) => {

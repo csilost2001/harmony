@@ -121,7 +121,7 @@
     },
     {
       "id": "shipmentDispatchRows",
-      "label": "リテール総合システム 一覧",
+      "label": "注文商品 一覧",
       "type": {
         "kind": "array",
         "itemType": "json"

@@ -84,7 +84,7 @@
     },
     {
       "id": "productMasterRows",
-      "label": "リテール総合システム 一覧",
+      "label": "商品マスター 一覧",
       "type": {
         "kind": "array",
         "itemType": "json"

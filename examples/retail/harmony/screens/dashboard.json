@@ -68,7 +68,7 @@
     },
     {
       "id": "dashboardRows",
-      "label": "リテール総合システム 一覧",
+      "label": "最近の注文 一覧",
       "type": {
         "kind": "array",
         "itemType": "json"

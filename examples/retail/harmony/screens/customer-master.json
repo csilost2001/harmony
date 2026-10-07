@@ -65,7 +65,7 @@
     },
     {
       "id": "customerMasterRows",
-      "label": "リテール総合システム 一覧",
+      "label": "顧客マスター 一覧",
       "type": {
         "kind": "array",
         "itemType": "json"

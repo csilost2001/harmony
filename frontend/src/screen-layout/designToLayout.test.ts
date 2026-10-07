@@ -35,8 +35,15 @@ describe("designToLayout", () => {
     const html = `<h1>注文一覧</h1><table><thead><tr><th>注文番号</th><th>金額</th></tr></thead><tbody><tr><td>1</td><td>100</td></tr></tbody></table>`;
     const { layout, newItems } = designToLayout(htmlToSimple(html), [], { screenId: "order-list" });
     expect(layout.nodes[1]).toMatchObject({ type: "table", itemRef: "orderListRows" });
-    expect(newItems[0]).toMatchObject({ id: "orderListRows", label: "注文一覧 一覧", presentation: { kind: "table" } });
+    expect(newItems[0]).toMatchObject({ id: "orderListRows", label: "注文一覧", presentation: { kind: "table" } });
     expect((newItems[0].presentation?.columns ?? []).map((c) => c.label)).toEqual(["注文番号", "金額"]);
+  });
+
+  it("一覧の名前は直前の見出しから付け、件数表示やリンク文言は除く", () => {
+    const html = `<main><h1>ダッシュボード</h1><div class="card"><div class="card-header">最近の注文 (直近 5 件) <a href="/orders">すべて表示</a></div>
+      <table><thead><tr><th>注文番号</th></tr></thead></table></div></main>`;
+    const { newItems } = designToLayout(htmlToSimple(html), [], { screenId: "dashboard" });
+    expect(newItems[0].label).toBe("最近の注文 一覧");
   });
 
   it("viewer 差し込み位置の直後にある見本表は重複させない", () => {

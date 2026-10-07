@@ -88,7 +88,7 @@
     },
     {
       "id": "storeMasterRows",
-      "label": "リテール総合システム 一覧",
+      "label": "店舗マスター 一覧",
       "type": {
         "kind": "array",
         "itemType": "json"

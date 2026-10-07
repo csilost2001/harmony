@@ -118,7 +118,7 @@
     },
     {
       "id": "cartItems",
-      "label": "リテール総合システム 一覧",
+      "label": "カート明細",
       "type": {
         "kind": "array",
         "itemType": "json"
