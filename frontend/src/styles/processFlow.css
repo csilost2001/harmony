@@ -3041,3 +3041,100 @@
   outline: 2px solid #3b82f6;
   outline-offset: 1px;
 }
+
+/* ==========================================================================
+   処理フローの表示切替 (カード / 図 / 表) — 再設計 段階 2
+   ========================================================================== */
+.pf-view-switch { display: inline-flex; border: 1px solid var(--hm-border-strong); border-radius: 6px; overflow: hidden; flex: 0 0 auto; }
+.pf-view-switch button {
+  border: 0;
+  background: var(--hm-surface);
+  color: var(--hm-fg-muted);
+  font-size: 12px;
+  padding: 3px 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pf-view-switch button + button { border-left: 1px solid var(--hm-border); }
+.pf-view-switch button.active { background: var(--hm-accent-solid); color: var(--hm-on-solid); }
+
+/* 図 */
+.pfd-root { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.pfd-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 12px; border-bottom: 1px solid var(--hm-border); background: var(--hm-surface); flex-wrap: wrap; }
+.pfd-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--hm-fg-muted); }
+.pfd-legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.pfd-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1.5px solid var(--hm-border-strong); background: var(--hm-surface); }
+.pfd-swatch.pfd-tone-db { border-color: color-mix(in srgb, #2563eb 80%, var(--hm-fg)); }
+.pfd-swatch.pfd-tone-decision { border-color: color-mix(in srgb, #d97706 80%, var(--hm-fg)); background: color-mix(in srgb, #d97706 14%, var(--hm-surface)); transform: rotate(45deg) scale(0.8); }
+.pfd-swatch.pfd-frame-tx { border: 1.5px dashed color-mix(in srgb, #2563eb 80%, var(--hm-fg)); background: color-mix(in srgb, #2563eb 8%, var(--hm-surface)); }
+.pfd-swatch.pfd-frame-loop { border: 1.5px dashed color-mix(in srgb, #ca8a04 80%, var(--hm-fg)); }
+.pfd-swatch.pfd-tone-error { border-color: var(--hm-danger); background: color-mix(in srgb, var(--hm-danger) 14%, var(--hm-surface)); border-radius: 6px; }
+.pfd-zoom { display: inline-flex; border: 1px solid var(--hm-border-strong); border-radius: 6px; overflow: hidden; }
+.pfd-zoom button { border: 0; background: var(--hm-surface); color: var(--hm-fg-muted); font-size: 11.5px; padding: 2px 8px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.pfd-zoom button + button { border-left: 1px solid var(--hm-border); }
+.pfd-zoom button.active { background: var(--hm-surface-3); color: var(--hm-fg); font-weight: 700; }
+.pfd-scroll { flex: 1; overflow: auto; padding: 12px; background: var(--hm-bg); }
+.pfd-scroll svg { display: block; margin: 0 auto; font-family: inherit; }
+
+.pfd-hit { cursor: pointer; }
+.pfd-node rect, .pfd-node polygon { fill: var(--hm-surface); stroke: var(--hm-border-strong); stroke-width: 1.2; }
+.pfd-node .pfd-stripe { stroke: none; fill: var(--hm-fg-faint); }
+.pfd-tone-db rect:first-of-type { stroke: color-mix(in srgb, #2563eb 70%, var(--hm-fg)); }
+.pfd-tone-db .pfd-stripe { fill: color-mix(in srgb, #2563eb 80%, var(--hm-fg)); }
+.pfd-tone-jump rect:first-of-type { stroke-dasharray: 4 3; }
+.pfd-tone-decision polygon { fill: color-mix(in srgb, #d97706 12%, var(--hm-surface)); stroke: color-mix(in srgb, #d97706 80%, var(--hm-fg)); }
+.pfd-tone-error rect { fill: color-mix(in srgb, var(--hm-danger) 12%, var(--hm-surface)); stroke: var(--hm-danger); }
+.pfd-tone-ok rect { fill: color-mix(in srgb, var(--hm-success) 12%, var(--hm-surface)); stroke: var(--hm-success); }
+.pfd-tone-start rect { fill: var(--hm-surface-3); stroke: var(--hm-fg-muted); }
+.pfd-node.is-conditional rect:first-of-type, .pfd-node.is-conditional polygon { stroke-dasharray: 6 3; }
+.pfd-node.is-selected rect:first-of-type, .pfd-node.is-selected polygon { stroke: var(--hm-accent); stroke-width: 2.6; }
+.pfd-hit:hover .pfd-node rect:first-of-type, .pfd-hit:hover .pfd-node polygon { stroke: var(--hm-accent); }
+.pfd-caption { font-size: 10.5px; font-weight: 700; fill: var(--hm-fg-muted); }
+.pfd-caption-inline { font-weight: 700; }
+.pfd-text { font-size: 12px; fill: var(--hm-fg); }
+.pfd-sub { font-size: 10.5px; fill: color-mix(in srgb, #2563eb 70%, var(--hm-fg)); font-family: ui-monospace, Menlo, monospace; }
+.pfd-tone-error .pfd-text, .pfd-tone-error .pfd-caption-inline { fill: var(--hm-danger); }
+.pfd-tone-ok .pfd-text { fill: color-mix(in srgb, var(--hm-success) 75%, var(--hm-fg)); }
+
+.pfd-frame rect { fill: transparent; stroke-width: 1.3; stroke-dasharray: 7 4; }
+.pfd-frame-tx rect { fill: color-mix(in srgb, #2563eb 5%, transparent); stroke: color-mix(in srgb, #2563eb 70%, var(--hm-fg)); }
+.pfd-frame-loop rect { stroke: color-mix(in srgb, #ca8a04 80%, var(--hm-fg)); }
+.pfd-frame-rollback rect { fill: color-mix(in srgb, var(--hm-danger) 5%, transparent); stroke: var(--hm-danger); }
+.pfd-frame-commit rect { stroke: var(--hm-success); }
+.pfd-frame.is-selected rect { stroke: var(--hm-accent); stroke-width: 2.4; }
+.pfd-frame { cursor: pointer; }
+.pfd-frame-label { font-size: 11px; font-weight: 700; fill: var(--hm-fg-muted); font-family: ui-monospace, Menlo, monospace; }
+.pfd-frame-tx .pfd-frame-label { fill: color-mix(in srgb, #2563eb 75%, var(--hm-fg)); }
+.pfd-frame-rollback .pfd-frame-label { fill: var(--hm-danger); }
+
+.pfd-edge path { fill: none; stroke: var(--hm-fg-faint); stroke-width: 1.4; }
+.pfd-edge-error path { stroke: var(--hm-danger); }
+.pfd-edge-back path { stroke: color-mix(in srgb, #ca8a04 70%, var(--hm-fg)); stroke-dasharray: 4 3; }
+.pfd-edge-dashed path { stroke-dasharray: 5 4; }
+.pfd-arrowhead { fill: var(--hm-fg-faint); }
+.pfd-arrowhead-error { fill: var(--hm-danger); }
+.pfd-edge-label { font-size: 10.5px; fill: var(--hm-fg-2); paint-order: stroke; stroke: var(--hm-bg); stroke-width: 3px; }
+.pfd-edge-error .pfd-edge-label { fill: var(--hm-danger); }
+
+/* 処理記述表 */
+.pft-scroll { height: 100%; overflow: auto; padding: 12px; background: var(--hm-bg); }
+.pft-table { width: 100%; border-collapse: collapse; background: var(--hm-surface); font-size: 12.5px; border: 1px solid var(--hm-border-strong); }
+.pft-caption { caption-side: top; text-align: left; font-weight: 700; padding: 0 0 6px; color: var(--hm-fg); }
+.pft-caption span { margin-left: 10px; font-weight: 400; font-size: 11.5px; color: var(--hm-fg-muted); }
+.pft-table th { position: sticky; top: 0; z-index: 1; background: var(--hm-surface-3); color: var(--hm-fg-2); font-weight: 700; text-align: left; padding: 6px 8px; border: 1px solid var(--hm-border-strong); white-space: nowrap; }
+.pft-table td { padding: 5px 8px; border: 1px solid var(--hm-border); vertical-align: top; color: var(--hm-fg); }
+.pft-no { width: 72px; font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pft-kind { width: 110px; white-space: nowrap; color: var(--hm-fg-muted); }
+.pft-target { overflow-wrap: anywhere; width: 200px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: color-mix(in srgb, #2563eb 70%, var(--hm-fg)); }
+.pft-note { width: 260px; font-size: 11.5px; color: var(--hm-fg-2); overflow-wrap: anywhere; }
+.pft-row { cursor: pointer; }
+.pft-row:hover td { background: var(--hm-hover); }
+.pft-row.is-tx td { background: color-mix(in srgb, #2563eb 6%, var(--hm-surface)); }
+.pft-row.is-tx td.pft-no { box-shadow: inset 3px 0 0 color-mix(in srgb, #2563eb 70%, var(--hm-fg)); }
+.pft-branch-arm td { color: color-mix(in srgb, #d97706 75%, var(--hm-fg)); font-weight: 600; background: color-mix(in srgb, #d97706 6%, var(--hm-surface)); }
+.pft-row.is-error td { color: var(--hm-danger); }
+.pft-row.is-selected td { background: var(--hm-accent-soft); }
+.pft-row.is-selected td.pft-no { box-shadow: inset 3px 0 0 var(--hm-accent); }
+.pft-empty { text-align: center; color: var(--hm-fg-muted); padding: 24px; }

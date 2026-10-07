@@ -6,6 +6,7 @@
  * 使い方:
  *   node scripts/dev/ui-shots.mjs --ws workspaces/dogfood-redesign-20261008 --out .tmp/screenshots/before
  *   node scripts/dev/ui-shots.mjs --ws ... --out ... --theme dark --only process-flow-edit,screen-design
+ *   node scripts/dev/ui-shots.mjs ... --ls harmony.processFlow.view=diagram   (localStorage の初期値)
  *
  * 前提: `npm run backend` と `npm run frontend` が起動済であること。
  */
@@ -78,6 +79,11 @@ page.on("console", (m) => { if (m.type() === "error") errors.push(`[console] ${m
 
 if (theme) {
   await page.addInitScript((t) => { try { localStorage.setItem("harmony.appTheme", t); } catch { /* ignore */ } }, theme);
+}
+// --ls key=value,key2=value2 : localStorage の初期値 (表示形式の切替などを撮影するため)
+if (args.ls) {
+  const pairs = args.ls.split(",").map((kv) => kv.split("="));
+  await page.addInitScript((ps) => { try { for (const [k, v] of ps) localStorage.setItem(k, v); } catch { /* ignore */ } }, pairs);
 }
 
 // workspace を開く
