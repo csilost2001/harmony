@@ -17,6 +17,8 @@ import { loadPageLayout } from "../store/pageLayoutStore";
 import type { PageLayout } from "../store/pageLayoutStore";
 import { mcpBridge } from "../mcp/mcpBridge";
 import { extractGrapesHtml, extractGrapesCss } from "../utils/pageLayoutCompositionPreview";
+import { loadScreenEntity } from "../store/screenStore";
+import { ScreenLayoutDesigner } from "./screen-layout/ScreenLayoutDesigner";
 
 export interface DesignerTabHostProps {
   screenId: string;
@@ -24,7 +26,58 @@ export interface DesignerTabHostProps {
   isActive?: boolean;
 }
 
-export function DesignerTabHost({ screenId, screenName, isActive }: DesignerTabHostProps) {
+/**
+ * 画面デザインタブ。
+ * - layout (業務部品の木) を持つ画面 → 業務部品デザイナ
+ * - 旧デザイン (GrapesJS / Puck) だけを持つ未移行の画面 → 旧デザイナ + 移行の案内帯
+ * - どちらも持たない画面 → 業務部品デザイナ (開始画面)
+ * 移行は案内帯から業務部品デザイナの開始画面に切り替えて行う (旧デザインからの自動変換)。
+ */
+export function DesignerTabHost(props: DesignerTabHostProps) {
+  const { screenId, screenName, isActive } = props;
+  const [view, setView] = useState<"loading" | "layout" | "legacy">("loading");
+  const [hasLegacy, setHasLegacy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setView("loading");
+    loadScreenEntity(screenId)
+      .then((s) => {
+        if (!alive) return;
+        const legacy = !!s.design && !s.layout;
+        setHasLegacy(legacy);
+        setView(legacy ? "legacy" : "layout");
+      })
+      .catch(() => { if (alive) setView("layout"); });
+    return () => { alive = false; };
+  }, [screenId]);
+
+  if (view === "loading") return <div className="sld-loading" style={{ padding: 24 }}>読み込み中…</div>;
+  if (view === "layout") {
+    return (
+      <ScreenLayoutDesigner
+        screenId={screenId}
+        screenName={screenName}
+        isActive={isActive}
+        hasLegacyDesign={hasLegacy}
+        onOpenLegacy={() => setView("legacy")}
+      />
+    );
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div className="legacy-designer-banner" data-testid="legacy-designer-banner">
+        <i className="bi bi-clock-history" />
+        <span>この画面は旧形式 (HTML) のデザインです。業務部品形式に移行すると、部品の配置と画面項目の定義を 1 つの画面で編集できます。</span>
+        <button type="button" onClick={() => setView("layout")} data-testid="legacy-back-to-layout">業務部品形式へ移行</button>
+      </div>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <LegacyDesignerHost {...props} />
+      </div>
+    </div>
+  );
+}
+
+function LegacyDesignerHost({ screenId, screenName, isActive }: DesignerTabHostProps) {
   const [pageLayout, setPageLayout] = useState<PageLayout | null>(null);
   const [pageLayoutId, setPageLayoutId] = useState<string | undefined>(undefined);
   const [pageLayoutHtml, setPageLayoutHtml] = useState<string | undefined>(undefined);
