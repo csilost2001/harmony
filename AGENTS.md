@@ -1,653 +1,123 @@
 # AGENTS.md
 
-このファイルは、本リポジトリを扱う AI コーディングエージェント (Claude Code / Codex CLI 等) に共通のプロジェクトガイダンスを提供します。
+本リポジトリを扱う AI コーディングエージェント (Claude Code / Codex CLI 等) 共通のガイダンス。
+Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/config.toml` を参照。
 
-Claude Code 固有の補足は `CLAUDE.md`、Codex 固有の設定は `.codex/config.toml` (配置時) を参照してください。
+詳細な規約は以下に分けて置いている。本ファイルは「毎回必要な要点」だけを書く。
 
-## ISSUE 起票の鉄則 (最重要、絶対遵守、全 AI)
-
-**1 人で 100〜200 / 日のペースで増える open ISSUE を回している。気軽な分離は チーム運用を破壊する。**
-
-ただし **「ISSUE を増やしたくない」を理由に放置するのは絶対禁止**。発見した課題は必ず「本 PR で対応」または「新規 ISSUE で受ける」のいずれかで処理する。第 3 の選択肢 (PR description / コメント / memory に "将来課題" として記録だけして放置) は trace を達成しないため**禁止**。
-
-### 鉄則 0 (最優先): 放置は絶対にダメ
-
-発見した課題は必ず以下のどちらかに振る。第 3 の選択肢は存在しない:
-
-- (a) **本 PR / 本 ISSUE 内で対応** (デフォルト、最優先)
-- (b) **新規 ISSUE で受ける** (本 ISSUE 不可な場合に限り、限定的に許可)
-
-「PR description に将来課題として記録」「memory にメモ」「TODO コメントで退避」「次にこのファイル触るとき対応」等は **すべて放置** であり、第 3 選択肢として禁止。クローズ済 PR の description は誰も読まない、memory は recall されないこともある、TODO は風化する — いずれも trace 不可能。
-
-### 鉄則 1: 本 PR / 本 ISSUE 内で対応するのが原則
-
-別 ISSUE を起票したくなったら、まず以下を順に検討する:
-
-1. **本 PR で同 commit / 同 description に吸収できないか** (1-3 時間以内なら必ず吸収)
-2. **後続の親 / 子 ISSUE のスコープに自然に入らないか**
-3. **同根の取り残しなら必ず同 PR で吸収** (memory `feedback_issue_split_hidden_costs.md`)
-
-吸収可能なら吸収する。吸収不可な場合のみ鉄則 2 に進む (放置は鉄則 0 違反)。
-
-### 鉄則 2: 本 ISSUE で対応不可な場合のみ新規 ISSUE で受ける
-
-以下の **明確な根拠** が示せる場合のみ新規 ISSUE 起票が許可される:
-
-1. **完全に別機能側のバグ / 改善** — 現在対応中の機能 / 領域と無関係
-2. **フレームワーク全体の再設計が必要** — 1 PR では収まらない設計判断を要する
-3. **かなり大規模** — 数日〜週単位の独立工数を要する
-4. **別チームへの依頼** — 本リポジトリ外を含む
-
-これらに該当しない小さな課題は **本 PR で吸収**。本 PR がマージ済なら **follow-up small PR を即作成して main に merge**。放置は禁止。
-
-### 鉄則 3: 同根の複数提案は必ず 1 ISSUE に統合
-
-同じ schema / 同じ spec / 同じ領域 / 同根の発見イベント (同 PR / 同 dogfood / 同調査) から出てきた提案は 1 ISSUE 内に sub-section (## 提案 A / B / C) で列挙する。
-
-### 鉄則 4: フォローアップ連鎖の絶対禁止 + 起票後 24h 着手義務 (2026-05-28 #1379 → #1385 連鎖事故で新設)
-
-**N 次フォローアップ (フォローアップから更にフォローアップが派生) は user 承認なしに起票禁止**。連鎖は ISSUE 純増コストを指数的に増やし、AI が「鉄則 0 を満たすため」と称して気軽に起票するパターンの温床。
-
-定義:
-- **0 次**: 本 PR の作業中に発見した課題
-- **1 次フォローアップ**: 0 次から派生したフォローアップ (= 通常の「鉄則 2 で許容される新規 ISSUE」)
-- **2 次フォローアップ**: 1 次フォローアップ ISSUE / PR の review 指摘 / 残課題から派生 → **user 承認必須**
-- **3 次以降**: **絶対禁止** (user 承認不可、即停止して相談)
-
-起票後の責務 (1 次・2 次ともに):
-- **起票後 24 時間以内に着手** (= 実装 commit / WIP PR 作成)。それを超えるなら起票しない (= 本 PR で吸収するか、user に判断を委ねる)
-- 着手見込みがないのに「trace 確立のため」と起票するのは鉄則 0 違反 (放置の婉曲表現)
-
-実例 (#1379 → #1385 連鎖、2026-05-28):
-- #1378 (#1375 実装) Must-fix #2 → #1379 (1 次) → PR #1382 Round 1 review 指摘 → #1385 (2 次、user 承認なし) で叱責「フォローアップ増殖キリがない」
-- 教訓: review 指摘の trace 不足は **本 PR scope を広げて吸収** が原則。「pattern 再設計が必要」「規模が大きい」は AI の過大評価。1 件サンプル fix で実測してから判断
-
-### 鉄則 5: 「規模が大きく見える」を follow-up 化の根拠にしない (2026-05-28 新設)
-
-AI の「規模感覚」は不正確で、warning N 件 / file N 個を見て即「数日工数」と判断するのは怠慢。**必ず 1 件サンプル fix の所要時間 × N 件 + α で実測**してから follow-up 化の判断をする。
-
-実測手順:
-1. N 件のうち最も複雑そうな 1 件を実際に修正してみる
-2. 所要時間 (実装 + verify) を計測
-3. × N 件 + バッファ 30% で総工数を見積もる
-4. 1-3 時間以内なら鉄則 1 (本 PR 吸収) を遵守、それ以上なら user に判断を委ねる
-
-「機械的修正 vs pattern 再設計」を区別せず一律「大規模」とラベルするのは禁止。
-
-### 鉄則 6: Codex / Sonnet review が選択肢を提示しても、本 PR 吸収がデフォルト (2026-05-28 新設)
-
-Codex / Sonnet の独立レビューが「本 PR で吸収 or follow-up ISSUE 起票」を選択肢として提示することがある。**この場合、本 PR 吸収を default 選択** とし、follow-up 化はユーザー承認時のみ。
-
-理由: AI 同士の review で「両方の選択肢を提示」されると、起票側 AI は安易に follow-up を選びがち (思考停止)。default を明示することで安易な分離を防ぐ。
-
-### 禁止された逃げ口の理由付け
-
-以下の理由はすべて禁止:
-
-- ❌ 「schema governance により AI 単独実装禁止だから別 ISSUE 化」 — schema 提案も同 PR description / 統合 ISSUE に書けば良い
-- ❌ 「scope 厳守のため別 ISSUE」 — 同根なら scope 内
-- ❌ 「念のため別 ISSUE で隔離」 — ISSUE 純増コストが大きい
-- ❌ 「pre-existing 問題なので別 ISSUE」 — 同ファイル / 同画面なら同 PR 吸収
-- ❌ 「将来対応のため記録だけして放置」 — 鉄則 0 違反 (trace されない)
-- ❌ 「次にこのファイル触る時にやる」 — 放置の婉曲表現、鉄則 0 違反
-- ❌ 「PR description にメモするだけで trace 達成」 — クローズ済 PR は誰も見ない、放置と同義
-- ❌ **「規模が大きく見えるから follow-up」 — 実測していない見積もりは禁止 (鉄則 5)**
-- ❌ **「Codex / Sonnet review が follow-up を選択肢として提示したから」 — 提示されても本 PR 吸収がデフォルト (鉄則 6)**
-- ❌ **「pattern 再設計が必要」を根拠に大量 warning / error を follow-up 化 — 1 件サンプル fix で機械的修正可能性を実証してから判断 (鉄則 5)**
-
-### 起票直前の self-check (義務)
-
-`gh issue create` を打つ **直前** に 9 項目すべて ✓ を確認:
-
-1. ☐ 鉄則 0: 「放置せず必ず処理する」前提で考えている (記録だけして処理しない選択肢は無い)
-2. ☐ 鉄則 1: 本 PR / follow-up small PR で吸収不可な明確な根拠を提示できる
-3. ☐ 鉄則 2: 妥当条件 (別機能 / 再設計 / 大規模 / 別チーム) のいずれかに **明確に** 該当する
-4. ☐ 鉄則 3: 他に同根の起票候補があるなら 1 ISSUE に統合する用意がある
-5. ☐ 鉄則 4: **N 次 (N≥2) フォローアップでないこと、または user 承認を得ている**
-6. ☐ 鉄則 4: **起票後 24h 以内に着手する確定計画がある** (small follow-up PR を作成する目処が立っている)
-7. ☐ 鉄則 5: **「大規模」と判断する根拠は 1 件サンプル fix の実測値 × N 件 + α**
-8. ☐ 「禁止された逃げ口」を理由にしていない (鉄則 6 の Codex review 提示も含む)
-9. ☐ 「ISSUE 化しない」と決めた場合、必ず本 PR / follow-up small PR で対応する確定的な計画がある (放置していない)
-
-1 つでも疑問が残るなら立ち止まり、放置を選ばないこと。
-
-### 失敗事例 (再発防止のため記録)
-
-- 2026-05-04 PR #780: 同根の framework 提案 3 件を #781/#782/#783 と別々に起票 → 2 件純増。同 schema (`schemas/v3/process-flow.v3.schema.json`) を触る同根提案は 1 ISSUE に統合すべきだった
-- 2026-05-28 #1378 (#1375 派生) → #1379 (1 次) → #1382 Round 1 review trace 不足 → #1385 (2 次フォローアップ、user 承認なし) 起票で叱責「フォローアップ増殖キリがない」。鉄則 4-6 はこの事故を受けて新設
-
-### 関連 memory (起票判断時に必読)
-
-- `feedback_issue_split_criteria.md` (canonical 判定基準)
-- `feedback_issue_split_hidden_costs.md` (トークン累積 + main 滞留コスト)
-- `feedback_consolidate_related_proposals_into_one_issue.md` (鉄則 3 の具体例)
-- `feedback_pr_scope_absorb_pre_existing.md` (pre-existing は同 PR 吸収)
-- `feedback_pr_granularity.md` (PR を過度に細かく分けない)
+| 内容 | 参照先 |
+|---|---|
+| ISSUE 起票・PR 作成・レビュー・シリーズ PR の詳細 | [docs/conventions/issue-and-pr-policy.md](docs/conventions/issue-and-pr-policy.md) |
+| docs-site (HTML 仕様書) と AI ブラウザ確認 | [docs/conventions/docs-site-and-browser-smoke.md](docs/conventions/docs-site-and-browser-smoke.md) |
+| 完了判定 (回帰テストの trace 照合) | [docs/conventions/completion-gate.md](docs/conventions/completion-gate.md) |
+| 進行中の再設計計画と設計者判断 | [docs/plans/redesign-2026-10.md](docs/plans/redesign-2026-10.md) |
 
 ## Project Overview
 
-**Harnize Harmony** (社内呼称: Harmony) — Japanese business application WYSIWYG screen designer. Two main components:
+**Harnize Harmony** (社内呼称: Harmony) — 日本の Web システム開発の設計書 (画面 / 処理フロー / テーブル / 規約 等) を Web 上で WYSIWYG に編集・閲覧するツール。設計書の原本は AI が読みやすい JSON / Markdown で保持し、プログラムはその時点の AI が設計書から推論して生成する。
 
-- **frontend/** — React + Vite + GrapesJS + ReactFlow による UI
-- **backend/** — MCP server + WebSocket bridge + ファイル永続化 + lock / draft 管理 (port 5179 同居)
-  - `backend/src/mcp/` は将来 MCP 独立稼働 (案 A, multi-user 対応時) を見据えた論理境界
+- **frontend/** — React + Vite + GrapesJS / Puck + ReactFlow による設計 UI
+- **backend/** — MCP server + WebSocket bridge + ファイル永続化 + lock / draft 管理 (port 5179)
+- **shared/** — frontend / backend 共通の型・定数 (`@harmony/shared`)
+- **schemas/v3/** — 設計書の JSON Schema (一次成果物)
 
-## Schema ガバナンス (最重要、#511 — 全 AI が遵守)
+## 必ず守ること
 
-`schemas/v3/process-flow.v3.schema.json` / `schemas/v3/extensions.v3.schema.json` / `schemas/v3/conventions.v3.schema.json` 等の **グローバル定義スキーマは、フレームワーク製作者 (設計者) の専権事項**。
-
-- **AI (Claude/Codex/その他) が勝手に変更するのは禁止** — 権限外行為、フレームワークの統一性を損なう
-- 業務記述で表現できない場合の対処順序:
-  1. 拡張機構 (`examples/<project-id>/extensions/<namespace>/*.json` または `workspaces/<id>/extensions/<namespace>/*.json`) で代替できないか確認
-  2. 既存 schema フィールドで代替表現できないか確認 (`type: "other"` + outputSchema パターン等)
-  3. それでも無理なら **ISSUE 起票して作業停止**、設計者承認待ち
-- **テスト pass を理由に schema を勝手に拡張するのは絶対禁止**
-
-詳細仕様: [`docs/spec/schema-governance.md`](docs/spec/schema-governance.md)
-
-PR 作成後 / マージ前に `git diff origin/main..HEAD -- schemas/` を必ず確認すること。
-
-## draft-state policy (設計途中許容 + 警告可視化)
-
-業務リソースは設計途中の draft-state でも保存可能とする。schema 違反や未完成項目は保存ブロッカーにせず、UI の一覧・カード・編集画面で error / warning として可視化し、`committed` maturity へ進める過程で解消する。
-
-5 原則・severity 判定基準・新規リソース追加 checklist は [`docs/spec/draft-state-policy.md`](docs/spec/draft-state-policy.md) を参照すること。新しいリソース種別を追加する AI エージェントは、同 checklist に従って validator / store / ListView / Editor / maturity 表示 / AJV test layer の扱いを確認すること。
-
-## edit-session-draft (サーバ側 draft 管理モデル)
-
-全エディタを明示保存式に統一し、編集中の作業コピーをサーバ側ファイルシステム (`data/.drafts/`) に保持するモデル。ロック排他制御・AI 連携 (`onBehalfOfSession`) を含む。仕様書: [`docs/spec/edit-session-draft.md`](docs/spec/edit-session-draft.md) (#683 / #684)
+1. **schema は設計者の専権** (#511)。`schemas/v3/*.json` を AI 判断で変更しない。業務記述で表せない場合は拡張機構 (`extensions/<namespace>/*.json`) → 既存フィールドでの代替 → ISSUE 起票して停止、の順。テストを通すための schema 拡張は禁止。詳細: [docs/spec/schema-governance.md](docs/spec/schema-governance.md)
+2. **発見した課題は放置しない**。本 PR で対応するのが原則。別 ISSUE 化は「別機能 / 再設計 / 大規模 / 別チーム」のいずれかに明確に該当する場合だけ。フォローアップのさらにフォローアップは user 承認なしに起票しない。「記録だけして後で」は禁止。詳細: [issue-and-pr-policy.md](docs/conventions/issue-and-pr-policy.md)
+3. **`main` に直接コミットしない**。`origin/main` からブランチを切る (`feat/issue-<N>-<slug>` / `feat/<topic>` / `fix/<slug>` / `docs/<slug>`)。PR は squash merge、タイトルに ISSUE 番号。複数 ISSUE を閉じるときは 1 行ずつ `Closes #N`。
+4. **画面やデータを開いただけで原本を書き換えない** (明示保存モデル)。保存は利用者の操作か AI の明示的な変更だけ。
+5. **ユーザー向けテキストはすべて日本語** (UI 文言 / 進捗報告 / commit / PR / ISSUE)。コマンド・URL・エラー原文・固有名詞は原文のまま。
 
 ## Commands
 
-### Install (初回 / 依存更新時) — repo root で 1 回
-
 ```bash
-npm install        # root で実行: shared / frontend / backend を npm workspaces で一括解決
-                   # shared/package.json の `prepare` hook で shared/dist/ を build
+npm install            # repo root で 1 回 (npm workspaces。subdir で install しない)
+npm run backend        # ターミナル A: backend (port 5179、常駐)
+npm run frontend       # ターミナル B: frontend (port 5173)
+npm run check          # コミット前の一括検証 (型検査 / 直書き色検査 / 単体テスト)
+npm run kill           # 5173 / 5179 を握るプロセスを停止
 ```
 
-PR #1378 (#1375) で npm workspaces 化済み。`cd frontend && npm install` / `cd backend && npm install` は **非推奨** — workspace 認識されず `@harmony/shared` の resolution で失敗する場合がある。**root の `npm install` 1 発が canonical**。
-
-### 開発サーバ (frontend / backend は別ターミナルで個別起動、#1400)
-
-```bash
-# ターミナル A (常駐、起動しっぱなしで OK)
-npm run backend     # = npm run dev --workspace=backend (tsx watch、port 5179)
-
-# ターミナル B (開発中、Ctrl+C で頻繁に再起動)
-npm run frontend    # = npm run dev --workspace=frontend (vite、port 5173)
-```
-
-両者は npm workspaces ネイティブで root から起動できる。subdir に `cd` して `npm run dev` を直接叩いても等価 (`cd backend && npm run dev` / `cd frontend && npm run dev`)。
-
-**旧 `npm run dev` / `npm run restart` は #1400 で撤去** — concurrently で frontend + backend を束ねると Ctrl+C で backend が tsx watch の signal forwarding 問題により停止できない事象があったため。新コマンドは独立 terminal で各サーバを管理する。実行すると deprecation 通知が出る (`scripts/dev-deprecated.mjs`)。
-
-### Frontend のサブコマンド (subdir 実行可)
-
-```bash
-cd frontend
-npm run build      # shared rebuild → TypeScript check → Vite build
-npm run lint       # ESLint
-```
-
-### Backend のサブコマンド
-
-```bash
-cd backend
-npm run build      # shared rebuild → Compile to dist/
-```
-
-Both servers must run simultaneously for file-based persistence. Without backend, the frontend falls back to localStorage.
-
-`backend` は常駐サーバ (#302): `npm run backend` (root) または `cd backend && npm run dev` で 1 回起動すれば、ブラウザ・複数の AI エージェントセッション双方が接続できる。エージェント終了でも停止しないので、次回以降も使い回し可能。
-
-### 個別 port の kill / restart
-
-```bash
-npm run kill                 # 5173 / 5179 両方
-npm run restart:backend      # 5179 を kill → backend 再起動
-npm run restart:frontend     # 5173 を kill → frontend 再起動
-```
-
-### 開発環境 (推奨: Dev Containers / 代替: WSL2 native)
-
-本プロジェクトの推奨開発環境は **Dev Containers** (`.devcontainer/devcontainer.json` 同梱、git tracked、#847)。WSL2 native セットアップも引き続きサポート対象 — 利用者の選好で選んでよい。Quick Start は [`README.md`](README.md) を参照。
-
-Dev Containers の利点:
-
-- 複数プロジェクトの環境差を完全に isolation (Node / JDK / Python が混在しても OK)
-- 新規開発者は `git clone && Reopen in Container` だけで dev 環境完成 (5-10 分の初回 build のみ)
-- WSL2 distro を汚さない (Node / npm / playwright は container 内に閉じる)
-
-利用条件:
-
-- Windows + WSL2 + Docker Desktop (or WSL2 内 Docker Engine)
-- VSCode + Dev Containers 拡張 (`ms-vscode-remote.remote-containers`)
-
-詳細・トラブルシューティング:
-
-- [`docs/setup/dev-containers.md`](docs/setup/dev-containers.md) — 推奨セットアップ (Dev Containers)
-- [`docs/setup/wsl2-native.md`](docs/setup/wsl2-native.md) — 代替セットアップ (WSL2 native)
-- [`docs/setup/distribution-roadmap.md`](docs/setup/distribution-roadmap.md) — Harmony 本体の Docker image 配布構想 (#1055 L2/L3、未実装)
-
-過去 WSL2 native で開発していた利用者の Dev Containers 移行手順は `dev-containers.md` §「過去 WSL2 native だった人向け移行手順」を参照。
-
-### Documentation HTML サイト (docs-site/)
-
-仕様書 / プレゼン HTML 化サイト (Astro 5 + Tailwind v4 + pagefind + rehype-mermaid)。詳細は [`docs-site/README.md`](docs-site/README.md) 参照。メタ ISSUE: [#1124](https://github.com/csilost2001/harmony/issues/1124) (Phase A-E 完了済)。
-
-#### 出力構成
-
-- **Source of truth (canonical)**: `docs/spec/*.md` / `docs/user-guide/*.md` / `docs/conventions/*.md` / `docs/setup/*.md` (Markdown が一次成果物)
-- **Build artifact (配布物)**: `docs/html/` (git tracked、**手編集禁止**)
-- **プレゼン**: `docs/html/presentation/index.html` (1 ファイル完結、Swiper、16 スライド)
-
-#### 初回セットアップ
-
-```bash
-cd docs-site
-npm install
-npx playwright install chromium  # rehype-mermaid 用、初回のみ
-```
-
-#### 更新フロー (md 編集後の必須手順)
-
-1. `docs/spec/*.md` 等の Markdown を編集 (canonical source)
-2. `cd docs-site && npm run build` で `docs/html/` を再生成
-   - `npm run build` は毎回 `.astro/` cache を clear してから build (Astro 5 cache stale state による link resolution 破壊を防止、ISSUE #1366)
-3. `git add docs/html/ docs-site/` で commit
-4. push / PR
-
-#### スキーマ反映
-
-`schemas/v3/*.json` 変更時:
-
-- `SchemaTable` component が build 時に schema を再読込
-- 上記更新フローと同じ手順で HTML に反映 (rebuild 必須)
-
-#### ローカル閲覧
-
-build 後の HTML を browser で開く方法。**`npm run build` の post-process で全 HTML/CSS/JS の絶対パス (`/foo/`) を相対パス (`./foo/` or `../../foo/`) に書き換え済** (`docs-site/scripts/relativize-html-paths.mjs`)、両方対応:
-
-1. **静的に開く** (file:// プロトコル、リンク + asset + 検索 UI 全動作):
-   - Linux: `xdg-open docs/html/index.html`
-   - macOS: `open docs/html/index.html`
-   - Windows: `start docs\html\index.html`
-   - Windows + WSL2: explorer から `\\wsl.localhost\<distro>\home\<user>\projects\harmony\docs\html\index.html` を double click
-2. **preview server で開く** (HTTP server、開発時の live reload 等):
-   ```bash
-   cd docs-site
-   npm run preview
-   # → http://127.0.0.1:4321/
-   ```
-
-注意: post-process script は `npm run build` で自動実行されるため、build artifact を直接 push する前提で機能する。手動で `astro build` のみ実行した場合は別途 `node scripts/relativize-html-paths.mjs` が必要。
-
-#### AI による browser smoke test (Playwright / chrome-devtools MCP)
-
-AI セッション内で `docs/html/` を実機 browser で smoke test する手順 (2026-05-17 設定済、`.mcp.json` で bundled chromium 利用)。
-
-##### 起動モード 3 種類
-
-| モード | MCP server entry | 用途 | デフォルト |
-|---|---|---|---|
-| **headless** | `playwright` / `chrome-devtools` | AI 完全自動 smoke、CI 用 | ✅ 原則これ |
-| **headed (on-demand)** | `playwright-headed` / `chrome-devtools-headed` | ユーザーが動作を **目視確認したい時のみ** | ユーザー要望時 |
-| **trace 再生** | (将来) | 事後 review | 未実装 |
-
-##### AI 判断基準 (重要)
-
-- **デフォルト = headless**: ユーザーから明示要望がない限り `mcp__playwright__*` (headless) を使う
-- **headed 切替条件**: ユーザーが以下のような発話をした時 **のみ** `mcp__playwright-headed__*` / `mcp__chrome-devtools-headed__*` を使う:
-  - 「動作を見たい」「画面を見せて」「目視確認したい」「headed で」「window で開いて」等
-- headed mode 中もユーザーが操作・観察できる (Windows desktop に window が立ち上がる、Dev Container では WSLg の X11 fallback 経由)
-- headed task 完了後は **次の自動 smoke から headless に戻す** (永続切替しない)
-
-##### 基本手順
-
-1. **preview server を立てる** (background or 別ターミナル):
-   ```bash
-   cd docs-site && npm run preview
-   # → http://127.0.0.1:4321/
-   ```
-2. **Playwright MCP で navigate + screenshot + console 確認** (軽量、推奨):
-   - headless: `mcp__playwright__browser_navigate` → `http://127.0.0.1:4321/`
-   - headed: `mcp__playwright-headed__browser_navigate` → ユーザー目視可
-   - `mcp__playwright__browser_take_screenshot` → `.tmp/screenshots/` に保存
-   - `mcp__playwright__browser_console_messages` (level: error) で JS エラー確認
-   - `mcp__playwright__browser_snapshot` で a11y tree から click 対象特定
-3. **chrome-devtools MCP** (Lighthouse / network 等の DevTools features 必要時):
-   - 同様に headless / headed 切替可
-
-##### 環境前提
-
-| OS / 環境 | headed 動作 |
+| 用途 | コマンド |
 |---|---|
-| Windows 11 + WSL2 + Docker Desktop (Dev Container) | ✅ WSLg の X11 fallback 経由で Windows desktop に自動表示 (推奨環境)。`/run/user/<uid>/wayland-0` の bind mount エラーが出る環境では VS Code user settings で `dev.containers.mountWaylandSocket=false` を設定する (#1451) |
-| Windows 11 + WSL2 native (Dev Container なし) | ✅ WSLg 直接利用 |
-| Windows 10 + WSL2 + Docker Desktop | ⚠️ VcXsrv / X410 等の X server 別途必要 (未対応) |
-| macOS | ⚠️ XQuartz install + `xhost +localhost` + `DISPLAY=host.docker.internal:0` (未対応) |
-| Linux native | ⚠️ X11 forwarding 手動 setup (未対応) |
+| frontend 単体テスト | `npm run test:unit` |
+| backend 単体テスト | `npm run test:backend` |
+| E2E (Playwright がサーバも起動) | `cd frontend && npx playwright test <spec>` |
+| 回帰 E2E の trace 照合 (merge 前に必須) | `node scripts/verify/regression-trace-check.mjs --auto-run` |
+| サンプル JSON の runtime 契約検証 | `cd frontend && npm run validate:samples -- ../examples/<project-id>` |
+| 全画面スクリーンショット | `npm run ui:shots -- --out .tmp/screenshots/<名前> [--theme dark]` |
+| 配色監査 (コントラスト / テーマ不一致) | `npm run ui:audit` |
 
-未対応環境では `.devcontainer/devcontainer.json` の WSLg 関連 mount (`/tmp/.X11-unix`, `/mnt/wslg`) を comment out + headed mode 利用断念。Wayland socket の自動 mount は repo から強制停止できないため、`/run/user/<uid>/wayland-0` の bind mount エラーが出る環境では VS Code user settings に `"dev.containers.mountWaylandSocket": false` を設定する。
+- E2E は自前で起動した backend を再利用すると E2E 用環境変数が効かず失敗する。E2E 実行前は `npm run kill` して Playwright にサーバを起動させる。
+- AI が検証のために dev server を起動した場合は、作業の終わりに必ず `npm run kill` で止める。
 
-##### 注意事項
+## 配置ルール
 
-- `.mcp.json` / devcontainer.json の MCP / browser 設定変更後は **claude code 再起動 + (devcontainer の場合) container rebuild** が必要
-- 詳細 pitfall は memory `feedback_browser_smoke_headless_chrome_devtools.md` 参照
+| 種別 | 置き場所 |
+|---|---|
+| スクリーンショット | `.tmp/screenshots/` |
+| AI の中間ファイル・レビュー出力 | `.tmp/` (レビューは `.tmp/review-cache/`) |
+| ログ | `logs/` |
+| ドッグフード用ワークスペース | `workspaces/dogfood-<目的-YYYYMMDD>/` (`data/` は本体専用、使わない) |
+| worktree (並行作業が必要な場合のみ) | `.tmp/worktrees/<name>/` |
 
-##### 事前準備済 bundled browser
-
-- Playwright chromium: `~/.cache/ms-playwright/chromium-1217/`, `chromium-1223/`
-- Chrome for Testing: `~/.cache/puppeteer/chrome/linux-150.0.7843.0/chrome-linux64/chrome` (chrome-devtools MCP 用)
-
-#### 注意事項
-
-- **`docs/html/` 配下の手編集は禁止** (build artifact、次回 build で上書きされる)
-- `_astro/*.{css,js}` の hash 名は内容変化で変わる (commit diff 増加要因、想定済)
-- pagefind index (`docs/html/pagefind/`) も build 毎に再生成 (`.pf_index` / `.pf_fragment` の hash 変動)
-- **Astro 5 系を採用** (Astro 6 は Node 22+ 必須、本プロジェクト Node 20 環境のため不適合)
-- mermaid 図は build-time SVG 生成 (Playwright chromium 経由、client JS 不要)
-- 内部 `*.md` link は rehype plugin で自動的に Astro route (`/<area>/<slug>/`) に変換、4 area 外 link は GitHub blob URL に fallback
-
-### ドッグフード deploy 先
-
-AI ドッグフード時のサンプル展開先は **`workspaces/dogfood-<目的-YYYYMMDD>/`** を使用する。`data/` への deploy は禁止 (`data/` はデザイナー本体組み込み拡張定義 `data/extensions/` 専用、#753 で責務縮退済み)。`examples/<project-id>/` を作業領域にコピーする際も `workspaces/<project-id>/` を使う。
-
-```bash
-# examples/retail/ を dogfood 領域にコピーする例 (Windows PowerShell)
-Copy-Item -Recurse -Force examples\retail\* workspaces\retail\
-```
-
-## 一時ファイル・作業ファイルの配置ルール (全 AI 必須)
-
-**プロジェクトルートへの直接ファイル作成は禁止。** `.gitignore` で除外されていても、物理的散乱はルール違反。
-
-| 種別 | 配置先 |
-|------|--------|
-| MCP スクリーンショット (Playwright / chrome-devtools) | `.tmp/screenshots/` |
-| AI 中間作業ファイル (handoff notes / dogfood レポート等) | `.tmp/` |
-| スキル出力 (`/review-pr` / `/review-issue` 等) | `.tmp/review-cache/` |
-| ログファイル | `logs/` |
-| Playwright / Vitest テスト成果物 | `test-results/` または `frontend/test-results/` |
-
-### 禁止事項
-
-- ❌ プロジェクトルートへの `.png` / `.log` / `.md` 一時ファイル直置き
-- ❌ `screenshots/` をルート直下に作成する (`.tmp/screenshots/` を使う)
-- ❌ 新規ファイルを `tmp/` に作成する — 新規は `.tmp/` 配下に統一する
-
-### スクリーンショット取得時の手順
-
-`mcp__playwright__browser_take_screenshot` や `mcp__chrome-devtools__take_screenshot` を使う際:
-
-1. ツールがパス指定をサポートする場合 → `.tmp/screenshots/<名前>.png` を明示指定
-2. ツールがデフォルト出力先を使う場合 → 取得直後に PowerShell で移動:
-   ```powershell
-   Move-Item .\*.png .\.tmp\screenshots\
-   ```
+プロジェクトルート直下に一時ファイルを置かない。
 
 ## Architecture
-
-### Two-Process Design
 
 ```
 AI Agent ──(http://localhost:5179/mcp)──┐
                                         ▼
                                    backend ←──(ws://0.0.0.0:5179)──→ Browser
                                         ▼
-                          ┌─────────────────────────────┐
-                          │  data/extensions/  (本体)   │  ← git tracked
-                          │  workspaces/<id>/  (作業)   │  ← gitignored
-                          └─────────────────────────────┘
+                          data/extensions/ (本体、git tracked)
+                          workspaces/<id>/ (利用者プロジェクト、gitignored)
 ```
 
-- **MCP (HTTP Streamable, port 5179):** AI エージェントは MCP 設定 (Claude Code は `.mcp.json`、Codex は `.codex/config.toml`) で HTTP URL エントリ経由接続 (#302)。常駐サーバなので複数セッション同時接続可、orphan 問題も解消
-- **WebSocket (port 5179):** Browser reads/writes screen data via wsBridge — MCP と同一 port に同居
-- **Shared storage:** `data/extensions/` (デザイナー本体組み込み拡張定義、git tracked) + active workspace の `workspaces/<wsId>/` (ユーザープロジェクトデータ、gitignored)
+- active workspace の `harmony.json` の `dataDir` 配下に `screens/` `process-flows/` `tables/` 等の JSON を保存する
+- 編集中の作業コピーはサーバ側 `data/.drafts/<wsId>/` に置き、ロックで排他する: [docs/spec/edit-session-draft.md](docs/spec/edit-session-draft.md)
+- 設計途中でも保存でき、schema 違反は UI で警告表示する (draft-state): [docs/spec/draft-state-policy.md](docs/spec/draft-state-policy.md)
+- ワークスペース: [docs/spec/workspace.md](docs/spec/workspace.md) / 同時並行編集: [docs/spec/workspace-multi.md](docs/spec/workspace-multi.md)
 
-### 起動
+### Routing (実 URL は `/w/:wsId/<path>`。`/workspace/*` と `/ai-settings` のみ top-level)
 
-- **通常の開発フロー**: `npm run backend` (root、または `cd backend && npm run dev`) で常駐起動 (任意のタイミングで 1 回)。AI エージェントは同プロジェクトで開けば MCP 設定経由で自動接続。
-- **自動 spawn はしない** (URL mode): エージェント起動時に既存サーバが無いと MCP 不接続状態になるため、backend が上がっているか先に確認すること。
+| Path | 画面 |
+|---|---|
+| `/` | ダッシュボード |
+| `/screen/flow` `/screen/list` | 画面フロー / 画面一覧 |
+| `/screen/design/:screenId` `/screen/items/:screenId` | 画面デザイナ / 画面項目 |
+| `/table/list` `/table/edit/:tableId` `/table/er` | テーブル一覧 / 編集 / ER 図 |
+| `/process-flow/list` `/process-flow/edit/:processFlowId` | 処理フロー一覧 / 編集 |
+| `/sequence/*` `/view/*` `/view-definition/*` | シーケンス / DB ビュー / ビュー定義 |
+| `/page-layout/list` `/page-layout/edit/:id` `/gadget/list` | ページレイアウト / ガジェット |
+| `/generic-definition[/:kind[/:name]]` | 汎用定義 (メッセージ・ドメイン型 等 17 種) |
+| `/conventions/catalog` `/extensions` `/project/tech-stack` | 規約 / 拡張 / 技術スタック |
 
-### Routing
-
-URL 規約: **`/category/feature[/:id]`** 形式（Java 風階層）。ルートは単一概念で意味が通るよう、複数解釈できる複数形は避ける（例: `/flow` は 画面フロー／処理フロー どちらか不明なため不採用）。
-
-表中の Path は **workspace-scoped route 配下のサブパス** として記載 (実 URL は `/w/:wsId/<path>`)。`/workspace/*` と `/ai-settings` のみ workspace スコープ外 (top-level)。
-
-| Path | Component | Purpose | Opens as tab? |
-|------|-----------|---------|---------------|
-| `/` (index) | DashboardView | 全体俯瞰ダッシュボード | ✅ singleton |
-| `/screen/flow` | FlowEditor | 画面フロー図（ReactFlow、キャンバス固定）| ✅ singleton |
-| `/screen/list` | ScreenListView | 画面一覧（カード ⇔ 表切替）| ✅ singleton |
-| `/screen/design/:screenId` | Designer (`ResourceLoading` でラップ) | 画面デザイナー（GrapesJS）| ✅ per-resource |
-| `/screen/items/:screenId` | ScreenItemsView | 画面項目編集 | ✅ per-resource |
-| `/table/list` | TableListView | テーブル一覧 | ✅ singleton |
-| `/table/edit/:tableId` | TableEditor | テーブル編集 | ✅ per-resource |
-| `/table/er` | ErDiagram | ER 図 | ✅ singleton |
-| `/process-flow/list` | ProcessFlowListView | 処理フロー一覧 | ✅ singleton |
-| `/process-flow/edit/:processFlowId` | ProcessFlowEditor | 処理フロー編集 | ✅ per-resource |
-| `/sequence/list` | SequenceListView | シーケンス一覧 | ✅ singleton |
-| `/sequence/edit/:sequenceId` | SequenceEditor | シーケンス編集 | ✅ per-resource |
-| `/view/list` | ViewListView | DB ビュー一覧 | ✅ singleton |
-| `/view/edit/:viewId` | ViewEditor | DB ビュー編集 | ✅ per-resource |
-| `/view-definition/list` | ViewDefinitionListView | ViewDefinition (viewer) 一覧 | ✅ singleton |
-| `/view-definition/edit/:viewDefinitionId` | ViewDefinitionEditor | ViewDefinition 編集 | ✅ per-resource |
-| `/page-layout/list` | PageLayoutListView | ページレイアウト一覧 (RFC #1021) | ✅ singleton |
-| `/page-layout/edit/:pageLayoutId` | PageLayoutEditor | ページレイアウト編集 (レイアウトマネージャ) | ✅ per-resource |
-| `/page-layout/design/:pageLayoutId` | 互換 redirect → `/page-layout/edit/:pageLayoutId` | ❌ route only |
-| `/gadget/list` | GadgetListView | ガジェット一覧 (Screen.purpose=gadget filter) | ✅ singleton |
-| `/generic-definition` | GenericDefinitionCatalogView | 汎用定義カタログ | ✅ singleton |
-| `/generic-definition/:kind` | GenericDefinitionListView | 汎用定義一覧 (kind 別) | ✅ per-resource (kind 単位) |
-| `/generic-definition/:kind/:name` | GenericDefinitionEditor | 汎用定義編集 | ✅ per-resource |
-| `/extensions` | ExtensionsPanel | 拡張管理 | ✅ singleton |
-| `/conventions/catalog` | ConventionsCatalogView | 横断規約カタログ | ✅ singleton |
-| `/project/tech-stack` | TechStackView | 技術スタック選定 | ✅ singleton |
-| `/workspace/list` (top-level) | WorkspaceListView | ワークスペース一覧 | ✅ singleton |
-| `/workspace/select` (top-level) | WorkspaceSelectView | ワークスペース選択 (フルスクリーン welcome) | ❌ route only (タブ対象外) |
-| `/ai-settings` (top-level) | CodexSettingsView | AI 設定 | ✅ singleton |
-
-**実装**: `frontend/src/components/AppShell.tsx:300-354` の `<Routes>` 定義 (workspace-scoped は `/w/:wsId` 配下 nested route)。
-
-ワークスペース概念 (active workspace / lockdown / recent / 切替プロトコル) は [docs/spec/workspace.md](docs/spec/workspace.md) を参照。複数ワークスペースの**同時並行編集** (v2) は [docs/spec/workspace-multi.md](docs/spec/workspace-multi.md) を参照 (#679 シリーズ)。
-
-### Tab policy
-
-**HeaderMenu から到達できる画面と、個別リソース編集画面は、すべてタブ。**
-
-| 種別 | 対象 | 性質 |
-|------|------|------|
-| シングルトンタブ | Dashboard / 画面フロー / 画面一覧 / テーブル一覧 / ER 図 / 処理フロー一覧 / シーケンス一覧 / DB ビュー一覧 / ViewDefinition 一覧 / ページレイアウト一覧 / ガジェット一覧 / 汎用定義カタログ / 拡張管理 / 横断規約カタログ / 技術スタック / ワークスペース一覧 / AI 設定 | 1 インスタンス固定、再オープン時は既存を再利用 |
-| マルチインスタンスタブ | Designer / ScreenItemsView / TableEditor / ProcessFlowEditor / SequenceEditor / ViewEditor / ViewDefinitionEditor / PageLayoutEditor / GenericDefinitionListView (kind 別) / GenericDefinitionEditor | リソース ID 毎に独立タブ |
-| route only | `/workspace/select` (フルスクリーン welcome、ヘッダー・タブバーなし) | タブ管理対象外 |
-
-**理由**: 一覧画面は全機能の俯瞰・順序変更・検索・帳票出力等の中心機能で、**詳細より頻繁に開かれる**。タブ化しないと毎回 HeaderMenu から辿り直しで UX 劣化する。VS Code も Welcome / Settings / Source Control などシングルトンをタブで開く。
-
-**旧ポリシー（#98）は撤回**: 「一覧は通過点だから route only」という判断は、実際の使用頻度と衝突するため破棄。
+URL は `/category/feature[/:id]`。HeaderMenu から到達する画面と個別リソース編集画面はすべてタブで開く (一覧は singleton、編集はリソースごと)。実装: `frontend/src/components/AppShell.tsx` の `<Routes>`。
 
 ### Key Directories
 
-- `frontend/src/components/flow/` — Flow diagram editor (ReactFlow-based)
-- `frontend/src/grapes/blocks.ts` — 60+ pre-built block definitions
-- `frontend/src/store/` — Persistence layer (flowStore, customBlockStore)
-- `frontend/src/mcp/mcpBridge.ts` — Browser-side WebSocket client
-- `backend/src/tools.ts` — 89 MCP tool definitions (実カウント: `grep -cE 'name:\s*"designer__' backend/src/tools.ts`、2026-05-17 時点)
-- `backend/src/wsBridge.ts` — WebSocket server + broadcast
-- `shared/src/` — `@harmony/shared` npm workspaces package (frontend / backend 共有の型・定数の単一 source-of-truth、PR #1378 / #1380)。`DraftResourceType` / `DRAFT_RESOURCE_TYPES` / `buildHarmonyAjv` / `isAutoGeneratedId` / `CUSTOM_TYPE_TO_TAG` / `ActivityLevel` 等が集約されている
+- `frontend/src/styles/tokens.css` — アプリ UI の唯一の色定義 (ライト / ダーク)。画面の CSS に色を直書きしない (`npm run verify:colors` で検査)
+- `frontend/src/components/` — 各画面。一覧系 UI は [docs/spec/list-common.md](docs/spec/list-common.md) を先に読む
+- `frontend/src/editor/` — 画面エディタの backend 境界 (GrapesJS / Puck)
+- `frontend/src/mcp/mcpBridge.ts` / `backend/src/wsBridge.ts` — ブラウザ ⇄ backend の WebSocket
+- `backend/src/tools.ts` — MCP tool 定義
+- `shared/src/` — 共通型・定数。変更後は consumer の build が shared を先に build する
 
-### Data Flow
+## 処理フロー (ProcessFlow) — 一次成果物は JSON Schema
 
-- **Save:** GrapesJS autosave → remoteStorage → mcpBridge (WS) → wsBridge → active workspace の `screens/{id}.json` (path は active workspace 依存)
-- **Fallback:** If WS disconnected → localStorage (`gjs-screen-{id}`)
-- **Sync:** wsBridge broadcasts changes to all connected browser tabs
+変更順序: 仕様書 [`docs/spec/process-flow-*.md`](docs/spec/README.md) → schema → TypeScript 型 (`frontend/src/types/`) → UI。サンプルは `examples/<project-id>/` に業務アプリ単位で置く。業務設計者向けの使い方: [docs/user-guide/](docs/user-guide/README.md)
 
-## Environment Notes
+## テスト
 
-- **Windows:** `npx` may fail in Git Bash. Ensure Node.js is in PATH.
-- **gh CLI:** Added to PATH via `~/.bashrc`. No prefix needed — `gh` commands work directly.
-- **Ports:** Vite on 5173 (strictPort), WebSocket on 5179. Both listen on 0.0.0.0.
-- **HTTP access:** `crypto.randomUUID()` is unavailable in non-secure contexts. Use `generateUUID()` from `src/utils/uuid.ts` instead.
-- **Playwright MCP:** Do not use `--headless=false` flag on Windows.
+- Vitest: `frontend/src/**/*.test.ts(x)` / `backend/src/**/*.test.ts`
+- Playwright: `frontend/e2e/**/*.spec.ts` (MCP 連携は `e2e/mcp/`)
+- 既存テストを仕様変更なしに書き換えない。UI 文言・構造の意図的な変更に伴うセレクタ追従は可 (commit に明記)
+- e2e の失敗は isolation 再実行で flake か実バグかを切り分ける。strict-mode 違反は flake ではない
 
-## Testing Strategy
+## 完了の定義
 
-- Vitest: `frontend/src/**/*.test.ts` — ストアロジック・ユーティリティ
-- Playwright: `frontend/e2e/**/*.spec.ts` — UI・ナビゲーション操作
-- MCP E2E: `frontend/e2e/mcp/**/*.spec.ts` — wsBridge ファイル操作（要 backend 起動）
-
-Claude Code 利用時は `/test-strategy` スキルが自動起動 (詳細は `CLAUDE.md` 参照)。他 AI エージェントは同等原則を本節から参照。
-
-## Process Flow (処理フロー) — 一次成果物は JSON Schema
-
-処理フロー定義はこのプロジェクトの主出力 (AI が読んで実装する前提)。TypeScript 型は派生物、UI は最後尾の表示層。変更時の順序:
-
-1. 仕様書 [`docs/spec/process-flow-*.md`](docs/spec/README.md)
-2. JSON Schema [`schemas/v3/process-flow.v3.schema.json`](schemas/v3/process-flow.v3.schema.json)
-3. TypeScript 型 `frontend/src/types/action.ts`
-4. UI / 実装
-
-検証テスト: `examples/retail/process-flows/*.json` は `samples-v3.schema.test.ts` が担当。サンプル全体の runtime 契約検証は `npm run validate:samples -- ../examples/<project-id>` で実行。
-
-**ユーザー向けワークフロー**: [`docs/user-guide/`](docs/user-guide/README.md) — 業務設計者が処理フローを書いて AI と往復する使い方。
-
-**命名注意 (2026-04-25 決定)**: `ProcessFlow` を `ProcessFlow` にリネーム予定。移行中は両表記が混在する可能性あり。詳細はメモリ `project_framework_research_2026_04_25.md` (Claude Code memory) を参照。
-
-## UI Conventions
-
-詳細仕様は [docs/spec/](docs/spec/README.md) に集約。一覧系 UI を触る前に必ず読む:
-
-- **一覧系 UI** (選択・キーボード・D&D・コピペ・ソート・フィルタ・Read-only モード・No 列永続フィールド): [docs/spec/list-common.md](docs/spec/list-common.md)
-  - `DataList` / `useListSelection` / `useListKeyboard` / `useListClipboard` / `useListFilter` / `useListSort` / `<FilterBar>` / `<SortBar>` / `<ViewModeToggle>`
-  - 対象画面: 画面一覧・テーブル一覧・処理フロー一覧・テーブル定義 > カラム一覧
-
-## Conventions
-
-- All UI text is in Japanese
-- **AI セッション中のユーザー宛テキスト出力もすべて日本語で書く** — 進捗報告 / status update / Monitor 起動報告 / PR 作成報告 / 完了報告 / `AskUserQuestion` の question + option labels + descriptions / 完了サマリ等。英語短文 (`PR created.` / `Monitor armed.` 等) の混入も禁止。**例外**: shell command 本体・URL・SHA・公式エラーメッセージ原文・固有名詞 (React Compiler / ESLint 等) はそのまま英語で残してよい (翻訳すると誤読を招くため)。プロジェクト全体が日本語環境 (ユーザー / UI / commit / PR / spec / ISSUE) であり、AI 側の言語切替コストを user に強いない
-- Commit messages use conventional commits in Japanese (e.g., `feat(flow):`, `fix(designer):`, `improve:`)
-- **Workflow: デフォルトは 1 ISSUE = 1 ブランチ = 1 PR**。ただし以下は複数 ISSUE を 1 PR に束ねる (ISSUE = 作業指示単位 / PR = 1 論理的変更単位、両者は 1:1 とは限らない):
-  - UX / 機能として一体 (単独で動かない・ユーザー体験が完結しない)
-  - 調査の結果、関連バグ・関連修正と判明した
-  - シリーズ起票された ISSUE 群で、起票時点で PR グルーピングが宣言されている
-  - 同じ画面に対する複数 ISSUE の同時修正
-
-  束ねる場合: PR description に **各 ISSUE の前に `Closes` キーワードを必ず書く** (GitHub 仕様 "Use full syntax for each issue")。改行区切り推奨:
-  ```
-  Closes #A
-  Closes #B
-  Closes #C
-  ```
-  **NG**: `Closes #A, #B, #C` は**先頭しか自動 close されない** (PR #340 で実例あり)。コミットは ISSUE 単位で分ける。独立レビューは**統合 PR 単位で 1 回**。
-
-  **重要 (シリーズ PR 親 ISSUE 誤 close 防止、2026-05-17 PR #1163 で実証)**: シリーズ PR の **Phase 途中段階で親 ISSUE を open 維持したい場合は必ず `Refs #N` を使う**。`Closes` キーワードは inline backtick (`` `Closes #N` ``) で囲っても GitHub parser が context-aware で auto-close trigger として処理する場合あり (parser ヒューリスティクス不安定)。詳細は memory `feedback_pr_closes_code_block_invalidates.md`。
-
-  Never commit directly to `main`. Branch naming: `feat/issue-<N>-<slug>` (単独 PR) / `feat/<topic-slug>` (統合 PR) for features, `fix/issue-<N>` or `fix/<slug>` for bug fixes, `docs/<slug>` for documentation-only changes. Create the branch from `origin/main` before starting work.
-- PRs are squash-merged into `main`. The PR title should include the issue number (e.g., `feat(ui): ... (#83)`) so the merge commit references it.
-- `data/` は本体専用 (`data/extensions/` のみ git tracked) + `workspaces/` がユーザー作業領域 (両方 gitignored)
-- Themes: standard (default Bootstrap), card, compact, dark — CSS injected into GrapesJS canvas iframe
-- Custom blocks persist to active workspace の `custom-blocks.json` via customBlockStore
-
-## PR 作成・レビューの規約
-
-運用手引き (人間向け): [docs/pr-review-workflow.md](docs/pr-review-workflow.md)
-
-- PR 作成時は [`.github/pull_request_template.md`](.github/pull_request_template.md) を**全項目埋める**。不要な項目は削除せず「N/A」と明記 (レビュアーが見落としと区別するため)
-- 「仕様逐条突合 (自己申告)」節は各条項を `file:line` で**個別に列挙**。「全条項 ✓」の一括表記は不可。大規模実装の完了報告前に仕様を逐条突合すること
-- 大規模実装 / spec 絡み / UI 影響のある PR は、**別セッション (新しい会話)** で独立レビューを実行し、結果を PR コメントに投稿してからマージ判断する (Claude Code 利用時は `/review-pr <N>` スキル、Codex は `/codex:review`)
-- **1 ISSUE を複数 PR に分割したケース**は、全 PR マージ後に ISSUE 単位の実装網羅性を監査する (Claude Code: `/review-issue <N>`)。PR 単位レビューでは検出できない実装漏れを拾う
-- レビュー結果が Must-fix を含む場合はマージしない。Should-fix は AI が判断し、対応 or スコープ外として別 ISSUE 化
-- **PR 単位 / 機能単位のユーザー確認は不要**。AI が build / test / UI smoke (chrome-devtools MCP / Playwright) / 独立レビュー / Must-fix 解決 / マージまで完遂する。ユーザー確認は**大規模改修一連の作業の最終リリース時のみ**
-
-### regression suite ↔ trace ISSUE 機械照合 gate (#1346 / 必須、全 AI)
-
-E2E regression (`npm run test:e2e:regression`) を走らせて failure が残った場合、**PR を merge する前**に `scripts/verify/regression-trace-check.mjs` で全 fail が「trace 済 OPEN ISSUE 参照あり」または「isolation 3x pass 証跡ありの flake」であることを機械検証する。
-
-背景: #1299 Round 12-14 で「full suite に 8 fail 残ったまま merge-ready 判定」「単一 spec の strict-mode 違反を isolation pass = flake と誤判定」の事故が連続再発したため、private memory ベースの完了判定ルールを repo tracked な script に昇格 (case A)。
-
-**呼び方** (一例 — orchestrator が必須で 1 回通す):
-
-```bash
-# 推奨: --auto-run (npm banner を介さず playwright を直接 spawn するため shell redirect の落とし穴を回避)
-node scripts/verify/regression-trace-check.mjs --auto-run \
-  --flake e2e/foo.spec.ts   # flake 主張する spec があれば明示
-
-# 別法: 既に regression を走らせて results.json を持っている場合は file 渡し
-#   注意: npm scripts は stdout 先頭に banner ("> harmony-workspace@... \n> playwright test ...") を出すため
-#   shell redirect で file 化するときは必ず `--silent` を付ける (付けないと JSON parse fail で exit 2)
-npm run --silent test:e2e:regression:json > .tmp/regression-results.json || true
-node scripts/verify/regression-trace-check.mjs .tmp/regression-results.json \
-  --flake e2e/foo.spec.ts
-# isolation 3x pass の証跡 (frontend/test-results/isolation-<sanitized>.json) を別途要求
-```
-
-**判定**:
-
-- exit 0 → 全 fail が OPEN ISSUE で trace 済 or flake 確認済 → merge gate 通過
-- exit 1 → trace なし fail が 1 件以上 → **merge 禁止**。不足分の OPEN ISSUE を起票 (鉄則 0) して再走、または fail を解消するまで merge しない
-- exit 2 → 入力エラー / gh 未配置等 → 設定不備、AI セッションでは原因究明して再走
-
-**flake 主張する場合の必須証跡**:
-
-isolation 再走 3 回連続 pass の JSON 証跡が `frontend/test-results/isolation-<sanitized>.json` に存在すること。`runs` の **末尾 3 件** が `{ "status": "passed", ... }` であれば flake 確定。前段に fail が混じっていても末尾 3 連続 pass なら OK。証跡 file は `--auto-isolation-rerun` flag で script に自動生成させることもできる。
-
-**注意 (memory `feedback_e2e_flake_isolation_vs_full_run.md` の補足)**: locator selector が `strict-mode violation` を起こしうる場合 (例: 同 name の要素が複数描画される画面で `getByText` を直 use)、isolation pass を flake 根拠にしてはならない。`.first()` / `.last()` / specific scope (`.locator(...).filter(...)`) を必ず付与する。strict-mode の場合は flake ではなく実バグなので OPEN ISSUE で trace する。
-
-詳細: `scripts/verify/regression-trace-check.mjs` の top コメント + `docs/conventions/completion-gate.md`。
-
-## シリーズ PR (統合 PR) 運用
-
-ISSUE 本文の冒頭に `## 🔗 統合 PR 情報` セクションがある ISSUE は、**単独 PR ではなく統合 PR の一部** として実装する。実装者 (AI エージェント) は ISSUE 本文を読んだ時点で以下を自動実行する:
-
-1. セクションに記載された **統合ブランチ** を `origin/main` (または指定 base) から切る (既に存在すれば checkout して継続)
-2. 自分の担当 ISSUE 分のコミットをそのブランチに積む (ISSUE 単位で commit メッセージを分ける)
-3. **他の統合対象 ISSUE が全て完了するまで PR を作らない** (draft も不可)
-4. 最後の ISSUE 完了時に PR を作成、description に **各 ISSUE の前に `Closes` を必ず書いて** 全 ISSUE を列挙 (GitHub 仕様: 改行区切り推奨):
-   ```
-   Closes #A
-   Closes #B
-   Closes #C
-   ```
-   **NG**: `Closes #A, #B, #C` は先頭しか自動 close されない
-5. 独立レビューは統合 PR 単位で 1 回のみ (個別 ISSUE で実行しない)。AI smoke test も統合 PR 単位で 1 回
-
-ユーザーからの指示が `#<N> やって` のように単一 ISSUE 番号でも、本文に本セクションがあれば上記に従う。セクションが無い場合は通常の 1 ISSUE = 1 PR 運用。
-
-**壁打ち担当 (設計者) は ISSUE 起票時**、UI 一体性 / 関連修正 / 同一画面 / 依存関係のある ISSUE 群は必ず統合 PR 化し、各 ISSUE 本文冒頭に本セクションを挿入する。
-
-### 後付けで関連性が判明した場合 (起票時には無関係に見えた ISSUE)
-
-テスター起票のバグや、他担当者が先行起票した ISSUE など、起票時点では関連性が不明なことは珍しくない。調査・実装の過程で他 ISSUE との共通点が判明した場合、以下で統合 PR 化する。
-
-**実装者の着手前ルーチン (必須)**:
-
-1. ユーザーから `#<N> やって` を受けた時点でまず `gh issue view <N>` で本文を読む
-2. 本文に `## 🔗 統合 PR 情報` があればそれに従う (以上)
-3. なければ、**着手前に必ず関連検索** する:
-   - `gh issue list --state open --search "<キーワード>"` で同一機能領域の open ISSUE を洗う
-   - 本 ISSUE が触りそうなファイル・モジュール・UI 画面名をキーワードに使う
-   - 親 spec / 同一ディレクトリが対象の ISSUE も確認
-4. 関連を発見した場合は **着手する前に** ユーザーに統合提案 (例: `「#<N> を調査したところ #<M> と同じ X を触ります。統合 PR にまとめていいですか?」`)
-5. 承認後、全関連 ISSUE の本文冒頭に `## 🔗 統合 PR 情報` セクションを prepend (`gh issue edit --body-file`)。以後は通常の統合 PR 運用
-
-**実装中に関連が判明した場合**:
-
-- 作業を一時停止 (コミットは保持、push しない)
-- 同じく統合提案 → 承認 → 本文更新
-- 既に作業ブランチを切っていた場合は、ブランチ名を統合ブランチ名にリネーム (`git branch -m`) or checkout し直す
-
-**壁打ち担当 (設計者) の新規起票時**:
-
-- 起票前に `gh issue list --state open` で既存 open ISSUE を検索
-- 関連があれば「新規起票 + 既存 ISSUE を統合 PR でまとめる」提案をユーザーに先に出す
-- 承認後、新規 + 既存の全 ISSUE 本文に統合 PR 情報を追加
-
-**統合 PR 化の判断基準 (いずれか該当で検討)**:
-
-- 同じファイル / モジュール / UI 画面を触る
-- 根本原因が共通 (1 fix で複数 ISSUE が解消する)
-- 変更内容に依存関係がある (A が無いと B が動かない等)
-- UX として一体で単独では動作評価できない
-
-関連性が微妙な場合はユーザーに判断を委ねる。勝手に統合 / 単独を決めない。
+- `npm run check` が通る / 関連 E2E が通る / UI 変更は `npm run ui:audit` で両テーマ 0 件
+- 大規模変更・spec 絡みは別セッションで独立レビューを行い、Must-fix を解消してから merge
+- 機能は「設計者が UI で実際に使える」まで到達して完了 (schema / validator だけでは未完了)

@@ -72,7 +72,13 @@ multi browser context の e2e で **Vite dev server (port 5173) が間欠 crash*
   - `DataList` / `useListSelection` / `useListKeyboard` / `useListClipboard` / `useListFilter` / `useListSort` / `<FilterBar>` / `<SortBar>` / `<ViewModeToggle>`
   - 対象画面: 画面一覧・テーブル一覧・処理フロー一覧・テーブル定義 > カラム一覧
 
-## Themes & Custom Blocks
+## 配色 (アプリ UI)
+
+- アプリ UI の色は `src/styles/tokens.css` のトークン (`var(--hm-*)`) だけを使う。CSS / inline style に色を直書きしない
+- 検査: `npm run verify:colors` (repo root)。既存の直書きは `bash scripts/dev/apply-color-tokens.sh` で機械変換できる
+- ライト / ダークは `src/theme/appTheme.ts` が `<html data-theme>` を切り替える。上部ヘッダーのみ両テーマ共通の暗色 (`--hm-chrome-*`)
+
+## Themes & Custom Blocks (設計キャンバス内)
 
 - Themes: standard (default Bootstrap), card, compact, dark — CSS injected into GrapesJS canvas iframe
 - Custom blocks persist to active workspace の `<workspace>/<dataDir>/custom-blocks.json` via customBlockStore (例: `workspaces/my-app/harmony/custom-blocks.json`)
