@@ -50,8 +50,9 @@ beforeEach(async () => {
 
 afterEach(async () => {
   resetWorkspaceStateForTest();
-  await fs.rm(tmpDir, { recursive: true, force: true });
-  await fs.rm(otherTmpDir, { recursive: true, force: true });
+  // save 後の非同期な履歴書き込みが残っていると ENOTEMPTY になるため、削除はリトライする
+  await fs.rm(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  await fs.rm(otherTmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
 });
 
 describe("EditSessionService.save resource change broadcast", () => {
