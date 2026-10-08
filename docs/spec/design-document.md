@@ -34,7 +34,8 @@
 | 8 外部インタフェース一覧 | externalSystem ステップから導出した外部システムと呼び出し | process-flows |
 | 9 イベント一覧 | 発行 / 購読する処理とカタログの説明 | process-flows / catalogs.events |
 | 10 独自部品 (定義があるときだけ) | 独自部品ごとの差し込み口・見た目・使っている画面 ([layout-components.md](layout-components.md)) | layout-components.json |
-| 10 or 11 権限 (定義か権限の指定があるときだけ) | 役割 / 権限 / 画面 × 役割 / 処理 × 役割 ([§3.1](#31-権限の章の導出規則)) | conventions catalog の role / permission、画面の permissions、処理の requiredPermissions |
+| 10〜 業務フロー (定義があるときだけ) | フローごとの図 (スイムレーン SVG) と工程表。工程から画面・処理へリンク ([business-flow.md](business-flow.md)) | business-flows/*.json |
+| (業務フローの次) 権限 (定義か権限の指定があるときだけ) | 役割 / 権限 / 画面 × 役割 / 処理 × 役割 ([§3.1](#31-権限の章の導出規則)) | conventions catalog の role / permission、画面の permissions、処理の requiredPermissions |
 | (権限の次) メッセージ一覧 | `@conv.msg.*` | conventions catalog |
 | (最後) 要確認事項 | レイアウト検証結果、未作成のレイアウト、未配置項目、CRUD の所見、使われていない独自部品 | 上記の自動検出 |
 

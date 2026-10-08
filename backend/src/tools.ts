@@ -243,6 +243,49 @@ export const tools = [
     },
   },
 
+  // ── 業務フロー (スイムレーン) ──
+
+  {
+    name: "designer__list_business_flows",
+    description: "業務フロー (business-flows/) の一覧を取得します。各業務フローの ID・名前・レーン数・工程数・要確認の件数を返します。仕様: docs/spec/business-flow.md",
+    inputSchema: { type: "object" as const, properties: {}, required: [] },
+  },
+  {
+    name: "designer__get_business_flow",
+    description: "業務フロー 1 件の原本 (レーン・工程・つながり) と検証結果を取得します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { flowId: { type: "string", description: "業務フロー ID (kebab-case)" } },
+      required: ["flowId"],
+    },
+  },
+  {
+    name: "designer__save_business_flow",
+    description:
+      "業務フロー 1 件を保存します (新規作成または置換)。誰が (lanes) 何をするか (steps) とそのつながり (steps[].next) を表します。" +
+      "図の座標は持ちません (自動配置)。構造 (lanes / steps が配列) 以外の問題は保存を妨げず、検証結果として返します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        flowId: { type: "string", description: "業務フロー ID (kebab-case)。ファイル名になる" },
+        flow: {
+          type: "object",
+          description: "{ name, description?, maturity?, lanes: [{id,name,kind?(person|system|external),roleRef?}], steps: [{id,lane,kind(start|task|decision|end),name,description?,screenRef?,processFlowRef?,next?:[{to,label?}]}] }",
+        },
+      },
+      required: ["flowId", "flow"],
+    },
+  },
+  {
+    name: "designer__delete_business_flow",
+    description: "業務フローを 1 件削除します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { flowId: { type: "string", description: "業務フロー ID" } },
+      required: ["flowId"],
+    },
+  },
+
   // ── テーブル設計書ツール ──
 
   {

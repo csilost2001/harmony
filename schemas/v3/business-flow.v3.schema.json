@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/csilost2001/harmony/main/schemas/v3/business-flow.v3.schema.json",
+  "title": "BusinessFlow (v3 業務フロー)",
+  "description": "業務の流れ (スイムレーン)。誰 (レーン) が何をするか (工程) とそのつながりを表す。<dataDir>/business-flows/<id>.json に対応。図の座標は持たず、レーンの並びと工程のつながりから自動で配置する。工程は実現する画面 (screenRef) と処理フロー (processFlowRef) にたどれる。2026-10 再設計 段階 4 で導入 (docs/spec/business-flow.md)。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "id", "name", "lanes", "steps"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1, "description": "ファイル形式の版。" },
+    "id": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "業務フロー ID (kebab-case、ファイル名と一致、プロジェクト内で一意)。" },
+    "name": { "$ref": "common.v3.schema.json#/$defs/DisplayName" },
+    "description": { "$ref": "common.v3.schema.json#/$defs/Description" },
+    "maturity": { "$ref": "common.v3.schema.json#/$defs/Maturity" },
+    "lanes": { "type": "array", "items": { "$ref": "#/$defs/Lane" }, "description": "レーン (上から順に並ぶ)。" },
+    "steps": { "type": "array", "items": { "$ref": "#/$defs/Step" }, "description": "工程。" },
+    "createdAt": { "$ref": "common.v3.schema.json#/$defs/Timestamp" },
+    "updatedAt": { "$ref": "common.v3.schema.json#/$defs/Timestamp" }
+  },
+  "$defs": {
+    "LaneKind": {
+      "description": "レーンの種類。person = 人・部門 / system = システム / external = 外部の関係者・外部システム。省略時は person。",
+      "type": "string",
+      "enum": ["person", "system", "external"]
+    },
+    "Lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "レーン ID (フロー内で一意)。" },
+        "name": { "$ref": "common.v3.schema.json#/$defs/DisplayName", "description": "表示名 (部門名・役割名・システム名)。" },
+        "kind": { "$ref": "#/$defs/LaneKind" },
+        "roleRef": { "type": "string", "description": "規約の役割のキー (@conv.role.<key> の <key>)。権限の章とつなぐ。" },
+        "description": { "type": "string" }
+      }
+    },
+    "StepKind": {
+      "description": "工程の種類。start = 開始 / task = 作業 / decision = 判断 / end = 終了。",
+      "type": "string",
+      "enum": ["start", "task", "decision", "end"]
+    },
+    "Next": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["to"],
+      "properties": {
+        "to": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "次の工程の ID。" },
+        "label": { "type": "string", "description": "分岐の条件 (判断の出口に書く)。" }
+      }
+    },
+    "Step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "lane", "kind", "name"],
+      "properties": {
+        "id": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "工程 ID (フロー内で一意)。" },
+        "lane": { "$ref": "common.v3.schema.json#/$defs/Identifier", "description": "実施するレーンの ID。" },
+        "kind": { "$ref": "#/$defs/StepKind" },
+        "name": { "$ref": "common.v3.schema.json#/$defs/DisplayName", "description": "工程名 (図に出す短い名前)。" },
+        "description": { "$ref": "common.v3.schema.json#/$defs/Description" },
+        "screenRef": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "実現する画面の ID。" },
+        "processFlowRef": { "$ref": "common.v3.schema.json#/$defs/EntityId", "description": "実現する処理フローの ID。" },
+        "next": { "type": "array", "items": { "$ref": "#/$defs/Next" }, "description": "次の工程。" }
+      }
+    }
+  }
+}

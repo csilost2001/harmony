@@ -1,0 +1,184 @@
+{
+  "$schema": "../../../../schemas/v3/report.v3.schema.json",
+  "version": 1,
+  "id": "inventory-list-report",
+  "name": "店舗別在庫一覧表",
+  "description": "店舗ごとに商品の在庫数と引当数を並べ、店舗ごとの小計と全体の合計を付ける。Excel で出力し、店長が棚卸の前に確認する。",
+  "maturity": "draft",
+  "output": {
+    "format": "excel",
+    "paper": "A4",
+    "orientation": "landscape"
+  },
+  "trigger": {
+    "kind": "screen",
+    "screenRef": "inventory-list",
+    "processFlowRef": "inventory-by-store-lookup",
+    "description": "在庫一覧画面の「Excel 出力」"
+  },
+  "params": [
+    {
+      "id": "storeId",
+      "label": "店舗",
+      "type": "integer",
+      "required": false,
+      "description": "指定しないときは全店舗"
+    }
+  ],
+  "sort": [
+    {
+      "field": "inventory-by-store.store_id",
+      "order": "asc"
+    },
+    {
+      "field": "inventory-by-store.product_id",
+      "order": "asc"
+    }
+  ],
+  "sections": [
+    {
+      "id": "title",
+      "kind": "reportHeader",
+      "name": "表題",
+      "fields": [
+        {
+          "id": "title",
+          "kind": "text",
+          "label": "店舗別在庫一覧表",
+          "align": "center",
+          "width": 80
+        },
+        {
+          "id": "printedAt",
+          "kind": "date",
+          "label": "出力日",
+          "format": "YYYY/MM/DD",
+          "align": "right",
+          "width": 20
+        }
+      ]
+    },
+    {
+      "id": "storeHead",
+      "kind": "groupHeader",
+      "name": "店舗",
+      "groupBy": "inventory-by-store.store_id",
+      "fields": [
+        {
+          "id": "storeId",
+          "kind": "field",
+          "label": "店舗",
+          "source": "inventory-by-store.store_id",
+          "width": 100
+        }
+      ]
+    },
+    {
+      "id": "rows",
+      "kind": "detail",
+      "name": "明細",
+      "fields": [
+        {
+          "id": "productId",
+          "kind": "field",
+          "label": "商品",
+          "source": "inventory-by-store.product_id",
+          "width": 40
+        },
+        {
+          "id": "available",
+          "kind": "field",
+          "label": "在庫数",
+          "source": "inventory-by-store.quantity_available",
+          "format": "#,##0",
+          "align": "right",
+          "width": 20
+        },
+        {
+          "id": "reserved",
+          "kind": "field",
+          "label": "引当数",
+          "source": "inventory-by-store.quantity_reserved",
+          "format": "#,##0",
+          "align": "right",
+          "width": 20
+        },
+        {
+          "id": "updatedAt",
+          "kind": "field",
+          "label": "更新日",
+          "source": "inventory-by-store.updated_at",
+          "format": "YYYY/MM/DD",
+          "width": 20
+        }
+      ]
+    },
+    {
+      "id": "storeSum",
+      "kind": "groupFooter",
+      "name": "店舗小計",
+      "groupBy": "inventory-by-store.store_id",
+      "fields": [
+        {
+          "id": "storeCount",
+          "kind": "aggregate",
+          "label": "商品数",
+          "source": "inventory-by-store.product_id",
+          "aggregate": "count",
+          "format": "#,##0",
+          "align": "right",
+          "width": 40
+        },
+        {
+          "id": "storeAvailable",
+          "kind": "aggregate",
+          "label": "在庫数計",
+          "source": "inventory-by-store.quantity_available",
+          "aggregate": "sum",
+          "format": "#,##0",
+          "align": "right",
+          "width": 30
+        },
+        {
+          "id": "storeReserved",
+          "kind": "aggregate",
+          "label": "引当数計",
+          "source": "inventory-by-store.quantity_reserved",
+          "aggregate": "sum",
+          "format": "#,##0",
+          "align": "right",
+          "width": 30
+        }
+      ]
+    },
+    {
+      "id": "grand",
+      "kind": "reportFooter",
+      "name": "総合計",
+      "fields": [
+        {
+          "id": "allAvailable",
+          "kind": "aggregate",
+          "label": "総在庫数",
+          "source": "inventory-by-store.quantity_available",
+          "aggregate": "sum",
+          "format": "#,##0",
+          "align": "right",
+          "width": 50
+        },
+        {
+          "id": "allReserved",
+          "kind": "aggregate",
+          "label": "総引当数",
+          "source": "inventory-by-store.quantity_reserved",
+          "aggregate": "sum",
+          "format": "#,##0",
+          "align": "right",
+          "width": 50
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-10-09T00:00:00.000Z",
+  "updatedAt": "2026-10-09T00:00:00.000Z"
+}

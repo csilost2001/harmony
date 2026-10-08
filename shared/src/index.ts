@@ -50,3 +50,5 @@ export * from "./layoutAutoPlace.js";
 export * from "./accessMatrix.js";
 export * from "./flowStructure.js";
 export * from "./designDocument.js";
+export * from "./businessFlow.js";
+export * from "./report.js";

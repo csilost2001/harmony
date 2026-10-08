@@ -68,6 +68,8 @@ const routes = [
   ["extensions", "/extensions"],
   ["tech-stack", "/project/tech-stack"],
   ["document", "/document"],
+  ["business-flow-list", "/business-flow/list"],
+  ["business-flow-edit", `/business-flow/edit/${firstId("business-flows") ?? "order-to-shipment"}`],
   ...(args.extra ? args.extra.split(",").map((p) => [p.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, ""), p]) : []),
 ].filter(([name]) => !only || only.has(name));
 

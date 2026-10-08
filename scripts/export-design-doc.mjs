@@ -49,6 +49,7 @@ const flows = pickRegistered(listJson(path.join(dataDir, "process-flows")), harm
 const tables = pickRegistered(listJson(path.join(dataDir, "tables")), harmony.entities?.tables, "テーブル", (t) => t.id);
 const conventions = readJson(path.join(dataDir, "conventions", "catalog.json"));
 const layoutComponents = readJson(path.join(dataDir, "layout-components.json"))?.components ?? [];
+const businessFlows = listJson(path.join(dataDir, "business-flows"));
 
 let version = opt("--version");
 if (!version) {
@@ -63,6 +64,7 @@ const html = renderStandaloneDesignDoc({
   transitions: harmony.entities?.screenTransitions ?? [],
   messages: conventions?.msg ?? {},
   layoutComponents,
+  businessFlows,
   roles: conventions?.role ?? {},
   permissions: conventions?.permission ?? {},
   version,

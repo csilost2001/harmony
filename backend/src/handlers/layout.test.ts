@@ -55,6 +55,16 @@ describe("designer__get/set_screen_layout", () => {
     expect(back.items.map((i: any) => i.id)).toEqual(["qty"]);
   });
 
+  it("ボタンの遷移先に存在しない画面を指定すると missing-screen を返す (実在する画面は返さない)", async () => {
+    const layout = { version: 1, nodes: [
+      { id: "b1", type: "button", props: { label: "戻る", screenRef: "cart" } },
+      { id: "b2", type: "button", props: { label: "行き先なし", screenRef: "ghost-screen" } },
+    ] };
+    const { data } = await call("designer__set_screen_layout", { screenId: "cart", layout });
+    const missing = data.issues.filter((i: any) => i.code === "missing-screen");
+    expect(missing.map((i: any) => i.nodeId)).toEqual(["b2"]);
+  });
+
   it("形が違う layout・存在しない画面は拒否する", async () => {
     await expect(call("designer__set_screen_layout", { screenId: "cart", layout: { nodes: [] } })).rejects.toThrow(/version: 1/);
     await expect(call("designer__get_screen_layout", { screenId: "nothing" })).rejects.toThrow(/見つかりません/);

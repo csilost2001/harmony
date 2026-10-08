@@ -4,6 +4,7 @@
  * - loadProject / saveProject
  * - loadScreen (旧形式デザインの読み取り専用) / loadScreenEntity / saveScreenEntity / deleteScreen
  * - loadLayoutComponents / saveLayoutComponent / deleteLayoutComponent / findLayoutComponentUsages
+ * - listBusinessFlows / loadBusinessFlow / saveBusinessFlow / deleteBusinessFlow
  *
  * 旧エディタ (GrapesJS / Puck) の廃止に伴い、デザイン本体・Puck データ・カスタムブロックの
  * 書き込み系は無い (docs/plans/redesign-2026-10.md)。
@@ -19,6 +20,10 @@ import {
   upsertLayoutComponent,
   deleteLayoutComponent,
   findLayoutComponentUsages,
+  readBusinessFlow,
+  listBusinessFlows,
+  writeBusinessFlow,
+  deleteBusinessFlow,
 } from "../projectStorage.js";
 import { assertEntityId } from "../security/idValidator.js";
 import type { RpcHandlerMap } from "./types.js";
@@ -93,5 +98,31 @@ export const projectHandlers: RpcHandlerMap = {
     const { componentId } = (params ?? {}) as { componentId: string };
     assertEntityId(componentId, "componentId");
     respond(await findLayoutComponentUsages(componentId, root()));
+  },
+
+  listBusinessFlows: async ({ root, respond }) => {
+    respond(await listBusinessFlows(root()));
+  },
+
+  loadBusinessFlow: async ({ params, root, respond }) => {
+    const { flowId } = (params ?? {}) as { flowId: string };
+    assertEntityId(flowId, "flowId");
+    respond(await readBusinessFlow(flowId, root()));
+  },
+
+  saveBusinessFlow: async ({ params, root, wsId, clientId, respond, bridge }) => {
+    const { flowId, data } = (params ?? {}) as { flowId: string; data: unknown };
+    assertEntityId(flowId, "flowId");
+    const saved = await writeBusinessFlow(flowId, data, root());
+    respond(saved);
+    bridge.broadcast({ wsId: wsId(), event: "businessFlowChanged", data: { flowId }, excludeClientId: clientId });
+  },
+
+  deleteBusinessFlow: async ({ params, root, wsId, clientId, respond, bridge }) => {
+    const { flowId } = (params ?? {}) as { flowId: string };
+    assertEntityId(flowId, "flowId");
+    const deleted = await deleteBusinessFlow(flowId, root());
+    respond({ success: deleted });
+    if (deleted) bridge.broadcast({ wsId: wsId(), event: "businessFlowChanged", data: { flowId, deleted: true }, excludeClientId: clientId });
   },
 };

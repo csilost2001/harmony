@@ -13,6 +13,8 @@ import { DesignDocumentView } from "./document/DesignDocumentView";
 import { ScreenItemsView } from "./screen-items/ScreenItemsView";
 import { SequenceListView } from "./sequence/SequenceListView";
 import { SequenceEditor } from "./sequence/SequenceEditor";
+import { BusinessFlowListView } from "./business-flow/BusinessFlowListView";
+import { BusinessFlowEditor } from "./business-flow/BusinessFlowEditor";
 import { ViewListView } from "./view/ViewListView";
 import { ViewEditor } from "./view/ViewEditor";
 import { ViewDefinitionListView } from "./view-definition/ViewDefinitionListView";
@@ -36,6 +38,7 @@ import { loadProject } from "../store/flowStore";
 import { loadTable } from "../store/tableStore";
 import { loadProcessFlow } from "../store/processFlowStore";
 import { loadSequence } from "../store/sequenceStore";
+import { loadBusinessFlow } from "../store/businessFlowStore";
 import { loadView } from "../store/viewStore";
 import { loadViewDefinition } from "../store/viewDefinitionStore";
 import { loadPageLayout } from "../store/pageLayoutStore";
@@ -357,6 +360,8 @@ export function AppShell() {
         <Route path="screen/items/:screenId" element={<ScreenItemsView />} />
         <Route path="sequence/list" element={<SequenceListView />} />
         <Route path="sequence/edit/:sequenceId" element={<SequenceEditor />} />
+        <Route path="business-flow/list" element={<BusinessFlowListView />} />
+        <Route path="business-flow/edit/:businessFlowId" element={<BusinessFlowEditor />} />
         <Route path="view/list" element={<ViewListView />} />
         <Route path="view/edit/:viewId" element={<ViewEditor />} />
         <Route path="view-definition/list" element={<ViewDefinitionListView />} />
@@ -451,7 +456,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     }
     // non-null → 別の non-null / null: ユーザー操作による workspace 切替 / 閉じる
     prevActiveWorkspaceIdRef.current = currentId;
-    const perResourceTypes: TabType[] = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "generic-definition"];
+    const perResourceTypes: TabType[] = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "business-flow", "generic-definition"];
     const dirtyLabels = getTabs()
       .filter((t) => t.isDirty && perResourceTypes.includes(t.type))
       .map((t) => t.label);
@@ -747,6 +752,29 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       return;
     }
 
+    const businessFlowMatch = matchPath("/w/:wsId/business-flow/edit/:businessFlowId", location.pathname);
+    if (businessFlowMatch?.params.businessFlowId) {
+      const businessFlowId = businessFlowMatch.params.businessFlowId;
+      if (rejectIfUuidUrl(businessFlowId, "業務フロー")) return;
+      const tabId = makeTabId("business-flow", businessFlowId);
+      const existing = getTabs().find((t) => t.id === tabId);
+      if (existing) {
+        setActiveTab(tabId);
+      } else {
+        loadBusinessFlow(businessFlowId).then((flow) => {
+          if (flow) {
+            openTab({ id: tabId, type: "business-flow", resourceId: businessFlowId, label: flow.name });
+          } else {
+            fallbackToDashboard("業務フロー", businessFlowId);
+          }
+        }).catch((e) => {
+          recordError({ source: "manual", message: "loadBusinessFlow 失敗", stack: e instanceof Error ? e.stack : undefined });
+          fallbackToDashboard("業務フロー", businessFlowId);
+        });
+      }
+      return;
+    }
+
     const viewMatch = matchPath("/w/:wsId/view/edit/:viewId", location.pathname);
     if (viewMatch?.params.viewId) {
       const viewId = viewMatch.params.viewId;
@@ -903,6 +931,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       { path: `${wsPrefix}/conventions/catalog`, type: "conventions-catalog", label: "規約カタログ" },
       { path: `${wsPrefix}/document`,           type: "design-document",    label: "設計書" },
       { path: `${wsPrefix}/sequence/list`,      type: "sequence-list",      label: "シーケンス一覧" },
+      { path: `${wsPrefix}/business-flow/list`, type: "business-flow-list", label: "業務フロー" },
       { path: `${wsPrefix}/view/list`,          type: "view-list",           label: "ビュー一覧" },
       { path: `${wsPrefix}/view-definition/list`, type: "view-definition-list", label: "ビュー定義一覧" },
       { path: `${wsPrefix}/page-layout/list`,    type: "page-layout-list",    label: "ページレイアウト一覧" },
@@ -958,6 +987,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       : activeTab.type === "table"            ? `${wp}/table/edit/${activeTab.resourceId}`
       : activeTab.type === "process-flow"     ? `${wp}/process-flow/edit/${activeTab.resourceId}`
       : activeTab.type === "sequence"         ? `${wp}/sequence/edit/${activeTab.resourceId}`
+      : activeTab.type === "business-flow"    ? `${wp}/business-flow/edit/${activeTab.resourceId}`
+      : activeTab.type === "business-flow-list" ? `${wp}/business-flow/list`
       : activeTab.type === "view"             ? `${wp}/view/edit/${activeTab.resourceId}`
       : activeTab.type === "view-definition"  ? `${wp}/view-definition/edit/${activeTab.resourceId}`
       : activeTab.type === "page-layout"      ? `${wp}/page-layout/edit/${activeTab.resourceId}`

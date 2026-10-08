@@ -1,0 +1,182 @@
+{
+  "$schema": "../../../../schemas/v3/business-flow.v3.schema.json",
+  "version": 1,
+  "id": "order-to-shipment",
+  "name": "注文から出荷まで",
+  "description": "来店したお客さまの注文を店員が受け付け、在庫を確認して注文を確定し、配送または店頭で渡すまでの業務の流れ。**配送が必要な注文だけ**店長が配送を指示する。",
+  "maturity": "draft",
+  "lanes": [
+    {
+      "id": "customer",
+      "name": "顧客",
+      "kind": "external"
+    },
+    {
+      "id": "staff",
+      "name": "店員",
+      "kind": "person",
+      "roleRef": "staff"
+    },
+    {
+      "id": "manager",
+      "name": "店長",
+      "kind": "person",
+      "roleRef": "manager"
+    },
+    {
+      "id": "system",
+      "name": "リテールシステム",
+      "kind": "system"
+    }
+  ],
+  "steps": [
+    {
+      "id": "start",
+      "lane": "customer",
+      "kind": "start",
+      "name": "商品を買いたい",
+      "next": [
+        {
+          "to": "search"
+        }
+      ]
+    },
+    {
+      "id": "search",
+      "lane": "staff",
+      "kind": "task",
+      "name": "商品を検索する",
+      "description": "商品名・コード・カテゴリで探す。",
+      "screenRef": "product-search",
+      "next": [
+        {
+          "to": "stockCheck"
+        }
+      ]
+    },
+    {
+      "id": "stockCheck",
+      "lane": "staff",
+      "kind": "decision",
+      "name": "店舗に在庫あり?",
+      "description": "店舗別の在庫を照会して判断する。",
+      "screenRef": "inventory-list",
+      "processFlowRef": "inventory-by-store-lookup",
+      "next": [
+        {
+          "to": "addCart",
+          "label": "あり"
+        },
+        {
+          "to": "guide",
+          "label": "なし"
+        }
+      ]
+    },
+    {
+      "id": "guide",
+      "lane": "staff",
+      "kind": "task",
+      "name": "取り寄せを案内する",
+      "next": [
+        {
+          "to": "cancelEnd"
+        }
+      ]
+    },
+    {
+      "id": "cancelEnd",
+      "lane": "customer",
+      "kind": "end",
+      "name": "注文を見送る"
+    },
+    {
+      "id": "addCart",
+      "lane": "staff",
+      "kind": "task",
+      "name": "カートに追加する",
+      "screenRef": "cart",
+      "processFlowRef": "cart-add",
+      "next": [
+        {
+          "to": "confirm"
+        }
+      ]
+    },
+    {
+      "id": "confirm",
+      "lane": "staff",
+      "kind": "task",
+      "name": "注文内容を確認する",
+      "description": "お客さまと数量・金額・受取方法を確認する。",
+      "screenRef": "cart-confirm",
+      "next": [
+        {
+          "to": "order"
+        }
+      ]
+    },
+    {
+      "id": "order",
+      "lane": "system",
+      "kind": "task",
+      "name": "注文を確定し在庫を引き当てる",
+      "screenRef": "order-complete",
+      "processFlowRef": "order-confirm",
+      "next": [
+        {
+          "to": "needShip"
+        }
+      ]
+    },
+    {
+      "id": "needShip",
+      "lane": "staff",
+      "kind": "decision",
+      "name": "配送が必要?",
+      "next": [
+        {
+          "to": "dispatch",
+          "label": "配送"
+        },
+        {
+          "to": "handover",
+          "label": "店頭受取"
+        }
+      ]
+    },
+    {
+      "id": "dispatch",
+      "lane": "manager",
+      "kind": "task",
+      "name": "配送を指示する",
+      "description": "配送会社と希望日を決めて出荷を指示する。",
+      "screenRef": "shipment-dispatch",
+      "processFlowRef": "shipment-dispatch",
+      "next": [
+        {
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "id": "handover",
+      "lane": "staff",
+      "kind": "task",
+      "name": "店頭で商品を渡す",
+      "next": [
+        {
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "id": "done",
+      "lane": "customer",
+      "kind": "end",
+      "name": "商品を受け取る"
+    }
+  ],
+  "createdAt": "2026-10-09T00:00:00.000Z",
+  "updatedAt": "2026-10-09T00:00:00.000Z"
+}

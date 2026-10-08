@@ -103,6 +103,7 @@ const sequencesDir     = (dataRoot: string) => path.join(dataRoot, "sequences");
 const viewsDir         = (dataRoot: string) => path.join(dataRoot, "views");
 const viewDefsDir      = (dataRoot: string) => path.join(dataRoot, "view-definitions");
 const pageLayoutsDir   = (dataRoot: string) => path.join(dataRoot, "page-layouts");
+const businessFlowsDir = (dataRoot: string) => path.join(dataRoot, "business-flows");
 const genericDefinitionsDir = (dataRoot: string, kind: string) => path.join(dataRoot, "generic-definitions", kind);
 export const extensionsDir      = (dataRoot: string) => path.join(dataRoot, "extensions");
 export const layoutComponentsFile = (dataRoot: string) => path.join(dataRoot, "layout-components.json");
@@ -1125,6 +1126,92 @@ export async function deleteLayoutComponent(componentId: string, root: string, f
     await writeJSON(file, { $schema: layoutComponentsSchemaRef(dataRoot), version: 1, components: doc.components.filter((c) => c.id !== componentId) });
   });
   return { deleted: true, usages };
+}
+
+// ── 業務フロー (business-flows/<id>.json、docs/spec/business-flow.md) ──────────────
+
+/** business-flows/<id>.json から schemas/v3/business-flow.v3.schema.json への相対 path */
+function businessFlowSchemaRef(dataRoot: string): string {
+  return path.relative(businessFlowsDir(dataRoot), path.join(SCHEMAS_DIR, "v3", "business-flow.v3.schema.json")).replace(/\\/g, "/");
+}
+
+/** 業務フローを 1 件読む。無ければ null */
+export async function readBusinessFlow(flowId: string, root: string): Promise<Record<string, unknown> | null> {
+  const dataRoot = await resolveDataRoot(root);
+  const filePath = path.join(businessFlowsDir(dataRoot), `${flowId}.json`);
+  assertPathContained(filePath, dataRoot);
+  const data = await readJSON<unknown>(filePath);
+  return isRecord(data) ? data : null;
+}
+
+/** 業務フローを全件読む (id 順) */
+export async function listBusinessFlows(root: string): Promise<Array<Record<string, unknown>>> {
+  try {
+    const dataRoot = await resolveDataRoot(root);
+    const dir = businessFlowsDir(dataRoot);
+    const files = (await fs.readdir(dir)).filter((f) => f.endsWith(".json")).sort();
+    const out: Array<Record<string, unknown>> = [];
+    for (const f of files) {
+      const d = await readJSON<unknown>(path.join(dir, f));
+      if (isRecord(d)) out.push(d);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 業務フローを 1 件書く。id はファイル名と一致させ、作成日時は初回を保ち、更新日時を付ける。
+ * 構造 (lanes / steps が配列) 以外の問題は保存を妨げない (検証結果として別に返す)。
+ */
+export async function writeBusinessFlow(flowId: string, data: unknown, root: string): Promise<Record<string, unknown>> {
+  if (!isRecord(data) || !Array.isArray(data.lanes) || !Array.isArray(data.steps)) {
+    throw new Error("業務フローは { id, name, lanes: [], steps: [] } の形で指定してください");
+  }
+  const dataRoot = await ensureDataDirFromRoot(root);
+  const filePath = path.join(businessFlowsDir(dataRoot), `${flowId}.json`);
+  assertPathContained(filePath, dataRoot);
+  const prev = await readJSON<unknown>(filePath);
+  const now = new Date().toISOString();
+  const { $schema: _ignored, ...rest } = data as Record<string, unknown>;
+  void _ignored;
+  const doc = {
+    $schema: businessFlowSchemaRef(dataRoot),
+    version: 1,
+    ...rest,
+    id: flowId,
+    createdAt: isRecord(prev) && typeof prev.createdAt === "string" ? prev.createdAt : (typeof rest.createdAt === "string" ? rest.createdAt : now),
+    updatedAt: now,
+  };
+  await writeJSON(filePath, doc);
+  return doc;
+}
+
+/** 業務フローを削除 (無ければ false) */
+export async function deleteBusinessFlow(flowId: string, root: string): Promise<boolean> {
+  const dataRoot = await resolveDataRoot(root);
+  const filePath = path.join(businessFlowsDir(dataRoot), `${flowId}.json`);
+  assertPathContained(filePath, dataRoot);
+  try { await fs.unlink(filePath); return true; } catch { return false; }
+}
+
+/** 画面 ID / 処理フロー ID の改名を、全業務フローの工程の参照へ反映する。書き換えた業務フローの id を返す */
+export async function renameBusinessFlowRefsInProject(kind: "screen" | "processFlow", from: string, to: string, root: string): Promise<string[]> {
+  const changed: string[] = [];
+  const field = kind === "screen" ? "screenRef" : "processFlowRef";
+  for (const flow of await listBusinessFlows(root)) {
+    let hit = false;
+    for (const s of Array.isArray(flow.steps) ? flow.steps : []) {
+      if (isRecord(s) && s[field] === from) { s[field] = to; hit = true; }
+    }
+    if (hit && typeof flow.id === "string") {
+      const dataRoot = await resolveDataRoot(root);
+      await writeJSON(path.join(businessFlowsDir(dataRoot), `${flow.id}.json`), { ...flow, updatedAt: new Date().toISOString() });
+      changed.push(flow.id);
+    }
+  }
+  return changed;
 }
 
 /** er-layout.json を読み込み */

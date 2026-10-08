@@ -9,6 +9,7 @@
 | [design-document.md](design-document.md) | 設計書ビュー (/document) と HTML 出力、CRUD 図の導出規則 | 再設計 2026-10 |
 | [screen-layout.md](screen-layout.md) | 画面レイアウト (業務部品の木)・業務部品デザイナ・旧デザインからの自動変換 | 再設計 2026-10 |
 | [layout-components.md](layout-components.md) | プロジェクト独自部品 (登録・差し込み口・展開・管理 UI) | 再設計 2026-10 |
+| [business-flow.md](business-flow.md) | 業務フロー (スイムレーン。レーン・工程・自動配置・検証・編集 UI・MCP) | 再設計 2026-10 段階 4 |
 | [list-common.md](list-common.md) | 一覧系画面の操作・見た目・内部 API (選択・キーボード・D&D・コピペ・ソート・フィルタ・Read-only モード・No 列永続フィールド) | #133 / #148 |
 | [process-flow-maturity.md](process-flow-maturity.md) | 成熟度・付箋・上流/下流モード (Phase 1 基盤) | #151 / #152 |
 | [process-flow-variables.md](process-flow-variables.md) | 変数・入出力・outputBinding (Phase 1 基盤) | #151 / #152 |

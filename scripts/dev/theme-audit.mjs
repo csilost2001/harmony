@@ -44,6 +44,7 @@ const routes = [
   ["gadget-list", "/gadget/list"], ["generic-definition", "/generic-definition"],
   ["generic-definition-list", "/generic-definition/message"], ["conventions", "/conventions/catalog"],
   ["extensions", "/extensions"], ["tech-stack", "/project/tech-stack"], ["document", "/document"],
+  ["business-flow-list", "/business-flow/list"], ["business-flow-edit", `/business-flow/edit/${firstId("business-flows") ?? "order-to-shipment"}`],
 ].filter(([n]) => !only || only.has(n));
 
 const auditFn = (theme) => {

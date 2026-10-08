@@ -90,6 +90,7 @@ AI Agent ──(http://localhost:5179/mcp)──┐
 | `/table/list` `/table/edit/:tableId` `/table/er` | テーブル一覧 / 編集 / ER 図 |
 | `/process-flow/list` `/process-flow/edit/:processFlowId` | 処理フロー一覧 / 編集 |
 | `/sequence/*` `/view/*` `/view-definition/*` | シーケンス / DB ビュー / ビュー定義 |
+| `/business-flow/list` `/business-flow/edit/:id` | 業務フロー (スイムレーン) 一覧 / 編集 |
 | `/page-layout/list` `/page-layout/edit/:id` `/gadget/list` | ページレイアウト / ガジェット |
 | `/generic-definition[/:kind[/:name]]` | 汎用定義 (メッセージ・ドメイン型 等 17 種) |
 | `/conventions/catalog` `/extensions` `/project/tech-stack` | 規約 / 拡張 / 技術スタック |

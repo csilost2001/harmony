@@ -17,7 +17,7 @@ import {
   type LayoutComponentDef, type ScreenLayout,
 } from "@harmony/shared";
 import {
-  readScreenEntity, writeScreenItems, readProject,
+  readScreenEntity, writeScreenItems, listExistingEntityIds,
   readLayoutComponents, upsertLayoutComponent, deleteLayoutComponent, findLayoutComponentUsages,
 } from "../projectStorage.js";
 import { wsBridge } from "../wsBridge.js";
@@ -30,8 +30,8 @@ const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v =
 /** 画面 id の一覧 (遷移先の存在確認用)。読めなければ undefined (確認しない) */
 async function screenIdsOf(root: string): Promise<Set<string> | undefined> {
   try {
-    const project = (await readProject(root)) as { screens?: Array<{ id: string }> } | null;
-    return project?.screens?.length ? new Set(project.screens.map((s) => s.id)) : undefined;
+    const ids = await listExistingEntityIds("screen", root);
+    return ids.length ? new Set(ids) : undefined;
   } catch { return undefined; }
 }
 

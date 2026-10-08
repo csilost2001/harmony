@@ -10,6 +10,11 @@
  */
 import { buildOutline, layoutFlow, deriveTestViewpoints, stepText, type FlowStep, type FlowActionLike, type DiagramLayout, type FlowContext } from "./flowStructure.js";
 import { walkLayout, collectItemRefs, type LayoutNode, type ScreenLayout } from "./screenLayout.js";
+import { businessFlowToSvg, validateBusinessFlow, BUSINESS_STEP_KIND_LABELS, BUSINESS_LANE_KIND_LABELS, type BusinessFlow } from "./businessFlow.js";
+import {
+  reportToHtml, validateReport, parseSource, fieldWidths, REPORT_SECTION_LABELS, REPORT_FIELD_KIND_LABELS, REPORT_AGGREGATE_LABELS, REPORT_FORMAT_LABELS,
+  type Report,
+} from "./report.js";
 import { deriveAccessMatrix, type AccessPermission, type AccessRole } from "./accessMatrix.js";
 import { expandComponentNode, expandLayout, validateLayoutWithComponents, type LayoutComponentDef } from "./layoutComponents.js";
 
@@ -80,6 +85,10 @@ export interface DesignDocInput {
   tables: DocTable[];
   transitions?: Array<{ sourceScreenId: string; targetScreenId: string; label?: string; trigger?: string }>;
   messages?: Record<string, { template?: string; description?: string; params?: string[] }>;
+  /** 帳票。あれば「帳票」の章を出す */
+  reports?: Report[];
+  /** 業務フロー (スイムレーン)。あれば「業務フロー」の章を出す */
+  businessFlows?: BusinessFlow[];
   /** 規約の役割 (@conv.role.*) と権限 (@conv.permission.*)。あれば「権限」の章を出す */
   roles?: Record<string, AccessRole>;
   permissions?: Record<string, AccessPermission>;
@@ -530,6 +539,88 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     chap = 11;
   }
 
+  // 業務フロー (定義があるときだけ)
+  const bflows = input.businessFlows ?? [];
+  if (bflows.length) {
+    toc.push({ id: "business-flows", title: "業務フロー", level: 1 });
+    out.push(`<section class="hd-section hd-level-1" id="business-flows"><h2 class="hd-title"><span class="hd-chapter">${chap}</span>業務フロー</h2>
+      <p class="hd-desc">業務の流れを、誰 (レーン) が何をするか (工程) で表します。工程から、実現する画面・処理フローへたどれます。</p></section>`);
+    const refs = {
+      screens: new Set(input.screens.map((x) => x.id)),
+      flows: new Set(input.flows.map((x) => x.meta.id)),
+      roles: input.roles ? new Set(Object.keys(input.roles)) : undefined,
+    };
+    for (const bf of bflows) {
+      const found = validateBusinessFlow(bf, refs);
+      for (const x of found.filter((y) => y.severity !== "info")) issues.push({ severity: x.severity, section: `業務フロー ${bf.name}`, message: x.message });
+      const laneName = new Map(bf.lanes.map((l) => [l.id, l.name]));
+      const stepName = new Map(bf.steps.map((st) => [st.id, st.name]));
+      const flowLabel = (id: string) => `<a href="#${anchor("flow", id)}">${esc(input.flows.find((f) => f.meta.id === id)?.meta.name ?? id)}</a>`;
+      const screenLabel = (id: string) => screenName.has(id) ? `<a href="#${anchor("screen", id)}">${esc(screenName.get(id))}</a>` : esc(id);
+      sec(anchor("business-flow", bf.id), `${bf.name}`, 2, `
+        ${infoGrid([["業務フロー ID", `<code>${esc(bf.id)}</code>`], ["成熟度", esc(MATURITY[bf.maturity ?? ""] ?? bf.maturity ?? "")], ["レーン", bf.lanes.map((l) => `${esc(l.name)}（${BUSINESS_LANE_KIND_LABELS[l.kind ?? "person"]}${l.roleRef ? ` / 役割 <code>${esc(l.roleRef)}</code>` : ""}）`).join("、")]])}
+        ${bf.description ? `<p class="hd-desc">${prose(bf.description)}</p>` : ""}
+        <div class="hd-scroll hd-bf">${businessFlowToSvg(bf, { showRefs: true })}</div>
+        <h4 class="hd-sub">工程<small>${bf.steps.length} 件</small></h4>
+        ${table(["No", "工程", "レーン", "種類", "画面", "処理フロー", "次の工程", "説明"], bf.steps.map((st, k) => [
+          String(k + 1), esc(st.name), esc(laneName.get(st.lane) ?? st.lane), BUSINESS_STEP_KIND_LABELS[st.kind],
+          st.screenRef ? screenLabel(st.screenRef) : "", st.processFlowRef ? flowLabel(st.processFlowRef) : "",
+          (st.next ?? []).map((n) => `${n.label ? `[${esc(n.label)}] ` : ""}${esc(stepName.get(n.to) ?? n.to)}`).join("<br>"),
+          esc(st.description ?? ""),
+        ]))}`);
+    }
+    chap += 1;
+  }
+
+  // 帳票 (定義があるときだけ)
+  const reports = input.reports ?? [];
+  if (reports.length) {
+    toc.push({ id: "reports", title: "帳票", level: 1 });
+    out.push(`<section class="hd-section hd-level-1" id="reports"><h2 class="hd-title"><span class="hd-chapter">${chap}</span>帳票</h2>
+      <p class="hd-desc">紙 (PDF・Excel・CSV) に出力する帳票の設計です。用紙の図は、項目の並びと幅から描いた見本で、実際の出力ではありません。</p></section>`);
+    const refs = {
+      screens: new Set(input.screens.map((x) => x.id)),
+      flows: new Set(input.flows.map((x) => x.meta.id)),
+      tables: new Map(input.tables.map((t) => [t.id, new Set((t.columns ?? []).map((c) => c.physicalName))] as const)),
+    };
+    const srcLabel = (src: string | undefined) => {
+      if (!src) return "";
+      const p = parseSource(src);
+      if (p.kind === "column") return `<a href="#${anchor("table", p.table)}">${esc(tableName.get(p.table) ?? p.table)}</a>.<code>${esc(p.column)}</code>`;
+      if (p.kind === "param") return `出力条件 <code>${esc(p.id)}</code>`;
+      return `<code>${esc(src)}</code>`;
+    };
+    for (const rp of reports) {
+      for (const x of validateReport(rp, refs).filter((y) => y.severity !== "info")) issues.push({ severity: x.severity, section: `帳票 ${rp.name}`, message: x.message });
+      const t = rp.trigger;
+      const kindLabel = { screen: "画面の操作", batch: "バッチ・定期", api: "外部からの要求" } as const;
+      const flowLink = (id: string) => `<a href="#${anchor("flow", id)}">${esc(input.flows.find((f) => f.meta.id === id)?.meta.name ?? id)}</a>`;
+      const screenLink = (id: string) => screenName.has(id) ? `<a href="#${anchor("screen", id)}">${esc(screenName.get(id))}</a>` : esc(id);
+      sec(anchor("report", rp.id), rp.name, 2, `
+        ${infoGrid([
+          ["帳票 ID", `<code>${esc(rp.id)}</code>`],
+          ["出力", esc([REPORT_FORMAT_LABELS[rp.output?.format ?? "pdf"], rp.output?.format === "csv" ? "" : `${rp.output?.paper ?? "A4"} ${rp.output?.orientation === "landscape" ? "横" : "縦"}`].filter(Boolean).join(" / "))],
+          ["成熟度", esc(MATURITY[rp.maturity ?? ""] ?? rp.maturity ?? "")],
+          ["出力契機", [t?.kind ? esc(kindLabel[t.kind]) : "", t?.screenRef ? screenLink(t.screenRef) : "", t?.processFlowRef ? flowLink(t.processFlowRef) : "", t?.description ? esc(t.description) : ""].filter(Boolean).join(" / ")],
+        ])}
+        ${rp.description ? `<p class="hd-desc">${prose(rp.description)}</p>` : ""}
+        ${(rp.params ?? []).length ? `<h4 class="hd-sub">出力条件<small>${rp.params!.length} 件</small></h4>${table(["条件", "ID", "型", "必須", "説明"], rp.params!.map((p) => [esc(p.label), `<code>${esc(p.id)}</code>`, esc(p.type ?? ""), p.required ? "○" : "", esc(p.description ?? "")]))}` : ""}
+        <h4 class="hd-sub">用紙の見本</h4>
+        <div class="hd-scroll hd-rp">${reportToHtml(rp)}</div>
+        <h4 class="hd-sub">項目定義<small>${rp.sections.reduce((a, s) => a + s.fields.length, 0)} 件</small></h4>
+        ${table(["部", "項目", "種類", "データの出どころ", "集計", "書式", "揃え", "幅 %", "説明"], rp.sections.flatMap((s) => {
+          const w = fieldWidths(s.fields);
+          return s.fields.map((f, i) => [
+            esc(`${REPORT_SECTION_LABELS[s.kind]}${s.name ? `（${s.name}）` : ""}`), esc(f.label || f.id), REPORT_FIELD_KIND_LABELS[f.kind], srcLabel(f.source),
+            f.aggregate ? REPORT_AGGREGATE_LABELS[f.aggregate] : "", esc(f.format ?? ""), f.align === "right" ? "右" : f.align === "center" ? "中央" : "左",
+            `${Math.round(w[i] * 10) / 10}${f.width === undefined ? " (自動)" : ""}`, esc(f.description ?? ""),
+          ]);
+        }))}
+        ${(rp.sort ?? []).length ? `<p class="hd-note">並び順: ${rp.sort!.map((o) => `<code>${esc(o.field)}</code> ${o.order === "desc" ? "降順" : "昇順"}`).join("、")}</p>` : ""}`);
+    }
+    chap += 1;
+  }
+
   // 権限 (役割・権限の定義、または画面・処理の権限指定があるときだけ)
   const roles = input.roles ?? {};
   const permDefs = input.permissions ?? {};
@@ -641,6 +732,32 @@ export const DESIGN_DOC_CSS = `
 .hd-crud tbody th{text-align:left;white-space:nowrap}
 .hd-crud-cell span{font-family:ui-monospace,Menlo,monospace;font-weight:700;margin:0 1px}
 .hd-ok{font-weight:700;color:var(--d-accent)}
+.hd-rp{border:1px solid var(--d-line);background:var(--d-fill);padding:12px;display:flex;justify-content:center}
+.hd-rp .rp-paper{--rp-w:560px}
+.rp-paper{width:var(--rp-w,560px);max-width:100%;background:#fff;border:1px solid #9aa3b2;box-shadow:0 1px 4px rgba(0,0,0,.18);padding:22px 20px;display:flex;flex-direction:column;gap:10px;color:#1d2433;font-size:11px;line-height:1.5;box-sizing:border-box}
+.rp-landscape{--rp-w:760px}
+.rp-section{position:relative;border:1px dashed #b9c1cd;padding:16px 6px 6px}
+.rp-tag{position:absolute;top:-1px;left:-1px;background:#e7ebf2;color:#4a5466;font-size:9.5px;padding:0 6px;border-radius:0 0 4px 0}
+.rp-row{display:flex;gap:0;min-width:0}
+.rp-cell{padding:2px 4px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box}
+.rp-right{text-align:right}.rp-center{text-align:center}
+.rp-labels .rp-cell{font-weight:700;background:#f3f5f8;border-bottom:1px solid #b9c1cd}
+.rp-s-detail .rp-row:not(.rp-labels) .rp-cell{border-bottom:1px solid #e6e9ef;color:#4a5466}
+.rp-s-reportHeader .rp-cell{font-size:15px;font-weight:700}
+.rp-s-groupFooter .rp-cell,.rp-s-reportFooter .rp-cell{font-weight:700;border-top:1px solid #1d2433}
+.rp-k-aggregate{color:#2c56c9}
+.rp-empty{color:#8a93a3;font-style:italic}
+.rp-selected{outline:2px solid #2c56c9;outline-offset:-1px}
+.hd-bf{border:1px solid var(--d-line);background:#fff;padding:6px}
+.hd-bf .bf-svg{display:block;max-width:none;font-family:inherit}
+@media print{.hd-bf{overflow:visible}.hd-bf .bf-svg{width:100%;height:auto}}
+.bf-lane-bg{fill:#fff;stroke:var(--d-line)}.bf-lane-alt .bf-lane-bg{fill:var(--d-fill)}
+.bf-lane-head{fill:#e7ebf2;stroke:var(--d-line)}.bf-lane-system .bf-lane-head{fill:#e1eee8}.bf-lane-external .bf-lane-head{fill:#f1ebdc}
+.bf-lane-name{font-size:12px;font-weight:700;fill:var(--d-ink)}
+.bf-edge{fill:none;stroke:#5d677a;stroke-width:1.4}.bf-edge-back{stroke-dasharray:5 3}.bf-arrowhead{fill:#5d677a}
+.bf-edge-label{font-size:11px;fill:var(--d-accent);font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:3px}
+.bf-shape{fill:#fff;stroke:var(--d-ink);stroke-width:1.4}.bf-start .bf-shape{fill:#e3f2e9;stroke:var(--d-ok)}.bf-end .bf-shape{fill:#f3e3e3;stroke:var(--d-err)}.bf-decision .bf-shape{fill:#fff6db;stroke:#a8650b}
+.bf-step-name{font-size:12px;fill:var(--d-ink)}.bf-ref{font-size:9px;fill:var(--d-accent);font-weight:700}
 .hd-crud-C{color:var(--d-ok)}.hd-crud-R{color:var(--d-accent)}.hd-crud-U{color:#a8650b}.hd-crud-D{color:var(--d-err)}
 .hd-findings{margin:0;padding-left:1.2em}
 .hd-sev{font-size:11px;font-weight:700;padding:0 6px;border-radius:3px;white-space:nowrap}

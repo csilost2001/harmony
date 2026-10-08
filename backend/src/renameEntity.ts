@@ -35,6 +35,7 @@ import {
   readPageLayout,
   writePageLayout,
   readScreenFlowPositions,
+  renameBusinessFlowRefsInProject,
   readErLayout,
   erLayoutFile,
   resolveScreenEditorKind,
@@ -2424,6 +2425,11 @@ async function _renameEntityIdImpl(
   };
   pushUndo(root, operation);
 
+  // 業務フロー (business-flows/) の工程が持つ画面 / 処理フローの参照も追従させる (docs/spec/business-flow.md §7)
+  if (entityType === "screen" || entityType === "processFlow") {
+    await renameBusinessFlowRefsInProject(entityType, oldId, newId, root);
+  }
+
   // Phase J SF-γ (#1298 round 5 Opus SF-3): rename audit log (structured)。
   // incident 追跡 / compliance のため commit 成功時に必ず emit。
   try {
@@ -2688,6 +2694,11 @@ async function _undoEntityRenameImpl(
         workspaceRoot: root,
       });
     } catch { /* logger failure must not alter undo semantics */ }
+  }
+
+  // 業務フローの工程の参照も元に戻す
+  if (op.entityType === "screen" || op.entityType === "processFlow") {
+    await renameBusinessFlowRefsInProject(op.entityType, op.newId, op.oldId, root);
   }
 
   // Phase J SF-γ: undo audit log
