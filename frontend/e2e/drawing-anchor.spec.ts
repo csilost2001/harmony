@@ -165,7 +165,7 @@ test.describe("描画マーカー DOM anchor (#261)", { tag: ["@regression"] }, 
     expect(Math.abs(rects.a!.height - rects.s!.height)).toBeLessThan(1);
   });
 
-  test("MarkerPanel 展開で step が下にずれても anchor 付き marker は追従する", async ({ page }) => {
+  test("MarkerPanel 展開・スクロールで step が動いても anchor 付き marker は追従する", async ({ page }) => {
     await setup(page);
     await page.locator('[data-step-id="step-sql-anchor"] .step-card-header').click();
     await expect(page.locator('[data-step-id="step-sql-anchor"] [data-field-path="sql"]')).toBeVisible();
@@ -175,26 +175,27 @@ test.describe("描画マーカー DOM anchor (#261)", { tag: ["@regression"] }, 
       return document.querySelector('[data-step-id="step-sql-anchor"] [data-field-path="sql"]')!.getBoundingClientRect().top;
     });
 
-    // MarkerPanel を展開 → 上部に複数の marker 行が追加されて step が下にずれる
+    // MarkerPanel を展開する。現在のレイアウトでは MarkerPanel は右の詳細列にあり step は動かないため、
+    // 続けて処理フローの表示域をスクロールして step を確実に動かす (以前は遅れて出る警告行で偶然動いた時だけ成功していた)
     await page.locator('.marker-panel .catalog-panel-toggle').click();
     await expect(page.locator('.marker-panel .catalog-panel-body')).toBeVisible();
+    await page.evaluate(() => {
+      for (let e = document.querySelector('[data-step-id="step-sql-anchor"]')?.parentElement; e; e = e.parentElement) {
+        if (e.scrollHeight > e.clientHeight + 40 && getComputedStyle(e).overflowY !== "visible") { e.scrollTop += 40; return; }
+      }
+    });
 
     // 追従判定: step が動いたことを確認、かつ anchored SVG も同じだけ動いた
     await expect.poll(async () => {
-      return page.evaluate(() => {
+      return page.evaluate((before) => {
         const a = document.querySelector('.drawing-anchored-shape[data-marker-id="mk-anchored"]');
         const s = document.querySelector('[data-step-id="step-sql-anchor"] [data-field-path="sql"]');
         if (!a || !s) return { shifted: false, match: false };
         const ar = a.getBoundingClientRect();
         const sr = s.getBoundingClientRect();
-        return { shifted: sr.top !== 0, match: Math.abs(ar.top - sr.top) < 1 };
-      });
+        return { shifted: sr.top !== before, match: Math.abs(ar.top - sr.top) < 1 };
+      }, beforeTop);
     }, { timeout: 5000 }).toEqual({ shifted: true, match: true });
-
-    const afterTop = await page.evaluate(() => {
-      return document.querySelector('[data-step-id="step-sql-anchor"] [data-field-path="sql"]')!.getBoundingClientRect().top;
-    });
-    expect(afterTop).not.toBe(beforeTop); // 実際にずれていることを確認
   });
 
   test("anchor なしの旧形式 marker は overlay 内に描画される (前方互換)", async ({ page }) => {
