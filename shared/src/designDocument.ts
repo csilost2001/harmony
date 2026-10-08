@@ -341,8 +341,9 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
     const items = s.items ?? [];
     const relFlows = input.flows.filter((f) => f.meta.screenId === s.id || items.some((it) => (it.events ?? []).some((e) => e.handlerFlowId === f.meta.id)));
     const defs = input.layoutComponents ?? [];
+    const screenIdSet = new Set(input.screens.map((x) => x.id));
     const expandedNodes = s.layout ? (expandLayout(s.layout.nodes, defs).nodes as LayoutNode[]) : [];
-    const layoutIssues = validateLayoutWithComponents(s.layout, items, defs);
+    const layoutIssues = validateLayoutWithComponents(s.layout, items, defs, screenIdSet);
     for (const li of layoutIssues.filter((x) => x.severity !== "info")) issues.push({ severity: li.severity, section: `画面 ${s.name ?? s.id}`, message: li.message });
     const unplaced = layoutIssues.filter((x) => x.code === "unplaced-item").length;
     if (s.layout && unplaced) issues.push({ severity: "info", section: `画面 ${s.name ?? s.id}`, message: `画面に配置されていない項目が ${unplaced} 件あります` });

@@ -38,6 +38,7 @@ import { handlePageLayoutTool } from "./handlers/pageLayout.js";
 import { handleExportTool } from "./handlers/export.js";
 import { handleTabTool } from "./handlers/tab.js";
 import { handleScreenItemTool } from "./handlers/screenItem.js";
+import { handleLayoutTool } from "./handlers/layout.js";
 import { handleWorkspaceTool } from "./handlers/workspace.js";
 import { handleEditSessionTool } from "./handlers/editSession.js";
 
@@ -186,6 +187,7 @@ function createMcpServer(sessionId: string): Server {
         handleExportTool,
         handleTabTool,
         handleScreenItemTool,
+        handleLayoutTool,
         handleWorkspaceTool,
         handleEditSessionTool,
       ];

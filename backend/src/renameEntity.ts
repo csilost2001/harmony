@@ -312,7 +312,10 @@ const PROCESS_FLOW_LEGACY_DIR = "actions";
  * していたため、misleading な map entry を排除。
  */
 const SCALAR_REF_FIELDS: Record<RenameEntityType, string[]> = {
-  screen: ["screenId", "sourceScreenId", "targetScreenId"],
+  // screenRef: 業務部品の木 (screen.layout) の button / link の遷移先 (props.screenRef)。
+  // 独自部品の差し込み値 (layout 内 args) は画面項目 ID・文言と区別できないため自動更新せず、
+  // 存在しない遷移先は validateLayoutWithComponents が警告する (docs/spec/layout-components.md)
+  screen: ["screenId", "sourceScreenId", "targetScreenId", "screenRef"],
   table: ["tableId", "sourceTableId", "targetTableId", "referencedTableId"],
   processFlow: ["processFlowId", "handlerFlowId", "refId"],
   sequence: ["sequenceId"],

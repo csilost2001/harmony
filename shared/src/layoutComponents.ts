@@ -174,6 +174,34 @@ export function renameComponentParam(def: LayoutComponentDef, oldId: string, new
   return { ...def, params: def.params.map((q) => (q.id === oldId ? { ...q, id: newId } : q)), nodes: def.nodes.map(mapNode) };
 }
 
+/**
+ * 画面項目 ID の改名を、画面の部品の木に反映する。通常の部品は itemRef、独自部品の参照は
+ * 差し込み口 (kind=item) の args を書き換える。count は書き換えた箇所の数。
+ */
+export function renameLayoutItemRefs(
+  nodes: readonly LayoutNode[],
+  mapping: Readonly<Record<string, string>>,
+  defs: readonly LayoutComponentDef[],
+): { nodes: LayoutNode[]; count: number } {
+  let count = 0;
+  const walk = (n: LayoutNode): LayoutNode => {
+    let out = n;
+    if (n.itemRef && Object.prototype.hasOwnProperty.call(mapping, n.itemRef)) { out = { ...out, itemRef: mapping[n.itemRef] }; count++; }
+    if (n.type === "component" && n.args) {
+      const def = findComponent(defs, n.componentRef);
+      const args = { ...n.args };
+      for (const q of def?.params ?? []) {
+        const v = args[q.id];
+        if (q.kind === "item" && v !== undefined && Object.prototype.hasOwnProperty.call(mapping, v)) { args[q.id] = mapping[v]; count++; }
+      }
+      if (args !== n.args) out = { ...out, args };
+    }
+    if (n.children) out = { ...out, children: n.children.map(walk) };
+    return out;
+  };
+  return { nodes: nodes.map(walk), count };
+}
+
 // ── 登録 (画面の部品 → 独自部品) ─────────────────────────────────────────────
 
 export interface ParamCandidate {
@@ -338,6 +366,8 @@ export function validateLayoutWithComponents(
   layout: ScreenLayout | undefined,
   items: readonly LayoutItemLike[],
   defs: readonly LayoutComponentDef[],
+  /** 指定すると、button / link の遷移先 (screenRef) がこの集合に無いものを警告する */
+  screenIds?: ReadonlySet<string>,
 ): LayoutIssue[] {
   if (!layout) return [];
   const issues: LayoutIssue[] = [];
@@ -355,6 +385,14 @@ export function validateLayoutWithComponents(
   walkLayout(nodes as LayoutNode[], (n) => { const v = (n as ExpandedNode).via; if (v) via.set(n.id, v); });
   for (const i of validateLayout({ version: 1, nodes: nodes as LayoutNode[] }, items)) {
     issues.push(i.nodeId && via.has(i.nodeId) ? { ...i, nodeId: via.get(i.nodeId) } : i);
+  }
+  if (screenIds) {
+    walkLayout(nodes as LayoutNode[], (n) => {
+      const ref = n.props?.screenRef;
+      if (ref && !screenIds.has(ref)) {
+        issues.push({ severity: "warning", code: "missing-screen", nodeId: via.get(n.id) ?? n.id, message: `遷移先の画面「${ref}」が存在しません (部品「${via.get(n.id) ?? n.id}」)` });
+      }
+    });
   }
   return issues;
 }

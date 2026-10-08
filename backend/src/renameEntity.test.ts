@@ -725,6 +725,40 @@ describe("renameEntityId — M-3: screen rename が ScreenTransition (sourceScre
   });
 });
 
+// ─── 業務部品の木 (screen.layout) の遷移先 (props.screenRef) が追従する ───
+
+describe("renameEntityId — screen rename が layout の遷移先 (button / link の screenRef) を更新", () => {
+  it("他の画面の layout で、遷移先が改名した画面を指す button / link だけ更新され、独自部品の args は触れない", async () => {
+    const root = await makeWorkspace();
+    await writeScreenEntity("login", { id: "login", kind: "page", path: "/login", items: [] }, root);
+    await writeScreenEntity("dashboard", {
+      id: "dashboard", kind: "page", path: "/", items: [],
+      layout: { version: 1, nodes: [
+        { id: "toLogin", type: "button", props: { label: "ログイン", screenRef: "login" } },
+        { id: "toOther", type: "link", props: { label: "他", screenRef: "cart" } },
+        // 独自部品の差し込み値は画面項目 ID・文言と区別できないため自動更新しない
+        { id: "box", type: "component", componentRef: "back-link", args: { target: "login" } },
+      ] },
+    }, root);
+    await fs.writeFile(harmonyFile(root), JSON.stringify({
+      schemaVersion: "v3", dataDir: "harmony",
+      meta: { id: "ws", uuid: "44444444-4444-4444-8444-444444444445", name: "ws", createdAt: "2026-05-25T00:00:00.000Z", updatedAt: "2026-05-25T00:00:00.000Z" },
+      extensionsApplied: [],
+      entities: { screens: [
+        { id: "login", no: 1, name: "login", kind: "page", updatedAt: "2026-05-25T00:00:00.000Z" },
+        { id: "dashboard", no: 2, name: "dashboard", kind: "page", updatedAt: "2026-05-25T00:00:00.000Z" },
+      ] },
+    }, null, 2), "utf-8");
+
+    await renameEntityId("screen", "login", "sign-in", root);
+
+    const after = await readJsonFile<{ layout: { nodes: Array<{ id: string; props?: { screenRef?: string }; args?: Record<string, string> }> } }>(dataPath(root, "screens", "dashboard.json"));
+    expect(after.layout.nodes[0].props?.screenRef).toBe("sign-in");
+    expect(after.layout.nodes[1].props?.screenRef).toBe("cart");
+    expect(after.layout.nodes[2].args).toEqual({ target: "login" });
+  });
+});
+
 // ─── M-4: screen-flow-positions の object KEY rename + harmony entries[].id rename ───
 
 describe("renameEntityId — M-4: screen rename → screen-flow-positions.positions[KEY] migration", () => {

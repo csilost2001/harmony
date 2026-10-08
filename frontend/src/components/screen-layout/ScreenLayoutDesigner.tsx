@@ -149,7 +149,9 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
   const items = useMemo(() => docItems ?? [], [docItems]);
   // 削除・取り消しで消えた部品の選択は自動的に外れる
   const selected = selectedId ? findNode(nodes, selectedId) : null;
-  const issues = useMemo(() => validateLayoutWithComponents(doc?.layout, items, components), [doc?.layout, items, components]);
+  // 遷移先の画面一覧を読み込むまでは遷移先の存在確認をしない (読み込み前に警告が出ないように)
+  const screenIds = useMemo(() => (screens.length ? new Set(screens.map((s) => s.id)) : undefined), [screens]);
+  const issues = useMemo(() => validateLayoutWithComponents(doc?.layout, items, components, screenIds), [doc?.layout, items, components, screenIds]);
   const issuesByNode = useMemo(() => {
     const m = new Map<string, "error" | "warning">();
     for (const i of issues) if (i.nodeId && i.severity !== "info" && m.get(i.nodeId) !== "error") m.set(i.nodeId, i.severity as "error" | "warning");

@@ -12,16 +12,23 @@ const store: {
   screenItems: Record<string, unknown>;
   screens: Record<string, unknown>;
   processFlows: Record<string, unknown>;
+  /** 画面 entity (screens/<id>.json)。業務部品の木 (layout) を持つ */
+  entities: Record<string, unknown>;
+  layoutComponents: unknown[];
 } = {
   screenItems: {},
   screens: {},
   processFlows: {},
+  entities: {},
+  layoutComponents: [],
 };
 
 function resetStore() {
   store.screenItems = {};
   store.screens = {};
   store.processFlows = {};
+  store.entities = {};
+  store.layoutComponents = [];
 }
 
 // #700 R-2: mocks accept `root` as ignored extra arg (signatures now require root)
@@ -33,6 +40,9 @@ vi.mock("./projectStorage.js", () => ({
   listProcessFlows: (_root?: string) => Promise.resolve(Object.values(store.processFlows)),
   readProcessFlow:  (id: string, _root?: string) => Promise.resolve(store.processFlows[id] ?? null),
   writeProcessFlow: (id: string, data: unknown, _root?: string) => { store.processFlows[id] = data; return Promise.resolve(); },
+  readScreenEntity: (id: string, _root?: string) => Promise.resolve(store.entities[id] ?? null),
+  writeScreenEntity: (id: string, data: unknown, _root?: string) => { store.entities[id] = data; return Promise.resolve(); },
+  readLayoutComponents: (_root?: string) => Promise.resolve({ version: 1, components: store.layoutComponents }),
 }));
 
 import { checkScreenItemRefs, renameScreenItemId } from "./renameScreenItem.js";
@@ -330,5 +340,52 @@ describe("HTML 属性置換 edge cases", () => {
     expect(html).toContain(`name="textInput1"`);
     expect(html).toContain(`name="myField"`);
     expect(html).not.toContain(`name="textInput"`);
+  });
+});
+
+
+// ── 業務部品の木 (layout) への反映 ───────────────────────────────────────
+
+describe("renameScreenItemId — layout / 独自部品", () => {
+  beforeEach(() => {
+    resetStore();
+    store.screenItems[SCREEN_ID] = BASE_SCREEN_ITEMS();
+  });
+
+  it("layout の itemRef が新しい ID に更新される", async () => {
+    store.entities[SCREEN_ID] = {
+      id: SCREEN_ID,
+      layout: { version: 1, nodes: [{ id: "form", type: "form", children: [
+        { id: "userName", type: "field", itemRef: "userName" },
+        { id: "password", type: "field", itemRef: "password" },
+      ] }] },
+    };
+    const res = await renameScreenItemId(SCREEN_ID, "userName", "loginId", TEST_ROOT);
+    expect(res.layoutUpdated).toBe(true);
+    const nodes = (store.entities[SCREEN_ID] as { layout: { nodes: Array<{ children: Array<{ itemRef: string }> }> } }).layout.nodes;
+    expect(nodes[0].children.map((c) => c.itemRef)).toEqual(["loginId", "password"]);
+  });
+
+  it("独自部品の差し込み値は、画面項目の差し込み口 (kind=item) のものだけ更新する", async () => {
+    store.layoutComponents = [{
+      id: "login-box", label: "ログイン欄", nodes: [],
+      params: [{ id: "who", label: "ID 項目", kind: "item" }, { id: "caption", label: "見出し", kind: "text" }],
+    }];
+    store.entities[SCREEN_ID] = {
+      id: SCREEN_ID,
+      layout: { version: 1, nodes: [{ id: "box", type: "component", componentRef: "login-box", args: { who: "userName", caption: "userName" } }] },
+    };
+    const res = await renameScreenItemId(SCREEN_ID, "userName", "loginId", TEST_ROOT);
+    expect(res.layoutUpdated).toBe(true);
+    const node = (store.entities[SCREEN_ID] as { layout: { nodes: Array<{ args: Record<string, string> }> } }).layout.nodes[0];
+    expect(node.args).toEqual({ who: "loginId", caption: "userName" }); // 文言の「userName」はそのまま
+  });
+
+  it("layout が無い画面・参照が無い画面では何も書き換えない", async () => {
+    store.entities[SCREEN_ID] = { id: SCREEN_ID, layout: { version: 1, nodes: [{ id: "t", type: "text", props: { text: "userName" } }] } };
+    const before = JSON.stringify(store.entities[SCREEN_ID]);
+    const res = await renameScreenItemId(SCREEN_ID, "userName", "loginId", TEST_ROOT);
+    expect(res.layoutUpdated).toBe(false);
+    expect(JSON.stringify(store.entities[SCREEN_ID])).toBe(before);
   });
 });

@@ -233,7 +233,7 @@ export function cloneNode(nodes: readonly LayoutNode[], node: LayoutNode): Layou
 export interface LayoutIssue {
   severity: "error" | "warning" | "info";
   code: "duplicate-id" | "missing-item" | "item-required" | "invalid-child" | "unplaced-item" | "empty-container" | "html-node"
-    | "unknown-component" | "component-cycle" | "component-depth" | "missing-arg";
+    | "unknown-component" | "component-cycle" | "component-depth" | "missing-arg" | "missing-screen";
   message: string;
   nodeId?: string;
   itemId?: string;

@@ -3,13 +3,18 @@
  *
  * - screen-items JSON の `id` フィールドを更新
  * - 画面 HTML (GrapesJS JSON 内の name/id 属性) を更新
+ * - 業務部品の木 (layout) の itemRef と、独自部品の差し込み値 (画面項目) を更新
  * - 全処理フローの `screenItemRef.itemId` を更新
  */
+import { renameLayoutItemRefs, type LayoutComponentDef, type LayoutNode } from "@harmony/shared";
 import {
   readScreenItems,
   writeScreenItems,
   readScreen,
   writeScreen,
+  readScreenEntity,
+  writeScreenEntity,
+  readLayoutComponents,
   listProcessFlows,
   readProcessFlow,
   writeProcessFlow,
@@ -35,6 +40,8 @@ export interface CheckRefsResult {
 export interface RenameResult {
   screenItemsUpdated: boolean;
   screenHtmlUpdated: boolean;
+  /** 業務部品の木 (layout) の参照を更新したか */
+  layoutUpdated: boolean;
   processFlowsUpdated: string[];
   refsRenamed: number;
   warnings: string[];
@@ -254,6 +261,18 @@ export async function renameScreenItemId(
   siFile.updatedAt = new Date().toISOString();
   await writeScreenItems(screenId, siFile, root);
 
+  // 1b. 業務部品の木 (layout) の itemRef と、独自部品の差し込み値 (画面項目) を更新
+  let layoutUpdated = false;
+  const entity = (await readScreenEntity(screenId, root)) as { layout?: { version: 1; nodes: LayoutNode[] } } & Record<string, unknown> | null;
+  if (entity?.layout && Array.isArray(entity.layout.nodes)) {
+    const defs = (await readLayoutComponents(root)).components as unknown as LayoutComponentDef[];
+    const { nodes, count } = renameLayoutItemRefs(entity.layout.nodes, { [oldId]: newId }, defs);
+    if (count > 0) {
+      await writeScreenEntity(screenId, { ...entity, layout: { ...entity.layout, nodes }, updatedAt: new Date().toISOString() }, root);
+      layoutUpdated = true;
+    }
+  }
+
   // 2. 画面 HTML (GrapesJS JSON) を更新
   let screenHtmlUpdated = false;
   const screenDoc = await readScreen(screenId, root);
@@ -284,6 +303,7 @@ export async function renameScreenItemId(
   return {
     screenItemsUpdated: true,
     screenHtmlUpdated,
+    layoutUpdated,
     processFlowsUpdated: updatedAgs,
     refsRenamed,
     warnings,

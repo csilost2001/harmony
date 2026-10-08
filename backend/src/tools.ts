@@ -420,6 +420,69 @@ export const tools = [
     },
   },
 
+  // ── 画面レイアウト (業務部品の木) とプロジェクト独自部品 ──
+
+  {
+    name: "designer__get_screen_layout",
+    description:
+      "画面の業務部品の木 (layout)・画面項目 (items)・検証結果 (issues) を取得します。" +
+      "layout は section / form / search-panel / table / field / button 等の部品の入れ子で、field / table / button は itemRef で items を参照します。" +
+      "type=component の部品はプロジェクト独自部品の参照 (componentRef + args) です。仕様: docs/spec/screen-layout.md",
+    inputSchema: {
+      type: "object" as const,
+      properties: { screenId: { type: "string", description: "画面 ID (kebab-case)" } },
+      required: ["screenId"],
+    },
+  },
+  {
+    name: "designer__set_screen_layout",
+    description:
+      "画面の layout (業務部品の木) を保存します。items を渡すと画面項目も置き換え、省略すると既存の items を保持します。" +
+      "検証結果 (重複 ID・存在しない項目・置けない位置・未設定の差し込み口など) は保存を妨げず、counts と issues で返します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        screenId: { type: "string", description: "画面 ID (kebab-case)" },
+        layout: { type: "object", description: "{ version: 1, nodes: LayoutNode[] }" },
+        items: { type: "array", description: "画面項目 (省略時は既存を保持)", items: { type: "object" } },
+      },
+      required: ["screenId", "layout"],
+    },
+  },
+  {
+    name: "designer__list_layout_components",
+    description:
+      "プロジェクト独自部品 (layout-components.json) の定義一覧を、使用箇所 (画面・他の独自部品) と定義の検証結果つきで取得します。" +
+      "独自部品は部品の木の断片に名前と差し込み口 (params: text / item / screen) を付けたもので、テンプレート内の {{paramId}} が画面側の args で置き換わります。" +
+      "仕様: docs/spec/layout-components.md",
+    inputSchema: { type: "object" as const, properties: {}, required: [] },
+  },
+  {
+    name: "designer__save_layout_component",
+    description:
+      "プロジェクト独自部品を 1 件追加または置換します (id で照合、他の部品には触れません)。" +
+      "定義にエラー (ID 不正・未定義の差し込み口の使用・循環など) があると保存しません。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        component: { type: "object", description: "{ id (kebab-case), label, description?, category?, params: [{id,label,kind,default?}], nodes: LayoutNode[] }" },
+      },
+      required: ["component"],
+    },
+  },
+  {
+    name: "designer__delete_layout_component",
+    description: "プロジェクト独自部品を削除します。画面や他の独自部品から使われている場合は force: true を指定しない限り削除せず、使用箇所を返します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        componentId: { type: "string", description: "独自部品の ID" },
+        force: { type: "boolean", description: "使用中でも削除する (使っている部品は「定義が見つかりません」になる)" },
+      },
+      required: ["componentId"],
+    },
+  },
+
   // ── Puck カスタムコンポーネント管理 ──
 
   {

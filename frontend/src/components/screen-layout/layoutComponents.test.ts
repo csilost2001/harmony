@@ -132,3 +132,29 @@ describe("validateComponentDefs", () => {
     expect(validateComponentDefs([a, b]).some((i) => i.code === "component-cycle")).toBe(true);
   });
 });
+
+describe("renameLayoutItemRefs / 遷移先の存在確認", () => {
+  it("itemRef と、独自部品の画面項目の差し込み値だけを改名する", async () => {
+    const { renameLayoutItemRefs } = await import("@harmony/shared");
+    const nodes: LayoutNode[] = [
+      { id: "f", type: "field", itemRef: "old" },
+      { id: "c", type: "component", componentRef: "search-box", args: { keyword: "old", title: "old" } },
+    ];
+    const r = renameLayoutItemRefs(nodes, { old: "renamed" }, [searchBox]);
+    expect(r.count).toBe(2);
+    expect(r.nodes[0].itemRef).toBe("renamed");
+    expect(r.nodes[1].args).toEqual({ keyword: "renamed", title: "old" });
+    expect(nodes[0].itemRef).toBe("old"); // 元は変えない
+  });
+
+  it("存在しない遷移先は警告し、独自部品の中のものは参照部品の問題として返す", () => {
+    const nodes: LayoutNode[] = [
+      { id: "b", type: "button", props: { label: "戻る", screenRef: "gone" } },
+      { id: "box", type: "component", componentRef: "search-box", args: { keyword: "k", go: "also-gone" } },
+    ];
+    const issues = validateLayoutWithComponents({ version: 1, nodes }, [{ id: "k" }], [searchBox], new Set(["product-search"]));
+    const missing = issues.filter((i) => i.code === "missing-screen");
+    expect(missing.map((i) => i.nodeId).sort()).toEqual(["b", "box"]);
+    expect(validateLayoutWithComponents({ version: 1, nodes }, [{ id: "k" }], [searchBox]).some((i) => i.code === "missing-screen")).toBe(false); // 一覧が無ければ確認しない
+  });
+});

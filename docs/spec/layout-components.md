@@ -105,14 +105,34 @@ schemas/v3/layout-components.v3.schema.json。
 | 対象 | コード | 重大度 |
 |---|---|---|
 | 画面 | `unknown-component` 定義が見つからない / `component-cycle` 循環 / `component-depth` 入れ子が深い | error |
-| 画面 | `missing-arg` 差し込み口 (画面項目・遷移先) が未設定 | warning |
+| 画面 | `missing-arg` 差し込み口 (画面項目・遷移先) が未設定 / `missing-screen` 遷移先の画面が存在しない (画面一覧が分かるとき) | warning |
 | 画面 | `invalid-child` 参照部品を置けない場所 | error |
 | 定義 | `duplicate-component` ID 重複 / `bad-component-id` kebab-case でない / `duplicate-param` 差し込み口の ID が重複・不正 / `undeclared-param` 未定義の差し込み口を使っている / `component-cycle` / `invalid-child` | error |
 | 定義 | `unused-param` 使われていない差し込み口 | warning |
 
 展開後の部品の木には、通常の `validateLayout` (項目の存在・必須割当・未配置の項目 等) をそのまま適用する。
 
-## 6. 設計書・コード生成との関係
+## 6. 改名との関係
+
+| 改名するもの | 画面の `layout` | 独自部品の `args` |
+|---|---|---|
+| 画面項目 ID (`designer__rename_screen_item` / UI の ID 変更) | 通常の部品の `itemRef` を更新 | 差し込み口の種類が `item` のものだけ更新 (文言の `args` は触れない) |
+| 画面 ID (entity rename) | button / link の `props.screenRef` を更新 | **更新しない** (画面項目 ID・文言と区別できず、誤って書き換えるおそれがあるため)。存在しない遷移先は検証で警告 (`missing-screen`) |
+| 独自部品 ID | 未対応 (登録後は変えられない) | — |
+
+定義の中の項目参照は常に `{{差し込み口}}` なので、画面項目の改名は定義に影響しない。
+
+## 7. AI 向け MCP ツール
+
+| ツール | 内容 |
+|---|---|
+| `designer__get_screen_layout` | 画面の layout / items / 検証結果 |
+| `designer__set_screen_layout` | layout (と任意で items) を保存。検証結果は保存を妨げず返す |
+| `designer__list_layout_components` | 独自部品の定義一覧 (使用箇所・定義の検証結果つき) |
+| `designer__save_layout_component` | 1 件追加 / 置換。定義にエラーがあると保存しない |
+| `designer__delete_layout_component` | 削除。使用中は `force: true` が必要 |
+
+## 8. 設計書・コード生成との関係
 
 - 設計書ビュー / HTML 出力は、画面レイアウトを展開して描く。章「独自部品」に定義の一覧・差し込み口・使用箇所を出す (docs/spec/design-document.md)
 - `/generate-code` は展開後の部品の木を画面構造の一次情報として読み、独自部品は再利用可能なコンポーネントとして生成する
