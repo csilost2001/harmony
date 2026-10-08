@@ -42,6 +42,10 @@ const MENU_ITEMS: MenuItem[] = [
     activePaths: ["/business-flow/list"], activePrefixes: ["/business-flow/edit/"],
   },
   {
+    id: "report-list", label: "帳票", icon: "bi-file-earmark-text", route: "/report/list",
+    activePaths: ["/report/list"], activePrefixes: ["/report/edit/"],
+  },
+  {
     id: "design-document", label: "設計書", icon: "bi-journal-text", route: "/document",
     activePaths: ["/document"],
   },

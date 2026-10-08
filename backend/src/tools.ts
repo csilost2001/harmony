@@ -286,6 +286,49 @@ export const tools = [
     },
   },
 
+  // ── 帳票 ──
+
+  {
+    name: "designer__list_reports",
+    description: "帳票 (reports/) の一覧を取得します。各帳票の ID・名前・出力形式・部数・項目数・要確認の件数を返します。仕様: docs/spec/report.md",
+    inputSchema: { type: "object" as const, properties: {}, required: [] },
+  },
+  {
+    name: "designer__get_report",
+    description: "帳票 1 件の原本 (出力・契機・出力条件・部と項目) と検証結果を取得します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { reportId: { type: "string", description: "帳票 ID (kebab-case)" } },
+      required: ["reportId"],
+    },
+  },
+  {
+    name: "designer__save_report",
+    description:
+      "帳票 1 件を保存します (新規作成または置換)。紙に出力する帳票の、出力形式・用紙・出力契機・出力条件と、部 (表題・明細・合計など) ごとの項目を表します。" +
+      "座標は持ちません (用紙の見本図は自動で描きます)。構造 (sections が配列) 以外の問題は保存を妨げず、検証結果として返します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        reportId: { type: "string", description: "帳票 ID (kebab-case)。ファイル名になる" },
+        report: {
+          type: "object",
+          description: "{ name, description?, maturity?, output?:{format(pdf|excel|csv|html),paper(A4|A3|B4|B5|letter),orientation(portrait|landscape)}, trigger?:{kind(screen|batch|api),screenRef?,processFlowRef?,description?}, params?:[{id,label,type?,required?}], sort?:[{field,order?}], sections:[{id,kind(reportHeader|pageHeader|groupHeader|detail|groupFooter|reportFooter|pageFooter),name?,groupBy?,fields:[{id,kind(text|field|aggregate|pageNumber|date),label?,source?(<テーブルID>.<列> | @param.<id>),aggregate?(sum|count|avg|min|max),format?,align?,width?(%)}]}] }",
+        },
+      },
+      required: ["reportId", "report"],
+    },
+  },
+  {
+    name: "designer__delete_report",
+    description: "帳票を 1 件削除します。",
+    inputSchema: {
+      type: "object" as const,
+      properties: { reportId: { type: "string", description: "帳票 ID" } },
+      required: ["reportId"],
+    },
+  },
+
   // ── テーブル設計書ツール ──
 
   {

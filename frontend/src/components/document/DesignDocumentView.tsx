@@ -12,19 +12,21 @@ import { listTables, loadTable } from "../../store/tableStore";
 import { loadConventions } from "../../store/conventionsStore";
 import { loadLayoutComponents } from "../../store/layoutComponentStore";
 import { listBusinessFlows } from "../../store/businessFlowStore";
+import { listReports } from "../../store/reportStore";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import "../../styles/designDocument.css";
 
 async function loadInput(): Promise<DesignDocInput> {
   const raw = await loadRawProject();
   const entities = (raw as { entities?: { screens?: Array<{ id: string }>; screenTransitions?: DesignDocInput["transitions"] } }).entities ?? {};
-  const [screens, flowMetas, tableMetas, conventions, layoutComponents, businessFlows] = await Promise.all([
+  const [screens, flowMetas, tableMetas, conventions, layoutComponents, businessFlows, reports] = await Promise.all([
     Promise.all((entities.screens ?? []).map((s) => loadScreenEntity(s.id).catch(() => null))),
     listProcessFlows().catch(() => []),
     listTables().catch(() => []),
     loadConventions().catch(() => null),
     loadLayoutComponents().catch(() => []),
     listBusinessFlows().catch(() => []),
+    listReports().catch(() => []),
   ]);
   const [flows, tables] = await Promise.all([
     Promise.all(flowMetas.map((m) => loadProcessFlow(m.id).catch(() => null))),
@@ -40,6 +42,7 @@ async function loadInput(): Promise<DesignDocInput> {
     messages: ((conventions as { msg?: DesignDocInput["messages"] } | null)?.msg) ?? {},
     layoutComponents,
     businessFlows,
+    reports,
     roles: ((conventions as { role?: DesignDocInput["roles"] } | null)?.role) ?? {},
     permissions: ((conventions as { permission?: DesignDocInput["permissions"] } | null)?.permission) ?? {},
   };

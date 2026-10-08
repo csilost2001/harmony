@@ -50,6 +50,7 @@ const tables = pickRegistered(listJson(path.join(dataDir, "tables")), harmony.en
 const conventions = readJson(path.join(dataDir, "conventions", "catalog.json"));
 const layoutComponents = readJson(path.join(dataDir, "layout-components.json"))?.components ?? [];
 const businessFlows = listJson(path.join(dataDir, "business-flows"));
+const reports = listJson(path.join(dataDir, "reports"));
 
 let version = opt("--version");
 if (!version) {
@@ -65,6 +66,7 @@ const html = renderStandaloneDesignDoc({
   messages: conventions?.msg ?? {},
   layoutComponents,
   businessFlows,
+  reports,
   roles: conventions?.role ?? {},
   permissions: conventions?.permission ?? {},
   version,

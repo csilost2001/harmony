@@ -145,7 +145,7 @@ const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g,
 export function sampleValue(f: ReportField, row = 0): string {
   const fmt = f.format ?? "";
   if (f.kind === "pageNumber") return "1 / 1";
-  if (f.kind === "date") return fmt || "2026/10/09";
+  if (f.kind === "date") return "2026/10/09";
   if (f.kind === "text") return f.label ?? "";
   const money = fmt.includes("¥");
   const num = /[#0]/.test(fmt) || f.aggregate === "sum" || f.aggregate === "count" || f.aggregate === "avg";

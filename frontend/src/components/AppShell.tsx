@@ -15,6 +15,8 @@ import { SequenceListView } from "./sequence/SequenceListView";
 import { SequenceEditor } from "./sequence/SequenceEditor";
 import { BusinessFlowListView } from "./business-flow/BusinessFlowListView";
 import { BusinessFlowEditor } from "./business-flow/BusinessFlowEditor";
+import { ReportListView } from "./report/ReportListView";
+import { ReportEditor } from "./report/ReportEditor";
 import { ViewListView } from "./view/ViewListView";
 import { ViewEditor } from "./view/ViewEditor";
 import { ViewDefinitionListView } from "./view-definition/ViewDefinitionListView";
@@ -39,6 +41,7 @@ import { loadTable } from "../store/tableStore";
 import { loadProcessFlow } from "../store/processFlowStore";
 import { loadSequence } from "../store/sequenceStore";
 import { loadBusinessFlow } from "../store/businessFlowStore";
+import { loadReport } from "../store/reportStore";
 import { loadView } from "../store/viewStore";
 import { loadViewDefinition } from "../store/viewDefinitionStore";
 import { loadPageLayout } from "../store/pageLayoutStore";
@@ -362,6 +365,8 @@ export function AppShell() {
         <Route path="sequence/edit/:sequenceId" element={<SequenceEditor />} />
         <Route path="business-flow/list" element={<BusinessFlowListView />} />
         <Route path="business-flow/edit/:businessFlowId" element={<BusinessFlowEditor />} />
+        <Route path="report/list" element={<ReportListView />} />
+        <Route path="report/edit/:reportId" element={<ReportEditor />} />
         <Route path="view/list" element={<ViewListView />} />
         <Route path="view/edit/:viewId" element={<ViewEditor />} />
         <Route path="view-definition/list" element={<ViewDefinitionListView />} />
@@ -456,7 +461,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
     }
     // non-null → 別の non-null / null: ユーザー操作による workspace 切替 / 閉じる
     prevActiveWorkspaceIdRef.current = currentId;
-    const perResourceTypes: TabType[] = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "business-flow", "generic-definition"];
+    const perResourceTypes: TabType[] = ["design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "business-flow", "report", "generic-definition"];
     const dirtyLabels = getTabs()
       .filter((t) => t.isDirty && perResourceTypes.includes(t.type))
       .map((t) => t.label);
@@ -775,6 +780,29 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       return;
     }
 
+    const reportMatch = matchPath("/w/:wsId/report/edit/:reportId", location.pathname);
+    if (reportMatch?.params.reportId) {
+      const reportId = reportMatch.params.reportId;
+      if (rejectIfUuidUrl(reportId, "帳票")) return;
+      const tabId = makeTabId("report", reportId);
+      const existing = getTabs().find((t) => t.id === tabId);
+      if (existing) {
+        setActiveTab(tabId);
+      } else {
+        loadReport(reportId).then((report) => {
+          if (report) {
+            openTab({ id: tabId, type: "report", resourceId: reportId, label: report.name });
+          } else {
+            fallbackToDashboard("帳票", reportId);
+          }
+        }).catch((e) => {
+          recordError({ source: "manual", message: "loadReport 失敗", stack: e instanceof Error ? e.stack : undefined });
+          fallbackToDashboard("帳票", reportId);
+        });
+      }
+      return;
+    }
+
     const viewMatch = matchPath("/w/:wsId/view/edit/:viewId", location.pathname);
     if (viewMatch?.params.viewId) {
       const viewId = viewMatch.params.viewId;
@@ -932,6 +960,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       { path: `${wsPrefix}/document`,           type: "design-document",    label: "設計書" },
       { path: `${wsPrefix}/sequence/list`,      type: "sequence-list",      label: "シーケンス一覧" },
       { path: `${wsPrefix}/business-flow/list`, type: "business-flow-list", label: "業務フロー" },
+      { path: `${wsPrefix}/report/list`,        type: "report-list",        label: "帳票" },
       { path: `${wsPrefix}/view/list`,          type: "view-list",           label: "ビュー一覧" },
       { path: `${wsPrefix}/view-definition/list`, type: "view-definition-list", label: "ビュー定義一覧" },
       { path: `${wsPrefix}/page-layout/list`,    type: "page-layout-list",    label: "ページレイアウト一覧" },
@@ -989,6 +1018,8 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       : activeTab.type === "sequence"         ? `${wp}/sequence/edit/${activeTab.resourceId}`
       : activeTab.type === "business-flow"    ? `${wp}/business-flow/edit/${activeTab.resourceId}`
       : activeTab.type === "business-flow-list" ? `${wp}/business-flow/list`
+      : activeTab.type === "report"           ? `${wp}/report/edit/${activeTab.resourceId}`
+      : activeTab.type === "report-list"      ? `${wp}/report/list`
       : activeTab.type === "view"             ? `${wp}/view/edit/${activeTab.resourceId}`
       : activeTab.type === "view-definition"  ? `${wp}/view-definition/edit/${activeTab.resourceId}`
       : activeTab.type === "page-layout"      ? `${wp}/page-layout/edit/${activeTab.resourceId}`

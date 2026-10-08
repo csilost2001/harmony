@@ -73,6 +73,7 @@ function TabItem({
     : tab.type === "process-flow-list" ? "bi-list-task"
     : tab.type === "dashboard" ? "bi-speedometer2"
     : tab.type === "design-document" ? "bi-journal-text"
+    : tab.type === "report" || tab.type === "report-list" ? "bi-file-earmark-text"
     : tab.type === "business-flow" || tab.type === "business-flow-list" ? "bi-diagram-2"
     : tab.type === "screen-list" ? "bi-list-ul"
     : tab.type === "screen-items" ? "bi-ui-checks-grid"

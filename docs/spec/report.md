@@ -1,6 +1,6 @@
 # 帳票 — 仕様書
 
-**Status**: 実装中 (2026-10、再設計 段階 4)
+**Status**: 実装済 (2026-10、再設計 段階 4)
 **関連**: [docs/plans/redesign-2026-10.md](../plans/redesign-2026-10.md) / [design-document.md](design-document.md) / [business-flow.md](business-flow.md)
 
 ## 1. 目的

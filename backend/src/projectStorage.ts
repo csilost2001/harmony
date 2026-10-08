@@ -104,6 +104,7 @@ const viewsDir         = (dataRoot: string) => path.join(dataRoot, "views");
 const viewDefsDir      = (dataRoot: string) => path.join(dataRoot, "view-definitions");
 const pageLayoutsDir   = (dataRoot: string) => path.join(dataRoot, "page-layouts");
 const businessFlowsDir = (dataRoot: string) => path.join(dataRoot, "business-flows");
+const reportsDir       = (dataRoot: string) => path.join(dataRoot, "reports");
 const genericDefinitionsDir = (dataRoot: string, kind: string) => path.join(dataRoot, "generic-definitions", kind);
 export const extensionsDir      = (dataRoot: string) => path.join(dataRoot, "extensions");
 export const layoutComponentsFile = (dataRoot: string) => path.join(dataRoot, "layout-components.json");
@@ -1209,6 +1210,100 @@ export async function renameBusinessFlowRefsInProject(kind: "screen" | "processF
       const dataRoot = await resolveDataRoot(root);
       await writeJSON(path.join(businessFlowsDir(dataRoot), `${flow.id}.json`), { ...flow, updatedAt: new Date().toISOString() });
       changed.push(flow.id);
+    }
+  }
+  return changed;
+}
+
+// ── 帳票 (reports/<id>.json、docs/spec/report.md) ───────────────────────────────
+
+function reportSchemaRef(dataRoot: string): string {
+  return path.relative(reportsDir(dataRoot), path.join(SCHEMAS_DIR, "v3", "report.v3.schema.json")).replace(/\\/g, "/");
+}
+
+/** 帳票を 1 件読む。無ければ null */
+export async function readReport(reportId: string, root: string): Promise<Record<string, unknown> | null> {
+  const dataRoot = await resolveDataRoot(root);
+  const filePath = path.join(reportsDir(dataRoot), `${reportId}.json`);
+  assertPathContained(filePath, dataRoot);
+  const data = await readJSON<unknown>(filePath);
+  return isRecord(data) ? data : null;
+}
+
+/** 帳票を全件読む (id 順) */
+export async function listReports(root: string): Promise<Array<Record<string, unknown>>> {
+  try {
+    const dataRoot = await resolveDataRoot(root);
+    const dir = reportsDir(dataRoot);
+    const files = (await fs.readdir(dir)).filter((f) => f.endsWith(".json")).sort();
+    const out: Array<Record<string, unknown>> = [];
+    for (const f of files) {
+      const d = await readJSON<unknown>(path.join(dir, f));
+      if (isRecord(d)) out.push(d);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/** 帳票を 1 件書く。id はファイル名と一致させ、作成日時は初回を保ち、更新日時を付ける (構造以外の問題は妨げない) */
+export async function writeReport(reportId: string, data: unknown, root: string): Promise<Record<string, unknown>> {
+  if (!isRecord(data) || !Array.isArray(data.sections)) {
+    throw new Error("帳票は { id, name, sections: [] } の形で指定してください");
+  }
+  const dataRoot = await ensureDataDirFromRoot(root);
+  const filePath = path.join(reportsDir(dataRoot), `${reportId}.json`);
+  assertPathContained(filePath, dataRoot);
+  const prev = await readJSON<unknown>(filePath);
+  const now = new Date().toISOString();
+  const { $schema: _ignored, ...rest } = data as Record<string, unknown>;
+  void _ignored;
+  const doc = {
+    $schema: reportSchemaRef(dataRoot),
+    version: 1,
+    ...rest,
+    id: reportId,
+    createdAt: isRecord(prev) && typeof prev.createdAt === "string" ? prev.createdAt : (typeof rest.createdAt === "string" ? rest.createdAt : now),
+    updatedAt: now,
+  };
+  await writeJSON(filePath, doc);
+  return doc;
+}
+
+/** 帳票を削除 (無ければ false) */
+export async function deleteReport(reportId: string, root: string): Promise<boolean> {
+  const dataRoot = await resolveDataRoot(root);
+  const filePath = path.join(reportsDir(dataRoot), `${reportId}.json`);
+  assertPathContained(filePath, dataRoot);
+  try { await fs.unlink(filePath); return true; } catch { return false; }
+}
+
+/** 画面 / 処理フロー / テーブルの ID 改名を、全帳票の出力契機・項目の出どころへ反映する。書き換えた帳票の id を返す */
+export async function renameReportRefsInProject(kind: "screen" | "processFlow" | "table", from: string, to: string, root: string): Promise<string[]> {
+  const changed: string[] = [];
+  const dataRoot = await resolveDataRoot(root);
+  const tableRe = (s: unknown) => (typeof s === "string" && s.startsWith(`${from}.`) ? `${to}.${s.slice(from.length + 1)}` : s);
+  for (const rp of await listReports(root)) {
+    let hit = false;
+    const trig = isRecord(rp.trigger) ? rp.trigger : null;
+    if (kind === "screen" && trig?.screenRef === from) { trig.screenRef = to; hit = true; }
+    if (kind === "processFlow" && trig?.processFlowRef === from) { trig.processFlowRef = to; hit = true; }
+    if (kind === "table") {
+      for (const s of Array.isArray(rp.sections) ? rp.sections : []) {
+        if (!isRecord(s)) continue;
+        const g = tableRe(s.groupBy); if (g !== s.groupBy) { s.groupBy = g; hit = true; }
+        for (const f of Array.isArray(s.fields) ? s.fields : []) {
+          if (isRecord(f)) { const v = tableRe(f.source); if (v !== f.source) { f.source = v; hit = true; } }
+        }
+      }
+      for (const o of Array.isArray(rp.sort) ? rp.sort : []) {
+        if (isRecord(o)) { const v = tableRe(o.field); if (v !== o.field) { o.field = v; hit = true; } }
+      }
+    }
+    if (hit && typeof rp.id === "string") {
+      await writeJSON(path.join(reportsDir(dataRoot), `${rp.id}.json`), { ...rp, updatedAt: new Date().toISOString() });
+      changed.push(rp.id);
     }
   }
   return changed;

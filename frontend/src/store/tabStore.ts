@@ -16,6 +16,7 @@ export type TabType =
   | "screen-items"    // 画面項目定義 (#318 / #696 per-screen タブ化)
   | "page-layout"     // ページレイアウト編集 (#1024)
   | "business-flow"   // 業務フロー編集 (再設計 2026-10 段階 4)
+  | "report"          // 帳票編集 (再設計 2026-10 段階 4)
   // シングルトン（1 インスタンス固定。resourceId は "main" で統一）
   | "screen-flow"        // 画面フロー図
   | "screen-list"        // 画面一覧 (#133 Phase C)
@@ -35,16 +36,17 @@ export type TabType =
   | "generic-definition"        // 汎用定義編集 (#1069)
   | "generic-definition-list"   // 汎用定義一覧 (#1069)
   | "generic-definition-catalog" // 汎用定義カタログ (#1069)
+  | "report-list"        // 帳票一覧 (再設計 2026-10 段階 4)
   | "business-flow-list" // 業務フロー一覧 (再設計 2026-10 段階 4)
   | "design-document"; // 設計書 (再設計 2026-10 段階 3)
 
 const KNOWN_TAB_TYPES: ReadonlySet<TabType> = new Set([
-  "design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "business-flow",
+  "design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "business-flow", "report",
   "screen-flow", "screen-list", "table-list", "er", "process-flow-list",
   "extensions", "conventions-catalog", "sequence-list", "view-list", "view-definition-list",
   "workspace-list", "tech-stack", "dashboard", "page-layout-list", "gadget-list",
   "generic-definition", "generic-definition-list", "generic-definition-catalog",
-  "design-document", "business-flow-list",
+  "design-document", "business-flow-list", "report-list",
 ]);
 
 // RFC #1284 (#1296 I-4): top-level entity の id 体系を UUID → kebab-case EntityId に移行。
@@ -52,7 +54,7 @@ const KNOWN_TAB_TYPES: ReadonlySet<TabType> = new Set([
 // localStorage ロード時に破棄して死タブを除去する。
 // シングルトンタブ (resourceId="main") や、namespace:name 形式 (generic-definition) は影響なし。
 const RESOURCE_TAB_TYPES: ReadonlySet<TabType> = new Set([
-  "design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "business-flow",
+  "design", "table", "process-flow", "sequence", "view", "view-definition", "screen-items", "page-layout", "business-flow", "report",
 ]);
 
 export interface TabItem {

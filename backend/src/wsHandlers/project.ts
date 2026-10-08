@@ -5,6 +5,7 @@
  * - loadScreen (旧形式デザインの読み取り専用) / loadScreenEntity / saveScreenEntity / deleteScreen
  * - loadLayoutComponents / saveLayoutComponent / deleteLayoutComponent / findLayoutComponentUsages
  * - listBusinessFlows / loadBusinessFlow / saveBusinessFlow / deleteBusinessFlow
+ * - listReports / loadReport / saveReport / deleteReport
  *
  * 旧エディタ (GrapesJS / Puck) の廃止に伴い、デザイン本体・Puck データ・カスタムブロックの
  * 書き込み系は無い (docs/plans/redesign-2026-10.md)。
@@ -24,6 +25,10 @@ import {
   listBusinessFlows,
   writeBusinessFlow,
   deleteBusinessFlow,
+  readReport,
+  listReports,
+  writeReport,
+  deleteReport,
 } from "../projectStorage.js";
 import { assertEntityId } from "../security/idValidator.js";
 import type { RpcHandlerMap } from "./types.js";
@@ -124,5 +129,31 @@ export const projectHandlers: RpcHandlerMap = {
     const deleted = await deleteBusinessFlow(flowId, root());
     respond({ success: deleted });
     if (deleted) bridge.broadcast({ wsId: wsId(), event: "businessFlowChanged", data: { flowId, deleted: true }, excludeClientId: clientId });
+  },
+
+  listReports: async ({ root, respond }) => {
+    respond(await listReports(root()));
+  },
+
+  loadReport: async ({ params, root, respond }) => {
+    const { reportId } = (params ?? {}) as { reportId: string };
+    assertEntityId(reportId, "reportId");
+    respond(await readReport(reportId, root()));
+  },
+
+  saveReport: async ({ params, root, wsId, clientId, respond, bridge }) => {
+    const { reportId, data } = (params ?? {}) as { reportId: string; data: unknown };
+    assertEntityId(reportId, "reportId");
+    const saved = await writeReport(reportId, data, root());
+    respond(saved);
+    bridge.broadcast({ wsId: wsId(), event: "reportChanged", data: { reportId }, excludeClientId: clientId });
+  },
+
+  deleteReport: async ({ params, root, wsId, clientId, respond, bridge }) => {
+    const { reportId } = (params ?? {}) as { reportId: string };
+    assertEntityId(reportId, "reportId");
+    const deleted = await deleteReport(reportId, root());
+    respond({ success: deleted });
+    if (deleted) bridge.broadcast({ wsId: wsId(), event: "reportChanged", data: { reportId, deleted: true }, excludeClientId: clientId });
   },
 };
