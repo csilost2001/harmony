@@ -15,7 +15,7 @@ let english: RealWorkspaceFixture;
 let retail: RealWorkspaceFixture;
 
 async function openAddWorkspaceDialog(page: Page): Promise<void> {
-  await page.locator("button").filter({ has: page.locator(".bi-plus-lg") }).first().click();
+  await page.getByTestId("workspace-open-or-create").click();
   await expect(page.locator(".tbl-modal")).toBeVisible();
 }
 
@@ -156,7 +156,7 @@ test.describe("workspace navigation smoke with backend backend", { tag: ["@smoke
       page,
       `${wsRoot}/screen/list`,
       new RegExp(`${wsPrefix}/screen/design/[^/]+$`),
-      ".designer-root, [data-testid='puck-editor-container']",
+      ".designer-root, [data-testid='puck-editor-container'], [data-testid='screen-layout-designer']",
     );
 
     await openFirstResource(

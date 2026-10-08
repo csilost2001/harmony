@@ -108,13 +108,14 @@ export function WorkspaceSelectView() {
         {!lockdown && (
           <button
             onClick={() => setShowAdd(true)}
+            data-testid="workspace-open-or-create"
             style={{
               display: "flex",
               alignItems: "center",
               gap: "10px",
               width: "100%",
               padding: "12px 16px",
-              background: "#4dabf7",
+              background: "var(--hm-accent-solid)",
               border: "none",
               borderRadius: "6px",
               color: "var(--hm-on-solid)",

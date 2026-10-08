@@ -69,7 +69,8 @@ export default defineConfig({
       // Codex Round 1 Should-fix: repo root は `import.meta.url` から動的算出する
       // (上の `ALLOWED_BROWSE_ROOTS` 参照) ことで dev container / WSL2 native / 別 clone
       // path の全環境で機能させる。
-      command: `cd ../backend && HARMONY_E2E_NO_AUTO_ACTIVATE=1 HARMONY_ALLOWED_BROWSE_ROOTS=${ALLOWED_BROWSE_ROOTS} npm run dev`,
+      // HARMONY_SHOW_E2E_WORKSPACES=1: ワークスペース一覧に E2E 用ワークスペースを表示する (通常は隠す)
+      command: `cd ../backend && HARMONY_E2E_NO_AUTO_ACTIVATE=1 HARMONY_SHOW_E2E_WORKSPACES=1 HARMONY_ALLOWED_BROWSE_ROOTS=${ALLOWED_BROWSE_ROOTS} npm run dev`,
       url: "http://localhost:5179",
       reuseExistingServer: true, // 既存 backend があれば再利用 (常駐 backend に接続)
       timeout: 30000,

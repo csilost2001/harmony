@@ -81,7 +81,7 @@ async function currentWorkspaceRoot(page: Page): Promise<string> {
  */
 async function addWorkspaceFromSelect(page: Page, workspacePath: string): Promise<void> {
   await page.goto("/workspace/select");
-  await page.locator("button").filter({ has: page.locator(".bi-plus-lg") }).first().click();
+  await page.getByTestId("workspace-open-or-create").click();
   await expect(page.locator(".tbl-modal")).toBeVisible();
   await page.locator(".tbl-modal input[type='text']").fill(workspacePath);
   // 400ms debounce + inspectWorkspace RPC を待つ → status: ready → primary 「開く」 が出る

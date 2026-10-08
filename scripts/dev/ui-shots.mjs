@@ -88,7 +88,7 @@ if (args.ls) {
 
 // workspace を開く
 await page.goto(`${BASE}/workspace/select`);
-await page.getByRole("button", { name: /プロジェクトを開く/ }).first().click();
+await page.getByTestId("workspace-open-or-create").click();
 await page.locator(".tbl-modal input[type='text']").first().fill(wsPath);
 const primary = page.locator(".tbl-modal .tbl-btn-primary");
 await primary.waitFor({ state: "visible", timeout: 15000 });
