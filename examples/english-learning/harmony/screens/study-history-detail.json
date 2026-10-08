@@ -96,6 +96,21 @@
             "props": {
               "html": "<dl class=\"row mb-0 small\">\n          <dt class=\"col-5 text-muted\">学習開始</dt>\n          <dd class=\"col-7\" id=\"startedAt\" data-item-id=\"startedAt\">2026/05/04 14:30</dd>\n          <dt class=\"col-5 text-muted\">学習完了</dt>\n          <dd class=\"col-7\" id=\"completedAt\" data-item-id=\"completedAt\">2026/05/04 15:10</dd>\n          <dt class=\"col-5 text-muted\">平均発音スコア</dt>\n          <dd class=\"col-7\">\n            <strong class=\"text-primary\" id=\"avgPronunciationScore\" data-item-id=\"avgPronunciationScore\">82.0</strong> 点\n          </dd>\n        </dl>"
             }
+          },
+          {
+            "id": "startedAt",
+            "type": "field",
+            "itemRef": "startedAt"
+          },
+          {
+            "id": "completedAt",
+            "type": "field",
+            "itemRef": "completedAt"
+          },
+          {
+            "id": "avgPronunciationScore",
+            "type": "field",
+            "itemRef": "avgPronunciationScore"
           }
         ]
       },

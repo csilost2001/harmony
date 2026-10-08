@@ -187,6 +187,11 @@
             "itemRef": "isActiveSearch"
           },
           {
+            "id": "activeOnlyFilter",
+            "type": "field",
+            "itemRef": "activeOnlyFilter"
+          },
+          {
             "id": "buttons",
             "type": "button-bar",
             "children": [

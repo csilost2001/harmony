@@ -662,6 +662,69 @@
               "label": "公開する",
               "variant": "secondary"
             }
+          },
+          {
+            "id": "uploadPhotoFile",
+            "type": "button",
+            "itemRef": "uploadPhotoFile",
+            "props": {
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "saveButton2",
+            "type": "button",
+            "itemRef": "saveButton",
+            "props": {
+              "variant": "primary"
+            }
+          },
+          {
+            "id": "aiSummarizeButton",
+            "type": "button",
+            "itemRef": "aiSummarizeButton",
+            "props": {
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "aiTagSuggestButton",
+            "type": "button",
+            "itemRef": "aiTagSuggestButton",
+            "props": {
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "aiProofreadButton",
+            "type": "button",
+            "itemRef": "aiProofreadButton",
+            "props": {
+              "variant": "secondary"
+            }
+          },
+          {
+            "id": "aiImageAltButton",
+            "type": "button",
+            "itemRef": "aiImageAltButton",
+            "props": {
+              "variant": "secondary"
+            }
+          }
+        ]
+      },
+      {
+        "id": "displaySection",
+        "type": "section",
+        "props": {
+          "title": "表示項目",
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "postId",
+            "type": "field",
+            "itemRef": "postId"
           }
         ]
       }

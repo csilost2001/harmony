@@ -209,6 +209,11 @@
             }
           },
           {
+            "id": "inquiredAt",
+            "type": "field",
+            "itemRef": "inquiredAt"
+          },
+          {
             "id": "cartButton",
             "type": "button",
             "props": {

@@ -110,6 +110,29 @@ test.describe("業務部品デザイナ", () => {
     expect((await readScreen("product-search")).layout!.nodes[0].id).toBe(before[1]);
   });
 
+  test("未配置の項目を自動で配置し、保存できる @regression", async ({ page }) => {
+    // shipment-dispatch は項目 trackingNumber が画面のどこにも置かれていない
+    await openDesigner(page, "shipment-dispatch");
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });
+    await page.getByTestId("layout-palette-tab-items").click();
+    await expect(page.getByTestId("layout-unplaced-trackingNumber")).toBeVisible();
+
+    await page.getByTestId("layout-auto-place").click();
+    await expect(page.getByTestId("layout-unplaced-trackingNumber")).toHaveCount(0);
+    await expect(page.getByTestId("layout-auto-place")).toHaveCount(0); // 未配置が無くなればボタンも消える
+    await expect(page.getByTestId("layout-node-trackingNumber")).toBeVisible();
+
+    await save(page, "shipment-dispatch", (s) => JSON.stringify(s.layout).includes('"itemRef":"trackingNumber"'));
+    const s = await readScreen("shipment-dispatch");
+    const flat = (ns: Array<Record<string, unknown>>): Array<Record<string, unknown>> =>
+      ns.flatMap((n) => [n, ...flat((n.children as Array<Record<string, unknown>> | undefined) ?? [])]);
+    const hit = (ns: Array<Record<string, unknown>>) => flat(ns).find((n) => n.itemRef === "trackingNumber");
+    expect(hit(s.layout!.nodes)).toMatchObject({ type: "field", itemRef: "trackingNumber" });
+    await page.getByTestId("edit-mode-discard").click();
+    await page.getByTestId("discard-confirm").click();
+  });
+
   test("旧デザインから自動変換して保存する @regression", async ({ page }) => {
     await openDesigner(page, "cart");
     await page.getByTestId("layout-start-convert").click();

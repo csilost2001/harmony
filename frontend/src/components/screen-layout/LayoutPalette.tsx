@@ -63,9 +63,11 @@ export interface LayoutPaletteProps {
   onAddComponent?: (componentId: string) => void;
   /** 独自部品の管理 (一覧・新規作成・編集・削除) を開く */
   onManageComponents?: () => void;
+  /** 未配置の画面項目を、種類に応じた容器へ自動で配置する */
+  onAutoPlace?: () => void;
 }
 
-export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAdd, onPlaceItem, onAddColumn, onSelect, components = [], onAddComponent, onManageComponents }: LayoutPaletteProps) {
+export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAdd, onPlaceItem, onAddColumn, onSelect, components = [], onAddComponent, onManageComponents, onAutoPlace }: LayoutPaletteProps) {
   const [tab, setTab] = useState<Tab>("parts");
   const [tableId, setTableId] = useState<string>("");
   // 独自部品の中 (args 経由) で使われている項目も「配置済み」に数える
@@ -144,6 +146,12 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
       {tab === "items" && (
         <div className="sld-left-body">
           <p className="sld-hint">未配置の画面項目 {unplaced.length} 件。ドラッグかクリックで画面に置きます。</p>
+          {onAutoPlace && unplaced.length > 0 && (
+            <button type="button" className="sld-btn" disabled={!editable} onClick={onAutoPlace} data-testid="layout-auto-place"
+              title="入力は入力フォーム (「…Filter」は検索条件)、表示専用は項目を持つ区画、ボタンはボタン群、一覧は最後に置きます。置いたあとで動かせます">
+              <i className="bi bi-magic" /> 未配置の項目を自動で配置 ({unplaced.length})
+            </button>
+          )}
           <ul className="sld-list">
             {unplaced.map((i) => (
               <li key={i.id}>

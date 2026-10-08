@@ -191,6 +191,11 @@
             "id": "interests",
             "type": "field",
             "itemRef": "interests"
+          },
+          {
+            "id": "cefrLevelDisplay",
+            "type": "field",
+            "itemRef": "cefrLevelDisplay"
           }
         ]
       },

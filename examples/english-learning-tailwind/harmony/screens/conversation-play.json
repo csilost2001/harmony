@@ -147,6 +147,46 @@
           "label": "録音して送信",
           "variant": "danger"
         }
+      },
+      {
+        "id": "displaySection",
+        "type": "section",
+        "props": {
+          "title": "表示項目",
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "sessionId",
+            "type": "field",
+            "itemRef": "sessionId"
+          },
+          {
+            "id": "currentDialogueLine",
+            "type": "field",
+            "itemRef": "currentDialogueLine"
+          },
+          {
+            "id": "currentDialogueTranslation",
+            "type": "field",
+            "itemRef": "currentDialogueTranslation"
+          },
+          {
+            "id": "aiResponseText",
+            "type": "field",
+            "itemRef": "aiResponseText"
+          },
+          {
+            "id": "turnHistory",
+            "type": "field",
+            "itemRef": "turnHistory"
+          },
+          {
+            "id": "pronunciationScore",
+            "type": "field",
+            "itemRef": "pronunciationScore"
+          }
+        ]
       }
     ]
   }

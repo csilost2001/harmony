@@ -190,6 +190,16 @@
             "itemRef": "statusFilter"
           },
           {
+            "id": "dateFromFilter",
+            "type": "field",
+            "itemRef": "dateFromFilter"
+          },
+          {
+            "id": "dateToFilter",
+            "type": "field",
+            "itemRef": "dateToFilter"
+          },
+          {
             "id": "buttons",
             "type": "button-bar",
             "children": [

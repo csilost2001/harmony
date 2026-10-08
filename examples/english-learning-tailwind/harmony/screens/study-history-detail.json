@@ -110,6 +110,16 @@
             "id": "avgPronunciationScore",
             "type": "field",
             "itemRef": "avgPronunciationScore"
+          },
+          {
+            "id": "startedAt",
+            "type": "field",
+            "itemRef": "startedAt"
+          },
+          {
+            "id": "completedAt",
+            "type": "field",
+            "itemRef": "completedAt"
           }
         ]
       },

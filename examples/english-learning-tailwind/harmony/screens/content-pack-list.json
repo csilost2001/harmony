@@ -60,6 +60,21 @@
         "id": "packList",
         "type": "table",
         "itemRef": "packList"
+      },
+      {
+        "id": "inputForm",
+        "type": "form",
+        "props": {
+          "title": "入力",
+          "columns": 2
+        },
+        "children": [
+          {
+            "id": "activatePackId",
+            "type": "field",
+            "itemRef": "activatePackId"
+          }
+        ]
       }
     ]
   }

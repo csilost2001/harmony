@@ -322,6 +322,46 @@
         "id": "tags",
         "type": "field",
         "itemRef": "tags"
+      },
+      {
+        "id": "displaySection",
+        "type": "section",
+        "props": {
+          "title": "表示項目",
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "postId",
+            "type": "field",
+            "itemRef": "postId"
+          },
+          {
+            "id": "postTitle",
+            "type": "field",
+            "itemRef": "postTitle"
+          },
+          {
+            "id": "mood",
+            "type": "field",
+            "itemRef": "mood"
+          },
+          {
+            "id": "weather",
+            "type": "field",
+            "itemRef": "weather"
+          },
+          {
+            "id": "location",
+            "type": "field",
+            "itemRef": "location"
+          },
+          {
+            "id": "isOwner",
+            "type": "field",
+            "itemRef": "isOwner"
+          }
+        ]
       }
     ]
   }

@@ -390,11 +390,55 @@
               "label": "作成する",
               "variant": "secondary"
             }
+          },
+          {
+            "id": "createTagButton",
+            "type": "button",
+            "itemRef": "createTagButton",
+            "props": {
+              "variant": "primary"
+            }
+          },
+          {
+            "id": "updateTagButton",
+            "type": "button",
+            "itemRef": "updateTagButton",
+            "props": {
+              "variant": "primary"
+            }
+          },
+          {
+            "id": "deleteTagButton",
+            "type": "button",
+            "itemRef": "deleteTagButton",
+            "props": {
+              "variant": "danger"
+            }
           }
         ],
         "props": {
           "align": "right"
         }
+      },
+      {
+        "id": "inputForm",
+        "type": "form",
+        "props": {
+          "title": "入力",
+          "columns": 2
+        },
+        "children": [
+          {
+            "id": "editTagId",
+            "type": "field",
+            "itemRef": "editTagId"
+          },
+          {
+            "id": "deleteTagId",
+            "type": "field",
+            "itemRef": "deleteTagId"
+          }
+        ]
       }
     ]
   }

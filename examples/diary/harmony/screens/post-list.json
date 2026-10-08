@@ -315,6 +315,43 @@
         "props": {
           "label": "新しい投稿"
         }
+      },
+      {
+        "id": "availableTags",
+        "type": "table",
+        "itemRef": "availableTags"
+      },
+      {
+        "id": "displaySection",
+        "type": "section",
+        "props": {
+          "title": "表示項目",
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "totalCount",
+            "type": "field",
+            "itemRef": "totalCount"
+          }
+        ]
+      },
+      {
+        "id": "buttons",
+        "type": "button-bar",
+        "props": {
+          "align": "right"
+        },
+        "children": [
+          {
+            "id": "logoutButton",
+            "type": "button",
+            "itemRef": "logoutButton",
+            "props": {
+              "variant": "secondary"
+            }
+          }
+        ]
       }
     ]
   }

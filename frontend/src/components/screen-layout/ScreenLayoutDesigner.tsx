@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  designToLayout, detachComponentNode, findNode, removeNode, updateNode, validateLayoutWithComponents, walkLayout,
+  autoPlaceItems, designToLayout, detachComponentNode, findNode, removeNode, updateNode, validateLayoutWithComponents, walkLayout,
   type LayoutComponentDef,
 } from "@harmony/shared";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
@@ -198,6 +198,14 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
     setRegistering(false);
     setConvertMessage(`独自部品「${def.label}」を登録し、この部品を置き換えました。他の画面でも左の「独自部品」から使えます。`);
   }, [selectedId, apply]);
+
+  const autoPlaceUnplaced = useCallback(() => {
+    if (!doc?.layout) return;
+    const count = autoPlaceItems(doc.layout, doc.items as never, components).placements.length;
+    if (count === 0) return;
+    apply((d) => (d.layout ? { ...d, layout: autoPlaceItems(d.layout, d.items as never, components).layout } : d));
+    setConvertMessage(`未配置の項目 ${count} 件を配置しました。紙面や左の「構成」で位置を確認し、必要なら動かしてください。`);
+  }, [doc, components, apply]);
 
   const detachSelected = useCallback(() => {
     if (!selected || selected.type !== "component") return;
@@ -419,6 +427,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: 
             components={components}
             onAddComponent={(id) => addComponent(id)}
             onManageComponents={() => setManaging({})}
+            onAutoPlace={autoPlaceUnplaced}
           />
           <main className="sld-center" aria-label={`${title} の画面 (${counts} 部品)`}>
             <LayoutCanvas

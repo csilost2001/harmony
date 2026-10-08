@@ -168,6 +168,21 @@
               "text": "彼女は機械学習と自然言語処理を専門としている。",
               "tone": "muted"
             }
+          },
+          {
+            "id": "wordPartOfSpeech",
+            "type": "field",
+            "itemRef": "wordPartOfSpeech"
+          },
+          {
+            "id": "wordCefrLevel",
+            "type": "field",
+            "itemRef": "wordCefrLevel"
+          },
+          {
+            "id": "masteryStatus",
+            "type": "field",
+            "itemRef": "masteryStatus"
           }
         ]
       },

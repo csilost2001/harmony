@@ -176,6 +176,21 @@
             }
           }
         ]
+      },
+      {
+        "id": "displaySection",
+        "type": "section",
+        "props": {
+          "title": "表示項目",
+          "variant": "panel"
+        },
+        "children": [
+          {
+            "id": "sessionId",
+            "type": "field",
+            "itemRef": "sessionId"
+          }
+        ]
       }
     ]
   }

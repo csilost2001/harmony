@@ -206,6 +206,21 @@
               "text": "オートミルクのラテをいただけますか？ラージサイズでお願いします。",
               "tone": "muted"
             }
+          },
+          {
+            "id": "wordIpa",
+            "type": "field",
+            "itemRef": "wordIpa"
+          },
+          {
+            "id": "wordCefrLevel",
+            "type": "field",
+            "itemRef": "wordCefrLevel"
+          },
+          {
+            "id": "masteryStatus",
+            "type": "field",
+            "itemRef": "masteryStatus"
           }
         ]
       },

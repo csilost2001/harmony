@@ -116,6 +116,11 @@
             "props": {
               "text": "ビジネス 7 シーン B1"
             }
+          },
+          {
+            "id": "storyCefrLevel",
+            "type": "field",
+            "itemRef": "storyCefrLevel"
           }
         ]
       },

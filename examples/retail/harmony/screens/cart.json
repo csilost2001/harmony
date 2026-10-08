@@ -205,6 +205,11 @@
                     "itemRef": "addQuantity"
                   },
                   {
+                    "id": "addStoreCode",
+                    "type": "field",
+                    "itemRef": "addStoreCode"
+                  },
+                  {
                     "id": "addToCartButton",
                     "type": "button",
                     "itemRef": "addToCartButton",
@@ -250,6 +255,16 @@
                   {
                     "id": "divider",
                     "type": "divider"
+                  },
+                  {
+                    "id": "cartItemCount",
+                    "type": "field",
+                    "itemRef": "cartItemCount"
+                  },
+                  {
+                    "id": "cartTotalAmount",
+                    "type": "field",
+                    "itemRef": "cartTotalAmount"
                   },
                   {
                     "id": "buttons",

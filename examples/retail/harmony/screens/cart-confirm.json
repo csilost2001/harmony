@@ -206,6 +206,11 @@
                         "itemRef": "shippingPostalCode"
                       },
                       {
+                        "id": "confirmTotalAmount",
+                        "type": "field",
+                        "itemRef": "confirmTotalAmount"
+                      },
+                      {
                         "id": "searchButton",
                         "type": "button",
                         "props": {

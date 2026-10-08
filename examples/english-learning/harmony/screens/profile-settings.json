@@ -166,6 +166,16 @@
                   "text": "コンテンツパック選択のレコメンドに使用します。",
                   "tone": "muted"
                 }
+              },
+              {
+                "id": "email",
+                "type": "field",
+                "itemRef": "email"
+              },
+              {
+                "id": "cefrLevelDisplay",
+                "type": "field",
+                "itemRef": "cefrLevelDisplay"
               }
             ]
           },

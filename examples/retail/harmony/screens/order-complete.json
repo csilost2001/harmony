@@ -154,6 +154,16 @@
             "props": {
               "html": "<dl class=\"row mb-0\">\n                <dt class=\"col-sm-4 text-muted\">配送先住所</dt>\n                <dd class=\"col-sm-8\" id=\"shippingAddressDisplay\" data-item-id=\"shippingAddressDisplay\">\n                  東京都新宿区新宿 X-X-X\n                </dd>\n                <dt class=\"col-sm-4 text-muted\">配送状況</dt>\n                <dd class=\"col-sm-8\">\n                  <span class=\"badge bg-warning text-dark\">配送指示待ち</span>\n                </dd>\n              </dl>"
             }
+          },
+          {
+            "id": "confirmedTotalAmount",
+            "type": "field",
+            "itemRef": "confirmedTotalAmount"
+          },
+          {
+            "id": "confirmedAt",
+            "type": "field",
+            "itemRef": "confirmedAt"
           }
         ]
       },
