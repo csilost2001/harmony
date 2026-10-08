@@ -62,9 +62,6 @@
       ]
     }
   ],
-  "design": {
-    "designFileRef": "login.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

@@ -120,9 +120,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "customer-master.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

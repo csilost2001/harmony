@@ -145,9 +145,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "product-master.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

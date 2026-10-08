@@ -103,9 +103,6 @@
       "description": "learning_sessions.status を completed に更新し、セッション結果画面 (/learn/:sessionId/result) へ遷移する。"
     }
   ],
-  "design": {
-    "designFileRef": "conversation-play.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

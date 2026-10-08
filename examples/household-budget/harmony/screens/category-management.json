@@ -28,10 +28,6 @@
       }
     }
   ],
-  "design": {
-    "editorKind": "puck",
-    "cssFramework": "tailwind"
-  },
   "layout": {
     "version": 1,
     "nodes": [

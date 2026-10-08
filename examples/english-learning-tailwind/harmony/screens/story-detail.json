@@ -80,9 +80,6 @@
       ]
     }
   ],
-  "design": {
-    "designFileRef": "story-detail.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

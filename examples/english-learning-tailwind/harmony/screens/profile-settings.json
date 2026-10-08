@@ -119,9 +119,6 @@
       "description": "送信ボタン。users テーブルの display_name / target_cefr_level / interests を更新する処理フローを実行する。"
     }
   ],
-  "design": {
-    "designFileRef": "profile-settings.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

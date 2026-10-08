@@ -125,9 +125,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "inventory-list.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

@@ -226,9 +226,6 @@
       ]
     }
   ],
-  "design": {
-    "designFileRef": "post-detail.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

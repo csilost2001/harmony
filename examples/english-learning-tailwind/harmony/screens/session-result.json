@@ -48,9 +48,6 @@
       "description": "ユーザーの CEFR レベルと学習履歴から次に推奨するストーリー名。"
     }
   ],
-  "design": {
-    "designFileRef": "session-result.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

@@ -111,9 +111,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "word-detail.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

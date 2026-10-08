@@ -43,9 +43,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "study-history-list.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

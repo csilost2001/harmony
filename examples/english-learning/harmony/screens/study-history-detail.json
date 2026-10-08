@@ -72,9 +72,6 @@
       "description": "当該セッションで user_word_progress が更新された words の一覧 (JSON 配列、単語 / 訳 / 習熟度)。"
     }
   ],
-  "design": {
-    "designFileRef": "study-history-detail.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

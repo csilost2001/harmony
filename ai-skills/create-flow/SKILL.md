@@ -548,7 +548,7 @@ npm run validate:samples -- ../examples/<projectId>
 | viewDefinitionValidator | ViewDefinition 整合 (sourceTableId / tableColumnRef / sortDefaults / filterDefaults 等) | Rule 20 |
 | screenNavigationValidator | 画面遷移三者整合 (targetScreenId / forward edges / auth 整合 / path) | Rule 21 |
 | screenItemRefKeyValidator | ScreenItem.refKey 横断整合 (型一致 / conventions.fieldKeys 宣言 / ORPHAN 検出) | Rule 22 |
-| runtimeContractValidator (validate:samples 専用) | 画面項目 embed (`EMPTY_SCREEN_ITEMS` / `LEGACY_SCREEN_ITEMS_DIR`) + design ファイル配置 (`MISSING_DESIGN_FILE` / `EXTERNAL_DESIGN_REF`) | Rule 23 |
+| runtimeContractValidator (validate:samples 専用) | 画面項目 embed (`EMPTY_SCREEN_ITEMS` / `LEGACY_SCREEN_ITEMS_DIR`) | Rule 23 |
 | processFlowAntipatternValidator (validate:samples 専用) | retail dogfood 既知パターン (`LITERAL_CONV_REFERENCE` / `DUPLICATE_KIND_KEY` / `INVALID_SEQUENCE_CALL_SYNTAX` / `MULTIPLE_STATEMENTS_IN_SQL`) | Rule 24 / 25 / 27 / 29 |
 
 **fail した場合の対処**:

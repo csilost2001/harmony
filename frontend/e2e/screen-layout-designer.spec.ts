@@ -53,11 +53,24 @@ test.describe("業務部品デザイナ", () => {
       s.layout.nodes = strip(s.layout.nodes);
       await fs.writeFile(p, JSON.stringify(s, null, 2));
     }
-    // 未移行 (旧デザインのみ) の画面を再現するため、一部の画面から layout を外す
+    // 未移行 (旧デザインのみ) の画面を再現するため、一部の画面から layout を外し、旧形式 (GrapesJS) のデザインを置く
+    // (サンプルは旧デザインを持たないので、変換の入力はテストの中で作る)
+    const legacyHtml = [
+      '<main><h1>カート</h1><form>',
+      '<label for="addProductCode">商品コード</label>',
+      '<input type="text" id="addProductCode" data-item-id="addProductCode" maxlength="20">',
+      '<button type="submit" id="addToCartButton" data-item-id="addToCartButton" class="btn btn-primary">カートに追加</button>',
+      '</form></main>',
+    ].join("\n");
     for (const id of ["cart", "order-complete", "store-master"]) {
-      const p = path.join(ws.workspacePath, "harmony", "screens", `${id}.json`);
+      const dir = path.join(ws.workspacePath, "harmony", "screens");
+      const p = path.join(dir, `${id}.json`);
       const s = JSON.parse(await fs.readFile(p, "utf-8"));
       delete s.layout;
+      if (id === "cart") {
+        s.design = { designFileRef: "cart.design.json" };
+        await fs.writeFile(path.join(dir, "cart.design.json"), JSON.stringify({ pages: [{ frames: [{ component: { type: "wrapper", components: legacyHtml } }] }] }, null, 2));
+      }
       await fs.writeFile(p, JSON.stringify(s, null, 2));
     }
   });

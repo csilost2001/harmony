@@ -181,9 +181,6 @@
       ]
     }
   ],
-  "design": {
-    "designFileRef": "tag-management.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

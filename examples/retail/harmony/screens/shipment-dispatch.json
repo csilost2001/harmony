@@ -158,9 +158,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "shipment-dispatch.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

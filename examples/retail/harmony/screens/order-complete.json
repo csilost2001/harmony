@@ -90,9 +90,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "order-complete.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

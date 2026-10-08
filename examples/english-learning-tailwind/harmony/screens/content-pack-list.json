@@ -34,9 +34,6 @@
       "description": "選択したパックを users.active_pack_ids に追加するためのパック ID 入力。適用ボタンクリックで処理フローに渡す。"
     }
   ],
-  "design": {
-    "designFileRef": "content-pack-list.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

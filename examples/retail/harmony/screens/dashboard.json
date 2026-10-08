@@ -111,9 +111,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "dashboard.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

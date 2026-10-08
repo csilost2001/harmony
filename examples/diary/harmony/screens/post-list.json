@@ -245,9 +245,6 @@
       ]
     }
   ],
-  "design": {
-    "designFileRef": "post-list.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

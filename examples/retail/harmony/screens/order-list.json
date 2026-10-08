@@ -136,9 +136,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "order-list.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

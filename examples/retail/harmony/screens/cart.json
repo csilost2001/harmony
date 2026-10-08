@@ -161,9 +161,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "cart.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

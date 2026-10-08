@@ -143,9 +143,6 @@
       }
     }
   ],
-  "design": {
-    "designFileRef": "store-master.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [

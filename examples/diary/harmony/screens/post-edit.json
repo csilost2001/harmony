@@ -444,9 +444,6 @@
       ]
     }
   ],
-  "design": {
-    "designFileRef": "post-edit.design.json"
-  },
   "layout": {
     "version": 1,
     "nodes": [
