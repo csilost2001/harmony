@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hasLegacyDesignContent } from "./legacyDesign";
+import { extractGrapesHtml, hasLegacyDesignContent } from "./legacyDesign";
 
 describe("hasLegacyDesignContent", () => {
   const proj = (components: unknown) => ({ pages: [{ frames: [{ component: { type: "wrapper", components } }] }] });
@@ -18,5 +18,18 @@ describe("hasLegacyDesignContent", () => {
     expect(hasLegacyDesignContent({ pages: "broken" })).toBe(true);
     expect(hasLegacyDesignContent("garbage")).toBe(true);
     expect(hasLegacyDesignContent({})).toBe(true);
+  });
+});
+
+describe("extractGrapesHtml", () => {
+  const design = (components: unknown) => ({ pages: [{ frames: [{ component: { components } }] }] });
+  it("pages[0].frames[0].component.components が HTML 文字列ならそれを返す", () => {
+    expect(extractGrapesHtml(design("<main><h1>見出し</h1></main>"))).toBe("<main><h1>見出し</h1></main>");
+  });
+  it("文字列でない (部品 JSON) ・空・壊れたデータは null", () => {
+    expect(extractGrapesHtml(design([{ type: "text" }]))).toBeNull();
+    expect(extractGrapesHtml(null)).toBeNull();
+    expect(extractGrapesHtml({})).toBeNull();
+    expect(extractGrapesHtml("x")).toBeNull();
   });
 });

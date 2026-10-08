@@ -21,10 +21,12 @@ import { useSaveShortcut } from "../../hooks/useSaveShortcut";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { loadScreenItems, saveScreenItems, type ScreenItemsDocument } from "../../store/screenItemsStore";
 import { loadProject } from "../../store/flowStore";
+import { loadScreenEntity } from "../../store/screenStore";
+import { hasLegacyDesignContent } from "../../utils/legacyDesign";
 import { saveLayoutComponent, useLayoutComponents } from "../../store/layoutComponentStore";
 import { listTables, loadTable } from "../../store/tableStore";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
-import { extractGrapesHtml } from "../../utils/pageLayoutCompositionPreview";
+import { extractGrapesHtml } from "../../utils/legacyDesign";
 import type { Table } from "../../types/v3/table";
 import type { ScreenItem } from "../../types/v3/screen-item";
 import { EditorHeader } from "../common/EditorHeader";
@@ -55,14 +57,31 @@ export interface ScreenLayoutDesignerProps {
   screenId: string;
   screenName?: string;
   isActive?: boolean;
-  /** 旧デザイナで開く (旧デザインを持つ画面のみ) */
-  onOpenLegacy?: () => void;
-  hasLegacyDesign?: boolean;
-  /** 旧デザインの種類。自動変換は GrapesJS (HTML) のみ対応 */
-  legacyKind?: "grapesjs" | "puck";
 }
 
-export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, onOpenLegacy, hasLegacyDesign, legacyKind = "grapesjs" }: ScreenLayoutDesignerProps) {
+/** 旧形式 (廃止した GrapesJS / Puck) のデザインの有無。自動変換の案内に使う */
+function useLegacyDesign(screenId: string, enabled: boolean): { hasLegacyDesign: boolean; legacyKind: "grapesjs" | "puck" } {
+  const [state, setState] = useState<{ hasLegacyDesign: boolean; legacyKind: "grapesjs" | "puck" }>({ hasLegacyDesign: false, legacyKind: "grapesjs" });
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true;
+    (async () => {
+      const entity = await loadScreenEntity(screenId).catch(() => null);
+      if (!entity || entity.layout || !entity.design) return;
+      if (entity.design.editorKind === "puck") {
+        if (alive) setState({ hasLegacyDesign: true, legacyKind: "puck" });
+        return;
+      }
+      // design 参照があっても中身 (HTML) が空なら旧形式とはみなさない (新規作成した画面は参照だけを持つ)
+      const d = await mcpBridge.request("loadScreen", { screenId }).catch(() => null);
+      if (alive) setState({ hasLegacyDesign: hasLegacyDesignContent(d), legacyKind: "grapesjs" });
+    })().catch(() => undefined);
+    return () => { alive = false; };
+  }, [screenId, enabled]);
+  return state;
+}
+
+export function ScreenLayoutDesigner({ screenId, screenName, isActive = true }: ScreenLayoutDesignerProps) {
   const navigate = useNavigate();
   const { wsPath } = useWorkspacePath();
   const sessionId = mcpBridge.getSessionId();
@@ -286,6 +305,7 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
 
   const lockedByOther = mode.kind === "locked-by-other" ? mode : null;
   const hasLayout = !!doc?.layout;
+  const { hasLegacyDesign, legacyKind } = useLegacyDesign(screenId, !!doc && !doc.layout);
   const screenNameById = useMemo(() => new Map(screens.map((s) => [s.id, s.name])), [screens]);
   const counts = useMemo(() => { let n = 0; walkLayout(nodes, () => { n++; }); return n; }, [nodes]);
 
@@ -334,11 +354,6 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
             <button type="button" className="btn btn-sm btn-outline-secondary me-2" onClick={() => navigate(wsPath(`/screen/items/${encodeURIComponent(screenId)}`))} title="画面項目を表形式で一覧・編集">
               <i className="bi bi-list-columns me-1" />項目一覧
             </button>
-            {hasLegacyDesign && onOpenLegacy && (
-              <button type="button" className="btn btn-sm btn-outline-secondary me-2" onClick={onOpenLegacy} title="移行前の旧デザイナで開く" data-testid="layout-open-legacy">
-                <i className="bi bi-clock-history me-1" />旧デザイン
-              </button>
-            )}
             <EditSessionDropdown
               resourceType="screen-item"
               resourceId={screenId}
@@ -368,6 +383,11 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
           <div className="sld-start-card">
             <h2>この画面はまだ業務部品形式になっていません</h2>
             <p>画面を「入力フォーム」「一覧表」「ボタン群」などの業務部品で組み立てる形式に切り替えます。画面項目 ({items.length} 件) はそのまま引き継がれ、保存するまで原本は変わりません。</p>
+            {hasLegacyDesign && legacyKind === "puck" && (
+              <p className="sld-hint" data-testid="layout-start-puck-note">
+                この画面は旧エディタ (Puck) で作成されたもので、自動変換には対応していません。「空の画面から作る」で作り直してください。元のデザインのファイルは削除されません。
+              </p>
+            )}
             <div className="sld-start-actions">
               {hasLegacyDesign && legacyKind === "grapesjs" && (
                 <button type="button" className="sld-start-btn primary" onClick={() => { startConvert().catch(console.error); }} disabled={converting || mode.kind === "locked-by-other"} data-testid="layout-start-convert">
@@ -381,13 +401,6 @@ export function ScreenLayoutDesigner({ screenId, screenName, isActive = true, on
                 <b>空の画面から作る</b>
                 <span>見出しだけの画面から、部品をドラッグして組み立てます。</span>
               </button>
-              {hasLegacyDesign && onOpenLegacy && (
-                <button type="button" className="sld-start-btn" onClick={onOpenLegacy}>
-                  <i className="bi bi-clock-history" />
-                  <b>旧デザイナで開く</b>
-                  <span>移行せずに、これまでのデザイナで編集します。</span>
-                </button>
-              )}
             </div>
           </div>
         </div>

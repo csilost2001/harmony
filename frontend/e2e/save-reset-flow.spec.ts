@@ -60,8 +60,6 @@ async function addScreenViaModal(
   page: Page,
   name: string,
   options?: {
-    editorKind?: "grapesjs" | "puck";
-    cssFramework?: "bootstrap" | "tailwind";
     id?: string;
   },
 ) {
@@ -69,12 +67,6 @@ async function addScreenViaModal(
   const addBtn = page.locator('button.flow-btn-primary').filter({ hasText: /画面を追加/ }).first();
   await addBtn.click();
   await page.locator("#screen-name").fill(name);
-  if (options?.editorKind) {
-    await page.locator(`input[name="screen-editor-kind"][value="${options.editorKind}"]`).click();
-  }
-  if (options?.cssFramework) {
-    await page.locator(`input[name="screen-css-framework"][value="${options.cssFramework}"]`).click();
-  }
   // #1297 I-5 / RFC #1284: EntityIdInput 必須化。日本語 name から kebab-case 推論不能のため
   // テスト用の一意な kebab-case ID を生成。
   _saveResetAddScreenSeq += 1;

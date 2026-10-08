@@ -122,8 +122,6 @@ describe("create function uuid coverage (I-7 Round 8 S-R7-1)", () => {
   it("createPageLayout は uuid (UUID v4) を発番する", async () => {
     const pl = await createPageLayout(
       "標準レイアウト" as DisplayName,
-      "puck",
-      "bootstrap",
       undefined,
       { id: "pl-standard-test" },
     );

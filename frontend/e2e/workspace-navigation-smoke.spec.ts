@@ -156,7 +156,7 @@ test.describe("workspace navigation smoke with backend backend", { tag: ["@smoke
       page,
       `${wsRoot}/screen/list`,
       new RegExp(`${wsPrefix}/screen/design/[^/]+$`),
-      ".designer-root, [data-testid='puck-editor-container'], [data-testid='screen-layout-designer']",
+      "[data-testid='screen-layout-designer']",
     );
 
     await openFirstResource(

@@ -13,10 +13,8 @@ import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { ScreenNode } from "../../types/flow";
 import { SCREEN_KIND_LABELS, SCREEN_KIND_ICONS } from "../../types/flow";
 import type { ScreenKind } from "../../types/v3";
-import { loadProject, loadRawProject, saveProject, addScreen, removeScreen } from "../../store/flowStore";
+import { loadProject, saveProject, addScreen, removeScreen } from "../../store/flowStore";
 import { buildDefaultScreen, saveScreenEntity } from "../../store/screenStore";
-import { resolveCssFramework } from "../../utils/resolveCssFramework";
-import { resolveEditorKind } from "../../utils/resolveEditorKind";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
 import { renumber } from "../../utils/listOrder";
@@ -61,8 +59,6 @@ export function GadgetListView() {
   // RFC #1021 pl-6 (Codex C-3 / H-4): gadget Screen → 使用先 PageLayout 数の逆参照 map
   // assignments は PageLayoutEntry に含まれていないため各 PageLayout を full load して計算
   const [usageMap, setUsageMap] = useState<Map<string, number>>(new Map());
-  const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
-  const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
 
   // 新規作成モーダル
   const [showAdd, setShowAdd] = useState(false);
@@ -76,9 +72,7 @@ export function GadgetListView() {
   // purpose='gadget' の Screen のみをロード
   const loadGadgets = useCallback(async (): Promise<ScreenNode[]> => {
     mcpBridge.startWithoutEditor();
-    const [p, raw] = await Promise.all([loadProject(), loadRawProject()]);
-    setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.techStack));
-    setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.techStack));
+    const p = await loadProject();
     return p.screens.filter((s) => s.purpose === "gadget");
   }, []);
 
@@ -256,19 +250,14 @@ export function GadgetListView() {
     }
     if (addIdValidation.isInvalid) return;
     const project = await loadProject();
-    const editorKind = projectDefaultEditorKind;
-    const cssFramework = projectDefaultCssFramework;
     // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って addScreen に渡す
     const screen = await addScreen(project, name, addKind, {
       purpose: "gadget",
-      editorKind,
-      cssFramework,
       id,
     });
     await saveProject(project);
-    const entity = await buildDefaultScreen(screen.id);
-    entity.design = { ...entity.design, editorKind, cssFramework };
-    await saveScreenEntity(entity);
+    // 新しいガジェットは空の業務部品レイアウト (見出しだけ) を持つ
+    await saveScreenEntity(await buildDefaultScreen(screen.id));
     setShowAdd(false);
     setAddId("");
     setAddName("");

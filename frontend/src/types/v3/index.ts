@@ -10,7 +10,7 @@
  * - `table` / `sequence` / `view` / `er-layout`: DB / ER 関連
  * - `process-flow`: ProcessFlow + 22 step variants + ModelEndpointEntry
  * - `external-catalogs`: project-level 共有 catalogs
- * - `extensions` / `conventions` / `custom-block`: 拡張機構 / 横断規約 / GrapesJS ブロック
+ * - `extensions` / `conventions`: 拡張機構 / 横断規約
  * - `generic-definition`: Generic Definition Catalog (#1069)
  *
  * **新規型ファイル追加時の手動更新が必要** (index.ts は手動メンテ、auto-generated ではない)。
@@ -54,7 +54,6 @@ export * from "./external-catalogs";
 // 拡張機構 / 横断規約 / GrapesJS ブロック
 export * from "./extensions";
 export * from "./conventions";
-export * from "./custom-block";
 
 // Generic Definition Catalog (#1069)
 export * from "./generic-definition";

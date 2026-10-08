@@ -9,7 +9,6 @@ import { useNavigate } from "react-router-dom";
 import { useWorkspacePath } from "../../hooks/useWorkspacePath";
 import type { DisplayName } from "../../types/v3";
 import type { PageLayoutEntry } from "../../types/v3/harmony";
-import type { PageLayoutEditorKind, PageLayoutCssFramework } from "../../store/pageLayoutStore";
 import {
   listPageLayouts,
   createPageLayout,
@@ -63,8 +62,6 @@ export function PageLayoutListView() {
   const [viewMode, setViewMode] = usePersistentState<ViewMode>(STORAGE_KEY, "card");
   const [showAdd, setShowAdd] = useState(false);
   const [addName, setAddName] = useState("");
-  const [addEditorKind, setAddEditorKind] = useState<PageLayoutEditorKind>("grapesjs");
-  const [addCssFramework, setAddCssFramework] = useState<PageLayoutCssFramework>("bootstrap");
   const [addDescription, setAddDescription] = useState("");
   const [addNameError, setAddNameError] = useState("");
   // RFC #1284 / #1297 I-5: kebab-case PageLayout id + AI 提案ボタン + uniqueness 警告
@@ -248,8 +245,6 @@ export function PageLayoutListView() {
 
   const resetAddForm = () => {
     setAddName("");
-    setAddEditorKind("grapesjs");
-    setAddCssFramework("bootstrap");
     setAddDescription("");
     setAddNameError("");
     setAddId("");
@@ -267,8 +262,6 @@ export function PageLayoutListView() {
     // RFC #1284 / #1297 I-5: kebab-case id を UI から受け取って store に渡す
     const pl = await createPageLayout(
       name as DisplayName,
-      addEditorKind,
-      addCssFramework,
       addDescription.trim() || undefined,
       { id },
     );
@@ -620,26 +613,6 @@ export function PageLayoutListView() {
                   onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
                 />
                 {addNameError && <span className="tbl-field-error">{addNameError}</span>}
-              </label>
-              <label className="tbl-field">
-                <span>エディタ種別</span>
-                <select
-                  value={addEditorKind}
-                  onChange={(e) => setAddEditorKind(e.target.value as PageLayoutEditorKind)}
-                >
-                  <option value="grapesjs">grapesjs — GrapesJS WYSIWYG</option>
-                  <option value="puck">puck — Puck ブロックエディタ</option>
-                </select>
-              </label>
-              <label className="tbl-field">
-                <span>CSS フレームワーク</span>
-                <select
-                  value={addCssFramework}
-                  onChange={(e) => setAddCssFramework(e.target.value as PageLayoutCssFramework)}
-                >
-                  <option value="bootstrap">bootstrap — Bootstrap 5</option>
-                  <option value="tailwind">tailwind — Tailwind CSS</option>
-                </select>
               </label>
               <label className="tbl-field">
                 <span>説明 <small>(任意)</small></span>

@@ -18,3 +18,16 @@ export function hasLegacyDesignContent(design: unknown): boolean {
     return typeof c === "string" ? c.trim().length > 0 : Array.isArray(c) ? c.length > 0 : c != null;
   });
 }
+
+/**
+ * 旧デザイン (GrapesJS project data) から HTML 本体を取り出す。
+ * 旧形式は `pages[0].frames[0].component.components` に HTML 文字列で入っている
+ * (例: examples/retail/.../*.design.json)。文字列でなければ null。
+ * 旧デザインからの自動変換 (業務部品デザイナ) の入力に使う。
+ */
+export function extractGrapesHtml(design: unknown): string | null {
+  if (!design || typeof design !== "object") return null;
+  const d = design as { pages?: Array<{ frames?: Array<{ component?: { components?: unknown } }> }> };
+  const components = d?.pages?.[0]?.frames?.[0]?.component?.components;
+  return typeof components === "string" ? components : null;
+}

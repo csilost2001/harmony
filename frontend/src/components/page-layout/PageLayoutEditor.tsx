@@ -40,7 +40,9 @@ import { ResumeOrDiscardDialog } from "../editing/ResumeOrDiscardDialog";
 import { setDirty as setTabDirty, makeTabId } from "../../store/tabStore";
 import { MaturityBadge } from "../process-flow/MaturityBadge";
 import { loadProject } from "../../store/flowStore";
-import { extractGrapesHtml } from "../../utils/pageLayoutCompositionPreview";
+import { DESIGN_DOC_CSS, layoutToHtml } from "@harmony/shared";
+import { loadScreenEntity } from "../../store/screenStore";
+import { loadLayoutComponents } from "../../store/layoutComponentStore";
 import {
   PAGE_LAYOUT_PATTERNS,
   buildPatternRegions,
@@ -297,14 +299,16 @@ export function PageLayoutEditor() {
     queueMicrotask(() => {
       if (!cancelled) setPreviewLoading(true);
     });
-    Promise.all(uniqueIds.map(async (screenId) => {
+    // gadget / サンプル画面の業務部品レイアウトを、設計書と同じ描画で読み取り専用に合成する
+    loadLayoutComponents().catch(() => []).then((defs) => Promise.all(uniqueIds.map(async (screenId) => {
       try {
-        const design = await mcpBridge.request("loadScreen", { screenId });
-        return [screenId, extractGrapesHtml(design) ?? ""] as const;
+        const screen = await loadScreenEntity(screenId);
+        const html = screen.layout ? layoutToHtml(screen.layout, (screen.items ?? []) as never, defs) : "";
+        return [screenId, html] as const;
       } catch {
         return [screenId, ""] as const;
       }
-    })).then((entries) => {
+    }))).then((entries) => {
       if (cancelled) return;
       setPreviewHtmlByScreenId(Object.fromEntries(entries.filter(([, html]) => html)));
     }).finally(() => {
@@ -574,24 +578,6 @@ export function PageLayoutEditor() {
                   className="tbl-input"
                 />
               </label>
-              <label className="tbl-field">
-                <span>エディタ種別 <small className="tbl-field-hint">(作成後変更不可)</small></span>
-                <input
-                  type="text"
-                  value={pl.design?.editorKind ?? "—"}
-                  disabled
-                  className="tbl-input"
-                />
-              </label>
-              <label className="tbl-field">
-                <span>CSS フレームワーク <small className="tbl-field-hint">(作成後変更不可)</small></span>
-                <input
-                  type="text"
-                  value={pl.design?.cssFramework ?? "—"}
-                  disabled
-                  className="tbl-input"
-                />
-              </label>
               <label className="tbl-field plm-details-wide">
                 <span>processFlowId <small className="tbl-field-hint">(任意)</small></span>
                 <input
@@ -669,6 +655,7 @@ export function PageLayoutEditor() {
             </div>
           )}
 
+          <style>{DESIGN_DOC_CSS}</style>
           <div
             className={`plm-preview ${currentPattern.previewClassName}`}
             data-testid="page-layout-composition-preview"
@@ -701,7 +688,7 @@ export function PageLayoutEditor() {
                         <>
                           <div className="plm-readonly-tag">page: {selectedSamplePage?.name ?? samplePageId}</div>
                           <div
-                            className="plm-design-body"
+                            className="plm-design-body hd-doc"
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(samplePageHtml) }}
                           />
                         </>
@@ -719,7 +706,7 @@ export function PageLayoutEditor() {
                         <>
                           <div className="plm-readonly-tag">gadget: {assignedName}</div>
                           <div
-                            className="plm-design-body"
+                            className="plm-design-body hd-doc"
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(assignedHtml) }}
                           />
                         </>

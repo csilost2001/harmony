@@ -34,7 +34,7 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { id: "designer",   label: "デザイナー",     icon: "bi-brush" },
+  { id: "designer",   label: "画面デザイン",   icon: "bi-brush" },
   { id: "backend",    label: "バックエンド",   icon: "bi-server" },
   { id: "database",   label: "データベース",   icon: "bi-database" },
   { id: "frontend",   label: "フロントエンド", icon: "bi-window" },
@@ -103,20 +103,6 @@ function DesignerPanel({
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
         <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
-          エディタ種別
-        </h4>
-        <RadioGroup
-          name="designer-editor-kind"
-          value={value.editorKind ?? "grapesjs"}
-          onChange={(v) => onChange({ ...value, editorKind: v as TechStackDesigner["editorKind"] })}
-          options={[
-            { value: "grapesjs", label: "GrapesJS",   description: "HTML 直接編集。Thymeleaf / React 両展開可。" },
-            { value: "puck",     label: "Puck",        description: "React コンポーネントツリー編集。React 専用。" },
-          ]}
-        />
-      </div>
-      <div>
-        <h4 style={{ margin: "0 0 12px", fontSize: 13, color: "var(--hm-fg-muted)", textTransform: "uppercase" as const, letterSpacing: 1 }}>
           CSS フレームワーク
         </h4>
         <RadioGroup
@@ -124,8 +110,8 @@ function DesignerPanel({
           value={value.cssFramework ?? "bootstrap"}
           onChange={(v) => onChange({ ...value, cssFramework: v as TechStackDesigner["cssFramework"] })}
           options={[
-            { value: "bootstrap", label: "Bootstrap 5",  description: "Bootstrap 5 を canvas に読み込み。" },
-            { value: "tailwind",  label: "Tailwind CSS", description: "Tailwind ベースの theme CSS を canvas に読み込み。" },
+            { value: "bootstrap", label: "Bootstrap 5",  description: "生成する画面コードで Bootstrap 5 を使う。" },
+            { value: "tailwind",  label: "Tailwind CSS", description: "生成する画面コードで Tailwind CSS を使う。" },
           ]}
         />
       </div>
@@ -503,7 +489,6 @@ export function TechStackView() {
           現在の選択
         </div>
         <SummarySection label="デザイナー" lines={[
-          techStack.designer?.editorKind   ? `エディタ: ${techStack.designer.editorKind}`   : "",
           techStack.designer?.cssFramework ? `CSS: ${techStack.designer.cssFramework}`       : "",
         ]} />
         <SummarySection label="バックエンド" lines={[

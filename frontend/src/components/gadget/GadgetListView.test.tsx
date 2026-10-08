@@ -38,14 +38,6 @@ vi.mock("../../mcp/mcpBridge", () => ({
   },
 }));
 
-vi.mock("../../utils/resolveEditorKind", () => ({
-  resolveEditorKind: vi.fn(() => "grapesjs"),
-}));
-
-vi.mock("../../utils/resolveCssFramework", () => ({
-  resolveCssFramework: vi.fn(() => "bootstrap"),
-}));
-
 vi.mock("../../hooks/useWorkspacePath", () => ({
   useWorkspacePath: () => ({ wsPath: (p: string) => p }),
 }));

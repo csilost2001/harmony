@@ -140,17 +140,17 @@ const viewDefB = buildViewDefinition({
   },
 });
 
-// --- Screen (puck) ---
-// エラー: puckDataRef 欠落 (editorKind=puck なのに puckDataRef が未設定)
-// puckScreenValidation.ts の validatePuckScreen が severity=error を生成する (#806)。
+// --- Screen (業務部品レイアウト) ---
+// エラー: layout が存在しない画面項目を参照している (missing-item)
+// validateLayoutWithComponents が severity=error を生成し、画面一覧のバッジに出る。
 const SCREEN_P_ID = normalizeId("scr-p-draft-934");
+// (v1 残骸ガードが root の版の記述を検出するため、layout の版は定数で渡す)
+const LAYOUT_VERSION = 1 as const;
 
-const screenPuck: Screen = {
-  ...(buildScreen({ id: SCREEN_P_ID, name: "puck 画面 (puckDataRef 欠落)", kind: "list" }) as Screen),
-  design: {
-    editorKind: "puck",
-    // puckDataRef を意図的に省略 → validatePuckScreen で error
-  },
+const screenBrokenLayout: Screen = {
+  ...(buildScreen({ id: SCREEN_P_ID, name: "レイアウトが存在しない項目を参照する画面", kind: "list" }) as Screen),
+  items: [],
+  layout: { version: LAYOUT_VERSION, nodes: [{ id: "ghostField", type: "field", itemRef: "ghostItem" }] },
 };
 
 // --- ProcessFlow ---
@@ -196,8 +196,8 @@ const dummyProject = buildProject({
   name: "draft-state-validation-test",
   entities: {
     screens: [
-      // puck 画面 (puckDataRef 欠落 → validatePuckScreen error)
-      { id: SCREEN_P_ID, no: 1, name: "puck 画面 (puckDataRef 欠落)", kind: "list", updatedAt: FIXED_TS },
+      // layout が存在しない画面項目を参照する画面 (missing-item error)
+      { id: SCREEN_P_ID, no: 1, name: "レイアウトが存在しない項目を参照する画面", kind: "list", updatedAt: FIXED_TS },
     ],
     tables: [
       { id: TABLE_A_ID, no: 1, physicalName: "orders_934",          name: "受注テーブル",        columnCount: 1, updatedAt: FIXED_TS, maturity: "draft" },
@@ -239,7 +239,7 @@ test.beforeEach(async () => {
     views: [viewA, viewB],
     viewDefinitions: [viewDefA, viewDefB],
     processFlows: [processFlowA],
-    screenEntities: [screenPuck],
+    screenEntities: [screenBrokenLayout],
   });
 });
 
@@ -328,13 +328,13 @@ test.describe("draft-state validation 表示 — 領域 11 網羅", { tag: ["@re
     await expect(warningBadge.first().locator(".bi-exclamation-triangle-fill")).toBeVisible();
   });
 
-  // loadPuckScreenValidationMap + ScreenListView ValidationBadge 統合済みであり、
-  // screenPuck fixture (editorKind=puck, puckDataRef 欠落) が error として検出される。
-  test("(P2-Screen) Screen ListView で puck validation badge が表示される", async ({ page }) => {
+  // loadScreenValidationMap + ScreenListView ValidationBadge 統合済みであり、
+  // screenBrokenLayout fixture (layout が存在しない項目を参照) が error として検出される。
+  test("(P2-Screen) Screen ListView でレイアウトの検証 badge が表示される", async ({ page }) => {
     await ws.gotoActive(page, "/screen/list");
     await expect(page.locator(".screen-list-page, .table-list-page")).toBeVisible({ timeout: 10000 });
 
-    // puck 画面の puckDataRef 欠落 → error badge が表示される
+    // レイアウトが存在しない項目を参照 → error badge が表示される
     await expect(page.locator(".validation-badge.error").first()).toBeVisible({ timeout: 15000 });
     await expect(page.locator(".validation-badge.error").first().locator(".bi-x-circle-fill")).toBeVisible();
   });

@@ -782,10 +782,6 @@ export async function persistProject(project: FlowProject): Promise<void> {
 export interface AddScreenOptions {
   path?: string;
   position?: { x: number; y: number };
-  /** 画面作成時に固定するエディタ種別。省略時は呼び出し側で project.techStack.designer から解決して screen entity に書く。 */
-  editorKind?: "grapesjs" | "puck";
-  /** 画面作成時に固定する CSS フレームワーク。省略時は呼び出し側で project.techStack.designer から解決して screen entity に書く。 */
-  cssFramework?: "bootstrap" | "tailwind";
   /** Screen 用途種別 (RFC #1021)。省略時は 'page' 相当。 */
   purpose?: "page" | "gadget";
   /**
@@ -958,15 +954,6 @@ export async function markScreenHasDesign(
     screen.hasDesign = has;
     await saveProject(project);
   }
-}
-
-/**
- * 画面のストレージキー。
- * 本体 fallback は #923 シリーズで廃止済み。本関数は legacyLocalStorageRescue
- * (旧 GrapesJS autosave データの 1 度きり救済) からのみ参照される。
- */
-export function screenStorageKey(screenId: string): string {
-  return `${SCREEN_DATA_PREFIX}${screenId}`;
 }
 
 /** 画面が存在するか。 */

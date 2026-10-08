@@ -39,12 +39,8 @@ export interface Region {
 }
 
 /**
- * PageLayout デザインの参照情報。
- *
- * 生 HTML/CSS (GrapesJS) または Puck Data tree (Puck) は別ファイル
- * (workspace 配下) で管理し、本 schema は参照のみ持つ。
- * `editorKind` / `cssFramework` は PageLayout 作成時に固定、以降変更不可
- * (multi-editor-puck.md 仕様準拠)。
+ * PageLayout デザインの参照情報 (旧エディタ GrapesJS / Puck 時代のもの。旧エディタ廃止後は新規に書かない)。
+ * 既存データを壊さないために型だけ残す。
  */
 export interface PageLayoutDesign {
   /** 本 PageLayout のエディタ種別。作成時に固定、以降変更不可。 */
@@ -87,9 +83,9 @@ export interface PageLayout extends EntityMeta {
    */
   processFlowId?: ProcessFlowId;
   /**
-   * PageLayout のビジュアル定義参照 (region 配置の Designer 編集対象)。
-   * 生 HTML / Puck data は別ファイル参照。
+   * 旧エディタ (GrapesJS / Puck) のデザイン参照。旧エディタ廃止後は新規作成で書かない。
+   * region への gadget 割り当て (assignments) がページレイアウトの定義の本体。
    */
-  design: PageLayoutDesign;
+  design?: PageLayoutDesign;
   authoring?: Authoring;
 }

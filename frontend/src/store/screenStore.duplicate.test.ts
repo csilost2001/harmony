@@ -1,118 +1,58 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Data } from "@measured/puck";
 
-const { mockGenerateUUID } = vi.hoisted(() => ({
-  mockGenerateUUID: vi.fn<() => string>(() => "uuid-default"),
+const { mockLoad, mockSave } = vi.hoisted(() => ({ mockLoad: vi.fn(), mockSave: vi.fn() }));
+
+vi.mock("./flowStore", () => ({
+  loadProject: vi.fn(async () => ({ screens: [{ id: "dup-screen", name: "注文 (コピー)", kind: "form", path: "/orders-copy", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }] })),
 }));
+vi.mock("./layoutComponentStore", () => ({ loadLayoutComponents: vi.fn(async () => []) }));
 
-vi.mock("../utils/uuid", () => ({
-  generateUUID: mockGenerateUUID,
-}));
+import { setScreenStorageBackend } from "./screenStore";
+import { duplicateScreenContent } from "./duplicateScreen";
 
-vi.mock("../mcp/mcpBridge", () => ({
-  mcpBridge: {
-    loadPuckData: vi.fn(),
-    savePuckData: vi.fn(),
-    request: vi.fn(),
-  },
-}));
+const srcEntity = () => ({
+  id: "src-screen", uuid: "11111111-1111-4111-8111-111111111111", name: "注文", kind: "form", path: "/orders",
+  description: "注文入力", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+  items: [{ id: "qty", label: "数量", type: "integer" }],
+  layout: { version: 1, nodes: [{ id: "f", type: "field", itemRef: "qty" }] },
+});
 
-import { mcpBridge } from "../mcp/mcpBridge";
-import { duplicateScreenDesignData } from "./duplicateScreen";
-
-const mockBridge = mcpBridge as unknown as {
-  loadPuckData: ReturnType<typeof vi.fn>;
-  savePuckData: ReturnType<typeof vi.fn>;
-  request: ReturnType<typeof vi.fn>;
-};
-
-function puckData(data: unknown): Data {
-  return data as Data;
-}
-
-describe("duplicateScreenDesignData", () => {
+describe("duplicateScreenContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGenerateUUID.mockReturnValue("regenerated-id");
+    mockLoad.mockImplementation(async (id: string) => (id === "src-screen" ? srcEntity() : null));
+    setScreenStorageBackend({ loadScreenEntity: mockLoad, saveScreenEntity: mockSave });
   });
 
-  it("puck は loadPuckData で読み、ID 再生成後に savePuckData へ保存する", async () => {
-    const src = puckData({
-      root: { props: {} },
-      content: [{ type: "Text", props: { id: "old-id", text: "hello" } }],
+  it("画面項目とレイアウトを複製先に保存する。uuid・名前・パスは複製先のもの", async () => {
+    await duplicateScreenContent("src-screen", "dup-screen");
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    const [id, saved] = mockSave.mock.calls[0];
+    expect(id).toBe("dup-screen");
+    expect(saved).toMatchObject({
+      id: "dup-screen", name: "注文 (コピー)", path: "/orders-copy", description: "注文入力",
+      items: [{ id: "qty" }], layout: { nodes: [{ id: "f", itemRef: "qty" }] },
     });
-    mockBridge.loadPuckData.mockResolvedValue(src);
-
-    await duplicateScreenDesignData("src-screen", "dup-screen", "puck");
-
-    expect(mockBridge.loadPuckData).toHaveBeenCalledWith("src-screen");
-    expect(mockBridge.savePuckData).toHaveBeenCalledTimes(1);
-    expect(mockBridge.savePuckData).toHaveBeenCalledWith("dup-screen", {
-      root: { props: {} },
-      content: [{ type: "Text", props: { id: "regenerated-id", text: "hello" } }],
-    });
-    expect(mockBridge.request).not.toHaveBeenCalled();
+    expect(saved.uuid).not.toBe(srcEntity().uuid);
   });
 
-  it("grapesjs は loadScreen で読み、saveScreen へ同じ data を保存する", async () => {
-    const src = {
-      assets: [],
-      pages: [{ frames: [{ component: { type: "wrapper" } }] }],
-      styles: [],
-    };
-    mockBridge.request.mockResolvedValueOnce(src).mockResolvedValueOnce({ success: true });
-
-    await duplicateScreenDesignData("src-screen", "dup-screen", "grapesjs");
-
-    expect(mockBridge.request).toHaveBeenNthCalledWith(1, "loadScreen", { screenId: "src-screen" });
-    expect(mockBridge.request).toHaveBeenNthCalledWith(2, "saveScreen", {
-      screenId: "dup-screen",
-      data: src,
-    });
-    expect(mockBridge.loadPuckData).not.toHaveBeenCalled();
-    expect(mockBridge.savePuckData).not.toHaveBeenCalled();
+  it("複製は元と独立している (コピー側を変えても元は変わらない)", async () => {
+    const src = srcEntity();
+    mockLoad.mockImplementation(async (id: string) => (id === "src-screen" ? src : null));
+    await duplicateScreenContent("src-screen", "dup-screen");
+    const saved = mockSave.mock.calls[0][1];
+    saved.items[0].label = "変更";
+    saved.layout.nodes[0].itemRef = "other";
+    expect(src.items[0].label).toBe("数量");
+    expect(src.layout.nodes[0].itemRef).toBe("qty");
   });
 
-  it("puck の load が null の場合は保存しない", async () => {
-    mockBridge.loadPuckData.mockResolvedValue(null);
-
-    await duplicateScreenDesignData("src-screen", "dup-screen", "puck");
-
-    expect(mockBridge.savePuckData).not.toHaveBeenCalled();
-  });
-
-  it("grapesjs の load が undefined の場合は保存しない", async () => {
-    mockBridge.request.mockResolvedValue(undefined);
-
-    await duplicateScreenDesignData("src-screen", "dup-screen", "grapesjs");
-
-    expect(mockBridge.request).toHaveBeenCalledTimes(1);
-    expect(mockBridge.request).toHaveBeenCalledWith("loadScreen", { screenId: "src-screen" });
-  });
-
-  it("grapesjs 経路で saveScreen は呼ばれるが savePuckData / loadPuckData は呼ばれない (entity.editorKind/cssFramework を Puck API で上書きしない)", async () => {
-    // wsBridge.ts の writeScreen は {screenId}.design.json と {screenId}.json (entity) を両方書く設計。
-    // ただし entity 書き込みは projectStorage.ts:377 のスプレッド `{ ...entity.design, designFileRef: ... }`
-    // 経由なので editorKind / cssFramework は保持される (pre-existing 設計に依存)。
-    // このテストでは GrapesJS 経路が Puck 専用 API (savePuckData) を呼ばないことを保証し、
-    // entity 上書き経路が mcpBridge.request("saveScreen") のみであることを trace 可能にする。
-    const src = {
-      assets: [],
-      pages: [{ frames: [{ component: { type: "wrapper" } }] }],
-      styles: [],
-    };
-    mockBridge.request.mockResolvedValueOnce(src).mockResolvedValueOnce({ success: true });
-
-    await duplicateScreenDesignData("src-screen", "dup-screen", "grapesjs");
-
-    // GrapesJS の保存は request("saveScreen") のみ — entity の editorKind/cssFramework は
-    // wsBridge 側のスプレッドで保持される (projectStorage.ts:377 参照)
-    expect(mockBridge.request).toHaveBeenNthCalledWith(2, "saveScreen", {
-      screenId: "dup-screen",
-      data: src,
-    });
-    // Puck 専用 API は呼ばれない (entity を Puck 経路で二重上書きしない)
-    expect(mockBridge.savePuckData).not.toHaveBeenCalled();
-    expect(mockBridge.loadPuckData).not.toHaveBeenCalled();
+  it("旧形式のデザインだけの画面は、見出しだけの空のレイアウトで複製される", async () => {
+    mockLoad.mockImplementation(async (id: string) => (id === "src-screen" ? { ...srcEntity(), layout: undefined, design: { designFileRef: "src-screen.design.json" } } : null));
+    await duplicateScreenContent("src-screen", "dup-screen");
+    const saved = mockSave.mock.calls[0][1];
+    expect(saved.layout.nodes).toHaveLength(1);
+    expect(saved.layout.nodes[0]).toMatchObject({ type: "heading", props: { text: "注文 (コピー)" } });
+    expect(saved.design).toBeUndefined();
   });
 });

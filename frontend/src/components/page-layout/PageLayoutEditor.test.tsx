@@ -47,26 +47,34 @@ vi.mock("../../mcp/mcpBridge", () => ({
     startWithoutEditor: vi.fn(),
     onStatusChange: vi.fn(() => () => {}),
     onBroadcast: vi.fn(() => () => {}),
-    request: vi.fn((method: string, params?: { screenId?: string }) => {
-      const resolveLoadScreen = (payload: unknown) => {
-        if (!previewMock.defer) return Promise.resolve(payload);
-        return new Promise((resolve) => {
-          previewMock.pending.push(() => resolve(payload));
-        });
-      };
-      if (method === "loadScreen" && params?.screenId === "global-header") {
-        return resolveLoadScreen({
-          pages: [{ frames: [{ component: { components: "<header>Header Body</header>" } }] }],
-        });
-      }
-      if (method === "loadScreen" && params?.screenId === "dashboard") {
-        return resolveLoadScreen({
-          pages: [{ frames: [{ component: { components: "<main>Dashboard Body</main>" } }] }],
-        });
-      }
-      return Promise.resolve({ sessions: [] });
-    }),
+    request: vi.fn(() => Promise.resolve({ sessions: [] })),
   },
+}));
+
+// 合成プレビューは画面の業務部品レイアウト (screen.layout) を設計書と同じ描画で表示する
+vi.mock("../../store/screenStore", () => {
+  const entity = (id: string, text: string) => ({
+    id, items: [],
+    layout: { version: 1, nodes: [{ id: "title", type: "heading", props: { text, level: 2 } }] },
+  });
+  const entities: Record<string, unknown> = {
+    "global-header": entity("global-header", "Header Body"),
+    dashboard: entity("dashboard", "Dashboard Body"),
+  };
+  return {
+    loadScreenEntity: vi.fn((screenId: string) => {
+      const payload = entities[screenId];
+      if (!payload) return Promise.reject(new Error("not found"));
+      if (!previewMock.defer) return Promise.resolve(payload);
+      return new Promise((resolve) => {
+        previewMock.pending.push(() => resolve(payload));
+      });
+    }),
+  };
+});
+
+vi.mock("../../store/layoutComponentStore", () => ({
+  loadLayoutComponents: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("../../store/pageLayoutStore", async () => {

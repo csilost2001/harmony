@@ -1,12 +1,12 @@
 /**
  * techStackConstraints.ts のユニットテスト (#826)。
  *
- * 5 制約ルールを全て網羅:
- *   1. editorKind=puck → frontend.library="react" 必須
- *   2. BE 言語 ↔ BE フレームワーク matrix 制約
- *   3. thymeleaf | blade → editorKind=grapesjs 必須
- *   4. vue → framework は nuxt | vite | none のみ
- *   5. react → framework は next | vite | none のみ
+ * 制約ルールを全て網羅:
+ *   - BE 言語 ↔ BE フレームワーク matrix 制約
+ *   - vue → framework は nuxt | vite | none のみ
+ *   - react → framework は next | vite | none のみ
+ * (旧エディタ GrapesJS / Puck の廃止に伴い、エディタ種別を前提にした制約は無い。
+ *  旧データの designer.editorKind は無視される)
  */
 import { describe, it, expect } from "vitest";
 import { validateTechStackConstraints } from "./techStackConstraints";
@@ -20,49 +20,10 @@ describe("validateTechStackConstraints", () => {
     expect(validateTechStackConstraints({})).toEqual([]);
   });
 
-  // ── 制約 1: puck → react 必須 ──────────────────────────────────────────────
-
-  describe("制約 1: editorKind=puck → frontend.library='react' 必須", () => {
-    it("puck + react の組合せは OK", () => {
-      const result = validateTechStackConstraints({
-        designer: { editorKind: "puck" },
-        frontend: { library: "react" },
-      });
-      expect(result).toHaveLength(0);
-    });
-
-    it("puck + thymeleaf は違反 (制約 1 と 3 の両方)", () => {
-      const result = validateTechStackConstraints({
-        designer: { editorKind: "puck" },
-        frontend: { library: "thymeleaf" },
-      });
-      expect(result.length).toBeGreaterThanOrEqual(2);
-      expect(result.some((v) => v.field === "frontend.library")).toBe(true);
-      expect(result.some((v) => v.field === "designer.editorKind")).toBe(true);
-    });
-
-    it("puck + vue は制約 1 違反", () => {
-      const result = validateTechStackConstraints({
-        designer: { editorKind: "puck" },
-        frontend: { library: "vue" },
-      });
-      expect(result.some((v) => v.field === "frontend.library")).toBe(true);
-    });
-
-    it("puck で frontend が未定義の場合は制約 1 は発動しない", () => {
-      const result = validateTechStackConstraints({
-        designer: { editorKind: "puck" },
-      });
-      expect(result.some((v) => v.field === "frontend.library")).toBe(false);
-    });
-
-    it("grapesjs + thymeleaf は OK", () => {
-      const result = validateTechStackConstraints({
-        designer: { editorKind: "grapesjs" },
-        frontend: { library: "thymeleaf" },
-      });
-      expect(result).toHaveLength(0);
-    });
+  it("旧データの designer.editorKind は制約に影響しない (どのフロントエンドとも組み合わせられる)", () => {
+    for (const lib of ["react", "vue", "thymeleaf", "blade"] as const) {
+      expect(validateTechStackConstraints({ designer: { editorKind: "puck" }, frontend: { library: lib } })).toEqual([]);
+    }
   });
 
   // ── 制約 2: BE 言語 × フレームワーク matrix ─────────────────────────────────
@@ -147,42 +108,6 @@ describe("validateTechStackConstraints", () => {
     });
   });
 
-  // ── 制約 3: thymeleaf | blade → editorKind=grapesjs ──────────────────────
-
-  describe("制約 3: thymeleaf | blade → editorKind=grapesjs 必須", () => {
-    it("thymeleaf + puck は制約 3 違反", () => {
-      const result = validateTechStackConstraints({
-        designer: { editorKind: "puck" },
-        frontend: { library: "thymeleaf" },
-      });
-      expect(result.some((v) => v.field === "designer.editorKind")).toBe(true);
-    });
-
-    it("blade + puck は制約 3 違反", () => {
-      const result = validateTechStackConstraints({
-        designer: { editorKind: "puck" },
-        frontend: { library: "blade" },
-      });
-      expect(result.some((v) => v.field === "designer.editorKind")).toBe(true);
-    });
-
-    it("thymeleaf + grapesjs は OK", () => {
-      const result = validateTechStackConstraints({
-        designer: { editorKind: "grapesjs" },
-        frontend: { library: "thymeleaf" },
-      });
-      expect(result).toHaveLength(0);
-    });
-
-    it("blade + grapesjs は OK", () => {
-      const result = validateTechStackConstraints({
-        designer: { editorKind: "grapesjs" },
-        frontend: { library: "blade" },
-      });
-      expect(result).toHaveLength(0);
-    });
-  });
-
   // ── 制約 4: vue → framework は nuxt | vite | none のみ ─────────────────────
 
   describe("制約 4: vue → framework は nuxt | vite | none のみ", () => {
@@ -250,9 +175,9 @@ describe("validateTechStackConstraints", () => {
   // ── 複合制約テスト ───────────────────────────────────────────────────────────
 
   describe("複合制約テスト", () => {
-    it("全て valid な典型スタック (Java Spring + PostgreSQL + Thymeleaf + GrapesJS)", () => {
+    it("全て valid な典型スタック (Java Spring + PostgreSQL + Thymeleaf)", () => {
       const result = validateTechStackConstraints({
-        designer: { editorKind: "grapesjs", cssFramework: "bootstrap" },
+        designer: { cssFramework: "bootstrap" },
         backend: { language: "java", framework: "spring-boot" },
         database: { type: "postgresql", version: "16" },
         frontend: { library: "thymeleaf" },
@@ -262,9 +187,9 @@ describe("validateTechStackConstraints", () => {
       expect(result).toHaveLength(0);
     });
 
-    it("全て valid な典型スタック (TypeScript Next + React + Puck)", () => {
+    it("全て valid な典型スタック (TypeScript Next + React)", () => {
       const result = validateTechStackConstraints({
-        designer: { editorKind: "puck", cssFramework: "tailwind" },
+        designer: { cssFramework: "tailwind" },
         backend: { language: "typescript", framework: "nestjs" },
         database: { type: "postgresql" },
         frontend: { library: "react", framework: "next" },
@@ -274,14 +199,13 @@ describe("validateTechStackConstraints", () => {
       expect(result).toHaveLength(0);
     });
 
-    it("複数違反が同時に検出される (puck + thymeleaf + java + gin)", () => {
+    it("複数違反が同時に検出される (java + gin + react + nuxt)", () => {
       const result = validateTechStackConstraints({
-        designer: { editorKind: "puck" },
         backend: { language: "java", framework: "gin" },
-        frontend: { library: "thymeleaf" },
+        frontend: { library: "react", framework: "nuxt" },
       });
-      // 制約 1 (frontend.library), 2 (backend.framework), 3 (designer.editorKind) の 3 件
-      expect(result.length).toBeGreaterThanOrEqual(3);
+      // backend.framework と frontend.framework の 2 件
+      expect(result.map((v) => v.field).sort()).toEqual(["backend.framework", "frontend.framework"]);
       expect(result.every((v) => v.severity === "error")).toBe(true);
     });
   });

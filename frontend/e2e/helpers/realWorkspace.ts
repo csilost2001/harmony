@@ -23,7 +23,6 @@ import * as net from "net";
 import WebSocketImpl from "ws";
 import type {
   Conventions,
-  CustomBlock,
   ProcessFlow,
   Harmony,
   Screen,
@@ -127,10 +126,6 @@ export interface SetupTestWorkspaceOptions {
   screenEntities?: Screen[];
   /** Screen design (puck data 等) — `harmony/screens/<id>.design.json` */
   screenDesigns?: ScreenDesignInput[];
-  /** v3 CustomBlock[] — harmony/custom-blocks.json */
-  customBlocks?: CustomBlock[];
-  /** Puck コンポーネント (`harmony/puck-components.json`) */
-  puckComponents?: unknown[];
   /** ER レイアウト (`harmony/er-layout.json`) */
   erLayout?: unknown;
   /** v3 ScreenFlowPositions — screen-flow-positions.json (画面フロー用座標) */
@@ -570,12 +565,6 @@ export async function setupTestWorkspace(opts: SetupTestWorkspaceOptions): Promi
   }
   if (opts.conventions !== undefined) {
     await writeJson(path.join(dataDir, "conventions", "catalog.json"), opts.conventions);
-  }
-  if (opts.customBlocks !== undefined) {
-    await writeJson(path.join(dataDir, "custom-blocks.json"), opts.customBlocks);
-  }
-  if (opts.puckComponents !== undefined) {
-    await writeJson(path.join(dataDir, "puck-components.json"), opts.puckComponents);
   }
   if (opts.erLayout !== undefined) {
     await writeJson(path.join(dataDir, "er-layout.json"), opts.erLayout);

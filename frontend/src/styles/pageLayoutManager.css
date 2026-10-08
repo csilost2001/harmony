@@ -341,3 +341,11 @@
       / 1fr;
   }
 }
+
+/* 合成プレビュー: 業務部品レイアウトは設計書と同じ描画 (明色の紙面)。アプリのテーマに関係なく読めるようにする */
+.plm-design-body.hd-doc {
+  background: var(--d-fill);
+  color: var(--d-ink);
+  max-width: none;
+  margin: 0;
+}

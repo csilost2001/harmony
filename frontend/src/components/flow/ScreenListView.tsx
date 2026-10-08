@@ -5,11 +5,10 @@ import type { ScreenNode } from "../../types/flow";
 import { SCREEN_KIND_LABELS, SCREEN_KIND_ICONS } from "../../types/flow";
 import type { ScreenId, ScreenKind, Timestamp, PageLayoutId } from "../../types/v3";
 import type { PageLayoutEntry } from "../../types/v3/harmony";
-import { loadProject, loadRawProject, saveProject, addScreen, removeScreen, DEFAULT_NODE_SIZE } from "../../store/flowStore";
-import { buildDefaultScreen, loadPuckScreenValidationMap, saveScreenEntity } from "../../store/screenStore";
+import { loadProject, saveProject, addScreen, removeScreen, DEFAULT_NODE_SIZE } from "../../store/flowStore";
+import { buildDefaultScreen, loadScreenValidationMap, saveScreenEntity } from "../../store/screenStore";
+import { duplicateScreenContent } from "../../store/duplicateScreen";
 import { listPageLayouts } from "../../store/pageLayoutStore";
-import { resolveEditorKind } from "../../utils/resolveEditorKind";
-import { resolveCssFramework } from "../../utils/resolveCssFramework";
 import { mcpBridge } from "../../mcp/mcpBridge";
 import { makeTabId } from "../../store/tabStore";
 import { renumber } from "../../utils/listOrder";
@@ -76,18 +75,13 @@ export function ScreenListView() {
     renamedToastNewId,
     wsId,
   );
-  // project.techStack.designer の project default (画面作成ダイアログのデフォルト選択値)
-  const [projectDefaultEditorKind, setProjectDefaultEditorKind] = useState<"grapesjs" | "puck">("grapesjs");
-  const [projectDefaultCssFramework, setProjectDefaultCssFramework] = useState<"bootstrap" | "tailwind">("bootstrap");
   const [validationMap, setValidationMap] = useState<Map<string, ValidationSummary>>(new Map());
   // pageLayoutId 選択 dropdown 用 (pl-4, #1025)
   const [pageLayouts, setPageLayouts] = useState<PageLayoutEntry[]>([]);
 
   const loadScreens = useCallback(async (): Promise<ScreenNode[]> => {
     mcpBridge.startWithoutEditor();
-    const [p, raw] = await Promise.all([loadProject(), loadRawProject()]);
-    setProjectDefaultEditorKind(resolveEditorKind(undefined, raw.techStack));
-    setProjectDefaultCssFramework(resolveCssFramework(undefined, raw.techStack));
+    const p = await loadProject();
     // purpose='gadget' はガジェット一覧 (/gadget/list) で管理するため除外 (pl-4, #1025)
     return p.screens.filter((s) => s.purpose !== "gadget");
   }, []);
@@ -140,9 +134,9 @@ export function ScreenListView() {
   useEffect(() => {
     // react-hooks/set-state-in-effect 回避: 空入力時の同期 setState を削除し、
     // 常に loader 経由 (.then 内 setState は許可される非同期 path)。
-    // loadPuckScreenValidationMap() は screens 空でも空 Map を返すため安全。
+    // loadScreenValidationMap() は screens 空でも空 Map を返すため安全。
     let cancelled = false;
-    loadPuckScreenValidationMap()
+    loadScreenValidationMap()
       .then((map) => {
         if (cancelled) return;
         const next = new Map<string, ValidationSummary>();
@@ -263,6 +257,8 @@ export function ScreenListView() {
     project.screens.push(dup);
     project.screens = renumber(project.screens);
     await saveProject(project);
+    // 画面項目とレイアウトも複製する
+    await duplicateScreenContent(src.id, dup.id);
     return dup.id;
   };
 
@@ -458,16 +454,12 @@ export function ScreenListView() {
         await saveProject(project);
       }
     } else {
-      const editorKind = data.editorKind ?? projectDefaultEditorKind;
-      const cssFramework = data.cssFramework ?? projectDefaultCssFramework;
       // RFC #1284 / #1297 I-5: kebab-case id を modal から受け取って addScreen に渡す
-      const screen = await addScreen(project, data.name, data.type as ScreenKind, { path: data.path, editorKind, cssFramework, id: data.id });
+      const screen = await addScreen(project, data.name, data.type as ScreenKind, { path: data.path, id: data.id });
       screen.description = data.description;
       await saveProject(project);
-      // screen.design に editorKind/cssFramework を明示書き込み (spec § 2.5.2)
-      const entity = await buildDefaultScreen(screen.id);
-      entity.design = { ...entity.design, editorKind, cssFramework };
-      await saveScreenEntity(entity);
+      // 新しい画面は空の業務部品レイアウト (見出しだけ) を持つ
+      await saveScreenEntity(await buildDefaultScreen(screen.id));
     }
     setScreenModal({ open: false });
     await editor.reload();
@@ -732,8 +724,6 @@ export function ScreenListView() {
         initial={screenModal.initial}
         title={screenModal.editId ? "画面の編集" : "画面の追加"}
         isCreate={!screenModal.editId}
-        defaultEditorKind={projectDefaultEditorKind}
-        defaultCssFramework={projectDefaultCssFramework}
         pageLayouts={screenModal.editId ? pageLayouts : undefined}
         existingScreenIds={existingScreenIds}
         onSave={(data) => { handleScreenSave(data).catch(console.error); }}

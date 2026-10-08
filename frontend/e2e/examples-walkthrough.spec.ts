@@ -8,7 +8,7 @@
  *   - 個別エディタ (Designer / TableEditor / ProcessFlowEditor) の open
  *   - TableEditor / ProcessFlowEditor の round-trip (編集 → 保存 → タブ閉じる
  *     → 再オープン → 反映確認)
- *   - 各 example のドメイン特性 (table 数 / Puck container / cssFramework 等) を
+ *   - 各 example のドメイン特性 (table 数 / cssFramework 等) を
  *     最低 1 検証
  *
  * タグ: @endurance — デフォルト除外、E2E_INCLUDE_ENDURANCE=1 で実行。
@@ -46,7 +46,7 @@ interface ExampleSpec {
  * per-session activePath 未設定の問題があるため fs 直読みで代替する。
  */
 async function readHarmonyJson(workspacePath: string): Promise<{
-  techStack?: { designer?: { cssFramework?: string; editorKind?: string } };
+  techStack?: { designer?: { cssFramework?: string } };
 }> {
   const file = path.join(workspacePath, "harmony.json");
   const content = await fs.readFile(file, "utf-8");
@@ -132,8 +132,7 @@ async function dismissResumeDialogIfAny(page: Page): Promise<void> {
 
 /**
  * 画面一覧から最初の画面デザイナーを開いて確認し、タブを閉じる。
- * editorKind に応じて .designer-root (GrapesJS) または
- * [data-testid='puck-editor-container'] (Puck) のいずれかが存在すれば OK。
+ * 業務部品デザイナ ([data-testid='screen-layout-designer']) が表示されれば OK。
  */
 async function openAndCloseDesigner(page: Page): Promise<void> {
   const wsRoot = await currentWorkspaceRoot(page);
@@ -144,10 +143,7 @@ async function openAndCloseDesigner(page: Page): Promise<void> {
   await expect(firstRow).toBeVisible({ timeout: 10000 });
   await firstRow.dblclick();
   await expect(page).toHaveURL(new RegExp(`${wsPrefix}/screen/design/[^/]+$`));
-  // GrapesJS または Puck のどちらかが表示されれば OK (20 秒 timeout)
-  await expect(
-    page.locator(".designer-root, [data-testid='puck-editor-container']"),
-  ).toBeVisible({ timeout: 20000 });
+  await expect(page.getByTestId("screen-layout-designer")).toBeVisible({ timeout: 20000 });
   // アクティブタブを閉じる
   await page.locator(".tabbar-tab.active .tabbar-tab-close").click({ force: true });
   // 閉じた後 URL が変化することを待つ (完全消滅しなくても OK)
@@ -358,21 +354,17 @@ const EXAMPLES: ExampleSpec[] = [
     name: "english-learning",
     fixtureKey: "issue-931-english-learning",
     domainAssertion: async (page: Page, workspacePath: string) => {
-      // english-learning: editorKind=grapesjs / cssFramework=bootstrap
-      // 画面一覧の最初の画面を開いて GrapesJS エディタが起動することを確認
+      // english-learning: cssFramework=bootstrap
+      // 画面一覧の最初の画面を開いて業務部品デザイナが起動することを確認
       const wsRoot = await currentWorkspaceRoot(page);
       await spaNavigate(page, `${wsRoot}/screen/list`);
       await expect(page.locator(".screen-list-page")).toBeVisible({ timeout: 15000 });
       const firstScreen = page.locator("[data-row-id]").first();
       await expect(firstScreen).toBeVisible({ timeout: 10000 });
       await firstScreen.dblclick();
-      // GrapesJS の場合: .designer-root が表示される
-      await expect(
-        page.locator(".designer-root, [data-testid='puck-editor-container']"),
-      ).toBeVisible({ timeout: 20000 });
+      await expect(page.getByTestId("screen-layout-designer")).toBeVisible({ timeout: 20000 });
       // techStack を harmony.json から直接読む
       const project = await readHarmonyJson(workspacePath);
-      expect(project.techStack?.designer?.editorKind).toBe("grapesjs");
       expect(project.techStack?.designer?.cssFramework).toBe("bootstrap");
     },
   },
@@ -380,20 +372,17 @@ const EXAMPLES: ExampleSpec[] = [
     name: "english-learning-tailwind",
     fixtureKey: "issue-931-english-tailwind",
     domainAssertion: async (page: Page, workspacePath: string) => {
-      // english-learning-tailwind: editorKind=puck / cssFramework=tailwind
+      // english-learning-tailwind: cssFramework=tailwind
       const wsRoot = await currentWorkspaceRoot(page);
       await spaNavigate(page, `${wsRoot}/screen/list`);
       await expect(page.locator(".screen-list-page")).toBeVisible({ timeout: 15000 });
       const firstScreen = page.locator("[data-row-id]").first();
       await expect(firstScreen).toBeVisible({ timeout: 10000 });
       await firstScreen.dblclick();
-      // Puck エディタが表示されることを確認
-      await expect(
-        page.locator("[data-testid='puck-editor-container']"),
-      ).toBeVisible({ timeout: 20000 });
+      // 業務部品デザイナが表示されることを確認
+      await expect(page.getByTestId("screen-layout-designer")).toBeVisible({ timeout: 20000 });
       // techStack を harmony.json から直接読む
       const project = await readHarmonyJson(workspacePath);
-      expect(project.techStack?.designer?.editorKind).toBe("puck");
       expect(project.techStack?.designer?.cssFramework).toBe("tailwind");
     },
   },

@@ -25,7 +25,7 @@ export type NarrowBrand<K, T> = K & { readonly [__narrowBrand]: T };
  * pattern: `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`
  *
  * RFC #1284 (I-7) 以降、top-level entity の業務識別子は kebab-case の `EntityId` に変更。
- * `Uuid` は `EntityMeta.uuid` (不変識別子) と UUID base を維持する internal entity (現状 CustomBlock のみ) に限定使用。
+ * `Uuid` は `EntityMeta.uuid` (不変識別子) に限定使用。
  */
 export type Uuid = Brand<string, "Uuid">;
 
@@ -51,16 +51,6 @@ export type ViewDefinitionId = NarrowBrand<EntityId, "ViewDefinition">;
 export type SequenceId = NarrowBrand<EntityId, "Sequence">;
 export type PageLayoutId = NarrowBrand<EntityId, "PageLayout">;
 export type ProjectId = NarrowBrand<EntityId, "Project">;
-
-/**
- * CustomBlock の識別子。schema (`custom-block.v3.schema.json`) は UUID base を維持。
- *
- * #1332 Codex 再 review M4: 旧 `Brand<Uuid, "CustomBlockId">` は base の `Uuid`
- * (= `Brand<string, "Uuid">`) と brand-key `__brand` の衝突を起こし intersection が
- * `never` に潰れ subtype guarantee が失われていた。`NarrowBrand<Uuid, ...>` で
- * 別 symbol を用いて narrow tag を付けることで型境界を回復する。
- */
-export type CustomBlockId = NarrowBrand<Uuid, "CustomBlock">;
 
 /**
  * ScreenGroup の識別子。schema (`harmony.v3.schema.json` / `screen.v3.schema.json`)
@@ -180,7 +170,7 @@ export type Mode = "upstream" | "downstream";
 
 /**
  * 全 top-level entity (Harmony / Screen / Table / ProcessFlow / View / ViewDefinition / Sequence / PageLayout 等)
- * の共通 meta。CustomBlock のような特殊形式 entity は EntityMeta を採用しない (個別型で定義)。
+ * の共通 meta。
  *
  * RFC #1284 (I-7) で `id` を kebab-case の `EntityId` に変更、不変識別子 `uuid` (UUID v4) を required field として併記。
  * I-7 シリーズ (I-7-1〜I-7-6) で TypeScript 型基盤を schema と完全同期完了
