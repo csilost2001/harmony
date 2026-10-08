@@ -418,10 +418,33 @@ async function fileExists(filePath: string): Promise<boolean> {
 async function writeJSON(filePath: string, data: unknown): Promise<void> {
   const json = JSON.stringify(data, null, 2);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, json, "utf-8");
+  // 同じディレクトリの一時ファイルに書いてから rename で置き換える。直接 writeFile すると
+  // 切り詰め〜書き込みの間に並行して読んだ側が空 / 途中の JSON を読み、「存在しない」扱いになる。
+  const tmp = path.join(path.dirname(filePath), `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`);
+  try {
+    await fs.writeFile(tmp, json, "utf-8");
+    await fs.rename(tmp, filePath);
+  } catch (e) {
+    await fs.rm(tmp, { force: true }).catch(() => undefined);
+    throw e;
+  }
 }
 
-async function readEntityAndEnsureUuid(
+/** 同じファイルへの uuid 補完が並行すると別々の uuid を書き合うため、ファイル単位で 1 本にまとめる */
+const ensureUuidInFlight = new Map<string, Promise<unknown | null>>();
+
+function readEntityAndEnsureUuid(
+  kind: TopLevelEntityKind,
+  filePath: string,
+): Promise<unknown | null> {
+  const pending = ensureUuidInFlight.get(filePath);
+  if (pending) return pending.then((d) => (d && typeof d === "object" ? structuredClone(d) : d));
+  const p = readEntityAndEnsureUuidOnce(kind, filePath).finally(() => ensureUuidInFlight.delete(filePath));
+  ensureUuidInFlight.set(filePath, p);
+  return p;
+}
+
+async function readEntityAndEnsureUuidOnce(
   kind: TopLevelEntityKind,
   filePath: string,
 ): Promise<unknown | null> {

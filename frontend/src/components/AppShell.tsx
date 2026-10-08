@@ -638,6 +638,10 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
       // wsId が解決された URL を期待: /w/:wsId/... のとき active.id と一致するまで待つ
       if (wsId && workspaceState.active.id !== wsId) return;
     }
+    // リロード直後は backend 側の per-session workspace が未確立 (他タブ / 他接続が最後に
+    // 開いた workspace が既定になる)。描画と同じく restore 完了まで待たないと、
+    // 別 workspace に対して loadTable 等が走り「見つかりません」でダッシュボードへ戻される。
+    if (!isWorkspaceChildRouteReady(workspaceState, wsId, __initialRestoreDoneWsIds, __recoveryPendingWsId)) return;
 
     uiInfo("urlsync", "pathname change", { pathname: location.pathname });
 
@@ -916,7 +920,7 @@ function AppShellInner({ wsId }: { wsId: string | undefined }) {
         return;
       }
     }
-  }, [location.pathname, fallbackToDashboard, wsId, workspaceState.loading, workspaceState.active, workspaceState.lockdown, workspaceState.error]);
+  }, [location.pathname, fallbackToDashboard, wsId, workspaceState]);
 
   // アクティブタブ → URL 同期
   // workspace が完全未選択 (active=null + wsId 無し) や /workspace/select 表示中は同期を停止する。
