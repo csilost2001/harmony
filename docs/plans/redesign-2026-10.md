@@ -66,3 +66,9 @@
 - 画面項目 ID の改名 (`designer__rename_screen_item`) は、未移行の画面の旧デザイン HTML も書き換える処理を残している
 - 独自部品の差し込み値のうち遷移先の画面 ID は、画面 ID の改名で自動更新しない (検証で警告)
 - `docs/html` (仕様書 HTML) は `npm run docs:build` で再生成する必要がある
+
+
+### 2026-10-09 追記: 報告書第 2 弾の判断事項の反映 (設計者「すべて推奨通り」)
+
+- サンプルの `*.design.json` (49 件) と画面 / ページレイアウトの `design` 参照 (48 件) を削除。旧デザインの有無を調べる検証 (`MISSING_DESIGN_FILE` / `EXTERNAL_DESIGN_REF`) も廃止。自動変換の E2E は旧形式データをテストの中で作る
+- 画面項目に `nonVisual` (画面に表示しない) を追加 (screen-item スキーマ。仕様: `docs/spec/screen-items.md`)。未配置の警告・自動配置の対象外。説明文の文言での判定は廃止

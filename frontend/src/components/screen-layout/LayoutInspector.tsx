@@ -368,6 +368,9 @@ function ItemEditor({ item, editable, onItemChange, onCommit, isTable }: {
           </Row>
         </div>
       )}
+      <div className="sld-checks">
+        <label title="画面の内部状態・隠し値。部品として置かず、未配置の警告・自動配置の対象外にする"><input type="checkbox" checked={!!item.nonVisual} disabled={!editable} onChange={(e) => set("nonVisual", e.target.checked || undefined)} data-testid="layout-item-non-visual" /> 画面に表示しない</label>
+      </div>
       {!isTable && item.direction !== "out" && (
         <>
           <div className="sld-checks">

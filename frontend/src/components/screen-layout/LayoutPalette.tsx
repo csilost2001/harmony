@@ -72,7 +72,8 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
   const [tableId, setTableId] = useState<string>("");
   // 独自部品の中 (args 経由) で使われている項目も「配置済み」に数える
   const placed = useMemo(() => collectExpandedItemRefs(nodes, components), [nodes, components]);
-  const unplaced = items.filter((i) => !placed.has(i.id as string));
+  const unplaced = items.filter((i) => !placed.has(i.id as string) && !i.nonVisual);
+  const hidden = items.filter((i) => !placed.has(i.id as string) && i.nonVisual);
   const table = tables.find((t) => t.id === tableId) ?? tables[0];
 
   return (
@@ -171,6 +172,22 @@ export function LayoutPalette({ editable, nodes, items, tables, selectedId, onAd
               </li>
             ))}
           </ul>
+          {hidden.length > 0 && (
+            <>
+              <h4 className="sld-group-title">画面に表示しない項目</h4>
+              <p className="sld-hint">画面の内部状態・隠し値。クリックで画面に置くと、右パネルで「画面に表示しない」を外せます。</p>
+              <ul className="sld-list sld-list-muted">
+                {hidden.map((i) => (
+                  <li key={i.id}>
+                    <button type="button" className="sld-list-item" disabled={!editable} onClick={() => onPlaceItem(i.id as string)} data-testid={`layout-hidden-${i.id}`}>
+                      <span>{i.label || i.id}</span>
+                      <code>{i.id}</code>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           <h4 className="sld-group-title">配置済み</h4>
           <ul className="sld-list sld-list-muted">
             {items.filter((i) => placed.has(i.id as string)).map((i) => (

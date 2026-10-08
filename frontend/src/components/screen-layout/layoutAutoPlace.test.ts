@@ -96,10 +96,11 @@ describe("autoPlaceItems", () => {
     expect(find(r.layout.nodes, "f")?.children?.map((c) => c.id)).toEqual(["a", "b", "go"]);
   });
 
-  it("画面の内部状態だけの項目 (説明に「画面 state」と明記) は自動配置しない", () => {
-    const state = item("selectedPhotoId", { description: "AI画像alt生成 button 押下時に対象となる photos[] の id を保持する画面 state。" });
+  it("画面に表示しない項目 (nonVisual) は自動配置せず、未配置の警告にも数えない", () => {
+    const state = item("selectedPhotoId", { nonVisual: true });
     expect(isStateOnlyItem(state)).toBe(true);
-    expect(isStateOnlyItem(item("name", { description: "氏名の入力欄" }))).toBe(false);
+    expect(isStateOnlyItem(item("name", { description: "画面 state ではなく氏名の入力欄" }))).toBe(false);
+    expect(validateLayoutWithComponents(layout([]), [state, item("name")], []).filter((i) => i.code === "unplaced-item").map((i) => i.itemId)).toEqual(["name"]);
     expect(autoPlaceItems(layout([]), [state, item("name")]).placements.map((p) => p.itemId)).toEqual(["name"]);
   });
 

@@ -51,6 +51,8 @@ test.describe("業務部品デザイナ", () => {
       const strip = (ns: Array<{ itemRef?: string; children?: unknown[] }>): Array<{ itemRef?: string; children?: unknown[] }> =>
         ns.filter((n) => n.itemRef !== "trackingNumber").map((n) => (n.children ? { ...n, children: strip(n.children as typeof ns) } : n));
       s.layout.nodes = strip(s.layout.nodes);
+      // 画面に表示しない項目 (どこにも置かない) を 1 件足す
+      s.items.push({ id: "internalState", label: "内部状態", type: "string", direction: "in", nonVisual: true });
       await fs.writeFile(p, JSON.stringify(s, null, 2));
     }
     // 未移行 (旧デザインのみ) の画面を再現するため、一部の画面から layout を外し、旧形式 (GrapesJS) のデザインを置く
@@ -140,8 +142,12 @@ test.describe("業務部品デザイナ", () => {
     await page.getByTestId("layout-palette-tab-items").click();
     await expect(page.getByTestId("layout-unplaced-trackingNumber")).toBeVisible();
 
+    // 画面に表示しない項目は未配置に数えず、別の一覧に並ぶ (自動配置の対象外)
+    await expect(page.getByTestId("layout-hidden-internalState")).toBeVisible();
+    await expect(page.getByTestId("layout-unplaced-internalState")).toHaveCount(0);
     await page.getByTestId("layout-auto-place").click();
     await expect(page.getByTestId("layout-unplaced-trackingNumber")).toHaveCount(0);
+    await expect(page.getByTestId("layout-node-internalState")).toHaveCount(0);
     await expect(page.getByTestId("layout-auto-place")).toHaveCount(0); // 未配置が無くなればボタンも消える
     await expect(page.getByTestId("layout-node-trackingNumber")).toBeVisible();
 
@@ -165,6 +171,19 @@ test.describe("業務部品デザイナ", () => {
     const s = await readScreen("cart");
     expect(s.layout?.nodes.length).toBeGreaterThan(1);
     expect(s.items.some((i) => i.id === "addProductCode")).toBe(true);
+  });
+
+  test("項目を「画面に表示しない」にして保存できる @regression", async ({ page }) => {
+    await openDesigner(page, "shipment-dispatch");
+    await page.getByTestId("edit-mode-start").click();
+    await expect(page.getByTestId("edit-mode-save")).toBeVisible({ timeout: 10000 });
+    // 配置済みの「時間帯」の部品を選び、右パネルで「画面に表示しない」にする
+    await page.getByTestId("layout-node-timeSlot").click();
+    await expect(page.getByTestId("layout-item-editor")).toBeVisible();
+    await page.getByTestId("layout-item-non-visual").check();
+    await save(page, "shipment-dispatch", (s) => s.items.some((i) => i.id === "timeSlot" && i.nonVisual === true));
+    await page.getByTestId("edit-mode-discard").click();
+    await page.getByTestId("discard-confirm").click();
   });
 
   test("テーブル列から入力項目を作る (型・桁・必須を引き継ぐ) @regression", async ({ page }) => {

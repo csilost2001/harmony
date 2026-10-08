@@ -243,6 +243,8 @@ export interface LayoutItemLike {
   id: string;
   label?: string;
   presentation?: { kind?: string } | undefined;
+  /** 画面に表示しない項目。置かれていなくても未配置にしない */
+  nonVisual?: boolean;
 }
 
 /**
@@ -274,7 +276,7 @@ export function validateLayout(layout: ScreenLayout | undefined, items: readonly
   });
   const placed = collectItemRefs(layout.nodes);
   for (const it of items) {
-    if (!placed.has(it.id)) issues.push({ severity: "info", code: "unplaced-item", itemId: it.id, message: `画面項目「${it.label || it.id}」が画面に配置されていません` });
+    if (!placed.has(it.id) && !it.nonVisual) issues.push({ severity: "info", code: "unplaced-item", itemId: it.id, message: `画面項目「${it.label || it.id}」が画面に配置されていません` });
   }
   return issues;
 }

@@ -21,6 +21,7 @@ export interface DocScreenItem {
   direction?: string;
   required?: boolean;
   readonly?: boolean;
+  nonVisual?: boolean;
   minLength?: number;
   maxLength?: number;
   min?: number;
@@ -360,7 +361,7 @@ export function buildDesignDocument(input: DesignDocInput): DesignDocResult {
       <h4 class="hd-sub">項目定義<small>${items.length} 件</small></h4>
       ${table(["No", "項目名", "項目 ID", "型", "桁 / 範囲", "必須", "入出力", "書式・選択肢", "説明"], items.map((it, k) => [
         String(k + 1),
-        esc(it.label ?? "") + (s.layout && !placed.has(it.id) ? ` <span class="hd-tag">未配置</span>` : ""),
+        esc(it.label ?? "") + (it.nonVisual ? ` <span class="hd-tag">非表示</span>` : s.layout && !placed.has(it.id) ? ` <span class="hd-tag">未配置</span>` : ""),
         `<code>${esc(it.id)}</code>`,
         esc(typeText(it.type)),
         esc([it.minLength !== undefined || it.maxLength !== undefined ? `${it.minLength ?? ""}〜${it.maxLength ?? ""}桁` : "", it.min !== undefined || it.max !== undefined ? `${it.min ?? ""}〜${it.max ?? ""}` : ""].filter(Boolean).join(" ")),

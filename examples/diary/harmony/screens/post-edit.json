@@ -303,7 +303,8 @@
       "type": "integer",
       "direction": "in",
       "description": "AI画像alt生成 button 押下時に対象となる photos[] の id を保持する画面 state。photo クリック時に実装側で update する。",
-      "required": false
+      "required": false,
+      "nonVisual": true
     },
     {
       "id": "uploadPhotoFile",

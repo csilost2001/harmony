@@ -19,12 +19,12 @@ export interface AutoPlaceItem {
   direction?: string;
   presentation?: { kind?: string };
   events?: ReadonlyArray<{ id?: string }>;
-  description?: string;
+  nonVisual?: boolean;
 }
 
-/** 画面の内部状態を保持するだけの項目 (説明に「画面 state」等と明記されたもの)。画面には表示しないので自動配置しない */
+/** 画面に表示しない項目 (画面項目の nonVisual)。画面の内部状態・隠し値なので自動配置しない */
 export function isStateOnlyItem(item: AutoPlaceItem): boolean {
-  return /(画面|内部)\s*state|state\s*(を保持|のみ)|(画面|内部)状態を保持|表示しない項目|非表示項目/i.test(item.description ?? "");
+  return item.nonVisual === true;
 }
 
 export interface AutoPlacement {

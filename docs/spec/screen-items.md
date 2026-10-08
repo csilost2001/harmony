@@ -68,6 +68,9 @@ interface ScreenItem {
   required?: boolean;
   readonly?: boolean;
   disabled?: boolean;
+  /** 画面には表示しない項目 (画面の内部状態・隠し値など)。画面の部品の木に置かない
+   *  (未配置の警告・自動配置の対象外)。処理フローとの受け渡しには通常どおり使える。 */
+  nonVisual?: boolean;
   /** 文字列系制約。 */
   minLength?: number;
   maxLength?: number;
